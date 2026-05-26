@@ -18,6 +18,8 @@ import { calcCost } from './router/pricing.ts'
 import { chat } from './providers/openrouter.ts'
 import { parseLLMResponse, enforceContract, snapshotHashes } from './run/contract.ts'
 import { insertRun } from './db/runs.ts'
+import { loadTasks, saveTasks, tasksExist, updateTaskStatus, hashFile, tasksPath } from './tasks/loader.ts'
+import { stringify as yamlStringify } from 'yaml'
 import { readFileSync } from 'fs'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
 
@@ -407,6 +409,211 @@ program
       const icon = r.status === 'done' ? '✓' : r.status === 'blocked' ? '✗' : '!'
       console.log(`  ${icon} ${r.created_at.slice(0, 19)}  ${r.task_class.padEnd(10)} ${r.model.padEnd(22)} $${r.usd_cost.toFixed(5)}  ${r.prompt.slice(0, 50)}${blocked > 0 ? `  [${blocked} blocked]` : ''}`)
     }
+  })
+
+// ── task ──────────────────────────────────────────────────────────────────────
+const task = program.command('task').description('Manage and run declarative task workflows')
+
+task
+  .command('init [path]')
+  .description('Generate tasks.yaml scaffold based on detected stack')
+  .action(async (targetPath?: string) => {
+    const root = resolve(targetPath ?? '.')
+    if (tasksExist(root)) {
+      console.error(`[task] tasks.yaml already exists in ${root}`)
+      process.exit(1)
+    }
+    const profile = await buildProfile(root)
+    const { manifest } = profile
+
+    // Generate 2 starter tasks based on detected stack
+    const isNext   = manifest.framework === 'Next.js'
+    const isNode   = manifest.runtime   === 'Node.js'
+    const isPython = manifest.runtime   === 'Python'
+
+    const tasks = isNext ? [
+      { id: 't1-component', description: 'Create a reusable Button component', skill: 'implement', input: [], output: ['src/components/Button.tsx'], depends_on: [], status: 'pending', retry_count: 0 },
+      { id: 't2-styles',    description: 'Add CSS module styles for Button', skill: 'implement', input: ['src/components/Button.tsx'], output: ['src/components/Button.module.css'], depends_on: ['t1-component'], status: 'pending', retry_count: 0 },
+    ] : isPython ? [
+      { id: 't1-util', description: 'Create a utility function for string normalization', skill: 'implement', input: [], output: ['utils/normalize.py'], depends_on: [], status: 'pending', retry_count: 0 },
+      { id: 't2-test', description: 'Write unit tests for the normalize utility', skill: 'implement', input: ['utils/normalize.py'], output: ['tests/test_normalize.py'], depends_on: ['t1-util'], status: 'pending', retry_count: 0 },
+    ] : [
+      { id: 't1-util', description: 'Create a utility helper function', skill: 'implement', input: [], output: ['src/utils/helper.js'], depends_on: [], status: 'pending', retry_count: 0 },
+      { id: 't2-doc',  description: 'Add JSDoc comments to the helper', skill: 'doc', input: ['src/utils/helper.js'], output: ['src/utils/helper.js'], depends_on: ['t1-util'], status: 'pending', retry_count: 0 },
+    ]
+
+    const content = yamlStringify({ version: 1, project: manifest.name, tasks }, { lineWidth: 120 })
+    writeFileSync(tasksPath(root), content, 'utf-8')
+    console.log(`[task] Created tasks.yaml in ${root}`)
+    console.log(`  → ${tasks.length} starter tasks for ${manifest.framework || manifest.runtime}`)
+    console.log(`  Edit tasks.yaml to define your actual work, then run: orchestos task run <path>`)
+  })
+
+task
+  .command('list [path]')
+  .description('List all tasks and their status')
+  .action((targetPath?: string) => {
+    const root = resolve(targetPath ?? '.')
+    const file = loadTasks(root)
+    console.log(`\n  ${file.project} — tasks.yaml\n`)
+    const icons: Record<string, string> = { pending: '○', running: '◌', done: '✓', failed: '✗', failed_permanent: '✗✗', blocked: '⊘' }
+    for (const t of file.tasks) {
+      const icon = icons[t.status] ?? '?'
+      const dep  = t.depends_on.length > 0 ? ` (needs: ${t.depends_on.join(', ')})` : ''
+      const qa   = t.qa_verdict ? ` [qa:${t.qa_verdict}]` : ''
+      const retry = t.retry_count > 0 ? ` retry:${t.retry_count}` : ''
+      console.log(`  ${icon} ${t.id.padEnd(24)} ${t.status.padEnd(16)} out:${t.output.join(',')}${dep}${qa}${retry}`)
+    }
+    console.log()
+  })
+
+task
+  .command('run [path]')
+  .description('Execute the next pending task with contract enforcement')
+  .option('--id <task-id>', 'Run a specific task by id')
+  .option('--all', 'Run all pending tasks in dependency order')
+  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean }) => {
+    const root = resolve(targetPath ?? '.')
+    const projectContext = loadContext(root)
+
+    const executeTask = async (taskId: string): Promise<'done' | 'failed' | 'blocked'> => {
+      const file = loadTasks(root)
+      const t = file.tasks.find(x => x.id === taskId)
+      if (!t) { console.error(`[task] Task "${taskId}" not found`); return 'failed' }
+      if (t.status === 'done')             { console.log(`[task] ${taskId} already done`); return 'done' }
+      if (t.status === 'failed_permanent') { console.log(`[task] ${taskId} permanently failed`); return 'failed' }
+
+      // check dependencies
+      for (const dep of t.depends_on) {
+        const depTask = file.tasks.find(x => x.id === dep)
+        if (!depTask || depTask.status !== 'done') {
+          console.error(`[task] ${taskId} blocked — dependency "${dep}" not done (status: ${depTask?.status ?? 'not found'})`)
+          updateTaskStatus(root, taskId, { status: 'blocked' })
+          return 'blocked'
+        }
+      }
+
+      // mark running
+      updateTaskStatus(root, taskId, { status: 'running' })
+      console.log(`\n[task] Running: ${taskId}`)
+      console.log(`  description: ${t.description}`)
+      console.log(`  output:      ${t.output.join(', ')}`)
+
+      const taskClass = classifyTask(t.description)
+      const model     = resolveModel(taskClass)
+      const t0        = performance.now()
+
+      // build skill guidelines
+      let skillGuidelines = ''
+      if (t.skill) {
+        try {
+          const s = loadSkill(getSkillPath(t.skill))
+          skillGuidelines = `\n## SKILL GUIDELINES: ${s.name}\n${s.instructions}\n`
+        } catch { /* skill not found, continue */ }
+      }
+
+      const system = [
+        projectContext || '# Project context\nNo AGENTS.md found.',
+        skillGuidelines,
+        `\n## OUTPUT CONTRACT`,
+        `You may ONLY write to these files: ${t.output.join(', ')}`,
+        `Respond with ONLY valid JSON — no markdown, no explanation:`,
+        `{ "files": [{ "path": "relative/path", "content": "full file content" }] }`,
+      ].join('\n')
+
+      // read input files
+      let userContent = `Task: ${t.description}\n`
+      for (const f of t.input) {
+        const full = join(root, f)
+        if (existsSync(full)) {
+          const { readFileSync } = await import('fs')
+          userContent += `\n### ${f}\n\`\`\`\n${readFileSync(full, 'utf-8')}\n\`\`\`\n`
+        }
+      }
+
+      // snapshot before
+      const before = snapshotHashes(root, t.output)
+
+      let llmResponse: Awaited<ReturnType<typeof chat>>
+      try {
+        llmResponse = await chat({ model, system, messages: [{ role: 'user', content: userContent }] })
+      } catch (e: any) {
+        updateTaskStatus(root, taskId, { status: 'failed', retry_reason: e.message })
+        console.error(`[task] LLM error: ${e.message}`)
+        return 'failed'
+      }
+
+      const elapsed = Math.round(performance.now() - t0)
+      const cost    = calcCost(model, llmResponse.inputTokens, llmResponse.outputTokens)
+
+      let parsed: ReturnType<typeof parseLLMResponse>
+      try {
+        parsed = parseLLMResponse(llmResponse.text)
+      } catch (e: any) {
+        updateTaskStatus(root, taskId, { status: 'failed', retry_reason: `parse error: ${e.message}` })
+        insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: null, files_authorized: null, files_blocked: null, snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
+        return 'failed'
+      }
+
+      let contractResult: ReturnType<typeof enforceContract>
+      try {
+        contractResult = enforceContract(root, parsed, t.output)
+      } catch (e: any) {
+        const attempted = parsed.files.map(f => f.path)
+        const blocked   = attempted.filter(p => !t.output.includes(p))
+        updateTaskStatus(root, taskId, { status: 'failed', retry_reason: `contract violation: ${blocked.join(', ')}` })
+        insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(attempted), files_authorized: JSON.stringify(attempted.filter(p => t.output.includes(p))), files_blocked: JSON.stringify(blocked), snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, status: 'blocked', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
+        console.error(`[task] ✗ CONTRACT VIOLATION — ${blocked.join(', ')}`)
+        return 'failed'
+      }
+
+      const after  = snapshotHashes(root, t.output)
+      const runId  = insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: null, qa_reason: null, status: 'done', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: `${contractResult.written.length} file(s) written` })
+
+      updateTaskStatus(root, taskId, { status: 'done', run_id: runId, retry_reason: undefined })
+
+      console.log(`[task] ✓ ${taskId} done`)
+      for (const f of contractResult.written) console.log(`  → ${f.path}`)
+      console.log(`  model: ${model} · tokens: ${llmResponse.inputTokens}/${llmResponse.outputTokens} · $${cost.toFixed(5)} · ${elapsed}ms`)
+      return 'done'
+    }
+
+    if (opts?.id) {
+      await executeTask(opts.id)
+      return
+    }
+
+    if (opts?.all) {
+      let iterations = 0
+      const MAX = 20
+      while (iterations++ < MAX) {
+        const file = loadTasks(root)
+        const pending = file.tasks.filter(t => t.status === 'pending')
+        if (pending.length === 0) { console.log('\n[task] All tasks done ✓'); break }
+
+        // find next executable (no unresolved deps)
+        const next = pending.find(t =>
+          t.depends_on.every(dep => file.tasks.find(x => x.id === dep)?.status === 'done')
+        )
+        if (!next) {
+          const blocked = pending.map(t => t.id).join(', ')
+          console.error(`\n[task] No executable tasks — blocked: ${blocked}`)
+          break
+        }
+        const result = await executeTask(next.id)
+        if (result === 'failed') { console.error('[task] Stopping — task failed'); break }
+      }
+      return
+    }
+
+    // default: run next pending task
+    const file = loadTasks(root)
+    const next = file.tasks.find(t =>
+      t.status === 'pending' &&
+      t.depends_on.every(dep => file.tasks.find(x => x.id === dep)?.status === 'done')
+    )
+    if (!next) { console.log('[task] No pending tasks ready to run.'); return }
+    await executeTask(next.id)
   })
 
 program.parse()
