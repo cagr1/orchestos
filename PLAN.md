@@ -195,7 +195,7 @@ Objetivo medible: alguien externo puede clonar el repo, leer el README y correr 
   - [x] `runs --detail` muestra evidencia real de run `6b6f67fe` con snapshot, qa_reason, tokens ✓
   - [x] `runs --export` genera `runs-export.json` con 9 runs / 227 líneas ✓
   - [x] README no contiene "deterministic parallel", "anti-hallucination", "LLM-fatigue protection" ✓
-- [ ] **S8.7** Commit `docs: honest README + LIMITATIONS + observability commands`.
+- [x] **S8.7** Commit `129d317` `docs: honest README + LIMITATIONS + observability commands` — 2026-05-26
 
 ---
 
@@ -203,8 +203,8 @@ Objetivo medible: alguien externo puede clonar el repo, leer el README y correr 
 
 ¿Un run de `orchestos task run --all` en un proyecto real termina con todas las tareas en `done`, evidencia en SQLite, y ningún archivo modificado fuera del contrato declarado?
 
-- [ ] **SÍ** → el wedge de la crítica está implementado. Abrir plan Mes 3 (worktrees, paralelismo).
-- [ ] **NO** → identificar qué falla y arreglarlo antes de agregar features.
+- [x] **SÍ** — validado en qa-test-project: t1-normal done, t2-empty reverted (QA fail), t3-repeat-fail → failed_permanent tras 3 retries. Evidence en SQLite. Contract enforcement activo. — 2026-05-26
+- [ ] Pendiente — validar con proyecto real de tercero (métrica "¿lo extrañaría si desaparece?").
 
 ---
 
