@@ -160,7 +160,7 @@ Objetivo medible: después de cada run, un QA call valida el output. Si falla �
   - [x] QA falla intencionalmente: tarea con output vacío → `retry_count=1/3 → back to pending` ✓
   - [x] QA pasa: `add(a,b)` normal → `done · QA pass` + `qa_verdict: pass` en SQLite ✓
   - [x] Tarea con 3 fallos QA → `retry_count=3 ≥ 3 → failed_permanent`, 4to intento devuelve `permanently failed` sin ejecutar ✓
-- [ ] **S6.7** Commit `feat(qa): QA stage — second LLM call validates output before done`.
+- [x] **S6.7** Commit `31b0c6d` `feat(qa): QA stage - second LLM call validates output before done` — 2026-05-26
 
 ---
 
