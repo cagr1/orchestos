@@ -112,6 +112,101 @@ Objetivo medible: `orchestos run "<prompt>"` clasifica, llama provider, loguea c
 
 ---
 
+## MES 2 — Contract-first workflow con evidencia
+
+Objetivo del mes: `orchestos task run` ejecuta un workflow declarativo en `tasks.yaml`, cada tarea genera evidencia real en SQLite, y un QA stage valida el output antes de marcarlo `done`. Nadie lo hace así de simple y auditable.
+
+Fuente: crítica brutal (wedge = "cambios acotados, auditables, revisables") + ideas buenas de `ai-orchestrator-base`.
+
+**Lo que NO se construye este mes (explícito):**
+- Git worktrees / aislamiento por tarea — Mes 3+
+- Paralelismo real — Mes 3+
+- Dashboard web — después del CLI
+- Marketplace de skills — después de 10 skills en uso real
+- Engram / memoria semántica — Mes 3+
+
+---
+
+### SEMANA 5 — `tasks.yaml` como fuente de verdad
+
+Objetivo medible: `orchestos task init` genera `tasks.yaml` en el proyecto + `orchestos task run` ejecuta la primera tarea y guarda evidencia.
+
+- [ ] **S5.1** Schema `tasks.yaml` — cada tarea tiene: `id`, `description`, `skill`, `input[]`, `output[]` (contrato de archivos), `depends_on[]`, `status` (`pending|running|done|failed`).
+- [ ] **S5.2** `src/tasks/schema.ts` — tipo `Task` + `TasksFile`. Validador que falla con mensaje claro si falta `output[]`.
+- [ ] **S5.3** `src/tasks/loader.ts` — `loadTasks(root)` / `saveTasks(root, tasks)`. Lee/escribe `tasks.yaml` en la raíz del proyecto. Lock optimista con hash (igual que ai-orchestrator-base, pero simple).
+- [ ] **S5.4** Comando `orchestos task init <path>` — genera `tasks.yaml` de ejemplo con 2 tareas pre-pobladas según el stack detectado (ej: Next.js → tarea de componente + tarea de test).
+- [ ] **S5.5** Comando `orchestos task list <path>` — imprime tabla: `id | status | skill | output[]`.
+- [ ] **S5.6** Comando `orchestos task run <path>` — selecciona la próxima tarea `pending` sin dependencias bloqueadas, ejecuta via `enforceContract`, guarda evidencia en SQLite, actualiza `status` en `tasks.yaml`.
+- [ ] **S5.7** Evidencia extendida en SQLite — agregar `task_id`, `snapshot_before` (hashes), `snapshot_after` (hashes) a la tabla `runs`.
+- [ ] **S5.8 — Validación**:
+  - [ ] `orchestos task init` genera `tasks.yaml` válido.
+  - [ ] `orchestos task run` ejecuta T1, escribe solo los archivos declarados en `output[]`, falla si intenta escribir fuera.
+  - [ ] `tasks.yaml` muestra `status: done` en T1 después del run.
+  - [ ] SQLite tiene `snapshot_before` y `snapshot_after` distintos.
+- [ ] **S5.9** Commit `feat(tasks): tasks.yaml workflow + evidence snapshots`.
+
+---
+
+### SEMANA 6 — QA stage (segundo LLM call antes de `done`)
+
+Objetivo medible: después de cada run, un QA call valida el output. Si falla → tarea vuelve a `pending` con `retry_reason`.
+
+- [ ] **S6.1** `src/run/qa.ts` — `runQA(task, filesWritten, model)`: llama al LLM con el output generado + descripción de la tarea. Espera respuesta `{ verdict: "pass" | "fail", reason: string }`.
+- [ ] **S6.2** Prompt de QA — inyecta: descripción original de la tarea + contenido de los archivos escritos + pregunta: "¿El output cumple exactamente lo pedido? Responde JSON `{verdict, reason}`".
+- [ ] **S6.3** Integrar QA en `task run` — flujo: ejecutar → escribir archivos → QA call → si `pass` → `done`; si `fail` → revertir archivos (restaurar snapshot_before) → `pending` con `retry_reason` + contador `retry_count`.
+- [ ] **S6.4** Límite de reintentos — si `retry_count >= 3` → `status: failed_permanent`. No vuelve a ejecutarse.
+- [ ] **S6.5** Comando `orchestos task status <path>` — muestra tabla con `id | status | retry_count | qa_verdict | cost_usd`.
+- [ ] **S6.6 — Validación**:
+  - [ ] QA falla intencionalmente: tarea con output vacío → status vuelve a `pending`.
+  - [ ] QA pasa: tarea normal → `done` con `qa_verdict: pass` en SQLite.
+  - [ ] Tarea con 3 fallos QA → `failed_permanent`, no se reintenta.
+- [ ] **S6.7** Commit `feat(qa): QA stage — second LLM call validates output before done`.
+
+---
+
+### SEMANA 7 — Workflow multi-tarea con dependencias
+
+Objetivo medible: `orchestos task run --all` ejecuta todas las tareas en orden topológico, respetando dependencias.
+
+- [ ] **S7.1** `src/tasks/scheduler.ts` — `getNextBatch(tasks)`: devuelve tareas `pending` cuyas dependencias están todas en `done`. Si hay ciclo → error claro.
+- [ ] **S7.2** `orchestos task run --all` — loop: `getNextBatch` → ejecutar una tarea → actualizar `tasks.yaml` → repetir hasta que no haya más `pending` o haya un `failed`.
+- [ ] **S7.3** Halt en fallo — si una tarea falla (o `failed_permanent`), las que dependen de ella pasan a `blocked`. El loop se detiene con mensaje claro.
+- [ ] **S7.4** `orchestos task run --id <task-id>` — ejecutar una tarea específica por ID (ignora scheduler).
+- [ ] **S7.5** Log de ejecución — `runs/YYYY-MM-DD-HH-mm.log` en la raíz del proyecto con eventos: `[START]`, `[QA:pass]`, `[QA:fail]`, `[DONE]`, `[BLOCKED]`.
+- [ ] **S7.6 — Validación**:
+  - [ ] `tasks.yaml` con T1 → T2 (T2 depends_on T1): ejecutar `--all` → T1 done → T2 done en orden.
+  - [ ] Si T1 falla → T2 queda `blocked`, loop se detiene.
+  - [ ] Log en disco refleja el orden real de ejecución.
+- [ ] **S7.7** Commit `feat(scheduler): multi-task workflow with dependency resolution`.
+
+---
+
+### SEMANA 8 — Observabilidad + README honesto
+
+Objetivo medible: alguien externo puede clonar el repo, leer el README y correr `orchestos task run` en su proyecto en < 10 minutos.
+
+- [ ] **S8.1** Comando `orchestos runs --detail <run-id>` — muestra evidencia completa: snapshot_before/after, files_attempted/authorized/blocked, QA verdict, costo.
+- [ ] **S8.2** Comando `orchestos runs --export` — exporta historial de runs a `runs-export.json` (para auditoría manual).
+- [ ] **S8.3** `src/generators/summary-pdf.ts` — extender para incluir sección de runs recientes y costo total.
+- [ ] **S8.4** Reescribir `README.md` — sin claims falsos. Título: **"orchestos — contract-first coding runner"**. Secciones: install, quickstart (5 comandos), cómo funciona, limitaciones honestas.
+- [ ] **S8.5** `LIMITATIONS.md` — qué no hace: no es paralelo, no tiene sandbox, no reemplaza git, no es autónomo.
+- [ ] **S8.6 — Validación**:
+  - [ ] Clonar en directorio limpio → seguir README → `orchestos task run` funciona en < 10 min.
+  - [ ] `orchestos runs --detail` muestra evidencia real de un run anterior.
+  - [ ] README no contiene palabras: "deterministic parallel", "anti-hallucination", "LLM-fatigue protection".
+- [ ] **S8.7** Commit `docs: honest README + LIMITATIONS + observability commands`.
+
+---
+
+## Métrica única de éxito Mes 2
+
+¿Un run de `orchestos task run --all` en un proyecto real termina con todas las tareas en `done`, evidencia en SQLite, y ningún archivo modificado fuera del contrato declarado?
+
+- [ ] **SÍ** → el wedge de la crítica está implementado. Abrir plan Mes 3 (worktrees, paralelismo).
+- [ ] **NO** → identificar qué falla y arreglarlo antes de agregar features.
+
+---
+
 ## Registro de progreso
 
 Formato: marcar `[x]` con fecha `YYYY-MM-DD` cuando se cierra. Si una validación falla, dejar `[ ]` y anotar bajo "Bloqueos".
