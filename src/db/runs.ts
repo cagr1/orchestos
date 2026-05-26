@@ -48,9 +48,18 @@ export function insertRun(r: Omit<RunRecord, 'id' | 'created_at'>): string {
 }
 
 export function listRuns(limit = 20): RunRecord[] {
+  if (limit === 0) {
+    return db.query<RunRecord, []>('SELECT * FROM runs ORDER BY created_at DESC').all()
+  }
   return db.query<RunRecord, number>(
     'SELECT * FROM runs ORDER BY created_at DESC LIMIT ?'
   ).all(limit)
+}
+
+export function getRun(id: string): RunRecord | null {
+  return db.query<RunRecord, string>(
+    'SELECT * FROM runs WHERE id = ?'
+  ).get(id) ?? null
 }
 
 export function listRunsByTaskId(taskId: string): RunRecord[] {

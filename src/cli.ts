@@ -18,6 +18,7 @@ import { calcCost } from './router/pricing.ts'
 import { chat } from './providers/openrouter.ts'
 import { parseLLMResponse, enforceContract, snapshotHashes } from './run/contract.ts'
 import { runQA, snapshotContents, restoreContents, MAX_RETRIES } from './run/qa.ts'
+import { RunLogger } from './run/logger.ts'
 import { insertRun } from './db/runs.ts'
 import { loadTasks, saveTasks, tasksExist, updateTaskStatus, hashFile, tasksPath } from './tasks/loader.ts'
 import { stringify as yamlStringify } from 'yaml'
@@ -72,8 +73,9 @@ program
     console.log(`  → context.json`)
     console.log(`  → ~/.orchestos/db.sqlite`)
     if (opts?.pdf) {
+      const { listRuns: lr } = require('./db/runs.ts')
       const pdfPath = join(root, `${profile.manifest.name}-summary.pdf`)
-      await generateSummaryPdf(profile, agentsMd, pdfPath)
+      await generateSummaryPdf(profile, agentsMd, pdfPath, lr(10))
       console.log(`  → ${profile.manifest.name}-summary.pdf`)
     }
   })
@@ -89,8 +91,9 @@ program
     const profile = await buildProfile(root)
     const agentsMd = generateAgentsMd(profile)
     upsertProject(root, profile, agentsMd)
+    const { listRuns: lr2 } = require('./db/runs.ts')
     const pdfPath = opts?.out ?? join(root, `${profile.manifest.name}-summary.pdf`)
-    await generateSummaryPdf(profile, agentsMd, pdfPath)
+    await generateSummaryPdf(profile, agentsMd, pdfPath, lr2(10))
     const elapsed = Math.round(performance.now() - t0)
     console.log(`[summary] ${profile.manifest.name} → ${pdfPath} (${elapsed}ms)`)
   })
@@ -401,14 +404,54 @@ program
   .command('runs')
   .description('Show recent run history')
   .option('--limit <n>', 'Number of runs to show', '10')
-  .action((opts: { limit: string }) => {
-    const { listRuns } = require('./db/runs.ts')
+  .option('--detail <run-id>', 'Show full evidence for a specific run')
+  .option('--export', 'Export full run history to runs-export.json in cwd')
+  .action((opts: { limit: string; detail?: string; export?: boolean }) => {
+    const { listRuns, getRun } = require('./db/runs.ts')
+
+    if (opts.detail) {
+      const r = getRun(opts.detail)
+      if (!r) { console.error(`[runs] Run not found: ${opts.detail}`); process.exit(1) }
+      const icon = r.status === 'done' ? '✓' : '✗'
+      console.log(`\n  ${icon} Run: ${r.id}`)
+      console.log(`  ${'─'.repeat(60)}`)
+      console.log(`  date:       ${r.created_at}`)
+      console.log(`  task:       ${r.task_id ?? '-'}`)
+      console.log(`  prompt:     ${r.prompt}`)
+      console.log(`  model:      ${r.model} (${r.task_class})`)
+      console.log(`  status:     ${r.status}`)
+      console.log(`  qa_verdict: ${r.qa_verdict ?? '-'}`)
+      if (r.qa_reason)  console.log(`  qa_reason:  ${r.qa_reason}`)
+      console.log(`  tokens:     ${r.input_tokens} in / ${r.output_tokens} out`)
+      console.log(`  cost:       $${r.usd_cost.toFixed(6)}`)
+      console.log(`  elapsed:    ${r.elapsed_ms}ms`)
+      if (r.allowed_outputs)  console.log(`  allowed:    ${JSON.parse(r.allowed_outputs).join(', ')}`)
+      if (r.files_attempted)  console.log(`  attempted:  ${JSON.parse(r.files_attempted).join(', ')}`)
+      if (r.files_authorized) console.log(`  authorized: ${JSON.parse(r.files_authorized).join(', ')}`)
+      const blocked = r.files_blocked ? JSON.parse(r.files_blocked) : []
+      if (blocked.length > 0) console.log(`  blocked:    ${blocked.join(', ')}  ← CONTRACT VIOLATION`)
+      if (r.snapshot_before)  console.log(`  snap_before:${JSON.stringify(JSON.parse(r.snapshot_before), null, 0)}`)
+      if (r.snapshot_after)   console.log(`  snap_after: ${JSON.stringify(JSON.parse(r.snapshot_after), null, 0)}`)
+      if (r.result)           console.log(`  result:     ${r.result}`)
+      console.log()
+      return
+    }
+
+    if (opts.export) {
+      const rows = listRuns(0)   // 0 = unlimited
+      const outPath = join(resolve('.'), 'runs-export.json')
+      writeFileSync(outPath, JSON.stringify(rows, null, 2), 'utf-8')
+      console.log(`[runs] Exported ${rows.length} run(s) → ${outPath}`)
+      return
+    }
+
     const rows = listRuns(parseInt(opts.limit))
     if (rows.length === 0) { console.log('[runs] No runs yet.'); return }
     for (const r of rows) {
       const blocked = r.files_blocked ? JSON.parse(r.files_blocked).length : 0
       const icon = r.status === 'done' ? '✓' : r.status === 'blocked' ? '✗' : '!'
-      console.log(`  ${icon} ${r.created_at.slice(0, 19)}  ${r.task_class.padEnd(10)} ${r.model.padEnd(22)} $${r.usd_cost.toFixed(5)}  ${r.prompt.slice(0, 50)}${blocked > 0 ? `  [${blocked} blocked]` : ''}`)
+      const qa = r.qa_verdict ? ` [qa:${r.qa_verdict}]` : ''
+      console.log(`  ${icon} ${r.created_at.slice(0, 19)}  ${r.task_class.padEnd(10)} ${r.model.padEnd(22)} $${r.usd_cost.toFixed(5)}  ${r.prompt.slice(0, 45)}${qa}${blocked > 0 ? `  [${blocked} blocked]` : ''}`)
     }
   })
 
@@ -515,13 +558,16 @@ task
       for (const dep of t.depends_on) {
         const depTask = file.tasks.find(x => x.id === dep)
         if (!depTask || depTask.status !== 'done') {
+          const log = new RunLogger(root, taskId)
+          log.blocked(dep)
           console.error(`[task] ${taskId} blocked — dependency "${dep}" not done (status: ${depTask?.status ?? 'not found'})`)
           updateTaskStatus(root, taskId, { status: 'blocked' })
           return 'blocked'
         }
       }
 
-      // mark running
+      // mark running + open log
+      const log = new RunLogger(root, taskId)
       updateTaskStatus(root, taskId, { status: 'running' })
       console.log(`\n[task] Running: ${taskId}`)
       console.log(`  description: ${t.description}`)
@@ -567,6 +613,7 @@ task
       try {
         llmResponse = await chat({ model, system, messages: [{ role: 'user', content: userContent }] })
       } catch (e: any) {
+        log.error(`LLM call failed: ${e.message}`)
         updateTaskStatus(root, taskId, { status: 'failed', retry_reason: e.message })
         console.error(`[task] LLM error: ${e.message}`)
         return 'failed'
@@ -579,6 +626,7 @@ task
       try {
         parsed = parseLLMResponse(llmResponse.text)
       } catch (e: any) {
+        log.error(`parse error: ${e.message}`)
         updateTaskStatus(root, taskId, { status: 'failed', retry_reason: `parse error: ${e.message}` })
         insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: null, files_authorized: null, files_blocked: null, snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
         return 'failed'
@@ -590,6 +638,7 @@ task
       } catch (e: any) {
         const attempted = parsed.files.map(f => f.path)
         const blocked   = attempted.filter(p => !t.output.includes(p))
+        log.contractViolation(blocked)
         updateTaskStatus(root, taskId, { status: 'failed', retry_reason: `contract violation: ${blocked.join(', ')}` })
         insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(attempted), files_authorized: JSON.stringify(attempted.filter(p => t.output.includes(p))), files_blocked: JSON.stringify(blocked), snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, status: 'blocked', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
         console.error(`[task] ✗ CONTRACT VIOLATION — ${blocked.join(', ')}`)
@@ -624,9 +673,11 @@ task
         console.error(`[task] ✗ QA fail — ${qa.reason}`)
         console.error(`  reverted ${contractResult.written.length} file(s)`)
         if (newStatus === 'failed_permanent') {
+          log.failedPermanent(qa.reason)
           console.error(`  retry_count=${retryCount} ≥ ${MAX_RETRIES} → failed_permanent (will not retry)`)
           return 'failed'
         }
+        log.qaFail(qa.reason, retryCount, MAX_RETRIES)
         console.error(`  retry_count=${retryCount}/${MAX_RETRIES} → back to pending`)
         return 'retry'
       }
@@ -634,6 +685,8 @@ task
       const runId = insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, status: 'done', input_tokens: llmResponse.inputTokens + qa.inputTokens, output_tokens: llmResponse.outputTokens + qa.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
 
       updateTaskStatus(root, taskId, { status: 'done', run_id: runId, qa_verdict: 'pass', retry_reason: undefined })
+      log.qaPass(qa.reason)
+      log.done()
 
       console.log(`[task] ✓ ${taskId} done · QA pass — ${qa.reason}`)
       for (const f of contractResult.written) console.log(`  → ${f.path}`)

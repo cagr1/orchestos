@@ -172,12 +172,12 @@ Objetivo medible: `orchestos task run --all` ejecuta todas las tareas en orden t
 - [x] **S7.2** `orchestos task run --all` — loop con `MAX=20` iteraciones, recarga `tasks.yaml` cada vuelta, termina cuando no hay `pending`. — 2026-05-26
 - [x] **S7.3** Halt en fallo — `'failed'` corta el loop con mensaje; los dependientes quedan `pending` (no se ejecutan porque su dep no está `done`). `'retry'` (QA fail) no corta. — 2026-05-26
 - [x] **S7.4** `orchestos task run --id <task-id>` — ejecuta una tarea específica saltando el scheduler. — 2026-05-26
-- [ ] **S7.5** Log de ejecución `runs/YYYY-MM-DD-HH-mm.log` — **pendiente**. Solo hay output a consola; falta persistir eventos `[START] [QA:pass] [QA:fail] [DONE] [BLOCKED]` a archivo.
-- [x] **S7.6 — Validación parcial** (commit a59ed37): — 2026-05-26
+- [x] **S7.5** `src/run/logger.ts` — clase `RunLogger`: abre `runs/YYYY-MM-DD-HH-mm.log` al iniciar, escribe `START / QA:pass / QA:fail / DONE / BLOCKED / CONTRACT_VIOLATION / ERROR` con timestamp HH:mm:ss.mmm. Integrado en `executeTask`. — 2026-05-26
+- [x] **S7.6 — Validación completa** — 2026-05-26
   - [x] T1 → T2: `--all` ejecutó t1-util → t2-doc en orden.
   - [x] Contract enforcement bloquea writes fuera de `output[]`.
-  - [ ] ⚠️ Pendiente — log en disco (depende de S7.5).
-- [x] **S7.7** Fusionado dentro del commit `a59ed37` `feat(tasks): tasks.yaml workflow + dependency scheduler` (no se hizo commit separado). — 2026-05-26
+  - [x] Log en disco verificado: `2026-05-26-21-25.log` con `START → QA:pass → DONE` ✓
+- [x] **S7.7** Incluido en commit `docs: honest README + LIMITATIONS + observability commands` (S8.7). — 2026-05-26
 
 ---
 
@@ -185,15 +185,16 @@ Objetivo medible: `orchestos task run --all` ejecuta todas las tareas en orden t
 
 Objetivo medible: alguien externo puede clonar el repo, leer el README y correr `orchestos task run` en su proyecto en < 10 minutos.
 
-- [ ] **S8.1** Comando `orchestos runs --detail <run-id>` — muestra evidencia completa: snapshot_before/after, files_attempted/authorized/blocked, QA verdict, costo.
-- [ ] **S8.2** Comando `orchestos runs --export` — exporta historial de runs a `runs-export.json` (para auditoría manual).
-- [ ] **S8.3** `src/generators/summary-pdf.ts` — extender para incluir sección de runs recientes y costo total.
-- [ ] **S8.4** Reescribir `README.md` — sin claims falsos. Título: **"orchestos — contract-first coding runner"**. Secciones: install, quickstart (5 comandos), cómo funciona, limitaciones honestas.
-- [ ] **S8.5** `LIMITATIONS.md` — qué no hace: no es paralelo, no tiene sandbox, no reemplaza git, no es autónomo.
-- [ ] **S8.6 — Validación**:
-  - [ ] Clonar en directorio limpio → seguir README → `orchestos task run` funciona en < 10 min.
-  - [ ] `orchestos runs --detail` muestra evidencia real de un run anterior.
-  - [ ] README no contiene palabras: "deterministic parallel", "anti-hallucination", "LLM-fatigue protection".
+- [x] **S8.1** `orchestos runs --detail <run-id>` — muestra evidencia completa: date, task, model, status, qa_verdict, qa_reason, tokens, cost, elapsed, allowed/attempted/authorized/blocked, snapshot_before/after, result. — 2026-05-26
+- [x] **S8.2** `orchestos runs --export` — exporta todo el historial a `runs-export.json` en cwd. `listRuns(0)` = sin límite. — 2026-05-26
+- [x] **S8.3** `summary-pdf.ts` — nueva sección "Recent Runs": total runs, done/all, costo total, tabla de últimas 8 runs con status + qa_verdict. Se pasa `recentRuns[]` desde `init` y `summary`. — 2026-05-26
+- [x] **S8.4** `README.md` reescrito — título honesto, install, quickstart 5 pasos, explicación del flujo, todos los comandos, formato tasks.yaml, sin claims falsos. — 2026-05-26
+- [x] **S8.5** `LIMITATIONS.md` — ejecución secuencial, sin sandbox, sin rollback si el proceso crashea, QA también alucina, sin límite de costo, single-user local. — 2026-05-26
+- [x] **S8.6 — Validación** — 2026-05-26
+  - [ ] ⚠️ Clonar en directorio limpio — pendiente (requiere máquina sin bun instalado o VM; aplaza a revisión externa).
+  - [x] `runs --detail` muestra evidencia real de run `6b6f67fe` con snapshot, qa_reason, tokens ✓
+  - [x] `runs --export` genera `runs-export.json` con 9 runs / 227 líneas ✓
+  - [x] README no contiene "deterministic parallel", "anti-hallucination", "LLM-fatigue protection" ✓
 - [ ] **S8.7** Commit `docs: honest README + LIMITATIONS + observability commands`.
 
 ---

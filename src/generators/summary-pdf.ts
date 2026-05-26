@@ -2,8 +2,14 @@ import PDFDocument from 'pdfkit'
 import { createWriteStream } from 'fs'
 import { join } from 'path'
 import type { StackProfile } from './agents-md.ts'
+import type { RunRecord } from '../db/runs.ts'
 
-export function generateSummaryPdf(profile: StackProfile, agentsMd: string, outputPath: string): Promise<void> {
+export function generateSummaryPdf(
+  profile: StackProfile,
+  agentsMd: string,
+  outputPath: string,
+  recentRuns: RunRecord[] = []
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' })
     const stream = createWriteStream(outputPath)
@@ -71,6 +77,25 @@ export function generateSummaryPdf(profile: StackProfile, agentsMd: string, outp
          .text(`• ${note}`, { indent: 10 })
     }
     doc.moveDown(0.5)
+
+    // ── Recent Runs ───────────────────────────────────────────────────────────
+    if (recentRuns.length > 0) {
+      sectionTitle(doc, 'Recent Runs')
+      const totalCost = recentRuns.reduce((s, r) => s + (r.usd_cost ?? 0), 0)
+      const doneCount = recentRuns.filter(r => r.status === 'done').length
+      row(doc, 'Total runs',  String(recentRuns.length))
+      row(doc, 'Done / all',  `${doneCount} / ${recentRuns.length}`)
+      row(doc, 'Total cost',  `$${totalCost.toFixed(5)}`)
+      doc.moveDown(0.3)
+      for (const r of recentRuns.slice(0, 8)) {
+        const icon = r.status === 'done' ? '✓' : '✗'
+        const qa   = r.qa_verdict ? ` [qa:${r.qa_verdict}]` : ''
+        const date = r.created_at.slice(0, 16).replace('T', ' ')
+        doc.fontSize(9).font('Courier').fillColor('#444444')
+           .text(`  ${icon} ${date}  ${(r.task_id ?? r.task_class).padEnd(20)} $${r.usd_cost.toFixed(5)}${qa}`, { indent: 10 })
+      }
+      doc.moveDown(0.5)
+    }
 
     // ── Footer ────────────────────────────────────────────────────────────────
     const pageBottom = doc.page.height - 40
