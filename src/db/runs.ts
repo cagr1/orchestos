@@ -52,3 +52,9 @@ export function listRuns(limit = 20): RunRecord[] {
     'SELECT * FROM runs ORDER BY created_at DESC LIMIT ?'
   ).all(limit)
 }
+
+export function listRunsByTaskId(taskId: string): RunRecord[] {
+  return db.query<RunRecord, string>(
+    'SELECT * FROM runs WHERE task_id = ? ORDER BY created_at DESC'
+  ).all(taskId)
+}

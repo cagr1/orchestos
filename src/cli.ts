@@ -17,6 +17,7 @@ import { resolveModel } from './router/models.ts'
 import { calcCost } from './router/pricing.ts'
 import { chat } from './providers/openrouter.ts'
 import { parseLLMResponse, enforceContract, snapshotHashes } from './run/contract.ts'
+import { runQA, snapshotContents, restoreContents, MAX_RETRIES } from './run/qa.ts'
 import { insertRun } from './db/runs.ts'
 import { loadTasks, saveTasks, tasksExist, updateTaskStatus, hashFile, tasksPath } from './tasks/loader.ts'
 import { stringify as yamlStringify } from 'yaml'
@@ -468,6 +469,33 @@ task
   })
 
 task
+  .command('status [path]')
+  .description('Show task status table with retry count, QA verdict, and cost')
+  .action((targetPath?: string) => {
+    const root = resolve(targetPath ?? '.')
+    const file = loadTasks(root)
+    const { listRunsByTaskId } = require('./db/runs.ts')
+    console.log(`\n  ${file.project} — task status\n`)
+    const head = `  ${'id'.padEnd(22)} ${'status'.padEnd(18)} ${'retry'.padEnd(6)} ${'qa'.padEnd(6)} ${'cost'.padStart(10)}`
+    console.log(head)
+    console.log(`  ${'─'.repeat(head.length - 2)}`)
+    let totalCost = 0
+    for (const t of file.tasks) {
+      let cost = 0
+      try {
+        const rows = listRunsByTaskId(t.id) as Array<{ usd_cost: number }>
+        cost = rows.reduce((a, r) => a + (r.usd_cost ?? 0), 0)
+      } catch { /* no runs yet */ }
+      totalCost += cost
+      const qa = t.qa_verdict ?? '-'
+      console.log(`  ${t.id.padEnd(22)} ${t.status.padEnd(18)} ${String(t.retry_count).padEnd(6)} ${qa.padEnd(6)} ${('$' + cost.toFixed(5)).padStart(10)}`)
+    }
+    console.log(`  ${'─'.repeat(head.length - 2)}`)
+    console.log(`  ${'total'.padEnd(22)} ${''.padEnd(18)} ${''.padEnd(6)} ${''.padEnd(6)} ${('$' + totalCost.toFixed(5)).padStart(10)}`)
+    console.log()
+  })
+
+task
   .command('run [path]')
   .description('Execute the next pending task with contract enforcement')
   .option('--id <task-id>', 'Run a specific task by id')
@@ -476,7 +504,7 @@ task
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
 
-    const executeTask = async (taskId: string): Promise<'done' | 'failed' | 'blocked'> => {
+    const executeTask = async (taskId: string): Promise<'done' | 'failed' | 'blocked' | 'retry'> => {
       const file = loadTasks(root)
       const t = file.tasks.find(x => x.id === taskId)
       if (!t) { console.error(`[task] Task "${taskId}" not found`); return 'failed' }
@@ -531,8 +559,9 @@ task
         }
       }
 
-      // snapshot before
-      const before = snapshotHashes(root, t.output)
+      // snapshot before — hashes for evidence, full contents for revert
+      const before        = snapshotHashes(root, t.output)
+      const beforeContent = snapshotContents(root, t.output)
 
       let llmResponse: Awaited<ReturnType<typeof chat>>
       try {
@@ -567,14 +596,48 @@ task
         return 'failed'
       }
 
-      const after  = snapshotHashes(root, t.output)
-      const runId  = insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: null, qa_reason: null, status: 'done', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: `${contractResult.written.length} file(s) written` })
+      const after = snapshotHashes(root, t.output)
 
-      updateTaskStatus(root, taskId, { status: 'done', run_id: runId, retry_reason: undefined })
+      // ── QA stage ────────────────────────────────────────────────────────────
+      console.log(`[task] running QA on ${contractResult.written.length} file(s)…`)
+      let qa
+      try {
+        qa = await runQA({ description: t.description, output: t.output, written: contractResult.written, model })
+      } catch (e: any) {
+        // QA call itself failed — treat as fail to be safe, but don't crash.
+        qa = { verdict: 'fail' as const, reason: `QA call error: ${e.message}`, inputTokens: 0, outputTokens: 0, model }
+      }
+      const qaCost  = calcCost(qa.model, qa.inputTokens, qa.outputTokens)
+      const totalCost = cost + qaCost
+      const totalElapsed = Math.round(performance.now() - t0)
 
-      console.log(`[task] ✓ ${taskId} done`)
+      if (qa.verdict === 'fail') {
+        // Revert files to pre-run state
+        restoreContents(root, beforeContent)
+        const retryCount = t.retry_count + 1
+        const newStatus = retryCount >= MAX_RETRIES ? 'failed_permanent' : 'pending'
+
+        insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, status: 'failed', input_tokens: llmResponse.inputTokens + qa.inputTokens, output_tokens: llmResponse.outputTokens + qa.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail — reverted ${contractResult.written.length} file(s)` })
+
+        updateTaskStatus(root, taskId, { status: newStatus, qa_verdict: 'fail', retry_reason: qa.reason, retry_count: retryCount })
+
+        console.error(`[task] ✗ QA fail — ${qa.reason}`)
+        console.error(`  reverted ${contractResult.written.length} file(s)`)
+        if (newStatus === 'failed_permanent') {
+          console.error(`  retry_count=${retryCount} ≥ ${MAX_RETRIES} → failed_permanent (will not retry)`)
+          return 'failed'
+        }
+        console.error(`  retry_count=${retryCount}/${MAX_RETRIES} → back to pending`)
+        return 'retry'
+      }
+
+      const runId = insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: 'openrouter', skill_id: t.skill ?? null, task_id: taskId, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, status: 'done', input_tokens: llmResponse.inputTokens + qa.inputTokens, output_tokens: llmResponse.outputTokens + qa.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
+
+      updateTaskStatus(root, taskId, { status: 'done', run_id: runId, qa_verdict: 'pass', retry_reason: undefined })
+
+      console.log(`[task] ✓ ${taskId} done · QA pass — ${qa.reason}`)
       for (const f of contractResult.written) console.log(`  → ${f.path}`)
-      console.log(`  model: ${model} · tokens: ${llmResponse.inputTokens}/${llmResponse.outputTokens} · $${cost.toFixed(5)} · ${elapsed}ms`)
+      console.log(`  model: ${model} · tokens: ${llmResponse.inputTokens + qa.inputTokens}/${llmResponse.outputTokens + qa.outputTokens} · $${totalCost.toFixed(5)} · ${totalElapsed}ms`)
       return 'done'
     }
 
