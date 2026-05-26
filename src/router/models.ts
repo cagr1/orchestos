@@ -1,15 +1,20 @@
 import type { TaskClass } from './classify.ts'
 
-export type ModelKey = string
-
-export const MODEL_MAP: Record<TaskClass, ModelKey> = {
-  plan:      'claude-opus-4-7',
-  implement: 'claude-sonnet-4-6',
-  fix:       'claude-haiku-4-5',
-  review:    'claude-sonnet-4-6',
-  doc:       'claude-haiku-4-5',
+// OpenRouter model IDs — change any of these without touching the rest of the code.
+// Full list: https://openrouter.ai/models
+export const MODEL_MAP: Record<TaskClass, string> = {
+  plan:      'anthropic/claude-opus-4-7',
+  implement: 'anthropic/claude-sonnet-4-6',
+  fix:       'anthropic/claude-haiku-4-5',
+  review:    'anthropic/claude-sonnet-4-6',
+  doc:       'anthropic/claude-haiku-4-5',
 }
 
-export function resolveModel(taskClass: TaskClass): ModelKey {
+// Want to use other providers? Just swap the model IDs:
+// fix:  'openai/gpt-4o-mini'
+// doc:  'google/gemini-2.5-flash'
+// plan: 'openai/gpt-4o'
+
+export function resolveModel(taskClass: TaskClass): string {
   return MODEL_MAP[taskClass]
 }

@@ -84,31 +84,22 @@ Objetivo medible: una skill YAML compila a Claude, Cursor y OpenAI sin errores.
 
 Objetivo medible: `orchestos run "<prompt>"` clasifica, llama provider, loguea costo. **+ una persona externa lo usa.**
 
-- [ ] **S4.1** `src/router/classify.ts` — regex sobre prompt lowercased: `plan|implement|fix|review|doc`.
-- [ ] **S4.2** `src/router/models.ts` — mapping:
-  - `plan → claude-opus-4-7`
-  - `implement → claude-sonnet-4-6`
-  - `fix → claude-haiku-4-5`
-  - `review → claude-sonnet-4-6`
-  - `doc → claude-haiku-4-5`
-- [ ] **S4.3** `src/providers/anthropic.ts` con firma `chat({model, system, messages}) → {text, usage}`. API key desde `~/.orchestos/.env`.
-- [ ] **S4.4** `src/providers/openai.ts` — mismo contrato. (Stub explícito si no hay key, no bloquea.)
-- [ ] **S4.5** `src/router/pricing.ts` — tabla estática USD/1M tokens por modelo.
-- [ ] **S4.6** Migración append: tabla `runs` (schema en chat).
-- [ ] **S4.7** Comando `orchestos run "<prompt>" [--file <path>...] [--project <path>]`:
-  1. `loadContext(project)` como system.
-  2. `--file` → append contenido bajo `### Files:`.
-  3. `classifyTask` → modelo.
-  4. Provider call con `elapsed_ms`, `usd_cost`.
-  5. Insert en `runs`.
-  6. Footer `[run] {model} · {tin}/{tout} · ${cost} · {ms}ms`.
-- [ ] **S4.8 — Validación**:
-  - [ ] `orchestos run "fix tsc errors" --file foo.ts` → modelo fix, loguea.
-  - [ ] `orchestos run "plan auth refactor"` → modelo plan.
-  - [ ] Al menos 2 providers responden (o 1 + stub explícito).
-  - [ ] **1 persona externa** lo instaló y corrió en su repo.
-  - [ ] Feedback escrito guardado en `IDEAS.md` bajo `## Feedback usuario 1 — {fecha}`.
-- [ ] **S4.9** Commit `feat(router): classify + run + sqlite runs log`.
+- [x] **S4.1** `src/router/classify.ts` — 2026-05-26
+- [x] **S4.2** `src/router/models.ts` — 2026-05-26
+- [x] **S4.3** `src/providers/anthropic.ts` — API key desde `~/.orchestos/.env` — 2026-05-26
+- [x] **S4.4** `src/providers/openai.ts` — stub explícito — 2026-05-26
+- [x] **S4.5** `src/router/pricing.ts` — tabla USD/1M tokens — 2026-05-26
+- [x] **S4.6** Tabla `runs` con `files_attempted/authorized/blocked/status` — 2026-05-26
+- [x] **S4.7** `run/contract.ts` — enforceContract BLOQUEA writes fuera de --output — 2026-05-26
+- [x] **S4.8** Comando `orchestos run --task --output [--skill] [--file] [--project] [--dry-run]` — 2026-05-26
+- [x] **S4.9 — Validación parcial** — 2026-05-26
+  - [x] `--dry-run` construye prompt correcto: task_class=fix para "fix tsc errors", plan para "plan auth refactor"
+  - [x] Carga contexto citasbot desde SQLite en system prompt
+  - [x] Anthropic + OpenAI stub (2 providers declarados)
+  - [ ] ⚠️ PENDIENTE — run real con API key: `echo "ANTHROPIC_API_KEY=sk-..." > ~/.orchestos/.env`
+  - [ ] ⚠️ PENDIENTE — 1 persona externa instala y corre
+  - [ ] ⚠️ PENDIENTE — feedback en `IDEAS.md ## Feedback usuario 1`
+- [x] **S4.10** Commit `593292e` pusheado — 2026-05-26
 
 ---
 
