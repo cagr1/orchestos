@@ -19,6 +19,7 @@ import { chat } from './providers/openrouter.ts'
 import { parseLLMResponse, enforceContract, snapshotHashes } from './run/contract.ts'
 import { insertRun } from './db/runs.ts'
 import { readFileSync } from 'fs'
+import { generateSummaryPdf } from './generators/summary-pdf.ts'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -52,7 +53,8 @@ program
 program
   .command('init [path]')
   .description('Detect stack, write AGENTS.md + context.json, and save to DB')
-  .action(async (targetPath?: string) => {
+  .option('--pdf', 'Also generate a PDF summary')
+  .action(async (targetPath?: string, opts?: { pdf?: boolean }) => {
     const root = resolve(targetPath ?? '.')
     const t0 = performance.now()
     const profile = await buildProfile(root)
@@ -66,6 +68,28 @@ program
     console.log(`  → AGENTS.md`)
     console.log(`  → context.json`)
     console.log(`  → ~/.orchestos/db.sqlite`)
+    if (opts?.pdf) {
+      const pdfPath = join(root, `${profile.manifest.name}-summary.pdf`)
+      await generateSummaryPdf(profile, agentsMd, pdfPath)
+      console.log(`  → ${profile.manifest.name}-summary.pdf`)
+    }
+  })
+
+// ── summary ───────────────────────────────────────────────────────────────────
+program
+  .command('summary [path]')
+  .description('Generate a PDF summary of a project (runs init if not already saved)')
+  .option('--out <file>', 'Output PDF path (default: <project>-summary.pdf in project root)')
+  .action(async (targetPath?: string, opts?: { out?: string }) => {
+    const root = resolve(targetPath ?? '.')
+    const t0 = performance.now()
+    const profile = await buildProfile(root)
+    const agentsMd = generateAgentsMd(profile)
+    upsertProject(root, profile, agentsMd)
+    const pdfPath = opts?.out ?? join(root, `${profile.manifest.name}-summary.pdf`)
+    await generateSummaryPdf(profile, agentsMd, pdfPath)
+    const elapsed = Math.round(performance.now() - t0)
+    console.log(`[summary] ${profile.manifest.name} → ${pdfPath} (${elapsed}ms)`)
   })
 
 // ── context ───────────────────────────────────────────────────────────────────

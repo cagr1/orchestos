@@ -3,11 +3,11 @@ import type { TaskClass } from './classify.ts'
 // OpenRouter model IDs — change any of these without touching the rest of the code.
 // Full list: https://openrouter.ai/models
 export const MODEL_MAP: Record<TaskClass, string> = {
-  plan:      'anthropic/claude-opus-4-7',
-  implement: 'anthropic/claude-sonnet-4-6',
-  fix:       'anthropic/claude-haiku-4-5',
-  review:    'anthropic/claude-sonnet-4-6',
-  doc:       'anthropic/claude-haiku-4-5',
+  plan:      'deepseek/deepseek-v4-flash',
+  implement: 'deepseek/deepseek-v4-flash',
+  fix:       'deepseek/deepseek-v4-flash',
+  review:    'deepseek/deepseek-v4-flash',
+  doc:       'deepseek/deepseek-v4-flash',
 }
 
 // Want to use other providers? Just swap the model IDs:

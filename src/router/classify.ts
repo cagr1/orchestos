@@ -1,3 +1,9 @@
+/**
+ * Task classification module.
+ * Defines the TaskClass union type and the classifyTask function,
+ * which maps natural language prompts (English/Spanish) onto one of five task categories.
+ */
+
 export type TaskClass = 'plan' | 'implement' | 'fix' | 'review' | 'doc'
 
 /**
