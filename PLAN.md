@@ -41,7 +41,7 @@ Objetivo medible: `orchestos detect <path>` genera `AGENTS.md` + `context.json` 
   - [x] Cisepro no en disco — salteado
   - [x] AGENTS.md tiene nombre, stack, comandos y nota Prisma
   - [x] Tiempo < 3000ms — 182ms
-- [ ] **S1.10** Crear repo `cagr1/orchestos` en GitHub y `git push -u`. Commit final semana 1: `feat(detect): cli + stack profile + AGENTS.md generator`.
+- [ ] **S1.10** ⚠️ MANUAL — `gh repo create cagr1/orchestos --public --source=. --remote=origin --push` (gh CLI no disponible en shell agente). Commit local ya hecho: `9886d9f`.
 
 ---
 
