@@ -40,4 +40,20 @@ export function runMigrations(): void {
       created_at      TEXT NOT NULL
     );
   `)
+
+  // ALTER TABLE guards — add missing columns to existing DBs without dropping data
+  const safeAddColumn = (table: string, column: string, def: string) => {
+    const cols = db.query<{ name: string }, string>(
+      `PRAGMA table_info(${table})`
+    ).all(table).map(r => r.name)
+    if (!cols.includes(column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`)
+    }
+  }
+  safeAddColumn('runs', 'skill_id',         'TEXT')
+  safeAddColumn('runs', 'allowed_outputs',  'TEXT')
+  safeAddColumn('runs', 'files_attempted',  'TEXT')
+  safeAddColumn('runs', 'files_authorized', 'TEXT')
+  safeAddColumn('runs', 'files_blocked',    'TEXT')
+  safeAddColumn('runs', 'status',           "TEXT NOT NULL DEFAULT 'done'")
 }
