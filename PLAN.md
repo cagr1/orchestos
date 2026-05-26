@@ -66,20 +66,17 @@ Objetivo medible: `orchestos init` persiste, `orchestos context show` sobrevive 
 
 Objetivo medible: una skill YAML compila a Claude, Cursor y OpenAI sin errores.
 
-- [ ] **S3.1** `bun add yaml`. Crear estructura `src/skills/{registry,compile}.ts`, `src/skills/targets/{claude,cursor,openai}.ts`, carpeta `skills/`.
-- [ ] **S3.2** Validador manual de schema YAML: `id` (kebab), `version` (semver), `name`, `description` (≤200), `instructions` (≤4000), `targets[]` ⊂ `{claude,cursor,openai}`. Throw con mensaje claro si falta.
-- [ ] **S3.3** Compilador `claude` → `SKILL.md` con frontmatter `name`, `description` + cuerpo `instructions`.
-- [ ] **S3.4** Compilador `cursor` → `.mdc` con frontmatter `description`, `globs:["**/*"]`, `alwaysApply:false`.
-- [ ] **S3.5** Compilador `openai` → JSON tool `{type:"function", function:{name:id, description, parameters:{type:"object", properties:{}}}}`.
-- [ ] **S3.6** Comandos CLI:
-  - [ ] `orchestos skill add <id>` — scaffold `skills/<id>.yaml`.
-  - [ ] `orchestos skill list`.
-  - [ ] `orchestos skill build [--target <t>]` → output a `dist/skills/<target>/`.
-- [ ] **S3.7 — Validación**:
-  - [ ] 3 skills propias creadas (sugeridas: `fix-typescript-errors`, `summarize-pr-diff`, `generate-prisma-migration`).
-  - [ ] Cada una compila a los 3 targets sin warning.
-  - [ ] Una skill `claude` se copia a `~/.claude/skills/` y se invoca en sesión real.
-- [ ] **S3.8** Commit `feat(skills): yaml schema + compiler for 3 targets`.
+- [x] **S3.1** `bun add yaml` + estructura completa — 2026-05-26
+- [x] **S3.2** Validador YAML con mensajes claros — 2026-05-26
+- [x] **S3.3** Compilador `claude` → SKILL.md — 2026-05-26
+- [x] **S3.4** Compilador `cursor` → .mdc — 2026-05-26
+- [x] **S3.5** Compilador `openai` → JSON tool — 2026-05-26
+- [x] **S3.6** Comandos `skill add / list / build [--target] [--id]` — 2026-05-26
+- [x] **S3.7 — Validación** — 2026-05-26
+  - [x] 3 skills creadas: fix-typescript-errors, summarize-pr-diff, generate-prisma-migration
+  - [x] 9 archivos compilados, 0 errores
+  - [ ] ⚠️ MANUAL — copiar `dist/skills/claude/fix-typescript-errors.md` a `~/.claude/skills/` e invocar en sesión real
+- [x] **S3.8** Commit `b725c99` pusheado — 2026-05-26
 
 ---
 

@@ -12,6 +12,13 @@ import { upsertProject, getProject, listProjects } from './db/projects.ts'
 import { loadContext } from './context/load.ts'
 import { loadSkill, listSkillFiles, getSkillPath, type SkillTarget } from './skills/registry.ts'
 import { compileSkill } from './skills/compile.ts'
+import { classifyTask } from './router/classify.ts'
+import { resolveModel } from './router/models.ts'
+import { calcCost } from './router/pricing.ts'
+import { chat } from './providers/anthropic.ts'
+import { parseLLMResponse, enforceContract, snapshotHashes } from './run/contract.ts'
+import { insertRun } from './db/runs.ts'
+import { readFileSync } from 'fs'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -196,6 +203,186 @@ skill
     }
     console.log(`\n[skill] ${total} file(s) compiled, ${errors} error(s)`)
     if (errors > 0) process.exit(1)
+  })
+
+// ── run ───────────────────────────────────────────────────────────────────────
+program
+  .command('run')
+  .description('Execute a task with contract enforcement — only declared outputs are written')
+  .requiredOption('--task <description>', 'What to do (natural language)')
+  .requiredOption('--output <paths>', 'Comma-separated list of files the LLM is allowed to write (e.g. src/foo.ts,src/bar.ts)')
+  .option('--skill <id>', 'Skill to inject as guidelines')
+  .option('--file <paths>', 'Comma-separated input files to read and include as context')
+  .option('--project <path>', 'Project root (defaults to cwd)')
+  .option('--dry-run', 'Build the prompt and print it without calling the LLM')
+  .action(async (opts: {
+    task: string
+    output: string
+    skill?: string
+    file?: string
+    project?: string
+    dryRun?: boolean
+  }) => {
+    const root = resolve(opts.project ?? '.')
+    const allowedPaths = opts.output.split(',').map(p => p.trim()).filter(Boolean)
+    const inputFiles = opts.file ? opts.file.split(',').map(p => p.trim()).filter(Boolean) : []
+    const t0 = performance.now()
+
+    // 1. Classify + resolve model
+    const taskClass = classifyTask(opts.task)
+    const model = resolveModel(taskClass)
+
+    // 2. Build system prompt
+    const projectContext = loadContext(root)
+    let skillGuidelines = ''
+    if (opts.skill) {
+      try {
+        const skillDef = loadSkill(getSkillPath(opts.skill))
+        skillGuidelines = `\n## SKILL GUIDELINES: ${skillDef.name}\n${skillDef.instructions}\n`
+      } catch (e: any) {
+        console.warn(`[run] Skill "${opts.skill}" not found — continuing without it`)
+      }
+    }
+
+    const system = [
+      projectContext || '# Project context\nNo AGENTS.md found. Run: orchestos init',
+      skillGuidelines,
+      `\n## OUTPUT CONTRACT`,
+      `You may ONLY write to these files: ${allowedPaths.join(', ')}`,
+      `Respond with ONLY valid JSON in this exact format — no markdown, no explanation:`,
+      `{ "files": [{ "path": "relative/path", "content": "full file content" }] }`,
+      `If a file should not change, omit it from the array.`,
+      `Writing to any other file is a contract violation and will be rejected.`,
+    ].join('\n')
+
+    // 3. Build user message
+    let userContent = `Task: ${opts.task}\n`
+    if (inputFiles.length > 0) {
+      userContent += '\n### Input files:\n'
+      for (const f of inputFiles) {
+        const fullPath = join(root, f)
+        if (existsSync(fullPath)) {
+          userContent += `\n#### ${f}\n\`\`\`\n${readFileSync(fullPath, 'utf-8')}\n\`\`\`\n`
+        } else {
+          console.warn(`[run] Input file not found: ${f}`)
+        }
+      }
+    }
+
+    if (opts.dryRun) {
+      console.log('─── SYSTEM PROMPT ──────────────────────────────────────')
+      console.log(system)
+      console.log('─── USER MESSAGE ───────────────────────────────────────')
+      console.log(userContent)
+      console.log(`\n[dry-run] model: ${model} (${taskClass}) | allowed: ${allowedPaths.join(', ')}`)
+      return
+    }
+
+    console.log(`[run] task_class=${taskClass} model=${model}`)
+    console.log(`[run] allowed outputs: ${allowedPaths.join(', ')}`)
+
+    // 4. Snapshot before
+    const before = snapshotHashes(root, allowedPaths)
+
+    // 5. Call LLM
+    let llmResponse
+    try {
+      llmResponse = await chat({ model, system, messages: [{ role: 'user', content: userContent }] })
+    } catch (e: any) {
+      const elapsed = Math.round(performance.now() - t0)
+      insertRun({
+        project_id: null, prompt: opts.task, task_class: taskClass,
+        model, provider: 'anthropic', skill_id: opts.skill ?? null,
+        allowed_outputs: JSON.stringify(allowedPaths),
+        files_attempted: null, files_authorized: null, files_blocked: null,
+        status: 'failed', input_tokens: 0, output_tokens: 0,
+        usd_cost: 0, elapsed_ms: elapsed, result: e.message,
+      })
+      console.error(`[run] LLM call failed: ${e.message}`)
+      process.exit(1)
+    }
+
+    const elapsed = Math.round(performance.now() - t0)
+    const cost = calcCost(model, llmResponse.inputTokens, llmResponse.outputTokens)
+
+    // 6. Parse response
+    let parsed
+    try {
+      parsed = parseLLMResponse(llmResponse.text)
+    } catch (e: any) {
+      insertRun({
+        project_id: null, prompt: opts.task, task_class: taskClass,
+        model, provider: 'anthropic', skill_id: opts.skill ?? null,
+        allowed_outputs: JSON.stringify(allowedPaths),
+        files_attempted: null, files_authorized: null, files_blocked: null,
+        status: 'failed',
+        input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens,
+        usd_cost: cost, elapsed_ms: elapsed, result: e.message,
+      })
+      console.error(`[run] Parse error: ${e.message}`)
+      process.exit(1)
+    }
+
+    // 7. Enforce contract — BLOCKS if any file outside allowedPaths
+    let contractResult
+    try {
+      contractResult = enforceContract(root, parsed, allowedPaths)
+    } catch (e: any) {
+      const attempted = parsed.files.map(f => f.path)
+      const blocked = attempted.filter(p => !allowedPaths.includes(p))
+      insertRun({
+        project_id: null, prompt: opts.task, task_class: taskClass,
+        model, provider: 'anthropic', skill_id: opts.skill ?? null,
+        allowed_outputs: JSON.stringify(allowedPaths),
+        files_attempted: JSON.stringify(attempted),
+        files_authorized: JSON.stringify(attempted.filter(p => allowedPaths.includes(p))),
+        files_blocked: JSON.stringify(blocked),
+        status: 'blocked',
+        input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens,
+        usd_cost: cost, elapsed_ms: elapsed, result: e.message,
+      })
+      console.error(`\n[run] ✗ CONTRACT VIOLATION — task NOT applied`)
+      console.error(e.message)
+      process.exit(2)
+    }
+
+    // 8. Persist run with evidence
+    insertRun({
+      project_id: null, prompt: opts.task, task_class: taskClass,
+      model, provider: 'anthropic', skill_id: opts.skill ?? null,
+      allowed_outputs: JSON.stringify(allowedPaths),
+      files_attempted: JSON.stringify(contractResult.filesAttempted),
+      files_authorized: JSON.stringify(contractResult.filesAuthorized),
+      files_blocked: JSON.stringify(contractResult.filesBlocked),
+      status: 'done',
+      input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens,
+      usd_cost: cost, elapsed_ms: elapsed,
+      result: `${contractResult.written.length} file(s) written`,
+    })
+
+    // 9. Print summary
+    console.log(`\n[run] ✓ done`)
+    for (const f of contractResult.written) console.log(`  → ${f.path}`)
+    console.log(`\n  model:   ${model} (${taskClass})`)
+    console.log(`  tokens:  ${llmResponse.inputTokens} in / ${llmResponse.outputTokens} out`)
+    console.log(`  cost:    $${cost.toFixed(6)}`)
+    console.log(`  time:    ${elapsed}ms`)
+  })
+
+// ── runs history ──────────────────────────────────────────────────────────────
+program
+  .command('runs')
+  .description('Show recent run history')
+  .option('--limit <n>', 'Number of runs to show', '10')
+  .action((opts: { limit: string }) => {
+    const { listRuns } = require('./db/runs.ts')
+    const rows = listRuns(parseInt(opts.limit))
+    if (rows.length === 0) { console.log('[runs] No runs yet.'); return }
+    for (const r of rows) {
+      const blocked = r.files_blocked ? JSON.parse(r.files_blocked).length : 0
+      const icon = r.status === 'done' ? '✓' : r.status === 'blocked' ? '✗' : '!'
+      console.log(`  ${icon} ${r.created_at.slice(0, 19)}  ${r.task_class.padEnd(10)} ${r.model.padEnd(22)} $${r.usd_cost.toFixed(5)}  ${r.prompt.slice(0, 50)}${blocked > 0 ? `  [${blocked} blocked]` : ''}`)
+    }
   })
 
 program.parse()
