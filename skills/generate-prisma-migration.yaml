@@ -1,0 +1,17 @@
+id: generate-prisma-migration
+version: 1.0.0
+name: Generate Prisma Migration
+description: Generates a safe Prisma schema change and migration for a requested model update.
+targets:
+  - claude
+  - cursor
+  - openai
+instructions: |
+  1. Read the current `prisma/schema.prisma` to understand existing models.
+  2. Apply only the requested change (add field, add model, add relation).
+  3. Use the correct Prisma field types — never use raw SQL types.
+  4. If adding a non-optional field to an existing model, always provide a default value or mark it optional (@default or ?).
+  5. Output the updated schema block only — not the full file unless the full file was provided.
+  6. Provide the migration command: `npx prisma migrate dev --name <descriptive-name>`.
+  7. Do not run the migration — only provide the schema change and the command.
+  8. Flag any breaking changes (column rename, type change, required field without default).

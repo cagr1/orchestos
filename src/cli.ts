@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
 import { resolve, join } from 'path'
-import { writeFileSync } from 'fs'
+import { writeFileSync, existsSync } from 'fs'
 import { readManifest } from './detect/manifest.ts'
 import { detectLanguages } from './detect/languages.ts'
 import { readConventions } from './detect/conventions.ts'
@@ -10,6 +10,8 @@ import { generateContextJson } from './generators/context-json.ts'
 import { runMigrations } from './db/migrate.ts'
 import { upsertProject, getProject, listProjects } from './db/projects.ts'
 import { loadContext } from './context/load.ts'
+import { loadSkill, listSkillFiles, getSkillPath, type SkillTarget } from './skills/registry.ts'
+import { compileSkill } from './skills/compile.ts'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -104,6 +106,96 @@ ctx
       const p = JSON.parse(row.stack_profile) as StackProfile
       console.log(`  ${p.manifest.name.padEnd(24)} ${p.manifest.runtime}/${p.manifest.framework.padEnd(12)} ${row.path}`)
     }
+  })
+
+// ── skill ─────────────────────────────────────────────────────────────────────
+const skill = program.command('skill').description('Manage and compile skills')
+
+skill
+  .command('add <id>')
+  .description('Scaffold a new skill YAML file in skills/')
+  .action((id: string) => {
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) {
+      console.error(`[skill] id must be kebab-case (e.g. fix-typescript-errors)`)
+      process.exit(1)
+    }
+    const outPath = getSkillPath(id)
+    if (existsSync(outPath)) {
+      console.error(`[skill] Already exists: ${outPath}`)
+      process.exit(1)
+    }
+    const scaffold = `id: ${id}
+version: 1.0.0
+name: ${id.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}
+description: Describe what this skill does in one sentence (max 200 chars).
+targets:
+  - claude
+  - cursor
+  - openai
+instructions: |
+  1. Step one.
+  2. Step two.
+  3. Step three.
+`
+    writeFileSync(outPath, scaffold, 'utf-8')
+    console.log(`[skill] Created: ${outPath}`)
+  })
+
+skill
+  .command('list')
+  .description('List all skills in skills/')
+  .action(() => {
+    const files = listSkillFiles()
+    if (files.length === 0) {
+      console.log('[skill] No skills found. Run: orchestos skill add <id>')
+      return
+    }
+    for (const f of files) {
+      try {
+        const s = loadSkill(f)
+        console.log(`  ${s.id.padEnd(32)} v${s.version.padEnd(8)} targets: ${s.targets.join(', ')}`)
+      } catch (e: any) {
+        console.log(`  ${f} — ⚠ ${e.message}`)
+      }
+    }
+  })
+
+skill
+  .command('build')
+  .description('Compile skills to dist/skills/<target>/')
+  .option('--target <target>', 'Compile only to this target (claude | cursor | openai)')
+  .option('--id <id>', 'Compile only this skill')
+  .action((opts: { target?: string; id?: string }) => {
+    const targetFilter = opts.target as SkillTarget | undefined
+    if (targetFilter && !['claude', 'cursor', 'openai'].includes(targetFilter)) {
+      console.error(`[skill] Invalid target "${targetFilter}". Valid: claude, cursor, openai`)
+      process.exit(1)
+    }
+
+    const files = opts.id
+      ? [getSkillPath(opts.id)]
+      : listSkillFiles()
+
+    if (files.length === 0) {
+      console.log('[skill] No skills to compile.')
+      return
+    }
+
+    let total = 0
+    let errors = 0
+    for (const f of files) {
+      try {
+        const s = loadSkill(f)
+        const written = compileSkill(s, targetFilter ? [targetFilter] : undefined)
+        for (const p of written) console.log(`  [ok] ${p}`)
+        total += written.length
+      } catch (e: any) {
+        console.error(`  [err] ${f}: ${e.message}`)
+        errors++
+      }
+    }
+    console.log(`\n[skill] ${total} file(s) compiled, ${errors} error(s)`)
+    if (errors > 0) process.exit(1)
   })
 
 program.parse()

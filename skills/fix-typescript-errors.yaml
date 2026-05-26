@@ -1,0 +1,15 @@
+id: fix-typescript-errors
+version: 1.0.0
+name: Fix TypeScript Errors
+description: Finds and fixes TypeScript compilation errors with minimal changes.
+targets:
+  - claude
+  - cursor
+  - openai
+instructions: |
+  1. Run `tsc --noEmit` and capture the full error output.
+  2. For each error, locate the exact file and line number.
+  3. Apply the minimum change that fixes the error — do not refactor unrelated code.
+  4. Prefer type assertions or explicit annotations over structural changes.
+  5. Run `tsc --noEmit` again to confirm zero errors before finishing.
+  6. If an error requires a dependency change, ask before installing anything.

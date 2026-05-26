@@ -41,7 +41,7 @@ Objetivo medible: `orchestos detect <path>` genera `AGENTS.md` + `context.json` 
   - [x] Cisepro no en disco — salteado
   - [x] AGENTS.md tiene nombre, stack, comandos y nota Prisma
   - [x] Tiempo < 3000ms — 182ms
-- [ ] **S1.10** ⚠️ MANUAL — `gh repo create cagr1/orchestos --public --source=. --remote=origin --push` (gh CLI no disponible en shell agente). Commit local ya hecho: `9886d9f`.
+- [x] **S1.10** Repo creado https://github.com/cagr1/orchestos — push `9886d9f` — 2026-05-26
 
 ---
 
@@ -49,19 +49,16 @@ Objetivo medible: `orchestos detect <path>` genera `AGENTS.md` + `context.json` 
 
 Objetivo medible: `orchestos init` persiste, `orchestos context show` sobrevive cerrar terminal.
 
-- [ ] **S2.1** `src/db/sqlite.ts` → abre `~/.orchestos/db.sqlite` (mkdir si falta) con `bun:sqlite`. Singleton.
-- [ ] **S2.2** `src/db/migrate.ts` — `CREATE TABLE IF NOT EXISTS` para `projects` y `context_chunks` (schema en chat). Ejecutar al boot.
-- [ ] **S2.3** `src/db/projects.ts` → `upsertProject`, `getProject`, `listProjects`. `id = hash(path)`.
-- [ ] **S2.4** Añadir comandos al CLI:
-  - [ ] `orchestos init [path]` — detect + upsert.
-  - [ ] `orchestos context show [path]` — imprime AGENTS.md guardado.
-  - [ ] `orchestos context update [path]` — re-detecta y reemplaza.
-- [ ] **S2.5** `src/context/load.ts` → `loadContext(projectPath: string): string`. Exportar desde `src/index.ts`.
-- [ ] **S2.6 — Validación**:
-  - [ ] `orchestos init` en citasbot-whatsapp → fila en SQLite.
-  - [ ] Cerrar terminal, abrir nueva, `orchestos context show` → mismo AGENTS.md.
-  - [ ] Copiar AGENTS.md como system prompt en sesión Claude → no pregunta stack.
-- [ ] **S2.7** Commit `feat(persistence): sqlite store + init/context commands`.
+- [x] **S2.1** `src/db/sqlite.ts` — 2026-05-26
+- [x] **S2.2** `src/db/migrate.ts` — 2026-05-26
+- [x] **S2.3** `src/db/projects.ts` — 2026-05-26
+- [x] **S2.4** Comandos `init`, `context show/update/list` — 2026-05-26
+- [x] **S2.5** `src/context/load.ts` + `src/index.ts` — 2026-05-26
+- [x] **S2.6 — Validación** — 2026-05-26
+  - [x] `orchestos init` citasbot-whatsapp → SQLite en 91ms
+  - [x] `orchestos context show` → AGENTS.md correcto desde DB
+  - [ ] ⚠️ MANUAL — probar en sesión Claude real con AGENTS.md como system prompt
+- [x] **S2.7** Commit `e536922` pusheado — 2026-05-26
 
 ---
 
