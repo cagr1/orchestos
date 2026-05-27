@@ -1,6 +1,7 @@
 import * as openrouter from './openrouter.ts'
 import * as anthropic from './anthropic.ts'
 import * as openai from './openai.ts'
+import * as codex from './codex.ts'
 import type { ChatMessage, ChatResponse } from './openrouter.ts'
 
 export interface ChatOpts {
@@ -22,6 +23,8 @@ export function getProvider(name: string): ProviderClient {
       return { name: 'anthropic', chat: anthropic.chat }
     case 'openai':
       return { name: 'openai', chat: openai.chat }
+    case 'codex':
+      return { name: 'codex', chat: codex.chat }
     default:
       throw new Error(`unknown provider '${name}' — allowed: openrouter, anthropic, openai, codex`)
   }

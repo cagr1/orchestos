@@ -385,7 +385,7 @@ Objetivo medible: una tarea con `executor: anthropic` corre por Anthropic direct
 - [x] **S11.3** Implementar `src/providers/anthropic.ts` real (ya hay stub) — POST a `/v1/messages`, system separado, devolver `{ text, inputTokens, outputTokens, model }`. — 2026-05-27
 - [x] **S11.4** Implementar `src/providers/openai.ts` real — POST a `/v1/chat/completions`. — 2026-05-27
 - [x] **S11.5** Harness usa `getProvider(task.executor ?? 'openrouter').chat(...)`. El QA hereda el mismo executor por defecto; si la tarea declara `qa_executor` (opcional) lo usa en su lugar — decisión: **no agregar `qa_executor` aún**, esperar a tener una razón real. — 2026-05-27
-- [ ] **S11.6** `executor: codex` — detrás de `OS_ENABLE_EXEC_CODEX=1`. Implementación mínima: `Bun.spawn(['codex', 'exec', '--json', prompt])` y parsear stdout. Si la env var no está, validador rechaza tasks con `executor: codex` con mensaje `codex executor disabled — set OS_ENABLE_EXEC_CODEX=1 to enable`.
+- [x] **S11.6** `executor: codex` — detrás de `OS_ENABLE_EXEC_CODEX=1`. Implementación mínima: `Bun.spawn(['codex', 'exec', '--json', prompt])` y parsear stdout. Si la env var no está, validador rechaza tasks con `executor: codex` con mensaje `codex executor disabled — set OS_ENABLE_EXEC_CODEX=1 to enable`. — 2026-05-27
 - [ ] **S11.7** Persistir `provider` en `runs` (la columna ya existe — solo asegurar que se rellena con el executor real, no hardcoded `openrouter`).
 - [ ] **S11.8 — Validación**
   - [ ] Tarea con `executor: anthropic` corre y `runs --detail` muestra `provider: anthropic`.
