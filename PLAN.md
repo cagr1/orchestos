@@ -225,6 +225,55 @@ Fuente: crítica de Codex (extraer harness, separar criterios LLM de checks dete
 
 ---
 
+### Mapa de delegación — quién actúa en cada sub-paso
+
+Convención: **⚡ = cualquier LLM puede ejecutarlo leyendo este plan** (Codex, Haiku, modelo default). **🧠 = requiere criterio arquitectónico** (Claude Sonnet / Opus).
+
+Un LLM ejecutor solo necesita leer el sub-paso marcado ⚡, los archivos que menciona y el contexto de `AGENTS.md` del repo. Si un sub-paso está bien escrito, no necesita preguntar nada.
+
+| Sub-paso | Actor | Razón |
+|----------|-------|-------|
+| S9.1 | 🧠 Claude | Diseñar HarnessOpts/TaskResult — decide qué campos entran |
+| S9.2 | 🧠 Claude | Mover 250 líneas de cli.ts — riesgo de romper flujo existente |
+| S9.3 | ⚡ Codex | Extraer buildPrompt a prompt.ts — movimiento mecánico |
+| S9.4 | ⚡ Codex | Añadir try/catch global en harness — comportamiento definido |
+| S9.7 | ⚡ Codex | Commit |
+| S10.1 | ⚡ Codex | Extender interfaz Task con campos opcionales — schema definido |
+| S10.2 | ⚡ Codex | Añadir validaciones en validateTasksFile — reglas explícitas |
+| S10.3 | ⚡ Codex | Crear checks.ts — interfaz y firma definidas en el plan |
+| S10.4 | 🧠 Claude | Integrar checks en el flujo de harness — orden exacto importa |
+| S10.5 | 🧠 Claude | Modificar prompt de QA para acceptance_criteria — prompt engineering |
+| S10.6 | ⚡ Codex | safeAddColumn checks_json en runs |
+| S10.8 | ⚡ Codex | Commit |
+| S11.1 | ⚡ Codex | Añadir executor al schema Task |
+| S11.2 | ⚡ Codex | Crear providers/index.ts con interfaz ProviderClient |
+| S11.3 | ⚡ Codex | Implementar anthropic.ts real — POST definido, campos claros |
+| S11.4 | ⚡ Codex | Implementar openai.ts real — POST definido |
+| S11.5 | ⚡ Codex | Conectar executor en harness — una línea de cambio |
+| S11.6 | ⚡ Codex | Codex executor con flag — Bun.spawn bien definido |
+| S11.9 | ⚡ Codex | Commit |
+| S12.1 | ⚡ Codex | Crear tablas files + code_edges — SQL definido en el plan |
+| S12.2 | ⚡ Codex | indexProject con regex — patrones definidos, glob definido |
+| S12.3 | ⚡ Codex | Comando orchestos index |
+| S12.4 | ⚡ Codex | Integrar indexProject en orchestos init |
+| S12.5 | 🧠 Claude | context suggest — algoritmo de ranking requiere criterio |
+| S12.8 | ⚡ Codex | Commit |
+| S13.1 | ⚡ Codex | Auto-suggest cuando input[] vacío — lógica definida |
+| S13.2 | ⚡ Codex | --explain mode — dry run, sin API |
+| S13.3 | ⚡ Codex | Rediseñar runs --detail con secciones |
+| S13.4 | ⚡ Codex | Actualizar summary-pdf |
+| S13.5 | ⚡ Codex | README sección Reliability |
+| S13.7 | ⚡ Codex | Commit |
+| S14.1 | ⚡ Codex | Extender schema YAML de skills |
+| S14.2 | ⚡ Codex | Actualizar validators de skills |
+| S14.3 | ⚡ Codex | Actualizar compiler targets |
+| S14.4–S14.8 | 🧠 Claude | Escribir contenido de las 5 skills — criterio de producto |
+| S14.10 | ⚡ Codex | Commit |
+
+**Regla de escritura**: si un sub-paso ⚡ requiere más de 10 segundos para entender qué hacer, está mal escrito — agregar interfaz exacta, nombre de archivo, comportamiento ante error.
+
+---
+
 ### SEMANA 9 — Extraer `src/run/harness.ts` (refactor sin features nuevas)
 
 Objetivo medible: `cli.ts` < 350 líneas, el bloque `executeTask` desaparece de `cli.ts`, y `bun run typecheck` sigue verde. Comportamiento idéntico al de Mes 2 — ningún cambio observable para el usuario.
@@ -427,12 +476,58 @@ Objetivo medible: `harness.runTask` usa `context suggest` cuando `input[]` está
 
 ---
 
+### SEMANA 14 — Skills con estructura real (ECC + mattpocock)
+
+Objetivo medible: `orchestos skill list` muestra 5 skills con `when_to_use`, `verifiers` y `anti_patterns`. Al compilar con `--target claude`, cada skill genera un SKILL.md que un LLM puede seguir como mini-política, no solo como prompt bonito.
+
+- [ ] **S14.1** ⚡ Extender schema YAML de skill en `src/skills/registry.ts`:
+  ```ts
+  interface Skill {
+    // ...campos existentes (id, version, name, description, targets, instructions)
+    when_to_use?: string[]       // "When TypeScript errors block build"
+    inputs_required?: string[]   // "tsc output", "file with errors"
+    verifiers?: string[]         // comandos que confirman que la skill funcionó
+    anti_patterns?: string[]     // "Do not silence errors with any"
+    examples?: SkillExample[]
+  }
+  interface SkillExample {
+    title: string
+    input: string
+    output: string
+  }
+  ```
+- [ ] **S14.2** ⚡ Actualizar `validateSkill` en `src/skills/registry.ts` para permitir (no requerir) los campos nuevos. Skills existentes sin ellos siguen siendo válidas.
+- [ ] **S14.3** ⚡ Actualizar compiler targets (`src/skills/targets/claude.ts`, `cursor.ts`, `openai.ts`) para incluir los campos nuevos si están presentes. Formato sugerido para claude:
+  ```markdown
+  ## When to use
+  - When TypeScript errors block build
+
+  ## Anti-patterns
+  - Do not silence errors with `any`
+
+  ## Verifiers
+  Run after applying: `npm run typecheck`
+  ```
+- [ ] **S14.4** 🧠 Escribir skill: `pre-task-alignment` — antes de ejecutar cualquier tarea, verificar que la descripción es inequívoca. Si hay ambigüedad, devuelve preguntas, no código. Inspirado en spec-kit clarify phase.
+- [ ] **S14.5** 🧠 Escribir skill: `diagnose` — debugging estructurado: hipótesis → verificar → siguiente hipótesis. Anti-patrón: escribir código antes de entender el error.
+- [ ] **S14.6** 🧠 Escribir skill: `tdd-enforcer` — red-green-refactor. Anti-patrón: implementar sin test primero. Verifier: `npm test` pasa antes y después.
+- [ ] **S14.7** 🧠 Escribir skill: `context-compression` — genera `CONTEXT.md` con vocabulario del proyecto (nombres de módulos, convenciones, abreviaciones del equipo). Reduce tokens por run. Input: AGENTS.md + últimos 10 runs. Verifier: `CONTEXT.md` generado, < 500 tokens.
+- [ ] **S14.8** 🧠 Escribir skill: `improve-architecture` — identifica módulos con demasiadas responsabilidades (> 300 líneas, > 5 imports de dominios distintos). Sugiere extracción, no la implementa. Anti-patrón: extraer antes de entender el contrato.
+- [ ] **S14.9 — Validación**
+  - [ ] `orchestos skill list` muestra 5 skills con columna `when_to_use` visible.
+  - [ ] `orchestos skill build --target claude --id pre-task-alignment` genera SKILL.md con secciones `When to use`, `Anti-patterns`, `Verifiers`.
+  - [ ] Skill sin campos nuevos (las 3 existentes) compila sin error — retrocompatibilidad.
+  - [ ] `bun run typecheck` verde.
+- [ ] **S14.10** ⚡ Commit `feat(skills): structured skills schema + 5 real skills (ECC + mattpocock patterns)`.
+
+---
+
 ## Métrica única de éxito Mes 3
 
-¿Una tarea con `executor`, `checks` y `acceptance_criteria` corre end-to-end, los checks deterministas atajan antes del QA cuando deben, el graph sugiere contexto razonable, y `cli.ts` ya no contiene lógica de ejecución?
+¿Una tarea con `executor`, `checks` y `acceptance_criteria` corre end-to-end, los checks deterministas atajan antes del QA cuando deben, el graph sugiere contexto razonable, `cli.ts` ya no contiene lógica de ejecución, y hay 5 skills con `verifiers` + `anti_patterns` compilables?
 
-- [ ] **SÍ** → Mes 3 cerrado. Abrir plan Mes 4 (symbols en el graph, worktrees reales, paralelismo).
-- [ ] **NO** → no abrir Mes 4. Identificar cuál de los 4 ejes (harness / checks / executor / graph) no resistió uso real y rehacerlo.
+- [ ] **SÍ** → Mes 3 cerrado. Abrir plan Mes 4 (symbols en el graph, worktrees reales, paralelismo, spec-driven flow completo).
+- [ ] **NO** → no abrir Mes 4. Identificar cuál de los 5 ejes (harness / checks / executor / graph / skills) no resistió uso real y rehacerlo.
 
 ---
 
@@ -444,6 +539,8 @@ Objetivo medible: `harness.runTask` usa `context suggest` cuando `input[]` está
 - Worktrees reales (`git worktree add`) — cwd directo hasta que haya un caso que lo rompa.
 - Reescribir el scheduler a archivo separado — sigue inline en `cli.ts`.
 - `executor` como string libre — enum cerrado. Agregar Gemini = PR que toca `getProvider`.
+- `planner_model` / `executor_model` en tasks.yaml — la separación dos-tier vive en PLAN.md (⚡/🧠) hasta tener datos que justifiquen meterla en el schema. Idea anotada en IDEAS.md.
+- Más de 5 skills en S14 — calidad sobre cantidad. Si las 5 no se usan en proyectos reales, no agregar más.
 
 ---
 
@@ -454,6 +551,7 @@ Objetivo medible: `harness.runTask` usa `context suggest` cuando `input[]` está
 - **2026-05-27 — Graph v0 con regex, no tree-sitter.** Agrega complejidad de build (parsers nativos por lenguaje). El schema SQLite ya soporta más `kind` que `import` — cuando S12.6 deje de ser suficiente, se cambia en Mes 4.
 - **2026-05-27 — Harness nunca lanza.** Toda excepción se traduce a `TaskResult` con `status: 'failed'`. `cli.ts` no tiene `try/catch` alrededor de lógica de ejecución.
 - **2026-05-27 — Codex executor detrás de flag.** No hay evidencia de que delegar a CLI externo cambie algo. La estructura queda lista; el botón se prende cuando alguien quiera medirlo.
+- **2026-05-27 — Two-tier LLM: ⚡/🧠 en PLAN.md, no en tasks.yaml aún.** El patrón "modelo fuerte planifica, modelo ligero ejecuta" se implementa como convención de delegación en el plan. `planner_model`/`executor_model` en tasks.yaml va a Mes 4+ cuando haya evidencia de que lo necesita el harness.
 
 ---
 

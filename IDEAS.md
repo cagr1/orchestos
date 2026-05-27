@@ -134,5 +134,68 @@ Ref: deer-flow architecture — el orquestador genera sub-agentes con contextos 
 
 ---
 
+---
+
+### [PILAR CENTRAL — MES 3+] Two-tier LLM execution — planner fuerte + executor adaptativo
+
+**Problema**: un modelo fuerte (Opus, Sonnet) tiene criterio para diseñar interfaces y
+tomar decisiones arquitectónicas, pero es caro para tareas mecánicas. Un modelo ligero
+(Haiku, Codex, GPT-4o-mini) puede ejecutar tareas específicas si el camino está bien
+documentado. No todos los usuarios tienen acceso a un modelo fuerte.
+
+**Idea central**:
+- **Modelo fuerte** (Opus / Sonnet / lo mejor disponible) → genera PLAN.md con interfaces
+  TypeScript, schemas SQL y decisiones sin ambigüedad. Deja el camino tan claro que
+  cualquier LLM pueda ejecutar los sub-pasos sin necesitar criterio adicional.
+- **Modelo de ejecución** (Codex, Haiku, modelo default del usuario) → lee PLAN.md,
+  ejecuta los sub-pasos marcados como ⚡, reporta resultado.
+- **Adaptativo**: si el usuario no tiene un modelo fuerte, orchestos usa el modelo
+  configurado en `~/.orchestos/.env` para todo. La calidad del plan baja; la ejecución
+  sigue funcionando.
+
+**Convención en PLAN.md**:
+- `⚡` al inicio del sub-paso = cualquier LLM puede ejecutarlo leyendo el plan
+- `🧠` al inicio del sub-paso = requiere criterio arquitectónico (Claude Sonnet/Opus)
+
+**Regla de escritura del plan**: si un sub-paso requiere más de 10 segundos de
+razonamiento para entender qué hacer, está mal escrito. Agregar: interfaz exacta,
+nombre de archivo, comportamiento esperado ante error.
+
+**Implicación futura en tasks.yaml**:
+```yaml
+- id: add-button-component
+  description: "Create Button component"
+  planner_model: claude-opus-4-7       # genera el plan detallado
+  executor_model: claude-haiku-4-5     # ejecuta el plan
+  # Si solo hay un modelo disponible, ambos campos lo usan
+```
+
+Esto no va a Mes 3 en tasks.yaml (hay que validar el harness primero), pero el
+patrón ⚡/🧠 en PLAN.md implementa la misma idea de forma manual desde ya.
+
+Ref: patrón observado en deer-flow (planner-agent vs executor-agent), spec-kit
+(clarify before execute), y en el workflow real de este proyecto (Opus diseña,
+Codex ejecuta sub-pasos simples).
+
+---
+
+### [MES 4+] Spec-Driven flow completo (spec-kit)
+
+El flujo completo de spec-kit: `constitución → spec → clarificar → plan → validar → tareas → ejecutar`.
+
+En Mes 3 solo está el eslabón `validar` (`acceptance_criteria[]`).
+Los eslabones que faltan para Mes 4:
+- **Constitución**: qué puede/no puede modificar el agente en este proyecto (`CONSTITUTION.md`)
+- **Spec**: descripción inequívoca de la tarea antes de empezar. `orchestos spec <id>` genera
+  un documento de especificación que el usuario aprueba antes de que el harness ejecute.
+- **Clarificar**: si la descripción tiene ambigüedad, el harness pregunta antes de gastar tokens.
+
+Prerequisito: harness limpio (S9) + acceptance_criteria (S10).
+
+---
+
 ## Feedback usuario 1
 _(se llena cuando haya un usuario externo real usando orchestos en su proyecto)_
+
+## Feedback Mes 3
+_(se llena al cerrar Mes 3)
