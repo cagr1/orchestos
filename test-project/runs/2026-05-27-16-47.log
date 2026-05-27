@@ -1,0 +1,2 @@
+16:47:49.684  [add-auth-logger]  START
+16:48:22.812  [add-auth-logger]  QA:fail  retry=1/3  File does not export a standalone function named logAuthAttempt; the method signature does not match (token/boolean parameters not present).

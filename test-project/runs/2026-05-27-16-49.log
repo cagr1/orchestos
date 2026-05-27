@@ -1,0 +1,2 @@
+16:49:11.269  [add-auth-logger]  START
+16:49:41.174  [add-auth-logger]  FAILED_PERMANENT  Criterion 2 fails: function does not accept token (string) and result (boolean) parameters; instead it accepts result (AuthResult) and optional details.

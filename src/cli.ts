@@ -3,7 +3,7 @@ import { Command } from 'commander'
 import { resolve, join } from 'path'
 import { writeFileSync, existsSync } from 'fs'
 import { readManifest } from './detect/manifest.ts'
-import { detectLanguages } from './detect/languages.ts'
+import { detectLanguages, detectPrimaryLanguage } from './detect/languages.ts'
 import { readConventions } from './detect/conventions.ts'
 import { generateAgentsMd, type StackProfile } from './generators/agents-md.ts'
 import { generateContextJson } from './generators/context-json.ts'
@@ -248,11 +248,23 @@ skill
   .description('Compile skills to dist/skills/<target>/')
   .option('--target <target>', 'Compile only to this target (claude | cursor | openai)')
   .option('--id <id>', 'Compile only this skill')
-  .action((opts: { target?: string; id?: string }) => {
+  .option('--project <path>', 'Project root for language-aware compilation')
+  .action(async (opts: { target?: string; id?: string; project?: string }) => {
     const targetFilter = opts.target as SkillTarget | undefined
     if (targetFilter && !['claude', 'cursor', 'openai'].includes(targetFilter)) {
       console.error(`[skill] Invalid target "${targetFilter}". Valid: claude, cursor, openai`)
       process.exit(1)
+    }
+
+    let detectedLanguage: string | undefined
+    if (opts.project) {
+      const root = resolve(opts.project)
+      detectedLanguage = await detectPrimaryLanguage(root) ?? undefined
+      if (detectedLanguage) {
+        console.log(`[skill] Project language: ${detectedLanguage}`)
+      } else {
+        console.log('[skill] No recognised source files found — compiling without language targeting')
+      }
     }
 
     const files = opts.id
@@ -269,7 +281,7 @@ skill
     for (const f of files) {
       try {
         const s = loadSkill(f)
-        const written = compileSkill(s, targetFilter ? [targetFilter] : undefined)
+        const written = compileSkill(s, targetFilter ? [targetFilter] : undefined, detectedLanguage)
         for (const p of written) console.log(`  [ok] ${p}`)
         total += written.length
       } catch (e: any) {

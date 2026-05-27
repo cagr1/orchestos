@@ -48,3 +48,8 @@ export async function detectLanguages(root: string): Promise<LangStat[]> {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
 }
+
+export async function detectPrimaryLanguage(root: string): Promise<string | null> {
+  const stats = await detectLanguages(root)
+  return stats.length > 0 ? (stats[0]?.lang ?? null) : null
+}

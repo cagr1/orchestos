@@ -10,6 +10,11 @@ export interface SkillExample {
   output: string
 }
 
+export interface LanguageTarget {
+  verifiers?: string[]
+  anti_patterns?: string[]
+}
+
 export interface SkillDef {
   id: string
   version: string
@@ -22,6 +27,7 @@ export interface SkillDef {
   verifiers?: string[]
   anti_patterns?: string[]
   examples?: SkillExample[]
+  language_targets?: Record<string, LanguageTarget>
 }
 
 const VALID_TARGETS: SkillTarget[] = ['claude', 'cursor', 'openai']

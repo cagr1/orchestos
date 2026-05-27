@@ -56,3 +56,24 @@ examples:
   - title: Bug fix with TDD
     input: "Bug: formatCurrency(-50, 'USD') returns '$-50.00' instead of '-$50.00'"
     output: "1. Write test: expect(formatCurrency(-50, 'USD')).toBe('-$50.00') — run: FAIL (reproduces bug). 2. Fix sign handling. Run: PASS. 3. No refactor needed."
+language_targets:
+  typescript:
+    verifiers:
+      - bun test
+      - npx tsc --noEmit
+    anti_patterns:
+      - skip describe blocks
+      - use any to bypass type checking in tests
+  csharp:
+    verifiers:
+      - dotnet test
+    anti_patterns:
+      - '[Ignore] without a documented reason'
+  python:
+    verifiers:
+      - python -m pytest
+    anti_patterns:
+      - skip unittest.TestCase in favor of pytest
+  default:
+    verifiers:
+      - run your test suite

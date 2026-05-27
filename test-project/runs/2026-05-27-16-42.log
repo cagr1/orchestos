@@ -1,0 +1,4 @@
+16:42:34.758  [add-auth-logger]  START
+16:42:34.792  [add-auth-logger]  ERROR  LLM call failed: OPENROUTER_API_KEY not found.
+Set it in ~/.orchestos/.env:
+  OPENROUTER_API_KEY=sk-or-...

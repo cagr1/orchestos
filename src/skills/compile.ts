@@ -13,13 +13,13 @@ const EXT: Record<SkillTarget, string> = {
   openai: '.json',
 }
 
-const COMPILERS: Record<SkillTarget, (s: SkillDef) => string> = {
+const COMPILERS: Record<SkillTarget, (s: SkillDef, detectedLanguage?: string) => string> = {
   claude: compileClaude,
   cursor: compileCursor,
   openai: compileOpenAI,
 }
 
-export function compileSkill(skill: SkillDef, targets?: SkillTarget[]): string[] {
+export function compileSkill(skill: SkillDef, targets?: SkillTarget[], detectedLanguage?: string): string[] {
   const toCompile = targets ?? skill.targets
   const written: string[] = []
 
@@ -30,7 +30,7 @@ export function compileSkill(skill: SkillDef, targets?: SkillTarget[]): string[]
     }
     const outDir = join(DIST_DIR, target)
     mkdirSync(outDir, { recursive: true })
-    const content = COMPILERS[target](skill)
+    const content = COMPILERS[target](skill, detectedLanguage)
     const outPath = join(outDir, `${skill.id}${EXT[target]}`)
     writeFileSync(outPath, content, 'utf-8')
     written.push(outPath)

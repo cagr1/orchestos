@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun src/cli.ts --help)",
+      "PowerShell(bun src/cli.ts task --help)",
+      "PowerShell(where.exe bun; if \\(-not $?\\) { Get-ChildItem $env:USERPROFILE\\\\.bun\\\\bin -ErrorAction SilentlyContinue })",
+      "PowerShell(& \"$env:USERPROFILE\\\\.bun\\\\bin\\\\bun.exe\" src/cli.ts task --help 2>&1)",
+      "Bash(bun x *)",
+      "Bash(bun run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'docs\\(ideas\\): mark implemented + add language-aware skills, multi-lang graph, security/qa/test skills *)",
+      "Bash(ls qa-test-project/)",
+      "Bash(ls test-projects/)",
+      "Bash(git commit -m 'docs: purify PLAN.md + IDEAS.md + create DONE.md *)",
+      "Bash(git commit -m 'docs\\(ideas\\): vision dashboard + onboarding adaptativo para no-programadores *)",
+      "Bash(git commit -m 'feat\\(skills\\): 5 real skills with structured schema \\(S14.4-S14.9\\) *)",
+      "Bash(git commit -m 'docs\\(plan\\): close S14 — skills schema + 5 real skills complete *)"
+    ]
+  }
+}

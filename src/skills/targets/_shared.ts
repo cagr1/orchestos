@@ -1,6 +1,6 @@
 import type { SkillDef } from '../registry.ts'
 
-export function buildSections(skill: SkillDef): string[] {
+export function buildSections(skill: SkillDef, detectedLanguage?: string): string[] {
   const sections: string[] = [skill.instructions]
 
   if (skill.when_to_use?.length) {
@@ -29,6 +29,21 @@ export function buildSections(skill: SkillDef): string[] {
       sections.push(`### ${ex.title}`)
       sections.push(`**Input:** ${ex.input}`)
       sections.push(`**Output:** ${ex.output}`)
+    }
+  }
+
+  if (skill.language_targets && detectedLanguage) {
+    const langTarget = skill.language_targets[detectedLanguage] ?? skill.language_targets.default
+    if (langTarget) {
+      sections.push('## Language-specific guidance')
+      if (langTarget.verifiers?.length) {
+        sections.push('### Verifiers')
+        sections.push(...langTarget.verifiers.map(v => `Run after applying: \`${v}\``))
+      }
+      if (langTarget.anti_patterns?.length) {
+        sections.push('### Anti-patterns')
+        sections.push(...langTarget.anti_patterns.map(a => `- ${a}`))
+      }
     }
   }
 

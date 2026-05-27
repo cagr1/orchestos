@@ -1,18 +1,21 @@
-version: 1
+﻿version: 1
 project: orchestos-test-project
 tasks:
-  - id: add-auth-logger
-    description: "Add a logging utility that records auth validation attempts with timestamp and result"
+  - id: document-auth-module
+    description: Write a markdown file documenting the authentication flow in src/Services/AuthService.cs
     executor: openrouter
+    input: []
     output:
-      - src/logger.ts
-    checks:
-      - cmd: "npx tsc --noEmit"
-        timeout_ms: 30000
+      - src/docs/auth-flow.md
     acceptance_criteria:
-      - "File exports a function named logAuthAttempt"
-      - "Function accepts token (string) and result (boolean) parameters"
-      - "Function logs to console with ISO timestamp"
-      - "No TypeScript errors — no 'any' types allowed"
+      - Document describes the login flow step by step
+      - Mentions JWT token generation
+      - Written in clear English, no placeholders
+    checks:
+      - cmd: npx tsc --noEmit
+        timeout_ms: 30000
+    depends_on: []
     status: pending
     retry_count: 0
+    retry_reason: 
+    qa_verdict: 
