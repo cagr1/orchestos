@@ -120,13 +120,14 @@ Al compilar con `--target claude`, cada skill genera un SKILL.md que un LLM pued
   `when_to_use`: ["Before a major refactor", "When a file keeps getting touched in every PR"]
   `anti_patterns`: ["Extract before understanding the contract", "Split without defining the new interface first", "Refactor and add features simultaneously"]
 
-- [ ] **S14.9 — Validación**
-  - [ ] `orchestos skill list` muestra 5 skills con columna `when_to_use` visible.
-  - [ ] `orchestos skill build --target claude --id pre-task-alignment` → SKILL.md con secciones `When to use`, `Anti-patterns`, `Verifiers`.
-  - [ ] Skill sin campos nuevos (las 3 existentes: fix-typescript-errors, summarize-pr-diff, generate-prisma-migration) compila sin error.
-  - [ ] `bun run typecheck` verde.
+- [x] **S14.9 — Validación** — 2026-05-27
+  - [x] `orchestos skill list` → 8 skills (5 nuevas + 3 existentes), todas con campos nuevos visibles ✅
+  - [x] `skill build` → 24 archivos compilados, 0 errores ✅
+  - [x] Skills existentes (fix-typescript-errors, summarize-pr-diff, generate-prisma-migration) retrocompatibles ✅
+  - [x] `bun run typecheck` verde ✅
+  - [x] `dist/skills/claude/pre-task-alignment.md` tiene secciones When to use, Anti-patterns, Verifiers, Examples ✅
 
-- [ ] **S14.10** ⚡ Commit `feat(skills): structured skills schema + 5 real skills`.
+- [x] **S14.10** ⚡ Commit `efb95d5` — 2026-05-27
 
 ---
 
