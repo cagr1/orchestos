@@ -108,7 +108,7 @@ Resolver imports para lenguajes no-JS + descarga de skills curadas.
 - `src/graph/index.ts` — invocar resolver registry al poblar `to_file_id`
 - `src/cli.ts` — `orchestos skill fetch --language <lang> [--name <name>]`
 
-- [ ] S21.1 ⚡ `resolver-registry.ts` con interfaz `Resolver { language, resolve(importStr, fromFile, repoIndex) }`
+- [x] S21.1 ⚡ (2026-05-27) `resolver-registry.ts` con interfaz `Resolver { language, resolve(importStr, fromFile, repoIndex) }`
 - [ ] S21.2 🧠 resolver C#: parsear `namespace X.Y` por archivo, mapear `using X.Y` → archivo más cercano
 - [ ] S21.3 🧠 resolver Rust: estructura `src/foo/mod.rs` o `src/foo.rs` para resolver `use crate::foo`
 - [ ] S21.4 🧠 resolver Go: leer `go.mod` para module path, resolver imports que empiezan con ese path
