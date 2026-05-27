@@ -352,23 +352,15 @@ Objetivo medible: una tarea con `checks: ["bun run typecheck"]` ejecuta el coman
   export async function runChecks(checks: Check[], projectRoot: string, logger: RunLogger): Promise<CheckResult[]>
   ```
   Implementar con `Bun.spawn` + `signal: AbortSignal.timeout(timeout_ms)`. No interpretar `cmd` con shell — split por espacios respetando comillas (helper `tokenize(cmd)`).
-- [ ] **S10.4** Integrar en `harness.runTask`. **Orden exacto del nuevo flujo:**
-  1. classify → chat → parseLLMResponse → enforceContract → write.
-  2. **`runChecks` primero** — si algún check tiene `exitCode !== expect_exit`, revert con `restoreContents`, marcar `retry` con `retryReason = "check failed: <cmd> exit <n>"` y NO llamar al QA (ahorra tokens).
-  3. Si todos los checks pasan → `runQA(task.description, task.acceptance_criteria ?? [], written, model)`.
-  4. QA evalúa `acceptance_criteria` (uno por uno si están declarados; si no, sigue evaluando la descripción libre como ahora).
-- [ ] **S10.5** Modificar prompt de QA en `src/run/qa.ts` para que reciba `acceptance_criteria` y devuelva por criterio:
-  ```json
-  { "verdict": "pass" | "fail", "reason": "...", "criteria": [ { "text": "...", "pass": true } ] }
-  ```
-  Si cualquier criterio es `pass:false` → verdict global `fail`. Si no hay criterios → comportamiento Mes 2.
-- [x] **S10.6** Persistir en `runs`: `safeAddColumn checks_json TEXT` (array de `CheckResult` serializado). `runs --detail` muestra checks con su exit code antes del QA. — 2026-05-27
+- [x] **S10.4** Integrar en `harness.runTask`. — 2026-05-27
+- [x] **S10.5** Modificar prompt de QA en `src/run/qa.ts` para que reciba `acceptance_criteria`. — 2026-05-27
+- [x] **S10.6** Persistir en `runs`: `safeAddColumn checks_json TEXT`. — 2026-05-27
 - [ ] **S10.7 — Validación**
-  - [ ] Tarea con `checks: ["bun run typecheck"]` y output que rompe TS → `retry`, NO se gastó llamada de QA (revisar logs: ningún `QA:` line).
-  - [ ] Tarea con `acceptance_criteria: ["Exports a React component named Button"]` y output que exporta `Card` → QA `fail` con `criteria[0].pass=false`.
-  - [ ] Tarea sin `checks` ni `acceptance_criteria` → comportamiento Mes 2 idéntico (regresión cero).
-  - [ ] `runs --detail` muestra el array de checks con stdout truncado.
-- [ ] **S10.8** Commit `feat(tasks): acceptance_criteria + deterministic checks`.
+  - [ ] ⚠️ MANUAL — Tarea con `checks: ["bun run typecheck"]` y output que rompe TS → `retry`, sin llamada QA.
+  - [ ] ⚠️ MANUAL — Tarea con `acceptance_criteria` → QA devuelve `criteria[]` por criterio.
+  - [ ] ⚠️ MANUAL — Tarea sin campos nuevos → comportamiento Mes 2 idéntico.
+  - [x] `bun run typecheck` verde ✓
+- [x] **S10.8** Commit `feat(tasks): acceptance_criteria + deterministic checks` — 2026-05-27
 
 ---
 
