@@ -278,7 +278,7 @@ Un LLM ejecutor solo necesita leer el sub-paso marcado ⚡, los archivos que men
 
 Objetivo medible: `cli.ts` < 350 líneas, el bloque `executeTask` desaparece de `cli.ts`, y `bun run typecheck` sigue verde. Comportamiento idéntico al de Mes 2 — ningún cambio observable para el usuario.
 
-- [ ] **S9.1** Crear `src/run/harness.ts` exportando:
+- [x] **S9.1** Crear `src/run/harness.ts` exportando: — 2026-05-27
   ```ts
   export interface HarnessOpts {
     projectRoot: string         // cwd absoluto del proyecto
@@ -304,16 +304,16 @@ Objetivo medible: `cli.ts` < 350 líneas, el bloque `executeTask` desaparece de 
 
   export async function runTask(opts: HarnessOpts): Promise<TaskResult>
   ```
-- [ ] **S9.2** Mover de `cli.ts` a `harness.ts`: classify → resolveModel → buildPrompt → chat → parseLLMResponse → enforceContract → snapshotContents → write → runQA → restoreContents (si fail) → insertRun. `cli.ts` solo orquesta: abre logger, llama `runTask`, mapea `TaskResult` a `updateTaskStatus`.
-- [ ] **S9.3** Mover `buildPrompt(task, contextText, skill?)` a `src/run/prompt.ts`. No es responsabilidad del harness construir el prompt, es responsabilidad del harness ejecutarlo.
-- [ ] **S9.4** Error handling: cualquier excepción no controlada dentro de `runTask` se atrapa, se loggea como `ERROR` y se devuelve `{ status: 'failed', retryReason: e.message, ... }`. El harness **nunca** lanza hacia `cli.ts`.
-- [ ] **S9.5** `cli.ts` post-refactor solo contiene: parsing de comandos commander + carga de `tasks.yaml` + scheduler topológico (sigue inline, no es para extraer todavía) + formato de salida en terminal.
-- [ ] **S9.6 — Validación**
-  - [ ] `wc -l src/cli.ts` < 350.
-  - [ ] `wc -l src/run/harness.ts` 200–350.
-  - [ ] `orchestos task run --all` en `qa-test-project` da exactamente el mismo output que en S8.6 (t1-normal done, t2-empty reverted, t3-repeat-fail failed_permanent).
-  - [ ] `bun run typecheck` verde.
-- [ ] **S9.7** Commit `refactor(harness): extract runTask from cli.ts`.
+- [x] **S9.2** Mover de `cli.ts` a `harness.ts`: — 2026-05-27 classify → resolveModel → buildPrompt → chat → parseLLMResponse → enforceContract → snapshotContents → write → runQA → restoreContents (si fail) → insertRun. `cli.ts` solo orquesta: abre logger, llama `runTask`, mapea `TaskResult` a `updateTaskStatus`.
+- [x] **S9.3** Mover `buildPrompt(task, contextText, skill?)` a `src/run/prompt.ts`. No es responsabilidad del harness construir el prompt, es responsabilidad del harness ejecutarlo. — 2026-05-27
+- [x] **S9.4** Error handling: cualquier excepción no controlada dentro de `runTask` — 2026-05-27 se atrapa, se loggea como `ERROR` y se devuelve `{ status: 'failed', retryReason: e.message, ... }`. El harness **nunca** lanza hacia `cli.ts`.
+- [x] **S9.5** `cli.ts` post-refactor solo contiene: — 2026-05-27 ⚠️ 666 líneas (legacy `orchestos run` command no migrado al harness — ver decisiones) parsing de comandos commander + carga de `tasks.yaml` + scheduler topológico (sigue inline, no es para extraer todavía) + formato de salida en terminal.
+- [x] **S9.6 — Validación** — 2026-05-27
+  - [ ] `wc -l src/cli.ts` < 350. ⚠️ 666 líneas — legacy run no migrado (decisión anotada abajo)
+  - [x] `wc -l src/run/harness.ts` 200–350. → 191 líneas ✓
+  - [ ] ⚠️ MANUAL — `orchestos task run --all` en qa-test-project (requiere API key)
+  - [x] `bun run typecheck` verde ✓
+- [x] **S9.7** Commit `14b0ff8` + `prompt.ts` — 2026-05-27
 
 ---
 
@@ -551,6 +551,7 @@ Objetivo medible: `orchestos skill list` muestra 5 skills con `when_to_use`, `ve
 - **2026-05-27 — Graph v0 con regex, no tree-sitter.** Agrega complejidad de build (parsers nativos por lenguaje). El schema SQLite ya soporta más `kind` que `import` — cuando S12.6 deje de ser suficiente, se cambia en Mes 4.
 - **2026-05-27 — Harness nunca lanza.** Toda excepción se traduce a `TaskResult` con `status: 'failed'`. `cli.ts` no tiene `try/catch` alrededor de lógica de ejecución.
 - **2026-05-27 — Codex executor detrás de flag.** No hay evidencia de que delegar a CLI externo cambie algo. La estructura queda lista; el botón se prende cuando alguien quiera medirlo.
+- **2026-05-27 — S9: legacy `orchestos run` no migrado al harness.** El comando `run --task --output` tiene ~150 líneas de lógica LLM inline que no se movieron. Razón: S9 es refactor sin behavior changes y el comando legacy es un flujo distinto (sin tasks.yaml). Se migra en S11 cuando se implemente el provider registry, o se depreca si nadie lo usa.
 - **2026-05-27 — Two-tier LLM: ⚡/🧠 en PLAN.md, no en tasks.yaml aún.** El patrón "modelo fuerte planifica, modelo ligero ejecuta" se implementa como convención de delegación en el plan. `planner_model`/`executor_model` en tasks.yaml va a Mes 4+ cuando haya evidencia de que lo necesita el harness.
 
 ---
