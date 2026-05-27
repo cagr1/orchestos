@@ -497,7 +497,7 @@ input: 1240 tokens   output: 387 tokens   $0.0021   elapsed: 4.3s
   - [x] Auto-suggest sin `input[]`: graph sugiere `src/auth.ts score=3` para "auth logger" — --explain lo confirma. ✅
   - ⚠️ Full API end-to-end (executor:anthropic, checks pass, QA pass → done): pendiente de run con API key activa.
   - ⚠️ Usuario externo: pendiente (ver `## Feedback Mes 3` en IDEAS.md).
-- [ ] **S13.7** Commit final.
+- [x] **S13.7** Commit final `feat(m3): harness + checks + executor + graph integration complete`. — 2026-05-27
 
 ---
 
