@@ -33,33 +33,32 @@ export function snapshotHashes(root: string, paths: string[]): Record<string, st
 }
 
 // ── parse LLM response ────────────────────────────────────────────────────────
-// Expects JSON block: { "files": [{ "path": "...", "content": "..." }] }
+// Expects delimiter format: <<<FILE:path>>>\ncontent\n<<<ENDFILE>>>
+// More robust than JSON — no escaping issues with code content.
 export function parseLLMResponse(raw: string): LLMFileResponse {
-  // Try to extract JSON block from markdown fences or raw JSON
-  const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
-  const jsonStr = jsonMatch?.[1] ?? raw.trim()
+  const files: FileChange[] = []
+  const delimiter = /<<<FILE:([^>\n]+)>>>([\s\S]*?)<<<ENDFILE>>>/g
+  let match: RegExpExecArray | null
 
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(jsonStr)
-  } catch {
-    throw new Error(`LLM response is not valid JSON. Got:\n${raw.slice(0, 300)}`)
+  while ((match = delimiter.exec(raw)) !== null) {
+    const rawPath = match[1]
+    const rawContent = match[2]
+    if (rawPath === undefined || rawContent === undefined) continue
+    const path = rawPath.trim()
+    if (!path) throw new Error('FILE delimiter found with empty path')
+    // Strip exactly one leading newline that follows the opening delimiter
+    const content = rawContent.startsWith('\n') ? rawContent.slice(1) : rawContent
+    files.push({ path, content })
   }
 
-  if (
-    typeof parsed !== 'object' || parsed === null ||
-    !Array.isArray((parsed as Record<string, unknown>).files)
-  ) {
-    throw new Error(`LLM response missing "files" array. Got: ${JSON.stringify(parsed).slice(0, 200)}`)
+  if (files.length === 0) {
+    throw new Error(
+      `No <<<FILE:...>>>...<<<ENDFILE>>> blocks found in LLM response.\n` +
+      `Got:\n${raw.slice(0, 400)}`
+    )
   }
 
-  const files = (parsed as { files: unknown[] }).files
-  for (const f of files) {
-    if (typeof (f as Record<string, unknown>).path !== 'string') throw new Error(`File entry missing "path"`)
-    if (typeof (f as Record<string, unknown>).content !== 'string') throw new Error(`File entry missing "content"`)
-  }
-
-  return parsed as LLMFileResponse
+  return { files }
 }
 
 // ── enforce contract ──────────────────────────────────────────────────────────

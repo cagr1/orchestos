@@ -17,8 +17,9 @@ export function buildPrompt(task: Task, contextText: string, projectRoot: string
     skillGuidelines,
     `\n## OUTPUT CONTRACT`,
     `You may ONLY write to these files: ${task.output.join(', ')}`,
-    `Respond with ONLY valid JSON - no markdown, no explanation:`,
-    `{ "files": [{ "path": "relative/path", "content": "full file content" }] }`,
+    `Output each file using EXACTLY this format — nothing else before the first delimiter or after the last:`,
+    ...task.output.map(p => `<<<FILE:${p}>>>\n(full file content)\n<<<ENDFILE>>>`),
+    `Replace the placeholder with the actual file content. No JSON, no markdown fences, no extra text.`,
   ].filter(Boolean).join('\n')
 
   let userContent = `Task: ${task.description}\n`
