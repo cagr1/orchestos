@@ -4,8 +4,8 @@ import { dirname, extname, join, normalize } from 'path'
 import { glob } from 'glob'
 import { db } from '../db/sqlite.ts'
 
-const INDEX_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs,py}'
-const IGNORE = ['node_modules/**', 'dist/**', '.next/**', '.git/**', 'runs/**']
+const INDEX_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs,py,cs,rs,go,java,kt,rb,php,swift,scala,ex,exs,hs,lua,pl,pm}'
+const IGNORE = ['node_modules/**', 'dist/**', '.next/**', '.git/**', 'runs/**', 'bin/**', 'obj/**', 'target/**']
 const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '/index.ts', '/index.js']
 
 export interface IndexResult {
@@ -16,7 +16,7 @@ export interface IndexResult {
 }
 
 interface ImportEdge {
-  kind: 'import' | 'require' | 'from'
+  kind: 'import' | 'require' | 'from' | 'use'
   specifier: string
   raw: string
 }
@@ -104,8 +104,22 @@ function upsertFile(
 }
 
 function extractImports(file: string, content: string): ImportEdge[] {
-  const ext = extname(file)
-  return ext === '.py' ? extractPythonImports(content) : extractJsImports(content)
+  const ext = extname(file).toLowerCase()
+  switch (ext) {
+    case '.py':           return extractPythonImports(content)
+    case '.cs':           return extractCSharpImports(content)
+    case '.rs':           return extractRustImports(content)
+    case '.go':           return extractGoImports(content)
+    case '.java':
+    case '.kt':
+    case '.scala':        return extractJvmImports(content)
+    case '.rb':           return extractRubyImports(content)
+    case '.php':          return extractPhpImports(content)
+    case '.swift':        return extractSwiftImports(content)
+    case '.ex':
+    case '.exs':          return extractElixirImports(content)
+    default:              return extractJsImports(content)
+  }
 }
 
 function extractJsImports(content: string): ImportEdge[] {
@@ -116,7 +130,7 @@ function extractJsImports(content: string): ImportEdge[] {
   ]
   for (const { kind, re } of patterns) {
     for (const match of content.matchAll(re)) {
-      if (match[1]) edges.push({ kind, specifier: match[1], raw: match[0] })
+      if (match[1]) edges.push({ kind, specifier: match[1], raw: match[0].trim() })
     }
   }
   return edges
@@ -130,8 +144,86 @@ function extractPythonImports(content: string): ImportEdge[] {
   ]
   for (const { kind, re } of patterns) {
     for (const match of content.matchAll(re)) {
-      if (match[1]) edges.push({ kind, specifier: match[1], raw: match[0] })
+      if (match[1]) edges.push({ kind, specifier: match[1], raw: match[0].trim() })
     }
+  }
+  return edges
+}
+
+function extractCSharpImports(content: string): ImportEdge[] {
+  const edges: ImportEdge[] = []
+  for (const match of content.matchAll(/^\s*using\s+([\w.]+)\s*;/gm)) {
+    if (match[1]) edges.push({ kind: 'use', specifier: match[1], raw: match[0].trim() })
+  }
+  return edges
+}
+
+function extractRustImports(content: string): ImportEdge[] {
+  const edges: ImportEdge[] = []
+  for (const match of content.matchAll(/^\s*use\s+([\w:]+(?:::\{[^}]+\})?)\s*;/gm)) {
+    if (match[1]) edges.push({ kind: 'use', specifier: match[1], raw: match[0].trim() })
+  }
+  for (const match of content.matchAll(/^\s*extern\s+crate\s+([\w]+)\s*;/gm)) {
+    if (match[1]) edges.push({ kind: 'import', specifier: match[1], raw: match[0].trim() })
+  }
+  return edges
+}
+
+function extractGoImports(content: string): ImportEdge[] {
+  const edges: ImportEdge[] = []
+  // single import: import "pkg"
+  for (const match of content.matchAll(/^\s*import\s+"([^"]+)"/gm)) {
+    if (match[1]) edges.push({ kind: 'import', specifier: match[1], raw: match[0].trim() })
+  }
+  // block import: import ( "pkg" )
+  const blockMatch = content.match(/import\s*\(([\s\S]*?)\)/)
+  if (blockMatch?.[1]) {
+    for (const m of blockMatch[1].matchAll(/"([^"]+)"/g)) {
+      if (m[1]) edges.push({ kind: 'import', specifier: m[1], raw: m[0] })
+    }
+  }
+  return edges
+}
+
+function extractJvmImports(content: string): ImportEdge[] {
+  const edges: ImportEdge[] = []
+  for (const match of content.matchAll(/^\s*import\s+([\w.]+(?:\.\*)?)\s*;?/gm)) {
+    if (match[1]) edges.push({ kind: 'import', specifier: match[1], raw: match[0].trim() })
+  }
+  return edges
+}
+
+function extractRubyImports(content: string): ImportEdge[] {
+  const edges: ImportEdge[] = []
+  for (const match of content.matchAll(/^\s*require(?:_relative)?\s+['"]([^'"]+)['"]/gm)) {
+    if (match[1]) edges.push({ kind: 'require', specifier: match[1], raw: match[0].trim() })
+  }
+  return edges
+}
+
+function extractPhpImports(content: string): ImportEdge[] {
+  const edges: ImportEdge[] = []
+  for (const match of content.matchAll(/^\s*(?:require|include)(?:_once)?\s+['"]([^'"]+)['"]/gm)) {
+    if (match[1]) edges.push({ kind: 'require', specifier: match[1], raw: match[0].trim() })
+  }
+  for (const match of content.matchAll(/^\s*use\s+([\w\\]+)/gm)) {
+    if (match[1]) edges.push({ kind: 'use', specifier: match[1], raw: match[0].trim() })
+  }
+  return edges
+}
+
+function extractSwiftImports(content: string): ImportEdge[] {
+  const edges: ImportEdge[] = []
+  for (const match of content.matchAll(/^\s*import\s+([\w.]+)/gm)) {
+    if (match[1]) edges.push({ kind: 'import', specifier: match[1], raw: match[0].trim() })
+  }
+  return edges
+}
+
+function extractElixirImports(content: string): ImportEdge[] {
+  const edges: ImportEdge[] = []
+  for (const match of content.matchAll(/^\s*(?:alias|import|use|require)\s+([\w.]+)/gm)) {
+    if (match[1]) edges.push({ kind: 'use', specifier: match[1], raw: match[0].trim() })
   }
   return edges
 }

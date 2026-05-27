@@ -55,18 +55,77 @@ language_targets:
     anti_patterns:
       - use any to bypass type checking in tests
       - test private methods directly
+  javascript:
+    verifiers:
+      - npm test
+    anti_patterns:
+      - test private methods directly
+      - console.log in tests instead of assertions
   csharp:
     verifiers:
       - dotnet test
     anti_patterns:
       - '[Ignore] without a documented reason'
       - test internal classes from another assembly
+  visualbasic:
+    verifiers:
+      - dotnet test
+    anti_patterns:
+      - test internal classes from another assembly
+      - magic numbers without explanation in assertions
+  fsharp:
+    verifiers:
+      - dotnet test
+    anti_patterns:
+      - test mutable state instead of return values
   python:
     verifiers:
       - python -m pytest
     anti_patterns:
       - mock the function under test
       - test without assertions (no assert statement)
+  rust:
+    verifiers:
+      - cargo test
+    anti_patterns:
+      - unwrap() in tests without a meaningful message
+      - test implementation details instead of public API
+  go:
+    verifiers:
+      - go test ./...
+    anti_patterns:
+      - ignore error return values in tests
+      - table-driven tests without t.Run for isolation
+  java:
+    verifiers:
+      - mvn test
+    anti_patterns:
+      - '@Ignore without reason'
+      - test with System.out.println instead of assertions
+  kotlin:
+    verifiers:
+      - gradle test
+    anti_patterns:
+      - '!! operator in tests'
+      - blocking coroutines in unit tests
+  ruby:
+    verifiers:
+      - bundle exec rspec
+    anti_patterns:
+      - let! when let is sufficient
+      - subject without explicit expectations
+  r:
+    verifiers:
+      - Rscript -e "testthat::test_dir('tests')"
+    anti_patterns:
+      - test without expect_* functions
+      - T/F instead of TRUE/FALSE in assertions
+  sql:
+    verifiers:
+      - run your database test suite
+    anti_patterns:
+      - test on production data
+      - queries without WHERE clauses in test teardown
   default:
     verifiers:
       - run your test suite

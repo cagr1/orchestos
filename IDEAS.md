@@ -94,30 +94,45 @@ clasificador existente. LangChain/CrewAI asignan por rol semántico, no por comp
 
 ---
 
-## 💡 Pendiente — Mes 4+
+## 💡 Pendiente — Mes 5
 
-### Multi-lenguaje en Code Graph
+### Multi-lenguaje en Code Graph ✅ PARCIALMENTE IMPLEMENTADO
 
-**Problema**: Code Graph v0 con regex solo cubre TS/JS/Python. Cisepro.Web (.NET/C#) = 0 files.
+**Estado**: El graph ahora indexa C#, Rust, Go, Java, Kotlin, Ruby, PHP, Swift, Elixir, Haskell, Lua, Perl.
+Import extraction específica por lenguaje con regex para cada uno.
 
-**Por lenguaje**:
-- **C# / .NET**: regex `using\s+([\w.]+)` + `namespace\s+([\w.]+)`
-- **Java**: regex `import\s+([\w.]+)`
-- **Go**: regex `"([\w/.-]+)"` dentro de bloques `import(...)`
-
-Cuando el grafo llegue a 10K+ nodos → migrar a **KuzuDB** (embebible, Cypher, Rust). No antes.
-
-**Prerequisito**: language-aware skills funcionando (define qué lenguajes son prioritarios).
+**Pendiente**:
+- Resolver imports relativos para lenguajes no-JS (hoy solo JS/Python tienen resolución de paths)
+- KuzuDB cuando el grafo llegue a 10K+ nodos
 
 ---
 
-### CONTEXT.md — vocabulario comprimido del proyecto
+### autoskills — Registry de skills por lenguaje/framework
 
-En vez de mandar AGENTS.md completo en cada prompt, mantener un `CONTEXT.md` con
-el vocabulario específico: nombres de módulos, convenciones, abreviaciones del equipo.
-Reduce tokens y mejora consistencia entre runs.
+**Referencia**: `npx autoskills` — repo de midudev: https://github.com/midudev/autoskills
 
-`orchestos context compress` → genera CONTEXT.md a partir de AGENTS.md + runs history + código.
+**Problema que resuelve**: Cuando trabajas en un proyecto con un lenguaje o framework que no está
+en tus skills locales, hoy `skill scaffold` genera un YAML genérico. Con autoskills, podrías
+descargar una skill curada por la comunidad para ese lenguaje/framework específico.
+
+**Integración propuesta**:
+```bash
+orchestos skill fetch --language rust          # descarga rust-development de autoskills registry
+orchestos skill fetch --framework nextjs       # descarga nextjs-development
+orchestos skill fetch --list                   # lista skills disponibles en el registry
+```
+
+**Flujo completo**:
+1. `orchestos task run --explain <id>` detecta lenguaje del proyecto
+2. Si ninguna skill local tiene `language_targets.<lang>` → avisa al usuario
+3. Usuario decide: `orchestos skill scaffold --language <lang>` (local, genérico)
+   o `orchestos skill fetch --language <lang>` (registry, curado por comunidad)
+4. Skill descargada en `skills/<id>.yaml` → editable localmente
+
+**Decisión de diseño pendiente**: autoskills usa npx (npm registry) → ¿queremos un
+registry propio en orchestos o simplemente wrappear autoskills como fuente?
+
+**Prerequisito**: `skill scaffold` ✅ ya implementado como base local.
 
 ---
 

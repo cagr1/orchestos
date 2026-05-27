@@ -64,16 +64,67 @@ language_targets:
     anti_patterns:
       - skip describe blocks
       - use any to bypass type checking in tests
+  javascript:
+    verifiers:
+      - npm test
+    anti_patterns:
+      - skip describe blocks
+      - console.log instead of assertions
   csharp:
     verifiers:
       - dotnet test
     anti_patterns:
       - '[Ignore] without a documented reason'
+      - Assert.IsTrue(x == y) instead of Assert.AreEqual
+  visualbasic:
+    verifiers:
+      - dotnet test
+    anti_patterns:
+      - magic numbers without named constants
+  fsharp:
+    verifiers:
+      - dotnet test
+    anti_patterns:
+      - mutable test state
   python:
     verifiers:
       - python -m pytest
     anti_patterns:
       - skip unittest.TestCase in favor of pytest
+      - bare assert without message
+  rust:
+    verifiers:
+      - cargo test
+    anti_patterns:
+      - unwrap() in test assertions
+      - test only the happy path
+  go:
+    verifiers:
+      - go test ./...
+    anti_patterns:
+      - ignore error returns in tests
+      - non-isolated table-driven subtests
+  java:
+    verifiers:
+      - mvn test
+    anti_patterns:
+      - '@Ignore without reason'
+      - assertEquals(expected, actual) order reversed
+  kotlin:
+    verifiers:
+      - gradle test
+    anti_patterns:
+      - runBlocking without timeout in coroutine tests
+  ruby:
+    verifiers:
+      - bundle exec rspec
+    anti_patterns:
+      - before(:all) with shared state
+  r:
+    verifiers:
+      - Rscript -e "testthat::test_dir('tests')"
+    anti_patterns:
+      - test without expect_* functions
   default:
     verifiers:
       - run your test suite

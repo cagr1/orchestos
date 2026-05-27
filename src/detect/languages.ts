@@ -7,24 +7,55 @@ export interface LangStat {
 }
 
 const EXT_MAP: Record<string, string> = {
+  // Web — JS ecosystem
   ts: 'TypeScript', tsx: 'TypeScript',
   js: 'JavaScript', jsx: 'JavaScript', mjs: 'JavaScript', cjs: 'JavaScript',
-  py: 'Python',
-  cs: 'C#',
   vue: 'Vue',
-  rs: 'Rust',
-  go: 'Go',
-  sql: 'SQL',
-  java: 'Java',
-  kt: 'Kotlin',
+  svelte: 'Svelte',
+  html: 'HTML', htm: 'HTML',
+  css: 'CSS',
+  scss: 'SCSS', sass: 'SCSS',
+  // Backend — general purpose
+  py: 'Python',
   rb: 'Ruby',
   php: 'PHP',
-  swift: 'Swift',
-  cpp: 'C++', cc: 'C++', cxx: 'C++',
+  go: 'Go',
+  java: 'Java',
+  kt: 'Kotlin',
+  scala: 'Scala',
+  groovy: 'Groovy',
+  // .NET ecosystem
+  cs: 'C#',
+  vb: 'Visual Basic', vbs: 'Visual Basic',
+  fs: 'F#', fsi: 'F#', fsx: 'F#',
+  // Systems
+  rs: 'Rust',
+  cpp: 'C++', cc: 'C++', cxx: 'C++', hpp: 'C++',
   c: 'C', h: 'C',
+  swift: 'Swift',
+  // Mobile
+  dart: 'Dart',
+  // Data / Science / Analytics
+  r: 'R', rmd: 'R',
+  jl: 'Julia',
+  sql: 'SQL', psql: 'SQL', mysql: 'SQL',
+  // Functional
+  hs: 'Haskell', lhs: 'Haskell',
+  ex: 'Elixir', exs: 'Elixir',
+  clj: 'Clojure', cljs: 'ClojureScript', cljc: 'Clojure',
+  erl: 'Erlang', hrl: 'Erlang',
+  ml: 'OCaml', mli: 'OCaml',
+  // Scripting / Shell
+  sh: 'Shell', bash: 'Shell', zsh: 'Shell',
+  ps1: 'PowerShell', psm1: 'PowerShell', psd1: 'PowerShell',
+  lua: 'Lua',
+  pl: 'Perl', pm: 'Perl',
 }
 
-const IGNORE = ['node_modules/**', '.git/**', 'dist/**', 'build/**', 'target/**', '.next/**', 'out/**', 'coverage/**']
+const IGNORE = [
+  'node_modules/**', '.git/**', 'dist/**', 'build/**',
+  'target/**', '.next/**', 'out/**', 'coverage/**', 'bin/**', 'obj/**',
+]
 
 export async function detectLanguages(root: string): Promise<LangStat[]> {
   const files = await glob('**/*.*', { cwd: root, ignore: IGNORE, nodir: true })
@@ -53,3 +84,7 @@ export async function detectPrimaryLanguage(root: string): Promise<string | null
   const stats = await detectLanguages(root)
   return stats.length > 0 ? (stats[0]?.lang ?? null) : null
 }
+
+export const SUPPORTED_LANGUAGES = Object.values(EXT_MAP).filter(
+  (v, i, a) => a.indexOf(v) === i
+).sort()

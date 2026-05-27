@@ -23,7 +23,11 @@
       "Bash(bun src/cli.ts constitution show)",
       "Bash(bun ../src/cli.ts task run --explain add-tests)",
       "Bash(bun ../src/cli.ts task list)",
-      "Bash(bun ../src/cli.ts task run --explain document-auth-module)"
+      "Bash(bun ../src/cli.ts task run --explain document-auth-module)",
+      "Bash(bun src/cli.ts skill languages)",
+      "Bash(bun src/cli.ts skill scaffold --language Rust)",
+      "Bash(bun src/cli.ts skill scaffold --language \"Visual Basic\" --id vb-dotnet)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

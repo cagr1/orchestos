@@ -28,6 +28,7 @@ import { readFileSync } from 'fs'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
 import { indexProject } from './graph/index.ts'
 import { suggestContext } from './graph/suggest.ts'
+import { scaffoldSkillYaml, languageHasSkillCoverage, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -309,6 +310,50 @@ skill
     }
     console.log(`\n[skill] ${total} file(s) compiled, ${errors} error(s)`)
     if (errors > 0) process.exit(1)
+  })
+
+skill
+  .command('scaffold')
+  .description('Generate a language-specific skill YAML — use when no skill covers your project language')
+  .requiredOption('--language <lang>', 'Target language (e.g. Rust, "Visual Basic", R, SQL)')
+  .option('--id <id>', 'Custom skill id (kebab-case). Default: <language>-development')
+  .option('--out <path>', 'Output path. Default: skills/<id>.yaml')
+  .action((opts: { language: string; id?: string; out?: string }) => {
+    const lang = opts.language
+    const supported = SUPPORTED_LANGUAGES.find(l => l.toLowerCase() === lang.toLowerCase())
+    if (!supported) {
+      console.warn(`[skill] Warning: "${lang}" is not in the known language list.`)
+      console.warn(`  Known: ${SUPPORTED_LANGUAGES.join(', ')}`)
+      console.warn('  Generating generic scaffold anyway.')
+    }
+    const resolvedLang = supported ?? lang
+    const id = opts.id ?? `${resolvedLang.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-development`
+    const outPath = opts.out ?? getSkillPath(id)
+    if (existsSync(outPath)) {
+      console.error(`[skill] Already exists: ${outPath}. Use --out to specify a different path.`)
+      process.exit(1)
+    }
+    const yaml = scaffoldSkillYaml(resolvedLang, id)
+    writeFileSync(outPath, yaml, 'utf-8')
+    console.log(`[skill] Scaffolded: ${outPath}`)
+    console.log(`  Language: ${resolvedLang}`)
+    console.log(`  Edit verifiers, anti_patterns, and examples to match your project.`)
+    console.log(`  Then run: orchestos skill build`)
+  })
+
+skill
+  .command('languages')
+  .description('List all languages supported for language-aware skill generation')
+  .action(() => {
+    console.log('[skill] Supported languages for --language and language_targets:\n')
+    const cols = 4
+    const padded = SUPPORTED_LANGUAGES.map(l => l.padEnd(20))
+    for (let i = 0; i < padded.length; i += cols) {
+      console.log('  ' + padded.slice(i, i + cols).join(''))
+    }
+    console.log(`\n  Total: ${SUPPORTED_LANGUAGES.length} languages`)
+    console.log('\n  Missing a language? Use: orchestos skill scaffold --language <name>')
+    console.log('  For unknown languages, orchestos generates a generic scaffold you can customize.')
   })
 
 // ── run ───────────────────────────────────────────────────────────────────────

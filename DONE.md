@@ -5,7 +5,7 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 
 ---
 
-## Sección 1 — Plan ejecutado
+## Sección 1 — Plan ejecutado (S1–S18)
 
 ### MES 1 — CLI base + detección de stack
 
@@ -95,7 +95,7 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 
 ---
 
-### MES 3 — Reliability + Spec QA (completado)
+### MES 3 — Reliability + Spec QA
 
 **SEMANA 9 — Extracción de harness**
 - S9.1-S9.2 `src/run/harness.ts`: HarnessOpts, TaskResult, runTask() — cli.ts solo orquesta — 2026-05-27
@@ -151,75 +151,28 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 - S14.9 Validación: skill list (8), skill build (24 archivos), retrocompatibilidad, typecheck — 2026-05-27
 - S14.10 Commit `efb95d5` — 2026-05-27
 
-### Validaciones manuales pendientes (no bloqueantes para Mes 3)
+**Decisiones de diseño Mes 3**
+- Checks ANTES del QA — si TS no compila, no tiene sentido el LLM de QA.
+- Checks usan exit code, no parseo de stdout — wrapper script si necesitas stdout.
+- Graph v0 con regex, no tree-sitter — schema ya soporta más kinds para Mes 4.
+- Harness nunca lanza — toda excepción → `TaskResult{status:'failed'}`.
+- Codex executor detrás de flag `OS_ENABLE_EXEC_CODEX=1` hasta evidencia real.
+- legacy `orchestos run` no migrado al harness — flujo distinto, se depreca si nadie lo usa.
+- Two-tier LLM como convención (⚡/🧠), no en tasks.yaml — hasta Mes 4 con evidencia.
 
-Estas requieren API key activa o usuario externo. No bloquean S14:
-- ⚠️ `orchestos task run --all` en qa-test-project con API key real (S9.6)
-- ⚠️ Tarea con `checks: ["bun run typecheck"]` + output roto → retry sin tokens QA (S10.7)
-- ⚠️ Tarea con `executor: anthropic` → `runs --detail` muestra `provider: anthropic` (S11.8)
-- ⚠️ Full API end-to-end: executor + checks + acceptance_criteria → done, evidencia en runs --detail (S13.6)
-- ⚠️ Usuario externo corre el flujo y deja feedback en `IDEAS.md ## Feedback Mes 3` (métrica Mes 3)
-
-### Métrica única de éxito Mes 3
-
-¿Una tarea con `executor`, `checks` y `acceptance_criteria` corre end-to-end, los checks
-deterministas atajan antes del QA cuando deben, el graph sugiere contexto razonable,
-`cli.ts` ya no contiene lógica de ejecución, y hay 5 skills con `verifiers` + `anti_patterns`?
-
-- [x] **SÍ** (2026-05-27) → Mes 3 cerrado. Abrir plan Mes 4.
-- [ ] **NO** → identificar cuál eje (harness/checks/executor/graph/skills) no resistió uso real.
-
-### Lista prohibida Mes 3
-
+**Lista prohibida Mes 3** _(lo que NO se hizo — referencia histórica)_
 - Symbols/calls en el graph — solo imports.
 - Paralelismo entre tareas — scheduler sigue secuencial.
 - `qa_executor` separado del `executor`.
 - Worktrees reales (`git worktree add`).
 - Reescribir el scheduler a archivo separado.
 - `executor` como string libre — enum cerrado.
-- `planner_model` / `executor_model` en tasks.yaml — vive en IDEAS.md hasta Mes 4.
+- ~~`planner_model` / `executor_model` en tasks.yaml~~ → **implementado en S15 (Mes 4)**.
 - Más de 5 skills en S14 — calidad sobre cantidad.
 
-### Decisiones de diseño activas (Mes 3)
-
-- **Checks ANTES del QA** — si TS no compila, no tiene sentido el LLM de QA.
-- **Checks usan exit code, no parseo de stdout** — wrapper script si necesitas stdout.
-- **Graph v0 con regex, no tree-sitter** — schema ya soporta más kinds para Mes 4.
-- **Harness nunca lanza** — toda excepción → `TaskResult{status:'failed'}`.
-- **Codex executor detrás de flag** `OS_ENABLE_EXEC_CODEX=1` hasta evidencia real.
-- **legacy `orchestos run` no migrado al harness** — flujo distinto, se depreca si nadie lo usa.
-- **Two-tier LLM como convención (⚡/🧠), no en tasks.yaml** — hasta Mes 4 con evidencia.
-
 ---
 
-## Sección 2 — Ideas aplicadas (de IDEAS.md)
-
-### Code Graph v0 — S12 (2026-05-27)
-`files` + `code_edges` en SQLite. Regex import extraction para TS/JS/Python.
-`orchestos index` + `orchestos context suggest`. SHA1 dedup. 1-hop neighbor ranking.
-`src/graph/index.ts` y `src/graph/suggest.ts`.
-
-### Extracción de harness — S9 (2026-05-27)
-`src/run/harness.ts`: `runTask(HarnessOpts): Promise<TaskResult>`.
-cli.ts solo orquesta. Harness nunca lanza — toda excepción → `status: 'failed'`.
-
-### acceptance_criteria[] + checks[] — S10 (2026-05-27)
-`checks[]` = comandos deterministas (exit code) que corren ANTES del QA LLM.
-`acceptance_criteria[]` = criterios evaluados per-item por el LLM de QA.
-Si check falla → revert + retry sin gastar tokens de QA.
-
-### Multi-provider executor — S11 (2026-05-27)
-Campo `executor: openrouter | anthropic | openai | codex` por tarea.
-`ProviderClient` interface. `getProvider(name)` en `src/providers/index.ts`.
-
-### Two-tier LLM convention — Mes 3 (2026-05-27)
-Convención `⚡` / `🧠` activa en PLAN.md para delegar entre modelos.
-`executor` field en tasks.yaml es el primer eslabón concreto.
-`planner_model` / `executor_model` en tasks.yaml → Mes 4.
-
----
-
-### MES 4 — Routing inteligente + skills que se adaptan al proyecto (completado 2026-05-27)
+### MES 4 — Routing inteligente + skills que se adaptan al proyecto
 
 **SEMANA 15 — Model roles config**
 - S15.1 `src/config/schema.ts` + `src/config/load.ts` con fallback chain — 2026-05-27
@@ -260,8 +213,35 @@ Convención `⚡` / `🧠` activa en PLAN.md para delegar entre modelos.
 - S18.9 Validación final: typecheck verde; skill list → 11 skills; context compress genera CONTEXT.md; harness usa CONTEXT.md — 2026-05-27
 - S18.10 Commit final Mes 4 `cca5f49` — 2026-05-27
 
-**Métrica Mes 4 — SÍ (2026-05-27)**
+**Decisiones de diseño Mes 4**
+- `orchestos.config.yaml` vive en el proyecto — routing es por proyecto; config global como fallback.
+- `autoRoute` usa `classifyTask` existente — sin clasificador nuevo, deuda cero.
+- `executor` por tarea sigue ganando sobre config — compatibilidad total Mes 3.
+- CONSTITUTION.md es Markdown parseado con regex — sin DSL nuevo; Mes 5 puede formalizarlo.
+- `clarify` es heurística de palabras clave — semántica (LLM call extra) queda para Mes 5.
+- CONTEXT.md sustituye AGENTS.md en el prompt — AGENTS.md sigue siendo fuente de verdad para init.
+
+**Lista prohibida Mes 4** _(lo que NO se hizo — referencia histórica)_
+- Dashboard / UI de ningún tipo → Mes 6+.
+- Sub-agentes con contextos aislados → Mes 5+.
+- Sandbox por tarea (`git worktree add`) → Mes 5.
+- Spec-kit completo (`orchestos spec <id>`) → Mes 5.
+- KuzuDB / upgrade del graph → solo si proyecto llega a 10K nodos.
+- Paralelismo entre tareas — scheduler sigue secuencial.
+- `qa_executor` separado.
+- Clasificador semántico para clarify.
+
+**Métrica Mes 4 — ✅ SÍ (2026-05-27)**
 `orchestos.config.yaml` enruta al modelo correcto, skills compiladas incluyen solo instrucciones del lenguaje del proyecto, CONSTITUTION.md aparece en el prompt sin config adicional, `context compress` produce CONTEXT.md que el harness usa con ahorro de tokens visible en `runs --detail`.
+
+---
+
+## Sección 2 — Ideas implementadas (provenientes de IDEAS.md)
+
+### planner_model / executor_model por tarea — S15 (2026-05-27)
+Graduado de "lista prohibida Mes 3" a implementado.
+`Task.planner_model?` y `Task.executor_model?` como override por tarea en tasks.yaml.
+Gana sobre `orchestos.config.yaml`. Harness los respeta vía `autoRoute`.
 
 ### Model roles config — S15 (2026-05-27)
 `orchestos.config.yaml`: models{planner, executor_heavy, executor_light, default}.
@@ -283,3 +263,26 @@ Comandos `config init` + `config show`.
 `buildContextMd(projectId)`: AGENTS.md + archivos frecuentes del graph + últimos 5 runs.
 `orchestos context compress` genera CONTEXT.md (~500 tokens vs ~2000 AGENTS.md).
 Harness usa CONTEXT.md si existe; `runs --detail` reporta ahorro.
+
+### Code Graph v0 — S12 (2026-05-27)
+`files` + `code_edges` en SQLite. Regex import extraction para TS/JS/Python.
+`orchestos index` + `orchestos context suggest`. SHA1 dedup. 1-hop neighbor ranking.
+`src/graph/index.ts` y `src/graph/suggest.ts`.
+
+### Extracción de harness — S9 (2026-05-27)
+`src/run/harness.ts`: `runTask(HarnessOpts): Promise<TaskResult>`.
+cli.ts solo orquesta. Harness nunca lanza — toda excepción → `status: 'failed'`.
+
+### acceptance_criteria[] + checks[] — S10 (2026-05-27)
+`checks[]` = comandos deterministas (exit code) que corren ANTES del QA LLM.
+`acceptance_criteria[]` = criterios evaluados per-item por el LLM de QA.
+Si check falla → revert + retry sin gastar tokens de QA.
+
+### Multi-provider executor — S11 (2026-05-27)
+Campo `executor: openrouter | anthropic | openai | codex` por tarea.
+`ProviderClient` interface. `getProvider(name)` en `src/providers/index.ts`.
+
+### Two-tier LLM convention — Mes 3 (2026-05-27)
+Convención `⚡` / `🧠` activa en PLAN.md para delegar entre modelos.
+`executor` field en tasks.yaml es el primer eslabón concreto.
+`planner_model` / `executor_model` en tasks.yaml → implementado en S15.
