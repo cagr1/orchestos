@@ -109,10 +109,10 @@ Resolver imports para lenguajes no-JS + descarga de skills curadas.
 - `src/cli.ts` — `orchestos skill fetch --language <lang> [--name <name>]`
 
 - [x] S21.1 ⚡ (2026-05-27) `resolver-registry.ts` con interfaz `Resolver { language, resolve(importStr, fromFile, repoIndex) }`
-- [ ] S21.2 🧠 resolver C#: parsear `namespace X.Y` por archivo, mapear `using X.Y` → archivo más cercano
-- [ ] S21.3 🧠 resolver Rust: estructura `src/foo/mod.rs` o `src/foo.rs` para resolver `use crate::foo`
-- [ ] S21.4 🧠 resolver Go: leer `go.mod` para module path, resolver imports que empiezan con ese path
-- [ ] S21.5 🧠 resolver Java: mapear `package x.y` declarado → resolver `import x.y.Z`
+- [x] S21.2 🧠 (2026-05-27) resolver C#: nsCache por projectRoot, `using X.Y` → archivo con ese namespace
+- [x] S21.3 🧠 (2026-05-27) resolver Rust: `use crate::foo::bar` → src/foo/bar.rs o src/foo/bar/mod.rs, retrocede segmentos si es ítem
+- [x] S21.4 🧠 (2026-05-27) resolver Go: lee go.mod, strip module prefix, busca .go en el subdirectorio del índice
+- [x] S21.5 🧠 (2026-05-27) resolver Java: `import com.X.Foo` → com/X/Foo.java|.kt|.scala; wildcards → primer archivo del paquete
 - [ ] S21.6 ⚡ integrar resolvers en `graph/index.ts`: `to_file_id` ahora se llena para C#/Rust/Go/Java
 - [ ] S21.7 ⚡ test fixtures por lenguaje en `tests/fixtures/graph/<lang>/` con 3-4 archivos cada uno
 - [ ] S21.8 ⚡ `skills/fetch.ts` — fetch de `https://raw.githubusercontent.com/midudev/autoskills/main/skills/<lang>/<name>.yaml` con cache local en `.orchestos/cache/skills/`

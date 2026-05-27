@@ -1,0 +1,205 @@
+version: 1
+project: orchestos
+tasks:
+  - id: s21-6-integrate-resolvers
+    description: >
+      Integrate the four language resolvers (C#, Rust, Go, Java) into src/graph/index.ts.
+
+      The resolvers are already implemented in:
+        - src/graph/resolvers/csharp.ts  (exports: csharpResolver)
+        - src/graph/resolvers/rust.ts    (exports: rustResolver)
+        - src/graph/resolvers/go.ts      (exports: goResolver)
+        - src/graph/resolvers/java.ts    (exports: javaResolver)
+        - src/graph/resolver-registry.ts (exports: registerResolver, resolveWithRegistry, RepoIndex, RepoFile)
+
+      In src/graph/index.ts, make these changes: 1. At the top, import all four resolvers and registerResolver from the
+      paths above. 2. Register all four resolvers once at module load time (outside any function):
+           registerResolver(csharpResolver)
+           registerResolver(rustResolver)
+           registerResolver(goResolver)
+           registerResolver(javaResolver)
+      3. Inside the indexProject() loop, after computing toPath with resolveImport():
+         - Build a RepoIndex object: { projectRoot, projectId, files: [] } where files[]
+           is the list of already-indexed files as { path, language } objects.
+           NOTE: this list can be built from the `files` array (local variable) using languageFor().
+         - Call resolveWithRegistry(language, edge.specifier, file, repoIndex) to get toFileId.
+         - If it returns a non-null path, use resolveFileId(projectId, that path) as toFileId.
+         - Otherwise fall back to the current toFileId logic.
+      4. Do NOT change any other logic. Do NOT remove existing extractors or resolveImport().
+
+      The languageFor() function already exists in the file — use it to get the language for each file path.
+    executor: openrouter
+    executor_model: deepseek/deepseek-r1
+    input:
+      - src/graph/index.ts
+      - src/graph/resolver-registry.ts
+      - src/graph/resolvers/csharp.ts
+      - src/graph/resolvers/rust.ts
+      - src/graph/resolvers/go.ts
+      - src/graph/resolvers/java.ts
+    output:
+      - src/graph/index.ts
+    checks:
+      - cmd: bun run typecheck
+        expect_exit: 0
+      - cmd: bun test
+        expect_exit: 0
+    depends_on: []
+    status: running
+    retry_count: 0
+  - id: s21-7-test-fixtures
+    description: >
+      Create test fixture files for the graph resolver tests. Create the following files with realistic content for each
+      language:
+
+      tests/fixtures/graph/csharp/Models/User.cs:
+        namespace MyApp.Models;
+        public class User { public int Id { get; set; } public string Name { get; set; } = ""; }
+
+      tests/fixtures/graph/csharp/Services/UserService.cs:
+        using MyApp.Models;
+        namespace MyApp.Services;
+        public class UserService { public User GetUser(int id) => new(); }
+
+      tests/fixtures/graph/csharp/Controllers/UserController.cs:
+        using MyApp.Services;
+        using MyApp.Models;
+        namespace MyApp.Controllers;
+        public class UserController { private readonly UserService _svc; public UserController(UserService svc) { _svc = svc; } }
+
+      tests/fixtures/graph/rust/src/main.rs:
+        mod models;
+        mod services;
+        use crate::models::User;
+        fn main() { let _u = User { id: 1, name: "test".to_string() }; }
+
+      tests/fixtures/graph/rust/src/models.rs:
+        pub struct User { pub id: u32, pub name: String }
+
+      tests/fixtures/graph/rust/src/services.rs:
+        use crate::models::User;
+        pub fn get_user(id: u32) -> User { User { id, name: "test".to_string() } }
+
+      tests/fixtures/graph/go/go.mod:
+        module github.com/example/myapp
+        go 1.21
+
+      tests/fixtures/graph/go/main.go:
+        package main
+        import "github.com/example/myapp/pkg/users"
+        func main() { _ = users.GetUser(1) }
+
+      tests/fixtures/graph/go/pkg/users/users.go:
+        package users
+        type User struct { ID int; Name string }
+        func GetUser(id int) User { return User{ID: id} }
+
+      tests/fixtures/graph/java/src/com/example/models/User.java:
+        package com.example.models;
+        public class User { public int id; public String name; }
+
+      tests/fixtures/graph/java/src/com/example/services/UserService.java:
+        package com.example.services;
+        import com.example.models.User;
+        public class UserService { public User getUser(int id) { return new User(); } }
+
+      tests/fixtures/graph/java/src/com/example/controllers/UserController.java:
+        package com.example.controllers;
+        import com.example.services.UserService;
+        import com.example.models.*;
+        public class UserController { private UserService svc = new UserService(); }
+    executor: openrouter
+    executor_model: deepseek/deepseek-r1
+    input: []
+    output:
+      - tests/fixtures/graph/csharp/Models/User.cs
+      - tests/fixtures/graph/csharp/Services/UserService.cs
+      - tests/fixtures/graph/csharp/Controllers/UserController.cs
+      - tests/fixtures/graph/rust/src/main.rs
+      - tests/fixtures/graph/rust/src/models.rs
+      - tests/fixtures/graph/rust/src/services.rs
+      - tests/fixtures/graph/go/go.mod
+      - tests/fixtures/graph/go/main.go
+      - tests/fixtures/graph/go/pkg/users/users.go
+      - tests/fixtures/graph/java/src/com/example/models/User.java
+      - tests/fixtures/graph/java/src/com/example/services/UserService.java
+      - tests/fixtures/graph/java/src/com/example/controllers/UserController.java
+    checks:
+      - cmd: test -f tests/fixtures/graph/csharp/Models/User.cs
+        expect_exit: 0
+      - cmd: test -f tests/fixtures/graph/rust/src/models.rs
+        expect_exit: 0
+      - cmd: test -f tests/fixtures/graph/go/go.mod
+        expect_exit: 0
+      - cmd: test -f tests/fixtures/graph/java/src/com/example/models/User.java
+        expect_exit: 0
+    depends_on: []
+    status: pending
+    retry_count: 0
+  - id: s21-8-skills-fetch
+    description: >
+      Create src/skills/fetch.ts that fetches skills from the autoskills registry on GitHub.
+
+      The autoskills registry is at: https://raw.githubusercontent.com/midudev/autoskills/main/skills/<lang>/<name>.yaml
+
+      Implement these exports:
+
+      export async function fetchSkill(language: string, name: string): Promise<string>
+        - Fetches https://raw.githubusercontent.com/midudev/autoskills/main/skills/<language>/<name>.yaml
+        - Saves the YAML content to .orchestos/cache/skills/<language>/<name>.yaml (create dirs as needed)
+        - Returns the raw YAML string
+        - Throws with a clear message if the HTTP request fails (404, network error, etc.)
+
+      export async function listRemoteSkills(language: string): Promise<string[]>
+        - Fetches https://api.github.com/repos/midudev/autoskills/contents/skills/<language>
+        - Parses the JSON array and returns filenames without the .yaml extension
+        - Returns [] if the language directory does not exist (404)
+
+      export function getCachedSkillPath(language: string, name: string, cacheDir: string): string
+        - Returns the absolute path: <cacheDir>/<language>/<name>.yaml
+
+      Use only Bun.fetch() (available globally in Bun runtime). No external HTTP libraries. Cache directory root:
+      join(homedir(), '.orchestos', 'cache', 'skills')  — use os.homedir().
+    executor: openrouter
+    executor_model: deepseek/deepseek-r1
+    input: []
+    output:
+      - src/skills/fetch.ts
+    checks:
+      - cmd: bun run typecheck
+        expect_exit: 0
+    depends_on: []
+    status: pending
+    retry_count: 0
+  - id: s21-9-10-skill-fetch-cli
+    description: |
+      Add `orchestos skill fetch` command to src/cli.ts.
+      Import fetchSkill and listRemoteSkills from './skills/fetch.ts'.
+      Add these subcommands under the existing `skill` command group (already exists in cli.ts):
+      skill fetch --language <lang> [--name <name>]
+        - If --name provided: calls fetchSkill(language, name), saves to skills/<name>.yaml
+          in the orchestos project skills/ directory (relative to cwd), prints success message
+        - If --name not provided: calls listRemoteSkills(language), prints each skill name
+
+      skill fetch --list
+        - Lists all skills available for all languages by calling listRemoteSkills for common languages:
+          typescript, javascript, python, rust, go, java, csharp
+          Prints: "<language>: skill1, skill2, ..."
+
+      Do NOT modify any existing commands. Only add the new subcommands. The skill command group is already defined as:
+        const skill = program.command('skill').description('Manage skills')
+      Add to that group.
+    executor: openrouter
+    executor_model: deepseek/deepseek-r1
+    input:
+      - src/cli.ts
+      - src/skills/fetch.ts
+    output:
+      - src/cli.ts
+    checks:
+      - cmd: bun run typecheck
+        expect_exit: 0
+    depends_on:
+      - s21-8-skills-fetch
+    status: pending
+    retry_count: 0
