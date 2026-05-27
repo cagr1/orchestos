@@ -1,0 +1,62 @@
+id: improve-architecture
+version: 1.0.0
+name: Improve Architecture
+description: Identifies modules with too many responsibilities and proposes clear extraction boundaries. Suggests, does not implement.
+targets:
+  - claude
+  - cursor
+  - openai
+when_to_use:
+  - Before a major refactor — understand what to split before touching code
+  - When a file is touched in every PR and nobody agrees on what it "should" do
+  - When onboarding a new developer takes more than a day because of one file
+  - When a module has more than 300 lines, 5+ imports from different domains, or 3+ distinct verbs in its name
+inputs_required:
+  - Source file(s) to analyze
+  - Brief description of what the module was originally intended to do
+instructions: |
+  Analyze the module. Do NOT rewrite code. Produce a report.
+
+  **Step 1 — Inventory responsibilities**
+  List every distinct thing this module does.
+  A "responsibility" = one reason this file would change independently of the others.
+  Good signal: if two responsibilities could change at different times, they are separate.
+
+  **Step 2 — Count signals**
+  - Lines of code: > 300 is a warning
+  - Distinct import domains: > 5 (e.g. auth + db + email + pdf + queue) is a warning
+  - Responsibilities found in Step 1: > 3 is a warning
+
+  **Step 3 — Propose extractions**
+  For each proposed new module:
+  - Name (kebab-case filename)
+  - Single responsibility in one sentence
+  - Public interface: list the functions/types it would export
+  - What moves in: which lines or functions from the original
+  - What stays: what remains in the original after extraction
+
+  **Step 4 — Identify the contract**
+  Before any extraction happens, define how the modules will communicate.
+  If A calls B, write the exact function signature B must expose.
+  Do NOT propose extractions where the interface is still undefined.
+
+  **Step 5 — Recommend order**
+  Which extraction should happen first? Why? (Usually: extract the one with the fewest inbound dependencies.)
+
+  Stop here. Do not write the extracted code. The goal is a clear plan, not a refactor.
+anti_patterns:
+  - Extract a module before defining its public interface
+  - Propose extraction just because a file is long — length alone is not a reason
+  - Split a module and add features simultaneously
+  - Rename things as part of the analysis — naming is a separate decision
+  - Recommend micro-modules (< 30 lines) — consolidation may be better
+  - Start implementing the extraction during this analysis
+verifiers:
+  - Each proposed module has exactly one responsibility statement
+  - Every proposed export has a typed function signature (not just a name)
+  - An extraction order is given with reasoning
+  - No code was written or modified during this analysis
+examples:
+  - title: Overloaded CLI module
+    input: "src/cli.ts — 666 lines. Handles: argument parsing, task loading, LLM calls, QA, file writes, run logging, PDF generation."
+    output: "Responsibilities found: 1. Argument parsing (stays in cli.ts) 2. Task execution (→ harness.ts) 3. Prompt building (→ prompt.ts) 4. PDF generation (→ summary-pdf.ts). Proposed extraction order: harness.ts first (most dependencies point outward). Interface: runTask(HarnessOpts): Promise<TaskResult>."

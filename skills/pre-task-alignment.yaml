@@ -1,0 +1,48 @@
+id: pre-task-alignment
+version: 1.0.0
+name: Pre-Task Alignment
+description: Verifies that a task description is unambiguous before writing a single line of code. Returns clarifying questions instead of code when scope is unclear.
+targets:
+  - claude
+  - cursor
+  - openai
+when_to_use:
+  - Before any implementation task where the description could be interpreted in more than one way
+  - When the task mentions UI but not behavior, or behavior but not edge cases
+  - When the task says "like X" or "similar to Y" without defining the delta
+  - When two developers would reasonably build different things from the same description
+inputs_required:
+  - The full task description
+  - Any related existing files or interfaces (optional but helpful)
+instructions: |
+  Before writing any code, evaluate the task description for ambiguity.
+
+  For each of these dimensions, decide if it is clear or unclear:
+  1. **Scope** — what exactly needs to change? What must NOT change?
+  2. **Interface** — what does the function/component/module look like from the outside?
+  3. **Edge cases** — what happens with empty input, null, errors, large data?
+  4. **Success** — how will you know when the task is done?
+
+  If ALL four dimensions are clear: proceed with implementation.
+
+  If ANY dimension is unclear: stop. Return a numbered list of questions.
+  Format: "Before I start, I need to clarify: 1. ... 2. ... 3. ..."
+  Do NOT write placeholder code. Do NOT assume and proceed.
+
+  Only resume implementation after the user answers the questions.
+anti_patterns:
+  - Assume what the user meant and build based on that assumption
+  - Write a placeholder implementation "to show direction" before clarifying
+  - Ask about style or formatting — only ask about behavior and scope
+  - Ask more than 4 questions at once — prioritize the blocking ones
+  - Confuse "I think I understand" with "this is unambiguous"
+verifiers:
+  - All four dimensions (scope, interface, edge cases, success) are explicitly covered by the description or confirmed by user
+  - No open questions remain before the first line of code is written
+examples:
+  - title: Ambiguous task — stop and ask
+    input: "Add a search feature to the user list"
+    output: "Before I start, I need to clarify: 1. Should search filter as the user types (live) or only on submit? 2. Which fields are searchable — name only, or also email and role? 3. Should the URL update with the search query so it's shareable?"
+  - title: Clear task — proceed
+    input: "Add a debounced search input (300ms) to UserList.tsx that filters by user.name client-side. No URL update needed."
+    output: "[proceeds with implementation]"

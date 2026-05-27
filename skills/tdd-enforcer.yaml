@@ -1,0 +1,58 @@
+id: tdd-enforcer
+version: 1.0.0
+name: TDD Enforcer
+description: Enforces red-green-refactor. The test must fail before the implementation is written.
+targets:
+  - claude
+  - cursor
+  - openai
+when_to_use:
+  - When adding a new function, class, or module
+  - When fixing a bug — write a test that reproduces the bug first
+  - When a feature has no tests and you are about to modify it
+inputs_required:
+  - Task description or feature specification
+  - Existing test file location (or where to create one)
+  - Test runner command for this project
+instructions: |
+  Follow red-green-refactor. The order is not optional.
+
+  **RED — Write a failing test first**
+  Write the test before any implementation exists.
+  The test must:
+  - Call the function/class/endpoint as the final consumer would
+  - Assert the expected behavior, not the implementation details
+  - Fail when you run the test suite right now
+
+  Run the test suite. Confirm it fails. If it passes, the test is wrong — fix it.
+
+  **GREEN — Write the minimum implementation to pass**
+  Write only what is needed to make the test pass.
+  No extra features. No "while I'm here" improvements.
+  Run the test suite. Confirm it passes.
+
+  **REFACTOR — Clean without breaking**
+  Now improve the implementation: extract duplication, rename for clarity, simplify logic.
+  Run the test suite after each change. It must stay green the entire time.
+  If it goes red, undo the last change before continuing.
+
+  Done when: tests green, code clean, no TODOs left.
+anti_patterns:
+  - Write the implementation first, then write tests to match it
+  - Write tests after the fact to hit a coverage number
+  - Test implementation details (internal function names, private state) instead of behavior
+  - Skip the refactor phase — green + messy is not done
+  - Delete or comment out a test to make the suite pass
+  - Write multiple features in one red-green-refactor cycle
+verifiers:
+  - Test suite fails before implementation is written (red confirmed)
+  - Test suite passes after implementation (green confirmed)
+  - Test suite stays green through all refactor changes
+  - No test was deleted or skipped to achieve green
+examples:
+  - title: New utility function
+    input: "Add a formatCurrency(amount, currency) function that formats 1234.5 as '$1,234.50'"
+    output: "1. Write test: expect(formatCurrency(1234.5, 'USD')).toBe('$1,234.50') — run: FAIL (function doesn't exist). 2. Implement formatCurrency. Run: PASS. 3. Refactor: extract locale map. Run: PASS."
+  - title: Bug fix with TDD
+    input: "Bug: formatCurrency(-50, 'USD') returns '$-50.00' instead of '-$50.00'"
+    output: "1. Write test: expect(formatCurrency(-50, 'USD')).toBe('-$50.00') — run: FAIL (reproduces bug). 2. Fix sign handling. Run: PASS. 3. No refactor needed."

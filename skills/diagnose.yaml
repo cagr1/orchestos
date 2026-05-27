@@ -1,0 +1,60 @@
+id: diagnose
+version: 1.0.0
+name: Diagnose
+description: Structured debugging via hypothesis-verify cycles. Finds the root cause before writing a fix.
+targets:
+  - claude
+  - cursor
+  - openai
+when_to_use:
+  - When a bug is reported and the cause is not immediately obvious
+  - When tests fail without a clear reason
+  - When a fix was applied but the bug came back
+  - When the same area of code has been patched more than twice
+inputs_required:
+  - Error message or unexpected behavior description
+  - Stack trace or failing test output (if available)
+  - Relevant source files
+instructions: |
+  Follow this cycle strictly. Do not skip to a fix.
+
+  **Step 1 — Reproduce**
+  Confirm you can reproduce the bug. If you cannot reproduce it, state that clearly.
+  A bug you cannot reproduce cannot be safely fixed.
+
+  **Step 2 — Hypothesize**
+  List 2–4 candidate root causes ordered by likelihood.
+  For each: "Hypothesis N: [cause]. Evidence for: [why likely]. Evidence against: [why might not be]."
+
+  **Step 3 — Verify the top hypothesis**
+  Identify the minimum observation that would confirm or refute it.
+  Add a temporary log, read a value, or write a failing test — whichever is fastest.
+  Do NOT apply a fix yet.
+
+  **Step 4 — Conclude or iterate**
+  If the hypothesis is confirmed: state the root cause clearly, then write the fix.
+  If refuted: move to hypothesis 2 and repeat from Step 3.
+
+  **Step 5 — Fix and verify**
+  Write the minimal fix for the confirmed root cause.
+  Re-run the reproducer to confirm the bug is gone.
+  Remove any temporary logs added in Step 3.
+anti_patterns:
+  - Write a fix before reproducing the error
+  - Fix symptoms (the visible crash) instead of the root cause
+  - Add defensive code everywhere "just in case" without a verified cause
+  - Skip the hypothesis step and jump straight to reading code
+  - Apply multiple changes at once — you lose the ability to know which one worked
+  - Mark a bug as fixed before re-running the reproducer
+verifiers:
+  - Bug is reproducible before the fix
+  - Root cause is stated explicitly before the fix is written
+  - Reproducer passes after the fix
+  - No temporary debug logs remain in the final code
+examples:
+  - title: Null pointer — structured approach
+    input: "TypeError: Cannot read properties of undefined (reading 'id') at UserCard.tsx:14"
+    output: "Hypothesis 1: props.user is undefined on first render before data loads. Evidence for: async data fetch, no loading guard. Verify: add console.log(props.user) before line 14. [confirms] Root cause: missing loading state. Fix: add `if (!user) return null` guard."
+  - title: Intermittent test failure
+    input: "Test 'should save user' fails ~30% of the time with timeout"
+    output: "Hypothesis 1: race condition between async DB write and assertion. Hypothesis 2: shared test state not cleaned up. Verify H1: check if test awaits the save call. [finds missing await] Root cause: unawaited promise. Fix: add await before save()."
