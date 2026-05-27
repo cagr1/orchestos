@@ -4,8 +4,12 @@ import { join } from 'path'
 export interface Worktree {
   path: string
   branch: string
+  baseBranch: string
+  projectRoot: string
   cleanup: () => void
 }
+
+export type MergeStrategy = 'commit' | 'squash' | 'discard'
 
 function git(args: string[], cwd: string): { exitCode: number; stdout: string; stderr: string } {
   const proc = Bun.spawnSync(['git', ...args], { cwd })
@@ -67,5 +71,48 @@ export function createWorktree(taskId: string, baseBranch: string, projectRoot: 
     }
   }
 
-  return { path: worktreeDir, branch, cleanup }
+  return { path: worktreeDir, branch, baseBranch, projectRoot, cleanup }
+}
+
+export function mergeWorktreeBack(worktree: Worktree, strategy: MergeStrategy, message?: string): void {
+  if (strategy === 'discard') {
+    worktree.cleanup()
+    return
+  }
+
+  const hasChanges = git(['status', '--porcelain'], worktree.path).stdout.length > 0
+
+  if (hasChanges) {
+    const add = git(['add', '-A'], worktree.path)
+    if (add.exitCode !== 0) throw new Error(`git add failed in worktree: ${add.stderr}`)
+
+    const commitMsg = message ?? `orchestos: changes from ${worktree.branch}`
+    const commit = git(['commit', '-m', commitMsg], worktree.path)
+    if (commit.exitCode !== 0 && !commit.stderr.includes('nothing to commit')) {
+      // allow empty commits — if nothing changed, skip
+      if (!commit.stderr.includes('nothing to commit')) {
+        throw new Error(`git commit failed in worktree: ${commit.stderr}`)
+      }
+    }
+  }
+
+  // switch to baseBranch in the main repo and merge
+  const checkout = git(['checkout', worktree.baseBranch], worktree.projectRoot)
+  if (checkout.exitCode !== 0) throw new Error(`git checkout ${worktree.baseBranch} failed: ${checkout.stderr}`)
+
+  if (strategy === 'commit') {
+    const merge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
+    if (merge.exitCode !== 0) throw new Error(`git merge ${worktree.branch} failed: ${merge.stderr}`)
+  } else if (strategy === 'squash') {
+    const merge = git(['merge', '--squash', worktree.branch], worktree.projectRoot)
+    if (merge.exitCode !== 0) throw new Error(`git merge --squash ${worktree.branch} failed: ${merge.stderr}`)
+
+    if (hasChanges) {
+      const commitMsg = message ?? `orchestos: squashed changes from ${worktree.branch}`
+      const commitSquash = git(['commit', '-m', commitMsg], worktree.projectRoot)
+      if (commitSquash.exitCode !== 0) throw new Error(`git commit (squash) failed: ${commitSquash.stderr}`)
+    }
+  }
+
+  worktree.cleanup()
 }
