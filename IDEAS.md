@@ -4,10 +4,15 @@ Sumidero de impulsos fuera de scope del Mes actual.
 Cada vez que aparezca la tentación de agregar algo de la lista prohibida, va acá.
 No se implementa hasta que el mes correspondiente esté cerrado y haya evidencia de necesidad real.
 
+**Leyenda de estado**:
+- ✅ IMPLEMENTADO — en producción, funciona
+- 🔄 EN PROGRESO — en el mes activo (Mes 3)
+- 💡 PENDIENTE — registrado, no iniciado
+
 ---
 
 ## Lista prohibida (Mes 1 y Mes 2 — ya cerrados)
-- Graph DB (Graphiti / Neo4j) — ver "Code Graph" abajo, candidato Mes 3
+- Graph DB (Graphiti / Neo4j) → ✅ reemplazado por SQLite `files + code_edges` (S12)
 - Restate / Temporal — overkill para single-user CLI
 - Rust / napi-rs — no hay bottleneck demostrado
 - Dashboard web — después del CLI
@@ -19,167 +24,141 @@ No se implementa hasta que el mes correspondiente esté cerrado y haya evidencia
 
 ## Ideas registradas
 
-### [MES 3 — CANDIDATO PRIORITARIO] Code Graph — contexto estructural del repo
+---
 
-**Problema**: AGENTS.md le dice al LLM "usa Next.js + Prisma". Eso es casi inútil para
-decidir qué archivos son relevantes para una tarea concreta.
+### ✅ IMPLEMENTADO — Code Graph v0 (S12, 2026-05-27)
 
-**Propuesta**: tabla SQLite `code_edges(from_file, to_file, edge_type, symbol)`
-construida con `tree-sitter` al hacer `orchestos init`.
+`files` + `code_edges` en SQLite. Regex import extraction para TS/JS/Python.
+`orchestos index` + `orchestos context suggest`. SHA1 dedup. 1-hop neighbor ranking.
+Ver `src/graph/index.ts` y `src/graph/suggest.ts`.
 
-```sql
--- edge_type: 'import' | 'calls' | 'extends' | 'uses'
-SELECT to_file FROM code_edges WHERE from_file = 'src/components/Button.tsx'
-```
-
-**Qué resuelve**:
-1. Auto-populate `input[]` en tasks.yaml — qué archivos necesita leer la tarea
-2. Impact analysis antes de ejecutar — "modificar lib/db.ts afecta 12 archivos"
-3. Contexto comprimido al LLM — subgrafo relevante en vez de archivos completos
-
-**Cuándo escalar a graph DB real**: cuando el repo tenga 10K+ nodos y las queries
-SQLite se vuelvan lentas. Candidato entonces: **KuzuDB** (embebible, sin servidor,
-Cypher queries, escrito en Rust). No antes.
-
-Refs: inspirado en la idea del propio usuario. Validar contra tree-sitter parsers
-para TS/JS/Python antes de implementar.
+**Limitación conocida**: solo TS/JS/Python. C#/.NET/Go/Java = 0 files (by design v0).
+Expandir en Mes 4 → ver "Multi-lenguaje en Code Graph" abajo.
 
 ---
 
-### [MES 3 — CANDIDATO] Extracción de harness (`src/run/harness.ts`)
+### ✅ IMPLEMENTADO — Extracción de harness (S9, 2026-05-27)
 
-**Problema**: `executeTask` son ~250 líneas dentro de cli.ts. A medida que crecen
-retry policies, QA modes, sandbox options → se vuelve inmanejable.
-
-**Propuesta**: extraer a `src/run/harness.ts` con interfaz limpia:
-```ts
-runTask(task: Task, opts: HarnessOpts): Promise<TaskResult>
-```
-cli.ts solo orquesta, harness ejecuta.
-
-**Referencia**: deer-flow (bytedance) hace esto bien — separa orchestrator de runner.
-No necesitamos su complejidad (multi-agente, containers), solo la separación.
+`src/run/harness.ts` con `runTask(HarnessOpts): Promise<TaskResult>`.
+cli.ts solo orquesta. Flujo: classify → model → prompt → LLM → parse → contract → checks → QA → insertRun.
 
 ---
 
-### [MES 3 — CANDIDATO] `acceptance_criteria[]` en tasks.yaml (spec-driven QA)
+### ✅ IMPLEMENTADO — `acceptance_criteria[]` + `checks[]` (S10, 2026-05-27)
 
-**Problema**: el QA actual evalúa en texto libre ("¿esto se ve bien?"). Falsos
-pass/fail son frecuentes porque el criterio es ambiguo.
+`checks[]` = comandos deterministas (exit code) que corren ANTES del QA LLM.
+`acceptance_criteria[]` = criterios evaluados per-item por el LLM de QA.
+Si check falla → revert + retry sin gastar tokens de QA.
 
-**Propuesta**: campo opcional en Task:
+---
+
+### ✅ IMPLEMENTADO — Multi-provider executor (S11, 2026-05-27)
+
+Campo `executor: openrouter | anthropic | openai | codex` por tarea.
+`ProviderClient` interface. `getProvider(name)` en `src/providers/index.ts`.
+
+---
+
+### 🔄 EN PROGRESO — Skills ecosystem con estructura real (S14, Mes 3)
+
+Schema extendido: `when_to_use`, `verifiers`, `anti_patterns`, `examples`.
+5 skills a escribir: `pre-task-alignment`, `diagnose`, `tdd-enforcer`,
+`context-compression`, `improve-architecture`.
+
+---
+
+### ✅ ADOPTADO — Two-tier LLM: planner fuerte + executor adaptativo
+
+Convención activa en PLAN.md: `⚡` = cualquier LLM, `🧠` = requiere criterio Claude/Opus.
+Implementación en tasks.yaml (`planner_model` / `executor_model`) → Mes 4.
+
+---
+
+### 💡 [MES 4 — CANDIDATO FUERTE] Language-aware skills — un LLM no sabe igual de C# que de TypeScript
+
+**Problema**: orchestos detecta el lenguaje del proyecto (`src/detect/languages.ts` ya lo hace
+desde Mes 1), pero las skills ignoran esa información. Una skill `tdd-enforcer` escrita
+para TypeScript le dice al LLM "corre `npm test`" — inútil en un proyecto .NET.
+
+**Propuesta**: campo `language_targets` en el schema de skill:
 ```yaml
-- id: add-button
-  description: "Create a Button component"
-  acceptance_criteria:
-    - "File exports a React component named Button"
-    - "Component accepts props: label (string), onClick (function), disabled (boolean)"
-    - "No TypeScript errors (no 'any' types)"
+id: tdd-enforcer
+language_targets:
+  typescript:
+    verifiers: ["npm test", "bun test"]
+    anti_patterns: ["skip describe blocks", "use any to bypass types"]
+  csharp:
+    verifiers: ["dotnet test"]
+    anti_patterns: ["[Ignore] attribute without reason"]
+  python:
+    verifiers: ["pytest", "python -m unittest"]
+    anti_patterns: ["pass in test body"]
+  default:                       # fallback si el lenguaje no está mapeado
+    verifiers: ["run your test suite"]
+    anti_patterns: ["empty test body"]
 ```
 
-El prompt de QA cambia de "¿parece razonable?" a "¿se cumplen estos criterios exactos?".
+El compiler (`src/skills/targets/claude.ts`) inyecta solo la sección del lenguaje detectado.
 
-**Referencia**: spec-kit (github/spec-kit) — Spec-Driven Development. Su flujo completo
-(constitución → spec → clarificar → plan → validar → tareas → ejecutar) es el roadmap
-natural de orchestos hacia Mes 4-5.
+**Por qué importa**: orchestos no puede ser una herramienta solo para proyectos TypeScript.
+Cisepro.Web es .NET. Otros usuarios pueden tener Python, Go, Java.
+El detector de lenguaje ya existe — hay que conectarlo con las skills.
 
----
-
-### [MES 3 — CANDIDATO] Skills ecosystem — 20+ skills reales
-
-**Problema**: orchestos tiene el sistema de skills bien diseñado pero solo 3 skills
-de ejemplo. El valor real viene del contenido.
-
-**Propuesta**: portar las skills más útiles de mattpocock/skills al formato YAML:
-- `tdd` — enforce red-green-refactor antes de implementar
-- `diagnose` — debugging estructurado (hipótesis → verificar → siguiente)
-- `improve-architecture` — identificar módulos con demasiadas responsabilidades
-- `pre-task-alignment` — antes de ejecutar, verificar que la descripción es inequívoca
-- `context-compression` — generar CONTEXT.md con jargon del proyecto (reduce tokens)
-
-Ref: ECC (affaan-m/ECC) tiene 246 skills construidas en 10 meses de uso real.
-No copiar — entender qué problemas resuelven y escribir las propias.
+**Prerequisito**: S14 (skills schema extendido) + S11 (executor ya rutea por lenguaje si es necesario).
 
 ---
 
-### [MES 4+] CONTEXT.md — jargon comprimido del proyecto
+### 💡 [MES 4+] Multi-lenguaje en Code Graph — C#, Java, Go, Python profundo
 
-Idea de mattpocock/skills: en vez de mandar AGENTS.md completo en cada prompt,
-mantener un `CONTEXT.md` con el vocabulario específico del proyecto
-(nombres de módulos, convenciones propias, abreviaciones del equipo).
-Reduce tokens y mejora consistencia entre runs.
+**Problema**: Code Graph v0 usa regex y solo cubre TS/JS/Python imports básicos.
+Proyectos .NET (Cisepro.Web), Java, Go quedan con 0 files indexados.
 
-Integración con orchestos: `orchestos context compress` → genera CONTEXT.md a partir
-de AGENTS.md + runs history + código existente.
+**Propuesta por lenguaje**:
+- **C# / .NET**: regex `using\s+([\w.]+)` + `namespace\s+([\w.]+)` → edges de namespace
+- **Java**: regex `import\s+([\w.]+)` → edges de package
+- **Go**: regex `"([\w/.-]+)"` dentro de bloques `import(...)` → edges de module path
+- **Python profundo**: ya está, extender con `from package.module import X` resolution
 
----
+Cuando el grafo crece a 10K+ nodos → migrar a **KuzuDB** (embebible, Cypher, Rust).
+No antes de tener evidencia de lentitud en SQLite.
 
-### [MES 4+] Sandbox por tarea (git worktree o tmp dir)
-
-Cada tarea corre en un worktree aislado. Si QA falla, el worktree se descarta sin
-tocar el árbol principal. Elimina la necesidad de `restoreContents`.
-
-Prerequisito: harness separado (ver arriba).
-Ref: deer-flow usa containers. Para orchestos alcanza con git worktrees.
+**Prerequisito**: language-aware skills funcionando (así sabemos qué lenguajes son prioritarios).
 
 ---
 
-### [MES 5+] Sub-agentes con contextos aislados
+### 💡 [MES 4 — CANDIDATO] Skills de ciclo de vida del desarrollo
 
-Una tarea "plan" genera sub-tareas. Cada sub-tarea tiene su propio contexto,
-su propio contrato de archivos, su propio QA stage.
+**Problema**: orchestos tiene skills para ejecutar código pero ninguna que guíe
+las etapas críticas del desarrollo: seguridad, QA estructurado, testing.
+Un LLM sin estas guías toma atajos que en producción cuestan caro.
 
-Prerequisito: harness separado + scheduler robusto + worktrees.
-Ref: deer-flow architecture — el orquestador genera sub-agentes con contextos aislados.
+**Tres skills prioritarias**:
 
----
+#### `security-review`
+- **Cuándo**: antes de mergear código que toca auth, inputs del usuario, queries SQL, archivos.
+- `when_to_use`: ["Before any commit touching auth", "When handling user input", "Before DB query changes"]
+- `verifiers`: depende del lenguaje (ver language-aware skills)
+- `anti_patterns`: ["hardcoded secrets", "SQL string concatenation", "eval() on user input", "no input validation"]
+- Inspirado en OWASP Top 10 — no necesita ser exhaustivo, solo los errores más comunes.
 
----
+#### `qa-structured`
+- **Cuándo**: después de implementar un feature, antes de marcar la tarea como done.
+- Diferencia vs `acceptance_criteria[]`: esta skill guía al LLM en *cómo* evaluar, no *qué* evaluar.
+- Flujo: ¿el output hace lo que dice la descripción? → ¿hay edge cases no cubiertos? → ¿el código es legible?
+- `anti_patterns`: ["test only the happy path", "ignore error handling", "QA own output without distance"]
 
-### [PILAR CENTRAL — MES 3+] Two-tier LLM execution — planner fuerte + executor adaptativo
+#### `test-writer`
+- **Cuándo**: después de implementar, antes de QA.
+- Diferente de `tdd-enforcer` (que fuerza red-green-refactor antes de implementar).
+- Esta skill es para cuando ya existe código y hay que agregarle tests retroactivamente.
+- `when_to_use`: ["When adding tests to existing code", "When coverage is below threshold"]
+- `verifiers`: test suite pasa, cobertura no baja
 
-**Problema**: un modelo fuerte (Opus, Sonnet) tiene criterio para diseñar interfaces y
-tomar decisiones arquitectónicas, pero es caro para tareas mecánicas. Un modelo ligero
-(Haiku, Codex, GPT-4o-mini) puede ejecutar tareas específicas si el camino está bien
-documentado. No todos los usuarios tienen acceso a un modelo fuerte.
-
-**Idea central**:
-- **Modelo fuerte** (Opus / Sonnet / lo mejor disponible) → genera PLAN.md con interfaces
-  TypeScript, schemas SQL y decisiones sin ambigüedad. Deja el camino tan claro que
-  cualquier LLM pueda ejecutar los sub-pasos sin necesitar criterio adicional.
-- **Modelo de ejecución** (Codex, Haiku, modelo default del usuario) → lee PLAN.md,
-  ejecuta los sub-pasos marcados como ⚡, reporta resultado.
-- **Adaptativo**: si el usuario no tiene un modelo fuerte, orchestos usa el modelo
-  configurado en `~/.orchestos/.env` para todo. La calidad del plan baja; la ejecución
-  sigue funcionando.
-
-**Convención en PLAN.md**:
-- `⚡` al inicio del sub-paso = cualquier LLM puede ejecutarlo leyendo el plan
-- `🧠` al inicio del sub-paso = requiere criterio arquitectónico (Claude Sonnet/Opus)
-
-**Regla de escritura del plan**: si un sub-paso requiere más de 10 segundos de
-razonamiento para entender qué hacer, está mal escrito. Agregar: interfaz exacta,
-nombre de archivo, comportamiento esperado ante error.
-
-**Implicación futura en tasks.yaml**:
-```yaml
-- id: add-button-component
-  description: "Create Button component"
-  planner_model: claude-opus-4-7       # genera el plan detallado
-  executor_model: claude-haiku-4-5     # ejecuta el plan
-  # Si solo hay un modelo disponible, ambos campos lo usan
-```
-
-Esto no va a Mes 3 en tasks.yaml (hay que validar el harness primero), pero el
-patrón ⚡/🧠 en PLAN.md implementa la misma idea de forma manual desde ya.
-
-Ref: patrón observado en deer-flow (planner-agent vs executor-agent), spec-kit
-(clarify before execute), y en el workflow real de este proyecto (Opus diseña,
-Codex ejecuta sub-pasos simples).
+**Prerequisito**: S14 (skills schema extendido).
 
 ---
 
-### [MES 4 — CANDIDATO FUERTE] Model roles config — cerebro + ejecutor pesado + ejecutor ligero
+### 💡 [MES 4 — CANDIDATO FUERTE] Model roles config — cerebro + ejecutor pesado + ejecutor ligero
 
 **Idea**: al iniciar un proyecto, el usuario define qué modelo cumple cada rol. El harness
 elige automáticamente basado en la complejidad clasificada de la tarea.
@@ -199,29 +178,53 @@ models:
 - `generate` / `edit` → `executor_light`
 - Sin config → `default` para todo
 
-**Adaptativo**: si el usuario no tiene config, todo usa `default`. Si tiene una sola API key,
-todo usa ese modelo. El costo y la velocidad se optimizan automáticamente cuando hay más opciones.
+**Por qué es distinto**: LangChain/CrewAI asignan agentes por rol semántico ("researcher", "writer").
+Nadie lo hace por **complejidad de tarea** mapeada a un clasificador ya existente.
 
-**Por qué es distinto a lo existente**: LangChain/CrewAI asignan agentes por rol semántico
-("researcher", "writer"). Nadie lo hace por **complejidad de tarea** mapeada a un clasificador
-ya existente. El `executor` field por tarea (S11) es el paso previo necesario.
-
-**Prerequisito**: S11 (executor por tarea) + `orchestos init` que lea `orchestos.config.yaml`.
+**Prerequisito**: S11 ✅ (executor por tarea) + `orchestos init` que lea `orchestos.config.yaml`.
 
 ---
 
-### [MES 4+] Spec-Driven flow completo (spec-kit)
+### 💡 [MES 4+] CONTEXT.md — jargon comprimido del proyecto
 
-El flujo completo de spec-kit: `constitución → spec → clarificar → plan → validar → tareas → ejecutar`.
+En vez de mandar AGENTS.md completo en cada prompt, mantener un `CONTEXT.md` con
+el vocabulario específico del proyecto (nombres de módulos, convenciones, abreviaciones).
+Reduce tokens y mejora consistencia entre runs.
 
-En Mes 3 solo está el eslabón `validar` (`acceptance_criteria[]`).
-Los eslabones que faltan para Mes 4:
-- **Constitución**: qué puede/no puede modificar el agente en este proyecto (`CONSTITUTION.md`)
-- **Spec**: descripción inequívoca de la tarea antes de empezar. `orchestos spec <id>` genera
-  un documento de especificación que el usuario aprueba antes de que el harness ejecute.
-- **Clarificar**: si la descripción tiene ambigüedad, el harness pregunta antes de gastar tokens.
+`orchestos context compress` → genera CONTEXT.md a partir de AGENTS.md + runs history + código.
 
-Prerequisito: harness limpio (S9) + acceptance_criteria (S10).
+---
+
+### 💡 [MES 4+] Sandbox por tarea (git worktree o tmp dir)
+
+Cada tarea corre en un worktree aislado. Si QA falla, el worktree se descarta sin
+tocar el árbol principal. Elimina la necesidad de `restoreContents`.
+
+Prerequisito: harness separado ✅ (S9).
+Ref: deer-flow usa containers. Para orchestos alcanza con git worktrees.
+
+---
+
+### 💡 [MES 4+] Spec-Driven flow completo (spec-kit)
+
+`constitución → spec → clarificar → plan → validar → tareas → ejecutar`
+
+En Mes 3 está el eslabón `validar` (`acceptance_criteria[]` ✅).
+Falta para Mes 4:
+- **Constitución**: `CONSTITUTION.md` — qué puede/no puede modificar el agente
+- **Spec**: `orchestos spec <id>` — descripción inequívoca aprobada antes de ejecutar
+- **Clarificar**: si hay ambigüedad, el harness pregunta antes de gastar tokens
+
+Prerequisito: harness ✅ + acceptance_criteria ✅.
+
+---
+
+### 💡 [MES 5+] Sub-agentes con contextos aislados
+
+Una tarea "plan" genera sub-tareas. Cada sub-tarea tiene su propio contexto,
+su propio contrato de archivos, su propio QA stage.
+
+Prerequisito: harness ✅ + scheduler robusto + worktrees.
 
 ---
 
@@ -229,4 +232,4 @@ Prerequisito: harness limpio (S9) + acceptance_criteria (S10).
 _(se llena cuando haya un usuario externo real usando orchestos en su proyecto)_
 
 ## Feedback Mes 3
-_(se llena al cerrar Mes 3)
+_(se llena al cerrar Mes 3)_
