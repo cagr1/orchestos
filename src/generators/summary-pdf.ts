@@ -83,16 +83,22 @@ export function generateSummaryPdf(
       sectionTitle(doc, 'Recent Runs')
       const totalCost = recentRuns.reduce((s, r) => s + (r.usd_cost ?? 0), 0)
       const doneCount = recentRuns.filter(r => r.status === 'done').length
+      const checks = summarizeChecks(recentRuns)
       row(doc, 'Total runs',  String(recentRuns.length))
       row(doc, 'Done / all',  `${doneCount} / ${recentRuns.length}`)
+      row(doc, 'Checks',      `${checks.failed} failed / ${checks.passed} passed`)
       row(doc, 'Total cost',  `$${totalCost.toFixed(5)}`)
       doc.moveDown(0.3)
+      doc.fontSize(8).font('Courier').fillColor('#666666')
+         .text(`  st date             executor     task             cost      qa`, { indent: 10 })
       for (const r of recentRuns.slice(0, 8)) {
         const icon = r.status === 'done' ? '✓' : '✗'
         const qa   = r.qa_verdict ? ` [qa:${r.qa_verdict}]` : ''
         const date = r.created_at.slice(0, 16).replace('T', ' ')
+        const executor = (r.provider ?? '-').slice(0, 12).padEnd(12)
+        const task = (r.task_id ?? r.task_class).slice(0, 16).padEnd(16)
         doc.fontSize(9).font('Courier').fillColor('#444444')
-           .text(`  ${icon} ${date}  ${(r.task_id ?? r.task_class).padEnd(20)} $${r.usd_cost.toFixed(5)}${qa}`, { indent: 10 })
+           .text(`  ${icon}  ${date} ${executor} ${task} $${r.usd_cost.toFixed(5)}${qa}`, { indent: 10 })
       }
       doc.moveDown(0.5)
     }
@@ -115,6 +121,34 @@ function sectionTitle(doc: PDFKit.PDFDocument, title: string) {
   doc.moveDown(0.3)
   doc.fontSize(13).font('Helvetica-Bold').fillColor('#1a1a2e').text(title)
   doc.moveDown(0.3)
+}
+
+type PdfStoredCheck = {
+  exitCode: number
+  timedOut?: boolean
+}
+
+function summarizeChecks(runs: RunRecord[]): { passed: number; failed: number } {
+  let passed = 0
+  let failed = 0
+
+  for (const run of runs) {
+    for (const check of parseChecks(run.checks_json)) {
+      if (!check.timedOut && check.exitCode === 0) passed++
+      else failed++
+    }
+  }
+
+  return { passed, failed }
+}
+
+function parseChecks(value: string | null): PdfStoredCheck[] {
+  if (!value) return []
+  try {
+    return JSON.parse(value) as PdfStoredCheck[]
+  } catch {
+    return []
+  }
 }
 
 function row(doc: PDFKit.PDFDocument, label: string, value: string) {
