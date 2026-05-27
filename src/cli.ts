@@ -69,11 +69,14 @@ program
     writeFileSync(join(root, 'AGENTS.md'), agentsMd, 'utf-8')
     writeFileSync(join(root, 'context.json'), JSON.stringify(contextJson, null, 2), 'utf-8')
     upsertProject(root, profile, agentsMd)
+    const project = getProject(root)
+    const indexResult = project ? await indexProject(root, project.id) : null
     const elapsed = Math.round(performance.now() - t0)
     console.log(`[init] ${profile.manifest.name} saved in ${elapsed}ms`)
     console.log(`  → AGENTS.md`)
     console.log(`  → context.json`)
     console.log(`  → ~/.orchestos/db.sqlite`)
+    if (indexResult) console.log(`  -> code graph: ${indexResult.files} files, ${indexResult.edges} edges`)
     if (opts?.pdf) {
       const { listRuns: lr } = require('./db/runs.ts')
       const pdfPath = join(root, `${profile.manifest.name}-summary.pdf`)
