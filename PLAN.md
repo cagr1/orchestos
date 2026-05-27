@@ -335,7 +335,7 @@ Objetivo medible: una tarea con `checks: ["bun run typecheck"]` ejecuta el coman
     expect_exit?: number             // default 0
   }
   ```
-- [ ] **S10.2** Validar en `validateTasksFile`:
+- [x] **S10.2** Validar en `validateTasksFile`: — 2026-05-27
   - `cmd` obligatorio si el item está presente.
   - `cmd` no puede contener `&&`, `||`, `;`, backticks, `$(` (sin shell metachars — un check = un proceso).
   - Si quieres concatenar, declara dos checks.

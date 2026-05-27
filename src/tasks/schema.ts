@@ -44,12 +44,70 @@ export function validateTask(t: unknown, index: number): Task {
     skill:        typeof task.skill === 'string' ? task.skill : undefined,
     input:        Array.isArray(task.input) ? task.input as string[] : [],
     output:       task.output as string[],
+    acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),
+    checks:       validateChecks(task.checks, err),
     depends_on:   Array.isArray(task.depends_on) ? task.depends_on as string[] : [],
     status:       (task.status as TaskStatus) ?? 'pending',
     retry_count:  typeof task.retry_count === 'number' ? task.retry_count : 0,
     retry_reason: typeof task.retry_reason === 'string' ? task.retry_reason : undefined,
     qa_verdict:   task.qa_verdict as 'pass' | 'fail' | undefined,
     run_id:       typeof task.run_id === 'string' ? task.run_id : undefined,
+  }
+}
+
+function validateStringArray(
+  value: unknown,
+  field: string,
+  err: (msg: string) => never
+): string[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) err(`"${field}" must be an array of strings`)
+  const strings = value as unknown[]
+  for (const [i, item] of strings.entries()) {
+    if (typeof item !== 'string' || item.trim() === '') {
+      err(`"${field}[${i}]" must be a non-empty string`)
+    }
+  }
+  return strings as string[]
+}
+
+function validateChecks(value: unknown, err: (msg: string) => never): Check[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) err('"checks" must be an array')
+
+  return (value as unknown[]).map((item, i) => {
+    const check = typeof item === 'string' ? { cmd: item } : item as Record<string, unknown>
+    if (typeof check !== 'object' || check === null || Array.isArray(check)) {
+      err(`"checks[${i}]" must be a string command or an object`)
+    }
+    if (typeof check.cmd !== 'string' || check.cmd.trim() === '') {
+      err(`"checks[${i}].cmd" is required`)
+    }
+    validateCheckCommand(check.cmd, `checks[${i}].cmd`, err)
+    if (check.cwd !== undefined && typeof check.cwd !== 'string') {
+      err(`"checks[${i}].cwd" must be a string`)
+    }
+    if (check.timeout_ms !== undefined && typeof check.timeout_ms !== 'number') {
+      err(`"checks[${i}].timeout_ms" must be a number`)
+    }
+    if (check.expect_exit !== undefined && typeof check.expect_exit !== 'number') {
+      err(`"checks[${i}].expect_exit" must be a number`)
+    }
+    return {
+      cmd: check.cmd.trim(),
+      cwd: typeof check.cwd === 'string' ? check.cwd : undefined,
+      timeout_ms: typeof check.timeout_ms === 'number' ? check.timeout_ms : undefined,
+      expect_exit: typeof check.expect_exit === 'number' ? check.expect_exit : undefined,
+    }
+  })
+}
+
+function validateCheckCommand(cmd: string, field: string, err: (msg: string) => never): void {
+  const blocked = ['&&', '||', ';', '`', '$(']
+  for (const token of blocked) {
+    if (cmd.includes(token)) {
+      err(`"${field}" cannot contain shell metacharacter "${token}" — declare separate checks instead`)
+    }
   }
 }
 
