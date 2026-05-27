@@ -368,7 +368,7 @@ Objetivo medible: una tarea con `checks: ["bun run typecheck"]` ejecuta el coman
 
 Objetivo medible: una tarea con `executor: anthropic` corre por Anthropic directo (no por OpenRouter), y otra con `executor: openrouter` sigue funcionando. Cambiar el executor no requiere tocar código.
 
-- [ ] **S11.1** Extender `Task`:
+- [x] **S11.1** Extender `Task`: — 2026-05-27
   ```ts
   executor?: 'openrouter' | 'anthropic' | 'openai' | 'codex'  // default 'openrouter'
   ```

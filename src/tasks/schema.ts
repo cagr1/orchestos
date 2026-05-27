@@ -1,4 +1,7 @@
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
+export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
+
+const EXECUTORS: TaskExecutor[] = ['openrouter', 'anthropic', 'openai', 'codex']
 
 export interface Check {
   cmd: string
@@ -11,6 +14,7 @@ export interface Task {
   id: string              // kebab-case, unique within file
   description: string
   skill?: string          // skill id from skills/
+  executor: TaskExecutor
   input: string[]         // files the LLM can read (relative to project root)
   output: string[]        // files the LLM is allowed to write — REQUIRED, must be non-empty
   acceptance_criteria?: string[]
@@ -38,10 +42,13 @@ export function validateTask(t: unknown, index: number): Task {
   if (!task.description || typeof task.description !== 'string') err('missing "description"')
   if (!Array.isArray(task.output) || (task.output as unknown[]).length === 0) err('"output" must be a non-empty array — this is the contract')
 
+  const executor = validateExecutor(task.executor, err)
+
   return {
     id:           task.id as string,
     description:  task.description as string,
     skill:        typeof task.skill === 'string' ? task.skill : undefined,
+    executor,
     input:        Array.isArray(task.input) ? task.input as string[] : [],
     output:       task.output as string[],
     acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),
@@ -53,6 +60,17 @@ export function validateTask(t: unknown, index: number): Task {
     qa_verdict:   task.qa_verdict as 'pass' | 'fail' | undefined,
     run_id:       typeof task.run_id === 'string' ? task.run_id : undefined,
   }
+}
+
+function validateExecutor(value: unknown, err: (msg: string) => never): TaskExecutor {
+  if (value === undefined) return 'openrouter'
+  if (typeof value !== 'string' || !EXECUTORS.includes(value as TaskExecutor)) {
+    err(`unknown executor '${String(value)}' — allowed: ${EXECUTORS.join(', ')}`)
+  }
+  if (value === 'codex' && process.env.OS_ENABLE_EXEC_CODEX !== '1') {
+    err('codex executor disabled — set OS_ENABLE_EXEC_CODEX=1 to enable')
+  }
+  return value as TaskExecutor
 }
 
 function validateStringArray(
