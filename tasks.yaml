@@ -3,7 +3,8 @@ project: orchestos
 tasks:
   - id: s21-6-integrate-resolvers
     description: >
-      Modify src/graph/index.ts to integrate the four language resolvers. Make EXACTLY these two changes and nothing else:
+      Modify src/graph/index.ts to integrate the four language resolvers. Make EXACTLY these two changes and nothing
+      else:
 
       CHANGE 1 — Add these 5 import lines after the existing imports (after the `import { db }` line):
         import { registerResolver, resolveWithRegistry } from './resolver-registry.ts'
@@ -32,7 +33,7 @@ tasks:
 
       Do NOT change anything else. Keep every other line identical.
     executor: openrouter
-    executor_model: deepseek/deepseek-chat-v3-0324
+    executor_model: deepseek/deepseek-v4-flash
     input:
       - src/graph/index.ts
       - src/graph/resolver-registry.ts
@@ -48,8 +49,10 @@ tasks:
       - cmd: bun test
         expect_exit: 0
     depends_on: []
-    status: pending
+    status: done
     retry_count: 0
+    qa_verdict: pass
+    run_id: 86c7bc73-d324-4119-953b-b150100eab8c
   - id: s21-7-test-fixtures
     description: >
       Create test fixture files for the graph resolver tests. Create the following files with realistic content for each
@@ -112,7 +115,7 @@ tasks:
         import com.example.models.*;
         public class UserController { private UserService svc = new UserService(); }
     executor: openrouter
-    executor_model: deepseek/deepseek-chat-v3-0324
+    executor_model: deepseek/deepseek-v4-flash
     input: []
     output:
       - tests/fixtures/graph/csharp/Models/User.cs
@@ -164,7 +167,7 @@ tasks:
       Use only Bun.fetch() (available globally in Bun runtime). No external HTTP libraries. Cache directory root:
       join(homedir(), '.orchestos', 'cache', 'skills')  — use os.homedir().
     executor: openrouter
-    executor_model: deepseek/deepseek-chat-v3-0324
+    executor_model: deepseek/deepseek-v4-flash
     input: []
     output:
       - src/skills/fetch.ts
@@ -193,7 +196,7 @@ tasks:
         const skill = program.command('skill').description('Manage skills')
       Add to that group.
     executor: openrouter
-    executor_model: deepseek/deepseek-chat-v3-0324
+    executor_model: deepseek/deepseek-v4-flash
     input:
       - src/cli.ts
       - src/skills/fetch.ts
