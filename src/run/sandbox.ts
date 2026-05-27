@@ -11,7 +11,7 @@ export interface Worktree {
 
 export type MergeStrategy = 'commit' | 'squash' | 'discard'
 
-function git(args: string[], cwd: string): { exitCode: number; stdout: string; stderr: string } {
+export function git(args: string[], cwd: string): { exitCode: number; stdout: string; stderr: string } {
   const proc = Bun.spawnSync(['git', ...args], { cwd })
   return {
     exitCode: proc.exitCode,
