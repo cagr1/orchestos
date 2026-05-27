@@ -24,6 +24,7 @@ export class RunLogger {
   failedPermanent(reason: string)    { this.write(`FAILED_PERMANENT  ${reason}`) }
   blocked(dep: string)               { this.write(`BLOCKED  dep="${dep}"`) }
   contractViolation(paths: string[]) { this.write(`CONTRACT_VIOLATION  ${paths.join(', ')}`) }
+  inputAutoSuggested(paths: string[]) { this.write(`INPUT:auto-suggested ${paths.join(', ')}`) }
   error(msg: string)                 { this.write(`ERROR  ${msg}`) }
 
   private write(event: string) {

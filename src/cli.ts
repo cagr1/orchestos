@@ -608,6 +608,7 @@ task
   .action(async (targetPath?: string, opts?: { id?: string; all?: boolean }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
+    const project = getProject(root)
 
     const executeTask = async (taskId: string): Promise<'done' | 'failed' | 'blocked' | 'retry'> => {
       const file = loadTasks(root)
@@ -635,7 +636,7 @@ task
       console.log(`  description: ${t.description}`)
       console.log(`  output:      ${t.output.join(', ')}`)
 
-      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, logger: log })
+      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log })
 
       // map TaskResult → updateTaskStatus
       if (result.status === 'done') {

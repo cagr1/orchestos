@@ -23,6 +23,7 @@ import { RunLogger } from './logger.ts'
 import { insertRun } from '../db/runs.ts'
 import { buildPrompt } from './prompt.ts'
 import { runChecks, type CheckResult } from './checks.ts'
+import { suggestContext } from '../graph/suggest.ts'
 import type { Task } from '../tasks/schema.ts'
 
 // -- public types --------------------------------------------------------------
@@ -34,6 +35,8 @@ export interface HarnessOpts {
   contextText: string
   /** Tarea ya validada, con dependencias verificadas */
   task: Task
+  /** Proyecto guardado en SQLite, requerido para sugerir contexto desde el grafo */
+  projectId?: string
   /** Logger ya abierto para esta tarea */
   logger: RunLogger
   /** Si true, construye el prompt pero no llama al LLM ni escribe archivos */
@@ -59,16 +62,17 @@ export interface TaskResult {
 // -- main ----------------------------------------------------------------------
 
 export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
-  const { projectRoot, contextText, task: t, logger: log, dryRun, modelOverride } = opts
+  const { projectRoot, contextText, task: t, projectId, logger: log, dryRun, modelOverride } = opts
   const t0 = performance.now()
 
   try {
     const taskClass = classifyTask(t.description)
     const model     = modelOverride ?? resolveModel(taskClass)
     const provider  = getProvider(t.executor)
+    const effectiveTask = withSuggestedInput(t, projectId, log)
 
     // -- build prompt ----------------------------------------------------------
-    const { system, userContent } = buildPrompt(t, contextText, projectRoot)
+    const { system, userContent } = buildPrompt(effectiveTask, contextText, projectRoot)
 
 
 
@@ -186,4 +190,14 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     log.error(`unexpected error: ${e.message}`)
     return { status: 'failed', runId: '', retryReason: `unexpected: ${e.message}`, filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: elapsed }
   }
+}
+
+function withSuggestedInput(task: Task, projectId: string | undefined, log: RunLogger): Task {
+  if (task.input.length > 0 || !projectId) return task
+
+  const suggested = suggestContext(projectId, task.description, { topN: 5 }).map(r => r.path)
+  if (suggested.length === 0) return task
+
+  log.inputAutoSuggested(suggested)
+  return { ...task, input: suggested }
 }
