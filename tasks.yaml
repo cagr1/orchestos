@@ -29,7 +29,7 @@ tasks:
 
       The languageFor() function already exists in the file — use it to get the language for each file path.
     executor: openrouter
-    executor_model: deepseek/deepseek-r1
+    executor_model: deepseek/deepseek-chat-v3-0324
     input:
       - src/graph/index.ts
       - src/graph/resolver-registry.ts
@@ -109,7 +109,7 @@ tasks:
         import com.example.models.*;
         public class UserController { private UserService svc = new UserService(); }
     executor: openrouter
-    executor_model: deepseek/deepseek-r1
+    executor_model: deepseek/deepseek-chat-v3-0324
     input: []
     output:
       - tests/fixtures/graph/csharp/Models/User.cs
@@ -161,7 +161,7 @@ tasks:
       Use only Bun.fetch() (available globally in Bun runtime). No external HTTP libraries. Cache directory root:
       join(homedir(), '.orchestos', 'cache', 'skills')  — use os.homedir().
     executor: openrouter
-    executor_model: deepseek/deepseek-r1
+    executor_model: deepseek/deepseek-chat-v3-0324
     input: []
     output:
       - src/skills/fetch.ts
@@ -190,7 +190,7 @@ tasks:
         const skill = program.command('skill').description('Manage skills')
       Add to that group.
     executor: openrouter
-    executor_model: deepseek/deepseek-r1
+    executor_model: deepseek/deepseek-chat-v3-0324
     input:
       - src/cli.ts
       - src/skills/fetch.ts
