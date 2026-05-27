@@ -15,6 +15,10 @@ export interface Task {
   description: string
   skill?: string          // skill id from skills/
   executor: TaskExecutor
+  /** Per-task model override — wins over orchestos.config.yaml executor_heavy/light role */
+  executor_model?: string
+  /** Per-task planner model — for future sub-agent planning step */
+  planner_model?: string
   input: string[]         // files the LLM can read (relative to project root)
   output: string[]        // files the LLM is allowed to write — REQUIRED, must be non-empty
   acceptance_criteria?: string[]
@@ -49,6 +53,8 @@ export function validateTask(t: unknown, index: number): Task {
     description:  task.description as string,
     skill:        typeof task.skill === 'string' ? task.skill : undefined,
     executor,
+    executor_model: typeof task.executor_model === 'string' ? task.executor_model : undefined,
+    planner_model:  typeof task.planner_model  === 'string' ? task.planner_model  : undefined,
     input:        Array.isArray(task.input) ? task.input as string[] : [],
     output:       task.output as string[],
     acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),

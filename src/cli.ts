@@ -488,6 +488,69 @@ program
     }
   })
 
+// ── config ────────────────────────────────────────────────────────────────────
+import { loadOrcheConfig, scaffoldConfigYaml } from './config/load.ts'
+import { autoRoute, formatRoute } from './router/auto-route.ts'
+
+const config = program.command('config').description('Manage model routing configuration')
+
+config
+  .command('init [path]')
+  .description('Create orchestos.config.yaml in the project directory')
+  .action((targetPath?: string) => {
+    const root       = resolve(targetPath ?? '.')
+    const configPath = join(root, 'orchestos.config.yaml')
+    if (existsSync(configPath)) {
+      console.error(`[config] orchestos.config.yaml already exists at ${configPath}`)
+      process.exit(1)
+    }
+    writeFileSync(configPath, scaffoldConfigYaml(), 'utf8')
+    console.log(`[config] created ${configPath}`)
+    console.log(`  Edit the file to set your preferred models per role.`)
+  })
+
+config
+  .command('show [path]')
+  .description('Show active config and which model would be used for each pending task')
+  .option('-p, --project <path>', 'Project path (defaults to current directory)')
+  .action((targetPath?: string, opts?: { project?: string }) => {
+    const root        = resolve(targetPath ?? opts?.project ?? '.')
+    const configPath  = join(root, 'orchestos.config.yaml')
+    const configFound = existsSync(configPath)
+    const cfg         = loadOrcheConfig(root)
+
+    console.log(`\n[config] Source: ${configFound ? configPath : 'defaults (no orchestos.config.yaml found)'}`)
+    console.log(`\n  Roles:`)
+    console.log(`    planner        → ${cfg.models.planner.provider}/${cfg.models.planner.model || '(self)'}`)
+    console.log(`    executor_heavy → ${cfg.models.executor_heavy.provider}/${cfg.models.executor_heavy.model || '(self)'}`)
+    console.log(`    executor_light → ${cfg.models.executor_light.provider}/${cfg.models.executor_light.model || '(self)'}`)
+    console.log(`    default        → ${cfg.models.default.provider}/${cfg.models.default.model || '(self)'}`)
+
+    if (!tasksExist(root)) {
+      console.log(`\n  No tasks.yaml found in ${root} — skipping task routing preview.`)
+      return
+    }
+
+    const tasksFile = loadTasks(root)
+    const pending   = tasksFile.tasks.filter(t => t.status === 'pending')
+
+    if (pending.length === 0) {
+      console.log(`\n  No pending tasks.`)
+      return
+    }
+
+    console.log(`\n  Pending tasks — model routing preview:`)
+    const COL_ID    = 20
+    const COL_MODEL = 42
+    console.log(`  ${'TASK ID'.padEnd(COL_ID)} ${'WOULD USE'.padEnd(COL_MODEL)} EXECUTOR`)
+    console.log(`  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_MODEL)} ${'─'.repeat(12)}`)
+    for (const t of pending) {
+      const route    = autoRoute(t, cfg, configFound)
+      const modelStr = route ? formatRoute(route) : `${t.executor} (legacy)`
+      console.log(`  ${t.id.padEnd(COL_ID)} ${modelStr.padEnd(COL_MODEL)} ${t.executor}`)
+    }
+  })
+
 // ── task ──────────────────────────────────────────────────────────────────────
 const task = program.command('task').description('Manage and run declarative task workflows')
 
@@ -581,6 +644,9 @@ task
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
     const project = getProject(root)
+    const orcheConfigPath  = join(root, 'orchestos.config.yaml')
+    const orcheConfigFound = existsSync(orcheConfigPath)
+    const orcheConfig      = loadOrcheConfig(root)
 
     if (opts?.explain) {
       explainTaskRun(root, opts.explain, project?.id)
@@ -613,7 +679,7 @@ task
       console.log(`  description: ${t.description}`)
       console.log(`  output:      ${t.output.join(', ')}`)
 
-      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log })
+      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log, orcheConfig, orcheConfigFound })
 
       // map TaskResult → updateTaskStatus
       if (result.status === 'done') {
@@ -725,8 +791,14 @@ function explainTaskRun(root: string, taskId: string, projectId?: string) {
     process.exit(1)
   }
 
-  const taskClass = classifyTask(t.description)
-  const model = resolveModel(taskClass)
+  const taskClass        = classifyTask(t.description)
+  const cfgPath          = join(root, 'orchestos.config.yaml')
+  const cfgFound         = existsSync(cfgPath)
+  const cfg              = loadOrcheConfig(root)
+  const route            = autoRoute(t, cfg, cfgFound)
+  const model            = route?.model ?? resolveModel(taskClass)
+  const providerName     = route?.provider ?? t.executor
+  const modelDisplay     = route ? `${providerName}/${model} [${route.role}]` : `${model} (${taskClass})`
   const suggestions = projectId
     ? suggestContext(projectId, t.description, { topN: 5 })
     : []
@@ -736,8 +808,8 @@ function explainTaskRun(root: string, taskId: string, projectId?: string) {
   console.log(`\n[task:explain] ${t.id}`)
   console.log(`description: ${t.description}`)
   console.log(`status:      ${t.status}`)
-  console.log(`executor:    ${t.executor}`)
-  console.log(`model:       ${model} (${taskClass})`)
+  console.log(`executor:    ${providerName}`)
+  console.log(`model:       ${modelDisplay}`)
   console.log(`outputs:     ${t.output.join(', ')}`)
 
   console.log(`\n## Files`)

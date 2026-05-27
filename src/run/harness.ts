@@ -17,6 +17,8 @@ import { classifyTask } from '../router/classify.ts'
 import { resolveModel } from '../router/models.ts'
 import { calcCost } from '../router/pricing.ts'
 import { getProvider } from '../providers/index.ts'
+import { autoRoute } from '../router/auto-route.ts'
+import type { OrcheConfig } from '../config/schema.ts'
 import { parseLLMResponse, enforceContract, snapshotHashes } from './contract.ts'
 import { runQA, snapshotContents, restoreContents, MAX_RETRIES } from './qa.ts'
 import { RunLogger } from './logger.ts'
@@ -41,8 +43,12 @@ export interface HarnessOpts {
   logger: RunLogger
   /** Si true, construye el prompt pero no llama al LLM ni escribe archivos */
   dryRun?: boolean
-  /** Sobrescribe el modelo inferido por el router */
+  /** Sobrescribe el modelo inferido por el router (highest priority) */
   modelOverride?: string
+  /** Config loaded from orchestos.config.yaml — used by autoRoute */
+  orcheConfig?: OrcheConfig
+  /** True if an orchestos.config.yaml file was actually found (vs defaults) */
+  orcheConfigFound?: boolean
 }
 
 export interface TaskResult {
@@ -62,13 +68,17 @@ export interface TaskResult {
 // -- main ----------------------------------------------------------------------
 
 export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
-  const { projectRoot, contextText, task: t, projectId, logger: log, dryRun, modelOverride } = opts
+  const { projectRoot, contextText, task: t, projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound } = opts
   const t0 = performance.now()
 
   try {
     const taskClass = classifyTask(t.description)
-    const model     = modelOverride ?? resolveModel(taskClass)
-    const provider  = getProvider(t.executor)
+
+    // Priority: modelOverride (CLI flag) > autoRoute (config file) > resolveModel (legacy)
+    const route        = orcheConfig ? autoRoute(t, orcheConfig, orcheConfigFound ?? false) : null
+    const model        = modelOverride ?? route?.model ?? resolveModel(taskClass)
+    const providerName = route?.provider ?? t.executor
+    const provider     = getProvider(providerName)
     const effectiveTask = withSuggestedInput(t, projectId, log)
 
     // -- build prompt ----------------------------------------------------------
@@ -78,7 +88,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
     // -- dry run ---------------------------------------------------------------
     if (dryRun) {
-      console.log(`[harness] dry-run - model: ${model}, system: ${system.length} chars`)
+      const routeInfo = route ? ` [config: ${route.role}]` : ' [legacy router]'
+      console.log(`[harness] dry-run - provider: ${providerName}, model: ${model}${routeInfo}, system: ${system.length} chars`)
       return { status: 'done', runId: '', filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: Math.round(performance.now() - t0) }
     }
 
