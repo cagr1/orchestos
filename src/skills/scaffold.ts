@@ -79,7 +79,7 @@ const LANG_PROFILES: Record<string, LangProfile> = {
     antiPatterns: ['force unwrap without guard', 'retain cycles in closures'],
   },
   R: {
-    testCmd: 'Rscript -e "testthat::test_dir(\'tests\')"',
+    testCmd: 'Rscript tests/testthat.R',
     antiPatterns: ['T/F instead of TRUE/FALSE', 'attach() polluting namespace'],
   },
   Julia: {
@@ -129,6 +129,15 @@ const LANG_PROFILES: Record<string, LangProfile> = {
   },
 }
 
+function yamlItem(s: string): string {
+  // Quote strings that start with YAML special chars or contain quotes
+  if (/^[\[{\|>&*!,'"%@`]/.test(s) || s.includes('"') || s.includes("'")) {
+    // Use double-quote wrapping, escaping any internal double quotes
+    return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+  }
+  return s
+}
+
 export function scaffoldSkillYaml(language: string, skillId?: string): string {
   const id = skillId ?? `${language.toLowerCase().replace(/[^a-z0-9]/g, '-')}-development`
   const profile = LANG_PROFILES[language]
@@ -148,44 +157,45 @@ export function scaffoldSkillYaml(language: string, skillId?: string): string {
   ]
 
   const testCmd = profile?.testCmd ?? 'run your test suite'
+  const safeLang = language.replace(/[^a-z0-9]/gi, '-')
 
   return `id: ${id}
 version: 1.0.0
-name: ${language} Development
-description: General-purpose development skill for ${language} projects. Customize verifiers, anti_patterns, and examples for your specific project.
+name: ${safeLang} Development
+description: General-purpose development skill for ${safeLang} projects. Customize verifiers, anti_patterns, and examples for your specific project.
 targets:
   - claude
   - cursor
   - openai
 when_to_use:
-  - When implementing new features in ${language}
-  - When reviewing or refactoring ${language} code
-  - When debugging issues in a ${language} project
+  - When implementing new features in ${safeLang}
+  - When reviewing or refactoring ${safeLang} code
+  - When debugging issues in a ${safeLang} project
 inputs_required:
   - Task description or feature specification
   - Relevant file paths to modify or create
 instructions: |
-  Follow these practices for ${language} development:
+  Follow these practices for ${safeLang} development:
 
   1. Understand the task fully before writing any code.
-  2. Write clean, idiomatic ${language} — follow the conventions already present in the codebase.
+  2. Write clean, idiomatic ${safeLang} — follow the conventions already present in the codebase.
   3. Verify your changes compile/parse before marking done.
   4. Run the test suite. If tests fail, fix them — do not delete or skip.
   5. Only modify files declared in output[]. Nothing else.
 verifiers:
-${verifiers.map(v => `  - ${v}`).join('\n')}
+${verifiers.map(v => `  - ${yamlItem(v)}`).join('\n')}
 anti_patterns:
-${antiPatterns.map(a => `  - ${a}`).join('\n')}
+${antiPatterns.map(a => `  - ${yamlItem(a)}`).join('\n')}
 examples:
   - title: Basic feature implementation
-    input: "Add a ${language} function that validates email format"
-    output: "Implement the function, write a test, run ${testCmd}, confirm green."
+    input: "Add a ${safeLang} function that validates email format"
+    output: "Implement the function, write a test, run the test suite (${testCmd.replace(/"/g, '')}), confirm green."
 language_targets:
   ${language.toLowerCase().replace(/[^a-z0-9]/g, '')}:
     verifiers:
-${verifiers.map(v => `      - ${v}`).join('\n')}
+${verifiers.map(v => `      - ${yamlItem(v)}`).join('\n')}
     anti_patterns:
-${antiPatterns.map(a => `      - ${a}`).join('\n')}
+${antiPatterns.map(a => `      - ${yamlItem(a)}`).join('\n')}
   default:
     verifiers:
       - run your test suite

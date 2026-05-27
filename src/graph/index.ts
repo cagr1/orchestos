@@ -187,7 +187,7 @@ function extractGoImports(content: string): ImportEdge[] {
 
 function extractJvmImports(content: string): ImportEdge[] {
   const edges: ImportEdge[] = []
-  for (const match of content.matchAll(/^\s*import\s+([\w.]+(?:\.\*)?)\s*;?/gm)) {
+  for (const match of content.matchAll(/^\s*import\s+([\w]+(?:\.[\w]+)*(?:\.\*)?)\s*;?/gm)) {
     if (match[1]) edges.push({ kind: 'import', specifier: match[1], raw: match[0].trim() })
   }
   return edges

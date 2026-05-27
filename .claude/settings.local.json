@@ -27,7 +27,12 @@
       "Bash(bun src/cli.ts skill languages)",
       "Bash(bun src/cli.ts skill scaffold --language Rust)",
       "Bash(bun src/cli.ts skill scaffold --language \"Visual Basic\" --id vb-dotnet)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(echo 'export const __TRACKED_VAR__ = {}')",
+      "Bash(echo \"using System;\")",
+      "Bash(echo \"# python\")",
+      "Bash(echo \"fn main\\(\\) {}\")",
+      "Bash(bun test *)"
     ]
   }
 }
