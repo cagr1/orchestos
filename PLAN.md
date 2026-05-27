@@ -432,7 +432,7 @@ Objetivo medible: `orchestos index` recorre el proyecto, persiste un grafo de im
   - Por archivo: regex (no tree-sitter en v0) para extraer imports en TS/JS y Python.
   - Resolver paths relativos (`./foo` → `src/auth/foo.ts`) probando extensiones en orden `.ts, .tsx, .js, .jsx, .py, /index.ts, /index.js`. Paquetes sin `./` quedan `to_file_id: NULL`.
   - Upsert por `sha1`: si no cambió, no reparsear.
-- [ ] **S12.3** Comando `orchestos index [--project <name>]` — corre indexación, imprime `indexed N files, M edges in X ms`.
+- [x] **S12.3** Comando `orchestos index [--project <name>]` — corre indexación, imprime `indexed N files, M edges in X ms`. — 2026-05-27
 - [ ] **S12.4** Integración con `orchestos init`: al final del init, correr `indexProject` automáticamente. No hay watcher — el usuario corre `orchestos index` manualmente cuando cambia mucho código.
 - [ ] **S12.5** `orchestos context suggest --task "<texto>" [--max 5]`:
   - Tokenizar el texto: extraer nombres en CamelCase/snake_case/kebab-case + paths explícitos.

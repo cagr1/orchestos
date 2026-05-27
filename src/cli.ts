@@ -25,6 +25,7 @@ import { loadTasks, saveTasks, tasksExist, updateTaskStatus, hashFile, tasksPath
 import { stringify as yamlStringify } from 'yaml'
 import { readFileSync } from 'fs'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
+import { indexProject } from './graph/index.ts'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -100,6 +101,19 @@ program
   })
 
 // ── context ───────────────────────────────────────────────────────────────────
+program
+  .command('index [path]')
+  .description('Index project imports into the local code graph')
+  .option('--project <name>', 'Saved project name or path')
+  .action(async (targetPath?: string, opts?: { project?: string }) => {
+    const root = resolveIndexRoot(targetPath, opts?.project)
+    const project = await ensureProject(root)
+    const t0 = performance.now()
+    const result = await indexProject(root, project.id)
+    const elapsed = Math.round(performance.now() - t0)
+    console.log(`[index] indexed ${result.files} files, ${result.edges} edges in ${elapsed}ms`)
+  })
+
 const ctx = program.command('context').description('Manage saved project context')
 
 ctx
@@ -671,4 +685,25 @@ async function buildProfile(root: string): Promise<StackProfile> {
     }
   } catch { /* no package.json */ }
   return { manifest, languages, conventions, commands }
+}
+
+function resolveIndexRoot(targetPath?: string, projectName?: string): string {
+  if (!projectName) return resolve(targetPath ?? '.')
+  const rows = listProjects()
+  for (const row of rows) {
+    const profile = JSON.parse(row.stack_profile) as StackProfile
+    if (profile.manifest.name === projectName || row.path === projectName) return row.path
+  }
+  return resolve(projectName)
+}
+
+async function ensureProject(root: string) {
+  const existing = getProject(root)
+  if (existing) return existing
+  const profile = await buildProfile(root)
+  const agentsMd = generateAgentsMd(profile)
+  upsertProject(root, profile, agentsMd)
+  const created = getProject(root)
+  if (!created) throw new Error(`[index] failed to save project context for ${root}`)
+  return created
 }
