@@ -179,6 +179,37 @@ Codex ejecuta sub-pasos simples).
 
 ---
 
+### [MES 4 — CANDIDATO FUERTE] Model roles config — cerebro + ejecutor pesado + ejecutor ligero
+
+**Idea**: al iniciar un proyecto, el usuario define qué modelo cumple cada rol. El harness
+elige automáticamente basado en la complejidad clasificada de la tarea.
+
+```yaml
+# orchestos.config.yaml (en la raíz del proyecto)
+models:
+  planner:        claude-opus-4-7      # arquitectura, diseño, decisiones ambiguas
+  executor_heavy: codex                # código complejo, refactors grandes
+  executor_light: deepseek-v3          # tareas mecánicas, stubs, edits simples
+  default:        openrouter/deepseek  # fallback si no hay config o sin API key
+```
+
+**Mapping automático** (usa `classifyTask` que ya existe):
+- `plan` → `planner`
+- `fix` / `refactor` → `executor_heavy`
+- `generate` / `edit` → `executor_light`
+- Sin config → `default` para todo
+
+**Adaptativo**: si el usuario no tiene config, todo usa `default`. Si tiene una sola API key,
+todo usa ese modelo. El costo y la velocidad se optimizan automáticamente cuando hay más opciones.
+
+**Por qué es distinto a lo existente**: LangChain/CrewAI asignan agentes por rol semántico
+("researcher", "writer"). Nadie lo hace por **complejidad de tarea** mapeada a un clasificador
+ya existente. El `executor` field por tarea (S11) es el paso previo necesario.
+
+**Prerequisito**: S11 (executor por tarea) + `orchestos init` que lea `orchestos.config.yaml`.
+
+---
+
 ### [MES 4+] Spec-Driven flow completo (spec-kit)
 
 El flujo completo de spec-kit: `constitución → spec → clarificar → plan → validar → tareas → ejecutar`.
