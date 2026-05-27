@@ -466,36 +466,7 @@ program
     if (opts.detail) {
       const r = getRun(opts.detail)
       if (!r) { console.error(`[runs] Run not found: ${opts.detail}`); process.exit(1) }
-      const icon = r.status === 'done' ? '✓' : '✗'
-      console.log(`\n  ${icon} Run: ${r.id}`)
-      console.log(`  ${'─'.repeat(60)}`)
-      console.log(`  date:       ${r.created_at}`)
-      console.log(`  task:       ${r.task_id ?? '-'}`)
-      console.log(`  prompt:     ${r.prompt}`)
-      console.log(`  model:      ${r.model} (${r.task_class})`)
-      console.log(`  status:     ${r.status}`)
-      console.log(`  qa_verdict: ${r.qa_verdict ?? '-'}`)
-      if (r.qa_reason)  console.log(`  qa_reason:  ${r.qa_reason}`)
-      console.log(`  tokens:     ${r.input_tokens} in / ${r.output_tokens} out`)
-      console.log(`  cost:       $${r.usd_cost.toFixed(6)}`)
-      console.log(`  elapsed:    ${r.elapsed_ms}ms`)
-      if (r.checks_json) {
-        const checks = JSON.parse(r.checks_json)
-        console.log(`  checks:`)
-        for (const c of checks) {
-          const status = c.timedOut ? 'timeout' : `exit ${c.exitCode}`
-          console.log(`    - ${c.cmd} -> ${status} (${c.elapsedMs}ms)`)
-        }
-      }
-      if (r.allowed_outputs)  console.log(`  allowed:    ${JSON.parse(r.allowed_outputs).join(', ')}`)
-      if (r.files_attempted)  console.log(`  attempted:  ${JSON.parse(r.files_attempted).join(', ')}`)
-      if (r.files_authorized) console.log(`  authorized: ${JSON.parse(r.files_authorized).join(', ')}`)
-      const blocked = r.files_blocked ? JSON.parse(r.files_blocked) : []
-      if (blocked.length > 0) console.log(`  blocked:    ${blocked.join(', ')}  ← CONTRACT VIOLATION`)
-      if (r.snapshot_before)  console.log(`  snap_before:${JSON.stringify(JSON.parse(r.snapshot_before), null, 0)}`)
-      if (r.snapshot_after)   console.log(`  snap_after: ${JSON.stringify(JSON.parse(r.snapshot_after), null, 0)}`)
-      if (r.result)           console.log(`  result:     ${r.result}`)
-      console.log()
+      printRunDetail(r)
       return
     }
 
@@ -801,4 +772,70 @@ function explainTaskRun(root: string, taskId: string, projectId?: string) {
 
 function formatList(values: string[]): string {
   return values.length > 0 ? values.join(', ') : '(none)'
+}
+
+type StoredCheck = {
+  cmd: string
+  exitCode: number
+  elapsedMs: number
+  timedOut?: boolean
+}
+
+function printRunDetail(r: import('./db/runs.ts').RunRecord) {
+  const checks = parseJson<StoredCheck[]>(r.checks_json, [])
+  const allowed = parseJson<string[]>(r.allowed_outputs, [])
+  const attempted = parseJson<string[]>(r.files_attempted, [])
+  const authorized = parseJson<string[]>(r.files_authorized, [])
+  const blocked = parseJson<string[]>(r.files_blocked, [])
+  const snapshotBefore = parseJson<Record<string, string | null>>(r.snapshot_before, {})
+  const snapshotAfter = parseJson<Record<string, string | null>>(r.snapshot_after, {})
+
+  console.log(`\n## Provider`)
+  console.log(`executor: ${r.provider ?? '-'}   model: ${r.model}   class: ${r.task_class}`)
+  console.log(`run: ${r.id}   task: ${r.task_id ?? '-'}   status: ${r.status}   date: ${r.created_at}`)
+  console.log(`prompt: ${r.prompt}`)
+
+  console.log(`\n## Checks (deterministic)`)
+  if (checks.length === 0) {
+    console.log('(none)')
+  } else {
+    for (const c of checks) {
+      const pass = !c.timedOut && c.exitCode === 0
+      const status = c.timedOut ? 'timeout' : `exit ${c.exitCode}`
+      console.log(`[${pass ? 'PASS' : 'FAIL'}] ${c.cmd} - ${status}, ${formatElapsed(c.elapsedMs)}`)
+    }
+  }
+
+  console.log(`\n## Acceptance criteria (LLM)`)
+  if (!r.qa_verdict) {
+    console.log('(not run)')
+  } else {
+    console.log(`[${r.qa_verdict === 'pass' ? 'PASS' : 'FAIL'}] ${r.qa_reason ?? '(no reason recorded)'}`)
+  }
+
+  console.log(`\n## Files`)
+  console.log(`allowed:    ${formatList(allowed)}`)
+  console.log(`attempted:  ${formatList(attempted)}`)
+  console.log(`written:    ${formatList(authorized)}`)
+  console.log(`blocked:    ${formatList(blocked)}`)
+  if (Object.keys(snapshotBefore).length > 0) console.log(`snap_before:${JSON.stringify(snapshotBefore)}`)
+  if (Object.keys(snapshotAfter).length > 0) console.log(`snap_after: ${JSON.stringify(snapshotAfter)}`)
+  if (r.result) console.log(`result:     ${r.result}`)
+
+  console.log(`\n## Cost`)
+  console.log(`input: ${r.input_tokens} tokens   output: ${r.output_tokens} tokens   $${r.usd_cost.toFixed(6)}   elapsed: ${formatElapsed(r.elapsed_ms)}`)
+  console.log()
+}
+
+function parseJson<T>(value: string | null, fallback: T): T {
+  if (!value) return fallback
+  try {
+    return JSON.parse(value) as T
+  } catch {
+    return fallback
+  }
+}
+
+function formatElapsed(ms: number): string {
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`
 }
