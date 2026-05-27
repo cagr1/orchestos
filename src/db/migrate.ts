@@ -40,6 +40,31 @@ export function runMigrations(): void {
       result          TEXT,
       created_at      TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS files (
+      id INTEGER PRIMARY KEY,
+      project_id INTEGER NOT NULL,
+      path TEXT NOT NULL,
+      language TEXT NOT NULL,
+      sha1 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      indexed_at TEXT NOT NULL,
+      UNIQUE(project_id, path)
+    );
+    CREATE INDEX IF NOT EXISTS idx_files_project ON files(project_id);
+
+    CREATE TABLE IF NOT EXISTS code_edges (
+      id INTEGER PRIMARY KEY,
+      project_id INTEGER NOT NULL,
+      from_file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+      to_path TEXT NOT NULL,
+      to_file_id INTEGER,
+      kind TEXT NOT NULL,
+      raw TEXT NOT NULL,
+      UNIQUE(from_file_id, raw)
+    );
+    CREATE INDEX IF NOT EXISTS idx_edges_from ON code_edges(from_file_id);
+    CREATE INDEX IF NOT EXISTS idx_edges_to ON code_edges(to_file_id);
   `)
 
   // ALTER TABLE guards — add missing columns to existing DBs without dropping data

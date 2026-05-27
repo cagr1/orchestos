@@ -400,7 +400,7 @@ Objetivo medible: una tarea con `executor: anthropic` corre por Anthropic direct
 
 Objetivo medible: `orchestos index` recorre el proyecto, persiste un grafo de imports en SQLite, y `orchestos context suggest --task "fix login bug in auth.ts"` devuelve los 5 archivos más relevantes en < 500ms.
 
-- [ ] **S12.1** Schema SQLite (vía `safeAddTable` en `db/migrate.ts`):
+- [x] **S12.1** Schema SQLite (vía `safeAddTable` en `db/migrate.ts`): — 2026-05-27
   ```sql
   CREATE TABLE IF NOT EXISTS files (
     id INTEGER PRIMARY KEY,
