@@ -140,8 +140,10 @@ tasks:
       - cmd: test -f tests/fixtures/graph/java/src/com/example/models/User.java
         expect_exit: 0
     depends_on: []
-    status: pending
+    status: done
     retry_count: 0
+    qa_verdict: pass
+    run_id: b8c9a7e5-6d2e-43e4-96cd-853cdf77b3dc
   - id: s21-8-skills-fetch
     description: >
       Create src/skills/fetch.ts that fetches skills from the autoskills registry on GitHub.
@@ -175,33 +177,48 @@ tasks:
       - cmd: bun run typecheck
         expect_exit: 0
     depends_on: []
-    status: pending
+    status: done
     retry_count: 0
+    qa_verdict: pass
+    run_id: 01911ecb-67de-408c-b155-b2c7a61fbab4
   - id: s21-9-10-skill-fetch-cli
-    description: |
-      Add `orchestos skill fetch` command to src/cli.ts.
-      Import fetchSkill and listRemoteSkills from './skills/fetch.ts'.
-      Add these subcommands under the existing `skill` command group (already exists in cli.ts):
-      skill fetch --language <lang> [--name <name>]
-        - If --name provided: calls fetchSkill(language, name), saves to skills/<name>.yaml
-          in the orchestos project skills/ directory (relative to cwd), prints success message
-        - If --name not provided: calls listRemoteSkills(language), prints each skill name
+    description: >
+      Create a NEW file src/cli-skill-fetch.ts that registers the "skill fetch" subcommands.
+      Do NOT touch src/cli.ts.
 
-      skill fetch --list
-        - Lists all skills available for all languages by calling listRemoteSkills for common languages:
-          typescript, javascript, python, rust, go, java, csharp
-          Prints: "<language>: skill1, skill2, ..."
+      The file must export one function: registerSkillFetchCommands(skill: Command): void
+      where Command is imported from 'commander'.
 
-      Do NOT modify any existing commands. Only add the new subcommands. The skill command group is already defined as:
-        const skill = program.command('skill').description('Manage skills')
-      Add to that group.
+      The function registers two subcommands on the `skill` Command object:
+
+      1. skill.command('fetch').description('Fetch or list skills from the autoskills registry')
+         .option('--language <lang>', 'Language to fetch skills for')
+         .option('--name <name>', 'Skill name to download')
+         .option('--list', 'List available skills for common languages')
+         .action(async (opts) => { ... })
+
+      Inside the action:
+      - Import fetchSkill and listRemoteSkills from './skills/fetch.ts'
+      - If opts.list is true: call listRemoteSkills for each of these languages:
+          ['typescript', 'javascript', 'python', 'rust', 'go', 'java', 'csharp']
+          Print each as: "<language>: skill1, skill2, ..."  (join with ", ")
+          If empty print: "<language>: (no skills found)"
+      - Else if opts.language and opts.name: call fetchSkill(opts.language, opts.name)
+          Save the result to join(process.cwd(), 'skills', opts.name + '.yaml') using writeFileSync
+          Create the skills/ dir if it does not exist (mkdirSync recursive)
+          Print: "[skill] Downloaded <name> → skills/<name>.yaml"
+      - Else if opts.language (no --name): call listRemoteSkills(opts.language)
+          Print each skill name on its own line
+      - Else: print usage error
+
+      Use top-level imports: import { Command } from 'commander', import { writeFileSync, mkdirSync, existsSync } from 'fs', import { join } from 'path'
+      Import fetchSkill and listRemoteSkills lazily inside the action (dynamic import is fine) or at top level.
     executor: openrouter
     executor_model: deepseek/deepseek-v4-flash
     input:
-      - src/cli.ts
       - src/skills/fetch.ts
     output:
-      - src/cli.ts
+      - src/cli-skill-fetch.ts
     checks:
       - cmd: bun run typecheck
         expect_exit: 0
@@ -209,3 +226,11 @@ tasks:
       - s21-8-skills-fetch
     status: pending
     retry_count: 0
+    retry_reason: >-
+      parse error: LLM response is not valid JSON. Got:
+
+      {
+        "files": [
+          {
+            "path": "src/cli.ts",
+            "content": "#!/usr/bin/env bun\nimport { Command } from 'commander'\nimport { resolve, join } from 'path'\nimport { writeFileSync, existsSync, mkdirSync } from 'fs'\nimport { readManifest } from './detect/manifest.ts'\nimport { detectLanguages, 
