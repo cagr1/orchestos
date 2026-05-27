@@ -31,6 +31,7 @@ export function runMigrations(): void {
       files_attempted TEXT,           -- JSON array
       files_authorized TEXT,          -- JSON array
       files_blocked   TEXT,           -- JSON array — non-empty = contract violation
+      checks_json     TEXT,           -- JSON array of deterministic check results
       status          TEXT NOT NULL,  -- 'done' | 'blocked' | 'failed'
       input_tokens    INTEGER DEFAULT 0,
       output_tokens   INTEGER DEFAULT 0,
@@ -61,4 +62,5 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'snapshot_after',   'TEXT')   // JSON {path: sha1}
   safeAddColumn('runs', 'qa_verdict',       'TEXT')   // 'pass' | 'fail'
   safeAddColumn('runs', 'qa_reason',        'TEXT')
+  safeAddColumn('runs', 'checks_json',      'TEXT')
 }

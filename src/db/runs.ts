@@ -18,6 +18,7 @@ export interface RunRecord {
   snapshot_after: string | null
   qa_verdict: string | null
   qa_reason: string | null
+  checks_json: string | null
   status: 'done' | 'blocked' | 'failed'
   input_tokens: number
   output_tokens: number
@@ -27,20 +28,24 @@ export interface RunRecord {
   created_at: string
 }
 
-export function insertRun(r: Omit<RunRecord, 'id' | 'created_at'>): string {
+type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'checks_json'> & {
+  checks_json?: string | null
+}
+
+export function insertRun(r: InsertRunRecord): string {
   const id = randomUUID()
   const now = new Date().toISOString()
   db.run(
     `INSERT INTO runs (
       id, project_id, prompt, task_class, model, provider, skill_id, task_id,
       allowed_outputs, files_attempted, files_authorized, files_blocked,
-      snapshot_before, snapshot_after, qa_verdict, qa_reason,
+      snapshot_before, snapshot_after, qa_verdict, qa_reason, checks_json,
       status, input_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id, r.project_id, r.prompt, r.task_class, r.model, r.provider, r.skill_id, r.task_id,
       r.allowed_outputs, r.files_attempted, r.files_authorized, r.files_blocked,
-      r.snapshot_before, r.snapshot_after, r.qa_verdict, r.qa_reason,
+      r.snapshot_before, r.snapshot_after, r.qa_verdict, r.qa_reason, r.checks_json ?? null,
       r.status, r.input_tokens, r.output_tokens, r.usd_cost, r.elapsed_ms, r.result, now,
     ]
   )

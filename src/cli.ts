@@ -434,6 +434,14 @@ program
       console.log(`  tokens:     ${r.input_tokens} in / ${r.output_tokens} out`)
       console.log(`  cost:       $${r.usd_cost.toFixed(6)}`)
       console.log(`  elapsed:    ${r.elapsed_ms}ms`)
+      if (r.checks_json) {
+        const checks = JSON.parse(r.checks_json)
+        console.log(`  checks:`)
+        for (const c of checks) {
+          const status = c.timedOut ? 'timeout' : `exit ${c.exitCode}`
+          console.log(`    - ${c.cmd} -> ${status} (${c.elapsedMs}ms)`)
+        }
+      }
       if (r.allowed_outputs)  console.log(`  allowed:    ${JSON.parse(r.allowed_outputs).join(', ')}`)
       if (r.files_attempted)  console.log(`  attempted:  ${JSON.parse(r.files_attempted).join(', ')}`)
       if (r.files_authorized) console.log(`  authorized: ${JSON.parse(r.files_authorized).join(', ')}`)

@@ -362,7 +362,7 @@ Objetivo medible: una tarea con `checks: ["bun run typecheck"]` ejecuta el coman
   { "verdict": "pass" | "fail", "reason": "...", "criteria": [ { "text": "...", "pass": true } ] }
   ```
   Si cualquier criterio es `pass:false` → verdict global `fail`. Si no hay criterios → comportamiento Mes 2.
-- [ ] **S10.6** Persistir en `runs`: `safeAddColumn checks_json TEXT` (array de `CheckResult` serializado). `runs --detail` muestra checks con su exit code antes del QA.
+- [x] **S10.6** Persistir en `runs`: `safeAddColumn checks_json TEXT` (array de `CheckResult` serializado). `runs --detail` muestra checks con su exit code antes del QA. — 2026-05-27
 - [ ] **S10.7 — Validación**
   - [ ] Tarea con `checks: ["bun run typecheck"]` y output que rompe TS → `retry`, NO se gastó llamada de QA (revisar logs: ningún `QA:` line).
   - [ ] Tarea con `acceptance_criteria: ["Exports a React component named Button"]` y output que exporta `Card` → QA `fail` con `criteria[0].pass=false`.
