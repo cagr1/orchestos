@@ -427,7 +427,7 @@ Objetivo medible: `orchestos index` recorre el proyecto, persiste un grafo de im
   CREATE INDEX IF NOT EXISTS idx_edges_from ON code_edges(from_file_id);
   CREATE INDEX IF NOT EXISTS idx_edges_to ON code_edges(to_file_id);
   ```
-- [ ] **S12.2** `src/graph/index.ts` con función `indexProject(projectRoot, projectId)`:
+- [x] **S12.2** `src/graph/index.ts` con función `indexProject(projectRoot, projectId)`: — 2026-05-27
   - Glob de `**/*.{ts,tsx,js,jsx,mjs,cjs,py}` excluyendo `node_modules`, `dist`, `.next`, `.git`, `runs/`.
   - Por archivo: regex (no tree-sitter en v0) para extraer imports en TS/JS y Python.
   - Resolver paths relativos (`./foo` → `src/auth/foo.ts`) probando extensiones en orden `.ts, .tsx, .js, .jsx, .py, /index.ts, /index.js`. Paquetes sin `./` quedan `to_file_id: NULL`.
