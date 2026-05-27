@@ -339,7 +339,7 @@ Objetivo medible: una tarea con `checks: ["bun run typecheck"]` ejecuta el coman
   - `cmd` obligatorio si el item está presente.
   - `cmd` no puede contener `&&`, `||`, `;`, backticks, `$(` (sin shell metachars — un check = un proceso).
   - Si quieres concatenar, declara dos checks.
-- [ ] **S10.3** `src/run/checks.ts`:
+- [x] **S10.3** `src/run/checks.ts`: — 2026-05-27
   ```ts
   export interface CheckResult {
     cmd: string
