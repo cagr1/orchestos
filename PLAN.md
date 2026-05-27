@@ -321,7 +321,7 @@ Objetivo medible: `cli.ts` < 350 líneas, el bloque `executeTask` desaparece de 
 
 Objetivo medible: una tarea con `checks: ["bun run typecheck"]` ejecuta el comando, captura exit code, y si != 0 marca la tarea como `retry` con `retryReason` derivado del check fallido — antes de gastar un token en QA.
 
-- [ ] **S10.1** Extender `Task` en `src/tasks/schema.ts`:
+- [x] **S10.1** Extender `Task` en `src/tasks/schema.ts`: — 2026-05-27
   ```ts
   interface Task {
     // ...campos existentes

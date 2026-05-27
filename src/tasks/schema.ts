@@ -1,11 +1,20 @@
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
 
+export interface Check {
+  cmd: string
+  cwd?: string
+  timeout_ms?: number
+  expect_exit?: number
+}
+
 export interface Task {
   id: string              // kebab-case, unique within file
   description: string
   skill?: string          // skill id from skills/
   input: string[]         // files the LLM can read (relative to project root)
   output: string[]        // files the LLM is allowed to write — REQUIRED, must be non-empty
+  acceptance_criteria?: string[]
+  checks?: Check[]
   depends_on: string[]    // task ids that must be done first
   status: TaskStatus
   retry_count: number
