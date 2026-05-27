@@ -227,3 +227,44 @@ tasks:
     retry_count: 0
     qa_verdict: pass
     run_id: eb49d80e-5056-4bcc-bbb2-c31d83c842fd
+
+  - id: cleanup-plan-to-done
+    description: >
+      Move all completed work from PLAN.md into DONE.md and clean up PLAN.md.
+
+      DONE.md has two sections:
+      - "Sección 1 — Plan ejecutado" (S1–S18 already there, append S19–S21 here)
+      - "Sección 2 — Ideas implementadas" (leave untouched)
+
+      In DONE.md, append under "Sección 1" a new block for Mes 5 S19–S21 following the same
+      compact format already used (one line per task, date at end). Example format:
+        ### MES 5 — Confiabilidad para uso diario
+        **SEMANA 19 — Sandbox por worktree**
+        - S19.1 createWorktree() en sandbox.ts con cleanup garantizado — 2026-05-27
+        ... etc for all S19, S20, S21 tasks marked [x]
+
+      In PLAN.md:
+      - Remove the entire SEMANA 19, SEMANA 20, and SEMANA 21 blocks (including their headers,
+        module lists, and all task lines) since all are marked [x] done.
+      - Keep: the file header (frontmatter + title + rules), MES 4 closed block, MES 5 objective,
+        SEMANA 22 block (still pending), Decisiones de diseño, Lista prohibida, Dependencias,
+        Métrica única de éxito.
+      - Do NOT touch SEMANA 22 content.
+
+      Read both files carefully before writing. Preserve all existing content in DONE.md — only append.
+    executor: openrouter
+    executor_model: deepseek/deepseek-v4-flash
+    input:
+      - PLAN.md
+      - DONE.md
+    output:
+      - PLAN.md
+      - DONE.md
+    checks:
+      - cmd: grep -c "S22" PLAN.md
+        expect_exit: 0
+      - cmd: grep -q "S19.1" DONE.md
+        expect_exit: 0
+    depends_on: []
+    status: pending
+    retry_count: 0
