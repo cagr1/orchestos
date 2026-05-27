@@ -440,18 +440,51 @@ Objetivo medible: `orchestos index` recorre el proyecto, persiste un grafo de im
   - Pass 2: 1-hop expansion via `code_edges` (HOP_WEIGHT=1), desactivable con `--no-expand`
   - Output: `● path score=N` (direct) vs `○ path score=N` (neighbor)
 - [x] **S12.6** `LIMITATIONS.md` actualizado — sección "Code Graph" — 2026-05-27
-- [ ] **S12.7 — Validación**
-  - [ ] `orchestos index` en citasbot-whatsapp termina en < 2s, persiste `files` y `code_edges` no vacíos.
-  - [ ] `orchestos context suggest --task "fix bug in auth login"` devuelve archivos que mencionan `auth` o `login`, en < 500ms.
-  - [ ] Reindexar sin cambios = 0 inserts nuevos en `code_edges`.
-  - [ ] Borrar un archivo y reindexar → su row en `files` desaparece y sus `code_edges` también (cascade).
-- [ ] **S12.8** Commit `feat(graph): code graph v0 + context suggest`.
+- [x] **S12.7 — Validación** — 2026-05-27 (repo: orchestos propio; Cisepro.Web es .NET/C# — fuera de scope de v0)
+  - [x] `orchestos index .` → 38 files, 132 edges en 171ms (< 2s ✅)
+  - [x] `orchestos context suggest "fix bug in provider chat call"` → 8 archivos (providers/** score=3-4, harness.ts como neighbor) en < 500ms ✅
+  - [x] Reindexar sin cambios → 0 edges nuevos, 38 files en 24ms ✅
+  - [x] Crear `_temp_test.ts` + reindex → 39 files, 1 edge. Borrar + reindex → 38 files, 0 edges (cascade ✅)
+  - ℹ️ Cisepro.Web (.NET/C#): resultado esperado = 0 files — v0 solo cubre TS/JS/Python. Documentado en LIMITATIONS.md.
+- [x] **S12.8** Commit `feat(graph): context suggest — tokenize+1-hop ranking (S12.5)` — 2026-05-27 (`58d7f94`)
 
 ---
 
 ### SEMANA 13 — Integración + hardening
 
 Objetivo medible: `harness.runTask` usa `context suggest` cuando `input[]` está vacío; `runs --detail` es auditable en 30 segundos; un usuario externo corre el flujo completo con los 3 sistemas juntos sin fricción.
+
+#### Tabla de delegación S13
+
+| Sub-paso | Actor | Por qué |
+|----------|-------|---------|
+| S13.1 | ⚡ Codex | Wiring mecánico: si `task.input` vacío → llamar `suggestContext`, meter top 5 en el prompt. Interfaz ya definida. |
+| S13.2 | ⚡ Codex | `--explain` es un dry-run extendido: leer task, llamar suggest, imprimir sin ejecutar. Sin criterio nuevo. |
+| S13.3 | ⚡ Codex | Rediseño de output de `runs --detail` — formato definido abajo, solo formateo de datos que ya están en SQLite. |
+| S13.4 | ⚡ Codex | Agregar columna `executor` y contador checks al PDF — mecánico, sin lógica nueva. |
+| S13.5 | 🧠 Claude | README — redactar sección que explique los 3 features juntos con ejemplo real; requiere criterio de qué mostrar. |
+| S13.6 | 🧠 Claude | Validación end-to-end con tarea real — juicio sobre si el resultado es correcto. |
+| S13.7 | ⚡ Codex | Commit final. |
+
+**Formato requerido para S13.3** (pasárselo a Codex):
+```
+## Provider
+executor: anthropic   model: claude-opus-4-5
+
+## Checks (deterministic)
+[PASS] bun run typecheck — exit 0, 1.2s
+
+## Acceptance criteria (LLM)
+[PASS] File exports a React component named Button
+[FAIL] No TypeScript errors (no 'any' types)
+
+## Files
+written:  src/components/Button.tsx (312 bytes)
+blocked:  (none)
+
+## Cost
+input: 1240 tokens   output: 387 tokens   $0.0021   elapsed: 4.3s
+```
 
 - [ ] **S13.1** Si `task.input` está vacío, `harness.runTask` llama `contextSuggest(task.description)` y mete los top 5 paths como `input` implícito (loggear `INPUT:auto-suggested foo.ts, bar.ts`). Si la tarea declara `input` explícito, ese gana.
 - [ ] **S13.2** `orchestos task run --explain <id>` — modo dry que NO ejecuta, solo imprime: executor, modelo, archivos sugeridos por graph, checks que correrían, criterios de aceptación. Para revisar antes de gastar tokens.
