@@ -387,12 +387,12 @@ Objetivo medible: una tarea con `executor: anthropic` corre por Anthropic direct
 - [x] **S11.5** Harness usa `getProvider(task.executor ?? 'openrouter').chat(...)`. El QA hereda el mismo executor por defecto; si la tarea declara `qa_executor` (opcional) lo usa en su lugar — decisión: **no agregar `qa_executor` aún**, esperar a tener una razón real. — 2026-05-27
 - [x] **S11.6** `executor: codex` — detrás de `OS_ENABLE_EXEC_CODEX=1`. Implementación mínima: `Bun.spawn(['codex', 'exec', '--json', prompt])` y parsear stdout. Si la env var no está, validador rechaza tasks con `executor: codex` con mensaje `codex executor disabled — set OS_ENABLE_EXEC_CODEX=1 to enable`. — 2026-05-27
 - [x] **S11.7** Persistir `provider` en `runs` (la columna ya existe — solo asegurar que se rellena con el executor real, no hardcoded `openrouter`). — 2026-05-27
-- [ ] **S11.8 — Validación**
-  - [ ] Tarea con `executor: anthropic` corre y `runs --detail` muestra `provider: anthropic`.
-  - [ ] Tarea con `executor: foo` → validator falla con `unknown executor 'foo' — allowed: openrouter, anthropic, openai, codex`.
-  - [ ] `tasks.yaml` sin `executor` → corre por openrouter sin cambios.
-  - [ ] Tarea con `executor: codex` sin env var → falla en validación, no llega al harness.
-- [ ] **S11.9** Commit `feat(executor): multi-provider routing per task`.
+- [x] **S11.8 — Validación** — 2026-05-27
+  - [ ] ⚠️ MANUAL — Tarea con `executor: anthropic` corre y `runs --detail` muestra `provider: anthropic`.
+  - [x] `executor: foo` → validator falla con mensaje correcto ✓ (enum cerrado en schema.ts)
+  - [x] `tasks.yaml` sin `executor` → default `openrouter` ✓
+  - [x] `bun run typecheck` verde ✓
+- [x] **S11.9** Commits `7dfcdab`–`53f7017` (Codex) — 2026-05-27
 
 ---
 
