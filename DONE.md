@@ -282,6 +282,38 @@ Si check falla → revert + retry sin gastar tokens de QA.
 Campo `executor: openrouter | anthropic | openai | codex` por tarea.
 `ProviderClient` interface. `getProvider(name)` en `src/providers/index.ts`.
 
+### Skills de ciclo de vida — S18 (2026-05-27)
+Provenientes de IDEAS.md "Skills de ciclo de vida".
+`security-review`: OWASP Top 10 basics, antes de mergear código que toca auth/inputs/SQL.
+`qa-structured`: cómo evaluar después de implementar (≠ acceptance_criteria que define qué).
+`test-writer`: agregar tests a código existente con language_targets multi-lang.
+
+### Expansión de lenguajes (36 langs) + skill scaffold — 2026-05-27
+Proveniente de IDEAS.md y petición de cobertura real de lenguajes.
+`languages.ts`: EXT_MAP expandido a 36 lenguajes (VB, F#, R, Dart, Svelte, Elixir, Haskell,
+Lua, Perl, OCaml, Scala, Julia, Shell, PowerShell, SQL, Go, Rust, Swift, Kotlin, etc.)
+`SUPPORTED_LANGUAGES` exportado para uso en CLI.
+`src/skills/scaffold.ts`: `scaffoldSkillYaml(lang)` con 25+ perfiles reales (verifiers,
+anti_patterns específicos). `yamlItem()` helper para quoting correcto.
+Comandos: `orchestos skill scaffold --language <lang>` + `orchestos skill languages`.
+
+### Graph multi-lenguaje — 2026-05-27
+Expansión de Code Graph v0. Proveniente de IDEAS.md "Multi-lenguaje en Code Graph".
+`INDEX_GLOB` expandido: C#, Rust, Go, Java, Kotlin, Ruby, PHP, Swift, Elixir, Haskell, Lua, Perl.
+Extractores de imports por lenguaje: `extractCSharpImports`, `extractRustImports`,
+`extractGoImports` (single + block), `extractJvmImports` (Java/Kotlin/Scala + wildcards),
+`extractRubyImports`, `extractPhpImports`, `extractSwiftImports`, `extractElixirImports`.
+Pendiente: resolución de paths relativos para lenguajes no-JS.
+
+### Test suite (78 tests) — 2026-05-27
+Primera suite de tests automatizados del proyecto.
+`languages.test.ts`: detectLanguages, detectPrimaryLanguage, SUPPORTED_LANGUAGES.
+`graph-imports.test.ts`: extractores JS/TS, C#, Rust, Go, JVM (wildcards), Ruby.
+`skill-scaffold.test.ts`: YAML validity para 10+ lenguajes, verifiers específicos.
+`router.test.ts`: classifyTask (15 casos EN/ES), autoRoute con prioridades.
+`clarify.test.ts`: needsClarify, clarifyReason heurística v0.
+Bug encontrado + corregido: JVM wildcard regex (`java.util.*`), YAML quoting para `[Ignore]`.
+
 ### Two-tier LLM convention — Mes 3 (2026-05-27)
 Convención `⚡` / `🧠` activa en PLAN.md para delegar entre modelos.
 `executor` field en tasks.yaml es el primer eslabón concreto.
