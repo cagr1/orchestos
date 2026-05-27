@@ -50,7 +50,7 @@ La semana más crítica del mes: primera ejecución real contra API viva, cada t
 - [x] S19.1 ⚡ (2026-05-27) `createWorktree(taskId, baseBranch)` en `src/run/sandbox.ts` con cleanup garantizado — devuelve `{ path, branch, cleanup() }`
 - [x] S19.2 ⚡ (2026-05-27) `mergeWorktreeBack(worktree, strategy)` — estrategias `commit`, `squash`, `discard`
 - [x] S19.3 ⚡ (2026-05-27) `sandbox-policy.ts` — si no es repo git → fallback a cwd con warning; si hay cambios uncommitted → abortar con mensaje claro
-- [ ] S19.4 ⚡ harness integra sandbox: cwd del provider = `worktree.path`; eliminar rama `restoreContents()`
+- [x] S19.4 ⚡ (2026-05-27) harness integra sandbox: cwd del provider = `worktree.path`; eliminar rama `restoreContents()`
 - [ ] S19.5 🧠 QA→worktree: QA fail → `git worktree remove --force` + log; QA pass → commit en worktree y merge fast-forward al branch base
 - [ ] S19.6 ⚡ flag `--keep-worktree` para debugging post-mortem (no auto-remove al fallar)
 - [ ] S19.7 ⚡ `examples/e2e/` con tarea mínima: "crea hello.txt con la palabra OK" + check `[test -f hello.txt]`

@@ -29,7 +29,10 @@ import { insertRun } from '../db/runs.ts'
 import { buildPrompt } from './prompt.ts'
 import { runChecks, type CheckResult } from './checks.ts'
 import { suggestContext } from '../graph/suggest.ts'
+import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
+import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import type { Task } from '../tasks/schema.ts'
+import type { Worktree } from './sandbox.ts'
 
 // -- public types --------------------------------------------------------------
 
@@ -54,6 +57,12 @@ export interface HarnessOpts {
   orcheConfigFound?: boolean
   /** If true, the caller already asked for clarification and got user input appended to the task */
   constitutionRules?: number | null
+  /** Sandbox mode resolved by sandbox-policy */
+  sandboxMode?: SandboxMode
+  /** Base branch to use when creating worktree */
+  sandboxBranch?: string | null
+  /** If true, keep worktree on failure for debugging */
+  keepWorktree?: boolean
 }
 
 export interface TaskResult {
@@ -73,8 +82,26 @@ export interface TaskResult {
 // -- main ----------------------------------------------------------------------
 
 export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
-  const { projectRoot, contextText, task: t, projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound } = opts
+  const { projectRoot, contextText, task: t, projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound, sandboxMode, sandboxBranch, keepWorktree } = opts
   const t0 = performance.now()
+
+  // resolve sandbox (if not already resolved by caller, do it here)
+  const policy = sandboxMode
+    ? { mode: sandboxMode, branch: sandboxBranch ?? null, warnings: [] as string[] }
+    : resolveSandboxMode(projectRoot)
+  for (const w of policy.warnings) log.info(w)
+
+  let worktree: Worktree | null = null
+  let effectiveRoot = projectRoot
+
+  if (policy.mode === 'worktree' && policy.branch && t.id) {
+    worktree = createWorktree(t.id, policy.branch, projectRoot)
+    effectiveRoot = worktree.path
+    log.info(`sandbox: worktree created at ${worktree.path} (branch: ${worktree.branch})`)
+  } else if (policy.mode === 'worktree') {
+    // mode is worktree but no branch or no task id — fallback
+    log.info('sandbox: worktree mode selected but no branch/task id — falling back to cwd')
+  }
 
   try {
     const taskClass = classifyTask(t.description)
@@ -103,8 +130,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // -- build prompt ----------------------------------------------------------
     const { system, userContent } = buildPrompt(effectiveTask, effectiveContext, projectRoot, constitutionBlock)
 
-
-
     // -- dry run ---------------------------------------------------------------
     if (dryRun) {
       const routeInfo = route ? ` [config: ${route.role}]` : ' [legacy router]'
@@ -113,8 +138,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
 
     // -- snapshot before -------------------------------------------------------
-    const before        = snapshotHashes(projectRoot, t.output)
-    const beforeContent = snapshotContents(projectRoot, t.output)
+    const before        = snapshotHashes(effectiveRoot, t.output)
+    const beforeContent = snapshotContents(effectiveRoot, t.output)
 
     // -- LLM call --------------------------------------------------------------
     let llmResponse: Awaited<ReturnType<typeof provider.chat>>
@@ -141,7 +166,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // -- contract enforcement --------------------------------------------------
     let contractResult: ReturnType<typeof enforceContract>
     try {
-      contractResult = enforceContract(projectRoot, parsed, t.output)
+      contractResult = enforceContract(effectiveRoot, parsed, t.output)
     } catch (e: any) {
       const attempted = parsed.files.map(f => f.path)
       const blocked   = attempted.filter(p => !t.output.includes(p))
@@ -150,15 +175,20 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       return { status: 'failed', runId: '', retryReason: `contract violation: ${blocked.join(', ')}`, filesWritten: [], filesBlocked: blocked, cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsed }
     }
 
-    const after = snapshotHashes(projectRoot, t.output)
+    const after = snapshotHashes(effectiveRoot, t.output)
 
     // -- deterministic checks (BEFORE QA — no tokens spent if check fails) -----
     let checksResults: CheckResult[] = []
     if (t.checks && t.checks.length > 0) {
-      checksResults = await runChecks(t.checks, projectRoot, log)
+      checksResults = await runChecks(t.checks, effectiveRoot, log)
       const firstFail = checksResults.find(r => r.exitCode !== (t.checks!.find(c => c.cmd === r.cmd)?.expect_exit ?? 0) || r.timedOut)
       if (firstFail) {
-        restoreContents(projectRoot, beforeContent)
+        if (!keepWorktree && worktree) {
+          mergeWorktreeBack(worktree, 'discard')
+          worktree = null
+        } else if (!worktree) {
+          restoreContents(effectiveRoot, beforeContent)
+        }
         const reason = firstFail.timedOut
           ? `check timed out: ${firstFail.cmd}`
           : `check failed: ${firstFail.cmd} exit ${firstFail.exitCode}`
@@ -183,7 +213,12 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const totalTokens  = { inputTokens: llmResponse.inputTokens + qa.inputTokens, outputTokens: llmResponse.outputTokens + qa.outputTokens }
 
     if (qa.verdict === 'fail') {
-      restoreContents(projectRoot, beforeContent)
+      if (!keepWorktree && worktree) {
+        mergeWorktreeBack(worktree, 'discard')
+        worktree = null
+      } else if (!worktree) {
+        restoreContents(effectiveRoot, beforeContent)
+      }
       const retryCount = t.retry_count + 1
       const newStatus  = retryCount >= MAX_RETRIES ? 'failed_permanent' : 'pending'
 
@@ -197,7 +232,14 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       return { status: 'retry', runId: '', qaVerdict: 'fail', qaReason: qa.reason, retryReason: qa.reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: totalTokens.inputTokens, outputTokens: totalTokens.outputTokens, usd: totalCost }, elapsedMs: totalElapsed }
     }
 
-    // -- success ---------------------------------------------------------------
+    // -- success: merge worktree back (if applicable) --------------------------
+    if (worktree) {
+      const mergedBranch = worktree.branch
+      mergeWorktreeBack(worktree, 'commit', `orchestos(${t.id}): ${t.description.slice(0, 72)}`)
+      worktree = null
+      log.info(`sandbox: merged ${mergedBranch} into ${sandboxBranch ?? ''}`)
+    }
+
     const runId = insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: constitutionRules, context_source: contextSource, context_tokens: contextTokens, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
 
     log.qaPass(qa.reason)
@@ -219,6 +261,11 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const elapsed = Math.round(performance.now() - t0)
     log.error(`unexpected error: ${e.message}`)
     return { status: 'failed', runId: '', retryReason: `unexpected: ${e.message}`, filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: elapsed }
+  } finally {
+    // cleanup worktree if still alive (not merged, not discarded)
+    if (worktree && !keepWorktree) {
+      try { mergeWorktreeBack(worktree, 'discard') } catch {}
+    }
   }
 }
 
