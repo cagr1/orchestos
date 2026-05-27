@@ -47,7 +47,7 @@ La semana más crítica del mes: primera ejecución real contra API viva, cada t
 - `src/run/qa.ts` — QA fail → marcar worktree para descarte; QA pass → merge al branch base
 - `src/cli.ts` — flags `--sandbox=worktree|cwd|auto`, `--keep-worktree`
 
-- [ ] S19.1 ⚡ `createWorktree(taskId, baseBranch)` en `src/run/sandbox.ts` con cleanup garantizado (try/finally) — devuelve `{ path, branch, cleanup() }`
+- [x] S19.1 ⚡ (2026-05-27) `createWorktree(taskId, baseBranch)` en `src/run/sandbox.ts` con cleanup garantizado — devuelve `{ path, branch, cleanup() }`
 - [ ] S19.2 ⚡ `mergeWorktreeBack(worktree, strategy)` — estrategias `commit` (default), `squash`, `discard`
 - [ ] S19.3 ⚡ `sandbox-policy.ts` — si no es repo git → fallback a cwd con warning; si hay cambios uncommitted → abortar con mensaje claro
 - [ ] S19.4 ⚡ harness integra sandbox: cwd del provider = `worktree.path`; eliminar rama `restoreContents()`
