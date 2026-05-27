@@ -3,31 +3,34 @@ project: orchestos
 tasks:
   - id: s21-6-integrate-resolvers
     description: >
-      Integrate the four language resolvers (C#, Rust, Go, Java) into src/graph/index.ts.
+      Modify src/graph/index.ts to integrate the four language resolvers. Make EXACTLY these two changes and nothing else:
 
-      The resolvers are already implemented in:
-        - src/graph/resolvers/csharp.ts  (exports: csharpResolver)
-        - src/graph/resolvers/rust.ts    (exports: rustResolver)
-        - src/graph/resolvers/go.ts      (exports: goResolver)
-        - src/graph/resolvers/java.ts    (exports: javaResolver)
-        - src/graph/resolver-registry.ts (exports: registerResolver, resolveWithRegistry, RepoIndex, RepoFile)
+      CHANGE 1 — Add these 5 import lines after the existing imports (after the `import { db }` line):
+        import { registerResolver, resolveWithRegistry } from './resolver-registry.ts'
+        import { csharpResolver } from './resolvers/csharp.ts'
+        import { rustResolver } from './resolvers/rust.ts'
+        import { goResolver } from './resolvers/go.ts'
+        import { javaResolver } from './resolvers/java.ts'
 
-      In src/graph/index.ts, make these changes: 1. At the top, import all four resolvers and registerResolver from the
-      paths above. 2. Register all four resolvers once at module load time (outside any function):
-           registerResolver(csharpResolver)
-           registerResolver(rustResolver)
-           registerResolver(goResolver)
-           registerResolver(javaResolver)
-      3. Inside the indexProject() loop, after computing toPath with resolveImport():
-         - Build a RepoIndex object: { projectRoot, projectId, files: [] } where files[]
-           is the list of already-indexed files as { path, language } objects.
-           NOTE: this list can be built from the `files` array (local variable) using languageFor().
-         - Call resolveWithRegistry(language, edge.specifier, file, repoIndex) to get toFileId.
-         - If it returns a non-null path, use resolveFileId(projectId, that path) as toFileId.
-         - Otherwise fall back to the current toFileId logic.
-      4. Do NOT change any other logic. Do NOT remove existing extractors or resolveImport().
+      CHANGE 2 — Add these 4 lines after the IGNORE constant declaration (after the line `const IGNORE = [...]`):
+        registerResolver(csharpResolver)
+        registerResolver(rustResolver)
+        registerResolver(goResolver)
+        registerResolver(javaResolver)
 
-      The languageFor() function already exists in the file — use it to get the language for each file path.
+      CHANGE 3 — Inside the indexProject() function, find this exact code block:
+        for (const edge of extractImports(file, content)) {
+          const toPath = resolveImport(projectRoot, file, edge.specifier) ?? edge.specifier
+          const toFileId = resolveFileId(projectId, toPath)
+      Replace it with:
+        const repoFiles = files.map(p => ({ path: p, language: languageFor(p) }))
+        for (const edge of extractImports(file, content)) {
+          const toPath = resolveImport(projectRoot, file, edge.specifier) ?? edge.specifier
+          const language = languageFor(file)
+          const registryPath = resolveWithRegistry(language, edge.specifier, file, { projectRoot, projectId, files: repoFiles })
+          const toFileId = registryPath ? resolveFileId(projectId, registryPath) : resolveFileId(projectId, toPath)
+
+      Do NOT change anything else. Keep every other line identical.
     executor: openrouter
     executor_model: deepseek/deepseek-chat-v3-0324
     input:
@@ -45,7 +48,7 @@ tasks:
       - cmd: bun test
         expect_exit: 0
     depends_on: []
-    status: running
+    status: pending
     retry_count: 0
   - id: s21-7-test-fixtures
     description: >
