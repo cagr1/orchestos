@@ -1,0 +1,20 @@
+version: 1
+project: e2e-hello
+
+tasks:
+  - id: hello-world
+    description: >
+      Create a file called hello.txt in the project root.
+      The file must contain exactly one line with the word: OK
+    status: pending
+    executor: anthropic
+    input: []
+    output:
+      - hello.txt
+    checks:
+      - cmd: test -f hello.txt
+        expect_exit: 0
+      - cmd: grep -qx "OK" hello.txt
+        expect_exit: 0
+    depends_on: []
+    retry_count: 0

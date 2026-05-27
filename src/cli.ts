@@ -716,7 +716,9 @@ task
   .option('--all', 'Run all pending tasks in dependency order')
   .option('--explain <task-id>', 'Show what would run without executing or calling an LLM')
   .option('--clarify <task-id>', 'Ask for clarification before executing the task')
-  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; explain?: string; clarify?: string }) => {
+  .option('--keep-worktree', 'Keep worktree on failure for post-mortem debugging (implies --sandbox=worktree)')
+  .option('--sandbox <mode>', 'Sandbox mode: worktree | cwd | auto (default: auto)', 'auto')
+  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
     const project = getProject(root)
@@ -760,7 +762,9 @@ task
       console.log(`  description: ${t.description}`)
       console.log(`  output:      ${t.output.join(', ')}`)
 
-      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log, orcheConfig, orcheConfigFound })
+      const sandboxRaw = opts?.keepWorktree ? 'worktree' : (opts?.sandbox ?? 'auto')
+      const sandboxMode = sandboxRaw === 'auto' ? undefined : sandboxRaw as 'worktree' | 'cwd'
+      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree: opts?.keepWorktree })
 
       // map TaskResult → updateTaskStatus
       if (result.status === 'done') {

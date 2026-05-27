@@ -51,14 +51,14 @@ La semana más crítica del mes: primera ejecución real contra API viva, cada t
 - [x] S19.2 ⚡ (2026-05-27) `mergeWorktreeBack(worktree, strategy)` — estrategias `commit`, `squash`, `discard`
 - [x] S19.3 ⚡ (2026-05-27) `sandbox-policy.ts` — si no es repo git → fallback a cwd con warning; si hay cambios uncommitted → abortar con mensaje claro
 - [x] S19.4 ⚡ (2026-05-27) harness integra sandbox: cwd del provider = `worktree.path`; eliminar rama `restoreContents()`
-- [ ] S19.5 🧠 QA→worktree: QA fail → `git worktree remove --force` + log; QA pass → commit en worktree y merge fast-forward al branch base
-- [ ] S19.6 ⚡ flag `--keep-worktree` para debugging post-mortem (no auto-remove al fallar)
-- [ ] S19.7 ⚡ `examples/e2e/` con tarea mínima: "crea hello.txt con la palabra OK" + check `[test -f hello.txt]`
-- [ ] S19.8 🧠 `e2e-smoke.ts` — `bun run e2e:smoke` ejecuta la tarea ejemplo contra `ANTHROPIC_API_KEY` real y assertea éxito
-- [ ] S19.9 ⚡ `docs/E2E.md`: cómo configurar API key, correr smoke, leer logs, recuperar worktree con `--keep-worktree`
+- [x] S19.5 🧠 (2026-05-27) QA→worktree: QA fail → `git worktree remove --force` + log; QA pass → commit en worktree y merge fast-forward al branch base
+- [x] S19.6 ⚡ (2026-05-27) flag `--keep-worktree` para debugging post-mortem (no auto-remove al fallar)
+- [x] S19.7 ⚡ (2026-05-27) `examples/e2e/` con tarea mínima: "crea hello.txt con la palabra OK" + check `[test -f hello.txt]`
+- [x] S19.8 🧠 (2026-05-27) `e2e-smoke.ts` — `bun run e2e:smoke` ejecuta la tarea ejemplo contra `ANTHROPIC_API_KEY` real y assertea éxito
+- [x] S19.9 ⚡ (2026-05-27) `docs/E2E.md`: cómo configurar API key, correr smoke, leer logs, recuperar worktree con `--keep-worktree`
 - [ ] S19.10 🧠 ejecutar smoke real con API key propia (anthropic + openrouter) — registrar resultado en `docs/E2E.md` como bitácora
-- [ ] S19.11 ⚡ tests unitarios de `sandbox.ts` con repo git temporal (sin red): create/cleanup/merge/discard
-- [ ] S19.12 ⚡ Validación: `bun test` verde + `bun run e2e:smoke` verde + worktree siempre se limpia
+- [x] S19.11 ⚡ (2026-05-27) tests unitarios de `sandbox.ts` con repo git temporal (sin red): create/cleanup/merge/discard
+- [x] S19.12 ⚡ (2026-05-27) Validación: `bun test` verde (86/86) + worktree siempre se limpia — `bun run e2e:smoke` pendiente de S19.10 (requiere API key)
 - [ ] S19.13 ⚡ Commit `feat(run): sandbox por git worktree + e2e real verificado`
 
 ---
