@@ -323,7 +323,7 @@ program
       const elapsed = Math.round(performance.now() - t0)
       insertRun({
         project_id: null, prompt: opts.task, task_class: taskClass,
-        model, provider: 'anthropic', skill_id: opts.skill ?? null,
+        model, provider: 'openrouter', skill_id: opts.skill ?? null,
         task_id: null, allowed_outputs: JSON.stringify(allowedPaths),
         files_attempted: null, files_authorized: null, files_blocked: null,
         snapshot_before: null, snapshot_after: null,
@@ -345,7 +345,7 @@ program
     } catch (e: any) {
       insertRun({
         project_id: null, prompt: opts.task, task_class: taskClass,
-        model, provider: 'anthropic', skill_id: opts.skill ?? null,
+        model, provider: 'openrouter', skill_id: opts.skill ?? null,
         task_id: null, allowed_outputs: JSON.stringify(allowedPaths),
         files_attempted: null, files_authorized: null, files_blocked: null,
         snapshot_before: null, snapshot_after: null,
@@ -367,7 +367,7 @@ program
       const blocked = attempted.filter(p => !allowedPaths.includes(p))
       insertRun({
         project_id: null, prompt: opts.task, task_class: taskClass,
-        model, provider: 'anthropic', skill_id: opts.skill ?? null,
+        model, provider: 'openrouter', skill_id: opts.skill ?? null,
         task_id: null, allowed_outputs: JSON.stringify(allowedPaths),
         files_attempted: JSON.stringify(attempted),
         files_authorized: JSON.stringify(attempted.filter(p => allowedPaths.includes(p))),
@@ -386,7 +386,7 @@ program
     // 8. Persist run with evidence
     insertRun({
       project_id: null, prompt: opts.task, task_class: taskClass,
-      model, provider: 'anthropic', skill_id: opts.skill ?? null,
+      model, provider: 'openrouter', skill_id: opts.skill ?? null,
       task_id: null, allowed_outputs: JSON.stringify(allowedPaths),
       files_attempted: JSON.stringify(contractResult.filesAttempted),
       files_authorized: JSON.stringify(contractResult.filesAuthorized),
