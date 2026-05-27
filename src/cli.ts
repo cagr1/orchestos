@@ -26,6 +26,7 @@ import { stringify as yamlStringify } from 'yaml'
 import { readFileSync } from 'fs'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
 import { indexProject } from './graph/index.ts'
+import { suggestContext } from './graph/suggest.ts'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -161,6 +162,33 @@ ctx
       const p = JSON.parse(row.stack_profile) as StackProfile
       console.log(`  ${p.manifest.name.padEnd(24)} ${p.manifest.runtime}/${p.manifest.framework.padEnd(12)} ${row.path}`)
     }
+  })
+
+ctx
+  .command('suggest <task>')
+  .description('Suggest relevant files for a task using the code graph')
+  .option('--project <name>', 'Saved project name or path')
+  .option('--top <n>', 'Max results (default 10)', '10')
+  .option('--no-expand', 'Disable 1-hop neighbor expansion')
+  .action(async (taskText: string, opts: { project?: string; top: string; expand: boolean }) => {
+    const root = resolveIndexRoot(undefined, opts.project)
+    const project = getProject(root)
+    if (!project) {
+      console.error(`[suggest] No indexed project at ${root}. Run: orchestos init`)
+      process.exit(1)
+    }
+    const topN   = Math.max(1, parseInt(opts.top, 10) || 10)
+    const results = suggestContext(project.id, taskText, { topN, expand: opts.expand })
+    if (results.length === 0) {
+      console.log('[suggest] No matching files found for that task description.')
+      return
+    }
+    console.log(`[suggest] Top ${results.length} files for: "${taskText}"`)
+    for (const r of results) {
+      const tag = r.reason === 'direct' ? '●' : '○'
+      console.log(`  ${tag} ${r.path.padEnd(60)} score=${r.score}`)
+    }
+    console.log('\n  ● = direct token match   ○ = 1-hop neighbor')
   })
 
 // ── skill ─────────────────────────────────────────────────────────────────────

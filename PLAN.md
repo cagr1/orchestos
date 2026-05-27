@@ -434,13 +434,12 @@ Objetivo medible: `orchestos index` recorre el proyecto, persiste un grafo de im
   - Upsert por `sha1`: si no cambió, no reparsear.
 - [x] **S12.3** Comando `orchestos index [--project <name>]` — corre indexación, imprime `indexed N files, M edges in X ms`. — 2026-05-27
 - [x] **S12.4** Integración con `orchestos init`: al final del init, correr `indexProject` automáticamente. No hay watcher — el usuario corre `orchestos index` manualmente cuando cambia mucho código. — 2026-05-27
-- [ ] **S12.5** `orchestos context suggest --task "<texto>" [--max 5]`:
-  - Tokenizar el texto: extraer nombres en CamelCase/snake_case/kebab-case + paths explícitos.
-  - Buscar en `files.path` por substring match de cada token.
-  - Por cada match, sumar 1-hop vecinos (importadores + importados).
-  - Ranking: `score = tokenMatchesEnPath*3 + edgesAtravesados`.
-  - Devolver top N paths.
-- [ ] **S12.6** Añadir a `LIMITATIONS.md`: "Context suggest v0 solo conoce imports. No sabe qué función llama a qué función. Para 'rename function X', el grafo no te ayuda — Mes 4+ con symbols."
+- [x] **S12.5** `orchestos context suggest "<texto>" [--top N] [--no-expand]` — 2026-05-27
+  - `src/graph/suggest.ts`: `suggestContext(projectId, taskText, opts)` 
+  - Pass 1: tokenize → substring match en `files.path` (TOKEN_WEIGHT=3)
+  - Pass 2: 1-hop expansion via `code_edges` (HOP_WEIGHT=1), desactivable con `--no-expand`
+  - Output: `● path score=N` (direct) vs `○ path score=N` (neighbor)
+- [x] **S12.6** `LIMITATIONS.md` actualizado — sección "Code Graph" — 2026-05-27
 - [ ] **S12.7 — Validación**
   - [ ] `orchestos index` en citasbot-whatsapp termina en < 2s, persiste `files` y `code_edges` no vacíos.
   - [ ] `orchestos context suggest --task "fix bug in auth login"` devuelve archivos que mencionan `auth` o `login`, en < 500ms.

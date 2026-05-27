@@ -28,6 +28,12 @@ Honest list of what orchestos does not do and has no plans to do soon.
 - Every `task run` makes at least 2 LLM calls (execute + QA). Each retry makes 2 more. A task with 3 retries costs 6 LLM calls.
 - Costs are logged in SQLite and shown in `orchestos task status`, but there is no budget cap or pre-run cost estimate.
 
+## Code Graph
+
+- **Imports only.** `context suggest` knows which files import which other files. It does not know which function calls which function, which class extends which class, or what symbols are exported. For tasks like "rename function X", the graph cannot identify callers — Mes 4+ with tree-sitter symbol indexing.
+- **Regex-based extraction.** Import extraction uses regular expressions, not an AST parser. Unusual syntax (dynamic imports with template literals, barrel re-exports via `export * from`), may be missed.
+- **No watch mode.** The index is a snapshot. Run `orchestos index` manually after significant code changes. The index auto-runs on `orchestos init` but not on file saves.
+
 ## Scale
 
 - Tested on projects under ~50 files. Large monorepos with hundreds of input files have not been tested.
