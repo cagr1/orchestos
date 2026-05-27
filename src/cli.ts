@@ -827,6 +827,137 @@ task
     await executeTask(next.id)
   })
 
+// ── spec ──────────────────────────────────────────────────────────────────────
+import { loadSpec, saveSpec, listSpecs, specPath } from './spec/store.ts'
+import { validateSpec } from './spec/validate.ts'
+import { draftSpec as draftSpecBody } from './spec/draft.ts'
+
+const spec = program.command('spec').description('Manage task specs (Spec-Driven workflow)')
+
+spec
+  .command('create <task-id>')
+  .description('Create a new spec file with draft status')
+  .option('--project <path>', 'Project root (defaults to cwd)')
+  .action((taskId: string, opts: { project?: string }) => {
+    const root = resolve(opts.project ?? '.')
+    const existing = loadSpec(root, taskId)
+    if (existing) {
+      console.error(`[spec] Spec already exists for "${taskId}". Use: orchestos spec show ${taskId}`)
+      process.exit(1)
+    }
+    const body = `## Contexto\n<placeholder>\n\n## Descripción\n<placeholder>\n\n## Criterios de aceptación\n- [ ] <criterio 1>\n- [ ] <criterio 2>\n\n## Notas\n<placeholder>\n`
+    saveSpec(root, {
+      frontmatter: {
+        id: taskId,
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        clarify: 'none',
+      },
+      body,
+    })
+    console.log(`[spec] Created: ${specPath(root, taskId)}`)
+  })
+
+spec
+  .command('show <task-id>')
+  .description('Print spec to console')
+  .option('--project <path>', 'Project root (defaults to cwd)')
+  .action((taskId: string, opts: { project?: string }) => {
+    const root = resolve(opts.project ?? '.')
+    const s = loadSpec(root, taskId)
+    if (!s) {
+      console.error(`[spec] No spec found for "${taskId}". Run: orchestos spec create ${taskId}`)
+      process.exit(1)
+    }
+    console.log(`id:        ${s.frontmatter.id}`)
+    console.log(`status:    ${s.frontmatter.status}`)
+    console.log(`clarify:   ${s.frontmatter.clarify}`)
+    console.log(`createdAt: ${s.frontmatter.createdAt}`)
+    if (s.frontmatter.approvedAt) console.log(`approvedAt: ${s.frontmatter.approvedAt}`)
+    console.log('')
+    console.log(s.body)
+  })
+
+spec
+  .command('list [path]')
+  .description('List all specs with id, status, clarify')
+  .action((targetPath?: string) => {
+    const root = resolve(targetPath ?? '.')
+    const specs = listSpecs(root)
+    if (specs.length === 0) {
+      console.log('[spec] No specs found. Run: orchestos spec create <task-id>')
+      return
+    }
+    const COL_ID = 28
+    const COL_STATUS = 10
+    console.log(`  ${'ID'.padEnd(COL_ID)} ${'STATUS'.padEnd(COL_STATUS)} CLARIFY`)
+    console.log(`  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_STATUS)} ${'─'.repeat(10)}`)
+    for (const s of specs) {
+      console.log(`  ${s.frontmatter.id.padEnd(COL_ID)} ${s.frontmatter.status.padEnd(COL_STATUS)} ${s.frontmatter.clarify}`)
+    }
+  })
+
+spec
+  .command('approve <task-id>')
+  .description('Approve a spec (blocked if clarify: pending or validation fails)')
+  .option('--project <path>', 'Project root (defaults to cwd)')
+  .action((taskId: string, opts: { project?: string }) => {
+    const root = resolve(opts.project ?? '.')
+    const s = loadSpec(root, taskId)
+    if (!s) {
+      console.error(`[spec] No spec found for "${taskId}". Run: orchestos spec create ${taskId}`)
+      process.exit(1)
+    }
+    if (s.frontmatter.clarify === 'pending') {
+      console.error(`[spec] Cannot approve "${taskId}" — clarification is pending. Resolve it first (set clarify: resolved or none).`)
+      process.exit(1)
+    }
+    const validation = validateSpec(s)
+    if (!validation.valid) {
+      console.error(`[spec] Cannot approve "${taskId}" — validation failed:`)
+      for (const err of validation.errors) console.error(`  - ${err}`)
+      process.exit(1)
+    }
+    s.frontmatter.status = 'approved'
+    s.frontmatter.approvedAt = new Date().toISOString()
+    saveSpec(root, s)
+    console.log(`[spec] Approved: ${taskId}`)
+  })
+
+spec
+  .command('draft <task-id>')
+  .description('Use the LLM to draft spec body for an existing or new spec')
+  .requiredOption('--description <text>', 'Task description to draft spec for')
+  .option('--project <path>', 'Project root (defaults to cwd)')
+  .action(async (taskId: string, opts: { description: string; project?: string }) => {
+    const root = resolve(opts.project ?? '.')
+    let s = loadSpec(root, taskId)
+    if (!s) {
+      // create a shell spec first
+      s = {
+        frontmatter: {
+          id: taskId,
+          status: 'draft',
+          createdAt: new Date().toISOString(),
+          clarify: 'none',
+        },
+        body: '',
+      }
+    }
+    console.log(`[spec] Drafting spec body for "${taskId}" via LLM...`)
+    try {
+      const body = await draftSpecBody(root, taskId, opts.description)
+      s.frontmatter.status = 'draft'
+      delete s.frontmatter.approvedAt
+      s.body = body + '\n'
+      saveSpec(root, s)
+      console.log(`[spec] Draft written: ${specPath(root, taskId)}`)
+    } catch (e: any) {
+      console.error(`[spec] LLM draft failed: ${e.message}`)
+      process.exit(1)
+    }
+  })
+
 // ── constitution ──────────────────────────────────────────────────────────────
 import { loadConstitution, scaffoldConstitutionMd } from './spec/constitution.ts'
 import { needsClarify, clarifyReason } from './spec/clarify.ts'

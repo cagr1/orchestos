@@ -1,0 +1,3 @@
+21:32:37.711  [hello-world]  START
+21:32:46.479  [hello-world]  QA:pass  The file hello.txt contains exactly one line with the word 'OK' as required.
+21:32:46.481  [hello-world]  DONE

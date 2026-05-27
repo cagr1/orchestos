@@ -56,10 +56,10 @@ La semana más crítica del mes: primera ejecución real contra API viva, cada t
 - [x] S19.7 ⚡ (2026-05-27) `examples/e2e/` con tarea mínima: "crea hello.txt con la palabra OK" + check `[test -f hello.txt]`
 - [x] S19.8 🧠 (2026-05-27) `e2e-smoke.ts` — `bun run e2e:smoke` ejecuta la tarea ejemplo contra `ANTHROPIC_API_KEY` real y assertea éxito
 - [x] S19.9 ⚡ (2026-05-27) `docs/E2E.md`: cómo configurar API key, correr smoke, leer logs, recuperar worktree con `--keep-worktree`
-- [ ] S19.10 🧠 ejecutar smoke real con API key propia (anthropic + openrouter) — registrar resultado en `docs/E2E.md` como bitácora
+- [x] S19.10 🧠 (2026-05-27) ejecutar smoke real con openrouter — PASS · 8762ms · QA pass — registrado en `docs/E2E.md`
 - [x] S19.11 ⚡ (2026-05-27) tests unitarios de `sandbox.ts` con repo git temporal (sin red): create/cleanup/merge/discard
 - [x] S19.12 ⚡ (2026-05-27) Validación: `bun test` verde (86/86) + worktree siempre se limpia — `bun run e2e:smoke` pendiente de S19.10 (requiere API key)
-- [ ] S19.13 ⚡ Commit `feat(run): sandbox por git worktree + e2e real verificado`
+- [x] S19.13 ⚡ (2026-05-27) Commit `feat(run): sandbox por git worktree + e2e real verificado`
 
 ---
 
@@ -77,17 +77,17 @@ Cierra el flujo: `constitución ✅ → spec → clarify ✅ → plan → valida
 - `src/cli.ts` — subcomando `orchestos spec create/show/list/approve/draft`
 - `src/config/schema.ts` — flag `requireSpec?: boolean`
 
-- [ ] S20.1 ⚡ `orchestos spec create <task-id>` — genera plantilla `.orchestos/specs/<id>.md` con secciones: Contexto, Descripción, Criterios de aceptación, Notas
-- [ ] S20.2 ⚡ `orchestos spec show <task-id>` + `orchestos spec list`
-- [ ] S20.3 ⚡ `orchestos spec approve <task-id>` — marca `status: approved` + `approvedAt` en frontmatter
-- [ ] S20.4 🧠 `orchestos spec draft <task-id>` — invoca LLM con contexto de la tarea + CONSTITUTION.md y propone borrador (no aprueba automáticamente)
-- [ ] S20.5 ⚡ integración con clarify: si spec tiene `clarify: pending` → bloquear approve hasta resolverlas
-- [ ] S20.6 ⚡ harness gate: si `requireSpec: true` y status ≠ approved → error claro con el comando para arreglarlo
-- [ ] S20.7 ⚡ `validate.ts` — verifica que acceptance criteria existan y no estén vacíos
-- [ ] S20.8 ⚡ `docs/SPEC.md` con flujo completo y ejemplo end-to-end (spec → approve → run)
-- [ ] S20.9 ⚡ tests: create/approve/reject/gate en harness
-- [ ] S20.10 ⚡ Validación: tarea sin spec falla con `requireSpec: true`; con spec approved corre en worktree y produce resultado
-- [ ] S20.11 ⚡ Commit `feat(spec): flujo Spec-Driven con gate en harness`
+- [x] S20.1 ⚡ (2026-05-27) `orchestos spec create <task-id>` — genera plantilla `.orchestos/specs/<id>.md`
+- [x] S20.2 ⚡ (2026-05-27) `orchestos spec show <task-id>` + `orchestos spec list`
+- [x] S20.3 ⚡ (2026-05-27) `orchestos spec approve <task-id>` — marca `status: approved` + `approvedAt`
+- [x] S20.4 🧠 (2026-05-27) `orchestos spec draft <task-id>` — invoca LLM con contexto + CONSTITUTION.md
+- [x] S20.5 ⚡ (2026-05-27) integración con clarify: `clarify: pending` bloquea approve
+- [x] S20.6 ⚡ (2026-05-27) harness gate: `requireSpec: true` y status ≠ approved → error claro
+- [x] S20.7 ⚡ (2026-05-27) `validate.ts` — criterios vacíos o placeholder → fallo
+- [x] S20.8 ⚡ (2026-05-27) `docs/SPEC.md` con flujo completo y ejemplo end-to-end
+- [x] S20.9 ⚡ (2026-05-27) 16 tests: create/approve/validate/gate en harness — 102/102 verdes
+- [x] S20.10 ⚡ (2026-05-27) Validación: typecheck limpio + 102 tests verdes
+- [x] S20.11 ⚡ (2026-05-27) Commit `feat(spec): flujo Spec-Driven con gate en harness`
 
 ---
 

@@ -7,7 +7,7 @@ tasks:
       Create a file called hello.txt in the project root.
       The file must contain exactly one line with the word: OK
     status: pending
-    executor: anthropic
+    executor: openrouter
     input: []
     output:
       - hello.txt

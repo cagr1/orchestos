@@ -123,4 +123,4 @@ git branch -D orchestos/hello-world/<timestamp>
 
 | Fecha | Tarea | Proveedor | Resultado | Notas |
 |-------|-------|-----------|-----------|-------|
-| — | — | — | — | *(actualizar tras cada ejecución real)* |
+| 2026-05-27 | hello-world | openrouter | PASS | 277/248 tokens · $0.00000 · 8762ms · QA pass |

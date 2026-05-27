@@ -31,6 +31,7 @@ import { runChecks, type CheckResult } from './checks.ts'
 import { suggestContext } from '../graph/suggest.ts'
 import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
+import { loadSpec } from '../spec/store.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { Worktree } from './sandbox.ts'
 
@@ -84,6 +85,14 @@ export interface TaskResult {
 export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
   const { projectRoot, contextText, task: t, projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound, sandboxMode, sandboxBranch, keepWorktree } = opts
   const t0 = performance.now()
+
+  // -- spec gate ---------------------------------------------------------------
+  if (orcheConfig?.requireSpec) {
+    const spec = loadSpec(projectRoot, t.id)
+    if (!spec || spec.frontmatter.status !== 'approved') {
+      throw new Error(`Task '${t.id}' requires an approved spec. Run: orchestos spec approve ${t.id}`)
+    }
+  }
 
   // resolve sandbox (if not already resolved by caller, do it here)
   const policy = sandboxMode

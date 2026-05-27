@@ -20,6 +20,8 @@ export interface OrcheConfig {
     executor_light: ModelRoleConfig
     default:        ModelRoleConfig
   }
+  /** If true, every task must have an approved spec before it can run */
+  requireSpec?: boolean
 }
 
 // Defaults — used when no config file is found or a role is missing
