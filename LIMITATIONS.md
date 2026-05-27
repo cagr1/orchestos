@@ -28,6 +28,11 @@ Honest list of what orchestos does not do and has no plans to do soon.
 - Every `task run` makes at least 2 LLM calls (execute + QA). Each retry makes 2 more. A task with 3 retries costs 6 LLM calls.
 - Costs are logged in SQLite and shown in `orchestos task status`, but there is no budget cap or pre-run cost estimate.
 
+## Clarify mode
+
+- **Heuristic only.** `--clarify` uses keyword matching ("optimize", "improve", "fix" without target files) to decide if a task is ambiguous. It does not use an LLM call or semantic understanding. Tasks with explicit `input[]` will not trigger clarify even if the description is vague.
+- **Single question, no follow-up.** If clarify triggers, it asks one open-ended question and appends the answer to the task description. There is no multi-turn dialogue.
+
 ## Code Graph
 
 - **Imports only.** `context suggest` knows which files import which other files. It does not know which function calls which function, which class extends which class, or what symbols are exported. For tasks like "rename function X", the graph cannot identify callers — Mes 4+ with tree-sitter symbol indexing.

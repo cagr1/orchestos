@@ -13,6 +13,8 @@
  * 'running', abrir el logger, llamar runTask y mapear TaskResult a updateTaskStatus.
  */
 
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 import { classifyTask } from '../router/classify.ts'
 import { resolveModel } from '../router/models.ts'
 import { calcCost } from '../router/pricing.ts'
@@ -90,8 +92,16 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const constitutionRules = constitution?.ruleCount ?? null
     if (constitution) log.info(`constitution: loaded (${constitution.ruleCount} rules)`)
 
+    // -- context source: CONTEXT.md takes priority over AGENTS.md ---------------
+    const contextMdPath    = join(projectRoot, 'CONTEXT.md')
+    const hasContextMd     = existsSync(contextMdPath)
+    const effectiveContext = hasContextMd ? readFileSync(contextMdPath, 'utf-8') : contextText
+    const contextSource    = hasContextMd ? 'CONTEXT.md' : 'AGENTS.md'
+    const contextTokens    = Math.round(effectiveContext.length / 4)
+    if (hasContextMd) log.info(`context: CONTEXT.md (~${contextTokens} tokens) — overriding AGENTS.md`)
+
     // -- build prompt ----------------------------------------------------------
-    const { system, userContent } = buildPrompt(effectiveTask, contextText, projectRoot, constitutionBlock)
+    const { system, userContent } = buildPrompt(effectiveTask, effectiveContext, projectRoot, constitutionBlock)
 
 
 
@@ -124,7 +134,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       parsed = parseLLMResponse(llmResponse.text)
     } catch (e: any) {
       log.error(`parse error: ${e.message}`)
-      insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: null, files_authorized: null, files_blocked: null, snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: constitutionRules, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
+      insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: null, files_authorized: null, files_blocked: null, snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: constitutionRules, context_source: contextSource, context_tokens: contextTokens, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
       return { status: 'failed', runId: '', retryReason: `parse error: ${e.message}`, filesWritten: [], filesBlocked: [], cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsed }
     }
 
@@ -136,7 +146,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const attempted = parsed.files.map(f => f.path)
       const blocked   = attempted.filter(p => !t.output.includes(p))
       log.contractViolation(blocked)
-      insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(attempted), files_authorized: JSON.stringify(attempted.filter(p => t.output.includes(p))), files_blocked: JSON.stringify(blocked), snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: constitutionRules, status: 'blocked', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
+      insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(attempted), files_authorized: JSON.stringify(attempted.filter(p => t.output.includes(p))), files_blocked: JSON.stringify(blocked), snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: constitutionRules, context_source: contextSource, context_tokens: contextTokens, status: 'blocked', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
       return { status: 'failed', runId: '', retryReason: `contract violation: ${blocked.join(', ')}`, filesWritten: [], filesBlocked: blocked, cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsed }
     }
 
@@ -153,7 +163,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           ? `check timed out: ${firstFail.cmd}`
           : `check failed: ${firstFail.cmd} exit ${firstFail.exitCode}`
         const elapsedCheck = Math.round(performance.now() - t0)
-        insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: reason, checks_json: JSON.stringify(checksResults), constitution_rules: constitutionRules, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsedCheck, result: `check fail — reverted ${contractResult.written.length} file(s)` })
+        insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: reason, checks_json: JSON.stringify(checksResults), constitution_rules: constitutionRules, context_source: contextSource, context_tokens: contextTokens, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsedCheck, result: `check fail — reverted ${contractResult.written.length} file(s)` })
         log.qaFail(reason, t.retry_count + 1, MAX_RETRIES)
         return { status: 'retry', runId: '', qaVerdict: 'fail', qaReason: reason, retryReason: reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsedCheck }
       }
@@ -177,7 +187,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const retryCount = t.retry_count + 1
       const newStatus  = retryCount >= MAX_RETRIES ? 'failed_permanent' : 'pending'
 
-      insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: constitutionRules, status: 'failed', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail - reverted ${contractResult.written.length} file(s)` })
+      insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: constitutionRules, context_source: contextSource, context_tokens: contextTokens, status: 'failed', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail - reverted ${contractResult.written.length} file(s)` })
 
       if (newStatus === 'failed_permanent') {
         log.failedPermanent(qa.reason)
@@ -188,7 +198,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
 
     // -- success ---------------------------------------------------------------
-    const runId = insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: constitutionRules, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
+    const runId = insertRun({ project_id: null, prompt: t.description, task_class: taskClass, model, provider: provider.name, skill_id: t.skill ?? null, task_id: t.id, allowed_outputs: JSON.stringify(t.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: constitutionRules, context_source: contextSource, context_tokens: contextTokens, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
 
     log.qaPass(qa.reason)
     log.done()

@@ -89,4 +89,6 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'qa_reason',        'TEXT')
   safeAddColumn('runs', 'checks_json',        'TEXT')
   safeAddColumn('runs', 'constitution_rules', 'INTEGER')  // S17: number of rules loaded, null if no CONSTITUTION.md
+  safeAddColumn('runs', 'context_source',     'TEXT')     // S18: 'CONTEXT.md' | 'AGENTS.md'
+  safeAddColumn('runs', 'context_tokens',     'INTEGER')  // S18: estimated token count of context used
 }

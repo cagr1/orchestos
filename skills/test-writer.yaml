@@ -1,0 +1,79 @@
+id: test-writer
+version: 1.0.0
+name: Test Writer
+description: Adds comprehensive tests to existing code. Unlike tdd-enforcer, the implementation already exists.
+targets:
+  - claude
+  - cursor
+  - openai
+when_to_use:
+  - When a function or module has zero test coverage
+  - Before refactoring code that lacks tests
+  - When a bug was fixed but no regression test was added
+  - When onboarding a contributor needs tests to understand the code
+inputs_required:
+  - Source file(s) to test
+  - Existing test file (if any) to follow conventions
+  - Test runner command for this project
+instructions: |
+  Write tests for the provided source files. The implementation already exists.
+
+  **Coverage targets (in priority order):**
+  1. Normal behaviour — the main use case works correctly
+  2. Edge cases — empty input, null, undefined, boundary values, unexpected types
+  3. Error handling — invalid input produces the correct error, exceptions are caught
+  4. State transitions — if the module has state, each transition is tested
+
+  **Test structure:**
+  - Group by function or behaviour using describe/context blocks
+  - One assertion per test case (or a small logical group)
+  - Use descriptive test names: "returns 404 when user does not exist" not "test user"
+  - Mock external dependencies (HTTP, database, file system) — do not hit real services
+
+  **Conventions:**
+  - Follow the existing test file's style (same runner, same assertion library)
+  - Place test files next to the source file (src/foo.ts → src/foo.test.ts)
+  - Do not modify the source file — only add test files
+
+  Done when: test suite passes, coverage is reasonable (>70% for the tested module), and no source files were changed.
+anti_patterns:
+  - Test implementation details (private functions, internal state) instead of public API
+  - Write tests that always pass (no assertion, or testing the mock)
+  - Copy-paste test cases without adapting assertions
+  - Modify the source to make it "more testable" during this task — that is a separate refactor
+  - Hit real external services — mock HTTP, DB, and filesystem calls
+verifiers:
+  - Test suite passes with the new tests added
+  - Every public function has at least one test
+  - No source files were modified
+  - Edge cases are tested (empty/null/boundary)
+language_targets:
+  typescript:
+    verifiers:
+      - bun test
+      - npx tsc --noEmit
+    anti_patterns:
+      - use any to bypass type checking in tests
+      - test private methods directly
+  csharp:
+    verifiers:
+      - dotnet test
+    anti_patterns:
+      - '[Ignore] without a documented reason'
+      - test internal classes from another assembly
+  python:
+    verifiers:
+      - python -m pytest
+    anti_patterns:
+      - mock the function under test
+      - test without assertions (no assert statement)
+  default:
+    verifiers:
+      - run your test suite
+examples:
+  - title: Adding tests for a validation util
+    input: "src/utils/validate.ts exports: isValidEmail(str): boolean, isAdult(age): boolean"
+    output: "src/utils/validate.test.ts with: describe('isValidEmail') → valid emails pass, invalid emails fail, empty string returns false. describe('isAdult') → age >= 18 returns true, age < 18 returns false, edge: age 0, age negative."
+  - title: Adding regression test after bug fix
+    input: "Bug: parseDate('2024-13-01') returned NaN instead of throwing. Fix applied in src/utils/date.ts. No regression test exists."
+    output: "src/utils/date.test.ts: test('parseDate throws on invalid month 13') → verifies the fix stays fixed."

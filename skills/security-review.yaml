@@ -1,0 +1,78 @@
+id: security-review
+version: 1.0.0
+name: Security Review
+description: Reviews code changes for common OWASP Top 10 vulnerabilities before merge.
+targets:
+  - claude
+  - cursor
+  - openai
+when_to_use:
+  - Before merging code that touches authentication or authorization
+  - When changes involve user input, SQL queries, or file uploads
+  - Before exposing a new API endpoint or webhook
+  - When handling secrets, API keys, or cryptographic operations
+inputs_required:
+  - Diff or files changed
+  - Architecture diagram (if available)
+  - Data flow description for the modified paths
+instructions: |
+  Review the code against the 5 most common OWASP Top 10 vulnerabilities.
+
+  **1. Broken Access Control**
+  - Every endpoint must check that the caller is authorised to perform the action.
+  - Do not rely on hidden routes or missing buttons for access control.
+  - Check that role/permission checks happen server-side, not only in the UI.
+
+  **2. Cryptographic Failures**
+  - Sensitive data (PII, passwords, tokens) must be encrypted at rest and in transit.
+  - Do not use home-grown cryptography. Use well-known libraries (bcrypt, argon2, libsodium).
+  - Check that TLS/HTTPS is enforced, not optional.
+
+  **3. Injection (SQL, NoSQL, OS command, LDAP)**
+  - All queries must use parameterised statements or an ORM that escapes inputs.
+  - No string concatenation in query building. No eval() on user input.
+  - Whitelist validation for any value that reaches the shell or file system.
+
+  **4. Security Misconfiguration**
+  - Default credentials must be changed or removed.
+  - Debug endpoints, stack traces, and verbose error messages must not be exposed in production.
+  - CORS, CSP, and other security headers must be set explicitly.
+
+  **5. Identification and Authentication Failures**
+  - Session tokens must be random, expire, and be tied to a single IP/user-agent on the server side.
+  - Password policies: minimum length, rate limiting, no storage in plain text.
+  - MFA must be enforced for admin-level actions.
+
+  **Output format:**
+  For each finding, report:
+  - `OWASP category` (1-5)
+  - `Severity` (critical / high / medium / low / info)
+  - `File and line`
+  - `Finding` (one sentence)
+  - `Recommendation` (actionable fix)
+
+  End with a summary table:
+  | Severity | Count |
+  |----------|-------|
+  | Critical | 0 |
+  | High     | 1 |
+  | Medium   | 2 |
+  | Low      | 3 |
+anti_patterns:
+  - Mark everything as "needs review" — prioritise by severity
+  - Review without understanding the data flow first
+  - Suggest encryption without specifying where keys are stored
+  - Flag false positives to inflate the count
+  - Ignore the review because "it's just an internal tool"
+verifiers:
+  - Every endpoint has an authorisation check
+  - No hardcoded secrets or API keys
+  - All SQL/NoSQL queries use parameterised inputs
+  - Production config disables debug mode and stack traces
+examples:
+  - title: Hardcoded API key in source
+    input: "const stripeKey = 'sk_live_1234567890abcdef'"
+    output: "OWASP: 2 (Cryptographic Failure) | Severity: critical | File: src/config/payment.ts:5 | Finding: Stripe live secret key hardcoded in source | Recommendation: move to process.env.STRIPE_SECRET_KEY, add to .env.example (not .env)"
+  - title: SQL concatenation
+    input: "const query = 'SELECT * FROM users WHERE id = ' + userId"
+    output: "OWASP: 3 (Injection) | Severity: critical | File: src/repos/user.ts:12 | Finding: userId concatenated directly into SQL string | Recommendation: use parameterised query: SELECT * FROM users WHERE id = ?"

@@ -1,0 +1,64 @@
+id: qa-structured
+version: 1.0.0
+name: Structured QA Review
+description: Evaluates implemented code against acceptance criteria with structured evidence.
+targets:
+  - claude
+  - cursor
+  - openai
+when_to_use:
+  - After implementation is complete and passes deterministic checks
+  - Before marking a task as done
+  - When the acceptance criteria are complex or have edge cases
+inputs_required:
+  - Task description
+  - Generated files
+  - Acceptance criteria list
+instructions: |
+  You are evaluating whether an implementation satisfies its acceptance criteria.
+  This is not a code review — you are checking functional correctness against a spec.
+
+  **Methodology:**
+  1. Read the task description and all acceptance criteria.
+  2. Read each generated file in full.
+  3. For each criterion, determine pass/fail with explicit evidence.
+  4. Consider edge cases: empty state, error state, boundary values.
+  5. If the task modifies existing files, read the surrounding context to confirm it did not break unrelated code.
+
+  **Edge cases to check:**
+  - Empty input (empty string, null, undefined, empty array)
+  - Error handling (try/catch exists, error messages are user-friendly)
+  - Boundary values (off-by-one, max length, negative numbers)
+  - Concurrency (race conditions if the code uses async/await with shared state)
+
+  **Output format:**
+  ```json
+  {
+    "verdict": "pass" | "fail",
+    "reason": "Summary of findings",
+    "criteria": [
+      { "criterion": "Exports component named Button", "pass": true, "evidence": "Line 12: export function Button(...)" },
+      { "criterion": "Handles disabled state", "pass": false, "evidence": "No disabled prop in interface" }
+    ]
+  }
+  ```
+
+  **Rules:**
+  - A single failing criterion means the entire task fails.
+  - If evidence is unclear, mark fail and explain what is missing.
+  - If all criteria pass, also note any functional issues you found outside the criteria — but do not change verdict.
+anti_patterns:
+  - Only test the happy path
+  - Skip edge cases because "the user would never do that"
+  - Pass criteria based on intent, not on actual code
+  - Mark fail without explaining what is missing
+  - QA the AI output — QA is about the generated code, not how it was made
+  - Judge code style, naming conventions, or formatting (those are for human review)
+verifiers:
+  - Every acceptance criterion has a pass/fail with evidence
+  - At least one edge case was considered per criterion
+  - Reason explains why the verdict was chosen
+examples:
+  - title: Button component QA
+    input: "Task: Create a Button with label, onClick, disabled props. Criteria: 1) exports Button, 2) accepts label/onClick/disabled, 3) disabled applies cursor-not-allowed"
+    output: '{"verdict":"pass","reason":"All 3 criteria met. Edge cases verified: disabled prevents onClick, empty label renders nothing.","criteria":[{"criterion":"exports Button","pass":true,"evidence":"export function Button at line 14"},{"criterion":"accepts label/onClick/disabled","pass":true,"evidence":"interface ButtonProps at line 3"},{"criterion":"disabled applies cursor-not-allowed","pass":true,"evidence":"style={{cursor:disabled?'not-allowed':pointer}} at line 22"}]}'

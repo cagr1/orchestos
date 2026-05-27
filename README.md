@@ -99,9 +99,10 @@ orchestos runs --export          # dump all runs to runs-export.json
 ### Skills
 
 ```bash
-orchestos skill add    <id>      # scaffold a new skill YAML
-orchestos skill list             # list compiled skills
-orchestos skill build            # compile to dist/skills/ (claude / cursor / openai)
+orchestos skill add    <id>                    # scaffold a new skill YAML
+orchestos skill list                           # list compiled skills
+orchestos skill build                          # compile to dist/skills/ (claude / cursor / openai)
+orchestos skill build --project <path>         # compile with language-aware sections
 ```
 
 ---
@@ -237,6 +238,97 @@ Flow for this task:
 5. QA LLM checks all 4 criteria, one by one
 6. Full evidence (tokens, cost, check results, criteria verdicts) visible in `orchestos runs --detail <id>`
 
+### 5. Model routing — assign the right model to each task
+
+Create an `orchestos.config.yaml` to define model roles. Tasks are automatically routed based on their description:
+
+```yaml
+# orchestos.config.yaml
+models:
+  planner:                # architectural/planning tasks
+    provider: anthropic
+    model: claude-opus-4-7
+  executor_heavy:         # fixes, refactors
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+  executor_light:         # generation, edits, docs
+    provider: openrouter
+    model: deepseek/deepseek-chat
+  default:                # fallback
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+```
+
+Routing logic: `plan` → planner, `fix/refactor` → executor_heavy, `generate/edit/doc` → executor_light, no match → default.
+
+Override per-task by setting `executor` or `executor_model` directly in `tasks.yaml` — explicit always wins.
+
+```bash
+orchestos config init              # scaffold orchestos.config.yaml
+orchestos config show              # active config + model per pending task
+```
+
+### 6. Constitution — constrain what the agent can do
+
+Create `CONSTITUTION.md` in your project root to declare rules the agent must follow. It is automatically injected into every task prompt.
+
+```markdown
+## ALLOWED
+- Modify files under src/
+
+## FORBIDDEN
+- Modify .env files
+- Delete files
+
+## REQUIRE_CONFIRMATION
+- Any change to src/db/schema.ts
+```
+
+```bash
+orchestos constitution init        # scaffold CONSTITUTION.md
+orchestos constitution show        # see parsed rules
+orchestos task run --clarify <id>  # ask for confirmation before executing
+```
+
+### 7. Language-aware skills
+
+Skills can define language-specific verifiers and anti-patterns. When compiling with `--project`, the correct section is selected automatically.
+
+```bash
+orchestos skill build --project ./my-project   # compiles with project language
+orchestos skill build                          # compiles default (no language targeting)
+```
+
+Example skill section for TypeScript vs C#:
+
+```yaml
+language_targets:
+  typescript:
+    verifiers: ["bun test", "npx tsc --noEmit"]
+  csharp:
+    verifiers: ["dotnet test"]
+  default:
+    verifiers: ["run your test suite"]
+```
+
+### 8. Context compression — save tokens with CONTEXT.md
+
+Instead of sending the full AGENTS.md (~2000 tokens) on every run, generate a compressed CONTEXT.md (~500 tokens) that includes project facts, the most-connected files from the code graph, and recent run summaries.
+
+```bash
+orchestos context compress ./my-project    # generate CONTEXT.md
+# Harness automatically uses it if present — no config needed
+```
+
+Check the savings in `orchestos runs --detail <id>`:
+```
+context: CONTEXT.md (487 tokens)
+```
+vs without CONTEXT.md:
+```
+context: AGENTS.md (1843 tokens)
+```
+
 ---
 
 ## Commands
@@ -251,7 +343,12 @@ orchestos context show   ./my-project
 orchestos context update ./my-project
 orchestos context list
 orchestos context suggest "fix auth login"   # see which files the graph suggests
+orchestos context compress ./my-project      # generate CONTEXT.md (~500 tokens)
 orchestos index  ./my-project               # re-index after large code changes
+orchestos constitution init   ./my-project  # scaffold CONSTITUTION.md with ALLOWED/FORBIDDEN rules
+orchestos constitution show   ./my-project  # show parsed constitution rules
+orchestos config init         ./my-project  # scaffold orchestos.config.yaml for model routing
+orchestos config show         ./my-project  # show active config + model per pending task
 ```
 
 ---

@@ -10,6 +10,7 @@ import { generateContextJson } from './generators/context-json.ts'
 import { runMigrations } from './db/migrate.ts'
 import { upsertProject, getProject, listProjects } from './db/projects.ts'
 import { loadContext } from './context/load.ts'
+import { buildContextMd } from './context/compress.ts'
 import { loadSkill, listSkillFiles, getSkillPath, type SkillTarget } from './skills/registry.ts'
 import { compileSkill } from './skills/compile.ts'
 import { classifyTask } from './router/classify.ts'
@@ -189,6 +190,23 @@ ctx
       console.log(`  ${tag} ${r.path.padEnd(60)} score=${r.score}`)
     }
     console.log('\n  ● = direct token match   ○ = 1-hop neighbor')
+  })
+
+ctx
+  .command('compress [path]')
+  .description('Generate CONTEXT.md — compressed project context (~500 tokens vs ~2000 AGENTS.md)')
+  .action((targetPath?: string) => {
+    const root = resolve(targetPath ?? '.')
+    const result = buildContextMd(root)
+    if (!result) {
+      console.error(`[context] No saved context for ${root}. Run: orchestos init`)
+      process.exit(1)
+    }
+    const outPath = join(root, 'CONTEXT.md')
+    writeFileSync(outPath, result.content, 'utf-8')
+    const saved = result.agentsMdTokens - result.tokenEstimate
+    console.log(`[context] CONTEXT.md written to ${outPath}`)
+    console.log(`  AGENTS.md: ~${result.agentsMdTokens} tokens → CONTEXT.md: ~${result.tokenEstimate} tokens (saved ~${saved} tokens)`)
   })
 
 // ── skill ─────────────────────────────────────────────────────────────────────
@@ -1010,6 +1028,10 @@ function printRunDetail(r: import('./db/runs.ts').RunRecord) {
     ? `constitution: loaded (${(r as any).constitution_rules} rules)`
     : `constitution: none`
   console.log(constitutionInfo)
+  const contextInfo = (r as any).context_source
+    ? `context: ${(r as any).context_source} (${(r as any).context_tokens ?? '?'} tokens)`
+    : `context: AGENTS.md`
+  console.log(contextInfo)
 
   console.log(`\n## Checks (deterministic)`)
   if (checks.length === 0) {

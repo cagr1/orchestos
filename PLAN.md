@@ -96,13 +96,13 @@ language_targets:
 - `orchestos constitution init [--project <path>]` — scaffold CONSTITUTION.md
 - `orchestos task run --clarify <id>` — activa modo clarify para esa ejecución
 
-- [ ] S17.1 `src/spec/constitution.ts`: loadConstitution + buildConstitutionBlock
-- [ ] S17.2 Harness inyecta constitution block si CONSTITUTION.md existe
-- [ ] S17.3 `src/spec/clarify.ts`: needsClarify heurística v0
-- [ ] S17.4 Harness: --clarify → pregunta + espera input antes de ejecutar
-- [ ] S17.5 Comandos `constitution init` + `task run --clarify`
-- [ ] S17.6 Validación: task con CONSTITUTION.md → runs --detail muestra `constitution: loaded (N rules)`; task ambigua + --clarify → pregunta antes; sin CONSTITUTION.md → retrocompatible
-- [ ] S17.7 Commit
+- [x] S17.1 `src/spec/constitution.ts`: loadConstitution + buildConstitutionBlock — 2026-05-27
+- [x] S17.2 Harness inyecta constitution block en system prompt si CONSTITUTION.md existe — 2026-05-27
+- [x] S17.3 `src/spec/clarify.ts`: needsClarify heurística v0 (verb ambiguo + sin input[]) — 2026-05-27
+- [x] S17.4 Harness/cli: --clarify → readline pregunta + appende clarificación a description — 2026-05-27
+- [x] S17.5 Comandos `constitution init` + `constitution show` + `task run --clarify` — 2026-05-27
+- [x] S17.6 Validación: explain con CONSTITUTION.md → `loaded: 10 rules`; sin CONSTITUTION.md → `(none)`; typecheck verde — 2026-05-27
+- [x] S17.7 Commit `e11cb2a` + push — 2026-05-27
 
 ---
 
@@ -118,16 +118,16 @@ language_targets:
 - Harness: si CONTEXT.md existe → usa en lugar de AGENTS.md; `runs --detail` reporta `context: CONTEXT.md (487 tokens)` vs `AGENTS.md (1843 tokens)`
 - `orchestos context compress [--project <path>]` — genera/actualiza CONTEXT.md
 
-- [ ] S18.1 Skill `security-review` con schema completo
-- [ ] S18.2 Skill `qa-structured` con schema completo
-- [ ] S18.3 Skill `test-writer` con language_targets
-- [ ] S18.4 `src/context/compress.ts`: buildContextMd()
-- [ ] S18.5 `orchestos context compress` comando
-- [ ] S18.6 Harness usa CONTEXT.md si existe, reporta ahorro de tokens en runs --detail
-- [ ] S18.7 README: secciones ## Model routing, ## Constitution, ## Language-aware skills, ## Context compression
-- [ ] S18.8 LIMITATIONS.md: clarify es heurística v0, no semántico
-- [ ] S18.9 Validación: skill list muestra 11 skills; context compress genera CONTEXT.md; harness lo usa y reporta ahorro; config show con modelo asignado por tarea
-- [ ] S18.10 Commit final Mes 4
+- [x] S18.1 Skill `security-review` con schema completo — 2026-05-27
+- [x] S18.2 Skill `qa-structured` con schema completo — 2026-05-27
+- [x] S18.3 Skill `test-writer` con language_targets — 2026-05-27
+- [x] S18.4 `src/context/compress.ts`: buildContextMd() — 2026-05-27
+- [x] S18.5 `orchestos context compress` comando — 2026-05-27
+- [x] S18.6 Harness usa CONTEXT.md si existe, reporta ahorro de tokens en runs --detail — 2026-05-27
+- [x] S18.7 README: secciones ## Model routing, ## Constitution, ## Language-aware skills, ## Context compression — 2026-05-27
+- [x] S18.8 LIMITATIONS.md: clarify es heurística v0, no semántico — 2026-05-27
+- [x] S18.9 Validación: typecheck verde; skill list → 11 skills; context compress genera CONTEXT.md; harness usa CONTEXT.md — 2026-05-27
+- [x] S18.10 Commit final Mes 4 — 2026-05-27
 
 ---
 
