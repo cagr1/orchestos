@@ -1,0 +1,18 @@
+version: 1
+project: orchestos-test-project
+tasks:
+  - id: add-auth-logger
+    description: "Add a logging utility that records auth validation attempts with timestamp and result"
+    executor: openrouter
+    output:
+      - src/logger.ts
+    checks:
+      - cmd: "npx tsc --noEmit"
+        timeout_ms: 30000
+    acceptance_criteria:
+      - "File exports a function named logAuthAttempt"
+      - "Function accepts token (string) and result (boolean) parameters"
+      - "Function logs to console with ISO timestamp"
+      - "No TypeScript errors — no 'any' types allowed"
+    status: pending
+    retry_count: 0

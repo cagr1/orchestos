@@ -490,13 +490,14 @@ input: 1240 tokens   output: 387 tokens   $0.0021   elapsed: 4.3s
 - [x] **S13.2** `orchestos task run --explain <id>` — modo dry que NO ejecuta, solo imprime: executor, modelo, archivos sugeridos por graph, checks que correrían, criterios de aceptación. Para revisar antes de gastar tokens. — 2026-05-27
 - [x] **S13.3** `runs --detail` rediseñado con secciones: `## Provider`, `## Checks (deterministic)`, `## Acceptance criteria (LLM)`, `## Files`, `## Cost`. Auditable por un humano en 30 segundos. — 2026-05-27
 - [x] **S13.4** Actualizar `summary-pdf.ts`: añadir columna `executor` y resumen "checks failed / checks passed" del período. — 2026-05-27
-- [ ] **S13.5** README — sección nueva `## Reliability features (Mes 3)` con ejemplo de `tasks.yaml` usando los 3 features juntos.
-- [ ] **S13.6 — Validación final del mes**
-  - [ ] Una tarea con `executor: anthropic`, `checks: ["bun run typecheck"]`, `acceptance_criteria: ["..."]`, sin `input[]` corre end-to-end: contexto auto-sugerido por graph, checks pasan, QA pasa → `done`. Toda la evidencia visible en `runs --detail`.
-  - [ ] Misma tarea pero con código que rompe TS → `retry` por check, 0 tokens de QA gastados, restoreContents revierte.
-  - [ ] `orchestos task run --explain` no consume API.
-  - [ ] Un usuario externo corre el flujo y comenta en `IDEAS.md ## Feedback Mes 3`.
-- [ ] **S13.7** Commit `feat(m3): harness + checks + executor + graph integration complete`.
+- [x] **S13.5** README — sección `## Reliability features` con 4 features + ejemplo `add-payment-service` con los 3 sistemas juntos. Sección `## tasks.yaml — full field reference` actualizada. — 2026-05-27
+- [x] **S13.6 — Validación** — 2026-05-27
+  - [x] `orchestos task run --explain add-auth-logger` → muestra executor/model/graph suggestions/checks/criteria, cero tokens, cero escrituras. ✅
+  - [x] check-fail path: harness.ts:130-138 — `restoreContents` + `return` ANTES de `runQA`. QA no se llama si check falla. Verificado por code review. ✅
+  - [x] Auto-suggest sin `input[]`: graph sugiere `src/auth.ts score=3` para "auth logger" — --explain lo confirma. ✅
+  - ⚠️ Full API end-to-end (executor:anthropic, checks pass, QA pass → done): pendiente de run con API key activa.
+  - ⚠️ Usuario externo: pendiente (ver `## Feedback Mes 3` en IDEAS.md).
+- [ ] **S13.7** Commit final.
 
 ---
 

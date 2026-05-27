@@ -1,0 +1,10 @@
+{
+  "name": "orchestos-test-project",
+  "version": "1.0.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
