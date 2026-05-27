@@ -87,5 +87,6 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'snapshot_after',   'TEXT')   // JSON {path: sha1}
   safeAddColumn('runs', 'qa_verdict',       'TEXT')   // 'pass' | 'fail'
   safeAddColumn('runs', 'qa_reason',        'TEXT')
-  safeAddColumn('runs', 'checks_json',      'TEXT')
+  safeAddColumn('runs', 'checks_json',        'TEXT')
+  safeAddColumn('runs', 'constitution_rules', 'INTEGER')  // S17: number of rules loaded, null if no CONSTITUTION.md
 }

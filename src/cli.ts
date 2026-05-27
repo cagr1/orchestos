@@ -652,7 +652,8 @@ task
   .option('--id <task-id>', 'Run a specific task by id')
   .option('--all', 'Run all pending tasks in dependency order')
   .option('--explain <task-id>', 'Show what would run without executing or calling an LLM')
-  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; explain?: string }) => {
+  .option('--clarify <task-id>', 'Ask for clarification before executing the task')
+  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; explain?: string; clarify?: string }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
     const project = getProject(root)
@@ -662,6 +663,11 @@ task
 
     if (opts?.explain) {
       explainTaskRun(root, opts.explain, project?.id)
+      return
+    }
+
+    if (opts?.clarify) {
+      await runClarifyMode(root, opts.clarify, project?.id, orcheConfig, orcheConfigFound)
       return
     }
 
@@ -752,6 +758,53 @@ task
     )
     if (!next) { console.log('[task] No pending tasks ready to run.'); return }
     await executeTask(next.id)
+  })
+
+// ── constitution ──────────────────────────────────────────────────────────────
+import { loadConstitution, scaffoldConstitutionMd } from './spec/constitution.ts'
+import { needsClarify, clarifyReason } from './spec/clarify.ts'
+
+const constitution = program.command('constitution').description('Manage project constitution (agent constraints)')
+
+constitution
+  .command('init [path]')
+  .description('Create CONSTITUTION.md scaffold in the project directory')
+  .action((targetPath?: string) => {
+    const root         = resolve(targetPath ?? '.')
+    const constPath    = join(root, 'CONSTITUTION.md')
+    if (existsSync(constPath)) {
+      console.error(`[constitution] CONSTITUTION.md already exists at ${constPath}`)
+      process.exit(1)
+    }
+    writeFileSync(constPath, scaffoldConstitutionMd(), 'utf8')
+    console.log(`[constitution] created ${constPath}`)
+    console.log(`  Edit ALLOWED / FORBIDDEN / REQUIRE_CONFIRMATION sections.`)
+    console.log(`  It will be injected into every task prompt automatically.`)
+  })
+
+constitution
+  .command('show [path]')
+  .description('Show parsed rules from CONSTITUTION.md')
+  .action((targetPath?: string) => {
+    const root = resolve(targetPath ?? '.')
+    const c    = loadConstitution(root)
+    if (!c) {
+      console.log(`[constitution] No CONSTITUTION.md in ${root}. Run: orchestos constitution init`)
+      return
+    }
+    console.log(`\n[constitution] ${c.ruleCount} rules loaded`)
+    if (c.forbidden.length > 0) {
+      console.log(`\nFORBIDDEN (${c.forbidden.length}):`)
+      c.forbidden.forEach(r => console.log(`  - ${r}`))
+    }
+    if (c.require_confirmation.length > 0) {
+      console.log(`\nREQUIRE_CONFIRMATION (${c.require_confirmation.length}):`)
+      c.require_confirmation.forEach(r => console.log(`  - ${r}`))
+    }
+    if (c.allowed.length > 0) {
+      console.log(`\nALLOWED (${c.allowed.length}):`)
+      c.allowed.forEach(r => console.log(`  - ${r}`))
+    }
   })
 
 program.parse()
@@ -851,7 +904,82 @@ function explainTaskRun(root: string, taskId: string, projectId?: string) {
     console.log('(none)')
   }
 
+  // Constitution
+  const cst = loadConstitution(root)
+  console.log(`\n## Constitution`)
+  if (cst) {
+    console.log(`loaded: ${cst.ruleCount} rules (${cst.forbidden.length} forbidden, ${cst.require_confirmation.length} require confirmation, ${cst.allowed.length} allowed)`)
+  } else {
+    console.log(`(none — create with: orchestos constitution init)`)
+  }
+
   console.log(`\n[task:explain] dry-run only - no LLM call, no files written, no task status changes.`)
+}
+
+async function runClarifyMode(
+  root: string,
+  taskId: string,
+  projectId: string | undefined,
+  orcheConfig: import('./config/schema.ts').OrcheConfig,
+  orcheConfigFound: boolean,
+): Promise<void> {
+  const { createInterface } = await import('readline')
+  const file = loadTasks(root)
+  const t = file.tasks.find(x => x.id === taskId)
+  if (!t) {
+    console.error(`[task] Task "${taskId}" not found`)
+    process.exit(1)
+  }
+
+  console.log(`\n[task:clarify] ${t.id}`)
+  console.log(`description: ${t.description}`)
+  console.log(`executor:    ${t.executor}`)
+  console.log(`outputs:     ${t.output.join(', ')}`)
+
+  const flagged = needsClarify(t)
+  if (flagged) {
+    console.log(`\n⚠  Ambiguity detected: ${clarifyReason(t)}`)
+  }
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  const answer: string = await new Promise(resolve => {
+    rl.question('\nAny clarifications for the agent? (press Enter to run as-is): ', resolve)
+  })
+  rl.close()
+
+  const clarification = answer.trim()
+
+  const taskWithClarification: import('./tasks/schema.ts').Task = clarification
+    ? { ...t, description: `${t.description}\n\nUser clarification: ${clarification}` }
+    : t
+
+  const projectContext = loadContext(root)
+  const project = projectId ? { id: projectId } : getProject(root)
+  const log = new RunLogger(root, taskId)
+
+  console.log(`\n[task:clarify] Running ${taskId}${clarification ? ' with clarification' : ''}...`)
+  updateTaskStatus(root, taskId, { status: 'running' })
+
+  const result = await runTask({
+    projectRoot: root,
+    contextText: projectContext,
+    task: taskWithClarification,
+    projectId: project?.id,
+    logger: log,
+    orcheConfig,
+    orcheConfigFound,
+  })
+
+  if (result.status === 'done') {
+    updateTaskStatus(root, taskId, { status: 'done', run_id: result.runId, qa_verdict: 'pass', retry_reason: undefined })
+    console.log(`[task] ✓ ${taskId} done · QA pass`)
+  } else if (result.status === 'retry') {
+    updateTaskStatus(root, taskId, { status: 'pending', retry_count: t.retry_count + 1, retry_reason: result.retryReason })
+    console.log(`[task] ↺ ${taskId} retry · ${result.retryReason}`)
+  } else {
+    updateTaskStatus(root, taskId, { status: 'failed', retry_reason: result.retryReason })
+    console.log(`[task] ✗ ${taskId} failed · ${result.retryReason}`)
+  }
 }
 
 function formatList(values: string[]): string {
@@ -878,6 +1006,10 @@ function printRunDetail(r: import('./db/runs.ts').RunRecord) {
   console.log(`executor: ${r.provider ?? '-'}   model: ${r.model}   class: ${r.task_class}`)
   console.log(`run: ${r.id}   task: ${r.task_id ?? '-'}   status: ${r.status}   date: ${r.created_at}`)
   console.log(`prompt: ${r.prompt}`)
+  const constitutionInfo = (r as any).constitution_rules != null
+    ? `constitution: loaded (${(r as any).constitution_rules} rules)`
+    : `constitution: none`
+  console.log(constitutionInfo)
 
   console.log(`\n## Checks (deterministic)`)
   if (checks.length === 0) {

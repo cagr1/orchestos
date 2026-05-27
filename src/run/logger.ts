@@ -26,6 +26,7 @@ export class RunLogger {
   contractViolation(paths: string[]) { this.write(`CONTRACT_VIOLATION  ${paths.join(', ')}`) }
   inputAutoSuggested(paths: string[]) { this.write(`INPUT:auto-suggested ${paths.join(', ')}`) }
   error(msg: string)                 { this.write(`ERROR  ${msg}`) }
+  info(msg: string)                  { this.write(`INFO   ${msg}`) }
 
   private write(event: string) {
     const ts = new Date().toISOString().slice(11, 23)   // HH:mm:ss.mmm

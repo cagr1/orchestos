@@ -8,17 +8,18 @@ export interface BuiltPrompt {
   userContent: string
 }
 
-export function buildPrompt(task: Task, contextText: string, projectRoot: string): BuiltPrompt {
+export function buildPrompt(task: Task, contextText: string, projectRoot: string, constitutionBlock?: string): BuiltPrompt {
   const skillGuidelines = loadSkillGuidelines(task.skill)
 
   const system = [
     contextText || '# Project context\nNo AGENTS.md found.',
+    constitutionBlock ?? '',
     skillGuidelines,
     `\n## OUTPUT CONTRACT`,
     `You may ONLY write to these files: ${task.output.join(', ')}`,
     `Respond with ONLY valid JSON - no markdown, no explanation:`,
     `{ "files": [{ "path": "relative/path", "content": "full file content" }] }`,
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 
   let userContent = `Task: ${task.description}\n`
   for (const file of task.input) {
