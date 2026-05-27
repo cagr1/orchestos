@@ -14,7 +14,16 @@
       "Bash(git commit -m 'docs: purify PLAN.md + IDEAS.md + create DONE.md *)",
       "Bash(git commit -m 'docs\\(ideas\\): vision dashboard + onboarding adaptativo para no-programadores *)",
       "Bash(git commit -m 'feat\\(skills\\): 5 real skills with structured schema \\(S14.4-S14.9\\) *)",
-      "Bash(git commit -m 'docs\\(plan\\): close S14 — skills schema + 5 real skills complete *)"
+      "Bash(git commit -m 'docs\\(plan\\): close S14 — skills schema + 5 real skills complete *)",
+      "Bash(bun src/cli.ts skill list)",
+      "Bash(bun src/cli.ts context compress --project .)",
+      "Bash(bun src/cli.ts context --help)",
+      "Bash(bun src/cli.ts context compress .)",
+      "Bash(bun src/cli.ts config show)",
+      "Bash(bun src/cli.ts constitution show)",
+      "Bash(bun ../src/cli.ts task run --explain add-tests)",
+      "Bash(bun ../src/cli.ts task list)",
+      "Bash(bun ../src/cli.ts task run --explain document-auth-module)"
     ]
   }
 }
