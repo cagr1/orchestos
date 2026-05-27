@@ -71,6 +71,71 @@ orchestos skill fetch --list                   # lista skills disponibles en el 
 
 ---
 
+## 💡 Pendiente — Mes 6 (IA específica con ROI demostrable)
+
+### Embeddings semánticos en `suggestContext`
+
+**Problema real**: `context suggest` usa scoring por keywords. Si la tarea dice "implementar pago con Stripe" y el archivo clave es `src/billing/processor.ts` sin la palabra "stripe", no lo encuentra.
+
+**Solución**: reemplazar el scoring actual con cosine similarity sobre embeddings, manteniendo la misma interfaz CLI.
+
+**Implementación mínima** (sin cambiar ninguna API pública):
+1. Columna `embedding TEXT` (JSON array) en tabla `files`.
+2. En `indexProject()`: si el archivo no tiene embedding o SHA1 cambió → llamar al provider de embeddings y guardar.
+3. En `suggestContext()`: embedding del texto de la tarea → cosine similarity → re-rank combinado con graph traversal actual.
+4. Flag `--no-embed` en `orchestos index` para proyectos sin API key.
+
+**Costo**: `text-embedding-3-small` ≈ $0.02/1M tokens. 500 archivos × 500 tokens = $0.005 total, indexado una vez. Dedup por SHA1 — no se regenera si el archivo no cambió.
+
+**Abstracción**: definir `EmbeddingProvider` interface (como `ProviderClient`) con implementaciones OpenAI + Ollama local (nomic-embed).
+
+**Métrica de éxito**: % de runs donde al menos un archivo de `suggested_context` termina en `files_authorized`. Measurable con las columnas que ya existen en la tabla `runs`.
+
+**Prerequisito**: CLI estable Mes 5 ✅ + columna `suggested_context` en `runs`.
+
+---
+
+### Agente de diagnóstico de fallos
+
+**Problema real**: cuando un task llega a `failed_permanent` (3 retries), no hay forma automática de saber por qué. El usuario tiene que leer `runs --detail` manualmente y adivinar qué cambiar.
+
+**Solución**: activado automáticamente al llegar a `failed_permanent`, un LLM (haiku) lee los últimos 3 runs del task, analiza el patrón (¿check? ¿QA? ¿parse error? ¿criterio específico?) y devuelve sugerencias concretas para modificar la task definition.
+
+**No ejecuta nada** — solo sugiere. El usuario decide si aplica.
+
+**Output ejemplo**:
+```
+Task 'add-payment-service' falló 3 veces.
+
+Patrón detectado: QA falla siempre en criterio #2 ("debe incluir manejo de errores").
+Sugerencia: añade a acceptance_criteria: "El archivo debe tener un bloque try/catch alrededor de la llamada a Stripe".
+```
+
+**Comando**: `orchestos task diagnose <id>` o automático en `task run --all` al llegar a `failed_permanent`.
+
+**Métrica de éxito**: % de tareas que pasan en el siguiente intento después de aplicar una sugerencia del agente.
+
+**Prerequisito**: S22 cerrado + tabla `runs` con criterios individuales almacenados.
+
+---
+
+### Function calling para el planner de S22
+
+**Problema real**: el planner de S22 devuelve YAML con `subtasks: [{id, description, acceptance}]`. Los LLMs generan YAML con errores de indentación o comillas que rompen el parser.
+
+**Solución**: en lugar de pedir YAML libre, usar function calling con schema estricto:
+```typescript
+tools: [{ name: "create_subtask", input_schema: { properties: { id, description, acceptance[] } } }]
+```
+
+El LLM llama a `create_subtask` N veces. Cada call es validada por el SDK antes de llegar al código.
+
+**Solo para providers que lo soporten**: anthropic + openai. Para openrouter depende del modelo — verificar en tiempo de ejecución y caer al parser YAML como fallback.
+
+**Prerequisito**: S22.1–S22.2 definidos.
+
+---
+
 ## 💡 Pendiente — Mes 5+ / largo plazo
 
 ### KuzuDB — upgrade del graph
