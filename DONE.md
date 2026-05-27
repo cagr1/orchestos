@@ -95,7 +95,7 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 
 ---
 
-### MES 3 — Reliability + Spec QA (completado hasta S13)
+### MES 3 — Reliability + Spec QA (completado)
 
 **SEMANA 9 — Extracción de harness**
 - S9.1-S9.2 `src/run/harness.ts`: HarnessOpts, TaskResult, runTask() — cli.ts solo orquesta — 2026-05-27
@@ -142,6 +142,14 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 - S13.5 README: sección ## Reliability features, ejemplo add-payment-service, ## tasks.yaml full reference — 2026-05-27
 - S13.6 Validación: --explain correcto (0 tokens), check-fail path verificado, auto-suggest confirmado — 2026-05-27
 - S13.7 Commit final Mes 3 — 2026-05-27
+
+**SEMANA 14 — Skills con estructura real**
+- S14.1 Schema YAML extendido: SkillExample + campos opcionales (when_to_use, inputs_required, verifiers, anti_patterns, examples) — 2026-05-27
+- S14.2 validateSkill retrocompatible — skills sin campos nuevos siguen válidas — 2026-05-27
+- S14.3 Compiler targets (claude/cursor/openai) emiten secciones solo si el campo existe — 2026-05-27
+- S14.4–S14.8 Skills reales: pre-task-alignment, diagnose, tdd-enforcer, context-compression, improve-architecture — 2026-05-27
+- S14.9 Validación: skill list (8), skill build (24 archivos), retrocompatibilidad, typecheck — 2026-05-27
+- S14.10 Commit `efb95d5` — 2026-05-27
 
 ---
 
