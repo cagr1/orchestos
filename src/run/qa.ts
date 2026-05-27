@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { chat } from '../providers/openrouter.ts'
+import type { ProviderClient } from '../providers/index.ts'
 import type { FileChange } from './contract.ts'
 
 export interface QACriterionResult {
@@ -51,6 +52,7 @@ export async function runQA(opts: {
   written: FileChange[]
   model: string
   acceptance_criteria?: string[]
+  provider?: ProviderClient
 }): Promise<QAVerdict> {
   const filesBlock = opts.written.map(f =>
     `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``
@@ -84,7 +86,7 @@ export async function runQA(opts: {
     `## Files written\n${filesBlock}\n\n` +
     `Return your JSON verdict now.`
 
-  const resp = await chat({
+  const resp = await (opts.provider?.chat ?? chat)({
     model: opts.model,
     system,
     messages: [{ role: 'user', content: userContent }],

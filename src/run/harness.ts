@@ -16,7 +16,7 @@
 import { classifyTask } from '../router/classify.ts'
 import { resolveModel } from '../router/models.ts'
 import { calcCost } from '../router/pricing.ts'
-import { chat } from '../providers/openrouter.ts'
+import { getProvider } from '../providers/index.ts'
 import { parseLLMResponse, enforceContract, snapshotHashes } from './contract.ts'
 import { runQA, snapshotContents, restoreContents, MAX_RETRIES } from './qa.ts'
 import { RunLogger } from './logger.ts'
@@ -65,6 +65,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
   try {
     const taskClass = classifyTask(t.description)
     const model     = modelOverride ?? resolveModel(taskClass)
+    const provider  = getProvider(t.executor)
 
     // -- build prompt ----------------------------------------------------------
     const { system, userContent } = buildPrompt(t, contextText, projectRoot)
@@ -82,9 +83,9 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const beforeContent = snapshotContents(projectRoot, t.output)
 
     // -- LLM call --------------------------------------------------------------
-    let llmResponse: Awaited<ReturnType<typeof chat>>
+    let llmResponse: Awaited<ReturnType<typeof provider.chat>>
     try {
-      llmResponse = await chat({ model, system, messages: [{ role: 'user', content: userContent }] })
+      llmResponse = await provider.chat({ model, system, messages: [{ role: 'user', content: userContent }] })
     } catch (e: any) {
       log.error(`LLM call failed: ${e.message}`)
       return { status: 'failed', runId: '', retryReason: e.message, filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: Math.round(performance.now() - t0) }
@@ -137,7 +138,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // -- QA stage (LLM) --------------------------------------------------------
     let qa: Awaited<ReturnType<typeof runQA>>
     try {
-      qa = await runQA({ description: t.description, output: t.output, written: contractResult.written, model, acceptance_criteria: t.acceptance_criteria })
+      qa = await runQA({ description: t.description, output: t.output, written: contractResult.written, model, acceptance_criteria: t.acceptance_criteria, provider })
     } catch (e: any) {
       qa = { verdict: 'fail' as const, reason: `QA call error: ${e.message}`, inputTokens: 0, outputTokens: 0, model }
     }
