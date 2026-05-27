@@ -1,4 +1,5 @@
 import type { SkillDef } from '../registry.ts'
+import { buildSections } from './_shared.ts'
 
 // Output: .mdc — Cursor reads these from .cursor/rules/
 export function compileCursor(skill: SkillDef): string {
@@ -8,6 +9,6 @@ globs: ["**/*"]
 alwaysApply: false
 ---
 
-${skill.instructions}
+${buildSections(skill).join('\n\n')}
 `
 }

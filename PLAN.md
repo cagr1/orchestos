@@ -49,7 +49,7 @@ Al compilar con `--target claude`, cada skill genera un SKILL.md que un LLM pued
 
 ---
 
-- [ ] **S14.1** ⚡ Extender schema YAML de skill en `src/skills/registry.ts`:
+- [x] **S14.1** ⚡ (2026-05-27) Extender schema YAML de skill en `src/skills/registry.ts`:
   ```ts
   interface Skill {
     // campos existentes: id, version, name, description, targets, instructions
@@ -66,10 +66,10 @@ Al compilar con `--target claude`, cada skill genera un SKILL.md que un LLM pued
   }
   ```
 
-- [ ] **S14.2** ⚡ Actualizar `validateSkill`: permitir (no requerir) los campos nuevos.
+- [x] **S14.2** ⚡ (2026-05-27) Actualizar `validateSkill`: permitir (no requerir) los campos nuevos.
   Skills existentes sin ellos siguen siendo válidas — retrocompatibilidad total.
 
-- [ ] **S14.3** ⚡ Actualizar compiler targets (`src/skills/targets/claude.ts`, `cursor.ts`, `openai.ts`).
+- [x] **S14.3** ⚡ (2026-05-27) Actualizar compiler targets (`src/skills/targets/claude.ts`, `cursor.ts`, `openai.ts`).
   Solo incluir secciones si el campo está presente. Formato para claude.ts:
   ```markdown
   ## When to use

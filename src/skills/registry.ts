@@ -4,6 +4,12 @@ import { join, basename } from 'path'
 
 export type SkillTarget = 'claude' | 'cursor' | 'openai'
 
+export interface SkillExample {
+  title: string
+  input: string
+  output: string
+}
+
 export interface SkillDef {
   id: string
   version: string
@@ -11,6 +17,11 @@ export interface SkillDef {
   description: string
   instructions: string
   targets: SkillTarget[]
+  when_to_use?: string[]
+  inputs_required?: string[]
+  verifiers?: string[]
+  anti_patterns?: string[]
+  examples?: SkillExample[]
 }
 
 const VALID_TARGETS: SkillTarget[] = ['claude', 'cursor', 'openai']
