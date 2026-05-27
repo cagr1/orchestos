@@ -236,6 +236,52 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 
 ---
 
+### MES 5 — Confiabilidad para uso diario
+
+**SEMANA 19 — Sandbox por worktree + e2e real**
+- S19.1 `createWorktree()` en sandbox.ts con cleanup garantizado — 2026-05-27
+- S19.2 `mergeWorktreeBack()` — estrategias commit/squash/discard — 2026-05-27
+- S19.3 sandbox-policy.ts — fallback a cwd si no es git repo — 2026-05-27
+- S19.4 harness integra sandbox, elimina restoreContents() — 2026-05-27
+- S19.5 QA→worktree: fail → discard, pass → commit + merge ff-only — 2026-05-27
+- S19.6 flag `--keep-worktree` + `--sandbox` en `orchestos task run` — 2026-05-27
+- S19.7 examples/e2e/ con tarea mínima hello.txt — 2026-05-27
+- S19.8 e2e-smoke.ts + `bun run e2e:smoke` — 2026-05-27
+- S19.9 docs/E2E.md — guía API key, smoke, logs, worktree debugging — 2026-05-27
+- S19.10 Smoke real con OpenRouter — PASS · 8762ms · QA pass — 2026-05-27
+- S19.11 8 tests unitarios sandbox.ts con repo git temporal — 2026-05-27
+- S19.12 Validación: 86/86 tests verdes + smoke verde — 2026-05-27
+- S19.13 Commit `feat(run): sandbox por git worktree + e2e real verificado` — 2026-05-27
+
+**SEMANA 20 — Spec-Driven flow**
+- S20.1 `orchestos spec create <task-id>` — genera plantilla .orchestos/specs/ — 2026-05-27
+- S20.2 `orchestos spec show/list` — 2026-05-27
+- S20.3 `orchestos spec approve` — status: approved + approvedAt — 2026-05-27
+- S20.4 `orchestos spec draft` — LLM genera borrador con CONSTITUTION.md — 2026-05-27
+- S20.5 clarify: pending bloquea approve — 2026-05-27
+- S20.6 harness gate: requireSpec: true → error si no aprobado — 2026-05-27
+- S20.7 validate.ts — criterios vacíos o placeholder → fallo — 2026-05-27
+- S20.8 docs/SPEC.md — flujo completo con ejemplo — 2026-05-27
+- S20.9 16 tests create/approve/validate/gate — 102/102 verdes — 2026-05-27
+- S20.10 Validación: typecheck limpio + 102 tests — 2026-05-27
+- S20.11 Commit `feat(spec): flujo Spec-Driven con gate en harness` — 2026-05-27
+
+**SEMANA 21 — Graph multi-lenguaje + autoskills fetch**
+- S21.1 resolver-registry.ts con interfaz Resolver pluggable — 2026-05-27
+- S21.2 resolver C#: nsCache + using X.Y → archivo con ese namespace — 2026-05-27
+- S21.3 resolver Rust: use crate::foo → src/foo.rs|mod.rs — 2026-05-27
+- S21.4 resolver Go: go.mod module path → subdirectorio del índice — 2026-05-27
+- S21.5 resolver Java: import com.X.Foo → archivo; wildcards → paquete — 2026-05-27
+- S21.6 graph/index.ts: to_file_id integra registry C#/Rust/Go/Java — 2026-05-27
+- S21.7 12 fixtures en tests/fixtures/graph/ — C#/Rust/Go/Java — 2026-05-27
+- S21.8 skills/fetch.ts — fetchSkill + listRemoteSkills + cache local — 2026-05-27
+- S21.9 `orchestos skill fetch --language <lang> [--name <name>]` — 2026-05-27
+- S21.10 `orchestos skill fetch --list` — lista del registry GitHub — 2026-05-27
+- S21.11 Validación: typecheck limpio + 102/102 tests verdes — 2026-05-27
+- S21.12 Commit `feat(graph,skills): resolvers multi-lenguaje + autoskills fetch` — 2026-05-27
+
+---
+
 ## Sección 2 — Ideas implementadas (provenientes de IDEAS.md)
 
 ### planner_model / executor_model por tarea — S15 (2026-05-27)

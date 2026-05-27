@@ -227,24 +227,21 @@ tasks:
     retry_count: 0
     qa_verdict: pass
     run_id: eb49d80e-5056-4bcc-bbb2-c31d83c842fd
-
   - id: cleanup-plan-to-done
     description: >
       Move all completed work from PLAN.md into DONE.md and clean up PLAN.md.
 
-      DONE.md has two sections:
-      - "Sección 1 — Plan ejecutado" (S1–S18 already there, append S19–S21 here)
-      - "Sección 2 — Ideas implementadas" (leave untouched)
+      DONE.md has two sections: - "Sección 1 — Plan ejecutado" (S1–S18 already there, append S19–S21 here) - "Sección 2
+      — Ideas implementadas" (leave untouched)
 
-      In DONE.md, append under "Sección 1" a new block for Mes 5 S19–S21 following the same
-      compact format already used (one line per task, date at end). Example format:
+      In DONE.md, append under "Sección 1" a new block for Mes 5 S19–S21 following the same compact format already used
+      (one line per task, date at end). Example format:
         ### MES 5 — Confiabilidad para uso diario
         **SEMANA 19 — Sandbox por worktree**
         - S19.1 createWorktree() en sandbox.ts con cleanup garantizado — 2026-05-27
         ... etc for all S19, S20, S21 tasks marked [x]
 
-      In PLAN.md:
-      - Remove the entire SEMANA 19, SEMANA 20, and SEMANA 21 blocks (including their headers,
+      In PLAN.md: - Remove the entire SEMANA 19, SEMANA 20, and SEMANA 21 blocks (including their headers,
         module lists, and all task lines) since all are marked [x] done.
       - Keep: the file header (frontmatter + title + rules), MES 4 closed block, MES 5 objective,
         SEMANA 22 block (still pending), Decisiones de diseño, Lista prohibida, Dependencias,
@@ -266,5 +263,13 @@ tasks:
       - cmd: grep -q "S19.1" DONE.md
         expect_exit: 0
     depends_on: []
-    status: pending
+    status: failed
     retry_count: 0
+    retry_reason: >-
+      parse error: LLM response is not valid JSON. Got:
+
+      {
+        "files": [
+          {
+            "path": "PLAN.md",
+            "content": "---\ntype: execution-plan\nproject: orchestos\ncreated: 2026-05-26\nowner: Carlos Gallardo\nstatus: mes-5-activo\n---\n\n# OrchestOS — Plan activo\n\nHistorial completado → ver [DONE.md](DONE.md).\nIdeas pendientes → ver [IDEAS.md](IDEA
