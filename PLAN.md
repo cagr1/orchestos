@@ -373,7 +373,7 @@ Objetivo medible: una tarea con `executor: anthropic` corre por Anthropic direct
   executor?: 'openrouter' | 'anthropic' | 'openai' | 'codex'  // default 'openrouter'
   ```
   Validar enum en `validateTasksFile`. Default queda en `openrouter` para no romper `tasks.yaml` existentes.
-- [ ] **S11.2** `src/providers/index.ts` — registry:
+- [x] **S11.2** `src/providers/index.ts` — registry: — 2026-05-27
   ```ts
   export interface ProviderClient {
     name: string
