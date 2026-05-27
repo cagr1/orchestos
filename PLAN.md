@@ -382,7 +382,7 @@ Objetivo medible: una tarea con `executor: anthropic` corre por Anthropic direct
   export function getProvider(name: string): ProviderClient
   ```
   `getProvider('anthropic')` lee `ANTHROPIC_API_KEY` de `~/.orchestos/.env` y devuelve cliente que habla directo con `api.anthropic.com/v1/messages`. `getProvider('openai')` igual con `OPENAI_API_KEY`. Si la key falta, error claro: `Provider anthropic requires ANTHROPIC_API_KEY in ~/.orchestos/.env`.
-- [ ] **S11.3** Implementar `src/providers/anthropic.ts` real (ya hay stub) — POST a `/v1/messages`, system separado, devolver `{ text, inputTokens, outputTokens, model }`.
+- [x] **S11.3** Implementar `src/providers/anthropic.ts` real (ya hay stub) — POST a `/v1/messages`, system separado, devolver `{ text, inputTokens, outputTokens, model }`. — 2026-05-27
 - [ ] **S11.4** Implementar `src/providers/openai.ts` real — POST a `/v1/chat/completions`.
 - [ ] **S11.5** Harness usa `getProvider(task.executor ?? 'openrouter').chat(...)`. El QA hereda el mismo executor por defecto; si la tarea declara `qa_executor` (opcional) lo usa en su lugar — decisión: **no agregar `qa_executor` aún**, esperar a tener una razón real.
 - [ ] **S11.6** `executor: codex` — detrás de `OS_ENABLE_EXEC_CODEX=1`. Implementación mínima: `Bun.spawn(['codex', 'exec', '--json', prompt])` y parsear stdout. Si la env var no está, validador rechaza tasks con `executor: codex` con mensaje `codex executor disabled — set OS_ENABLE_EXEC_CODEX=1 to enable`.
