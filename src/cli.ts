@@ -605,10 +605,16 @@ task
   .description('Execute the next pending task with contract enforcement')
   .option('--id <task-id>', 'Run a specific task by id')
   .option('--all', 'Run all pending tasks in dependency order')
-  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean }) => {
+  .option('--explain <task-id>', 'Show what would run without executing or calling an LLM')
+  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; explain?: string }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
     const project = getProject(root)
+
+    if (opts?.explain) {
+      explainTaskRun(root, opts.explain, project?.id)
+      return
+    }
 
     const executeTask = async (taskId: string): Promise<'done' | 'failed' | 'blocked' | 'retry'> => {
       const file = loadTasks(root)
@@ -738,4 +744,61 @@ async function ensureProject(root: string) {
   const created = getProject(root)
   if (!created) throw new Error(`[index] failed to save project context for ${root}`)
   return created
+}
+
+function explainTaskRun(root: string, taskId: string, projectId?: string) {
+  const file = loadTasks(root)
+  const t = file.tasks.find(x => x.id === taskId)
+  if (!t) {
+    console.error(`[task] Task "${taskId}" not found`)
+    process.exit(1)
+  }
+
+  const taskClass = classifyTask(t.description)
+  const model = resolveModel(taskClass)
+  const suggestions = projectId
+    ? suggestContext(projectId, t.description, { topN: 5 })
+    : []
+  const implicitInput = t.input.length === 0 ? suggestions.map(s => s.path) : []
+  const inputSource = t.input.length > 0 ? 'explicit' : implicitInput.length > 0 ? 'graph' : 'none'
+
+  console.log(`\n[task:explain] ${t.id}`)
+  console.log(`description: ${t.description}`)
+  console.log(`status:      ${t.status}`)
+  console.log(`executor:    ${t.executor}`)
+  console.log(`model:       ${model} (${taskClass})`)
+  console.log(`outputs:     ${t.output.join(', ')}`)
+
+  console.log(`\n## Files`)
+  console.log(`input used (${inputSource}): ${formatList(t.input.length > 0 ? t.input : implicitInput)}`)
+  if (!projectId) {
+    console.log(`graph suggestions: (none - run "orchestos init" or "orchestos index" first)`)
+  } else {
+    console.log(`graph suggestions: ${formatList(suggestions.map(s => `${s.path} score=${s.score}`))}`)
+  }
+
+  console.log(`\n## Checks`)
+  if (t.checks && t.checks.length > 0) {
+    for (const c of t.checks) {
+      const expect = c.expect_exit ?? 0
+      const timeout = c.timeout_ms ? ` timeout=${c.timeout_ms}ms` : ''
+      const cwd = c.cwd ? ` cwd=${c.cwd}` : ''
+      console.log(`- ${c.cmd} (expect exit ${expect}${cwd}${timeout})`)
+    }
+  } else {
+    console.log('(none)')
+  }
+
+  console.log(`\n## Acceptance criteria`)
+  if (t.acceptance_criteria && t.acceptance_criteria.length > 0) {
+    for (const c of t.acceptance_criteria) console.log(`- ${c}`)
+  } else {
+    console.log('(none)')
+  }
+
+  console.log(`\n[task:explain] dry-run only - no LLM call, no files written, no task status changes.`)
+}
+
+function formatList(values: string[]): string {
+  return values.length > 0 ? values.join(', ') : '(none)'
 }

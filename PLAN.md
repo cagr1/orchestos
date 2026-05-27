@@ -487,7 +487,7 @@ input: 1240 tokens   output: 387 tokens   $0.0021   elapsed: 4.3s
 ```
 
 - [x] **S13.1** Si `task.input` está vacío, `harness.runTask` llama `contextSuggest(task.description)` y mete los top 5 paths como `input` implícito (loggear `INPUT:auto-suggested foo.ts, bar.ts`). Si la tarea declara `input` explícito, ese gana. — 2026-05-27
-- [ ] **S13.2** `orchestos task run --explain <id>` — modo dry que NO ejecuta, solo imprime: executor, modelo, archivos sugeridos por graph, checks que correrían, criterios de aceptación. Para revisar antes de gastar tokens.
+- [x] **S13.2** `orchestos task run --explain <id>` — modo dry que NO ejecuta, solo imprime: executor, modelo, archivos sugeridos por graph, checks que correrían, criterios de aceptación. Para revisar antes de gastar tokens. — 2026-05-27
 - [ ] **S13.3** `runs --detail` rediseñado con secciones: `## Provider`, `## Checks (deterministic)`, `## Acceptance criteria (LLM)`, `## Files`, `## Cost`. Auditable por un humano en 30 segundos.
 - [ ] **S13.4** Actualizar `summary-pdf.ts`: añadir columna `executor` y resumen "checks failed / checks passed" del período.
 - [ ] **S13.5** README — sección nueva `## Reliability features (Mes 3)` con ejemplo de `tasks.yaml` usando los 3 features juntos.
