@@ -1,0 +1,11 @@
+21:52:28.210  [s21-6-integrate-resolvers]  START
+21:52:28.239  [s21-6-integrate-resolvers]  INFO   context: CONTEXT.md (~333 tokens) — overriding AGENTS.md
+21:57:09.452  [s21-6-integrate-resolvers]  ERROR  parse error: LLM response is not valid JSON. Got:
+I'll integrate the language resolvers into `src/graph/index.ts` as requested. Here's the solution:
+
+```json
+{
+  "files": [
+    {
+      "path": "src/graph/index.ts",
+      "content": "import { createHash } from 'crypto'\nimport { existsSync, readFileSync, statSync } from 'fs'\nimport { dirname, extna

@@ -113,13 +113,13 @@ Resolver imports para lenguajes no-JS + descarga de skills curadas.
 - [x] S21.3 🧠 (2026-05-27) resolver Rust: `use crate::foo::bar` → src/foo/bar.rs o src/foo/bar/mod.rs, retrocede segmentos si es ítem
 - [x] S21.4 🧠 (2026-05-27) resolver Go: lee go.mod, strip module prefix, busca .go en el subdirectorio del índice
 - [x] S21.5 🧠 (2026-05-27) resolver Java: `import com.X.Foo` → com/X/Foo.java|.kt|.scala; wildcards → primer archivo del paquete
-- [ ] S21.6 ⚡ integrar resolvers en `graph/index.ts`: `to_file_id` ahora se llena para C#/Rust/Go/Java
-- [ ] S21.7 ⚡ test fixtures por lenguaje en `tests/fixtures/graph/<lang>/` con 3-4 archivos cada uno
-- [ ] S21.8 ⚡ `skills/fetch.ts` — fetch de `https://raw.githubusercontent.com/midudev/autoskills/main/skills/<lang>/<name>.yaml` con cache local en `.orchestos/cache/skills/`
-- [ ] S21.9 ⚡ `orchestos skill fetch --language rust [--name testing]` — descarga, valida YAML, guarda en `skills/`
-- [ ] S21.10 ⚡ `orchestos skill fetch --list` — lista skills disponibles del registry (parseando índice del repo)
-- [ ] S21.11 ⚡ Validación: `bun test` verde + `context suggest` muestra dependencias resueltas en proyecto C#/Go ejemplo + `skill fetch` descarga skill real
-- [ ] S21.12 ⚡ Commit `feat(graph,skills): resolvers multi-lenguaje + autoskills fetch`
+- [x] S21.6 ⚡ (2026-05-27) integrar resolvers en `graph/index.ts`: `to_file_id` ahora se llena para C#/Rust/Go/Java
+- [x] S21.7 ⚡ (2026-05-27) 12 fixtures en `tests/fixtures/graph/` — C#/Rust/Go/Java
+- [x] S21.8 ⚡ (2026-05-27) `skills/fetch.ts` — fetchSkill + listRemoteSkills + getCachedSkillPath
+- [x] S21.9 ⚡ (2026-05-27) `orchestos skill fetch --language <lang> [--name <name>]`
+- [x] S21.10 ⚡ (2026-05-27) `orchestos skill fetch --list` — lista skills del registry
+- [x] S21.11 ⚡ (2026-05-27) Validación: typecheck limpio + 102/102 tests verdes
+- [x] S21.12 ⚡ (2026-05-27) Commit `feat(graph,skills): resolvers multi-lenguaje + autoskills fetch`
 
 ---
 

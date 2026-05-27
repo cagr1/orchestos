@@ -183,11 +183,10 @@ tasks:
     run_id: 01911ecb-67de-408c-b155-b2c7a61fbab4
   - id: s21-9-10-skill-fetch-cli
     description: >
-      Create a NEW file src/cli-skill-fetch.ts that registers the "skill fetch" subcommands.
-      Do NOT touch src/cli.ts.
+      Create a NEW file src/cli-skill-fetch.ts that registers the "skill fetch" subcommands. Do NOT touch src/cli.ts.
 
-      The file must export one function: registerSkillFetchCommands(skill: Command): void
-      where Command is imported from 'commander'.
+      The file must export one function: registerSkillFetchCommands(skill: Command): void where Command is imported from
+      'commander'.
 
       The function registers two subcommands on the `skill` Command object:
 
@@ -197,9 +196,8 @@ tasks:
          .option('--list', 'List available skills for common languages')
          .action(async (opts) => { ... })
 
-      Inside the action:
-      - Import fetchSkill and listRemoteSkills from './skills/fetch.ts'
-      - If opts.list is true: call listRemoteSkills for each of these languages:
+      Inside the action: - Import fetchSkill and listRemoteSkills from './skills/fetch.ts' - If opts.list is true: call
+      listRemoteSkills for each of these languages:
           ['typescript', 'javascript', 'python', 'rust', 'go', 'java', 'csharp']
           Print each as: "<language>: skill1, skill2, ..."  (join with ", ")
           If empty print: "<language>: (no skills found)"
@@ -211,8 +209,9 @@ tasks:
           Print each skill name on its own line
       - Else: print usage error
 
-      Use top-level imports: import { Command } from 'commander', import { writeFileSync, mkdirSync, existsSync } from 'fs', import { join } from 'path'
-      Import fetchSkill and listRemoteSkills lazily inside the action (dynamic import is fine) or at top level.
+      Use top-level imports: import { Command } from 'commander', import { writeFileSync, mkdirSync, existsSync } from
+      'fs', import { join } from 'path' Import fetchSkill and listRemoteSkills lazily inside the action (dynamic import
+      is fine) or at top level.
     executor: openrouter
     executor_model: deepseek/deepseek-v4-flash
     input:
@@ -224,13 +223,7 @@ tasks:
         expect_exit: 0
     depends_on:
       - s21-8-skills-fetch
-    status: pending
+    status: done
     retry_count: 0
-    retry_reason: >-
-      parse error: LLM response is not valid JSON. Got:
-
-      {
-        "files": [
-          {
-            "path": "src/cli.ts",
-            "content": "#!/usr/bin/env bun\nimport { Command } from 'commander'\nimport { resolve, join } from 'path'\nimport { writeFileSync, existsSync, mkdirSync } from 'fs'\nimport { readManifest } from './detect/manifest.ts'\nimport { detectLanguages, 
+    qa_verdict: pass
+    run_id: eb49d80e-5056-4bcc-bbb2-c31d83c842fd

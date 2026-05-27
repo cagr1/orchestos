@@ -1,0 +1,8 @@
+22:08:14.887  [s21-9-10-skill-fetch-cli]  START
+22:08:14.907  [s21-9-10-skill-fetch-cli]  INFO   context: CONTEXT.md (~333 tokens) — overriding AGENTS.md
+22:09:17.987  [s21-9-10-skill-fetch-cli]  ERROR  parse error: LLM response is not valid JSON. Got:
+{
+  "files": [
+    {
+      "path": "src/cli.ts",
+      "content": "#!/usr/bin/env bun\nimport { Command } from 'commander'\nimport { resolve, join } from 'path'\nimport { writeFileSync, existsSync, mkdirSync } from 'fs'\nimport { readManifest } from './detect/manifest.ts'\nimport { detectLanguages, 

@@ -3,9 +3,18 @@ import { existsSync, readFileSync, statSync } from 'fs'
 import { dirname, extname, join, normalize } from 'path'
 import { glob } from 'glob'
 import { db } from '../db/sqlite.ts'
+import { registerResolver, resolveWithRegistry } from './resolver-registry.ts'
+import { csharpResolver } from './resolvers/csharp.ts'
+import { rustResolver } from './resolvers/rust.ts'
+import { goResolver } from './resolvers/go.ts'
+import { javaResolver } from './resolvers/java.ts'
 
 const INDEX_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs,py,cs,rs,go,java,kt,rb,php,swift,scala,ex,exs,hs,lua,pl,pm}'
 const IGNORE = ['node_modules/**', 'dist/**', '.next/**', '.git/**', 'runs/**', 'bin/**', 'obj/**', 'target/**']
+registerResolver(csharpResolver)
+registerResolver(rustResolver)
+registerResolver(goResolver)
+registerResolver(javaResolver)
 const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '/index.ts', '/index.js']
 
 export interface IndexResult {
@@ -53,7 +62,7 @@ export async function indexProject(projectRoot: string, projectId: string): Prom
     const size = statSync(fullPath).size
     const previous = db.query<{ id: number; sha1: string }, [string, string]>(
       'SELECT id, sha1 FROM files WHERE project_id = ? AND path = ?'
-    ).get(projectId, file)
+  ).get(projectId, file)
 
     if (previous?.sha1 === sha1) continue
 
@@ -62,9 +71,12 @@ export async function indexProject(projectRoot: string, projectId: string): Prom
 
     db.run('DELETE FROM code_edges WHERE from_file_id = ?', [fileId])
 
+    const repoFiles = files.map(p => ({ path: p, language: languageFor(p) }))
     for (const edge of extractImports(file, content)) {
       const toPath = resolveImport(projectRoot, file, edge.specifier) ?? edge.specifier
-      const toFileId = resolveFileId(projectId, toPath)
+      const language = languageFor(file)
+      const registryPath = resolveWithRegistry(language, edge.specifier, file, { projectRoot, projectId, files: repoFiles })
+      const toFileId = registryPath ? resolveFileId(projectId, registryPath) : resolveFileId(projectId, toPath)
       db.run(
         `INSERT OR IGNORE INTO code_edges
          (project_id, from_file_id, to_path, to_file_id, kind, raw)

@@ -29,6 +29,7 @@ import { generateSummaryPdf } from './generators/summary-pdf.ts'
 import { indexProject } from './graph/index.ts'
 import { suggestContext } from './graph/suggest.ts'
 import { scaffoldSkillYaml, languageHasSkillCoverage, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
+import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -212,6 +213,7 @@ ctx
 
 // ── skill ─────────────────────────────────────────────────────────────────────
 const skill = program.command('skill').description('Manage and compile skills')
+registerSkillFetchCommands(skill)
 
 skill
   .command('add <id>')

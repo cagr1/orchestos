@@ -1,0 +1,4 @@
+21:59:14.807  [s21-6-integrate-resolvers]  START
+21:59:14.826  [s21-6-integrate-resolvers]  INFO   context: CONTEXT.md (~333 tokens) — overriding AGENTS.md
+22:01:29.736  [s21-6-integrate-resolvers]  ERROR  CHECK failed: bun run typecheck exit=2 expected=0
+22:01:35.477  [s21-6-integrate-resolvers]  QA:fail  retry=1/3  check failed: bun run typecheck exit 2
