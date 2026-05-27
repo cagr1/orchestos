@@ -20,7 +20,7 @@ function loadApiKey(): string {
   if (existsSync(envPath)) {
     for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
       const m = line.match(/^OPENROUTER_API_KEY\s*=\s*(.+)$/)
-      if (m) return m[1].trim()
+      if (m?.[1]) return m[1].trim()
     }
   }
   throw new Error(

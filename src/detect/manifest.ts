@@ -49,7 +49,7 @@ export function readManifest(root: string): Manifest {
     try {
       const cargo = readFileSync(cargoPath, 'utf-8')
       const nameMatch = cargo.match(/^name\s*=\s*"([^"]+)"/m)
-      if (nameMatch) result.name = nameMatch[1]
+      if (nameMatch?.[1]) result.name = nameMatch[1]
       if (cargo.includes('actix-web')) result.framework = 'Actix'
       else if (cargo.includes('axum')) result.framework = 'Axum'
     } catch { /* continue */ }
@@ -67,7 +67,7 @@ export function readManifest(root: string): Manifest {
         ? readFileSync(pyprojectPath, 'utf-8')
         : readFileSync(requirementsPath, 'utf-8')
       const nameMatch = content.match(/^name\s*=\s*"([^"]+)"/m)
-      if (nameMatch) result.name = nameMatch[1]
+      if (nameMatch?.[1]) result.name = nameMatch[1]
       if (content.includes('fastapi')) result.framework = 'FastAPI'
       else if (content.includes('django')) result.framework = 'Django'
       else if (content.includes('flask')) result.framework = 'Flask'
@@ -80,7 +80,7 @@ export function readManifest(root: string): Manifest {
   if (csprojFiles.length > 0) {
     result.runtime = '.NET'
     result.framework = 'ASP.NET'
-    result.name = csprojFiles[0].replace('.csproj', '').split('/').pop() ?? 'unknown'
+    result.name = (csprojFiles[0] ?? '').replace('.csproj', '').split('/').pop() ?? 'unknown'
     return result
   }
 
@@ -92,7 +92,7 @@ export function readManifest(root: string): Manifest {
     try {
       const gomod = readFileSync(goModPath, 'utf-8')
       const moduleMatch = gomod.match(/^module\s+(\S+)/m)
-      if (moduleMatch) result.name = moduleMatch[1].split('/').pop() ?? 'unknown'
+      if (moduleMatch?.[1]) result.name = moduleMatch[1].split('/').pop() ?? 'unknown'
       if (gomod.includes('gin-gonic/gin')) result.framework = 'Gin'
       else if (gomod.includes('gofiber/fiber')) result.framework = 'Fiber'
     } catch { /* continue */ }

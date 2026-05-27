@@ -163,7 +163,7 @@ skill
     }
     const scaffold = `id: ${id}
 version: 1.0.0
-name: ${id.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}
+name: ${id.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
 description: Describe what this skill does in one sentence (max 200 chars).
 targets:
   - claude
@@ -323,8 +323,10 @@ program
       insertRun({
         project_id: null, prompt: opts.task, task_class: taskClass,
         model, provider: 'anthropic', skill_id: opts.skill ?? null,
-        allowed_outputs: JSON.stringify(allowedPaths),
+        task_id: null, allowed_outputs: JSON.stringify(allowedPaths),
         files_attempted: null, files_authorized: null, files_blocked: null,
+        snapshot_before: null, snapshot_after: null,
+        qa_verdict: null, qa_reason: null,
         status: 'failed', input_tokens: 0, output_tokens: 0,
         usd_cost: 0, elapsed_ms: elapsed, result: e.message,
       })
@@ -343,8 +345,10 @@ program
       insertRun({
         project_id: null, prompt: opts.task, task_class: taskClass,
         model, provider: 'anthropic', skill_id: opts.skill ?? null,
-        allowed_outputs: JSON.stringify(allowedPaths),
+        task_id: null, allowed_outputs: JSON.stringify(allowedPaths),
         files_attempted: null, files_authorized: null, files_blocked: null,
+        snapshot_before: null, snapshot_after: null,
+        qa_verdict: null, qa_reason: null,
         status: 'failed',
         input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens,
         usd_cost: cost, elapsed_ms: elapsed, result: e.message,
@@ -363,10 +367,12 @@ program
       insertRun({
         project_id: null, prompt: opts.task, task_class: taskClass,
         model, provider: 'anthropic', skill_id: opts.skill ?? null,
-        allowed_outputs: JSON.stringify(allowedPaths),
+        task_id: null, allowed_outputs: JSON.stringify(allowedPaths),
         files_attempted: JSON.stringify(attempted),
         files_authorized: JSON.stringify(attempted.filter(p => allowedPaths.includes(p))),
         files_blocked: JSON.stringify(blocked),
+        snapshot_before: null, snapshot_after: null,
+        qa_verdict: null, qa_reason: null,
         status: 'blocked',
         input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens,
         usd_cost: cost, elapsed_ms: elapsed, result: e.message,
@@ -380,10 +386,12 @@ program
     insertRun({
       project_id: null, prompt: opts.task, task_class: taskClass,
       model, provider: 'anthropic', skill_id: opts.skill ?? null,
-      allowed_outputs: JSON.stringify(allowedPaths),
+      task_id: null, allowed_outputs: JSON.stringify(allowedPaths),
       files_attempted: JSON.stringify(contractResult.filesAttempted),
       files_authorized: JSON.stringify(contractResult.filesAuthorized),
       files_blocked: JSON.stringify(contractResult.filesBlocked),
+      snapshot_before: null, snapshot_after: null,
+      qa_verdict: null, qa_reason: null,
       status: 'done',
       input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens,
       usd_cost: cost, elapsed_ms: elapsed,

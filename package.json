@@ -6,6 +6,10 @@
   "bin": {
     "orchestos": "src/cli.ts"
   },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit"
+  },
   "devDependencies": {
     "@types/bun": "^1.3.14",
     "@types/pdfkit": "^0.17.6"

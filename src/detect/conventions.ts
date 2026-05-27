@@ -36,7 +36,7 @@ export async function readConventions(root: string): Promise<Conventions> {
 
   // eslint — varios nombres posibles
   const eslintCandidates = await glob('{eslint.config.*,.eslintrc,.eslintrc.*}', { cwd: root })
-  if (eslintCandidates.length > 0) result.eslint = readTruncated(join(root, eslintCandidates[0]))
+  if (eslintCandidates.length > 0 && eslintCandidates[0]) result.eslint = readTruncated(join(root, eslintCandidates[0]))
 
   // tsconfig.json — extraer target, module, strict
   const tsconfigPath = join(root, 'tsconfig.json')
