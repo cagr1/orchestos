@@ -89,9 +89,9 @@ Solo si S19 (sandbox) está sólido. Tareas "plan" generan sub-tareas, cada una 
 - [x] S22.8 🧠 hardening: rate limit, timeout por sub-task (default 5 min), worktree colisión → retries con backoff donde aplique. Regla de delegación: si una sub-task pasa 20 tool calls sin completar → cancelar con `timed_out`. Patrón: gentle-ai delegation rules. **2026-05-28** → `src/agents/hardening.ts`: `withSubTaskTimeout()`, `ToolCallCounter`, `ToolCallLimitError`, `createWorktreeWithRetry()` (exp. backoff), `withRateLimitRetry()`, `isRateLimitError()`. `scheduler.ts`: worktree usa retry, `executeOne` envuelto con timeout, `ToolCallLimitError` → `timed_out`.
 - [x] S22.9 ⚡ `docs/AGENTS.md` con flujo completo y ejemplo real (incluye diagrama del DAG de una tarea plan).
 - [x] S22.10 🧠 smoke real: tarea "plan" → 2 sub-tareas con `depends_on` real → ambas pasan → memoria de la primera leída por la segunda vía topic_key → resultado en branch base. **2026-05-28** → `src/agents/executor.ts`: `executeSubTask()` (SubTask→Task→harness→SubagentResult, tool-violation, rate-limit retry). `src/run/e2e-smoke-agents.ts`: repo git temporal, plan YAML `write-greeting→write-response`, verifica archivos + `memory_entries` en base branch. Script: `bun run e2e:smoke-agents`. **RESULTADO REAL**: ✓ write-greeting (428in/269out, 16s) ✓ write-response (430in/152out, 28s) · greeting.txt="Hello from sub-agent A" · response.txt="Response: OK" · memory_entries smoke-greeting+smoke-response escritos · 44s total.
-- [ ] S22.11 ⚡ README + CHANGELOG con resumen Mes 5 (mencionar explícitamente: sub-agentes con context isolation + memoria persistente + tool policy).
-- [ ] S22.12 ⚡ Validación: `bun test` verde + smoke S22 verde + 5 tareas reales ejecutadas durante el mes (bitácora en `docs/E2E.md`).
-- [ ] S22.13 ⚡ Commit `feat(agents): sub-agentes con contextos aislados + cierre Mes 5`
+- [x] S22.11 ⚡ README + CHANGELOG con resumen Mes 5 (mencionar explícitamente: sub-agentes con context isolation + memoria persistente + tool policy).
+- [x] S22.12 ⚡ Validación: `bun test` verde + smoke S22 verde + 5 tareas reales ejecutadas durante el mes (bitácora en `docs/E2E.md`).
+- [x] S22.13 ⚡ Commit `feat(agents): sub-agentes con contextos aislados + cierre Mes 5`
 
 ---
 
