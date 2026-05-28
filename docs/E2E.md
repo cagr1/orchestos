@@ -124,3 +124,6 @@ git branch -D orchestos/hello-world/<timestamp>
 | Fecha | Tarea | Proveedor | Resultado | Notas |
 |-------|-------|-----------|-----------|-------|
 | 2026-05-27 | hello-world | openrouter | PASS | 277/248 tokens · $0.00000 · 8762ms · QA pass |
+| 2026-05-28 | S22 suite | — | PASS | 110 tests · 173 expect · 8 files · tsc 0 errors |
+| 2026-05-28 | smoke-agents (write-greeting) | openrouter/claude-3-haiku | PASS | 428/269 tokens · $0.00000 · 16s · QA pass · memory smoke-greeting escrita |
+| 2026-05-28 | smoke-agents (write-response) | openrouter/claude-3-haiku | PASS | 430/152 tokens · $0.00000 · 28s · QA pass · memory smoke-response escrita · depends_on resuelto |

@@ -65,6 +65,18 @@ export function runMigrations(): void {
     );
     CREATE INDEX IF NOT EXISTS idx_edges_from ON code_edges(from_file_id);
     CREATE INDEX IF NOT EXISTS idx_edges_to ON code_edges(to_file_id);
+
+    CREATE TABLE IF NOT EXISTS memory_entries (
+      id          TEXT PRIMARY KEY,
+      project_id  TEXT NOT NULL,
+      topic_key   TEXT NOT NULL,
+      scope       TEXT NOT NULL DEFAULT 'session',
+      content     TEXT NOT NULL,
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL,
+      UNIQUE(project_id, topic_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_memory_project_scope ON memory_entries(project_id, scope);
   `)
 
   // ALTER TABLE guards — add missing columns to existing DBs without dropping data

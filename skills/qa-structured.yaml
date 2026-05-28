@@ -6,6 +6,8 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
 when_to_use:
   - After implementation is complete and passes deterministic checks
   - Before marking a task as done

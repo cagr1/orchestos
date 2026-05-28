@@ -6,6 +6,8 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
 when_to_use:
   - Before merging code that touches authentication or authorization
   - When changes involve user input, SQL queries, or file uploads

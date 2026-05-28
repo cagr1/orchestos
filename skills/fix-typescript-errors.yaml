@@ -6,6 +6,10 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
+  - write
+  - edit
 instructions: |
   1. Run `tsc --noEmit` and capture the full error output.
   2. For each error, locate the exact file and line number.

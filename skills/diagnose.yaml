@@ -6,6 +6,10 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
+  - write
+  - edit
 when_to_use:
   - When a bug is reported and the cause is not immediately obvious
   - When tests fail without a clear reason

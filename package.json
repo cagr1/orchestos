@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit",
-    "e2e:smoke": "bun run src/run/e2e-smoke.ts"
+    "e2e:smoke": "bun run src/run/e2e-smoke.ts",
+    "e2e:smoke-agents": "bun run src/run/e2e-smoke-agents.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",

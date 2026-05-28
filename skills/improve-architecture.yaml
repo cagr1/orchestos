@@ -6,6 +6,9 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
+  - write
 when_to_use:
   - Before a major refactor — understand what to split before touching code
   - When a file is touched in every PR and nobody agrees on what it "should" do

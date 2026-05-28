@@ -28,6 +28,7 @@ export interface SkillDef {
   anti_patterns?: string[]
   examples?: SkillExample[]
   language_targets?: Record<string, LanguageTarget>
+  allowed_tools?: string[]
 }
 
 const VALID_TARGETS: SkillTarget[] = ['claude', 'cursor', 'openai']
@@ -47,6 +48,13 @@ export function validateSkill(raw: Record<string, unknown>, filePath: string): S
   if (!Array.isArray(raw.targets) || raw.targets.length === 0) err('"targets" must be a non-empty array')
   for (const t of raw.targets as string[]) {
     if (!VALID_TARGETS.includes(t as SkillTarget)) err(`invalid target "${t}" — valid: ${VALID_TARGETS.join(', ')}`)
+  }
+
+  if (raw.allowed_tools !== undefined) {
+    if (!Array.isArray(raw.allowed_tools)) err('"allowed_tools" must be an array of strings')
+    for (const tool of raw.allowed_tools as string[]) {
+      if (typeof tool !== 'string') err(`"allowed_tools" entries must be strings, got ${typeof tool}`)
+    }
   }
 
   return raw as unknown as SkillDef

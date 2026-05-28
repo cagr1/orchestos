@@ -6,6 +6,10 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
+  - write
+  - edit
 when_to_use:
   - When adding a new function, class, or module
   - When fixing a bug — write a test that reproduces the bug first

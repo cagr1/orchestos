@@ -6,6 +6,10 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
+  - write
+  - edit
 when_to_use:
   - Before starting a long multi-task session where AGENTS.md will be sent every run
   - When AGENTS.md exceeds 1500 tokens and most of it is boilerplate

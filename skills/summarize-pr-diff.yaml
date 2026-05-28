@@ -6,6 +6,8 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
 instructions: |
   1. Read the diff provided (git diff or PR patch format).
   2. Identify: files changed, lines added/removed, and the intent of each change.

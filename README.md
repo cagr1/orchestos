@@ -377,6 +377,35 @@ orchestos config show         ./my-project  # show active config + model per pen
 
 ---
 
+## Sub-agents (Mes 5)
+
+Sub-agents descomponen una tarea "plan" en sub-tareas secuenciales, cada una con contexto aislado y worktree propio.
+
+```bash
+orchestos task run . --expand <plan-task-id>
+```
+
+**Flujo**: tarea padre genera un `.plan.yaml` vía LLM → Planner (`src/agents/planner.ts`) parsea y valida (IDs únicos, DAG sin ciclos, `allowed_tools` válidos) → Scheduler (`src/run/scheduler.ts`) ejecuta en orden topológico → cada sub-task en su worktree → QA en cascada: si una falla, dependientes se marcan `skipped`.
+
+### Contratos
+
+| Archivo | Rol |
+|---------|-----|
+| `src/agents/planner.ts` | `createPlan()` parsea YAML → `SubTask[]` validados |
+| `src/run/scheduler.ts` | `executePlan()` — secuencial, DAG, cascade QA |
+| `src/db/memory.ts` | `upsertMemory()` / `getMemory()` para memoria persistente por `topic_key` |
+| `src/agents/sub-agent.ts` | Tipos `SubTask`, `SubagentResult`, estados `pending→running→completed\|failed\|skipped` |
+| `src/agents/sub-task-schema.ts` | Schema YAML + `validateSubTaskPlan` + `topoSort` + detección de ciclos |
+
+### Reglas
+
+- **Tool policy**: `allowed_tools` se valida en planner/scheduler, no es sugerencia al modelo
+- **Memoria**: sub-tasks con `topic_key` persisten en `memory_entries`; re-ejecución hace MERGE no OVERWRITE
+- **Paralelismo**: prohibido — scheduler estrictamente secuencial
+- **Worktrees**: cada sub-task en su propio worktree; éxito → merge, fallo → discard
+
+Ver `docs/AGENTS.md` para el flujo completo con ejemplo real.
+
 ## Limitations
 
 See [LIMITATIONS.md](LIMITATIONS.md) for a full list.

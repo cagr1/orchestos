@@ -6,6 +6,10 @@ targets:
   - claude
   - cursor
   - openai
+allowed_tools:
+  - read
+  - write
+  - edit
 when_to_use:
   - When a function or module has zero test coverage
   - Before refactoring code that lacks tests

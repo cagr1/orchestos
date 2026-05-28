@@ -21,6 +21,12 @@ import { parseLLMResponse, enforceContract, snapshotHashes } from './run/contrac
 import { MAX_RETRIES } from './run/qa.ts'
 import { RunLogger } from './run/logger.ts'
 import { runTask } from './run/harness.ts'
+import { executePlan, type SchedulerResult } from './run/scheduler.ts'
+import { createPlan } from './agents/planner.ts'
+import type { SubTask } from './agents/sub-agent.ts'
+import type { SubagentResult } from './agents/sub-agent.ts'
+import { createWorktree, mergeWorktreeBack } from './run/sandbox.ts'
+import type { Worktree } from './run/sandbox.ts'
 import { insertRun } from './db/runs.ts'
 import { loadTasks, saveTasks, tasksExist, updateTaskStatus, hashFile, tasksPath } from './tasks/loader.ts'
 import { stringify as yamlStringify } from 'yaml'
@@ -716,11 +722,12 @@ task
   .description('Execute the next pending task with contract enforcement')
   .option('--id <task-id>', 'Run a specific task by id')
   .option('--all', 'Run all pending tasks in dependency order')
+  .option('--expand <plan-task-id>', 'Run task and expand its plan into sub-tasks')
   .option('--explain <task-id>', 'Show what would run without executing or calling an LLM')
   .option('--clarify <task-id>', 'Ask for clarification before executing the task')
   .option('--keep-worktree', 'Keep worktree on failure for post-mortem debugging (implies --sandbox=worktree)')
   .option('--sandbox <mode>', 'Sandbox mode: worktree | cwd | auto (default: auto)', 'auto')
-  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string }) => {
+  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; expand?: string; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
     const project = getProject(root)
@@ -789,6 +796,125 @@ task
       updateTaskStatus(root, taskId, { status: t.retry_count + 1 >= MAX_RETRIES ? 'failed_permanent' : 'failed', retry_reason: result.retryReason })
       console.error(`[task] ✗ ${taskId} failed — ${result.retryReason}`)
       return 'failed'
+    }
+
+    // S22.6 — expand: run parent task, then execute sub-tasks from plan
+    if (opts?.expand) {
+      const parentStatus = await executeTask(opts.expand)
+      if (parentStatus !== 'done') return
+
+      const file = loadTasks(root)
+      const parentTask = file.tasks.find(x => x.id === opts.expand)!
+      const planFiles = parentTask.output.filter(o => o.endsWith('.plan.yaml'))
+      if (planFiles.length === 0) {
+        console.error(`[task] --expand: no .plan.yaml file in task "${opts.expand}" output — add a plan file to its output list`)
+        return
+      }
+
+      const planPath = join(root, planFiles[0]!)
+      if (!existsSync(planPath)) {
+        console.error(`[task] --expand: plan file not found: ${planPath}; ensure the LLM wrote the plan to this path`)
+        return
+      }
+
+      const planContent = readFileSync(planPath, 'utf-8')
+      let subTasks: SubTask[]
+      try {
+        subTasks = createPlan(planContent)
+      } catch (e) {
+        console.error(`[task] --expand: invalid plan: ${(e as Error).message}`)
+        return
+      }
+
+      console.log(`\n[task] Expanding into ${subTasks.length} sub-tasks:\n`)
+      for (const st of subTasks) {
+        const deps = st.depends_on.length > 0 ? ` (depends: ${st.depends_on.join(', ')})` : ''
+        console.log(`  ${st.id}${deps}`)
+        console.log(`    ${st.description}`)
+      }
+
+      const result = await executePlan(subTasks, {
+        parentTaskId: opts.expand,
+        projectRoot: root,
+        baseBranch: parentTask.executor === 'codex' ? 'main' : 'main',
+        parentExecutor: parentTask.executor,
+        parentModel: parentTask.executor_model,
+      }, async (st, worktree) => {
+        const t0 = performance.now()
+        const stLog = new RunLogger(root, st.id)
+        console.log(`\n  [sub] Running: ${st.id} — ${st.description}`)
+
+        const subTaskAsTask = {
+          id: st.id,
+          description: st.description,
+          executor: st.executor ?? parentTask.executor,
+          executor_model: st.executor_model ?? parentTask.executor_model,
+          input: st.input ?? parentTask.input,
+          output: st.output ?? parentTask.output,
+          acceptance_criteria: st.acceptance,
+          checks: st.checks,
+          depends_on: st.depends_on,
+          status: 'pending' as const,
+          retry_count: 0,
+          skill: st.skill,
+        }
+
+        const harnessResult = await runTask({
+          projectRoot: worktree.path,
+          contextText: projectContext,
+          task: subTaskAsTask as any,
+          projectId: project?.id,
+          logger: stLog,
+          orcheConfig,
+          orcheConfigFound,
+          sandboxMode: 'cwd',
+          keepWorktree: opts?.keepWorktree,
+        })
+
+        const elapsed = Math.round(performance.now() - t0)
+
+        if (harnessResult.status === 'done') {
+          console.log(`  [sub] ✓ ${st.id} done — ${harnessResult.qaReason}`)
+          return {
+            sub_task_id: st.id,
+            status: 'completed' as const,
+            result: harnessResult.qaReason,
+            usd_cost: harnessResult.cost.usd,
+            tokens: { input: harnessResult.cost.inputTokens, output: harnessResult.cost.outputTokens },
+            elapsed_ms: elapsed,
+            files_written: harnessResult.filesWritten,
+            qa_verdict: harnessResult.qaVerdict,
+          }
+        }
+
+        const reason = harnessResult.retryReason ?? 'unknown error'
+        console.error(`  [sub] ✗ ${st.id} failed — ${reason}`)
+        return {
+          sub_task_id: st.id,
+          status: 'failed' as const,
+          error: reason,
+          usd_cost: harnessResult.cost.usd,
+          tokens: { input: harnessResult.cost.inputTokens, output: harnessResult.cost.outputTokens },
+          elapsed_ms: elapsed,
+          files_written: [],
+          qa_verdict: 'fail',
+        }
+      })
+
+      console.log(`\n[task] ── Expand results ──`)
+      for (const log of result.sub_tasks) {
+        const icon = log.status === 'completed' ? '✓' : log.status === 'skipped' ? '—' : '✗'
+        const costStr = `$${log.usd_cost.toFixed(5)}`
+        console.log(`  ${icon} ${log.id.padEnd(22)} ${log.status.padEnd(12)} ${costStr.padStart(10)} ${log.error ?? ''}`)
+      }
+      const tc = result.aggregated_tokens
+      console.log(`\n  total: ${result.sub_tasks.length} sub-tasks · ${tc.input}/${tc.output} tokens · $${result.aggregated_cost.toFixed(5)} · ${result.aggregated_ms}ms`)
+      if (result.all_passed) {
+        console.log(`  status: all passed ✓`)
+      } else {
+        console.log(`  status: some failed ✗`)
+      }
+      return
     }
 
     if (opts?.id) {
