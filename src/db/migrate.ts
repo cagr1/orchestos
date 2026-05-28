@@ -103,4 +103,6 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'constitution_rules', 'INTEGER')  // S17: number of rules loaded, null if no CONSTITUTION.md
   safeAddColumn('runs', 'context_source',     'TEXT')     // S18: 'CONTEXT.md' | 'AGENTS.md'
   safeAddColumn('runs', 'context_tokens',     'INTEGER')  // S18: estimated token count of context used
+  safeAddColumn('files', 'embedding',         'TEXT')     // S24.1: JSON array of float[] for semantic search
+  safeAddColumn('runs', 'embed_hits',         'INTEGER')  // S24.5: count of embedding-suggested files used in this run
 }

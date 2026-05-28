@@ -72,8 +72,8 @@ Tres ejes: (1) `suggestContext` más preciso con embeddings semánticos, (2) pla
 - [ ] S24.2 🧠 `EmbeddingProvider` interface + implementaciones: OpenAI `text-embedding-3-small` + Ollama `nomic-embed` (local, sin API key). `src/providers/embeddings.ts`. Mismo patrón que `ProviderClient`.
 - [x] S24.3 ⚡ `indexProject()`: si archivo no tiene embedding o SHA1 cambió → llamar provider y guardar. Flag `--no-embed` en `orchestos index` para proyectos sin API key — no rompe flujo existente.
 - [x] S24.4 🧠 `suggestContext()`: embedding del texto de la tarea → cosine similarity → re-rank combinado con graph traversal actual (pesos: embed_score × 0.6 + keyword_score × 0.4). Interfaz CLI idéntica. **2026-05-28** → `cli.ts` + `harness.ts` pasan `taskEmbedding` (con fallback silencioso si no hay API key). Output CLI: `◆` para semantic match. 192 tests · 0 fail.
-- [ ] S24.5 ⚡ Métrica de éxito: loguear en cada run si algún archivo de `suggested_context` fue añadido por embedding (no por keyword). Columna `embed_hits INT` en tabla `runs`.
-- [ ] S24.6 ⚡ Tests + commit `feat(graph): embeddings semánticos en suggestContext`
+- [x] S24.5 ⚡ Métrica de éxito: loguear en cada run si algún archivo de `suggested_context` fue añadido por embedding (no por keyword). Columna `embed_hits INT` en tabla `runs`.
+- [x] S24.6 ⚡ Tests + commit `feat(graph): embeddings semánticos en suggestContext`
 
 ---
 
