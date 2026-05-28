@@ -106,6 +106,25 @@ export function runMigrations(): void {
   safeAddColumn('files', 'embedding',         'TEXT')     // S24.1: JSON array of float[] for semantic search
   safeAddColumn('runs', 'embed_hits',         'INTEGER')  // S24.5: count of embedding-suggested files used in this run
 
+  // S26.3 — memory conflict detection records
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS memory_conflicts (
+      id          TEXT PRIMARY KEY,
+      entry_a_id  TEXT NOT NULL REFERENCES memory_entries(id),
+      entry_b_id  TEXT NOT NULL REFERENCES memory_entries(id),
+      relation    TEXT NOT NULL,
+      confidence  TEXT NOT NULL,
+      resolved_at TEXT,
+      created_at  TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_memory_conflicts_unresolved
+      ON memory_conflicts(resolved_at);
+    CREATE INDEX IF NOT EXISTS idx_memory_conflicts_entry_a
+      ON memory_conflicts(entry_a_id);
+    CREATE INDEX IF NOT EXISTS idx_memory_conflicts_entry_b
+      ON memory_conflicts(entry_b_id);
+  `)
+
   // S26.1 — FTS5 virtual table + sync triggers for BM25 conflict detection
   db.exec(`
     CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(

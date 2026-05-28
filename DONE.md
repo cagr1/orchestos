@@ -477,3 +477,15 @@ Proveniente de IDEAS.md "Embeddings semánticos en suggestContext".
 `suggestContext()` con re-rank `embed×0.6 + keyword×0.4`. Files encontrados solo por coseno → reason=`embedding`.
 `--no-embed` en `orchestos index` — proyectos sin API key no se rompen.
 Columna `embed_hits` en `runs` para medir ROI real en producción.
+
+### BM25 conflict detection en memory_entries — S26.1 (2026-05-28)
+SQLite FTS5 virtual table `memory_fts` (content='memory_entries') + 3 triggers (INSERT/UPDATE/DELETE) + rebuild en migración. `upsertMemory()` retorna `{id, candidates: ConflictCandidate[]}` con BM25 query contra entradas del mismo proyecto. `CONFLICT_THRESHOLD=0.5` (|bm25|). `findCandidates()` con tokenizer FTS5, LIMIT 5, filtro por threshold. 199 tests · 0 fail.
+
+### LLM judge para conflictos de memoria — S26.2 (2026-05-28)
+`src/memory/judge.ts`: `judgeConflict()` llama a Haiku (anthropic/claude-3-haiku) vía OpenRouter para clasificar la relación entre dos entradas de memoria en 6 categorías: `conflict_with | supersedes | compatible | scoped | related | not_conflict`. Parseo JSON con fallback a `not_conflict`/`low`. No se invoca dentro de `upsertMemory` — el caller decide. Re-exportado desde `src/db/memory.ts`. 6 tests · 0 fail.
+
+### Tabla memory_conflicts — S26.3 (2026-05-28)
+Tabla `memory_conflicts(id, entry_a_id, entry_b_id, relation, confidence, resolved_at, created_at)` con FK a `memory_entries` e índices en `resolved_at`, `entry_a_id`, `entry_b_id`. CRUD en `src/db/memory.ts`: `ConflictRecord` type, `insertConflict()` (retorna UUID), `listConflicts(projectId?)` (filtra por proyecto y solo no resueltos), `resolveConflict()`. 7 tests · 0 fail.
+
+### Comando `orchestos memory conflicts` — S26.4 (2026-05-28)
+Comando group `memory` con subcomando `conflicts [--project]` en `src/cli.ts`. Lista conflictos no resueltos en tabla formateada con columnas ID, relation, confidence, created_at. Accepta `--project <name|path>` para filtrar por proyecto. 212 tests · 0 fail.

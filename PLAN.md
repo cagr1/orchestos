@@ -53,10 +53,10 @@ Tres ejes: (1) `suggestContext` más preciso con embeddings semánticos, (2) pla
 > Sin detección, la memoria se corrompe silenciosamente entre sesiones.
 
 - [x] S26.1 🧠 Habilitar SQLite FTS5 en `memory_entries`. Al `upsertMemory()`: BM25 query contra entradas existentes del proyecto. Si score > threshold → candidato a conflicto. **2026-05-28** → `memory_fts` virtual table (content='memory_entries') + 3 triggers (INSERT/UPDATE/DELETE) + `rebuild` en migración. `upsertMemory()` retorna `{id, candidates: ConflictCandidate[]}`. Threshold=0.5 (|bm25|). 199 tests · 0 fail.
-- [ ] S26.2 ⚡ LLM judge (haiku) decide relación: `conflict_with | supersedes | compatible | scoped | related | not_conflict`. Solo si hay candidato con score > threshold — no corre en cada upsert.
-- [ ] S26.3 ⚡ Tabla `memory_conflicts(id, entry_a_id, entry_b_id, relation, confidence, resolved_at)`.
-- [ ] S26.4 ⚡ `orchestos memory conflicts [--project]` — lista conflictos pendientes de resolución.
-- [ ] S26.5 ⚡ Tests + commit `feat(memory): BM25 conflict detection`
+- [x] S26.2 ⚡ LLM judge (haiku) decide relación: `conflict_with | supersedes | compatible | scoped | related | not_conflict`. Solo si hay candidato con score > threshold — no corre en cada upsert. **2026-05-28**
+- [x] S26.3 ⚡ Tabla `memory_conflicts(id, entry_a_id, entry_b_id, relation, confidence, resolved_at)`. **2026-05-28** → tabla + índices en migrate.ts, `ConflictRecord` type, `insertConflict`/`listConflicts`/`resolveConflict` CRUD en memory.ts. 212 tests · 0 fail.
+- [x] S26.4 ⚡ `orchestos memory conflicts [--project]` — lista conflictos pendientes de resolución. **2026-05-28** → comando group en cli.ts con tabla formateada (ID, relation, confidence, created_at). 212 tests · 0 fail.
+- [x] S26.5 ⚡ Tests + commit `feat(memory): BM25 conflict detection` **2026-05-28** → 13 tests nuevos (S26.2 judge + S26.3 CRUD), 212 total · 0 fail.
 
 ---
 

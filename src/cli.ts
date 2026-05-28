@@ -38,6 +38,7 @@ import { suggestContext } from './graph/suggest.ts'
 import { inferEmbeddingProvider } from './providers/embeddings.ts'
 import { scaffoldSkillYaml, languageHasSkillCoverage, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
+import { listConflicts } from './db/memory.ts'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -1182,6 +1183,31 @@ constitution
       console.log(`\nALLOWED (${c.allowed.length}):`)
       c.allowed.forEach(r => console.log(`  - ${r}`))
     }
+  })
+
+// ── memory ────────────────────────────────────────────────────────────────────
+const memory = program.command('memory').description('Manage project memory and conflict resolution')
+
+memory
+  .command('conflicts')
+  .description('List unresolved memory conflicts')
+  .option('--project <name>', 'Filter by saved project name or path')
+  .action((opts: { project?: string }) => {
+    const projectId = opts.project ?? undefined
+    const rows = listConflicts(projectId)
+    if (rows.length === 0) {
+      console.log('[memory] No unresolved conflicts found.')
+      return
+    }
+    console.log(`\n  Memory conflicts (${rows.length} unresolved):\n`)
+    const COL_REL = 16
+    const COL_CONF = 10
+    console.log(`  ${'ID'.padEnd(28)} ${'RELATION'.padEnd(COL_REL)} ${'CONFIDENCE'.padEnd(COL_CONF)} CREATED`)
+    console.log(`  ${'─'.repeat(28)} ${'─'.repeat(COL_REL)} ${'─'.repeat(COL_CONF)} ${'─'.repeat(24)}`)
+    for (const r of rows) {
+      console.log(`  ${r.id.padEnd(28)} ${r.relation.padEnd(COL_REL)} ${r.confidence.padEnd(COL_CONF)} ${r.created_at.slice(0, 19)}`)
+    }
+    console.log()
   })
 
 program.parse()

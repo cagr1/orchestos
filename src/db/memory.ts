@@ -1,5 +1,6 @@
 import { db } from './sqlite.ts'
 import { randomUUID } from 'crypto'
+import { judgeConflict, type ConflictRelation, type ConflictJudgment } from '../memory/judge.ts'
 
 export type MemoryScope = 'session' | 'project' | 'global'
 
@@ -115,3 +116,57 @@ export function listByScope(projectId: string, scope: MemoryScope): MemoryEntry[
     'SELECT * FROM memory_entries WHERE project_id = ? AND scope = ? ORDER BY updated_at DESC'
   ).all(projectId, scope)
 }
+
+// S26.3 — memory_conflicts table types & CRUD
+export interface ConflictRecord {
+  id: string
+  entry_a_id: string
+  entry_b_id: string
+  relation: string
+  confidence: string
+  resolved_at: string | null
+  created_at: string
+}
+
+export function insertConflict(
+  entryAId: string,
+  entryBId: string,
+  relation: string,
+  confidence: string,
+): string {
+  const id = randomUUID()
+  const now = new Date().toISOString()
+  db.run(
+    `INSERT INTO memory_conflicts (id, entry_a_id, entry_b_id, relation, confidence, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, entryAId, entryBId, relation, confidence, now],
+  )
+  return id
+}
+
+export function listConflicts(projectId?: string): ConflictRecord[] {
+  if (projectId) {
+    return db.query<ConflictRecord, [string]>(
+      `SELECT c.id, c.entry_a_id, c.entry_b_id, c.relation, c.confidence, c.resolved_at, c.created_at
+       FROM memory_conflicts c
+       JOIN memory_entries ea ON ea.id = c.entry_a_id
+       WHERE c.resolved_at IS NULL AND ea.project_id = ?
+       ORDER BY c.created_at DESC`
+    ).all(projectId)
+  }
+  return db.query<ConflictRecord, []>(
+    `SELECT id, entry_a_id, entry_b_id, relation, confidence, resolved_at, created_at
+     FROM memory_conflicts
+     WHERE resolved_at IS NULL
+     ORDER BY created_at DESC`
+  ).all()
+}
+
+export function resolveConflict(id: string): void {
+  const now = new Date().toISOString()
+  db.run('UPDATE memory_conflicts SET resolved_at = ? WHERE id = ?', [now, id])
+}
+
+// S26.2 — re-export LLM judge for memory conflict detection
+export { judgeConflict }
+export type { ConflictRelation, ConflictJudgment }
