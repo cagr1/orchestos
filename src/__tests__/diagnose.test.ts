@@ -2,6 +2,7 @@
  * S25.4 — Tests for S25.1/S25.2: agente de diagnóstico de fallos
  */
 import { describe, it, expect, mock } from 'bun:test'
+import { insertRun, listRuns, getRun } from '../db/runs.ts'
 
 const mockRuns: any[] = [
   {
@@ -77,6 +78,9 @@ mock.module('../db/runs.ts', () => ({
     if (taskId === 't1-fail') return mockRuns
     return []
   }),
+  insertRun,
+  listRuns,
+  getRun,
 }))
 
 const { diagnoseTask } = await import('../agents/diagnose.ts')

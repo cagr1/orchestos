@@ -336,6 +336,13 @@ Sub-agentes con context isolation + memoria persistente + tool policy funcionand
 - Validación final: 194 tests · 0 fail — 2026-05-28
 - Commit `feat(graph): embeddings semánticos en suggestContext + embed_hits tracking` — 2026-05-28
 
+**SEMANA 25 — Agente de diagnóstico de fallos**
+- S25.1 `src/agents/diagnose.ts`: `diagnoseTask(taskId, root)` — lee últimos 3 runs, construye prompt con runs block (status, model, qa_reason, checks, cost, elapsed), llama a Haiku (barato) para detectar patrón de fallo — 2026-05-28
+- S25.2 `DiagnoseResult`: `{taskId, pattern, confidence, suggestion, details}`. 6 patrones: `deterministic_check`, `qa_specific_criterion`, `parse_error`, `rate_limit`, `scope_creep`, `unknown`. Fallback a `unknown` si el LLM devuelve JSON inválido. No ejecuta nada — solo sugiere — 2026-05-28
+- S25.3 `orchestos task diagnose <id>` en `cli.ts`. Auto-trigger en `task run --all` cuando `status → failed_permanent`: llama a `diagnoseTask` e imprime diagnóstico en stderr — 2026-05-28
+- S25.4 `src/__tests__/diagnose.test.ts` (5 tests): happy path con mock Haiku, task no encontrada, task sin runs, fallback JSON inválido, FailurePattern type. Fix: `mock.module('../db/runs.ts')` incluye `insertRun`/`listRuns`/`getRun` reales para no contaminar otros test files — 2026-05-28
+- Validación: 199 tests · 0 fail — 2026-05-28
+
 ---
 
 ## Sección 2 — Ideas implementadas (provenientes de IDEAS.md)
@@ -457,6 +464,12 @@ Proveniente de IDEAS.md "Context monitor" (patrón ECC ecc-context-monitor.js).
 `src/hooks/context-monitor.ts`: 5 señales de salud (context%, cost, loop, scope_creep).
 No bloquea — emite warnings estructurados. Debounce de 5 calls para no saturar logs.
 21 tests. Integrado en harness post-`enforceContract`.
+
+### Agente de diagnóstico de fallos — S25 (2026-05-28)
+Proveniente de IDEAS.md "Agente de diagnóstico de fallos".
+`diagnoseTask()` lee los últimos 3 runs de un task `failed_permanent` y consulta a Haiku
+para clasificar el patrón de fallo y generar una sugerencia accionable.
+Auto-trigger en `task run --all`. Nunca ejecuta — solo sugiere. El usuario aplica.
 
 ### Embeddings semánticos en suggestContext — S24 (2026-05-28)
 Proveniente de IDEAS.md "Embeddings semánticos en suggestContext".

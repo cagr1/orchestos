@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-5-activo
+status: mes-6-activo
 ---
 
 # OrchestOS — Plan activo
@@ -40,52 +40,10 @@ Tres ejes: (1) `suggestContext` más preciso con embeddings semánticos, (2) pla
 **Regla**: marcar `[x]` con fecha al cerrar. Si una validación falla, no abrir el siguiente bloque.
 **Delegación**: ⚡ = cualquier LLM ejecuta leyendo este plan | 🧠 = requiere criterio Claude/Opus.
 
----
-
-### S23.0 — Pre-flight Mes 6 (ANTES de tocar IA nueva)
-
-> Dos gaps de Mes 5 que se vuelven costosos si se ignoran al escalar.
-
-- [x] S23.0.1 ⚡ Fix `mergeWorktreeBack` (`src/run/sandbox.ts:104`): si `--ff-only` falla por divergencia → intentar `git rebase <base-branch>` + retry merge. Si rebase también falla → mensaje claro con instrucción manual (no silenciar el error). Sin este fix, múltiples tareas en una sesión real dejan worktrees colgados cuando la base branch avanza entre ejecuciones.
-- [x] S23.0.2 🧠 Context monitor hook (patrón ECC `ecc-context-monitor.js`): módulo `src/hooks/context-monitor.ts` con `checkContextHealth(runState)` que retorna warnings estructurados cuando: contexto < 35% → `context_warning`; < 25% → `context_critical`; cost > $5 → `cost_notice`; mismo tool ≥ 3 veces seguido → `loop_detected`; archivos modificados > 20 → `scope_creep`. Integrar en harness post-tool-call con debounce de 5 calls. **2026-05-28** → `src/hooks/context-monitor.ts`: `checkContextHealth()`, `getModelContextWindow()`, `shouldCheck()`. `harness.ts`: llamada post-enforce con `shouldCheck(monitorCallCount ?? 0)`. 21 tests nuevos · 131 total · 0 fail.
-
----
-
-### SEMANA 23 — Function calling para el planner 🧠
-
-> El planner de S22 devuelve YAML libre — LLMs generan YAML con errores de indentación
-> que rompen el parser. Function calling elimina este modo de fallo estructuralmente.
-
-- [x] S23.1 🧠 Tool `create_subtask` con schema estricto: `{id, description, acceptance: string[], depends_on: string[], allowed_tools: string[], topic_key?: string}`. Planner llama N veces → cada call validada por el SDK antes de llegar al código. `src/agents/planner.ts` refactoreado. **2026-05-28** → `CREATE_SUBTASK_TOOL` + `planWithFunctionCalling()` + `generatePlan()` auto-detect. 194 tests · 0 fail.
-- [x] S23.2 ⚡ Fallback a parser YAML actual para providers sin tool support. Detectar en runtime: si el provider/modelo reporta tool use → function calling; si no → YAML. Transparente para el caller.
-- [x] S23.3 ⚡ Tests: plan de 3 sub-tareas via function calling → schema correcto sin parsing; modelo sin tool support → fallback YAML funcional; schema inválido → error claro con campo afectado.
-- [x] S23.4 ⚡ Commit `feat(planner): function calling + YAML fallback`
-
----
-
-### SEMANA 24 — Embeddings semánticos en `suggestContext` 🧠
-
-> `context suggest` usa scoring por keywords. Si la tarea dice "implementar pago con Stripe"
-> y el archivo clave es `src/billing/processor.ts` sin la palabra "stripe", no lo encuentra.
-
-- [x] S24.1 ⚡ Migración: columna `embedding TEXT` (JSON array float[]) en tabla `files` via `safeAddColumn`.
-- [x] S24.2 🧠 `EmbeddingProvider` interface + implementaciones: OpenAI `text-embedding-3-small` + Ollama `nomic-embed` (local, sin API key). `src/providers/embeddings.ts`. Mismo patrón que `ProviderClient`. **2026-05-28** → `embedOpenAI`, `embedOllama`, `getEmbeddingProvider`, `inferEmbeddingProvider`, `cosine`. 194 tests · 0 fail.
-- [x] S24.3 ⚡ `indexProject()`: si archivo no tiene embedding o SHA1 cambió → llamar provider y guardar. Flag `--no-embed` en `orchestos index` para proyectos sin API key — no rompe flujo existente.
-- [x] S24.4 🧠 `suggestContext()`: embedding del texto de la tarea → cosine similarity → re-rank combinado con graph traversal actual (pesos: embed_score × 0.6 + keyword_score × 0.4). Interfaz CLI idéntica. **2026-05-28** → `cli.ts` + `harness.ts` pasan `taskEmbedding` (con fallback silencioso si no hay API key). Output CLI: `◆` para semantic match. 192 tests · 0 fail.
-- [x] S24.5 ⚡ Métrica de éxito: loguear en cada run si algún archivo de `suggested_context` fue añadido por embedding (no por keyword). Columna `embed_hits INT` en tabla `runs`.
-- [x] S24.6 ⚡ Tests + commit `feat(graph): embeddings semánticos en suggestContext`
-
----
-
-### SEMANA 25 — Agente de diagnóstico de fallos ⚡
-
-> Cuando un task llega a `failed_permanent` (3 retries), no hay forma automática
-> de saber por qué. El usuario tiene que leer `runs --detail` manualmente.
-
-- [ ] S25.1 ⚡ Leer últimos 3 runs del task. Prompt a haiku (barato): detectar patrón de fallo — check determinístico, criterio QA específico, parse error del LLM, rate limit, scope creep.
-- [ ] S25.2 ⚡ Output estructurado: patrón detectado + sugerencia concreta para modificar la task definition. **No ejecuta nada** — solo sugiere. El usuario aplica.
-- [ ] S25.3 ⚡ `orchestos task diagnose <id>` explícito + trigger automático en `task run --all` al llegar a `failed_permanent`.
-- [ ] S25.4 ⚡ Tests + commit `feat(tasks): agente de diagnóstico de fallos`
+- [x] **S23.0 — Pre-flight Mes 6** (2026-05-28) → mergeWorktreeBack rebase fix + context monitor hook. Ver DONE.md.
+- [x] **S23 — Function calling planner** (2026-05-28) → `CREATE_SUBTASK_TOOL`, `planWithFunctionCalling`, fallback YAML. Ver DONE.md.
+- [x] **S24 — Embeddings semánticos** (2026-05-28) → `EmbeddingProvider`, `indexProject --embed`, `suggestContext` re-rank, `embed_hits` en runs. Ver DONE.md.
+- [x] **S25 — Diagnóstico de fallos** (2026-05-28) → `diagnoseTask`, `orchestos task diagnose`, auto-trigger en `failed_permanent`. Ver DONE.md.
 
 ---
 
