@@ -23,6 +23,7 @@ import { RunLogger } from './run/logger.ts'
 import { runTask } from './run/harness.ts'
 import { executePlan, type SchedulerResult } from './run/scheduler.ts'
 import { createPlan } from './agents/planner.ts'
+import { diagnoseTask, type DiagnoseResult } from './agents/diagnose.ts'
 import type { SubTask } from './agents/sub-agent.ts'
 import type { SubagentResult } from './agents/sub-agent.ts'
 import { createWorktree, mergeWorktreeBack } from './run/sandbox.ts'
@@ -732,6 +733,29 @@ task
   })
 
 task
+  .command('diagnose <id>')
+  .description('Diagnose why a task failed — analyze last 3 runs and suggest a fix (does NOT execute anything)')
+  .option('--model <model>', 'Model override (default: anthropic/claude-3-haiku via openrouter)')
+  .action(async (taskId: string, opts: { model?: string }) => {
+    const root = resolve('.')
+    console.log(`\n[diagnose] Analyzing task "${taskId}"...`)
+    try {
+      const result = await diagnoseTask(taskId, root, opts.model)
+      console.log(`\n  Task:    ${result.taskId}`)
+      console.log(`  Pattern: ${result.pattern}`)
+      console.log(`  Confidence: ${result.confidence}`)
+      console.log(`\n  Suggestion:`)
+      console.log(`    ${result.suggestion}`)
+      console.log(`\n  Evidence:`)
+      console.log(`    ${result.details}`)
+      console.log(`\n  Note: This is a suggestion only — review and edit tasks.yaml manually.`)
+    } catch (e: any) {
+      console.error(`[diagnose] Error: ${e.message}`)
+      process.exit(1)
+    }
+  })
+
+task
   .command('run [path]')
   .description('Execute the next pending task with contract enforcement')
   .option('--id <task-id>', 'Run a specific task by id')
@@ -807,7 +831,20 @@ task
       }
 
       // failed
-      updateTaskStatus(root, taskId, { status: t.retry_count + 1 >= MAX_RETRIES ? 'failed_permanent' : 'failed', retry_reason: result.retryReason })
+      const isPermanent = t.retry_count + 1 >= MAX_RETRIES
+      updateTaskStatus(root, taskId, { status: isPermanent ? 'failed_permanent' : 'failed', retry_reason: result.retryReason })
+      if (isPermanent) {
+        try {
+          const diag = await diagnoseTask(taskId, root)
+          console.error(`\n[diagnose] ✗✗ FAILURE DIAGNOSIS for "${taskId}":`)
+          console.error(`  Pattern:     ${diag.pattern} (${diag.confidence} confidence)`)
+          console.error(`  Suggestion:  ${diag.suggestion}`)
+          console.error(`  Evidence:    ${diag.details}`)
+          console.error(`  (suggestion only — no changes were made)`)
+        } catch {
+          console.error(`[diagnose] Could not auto-diagnose: enable api key or run: orchestos task diagnose ${taskId}`)
+        }
+      }
       console.error(`[task] ✗ ${taskId} failed — ${result.retryReason}`)
       return 'failed'
     }
