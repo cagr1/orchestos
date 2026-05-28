@@ -29,9 +29,11 @@ import { insertRun } from '../db/runs.ts'
 import { buildPrompt } from './prompt.ts'
 import { runChecks, type CheckResult } from './checks.ts'
 import { suggestContext } from '../graph/suggest.ts'
+import { inferEmbeddingProvider } from '../providers/embeddings.ts'
 import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import { loadSpec } from '../spec/store.ts'
+import { checkContextHealth, getModelContextWindow, shouldCheck, type RunState } from '../hooks/context-monitor.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { Worktree } from './sandbox.ts'
 
@@ -64,6 +66,13 @@ export interface HarnessOpts {
   sandboxBranch?: string | null
   /** If true, keep worktree on failure for debugging */
   keepWorktree?: boolean
+  /**
+   * Monotonically increasing call count across the caller's session — used by
+   * the context-monitor debounce (S23.0.2).  0 or undefined → always check.
+   * In sub-agent executor, pass the sub-task index so health is checked every
+   * 5th invocation instead of every single one.
+   */
+  monitorCallCount?: number
 }
 
 export interface TaskResult {
@@ -83,7 +92,7 @@ export interface TaskResult {
 // -- main ----------------------------------------------------------------------
 
 export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
-  const { projectRoot, contextText, task: t, projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound, sandboxMode, sandboxBranch, keepWorktree } = opts
+  const { projectRoot, contextText, task: t, projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound, sandboxMode, sandboxBranch, keepWorktree, monitorCallCount } = opts
   const t0 = performance.now()
 
   // -- spec gate ---------------------------------------------------------------
@@ -120,7 +129,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const model        = modelOverride ?? route?.model ?? resolveModel(taskClass)
     const providerName = route?.provider ?? t.executor
     const provider     = getProvider(providerName)
-    const effectiveTask = withSuggestedInput(t, projectId, log)
+    const effectiveTask = await withSuggestedInput(t, projectId, providerName, log)
 
     // -- constitution ----------------------------------------------------------
     const constitution      = loadConstitution(projectRoot)
@@ -185,6 +194,20 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
 
     const after = snapshotHashes(effectiveRoot, t.output)
+
+    // -- context-monitor (S23.0.2) — post-write, pre-QA ----------------------
+    if (shouldCheck(monitorCallCount ?? 0)) {
+      const monitorState: RunState = {
+        promptTokens:       llmResponse.inputTokens,
+        modelContextWindow: getModelContextWindow(model),
+        cumulativeCostUsd:  cost,
+        recentToolCalls:    [],   // harness is single-shot; no tool loop
+        filesModified:      contractResult.written.length,
+      }
+      for (const w of checkContextHealth(monitorState)) {
+        log.info(`[context-monitor] ${w.severity.toUpperCase()} ${w.code}: ${w.message}`)
+      }
+    }
 
     // -- deterministic checks (BEFORE QA — no tokens spent if check fails) -----
     let checksResults: CheckResult[] = []
@@ -278,10 +301,24 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
   }
 }
 
-function withSuggestedInput(task: Task, projectId: string | undefined, log: RunLogger): Task {
+async function withSuggestedInput(
+  task: Task,
+  projectId: string | undefined,
+  providerName: string,
+  log: RunLogger,
+): Promise<Task> {
   if (task.input.length > 0 || !projectId) return task
 
-  const suggested = suggestContext(projectId, task.description, { topN: 5 }).map(r => r.path)
+  let taskEmbedding: number[] | undefined
+  try {
+    const ep = inferEmbeddingProvider(providerName)
+    const { embeddings } = await ep.embed([task.description])
+    taskEmbedding = embeddings[0]
+  } catch {
+    // no embedding provider configured — keyword-only path
+  }
+
+  const suggested = suggestContext(projectId, task.description, { topN: 5, taskEmbedding }).map(r => r.path)
   if (suggested.length === 0) return task
 
   log.inputAutoSuggested(suggested)

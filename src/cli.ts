@@ -34,6 +34,7 @@ import { readFileSync } from 'fs'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
 import { indexProject } from './graph/index.ts'
 import { suggestContext } from './graph/suggest.ts'
+import { inferEmbeddingProvider } from './providers/embeddings.ts'
 import { scaffoldSkillYaml, languageHasSkillCoverage, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
 
@@ -118,13 +119,15 @@ program
   .command('index [path]')
   .description('Index project imports into the local code graph')
   .option('--project <name>', 'Saved project name or path')
-  .action(async (targetPath?: string, opts?: { project?: string }) => {
+  .option('--no-embed', 'Skip embedding generation for projects without API key')
+  .action(async (targetPath?: string, opts?: { project?: string; noEmbed?: boolean }) => {
     const root = resolveIndexRoot(targetPath, opts?.project)
     const project = await ensureProject(root)
     const t0 = performance.now()
-    const result = await indexProject(root, project.id)
+    const result = await indexProject(root, project.id, { noEmbed: opts?.noEmbed })
     const elapsed = Math.round(performance.now() - t0)
-    console.log(`[index] indexed ${result.files} files, ${result.edges} edges in ${elapsed}ms`)
+    const embedInfo = result.embeddings > 0 ? `, ${result.embeddings} embeddings` : ''
+    console.log(`[index] indexed ${result.files} files, ${result.edges} edges${embedInfo} in ${elapsed}ms`)
   })
 
 const ctx = program.command('context').description('Manage saved project context')
@@ -186,18 +189,29 @@ ctx
       console.error(`[suggest] No indexed project at ${root}. Run: orchestos init`)
       process.exit(1)
     }
-    const topN   = Math.max(1, parseInt(opts.top, 10) || 10)
-    const results = suggestContext(project.id, taskText, { topN, expand: opts.expand })
+    const topN = Math.max(1, parseInt(opts.top, 10) || 10)
+
+    let taskEmbedding: number[] | undefined
+    try {
+      const ep = inferEmbeddingProvider('openai')
+      const { embeddings } = await ep.embed([taskText])
+      taskEmbedding = embeddings[0]
+    } catch {
+      // no embedding provider available — keyword-only path
+    }
+
+    const results = suggestContext(project.id, taskText, { topN, expand: opts.expand, taskEmbedding })
     if (results.length === 0) {
       console.log('[suggest] No matching files found for that task description.')
       return
     }
     console.log(`[suggest] Top ${results.length} files for: "${taskText}"`)
     for (const r of results) {
-      const tag = r.reason === 'direct' ? '●' : '○'
-      console.log(`  ${tag} ${r.path.padEnd(60)} score=${r.score}`)
+      const tag = r.reason === 'direct' ? '●' : r.reason === 'embedding' ? '◆' : '○'
+      const scoreStr = taskEmbedding ? r.score.toFixed(3) : String(r.score)
+      console.log(`  ${tag} ${r.path.padEnd(60)} score=${scoreStr}`)
     }
-    console.log('\n  ● = direct token match   ○ = 1-hop neighbor')
+    console.log('\n  ● = direct token match   ◆ = semantic match   ○ = 1-hop neighbor')
   })
 
 ctx
