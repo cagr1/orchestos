@@ -105,4 +105,41 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'context_tokens',     'INTEGER')  // S18: estimated token count of context used
   safeAddColumn('files', 'embedding',         'TEXT')     // S24.1: JSON array of float[] for semantic search
   safeAddColumn('runs', 'embed_hits',         'INTEGER')  // S24.5: count of embedding-suggested files used in this run
+
+  // S26.1 — FTS5 virtual table + sync triggers for BM25 conflict detection
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+      content,
+      topic_key,
+      content='memory_entries',
+      content_rowid='rowid'
+    );
+
+    CREATE TRIGGER IF NOT EXISTS memory_fts_ai
+    AFTER INSERT ON memory_entries BEGIN
+      INSERT INTO memory_fts(rowid, content, topic_key)
+      VALUES (new.rowid, new.content, new.topic_key);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS memory_fts_au
+    AFTER UPDATE ON memory_entries BEGIN
+      INSERT INTO memory_fts(memory_fts, rowid, content, topic_key)
+      VALUES ('delete', old.rowid, old.content, old.topic_key);
+      INSERT INTO memory_fts(rowid, content, topic_key)
+      VALUES (new.rowid, new.content, new.topic_key);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS memory_fts_ad
+    AFTER DELETE ON memory_entries BEGIN
+      INSERT INTO memory_fts(memory_fts, rowid, content, topic_key)
+      VALUES ('delete', old.rowid, old.content, old.topic_key);
+    END;
+  `)
+
+  // Rebuild FTS5 index on every startup — keeps index consistent if rows were
+  // inserted before triggers existed (first migration) or after corruption.
+  // Idempotent and fast for the small memory tables this tool uses.
+  try {
+    db.exec(`INSERT INTO memory_fts(memory_fts) VALUES('rebuild')`)
+  } catch { /* ignore if FTS5 not available */ }
 }

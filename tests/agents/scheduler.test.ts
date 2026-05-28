@@ -167,14 +167,14 @@ describe('S22.7 (c) — topic_key merge on re-execution', () => {
   it('upsertMemory replaces existing entry with same topic_key', async () => {
     const { upsertMemory, getMemory } = await import('../../src/db/memory.ts')
 
-    const id1 = upsertMemory('test-project', 'auth-schema', 'version 1 content')
+    const { id: id1 } = upsertMemory('test-project', 'auth-schema', 'version 1 content')
     expect(id1).toBeTruthy()
 
     const entry1 = getMemory('test-project', 'auth-schema')
     expect(entry1?.content).toBe('version 1 content')
 
     // re-execution with same topic_key → upsert replaces content
-    const id2 = upsertMemory('test-project', 'auth-schema', 'version 2 content')
+    const { id: id2 } = upsertMemory('test-project', 'auth-schema', 'version 2 content')
     expect(id2).toBe(id1) // same id since UNIQUE(project_id, topic_key)
 
     const entry2 = getMemory('test-project', 'auth-schema')

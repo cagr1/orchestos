@@ -76,6 +76,7 @@ export function buildIsolatedContext(
   subTask: SubTask,
   projectRoot: string,
   projectId: string,
+  allSubTasks?: SubTask[],
 ): IsolatedContext {
   // (a) Context slice ─────────────────────────────────────────────────────────
   const contextRaw = readContextFile(projectRoot)
@@ -86,7 +87,7 @@ export function buildIsolatedContext(
 
   // (b) Session memories ──────────────────────────────────────────────────────
   const allSession = listByScope(projectId, 'session')
-  const { prior, others } = selectMemories(subTask, allSession)
+  const { prior, others } = selectMemories(subTask, allSession, allSubTasks)
 
   // (c) Spec ──────────────────────────────────────────────────────────────────
   let spec: string | undefined
@@ -175,12 +176,27 @@ export interface SelectedMemories {
  * `others` contains entries matched by skill prefix or depends_on predecessor topic_keys,
  * capped at MAX_MEMORY_ENTRIES, sorted by priority then updated_at desc.
  */
-export function selectMemories(subTask: SubTask, allSession: MemoryEntry[]): SelectedMemories {
+export function selectMemories(
+  subTask: SubTask,
+  allSession: MemoryEntry[],
+  allSubTasks?: SubTask[],
+): SelectedMemories {
   if (allSession.length === 0) return { others: [] }
 
   const skillPrefix = subTask.skill ?? null
   const ownKey      = subTask.topic_key ?? null
-  const depIds      = new Set(subTask.depends_on)
+
+  // Resolve depends_on sub-task IDs → their topic_keys.
+  // depIds contains sub-task IDs (e.g. "write-greeting"), not topic_keys
+  // (e.g. "smoke-greeting"), so a direct set lookup against entry.topic_key
+  // would never match. We map through allSubTasks to get the correct keys.
+  const depTopicKeys = new Set<string>()
+  if (allSubTasks && subTask.depends_on.length > 0) {
+    for (const depId of subTask.depends_on) {
+      const dep = allSubTasks.find(t => t.id === depId)
+      if (dep?.topic_key) depTopicKeys.add(dep.topic_key)
+    }
+  }
 
   let prior: MemoryEntry | undefined
   type Scored = { entry: MemoryEntry; priority: number }
@@ -197,8 +213,8 @@ export function selectMemories(subTask: SubTask, allSession: MemoryEntry[]): Sel
       scored.push({ entry, priority: 2 })
       continue
     }
-    // Predecessor output this sub-task depends on
-    if (depIds.has(entry.topic_key)) {
+    // Predecessor output this sub-task depends on (resolved via allSubTasks)
+    if (depTopicKeys.has(entry.topic_key)) {
       scored.push({ entry, priority: 1 })
     }
   }
@@ -371,7 +387,8 @@ export function commitTopicKey(
   scope: MemoryScope = 'session',
 ): string | null {
   if (!subTask.topic_key) return null
-  return upsertMemory(projectId, subTask.topic_key, content, scope)
+  const { id } = upsertMemory(projectId, subTask.topic_key, content, scope)
+  return id
 }
 
 // ---------------------------------------------------------------------------

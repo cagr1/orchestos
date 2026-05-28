@@ -52,7 +52,7 @@ Tres ejes: (1) `suggestContext` más preciso con embeddings semánticos, (2) pla
 > Cuando múltiples sub-agentes escriben memorias del mismo proyecto, se contradicen.
 > Sin detección, la memoria se corrompe silenciosamente entre sesiones.
 
-- [ ] S26.1 🧠 Habilitar SQLite FTS5 en `memory_entries`. Al `upsertMemory()`: BM25 query contra entradas existentes del proyecto. Si score > threshold → candidato a conflicto.
+- [x] S26.1 🧠 Habilitar SQLite FTS5 en `memory_entries`. Al `upsertMemory()`: BM25 query contra entradas existentes del proyecto. Si score > threshold → candidato a conflicto. **2026-05-28** → `memory_fts` virtual table (content='memory_entries') + 3 triggers (INSERT/UPDATE/DELETE) + `rebuild` en migración. `upsertMemory()` retorna `{id, candidates: ConflictCandidate[]}`. Threshold=0.5 (|bm25|). 199 tests · 0 fail.
 - [ ] S26.2 ⚡ LLM judge (haiku) decide relación: `conflict_with | supersedes | compatible | scoped | related | not_conflict`. Solo si hay candidato con score > threshold — no corre en cada upsert.
 - [ ] S26.3 ⚡ Tabla `memory_conflicts(id, entry_a_id, entry_b_id, relation, confidence, resolved_at)`.
 - [ ] S26.4 ⚡ `orchestos memory conflicts [--project]` — lista conflictos pendientes de resolución.
