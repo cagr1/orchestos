@@ -489,3 +489,6 @@ Tabla `memory_conflicts(id, entry_a_id, entry_b_id, relation, confidence, resolv
 
 ### Comando `orchestos memory conflicts` — S26.4 (2026-05-28)
 Comando group `memory` con subcomando `conflicts [--project]` en `src/cli.ts`. Lista conflictos no resueltos en tabla formateada con columnas ID, relation, confidence, created_at. Accepta `--project <name|path>` para filtrar por proyecto. 212 tests · 0 fail.
+
+### Commit `feat(memory): BM25 conflict detection` — S26.5 (2026-05-28)
+Commit `b9d968d` con 8 archivos: S26.2 (LLM judge), S26.3 (memory_conflicts table + CRUD), S26.4 (CLI command), S26.5 (13 tests nuevos). 212 tests · 0 fail.
