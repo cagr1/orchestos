@@ -102,7 +102,42 @@ export function mergeWorktreeBack(worktree: Worktree, strategy: MergeStrategy, m
 
   if (strategy === 'commit') {
     const merge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
-    if (merge.exitCode !== 0) throw new Error(`git merge ${worktree.branch} failed: ${merge.stderr}`)
+    if (merge.exitCode !== 0) {
+      // S23.0.1 — --ff-only failed, likely base branch diverged.
+      // Attempt rebase + retry before giving up.
+      const rebase = git(['rebase', worktree.baseBranch], worktree.path)
+      if (rebase.exitCode === 0) {
+        const retry = git(['checkout', worktree.baseBranch], worktree.projectRoot)
+        if (retry.exitCode !== 0) throw new Error(`git checkout ${worktree.baseBranch} failed after rebase: ${retry.stderr}`)
+        const retryMerge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
+        if (retryMerge.exitCode !== 0) {
+          throw new Error(
+            `git merge ${worktree.branch} failed after rebase. ` +
+            `Fix manually:\n` +
+            `  cd ${worktree.path}\n` +
+            `  git rebase --abort  # if needed\n` +
+            `  git checkout ${worktree.baseBranch}\n` +
+            `  git merge ${worktree.branch}\n` +
+            `  git branch -D ${worktree.branch}\n` +
+            `  git worktree remove --force ${worktree.path}`
+          )
+        }
+      } else {
+        // rebase failed — give clear manual instructions
+        throw new Error(
+          `git merge --ff-only and rebase both failed for branch ${worktree.branch}. ` +
+          `Fix manually:\n` +
+          `  cd ${worktree.path}\n` +
+          `  git rebase --abort  # if in-progress\n` +
+          `  # resolve conflicts manually, then:\n` +
+          `  git checkout ${worktree.baseBranch}\n` +
+          `  git merge ${worktree.branch}\n` +
+          `  git branch -D ${worktree.branch}\n` +
+          `  git worktree remove --force ${worktree.path}\n` +
+          `Rebase error: ${rebase.stderr}`
+        )
+      }
+    }
   } else if (strategy === 'squash') {
     const merge = git(['merge', '--squash', worktree.branch], worktree.projectRoot)
     if (merge.exitCode !== 0) throw new Error(`git merge --squash ${worktree.branch} failed: ${merge.stderr}`)
