@@ -316,7 +316,7 @@ Sub-agentes con context isolation + memoria persistente + tool policy funcionand
 
 ---
 
-### MES 6 — IA con ROI demostrable (parcial: S23–S24)
+### MES 6 — IA con ROI demostrable
 
 **SEMANA 23 — Pre-flight Mes 6 + Function calling para el planner**
 - S23.0.1 `mergeWorktreeBack`: `--ff-only` falla → intenta `git rebase <base>` + retry; si rebase falla → mensaje claro con instrucción manual. Sin el fix, worktrees quedaban colgados entre sesiones — 2026-05-28
@@ -342,6 +342,32 @@ Sub-agentes con context isolation + memoria persistente + tool policy funcionand
 - S25.3 `orchestos task diagnose <id>` en `cli.ts`. Auto-trigger en `task run --all` cuando `status → failed_permanent`: llama a `diagnoseTask` e imprime diagnóstico en stderr — 2026-05-28
 - S25.4 `src/__tests__/diagnose.test.ts` (5 tests): happy path con mock Haiku, task no encontrada, task sin runs, fallback JSON inválido, FailurePattern type. Fix: `mock.module('../db/runs.ts')` incluye `insertRun`/`listRuns`/`getRun` reales para no contaminar otros test files — 2026-05-28
 - Validación: 199 tests · 0 fail — 2026-05-28
+
+**SEMANA 26 — Memory conflict detection (patrón Engram BM25)**
+- S26.1 `memory_fts` virtual table FTS5 (content='memory_entries') + 3 triggers (INSERT/UPDATE/DELETE) + rebuild en migración. `upsertMemory()` retorna `{id, candidates: ConflictCandidate[]}`. `CONFLICT_THRESHOLD=0.5` (|bm25|). `findCandidates()` LIMIT 5. 199 tests · 0 fail — 2026-05-28
+- S26.2 `src/memory/judge.ts`: `judgeConflict()` llama Haiku vía OpenRouter. 6 relaciones: `conflict_with | supersedes | compatible | scoped | related | not_conflict`. Parseo JSON con fallback a `not_conflict`/`low`. 6 tests — 2026-05-28
+- S26.3 Tabla `memory_conflicts(id, entry_a_id, entry_b_id, relation, confidence, resolved_at, created_at)` + FK + índices. `insertConflict` / `listConflicts(projectId?)` / `resolveConflict` CRUD. 7 tests — 2026-05-28
+- S26.4 CLI: `orchestos memory conflicts [--project]` — tabla formateada ID/relation/confidence/created_at — 2026-05-28
+- S26.5 13 tests nuevos (S26.2 judge + S26.3 CRUD). 212 tests · 0 fail. Commits `2caf365` + `b9d968d` + `88e0ab4` — 2026-05-28
+
+**Decisiones de diseño Mes 6**
+- BM25 en SQLite FTS5 — sin dependencia nueva, nativo en SQLite.
+- LLM judge solo si hay candidato > threshold — no corre en cada upsert.
+- Context monitor no bloquea — warnings estructurados con debounce de 5 calls.
+- Embeddings opt-in (`--no-embed`) — proyectos sin API key no se rompen.
+- Function calling con fallback YAML — providers sin tool support siguen funcionando.
+- Diagnóstico nunca ejecuta — solo sugiere. El usuario aplica.
+
+**Lista prohibida Mes 6** _(lo que NO se hizo — referencia histórica)_
+- Dashboard web, UI gráfica, TUI interactiva.
+- Nuevos providers de LLM — se mantuvieron los 4.
+- Reescritura del scheduler.
+- Plugin system, extensiones de terceros.
+- Paralelismo entre tareas — sigue secuencial.
+- KuzuDB — sin evidencia de escala real (10K+ nodos).
+
+**Métrica Mes 6 — SÍ (2026-05-28)**
+`embed_hits > 0` en 12 runs reales (todos `status: done`, `embed_hits: 3`). Planner sin errores YAML en 100% de los planes del mes (function calling elimina el problema estructuralmente). 212 tests · 0 fail.
 
 ---
 
@@ -478,17 +504,9 @@ Proveniente de IDEAS.md "Embeddings semánticos en suggestContext".
 `--no-embed` en `orchestos index` — proyectos sin API key no se rompen.
 Columna `embed_hits` en `runs` para medir ROI real en producción.
 
-### BM25 conflict detection en memory_entries — S26.1 (2026-05-28)
-SQLite FTS5 virtual table `memory_fts` (content='memory_entries') + 3 triggers (INSERT/UPDATE/DELETE) + rebuild en migración. `upsertMemory()` retorna `{id, candidates: ConflictCandidate[]}` con BM25 query contra entradas del mismo proyecto. `CONFLICT_THRESHOLD=0.5` (|bm25|). `findCandidates()` con tokenizer FTS5, LIMIT 5, filtro por threshold. 199 tests · 0 fail.
-
-### LLM judge para conflictos de memoria — S26.2 (2026-05-28)
-`src/memory/judge.ts`: `judgeConflict()` llama a Haiku (anthropic/claude-3-haiku) vía OpenRouter para clasificar la relación entre dos entradas de memoria en 6 categorías: `conflict_with | supersedes | compatible | scoped | related | not_conflict`. Parseo JSON con fallback a `not_conflict`/`low`. No se invoca dentro de `upsertMemory` — el caller decide. Re-exportado desde `src/db/memory.ts`. 6 tests · 0 fail.
-
-### Tabla memory_conflicts — S26.3 (2026-05-28)
-Tabla `memory_conflicts(id, entry_a_id, entry_b_id, relation, confidence, resolved_at, created_at)` con FK a `memory_entries` e índices en `resolved_at`, `entry_a_id`, `entry_b_id`. CRUD en `src/db/memory.ts`: `ConflictRecord` type, `insertConflict()` (retorna UUID), `listConflicts(projectId?)` (filtra por proyecto y solo no resueltos), `resolveConflict()`. 7 tests · 0 fail.
-
-### Comando `orchestos memory conflicts` — S26.4 (2026-05-28)
-Comando group `memory` con subcomando `conflicts [--project]` en `src/cli.ts`. Lista conflictos no resueltos en tabla formateada con columnas ID, relation, confidence, created_at. Accepta `--project <name|path>` para filtrar por proyecto. 212 tests · 0 fail.
-
-### Commit `feat(memory): BM25 conflict detection` — S26.5 (2026-05-28)
-Commit `b9d968d` con 8 archivos: S26.2 (LLM judge), S26.3 (memory_conflicts table + CRUD), S26.4 (CLI command), S26.5 (13 tests nuevos). 212 tests · 0 fail.
+### BM25 conflict detection en memoria — S26 (2026-05-28)
+Proveniente de patrón Engram (IDEAS.md sección "Inspiración externa").
+`memory_fts` FTS5 virtual table + 3 triggers. `upsertMemory()` retorna `{id, candidates: ConflictCandidate[]}`.
+`judgeConflict()` Haiku clasifica relación en 6 categorías: `conflict_with | supersedes | compatible | scoped | related | not_conflict`.
+Tabla `memory_conflicts` con CRUD completo. CLI: `orchestos memory conflicts [--project]`.
+212 tests · 0 fail.
