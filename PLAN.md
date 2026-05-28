@@ -56,7 +56,7 @@ Tres ejes: (1) `suggestContext` más preciso con embeddings semánticos, (2) pla
 > El planner de S22 devuelve YAML libre — LLMs generan YAML con errores de indentación
 > que rompen el parser. Function calling elimina este modo de fallo estructuralmente.
 
-- [ ] S23.1 🧠 Tool `create_subtask` con schema estricto: `{id, description, acceptance: string[], depends_on: string[], allowed_tools: string[], topic_key?: string}`. Planner llama N veces → cada call validada por el SDK antes de llegar al código. `src/agents/planner.ts` refactoreado.
+- [x] S23.1 🧠 Tool `create_subtask` con schema estricto: `{id, description, acceptance: string[], depends_on: string[], allowed_tools: string[], topic_key?: string}`. Planner llama N veces → cada call validada por el SDK antes de llegar al código. `src/agents/planner.ts` refactoreado. **2026-05-28** → `CREATE_SUBTASK_TOOL` + `planWithFunctionCalling()` + `generatePlan()` auto-detect. 194 tests · 0 fail.
 - [x] S23.2 ⚡ Fallback a parser YAML actual para providers sin tool support. Detectar en runtime: si el provider/modelo reporta tool use → function calling; si no → YAML. Transparente para el caller.
 - [x] S23.3 ⚡ Tests: plan de 3 sub-tareas via function calling → schema correcto sin parsing; modelo sin tool support → fallback YAML funcional; schema inválido → error claro con campo afectado.
 - [x] S23.4 ⚡ Commit `feat(planner): function calling + YAML fallback`
@@ -69,7 +69,7 @@ Tres ejes: (1) `suggestContext` más preciso con embeddings semánticos, (2) pla
 > y el archivo clave es `src/billing/processor.ts` sin la palabra "stripe", no lo encuentra.
 
 - [x] S24.1 ⚡ Migración: columna `embedding TEXT` (JSON array float[]) en tabla `files` via `safeAddColumn`.
-- [ ] S24.2 🧠 `EmbeddingProvider` interface + implementaciones: OpenAI `text-embedding-3-small` + Ollama `nomic-embed` (local, sin API key). `src/providers/embeddings.ts`. Mismo patrón que `ProviderClient`.
+- [x] S24.2 🧠 `EmbeddingProvider` interface + implementaciones: OpenAI `text-embedding-3-small` + Ollama `nomic-embed` (local, sin API key). `src/providers/embeddings.ts`. Mismo patrón que `ProviderClient`. **2026-05-28** → `embedOpenAI`, `embedOllama`, `getEmbeddingProvider`, `inferEmbeddingProvider`, `cosine`. 194 tests · 0 fail.
 - [x] S24.3 ⚡ `indexProject()`: si archivo no tiene embedding o SHA1 cambió → llamar provider y guardar. Flag `--no-embed` en `orchestos index` para proyectos sin API key — no rompe flujo existente.
 - [x] S24.4 🧠 `suggestContext()`: embedding del texto de la tarea → cosine similarity → re-rank combinado con graph traversal actual (pesos: embed_score × 0.6 + keyword_score × 0.4). Interfaz CLI idéntica. **2026-05-28** → `cli.ts` + `harness.ts` pasan `taskEmbedding` (con fallback silencioso si no hay API key). Output CLI: `◆` para semantic match. 192 tests · 0 fail.
 - [x] S24.5 ⚡ Métrica de éxito: loguear en cada run si algún archivo de `suggested_context` fue añadido por embedding (no por keyword). Columna `embed_hits INT` en tabla `runs`.

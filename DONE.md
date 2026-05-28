@@ -280,6 +280,62 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 - S21.11 Validación: typecheck limpio + 102/102 tests verdes — 2026-05-27
 - S21.12 Commit `feat(graph,skills): resolvers multi-lenguaje + autoskills fetch` — 2026-05-27
 
+**SEMANA 22 — Sub-agentes con contextos aislados + hardening final**
+- S22.0.1 `allowed_tools?: string[]` en `SkillDef` + validador + 11 skills actualizadas — 2026-05-28
+- S22.0.2 `src/agents/sub-task-schema.ts` — `SubTaskDef`, `SubTaskPlan`, `validateSubTaskPlan()`, `topoSort()`, cycle detection (Kahn) — 2026-05-28
+- S22.0.3 Migración `memory_entries` + `src/db/memory.ts`: `upsertMemory` / `getMemory` / `listByScope` — 2026-05-28
+- S22.1 `src/agents/sub-agent.ts` — `SubTaskStatus`, `SubTask`, `SubagentResult`, `createSubTask`, `applyResult`, `shouldSkip`, `isRetriable` — 2026-05-28
+- S22.2 `src/agents/planner.ts` — parser YAML robusto + validación contra schema S22.0.2 — 2026-05-28
+- S22.3 `src/agents/context-isolation.ts` — `buildIsolatedContext`, `sliceContext`, `selectMemories`, `extractKeywords`, `MAX_CONTEXT_CHARS=8000` — 2026-05-28
+- S22.4 Scheduler: orden topológico por `depends_on`, herencia provider/model del padre, secuencial — 2026-05-28
+- S22.5 QA en cascada: sub-task falla → padre `failed`, dependientes → `skipped` con razón explícita — 2026-05-28
+- S22.5a apply-progress merge: topic_key existente → instrucción MERGE en prompt + `upsertMemory` post-éxito — 2026-05-28
+- S22.6 `orchestos task run --expand <plan-task-id>` — 2026-05-28
+- S22.7 4 escenarios de test: linear fail→rollback, DAG no-linear, re-ejecución merge, tool-violation — 2026-05-28
+- S22.8 `src/agents/hardening.ts` — `withSubTaskTimeout` (5 min), `ToolCallCounter` (20 calls → `timed_out`), `createWorktreeWithRetry` (exp. backoff), `withRateLimitRetry` — 2026-05-28
+- S22.9 `docs/AGENTS.md` — flujo completo + diagrama DAG de una tarea plan — 2026-05-28
+- S22.10 Smoke real: write-greeting (428in/269out, 16s) → write-response (430in/152out, 28s) · `memory_entries` escritas · 44s total — 2026-05-28
+- S22.11 README + CHANGELOG — resumen Mes 5 con sub-agentes, context isolation, memoria persistente, tool policy — 2026-05-28
+- S22.12 Validación: 110 tests · 0 fail · 8 archivos + smoke S22 verde — 2026-05-28
+- S22.13 Commit `cd8526e feat(smoke): S22.10 smoke real sub-agentes + cierre S22` — 2026-05-28
+- Bug fix: `selectMemories` resuelve `depends_on` IDs → `topic_keys` via `allSubTasks` — 2026-05-28
+
+**Decisiones de diseño Mes 5 (S19–S22)**
+- Worktrees reemplazan snapshot/restore — `restoreContents()` eliminado.
+- Spec es opcional por defecto, obligatorio si `requireSpec: true` en config — adopción gradual.
+- autoskills = HTTP fetch al raw de GitHub — sin npx, sin runtime externo.
+- Resolvers de imports son best-effort — `to_file_id = null` sigue siendo válido.
+- Sub-agentes solo si S19 cierra limpio — worktrees son prerequisito no negociable.
+- Memoria de sub-agentes solo en `memory_entries` — nunca archivos .md — evita race conditions.
+- Tool policy es verificación dura en harness, no sugerencia al modelo.
+- Dogfooding: 5 tareas reales ejecutadas durante el mes (bitácora en `docs/E2E.md`).
+
+**Métrica Mes 5 — SÍ (2026-05-28)**
+Sub-agentes con context isolation + memoria persistente + tool policy funcionando.
+5 ejecuciones reales registradas en `docs/E2E.md` (hello-world × 2, bun test suite, smoke-greeting, smoke-response).
+
+---
+
+### MES 6 — IA con ROI demostrable (parcial: S23–S24)
+
+**SEMANA 23 — Pre-flight Mes 6 + Function calling para el planner**
+- S23.0.1 `mergeWorktreeBack`: `--ff-only` falla → intenta `git rebase <base>` + retry; si rebase falla → mensaje claro con instrucción manual. Sin el fix, worktrees quedaban colgados entre sesiones — 2026-05-28
+- S23.0.2 `src/hooks/context-monitor.ts`: `checkContextHealth()` retorna warnings estructurados (context_warning <35%, context_critical <25%, cost_notice >$5, loop_detected ≥3 herramienta seguida, scope_creep >20 archivos). `shouldCheck()` con debounce de 5 calls. Integrado en harness post-enforce — 2026-05-28
+- S23.1 `CREATE_SUBTASK_TOOL` en `src/agents/planner.ts`: schema estricto con `id`, `description`, `acceptance[]`, `depends_on[]`, `allowed_tools[]`, `topic_key?`, `output?`, `input?`. Validación por SDK antes de llegar al código — 2026-05-28
+- S23.2 `generatePlan()`: detecta en runtime si el provider soporta tool calling → function calling; si no → YAML fallback. Transparente para el caller — 2026-05-28
+- S23.3 `src/__tests__/planner-fc.test.ts`: plan de 3 sub-tareas via function calling → schema correcto; modelo sin tool support → fallback YAML funcional; schema inválido → error con campo afectado — 2026-05-28
+- S23.4 Commit `feat(planner): function calling + YAML fallback` — 2026-05-28
+
+**SEMANA 24 — Embeddings semánticos en `suggestContext`**
+- S24.1 Migración SQLite: columna `embedding TEXT` (JSON array float[]) en tabla `files` via `safeAddColumn` — 2026-05-28
+- S24.2 `src/providers/embeddings.ts`: `EmbeddingProvider` interface + `embedOpenAI` (text-embedding-3-small, $0.02/1M) + `embedOllama` (nomic-embed-text, local, sin API key) + `getEmbeddingProvider()` registry + `inferEmbeddingProvider()` + `cosine()` utility — 2026-05-28
+- S24.3 `indexProject()`: si archivo no tiene embedding o SHA1 cambió → llama provider y guarda. Flag `--no-embed` en `orchestos index` — flujo existente sin API key intacto — 2026-05-28
+- S24.4 `suggestContext()`: embedding de la tarea → cosine similarity → re-rank `embed_score×0.6 + keyword_score×0.4`. Razón `embedding` para archivos encontrados solo por coseno. CLI: `◆` para semantic match. `cli.ts` + `harness.ts` pasan `taskEmbedding` con fallback silencioso — 2026-05-28
+- S24.5 Columna `embed_hits INT` en tabla `runs`. Harness devuelve `embedHits` en `withSuggestedInput` — 2026-05-28
+- S24.6 `src/__tests__/suggest.test.ts` (15 tests): legacy keyword path, cosine path, threshold exclusion, combined score formula, NULL embeddings, topN — 2026-05-28
+- Validación final: 194 tests · 0 fail — 2026-05-28
+- Commit `feat(graph): embeddings semánticos en suggestContext + embed_hits tracking` — 2026-05-28
+
 ---
 
 ## Sección 2 — Ideas implementadas (provenientes de IDEAS.md)
@@ -364,3 +420,47 @@ Bug encontrado + corregido: JVM wildcard regex (`java.util.*`), YAML quoting par
 Convención `⚡` / `🧠` activa en PLAN.md para delegar entre modelos.
 `executor` field en tasks.yaml es el primer eslabón concreto.
 `planner_model` / `executor_model` en tasks.yaml → implementado en S15.
+
+### Sub-agentes con contextos aislados — S22 (2026-05-28)
+Proveniente de IDEAS.md "Sub-agentes con contextos aislados".
+Tarea "plan" genera sub-tareas via `src/agents/planner.ts`. Cada sub-tarea recibe
+contexto aislado (slice de CONTEXT.md + memories filtradas por topic_key + spec propio).
+Sub-agentes ejecutan en worktrees hijos. QA en cascada: un fallo cancela dependientes.
+Smoke real: write-greeting→write-response (depends_on), ambas pasaron, memory_entries escritas.
+
+### allowed_tools en SkillDef — S22.0.1 (2026-05-28)
+Proveniente de inspiración DeerFlow (skills con tool policy) en IDEAS.md.
+Campo `allowed_tools?: string[]` en `SkillDef` (`src/skills/registry.ts`).
+Validador rechaza tools no en la lista — política dura en el harness, no sugerencia al modelo.
+Las 11 skills existentes actualizadas con sus listas.
+
+### Tabla memory_entries + topic_key upsert — S22.0.3 (2026-05-28)
+Proveniente de patrón Engram (topic_key upsert) en IDEAS.md sección "Inspiración externa".
+`src/db/memory.ts`: `upsertMemory()` / `getMemory()` / `listByScope()`.
+`UNIQUE(project_id, topic_key)` — re-ejecución actualiza en lugar de duplicar.
+Scope: `session | project | global`. Índice por `(project_id, scope)`.
+
+### selectMemories: resolución ID→topic_key — S22 (2026-05-28)
+Bug corregido antes de Mes 6: `depends_on` contiene IDs de sub-tasks (e.g. "write-greeting"),
+no topic_keys (e.g. "smoke-greeting"). Fix: mapear via `allSubTasks.find(t => t.id === depId)?.topic_key`.
+Sin el fix, los sub-tasks que dependen de un predecessor nunca recibían su memory en contexto.
+
+### Function calling para el planner — S23 (2026-05-28)
+Proveniente de IDEAS.md "Function calling para planner".
+`planWithFunctionCalling()`: LLM llama `create_subtask` N veces, cada call validada por el SDK
+antes de llegar al código — elimina errores de indentación YAML estructuralmente.
+`generatePlan()`: auto-detect en runtime; providers sin tool support → YAML fallback transparente.
+`src/providers/tool-call.ts`: `callWithTools()` + `supportsToolCalling()` registry.
+
+### Context monitor — S23.0.2 (2026-05-28)
+Proveniente de IDEAS.md "Context monitor" (patrón ECC ecc-context-monitor.js).
+`src/hooks/context-monitor.ts`: 5 señales de salud (context%, cost, loop, scope_creep).
+No bloquea — emite warnings estructurados. Debounce de 5 calls para no saturar logs.
+21 tests. Integrado en harness post-`enforceContract`.
+
+### Embeddings semánticos en suggestContext — S24 (2026-05-28)
+Proveniente de IDEAS.md "Embeddings semánticos en suggestContext".
+`EmbeddingProvider`: OpenAI text-embedding-3-small + Ollama nomic-embed-text (local, sin API key).
+`suggestContext()` con re-rank `embed×0.6 + keyword×0.4`. Files encontrados solo por coseno → reason=`embedding`.
+`--no-embed` en `orchestos index` — proyectos sin API key no se rompen.
+Columna `embed_hits` en `runs` para medir ROI real en producción.
