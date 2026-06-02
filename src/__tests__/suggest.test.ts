@@ -87,15 +87,15 @@ describe('suggestContext — keyword-only (legacy)', () => {
   it('result reason is direct for keyword matches', () => {
     insertFile(1, 'src/payment/stripe.ts')
     const r = suggestContext(pid, 'payment stripe')
-    expect(r[0].reason).toBe('direct')
-    expect(r[0].embedScore).toBeUndefined()
+    expect(r[0]!.reason).toBe('direct')
+    expect(r[0]!.embedScore).toBeUndefined()
   })
 
   it('higher keyword match scores rank first', () => {
     insertFile(1, 'src/billing/processor.ts')   // 2 tokens → score 6
     insertFile(2, 'src/billing/service.ts')      // 1 token  → score 3
     const r = suggestContext(pid, 'billing processor')
-    expect(r[0].path).toBe('src/billing/processor.ts')
+    expect(r[0]!.path).toBe('src/billing/processor.ts')
   })
 })
 
@@ -122,22 +122,22 @@ describe('suggestContext — embedding path', () => {
     const taskEmb = unitVec(0)
     insertFile(1, 'src/zzzz/zzzz.ts', unitVec(0))  // no keyword match
     const r = suggestContext(pid, 'xyz', { taskEmbedding: taskEmb })
-    expect(r[0].reason).toBe('embedding')
+    expect(r[0]!.reason).toBe('embedding')
   })
 
   it('reason is "direct" for files with keyword match (even if they also have embedding)', () => {
     const taskEmb = unitVec(0)
     insertFile(1, 'src/billing/stripe.ts', unitVec(0))  // both keyword + embed match
     const r = suggestContext(pid, 'billing stripe', { taskEmbedding: taskEmb })
-    expect(r[0].reason).toBe('direct')
+    expect(r[0]!.reason).toBe('direct')
   })
 
   it('embedScore is returned in results', () => {
     const taskEmb = unitVec(0)
     insertFile(1, 'src/foo/bar.ts', unitVec(0))
     const r = suggestContext(pid, 'xyz', { taskEmbedding: taskEmb })
-    expect(typeof r[0].embedScore).toBe('number')
-    expect(r[0].embedScore!).toBeGreaterThan(0.9)
+    expect(typeof r[0]!.embedScore).toBe('number')
+    expect(r[0]!.embedScore!).toBeGreaterThan(0.9)
   })
 
   it('file with NULL embedding gets embed_score=0, can still rank via keyword', () => {
@@ -146,7 +146,7 @@ describe('suggestContext — embedding path', () => {
     const r = suggestContext(pid, 'billing stripe', { taskEmbedding: taskEmb })
     // Should still be found via keyword (keyword_score > 0)
     expect(r.some(x => x.path === 'src/billing/stripe.ts')).toBe(true)
-    expect(r[0].embedScore).toBe(0)
+    expect(r[0]!.embedScore).toBe(0)
   })
 
   it('files below EMBED_THRESHOLD with no keyword are excluded', () => {
@@ -189,7 +189,7 @@ describe('suggestContext — embedding path', () => {
     expect(posA).toBeGreaterThanOrEqual(0)
     expect(posB).toBeGreaterThanOrEqual(0)
     // file-A: 0.99×0.6 = 0.594; file-B: 0.5×0.4 = 0.2 (normalized keyword)
-    expect(r[posA].score).toBeGreaterThan(r[posB].score)
+    expect(r[posA]!.score).toBeGreaterThan(r[posB]!.score)
   })
 
   it('topN is respected in embedding path', () => {
@@ -208,6 +208,8 @@ describe('suggestContext — embedding path', () => {
       task_class: 'implement',
       model: 'test-model',
       provider: 'test',
+      skill_id: null,
+      task_id: null,
       allowed_outputs: null,
       files_attempted: null,
       files_authorized: null,

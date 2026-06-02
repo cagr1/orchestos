@@ -8,6 +8,7 @@ import { csharpResolver } from './resolvers/csharp.ts'
 import { rustResolver } from './resolvers/rust.ts'
 import { goResolver } from './resolvers/go.ts'
 import { javaResolver } from './resolvers/java.ts'
+import { inferEmbeddingProvider } from '../providers/embeddings.ts'
 
 const INDEX_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs,py,cs,rs,go,java,kt,rb,php,swift,scala,ex,exs,hs,lua,pl,pm}'
 const IGNORE = ['node_modules/**', 'dist/**', '.next/**', '.git/**', 'runs/**', 'bin/**', 'obj/**', 'target/**']
@@ -17,11 +18,16 @@ registerResolver(goResolver)
 registerResolver(javaResolver)
 const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '/index.ts', '/index.js']
 
+export interface IndexOpts {
+  noEmbed?: boolean
+}
+
 export interface IndexResult {
   files: number
   edges: number
   changed: number
   removed: number
+  embeddings: number
 }
 
 interface ImportEdge {
@@ -30,7 +36,9 @@ interface ImportEdge {
   raw: string
 }
 
-export async function indexProject(projectRoot: string, projectId: string): Promise<IndexResult> {
+const EMBED_CHUNK_MAX = 8000
+
+export async function indexProject(projectRoot: string, projectId: string, opts?: IndexOpts): Promise<IndexResult> {
   const files = (await glob(INDEX_GLOB, {
     cwd: projectRoot,
     ignore: IGNORE,
@@ -53,8 +61,11 @@ export async function indexProject(projectRoot: string, projectId: string): Prom
     }
   }
 
+  const embedProvider = opts?.noEmbed ? null : inferEmbeddingProvider('openrouter')
+
   let changed = 0
   let edges = 0
+  let embeddings = 0
   for (const file of files) {
     const fullPath = join(projectRoot, file)
     const content = readFileSync(fullPath, 'utf-8')
@@ -64,10 +75,28 @@ export async function indexProject(projectRoot: string, projectId: string): Prom
       'SELECT id, sha1 FROM files WHERE project_id = ? AND path = ?'
   ).get(projectId, file)
 
-    if (previous?.sha1 === sha1) continue
+    if (previous?.sha1 === sha1) {
+      // unchanged but check if embedding is missing
+      if (embedProvider && !hasEmbedding(projectId, file)) {
+        const emb = await embedFile(embedProvider, file, content)
+        if (emb) {
+          saveEmbedding(projectId, file, emb)
+          embeddings++
+        }
+      }
+      continue
+    }
 
     const fileId = upsertFile(projectId, file, languageFor(file), sha1, size, now)
     changed++
+
+    if (embedProvider) {
+      const emb = await embedFile(embedProvider, file, content)
+      if (emb) {
+        saveEmbedding(projectId, file, emb)
+        embeddings++
+      }
+    }
 
     db.run('DELETE FROM code_edges WHERE from_file_id = ?', [fileId])
 
@@ -87,7 +116,7 @@ export async function indexProject(projectRoot: string, projectId: string): Prom
     }
   }
 
-  return { files: files.length, edges, changed, removed }
+  return { files: files.length, edges, changed, removed, embeddings }
 }
 
 function upsertFile(
@@ -273,4 +302,34 @@ function languageFor(file: string): string {
 
 function toPosix(path: string): string {
   return path.replace(/\\/g, '/')
+}
+
+// -- Embedding helpers (S24.3) ------------------------------------------------
+
+function hasEmbedding(projectId: string, file: string): boolean {
+  const row = db.query<{ embedding: string | null }, [string, string]>(
+    'SELECT embedding FROM files WHERE project_id = ? AND path = ?'
+  ).get(projectId, file)
+  return row?.embedding != null && row.embedding !== ''
+}
+
+async function embedFile(
+  provider: { embed(texts: string[]): Promise<{ embeddings: number[][] }> },
+  file: string,
+  content: string,
+): Promise<number[] | null> {
+  const text = `File: ${file}\n\n${content.slice(0, EMBED_CHUNK_MAX)}`
+  try {
+    const res = await provider.embed([text])
+    return res.embeddings[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+function saveEmbedding(projectId: string, file: string, embedding: number[]): void {
+  db.run(
+    `UPDATE files SET embedding = ? WHERE project_id = ? AND path = ?`,
+    [JSON.stringify(embedding), projectId, file],
+  )
 }
