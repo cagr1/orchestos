@@ -77,11 +77,11 @@ Añadir formato WHEN/THEN generado por `spec draft` y chequeado por `spec lint`.
 Cuando una tarea llega a `completed`, el spec queda visible en `spec list` mezclado con specs activos.
 `orchestos spec archive <task-id>` mueve el spec a `.orchestos/specs/archive/YYYY-MM-DD-{id}.md`.
 
-- [ ] S29.1 `src/spec/archive.ts` — mueve archivo + actualiza metadata `status: archived, archivedAt`
-- [ ] S29.2 `orchestos spec archive <task-id>` comando
-- [ ] S29.3 `orchestos spec list` — por defecto oculta archived; `--all` los muestra
-- [ ] S29.4 Tests: archive mueve archivo, list --all muestra archived, list sin flag los oculta
-- [ ] S29.5 Validación: typecheck limpio + todos los tests pasan
+- [x] S29.1 `src/spec/archive.ts` — mueve archivo + actualiza metadata `status: archived, archivedAt` — 2026-06-02
+- [x] S29.2 `orchestos spec archive <task-id>` comando — 2026-06-02
+- [x] S29.3 `orchestos spec list` — por defecto oculta archived; `--all` los muestra — 2026-06-02
+- [x] S29.4 Tests: archive mueve archivo, list --all muestra archived, list sin flag los oculta (10 tests) — 2026-06-02
+- [x] S29.5 Validación: typecheck limpio + 240 tests pasan — 2026-06-02
 
 ### S30 — `runs analyze` — aprendizaje continuo v1 🧠
 

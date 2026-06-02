@@ -11,9 +11,10 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 
 
 export interface SpecFrontmatter {
   id: string
-  status: 'draft' | 'approved'
+  status: 'draft' | 'approved' | 'archived'
   createdAt: string
   approvedAt?: string
+  archivedAt?: string
   clarify: 'pending' | 'resolved' | 'none'
 }
 
@@ -47,13 +48,18 @@ export function saveSpec(root: string, spec: Spec): void {
   writeFileSync(filePath, serializeSpec(spec), 'utf-8')
 }
 
-/** List all specs in the project. */
-export function listSpecs(root: string): Spec[] {
+/**
+ * List specs in the project.
+ * @param includeArchived - include archived specs (default false)
+ */
+export function listSpecs(root: string, includeArchived = false): Spec[] {
   const dir = join(root, SPECS_DIR)
   if (!existsSync(dir)) return []
 
-  const files = readdirSync(dir).filter(f => f.endsWith('.md'))
   const specs: Spec[] = []
+
+  // Active specs in the root specs dir
+  const files = readdirSync(dir).filter(f => f.endsWith('.md'))
   for (const file of files) {
     try {
       const text = readFileSync(join(dir, file), 'utf-8')
@@ -62,6 +68,22 @@ export function listSpecs(root: string): Spec[] {
       // skip malformed files
     }
   }
+
+  if (!includeArchived) return specs.filter(s => s.frontmatter.status !== 'archived')
+
+  // Also load archived specs from archive subdirectory
+  const archiveDir = join(dir, 'archive')
+  if (existsSync(archiveDir)) {
+    for (const file of readdirSync(archiveDir).filter(f => f.endsWith('.md'))) {
+      try {
+        const text = readFileSync(join(archiveDir, file), 'utf-8')
+        specs.push(parseSpec(text))
+      } catch {
+        // skip malformed files
+      }
+    }
+  }
+
   return specs
 }
 
@@ -78,15 +100,17 @@ function parseSpec(text: string): Spec {
 
   const raw = parseYaml(yamlText) as Record<string, unknown>
 
+  const rawStatus = raw.status as string
   const frontmatter: SpecFrontmatter = {
     id:         String(raw.id ?? ''),
-    status:     (raw.status === 'approved' ? 'approved' : 'draft'),
+    status:     (['approved', 'archived'].includes(rawStatus) ? rawStatus as 'approved' | 'archived' : 'draft'),
     createdAt:  String(raw.createdAt ?? new Date().toISOString()),
     clarify:    (['pending', 'resolved', 'none'].includes(raw.clarify as string)
                   ? raw.clarify as 'pending' | 'resolved' | 'none'
                   : 'none'),
   }
   if (raw.approvedAt) frontmatter.approvedAt = String(raw.approvedAt)
+  if (raw.archivedAt) frontmatter.archivedAt = String(raw.archivedAt)
 
   return { frontmatter, body }
 }
@@ -99,6 +123,7 @@ function serializeSpec(spec: Spec): string {
     clarify:   spec.frontmatter.clarify,
   }
   if (spec.frontmatter.approvedAt) fm.approvedAt = spec.frontmatter.approvedAt
+  if (spec.frontmatter.archivedAt) fm.archivedAt = spec.frontmatter.archivedAt
 
   const yamlText = yamlStringify(fm).trimEnd()
   return `---\n${yamlText}\n---\n${spec.body}`

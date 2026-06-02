@@ -1061,11 +1061,13 @@ spec
 spec
   .command('list [path]')
   .description('List all specs with id, status, clarify')
-  .action((targetPath?: string) => {
+  .option('--all', 'Include archived specs')
+  .action((targetPath: string | undefined, opts: { all?: boolean }) => {
     const root = resolve(targetPath ?? '.')
-    const specs = listSpecs(root)
+    const specs = listSpecs(root, opts.all ?? false)
     if (specs.length === 0) {
-      console.log('[spec] No specs found. Run: orchestos spec create <task-id>')
+      const hint = opts.all ? '' : ' (use --all to include archived)'
+      console.log(`[spec] No specs found${hint}. Run: orchestos spec create <task-id>`)
       return
     }
     const COL_ID = 28
@@ -1138,8 +1140,9 @@ spec
     }
   })
 
-// S28.3 — spec lint
+// S28.3 — spec lint + S29 — spec archive
 import { lintSpec } from './spec/lint.ts'
+import { archiveSpec } from './spec/archive.ts'
 
 spec
   .command('lint <task-id>')
@@ -1163,6 +1166,22 @@ spec
       console.log(`  Hint: ${f.suggestion}`)
     }
     process.exit(1)
+  })
+
+// S29.2 — spec archive command
+spec
+  .command('archive <task-id>')
+  .description('Archive a completed spec (moved to .orchestos/specs/archive/YYYY-MM-DD-{id}.md)')
+  .option('--project <path>', 'Project root (defaults to cwd)')
+  .action((taskId: string, opts: { project?: string }) => {
+    const root = resolve(opts.project ?? '.')
+    try {
+      const result = archiveSpec(root, taskId)
+      console.log(`[spec] Archived "${taskId}" → ${result.archivedPath}`)
+    } catch (e: any) {
+      console.error(`[spec] Archive failed: ${e.message}`)
+      process.exit(1)
+    }
   })
 
 // ── constitution ──────────────────────────────────────────────────────────────
