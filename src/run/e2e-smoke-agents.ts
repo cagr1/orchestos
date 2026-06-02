@@ -149,6 +149,7 @@ async function main() {
       (st, worktree) => executeSubTask(st, worktree, {
         projectId,
         parentExecutor: 'openrouter',
+        allSubTasks: subTasks,
       }),
     )
 

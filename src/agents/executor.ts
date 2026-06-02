@@ -34,6 +34,12 @@ export interface ExecutorOpts {
   parentExecutor?: TaskExecutor
   /** Fallback model when SubTask has no executor_model override. */
   parentModel?: string
+  /**
+   * Full sub-task list for the current plan — used by selectMemories to resolve
+   * depends_on IDs → topic_keys when fetching predecessor memory entries (S22.3).
+   * Without this, the predecessor-memory path in selectMemories silently never fires.
+   */
+  allSubTasks?: SubTask[]
 }
 
 // ---------------------------------------------------------------------------
@@ -54,7 +60,7 @@ export async function executeSubTask(
   const t0 = performance.now()
 
   // 1. Build isolated context (slice of CONTEXT.md + session memories + spec)
-  const isolatedCtx = buildIsolatedContext(st, worktree.path, opts.projectId)
+  const isolatedCtx = buildIsolatedContext(st, worktree.path, opts.projectId, opts.allSubTasks)
 
   // 2. Convert SubTask → Task
   const task = subTaskToTask(st, opts)
