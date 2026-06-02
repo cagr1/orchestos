@@ -1138,6 +1138,33 @@ spec
     }
   })
 
+// S28.3 — spec lint
+import { lintSpec } from './spec/lint.ts'
+
+spec
+  .command('lint <task-id>')
+  .description('Check acceptance criteria for WHEN/THEN format (advisory, does not block)')
+  .option('--project <path>', 'Project root (defaults to cwd)')
+  .action((taskId: string, opts: { project?: string }) => {
+    const root = resolve(opts.project ?? '.')
+    const s = loadSpec(root, taskId)
+    if (!s) {
+      console.error(`[spec] No spec found for "${taskId}"`)
+      process.exit(1)
+    }
+    const result = lintSpec(s)
+    if (result.findings.length === 0) {
+      console.log(`[spec lint] ${taskId}: all ${result.structuredCount} criteria are in WHEN/THEN format ✓`)
+      return
+    }
+    console.log(`[spec lint] ${taskId}: ${result.freeFormCount} unstructured criteria (${result.structuredCount} already WHEN/THEN)`)
+    for (const f of result.findings) {
+      console.log(`\n  Criterion: "${f.criterion}"`)
+      console.log(`  Hint: ${f.suggestion}`)
+    }
+    process.exit(1)
+  })
+
 // ── constitution ──────────────────────────────────────────────────────────────
 import { loadConstitution, scaffoldConstitutionMd } from './spec/constitution.ts'
 import { needsClarify, clarifyReason } from './spec/clarify.ts'

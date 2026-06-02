@@ -10,7 +10,11 @@ import { join } from 'path'
 import { getProvider } from '../providers/index.ts'
 import { loadOrcheConfig } from '../config/load.ts'
 
-const SYSTEM_PROMPT = `Eres un arquitecto de software. Genera una spec técnica para la tarea dada. Los criterios de aceptación deben ser verificables y concretos — nunca vagos como "funciona correctamente". Responde SOLO con el body markdown (sin frontmatter): secciones Contexto, Descripción, Criterios de aceptación, Notas.`
+const SYSTEM_PROMPT = `Eres un arquitecto de software. Genera una spec técnica para la tarea dada.
+Los criterios de aceptación DEBEN estar en formato WHEN/THEN:
+  - WHEN <condición observable> THEN <resultado esperado>
+Nunca uses criterios vagos como "funciona correctamente" o "la función retorna algo".
+Responde SOLO con el body markdown (sin frontmatter): secciones Contexto, Descripción, Criterios de aceptación, Notas.`
 
 /**
  * Draft a spec body for the given task using the LLM.
@@ -48,7 +52,7 @@ export async function draftSpec(root: string, taskId: string, taskDescription: s
     '<explain what must be done>',
     '',
     '## Criterios de aceptación',
-    '- [ ] <concrete, verifiable criterion>',
+    '- [ ] WHEN <trigger/condition> THEN <observable result>',
     '',
     '## Notas',
     '<any relevant notes>',

@@ -63,6 +63,7 @@ export async function runQA(opts: {
   const system = hasCriteria ? [
     'You are a QA reviewer. You receive a task description, specific acceptance criteria, and the files an LLM wrote.',
     'Evaluate EACH criterion independently. A single failing criterion makes the whole verdict "fail".',
+    'For criteria in WHEN/THEN format: verify that the implementation handles the WHEN condition and produces the THEN result.',
     'Respond with ONLY a JSON object — no markdown fences, no prose:',
     '{ "verdict": "pass" | "fail", "reason": "one short sentence summarizing result", "criteria": [ { "text": "...", "pass": true | false } ] }',
     'The "criteria" array must have one entry per criterion, in the same order as given.',

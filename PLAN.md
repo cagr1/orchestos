@@ -65,12 +65,12 @@ Integrarla en el harness/executor para que inyecte warnings en el prompt del age
 Hoy `acceptance_criteria[]` son strings libres. El QA LLM los evalúa sin estructura.
 Añadir formato WHEN/THEN generado por `spec draft` y chequeado por `spec lint`.
 
-- [ ] S28.1 Actualizar prompt de `spec draft` — LLM genera criterios en formato WHEN/THEN
-- [ ] S28.2 `src/spec/lint.ts` — detecta criterios sin formato WHEN/THEN, devuelve lista
-- [ ] S28.3 `orchestos spec lint <task-id>` — imprime criterios que no tienen formato estructurado
-- [ ] S28.4 QA prompt actualizado: cuando el criterio tiene WHEN/THEN, evalúa escenario completo
-- [ ] S28.5 Tests: spec lint identifica criterios libres vs WHEN/THEN
-- [ ] S28.6 Validación: typecheck limpio + todos los tests pasan
+- [x] S28.1 Actualizar prompt de `spec draft` — LLM genera criterios en formato WHEN/THEN — 2026-06-02
+- [x] S28.2 `src/spec/lint.ts` — detecta criterios sin formato WHEN/THEN, devuelve lista — 2026-06-02
+- [x] S28.3 `orchestos spec lint <task-id>` — imprime criterios que no tienen formato estructurado — 2026-06-02
+- [x] S28.4 QA prompt actualizado: cuando el criterio tiene WHEN/THEN, evalúa escenario completo — 2026-06-02
+- [x] S28.5 Tests: spec lint identifica criterios libres vs WHEN/THEN (12 tests) — 2026-06-02
+- [x] S28.6 Validación: typecheck limpio + 230 tests pasan — 2026-06-02
 
 ### S29 — Spec archive ⚡
 
