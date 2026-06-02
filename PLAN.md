@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-7-cerrado
+status: mes-8-pendiente
 ---
 
 # OrchestOS — Plan activo
@@ -46,59 +46,5 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 - [x] **SÍ — Mes 7 cerrado (2026-06-02)**
   S27 context-monitor wired (warnings persistidos en DB + visibles en `runs --detail`), S28 WHEN/THEN acceptance criteria (`spec lint` + draft prompt + QA prompt), S29 spec archive (`spec archive` + `spec list --all`), S30 aprendizaje continuo v1 (`runs --analyze` + hook post-completion en `task run`). 256 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
-
----
-
-**Tema**: hacer el pipeline auto-consciente (sabe cuándo está en problemas) y más preciso (criterios QA sin ambigüedad).
-
-**Métrica de éxito**: context-monitor fires al menos una vez en un run largo real + QA tasa de falsos positivos baja al introducir WHEN/THEN.
-
-### S27 — Context monitor wired en executor ⚡
-
-La lógica `checkContextHealth` existe en `src/hooks/context-monitor.ts` pero nunca se llama.
-Integrarla en el harness/executor para que inyecte warnings en el prompt del agente cuando detecte riesgo.
-
-- [x] S27.1 Añadir `monitorCallCount` y `filesModified` tracking en `TaskExecutor` — 2026-06-02
-- [x] S27.2 En cada round-trip LLM → llamar `shouldCheck` + `checkContextHealth` con estado real — 2026-06-02
-- [x] S27.3 Warnings → inyectar como bloque advisory en el prompt del siguiente turn (no bloquean) — 2026-06-02
-- [x] S27.4 Columna `context_warnings_json` en tabla `runs` — almacenar warnings disparados — 2026-06-02
-- [x] S27.5 `orchestos runs --detail <id>` muestra context warnings si los hubo — 2026-06-02
-- [x] S27.6 Tests: 4 escenarios (sin warnings, context_critical, loop_detected, scope_creep) — 2026-06-02
-- [x] S27.7 Validación: typecheck limpio + 218 tests pasan — 2026-06-02
-
-### S28 — WHEN/THEN en acceptance_criteria (OpenSpec pattern) ⚡
-
-Hoy `acceptance_criteria[]` son strings libres. El QA LLM los evalúa sin estructura.
-Añadir formato WHEN/THEN generado por `spec draft` y chequeado por `spec lint`.
-
-- [x] S28.1 Actualizar prompt de `spec draft` — LLM genera criterios en formato WHEN/THEN — 2026-06-02
-- [x] S28.2 `src/spec/lint.ts` — detecta criterios sin formato WHEN/THEN, devuelve lista — 2026-06-02
-- [x] S28.3 `orchestos spec lint <task-id>` — imprime criterios que no tienen formato estructurado — 2026-06-02
-- [x] S28.4 QA prompt actualizado: cuando el criterio tiene WHEN/THEN, evalúa escenario completo — 2026-06-02
-- [x] S28.5 Tests: spec lint identifica criterios libres vs WHEN/THEN (12 tests) — 2026-06-02
-- [x] S28.6 Validación: typecheck limpio + 230 tests pasan — 2026-06-02
-
-### S29 — Spec archive ⚡
-
-Cuando una tarea llega a `completed`, el spec queda visible en `spec list` mezclado con specs activos.
-`orchestos spec archive <task-id>` mueve el spec a `.orchestos/specs/archive/YYYY-MM-DD-{id}.md`.
-
-- [x] S29.1 `src/spec/archive.ts` — mueve archivo + actualiza metadata `status: archived, archivedAt` — 2026-06-02
-- [x] S29.2 `orchestos spec archive <task-id>` comando — 2026-06-02
-- [x] S29.3 `orchestos spec list` — por defecto oculta archived; `--all` los muestra — 2026-06-02
-- [x] S29.4 Tests: archive mueve archivo, list --all muestra archived, list sin flag los oculta (10 tests) — 2026-06-02
-- [x] S29.5 Validación: typecheck limpio + 240 tests pasan — 2026-06-02
-
-### S30 — `runs analyze` — aprendizaje continuo v1 🧠
-
-Después de runs completados, analizar patrones en el historial para detectar recurrencias.
-Output: `PatternSuggestion[]` mostradas al usuario — no ejecuta nada automáticamente.
-
-- [x] S30.1 `src/analyze/patterns.ts` — agrupa runs por QA outcome, extrae patrones frecuentes — 2026-06-02
-- [x] S30.2 LLM call (Haiku) analiza patrones → `PatternSuggestion[]` estructurado con `fix_hint` — 2026-06-02
-- [x] S30.3 `orchestos runs --analyze [--last <n>]` — imprime sugerencias — 2026-06-02
-- [x] S30.4 `orchestos task run` — al completar, sugiere si qaFail > 1 en los últimos 20 runs — 2026-06-02
-- [x] S30.5 Tests: parser PatternSuggestion, agrupación runs sin LLM call real (16 tests) — 2026-06-02
-- [x] S30.6 Validación: typecheck limpio + 256 tests pasan — 2026-06-02
 
 ---
