@@ -8,13 +8,21 @@ export interface BuiltPrompt {
   userContent: string
 }
 
-export function buildPrompt(task: Task, contextText: string, projectRoot: string, constitutionBlock?: string): BuiltPrompt {
-  const skillGuidelines = loadSkillGuidelines(task.skill)
+export function buildPrompt(
+  task: Task,
+  contextText: string,
+  projectRoot: string,
+  constitutionBlock?: string,
+  skillGuidelines?: string,
+  instinctBlock?: string,
+): BuiltPrompt {
+  const guidelines = skillGuidelines ?? loadSkillGuidelines(task.skill)
 
   const system = [
     contextText || '# Project context\nNo AGENTS.md found.',
     constitutionBlock ?? '',
-    skillGuidelines,
+    guidelines,
+    instinctBlock ?? '',
     `\n## OUTPUT CONTRACT`,
     `You may ONLY write to these files: ${task.output.join(', ')}`,
     `Output each file using EXACTLY this format — nothing else before the first delimiter or after the last:`,

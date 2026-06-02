@@ -32,7 +32,10 @@ export interface SkillDef {
 }
 
 const VALID_TARGETS: SkillTarget[] = ['claude', 'cursor', 'openai']
-const SKILLS_DIR = join(process.cwd(), 'skills')
+
+function getSkillsDir(): string {
+  return join(process.cwd(), 'skills')
+}
 
 export function validateSkill(raw: Record<string, unknown>, filePath: string): SkillDef {
   const err = (msg: string) => { throw new Error(`[skill:${filePath}] ${msg}`) }
@@ -67,12 +70,13 @@ export function loadSkill(filePath: string): SkillDef {
 }
 
 export function listSkillFiles(): string[] {
-  if (!existsSync(SKILLS_DIR)) return []
-  return readdirSync(SKILLS_DIR)
+  const dir = getSkillsDir()
+  if (!existsSync(dir)) return []
+  return readdirSync(dir)
     .filter(f => f.endsWith('.yaml') || f.endsWith('.yml'))
-    .map(f => join(SKILLS_DIR, f))
+    .map(f => join(dir, f))
 }
 
 export function getSkillPath(id: string): string {
-  return join(SKILLS_DIR, `${id}.yaml`)
+  return join(getSkillsDir(), `${id}.yaml`)
 }

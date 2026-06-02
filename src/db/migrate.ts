@@ -156,6 +156,21 @@ export function runMigrations(): void {
     END;
   `)
 
+  // S33.1 — instincts table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS instincts (
+      id          TEXT PRIMARY KEY,
+      trigger     TEXT NOT NULL,
+      action      TEXT NOT NULL,
+      confidence  REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+      source      TEXT NOT NULL CHECK(source IN ('manual', 'auto')),
+      verified    INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_instincts_verified ON instincts(verified);
+    CREATE INDEX IF NOT EXISTS idx_instincts_confidence ON instincts(confidence);
+  `)
+
   // Rebuild FTS5 index on every startup — keeps index consistent if rows were
   // inserted before triggers existed (first migration) or after corruption.
   // Idempotent and fast for the small memory tables this tool uses.

@@ -9,6 +9,12 @@ import { parse as parseYaml, stringify as yamlStringify } from 'yaml'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs'
 
+export interface CapabilitiesContract {
+  added: string[]
+  modified: string[]
+  removed: string[]
+}
+
 export interface SpecFrontmatter {
   id: string
   status: 'draft' | 'approved' | 'archived'
@@ -16,6 +22,7 @@ export interface SpecFrontmatter {
   approvedAt?: string
   archivedAt?: string
   clarify: 'pending' | 'resolved' | 'none'
+  capabilities?: CapabilitiesContract
 }
 
 export interface Spec {
@@ -112,6 +119,16 @@ function parseSpec(text: string): Spec {
   if (raw.approvedAt) frontmatter.approvedAt = String(raw.approvedAt)
   if (raw.archivedAt) frontmatter.archivedAt = String(raw.archivedAt)
 
+  const caps = raw.capabilities
+  if (caps !== undefined && caps !== null && typeof caps === 'object' && !Array.isArray(caps)) {
+    const c = caps as Record<string, unknown>
+    frontmatter.capabilities = {
+      added:    toStringArray(c.added),
+      modified: toStringArray(c.modified),
+      removed:  toStringArray(c.removed),
+    }
+  }
+
   return { frontmatter, body }
 }
 
@@ -125,6 +142,20 @@ function serializeSpec(spec: Spec): string {
   if (spec.frontmatter.approvedAt) fm.approvedAt = spec.frontmatter.approvedAt
   if (spec.frontmatter.archivedAt) fm.archivedAt = spec.frontmatter.archivedAt
 
+  const caps = spec.frontmatter.capabilities
+  if (caps && (caps.added.length > 0 || caps.modified.length > 0 || caps.removed.length > 0)) {
+    fm.capabilities = {
+      ...(caps.added.length    > 0 && { added:    caps.added }),
+      ...(caps.modified.length > 0 && { modified: caps.modified }),
+      ...(caps.removed.length  > 0 && { removed:  caps.removed }),
+    }
+  }
+
   const yamlText = yamlStringify(fm).trimEnd()
   return `---\n${yamlText}\n---\n${spec.body}`
+}
+
+function toStringArray(val: unknown): string[] {
+  if (!Array.isArray(val)) return []
+  return val.filter(v => typeof v === 'string') as string[]
 }

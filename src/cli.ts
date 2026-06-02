@@ -1099,6 +1099,13 @@ spec
     console.log(`clarify:   ${s.frontmatter.clarify}`)
     console.log(`createdAt: ${s.frontmatter.createdAt}`)
     if (s.frontmatter.approvedAt) console.log(`approvedAt: ${s.frontmatter.approvedAt}`)
+    if (s.frontmatter.capabilities) {
+      const c = s.frontmatter.capabilities
+      console.log(`capabilities:`)
+      if (c.added.length)    console.log(`  added:    ${c.added.join(', ')}`)
+      if (c.modified.length) console.log(`  modified: ${c.modified.join(', ')}`)
+      if (c.removed.length)  console.log(`  removed:  ${c.removed.join(', ')}`)
+    }
     console.log('')
     console.log(s.body)
   })
@@ -1117,10 +1124,12 @@ spec
     }
     const COL_ID = 28
     const COL_STATUS = 10
-    console.log(`  ${'ID'.padEnd(COL_ID)} ${'STATUS'.padEnd(COL_STATUS)} CLARIFY`)
-    console.log(`  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_STATUS)} ${'─'.repeat(10)}`)
+    console.log(`  ${'ID'.padEnd(COL_ID)} ${'STATUS'.padEnd(COL_STATUS)} CLARIFY     CAPABILITIES`)
+    console.log(`  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_STATUS)} ${'─'.repeat(10)} ${'─'.repeat(16)}`)
     for (const s of specs) {
-      console.log(`  ${s.frontmatter.id.padEnd(COL_ID)} ${s.frontmatter.status.padEnd(COL_STATUS)} ${s.frontmatter.clarify}`)
+      const caps = s.frontmatter.capabilities
+      const capStr = caps ? `+${caps.added.length} ~${caps.modified.length} -${caps.removed.length}` : ''
+      console.log(`  ${s.frontmatter.id.padEnd(COL_ID)} ${s.frontmatter.status.padEnd(COL_STATUS)} ${s.frontmatter.clarify.padEnd(12)} ${capStr}`)
     }
   })
 
@@ -1173,12 +1182,16 @@ spec
     }
     console.log(`[spec] Drafting spec body for "${taskId}" via LLM...`)
     try {
-      const body = await draftSpecBody(root, taskId, opts.description)
+      const { body, capabilities } = await draftSpecBody(root, taskId, opts.description)
       s.frontmatter.status = 'draft'
       delete s.frontmatter.approvedAt
+      if (capabilities) s.frontmatter.capabilities = capabilities
       s.body = body + '\n'
       saveSpec(root, s)
-      console.log(`[spec] Draft written: ${specPath(root, taskId)}`)
+      const capInfo = capabilities
+        ? ` (added:${capabilities.added.length} modified:${capabilities.modified.length} removed:${capabilities.removed.length})`
+        : ''
+      console.log(`[spec] Draft written: ${specPath(root, taskId)}${capInfo}`)
     } catch (e: any) {
       console.error(`[spec] LLM draft failed: ${e.message}`)
       process.exit(1)
@@ -1205,7 +1218,12 @@ spec
       console.log(`[spec lint] ${taskId}: all ${result.structuredCount} criteria are in WHEN/THEN format ✓`)
       return
     }
-    console.log(`[spec lint] ${taskId}: ${result.freeFormCount} unstructured criteria (${result.structuredCount} already WHEN/THEN)`)
+    if (result.freeFormCount > 0) {
+      console.log(`[spec lint] ${taskId}: ${result.freeFormCount} unstructured criteria (${result.structuredCount} already WHEN/THEN)`)
+    }
+    if (result.deltaIssuesCount > 0) {
+      console.log(`[spec lint] ${taskId}: ${result.deltaIssuesCount} delta header issues`)
+    }
     for (const f of result.findings) {
       console.log(`\n  Criterion: "${f.criterion}"`)
       console.log(`  Hint: ${f.suggestion}`)
@@ -1299,6 +1317,83 @@ memory
       console.log(`  ${r.id.padEnd(28)} ${r.relation.padEnd(COL_REL)} ${r.confidence.padEnd(COL_CONF)} ${r.created_at.slice(0, 19)}`)
     }
     console.log()
+  })
+
+// ── instinct ───────────────────────────────────────────────────────────────────
+import { listInstincts, insertInstinct, listUnverified, updateConfidence } from './instincts/store.ts'
+import { MANUAL_DEFAULTS, REVIEW_THRESHOLD, type InstinctSource } from './instincts/schema.ts'
+
+const instinct = program.command('instinct').description('Manage atomic behavioral rules (instincts)')
+
+instinct
+  .command('list')
+  .description('List instincts with id, trigger, confidence, source, verified')
+  .option('--unverified', 'Show only unverified instincts')
+  .option('--source <type>', 'Filter by source: manual or auto')
+  .action((opts: { unverified?: boolean; source?: string }) => {
+    let rows = opts.unverified
+      ? listUnverified()
+      : listInstincts({ source: opts.source as InstinctSource | undefined })
+
+    if (!opts.unverified && opts.source) {
+      rows = listInstincts({ source: opts.source as InstinctSource })
+    }
+
+    if (rows.length === 0) {
+      console.log('[instinct] No instincts found.')
+      return
+    }
+
+    const COL_ID = 28
+    const COL_TRIGGER = 40
+    console.log(`  ${'ID'.padEnd(COL_ID)} ${'TRIGGER'.padEnd(COL_TRIGGER)} CONFIDENCE  SOURCE   VERIFIED`)
+    console.log(`  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_TRIGGER)} ${'─'.repeat(10)} ${'─'.repeat(8)} ${'─'.repeat(8)}`)
+    for (const r of rows) {
+      const trigger = r.trigger.length > (COL_TRIGGER - 3)
+        ? r.trigger.slice(0, COL_TRIGGER - 3) + '...'
+        : r.trigger
+      console.log(`  ${r.id.padEnd(COL_ID)} ${trigger.padEnd(COL_TRIGGER)} ${r.confidence.toFixed(2).padEnd(10)} ${r.source.padEnd(8)} ${String(r.verified).padEnd(8)}`)
+    }
+  })
+
+instinct
+  .command('set-confidence <id> <value>')
+  .description('Update confidence of an instinct (recalculates verified automatically)')
+  .action((id: string, value: string) => {
+    const confidence = parseFloat(value)
+    if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
+      console.error('[instinct] confidence must be a number between 0 and 1')
+      process.exit(1)
+    }
+    const ok = updateConfidence(id, confidence)
+    if (!ok) {
+      console.error(`[instinct] No instinct found with id "${id}"`)
+      process.exit(1)
+    }
+    const demoted = confidence < REVIEW_THRESHOLD ? ' — verified set to false (below review threshold)' : ''
+    console.log(`[instinct] Updated confidence of ${id}: ${confidence}${demoted}`)
+  })
+
+instinct
+  .command('add')
+  .description('Add a manual instinct (confidence: 1.0, source: manual, verified: true)')
+  .requiredOption('--trigger <text>', 'Trigger condition for the instinct')
+  .requiredOption('--action <text>', 'Action / behavior text for the instinct')
+  .option('--confidence <value>', 'Override confidence (default 1.0)', parseFloat)
+  .action((opts: { trigger: string; action: string; confidence?: number }) => {
+    const result = insertInstinct({
+      trigger: opts.trigger,
+      action: opts.action,
+      confidence: opts.confidence ?? MANUAL_DEFAULTS.confidence,
+      source: MANUAL_DEFAULTS.source,
+      verified: MANUAL_DEFAULTS.verified,
+    })
+    console.log(`[instinct] Added instinct: ${result.id}`)
+    console.log(`  trigger:    ${result.trigger}`)
+    console.log(`  action:     ${result.action}`)
+    console.log(`  confidence: ${result.confidence}`)
+    console.log(`  source:     ${result.source}`)
+    console.log(`  verified:   ${result.verified}`)
   })
 
 program.parse()
