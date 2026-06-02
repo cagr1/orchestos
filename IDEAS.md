@@ -184,14 +184,14 @@ que nunca abrió una terminal.
 
 | Patrón | Repo | Estado |
 |--------|------|--------|
-| Middleware chain ordenado | DeerFlow | Pendiente — Mes 7+ |
+| Middleware chain ordenado | DeerFlow | ✅ S31 — `src/run/middleware.ts` + middlewares/ |
 | Skills con tool policy (`allowed_tools`) | DeerFlow | ✅ S22.0.1 |
 | Memoria estructurada en capas | DeerFlow | ✅ parcial — `memory_entries` S22.0.3 |
 | Subagent executor con status tracking | DeerFlow | ✅ S22 |
-| Instincts con confidence scoring | ECC | Pendiente — Mes 7+ |
+| Instincts con confidence scoring | ECC | ✅ S33 — `src/instincts/` |
 | Context monitor hook | ECC | ✅ S27 — wired en harness, persiste en DB |
-| Continuous learning v2 (hooks→instincts) | ECC | Pendiente — Mes 7+ |
-| Cost tracker via transcript parsing | ECC | Pendiente — complementa `runs.cost_usd` |
+| Continuous learning v2 (hooks→instincts) | ECC | ✅ S34 — `analyze/propose.ts` |
+| Cost tracker via transcript parsing | ECC | ✅ S35 — `src/run/transcript-parser.ts` |
 | Detección de conflictos via BM25 | Engram | ✅ S26 |
 | `topic_key` upsert (no duplicar) | Engram | ✅ S22.0.3 |
 | DAG con contratos Read/Write | gentle-ai | ✅ S22.0.2 + scheduler |
@@ -406,10 +406,10 @@ Regla adicional: después de ~20 tool calls sin delegación y con complejidad cr
 | Patrón | Estado |
 |--------|--------|
 | WHEN/THEN scenarios en acceptance_criteria | ✅ S28 — spec lint + draft prompt |
-| Capabilities contract (proposal → sub-tasks) | ⏳ → candidato Mes 8 |
+| Capabilities contract (proposal → sub-tasks) | ✅ S32 — spec draft + frontmatter capabilities |
 | Archive de specs completados con fecha | ✅ S29 — spec archive + list --all |
-| Delta headers (ADDED/MODIFIED/REMOVED) | Pendiente — Mes 7+ |
-| Design.md condicional para tareas complejas | Pendiente — Mes 7+ |
+| Delta headers (ADDED/MODIFIED/REMOVED) | ✅ S32 — spec lint delta headers |
+| Design.md condicional para tareas complejas | Pendiente — Mes 9+ |
 
 ---
 
