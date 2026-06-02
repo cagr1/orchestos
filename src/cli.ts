@@ -1503,6 +1503,19 @@ instinct
     console.log(`  verified:   ${result.verified}`)
   })
 
+// ── dashboard ──────────────────────────────────────────────────────────────────
+program
+  .command('dashboard')
+  .description('Start the local dashboard server')
+  .option('--port <n>', 'Port to listen on', '4242')
+  .action(async (opts: { port?: string }) => {
+    const { startServer } = await import('./dashboard/server.ts')
+    const port = parseInt(opts.port ?? '4242')
+    const { url } = startServer(port)
+    console.log(`[dashboard] Open ${url} in your browser`)
+    await new Promise(() => {}) // keep process alive
+  })
+
 program.parse()
 
 // ── helpers ───────────────────────────────────────────────────────────────────

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tasks — OrchestOS Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 2rem; }
+  h1 { font-size: 1.3rem; margin-bottom: 1rem; color: #58a6ff; }
+  a { color: #58a6ff; text-decoration: none; font-size: .85rem; }
+  a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid #30363d; color: #8b949e; font-weight: 600; white-space: nowrap; }
+  td { padding: .5rem .6rem; border-bottom: 1px solid #21262d; }
+  tr:hover { background: #161b22; }
+  .badge { display: inline-block; padding: .1rem .45rem; border-radius: 3px; font-size: .75rem; font-weight: 600; }
+  .badge-done { background: #1b4a1b; color: #7ee787; }
+  .badge-failed { background: #4a1b1b; color: #f87171; }
+  .badge-failed_permanent { background: #4a1b1b; color: #f87171; }
+  .badge-pending { background: #1b2d4a; color: #79c0ff; }
+  .badge-running { background: #1b4a4a; color: #56d4dd; }
+  .badge-blocked { background: #4a351b; color: #fbbf6a; }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: .78rem; }
+  .desc { color: #8b949e; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #loading { color: #8b949e; padding: 2rem; text-align: center; }
+</style>
+</head>
+<body>
+<h1>Tasks</h1>
+<a href="/">&larr; Dashboard</a>
+<div id="loading">Loading tasks...</div>
+<table id="tasks-table" style="display:none">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Description</th>
+      <th>Status</th>
+      <th>Skill</th>
+      <th>Executor</th>
+      <th style="text-align:right">Retries</th>
+      <th>QA Verdict</th>
+      <th>Run ID</th>
+    </tr>
+  </thead>
+  <tbody id="tasks-body"></tbody>
+</table>
+<script>
+async function load() {
+  try {
+    const res = await fetch('/api/tasks')
+    const tasks = await res.json()
+    if (tasks.length === 0) {
+      document.getElementById('loading').textContent = 'No tasks found. Create a tasks.yaml file to get started.'
+      return
+    }
+    document.getElementById('loading').style.display = 'none'
+    const table = document.getElementById('tasks-table')
+    const tbody = document.getElementById('tasks-body')
+    table.style.display = ''
+
+    for (const t of tasks) {
+      const statusBadge = `<span class="badge badge-${t.status}">${t.status}</span>`
+      const qaBadge = t.qaVerdict
+        ? `<span class="badge badge-${t.qaVerdict === 'pass' ? 'done' : 'failed'}">${t.qaVerdict}</span>`
+        : '<span style="color:#8b949e">—</span>'
+
+      const tr = document.createElement('tr')
+      tr.innerHTML = `
+        <td class="mono">${t.id}</td>
+        <td class="desc" title="${t.description.replace(/"/g, '&quot;')}">${t.description}</td>
+        <td>${statusBadge}</td>
+        <td>${t.skill ?? '<span style="color:#8b949e">—</span>'}</td>
+        <td>${t.executor}</td>
+        <td class="mono" style="text-align:right">${t.retryCount}</td>
+        <td>${qaBadge}</td>
+        <td class="mono">${t.runId ? t.runId.slice(0, 8) + '…' : '<span style="color:#8b949e">—</span>'}</td>
+      `
+      tbody.appendChild(tr)
+    }
+  } catch (e) {
+    document.getElementById('loading').textContent = 'Error loading tasks: ' + e.message
+  }
+}
+load()
+</script>
+</body>
+</html>

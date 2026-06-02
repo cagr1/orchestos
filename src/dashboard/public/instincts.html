@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instincts — OrchestOS Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 2rem; }
+  h1 { font-size: 1.3rem; margin-bottom: 1rem; color: #58a6ff; }
+  a { color: #58a6ff; text-decoration: none; font-size: .85rem; }
+  a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid #30363d; color: #8b949e; font-weight: 600; white-space: nowrap; }
+  td { padding: .5rem .6rem; border-bottom: 1px solid #21262d; vertical-align: middle; }
+  tr:hover { background: #161b22; }
+  .badge { display: inline-block; padding: .1rem .45rem; border-radius: 3px; font-size: .75rem; font-weight: 600; }
+  .badge-manual { background: #1b4a1b; color: #7ee787; }
+  .badge-auto { background: #4a351b; color: #fbbf6a; }
+  .badge-verified { background: #1b4a1b; color: #7ee787; }
+  .badge-unverified { background: #4a1b1b; color: #f87171; }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: .78rem; }
+  .trigger-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .action-cell { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #loading { color: #8b949e; padding: 2rem; text-align: center; }
+  .btn { display: inline-block; padding: .2rem .6rem; border: 1px solid #30363d; border-radius: 4px; font-size: .78rem; cursor: pointer; background: #21262d; color: #c9d1d9; text-decoration: none; }
+  .btn:hover { border-color: #58a6ff; }
+  .btn-approve { border-color: #238636; color: #7ee787; }
+  .btn-approve:hover { background: #238636; color: #fff; }
+  .btn-reject { border-color: #da3633; color: #f87171; }
+  .btn-reject:hover { background: #da3633; color: #fff; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .actions { display: flex; gap: .4rem; align-items: center; }
+  .toast { position: fixed; bottom: 1rem; right: 1rem; padding: .6rem 1rem; border-radius: 6px; font-size: .85rem; z-index: 100; }
+  .toast-success { background: #1b4a1b; color: #7ee787; border: 1px solid #238636; }
+  .toast-error { background: #4a1b1b; color: #f87171; border: 1px solid #da3633; }
+  .confidence-bar { display: inline-block; height: 6px; border-radius: 3px; background: #21262d; width: 60px; vertical-align: middle; margin-right: .3rem; }
+  .confidence-fill { height: 6px; border-radius: 3px; background: #58a6ff; }
+  .confidence-fill.high { background: #7ee787; }
+  .confidence-fill.mid { background: #fbbf6a; }
+  .confidence-fill.low { background: #f87171; }
+</style>
+</head>
+<body>
+<h1>Instincts</h1>
+<a href="/">&larr; Dashboard</a>
+<div id="loading">Loading instincts...</div>
+<table id="instincts-table" style="display:none">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Trigger</th>
+      <th>Action</th>
+      <th>Confidence</th>
+      <th>Source</th>
+      <th>Verified</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="instincts-body"></tbody>
+</table>
+<div id="toast" class="toast" style="display:none"></div>
+<script>
+function showToast(msg, type) {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.className = 'toast toast-' + type
+  el.style.display = ''
+  setTimeout(() => { el.style.display = 'none' }, 3000)
+}
+
+async function mutate(id, action) {
+  const btn = document.querySelector(`[data-id="${id}"][data-action="${action}"]`)
+  if (btn) btn.disabled = true
+  try {
+    const res = await fetch(`/api/instincts/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`Instinct ${action}d successfully`, 'success')
+      load()
+    } else {
+      showToast(data.error || `Failed to ${action}`, 'error')
+      if (btn) btn.disabled = false
+    }
+  } catch (e) {
+    showToast('Network error: ' + e.message, 'error')
+    if (btn) btn.disabled = false
+  }
+}
+
+function confidenceHtml(value) {
+  const pct = Math.round(value * 100)
+  let cls = 'low'
+  if (value >= 0.8) cls = 'high'
+  else if (value >= 0.6) cls = 'mid'
+  return `<div style="display:inline-flex;align-items:center">
+    <span class="confidence-bar"><span class="confidence-fill ${cls}" style="width:${pct}%"></span></span>
+    <span class="mono">${pct}%</span>
+  </div>`
+}
+
+async function load() {
+  try {
+    const res = await fetch('/api/instincts')
+    const instincts = await res.json()
+    if (instincts.length === 0) {
+      document.getElementById('loading').textContent = 'No instincts yet. Use `orchestos instinct add` to create one.'
+      return
+    }
+    document.getElementById('loading').style.display = 'none'
+    const table = document.getElementById('instincts-table')
+    const tbody = document.getElementById('instincts-body')
+    table.style.display = ''
+    tbody.innerHTML = ''
+
+    for (const inst of instincts) {
+      const sourceBadge = `<span class="badge badge-${inst.source}">${inst.source}</span>`
+      const verifiedBadge = inst.verified
+        ? '<span class="badge badge-verified">verified</span>'
+        : '<span class="badge badge-unverified">unverified</span>'
+
+      let actionHtml = ''
+      if (!inst.verified) {
+        actionHtml = `<div class="actions">
+          <button class="btn btn-approve" data-id="${inst.id}" data-action="approve" onclick="mutate('${inst.id}','approve')">Approve</button>
+          <button class="btn btn-reject" data-id="${inst.id}" data-action="reject" onclick="mutate('${inst.id}','reject')">Reject</button>
+        </div>`
+      } else {
+        actionHtml = '<span style="color:#8b949e">—</span>'
+      }
+
+      const tr = document.createElement('tr')
+      tr.innerHTML = `
+        <td class="mono" title="${inst.id}">${inst.id.slice(0, 8)}…</td>
+        <td class="trigger-cell mono" title="${inst.trigger.replace(/"/g, '&quot;')}">${inst.trigger}</td>
+        <td class="action-cell mono" title="${inst.action.replace(/"/g, '&quot;')}">${inst.action}</td>
+        <td>${confidenceHtml(inst.confidence)}</td>
+        <td>${sourceBadge}</td>
+        <td>${verifiedBadge}</td>
+        <td>${actionHtml}</td>
+      `
+      tbody.appendChild(tr)
+    }
+  } catch (e) {
+    document.getElementById('loading').textContent = 'Error loading instincts: ' + e.message
+  }
+}
+load()
+</script>
+</body>
+</html>

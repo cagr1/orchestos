@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Specs — OrchestOS Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 2rem; }
+  h1 { font-size: 1.3rem; margin-bottom: 1rem; color: #58a6ff; }
+  a { color: #58a6ff; text-decoration: none; font-size: .85rem; }
+  a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid #30363d; color: #8b949e; font-weight: 600; white-space: nowrap; }
+  td { padding: .5rem .6rem; border-bottom: 1px solid #21262d; vertical-align: middle; }
+  tr:hover { background: #161b22; }
+  .badge { display: inline-block; padding: .1rem .45rem; border-radius: 3px; font-size: .75rem; font-weight: 600; }
+  .badge-draft { background: #1b2d4a; color: #79c0ff; }
+  .badge-approved { background: #1b4a1b; color: #7ee787; }
+  .badge-archived { background: #2d1b4a; color: #d2a8ff; }
+  .badge-pass { background: #1b4a1b; color: #7ee787; }
+  .badge-fail { background: #4a1b1b; color: #f87171; }
+  .badge-unknown { background: #4a351b; color: #fbbf6a; }
+  .badge-pending { background: #4a351b; color: #fbbf6a; }
+  .badge-resolved { background: #1b4a1b; color: #7ee787; }
+  .badge-none { background: #1b2d4a; color: #8b949e; }
+  .badge-yes { background: #1b4a1b; color: #7ee787; }
+  .badge-no { background: #2d1b4a; color: #8b949e; }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: .78rem; }
+  #loading { color: #8b949e; padding: 2rem; text-align: center; }
+  .filters { margin-bottom: 1rem; display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+  .filters label { font-size: .82rem; color: #8b949e; display: flex; align-items: center; gap: .3rem; cursor: pointer; }
+  .filters input[type="checkbox"] { accent-color: #58a6ff; }
+</style>
+</head>
+<body>
+<h1>Specs</h1>
+<a href="/">&larr; Dashboard</a>
+<div class="filters">
+  <label><input type="checkbox" id="show-archived" onchange="load()"> Show archived</label>
+</div>
+<div id="loading">Loading specs...</div>
+<table id="specs-table" style="display:none">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Status</th>
+      <th>Clarify</th>
+      <th>Lint Status</th>
+      <th>Findings</th>
+      <th>Delta Issues</th>
+      <th>Capabilities</th>
+      <th>Created</th>
+    </tr>
+  </thead>
+  <tbody id="specs-body"></tbody>
+</table>
+<script>
+async function load() {
+  try {
+    const res = await fetch('/api/specs')
+    let specs = await res.json()
+    if (specs.length === 0) {
+      document.getElementById('loading').textContent = 'No specs found.'
+      return
+    }
+    const showArchived = document.getElementById('show-archived').checked
+    if (!showArchived) {
+      specs = specs.filter(s => s.status !== 'archived')
+    }
+    if (specs.length === 0) {
+      document.getElementById('loading').textContent = 'No active specs. Check "Show archived" to see archived ones.'
+      return
+    }
+    document.getElementById('loading').style.display = 'none'
+    const table = document.getElementById('specs-table')
+    const tbody = document.getElementById('specs-body')
+    table.style.display = ''
+    tbody.innerHTML = ''
+
+    for (const s of specs) {
+      const statusBadge = `<span class="badge badge-${s.status}">${s.status}</span>`
+      const clarifyBadge = `<span class="badge badge-${s.clarify}">${s.clarify}</span>`
+      const lintBadge = `<span class="badge badge-${s.lintStatus}">${s.lintStatus}</span>`
+      const capsBadge = s.hasCapabilities
+        ? '<span class="badge badge-yes">yes</span>'
+        : '<span class="badge badge-no">no</span>'
+
+      const tr = document.createElement('tr')
+      tr.innerHTML = `
+        <td class="mono">${s.id}</td>
+        <td>${statusBadge}</td>
+        <td>${clarifyBadge}</td>
+        <td>${lintBadge}</td>
+        <td class="mono">${s.lintFindings}</td>
+        <td class="mono">${s.deltaIssues}</td>
+        <td>${capsBadge}</td>
+        <td class="mono">${s.createdAt.slice(0, 10)}</td>
+      `
+      tbody.appendChild(tr)
+    }
+  } catch (e) {
+    document.getElementById('loading').textContent = 'Error loading specs: ' + e.message
+  }
+}
+load()
+</script>
+</body>
+</html>

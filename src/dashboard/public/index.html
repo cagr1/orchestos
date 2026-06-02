@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrchestOS — Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="screens.css">
+</head>
+<body data-cards="flat">
+  <div class="app">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar"></nav>
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="brand">
+        <span class="mark">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6.6 10 10M17 6.6 14 10M7 17.4 10 14M17 17.4 14 14"/></svg>
+        </span>
+        <b>Orchest<span>OS</span></b>
+      </div>
+      <span class="screen-title mono">localhost:4242</span>
+
+      <span class="spacer"></span>
+
+      <div class="status-badge" id="statusBadge" data-state="idle">
+        <span class="dot"></span><span class="txt">IDLE</span>
+      </div>
+      <span class="active-counter" id="activeCount"><b>0</b> active</span>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main" id="main"></main>
+
+    <!-- TERMINAL FOOTER -->
+    <section class="terminal" id="terminal">
+      <div class="bar" id="termBar">
+        <span class="chev" id="termChev"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        <span class="t-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 9 12 4 17"/><line x1="12" y1="17" x2="19" y2="17"/></svg> Recent Runs</span>
+        <span class="live" id="termLive">● live</span>
+      </div>
+      <div class="body" id="termBody"></div>
+    </section>
+
+  </div>
+
+  <script src="data.js"></script>
+  <script src="screens-core.js"></script>
+  <script src="screens-ops.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
