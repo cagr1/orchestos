@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-7-activo
+status: mes-7-cerrado
 ---
 
 # OrchestOS — Plan activo
@@ -42,6 +42,12 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 ---
 
 ## MES 7 — Observabilidad activa + calidad del pipeline
+
+- [x] **SÍ — Mes 7 cerrado (2026-06-02)**
+  S27 context-monitor wired (warnings persistidos en DB + visibles en `runs --detail`), S28 WHEN/THEN acceptance criteria (`spec lint` + draft prompt + QA prompt), S29 spec archive (`spec archive` + `spec list --all`), S30 aprendizaje continuo v1 (`runs --analyze` + hook post-completion en `task run`). 256 tests · 0 fail.
+  Ver historial completo → [DONE.md](DONE.md).
+
+---
 
 **Tema**: hacer el pipeline auto-consciente (sabe cuándo está en problemas) y más preciso (criterios QA sin ambigüedad).
 
@@ -88,11 +94,11 @@ Cuando una tarea llega a `completed`, el spec queda visible en `spec list` mezcl
 Después de runs completados, analizar patrones en el historial para detectar recurrencias.
 Output: `PatternSuggestion[]` mostradas al usuario — no ejecuta nada automáticamente.
 
-- [ ] S30.1 `src/analyze/patterns.ts` — agrupa runs por QA outcome, extrae patrones frecuentes
-- [ ] S30.2 LLM call (Haiku) analiza patrones → `PatternSuggestion[]` estructurado con `fix_hint`
-- [ ] S30.3 `orchestos runs analyze [--project <id>] [--last <n>]` — imprime sugerencias
-- [ ] S30.4 `orchestos task run` — al completar, corre analyze en background y muestra si hay patrones
-- [ ] S30.5 Tests: parser PatternSuggestion, agrupación runs sin LLM call real
-- [ ] S30.6 Validación: typecheck limpio + todos los tests pasan
+- [x] S30.1 `src/analyze/patterns.ts` — agrupa runs por QA outcome, extrae patrones frecuentes — 2026-06-02
+- [x] S30.2 LLM call (Haiku) analiza patrones → `PatternSuggestion[]` estructurado con `fix_hint` — 2026-06-02
+- [x] S30.3 `orchestos runs --analyze [--last <n>]` — imprime sugerencias — 2026-06-02
+- [x] S30.4 `orchestos task run` — al completar, sugiere si qaFail > 1 en los últimos 20 runs — 2026-06-02
+- [x] S30.5 Tests: parser PatternSuggestion, agrupación runs sin LLM call real (16 tests) — 2026-06-02
+- [x] S30.6 Validación: typecheck limpio + 256 tests pasan — 2026-06-02
 
 ---

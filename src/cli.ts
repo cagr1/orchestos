@@ -559,7 +559,9 @@ program
   .option('--limit <n>', 'Number of runs to show', '10')
   .option('--detail <run-id>', 'Show full evidence for a specific run')
   .option('--export', 'Export full run history to runs-export.json in cwd')
-  .action((opts: { limit: string; detail?: string; export?: boolean }) => {
+  .option('--analyze', 'Analyze runs for recurring patterns and suggest improvements (S30)')
+  .option('--last <n>', 'Number of recent runs to analyze (default: 20)', '20')
+  .action(async (opts: { limit: string; detail?: string; export?: boolean; analyze?: boolean; last?: string }) => {
     const { listRuns, getRun } = require('./db/runs.ts')
 
     if (opts.detail) {
@@ -574,6 +576,29 @@ program
       const outPath = join(resolve('.'), 'runs-export.json')
       writeFileSync(outPath, JSON.stringify(rows, null, 2), 'utf-8')
       console.log(`[runs] Exported ${rows.length} run(s) → ${outPath}`)
+      return
+    }
+
+    if (opts.analyze) {
+      const { groupRunsByOutcome, analyzeRunPatterns } = await import('./analyze/patterns.ts')
+      const n    = parseInt(opts.last ?? '20')
+      const rows = listRuns(n)
+      if (rows.length < 3) {
+        console.log('[runs analyze] Not enough runs to analyze (need at least 3).')
+        return
+      }
+      const groups = groupRunsByOutcome(rows)
+      console.log(`[runs analyze] Analyzing ${groups.total} runs (pass: ${groups.qaPass}, fail: ${groups.qaFail}, blocked: ${groups.blocked})...`)
+      const suggestions = await analyzeRunPatterns(groups)
+      if (suggestions.length === 0) {
+        console.log('[runs analyze] No recurring patterns detected.')
+        return
+      }
+      console.log(`\n${suggestions.length} pattern(s) detected:\n`)
+      for (const s of suggestions) {
+        console.log(`  [${s.confidence.toUpperCase()}] ${s.pattern} (${s.frequency}x)`)
+        console.log(`    → ${s.fix_hint}\n`)
+      }
       return
     }
 
@@ -820,6 +845,26 @@ task
         console.log(`[task] ✓ ${taskId} done · QA pass — ${result.qaReason}`)
         for (const f of result.filesWritten) console.log(`  → ${f}`)
         console.log(`  tokens: ${result.cost.inputTokens}/${result.cost.outputTokens} · $${result.cost.usd.toFixed(5)} · ${result.elapsedMs}ms`)
+
+        // S30.4 — background pattern analysis after successful completion
+        const { listRuns: listRunsForAnalyze } = require('./db/runs.ts')
+        const recentRuns = listRunsForAnalyze(20)
+        if (recentRuns.length >= 3) {
+          const { groupRunsByOutcome, analyzeRunPatterns } = await import('./analyze/patterns.ts')
+          const groups = groupRunsByOutcome(recentRuns)
+          if (groups.qaFail > 1) {
+            try {
+              const suggestions = await analyzeRunPatterns(groups)
+              if (suggestions.length > 0) {
+                console.log(`\n[runs analyze] ${suggestions.length} recurring pattern(s) detected:`)
+                for (const s of suggestions) {
+                  console.log(`  [${s.confidence.toUpperCase()}] ${s.pattern}: ${s.fix_hint}`)
+                }
+              }
+            } catch { /* best-effort — never block the task result */ }
+          }
+        }
+
         return 'done'
       }
 

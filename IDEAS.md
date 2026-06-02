@@ -189,7 +189,7 @@ que nunca abrió una terminal.
 | Memoria estructurada en capas | DeerFlow | ✅ parcial — `memory_entries` S22.0.3 |
 | Subagent executor con status tracking | DeerFlow | ✅ S22 |
 | Instincts con confidence scoring | ECC | Pendiente — Mes 7+ |
-| Context monitor hook | ECC | ⏳ → PLAN.md S23.0.2 |
+| Context monitor hook | ECC | ✅ S27 — wired en harness, persiste en DB |
 | Continuous learning v2 (hooks→instincts) | ECC | Pendiente — Mes 7+ |
 | Cost tracker via transcript parsing | ECC | Pendiente — complementa `runs.cost_usd` |
 | Detección de conflictos via BM25 | Engram | ✅ S26 |
@@ -405,9 +405,9 @@ Regla adicional: después de ~20 tool calls sin delegación y con complejidad cr
 
 | Patrón | Estado |
 |--------|--------|
-| WHEN/THEN scenarios en acceptance_criteria | ⏳ → candidato Mes 7 |
-| Capabilities contract (proposal → sub-tasks) | ⏳ → candidato Mes 7 |
-| Archive de specs completados con fecha | ⏳ → candidato Mes 7 |
+| WHEN/THEN scenarios en acceptance_criteria | ✅ S28 — spec lint + draft prompt |
+| Capabilities contract (proposal → sub-tasks) | ⏳ → candidato Mes 8 |
+| Archive de specs completados con fecha | ✅ S29 — spec archive + list --all |
 | Delta headers (ADDED/MODIFIED/REMOVED) | Pendiente — Mes 7+ |
 | Design.md condicional para tareas complejas | Pendiente — Mes 7+ |
 
