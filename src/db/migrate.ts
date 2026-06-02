@@ -104,7 +104,8 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'context_source',     'TEXT')     // S18: 'CONTEXT.md' | 'AGENTS.md'
   safeAddColumn('runs', 'context_tokens',     'INTEGER')  // S18: estimated token count of context used
   safeAddColumn('files', 'embedding',         'TEXT')     // S24.1: JSON array of float[] for semantic search
-  safeAddColumn('runs', 'embed_hits',         'INTEGER')  // S24.5: count of embedding-suggested files used in this run
+  safeAddColumn('runs', 'embed_hits',             'INTEGER')  // S24.5: count of embedding-suggested files used in this run
+  safeAddColumn('runs', 'context_warnings_json', 'TEXT')     // S27.4: JSON array of ContextWarning[] fired during this run
 
   // S26.3 — memory conflict detection records
   db.exec(`

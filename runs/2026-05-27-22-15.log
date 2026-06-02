@@ -1,0 +1,8 @@
+22:15:10.085  [cleanup-plan-to-done]  START
+22:15:10.111  [cleanup-plan-to-done]  INFO   context: CONTEXT.md (~333 tokens) — overriding AGENTS.md
+22:16:39.747  [cleanup-plan-to-done]  ERROR  parse error: LLM response is not valid JSON. Got:
+{
+  "files": [
+    {
+      "path": "PLAN.md",
+      "content": "---\ntype: execution-plan\nproject: orchestos\ncreated: 2026-05-26\nowner: Carlos Gallardo\nstatus: mes-5-activo\n---\n\n# OrchestOS — Plan activo\n\nHistorial completado → ver [DONE.md](DONE.md).\nIdeas pendientes → ver [IDEAS.md](IDEA

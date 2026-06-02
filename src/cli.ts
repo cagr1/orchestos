@@ -1418,6 +1418,14 @@ function printRunDetail(r: import('./db/runs.ts').RunRecord) {
     : `context: AGENTS.md`
   console.log(contextInfo)
 
+  const contextWarnings = parseJson<Array<{ code: string; severity: string; message: string }>>((r as any).context_warnings_json, [])
+  if (contextWarnings.length > 0) {
+    console.log(`\n## Context monitor warnings`)
+    for (const w of contextWarnings) {
+      console.log(`[${w.severity.toUpperCase()}] ${w.code}: ${w.message}`)
+    }
+  }
+
   console.log(`\n## Checks (deterministic)`)
   if (checks.length === 0) {
     console.log('(none)')
