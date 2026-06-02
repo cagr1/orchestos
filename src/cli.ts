@@ -16,6 +16,7 @@ import { compileSkill } from './skills/compile.ts'
 import { classifyTask } from './router/classify.ts'
 import { resolveModel } from './router/models.ts'
 import { calcCost } from './router/pricing.ts'
+import { parseCostBreakdownJson } from './run/transcript-parser.ts'
 import { chat } from './providers/openrouter.ts'
 import { parseLLMResponse, enforceContract, snapshotHashes } from './run/contract.ts'
 import { MAX_RETRIES } from './run/qa.ts'
@@ -581,6 +582,7 @@ program
 
     if (opts.analyze) {
       const { groupRunsByOutcome, analyzeRunPatterns } = await import('./analyze/patterns.ts')
+      const { proposeInstinctsFromPatterns } = await import('./analyze/propose.ts')
       const n    = parseInt(opts.last ?? '20')
       const rows = listRuns(n)
       if (rows.length < 3) {
@@ -598,6 +600,15 @@ program
       for (const s of suggestions) {
         console.log(`  [${s.confidence.toUpperCase()}] ${s.pattern} (${s.frequency}x)`)
         console.log(`    → ${s.fix_hint}\n`)
+      }
+
+      // S34.2 — propose instincts for patterns with frequency >= threshold
+      const proposals = proposeInstinctsFromPatterns(suggestions)
+      if (proposals.length > 0) {
+        console.log(`\n${proposals.length} instinct(s) proposed automatically (review with: orchestos instinct review):\n`)
+        for (const p of proposals) {
+          console.log(`  [${p.confidence.toFixed(2)}] ${p.trigger} → ${p.action}`)
+        }
       }
       return
     }
@@ -846,23 +857,29 @@ task
         for (const f of result.filesWritten) console.log(`  → ${f}`)
         console.log(`  tokens: ${result.cost.inputTokens}/${result.cost.outputTokens} · $${result.cost.usd.toFixed(5)} · ${result.elapsedMs}ms`)
 
-        // S30.4 — background pattern analysis after successful completion
+        // S30.4 — S34.6: background pattern analysis + instinct proposals after completion
         const { listRuns: listRunsForAnalyze } = require('./db/runs.ts')
         const recentRuns = listRunsForAnalyze(20)
         if (recentRuns.length >= 3) {
           const { groupRunsByOutcome, analyzeRunPatterns } = await import('./analyze/patterns.ts')
+          const { proposeInstinctsFromPatterns } = await import('./analyze/propose.ts')
           const groups = groupRunsByOutcome(recentRuns)
-          if (groups.qaFail > 1) {
-            try {
-              const suggestions = await analyzeRunPatterns(groups)
-              if (suggestions.length > 0) {
-                console.log(`\n[runs analyze] ${suggestions.length} recurring pattern(s) detected:`)
-                for (const s of suggestions) {
-                  console.log(`  [${s.confidence.toUpperCase()}] ${s.pattern}: ${s.fix_hint}`)
-                }
+          try {
+            const suggestions = await analyzeRunPatterns(groups)
+            if (suggestions.length > 0) {
+              console.log(`\n[runs analyze] ${suggestions.length} recurring pattern(s) detected:`)
+              for (const s of suggestions) {
+                console.log(`  [${s.confidence.toUpperCase()}] ${s.pattern}: ${s.fix_hint}`)
               }
-            } catch { /* best-effort — never block the task result */ }
-          }
+            }
+            const proposals = proposeInstinctsFromPatterns(suggestions)
+            if (proposals.length > 0) {
+              console.log(`\n  ${proposals.length} instinct proposal(s) created (review with: orchestos instinct review):`)
+              for (const p of proposals) {
+                console.log(`    [${p.confidence.toFixed(2)}] ${p.trigger}`)
+              }
+            }
+          } catch { /* best-effort — never block the task result */ }
         }
 
         return 'done'
@@ -941,11 +958,12 @@ task
         const stLog = new RunLogger(root, st.id)
         console.log(`\n  [sub] Running: ${st.id} — ${st.description}`)
 
+        const subTaskModel = st.executor_model ?? parentTask.executor_model
         const subTaskAsTask = {
           id: st.id,
           description: st.description,
           executor: st.executor ?? parentTask.executor,
-          executor_model: st.executor_model ?? parentTask.executor_model,
+          executor_model: subTaskModel,
           input: st.input ?? parentTask.input,
           output: st.output ?? parentTask.output,
           acceptance_criteria: st.acceptance,
@@ -969,6 +987,9 @@ task
         })
 
         const elapsed = Math.round(performance.now() - t0)
+        const modelUsed = harnessResult.cost.inputTokens > 0 || harnessResult.cost.outputTokens > 0
+          ? (subTaskModel ?? parentTask.executor_model ?? 'unknown')
+          : 'unknown'
 
         if (harnessResult.status === 'done') {
           console.log(`  [sub] ✓ ${st.id} done — ${harnessResult.qaReason}`)
@@ -976,6 +997,7 @@ task
             sub_task_id: st.id,
             status: 'completed' as const,
             result: harnessResult.qaReason,
+            model: modelUsed,
             usd_cost: harnessResult.cost.usd,
             tokens: { input: harnessResult.cost.inputTokens, output: harnessResult.cost.outputTokens },
             elapsed_ms: elapsed,
@@ -990,6 +1012,7 @@ task
           sub_task_id: st.id,
           status: 'failed' as const,
           error: reason,
+          model: modelUsed,
           usd_cost: harnessResult.cost.usd,
           tokens: { input: harnessResult.cost.inputTokens, output: harnessResult.cost.outputTokens },
           elapsed_ms: elapsed,
@@ -1010,6 +1033,23 @@ task
         console.log(`  status: all passed ✓`)
       } else {
         console.log(`  status: some failed ✗`)
+      }
+
+      // S35.3 — update parent run with full cost breakdown
+      const { getRun: getRunCost, updateRunCost } = require('./db/runs.ts')
+      const { calcEntryCost, sumCosts, costBreakdownToJson } = await import('./run/transcript-parser.ts')
+      if (parentTask.run_id) {
+        const parentRun = getRunCost(parentTask.run_id)
+        if (parentRun) {
+          const breakdown = [
+            calcEntryCost(parentTask.id, parentRun.model, parentRun.input_tokens, parentRun.output_tokens),
+            ...result.sub_tasks.filter(log => log.usd_cost > 0).map(log =>
+              calcEntryCost(log.id, log.model ?? parentRun.model, log.tokens.input, log.tokens.output)
+            ),
+          ]
+          const total = sumCosts(breakdown)
+          updateRunCost(parentRun.id, total, costBreakdownToJson(breakdown))
+        }
       }
       return
     }
@@ -1320,8 +1360,8 @@ memory
   })
 
 // ── instinct ───────────────────────────────────────────────────────────────────
-import { listInstincts, insertInstinct, listUnverified, updateConfidence } from './instincts/store.ts'
-import { MANUAL_DEFAULTS, REVIEW_THRESHOLD, type InstinctSource } from './instincts/schema.ts'
+import { listInstincts, insertInstinct, listUnverified, updateConfidence, approveInstinct, deleteInstinct } from './instincts/store.ts'
+import { MANUAL_DEFAULTS, AUTO_DEFAULTS, REVIEW_THRESHOLD, type InstinctSource } from './instincts/schema.ts'
 
 const instinct = program.command('instinct').description('Manage atomic behavioral rules (instincts)')
 
@@ -1357,6 +1397,52 @@ instinct
   })
 
 instinct
+  .command('review')
+  .description('List unverified instincts (proposals pending approval) with trigger, action, confidence')
+  .action(() => {
+    const rows = listUnverified()
+    if (rows.length === 0) {
+      console.log('[instinct review] No unverified instincts found.')
+      return
+    }
+    console.log(`\n  ${rows.length} unverified instinct(s) — review with: instinct approve <id> or instinct reject <id>\n`)
+    const COL_ID = 28
+    const COL_TRIGGER = 40
+    const COL_ACTION = 40
+    console.log(`  ${'ID'.padEnd(COL_ID)} ${'TRIGGER'.padEnd(COL_TRIGGER)} ${'ACTION'.padEnd(COL_ACTION)} CONFIDENCE`)
+    console.log(`  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_TRIGGER)} ${'─'.repeat(COL_ACTION)} ${'─'.repeat(10)}`)
+    for (const r of rows) {
+      const trigger = r.trigger.length > (COL_TRIGGER - 3) ? r.trigger.slice(0, COL_TRIGGER - 3) + '...' : r.trigger
+      const action  = r.action.length > (COL_ACTION - 3) ? r.action.slice(0, COL_ACTION - 3) + '...' : r.action
+      console.log(`  ${r.id.padEnd(COL_ID)} ${trigger.padEnd(COL_TRIGGER)} ${action.padEnd(COL_ACTION)} ${r.confidence.toFixed(2).padEnd(10)}`)
+    }
+  })
+
+instinct
+  .command('approve <id>')
+  .description('Approve a proposed instinct: verified=true, confidence+=0.1 (max 1.0)')
+  .action((id: string) => {
+    const ok = approveInstinct(id)
+    if (!ok) {
+      console.error(`[instinct] No instinct found with id "${id}"`)
+      process.exit(1)
+    }
+    console.log(`[instinct] Approved ${id}`)
+  })
+
+instinct
+  .command('reject <id>')
+  .description('Reject and remove a proposed instinct')
+  .action((id: string) => {
+    const ok = deleteInstinct(id)
+    if (!ok) {
+      console.error(`[instinct] No instinct found with id "${id}"`)
+      process.exit(1)
+    }
+    console.log(`[instinct] Rejected and removed ${id}`)
+  })
+
+instinct
   .command('set-confidence <id> <value>')
   .description('Update confidence of an instinct (recalculates verified automatically)')
   .action((id: string, value: string) => {
@@ -1372,6 +1458,27 @@ instinct
     }
     const demoted = confidence < REVIEW_THRESHOLD ? ' — verified set to false (below review threshold)' : ''
     console.log(`[instinct] Updated confidence of ${id}: ${confidence}${demoted}`)
+  })
+
+instinct
+  .command('propose')
+  .description('Propose an auto instinct (confidence: 0.6, source: auto, verified: false — requires approval)')
+  .requiredOption('--trigger <text>', 'Trigger condition for the instinct')
+  .requiredOption('--action <text>', 'Action / behavior text for the instinct')
+  .action((opts: { trigger: string; action: string }) => {
+    const result = insertInstinct({
+      trigger: opts.trigger,
+      action: opts.action,
+      confidence: AUTO_DEFAULTS.confidence,
+      source: AUTO_DEFAULTS.source,
+      verified: AUTO_DEFAULTS.verified,
+    })
+    console.log(`[instinct] Proposed instinct: ${result.id}`)
+    console.log(`  trigger:    ${result.trigger}`)
+    console.log(`  action:     ${result.action}`)
+    console.log(`  confidence: ${result.confidence} (requires approval)`)
+    console.log(`  Review with: orchestos instinct review`)
+    console.log(`  Approve with: orchestos instinct approve ${result.id}`)
   })
 
 instinct
@@ -1640,6 +1747,17 @@ function printRunDetail(r: import('./db/runs.ts').RunRecord) {
   if (r.result) console.log(`result:     ${r.result}`)
 
   console.log(`\n## Cost`)
+  const breakdown = parseCostBreakdownJson((r as any).cost_breakdown_json)
+  if (breakdown.length > 1) {
+    const header = `  ${'agent'.padEnd(22)} ${'model'.padEnd(28)} ${'in'.padStart(8)} ${'out'.padStart(8)} ${'cost'.padStart(10)}`
+    console.log(header)
+    console.log(`  ${'─'.repeat(header.length - 2)}`)
+    for (const e of breakdown) {
+      const costStr = `$${e.costUsd.toFixed(6)}`
+      console.log(`  ${e.label.padEnd(22)} ${e.model.padEnd(28)} ${String(e.inputTokens).padStart(8)} ${String(e.outputTokens).padStart(8)} ${costStr.padStart(10)}`)
+    }
+    console.log(`  ${'─'.repeat(header.length - 2)}`)
+  }
   console.log(`input: ${r.input_tokens} tokens   output: ${r.output_tokens} tokens   $${r.usd_cost.toFixed(6)}   elapsed: ${formatElapsed(r.elapsed_ms)}`)
   console.log()
 }

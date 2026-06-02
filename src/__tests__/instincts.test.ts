@@ -5,6 +5,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
 import { validateInstinct, validateInsert, InstinctValidationError, shouldApply, recalculateVerified, REVIEW_THRESHOLD, APPLY_THRESHOLD } from '../instincts/schema.ts'
 import { insertInstinct, getInstinct, listInstincts, updateConfidence, deleteInstinct, listApplicable, listUnverified, approveInstinct, updateInstinct } from '../instincts/store.ts'
+import { proposeInstinctsFromPatterns, PATTERN_FREQUENCY_THRESHOLD } from '../analyze/propose.ts'
+import type { PatternSuggestion } from '../analyze/patterns.ts'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -334,5 +336,124 @@ describe('store — updateInstinct', () => {
     expect(loaded!.action).toBe('Updated action')
     expect(loaded!.confidence).toBe(0.9)
     deleteInstinct(inserted.id)
+  })
+})
+
+// ── S34.7: proposeInstinctsFromPatterns tests ──────────────────────────────────
+
+function pattern(overrides: Partial<PatternSuggestion> = {}): PatternSuggestion {
+  return {
+    pattern: 'Test pattern',
+    frequency: 3,
+    fix_hint: 'Fix this pattern',
+    confidence: 'medium',
+    ...overrides,
+  }
+}
+
+describe('proposeInstinctsFromPatterns', () => {
+  const createdIds: string[] = []
+
+  afterAll(() => {
+    for (const id of createdIds) deleteInstinct(id)
+  })
+
+  it('creates proposals for patterns with frequency >= threshold', () => {
+    const result = proposeInstinctsFromPatterns([
+      pattern({ pattern: 'S34.7 pattern A', fix_hint: 'Fix A', frequency: 3 }),
+      pattern({ pattern: 'S34.7 pattern B', fix_hint: 'Fix B', frequency: 5 }),
+    ])
+    expect(result.length).toBe(2)
+    for (const r of result) {
+      expect(r.verified).toBe(false)
+      expect(r.source).toBe('auto')
+      expect(r.confidence).toBe(0.6)
+      expect(r.created_at).toBeTruthy()
+      createdIds.push(r.id)
+    }
+  })
+
+  it('returns empty for patterns with frequency < threshold', () => {
+    const result = proposeInstinctsFromPatterns([
+      pattern({ pattern: 'Low freq', fix_hint: 'Fix', frequency: PATTERN_FREQUENCY_THRESHOLD - 1 }),
+    ])
+    expect(result).toHaveLength(0)
+  })
+
+  it('deduplicates against existing instincts (case-insensitive)', () => {
+    // Insert an instinct with a known trigger first
+    const existing = insertInstinct({
+      trigger: 'dedup-test-trigger',
+      action: 'existing action',
+      confidence: 0.6,
+      source: 'auto',
+      verified: false,
+    })
+    createdIds.push(existing.id)
+
+    const result = proposeInstinctsFromPatterns([
+      pattern({ pattern: 'DEDUP-TEST-TRIGGER', fix_hint: 'Fix dedup', frequency: 4 }),
+    ])
+    expect(result).toHaveLength(0)
+  })
+
+  it('skips patterns with empty trigger or action', () => {
+    const result = proposeInstinctsFromPatterns([
+      pattern({ pattern: '', fix_hint: 'Has action but empty trigger', frequency: 3 }),
+      pattern({ pattern: 'Has trigger', fix_hint: '', frequency: 3 }),
+    ])
+    expect(result).toHaveLength(0)
+  })
+
+  it('never throws (graceful error handling)', () => {
+    // @ts-expect-error — intentionally passing invalid input
+    const result = proposeInstinctsFromPatterns(null)
+    expect(result).toEqual([])
+
+    // @ts-expect-error — intentionally passing undefined
+    const result2 = proposeInstinctsFromPatterns(undefined)
+    expect(result2).toEqual([])
+
+    const result3 = proposeInstinctsFromPatterns([])
+    expect(result3).toEqual([])
+  })
+})
+
+describe('approve + reject end-to-end', () => {
+  it('approve makes instinct verified and boosts confidence', () => {
+    const inst = insertInstinct({
+      trigger: 'approve-e2e',
+      action: 'e2e test',
+      confidence: 0.6,
+      source: 'auto',
+      verified: false,
+    })
+    const ok = approveInstinct(inst.id)
+    expect(ok).toBe(true)
+
+    const loaded = getInstinct(inst.id)
+    expect(loaded!.verified).toBe(true)
+    expect(loaded!.confidence).toBe(0.7)
+    deleteInstinct(inst.id)
+  })
+
+  it('reject (delete) removes the instinct', () => {
+    const inst = insertInstinct({
+      trigger: 'reject-e2e',
+      action: 'e2e test',
+      confidence: 0.6,
+      source: 'auto',
+      verified: false,
+    })
+    expect(deleteInstinct(inst.id)).toBe(true)
+    expect(getInstinct(inst.id)).toBeNull()
+  })
+
+  it('approve returns false for non-existent id', () => {
+    expect(approveInstinct('non-existent-approve')).toBe(false)
+  })
+
+  it('reject returns false for non-existent id', () => {
+    expect(deleteInstinct('non-existent-reject')).toBe(false)
   })
 })

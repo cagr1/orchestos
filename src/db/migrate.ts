@@ -106,6 +106,7 @@ export function runMigrations(): void {
   safeAddColumn('files', 'embedding',         'TEXT')     // S24.1: JSON array of float[] for semantic search
   safeAddColumn('runs', 'embed_hits',             'INTEGER')  // S24.5: count of embedding-suggested files used in this run
   safeAddColumn('runs', 'context_warnings_json', 'TEXT')     // S27.4: JSON array of ContextWarning[] fired during this run
+  safeAddColumn('runs', 'cost_breakdown_json',   'TEXT')     // S35.3: JSON array of CostBreakdownEntry[]
 
   // S26.3 — memory conflict detection records
   db.exec(`

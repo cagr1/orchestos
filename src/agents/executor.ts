@@ -124,7 +124,8 @@ export async function executeSubTask(
   }
 
   // 5. Map harness status → SubagentResult
-  return mapResult(st, harnessResult, elapsed)
+  const modelUsed = st.executor_model ?? opts.parentModel
+  return mapResult(st, harnessResult, elapsed, modelUsed)
 }
 
 // ---------------------------------------------------------------------------
@@ -153,9 +154,10 @@ function subTaskToTask(st: SubTask, opts: ExecutorOpts): Task {
 // TaskResult → SubagentResult
 // ---------------------------------------------------------------------------
 
-function mapResult(st: SubTask, r: TaskResult, elapsedMs: number): SubagentResult {
+function mapResult(st: SubTask, r: TaskResult, elapsedMs: number, model?: string): SubagentResult {
   const base = {
     sub_task_id: st.id,
+    model:       model ?? st.executor_model,
     usd_cost:    r.cost.usd,
     tokens:      { input: r.cost.inputTokens, output: r.cost.outputTokens },
     elapsed_ms:  elapsedMs,

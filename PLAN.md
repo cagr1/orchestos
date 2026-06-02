@@ -108,14 +108,14 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
 **Goal**: cerrar el loop iniciado en S30. `runs --analyze` detecta patrones. Si un patrón se repite ≥ 3 veces, proponer automáticamente un instinct `confidence: 0.6`, `source: auto`, `verified: false`, pendiente de aprobación humana.
 
-- [ ] 🧠 S34.1 Diseñar flujo completo: `runs --analyze` detecta patrón → evalúa frecuencia → si threshold → `instinct propose` → instinct queda en estado `unverified`
-- [ ] ⚡ S34.2 Extender `runs --analyze` — si patrón aparece ≥ 3 runs, emite evento `pattern_threshold_reached` con trigger y action sugeridos
-- [ ] ⚡ S34.3 Implementar `instinct propose` — crea instinct `source: auto`, `confidence: 0.6`, `verified: false`; no actúa hasta aprobación
-- [ ] ⚡ S34.4 CLI `instinct review` — lista instincts `verified: false` con trigger, action y confidence
-- [ ] ⚡ S34.5 CLI `instinct approve <id>` → `verified: true`, confidence += 0.1 (tope 1.0) · `instinct reject <id>` → elimina el instinct propuesto
-- [ ] ⚡ S34.6 Hook post-`task run`: si hay proposals nuevos de `runs --analyze`, mostrarlos al finalizar
-- [ ] ⚡ S34.7 Tests: threshold dispara proposal, approve/reject funcionan, hook no bloquea sin proposals
-- [ ] 🔍 S34.V Validación: flujo end-to-end con runs reales · patrón detectado → proposal visible en `instinct review` · Claude verifica semántica de los proposals
+- [x] 🧠 S34.1 Diseñar flujo completo: `runs --analyze` detecta patrón → evalúa frecuencia → si threshold → `instinct propose` → instinct queda en estado `unverified` (2026-06-02)
+- [x] ⚡ S34.2 Extender `runs --analyze` — si patrón aparece ≥ 3 runs, emite evento `pattern_threshold_reached` con trigger y action sugeridos
+- [x] ⚡ S34.3 Implementar `instinct propose` — crea instinct `source: auto`, `confidence: 0.6`, `verified: false`; no actúa hasta aprobación
+- [x] ⚡ S34.4 CLI `instinct review` — lista instincts `verified: false` con trigger, action y confidence
+- [x] ⚡ S34.5 CLI `instinct approve <id>` → `verified: true`, confidence += 0.1 (tope 1.0) · `instinct reject <id>` → elimina el instinct propuesto
+- [x] ⚡ S34.6 Hook post-`task run`: si hay proposals nuevos de `runs --analyze`, mostrarlos al finalizar
+- [x] ⚡ S34.7 Tests: threshold dispara proposal, approve/reject funcionan, hook no bloquea sin proposals
+- [x] 🔍 S34.V Validación: flujo end-to-end con runs reales · patrón detectado → proposal visible en `instinct review` · Claude verifica semántica de los proposals
 
 ---
 
@@ -123,12 +123,12 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
 **Goal**: `runs.cost_usd` solo captura el costo del agente principal. Parsear transcripts para extraer el costo real de cada sub-agente y mostrar breakdown en `runs --detail`.
 
-- [ ] ⚡ S35.1 `src/run/transcript-parser.ts` — extrae `usage.input_tokens`, `usage.output_tokens` y modelo de cada mensaje del transcript JSON
-- [ ] ⚡ S35.2 Calcular costo por sub-agente usando `src/router/pricing.ts` — agregar modelos faltantes si los hay
-- [ ] ⚡ S35.3 Al finalizar run: recalcular `runs.cost_usd` como suma total; guardar breakdown en columna `cost_breakdown_json`
-- [ ] ⚡ S35.4 `runs --detail` muestra tabla: sub-agente | modelo | input_tokens | output_tokens | cost_usd
-- [ ] ⚡ S35.5 Tests: parser extrae tokens de transcript mock, suma total correcta
-- [ ] 🔍 S35.V Validación: run con sub-agentes · cost_usd total y breakdown verificados contra lo que reporta la API · 256+ tests · 0 fail
+- [x] ⚡ S35.1 `src/run/transcript-parser.ts` — extrae `usage.input_tokens`, `usage.output_tokens` y modelo de cada mensaje del transcript JSON (2026-06-02)
+- [x] ⚡ S35.2 Calcular costo por sub-agente usando `src/router/pricing.ts` — agregar modelos faltantes si los hay (2026-06-02)
+- [x] ⚡ S35.3 Al finalizar run: recalcular `runs.cost_usd` como suma total; guardar breakdown en columna `cost_breakdown_json` (2026-06-02)
+- [x] ⚡ S35.4 `runs --detail` muestra tabla: sub-agente | modelo | input_tokens | output_tokens | cost_usd (2026-06-02)
+- [x] ⚡ S35.5 Tests: parser extrae tokens de transcript mock, suma total correcta (2026-06-02)
+- [x] 🔍 S35.V Validación: run con sub-agentes · cost_usd total y breakdown verificados contra lo que reporta la API · 256+ tests · 0 fail (2026-06-02)
 
 ---
 

@@ -20,6 +20,7 @@ export interface SubTaskLog {
   status: SubTask['status']
   result?: string
   error?: string
+  model?: string
   usd_cost: number
   tokens: { input: number; output: number }
   elapsed_ms: number
@@ -179,6 +180,7 @@ export async function executePlan(
       status: result.status,
       result: result.result,
       error: result.error,
+      model: result.model,
       usd_cost: result.usd_cost,
       tokens: result.tokens,
       elapsed_ms: result.elapsed_ms,

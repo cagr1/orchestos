@@ -104,6 +104,9 @@ export interface SubagentResult {
    */
   topic_key_written?: string
 
+  /** Model used for this sub-agent (e.g. "anthropic/claude-haiku-4-5") */
+  model?: string
+
   /** Total USD cost: main LLM call + QA LLM call combined. */
   usd_cost: number
 
