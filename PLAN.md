@@ -41,7 +41,7 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 - [x] **C2** ⚡ Filtrar por status con tabs encima de la tabla: Todos · Pending · Running · Done · Failed ✓ 2026-06-03
 - [x] **C3** 🧠 New Task — eliminar campo "Task ID": orchestos lo genera automáticamente desde la descripción (slug kebab-case de las primeras 4-5 palabras) ✓ 2026-06-03
 - [x] **C4** 🧠 New Task — renombrar "Output files" a algo comprensible para no-devs → "Archivos a crear o modificar (opcional)" ✓ 2026-06-03
-- [ ] **C5** ⚡ New Task — campo "Executor" mostrar con nombres humanos: "Rápido (DeepSeek)", "Preciso (Claude)", "Económico (OpenAI)" en lugar de nombres de API
+- [x] **C5** ⚡ New Task — campo "Executor" mostrar con nombres humanos: "Rápido (DeepSeek)", "Preciso (Claude)", "Económico (OpenAI)" en lugar de nombres de API ✓ 2026-06-03
 
 ### Bloque D — Memory
 

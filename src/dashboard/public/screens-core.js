@@ -94,11 +94,11 @@ SCREENS.tasks = {
               <textarea id="draft-output" class="draft-input" rows="2">${esc((draft.output || []).join('\n'))}</textarea>
             </div>
             <div class="draft-field">
-              <label>Executor</label>
+              <label>${t('tasks.draft.field.executor')}</label>
               <select id="draft-exec" class="draft-input">
-                <option value="openrouter" ${draft.executor === 'openrouter' ? 'selected' : ''}>OpenRouter (por defecto)</option>
-                <option value="anthropic" ${draft.executor === 'anthropic' ? 'selected' : ''}>Anthropic (Claude)</option>
-                <option value="openai" ${draft.executor === 'openai' ? 'selected' : ''}>OpenAI</option>
+                <option value="openrouter" ${draft.executor === 'openrouter' ? 'selected' : ''}>${t('modal.task.exec.or')}</option>
+                <option value="anthropic" ${draft.executor === 'anthropic' ? 'selected' : ''}>${t('modal.task.exec.ant')}</option>
+                <option value="openai" ${draft.executor === 'openai' ? 'selected' : ''}>${t('modal.task.exec.oai')}</option>
               </select>
             </div>
           </div>
