@@ -333,9 +333,11 @@ async function handleApiChat(req: Request): Promise<Response> {
 
   const ctx = lines.length ? `\nProject state:\n${lines.join('\n')}\n` : ''
   const projBlock = projectCtx ? `\nProject context:\n${projectCtx}\n` : ''
+  const model = (body as any).model?.trim() || 'deepseek/deepseek-v4-flash'
+
   const systemPrompt = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs, memory, specs, and the system. Be concise and direct. If the user writes in Spanish, respond in Spanish.
 
-You are running as model: anthropic/claude-haiku-4-5 via OpenRouter.
+You are running as model: ${model} via OpenRouter.
 
 Important: you cannot modify files or run code directly from this chat. However, OrchestOS CAN improve itself — the user can create a Task describing the improvement, and the agent executor will modify the codebase autonomously. That is the correct way to self-improve: Tasks → agent runs → code changes.${ctx}${projBlock}`
 
@@ -343,8 +345,6 @@ Important: you cannot modify files or run code directly from this chat. However,
     .filter(h => h.role === 'user' || h.role === 'assistant')
     .map(h => ({ role: h.role as 'user' | 'assistant', content: String(h.content) }))
   messages.push({ role: 'user', content: message })
-
-  const model = (body as any).model?.trim() || 'deepseek/deepseek-v4-flash'
 
   try {
     const resp = await openrouterChat({
