@@ -1,0 +1,34 @@
+<svg width="920" height="256" viewBox="0 0 920 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">OrchestOS logo</title>
+  <desc id="desc">OrchestOS wordmark with orchestration network symbol.</desc>
+  <defs>
+    <linearGradient id="core" x1="62" y1="36" x2="194" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7DD3FC"/>
+      <stop offset="0.45" stop-color="#58A6FF"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="16" y="16" width="224" height="224" rx="48" fill="#0D1117"/>
+    <rect x="16.5" y="16.5" width="223" height="223" rx="47.5" stroke="#30363D"/>
+    <path d="M78 72C91.5 58.6 108.6 52 128 52C147.4 52 164.5 58.6 178 72" stroke="url(#core)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M178 184C164.5 197.4 147.4 204 128 204C108.6 204 91.5 197.4 78 184" stroke="url(#core)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M72 78C58.6 91.5 52 108.6 52 128C52 147.4 58.6 164.5 72 178" stroke="#7EE787" stroke-width="10" stroke-linecap="round"/>
+    <path d="M184 78C197.4 91.5 204 108.6 204 128C204 147.4 197.4 164.5 184 178" stroke="#FBBF6A" stroke-width="10" stroke-linecap="round"/>
+    <path d="M91 91L112 112" stroke="#C9D1D9" stroke-opacity="0.7" stroke-width="7" stroke-linecap="round"/>
+    <path d="M165 91L144 112" stroke="#C9D1D9" stroke-opacity="0.7" stroke-width="7" stroke-linecap="round"/>
+    <path d="M91 165L112 144" stroke="#C9D1D9" stroke-opacity="0.7" stroke-width="7" stroke-linecap="round"/>
+    <path d="M165 165L144 144" stroke="#C9D1D9" stroke-opacity="0.7" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="128" cy="128" r="33" fill="#161B22" stroke="url(#core)" stroke-width="9"/>
+    <circle cx="128" cy="128" r="10" fill="#58A6FF"/>
+    <circle cx="74" cy="74" r="18" fill="#161B22" stroke="#7EE787" stroke-width="8"/>
+    <circle cx="182" cy="74" r="18" fill="#161B22" stroke="#FBBF6A" stroke-width="8"/>
+    <circle cx="74" cy="182" r="18" fill="#161B22" stroke="#58A6FF" stroke-width="8"/>
+    <circle cx="182" cy="182" r="18" fill="#161B22" stroke="#8B5CF6" stroke-width="8"/>
+  </g>
+  <text x="284" y="143" fill="#C9D1D9" font-family="Inter, Segoe UI, system-ui, sans-serif" font-size="72" font-weight="760" letter-spacing="0">Orchest</text>
+  <text x="575" y="143" fill="#58A6FF" font-family="Inter, Segoe UI, system-ui, sans-serif" font-size="72" font-weight="760" letter-spacing="0">OS</text>
+  <text x="288" y="181" fill="#8B949E" font-family="SF Mono, Fira Code, JetBrains Mono, ui-monospace, monospace" font-size="20" font-weight="500" letter-spacing="0">agent orchestration system</text>
+  <path d="M288 200H714" stroke="#30363D" stroke-width="2" stroke-linecap="round"/>
+  <path d="M288 200H492" stroke="url(#core)" stroke-width="2" stroke-linecap="round"/>
+</svg>

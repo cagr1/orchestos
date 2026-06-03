@@ -15,6 +15,7 @@ const state = {
   specs: [],
   memory: [],
   settings: null,
+  setup: null,
 
   runsStatus: 'loading',
   tasksStatus: 'loading',
@@ -22,6 +23,8 @@ const state = {
   specsStatus: 'loading',
   memoryStatus: 'loading',
   settingsStatus: 'idle',
+  setupStatus: 'idle',
+  setupRedirectDone: false,
 
   taskFilter: 'all',
   taskSort: { col: null, dir: 'asc' },
@@ -101,6 +104,16 @@ const App = {
       state.settingsStatus = 'error';
     }
   },
+  async fetchSetup() {
+    try {
+      const res = await fetch('/api/setup');
+      if (!res.ok) throw new Error(res.status);
+      state.setup = await res.json();
+      state.setupStatus = 'ok';
+    } catch {
+      state.setupStatus = 'error';
+    }
+  },
   async fetchAll() {
     await Promise.all([
       this.fetchRuns(),
@@ -109,7 +122,12 @@ const App = {
       this.fetchSpecs(),
       this.fetchMemory(),
       this.fetchSettings(),
+      this.fetchSetup(),
     ]);
+    if (!state.setupRedirectDone && state.setup?.criticalMissing) {
+      state.screen = 'settings';
+      state.setupRedirectDone = true;
+    }
     this.rerender();
     Term.render();
   },

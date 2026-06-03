@@ -274,11 +274,62 @@ const KEY_DEFS = [
 ];
 
 SCREENS.settings = {
+  itemBadge(item) {
+    if (item.ok) return `<span class="badge green square">${ICON.check} Ready</span>`;
+    if (item.critical) return `<span class="badge red square">${ICON.x} Required</span>`;
+    return `<span class="badge amber square">${ICON.warn} Optional</span>`;
+  },
+  setupChecklist(st) {
+    const setup = st.setup;
+    if (st.setupStatus === 'loading' || st.setupStatus === 'idle') {
+      return `<div class="card settings-card setup-card">${loadingState(t('setup.loading'))}</div>`;
+    }
+    if (st.setupStatus === 'error' || !setup) {
+      return `<div class="card settings-card setup-card">${errorState(t('setup.err.title'), t('setup.err.body'))}</div>`;
+    }
+
+    const summary = setup.criticalMissing
+      ? `<span class="badge red square">${ICON.warn} ${t('setup.summary.blocked')}</span>`
+      : `<span class="badge green square">${ICON.check} ${t('setup.summary.ready')}</span>`;
+
+    const rows = (setup.items || []).map(item => {
+      const command = item.command
+        ? `<code class="setup-command">${esc(item.command)}</code>`
+        : '';
+      const action = item.action === 'copy-command' && item.command
+        ? `<button class="btn ghost sm" data-copy="${esc(item.command)}">${item.actionLabel || t('setup.copy')}</button>`
+        : item.action === 'save-settings'
+          ? `<button class="btn ghost sm" data-focus-key>${item.actionLabel || t('settings.btn.save')}</button>`
+          : '';
+      return `<div class="setup-row ${item.ok ? 'ok' : item.critical ? 'critical' : 'optional'}">
+        <div class="setup-icon">${item.ok ? ICON.check : item.critical ? ICON.x : ICON.warn}</div>
+        <div class="setup-main">
+          <div class="setup-title">${esc(item.label)}</div>
+          <div class="setup-hint">${esc(item.hint)}</div>
+          ${command}
+        </div>
+        <div class="setup-side">${this.itemBadge(item)}${action}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="card settings-card setup-card">
+      <div class="settings-header setup-header">
+        <div>
+          <h3>${t('setup.title')}</h3>
+          <p class="muted" style="margin:0;font-size:12.5px">${t('setup.subtitle')}</p>
+        </div>
+        ${summary}
+      </div>
+      <div class="setup-list">${rows}</div>
+    </div>`;
+  },
   render(st) {
     const keys = st.settings || {};
     const lang = getLang();
+    const setupTitle = st.setup?.criticalMissing ? t('setup.title') : t('settings.title');
+    const setupSubtitle = st.setup?.criticalMissing ? t('setup.subtitle') : t('settings.subtitle');
     const head = `<div class="screen-head">
-      <div class="lead"><h1>${t('settings.title')}</h1><p>${t('settings.subtitle')}</p></div>
+      <div class="lead"><h1>${setupTitle}</h1><p>${setupSubtitle}</p></div>
     </div>`;
 
     const keyRows = KEY_DEFS.map(def => {
@@ -306,6 +357,7 @@ SCREENS.settings = {
     const envSet = keys['_envFile']?.set;
 
     return `<div class="screen">${head}
+      ${this.setupChecklist(st)}
       <div class="settings-grid">
 
         <div class="card settings-card">
@@ -347,6 +399,21 @@ SCREENS.settings = {
   },
 
   wire(root, st) {
+    root.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy || '');
+        const old = btn.textContent;
+        btn.textContent = t('setup.copied');
+        setTimeout(() => { btn.textContent = old; }, 1200);
+      } catch {
+        alert(btn.dataset.copy || '');
+      }
+    }));
+    root.querySelectorAll('[data-focus-key]').forEach(btn => btn.addEventListener('click', () => {
+      const el = root.querySelector('#k-OPENROUTER_API_KEY') || root.querySelector('.key-input input');
+      if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }));
+
     root.querySelector('[data-save-keys]')?.addEventListener('click', async () => {
       const body = {};
       KEY_DEFS.forEach(def => {
@@ -368,6 +435,7 @@ SCREENS.settings = {
           msg.style.display = '';
           KEY_DEFS.forEach(def => { const el = root.querySelector('#k-' + def.id); if (el) el.value = ''; });
           await App.fetchSettings();
+          await App.fetchSetup();
           App.rerender();
         } else {
           const e = await res.json();

@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync, realpathSync, mkdirSync } from
 import { homedir } from 'os'
 import { chat as openrouterChat } from '../providers/openrouter.ts'
 import { loadContext } from '../context/load.ts'
+import { getProject } from '../db/projects.ts'
 import { db } from '../db/sqlite.ts'
 import { listRuns, getRun, type RunRecord } from '../db/runs.ts'
 import { loadTasks, saveTasks } from '../tasks/loader.ts'
@@ -21,6 +22,8 @@ import {
   type CostBreakdownEntry,
   type ContextWarningEntry,
   type MemoryRow,
+  type SetupItem,
+  type SetupResponse,
   STATIC_DIR,
   DEFAULT_PORT,
 } from './types.ts'
@@ -440,6 +443,125 @@ function handleApiSettingsGet(): Response {
   return jsonResponse(result)
 }
 
+function handleApiSetup(): Response {
+  const root = resolve('.')
+  const dbPath = join(homedir(), '.orchestos', 'db.sqlite')
+  const env = readEnv()
+  const items: SetupItem[] = []
+
+  const bunVersion = (globalThis as any).Bun?.version ?? ''
+  items.push({
+    id: 'bun',
+    label: bunVersion ? `Bun ${bunVersion}` : 'Bun not found',
+    ok: !!bunVersion,
+    critical: true,
+    kind: 'runtime',
+    hint: bunVersion ? 'Runtime is available.' : 'Install Bun, then reopen this dashboard.',
+    action: bunVersion ? undefined : 'copy-command',
+    actionLabel: bunVersion ? undefined : 'Copy install command',
+    command: bunVersion ? undefined : 'powershell -c "irm bun.sh/install.ps1 | iex"',
+  })
+
+  const hasLock = existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
+  const hasMods = existsSync(join(root, 'node_modules'))
+  items.push({
+    id: 'dependencies',
+    label: hasLock && hasMods ? 'Dependencies installed' : hasLock ? 'node_modules missing' : 'bun.lock missing',
+    ok: hasLock && hasMods,
+    critical: false,
+    kind: 'dependency',
+    hint: hasLock
+      ? (hasMods ? 'Project dependencies are installed.' : 'Run bun install in the project directory.')
+      : `Current directory may be wrong: ${root}`,
+    action: hasLock && hasMods ? undefined : 'copy-command',
+    actionLabel: hasLock && hasMods ? undefined : 'Copy command',
+    command: hasLock ? 'bun install' : undefined,
+  })
+
+  const openRouter = env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || ''
+  items.push({
+    id: 'openrouter-key',
+    label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY missing',
+    ok: !!openRouter,
+    critical: true,
+    kind: 'credential',
+    hint: openRouter ? 'The primary LLM gateway is ready.' : `Paste an OpenRouter API key below. It will be stored in ${ENV_FILE}.`,
+    action: openRouter ? undefined : 'save-settings',
+    actionLabel: openRouter ? undefined : 'Save key',
+  })
+
+  const anthropic = env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || ''
+  items.push({
+    id: 'anthropic-key',
+    label: anthropic ? 'ANTHROPIC_API_KEY configured' : 'ANTHROPIC_API_KEY optional',
+    ok: !!anthropic,
+    critical: false,
+    kind: 'credential',
+    hint: anthropic ? 'Direct Claude executor is available.' : 'Optional. Add it if you want direct Anthropic executor support.',
+    action: anthropic ? undefined : 'save-settings',
+    actionLabel: anthropic ? undefined : 'Add optional key',
+  })
+
+  const openai = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY || ''
+  items.push({
+    id: 'openai-key',
+    label: openai ? 'OPENAI_API_KEY configured' : 'OPENAI_API_KEY optional',
+    ok: !!openai,
+    critical: false,
+    kind: 'credential',
+    hint: openai ? 'OpenAI embeddings are available.' : 'Optional. Add it if you want OpenAI embeddings.',
+    action: openai ? undefined : 'save-settings',
+    actionLabel: openai ? undefined : 'Add optional key',
+  })
+
+  const hasTasks = existsSync(join(root, 'tasks.yaml'))
+  items.push({
+    id: 'tasks-yaml',
+    label: hasTasks ? 'tasks.yaml found' : 'tasks.yaml missing',
+    ok: hasTasks,
+    critical: true,
+    kind: 'project',
+    hint: hasTasks ? 'The project task file is ready.' : 'Create the task file in this project directory.',
+    action: hasTasks ? undefined : 'copy-command',
+    actionLabel: hasTasks ? undefined : 'Copy command',
+    command: hasTasks ? undefined : 'orchestos task init',
+  })
+
+  const hasDb = existsSync(dbPath)
+  items.push({
+    id: 'db',
+    label: hasDb ? 'SQLite database initialized' : 'SQLite database not initialized',
+    ok: hasDb,
+    critical: false,
+    kind: 'database',
+    hint: hasDb ? 'Local persistence is available.' : 'It is created automatically when OrchestOS runs.',
+  })
+
+  let indexed = false
+  try { indexed = !!getProject(root) } catch {}
+  items.push({
+    id: 'code-graph',
+    label: indexed ? 'Project indexed in code graph' : 'Project not indexed',
+    ok: indexed,
+    critical: false,
+    kind: 'index',
+    hint: indexed ? 'Context suggestions can use the code graph.' : 'Index the project for better context suggestions.',
+    action: indexed ? undefined : 'copy-command',
+    actionLabel: indexed ? undefined : 'Copy command',
+    command: indexed ? undefined : `orchestos index "${root}"`,
+  })
+
+  const criticalMissing = items.some(i => i.critical && !i.ok)
+  const result: SetupResponse = {
+    ready: !criticalMissing,
+    criticalMissing,
+    envFile: ENV_FILE,
+    cwd: root,
+    items,
+  }
+  return jsonResponse(result)
+}
+
 async function handleApiSettingsPost(req: Request): Promise<Response> {
   let body: Record<string, string>
   try { body = (await req.json()) as Record<string, string> } catch { return errorResponse('Invalid JSON', 400) }
@@ -653,6 +775,9 @@ async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
     return handleApiSettingsGet()
+  }
+  if (method === 'GET' && url.pathname === '/api/setup') {
+    return handleApiSetup()
   }
   if (method === 'POST' && url.pathname === '/api/settings') {
     return handleApiSettingsPost(req)

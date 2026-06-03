@@ -120,6 +120,26 @@ export interface SettingsKeyInfo {
 
 export type SettingsResponse = Record<string, SettingsKeyInfo>
 
+export interface SetupItem {
+  id: string
+  label: string
+  ok: boolean
+  critical: boolean
+  kind: 'runtime' | 'dependency' | 'credential' | 'project' | 'database' | 'index'
+  hint: string
+  actionLabel?: string
+  action?: 'save-settings' | 'copy-command'
+  command?: string
+}
+
+export interface SetupResponse {
+  ready: boolean
+  criticalMissing: boolean
+  envFile: string
+  cwd: string
+  items: SetupItem[]
+}
+
 // ── mutations ─────────────────────────────────────────────────────────────────
 
 export interface MutationResult {

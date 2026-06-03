@@ -94,7 +94,7 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
   - Para cada ítem faltante: muestra el comando exacto a copiar-pegar (no ejecuta por el usuario si requiere permisos)
   - Al final: "Todo listo. Abre el dashboard con: `orchestos dashboard`" ó lista de pendientes
 
-- [ ] **I2** ⚡ Pantalla "Setup" en el dashboard — misma checklist visual
+- [x] **I2** ⚡ Pantalla "Setup" en el dashboard — misma checklist visual ✓ 2026-06-03
   - Se muestra automáticamente si falta algún prerequisito crítico (API key vacía, sin tasks.yaml)
   - Cada ítem faltante tiene un botón de acción o instrucción clara
   - La pantalla Settings actual se fusiona con esta vista de setup para no tener dos lugares donde configurar cosas

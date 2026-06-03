@@ -227,6 +227,15 @@ const I18N = {
     'settings.project.exists':'exists',
     'settings.project.missing':'not found',
     'settings.lang.title':    'Language',
+    'setup.title':       'Setup',
+    'setup.subtitle':    'Checklist for running OrchestOS from this dashboard.',
+    'setup.loading':     'Checking setup...',
+    'setup.err.title':   'Could not check setup',
+    'setup.err.body':    'GET /api/setup returned an error.',
+    'setup.summary.ready':   'Ready',
+    'setup.summary.blocked': 'Action needed',
+    'setup.copy':        'Copy command',
+    'setup.copied':      'Copied',
   },
 
   /* ================================================================
@@ -453,6 +462,15 @@ const I18N = {
     'settings.project.exists':'existe',
     'settings.project.missing':'no encontrado',
     'settings.lang.title':    'Idioma / Language',
+    'setup.title':       'Setup',
+    'setup.subtitle':    'Checklist para usar OrchestOS desde este dashboard.',
+    'setup.loading':     'Revisando setup...',
+    'setup.err.title':   'No se pudo revisar el setup',
+    'setup.err.body':    'GET /api/setup devolvio un error.',
+    'setup.summary.ready':   'Listo',
+    'setup.summary.blocked': 'Accion requerida',
+    'setup.copy':        'Copiar comando',
+    'setup.copied':      'Copiado',
   },
 };
 
