@@ -89,7 +89,7 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 - Instalar Bun si no está — en Windows requiere abrir PowerShell manualmente (no hay forma silenciosa sin permisos de admin)
 - Ingresar las API keys — credenciales no se auto-generan nunca
 
-- [ ] **I1** 🧠 Comando `orchestos setup` — pre-flight completo antes de cualquier otra cosa
+- [x] **I1** 🧠 Comando `orchestos setup` — pre-flight completo antes de cualquier otra cosa ✓ 2026-06-03
   - Checklist: Bun ✓/✗ · `bun install` ✓/✗ · API key ✓/✗ · tasks.yaml ✓/✗ · DB ✓/✗
   - Para cada ítem faltante: muestra el comando exacto a copiar-pegar (no ejecuta por el usuario si requiere permisos)
   - Al final: "Todo listo. Abre el dashboard con: `orchestos dashboard`" ó lista de pendientes

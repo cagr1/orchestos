@@ -1503,6 +1503,171 @@ instinct
     console.log(`  verified:   ${result.verified}`)
   })
 
+// ── setup ─────────────────────────────────────────────────────────────────────
+program
+  .command('setup')
+  .description('Check all prerequisites and print setup instructions')
+  .action(() => {
+    const { homedir } = require('os') as typeof import('os')
+    const root = resolve('.')
+    const envPath = join(homedir(), '.orchestos', '.env')
+    const dbPath  = join(homedir(), '.orchestos', 'db.sqlite')
+
+    // ── helpers ────────────────────────────────────────────────────────────────
+    const GREEN  = '\x1b[32m'
+    const RED    = '\x1b[31m'
+    const YELLOW = '\x1b[33m'
+    const BOLD   = '\x1b[1m'
+    const DIM    = '\x1b[2m'
+    const RESET  = '\x1b[0m'
+    const OK  = `${GREEN}✓${RESET}`
+    const FAIL = `${RED}✗${RESET}`
+    const WARN = `${YELLOW}!${RESET}`
+
+    interface CheckItem { label: string; ok: boolean; warn?: boolean; hint?: string }
+    const items: CheckItem[] = []
+
+    // 1. Bun
+    const bunVersion: string = (globalThis as any).Bun?.version ?? ''
+    if (bunVersion) {
+      items.push({ label: `Bun ${bunVersion}`, ok: true })
+    } else {
+      items.push({
+        label: 'Bun no encontrado',
+        ok: false,
+        hint: 'Instala Bun en https://bun.sh  →  powershell -c "irm bun.sh/install.ps1 | iex"',
+      })
+    }
+
+    // 2. Dependencias (node_modules / bun.lock / bun.lockb)
+    const hasLock    = existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
+    const hasMods    = existsSync(join(root, 'node_modules'))
+    if (hasLock && hasMods) {
+      items.push({ label: 'Dependencias instaladas (node_modules)', ok: true })
+    } else if (hasLock && !hasMods) {
+      items.push({
+        label: 'node_modules ausente',
+        ok: false,
+        hint: 'Ejecuta:  bun install',
+      })
+    } else {
+      items.push({
+        label: 'bun.lock ausente — puede que no estés en el directorio correcto',
+        ok: false,
+        warn: true,
+        hint: `Directorio actual: ${root}`,
+      })
+    }
+
+    // 3. API keys  (~/.orchestos/.env)
+    let envContent = ''
+    if (existsSync(envPath)) {
+      try { envContent = readFileSync(envPath, 'utf8') } catch { /* */ }
+    }
+    const hasOR  = /^OPENROUTER_API_KEY\s*=\s*.+/m.test(envContent)
+    const hasANT = /^ANTHROPIC_API_KEY\s*=\s*.+/m.test(envContent)
+    const hasOAI = /^OPENAI_API_KEY\s*=\s*.+/m.test(envContent)
+
+    if (hasOR) {
+      items.push({ label: 'OPENROUTER_API_KEY  (requerida)', ok: true })
+    } else {
+      items.push({
+        label: 'OPENROUTER_API_KEY faltante  (requerida)',
+        ok: false,
+        hint: `Añade en ${envPath}:\n      OPENROUTER_API_KEY=sk-or-...`,
+      })
+    }
+    if (hasANT) {
+      items.push({ label: 'ANTHROPIC_API_KEY  (opcional)', ok: true })
+    } else {
+      items.push({
+        label: 'ANTHROPIC_API_KEY no configurada  (opcional — necesaria para executor: anthropic)',
+        ok: true,
+        warn: true,
+        hint: `Añade en ${envPath}:\n      ANTHROPIC_API_KEY=sk-ant-...`,
+      })
+    }
+    if (hasOAI) {
+      items.push({ label: 'OPENAI_API_KEY  (opcional)', ok: true })
+    } else {
+      items.push({
+        label: 'OPENAI_API_KEY no configurada  (opcional — necesaria para embeddings OpenAI)',
+        ok: true,
+        warn: true,
+        hint: `Añade en ${envPath}:\n      OPENAI_API_KEY=sk-...`,
+      })
+    }
+
+    // 4. tasks.yaml
+    if (existsSync(join(root, 'tasks.yaml'))) {
+      items.push({ label: 'tasks.yaml encontrado', ok: true })
+    } else {
+      items.push({
+        label: 'tasks.yaml no encontrado',
+        ok: false,
+        hint: 'Crea uno con:  orchestos task init',
+      })
+    }
+
+    // 5. Base de datos
+    if (existsSync(dbPath)) {
+      items.push({ label: `Base de datos (db.sqlite)`, ok: true })
+    } else {
+      items.push({
+        label: 'db.sqlite no inicializada',
+        ok: false,
+        hint: 'Se crea automáticamente al ejecutar cualquier comando orchestos',
+      })
+    }
+
+    // 6. Índice de código (proyecto en DB)
+    let indexed = false
+    try {
+      const { getProject } = require('./db/projects.ts') as typeof import('./db/projects.ts')
+      const proj = getProject(root)
+      indexed = !!proj
+    } catch { /* DB may not exist yet */ }
+    if (indexed) {
+      items.push({ label: 'Proyecto indexado en el code graph', ok: true })
+    } else {
+      items.push({
+        label: 'Proyecto no indexado',
+        ok: false,
+        warn: true,
+        hint: `Indexa con:  orchestos index ${root}`,
+      })
+    }
+
+    // ── render ─────────────────────────────────────────────────────────────────
+    const LINE = '─'.repeat(52)
+    console.log()
+    console.log(`${BOLD}OrchestOS — Setup Check${RESET}`)
+    console.log('═'.repeat(52))
+    console.log()
+
+    const failures: CheckItem[] = []
+    for (const item of items) {
+      const icon = item.ok ? (item.warn ? WARN : OK) : FAIL
+      console.log(`  ${icon}  ${item.label}`)
+      if (!item.ok && item.hint) {
+        for (const line of item.hint.split('\n')) {
+          console.log(`     ${DIM}${line}${RESET}`)
+        }
+      }
+      if (!item.ok) failures.push(item)
+    }
+
+    console.log()
+    console.log(DIM + LINE + RESET)
+    const criticalFails = failures.filter(f => !f.warn).length
+    if (criticalFails === 0) {
+      console.log(`  ${OK}  ${GREEN}${BOLD}Todo listo.${RESET}  Abre el dashboard con:  ${BOLD}orchestos dashboard${RESET}`)
+    } else {
+      console.log(`  ${FAIL}  ${RED}${criticalFails} item${criticalFails > 1 ? 's' : ''} pendiente${criticalFails > 1 ? 's' : ''}.${RESET}  Resuélvelos y vuelve a ejecutar:  ${BOLD}orchestos setup${RESET}`)
+    }
+    console.log()
+  })
+
 // ── dashboard ──────────────────────────────────────────────────────────────────
 program
   .command('dashboard')
