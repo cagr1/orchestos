@@ -4,76 +4,106 @@
 window.SCREENS = window.SCREENS || {};
 
 /* ============================================================
-   4 · INSTINCTS
+   4 · HÁBITOS DEL AGENTE  (Instincts — E1)
    ============================================================ */
 SCREENS.instincts = {
   verdict(i) {
-    if (!i.verified) return { cls: 'amber', txt: 'PROPOSAL' };
-    if (i.confidence >= 0.8) return { cls: 'green', txt: 'ACTIVE' };
-    return { cls: 'gray', txt: 'INACTIVE' };
+    if (!i.verified) return { cls: 'amber', txt: t('instincts.state.proposal') };
+    if (i.confidence >= 0.8) return { cls: 'green', txt: t('instincts.state.active') };
+    return { cls: 'gray', txt: t('instincts.state.inactive') };
+  },
+  confLabel(c) {
+    if (c >= 0.8) return { cls: 'hi', txt: t('instincts.conf.high') };
+    if (c < 0.6)  return { cls: 'lo', txt: t('instincts.conf.low') };
+    return { cls: '',   txt: t('instincts.conf.med') };
   },
   confBar(c) {
-    const cls = c >= 0.8 ? 'hi' : c < 0.6 ? 'lo' : '';
-    return `<div class="conf"><div class="track"><i class="${cls}" style="width:${Math.round(c * 100)}%"></i></div><span class="pct">${Number(c).toFixed(2)}</span></div>`;
+    const { cls, txt } = this.confLabel(c);
+    return `<div class="conf">
+      <div class="track"><i class="${cls}" style="width:${Math.round(c * 100)}%"></i></div>
+      <span class="pct">${t('instincts.conf.label')} <b>${txt}</b></span>
+    </div>`;
   },
   row(i) {
     const v = this.verdict(i);
-    const src = i.source === 'manual' ? 'blue' : 'orange';
     const actions = !i.verified
       ? `<div class="inline-actions">
-           <button class="btn success sm" data-approve="${esc(i.id)}">${ICON.check} Approve</button>
-           <button class="btn danger sm" data-reject="${esc(i.id)}">${ICON.x} Reject</button>
+           <button class="btn success sm" data-approve="${esc(i.id)}">${ICON.check} ${t('instincts.btn.approve')}</button>
+           <button class="btn danger sm" data-reject="${esc(i.id)}">${ICON.x} ${t('instincts.btn.reject')}</button>
          </div>`
-      : `<span class="badge ${v.cls}"><span class="d"></span>${v.txt}</span>`;
+      : `<span class="badge ${v.cls} instinct-state"><span class="d"></span>${v.txt}</span>`;
     return `<tr class="${!i.verified ? 'proposal' : ''}">
       <td><span class="mono" style="color:var(--text)">${esc(i.trigger)}</span></td>
       <td class="muted">${esc(i.action)}</td>
       <td>${this.confBar(i.confidence)}</td>
-      <td><span class="badge ${src} square">${esc(i.source)}</span></td>
       <td style="text-align:right">${actions}</td>
     </tr>`;
   },
   render(st) {
     const head = `<div class="screen-head">
-      <div class="lead"><h1>Instincts</h1><p>Learned triggers that steer how the orchestrator behaves.</p></div>
+      <div class="lead">
+        <h1>${t('instincts.title')}</h1>
+        <p>${t('instincts.subtitle')}</p>
+      </div>
       <div class="tools">
-        <button class="btn" data-act="refresh">${ICON.refresh} Refresh</button>
-        <button class="btn primary" data-act="add-instinct">${ICON.plus} Add Instinct</button>
+        <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
+        <button class="btn primary" data-act="add-instinct">${ICON.plus} ${t('instincts.btn.add')}</button>
       </div>
     </div>`;
 
     if (st.instinctsStatus === 'loading')
-      return `<div class="screen">${head}${loadingState('Loading instincts…')}</div>`;
+      return `<div class="screen">${head}${loadingState(t('instincts.loading'))}</div>`;
     if (st.instinctsStatus === 'error')
-      return `<div class="screen">${head}${errorState('Could not load instincts', 'GET /api/instincts failed. Verify the instincts table migration has run.')}</div>`;
+      return `<div class="screen">${head}${errorState(t('instincts.err.title'), t('instincts.err.body'))}</div>`;
 
     const all = st.instincts || [];
     if (all.length === 0)
-      return `<div class="screen">${head}${emptyState(ICON.instinct, 'No instincts yet', 'Add one manually, or let runs propose instincts automatically as patterns emerge.')}</div>`;
+      return `<div class="screen">${head}${emptyState(ICON.instinct, t('instincts.empty.title'), t('instincts.empty.body'))}</div>`;
 
     const proposals = all.filter(i => !i.verified);
-    const table = `<div class="card" style="overflow:hidden">
-      <table class="tbl">
-        <thead><tr><th>Trigger</th><th>Action</th><th style="width:150px">Confidence</th><th style="width:90px">Source</th><th style="width:170px;text-align:right">State</th></tr></thead>
-        <tbody>${all.map(i => this.row(i)).join('')}</tbody>
-      </table>
-    </div>`;
+    const active    = all.filter(i =>  i.verified && i.confidence >= 0.8);
+    const inactive  = all.filter(i =>  i.verified && i.confidence < 0.8);
 
-    const proposalSection = proposals.length ? `
-      <div class="section-title"><span>Pending Proposals</span><span class="ct">${proposals.length}</span></div>
+    const makeSection = (titleKey, ct, items) => items.length === 0 ? '' : `
+      <div class="section-title"><span>${t(titleKey)}</span><span class="ct">${ct}</span></div>
+      <div class="card" style="overflow:hidden;margin-bottom:16px">
+        <table class="tbl">
+          <thead><tr>
+            <th>${t('instincts.col.when')}</th>
+            <th>${t('instincts.col.what')}</th>
+            <th style="width:180px">${t('instincts.col.conf')}</th>
+            <th style="width:200px;text-align:right">${t('instincts.col.state')}</th>
+          </tr></thead>
+          <tbody>${items.map(i => this.row(i)).join('')}</tbody>
+        </table>
+      </div>`;
+
+    const proposalCards = proposals.length ? `
+      <div class="section-title"><span>${t('instincts.sec.proposals')}</span><span class="ct">${proposals.length}</span></div>
       ${proposals.map(i => `
         <div class="proposal-card">
           <div class="pc-main">
-            <div class="pc-trig"><span class="mono">${esc(i.trigger)}</span><span class="arrow">→</span><span class="muted">${esc(i.action)}</span></div>
-            <div class="pc-meta"><span class="badge orange square">${esc(i.source)}</span>${this.confBar(i.confidence)}</div>
+            <div class="pc-trig">
+              <div class="pc-label">${t('instincts.col.when')}</div>
+              <span>${esc(i.trigger)}</span>
+            </div>
+            <div class="pc-trig" style="margin-top:6px">
+              <div class="pc-label">${t('instincts.col.what')}</div>
+              <span class="muted">${esc(i.action)}</span>
+            </div>
+            <div class="pc-meta" style="margin-top:8px">${this.confBar(i.confidence)}</div>
           </div>
           <div class="inline-actions">
-            <button class="btn success sm" data-approve="${esc(i.id)}">${ICON.check} Approve</button>
-            <button class="btn danger sm" data-reject="${esc(i.id)}">${ICON.x} Reject</button>
+            <button class="btn success sm" data-approve="${esc(i.id)}">${ICON.check} ${t('instincts.btn.approve')}</button>
+            <button class="btn danger sm" data-reject="${esc(i.id)}">${ICON.x} ${t('instincts.btn.reject')}</button>
           </div>
         </div>`).join('')}` : '';
 
-    return `<div class="screen">${head}${table}${proposalSection}</div>`;
+    return `<div class="screen">${head}
+      ${proposalCards}
+      ${makeSection('instincts.sec.active', active.length, active)}
+      ${makeSection('instincts.sec.inactive', inactive.length, inactive)}
+    </div>`;
   },
   wire(root, st) {
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
@@ -101,6 +131,7 @@ SCREENS.instincts = {
    5 · RUNS
    ============================================================ */
 SCREENS.runs = {
+  _timer: null,
   warnCell(n) {
     return n > 0
       ? `<span class="warn-dot">${ICON.warn} ${n}</span>`
@@ -116,51 +147,73 @@ SCREENS.runs = {
             <div class="bar"><i style="width:${pct}%"></i></div>
             <span class="num">${usd(c.costUsd)}</span></div>`;
         }).join('') + `</div></div>`
-      : `<div class="grp"><h4>Cost Breakdown</h4><div class="muted" style="font-size:12.5px">Single-agent run — total ${usd(r.costUsd)}.</div></div>`;
+      : `<div class="grp"><h4>${t('runs.detail.cost')}</h4><div class="muted" style="font-size:12.5px">${t('runs.detail.cost.single')} ${usd(r.costUsd)}.</div></div>`;
 
     /* contextWarnings: {code, severity: 'warning'|'critical'|'notice', message} */
     const warns = r.contextWarnings && r.contextWarnings.length
-      ? `<div class="grp"><h4>Context Warnings</h4>` +
+      ? `<div class="grp"><h4>${t('runs.detail.warnings')}</h4>` +
         r.contextWarnings.map(w => {
           const c = w.severity === 'critical' ? 'var(--error)' : w.severity === 'warning' ? 'var(--warning)' : 'var(--accent)';
           return `<div class="warn-item"><span class="badge square" style="color:${c};border-color:${c};background:transparent">${esc(w.severity)}</span><span style="color:var(--text)">${esc(w.message)}</span></div>`;
         }).join('') + `</div>`
-      : `<div class="grp"><h4>Context Warnings</h4><div class="muted" style="font-size:12.5px">None — context stayed within budget.</div></div>`;
+      : `<div class="grp"><h4>${t('runs.detail.warnings')}</h4><div class="muted" style="font-size:12.5px">${t('runs.detail.no.warn')}</div></div>`;
 
     const qa = r.qaVerdict
-      ? `<div class="grp"><h4>QA Verdict</h4>
+      ? `<div class="grp"><h4>${t('runs.detail.qa')}</h4>
            <div class="kv"><span class="k">Verdict</span><span class="v"><span class="badge ${r.qaVerdict === 'pass' ? 'green' : 'red'}">${r.qaVerdict}</span></span></div>
          </div>`
       : '';
 
-    const meta = `<div class="grp"><h4>Run Details</h4>
-      ${r.skillId ? `<div class="kv"><span class="k">Skill</span><span class="v">${esc(r.skillId)}</span></div>` : ''}
-      ${r.provider ? `<div class="kv"><span class="k">Provider</span><span class="v">${esc(r.provider)}</span></div>` : ''}
-      ${r.elapsedMs ? `<div class="kv"><span class="k">Elapsed</span><span class="v">${(r.elapsedMs / 1000).toFixed(1)}s</span></div>` : ''}
+    const meta = `<div class="grp"><h4>${t('runs.detail.meta')}</h4>
+      ${r.skillId ? `<div class="kv"><span class="k">${t('runs.detail.skill')}</span><span class="v">${esc(r.skillId)}</span></div>` : ''}
+      ${r.provider ? `<div class="kv"><span class="k">${t('runs.detail.provider')}</span><span class="v">${esc(r.provider)}</span></div>` : ''}
+      ${r.elapsedMs ? `<div class="kv"><span class="k">${t('runs.detail.elapsed')}</span><span class="v">${(r.elapsedMs / 1000).toFixed(1)}s</span></div>` : ''}
     </div>`;
 
     return `<tr class="detail-row"><td colspan="7"><div class="detail">${bd}${warns}${qa}${meta}</div></td></tr>`;
   },
   render(st) {
+    const hasRunning = (st.runs || []).some(r => r.status === 'running');
+    const liveIndicator = hasRunning
+      ? `<span class="live-indicator"><span class="live-dot"></span>${t('runs.live')}</span>`
+      : `<span class="live-indicator idle">${t('runs.idle')}</span>`;
+
     const head = `<div class="screen-head">
-      <div class="lead"><h1>Runs</h1><p>Execution history with cost, tokens and QA outcomes.</p></div>
+      <div class="lead"><h1>${t('runs.title')}</h1><p>${t('runs.subtitle')}</p></div>
       <div class="tools">
-        <button class="btn" data-act="refresh">${ICON.refresh} Refresh</button>
+        ${liveIndicator}
+        <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
       </div>
     </div>`;
 
     if (st.runsStatus === 'loading')
-      return `<div class="screen">${head}${loadingState('Loading runs…')}</div>`;
+      return `<div class="screen">${head}${loadingState(t('runs.loading'))}</div>`;
     if (st.runsStatus === 'error')
-      return `<div class="screen">${head}${errorState('Could not load runs', 'GET /api/runs returned an error. Is the SQLite store reachable?')}</div>`;
+      return `<div class="screen">${head}${errorState(t('runs.err.title'), t('runs.err.body'))}</div>`;
 
-    const runs = st.runs || [];
-    if (runs.length === 0)
-      return `<div class="screen">${head}${emptyState(ICON.runs, 'No runs yet', 'Execute a task from the CLI — completed runs land here with full cost and QA detail.')}</div>`;
+    const allRuns = st.runs || [];
+    if (allRuns.length === 0)
+      return `<div class="screen">${head}${emptyState(ICON.runs, t('runs.empty.title'), t('runs.empty.body'))}</div>`;
 
-    const filters = `<div class="filters">
-      <span class="filter-label">${runs.length} run${runs.length !== 1 ? 's' : ''}</span>
-    </div>`;
+    // F2 — filter tabs
+    const counts = { all: allRuns.length, running: 0, done: 0, failed: 0 };
+    allRuns.forEach(r => {
+      const k = r.status === 'failed_permanent' ? 'failed' : r.status;
+      if (k in counts) counts[k]++;
+    });
+    const tabLabels = {
+      all: t('runs.filter.all'), running: t('runs.filter.running'),
+      done: t('runs.filter.done'), failed: t('runs.filter.failed'),
+    };
+    const tabs = Object.entries(tabLabels).map(([k, label]) =>
+      `<button class="filter-tab ${st.runsFilter === k ? 'active' : ''}" data-runs-filter="${k}">
+        ${label} <span class="tab-ct">${counts[k] || 0}</span>
+      </button>`
+    ).join('');
+
+    const runs = st.runsFilter === 'all'
+      ? allRuns
+      : allRuns.filter(r => (r.status === 'failed_permanent' ? 'failed' : r.status) === st.runsFilter);
 
     const rows = runs.map(r => {
       const open = st.openRun === r.id;
@@ -177,16 +230,32 @@ SCREENS.runs = {
       return main + (open ? this.detail(r) : '');
     }).join('');
 
-    return `<div class="screen">${head}${filters}
+    return `<div class="screen">${head}
+      <div class="filter-tabs" style="margin-bottom:12px">${tabs}</div>
       <div class="card" style="overflow:hidden">
         <table class="tbl">
-          <thead><tr><th style="width:90px">Status</th><th>Task ID</th><th>Model</th><th>Tokens (in/out)</th><th>Cost</th><th style="width:80px">Warn</th><th>Date</th></tr></thead>
+          <thead><tr><th style="width:90px">${t('runs.col.status')}</th><th>${t('runs.col.taskid')}</th><th>${t('runs.col.model')}</th><th>${t('runs.col.tokens')}</th><th>${t('runs.col.cost')}</th><th style="width:80px">${t('runs.col.warn')}</th><th>${t('runs.col.date')}</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div></div>`;
   },
   wire(root, st) {
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
+
+    // F2 — filter tabs
+    root.querySelectorAll('[data-runs-filter]').forEach(btn => btn.addEventListener('click', () => {
+      st.runsFilter = btn.dataset.runsFilter;
+      App.rerender();
+    }));
+
+    // F1 — auto-refresh every 5s while on Runs screen
+    if (this._timer) clearInterval(this._timer);
+    this._timer = setInterval(async () => {
+      if (state.screen !== 'runs') { clearInterval(this._timer); this._timer = null; return; }
+      await App.fetchRuns();
+      App.rerender();
+    }, 5000);
+
     root.querySelectorAll('[data-run]').forEach(tr => tr.addEventListener('click', () => {
       st.openRun = st.openRun === tr.dataset.run ? null : tr.dataset.run;
       App.rerender();
@@ -198,31 +267,32 @@ SCREENS.runs = {
    6 · SETTINGS
    ============================================================ */
 const KEY_DEFS = [
-  { id: 'OPENROUTER_API_KEY', label: 'OpenRouter API Key',  desc: 'Primary LLM gateway — Claude, GPT-4o, DeepSeek. openrouter.ai', ph: 'sk-or-...' },
-  { id: 'ANTHROPIC_API_KEY',  label: 'Anthropic API Key',   desc: 'Direct calls to Claude. Required for executor: anthropic.', ph: 'sk-ant-...' },
-  { id: 'OPENAI_API_KEY',     label: 'OpenAI API Key',      desc: 'Used for text-embedding-3-small (semantic context suggestions).', ph: 'sk-...' },
-  { id: 'OLLAMA_HOST',        label: 'Ollama Host',          desc: 'Local Ollama server for embeddings — no API key needed.', ph: 'http://localhost:11434' },
+  { id: 'OPENROUTER_API_KEY', labelKey: 'settings.key.or.label',  descKey: 'settings.key.or.desc',  ph: 'sk-or-...' },
+  { id: 'ANTHROPIC_API_KEY',  labelKey: 'settings.key.ant.label', descKey: 'settings.key.ant.desc', ph: 'sk-ant-...' },
+  { id: 'OPENAI_API_KEY',     labelKey: 'settings.key.oai.label', descKey: 'settings.key.oai.desc', ph: 'sk-...' },
+  { id: 'OLLAMA_HOST',        labelKey: 'settings.key.oll.label', descKey: 'settings.key.oll.desc', ph: 'http://localhost:11434' },
 ];
 
 SCREENS.settings = {
   render(st) {
     const keys = st.settings || {};
+    const lang = getLang();
     const head = `<div class="screen-head">
-      <div class="lead"><h1>Settings</h1><p>API keys and project configuration.</p></div>
+      <div class="lead"><h1>${t('settings.title')}</h1><p>${t('settings.subtitle')}</p></div>
     </div>`;
 
     const keyRows = KEY_DEFS.map(def => {
       const info = keys[def.id] || { set: false, masked: '' };
       const badge = info.set
-        ? `<span class="badge green square" style="white-space:nowrap">${ICON.check} Set</span>`
-        : `<span class="badge gray square" style="white-space:nowrap">— Not set</span>`;
+        ? `<span class="badge green square" style="white-space:nowrap">${ICON.check} ${t('settings.status.set')}</span>`
+        : `<span class="badge gray square" style="white-space:nowrap">— ${t('settings.status.unset')}</span>`;
       const masked = info.set
         ? `<code class="key-masked">${esc(info.masked)}</code>`
-        : `<span class="faint" style="font-size:12px">Not configured</span>`;
+        : `<span class="faint" style="font-size:12px">${t('settings.status.unset')}</span>`;
       return `<div class="key-row">
         <div class="key-meta">
-          <div class="key-label">${esc(def.label)}</div>
-          <div class="key-desc">${esc(def.desc)}</div>
+          <div class="key-label">${t(def.labelKey)}</div>
+          <div class="key-desc">${t(def.descKey)}</div>
         </div>
         <div class="key-val">${badge}${masked}</div>
         <div class="key-input">
@@ -240,26 +310,36 @@ SCREENS.settings = {
 
         <div class="card settings-card">
           <div class="settings-header">
-            <h3>API Keys</h3>
-            <p class="muted" style="margin:0;font-size:12.5px">Leave a field blank to keep its current value. Stored in <code>${esc(envF)}</code>.</p>
+            <h3>${t('settings.keys.title')}</h3>
+            <p class="muted" style="margin:0;font-size:12.5px">${t('settings.keys.hint')} <code>${esc(envF)}</code>.</p>
           </div>
           <div class="key-list">${keyRows}</div>
           <div class="settings-foot">
             <span id="settings-msg" style="font-size:12px;display:none"></span>
             <span style="flex:1"></span>
-            <button class="btn primary" data-save-keys>${ICON.check} Save Keys</button>
+            <button class="btn primary" data-save-keys>${ICON.check} ${t('settings.btn.save')}</button>
           </div>
         </div>
 
-        <div class="card settings-card">
-          <div class="settings-header"><h3>Project</h3></div>
-          <div class="kv"><span class="k">Working directory</span><span class="v mono" style="font-size:12px;word-break:break-all">${esc(cwd)}</span></div>
-          <div class="kv"><span class="k">Config file</span>
-            <span class="v mono" style="font-size:12px">${esc(envF)}
-              ${envSet ? `<span class="badge green square" style="margin-left:6px">${ICON.check} exists</span>` : `<span class="badge gray square" style="margin-left:6px">not found</span>`}
-            </span>
+        <div class="settings-right-col">
+          <div class="card settings-card">
+            <div class="settings-header"><h3>${t('settings.project.title')}</h3></div>
+            <div class="kv"><span class="k">${t('settings.project.cwd')}</span><span class="v mono" style="font-size:12px;word-break:break-all">${esc(cwd)}</span></div>
+            <div class="kv"><span class="k">${t('settings.project.config')}</span>
+              <span class="v mono" style="font-size:12px">${esc(envF)}
+                ${envSet ? `<span class="badge green square" style="margin-left:6px">${ICON.check} ${t('settings.project.exists')}</span>` : `<span class="badge gray square" style="margin-left:6px">${t('settings.project.missing')}</span>`}
+              </span>
+            </div>
+            <div class="kv"><span class="k">${t('settings.project.cli')}</span><span class="v mono" style="font-size:12px">orchestos dashboard --port 4242</span></div>
           </div>
-          <div class="kv"><span class="k">CLI command</span><span class="v mono" style="font-size:12px">orchestos dashboard --port 4242</span></div>
+
+          <div class="card settings-card" style="margin-top:16px">
+            <div class="settings-header"><h3>${t('settings.lang.title')}</h3></div>
+            <div class="lang-selector">
+              <button class="lang-opt ${lang === 'en' ? 'active' : ''}" data-lang="en">🇺🇸 English</button>
+              <button class="lang-opt ${lang === 'es' ? 'active' : ''}" data-lang="es">🇪🇸 Español</button>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -283,7 +363,7 @@ SCREENS.settings = {
           body: JSON.stringify(body),
         });
         if (res.ok) {
-          msg.textContent = '✓ Keys saved.';
+          msg.textContent = t('settings.msg.saved');
           msg.style.color = 'var(--success)';
           msg.style.display = '';
           KEY_DEFS.forEach(def => { const el = root.querySelector('#k-' + def.id); if (el) el.value = ''; });
@@ -291,16 +371,22 @@ SCREENS.settings = {
           App.rerender();
         } else {
           const e = await res.json();
-          msg.textContent = e.error || 'Save failed.';
+          msg.textContent = e.error || t('settings.msg.error');
           msg.style.color = 'var(--error)';
           msg.style.display = '';
         }
       } catch {
-        msg.textContent = 'Connection error.';
+        msg.textContent = t('common.conn.error');
         msg.style.color = 'var(--error)';
         msg.style.display = '';
       } finally { btn.disabled = false; }
     });
+
+    // Language selector
+    root.querySelectorAll('[data-lang]').forEach(btn => btn.addEventListener('click', () => {
+      setLang(btn.dataset.lang);
+      App.rerender();  // rerender current screen with new language
+    }));
   },
 };
 
@@ -337,21 +423,33 @@ SCREENS.specs = {
     return main + (open ? this.detail(s) : '');
   },
   render(st) {
+    // G1 — banner explicativo siempre visible
+    const whatIsSpec = `<div class="spec-explainer">
+      <span class="spec-explainer-icon">${ICON.specs}</span>
+      <div>
+        <strong>¿Qué es una Spec?</strong>
+        Una spec es el contrato de lo que debe hacer una tarea <em>antes</em> de ejecutarla.
+        Define criterios de aceptación, archivos afectados y capacidades esperadas.
+        El agente los verifica al terminar — si no los cumple, la tarea falla con detalle claro.
+      </div>
+    </div>`;
+
     const head = `<div class="screen-head">
-      <div class="lead"><h1>Specs</h1><p>Capability specs and their lint health.</p></div>
+      <div class="lead"><h1>Specs</h1><p>Contratos de calidad para cada tarea.</p></div>
       <div class="tools">
         <button class="btn" data-act="refresh">${ICON.refresh} Refresh</button>
+        <button class="btn primary" data-act="new-spec">${ICON.plus} Nueva Spec</button>
       </div>
     </div>`;
 
     if (st.specsStatus === 'loading')
-      return `<div class="screen">${head}${loadingState('Loading specs…')}</div>`;
+      return `<div class="screen">${head}${whatIsSpec}${loadingState('Cargando specs…')}</div>`;
     if (st.specsStatus === 'error')
-      return `<div class="screen">${head}${errorState('Could not load specs', 'GET /api/specs failed. The specs/ directory may be missing or unreadable.')}</div>`;
+      return `<div class="screen">${head}${whatIsSpec}${errorState('No se pudieron cargar las specs', 'GET /api/specs falló. El directorio specs/ puede faltar o no ser accesible.')}</div>`;
 
     const specs = st.specs || [];
     if (specs.length === 0)
-      return `<div class="screen">${head}${emptyState(ICON.specs, 'No specs yet', 'Specs are generated from approved plans. Run a project to create the first one.')}</div>`;
+      return `<div class="screen">${head}${whatIsSpec}${emptyState(ICON.specs, 'Aún no hay specs', 'Pulsa "Nueva Spec", elige una tarea y el agente generará el contrato automáticamente.')}</div>`;
 
     const active = specs.filter(s => s.status !== 'archived');
     const archived = specs.filter(s => s.status === 'archived');
@@ -366,10 +464,14 @@ SCREENS.specs = {
       </div>
       ${st.archOpen ? table(archived) : ''}` : '';
 
-    return `<div class="screen">${head}${table(active)}${archSection}</div>`;
+    return `<div class="screen">${head}${whatIsSpec}${table(active)}${archSection}</div>`;
   },
   wire(root, st) {
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
+
+    // G2 — Nueva Spec button
+    root.querySelector('[data-act="new-spec"]')?.addEventListener('click', () => Modal.openSpecDraft(st));
+
     root.querySelectorAll('[data-spec]').forEach(tr => tr.addEventListener('click', () => {
       st.openSpec = st.openSpec === tr.dataset.spec ? null : tr.dataset.spec;
       App.rerender();
