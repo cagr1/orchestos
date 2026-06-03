@@ -111,11 +111,21 @@ export interface MemoryRow {
   updatedAt: string
 }
 
+// ── /api/settings ─────────────────────────────────────────────────────────────
+
+export interface SettingsKeyInfo {
+  set: boolean
+  masked: string
+}
+
+export type SettingsResponse = Record<string, SettingsKeyInfo>
+
 // ── mutations ─────────────────────────────────────────────────────────────────
 
 export interface MutationResult {
   ok: boolean
   error?: string
+  id?: string
 }
 
 // ── server config ─────────────────────────────────────────────────────────────

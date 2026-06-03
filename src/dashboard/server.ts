@@ -1,9 +1,10 @@
 import { resolve, join, extname, sep } from 'path'
-import { existsSync, readFileSync, realpathSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, realpathSync, mkdirSync } from 'fs'
+import { homedir } from 'os'
 import { db } from '../db/sqlite.ts'
 import { listRuns, getRun, type RunRecord } from '../db/runs.ts'
-import { loadTasks } from '../tasks/loader.ts'
-import { listInstincts, approveInstinct, deleteInstinct } from '../instincts/store.ts'
+import { loadTasks, saveTasks } from '../tasks/loader.ts'
+import { listInstincts, approveInstinct, deleteInstinct, insertInstinct } from '../instincts/store.ts'
 import { listSpecs } from '../spec/store.ts'
 import { lintSpec } from '../spec/lint.ts'
 import { parseCostBreakdownJson } from '../run/transcript-parser.ts'
@@ -21,6 +22,42 @@ import {
   STATIC_DIR,
   DEFAULT_PORT,
 } from './types.ts'
+
+// ── Settings helpers ────────────────────────────────────────────────────────
+
+const ENV_FILE = join(homedir(), '.orchestos', '.env')
+const SETTINGS_KEYS = ['OPENROUTER_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'OLLAMA_HOST'] as const
+
+function parseEnvFile(text: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const line of text.split('\n')) {
+    const t = line.trim()
+    if (!t || t.startsWith('#')) continue
+    const eq = t.indexOf('=')
+    if (eq < 1) continue
+    out[t.slice(0, eq).trim()] = t.slice(eq + 1).trim().replace(/^["']|["']$/g, '')
+  }
+  return out
+}
+
+function maskKey(v: string): string {
+  if (!v) return ''
+  if (v.length <= 8) return '••••••••'
+  return v.slice(0, 6) + '••••' + v.slice(-4)
+}
+
+function readEnv(): Record<string, string> {
+  try {
+    if (existsSync(ENV_FILE)) return parseEnvFile(readFileSync(ENV_FILE, 'utf-8'))
+  } catch {}
+  return {}
+}
+
+function writeEnv(data: Record<string, string>): void {
+  mkdirSync(join(homedir(), '.orchestos'), { recursive: true })
+  const content = Object.entries(data).map(([k, v]) => `${k}=${v}`).join('\n') + '\n'
+  writeFileSync(ENV_FILE, content, 'utf-8')
+}
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -201,6 +238,106 @@ function handleApiSpecs(): Response {
   }
 }
 
+function handleApiSettingsGet(): Response {
+  const parsed = readEnv()
+  const result: Record<string, { set: boolean; masked: string }> = {}
+  for (const k of SETTINGS_KEYS) {
+    const v = parsed[k] ?? process.env[k] ?? ''
+    result[k] = { set: !!v, masked: v ? maskKey(v) : '' }
+  }
+  result['_envFile'] = { set: existsSync(ENV_FILE), masked: ENV_FILE }
+  result['_cwd'] = { set: true, masked: process.cwd() }
+  return jsonResponse(result)
+}
+
+async function handleApiSettingsPost(req: Request): Promise<Response> {
+  let body: Record<string, string>
+  try { body = (await req.json()) as Record<string, string> } catch { return errorResponse('Invalid JSON', 400) }
+  const current = readEnv()
+  for (const k of SETTINGS_KEYS) {
+    const v = body[k]
+    if (v !== undefined && v !== '' && !v.includes('••')) {
+      current[k] = v
+    } else if (v === '' && current[k]) {
+      delete current[k]
+    }
+  }
+  try {
+    writeEnv(current)
+    return jsonResponse({ ok: true })
+  } catch (e: any) {
+    return errorResponse(`Failed to write settings: ${e.message}`, 500)
+  }
+}
+
+async function handleApiInstinctsCreate(req: Request): Promise<Response> {
+  let body: { trigger: string; action: string }
+  try { body = (await req.json()) as { trigger: string; action: string } } catch { return errorResponse('Invalid JSON', 400) }
+  if (!body.trigger?.trim() || !body.action?.trim()) {
+    return errorResponse('trigger and action are required', 400)
+  }
+  try {
+    const instinct = insertInstinct({
+      trigger: body.trigger.trim().slice(0, 500),
+      action: body.action.trim().slice(0, 500),
+      confidence: 0.5,
+      source: 'manual',
+      verified: false,
+    })
+    return jsonResponse({ ok: true, id: instinct.id })
+  } catch (e: any) {
+    return errorResponse(e.message, 400)
+  }
+}
+
+async function handleApiTasksCreate(req: Request): Promise<Response> {
+  let body: { id: string; description: string; output: string[]; executor?: string }
+  try { body = (await req.json()) as { id: string; description: string; output: string[]; executor?: string } } catch { return errorResponse('Invalid JSON', 400) }
+  const { id, description, output, executor } = body
+  if (!id?.trim() || !description?.trim() || !Array.isArray(output) || output.length === 0) {
+    return errorResponse('id, description and output[] are required', 400)
+  }
+  const root = resolve('.')
+  if (!existsSync(join(root, 'tasks.yaml'))) {
+    return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
+  }
+  try {
+    const file = loadTasks(root)
+    if (file.tasks.find((t: any) => t.id === id.trim())) {
+      return errorResponse(`Task "${id.trim()}" already exists`, 409)
+    }
+    ;(file.tasks as any[]).push({
+      id: id.trim(),
+      description: description.trim(),
+      output: output.map((f: string) => f.trim()).filter(Boolean),
+      executor: executor || 'openrouter',
+      status: 'pending',
+      retry_count: 0,
+    })
+    saveTasks(root, file)
+    return jsonResponse({ ok: true })
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
+function handleApiTasksDelete(url: URL): Response {
+  const id = decodeURIComponent(url.pathname.split('/')[3] ?? '')
+  if (!id) return errorResponse('Missing task id', 400)
+  const root = resolve('.')
+  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
+  try {
+    const file = loadTasks(root)
+    const before = file.tasks.length
+    ;(file as any).tasks = file.tasks.filter((t: any) => t.id !== id)
+    if (file.tasks.length === before) return errorResponse('Task not found', 404)
+    saveTasks(root, file)
+    return jsonResponse({ ok: true })
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
 function handleApiMemory(): Response {
   try {
     const rows = db.query<MemoryEntry, []>(
@@ -233,12 +370,12 @@ function isSameOrigin(req: Request, port: number): boolean {
   }
 }
 
-function route(req: Request, port: number): Response {
+async function route(req: Request, port: number): Promise<Response> {
   const url = new URL(req.url)
   const method = req.method
 
-  // CSRF guard: reject cross-origin POSTs
-  if (method === 'POST' && !isSameOrigin(req, port)) {
+  // CSRF guard: reject cross-origin POSTs/DELETEs
+  if ((method === 'POST' || method === 'DELETE') && !isSameOrigin(req, port)) {
     return errorResponse('Forbidden', 403)
   }
 
@@ -248,8 +385,17 @@ function route(req: Request, port: number): Response {
   if (method === 'GET' && url.pathname === '/api/tasks') {
     return handleApiTasks()
   }
+  if (method === 'POST' && url.pathname === '/api/tasks') {
+    return handleApiTasksCreate(req)
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
+    return handleApiTasksDelete(url)
+  }
   if (method === 'GET' && url.pathname === '/api/instincts') {
     return handleApiInstincts()
+  }
+  if (method === 'POST' && url.pathname === '/api/instincts') {
+    return handleApiInstinctsCreate(req)
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/approve$/)) {
     return handleApiInstinctsApprove(url)
@@ -262,6 +408,12 @@ function route(req: Request, port: number): Response {
   }
   if (method === 'GET' && url.pathname === '/api/memory') {
     return handleApiMemory()
+  }
+  if (method === 'GET' && url.pathname === '/api/settings') {
+    return handleApiSettingsGet()
+  }
+  if (method === 'POST' && url.pathname === '/api/settings') {
+    return handleApiSettingsPost(req)
   }
 
   // Static files

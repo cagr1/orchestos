@@ -14,12 +14,14 @@ const state = {
   instincts: [],
   specs: [],
   memory: [],
+  settings: null,
 
   runsStatus: 'loading',
   tasksStatus: 'loading',
   instinctsStatus: 'loading',
   specsStatus: 'loading',
   memoryStatus: 'loading',
+  settingsStatus: 'idle',
 };
 
 const NAV = [
@@ -29,6 +31,7 @@ const NAV = [
   { id: 'instincts', icon: ICON.instinct, tip: 'Instincts' },
   { id: 'runs',      icon: ICON.runs,     tip: 'Runs' },
   { id: 'specs',     icon: ICON.specs,    tip: 'Specs' },
+  { id: 'settings',  icon: ICON.settings, tip: 'Settings' },
 ];
 
 /* ============================================================
@@ -43,16 +46,6 @@ const App = {
       state.runsStatus = 'ok';
     } catch {
       state.runsStatus = 'error';
-    }
-  },
-  async fetchTasks() {
-    try {
-      const res = await fetch('/api/tasks');
-      if (!res.ok) throw new Error(res.status);
-      state.tasks = await res.json();
-      state.tasksStatus = 'ok';
-    } catch {
-      state.tasksStatus = 'error';
     }
   },
   async fetchInstincts() {
@@ -86,6 +79,16 @@ const App = {
       state.memoryStatus = 'error';
     }
   },
+  async fetchSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      if (!res.ok) throw new Error(res.status);
+      state.settings = await res.json();
+      state.settingsStatus = 'ok';
+    } catch {
+      state.settingsStatus = 'error';
+    }
+  },
   async fetchAll() {
     await Promise.all([
       this.fetchRuns(),
@@ -93,9 +96,20 @@ const App = {
       this.fetchInstincts(),
       this.fetchSpecs(),
       this.fetchMemory(),
+      this.fetchSettings(),
     ]);
     this.rerender();
     Term.render();
+  },
+  async fetchTasks() {
+    try {
+      const res = await fetch('/api/tasks');
+      if (!res.ok) throw new Error(res.status);
+      state.tasks = await res.json();
+      state.tasksStatus = 'ok';
+    } catch {
+      state.tasksStatus = 'error';
+    }
   },
 
   rerender() {
@@ -161,10 +175,14 @@ const SidePanel = {
     this.backdrop.addEventListener('click', () => this.close());
     this.el = document.createElement('div');
     this.el.className = 'side-panel';
-    document.getElementById('main').append(this.backdrop, this.el);
+    // Append to body so rerender() on #main doesn't destroy the panel
+    document.body.append(this.backdrop, this.el);
   },
   openTask(t) {
     const v = STATUS_BADGE[t.status] || 'gray';
+    const outputList = (t.output || []).length
+      ? `<div class="sp-section"><div class="label">Output files</div><div class="val mono" style="font-size:12px">${(t.output || []).map(f => esc(f)).join('<br>')}</div></div>`
+      : '';
     this.el.innerHTML = `
       <div class="sp-head">
         <span class="badge ${v}"><span class="d"></span>${esc(t.status)}</span>
@@ -173,6 +191,7 @@ const SidePanel = {
       </div>
       <div class="sp-body">
         <div class="sp-section"><div class="label">Description</div><div class="val">${esc(t.description)}</div></div>
+        ${outputList}
         <div class="sp-meta">
           ${t.skill ? `<div><div class="label">Skill</div><span class="badge blue square">${esc(t.skill)}</span></div>` : ''}
           <div><div class="label">Executor</div><div class="val mono" style="font-size:13px">${esc(t.executor || '—')}</div></div>
@@ -182,9 +201,18 @@ const SidePanel = {
         ${t.runId ? `<div class="sp-section"><div class="label">Last Run</div><div class="val mono" style="font-size:13px;color:var(--accent)">${esc(t.runId)}</div></div>` : ''}
       </div>
       <div class="sp-foot">
-        <span class="muted" style="font-size:12px">Use the CLI to control task execution.</span>
+        <span class="muted" style="font-size:12px;flex:1">Run from CLI: <span class="mono">orchestos task run --id ${esc(t.id)}</span></span>
+        <button class="btn danger sm sp-delete" style="margin-left:8px">${ICON.trash}</button>
       </div>`;
     this.el.querySelector('.sp-close').addEventListener('click', () => this.close());
+    this.el.querySelector('.sp-delete').addEventListener('click', async () => {
+      if (!confirm(`Delete task "${t.id}"? This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}`, { method: 'DELETE' });
+        if (res.ok) { this.close(); await App.fetchTasks(); App.rerender(); }
+        else { const e = await res.json(); alert(e.error || 'Delete failed'); }
+      } catch { alert('Connection error'); }
+    });
     requestAnimationFrame(() => { this.el.classList.add('open'); this.backdrop.classList.add('show'); });
   },
   close() { this.el.classList.remove('open'); this.backdrop.classList.remove('show'); },
@@ -201,17 +229,17 @@ const Modal = {
     document.body.appendChild(this.el);
     this.el.addEventListener('click', e => { if (e.target === this.el) this.close(); });
   },
-  openInstinct(st) {
+  openInstinct() {
     this.el.innerHTML = `<div class="modal">
       <div class="m-head"><span style="color:var(--accent)">${ICON.bolt}</span><h3>Add Instinct</h3>
         <button class="btn ghost sm" data-x>${ICON.x}</button></div>
       <div class="m-body">
         <div class="m-field"><label>Trigger — when this happens…</label>
-          <input id="i-trig" placeholder="e.g. tests fail 2× on the same file"></div>
+          <input id="i-trig" placeholder="e.g. tests fail 2× on the same file" autocomplete="off"></div>
         <div class="m-field"><label>Action — …do this</label>
-          <input id="i-act" placeholder="e.g. auto-run lint before the next retry"></div>
-        <div class="muted" style="font-size:12px">New instincts enter as an unverified proposal at 0.50 confidence.</div>
-        <div id="i-msg" style="font-size:12px;color:var(--error);display:none"></div>
+          <input id="i-act" placeholder="e.g. run lint before the next retry" autocomplete="off"></div>
+        <div class="muted" style="font-size:12px">New instincts enter as a proposal at 0.50 confidence. Approve to activate.</div>
+        <div id="i-msg" style="font-size:12px;display:none"></div>
       </div>
       <div class="m-foot"><button class="btn" data-x>Cancel</button>
         <button class="btn primary" data-add>${ICON.plus} Add Instinct</button></div>
@@ -221,14 +249,92 @@ const Modal = {
       const trig = this.el.querySelector('#i-trig').value.trim();
       const act  = this.el.querySelector('#i-act').value.trim();
       const msg  = this.el.querySelector('#i-msg');
-      if (!trig || !act) { msg.textContent = 'Both fields are required.'; msg.style.display = ''; return; }
-      /* No POST /api/instincts endpoint yet — show helpful message */
-      msg.style.color = 'var(--warning)';
-      msg.textContent = 'Adding instincts via the dashboard is not yet supported. Use: orchestos instinct add';
-      msg.style.display = '';
+      if (!trig || !act) { msg.textContent = 'Both fields are required.'; msg.style.color = 'var(--error)'; msg.style.display = ''; return; }
+      const btn = this.el.querySelector('[data-add]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/instincts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger: trig, action: act }),
+        });
+        if (res.ok) {
+          this.close();
+          await App.fetchInstincts();
+        } else {
+          const e = await res.json();
+          msg.textContent = e.error || 'Failed to add instinct.';
+          msg.style.color = 'var(--error)';
+          msg.style.display = '';
+        }
+      } catch {
+        msg.textContent = 'Connection error.';
+        msg.style.color = 'var(--error)';
+        msg.style.display = '';
+      } finally { btn.disabled = false; }
     });
     requestAnimationFrame(() => this.el.classList.add('show'));
   },
+
+  openTask() {
+    this.el.innerHTML = `<div class="modal">
+      <div class="m-head"><span style="color:var(--accent)">${ICON.tasks}</span><h3>New Task</h3>
+        <button class="btn ghost sm" data-x>${ICON.x}</button></div>
+      <div class="m-body">
+        <div class="m-field"><label>Task ID <span class="muted">(kebab-case, unique)</span></label>
+          <input id="t-id" placeholder="e.g. add-auth-service" autocomplete="off"></div>
+        <div class="m-field"><label>Description</label>
+          <textarea id="t-desc" rows="3" placeholder="What should the agent implement?"></textarea></div>
+        <div class="m-field"><label>Output files <span class="muted">(one per line)</span></label>
+          <textarea id="t-out" rows="3" placeholder="src/services/auth.ts&#10;src/routes/auth.ts"></textarea></div>
+        <div class="m-field"><label>Executor</label>
+          <select id="t-exec">
+            <option value="openrouter">OpenRouter (default)</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI</option>
+          </select></div>
+        <div id="t-msg" style="font-size:12px;display:none"></div>
+      </div>
+      <div class="m-foot"><button class="btn" data-x>Cancel</button>
+        <button class="btn primary" data-add>${ICON.plus} Create Task</button></div>
+    </div>`;
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    this.el.querySelector('[data-add]').addEventListener('click', async () => {
+      const id   = this.el.querySelector('#t-id').value.trim();
+      const desc = this.el.querySelector('#t-desc').value.trim();
+      const outRaw = this.el.querySelector('#t-out').value.trim();
+      const executor = this.el.querySelector('#t-exec').value;
+      const msg = this.el.querySelector('#t-msg');
+      const output = outRaw.split('\n').map(s => s.trim()).filter(Boolean);
+      if (!id || !desc || output.length === 0) {
+        msg.textContent = 'ID, description and at least one output file are required.';
+        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+      }
+      const btn = this.el.querySelector('[data-add]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, description: desc, output, executor }),
+        });
+        if (res.ok) {
+          this.close();
+          await App.fetchTasks();
+          App.rerender();
+        } else {
+          const e = await res.json();
+          msg.textContent = e.error || 'Failed to create task.';
+          msg.style.color = 'var(--error)'; msg.style.display = '';
+        }
+      } catch {
+        msg.textContent = 'Connection error.';
+        msg.style.color = 'var(--error)'; msg.style.display = '';
+      } finally { btn.disabled = false; }
+    });
+    requestAnimationFrame(() => this.el.classList.add('show'));
+  },
+
   close() { this.el.classList.remove('show'); },
 };
 

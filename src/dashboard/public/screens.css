@@ -89,8 +89,9 @@ body[data-cards="barred"] .kcol[data-k="running"] .kcard { border-left-color: va
 body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: var(--text-faint); }
 
 /* ---------- side detail panel (tasks) ---------- */
+/* Fixed positioning — panel is appended to body, survives main rerender */
 .side-panel {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 360px;
+  position: fixed; top: 0; right: 0; bottom: 0; width: 380px;
   background: var(--surface); border-left: 1px solid var(--border);
   box-shadow: -16px 0 40px rgba(0,0,0,.4);
   transform: translateX(100%); transition: transform .22s cubic-bezier(.3,.7,.4,1);
@@ -101,21 +102,52 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
   display: flex; align-items: center; gap: 10px;
   padding: 15px 16px; border-bottom: 1px solid var(--border);
 }
-.side-panel .sp-head h3 { margin: 0; font-size: 14px; font-weight: 600; flex: 1; }
+.side-panel .sp-head h3 { margin: 0; font-size: 14px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-panel .sp-close { appearance: none; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; }
 .side-panel .sp-close:hover { background: var(--surface-2); color: var(--text); }
-.side-panel .sp-body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.side-panel .sp-body { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
 .sp-section .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); font-weight: 600; margin-bottom: 6px; }
 .sp-section .val { font-size: 13.5px; line-height: 1.5; color: var(--text); text-wrap: pretty; }
 .sp-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .sp-meta .label { margin-bottom: 4px; }
-.side-panel .sp-foot { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--border); }
-.side-panel .sp-foot .btn { width: 100%; justify-content: center; }
+.side-panel .sp-foot { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
 .backdrop {
-  position: absolute; inset: 0; background: rgba(1,4,9,.4); z-index: 25;
+  position: fixed; inset: 0; background: rgba(1,4,9,.4); z-index: 25;
   opacity: 0; pointer-events: none; transition: opacity .2s;
 }
 .backdrop.show { opacity: 1; pointer-events: auto; }
+
+/* ---------- SETTINGS ---------- */
+.settings-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+.settings-card { padding: 0; overflow: hidden; }
+.settings-header { padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.settings-header h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+.key-list { display: flex; flex-direction: column; }
+.key-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 14px;
+  padding: 13px 18px; border-bottom: 1px solid var(--border-soft);
+}
+.key-row:last-child { border-bottom: 0; }
+.key-meta { min-width: 0; }
+.key-label { font-size: 13.5px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.key-desc  { font-size: 11.5px; color: var(--text-faint); }
+.key-val   { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.key-masked { font-family: var(--mono); font-size: 12px; color: var(--text-muted); letter-spacing: 0.03em; }
+.key-input input {
+  width: 200px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); padding: 7px 10px; font-family: var(--mono); font-size: 12.5px; outline: none;
+}
+.key-input input:focus { border-color: var(--accent); }
+.settings-foot {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 18px; border-top: 1px solid var(--border);
+}
+.modal .m-field select {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); padding: 9px 11px; font-family: inherit; font-size: 13.5px; outline: none;
+}
+.modal .m-field select:focus { border-color: var(--accent); }
 
 /* ---------- MEMORY ---------- */
 .mem-grid { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }

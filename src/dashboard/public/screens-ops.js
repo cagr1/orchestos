@@ -195,7 +195,117 @@ SCREENS.runs = {
 };
 
 /* ============================================================
-   6 · SPECS
+   6 · SETTINGS
+   ============================================================ */
+const KEY_DEFS = [
+  { id: 'OPENROUTER_API_KEY', label: 'OpenRouter API Key',  desc: 'Primary LLM gateway — Claude, GPT-4o, DeepSeek. openrouter.ai', ph: 'sk-or-...' },
+  { id: 'ANTHROPIC_API_KEY',  label: 'Anthropic API Key',   desc: 'Direct calls to Claude. Required for executor: anthropic.', ph: 'sk-ant-...' },
+  { id: 'OPENAI_API_KEY',     label: 'OpenAI API Key',      desc: 'Used for text-embedding-3-small (semantic context suggestions).', ph: 'sk-...' },
+  { id: 'OLLAMA_HOST',        label: 'Ollama Host',          desc: 'Local Ollama server for embeddings — no API key needed.', ph: 'http://localhost:11434' },
+];
+
+SCREENS.settings = {
+  render(st) {
+    const keys = st.settings || {};
+    const head = `<div class="screen-head">
+      <div class="lead"><h1>Settings</h1><p>API keys and project configuration.</p></div>
+    </div>`;
+
+    const keyRows = KEY_DEFS.map(def => {
+      const info = keys[def.id] || { set: false, masked: '' };
+      const badge = info.set
+        ? `<span class="badge green square" style="white-space:nowrap">${ICON.check} Set</span>`
+        : `<span class="badge gray square" style="white-space:nowrap">— Not set</span>`;
+      const masked = info.set
+        ? `<code class="key-masked">${esc(info.masked)}</code>`
+        : `<span class="faint" style="font-size:12px">Not configured</span>`;
+      return `<div class="key-row">
+        <div class="key-meta">
+          <div class="key-label">${esc(def.label)}</div>
+          <div class="key-desc">${esc(def.desc)}</div>
+        </div>
+        <div class="key-val">${badge}${masked}</div>
+        <div class="key-input">
+          <input type="password" id="k-${esc(def.id)}" placeholder="${esc(def.ph)}" autocomplete="new-password">
+        </div>
+      </div>`;
+    }).join('');
+
+    const cwd  = keys['_cwd']?.masked  || '—';
+    const envF = keys['_envFile']?.masked || '~/.orchestos/.env';
+    const envSet = keys['_envFile']?.set;
+
+    return `<div class="screen">${head}
+      <div class="settings-grid">
+
+        <div class="card settings-card">
+          <div class="settings-header">
+            <h3>API Keys</h3>
+            <p class="muted" style="margin:0;font-size:12.5px">Leave a field blank to keep its current value. Stored in <code>${esc(envF)}</code>.</p>
+          </div>
+          <div class="key-list">${keyRows}</div>
+          <div class="settings-foot">
+            <span id="settings-msg" style="font-size:12px;display:none"></span>
+            <span style="flex:1"></span>
+            <button class="btn primary" data-save-keys>${ICON.check} Save Keys</button>
+          </div>
+        </div>
+
+        <div class="card settings-card">
+          <div class="settings-header"><h3>Project</h3></div>
+          <div class="kv"><span class="k">Working directory</span><span class="v mono" style="font-size:12px;word-break:break-all">${esc(cwd)}</span></div>
+          <div class="kv"><span class="k">Config file</span>
+            <span class="v mono" style="font-size:12px">${esc(envF)}
+              ${envSet ? `<span class="badge green square" style="margin-left:6px">${ICON.check} exists</span>` : `<span class="badge gray square" style="margin-left:6px">not found</span>`}
+            </span>
+          </div>
+          <div class="kv"><span class="k">CLI command</span><span class="v mono" style="font-size:12px">orchestos dashboard --port 4242</span></div>
+        </div>
+
+      </div>
+    </div>`;
+  },
+
+  wire(root, st) {
+    root.querySelector('[data-save-keys]')?.addEventListener('click', async () => {
+      const body = {};
+      KEY_DEFS.forEach(def => {
+        const el = root.querySelector('#k-' + def.id);
+        if (el?.value) body[def.id] = el.value;
+      });
+      const msg = root.querySelector('#settings-msg');
+      const btn = root.querySelector('[data-save-keys]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          msg.textContent = '✓ Keys saved.';
+          msg.style.color = 'var(--success)';
+          msg.style.display = '';
+          KEY_DEFS.forEach(def => { const el = root.querySelector('#k-' + def.id); if (el) el.value = ''; });
+          await App.fetchSettings();
+          App.rerender();
+        } else {
+          const e = await res.json();
+          msg.textContent = e.error || 'Save failed.';
+          msg.style.color = 'var(--error)';
+          msg.style.display = '';
+        }
+      } catch {
+        msg.textContent = 'Connection error.';
+        msg.style.color = 'var(--error)';
+        msg.style.display = '';
+      } finally { btn.disabled = false; }
+    });
+  },
+};
+
+/* ============================================================
+   7 · SPECS
    ============================================================ */
 SCREENS.specs = {
   lintBadge(s) {

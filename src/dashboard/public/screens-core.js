@@ -66,67 +66,80 @@ SCREENS.runner = {
 };
 
 /* ============================================================
-   2 · TASKS  (Kanban)
+   2 · TASKS  (Table)
    ============================================================ */
-const KCOLS = [
-  { k:'pending',  label:'Pending' },
-  { k:'running',  label:'Running' },
-  { k:'done',     label:'Done' },
-  { k:'failed',   label:'Failed' },
-  { k:'blocked',  label:'Blocked' },
-];
-
 SCREENS.tasks = {
   render(st) {
     const head = `<div class="screen-head">
-      <div class="lead"><h1>Tasks</h1><p>Kanban of the current run. Click a card for details.</p></div>
+      <div class="lead"><h1>Tasks</h1><p>Current task list. Click a row to inspect or delete.</p></div>
       <div class="tools">
         <button class="btn" data-act="refresh">${ICON.refresh} Refresh</button>
+        <button class="btn primary" data-act="new-task">${ICON.plus} New Task</button>
       </div>
     </div>`;
 
     if (st.tasksStatus === 'loading')
       return `<div class="screen">${head}${loadingState('Loading tasks…')}</div>`;
     if (st.tasksStatus === 'error')
-      return `<div class="screen">${head}${errorState('Could not load tasks', 'GET /api/tasks returned an error. Is tasks.yaml present?')}</div>`;
+      return `<div class="screen">${head}${errorState('Could not load tasks', 'GET /api/tasks returned an error. Is tasks.yaml present in the working directory?')}</div>`;
 
     const tasks = st.tasks || [];
     if (tasks.length === 0)
-      return `<div class="screen">${head}${emptyState(ICON.tasks, 'No tasks yet', 'Run a plan from the CLI to populate the board.')}</div>`;
+      return `<div class="screen">${head}${emptyState(ICON.tasks, 'No tasks yet', 'Click "New Task" to create one, or run: orchestos task init')}</div>`;
 
-    const cols = KCOLS.map(c => {
-      const normalised = c.k === 'failed'
-        ? tasks.filter(t => t.status === 'failed' || t.status === 'failed_permanent')
-        : tasks.filter(t => t.status === c.k);
-      const body = normalised.length
-        ? normalised.map(t => this.card(t)).join('')
-        : `<div class="kcol-empty">No tasks</div>`;
-      return `<div class="kcol" data-k="${c.k}">
-        <div class="kcol-head"><span class="dot"></span><h3>${c.label}</h3><span class="count">${normalised.length}</span></div>
-        <div class="kcol-body">${body}</div>
-      </div>`;
+    const rows = tasks.map(t => {
+      const MAX = 72;
+      const desc = t.description.length > MAX ? t.description.slice(0, MAX - 1) + '…' : t.description;
+      const qa = t.qaVerdict
+        ? `<span class="badge ${t.qaVerdict === 'pass' ? 'green' : 'red'} square">${esc(t.qaVerdict)}</span>`
+        : `<span class="faint">—</span>`;
+      const retryCls = t.retryCount >= 2 ? 'style="color:var(--warning);font-weight:600"' : '';
+      const skillBadge = t.skill
+        ? `<span class="badge blue square" style="font-size:9.5px;padding:1px 5px;margin-left:5px">${esc(t.skill)}</span>`
+        : '';
+      return `<tr class="row" data-task="${esc(t.id)}" title="${esc(t.description)}">
+        <td><span class="badge ${STATUS_BADGE[t.status] || 'gray'}"><span class="d"></span>${esc(t.status)}</span></td>
+        <td class="mono" style="color:var(--text);white-space:nowrap">${esc(t.id)}${skillBadge}</td>
+        <td style="max-width:400px;color:var(--text-muted)">${esc(desc)}</td>
+        <td class="mono faint" style="white-space:nowrap">${esc(t.executor || '—')}</td>
+        <td class="num" ${retryCls}>${t.retryCount}</td>
+        <td>${qa}</td>
+      </tr>`;
     }).join('');
 
-    return `<div class="screen">${head}<div class="kanban">${cols}</div></div>`;
-  },
+    // summary chips
+    const counts = { pending: 0, running: 0, done: 0, failed: 0 };
+    tasks.forEach(t => {
+      const k = (t.status === 'failed_permanent' ? 'failed' : t.status);
+      if (k in counts) counts[k]++;
+    });
+    const chips = Object.entries(counts).map(([k, n]) =>
+      `<span class="badge ${STATUS_BADGE[k] || 'gray'} square" style="gap:5px">${n} ${k}</span>`
+    ).join('');
 
-  card(t) {
-    const retryCls = t.retryCount >= 2 ? 'warn' : '';
-    const skillBadge = t.skill ? `<span class="badge ${STATUS_BADGE[t.status] || 'gray'} square" style="font-size:9.5px;padding:1px 6px">${esc(t.skill)}</span>` : '';
-    return `<div class="kcard" data-task="${esc(t.id)}">
-      <div class="id"><span>${esc(t.id)}</span>${skillBadge}</div>
-      <div class="desc">${esc(t.description)}</div>
-      <div class="foot">
-        ${t.executor ? `<span class="faint mono" style="font-size:10.5px">${esc(t.executor)}</span>` : ''}
-        <span class="retry ${retryCls}">↻ ${t.retryCount}</span>
+    return `<div class="screen">${head}
+      <div class="filters" style="margin-bottom:12px">${chips}</div>
+      <div class="card" style="overflow:hidden">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:140px">Status</th>
+            <th style="width:200px">ID</th>
+            <th>Description</th>
+            <th style="width:110px">Executor</th>
+            <th style="width:68px;text-align:right">Retries</th>
+            <th style="width:72px">QA</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>
     </div>`;
   },
 
   wire(root, st) {
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
-    root.querySelectorAll('[data-task]').forEach(c => c.addEventListener('click', () => {
-      const t = (st.tasks || []).find(x => x.id === c.dataset.task);
+    root.querySelector('[data-act="new-task"]')?.addEventListener('click', () => Modal.openTask());
+    root.querySelectorAll('[data-task]').forEach(tr => tr.addEventListener('click', () => {
+      const t = (st.tasks || []).find(x => x.id === tr.dataset.task);
       if (t) SidePanel.openTask(t);
     }));
   },
