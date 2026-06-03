@@ -1,6 +1,8 @@
 import { resolve, join, extname, sep } from 'path'
 import { existsSync, readFileSync, writeFileSync, realpathSync, mkdirSync } from 'fs'
 import { homedir } from 'os'
+import { chat as openrouterChat } from '../providers/openrouter.ts'
+import { loadContext } from '../context/load.ts'
 import { db } from '../db/sqlite.ts'
 import { listRuns, getRun, type RunRecord } from '../db/runs.ts'
 import { loadTasks, saveTasks } from '../tasks/loader.ts'
@@ -213,6 +215,78 @@ function handleApiInstinctsReject(url: URL): Response {
   return jsonResponse(result, ok ? 200 : 404)
 }
 
+const TASK_ID_RE = /^[A-Za-z0-9_.-]{1,64}$/
+
+function validateTaskId(id: string): string | null {
+  const t = id.trim()
+  if (!t || !TASK_ID_RE.test(t) || t.startsWith('-')) return null
+  return t
+}
+
+async function handleApiSpecsDraft(req: Request): Promise<Response> {
+  let body: { taskId: string; description: string }
+  try { body = (await req.json()) as { taskId: string; description: string } } catch { return errorResponse('Invalid JSON', 400) }
+  const taskId = validateTaskId(body.taskId ?? '')
+  if (!taskId || !body.description?.trim()) {
+    return errorResponse('taskId (alphanumeric/hyphen/dot, max 64) and description are required', 400)
+  }
+  const root = resolve('.')
+  Bun.spawn(
+    [process.execPath, 'run', join(root, 'src/cli.ts'), 'spec', 'draft',
+     '--description', body.description.trim(), '--', taskId],
+    { cwd: root, stdout: 'inherit', stderr: 'inherit' }
+  )
+  return jsonResponse({ ok: true, taskId })
+}
+
+async function handleApiNatural(req: Request): Promise<Response> {
+  let body: { input: string }
+  try { body = (await req.json()) as { input: string } } catch { return errorResponse('Invalid JSON', 400) }
+  const input = body.input?.trim()
+  if (!input) return errorResponse('input is required', 400)
+
+  const root = resolve('.')
+  const projectCtx = loadContext(root)
+  let tasksSummary = ''
+  try {
+    const file = loadTasks(root)
+    tasksSummary = (file.tasks as any[]).slice(0, 15)
+      .map((t: any) => `- ${t.id}: ${t.description}`)
+      .join('\n')
+  } catch { /* no tasks.yaml yet */ }
+
+  const systemPrompt = `Eres un asistente que convierte instrucciones en lenguaje natural en definiciones de tareas para el orquestador OrchestOS.
+
+Dado lo que el usuario quiere hacer, devuelve ÚNICAMENTE un objeto JSON con exactamente estas claves:
+- "id": slug kebab-case de 3-5 palabras que describe la tarea (sin números al final, sin caracteres especiales)
+- "description": descripción clara de la tarea en 1-2 frases
+- "output": array de rutas de archivos que probablemente se crearán o modificarán (puede estar vacío si no es claro)
+- "executor": uno de "openrouter" (por defecto), "anthropic" (tareas complejas de código), "openai" (embeddings/análisis)
+
+${projectCtx ? `Contexto del proyecto:\n${projectCtx}\n` : ''}
+${tasksSummary ? `Tareas existentes (para evitar duplicados):\n${tasksSummary}\n` : ''}
+
+Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
+
+  try {
+    const resp = await openrouterChat({
+      model: 'anthropic/claude-haiku-4-5',
+      system: systemPrompt,
+      messages: [{ role: 'user', content: input }],
+    })
+    // extract JSON — strip markdown code fences if present
+    const raw = resp.text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+    const draft = JSON.parse(raw) as { id: string; description: string; output: string[]; executor: string }
+    // sanitise id
+    draft.id = (draft.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || 'nueva-tarea'
+    if (!Array.isArray(draft.output)) draft.output = []
+    if (!['openrouter', 'anthropic', 'openai'].includes(draft.executor)) draft.executor = 'openrouter'
+    return jsonResponse(draft)
+  } catch (e: any) {
+    return errorResponse(`LLM draft failed: ${e.message}`, 502)
+  }
+}
+
 function handleApiSpecs(): Response {
   const root = resolve('.')
   try {
@@ -290,35 +364,62 @@ async function handleApiInstinctsCreate(req: Request): Promise<Response> {
   }
 }
 
+function descToTaskId(desc: string): string {
+  return desc.trim().toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim().split(/\s+/).slice(0, 5).join('-') || 'task'
+}
+
 async function handleApiTasksCreate(req: Request): Promise<Response> {
-  let body: { id: string; description: string; output: string[]; executor?: string }
-  try { body = (await req.json()) as { id: string; description: string; output: string[]; executor?: string } } catch { return errorResponse('Invalid JSON', 400) }
-  const { id, description, output, executor } = body
-  if (!id?.trim() || !description?.trim() || !Array.isArray(output) || output.length === 0) {
-    return errorResponse('id, description and output[] are required', 400)
+  let body: { id?: string; description: string; output?: string[]; executor?: string }
+  try { body = (await req.json()) as { id?: string; description: string; output?: string[]; executor?: string } } catch { return errorResponse('Invalid JSON', 400) }
+  if (!body.description?.trim()) {
+    return errorResponse('description is required', 400)
   }
+  const description = body.description.trim()
+  const id = body.id?.trim() || descToTaskId(description)
+  const output = Array.isArray(body.output) ? body.output : []
+  const executor = body.executor
   const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) {
     return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
   }
   try {
     const file = loadTasks(root)
-    if (file.tasks.find((t: any) => t.id === id.trim())) {
-      return errorResponse(`Task "${id.trim()}" already exists`, 409)
+    let finalId = id
+    if (file.tasks.find((t: any) => t.id === finalId)) {
+      finalId = `${finalId}-${Date.now().toString(36)}`
     }
     ;(file.tasks as any[]).push({
-      id: id.trim(),
-      description: description.trim(),
+      id: finalId,
+      description,
       output: output.map((f: string) => f.trim()).filter(Boolean),
       executor: executor || 'openrouter',
       status: 'pending',
       retry_count: 0,
     })
     saveTasks(root, file)
-    return jsonResponse({ ok: true })
+    return jsonResponse({ ok: true, id: finalId })
   } catch (e: any) {
     return errorResponse(e.message, 500)
   }
+}
+
+function handleApiTasksRun(url: URL): Response {
+  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
+  const id = validateTaskId(raw)
+  if (!id) return errorResponse('Missing or invalid task id', 400)
+  const root = resolve('.')
+  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
+  const file = loadTasks(root)
+  const task = file.tasks.find((t: any) => t.id === id)
+  if (!task) return errorResponse('Task not found', 404)
+  Bun.spawn([process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id], {
+    cwd: root,
+    stdout: 'inherit',
+    stderr: 'inherit',
+  })
+  return jsonResponse({ ok: true, id })
 }
 
 function handleApiTasksDelete(url: URL): Response {
@@ -388,6 +489,9 @@ async function route(req: Request, port: number): Promise<Response> {
   if (method === 'POST' && url.pathname === '/api/tasks') {
     return handleApiTasksCreate(req)
   }
+  if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/run$/)) {
+    return handleApiTasksRun(url)
+  }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
     return handleApiTasksDelete(url)
   }
@@ -403,8 +507,14 @@ async function route(req: Request, port: number): Promise<Response> {
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/reject$/)) {
     return handleApiInstinctsReject(url)
   }
+  if (method === 'POST' && url.pathname === '/api/natural') {
+    return handleApiNatural(req)
+  }
   if (method === 'GET' && url.pathname === '/api/specs') {
     return handleApiSpecs()
+  }
+  if (method === 'POST' && url.pathname === '/api/specs/draft') {
+    return handleApiSpecsDraft(req)
   }
   if (method === 'GET' && url.pathname === '/api/memory') {
     return handleApiMemory()

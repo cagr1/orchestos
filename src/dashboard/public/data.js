@@ -36,6 +36,11 @@ const STATUS_BADGE = {
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function fmt(n) { return Number(n).toLocaleString('en-US'); }
 function usd(n) { return '$' + Number(n).toFixed(4); }
+function descToId(desc) {
+  return desc.trim().toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim().split(/\s+/).slice(0, 5).join('-') || '';
+}
 
 /* Map real API severity to CSS class */
 function severityCls(s) {
