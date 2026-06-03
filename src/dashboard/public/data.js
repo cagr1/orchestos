@@ -25,6 +25,7 @@ const ICON = {
   refresh:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   trash:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+  chat:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
 };
 
 const STATUS_BADGE = {
@@ -48,6 +49,30 @@ function severityCls(s) {
   if (s === 'warning')  return 'warning';
   return 'notice';
 }
+
+/* Infer which API provider to use from a model ID.
+   OpenRouter accepts namespaced IDs (provider/model).
+   Direct Anthropic/OpenAI use their own short IDs. */
+function inferExecutor(modelId) {
+  if (!modelId) return 'openrouter';
+  if (/^claude-/.test(modelId)) return 'anthropic';
+  if (/^(gpt-|o1-|o3-|text-)/.test(modelId)) return 'openai';
+  return 'openrouter';
+}
+
+/* Curated fallback list shown before OpenRouter models are fetched */
+const KNOWN_MODELS = [
+  { id: 'deepseek/deepseek-v4-flash',          name: 'DeepSeek V4 Flash',         priceIn: 0.14 },
+  { id: 'deepseek/deepseek-v3',                 name: 'DeepSeek V3',               priceIn: 0.27 },
+  { id: 'deepseek/deepseek-r1',                 name: 'DeepSeek R1 (reasoning)',    priceIn: 0.55 },
+  { id: 'anthropic/claude-haiku-4-5',           name: 'Claude Haiku 4.5',          priceIn: 0.80 },
+  { id: 'anthropic/claude-sonnet-4-6',          name: 'Claude Sonnet 4.6',         priceIn: 3.00 },
+  { id: 'anthropic/claude-opus-4-8',            name: 'Claude Opus 4.8',           priceIn: 15.00 },
+  { id: 'openai/gpt-4o-mini',                   name: 'GPT-4o mini',               priceIn: 0.15 },
+  { id: 'openai/gpt-4o',                        name: 'GPT-4o',                    priceIn: 2.50 },
+  { id: 'google/gemini-flash-1.5',              name: 'Gemini Flash 1.5',          priceIn: 0.075 },
+  { id: 'meta-llama/llama-3.3-70b-instruct',    name: 'Llama 3.3 70B',             priceIn: 0.12 },
+];
 
 function loadingState(msg) {
   return `<div class="card"><div class="placeholder">

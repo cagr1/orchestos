@@ -14,6 +14,19 @@ const I18N = {
     'nav.instincts': 'Instincts',
     'nav.specs':     'Specs',
     'nav.settings':  'Settings',
+    'nav.chat':      'Chat',
+
+    /* ── Chat ────────────────────────────────── */
+    'chat.title':       'Chat',
+    'chat.subtitle':    'Ask questions or get a quick answer — no task required.',
+    'chat.placeholder': 'Ask anything… (Enter to send, Shift+Enter for newline)',
+    'chat.btn.send':    'Send',
+    'chat.clear':       'Clear',
+    'chat.empty':       'Ask a question about your project, tasks, or runs.',
+    'chat.thinking':    'Thinking…',
+    'chat.err.general':  '⚠ Could not get a response.',
+    'chat.err.conn':     '⚠ Connection error.',
+    'chat.models.load':  'Select model',
 
     /* ── Common ──────────────────────────────── */
     'btn.refresh':   'Refresh',
@@ -70,6 +83,7 @@ const I18N = {
     'modal.task.exec.or':     'Fast (DeepSeek)',
     'modal.task.exec.ant':    'Precise (Claude)',
     'modal.task.exec.oai':    'Economy (OpenAI)',
+    'modal.task.model.label': 'Model',
     'modal.task.btn.create':  'Create Task',
     'modal.task.err.required':'Description is required.',
 
@@ -226,6 +240,19 @@ const I18N = {
     'nav.instincts': 'Hábitos',
     'nav.specs':     'Specs',
     'nav.settings':  'Ajustes',
+    'nav.chat':      'Chat',
+
+    /* ── Chat ────────────────────────────────── */
+    'chat.title':       'Chat',
+    'chat.subtitle':    'Haz preguntas o consulta el estado del proyecto — sin necesidad de crear una tarea.',
+    'chat.placeholder': 'Pregunta lo que quieras… (Enter para enviar, Shift+Enter para nueva línea)',
+    'chat.btn.send':    'Enviar',
+    'chat.clear':       'Borrar',
+    'chat.empty':       'Haz una pregunta sobre tu proyecto, tareas o ejecuciones.',
+    'chat.thinking':    'Pensando…',
+    'chat.err.general':  '⚠ No se pudo obtener respuesta.',
+    'chat.err.conn':     '⚠ Error de conexión.',
+    'chat.models.load':  'Elegir modelo',
 
     /* ── Common ──────────────────────────────── */
     'btn.refresh':   'Actualizar',
@@ -282,6 +309,7 @@ const I18N = {
     'modal.task.exec.or':     'Rápido (DeepSeek)',
     'modal.task.exec.ant':    'Preciso (Claude)',
     'modal.task.exec.oai':    'Económico (OpenAI)',
+    'modal.task.model.label': 'Modelo',
     'modal.task.btn.create':  'Crear tarea',
     'modal.task.err.required':'La descripción es obligatoria.',
 

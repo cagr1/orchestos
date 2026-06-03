@@ -28,6 +28,12 @@ const state = {
   memQuery: '',
   runsFilter: 'all',
   naturalDraft: null,
+
+  chatHistory: [],
+  chatPending: false,
+  chatModel: 'deepseek/deepseek-v4-flash',
+  orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
+
 };
 
 const NAV = [
@@ -37,6 +43,7 @@ const NAV = [
   { id: 'instincts', icon: ICON.instinct, key: 'nav.instincts' },
   { id: 'specs',     icon: ICON.specs,    key: 'nav.specs' },
   { id: 'settings',  icon: ICON.settings, key: 'nav.settings' },
+  { id: 'chat',      icon: ICON.chat,     key: 'nav.chat' },
 ];
 
 /* ============================================================
@@ -291,6 +298,8 @@ const Modal = {
   },
 
   openTask() {
+    const models = state.orModels;
+    const modelOptions = buildModelSelect('t-model', null, models);
     this.el.innerHTML = `<div class="modal">
       <div class="m-head"><span style="color:var(--accent)">${ICON.tasks}</span><h3>${t('modal.task.title')}</h3>
         <button class="btn ghost sm" data-x>${ICON.x}</button></div>
@@ -303,12 +312,8 @@ const Modal = {
         </div>
         <div class="m-field"><label>${t('modal.task.out.label')}</label>
           <textarea id="t-out" rows="3" placeholder="${t('modal.task.out.ph')}"></textarea></div>
-        <div class="m-field"><label>${t('modal.task.exec.label')}</label>
-          <select id="t-exec">
-            <option value="openrouter">${t('modal.task.exec.or')}</option>
-            <option value="anthropic">${t('modal.task.exec.ant')}</option>
-            <option value="openai">${t('modal.task.exec.oai')}</option>
-          </select></div>
+        <div class="m-field"><label>${t('modal.task.model.label')}</label>
+          ${modelOptions}</div>
         <div id="t-msg" style="font-size:12px;display:none"></div>
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
@@ -320,15 +325,25 @@ const Modal = {
       previewEl.textContent = descToId(descEl.value) || '—';
     });
     this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    this.el.querySelector('[data-load-models]')?.addEventListener('click', async () => {
+      await loadOrModels();
+      this.openTask();
+    });
+
+    // Auto-load if not yet fetched
+    if (state.orModels === null) {
+      loadOrModels().then(() => this.openTask());
+    }
     this.el.querySelector('[data-add]').addEventListener('click', async () => {
       const desc = this.el.querySelector('#t-desc').value.trim();
       const id   = descToId(desc);
       const outRaw = this.el.querySelector('#t-out').value.trim();
-      const executor = this.el.querySelector('#t-exec').value;
+      const modelId = this.el.querySelector('#t-model')?.value?.trim() || 'deepseek/deepseek-v4-flash';
+      const executor = inferExecutor(modelId);
       const msg = this.el.querySelector('#t-msg');
       const output = outRaw.split('\n').map(s => s.trim()).filter(Boolean);
       if (!desc) {
-        msg.textContent = 'La descripción es obligatoria.';
+        msg.textContent = t('modal.task.err.required');
         msg.style.color = 'var(--error)'; msg.style.display = ''; return;
       }
       const btn = this.el.querySelector('[data-add]');
@@ -337,7 +352,7 @@ const Modal = {
         const res = await fetch('/api/tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, description: desc, output, executor }),
+          body: JSON.stringify({ id, description: desc, output, executor, executor_model: modelId }),
         });
         if (res.ok) {
           this.close();
@@ -428,14 +443,58 @@ const Modal = {
 };
 
 /* ============================================================
+   Shared model selector helpers (chat + tasks)
+   ============================================================ */
+
+/* Returns HTML for a model selector widget.
+   If orModels is loaded → <select>. If null → button. If [] → loading text. */
+function buildModelSelect(inputId, currentVal, models) {
+  const val = currentVal || 'deepseek/deepseek-v4-flash';
+  if (models === null) {
+    const list = KNOWN_MODELS.map(m =>
+      `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.name)} — $${m.priceIn.toFixed(2)}/M</option>`
+    ).join('');
+    return `<div style="display:flex;gap:8px;align-items:center">
+      <select id="${inputId}" class="model-sel">${list}</select>
+      <button class="btn ghost sm" data-load-models style="white-space:nowrap">${t('chat.models.load')} ↓</button>
+    </div>`;
+  }
+  if (models.length === 0) {
+    return `<span class="muted" style="font-size:12px">${t('common.loading')}</span>`;
+  }
+  // Ensure current value is in the list even if not returned by OpenRouter
+  const allModels = models.some(m => m.id === val) ? models : [{ id: val, name: val, priceIn: 0 }, ...models];
+  const opts = allModels.map(m =>
+    `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.name || m.id)} — $${m.priceIn.toFixed(2)}/M</option>`
+  ).join('');
+  return `<select id="${inputId}" class="model-sel">${opts}</select>`;
+}
+
+async function loadOrModels() {
+  if (state.orModels && state.orModels.length > 0) return;
+  state.orModels = [];
+  try {
+    const res = await fetch('/api/chat/models');
+    if (res.ok) {
+      state.orModels = await res.json();
+    } else {
+      state.orModels = null;
+    }
+  } catch {
+    state.orModels = null;
+  }
+}
+
+/* ============================================================
    Boot
    ============================================================ */
 function boot() {
   // Build sidebar
   const side = document.getElementById('sidebar');
-  side.innerHTML = NAV.map(n =>
-    `<div class="nav-icon" data-nav="${n.id}" data-tip="${t(n.key)}">${n.icon}</div>`
-  ).join('') + '<div class="grow"></div>';
+  const mainNav = NAV.filter(n => n.id !== 'settings');
+  const bottomNav = NAV.filter(n => n.id === 'settings');
+  const navItem = n => `<div class="nav-icon" data-nav="${n.id}" data-tip="${t(n.key)}">${n.icon}</div>`;
+  side.innerHTML = mainNav.map(navItem).join('') + '<div class="grow"></div>' + bottomNav.map(navItem).join('');
   side.querySelectorAll('.nav-icon').forEach(n => n.addEventListener('click', () => App.go(n.dataset.nav)));
 
   // Terminal toggle

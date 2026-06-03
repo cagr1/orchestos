@@ -239,6 +239,122 @@ async function handleApiSpecsDraft(req: Request): Promise<Response> {
   return jsonResponse({ ok: true, taskId })
 }
 
+async function handleApiChatModels(): Promise<Response> {
+  const apiKey = (() => {
+    try { return readEnv()['OPENROUTER_API_KEY'] || process.env.OPENROUTER_API_KEY || '' } catch { return '' }
+  })()
+  if (!apiKey) return errorResponse('OPENROUTER_API_KEY not set', 400)
+
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    })
+    if (!res.ok) return errorResponse(`OpenRouter error ${res.status}`, 502)
+    const data = await res.json() as { data: { id: string; name: string; context_length: number; pricing: { prompt: string } }[] }
+    const models = (data.data || [])
+      .filter(m => m.pricing?.prompt !== undefined)
+      .sort((a, b) => Number(a.pricing.prompt) - Number(b.pricing.prompt))
+      .map(m => ({
+        id: m.id,
+        name: m.name,
+        contextK: Math.round((m.context_length || 0) / 1000),
+        priceIn: Number(m.pricing.prompt) * 1_000_000,
+      }))
+    return jsonResponse(models)
+  } catch (e: any) {
+    return errorResponse(`Failed to fetch models: ${e.message}`, 502)
+  }
+}
+
+async function handleApiChat(req: Request): Promise<Response> {
+  let body: { history: { role: string; content: string }[]; message: string }
+  try { body = (await req.json()) as { history: { role: string; content: string }[]; message: string } } catch { return errorResponse('Invalid JSON', 400) }
+  const message = body.message?.trim()
+  if (!message) return errorResponse('message is required', 400)
+
+  const history = Array.isArray(body.history) ? body.history.slice(-10) : []
+
+  const root = resolve('.')
+  const lines: string[] = []
+
+  try {
+    const file = loadTasks(root)
+    const counts: Record<string, number> = { pending: 0, running: 0, done: 0, failed: 0 }
+    for (const task of file.tasks as any[]) {
+      const k = task.status === 'failed_permanent' ? 'failed' : task.status
+      if (k in counts) { counts[k as string] = (counts[k as string] ?? 0) + 1 }
+    }
+    lines.push(`Tasks (${file.tasks.length} total — ${counts.pending} pending, ${counts.running} running, ${counts.done} done, ${counts.failed} failed):`)
+    for (const task of file.tasks as any[]) {
+      const qa = task.qa_verdict ? ` [qa:${task.qa_verdict}]` : ''
+      const retries = task.retry_count > 0 ? ` [retries:${task.retry_count}]` : ''
+      lines.push(`  - ${task.id} [${task.status}]${qa}${retries}: ${task.description}`)
+    }
+  } catch { /* no tasks.yaml */ }
+
+  try {
+    const recentRuns = listRuns(10)
+    if (recentRuns.length > 0) {
+      const totalCost = recentRuns.reduce((s, r) => s + Number(r.usd_cost), 0)
+      lines.push(`\nRecent runs (last ${recentRuns.length}, total cost $${totalCost.toFixed(4)}):`)
+      for (const r of recentRuns) {
+        const qa = r.qa_verdict ? ` qa:${r.qa_verdict}` : ''
+        lines.push(`  - ${r.task_id || r.id} | ${r.status}${qa} | ${r.model} | $${Number(r.usd_cost).toFixed(4)} | ${(r.created_at || '').slice(0, 16)}`)
+      }
+    }
+  } catch { /* db not ready */ }
+
+  try {
+    const memRows = db.query<MemoryEntry, []>(
+      'SELECT topic_key, scope, content FROM memory_entries ORDER BY updated_at DESC LIMIT 20'
+    ).all()
+    if (memRows.length > 0) {
+      lines.push(`\nMemory (${memRows.length} entries):`)
+      for (const m of memRows) {
+        lines.push(`  - [${m.scope}] ${m.topic_key}: ${m.content.slice(0, 120)}`)
+      }
+    }
+  } catch { /* memory not ready */ }
+
+  try {
+    const specs = listSpecs(root, true)
+    if (specs.length > 0) {
+      lines.push(`\nSpecs (${specs.length}):`)
+      for (const s of specs) {
+        lines.push(`  - ${s.frontmatter.id} [${s.frontmatter.status}]`)
+      }
+    }
+  } catch { /* no specs */ }
+
+  const projectCtx = loadContext(root)
+
+  const ctx = lines.length ? `\nProject state:\n${lines.join('\n')}\n` : ''
+  const projBlock = projectCtx ? `\nProject context:\n${projectCtx}\n` : ''
+  const systemPrompt = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs, memory, specs, and the system. Be concise and direct. If the user writes in Spanish, respond in Spanish.
+
+You are running as model: anthropic/claude-haiku-4-5 via OpenRouter.
+
+Important: you cannot modify files or run code directly from this chat. However, OrchestOS CAN improve itself — the user can create a Task describing the improvement, and the agent executor will modify the codebase autonomously. That is the correct way to self-improve: Tasks → agent runs → code changes.${ctx}${projBlock}`
+
+  const messages = history
+    .filter(h => h.role === 'user' || h.role === 'assistant')
+    .map(h => ({ role: h.role as 'user' | 'assistant', content: String(h.content) }))
+  messages.push({ role: 'user', content: message })
+
+  const model = (body as any).model?.trim() || 'deepseek/deepseek-v4-flash'
+
+  try {
+    const resp = await openrouterChat({
+      model,
+      system: systemPrompt,
+      messages,
+    })
+    return jsonResponse({ text: resp.text, model: resp.model })
+  } catch (e: any) {
+    return errorResponse(`Chat failed: ${e.message}`, 502)
+  }
+}
+
 async function handleApiNatural(req: Request): Promise<Response> {
   let body: { input: string }
   try { body = (await req.json()) as { input: string } } catch { return errorResponse('Invalid JSON', 400) }
@@ -370,16 +486,24 @@ function descToTaskId(desc: string): string {
     .trim().split(/\s+/).slice(0, 5).join('-') || 'task'
 }
 
+function inferExecutorFromModel(modelId: string | undefined): string {
+  if (!modelId) return 'openrouter'
+  if (/^claude-/.test(modelId)) return 'anthropic'
+  if (/^(gpt-|o1-|o3-|text-)/.test(modelId)) return 'openai'
+  return 'openrouter'
+}
+
 async function handleApiTasksCreate(req: Request): Promise<Response> {
-  let body: { id?: string; description: string; output?: string[]; executor?: string }
-  try { body = (await req.json()) as { id?: string; description: string; output?: string[]; executor?: string } } catch { return errorResponse('Invalid JSON', 400) }
+  let body: { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string }
+  try { body = (await req.json()) as { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string } } catch { return errorResponse('Invalid JSON', 400) }
   if (!body.description?.trim()) {
     return errorResponse('description is required', 400)
   }
   const description = body.description.trim()
   const id = body.id?.trim() || descToTaskId(description)
   const output = Array.isArray(body.output) ? body.output : []
-  const executor = body.executor
+  const executorModel = body.executor_model?.trim() || undefined
+  const executor = body.executor || inferExecutorFromModel(executorModel)
   const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) {
     return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
@@ -390,14 +514,16 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
     if (file.tasks.find((t: any) => t.id === finalId)) {
       finalId = `${finalId}-${Date.now().toString(36)}`
     }
-    ;(file.tasks as any[]).push({
+    const newTask: Record<string, unknown> = {
       id: finalId,
       description,
       output: output.map((f: string) => f.trim()).filter(Boolean),
       executor: executor || 'openrouter',
       status: 'pending',
       retry_count: 0,
-    })
+    }
+    if (executorModel) newTask.executor_model = executorModel
+    ;(file.tasks as any[]).push(newTask)
     saveTasks(root, file)
     return jsonResponse({ ok: true, id: finalId })
   } catch (e: any) {
@@ -509,6 +635,12 @@ async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname === '/api/natural') {
     return handleApiNatural(req)
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/models') {
+    return handleApiChatModels()
+  }
+  if (method === 'POST' && url.pathname === '/api/chat') {
+    return handleApiChat(req)
   }
   if (method === 'GET' && url.pathname === '/api/specs') {
     return handleApiSpecs()

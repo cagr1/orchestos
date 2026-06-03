@@ -1,7 +1,111 @@
 /* ============================================================
-   OrchestOS — screens: Runner, Tasks, Memory
+   OrchestOS — screens: Runner, Tasks, Memory, Chat
    ============================================================ */
 window.SCREENS = window.SCREENS || {};
+
+/* ============================================================
+   0 · CHAT
+   ============================================================ */
+SCREENS.chat = {
+  render(st) {
+    const history = st.chatHistory || [];
+    const thinkingBubble = st.chatPending
+      ? `<div class="chat-msg assistant"><div class="chat-bubble chat-thinking"><span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:6px"></span>${t('chat.thinking')}</div></div>`
+      : '';
+
+    const msgs = history.length === 0
+      ? `<div class="chat-empty"><p>${t('chat.empty')}</p></div>`
+      : history.map(m => {
+          const text = esc(m.content).replace(/\n/g, '<br>');
+          const modelTag = m.role === 'assistant' && m.model
+            ? `<div class="chat-model-tag">${esc(m.model)}</div>` : '';
+          return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${modelTag}</div></div>`;
+        }).join('') + thinkingBubble;
+
+    const modelSelect = buildModelSelect('chat-model-select', st.chatModel, st.orModels).replace('class="model-sel"', 'class="model-sel chat-model-sel"');
+
+    const clearBtn = history.length > 0
+      ? `<button class="btn ghost sm" data-act="chat-clear">${t('chat.clear')}</button>` : '';
+
+    return `<div class="screen chat-screen">
+      <div class="screen-head">
+        <div class="lead"><h1>${t('chat.title')}</h1><p>${t('chat.subtitle')}</p></div>
+        <div class="tools" style="align-items:center;gap:8px">${modelSelect}${clearBtn}</div>
+      </div>
+      <div class="chat-area" id="chat-area">${msgs}</div>
+      <div class="chat-input-bar">
+        <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}></textarea>
+        <button class="btn primary chat-send-btn" data-act="chat-send" ${st.chatPending ? 'disabled' : ''}>${ICON.play} ${t('chat.btn.send')}</button>
+      </div>
+    </div>`;
+  },
+
+  wire(root, st) {
+    const scrollBottom = () => requestAnimationFrame(() => {
+      const area = document.getElementById('chat-area');
+      if (area) area.scrollTop = area.scrollHeight;
+    });
+
+    const send = async () => {
+      const textarea = root.querySelector('#chat-input');
+      const msg = textarea?.value.trim();
+      if (!msg || st.chatPending) return;
+      textarea.value = '';
+      st.chatHistory = st.chatHistory || [];
+      st.chatHistory.push({ role: 'user', content: msg });
+      st.chatPending = true;
+      App.rerender();
+      scrollBottom();
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            history: st.chatHistory.slice(0, -1),
+            message: msg,
+            model: st.chatModel || 'deepseek/deepseek-v4-flash',
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model });
+        } else {
+          st.chatHistory.push({ role: 'assistant', content: t('chat.err.general') });
+        }
+      } catch {
+        st.chatHistory.push({ role: 'assistant', content: t('chat.err.conn') });
+      } finally {
+        st.chatPending = false;
+        App.rerender();
+        scrollBottom();
+      }
+    };
+
+    root.querySelector('#chat-input')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    });
+    root.querySelector('[data-act="chat-send"]')?.addEventListener('click', send);
+    root.querySelector('[data-act="chat-clear"]')?.addEventListener('click', () => {
+      st.chatHistory = [];
+      st.chatPending = false;
+      App.rerender();
+    });
+    root.querySelector('[data-load-models]')?.addEventListener('click', async () => {
+      await loadOrModels();
+      App.rerender();
+    });
+    root.querySelector('#chat-model-select')?.addEventListener('change', e => {
+      st.chatModel = e.target.value;
+    });
+
+    // Auto-load models on first visit
+    if (st.orModels === null) {
+      loadOrModels().then(() => App.rerender());
+    }
+
+    scrollBottom();
+  },
+};
 
 /* ============================================================
    1 · RUNNER  (recent runs as live feed)
@@ -94,12 +198,8 @@ SCREENS.tasks = {
               <textarea id="draft-output" class="draft-input" rows="2">${esc((draft.output || []).join('\n'))}</textarea>
             </div>
             <div class="draft-field">
-              <label>${t('tasks.draft.field.executor')}</label>
-              <select id="draft-exec" class="draft-input">
-                <option value="openrouter" ${draft.executor === 'openrouter' ? 'selected' : ''}>${t('modal.task.exec.or')}</option>
-                <option value="anthropic" ${draft.executor === 'anthropic' ? 'selected' : ''}>${t('modal.task.exec.ant')}</option>
-                <option value="openai" ${draft.executor === 'openai' ? 'selected' : ''}>${t('modal.task.exec.oai')}</option>
-              </select>
+              <label>${t('modal.task.model.label')}</label>
+              ${buildModelSelect('draft-model', draft.executor_model || 'deepseek/deepseek-v4-flash', st.orModels)}
             </div>
           </div>
           <div class="compose-actions" style="margin-top:10px">
@@ -259,12 +359,25 @@ SCREENS.tasks = {
       App.rerender();
     });
 
+    // load-models in draft preview
+    root.querySelector('[data-load-models]')?.addEventListener('click', async () => {
+      await loadOrModels();
+      App.rerender();
+    });
+    root.querySelector('#draft-model')?.addEventListener('change', () => {});
+
+    // Auto-load models when draft is showing
+    if (st.naturalDraft && st.orModels === null) {
+      loadOrModels().then(() => App.rerender());
+    }
+
     // Phase 2 — confirm draft → create + run
     root.querySelector('[data-act="draft-confirm"]')?.addEventListener('click', async () => {
       const id   = root.querySelector('#draft-id')?.value.trim();
       const desc = root.querySelector('#draft-desc')?.value.trim();
       const outRaw = root.querySelector('#draft-output')?.value.trim() || '';
-      const executor = root.querySelector('#draft-exec')?.value || 'openrouter';
+      const modelId = root.querySelector('#draft-model')?.value?.trim() || 'deepseek/deepseek-v4-flash';
+      const executor = inferExecutor(modelId);
       const output = outRaw.split('\n').map(s => s.trim()).filter(Boolean);
       const msg2 = root.querySelector('#compose-msg');
       if (!id || !desc) {
@@ -277,7 +390,7 @@ SCREENS.tasks = {
         const createRes = await fetch('/api/tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, description: desc, output, executor }),
+          body: JSON.stringify({ id, description: desc, output, executor, executor_model: modelId }),
         });
         if (!createRes.ok) {
           const e = await createRes.json();
