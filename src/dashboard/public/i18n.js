@@ -182,6 +182,8 @@ const I18N = {
     /* ── Memory ──────────────────────────────── */
     'memory.title':     'Memory',
     'memory.subtitle':  "Search the agent's working memory across scopes.",
+    'memory.explainer.title': 'What is Memory?',
+    'memory.explainer.body':  "The agent stores things it learns about your project — file paths, conventions, past decisions. These are the raw entries. The agent updates them automatically; you rarely need to edit them directly.",
     'memory.filter':    'Filter',
     'memory.search.ph': 'Search by key or content…',
     'memory.scope':     'Scope',
@@ -237,6 +239,8 @@ const I18N = {
     /* ── Runs ────────────────────────────────── */
     'runs.title':    'Runs',
     'runs.subtitle': 'Real-time monitoring · execution history.',
+    'runs.explainer.title': 'What are Runs?',
+    'runs.explainer.body':  'Each time the agent executes a task it creates a run — a record of what it did, how long it took, what it cost, and any warnings. This is the technical log. Most users won\'t need to check here often.',
     'runs.live':     'updating',
     'runs.idle':     '● idle',
     'runs.filter.all':     'All',
@@ -516,6 +520,8 @@ const I18N = {
     /* ── Memory ──────────────────────────────── */
     'memory.title':     'Memoria',
     'memory.subtitle':  'Busca en la memoria de trabajo del agente por alcance.',
+    'memory.explainer.title': '¿Qué es la Memoria?',
+    'memory.explainer.body':  'El agente guarda cosas que aprende sobre tu proyecto — rutas de archivos, convenciones, decisiones pasadas. Estas son las entradas crudas. El agente las actualiza automáticamente; rara vez necesitas editarlas directamente.',
     'memory.filter':    'Filtrar',
     'memory.search.ph': 'Buscar por clave o contenido…',
     'memory.scope':     'Alcance',
@@ -571,6 +577,8 @@ const I18N = {
     /* ── Runs ────────────────────────────────── */
     'runs.title':    'Ejecuciones',
     'runs.subtitle': 'Monitoreo en tiempo real · historial de ejecuciones.',
+    'runs.explainer.title': '¿Qué son las Ejecuciones?',
+    'runs.explainer.body':  'Cada vez que el agente ejecuta una tarea crea una ejecución — un registro de lo que hizo, cuánto tardó, cuánto costó y si hubo advertencias. Este es el log técnico. La mayoría de usuarios no necesita revisarlo con frecuencia.',
     'runs.live':     'actualizando',
     'runs.idle':     '● en espera',
     'runs.filter.all':     'Todos',

@@ -296,14 +296,19 @@ SCREENS.runs = {
       </div>
     </div>`;
 
+    const runsExplainer = `<div class="spec-explainer">
+      <span class="spec-explainer-icon">${ICON.runs}</span>
+      <div><strong>${t('runs.explainer.title')}</strong> ${t('runs.explainer.body')}</div>
+    </div>`;
+
     if (st.runsStatus === 'loading')
-      return `<div class="screen">${head}${loadingState(t('runs.loading'))}</div>`;
+      return `<div class="screen">${head}${runsExplainer}${loadingState(t('runs.loading'))}</div>`;
     if (st.runsStatus === 'error')
-      return `<div class="screen">${head}${errorState(t('runs.err.title'), t('runs.err.body'))}</div>`;
+      return `<div class="screen">${head}${runsExplainer}${errorState(t('runs.err.title'), t('runs.err.body'))}</div>`;
 
     const allRuns = st.runs || [];
     if (allRuns.length === 0)
-      return `<div class="screen">${head}${emptyState(ICON.runs, t('runs.empty.title'), t('runs.empty.body'))}</div>`;
+      return `<div class="screen">${head}${runsExplainer}${emptyState(ICON.runs, t('runs.empty.title'), t('runs.empty.body'))}</div>`;
 
     // F2 — filter tabs
     const counts = { all: allRuns.length, running: 0, done: 0, failed: 0 };
@@ -340,7 +345,7 @@ SCREENS.runs = {
       return main + (open ? this.detail(r) : '');
     }).join('');
 
-    return `<div class="screen">${head}
+    return `<div class="screen">${head}${runsExplainer}
       <div class="filter-tabs" style="margin-bottom:12px">${tabs}</div>
       <div class="card" style="overflow:hidden">
         <table class="tbl">

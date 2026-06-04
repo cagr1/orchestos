@@ -677,6 +677,11 @@ SCREENS.memory = {
       </div>
     </div>`;
 
+    const memExplainer = `<div class="spec-explainer">
+      <span class="spec-explainer-icon">${ICON.memory}</span>
+      <div><strong>${t('memory.explainer.title')}</strong> ${t('memory.explainer.body')}</div>
+    </div>`;
+
     const memory = st.memory || [];
     const scopes = ['all', 'session', 'project', 'global'];
     const scopeLabel = sc => t(`memory.scope.${sc}`);
@@ -730,7 +735,7 @@ SCREENS.memory = {
         : emptyState(ICON.memory, t('memory.no.title'), q ? t('memory.no.body', esc(q)) : t('memory.empty.body'));
     }
 
-    return `<div class="screen">${head}<div class="mem-grid">${left}${right}</div></div>`;
+    return `<div class="screen">${head}${memExplainer}<div class="mem-grid">${left}${right}</div></div>`;
   },
   wire(root, st) {
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
