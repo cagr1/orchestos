@@ -5,121 +5,34 @@ Backlog accionable, **ordenado por esfuerzo** (rápido → lento). De aquí sale
 - Dirección de producto y norte estratégico → [VISION.md](VISION.md)
 - Lo ya implementado → [DONE.md](DONE.md) Sección 2
 
-Reorganizado: 2026-06-04 (cierre Mes 9).
+Reorganizado: 2026-06-04 (cierre Mes 10).
 
 ---
 
-## 🎯 Candidato a Mes 10 — el tema probable del próximo plan
+## 🎯 Candidato a Mes 11 — el tema probable del próximo plan
 
-Dos cosas que se refuerzan y juntas definen *"usable por alguien que nunca abrió una terminal"*:
+El producto ya es usable para el no-dev (Mes 10 cerrado). El siguiente eje:
+**OrchestOS como experto, no solo ejecutor** — que el producto traiga su propio criterio
+de ingeniería y permita al usuario ampliar ese criterio sin salir del dashboard.
 
-1. **Muro del cold-start / API key** — el bloqueo real del no-dev. Todo lo demás vive río abajo.
-2. **Superficie humano vs operador** — un solo motor, dos niveles de exposición.
+1. **Autoría de skills con curador** — el curador normaliza intención libre → `SkillDef`
+   válido (tres puertas: escribir · importar · exportar). La pantalla Skills en el dashboard.
+2. **Pack curado de skills "pro"** — absorber el criterio de ingeniería de repos como
+   mattpocock/skills y superpowers vía la puerta "importar" del curador.
 
-La narrativa que las sostiene está en VISION.md (§ El norte). Las fichas accionables están
-abajo, cada una en su tramo de esfuerzo.
+La narrativa: un no-dev puede crear, importar y usar skills sin abrir una terminal,
+y el agente ejecuta con criterio "pro" por defecto.
 
 ---
 
 ## ⚡ Rápido — superficie sobre motor que ya existe (alto ROI, bajo riesgo)
 
-Todo este tramo conecta UI a lógica ya implementada y probada. **No se toca el motor.**
-
-### Exponer diagnóstico de fallos en el dashboard
-
-El motor ya existe (S25 auto-trigger en `failed_permanent` + S34 propone instincts). Hoy
-solo se ve por CLI (`runs --detail`, `task diagnose`). Falta surface en UI.
-
-Cuando una tarea llega a `failed`: "qué intentó · por qué falló · qué cambiaría ·
-[convertir en hábito] · [reintentar con esta corrección]".
-
-**Trabajo**: panel en Tasks/Runs que llama a la lógica de diagnóstico ya implementada.
-Solo conectar UI a lo que ya devuelve.
-
----
-
-### Vista editable de "lo que OrchestOS sabe del proyecto"
-
-`CONSTITUTION.md` y `CONTEXT.md` ya existen como archivos. Falta una vista humana editable
-que los exponga sin que el usuario abra un `.md`: propósito · stack · reglas importantes ·
-tono/preferencias · archivos críticos · **lo que no debe tocar**.
-
-**Trabajo**: pantalla que lee/escribe esos dos archivos vía API (mismo patrón que Settings
-→ `.env`). No es capacidad nueva — es superficie editable sobre archivos existentes.
-
----
-
-### Control Center — I2 Setup → salud continua
-
-I1/I2 resuelven el setup *de una vez*. El delta: una vista de **estado vivo** que responde
-en cualquier momento:
-- ¿Está listo para trabajar? ¿Qué falta?
-- ¿Qué tareas están bloqueadas?
-- ¿Qué espera aprobación humana? (instincts propuestos, specs en draft)
-- ¿Qué está costando dinero? (cost acumulado, runs caros)
-- ¿Qué aprendió recientemente?
-
-**No es pantalla nueva** — extiende la Setup screen (I2) de checklist estático a dashboard
-de salud. Reusa datos que ya existen: tasks, runs, instincts, costs.
-
-**Prerequisito**: I2 cerrado ✅.
-
----
-
-### Archivos como input en Chat (imagen, PDF, texto)
-
-El usuario quiere analizar un documento externo sin crear una tarea formal — input
-conversacional inmediato, sin acceptance criteria ni spec.
-
-**Por qué Chat y no Tasks**: Tasks son trabajo autónomo verificable (QA loop, criterios,
-retries). Un PDF para análisis no tiene eso. Modelo que el usuario ya conoce (Claude.ai):
-drop file → conversación → si emerge algo accionable, "crear tarea desde esto".
-
-**Distinción con Tasks**: `context authorize` autoriza archivos del *proyecto*. Esto es
-distinto — archivos *externos* como input de conversación. Dos superficies.
-
-**Formatos mínimos**: imagen (PNG/JPG → vision), PDF (extraer texto antes del LLM), texto plano.
-
-**Prerequisito**: chat panel estable (Mes 9 ✅).
+_Todos los items de este tramo que estaban aquí fueron implementados en Mes 10 (Bloques A–D)._
+_Ver DONE.md § MES 10 para el historial completo._
 
 ---
 
 ## 🔨 Medio — capacidad nueva acotada
-
-### Muro del cold-start / API key — wizard humano  ★ PRIORIDAD #1
-
-El verdadero bloqueo del no-dev. I1/I2 hoy solo **detectan** si falta la key; no explican
-qué es ni dónde sacarla. Para alguien que nunca programó, "añade tu `OPENROUTER_API_KEY`
-en `~/.orchestos/.env`" es una pared.
-
-**Trabajo**: wizard dentro del producto que:
-- Explica en lenguaje humano qué es una API key y por qué hace falta (sin jerga).
-- Lleva paso a paso: a qué web ir, qué copiar, dónde pegarlo — idealmente un campo en el
-  dashboard que escribe el `.env`, no instrucciones de terminal.
-- Valida la key con una llamada de prueba y da feedback claro (✅ funciona / ❌ key inválida).
-
-**Por qué importa**: si el primer run pide una "key" que el usuario no entiende, todo el
-resto del producto es inalcanzable. Es el punto único de fallo del onboarding no-dev.
-
-**Relación con la landing** (VISION.md): la landing NO reemplaza esto. Arreglar el muro
-dentro del producto es prerequisito; la landing va al lado, nunca encima.
-
----
-
-### Superficie humano vs operador (modo colaboración)  ★ PRIORIDAD #2
-
-Materializar el principio de VISION.md (§ El norte #2): un solo motor, jerarquía de
-prominencia. Superficie humana por defecto; operador (Runs, cost, conflicts, lint,
-evidencia cruda) detrás de un toggle.
-
-**Decisión pendiente**: ¿toggle global "modo avanzado" en Settings, o progressive
-disclosure por pantalla (cada vista con su "ver detalle técnico")?
-
-**No negociable**: una sola UI con degradación, NO dos interfaces paralelas (ver VISION.md).
-
-**Prerequisito**: dashboard Mes 9 estable ✅. Es decisión estructural, no parche.
-
----
 
 ### Autoría de skills con orden garantizado — normalizador de intención
 
