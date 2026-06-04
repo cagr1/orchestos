@@ -180,12 +180,16 @@ const App = {
       state.screen = 'settings';
       state.setupRedirectDone = true;
     }
-    // C4 — redirect to Control Center if there are attention items
+    // C4/F5 — adaptive startup: Control Center if attention, else mode-aware default
     if (!state.attentionRedirectDone && !state.setup?.criticalMissing && state.health) {
       const costThreshold = parseFloat(localStorage.getItem('orchestos-cost-threshold') || '0.50');
       const hasAttention = state.health.attentionCount > 0 || state.health.costLast7d > costThreshold;
       if (hasAttention) {
-        state.screen = 'settings';
+        state.screen = 'settings'; // Control Center — priority in both modes
+      } else {
+        // F5 — advanced mode starts on Runs (familiar for the dev); normal mode stays on Tasks
+        const mode = localStorage.getItem('orchestos-mode') || 'normal';
+        if (mode === 'advanced') state.screen = 'runs';
       }
       state.attentionRedirectDone = true;
     }
