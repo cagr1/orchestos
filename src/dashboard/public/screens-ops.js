@@ -1,7 +1,117 @@
 /* ============================================================
-   OrchestOS — screens: Instincts, Runs, Specs
+   OrchestOS — screens: Project, Instincts, Runs, Specs
    ============================================================ */
 window.SCREENS = window.SCREENS || {};
+
+/* ============================================================
+   PROJECT — CONSTITUTION.md (editable) + CONTEXT.md (read-only)
+   ============================================================ */
+SCREENS.project = {
+  _saveTimer: null,
+
+  render(st) {
+    const tab = st.projectTab || 'constitution';
+
+    const tabs = `<div class="proj-tabs">
+      <button class="proj-tab ${tab === 'constitution' ? 'active' : ''}" data-tab="constitution">
+        ${t('project.tab.constitution')}
+      </button>
+      <button class="proj-tab ${tab === 'context' ? 'active' : ''}" data-tab="context">
+        ${t('project.tab.context')}
+      </button>
+    </div>`;
+
+    const saveIndicator = st.projectSaveState === 'saving'
+      ? `<span class="save-indicator saving">${t('project.saving')}</span>`
+      : st.projectSaveState === 'saved'
+        ? `<span class="save-indicator saved">${ICON.check} ${t('project.saved')}</span>`
+        : st.projectSaveState === 'error'
+          ? `<span class="save-indicator error">${t('project.save.err')}</span>`
+          : '';
+
+    const head = `<div class="screen-head">
+      <div class="lead"><h1>${t('project.title')}</h1><p>${t('project.subtitle')}</p></div>
+      <div class="tools" style="align-items:center">${saveIndicator}</div>
+    </div>`;
+
+    if (tab === 'constitution') {
+      const content = st.constitutionContent ?? '';
+      const isLoading = st.constitutionStatus === 'loading' || st.constitutionStatus === 'idle';
+      const body = isLoading
+        ? loadingState(t('project.loading'))
+        : `<div class="proj-editor-wrap">
+            <div class="proj-helper">${t('project.constitution.helper')}</div>
+            <textarea id="constitution-editor" class="proj-editor" spellcheck="false">${esc(content)}</textarea>
+          </div>`;
+      return `<div class="screen">${head}${tabs}${body}</div>`;
+    }
+
+    // context tab
+    const ctxContent = st.contextContent ?? '';
+    const ctxLoading = st.contextStatus === 'loading' || st.contextStatus === 'idle';
+    const body = ctxLoading
+      ? loadingState(t('project.loading'))
+      : `<div class="proj-editor-wrap">
+          <div class="proj-helper">${t('project.context.helper')}</div>
+          <textarea id="context-editor" class="proj-editor proj-editor-ro" spellcheck="false" readonly>${esc(ctxContent)}</textarea>
+          <div class="proj-context-foot">
+            <span class="muted" style="font-size:12px">${t('project.context.note')}</span>
+            <button class="btn" data-act="regenerate">${ICON.refresh} ${t('project.context.regenerate')}</button>
+          </div>
+        </div>`;
+    return `<div class="screen">${head}${tabs}${body}</div>`;
+  },
+
+  wire(root, st) {
+    // Tab switching
+    root.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => {
+      st.projectTab = btn.dataset.tab;
+      if (btn.dataset.tab === 'constitution' && st.constitutionStatus === 'idle') {
+        App.fetchConstitution().then(() => App.rerender());
+      } else if (btn.dataset.tab === 'context' && st.contextStatus === 'idle') {
+        App.fetchContext().then(() => App.rerender());
+      } else {
+        App.rerender();
+      }
+    }));
+
+    // Constitution editor — debounced auto-save (1 s)
+    const editor = root.querySelector('#constitution-editor');
+    if (editor) {
+      editor.addEventListener('input', () => {
+        if (this._saveTimer) clearTimeout(this._saveTimer);
+        st.projectSaveState = 'saving';
+        this._saveTimer = setTimeout(async () => {
+          try {
+            const res = await fetch('/api/project/constitution', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: editor.value }),
+            });
+            st.constitutionContent = editor.value;
+            st.projectSaveState = res.ok ? 'saved' : 'error';
+          } catch {
+            st.projectSaveState = 'error';
+          }
+          App.rerender();
+        }, 1000);
+      });
+    }
+
+    // Regenerate CONTEXT.md
+    root.querySelector('[data-act="regenerate"]')?.addEventListener('click', async () => {
+      const btn = root.querySelector('[data-act="regenerate"]');
+      btn.disabled = true;
+      btn.textContent = t('project.context.regenerating');
+      await fetch('/api/project/context/regenerate', { method: 'POST' });
+      // Wait 1.5 s for the CLI to write the file, then reload
+      setTimeout(async () => {
+        await App.fetchContext();
+        App.rerender();
+      }, 1500);
+    });
+  },
+};
 
 /* ============================================================
    4 · HÁBITOS DEL AGENTE  (Instincts — E1)
@@ -274,10 +384,16 @@ const KEY_DEFS = [
 ];
 
 SCREENS.settings = {
+  _timer: null,
   itemBadge(item) {
     if (item.ok) return `<span class="badge green square">${ICON.check} Ready</span>`;
     if (item.critical) return `<span class="badge red square">${ICON.x} Required</span>`;
     return `<span class="badge amber square">${ICON.warn} Optional</span>`;
+  },
+  healthDot(status) {
+    const colors = { green: 'var(--success)', amber: 'var(--warning)', red: 'var(--error)', neutral: 'var(--text-faint)' };
+    const s = colors[status] || colors.neutral;
+    return `<span class="health-dot" style="background:${s};box-shadow:0 0 6px ${s}"></span>`;
   },
   setupChecklist(st) {
     const setup = st.setup;
@@ -323,6 +439,58 @@ SCREENS.settings = {
       <div class="setup-list">${rows}</div>
     </div>`;
   },
+  healthBlocks(st) {
+    const h = st.health;
+    if (!h) return '';
+    const blocks = [
+      {
+        id: 'system', label: t('health.system'),
+        status: h.system.ready ? 'green' : 'red',
+        value: h.system.ready ? t('health.system.ok') : t('health.system.issues'),
+      },
+      {
+        id: 'blocked', label: t('health.blocked'),
+        status: h.blockedTasks.length > 0 ? 'red' : 'green',
+        value: h.blockedTasks.length > 0 ? `${h.blockedTasks.length}` : t('health.blocked.ok'),
+        link: h.blockedTasks.length > 0 ? 'tasks' : null,
+        linkFilter: 'failed',
+      },
+      {
+        id: 'pending', label: t('health.pending'),
+        status: h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs > 0 ? 'amber' : 'green',
+        value: h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs > 0
+          ? `${h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs}`
+          : t('health.pending.ok'),
+      },
+      {
+        id: 'cost', label: t('health.cost'),
+        status: 'neutral',
+        value: `$${h.costLast7d.toFixed(4)}`,
+      },
+      {
+        id: 'learning', label: t('health.learning'),
+        status: h.recentLearnings.length > 0 ? 'green' : 'neutral',
+        value: h.recentLearnings.length > 0
+          ? h.recentLearnings.map(l => esc(l.trigger)).join(', ')
+          : t('health.no.learning'),
+      },
+    ];
+    const rows = blocks.map(b => `
+      <div class="health-row">
+        <div class="health-dot-wrap">${this.healthDot(b.status)}</div>
+        <div class="health-label">${esc(b.label)}</div>
+        <div class="health-value">${esc(b.value)}</div>
+        <div class="health-action">${b.link
+          ? `<button class="btn ghost sm" data-nav="${esc(b.link)}" ${b.linkFilter ? `data-filter="${esc(b.linkFilter)}"` : ''}>${t('health.view')}</button>`
+          : ''}</div>
+      </div>`).join('');
+    return `<div class="card settings-card health-card">
+      <div class="settings-header">
+        <h3>${t('health.title')}</h3>
+      </div>
+      <div class="health-list">${rows}</div>
+    </div>`;
+  },
   render(st) {
     const keys = st.settings || {};
     const lang = getLang();
@@ -358,6 +526,7 @@ SCREENS.settings = {
 
     return `<div class="screen">${head}
       ${this.setupChecklist(st)}
+      ${this.healthBlocks(st)}
       <div class="settings-grid">
 
         <div class="card settings-card">
@@ -453,8 +622,26 @@ SCREENS.settings = {
     // Language selector
     root.querySelectorAll('[data-lang]').forEach(btn => btn.addEventListener('click', () => {
       setLang(btn.dataset.lang);
-      App.rerender();  // rerender current screen with new language
+      App.rerender();
     }));
+
+    // C3 — health nav links
+    root.querySelectorAll('[data-nav]').forEach(btn => btn.addEventListener('click', () => {
+      const screen = btn.dataset.nav;
+      const filter = btn.dataset.filter;
+      if (screen === 'tasks' && filter) {
+        state.taskFilter = filter;
+      }
+      state.screen = screen;
+      App.rerender();
+    }));
+
+    // C3 — auto-refresh every 30s while the settings screen is visible
+    if (this._timer) clearInterval(this._timer);
+    this._timer = setInterval(async () => {
+      await Promise.all([App.fetchSetup(), App.fetchHealth()]);
+      App.rerender();
+    }, 30000);
   },
 };
 

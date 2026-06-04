@@ -20,6 +20,9 @@ import {
   type SpecRow,
   type SpecLintStatus,
   type DiagnoseRow,
+  type HealthResponse,
+  type HealthBlockedTask,
+  type HealthRecentLearning,
   type MutationResult,
   type CostBreakdownEntry,
   type ContextWarningEntry,
@@ -360,6 +363,39 @@ Important: you cannot modify files or run code directly from this chat. However,
   }
 }
 
+function handleApiProjectConstitutionGet(): Response {
+  const root = resolve('.')
+  const path = join(root, 'CONSTITUTION.md')
+  const exists = existsSync(path)
+  const content = exists ? readFileSync(path, 'utf-8') : ''
+  return jsonResponse({ content, exists })
+}
+
+async function handleApiProjectConstitutionPut(req: Request): Promise<Response> {
+  let body: { content: string }
+  try { body = (await req.json()) as { content: string } } catch { return errorResponse('Invalid JSON', 400) }
+  if (typeof body.content !== 'string') return errorResponse('content must be a string', 400)
+  const root = resolve('.')
+  writeFileSync(join(root, 'CONSTITUTION.md'), body.content, 'utf-8')
+  return jsonResponse({ ok: true })
+}
+
+function handleApiProjectContextGet(): Response {
+  const root = resolve('.')
+  const path = join(root, 'CONTEXT.md')
+  const exists = existsSync(path)
+  const content = exists ? readFileSync(path, 'utf-8') : ''
+  return jsonResponse({ content, exists })
+}
+
+function handleApiProjectContextRegenerate(): Response {
+  const root = resolve('.')
+  Bun.spawn([process.execPath, 'run', join(root, 'src/cli.ts'), 'context', 'compress'], {
+    cwd: root, stdout: 'inherit', stderr: 'inherit',
+  })
+  return jsonResponse({ ok: true })
+}
+
 async function handleApiNatural(req: Request): Promise<Response> {
   let body: { input: string }
   try { body = (await req.json()) as { input: string } } catch { return errorResponse('Invalid JSON', 400) }
@@ -689,6 +725,77 @@ function handleApiTasksDelete(url: URL): Response {
   }
 }
 
+function handleApiHealth(): Response {
+  const root = resolve('.')
+
+  // Section 1 — inline (mirrors /api/setup, trimmed to essential items)
+  const system = (() => {
+    const dbPath = join(homedir(), '.orchestos', 'db.sqlite')
+    const env = readEnv()
+    const items: SetupItem[] = []
+    const bunVersion = (globalThis as any).Bun?.version ?? ''
+    items.push({ id: 'bun', label: bunVersion ? `Bun ${bunVersion}` : 'Bun not found', ok: !!bunVersion, critical: true, kind: 'runtime', hint: bunVersion ? 'Runtime is available.' : 'Install Bun.' })
+    const hasLock = existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
+    const hasMods = existsSync(join(root, 'node_modules'))
+    items.push({ id: 'dependencies', label: hasLock && hasMods ? 'Dependencies installed' : 'Dependencies missing', ok: hasLock && hasMods, critical: false, kind: 'dependency', hint: hasLock && hasMods ? 'OK' : 'Run bun install.' })
+    const openRouter = env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || ''
+    items.push({ id: 'openrouter-key', label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY missing', ok: !!openRouter, critical: true, kind: 'credential', hint: openRouter ? 'OK' : 'Add an API key in Settings.' })
+    const hasTasks = existsSync(join(root, 'tasks.yaml'))
+    items.push({ id: 'tasks-yaml', label: hasTasks ? 'tasks.yaml found' : 'tasks.yaml missing', ok: hasTasks, critical: true, kind: 'project', hint: hasTasks ? 'OK' : 'Run: orchestos task init' })
+    const hasDb = existsSync(dbPath)
+    items.push({ id: 'db', label: hasDb ? 'SQLite initialized' : 'SQLite not initialized', ok: hasDb, critical: false, kind: 'database', hint: hasDb ? 'OK' : 'Created automatically on first run.' })
+    const criticalMissing = items.some(i => i.critical && !i.ok)
+    return { ready: !criticalMissing, criticalMissing, envFile: ENV_FILE, cwd: root, items }
+  })()
+
+  // Section 2 — blocked tasks (failed_permanent)
+  const blockedTasks: HealthBlockedTask[] = []
+  try {
+    if (existsSync(join(root, 'tasks.yaml'))) {
+      const file = loadTasks(root)
+      for (const t of file.tasks as any[]) {
+        if (t.status === 'failed_permanent') {
+          blockedTasks.push({ id: t.id, description: t.description, retryCount: t.retry_count ?? 0 })
+        }
+      }
+    }
+  } catch { /* no tasks.yaml */ }
+
+  // Section 3 — pending approval
+  const unverifiedInstincts = listInstincts({ verified: false }).length
+  let draftSpecs = 0
+  try {
+    draftSpecs = listSpecs(root, false).filter(s => s.frontmatter.status === 'draft').length
+  } catch { /* no specs dir */ }
+
+  // Section 4 — cost last 7 days
+  let costLast7d = 0
+  try {
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const row = db.query<{ total: number }, string>(
+      "SELECT COALESCE(SUM(usd_cost), 0) AS total FROM runs WHERE created_at >= ?"
+    ).get(cutoff)
+    costLast7d = row?.total ?? 0
+  } catch { /* db not ready */ }
+
+  // Section 5 — recent auto-learned instincts (last 3 approved)
+  const recentLearnings: HealthRecentLearning[] = listInstincts({ source: 'auto', verified: true })
+    .slice(0, 3)
+    .map(i => ({ id: i.id, trigger: i.trigger, action: i.action, createdAt: i.created_at }))
+
+  const attentionCount = blockedTasks.length + unverifiedInstincts + draftSpecs
+
+  const body: HealthResponse = {
+    system,
+    blockedTasks,
+    pendingApproval: { unverifiedInstincts, draftSpecs },
+    costLast7d,
+    recentLearnings,
+    attentionCount,
+  }
+  return jsonResponse(body)
+}
+
 async function handleApiTasksDiagnose(url: URL): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
@@ -746,8 +853,8 @@ async function route(req: Request, port: number): Promise<Response> {
   const url = new URL(req.url)
   const method = req.method
 
-  // CSRF guard: reject cross-origin POSTs/DELETEs
-  if ((method === 'POST' || method === 'DELETE') && !isSameOrigin(req, port)) {
+  // CSRF guard: reject cross-origin mutating requests
+  if ((method === 'POST' || method === 'PUT' || method === 'DELETE') && !isSameOrigin(req, port)) {
     return errorResponse('Forbidden', 403)
   }
 
@@ -781,6 +888,18 @@ async function route(req: Request, port: number): Promise<Response> {
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/reject$/)) {
     return handleApiInstinctsReject(url)
   }
+  if (method === 'GET' && url.pathname === '/api/project/constitution') {
+    return handleApiProjectConstitutionGet()
+  }
+  if (method === 'PUT' && url.pathname === '/api/project/constitution') {
+    return handleApiProjectConstitutionPut(req)
+  }
+  if (method === 'GET' && url.pathname === '/api/project/context') {
+    return handleApiProjectContextGet()
+  }
+  if (method === 'POST' && url.pathname === '/api/project/context/regenerate') {
+    return handleApiProjectContextRegenerate()
+  }
   if (method === 'POST' && url.pathname === '/api/natural') {
     return handleApiNatural(req)
   }
@@ -804,6 +923,9 @@ async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/setup') {
     return handleApiSetup()
+  }
+  if (method === 'GET' && url.pathname === '/api/health') {
+    return handleApiHealth()
   }
   if (method === 'POST' && url.pathname === '/api/settings') {
     return handleApiSettingsPost(req)

@@ -14,6 +14,7 @@
  *   GET  /api/specs                 → SpecRow[]
  *   GET  /api/memory                → MemoryRow[]
  *   GET  /api/tasks/:id/diagnose   → DiagnoseRow
+ *   GET  /api/health               → HealthResponse
  *
  * All GET endpoints return JSON arrays sorted by most-recent first.
  * All POST endpoints return MutationResult.
@@ -157,6 +158,45 @@ export interface SetupResponse {
   envFile: string
   cwd: string
   items: SetupItem[]
+}
+
+// ── /api/health ───────────────────────────────────────────────────────────────
+// Single endpoint, 5 sections — one round-trip for the Control Center.
+
+export interface HealthBlockedTask {
+  id: string
+  description: string
+  retryCount: number
+}
+
+export interface HealthPendingApproval {
+  unverifiedInstincts: number  // instincts where verified=false
+  draftSpecs: number           // specs where status='draft'
+}
+
+export interface HealthRecentLearning {
+  id: string
+  trigger: string
+  action: string
+  createdAt: string
+}
+
+export interface HealthResponse {
+  /** Section 1 — system prerequisites (reuses SetupResponse structure) */
+  system: SetupResponse
+  /** Section 2 — tasks with status failed_permanent */
+  blockedTasks: HealthBlockedTask[]
+  /** Section 3 — items waiting for human approval */
+  pendingApproval: HealthPendingApproval
+  /** Section 4 — sum of run costs over the last 7 days (USD) */
+  costLast7d: number
+  /** Section 5 — last 3 auto-learned instincts that were approved */
+  recentLearnings: HealthRecentLearning[]
+  /**
+   * Derived attention count used by C4 for home-screen routing.
+   * = blockedTasks.length + pendingApproval.unverifiedInstincts + pendingApproval.draftSpecs
+   */
+  attentionCount: number
 }
 
 // ── mutations ─────────────────────────────────────────────────────────────────

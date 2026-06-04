@@ -18,6 +18,7 @@ const state = {
   memory: [],
   settings: null,
   setup: null,
+  health: null,
 
   runsStatus: 'loading',
   tasksStatus: 'loading',
@@ -26,13 +27,22 @@ const state = {
   memoryStatus: 'loading',
   settingsStatus: 'idle',
   setupStatus: 'idle',
+  healthStatus: 'idle',
   setupRedirectDone: false,
+  attentionRedirectDone: false,
 
   taskFilter: 'all',
   taskSort: { col: null, dir: 'asc' },
   memQuery: '',
   runsFilter: 'all',
   naturalDraft: null,
+
+  projectTab: 'constitution',
+  constitutionContent: null,
+  contextContent: null,
+  constitutionStatus: 'idle',
+  contextStatus: 'idle',
+  projectSaveState: 'idle',  // 'idle' | 'saving' | 'saved' | 'error'
 
   chatHistory: [],
   chatPending: false,
@@ -45,6 +55,7 @@ const NAV = [
   { id: 'tasks',     icon: ICON.tasks,    key: 'nav.tasks' },
   { id: 'runs',      icon: ICON.runs,     key: 'nav.runs' },
   { id: 'memory',    icon: ICON.memory,   key: 'nav.memory' },
+  { id: 'project',   icon: ICON.project,  key: 'nav.project' },
   { id: 'instincts', icon: ICON.instinct, key: 'nav.instincts' },
   { id: 'specs',     icon: ICON.specs,    key: 'nav.specs' },
   { id: 'settings',  icon: ICON.settings, key: 'nav.settings' },
@@ -116,6 +127,40 @@ const App = {
       state.setupStatus = 'error';
     }
   },
+  async fetchHealth() {
+    try {
+      const res = await fetch('/api/health');
+      if (!res.ok) throw new Error(res.status);
+      state.health = await res.json();
+      state.healthStatus = 'ok';
+    } catch {
+      state.healthStatus = 'error';
+    }
+  },
+  async fetchConstitution() {
+    state.constitutionStatus = 'loading';
+    try {
+      const res = await fetch('/api/project/constitution');
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      state.constitutionContent = data.content;
+      state.constitutionStatus = 'ok';
+    } catch {
+      state.constitutionStatus = 'error';
+    }
+  },
+  async fetchContext() {
+    state.contextStatus = 'loading';
+    try {
+      const res = await fetch('/api/project/context');
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      state.contextContent = data.content;
+      state.contextStatus = 'ok';
+    } catch {
+      state.contextStatus = 'error';
+    }
+  },
   async fetchAll() {
     await Promise.all([
       this.fetchRuns(),
@@ -125,10 +170,20 @@ const App = {
       this.fetchMemory(),
       this.fetchSettings(),
       this.fetchSetup(),
+      this.fetchHealth(),
     ]);
     if (!state.setupRedirectDone && state.setup?.criticalMissing) {
       state.screen = 'settings';
       state.setupRedirectDone = true;
+    }
+    // C4 — redirect to Control Center if there are attention items
+    if (!state.attentionRedirectDone && !state.setup?.criticalMissing && state.health) {
+      const costThreshold = parseFloat(localStorage.getItem('orchestos-cost-threshold') || '0.50');
+      const hasAttention = state.health.attentionCount > 0 || state.health.costLast7d > costThreshold;
+      if (hasAttention) {
+        state.screen = 'settings';
+      }
+      state.attentionRedirectDone = true;
     }
     this.rerender();
     Term.render();
@@ -153,10 +208,20 @@ const App = {
     this.syncNav();
   },
   go(id) {
-    // stop auto-refresh when leaving Runs
+    // stop auto-refresh when leaving Runs or Settings
     if (SCREENS.runs._timer) { clearInterval(SCREENS.runs._timer); SCREENS.runs._timer = null; }
+    if (SCREENS.settings._timer) { clearInterval(SCREENS.settings._timer); SCREENS.settings._timer = null; }
     state.screen = id;
     state.openRun = null; state.openSpec = null;
+    // lazy-load project content on first visit
+    if (id === 'project') {
+      const tab = state.projectTab || 'constitution';
+      if (tab === 'constitution' && state.constitutionStatus === 'idle') {
+        this.fetchConstitution().then(() => this.rerender());
+      } else if (tab === 'context' && state.contextStatus === 'idle') {
+        this.fetchContext().then(() => this.rerender());
+      }
+    }
     this.rerender();
   },
   syncNav() {
