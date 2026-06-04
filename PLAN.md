@@ -153,7 +153,21 @@ necesita aprobación). **Superficie operador** (Runs crudas, cost breakdown, mem
 spec lint, evidencia técnica) detrás de un toggle visible pero discreto. **No son dos UIs**
 — es un rediseño de jerarquía con degradación.
 
-- [ ] F1 (🧠) Diseño de la jerarquía: (a) definir qué pertenece a cada superficie. Superficie humana: Tasks ("Trabajo pendiente"), Proyecto (CONSTITUTION/CONTEXT), Hábitos (Instincts en lenguaje humano — ya Mes 9 E1), Control Center (salud continua — bloque C). Superficie operador: Runs (historial técnico de ejecuciones), Memory (entradas crudas de memoria), Specs (lint, archive, estado), detalles de cost breakdown, context warnings. (b) Mecanismo de toggle: "Modo avanzado" como switch en el nav inferior (persistido en localStorage). (c) Regla de degradación: en modo normal, los ítems de operador desaparecen del nav; en modo avanzado, aparecen con etiqueta sutil "avanzado". **El poder no se elimina — se mueve.**
+- [x] F1 (🧠) Diseño ✓ 2026-06-04 — Decisiones:
+  **(a) Split:**
+  - Human (visible por defecto): `tasks`, `project`, `instincts` (nav label EN → "Habits"), `settings` (= Control Center), `chat`.
+  - Operator (ocultos por defecto): `runs`, `memory`, `specs`.
+  **(b) Toggle:**
+  - `NAV` array: añadir `operator: true` a `runs`, `memory`, `specs`.
+  - `localStorage('orchestos-mode')` = `'normal'` (default) | `'advanced'`.
+  - Extraer lógica del sidebar de `boot()` a función `buildNav()` (reutilizable al toggle).
+  - Toggle element: `.nav-mode-btn` con nuevo `ICON.sliders` (SVG sliders), colocado entre `<div class="grow">` y el icono de Settings. Solo icono + tooltip (sin texto para no agrandar el sidebar). Clase `.active` cuando modo = advanced (acento de color).
+  - Al click: flip `localStorage`, llamar `buildNav()` + `App.rerender()`.
+  **(c) Degradación:**
+  - Normal: `mainNav.filter(n => !n.operator)` → nav muestra: tasks, project, instincts, chat + toggle + settings.
+  - Advanced: todos los `mainNav` → adicionalmente runs, memory, specs con badge `<span class="nav-adv-badge">adv</span>` debajo del icono.
+  - CSS: `.nav-icon.operator` `opacity:0; max-height:0; overflow:hidden` en normal; animación `max-height + opacity` 250ms al activar advanced. Pero como `buildNav()` re-renderiza el DOM, la animación se aplica con clase `.entering` vía JS en el primer frame.
+  - Nota: nav label `'nav.instincts'` EN cambia de "Instincts" → "Habits" (F3 cubre i18n). Operador ítems conservan sus labels actuales (runs/memory/specs son términos técnicos apropiados en ese contexto).
 - [ ] F2 (⚡) Toggle "Modo avanzado" en el nav: switch con label "Avanzado" + ícono de tuerca. Persistido en `localStorage('orchestos-mode')`. Al activar, aparecen en el nav: Runs · Memory · Specs con badge "avanzado". Al desactivar, desaparecen (collapse animado). El nav en modo normal queda: Tasks · Proyecto · Hábitos · Control Center · Chat · Settings.
 - [ ] F3 (⚡) Añadir entradas al diccionario i18n para el modo avanzado y los ítems que aparecen/desaparecen. Revisar que todas las pantallas de operador (Runs, Memory, Specs) tienen su traducción completa.
 - [ ] F4 (🧠) Revisión de pantallas de operador en modo avanzado: Runs debe tener un banner explicativo breve ("Aquí ves el historial técnico de cada ejecución del agente") igual que Specs tenía su banner en Mes 9 G1. Memory también. El no-dev que activa "avanzado" por curiosidad no debe quedar perdido.
