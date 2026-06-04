@@ -57,11 +57,11 @@ const state = {
 
 const NAV = [
   { id: 'tasks',     icon: ICON.tasks,    key: 'nav.tasks' },
-  { id: 'runs',      icon: ICON.runs,     key: 'nav.runs' },
-  { id: 'memory',    icon: ICON.memory,   key: 'nav.memory' },
+  { id: 'runs',      icon: ICON.runs,     key: 'nav.runs',     operator: true },
+  { id: 'memory',    icon: ICON.memory,   key: 'nav.memory',   operator: true },
   { id: 'project',   icon: ICON.project,  key: 'nav.project' },
   { id: 'instincts', icon: ICON.instinct, key: 'nav.instincts' },
-  { id: 'specs',     icon: ICON.specs,    key: 'nav.specs' },
+  { id: 'specs',     icon: ICON.specs,    key: 'nav.specs',    operator: true },
   { id: 'settings',  icon: ICON.settings, key: 'nav.settings' },
   { id: 'chat',      icon: ICON.chat,     key: 'nav.chat' },
 ];
@@ -777,16 +777,57 @@ async function loadLocalModels() {
 }
 
 /* ============================================================
+   Nav builder — called on boot and on mode toggle
+   ============================================================ */
+function buildNav() {
+  const mode = localStorage.getItem('orchestos-mode') || 'normal';
+  const isAdv = mode === 'advanced';
+  const side = document.getElementById('sidebar');
+
+  const mainNav = NAV.filter(n => n.id !== 'settings');
+  const bottomNav = NAV.filter(n => n.id === 'settings');
+
+  const navItem = n => {
+    if (n.operator && !isAdv) return '';
+    const badge = n.operator ? '<span class="nav-adv-badge">adv</span>' : '';
+    const cls = n.operator ? ' operator' : '';
+    return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}">${n.icon}${badge}</div>`;
+  };
+
+  const tipKey = isAdv ? 'nav.mode.disable' : 'nav.mode.enable';
+  const modeBtn = `<div class="nav-icon nav-mode-btn${isAdv ? ' active' : ''}" id="navModeBtn" data-tip="${t(tipKey)}">${ICON.sliders}</div>`;
+
+  side.innerHTML = mainNav.map(navItem).join('') +
+    '<div class="grow"></div>' + modeBtn + bottomNav.map(navItem).join('');
+
+  if (isAdv) {
+    requestAnimationFrame(() => {
+      side.querySelectorAll('.nav-icon.operator').forEach(el => el.classList.add('visible'));
+    });
+  }
+
+  side.querySelectorAll('.nav-icon[data-nav]').forEach(n =>
+    n.addEventListener('click', () => App.go(n.dataset.nav)));
+
+  document.getElementById('navModeBtn').addEventListener('click', () => {
+    const cur = localStorage.getItem('orchestos-mode') || 'normal';
+    const next = cur === 'advanced' ? 'normal' : 'advanced';
+    localStorage.setItem('orchestos-mode', next);
+    if (next === 'normal') {
+      const opIds = NAV.filter(n => n.operator).map(n => n.id);
+      if (opIds.includes(state.screen)) App.go('tasks');
+    }
+    buildNav();
+    App.syncNav();
+  });
+}
+
+/* ============================================================
    Boot
    ============================================================ */
 function boot() {
   // Build sidebar
-  const side = document.getElementById('sidebar');
-  const mainNav = NAV.filter(n => n.id !== 'settings');
-  const bottomNav = NAV.filter(n => n.id === 'settings');
-  const navItem = n => `<div class="nav-icon" data-nav="${n.id}" data-tip="${t(n.key)}">${n.icon}</div>`;
-  side.innerHTML = mainNav.map(navItem).join('') + '<div class="grow"></div>' + bottomNav.map(navItem).join('');
-  side.querySelectorAll('.nav-icon').forEach(n => n.addEventListener('click', () => App.go(n.dataset.nav)));
+  buildNav();
 
   // Terminal toggle
   document.getElementById('termBar').addEventListener('click', () => Term.toggle());

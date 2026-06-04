@@ -161,6 +161,7 @@ button { font-family: inherit; }
   padding: 10px 0;
   border-right: 1px solid var(--border);
   background: var(--surface);
+  z-index: 1;
 }
 .sidebar .nav-icon {
   position: relative;
@@ -181,13 +182,30 @@ button { font-family: inherit; }
 .sidebar .nav-icon svg { width: 19px; height: 19px; }
 .sidebar .grow { flex: 1; }
 
+/* operator nav items — hidden until advanced mode */
+.sidebar .nav-icon.operator { opacity: 0; transform: translateX(-4px); transition: opacity 250ms, transform 250ms; }
+.sidebar .nav-icon.operator.visible { opacity: 1; transform: translateX(0); }
+
+/* mode toggle button */
+.sidebar .nav-mode-btn { transition: background .12s, color .12s; }
+.sidebar .nav-mode-btn.active { color: var(--accent); }
+
+/* badge shown on operator items in advanced mode */
+.nav-adv-badge {
+  position: absolute; bottom: 1px; right: 1px;
+  font-size: 7px; font-weight: 700; line-height: 1;
+  padding: 1px 3px; border-radius: 3px;
+  background: var(--surface-hi); color: var(--text-muted);
+  pointer-events: none;
+}
+
 /* tooltip */
 .nav-icon[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%);
   background: #1c2128; color: var(--text); border: 1px solid var(--border);
   padding: 4px 9px; border-radius: 6px; font-size: 11.5px; white-space: nowrap;
-  z-index: 50; pointer-events: none;
+  z-index: 200; pointer-events: none;
   box-shadow: 0 6px 18px rgba(0,0,0,.4);
 }
 
