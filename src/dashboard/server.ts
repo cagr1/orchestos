@@ -1,4 +1,5 @@
 import { resolve, join, extname, sep } from 'path'
+import { diagnoseTask } from '../agents/diagnose.ts'
 import { existsSync, readFileSync, writeFileSync, realpathSync, mkdirSync } from 'fs'
 import { homedir } from 'os'
 import { chat as openrouterChat } from '../providers/openrouter.ts'
@@ -18,6 +19,7 @@ import {
   type InstinctRow,
   type SpecRow,
   type SpecLintStatus,
+  type DiagnoseRow,
   type MutationResult,
   type CostBreakdownEntry,
   type ContextWarningEntry,
@@ -687,6 +689,27 @@ function handleApiTasksDelete(url: URL): Response {
   }
 }
 
+async function handleApiTasksDiagnose(url: URL): Promise<Response> {
+  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
+  const id = validateTaskId(raw)
+  if (!id) return errorResponse('Missing or invalid task id', 400)
+  const root = resolve('.')
+  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
+  try {
+    const result = await diagnoseTask(id, root)
+    const row: DiagnoseRow = {
+      taskId: result.taskId,
+      pattern: result.pattern,
+      confidence: result.confidence,
+      suggestion: result.suggestion,
+      details: result.details,
+    }
+    return jsonResponse(row)
+  } catch (e: any) {
+    return errorResponse(e.message, 404)
+  }
+}
+
 function handleApiMemory(): Response {
   try {
     const rows = db.query<MemoryEntry, []>(
@@ -742,6 +765,9 @@ async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
     return handleApiTasksDelete(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/diagnose$/)) {
+    return handleApiTasksDiagnose(url)
   }
   if (method === 'GET' && url.pathname === '/api/instincts') {
     return handleApiInstincts()

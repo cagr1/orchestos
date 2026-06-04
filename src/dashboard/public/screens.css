@@ -38,6 +38,14 @@
 .sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.5; }
 .tbl thead th.sortable:hover .sort-arrow { opacity: 1; }
 
+/* ---------- DIAGNOSE LINK (A3) ---------- */
+.diag-link {
+  font-size: 10px; color: var(--accent); cursor: pointer;
+  white-space: nowrap; text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.diag-link:hover { color: var(--text); }
+
 /* ---------- NATURAL DRAFT PREVIEW (H1) ---------- */
 .compose-bar.compose-preview { border-color: var(--accent); }
 .draft-header {

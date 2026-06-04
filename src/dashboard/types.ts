@@ -13,6 +13,7 @@
  *   POST /api/instincts/:id/reject  → MutationResult
  *   GET  /api/specs                 → SpecRow[]
  *   GET  /api/memory                → MemoryRow[]
+ *   GET  /api/tasks/:id/diagnose   → DiagnoseRow
  *
  * All GET endpoints return JSON arrays sorted by most-recent first.
  * All POST endpoints return MutationResult.
@@ -58,6 +59,24 @@ export interface RunRow {
   costBreakdown: CostBreakdownEntry[]   // parsed from cost_breakdown_json
   contextWarnings: ContextWarningEntry[] // parsed from context_warnings_json
   createdAt: string
+}
+
+// ── /api/tasks/:id/diagnose ───────────────────────────────────────────────────
+
+export type FailurePatternLabel =
+  | 'deterministic_check'
+  | 'qa_specific_criterion'
+  | 'parse_error'
+  | 'rate_limit'
+  | 'scope_creep'
+  | 'unknown'
+
+export interface DiagnoseRow {
+  taskId: string
+  pattern: FailurePatternLabel
+  confidence: 'high' | 'medium' | 'low'
+  suggestion: string
+  details: string
 }
 
 // ── /api/tasks ────────────────────────────────────────────────────────────────

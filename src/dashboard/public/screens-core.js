@@ -173,6 +173,38 @@ SCREENS.runner = {
    2 · TASKS  (Table + compose bar)
    ============================================================ */
 SCREENS.tasks = {
+  diagnoseDetail(d) {
+    const confKey = d.confidence === 'high' ? 'tasks.diagnose.conf.high'
+      : d.confidence === 'medium' ? 'tasks.diagnose.conf.med'
+      : 'tasks.diagnose.conf.low';
+    // Human-readable pattern labels — covers all FailurePattern values
+    const patternHuman = {
+      deterministic_check:   t('tasks.diagnose.pattern.deterministic'),
+      qa_specific_criterion: t('tasks.diagnose.pattern.qa'),
+      parse_error:           t('tasks.diagnose.pattern.parse'),
+      rate_limit:            t('tasks.diagnose.pattern.rate_limit'),
+      scope_creep:           t('tasks.diagnose.pattern.scope'),
+      context_overflow:      t('tasks.diagnose.pattern.context'),
+      unknown:               t('tasks.diagnose.pattern.unknown'),
+    };
+    // patternLabel for HTML rendering — fallback escaped to prevent XSS
+    const patternLabel = patternHuman[d.pattern] || esc(d.pattern);
+    // habitTrigger for data-* attribute — uses raw strings (esc applied at the attribute site)
+    const habitTrigger = `${t('tasks.diagnose.habit.trigger.prefix')} "${d.taskId}" (${patternHuman[d.pattern] || d.pattern})`;
+    return `<tr class="detail-row"><td colspan="7"><div class="detail">
+      <div class="grp"><h4>${t('tasks.diagnose.title')}</h4>
+        <div class="kv"><span class="k">${t('tasks.diagnose.pattern')}</span><span class="v">${patternLabel}</span></div>
+        <div class="kv"><span class="k">${t('tasks.diagnose.confidence')}</span><span class="v">${t(confKey)}</span></div>
+        <div class="kv"><span class="k">${t('tasks.diagnose.suggestion')}</span><span class="v">${esc(d.suggestion)}</span></div>
+        <div class="kv"><span class="k">${t('tasks.diagnose.details')}</span><span class="v">${esc(d.details)}</span></div>
+        <div class="diag-actions" style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn primary sm" data-act="retry" data-task-id="${esc(d.taskId)}">${ICON.refresh} ${t('tasks.diagnose.retry')}</button>
+          <button class="btn ghost sm" data-act="make-habit" data-trigger="${esc(habitTrigger)}" data-action="${esc(d.suggestion)}">${ICON.bolt} ${t('tasks.diagnose.habit')}</button>
+        </div>
+      </div>
+    </div></td></tr>`;
+  },
+
   render(st) {
     // H1 — two-phase compose: input → AI draft preview → confirm
     const draft = st.naturalDraft;
@@ -280,14 +312,28 @@ SCREENS.tasks = {
       const skillBadge = t.skill
         ? `<span class="badge blue square" style="font-size:9.5px;padding:1px 5px;margin-left:5px">${esc(t.skill)}</span>`
         : '';
-      return `<tr class="row" data-task="${esc(t.id)}" title="${esc(t.description)}">
+      const failed = t.status === 'failed' || t.status === 'failed_permanent';
+      const open = st.openDiagnose === t.id;
+      const cached = st.diagnoseCache[t.id];
+      const loading = cached === 'loading';
+      const diagBtn = failed
+        ? (loading
+          ? `<span class="spinner sm" style="display:inline-block;margin:0 auto" title="${t('tasks.diagnose.loading')}"></span>`
+          : cached
+            ? (open ? '▲' : '▼')
+            : `<span class="diag-link" data-diag="${esc(t.id)}">${t('tasks.diagnose.btn')}</span>`)
+        : '';
+      const main = `<tr class="row ${open ? 'open' : ''}" data-task="${esc(t.id)}" title="${esc(t.description)}">
         <td><span class="badge ${STATUS_BADGE[t.status] || 'gray'}"><span class="d"></span>${esc(t.status)}</span></td>
         <td class="mono" style="color:var(--text);white-space:nowrap">${esc(t.id)}${skillBadge}</td>
         <td style="max-width:400px;color:var(--text-muted)">${esc(desc)}</td>
         <td class="mono faint" style="white-space:nowrap">${esc(t.executor || '—')}</td>
         <td class="num" ${retryCls}>${t.retryCount}</td>
         <td>${qa}</td>
+        <td style="text-align:center;vertical-align:middle">${diagBtn}</td>
       </tr>`;
+      const detail = open && cached && cached !== 'loading' ? this.diagnoseDetail(cached) : '';
+      return main + detail;
     }).join('');
 
     return `<div class="screen">${head}${compose}
@@ -301,6 +347,7 @@ SCREENS.tasks = {
             <th style="width:110px">${t('tasks.col.executor')}</th>
             <th class="sortable" data-sort="retries" style="width:68px;text-align:right">${t('tasks.col.retries')}<span class="sort-arrow">${sortIcon('retries')}</span></th>
             <th class="sortable" data-sort="qa" style="width:72px">${t('tasks.col.qa')}<span class="sort-arrow">${sortIcon('qa')}</span></th>
+            <th style="width:80px"></th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -425,9 +472,74 @@ SCREENS.tasks = {
       App.rerender();
     }));
 
-    root.querySelectorAll('[data-task]').forEach(tr => tr.addEventListener('click', () => {
+    root.querySelectorAll('[data-task]').forEach(tr => tr.addEventListener('click', e => {
+      if (e.target.closest('[data-diag]')) return;
       const t = (st.tasks || []).find(x => x.id === tr.dataset.task);
       if (t) SidePanel.openTask(t);
+    }));
+
+    // A3 — diagnose click
+    root.querySelectorAll('[data-diag]').forEach(el => el.addEventListener('click', async e => {
+      e.stopPropagation();
+      const id = el.dataset.diag;
+      if (st.diagnoseCache[id] && st.diagnoseCache[id] !== 'loading') {
+        st.openDiagnose = st.openDiagnose === id ? null : id;
+        App.rerender();
+        return;
+      }
+      st.diagnoseCache[id] = 'loading';
+      st.openDiagnose = id;
+      App.rerender();
+      try {
+        const res = await fetch(`/api/tasks/${encodeURIComponent(id)}/diagnose`);
+        if (!res.ok) throw new Error(res.statusText);
+        st.diagnoseCache[id] = await res.json();
+      } catch {
+        st.diagnoseCache[id] = null;
+      }
+      st.openDiagnose = id;
+      App.rerender();
+    }));
+
+    // A4 — retry button
+    root.querySelectorAll('[data-act="retry"]').forEach(btn => btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const taskId = btn.dataset.taskId;
+      btn.disabled = true;
+      btn.textContent = t('tasks.diagnose.retrying');
+      try {
+        const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/run`, { method: 'POST' });
+        if (res.ok) {
+          await App.fetchTasks();
+          App.rerender();
+          showToast(t('tasks.diagnose.retry.ok'));
+        } else {
+          showToast(t('tasks.diagnose.retry.err'), 'error');
+        }
+      } catch {
+        showToast(t('tasks.diagnose.retry.err'), 'error');
+      }
+    }));
+
+    // A4 — make-habit button
+    root.querySelectorAll('[data-act="make-habit"]').forEach(btn => btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const trigger = btn.dataset.trigger;
+      const action = btn.dataset.action;
+      try {
+        const res = await fetch('/api/instincts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger, action }),
+        });
+        if (res.ok) {
+          showToast(t('tasks.diagnose.habit.ok'));
+        } else {
+          showToast(t('tasks.diagnose.habit.err'), 'error');
+        }
+      } catch {
+        showToast(t('tasks.diagnose.habit.err'), 'error');
+      }
     }));
   },
 };

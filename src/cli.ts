@@ -1676,6 +1676,22 @@ program
   .action(async (opts: { port?: string }) => {
     const { startServer } = await import('./dashboard/server.ts')
     const port = parseInt(opts.port ?? '4242')
+
+    // I3: Auto-run bun install if lockfile exists but node_modules missing
+    const root = resolve('.')
+    const hasLock = existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
+    const hasMods = existsSync(join(root, 'node_modules'))
+    if (hasLock && !hasMods) {
+      console.log('[dashboard] node_modules missing — running bun install...')
+      const proc = Bun.spawnSync(['bun', 'install'], { cwd: root })
+      if (proc.exitCode === 0) {
+        console.log('[dashboard] bun install completed successfully.')
+      } else {
+        console.error(`[dashboard] bun install failed (exit ${proc.exitCode}): ${proc.stderr.toString()}`)
+        console.error('[dashboard] Run "bun install" manually in the project directory.')
+      }
+    }
+
     const { url } = startServer(port)
     console.log(`[dashboard] Open ${url} in your browser`)
     await new Promise(() => {}) // keep process alive

@@ -7,6 +7,8 @@ const state = {
   memScope: 'all',
   openRun: null,
   openSpec: null,
+  openDiagnose: null,
+  diagnoseCache: {},
   archOpen: false,
 
   runs: [],
@@ -528,6 +530,19 @@ function boot() {
 
   // Auto-refresh every 30s
   setInterval(() => App.fetchAll(), 30_000);
+}
+
+/** Simple toast notification — auto-dismisses after 3s */
+function showToast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type === 'error' ? ' toast-error' : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => { el.classList.add('show'); }, 10);
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', boot);
