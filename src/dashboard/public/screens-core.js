@@ -22,20 +22,52 @@ SCREENS.chat = {
           return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${modelTag}</div></div>`;
         }).join('') + thinkingBubble;
 
-    const modelSelect = buildModelSelect('chat-model-select', st.chatModel, st.orModels).replace('class="model-sel"', 'class="model-sel chat-model-sel"');
+    const modelSelect = buildModelSelect('chat-model-select', st.chatModel, st.orModels, st.localModels, true).replace('class="model-sel"', 'class="model-sel chat-model-sel"');
+
+    // D0-3 — local model warning banner (shown once per session)
+    const isLocalModel = (st.chatModel || '').startsWith('ollama/');
+    const localWarnDismissed = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('ollama-warn-shown');
+    const localWarnBanner = isLocalModel && !localWarnDismissed
+      ? `<div class="local-model-warn" data-act="local-warn-dismiss">${t('chat.local.warn')} <button class="btn ghost sm" style="margin-left:8px;padding:1px 8px" data-act="local-warn-dismiss">×</button></div>`
+      : '';
 
     const clearBtn = history.length > 0
       ? `<button class="btn ghost sm" data-act="chat-clear">${t('chat.clear')}</button>` : '';
+
+    // D3 — attachment chip
+    const attachChip = st.chatFileMeta
+      ? `<div class="chat-attach-chip">
+          <span class="chat-attach-icon">${ICON.attachment}</span>
+          <span class="chat-attach-name">${esc(st.chatFileMeta.filename)}</span>
+          <span class="chat-attach-preview">${esc(st.chatFileMeta.preview || '')}</span>
+          <button class="btn ghost sm" data-act="chat-file-remove" style="padding:1px 6px;font-size:14px;line-height:1">×</button>
+        </div>`
+      : '';
+
+    // D4 — "Create task" bar (visible after 4+ messages)
+    const createTaskBar = history.length >= 3
+      ? `<div class="chat-create-task-bar">
+          <span class="chat-create-task-hint">${t('chat.createTaskHint')}</span>
+          <button class="btn primary sm" data-act="chat-create-task">${ICON.tasks} ${t('chat.createTask')}</button>
+        </div>`
+      : '';
 
     return `<div class="screen chat-screen">
       <div class="screen-head">
         <div class="lead"><h1>${t('chat.title')}</h1><p>${t('chat.subtitle')}</p></div>
         <div class="tools" style="align-items:center;gap:8px">${modelSelect}${clearBtn}</div>
       </div>
+      ${localWarnBanner}
       <div class="chat-area" id="chat-area">${msgs}</div>
+      ${createTaskBar}
       <div class="chat-input-bar">
-        <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}></textarea>
-        <button class="btn primary chat-send-btn" data-act="chat-send" ${st.chatPending ? 'disabled' : ''}>${ICON.play} ${t('chat.btn.send')}</button>
+        ${attachChip}
+        <div class="chat-input-row">
+          <button class="chat-clip-btn" data-act="chat-attach" title="${t('chat.btn.attach')}">${ICON.attachment}</button>
+          <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}></textarea>
+          <button class="btn primary chat-send-btn" data-act="chat-send" ${st.chatPending ? 'disabled' : ''}>${ICON.play} ${t('chat.btn.send')}</button>
+        </div>
+        <input type="file" id="chat-file-input" accept="image/*,.pdf,.txt,.md" style="display:none">
       </div>
     </div>`;
   },
@@ -54,17 +86,23 @@ SCREENS.chat = {
       st.chatHistory = st.chatHistory || [];
       st.chatHistory.push({ role: 'user', content: msg });
       st.chatPending = true;
+      const sentFileId = st.chatFileId;
+      const sentFileMeta = st.chatFileMeta;
+      st.chatFileId = null;
+      st.chatFileMeta = null;
       App.rerender();
       scrollBottom();
       try {
+        const body = {
+          history: st.chatHistory.slice(0, -1),
+          message: msg,
+          model: st.chatModel || 'deepseek/deepseek-v4-flash',
+        };
+        if (sentFileId) body.fileId = sentFileId;
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            history: st.chatHistory.slice(0, -1),
-            message: msg,
-            model: st.chatModel || 'deepseek/deepseek-v4-flash',
-          }),
+          body: JSON.stringify(body),
         });
         if (res.ok) {
           const data = await res.json();
@@ -88,6 +126,49 @@ SCREENS.chat = {
     root.querySelector('[data-act="chat-clear"]')?.addEventListener('click', () => {
       st.chatHistory = [];
       st.chatPending = false;
+      st.chatFileId = null;
+      st.chatFileMeta = null;
+      App.rerender();
+    });
+
+    // D3 — file attach button
+    root.querySelector('[data-act="chat-attach"]')?.addEventListener('click', () => {
+      root.querySelector('#chat-file-input')?.click();
+    });
+
+    // D3 — file input change → upload
+    root.querySelector('#chat-file-input')?.addEventListener('change', async () => {
+      const input = root.querySelector('#chat-file-input');
+      const file = input?.files?.[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      const clipBtn = root.querySelector('[data-act="chat-attach"]');
+      if (clipBtn) clipBtn.textContent = t('chat.file.uploading');
+      try {
+        const res = await fetch('/api/chat/upload', { method: 'POST', body: formData });
+        if (res.ok) {
+          const data = await res.json();
+          st.chatFileId = data.fileId;
+          st.chatFileMeta = { filename: data.filename, type: data.type, preview: data.preview };
+        } else if (res.status === 413) {
+          showToast(t('chat.file.tooLarge'), 'error');
+        } else {
+          showToast(t('chat.file.err'), 'error');
+        }
+      } catch {
+        showToast(t('chat.file.err'), 'error');
+      } finally {
+        if (clipBtn) clipBtn.innerHTML = ICON.attachment;
+        input.value = '';
+        App.rerender();
+      }
+    });
+
+    // D3 — remove attachment
+    root.querySelector('[data-act="chat-file-remove"]')?.addEventListener('click', () => {
+      st.chatFileId = null;
+      st.chatFileMeta = null;
       App.rerender();
     });
     root.querySelector('[data-load-models]')?.addEventListener('click', async () => {
@@ -96,11 +177,46 @@ SCREENS.chat = {
     });
     root.querySelector('#chat-model-select')?.addEventListener('change', e => {
       st.chatModel = e.target.value;
+      App.rerender(); // refresh warning banner
+    });
+    // D0-ext-1 — model search filter
+    root.querySelector('[data-model-search]')?.addEventListener('input', e => {
+      const q = e.target.value;
+      const sel = root.querySelector('#chat-model-select');
+      if (!sel) return;
+      const allCloud = Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : [];
+      const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
+      // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
+      sel.innerHTML = buildModelOpts(locals, allCloud, st.chatModel, q);
+    });
+    // D0-3 — dismiss local model warning
+    root.querySelector('[data-act="local-warn-dismiss"]')?.addEventListener('click', () => {
+      sessionStorage.setItem('ollama-warn-shown', '1');
+      App.rerender();
+    });
+
+    // D4 — create task from conversation
+    root.querySelector('[data-act="chat-create-task"]')?.addEventListener('click', () => {
+      // D4 — seed the task composer with the last 3 user messages (concise, actionable).
+      // The AI draft handler will turn this into a structured task — no need to dump the full conversation.
+      const history = st.chatHistory || [];
+      const seed = history
+        .filter(m => m.role === 'user')
+        .slice(-3)
+        .map(m => m.content.trim())
+        .filter(Boolean)
+        .join('\n');
+      st.chatToTask = seed || '';
+      App.go('tasks');
     });
 
     // Auto-load models on first visit
     if (st.orModels === null) {
       loadOrModels().then(() => App.rerender());
+    }
+    // D0-3 — probe Ollama once per session
+    if (st.localModels === null) {
+      loadLocalModels().then(() => App.rerender());
     }
 
     scrollBottom();
@@ -208,6 +324,7 @@ SCREENS.tasks = {
   render(st) {
     // H1 — two-phase compose: input → AI draft preview → confirm
     const draft = st.naturalDraft;
+    const composeInitial = st.chatToTask || '';
     const compose = draft
       ? `<div class="compose-bar compose-preview">
           <div class="draft-header">
@@ -242,7 +359,7 @@ SCREENS.tasks = {
           </div>
         </div>`
       : `<div class="compose-bar">
-          <textarea id="compose-input" rows="2" placeholder="${t('tasks.compose.placeholder')}"></textarea>
+          <textarea id="compose-input" rows="2" placeholder="${t('tasks.compose.placeholder')}">${composeInitial ? esc(composeInitial) : ''}</textarea>
           <div class="compose-actions">
             <div id="compose-id-preview" class="compose-hint muted"></div>
             <button class="btn primary" data-act="create-run">${ICON.play} ${t('tasks.compose.btn.run')}</button>
@@ -269,8 +386,8 @@ SCREENS.tasks = {
 
     // C2 — filter tabs
     const counts = { all: allTasks.length, pending: 0, running: 0, done: 0, failed: 0 };
-    allTasks.forEach(t => {
-      const k = (t.status === 'failed_permanent' ? 'failed' : t.status);
+    allTasks.forEach(task => {
+      const k = (task.status === 'failed_permanent' ? 'failed' : task.status);
       if (k in counts) counts[k]++;
     });
     const filterLabels = {
@@ -287,7 +404,7 @@ SCREENS.tasks = {
     const normalize = s => (s === 'failed_permanent' ? 'failed' : s);
     let tasks = st.taskFilter === 'all'
       ? allTasks
-      : allTasks.filter(t => normalize(t.status) === st.taskFilter);
+      : allTasks.filter(task => normalize(task.status) === st.taskFilter);
 
     const { col, dir } = st.taskSort;
     if (col) {
@@ -302,33 +419,33 @@ SCREENS.tasks = {
 
     const sortIcon = c => col === c ? (dir === 'asc' ? ' ▲' : ' ▼') : ' ⇅';
 
-    const rows = tasks.map(t => {
+    const rows = tasks.map(task => {
       const MAX = 72;
-      const desc = t.description.length > MAX ? t.description.slice(0, MAX - 1) + '…' : t.description;
-      const qa = t.qaVerdict
-        ? `<span class="badge ${t.qaVerdict === 'pass' ? 'green' : 'red'} square">${esc(t.qaVerdict)}</span>`
+      const desc = task.description.length > MAX ? task.description.slice(0, MAX - 1) + '…' : task.description;
+      const qa = task.qaVerdict
+        ? `<span class="badge ${task.qaVerdict === 'pass' ? 'green' : 'red'} square">${esc(task.qaVerdict)}</span>`
         : `<span class="faint">—</span>`;
-      const retryCls = t.retryCount >= 2 ? 'style="color:var(--warning);font-weight:600"' : '';
-      const skillBadge = t.skill
-        ? `<span class="badge blue square" style="font-size:9.5px;padding:1px 5px;margin-left:5px">${esc(t.skill)}</span>`
+      const retryCls = task.retryCount >= 2 ? 'style="color:var(--warning);font-weight:600"' : '';
+      const skillBadge = task.skill
+        ? `<span class="badge blue square" style="font-size:9.5px;padding:1px 5px;margin-left:5px">${esc(task.skill)}</span>`
         : '';
-      const failed = t.status === 'failed' || t.status === 'failed_permanent';
-      const open = st.openDiagnose === t.id;
-      const cached = st.diagnoseCache[t.id];
+      const failed = task.status === 'failed' || task.status === 'failed_permanent';
+      const open = st.openDiagnose === task.id;
+      const cached = st.diagnoseCache[task.id];
       const loading = cached === 'loading';
       const diagBtn = failed
         ? (loading
           ? `<span class="spinner sm" style="display:inline-block;margin:0 auto" title="${t('tasks.diagnose.loading')}"></span>`
           : cached
             ? (open ? '▲' : '▼')
-            : `<span class="diag-link" data-diag="${esc(t.id)}">${t('tasks.diagnose.btn')}</span>`)
+            : `<span class="diag-link" data-diag="${esc(task.id)}">${t('tasks.diagnose.btn')}</span>`)
         : '';
-      const main = `<tr class="row ${open ? 'open' : ''}" data-task="${esc(t.id)}" title="${esc(t.description)}">
-        <td><span class="badge ${STATUS_BADGE[t.status] || 'gray'}"><span class="d"></span>${esc(t.status)}</span></td>
-        <td class="mono" style="color:var(--text);white-space:nowrap">${esc(t.id)}${skillBadge}</td>
+      const main = `<tr class="row ${open ? 'open' : ''}" data-task="${esc(task.id)}" title="${esc(task.description)}">
+        <td><span class="badge ${STATUS_BADGE[task.status] || 'gray'}"><span class="d"></span>${esc(task.status)}</span></td>
+        <td class="mono" style="color:var(--text);white-space:nowrap">${esc(task.id)}${skillBadge}</td>
         <td style="max-width:400px;color:var(--text-muted)">${esc(desc)}</td>
-        <td class="mono faint" style="white-space:nowrap">${esc(t.executor || '—')}</td>
-        <td class="num" ${retryCls}>${t.retryCount}</td>
+        <td class="mono faint" style="white-space:nowrap">${esc(task.executor || '—')}</td>
+        <td class="num" ${retryCls}>${task.retryCount}</td>
         <td>${qa}</td>
         <td style="text-align:center;vertical-align:middle">${diagBtn}</td>
       </tr>`;
@@ -356,6 +473,10 @@ SCREENS.tasks = {
   },
 
   wire(root, st) {
+    // D4 — consume chat-to-task draft after first render
+    if (st.chatToTask) {
+      st.chatToTask = null;
+    }
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
     root.querySelector('[data-act="new-task"]')?.addEventListener('click', () => Modal.openTask());
 

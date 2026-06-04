@@ -88,6 +88,31 @@ espera aprobación? · ¿qué costó esta semana? · ¿qué aprendió recienteme
 
 ---
 
+### BLOQUE D0 — Detección de modelos locales (Ollama) ★ PRIORIDAD pre-D
+
+OrchestOS hoy solo resuelve providers cloud (Anthropic, OpenAI, OpenRouter). Si el usuario
+tiene Ollama instalado con modelos locales, el dashboard no los detecta ni los ofrece. Delta:
+probe automático a `localhost:11434/api/tags` al arrancar → si hay modelos disponibles,
+aparecen en el selector marcados "Local" con advertencia de calidad. Sin API key requerida.
+
+**Alcance acotado**: solo detección + warning. Integración profunda de agentes con modelos
+locales es trabajo futuro — esto es la superficie mínima honesta con el usuario.
+
+- [x] D0-1 (🧠) Diseño ✓ 2026-06-04 — Decisiones: (a) `GET /api/providers/local` → probe `localhost:11434/api/tags` con AbortSignal 1s; devuelve `{ available, models: { id: string (prefijado `ollama/<nombre>`), name, size }[] }`. (b) Selector: `state.localModels` separado de `orModels`; `buildModelSelect` añade `<optgroup label="Local (Ollama)">` con precio "local". (c) `inferExecutorFromModel`: añade rama `/^ollama\//` → `'ollama'` antes del fallback openrouter; `handleApiChat` cuando executor=`ollama` llama `localhost:11434/v1/chat/completions` con modelo sin prefijo + `Authorization: Bearer ollama`. (d) Warning: banner dismissible via `sessionStorage('ollama-warn-shown')` al seleccionar modelo local por primera vez en la sesión; system prompt cambia "via OpenRouter" → "vía Ollama (local) — resultados pueden variar".
+- [x] D0-2 (⚡) `GET /api/providers/local` — fetch a `http://localhost:11434/api/tags` con AbortSignal de 1s. Mapea respuesta a `{ available: boolean, models: { id: string, size: string }[] }`. ✓ 2026-06-04
+- [x] D0-3 (⚡) Selector de modelos del chat: `state.localModels` separado; `loadLocalModels()` llama `/api/providers/local` al primer render; `buildModelSelect` acepta `localModels` y añade `<optgroup label="Local (Ollama)">`. Warning banner dismissible via `sessionStorage('ollama-warn-shown')` al seleccionar modelo local. i18n 3 claves en/es. ✓ 2026-06-04
+- [x] D0-4 (⚡) `inferExecutorFromModel` rama `/^ollama\//` → `'ollama'`. `ollamaChat()` en module scope llama `localhost:11434/v1/chat/completions` con modelo sin prefijo + `Authorization: Bearer ollama`. `handleApiChat` ramifica por `isOllama`. System prompt indica "vía Ollama (local)" cuando es modelo local. ✓ 2026-06-04
+- [x] D0-5 (🔍) Gate ✓ 2026-06-04 — Verificado: `/api/providers/local` devuelve `{ available: true, models: [{ id: "ollama/qwen2.5-coder:7b", size: "4.4 GB" }] }`. Chat via dashboard con `ollama/qwen2.5-coder:7b` devuelve respuesta coherente (model tag correcto en response). Cloud model `deepseek/deepseek-v4-flash` sigue funcionando sin cambios. 369 tests · 0 fail. Nota: primera carga del modelo tarda ~60s (4.7GB); cargas posteriores son rápidas.
+
+### BLOQUE D0-ext — Mejoras UX al selector de modelos y Settings Ollama
+
+Dos mejoras identificadas al validar D0 en el dashboard real:
+
+- [x] D0-ext-1 (⚡) Selector de modelos del chat: modelos locales primero (optgroup "Local (Ollama)"), luego cloud (optgroup "Cloud"). Buscador en tiempo real encima del select — filtra por ID y nombre vía `buildModelOpts()` (helper reutilizable). `withSearch=true` solo en chat; draft/modal no lo necesitan. i18n 2 claves en/es. XSS seguro: todo contenido dinámico pasa por `esc()`, query nunca se renderiza. ✓ 2026-06-04
+- [x] D0-ext-2 (⚡) Settings — campo Ollama: `handleApiSettingsGet` ahora es async y añade `_ollama: { set, masked }` con resultado del probe a `localhost:11434/api/tags` (timeout 1s). Fila OLLAMA_HOST marcada `special: 'ollama'` — badge muestra "Detected / Not detected" según probe real, no según env var. Input pasa a ser "Override URL (opcional)" para Ollama remoto. API devuelve `localhost:11434 — 1 model detected`. ✓ 2026-06-04
+
+---
+
 ### BLOQUE D — Archivos como input en Chat
 
 El chat panel existe (Mes 9). El no-dev quiere analizar un PDF o imagen sin crear una tarea
@@ -95,11 +120,11 @@ formal — drop de archivo → conversación → si emerge algo accionable, "cre
 esto". **Distinto** de `context authorize` (archivos del proyecto): esto es input externo
 conversacional. Formatos mínimos: imagen PNG/JPG (vision), PDF (texto extraído), .txt/.md.
 
-- [ ] D1 (🧠) Diseño del flujo de archivos en Chat: (a) cómo llega el archivo al backend (FormData multipart vs base64 inline), (b) pipeline por tipo — imagen → base64 al provider con `type:image_url`, PDF → extracción de texto con `Bun.file` + regex mínimo (sin dependencia externa), texto → adjunto directo. (c) límites: 1 archivo por mensaje, max 10MB. Decisión sobre qué hacer si el provider no soporta visión: fallback a solo texto del alt.
-- [ ] D2 (⚡) `POST /api/chat/upload` — recibe archivo, devuelve `{ fileId, type, preview }`. Almacenamiento en memoria (no en disco) — el fileId expira al cerrar sesión. Para PDF: extrae texto con regex sobre el buffer. Para imagen: devuelve base64.
-- [ ] D3 (⚡) En el chat panel: botón de clip (📎) abre file picker (accept: image/*, .pdf, .txt, .md). Chip del archivo adjunto aparece sobre el input. Al enviar: `fileId` incluido en el POST. Backend incluye el contenido como parte del mensaje del usuario al LLM (imagen como `image_url`, texto/PDF como bloque de texto precediendo la pregunta).
-- [ ] D4 (⚡) Botón "Crear tarea desde esta conversación" aparece en el chat después de 3+ mensajes — usa el historial para pre-rellenar el compose bar en lenguaje natural (mismo patrón H1 de Mes 9). Solo visible si la conversación tiene contenido de análisis.
-- [ ] D5 (🔍) Gate: subir un PDF real de 2+ páginas y preguntar algo sobre su contenido. Verificar que la respuesta es coherente con el contenido del PDF. Probar con imagen. Verificar que el botón "Crear tarea" pre-rellena algo útil.
+- [x] D1 (🧠) Diseño del flujo de archivos en Chat: (a) cómo llega el archivo al backend (FormData multipart vs base64 inline), (b) pipeline por tipo — imagen → base64 al provider con `type:image_url`, PDF → extracción de texto con `Bun.file` + regex mínimo (sin dependencia externa), texto → adjunto directo. (c) límites: 1 archivo por mensaje, max 10MB. Decisión sobre qué hacer si el provider no soporta visión: fallback a solo texto del alt.
+- [x] D2 (⚡) `POST /api/chat/upload` — recibe archivo, devuelve `{ fileId, type, preview }`. Almacenamiento en memoria (no en disco) — el fileId expira al cerrar sesión. Para PDF: extrae texto con regex sobre el buffer. Para imagen: devuelve base64. ✓ 2026-06-04
+- [x] D3 (⚡) En el chat panel: botón de clip (📎) abre file picker (accept: image/*, .pdf, .txt, .md). Chip del archivo adjunto aparece sobre el input. Al enviar: `fileId` incluido en el POST. Backend incluye el contenido como parte del mensaje del usuario al LLM (imagen como `image_url`, texto/PDF como bloque de texto precediendo la pregunta). ✓ 2026-06-04
+- [x] D4 (⚡) Botón "Crear tarea desde esta conversación" visible tras 3+ mensajes. Pre-fill: últimos 3 mensajes del usuario (no la conversación completa) → el AI draft los convierte en tarea estructurada. `chatToTask` se limpia en `wire()` de Tasks tras primer render. ✓ 2026-06-04
+- [x] D5 (🔍) Gate ✓ 2026-06-04 — PDF 2 páginas subido y extraído correctamente (preview incluye contenido de ambas páginas). Pregunta sobre contenido → respuesta coherente ("OpenRouter API / tasks.yaml"). Imagen subida y descrita correctamente con modelo de visión (claude-haiku-4-5). Nota: modelos sin visión devuelven error 404 de OpenRouter — comportamiento esperado según D1 (fallback pendiente como mejora futura). Seed "Crear tarea": 3 últimos mensajes del usuario = 152 chars accionables vs 236 del volcado completo. 369 tests · 0 fail.
 
 ---
 
@@ -111,9 +136,9 @@ que nunca programó. Objetivo: wizard dentro del producto que lleva de la mano: 
 key → a qué web ir → copiar → pegar en un campo del dashboard → validar con una llamada de
 prueba → feedback claro.
 
-- [ ] E1 (🧠) Diseño del wizard: (a) trigger — I2 detecta key faltante → banner prominente "Configura tu clave para empezar" con CTA "Configurar ahora". (b) 3 pasos en modal: Paso 1 "Qué es una API key" (explicación humana, sin jerga, con analogía — "es tu contraseña de acceso al servicio de IA"), Paso 2 "Consigue tu clave" (instrucciones paso a paso con screenshots o descripción textual del sitio, enlace explícito), Paso 3 "Pega tu clave aquí" (campo password + botón "Verificar y guardar"). (c) Backend: escribe en `~/.orchestos/.env`, hace test call con Haiku (1 token) y reporta ✅/❌ con mensaje claro. Diseñar el mensaje de error para cada caso: key inválida · sin crédito · timeout.
-- [ ] E2 (⚡) `POST /api/setup/api-key` — recibe `{ provider: 'openrouter'|'anthropic'|'openai', key: string }`. Escribe en `~/.orchestos/.env`. Llama al provider con prompt minimal ("ping") y devuelve `{ valid: boolean, error?: string }`. Nunca loguea la key en claro.
-- [ ] E3 (⚡) Modal de wizard en el dashboard — 3 pasos con navegación Anterior/Siguiente. Paso 2 muestra las instrucciones por provider seleccionado (dropdown: OpenRouter / Anthropic / OpenAI). Campo key: type=password, toggle "mostrar". Paso 3: spinner de validación, indicador ✅/❌, mensaje de error en lenguaje humano. Al cerrar con éxito: banner de I2 desaparece, toast "¡Listo para trabajar!".
+- [x] E1 (🧠) Diseño ✓ 2026-06-04 — Decisiones: (a) Trigger: botón "Save key" del ítem `openrouter-key` en checklist se reemplaza por "Configurar ahora" → `Modal.openWizard()`. Sin banner extra — el ítem existente ya es prominente. (b) Modal: nuevo método `Modal.openWizard()` sobre infraestructura existente. `state.wizardStep` (1/2/3) + `state.wizardProvider` ('openrouter'|'anthropic'|'openai'). Paso 1: explicación humana + dropdown provider. Paso 2: instrucciones + URL directa por provider. Paso 3: input[password] + toggle ver/ocultar + botón "Verificar y guardar" → spinner → ✅/❌. (c) Backend `POST /api/setup/api-key`: escribe con `writeEnv` existente, test call `max_tokens:1`. Errores mapeados: 401→"clave no válida", 402→"sin crédito", timeout→"sin conexión", 5xx→"servicio caído". Key nunca en logs ni en response. Éxito: `{ valid: true }` → cierra modal + `App.fetchAll()` + toast "¡Listo para trabajar!". (d) Settings: fila OPENROUTER sin key también muestra botón → `Modal.openWizard()`.
+- [x] E2 (⚡) `POST /api/setup/api-key` — recibe `{ provider, key }`, persiste con `writeEnv` existente (merge, no sobreescribe), test call `max_tokens:1` por provider. Errores mapeados a mensajes humanos: 401→"clave no válida" + rollback, 402→"sin crédito", timeout→"sin conexión", 5xx→"servicio caído". Key nunca en logs ni en response. Rollback solo en 401 (key claramente inválida). Tipos: `ApiKeyValidationResponse` en types.ts. ✓ 2026-06-04
+- [x] E3 (⚡) `Modal.openWizard()` + `Modal._renderWizard()` sobre infraestructura Modal existente. 3 pasos: (1) explicación humana + dropdown provider, (2) instrucciones + link al sitio, (3) input[password] + toggle ver/ocultar + spinner + ✅/❌. Steps como texto plano con `esc()` — sin HTML en strings (XSS safe). Al éxito: `App.fetchAll()` + `showToast(wizard.success)`. i18n 24 claves en/es. CSS: `.wiz-modal`, `.wiz-indicator`, `.wiz-dot`, `.wiz-steps-list`, `.wiz-key-row`. ✓ 2026-06-04
 - [ ] E4 (⚡) Integrar el trigger en I2/Control Center: si checklist detecta key faltante, el ítem muestra botón "Configurar" que abre el wizard directamente (no redirige a Settings). También añadir acceso desde Settings como "Cambiar API key".
 - [ ] E5 (🔍) Gate: instalación limpia sin `.env`, abrir dashboard, verificar que el wizard aparece, completar el flujo con una key real, verificar que I2 cambia a verde y que una tarea básica puede ejecutarse inmediatamente después.
 

@@ -47,7 +47,11 @@ const state = {
   chatHistory: [],
   chatPending: false,
   chatModel: 'deepseek/deepseek-v4-flash',
+  chatFileId: null,
+  chatFileMeta: null,  // { filename, type, preview } from upload
+  chatToTask: null,   // non-null = condensed chat text to pre-fill compose bar
   orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
+  localModels: null, // null = not checked, [] = none available, [...] = Ollama models
 
 };
 
@@ -456,6 +460,157 @@ const Modal = {
     requestAnimationFrame(() => this.el.classList.add('show'));
   },
 
+  // ── E3: API key wizard ────────────────────────────────────────────────────
+  openWizard() {
+    this._wizStep = 1;
+    this._wizProvider = 'openrouter';
+    this._renderWizard();
+    requestAnimationFrame(() => this.el.classList.add('show'));
+  },
+
+  _renderWizard() {
+    const step = this._wizStep;
+    const provider = this._wizProvider;
+
+    // Step indicator dots
+    const stepTitles = [t('wizard.step1.title'), t('wizard.step2.title'), t('wizard.step3.title')];
+    const dots = stepTitles.map((s, i) => {
+      const n = i + 1;
+      const cls = n === step ? 'active' : n < step ? 'done' : '';
+      const label = n < step ? '✓' : n;
+      return (i > 0 ? '<span class="wiz-dot-sep">—</span>' : '') +
+        `<span class="wiz-dot ${cls}" title="${esc(s)}">${label}</span>`;
+    }).join('');
+
+    // Provider dropdown
+    const providerOpts = ['openrouter', 'anthropic', 'openai'].map(p =>
+      `<option value="${p}" ${p === provider ? 'selected' : ''}>${esc(t('wizard.provider.' + p))}</option>`
+    ).join('');
+
+    // Per-provider instructions (static content — URL links, not user input)
+    // All step strings are plain text — no HTML. Rendered via esc() into <li> elements.
+    const PROVIDER_INFO = {
+      openrouter: {
+        url: 'https://openrouter.ai/keys',
+        steps: ['Go to openrouter.ai', 'Sign up or log in', 'Click "API Keys" in the menu', 'Click "Create Key"', 'Copy the key that appears'],
+      },
+      anthropic: {
+        url: 'https://console.anthropic.com/settings/keys',
+        steps: ['Go to console.anthropic.com', 'Sign up or log in', 'Go to Settings → API Keys', 'Click "Create Key"', 'Copy the key'],
+      },
+      openai: {
+        url: 'https://platform.openai.com/api-keys',
+        steps: ['Go to platform.openai.com', 'Sign up or log in', 'Click "API keys" in the left menu', 'Click "Create new secret key"', 'Copy the key before closing the dialog'],
+      },
+    };
+
+    let body = '', foot = '';
+
+    if (step === 1) {
+      body = `<p style="font-size:13.5px;line-height:1.6;color:var(--text-muted)">${esc(t('wizard.step1.body'))}</p>
+        <div class="m-field">
+          <label>${esc(t('wizard.step1.provider.label'))}</label>
+          <select id="wiz-provider">${providerOpts}</select>
+          <div class="m-hint">${esc(t('wizard.step1.provider.hint'))}</div>
+        </div>`;
+      foot = `<button class="btn" data-x>${esc(t('btn.cancel'))}</button>
+        <button class="btn primary" data-wiz-next>${esc(t('wizard.btn.next'))} →</button>`;
+
+    } else if (step === 2) {
+      const info = PROVIDER_INFO[provider] || PROVIDER_INFO.openrouter;
+      const listItems = info.steps.map(s => `<li>${esc(s)}</li>`).join('');
+      body = `<p class="muted" style="font-size:13px">${esc(t('wizard.step2.intro'))}</p>
+        <ol class="wiz-steps-list">${listItems}</ol>
+        <a href="${esc(info.url)}" target="_blank" rel="noopener" class="btn ghost sm wiz-link"
+           style="margin-top:4px;width:fit-content">${esc(t('wizard.step2.open'))} ↗</a>`;
+      foot = `<button class="btn" data-wiz-back>← ${esc(t('wizard.btn.back'))}</button>
+        <button class="btn primary" data-wiz-next>${esc(t('wizard.btn.next'))} →</button>`;
+
+    } else {
+      body = `<p class="muted" style="font-size:13px">${esc(t('wizard.step3.intro'))}</p>
+        <div class="m-field">
+          <label>${esc(t('wizard.step3.key.label'))}</label>
+          <div class="wiz-key-row">
+            <input type="password" id="wiz-key" placeholder="${esc(t('wizard.step3.key.ph'))}" autocomplete="new-password">
+            <button class="btn ghost sm" id="wiz-toggle" type="button">${esc(t('wizard.step3.key.show'))}</button>
+          </div>
+        </div>
+        <div id="wiz-msg" style="font-size:12px;display:none"></div>`;
+      foot = `<button class="btn" data-wiz-back>← ${esc(t('wizard.btn.back'))}</button>
+        <button class="btn primary" id="wiz-save">${esc(t('wizard.step3.btn.save'))}</button>`;
+    }
+
+    this.el.innerHTML = `<div class="modal wiz-modal">
+      <div class="m-head">
+        <span style="font-size:18px">🔑</span>
+        <h3>${esc(t('wizard.title'))}</h3>
+        <button class="btn ghost sm" data-x>${ICON.x}</button>
+      </div>
+      <div class="wiz-indicator">${dots}</div>
+      <div class="m-body">${body}</div>
+      <div class="m-foot">${foot}</div>
+    </div>`;
+
+    // Wire close
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+
+    // Wire back / next
+    this.el.querySelector('[data-wiz-back]')?.addEventListener('click', () => {
+      this._wizStep--;
+      this._renderWizard();
+    });
+    this.el.querySelector('[data-wiz-next]')?.addEventListener('click', () => {
+      if (step === 1) this._wizProvider = this.el.querySelector('#wiz-provider').value;
+      this._wizStep++;
+      this._renderWizard();
+    });
+
+    // Step 3: show/hide toggle
+    this.el.querySelector('#wiz-toggle')?.addEventListener('click', () => {
+      const inp = this.el.querySelector('#wiz-key');
+      const btn = this.el.querySelector('#wiz-toggle');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      btn.textContent = inp.type === 'password' ? t('wizard.step3.key.show') : t('wizard.step3.key.hide');
+    });
+
+    // Step 3: verify and save
+    this.el.querySelector('#wiz-save')?.addEventListener('click', async () => {
+      const key = this.el.querySelector('#wiz-key')?.value.trim();
+      const msg = this.el.querySelector('#wiz-msg');
+      const btn = this.el.querySelector('#wiz-save');
+      if (!key) {
+        msg.textContent = t('wizard.step3.err.empty');
+        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${esc(t('wizard.step3.btn.verifying'))}`;
+      msg.style.display = 'none';
+      try {
+        const res = await fetch('/api/setup/api-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: this._wizProvider, key }),
+        });
+        const data = await res.json();
+        if (data.valid) {
+          this.close();
+          await App.fetchAll();
+          showToast(t('wizard.success'));
+        } else {
+          msg.textContent = data.error || t('wizard.step3.err.conn');
+          msg.style.color = 'var(--error)'; msg.style.display = '';
+          btn.disabled = false;
+          btn.textContent = t('wizard.step3.btn.save');
+        }
+      } catch {
+        msg.textContent = t('wizard.step3.err.conn');
+        msg.style.color = 'var(--error)'; msg.style.display = '';
+        btn.disabled = false;
+        btn.textContent = t('wizard.step3.btn.save');
+      }
+    });
+  },
+
   openSpecDraft(st) {
     const tasks = (st.tasks || []).filter(t => t.status !== 'done');
     const options = tasks.length
@@ -531,27 +686,59 @@ const Modal = {
    Shared model selector helpers (chat + tasks)
    ============================================================ */
 
+/* Builds <optgroup> / <option> HTML for the model selector.
+   Locals always first, then cloud. Optionally filtered by query string. */
+function buildModelOpts(locals, cloudModels, val, query) {
+  const q = (query || '').toLowerCase().trim();
+  const matchLocal = locals.filter(m => !q || m.id.toLowerCase().includes(q));
+  const matchCloud = cloudModels.filter(m =>
+    !q || m.id.toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q)
+  );
+  let html = '';
+  if (matchLocal.length > 0) {
+    html += `<optgroup label="${esc(t('chat.local.group'))}">${matchLocal.map(m =>
+      `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.id.replace('ollama/', ''))} — ${t('chat.local.free')}</option>`
+    ).join('')}</optgroup>`;
+  }
+  if (matchCloud.length > 0) {
+    const grpLabel = matchLocal.length > 0 ? ` label="${esc(t('chat.cloud.group'))}"` : '';
+    html += `<optgroup${grpLabel}>${matchCloud.map(m =>
+      `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.name || m.id)} — $${m.priceIn.toFixed(2)}/M</option>`
+    ).join('')}</optgroup>`;
+  }
+  if (!html) html = `<option disabled>${esc(q ? 'No results' : t('common.loading'))}</option>`;
+  return html;
+}
+
 /* Returns HTML for a model selector widget.
-   If orModels is loaded → <select>. If null → button. If [] → loading text. */
-function buildModelSelect(inputId, currentVal, models) {
+   withSearch=true adds a filter input (used in chat; skipped in draft/modal).
+   If orModels is null → fallback list + load button.
+   If orModels is [] → loading spinner text. */
+function buildModelSelect(inputId, currentVal, models, localModels, withSearch) {
   const val = currentVal || 'deepseek/deepseek-v4-flash';
+  const locals = Array.isArray(localModels) && localModels.length > 0 ? localModels : [];
+
   if (models === null) {
-    const list = KNOWN_MODELS.map(m =>
-      `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.name)} — $${m.priceIn.toFixed(2)}/M</option>`
-    ).join('');
+    // Fallback: KNOWN_MODELS + any locals already available
+    const fallbackCloud = KNOWN_MODELS.map(m => ({ ...m }));
+    const opts = buildModelOpts(locals, fallbackCloud, val, '');
     return `<div style="display:flex;gap:8px;align-items:center">
-      <select id="${inputId}" class="model-sel">${list}</select>
+      <select id="${inputId}" class="model-sel">${opts}</select>
       <button class="btn ghost sm" data-load-models style="white-space:nowrap">${t('chat.models.load')} ↓</button>
     </div>`;
   }
   if (models.length === 0) {
     return `<span class="muted" style="font-size:12px">${t('common.loading')}</span>`;
   }
-  // Ensure current value is in the list even if not returned by OpenRouter
-  const allModels = models.some(m => m.id === val) ? models : [{ id: val, name: val, priceIn: 0 }, ...models];
-  const opts = allModels.map(m =>
-    `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.name || m.id)} — $${m.priceIn.toFixed(2)}/M</option>`
-  ).join('');
+  // Ensure current value is present even if not returned by OpenRouter
+  const allCloud = models.some(m => m.id === val) ? models : [{ id: val, name: val, priceIn: 0 }, ...models];
+  const opts = buildModelOpts(locals, allCloud, val, '');
+  if (withSearch) {
+    return `<div class="model-select-wrap">
+      <input type="text" class="model-search" data-model-search placeholder="${t('chat.models.search')}">
+      <select id="${inputId}" class="model-sel">${opts}</select>
+    </div>`;
+  }
   return `<select id="${inputId}" class="model-sel">${opts}</select>`;
 }
 
@@ -567,6 +754,21 @@ async function loadOrModels() {
     }
   } catch {
     state.orModels = null;
+  }
+}
+
+async function loadLocalModels() {
+  if (state.localModels !== null) return;
+  try {
+    const res = await fetch('/api/providers/local');
+    if (res.ok) {
+      const data = await res.json();
+      state.localModels = data.available ? data.models : [];
+    } else {
+      state.localModels = [];
+    }
+  } catch {
+    state.localModels = [];
   }
 }
 

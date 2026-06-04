@@ -14,6 +14,8 @@ import { lintSpec } from '../spec/lint.ts'
 import { parseCostBreakdownJson } from '../run/transcript-parser.ts'
 import type { MemoryEntry } from '../db/memory.ts'
 import {
+  type ChatUploadResponse,
+  type ChatFileType,
   type RunRow,
   type TaskRow,
   type InstinctRow,
@@ -29,9 +31,107 @@ import {
   type MemoryRow,
   type SetupItem,
   type SetupResponse,
+  type LocalProviderResponse,
+  type ApiKeyValidationResponse,
   STATIC_DIR,
   DEFAULT_PORT,
 } from './types.ts'
+
+// ── In-memory file store (chat attachments) ─────────────────────────────────
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024  // 10 MB
+const FILE_TTL_MS    = 30 * 60 * 1000    // 30 min
+
+interface FileEntry {
+  type: ChatFileType
+  mimeType: string
+  filename: string
+  /** base64 data URI for images; plain text for text/pdf */
+  content: string
+  preview: string
+  expiresAt: number
+}
+
+const fileStore = new Map<string, FileEntry>()
+
+function pruneExpiredFiles(): void {
+  const now = Date.now()
+  for (const [id, entry] of fileStore) {
+    if (entry.expiresAt < now) fileStore.delete(id)
+  }
+}
+
+function randomId(): string {
+  return crypto.randomUUID()
+}
+
+/** Extract readable text from a PDF buffer using regex (best-effort, no deps). */
+function extractPdfText(buf: Buffer): string {
+  const raw = buf.toString('latin1')
+  const parts: string[] = []
+
+  // Collect Tj strings: (text) Tj
+  for (const m of raw.matchAll(/\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*(?:Tj|'|")/g)) {
+    const raw1 = m[1] ?? ''
+    const s = raw1.replace(/\\n/g, '\n').replace(/\\r/g, '').replace(/\\\\/g, '\\').replace(/\\([()])/g, '$1')
+    if (s.trim()) parts.push(s)
+  }
+
+  // Collect TJ arrays: [(text) -number (text)] TJ
+  for (const m of raw.matchAll(/\[([^\]]+)\]\s*TJ/g)) {
+    for (const sm of (m[1] ?? '').matchAll(/\(([^)\\]*(?:\\.[^)\\]*)*)\)/g)) {
+      const raw1 = sm[1] ?? ''
+      const s = raw1.replace(/\\n/g, '\n').replace(/\\\\/g, '\\').replace(/\\([()])/g, '$1')
+      if (s.trim()) parts.push(s)
+    }
+  }
+
+  const text = parts.join(' ').replace(/\s{2,}/g, ' ').trim()
+  // Filter out non-printable / mostly-binary segments (font streams leak in)
+  return text.replace(/[^\x09\x0A\x0D\x20-\x7E -￿]/g, '').trim()
+}
+
+async function handleApiChatUpload(req: Request): Promise<Response> {
+  pruneExpiredFiles()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let formData: any
+  try { formData = await req.formData() } catch { return errorResponse('Expected multipart/form-data', 400) }
+
+  const file = formData.get('file') as File | null
+  if (!file) return errorResponse('No file in form data', 400)
+  if (file.size > MAX_FILE_BYTES) return errorResponse('File exceeds 10 MB limit', 413)
+
+  const filename = file.name || 'upload'
+  const mime = file.type || ''
+  const buf = Buffer.from(await file.arrayBuffer())
+
+  let type: ChatFileType
+  let content: string
+  let preview: string
+
+  if (mime.startsWith('image/') || /\.(png|jpg|jpeg|gif|webp)$/i.test(filename)) {
+    type = 'image'
+    content = `data:${mime || 'image/png'};base64,${buf.toString('base64')}`
+    preview = mime || 'image'
+  } else if (mime === 'application/pdf' || /\.pdf$/i.test(filename)) {
+    type = 'text'
+    const extracted = extractPdfText(buf)
+    content = extracted.slice(0, 50_000)  // cap at 50K chars fed to LLM
+    preview = content.slice(0, 200)
+  } else {
+    // plain text, markdown, etc.
+    type = 'text'
+    content = buf.toString('utf-8').slice(0, 50_000)
+    preview = content.slice(0, 200)
+  }
+
+  const fileId = randomId()
+  fileStore.set(fileId, { type, mimeType: mime, filename, content, preview, expiresAt: Date.now() + FILE_TTL_MS })
+
+  const resp: ChatUploadResponse = { fileId, type, preview, filename }
+  return jsonResponse(resp)
+}
 
 // ── Settings helpers ────────────────────────────────────────────────────────
 
@@ -275,12 +375,19 @@ async function handleApiChatModels(): Promise<Response> {
 }
 
 async function handleApiChat(req: Request): Promise<Response> {
-  let body: { history: { role: string; content: string }[]; message: string }
-  try { body = (await req.json()) as { history: { role: string; content: string }[]; message: string } } catch { return errorResponse('Invalid JSON', 400) }
+  let body: { history: { role: string; content: string }[]; message: string; fileId?: string }
+  try { body = (await req.json()) as { history: { role: string; content: string }[]; message: string; fileId?: string } } catch { return errorResponse('Invalid JSON', 400) }
   const message = body.message?.trim()
   if (!message) return errorResponse('message is required', 400)
 
   const history = Array.isArray(body.history) ? body.history.slice(-10) : []
+
+  // Resolve attached file (if any)
+  let attachedFile: FileEntry | null = null
+  if (body.fileId) {
+    pruneExpiredFiles()
+    attachedFile = fileStore.get(body.fileId) ?? null
+  }
 
   const root = resolve('.')
   const lines: string[] = []
@@ -339,19 +446,48 @@ async function handleApiChat(req: Request): Promise<Response> {
   const ctx = lines.length ? `\nProject state:\n${lines.join('\n')}\n` : ''
   const projBlock = projectCtx ? `\nProject context:\n${projectCtx}\n` : ''
   const model = (body as any).model?.trim() || 'deepseek/deepseek-v4-flash'
+  const isOllama = /^ollama\//.test(model)
+  const modelLabel = isOllama
+    ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
+    : `${model} via OpenRouter`
 
   const systemPrompt = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs, memory, specs, and the system. Be concise and direct. If the user writes in Spanish, respond in Spanish.
 
-You are running as model: ${model} via OpenRouter.
+You are running as model: ${modelLabel}.
 
 Important: you cannot modify files or run code directly from this chat. However, OrchestOS CAN improve itself — the user can create a Task describing the improvement, and the agent executor will modify the codebase autonomously. That is the correct way to self-improve: Tasks → agent runs → code changes.${ctx}${projBlock}`
 
-  const messages = history
+  const messages: { role: 'user' | 'assistant'; content: any }[] = history
     .filter(h => h.role === 'user' || h.role === 'assistant')
     .map(h => ({ role: h.role as 'user' | 'assistant', content: String(h.content) }))
-  messages.push({ role: 'user', content: message })
+
+  // Build the user turn — with optional file attachment
+  if (attachedFile) {
+    if (attachedFile.type === 'image') {
+      // Vision: multi-part content array [image, text]
+      messages.push({
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: attachedFile.content } },
+          { type: 'text', text: message },
+        ],
+      })
+    } else {
+      // Text/PDF: prepend extracted content as a labelled block
+      const label = attachedFile.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'File'
+      const textBlock = `[${label}: ${attachedFile.filename}]\n${attachedFile.content}\n[End of ${label}]\n\n`
+      messages.push({ role: 'user', content: textBlock + message })
+    }
+  } else {
+    messages.push({ role: 'user', content: message })
+  }
 
   try {
+    if (isOllama) {
+      const bareModel = model.replace('ollama/', '')
+      const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages })
+      return jsonResponse({ text: resp.text, model: resp.model })
+    }
     const resp = await openrouterChat({
       model,
       system: systemPrompt,
@@ -469,7 +605,7 @@ function handleApiSpecs(): Response {
   }
 }
 
-function handleApiSettingsGet(): Response {
+async function handleApiSettingsGet(): Promise<Response> {
   const parsed = readEnv()
   const result: Record<string, { set: boolean; masked: string }> = {}
   for (const k of SETTINGS_KEYS) {
@@ -478,6 +614,24 @@ function handleApiSettingsGet(): Response {
   }
   result['_envFile'] = { set: existsSync(ENV_FILE), masked: ENV_FILE }
   result['_cwd'] = { set: true, masked: process.cwd() }
+
+  // D0-ext-2: probe Ollama and report real detection state
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 1000)
+    const res = await fetch('http://localhost:11434/api/tags', { signal: controller.signal })
+    clearTimeout(timer)
+    if (res.ok) {
+      const data = await res.json() as { models?: { name: string }[] }
+      const count = (data.models || []).length
+      result['_ollama'] = { set: true, masked: `localhost:11434 — ${count} model${count !== 1 ? 's' : ''} detected` }
+    } else {
+      result['_ollama'] = { set: false, masked: '' }
+    }
+  } catch {
+    result['_ollama'] = { set: false, masked: '' }
+  }
+
   return jsonResponse(result)
 }
 
@@ -523,9 +677,9 @@ function handleApiSetup(): Response {
     ok: !!openRouter,
     critical: true,
     kind: 'credential',
-    hint: openRouter ? 'The primary LLM gateway is ready.' : `Paste an OpenRouter API key below. It will be stored in ${ENV_FILE}.`,
-    action: openRouter ? undefined : 'save-settings',
-    actionLabel: openRouter ? undefined : 'Save key',
+    hint: openRouter ? 'The primary LLM gateway is ready.' : 'Add an OpenRouter key to start using the agent.',
+    action: openRouter ? undefined : 'open-wizard',
+    actionLabel: openRouter ? undefined : 'Configure now',
   })
 
   const anthropic = env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || ''
@@ -648,6 +802,7 @@ function descToTaskId(desc: string): string {
 
 function inferExecutorFromModel(modelId: string | undefined): string {
   if (!modelId) return 'openrouter'
+  if (/^ollama\//.test(modelId)) return 'ollama'
   if (/^claude-/.test(modelId)) return 'anthropic'
   if (/^(gpt-|o1-|o3-|text-)/.test(modelId)) return 'openai'
   return 'openrouter'
@@ -849,6 +1004,172 @@ function isSameOrigin(req: Request, port: number): boolean {
   }
 }
 
+// ── D0-4: Ollama chat ─────────────────────────────────────────────────────────
+
+async function ollamaChat(opts: {
+  model: string   // bare model name, e.g. "qwen2.5-coder:7b"
+  system: string
+  messages: { role: 'user' | 'assistant'; content: any }[]
+}): Promise<{ text: string; model: string }> {
+  const body = {
+    model: opts.model,
+    messages: [
+      { role: 'system', content: opts.system },
+      ...opts.messages,
+    ],
+    stream: false,
+  }
+  const res = await fetch('http://localhost:11434/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ollama',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const err = await res.text().catch(() => res.statusText)
+    throw new Error(`Ollama error ${res.status}: ${err}`)
+  }
+  const data = await res.json() as { choices?: { message?: { content?: string } }[]; model?: string }
+  const text = data.choices?.[0]?.message?.content ?? ''
+  return { text, model: `ollama/${opts.model}` }
+}
+
+// ── E2: API key wizard — validate and persist ────────────────────────────────
+
+const PROVIDER_CONFIGS: Record<string, {
+  envKey: string
+  testUrl: string
+  headers: (key: string) => Record<string, string>
+  body: string
+}> = {
+  openrouter: {
+    envKey: 'OPENROUTER_API_KEY',
+    testUrl: 'https://openrouter.ai/api/v1/chat/completions',
+    headers: (key) => ({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`,
+      'HTTP-Referer': 'https://github.com/cagr1/orchestos',
+      'X-Title': 'orchestos',
+    }),
+    body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+  },
+  anthropic: {
+    envKey: 'ANTHROPIC_API_KEY',
+    testUrl: 'https://api.anthropic.com/v1/messages',
+    headers: (key) => ({
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+    }),
+    body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
+  },
+  openai: {
+    envKey: 'OPENAI_API_KEY',
+    testUrl: 'https://api.openai.com/v1/chat/completions',
+    headers: (key) => ({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`,
+    }),
+    body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+  },
+}
+
+function humanizeKeyError(status: number, body: string): string {
+  if (status === 401) return 'La clave no es válida. Cópiala de nuevo desde el sitio.'
+  if (status === 402 || body.includes('insufficient') || body.includes('credit'))
+    return 'La clave es válida pero no tiene crédito. Recarga tu cuenta.'
+  if (status >= 500) return 'El servicio no responde en este momento. Espera unos minutos.'
+  return `Error del proveedor (${status}). Verifica que la clave sea correcta.`
+}
+
+async function handleApiSetupApiKey(req: Request): Promise<Response> {
+  let body: { provider?: string; key?: string }
+  try { body = (await req.json()) as { provider?: string; key?: string } } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+
+  const provider = (body.provider || '').trim().toLowerCase()
+  const key = (body.key || '').trim()
+
+  if (!key) return errorResponse('key is required', 400)
+  const cfg = PROVIDER_CONFIGS[provider]
+  if (!cfg) {
+    return errorResponse(`Unknown provider "${provider}". Use: openrouter, anthropic, openai`, 400)
+  }
+
+  // 1. Persist key FIRST — so if validation is slow the user isn't blocked
+  const current = readEnv()
+  current[cfg.envKey] = key
+  writeEnv(current)
+
+  // 2. Validate with a minimal test call (key never appears in logs)
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15_000)
+    const res = await fetch(cfg.testUrl, {
+      method: 'POST',
+      headers: cfg.headers(key),
+      body: cfg.body,
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+
+    if (res.ok || res.status === 400) {
+      // 400 can mean "model not found" but the key itself is valid
+      return jsonResponse({ valid: true } satisfies ApiKeyValidationResponse)
+    }
+
+    const errBody = await res.text().catch(() => '')
+    const errMsg = humanizeKeyError(res.status, errBody)
+
+    // Rollback: remove the key we just wrote if it's clearly invalid
+    if (res.status === 401) {
+      delete current[cfg.envKey]
+      writeEnv(current)
+    }
+
+    return jsonResponse({ valid: false, error: errMsg } satisfies ApiKeyValidationResponse)
+  } catch (e: any) {
+    const isTimeout = e?.name === 'AbortError' || e?.message?.includes('abort')
+    const errMsg = isTimeout
+      ? 'No hubo respuesta. Verifica tu conexión e inténtalo de nuevo.'
+      : 'No se pudo conectar con el proveedor. Verifica tu conexión.'
+    // Don't rollback on network errors — key may still be valid
+    return jsonResponse({ valid: false, error: errMsg } satisfies ApiKeyValidationResponse)
+  }
+}
+
+// ── D0-2: Ollama local provider detection ────────────────────────────────────
+
+async function handleApiProvidersLocal(): Promise<Response> {
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 1000)
+    const res = await fetch('http://localhost:11434/api/tags', {
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+    if (!res.ok) {
+      return jsonResponse({ available: false, models: [] } satisfies LocalProviderResponse)
+    }
+    const data = await res.json() as { models?: { name: string; size?: number }[] }
+    const models = (data.models || []).map(m => ({
+      id: `ollama/${m.name}`,
+      size: m.size != null ? formatSize(m.size) : 'unknown',
+    }))
+    return jsonResponse({ available: models.length > 0, models } satisfies LocalProviderResponse)
+  } catch {
+    return jsonResponse({ available: false, models: [] } satisfies LocalProviderResponse)
+  }
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(0)} MB`
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`
+}
+
 async function route(req: Request, port: number): Promise<Response> {
   const url = new URL(req.url)
   const method = req.method
@@ -906,6 +1227,9 @@ async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/chat/models') {
     return handleApiChatModels()
   }
+  if (method === 'POST' && url.pathname === '/api/chat/upload') {
+    return handleApiChatUpload(req)
+  }
   if (method === 'POST' && url.pathname === '/api/chat') {
     return handleApiChat(req)
   }
@@ -919,13 +1243,19 @@ async function route(req: Request, port: number): Promise<Response> {
     return handleApiMemory()
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
-    return handleApiSettingsGet()
+    return await handleApiSettingsGet()
   }
   if (method === 'GET' && url.pathname === '/api/setup') {
     return handleApiSetup()
   }
   if (method === 'GET' && url.pathname === '/api/health') {
     return handleApiHealth()
+  }
+  if (method === 'GET' && url.pathname === '/api/providers/local') {
+    return handleApiProvidersLocal()
+  }
+  if (method === 'POST' && url.pathname === '/api/setup/api-key') {
+    return await handleApiSetupApiKey(req)
   }
   if (method === 'POST' && url.pathname === '/api/settings') {
     return handleApiSettingsPost(req)

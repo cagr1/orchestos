@@ -437,6 +437,26 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
 .modal .m-hint { font-size: 11.5px; color: var(--text-faint); margin-top: 5px; }
 .modal .m-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border); }
 
+/* ---------- WIZARD (E3) ---------- */
+.wiz-modal { width: 480px; }
+.wiz-indicator {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 14px 18px 0; font-size: 12px;
+}
+.wiz-dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 600;
+  background: var(--border); color: var(--text-faint); transition: background .15s, color .15s;
+}
+.wiz-dot.active { background: var(--accent); color: #fff; }
+.wiz-dot.done   { background: var(--success); color: #fff; }
+.wiz-dot-sep    { color: var(--text-faint); font-size: 10px; }
+.wiz-steps-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.wiz-steps-list li { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.wiz-key-row    { display: flex; gap: 8px; align-items: center; }
+.wiz-key-row input { flex: 1; }
+.wiz-link       { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
+
 /* ---------- CHAT ---------- */
 .screen.chat-screen {
   display: flex; flex-direction: column; padding-bottom: 0;
@@ -492,10 +512,53 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
 }
 .model-sel:focus { border-color: var(--accent); }
 .chat-model-sel { max-width: 260px; }
+.model-select-wrap { display: flex; flex-direction: column; gap: 3px; max-width: 260px; }
+.model-select-wrap .model-sel { max-width: 100%; }
+.model-search {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text-muted); font-size: 11px; padding: 3px 8px; outline: none;
+  font-family: var(--mono); width: 100%; box-sizing: border-box;
+}
+.model-search:focus { border-color: var(--accent); }
 .chat-model-tag {
   margin-top: 6px; font-size: 10.5px; color: var(--text-faint);
   font-family: var(--mono); text-align: right;
 }
+
+/* D4 — create task from conversation */
+.chat-create-task-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 14px; margin: 8px 0 4px;
+  border-radius: var(--radius); border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.chat-create-task-hint {
+  flex: 1; font-size: 12px; color: var(--text-muted); line-height: 1.4;
+}
+
+/* D3 — file attach button + chip */
+.chat-input-bar { flex-direction: column; gap: 6px; }
+.chat-input-row {
+  display: flex; gap: 8px; align-items: flex-end; width: 100%;
+}
+.chat-clip-btn {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text-muted); cursor: pointer; padding: 8px 10px;
+  font-size: 14px; line-height: 1; display: flex; align-items: center;
+  transition: color .15s, border-color .15s; flex-shrink: 0;
+}
+.chat-clip-btn:hover { color: var(--text); border-color: var(--accent); }
+.chat-clip-btn svg { width: 16px; height: 16px; }
+.chat-attach-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: var(--radius);
+  background: var(--surface-2); border: 1px solid var(--border);
+  font-size: 12.5px; color: var(--text);
+}
+.chat-attach-chip .chat-attach-icon { color: var(--accent); display: flex; }
+.chat-attach-chip .chat-attach-icon svg { width: 14px; height: 14px; }
+.chat-attach-name { font-weight: 600; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-attach-preview { flex: 1; color: var(--text-faint); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* instinct state badge — wider for human text */
 .instinct-state { max-width: 220px; white-space: nowrap; font-size: 11px; }

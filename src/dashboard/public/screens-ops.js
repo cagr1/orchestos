@@ -380,7 +380,7 @@ const KEY_DEFS = [
   { id: 'OPENROUTER_API_KEY', labelKey: 'settings.key.or.label',  descKey: 'settings.key.or.desc',  ph: 'sk-or-...' },
   { id: 'ANTHROPIC_API_KEY',  labelKey: 'settings.key.ant.label', descKey: 'settings.key.ant.desc', ph: 'sk-ant-...' },
   { id: 'OPENAI_API_KEY',     labelKey: 'settings.key.oai.label', descKey: 'settings.key.oai.desc', ph: 'sk-...' },
-  { id: 'OLLAMA_HOST',        labelKey: 'settings.key.oll.label', descKey: 'settings.key.oll.desc', ph: 'http://localhost:11434' },
+  { id: 'OLLAMA_HOST', labelKey: 'settings.key.oll.label', descKey: 'settings.key.oll.desc', ph: 'http://localhost:11434', special: 'ollama' },
 ];
 
 SCREENS.settings = {
@@ -414,9 +414,11 @@ SCREENS.settings = {
         : '';
       const action = item.action === 'copy-command' && item.command
         ? `<button class="btn ghost sm" data-copy="${esc(item.command)}">${item.actionLabel || t('setup.copy')}</button>`
-        : item.action === 'save-settings'
-          ? `<button class="btn ghost sm" data-focus-key>${item.actionLabel || t('settings.btn.save')}</button>`
-          : '';
+        : item.action === 'open-wizard'
+          ? `<button class="btn ghost sm" data-open-wizard>${esc(item.actionLabel || t('setup.btn.configure'))}</button>`
+          : item.action === 'save-settings'
+            ? `<button class="btn ghost sm" data-focus-key>${item.actionLabel || t('settings.btn.save')}</button>`
+            : '';
       return `<div class="setup-row ${item.ok ? 'ok' : item.critical ? 'critical' : 'optional'}">
         <div class="setup-icon">${item.ok ? ICON.check : item.critical ? ICON.x : ICON.warn}</div>
         <div class="setup-main">
@@ -501,6 +503,27 @@ SCREENS.settings = {
     </div>`;
 
     const keyRows = KEY_DEFS.map(def => {
+      // D0-ext-2 — Ollama row: show probe result instead of env var status
+      if (def.special === 'ollama') {
+        const probe = keys['_ollama'] || { set: false, masked: '' };
+        const override = keys['OLLAMA_HOST'] || { set: false, masked: '' };
+        const badge = probe.set
+          ? `<span class="badge green square" style="white-space:nowrap">${ICON.check} ${t('settings.key.oll.detected')}</span>`
+          : `<span class="badge gray square" style="white-space:nowrap">— ${t('settings.key.oll.none')}</span>`;
+        const detected = probe.set
+          ? `<code class="key-masked">${esc(probe.masked)}</code>`
+          : `<span class="faint" style="font-size:12px">${t('settings.key.oll.none')}</span>`;
+        return `<div class="key-row">
+          <div class="key-meta">
+            <div class="key-label">${t(def.labelKey)}</div>
+            <div class="key-desc">${t(def.descKey)}</div>
+          </div>
+          <div class="key-val">${badge}${detected}</div>
+          <div class="key-input">
+            <input type="text" id="k-${esc(def.id)}" placeholder="${t('settings.key.oll.override')}" value="${override.set ? esc(override.masked) : ''}" autocomplete="off">
+          </div>
+        </div>`;
+      }
       const info = keys[def.id] || { set: false, masked: '' };
       const badge = info.set
         ? `<span class="badge green square" style="white-space:nowrap">${ICON.check} ${t('settings.status.set')}</span>`
@@ -508,14 +531,18 @@ SCREENS.settings = {
       const masked = info.set
         ? `<code class="key-masked">${esc(info.masked)}</code>`
         : `<span class="faint" style="font-size:12px">${t('settings.status.unset')}</span>`;
+      const wizardBtn = def.id === 'OPENROUTER_API_KEY' || def.id === 'ANTHROPIC_API_KEY' || def.id === 'OPENAI_API_KEY'
+        ? `<button class="btn ghost sm" data-open-wizard style="white-space:nowrap">${t('settings.btn.change.key')}</button>`
+        : '';
       return `<div class="key-row">
         <div class="key-meta">
           <div class="key-label">${t(def.labelKey)}</div>
           <div class="key-desc">${t(def.descKey)}</div>
         </div>
         <div class="key-val">${badge}${masked}</div>
-        <div class="key-input">
-          <input type="password" id="k-${esc(def.id)}" placeholder="${esc(def.ph)}" autocomplete="new-password">
+        <div class="key-input" style="display:flex;gap:6px;align-items:center">
+          <input type="password" id="k-${esc(def.id)}" placeholder="${esc(def.ph)}" autocomplete="new-password" style="flex:1">
+          ${wizardBtn}
         </div>
       </div>`;
     }).join('');
@@ -578,6 +605,7 @@ SCREENS.settings = {
         alert(btn.dataset.copy || '');
       }
     }));
+    root.querySelectorAll('[data-open-wizard]').forEach(btn => btn.addEventListener('click', () => Modal.openWizard()));
     root.querySelectorAll('[data-focus-key]').forEach(btn => btn.addEventListener('click', () => {
       const el = root.querySelector('#k-OPENROUTER_API_KEY') || root.querySelector('.key-input input');
       if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }

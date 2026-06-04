@@ -15,6 +15,9 @@
  *   GET  /api/memory                → MemoryRow[]
  *   GET  /api/tasks/:id/diagnose   → DiagnoseRow
  *   GET  /api/health               → HealthResponse
+ *   GET  /api/providers/local      → LocalProviderResponse
+ *   POST /api/chat/upload          → ChatUploadResponse
+ *   POST /api/setup/api-key        → ApiKeyValidationResponse
  *
  * All GET endpoints return JSON arrays sorted by most-recent first.
  * All POST endpoints return MutationResult.
@@ -148,7 +151,7 @@ export interface SetupItem {
   kind: 'runtime' | 'dependency' | 'credential' | 'project' | 'database' | 'index'
   hint: string
   actionLabel?: string
-  action?: 'save-settings' | 'copy-command'
+  action?: 'save-settings' | 'copy-command' | 'open-wizard'
   command?: string
 }
 
@@ -158,6 +161,29 @@ export interface SetupResponse {
   envFile: string
   cwd: string
   items: SetupItem[]
+}
+
+// ── /api/providers/local ─────────────────────────────────────────────────────
+
+export interface LocalProviderModel {
+  id: string
+  size: string
+}
+
+export interface LocalProviderResponse {
+  available: boolean
+  models: LocalProviderModel[]
+}
+
+// ── /api/chat/upload ─────────────────────────────────────────────────────────
+
+export type ChatFileType = 'image' | 'text'
+
+export interface ChatUploadResponse {
+  fileId: string       // UUID, valid until server restart or 30-min TTL
+  type: ChatFileType
+  preview: string      // first 200 chars of text, or 'image/png' mime label for images
+  filename: string
 }
 
 // ── /api/health ───────────────────────────────────────────────────────────────
@@ -197,6 +223,15 @@ export interface HealthResponse {
    * = blockedTasks.length + pendingApproval.unverifiedInstincts + pendingApproval.draftSpecs
    */
   attentionCount: number
+}
+
+// ── /api/setup/api-key ───────────────────────────────────────────────────────
+
+export type ApiKeyProvider = 'openrouter' | 'anthropic' | 'openai'
+
+export interface ApiKeyValidationResponse {
+  valid: boolean
+  error?: string  // human-readable, shown directly in the wizard UI
 }
 
 // ── mutations ─────────────────────────────────────────────────────────────────
