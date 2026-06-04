@@ -39,7 +39,12 @@
       "Bash(git push *)",
       "Bash(git config *)",
       "Bash(git rebase *)",
-      "Bash(2>&1)"
+      "Bash(2>&1)",
+      "Bash(bun -e ' *)",
+      "Bash(Start-Sleep -Seconds 2)",
+      "Bash(curl -s http://localhost:4242/api/runs)",
+      "Bash(curl -s -X POST \"http://localhost:4243/api/instincts/af23eed2-2a32-4179-92b8-742dda19d90c/reject\")",
+      "PowerShell(Get-Process *)"
     ]
   }
 }
