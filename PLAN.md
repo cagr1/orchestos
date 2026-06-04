@@ -31,22 +31,6 @@ _Plan a detallar en Bloques A–N antes de arrancar._
 
 ---
 
-## MES 10 — El producto que alguien que nunca programó puede usar
-
-- [x] **SÍ — Mes 10 cerrado (2026-06-04)**
-  Wizard API key (3 proveedores, validación real, rollback en 401) · toggle humano/operador navegable con persistencia · diagnóstico de fallos en Tasks · archivos en Chat · Control Center con 5 bloques de salud · Ollama auto-detectado · 369 tests · 0 fail.
-  Ver historial completo → [DONE.md](DONE.md).
-
----
-
-## MES 9 — Dashboard usable: de observador a orquestador
-
-- [x] **SÍ — Mes 9 cerrado (2026-06-04)**
-  Dashboard convertido en interfaz principal: 10 bloques (A–J), input natural con preview IA, i18n en/es, instalador de un solo archivo, chat panel + model selector shipeados fuera de plan. 369 tests · 0 fail.
-  Ver historial completo → [DONE.md](DONE.md).
-
----
-
 ## MES 4 — Routing inteligente + skills que se adaptan al proyecto
 
 - [x] **SÍ — Mes 4 cerrado (2026-05-27)**
@@ -85,6 +69,22 @@ _Plan a detallar en Bloques A–N antes de arrancar._
 - [x] **SÍ — Mes 8 cerrado (2026-06-02)**
   S31 middleware chain (10 middlewares de enrichment, harness refactorizado), S32 capabilities contract + delta headers en specs, S33 instincts con confidence scoring, S34 continuous learning v2 (runs→instincts loop cerrado), S35 cost tracker por sub-agente, S36 dashboard local Bun + vanilla JS (4 vistas desde SQLite).
   369 tests · 0 fail.
+  Ver historial completo → [DONE.md](DONE.md).
+
+---
+
+## MES 9 — Dashboard usable: de observador a orquestador
+
+- [x] **SÍ — Mes 9 cerrado (2026-06-04)**
+  Dashboard convertido en interfaz principal: 10 bloques (A–J), input natural con preview IA, i18n en/es, instalador de un solo archivo, chat panel + model selector shipeados fuera de plan. 369 tests · 0 fail.
+  Ver historial completo → [DONE.md](DONE.md).
+
+---
+
+## MES 10 — El producto que alguien que nunca programó puede usar
+
+- [x] **SÍ — Mes 10 cerrado (2026-06-04)**
+  Wizard API key (3 proveedores, validación real, rollback en 401) · toggle humano/operador navegable con persistencia · diagnóstico de fallos en Tasks · archivos en Chat · Control Center con 5 bloques de salud · Ollama auto-detectado · 369 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
