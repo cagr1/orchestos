@@ -800,6 +800,7 @@ SCREENS.skills = {
       <div class="skill-card-actions">
         <button class="btn ghost sm" data-act="edit-skill" data-skill="${esc(s.id)}">${ICON.settings} ${t('skills.btn.edit')}</button>
         <button class="btn ghost sm" data-act="export-skill" data-skill="${esc(s.id)}">${ICON.inbox} ${t('skills.btn.export')}</button>
+        <button class="btn ghost sm" data-act="copy-skill" data-skill="${esc(s.id)}">${ICON.copy} ${t('skills.btn.copy')}</button>
         <button class="btn ghost sm" data-act="build-skill" data-skill="${esc(s.id)}">${ICON.play} ${t('skills.btn.build')}</button>
         <button class="btn ghost sm" data-act="delete-skill" data-skill="${esc(s.id)}">${ICON.trash} ${t('skills.btn.delete')}</button>
       </div>
@@ -828,7 +829,29 @@ SCREENS.skills = {
     root.querySelectorAll('[data-act="export-skill"]').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        window.open(`/api/skills/${encodeURIComponent(btn.dataset.skill)}`, '_blank');
+        const id = btn.dataset.skill;
+        const a = document.createElement('a');
+        a.href = `/api/skills/${encodeURIComponent(id)}/export`;
+        a.download = `${id}.yaml`;
+        a.click();
+      });
+    });
+
+    root.querySelectorAll('[data-act="copy-skill"]').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.skill;
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/api/skills/${encodeURIComponent(id)}/export`);
+          const yaml = await res.text();
+          await navigator.clipboard.writeText(yaml);
+          btn.innerHTML = `${ICON.check} ${t('skills.btn.copied')}`;
+          setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
+        } catch {
+          btn.disabled = false;
+        }
       });
     });
 
@@ -911,10 +934,10 @@ SCREENS.skills = {
     });
 
     root.querySelector('[data-act="new-skill"]')?.addEventListener('click', () => {
-      // Placeholder — will be implemented in Bloque D
+      Modal.openNewSkill();
     });
     root.querySelector('[data-act="import-skill"]')?.addEventListener('click', () => {
-      // Placeholder — will be implemented in Bloque E
+      Modal.openImportSkill();
     });
   },
 };

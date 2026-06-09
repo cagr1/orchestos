@@ -69,10 +69,10 @@ Servicio que transforma texto libre del usuario en un `SkillDef` válido. Núcle
 
 Modal "Nueva skill" con asistencia del curador.
 
-- [ ] D1 Campo textarea "Describe tu skill en lenguaje natural" + botón "Curar con IA"
-- [ ] D2 Al curar: pre-rellena formulario con los campos generados (editables por el usuario)
-- [ ] D3 Preview del YAML resultante antes de guardar
-- [ ] D4 Botón "Guardar" → llama `POST /api/skills`, cierra modal, refresca lista
+- [x] D1 Campo textarea "Describe tu skill en lenguaje natural" + botón "Curar con IA" (2026-06-09)
+- [x] D2 Al curar: pre-rellena formulario con los campos generados (editables por el usuario) (2026-06-09)
+- [x] D3 Preview del YAML resultante antes de guardar (2026-06-09)
+- [x] D4 Botón "Guardar" → llama `POST /api/skills`, cierra modal, refresca lista (2026-06-09)
 
 ---
 
@@ -80,10 +80,10 @@ Modal "Nueva skill" con asistencia del curador.
 
 Modal con dos sub-tabs: URL y YAML pegado.
 
-- [ ] E1 Sub-tab URL: campo de URL → el servidor hace fetch del YAML crudo → valida/normaliza con curador si hay campos faltantes → preview
-- [ ] E2 Sub-tab YAML: textarea de paste directo → `validateSkill()` → curador normaliza si falla → preview
-- [ ] E3 Preview compartido: muestra campos del `SkillDef` y cualquier warning de normalización
-- [ ] E4 Botón "Importar" → llama `POST /api/skills`, maneja conflicto de id (ofrece renombrar)
+- [x] E1 Sub-tab URL: campo de URL → el servidor hace fetch del YAML crudo → valida/normaliza con curador si hay campos faltantes → preview (2026-06-09)
+- [x] E2 Sub-tab YAML: textarea de paste directo → `validateSkill()` → curador normaliza si falla → preview (2026-06-09)
+- [x] E3 Preview compartido: muestra campos del `SkillDef` y cualquier warning de normalización (2026-06-09)
+- [x] E4 Botón "Importar" → llama `POST /api/skills`, maneja conflicto de id (ofrece renombrar) (2026-06-09)
 
 ---
 
@@ -91,9 +91,9 @@ Modal con dos sub-tabs: URL y YAML pegado.
 
 Exportación desde cada skill card.
 
-- [ ] F1 Botón "Exportar YAML" en el card → `GET /api/skills/:id` → download del `.yaml` con nombre `{id}.yaml`
-- [ ] F2 Botón "Copiar YAML" → clipboard (mismo contenido que F1)
-- [ ] F3 `GET /api/skills/:id/export` — endpoint que devuelve el YAML con `Content-Disposition: attachment`
+- [x] F1 Botón "Exportar YAML" en el card → `GET /api/skills/:id/export` → download del `.yaml` con nombre `{id}.yaml` (2026-06-09)
+- [x] F2 Botón "Copiar YAML" → clipboard (mismo contenido que F1) (2026-06-09)
+- [x] F3 `GET /api/skills/:id/export` — endpoint que devuelve el YAML con `Content-Disposition: attachment` (2026-06-09)
 
 ---
 

@@ -260,6 +260,17 @@ export interface SkillCurateResponse {
   iterations: number               // how many LLM calls were needed (1-3)
 }
 
+// ── /api/skills/import ────────────────────────────────────────────────────────
+
+export interface SkillImportResponse {
+  ok: boolean
+  skill?: Record<string, unknown>  // validated/normalized SkillDef
+  error?: string
+  normalized: boolean              // true if AI curator fixed issues
+  warnings: string[]               // normalization warnings
+  iterations: number               // LLM calls needed (0 if no normalization)
+}
+
 // ── mutations ─────────────────────────────────────────────────────────────────
 
 export interface MutationResult {

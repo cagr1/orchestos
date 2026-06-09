@@ -15,7 +15,7 @@ import { parseCostBreakdownJson } from '../run/transcript-parser.ts'
 import type { MemoryEntry } from '../db/memory.ts'
 import { loadSkill, listSkillFiles, validateSkill, getSkillPath, type SkillDef } from '../skills/registry.ts'
 import { compileSkill } from '../skills/compile.ts'
-import { stringify } from 'yaml'
+import { parse, stringify } from 'yaml'
 import {
   type ChatUploadResponse,
   type ChatFileType,
@@ -31,6 +31,7 @@ import {
   type SkillRow,
   type SkillBuildResponse,
   type SkillCurateResponse,
+  type SkillImportResponse,
   type MutationResult,
   type CostBreakdownEntry,
   type ContextWarningEntry,
@@ -1219,6 +1220,26 @@ function handleApiSkillsGet(url: URL): Response {
   }
 }
 
+function handleApiSkillsExport(url: URL): Response {
+  const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+  const path = getSkillPath(id)
+  if (!existsSync(path)) return errorResponse('Skill not found', 404)
+  try {
+    const yaml = readFileSync(path, 'utf-8')
+    return new Response(yaml, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/x-yaml; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(id)}.yaml"`,
+      },
+    })
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
 async function handleApiSkillsCreate(req: Request): Promise<Response> {
   let body: Record<string, unknown>
   try { body = await req.json() as Record<string, unknown> } catch { return errorResponse('Invalid JSON', 400) }
@@ -1324,6 +1345,131 @@ Rules:
 - description must not exceed 200 chars
 - instructions must not exceed 4000 chars`
 
+// ── E1-E2: YAML import normalizer system prompt ─────────────────────────────
+
+const IMPORT_SYSTEM = `You are a skill importer for OrchestOS. You normalize YAML or JSON skill definitions into valid SkillDef JSON.
+
+Given raw YAML/JSON content and optionally a validation error, produce a valid SkillDef JSON object.
+
+REQUIRED fields:
+- id: kebab-case identifier — lowercase letters, numbers, hyphens, no leading/trailing hyphens
+- version: always "1.0.0"
+- name: short human-readable name (max 60 chars)
+- description: one sentence describing what the skill does (max 200 chars)
+- instructions: detailed step-by-step instructions for the agent (max 4000 chars)
+- targets: non-empty array of "claude", "cursor", "openai"
+
+OPTIONAL (include only if present in the original content):
+- when_to_use: array of trigger phrases
+- anti_patterns: array of things to avoid
+- verifiers: array of verification steps
+- inputs_required: array of required inputs
+- examples: array of {title, input, output}
+- allowed_tools: array of tool names
+- language_targets: object with per-language overrides
+
+Rules:
+- Respond ONLY with a valid JSON object — no markdown fences, no extra text, no explanations
+- Preserve as much of the original content as possible
+- Fix fields to meet requirements (truncate description if >200, instructions if >4000)
+- Use English for text fields unless original content is in another language`
+
+// ── E1-E2: Import handler (URL fetch + YAML paste) ──────────────────────────
+
+async function handleApiSkillsImport(req: Request): Promise<Response> {
+  let body: { type?: string; url?: string; yaml?: string }
+  try { body = await req.json() as { type?: string; url?: string; yaml?: string } } catch { return errorResponse('Invalid JSON', 400) }
+
+  let rawYaml: string
+  let sourceDesc: string
+
+  if (body.type === 'url') {
+    if (!body.url) return errorResponse('url is required', 400)
+    sourceDesc = `URL: ${body.url}`
+    try {
+      const resp = await fetch(body.url, { signal: AbortSignal.timeout(15000) })
+      if (!resp.ok) return errorResponse(`HTTP ${resp.status} fetching URL`, 400)
+      rawYaml = await resp.text()
+    } catch (e: any) {
+      return errorResponse(`Failed to fetch URL: ${e.message}`, 400)
+    }
+  } else if (body.type === 'yaml') {
+    if (!body.yaml) return errorResponse('yaml content is required', 400)
+    sourceDesc = 'pasted YAML'
+    rawYaml = body.yaml
+  } else {
+    return errorResponse('type must be "url" or "yaml"', 400)
+  }
+
+  // Try to parse YAML
+  let parsed: Record<string, unknown>
+  try {
+    parsed = parse(rawYaml) as Record<string, unknown>
+  } catch (e: any) {
+    return normalizeImport(rawYaml, `YAML syntax error: ${e.message}`, sourceDesc)
+  }
+
+  // Sanitise id
+  if (typeof parsed.id === 'string') {
+    parsed.id = parsed.id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+  }
+
+  // Try validation
+  try {
+    validateSkill(parsed, 'import')
+    return jsonResponse({ ok: true, skill: parsed, normalized: false, warnings: [], iterations: 0 } satisfies SkillImportResponse)
+  } catch (e: any) {
+    return normalizeImport(rawYaml, e.message, sourceDesc)
+  }
+}
+
+async function normalizeImport(rawYaml: string, error: string, sourceDesc: string): Promise<Response> {
+  const MAX_RETRIES = 2
+  let lastError = error
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const userMessage = attempt === 0
+      ? `Fix this invalid skill definition:\n\n${rawYaml}\n\nValidation error: ${lastError}`
+      : `Previous fix failed. Error: ${lastError}\n\nOriginal content:\n${rawYaml}\n\nPlease return a corrected JSON.`
+
+    let raw: string
+    try {
+      const resp = await openrouterChat({
+        model: 'anthropic/claude-haiku-4-5',
+        system: IMPORT_SYSTEM,
+        messages: [{ role: 'user', content: userMessage }],
+      })
+      raw = resp.text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+    } catch (e: any) {
+      return errorResponse(`LLM normalization failed: ${e.message}`, 502)
+    }
+
+    let draft: Record<string, unknown>
+    try {
+      draft = JSON.parse(raw) as Record<string, unknown>
+    } catch {
+      lastError = 'Response was not valid JSON'
+      continue
+    }
+
+    if (typeof draft.id === 'string') {
+      draft.id = draft.id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    }
+
+    try {
+      validateSkill(draft, 'import')
+      return jsonResponse({ ok: true, skill: draft, normalized: true, warnings: [`Original ${sourceDesc} had issues: ${error}. Fixed by AI curator.`], iterations: attempt + 1 } satisfies SkillImportResponse)
+    } catch (e: any) {
+      lastError = e.message
+    }
+  }
+
+  return jsonResponse(
+    { ok: false, error: `Could not normalize after ${MAX_RETRIES + 1} attempts: ${lastError}`, normalized: false, warnings: [], iterations: MAX_RETRIES + 1 } satisfies SkillImportResponse,
+    422
+  )
+}
+
 // ── C2-C3: Curator handler with retry gate ──────────────────────────────────
 
 async function handleApiSkillsCurate(req: Request): Promise<Response> {
@@ -1426,6 +1572,9 @@ async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
     return handleApiSkillsGet(url)
   }
+  if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)) {
+    return handleApiSkillsExport(url)
+  }
   if (method === 'POST' && url.pathname === '/api/skills') {
     return handleApiSkillsCreate(req)
   }
@@ -1440,6 +1589,9 @@ async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname === '/api/skills/curate') {
     return handleApiSkillsCurate(req)
+  }
+  if (method === 'POST' && url.pathname === '/api/skills/import') {
+    return handleApiSkillsImport(req)
   }
 
   if (method === 'GET' && url.pathname === '/api/project/constitution') {

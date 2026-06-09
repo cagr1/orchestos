@@ -511,6 +511,334 @@ const Modal = {
     requestAnimationFrame(() => this.el.classList.add('show'));
   },
 
+  // ── Bloque D: New Skill modal (textarea + curate + form + preview) ──────
+  openNewSkill() {
+    this._curatedSkill = null;
+    this._renderNewSkillInput();
+    requestAnimationFrame(() => this.el.classList.add('show'));
+  },
+
+  _renderNewSkillInput() {
+    this.el.innerHTML = `<div class="modal" style="width:540px">
+      <div class="m-head"><span style="color:var(--accent)">${ICON.flask}</span><h3>${t('modal.skill.title')}</h3>
+        <button class="btn ghost sm" data-x>${ICON.x}</button></div>
+      <div class="m-body" style="max-height:70vh;overflow-y:auto">
+        <div class="m-field">
+          <label>${t('modal.skill.textarea.label')}</label>
+          <textarea id="ns-desc-input" rows="5" placeholder="${t('modal.skill.textarea.ph')}" style="resize:vertical"></textarea>
+          <div class="m-hint">${t('modal.skill.textarea.hint')}</div>
+        </div>
+        <div id="ns-msg" style="font-size:12px;display:none"></div>
+      </div>
+      <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
+        <button class="btn primary" data-curate>${ICON.spark} ${t('modal.skill.btn.curate')}</button></div>
+    </div>`;
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    this.el.querySelector('[data-curate]').addEventListener('click', async () => {
+      const desc = this.el.querySelector('#ns-desc-input').value.trim();
+      const msg  = this.el.querySelector('#ns-msg');
+      if (!desc) { msg.textContent = t('modal.skill.err.empty'); msg.style.color = 'var(--error)'; msg.style.display = ''; return; }
+      const btn = this.el.querySelector('[data-curate]');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${t('modal.skill.curating')}`;
+      msg.style.display = 'none';
+      try {
+        const res = await fetch('/api/skills/curate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: desc }),
+        });
+        const data = await res.json();
+        if (data.ok && data.skill) {
+          this._curatedSkill = data.skill;
+          this._renderNewSkillForm();
+        } else {
+          msg.textContent = data.error || t('modal.skill.err.curate');
+          msg.style.color = 'var(--error)'; msg.style.display = '';
+          btn.disabled = false;
+          btn.innerHTML = `${ICON.spark} ${t('modal.skill.btn.curate')}`;
+        }
+      } catch {
+        msg.textContent = t('common.conn.error');
+        msg.style.color = 'var(--error)'; msg.style.display = '';
+        btn.disabled = false;
+        btn.innerHTML = `${ICON.spark} ${t('modal.skill.btn.curate')}`;
+      }
+    });
+  },
+
+  _renderNewSkillForm() {
+    const s = this._curatedSkill || {};
+    const targets = s.targets || [];
+    const tClaude = targets.includes('claude') ? 'checked' : '';
+    const tCursor = targets.includes('cursor') ? 'checked' : '';
+    const tOpenai = targets.includes('openai') ? 'checked' : '';
+    const listVal = (key) => esc((s[key] || []).join('\n'));
+    const preview = this._yamlFromForm(s);
+    this.el.innerHTML = `<div class="modal" style="width:640px">
+      <div class="m-head"><span style="color:var(--accent)">${ICON.flask}</span><h3>${t('modal.skill.title')}</h3>
+        <button class="btn ghost sm" data-x>${ICON.x}</button></div>
+      <div class="m-body" style="max-height:65vh;overflow-y:auto">
+        <div style="display:grid;grid-template-columns:1fr 100px;gap:12px">
+          <div class="m-field" style="margin:0"><label>${t('modal.skill.form.id')}</label>
+            <input id="ns-id" value="${esc(s.id || '')}" autocomplete="off"></div>
+          <div class="m-field" style="margin:0"><label>${t('modal.skill.form.version')}</label>
+            <input id="ns-version" value="${esc(s.version || '1.0.0')}" autocomplete="off"></div>
+        </div>
+        <div class="m-field"><label>${t('modal.skill.form.name')}</label>
+          <input id="ns-name" value="${esc(s.name || '')}" autocomplete="off"></div>
+        <div class="m-field"><label>${t('modal.skill.form.description')}</label>
+          <textarea id="ns-desc" rows="2" style="resize:vertical">${esc(s.description || '')}</textarea></div>
+        <div class="m-field"><label>${t('modal.skill.form.targets')}</label>
+          <div style="display:flex;gap:14px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="ns-t-claude" ${tClaude}> claude</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="ns-t-cursor" ${tCursor}> cursor</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="ns-t-openai" ${tOpenai}> openai</label>
+          </div></div>
+        <div class="m-field"><label>${t('modal.skill.form.instructions')}</label>
+          <textarea id="ns-instructions" rows="5" style="resize:vertical;font-family:var(--mono);font-size:12px">${esc(s.instructions || '')}</textarea></div>
+        <div class="m-field"><label>${t('modal.skill.form.when_to_use')}</label>
+          <textarea id="ns-when" rows="3" style="resize:vertical">${listVal('when_to_use')}</textarea></div>
+        <div class="m-field"><label>${t('modal.skill.form.anti_patterns')}</label>
+          <textarea id="ns-anti" rows="3" style="resize:vertical">${listVal('anti_patterns')}</textarea></div>
+        <div class="m-field"><label>${t('modal.skill.form.verifiers')}</label>
+          <textarea id="ns-verifiers" rows="3" style="resize:vertical">${listVal('verifiers')}</textarea></div>
+        <div class="m-field"><label>${t('modal.skill.form.inputs_required')}</label>
+          <textarea id="ns-inputs" rows="2" style="resize:vertical">${listVal('inputs_required')}</textarea></div>
+        <div class="m-field"><label>${t('modal.skill.form.allowed_tools')}</label>
+          <textarea id="ns-tools" rows="2" style="resize:vertical">${listVal('allowed_tools')}</textarea></div>
+        <details style="border:1px solid var(--border);border-radius:var(--radius);padding:10px;background:var(--bg);margin-top:4px">
+          <summary style="cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text-muted);user-select:none">${ICON.chev} ${t('modal.skill.preview')}</summary>
+          <pre id="ns-preview" style="margin:8px 0 0;font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:280px;background:var(--surface);padding:10px;border-radius:var(--radius);tab-size:2">${esc(preview)}</pre>
+        </details>
+        <div id="ns-msg" style="font-size:12px;display:none"></div>
+      </div>
+      <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
+        <button class="btn primary" data-save>${ICON.flask} ${t('modal.skill.btn.save')}</button></div>
+    </div>`;
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    const updatePreview = () => {
+      const pre = this.el.querySelector('#ns-preview');
+      if (pre) pre.textContent = this._yamlFromForm();
+    };
+    this.el.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', updatePreview));
+    this.el.querySelector('[data-save]').addEventListener('click', async () => {
+      const skill = this._gatherFormData();
+      const msg   = this.el.querySelector('#ns-msg');
+      if (!skill.id || !skill.name || !skill.description) {
+        msg.textContent = 'ID, Name and Description are required.';
+        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+      }
+      const btn = this.el.querySelector('[data-save]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/skills', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(skill),
+        });
+        if (res.ok) { this.close(); await App.fetchSkills(); App.rerender(); }
+        else { const e = await res.json(); msg.textContent = e.error || t('modal.skill.err.save'); msg.style.color = 'var(--error)'; msg.style.display = ''; btn.disabled = false; }
+      } catch { msg.textContent = t('common.conn.error'); msg.style.color = 'var(--error)'; msg.style.display = ''; btn.disabled = false; }
+    });
+  },
+
+  _gatherFormData() {
+    const g = (id) => (this.el.querySelector(id)?.value || '').trim();
+    const gl = (id) => g(id).split('\n').map(s => s.trim()).filter(Boolean);
+    const targets = [];
+    if (this.el.querySelector('#ns-t-claude')?.checked) targets.push('claude');
+    if (this.el.querySelector('#ns-t-cursor')?.checked) targets.push('cursor');
+    if (this.el.querySelector('#ns-t-openai')?.checked) targets.push('openai');
+    return {
+      id: g('#ns-id'), version: g('#ns-version') || '1.0.0', name: g('#ns-name'),
+      description: g('#ns-desc'), targets, instructions: g('#ns-instructions'),
+      when_to_use: gl('#ns-when'), anti_patterns: gl('#ns-anti'),
+      verifiers: gl('#ns-verifiers'), inputs_required: gl('#ns-inputs'),
+      allowed_tools: gl('#ns-tools'),
+    };
+  },
+
+  _yamlFromForm(seed) {
+    const d = seed || this._gatherFormData();
+    if (!d) return '';
+    const lines = [];
+    const pushArr = (k, arr) => { if (arr && arr.length) { lines.push(k + ':'); arr.forEach(v => lines.push('  - ' + v)); } };
+    const pushStr = (k, v) => { if (v) { if (v.includes('\n')) { lines.push(k + ': |'); v.split('\n').forEach(l => lines.push('  ' + l)); } else { lines.push(k + ': ' + v); } } };
+    pushStr('id', d.id); pushStr('version', d.version);
+    pushStr('name', d.name); pushStr('description', d.description);
+    pushArr('targets', d.targets); pushStr('instructions', d.instructions);
+    pushArr('when_to_use', d.when_to_use); pushArr('anti_patterns', d.anti_patterns);
+    pushArr('verifiers', d.verifiers); pushArr('inputs_required', d.inputs_required);
+    pushArr('allowed_tools', d.allowed_tools);
+    return lines.join('\n');
+  },
+
+  // ── Bloque E: Import Skill modal (URL + YAML paste + preview + conflict) ──
+  openImportSkill() {
+    this._importSkill = null;
+    this._importTab = 'url';
+    this._importWarnings = [];
+    this._importConflict = false;
+    this._renderImportInput();
+    requestAnimationFrame(() => this.el.classList.add('show'));
+  },
+
+  _renderImportInput() {
+    const tabUrl = this._importTab === 'url';
+    const tabYaml = this._importTab === 'yaml';
+    const urlContent = tabUrl ? (this._importUrl || '') : '';
+    const yamlContent = tabYaml ? (this._importYaml || '') : '';
+    this.el.innerHTML = `<div class="modal" style="width:560px">
+      <div class="m-head"><span style="color:var(--accent)">${ICON.inbox}</span><h3>${t('modal.import.title')}</h3>
+        <button class="btn ghost sm" data-x>${ICON.x}</button></div>
+      <div class="m-body" style="max-height:70vh;overflow-y:auto">
+        <div style="display:flex;gap:0;margin-bottom:6px;border-bottom:1px solid var(--border)">
+          <button class="btn ghost sm" data-tab="url" style="${tabUrl ? 'color:var(--accent);border-bottom:2px solid var(--accent);border-radius:0' : ''}">${t('modal.import.tab.url')}</button>
+          <button class="btn ghost sm" data-tab="yaml" style="${tabYaml ? 'color:var(--accent);border-bottom:2px solid var(--accent);border-radius:0' : ''}">${t('modal.import.tab.yaml')}</button>
+        </div>
+        <div id="import-tab-url" style="display:${tabUrl ? '' : 'none'}">
+          <div class="m-field">
+            <label>${t('modal.import.url.label')}</label>
+            <input id="imp-url" value="${esc(urlContent)}" placeholder="${t('modal.import.url.ph')}" autocomplete="off">
+          </div>
+        </div>
+        <div id="import-tab-yaml" style="display:${tabYaml ? '' : 'none'}">
+          <div class="m-field">
+            <label>${t('modal.import.yaml.label')}</label>
+            <textarea id="imp-yaml" rows="8" placeholder="${t('modal.import.yaml.ph')}" style="resize:vertical;font-family:var(--mono);font-size:12px">${esc(yamlContent)}</textarea>
+          </div>
+        </div>
+        <div id="imp-msg" style="font-size:12px;display:none"></div>
+      </div>
+      <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
+        <button class="btn primary" data-validate>${ICON.search} ${tabUrl ? t('modal.import.btn.fetch') : t('modal.import.btn.validate')}</button></div>
+    </div>`;
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    this.el.querySelectorAll('[data-tab]').forEach(b => {
+      b.addEventListener('click', () => {
+        this._importTab = b.dataset.tab;
+        this._renderImportInput();
+      });
+    });
+    this.el.querySelector('[data-validate]').addEventListener('click', async () => {
+      const msg = this.el.querySelector('#imp-msg');
+      const url = this.el.querySelector('#imp-url')?.value?.trim();
+      const yaml = this.el.querySelector('#imp-yaml')?.value?.trim();
+      const isUrl = this._importTab === 'url';
+      if (isUrl) { this._importUrl = url; this._importYaml = ''; }
+      else { this._importYaml = yaml; this._importUrl = ''; }
+      if (!url && !yaml) {
+        msg.textContent = t('modal.import.err.required');
+        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+      }
+      const btn = this.el.querySelector('[data-validate]');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${t('common.loading')}`;
+      msg.style.display = 'none';
+      try {
+        const res = await fetch('/api/skills/import', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(isUrl ? { type: 'url', url } : { type: 'yaml', yaml }),
+        });
+        const data = await res.json();
+        if (data.ok && data.skill) {
+          this._importSkill = data.skill;
+          this._importWarnings = data.warnings || [];
+          this._renderImportPreview();
+        } else {
+          msg.textContent = data.error || t('modal.import.err.parse');
+          msg.style.color = 'var(--error)'; msg.style.display = '';
+          btn.disabled = false;
+          btn.innerHTML = `${ICON.search} ${isUrl ? t('modal.import.btn.fetch') : t('modal.import.btn.validate')}`;
+        }
+      } catch {
+        msg.textContent = t('common.conn.error');
+        msg.style.color = 'var(--error)'; msg.style.display = '';
+        btn.disabled = false;
+        btn.innerHTML = `${ICON.search} ${isUrl ? t('modal.import.btn.fetch') : t('modal.import.btn.validate')}`;
+      }
+    });
+  },
+
+  _renderImportPreview() {
+    const s = this._importSkill || {};
+    const warnings = this._importWarnings || [];
+    const fields = [
+      { label: 'ID', val: s.id },
+      { label: t('modal.skill.form.version'), val: s.version },
+      { label: t('modal.skill.form.name'), val: s.name },
+      { label: t('modal.skill.form.description'), val: s.description },
+      { label: t('modal.skill.form.targets'), val: (s.targets || []).join(', ') },
+      { label: t('modal.skill.form.instructions'), val: s.instructions },
+      { label: t('modal.skill.form.when_to_use'), val: (s.when_to_use || []).join('\n') },
+      { label: t('modal.skill.form.anti_patterns'), val: (s.anti_patterns || []).join('\n') },
+      { label: t('modal.skill.form.verifiers'), val: (s.verifiers || []).join('\n') },
+      { label: t('modal.skill.form.inputs_required'), val: (s.inputs_required || []).join('\n') },
+      { label: t('modal.skill.form.allowed_tools'), val: (s.allowed_tools || []).join('\n') },
+    ].filter(f => f.val);
+    const conflictId = this._importConflict ? this._importConflictId : '';
+    this.el.innerHTML = `<div class="modal" style="width:580px">
+      <div class="m-head"><span style="color:var(--accent)">${ICON.inbox}</span><h3>${t('modal.import.title')}</h3>
+        <button class="btn ghost sm" data-x>${ICON.x}</button></div>
+      <div class="m-body" style="max-height:65vh;overflow-y:auto">
+        ${warnings.map(w => `<div style="font-size:12px;color:var(--warning);padding:6px 10px;background:var(--warning-dim);border-radius:var(--radius);margin-bottom:6px">${esc(w)}</div>`).join('')}
+        <div style="font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px">${t('modal.import.preview')}</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:12.5px;line-height:1.6">
+          ${fields.map(f => `<div style="margin-bottom:4px"><span class="muted">${esc(f.label)}:</span> <span style="white-space:pre-wrap;word-break:break-word">${esc(f.val)}</span></div>`).join('')}
+        </div>
+        <div id="imp-conflict" style="display:${this._importConflict ? '' : 'none'};margin-top:10px;padding:10px;background:var(--warning-dim);border:1px solid var(--warning);border-radius:var(--radius)">
+          <div style="font-size:12px;color:var(--warning);margin-bottom:6px">${t('modal.import.conflict.title', esc(conflictId))}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">${t('modal.import.conflict.rename')}</span>
+            <input id="imp-rename" value="${esc(conflictId)}" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:6px 10px;font-size:13px;font-family:var(--mono)" autocomplete="off">
+          </div>
+        </div>
+        <div id="imp-msg" style="font-size:12px;display:none;margin-top:6px"></div>
+      </div>
+      <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
+        <button class="btn" data-back>${ICON.chevR} ${t('wizard.btn.back')}</button>
+        <button class="btn primary" data-import>${ICON.flask} ${t('modal.import.btn.import')}</button></div>
+    </div>`;
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    this.el.querySelector('[data-back]').addEventListener('click', () => {
+      this._renderImportInput();
+    });
+    this.el.querySelector('[data-import]').addEventListener('click', async () => {
+      const skill = { ...this._importSkill };
+      if (this._importConflict) {
+        const renamed = this.el.querySelector('#imp-rename')?.value?.trim();
+        if (renamed) skill.id = renamed;
+      }
+      const msg = this.el.querySelector('#imp-msg');
+      const btn = this.el.querySelector('[data-import]');
+      btn.disabled = true;
+      msg.style.display = 'none';
+      try {
+        const res = await fetch('/api/skills', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(skill),
+        });
+        if (res.ok) {
+          this.close();
+          await App.fetchSkills();
+          App.rerender();
+        } else if (res.status === 409) {
+          this._importConflict = true;
+          this._importConflictId = skill.id;
+          this._renderImportPreview();
+        } else {
+          const e = await res.json();
+          msg.textContent = e.error || t('modal.import.err.import');
+          msg.style.color = 'var(--error)'; msg.style.display = '';
+          btn.disabled = false;
+        }
+      } catch {
+        msg.textContent = t('common.conn.error');
+        msg.style.color = 'var(--error)'; msg.style.display = '';
+        btn.disabled = false;
+      }
+    });
+  },
+
   // ── E3: API key wizard ────────────────────────────────────────────────────
   openWizard() {
     this._wizStep = 1;
