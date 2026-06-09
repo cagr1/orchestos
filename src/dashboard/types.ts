@@ -234,6 +234,32 @@ export interface ApiKeyValidationResponse {
   error?: string  // human-readable, shown directly in the wizard UI
 }
 
+// ── /api/skills ────────────────────────────────────────────────────────────────
+
+export interface SkillRow {
+  id: string
+  name: string
+  description: string
+  version: string
+  targets: string[]
+  instructionSummary: string
+}
+
+export interface SkillBuildResponse {
+  ok: boolean
+  paths: string[]
+  skillId: string
+}
+
+// ── /api/skills/curate ────────────────────────────────────────────────────────
+
+export interface SkillCurateResponse {
+  ok: boolean
+  skill?: Record<string, unknown>  // partial SkillDef — not yet saved
+  error?: string
+  iterations: number               // how many LLM calls were needed (1-3)
+}
+
 // ── mutations ─────────────────────────────────────────────────────────────────
 
 export interface MutationResult {

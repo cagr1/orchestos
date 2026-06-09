@@ -560,6 +560,54 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
 .chat-attach-name { font-weight: 600; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-attach-preview { flex: 1; color: var(--text-faint); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ---------- SKILLS VIEW ---------- */
+.skills-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px; margin-top: 16px;
+}
+.skill-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  transition: border-color .15s;
+}
+.skill-card:hover { border-color: var(--accent-dim); }
+.skill-card-main {
+  padding: 14px 16px; cursor: pointer;
+}
+.skill-card-name {
+  font-size: 15px; font-weight: 600; color: var(--text);
+  margin-bottom: 4px;
+}
+.skill-card-desc {
+  font-size: 12.5px; color: var(--text-muted); line-height: 1.45;
+  margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.skill-card-targets { display: flex; gap: 4px; flex-wrap: wrap; }
+.skill-card-actions {
+  display: flex; gap: 4px; padding: 8px 12px;
+  border-top: 1px solid var(--border); flex-wrap: wrap;
+}
+.skill-card-actions .btn { font-size: 11px; }
+.skill-card-confirm {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-top: 1px solid var(--border);
+  background: var(--warning-dim);
+}
+.skill-card-msg {
+  font-size: 12px; padding: 6px 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- NAV COUNT BADGE ---------- */
+.nav-count-badge {
+  position: absolute; top: -2px; right: -2px;
+  background: var(--accent); color: #fff; font-size: 9px; font-weight: 700;
+  min-width: 15px; height: 15px; display: grid; place-items: center;
+  border-radius: 999px; padding: 0 4px; line-height: 1;
+  font-family: var(--mono);
+}
+
 /* instinct state badge — wider for human text */
 .instinct-state { max-width: 220px; white-space: nowrap; font-size: 11px; }
 

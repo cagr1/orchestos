@@ -767,3 +767,154 @@ SCREENS.specs = {
     root.querySelector('[data-arch]')?.addEventListener('click', () => { st.archOpen = !st.archOpen; App.rerender(); });
   },
 };
+
+/* ============================================================
+   SKILLS
+   ============================================================ */
+SCREENS.skills = {
+  render(st) {
+    const head = `<div class="screen-head">
+      <div class="lead"><h1>${t('skills.title')}</h1><p>${t('skills.subtitle')}</p></div>
+      <div class="tools">
+        <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
+        <button class="btn primary" data-act="new-skill">${ICON.plus} ${t('skills.btn.new')}</button>
+        <button class="btn" data-act="import-skill">${ICON.inbox} ${t('skills.btn.import')}</button>
+      </div>
+    </div>`;
+
+    if (st.skillsStatus === 'loading')
+      return `<div class="screen">${head}${loadingState(t('skills.loading'))}</div>`;
+    if (st.skillsStatus === 'error')
+      return `<div class="screen">${head}${errorState(t('skills.err.title'), t('skills.err.body'))}</div>`;
+
+    const skills = st.skills || [];
+    if (skills.length === 0)
+      return `<div class="screen">${head}${emptyState(ICON.flask, t('skills.empty.title'), t('skills.empty.body'))}</div>`;
+
+    const cards = skills.map(s => `<div class="skill-card" data-skill="${esc(s.id)}">
+      <div class="skill-card-main" data-skill-detail="${esc(s.id)}">
+        <div class="skill-card-name">${esc(s.name)}</div>
+        <div class="skill-card-desc">${esc(s.description)}</div>
+        <div class="skill-card-targets">${s.targets.map(t2 => `<span class="badge blue square">${esc(t2)}</span>`).join('')}</div>
+      </div>
+      <div class="skill-card-actions">
+        <button class="btn ghost sm" data-act="edit-skill" data-skill="${esc(s.id)}">${ICON.settings} ${t('skills.btn.edit')}</button>
+        <button class="btn ghost sm" data-act="export-skill" data-skill="${esc(s.id)}">${ICON.inbox} ${t('skills.btn.export')}</button>
+        <button class="btn ghost sm" data-act="build-skill" data-skill="${esc(s.id)}">${ICON.play} ${t('skills.btn.build')}</button>
+        <button class="btn ghost sm" data-act="delete-skill" data-skill="${esc(s.id)}">${ICON.trash} ${t('skills.btn.delete')}</button>
+      </div>
+      <div class="skill-card-confirm" id="del-confirm-${esc(s.id)}" style="display:none">
+        <span class="muted" style="font-size:12px;flex:1">${t('skills.delete.confirm', esc(s.name))}</span>
+        <button class="btn danger sm" data-act="confirm-delete" data-skill="${esc(s.id)}">${t('skills.delete.btn')}</button>
+        <button class="btn ghost sm" data-act="cancel-delete" data-skill="${esc(s.id)}">${t('btn.cancel')}</button>
+      </div>
+      <div class="skill-card-msg" id="msg-${esc(s.id)}" style="display:none"></div>
+    </div>`).join('');
+
+    return `<div class="screen">${head}<div class="skills-grid">${cards}</div></div>`;
+  },
+
+  wire(root, st) {
+    root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
+
+    root.querySelectorAll('[data-skill-detail]').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.skillDetail;
+        const skill = st.skills.find(s => s.id === id);
+        if (skill) Modal.openSkillDetail(skill);
+      });
+    });
+
+    root.querySelectorAll('[data-act="export-skill"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        window.open(`/api/skills/${encodeURIComponent(btn.dataset.skill)}`, '_blank');
+      });
+    });
+
+    root.querySelectorAll('[data-act="build-skill"]').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.skill;
+        const msg = document.getElementById(`msg-${id}`);
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/api/skills/${encodeURIComponent(id)}/build`, { method: 'POST' });
+          const data = await res.json();
+          if (msg) {
+            msg.textContent = data.ok ? t('skills.build.ok', data.paths.join(', ')) : (data.error || t('skills.build.err'));
+            msg.style.color = data.ok ? 'var(--success)' : 'var(--error)';
+            msg.style.display = '';
+            setTimeout(() => { msg.style.display = 'none'; }, 5000);
+          }
+        } catch {
+          if (msg) { msg.textContent = t('common.conn.error'); msg.style.color = 'var(--error)'; msg.style.display = ''; }
+        } finally { btn.disabled = false; }
+      });
+    });
+
+    root.querySelectorAll('[data-act="delete-skill"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.skill;
+        const confirmEl = document.getElementById(`del-confirm-${id}`);
+        const actionsEl = btn.closest('.skill-card')?.querySelector('.skill-card-actions');
+        if (confirmEl && actionsEl) { actionsEl.style.display = 'none'; confirmEl.style.display = 'flex'; }
+      });
+    });
+
+    root.querySelectorAll('[data-act="cancel-delete"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.skill;
+        const confirmEl = document.getElementById(`del-confirm-${id}`);
+        const card = btn.closest('.skill-card');
+        if (confirmEl && card) {
+          confirmEl.style.display = 'none';
+          const actionsEl = card.querySelector('.skill-card-actions');
+          if (actionsEl) actionsEl.style.display = 'flex';
+        }
+      });
+    });
+
+    root.querySelectorAll('[data-act="confirm-delete"]').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const id = btn.dataset.skill;
+        const msg = document.getElementById(`msg-${id}`);
+        try {
+          const res = await fetch(`/api/skills/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confirm: true }),
+          });
+          if (res.ok) {
+            await App.fetchSkills();
+            App.rerender();
+          } else {
+            const err = await res.json();
+            if (msg) { msg.textContent = err.error || t('skills.delete.err'); msg.style.color = 'var(--error)'; msg.style.display = ''; }
+          }
+        } catch {
+          if (msg) { msg.textContent = t('common.conn.error'); msg.style.color = 'var(--error)'; msg.style.display = ''; }
+        }
+      });
+    });
+
+    root.querySelectorAll('[data-act="edit-skill"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.skill;
+        const skill = st.skills.find(s => s.id === id);
+        if (skill) Modal.openSkillDetail(skill);
+      });
+    });
+
+    root.querySelector('[data-act="new-skill"]')?.addEventListener('click', () => {
+      // Placeholder — will be implemented in Bloque D
+    });
+    root.querySelector('[data-act="import-skill"]')?.addEventListener('click', () => {
+      // Placeholder — will be implemented in Bloque E
+    });
+  },
+};

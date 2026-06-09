@@ -7,6 +7,7 @@ const state = {
   memScope: 'all',
   openRun: null,
   openSpec: null,
+  openSkill: null,
   openDiagnose: null,
   diagnoseCache: {},
   archOpen: false,
@@ -15,6 +16,7 @@ const state = {
   tasks: [],
   instincts: [],
   specs: [],
+  skills: [],
   memory: [],
   settings: null,
   setup: null,
@@ -24,6 +26,7 @@ const state = {
   tasksStatus: 'loading',
   instinctsStatus: 'loading',
   specsStatus: 'loading',
+  skillsStatus: 'loading',
   memoryStatus: 'loading',
   settingsStatus: 'idle',
   setupStatus: 'idle',
@@ -61,6 +64,7 @@ const NAV = [
   { id: 'memory',    icon: ICON.memory,   key: 'nav.memory',   operator: true },
   { id: 'project',   icon: ICON.project,  key: 'nav.project' },
   { id: 'instincts', icon: ICON.instinct, key: 'nav.instincts' },
+  { id: 'skills',    icon: ICON.flask,    key: 'nav.skills',   badge: true },
   { id: 'specs',     icon: ICON.specs,    key: 'nav.specs',    operator: true },
   { id: 'settings',  icon: ICON.settings, key: 'nav.settings' },
   { id: 'chat',      icon: ICON.chat,     key: 'nav.chat' },
@@ -99,6 +103,16 @@ const App = {
       state.specsStatus = 'ok';
     } catch {
       state.specsStatus = 'error';
+    }
+  },
+  async fetchSkills() {
+    try {
+      const res = await fetch('/api/skills');
+      if (!res.ok) throw new Error(res.status);
+      state.skills = await res.json();
+      state.skillsStatus = 'ok';
+    } catch {
+      state.skillsStatus = 'error';
     }
   },
   async fetchMemory() {
@@ -171,6 +185,7 @@ const App = {
       this.fetchTasks(),
       this.fetchInstincts(),
       this.fetchSpecs(),
+      this.fetchSkills(),
       this.fetchMemory(),
       this.fetchSettings(),
       this.fetchSetup(),
@@ -220,7 +235,7 @@ const App = {
     if (SCREENS.runs._timer) { clearInterval(SCREENS.runs._timer); SCREENS.runs._timer = null; }
     if (SCREENS.settings._timer) { clearInterval(SCREENS.settings._timer); SCREENS.settings._timer = null; }
     state.screen = id;
-    state.openRun = null; state.openSpec = null;
+    state.openRun = null; state.openSpec = null; state.openSkill = null;
     // lazy-load project content on first visit
     if (id === 'project') {
       const tab = state.projectTab || 'constitution';
@@ -235,6 +250,9 @@ const App = {
   syncNav() {
     document.querySelectorAll('.nav-icon').forEach(n =>
       n.classList.toggle('active', n.dataset.nav === state.screen));
+    const sc = (state.skills || []).length;
+    const badge = document.querySelector('[data-count="skills"]');
+    if (badge) badge.textContent = sc;
   },
   syncHeader() {
     const running = (state.tasks || []).some(t => t.status === 'running');
@@ -461,6 +479,35 @@ const Modal = {
         msg.style.color = 'var(--error)'; msg.style.display = '';
       } finally { btn.disabled = false; }
     });
+    requestAnimationFrame(() => this.el.classList.add('show'));
+  },
+
+  openSkillDetail(skill) {
+    const field = (label, val) => val ? `<div class="m-field"><label>${label}</label><div class="val mono" style="font-size:13px;line-height:1.5;white-space:pre-wrap">${esc(val)}</div></div>` : '';
+    const listField = (label, items) => items && items.length ? `<div class="m-field"><label>${label}</label><div class="val" style="font-size:13px">${items.map(i => `<span class="badge blue square" style="margin:2px">${esc(i)}</span>`).join(' ')}</div></div>` : '';
+    const examplesField = skill.examples && skill.examples.length ? `<div class="m-field"><label>${t('skills.detail.examples')}</label><div style="font-size:12px">${skill.examples.map(ex => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px"><b>${esc(ex.title)}</b><div class="muted" style="margin-top:4px">${esc(ex.input)}</div><div class="muted" style="margin-top:2px;color:var(--text)">→ ${esc(ex.output)}</div></div>`).join('')}</div></div>` : '';
+    const langTargets = skill.language_targets ? Object.entries(skill.language_targets).map(([lang, cfg]) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:4px"><b>${esc(lang)}</b>${cfg.verifiers ? `<div class="muted" style="margin-top:4px">${t('skills.detail.verifiers')}: ${cfg.verifiers.map(v => esc(v)).join(', ')}</div>` : ''}${cfg.anti_patterns ? `<div class="muted">${t('skills.detail.anti_patterns')}: ${cfg.anti_patterns.map(a => esc(a)).join(', ')}</div>` : ''}</div>`).join('') : '';
+    const langSection = langTargets ? `<div class="m-field"><label>${t('skills.detail.language_targets')}</label>${langTargets}</div>` : '';
+
+    this.el.innerHTML = `<div class="modal" style="width:520px;max-width:calc(100vw - 40px)">
+      <div class="m-head"><span style="color:var(--accent)">${ICON.flask}</span><h3>${esc(skill.name)} <span class="muted" style="font-weight:400;font-size:12px">v${esc(skill.version)}</span></h3>
+        <button class="btn ghost sm" data-x>${ICON.x}</button></div>
+      <div class="m-body" style="max-height:70vh;overflow-y:auto">
+        ${field(t('skills.detail.id'), skill.id)}
+        ${skill.description ? `<div class="m-field"><label>${t('skills.detail.description')}</label><div class="val" style="font-size:13px">${esc(skill.description)}</div></div>` : ''}
+        ${listField(t('skills.detail.targets'), skill.targets)}
+        ${field(t('skills.detail.instructions'), skill.instructions)}
+        ${listField(t('skills.detail.verifiers'), skill.verifiers)}
+        ${listField(t('skills.detail.when_to_use'), skill.when_to_use)}
+        ${listField(t('skills.detail.anti_patterns'), skill.anti_patterns)}
+        ${listField(t('skills.detail.inputs'), skill.inputs_required)}
+        ${listField(t('skills.detail.tools'), skill.allowed_tools)}
+        ${examplesField}
+        ${langSection}
+      </div>
+      <div class="m-foot"><button class="btn" data-x>${t('skills.detail.close')}</button></div>
+    </div>`;
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
     requestAnimationFrame(() => this.el.classList.add('show'));
   },
 
@@ -790,8 +837,9 @@ function buildNav() {
   const navItem = n => {
     if (n.operator && !isAdv) return '';
     const badge = n.operator ? '<span class="nav-adv-badge">adv</span>' : '';
+    const countBadge = n.badge ? `<span class="nav-count-badge" data-count="${n.id}">0</span>` : '';
     const cls = n.operator ? ' operator' : '';
-    return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}">${n.icon}${badge}</div>`;
+    return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}">${n.icon}${badge}${countBadge}</div>`;
   };
 
   const tipKey = isAdv ? 'nav.mode.disable' : 'nav.mode.enable';
