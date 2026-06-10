@@ -1572,7 +1572,7 @@ async function handleApiSkillsCurate(req: Request): Promise<Response> {
   )
 }
 
-async function route(req: Request, port: number): Promise<Response> {
+export async function route(req: Request, port: number): Promise<Response> {
   const url = new URL(req.url)
   const method = req.method
 

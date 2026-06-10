@@ -5,23 +5,7 @@ Backlog accionable, **ordenado por esfuerzo** (rápido → lento). De aquí sale
 - Dirección de producto y norte estratégico → [VISION.md](VISION.md)
 - Lo ya implementado → [DONE.md](DONE.md) Sección 2
 
-Reorganizado: 2026-06-04 (cierre Mes 10).
-
----
-
-## 🎯 Candidato a Mes 11 — el tema probable del próximo plan
-
-El producto ya es usable para el no-dev (Mes 10 cerrado). El siguiente eje:
-**OrchestOS como experto, no solo ejecutor** — que el producto traiga su propio criterio
-de ingeniería y permita al usuario ampliar ese criterio sin salir del dashboard.
-
-1. **Autoría de skills con curador** — el curador normaliza intención libre → `SkillDef`
-   válido (tres puertas: escribir · importar · exportar). La pantalla Skills en el dashboard.
-2. **Pack curado de skills "pro"** — absorber el criterio de ingeniería de repos como
-   mattpocock/skills y superpowers vía la puerta "importar" del curador.
-
-La narrativa: un no-dev puede crear, importar y usar skills sin abrir una terminal,
-y el agente ejecuta con criterio "pro" por defecto.
+Reorganizado: 2026-06-10 (cierre Mes 11).
 
 ---
 
@@ -34,82 +18,12 @@ _Ver DONE.md § MES 10 para el historial completo._
 
 ## 🔨 Medio — capacidad nueva acotada
 
-### Autoría de skills con orden garantizado — normalizador de intención
+### Criterio de ingeniería pro — siguiente delta de superpowers/mattpocock
 
-**El problema de Carlos**: cuando alguien quiere añadir una skill, no puede entrar como
-texto libre. Tiene que salir ordenada — qué hace, qué **no** hace, cómo actúa — en un YAML
-que se respeta. El usuario escribe la intención; el orquestador no la manda tal cual: la
-normaliza primero.
+El curador + pack "pro" (8 skills) ya está shipeado (Mes 11, ver DONE.md § MES 11). Queda
+el resto del delta identificado en [obra/superpowers](https://github.com/obra/superpowers)
+y [mattpocock/skills](https://github.com/mattpocock/skills):
 
-**Decisión de arquitectura (resuelta 2026-06-04)**: el `SkillDef` YAML propio es la fuente
-de verdad y NO se cambia — es más rígido y rico que el `.md` de esos repos (carga `verifiers`
-→ QA, `allowed_tools` → tool-policy, `language_targets` → compilador). agentskills.io se
-trata como puerto de entrada/salida en el borde, nunca como formato central. El valor de los
-repos entra como **contenido curado a este schema**, no como su formato.
-
-**Qué ya existe (no reconstruir)**: `SkillDef` ya tiene schema rico — `when_to_use`,
-`inputs_required`, `verifiers`, `anti_patterns`, `examples`, `allowed_tools`,
-`language_targets`. `skill scaffold` genera plantilla genérica por lenguaje, y el compilador
-ya exporta a 3 targets (claude/cursor/openai). El orden a nivel schema **ya está**.
-
-**El núcleo — un curador, tres puertas**: cualquier skill que entra se **normaliza al
-`SkillDef` validado antes de guardar**. Igual que un asistente que tiene su propia estructura
-para guardar lo que le escribes — no lo guarda crudo. Tres entradas, un solo pipeline de
-curación:
-
-1. **Escribir** — `orchestos skill new "<intención en lenguaje natural>"`. Un LLM convierte
-   el texto libre en `SkillDef`: deriva `name` (slug), `when_to_use` como *condiciones de
-   disparo* (no resumen del workflow), `anti_patterns` (el "qué NO hace"), pasos de acción,
-   `verifiers`. Mismo patrón que `POST /api/natural` (H1) ya hace para tareas.
-2. **Importar** — un `SKILL.md` externo (de esos repos o agentskills.io) → parser que mapea
-   frontmatter+body a los campos del `SkillDef`, el LLM completa los que el `.md` no tiene
-   (`verifiers`, `allowed_tools`, `language_targets`), y se valida. Lo que no mapee se marca,
-   no se inventa.
-3. **Exportar** — `SkillDef` → `SKILL.md` agentskills.io como 4º target del compilador
-   existente. Para compartir hacia otros harnesses.
-
-**Disciplina heredada de superpowers/mattpocock**: `description`/`when_to_use` deben ser
-*solo condiciones de disparo* ("Use when…"), nunca el workflow — así el harness sabe *cuándo*
-activar la skill sin ambigüedad.
-
-**Por qué importa**: es el puente para que un no-dev contribuya skills sin romper el contrato,
-y para absorber las skills curadas de los repos sin atarse a su formato. La curación es la
-garantía de que todo lo que entra sale ordenado y se respeta.
-
-**En el dashboard, no solo CLI (requisito, no opcional)**: si el curador vive solo en
-`orchestos skill new`, el no-dev no lo puede usar — y ese es justo el usuario objetivo. Hoy
-el dashboard **no tiene pantalla de Skills** (nav: Tasks · Runs · Memory · Instincts · Specs
-· Settings). Hace falta:
-- Pantalla **Skills**: galería de las skills actuales (reusa `skill list`) + estado.
-- **Escribir**: textarea de intención libre → preview del `SkillDef` curado, editable, antes
-  de guardar (mismo patrón de dos fases que la compose bar de Tasks, H1).
-- **Importar**: pegar un `SKILL.md` o subir archivo → preview normalizado → guardar.
-- **Exportar**: botón para bajar la skill como `SKILL.md`.
-
-Cada comando CLI del curador necesita su endpoint + superficie en el dashboard. La regla del
-proyecto: una feature para el no-dev no está hecha hasta que está en el dashboard.
-
-**Prerequisito**: `skill scaffold` ✅ + `SkillDef` validator ✅ + compilador multi-target ✅
-+ patrón `/api/natural` ✅. La puerta 2 (importar) es la que más LLM-glue necesita; la
-pantalla Skills es trabajo de dashboard nuevo (no existe aún).
-
----
-
-### Pack curado de skills de ingeniería "pro" — la herramienta como cerebro
-
-**El problema de Carlos**: si quien usa esto no tiene buenos principios de desarrollo, el
-resultado es malo. La herramienta debería *aportar* el criterio de ingeniería, no asumirlo.
-
-**Fuente**: extraído de [mattpocock/skills](https://github.com/mattpocock/skills) y
-[obra/superpowers](https://github.com/obra/superpowers) — skills de workflow de ingenieros
-que ya hacen desarrollo pro. Ambos usan el estándar emergente
-[agentskills.io](https://agentskills.io/specification) (`SKILL.md` + frontmatter), portable
-entre Claude Code/Codex/Cursor.
-
-**Qué ya tiene OrchestOS** (no duplicar): `tdd-enforcer`, `diagnose`,
-`improve-architecture`, `security-review`, `qa-structured`, `test-writer`.
-
-**Lo que vale la pena traer (delta real)**:
 1. **`brainstorming` / planning socrático** (superpowers `writing-plans` + mattpocock
    `grill-me`): refina la intención con preguntas hasta resolver todas las ramas de
    decisión *antes* de ejecutar. Es lo que más sirve al no-dev — la herramienta piensa
@@ -118,25 +32,14 @@ entre Claude Code/Codex/Cursor.
    realmente funciona antes de declarar `done`. Complementa el QA loop existente.
 3. **Par `requesting-code-review` / `receiving-code-review`** (superpowers): validación
    estructurada antes de mergear y cómo procesar feedback.
-4. **Patrón de endurecimiento de skills** (el aporte más fino de superpowers): además de
-   `anti_patterns`, añadir a las skills existentes secciones **"Iron Law"** (la regla
-   innegociable), **"Common Rationalizations"** (las excusas que el agente se dice para
-   saltarse la skill, con su refutación) y **"Red Flags"**. Esto hace que la skill se
-   *respete bajo presión* en vez de ignorarse. Es un upgrade a las 6 skills que ya existen,
-   no contenido nuevo.
+4. **Patrón de endurecimiento de skills**: además de `anti_patterns`, añadir a las skills
+   existentes secciones **"Iron Law"** (la regla innegociable), **"Common
+   Rationalizations"** (las excusas que el agente se dice para saltarse la skill, con su
+   refutación) y **"Red Flags"**. Hace que la skill se *respete bajo presión* en vez de
+   ignorarse. Es un upgrade a las skills que ya existen, no contenido nuevo — se puede
+   aplicar vía la puerta "importar" del curador (#1 ya implementado).
 
-**Lo descartado (no sirve a OrchestOS)**: skills de setup específicas de su repo
-(`setup-pre-commit`, `git-guardrails`, `migrate-to-shoehorn`, `scaffold-exercises`);
-`to-issues`/`to-prd` (GitHub-issue-céntricas — orchestos usa tasks.yaml+specs, y el
-decompose ya lo hace el planner S22/S23 + capabilities S32); `using-git-worktrees` (ya:
-S19); `dispatching-parallel-agents`/`subagent-driven-development` (paralelismo está en la
-lista prohibida a propósito); `caveman`, `handoff`, install/meta-skills.
-
-**Cómo entra el pack** (resuelto): vía la puerta 2 del curador (importar) — cada `SKILL.md`
-de los repos se normaliza al `SkillDef`. No se copia el formato, se absorbe el contenido.
-
-**Prerequisito**: schema `SkillDef` ✅ + curador (entrada anterior). El endurecimiento (#4)
-es independiente y se puede hacer ya sobre las skills actuales sin esperar al curador.
+**Prerequisito**: curador ✅ (Mes 11). Los 4 ítems son independientes entre sí.
 
 ---
 

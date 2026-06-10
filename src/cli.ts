@@ -39,6 +39,7 @@ import { suggestContext } from './graph/suggest.ts'
 import { inferEmbeddingProvider } from './providers/embeddings.ts'
 import { scaffoldSkillYaml, languageHasSkillCoverage, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
+import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
 import { listConflicts } from './db/memory.ts'
 
 // Run migrations on every boot (idempotent)
@@ -365,6 +366,8 @@ skill
     console.log(`  Edit verifiers, anti_patterns, and examples to match your project.`)
     console.log(`  Then run: orchestos skill build`)
   })
+
+registerSkillCurateImportCommands(skill)
 
 skill
   .command('languages')

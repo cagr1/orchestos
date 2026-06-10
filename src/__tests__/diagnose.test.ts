@@ -71,6 +71,7 @@ mock.module('../tasks/loader.ts', () => ({
   })),
   tasksExist: mock(() => true),
   tasksPath: mock(() => '/fake/path/tasks.yaml'),
+  saveTasks: mock(() => {}),
 }))
 
 mock.module('../db/runs.ts', () => ({

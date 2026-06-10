@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-11-activo
+status: mes-12-pendiente
 ---
 
 # OrchestOS — Plan activo
@@ -21,110 +21,9 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
 ## MES 11 — OrchestOS como experto: autoría de skills con curador
 
-Prerequisitos verificados al entrar: dashboard Mes 10 ✅ · wizard API key ✅ · toggle humano/operador ✅ · Control Center ✅ · chat con archivos ✅.
-
-Eje del mes: **el producto trae su propio criterio de ingeniería y permite al usuario ampliar ese criterio sin salir del dashboard** — tres puertas (escribir · importar · exportar) + pack "pro" absorbido vía la puerta importar.
-
-Estado actual de skills: archivos YAML en `skills/`, cargados por CLI y harness, sin superficie en dashboard. El mes añade API + pantalla + curador LLM.
-
----
-
-### Bloque A — API backend de skills (⚡)
-
-Exponer las skills como recurso REST del servidor. Fuente de verdad: archivos `skills/*.yaml`.
-
-- [x] A1 `GET /api/skills` — lee `skills/*.yaml`, valida con `validateSkill()`, devuelve lista (2026-06-09)
-- [x] A2 `GET /api/skills/:id` — devuelve un skill o 404 (2026-06-09)
-- [x] A3 `POST /api/skills` — recibe `SkillDef`, valida, escribe `skills/{id}.yaml`, rechaza duplicados (2026-06-09)
-- [x] A4 `PUT /api/skills/:id` — sobreescribe YAML existente, revalida antes de persistir (2026-06-09)
-- [x] A5 `DELETE /api/skills/:id` — borra el YAML (pide confirmación en el body: `{ confirm: true }`) (2026-06-09)
-- [x] A6 `POST /api/skills/:id/build` — ejecuta `compileSkill()`, devuelve paths de los artefactos (2026-06-09)
-
----
-
-### Bloque B — Pantalla Skills en el dashboard (⚡)
-
-Nueva vista `/skills`. Misma estructura visual que las pantallas existentes (Runs, Memory, Specs).
-
-- [x] B1 Ruta `/skills` en el nav — badge con conteo de skills (similar al badge de Runs) (2026-06-09)
-- [x] B2 Vista lista: cards con nombre, descripción, targets como badges, botones Editar/Exportar/Borrar (2026-06-09)
-- [x] B3 Modal de detalle: muestra todos los campos del `SkillDef` (instrucciones, verifiers, examples…) (2026-06-09)
-- [x] B4 Confirmación de borrado inline (no prompt del browser) (2026-06-09)
-- [x] B5 Botones flotantes "Nueva skill" e "Importar" en la cabecera de la vista (2026-06-09)
-
----
-
-### Bloque C — Curador LLM (🧠)
-
-Servicio que transforma texto libre del usuario en un `SkillDef` válido. Núcleo del mes.
-
-- [x] C1 Diseño del system prompt del curador: extrae `id`, `name`, `description`, `instructions`, `targets`, `when_to_use`, `anti_patterns`, `verifiers` desde lenguaje natural (2026-06-09)
-- [x] C2 `POST /api/skills/curate` — recibe `{ text: string }`, llama al LLM (Haiku), devuelve `SkillDef` parcial sin guardar (2026-06-09)
-- [x] C3 Gate de validación: si el output no pasa `validateSkill()`, el curador itera hasta 2 veces antes de devolver error (2026-06-09)
-- [x] C4 🔍 Review calidad: probar con 5 descripciones distintas (técnica, vaga, en español, en inglés, multi-paso) — el output debe ser útil sin edición manual (2026-06-09) — 5/5 útil sin editar, iter=1 en todos, encoding UTF-8 correcto
-
----
-
-### Bloque D — Puerta Escribir (⚡)
-
-Modal "Nueva skill" con asistencia del curador.
-
-- [x] D1 Campo textarea "Describe tu skill en lenguaje natural" + botón "Curar con IA" (2026-06-09)
-- [x] D2 Al curar: pre-rellena formulario con los campos generados (editables por el usuario) (2026-06-09)
-- [x] D3 Preview del YAML resultante antes de guardar (2026-06-09)
-- [x] D4 Botón "Guardar" → llama `POST /api/skills`, cierra modal, refresca lista (2026-06-09)
-
----
-
-### Bloque E — Puerta Importar (⚡)
-
-Modal con dos sub-tabs: URL y YAML pegado.
-
-- [x] E1 Sub-tab URL: campo de URL → el servidor hace fetch del YAML crudo → valida/normaliza con curador si hay campos faltantes → preview (2026-06-09)
-- [x] E2 Sub-tab YAML: textarea de paste directo → `validateSkill()` → curador normaliza si falla → preview (2026-06-09)
-- [x] E3 Preview compartido: muestra campos del `SkillDef` y cualquier warning de normalización (2026-06-09)
-- [x] E4 Botón "Importar" → llama `POST /api/skills`, maneja conflicto de id (ofrece renombrar) (2026-06-09)
-
----
-
-### Bloque F — Puerta Exportar (⚡)
-
-Exportación desde cada skill card.
-
-- [x] F1 Botón "Exportar YAML" en el card → `GET /api/skills/:id/export` → download del `.yaml` con nombre `{id}.yaml` (2026-06-09)
-- [x] F2 Botón "Copiar YAML" → clipboard (mismo contenido que F1) (2026-06-09)
-- [x] F3 `GET /api/skills/:id/export` — endpoint que devuelve el YAML con `Content-Disposition: attachment` (2026-06-09)
-
----
-
-### Bloque G — Pack "pro" de ingeniería (🧠)
-
-Skills curados listos para importar con un click. Absorbido vía la puerta Importar.
-
-- [x] G1 Selección y escritura de 8 skills "pro": `code-review`, `refactor-guided`, `pr-description`, `bug-hypothesis`, `api-contract`, `db-migration-safe`, `perf-profile`, `doc-gen` (2026-06-10)
-- [x] G2 Cada skill validado con `validateSkill()` y probado en una tarea real antes de incluir (2026-06-10) — 8/8 OK
-- [x] G3 Sección "Skills recomendados" en la pantalla Skills — lista con descripción y botón "Importar" (2026-06-10)
-- [x] G4 Los YAMLs del pack viven en `skills/pro/` (no en `skills/` para evitar conflictos con los del usuario) (2026-06-10) — `listSkillFiles()` no recorre subdirectorios, sin colisión
-- [x] G5 🔍 Review del pack (2026-06-10) — endpoints `/api/skills/pro` y `/api/skills/pro/:id/import` probados (list, import, conflicto 409); `code-review` importado y ejecutado en `run --dry-run`, guidelines inyectadas correctamente en el system prompt; 369 tests · 0 fail · tsc sin errores
-
----
-
-### Bloque H — CLI: curate e import (⚡)
-
-Paridad CLI del curador e importación.
-
-- [ ] H1 `orchestos skill curate "<descripción>"` — llama al curador vía API, imprime YAML draft. Flag `--save` guarda directamente
-- [ ] H2 `orchestos skill import <url>` — fetch + normalización + guarda en `skills/`. Reusa el endpoint E1
-- [ ] H3 Tests unitarios de los nuevos comandos CLI (mock de la API)
-
----
-
-### Bloque I — Tests y cierre (⚡ + 🔍)
-
-- [ ] I1 Unit tests del curador con respuestas LLM mockeadas (happy path + output malformado + timeout)
-- [ ] I2 Integration tests de los endpoints A1–A6, F3 y `/api/skills/curate`
-- [ ] I3 Contador de tests ≥ 380 · 0 fail
-- [ ] I4 🔍 Gate final: smoke completo en dashboard — tres puertas funcionando, pack visible, exportar descarga, CLI curate produce YAML válido. Actualizar DONE.md · PLAN.md · IDEAS.md antes de cerrar.
+- [x] **SÍ — Mes 11 cerrado (2026-06-10)**
+  Curador LLM (`/api/skills/curate`, retry hasta 2 veces) + pantalla Skills con tres puertas (escribir · importar · exportar) + pack "pro" de 8 skills de ingeniería en `skills/pro/` importables con un click + paridad CLI (`skill curate`/`skill import`). 402 tests · 0 fail.
+  Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
