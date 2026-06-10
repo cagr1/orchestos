@@ -17,6 +17,7 @@ const state = {
   instincts: [],
   specs: [],
   skills: [],
+  proSkills: [],
   memory: [],
   settings: null,
   setup: null,
@@ -27,6 +28,7 @@ const state = {
   instinctsStatus: 'loading',
   specsStatus: 'loading',
   skillsStatus: 'loading',
+  proSkillsStatus: 'loading',
   memoryStatus: 'loading',
   settingsStatus: 'idle',
   setupStatus: 'idle',
@@ -115,6 +117,16 @@ const App = {
       state.skillsStatus = 'error';
     }
   },
+  async fetchProSkills() {
+    try {
+      const res = await fetch('/api/skills/pro');
+      if (!res.ok) throw new Error(res.status);
+      state.proSkills = await res.json();
+      state.proSkillsStatus = 'ok';
+    } catch {
+      state.proSkillsStatus = 'error';
+    }
+  },
   async fetchMemory() {
     try {
       const res = await fetch('/api/memory');
@@ -186,6 +198,7 @@ const App = {
       this.fetchInstincts(),
       this.fetchSpecs(),
       this.fetchSkills(),
+      this.fetchProSkills(),
       this.fetchMemory(),
       this.fetchSettings(),
       this.fetchSetup(),

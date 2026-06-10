@@ -80,3 +80,19 @@ export function listSkillFiles(): string[] {
 export function getSkillPath(id: string): string {
   return join(getSkillsDir(), `${id}.yaml`)
 }
+
+function getProSkillsDir(): string {
+  return join(getSkillsDir(), 'pro')
+}
+
+export function listProSkillFiles(): string[] {
+  const dir = getProSkillsDir()
+  if (!existsSync(dir)) return []
+  return readdirSync(dir)
+    .filter(f => f.endsWith('.yaml') || f.endsWith('.yml'))
+    .map(f => join(dir, f))
+}
+
+export function getProSkillPath(id: string): string {
+  return join(getProSkillsDir(), `${id}.yaml`)
+}

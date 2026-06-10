@@ -251,6 +251,16 @@ export interface SkillBuildResponse {
   skillId: string
 }
 
+// ── /api/skills/pro ──────────────────────────────────────────────────────────
+
+export interface SkillProRow {
+  id: string
+  name: string
+  description: string
+  targets: string[]
+  imported: boolean  // true if already present in skills/
+}
+
 // ── /api/skills/curate ────────────────────────────────────────────────────────
 
 export interface SkillCurateResponse {

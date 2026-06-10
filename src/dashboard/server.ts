@@ -13,7 +13,7 @@ import { listSpecs } from '../spec/store.ts'
 import { lintSpec } from '../spec/lint.ts'
 import { parseCostBreakdownJson } from '../run/transcript-parser.ts'
 import type { MemoryEntry } from '../db/memory.ts'
-import { loadSkill, listSkillFiles, validateSkill, getSkillPath, type SkillDef } from '../skills/registry.ts'
+import { loadSkill, listSkillFiles, listProSkillFiles, validateSkill, getSkillPath, getProSkillPath, type SkillDef } from '../skills/registry.ts'
 import { compileSkill } from '../skills/compile.ts'
 import { parse, stringify } from 'yaml'
 import {
@@ -30,6 +30,7 @@ import {
   type HealthRecentLearning,
   type SkillRow,
   type SkillBuildResponse,
+  type SkillProRow,
   type SkillCurateResponse,
   type SkillImportResponse,
   type MutationResult,
@@ -1317,6 +1318,52 @@ function handleApiSkillsBuild(url: URL): Response {
   }
 }
 
+// ── G3-G4: Pro skills pack (skills/pro/) ────────────────────────────────────
+
+function handleApiSkillsProList(): Response {
+  try {
+    const files = listProSkillFiles()
+    const skills: SkillProRow[] = []
+    for (const f of files) {
+      try {
+        const s = loadSkill(f)
+        skills.push({
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          targets: [...s.targets],
+          imported: existsSync(getSkillPath(s.id)),
+        })
+      } catch {
+        // skip invalid skill files
+      }
+    }
+    return jsonResponse(skills)
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
+function handleApiSkillsProImport(url: URL): Response {
+  const m = url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+  const proPath = getProSkillPath(id)
+  if (!existsSync(proPath)) return errorResponse('Pro skill not found', 404)
+
+  const targetPath = getSkillPath(id)
+  if (existsSync(targetPath)) return errorResponse('Skill already exists', 409)
+
+  try {
+    const skill = loadSkill(proPath)
+    const yaml = stringify(skill, { lineWidth: 120 })
+    writeFileSync(targetPath, yaml, 'utf-8')
+    return jsonResponse({ ok: true, id } satisfies MutationResult)
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
 // ── C1: Curator system prompt ────────────────────────────────────────────────
 
 const CURATOR_SYSTEM = `You are a skill curator for OrchestOS, an AI agent orchestration system.
@@ -1569,6 +1616,9 @@ async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/skills') {
     return handleApiSkillsList()
   }
+  if (method === 'GET' && url.pathname === '/api/skills/pro') {
+    return handleApiSkillsProList()
+  }
   if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
     return handleApiSkillsGet(url)
   }
@@ -1592,6 +1642,9 @@ async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname === '/api/skills/import') {
     return handleApiSkillsImport(req)
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)) {
+    return handleApiSkillsProImport(url)
   }
 
   if (method === 'GET' && url.pathname === '/api/project/constitution') {

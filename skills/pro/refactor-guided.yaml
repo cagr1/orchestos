@@ -1,0 +1,67 @@
+id: refactor-guided
+version: 1.0.0
+name: Refactor Guided
+description: Refactors code in small, reversible steps while keeping tests green at every step.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+  - edit
+when_to_use:
+  - When asked to "clean up" or "refactor" code without changing behavior
+  - When a function or file has grown too large or hard to follow
+  - Before adding a feature to code that is too tangled to extend safely
+inputs_required:
+  - The file(s) or function to refactor
+  - A passing test suite covering the current behavior (or a note that none exists)
+instructions: |
+  Refactoring changes structure, not behavior. If behavior needs to change,
+  that is a separate task — do it after this one, in a separate commit.
+
+  **Step 0 — Safety net**
+  Run the existing tests. If none cover this code, write characterization
+  tests first that capture current behavior (even if that behavior looks
+  wrong — fixing it is out of scope for a refactor).
+
+  **Step 1 — Pick ONE smell**
+  Choose the single most impactful issue: long function, duplicated logic,
+  deep nesting, a class doing too much, or a misleading name. Do not try to
+  fix everything at once.
+
+  **Step 2 — Apply ONE catalog refactoring**
+  Use a named refactoring (Extract Function, Extract Variable, Inline Function,
+  Replace Conditional with Polymorphism, Introduce Parameter Object, etc.).
+  Apply it as a single mechanical step.
+
+  **Step 3 — Run tests**
+  Run the full test suite after every single step. If it fails, undo the
+  step and try a smaller version of it. Never proceed on red.
+
+  **Step 4 — Repeat or stop**
+  If there are more high-value smells, go back to Step 1. Otherwise stop —
+  a refactor does not need to reach "perfect," just measurably better.
+
+  **Output**
+  After each step, state: which refactoring was applied, which file/lines
+  changed, and the test result (pass/fail with count).
+anti_patterns:
+  - Combine a refactor with a behavior change in the same step
+  - Rename, extract, and restructure all in one large diff
+  - Skip running tests "because the change is obviously safe"
+  - Refactor code that has no test coverage without first adding characterization tests
+  - Introduce a new abstraction (interface, base class) for a single use case
+verifiers:
+  - Test suite passes after every individual step
+  - Each step corresponds to exactly one named refactoring
+  - No behavior change is mixed into the refactor commit
+  - Public API signatures are unchanged unless explicitly in scope
+examples:
+  - title: Long function with mixed concerns
+    input: "A 120-line function that validates input, queries the DB, and formats the response"
+    output: "Step 1: smell = long function doing 3 things. Step 2: Extract Function -> validateOrderInput(), extract lines 4-22. Step 3: ran tests, 14/14 pass. Repeat: Extract Function -> formatOrderResponse(), lines 95-118. Tests: 14/14 pass."
+  - title: Deeply nested conditionals
+    input: "if (user) { if (user.active) { if (user.role === 'admin') { ... } } }"
+    output: "Step 1: smell = arrow code, 3 levels of nesting. Step 2: Replace Nested Conditional with Guard Clauses -> early-return for !user, !user.active, role !== 'admin'. Step 3: tests pass 8/8."

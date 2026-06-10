@@ -812,7 +812,28 @@ SCREENS.skills = {
       <div class="skill-card-msg" id="msg-${esc(s.id)}" style="display:none"></div>
     </div>`).join('');
 
-    return `<div class="screen">${head}<div class="skills-grid">${cards}</div></div>`;
+    const proSkills = st.proSkills || [];
+    const proSection = proSkills.length === 0 ? '' : `
+      <div class="skills-pro-section">
+        <div class="screen-head" style="margin-top:24px">
+          <div class="lead"><h2>${t('skills.pro.title')}</h2><p>${t('skills.pro.subtitle')}</p></div>
+        </div>
+        <div class="skills-grid">${proSkills.map(s => `<div class="skill-card" data-pro-skill="${esc(s.id)}">
+          <div class="skill-card-main">
+            <div class="skill-card-name">${esc(s.name)} <span class="badge gray square">pro</span></div>
+            <div class="skill-card-desc">${esc(s.description)}</div>
+            <div class="skill-card-targets">${s.targets.map(t2 => `<span class="badge blue square">${esc(t2)}</span>`).join('')}</div>
+          </div>
+          <div class="skill-card-actions">
+            ${s.imported
+              ? `<button class="btn ghost sm" disabled>${ICON.check} ${t('skills.pro.imported')}</button>`
+              : `<button class="btn primary sm" data-act="import-pro-skill" data-skill="${esc(s.id)}">${ICON.inbox} ${t('skills.pro.btn.import')}</button>`}
+          </div>
+          <div class="skill-card-msg" id="msg-pro-${esc(s.id)}" style="display:none"></div>
+        </div>`).join('')}</div>
+      </div>`;
+
+    return `<div class="screen">${head}<div class="skills-grid">${cards}</div>${proSection}</div>`;
   },
 
   wire(root, st) {
@@ -938,6 +959,30 @@ SCREENS.skills = {
     });
     root.querySelector('[data-act="import-skill"]')?.addEventListener('click', () => {
       Modal.openImportSkill();
+    });
+
+    root.querySelectorAll('[data-act="import-pro-skill"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.skill;
+        const msg = document.getElementById(`msg-pro-${id}`);
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/api/skills/pro/${encodeURIComponent(id)}/import`, { method: 'POST' });
+          const data = await res.json();
+          if (res.ok && data.ok) {
+            await Promise.all([App.fetchSkills(), App.fetchProSkills()]);
+            App.rerender();
+          } else if (msg) {
+            msg.textContent = data.error || t('skills.pro.err');
+            msg.style.color = 'var(--error)';
+            msg.style.display = '';
+            btn.disabled = false;
+          }
+        } catch {
+          if (msg) { msg.textContent = t('common.conn.error'); msg.style.color = 'var(--error)'; msg.style.display = ''; }
+          btn.disabled = false;
+        }
+      });
     });
   },
 };

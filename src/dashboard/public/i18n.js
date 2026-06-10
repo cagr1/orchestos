@@ -328,6 +328,14 @@ const I18N = {
     'skills.build.err':          'Build failed.',
     'skills.export.dl':          'Download YAML',
 
+    /* ── Pro pack — recommended skills (Bloque G) ──────────── */
+    'skills.pro.title':       'Recommended skills',
+    'skills.pro.subtitle':    'Curated engineering skills, ready to import with one click.',
+    'skills.pro.btn.import':  'Import',
+    'skills.pro.imported':    'Imported',
+    'skills.pro.err':         'Import failed.',
+    'skills.pro.loading':     'Loading recommended skills…',
+
     /* ── New Skill modal (Bloque D) ──────────── */
     'modal.skill.title':          'New Skill',
     'modal.skill.textarea.label': 'Describe your skill in natural language',
@@ -750,6 +758,14 @@ const I18N = {
     'skills.build.ok':           'Compilado: {0}',
     'skills.build.err':          'Error al compilar.',
     'skills.export.dl':          'Descargar YAML',
+
+    /* ── Pack pro — skills recomendados (Bloque G) ──────────── */
+    'skills.pro.title':       'Skills recomendados',
+    'skills.pro.subtitle':    'Skills de ingeniería curados, listos para importar con un click.',
+    'skills.pro.btn.import':  'Importar',
+    'skills.pro.imported':    'Importado',
+    'skills.pro.err':         'Error al importar.',
+    'skills.pro.loading':     'Cargando skills recomendados…',
 
     /* ── New Skill modal (Bloque D) ──────────── */
     'modal.skill.title':          'Nuevo Skill',

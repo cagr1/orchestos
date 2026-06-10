@@ -1,0 +1,65 @@
+id: code-review
+version: 1.0.0
+name: Code Review
+description: Reviews a diff for correctness, design, readability, and test coverage — not just style.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+when_to_use:
+  - Before merging a pull request or feature branch
+  - When asked to review someone else's changes
+  - After finishing a non-trivial change, as a self-review pass
+inputs_required:
+  - The diff or list of changed files
+  - Context on what the change is supposed to do
+instructions: |
+  Review the diff in four passes, in this order. Do not skip a pass even if
+  the first one looks clean — issues compound across categories.
+
+  **Pass 1 — Correctness**
+  - Does the code do what the description says it does?
+  - Trace each new branch and edge case: empty input, null/undefined, zero,
+    max values, concurrent calls.
+  - Check off-by-one errors in loops and slices.
+  - Verify error paths actually handle the error (not swallow it silently).
+
+  **Pass 2 — Design**
+  - Is the change in the right place? (e.g. business logic in a route handler
+    that should live in a service)
+  - Is there duplicated logic that already exists elsewhere in the codebase?
+  - Are new abstractions justified by current need, not speculative?
+  - Do public function/type signatures make illegal states unrepresentable?
+
+  **Pass 3 — Tests**
+  - Does every new branch have a corresponding test?
+  - Do tests assert behavior, not implementation details (mocks calling mocks)?
+  - Is there at least one test for the failure/error path?
+
+  **Pass 4 — Readability**
+  - Can a new team member understand this in one read, without asking questions?
+  - Are names accurate (no `data`, `temp`, `handleStuff`)?
+  - Are comments explaining WHY, not WHAT (the code already says what)?
+
+  **Output format**
+  Group findings by pass. For each finding give: file:line, severity
+  (blocking / suggestion / nit), and a one-line fix recommendation.
+  End with a verdict: APPROVE, APPROVE WITH SUGGESTIONS, or REQUEST CHANGES.
+anti_patterns:
+  - Approve based on Pass 4 (readability) alone without checking correctness
+  - Flag style preferences as blocking when the codebase has no convention for it
+  - Request changes without giving a concrete fix recommendation
+  - Review a diff without reading the surrounding unchanged code for context
+verifiers:
+  - Every blocking finding has a file:line reference
+  - Every new branch in the diff is covered by a test or explicitly flagged as untested
+  - The verdict matches the severity of the findings (no REQUEST CHANGES with only nits)
+examples:
+  - title: Missing error path test
+    input: "New function fetchUser(id) that throws if the API returns 404, but no test covers that case"
+    output: "Pass 3 (Tests) | file:src/api/user.ts:22 | severity: blocking | finding: fetchUser's 404 branch has no test | fix: add a test that mocks a 404 response and asserts the thrown error type"
+  - title: Misplaced business logic
+    input: "A discount calculation written inline inside the Express route handler"
+    output: "Pass 2 (Design) | file:src/routes/checkout.ts:41 | severity: suggestion | finding: discount calculation belongs in a pricing service, not the route handler | fix: extract to src/services/pricing.ts so it can be unit tested without HTTP"
