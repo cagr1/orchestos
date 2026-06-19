@@ -48,7 +48,7 @@ Hoy los 402 tests solo corren si Carlos se acuerda. No hay nada que impida commi
 - [x] B1 GitHub Actions (⚡) — `.github/workflows/ci.yml`: en push y PR a `master`, instalar Bun, `bun install`, `bun test`, `bun run typecheck`. Que falle el workflow si cualquiera falla.
 - [x] B2 Pre-commit hook (⚡) — hook local (`.git/hooks/pre-commit` o script en `scripts/` documentado en CLAUDE.md) que corra `tsc --noEmit` antes de cada commit. Barato y bloquea commits que no tipan. NO usar `--no-verify` para saltarlo.
 - [x] B3 Activar `noUnusedLocals` y `noUnusedParameters` en tsconfig (⚡) — limpiar el código muerto que aparezca. Si algún unused es intencional, prefijar con `_`. Cierra el hueco de calidad que hoy deja pasar código sin uso.
-- [ ] B4 🔍 Gate: abrir un PR de prueba con un test roto a propósito y confirmar que CI lo bloquea; revertir.
+- [x] B4 🔍 Gate: abrir un PR de prueba con un test roto a propósito y confirmar que CI lo bloquea; revertir. (2026-06-19) — PR #2 bloqueado por CI en 10s (`ci fail`). Rama eliminada, master limpio: 421 pass · 0 fail.
 
 ---
 
