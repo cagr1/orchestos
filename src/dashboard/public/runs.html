@@ -45,6 +45,7 @@
   <tbody id="runs-body"></tbody>
 </table>
 <script>
+function esc(s) { return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
 async function load() {
   try {
     const res = await fetch('/api/runs')
@@ -59,14 +60,14 @@ async function load() {
     table.style.display = ''
 
     for (const r of runs) {
-      const statusBadge = `<span class="badge badge-${r.status}">${r.status}</span>`
-      const qaInfo = r.qaVerdict ? ` [qa:${r.qaVerdict}]` : ''
+      const statusBadge = `<span class="badge badge-${esc(r.status)}">${esc(r.status)}</span>`
+      const qaInfo = r.qaVerdict ? ` [qa:${esc(r.qaVerdict)}]` : ''
 
       let breakdownHtml = ''
       if (r.costBreakdown && r.costBreakdown.length > 1) {
         breakdownHtml = '<div class="cost-breakdown">'
         for (const e of r.costBreakdown) {
-          breakdownHtml += `${e.label}: ${e.inputTokens}/${e.outputTokens} $${e.costUsd.toFixed(6)}<br>`
+          breakdownHtml += `${esc(e.label)}: ${e.inputTokens}/${e.outputTokens} $${e.costUsd.toFixed(6)}<br>`
         }
         breakdownHtml += '</div>'
       }
@@ -75,7 +76,7 @@ async function load() {
       if (r.contextWarnings && r.contextWarnings.length > 0) {
         warningsHtml = '<div class="warnings">'
         for (const w of r.contextWarnings) {
-          warningsHtml += `[${w.severity}] ${w.code}: ${w.message}<br>`
+          warningsHtml += `[${esc(w.severity)}] ${esc(w.code)}: ${esc(w.message)}<br>`
         }
         warningsHtml += '</div>'
       }
@@ -83,14 +84,14 @@ async function load() {
       const tr = document.createElement('tr')
       tr.innerHTML = `
         <td>${statusBadge}${qaInfo}</td>
-        <td class="mono">${r.taskId ?? '-'}</td>
-        <td>${r.model}</td>
+        <td class="mono">${esc(r.taskId ?? '-')}</td>
+        <td>${esc(r.model)}</td>
         <td class="mono">${r.inputTokens}</td>
         <td class="mono">${r.outputTokens}</td>
         <td class="mono" style="text-align:right">$${r.costUsd.toFixed(6)}</td>
         <td>${breakdownHtml || '<span style="color:#8b949e">single agent</span>'}</td>
         <td>${warningsHtml || '<span style="color:#8b949e">none</span>'}</td>
-        <td class="mono">${r.createdAt.slice(0, 19)}</td>
+        <td class="mono">${esc(r.createdAt ? r.createdAt.slice(0, 19) : '')}</td>
       `
       tbody.appendChild(tr)
     }

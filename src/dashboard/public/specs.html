@@ -56,6 +56,7 @@
   <tbody id="specs-body"></tbody>
 </table>
 <script>
+function esc(s) { return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
 async function load() {
   try {
     const res = await fetch('/api/specs')
@@ -79,23 +80,23 @@ async function load() {
     tbody.innerHTML = ''
 
     for (const s of specs) {
-      const statusBadge = `<span class="badge badge-${s.status}">${s.status}</span>`
-      const clarifyBadge = `<span class="badge badge-${s.clarify}">${s.clarify}</span>`
-      const lintBadge = `<span class="badge badge-${s.lintStatus}">${s.lintStatus}</span>`
+      const statusBadge = `<span class="badge badge-${esc(s.status)}">${esc(s.status)}</span>`
+      const clarifyBadge = `<span class="badge badge-${esc(s.clarify)}">${esc(s.clarify)}</span>`
+      const lintBadge = `<span class="badge badge-${esc(s.lintStatus)}">${esc(s.lintStatus)}</span>`
       const capsBadge = s.hasCapabilities
         ? '<span class="badge badge-yes">yes</span>'
         : '<span class="badge badge-no">no</span>'
 
       const tr = document.createElement('tr')
       tr.innerHTML = `
-        <td class="mono">${s.id}</td>
+        <td class="mono">${esc(s.id)}</td>
         <td>${statusBadge}</td>
         <td>${clarifyBadge}</td>
         <td>${lintBadge}</td>
         <td class="mono">${s.lintFindings}</td>
         <td class="mono">${s.deltaIssues}</td>
         <td>${capsBadge}</td>
-        <td class="mono">${s.createdAt.slice(0, 10)}</td>
+        <td class="mono">${esc(s.createdAt ? s.createdAt.slice(0, 10) : '')}</td>
       `
       tbody.appendChild(tr)
     }

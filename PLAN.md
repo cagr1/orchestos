@@ -56,8 +56,8 @@ Hoy los 402 tests solo corren si Carlos se acuerda. No hay nada que impida commi
 
 ~30 usos de `innerHTML` en el front y un solo helper `esc()` ([src/dashboard/public/data.js:41](src/dashboard/public/data.js:41)) sin uso garantizado. Vector real: un skill importado desde URL externa con `<script>` en `name`/`description` se ejecutaría al renderizar la galería.
 
-- [ ] C1 Auditar los `innerHTML` que renderizan datos dinámicos (⚡) — todo lo que venga de skills, tareas, memoria, instincts o contenido importado pasa por `esc()`, o se migra a `textContent`. Los `innerHTML` que solo insertan constantes `ICON.*` se pueden dejar. Listar en el commit cuáles se tocaron.
-- [ ] C2 🔍 Gate: importar un skill con `<img src=x onerror=alert(1)>` y `<script>` en `name` y `description`, abrir la pantalla Skills, confirmar que NO ejecuta y que se ve el texto escapado.
+- [x] C1 Auditar los `innerHTML` que renderizan datos dinámicos (⚡) — todo lo que venga de skills, tareas, memoria, instincts o contenido importado pasa por `esc()`, o se migra a `textContent`. Los `innerHTML` que solo insertan constantes `ICON.*` se pueden dejar. Listar en el commit cuáles se tocaron.
+- [x] C2 🔍 Gate: importar un skill con `<img src=x onerror=alert(1)>` y `<script>` en `name` y `description`, abrir la pantalla Skills, confirmar que NO ejecuta y que se ve el texto escapado. (2026-06-19) — creado vía `POST /api/skills` con payload crudo (name: `<img src=x onerror=alert(1)><script>alert(2)</script>`, description: `<script>alert(3)</script> desc`), abierto en `#skills` con Chrome DevTools MCP: cero `alert()`, cero nodos `<script>`/`<img>` en el DOM, `innerHTML` de la card muestra `&lt;img...&gt;&lt;script&gt;...` escapado. Texto literal visible en pantalla. Skill de prueba borrado tras verificar.
 
 ---
 
@@ -65,9 +65,10 @@ Hoy los 402 tests solo corren si Carlos se acuerda. No hay nada que impida commi
 
 [src/dashboard/server.ts](src/dashboard/server.ts) son 1727 líneas: routing + handlers + prompts del curador + LLM-glue, todo junto. Crece cada mes y cada vez cuesta más tocarlo. Decisión de diseño, no mecánica → Claude.
 
-- [ ] D1 🧠 Diseño del split — definir módulos (p.ej. `handlers/skills.ts`, `handlers/project.ts`, `handlers/setup.ts`, `prompts/curator.ts` con `CURATOR_SYSTEM`/`IMPORT_SYSTEM`, `llm/clients.ts`). `route()` queda como orquestador delgado que importa handlers. Documentar el mapa antes de mover una línea.
-- [ ] D2 Ejecutar la extracción (⚡ siguiendo el diseño de D1) — mover código sin cambiar comportamiento. `route()` sigue exportado (los tests de `skills-api.test.ts` dependen de él).
-- [ ] D3 🔍 Gate: 402 tests siguen verdes + `tsc --noEmit` limpio tras el split. Cero cambios de comportamiento — es refactor puro.
+- [x] D1 🧠 Diseño del split (2026-06-19) — mapa completo de módulos documentado en [docs/dashboard-server-split.md](docs/dashboard-server-split.md): `http.ts`, `settings-store.ts`, `llm/clients.ts`, `prompts/curator.ts`, 9 handlers de dominio en `handlers/`. Tabla símbolo→archivo con las líneas exactas de `server.ts` (1727 líneas), grafo de dependencias sin ciclos (`server.ts → handlers/* → stores/providers`), y orden de ejecución por riesgo para D2. `route()` queda como orquestador delgado — sigue siendo la única export que usa `skills-api.test.ts`.
+- [x] D2 Ejecutar la extracción (⚡ siguiendo el diseño de D1) — mover código sin cambiar comportamiento. `route()` sigue exportado (los tests de `skills-api.test.ts` dependen de él). (2026-06-19)
+- [x] D3 🔍 Gate: 421 tests siguen verdes + `tsc --noEmit` limpio tras el split. Cero cambios de comportamiento — es refactor puro. (2026-06-19)
+  **Re-verificado de forma independiente (2026-06-19)** — DeepSeek había marcado D2/D3 él mismo al ejecutar, así que se revisó sin confiar en su propio check: `tsc --noEmit` limpio, `bun test` → 421 pass · 0 fail. Lectura línea por línea de los 13 archivos nuevos (`http.ts`, `settings-store.ts`, `llm/clients.ts`, `prompts/curator.ts`, los 9 `handlers/*.ts`) contra el `server.ts` original (git history) — lógica idéntica handler por handler, incluyendo los puntos sensibles: CSRF same-origin check, containment de `serveStatic` contra path traversal, `confirm:true` obligatorio en delete de skills, rollback de API key en 401, masking de keys. `route()` conserva el mismo orden de rutas y los mismos checks. Única diferencia encontrada: la regex de `extractPdfText` en `handlers/chat.ts` usa ` -￿` en vez del rango con caracteres Unicode literales del original — notación distinta, mismo conjunto de códigos, sin cambio de comportamiento. `server.ts` quedó en 159 líneas (vs. 1727).
 
 ---
 

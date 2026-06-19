@@ -46,6 +46,7 @@
   <tbody id="tasks-body"></tbody>
 </table>
 <script>
+function esc(s) { return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
 async function load() {
   try {
     const res = await fetch('/api/tasks')
@@ -60,21 +61,21 @@ async function load() {
     table.style.display = ''
 
     for (const t of tasks) {
-      const statusBadge = `<span class="badge badge-${t.status}">${t.status}</span>`
+      const statusBadge = `<span class="badge badge-${esc(t.status)}">${esc(t.status)}</span>`
       const qaBadge = t.qaVerdict
-        ? `<span class="badge badge-${t.qaVerdict === 'pass' ? 'done' : 'failed'}">${t.qaVerdict}</span>`
+        ? `<span class="badge badge-${t.qaVerdict === 'pass' ? 'done' : 'failed'}">${esc(t.qaVerdict)}</span>`
         : '<span style="color:#8b949e">—</span>'
 
       const tr = document.createElement('tr')
       tr.innerHTML = `
-        <td class="mono">${t.id}</td>
-        <td class="desc" title="${t.description.replace(/"/g, '&quot;')}">${t.description}</td>
+        <td class="mono">${esc(t.id)}</td>
+        <td class="desc" title="${esc(t.description)}">${esc(t.description)}</td>
         <td>${statusBadge}</td>
-        <td>${t.skill ?? '<span style="color:#8b949e">—</span>'}</td>
-        <td>${t.executor}</td>
+        <td>${t.skill ? esc(t.skill) : '<span style="color:#8b949e">—</span>'}</td>
+        <td>${esc(t.executor)}</td>
         <td class="mono" style="text-align:right">${t.retryCount}</td>
         <td>${qaBadge}</td>
-        <td class="mono">${t.runId ? t.runId.slice(0, 8) + '…' : '<span style="color:#8b949e">—</span>'}</td>
+        <td class="mono">${t.runId ? esc(t.runId.slice(0, 8)) + '…' : '<span style="color:#8b949e">—</span>'}</td>
       `
       tbody.appendChild(tr)
     }

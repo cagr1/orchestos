@@ -61,6 +61,7 @@
 </table>
 <div id="toast" class="toast" style="display:none"></div>
 <script>
+function esc(s) { return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
 function showToast(msg, type) {
   const el = document.getElementById('toast')
   el.textContent = msg
@@ -114,7 +115,7 @@ async function load() {
     tbody.innerHTML = ''
 
     for (const inst of instincts) {
-      const sourceBadge = `<span class="badge badge-${inst.source}">${inst.source}</span>`
+      const sourceBadge = `<span class="badge badge-${esc(inst.source)}">${esc(inst.source)}</span>`
       const verifiedBadge = inst.verified
         ? '<span class="badge badge-verified">verified</span>'
         : '<span class="badge badge-unverified">unverified</span>'
@@ -122,8 +123,8 @@ async function load() {
       let actionHtml = ''
       if (!inst.verified) {
         actionHtml = `<div class="actions">
-          <button class="btn btn-approve" data-id="${inst.id}" data-action="approve" onclick="mutate('${inst.id}','approve')">Approve</button>
-          <button class="btn btn-reject" data-id="${inst.id}" data-action="reject" onclick="mutate('${inst.id}','reject')">Reject</button>
+          <button class="btn btn-approve" data-id="${esc(inst.id)}" data-action="approve" onclick="mutate('${esc(inst.id)}','approve')">Approve</button>
+          <button class="btn btn-reject" data-id="${esc(inst.id)}" data-action="reject" onclick="mutate('${esc(inst.id)}','reject')">Reject</button>
         </div>`
       } else {
         actionHtml = '<span style="color:#8b949e">—</span>'
@@ -131,9 +132,9 @@ async function load() {
 
       const tr = document.createElement('tr')
       tr.innerHTML = `
-        <td class="mono" title="${inst.id}">${inst.id.slice(0, 8)}…</td>
-        <td class="trigger-cell mono" title="${inst.trigger.replace(/"/g, '&quot;')}">${inst.trigger}</td>
-        <td class="action-cell mono" title="${inst.action.replace(/"/g, '&quot;')}">${inst.action}</td>
+        <td class="mono" title="${esc(inst.id)}">${esc(inst.id.slice(0, 8))}…</td>
+        <td class="trigger-cell mono" title="${esc(inst.trigger)}">${esc(inst.trigger)}</td>
+        <td class="action-cell mono" title="${esc(inst.action)}">${esc(inst.action)}</td>
         <td>${confidenceHtml(inst.confidence)}</td>
         <td>${sourceBadge}</td>
         <td>${verifiedBadge}</td>
