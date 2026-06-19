@@ -18,26 +18,23 @@ import { resolveModel } from './router/models.ts'
 import { calcCost } from './router/pricing.ts'
 import { parseCostBreakdownJson } from './run/transcript-parser.ts'
 import { chat } from './providers/openrouter.ts'
-import { parseLLMResponse, enforceContract, snapshotHashes } from './run/contract.ts'
+import { parseLLMResponse, enforceContract } from './run/contract.ts'
 import { MAX_RETRIES } from './run/qa.ts'
 import { RunLogger } from './run/logger.ts'
 import { runTask } from './run/harness.ts'
-import { executePlan, type SchedulerResult } from './run/scheduler.ts'
+import { executePlan } from './run/scheduler.ts'
 import { createPlan } from './agents/planner.ts'
-import { diagnoseTask, type DiagnoseResult } from './agents/diagnose.ts'
+import { diagnoseTask } from './agents/diagnose.ts'
 import type { SubTask } from './agents/sub-agent.ts'
-import type { SubagentResult } from './agents/sub-agent.ts'
-import { createWorktree, mergeWorktreeBack } from './run/sandbox.ts'
-import type { Worktree } from './run/sandbox.ts'
 import { insertRun } from './db/runs.ts'
-import { loadTasks, saveTasks, tasksExist, updateTaskStatus, hashFile, tasksPath } from './tasks/loader.ts'
+import { loadTasks, tasksExist, updateTaskStatus, tasksPath } from './tasks/loader.ts'
 import { stringify as yamlStringify } from 'yaml'
 import { readFileSync } from 'fs'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
 import { indexProject } from './graph/index.ts'
 import { suggestContext } from './graph/suggest.ts'
 import { inferEmbeddingProvider } from './providers/embeddings.ts'
-import { scaffoldSkillYaml, languageHasSkillCoverage, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
+import { scaffoldSkillYaml, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
 import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
 import { listConflicts } from './db/memory.ts'
@@ -460,10 +457,7 @@ program
     console.log(`[run] task_class=${taskClass} model=${model}`)
     console.log(`[run] allowed outputs: ${allowedPaths.join(', ')}`)
 
-    // 4. Snapshot before
-    const before = snapshotHashes(root, allowedPaths)
-
-    // 5. Call LLM
+    // 4. Call LLM
     let llmResponse
     try {
       llmResponse = await chat({ model, system, messages: [{ role: 'user', content: userContent }] })
@@ -706,7 +700,6 @@ task
 
     // Generate 2 starter tasks based on detected stack
     const isNext   = manifest.framework === 'Next.js'
-    const isNode   = manifest.runtime   === 'Node.js'
     const isPython = manifest.runtime   === 'Python'
 
     const tasks = isNext ? [

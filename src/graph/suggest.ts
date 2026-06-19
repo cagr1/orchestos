@@ -233,7 +233,7 @@ function suggestKeywordOnly(
  */
 function expandNeighbors(
   scores: Map<number, { path: string; score: number; embedScore: number; reason: 'direct' | 'embedding' }>,
-  projectId: string,
+  _projectId: string,
 ): void {
   const seedIds = Array.from(scores.keys())
   const HOP_BONUS = EMBED_THRESHOLD / 2  // small boost, below standalone EMBED_THRESHOLD

@@ -191,7 +191,7 @@ export interface PlannerCallOverride {
  */
 export async function planWithFunctionCalling(
   description: string,
-  parentTaskId: string,
+  _parentTaskId: string,
   opts: { provider: string; model: string },
   _override?: PlannerCallOverride,
 ): Promise<SubTask[]> {

@@ -1,9 +1,7 @@
-import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
-import { topoSort, validateSubTaskPlan, type SubTaskDef, type SubTaskPlan } from '../../src/agents/sub-task-schema.ts'
+import { describe, it, expect, beforeAll } from 'bun:test'
+import { topoSort, validateSubTaskPlan, type SubTaskPlan } from '../../src/agents/sub-task-schema.ts'
 import { createSubTask } from '../../src/agents/sub-agent.ts'
 import { createPlan } from '../../src/agents/planner.ts'
-import type { Worktree } from '../../src/run/sandbox.ts'
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -18,16 +16,6 @@ function validPlan(overrides?: Partial<SubTaskPlan>): SubTaskPlan {
       { id: 'step-c', description: 'Step C', acceptance: ['C works'], depends_on: ['step-b'], allowed_tools: ['read', 'write', 'edit'], output: ['c.txt'] },
     ],
     ...overrides,
-  }
-}
-
-function makeWorktree(): Worktree {
-  return {
-    path: '/tmp/test-worktree',
-    branch: 'orchestos/test/0',
-    baseBranch: 'main',
-    projectRoot: '/tmp',
-    cleanup: () => {},
   }
 }
 

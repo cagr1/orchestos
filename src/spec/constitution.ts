@@ -55,7 +55,6 @@ export function parseConstitution(text: string): Constitution {
   const require_confirmation: string[] = []
 
   // Split into sections by ## headings
-  const sectionRegex = /^##\s+(.+)$/gm
   const lines        = text.split('\n')
 
   let currentSection: 'allowed' | 'forbidden' | 'require_confirmation' | null = null

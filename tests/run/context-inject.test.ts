@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'bun:test'
-import { mkdtempSync, writeFileSync, existsSync, rmSync } from 'fs'
+import { mkdtempSync, writeFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { createRunContext, createChain } from '../../src/run/middleware.ts'

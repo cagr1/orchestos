@@ -16,8 +16,7 @@
  * 'running', abrir el logger, llamar runTask y mapear TaskResult a updateTaskStatus.
  */
 
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+
 import { classifyTask } from '../router/classify.ts'
 import { resolveModel } from '../router/models.ts'
 import { calcCost } from '../router/pricing.ts'
@@ -98,7 +97,7 @@ export interface TaskResult {
 // -- main ----------------------------------------------------------------------
 
 export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
-  const { projectRoot, task: t, projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound, sandboxMode, sandboxBranch, keepWorktree, monitorCallCount } = opts
+  const { projectRoot, task: t, projectId: _projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound, sandboxMode, sandboxBranch, keepWorktree, monitorCallCount } = opts
   const t0 = performance.now()
 
   // -- spec gate ---------------------------------------------------------------

@@ -45,9 +45,9 @@ Orden estricto: A → B → C → D. A y B son los que más bajan el riesgo por 
 
 Hoy los 402 tests solo corren si Carlos se acuerda. No hay nada que impida commitear código roto. La disciplina existe; falta el guardarraíl.
 
-- [ ] B1 GitHub Actions (⚡) — `.github/workflows/ci.yml`: en push y PR a `master`, instalar Bun, `bun install`, `bun test`, `tsc --noEmit`. Que falle el workflow si cualquiera falla.
-- [ ] B2 Pre-commit hook (⚡) — hook local (`.git/hooks/pre-commit` o script en `scripts/` documentado en CLAUDE.md) que corra `tsc --noEmit` antes de cada commit. Barato y bloquea commits que no tipan. NO usar `--no-verify` para saltarlo.
-- [ ] B3 Activar `noUnusedLocals` y `noUnusedParameters` en tsconfig (⚡) — limpiar el código muerto que aparezca. Si algún unused es intencional, prefijar con `_`. Cierra el hueco de calidad que hoy deja pasar código sin uso.
+- [x] B1 GitHub Actions (⚡) — `.github/workflows/ci.yml`: en push y PR a `master`, instalar Bun, `bun install`, `bun test`, `bun run typecheck`. Que falle el workflow si cualquiera falla.
+- [x] B2 Pre-commit hook (⚡) — hook local (`.git/hooks/pre-commit` o script en `scripts/` documentado en CLAUDE.md) que corra `tsc --noEmit` antes de cada commit. Barato y bloquea commits que no tipan. NO usar `--no-verify` para saltarlo.
+- [x] B3 Activar `noUnusedLocals` y `noUnusedParameters` en tsconfig (⚡) — limpiar el código muerto que aparezca. Si algún unused es intencional, prefijar con `_`. Cierra el hueco de calidad que hoy deja pasar código sin uso.
 - [ ] B4 🔍 Gate: abrir un PR de prueba con un test roto a propósito y confirmar que CI lo bloquea; revertir.
 
 ---

@@ -170,7 +170,7 @@ export function getEmbeddingProvider(name: string): EmbeddingProvider {
  *
  * If OLLAMA_BASE_URL is set, returns "ollama" regardless of provider.
  */
-export function inferEmbeddingProvider(chatProvider: string): EmbeddingProvider {
+export function inferEmbeddingProvider(_chatProvider: string): EmbeddingProvider {
   if (process.env.OLLAMA_BASE_URL) return getEmbeddingProvider('ollama')
   // All hosted chat providers map to OpenAI embeddings by default
   return getEmbeddingProvider('openai')

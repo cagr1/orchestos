@@ -3,10 +3,10 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { mkdirSync, rmSync, existsSync } from 'fs'
+import { mkdirSync, existsSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { saveSpec, loadSpec, listSpecs, specPath } from '../spec/store.ts'
+import { saveSpec, listSpecs, specPath } from '../spec/store.ts'
 import { archiveSpec } from '../spec/archive.ts'
 import type { Spec } from '../spec/store.ts'
 

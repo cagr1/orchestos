@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'bun:test'
-import { existsSync, mkdirSync, rmSync, readFileSync } from 'fs'
+import { existsSync, rmSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { parseLLMResponse, enforceContract } from '../run/contract.ts'
 
@@ -14,8 +14,9 @@ describe('parseLLMResponse', () => {
     const raw = '<<<FILE:hello.txt>>>\nHello world\n<<<ENDFILE>>>'
     const result = parseLLMResponse(raw)
     expect(result.files).toHaveLength(1)
-    expect(result.files[0].path).toBe('hello.txt')
-    expect(result.files[0].content).toBe('Hello world\n')
+    const [file] = result.files
+    expect(file!.path).toBe('hello.txt')
+    expect(file!.content).toBe('Hello world\n')
   })
 
   it('parses multiple FILE blocks', () => {
@@ -29,16 +30,18 @@ describe('parseLLMResponse', () => {
     ].join('\n')
     const result = parseLLMResponse(raw)
     expect(result.files).toHaveLength(2)
-    expect(result.files[0].path).toBe('a.txt')
-    expect(result.files[0].content).toBe('content a\n')
-    expect(result.files[1].path).toBe('b.txt')
-    expect(result.files[1].content).toBe('content b\n')
+    const [a, b] = result.files
+    expect(a!.path).toBe('a.txt')
+    expect(a!.content).toBe('content a\n')
+    expect(b!.path).toBe('b.txt')
+    expect(b!.content).toBe('content b\n')
   })
 
   it('strips one leading newline from content', () => {
     const raw = '<<<FILE:note.md>>>\n\n# Title\n\nBody\n<<<ENDFILE>>>'
     const result = parseLLMResponse(raw)
-    expect(result.files[0].content).toBe('\n# Title\n\nBody\n')
+    const [file] = result.files
+    expect(file!.content).toBe('\n# Title\n\nBody\n')
   })
 
   it('throws when no FILE blocks are found', () => {
@@ -64,7 +67,7 @@ describe('enforceContract', () => {
     expect(result.filesAuthorized).toEqual(['out/hello.txt'])
     expect(result.filesBlocked).toEqual([])
     expect(result.written).toHaveLength(1)
-    expect(result.written[0].path).toBe('out/hello.txt')
+    expect(result.written[0]!.path).toBe('out/hello.txt')
 
     const filePath = join(TMP_ROOT, 'out/hello.txt')
     expect(existsSync(filePath)).toBe(true)

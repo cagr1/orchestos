@@ -1,6 +1,5 @@
 import PDFDocument from 'pdfkit'
 import { createWriteStream } from 'fs'
-import { join } from 'path'
 import type { StackProfile } from './agents-md.ts'
 import type { RunRecord } from '../db/runs.ts'
 

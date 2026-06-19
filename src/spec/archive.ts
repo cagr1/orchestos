@@ -9,8 +9,8 @@
  */
 
 import { join } from 'path'
-import { existsSync, renameSync, mkdirSync, unlinkSync, writeFileSync, readFileSync } from 'fs'
-import { loadSpec, saveSpec, specPath } from './store.ts'
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs'
+import { loadSpec, specPath } from './store.ts'
 
 const SPECS_DIR = '.orchestos/specs'
 const ARCHIVE_DIR = `${SPECS_DIR}/archive`
@@ -55,7 +55,7 @@ export function archiveSpec(root: string, taskId: string): ArchiveResult {
 }
 
 // Exposed for testing — raw serialization shared with store.ts logic
-import { parse as parseYaml, stringify as yamlStringify } from 'yaml'
+import { stringify as yamlStringify } from 'yaml'
 import type { Spec } from './store.ts'
 
 export const _internals = {

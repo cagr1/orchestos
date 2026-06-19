@@ -13,7 +13,7 @@ import { listSpecs } from '../spec/store.ts'
 import { lintSpec } from '../spec/lint.ts'
 import { parseCostBreakdownJson } from '../run/transcript-parser.ts'
 import type { MemoryEntry } from '../db/memory.ts'
-import { loadSkill, listSkillFiles, listProSkillFiles, validateSkill, getSkillPath, getProSkillPath, type SkillDef } from '../skills/registry.ts'
+import { loadSkill, listSkillFiles, listProSkillFiles, validateSkill, getSkillPath, getProSkillPath } from '../skills/registry.ts'
 import { compileSkill } from '../skills/compile.ts'
 import { parse, stringify } from 'yaml'
 import {
@@ -34,7 +34,6 @@ import {
   type SkillCurateResponse,
   type SkillImportResponse,
   type MutationResult,
-  type CostBreakdownEntry,
   type ContextWarningEntry,
   type MemoryRow,
   type SetupItem,
@@ -1001,7 +1000,7 @@ function handleApiMemory(): Response {
 
 // ── Router ──────────────────────────────────────────────────────────────────
 
-function isSameOrigin(req: Request, port: number): boolean {
+function isSameOrigin(req: Request, _port: number): boolean {
   const origin = req.headers.get('origin')
   if (!origin) return true  // same-origin requests (non-cross-origin) omit Origin
   try {

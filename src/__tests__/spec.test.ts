@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test'
 import { mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
-import { loadSpec, saveSpec, listSpecs, specPath, type Spec } from '../spec/store.ts'
+import { loadSpec, saveSpec, listSpecs, type Spec } from '../spec/store.ts'
 import { validateSpec } from '../spec/validate.ts'
 import type { TaskExecutor } from '../tasks/schema.ts'
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test'
-import { scaffoldSkillYaml, SUPPORTED_LANGUAGES } from '../skills/scaffold.ts'
+import { scaffoldSkillYaml } from '../skills/scaffold.ts'
 import { parse as parseYaml } from 'yaml'
 
 describe('scaffoldSkillYaml', () => {
