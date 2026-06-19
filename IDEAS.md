@@ -89,6 +89,50 @@ generar un `design.md` intermedio entre `proposal` y `tasks`, condicional a la c
 
 ## 🧱 Largo plazo / esperar evidencia
 
+### Runner de grafo autónomo — el loop que se conduce solo
+
+**Tendencia (2026-06)**: "No deberías estar prompteando agentes manualmente — deberías
+diseñar loops que prompteen a tus agentes." (Peter, creador de OpenClaw, en X). La dirección
+de la industria es que el humano diseña el grafo y el sistema lo ejecuta solo de principio
+a fin, sin intervención por tarea.
+
+**Lo que OrchestOS ya tiene** (las piezas del loop están, falta el conductor):
+- `tasks.yaml` con `depends_on` (DAG implícito) ✅
+- Status machine (`pending → running → done / failed_permanent`) ✅
+- QA verdict por tarea (pass/fail) ✅
+- Retry logic (`retry_count`) ✅
+- Diagnose automático en `failed_permanent` ✅
+- Instincts: aprende de cada run ✅
+
+**Lo que falta — el conductor de grafo:**
+```
+while (pendingTasks.length) {
+  tarea = nextExecutable(tasks, depends_on)   // orden topológico
+  resultado = run(tarea)
+  if (!resultado.ok) {
+    diagnose(tarea) → estrategia de retry
+    if (agotado) → bloquear dependientes, notificar
+  }
+  // siguiente iteración automática, sin humano
+}
+```
+
+**Qué lo hace diferente de lo que hay hoy**: hoy el humano ejecuta `orchestos run` por
+cada tarea. El conductor lo haría de forma autónoma recorriendo el grafo completo — y si
+una tarea falla, decide solo si reintenta con otra estrategia o bloquea la rama, sin pedir
+permiso por cada decisión individual.
+
+**Cómo probarlo cuando llegue el momento**: ejecutar el runner contra un `tasks.yaml` real
+de CitasBot o del propio OrchestOS y observar si el grafo se completa sin intervención.
+Comparar: número de tasks completadas solas vs. número de veces que el humano tuvo que
+intervenir. El objetivo es intervención = 0 en el happy path.
+
+**Prerequisito**: motor de runs ✅ + QA ✅ + diagnose ✅. La implementación es un
+`orchestos run --all` (o `--plan`) que lee el DAG completo. No requiere nada nuevo en
+el schema, solo el conductor encima.
+
+---
+
 ### autoskills — registry de skills por lenguaje/framework
 
 **Referencia**: `npx autoskills` (midudev) — https://github.com/midudev/autoskills

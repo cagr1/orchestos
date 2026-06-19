@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-12-pendiente
+status: mes-12-activo
 ---
 
 # OrchestOS — Plan activo
@@ -16,6 +16,62 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 - 🧠 = Claude implementa — requiere criterio arquitectural o decisión de diseño
 - ⚡ = DeepSeek implementa — tarea bien especificada, ejecuta leyendo el plan
 - 🔍 = revisión obligatoria por Claude — gate antes de cerrar el sprint, independiente de quién implementó
+
+---
+
+## MES 12 — Endurecimiento: red de seguridad antes de la autonomía
+
+Prerequisitos verificados al entrar: Mes 11 cerrado ✅ · 402 tests · 0 fail · `tsc` verde · `strict: true`.
+
+Eje del mes: **convertir la disciplina manual en garantías automáticas.** El motor está maduro, pero las dos piezas que ejecutan el trabajo real (contract enforcement, scheduler) no tienen tests, no hay CI que corra el suite, y el front tiene XSS latente. Es el hardening que debe preceder al **runner de grafo autónomo** (ver IDEAS.md § Largo plazo) — no se construye un loop que se conduce solo encima de piezas sin red.
+
+Origen: auditoría de seguridad/testing/backend/frontend (2026-06-19). Calificación de entrada: Seguridad B · Testing B+ · Backend A- · Frontend C+/B-.
+
+Orden estricto: A → B → C → D. A y B son los que más bajan el riesgo por unidad de esfuerzo.
+
+---
+
+### Bloque A — Red de seguridad del motor crítico (⚡ + 🔍)
+
+`enforceContract()` ([src/run/contract.ts](src/run/contract.ts)) es lo único que impide que el LLM escriba fuera de `--output`, y tiene **0 tests**. `executePlan()` ([src/run/scheduler.ts](src/run/scheduler.ts)) orquesta sub-tareas con cascada de dependencias y tampoco tiene tests — y es el embrión del runner autónomo.
+
+- [x] A1 Tests de `enforceContract` / `parseLLMResponse` (⚡) — casos: write autorizado se escribe; write fuera de `allowedPaths` lanza `CONTRACT VIOLATION` y NO escribe nada; `parseLLMResponse` con bloques válidos, sin bloques (throw), path vacío (throw); intento de path con `../` que no esté en `allowedPaths` → bloqueado. Usar `tmp/` para los writes y limpiar en `afterEach`.
+- [x] A2 Tests de `executePlan` (scheduler) (⚡) — inyectar `executeOne` mockeado (no worktrees reales: mockear `./sandbox.ts` y `../agents/hardening.ts`). Cubrir: orden topológico respetado; fallo de una sub-tarea marca dependientes como `skipped` con reason; timeout → `timed_out`; agregación de cost/tokens/ms correcta; `all_passed` refleja el resultado.
+- [x] A3 🔍 Gate: verificar que los tests **fallan** si se rompe el guard — comentar el `throw` del `blocked.length > 0` y confirmar que A1 se pone rojo. Un test de seguridad que no detecta la regresión que debe detectar no sirve. Revertir el cambio tras confirmar. (2026-06-19) — 3 tests se pusieron rojos al comentar el guard; el path traversal `../outside-project.txt` se materializó en disco y fue detectado. Revertido: 19/19 verde.
+
+---
+
+### Bloque B — Guardarraíles automáticos: CI + pre-commit (⚡)
+
+Hoy los 402 tests solo corren si Carlos se acuerda. No hay nada que impida commitear código roto. La disciplina existe; falta el guardarraíl.
+
+- [ ] B1 GitHub Actions (⚡) — `.github/workflows/ci.yml`: en push y PR a `master`, instalar Bun, `bun install`, `bun test`, `tsc --noEmit`. Que falle el workflow si cualquiera falla.
+- [ ] B2 Pre-commit hook (⚡) — hook local (`.git/hooks/pre-commit` o script en `scripts/` documentado en CLAUDE.md) que corra `tsc --noEmit` antes de cada commit. Barato y bloquea commits que no tipan. NO usar `--no-verify` para saltarlo.
+- [ ] B3 Activar `noUnusedLocals` y `noUnusedParameters` en tsconfig (⚡) — limpiar el código muerto que aparezca. Si algún unused es intencional, prefijar con `_`. Cierra el hueco de calidad que hoy deja pasar código sin uso.
+- [ ] B4 🔍 Gate: abrir un PR de prueba con un test roto a propósito y confirmar que CI lo bloquea; revertir.
+
+---
+
+### Bloque C — Cerrar el XSS latente del dashboard (⚡ + 🔍)
+
+~30 usos de `innerHTML` en el front y un solo helper `esc()` ([src/dashboard/public/data.js:41](src/dashboard/public/data.js:41)) sin uso garantizado. Vector real: un skill importado desde URL externa con `<script>` en `name`/`description` se ejecutaría al renderizar la galería.
+
+- [ ] C1 Auditar los `innerHTML` que renderizan datos dinámicos (⚡) — todo lo que venga de skills, tareas, memoria, instincts o contenido importado pasa por `esc()`, o se migra a `textContent`. Los `innerHTML` que solo insertan constantes `ICON.*` se pueden dejar. Listar en el commit cuáles se tocaron.
+- [ ] C2 🔍 Gate: importar un skill con `<img src=x onerror=alert(1)>` y `<script>` en `name` y `description`, abrir la pantalla Skills, confirmar que NO ejecuta y que se ve el texto escapado.
+
+---
+
+### Bloque D — Partir el god-file `server.ts` (🧠)
+
+[src/dashboard/server.ts](src/dashboard/server.ts) son 1727 líneas: routing + handlers + prompts del curador + LLM-glue, todo junto. Crece cada mes y cada vez cuesta más tocarlo. Decisión de diseño, no mecánica → Claude.
+
+- [ ] D1 🧠 Diseño del split — definir módulos (p.ej. `handlers/skills.ts`, `handlers/project.ts`, `handlers/setup.ts`, `prompts/curator.ts` con `CURATOR_SYSTEM`/`IMPORT_SYSTEM`, `llm/clients.ts`). `route()` queda como orquestador delgado que importa handlers. Documentar el mapa antes de mover una línea.
+- [ ] D2 Ejecutar la extracción (⚡ siguiendo el diseño de D1) — mover código sin cambiar comportamiento. `route()` sigue exportado (los tests de `skills-api.test.ts` dependen de él).
+- [ ] D3 🔍 Gate: 402 tests siguen verdes + `tsc --noEmit` limpio tras el split. Cero cambios de comportamiento — es refactor puro.
+
+---
+
+**Nota:** el **runner de grafo autónomo** (el loop que se conduce solo, ver IDEAS.md § Largo plazo) NO entra en Mes 12 — entra cuando A–D estén cerrados. `executePlan` ya tiene la cascada de dependencias; el runner es ponerle un conductor encima, pero con el motor crítico ya cubierto por tests (Bloque A).
 
 ---
 
