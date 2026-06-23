@@ -6,7 +6,9 @@ REQUIRED:
 - id: kebab-case identifier (e.g. "code-review", "write-tests") — only lowercase letters, numbers, hyphens
 - version: always "1.0.0"
 - name: short human-readable name (max 60 chars)
-- description: one sentence explaining what the skill does (max 200 chars)
+- description: the TRIGGER CONDITION for this skill — when should the harness activate it?
+  Start with "Use when..." whenever possible. This is NOT a summary of what the skill does
+  or how it works — that belongs in 'instructions'. Max 200 chars.
 - instructions: detailed step-by-step instructions for the agent (max 4000 chars)
 - targets: array — use ["claude", "cursor", "openai"] unless the description restricts targets
 
@@ -32,7 +34,9 @@ REQUIRED fields:
 - id: kebab-case identifier — lowercase letters, numbers, hyphens, no leading/trailing hyphens
 - version: always "1.0.0"
 - name: short human-readable name (max 60 chars)
-- description: one sentence describing what the skill does (max 200 chars)
+- description: the TRIGGER CONDITION for this skill — when should the harness activate it?
+  Start with "Use when..." whenever possible. This is NOT a summary of what the skill does
+  or how it works — that belongs in 'instructions'. Max 200 chars.
 - instructions: detailed step-by-step instructions for the agent (max 4000 chars)
 - targets: non-empty array of "claude", "cursor", "openai"
 
@@ -47,8 +51,13 @@ OPTIONAL (include only if present in the original content):
 
 Rules:
 - Respond ONLY with a valid JSON object — no markdown fences, no extra text, no explanations
-- Preserve as much of the original content as possible
-- Fix fields to meet requirements (truncate description if >200, instructions if >4000)
+- Never discard content to fit a length limit — relocate it instead. If the original
+  description is longer than 200 chars, it usually mixes a trigger condition with an
+  explanation of what the skill does or how. Keep only the trigger condition in
+  'description' (<=200 chars, "Use when..." style); move the "what it does"/"how" part into
+  'instructions', and split any list-like trigger conditions into separate 'when_to_use'
+  entries. Same principle for 'instructions' if it exceeds 4000 chars — compress prose,
+  don't cut content off mid-thought.
 - Use English for text fields unless original content is in another language`
 
 export { CURATOR_SYSTEM, IMPORT_SYSTEM }
