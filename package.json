@@ -9,6 +9,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit",
+    "db:migrate": "bun run scripts/migrate-db.ts",
     "e2e:smoke": "bun run src/run/e2e-smoke.ts",
     "e2e:smoke-agents": "bun run src/run/e2e-smoke-agents.ts"
   },
