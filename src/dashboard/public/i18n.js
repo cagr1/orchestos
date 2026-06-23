@@ -336,6 +336,11 @@ const I18N = {
     'skills.pro.imported':    'Imported',
     'skills.pro.err':         'Import failed.',
     'skills.pro.loading':     'Loading recommended skills…',
+    'skills.btn.discover':    'Discover',
+    'skills.registry.title':       'Discover skills',
+    'skills.registry.subtitle':    'Community-curated skills from the autoskills registry. Import with one click.',
+    'skills.registry.btn.import':  'Import',
+    'skills.registry.err':         'Import failed.',
 
     /* ── New Skill modal (Bloque D) ──────────── */
     'modal.skill.title':          'New Skill',
@@ -771,6 +776,11 @@ const I18N = {
     'skills.pro.imported':    'Importado',
     'skills.pro.err':         'Error al importar.',
     'skills.pro.loading':     'Cargando skills recomendados…',
+    'skills.btn.discover':    'Descubrir',
+    'skills.registry.title':       'Descubrir skills',
+    'skills.registry.subtitle':    'Skills curados por la comunidad del registry autoskills. Importa con un click.',
+    'skills.registry.btn.import':  'Importar',
+    'skills.registry.err':         'Error al importar.',
 
     /* ── New Skill modal (Bloque D) ──────────── */
     'modal.skill.title':          'Nuevo Skill',

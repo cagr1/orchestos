@@ -18,6 +18,7 @@ const state = {
   specs: [],
   skills: [],
   proSkills: [],
+  registrySkills: [],
   memory: [],
   settings: null,
   setup: null,
@@ -29,6 +30,7 @@ const state = {
   specsStatus: 'loading',
   skillsStatus: 'loading',
   proSkillsStatus: 'loading',
+  registrySkillsStatus: 'idle',
   memoryStatus: 'loading',
   settingsStatus: 'idle',
   setupStatus: 'idle',
@@ -127,6 +129,18 @@ const App = {
     } catch {
       state.proSkillsStatus = 'error';
     }
+  },
+  async fetchRegistrySkills() {
+    try {
+      const res = await fetch('/api/skills/registry');
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      state.registrySkills = data.skills || [];
+      state.registrySkillsStatus = 'ok';
+    } catch {
+      state.registrySkillsStatus = 'error';
+    }
+    this.rerender();
   },
   async fetchMemory() {
     try {

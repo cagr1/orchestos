@@ -779,6 +779,7 @@ SCREENS.skills = {
         <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
         <button class="btn primary" data-act="new-skill">${ICON.plus} ${t('skills.btn.new')}</button>
         <button class="btn" data-act="import-skill">${ICON.inbox} ${t('skills.btn.import')}</button>
+        <button class="btn" data-act="discover-skills">${ICON.search} ${t('skills.btn.discover')}</button>
       </div>
     </div>`;
 
@@ -833,7 +834,27 @@ SCREENS.skills = {
         </div>`).join('')}</div>
       </div>`;
 
-    return `<div class="screen">${head}<div class="skills-grid">${cards}</div>${proSection}</div>`;
+    const registrySkills = st.registrySkills || [];
+    const registrySection = registrySkills.length === 0 ? '' : `
+      <div class="skills-registry-section">
+        <div class="screen-head" style="margin-top:24px">
+          <div class="lead"><h2>${t('skills.registry.title')}</h2><p>${t('skills.registry.subtitle')}</p></div>
+          <button class="btn ghost sm" data-act="refresh-registry">${ICON.refresh}</button>
+        </div>
+        <div class="skills-grid">${registrySkills.map(s => `<div class="skill-card" data-reg-skill="${esc(s.id)}">
+          <div class="skill-card-main">
+            <div class="skill-card-name">${esc(s.name)} <span class="badge gray square">registry</span></div>
+            <div class="skill-card-desc">${esc(s.description || s.id)}</div>
+            <div class="skill-card-targets"><span class="badge blue square">${esc(s.source)}</span></div>
+          </div>
+          <div class="skill-card-actions">
+            <button class="btn primary sm" data-act="import-reg-skill" data-skill="${esc(s.id)}">${ICON.inbox} ${t('skills.registry.btn.import')}</button>
+          </div>
+          <div class="skill-card-msg" id="msg-reg-${esc(s.id)}" style="display:none"></div>
+        </div>`).join('')}</div>
+      </div>`;
+
+    return `<div class="screen">${head}<div class="skills-grid">${cards}</div>${proSection}${registrySection}</div>`;
   },
 
   wire(root, st) {
@@ -959,6 +980,43 @@ SCREENS.skills = {
     });
     root.querySelector('[data-act="import-skill"]')?.addEventListener('click', () => {
       Modal.openImportSkill();
+    });
+
+    root.querySelector('[data-act="discover-skills"]')?.addEventListener('click', async () => {
+      const btn = root.querySelector('[data-act="discover-skills"]');
+      btn.disabled = true;
+      btn.innerHTML = `${ICON.refresh} ${t('common.loading')}`;
+      await App.fetchRegistrySkills();
+      btn.disabled = false;
+      btn.innerHTML = `${ICON.search} ${t('skills.btn.discover')}`;
+    });
+
+    root.querySelector('[data-act="refresh-registry"]')?.addEventListener('click', () => {
+      App.fetchRegistrySkills();
+    });
+
+    root.querySelectorAll('[data-act="import-reg-skill"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.skill;
+        const msg = document.getElementById(`msg-reg-${id}`);
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/api/skills/registry/${encodeURIComponent(id)}/import`, { method: 'POST' });
+          const data = await res.json();
+          if (res.ok && data.ok) {
+            await Promise.all([App.fetchSkills(), App.fetchRegistrySkills()]);
+            App.rerender();
+          } else if (msg) {
+            msg.textContent = data.error || t('skills.registry.err');
+            msg.style.color = 'var(--error)';
+            msg.style.display = '';
+            btn.disabled = false;
+          }
+        } catch {
+          if (msg) { msg.textContent = t('common.conn.error'); msg.style.color = 'var(--error)'; msg.style.display = ''; }
+          btn.disabled = false;
+        }
+      });
     });
 
     root.querySelectorAll('[data-act="import-pro-skill"]').forEach(btn => {

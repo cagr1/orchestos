@@ -281,6 +281,44 @@ export interface SkillImportResponse {
   iterations: number               // LLM calls needed (0 if no normalization)
 }
 
+// ── /api/skills/registry ─────────────────────────────────────────────────────
+
+export interface RegistrySkillEntry {
+  id: string
+  name: string
+  description: string
+  source: string
+  fileCount: number
+  bundleHash: string
+  reviewStatus: 'approved' | 'pending' | 'rejected'
+}
+
+export interface RegistrySkillDetail {
+  id: string
+  name: string
+  description: string
+  source: string
+  skillPath: string
+  files: string[]
+  sha256: Record<string, string>
+  bundleHash: string
+}
+
+export interface RegistryListResponse {
+  ok: boolean
+  skills: RegistrySkillEntry[]
+  count: number
+  generatedAt: string
+}
+
+export interface RegistryImportResponse {
+  ok: boolean
+  id?: string
+  error?: string
+  normalized: boolean
+  warnings: string[]
+}
+
 // ── mutations ─────────────────────────────────────────────────────────────────
 
 export interface MutationResult {

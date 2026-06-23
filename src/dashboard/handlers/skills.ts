@@ -3,7 +3,8 @@ import { getSkillPath, getProSkillPath, loadSkill, listSkillFiles, listProSkillF
 import { compileSkill } from '../../skills/compile.ts'
 import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { parse, stringify } from 'yaml'
-import type { SkillRow, SkillBuildResponse, SkillProRow, SkillCurateResponse, SkillImportResponse, MutationResult } from '../types.ts'
+import { fetchRegistryList, fetchRegistrySkillContent } from '../../skills/fetch.ts'
+import type { SkillRow, SkillBuildResponse, SkillProRow, SkillCurateResponse, SkillImportResponse, MutationResult, RegistryListResponse, RegistryImportResponse } from '../types.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 import { CURATOR_SYSTEM, IMPORT_SYSTEM } from '../prompts/curator.ts'
 
@@ -277,6 +278,77 @@ async function normalizeImport(rawYaml: string, error: string, sourceDesc: strin
   )
 }
 
+async function handleApiSkillsRegistryList(): Promise<Response> {
+  try {
+    const items = await fetchRegistryList()
+    const skills = items.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      source: item.source,
+      fileCount: item.fileCount,
+      bundleHash: item.bundleHash,
+      reviewStatus: (item.reviewStatus === 'approved' || item.reviewStatus === 'pending' || item.reviewStatus === 'rejected')
+        ? item.reviewStatus as 'approved' | 'pending' | 'rejected'
+        : 'pending' as const,
+    }))
+    return jsonResponse({
+      ok: true,
+      skills,
+      count: skills.length,
+      generatedAt: new Date().toISOString(),
+    } satisfies RegistryListResponse)
+  } catch (e: any) {
+    return errorResponse(`Registry unavailable: ${e.message}`, 502)
+  }
+}
+
+async function handleApiSkillsRegistryImport(_req: Request, url: URL): Promise<Response> {
+  const m = url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+
+  const targetPath = getSkillPath(id)
+  if (existsSync(targetPath)) return errorResponse('Skill already exists', 409)
+
+  let rawContent: string
+  try {
+    rawContent = await fetchRegistrySkillContent(id)
+  } catch (e: any) {
+    return errorResponse(`Failed to fetch skill from registry: ${e.message}`, 502)
+  }
+
+  // Try direct parse first (some SKILL.md frontmatter may be valid SkillDef)
+  let parsed: Record<string, unknown>
+  try {
+    parsed = parse(rawContent) as Record<string, unknown>
+    if (typeof parsed.id === 'string') {
+      parsed.id = parsed.id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    }
+    validateSkill(parsed, `registry:${id}`)
+    // Valid as-is — save directly
+    const yaml = stringify(parsed, { lineWidth: 120 })
+    writeFileSync(targetPath, yaml, 'utf-8')
+    return jsonResponse({ ok: true, id, normalized: false, warnings: [] } satisfies RegistryImportResponse)
+  } catch {
+    // Needs AI normalization
+  }
+
+  return normalizeImport(
+    rawContent,
+    'SKILL.md format — needs SkillDef conversion',
+    `Registry: ${id}`
+  ).then(async (resp) => {
+    const data = await resp.json() as { ok: boolean; skill?: Record<string, unknown>; error?: string; normalized: boolean; warnings: string[]; iterations: number }
+    if (data.ok && data.skill) {
+      const yaml = stringify(data.skill, { lineWidth: 120 })
+      writeFileSync(targetPath, yaml, 'utf-8')
+      return jsonResponse({ ok: true, id, normalized: data.normalized, warnings: data.warnings || [] } satisfies RegistryImportResponse)
+    }
+    return jsonResponse({ ok: false, error: data.error || 'Normalization failed', normalized: false, warnings: [] } satisfies RegistryImportResponse, 422)
+  })
+}
+
 async function handleApiSkillsCurate(req: Request): Promise<Response> {
   let body: { text?: string }
   try { body = await req.json() as { text?: string } } catch { return errorResponse('Invalid JSON', 400) }
@@ -329,4 +401,4 @@ async function handleApiSkillsCurate(req: Request): Promise<Response> {
   )
 }
 
-export { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate }
+export { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport }

@@ -7,7 +7,7 @@ import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasks
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiNatural } from './handlers/project.ts'
 import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
 import { handleApiChatUpload, handleApiChatModels, handleApiChat } from './handlers/chat.ts'
-import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate } from './handlers/skills.ts'
+import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport } from './handlers/skills.ts'
 import { DEFAULT_PORT } from './types.ts'
 
 export async function route(req: Request, port: number): Promise<Response> {
@@ -51,6 +51,12 @@ export async function route(req: Request, port: number): Promise<Response> {
 
   if (method === 'GET' && url.pathname === '/api/skills') {
     return handleApiSkillsList()
+  }
+  if (method === 'GET' && url.pathname === '/api/skills/registry') {
+    return handleApiSkillsRegistryList()
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)) {
+    return handleApiSkillsRegistryImport(req, url)
   }
   if (method === 'GET' && url.pathname === '/api/skills/pro') {
     return handleApiSkillsProList()
@@ -146,6 +152,12 @@ export function startServer(port = DEFAULT_PORT): { server: any; url: string } {
   const server = Bun.serve({
     port,
     hostname: '127.0.0.1',
+    // Default idle timeout (10s) is too short for routes that call an LLM with
+    // retries (curator, registry import normalization) or fetch external
+    // registries before normalizing — those can legitimately take 15-30s.
+    // Without this, Bun kills the connection before the response is delivered
+    // even though the handler keeps running and completes the work server-side.
+    idleTimeout: 60,
     fetch: (req) => route(req, port),
   })
   const url = `http://localhost:${server.port}`
