@@ -3,47 +3,88 @@
 Backlog accionable, **ordenado por esfuerzo** (rápido → lento). De aquí sale el próximo PLAN.md.
 
 - Dirección de producto y norte estratégico → [VISION.md](VISION.md)
-- Lo ya implementado → [DONE.md](DONE.md) Sección 2
+- Lo ya implementado → [DONE.md](DONE.md)
+- Estructura de trabajo activa → [PLAN.md](PLAN.md)
 
-Reorganizado: 2026-06-10 (cierre Mes 11).
+Reorganizado: 2026-06-23 (cierre Mes 13). Verificado contra DONE.md — ningún item de abajo está implementado.
 
 ---
 
-## ⚡ Rápido — superficie sobre motor que ya existe (alto ROI, bajo riesgo)
+## ⚡ Rápido — autoría sobre puertas que ya existen (casi sin código nuevo)
 
-_Todos los items de este tramo que estaban aquí fueron implementados en Mes 10 (Bloques A–D)._
-_Ver DONE.md § MES 10 para el historial completo._
+Estos tres items se entregan por la **puerta "importar" del curador** (Mes 11, ✅) o como
+upgrade de skills existentes. No requieren motor nuevo — son contenido endurecido que
+entra por infraestructura ya probada. Independientes entre sí.
+
+Son el resto del delta identificado en [obra/superpowers](https://github.com/obra/superpowers)
+y [mattpocock/skills](https://github.com/mattpocock/skills); el curador + pack "pro"
+(8 skills) ya está shipeado (Mes 11, ver DONE.md § MES 11).
+
+### 1. Endurecimiento de skills — Iron Law / Common Rationalizations / Red Flags
+
+Además de `anti_patterns`, añadir a las skills existentes secciones **"Iron Law"** (la regla
+innegociable), **"Common Rationalizations"** (las excusas que el agente se dice para saltarse
+la skill, con su refutación) y **"Red Flags"**. Hace que la skill se *respete bajo presión*
+en vez de ignorarse. Es un upgrade a las skills que ya existen, no contenido nuevo.
+
+**Esfuerzo**: mínimo — autoría + paso por la puerta importar. Sin código.
+
+### 2. `verification-before-completion` (superpowers)
+
+Checklist que confirma que el fix realmente funciona antes de declarar `done`. Complementa
+el QA loop existente. Entra como skill vía la puerta importar.
+
+**Esfuerzo**: bajo — skill nueva, sin motor nuevo.
+
+### 3. Par `requesting-code-review` / `receiving-code-review` (superpowers)
+
+Validación estructurada antes de mergear y cómo procesar feedback. Dos skills que entran
+por la puerta importar.
+
+**Esfuerzo**: bajo — dos skills, sin motor nuevo.
 
 ---
 
 ## 🔨 Medio — capacidad nueva acotada
 
-### Criterio de ingeniería pro — siguiente delta de superpowers/mattpocock
+### 4. Clasificador semántico para `clarify`
 
-El curador + pack "pro" (8 skills) ya está shipeado (Mes 11, ver DONE.md § MES 11). Queda
-el resto del delta identificado en [obra/superpowers](https://github.com/obra/superpowers)
-y [mattpocock/skills](https://github.com/mattpocock/skills):
+Hoy `needsClarify` es heurística de palabras clave (verbo ambiguo + sin `input[]`). Un LLM
+call extra (haiku, barato) detectaría ambigüedad real semánticamente.
 
-1. **`brainstorming` / planning socrático** (superpowers `writing-plans` + mattpocock
-   `grill-me`): refina la intención con preguntas hasta resolver todas las ramas de
-   decisión *antes* de ejecutar. Es lo que más sirve al no-dev — la herramienta piensa
-   *con* él. Hoy `clarify` es una sola pregunta heurística; esto es una sesión de diseño.
-2. **`verification-before-completion`** (superpowers): checklist que confirma que el fix
-   realmente funciona antes de declarar `done`. Complementa el QA loop existente.
-3. **Par `requesting-code-review` / `receiving-code-review`** (superpowers): validación
-   estructurada antes de mergear y cómo procesar feedback.
-4. **Patrón de endurecimiento de skills**: además de `anti_patterns`, añadir a las skills
-   existentes secciones **"Iron Law"** (la regla innegociable), **"Common
-   Rationalizations"** (las excusas que el agente se dice para saltarse la skill, con su
-   refutación) y **"Red Flags"**. Hace que la skill se *respete bajo presión* en vez de
-   ignorarse. Es un upgrade a las skills que ya existen, no contenido nuevo — se puede
-   aplicar vía la puerta "importar" del curador (#1 ya implementado).
+**Costo**: un call por task run. **Solo vale la pena si hay evidencia de falsos negativos.**
 
-**Prerequisito**: curador ✅ (Mes 11). Los 4 ítems son independientes entre sí.
+**Esfuerzo**: bajo-medio — un call + parseo, pero gated en evidencia real.
 
----
+### 5. Resolver imports relativos en Graph (lenguajes no-JS)
 
-### Micrófono / dictado en Chat
+Hoy solo JS/Python resuelven paths relativos en `code_edges`. Para C#, Rust, Go, Java,
+Ruby → los imports se guardan pero `to_file_id` queda `null`.
+
+**Trabajo**: extender `resolveImport()` con lógica por extensión de archivo.
+
+**Esfuerzo**: medio — acotado, sin abstracción nueva (el registry de resolvers ya existe, S21).
+
+### 6. Design.md condicional para tareas complejas (OpenSpec)
+
+Único patrón de OpenSpec aún no shipeado (el resto → S28/S29/S32). Para tareas complejas,
+generar un `design.md` intermedio entre `proposal` y `tasks`, condicional a la complejidad.
+
+**Prerequisito**: flujo spec (S20/S32) ✅.
+
+**Esfuerzo**: medio — se apoya en el flujo spec existente, añade un paso condicional.
+
+### 7. `brainstorming` / planning socrático
+
+(superpowers `writing-plans` + mattpocock `grill-me`): refina la intención con preguntas
+hasta resolver todas las ramas de decisión *antes* de ejecutar. Es lo que más sirve al
+no-dev — la herramienta piensa *con* él. Hoy `clarify` es una sola pregunta heurística;
+esto es una sesión de diseño.
+
+**Esfuerzo**: medio — no es una skill más, es un flujo conversacional multi-turno (estado,
+preguntas encadenadas). Más que el #1–#3 del tramo rápido.
+
+### 8. Micrófono / dictado en Chat
 
 Dictar es 3–5× más rápido que tipear para describir tareas complejas o dar feedback largo.
 
@@ -58,38 +99,16 @@ descarta: Google-only, audio a servidores externos, mal en español técnico.)
 
 **Prerequisito**: chat panel ✅ + decisión sobre STTProvider.
 
----
-
-### Resolver imports relativos en Graph (lenguajes no-JS)
-
-Hoy solo JS/Python resuelven paths relativos en `code_edges`. Para C#, Rust, Go, Java,
-Ruby → los imports se guardan pero `to_file_id` queda `null`.
-
-**Trabajo**: extender `resolveImport()` con lógica por extensión de archivo.
+**Esfuerzo**: medio-alto — abstracción nueva (`STTProvider`) + wiring Electron + superficie
+en dashboard. El tope del tramo medio.
 
 ---
 
-### Clasificador semántico para `clarify`
+## 🧱 Largo plazo / mucho código o esperar evidencia
 
-Hoy `needsClarify` es heurística de palabras clave (verbo ambiguo + sin `input[]`). Un LLM
-call extra (haiku, barato) detectaría ambigüedad real semánticamente.
+### 9. Runner de grafo autónomo — el loop que se conduce solo
 
-**Costo**: un call por task run. **Solo vale la pena si hay evidencia de falsos negativos.**
-
----
-
-### Design.md condicional para tareas complejas (OpenSpec)
-
-Único patrón de OpenSpec aún no shipeado (el resto → S28/S29/S32). Para tareas complejas,
-generar un `design.md` intermedio entre `proposal` y `tasks`, condicional a la complejidad.
-
-**Prerequisito**: flujo spec (S20/S32) ✅.
-
----
-
-## 🧱 Largo plazo / esperar evidencia
-
-### Runner de grafo autónomo — el loop que se conduce solo
+**Candidato directo para Mes 14** (anotado en DONE.md § MES 12 y MES 13).
 
 **Tendencia (2026-06)**: "No deberías estar prompteando agentes manualmente — deberías
 diseñar loops que prompteen a tus agentes." (Peter, creador de OpenClaw, en X). La dirección
@@ -131,9 +150,10 @@ intervenir. El objetivo es intervención = 0 en el happy path.
 `orchestos run --all` (o `--plan`) que lee el DAG completo. No requiere nada nuevo en
 el schema, solo el conductor encima.
 
----
+**Esfuerzo**: poco código nuevo (reusa todo el motor) pero **alto riesgo** — es autonomía
+sin humano por tarea. Por eso es eje propio y va después del hardening (Mes 12 ✅).
 
-### Cliente MCP — OrchestOS habla con herramientas externas (Vercel, GitHub, etc.)
+### 10. Cliente MCP — OrchestOS habla con herramientas externas (Vercel, GitHub, etc.)
 
 **Por qué importa (norte estratégico)**: MCP (Model Context Protocol) es el estándar
 emergente para que un harness se conecte a herramientas externas. Si OrchestOS no lo
@@ -176,19 +196,22 @@ con mocks — ver DONE.md § MES 13).
 loop multi-turno con tools ya existe y está probado. Decisión pendiente: ¿qué transporte MCP
 soportar primero (stdio vs. HTTP/SSE) y qué servers de arranque (Vercel, GitHub)?
 
----
+**Esfuerzo**: alto — transporte MCP nuevo + descubrimiento de tools + el boundary de
+seguridad completo (lo que lo hace su propio mes, no el motor que ya existe).
 
-### KuzuDB — upgrade del graph
+### 11. KuzuDB — upgrade del graph
 
 Migrar `code_edges` + `files` a KuzuDB (embebible, Cypher, Rust) **cuando el grafo llegue a
 10K+ nodos**. Hoy SQLite + regex es suficiente. No antes de evidencia real de escala.
+
+**Esfuerzo**: alto + **bloqueado por evidencia** — no se toca sin un grafo real de 10K+ nodos.
 
 ---
 
 ## 📚 Referencia — inspiración externa (NO es backlog)
 
 Repos analizados durante Mes 5-8. La mayoría de patrones ya están shipeados; esto queda
-como mapa de procedencia. El único pendiente vivo (`Design.md condicional`) ya está arriba.
+como mapa de procedencia. El único pendiente vivo (`Design.md condicional`) está arriba (#6).
 
 ### Patrones extraídos → estado
 
@@ -211,7 +234,7 @@ como mapa de procedencia. El único pendiente vivo (`Design.md condicional`) ya 
 | Capabilities contract | OpenSpec | ✅ S32 |
 | Archive de specs con fecha | OpenSpec | ✅ S29 |
 | Delta headers (ADDED/MODIFIED/REMOVED) | OpenSpec | ✅ S32 |
-| Design.md condicional | OpenSpec | ⏳ ver backlog arriba |
+| Design.md condicional | OpenSpec | ⏳ ver backlog #6 |
 
 ### Los repos (una línea cada uno)
 

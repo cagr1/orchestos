@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-14-pendiente
+status: mes-14-en-curso
 ---
 
 # OrchestOS — Plan activo
@@ -16,6 +16,65 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 - 🧠 = Claude implementa — requiere criterio arquitectural o decisión de diseño
 - ⚡ = DeepSeek implementa — tarea bien especificada, ejecuta leyendo el plan
 - 🔍 = revisión obligatoria por Claude — gate antes de cerrar el sprint, independiente de quién implementó
+
+---
+
+## MES 14 — Autonomía interna: el runner que conduce el grafo solo
+
+**Eje**: del aislamiento (Mes 13) a la autonomía. Hoy el humano ejecuta una tarea a la vez; el conductor recorre el DAG completo de principio a fin, decide solo qué hacer ante un fallo (reintentar con estrategia vs. bloquear la rama) y **no se detiene globalmente** porque una rama caiga. Eje declarado en DONE.md § MES 12 y § MES 13 como candidato directo de este mes.
+
+**Norte (VISION.md / tendencia 2026)**: el humano diseña el grafo, el sistema lo ejecuta solo. Objetivo medible: **intervención humana = 0 en el happy path**.
+
+**Qué ya existe (NO reconstruir)**: `tasks.yaml` con `depends_on` ✅ · status machine (`pending → running → done / failed / failed_permanent`) ✅ · QA verdict por tarea ✅ · `retry_count` + `MAX_RETRIES` ✅ · `diagnoseTask()` con 6 patrones (S25) ✅ · `executePlan()` scheduler de sub-tareas con cascada (S22.4/22.5) ✅ · context-monitor con `cost_notice` (S23.0.2) ✅.
+
+**El gap real**: el `task run --all` actual ([src/cli.ts:1058](src/cli.ts:1058)) es un loop ingenuo — `MAX=20`, busca el siguiente ejecutable, y **`break` global al primer `failed`**. No integra diagnose, no bloquea ramas selectivamente, no continúa ramas independientes, no tiene tope de costo, y no tiene superficie en el dashboard. El conductor es esa lógica encima del motor que ya existe.
+
+---
+
+### BLOQUE 0 — Pre-flight (🔍 Claude, gate de entrada)
+
+- [x] **0.1** (2026-06-23) Leídos `scheduler.ts`, bloque `--all` de `cli.ts`, `diagnose.ts`, `tasks/schema.ts`. Hallazgos:
+  - **`TaskStatus` ya incluye `'blocked'`** ([src/tasks/schema.ts:1](src/tasks/schema.ts:1)) — el enum top-level ya anticipó este estado. **Cero cambios de schema necesarios.**
+  - **El patrón "aislar rama, no detener el grafo" ya existe y está probado** — `executePlan()` ([src/run/scheduler.ts:73](src/run/scheduler.ts:73)) recorre sub-tareas en un `for` que NUNCA hace `break` global: si una sub-tarea falla, marca sus dependientes `skipped` (vía `failedIds`) y **continúa el loop** procesando el resto. Esto es exactamente el comportamiento que el conductor necesita a nivel `tasks.yaml` — solo hay que portar el patrón, no inventarlo.
+  - **El gap real está aislado en un solo lugar**: el bloque `--all` de `cli.ts` ([cli.ts:1058-1079](src/cli.ts:1058)) es el único punto que rompe el patrón — usa `MAX=20` hardcoded y `if (result === 'failed') { break }` (línea 1076), deteniendo TODO el grafo por una sola tarea. No hay registro de qué quedó bloqueado ni por qué.
+  - **`diagnoseTask()`** ([src/agents/diagnose.ts:101](src/agents/diagnose.ts:101)) ya es 100% reusable sin cambios: toma `(taskId, root)`, lee últimos 3 runs vía `listRunsByTaskId`, devuelve `DiagnoseResult{pattern, confidence, suggestion, details}` con 6 `FailurePattern`. Hoy solo se imprime a stderr (S25.3) — nunca se usa para decidir una acción. Ese es el otro gap: pasar de "sugiere" a "la estrategia A1 actúa sobre el resultado".
+  - **Conclusión**: A2 (graph-runner) no es un motor nuevo — es `executePlan()` adaptado de `SubTask[]` a `Task[]` de `tasks.yaml`, reemplazando el `break` de `cli.ts:1076` por el ciclo cascada-y-continúa que `scheduler.ts` ya demuestra. Reduce el riesgo de A2: el patrón ya está en producción (sub-agentes, Mes 5).
+- [x] **0.2** (2026-06-23) Decisión: comando nuevo **`run --graph`**, no se toca `--all`. Razón: `--all` ya tiene consumidores (hook post-completion S30, dogfooding documentado en E2E.md) que asumen halt-on-fail; cambiar su semántica sin flag sería un cambio de comportamiento silencioso. `--graph` es aditivo.
+
+### BLOQUE A — El conductor (motor) 🧠
+
+- [x] **A1** (🧠, 2026-06-23) Diseño completo en [docs/graph-runner-design.md](../docs/graph-runner-design.md). Decisiones: (1) `'blocked'` reusado sin cambios de schema — ya tenía la semántica correcta. (2) Mapa `FailurePattern`→estrategia: solo `rate_limit` autoriza un requeue único (en memoria, no persistido); los otros 5 patrones bloquean la rama sin reintentar. (3) Algoritmo nunca hace `break` global — único punto de parada total es el circuit breaker (A4). (4) `blockedAncestors` es el mismo patrón que `failedIds` de `scheduler.ts`, portado a `Task[]`.
+- [ ] **A2** (⚡) `src/run/graph-runner.ts`: traversal topológico que recorre el DAG completo. Una rama que agota retries marca sus dependientes como bloqueados con razón explícita y **continúa las ramas independientes** (no `break` global). Devuelve un `GraphRunResult` con outcome por tarea.
+- [ ] **A3** (🧠/⚡) Integrar `diagnoseTask()` (S25) en el loop: al llegar a `failed_permanent`, llamar diagnose y aplicar la estrategia de A1 automáticamente, sin pedir permiso por decisión individual.
+- [ ] **A4** (⚡) Circuit breaker: tope de costo acumulado (`--max-cost`, reusa `cost_notice` del context-monitor), tope de wall-clock y de iteraciones totales. Un loop autónomo no se desboca — al cruzar el umbral, se detiene y notifica.
+
+### BLOQUE B — CLI 
+
+- [ ] **B1** (⚡) `orchestos run --graph [path] [--max-cost N] [--max-minutes N] [--dry-run]`: recorre el DAG completo, imprime progreso por tarea, y un resumen final.
+- [ ] **B2** (⚡) Reporte de cierre: tabla outcome por tarea (completada sola · reintentada-y-resuelta · rama bloqueada) + **métrica de autonomía** (tareas completadas sin intervención / total). `--dry-run` muestra el orden topológico y los gates sin gastar tokens.
+
+### BLOQUE C — Superficie en el dashboard ([[feedback-dashboard-no-solo-cli]])
+
+- [ ] **C1** (🧠) Endpoint `POST /api/run/graph` (lanza el runner en background) + `GET /api/run/graph/status` (progreso + outcome parcial). Wiring en `server.ts` siguiendo el patrón de los handlers existentes.
+- [ ] **C2** (⚡) Pantalla "Runner de grafo": botón "Ejecutar todo el plan", progreso en vivo por tarea, ramas bloqueadas resaltadas, métrica de intervención visible. Reusa el auto-refresh de la vista Runs.
+- [ ] **C3** (⚡) i18n en/es de las cadenas nuevas.
+
+### BLOQUE D — Tests + verificación en vivo
+
+- [ ] **D1** (⚡) Tests unitarios de `graph-runner.ts`: happy path completo · una rama falla → dependientes bloqueados **y ramas independientes completan** · circuit breaker de costo dispara · retry guiado por diagnose. Mock del executor, no del grafo.
+- [ ] **D2** (🔍 Claude, [[feedback-verificar-gates-en-vivo]]) Gate en vivo contra el **dashboard real corriendo** (no mocks): lanzar el runner desde la pantalla C2 sobre un `tasks.yaml` con una rama que falla a propósito; verificar que el grafo no se detiene, la rama se bloquea, y las independientes terminan. Los mocks pueden esconder bugs del wiring real.
+- [ ] **D3** (🔍 Claude) Smoke real end-to-end: `tasks.yaml` real de OrchestOS o CitasBot, medir **intervención = 0 en el happy path**. Registrar en `docs/E2E.md`.
+
+### BLOQUE E — Cierre del Mes 14 ([[feedback-orden-desarrollo]] — 4 acciones obligatorias)
+
+- [ ] **E1** Mover IDEAS.md #9 (runner de grafo autónomo) → DONE.md con resumen y commits.
+- [ ] **E2** Cerrar esta sección con `[x]` + fecha + tabla de estado de bloques A–E.
+- [ ] **E3** Limpiar PLAN.md: dejar solo el resumen del Mes 14 cerrado, `status: mes-15-pendiente`.
+- [ ] **E4** Pre-flight del Mes 15 + actualizar la memoria del proyecto.
+
+**Métrica de éxito Mes 14**: `orchestos run --graph` recorre un `tasks.yaml` real completo sin intervención humana en el happy path; ante un fallo, bloquea solo la rama afectada (las independientes completan) y la decisión retry/bloqueo la toma diagnose, no el humano. Verificado **en vivo en el dashboard**, no solo en tests. Tests verdes · 0 fail.
+
+**Reglas de seguridad innegociables**: el runner autónomo **solo recorre tareas internas** (LLM → contract → QA → worktree) — no ejecuta acciones outward-facing ni destructivas (eso es territorio del cliente MCP, eje propio posterior). El circuit breaker de costo/tiempo es obligatorio, no opcional.
 
 ---
 
