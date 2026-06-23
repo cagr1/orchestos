@@ -251,6 +251,7 @@ button { font-family: inherit; }
 .btn.danger:hover { background: color-mix(in oklab, var(--error) 24%, transparent); }
 .btn.sm { padding: 4px 9px; font-size: 12px; gap: 5px; }
 .btn.sm svg { width: 13px; height: 13px; }
+.m-details summary svg { width: 12px; height: 12px; flex-shrink: 0; }
 
 /* ============================================================
    Badges

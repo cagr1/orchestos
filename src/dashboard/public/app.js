@@ -527,8 +527,35 @@ const Modal = {
   // ── Bloque D: New Skill modal (textarea + curate + form + preview) ──────
   openNewSkill() {
     this._curatedSkill = null;
+    this._editingSkillId = null;
     this._renderNewSkillInput();
     requestAnimationFrame(() => this.el.classList.add('show'));
+  },
+
+  // ── Edit existing skill: reuses the New Skill form, prefilled, PUT on save ──
+  // The skills list endpoint returns a truncated summary (instructionSummary,
+  // no full instructions/verifiers/etc) — fetch the full detail before editing,
+  // otherwise PUT fails validation with a field that looks populated in the list
+  // but is empty in the real SkillDef.
+  async openEditSkill(skillSummary) {
+    this._curatedSkill = null;
+    this._editingSkillId = skillSummary.id;
+    this.el.innerHTML = `<div class="modal" style="width:400px">
+      <div class="m-body" style="display:flex;align-items:center;gap:10px;padding:24px">
+        <span class="spinner" style="width:16px;height:16px;border-width:2px"></span>
+        <span>${t('skills.detail.loading')}</span>
+      </div>
+    </div>`;
+    requestAnimationFrame(() => this.el.classList.add('show'));
+    try {
+      const res = await fetch(`/api/skills/${encodeURIComponent(skillSummary.id)}`);
+      const full = await res.json();
+      if (!res.ok) throw new Error(full.error || 'Failed to load skill');
+      this._curatedSkill = full;
+      this._renderNewSkillForm();
+    } catch {
+      this.close();
+    }
   },
 
   _renderNewSkillInput() {
@@ -581,6 +608,7 @@ const Modal = {
 
   _renderNewSkillForm() {
     const s = this._curatedSkill || {};
+    const isEdit = !!this._editingSkillId;
     const targets = s.targets || [];
     const tClaude = targets.includes('claude') ? 'checked' : '';
     const tCursor = targets.includes('cursor') ? 'checked' : '';
@@ -588,12 +616,12 @@ const Modal = {
     const listVal = (key) => esc((s[key] || []).join('\n'));
     const preview = this._yamlFromForm(s);
     this.el.innerHTML = `<div class="modal" style="width:640px">
-      <div class="m-head"><span style="color:var(--accent)">${ICON.flask}</span><h3>${t('modal.skill.title')}</h3>
+      <div class="m-head"><span style="color:var(--accent)">${ICON.flask}</span><h3>${isEdit ? t('modal.skill.title.edit') : t('modal.skill.title')}</h3>
         <button class="btn ghost sm" data-x>${ICON.x}</button></div>
       <div class="m-body" style="max-height:65vh;overflow-y:auto">
         <div style="display:grid;grid-template-columns:1fr 100px;gap:12px">
           <div class="m-field" style="margin:0"><label>${t('modal.skill.form.id')}</label>
-            <input id="ns-id" value="${esc(s.id || '')}" autocomplete="off"></div>
+            <input id="ns-id" value="${esc(s.id || '')}" autocomplete="off" ${isEdit ? 'readonly disabled' : ''}></div>
           <div class="m-field" style="margin:0"><label>${t('modal.skill.form.version')}</label>
             <input id="ns-version" value="${esc(s.version || '1.0.0')}" autocomplete="off"></div>
         </div>
@@ -619,14 +647,14 @@ const Modal = {
           <textarea id="ns-inputs" rows="2" style="resize:vertical">${listVal('inputs_required')}</textarea></div>
         <div class="m-field"><label>${t('modal.skill.form.allowed_tools')}</label>
           <textarea id="ns-tools" rows="2" style="resize:vertical">${listVal('allowed_tools')}</textarea></div>
-        <details style="border:1px solid var(--border);border-radius:var(--radius);padding:10px;background:var(--bg);margin-top:4px">
-          <summary style="cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text-muted);user-select:none">${ICON.chev} ${t('modal.skill.preview')}</summary>
+        <details class="m-details" style="border:1px solid var(--border);border-radius:var(--radius);padding:10px;background:var(--bg);margin-top:4px">
+          <summary style="cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text-muted);user-select:none;display:flex;align-items:center;gap:6px">${ICON.chev} ${t('modal.skill.preview')}</summary>
           <pre id="ns-preview" style="margin:8px 0 0;font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:280px;background:var(--surface);padding:10px;border-radius:var(--radius);tab-size:2">${esc(preview)}</pre>
         </details>
         <div id="ns-msg" style="font-size:12px;display:none"></div>
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
-        <button class="btn primary" data-save>${ICON.flask} ${t('modal.skill.btn.save')}</button></div>
+        <button class="btn primary" data-save>${ICON.flask} ${isEdit ? t('modal.skill.btn.save.edit') : t('modal.skill.btn.save')}</button></div>
     </div>`;
     this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
     const updatePreview = () => {
@@ -644,12 +672,14 @@ const Modal = {
       const btn = this.el.querySelector('[data-save]');
       btn.disabled = true;
       try {
-        const res = await fetch('/api/skills', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+        const url    = isEdit ? `/api/skills/${encodeURIComponent(this._editingSkillId)}` : '/api/skills';
+        const method = isEdit ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method, headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(skill),
         });
         if (res.ok) { this.close(); await App.fetchSkills(); App.rerender(); }
-        else { const e = await res.json(); msg.textContent = e.error || t('modal.skill.err.save'); msg.style.color = 'var(--error)'; msg.style.display = ''; btn.disabled = false; }
+        else { const e = await res.json(); msg.textContent = e.error || (isEdit ? t('modal.skill.err.update') : t('modal.skill.err.save')); msg.style.color = 'var(--error)'; msg.style.display = ''; btn.disabled = false; }
       } catch { msg.textContent = t('common.conn.error'); msg.style.color = 'var(--error)'; msg.style.display = ''; btn.disabled = false; }
     });
   },

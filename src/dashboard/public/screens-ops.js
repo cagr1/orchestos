@@ -950,7 +950,7 @@ SCREENS.skills = {
         e.stopPropagation();
         const id = btn.dataset.skill;
         const skill = st.skills.find(s => s.id === id);
-        if (skill) Modal.openSkillDetail(skill);
+        if (skill) Modal.openEditSkill(skill);
       });
     });
 
