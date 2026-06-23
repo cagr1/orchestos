@@ -56,6 +56,7 @@ const state = {
   chatFileMeta: null,  // { filename, type, preview } from upload
   chatToTask: null,   // non-null = condensed chat text to pre-fill compose bar
   orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
+  orModelsLastFetch: 0, // timestamp of last successful fetch (ms), for TTL
   localModels: null, // null = not checked, [] = none available, [...] = Ollama models
 
 };
@@ -451,6 +452,10 @@ const Modal = {
     this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
     this.el.querySelector('[data-load-models]')?.addEventListener('click', async () => {
       await loadOrModels();
+      this.openTask();
+    });
+    this.el.querySelector('[data-refresh-models]')?.addEventListener('click', async () => {
+      await loadOrModels(true);
       this.openTask();
     });
 
@@ -1155,22 +1160,33 @@ function buildModelSelect(inputId, currentVal, models, localModels, withSearch) 
   // Ensure current value is present even if not returned by OpenRouter
   const allCloud = models.some(m => m.id === val) ? models : [{ id: val, name: val, priceIn: 0 }, ...models];
   const opts = buildModelOpts(locals, allCloud, val, '');
+  const refreshBtn = `<button class="btn ghost sm" data-refresh-models title="${t('btn.refresh')}" style="white-space:nowrap">${ICON.refresh}</button>`;
   if (withSearch) {
     return `<div class="model-select-wrap">
       <input type="text" class="model-search" data-model-search placeholder="${t('chat.models.search')}">
-      <select id="${inputId}" class="model-sel">${opts}</select>
+      <div style="display:flex;gap:4px;align-items:center">
+        <select id="${inputId}" class="model-sel" style="flex:1">${opts}</select>
+        ${refreshBtn}
+      </div>
     </div>`;
   }
-  return `<select id="${inputId}" class="model-sel">${opts}</select>`;
+  return `<div style="display:flex;gap:8px;align-items:center">
+    <select id="${inputId}" class="model-sel" style="flex:1">${opts}</select>
+    ${refreshBtn}
+  </div>`;
 }
 
-async function loadOrModels() {
-  if (state.orModels && state.orModels.length > 0) return;
+async function loadOrModels(force = false) {
+  const now = Date.now();
+  if (!force && state.orModels && state.orModels.length > 0) {
+    if (state.orModelsLastFetch && (now - state.orModelsLastFetch) < 3600000) return;
+  }
   state.orModels = [];
   try {
     const res = await fetch('/api/chat/models');
     if (res.ok) {
       state.orModels = await res.json();
+      state.orModelsLastFetch = Date.now();
     } else {
       state.orModels = null;
     }

@@ -175,6 +175,10 @@ SCREENS.chat = {
       await loadOrModels();
       App.rerender();
     });
+    root.querySelector('[data-refresh-models]')?.addEventListener('click', async () => {
+      await loadOrModels(true);
+      App.rerender();
+    });
     root.querySelector('#chat-model-select')?.addEventListener('change', e => {
       st.chatModel = e.target.value;
       App.rerender(); // refresh warning banner
@@ -530,6 +534,10 @@ SCREENS.tasks = {
     // load-models in draft preview
     root.querySelector('[data-load-models]')?.addEventListener('click', async () => {
       await loadOrModels();
+      App.rerender();
+    });
+    root.querySelector('[data-refresh-models]')?.addEventListener('click', async () => {
+      await loadOrModels(true);
       App.rerender();
     });
     root.querySelector('#draft-model')?.addEventListener('change', () => {});
