@@ -14,7 +14,12 @@ export interface ChatResponse {
   model: string
 }
 
-function loadApiKey(): string {
+/**
+ * Reads the OpenRouter API key without throwing.
+ * Source order: process.env → ~/.orchestos/.env. Returns null when absent
+ * so optional consumers (e.g. the model catalog) can degrade gracefully.
+ */
+export function tryLoadApiKey(): string | null {
   if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY
   const envPath = join(homedir(), '.orchestos', '.env')
   if (existsSync(envPath)) {
@@ -23,6 +28,12 @@ function loadApiKey(): string {
       if (m?.[1]) return m[1].trim()
     }
   }
+  return null
+}
+
+function loadApiKey(): string {
+  const key = tryLoadApiKey()
+  if (key) return key
   throw new Error(
     'OPENROUTER_API_KEY not found.\n' +
     'Set it in ~/.orchestos/.env:\n' +

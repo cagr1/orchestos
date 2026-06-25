@@ -33,7 +33,8 @@ import { runChecks, type CheckResult } from './checks.ts'
 import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import { loadSpec } from '../spec/store.ts'
-import { checkContextHealth, getModelContextWindow, shouldCheck, type RunState } from '../hooks/context-monitor.ts'
+import { checkContextHealth, shouldCheck, type RunState } from '../hooks/context-monitor.ts'
+import { ensureCatalogLoaded, contextWindowFor } from '../router/model-catalog.ts'
 import { createRunContext, createChain, type RunContext } from './middleware.ts'
 import { contextInject, skillRoute, memoryFetch, toolPolicy, instinctApply } from './middlewares/index.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -214,9 +215,13 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
     // -- context-monitor (S27) — post-write, pre-QA --------------------------
     if (shouldCheck(monitorCallCount ?? 0)) {
+      // Carga el catálogo real de OpenRouter (cacheado en disco, TTL 24h) para
+      // que la ventana de contexto sea la que el proveedor publica, no una
+      // adivinanza por nombre. Cae a la tabla de familias si está offline.
+      await ensureCatalogLoaded()
       const monitorState: RunState = {
         promptTokens: llmResponse.inputTokens,
-        modelContextWindow: getModelContextWindow(ctx.model),
+        modelContextWindow: contextWindowFor(ctx.model),
         cumulativeCostUsd: cost,
         recentToolCalls: [],   // harness is single-shot; no tool loop
         filesModified: contractResult.written.length,

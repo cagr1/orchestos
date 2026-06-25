@@ -13,6 +13,7 @@ import { loadTasks } from '../tasks/loader.ts'
 import { listRunsByTaskId, type RunRecord } from '../db/runs.ts'
 import { chat } from '../providers/openrouter.ts'
 import { getProvider } from '../providers/index.ts'
+import { calcCost } from '../router/pricing.ts'
 
 export type FailurePattern =
   | 'deterministic_check'
@@ -28,6 +29,8 @@ export interface DiagnoseResult {
   confidence: 'high' | 'medium' | 'low'
   suggestion: string
   details: string
+  /** Costo real USD de la llamada de diagnóstico — AR.3: el caller (graph-runner) lo necesita para no subcontar el circuit breaker. */
+  usdCost: number
 }
 
 const PATTERNS_DESCRIPTION = `
@@ -128,6 +131,8 @@ export async function diagnoseTask(
     })
   }
 
+  const usdCost = calcCost(resp.model, resp.inputTokens, resp.outputTokens)
+
   const jsonMatch = resp.text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
     return {
@@ -136,6 +141,7 @@ export async function diagnoseTask(
       confidence: 'low',
       suggestion: 'Could not parse LLM diagnostic response. Read the run details manually with: orchestos runs --detail <run-id>',
       details: `LLM returned unparseable response: ${resp.text.slice(0, 200)}`,
+      usdCost,
     }
   }
 
@@ -154,6 +160,7 @@ export async function diagnoseTask(
       confidence,
       suggestion: typeof obj.suggestion === 'string' ? obj.suggestion : 'No suggestion provided.',
       details: typeof obj.details === 'string' ? obj.details : 'No details provided.',
+      usdCost,
     }
   } catch {
     return {
@@ -162,6 +169,7 @@ export async function diagnoseTask(
       confidence: 'low',
       suggestion: 'Could not parse LLM diagnostic response. Read the run details manually with: orchestos runs --detail <run-id>',
       details: `JSON parse error on: ${jsonMatch[0].slice(0, 200)}`,
+      usdCost,
     }
   }
 }
