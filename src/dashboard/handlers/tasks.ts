@@ -5,14 +5,12 @@ import { loadTasks, saveTasks } from '../../tasks/loader.ts'
 import type { TaskRow, DiagnoseRow } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
 
-function handleApiTasks(): Response {
-  const root = resolve('.')
-  if (!existsSync(join(root, 'tasks.yaml'))) {
-    return jsonResponse([] as TaskRow[])
-  }
+/** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
+function loadTaskRows(root: string): TaskRow[] {
+  if (!existsSync(join(root, 'tasks.yaml'))) return []
   try {
     const file = loadTasks(root)
-    const rows: TaskRow[] = file.tasks.map(t => ({
+    return file.tasks.map(t => ({
       id: t.id,
       description: t.description,
       status: t.status,
@@ -22,10 +20,13 @@ function handleApiTasks(): Response {
       qaVerdict: t.qa_verdict ?? null,
       runId: t.run_id ?? null,
     }))
-    return jsonResponse(rows)
   } catch {
-    return jsonResponse([] as TaskRow[])
+    return []
   }
+}
+
+function handleApiTasks(): Response {
+  return jsonResponse(loadTaskRows(resolve('.')))
 }
 
 function descToTaskId(desc: string): string {
@@ -135,4 +136,4 @@ async function handleApiTasksDiagnose(url: URL): Promise<Response> {
   }
 }
 
-export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose }
+export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, loadTaskRows }

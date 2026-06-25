@@ -23,6 +23,7 @@ import { MAX_RETRIES } from './run/qa.ts'
 import { RunLogger } from './run/logger.ts'
 import { runTask } from './run/harness.ts'
 import { executePlan } from './run/scheduler.ts'
+import { runGraph } from './run/graph-runner.ts'
 import { createPlan } from './agents/planner.ts'
 import { diagnoseTask } from './agents/diagnose.ts'
 import type { SubTask } from './agents/sub-agent.ts'
@@ -385,21 +386,132 @@ skill
 program
   .command('run')
   .description('Execute a task with contract enforcement — only declared outputs are written')
-  .requiredOption('--task <description>', 'What to do (natural language)')
-  .requiredOption('--output <paths>', 'Comma-separated list of files the LLM is allowed to write (e.g. src/foo.ts,src/bar.ts)')
+  .option('--task <description>', 'What to do (natural language). Required unless --graph is set.')
+  .option('--output <paths>', 'Comma-separated list of files the LLM is allowed to write (e.g. src/foo.ts,src/bar.ts). Required unless --graph is set.')
   .option('--skill <id>', 'Skill to inject as guidelines')
   .option('--file <paths>', 'Comma-separated input files to read and include as context')
   .option('--project <path>', 'Project root (defaults to cwd)')
-  .option('--dry-run', 'Build the prompt and print it without calling the LLM')
+  .option('--dry-run', 'Build the prompt and print it without calling the LLM (one-shot) or show topological plan without executing (with --graph)')
+  .option('--graph', 'Run the full DAG declared in tasks.yaml autonomously (Mes 14, Bloque B1)')
+  .option('--max-cost <usd>', 'Circuit breaker: stop --graph when accumulated cost reaches this USD value')
+  .option('--max-minutes <n>', 'Circuit breaker: stop --graph after this many wall-clock minutes')
+  .option('--keep-worktree', 'Keep worktree on failure for post-mortem debugging (implies --sandbox=worktree)')
+  .option('--sandbox <mode>', 'Sandbox mode: worktree | cwd | auto (default: auto)', 'auto')
   .action(async (opts: {
-    task: string
-    output: string
+    task?: string
+    output?: string
     skill?: string
     file?: string
     project?: string
     dryRun?: boolean
+    graph?: boolean
+    maxCost?: string
+    maxMinutes?: string
+    keepWorktree?: boolean
+    sandbox?: string
   }) => {
     const root = resolve(opts.project ?? '.')
+
+    // ── run --graph: DAG-wide autonomous traversal (B1) ────────────────────
+    if (opts.graph) {
+      if (!tasksExist(root)) {
+        console.error(`[run --graph] No tasks.yaml found in ${root}. Run: orchestos task init`)
+        process.exit(1)
+      }
+      const projectContext = loadContext(root)
+      const project = getProject(root)
+      const orcheConfigPath  = join(root, 'orchestos.config.yaml')
+      const orcheConfigFound = existsSync(orcheConfigPath)
+      const orcheConfig      = loadOrcheConfig(root)
+
+      const maxCost   = opts.maxCost   != null ? Number(opts.maxCost)   : undefined
+      const maxMinutes = opts.maxMinutes != null ? Number(opts.maxMinutes) : undefined
+      if (maxCost != null && !Number.isFinite(maxCost)) {
+        console.error(`[run --graph] --max-cost must be a number, got: ${opts.maxCost}`)
+        process.exit(1)
+      }
+      if (maxMinutes != null && !Number.isFinite(maxMinutes)) {
+        console.error(`[run --graph] --max-minutes must be a number, got: ${opts.maxMinutes}`)
+        process.exit(1)
+      }
+
+      const sandboxRaw = opts.keepWorktree ? 'worktree' : (opts.sandbox ?? 'auto')
+      const sandboxMode = sandboxRaw === 'auto' ? undefined : sandboxRaw as 'worktree' | 'cwd'
+
+      // --dry-run: topological preview without spending tokens (B1)
+      if (opts.dryRun) {
+        const file = loadTasks(root)
+        const tasks = file.tasks
+        if (tasks.length === 0) {
+          console.log(`[run --graph] No tasks declared in ${tasksPath(root)}`)
+          return
+        }
+        console.log(`[run --graph] (dry-run) ${tasks.length} task(s) in ${tasksPath(root)}\n`)
+        // Layered topological order: tasks with no pending ancestors first
+        const doneOrPending = tasks.filter(t => t.status !== 'failed_permanent')
+        const layers: string[][] = []
+        const placed = new Set<string>()
+        let progress = true
+        while (progress) {
+          progress = false
+          const layer: string[] = []
+          for (const t of doneOrPending) {
+            if (placed.has(t.id)) continue
+            const unmet = t.depends_on.filter(d => !placed.has(d) && doneOrPending.find(x => x.id === d)?.status !== 'done')
+            if (unmet.length === 0) { layer.push(t.id); placed.add(t.id); progress = true }
+          }
+          if (layer.length > 0) layers.push(layer)
+        }
+        const stuck = doneOrPending.filter(t => !placed.has(t.id))
+        for (let i = 0; i < layers.length; i++) {
+          const layer = layers[i] ?? []
+          console.log(`  step ${String(i + 1).padStart(2)}: ${layer.join(', ')}`)
+        }
+        if (stuck.length > 0) {
+          console.log(`  stuck:    ${stuck.map(t => t.id).join(', ')} (cycles or unresolved dependencies)`)
+        }
+        console.log('')
+        console.log(`  circuit breaker:`)
+        console.log(`    cost limit:    ${maxCost != null ? `$${maxCost.toFixed(4)}` : '(not set — no cap)'}`)
+        console.log(`    time limit:    ${maxMinutes != null ? `${maxMinutes} min` : '(not set — no cap)'}`)
+        console.log(`    iterations:    200 (hard cap)`)
+        console.log(`\n  Run without --dry-run to execute.`)
+        return
+      }
+
+      console.log(`[run --graph] starting autonomous DAG traversal in ${root}`)
+      if (maxCost != null)   console.log(`  cost cap:   $${maxCost.toFixed(4)}`)
+      if (maxMinutes != null) console.log(`  time cap:   ${maxMinutes} min`)
+      if (sandboxMode)       console.log(`  sandbox:    ${sandboxMode}`)
+      console.log('')
+
+      const result = await runGraph({
+        projectRoot: root,
+        contextText: projectContext,
+        projectId: project?.id,
+        orcheConfig,
+        orcheConfigFound,
+        maxCost,
+        maxMinutes,
+        sandboxMode,
+        keepWorktree: opts.keepWorktree,
+      })
+
+      // Final summary — B2: outcome grouped by 3 buckets, autonomy metric prominent
+      // (B1 had a flat list; B2 sorts into "completed alone · retried-and-resolved ·
+      // branch blocked" so the human can see at a glance how autonomous the run was
+      // and which branches had to be sacrificed.)
+      printGraphSummary(result, root)
+      // Exit code: 0 only if autonomy is 100% (no failures, no circuit break)
+      const failed = result.tasks.some(e => e.outcome === 'failed_permanent' || e.outcome === 'blocked')
+      process.exit(failed || result.circuit_break_reason ? 1 : 0)
+    }
+
+    // ── one-shot run (existing behavior) ─────────────────────────────────
+    if (!opts.task || !opts.output) {
+      console.error(`[run] Either --task/--output (one-shot) or --graph (DAG traversal) is required.`)
+      process.exit(1)
+    }
     const allowedPaths = opts.output.split(',').map(p => p.trim()).filter(Boolean)
     const inputFiles = opts.file ? opts.file.split(',').map(p => p.trim()).filter(Boolean) : []
     const t0 = performance.now()
@@ -1696,6 +1808,8 @@ program
 program.parse()
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+import { printGraphSummary } from './run/graph-summary.ts'
+
 async function buildProfile(root: string): Promise<StackProfile> {
   const manifest = readManifest(root)
   const languages = await detectLanguages(root)

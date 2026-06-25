@@ -14,6 +14,8 @@
  *   GET  /api/specs                 → SpecRow[]
  *   GET  /api/memory                → MemoryRow[]
  *   GET  /api/tasks/:id/diagnose   → DiagnoseRow
+ *   POST /api/run/graph            → MutationResult (launches in background, 409 if already running)
+ *   GET  /api/run/graph/status     → GraphRunStatusResponse
  *   GET  /api/health               → HealthResponse
  *   GET  /api/providers/local      → LocalProviderResponse
  *   POST /api/chat/upload          → ChatUploadResponse
@@ -95,6 +97,16 @@ export interface TaskRow {
   qaVerdict: 'pass' | 'fail' | null
   runId: string | null     // link to latest run in /api/runs
 }
+
+// ── /api/run/graph, /api/run/graph/status ──────────────────────────────────────
+
+import type { GraphRunResult } from '../run/graph-runner.ts'
+
+export type GraphRunStatusResponse =
+  | { phase: 'idle'; tasks: TaskRow[] }
+  | { phase: 'running'; tasks: TaskRow[]; startedAt: number }
+  | { phase: 'done'; tasks: TaskRow[]; startedAt: number; finishedAt: number; result: GraphRunResult }
+  | { phase: 'error'; tasks: TaskRow[]; startedAt: number; finishedAt: number; error: string }
 
 // ── /api/instincts ────────────────────────────────────────────────────────────
 

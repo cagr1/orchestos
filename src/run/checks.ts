@@ -1,9 +1,37 @@
-import { resolve } from 'path'
+import { resolve, join } from 'path'
+import { existsSync } from 'fs'
 import type { Check } from '../tasks/schema.ts'
 import type { RunLogger } from './logger.ts'
 
 const DEFAULT_TIMEOUT_MS = 60_000
 const OUTPUT_LIMIT = 2_000
+const TSC_TIMEOUT_MS = 120_000
+
+/**
+ * D3 finding (Mes 14, 2026-06-25): a task with no explicit `checks:` only gets
+ * validated by the LLM QA judge (qa.ts), which approved a generated test file that
+ * didn't even compile (wrong test framework import, missing Task fields). These are
+ * sensible defaults for code-output tasks that don't declare their own checks —
+ * explicit `checks:` always wins (this is never consulted if the task has any).
+ *
+ * Both checks are skipped when `effectiveRoot` has no node_modules (e.g. a fresh
+ * git worktree that doesn't symlink dependencies — see follow-up task on worktree
+ * isolation) — running `tsc`/`bun test` there would fail on missing modules, not
+ * on the generated code, producing a false failure unrelated to what we're checking.
+ */
+export function defaultChecksFor(output: string[], effectiveRoot: string): Check[] {
+  if (!existsSync(join(effectiveRoot, 'node_modules'))) return []
+  const checks: Check[] = []
+  if (output.some(p => p.endsWith('.ts') || p.endsWith('.tsx'))) {
+    checks.push({ cmd: 'bunx tsc --noEmit', timeout_ms: TSC_TIMEOUT_MS })
+  }
+  for (const p of output) {
+    if (p.endsWith('.test.ts') || p.endsWith('.test.tsx')) {
+      checks.push({ cmd: `bun test ${p}` })
+    }
+  }
+  return checks
+}
 
 export interface CheckResult {
   cmd: string

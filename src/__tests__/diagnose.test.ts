@@ -1,8 +1,16 @@
 /**
  * S25.4 — Tests for S25.1/S25.2: agente de diagnóstico de fallos
  */
-import { describe, it, expect, mock } from 'bun:test'
+import { describe, it, expect, mock, afterAll } from 'bun:test'
 import { insertRun, listRuns, getRun } from '../db/runs.ts'
+
+// Capture real modules before mocking — mock.module() has no automatic per-file scope in
+// Bun's test runner: once set, a mocked module stays mocked for every file that runs
+// afterward in the same `bun test` invocation unless explicitly restored. tasks/loader.ts
+// and providers/openrouter.ts are both imported for real by later-running suites
+// (graph-runner.test.ts, spec.test.ts), so this file must hand them back in afterAll.
+const realLoader = await import('../tasks/loader.ts')
+const realOpenrouter = await import('../providers/openrouter.ts')
 
 const mockRuns: any[] = [
   {
@@ -85,6 +93,11 @@ mock.module('../db/runs.ts', () => ({
 }))
 
 const { diagnoseTask } = await import('../agents/diagnose.ts')
+
+afterAll(() => {
+  mock.module('../tasks/loader.ts', () => realLoader)
+  mock.module('../providers/openrouter.ts', () => realOpenrouter)
+})
 
 describe('diagnoseTask', () => {
   it('returns DiagnoseResult with pattern and suggestion', async () => {

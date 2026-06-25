@@ -22,7 +22,7 @@
  *   - cost_notice del context-monitor integrado como warning informativo + umbral de parada
  */
 
-import { loadTasks, updateTaskStatus } from '../tasks/loader.ts'
+import { loadTasks as loadTasksReal, updateTaskStatus as updateTaskStatusReal } from '../tasks/loader.ts'
 import { runTask } from './harness.ts'
 import { diagnoseTask } from '../agents/diagnose.ts'
 import type { FailurePattern } from '../agents/diagnose.ts'
@@ -81,6 +81,20 @@ export interface GraphRunOpts {
   maxMinutes?: number
   sandboxMode?: SandboxMode
   keepWorktree?: boolean
+  /**
+   * Test-only injection seam. Bun's `mock.module()` replaces a module for the
+   * whole `bun test` process (every file that statically imports it afterwards
+   * gets the mock too) — unsafe for `run/harness.ts`, `agents/diagnose.ts` and
+   * `tasks/loader.ts` since other suites (spec.test.ts, diagnose.test.ts,
+   * graph-summary.test.ts) import them directly. Passing these lets tests stub
+   * task execution and task state without touching the shared module graph.
+   * Never set by real callers (cli.ts, dashboard handler) — defaults to the
+   * real implementations.
+   */
+  runTaskFn?: typeof runTask
+  diagnoseFn?: typeof diagnoseTask
+  loadTasksFn?: typeof loadTasksReal
+  updateTaskStatusFn?: typeof updateTaskStatusReal
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +107,8 @@ export async function runGraph(
   const {
     projectRoot, contextText, projectId, orcheConfig, orcheConfigFound,
     maxCost, maxMinutes, sandboxMode, keepWorktree,
+    runTaskFn = runTask, diagnoseFn = diagnoseTask,
+    loadTasksFn = loadTasksReal, updateTaskStatusFn = updateTaskStatusReal,
   } = opts
 
   const entries: GraphTaskEntry[] = []
@@ -123,7 +139,7 @@ export async function runGraph(
     }
 
     // ── Load current state from tasks.yaml ───────────────────────────────
-    const file = loadTasks(projectRoot)
+    const file = loadTasksFn(projectRoot)
     const tasks = file.tasks
 
     // Find ready tasks: pending, all deps done, not already a blocked ancestor
@@ -165,7 +181,7 @@ export async function runGraph(
       const t0 = performance.now()
       const entry = await executeSingleTask(
         task,
-        { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree },
+        { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree, runTaskFn, diagnoseFn, loadTasksFn, updateTaskStatusFn },
         requeuedForRateLimit,
         blockedAncestors,
       )
@@ -221,7 +237,7 @@ export async function runGraph(
   // tampoco tenían entry). Sin esto, B2 (reporte de cierre) no puede distinguir
   // "no se llegó a ejecutar" de "no existía".
   const reportedIds = new Set(entries.map(e => e.id))
-  for (const t of loadTasks(projectRoot).tasks) {
+  for (const t of loadTasksFn(projectRoot).tasks) {
     if (reportedIds.has(t.id) || t.status === 'done') continue
     entries.push({
       id: t.id,
@@ -272,11 +288,15 @@ async function executeSingleTask(
     orcheConfigFound?: boolean
     sandboxMode?: SandboxMode
     keepWorktree?: boolean
+    runTaskFn: typeof runTask
+    diagnoseFn: typeof diagnoseTask
+    loadTasksFn: typeof loadTasksReal
+    updateTaskStatusFn: typeof updateTaskStatusReal
   },
   requeuedForRateLimit: Set<string>,
   blockedAncestors: Set<string>,
 ): Promise<GraphTaskEntry> {
-  const { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree } = ctx
+  const { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree, runTaskFn, diagnoseFn, loadTasksFn, updateTaskStatusFn } = ctx
   const taskId = task.id
 
   // Acumuladores de TODOS los intentos: una tarea puede hacer varias llamadas
@@ -292,7 +312,7 @@ async function executeSingleTask(
   // tasks.yaml entre el momento en que se computó `ready` y esta llamada
   // (edición externa concurrente del archivo). Devolver un outcome explícito
   // en vez de lanzar — el grafo no se detiene por una tarea que ya no existe.
-  const initialFile = loadTasks(projectRoot)
+  const initialFile = loadTasksFn(projectRoot)
   const t = initialFile.tasks.find(x => x.id === taskId)
   if (!t) {
     return {
@@ -312,7 +332,7 @@ async function executeSingleTask(
     const depTask = initialFile.tasks.find(x => x.id === dep)
     if (!depTask || depTask.status !== 'done') {
       new RunLogger(projectRoot, taskId).blocked(dep)
-      updateTaskStatus(projectRoot, taskId, {
+      updateTaskStatusFn(projectRoot, taskId, {
         status: 'blocked',
         retry_reason: `dependency not done: ${dep}`,
       })
@@ -331,7 +351,7 @@ async function executeSingleTask(
   // rate_limit diagnosis resets retry_count to 0 and starts a fresh cycle
   // (design.md §2 — at most one requeue per task).
   for (let attempt = 0; attempt < MAX_RETRIES * 2 + 1; attempt++) {
-    const currentFile = loadTasks(projectRoot)
+    const currentFile = loadTasksFn(projectRoot)
     const currentTask = currentFile.tasks.find(x => x.id === taskId)
     if (!currentTask) {
       return {
@@ -358,10 +378,10 @@ async function executeSingleTask(
 
     // Mark running and execute
     const log = new RunLogger(projectRoot, taskId)
-    updateTaskStatus(projectRoot, taskId, { status: 'running' })
+    updateTaskStatusFn(projectRoot, taskId, { status: 'running' })
     console.error(`  → ${taskId} attempt ${attempt + 1}`)
 
-    const harnessResult = await runTask({
+    const harnessResult = await runTaskFn({
       projectRoot, contextText,
       task: currentTask,
       projectId, logger: log,
@@ -375,7 +395,7 @@ async function executeSingleTask(
     accOutput += cost.outputTokens
 
     if (harnessResult.status === 'done') {
-      updateTaskStatus(projectRoot, taskId, {
+      updateTaskStatusFn(projectRoot, taskId, {
         status: 'done',
         run_id: harnessResult.runId,
         qa_verdict: 'pass',
@@ -394,7 +414,7 @@ async function executeSingleTask(
 
     if (harnessResult.status === 'retry') {
       const retryCount = currentTask.retry_count + 1
-      updateTaskStatus(projectRoot, taskId, {
+      updateTaskStatusFn(projectRoot, taskId, {
         status: 'pending',
         qa_verdict: 'fail',
         retry_reason: harnessResult.retryReason,
@@ -407,7 +427,7 @@ async function executeSingleTask(
     // ── Failed (all harness retries exhausted) ───────────────────────────
     const isPermanent = currentTask.retry_count + 1 >= MAX_RETRIES
     const newStatus = isPermanent ? 'failed_permanent' : 'failed'
-    updateTaskStatus(projectRoot, taskId, {
+    updateTaskStatusFn(projectRoot, taskId, {
       status: newStatus,
       retry_reason: harnessResult.retryReason,
     })
@@ -417,7 +437,7 @@ async function executeSingleTask(
       // 'failed' (no 'retry') para parse_error y contract_violation sin mirar
       // retry_count (harness.ts:198,210), así que esta rama es el camino normal
       // para esos dos fallos mientras queden retries: tratarlos como retry.
-      updateTaskStatus(projectRoot, taskId, {
+      updateTaskStatusFn(projectRoot, taskId, {
         status: 'pending',
         retry_count: currentTask.retry_count + 1,
       })
@@ -429,7 +449,7 @@ async function executeSingleTask(
     // para el circuit breaker igual que cualquier otra llamada del grafo.
     let diag: { pattern: FailurePattern; suggestion: string; details: string }
     try {
-      const full = await diagnoseTask(taskId, projectRoot)
+      const full = await diagnoseFn(taskId, projectRoot)
       diag = { pattern: full.pattern, suggestion: full.suggestion, details: full.details }
       accCost += full.usdCost
       console.error(`  [diagnose] ${diag.pattern} (${full.confidence}) — ${diag.suggestion}`)
@@ -441,7 +461,7 @@ async function executeSingleTask(
     // rate_limit → one requeue with backoff (design.md §2)
     if (diag.pattern === 'rate_limit' && !requeuedForRateLimit.has(taskId)) {
       requeuedForRateLimit.add(taskId)
-      updateTaskStatus(projectRoot, taskId, {
+      updateTaskStatusFn(projectRoot, taskId, {
         status: 'pending',
         retry_count: 0,
         retry_reason: 'rate_limit — requeue once with backoff',
@@ -453,9 +473,9 @@ async function executeSingleTask(
 
     // ── Block the branch ────────────────────────────────────────────────
     blockedAncestors.add(taskId)
-    const descendants = findAllDescendants(taskId, loadTasks(projectRoot).tasks)
+    const descendants = findAllDescendants(taskId, loadTasksFn(projectRoot).tasks)
     for (const descId of descendants) {
-      updateTaskStatus(projectRoot, descId, {
+      updateTaskStatusFn(projectRoot, descId, {
         status: 'blocked',
         retry_reason: `blocked by failed_permanent ancestor: ${taskId} — ${diag.suggestion}`,
       })

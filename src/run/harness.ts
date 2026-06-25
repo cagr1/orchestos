@@ -29,7 +29,7 @@ import { runQA, snapshotContents, restoreContents, MAX_RETRIES } from './qa.ts'
 import { RunLogger } from './logger.ts'
 import { insertRun } from '../db/runs.ts'
 import { buildPrompt } from './prompt.ts'
-import { runChecks, type CheckResult } from './checks.ts'
+import { runChecks, defaultChecksFor, type CheckResult } from './checks.ts'
 import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import { loadSpec } from '../spec/store.ts'
@@ -233,10 +233,17 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
 
     // -- deterministic checks (BEFORE QA — no tokens spent if check fails) -----
+    // D3 finding: a task with no explicit `checks:` only got the LLM QA judge,
+    // which approved code that didn't even compile. defaultChecksFor() fills in
+    // tsc/bun test for code-output tasks that don't declare their own checks —
+    // explicit `checks:` always takes precedence over the defaults.
+    const effectiveChecks = ctx.task.checks && ctx.task.checks.length > 0
+      ? ctx.task.checks
+      : defaultChecksFor(ctx.task.output, ctx.effectiveRoot)
     let checksResults: CheckResult[] = []
-    if (ctx.task.checks && ctx.task.checks.length > 0) {
-      checksResults = await runChecks(ctx.task.checks, ctx.effectiveRoot, log)
-      const firstFail = checksResults.find(r => r.exitCode !== (ctx.task.checks!.find(c => c.cmd === r.cmd)?.expect_exit ?? 0) || r.timedOut)
+    if (effectiveChecks.length > 0) {
+      checksResults = await runChecks(effectiveChecks, ctx.effectiveRoot, log)
+      const firstFail = checksResults.find(r => r.exitCode !== (effectiveChecks.find(c => c.cmd === r.cmd)?.expect_exit ?? 0) || r.timedOut)
       if (firstFail) {
         if (!keepWorktree && worktree) {
           mergeWorktreeBack(worktree, 'discard')
@@ -250,7 +257,20 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         const elapsedCheck = Math.round(performance.now() - t0)
         insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: reason, checks_json: JSON.stringify(checksResults), constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsedCheck, result: `check fail — reverted ${contractResult.written.length} file(s)` })
         log.qaFail(reason, ctx.task.retry_count + 1, MAX_RETRIES)
-        return { status: 'retry', runId: '', qaVerdict: 'fail', qaReason: reason, retryReason: reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsedCheck, contextWarnings: ctx.contextWarnings }
+        // D3 follow-up: this unconditionally returned 'retry' regardless of how many
+        // times the task had already failed — a persistently failing check (e.g. tsc
+        // never passing) looped past MAX_RETRIES indefinitely (observed: "retry 14/3"),
+        // only stopped by the circuit breaker's wall-clock/cost cap, not by exhaustion.
+        // Same exhaustion check as the QA-fail path below: cap at MAX_RETRIES so the
+        // graph runner can mark it failed_permanent and block the branch like normal.
+        const checksExhausted = ctx.task.retry_count + 1 >= MAX_RETRIES
+        return {
+          status: checksExhausted ? 'failed' : 'retry',
+          runId: '', qaVerdict: 'fail', qaReason: reason, retryReason: reason,
+          filesWritten: [], filesBlocked: [],
+          cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost },
+          elapsedMs: elapsedCheck, contextWarnings: ctx.contextWarnings,
+        }
       }
     }
 
