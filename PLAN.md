@@ -105,8 +105,61 @@ Detectados en review local del 2026-06-25 sobre `graph-runner.ts` + `model-catal
 - [x] (2026-06-25) Settings reorganizado en sub-nav vertical tipo VSCode/Claude Desktop: **General · API & Models · Health · Project · Language** (antes todo apilado en una sola columna).
 - [x] (2026-06-25) Fixes puntuales encontrados solo al verificar en vivo con Playwright (no en código estático): `<select>` de modelos sin estilizar (flecha nativa del OS), línea decorativa innecesaria sobre el input del chat, tooltips del sidebar rotos (regresión propia del mismo turno — `overflow:hidden` recortaba el `::after`), `.kv` de Settings→Project sin padding (CSS scope real era `.detail .kv`, no genérico), emojis de banderas/idioma rotos en este entorno (renderizaban como texto literal "us"/"es") reemplazados por SVG/texto plano.
 - [x] (2026-06-25) Plugins de diseño instalados a nivel global (`scope: user`, no solo este proyecto): **frontend-design** (oficial Anthropic, ya estaba descargado pero deshabilitado en otro proyecto), **impeccable** (`/impeccable audit/critique/polish`), **taste-skill** (estilos brutalist/minimalist/soft + auditoría de "taste"). Pendiente: usarlos en una sesión nueva (no cargan en la sesión donde se instalaron) y comparar lo que detectan automáticamente contra lo encontrado a mano arriba.
+- [x] (2026-06-25) **Usados `/impeccable audit` + `/impeccable critique` reales sobre `src/dashboard/public/`** (no existía `PRODUCT.md` → init rápido de 2 rondas de preguntas, register=`product`, personalidad "Hermes/Claude Desktop con detalles cuidados", criterio de validación = en vivo, no solo código — todo guardado en [PRODUCT.md](PRODUCT.md)). Reporte completo en la sección **AUDITORÍA VISUAL — resultados (2026-06-25)** más abajo. No se aplicó ningún fix todavía — esto es solo el reporte + decisión de alcance.
 
 **Nota honesta**: ninguno de estos cambios tiene test automatizado — es CSS/HTML/JS de dashboard verificado a ojo (Playwright + capturas + hover real), no cobertura de `bun test`. Si se vuelve recurrente, considerar un smoke script de Playwright que navegue cada pantalla y haga hover sobre cada ícono antes de cerrar un cambio visual como éste.
+
+---
+
+### AUDITORÍA VISUAL — resultados (2026-06-25)
+
+**Método**: `detect.mjs` (scan determinístico) corrido sobre todo `src/dashboard/public/` + lectura completa de `styles.css`/`screens.css`/`index.html`/`app.js`/`screens-core.js`/`screens-ops.js` + cálculo real de contraste WCAG (script Node, fórmula de luminancia relativa). El dashboard se levantó real (`bun run cli.ts dashboard`, puerto 4242, `200 OK`) para inspección con Playwright MCP, pero el navegador devolvió "browser already in use" (perfil bloqueado) — **no hubo captura/hover en vivo en esta pasada**, queda pendiente para cuando se apliquen los fixes (Paso 2).
+
+**Audit Health Score: 12/20 (Aceptable)** — A11y 1, Performance 3, Theming 4, Responsive 2, Anti-patrones 2.
+**Design Health Score (heurísticas Nielsen): 24/40 (Aceptable)** — más débil en Flexibilidad/eficiencia (1/4, cero shortcuts) y Reconocimiento (2/4, tooltips no accesibles).
+
+**Veredicto anti-patrones**: no hay slop flagrante (sin gradient text, sin hero-metric, sin glassmorphism decorativo). Pero sí 2 tells reales activos por *default* (no en una skin opcional):
+- **Side-tab accent border** en 4 lugares activos siempre: `.proposal-card` (screens.css:369), `.proj-helper` (391), `.spec-explainer` (413), `.detail` (421).
+- **Jerarquía tipográfica plana** confirmada por el detector en `tasks.html`, `runs.html`, `instincts.html`, `specs.html`: 5 tamaños entre 12-20.8px, ratio máx 1.7:1 entre pasos.
+
+**Hallazgos por severidad** (ninguno arreglado todavía):
+- **[P1] Navegación por teclado rota en toda la app** — `.nav-icon` (sidebar completo, app.js:1270), `.mem-card` (screens-core.js:734), `tr.row` de Runs/Specs (screens-ops.js:336,896) son `<div>`/`<tr>` con `onclick`, sin `tabindex`/`role`/handler de teclado. Los `<button>` reales (modal, settings-nav, proj-tab) sí están bien. WCAG 2.1.1.
+- **[P1] Contraste real que falla WCAG** — medido: `--text-faint` (#6e7681) sobre `--bg` = 4.12:1 (falla, mínimo 4.5:1), sobre `--surface-2` = 3.48:1 (falla). `.terminal .body .ln.dim` (#2b6e36) sobre `--term-bg` = 3.31:1 (falla, casi ilegible). Dato clave: el verde *principal* de terminal (`--term-green` #3fb950) en realidad mide 8.08:1 — sobra contraste. El problema real no es "el verde es muy fuerte" (hipótesis original), es que la variante **dim** del mismo verde quedó *demasiado débil*.
+- **[P2] Sin `prefers-reduced-motion` en ningún archivo** — 0 coincidencias en todo `public/`. Relevante porque el init de hoy fijó WCAG AA + reduced-motion como piso de accesibilidad del producto.
+- **[P2] Layout-property transitions** — styles.css:195 (`max-width, margin-left` en `.nav-label` del sidebar) y styles.css:370 (`height, padding` en colapso de terminal) — reflow en cada frame, no crítico pero medible.
+- **[P3] CSS muerto** — todo el sistema `.kanban`/`.kcol`/`.kcard` (screens.css:125-170, ~46 líneas, incluida la variante `body[data-cards="barred"]`) no se renderiza en ningún `.js`/`.html` del proyecto. Nadie usa ese tablero.
+
+**Comparación contra los 6 puntos pendientes originales**:
+| Punto original | ¿Coincide con el plugin? |
+|---|---|
+| 1. Profundidad (modal/panel/compose) | Parcial e invertido: modal y side-panel **ya tienen** sombra+blur+curva propia (`box-shadow: 0 24px 70px`, `cubic-bezier(.3,.7,.4,1)`). El único 100% plano es **el compose-bar del chat** (`.chat-input-bar`, solo gradiente de máscara, sin sombra). |
+| 2. Jerarquía tipográfica | Sí, exacto — confirmado por el detector. |
+| 3. Microinteracciones sin overshoot | Sí, indirecto — `.kcard:hover`/`.mem-card:hover` solo cambian `border-color`/`background`, sin `transform`. |
+| 4. Estados vacíos genéricos | No detectado automáticamente — el plugin no tiene regla para "falta personalidad", se confirmó leyendo `.placeholder` a mano. |
+| 5. Contraste del terminal | Detectado pero al revés de la hipótesis — ver hallazgo P1 arriba. |
+| 6. Command palette (Cmd/Ctrl+K) | Sí, vía heurística #7 (Flexibilidad) — cero shortcuts en todo el código. |
+
+**Lo que el plugin encontró y no estaba en la lista original**: navegación por teclado rota (P1), contraste real que falla WCAG (P1), falta `prefers-reduced-motion` (P2), CSS muerto del Kanban (P3), responsive = 0 (`grep` de `@media` en todo `public/` no devuelve nada).
+
+**Decisión de alcance (2026-06-25)**: los 2 hallazgos P1 nuevos (teclado roto, contraste real) **se suman** al alcance de esta pasada de fixes, junto con los 6 puntos originales. **Orden de aplicación todavía no decidido** — pendiente confirmar antes de tocar el primer archivo.
+
+**Reglas para aplicar los fixes (ya acordadas)**: uno por uno, vanilla CSS sobre los tokens de `:root` (sin Tailwind/librerías), dark-only, verificar cada uno en vivo con Playwright (captura + hover/focus real) antes de marcarlo como hecho — varias regresiones reales de la sesión anterior solo se vieron así, no en CSS estático.
+
+**Pendiente técnico para la próxima sesión**: el navegador Playwright MCP devolvió "already in use" (perfil bloqueado en `ms-playwright-mcp\mcp-chrome-d4c25a7`) — revisar si hay un proceso chrome huérfano de una sesión anterior antes de retomar la verificación en vivo.
+
+**Si continúas desde otra máquina (ej. Mac en casa)**: los plugins de diseño usados acá (`impeccable`, `taste-skill`, `frontend-design`) están instalados a nivel de **usuario** en esta PC (`scope: "user"`, bajo `~/.claude/plugins`), **no viajan con `git pull`** — solo el código y este `PLAN.md`/`PRODUCT.md` (que sí están commiteados) viajan. Para tenerlos disponibles en la otra máquina, correr en una sesión de Claude Code ahí:
+
+```
+/plugin marketplace add https://github.com/pbakaus/impeccable.git
+/plugin marketplace add https://github.com/Leonxlnx/taste-skill.git
+/plugin marketplace add anthropics/claude-plugins-official
+
+/plugin install impeccable@impeccable
+/plugin install taste-skill@taste-skill
+/plugin install frontend-design@claude-plugins-official
+```
+
+Como `PRODUCT.md` ya queda commiteado en el repo, una vez instalados los plugins ahí `/impeccable audit/critique/polish` arrancan directo, sin pedir el init de nuevo.
 
 ---
 
