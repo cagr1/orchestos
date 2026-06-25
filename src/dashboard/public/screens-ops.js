@@ -379,6 +379,167 @@ SCREENS.runs = {
 };
 
 /* ============================================================
+   5b · GRAPH RUNNER (Mes 14 / C2)
+   ============================================================ */
+const GRAPH_OUTCOME_COLOR = {
+  completed: 'green',
+  rate_limited_then_completed: 'green',
+  failed_permanent: 'red',
+  blocked: 'amber',
+  skipped_circuit_breaker: 'gray',
+};
+
+SCREENS.graph = {
+  _timer: null,
+
+  /* Mirrors src/run/graph-summary.ts: bucket entries by outcome + retryCount. */
+  buckets(result, taskRows) {
+    const retryById = new Map((taskRows || []).map(t => [t.id, t.retryCount]));
+    const alone = [], retried = [], blocked = [], unfinished = [];
+    for (const e of result.tasks) {
+      const rc = retryById.get(e.id) ?? 0;
+      if (e.outcome === 'completed' && rc === 0) alone.push(e);
+      else if (e.outcome === 'completed' || e.outcome === 'rate_limited_then_completed') retried.push(e);
+      else if (e.outcome === 'failed_permanent' || e.outcome === 'blocked') blocked.push(e);
+      else unfinished.push(e);
+    }
+    return { alone, retried, blocked, unfinished };
+  },
+
+  resultRow(e) {
+    return `<tr>
+      <td class="mono">${esc(e.id)}</td>
+      <td><span class="badge ${GRAPH_OUTCOME_COLOR[e.outcome] || 'gray'} square">${esc(e.outcome)}</span></td>
+      <td class="num">${usd(e.usd_cost)}</td>
+      <td class="num">${fmt(e.tokens.input)} <span class="faint">/</span> ${fmt(e.tokens.output)}</td>
+      <td class="num">${fmt(e.elapsed_ms)}</td>
+      ${e.error ? `<td class="faint" style="max-width:320px">${esc(e.error)}</td>` : '<td></td>'}
+    </tr>`;
+  },
+
+  resultBucket(title, entries) {
+    if (entries.length === 0) return '';
+    return `<div class="grp"><h4>${title} (${entries.length})</h4>
+      <table class="tbl"><tbody>${entries.map(e => this.resultRow(e)).join('')}</tbody></table>
+    </div>`;
+  },
+
+  resultPanel(run) {
+    if (run.phase === 'error') {
+      return `<div class="card" style="margin-top:16px"><div class="placeholder">
+        <h3>${t('graph.err.run', esc(run.error))}</h3>
+      </div></div>`;
+    }
+    if (run.phase !== 'done' || !run.result) return '';
+    const r = run.result;
+    const b = this.buckets(r, run.tasks);
+    const total = r.tasks.length;
+    const autonomous = b.alone.length + b.retried.length;
+    const pct = total > 0 ? ((autonomous / total) * 100).toFixed(1) : '100.0';
+    const breaker = r.circuit_break_reason
+      ? `<div class="warn-item"><span class="badge amber square">⏹</span><span style="color:var(--text)">${t('graph.circuitBreak', esc(r.circuit_break_reason))}</span></div>`
+      : '';
+    return `<div class="card" style="margin-top:16px">
+      <div class="grp">
+        <h4>${t('graph.result.title')}</h4>
+        <div class="kv"><span class="k">★</span><span class="v">${t('graph.autonomy', autonomous, total, pct)}</span></div>
+        <div class="kv"><span class="k">Σ</span><span class="v">${t('graph.totals', total, usd(r.aggregated_cost), fmt(r.aggregated_ms))}</span></div>
+        ${breaker}
+      </div>
+      ${this.resultBucket(t('graph.bucket.alone'), b.alone)}
+      ${this.resultBucket(t('graph.bucket.retried'), b.retried)}
+      ${this.resultBucket(t('graph.bucket.blocked'), b.blocked)}
+      ${this.resultBucket(t('graph.bucket.unfinished'), b.unfinished)}
+    </div>`;
+  },
+
+  render(st) {
+    const run = st.graphRun;
+    const isRunning = run?.phase === 'running';
+    const liveIndicator = isRunning
+      ? `<span class="live-indicator"><span class="live-dot"></span>${t('graph.running')}</span>`
+      : `<span class="live-indicator idle">${t('graph.idle')}</span>`;
+
+    const head = `<div class="screen-head">
+      <div class="lead"><h1>${t('graph.title')}</h1><p>${t('graph.subtitle')}</p></div>
+      <div class="tools">
+        ${liveIndicator}
+        <button class="btn primary" data-act="run-graph" ${isRunning || st.graphLaunching ? 'disabled' : ''}>${ICON.play} ${t('graph.runBtn')}</button>
+      </div>
+    </div>`;
+
+    const explainer = `<div class="spec-explainer">
+      <span class="spec-explainer-icon">${ICON.graph}</span>
+      <div><strong>${t('graph.explainer.title')}</strong> ${t('graph.explainer.body')}</div>
+    </div>`;
+
+    if (st.graphStatus === 'loading')
+      return `<div class="screen">${head}${explainer}${loadingState()}</div>`;
+    if (st.graphStatus === 'error')
+      return `<div class="screen">${head}${explainer}${errorState(t('graph.err.title'), t('graph.err.body'))}</div>`;
+
+    const tasks = run?.tasks || [];
+    if (tasks.length === 0)
+      return `<div class="screen">${head}${explainer}${emptyState(ICON.graph, t('graph.empty.title'), t('graph.empty.body'))}</div>`;
+
+    const rows = tasks.map(task => `<tr data-task="${esc(task.id)}">
+      <td><span class="badge ${STATUS_BADGE[task.status] || 'gray'}"><span class="d"></span>${esc(task.status)}</span></td>
+      <td class="mono" style="white-space:nowrap">${esc(task.id)}</td>
+      <td style="color:var(--text-muted)">${esc(task.description)}</td>
+      <td class="mono faint">${esc(task.executor || '—')}</td>
+      <td class="num">${task.retryCount}</td>
+    </tr>`).join('');
+
+    return `<div class="screen">${head}${explainer}
+      <div class="card" style="overflow:hidden">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:90px">${t('tasks.col.status')}</th>
+            <th>${t('tasks.col.id')}</th>
+            <th>${t('tasks.col.desc')}</th>
+            <th>${t('tasks.col.executor')}</th>
+            <th style="width:80px">${t('tasks.col.retries')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      ${this.resultPanel(run)}
+    </div>`;
+  },
+
+  wire(root, st) {
+    root.querySelector('[data-act="run-graph"]')?.addEventListener('click', async () => {
+      if (!confirm(t('graph.confirm'))) return;
+      st.graphLaunching = true;
+      App.rerender();
+      try {
+        const res = await fetch('/api/run/graph', { method: 'POST' });
+        if (res.status === 409) {
+          showToast(t('graph.alreadyRunning'), 'error');
+        } else if (!res.ok) {
+          showToast(t('graph.err.body'), 'error');
+        }
+      } catch {
+        showToast(t('graph.err.body'), 'error');
+      } finally {
+        st.graphLaunching = false;
+        await App.fetchGraphStatus();
+        App.rerender();
+      }
+    });
+
+    // C2 — poll while a run is in progress; stop once done/error or screen changes
+    if (this._timer) clearInterval(this._timer);
+    this._timer = setInterval(async () => {
+      if (state.screen !== 'graph') { clearInterval(this._timer); this._timer = null; return; }
+      if (state.graphRun?.phase !== 'running') return;
+      await App.fetchGraphStatus();
+      App.rerender();
+    }, 3000);
+  },
+};
+
+/* ============================================================
    6 · SETTINGS
    ============================================================ */
 const KEY_DEFS = [
@@ -506,6 +667,9 @@ SCREENS.settings = {
     const head = `<div class="screen-head">
       <div class="lead"><h1>${setupTitle}</h1><p>${setupSubtitle}</p></div>
     </div>`;
+    const sec = state.settingsSection || 'general';
+    const navItem = (id, icon, label) =>
+      `<button class="settings-nav-item${sec === id ? ' active' : ''}" data-settings-sec="${id}">${icon}<span>${esc(label)}</span></button>`;
 
     const keyRows = KEY_DEFS.map(def => {
       // D0-ext-2 — Ollama row: show probe result instead of env var status
@@ -557,49 +721,77 @@ SCREENS.settings = {
     const envSet = keys['_envFile']?.set;
 
     return `<div class="screen">${head}
-      ${this.setupChecklist(st)}
-      ${this.healthBlocks(st)}
-      <div class="settings-grid">
+      <div class="settings-shell">
+        <nav class="settings-nav">
+          ${navItem('general', ICON.sliders, t('settings.nav.general'))}
+          ${navItem('keys', ICON.bolt, t('settings.nav.keys'))}
+          ${navItem('health', ICON.runs, t('settings.nav.health'))}
+          ${navItem('project', ICON.project, t('settings.nav.project'))}
+          ${navItem('lang', ICON.globe, t('settings.nav.lang'))}
+        </nav>
 
-        <div class="card settings-card">
-          <div class="settings-header">
-            <h3>${t('settings.keys.title')}</h3>
-            <p class="muted" style="margin:0;font-size:12.5px">${t('settings.keys.hint')} <code>${esc(envF)}</code>.</p>
-          </div>
-          <div class="key-list">${keyRows}</div>
-          <div class="settings-foot">
-            <span id="settings-msg" style="font-size:12px;display:none"></span>
-            <span style="flex:1"></span>
-            <button class="btn primary" data-save-keys>${ICON.check} ${t('settings.btn.save')}</button>
-          </div>
-        </div>
+        <div class="settings-panels">
 
-        <div class="settings-right-col">
-          <div class="card settings-card">
-            <div class="settings-header"><h3>${t('settings.project.title')}</h3></div>
-            <div class="kv"><span class="k">${t('settings.project.cwd')}</span><span class="v mono" style="font-size:12px;word-break:break-all">${esc(cwd)}</span></div>
-            <div class="kv"><span class="k">${t('settings.project.config')}</span>
-              <span class="v mono" style="font-size:12px">${esc(envF)}
-                ${envSet ? `<span class="badge green square" style="margin-left:6px">${ICON.check} ${t('settings.project.exists')}</span>` : `<span class="badge gray square" style="margin-left:6px">${t('settings.project.missing')}</span>`}
-              </span>
+          <section class="settings-panel${sec === 'general' ? ' active' : ''}" data-panel="general">
+            ${this.setupChecklist(st)}
+          </section>
+
+          <section class="settings-panel${sec === 'keys' ? ' active' : ''}" data-panel="keys">
+            <div class="card settings-card">
+              <div class="settings-header">
+                <h3>${t('settings.keys.title')}</h3>
+                <p class="muted" style="margin:0;font-size:12.5px">${t('settings.keys.hint')} <code>${esc(envF)}</code>.</p>
+              </div>
+              <div class="key-list">${keyRows}</div>
+              <div class="settings-foot">
+                <span id="settings-msg" style="font-size:12px;display:none"></span>
+                <span style="flex:1"></span>
+                <button class="btn primary" data-save-keys>${ICON.check} ${t('settings.btn.save')}</button>
+              </div>
             </div>
-            <div class="kv"><span class="k">${t('settings.project.cli')}</span><span class="v mono" style="font-size:12px">orchestos dashboard --port 4242</span></div>
-          </div>
+          </section>
 
-          <div class="card settings-card" style="margin-top:16px">
-            <div class="settings-header"><h3>${t('settings.lang.title')}</h3></div>
-            <div class="lang-selector">
-              <button class="lang-opt ${lang === 'en' ? 'active' : ''}" data-lang="en">🇺🇸 English</button>
-              <button class="lang-opt ${lang === 'es' ? 'active' : ''}" data-lang="es">🇪🇸 Español</button>
+          <section class="settings-panel${sec === 'health' ? ' active' : ''}" data-panel="health">
+            ${this.healthBlocks(st) || `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`}
+          </section>
+
+          <section class="settings-panel${sec === 'project' ? ' active' : ''}" data-panel="project">
+            <div class="card settings-card">
+              <div class="settings-header"><h3>${t('settings.project.title')}</h3></div>
+              <div class="kv"><span class="k">${t('settings.project.cwd')}</span><span class="v mono" style="font-size:12px;word-break:break-all">${esc(cwd)}</span></div>
+              <div class="kv"><span class="k">${t('settings.project.config')}</span>
+                <span class="v mono" style="font-size:12px">${esc(envF)}
+                  ${envSet ? `<span class="badge green square" style="margin-left:6px">${ICON.check} ${t('settings.project.exists')}</span>` : `<span class="badge gray square" style="margin-left:6px">${t('settings.project.missing')}</span>`}
+                </span>
+              </div>
+              <div class="kv"><span class="k">${t('settings.project.cli')}</span><span class="v mono" style="font-size:12px">orchestos dashboard --port 4242</span></div>
             </div>
-          </div>
-        </div>
+          </section>
 
+          <section class="settings-panel${sec === 'lang' ? ' active' : ''}" data-panel="lang">
+            <div class="card settings-card">
+              <div class="settings-header"><h3>${t('settings.lang.title')}</h3></div>
+              <div class="lang-selector">
+                <button class="lang-opt ${lang === 'en' ? 'active' : ''}" data-lang="en">English</button>
+                <button class="lang-opt ${lang === 'es' ? 'active' : ''}" data-lang="es">Español</button>
+              </div>
+            </div>
+          </section>
+
+        </div>
       </div>
     </div>`;
   },
 
   wire(root, st) {
+    // settings sub-nav — local toggle (no rerender) so unsaved key inputs survive
+    root.querySelectorAll('[data-settings-sec]').forEach(btn => btn.addEventListener('click', () => {
+      const sec = btn.dataset.settingsSec;
+      state.settingsSection = sec;
+      root.querySelectorAll('[data-settings-sec]').forEach(b => b.classList.toggle('active', b.dataset.settingsSec === sec));
+      root.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === sec));
+    }));
+
     root.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(btn.dataset.copy || '');

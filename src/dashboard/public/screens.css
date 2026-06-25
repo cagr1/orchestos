@@ -199,8 +199,27 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
 .backdrop.show { opacity: 1; pointer-events: auto; }
 
 /* ---------- SETTINGS ---------- */
-.settings-grid { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
-.settings-right-col { display: flex; flex-direction: column; gap: 0; }
+/* ---------- SETTINGS SHELL (VSCode-style sectioned nav) ---------- */
+.settings-shell { display: flex; gap: 28px; align-items: flex-start; }
+.settings-nav {
+  width: 184px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  position: sticky; top: 0;
+}
+.settings-nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 11px; border-radius: var(--radius);
+  border: 1px solid transparent; background: transparent;
+  color: var(--text-muted); font-size: 13px; font-weight: 500;
+  cursor: pointer; text-align: left; width: 100%;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.settings-nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+.settings-nav-item:hover { background: var(--surface-2); color: var(--text); }
+.settings-nav-item.active { background: var(--surface-hi); color: var(--accent); border-color: var(--border); }
+.settings-panels { flex: 1; min-width: 0; }
+.settings-panel { display: none; flex-direction: column; gap: 16px; }
+.settings-panel.active { display: flex; }
 .settings-card { padding: 0; overflow: hidden; }
 .settings-header { padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .settings-header h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
@@ -493,7 +512,7 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
   position: sticky; bottom: 0;
   display: flex; gap: 10px; align-items: flex-end;
   padding: 14px 0 24px;
-  background: var(--bg); border-top: 1px solid var(--border);
+  background: linear-gradient(to bottom, transparent, var(--bg) 22px);
 }
 .chat-input-bar textarea {
   flex: 1; resize: none;
@@ -506,10 +525,15 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
 .chat-input-bar textarea::placeholder { color: var(--text-faint); }
 .chat-send-btn { align-self: flex-end; white-space: nowrap; }
 .model-sel {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  color: var(--text-muted); font-size: 12px; padding: 5px 8px; outline: none;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-size: 12px; padding: 6px 26px 6px 9px; outline: none;
   font-family: var(--mono); max-width: 320px; flex: 1;
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%238b949e' d='M0 0h10L5 6z'/></svg>");
+  background-repeat: no-repeat; background-position: right 9px center;
+  transition: border-color .12s, background-color .12s;
 }
+.model-sel:hover { border-color: #444c56; background-color: var(--surface-hi); }
 .model-sel:focus { border-color: var(--accent); }
 .chat-model-sel { max-width: 260px; }
 .model-select-wrap { display: flex; flex-direction: column; gap: 3px; max-width: 260px; }

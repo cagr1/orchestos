@@ -3,7 +3,7 @@
    ============================================================ */
 
 const state = {
-  screen: 'tasks',
+  screen: 'chat',
   memScope: 'all',
   openRun: null,
   openSpec: null,
@@ -23,6 +23,7 @@ const state = {
   settings: null,
   setup: null,
   health: null,
+  settingsSection: 'general',
 
   runsStatus: 'loading',
   tasksStatus: 'loading',
@@ -61,18 +62,22 @@ const state = {
   orModelsLastFetch: 0, // timestamp of last successful fetch (ms), for TTL
   localModels: null, // null = not checked, [] = none available, [...] = Ollama models
 
+  graphStatus: 'idle',  // 'idle' | 'loading' | 'ok' | 'error'
+  graphRun: null,       // GraphRunStatusResponse from GET /api/run/graph/status
+  graphLaunching: false,
 };
 
 const NAV = [
-  { id: 'tasks',     icon: ICON.tasks,    key: 'nav.tasks' },
-  { id: 'runs',      icon: ICON.runs,     key: 'nav.runs',     operator: true },
-  { id: 'memory',    icon: ICON.memory,   key: 'nav.memory',   operator: true },
+  { id: 'chat',      icon: ICON.chat,     key: 'nav.chat' },
   { id: 'project',   icon: ICON.project,  key: 'nav.project' },
   { id: 'instincts', icon: ICON.instinct, key: 'nav.instincts' },
   { id: 'skills',    icon: ICON.flask,    key: 'nav.skills',   badge: true },
+  { id: 'tasks',     icon: ICON.tasks,    key: 'nav.tasks',    operator: true },
+  { id: 'runs',      icon: ICON.runs,     key: 'nav.runs',     operator: true },
+  { id: 'graph',     icon: ICON.graph,    key: 'nav.graph',    operator: true },
+  { id: 'memory',    icon: ICON.memory,   key: 'nav.memory',   operator: true },
   { id: 'specs',     icon: ICON.specs,    key: 'nav.specs',    operator: true },
   { id: 'settings',  icon: ICON.settings, key: 'nav.settings' },
-  { id: 'chat',      icon: ICON.chat,     key: 'nav.chat' },
 ];
 
 /* ============================================================
@@ -249,6 +254,16 @@ const App = {
       state.tasksStatus = 'error';
     }
   },
+  async fetchGraphStatus() {
+    try {
+      const res = await fetch('/api/run/graph/status');
+      if (!res.ok) throw new Error(res.status);
+      state.graphRun = await res.json();
+      state.graphStatus = 'ok';
+    } catch {
+      state.graphStatus = 'error';
+    }
+  },
 
   rerender() {
     const main = document.getElementById('main');
@@ -259,9 +274,10 @@ const App = {
     this.syncNav();
   },
   go(id) {
-    // stop auto-refresh when leaving Runs or Settings
+    // stop auto-refresh when leaving Runs, Settings or the Graph runner
     if (SCREENS.runs._timer) { clearInterval(SCREENS.runs._timer); SCREENS.runs._timer = null; }
     if (SCREENS.settings._timer) { clearInterval(SCREENS.settings._timer); SCREENS.settings._timer = null; }
+    if (SCREENS.graph._timer) { clearInterval(SCREENS.graph._timer); SCREENS.graph._timer = null; }
     state.screen = id;
     state.openRun = null; state.openSpec = null; state.openSkill = null;
     // lazy-load project content on first visit
@@ -272,6 +288,11 @@ const App = {
       } else if (tab === 'context' && state.contextStatus === 'idle') {
         this.fetchContext().then(() => this.rerender());
       }
+    }
+    // lazy-load graph runner status on first visit
+    if (id === 'graph' && state.graphStatus === 'idle') {
+      state.graphStatus = 'loading';
+      this.fetchGraphStatus().then(() => this.rerender());
     }
     this.rerender();
   },
@@ -1227,6 +1248,12 @@ async function loadLocalModels() {
 /* ============================================================
    Nav builder — called on boot and on mode toggle
    ============================================================ */
+function applySidebarMode() {
+  const expanded = localStorage.getItem('orchestos-sidebar') === 'expanded';
+  document.querySelector('.app').dataset.sidebar = expanded ? 'expanded' : 'collapsed';
+  return expanded;
+}
+
 function buildNav() {
   const mode = localStorage.getItem('orchestos-mode') || 'normal';
   const isAdv = mode === 'advanced';
@@ -1240,13 +1267,23 @@ function buildNav() {
     const badge = n.operator ? '<span class="nav-adv-badge">adv</span>' : '';
     const countBadge = n.badge ? `<span class="nav-count-badge" data-count="${n.id}">0</span>` : '';
     const cls = n.operator ? ' operator' : '';
-    return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}">${n.icon}${badge}${countBadge}</div>`;
+    return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}">
+      <span class="nav-ic">${n.icon}${badge}${countBadge}</span>
+      <span class="nav-label">${t(n.key)}</span>
+    </div>`;
   };
 
   const tipKey = isAdv ? 'nav.mode.disable' : 'nav.mode.enable';
-  const modeBtn = `<div class="nav-icon nav-mode-btn${isAdv ? ' active' : ''}" id="navModeBtn" data-tip="${t(tipKey)}">${ICON.sliders}</div>`;
+  const modeBtn = `<div class="nav-icon nav-mode-btn${isAdv ? ' active' : ''}" id="navModeBtn" data-tip="${t(tipKey)}">
+    <span class="nav-ic">${ICON.sliders}</span>
+    <span class="nav-label">${t(tipKey)}</span>
+  </div>`;
 
-  side.innerHTML = mainNav.map(navItem).join('') +
+  const collapseBtn = `<div class="nav-icon nav-collapse-btn" id="navCollapseBtn">
+    <span class="nav-ic">${ICON.chevR}</span>
+  </div>`;
+
+  side.innerHTML = collapseBtn + '<div class="nav-sep"></div>' + mainNav.map(navItem).join('') +
     '<div class="grow"></div>' + modeBtn + bottomNav.map(navItem).join('');
 
   if (isAdv) {
@@ -1264,8 +1301,17 @@ function buildNav() {
     localStorage.setItem('orchestos-mode', next);
     if (next === 'normal') {
       const opIds = NAV.filter(n => n.operator).map(n => n.id);
-      if (opIds.includes(state.screen)) App.go('tasks');
+      if (opIds.includes(state.screen)) App.go('chat');
     }
+    buildNav();
+    App.syncNav();
+  });
+
+  document.getElementById('navCollapseBtn').addEventListener('click', () => {
+    const appEl = document.querySelector('.app');
+    const next = appEl.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded';
+    appEl.dataset.sidebar = next;
+    localStorage.setItem('orchestos-sidebar', next);
     buildNav();
     App.syncNav();
   });
@@ -1275,6 +1321,9 @@ function buildNav() {
    Boot
    ============================================================ */
 function boot() {
+  // Sidebar collapsed/expanded mode (persisted)
+  applySidebarMode();
+
   // Build sidebar
   buildNav();
 

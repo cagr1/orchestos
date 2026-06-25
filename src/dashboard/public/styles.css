@@ -39,6 +39,7 @@
   --radius-lg:     calc(var(--radius) + 2px);
 
   --sidebar-w:     56px;
+  --sidebar-w-exp: 200px;
   --header-h:      52px;
 
   --mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', ui-monospace, 'Menlo', monospace;
@@ -79,7 +80,9 @@ button { font-family: inherit; }
     "sidebar terminal";
   height: 100vh;
   overflow: hidden;
+  transition: grid-template-columns .16s ease;
 }
+.app[data-sidebar="expanded"] { grid-template-columns: var(--sidebar-w-exp) 1fr; }
 
 /* ============================================================
    Header
@@ -156,17 +159,17 @@ button { font-family: inherit; }
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 0;
+  align-items: stretch;
+  gap: 3px;
+  padding: 10px 9px;
   border-right: 1px solid var(--border);
   background: var(--surface);
   z-index: 1;
 }
 .sidebar .nav-icon {
   position: relative;
-  width: 38px; height: 38px;
-  display: grid; place-items: center;
+  display: flex; align-items: center;
+  height: 38px;
   border-radius: var(--radius);
   color: var(--text-muted);
   cursor: pointer;
@@ -176,10 +179,27 @@ button { font-family: inherit; }
 .sidebar .nav-icon:hover { color: var(--text); background: var(--surface-2); }
 .sidebar .nav-icon.active { color: var(--accent); background: var(--surface-hi); border-color: var(--border); }
 .sidebar .nav-icon.active::before {
-  content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px;
+  content: ""; position: absolute; left: -9px; top: 8px; bottom: 8px;
   width: 3px; border-radius: 0 3px 3px 0; background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-dim);
 }
-.sidebar .nav-icon svg { width: 19px; height: 19px; }
+.sidebar .nav-ic {
+  position: relative;
+  width: 38px; height: 38px; flex-shrink: 0;
+  display: grid; place-items: center;
+}
+.sidebar .nav-ic svg { width: 19px; height: 19px; }
+.sidebar .nav-label {
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+  max-width: 0; opacity: 0; overflow: hidden;
+  transition: max-width .16s ease, opacity .1s ease, margin-left .16s ease;
+}
+.app[data-sidebar="expanded"] .sidebar .nav-label { max-width: 150px; opacity: 1; margin-left: 1px; }
+.app[data-sidebar="expanded"] .sidebar .nav-icon[data-tip]:hover::after { display: none; }
+.sidebar .nav-collapse-btn { color: var(--text-faint); }
+.sidebar .nav-collapse-btn .nav-ic svg { transition: transform .16s ease; }
+.app[data-sidebar="expanded"] .sidebar .nav-collapse-btn .nav-ic svg { transform: rotate(180deg); }
+.sidebar .nav-sep { height: 1px; margin: 5px 2px 6px; background: var(--border-soft); flex-shrink: 0; }
 .sidebar .grow { flex: 1; }
 
 /* operator nav items — hidden until advanced mode */
@@ -393,6 +413,14 @@ button { font-family: inherit; }
   color: var(--text-faint); font-weight: 600;
 }
 .detail .kv { display: flex; gap: 10px; font-size: 12.5px; padding: 3px 0; }
+.settings-card .kv {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 11px 18px; border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+}
+.settings-card .kv:last-child { border-bottom: 0; }
+.settings-card .kv .k { color: var(--text-muted); min-width: 150px; flex-shrink: 0; }
+.settings-card .kv .v { font-family: var(--mono); word-break: break-all; }
 .detail .kv .k { color: var(--text-muted); min-width: 120px; }
 .detail .kv .v { font-family: var(--mono); }
 .breakdown { display: grid; gap: 6px; }
