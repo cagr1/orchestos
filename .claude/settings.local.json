@@ -44,7 +44,21 @@
       "Bash(Start-Sleep -Seconds 2)",
       "Bash(curl -s http://localhost:4242/api/runs)",
       "Bash(curl -s -X POST \"http://localhost:4243/api/instincts/af23eed2-2a32-4179-92b8-742dda19d90c/reject\")",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "Bash(bunx tsc *)",
+      "Bash(curl -s http://localhost:4242/api/health)",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"A skill for performing thorough code reviews. It should check for security vulnerabilities, code style issues, performance anti-patterns, and missing tests. The agent must always run the test suite and linter before marking the review complete.\"}')",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H \"Content-Type: application/json\" -d '{\"text\": \"A skill for performing thorough code reviews. It should check for security vulnerabilities, code style issues, performance anti-patterns, and missing tests. The agent must always run the test suite and linter before marking the review complete.\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"help me write better code\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H \"Content-Type: application/json\" -d '{\"text\": \"help me write better code\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"Skill para escribir y ejecutar migraciones de base de datos de forma segura. Debe verificar que las migraciones son reversibles, que no rompen datos existentes y que se prueban en un entorno de staging antes de producción.\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H \"Content-Type: application/json\" -d '{\"text\": \"Skill para escribir y ejecutar migraciones de base de datos de forma segura. Debe verificar que las migraciones son reversibles, que no rompen datos existentes y que se prueban en un entorno de staging antes de producción.\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"writing documentation\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H \"Content-Type: application/json\" -d '{\"text\": \"writing documentation\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"Skill multi-paso para onboarding de nuevos desarrolladores: primero clonar el repo y verificar que el entorno local levanta, luego ejecutar los tests para confirmar que todo pasa, después revisar el CLAUDE.md y el README, y finalmente hacer un primer commit pequeño para verificar que los permisos de git están bien configurados.\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H \"Content-Type: application/json\" -d '{\"text\": \"Skill multi-paso para onboarding de nuevos desarrolladores: primero clonar el repo y verificar que el entorno local levanta, luego ejecutar los tests para confirmar que todo pasa, después revisar el CLAUDE.md y el README, y finalmente hacer un primer commit pequeño para verificar que los permisos de git están bien configurados.\"}')",
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"revisión de código\"}')"
     ]
   }
 }
