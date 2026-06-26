@@ -333,7 +333,7 @@ SCREENS.runs = {
     const rows = runs.map(r => {
       const open = st.openRun === r.id;
       const warnCount = (r.contextWarnings || []).length;
-      const main = `<tr class="row ${open ? 'open' : ''}" data-run="${esc(r.id)}">
+      const main = `<tr class="row ${open ? 'open' : ''}" data-run="${esc(r.id)}" tabindex="0">
         <td><span class="badge ${STATUS_BADGE[r.status] || 'gray'}"><span class="d"></span>${esc(r.status)}</span></td>
         <td class="mono">${r.taskId ? esc(r.taskId) : '<span class="faint">—</span>'}</td>
         <td class="mono">${esc(r.model)}</td>
@@ -371,10 +371,15 @@ SCREENS.runs = {
       App.rerender();
     }, 5000);
 
-    root.querySelectorAll('[data-run]').forEach(tr => tr.addEventListener('click', () => {
-      st.openRun = st.openRun === tr.dataset.run ? null : tr.dataset.run;
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-run]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        st.openRun = st.openRun === tr.dataset.run ? null : tr.dataset.run;
+        App.rerender();
+      });
+      tr.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
+      });
+    });
   },
 };
 
@@ -893,7 +898,7 @@ SCREENS.specs = {
   row(s, st) {
     const open = st.openSpec === s.id;
     const date = (s.createdAt || '').slice(0, 10);
-    const main = `<tr class="row ${open ? 'open' : ''}" data-spec="${esc(s.id)}">
+    const main = `<tr class="row ${open ? 'open' : ''}" data-spec="${esc(s.id)}" tabindex="0">
       <td class="mono" style="color:var(--text)">${esc(s.id)}</td>
       <td><span class="badge ${STATUS_BADGE[s.status] || 'gray'} square">${esc(s.status)}</span></td>
       <td>${this.lintBadge(s)}</td>
@@ -952,10 +957,15 @@ SCREENS.specs = {
     // G2 — Nueva Spec button
     root.querySelector('[data-act="new-spec"]')?.addEventListener('click', () => Modal.openSpecDraft(st));
 
-    root.querySelectorAll('[data-spec]').forEach(tr => tr.addEventListener('click', () => {
-      st.openSpec = st.openSpec === tr.dataset.spec ? null : tr.dataset.spec;
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-spec]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        st.openSpec = st.openSpec === tr.dataset.spec ? null : tr.dataset.spec;
+        App.rerender();
+      });
+      tr.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
+      });
+    });
     root.querySelector('[data-arch]')?.addEventListener('click', () => { st.archOpen = !st.archOpen; App.rerender(); });
   },
 };

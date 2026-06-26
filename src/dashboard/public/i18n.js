@@ -19,6 +19,11 @@ const I18N = {
     'nav.chat':      'Chat',
     'nav.graph':     'Graph Runner',
 
+    /* ── Command palette ────────────────────── */
+    'cmdk.placeholder': 'Go to…',
+    'cmdk.empty':       'No matching screens',
+    'cmdk.hint':        '↑↓ navigate · ↵ select · esc close',
+
     /* ── Project ─────────────────────────────── */
     'project.title':    'Project',
     'project.subtitle': 'What the agent knows about this project and how to behave.',
@@ -490,6 +495,11 @@ const I18N = {
     'nav.settings':  'Ajustes',
     'nav.chat':      'Chat',
     'nav.graph':     'Runner de grafo',
+
+    /* ── Command palette ────────────────────── */
+    'cmdk.placeholder': 'Ir a…',
+    'cmdk.empty':       'Sin pantallas que coincidan',
+    'cmdk.hint':        '↑↓ navegar · ↵ seleccionar · esc cerrar',
 
     /* ── Project ─────────────────────────────── */
     'project.title':    'Proyecto',

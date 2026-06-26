@@ -214,8 +214,8 @@ SCREENS.chat = {
       App.go('tasks');
     });
 
-    // Auto-load models on first visit
-    if (st.orModels === null) {
+    // Auto-load models on first visit (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)
+    if (st.orModels === null && !st.orModelsAttempted) {
       loadOrModels().then(() => App.rerender());
     }
     // D0-3 — probe Ollama once per session
@@ -542,8 +542,8 @@ SCREENS.tasks = {
     });
     root.querySelector('#draft-model')?.addEventListener('change', () => {});
 
-    // Auto-load models when draft is showing
-    if (st.naturalDraft && st.orModels === null) {
+    // Auto-load models when draft is showing (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)
+    if (st.naturalDraft && st.orModels === null && !st.orModelsAttempted) {
       loadOrModels().then(() => App.rerender());
     }
 
@@ -731,7 +731,7 @@ SCREENS.memory = {
       const scopeCls = sc => sc === 'session' ? 'amber' : sc === 'project' ? 'blue' : 'green';
       right = rows.length
         ? `<div class="mem-results">` + rows.map(m => `
-          <div class="mem-card" data-topic="${esc(m.topicKey)}">
+          <div class="mem-card" data-topic="${esc(m.topicKey)}" role="button" tabindex="0">
             <div class="top">
               <span class="topic">${esc(m.topicKey)}</span>
               <span class="badge ${scopeCls(m.scope)} square">${scopeLabel(m.scope)}</span>
@@ -762,10 +762,15 @@ SCREENS.memory = {
         if (ni) { ni.focus(); try { ni.setSelectionRange(pos, pos); } catch {} }
       });
     });
-    root.querySelectorAll('[data-topic]').forEach(c => c.addEventListener('click', () => {
-      c.classList.toggle('exp');
-      const note = c.querySelector('.full-note span');
-      if (note) note.textContent = c.classList.contains('exp') ? t('common.collapse') : t('common.expand');
-    }));
+    root.querySelectorAll('[data-topic]').forEach(c => {
+      c.addEventListener('click', () => {
+        c.classList.toggle('exp');
+        const note = c.querySelector('.full-note span');
+        if (note) note.textContent = c.classList.contains('exp') ? t('common.collapse') : t('common.expand');
+      });
+      c.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.click(); }
+      });
+    });
   },
 };

@@ -59,6 +59,7 @@ const state = {
   chatFileMeta: null,  // { filename, type, preview } from upload
   chatToTask: null,   // non-null = condensed chat text to pre-fill compose bar
   orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
+  orModelsAttempted: false, // true once a fetch (success or failure) has completed — prevents retry-loop on every rerender
   orModelsLastFetch: 0, // timestamp of last successful fetch (ms), for TTL
   localModels: null, // null = not checked, [] = none available, [...] = Ollama models
 
@@ -494,8 +495,8 @@ const Modal = {
       this.openTask();
     });
 
-    // Auto-load if not yet fetched
-    if (state.orModels === null) {
+    // Auto-load if not yet fetched (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)
+    if (state.orModels === null && !state.orModelsAttempted) {
       loadOrModels().then(() => this.openTask());
     }
     this.el.querySelector('[data-add]').addEventListener('click', async () => {
@@ -1142,6 +1143,54 @@ const Modal = {
   },
 
   close() { this.el.classList.remove('show'); },
+
+  openCommandPalette() {
+    const isAdv = (localStorage.getItem('orchestos-mode') || 'normal') === 'advanced';
+    const items = NAV.filter(n => !n.operator || isAdv);
+    let selected = 0;
+    let filtered = items;
+
+    const renderList = () => {
+      const list = this.el.querySelector('#cmdk-list');
+      if (!list) return;
+      list.innerHTML = filtered.length
+        ? filtered.map((n, i) => `
+          <div class="cmdk-item${i === selected ? ' active' : ''}" data-id="${n.id}" data-i="${i}">
+            <span class="cmdk-item-ic">${n.icon}</span>
+            <span class="cmdk-item-label">${t(n.key)}</span>
+          </div>`).join('')
+        : `<div class="cmdk-empty">${t('cmdk.empty')}</div>`;
+      list.querySelectorAll('.cmdk-item').forEach(el => {
+        el.addEventListener('click', () => { App.go(el.dataset.id); this.close(); });
+        el.addEventListener('mouseenter', () => { selected = Number(el.dataset.i); renderList(); });
+      });
+    };
+
+    this.el.innerHTML = `<div class="modal cmdk">
+      <div class="cmdk-input-row">
+        <span class="cmdk-search-ic">${ICON.search}</span>
+        <input id="cmdk-input" type="text" placeholder="${t('cmdk.placeholder')}" autocomplete="off">
+      </div>
+      <div id="cmdk-list" class="cmdk-list"></div>
+      <div class="cmdk-hint">${t('cmdk.hint')}</div>
+    </div>`;
+
+    renderList();
+    const input = this.el.querySelector('#cmdk-input');
+    input.addEventListener('input', () => {
+      const q = input.value.toLowerCase().trim();
+      filtered = items.filter(n => t(n.key).toLowerCase().includes(q));
+      selected = 0;
+      renderList();
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, filtered.length - 1); renderList(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); renderList(); }
+      else if (e.key === 'Enter') { e.preventDefault(); const n = filtered[selected]; if (n) { App.go(n.id); this.close(); } }
+      else if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+    });
+    requestAnimationFrame(() => { this.el.classList.add('show'); input.focus(); });
+  },
 };
 
 /* ============================================================
@@ -1227,6 +1276,8 @@ async function loadOrModels(force = false) {
     }
   } catch {
     state.orModels = null;
+  } finally {
+    state.orModelsAttempted = true;
   }
 }
 
@@ -1267,19 +1318,19 @@ function buildNav() {
     const badge = n.operator ? '<span class="nav-adv-badge">adv</span>' : '';
     const countBadge = n.badge ? `<span class="nav-count-badge" data-count="${n.id}">0</span>` : '';
     const cls = n.operator ? ' operator' : '';
-    return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}">
+    return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}" role="button" tabindex="0">
       <span class="nav-ic">${n.icon}${badge}${countBadge}</span>
       <span class="nav-label">${t(n.key)}</span>
     </div>`;
   };
 
   const tipKey = isAdv ? 'nav.mode.disable' : 'nav.mode.enable';
-  const modeBtn = `<div class="nav-icon nav-mode-btn${isAdv ? ' active' : ''}" id="navModeBtn" data-tip="${t(tipKey)}">
+  const modeBtn = `<div class="nav-icon nav-mode-btn${isAdv ? ' active' : ''}" id="navModeBtn" data-tip="${t(tipKey)}" role="button" tabindex="0">
     <span class="nav-ic">${ICON.sliders}</span>
     <span class="nav-label">${t(tipKey)}</span>
   </div>`;
 
-  const collapseBtn = `<div class="nav-icon nav-collapse-btn" id="navCollapseBtn">
+  const collapseBtn = `<div class="nav-icon nav-collapse-btn" id="navCollapseBtn" role="button" tabindex="0">
     <span class="nav-ic">${ICON.chevR}</span>
   </div>`;
 
@@ -1294,6 +1345,11 @@ function buildNav() {
 
   side.querySelectorAll('.nav-icon[data-nav]').forEach(n =>
     n.addEventListener('click', () => App.go(n.dataset.nav)));
+
+  side.querySelectorAll('.nav-icon[role="button"]').forEach(n =>
+    n.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); n.click(); }
+    }));
 
   document.getElementById('navModeBtn').addEventListener('click', () => {
     const cur = localStorage.getItem('orchestos-mode') || 'normal';
@@ -1333,6 +1389,14 @@ function boot() {
   // Panels
   SidePanel.init();
   Modal.init();
+
+  // Command palette (Cmd/Ctrl+K)
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      Modal.openCommandPalette();
+    }
+  });
 
   // First render with loading state, then fetch
   App.rerender();

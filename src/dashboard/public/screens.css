@@ -122,53 +122,6 @@
 .feed-line.err .msg .tag { color: var(--error); }
 .feed-line .tag { font-weight: 600; }
 
-/* ---------- KANBAN ---------- */
-.kanban {
-  display: grid; grid-template-columns: repeat(5, minmax(190px, 1fr));
-  gap: 12px; align-items: start;
-}
-.kcol { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); display: flex; flex-direction: column; min-height: 120px; }
-.kcol-head {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; border-bottom: 1px solid var(--border);
-}
-.kcol-head .dot { width: 8px; height: 8px; border-radius: 50%; }
-.kcol-head h3 { margin: 0; font-size: 12.5px; font-weight: 600; flex: 1; letter-spacing: 0.01em; }
-.kcol-head .count {
-  font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums;
-  color: var(--text-muted); background: var(--surface-hi);
-  border-radius: 999px; min-width: 20px; text-align: center; padding: 1px 7px;
-}
-.kcol[data-k="pending"] .dot { background: var(--text-faint); }
-.kcol[data-k="running"] .dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-.kcol[data-k="done"]    .dot { background: var(--success); }
-.kcol[data-k="failed"]  .dot { background: var(--error); }
-.kcol[data-k="blocked"] .dot { background: var(--warning); }
-.kcol-body { padding: 10px; display: flex; flex-direction: column; gap: 9px; }
-.kcol-empty { padding: 18px 10px; text-align: center; color: var(--text-faint); font-size: 12px; }
-
-.kcard {
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 11px 11px 10px; cursor: pointer;
-  transition: border-color .12s, transform .08s, background .12s;
-}
-.kcard:hover { border-color: #444c56; background: var(--surface-hi); }
-.kcard:active { transform: translateY(1px); }
-.kcard .id { font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
-.kcard .desc { font-size: 12.5px; line-height: 1.4; color: var(--text); margin-bottom: 9px; text-wrap: pretty; }
-.kcard .foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.kcard .retry { font-size: 10.5px; color: var(--text-faint); font-family: var(--mono); margin-left: auto; }
-.kcard .retry.warn { color: var(--warning); }
-
-body[data-cards="elevated"] .kcard { background: #1b212a; box-shadow: 0 2px 6px rgba(0,0,0,.35); border-color: #2b313b; }
-body[data-cards="elevated"] .kcard:hover { box-shadow: 0 4px 12px rgba(0,0,0,.45); }
-body[data-cards="barred"] .kcard { border-left: 3px solid var(--accent); }
-body[data-cards="barred"] .kcol[data-k="done"] .kcard { border-left-color: var(--success); }
-body[data-cards="barred"] .kcol[data-k="failed"] .kcard { border-left-color: var(--error); }
-body[data-cards="barred"] .kcol[data-k="blocked"] .kcard { border-left-color: var(--warning); }
-body[data-cards="barred"] .kcol[data-k="running"] .kcard { border-left-color: var(--accent); }
-body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: var(--text-faint); }
-
 /* ---------- side detail panel (tasks) ---------- */
 /* Fixed positioning — panel is appended to body, survives main rerender */
 .side-panel {
@@ -339,6 +292,7 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
 .mem-results { display: flex; flex-direction: column; gap: 10px; }
 .mem-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 13px 15px; cursor: pointer; }
 .mem-card:hover { border-color: #444c56; }
+.mem-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .mem-card .top { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
 .mem-card .topic { font-family: var(--mono); font-size: 12.5px; color: var(--accent); font-weight: 500; }
 .mem-card .when { margin-left: auto; font-size: 11.5px; color: var(--text-faint); font-family: var(--mono); }
@@ -456,6 +410,32 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
 .modal .m-hint { font-size: 11.5px; color: var(--text-faint); margin-top: 5px; }
 .modal .m-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border); }
 
+/* ---------- Command palette (Cmd/Ctrl+K) ---------- */
+.modal-scrim:has(.cmdk) { align-items: flex-start; padding-top: 14vh; }
+.cmdk { width: 480px; padding: 0; }
+.cmdk-input-row { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.cmdk-search-ic { width: 16px; height: 16px; color: var(--text-faint); flex-shrink: 0; display: grid; }
+.cmdk-search-ic svg { width: 16px; height: 16px; }
+.cmdk-input-row input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-family: inherit; font-size: 14px;
+}
+.cmdk-input-row input::placeholder { color: var(--text-faint); }
+.cmdk-list { max-height: 320px; overflow-y: auto; padding: 6px; }
+.cmdk-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--radius); cursor: pointer;
+  color: var(--text-muted); font-size: 13.5px;
+}
+.cmdk-item .cmdk-item-ic { width: 16px; height: 16px; display: grid; flex-shrink: 0; }
+.cmdk-item .cmdk-item-ic svg { width: 16px; height: 16px; }
+.cmdk-item.active { background: var(--accent-soft); color: var(--text); }
+.cmdk-empty { padding: 24px 16px; text-align: center; color: var(--text-faint); font-size: 13px; }
+.cmdk-hint {
+  padding: 9px 16px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-faint); font-family: var(--mono);
+}
+
 /* ---------- WIZARD (E3) ---------- */
 .wiz-modal { width: 480px; }
 .wiz-indicator {
@@ -520,8 +500,10 @@ body[data-cards="barred"] .kcol[data-k="pending"] .kcard { border-left-color: va
   border-radius: var(--radius-lg); color: var(--text);
   font-family: var(--sans); font-size: 14px; line-height: 1.5;
   padding: 10px 14px; outline: none; max-height: 120px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 28px rgba(0,0,0,.45);
+  transition: border-color .12s, box-shadow .12s;
 }
-.chat-input-bar textarea:focus { border-color: var(--accent); }
+.chat-input-bar textarea:focus { border-color: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 28px rgba(0,0,0,.45), 0 0 0 3px var(--accent-dim); }
 .chat-input-bar textarea::placeholder { color: var(--text-faint); }
 .chat-send-btn { align-self: flex-end; white-space: nowrap; }
 .model-sel {
