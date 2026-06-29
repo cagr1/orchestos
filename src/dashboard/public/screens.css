@@ -73,7 +73,7 @@
   width: 100%; resize: none;
   border: 0; background: transparent; color: var(--text);
   font-family: var(--sans); font-size: 14.5px; line-height: 1.5;
-  padding: 14px 18px; outline: none;
+  padding: 14px 18px; outline: none; max-height: 120px; overflow-y: auto;
 }
 .compose-bar textarea::placeholder { color: var(--text-faint); }
 .compose-actions {

@@ -100,6 +100,9 @@ SCREENS.chat = {
     const textareaEl = root.querySelector('#chat-input');
     const autoGrowTextarea = () => {
       if (!textareaEl) return;
+      // ver autoGrowCompose() más abajo — mismo guard defensivo contra
+      // placeholders multilínea inflando scrollHeight con el campo vacío.
+      if (!textareaEl.value) { textareaEl.style.height = ''; return; }
       textareaEl.style.height = 'auto';
       textareaEl.style.height = Math.min(textareaEl.scrollHeight, 120) + 'px';
     };
@@ -425,7 +428,7 @@ SCREENS.tasks = {
           <textarea id="compose-input" rows="2" placeholder="${t('tasks.compose.placeholder')}">${composeInitial ? esc(composeInitial) : ''}</textarea>
           <div class="compose-actions">
             <div id="compose-id-preview" class="compose-hint muted"></div>
-            <button class="btn primary" data-act="create-run">${ICON.play} ${t('tasks.compose.btn.run')}</button>
+            <button class="chat-icon-btn chat-send-btn" data-act="create-run" title="${t('tasks.compose.btn.run')}" aria-label="${t('tasks.compose.btn.run')}">${ICON.send}</button>
             <button class="btn ghost" data-act="new-task">${ICON.plus} ${t('btn.advanced')}</button>
           </div>
           <div id="compose-msg" style="font-size:12px;display:none;margin-top:6px"></div>
@@ -547,10 +550,24 @@ SCREENS.tasks = {
     const preview = root.querySelector('#compose-id-preview');
     const msg = root.querySelector('#compose-msg');
 
+    // mismo auto-grow que el textarea del chat (FRONT.9/FRONT.10). Guard de
+    // `!value` antes de medir scrollHeight: el placeholder de este campo es
+    // multilínea (ver tasks.compose.placeholder, trae "Examples:" + 3 líneas)
+    // y Chromium infla scrollHeight contando esas líneas del placeholder
+    // incluso con el campo vacío — sin el guard, el cuadro arrancaba "grande"
+    // antes de que el usuario escribiera nada.
+    const autoGrowCompose = () => {
+      if (!input) return;
+      if (!input.value) { input.style.height = ''; return; }
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    };
     input?.addEventListener('input', () => {
       const id = descToId(input.value);
       preview.textContent = id ? `ID: ${id}` : '';
+      autoGrowCompose();
     });
+    autoGrowCompose(); // tamaño correcto al montar si ya trae texto (ej. seed desde el chat)
 
     // Phase 1 — call /api/natural → show draft preview
     root.querySelector('[data-act="create-run"]')?.addEventListener('click', async () => {
@@ -560,8 +577,7 @@ SCREENS.tasks = {
         msg.style.color = 'var(--error)'; msg.style.display = ''; return;
       }
       const btn = root.querySelector('[data-act="create-run"]');
-      btn.disabled = true;
-      btn.textContent = '⏳ Generando borrador…';
+      btn.disabled = true; // el ícono circular ya muestra el estado deshabilitado, sin texto de carga
       msg.style.display = 'none';
       try {
         const res = await fetch('/api/natural', {
