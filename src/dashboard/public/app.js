@@ -59,6 +59,7 @@ const state = {
   chatFileId: null,
   chatFileMeta: null,  // { filename, type, preview } from upload
   chatToTask: null,   // non-null = condensed chat text to pre-fill compose bar
+  chatModelComboOpen: false, // FRONT.6 — combobox de modelo del chat (trigger + panel de búsqueda)
   orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
   orModelsAttempted: false, // true once a fetch (success or failure) has completed — prevents retry-loop on every rerender
   orModelsLastFetch: 0, // timestamp of last successful fetch (ms), for TTL
@@ -1222,11 +1223,11 @@ function buildModelOpts(locals, cloudModels, val, query) {
   return html;
 }
 
-/* Returns HTML for a model selector widget.
-   withSearch=true adds a filter input (used in chat; skipped in draft/modal).
+/* Returns HTML for a model selector widget (draft/modal use — native <select> + refresh button).
    If orModels is null → fallback list + load button.
-   If orModels is [] → loading spinner text. */
-function buildModelSelect(inputId, currentVal, models, localModels, withSearch) {
+   If orModels is [] → loading spinner text.
+   Chat uses buildModelCombo() instead — single-height trigger with search-inside panel. */
+function buildModelSelect(inputId, currentVal, models, localModels) {
   const val = currentVal || 'deepseek/deepseek-v4-flash';
   const locals = Array.isArray(localModels) && localModels.length > 0 ? localModels : [];
 
@@ -1246,18 +1247,78 @@ function buildModelSelect(inputId, currentVal, models, localModels, withSearch) 
   const allCloud = models.some(m => m.id === val) ? models : [{ id: val, name: val, priceIn: 0 }, ...models];
   const opts = buildModelOpts(locals, allCloud, val, '');
   const refreshBtn = `<button class="btn ghost sm" data-refresh-models title="${t('btn.refresh')}" style="white-space:nowrap">${ICON.refresh}</button>`;
-  if (withSearch) {
-    return `<div class="model-select-wrap">
-      <input type="text" class="model-search" data-model-search placeholder="${t('chat.models.search')}">
-      <div style="display:flex;gap:4px;align-items:center">
-        <select id="${inputId}" class="model-sel" style="flex:1">${opts}</select>
-        ${refreshBtn}
-      </div>
-    </div>`;
-  }
   return `<div style="display:flex;gap:8px;align-items:center">
     <select id="${inputId}" class="model-sel" style="flex:1">${opts}</select>
     ${refreshBtn}
+  </div>`;
+}
+
+/* FRONT.6 — display label for a model id: locals (Ollama) first, then the
+   loaded cloud list if present, falling back to the curated KNOWN_MODELS list,
+   and finally the raw id itself if nowhere found. */
+function modelLabelFor(val, cloudPool) {
+  if (val.startsWith('ollama/')) return `${val.replace('ollama/', '')} — ${t('chat.local.free')}`;
+  const pool = Array.isArray(cloudPool) && cloudPool.length > 0 ? cloudPool : KNOWN_MODELS;
+  const hit = pool.find(m => m.id === val);
+  return hit ? (hit.name || hit.id) : val;
+}
+
+/* FRONT.6 — option list HTML for the chat model combobox panel (locals + cloud
+   groups, filtered by query). Same matching rules as the old buildModelOpts,
+   rendered as plain divs instead of <option> so it can live inside a custom
+   dropdown panel instead of a native <select>. */
+function buildComboOptions(locals, cloudModels, val, query) {
+  const q = (query || '').toLowerCase().trim();
+  const matchLocal = locals.filter(m => !q || m.id.toLowerCase().includes(q));
+  const matchCloud = cloudModels.filter(m =>
+    !q || m.id.toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q)
+  );
+  let html = '';
+  if (matchLocal.length > 0) {
+    html += `<div class="model-combo-group-label">${esc(t('chat.local.group'))}</div>` +
+      matchLocal.map(m => `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}">
+        <span class="model-combo-opt-name">${esc(m.id.replace('ollama/', ''))}</span>
+        <span class="model-combo-price">${esc(t('chat.local.free'))}</span>
+      </div>`).join('');
+  }
+  if (matchCloud.length > 0) {
+    if (matchLocal.length > 0) html += `<div class="model-combo-group-label">${esc(t('chat.cloud.group'))}</div>`;
+    html += matchCloud.map(m => `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}">
+      <span class="model-combo-opt-name">${esc(m.name || m.id)}</span>
+      <span class="model-combo-price">$${m.priceIn.toFixed(2)}/M</span>
+    </div>`).join('');
+  }
+  if (!html) html = `<div class="model-combo-empty">${esc(q ? 'No results' : t('common.loading'))}</div>`;
+  return html;
+}
+
+/* FRONT.6 — chat model combobox: a single-height trigger (label + chevron) that
+   opens a search-inside dropdown panel, replacing the old two-row layout
+   (search input above a native <select> + a manual refresh button beside it).
+   Refresh is now silent/automatic: loadOrModels() is already TTL-gated
+   internally, so the caller just calls it on open without a visible button. */
+function buildModelCombo(currentVal, models, localModels, open) {
+  const val = currentVal || 'deepseek/deepseek-v4-flash';
+  const locals = Array.isArray(localModels) && localModels.length > 0 ? localModels : [];
+  const isLoading = Array.isArray(models) && models.length === 0;
+  const cloudSource = models === null ? KNOWN_MODELS.map(m => ({ ...m })) : (Array.isArray(models) ? models : []);
+  const allCloud = (models === null || cloudSource.some(m => m.id === val))
+    ? cloudSource
+    : [{ id: val, name: val, priceIn: 0 }, ...cloudSource];
+  const label = isLoading ? t('common.loading') : modelLabelFor(val, allCloud);
+  const isOpen = !!open && !isLoading;
+  const panel = isOpen
+    ? `<div class="model-combo-panel" data-combo-panel>
+        <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
+        <div class="model-combo-list" data-combo-list>${buildComboOptions(locals, allCloud, val, '')}</div>
+      </div>`
+    : '';
+  return `<div class="model-combo${isOpen ? ' open' : ''}" data-model-combo>
+    <button type="button" class="model-combo-trigger" data-combo-trigger ${isLoading ? 'disabled' : ''}>
+      <span class="model-combo-label">${esc(label)}</span>
+      ${ICON.chev}
+    </button>
+    ${panel}
   </div>`;
 }
 
@@ -1404,6 +1465,16 @@ function boot() {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       Modal.openCommandPalette();
+    }
+  });
+
+  // FRONT.6 — close the chat model combobox on outside click. Registered once
+  // here (not inside SCREENS.chat.wire(), which reruns on every rerender) so
+  // it never stacks duplicate listeners across re-renders.
+  document.addEventListener('click', e => {
+    if (state.chatModelComboOpen && !e.target.closest('[data-model-combo]')) {
+      state.chatModelComboOpen = false;
+      App.rerender();
     }
   });
 

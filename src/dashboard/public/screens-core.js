@@ -22,7 +22,9 @@ SCREENS.chat = {
           return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${modelTag}</div></div>`;
         }).join('') + thinkingBubble;
 
-    const modelSelect = buildModelSelect('chat-model-select', st.chatModel, st.orModels, st.localModels, true).replace('class="model-sel"', 'class="model-sel chat-model-sel"');
+    // FRONT.6 — combobox de altura única (trigger + panel con búsqueda integrada), reemplaza
+    // el viejo layout de dos filas (input de búsqueda arriba + <select> nativo + botón de refresh).
+    const modelCombo = buildModelCombo(st.chatModel, st.orModels, st.localModels, st.chatModelComboOpen);
 
     // FRONT.1 — oculto/disabled salvo que el modelo elegido tenga supportsReasoning:true real (BACK.4)
     const effortSelect = modelSupportsReasoning(st.chatModel, st.orModels)
@@ -64,7 +66,7 @@ SCREENS.chat = {
     return `<div class="screen chat-screen">
       <div class="screen-head">
         <div class="lead"><h1>${t('chat.title')}</h1><p>${t('chat.subtitle')}</p></div>
-        <div class="tools" style="align-items:center;gap:8px">${modelSelect}${effortSelect}${clearBtn}</div>
+        <div class="tools" style="align-items:center;gap:8px">${modelCombo}${effortSelect}${clearBtn}</div>
       </div>
       ${localWarnBanner}
       <div class="chat-area" id="chat-area">${msgs}</div>
@@ -182,31 +184,37 @@ SCREENS.chat = {
       st.chatFileMeta = null;
       App.rerender();
     });
-    root.querySelector('[data-load-models]')?.addEventListener('click', async () => {
-      await loadOrModels();
+    // FRONT.6 — model combobox: trigger toggles the panel open/closed. Opening
+    // also triggers a silent refresh — loadOrModels() is already TTL-gated
+    // internally (no-ops if the cache is fresh), so this replaces the old
+    // manual refresh button without spamming the network on every open.
+    root.querySelector('[data-combo-trigger]')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const opening = !st.chatModelComboOpen;
+      st.chatModelComboOpen = opening;
       App.rerender();
+      if (opening) loadOrModels().then(() => { if (st.chatModelComboOpen) App.rerender(); });
     });
-    root.querySelector('[data-refresh-models]')?.addEventListener('click', async () => {
-      await loadOrModels(true);
-      App.rerender();
-    });
-    root.querySelector('#chat-model-select')?.addEventListener('change', e => {
-      st.chatModel = e.target.value;
+    root.querySelector('[data-combo-list]')?.addEventListener('click', e => {
+      const opt = e.target.closest('[data-combo-option]');
+      if (!opt) return;
+      st.chatModel = opt.dataset.value;
+      st.chatModelComboOpen = false;
       App.rerender(); // refresh warning banner + show/hide effort selector
+    });
+    // model search filter — patches the list in place (no full rerender, keeps input focus)
+    root.querySelector('[data-combo-search]')?.addEventListener('input', e => {
+      const q = e.target.value;
+      const list = root.querySelector('[data-combo-list]');
+      if (!list) return;
+      const allCloud = Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : KNOWN_MODELS;
+      const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
+      // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
+      list.innerHTML = buildComboOptions(locals, allCloud, st.chatModel, q);
     });
     root.querySelector('#chat-effort-select')?.addEventListener('change', e => {
       st.chatEffort = e.target.value;
       localStorage.setItem('orchestos-chat-effort', e.target.value);
-    });
-    // D0-ext-1 — model search filter
-    root.querySelector('[data-model-search]')?.addEventListener('input', e => {
-      const q = e.target.value;
-      const sel = root.querySelector('#chat-model-select');
-      if (!sel) return;
-      const allCloud = Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : [];
-      const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
-      // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
-      sel.innerHTML = buildModelOpts(locals, allCloud, st.chatModel, q);
     });
     // D0-3 — dismiss local model warning
     root.querySelector('[data-act="local-warn-dismiss"]')?.addEventListener('click', () => {
