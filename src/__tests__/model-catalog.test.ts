@@ -6,6 +6,7 @@ import {
   ensureCatalogLoaded,
   contextWindowFor,
   hasRealContextWindow,
+  supportsReasoningEffort,
   _resetCatalog,
 } from '../router/model-catalog.ts'
 
@@ -117,6 +118,31 @@ describe('model-catalog', () => {
       // el fetch (10s de timeout) en cada tarea del grafo. Con el fix no reintenta.
       await ensureCatalogLoaded({ apiKey: 'fake-key' })
       expect(fetchCalls).toBe(1)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('BACK.1: supportsReasoningEffort lee supported_parameters del catálogo real', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({
+        data: [
+          { id: 'deepseek/deepseek-r1', context_length: 64_000, pricing: { prompt: '0.0000005' }, supported_parameters: ['reasoning', 'temperature'] },
+          { id: 'openai/gpt-4o-mini', context_length: 128_000, pricing: { prompt: '0.0000001' }, supported_parameters: ['temperature'] },
+          { id: 'no/params-field', context_length: 32_000, pricing: { prompt: '0.0000001' } },
+        ],
+      }),
+      { status: 200 },
+    )) as unknown as typeof fetch
+
+    try {
+      await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
+      expect(supportsReasoningEffort('deepseek/deepseek-r1')).toBe(true)
+      expect(supportsReasoningEffort('openai/gpt-4o-mini')).toBe(false)
+      expect(supportsReasoningEffort('no/params-field')).toBe(false)
+      // id que ni siquiera está en el catálogo (offline/desconocido) → false, nunca asume soporte.
+      expect(supportsReasoningEffort('totally/unknown-model')).toBe(false)
     } finally {
       globalThis.fetch = originalFetch
     }

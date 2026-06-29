@@ -47,10 +47,12 @@ export async function chat(opts: {
   model: string       // e.g. "anthropic/claude-haiku-4-5" or any OpenRouter model ID
   system: string
   messages: ChatMessage[]
+  /** Reasoning effort, solo aplicado si el caller ya confirmó que el modelo lo soporta (ver BACK.1/BACK.3). */
+  effort?: 'low' | 'medium' | 'high'
 }): Promise<ChatResponse> {
   const apiKey = loadApiKey()
 
-  const body = {
+  const body: Record<string, unknown> = {
     model: opts.model,
     max_tokens: 8192,
     messages: [
@@ -58,6 +60,7 @@ export async function chat(opts: {
       ...opts.messages,
     ],
   }
+  if (opts.effort) body.reasoning = { effort: opts.effort }
 
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',

@@ -54,6 +54,47 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
     expect(result.outputTokens).toBe(3)
   })
 
+  it('BACK.2: forwards effort as reasoning.effort in the request body', async () => {
+    let capturedBody: any = null
+    globalThis.fetch = ((_url: string | URL, init?: RequestInit): Promise<Response> => {
+      capturedBody = JSON.parse(String(init?.body))
+      return Promise.resolve(new Response(JSON.stringify({
+        choices: [{ message: { content: 'ok' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    }) as unknown as typeof globalThis.fetch
+
+    await runToolLoop('openrouter', 'deepseek/deepseek-r1', {
+      system: 'Be concise',
+      messages: [{ role: 'user', content: 'Hi' }],
+      tools: [FETCH_URL_TOOL],
+      executeTool: async () => '',
+      effort: 'high',
+    })
+
+    expect(capturedBody.reasoning).toEqual({ effort: 'high' })
+  })
+
+  it('BACK.2: omits reasoning field when no effort is passed', async () => {
+    let capturedBody: any = null
+    globalThis.fetch = ((_url: string | URL, init?: RequestInit): Promise<Response> => {
+      capturedBody = JSON.parse(String(init?.body))
+      return Promise.resolve(new Response(JSON.stringify({
+        choices: [{ message: { content: 'ok' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    }) as unknown as typeof globalThis.fetch
+
+    await runToolLoop('openrouter', 'openai/gpt-4o-mini', {
+      system: 'Be concise',
+      messages: [{ role: 'user', content: 'Hi' }],
+      tools: [FETCH_URL_TOOL],
+      executeTool: async () => '',
+    })
+
+    expect(capturedBody.reasoning).toBeUndefined()
+  })
+
   it('one tool call → execute → final text', async () => {
     mockFetch([
       {

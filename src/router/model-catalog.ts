@@ -34,6 +34,8 @@ export interface ModelInfo {
   contextLength: number
   /** Precio de prompt en USD por 1M tokens (para reuso futuro en routing por costo). */
   priceIn: number
+  /** True si OpenRouter publica `"reasoning"` en `supported_parameters` para este modelo. */
+  supportsReasoning: boolean
 }
 
 interface DiskCache {
@@ -98,7 +100,12 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
   })
   if (!res.ok) throw new Error(`OpenRouter models fetch failed: ${res.status}`)
   const data = (await res.json()) as {
-    data?: Array<{ id?: string; context_length?: number; pricing?: { prompt?: string } }>
+    data?: Array<{
+      id?: string
+      context_length?: number
+      pricing?: { prompt?: string }
+      supported_parameters?: string[]
+    }>
   }
   const models: Record<string, ModelInfo> = {}
   for (const m of data.data ?? []) {
@@ -110,6 +117,7 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
     models[m.id] = {
       contextLength: typeof m.context_length === 'number' ? m.context_length : 0,
       priceIn: Number.isFinite(rawPrice) ? rawPrice : 0,
+      supportsReasoning: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
     }
   }
   return models
@@ -179,6 +187,15 @@ export function contextWindowFor(modelId: string): number {
 export function hasRealContextWindow(modelId: string): boolean {
   const entry = memoryCatalog?.get(modelId)
   return !!entry && entry.contextLength > 0
+}
+
+/**
+ * True si el modelo acepta `reasoning: { effort }` en el body del chat completions
+ * de OpenRouter (publicado en `supported_parameters`). False si no está en el
+ * catálogo (offline, id desconocido, Ollama local) — nunca asume soporte sin dato real.
+ */
+export function supportsReasoningEffort(modelId: string): boolean {
+  return !!memoryCatalog?.get(modelId)?.supportsReasoning
 }
 
 /** Solo para tests: limpia el estado en memoria. */

@@ -358,6 +358,7 @@ async function openaiRound(
   history: unknown[],
   tools: ToolDef[],
   provider: string,
+  effort?: 'low' | 'medium' | 'high',
 ): Promise<{
   text: string
   toolUses: RawToolUse[]
@@ -404,6 +405,7 @@ async function openaiRound(
         { role: 'system', content: system },
         ...history,
       ],
+      ...(effort && baseUrl.includes('openrouter') ? { reasoning: { effort } } : {}),
     }),
   })
 
@@ -449,6 +451,8 @@ export async function runToolLoop(
     tools: ToolDef[]
     executeTool: ToolExecutor
     maxTurns?: number
+    /** Reasoning effort, solo aplicado al round openrouter — ver BACK.1/BACK.3. */
+    effort?: 'low' | 'medium' | 'high'
   },
 ): Promise<ToolLoopResult> {
   const maxTurns = opts.maxTurns ?? 3
@@ -471,7 +475,7 @@ export async function runToolLoop(
     if (provider === 'anthropic') {
       result = await anthropicRound(model, opts.system, history, opts.tools)
     } else {
-      result = await openaiRound(model, opts.system, history, opts.tools, provider)
+      result = await openaiRound(model, opts.system, history, opts.tools, provider, opts.effort)
     }
 
     totalInputTokens += result.inputTokens

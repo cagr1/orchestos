@@ -12,6 +12,10 @@ import { readEnv } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 import { runToolLoop, FETCH_URL_TOOL, supportsToolCalling } from '../../providers/tool-call.ts'
 import { checkSsrSafe } from '../ssrf.ts'
+import { ensureCatalogLoaded, supportsReasoningEffort } from '../../router/model-catalog.ts'
+
+const VALID_EFFORTS = ['low', 'medium', 'high'] as const
+type ReasoningEffort = typeof VALID_EFFORTS[number]
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS    = 30 * 60 * 1000
@@ -111,7 +115,9 @@ async function handleApiChatModels(): Promise<Response> {
       headers: { 'Authorization': `Bearer ${apiKey}` },
     })
     if (!res.ok) return errorResponse(`OpenRouter error ${res.status}`, 502)
-    const data = await res.json() as { data: { id: string; name: string; context_length: number; pricing: { prompt: string } }[] }
+    const data = await res.json() as {
+      data: { id: string; name: string; context_length: number; pricing: { prompt: string }; supported_parameters?: string[] }[]
+    }
     const models = (data.data || [])
       .filter(m => m.pricing?.prompt !== undefined)
       .sort((a, b) => Number(a.pricing.prompt) - Number(b.pricing.prompt))
@@ -120,6 +126,7 @@ async function handleApiChatModels(): Promise<Response> {
         name: m.name,
         contextK: Math.round((m.context_length || 0) / 1000),
         priceIn: Number(m.pricing.prompt) * 1_000_000,
+        supportsReasoning: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
       }))
     return jsonResponse(models)
   } catch (e: any) {
@@ -164,10 +171,14 @@ export async function executeFetchUrl(_toolName: string, input: unknown): Promis
 }
 
 async function handleApiChat(req: Request): Promise<Response> {
-  let body: { history: { role: string; content: string }[]; message: string; fileId?: string }
-  try { body = (await req.json()) as { history: { role: string; content: string }[]; message: string; fileId?: string } } catch { return errorResponse('Invalid JSON', 400) }
+  let body: { history: { role: string; content: string }[]; message: string; fileId?: string; model?: string; effort?: string }
+  try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
   const message = body.message?.trim()
   if (!message) return errorResponse('message is required', 400)
+
+  if (body.effort !== undefined && !VALID_EFFORTS.includes(body.effort as ReasoningEffort)) {
+    return errorResponse(`effort must be one of: ${VALID_EFFORTS.join(', ')}`, 400)
+  }
 
   const history = Array.isArray(body.history) ? body.history.slice(-10) : []
 
@@ -233,8 +244,14 @@ async function handleApiChat(req: Request): Promise<Response> {
 
   const ctx = lines.length ? `\nProject state:\n${lines.join('\n')}\n` : ''
   const projBlock = projectCtx ? `\nProject context:\n${projectCtx}\n` : ''
-  const model = (body as any).model?.trim() || 'deepseek/deepseek-v4-flash'
+  const model = body.model?.trim() || 'deepseek/deepseek-v4-flash'
   const isOllama = /^ollama\//.test(model)
+
+  // BACK.3: el efecto se descarta en silencio si el modelo no lo soporta — el
+  // cliente (frontend) ya debería ocultar el control, pero esto evita mandarle
+  // un `reasoning` ignorado o, peor, un error a un modelo que no lo entiende.
+  await ensureCatalogLoaded()
+  const effort = (body.effort && supportsReasoningEffort(model)) ? (body.effort as ReasoningEffort) : undefined
   const modelLabel = isOllama
     ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
     : `${model} via OpenRouter`
@@ -280,6 +297,7 @@ Important: you cannot modify files or run code directly from this chat. However,
         messages,
         tools: [FETCH_URL_TOOL],
         executeTool: executeFetchUrl,
+        effort,
       })
       return jsonResponse({ text: result.text, model, toolCalls: result.toolCallsExecuted })
     }
@@ -287,6 +305,7 @@ Important: you cannot modify files or run code directly from this chat. However,
     const resp = await openrouterChat({
       model,
       system: systemPrompt,
+      effort,
       messages,
     })
     return jsonResponse({ text: resp.text, model: resp.model })
