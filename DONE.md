@@ -899,6 +899,34 @@ Origen: candidato directo anotado en DONE.md § MES 12 y § MES 13 (IDEAS.md #9)
 
 ---
 
+### Fixes post-cierre Mes 14, pre-Mes 15 (2026-06-29) — dogfooding real del flujo chat→tarea
+
+Origen: Carlos probó en vivo el flujo "pedir algo por el chat → se crea una tarea → correrla" usando como caso real un pedido de prototipos de rediseño visual del dashboard (ver IDEAS.md, pendiente de tema oficial para Mes 15). Cada bug de abajo se encontró usando el sistema real, no leyendo código en frío — mismo principio que [[feedback-verificar-gates-en-vivo]].
+
+**Bug 1 — prompt/parser desincronizados en el one-shot `run --task --output` (cli.ts)**
+El system prompt de este path le decía al modelo que respondiera en JSON (`{"files":[...]}`), pero `parseLLMResponse` (`contract.ts`) solo entiende el formato de delimitadores `<<<FILE:path>>>...<<<ENDFILE>>>` — el mismo que ya usaba correctamente el path de `tasks.yaml`/`--graph` (`run/prompt.ts`). Rompía **cualquier** tarea one-shot, no solo el caso de prueba. Fix: alineado el prompt de `cli.ts` al formato de delimitadores real.
+
+**Bug 2 — `max_tokens: 8192` hardcodeado en los 3 providers, sin relación con el tope real del modelo**
+Generar un mockup HTML+CSS+JS completo se cortaba a mitad de archivo porque 8192 tokens de salida no alcanzan para ningún modelo "premium" de verdad — y el código no tenía forma de saberlo, porque nunca leía el dato real. Mismo principio ya aplicado a `contextLength` en `model-catalog.ts` ("el motor no debe adivinar la ventana de un modelo"): se extendió a tokens de salida. `ModelInfo.maxOutputTokens` ahora captura `top_provider.max_completion_tokens` (publicado por OpenRouter), con `maxOutputTokensFor(modelId)` síncrono (fallback `DEFAULT_MAX_OUTPUT_TOKENS=8192` si el modelo no está en catálogo). `openrouter.ts:chat()` acepta `maxTokens?` opcional; `cli.ts` lo resuelve vía `ensureCatalogLoaded()` antes de cada llamada. Decisión explícita de Carlos: no es aceptable "simplemente subir el número" sin atarlo al dato real por modelo — la alerta debe ser siempre por modelo, nunca un valor fijo adivinado.
+Provider/harness genérico (`run/harness.ts`, usado por `tasks.yaml`/`--graph` vía `ProviderClient`) queda **fuera de este fix** — mezclar el catálogo de OpenRouter (no aplica igual a Anthropic/OpenAI directos) ahí es un cambio más grande, anotado como deuda conocida, no resuelto todavía.
+
+**Bug 3 — el más serio: una excepción en la resolución de sandbox tumbaba el proceso de `task run` sin dejar rastro**
+`resolveSandboxMode()` (`sandbox-policy.ts`) lanza si el working tree tiene cambios sin commitear y el modo resuelto es `worktree` — pero esa llamada, junto con `createWorktree()` y el spec-gate, vivían **fuera** del `try/catch` de `runTask()` (`harness.ts`). Cualquier excepción ahí crasheaba el subproceso entero, sin pasar por el catch-all ya documentado ("S9.4 — nunca lanza"). Síntoma real observado: una tarea creada desde el chat (`crear-web-local-comercial`) quedó en `status: running` para siempre — sin fila en `runs`, sin diagnóstico, solo un `START` suelto en el log de la corrida. Causa concreta de esa instancia: el repo tenía cambios sin commitear (los fixes 1 y 2, todavía no commiteados) cuando se disparó la tarea desde el dashboard. Fix: el `try` ahora envuelve el spec-gate + resolución de sandbox + creación de worktree, así cualquier error ahí mapea a `status:'failed'` (con razón legible) en vez de tumbar el proceso. 2 tests existentes (`spec.test.ts`, "harness spec gate") actualizados — antes esperaban `rejects.toThrow()`, ahora correctamente esperan `result.status === 'failed'`, consistente con el invariante ya documentado de que `runTask()` nunca debe lanzar. Tarea huérfana liberada manualmente de vuelta a `pending` en `tasks.yaml`.
+
+**Bug 4 — el toggle de "Diagnose" en Tasks no volvía a colapsar**
+`screens-core.js`: la flecha ▲/▼ que reemplaza al link "Diagnose" una vez cacheado el resultado se renderizaba **sin** el atributo `data-diag` (solo el link inicial lo tenía) — el handler de toggle ya existía y funcionaba bien, pero nunca se conectaba a la flecha. El click caía al handler de la fila (abría el side-panel) en vez de colapsar el detalle inline. Fix: la flecha ahora también lleva `data-diag`. Verificado en vivo con Playwright contra el dashboard real: 1er click abre (`detail-row` visible), 2do click colapsa (`detail-row` desaparece) — confirmado vía `classList`, no solo visualmente.
+
+**Bug 5 — el refresh del dashboard siempre caía en Settings, nunca en Chat**
+`app.js` redirigía a Settings ("Control Center") cada vez que `attentionCount > 0` — pero ese contador (`setup.ts`) suma `unverifiedInstincts + draftSpecs`, backlogs pasivos de revisión que casi siempre son > 0 en uso normal (99 instincts sin revisar en este caso). Esto pisaba silenciosamente la decisión ya tomada en Mes 14 EXTRA ("Chat convertido en pantalla principal") en cada recarga. Fix: el redirect urgente ahora solo dispara con `blockedTasks.length > 0` (trabajo real atascado) o el umbral de costo semanal — instincts/specs pendientes ya tienen su propio badge en el nav, no necesitan secuestrar la pantalla de inicio. Verificado en vivo con Playwright: con `blockedTasks: []` real, el refresh ahora aterriza en Chat (`heading "Chat"` + composer visibles).
+
+**Decisión de diseño**: ningún fix de este bloque consumió generación de contenido por LLM para probarse — los 5 son debugging real sobre estado ya producido (logs, DB, tasks.yaml, dashboard en vivo), siguiendo la regla explícita de Carlos de esta sesión: tareas de generación-y-prueba-iterativa las corre él mismo por CLI para no quemar cuota de Claude; debugging de bugs reales sí lo hace Claude.
+
+**Hallazgo abierto, anotado en IDEAS.md (no resuelto)**: la auditoría de paridad CLI↔Dashboard — varias capacidades del CLI (`spec approve/lint/archive`, `instinct set-confidence/propose`, `task run --explain/--clarify`, `skill build`, `detect/init/index`, `runs --analyze` manual) no tienen ningún botón/endpoint equivalente en el dashboard. Ver IDEAS.md #9b.
+
+518 tests · 0 fail · `tsc --noEmit` limpio en cada fix.
+
+---
+
 ## Sección 2 — Ideas implementadas (provenientes de IDEAS.md)
 
 ### planner_model / executor_model por tarea — S15 (2026-05-27)

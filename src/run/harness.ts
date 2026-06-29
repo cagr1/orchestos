@@ -101,32 +101,38 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
   const { projectRoot, task: t, projectId: _projectId, logger: log, dryRun, modelOverride, orcheConfig, orcheConfigFound, sandboxMode, sandboxBranch, keepWorktree, monitorCallCount } = opts
   const t0 = performance.now()
 
-  // -- spec gate ---------------------------------------------------------------
-  if (orcheConfig?.requireSpec) {
-    const spec = loadSpec(projectRoot, t.id)
-    if (!spec || spec.frontmatter.status !== 'approved') {
-      throw new Error(`Task '${t.id}' requires an approved spec. Run: orchestos spec approve ${t.id}`)
-    }
-  }
-
-  // resolve sandbox (if not already resolved by caller, do it here)
-  const policy = sandboxMode
-    ? { mode: sandboxMode, branch: sandboxBranch ?? null, warnings: [] as string[] }
-    : resolveSandboxMode(projectRoot)
-  for (const w of policy.warnings) log.info(w)
-
   let worktree: Worktree | null = null
   let effectiveRoot = projectRoot
 
-  if (policy.mode === 'worktree' && policy.branch && t.id) {
-    worktree = createWorktree(t.id, policy.branch, projectRoot)
-    effectiveRoot = worktree.path
-    log.info(`sandbox: worktree created at ${worktree.path} (branch: ${worktree.branch})`)
-  } else if (policy.mode === 'worktree') {
-    log.info('sandbox: worktree mode selected but no branch/task id — falling back to cwd')
-  }
-
   try {
+    // -- spec gate ---------------------------------------------------------------
+    // Antes vivía fuera de este try: un throw acá (o en resolveSandboxMode/
+    // createWorktree más abajo) tumbaba el proceso de `task run --id` entero sin
+    // pasar por el catch-all de abajo — la tarea quedaba en `status: running` para
+    // siempre, sin fila en `runs`, sin diagnóstico (solo "START" en el log). Bug
+    // real encontrado dogfooding el flujo chat→tarea con un working tree sucio
+    // (resolveSandboxMode lanza "Uncommitted changes..." en ese caso).
+    if (orcheConfig?.requireSpec) {
+      const spec = loadSpec(projectRoot, t.id)
+      if (!spec || spec.frontmatter.status !== 'approved') {
+        throw new Error(`Task '${t.id}' requires an approved spec. Run: orchestos spec approve ${t.id}`)
+      }
+    }
+
+    // resolve sandbox (if not already resolved by caller, do it here)
+    const policy = sandboxMode
+      ? { mode: sandboxMode, branch: sandboxBranch ?? null, warnings: [] as string[] }
+      : resolveSandboxMode(projectRoot)
+    for (const w of policy.warnings) log.info(w)
+
+    if (policy.mode === 'worktree' && policy.branch && t.id) {
+      worktree = createWorktree(t.id, policy.branch, projectRoot)
+      effectiveRoot = worktree.path
+      log.info(`sandbox: worktree created at ${worktree.path} (branch: ${worktree.branch})`)
+    } else if (policy.mode === 'worktree') {
+      log.info('sandbox: worktree mode selected but no branch/task id — falling back to cwd')
+    }
+
     // -- enrichment chain (S31) ------------------------------------------------
     const ctx = createRunContext(opts)
     ctx.effectiveRoot = effectiveRoot

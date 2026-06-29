@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>OrchestOS — minimal variant</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-base:#0d1117;
+  --bg-surface:#161b22;
+  --bg-elevated:#1c2333;
+  --bg-overlay:rgba(13,17,23,0.72);
+  --bg-tooltip:#2d3748;
+  --text-primary:#e6edf3;
+  --text-secondary:#8b949e;
+  --text-tertiary:#586069;
+  --accent:#58a6ff;
+  --accent-glow:rgba(88,166,255,0.25);
+  --success:#3fb950;
+  --success-glow:rgba(63,185,80,0.2);
+  --danger:#f85149;
+  --warning:#d29922;
+  --border-subtle:rgba(240,246,252,0.08);
+  --border-medium:rgba(240,246,252,0.12);
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:16px;
+  --radius-xl:20px;
+  --shadow-xs:0 1px 2px rgba(0,0,0,0.3);
+  --shadow-sm:0 2px 4px rgba(0,0,0,0.35);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg:0 8px 24px rgba(0,0,0,0.5);
+  --shadow-xl:0 16px 48px rgba(0,0,0,0.6);
+  --font-sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-mono:'SF Mono','Fira Code','Cascadia Code',monospace;
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+  --ease-overshoot:cubic-bezier(0.34,1.56,0.64,1);
+  --ease-bounce:cubic-bezier(0.22,1.24,0.36,1);
+  --nav-width:60px;
+  --header-height:52px;
+  --footer-height:0px;
+  --transition-fast:0.15s var(--ease-out);
+  --transition-normal:0.25s var(--ease-out);
+  --transition-slow:0.4s var(--ease-overshoot);
+}
+html,body{height:100%}
+body{
+  font-family:var(--font-sans);
+  font-size:14px;
+  color:var(--text-primary);
+  background:var(--bg-base);
+  display:grid;
+  grid-template-columns:var(--nav-width) 1fr;
+  grid-template-rows:var(--header-height) 1fr auto;
+  grid-template-areas:"sidebar header" "sidebar main" "footer footer";
+  overflow:hidden;
+  line-height:1.5;
+}
+/* sidebar */
+.sidebar{
+  grid-area:sidebar;
+  background:var(--bg-surface);
+  border-right:1px solid var(--border-subtle);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:12px 0 8px;
+  gap:4px;
+  overflow-y:auto;
+  z-index:10;
+}
+.sidebar .brand{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--accent),#7c5ee0);
+  border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:700;color:#fff;
+  margin-bottom:12px;
+  box-shadow:0 0 8px var(--accent-glow);
+  flex-shrink:0;
+}
+.sidebar .nav-group{
+  display:flex;flex-direction:column;gap:2px;width:100%;padding:4px 6px;
+  border-top:1px solid var(--border-subtle);margin-top:4px;padding-top:8px;
+}
+.sidebar .nav-group:first-of-type{border-top:none;margin-top:0;padding-top:0}
+.nav-item{
+  all:unset;cursor:pointer;position:relative;
+  width:44px;height:44px;border-radius:var(--radius-md);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-secondary);font-size:20px;
+  transition:var(--transition-fast);
+  margin:0 auto;
+}
+.nav-item:hover{color:var(--text-primary);background:var(--bg-elevated)}
+.nav-item.active{
+  color:var(--accent);
+  background:rgba(88,166,255,0.1);
+  box-shadow:inset 0 0 0 1px var(--accent-glow),0 0 12px var(--accent-glow);
+}
+.nav-item.active::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:20px;background:var(--accent);border-radius:0 3px 3px 0;
+}
+.nav-item[data-tooltip]{
+  position:relative;
+}
+.nav-item[data-tooltip]:hover::after{
+  content:attr(data-tooltip);position:absolute;left:calc(100% + 10px);
+  top:50%;transform:translateY(-50%);
+  white-space:nowrap;padding:4px 10px;border-radius:var(--radius-sm);
+  background:var(--bg-tooltip);color:var(--text-primary);font-size:12px;
+  box-shadow:var(--shadow-md);z-index:100;
+  animation:fadeIn 0.15s ease-out;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-50%) scale(0.95)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+.sidebar .nav-spacer{flex:1;min-height:0}
+.sidebar .nav-bottom{display:flex;flex-direction:column;gap:2px;width:100%;padding:4px 6px;border-top:1px solid var(--border-subtle);padding-top:6px;margin-top:auto;}
+
+/* header */
+.header{
+  grid-area:header;
+  background:var(--bg-surface);
+  border-bottom:1px solid var(--border-subtle);
+  display:flex;align-items:center;padding:0 20px;gap:16px;
+  position:relative;z-index:5;
+}
+.header .breadcrumb{font-size:13px;color:var(--text-secondary);display:flex;gap:6px;align-items:center}
+.header .breadcrumb .current{color:var(--text-primary);font-weight:600}
+.header .status-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;
+  background:rgba(63,185,80,0.12);color:var(--success);
+  border:1px solid rgba(63,185,80,0.25);
+  box-shadow:0 0 8px var(--success-glow);
+}
+.status-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.header .task-count{font-size:13px;color:var(--text-secondary);margin-left:auto}
+.header .task-count strong{color:var(--text-primary)}
+.header .cmd-palette-trigger{
+  all:unset;cursor:pointer;padding:6px 12px;border-radius:var(--radius-sm);
+  background:var(--bg-elevated);color:var(--text-tertiary);font-size:12px;
+  display:flex;align-items:center;gap:6px;border:1px solid var(--border-subtle);
+  transition:var(--transition-fast);
+}
+.header .cmd-palette-trigger:hover{border-color:var(--accent);color:var(--text-primary);box-shadow:0 0 6px var(--accent-glow)}
+.header .cmd-palette-trigger kbd{
+  font-family:var(--font-mono);font-size:11px;background:var(--bg-base);padding:1px 5px;border-radius:4px;border:1px solid var(--border-subtle);
+}
+
+/* main */
+.main{
+  grid-area:main;
+  overflow-y:auto;
+  padding:24px;
+  display:flex;flex-direction:column;gap:24px;
+  background:var(--bg-base);
+}
+.section-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;
+}
+.section-header h1{
+  font-size:24px;font-weight:700;letter-spacing:-0.02em;
+  color:var(--text-primary);
+  line-height:1.2;
+}
+.section-header .actions{display:flex;gap:8px}
+.btn{
+  all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;
+  transition:var(--transition-fast);position:relative;overflow:hidden;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),#4a8edb);
+  color:#fff;
+  box-shadow:0 0 10px var(--accent-glow);
+}
+.btn-primary:hover{
+  transform:translateY(-1px);
+  box-shadow:0 4px 16px var(--accent-glow);
+}
+.btn-ghost{
+  background:transparent;color:var(--text-secondary);border:1px solid var(--border-subtle);
+}
+.btn-ghost:hover{background:var(--bg-elevated);color:var(--text-primary);border-color:var(--border-medium)}
+.btn-icon{padding:8px;width:36px;height:36px;justify-content:center}
+
+/* kanban board */
+.kanban-board{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:16px;
+  min-height:300px;
+}
+.kanban-column{
+  background:var(--bg-surface);
+  border-radius:var(--radius-lg);
+  border:1px solid var(--border-subtle);
+  display:flex;flex-direction:column;
+  box-shadow:var(--shadow-xs);
+  transition:var(--transition-normal);
+}
+.kanban-column:hover{box-shadow:var(--shadow-sm)}
+.kanban-column-header{
+  padding:12px 16px 8px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border-subtle);
+  font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;
+  color:var(--text-secondary);
+}
+.kanban-column-header .count{
+  font-size:11px;background:var(--bg-elevated);padding:2px 8px;border-radius:100px;
+  color:var(--text-secondary);
+}
+.kanban-column-body{
+  padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;
+}
+.kcard{
+  background:var(--bg-elevated);
+  border-radius:var(--radius-md);
+  padding:14px 16px;
+  border:1px solid var(--border-subtle);
+  cursor:pointer;
+  transition:var(--transition-fast);
+  box-shadow:var(--shadow-xs);
+}
+.kcard:hover{
+  transform:translateY(-2px);
+  border-color:var(--border-medium);
+  box-shadow:var(--shadow-md);
+}
+.kcard .title{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px}
+.kcard .meta{display:flex;gap:8px;font-size:11px;color:var(--text-secondary);align-items:center}
+.kcard .badge{
+  display:inline-block;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:600;
+}
+.badge-primary{background:rgba(88,166,255,0.15);color:var(--accent);border:1px solid rgba(88,166,255,0.2)}
+.badge-success{background:rgba(63,185,80,0.15);color:var(--success);border:1px solid rgba(63,185,80,0.2)}
+.badge-danger{background:rgba(248,81,73,0.15);color:var(--danger);border:1px solid rgba(248,81,73,0.2)}
+.badge-warning{background:rgba(210,153,34,0.15);color:var(--warning);border:1px solid rgba(210,153,34,0.2)}
+.kanban-column[data-status="running"] .kanban-column-header{color:var(--success)}
+.kanban-column[data-status="blocked"] .kanban-column-header{color:var(--danger)}
+.kanban-column[data-status="failed"] .kanban-column-header{color:var(--danger)}
+.kanban-column[data-status="pending"] .kanban-column-header{color:var(--text-secondary)}
+.kanban-column[data-status="done"] .kanban-column-header{color:var(--accent)}
+
+/* placeholder empty state */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 20px;text-align:center;color:var(--text-tertiary);
+  gap:16px;
+}
+.empty-state svg{width:80px;height:80px;opacity:0.6}
+.empty-state p{font-size:13px;max-width:200px}
+
+/* footer terminal */
+.footer{
+  grid-area:footer;
+  background:var(--bg-surface);
+  border-top:1px solid var(--border-subtle);
+  max-height:180px;overflow:hidden;
+  transition:max-height 0.3s var(--ease-out);
+  display:flex;flex-direction:column;
+}
+.footer.collapsed{max-height:0}
+.footer-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 20px;background:var(--bg-elevated);cursor:pointer;
+  border-top:1px solid var(--border-subtle);
+  user-select:none;
+}
+.footer-header span{font-size:12px;color:var(--text-secondary);font-family:var(--font-mono);display:flex;align-items:center;gap:6px}
+.footer-header .toggle{color:var(--text-tertiary);font-size:10px;transition:var(--transition-fast)}
+.footer.collapsed .footer-header .toggle{transform:rotate(180deg)}
+.footer-body{
+  padding:8px 20px 12px;overflow-y:auto;font-family:var(--font-mono);font-size:12px;line-height:1.7;
+  color:var(--text-primary);background:var(--bg-base);
+}
+.footer-body .log-line{color:var(--text-secondary);white-space:nowrap}
+.footer-body .log-line .ts{color:var(--text-tertiary)}
+.footer-body .log-line .msg{color:var(--success)}
+
+/* modal overlay (command palette) */
+.modal-overlay{
+  display:none;position:fixed;inset:0;z-index:1000;
+  background:var(--bg-overlay);backdrop-filter:blur(8px);
+  align-items:flex-start;justify-content:center;padding-top:80px;
+  animation:overlayIn 0.2s var(--ease-out);
+}
+.modal-overlay.open{display:flex}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.modal-content{
+  background:var(--bg-elevated);
+  width:480px;max-width:90vw;
+  border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-xl);
+  border:1px solid var(--border-subtle);
+  overflow:hidden;
+  animation:modalSlide 0.3s var(--ease-overshoot);
+}
+@keyframes modalSlide{from{opacity:0;transform:translateY(-20px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.modal-search{
+  display:flex;align-items:center;gap:12px;padding:16px 20px;
+  border-bottom:1px solid var(--border-subtle);
+}
+.modal-search input{
+  all:unset;flex:1;font-size:16px;color:var(--text-primary);
+  font-family:var(--font-sans);
+}
+.modal-search input::placeholder{color:var(--text-tertiary)}
+.modal-search .shortcut{
+  font-family:var(--font-mono);font-size:11px;padding:2px 8px;
+  background:var(--bg-surface);border-radius:4px;color:var(--text-tertiary);
+  border:1px solid var(--border-subtle);
+}
+.modal-results{max-height:320px;overflow-y:auto;padding:8px 0}
+.modal-result-item{
+  display:flex;align-items:center;gap:12px;padding:10px 20px;
+  cursor:pointer;transition:var(--transition-fast);color:var(--text-primary);
+}
+.modal-result-item:hover,.modal-result-item.active{background:var(--bg-surface);color:var(--accent)}
+.modal-result-item .icon{font-size:18px;width:24px;text-align:center}
+.modal-result-item .label{font-size:14px}
+.modal-result-item .desc{font-size:12px;color:var(--text-secondary);margin-left:auto}
+
+/* utilities */
+.flex-center{display:flex;align-items:center;justify-content:center}
+.gap-8{gap:8px}
+.gap-12{gap:12px}
+.mt-12{margin-top:12px}
+.text-secondary{color:var(--text-secondary)}
+.text-sm{font-size:12px}
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-medium);border-radius:100px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-tertiary)}
+/* responsive hint */
+@media(max-width:900px){
+  .kanban-board{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="brand">O</div>
+  <div class="nav-group">
+    <button class="nav-item active" data-tooltip="Chat">💬</button>
+    <button class="nav-item" data-tooltip="Tasks">📋</button>
+    <button class="nav-item" data-tooltip="Runs">▶</button>
+    <button class="nav-item" data-tooltip="Instincts">🧠</button>
+  </div>
+  <div class="nav-group">
+    <button class="nav-item" data-tooltip="Memory">🔍</button>
+    <button class="nav-item" data-tooltip="Skills">⚙️</button>
+    <button class="nav-item" data-tooltip="Specs">📄</button>
+  </div>
+  <div class="nav-spacer"></div>
+  <div class="nav-bottom">
+    <button class="nav-item" data-tooltip="Settings">⚡</button>
+  </div>
+</aside>
+
+<!-- Header -->
+<header class="header">
+  <div class="breadcrumb">/ <span>Tasks</span> <span class="current">Active</span></div>
+  <span class="status-badge"><span class="dot"></span> RUNNING</span>
+  <div class="task-count"><strong>12</strong> active tasks</div>
+  <button class="cmd-palette-trigger" id="cmdTrigger">
+    <span>🔍</span> Search… <kbd>⌘K</kbd>
+  </button>
+</header>
+
+<!-- Main -->
+<main class="main">
+  <div class="section-header">
+    <h1>Tasks</h1>
+    <div class="actions">
+      <button class="btn btn-primary">+ New Task</button>
+      <button class="btn btn-ghost">Filter</button>
+    </div>
+  </div>
+  <div class="kanban-board">
+    <!-- Pending -->
+    <div class="kanban-column" data-status="pending">
+      <div class="kanban-column-header"><span>⏳ Pending</span><span class="count">4</span></div>
+      <div class="kanban-column-body">
+        <div class="kcard">
+          <div class="title">Setup CI pipeline</div>
+          <div class="meta"><span class="badge badge-primary">ops</span><span>#P-12</span></div>
+        </div>
+        <div class="kcard">
+          <div class="title">Review PR #421</div>
+          <div class="meta"><span class="badge badge-primary">review</span><span>#P-15</span></div>
+        </div>
+        <div class="kcard">
+          <div class="title">Update dependencies</div>
+          <div class="meta"><span class="badge badge-warning">sec</span><span>#P-18</span></div>
+        </div>
+        <div class="kcard">
+          <div class="title">Write integration tests</div>
+          <div class="meta"><span class="badge badge-primary">test</span><span>#P-22</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Running -->
+    <div class="kanban-column" data-status="running">
+      <div class="kanban-column-header"><span>▶ Running</span><span class="count">3</span></div>
+      <div class="kanban-column-body">
+        <div class="kcard">
+          <div class="title">Deploy staging env</div>
+          <div class="meta"><span class="badge badge-success">ops</span><span>#R-07</span></div>
+        </div>
+        <div class="kcard">
+          <div class="title">Load test suite</div>
+          <div class="meta"><span class="badge badge-success">perf</span><span>#R-09</span></div>
+        </div>
+        <div class="kcard">
+          <div class="title">Build dashboard v2</div>
+          <div class="meta"><span class="badge badge-success">dev</span><span>#R-11</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Done -->
+    <div class="kanban-column" data-status="done">
+      <div class="kanban-column-header"><span>✅ Done</span><span class="count">7</span></div>
+      <div class="kanban-column-body">
+        <div class="kcard">
+          <div class="title">Setup monitoring</div>
+          <div class="meta"><span class="badge badge-primary">ops</span><span>#D-03</span></div>
+        </div>
+        <div class="kcard">
+          <div class="title">Migrate database</div>
+          <div class="meta"><span class="badge badge-primary">db</span><span>#D-05</span></div>
+        </div>
+        <div class="kcard">
+          <div class="title">API refactor</div>
+          <div class="meta"><span class="badge badge-primary">core</span><span>#D-06</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Failed -->
+    <div class="kanban-column" data-status="failed">
+      <div class="kanban-column-header"><span>❌ Failed</span><span class="count">1</span></div>
+      <div class="kanban-column-body">
+        <div class="kcard">
+          <div class="title">Backup cron job</div>
+          <div class="meta"><span class="badge badge-danger">ops</span><span>#F-02</span></div>
+        </div>
+        <div class="empty-state">
+          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="16" y="24" width="48" height="36" rx="4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+            <path d="M30 40h20M30 48h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <p>No more failed tasks</p>
+        </div>
+      </div>
+    </div>
+    <!-- Blocked -->
+    <div class="kanban-column" data-status="blocked">
+      <div class="kanban-column-header"><span>🚫 Blocked</span><span class="count">2</span></div>
+      <div class="kanban-column-body">
+        <div class="kcard">
+          <div class="title">Third-party auth</div>
+          <div class="meta"><span class="badge badge-danger">blocker</span><span>#B-01</span></div>
+        </div>
+        <div class="kcard">
+          <div class="title">SSL renewal</div>
+          <div class="meta"><span class="badge badge-warning">sec</span><span>#B-04</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Footer terminal -->
+<footer class="footer" id="terminal">
+  <div class="footer-header" id="terminalToggle">
+    <span>▶ terminal</span>
+    <span class="toggle">▼</span>
+  </div>
+  <div class="footer-body">
+    <div class="log-line"><span class="ts">[10:23:12]</span> <span class="msg">✓ Task R-07: deploy-staging completed</span></div>
+    <div class="log-line"><span class="ts">[10:22:58]</span> <span class="msg">→ Task P-12: setup-ci started</span></div>
+    <div class="log-line"><span class="ts">[10:22:30]</span> <span class="msg">✗ Task F-02: backup-cron failed – timeout</span></div>
+    <div class="log-line"><span class="ts">[10:22:05]</span> <span class="msg">✓ Task D-03: monitoring deployed</span></div>
+  </div>
+</footer>
+
+<!-- Command palette overlay -->
+<div class="modal-overlay" id="cmdPalette">
+  <div class="modal-content">
+    <div class="modal-search">
+      <span>🔍</span>
+      <input type="text" placeholder="Search screens, tasks, settings…" autofocus>
+      <span class="shortcut">esc</span>
+    </div>
+    <div class="modal-results">
+      <div class="modal-result-item active"><span class="icon">📋</span><span class="label">Tasks</span><span class="desc">Active tasks board</span></div>
+      <div class="modal-result-item"><span class="icon">💬</span><span class="label">Chat</span><span class="desc">Conversation logs</span></div>
+      <div class="modal-result-item"><span class="icon">▶</span><span class="label">Runs</span><span class="desc">Execution history</span></div>
+      <div class="modal-result-item"><span class="icon">🧠</span><span class="label">Instincts</span><span class="desc">AI confidence metrics</span></div>
+      <div class="modal-result-item"><span class="icon">⚙️</span><span class="label">Settings</span><span class="desc">Configuration</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Terminal toggle
+document.getElementById('terminalToggle').addEventListener('click',function(){
+  document.getElementById('terminal').classList.toggle('collapsed');
+});
+// Command palette
+const cmdTrigger=document.getElementById('cmdTrigger');
+const cmdPalette=document.getElementById('cmdPalette');
+const cmdInput=cmdPalette.querySelector('input');
+function openPalette(){
+  cmdPalette.classList.add('open');
+  setTimeout(()=>cmdInput.focus(),50);
+}
+function closePalette(){cmdPalette.classList.remove('open')}
+cmdTrigger.addEventListener('click',openPalette);
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();cmdPalette.classList.contains('open')?closePalette():openPalette()}
+  if(e.key==='Escape'&&cmdPalette.classList.contains('open')) closePalette();
+});
+cmdPalette.addEventListener('click',e=>{if(e.target===cmdPalette)closePalette()});
+// Simulate nav item click (just active state)
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',function(){
+    document.querySelectorAll('.nav-item.active').forEach(i=>i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

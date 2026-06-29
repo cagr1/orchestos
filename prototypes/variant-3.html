@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrchestOS — Terminal Premium</title>
+<style>
+:root {
+  --bg-deep: #090c10;
+  --bg-surface: #0d1117;
+  --bg-elevated: #161b22;
+  --bg-overlay: #1c2128;
+  --bg-hover: #21262d;
+  --accent: #58a6ff;
+  --accent-glow: rgba(88,166,255,.3);
+  --accent-grad: linear-gradient(135deg,#58a6ff,#79c0ff);
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary: #6e7681;
+  --border: #30363d;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-elevated: 0 8px 32px rgba(0,0,0,.6);
+  --shadow-floating: 0 16px 48px rgba(0,0,0,.7);
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --font-ui: system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Ubuntu,sans-serif;
+  --font-mono: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace;
+  --header-h: 52px;
+  --sidebar-w: 60px;
+  --radius-terminal: 8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg-deep);color:var(--text-primary);font-family:var(--font-ui);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body{display:grid;grid-template-columns:var(--sidebar-w) 1fr;grid-template-rows:var(--header-h) 1fr auto;grid-template-areas:"sidebar header" "sidebar main" "footer footer";overflow:hidden}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-tertiary)}
+::selection{background:var(--accent);color:#fff}
+
+/* SIDEBAR */
+.sidebar{grid-area:sidebar;background:var(--bg-surface);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;border-right:1px solid var(--border);z-index:10}
+.sidebar-brand{font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-.5px;margin-bottom:16px;position:relative}
+.sidebar-brand::after{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:24px;height:2px;background:var(--accent-grad);border-radius:1px;box-shadow:0 0 8px var(--accent-glow)}
+.sidebar-nav{display:flex;flex-direction:column;gap:2px;flex:1;width:100%;align-items:center}
+.sidebar-item{width:40px;height:40px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);cursor:pointer;transition:all .2s var(--ease-out);position:relative;font-size:18px}
+.sidebar-item:hover{color:var(--text-primary);background:var(--bg-hover)}
+.sidebar-item.active{color:var(--accent);background:rgba(88,166,255,.1);box-shadow:inset 0 0 0 1px rgba(88,166,255,.3),0 0 12px var(--accent-glow)}
+.sidebar-item.active::before{content:'';position:absolute;left:-2px;top:8px;bottom:8px;width:2px;background:var(--accent-grad);border-radius:1px}
+.sidebar-divider{width:28px;height:1px;background:var(--border);margin:8px 0}
+.sidebar-item[data-tooltip]::after{content:attr(data-tooltip);position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) scale(.9);background:var(--bg-overlay);color:var(--text-primary);padding:4px 10px;border-radius:var(--radius-sm);font-size:12px;white-space:nowrap;opacity:0;pointer-events:none;transition:all .15s var(--ease-out);box-shadow:var(--shadow-elevated)}
+.sidebar-item[data-tooltip]:hover::after{opacity:1;transform:translateY(-50%) scale(1)}
+
+/* HEADER */
+.header{grid-area:header;display:flex;align-items:center;padding:0 20px;background:var(--bg-surface);border-bottom:1px solid var(--border);gap:16px;z-index:5}
+.header-title{font-size:15px;font-weight:600;letter-spacing:-.3px;color:var(--text-primary);margin-right:auto}
+.header-badge{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:500;background:rgba(88,166,255,.12);color:var(--accent);border:1px solid rgba(88,166,255,.25);box-shadow:0 0 8px var(--accent-glow)}
+.header-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent-glow);animation:pulse-dot 2s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+.header-counter{font-size:13px;color:var(--text-secondary);padding:4px 10px;background:var(--bg-elevated);border-radius:100px}
+.header-actions{display:flex;gap:8px}
+.header-actions .btn{font-size:13px;padding:6px 14px}
+
+/* MAIN */
+.main{grid-area:main;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:24px;background:var(--bg-deep)}
+.main-header{display:flex;align-items:center;justify-content:space-between}
+.main-header h1{font-size:24px;font-weight:700;letter-spacing:-.5px;background:var(--accent-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.main-header .hint{font-size:12px;color:var(--text-tertiary);background:var(--bg-elevated);padding:4px 10px;border-radius:var(--radius-sm);border:1px solid var(--border)}
+
+/* KANBAN */
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;flex:1;min-height:0;padding-bottom:8px}
+.kanban-col{display:flex;flex-direction:column;gap:12px;background:var(--bg-surface);border-radius:var(--radius-md);padding:16px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.kanban-col-header{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px}
+.kanban-col-header .count{font-size:11px;background:var(--bg-overlay);padding:2px 8px;border-radius:100px;color:var(--text-tertiary)}
+.kanban-card{background:var(--bg-elevated);border-radius:var(--radius-sm);padding:12px;cursor:pointer;transition:all .25s var(--ease-out);border:1px solid transparent;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.kanban-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.4);border-color:var(--border);background:var(--bg-overlay)}
+.kanban-card-title{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:6px}
+.kanban-card-meta{display:flex;gap:8px;font-size:11px;color:var(--text-tertiary)}
+.kanban-card .badge{font-size:10px;padding:2px 8px;border-radius:100px;font-weight:500}
+.badge-blue{background:rgba(88,166,255,.15);color:var(--accent)}
+.badge-green{background:rgba(63,185,80,.15);color:#3fb950}
+.badge-red{background:rgba(248,81,73,.15);color:#f85149}
+.badge-yellow{background:rgba(210,153,34,.15);color:#d29922}
+.badge-gray{background:rgba(139,148,158,.15);color:#8b949e}
+.kanban-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;text-align:center;color:var(--text-tertiary);gap:8px}
+.kanban-empty svg{opacity:.3;width:48px;height:48px}
+.kanban-empty p{font-size:13px}
+
+/* FOOTER TERMINAL */
+.footer-terminal{grid-area:footer;background:var(--bg-surface);border-top:1px solid var(--border);transition:all .3s var(--ease-out);overflow:hidden;position:relative}
+.footer-terminal.collapsed .log-body{max-height:0;padding:0;overflow:hidden}
+.footer-terminal:not(.collapsed) .log-body{max-height:200px;padding:12px 20px}
+.footer-terminal .log-header{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;cursor:pointer;user-select:none;background:var(--bg-elevated);border-bottom:1px solid var(--border);transition:background .2s}
+.footer-terminal .log-header:hover{background:var(--bg-overlay)}
+.footer-terminal .log-header span{font-size:12px;font-weight:600;color:var(--text-secondary);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.5px}
+.footer-terminal .log-header .toggle-icon{color:var(--text-tertiary);font-size:14px;transition:transform .25s var(--ease-spring)}
+.footer-terminal.collapsed .toggle-icon{transform:rotate(-90deg)}
+.footer-terminal .log-body{background:var(--bg-deep);font-family:var(--font-mono);font-size:13px;line-height:1.6;color:#7ee787;overflow-y:auto;transition:all .3s var(--ease-out);box-shadow:inset 0 0 20px rgba(0,0,0,.4)}
+.footer-terminal .log-body .log-line{display:flex;gap:12px;padding:2px 0}
+.footer-terminal .log-body .log-time{color:#6e7681;flex-shrink:0;width:80px}
+.footer-terminal .log-body .log-level{font-weight:600;width:50px;flex-shrink:0}
+.log-level.info{color:#58a6ff}
+.log-level.ok{color:#7ee787}
+.log-level.err{color:#f85149}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s var(--ease-out);background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border)}
+.btn:hover{background:var(--bg-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.btn-primary{background:linear-gradient(135deg,#58a6ff,#3b82f6);color:#fff;border:1px solid rgba(88,166,255,.5);box-shadow:0 2px 8px var(--accent-glow)}
+.btn-primary:hover{box-shadow:0 4px 16px var(--accent-glow);background:linear-gradient(135deg,#6ab0ff,#4a8af7)}
+.btn-ghost{background:transparent;border:1px solid transparent;color:var(--text-secondary)}
+.btn-ghost:hover{background:var(--bg-hover);color:var(--text-primary);border-color:var(--border)}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+/* COMMAND PALETTE */
+.command-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:100;display:none;align-items:flex-start;justify-content:center;padding-top:80px;animation:fadeIn .2s var(--ease-out)}
+.command-overlay.open{display:flex}
+.command-palette{background:var(--bg-elevated);border-radius:var(--radius-lg);width:540px;max-width:90vw;box-shadow:var(--shadow-floating);border:1px solid var(--border);overflow:hidden;animation:slideDown .25s var(--ease-spring)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideDown{from{transform:translateY(-20px) scale(.96);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+.command-palette input{width:100%;padding:16px 20px;background:var(--bg-overlay);border:none;color:var(--text-primary);font-size:16px;outline:none;border-bottom:1px solid var(--border);font-family:var(--font-ui)}
+.command-palette input::placeholder{color:var(--text-tertiary)}
+.command-results{padding:8px 0;max-height:300px;overflow-y:auto}
+.command-item{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;transition:background .15s;color:var(--text-secondary)}
+.command-item:hover,.command-item.active{background:var(--bg-hover);color:var(--text-primary)}
+.command-item .cmd-icon{font-size:18px;width:24px;text-align:center}
+.command-item .cmd-label{font-size:14px;flex:1}
+.command-item .cmd-shortcut{font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono);background:var(--bg-surface);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
+.command-empty{padding:40px 20px;text-align:center;color:var(--text-tertiary);font-size:14px}
+
+/* MODALS / SIDE PANEL (floating) */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);z-index:50;display:none;animation:fadeIn .25s var(--ease-out)}
+.panel-overlay.open{display:block}
+.side-panel{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:90vw;background:var(--bg-elevated);box-shadow:var(--shadow-floating);border-left:1px solid var(--border);z-index:51;display:none;flex-direction:column;animation:slideInRight .3s var(--ease-spring)}
+.side-panel.open{display:flex}
+@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.side-panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-size:16px;font-weight:600;letter-spacing:-.3px}
+.side-panel-body{padding:20px;overflow-y:auto;flex:1;color:var(--text-secondary);font-size:14px}
+
+/* MISC */
+.gap-8{gap:8px}
+.flex{display:flex}
+.items-center{align-items:center}
+.ml-auto{margin-left:auto}
+.mt-8{margin-top:8px}
+.text-sm{font-size:13px;color:var(--text-secondary)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">◈</div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-item active" data-tooltip="Chat">💬</div>
+    <div class="sidebar-item" data-tooltip="Tasks">☰</div>
+    <div class="sidebar-item" data-tooltip="Runs">▶</div>
+    <div class="sidebar-item" data-tooltip="Instincts">⚡</div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-item" data-tooltip="Specs">⚙</div>
+    <div class="sidebar-item" data-tooltip="Memory">🧠</div>
+    <div class="sidebar-item" data-tooltip="Skills">🛠</div>
+    <div class="sidebar-item" data-tooltip="Settings">⋮</div>
+  </nav>
+</aside>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-title">OrchestOS · Tasks</div>
+  <div class="header-badge">RUNNING</div>
+  <div class="header-counter">12 active</div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="toggleTerminal()">⌘</button>
+    <button class="btn btn-primary btn-sm" onclick="openPanel()">+ New Task</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="main-header">
+    <h1>Tasks</h1>
+    <span class="hint">⌘K to search</span>
+  </div>
+  <div class="kanban">
+    <!-- PENDING -->
+    <div class="kanban-col">
+      <div class="kanban-col-header"><span>Pending</span><span class="count">3</span></div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Initialize data pipeline</div>
+        <div class="kanban-card-meta"><span class="badge badge-blue">high</span><span>2m ago</span></div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Review PR #142</div>
+        <div class="kanban-card-meta"><span class="badge badge-yellow">medium</span><span>15m ago</span></div>
+      </div>
+      <div class="kanban-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14m-7-7h14"/></svg>
+        <p>Drag tasks here</p>
+      </div>
+    </div>
+    <!-- RUNNING -->
+    <div class="kanban-col">
+      <div class="kanban-col-header"><span>Running</span><span class="count">2</span></div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Deploy staging env</div>
+        <div class="kanban-card-meta"><span class="badge badge-green">running</span><span>1h ago</span></div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Load test v3</div>
+        <div class="kanban-card-meta"><span class="badge badge-green">running</span><span>3h ago</span></div>
+      </div>
+    </div>
+    <!-- DONE -->
+    <div class="kanban-col">
+      <div class="kanban-col-header"><span>Done</span><span class="count">4</span></div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Setup monitoring</div>
+        <div class="kanban-card-meta"><span class="badge badge-gray">done</span><span>1d ago</span></div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Write API docs</div>
+        <div class="kanban-card-meta"><span class="badge badge-gray">done</span><span>2d ago</span></div>
+      </div>
+      <div class="kanban-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p>All completed</p>
+      </div>
+    </div>
+    <!-- FAILED -->
+    <div class="kanban-col">
+      <div class="kanban-col-header"><span>Failed</span><span class="count">1</span></div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Migration script error</div>
+        <div class="kanban-card-meta"><span class="badge badge-red">failed</span><span>30m ago</span></div>
+      </div>
+      <div class="kanban-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6m0-6l6 6"/></svg>
+        <p>No failed tasks</p>
+      </div>
+    </div>
+    <!-- BLOCKED -->
+    <div class="kanban-col">
+      <div class="kanban-col-header"><span>Blocked</span><span class="count">2</span></div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Awaiting approval</div>
+        <div class="kanban-card-meta"><span class="badge badge-yellow">blocked</span><span>4h ago</span></div>
+      </div>
+      <div class="kanban-card">
+        <div class="kanban-card-title">Dependency issue</div>
+        <div class="kanban-card-meta"><span class="badge badge-yellow">blocked</span><span>1d ago</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- FOOTER TERMINAL -->
+<footer class="footer-terminal collapsed" id="terminal">
+  <div class="log-header" onclick="toggleTerminal()">
+    <span>▼ terminal.log</span>
+    <span class="toggle-icon">▼</span>
+  </div>
+  <div class="log-body">
+    <div class="log-line"><span class="log-time">14:23:01</span><span class="log-level info">INFO</span><span>Service orchestos-agent started</span></div>
+    <div class="log-line"><span class="log-time">14:23:05</span><span class="log-level ok">OK</span><span>Health check passed</span></div>
+    <div class="log-line"><span class="log-time">14:23:10</span><span class="log-level err">ERR</span><span>Connection timeout on port 8080</span></div>
+    <div class="log-line"><span class="log-time">14:23:12</span><span class="log-level info">INFO</span><span>Retrying in 5s...</span></div>
+    <div class="log-line"><span class="log-time">14:23:18</span><span class="log-level ok">OK</span><span>Reconnected</span></div>
+  </div>
+</footer>
+
+<!-- COMMAND PALETTE -->
+<div class="command-overlay" id="commandOverlay" onclick="closeCommand(event)">
+  <div class="command-palette" onclick="event.stopPropagation()">
+    <input type="text" id="commandInput" placeholder="Search screens, tasks, or actions..." autofocus>
+    <div class="command-results" id="commandResults">
+      <div class="command-item active"><span class="cmd-icon">💬</span><span class="cmd-label">Chat</span><span class="cmd-shortcut">⌘1</span></div>
+      <div class="command-item"><span class="cmd-icon">☰</span><span class="cmd-label">Tasks</span><span class="cmd-shortcut">⌘2</span></div>
+      <div class="command-item"><span class="cmd-icon">▶</span><span class="cmd-label">Runs</span><span class="cmd-shortcut">⌘3</span></div>
+      <div class="command-item"><span class="cmd-icon">⚡</span><span class="cmd-label">Instincts</span><span class="cmd-shortcut">⌘4</span></div>
+      <div class="command-item"><span class="cmd-icon">🧠</span><span class="cmd-label">Memory</span><span class="cmd-shortcut">⌘5</span></div>
+      <div class="command-empty" style="display:none">No results found</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL OVERLAY + SIDE PANEL -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <span>Task Detail</span>
+    <button class="btn btn-ghost btn-sm" onclick="closePanel()">✕</button>
+  </div>
+  <div class="side-panel-body">
+    <p><strong>Initialize data pipeline</strong></p>
+    <p class="mt-8 text-sm">High priority · Created 2m ago</p>
+    <p class="mt-8 text-sm">Run the ETL to populate the data warehouse with recent logs.</p>
+    <div class="flex items-center gap-8 mt-8">
+      <span class="badge badge-blue">in progress</span>
+      <span class="text-sm">Assignee: @dev</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// Terminal toggle
+function toggleTerminal() {
+  document.getElementById('terminal').classList.toggle('collapsed');
+}
+// Command palette
+let commandOpen = false;
+document.addEventListener('keydown', function(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    commandOpen = !commandOpen;
+    document.getElementById('commandOverlay').classList.toggle('open', commandOpen);
+    if (commandOpen) {
+      setTimeout(() => document.getElementById('commandInput').focus(), 100);
+      filterCommands('');
+    }
+  }
+  if (e.key === 'Escape') closeCommand(e);
+});
+function closeCommand(e) {
+  if (e && e.target && e.target.closest('.command-palette') && e.target.closest('.command-palette').contains(e.target)) return;
+  commandOpen = false;
+  document.getElementById('commandOverlay').classList.remove('open');
+}
+function filterCommands(query) {
+  const items = document.querySelectorAll('.command-item:not(.command-empty)');
+  const empty = document.querySelector('.command-empty');
+  let visible = 0;
+  items.forEach(item => {
+    const label = item.querySelector('.cmd-label').textContent.toLowerCase();
+    if (label.includes(query.toLowerCase())) { item.style.display = ''; visible++; }
+    else { item.style.display = 'none'; }
+  });
+  empty.style.display = visible === 0 ? '' : 'none';
+}
+document.getElementById('commandInput').addEventListener('input', function(e) {
+  filterCommands(e.target.value);
+});
+// Panel
+function openPanel() {
+  document.getElementById('panelOverlay').classList.add('open');
+  document.getElementById('sidePanel').classList.add('open');
+}
+function closePanel() {
+  document.getElementById('panelOverlay').classList.remove('open');
+  document.getElementById('sidePanel').classList.remove('open');
+}
+</script>
+</body>
+</html>

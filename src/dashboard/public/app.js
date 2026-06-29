@@ -239,14 +239,21 @@ const App = {
       state.screen = 'settings';
       state.setupRedirectDone = true;
     }
-    // C4/F5 — adaptive startup: Control Center if attention, else mode-aware default
+    // C4/F5 — adaptive startup: Control Center only for truly urgent attention, else Chat
+    // (mismo principio de la pantalla principal: ver Mes 14 EXTRA "Chat convertido en
+    // pantalla principal"). Bug real reportado por el usuario: el refresh SIEMPRE caía en
+    // Settings, nunca en Chat — porque `attentionCount` (setup.ts) suma unverifiedInstincts +
+    // draftSpecs, que son backlogs pasivos de revisión (casi siempre > 0 en uso normal), no
+    // bloqueos urgentes. Solo blockedTasks (trabajo real atascado) y el costo semanal
+    // justifican secuestrar la pantalla de inicio — instincts/specs pendientes ya tienen su
+    // propio badge en el nav, no necesitan forzar una redirección.
     if (!state.attentionRedirectDone && !state.setup?.criticalMissing && state.health) {
       const costThreshold = parseFloat(localStorage.getItem('orchestos-cost-threshold') || '0.50');
-      const hasAttention = state.health.attentionCount > 0 || state.health.costLast7d > costThreshold;
-      if (hasAttention) {
+      const hasUrgentAttention = (state.health.blockedTasks?.length || 0) > 0 || state.health.costLast7d > costThreshold;
+      if (hasUrgentAttention) {
         state.screen = 'settings'; // Control Center — priority in both modes
       } else {
-        // F5 — advanced mode starts on Runs (familiar for the dev); normal mode stays on Tasks
+        // F5 — advanced mode starts on Runs (familiar for the dev); normal mode stays on Chat
         const mode = localStorage.getItem('orchestos-mode') || 'normal';
         if (mode === 'advanced') state.screen = 'runs';
       }

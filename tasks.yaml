@@ -371,3 +371,17 @@ tasks:
     depends_on: []
     status: pending
     retry_count: 0
+  - id: crear-web-local-comercial
+    description: Crear una página web profesional para un local comercial con información de contacto, productos/servicios,
+      horarios y galería de imágenes. Usa alguna skill de diseno
+    executor: openrouter
+    executor_model: deepseek/deepseek-v4-flash
+    input: []
+    output:
+      - index.html
+      - css/styles.css
+      - js/main.js
+      - README.md
+    depends_on: []
+    status: pending
+    retry_count: 0

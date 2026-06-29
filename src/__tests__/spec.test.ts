@@ -168,7 +168,7 @@ describe('spec approve gate', () => {
 // ── harness gate ──────────────────────────────────────────────────────────────
 
 describe('harness spec gate', () => {
-  it('throws when requireSpec=true and no spec exists', async () => {
+  it('returns a failed result (never throws) when requireSpec=true and no spec exists', async () => {
     const dir = tmpDir()
     try {
       // Import lazily to avoid side effects at module load time
@@ -188,30 +188,35 @@ describe('harness spec gate', () => {
 
       const log = new RunLogger(dir, 'no-spec-task')
 
-      await expect(
-        runTask({
-          projectRoot: dir,
-          contextText: '',
-          task: fakeTask,
-          logger: log,
-          orcheConfig: {
-            config_version: 1,
-            requireSpec: true,
-            models: {
-              planner:        { provider: 'openrouter', model: 'x' },
-              executor_heavy: { provider: 'openrouter', model: 'x' },
-              executor_light: { provider: 'openrouter', model: 'x' },
-              default:        { provider: 'openrouter', model: 'x' },
-            },
+      const result = await runTask({
+        projectRoot: dir,
+        contextText: '',
+        task: fakeTask,
+        logger: log,
+        orcheConfig: {
+          config_version: 1,
+          requireSpec: true,
+          models: {
+            planner:        { provider: 'openrouter', model: 'x' },
+            executor_heavy: { provider: 'openrouter', model: 'x' },
+            executor_light: { provider: 'openrouter', model: 'x' },
+            default:        { provider: 'openrouter', model: 'x' },
           },
-        })
-      ).rejects.toThrow(`Task 'no-spec-task' requires an approved spec. Run: orchestos spec approve no-spec-task`)
+        },
+      })
+      // El catch-all de harness.ts (S9.4) nunca deja propagar una excepción —
+      // un throw del spec gate debe mapear a status:'failed', igual que cualquier
+      // otro error inesperado (ver harness.ts: bug real encontrado dogfooding
+      // donde un throw fuera del try dejaba la tarea atascada en 'running' para
+      // siempre sin pasar por este catch-all).
+      expect(result.status).toBe('failed')
+      expect(result.retryReason).toContain(`Task 'no-spec-task' requires an approved spec. Run: orchestos spec approve no-spec-task`)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
   })
 
-  it('throws when requireSpec=true and spec is draft (not approved)', async () => {
+  it('returns a failed result (never throws) when requireSpec=true and spec is draft (not approved)', async () => {
     const dir = tmpDir()
     try {
       const { runTask } = await import('../run/harness.ts')
@@ -234,24 +239,24 @@ describe('harness spec gate', () => {
 
       const log = new RunLogger(dir, 'draft-task')
 
-      await expect(
-        runTask({
-          projectRoot: dir,
-          contextText: '',
-          task: fakeTask,
-          logger: log,
-          orcheConfig: {
-            config_version: 1,
-            requireSpec: true,
-            models: {
-              planner:        { provider: 'openrouter', model: 'x' },
-              executor_heavy: { provider: 'openrouter', model: 'x' },
-              executor_light: { provider: 'openrouter', model: 'x' },
-              default:        { provider: 'openrouter', model: 'x' },
-            },
+      const result = await runTask({
+        projectRoot: dir,
+        contextText: '',
+        task: fakeTask,
+        logger: log,
+        orcheConfig: {
+          config_version: 1,
+          requireSpec: true,
+          models: {
+            planner:        { provider: 'openrouter', model: 'x' },
+            executor_heavy: { provider: 'openrouter', model: 'x' },
+            executor_light: { provider: 'openrouter', model: 'x' },
+            default:        { provider: 'openrouter', model: 'x' },
           },
-        })
-      ).rejects.toThrow(`Task 'draft-task' requires an approved spec. Run: orchestos spec approve draft-task`)
+        },
+      })
+      expect(result.status).toBe('failed')
+      expect(result.retryReason).toContain(`Task 'draft-task' requires an approved spec. Run: orchestos spec approve draft-task`)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

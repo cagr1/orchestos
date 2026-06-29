@@ -503,7 +503,7 @@ SCREENS.tasks = {
         ? (loading
           ? `<span class="spinner sm" style="display:inline-block;margin:0 auto" title="${t('tasks.diagnose.loading')}"></span>`
           : cached
-            ? (open ? '▲' : '▼')
+            ? `<span class="diag-link" data-diag="${esc(task.id)}">${open ? '▲' : '▼'}</span>`
             : `<span class="diag-link" data-diag="${esc(task.id)}">${t('tasks.diagnose.btn')}</span>`)
         : '';
       const main = `<tr class="row ${open ? 'open' : ''}" data-task="${esc(task.id)}" title="${esc(task.description)}">

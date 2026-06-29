@@ -102,6 +102,44 @@ descarta: Google-only, audio a servidores externos, mal en español técnico.)
 **Esfuerzo**: medio-alto — abstracción nueva (`STTProvider`) + wiring Electron + superficie
 en dashboard. El tope del tramo medio.
 
+### 9b. Auditoría de paridad CLI ↔ Dashboard — todo "poder" del CLI debe tener superficie en el front
+
+**Origen**: Carlos, 2026-06-29, dogfooding en vivo del flujo chat→tarea. Observación directa:
+"el CLI sí está funcionando pero el front no" — el dashboard expone solo un subconjunto de lo
+que el CLI ya sabe hacer, y esa brecha no estaba siendo rastreada en ningún lado (relacionado
+con [[feedback-dashboard-no-solo-cli]], que hasta ahora solo aplicaba a features *nuevas*, no
+a un barrido retroactivo de lo que ya existe en `cli.ts`).
+
+**Gaps concretos encontrados en una primera pasada (NO exhaustiva — falta auditoría completa)**,
+comparando los `.command(...)` de [src/cli.ts](src/cli.ts) contra los endpoints reales bajo
+`src/dashboard/handlers/`:
+- `spec approve/lint/archive/create` — el dashboard solo tiene `GET /api/specs` (listar) y
+  `POST /api/specs/draft`. No hay forma de aprobar, lintear o archivar un spec sin la CLI.
+- `instinct set-confidence` / `instinct propose` — solo existen `approve`/`reject` como
+  endpoints; ajustar confianza a mano o disparar el análisis de patrones manualmente requiere CLI.
+- `task run --explain` / `--clarify` — el modo "explicar sin ejecutar" y el modo de
+  clarificación antes de correr no tienen ningún botón equivalente en Tasks.
+- `skill build` (compilar YAML → 3 targets: claude/cursor/openai) — el dashboard solo cubre
+  curar/importar (Mes 11), no recompilar skills locales ya editadas.
+- `detect`, `init`, `index` (detección de stack + indexado del grafo de código) — 100% CLI,
+  cero superficie en el dashboard, ni siquiera de solo lectura.
+- `runs --analyze` (S30, aprendizaje continuo) — hoy solo se dispara automático vía hook
+  post-completion; no hay botón manual "analizar patrones ahora" en Runs.
+
+**Por qué importa**: el dashboard es la interfaz que Carlos usa día a día (chat como entrada
+principal, Mes 14 EXTRA); cada vez que una capacidad solo vive en CLI, el dashboard miente por
+omisión sobre lo que OrchestOS puede hacer — el usuario no sabe que existe hasta que tropieza
+con la CLI por necesidad (como pasó hoy).
+
+**El gap real**: nadie ha hecho el barrido completo `cli.ts` (commands) vs `handlers/*.ts`
+(endpoints) de punta a punta — la lista de arriba salió de comparar a ojo durante una sesión de
+debugging, no de una auditoría sistemática. Falta ese barrido formal antes de decidir qué cerrar
+primero.
+
+**Esfuerzo**: depende de la auditoría — probablemente varios ítems chicos (un botón + un
+endpoint cada uno) más que una sola pieza grande. Candidato a partirse en sub-tareas una vez
+completado el barrido formal.
+
 ---
 
 ## 🧱 Largo plazo / mucho código o esperar evidencia

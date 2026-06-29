@@ -36,7 +36,12 @@ export interface ModelInfo {
   priceIn: number
   /** True si OpenRouter publica `"reasoning"` en `supported_parameters` para este modelo. */
   supportsReasoning: boolean
+  /** Tope real de tokens de salida del proveedor (`top_provider.max_completion_tokens`), 0 si desconocido. */
+  maxOutputTokens: number
 }
+
+/** Fallback cuando el modelo no está en catálogo (offline / id desconocido / Ollama local) — mismo valor que se usaba hardcodeado antes de leer el catálogo real. */
+export const DEFAULT_MAX_OUTPUT_TOKENS = 8192
 
 interface DiskCache {
   fetchedAt: number
@@ -105,6 +110,7 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
       context_length?: number
       pricing?: { prompt?: string }
       supported_parameters?: string[]
+      top_provider?: { max_completion_tokens?: number }
     }>
   }
   const models: Record<string, ModelInfo> = {}
@@ -118,6 +124,7 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
       contextLength: typeof m.context_length === 'number' ? m.context_length : 0,
       priceIn: Number.isFinite(rawPrice) ? rawPrice : 0,
       supportsReasoning: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
+      maxOutputTokens: typeof m.top_provider?.max_completion_tokens === 'number' ? m.top_provider.max_completion_tokens : 0,
     }
   }
   return models
@@ -196,6 +203,19 @@ export function hasRealContextWindow(modelId: string): boolean {
  */
 export function supportsReasoningEffort(modelId: string): boolean {
   return !!memoryCatalog?.get(modelId)?.supportsReasoning
+}
+
+/**
+ * Tope real de tokens de salida (`top_provider.max_completion_tokens`), síncrono.
+ * Mismo principio que `contextWindowFor`: no adivinar por el nombre del modelo,
+ * usar el dato real publicado por OpenRouter. Si no está en catálogo (offline, id
+ * desconocido, Ollama local) → DEFAULT_MAX_OUTPUT_TOKENS (mismo valor que el
+ * hardcode histórico), nunca 0 — un `max_tokens:0` en el body rompería el request.
+ */
+export function maxOutputTokensFor(modelId: string): number {
+  const entry = memoryCatalog?.get(modelId)
+  if (entry && entry.maxOutputTokens > 0) return entry.maxOutputTokens
+  return DEFAULT_MAX_OUTPUT_TOKENS
 }
 
 /** Solo para tests: limpia el estado en memoria. */

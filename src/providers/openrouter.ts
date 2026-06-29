@@ -49,12 +49,14 @@ export async function chat(opts: {
   messages: ChatMessage[]
   /** Reasoning effort, solo aplicado si el caller ya confirmó que el modelo lo soporta (ver BACK.1/BACK.3). */
   effort?: 'low' | 'medium' | 'high'
+  /** Tope de tokens de salida — el caller debe resolverlo vía `maxOutputTokensFor()` (model-catalog.ts) en vez de adivinar; default 8192 si no se pasa (mismo valor histórico, para no romper callers que todavía no migraron). */
+  maxTokens?: number
 }): Promise<ChatResponse> {
   const apiKey = loadApiKey()
 
   const body: Record<string, unknown> = {
     model: opts.model,
-    max_tokens: 8192,
+    max_tokens: opts.maxTokens ?? 8192,
     messages: [
       { role: 'system', content: opts.system },
       ...opts.messages,

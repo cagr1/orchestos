@@ -18,6 +18,7 @@ import { resolveModel } from './router/models.ts'
 import { calcCost } from './router/pricing.ts'
 import { parseCostBreakdownJson } from './run/transcript-parser.ts'
 import { chat } from './providers/openrouter.ts'
+import { ensureCatalogLoaded, maxOutputTokensFor } from './router/model-catalog.ts'
 import { parseLLMResponse, enforceContract } from './run/contract.ts'
 import { MAX_RETRIES } from './run/qa.ts'
 import { RunLogger } from './run/logger.ts'
@@ -537,10 +538,9 @@ program
       skillGuidelines,
       `\n## OUTPUT CONTRACT`,
       `You may ONLY write to these files: ${allowedPaths.join(', ')}`,
-      `Respond with ONLY valid JSON in this exact format — no markdown, no explanation:`,
-      `{ "files": [{ "path": "relative/path", "content": "full file content" }] }`,
-      `If a file should not change, omit it from the array.`,
-      `Writing to any other file is a contract violation and will be rejected.`,
+      `Output each file using EXACTLY this format — nothing else before the first delimiter or after the last:`,
+      ...allowedPaths.map(p => `<<<FILE:${p}>>>\n(full file content)\n<<<ENDFILE>>>`),
+      `Replace the placeholder with the actual file content. No JSON, no markdown fences, no extra text.`,
     ].join('\n')
 
     // 3. Build user message
@@ -570,9 +570,11 @@ program
     console.log(`[run] allowed outputs: ${allowedPaths.join(', ')}`)
 
     // 4. Call LLM
+    await ensureCatalogLoaded()
+    const maxTokens = maxOutputTokensFor(model)
     let llmResponse
     try {
-      llmResponse = await chat({ model, system, messages: [{ role: 'user', content: userContent }] })
+      llmResponse = await chat({ model, system, messages: [{ role: 'user', content: userContent }], maxTokens })
     } catch (e: any) {
       const elapsed = Math.round(performance.now() - t0)
       insertRun({
