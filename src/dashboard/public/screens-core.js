@@ -74,9 +74,9 @@ SCREENS.chat = {
       <div class="chat-input-bar">
         ${attachChip}
         <div class="chat-input-row">
-          <button class="chat-clip-btn" data-act="chat-attach" title="${t('chat.btn.attach')}">${ICON.attachment}</button>
+          <button class="chat-icon-btn chat-attach-btn" data-act="chat-attach" title="${t('chat.btn.attach')}" aria-label="${t('chat.btn.attach')}">${ICON.plus}</button>
           <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}></textarea>
-          <button class="btn primary chat-send-btn" data-act="chat-send" ${st.chatPending ? 'disabled' : ''}>${ICON.play} ${t('chat.btn.send')}</button>
+          <button class="chat-icon-btn chat-send-btn" data-act="chat-send" title="${t('chat.btn.send')}" aria-label="${t('chat.btn.send')}" ${st.chatPending ? 'disabled' : ''}>${ICON.send}</button>
         </div>
         <input type="file" id="chat-file-input" accept="image/*,.pdf,.txt,.md" style="display:none">
       </div>
@@ -172,7 +172,7 @@ SCREENS.chat = {
       } catch {
         showToast(t('chat.file.err'), 'error');
       } finally {
-        if (clipBtn) clipBtn.innerHTML = ICON.attachment;
+        if (clipBtn) clipBtn.innerHTML = ICON.plus;
         input.value = '';
         App.rerender();
       }
