@@ -462,6 +462,18 @@ button { font-family: inherit; }
 .field input::placeholder { color: var(--text-faint); }
 .field.grow { flex: 1; }
 .field.grow input { width: 100%; }
+.field.graph-limit span {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.field.graph-limit input {
+  width: 62px;
+  min-width: 62px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
 select.bare {
   appearance: none; background: var(--surface-2); border: 1px solid var(--border);
   color: var(--text); border-radius: var(--radius); padding: 6px 28px 6px 10px; font-size: 13px;

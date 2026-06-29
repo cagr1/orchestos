@@ -69,6 +69,8 @@ const state = {
   graphStatus: 'idle',  // 'idle' | 'loading' | 'ok' | 'error'
   graphRun: null,       // GraphRunStatusResponse from GET /api/run/graph/status
   graphLaunching: false,
+  graphMaxCost: localStorage.getItem('orchestos-graph-max-cost') || '0.05',
+  graphMaxMinutes: localStorage.getItem('orchestos-graph-max-minutes') || '8',
 };
 
 const NAV = [

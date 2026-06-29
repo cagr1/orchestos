@@ -460,7 +460,9 @@ SCREENS.graph = {
 
   render(st) {
     const run = st.graphRun;
+    const tasks = run?.tasks || [];
     const isRunning = run?.phase === 'running';
+    const hasStaleRunning = !isRunning && tasks.some(task => task.status === 'running');
     const liveIndicator = isRunning
       ? `<span class="live-indicator"><span class="live-dot"></span>${t('graph.running')}</span>`
       : `<span class="live-indicator idle">${t('graph.idle')}</span>`;
@@ -469,6 +471,9 @@ SCREENS.graph = {
       <div class="lead"><h1>${t('graph.title')}</h1><p>${t('graph.subtitle')}</p></div>
       <div class="tools">
         ${liveIndicator}
+        <label class="field graph-limit"><span>${t('graph.maxCost')}</span><input id="graph-max-cost" type="number" min="0" step="0.01" value="${esc(st.graphMaxCost)}"></label>
+        <label class="field graph-limit"><span>${t('graph.maxMinutes')}</span><input id="graph-max-minutes" type="number" min="0" step="1" value="${esc(st.graphMaxMinutes)}"></label>
+        ${hasStaleRunning ? `<button class="btn" data-act="recover-stale">${ICON.refresh} ${t('graph.recoverStale')}</button>` : ''}
         <button class="btn primary" data-act="run-graph" ${isRunning || st.graphLaunching ? 'disabled' : ''}>${ICON.play} ${t('graph.runBtn')}</button>
       </div>
     </div>`;
@@ -483,7 +488,6 @@ SCREENS.graph = {
     if (st.graphStatus === 'error')
       return `<div class="screen">${head}${explainer}${errorState(t('graph.err.title'), t('graph.err.body'))}</div>`;
 
-    const tasks = run?.tasks || [];
     if (tasks.length === 0)
       return `<div class="screen">${head}${explainer}${emptyState(ICON.graph, t('graph.empty.title'), t('graph.empty.body'))}</div>`;
 
@@ -513,12 +517,49 @@ SCREENS.graph = {
   },
 
   wire(root, st) {
+    const maxCostInput = root.querySelector('#graph-max-cost');
+    const maxMinutesInput = root.querySelector('#graph-max-minutes');
+    maxCostInput?.addEventListener('input', () => {
+      st.graphMaxCost = maxCostInput.value;
+      localStorage.setItem('orchestos-graph-max-cost', st.graphMaxCost);
+    });
+    maxMinutesInput?.addEventListener('input', () => {
+      st.graphMaxMinutes = maxMinutesInput.value;
+      localStorage.setItem('orchestos-graph-max-minutes', st.graphMaxMinutes);
+    });
+
+    root.querySelector('[data-act="recover-stale"]')?.addEventListener('click', async () => {
+      if (!confirm(t('graph.recoverConfirm'))) return;
+      try {
+        const res = await fetch('/api/run/graph/recover-stale', { method: 'POST' });
+        if (!res.ok) {
+          showToast(t('graph.err.body'), 'error');
+        } else {
+          showToast(t('graph.recovered'), 'success');
+        }
+      } catch {
+        showToast(t('graph.err.body'), 'error');
+      } finally {
+        await App.fetchGraphStatus();
+        App.rerender();
+      }
+    });
+
     root.querySelector('[data-act="run-graph"]')?.addEventListener('click', async () => {
       if (!confirm(t('graph.confirm'))) return;
+      const body = {};
+      const maxCost = st.graphMaxCost.trim() === '' ? undefined : Number(st.graphMaxCost);
+      const maxMinutes = st.graphMaxMinutes.trim() === '' ? undefined : Number(st.graphMaxMinutes);
+      if (maxCost !== undefined && Number.isFinite(maxCost)) body.maxCost = maxCost;
+      if (maxMinutes !== undefined && Number.isFinite(maxMinutes)) body.maxMinutes = maxMinutes;
       st.graphLaunching = true;
       App.rerender();
       try {
-        const res = await fetch('/api/run/graph', { method: 'POST' });
+        const res = await fetch('/api/run/graph', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
         if (res.status === 409) {
           showToast(t('graph.alreadyRunning'), 'error');
         } else if (!res.ok) {

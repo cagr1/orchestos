@@ -202,3 +202,34 @@ describe('GET /api/run/graph/status', () => {
     expect(body.error).toBe('boom')
   })
 })
+
+describe('POST /api/run/graph/recover-stale', () => {
+  it('resets running tasks to pending when no graph run is active', async () => {
+    writeTasksYaml([{ ...TASK_T1, status: 'running' }])
+
+    const res = await route(req('POST', '/api/run/graph/recover-stale'), PORT)
+    const body = await res.json() as { ok: boolean; reset: string[] }
+
+    expect(res.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.reset).toEqual(['t1'])
+
+    const file = realLoadTasks(tmpDir)
+    expect(file.tasks[0].status).toBe('pending')
+    expect(file.tasks[0].retry_reason).toBe('reset from stale running state via dashboard')
+  })
+
+  it('does not reset tasks while a graph run is active', async () => {
+    writeTasksYaml([{ ...TASK_T1, status: 'running' }])
+    const d = deferred<GraphRunResult>()
+    runGraphImpl = () => d.promise
+    await route(req('POST', '/api/run/graph'), PORT)
+
+    const res = await route(req('POST', '/api/run/graph/recover-stale'), PORT)
+
+    expect(res.status).toBe(409)
+    expect(realLoadTasks(tmpDir).tasks[0].status).toBe('running')
+
+    d.resolve(makeResult())
+  })
+})

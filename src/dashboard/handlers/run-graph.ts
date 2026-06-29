@@ -21,7 +21,7 @@ import { resolve, join } from 'path'
 import { existsSync } from 'fs'
 import { runGraph as realRunGraph } from '../../run/graph-runner.ts'
 import type { GraphRunResult, GraphRunOpts } from '../../run/graph-runner.ts'
-import { tasksExist } from '../../tasks/loader.ts'
+import { loadTasks, saveTasks, tasksExist } from '../../tasks/loader.ts'
 import { loadContext } from '../../context/load.ts'
 import { getProject } from '../../db/projects.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
@@ -96,6 +96,32 @@ function handleApiRunGraphStatus(): Response {
   return jsonResponse(body)
 }
 
+function handleApiRunGraphRecoverStale(): Response {
+  if (state.phase === 'running') {
+    return errorResponse('A graph run is still active; recovery is only available when the runner is idle', 409)
+  }
+
+  const root = resolve('.')
+  if (!tasksExist(root)) {
+    return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
+  }
+
+  try {
+    const file = loadTasks(root)
+    const stale = file.tasks.filter(t => t.status === 'running')
+    for (const task of stale) {
+      task.status = 'pending'
+      task.retry_reason = 'reset from stale running state via dashboard'
+    }
+    if (stale.length > 0) {
+      saveTasks(root, file)
+    }
+    return jsonResponse({ ok: true, reset: stale.map(t => t.id) })
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
 /** Test-only: reset the module-level singleton between test files. */
 function resetRunGraphState(): void {
   state = { phase: 'idle' }
@@ -111,4 +137,4 @@ function __resetRunGraphForTests(): void {
   runGraphImpl = realRunGraph
 }
 
-export { handleApiRunGraph, handleApiRunGraphStatus, resetRunGraphState, __setRunGraphForTests, __resetRunGraphForTests }
+export { handleApiRunGraph, handleApiRunGraphStatus, handleApiRunGraphRecoverStale, resetRunGraphState, __setRunGraphForTests, __resetRunGraphForTests }

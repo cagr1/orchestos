@@ -4,7 +4,7 @@ import { handleApiRuns } from './handlers/runs.ts'
 import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate } from './handlers/instincts.ts'
 import { handleApiSpecsDraft, handleApiSpecs } from './handlers/specs.ts'
 import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose } from './handlers/tasks.ts'
-import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
+import { handleApiRunGraph, handleApiRunGraphRecoverStale, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiNatural } from './handlers/project.ts'
 import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
 import { handleApiChatUpload, handleApiChatModels, handleApiChat } from './handlers/chat.ts'
@@ -42,6 +42,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/run/graph/status') {
     return handleApiRunGraphStatus()
+  }
+  if (method === 'POST' && url.pathname === '/api/run/graph/recover-stale') {
+    return handleApiRunGraphRecoverStale()
   }
   if (method === 'GET' && url.pathname === '/api/instincts') {
     return handleApiInstincts()
