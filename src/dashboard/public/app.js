@@ -106,7 +106,14 @@ const App = {
     } catch {
       state.instinctsStatus = 'error';
     }
-    this.rerender();
+    // Bug fix (2026-06-29): this used to call this.rerender() unconditionally —
+    // fetchAll() polls every 30s regardless of which screen is active, and
+    // rerender() replaces #main's entire innerHTML, silently wiping any
+    // uncontrolled input (chat textarea, model combo search box, anything not
+    // round-tripped through state) the user happened to be typing in at that
+    // moment. No nav badge depends on instincts data, so only rerender when
+    // the user is actually looking at the Instincts screen.
+    if (state.screen === 'instincts') this.rerender();
   },
   async fetchSpecs() {
     try {
@@ -244,7 +251,23 @@ const App = {
       }
       state.attentionRedirectDone = true;
     }
-    this.rerender();
+    // Bug fix (2026-06-29): fetchAll() runs every 30s via setInterval (boot()),
+    // regardless of which screen is open. This used to call this.rerender()
+    // unconditionally — rerender() replaces #main's entire innerHTML, which
+    // silently wiped any uncontrolled input the user was mid-typing in (chat
+    // textarea, model combo search box, any filter input) every time the poll
+    // landed. Skip the destructive full rerender while focus is inside #main's
+    // input/textarea — just keep the nav badges (skills count) fresh instead.
+    // The next poll (or the user's own next action, which already rerenders)
+    // picks up the fresh data once they're done typing.
+    const typingInMain = document.activeElement
+      && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)
+      && document.getElementById('main')?.contains(document.activeElement);
+    if (typingInMain) {
+      this.syncNav();
+    } else {
+      this.rerender();
+    }
     Term.render();
   },
   async fetchTasks() {
