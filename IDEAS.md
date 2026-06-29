@@ -106,7 +106,12 @@ en dashboard. El tope del tramo medio.
 
 ## 🧱 Largo plazo / mucho código o esperar evidencia
 
-### 9. Runner de grafo autónomo — el loop que se conduce solo
+### 9. Runner de grafo autónomo — el loop que se conduce solo ✅
+
+**Implementado en Mes 14 (2026-06-29)** — ver [DONE.md § MES 14](DONE.md) para el detalle completo (Bloques 0/A/A.R/B/C/D). `orchestos run --graph` recorre el DAG completo de `tasks.yaml` sin intervención humana en el happy path, decide retry-vs-bloqueo vía `diagnoseTask()`, y aísla ramas fallidas sin detener el grafo completo. Verificado en vivo (dashboard real + CLI real contra `tasks.yaml` de producción).
+
+<details>
+<summary>Contexto original (pre-implementación)</summary>
 
 **Candidato directo para Mes 14** (anotado en DONE.md § MES 12 y MES 13).
 
@@ -152,6 +157,8 @@ el schema, solo el conductor encima.
 
 **Esfuerzo**: poco código nuevo (reusa todo el motor) pero **alto riesgo** — es autonomía
 sin humano por tarea. Por eso es eje propio y va después del hardening (Mes 12 ✅).
+
+</details>
 
 ### 10. Cliente MCP — OrchestOS habla con herramientas externas (Vercel, GitHub, etc.)
 

@@ -1,22 +1,38 @@
 /**
  * S26.2 — Tests for LLM memory conflict judge
  */
-import { describe, it, expect, mock } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
+import { judgeConflict } from '../memory/judge.ts'
 
-mock.module('../providers/openrouter.ts', () => ({
-  chat: mock(async () => ({
-    text: JSON.stringify({
-      relation: 'conflict_with',
-      confidence: 'high',
-      explanation: 'Entry A says use port 3000, Entry B says use port 4000.',
-    }),
-    inputTokens: 80,
-    outputTokens: 40,
+// chat() de openrouter.ts lee globalThis.fetch en cada llamada — mockear fetch en vez de
+// mock.module('../providers/openrouter.ts', ...) evita contaminar el registro de módulos
+// para el resto del proceso de `bun test` (mismo problema que rompía openrouter-chat.test.ts;
+// ver el comentario en diagnose.test.ts para el detalle completo).
+const originalFetch = globalThis.fetch
+const prevOpenrouterKey = process.env.OPENROUTER_API_KEY
+
+function mockChatFetch(content: string) {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    choices: [{ message: { content } }],
+    usage: { prompt_tokens: 80, completion_tokens: 40 },
     model: 'anthropic/claude-3-haiku',
-  })),
-}))
+  }), { status: 200 })) as unknown as typeof fetch
+}
 
-const { judgeConflict } = await import('../memory/judge.ts')
+beforeAll(() => {
+  process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+  mockChatFetch(JSON.stringify({
+    relation: 'conflict_with',
+    confidence: 'high',
+    explanation: 'Entry A says use port 3000, Entry B says use port 4000.',
+  }))
+})
+
+afterAll(() => {
+  globalThis.fetch = originalFetch
+  if (prevOpenrouterKey === undefined) delete process.env.OPENROUTER_API_KEY
+  else process.env.OPENROUTER_API_KEY = prevOpenrouterKey
+})
 
 describe('judgeConflict', () => {
   it('returns ConflictJudgment with relation and confidence', async () => {
@@ -52,17 +68,9 @@ describe('judgeConflict', () => {
 
 describe('judgeConflict — fallback on bad JSON', () => {
   it('returns not_conflict/low when LLM returns prose', async () => {
-    mock.module('../providers/openrouter.ts', () => ({
-      chat: mock(async () => ({
-        text: 'These two entries look fine to me, no conflict at all.',
-        inputTokens: 50,
-        outputTokens: 10,
-        model: 'anthropic/claude-3-haiku',
-      })),
-    }))
+    mockChatFetch('These two entries look fine to me, no conflict at all.')
 
-    const { judgeConflict: jc2 } = await import('../memory/judge.ts')
-    const result = await jc2(
+    const result = await judgeConflict(
       { topicKey: 'a', content: 'X' },
       { topicKey: 'b', content: 'Y' },
     )
@@ -72,17 +80,9 @@ describe('judgeConflict — fallback on bad JSON', () => {
   })
 
   it('returns not_conflict/low when LLM returns garbage', async () => {
-    mock.module('../providers/openrouter.ts', () => ({
-      chat: mock(async () => ({
-        text: '!!! NOT JSON !!! {{broken',
-        inputTokens: 50,
-        outputTokens: 10,
-        model: 'anthropic/claude-3-haiku',
-      })),
-    }))
+    mockChatFetch('!!! NOT JSON !!! {{broken')
 
-    const { judgeConflict: jc3 } = await import('../memory/judge.ts')
-    const result = await jc3(
+    const result = await judgeConflict(
       { topicKey: 'a', content: 'X' },
       { topicKey: 'b', content: 'Y' },
     )
@@ -91,21 +91,13 @@ describe('judgeConflict — fallback on bad JSON', () => {
   })
 
   it('returns not_conflict/low when LLM returns valid JSON with invalid relation', async () => {
-    mock.module('../providers/openrouter.ts', () => ({
-      chat: mock(async () => ({
-        text: JSON.stringify({
-          relation: 'invalid_relation_value',
-          confidence: 'high',
-          explanation: 'test',
-        }),
-        inputTokens: 50,
-        outputTokens: 10,
-        model: 'anthropic/claude-3-haiku',
-      })),
+    mockChatFetch(JSON.stringify({
+      relation: 'invalid_relation_value',
+      confidence: 'high',
+      explanation: 'test',
     }))
 
-    const { judgeConflict: jc4 } = await import('../memory/judge.ts')
-    const result = await jc4(
+    const result = await judgeConflict(
       { topicKey: 'a', content: 'X' },
       { topicKey: 'b', content: 'Y' },
     )

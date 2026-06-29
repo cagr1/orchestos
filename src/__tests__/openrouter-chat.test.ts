@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
-import { chat } from '../providers/openrouter.ts'
 
 const originalFetch = globalThis.fetch
 
-beforeAll(() => {
+// Import dinámico (no estático) a propósito: diagnose.test.ts usa mock.module()
+// sobre este mismo archivo (../providers/openrouter.ts) y, por cómo Bun resuelve
+// imports estáticos durante la fase de collection (antes de correr ningún test),
+// un `import { chat } from ...` de nivel de módulo acá quedaría atado al mock de
+// diagnose.test.ts si ese archivo se importa primero (alfabéticamente 'd' < 'o').
+// El import dinámico ocurre en fase de ejecución, después de que el afterAll de
+// diagnose.test.ts ya restauró el módulo real. Mismo género de problema que
+// [[reference-bun-mock-module-gotcha]].
+let chat: typeof import('../providers/openrouter.ts')['chat']
+
+beforeAll(async () => {
   process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+  ;({ chat } = await import('../providers/openrouter.ts'))
 })
 
 afterAll(() => {

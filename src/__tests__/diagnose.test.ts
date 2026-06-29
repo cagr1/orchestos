@@ -1,16 +1,24 @@
 /**
  * S25.4 — Tests for S25.1/S25.2: agente de diagnóstico de fallos
  */
-import { describe, it, expect, mock, afterAll } from 'bun:test'
+import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test'
 import { insertRun, listRuns, getRun } from '../db/runs.ts'
 
 // Capture real modules before mocking — mock.module() has no automatic per-file scope in
 // Bun's test runner: once set, a mocked module stays mocked for every file that runs
 // afterward in the same `bun test` invocation unless explicitly restored. tasks/loader.ts
-// and providers/openrouter.ts are both imported for real by later-running suites
-// (graph-runner.test.ts, spec.test.ts), so this file must hand them back in afterAll.
+// is imported for real by later-running suites (graph-runner.test.ts, spec.test.ts), so
+// this file must hand it back in afterAll.
+//
+// providers/openrouter.ts deliberately is NOT mocked via mock.module() here — Bun hoists
+// mock.module() calls to the top of the file's evaluation, so even capturing "the real
+// module" via `await import(...)` before the mock.module() call below already returns the
+// mocked version (confirmed empirically: realOpenrouter.chat.toString() was "[native
+// code]"). That makes the module unrestorable for the rest of the process, breaking
+// openrouter-chat.test.ts which runs later and does a fresh `import { chat }` expecting the
+// real implementation. Mocking globalThis.fetch instead (restored in afterAll) achieves
+// the same test isolation without touching the shared module registry.
 const realLoader = await import('../tasks/loader.ts')
-const realOpenrouter = await import('../providers/openrouter.ts')
 
 const mockRuns: any[] = [
   {
@@ -45,19 +53,29 @@ const mockRuns: any[] = [
   },
 ]
 
-mock.module('../providers/openrouter.ts', () => ({
-  chat: mock(async () => ({
-    text: JSON.stringify({
-      pattern: 'qa_specific_criterion',
-      confidence: 'high',
-      suggestion: 'Add a check or acceptance criterion for null input handling.',
-      details: 'All 3 runs failed QA with the same reason about null input.',
-    }),
-    inputTokens: 100,
-    outputTokens: 50,
+// chat() de openrouter.ts lee globalThis.fetch en cada llamada — mockear fetch en vez de
+// mock.module('../providers/openrouter.ts', ...) evita la contaminación de módulo descrita
+// arriba, y de paso simplifica el test de "bad JSON" (ya no necesita reimport dinámico).
+const originalFetch = globalThis.fetch
+const prevOpenrouterKey = process.env.OPENROUTER_API_KEY
+
+function mockChatFetch(content: string) {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    choices: [{ message: { content } }],
+    usage: { prompt_tokens: 100, completion_tokens: 50 },
     model: 'anthropic/claude-3-haiku',
-  })),
-}))
+  }), { status: 200 })) as unknown as typeof fetch
+}
+
+beforeAll(() => {
+  process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+  mockChatFetch(JSON.stringify({
+    pattern: 'qa_specific_criterion',
+    confidence: 'high',
+    suggestion: 'Add a check or acceptance criterion for null input handling.',
+    details: 'All 3 runs failed QA with the same reason about null input.',
+  }))
+})
 
 mock.module('../tasks/loader.ts', () => ({
   loadTasks: mock(() => ({
@@ -96,7 +114,9 @@ const { diagnoseTask } = await import('../agents/diagnose.ts')
 
 afterAll(() => {
   mock.module('../tasks/loader.ts', () => realLoader)
-  mock.module('../providers/openrouter.ts', () => realOpenrouter)
+  globalThis.fetch = originalFetch
+  if (prevOpenrouterKey === undefined) delete process.env.OPENROUTER_API_KEY
+  else process.env.OPENROUTER_API_KEY = prevOpenrouterKey
 })
 
 describe('diagnoseTask', () => {
@@ -133,17 +153,9 @@ describe('FailurePattern type', () => {
 
 describe('diagnoseTask - fallback on bad JSON', () => {
   it('returns unknown pattern when LLM returns bad JSON', async () => {
-    mock.module('../providers/openrouter.ts', () => ({
-      chat: mock(async () => ({
-        text: 'This is not valid JSON at all',
-        inputTokens: 50,
-        outputTokens: 10,
-        model: 'anthropic/claude-3-haiku',
-      })),
-    }))
+    mockChatFetch('This is not valid JSON at all')
 
-    const { diagnoseTask: dt2 } = await import('../agents/diagnose.ts')
-    const result = await dt2('t1-fail', '/fake/root')
+    const result = await diagnoseTask('t1-fail', '/fake/root')
     expect(result.pattern).toBe('unknown')
     expect(result.confidence).toBe('low')
     expect(result.suggestion).toContain('manually')
