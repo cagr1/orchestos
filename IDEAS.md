@@ -204,6 +204,8 @@ seguridad completo (lo que lo hace su propio mes, no el motor que ya existe).
 Migrar `code_edges` + `files` a KuzuDB (embebible, Cypher, Rust) **cuando el grafo llegue a
 10K+ nodos**. Hoy SQLite + regex es suficiente. No antes de evidencia real de escala.
 
+**Esfuerzo**: alto + **bloqueado por evidencia** — no se toca sin un grafo real de 10K+ nodos.
+
 ### 12. Chat como entrada única — detección semántica de intención de tarea + auto-envío a Tasks
 
 **⚠️ PRÓXIMO ÍTEM A ATENDER (marcado por Carlos, 2026-06-29) — alta prioridad y alta delicadeza.**
@@ -264,7 +266,44 @@ guardrails** — la mayor parte del trabajo real es decidir el punto de control 
 el clasificador. No estimar como "🔨 Medio" por volumen de código; tratar la fase de diseño de
 guardrails con el mismo cuidado que el ítem 10.
 
-**Esfuerzo**: alto + **bloqueado por evidencia** — no se toca sin un grafo real de 10K+ nodos.
+### 13. OCR para imágenes adjuntas en el Chat + adjuntar varios archivos a la vez
+
+Origen: Carlos pidió rediseñar el menú de adjuntar del chat (Imagen/Documento/URL, hecho
+2026-06-29) y notó dos gaps reales al diseñarlo:
+
+1. **Sin OCR** — hoy una imagen adjunta se manda como `image_url` directo al modelo
+   (`screens-core.js`, `send()`), es decir, depende 100% de que el modelo elegido tenga
+   visión real. Si el usuario está en un modelo de solo texto (la mayoría de los baratos —
+   DeepSeek, Llama), la imagen es inútil para ese modelo. OCR permitiría extraer el texto de
+   la imagen y mandarlo como contexto de texto plano, funcionando con **cualquier** modelo,
+   no solo los de visión.
+2. **Sin adjuntar varios archivos a la vez** ("Folder" en el pedido original) — el estado
+   del chat hoy solo soporta **un** archivo adjunto (`st.chatFileId`/`st.chatFileMeta`,
+   singular) y `POST /api/chat/upload` solo acepta un archivo por request. Subir una carpeta
+   real (o simplemente 2+ archivos) requiere: (a) cambiar el estado a un array de adjuntos,
+   (b) decidir si el upload es secuencial (N requests) o batch (un endpoint nuevo que acepte
+   `multipart` con varios archivos), (c) UI para listar/quitar cada adjunto individualmente
+   (hoy el chip de adjunto es singular). Deliberadamente NO implementado en el rediseño del
+   menú — se dejó solo Imagen/Documento/URL para no mezclar un cambio de UI con un cambio de
+   modelo de datos.
+
+**Repo de referencia para el OCR, dado por Carlos**: https://github.com/baidu/Unlimited-OCR
+— verificado real vía `gh api repos/baidu/Unlimited-OCR` (2026-06-29): Python, licencia
+**MIT**, ~11.9K⭐, 932 forks, repo activo (push 2026-06-28). **No leído todavía** — cuando se
+implemente este ítem, leer el código real del repo y extraer lo mejor de su enfoque (no
+asumir nada de su arquitectura interna sin haberlo leído). Por ser MIT, reusar su código es
+legal pero **exige atribución real** — el NOTICE/crédito al extraer lógica de ese repo no es
+opcional, es parte de la licencia (no es "agregarlos como colaborador de GitHub" literal, es
+documentar el origen del código reusado en el archivo/commit que lo introduce).
+
+**Prerequisito**: decidir primero el cambio de estado a múltiples adjuntos (gap #2) — el OCR
+(gap #1) puede entrar después, como un paso de procesamiento adicional sobre cualquier imagen
+ya adjunta, sin depender de que el modelo number 2 esté resuelto primero (son independientes,
+pero #2 es la base de UI/estado que ambos comparten).
+
+**Esfuerzo**: medio-alto — cambio de modelo de datos del chat (#2) + integración de un motor
+OCR externo con su propio runtime/dependencias (#1, probablemente Python — fricción con el
+stack Bun/TypeScript del resto del proyecto, a evaluar cuando se lea el repo real).
 
 ---
 

@@ -67,6 +67,10 @@ const I18N = {
     'chat.effort.high':   'High',
     'chat.createTask':    'Create task from this conversation',
     'chat.createTaskHint':'Turn this chat into a task — pre-fills the task composer with the conversation context.',
+    'chat.attachMenu.image':   'Image',
+    'chat.attachMenu.doc':     'Document',
+    'chat.attachMenu.url':     'URL',
+    'chat.attachMenu.urlHint': 'Paste the link directly in the message — the assistant can read it.',
 
     /* ── Wizard (E3) ─────────────────────────────── */
     'wizard.title':              'Configure AI Access',
@@ -548,6 +552,10 @@ const I18N = {
     'chat.effort.high':   'Alto',
     'chat.createTask':    'Crear tarea desde esta conversación',
     'chat.createTaskHint':'Convierte este chat en una tarea — pre-rellena el compositor con el contexto de la conversación.',
+    'chat.attachMenu.image':   'Imagen',
+    'chat.attachMenu.doc':     'Documento',
+    'chat.attachMenu.url':     'URL',
+    'chat.attachMenu.urlHint': 'Pega el enlace directamente en el mensaje — el asistente puede leerlo.',
 
     /* ── Wizard (E3) ─────────────────────────────── */
     'wizard.title':              'Configura tu acceso a IA',

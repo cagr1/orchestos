@@ -74,7 +74,14 @@ SCREENS.chat = {
       <div class="chat-input-bar">
         ${attachChip}
         <div class="chat-input-row">
-          <button class="chat-icon-btn chat-attach-btn" data-act="chat-attach" title="${t('chat.btn.attach')}" aria-label="${t('chat.btn.attach')}">${ICON.plus}</button>
+          <div class="attach-menu-wrap" data-attach-menu>
+            <button class="chat-icon-btn chat-attach-btn" data-act="chat-attach" title="${t('chat.btn.attach')}" aria-label="${t('chat.btn.attach')}">${ICON.plus}</button>
+            ${st.chatAttachMenuOpen ? `<div class="attach-menu">
+              <button class="attach-menu-item" data-attach-kind="image">${ICON.image}<span>${t('chat.attachMenu.image')}</span></button>
+              <button class="attach-menu-item" data-attach-kind="doc">${ICON.specs}<span>${t('chat.attachMenu.doc')}</span></button>
+              <button class="attach-menu-item" data-attach-kind="url">${ICON.globe}<span>${t('chat.attachMenu.url')}</span></button>
+            </div>` : ''}
+          </div>
           <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}></textarea>
           <button class="chat-icon-btn chat-send-btn" data-act="chat-send" title="${t('chat.btn.send')}" aria-label="${t('chat.btn.send')}" ${st.chatPending ? 'disabled' : ''}>${ICON.send}</button>
         </div>
@@ -89,11 +96,21 @@ SCREENS.chat = {
       if (area) area.scrollTop = area.scrollHeight;
     });
 
+    // FRONT.9 — auto-grow del textarea hasta max-height (CSS), igual que Hermes/ChatGPT.
+    const textareaEl = root.querySelector('#chat-input');
+    const autoGrowTextarea = () => {
+      if (!textareaEl) return;
+      textareaEl.style.height = 'auto';
+      textareaEl.style.height = Math.min(textareaEl.scrollHeight, 120) + 'px';
+    };
+    textareaEl?.addEventListener('input', autoGrowTextarea);
+
     const send = async () => {
       const textarea = root.querySelector('#chat-input');
       const msg = textarea?.value.trim();
       if (!msg || st.chatPending) return;
       textarea.value = '';
+      textarea.style.height = ''; // FRONT.9 — vuelve a la altura base de 2 filas
       st.chatHistory = st.chatHistory || [];
       st.chatHistory.push({ role: 'user', content: msg });
       st.chatPending = true;
@@ -144,10 +161,30 @@ SCREENS.chat = {
       App.rerender();
     });
 
-    // D3 — file attach button
-    root.querySelector('[data-act="chat-attach"]')?.addEventListener('click', () => {
-      root.querySelector('#chat-file-input')?.click();
+    // FRONT.9 — el botón "+" ahora abre un menú de tipo de adjunto en vez de
+    // disparar el file-picker directo (Imagen / Documento / URL).
+    root.querySelector('[data-act="chat-attach"]')?.addEventListener('click', e => {
+      e.stopPropagation();
+      st.chatAttachMenuOpen = !st.chatAttachMenuOpen;
+      App.rerender();
     });
+    root.querySelectorAll('[data-attach-kind]').forEach(btn => btn.addEventListener('click', () => {
+      const kind = btn.dataset.attachKind;
+      st.chatAttachMenuOpen = false;
+      const input = root.querySelector('#chat-file-input');
+      if (kind === 'url') {
+        // El chat ya puede leer una URL pegada en el mensaje (FETCH_URL_TOOL,
+        // Mes 13) — no hace falta subir nada, solo guiar al usuario.
+        App.rerender();
+        const ta = document.getElementById('chat-input');
+        ta?.focus();
+        showToast(t('chat.attachMenu.urlHint'));
+        return;
+      }
+      if (input) input.accept = kind === 'image' ? 'image/*' : '.pdf,.txt,.md';
+      App.rerender();
+      input?.click();
+    }));
 
     // D3 — file input change → upload
     root.querySelector('#chat-file-input')?.addEventListener('change', async () => {
@@ -157,7 +194,7 @@ SCREENS.chat = {
       const formData = new FormData();
       formData.append('file', file);
       const clipBtn = root.querySelector('[data-act="chat-attach"]');
-      if (clipBtn) clipBtn.textContent = t('chat.file.uploading');
+      if (clipBtn) clipBtn.disabled = true;
       try {
         const res = await fetch('/api/chat/upload', { method: 'POST', body: formData });
         if (res.ok) {
@@ -172,7 +209,6 @@ SCREENS.chat = {
       } catch {
         showToast(t('chat.file.err'), 'error');
       } finally {
-        if (clipBtn) clipBtn.innerHTML = ICON.plus;
         input.value = '';
         App.rerender();
       }

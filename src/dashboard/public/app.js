@@ -60,6 +60,7 @@ const state = {
   chatFileMeta: null,  // { filename, type, preview } from upload
   chatToTask: null,   // non-null = condensed chat text to pre-fill compose bar
   chatModelComboOpen: false, // FRONT.6 — combobox de modelo del chat (trigger + panel de búsqueda)
+  chatAttachMenuOpen: false, // FRONT.9 — menú de tipo de adjunto (Imagen/Documento/URL)
   orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
   orModelsAttempted: false, // true once a fetch (success or failure) has completed — prevents retry-loop on every rerender
   orModelsLastFetch: 0, // timestamp of last successful fetch (ms), for TTL
@@ -1491,12 +1492,16 @@ function boot() {
     }
   });
 
-  // FRONT.6 — close the chat model combobox on outside click. Registered once
-  // here (not inside SCREENS.chat.wire(), which reruns on every rerender) so
-  // it never stacks duplicate listeners across re-renders.
+  // FRONT.6/FRONT.9 — close the chat model combobox / attach menu on outside
+  // click. Registered once here (not inside SCREENS.chat.wire(), which
+  // reruns on every rerender) so it never stacks duplicate listeners.
   document.addEventListener('click', e => {
     if (state.chatModelComboOpen && !e.target.closest('[data-model-combo]')) {
       state.chatModelComboOpen = false;
+      App.rerender();
+    }
+    if (state.chatAttachMenuOpen && !e.target.closest('[data-attach-menu]')) {
+      state.chatAttachMenuOpen = false;
       App.rerender();
     }
   });
