@@ -273,3 +273,101 @@ tasks:
           {
             "path": "PLAN.md",
             "content": "---\ntype: execution-plan\nproject: orchestos\ncreated: 2026-05-26\nowner: Carlos Gallardo\nstatus: mes-5-activo\n---\n\n# OrchestOS — Plan activo\n\nHistorial completado → ver [DONE.md](DONE.md).\nIdeas pendientes → ver [IDEAS.md](IDEA
+  - id: front-2-persist-effort
+    description: >
+      In src/dashboard/public/app.js, find this exact line in the `state` object (it sets the default reasoning effort
+      for the chat):
+        chatEffort: 'medium', // FRONT.1 — solo aplicado cuando el modelo elegido tiene supportsReasoning:true (BACK.4)
+
+      Replace it with (read the persisted value if present, same pattern already used a few lines below for
+      `localStorage.getItem('orchestos-mode')`):
+        chatEffort: localStorage.getItem('orchestos-chat-effort') || 'medium', // FRONT.2 — persisted, default 'medium'
+
+      In src/dashboard/public/screens-core.js, find this exact event listener (it currently only updates in-memory
+      state, no persistence):
+        root.querySelector('#chat-effort-select')?.addEventListener('change', e => {
+          st.chatEffort = e.target.value;
+        });
+
+      Replace it with (add localStorage.setItem right after st.chatEffort is updated):
+        root.querySelector('#chat-effort-select')?.addEventListener('change', e => {
+          st.chatEffort = e.target.value;
+          localStorage.setItem('orchestos-chat-effort', e.target.value);
+        });
+
+      Do NOT change any other line in either file. Do NOT touch chatModel, orModels, or any other state field.
+    executor: openrouter
+    executor_model: deepseek/deepseek-v4-flash
+    input:
+      - src/dashboard/public/app.js
+      - src/dashboard/public/screens-core.js
+    output:
+      - src/dashboard/public/app.js
+      - src/dashboard/public/screens-core.js
+    checks:
+      - cmd: grep -q "localStorage.getItem('orchestos-chat-effort')" src/dashboard/public/app.js
+        expect_exit: 0
+      - cmd: grep -q "localStorage.setItem('orchestos-chat-effort'" src/dashboard/public/screens-core.js
+        expect_exit: 0
+    depends_on: []
+    status: failed
+    retry_count: 0
+    retry_reason: |+
+      parse error: No <<<FILE:...>>>...<<<ENDFILE>>> blocks found in LLM response.
+      Got:
+      <<<FILE:src/dashboard/public/app.js>>>
+      /* ============================================================
+         OrchestOS — app shell, navigation, panels, API fetching
+         ============================================================ */
+
+      const state = {
+        screen: 'chat',
+        memScope: 'all',
+        openRun: null,
+        openSpec: null,
+        openSkill: null,
+        openDiagnose: null,
+        diagnoseCache: {},
+        archOpen: false,
+
+  - id: front-3-i18n-effort
+    description: >
+      Add 4 new translation keys for the chat reasoning-effort selector to src/dashboard/public/i18n.js, in BOTH
+      language blocks (the `en` block starting near line 8, and the `es` block starting near line ~500).
+
+      In the EN block, insert these 4 lines immediately after the line:
+        'chat.createTaskHint':'Turn this chat into a task — pre-fills the task composer with the conversation context.',
+      Insert:
+        'chat.effort.label':  'Reasoning effort',
+        'chat.effort.low':    'Low',
+        'chat.effort.medium': 'Medium',
+        'chat.effort.high':   'High',
+
+      In the ES block, insert these 4 lines immediately after the line:
+        'chat.createTaskHint':'Convierte este chat en una tarea — pre-rellena el compositor con el contexto de la conversación.',
+      Insert:
+        'chat.effort.label':  'Esfuerzo de razonamiento',
+        'chat.effort.low':    'Bajo',
+        'chat.effort.medium': 'Medio',
+        'chat.effort.high':   'Alto',
+
+      Do NOT change any other key. Do NOT reorder existing keys. Keep the exact same quote style (single quotes) and
+      comma-trailing style already used in this file.
+    executor: openrouter
+    executor_model: deepseek/deepseek-v4-flash
+    input:
+      - src/dashboard/public/i18n.js
+    output:
+      - src/dashboard/public/i18n.js
+    checks:
+      - cmd: grep -q "'chat.effort.label'" src/dashboard/public/i18n.js
+        expect_exit: 0
+      - cmd: grep -q "'chat.effort.low'" src/dashboard/public/i18n.js
+        expect_exit: 0
+      - cmd: grep -q "'chat.effort.medium'" src/dashboard/public/i18n.js
+        expect_exit: 0
+      - cmd: grep -q "'chat.effort.high'" src/dashboard/public/i18n.js
+        expect_exit: 0
+    depends_on: []
+    status: pending
+    retry_count: 0

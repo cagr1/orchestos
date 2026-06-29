@@ -61,6 +61,10 @@ const I18N = {
     'chat.file.tooLarge':'File exceeds 10 MB limit.',
     'chat.file.err':     'Upload failed.',
     'chat.file.remove':  'Remove',
+    'chat.effort.label':  'Reasoning effort',
+    'chat.effort.low':    'Low',
+    'chat.effort.medium': 'Medium',
+    'chat.effort.high':   'High',
     'chat.createTask':    'Create task from this conversation',
     'chat.createTaskHint':'Turn this chat into a task — pre-fills the task composer with the conversation context.',
 
@@ -538,6 +542,10 @@ const I18N = {
     'chat.file.tooLarge':'El archivo excede el límite de 10 MB.',
     'chat.file.err':     'Error al subir.',
     'chat.file.remove':  'Quitar',
+    'chat.effort.label':  'Esfuerzo de razonamiento',
+    'chat.effort.low':    'Bajo',
+    'chat.effort.medium': 'Medio',
+    'chat.effort.high':   'Alto',
     'chat.createTask':    'Crear tarea desde esta conversación',
     'chat.createTaskHint':'Convierte este chat en una tarea — pre-rellena el compositor con el contexto de la conversación.',
 

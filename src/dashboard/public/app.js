@@ -55,6 +55,7 @@ const state = {
   chatHistory: [],
   chatPending: false,
   chatModel: 'deepseek/deepseek-v4-flash',
+  chatEffort: localStorage.getItem('orchestos-chat-effort') || 'medium', // FRONT.1 — solo aplicado cuando el modelo elegido tiene supportsReasoning:true (BACK.4) · FRONT.2 — persistido en localStorage
   chatFileId: null,
   chatFileMeta: null,  // { filename, type, preview } from upload
   chatToTask: null,   // non-null = condensed chat text to pre-fill compose bar
@@ -1258,6 +1259,14 @@ function buildModelSelect(inputId, currentVal, models, localModels, withSearch) 
     <select id="${inputId}" class="model-sel" style="flex:1">${opts}</select>
     ${refreshBtn}
   </div>`;
+}
+
+/* FRONT.1 — true solo si `models` (state.orModels, datos reales de OpenRouter)
+   tiene una entrada para modelId con supportsReasoning:true. Nunca asume
+   soporte sin dato real (fallback KNOWN_MODELS/locals no lo declaran). */
+function modelSupportsReasoning(modelId, models) {
+  if (!Array.isArray(models)) return false;
+  return !!models.find(m => m.id === modelId)?.supportsReasoning;
 }
 
 async function loadOrModels(force = false) {

@@ -24,6 +24,15 @@ SCREENS.chat = {
 
     const modelSelect = buildModelSelect('chat-model-select', st.chatModel, st.orModels, st.localModels, true).replace('class="model-sel"', 'class="model-sel chat-model-sel"');
 
+    // FRONT.1 — oculto/disabled salvo que el modelo elegido tenga supportsReasoning:true real (BACK.4)
+    const effortSelect = modelSupportsReasoning(st.chatModel, st.orModels)
+      ? `<select id="chat-effort-select" class="model-sel chat-effort-sel" title="${t('chat.effort.label')}">
+          <option value="low" ${st.chatEffort === 'low' ? 'selected' : ''}>${t('chat.effort.low')}</option>
+          <option value="medium" ${st.chatEffort === 'medium' ? 'selected' : ''}>${t('chat.effort.medium')}</option>
+          <option value="high" ${st.chatEffort === 'high' ? 'selected' : ''}>${t('chat.effort.high')}</option>
+        </select>`
+      : '';
+
     // D0-3 — local model warning banner (shown once per session)
     const isLocalModel = (st.chatModel || '').startsWith('ollama/');
     const localWarnDismissed = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('ollama-warn-shown');
@@ -55,7 +64,7 @@ SCREENS.chat = {
     return `<div class="screen chat-screen">
       <div class="screen-head">
         <div class="lead"><h1>${t('chat.title')}</h1><p>${t('chat.subtitle')}</p></div>
-        <div class="tools" style="align-items:center;gap:8px">${modelSelect}${clearBtn}</div>
+        <div class="tools" style="align-items:center;gap:8px">${modelSelect}${effortSelect}${clearBtn}</div>
       </div>
       ${localWarnBanner}
       <div class="chat-area" id="chat-area">${msgs}</div>
@@ -99,6 +108,8 @@ SCREENS.chat = {
           model: st.chatModel || 'deepseek/deepseek-v4-flash',
         };
         if (sentFileId) body.fileId = sentFileId;
+        // FRONT.1 — solo se manda si el control está visible (modelo con supportsReasoning:true)
+        if (modelSupportsReasoning(st.chatModel, st.orModels)) body.effort = st.chatEffort || 'medium';
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -181,7 +192,11 @@ SCREENS.chat = {
     });
     root.querySelector('#chat-model-select')?.addEventListener('change', e => {
       st.chatModel = e.target.value;
-      App.rerender(); // refresh warning banner
+      App.rerender(); // refresh warning banner + show/hide effort selector
+    });
+    root.querySelector('#chat-effort-select')?.addEventListener('change', e => {
+      st.chatEffort = e.target.value;
+      localStorage.setItem('orchestos-chat-effort', e.target.value);
     });
     // D0-ext-1 — model search filter
     root.querySelector('[data-model-search]')?.addEventListener('input', e => {

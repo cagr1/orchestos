@@ -509,11 +509,12 @@
 .model-sel {
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
   color: var(--text); font-size: 12px; padding: 6px 26px 6px 9px; outline: none;
-  font-family: var(--mono); max-width: 320px; flex: 1;
+  font-family: var(--mono); max-width: 320px; flex: 1; min-width: 0;
   appearance: none; -webkit-appearance: none; cursor: pointer;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%238b949e' d='M0 0h10L5 6z'/></svg>");
   background-repeat: no-repeat; background-position: right 9px center;
   transition: border-color .12s, background-color .12s;
+  text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
 }
 .model-sel:hover { border-color: #444c56; background-color: var(--surface-hi); }
 .model-sel:focus { border-color: var(--accent); }
