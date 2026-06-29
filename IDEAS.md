@@ -305,6 +305,41 @@ pero #2 es la base de UI/estado que ambos comparten).
 OCR externo con su propio runtime/dependencias (#1, probablemente Python — fricción con el
 stack Bun/TypeScript del resto del proyecto, a evaluar cuando se lea el repo real).
 
+### 14. Notificaciones cuando termina algo en segundo plano
+
+Origen: Carlos notó que "casi todas las herramientas de este tipo" (Slack, Linear, GitHub,
+Claude Code, ChatGPT) avisan con una notificación del sistema cuando algo termina en segundo
+plano, no solo con un cambio visual dentro de la pestaña. OrchestOS hoy no lo hace.
+
+**Qué ya existe (NO reconstruir)**: `showToast()` (`app.js:1518`) — toast **dentro de la
+pestaña**, visible solo si el usuario ya está mirando el dashboard en ese momento. Cero uso de
+la `Notification` API del navegador (`grep` confirma 0 coincidencias en todo `public/`) — si el
+usuario cambia de pestaña/app mientras corre un Graph Runner o una tarea larga, no se entera de
+que terminó hasta que vuelve a mirar.
+
+**Candidatos de disparo (eventos que ya existen, solo falta enganchar la notificación)**:
+- Fin de una corrida del Graph Runner (`POST /api/run/graph`, Mes 14) — hoy se ve el resultado
+  solo si el usuario sigue en la pantalla "Graph Runner" con el auto-refresh de 3s activo.
+- `task run` individual que termina en `done`/`failed_permanent` mientras el usuario navegó a
+  otra pantalla.
+- Setup/health: cuando una key recién agregada falla la validación (ya hay rollback en 401,
+  Mes 10) — útil avisar aunque el usuario ya se fue a otra pantalla del wizard.
+
+**Cómo implementarlo (Web Notification API, sin librería nueva)**:
+1. Pedir permiso (`Notification.requestPermission()`) una sola vez, con gesto explícito del
+   usuario (ej. un toggle en Settings → General, NUNCA al cargar la página sin pedir — los
+   navegadores penalizan/bloquean permisos pedidos sin interacción).
+2. Wrapper simple `notify(title, body)` que llama a `new Notification(...)` si hay permiso y
+   `document.hidden` es true (no molestar si el usuario ya está mirando el dashboard — para eso
+   ya existe `showToast()`), si no, usar el toast existente.
+3. Enganchar el wrapper en los 2-3 puntos de `fetchAll()`/polling donde un estado pasa de
+   `running` a `done`/`failed` (mismo lugar donde hoy se compara estado antes/después para
+   decidir si vale la pena notificar — evitar notificar en cada poll de 30s si nada cambió).
+
+**Esfuerzo**: medio — la Notification API en sí es trivial (sin dependencias), lo real es
+decidir bien los 2-3 puntos de enganche para no generar spam de notificaciones, y el toggle de
+permiso en Settings (no pedirlo a ciegas).
+
 ---
 
 ## 📚 Referencia — inspiración externa (NO es backlog)
