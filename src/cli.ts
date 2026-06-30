@@ -23,6 +23,7 @@ import { parseLLMResponse, enforceContract } from './run/contract.ts'
 import { MAX_RETRIES } from './run/qa.ts'
 import { RunLogger } from './run/logger.ts'
 import { runTask } from './run/harness.ts'
+import { resolveSandboxMode } from './run/sandbox-policy.ts'
 import { executePlan } from './run/scheduler.ts'
 import { runGraph } from './run/graph-runner.ts'
 import { createPlan } from './agents/planner.ts'
@@ -949,6 +950,23 @@ task
         }
       }
 
+      // resolve sandbox BEFORE marking running — updateTaskStatus writes tasks.yaml to
+      // disk, and resolveSandboxMode's clean-tree check would then trip on that very
+      // write if run afterward (chicken-and-egg false failure on an otherwise clean tree)
+      const sandboxRaw = opts?.keepWorktree ? 'worktree' : (opts?.sandbox ?? 'auto')
+      const preferredSandbox = sandboxRaw === 'auto' ? undefined : sandboxRaw as 'worktree' | 'cwd'
+      let policy: ReturnType<typeof resolveSandboxMode>
+      try {
+        policy = resolveSandboxMode(root, preferredSandbox)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        const log = new RunLogger(root, taskId)
+        log.error(message)
+        updateTaskStatus(root, taskId, { status: 'failed', retry_reason: message })
+        console.error(`[task] ✗ ${taskId} failed — ${message}`)
+        return 'failed'
+      }
+
       // mark running + open log
       const log = new RunLogger(root, taskId)
       updateTaskStatus(root, taskId, { status: 'running' })
@@ -956,9 +974,7 @@ task
       console.log(`  description: ${t.description}`)
       console.log(`  output:      ${t.output.join(', ')}`)
 
-      const sandboxRaw = opts?.keepWorktree ? 'worktree' : (opts?.sandbox ?? 'auto')
-      const sandboxMode = sandboxRaw === 'auto' ? undefined : sandboxRaw as 'worktree' | 'cwd'
-      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree: opts?.keepWorktree })
+      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log, orcheConfig, orcheConfigFound, sandboxMode: policy.mode, sandboxBranch: policy.branch, keepWorktree: opts?.keepWorktree })
 
       // map TaskResult → updateTaskStatus
       if (result.status === 'done') {
