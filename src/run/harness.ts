@@ -34,7 +34,7 @@ import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import { loadSpec } from '../spec/store.ts'
 import { checkContextHealth, shouldCheck, type RunState } from '../hooks/context-monitor.ts'
-import { ensureCatalogLoaded, contextWindowFor } from '../router/model-catalog.ts'
+import { ensureCatalogLoaded, contextWindowFor, maxOutputTokensFor } from '../router/model-catalog.ts'
 import { createRunContext, createChain, type RunContext } from './middleware.ts'
 import { contextInject, skillRoute, memoryFetch, toolPolicy, instinctApply } from './middlewares/index.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -184,9 +184,15 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const beforeContent = snapshotContents(ctx.effectiveRoot, ctx.task.output)
 
     // -- LLM call --------------------------------------------------------------
+    // maxTokens atado al tope real del modelo (model-catalog.ts) — antes usaba el
+    // default hardcodeado de cada provider (8192), que truncaba tareas multi-archivo
+    // a mitad de generación sin avisar (bug real: crear-web-local-comercial sólo
+    // escribió index.html, nunca llegó a css/js/README dentro del presupuesto fijo).
+    await ensureCatalogLoaded()
+    const maxTokens = maxOutputTokensFor(ctx.model)
     let llmResponse: Awaited<ReturnType<typeof ctx.provider.chat>>
     try {
-      llmResponse = await ctx.provider.chat({ model: ctx.model, system, messages: [{ role: 'user', content: userContent }] })
+      llmResponse = await ctx.provider.chat({ model: ctx.model, system, messages: [{ role: 'user', content: userContent }], maxTokens })
     } catch (e: any) {
       log.error(`LLM call failed: ${e.message}`)
       return { status: 'failed', runId: '', retryReason: e.message, filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: Math.round(performance.now() - t0), contextWarnings: [] }
@@ -218,6 +224,35 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
 
     const after = snapshotHashes(ctx.effectiveRoot, ctx.task.output)
+
+    // -- missing declared outputs (BEFORE QA — no tokens spent) ----------------
+    // Bug real (2026-06-30, crear-web-local-comercial): enforceContract sólo escribe
+    // los archivos que el LLM efectivamente incluyó en su respuesta — si truncó antes
+    // de llegar a css/js/README (ej. max_tokens insuficiente), esos paths declarados
+    // en `output` simplemente nunca se escriben y nadie lo detecta determinísticamente.
+    // El QA-LLM no es confiable para esto: vio la lista de outputs declarados en el
+    // prompt y alucinó que estaban "incluidos" sin verificar contra los archivos reales.
+    const missingOutputs = ctx.task.output.filter(p => !contractResult.written.some(f => f.path === p))
+    if (missingOutputs.length > 0) {
+      if (!keepWorktree && worktree) {
+        mergeWorktreeBack(worktree, 'discard')
+        worktree = null
+      } else if (!worktree) {
+        restoreContents(ctx.effectiveRoot, beforeContent)
+      }
+      const reason = `missing declared output(s): ${missingOutputs.join(', ')}`
+      const elapsedMissing = Math.round(performance.now() - t0)
+      insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: reason, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsedMissing, result: `${reason} — reverted ${contractResult.written.length} file(s)` })
+      log.qaFail(reason, ctx.task.retry_count + 1, MAX_RETRIES)
+      const missingExhausted = ctx.task.retry_count + 1 >= MAX_RETRIES
+      return {
+        status: missingExhausted ? 'failed' : 'retry',
+        runId: '', qaVerdict: 'fail', qaReason: reason, retryReason: reason,
+        filesWritten: [], filesBlocked: [],
+        cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost },
+        elapsedMs: elapsedMissing, contextWarnings: ctx.contextWarnings,
+      }
+    }
 
     // -- context-monitor (S27) — post-write, pre-QA --------------------------
     if (shouldCheck(monitorCallCount ?? 0)) {
