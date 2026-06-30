@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Café Aromas — Tradición y sabor en cada taza</title>
+  <meta name="description" content="Café Aromas: el mejor café artesanal de la ciudad. Conoce nuestros productos, horarios y mucho más." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Skip Link -->
+  <a href="#hero" class="skip-link">Saltar al contenido principal</a>
+
+  <!-- Header / Navegación -->
+  <header class="header" id="header">
+    <div class="container header__inner">
+      <a href="#" class="logo" aria-label="Café Aromas — Inicio">
+        <span class="logo__icon" aria-hidden="true">☕</span>
+        <span class="logo__text">Aromas</span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Navegación principal">
+        <ul class="nav__list">
+          <li><a href="#hero" class="nav__link">Inicio</a></li>
+          <li><a href="#about" class="nav__link">Nosotros</a></li>
+          <li><a href="#products" class="nav__link">Productos</a></li>
+          <li><a href="#gallery" class="nav__link">Galería</a></li>
+          <li><a href="#hours" class="nav__link">Horarios</a></li>
+          <li><a href="#contact" class="nav__link">Contacto</a></li>
+        </ul>
+      </nav>
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú" aria-expanded="false">
+        <span class="menu-toggle__bar"></span>
+        <span class="menu-toggle__bar"></span>
+        <span class="menu-toggle__bar"></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero" id="hero">
+      <div class="hero__overlay"></div>
+      <div class="container hero__content">
+        <h1 class="hero__title">Café Aromas</h1>
+        <p class="hero__subtitle">Tradición y sabor artesanal desde 1998</p>
+        <div class="hero__actions">
+          <a href="#products" class="btn btn--primary">Descubre nuestro menú</a>
+          <a href="#contact" class="btn btn--outline">Contáctanos</a>
+        </div>
+      </div>
+      <div class="hero__scroll" aria-hidden="true">
+        <span>Desliza</span>
+        <i class="fas fa-chevron-down"></i>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section class="section about" id="about">
+      <div class="container">
+        <div class="section__header">
+          <span class="section__tag">Sobre nosotros</span>
+          <h2 class="section__title">Más de 25 años endulzando tu día</h2>
+          <p class="section__desc">En el corazón del barrio, nos dedicamos a servir café de especialidad y repostería artesanal con ingredientes locales y mucho amor.</p>
+        </div>
+        <div class="about__grid">
+          <article class="about__card">
+            <div class="about__icon"><i class="fas fa-seedling"></i></div>
+            <h3>Granos de Origen</h3>
+            <p>Tostamos granos de Chiapas, Colombia y Etiopía para ofrecerte perfiles únicos en cada taza.</p>
+          </article>
+          <article class="about__card">
+            <div class="about__icon"><i class="fas fa-heart"></i></div>
+            <h3>Hecho con Pasión</h3>
+            <p>Cada bebida y platillo es preparado al momento por nuestro equipo de baristas y chefs.</p>
+          </article>
+          <article class="about__card">
+            <div class="about__icon"><i class="fas fa-leaf"></i></div>
+            <h3>Compromiso Local</h3>
+            <p>Trabajamos con productores de la región para garantizar frescura y apoyar la economía local.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Products / Services -->
+    <section class="section products" id="products">
+      <div class="container">
+        <div class="section__header">
+          <span class="section__tag">Nuestra carta</span>
+          <h2 class="section__title">Productos y Servicios</h2>
+          <p class="section__desc">Desde un espresso intenso hasta un latte cremoso, todo acompañado de repostería recién horneada.</p>
+        </div>
+        <div class="products__grid">
+          <!-- Card 1 -->
+          <article class="product-card">
+            <div class="product-card__img">
+              <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80" alt="Espresso doble servido en taza blanca" loading="lazy" />
+            </div>
+            <div class="product-card__body">
+              <h3 class="product-card__title">Espresso Artesanal</h3>
+              <p class="product-card__desc">Doble extracción de granos recién tostados. Intenso, con notas a chocolate amargo.</p>
+              <span class="product-card__price">$45</span>
+            </div>
+          </article>
+          <!-- Card 2 -->
+          <article class="product-card">
+            <div class="product-card__img">
+              <img src="https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80" alt="Latte con arte latte en forma de hoja" loading="lazy" />
+            </div>
+            <div class="product-card__body">
+              <h3 class="product-card__title">Latte Cremoso</h3>
+              <p class="product-card__desc">Leche vaporizada de almendra o avena, con un shot de espresso y arte latte.</p>
+              <span class="product-card__price">$60</span>
+            </div>
+          </article>
+          <!-- Card 3 -->
+          <article class="product-card">
+            <div class="product-card__img">
+              <img src="https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80" alt="Té de frutas rojas servido en tetera de vidrio" loading="lazy" />
+            </div>
+            <div class="product-card__body">
+              <h3 class="product-card__title">Té de Autor</h3>
+              <p class="product-card__desc">Infusiones frutales y herbales seleccionadas. Perfecto para una tarde relajada.</p>
+              <span class="product-card__price">$40</span>
+            </div>
+          </article>
+          <!-- Card 4 -->
+          <article class="product-card">
+            <div class="product-card__img">
+              <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80" alt="Smoothie bowl con frutas frescas y granola" loading="lazy" />
+            </div>
+            <div class="product-card__body">
+              <h3 class="product-card__title">Smoothie Bowl</h3>
+              <p class="product-card__desc">Base de açaí o mango, toppings de granola, coco rallado y fruta fresca de temporada.</p>
+              <span class="product-card__price">$75</span>
+            </div>
+          </article>
+          <!-- Card 5 -->
+          <article class="product-card">
+            <div class="product-card__img">
+              <img src="https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80" alt="Croissant dorado y hojaldrado" loading="lazy" />
+            </div>
+            <div class="product-card__body">
+              <h3 class="product-card__title">Repostería Artesanal</h3>
+              <p class="product-card__desc">Croissants, muffins y galletas horneados cada mañana. Recetas tradicionales con un toque único.</p>
+              <span class="product-card__price">$35</span>
+            </div>
+          </article>
+          <!-- Card 6 -->
+          <article class="product-card">
+            <div class="product-card__img">
+              <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80" alt="Granos de café fresco sobre superficie de madera" loading="lazy" />
+            </div>
+            <div class="product-card__body">
+              <h3 class="product-card__title">Venta de Grano</h3>
+              <p class="product-card__desc">Llévate a casa nuestro café en grano o molido. Bolsas de 250g y 500g con fecha de tostado.</p>
+              <span class="product-card__price">$120</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery -->
+    <section class="section gallery" id="gallery">
+      <div class="container">
+        <div class="section__header">
+          <span class="section__tag">Galería</span>
+          <h2 class="section__title">Momentos que inspiran</h2>
+          <p class="section__desc">Así es la experiencia Café Aromas. Cada rincón está pensado para ti.</p>
+        </div>
+        <div class="gallery__grid" id="galleryGrid">
+          <figure class="gallery__item gallery__item--wide">
+            <img src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&q=80" alt="Interior acogedor de la cafetería con luz cálida" loading="lazy" />
+          </figure>
+          <figure class="gallery__item gallery__item--tall">
+            <img src="https://images.unsplash.com/photo-1498804103079-a6351b050096?w=400&q=80" alt="Barista preparando café con método pour-over" loading="lazy" />
+          </figure>
+          <figure class="gallery__item">
+            <img src="https://images.unsplash.com/photo-1511920170033-f8396924c348?w=400&q=80" alt="Taza de café con decoración junto a una ventana" loading="lazy" />
+          </figure>
+          <figure class="gallery__item">
+            <img src="https://images.unsplash.com/photo-1453614512568-c4024d13c247?w=400&q=80" alt="Espacio de trabajo con café y planta" loading="lazy" />
+          </figure>
+          <figure class="gallery__item">
+            <img src="https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=400&q=80" alt="Mesa con café y libro abierto" loading="lazy" />
+          </figure>
+          <figure class="gallery__item">
+            <img src="https://images.unsplash.com/photo-1559494007-9f5847c49d94?w=400&q=80" alt="Detalle de granos de café y cuchara" loading="lazy" />
+          </figure>
+          <figure class="gallery__item gallery__item--wide">
+            <img src="https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=600&q=80" alt="Vista general del mostrador con repostería" loading="lazy" />
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lightbox (hidden by default) -->
+    <div class="lightbox" id="lightbox" role="dialog" aria-label="Visor de imagen ampliada" aria-hidden="true">
+      <button class="lightbox__close" id="lightboxClose" aria-label="Cerrar visor"><i class="fas fa-times"></i></button>
+      <button class="lightbox__nav lightbox__nav--prev" id="lightboxPrev" aria-label="Imagen anterior"><i class="fas fa-chevron-left"></i></button>
+      <button class="lightbox__nav lightbox__nav--next" id="lightboxNext" aria-label="Imagen siguiente"><i class="fas fa-chevron-right"></i></button>
+      <div class="lightbox__content">
+        <img src="" alt="" id="lightboxImg" />
+      </div>
+    </div>
+
+    <!-- Hours -->
+    <section class="section hours" id="hours">
+      <div class="container">
+        <div class="section__header">
+          <span class="section__tag">Horarios</span>
+          <h2 class="section__title">Te esperamos</h2>
+          <p class="section__desc">Visítanos de lunes a domingo. Siempre hay un buen momento para un café.</p>
+        </div>
+        <div class="hours__card">
+          <div class="hours__header">
+            <i class="fas fa-clock"></i>
+            <h3>Horario de Atención</h3>
+          </div>
+          <ul class="hours__list">
+            <li class="hours__row">
+              <span class="hours__day">Lunes — Viernes</span>
+              <span class="hours__time">7:00 AM — 9:00 PM</span>
+            </li>
+            <li class="hours__row">
+              <span class="hours__day">Sábado</span>
+              <span class="hours__time">8:00 AM — 10:00 PM</span>
+            </li>
+            <li class="hours__row hours__row--highlight">
+              <span class="hours__day">Domingo</span>
+              <span class="hours__time">9:00 AM — 6:00 PM</span>
+            </li>
+          </ul>
+          <p class="hours__note"><i class="fas fa-mug-hot"></i> Desayunos hasta las 12:00 PM todos los días</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="section contact" id="contact">
+      <div class="container">
+        <div class="section__header">
+          <span class="section__tag">Contacto</span>
+          <h2 class="section__title">Háblanos</h2>
+          <p class="section__desc">Estamos listos para atenderte. Escríbenos, llámanos o visítanos.</p>
+        </div>
+        <div class="contact__grid">
+          <div class="contact__info">
+            <div class="contact__item">
+              <i class="fas fa-map-marker-alt"></i>
+              <div>
+                <h4>Dirección</h4>
+                <p>Calle del Café 123, Colonia Centro<br />Ciudad de México, CDMX 06000</p>
+              </div>
+            </div>
+            <div class="contact__item">
+              <i class="fas fa-phone-alt"></i>
+              <div>
+                <h4>Teléfono</h4>
+                <p><a href="tel:+525512345678">+52 55 1234 5678</a></p>
+              </div>
+            </div>
+            <div class="contact__item">
+              <i class="fas fa-envelope"></i>
+              <div>
+                <h4>Correo Electrónico</h4>
+                <p><a href="mailto:hola@cafearomas.mx">hola@cafearomas.mx</a></p>
+              </div>
+            </div>
+            <div class="contact__item">
+              <i class="fas fa-globe"></i>
+              <div>
+                <h4>Redes Sociales</h4>
+                <div class="social-links">
+                  <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                  <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                  <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                  <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <form class="contact__form" id="contactForm" novalidate>
+            <div class="form__group">
+              <label for="name">Nombre completo</label>
+              <input type="text" id="name" name="name" placeholder="Tu nombre" required autocomplete="name" />
+              <span class="form__error" id="nameError"></span>
+            </div>
+            <div class="form__group">
+              <label for="email">Correo electrónico</label>
+              <input type="email" id="email" name="email" placeholder="tucorreo@ejemplo.com" required autocomplete="email" />
+              <span class="form__error" id="emailError"></span>
+            </div>
+            <div class="form__group">
+              <label for="message">Mensaje</label>
+              <textarea id="message" name="message" rows="5" placeholder="¿En qué podemos ayudarte?" required></textarea>
+              <span class="form__error" id="messageError"></span>
+            </div>
+            <button type="submit" class="btn btn--primary btn--full">Enviar Mensaje</button>
+            <p class="form__success" id="formSuccess" hidden>¡Gracias por contactarnos! Te responderemos pronto.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <span class="logo__icon" aria-hidden="true">☕</span>
+        <span class="logo__text">Aromas</span>
+        <p>Desde 1998 endulzando tu día con el mejor café artesanal de la ciudad.</p>
+      </div>
+      <div class="footer__links">
+        <h4>Enlaces rápidos</h4>
+        <ul>
+          <li><a href="#hero">Inicio</a></li>
+          <li><a href="#about">Nosotros</a></li>
+          <li><a href="#products">Productos</a></li>
+          <li><a href="#gallery">Galería</a></li>
+          <li><a href="#hours">Horarios</a></li>
+          <li><a href="#contact">Contacto</a></li>
+        </ul>
+      </div>
+      <div class="footer__contact">
+        <h4>Contacto</h4>
+        <p>Calle del Café 123, Centro<br />CDMX, México</p>
+        <p><a href="tel:+525512345678">+52 55 1234 5678</a></p>
+        <div class="social-links">
+          <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p>&copy; 2026 Café Aromas. Todos los derechos reservados. Hecho con <span aria-hidden="true">❤️</span> en la CDMX.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
