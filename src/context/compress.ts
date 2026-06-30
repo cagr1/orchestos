@@ -8,7 +8,7 @@ export interface ContextMdResult {
   agentsMdTokens: number
 }
 
-function estimateTokens(text: string): number {
+export function estimateTokens(text: string): number {
   return Math.round(text.length / 4)
 }
 

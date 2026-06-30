@@ -424,6 +424,25 @@ async function executeSingleTask(
       continue
     }
 
+    // Context insuficiente (harness.ts pre-flight, sin llamada al LLM) — no es un
+    // fallo transitorio que un retry o diagnose vayan a resolver (el modelo no va
+    // a tener más contexto en el próximo intento), así que no se reintenta ni se
+    // gasta una llamada de diagnose. 'blocked' evita que el loop principal la
+    // vuelva a tomar como 'ready' en la siguiente iteración (ver filtro arriba).
+    if (harnessResult.status === 'pending') {
+      updateTaskStatusFn(projectRoot, taskId, {
+        status: 'blocked',
+        retry_reason: harnessResult.retryReason,
+      })
+      return {
+        id: taskId,
+        outcome: 'blocked',
+        usd_cost: accCost,
+        tokens: { input: accInput, output: accOutput },
+        elapsed_ms: 0,
+      }
+    }
+
     // ── Failed (all harness retries exhausted) ───────────────────────────
     const isPermanent = currentTask.retry_count + 1 >= MAX_RETRIES
     const newStatus = isPermanent ? 'failed_permanent' : 'failed'

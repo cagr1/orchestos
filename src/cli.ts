@@ -1019,6 +1019,14 @@ task
         return 'retry'
       }
 
+      // context budget insufficient — no se intentó la llamada, no cuenta como
+      // retry/falla: la tarea queda pending tal cual (ver harness.ts pre-flight)
+      if (result.status === 'pending') {
+        updateTaskStatus(root, taskId, { status: 'pending', retry_reason: result.retryReason })
+        console.error(`[task] ⏸ ${taskId} pending — ${result.retryReason}`)
+        return 'blocked'
+      }
+
       // failed
       const isPermanent = t.retry_count + 1 >= MAX_RETRIES
       updateTaskStatus(root, taskId, { status: isPermanent ? 'failed_permanent' : 'failed', retry_reason: result.retryReason })
@@ -1994,6 +2002,9 @@ async function runClarifyMode(
   } else if (result.status === 'retry') {
     updateTaskStatus(root, taskId, { status: 'pending', retry_count: t.retry_count + 1, retry_reason: result.retryReason })
     console.log(`[task] ↺ ${taskId} retry · ${result.retryReason}`)
+  } else if (result.status === 'pending') {
+    updateTaskStatus(root, taskId, { status: 'pending', retry_reason: result.retryReason })
+    console.log(`[task] ⏸ ${taskId} pending · ${result.retryReason}`)
   } else {
     updateTaskStatus(root, taskId, { status: 'failed', retry_reason: result.retryReason })
     console.log(`[task] ✗ ${taskId} failed · ${result.retryReason}`)

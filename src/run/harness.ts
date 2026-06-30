@@ -34,7 +34,8 @@ import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import { loadSpec } from '../spec/store.ts'
 import { checkContextHealth, shouldCheck, type RunState } from '../hooks/context-monitor.ts'
-import { ensureCatalogLoaded, contextWindowFor, maxOutputTokensFor } from '../router/model-catalog.ts'
+import { ensureCatalogLoaded, contextWindowFor } from '../router/model-catalog.ts'
+import { estimateTokens } from '../context/compress.ts'
 import { createRunContext, createChain, type RunContext } from './middleware.ts'
 import { contextInject, skillRoute, memoryFetch, toolPolicy, instinctApply } from './middlewares/index.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -80,7 +81,7 @@ export interface HarnessOpts {
 }
 
 export interface TaskResult {
-  status: 'done' | 'retry' | 'failed' | 'blocked'
+  status: 'done' | 'retry' | 'failed' | 'blocked' | 'pending'
   /** ID del run insertado en SQLite (vacio si dryRun o fallo antes de insertar) */
   runId: string
   qaVerdict?: 'pass' | 'fail'
@@ -183,13 +184,31 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const before = snapshotHashes(ctx.effectiveRoot, ctx.task.output)
     const beforeContent = snapshotContents(ctx.effectiveRoot, ctx.task.output)
 
-    // -- LLM call --------------------------------------------------------------
-    // maxTokens atado al tope real del modelo (model-catalog.ts) — antes usaba el
-    // default hardcodeado de cada provider (8192), que truncaba tareas multi-archivo
-    // a mitad de generación sin avisar (bug real: crear-web-local-comercial sólo
-    // escribió index.html, nunca llegó a css/js/README dentro del presupuesto fijo).
+    // -- context budget pre-flight (BEFORE calling the LLM) --------------------
+    // Decisión 2026-06-30: dejamos de perseguir `max_tokens` — el catálogo de
+    // OpenRouter publica `top_provider.max_completion_tokens` como 0/ausente para
+    // muchos modelos (ej. deepseek-v4-flash), así que esa ruta caía silenciosamente
+    // al default hardcodeado de cada provider (8192) sin avisar — eso fue lo que
+    // truncó crear-web-local-comercial a mitad de generación. El dato que sí publica
+    // el catálogo de forma confiable es `contextLength` (ventana de contexto real).
+    // Lo usamos como única fuente de verdad: max_tokens se DERIVA de
+    // (contexto disponible − prompt estimado), nunca de un número adivinado o
+    // catalogado por separado. Si ni siquiera entra el prompt con margen razonable
+    // para generar algo, la tarea queda `pending` automáticamente — no se intenta
+    // ni se gasta una llamada que sabemos de antemano que no va a entrar.
     await ensureCatalogLoaded()
-    const maxTokens = maxOutputTokensFor(ctx.model)
+    const promptTokens = estimateTokens(system) + estimateTokens(userContent)
+    const contextWindow = contextWindowFor(ctx.model)
+    const MIN_OUTPUT_BUDGET = 2048
+    const availableForOutput = contextWindow - promptTokens
+    if (availableForOutput < MIN_OUTPUT_BUDGET) {
+      const reason = `context insuficiente: prompt ~${promptTokens} tokens deja sólo ~${Math.max(availableForOutput, 0)} tokens de margen en una ventana de ${contextWindow} (modelo ${ctx.model}) — se necesitan al menos ${MIN_OUTPUT_BUDGET}`
+      log.info(`context budget: ${reason} — dejando pending sin llamar al LLM`)
+      return { status: 'pending', runId: '', retryReason: reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: Math.round(performance.now() - t0), contextWarnings: ctx.contextWarnings }
+    }
+    const maxTokens = availableForOutput
+
+    // -- LLM call --------------------------------------------------------------
     let llmResponse: Awaited<ReturnType<typeof ctx.provider.chat>>
     try {
       llmResponse = await ctx.provider.chat({ model: ctx.model, system, messages: [{ role: 'user', content: userContent }], maxTokens })
