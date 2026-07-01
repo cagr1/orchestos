@@ -158,9 +158,10 @@ const App = {
     }
     this.rerender();
   },
-  async fetchMemory() {
+  async fetchMemory(q) {
     try {
-      const res = await fetch('/api/memory');
+      const url = q ? `/api/memory?q=${encodeURIComponent(q)}` : '/api/memory';
+      const res = await fetch(url);
       if (!res.ok) throw new Error(res.status);
       state.memory = await res.json();
       state.memoryStatus = 'ok';

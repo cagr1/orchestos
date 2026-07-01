@@ -807,12 +807,8 @@ SCREENS.memory = {
     } else if (memory.length === 0) {
       right = emptyState(ICON.memory, t('memory.empty.title'), t('memory.empty.body'));
     } else {
-      const q = (st.memQuery || '').toLowerCase().trim();
       let rows = memory.filter(m => st.memScope === 'all' || m.scope === st.memScope);
-      if (q) rows = rows.filter(m =>
-        (m.topicKey || '').toLowerCase().includes(q) ||
-        (m.content  || '').toLowerCase().includes(q)
-      );
+      const q = st.memQuery || '';
       const scopeCls = sc => sc === 'session' ? 'amber' : sc === 'project' ? 'blue' : 'green';
       right = rows.length
         ? `<div class="mem-results">` + rows.map(m => `
@@ -831,21 +827,22 @@ SCREENS.memory = {
     return `<div class="screen">${head}${memExplainer}<div class="mem-grid">${left}${right}</div></div>`;
   },
   wire(root, st) {
-    root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
+    let _searchTimer;
+    root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => {
+      st.memQuery = '';
+      const qi = root.querySelector('#mem-query');
+      if (qi) qi.value = '';
+      App.fetchAll();
+    });
     root.querySelectorAll('[data-sc]').forEach(s => s.addEventListener('click', () => {
       st.memScope = s.dataset.sc; App.rerender();
     }));
     const qInput = root.querySelector('#mem-query');
     qInput?.addEventListener('input', () => {
-      // Save cursor position before rerender destroys the DOM
-      const pos = qInput.selectionStart;
-      st.memQuery = qInput.value;
-      App.rerender();
-      // Restore focus + cursor to the new input after paint
-      requestAnimationFrame(() => {
-        const ni = document.getElementById('mem-query');
-        if (ni) { ni.focus(); try { ni.setSelectionRange(pos, pos); } catch {} }
-      });
+      const q = qInput.value;
+      st.memQuery = q;
+      if (_searchTimer) clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => App.fetchMemory(q || undefined), 300);
     });
     root.querySelectorAll('[data-topic]').forEach(c => {
       c.addEventListener('click', () => {

@@ -10,7 +10,7 @@ import type { ChatUploadResponse, ChatFileType } from '../types.ts'
 import { ollamaChat } from '../llm/clients.ts'
 import { readEnv } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
-import { runToolLoop, FETCH_URL_TOOL, supportsToolCalling } from '../../providers/tool-call.ts'
+import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, createToolRouter, supportsToolCalling } from '../../providers/tool-call.ts'
 import { checkSsrSafe } from '../ssrf.ts'
 import { ensureCatalogLoaded, supportsReasoningEffort } from '../../router/model-catalog.ts'
 
@@ -170,6 +170,31 @@ export async function executeFetchUrl(_toolName: string, input: unknown): Promis
   }
 }
 
+export async function executeSearchMemory(_toolName: string, input: unknown): Promise<string> {
+  const query = (input as { query?: string })?.query
+  if (!query) return '[Error: no search query provided]'
+
+  try {
+    const rows = db.query<Pick<MemoryEntry, 'topic_key' | 'scope' | 'content'>, [string]>(
+      `SELECT e.topic_key, e.scope, e.content
+       FROM memory_entries e
+       JOIN memory_fts ON memory_fts.rowid = e.rowid
+       WHERE memory_fts MATCH ?
+       ORDER BY bm25(memory_fts)
+       LIMIT 20`
+    ).all(`"${query.replace(/"/g, '""')}"*`)
+
+    if (rows.length === 0) return '[No memory entries found for "' + query + '"]'
+
+    const header = '[Memory search results for "' + query + '"]\n\n'
+    return header + rows.map(r =>
+      '[' + r.scope + '] ' + r.topic_key + ': ' + r.content
+    ).join('\n')
+  } catch (e: any) {
+    return `[Error searching memory: ${e.message}]`
+  }
+}
+
 async function handleApiChat(req: Request): Promise<Response> {
   let body: { history: { role: string; content: string }[]; message: string; fileId?: string; model?: string; effort?: string }
   try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
@@ -295,8 +320,8 @@ Important: you cannot modify files or run code directly from this chat. However,
       const result = await runToolLoop('openrouter', model, {
         system: systemPrompt,
         messages,
-        tools: [FETCH_URL_TOOL],
-        executeTool: executeFetchUrl,
+        tools: [FETCH_URL_TOOL, SEARCH_MEMORY_TOOL],
+        executeTool: createToolRouter({ fetch_url: executeFetchUrl, search_memory: executeSearchMemory }),
         effort,
       })
       return jsonResponse({ text: result.text, model, toolCalls: result.toolCallsExecuted })

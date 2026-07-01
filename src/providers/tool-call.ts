@@ -291,6 +291,37 @@ export const FETCH_URL_TOOL: ToolDef = {
   },
 }
 
+export const SEARCH_MEMORY_TOOL: ToolDef = {
+  name: 'search_memory',
+  description:
+    'Searches the project memory (past decisions, facts, and context saved by previous runs) by ' +
+    'keyword. Use when the user asks about a past decision or fact that is not already present ' +
+    'in the conversation or in the project state summary above — the summary only shows the 20 ' +
+    'most recently updated entries, older or unrelated ones must be searched for explicitly.',
+  input_schema: {
+    type: 'object',
+    required: ['query'],
+    properties: {
+      query: { type: 'string', description: 'Keyword or phrase to search for in memory entries' },
+    },
+  },
+}
+
+/**
+ * Builds a single ToolExecutor that dispatches by tool name to the matching
+ * handler. ToolExecutor itself already carries `toolName` as a param, but
+ * individual handlers (e.g. executeFetchUrl) ignore it and assume they're the
+ * only tool in play — this router lets runToolLoop be given more than one
+ * ToolDef at once without each handler needing its own name-matching logic.
+ */
+export function createToolRouter(handlers: Record<string, ToolExecutor>): ToolExecutor {
+  return async (toolName, input) => {
+    const handler = handlers[toolName]
+    if (!handler) return `[Error: unknown tool "${toolName}"]`
+    return handler(toolName, input)
+  }
+}
+
 interface RawToolUse {
   id: string
   name: string

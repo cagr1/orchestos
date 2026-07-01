@@ -385,6 +385,44 @@ que terminó hasta que vuelve a mirar.
 decidir bien los 2-3 puntos de enganche para no generar spam de notificaciones, y el toggle de
 permiso en Settings (no pedirlo a ciegas).
 
+### 15. Ejecutores externos — Claude Code / opencode como engine detrás de la capa de verificación
+
+**Origen**: revisión estratégica externa (Fable 5, 2026-07-01, memoria `project-strategic-review-2026-07`).
+Tesis: el valor diferenciador de OrchestOS es la **capa de verificación** (contrato + checks +
+evidencia + QA + diagnose), no el ejecutor propio. VISION.md ya lo insinúa ("los puede usar como
+executor") pero el código lo contradice — todo está acoplado a `parseLLMResponse` y su formato de
+un solo disparo.
+
+**Prerequisito duro**: Bloque G del Mes 16 cerrado (interface `ExecutorEngine` + ejecutor agéntico
+propio funcionando). Un ejecutor externo es una tercera implementación de esa misma interface:
+lanzar `claude -p` (headless) u opencode como subproceso dentro del worktree, dejar que trabaje, y
+al terminar aplicar `enforceContract` post-hoc + checks + QA sobre el diff resultante — la capa de
+verificación no cambia, solo el motor.
+
+**Decisiones pendientes (para el diseño, no ahora)**: cómo pasarle el contrato al harness externo
+(prompt vs `--allowedTools`/settings), cómo capturar costo/tokens de un proceso externo, timeout y
+presupuesto, qué hacer si el externo toca archivos fuera de `output[]` (discard del worktree = ya
+resuelto por el sandbox actual).
+
+**Esfuerzo**: alto — pero es LA jugada que convierte a OrchestOS de "runner casero que compite
+contra gigantes" a "la capa de confianza que los gigantes no dan". Gated en evidencia de G.5.
+
+### 16. Escala honesta — poda de DB, presupuesto de input[], partir cli.ts
+
+**Origen**: hallazgo #6 de la misma revisión. Tres deudas de escala reales pero SIN evidencia de
+usuario que las priorice todavía (probado solo en <50 archivos):
+1. **`input[]` va completo al prompt** (`prompt.ts`, `readFileSync` sin límite) — un archivo de 5K
+   líneas en input revienta el presupuesto de contexto. Falta: truncado inteligente o selección
+   por relevancia (el grafo + embeddings ya existen para esto, S21/S24).
+2. **DB sin poda** — `runs` crece sin TTL ni archivado (LIMITATIONS lo admite). Falta: `orchestos
+   runs --prune --older-than 90d` o archivado automático.
+3. **`cli.ts` 2127 líneas** — mismo patrón que el split de `server.ts` del Mes 12 (1727→159 en 13
+   módulos, re-verificado línea a línea). Aplicar el mismo tratamiento cuando el archivo vuelva a
+   doler.
+
+**Esfuerzo**: medio cada uno, independientes. **Gated en evidencia**: no abrir hasta que un
+proyecto real (propio o de usuario externo) golpee el límite concreto.
+
 ---
 
 ## 📚 Referencia — inspiración externa (NO es backlog)

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
-import { runToolLoop, FETCH_URL_TOOL } from '../providers/tool-call.ts'
+import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, createToolRouter } from '../providers/tool-call.ts'
 
 const originalFetch = globalThis.fetch
 
@@ -241,6 +241,66 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
 
     expect(result.text).toBe('There was an error fetching.')
     expect(result.toolCallsExecuted).toHaveLength(1)
+  })
+})
+
+describe('createToolRouter', () => {
+  it('dispatches to the handler matching the tool name', async () => {
+    const router = createToolRouter({
+      fetch_url: async () => 'fetch result',
+      search_memory: async () => 'memory result',
+    })
+
+    expect(await router('fetch_url', { url: 'https://a.com' })).toBe('fetch result')
+    expect(await router('search_memory', { query: 'foo' })).toBe('memory result')
+  })
+
+  it('returns an error string for an unregistered tool name', async () => {
+    const router = createToolRouter({ fetch_url: async () => 'ok' })
+    expect(await router('search_memory', { query: 'foo' })).toBe('[Error: unknown tool "search_memory"]')
+  })
+
+  it('multi-tool loop routes each call to its own handler', async () => {
+    mockFetch([
+      {
+        body: {
+          choices: [{
+            message: {
+              content: null,
+              tool_calls: [
+                { id: 'c1', type: 'function', function: { name: 'fetch_url', arguments: '{"url":"https://a.com"}' } },
+                { id: 'c2', type: 'function', function: { name: 'search_memory', arguments: '{"query":"foo"}' } },
+              ],
+            },
+          }],
+          usage: { prompt_tokens: 20, completion_tokens: 10 },
+        },
+      },
+      {
+        body: {
+          choices: [{ message: { content: 'Done.' } }],
+          usage: { prompt_tokens: 30, completion_tokens: 5 },
+        },
+      },
+    ])
+
+    const router = createToolRouter({
+      fetch_url: async (_name, input) => `fetched ${(input as { url: string }).url}`,
+      search_memory: async (_name, input) => `found ${(input as { query: string }).query}`,
+    })
+
+    const result = await runToolLoop('openrouter', 'openai/gpt-4o-mini', {
+      system: 'Be concise',
+      messages: [{ role: 'user', content: 'do both' }],
+      tools: [FETCH_URL_TOOL, SEARCH_MEMORY_TOOL],
+      executeTool: router,
+    })
+
+    expect(result.text).toBe('Done.')
+    expect(result.toolCallsExecuted).toEqual([
+      { name: 'fetch_url', input: { url: 'https://a.com' } },
+      { name: 'search_memory', input: { query: 'foo' } },
+    ])
   })
 })
 
