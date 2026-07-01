@@ -200,7 +200,12 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const promptTokens = estimateTokens(system) + estimateTokens(userContent)
     const contextWindow = contextWindowFor(ctx.model)
     const MIN_OUTPUT_BUDGET = 2048
-    const availableForOutput = contextWindow - promptTokens
+    // estimateTokens es una aproximación (chars/4), no la tokenización real del
+    // proveedor — sin margen, prompts cerca del límite exacto de contextWindow
+    // devuelven 400 "maximum context length exceeded" (visto en vivo: estimado
+    // 556, real ~46 tokens más, overflow contra ventana de 1048576).
+    const SAFETY_MARGIN = 1024
+    const availableForOutput = contextWindow - promptTokens - SAFETY_MARGIN
     if (availableForOutput < MIN_OUTPUT_BUDGET) {
       const reason = `context insuficiente: prompt ~${promptTokens} tokens deja sólo ~${Math.max(availableForOutput, 0)} tokens de margen en una ventana de ${contextWindow} (modelo ${ctx.model}) — se necesitan al menos ${MIN_OUTPUT_BUDGET}`
       log.info(`context budget: ${reason} — dejando pending sin llamar al LLM`)

@@ -379,6 +379,7 @@ SCREENS.tasks = {
         <div class="kv"><span class="k">${t('tasks.diagnose.confidence')}</span><span class="v">${t(confKey)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.suggestion')}</span><span class="v">${esc(d.suggestion)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.details')}</span><span class="v">${esc(d.details)}</span></div>
+        ${d.lastErrorResult ? `<div class="kv"><span class="k">${t('tasks.diagnose.lastError')}</span><div class="v"><pre style="white-space:pre-wrap;font-size:12px;max-height:200px;overflow:auto;background:#1a1a2e;padding:8px;border-radius:4px;margin:4px 0">${esc(d.lastErrorResult)}</pre></div></div>` : ''}
         <div class="diag-actions" style="margin-top:12px;display:flex;gap:8px">
           <button class="btn primary sm" data-act="retry" data-task-id="${esc(d.taskId)}">${ICON.refresh} ${t('tasks.diagnose.retry')}</button>
           <button class="btn ghost sm" data-act="make-habit" data-trigger="${esc(habitTrigger)}" data-action="${esc(d.suggestion)}">${ICON.bolt} ${t('tasks.diagnose.habit')}</button>

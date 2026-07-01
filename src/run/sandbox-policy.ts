@@ -19,7 +19,12 @@ export function resolveSandboxMode(projectRoot: string, preferred?: SandboxMode)
     return { mode: 'cwd', warnings, branch: null }
   }
 
-  // check for uncommitted changes
+  if (preferred === 'cwd') {
+    warnings.push('Sandbox disabled by --sandbox=cwd — changes will be written directly to the repo')
+    return { mode: 'cwd', warnings, branch: null }
+  }
+
+  // check for uncommitted changes (only relevant for worktree mode)
   const status = git(['status', '--porcelain'], projectRoot)
   if (status.exitCode === 0 && status.stdout.length > 0) {
     const fileList = status.stdout.split('\n').slice(0, 10).map(l => {
@@ -31,11 +36,6 @@ export function resolveSandboxMode(projectRoot: string, preferred?: SandboxMode)
       `Uncommitted changes in ${projectRoot}. Worktree sandbox requires a clean working tree.\n` +
       `Either commit or stash before running with sandbox:\n${fileList}${suffix}`
     )
-  }
-
-  if (preferred === 'cwd') {
-    warnings.push('Sandbox disabled by --sandbox=cwd — changes will be written directly to the repo')
-    return { mode: 'cwd', warnings, branch: null }
   }
 
   // determine current branch

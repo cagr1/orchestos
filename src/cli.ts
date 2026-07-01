@@ -41,6 +41,7 @@ import { scaffoldSkillYaml, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
 import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
 import { listConflicts } from './db/memory.ts'
+import { resetTestData } from './db/reset.ts'
 
 // Run migrations on every boot (idempotent)
 runMigrations()
@@ -1800,6 +1801,22 @@ program
       console.log(`  ${FAIL}  ${RED}${criticalFails} item${criticalFails > 1 ? 's' : ''} pendiente${criticalFails > 1 ? 's' : ''}.${RESET}  Resuélvelos y vuelve a ejecutar:  ${BOLD}orchestos setup${RESET}`)
     }
     console.log()
+  })
+
+// ── reset ──────────────────────────────────────────────────────────────────────
+program
+  .command('reset')
+  .description('Delete test-session data: all runs, unverified instincts, reset tasks.yaml to pending. Does NOT touch config, skills, CONSTITUTION.md/CONTEXT.md, or memory_entries.')
+  .option('--yes', 'Confirm the destructive action (required)')
+  .action((opts: { yes?: boolean }) => {
+    if (!opts.yes) {
+      console.error('[reset] This deletes all runs, unverified instincts, and resets tasks.yaml to pending.')
+      console.error('[reset] Re-run with --yes to confirm.')
+      process.exit(1)
+    }
+    const root = resolve('.')
+    const summary = resetTestData(root)
+    console.log(`[reset] Deleted ${summary.runsDeleted} run(s), ${summary.instinctsDeleted} unverified instinct(s), reset ${summary.tasksReset} task(s) to pending.`)
   })
 
 // ── dashboard ──────────────────────────────────────────────────────────────────

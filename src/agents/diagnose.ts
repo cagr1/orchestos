@@ -31,6 +31,8 @@ export interface DiagnoseResult {
   details: string
   /** Costo real USD de la llamada de diagnóstico — AR.3: el caller (graph-runner) lo necesita para no subcontar el circuit breaker. */
   usdCost: number
+  /** result crudo (sin truncar) del run fallido más reciente — el motivo real del fallo, no el resumen del LLM diagnóstico */
+  lastErrorResult?: string
 }
 
 const PATTERNS_DESCRIPTION = `
@@ -113,6 +115,8 @@ export async function diagnoseTask(
   const runs = listRunsByTaskId(taskId).slice(0, 3)
   if (runs.length === 0) throw new Error(`No runs found for task "${taskId}"`)
 
+  const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'blocked')?.result ?? undefined
+
   const model = modelOverride ?? 'anthropic/claude-3-haiku'
 
   let resp
@@ -142,6 +146,7 @@ export async function diagnoseTask(
       suggestion: 'Could not parse LLM diagnostic response. Read the run details manually with: orchestos runs --detail <run-id>',
       details: `LLM returned unparseable response: ${resp.text.slice(0, 200)}`,
       usdCost,
+      lastErrorResult,
     }
   }
 
@@ -161,6 +166,7 @@ export async function diagnoseTask(
       suggestion: typeof obj.suggestion === 'string' ? obj.suggestion : 'No suggestion provided.',
       details: typeof obj.details === 'string' ? obj.details : 'No details provided.',
       usdCost,
+      lastErrorResult,
     }
   } catch {
     return {
@@ -170,6 +176,7 @@ export async function diagnoseTask(
       suggestion: 'Could not parse LLM diagnostic response. Read the run details manually with: orchestos runs --detail <run-id>',
       details: `JSON parse error on: ${jsonMatch[0].slice(0, 200)}`,
       usdCost,
+      lastErrorResult,
     }
   }
 }

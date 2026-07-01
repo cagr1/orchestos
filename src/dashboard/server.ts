@@ -9,6 +9,7 @@ import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handl
 import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
 import { handleApiChatUpload, handleApiChatModels, handleApiChat } from './handlers/chat.ts'
 import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport } from './handlers/skills.ts'
+import { handleApiSystemReset } from './handlers/system.ts'
 import { DEFAULT_PORT } from './types.ts'
 
 export async function route(req: Request, port: number): Promise<Response> {
@@ -146,6 +147,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname === '/api/settings') {
     return handleApiSettingsPost(req)
+  }
+  if (method === 'POST' && url.pathname === '/api/system/reset') {
+    return handleApiSystemReset(req)
   }
 
   if (method === 'GET') {

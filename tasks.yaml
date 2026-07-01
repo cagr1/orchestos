@@ -383,19 +383,48 @@ tasks:
       - js/main.js
       - README.md
     depends_on: []
-    status: pending
+    status: failed
     retry_count: 0
+    retry_reason: "OpenRouter error 400: {\"error\":{\"message\":\"This endpoint's maximum context length is 1048576 tokens.
+      However, you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length
+      of either one, or use the context-compression plugin to compress your prompt
+      automatically.\",\"code\":400,\"metadata\":{\"provider_name\":null,\"previous_errors\":[{\"code\":400,\"message\":\
+      \"This endpoint's maximum context length is 1048576 tokens. However, you requested about 1048622 tokens (556 of
+      text input, 1048066 in the output). Please reduce the length of either one, or use the context-compression plugin
+      to compress your prompt automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is
+      1048576 tokens. However, you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please
+      reduce the length of either one, or use the context-compression plugin to compress your prompt
+      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
+      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
+      one, or use the context-compression plugin to compress your prompt
+      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
+      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
+      one, or use the context-compression plugin to compress your prompt
+      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
+      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
+      one, or use the context-compression plugin to compress your prompt
+      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
+      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
+      one, or use the context-compression plugin to compress your prompt
+      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
+      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
+      one, or use the context-compression plugin to compress your prompt
+      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
+      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
+      one, or use the context-compression plugin to compress your prompt
+      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
+      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
+      one, or use the context-compression plugin to compress your prompt
+      automatically.\"}]}},\"user_id\":\"user_2xopxZpxd9nEZB7OUmKkSLxAs2G\"}"
   - id: dogfood-worktree-no-silent-fallback
     description: >
-      Fix the sandbox behavior so that when worktree mode is explicitly requested,
-      including via --keep-worktree, OrchestOS must never silently fall back to cwd.
-      If a worktree cannot be created because task id or branch metadata is missing,
-      the run must fail with a clear error before writing files.
+      Fix the sandbox behavior so that when worktree mode is explicitly requested, including via --keep-worktree,
+      OrchestOS must never silently fall back to cwd. If a worktree cannot be created because task id or branch metadata
+      is missing, the run must fail with a clear error before writing files.
 
-      Add regression tests covering:
-      1. explicit worktree mode without required metadata fails clearly
-      2. --keep-worktree implies strict worktree behavior
-      3. auto mode may still fall back only when explicitly allowed by existing semantics
+      Add regression tests covering: 1. explicit worktree mode without required metadata fails clearly 2.
+      --keep-worktree implies strict worktree behavior 3. auto mode may still fall back only when explicitly allowed by
+      existing semantics
 
       Do not change unrelated sandbox behavior.
     executor: openrouter

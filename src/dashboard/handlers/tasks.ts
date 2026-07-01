@@ -129,6 +129,7 @@ async function handleApiTasksDiagnose(url: URL): Promise<Response> {
       confidence: result.confidence,
       suggestion: result.suggestion,
       details: result.details,
+      lastErrorResult: result.lastErrorResult,
     }
     return jsonResponse(row)
   } catch (e: any) {

@@ -83,6 +83,7 @@ export interface DiagnoseRow {
   confidence: 'high' | 'medium' | 'low'
   suggestion: string
   details: string
+  lastErrorResult?: string
 }
 
 // ── /api/tasks ────────────────────────────────────────────────────────────────

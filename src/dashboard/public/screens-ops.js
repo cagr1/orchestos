@@ -771,6 +771,11 @@ SCREENS.settings = {
               </div>
               <div class="kv"><span class="k">${t('settings.project.cli')}</span><span class="v mono" style="font-size:12px">orchestos dashboard --port 4242</span></div>
             </div>
+            <div class="card settings-card">
+              <div class="settings-header"><h3>${t('settings.reset.title')}</h3></div>
+              <p class="muted" style="margin:0 0 12px;font-size:12.5px">${t('settings.reset.desc')}</p>
+              <button class="btn danger" data-act="system-reset">${ICON.trash} ${t('settings.reset.btn')}</button>
+            </div>
           </section>
 
           <section class="settings-panel${sec === 'lang' ? ' active' : ''}" data-panel="lang">
@@ -846,6 +851,28 @@ SCREENS.settings = {
         msg.textContent = t('common.conn.error');
         msg.style.color = 'var(--error)';
         msg.style.display = '';
+      } finally { btn.disabled = false; }
+    });
+
+    root.querySelector('[data-act="system-reset"]')?.addEventListener('click', async () => {
+      if (!confirm(t('settings.reset.confirm'))) return;
+      const btn = root.querySelector('[data-act="system-reset"]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/system/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: true }),
+        });
+        if (res.ok) {
+          const s = await res.json();
+          showToast(t('settings.reset.ok', s.runsDeleted, s.instinctsDeleted, s.tasksReset));
+          await App.fetchAll();
+        } else {
+          showToast(t('settings.reset.err'), 'error');
+        }
+      } catch {
+        showToast(t('settings.reset.err'), 'error');
       } finally { btn.disabled = false; }
     });
 
