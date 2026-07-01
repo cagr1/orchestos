@@ -914,7 +914,8 @@ task
   .option('--clarify <task-id>', 'Ask for clarification before executing the task')
   .option('--keep-worktree', 'Keep worktree on failure for post-mortem debugging (implies --sandbox=worktree)')
   .option('--sandbox <mode>', 'Sandbox mode: worktree | cwd | auto (default: auto)', 'auto')
-  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; expand?: string; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string }) => {
+  .option('--model <model>', 'Transient model override for this run only — does NOT persist in tasks.yaml')
+  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; expand?: string; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string; model?: string }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
     const project = getProject(root)
@@ -975,7 +976,7 @@ task
       console.log(`  description: ${t.description}`)
       console.log(`  output:      ${t.output.join(', ')}`)
 
-      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log, orcheConfig, orcheConfigFound, sandboxMode: policy.mode, sandboxBranch: policy.branch, keepWorktree: opts?.keepWorktree })
+      const result = await runTask({ projectRoot: root, contextText: projectContext, task: t, projectId: project?.id, logger: log, orcheConfig, orcheConfigFound, sandboxMode: policy.mode, sandboxBranch: policy.branch, keepWorktree: opts?.keepWorktree, modelOverride: opts?.model })
 
       // map TaskResult → updateTaskStatus
       if (result.status === 'done') {

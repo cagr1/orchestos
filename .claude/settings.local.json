@@ -58,7 +58,8 @@
       "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H \"Content-Type: application/json\" -d '{\"text\": \"writing documentation\"}')",
       "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"Skill multi-paso para onboarding de nuevos desarrolladores: primero clonar el repo y verificar que el entorno local levanta, luego ejecutar los tests para confirmar que todo pasa, después revisar el CLAUDE.md y el README, y finalmente hacer un primer commit pequeño para verificar que los permisos de git están bien configurados.\"}')",
       "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H \"Content-Type: application/json\" -d '{\"text\": \"Skill multi-paso para onboarding de nuevos desarrolladores: primero clonar el repo y verificar que el entorno local levanta, luego ejecutar los tests para confirmar que todo pasa, después revisar el CLAUDE.md y el README, y finalmente hacer un primer commit pequeño para verificar que los permisos de git están bien configurados.\"}')",
-      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"revisión de código\"}')"
+      "Bash(curl -s -X POST http://localhost:4242/api/skills/curate -H 'Content-Type: application/json' -d '{\"text\": \"revisión de código\"}')",
+      "Bash(grep -n \"^program\\\\s*$\\\\|program\\\\s*\\\\n\\\\s*\\\\.command\\(\\\\|\\\\.command\\('init'\\\\|\\\\.command\\('detect'\\\\|\\\\.command\\('index'\" /Users/carlosgallardo/Documents/projects/orchestos/src/cli.ts)"
     ]
   }
 }

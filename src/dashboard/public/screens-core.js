@@ -355,7 +355,7 @@ SCREENS.runner = {
    2 · TASKS  (Table + compose bar)
    ============================================================ */
 SCREENS.tasks = {
-  diagnoseDetail(d) {
+  diagnoseDetail(d, st) {
     const confKey = d.confidence === 'high' ? 'tasks.diagnose.conf.high'
       : d.confidence === 'medium' ? 'tasks.diagnose.conf.med'
       : 'tasks.diagnose.conf.low';
@@ -380,9 +380,15 @@ SCREENS.tasks = {
         <div class="kv"><span class="k">${t('tasks.diagnose.suggestion')}</span><span class="v">${esc(d.suggestion)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.details')}</span><span class="v">${esc(d.details)}</span></div>
         ${d.lastErrorResult ? `<div class="kv"><span class="k">${t('tasks.diagnose.lastError')}</span><div class="v"><pre style="white-space:pre-wrap;font-size:12px;max-height:200px;overflow:auto;background:#1a1a2e;padding:8px;border-radius:4px;margin:4px 0">${esc(d.lastErrorResult)}</pre></div></div>` : ''}
-        <div class="diag-actions" style="margin-top:12px;display:flex;gap:8px">
-          <button class="btn primary sm" data-act="retry" data-task-id="${esc(d.taskId)}">${ICON.refresh} ${t('tasks.diagnose.retry')}</button>
-          <button class="btn ghost sm" data-act="make-habit" data-trigger="${esc(habitTrigger)}" data-action="${esc(d.suggestion)}">${ICON.bolt} ${t('tasks.diagnose.habit')}</button>
+        <div class="diag-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px">
+            <span style="font-size:12px;white-space:nowrap">${t('modal.task.model.label')}</span>
+            ${buildModelSelect('diagnose-model', st.orModels?.length ? st.orModels[0]?.id : null, st.orModels, st.localModels)}
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn primary sm" data-act="retry" data-task-id="${esc(d.taskId)}">${ICON.refresh} ${t('tasks.diagnose.retry')}</button>
+            <button class="btn ghost sm" data-act="make-habit" data-trigger="${esc(habitTrigger)}" data-action="${esc(d.suggestion)}">${ICON.bolt} ${t('tasks.diagnose.habit')}</button>
+          </div>
         </div>
       </div>
     </div></td></tr>`;
@@ -516,7 +522,7 @@ SCREENS.tasks = {
         <td>${qa}</td>
         <td style="text-align:center;vertical-align:middle">${diagBtn}</td>
       </tr>`;
-      const detail = open && cached && cached !== 'loading' ? this.diagnoseDetail(cached) : '';
+      const detail = open && cached && cached !== 'loading' ? this.diagnoseDetail(cached, st) : '';
       return main + detail;
     }).join('');
 
@@ -710,10 +716,13 @@ SCREENS.tasks = {
     root.querySelectorAll('[data-act="retry"]').forEach(btn => btn.addEventListener('click', async e => {
       e.stopPropagation();
       const taskId = btn.dataset.taskId;
+      const modelSel = btn.closest('.diag-actions')?.querySelector('#diagnose-model');
+      const model = modelSel ? modelSel.value : undefined;
       btn.disabled = true;
       btn.textContent = t('tasks.diagnose.retrying');
       try {
-        const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/run`, { method: 'POST' });
+        const body = model ? { model } : {};
+        const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/run`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (res.ok) {
           await App.fetchTasks();
           App.rerender();

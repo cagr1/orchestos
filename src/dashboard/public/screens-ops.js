@@ -412,6 +412,9 @@ SCREENS.graph = {
   },
 
   resultRow(e) {
+    const retryBtn = e.outcome === 'failed_permanent' || e.outcome === 'blocked'
+      ? `<button class="btn ghost sm" data-act="graph-retry" data-task-id="${esc(e.id)}">${ICON.refresh} ${t('tasks.diagnose.retry')}</button>`
+      : '';
     return `<tr>
       <td class="mono">${esc(e.id)}</td>
       <td><span class="badge ${GRAPH_OUTCOME_COLOR[e.outcome] || 'gray'} square">${esc(e.outcome)}</span></td>
@@ -419,6 +422,7 @@ SCREENS.graph = {
       <td class="num">${fmt(e.tokens.input)} <span class="faint">/</span> ${fmt(e.tokens.output)}</td>
       <td class="num">${fmt(e.elapsed_ms)}</td>
       ${e.error ? `<td class="faint" style="max-width:320px">${esc(e.error)}</td>` : '<td></td>'}
+      <td>${retryBtn}</td>
     </tr>`;
   },
 
@@ -469,6 +473,12 @@ SCREENS.graph = {
       <div class="lead"><h1>${t('graph.title')}</h1><p>${t('graph.subtitle')}</p></div>
       <div class="tools">
         ${liveIndicator}
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px">${t('graph.maxCost')}
+          <input type="number" id="graph-max-cost" placeholder="${t('graph.maxCostHint')}" step="any" min="0" style="width:90px;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)">
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px">${t('graph.maxMinutes')}
+          <input type="number" id="graph-max-minutes" placeholder="${t('graph.maxMinutesHint')}" step="1" min="0" style="width:80px;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)">
+        </label>
         <button class="btn primary" data-act="run-graph" ${isRunning || st.graphLaunching ? 'disabled' : ''}>${ICON.play} ${t('graph.runBtn')}</button>
       </div>
     </div>`;
@@ -515,10 +525,15 @@ SCREENS.graph = {
   wire(root, st) {
     root.querySelector('[data-act="run-graph"]')?.addEventListener('click', async () => {
       if (!confirm(t('graph.confirm'))) return;
+      const maxCostEl = document.getElementById('graph-max-cost');
+      const maxMinutesEl = document.getElementById('graph-max-minutes');
+      const body = {};
+      if (maxCostEl && maxCostEl.value !== '') body.maxCost = Number(maxCostEl.value);
+      if (maxMinutesEl && maxMinutesEl.value !== '') body.maxMinutes = Number(maxMinutesEl.value);
       st.graphLaunching = true;
       App.rerender();
       try {
-        const res = await fetch('/api/run/graph', { method: 'POST' });
+        const res = await fetch('/api/run/graph', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
         if (res.status === 409) {
           showToast(t('graph.alreadyRunning'), 'error');
         } else if (!res.ok) {
@@ -532,6 +547,26 @@ SCREENS.graph = {
         App.rerender();
       }
     });
+
+    // C2 — retry button per row (failed_permanent / blocked)
+    root.querySelectorAll('[data-act="graph-retry"]').forEach(btn => btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const taskId = btn.dataset.taskId;
+      btn.disabled = true;
+      btn.textContent = t('tasks.diagnose.retrying');
+      try {
+        const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/run`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        if (res.ok) {
+          showToast(t('tasks.diagnose.retry.ok'));
+          await App.fetchGraphStatus();
+          App.rerender();
+        } else {
+          showToast(t('tasks.diagnose.retry.err'), 'error');
+        }
+      } catch {
+        showToast(t('tasks.diagnose.retry.err'), 'error');
+      }
+    }));
 
     // C2 — poll while a run is in progress; stop once done/error or screen changes
     if (this._timer) clearInterval(this._timer);

@@ -81,16 +81,25 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
   }
 }
 
-function handleApiTasksRun(url: URL): Response {
+async function handleApiTasksRun(req: Request, url: URL): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
+  let body: { model?: string } = {}
+  try { body = (await req.json()) as { model?: string } } catch { /* body opcional */ }
+  const model = body.model?.trim() || undefined
   const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   const file = loadTasks(root)
   const task = file.tasks.find((t: any) => t.id === id)
   if (!task) return errorResponse('Task not found', 404)
-  Bun.spawn([process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id], {
+  if (task.status !== 'pending') {
+    task.status = 'pending'
+    saveTasks(root, file)
+  }
+  const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id]
+  if (model) args.push('--model', model)
+  Bun.spawn(args, {
     cwd: root,
     stdout: 'inherit',
     stderr: 'inherit',

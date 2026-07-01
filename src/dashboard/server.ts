@@ -30,7 +30,7 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiTasksCreate(req)
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/run$/)) {
-    return handleApiTasksRun(url)
+    return handleApiTasksRun(req, url)
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
     return handleApiTasksDelete(url)
@@ -128,7 +128,7 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiSpecsDraft(req)
   }
   if (method === 'GET' && url.pathname === '/api/memory') {
-    return handleApiMemory()
+    return handleApiMemory(url)
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
     return await handleApiSettingsGet()
