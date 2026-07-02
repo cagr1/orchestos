@@ -107,6 +107,7 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'embed_hits',             'INTEGER')  // S24.5: count of embedding-suggested files used in this run
   safeAddColumn('runs', 'context_warnings_json', 'TEXT')     // S27.4: JSON array of ContextWarning[] fired during this run
   safeAddColumn('runs', 'cost_breakdown_json',   'TEXT')     // S35.3: JSON array of CostBreakdownEntry[]
+  safeAddColumn('runs', 'qa_model',              'TEXT')     // F2.5: judge model resolved by resolveQAJudge(), distinct from executor `model` column
 
   // S26.3 — memory conflict detection records
   db.exec(`

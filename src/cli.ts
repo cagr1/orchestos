@@ -2085,7 +2085,8 @@ function printRunDetail(r: import('./db/runs.ts').RunRecord) {
   if (!r.qa_verdict) {
     console.log('(not run)')
   } else {
-    console.log(`[${r.qa_verdict === 'pass' ? 'PASS' : 'FAIL'}] ${r.qa_reason ?? '(no reason recorded)'}`)
+    const judge = (r as any).qa_model ? ` (judge: ${(r as any).qa_model})` : ''
+    console.log(`[${r.qa_verdict === 'pass' ? 'PASS' : 'FAIL'}]${judge} ${r.qa_reason ?? '(no reason recorded)'}`)
   }
 
   console.log(`\n## Files`)

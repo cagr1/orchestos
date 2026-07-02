@@ -20,7 +20,7 @@
 import { classifyTask } from '../router/classify.ts'
 import { resolveModel } from '../router/models.ts'
 import { calcCost } from '../router/pricing.ts'
-import { getProvider } from '../providers/index.ts'
+import { getProvider, type ProviderClient } from '../providers/index.ts'
 import { autoRoute } from '../router/auto-route.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 import { loadConstitution, buildConstitutionBlock } from '../spec/constitution.ts'
@@ -96,6 +96,44 @@ export interface TaskResult {
   contextWarnings: ContextWarning[]
 }
 
+// -- QA judge resolution (F2) ---------------------------------------------------
+
+/** Cheap default judge model per executor provider — must differ from the executor to avoid correlated errors. */
+export const QA_JUDGE_DEFAULTS: Record<string, { provider: string; model: string }> = {
+  anthropic:  { provider: 'anthropic',  model: 'claude-haiku-4-5' },
+  openai:     { provider: 'openai',     model: 'gpt-4o-mini' },
+  openrouter: { provider: 'openrouter', model: 'openai/gpt-4o-mini' },
+}
+
+/**
+ * Resolves which model/provider judges QA for this run.
+ * (1) explicit orcheConfig.models.qa wins, even if it equals the executor model.
+ * (2) otherwise pick QA_JUDGE_DEFAULTS by executor provider, distinct from ctx.model.
+ * (3) if the chosen default collides with ctx.model (only possible for the openrouter
+ *     default), fall back to anthropic/claude-haiku-4-5 called via openrouter.
+ */
+export function resolveQAJudge(
+  executorProviderName: string,
+  executorModel: string,
+  orcheConfig: OrcheConfig | undefined,
+  log: RunLogger,
+): { provider: ProviderClient; model: string } {
+  if (orcheConfig?.models.qa) {
+    const explicit = orcheConfig.models.qa
+    if (explicit.provider === executorProviderName && explicit.model === executorModel) {
+      log.info('qa judge equals executor model — correlated errors risk')
+    }
+    return { provider: getProvider(explicit.provider), model: explicit.model }
+  }
+
+  const def = QA_JUDGE_DEFAULTS[executorProviderName] ?? QA_JUDGE_DEFAULTS.openrouter!
+  if (def.provider === executorProviderName && def.model === executorModel) {
+    // collision — only reachable via the openrouter default today
+    return { provider: getProvider('openrouter'), model: 'anthropic/claude-haiku-4-5' }
+  }
+  return { provider: getProvider(def.provider), model: def.model }
+}
+
 // -- main ----------------------------------------------------------------------
 
 export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
@@ -163,6 +201,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     if (constitution) log.info(`constitution: loaded (${constitution.ruleCount} rules)`)
 
     // build prompt
+    const previousFailure = ctx.task.retry_count > 0 ? ctx.task.retry_reason : undefined
     const { system, userContent } = buildPrompt(
       ctx.task,
       ctx.effectiveContext,
@@ -170,6 +209,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       ctx.constitutionBlock,
       ctx.skillInstructions,
       ctx.instinctBlock,
+      previousFailure,
     )
     ctx.prompt = { system, userContent }
 
@@ -340,11 +380,12 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
 
     // -- QA stage (LLM) --------------------------------------------------------
+    const qaJudge = resolveQAJudge(ctx.providerName, ctx.model, orcheConfig, log)
     let qa: Awaited<ReturnType<typeof runQA>>
     try {
-      qa = await runQA({ description: ctx.task.description, output: ctx.task.output, written: contractResult.written, model: ctx.model, acceptance_criteria: ctx.task.acceptance_criteria, provider: ctx.provider })
+      qa = await runQA({ description: ctx.task.description, output: ctx.task.output, written: contractResult.written, model: qaJudge.model, acceptance_criteria: ctx.task.acceptance_criteria, provider: qaJudge.provider })
     } catch (e: any) {
-      qa = { verdict: 'fail' as const, reason: `QA call error: ${e.message}`, inputTokens: 0, outputTokens: 0, model: ctx.model }
+      qa = { verdict: 'fail' as const, reason: `QA call error: ${e.message}`, inputTokens: 0, outputTokens: 0, model: qaJudge.model }
     }
 
     const qaCost = calcCost(qa.model, qa.inputTokens, qa.outputTokens)
@@ -362,7 +403,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const retryCount = ctx.task.retry_count + 1
       const newStatus = retryCount >= MAX_RETRIES ? 'failed_permanent' : 'pending'
 
-      insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail - reverted ${contractResult.written.length} file(s)` })
+      insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, qa_model: qa.model, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail - reverted ${contractResult.written.length} file(s)` })
 
       if (newStatus === 'failed_permanent') {
         log.failedPermanent(qa.reason)
@@ -380,7 +421,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       log.info(`sandbox: merged ${mergedBranch} into ${sandboxBranch ?? ''}`)
     }
 
-    const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
+    const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, qa_model: qa.model, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
 
     log.qaPass(qa.reason)
     log.done()

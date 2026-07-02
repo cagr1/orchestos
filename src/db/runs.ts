@@ -18,6 +18,7 @@ export interface RunRecord {
   snapshot_after: string | null
   qa_verdict: string | null
   qa_reason: string | null
+  qa_model: string | null
   checks_json: string | null
   constitution_rules: number | null
   context_source: string | null
@@ -34,7 +35,8 @@ export interface RunRecord {
   created_at: string
 }
 
-type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'checks_json' | 'constitution_rules' | 'context_source' | 'context_tokens' | 'embed_hits' | 'context_warnings_json' | 'cost_breakdown_json'> & {
+type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'qa_model' | 'checks_json' | 'constitution_rules' | 'context_source' | 'context_tokens' | 'embed_hits' | 'context_warnings_json' | 'cost_breakdown_json'> & {
+  qa_model?: string | null
   checks_json?: string | null
   constitution_rules?: number | null
   context_source?: string | null
@@ -51,15 +53,15 @@ export function insertRun(r: InsertRunRecord): string {
     `INSERT INTO runs (
       id, project_id, prompt, task_class, model, provider, skill_id, task_id,
       allowed_outputs, files_attempted, files_authorized, files_blocked,
-      snapshot_before, snapshot_after, qa_verdict, qa_reason, checks_json,
+      snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
       cost_breakdown_json,
       status, input_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id, r.project_id, r.prompt, r.task_class, r.model, r.provider, r.skill_id, r.task_id,
       r.allowed_outputs, r.files_attempted, r.files_authorized, r.files_blocked,
-      r.snapshot_before, r.snapshot_after, r.qa_verdict, r.qa_reason, r.checks_json ?? null,
+      r.snapshot_before, r.snapshot_after, r.qa_verdict, r.qa_reason, r.qa_model ?? null, r.checks_json ?? null,
       r.constitution_rules ?? null,
       r.context_source ?? null, r.context_tokens ?? null, r.embed_hits ?? null,
       r.context_warnings_json ?? null,

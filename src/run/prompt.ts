@@ -15,6 +15,7 @@ export function buildPrompt(
   constitutionBlock?: string,
   skillGuidelines?: string,
   instinctBlock?: string,
+  previousFailure?: string,
 ): BuiltPrompt {
   const guidelines = skillGuidelines ?? loadSkillGuidelines(task.skill)
 
@@ -36,6 +37,12 @@ export function buildPrompt(
     if (existsSync(fullPath)) {
       userContent += `\n### ${file}\n\`\`\`\n${readFileSync(fullPath, 'utf-8')}\n\`\`\`\n`
     }
+  }
+
+  if (previousFailure) {
+    const truncated = previousFailure.slice(0, 2000)
+    userContent += `\n## PREVIOUS ATTEMPT FAILED\nThe last attempt at this task failed for this reason:\n${truncated}\nFix the cause described above. Do not repeat the same mistake.`
+
   }
 
   return { system, userContent }

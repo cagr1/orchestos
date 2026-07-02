@@ -50,6 +50,8 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
       executor_heavy: parseRoleValue(models.executor_heavy, d.executor_heavy),
       executor_light: parseRoleValue(models.executor_light, d.executor_light),
       default:        parseRoleValue(models.default,        d.default),
+      // qa has no default fallback — absence means "not configured", resolved at call time (harness.ts F2.2)
+      qa: models.qa !== undefined ? parseRoleValue(models.qa, d.default) : undefined,
     },
   }
 }
@@ -86,6 +88,11 @@ models:
   default:
     provider: openrouter
     model: deepseek/deepseek-v4-flash
+
+  # Optional: QA judge model (must differ from the executor — see docs)
+  # qa:
+  #   provider: anthropic
+  #   model: claude-haiku-4-5
 
 # Examples:
 #   planner:        "anthropic/claude-opus-4-7"

@@ -19,6 +19,8 @@ export interface OrcheConfig {
     executor_heavy: ModelRoleConfig
     executor_light: ModelRoleConfig
     default:        ModelRoleConfig
+    /** Optional QA judge model — absence triggers the resolution logic in harness.ts (never same model as executor) */
+    qa?:            ModelRoleConfig
   }
   /** If true, every task must have an approved spec before it can run */
   requireSpec?: boolean
