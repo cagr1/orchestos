@@ -19,18 +19,40 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
 **Regla de documentación obligatoria (2026-07-02):** todo hallazgo — bug real, deuda técnica, feature huérfana, contradicción entre `tasks.yaml`/DONE.md y el código real — se convierte en un ítem de este archivo (o de IDEAS.md si es backlog no inmediato) ANTES de tocar código. Si no está escrito acá, no se corrige. Motivo: una auditoría completa (2026-07-02) encontró deuda documentada en prosa dentro de DONE.md ("anotado como deuda conocida") que nunca se tradujo a un ítem accionable y por eso nadie la persiguió durante 3 meses (ver Bloque F0).
 
+**Regla de flujo IDEAS→PLAN→DONE (decisión Carlos, 2026-07-02):** cuando una idea pasa de IDEAS.md a PLAN.md (se convierte en el eje o en un bloque de un Mes), **se ELIMINA de IDEAS.md en el mismo commit** — no queda duplicada en ambos. La evidencia de que se realizó vive siempre en DONE.md (documentación extensa al cierre del Mes). IDEAS.md es solo backlog vivo: lo que está ahí es porque NADIE lo está haciendo todavía.
+
 ---
 
-## MES 17 — sin tema oficial todavía
+## MES 17 — La capa de confianza: ejecutores externos detrás de la verificación
 
-**Pre-flight (2026-07-02):** Mes 16 cerrado. Ningún gap bloqueante conocido — F1-F4/G quedaron sin deuda abierta propia (ver checklist de verificación en vivo, todo ✅ en DONE.md § MES 16). Candidatos listos para que Carlos decida el eje del mes, por prioridad de desbloqueo reciente:
+**Eje decidido por Carlos (2026-07-02): IDEAS.md #15 (ejecutores externos) — primero; #12 (chat como entrada única) queda comprometido como el eje siguiente (Mes 18), en ese orden.** Ítem #15 movido acá desde IDEAS.md y eliminado de allá (regla IDEAS→PLAN→DONE).
 
-- **IDEAS.md #15 — Ejecutores externos** (Claude Code headless / opencode como tercera implementación de `ExecutorEngine`). Prerequisito "Bloque G cerrado" ahora CUMPLIDO — candidato más directo, es la jugada que "convierte a OrchestOS de runner casero a capa de confianza" según la revisión estratégica que originó el Mes 16.
-- **IDEAS.md #9b — Auditoría de paridad CLI↔Dashboard**, abierta desde Mes 14, nunca priorizada.
-- **IDEAS.md #16 — Escala honesta** (poda de DB, presupuesto de `input[]`, partir `cli.ts`) — sigue gated en evidencia de usuario real, no forzar sin ella.
-- Riesgo de fidelidad del engine agéntico v1 en archivos grandes con modelos baratos (hallazgo de G.5, DONE.md § MES 16) — no es una falla de infraestructura (ya arreglada), es una limitación de producto a decidir: ¿mejorar el prompt del agéntico, exigir un modelo mínimo, o aceptar el riesgo y documentarlo en VISION.md?
+**Tesis (revisión estratégica Fable 5, 2026-07-01, memoria `project-strategic-review-2026-07`):** el valor diferenciador de OrchestOS es la **capa de verificación** (contrato + checks + evidencia + QA + diagnose), no el ejecutor propio. Un ejecutor externo (Claude Code headless / opencode) es una tercera implementación de `ExecutorEngine` (Mes 16 G): lanzar el proceso como subproceso dentro del worktree, dejarlo trabajar, y al terminar aplicar `enforceContract` post-hoc + checks + QA sobre el diff resultante — la capa de verificación no cambia, solo el motor. Es LA jugada que convierte a OrchestOS de "runner casero que compite contra gigantes" a "la capa de confianza que los gigantes no dan".
 
-No abrir bloques de este mes hasta que Carlos elija el eje — evitar repetir el patrón "Mes 15 sin tema oficial" que quedó documentado en DONE.md § MES 14.
+**Por qué ahora (evidencia de G.5):** el engine agéntico interno v1 tiene riesgo de fidelidad en archivos grandes con modelos baratos (reescribe archivos completos — gpt-4o-mini omitió funciones al reproducir 419 líneas). Los ejecutores externos **editan** en vez de reescribir — el problema desaparece por diseño. El agéntico interno queda para tareas chicas/greenfield; el externo apunta a brownfield real.
+
+**Pre-flight (2026-07-02):** F1-F4/G sin deuda abierta propia. Contexto caliente: `ExecutorEngine` (`src/run/executors/types.ts`), sandbox por worktree, patrón de gates con dinero real — todo construido esta misma semana.
+
+### Bloque A — Diseño (ANTES de tocar código, se revisa con Carlos)
+- [ ] A.1 🧠 `docs/external-executor-design.md`. Debe decidir explícitamente (las 4 decisiones pendientes anotadas al graduar la idea): (a) **cómo pasarle el contrato al ejecutor externo** — prompt vs mecanismo nativo (`--allowedTools`/settings de Claude Code; equivalente en opencode); (b) **cómo capturar costo/tokens de un proceso externo** (Claude Code headless emite JSON con usage; opencode a investigar — si no hay dato real, el costo se reporta como desconocido, NUNCA $0 silencioso — misma lección de F0.8); (c) **timeout para garantizar terminación** — mismo rol que `maxIterations` del agéntico, NO un tope de gasto (decisión G.1: OrchestOS no pone techos de dinero); (d) **qué pasa si el externo toca archivos fuera de `output[]`** — el diff del worktree se filtra por el contrato: lo autorizado se aplica, lo no autorizado se descarta con evidencia (el sandbox actual ya resuelve el discard). También decidir: ¿`claude -p` primero, opencode primero, o interface genérica `external` con adaptadores? (propuesta de partida: Claude Code primero — ya está instalado en la máquina de desarrollo y emite JSON estructurado).
+- [ ] A.2 🔍 Revisión del doc con Carlos antes de abrir B.
+
+### Bloque B — Implementación del engine
+- [ ] B.1 🧠 `src/run/executors/external.ts` implementando `ExecutorEngine` según A.1: spawn del subproceso en el worktree (`effectiveRoot`), esperar con timeout, leer el diff del worktree contra el snapshot, mapear a `FileChange[]` (el harness aplica `enforceContract` post-hoc igual que siempre — cero cambio en la capa de verificación).
+- [ ] B.2 ⚡ Selección: `engine: external` como tercer valor de `TaskEngine` (`tasks/schema.ts` + `config/schema.ts` + validaciones existentes de G.4 extendidas).
+- [ ] B.3 ⚡ Tests: mock del subproceso (mismo patrón de inyección que la suite ya usa), contrato aplicado sobre el diff, timeout, costo desconocido reportado honesto.
+
+### Bloque C — Superficie ([[feedback-dashboard-no-solo-cli]])
+- [ ] C.1 ⚡ `external` en el selector de engine del composer de Tasks + `--engine external` en CLI + detalle del run mostrando el engine externo e info de proceso.
+- [ ] C.2 ⚡ Detección honesta: si el binario externo no está instalado, error claro al seleccionar (no fallo críptico en runtime).
+
+### Bloque D — Gate en vivo
+- [ ] D.1 🔍 La misma tarea brownfield de G.5 (archivo real de 419 líneas, agregar una línea sin tocar el resto) corrida con el ejecutor externo — comparar contra los resultados registrados de single-shot y agéntico (DONE.md § MES 16 G.5). Medir: fidelidad del diff (¿editó solo la línea?), costo real, tiempo, y que `enforceContract`/checks/QA funcionan idénticos sobre un motor que OrchestOS no controla. Esta comparación ES la evidencia de la tesis del mes.
+
+### Cierre del mes
+- [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + aplicar la regla nueva IDEAS→PLAN→DONE en el cierre.
+
+**Comprometido como eje del Mes 18 (decisión Carlos 2026-07-02):** IDEAS.md #12 — chat como entrada única (detección semántica de intención de tarea). Sigue en IDEAS.md hasta que entre a PLAN.md; su primer paso es el diseño de guardrails revisado con Carlos.
 
 ---
 
