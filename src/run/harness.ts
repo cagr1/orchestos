@@ -24,7 +24,7 @@ import { getProvider, type ProviderClient } from '../providers/index.ts'
 import { autoRoute } from '../router/auto-route.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 import { loadConstitution, buildConstitutionBlock } from '../spec/constitution.ts'
-import { parseLLMResponse, enforceContract, snapshotHashes } from './contract.ts'
+import { parseLLMResponse, enforceContract, snapshotHashes, normalizeRelPath } from './contract.ts'
 import { runQA, snapshotContents, restoreContents, MAX_RETRIES } from './qa.ts'
 import { RunLogger } from './logger.ts'
 import { insertRun } from '../db/runs.ts'
@@ -258,8 +258,10 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     try {
       llmResponse = await ctx.provider.chat({ model: ctx.model, system, messages: [{ role: 'user', content: userContent }], maxTokens })
     } catch (e: any) {
+      const elapsedLLM = Math.round(performance.now() - t0)
       log.error(`LLM call failed: ${e.message}`)
-      return { status: 'failed', runId: '', retryReason: e.message, filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: Math.round(performance.now() - t0), contextWarnings: [] }
+      const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: null, files_authorized: null, files_blocked: null, snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: 0, output_tokens: 0, usd_cost: 0, elapsed_ms: elapsedLLM, result: e.message })
+      return { status: 'failed', runId, retryReason: e.message, filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: elapsedLLM, contextWarnings: ctx.contextWarnings }
     }
 
     const elapsed = Math.round(performance.now() - t0)
@@ -271,8 +273,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       parsed = parseLLMResponse(llmResponse.text)
     } catch (e: any) {
       log.error(`parse error: ${e.message}`)
-      insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: null, files_authorized: null, files_blocked: null, snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
-      return { status: 'failed', runId: '', retryReason: `parse error: ${e.message}`, filesWritten: [], filesBlocked: [], cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsed, contextWarnings: ctx.contextWarnings }
+      const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: null, files_authorized: null, files_blocked: null, snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
+      return { status: 'failed', runId, retryReason: `parse error: ${e.message}`, filesWritten: [], filesBlocked: [], cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsed, contextWarnings: ctx.contextWarnings }
     }
 
     // -- contract enforcement --------------------------------------------------
@@ -283,8 +285,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const attempted = parsed.files.map(f => f.path)
       const blocked = attempted.filter(p => !ctx.task.output.includes(p))
       log.contractViolation(blocked)
-      insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(attempted), files_authorized: JSON.stringify(attempted.filter(p => ctx.task.output.includes(p))), files_blocked: JSON.stringify(blocked), snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'blocked', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
-      return { status: 'failed', runId: '', retryReason: `contract violation: ${blocked.join(', ')}`, filesWritten: [], filesBlocked: blocked, cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsed, contextWarnings: ctx.contextWarnings }
+      const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(attempted), files_authorized: JSON.stringify(attempted.filter(p => ctx.task.output.includes(p))), files_blocked: JSON.stringify(blocked), snapshot_before: JSON.stringify(before), snapshot_after: null, qa_verdict: null, qa_reason: null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'blocked', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsed, result: e.message })
+      return { status: 'failed', runId, retryReason: `contract violation: ${blocked.join(', ')}`, filesWritten: [], filesBlocked: blocked, cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost }, elapsedMs: elapsed, contextWarnings: ctx.contextWarnings }
     }
 
     const after = snapshotHashes(ctx.effectiveRoot, ctx.task.output)
@@ -296,7 +298,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // en `output` simplemente nunca se escriben y nadie lo detecta determinísticamente.
     // El QA-LLM no es confiable para esto: vio la lista de outputs declarados en el
     // prompt y alucinó que estaban "incluidos" sin verificar contra los archivos reales.
-    const missingOutputs = ctx.task.output.filter(p => !contractResult.written.some(f => f.path === p))
+    const missingOutputs = ctx.task.output.map(normalizeRelPath).filter(p => !contractResult.written.some(f => f.path === p))
     if (missingOutputs.length > 0) {
       if (!keepWorktree && worktree) {
         mergeWorktreeBack(worktree, 'discard')
@@ -306,12 +308,12 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       }
       const reason = `missing declared output(s): ${missingOutputs.join(', ')}`
       const elapsedMissing = Math.round(performance.now() - t0)
-      insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: reason, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsedMissing, result: `${reason} — reverted ${contractResult.written.length} file(s)` })
+      const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: reason, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsedMissing, result: `${reason} — reverted ${contractResult.written.length} file(s)` })
       log.qaFail(reason, ctx.task.retry_count + 1, MAX_RETRIES)
       const missingExhausted = ctx.task.retry_count + 1 >= MAX_RETRIES
       return {
         status: missingExhausted ? 'failed' : 'retry',
-        runId: '', qaVerdict: 'fail', qaReason: reason, retryReason: reason,
+        runId, qaVerdict: 'fail', qaReason: reason, retryReason: reason,
         filesWritten: [], filesBlocked: [],
         cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost },
         elapsedMs: elapsedMissing, contextWarnings: ctx.contextWarnings,
@@ -360,7 +362,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           ? `check timed out: ${firstFail.cmd}`
           : `check failed: ${firstFail.cmd} exit ${firstFail.exitCode}`
         const elapsedCheck = Math.round(performance.now() - t0)
-        insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: reason, checks_json: JSON.stringify(checksResults), constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsedCheck, result: `check fail — reverted ${contractResult.written.length} file(s)` })
+        const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: reason, checks_json: JSON.stringify(checksResults), constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: llmResponse.inputTokens, output_tokens: llmResponse.outputTokens, usd_cost: cost, elapsed_ms: elapsedCheck, result: `check fail — reverted ${contractResult.written.length} file(s)` })
         log.qaFail(reason, ctx.task.retry_count + 1, MAX_RETRIES)
         // D3 follow-up: this unconditionally returned 'retry' regardless of how many
         // times the task had already failed — a persistently failing check (e.g. tsc
@@ -371,7 +373,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         const checksExhausted = ctx.task.retry_count + 1 >= MAX_RETRIES
         return {
           status: checksExhausted ? 'failed' : 'retry',
-          runId: '', qaVerdict: 'fail', qaReason: reason, retryReason: reason,
+          runId, qaVerdict: 'fail', qaReason: reason, retryReason: reason,
           filesWritten: [], filesBlocked: [],
           cost: { inputTokens: llmResponse.inputTokens, outputTokens: llmResponse.outputTokens, usd: cost },
           elapsedMs: elapsedCheck, contextWarnings: ctx.contextWarnings,
@@ -403,14 +405,14 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const retryCount = ctx.task.retry_count + 1
       const newStatus = retryCount >= MAX_RETRIES ? 'failed_permanent' : 'pending'
 
-      insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, qa_model: qa.model, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail - reverted ${contractResult.written.length} file(s)` })
+      const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, qa_model: qa.model, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, status: 'failed', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail - reverted ${contractResult.written.length} file(s)` })
 
       if (newStatus === 'failed_permanent') {
         log.failedPermanent(qa.reason)
-        return { status: 'failed', runId: '', qaVerdict: 'fail', qaReason: qa.reason, retryReason: qa.reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: totalTokens.inputTokens, outputTokens: totalTokens.outputTokens, usd: totalCost }, elapsedMs: totalElapsed, contextWarnings: ctx.contextWarnings }
+        return { status: 'failed', runId, qaVerdict: 'fail', qaReason: qa.reason, retryReason: qa.reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: totalTokens.inputTokens, outputTokens: totalTokens.outputTokens, usd: totalCost }, elapsedMs: totalElapsed, contextWarnings: ctx.contextWarnings }
       }
       log.qaFail(qa.reason, retryCount, MAX_RETRIES)
-      return { status: 'retry', runId: '', qaVerdict: 'fail', qaReason: qa.reason, retryReason: qa.reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: totalTokens.inputTokens, outputTokens: totalTokens.outputTokens, usd: totalCost }, elapsedMs: totalElapsed, contextWarnings: ctx.contextWarnings }
+      return { status: 'retry', runId, qaVerdict: 'fail', qaReason: qa.reason, retryReason: qa.reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: totalTokens.inputTokens, outputTokens: totalTokens.outputTokens, usd: totalCost }, elapsedMs: totalElapsed, contextWarnings: ctx.contextWarnings }
     }
 
     // -- success: merge worktree back (if applicable) --------------------------

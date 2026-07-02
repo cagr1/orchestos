@@ -117,3 +117,58 @@ describe('enforceContract', () => {
     expect(existsSync(join(TMP_ROOT, 'y.txt'))).toBe(false)
   })
 })
+
+describe('enforceContract — path normalization (F4.3)', () => {
+  function expectAuthorizedAt(llmPath: string, declaredPath: string, expectedOnDisk: string) {
+    const response = { files: [{ path: llmPath, content: `payload for ${llmPath}` }] }
+    const result = enforceContract(TMP_ROOT, response, [declaredPath])
+
+    expect(result.filesBlocked).toEqual([])
+    expect(result.filesAuthorized).toEqual([expectedOnDisk])
+    expect(result.filesAttempted).toEqual([expectedOnDisk])
+    expect(result.written).toHaveLength(1)
+    expect(result.written[0]!.path).toBe(expectedOnDisk)
+
+    const onDisk = join(TMP_ROOT, expectedOnDisk)
+    expect(existsSync(onDisk)).toBe(true)
+    expect(readFileSync(onDisk, 'utf-8')).toBe(`payload for ${llmPath}`)
+  }
+
+  it('authorizes "./src/a.ts" against declared "src/a.ts" (strips ./ prefix, writes normalized)', () => {
+    expectAuthorizedAt('./src/a.ts', 'src/a.ts', 'src/a.ts')
+  })
+
+  it('authorizes "src\\\\a.ts" (Windows separator) against declared "src/a.ts"', () => {
+    expectAuthorizedAt('src\\a.ts', 'src/a.ts', 'src/a.ts')
+  })
+
+  it('authorizes "src//a.ts" (collapsed) against declared "src/a.ts"', () => {
+    expectAuthorizedAt('src//a.ts', 'src/a.ts', 'src/a.ts')
+  })
+
+  it('authorizes "././/src/a.ts" (combined: prefix + separator + collapse) against declared "src/a.ts"', () => {
+    expectAuthorizedAt('././/src/a.ts', 'src/a.ts', 'src/a.ts')
+  })
+
+  it('still blocks "../x" (anti-escape: .. is never resolved)', () => {
+    const response = { files: [{ path: '../x', content: 'leak' }] }
+    expect(() => enforceContract(TMP_ROOT, response, ['src/a.ts'])).toThrow('CONTRACT VIOLATION')
+    expect(existsSync(join(TMP_ROOT, 'x'))).toBe(false)
+  })
+
+  it('still blocks "src/../../x" (anti-escape: .. segments are preserved literally)', () => {
+    const response = { files: [{ path: 'src/../../x', content: 'leak' }] }
+    expect(() => enforceContract(TMP_ROOT, response, ['src/a.ts'])).toThrow('CONTRACT VIOLATION')
+    expect(existsSync(join(TMP_ROOT, 'x'))).toBe(false)
+    expect(existsSync(join(TMP_ROOT, 'src/x'))).toBe(false)
+  })
+
+  it('still blocks "./../x" (anti-escape even with ./ prefix stripped first)', () => {
+    const response = { files: [{ path: './../x', content: 'leak' }] }
+    expect(() => enforceContract(TMP_ROOT, response, ['src/a.ts'])).toThrow('CONTRACT VIOLATION')
+  })
+
+  it('contract with "./src/a.ts" authorizes LLM "src/a.ts" (both sides normalize to the same)', () => {
+    expectAuthorizedAt('src/a.ts', './src/a.ts', 'src/a.ts')
+  })
+})

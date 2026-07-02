@@ -61,6 +61,15 @@ export function parseLLMResponse(raw: string): LLMFileResponse {
   return { files }
 }
 
+// ── path normalization (F4.1) ──────────────────────────────────────────────────
+export function normalizeRelPath(p: string): string {
+  let s = p.replaceAll('\\', '/')
+  s = s.replace(/\/+/g, '/')
+  while (s.startsWith('./')) s = s.slice(2)
+  if (s.length > 1 && s.endsWith('/')) s = s.slice(0, -1)
+  return s
+}
+
 // ── enforce contract ──────────────────────────────────────────────────────────
 // BLOCKS writes outside allowedPaths — throws on violation.
 export function enforceContract(
@@ -68,15 +77,18 @@ export function enforceContract(
   response: LLMFileResponse,
   allowedPaths: string[]
 ): ContractResult {
-  const attempted = response.files.map(f => f.path)
+  const normalizedAllowed = allowedPaths.map(normalizeRelPath)
+  const attempted: string[] = []
   const authorized: string[] = []
   const blocked: string[] = []
 
   for (const file of response.files) {
-    if (!allowedPaths.includes(file.path)) {
-      blocked.push(file.path)
+    const normalizedPath = normalizeRelPath(file.path)
+    attempted.push(normalizedPath)
+    if (!normalizedAllowed.includes(normalizedPath)) {
+      blocked.push(normalizedPath)
     } else {
-      authorized.push(file.path)
+      authorized.push(normalizedPath)
     }
   }
 
@@ -84,17 +96,17 @@ export function enforceContract(
     throw new Error(
       `CONTRACT VIOLATION — LLM attempted to write files outside declared outputs:\n` +
       blocked.map(p => `  ✗ ${p}`).join('\n') +
-      `\nAllowed: ${allowedPaths.join(', ')}`
+      `\nAllowed: ${normalizedAllowed.join(', ')}`
     )
   }
 
-  // All files authorized — write them
   const written: FileChange[] = []
   for (const file of response.files) {
-    const fullPath = join(root, file.path)
+    const normalizedPath = normalizeRelPath(file.path)
+    const fullPath = join(root, normalizedPath)
     mkdirSync(dirname(fullPath), { recursive: true })
     writeFileSync(fullPath, file.content, 'utf-8')
-    written.push(file)
+    written.push({ path: normalizedPath, content: file.content })
   }
 
   return { filesAttempted: attempted, filesAuthorized: authorized, filesBlocked: blocked, written }
