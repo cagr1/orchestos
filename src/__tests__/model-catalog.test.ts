@@ -15,7 +15,7 @@ let home: string
 const prevHome = process.env.ORCHESTOS_HOME
 const prevKey = process.env.OPENROUTER_API_KEY
 
-function seedDiskCache(models: Record<string, { contextLength: number; priceIn: number }>, fetchedAt: number) {
+function seedDiskCache(models: Record<string, { contextLength: number; priceIn: number; priceOut?: number }>, fetchedAt: number) {
   const dir = join(home, '.orchestos', 'cache')
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'models.json'), JSON.stringify({ fetchedAt, models }), 'utf-8')
@@ -50,7 +50,7 @@ describe('model-catalog', () => {
   it('usa el context_length real del cache fresco en disco, no la familia', async () => {
     // gpt-3.5 por familia daría 16K; sembramos un valor distinto y exacto.
     seedDiskCache(
-      { 'openai/gpt-3.5-turbo': { contextLength: 16_385, priceIn: 0.5 } },
+      { 'openai/gpt-3.5-turbo': { contextLength: 16_385, priceIn: 0.5, priceOut: 1.5 } },
       Date.now(),
     )
     await ensureCatalogLoaded()

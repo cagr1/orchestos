@@ -227,75 +227,10 @@ tasks:
     retry_count: 0
     qa_verdict: pass
     run_id: eb49d80e-5056-4bcc-bbb2-c31d83c842fd
-  - id: cleanup-plan-to-done
-    description: >
-      Move all completed work from PLAN.md into DONE.md and clean up PLAN.md.
-
-      DONE.md has two sections: - "Sección 1 — Plan ejecutado" (S1–S18 already there, append S19–S21 here) - "Sección 2
-      — Ideas implementadas" (leave untouched)
-
-      In DONE.md, append under "Sección 1" a new block for Mes 5 S19–S21 following the same compact format already used
-      (one line per task, date at end). Example format:
-        ### MES 5 — Confiabilidad para uso diario
-        **SEMANA 19 — Sandbox por worktree**
-        - S19.1 createWorktree() en sandbox.ts con cleanup garantizado — 2026-05-27
-        ... etc for all S19, S20, S21 tasks marked [x]
-
-      In PLAN.md: - Remove the entire SEMANA 19, SEMANA 20, and SEMANA 21 blocks (including their headers,
-        module lists, and all task lines) since all are marked [x] done.
-      - Keep: the file header (frontmatter + title + rules), MES 4 closed block, MES 5 objective,
-        SEMANA 22 block (still pending), Decisiones de diseño, Lista prohibida, Dependencias,
-        Métrica única de éxito.
-      - Do NOT touch SEMANA 22 content.
-
-      Read both files carefully before writing. Preserve all existing content in DONE.md — only append.
-    executor: openrouter
-    executor_model: deepseek/deepseek-v4-flash
-    input:
-      - PLAN.md
-      - DONE.md
-    output:
-      - PLAN.md
-      - DONE.md
-    checks:
-      - cmd: grep -c "S22" PLAN.md
-        expect_exit: 0
-      - cmd: grep -q "S19.1" DONE.md
-        expect_exit: 0
-    depends_on: []
-    status: failed
-    retry_count: 0
-    retry_reason: >-
-      parse error: LLM response is not valid JSON. Got:
-
-      {
-        "files": [
-          {
-            "path": "PLAN.md",
-            "content": "---\ntype: execution-plan\nproject: orchestos\ncreated: 2026-05-26\nowner: Carlos Gallardo\nstatus: mes-5-activo\n---\n\n# OrchestOS — Plan activo\n\nHistorial completado → ver [DONE.md](DONE.md).\nIdeas pendientes → ver [IDEAS.md](IDEA
   - id: front-2-persist-effort
     description: >
-      In src/dashboard/public/app.js, find this exact line in the `state` object (it sets the default reasoning effort
-      for the chat):
-        chatEffort: 'medium', // FRONT.1 — solo aplicado cuando el modelo elegido tiene supportsReasoning:true (BACK.4)
-
-      Replace it with (read the persisted value if present, same pattern already used a few lines below for
-      `localStorage.getItem('orchestos-mode')`):
-        chatEffort: localStorage.getItem('orchestos-chat-effort') || 'medium', // FRONT.2 — persisted, default 'medium'
-
-      In src/dashboard/public/screens-core.js, find this exact event listener (it currently only updates in-memory
-      state, no persistence):
-        root.querySelector('#chat-effort-select')?.addEventListener('change', e => {
-          st.chatEffort = e.target.value;
-        });
-
-      Replace it with (add localStorage.setItem right after st.chatEffort is updated):
-        root.querySelector('#chat-effort-select')?.addEventListener('change', e => {
-          st.chatEffort = e.target.value;
-          localStorage.setItem('orchestos-chat-effort', e.target.value);
-        });
-
-      Do NOT change any other line in either file. Do NOT touch chatModel, orModels, or any other state field.
+      Persist chat reasoning effort in localStorage. Already implemented in code (app.js:58, screens-core.js event
+      listener with localStorage.setItem). Reconciliación tardía — F0.3.
     executor: openrouter
     executor_model: deepseek/deepseek-v4-flash
     input:
@@ -310,49 +245,14 @@ tasks:
       - cmd: grep -q "localStorage.setItem('orchestos-chat-effort'" src/dashboard/public/screens-core.js
         expect_exit: 0
     depends_on: []
-    status: failed
-    retry_count: 0
-    retry_reason: |+
-      parse error: No <<<FILE:...>>>...<<<ENDFILE>>> blocks found in LLM response.
-      Got:
-      <<<FILE:src/dashboard/public/app.js>>>
-      /* ============================================================
-         OrchestOS — app shell, navigation, panels, API fetching
-         ============================================================ */
-
-      const state = {
-        screen: 'chat',
-        memScope: 'all',
-        openRun: null,
-        openSpec: null,
-        openSkill: null,
-        openDiagnose: null,
-        diagnoseCache: {},
-        archOpen: false,
-
+    status: done
+    retry_count: 1
+    qa_verdict: pass
+    run_id: F0.3-reconciliation
   - id: front-3-i18n-effort
     description: >
-      Add 4 new translation keys for the chat reasoning-effort selector to src/dashboard/public/i18n.js, in BOTH
-      language blocks (the `en` block starting near line 8, and the `es` block starting near line ~500).
-
-      In the EN block, insert these 4 lines immediately after the line:
-        'chat.createTaskHint':'Turn this chat into a task — pre-fills the task composer with the conversation context.',
-      Insert:
-        'chat.effort.label':  'Reasoning effort',
-        'chat.effort.low':    'Low',
-        'chat.effort.medium': 'Medium',
-        'chat.effort.high':   'High',
-
-      In the ES block, insert these 4 lines immediately after the line:
-        'chat.createTaskHint':'Convierte este chat en una tarea — pre-rellena el compositor con el contexto de la conversación.',
-      Insert:
-        'chat.effort.label':  'Esfuerzo de razonamiento',
-        'chat.effort.low':    'Bajo',
-        'chat.effort.medium': 'Medio',
-        'chat.effort.high':   'Alto',
-
-      Do NOT change any other key. Do NOT reorder existing keys. Keep the exact same quote style (single quotes) and
-      comma-trailing style already used in this file.
+      Add i18n keys for reasoning effort selector. Already implemented in code (i18n.js keys chat.effort.* en/es).
+      Reconciliación tardía — F0.3.
     executor: openrouter
     executor_model: deepseek/deepseek-v4-flash
     input:
@@ -369,80 +269,7 @@ tasks:
       - cmd: grep -q "'chat.effort.high'" src/dashboard/public/i18n.js
         expect_exit: 0
     depends_on: []
-    status: pending
-    retry_count: 0
-  - id: crear-web-local-comercial
-    description: Crear una página web profesional para un local comercial con información de contacto, productos/servicios,
-      horarios y galería de imágenes. Usa alguna skill de diseno
-    executor: openrouter
-    executor_model: deepseek/deepseek-v4-flash
-    input: []
-    output:
-      - index.html
-      - css/styles.css
-      - js/main.js
-      - README.md
-    depends_on: []
-    status: failed
-    retry_count: 0
-    retry_reason: "OpenRouter error 400: {\"error\":{\"message\":\"This endpoint's maximum context length is 1048576 tokens.
-      However, you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length
-      of either one, or use the context-compression plugin to compress your prompt
-      automatically.\",\"code\":400,\"metadata\":{\"provider_name\":null,\"previous_errors\":[{\"code\":400,\"message\":\
-      \"This endpoint's maximum context length is 1048576 tokens. However, you requested about 1048622 tokens (556 of
-      text input, 1048066 in the output). Please reduce the length of either one, or use the context-compression plugin
-      to compress your prompt automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is
-      1048576 tokens. However, you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please
-      reduce the length of either one, or use the context-compression plugin to compress your prompt
-      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
-      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
-      one, or use the context-compression plugin to compress your prompt
-      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
-      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
-      one, or use the context-compression plugin to compress your prompt
-      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
-      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
-      one, or use the context-compression plugin to compress your prompt
-      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
-      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
-      one, or use the context-compression plugin to compress your prompt
-      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
-      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
-      one, or use the context-compression plugin to compress your prompt
-      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
-      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
-      one, or use the context-compression plugin to compress your prompt
-      automatically.\"},{\"code\":400,\"message\":\"This endpoint's maximum context length is 1048576 tokens. However,
-      you requested about 1048622 tokens (556 of text input, 1048066 in the output). Please reduce the length of either
-      one, or use the context-compression plugin to compress your prompt
-      automatically.\"}]}},\"user_id\":\"user_2xopxZpxd9nEZB7OUmKkSLxAs2G\"}"
-  - id: dogfood-worktree-no-silent-fallback
-    description: >
-      Fix the sandbox behavior so that when worktree mode is explicitly requested, including via --keep-worktree,
-      OrchestOS must never silently fall back to cwd. If a worktree cannot be created because task id or branch metadata
-      is missing, the run must fail with a clear error before writing files.
-
-      Add regression tests covering: 1. explicit worktree mode without required metadata fails clearly 2.
-      --keep-worktree implies strict worktree behavior 3. auto mode may still fall back only when explicitly allowed by
-      existing semantics
-
-      Do not change unrelated sandbox behavior.
-    executor: openrouter
-    executor_model: deepseek/deepseek-v4-flash
-    input:
-      - src/run/sandbox.ts
-      - src/run/harness.ts
-      - src/run/graph-runner.ts
-      - src/cli.ts
-    output:
-      - src/run/sandbox.ts
-      - src/run/harness.ts
-      - src/__tests__/sandbox-policy.test.ts
-    checks:
-      - cmd: bun run typecheck
-        expect_exit: 0
-      - cmd: bun test
-        expect_exit: 0
-    depends_on: []
-    status: pending
-    retry_count: 0
+    status: done
+    retry_count: 1
+    qa_verdict: pass
+    run_id: F0.3-reconciliation

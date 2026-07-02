@@ -19,6 +19,7 @@ export async function chat(opts: {
   model: string
   system: string
   messages: ChatMessage[]
+  maxTokens?: number
 }): Promise<ChatResponse> {
   const apiKey = loadApiKey()
   const model = normalizeModel(opts.model)
@@ -31,7 +32,7 @@ export async function chat(opts: {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 8192,
+      max_tokens: opts.maxTokens ?? 8192,
       messages: [
         { role: 'system', content: opts.system },
         ...opts.messages,

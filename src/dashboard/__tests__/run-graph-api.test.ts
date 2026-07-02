@@ -1,70 +1,29 @@
 /**
  * Mes 14 / C1 — POST /api/run/graph + GET /api/run/graph/status
  *
- * Uses a real temp project dir (chdir) + the handler's __setRunGraphForTests seam
- * instead of mock.module() on tasks/loader.ts or run/graph-runner.ts — both are
- * shared modules that graph-runner.test.ts and graph-summary.test.ts import for
- * real, and Bun's mock.module() replaces a module for the whole `bun test`
- * process, not just this file (confirmed: it broke those two files' real-runGraph
- * assertions when run together with this one).
+ * Uses a real temp project dir (chdir) + the handler's __setRunGraphForTests /
+ * __setDepsForTests seams instead of mock.module() on tasks/loader.ts, context/load.ts,
+ * db/projects.ts or config/load.ts. mock.module() replaces a module for the whole
+ * `bun test` process, not just this file — tasks/loader.ts in particular is imported
+ * for real by graph-runner.test.ts and graph-summary.test.ts (confirmed: mocking it here
+ * broke those suites' real-runGraph assertions when run together with this one).
+ * tasksExist/loadTaskRows use the real tasks/loader.ts against the real tmp tasks.yaml
+ * written below — no mock needed there. loadContext/getProject/loadOrcheConfig are
+ * overridden via __setDepsForTests to avoid depending on the developer's real
+ * ~/.orchestos/db.sqlite or ~/.orchestos/config.yaml.
  */
-import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test'
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from 'fs'
+import { describe, it, expect, beforeEach, afterAll } from 'bun:test'
+import { mkdtempSync, writeFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
+import { stringify as yamlStringify } from 'yaml'
 import type { GraphRunResult, GraphRunOpts } from '../../run/graph-runner.ts'
 
-// Faithful local reimplementation of tasks/loader.ts's public contract, asserted via
-// mock.module() in beforeEach (below). NOT importing the real module: other suites
-// (diagnose.test.ts, graph-summary.test.ts) mock it too and never reliably restore it
-// across the shared `bun test` process, so getting "the real one" via import at this
-// point in the file isn't guaranteed. This local copy is immune to that — it never
-// touches the module registry except to assert itself as the active implementation.
-function realTasksPath(root: string): string { return join(root, 'tasks.yaml') }
-function realTasksExist(root: string): boolean { return existsSync(realTasksPath(root)) }
-function realLoadTasks(root: string): { version: 1; project: string; tasks: any[] } {
-  return yamlParse(readFileSync(realTasksPath(root), 'utf-8'))
-}
-function realSaveTasks(root: string, file: { project: string; tasks: any[] }): void {
-  writeFileSync(realTasksPath(root), yamlStringify({ version: 1, project: file.project, tasks: file.tasks }, { lineWidth: 120 }), 'utf-8')
-}
-function realUpdateTaskStatus(root: string, taskId: string, patch: Record<string, unknown>): void {
-  const file = realLoadTasks(root)
-  const task = file.tasks.find((t: any) => t.id === taskId)
-  if (!task) throw new Error(`Task "${taskId}" not found in tasks.yaml`)
-  Object.assign(task, patch)
-  realSaveTasks(root, file)
-}
-
-// context/load.ts, db/projects.ts, config/load.ts are only imported by this test
-// file (no other suite depends on the real implementation), so mocking them here
-// has no cross-file blast radius.
-mock.module('../../context/load.ts', () => ({
-  loadContext: () => '',
-}))
-
-mock.module('../../db/projects.ts', () => ({
-  getProject: () => ({ id: 'p1' }),
-  upsertProject: () => {},
-  listProjects: () => [],
-}))
-
-mock.module('../../config/load.ts', () => ({
-  loadOrcheConfig: () => undefined,
-  scaffoldConfigYaml: () => {},
-}))
-
-mock.module('../../tasks/loader.ts', () => ({
-  tasksPath: realTasksPath,
-  tasksExist: realTasksExist,
-  loadTasks: realLoadTasks,
-  saveTasks: realSaveTasks,
-  updateTaskStatus: realUpdateTaskStatus,
-}))
-
 const { route } = await import('../server.ts')
-const { resetRunGraphState, __setRunGraphForTests, __resetRunGraphForTests } = await import('../handlers/run-graph.ts')
+const {
+  resetRunGraphState, __setRunGraphForTests, __resetRunGraphForTests,
+  __setDepsForTests, __resetDepsForTests,
+} = await import('../handlers/run-graph.ts')
 
 const PORT = 4242
 const originalCwd = process.cwd()
@@ -86,6 +45,7 @@ function writeTasksYaml(tasks: Record<string, unknown>[]): void {
 
 afterAll(() => {
   __resetRunGraphForTests()
+  __resetDepsForTests()
   process.chdir(originalCwd)
   rmSync(tmpDir, { recursive: true, force: true })
 })
@@ -124,6 +84,11 @@ beforeEach(() => {
   runGraphImpl = async () => makeResult()
   lastCallOpts = undefined
   __setRunGraphForTests(opts => { lastCallOpts = opts; return runGraphImpl(opts) })
+  __setDepsForTests({
+    loadContext: () => '',
+    getProject: () => ({ id: 'p1' }) as any,
+    loadOrcheConfig: () => undefined as any,
+  })
 })
 
 describe('POST /api/run/graph', () => {

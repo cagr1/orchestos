@@ -50,6 +50,10 @@ export interface SchedulerOpts {
   projectId?: string
   parentExecutor?: TaskExecutor
   parentModel?: string
+  /** Test-only injection seam — replaces withSubTaskTimeout without mock.module() */
+  withSubTaskTimeoutFn?: typeof withSubTaskTimeout
+  /** Test-only injection seam — replaces createWorktreeWithRetry without mock.module() */
+  createWorktreeWithRetryFn?: typeof createWorktreeWithRetry
 }
 
 // ---------------------------------------------------------------------------
@@ -109,9 +113,10 @@ export async function executePlan(
     }
 
     // S22.8 — worktree creation with collision-retry + backoff
+    const createWt = opts.createWorktreeWithRetryFn ?? createWorktreeWithRetry
     let worktree: Worktree
     try {
-      worktree = await createWorktreeWithRetry(`sub-${st.id}`, opts.baseBranch, opts.projectRoot)
+      worktree = await createWt(`sub-${st.id}`, opts.baseBranch, opts.projectRoot)
     } catch (e) {
       st.status = 'failed'
       failedIds.add(st.id)
@@ -134,10 +139,11 @@ export async function executePlan(
 
     // S22.8 — race executeOne against the sub-task timeout
     const timeoutMs = st.timeout_ms ?? DEFAULT_SUB_TASK_TIMEOUT_MS
+    const withTimeout = opts.withSubTaskTimeoutFn ?? withSubTaskTimeout
     let result: SubagentResult
 
     try {
-      const raced = await withSubTaskTimeout(executeOne(st, worktree), timeoutMs, st.id)
+      const raced = await withTimeout(executeOne(st, worktree), timeoutMs, st.id)
 
       if (raced.timedOut) {
         result = timedOutResult(st.id, timeoutMs)

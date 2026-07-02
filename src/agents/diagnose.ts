@@ -9,11 +9,14 @@
  * S25.2 — Output estructurado: patrón + sugerencia concreta.
  */
 
-import { loadTasks } from '../tasks/loader.ts'
-import { listRunsByTaskId, type RunRecord } from '../db/runs.ts'
+import { loadTasks as realLoadTasks } from '../tasks/loader.ts'
+import { listRunsByTaskId as realListRunsByTaskId, type RunRecord } from '../db/runs.ts'
 import { chat } from '../providers/openrouter.ts'
 import { getProvider } from '../providers/index.ts'
 import { calcCost } from '../router/pricing.ts'
+
+type LoadTasksFn = (root: string) => { tasks: Array<{ id: string; description: string }> }
+type ListRunsByTaskIdFn = (taskId: string) => RunRecord[]
 
 export type FailurePattern =
   | 'deterministic_check'
@@ -107,17 +110,21 @@ export async function diagnoseTask(
   taskId: string,
   root: string,
   modelOverride?: string,
+  loadTasksFn?: LoadTasksFn,
+  listRunsByTaskIdFn?: ListRunsByTaskIdFn,
 ): Promise<DiagnoseResult> {
-  const file = loadTasks(root)
-  const task = file.tasks.find(t => t.id === taskId)
+  const loadTasks_ = loadTasksFn ?? realLoadTasks
+  const listRuns_ = listRunsByTaskIdFn ?? realListRunsByTaskId
+  const file = loadTasks_(root)
+  const task = file.tasks.find((t: { id: string }) => t.id === taskId)
   if (!task) throw new Error(`Task "${taskId}" not found in tasks.yaml`)
 
-  const runs = listRunsByTaskId(taskId).slice(0, 3)
+  const runs = listRuns_(taskId).slice(0, 3)
   if (runs.length === 0) throw new Error(`No runs found for task "${taskId}"`)
 
   const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'blocked')?.result ?? undefined
 
-  const model = modelOverride ?? 'anthropic/claude-3-haiku'
+  const model = modelOverride ?? 'anthropic/claude-haiku-4-5'
 
   let resp
   try {

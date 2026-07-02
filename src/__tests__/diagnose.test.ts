@@ -1,24 +1,8 @@
 /**
  * S25.4 — Tests for S25.1/S25.2: agente de diagnóstico de fallos
  */
-import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test'
-import { insertRun, listRuns, getRun } from '../db/runs.ts'
-
-// Capture real modules before mocking — mock.module() has no automatic per-file scope in
-// Bun's test runner: once set, a mocked module stays mocked for every file that runs
-// afterward in the same `bun test` invocation unless explicitly restored. tasks/loader.ts
-// is imported for real by later-running suites (graph-runner.test.ts, spec.test.ts), so
-// this file must hand it back in afterAll.
-//
-// providers/openrouter.ts deliberately is NOT mocked via mock.module() here — Bun hoists
-// mock.module() calls to the top of the file's evaluation, so even capturing "the real
-// module" via `await import(...)` before the mock.module() call below already returns the
-// mocked version (confirmed empirically: realOpenrouter.chat.toString() was "[native
-// code]"). That makes the module unrestorable for the rest of the process, breaking
-// openrouter-chat.test.ts which runs later and does a fresh `import { chat }` expecting the
-// real implementation. Mocking globalThis.fetch instead (restored in afterAll) achieves
-// the same test isolation without touching the shared module registry.
-const realLoader = await import('../tasks/loader.ts')
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
+import { diagnoseTask } from '../agents/diagnose.ts'
 
 const mockRuns: any[] = [
   {
@@ -53,9 +37,29 @@ const mockRuns: any[] = [
   },
 ]
 
-// chat() de openrouter.ts lee globalThis.fetch en cada llamada — mockear fetch en vez de
-// mock.module('../providers/openrouter.ts', ...) evita la contaminación de módulo descrita
-// arriba, y de paso simplifica el test de "bad JSON" (ya no necesita reimport dinámico).
+const mockLoadTasks = (_root: string) => ({
+  version: 1,
+  project: 'test-project',
+  tasks: [
+    {
+      id: 't1-fail', description: 'Implement feature with edge cases',
+      executor: 'openrouter' as const, input: [], output: ['src/feature.ts'],
+      depends_on: [], status: 'failed_permanent' as const, retry_count: 3,
+      skill: 'implement',
+    },
+    {
+      id: 't2-ok', description: 'Simple task',
+      executor: 'openrouter' as const, input: [], output: ['src/simple.ts'],
+      depends_on: [], status: 'done' as const, retry_count: 0,
+    },
+  ],
+})
+
+const mockListRunsByTaskId = (taskId: string) => {
+  if (taskId === 't1-fail') return mockRuns
+  return []
+}
+
 const originalFetch = globalThis.fetch
 const prevOpenrouterKey = process.env.OPENROUTER_API_KEY
 
@@ -77,43 +81,7 @@ beforeAll(() => {
   }))
 })
 
-mock.module('../tasks/loader.ts', () => ({
-  loadTasks: mock(() => ({
-    version: 1,
-    project: 'test-project',
-    tasks: [
-      {
-        id: 't1-fail', description: 'Implement feature with edge cases',
-        executor: 'openrouter', input: [], output: ['src/feature.ts'],
-        depends_on: [], status: 'failed_permanent', retry_count: 3,
-        skill: 'implement',
-      },
-      {
-        id: 't2-ok', description: 'Simple task',
-        executor: 'openrouter', input: [], output: ['src/simple.ts'],
-        depends_on: [], status: 'done', retry_count: 0,
-      },
-    ],
-  })),
-  tasksExist: mock(() => true),
-  tasksPath: mock(() => '/fake/path/tasks.yaml'),
-  saveTasks: mock(() => {}),
-}))
-
-mock.module('../db/runs.ts', () => ({
-  listRunsByTaskId: mock((taskId: string) => {
-    if (taskId === 't1-fail') return mockRuns
-    return []
-  }),
-  insertRun,
-  listRuns,
-  getRun,
-}))
-
-const { diagnoseTask } = await import('../agents/diagnose.ts')
-
 afterAll(() => {
-  mock.module('../tasks/loader.ts', () => realLoader)
   globalThis.fetch = originalFetch
   if (prevOpenrouterKey === undefined) delete process.env.OPENROUTER_API_KEY
   else process.env.OPENROUTER_API_KEY = prevOpenrouterKey
@@ -121,7 +89,7 @@ afterAll(() => {
 
 describe('diagnoseTask', () => {
   it('returns DiagnoseResult with pattern and suggestion', async () => {
-    const result = await diagnoseTask('t1-fail', '/fake/root')
+    const result = await diagnoseTask('t1-fail', '/fake/root', undefined, mockLoadTasks, mockListRunsByTaskId)
     expect(result).toBeDefined()
     expect(result.taskId).toBe('t1-fail')
     expect(result.pattern).toBe('qa_specific_criterion')
@@ -131,11 +99,11 @@ describe('diagnoseTask', () => {
   })
 
   it('throws when task is not found', async () => {
-    expect(diagnoseTask('nonexistent', '/fake/root')).rejects.toThrow(/not found/)
+    expect(diagnoseTask('nonexistent', '/fake/root', undefined, mockLoadTasks, mockListRunsByTaskId)).rejects.toThrow(/not found/)
   })
 
   it('throws when no runs exist for the task', async () => {
-    expect(diagnoseTask('t2-ok', '/fake/root')).rejects.toThrow(/No runs found/)
+    expect(diagnoseTask('t2-ok', '/fake/root', undefined, mockLoadTasks, mockListRunsByTaskId)).rejects.toThrow(/No runs found/)
   })
 })
 
@@ -155,7 +123,7 @@ describe('diagnoseTask - fallback on bad JSON', () => {
   it('returns unknown pattern when LLM returns bad JSON', async () => {
     mockChatFetch('This is not valid JSON at all')
 
-    const result = await diagnoseTask('t1-fail', '/fake/root')
+    const result = await diagnoseTask('t1-fail', '/fake/root', undefined, mockLoadTasks, mockListRunsByTaskId)
     expect(result.pattern).toBe('unknown')
     expect(result.confidence).toBe('low')
     expect(result.suggestion).toContain('manually')

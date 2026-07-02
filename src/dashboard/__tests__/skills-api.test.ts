@@ -2,20 +2,21 @@
  * Mes 11 / I1-I2 — Curator unit tests + integration tests for skills endpoints
  * (A1-A6, F3, /api/skills/curate, G pro pack).
  */
-import { describe, it, expect, afterEach, mock } from 'bun:test'
+import { describe, it, expect, afterEach, afterAll, mock } from 'bun:test'
 import { existsSync, unlinkSync, rmSync } from 'fs'
 import { getSkillPath, getProSkillPath } from '../../skills/registry.ts'
+import { __setChatForTests, __resetChatForTests } from '../handlers/skills.ts'
+import type { ChatResponse } from '../../providers/openrouter.ts'
 
-const mockChat = mock(async () => ({
+const mockChat = mock(async (): Promise<ChatResponse> => ({
   text: '',
   inputTokens: 0,
   outputTokens: 0,
   model: 'mock',
 }))
 
-mock.module('../../providers/openrouter.ts', () => ({
-  chat: mockChat,
-}))
+__setChatForTests(mockChat as any)
+afterAll(() => { __resetChatForTests() })
 
 const { route } = await import('../server.ts')
 

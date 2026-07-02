@@ -1,9 +1,10 @@
-import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
 import { mkdtempSync, writeFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import type { SubagentResult, SubTask } from '../agents/sub-agent.ts'
 import { git } from '../run/sandbox.ts'
+import type { SchedulerOpts } from '../run/scheduler.ts'
 
 // ── Temp git repo compartido ──
 let repoRoot: string
@@ -25,50 +26,17 @@ afterAll(() => {
 // ── Set para controlar qué sub-tareas simulan timeout ──
 const timedOutTasks = new Set<string>()
 
-// Mock hardening.ts para interceptar withSubTaskTimeout y
-// permitir simular timeouts sin esperar 5 min reales.
-mock.module('../agents/hardening.ts', () => ({
-  DEFAULT_SUB_TASK_TIMEOUT_MS: 300_000,
-  MAX_TOOL_CALLS: 20,
-  WORKTREE_MAX_RETRIES: 3,
-  WORKTREE_INITIAL_BACKOFF_MS: 300,
-  RATE_LIMIT_MAX_RETRIES: 3,
-  RATE_LIMIT_INITIAL_BACKOFF_MS: 2_000,
-  TimeoutError: class extends Error {
-    constructor(public readonly taskId: string, public readonly timeoutMs: number) {
-      super(`sub-task "${taskId}" timed out after ${timeoutMs}ms`)
-      this.name = 'TimeoutError'
-    }
-  },
-  ToolCallLimitError: class extends Error {
-    constructor(public readonly count: number, public readonly limit: number) {
-      super(`Tool call limit: ${count} > ${limit}`)
-      this.name = 'ToolCallLimitError'
-    }
-  },
-  WorktreeCollisionError: class extends Error {
-    constructor(m: string) { super(m); this.name = 'WorktreeCollisionError' }
-  },
-  withSubTaskTimeout: mock(async (promise: Promise<any>, _timeoutMs: number, taskId: string) => {
-    if (timedOutTasks.has(taskId)) {
-      return { result: null, timedOut: true }
-    }
-    const result = await promise
-    return { result, timedOut: false }
-  }),
-  createWorktreeWithRetry: mock(async (taskId: string, baseBranch: string, projectRoot: string) => {
-    const { createWorktree } = await import('../run/sandbox.ts')
-    return createWorktree(taskId, baseBranch, projectRoot)
-  }),
-  ToolCallCounter: class {
-    limit: number; current = 0
-    constructor(limit = 20) { this.limit = limit }
-    increment() { this.current++; if (this.current > this.limit) throw new Error('exceeded') }
-    get exhausted() { return this.current >= this.limit }
-  },
-  withRateLimitRetry: mock(async (fn: () => Promise<any>) => fn()),
-  isRateLimitError: mock(() => false),
-}))
+const mockWithSubTaskTimeout = async <T>(
+  promise: Promise<T>,
+  _timeoutMs: number,
+  taskId: string,
+) => {
+  if (timedOutTasks.has(taskId)) {
+    return { result: null as T | null, timedOut: true as const }
+  }
+  const result = await promise
+  return { result, timedOut: false as const }
+}
 
 const { executePlan } = await import('../run/scheduler.ts')
 const { createSubTask } = await import('../agents/sub-agent.ts')
@@ -113,11 +81,12 @@ function failedResult(id: string, error = 'intentional failure'): SubagentResult
   }
 }
 
-function opts() {
+function opts(): SchedulerOpts {
   return {
     parentTaskId: 'test-plan',
     projectRoot: repoRoot,
     baseBranch: 'main',
+    withSubTaskTimeoutFn: mockWithSubTaskTimeout as any,
   }
 }
 

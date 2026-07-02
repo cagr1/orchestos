@@ -17,15 +17,22 @@
  *   the requeue resets retry_count to 0 in tasks.yaml, so the outcome itself is
  *   the distinguishing signal — surfaced as "requeue" in the RETRIES column.
  */
-import { loadTasks } from '../tasks/loader.ts'
+import { loadTasks as realLoadTasks } from '../tasks/loader.ts'
 import type { GraphRunResult } from './graph-runner.ts'
 
-export function printGraphSummary(result: GraphRunResult, root: string): void {
+type LoadTasksFn = (root: string) => { tasks: Array<{ id: string; retry_count: number }> }
+
+export function printGraphSummary(
+  result: GraphRunResult,
+  root: string,
+  loadTasksFn?: LoadTasksFn,
+): void {
+  const loadTasks_ = loadTasksFn ?? realLoadTasks
   // Re-read tasks.yaml to recover retry_count per task (the runner doesn't carry
   // it through to GraphTaskEntry; tasks.yaml is the canonical post-run source).
   let retryById = new Map<string, number>()
   try {
-    const file = loadTasks(root)
+    const file = loadTasks_(root)
     for (const t of file.tasks) retryById.set(t.id, t.retry_count)
   } catch { /* tasks.yaml gone — keep retry column as "?" */ }
 

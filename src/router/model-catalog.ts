@@ -34,6 +34,8 @@ export interface ModelInfo {
   contextLength: number
   /** Precio de prompt en USD por 1M tokens (para reuso futuro en routing por costo). */
   priceIn: number
+  /** Precio de completion en USD por 1M tokens. */
+  priceOut: number
   /** True si OpenRouter publica `"reasoning"` en `supported_parameters` para este modelo. */
   supportsReasoning: boolean
   /** Tope real de tokens de salida del proveedor (`top_provider.max_completion_tokens`), 0 si desconocido. */
@@ -108,7 +110,7 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
     data?: Array<{
       id?: string
       context_length?: number
-      pricing?: { prompt?: string }
+      pricing?: { prompt?: string; completion?: string }
       supported_parameters?: string[]
       top_provider?: { max_completion_tokens?: number }
     }>
@@ -119,10 +121,12 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
     // AR.7: Number(m.pricing.prompt) da NaN si el string no es numérico (p.ej.
     // un valor "free" o malformado) — NaN se serializa como null en el cache de
     // disco, contaminando el catálogo para cualquier consumidor futuro de precio.
-    const rawPrice = m.pricing?.prompt !== undefined ? Number(m.pricing.prompt) * 1_000_000 : 0
+    const rawPriceIn = m.pricing?.prompt !== undefined ? Number(m.pricing.prompt) * 1_000_000 : 0
+    const rawPriceOut = m.pricing?.completion !== undefined ? Number(m.pricing.completion) * 1_000_000 : 0
     models[m.id] = {
       contextLength: typeof m.context_length === 'number' ? m.context_length : 0,
-      priceIn: Number.isFinite(rawPrice) ? rawPrice : 0,
+      priceIn: Number.isFinite(rawPriceIn) ? rawPriceIn : 0,
+      priceOut: Number.isFinite(rawPriceOut) ? rawPriceOut : 0,
       supportsReasoning: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
       maxOutputTokens: typeof m.top_provider?.max_completion_tokens === 'number' ? m.top_provider.max_completion_tokens : 0,
     }
@@ -184,6 +188,11 @@ export async function ensureCatalogLoaded(opts: { force?: boolean; apiKey?: stri
  * Si no está cargado o el id no existe → tabla de familias de context-monitor.
  * Funciona sin `ensureCatalogLoaded()` previo; solo que entonces usa el fallback.
  */
+/** Returns the in-memory catalog (null if not yet loaded). Used by calcCost in pricing.ts. */
+export function getCatalog(): Map<string, ModelInfo> | null {
+  return memoryCatalog
+}
+
 export function contextWindowFor(modelId: string): number {
   const entry = memoryCatalog?.get(modelId)
   if (entry && entry.contextLength > 0) return entry.contextLength

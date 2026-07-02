@@ -1,7 +1,13 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
 import { getSkillPath, getProSkillPath, loadSkill, listSkillFiles, listProSkillFiles, validateSkill } from '../../skills/registry.ts'
 import { compileSkill } from '../../skills/compile.ts'
-import { chat as openrouterChat } from '../../providers/openrouter.ts'
+import { chat as realOpenrouterChat } from '../../providers/openrouter.ts'
+import type { ChatResponse, ChatMessage } from '../../providers/openrouter.ts'
+
+// Mutable reference for test injection — same pattern as run-graph.ts __setRunGraphForTests.
+// Bun's mock.module() on a shared provider module would leak across test files; this
+// keeps the fake scoped to the single test file that calls __setChatForTests.
+let chatImpl: (opts: { model: string; system: string; messages: ChatMessage[] }) => Promise<ChatResponse> = realOpenrouterChat
 import { parse, stringify } from 'yaml'
 import { fetchRegistryList, fetchRegistrySkillContent } from '../../skills/fetch.ts'
 import type { SkillRow, SkillBuildResponse, SkillProRow, SkillCurateResponse, SkillImportResponse, MutationResult, RegistryListResponse, RegistryImportResponse } from '../types.ts'
@@ -242,7 +248,7 @@ async function normalizeImport(rawYaml: string, error: string, sourceDesc: strin
 
     let raw: string
     try {
-      const resp = await openrouterChat({
+      const resp = await chatImpl({
         model: 'anthropic/claude-haiku-4-5',
         system: IMPORT_SYSTEM,
         messages: [{ role: 'user', content: userMessage }],
@@ -365,7 +371,7 @@ async function handleApiSkillsCurate(req: Request): Promise<Response> {
 
     let raw: string
     try {
-      const resp = await openrouterChat({
+      const resp = await chatImpl({
         model: 'anthropic/claude-haiku-4-5',
         system: CURATOR_SYSTEM,
         messages: [{ role: 'user', content: userMessage }],
@@ -401,4 +407,13 @@ async function handleApiSkillsCurate(req: Request): Promise<Response> {
   )
 }
 
-export { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport }
+/** Test-only: swap chat implementation without touching the shared module graph. */
+function __setChatForTests(fn: (opts: { model: string; system: string; messages: ChatMessage[] }) => Promise<ChatResponse>): void {
+  chatImpl = fn
+}
+/** Test-only: restore the real chat implementation. */
+function __resetChatForTests(): void {
+  chatImpl = realOpenrouterChat
+}
+
+export { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport, __setChatForTests, __resetChatForTests }

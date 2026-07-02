@@ -21,12 +21,12 @@ import { resolve, join } from 'path'
 import { existsSync } from 'fs'
 import { runGraph as realRunGraph } from '../../run/graph-runner.ts'
 import type { GraphRunResult, GraphRunOpts } from '../../run/graph-runner.ts'
-import { tasksExist } from '../../tasks/loader.ts'
-import { loadContext } from '../../context/load.ts'
-import { getProject } from '../../db/projects.ts'
-import { loadOrcheConfig } from '../../config/load.ts'
+import { tasksExist as realTasksExist } from '../../tasks/loader.ts'
+import { loadContext as realLoadContext } from '../../context/load.ts'
+import { getProject as realGetProject } from '../../db/projects.ts'
+import { loadOrcheConfig as realLoadOrcheConfig } from '../../config/load.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
-import { loadTaskRows } from './tasks.ts'
+import { loadTaskRows as realLoadTaskRows } from './tasks.ts'
 import type { GraphRunStatusResponse } from '../types.ts'
 
 type RunState =
@@ -44,12 +44,24 @@ let state: RunState = { phase: 'idle' }
 // the fake scoped to this handler's own call site.
 let runGraphImpl: (opts: GraphRunOpts) => Promise<GraphRunResult> = realRunGraph
 
+// Same rationale, extended to every module-level dependency this handler touches directly
+// (tasksExist/loadTaskRows read tasks.yaml, getProject/loadContext hit the real shared
+// ~/.orchestos/db.sqlite, loadOrcheConfig can read a real ~/.orchestos/config.yaml on the
+// developer's machine — none of that should leak into or depend on machine state in tests).
+let deps = {
+  tasksExist: realTasksExist,
+  loadContext: realLoadContext,
+  getProject: realGetProject,
+  loadOrcheConfig: realLoadOrcheConfig,
+  loadTaskRows: realLoadTaskRows,
+}
+
 async function handleApiRunGraph(req: Request): Promise<Response> {
   if (state.phase === 'running') {
     return errorResponse('A graph run is already in progress', 409)
   }
   const root = resolve('.')
-  if (!tasksExist(root)) {
+  if (!deps.tasksExist(root)) {
     return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
   }
 
@@ -58,10 +70,10 @@ async function handleApiRunGraph(req: Request): Promise<Response> {
   const maxCost = typeof body.maxCost === 'number' ? body.maxCost : undefined
   const maxMinutes = typeof body.maxMinutes === 'number' ? body.maxMinutes : undefined
 
-  const projectContext = loadContext(root)
-  const project = getProject(root)
+  const projectContext = deps.loadContext(root)
+  const project = deps.getProject(root)
   const orcheConfigFound = existsSync(join(root, 'orchestos.config.yaml'))
-  const orcheConfig = loadOrcheConfig(root)
+  const orcheConfig = deps.loadOrcheConfig(root)
 
   const startedAt = Date.now()
   state = { phase: 'running', startedAt }
@@ -84,7 +96,7 @@ async function handleApiRunGraph(req: Request): Promise<Response> {
 }
 
 function handleApiRunGraphStatus(): Response {
-  const tasks = loadTaskRows(resolve('.'))
+  const tasks = deps.loadTaskRows(resolve('.'))
   const body: GraphRunStatusResponse =
     state.phase === 'idle'
       ? { phase: 'idle', tasks }
@@ -111,4 +123,24 @@ function __resetRunGraphForTests(): void {
   runGraphImpl = realRunGraph
 }
 
-export { handleApiRunGraph, handleApiRunGraphStatus, resetRunGraphState, __setRunGraphForTests, __resetRunGraphForTests }
+/** Test-only: override any subset of the module-level deps without touching the module graph. */
+function __setDepsForTests(overrides: Partial<typeof deps>): void {
+  deps = { ...deps, ...overrides }
+}
+
+/** Test-only: restore the real deps. */
+function __resetDepsForTests(): void {
+  deps = {
+    tasksExist: realTasksExist,
+    loadContext: realLoadContext,
+    getProject: realGetProject,
+    loadOrcheConfig: realLoadOrcheConfig,
+    loadTaskRows: realLoadTaskRows,
+  }
+}
+
+export {
+  handleApiRunGraph, handleApiRunGraphStatus, resetRunGraphState,
+  __setRunGraphForTests, __resetRunGraphForTests,
+  __setDepsForTests, __resetDepsForTests,
+}

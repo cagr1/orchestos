@@ -104,14 +104,14 @@ function parseJudgment(text: string): ConflictJudgment {
  *
  * @param entryA  The newly upserted memory entry
  * @param entryB  An existing memory entry (BM25 candidate)
- * @param modelOverride  Optional model override (default: anthropic/claude-3-haiku)
+ * @param modelOverride  Optional model override (default: anthropic/claude-haiku-4-5)
  */
 export async function judgeConflict(
   entryA: { topicKey: string; content: string },
   entryB: { topicKey: string; content: string },
   modelOverride?: string,
 ): Promise<ConflictJudgment> {
-  const model = modelOverride ?? 'anthropic/claude-3-haiku'
+  const model = modelOverride ?? 'anthropic/claude-haiku-4-5'
 
   let resp
   try {

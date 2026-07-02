@@ -1,6 +1,13 @@
 import { lookup } from 'dns/promises'
 
+// Wrapper to normalize dns/promises return type (LookupAddress[] | LookupAddress → array)
+async function defaultLookup(hostname: string, options: { all?: boolean; family?: number }): Promise<Array<{ address: string; family: number }>> {
+  return lookup(hostname, options) as Promise<Array<{ address: string; family: number }>>
+}
+
 const LOCALHOST_NAMES = new Set(['localhost', '127.0.0.1', '::1', '::ffff:127.0.0.1', '0.0.0.0'])
+
+type LookupFn = (hostname: string, options: { all?: boolean; family?: number }) => Promise<Array<{ address: string; family: number }>>
 
 export function ipToUint32(ip: string): number | null {
   const parts = ip.split('.')
@@ -27,8 +34,10 @@ export function isPrivateIP(ip: string): boolean {
  * SSRF guard — checks whether a URL is safe to fetch.
  * Returns null if safe, or an error string describing why it was blocked.
  * Same rigor pattern as enforceContract in src/run/contract.ts.
+ * @param lookupFn — test-only injection seam; defaults to dns/promises.lookup
  */
-export async function checkSsrSafe(parsed: URL): Promise<string | null> {
+export async function checkSsrSafe(parsed: URL, lookupFn?: LookupFn): Promise<string | null> {
+  const resolveDns = lookupFn ?? defaultLookup
   const hostname = parsed.hostname.toLowerCase()
 
   if (LOCALHOST_NAMES.has(hostname)) {
@@ -57,7 +66,7 @@ export async function checkSsrSafe(parsed: URL): Promise<string | null> {
     // fails with ECONNREFUSED in networks that block/restrict raw DNS queries
     // (corporate proxies, VPNs, sandboxes) even though normal hostname resolution
     // works fine there.
-    const addresses = await lookup(hostname, { all: true, family: 4 })
+    const addresses = await resolveDns(hostname, { all: true, family: 4 })
     for (const { address } of addresses) {
       if (isPrivateIP(address)) {
         return `[SSRF blocked: ${parsed.hostname} resolves to private IP ${address}]`
