@@ -1,5 +1,5 @@
 import { listRuns, getRun, type RunRecord } from '../../db/runs.ts'
-import { parseCostBreakdownJson } from '../../run/transcript-parser.ts'
+import { parseCostBreakdownJson, type CostBreakdownEntry } from '../../run/transcript-parser.ts'
 import type { ContextWarningEntry, RunRow } from '../types.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 
@@ -12,7 +12,24 @@ function parseContextWarnings(raw: string | null | undefined): ContextWarningEnt
   }
 }
 
+// G.4 — deriva engine + iteraciones del primer label de costBreakdown.
+// Label canónico: "single-shot" (1 vuelta) o "agentic (N rounds)" (N vueltas).
+// Si el breakdown está vacío (run legacy pre-G.4 o path sin outcome), devuelve null/null.
+function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
+  engine: 'single-shot' | 'agentic' | null
+  iterations: number | null
+} {
+  const label = breakdown[0]?.label
+  if (!label) return { engine: null, iterations: null }
+  if (label === 'single-shot') return { engine: 'single-shot', iterations: 1 }
+  const m = label.match(/^agentic \((\d+) rounds?\)$/)
+  if (m) return { engine: 'agentic', iterations: parseInt(m[1]!, 10) }
+  return { engine: null, iterations: null }
+}
+
 function runRecordToRow(r: RunRecord): RunRow {
+  const breakdown = parseCostBreakdownJson(r.cost_breakdown_json)
+  const { engine, iterations } = deriveEngineFromBreakdown(breakdown)
   return {
     id: r.id,
     taskId: r.task_id,
@@ -24,8 +41,10 @@ function runRecordToRow(r: RunRecord): RunRow {
     inputTokens: r.input_tokens,
     outputTokens: r.output_tokens,
     costUsd: r.usd_cost,
-    costBreakdown: parseCostBreakdownJson(r.cost_breakdown_json),
+    costBreakdown: breakdown,
     contextWarnings: parseContextWarnings(r.context_warnings_json),
+    engine,
+    iterations,
     elapsedMs: r.elapsed_ms,
     createdAt: r.created_at,
   }

@@ -248,6 +248,25 @@ SCREENS.runs = {
       : `<span class="warn-dot none">— 0</span>`;
   },
   detail(r) {
+    /* G.4 — engine + iteraciones derivados server-side en RunRow desde costBreakdown[0].label.
+       Label canónico: "single-shot" o "agentic (N rounds)". Para runs legacy sin
+       breakdown persistido, ambos campos vienen como null y mostramos "unknown". */
+    const engineLabel = r.engine
+      ? (r.engine === 'single-shot'
+          ? t('runs.detail.engine.single-shot')
+          : t('runs.detail.engine.agentic'))
+      : '—';
+    const iterationsLabel = r.iterations != null
+      ? (r.engine === 'agentic'
+          ? `${r.iterations} ${r.iterations === 1 ? 'round' : 'rounds'}`
+          : String(r.iterations))
+      : '—';
+    const engine = `<div class="grp"><h4>${t('runs.detail.engine')}</h4>
+       <div class="kv"><span class="k">${t('runs.detail.engine.type')}</span>
+         <span class="v"><span class="badge ${r.engine === 'agentic' ? 'blue' : r.engine === 'single-shot' ? 'gray' : 'gray'}">${esc(engineLabel)}</span></span></div>
+       <div class="kv"><span class="k">${t('runs.detail.iterations')}</span><span class="v">${esc(iterationsLabel)}</span></div>
+     </div>`;
+
     /* costBreakdown: {label, model, inputTokens, outputTokens, costUsd} */
     const bd = r.costBreakdown && r.costBreakdown.length > 1
       ? `<div class="grp"><h4>Cost Breakdown</h4><div class="breakdown">` +
@@ -280,7 +299,7 @@ SCREENS.runs = {
       ${r.elapsedMs ? `<div class="kv"><span class="k">${t('runs.detail.elapsed')}</span><span class="v">${(r.elapsedMs / 1000).toFixed(1)}s</span></div>` : ''}
     </div>`;
 
-    return `<tr class="detail-row"><td colspan="7"><div class="detail">${bd}${warns}${qa}${meta}</div></td></tr>`;
+    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${bd}${warns}${qa}${meta}</div></td></tr>`;
   },
   render(st) {
     const hasRunning = (st.runs || []).some(r => r.status === 'running');

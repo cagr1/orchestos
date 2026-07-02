@@ -12,7 +12,8 @@ import { readEnv } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, createToolRouter, supportsToolCalling } from '../../providers/tool-call.ts'
 import { checkSsrSafe } from '../ssrf.ts'
-import { ensureCatalogLoaded, supportsReasoningEffort } from '../../router/model-catalog.ts'
+import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, DEFAULT_MAX_OUTPUT_TOKENS } from '../../router/model-catalog.ts'
+import { estimateTokens } from '../../context/compress.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = typeof VALID_EFFORTS[number]
@@ -316,6 +317,19 @@ Important: you cannot modify files or run code directly from this chat. However,
       return jsonResponse({ text: resp.text, model: resp.model })
     }
 
+    // Presupuesto real derivado del catálogo — nunca un número hardcodeado
+    // (mismo cálculo que harness.ts usa desde F0.6; ver hallazgo de G.5:
+    // tool-call.ts tenía max_tokens=4096 fijo por ronda sin forma de
+    // sobreescribirlo). El chat no puede "quedar pending" como una tarea si
+    // el contexto es muy ajustado — es interactivo, así que si el presupuesto
+    // calculado no da margen razonable cae a DEFAULT_MAX_OUTPUT_TOKENS como
+    // último recurso en vez de bloquear la respuesta.
+    const messagesText = messages.map(m => typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).join('\n')
+    const promptTokens = estimateTokens(systemPrompt) + estimateTokens(messagesText)
+    const CHAT_SAFETY_MARGIN = 1024
+    const available = contextWindowFor(model) - promptTokens - CHAT_SAFETY_MARGIN
+    const chatMaxTokens = available > 0 ? available : DEFAULT_MAX_OUTPUT_TOKENS
+
     if (supportsToolCalling('openrouter', model)) {
       const result = await runToolLoop('openrouter', model, {
         system: systemPrompt,
@@ -323,6 +337,7 @@ Important: you cannot modify files or run code directly from this chat. However,
         tools: [FETCH_URL_TOOL, SEARCH_MEMORY_TOOL],
         executeTool: createToolRouter({ fetch_url: executeFetchUrl, search_memory: executeSearchMemory }),
         effort,
+        maxTokens: chatMaxTokens,
       })
       return jsonResponse({ text: result.text, model, toolCalls: result.toolCallsExecuted })
     }
@@ -332,6 +347,7 @@ Important: you cannot modify files or run code directly from this chat. However,
       system: systemPrompt,
       effort,
       messages,
+      maxTokens: chatMaxTokens,
     })
     return jsonResponse({ text: resp.text, model: resp.model })
   } catch (e: any) {

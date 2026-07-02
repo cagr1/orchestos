@@ -1,5 +1,6 @@
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
 export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
+export type TaskEngine = 'single-shot' | 'agentic'
 
 const EXECUTORS: TaskExecutor[] = ['openrouter', 'anthropic', 'openai', 'codex']
 
@@ -19,6 +20,8 @@ export interface Task {
   executor_model?: string
   /** Per-task planner model — for future sub-agent planning step */
   planner_model?: string
+  /** Which ExecutorEngine runs this task — undefined resolves via orchestos.config.yaml, default 'single-shot' (G.3) */
+  engine?: TaskEngine
   input: string[]         // files the LLM can read (relative to project root)
   output: string[]        // files the LLM is allowed to write — REQUIRED, must be non-empty
   acceptance_criteria?: string[]
@@ -55,6 +58,7 @@ export function validateTask(t: unknown, index: number): Task {
     executor,
     executor_model: typeof task.executor_model === 'string' ? task.executor_model : undefined,
     planner_model:  typeof task.planner_model  === 'string' ? task.planner_model  : undefined,
+    engine:       validateEngine(task.engine, err),
     input:        Array.isArray(task.input) ? task.input as string[] : [],
     output:       task.output as string[],
     acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),
@@ -77,6 +81,14 @@ function validateExecutor(value: unknown, err: (msg: string) => never): TaskExec
     err('codex executor disabled — set OS_ENABLE_EXEC_CODEX=1 to enable')
   }
   return value as TaskExecutor
+}
+
+function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine | undefined {
+  if (value === undefined) return undefined
+  if (value !== 'single-shot' && value !== 'agentic') {
+    err(`unknown engine '${String(value)}' — allowed: single-shot, agentic`)
+  }
+  return value as TaskEngine
 }
 
 function validateStringArray(

@@ -24,6 +24,8 @@ import { validateSubTask, validateSubTaskPlan, topoSort, VALID_TOOLS } from './s
 import { createSubTask } from './sub-agent.ts'
 import { callWithTools, supportsToolCalling, type ToolDef } from '../providers/tool-call.ts'
 import { getProvider } from '../providers/index.ts'
+import { ensureCatalogLoaded, contextWindowFor, DEFAULT_MAX_OUTPUT_TOKENS } from '../router/model-catalog.ts'
+import { estimateTokens } from '../context/compress.ts'
 import type { SubTask } from './sub-agent.ts'
 import type { SubTaskDef, SubTaskPlan } from './sub-task-schema.ts'
 
@@ -197,12 +199,22 @@ export async function planWithFunctionCalling(
 ): Promise<SubTask[]> {
   const caller = _override?.callWithTools ?? callWithTools
 
+  // Presupuesto real derivado del catálogo — nunca hardcodeado (hallazgo de
+  // G.5: tool-call.ts tenía max_tokens=4096 fijo, sin forma de sobreescribirlo).
+  await ensureCatalogLoaded()
+  const userMessage = `Decompose the following task into sub-tasks:\n\n${description}`
+  const promptTokens = estimateTokens(FUNCTION_CALLING_SYSTEM) + estimateTokens(userMessage)
+  const PLANNER_SAFETY_MARGIN = 1024
+  const available = contextWindowFor(opts.model) - promptTokens - PLANNER_SAFETY_MARGIN
+  const maxTokens = available > 0 ? available : DEFAULT_MAX_OUTPUT_TOKENS
+
   let response: Awaited<ReturnType<typeof callWithTools>>
   try {
     response = await caller(opts.provider, opts.model, {
       system:      FUNCTION_CALLING_SYSTEM,
-      userMessage: `Decompose the following task into sub-tasks:\n\n${description}`,
+      userMessage,
       tools:       [CREATE_SUBTASK_TOOL],
+      maxTokens,
     })
   } catch (e: any) {
     throw new PlanParseError(`function-calling planner failed: ${e.message}`)

@@ -19,6 +19,7 @@ function loadTaskRows(root: string): TaskRow[] {
       retryCount: t.retry_count,
       qaVerdict: t.qa_verdict ?? null,
       runId: t.run_id ?? null,
+      engine: t.engine ?? null,
     }))
   } catch {
     return []
@@ -44,8 +45,8 @@ function inferExecutorFromModel(modelId: string | undefined): string {
 }
 
 async function handleApiTasksCreate(req: Request): Promise<Response> {
-  let body: { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string }
-  try { body = (await req.json()) as { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string } } catch { return errorResponse('Invalid JSON', 400) }
+  let body: { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string; engine?: string }
+  try { body = (await req.json()) as { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string; engine?: string } } catch { return errorResponse('Invalid JSON', 400) }
   if (!body.description?.trim()) {
     return errorResponse('description is required', 400)
   }
@@ -54,6 +55,13 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
   const output = Array.isArray(body.output) ? body.output : []
   const executorModel = body.executor_model?.trim() || undefined
   const executor = body.executor || inferExecutorFromModel(executorModel)
+  // G.4 — engine opcional; validateTask() de tasks/schema.ts re-valida al re-leer
+  // el YAML, así que si llega un valor inválido caemos al mensaje "unknown engine"
+  // via el guard siguiente (mismo set que validateEngine en schema.ts:86-92).
+  const engineRaw = body.engine?.trim()
+  let engine: 'single-shot' | 'agentic' | undefined
+  if (engineRaw === 'single-shot' || engineRaw === 'agentic') engine = engineRaw
+  else if (engineRaw && engineRaw.length > 0) return errorResponse(`unknown engine '${engineRaw}' — allowed: single-shot, agentic`, 400)
   const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) {
     return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
@@ -73,6 +81,7 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
       retry_count: 0,
     }
     if (executorModel) newTask.executor_model = executorModel
+    if (engine) newTask.engine = engine
     ;(file.tasks as any[]).push(newTask)
     saveTasks(root, file)
     return jsonResponse({ ok: true, id: finalId })

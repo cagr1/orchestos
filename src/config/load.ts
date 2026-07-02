@@ -53,7 +53,15 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
       // qa has no default fallback — absence means "not configured", resolved at call time (harness.ts F2.2)
       qa: models.qa !== undefined ? parseRoleValue(models.qa, d.default) : undefined,
     },
+    executorEngine: raw.executorEngine === 'agentic' ? 'agentic' : raw.executorEngine === 'single-shot' ? 'single-shot' : undefined,
+    agentic: parseAgenticConfig(raw.agentic),
   }
+}
+
+function parseAgenticConfig(v: unknown): { maxIterations?: number } | undefined {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return undefined
+  const obj = v as Record<string, unknown>
+  return { maxIterations: typeof obj.maxIterations === 'number' ? obj.maxIterations : undefined }
 }
 
 /**

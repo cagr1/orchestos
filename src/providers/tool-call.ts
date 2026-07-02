@@ -17,6 +17,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
+import { DEFAULT_MAX_OUTPUT_TOKENS } from '../router/model-catalog.ts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,6 +80,8 @@ export async function anthropicCallWithTools(opts: {
   system: string
   userMessage: string
   tools: ToolDef[]
+  /** Real output budget for this call — caller should derive it from contextWindowFor(model), never hardcode. Falls back to DEFAULT_MAX_OUTPUT_TOKENS only when the caller has no computed budget. */
+  maxTokens?: number
 }): Promise<ToolCallResponse> {
   const apiKey = requireKey('ANTHROPIC_API_KEY', 'anthropic')
   const model  = opts.model.startsWith('anthropic/') ? opts.model.slice('anthropic/'.length) : opts.model
@@ -98,7 +101,7 @@ export async function anthropicCallWithTools(opts: {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: opts.maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
       system:     opts.system,
       tools:      anthropicTools,
       messages:   [{ role: 'user', content: opts.userMessage }],
@@ -137,6 +140,8 @@ export async function openaiCallWithTools(opts: {
   tools: ToolDef[]
   baseUrl?: string
   apiKey?: string
+  /** Real output budget for this call — caller should derive it from contextWindowFor(model), never hardcode. Falls back to DEFAULT_MAX_OUTPUT_TOKENS only when the caller has no computed budget. */
+  maxTokens?: number
 }): Promise<ToolCallResponse> {
   const key     = opts.apiKey ?? requireKey('OPENAI_API_KEY', 'openai')
   const baseUrl = opts.baseUrl ?? 'https://api.openai.com/v1'
@@ -159,7 +164,7 @@ export async function openaiCallWithTools(opts: {
     },
     body: JSON.stringify({
       model,
-      max_tokens:  4096,
+      max_tokens:  opts.maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
       tool_choice: 'auto',
       tools:       openaiTools,
       messages: [
@@ -233,7 +238,7 @@ export function supportsToolCalling(provider: string, model: string): boolean {
 export async function callWithTools(
   provider: string,
   model: string,
-  opts: { system: string; userMessage: string; tools: ToolDef[] },
+  opts: { system: string; userMessage: string; tools: ToolDef[]; maxTokens?: number },
 ): Promise<ToolCallResponse> {
   if (provider === 'anthropic') {
     return anthropicCallWithTools({ model, ...opts })
@@ -273,6 +278,8 @@ export interface ToolLoopResult {
   toolCallsExecuted: Array<{ name: string; input: unknown }>
   inputTokens: number
   outputTokens: number
+  /** Number of rounds actually run (1-indexed) — additive field, G.3 executor engine reuses this for iteration count. */
+  rounds: number
 }
 
 export const FETCH_URL_TOOL: ToolDef = {
@@ -333,6 +340,7 @@ async function anthropicRound(
   system: string,
   history: unknown[],
   tools: ToolDef[],
+  maxTokens?: number,
 ): Promise<{
   text: string
   toolUses: RawToolUse[]
@@ -352,7 +360,7 @@ async function anthropicRound(
     },
     body: JSON.stringify({
       model: m,
-      max_tokens: 4096,
+      max_tokens: maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
       system,
       tools: tools.map(t => ({ name: t.name, description: t.description, input_schema: t.input_schema })),
       messages: history,
@@ -390,6 +398,7 @@ async function openaiRound(
   tools: ToolDef[],
   provider: string,
   effort?: 'low' | 'medium' | 'high',
+  maxTokens?: number,
 ): Promise<{
   text: string
   toolUses: RawToolUse[]
@@ -429,7 +438,7 @@ async function openaiRound(
     },
     body: JSON.stringify({
       model: m,
-      max_tokens: 4096,
+      max_tokens: maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
       tool_choice: 'auto',
       tools: openaiTools,
       messages: [
@@ -484,6 +493,17 @@ export async function runToolLoop(
     maxTurns?: number
     /** Reasoning effort, solo aplicado al round openrouter — ver BACK.1/BACK.3. */
     effort?: 'low' | 'medium' | 'high'
+    /**
+     * Real per-round output budget — caller should derive it from
+     * contextWindowFor(model), never hardcode. Falls back to
+     * DEFAULT_MAX_OUTPUT_TOKENS only when the caller has no computed budget
+     * (e.g. the chat, which has no fixed output contract to size against).
+     * Root cause of the G.5 truncation bug (2026-07-02): this was hardcoded
+     * to 4096 with no way to override it, so a write_file call whose content
+     * argument exceeded that competed with the round's own text budget and
+     * got cut mid-argument, producing invalid tool-call JSON.
+     */
+    maxTokens?: number
   },
 ): Promise<ToolLoopResult> {
   const maxTurns = opts.maxTurns ?? 3
@@ -504,9 +524,9 @@ export async function runToolLoop(
     }
 
     if (provider === 'anthropic') {
-      result = await anthropicRound(model, opts.system, history, opts.tools)
+      result = await anthropicRound(model, opts.system, history, opts.tools, opts.maxTokens)
     } else {
-      result = await openaiRound(model, opts.system, history, opts.tools, provider, opts.effort)
+      result = await openaiRound(model, opts.system, history, opts.tools, provider, opts.effort, opts.maxTokens)
     }
 
     totalInputTokens += result.inputTokens
@@ -518,6 +538,7 @@ export async function runToolLoop(
         toolCallsExecuted: executed,
         inputTokens: totalInputTokens,
         outputTokens: totalOutputTokens,
+        rounds: turn + 1,
       }
     }
 
@@ -547,5 +568,6 @@ export async function runToolLoop(
     toolCallsExecuted: executed,
     inputTokens: totalInputTokens,
     outputTokens: totalOutputTokens,
+    rounds: maxTurns,
   }
 }

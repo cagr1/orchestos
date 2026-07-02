@@ -393,19 +393,25 @@ evidencia + QA + diagnose), no el ejecutor propio. VISION.md ya lo insinúa ("lo
 executor") pero el código lo contradice — todo está acoplado a `parseLLMResponse` y su formato de
 un solo disparo.
 
-**Prerequisito duro**: Bloque G del Mes 16 cerrado (interface `ExecutorEngine` + ejecutor agéntico
-propio funcionando). Un ejecutor externo es una tercera implementación de esa misma interface:
-lanzar `claude -p` (headless) u opencode como subproceso dentro del worktree, dejar que trabaje, y
-al terminar aplicar `enforceContract` post-hoc + checks + QA sobre el diff resultante — la capa de
-verificación no cambia, solo el motor.
+**Prerequisito CUMPLIDO (2026-07-02)**: Bloque G del Mes 16 cerrado — interface `ExecutorEngine`
+(`src/run/executors/types.ts`) + ejecutor agéntico propio funcionando (`executors/agentic.ts`,
+reusa `runToolLoop()`) + gate comparativo con dinero real (G.5) que encontró y corrigió 2 bugs
+reales de `maxTokens` hardcodeado, reverificado en vivo sin truncar. Un ejecutor externo es una
+tercera implementación de esa misma interface: lanzar `claude -p` (headless) u opencode como
+subproceso dentro del worktree, dejar que trabaje, y al terminar aplicar `enforceContract`
+post-hoc + checks + QA sobre el diff resultante — la capa de verificación no cambia, solo el motor.
+Candidato natural para el próximo mes.
 
 **Decisiones pendientes (para el diseño, no ahora)**: cómo pasarle el contrato al harness externo
-(prompt vs `--allowedTools`/settings), cómo capturar costo/tokens de un proceso externo, timeout y
-presupuesto, qué hacer si el externo toca archivos fuera de `output[]` (discard del worktree = ya
-resuelto por el sandbox actual).
+(prompt vs `--allowedTools`/settings), cómo capturar costo/tokens de un proceso externo, timeout
+para garantizar terminación (mismo rol que `maxIterations` del agéntico — NO un tope de gasto,
+OrchestOS decidió en G.1 no poner techos de dinero), qué hacer si el externo toca archivos fuera de
+`output[]` (discard del worktree = ya resuelto por el sandbox actual).
 
 **Esfuerzo**: alto — pero es LA jugada que convierte a OrchestOS de "runner casero que compite
-contra gigantes" a "la capa de confianza que los gigantes no dan". Gated en evidencia de G.5.
+contra gigantes" a "la capa de confianza que los gigantes no dan". Ya no está gated — evidencia de
+G.5 existe y es favorable a la arquitectura (aunque el engine agéntico interno v1 todavía tiene
+riesgo de fidelidad en archivos grandes con modelos baratos, ver DONE.md § MES 16).
 
 ### 16. Escala honesta — poda de DB, presupuesto de input[], partir cli.ts
 

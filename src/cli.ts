@@ -915,7 +915,9 @@ task
   .option('--keep-worktree', 'Keep worktree on failure for post-mortem debugging (implies --sandbox=worktree)')
   .option('--sandbox <mode>', 'Sandbox mode: worktree | cwd | auto (default: auto)', 'auto')
   .option('--model <model>', 'Transient model override for this run only — does NOT persist in tasks.yaml')
-  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; expand?: string; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string; model?: string }) => {
+  // G.4 — engine override (transient, como --model). Mutamos `t` en memoria, no tocamos tasks.yaml.
+  .option('--engine <engine>', 'Executor engine override for this run: single-shot | agentic (transient — does NOT persist in tasks.yaml)')
+  .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; expand?: string; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string; model?: string; engine?: string }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
     const project = getProject(root)
@@ -937,6 +939,16 @@ task
       const file = loadTasks(root)
       const t = file.tasks.find(x => x.id === taskId)
       if (!t) { console.error(`[task] Task "${taskId}" not found`); return 'failed' }
+      // G.4 — engine override transient (mismo patrón que --model): muta `t` en
+      // memoria, NO persiste en tasks.yaml. Validación de valores: solo 'single-shot'
+      // o 'agentic' son aceptados; cualquier otro cae con error explicativo.
+      if (opts?.engine !== undefined) {
+        if (opts.engine !== 'single-shot' && opts.engine !== 'agentic') {
+          console.error(`[task] --engine: unknown engine '${opts.engine}' — allowed: single-shot, agentic`)
+          return 'failed'
+        }
+        t.engine = opts.engine
+      }
       if (t.status === 'done')             { console.log(`[task] ${taskId} already done`); return 'done' }
       if (t.status === 'failed_permanent') { console.log(`[task] ${taskId} permanently failed`); return 'failed' }
 
@@ -1849,7 +1861,12 @@ program
     await new Promise(() => {}) // keep process alive
   })
 
-program.parse()
+// Solo parseamos argv cuando cli.ts se ejecuta como entrypoint. Importar el
+// módulo (p.ej. desde un test que llama printRunDetail directo) NO debe
+// disparar Commander, que consumiría process.argv del runner y fallaría.
+if (import.meta.main) {
+  program.parse()
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 import { printGraphSummary } from './run/graph-summary.ts'
@@ -2040,7 +2057,7 @@ type StoredCheck = {
   timedOut?: boolean
 }
 
-function printRunDetail(r: import('./db/runs.ts').RunRecord) {
+export function printRunDetail(r: import('./db/runs.ts').RunRecord) {
   const checks = parseJson<StoredCheck[]>(r.checks_json, [])
   const allowed = parseJson<string[]>(r.allowed_outputs, [])
   const attempted = parseJson<string[]>(r.files_attempted, [])
@@ -2061,6 +2078,24 @@ function printRunDetail(r: import('./db/runs.ts').RunRecord) {
     ? `context: ${(r as any).context_source} (${(r as any).context_tokens ?? '?'} tokens)`
     : `context: AGENTS.md`
   console.log(contextInfo)
+
+  // G.4 — engine + iteraciones derivados de cost_breakdown_json (mismo helper que
+  // el dashboard usa, replicado acá para mantener `runs --detail` independiente).
+  // Label canónico: "single-shot" (1 vuelta) o "agentic (N rounds)" (N vueltas).
+  console.log(`\n## Engine`)
+  const breakdownForEngine = parseCostBreakdownJson((r as any).cost_breakdown_json)
+  const firstLabel = breakdownForEngine[0]?.label
+  if (firstLabel === 'single-shot') {
+    console.log(`type: single-shot   iterations: 1`)
+  } else {
+    const m = firstLabel?.match(/^agentic \((\d+) rounds?\)$/)
+    if (m) {
+      const rounds = parseInt(m[1]!, 10)
+      console.log(`type: agentic   iterations: ${rounds} ${rounds === 1 ? 'round' : 'rounds'}`)
+    } else {
+      console.log(`type: unknown   iterations: unknown   (cost_breakdown_json missing or pre-G.4 run)`)
+    }
+  }
 
   const contextWarnings = parseJson<Array<{ code: string; severity: string; message: string }>>((r as any).context_warnings_json, [])
   if (contextWarnings.length > 0) {

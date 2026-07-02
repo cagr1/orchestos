@@ -64,6 +64,10 @@ export interface RunRow {
   elapsedMs: number
   costBreakdown: CostBreakdownEntry[]   // parsed from cost_breakdown_json
   contextWarnings: ContextWarningEntry[] // parsed from context_warnings_json
+  /** G.4 — derived from costBreakdown[0].label. 'single-shot' | 'agentic' | null (no breakdown persisted). */
+  engine: 'single-shot' | 'agentic' | null
+  /** G.4 — derived from costBreakdown[0].label (e.g. "agentic (N rounds)" → N). 1 for single-shot, null if unknown. */
+  iterations: number | null
   createdAt: string
 }
 
@@ -97,6 +101,8 @@ export interface TaskRow {
   retryCount: number
   qaVerdict: 'pass' | 'fail' | null
   runId: string | null     // link to latest run in /api/runs
+  /** G.4 — 'single-shot' | 'agentic' | null (undefined → inherit from orchestos.config.yaml, default 'single-shot') */
+  engine: 'single-shot' | 'agentic' | null
 }
 
 // ── /api/run/graph, /api/run/graph/status ──────────────────────────────────────

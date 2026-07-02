@@ -423,6 +423,14 @@ SCREENS.tasks = {
               <label>${t('modal.task.model.label')}</label>
               ${buildModelSelect('draft-model', draft.executor_model || 'deepseek/deepseek-v4-flash', st.orModels)}
             </div>
+            <div class="draft-field">
+              <label>${t('tasks.draft.field.engine')}</label>
+              <select id="draft-engine" class="draft-input">
+                <option value="">${t('tasks.draft.engine.inherit')}</option>
+                <option value="single-shot">${t('tasks.draft.engine.single-shot')}</option>
+                <option value="agentic">${t('tasks.draft.engine.agentic')}</option>
+              </select>
+            </div>
           </div>
           <div class="compose-actions" style="margin-top:10px">
             <div id="compose-msg" style="font-size:12px;display:none;flex:1"></div>
@@ -635,6 +643,7 @@ SCREENS.tasks = {
       const desc = root.querySelector('#draft-desc')?.value.trim();
       const outRaw = root.querySelector('#draft-output')?.value.trim() || '';
       const modelId = root.querySelector('#draft-model')?.value?.trim() || 'deepseek/deepseek-v4-flash';
+      const engine = root.querySelector('#draft-engine')?.value || '';
       const executor = inferExecutor(modelId);
       const output = outRaw.split('\n').map(s => s.trim()).filter(Boolean);
       const msg2 = root.querySelector('#compose-msg');
@@ -645,10 +654,12 @@ SCREENS.tasks = {
       const btn = root.querySelector('[data-act="draft-confirm"]');
       btn.disabled = true;
       try {
+        const createBody = { id, description: desc, output, executor, executor_model: modelId };
+        if (engine === 'single-shot' || engine === 'agentic') createBody.engine = engine;
         const createRes = await fetch('/api/tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, description: desc, output, executor, executor_model: modelId }),
+          body: JSON.stringify(createBody),
         });
         if (!createRes.ok) {
           const e = await createRes.json();
