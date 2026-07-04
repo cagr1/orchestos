@@ -1,6 +1,9 @@
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
 export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
-export type TaskEngine = 'single-shot' | 'agentic'
+// B.2 — 'external' es la tercera implementación de ExecutorEngine (B.1, docs/external-executor-design.md).
+// Lanza el subproceso `claude -p` dentro del worktree; el harness aplica enforceContract post-hoc
+// igual que con single-shot/agentic. Opt-in por tarea o por config de proyecto.
+export type TaskEngine = 'single-shot' | 'agentic' | 'external'
 
 const EXECUTORS: TaskExecutor[] = ['openrouter', 'anthropic', 'openai', 'codex']
 
@@ -85,8 +88,8 @@ function validateExecutor(value: unknown, err: (msg: string) => never): TaskExec
 
 function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine | undefined {
   if (value === undefined) return undefined
-  if (value !== 'single-shot' && value !== 'agentic') {
-    err(`unknown engine '${String(value)}' — allowed: single-shot, agentic`)
+  if (value !== 'single-shot' && value !== 'agentic' && value !== 'external') {
+    err(`unknown engine '${String(value)}' — allowed: single-shot, agentic, external`)
   }
   return value as TaskEngine
 }

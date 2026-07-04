@@ -12,11 +12,11 @@ function parseContextWarnings(raw: string | null | undefined): ContextWarningEnt
   }
 }
 
-// G.4 — deriva engine + iteraciones del primer label de costBreakdown.
-// Label canónico: "single-shot" (1 vuelta) o "agentic (N rounds)" (N vueltas).
+// G.4 / B.2 — deriva engine + iteraciones del primer label de costBreakdown.
+// Label canónico: "single-shot" (1 vuelta) | "agentic (N rounds)" (N vueltas) | "external (claude-code, N turn[s])" (B.2).
 // Si el breakdown está vacío (run legacy pre-G.4 o path sin outcome), devuelve null/null.
 function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
-  engine: 'single-shot' | 'agentic' | null
+  engine: 'single-shot' | 'agentic' | 'external' | null
   iterations: number | null
 } {
   const label = breakdown[0]?.label
@@ -24,6 +24,9 @@ function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
   if (label === 'single-shot') return { engine: 'single-shot', iterations: 1 }
   const m = label.match(/^agentic \((\d+) rounds?\)$/)
   if (m) return { engine: 'agentic', iterations: parseInt(m[1]!, 10) }
+  // B.2 — external.ts escribe "external (claude-code, N turn[s])" (1 o N turnos, según num_turns de Claude Code).
+  const e = label.match(/^external \(claude-code, (\d+) turns?\)$/)
+  if (e) return { engine: 'external', iterations: parseInt(e[1]!, 10) }
   return { engine: null, iterations: null }
 }
 

@@ -55,13 +55,13 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
   const output = Array.isArray(body.output) ? body.output : []
   const executorModel = body.executor_model?.trim() || undefined
   const executor = body.executor || inferExecutorFromModel(executorModel)
-  // G.4 — engine opcional; validateTask() de tasks/schema.ts re-valida al re-leer
+  // G.4 / B.2 — engine opcional; validateTask() de tasks/schema.ts re-valida al re-leer
   // el YAML, así que si llega un valor inválido caemos al mensaje "unknown engine"
   // via el guard siguiente (mismo set que validateEngine en schema.ts:86-92).
   const engineRaw = body.engine?.trim()
-  let engine: 'single-shot' | 'agentic' | undefined
-  if (engineRaw === 'single-shot' || engineRaw === 'agentic') engine = engineRaw
-  else if (engineRaw && engineRaw.length > 0) return errorResponse(`unknown engine '${engineRaw}' — allowed: single-shot, agentic`, 400)
+  let engine: 'single-shot' | 'agentic' | 'external' | undefined
+  if (engineRaw === 'single-shot' || engineRaw === 'agentic' || engineRaw === 'external') engine = engineRaw
+  else if (engineRaw && engineRaw.length > 0) return errorResponse(`unknown engine '${engineRaw}' — allowed: single-shot, agentic, external`, 400)
   const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) {
     return errorResponse('tasks.yaml not found — run: orchestos task init', 404)

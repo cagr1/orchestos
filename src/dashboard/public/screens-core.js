@@ -429,6 +429,7 @@ SCREENS.tasks = {
                 <option value="">${t('tasks.draft.engine.inherit')}</option>
                 <option value="single-shot">${t('tasks.draft.engine.single-shot')}</option>
                 <option value="agentic">${t('tasks.draft.engine.agentic')}</option>
+                <option value="external">${t('tasks.draft.engine.external')}</option>
               </select>
             </div>
           </div>
@@ -655,7 +656,7 @@ SCREENS.tasks = {
       btn.disabled = true;
       try {
         const createBody = { id, description: desc, output, executor, executor_model: modelId };
-        if (engine === 'single-shot' || engine === 'agentic') createBody.engine = engine;
+        if (engine === 'single-shot' || engine === 'agentic' || engine === 'external') createBody.engine = engine;
         const createRes = await fetch('/api/tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

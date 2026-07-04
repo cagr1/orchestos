@@ -6,6 +6,14 @@ export interface CostBreakdownEntry {
   inputTokens: number
   outputTokens: number
   costUsd: number
+  /**
+   * C.1 — process info del ejecutor externo (`external` engine). Opcionales
+   * porque single-shot/agentic no spawnean subproceso: el JSON.parse los
+   * conserva en lectura (test del shape: parseCostBreakdownJson los devuelve
+   * como `undefined` para entradas que no los tengan — son additive fields).
+   */
+  binary?: string
+  args?: string[]
 }
 
 export function calcEntryCost(

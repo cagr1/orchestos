@@ -53,8 +53,10 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
       // qa has no default fallback — absence means "not configured", resolved at call time (harness.ts F2.2)
       qa: models.qa !== undefined ? parseRoleValue(models.qa, d.default) : undefined,
     },
-    executorEngine: raw.executorEngine === 'agentic' ? 'agentic' : raw.executorEngine === 'single-shot' ? 'single-shot' : undefined,
+    // B.2 — extends the G.3 set with 'external'. Unknown values (incl. typos) become undefined → falls through to G.3 default 'single-shot'.
+    executorEngine: raw.executorEngine === 'agentic' ? 'agentic' : raw.executorEngine === 'single-shot' ? 'single-shot' : raw.executorEngine === 'external' ? 'external' : undefined,
     agentic: parseAgenticConfig(raw.agentic),
+    external: parseExternalConfig(raw.external),
   }
 }
 
@@ -62,6 +64,14 @@ function parseAgenticConfig(v: unknown): { maxIterations?: number } | undefined 
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return undefined
   const obj = v as Record<string, unknown>
   return { maxIterations: typeof obj.maxIterations === 'number' ? obj.maxIterations : undefined }
+}
+
+// B.2 — mirror of parseAgenticConfig. Mismo principio: cualquier tipo incorrecto → undefined, sin throw,
+// para que una config mal escrita no rompa el proyecto entero — el engine cae a su default interno.
+function parseExternalConfig(v: unknown): { timeoutMs?: number } | undefined {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return undefined
+  const obj = v as Record<string, unknown>
+  return { timeoutMs: typeof obj.timeoutMs === 'number' ? obj.timeoutMs : undefined }
 }
 
 /**

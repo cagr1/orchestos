@@ -1,15 +1,43 @@
-import { describe, it, expect, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync, readFileSync, readdirSync } from 'fs'
+import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync, readFileSync, readdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import type { Task } from '../tasks/schema.ts'
+import { _resetCatalog } from '../router/model-catalog.ts'
+import { validateTask, type Task } from '../tasks/schema.ts'
 import type { OrcheConfig } from '../config/schema.ts'
+import { loadOrcheConfig } from '../config/load.ts'
 
 // G.3 — engine resolution end-to-end through runTask(): task.engine wins over
 // orcheConfig.executorEngine, default is 'single-shot' (zero behavior change
 // for every existing task that doesn't opt in), and requesting 'agentic' with
 // a model that doesn't support tool-calling falls back to single-shot with a
 // logged warning instead of failing the task.
+
+// Seedea el catálogo de modelos en un ORCHESTOS_HOME temporal para que
+// ensureCatalogLoaded() lo lea de disco y NO consuma un handler del mock fetch.
+// OJO: model-catalog.ts:cacheFilePath() resuelve a ${ORCHESTOS_HOME}/.orchestos/cache/models.json
+// (con `.orchestos/` interpuesto), no a ${ORCHESTOS_HOME}/cache/models.json.
+function seedCatalog(): string {
+  const home = mkdtempSync(join(tmpdir(), 'orchestos-test-cat-'))
+  mkdirSync(join(home, '.orchestos', 'cache'), { recursive: true })
+  writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({
+    fetchedAt: Date.now(),
+    models: {
+      'anthropic/claude-haiku-4-5': { contextLength: 200000, priceIn: 0.8, priceOut: 4, supportsReasoning: false, maxOutputTokens: 8192 },
+      'deepseek/deepseek-v4-flash': { contextLength: 128000, priceIn: 0.15, priceOut: 0.6, supportsReasoning: false, maxOutputTokens: 8192 },
+    },
+  }))
+  return home
+}
+
+const _testOrchHome = seedCatalog()
+beforeAll(() => {
+  process.env.ORCHESTOS_HOME = _testOrchHome
+  // Limpia el catálogo en memoria de tests anteriores en el mismo proceso (ej.
+  // model-catalog.test.ts corre antes en CI): si quedó fresco, ensureCatalogLoaded
+  // retorna sin leer disco y vuelve a pegar a la red.
+  _resetCatalog()
+})
 
 const originalFetch = globalThis.fetch
 const originalKey = process.env.OPENROUTER_API_KEY
@@ -165,6 +193,92 @@ describe('G.3 — executor engine selection', () => {
       const result = await callRunTask(task, dir, { orcheConfig })
       expect(result.status).toBe('done')
       expect(readFileSync(join(dir, 'out.txt'), 'utf-8')).toBe('project default agentic')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+// B.2 — 'external' como tercer valor de TaskEngine. Tests de selección / schema / config.
+// El test E2E de la ejecución del motor (subproceso + worktree + diff) vive en B.3.
+// Acá cubrimos: validateEngine acepta 'external' y rechaza inválidos con mensaje
+// extendido; loadOrcheConfig resuelve executorEngine='external' y external.timeoutMs;
+// y runTask() con engine='external' llega a externalEngine.run() (verificable por el
+// error canónico de external.ts cuando no hay worktree — callRunTask usa sandboxMode
+// 'cwd' deliberadamente para mantener este test determinista sin tocar git).
+describe('B.2 — executor engine: external', () => {
+  it('validateTask acepta engine: "external"', () => {
+    const t = validateTask({
+      id: 'b2-ext-1',
+      description: 'external engine task',
+      executor: 'openrouter',
+      output: ['out.txt'],
+      engine: 'external',
+    }, 0)
+    expect(t.engine).toBe('external')
+  })
+
+  it('validateTask rechaza engine: "bogus2" con mensaje que incluye "external"', () => {
+    expect(() => validateTask({
+      id: 'b2-ext-2',
+      description: 'bad engine',
+      executor: 'openrouter',
+      output: ['out.txt'],
+      engine: 'bogus2',
+    }, 0)).toThrow(/unknown engine 'bogus2'.*external/)
+  })
+
+  it('loadOrcheConfig resuelve executorEngine="external"', () => {
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-b2-ext-cfg-'))
+    try {
+      writeFileSync(join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexecutorEngine: external\nmodels: {}\n', 'utf-8')
+      const cfg = loadOrcheConfig(home)
+      expect(cfg.executorEngine).toBe('external')
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('loadOrcheConfig parsea external.timeoutMs', () => {
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-b2-ext-cfg-'))
+    try {
+      writeFileSync(join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexternal:\n  timeoutMs: 60000\nmodels: {}\n', 'utf-8')
+      const cfg = loadOrcheConfig(home)
+      expect(cfg.external?.timeoutMs).toBe(60000)
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('loadOrcheConfig ignora external con tipo incorrecto (no rompe, default interno)', () => {
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-b2-ext-cfg-'))
+    try {
+      writeFileSync(join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexternal: "not-an-object"\nmodels: {}\n', 'utf-8')
+      const cfg = loadOrcheConfig(home)
+      expect(cfg.external).toBeUndefined()
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('task.engine="external" selecciona externalEngine y falla con error canónico de worktree (sandbox cwd)', async () => {
+    // callRunTask usa sandboxMode 'cwd' — el external engine rechaza esto con
+    // ExecutorExternalError("external engine requires worktree sandbox mode...").
+    // El catch-all del harness (harness.ts:498) convierte ese throw en un
+    // TaskResult { status: 'failed', retryReason: ... }, por eso acá
+    // verificamos el resultado, NO que la promesa rechace.
+    // Eso es la prueba de que el harness efectivamente seleccionó externalEngine
+    // (no single-shot ni agentic) — la rama de selección B.2 se ejecutó. El
+    // happy path con subprocess real + worktree es B.3.
+    const task = baseTask({ engine: 'external' })
+    const dir = tmpDir()
+    try {
+      const result = await callRunTask(task, dir, { modelOverride: 'anthropic/claude-haiku-4-5' })
+      expect(result.status).toBe('failed')
+      expect(result.retryReason).toMatch(/external engine requires worktree sandbox mode/)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

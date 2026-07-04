@@ -248,24 +248,46 @@ SCREENS.runs = {
       : `<span class="warn-dot none">— 0</span>`;
   },
   detail(r) {
-    /* G.4 — engine + iteraciones derivados server-side en RunRow desde costBreakdown[0].label.
-       Label canónico: "single-shot" o "agentic (N rounds)". Para runs legacy sin
-       breakdown persistido, ambos campos vienen como null y mostramos "unknown". */
+    /* G.4 / B.2 — engine + iteraciones derivados server-side en RunRow desde costBreakdown[0].label.
+       Label canónico: "single-shot" | "agentic (N rounds)" | "external (claude-code, N turn[s])".
+       Para runs legacy sin breakdown persistido, ambos campos vienen como null y mostramos "unknown". */
     const engineLabel = r.engine
       ? (r.engine === 'single-shot'
           ? t('runs.detail.engine.single-shot')
-          : t('runs.detail.engine.agentic'))
+          : r.engine === 'agentic'
+          ? t('runs.detail.engine.agentic')
+          : t('runs.detail.engine.external'))
       : '—';
     const iterationsLabel = r.iterations != null
       ? (r.engine === 'agentic'
           ? `${r.iterations} ${r.iterations === 1 ? 'round' : 'rounds'}`
+          : r.engine === 'external'
+          ? `${r.iterations} ${r.iterations === 1 ? 'turn' : 'turns'}`
           : String(r.iterations))
       : '—';
+    const engineBadgeClass = r.engine === 'agentic' ? 'blue' : r.engine === 'external' ? 'purple' : 'gray';
     const engine = `<div class="grp"><h4>${t('runs.detail.engine')}</h4>
        <div class="kv"><span class="k">${t('runs.detail.engine.type')}</span>
-         <span class="v"><span class="badge ${r.engine === 'agentic' ? 'blue' : r.engine === 'single-shot' ? 'gray' : 'gray'}">${esc(engineLabel)}</span></span></div>
+         <span class="v"><span class="badge ${engineBadgeClass}">${esc(engineLabel)}</span></span></div>
        <div class="kv"><span class="k">${t('runs.detail.iterations')}</span><span class="v">${esc(iterationsLabel)}</span></div>
      </div>`;
+
+    /* C.1 — "info de proceso" del subproceso externo. Solo se muestra cuando
+       engine === 'external' Y el primer cost entry trae binary+args (los runs
+       legacy de B.2 pre-C.1 no los tienen, y single-shot/agentic nunca los
+       tendran). La línea de comandos se reconstruye a partir de los args
+       persistidos (el system prompt fue reemplazado por `<contract>` en
+       external.ts:60 para no inflar la DB). */
+    const processGroup = (() => {
+      if (r.engine !== 'external') return ''
+      const proc = r.costBreakdown && r.costBreakdown[0]
+      if (!proc || !proc.binary || !proc.args) return ''
+      const cmdline = `${proc.binary} ${proc.args.join(' ')}`
+      return `<div class="grp"><h4>${t('runs.detail.process')}</h4>
+         <div class="kv"><span class="k">${t('runs.detail.process.binary')}</span><span class="v">${esc(proc.binary)}</span></div>
+         <div class="kv"><span class="k">${t('runs.detail.process.cmd')}</span><span class="v"><code title="${esc(t('runs.detail.process.cmd.tip'))}" style="font-size:11.5px;word-break:break-all">${esc(cmdline)}</code></span></div>
+       </div>`
+    })()
 
     /* costBreakdown: {label, model, inputTokens, outputTokens, costUsd} */
     const bd = r.costBreakdown && r.costBreakdown.length > 1
@@ -299,7 +321,7 @@ SCREENS.runs = {
       ${r.elapsedMs ? `<div class="kv"><span class="k">${t('runs.detail.elapsed')}</span><span class="v">${(r.elapsedMs / 1000).toFixed(1)}s</span></div>` : ''}
     </div>`;
 
-    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${bd}${warns}${qa}${meta}</div></td></tr>`;
+    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${bd}${warns}${qa}${meta}</div></td></tr>`;
   },
   render(st) {
     const hasRunning = (st.runs || []).some(r => r.status === 'running');

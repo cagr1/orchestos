@@ -29,6 +29,17 @@ export interface ExecutorOutcome {
 export interface ExecutorEngine {
   run(
     ctx: RunContext,
-    opts: { maxTokens: number; maxIterations: number },
+    opts: {
+      maxTokens: number
+      maxIterations: number
+      /**
+       * Wall-clock timeout en ms — solo lo usa el ejecutor externo (B.1,
+       * docs/external-executor-design.md §4). Campo opcional y aditivo:
+       * single-shot/agentic lo ignoran, cero ripple. Garantía de
+       * terminación, NO un tope de gasto (mismo principio que
+       * maxIterations en agentic.ts).
+       */
+      timeoutMs?: number
+    },
   ): Promise<ExecutorOutcome>
 }

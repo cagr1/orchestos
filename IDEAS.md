@@ -401,6 +401,77 @@ usuario que las priorice todavía (probado solo en <50 archivos):
 **Esfuerzo**: medio cada uno, independientes. **Gated en evidencia**: no abrir hasta que un
 proyecto real (propio o de usuario externo) golpee el límite concreto.
 
+### 17. Chat multi-sesión — conversaciones persistentes + aviso al 75% del contexto
+
+**Origen**: Carlos, 2026-07-04. "No creo que todo avance en un solo chat... todas las
+herramientas (Claude Code, Codex, Hermes) manejan varios chats." Candidato natural a
+integrarse al eje del Mes 18 (chat como entrada única, ítem #12) — si el chat va a ser LA
+puerta de entrada del producto, no puede evaporarse con un F5.
+
+**Estado actual verificado (2026-07-04)**: el chat NO persiste nada — `st.chatHistory` es un
+array en memoria del navegador ([app.js:55](src/dashboard/public/app.js)), el servidor es
+stateless (recibe el historial completo en cada request, `chat.ts:291`), y un refresh borra
+toda la conversación. No existe ninguna tabla de chat en SQLite.
+
+**Qué ya existe (NO reconstruir)**:
+- El backend ya calcula `promptTokens` contra `contextWindowFor(model)` en cada turno
+  ([chat.ts:328](src/dashboard/handlers/chat.ts)) — la medición para el aviso del 75% ya
+  está hecha, solo falta exponerla en la respuesta y dispararle un toast.
+- Patrón de tablas + handlers de SQLite idéntico al de `runs` (misma DB, mismo estilo).
+- `showToast()` ([app.js:1525](src/dashboard/public/app.js)) para el aviso in-page.
+
+**Las dos piezas**:
+1. **Sesiones persistentes**: tablas `chat_sessions` (id, título, created_at, model) y
+   `chat_messages` (session_id, role, content, tokens). El endpoint gana `sessionId`, carga
+   el historial de DB (no confía en el que manda el cliente) y persiste cada turno. Frontend:
+   selector/lista de sesiones + "nueva conversación". Título autogenerado (primer mensaje o
+   resumen con modelo barato). Bonus alineado con medición honesta: mostrar gasto de contexto
+   acumulado por sesión.
+2. **Aviso al 75% del contexto (dependiente del modelo)**: cuando `promptTokens` del turno
+   supera el 75% del `contextWindowFor(model)` activo, la respuesta del endpoint incluye un
+   flag y el frontend muestra un **toast** (ver ítem #18 — NUNCA `alert()` nativo) sugiriendo
+   abrir una conversación nueva. El umbral se recalcula si el usuario cambia de modelo a mitad
+   de sesión (ventanas distintas). Mismo espíritu que la regla personal de Carlos de cortar al
+   70% en vez de esperar el límite real.
+
+**Deliberadamente FUERA de alcance**: compactación/resumen automático del historial para
+"seguir infinito" en una misma sesión — frágil y caro; sesión nueva es el 90% del valor con
+el 20% del esfuerzo.
+
+**Esfuerzo**: medio — 2 tablas + extender un endpoint existente + UI de lista de sesiones.
+La parte 2 (aviso 75%) es chica y puede entrar sola si las sesiones se difieren.
+
+### 18. Higiene de notificaciones in-page — cero `alert()`/`confirm()` nativos, todo toast/modal propio
+
+**Origen**: Carlos, 2026-07-04. Vio diálogos nativos del navegador ("localhost dice: ...")
+saliendo desde arriba de la página — no quiere ver NINGUNA notificación de ese tipo; todo
+debe ser toast (o modal propio cuando se necesita decisión del usuario).
+
+**Auditoría verificada (2026-07-04, grep completo de `public/`)** — 6 usos nativos vivos:
+- [app.js:419](src/dashboard/public/app.js) — `confirm()` al borrar una task
+- [app.js:423](src/dashboard/public/app.js) — `alert()` si el delete falla
+- [app.js:424](src/dashboard/public/app.js) — `alert()` en error de conexión del delete
+- [screens-ops.js:546](src/dashboard/public/screens-ops.js) — `confirm()` en Graph Runner
+- [screens-ops.js:866](src/dashboard/public/screens-ops.js) — `alert()` para mostrar texto a copiar
+- [screens-ops.js:912](src/dashboard/public/screens-ops.js) — `confirm()` en reset de Settings
+
+**Qué ya existe (NO reconstruir)**: `showToast()` + estilos `.toast`/`.toast-error`
+([app.js:1525](src/dashboard/public/app.js), `styles.css:475`) — los 3 `alert()` migran
+directo a esto. Los 3 `confirm()` necesitan pieza nueva: un **modal de confirmación propio**
+(promesa que resuelve confirmar/cancelar), porque un toast no puede bloquear una acción
+destructiva esperando decisión.
+
+**Regla resultante**: prohibido `alert()`/`confirm()`/`prompt()` nativos en `public/` —
+candidato a check determinista (grep en CI o pre-commit) para que no vuelvan a entrar.
+
+**Relación**: complementa el ítem #14 (Web Notification API para background) — #14 es avisar
+cuando NO estás mirando la pestaña; este es que lo que ves cuando SÍ estás mirando nunca sea
+un diálogo nativo del navegador. El toast del 75% de contexto (ítem #17) depende de esta
+higiene para nacer bien.
+
+**Esfuerzo**: bajo-medio — 3 reemplazos triviales de `alert()` + un componente modal de
+confirmación reutilizable + opcionalmente el check anti-regresión.
+
 ---
 
 ## 📚 Referencia — inspiración externa (NO es backlog)

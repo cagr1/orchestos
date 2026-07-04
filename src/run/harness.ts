@@ -27,7 +27,8 @@ import { loadConstitution, buildConstitutionBlock } from '../spec/constitution.t
 import { enforceContract, snapshotHashes, normalizeRelPath, type LLMFileResponse } from './contract.ts'
 import { singleShotEngine, ExecutorParseError } from './executors/single-shot.ts'
 import { agenticEngine } from './executors/agentic.ts'
-import type { ExecutorOutcome } from './executors/types.ts'
+import { externalEngine } from './executors/external.ts'
+import type { ExecutorEngine, ExecutorOutcome } from './executors/types.ts'
 import { supportsToolCalling } from '../providers/tool-call.ts'
 import { runQA, snapshotContents, restoreContents, MAX_RETRIES } from './qa.ts'
 import { RunLogger } from './logger.ts'
@@ -270,19 +271,24 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const providerMaxOutput = maxOutputTokensFor(ctx.model)
     const maxTokens = providerMaxOutput > 0 ? Math.min(availableForOutput, providerMaxOutput) : availableForOutput
 
-    // -- executor engine selection (G.3) ---------------------------------------
+    // -- executor engine selection (G.3 / B.2) ---------------------------------
     // Default absoluto 'single-shot' — cero cambio de comportamiento para todo
-    // lo existente, agéntico es opt-in explícito (por tarea o por config de
-    // proyecto). Si se pide agéntico pero el modelo no soporta tool-calling,
-    // cae a single-shot con aviso — mismo patrón "log y proceder" que la
-    // colisión juez==ejecutor de F2.2, no bloquea la tarea.
+    // lo existente, agentic y external son opt-in explícitos (por tarea o por
+    // config de proyecto). Si se pide agentic pero el modelo no soporta
+    // tool-calling, cae a single-shot con aviso — mismo patrón "log y
+    // proceder" que la colisión juez==ejecutor de F2.2, no bloquea la tarea.
+    // 'external' no consulta tool-calling (el ejecutor es `claude -p`, no la
+    // API LLM directa — irrelevant).
     const requestedEngine = ctx.task.engine ?? orcheConfig?.executorEngine ?? 'single-shot'
-    let engine = requestedEngine === 'agentic' ? agenticEngine : singleShotEngine
+    let engine: ExecutorEngine = singleShotEngine
+    if (requestedEngine === 'agentic') engine = agenticEngine
+    else if (requestedEngine === 'external') engine = externalEngine
     if (requestedEngine === 'agentic' && !supportsToolCalling(ctx.providerName, ctx.model)) {
       log.info(`agentic engine requested but ${ctx.providerName}/${ctx.model} does not support tool-calling — falling back to single-shot`)
       engine = singleShotEngine
     }
     const maxIterations = orcheConfig?.agentic?.maxIterations ?? 15
+    const externalTimeoutMs = orcheConfig?.external?.timeoutMs
 
     // -- executor engine run (G.2/G.3) ------------------------------------------
     // single-shot extraído a executors/single-shot.ts — mismo comportamiento,
@@ -304,10 +310,11 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // missing, check, QA) sí tienen `outcome` y por eso ya pasan breakdownJson.
     let outcome: ExecutorOutcome | null = null
     try {
-      outcome = await engine.run(ctx, { maxTokens, maxIterations })
-      llmResponse = { inputTokens: outcome.inputTokens, outputTokens: outcome.outputTokens }
-      cost = outcome.usd
-      parsed = { files: outcome.files }
+      const runOutcome: ExecutorOutcome = await engine.run(ctx, { maxTokens, maxIterations, timeoutMs: externalTimeoutMs })
+      outcome = runOutcome
+      llmResponse = { inputTokens: runOutcome.inputTokens, outputTokens: runOutcome.outputTokens }
+      cost = runOutcome.usd
+      parsed = { files: runOutcome.files }
       elapsed = Math.round(performance.now() - t0)
     } catch (e: any) {
       if (e instanceof ExecutorParseError) {

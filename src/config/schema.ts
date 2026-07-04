@@ -24,10 +24,12 @@ export interface OrcheConfig {
   }
   /** If true, every task must have an approved spec before it can run */
   requireSpec?: boolean
-  /** Default ExecutorEngine for tasks that don't declare their own `engine:` — absence means 'single-shot' (G.3, opt-in) */
-  executorEngine?: 'single-shot' | 'agentic'
+  /** Default ExecutorEngine for tasks that don't declare their own `engine:` — absence means 'single-shot' (G.3, opt-in). B.2 — extended with 'external'. */
+  executorEngine?: 'single-shot' | 'agentic' | 'external'
   /** Agentic engine tuning — absence means default (maxIterations: 15). No cost cap by design (see docs/executor-engine-design.md §3). */
   agentic?: { maxIterations?: number }
+  /** B.2 — External engine tuning. timeoutMs = wall-clock guarantee of termination (no cost cap by design, same as maxIterations). Absence = default in external.ts (20min, see docs §4). */
+  external?: { timeoutMs?: number }
 }
 
 // Defaults — used when no config file is found or a role is missing

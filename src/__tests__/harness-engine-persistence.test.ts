@@ -10,15 +10,36 @@
  * persistida. No mockeamos módulos.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { _resetCatalog } from '../router/model-catalog.ts'
 import type { Task } from '../tasks/schema.ts'
 
+// Seedea el catálogo de modelos en un ORCHESTOS_HOME temporal para que
+// ensureCatalogLoaded() lo lea de disco y NO consuma un handler del mock fetch.
+// OJO: model-catalog.ts:cacheFilePath() resuelve a ${ORCHESTOS_HOME}/.orchestos/cache/models.json
+// (con `.orchestos/` interpuesto), no a ${ORCHESTOS_HOME}/cache/models.json.
+function seedCatalog(): string {
+  const home = mkdtempSync(join(tmpdir(), 'orchestos-test-cat-'))
+  mkdirSync(join(home, '.orchestos', 'cache'), { recursive: true })
+  writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({
+    fetchedAt: Date.now(),
+    models: {
+      'anthropic/claude-haiku-4-5': { contextLength: 200000, priceIn: 0.8, priceOut: 4, supportsReasoning: false, maxOutputTokens: 8192 },
+    },
+  }))
+  return home
+}
+
+const _testOrchHome = seedCatalog()
 const originalFetch = globalThis.fetch
 const originalKey = process.env.OPENROUTER_API_KEY
 
 beforeAll(async () => {
+  process.env.ORCHESTOS_HOME = _testOrchHome
+  // Limpia el catálogo en memoria de tests anteriores en el mismo proceso.
+  _resetCatalog()
   const { runMigrations } = await import('../db/migrate.ts')
   runMigrations()
 })

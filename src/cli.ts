@@ -916,7 +916,7 @@ task
   .option('--sandbox <mode>', 'Sandbox mode: worktree | cwd | auto (default: auto)', 'auto')
   .option('--model <model>', 'Transient model override for this run only — does NOT persist in tasks.yaml')
   // G.4 — engine override (transient, como --model). Mutamos `t` en memoria, no tocamos tasks.yaml.
-  .option('--engine <engine>', 'Executor engine override for this run: single-shot | agentic (transient — does NOT persist in tasks.yaml)')
+  .option('--engine <engine>', 'Executor engine override for this run: single-shot | agentic | external (transient — does NOT persist in tasks.yaml)')
   .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; expand?: string; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string; model?: string; engine?: string }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
@@ -940,11 +940,11 @@ task
       const t = file.tasks.find(x => x.id === taskId)
       if (!t) { console.error(`[task] Task "${taskId}" not found`); return 'failed' }
       // G.4 — engine override transient (mismo patrón que --model): muta `t` en
-      // memoria, NO persiste en tasks.yaml. Validación de valores: solo 'single-shot'
-      // o 'agentic' son aceptados; cualquier otro cae con error explicativo.
+      // memoria, NO persiste en tasks.yaml. Validación de valores: 'single-shot',
+      // 'agentic' o 'external' (B.2); cualquier otro cae con error explicativo.
       if (opts?.engine !== undefined) {
-        if (opts.engine !== 'single-shot' && opts.engine !== 'agentic') {
-          console.error(`[task] --engine: unknown engine '${opts.engine}' — allowed: single-shot, agentic`)
+        if (opts.engine !== 'single-shot' && opts.engine !== 'agentic' && opts.engine !== 'external') {
+          console.error(`[task] --engine: unknown engine '${opts.engine}' — allowed: single-shot, agentic, external`)
           return 'failed'
         }
         t.engine = opts.engine

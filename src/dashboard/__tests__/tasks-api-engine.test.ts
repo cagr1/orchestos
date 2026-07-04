@@ -1,6 +1,6 @@
 /**
- * G.4 — POST /api/tasks acepta `engine: 'single-shot' | 'agentic'`, lo persiste
- * en tasks.yaml, lo expone en GET /api/tasks (TaskRow.engine). Validación
+ * G.4 / B.2 — POST /api/tasks acepta `engine: 'single-shot' | 'agentic' | 'external'`,
+ * lo persiste en tasks.yaml, lo expone en GET /api/tasks (TaskRow.engine). Validación
  * temprana: cualquier otro string devuelve 400 con el mismo mensaje que
  * validateEngine() en src/tasks/schema.ts.
  *
@@ -48,7 +48,7 @@ function req(method: string, path: string, body?: unknown): Request {
 
 interface TaskRow {
   id: string
-  engine: 'single-shot' | 'agentic' | null
+  engine: 'single-shot' | 'agentic' | 'external' | null
 }
 
 describe('G.4 — POST /api/tasks acepta engine', () => {
@@ -152,5 +152,54 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     expect(rows[0]!.engine).toBe('agentic')
     expect(rows[1]!.engine).toBe('single-shot')
     expect(rows[2]!.engine).toBeNull()
+  })
+
+  // B.2 — engine='external' es la tercera opción; mismo flujo de validación y persistencia.
+  it('engine="external" persiste el campo y aparece como "external" en GET /api/tasks', async () => {
+    const res = await route(req('POST', '/api/tasks', {
+      id: 'external-task',
+      description: 'external engine task',
+      output: ['out.txt'],
+      engine: 'external',
+    }), PORT)
+    expect(res.status).toBe(200)
+
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).toContain('engine: external')
+
+    const listRes = await route(req('GET', '/api/tasks'), PORT)
+    const rows = await listRes.json() as TaskRow[]
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.engine).toBe('external')
+  })
+
+  it('engine="bogus2" devuelve 400 con mensaje que incluye "external"', async () => {
+    const res = await route(req('POST', '/api/tasks', {
+      id: 'bad-engine-2',
+      description: 'invalid engine value',
+      output: ['o.txt'],
+      engine: 'bogus2',
+    }), PORT)
+    expect(res.status).toBe(400)
+    const body = await res.json() as { error: string }
+    expect(body.error).toContain("unknown engine 'bogus2'")
+    expect(body.error).toContain('single-shot')
+    expect(body.error).toContain('agentic')
+    expect(body.error).toContain('external')
+  })
+
+  it('múltiples tasks: agentic + single-shot + external + inherit', async () => {
+    await route(req('POST', '/api/tasks', { id: 'a', description: 'A', output: ['o.txt'], engine: 'agentic' }), PORT)
+    await route(req('POST', '/api/tasks', { id: 'b', description: 'B', output: ['o.txt'], engine: 'single-shot' }), PORT)
+    await route(req('POST', '/api/tasks', { id: 'e', description: 'E', output: ['o.txt'], engine: 'external' }), PORT)
+    await route(req('POST', '/api/tasks', { id: 'n', description: 'N', output: ['o.txt'] }), PORT)
+
+    const listRes = await route(req('GET', '/api/tasks'), PORT)
+    const rows = (await listRes.json() as TaskRow[]).sort((x, y) => x.id.localeCompare(y.id))
+    expect(rows).toHaveLength(4)
+    expect(rows[0]!.engine).toBe('agentic')
+    expect(rows[1]!.engine).toBe('single-shot')
+    expect(rows[2]!.engine).toBe('external')
+    expect(rows[3]!.engine).toBeNull()
   })
 })
