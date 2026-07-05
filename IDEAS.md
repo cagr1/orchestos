@@ -251,66 +251,6 @@ Migrar `code_edges` + `files` a KuzuDB (embebible, Cypher, Rust) **cuando el gra
 
 **Esfuerzo**: alto + **bloqueado por evidencia** — no se toca sin un grafo real de 10K+ nodos.
 
-### 12. Chat como entrada única — detección semántica de intención de tarea + auto-envío a Tasks
-
-**⚠️ COMPROMETIDO como eje del Mes 18 (decisión Carlos, 2026-07-02) — después de Mes 17 (ejecutores externos, ya graduado a PLAN.md). Alta prioridad y alta delicadeza.**
-No empezar sin diseño explícito de los guardrails (sección abajo) revisado con Carlos primero. Al abrirse el Mes 18, este ítem se gradúa a PLAN.md y se elimina de acá (regla IDEAS→PLAN→DONE).
-
-**Origen**: Carlos quiere que, con el tiempo, el chat sea el medio de comunicación principal de
-OrchestOS (como ya hacen Open WebUI/Hermes/Claude Desktop) — una sola entrada, y la pantalla
-Tasks pasa a ser solo un **visor** de lo que corre por debajo, no el lugar donde se crea el
-trabajo. Pregunta concreta que lo disparó: si el usuario escribe en el chat algo como *"lee
-PLAN.md y ejecuta front 2"* — sin la palabra "tarea" — ¿el sistema puede entender que es
-realmente una tarea y sugerir convertirla, en vez de solo responder conversacionalmente?
-
-**Qué ya existe (NO reconstruir)**: el chat-create-task-bar (Mes 10, `chat-create-task-bar` en
-[screens-core.js:48](src/dashboard/public/screens-core.js:48)) ya pre-llena el composer de Tasks
-con el contexto de la conversación — pero es una heurística tonta (aparece a partir de 3+
-mensajes, sin mirar contenido) y **requiere acción manual del usuario** (click en "Crear tarea
-desde esta conversación"). El chat hoy NO tiene ninguna tool para leer `PLAN.md`/`tasks.yaml` ni
-para crear o correr tareas — solo `FETCH_URL_TOOL` (Mes 13). `runToolLoop()`/`callWithTools()`
-(`tool-call.ts`, Mes 13, ✅ probado en producción) ya resuelven el loop multi-turno LLM↔tool↔
-resultado — el motor para darle al chat tools de lectura de proyecto/tasks ya existe, solo falta
-registrarlas.
-
-**El gap real, en dos capas separadas que NO deben mezclarse**:
-1. **Detección semántica de intención** — un LLM call (mismo patrón que el ítem 4, clasificador
-   semántico de `clarify`) que mire el mensaje del usuario y decida "esto describe trabajo
-   ejecutable sobre el repo" vs. "esto es una pregunta conversacional", independiente de si
-   contiene la palabra "tarea".
-2. **Acción sobre esa detección** — qué hace el sistema cuando detecta intención de tarea. Acá
-   es donde está la delicadeza real.
-
-**Por qué es delicado — leer vs. actuar (mismo principio que el ítem 10, cliente MCP)**:
-- Darle al chat una tool de **lectura** (`PLAN.md`, `tasks.yaml`, `IDEAS.md`) es de bajo riesgo —
-  mismo boundary ya probado con el web fetch (contenido externo = dato, nunca instrucción).
-- Darle al chat la capacidad de **crear y/o correr** una tarea automáticamente, sin que el
-  usuario revise el draft en el composer primero, es otra cosa: pierde el punto de control que
-  hoy existe (revisar `description`/`output`/`executor` antes de gastar dinero real en el
-  executor). Un falso positivo del clasificador semántico podría disparar un run real no
-  pedido.
-
-**Reglas de seguridad innegociables (decisión ya tomada en la conversación con Carlos, no
-renegociar sin volver a preguntar)**:
-1. **Nunca auto-run silencioso.** El chat puede, como máximo, *sugerir* la conversión y
-   pre-llenar el draft — igual que el botón actual, pero disparado por intención detectada en
-   vez de conteo de mensajes. El usuario sigue confirmando antes de que algo se ejecute.
-2. **El clasificador es un call adicional, no debe alucinar tareas que no existen** — mismo
-   cuidado que el ítem 4: gatear esto en evidencia real de que la heurística de 3+ mensajes
-   genera falsos negativos frecuentes, no implementarlo "porque se puede".
-3. **Las tools de lectura de proyecto (PLAN.md/tasks.yaml) son de solo lectura** — no se mezcla
-   con escritura de archivos ni con disparar `task run`/`run --graph` desde el chat en esta
-   misma pieza de trabajo.
-
-**Prerequisito**: `runToolLoop()` ✅ (Mes 13) para las tools de lectura · ítem 4 (clasificador
-semántico) es el patrón de referencia para la capa de detección, aunque sea un módulo distinto
-(scope: chat, no `clarify`).
-
-**Esfuerzo**: medio en código (clasificador + 1-2 tools de lectura), pero **alto en diseño de
-guardrails** — la mayor parte del trabajo real es decidir el punto de control humano, no escribir
-el clasificador. No estimar como "🔨 Medio" por volumen de código; tratar la fase de diseño de
-guardrails con el mismo cuidado que el ítem 10.
-
 ### 13. OCR para imágenes adjuntas en el Chat + adjuntar varios archivos a la vez
 
 Origen: Carlos pidió rediseñar el menú de adjuntar del chat (Imagen/Documento/URL, hecho
