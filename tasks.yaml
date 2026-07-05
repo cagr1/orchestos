@@ -273,3 +273,21 @@ tasks:
     retry_count: 1
     qa_verdict: pass
     run_id: F0.3-reconciliation
+  - id: d1-external-gate-skills-jsdoc
+    description: >
+      Add exactly one JSDoc comment line directly above the exported function
+      handleApiSkillsList in src/dashboard/handlers/skills.ts, describing what
+      it does. Do not change any other line, function, import, or formatting
+      in the file.
+    executor: openrouter
+    executor_model: gpt-4o-mini
+    input:
+      - src/dashboard/handlers/skills.ts
+    output:
+      - src/dashboard/handlers/skills.ts
+    checks:
+      - cmd: bunx tsc --noEmit
+        timeout_ms: 120000
+    depends_on: []
+    status: pending
+    retry_count: 0
