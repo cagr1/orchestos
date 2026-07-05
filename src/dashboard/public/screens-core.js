@@ -425,12 +425,13 @@ SCREENS.tasks = {
             </div>
             <div class="draft-field">
               <label>${t('tasks.draft.field.engine')}</label>
-              <select id="draft-engine" class="draft-input">
+              <select id="draft-engine" class="draft-input" data-act="draft-engine">
                 <option value="">${t('tasks.draft.engine.inherit')}</option>
                 <option value="single-shot">${t('tasks.draft.engine.single-shot')}</option>
                 <option value="agentic">${t('tasks.draft.engine.agentic')}</option>
                 <option value="external">${t('tasks.draft.engine.external')}</option>
               </select>
+              <div id="draft-engine-warning" class="draft-engine-warning" style="display:none"></div>
             </div>
           </div>
           <div class="compose-actions" style="margin-top:10px">
@@ -636,6 +637,37 @@ SCREENS.tasks = {
     // Auto-load models when draft is showing (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)
     if (st.naturalDraft && st.orModels === null && !st.orModelsAttempted) {
       loadOrModels().then(() => App.rerender());
+    }
+
+    // C.2 — si el usuario selecciona `engine: external` en el composer,
+    // consultamos /api/system/engines/external/availability y mostramos un
+    // aviso inline si el binario `claude` no está. El endpoint es
+    // cacheado en `st` para no martillar el backend si el usuario cambia
+    // la selección varias veces antes de confirmar.
+    const engineSel = root.querySelector('#draft-engine');
+    const engineWarn = root.querySelector('#draft-engine-warning');
+    if (engineSel && engineWarn) {
+      const refreshEngineWarning = async () => {
+        if (engineSel.value !== 'external') { engineWarn.style.display = 'none'; return }
+        if (st.externalAvailability === undefined) {
+          try {
+            const r = await fetch('/api/system/engines/external/availability')
+            st.externalAvailability = await r.json()
+          } catch {
+            st.externalAvailability = { available: false, path: null }
+          }
+        }
+        if (st.externalAvailability.available) {
+          engineWarn.style.display = 'none'
+        } else {
+          engineWarn.style.display = ''
+          // t(key, ...args) usa placeholders {0}, {1}... ver i18n.js:1056
+          engineWarn.innerHTML = `<span style="color:var(--warning)">${esc(t('tasks.draft.engine.external.unavailable', st.externalAvailability.installUrl ?? 'https://claude.com/download'))}</span>`
+        }
+      }
+      engineSel.addEventListener('change', refreshEngineWarning)
+      // Tambien al montar, por si la engine ya viene preseleccionada (draft re-abierto)
+      refreshEngineWarning()
     }
 
     // Phase 2 — confirm draft → create + run

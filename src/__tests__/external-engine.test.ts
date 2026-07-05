@@ -680,4 +680,99 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     expect(systemPromptArg).toContain('OUTPUT CONTRACT')
     expect(systemPromptArg).toContain('out.txt')
   })
+
+  it('C.2 — binario ausente: throw con mensaje accionable ANTES de crear worktree o spawn (no fallo criptico)', async () => {
+    // Mockeamos findClaudeBinary via override de Bun.which. La idea: en una
+    // maquina sin claude, el engine falla INMEDIATAMENTE con un mensaje que
+    // dice (a) que pasa, (b) como arreglarlo. No queremos que el usuario
+    // vea "spawn ENOENT" 5 stack frames abajo.
+    const originalWhich = Bun.which
+    ;(Bun as any).which = (_bin: string) => null
+    try {
+      const root = makeGitRepo()
+      const wt = createWorktree('c2-no-binary', 'main', root)
+      trackWorktree(wt)
+      // Aun si el worktree tiene cambios (simulando que ya hubo un run previo
+      // o un setup), el engine debe fallar antes de tocar nada.
+      writeFileSync(join(wt.path, 'out.txt'), 'would be reported if binary existed')
+
+      const proc = installMockSpawn(JSON.stringify({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }))
+      overrideBunSpawn(proc)
+
+      const ctx = buildCtx(wt, baseTask())
+      let caught: Error | null = null
+      try {
+        await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+      } catch (e: any) {
+        caught = e
+      }
+      // Tipo correcto
+      expect(caught).toBeInstanceOf(ExecutorExternalError)
+      // Mensaje accionable: menciona el binario Y como instalar
+      expect(caught!.message).toContain('"claude"')
+      expect(caught!.message).toContain('not found in PATH')
+      expect(caught!.message).toContain('Install Claude Code')
+      expect(caught!.message).toContain('https://claude.com/download')
+      // Y, crucialmente: NUNCA se llamo a Bun.spawn. El check es pre-spawn.
+      // Si el check fallara, veriamos el mock proc haber sido invocado.
+      expect(spawnCalls).toHaveLength(0)
+    } finally {
+      ;(Bun as any).which = originalWhich
+    }
+  })
+
+  it('C.2 — findClaudeBinary() exportado: reusado por CLI y API (no drift entre los 3 puntos de seleccion)', async () => {
+    // La idea: el engine, la CLI y el endpoint del dashboard usan LA MISMA
+    // funcion. Si en algun momento alguien cambia la implementacion en uno
+    // pero no en los otros, este test es el centinela: exportamos la
+    // funcion y verificamos que respeta el contrato de Bun.which.
+    const { findClaudeBinary } = await import('../run/executors/external.ts')
+    // Caso positivo: en CI/dev machines `claude` puede o no estar — pero
+    // si esta, el resultado tiene la forma de un path absoluto.
+    const found = findClaudeBinary()
+    if (found !== null) {
+      expect(found.startsWith('/')).toBe(true)
+    }
+    // Negativo: overrideamos Bun.which para forzar null y verificamos que la
+    // funcion propaga ese null (no inventa un fallback).
+    const originalWhich = Bun.which
+    ;(Bun as any).which = (_bin: string) => null
+    try {
+      expect(findClaudeBinary()).toBeNull()
+    } finally {
+      ;(Bun as any).which = originalWhich
+    }
+  })
+
+  it('C.2 — binario presente: el check pasa y el flujo sigue normal (regresion: no rompimos el happy path)', async () => {
+    // El happy path ya estaba cubierto por el primer test, pero aca lo
+    // explicitamos con el mensaje en claro: si `which` lo encuentra, no hay
+    // throw del guard y el engine corre como antes.
+    const originalWhich = Bun.which
+    ;(Bun as any).which = (_bin: string) => '/usr/local/bin/claude'
+    try {
+      const root = makeGitRepo()
+      const wt = createWorktree('c2-binary-ok', 'main', root)
+      trackWorktree(wt)
+      writeFileSync(join(wt.path, 'out.txt'), 'all good')
+
+      const proc = installMockSpawn(JSON.stringify({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }))
+      overrideBunSpawn(proc)
+
+      const ctx = buildCtx(wt, baseTask())
+      const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+      expect(outcome.files).toEqual([{ path: 'out.txt', content: 'all good' }])
+      expect(spawnCalls).toHaveLength(1)
+    } finally {
+      ;(Bun as any).which = originalWhich
+    }
+  })
 })

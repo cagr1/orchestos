@@ -26,6 +26,29 @@ import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 export class ExecutorExternalError extends Error {}
 
 const DEFAULT_TIMEOUT_MS = 20 * 60 * 1000 // 20min — mismo default documentado en §4 del diseño
+const CLAUDE_BINARY = 'claude'
+
+/**
+ * C.2 — detección honesta del binario externo. Se chequea ANTES del spawn
+ * (en `externalEngine.run()` y en cualquier punto de selección temprana que
+ * lo importe — ver `src/cli.ts` task run y `GET /api/system/engines/external/availability`).
+ * `Bun.which` es sync y busca en `PATH` siguiendo el orden estándar del OS;
+ * retorna la ruta absoluta si está instalado, `null` si no. Exportamos la
+ * función para que el endpoint del dashboard y la CLI reusen la misma lógica
+ * (no duplicar `Bun.which` en 3 sitios y arriesgar drift).
+ */
+export function findClaudeBinary(): string | null {
+  return Bun.which(CLAUDE_BINARY)
+}
+
+/** Mensaje canónico cuando el binario no está. Reusado en engine, CLI y API. */
+export function claudeUnavailableMessage(pathHint?: string): string {
+  const where = pathHint ? ` (PATH searched: ${pathHint})` : ''
+  return [
+    `Claude Code binary "${CLAUDE_BINARY}" not found in PATH${where}.`,
+    `Install Claude Code (https://claude.com/download) or use --engine single-shot / --engine agentic instead.`,
+  ].join(' ')
+}
 
 interface ClaudeCodeJson {
   usage?: { input_tokens?: number; output_tokens?: number }
@@ -103,7 +126,6 @@ function buildClaudeArgs(systemPrompt: string): string[] {
   ]
 }
 
-const CLAUDE_BINARY = 'claude'
 const CLAUDE_ARGS_DISPLAY: readonly string[] = [
   '-p',
   '--output-format', 'json',
@@ -138,6 +160,16 @@ async function runClaudeCode(
 
 export const externalEngine: ExecutorEngine = {
   async run(ctx, opts) {
+    // C.2 — detección honesta ANTES del worktree setup y del spawn. Si el
+    // binario no está, fallar con mensaje accionable ("install Claude Code
+    // or use --engine single-shot/agentic") en vez del críptico
+    // "spawn claude ENOENT" que escupiría `Bun.spawn` por debajo. Este check
+    // es independiente del worktree guard de abajo: un binario ausente no
+    // merece siquiera crear el worktree.
+    if (!findClaudeBinary()) {
+      throw new ExecutorExternalError(claudeUnavailableMessage(process.env.PATH))
+    }
+
     // Requisito nuevo de §5 del diseño: los otros dos engines nunca tocan
     // disco antes de que el harness decida (buffer en memoria), así que
     // toleran modo 'cwd'. El externo escribe directo al filesystem mientras

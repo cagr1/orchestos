@@ -24,6 +24,7 @@ import { MAX_RETRIES } from './run/qa.ts'
 import { RunLogger } from './run/logger.ts'
 import { runTask } from './run/harness.ts'
 import { resolveSandboxMode } from './run/sandbox-policy.ts'
+import { findClaudeBinary, claudeUnavailableMessage } from './run/executors/external.ts'
 import { executePlan } from './run/scheduler.ts'
 import { runGraph } from './run/graph-runner.ts'
 import { createPlan } from './agents/planner.ts'
@@ -948,6 +949,16 @@ task
           return 'failed'
         }
         t.engine = opts.engine
+      }
+      // C.2 — chequeo temprano de disponibilidad del binario externo. Si el
+      // usuario pidió --engine external (o la task ya viene con engine: external
+      // desde tasks.yaml) pero el binario no está, fallar acá con el mensaje
+      // accionable, ANTES de gastar trabajo en: crear worktree, resolver
+      // sandbox, marcar la task como running, etc. Mismo mensaje que el
+      // engine + endpoint del dashboard (single source of truth: external.ts).
+      if (t.engine === 'external' && !findClaudeBinary()) {
+        console.error(`[task] ${claudeUnavailableMessage(process.env.PATH)}`)
+        return 'failed'
       }
       if (t.status === 'done')             { console.log(`[task] ${taskId} already done`); return 'done' }
       if (t.status === 'failed_permanent') { console.log(`[task] ${taskId} permanently failed`); return 'failed' }

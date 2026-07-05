@@ -128,6 +128,8 @@ const I18N = {
     'tasks.draft.engine.single-shot': 'single-shot',
     'tasks.draft.engine.agentic':    'agentic',
     'tasks.draft.engine.external':   'external (claude-code)',
+    /* C.2 — aviso inline cuando `external` está seleccionado pero el binario no está */
+    'tasks.draft.engine.external.unavailable': 'Claude Code binary `claude` not found in PATH. Install from {0} or choose a different engine.',
     'tasks.draft.btn.confirm':    'Confirm & Run',
     'tasks.draft.btn.cancel':     'Cancel',
     'tasks.draft.exec.or':        'OpenRouter (default)',
@@ -640,6 +642,8 @@ const I18N = {
     'tasks.draft.engine.single-shot': 'single-shot',
     'tasks.draft.engine.agentic':    'agentic',
     'tasks.draft.engine.external':   'external (claude-code)',
+    /* C.2 — aviso inline cuando `external` está seleccionado pero el binario no está */
+    'tasks.draft.engine.external.unavailable': 'Binario `claude` de Claude Code no encontrado en PATH. Instálalo desde {0} o elegí otro motor.',
     'tasks.draft.btn.confirm':    'Confirmar y ejecutar',
     'tasks.draft.btn.cancel':     'Cancelar',
     'tasks.draft.exec.or':        'OpenRouter (por defecto)',
