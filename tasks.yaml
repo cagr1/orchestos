@@ -288,12 +288,7 @@ tasks:
       - cmd: bunx tsc --noEmit
         timeout_ms: 120000
     depends_on: []
-    status: failed
-    retry_count: 1
-    retry_reason: >-
-      Uncommitted changes in /Users/carlosgallardo/Documents/projects/orchestos. Worktree sandbox requires a clean
-      working tree.
-
-      Either commit or stash before running with sandbox:
-        M tasks.yaml
+    status: pending
+    retry_count: 2
+    retry_reason: "missing declared output(s): src/dashboard/handlers/skills.ts"
     qa_verdict: fail

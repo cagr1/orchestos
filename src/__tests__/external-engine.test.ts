@@ -244,6 +244,43 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     expect(outcome.log[0]).not.toContain('killed by timeout')
   })
 
+  it('D.1 — regresión en vivo: modificar un archivo TRACKEADO existente (git status " M path" como única entrada) no pierde el path', async () => {
+    // Hallazgo real del gate D.1 (2026-07-05, dinero real, dos corridas):
+    // Claude Code editó exactamente el archivo pedido en el worktree las dos
+    // veces, pero el engine reportaba `files: []` de todos modos, disparando
+    // "missing declared output" en el harness. Causa raíz: todos los tests de
+    // arriba (happy path, contrato, etc.) solo escriben archivos NUEVOS
+    // (untracked, "?? path" en el porcelain) — nunca modifican un archivo ya
+    // trackeado y comiteado, que aparece como " M path" (espacio inicial
+    // literal). El `git()` compartido de sandbox.ts hace `.trim()` sobre TODO
+    // el stdout, comiéndose ese espacio inicial cuando es la primera línea —
+    // "M src/foo.ts" tras el slice(3) queda "rc/foo.ts", que no existe, y se
+    // descarta en silencio. Este test replica exactamente el escenario que
+    // ninguno de arriba cubría.
+    const root = makeGitRepo()
+    writeFileSync(join(root, 'out.txt'), 'original content\n')
+    git(['add', '-A'], root)
+    git(['commit', '-m', 'add out.txt'], root)
+
+    const wt = createWorktree('b3-tracked-mod', 'main', root)
+    trackWorktree(wt)
+
+    // Simula lo que Claude Code hizo en vivo: editar un archivo YA trackeado.
+    writeFileSync(join(wt.path, 'out.txt'), 'modified by claude code\n')
+
+    const mockStdout = JSON.stringify({
+      usage: { input_tokens: 10, output_tokens: 20 },
+      total_cost_usd: 0.01,
+      num_turns: 1,
+    })
+    overrideBunSpawn(installMockSpawn(mockStdout))
+
+    const ctx = buildCtx(wt, baseTask())
+    const outcome = await externalEngine.run(ctx, { maxTokens: 8192, maxIterations: 1, timeoutMs: 5000 })
+
+    expect(outcome.files).toEqual([{ path: 'out.txt', content: 'modified by claude code\n' }])
+  })
+
   it('contrato sobre el diff: engine reporta el diff COMPLETO sin filtrar — archivos fuera de output[] tambien llegan al harness (decision d)', async () => {
     // El diseño dice explicitamente (decisión d): el engine NO filtra, el
     // contrato lo aplica el harness via enforceContract() sobre outcome.files.
