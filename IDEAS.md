@@ -472,6 +472,38 @@ higiene para nacer bien.
 **Esfuerzo**: bajo-medio — 3 reemplazos triviales de `alert()` + un componente modal de
 confirmación reutilizable + opcionalmente el check anti-regresión.
 
+### 19. `engine: external` sin `checks:` explícitos pierde silenciosamente su única red determinista
+
+**Origen**: hallazgo del gate D.1 (Mes 17, 2026-07-05, dinero real). `defaultChecksFor()`
+([checks.ts:22](src/run/checks.ts)) devuelve `[]` cuando `effectiveRoot` no tiene
+`node_modules` — gap documentado desde el Mes 14 (D3) para worktrees frescos que no
+symlinkean dependencias. Hasta el Mes 17 esto era un riesgo teórico y acotado (single-shot/
+agéntico pueden correr en modo `cwd`, donde sí hay `node_modules`). El ejecutor externo
+**exige** modo worktree sin excepción (decisión d, §5 de
+[docs/external-executor-design.md](docs/external-executor-design.md), por la razón de
+seguridad correcta: un proceso no controlado no puede editar el repo real sin sandbox
+desechable) — así que para una tarea `engine: external` **sin** `checks:` declarados
+explícitamente, `defaultChecksFor()` siempre devuelve `[]` en la práctica, dejando el
+QA-LLM como única red. El gate D.1 mismo mostró que el QA-LLM puede fallar (falso negativo
+sobre un diff objetivamente correcto) — con checks determinísticos ausentes, ese es el
+único filtro que queda.
+
+**Qué NO se rompe**: si la tarea declara `checks:` explícitos (como hizo la tarea de D.1),
+corren normal — `bunx tsc --noEmit` pasó limpio en el worktree pese a la ausencia de
+`node_modules` (`bunx` resuelve desde la caché global de Bun). El gap es específico de
+tareas SIN checks declarados que dependan del default automático.
+
+**Posibles direcciones (no decidido)**: symlinkear `node_modules` al crear el worktree
+(`createWorktree()`, `sandbox.ts`) para que `defaultChecksFor()` deje de verse forzado a
+devolver `[]`; o exigir `checks:` explícitos como requisito de schema cuando
+`engine: external`; o simplemente documentar la recomendación fuerte de declarar checks
+explícitos para toda tarea `engine: external`.
+
+**Esfuerzo**: bajo si es symlink en `createWorktree()` (una línea, afecta los 3 engines
+por igual, arregla el gap de raíz) — pero verificar que no rompa el aislamiento del
+sandbox (symlink compartido = las dependencias no están "aisladas", aunque tampoco las
+edita ningún engine).
+
 ---
 
 ## 📚 Referencia — inspiración externa (NO es backlog)
