@@ -495,8 +495,20 @@ mismo patrón ya usado en `harness-evidence.test.ts` — `process.env.OPENROUTER
 'sk-test-or-key'` explícito en cada test, restaurado en `afterEach`. **Verificado localmente
 simulando el entorno de CI** (sin `OPENROUTER_API_KEY` ni `~/.orchestos/.env`): 5/5 pasan.
 
-**Pendiente**: confirmar que el próximo push deja el job `bun test` en verde (la Causa 1 seguirá
-en rojo hasta que se decida cómo tratarla — no es parte de este ítem).
+**Causa 3 — real, de una sesión anterior, ya corregida**: al confirmar el fix de la Causa 2 en CI
+apareció una tercera falla nueva: `chat-read-project-tools.test.ts` (`read_ideas`) — el test
+comprobaba `expect(result).not.toContain('not found')` como proxy de "el archivo existe", pero
+el contenido real de `IDEAS.md` (con la Causa 2 recién documentada arriba) ahora contiene esa
+misma frase en inglés dentro de un mensaje de error citado — coincidencia de substring, no un
+bug real. Fix: comparar contra el sentinel exacto de `readProjectTextFile()`
+(`[IDEAS.md not found in this project]` / `[tasks.yaml not found in this project]`) en vez de un
+`toContain` genérico que choca con prosa real.
+
+**Estado real tras las 3 correcciones**: confirmado en CI (`gh run view`) que el job `bun test`
+solo falla por la Causa 1 (16 tests de `external-engine.test.ts` + 1 de `engine-selection.test.ts`,
+todos por el binario `claude` ausente) — 0 fallas nuevas de código propio. Pendiente: decidir cómo
+tratar la Causa 1 (instalar `claude` en el workflow, o mockear `Bun.spawn`) antes de que CI vuelva
+a verde del todo.
 
 ---
 

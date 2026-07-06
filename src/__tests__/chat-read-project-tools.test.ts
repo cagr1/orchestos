@@ -11,13 +11,16 @@ describe('read-project tools', () => {
 
   it('read_tasks returns the real content of tasks.yaml', async () => {
     const result = await executeReadTasks('read_tasks', {})
-    expect(result).not.toContain('not found')
+    // Sentinel exacto de readProjectTextFile() cuando el archivo no existe —
+    // un `not.toContain('not found')` genérico choca con contenido real que
+    // legítimamente mencione esa frase (ej. un error citado en prosa).
+    expect(result).not.toBe('[tasks.yaml not found in this project]')
     expect(result.length).toBeGreaterThan(0)
   })
 
   it('read_ideas returns the real content of IDEAS.md', async () => {
     const result = await executeReadIdeas('read_ideas', {})
-    expect(result).not.toContain('not found')
+    expect(result).not.toBe('[IDEAS.md not found in this project]')
     expect(result.length).toBeGreaterThan(0)
   })
 })
