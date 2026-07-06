@@ -1,6 +1,6 @@
 import { serveStatic, errorResponse, isSameOrigin } from './http.ts'
-import { handleApiMemory } from './handlers/memory.ts'
-import { handleApiRuns } from './handlers/runs.ts'
+import { handleApiMemory, handleApiMemoryConflicts } from './handlers/memory.ts'
+import { handleApiRuns, handleApiRunsAnalyze } from './handlers/runs.ts'
 import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate } from './handlers/instincts.ts'
 import { handleApiSpecsDraft, handleApiSpecs } from './handlers/specs.ts'
 import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose } from './handlers/tasks.ts'
@@ -20,6 +20,9 @@ export async function route(req: Request, port: number): Promise<Response> {
     return errorResponse('Forbidden', 403)
   }
 
+  if (method === 'POST' && url.pathname === '/api/runs/analyze') {
+    return handleApiRunsAnalyze(req)
+  }
   if (method === 'GET' && (url.pathname === '/api/runs' || url.pathname.startsWith('/api/runs/'))) {
     return handleApiRuns(url)
   }
@@ -132,6 +135,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname === '/api/specs/draft') {
     return handleApiSpecsDraft(req)
+  }
+  if (method === 'GET' && url.pathname === '/api/memory/conflicts') {
+    return handleApiMemoryConflicts(url)
   }
   if (method === 'GET' && url.pathname === '/api/memory') {
     return handleApiMemory(url)

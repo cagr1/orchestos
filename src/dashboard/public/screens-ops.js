@@ -392,6 +392,7 @@ SCREENS.runs = {
       <div class="lead"><h1>${t('runs.title')}</h1><p>${t('runs.subtitle')}</p></div>
       <div class="tools">
         ${liveIndicator}
+        <button class="btn" data-act="runs-analyze" ${st.runsAnalyzeStatus === 'loading' ? 'disabled' : ''}>${ICON.bolt || ''} ${t('runs.analyze.btn')}</button>
         <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
       </div>
     </div>`;
@@ -401,6 +402,24 @@ SCREENS.runs = {
       <div><strong>${t('runs.explainer.title')}</strong> ${t('runs.explainer.body')}</div>
     </div>`;
 
+    // Bloque E (Mes 18, ex-IDEAS #9b) — equivalente a `orchestos runs --analyze`,
+    // sin botón manual hasta hoy (solo se disparaba por hook automático).
+    const analyzePanel = (() => {
+      if (st.runsAnalyzeStatus === 'loading') return `<div class="proj-helper">${t('runs.analyze.loading')}</div>`;
+      if (st.runsAnalyzeStatus === 'error') return `<div class="proj-helper" style="border-left-color:var(--error)">${t('runs.analyze.error')}</div>`;
+      const result = st.runsAnalyzeResult;
+      if (!result) return '';
+      if (result.message) return `<div class="proj-helper">${esc(result.message)}</div>`;
+      if (!result.suggestions || result.suggestions.length === 0) return `<div class="proj-helper">${t('runs.analyze.none')}</div>`;
+      const items = result.suggestions.map(s =>
+        `<div class="kv"><span class="k">[${esc(s.confidence)}] ${esc(s.pattern)} (${s.frequency}x)</span><span class="v">${esc(s.fix_hint)}</span></div>`
+      ).join('');
+      const proposalsNote = result.proposals && result.proposals.length > 0
+        ? `<div class="muted" style="font-size:12px;margin-top:6px">${t('runs.analyze.proposals', result.proposals.length)}</div>`
+        : '';
+      return `<div class="grp" style="margin-bottom:16px"><h4>${t('runs.analyze.title')}</h4>${items}${proposalsNote}</div>`;
+    })();
+
     if (st.runsStatus === 'loading')
       return `<div class="screen">${head}${runsExplainer}${loadingState(t('runs.loading'))}</div>`;
     if (st.runsStatus === 'error')
@@ -408,7 +427,7 @@ SCREENS.runs = {
 
     const allRuns = st.runs || [];
     if (allRuns.length === 0)
-      return `<div class="screen">${head}${runsExplainer}${emptyState(ICON.runs, t('runs.empty.title'), t('runs.empty.body'))}</div>`;
+      return `<div class="screen">${head}${runsExplainer}${analyzePanel}${emptyState(ICON.runs, t('runs.empty.title'), t('runs.empty.body'))}</div>`;
 
     // F2 — filter tabs
     const counts = { all: allRuns.length, running: 0, done: 0, failed: 0 };
@@ -445,7 +464,7 @@ SCREENS.runs = {
       return main + (open ? this.detail(r) : '');
     }).join('');
 
-    return `<div class="screen">${head}${runsExplainer}
+    return `<div class="screen">${head}${runsExplainer}${analyzePanel}
       <div class="filter-tabs" style="margin-bottom:12px">${tabs}</div>
       <div class="card" style="overflow:hidden">
         <table class="tbl">
@@ -456,6 +475,20 @@ SCREENS.runs = {
   },
   wire(root, st) {
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
+    root.querySelector('[data-act="runs-analyze"]')?.addEventListener('click', async () => {
+      st.runsAnalyzeStatus = 'loading';
+      st.runsAnalyzeResult = null;
+      App.rerender();
+      try {
+        const res = await fetch('/api/runs/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        if (!res.ok) throw new Error(String(res.status));
+        st.runsAnalyzeResult = await res.json();
+        st.runsAnalyzeStatus = 'ok';
+      } catch {
+        st.runsAnalyzeStatus = 'error';
+      }
+      App.rerender();
+    });
 
     // F2 — filter tabs
     root.querySelectorAll('[data-runs-filter]').forEach(btn => btn.addEventListener('click', () => {

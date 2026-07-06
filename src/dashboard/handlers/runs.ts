@@ -53,6 +53,31 @@ function runRecordToRow(r: RunRecord): RunRow {
   }
 }
 
+// Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos runs --analyze` solo se disparaba
+// automático vía hook post-completion; sin botón manual en el dashboard. Mismo
+// llamado LLM real que la CLI (S30) — no es gratis, se dispara solo bajo pedido.
+async function handleApiRunsAnalyze(req: Request): Promise<Response> {
+  let body: { last?: number } = {}
+  try { body = (await req.json()) as { last?: number } } catch { /* body opcional */ }
+  const n = body.last && body.last > 0 ? body.last : 20
+
+  const { groupRunsByOutcome, analyzeRunPatterns } = await import('../../analyze/patterns.ts')
+  const { proposeInstinctsFromPatterns } = await import('../../analyze/propose.ts')
+
+  const rows = listRuns(n)
+  if (rows.length < 3) {
+    return jsonResponse({ suggestions: [], proposals: [], message: 'Not enough runs to analyze (need at least 3).' })
+  }
+  const groups = groupRunsByOutcome(rows)
+  try {
+    const suggestions = await analyzeRunPatterns(groups)
+    const proposals = suggestions.length > 0 ? proposeInstinctsFromPatterns(suggestions) : []
+    return jsonResponse({ suggestions, proposals })
+  } catch (e: any) {
+    return errorResponse(`Analysis failed: ${e.message}`, 502)
+  }
+}
+
 function handleApiRuns(url: URL): Response {
   if (url.pathname.startsWith('/api/runs/')) {
     const id = url.pathname.slice('/api/runs/'.length)
@@ -66,4 +91,4 @@ function handleApiRuns(url: URL): Response {
   return jsonResponse(rows.map(runRecordToRow))
 }
 
-export { handleApiRuns }
+export { handleApiRuns, handleApiRunsAnalyze }

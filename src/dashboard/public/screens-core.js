@@ -846,6 +846,16 @@ SCREENS.memory = {
       <div><strong>${t('memory.explainer.title')}</strong> ${t('memory.explainer.body')}</div>
     </div>`;
 
+    // Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos memory conflicts` no tenía
+    // ninguna superficie en el dashboard, ni siquiera de solo lectura.
+    const conflicts = st.memoryConflicts || [];
+    const conflictsPanel = conflicts.length === 0 ? '' : `<div class="proj-helper" style="border-left-color:var(--warning, #e0a030)">
+      <strong>${t('memory.conflicts.title', conflicts.length)}</strong>
+      <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">${conflicts.map(c =>
+        `<div style="display:flex;gap:10px;font-size:12.5px"><span>${esc(c.relation)}</span><span class="muted">${esc((c.created_at || '').slice(0, 10))} · ${esc(c.confidence)}</span></div>`
+      ).join('')}</div>
+    </div>`;
+
     const memory = st.memory || [];
     const scopes = ['all', 'session', 'project', 'global'];
     const scopeLabel = sc => t(`memory.scope.${sc}`);
@@ -895,7 +905,7 @@ SCREENS.memory = {
         : emptyState(ICON.memory, t('memory.no.title'), q ? t('memory.no.body', esc(q)) : t('memory.empty.body'));
     }
 
-    return `<div class="screen">${head}${memExplainer}<div class="mem-grid">${left}${right}</div></div>`;
+    return `<div class="screen">${head}${memExplainer}${conflictsPanel}<div class="mem-grid">${left}${right}</div></div>`;
   },
   wire(root, st) {
     let _searchTimer;

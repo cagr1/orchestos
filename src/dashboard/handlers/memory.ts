@@ -1,4 +1,5 @@
 import { db } from '../../db/sqlite.ts'
+import { listConflicts } from '../../db/memory.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
 import type { MemoryRow } from '../types.ts'
 import { jsonResponse } from '../http.ts'
@@ -32,4 +33,15 @@ function handleApiMemory(url?: URL): Response {
   }
 }
 
-export { handleApiMemory }
+// Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos memory conflicts` no tenía
+// ningún equivalente en el dashboard, ni siquiera de solo lectura.
+function handleApiMemoryConflicts(url?: URL): Response {
+  const projectId = url?.searchParams.get('project')?.trim() || undefined
+  try {
+    return jsonResponse(listConflicts(projectId))
+  } catch {
+    return jsonResponse([])
+  }
+}
+
+export { handleApiMemory, handleApiMemoryConflicts }

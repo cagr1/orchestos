@@ -223,6 +223,14 @@ const App = {
       state.contextStatus = 'error';
     }
   },
+  async fetchMemoryConflicts() {
+    try {
+      const res = await fetch('/api/memory/conflicts');
+      state.memoryConflicts = res.ok ? await res.json() : [];
+    } catch {
+      state.memoryConflicts = [];
+    }
+  },
   async fetchChatTaskBarEvents() {
     state.chatTaskBarEventsStatus = 'loading';
     try {
@@ -245,6 +253,7 @@ const App = {
       this.fetchSkills(),
       this.fetchProSkills(),
       this.fetchMemory(),
+      this.fetchMemoryConflicts(),
       this.fetchSettings(),
       this.fetchSetup(),
       this.fetchHealth(),
