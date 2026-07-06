@@ -68,6 +68,26 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 - [x] D.3 ⚡ Campo de skill en el composer (`naturalDraft` → `#draft-skill`): 1 candidato → pre-cargado; 2+ candidatos → `<select>` con "None"/"Ninguna" preseleccionada (nunca resuelve el empate a ciegas); 0 candidatos → campo no se renderiza.
 - [x] D.4 🔍 Gate en vivo con dinero real (2026-07-06): draft de landing comercial de cafetería → 4 candidatos de diseño reales, selector visible con "None" preseleccionado, confirmado seleccionable en el DOM real. Draft de bugfix de auth middleware → **mejor evidencia de la esperada**: no sugirió diseño, sugirió `diagnose`/`bug-hypothesis`/`code-review` (3 skills de ingeniería que ya existían desde antes de hoy y nunca se auto-aplicaban) — confirma que el motor discrimina por dominio, no es un simple sí/no de diseño. `tasks.yaml` verificado sin diff tras el gate (draft cancelado, no confirmado). 626 tests · 0 fail · `tsc --noEmit` limpio.
 
+### Bloque E — Auditoría de paridad CLI ↔ Dashboard (ex-IDEAS #9b, graduado 2026-07-06 — independiente de B.1.b, no bloquea el cierre del mes)
+**Origen**: Carlos, 2026-06-29, dogfooding del flujo chat→tarea — "el CLI sí está funcionando pero el front no". Decisión de Carlos (2026-07-06): mientras B.1.b espera evidencia real (no hay atajo posible), seguir avanzando en paralelo con lo que ya estaba documentado en IDEAS.md, priorizando exactamente esto — "el front DEBE reflejar el back".
+- [x] E.1 🧠 Barrido formal completo (2026-07-06): los ~45 subcomandos reales de `cli.ts` comparados contra los endpoints reales de `server.ts` (la lista original de IDEAS #9b era "a ojo", no exhaustiva — **una entrada estaba mal**: `skill build` sí tiene endpoint, `/api/skills/:id/build`, existe desde Mes 11).
+
+  **Gaps confirmados (sin superficie en el dashboard, ni de solo lectura):**
+  | Comando CLI | Qué hace | Estado |
+  |---|---|---|
+  | `spec approve/lint/archive/create` | Ciclo de vida de specs SDD | Solo `list`/`draft` en dashboard |
+  | `instinct set-confidence/propose/add` | Ajustar confianza / disparar análisis / agregar manual | Solo `approve`/`reject` en dashboard |
+  | `task run --explain/--clarify` | Explicar sin ejecutar / clarificar antes de correr | Sin equivalente |
+  | `detect`, `index` | Detección de stack + indexado del grafo de código | 100% CLI |
+  | `config init/show` | Gestión de routing de modelos por proyecto | 100% CLI |
+  | `task init` | Bootstrap de `tasks.yaml` | 100% CLI (razonable — es setup único) |
+  | `context suggest <task>` | Sugerencia de archivos relevantes vía embeddings (S24) | Sin botón en dashboard — la feature de embeddings no tiene superficie propia |
+  | `memory conflicts` | Listar conflictos de memoria sin resolver (S26) | Sin endpoint ni pantalla — ni siquiera de solo lectura |
+  | `runs --analyze` | Aprendizaje continuo manual (S30) | Solo automático vía hook, sin botón manual |
+
+  **Corregido del hallazgo original**: `skill build` — tiene endpoint real, `/api/skills/:id/build` (server.ts, confirmado). Pendiente verificar si la pantalla Skills tiene un botón que lo dispare para una skill YA editada localmente (gap de wiring de UI, no de endpoint) — no se asumió, queda como sub-ítem de E.2.
+- [ ] E.2 🧠 Decisión de alcance con Carlos: de los 9 gaps confirmados, cuáles cierran en este bloque vs. cuáles quedan en IDEAS.md como backlog aparte (candidato fuerte a partirse en sub-bloques por tamaño real, no una sola pieza).
+
 ### Cierre del mes
 - [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + aplicar la regla IDEAS→PLAN→DONE en el cierre. **NO se puede cerrar el mes mientras B.1.b siga en espera de evidencia** (decisión explícita de Carlos, 2026-07-05) — el mes queda abierto indefinidamente hasta que haya datos suficientes, no es un backlog que se pueda dar por bueno sin resolver.
 
