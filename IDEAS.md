@@ -473,10 +473,12 @@ bug real. Fix: comparar contra el sentinel exacto de `readProjectTextFile()`
 (`[IDEAS.md not found in this project]` / `[tasks.yaml not found in this project]`) en vez de un
 `toContain` genérico que choca con prosa real.
 
-**Estado real tras las 4 correcciones**: las 4 causas encontradas están corregidas y verificadas
-localmente contra el escenario exacto de CI (sin `OPENROUTER_API_KEY`/`.env`, sin `claude` en
-PATH). Pendiente confirmar en el próximo push que `gh run view` reporta el job `bun test` en
-verde — este ítem se cierra formalmente ahí, no antes.
+**Cerrado (2026-07-06): CI en verde confirmado.** Las 4 causas encontradas están corregidas,
+verificadas localmente contra el escenario exacto de CI (sin `OPENROUTER_API_KEY`/`.env`, sin
+`claude` en PATH), y confirmadas en el propio GitHub Actions —
+[run 28808032085](https://github.com/cagr1/orchestos/actions/runs/28808032085): `ci` ✓ en 14s,
+`bun test` y `typecheck` ambos verdes. Primera corrida en verde desde `feat(mes17/C.2)`
+(2026-07-05).
 
 ---
 
