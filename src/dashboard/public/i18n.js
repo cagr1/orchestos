@@ -144,6 +144,9 @@ const I18N = {
     'tasks.draft.engine.external':   'external (claude-code)',
     /* C.2 — aviso inline cuando `external` está seleccionado pero el binario no está */
     'tasks.draft.engine.external.unavailable': 'Claude Code binary `claude` not found in PATH. Install from {0} or choose a different engine.',
+    /* Bloque D (Mes 18, ex-IDEAS #21) — sugerencia de skill en el composer */
+    'tasks.draft.field.skill': 'Suggested skill',
+    'tasks.draft.skill.none':  'None',
     'tasks.draft.btn.confirm':    'Confirm & Run',
     'tasks.draft.btn.cancel':     'Cancel',
     'tasks.draft.exec.or':        'OpenRouter (default)',
@@ -672,6 +675,9 @@ const I18N = {
     'tasks.draft.engine.external':   'external (claude-code)',
     /* C.2 — aviso inline cuando `external` está seleccionado pero el binario no está */
     'tasks.draft.engine.external.unavailable': 'Binario `claude` de Claude Code no encontrado en PATH. Instálalo desde {0} o elegí otro motor.',
+    /* Bloque D (Mes 18, ex-IDEAS #21) — sugerencia de skill en el composer */
+    'tasks.draft.field.skill': 'Skill sugerida',
+    'tasks.draft.skill.none':  'Ninguna',
     'tasks.draft.btn.confirm':    'Confirmar y ejecutar',
     'tasks.draft.btn.cancel':     'Cancelar',
     'tasks.draft.exec.or':        'OpenRouter (por defecto)',

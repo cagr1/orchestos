@@ -60,6 +60,14 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 ### Bloque C — Superficie
 - [ ] C.1 ⚡ UI de sugerencia (no auto-run) cuando el clasificador detecta intención de tarea. Depende de B.1.b.
 
+### Bloque D — Auto-selección semántica de skill (ex-IDEAS #21, graduado 2026-07-06 — independiente de B.1.b, no bloquea ni bloquea el cierre del mes)
+**Origen**: prueba real de Carlos con una landing comercial usando "skills de diseño" no dio el resultado esperado — diagnóstico destapó que ninguna skill se auto-aplica hoy (`skill-route.ts` solo lee `task.skill` explícito) y que no existían skills de diseño nativas. Diseño completo y aprobado por Carlos (2026-07-06) en [docs/semantic-skill-selection-design.md](../docs/semantic-skill-selection-design.md).
+- [x] D.0 🧠 Gap de contenido — 4 skills de diseño nativas escritas y verificadas en vivo: `frontend-design`, `ux-guidelines`, `design-brief-inference`, `design-tokens`.
+- [x] D.1 🧠 Motor de clasificación (`listAllSkillCandidates()` en `project.ts`): recibe la `description` del draft + `when_to_use` de las 16 skills instaladas, devuelve 0/1/varios candidatos validados contra ids reales — un id inventado se descarta en silencio (`isKnownSkillId()`, mismo fail-safe en `tasks.ts` al crear la tarea).
+- [x] D.2 ⚡ Wiring en `/api/natural` — se decidió **un solo call** (no uno adicional): la lista de skills se agregó al prompt del draft existente, mismo call que ya generaba `id`/`description`/`output`/`executor`. Más barato y simple que un segundo call.
+- [x] D.3 ⚡ Campo de skill en el composer (`naturalDraft` → `#draft-skill`): 1 candidato → pre-cargado; 2+ candidatos → `<select>` con "None"/"Ninguna" preseleccionada (nunca resuelve el empate a ciegas); 0 candidatos → campo no se renderiza.
+- [x] D.4 🔍 Gate en vivo con dinero real (2026-07-06): draft de landing comercial de cafetería → 4 candidatos de diseño reales, selector visible con "None" preseleccionado, confirmado seleccionable en el DOM real. Draft de bugfix de auth middleware → **mejor evidencia de la esperada**: no sugirió diseño, sugirió `diagnose`/`bug-hypothesis`/`code-review` (3 skills de ingeniería que ya existían desde antes de hoy y nunca se auto-aplicaban) — confirma que el motor discrimina por dominio, no es un simple sí/no de diseño. `tasks.yaml` verificado sin diff tras el gate (draft cancelado, no confirmado). 626 tests · 0 fail · `tsc --noEmit` limpio.
+
 ### Cierre del mes
 - [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + aplicar la regla IDEAS→PLAN→DONE en el cierre. **NO se puede cerrar el mes mientras B.1.b siga en espera de evidencia** (decisión explícita de Carlos, 2026-07-05) — el mes queda abierto indefinidamente hasta que haya datos suficientes, no es un backlog que se pueda dar por bueno sin resolver.
 

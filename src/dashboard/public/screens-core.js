@@ -3,6 +3,28 @@
    ============================================================ */
 window.SCREENS = window.SCREENS || {};
 
+// Bloque D (Mes 18, ex-IDEAS #21) — sugerencia de skill en el composer.
+// 0 candidatos: sin campo (cero cambio visual). 1 candidato: pre-cargado,
+// revisable. 2+ candidatos: "Ninguna" preseleccionada — nunca resolver el
+// empate a ciegas, el usuario final elige. Ver docs/semantic-skill-selection-design.md.
+function renderSkillSuggestion(draft) {
+  const options = draft.skillOptions || [];
+  if (options.length === 0) return '';
+  const single = options.length === 1;
+  const choices = options.map(o =>
+    `<option value="${esc(o.id)}" ${single ? 'selected' : ''}>${esc(o.name)} — ${esc(o.description)}</option>`
+  ).join('');
+  return `<div class="draft-fields" style="margin-top:8px">
+    <div class="draft-field" style="flex:1">
+      <label>${t('tasks.draft.field.skill')}</label>
+      <select id="draft-skill" class="draft-input">
+        <option value="">${t('tasks.draft.skill.none')}</option>
+        ${choices}
+      </select>
+    </div>
+  </div>`;
+}
+
 /* ============================================================
    0 · CHAT
    ============================================================ */
@@ -436,6 +458,7 @@ SCREENS.tasks = {
               <div id="draft-engine-warning" class="draft-engine-warning" style="display:none"></div>
             </div>
           </div>
+          ${renderSkillSuggestion(draft)}
           <div class="compose-actions" style="margin-top:10px">
             <div id="compose-msg" style="font-size:12px;display:none;flex:1"></div>
             <span style="flex:1"></span>
@@ -679,6 +702,7 @@ SCREENS.tasks = {
       const outRaw = root.querySelector('#draft-output')?.value.trim() || '';
       const modelId = root.querySelector('#draft-model')?.value?.trim() || 'deepseek/deepseek-v4-flash';
       const engine = root.querySelector('#draft-engine')?.value || '';
+      const skill = root.querySelector('#draft-skill')?.value || '';
       const executor = inferExecutor(modelId);
       const output = outRaw.split('\n').map(s => s.trim()).filter(Boolean);
       const msg2 = root.querySelector('#compose-msg');
@@ -691,6 +715,7 @@ SCREENS.tasks = {
       try {
         const createBody = { id, description: desc, output, executor, executor_model: modelId };
         if (engine === 'single-shot' || engine === 'agentic' || engine === 'external') createBody.engine = engine;
+        if (skill) createBody.skill = skill;
         const createRes = await fetch('/api/tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -4,6 +4,7 @@ import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { loadContext } from '../../context/load.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
+import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/registry.ts'
 
 function handleApiProjectConstitutionGet(): Response {
   const root = resolve('.')
@@ -38,6 +39,29 @@ function handleApiProjectContextRegenerate(): Response {
   return jsonResponse({ ok: true })
 }
 
+// Bloque D (Mes 18, ex-IDEAS #21) — lista de skills instaladas (main + pro) con
+// su `when_to_use`/`description`, usada tanto para el prompt del clasificador
+// como para validar los candidatos que devuelva el LLM (nunca confiar en un id
+// inventado). Ver docs/semantic-skill-selection-design.md.
+interface SkillCandidateInfo {
+  id: string
+  name: string
+  description: string
+  whenToUse: string[]
+}
+
+function listAllSkillCandidates(): SkillCandidateInfo[] {
+  const files = [...listSkillFiles(), ...listProSkillFiles()]
+  const out: SkillCandidateInfo[] = []
+  for (const f of files) {
+    try {
+      const s = loadSkill(f)
+      out.push({ id: s.id, name: s.name, description: s.description, whenToUse: s.when_to_use ?? [] })
+    } catch {}
+  }
+  return out
+}
+
 async function handleApiNatural(req: Request): Promise<Response> {
   let body: { input: string }
   try { body = (await req.json()) as { input: string } } catch { return errorResponse('Invalid JSON', 400) }
@@ -54,6 +78,11 @@ async function handleApiNatural(req: Request): Promise<Response> {
       .join('\n')
   } catch {}
 
+  const skillCandidateInfos = listAllSkillCandidates()
+  const skillsSummary = skillCandidateInfos
+    .map(s => `- ${s.id}: ${s.description}${s.whenToUse.length ? ' — Use when: ' + s.whenToUse.join('; ') : ''}`)
+    .join('\n')
+
   const systemPrompt = `Eres un asistente que convierte instrucciones en lenguaje natural en definiciones de tareas para el orquestador OrchestOS.
 
 Dado lo que el usuario quiere hacer, devuelve ÚNICAMENTE un objeto JSON con exactamente estas claves:
@@ -61,9 +90,11 @@ Dado lo que el usuario quiere hacer, devuelve ÚNICAMENTE un objeto JSON con exa
 - "description": descripción clara de la tarea en 1-2 frases
 - "output": array de rutas de archivos que probablemente se crearán o modificarán (puede estar vacío si no es claro)
 - "executor": uno de "openrouter" (por defecto), "anthropic" (tareas complejas de código), "openai" (embeddings/análisis)
+- "skill_candidates": array de ids de skill de la lista de abajo que apliquen a esta tarea (puede estar vacío si ninguna aplica). Nunca inventes un id que no esté en la lista.
 
 ${projectCtx ? `Contexto del proyecto:\n${projectCtx}\n` : ''}
 ${tasksSummary ? `Tareas existentes (para evitar duplicados):\n${tasksSummary}\n` : ''}
+${skillsSummary ? `Skills instaladas disponibles:\n${skillsSummary}\n` : ''}
 
 Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
 
@@ -74,14 +105,31 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
       messages: [{ role: 'user', content: input }],
     })
     const raw = resp.text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-    const draft = JSON.parse(raw) as { id: string; description: string; output: string[]; executor: string }
+    const draft = JSON.parse(raw) as { id: string; description: string; output: string[]; executor: string; skill_candidates?: unknown }
     draft.id = (draft.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || 'nueva-tarea'
     if (!Array.isArray(draft.output)) draft.output = []
     if (!['openrouter', 'anthropic', 'openai'].includes(draft.executor)) draft.executor = 'openrouter'
-    return jsonResponse(draft)
+
+    // Fail-safe: solo se aceptan ids que existen de verdad — un id inventado
+    // por el LLM se descarta como si no hubiera dicho nada (mismo espíritu
+    // que needsClarify/el clasificador de intención del Mes 18).
+    const validIds = new Set(skillCandidateInfos.map(s => s.id))
+    const rawCandidates = Array.isArray(draft.skill_candidates) ? draft.skill_candidates : []
+    const skillCandidates = rawCandidates.filter((id): id is string => typeof id === 'string' && validIds.has(id))
+    const skillOptions = skillCandidateInfos.filter(s => skillCandidates.includes(s.id))
+      .map(s => ({ id: s.id, name: s.name, description: s.description }))
+
+    return jsonResponse({
+      id: draft.id,
+      description: draft.description,
+      output: draft.output,
+      executor: draft.executor,
+      skillCandidates,
+      skillOptions,
+    })
   } catch (e: any) {
     return errorResponse(`LLM draft failed: ${e.message}`, 502)
   }
 }
 
-export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiNatural }
+export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiNatural, listAllSkillCandidates }

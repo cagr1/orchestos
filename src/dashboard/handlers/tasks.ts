@@ -4,6 +4,7 @@ import { diagnoseTask } from '../../agents/diagnose.ts'
 import { loadTasks, saveTasks } from '../../tasks/loader.ts'
 import type { TaskRow, DiagnoseRow } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
+import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/registry.ts'
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
@@ -44,9 +45,18 @@ function inferExecutorFromModel(modelId: string | undefined): string {
   return 'openrouter'
 }
 
+/** Bloque D (Mes 18, ex-IDEAS #21) — un `skill` inventado o mal escrito se ignora
+ * en silencio en vez de romper la creación de la tarea; solo importa que exista. */
+function isKnownSkillId(id: string): boolean {
+  for (const f of [...listSkillFiles(), ...listProSkillFiles()]) {
+    try { if (loadSkill(f).id === id) return true } catch {}
+  }
+  return false
+}
+
 async function handleApiTasksCreate(req: Request): Promise<Response> {
-  let body: { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string; engine?: string }
-  try { body = (await req.json()) as { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string; engine?: string } } catch { return errorResponse('Invalid JSON', 400) }
+  let body: { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string; engine?: string; skill?: string }
+  try { body = (await req.json()) as { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string; engine?: string; skill?: string } } catch { return errorResponse('Invalid JSON', 400) }
   if (!body.description?.trim()) {
     return errorResponse('description is required', 400)
   }
@@ -82,6 +92,8 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
     }
     if (executorModel) newTask.executor_model = executorModel
     if (engine) newTask.engine = engine
+    const skill = body.skill?.trim()
+    if (skill && isKnownSkillId(skill)) newTask.skill = skill
     ;(file.tasks as any[]).push(newTask)
     saveTasks(root, file)
     return jsonResponse({ ok: true, id: finalId })
@@ -155,4 +167,4 @@ async function handleApiTasksDiagnose(url: URL): Promise<Response> {
   }
 }
 
-export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, loadTaskRows }
+export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, loadTaskRows, isKnownSkillId }
