@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, readFileSync, readdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { db } from '../db/sqlite.ts'
 import { _resetCatalog } from '../router/model-catalog.ts'
 import { validateTask, type Task } from '../tasks/schema.ts'
 import type { OrcheConfig } from '../config/schema.ts'
@@ -37,6 +38,14 @@ beforeAll(() => {
   // model-catalog.test.ts corre antes en CI): si quedó fresco, ensureCatalogLoaded
   // retorna sin leer disco y vuelve a pegar a la red.
   _resetCatalog()
+})
+
+// IDEAS.md #20 (2026-07-05): callRunTask() escribe en la misma
+// ~/.orchestos/db.sqlite que usa el dashboard real — sin este cleanup, cada
+// `bun test` local deja filas fantasma (task_id 'g3-selection-test') visibles
+// en "Recent Runs" del dashboard que Carlos usa a diario.
+afterAll(() => {
+  db.run("DELETE FROM runs WHERE task_id = 'g3-selection-test'")
 })
 
 const originalFetch = globalThis.fetch

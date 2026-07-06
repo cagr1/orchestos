@@ -9,10 +9,11 @@
  * el runId retornado por runTask(), consultar getRun() para inspeccionar la fila
  * persistida. No mockeamos módulos.
  */
-import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { db } from '../db/sqlite.ts'
 import { _resetCatalog } from '../router/model-catalog.ts'
 import type { Task } from '../tasks/schema.ts'
 
@@ -48,6 +49,12 @@ afterEach(() => {
   globalThis.fetch = originalFetch
   if (originalKey === undefined) delete process.env.OPENROUTER_API_KEY
   else process.env.OPENROUTER_API_KEY = originalKey
+})
+
+// IDEAS.md #20 (2026-07-05): cada test de este archivo llama runTask() de
+// verdad, que persiste en ~/.orchestos/db.sqlite (la misma DB del dashboard).
+afterAll(() => {
+  db.run("DELETE FROM runs WHERE task_id = 'g4-persist-test'")
 })
 
 function tmpDir(): string {

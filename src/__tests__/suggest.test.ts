@@ -37,6 +37,9 @@ beforeEach(() => {
 afterEach(() => {
   db.exec(`DELETE FROM code_edges WHERE project_id = '${pid}'`)
   db.exec(`DELETE FROM files      WHERE project_id = '${pid}'`)
+  // IDEAS.md #20 (2026-07-05): 'embed_hits is persisted...' inserta en `runs`
+  // real (~/.orchestos/db.sqlite) con este mismo project_id — faltaba limpiarla.
+  db.exec(`DELETE FROM runs       WHERE project_id = '${pid}'`)
 })
 
 // ---------------------------------------------------------------------------

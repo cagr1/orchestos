@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { db } from '../db/sqlite.ts'
 import type { Task } from '../tasks/schema.ts'
 
 // F3.3 — every failure path of runTask leaves a row in `runs` AND returns
@@ -18,6 +19,11 @@ import type { Task } from '../tasks/schema.ts'
 // CI environment). Each test queries the DB with the runId returned by
 // runTask, so cross-test interference is impossible — no listRuns, no
 // row-count assertions.
+//
+// IDEAS.md #20 (2026-07-05): this real DB is the SAME one the live dashboard
+// reads from — Carlos saw these fixture rows (task_id 'f3-3-evidence') show
+// up as fake "Recent Runs" every time someone ran `bun test` locally. afterAll
+// below deletes every row this file inserts so the dashboard stays clean.
 
 const originalFetch = globalThis.fetch
 const originalKey = process.env.OPENROUTER_API_KEY
@@ -25,6 +31,10 @@ const originalKey = process.env.OPENROUTER_API_KEY
 beforeAll(async () => {
   const { runMigrations } = await import('../db/migrate.ts')
   runMigrations()
+})
+
+afterAll(() => {
+  db.run("DELETE FROM runs WHERE task_id = 'f3-3-evidence'")
 })
 
 afterEach(() => {

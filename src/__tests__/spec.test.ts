@@ -1,9 +1,16 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, it, expect, afterAll } from 'bun:test'
 import { mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
 import { loadSpec, saveSpec, listSpecs, type Spec } from '../spec/store.ts'
 import { validateSpec } from '../spec/validate.ts'
+import { db } from '../db/sqlite.ts'
 import type { TaskExecutor } from '../tasks/schema.ts'
+
+// IDEAS.md #20 (2026-07-05): los 4 `runTask()` de este archivo (spec-gate
+// tests) persisten en ~/.orchestos/db.sqlite, la misma DB del dashboard real.
+afterAll(() => {
+  db.run("DELETE FROM runs WHERE task_id IN ('no-spec-task', 'draft-task', 'approved-gate-task', 'no-gate-task')")
+})
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

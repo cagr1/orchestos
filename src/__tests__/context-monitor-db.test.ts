@@ -8,13 +8,20 @@
  *   - multiple warning objects are serialized correctly
  */
 
-import { describe, it, expect, beforeAll } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
 import { insertRun, getRun } from '../db/runs.ts'
 import { db } from '../db/sqlite.ts'
 import { runMigrations } from '../db/migrate.ts'
 
 beforeAll(() => {
   runMigrations()
+})
+
+// IDEAS.md #20 (2026-07-05): insertRun() de este archivo escribe en
+// ~/.orchestos/db.sqlite real — todas las filas comparten prompt/provider de
+// baseRun(), así que se pueden identificar y borrar sin trackear cada id.
+afterAll(() => {
+  db.run("DELETE FROM runs WHERE prompt = 'test prompt' AND provider = 'test'")
 })
 
 function baseRun(): Parameters<typeof insertRun>[0] {

@@ -10,8 +10,9 @@
  * que el harness) pero no ejecuta ningún comando hasta que un usuario
  * invoca `program.parse()`.
  */
-import { describe, it, expect, beforeAll, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
 import type { RunRecord } from '../db/runs.ts'
+import { db } from '../db/sqlite.ts'
 
 const { insertRun } = await import('../db/runs.ts')
 const { runMigrations } = await import('../db/migrate.ts')
@@ -26,6 +27,13 @@ beforeAll(() => {
 
 afterEach(() => {
   // nothing global to reset; the test uses unique task_ids so rows don't collide
+})
+
+// IDEAS.md #20 (2026-07-05): el único test que llama insertRun() de verdad
+// (línea ~169) escribe en la ~/.orchestos/db.sqlite real, la misma que lee
+// el dashboard — sin esto deja una fila fantasma 'g4-rd-task' visible ahí.
+afterAll(() => {
+  db.run("DELETE FROM runs WHERE task_id = 'g4-rd-task'")
 })
 
 function makeRow(overrides: Partial<RunRecord> = {}): RunRecord {

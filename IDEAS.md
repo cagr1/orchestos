@@ -446,6 +446,30 @@ edita ningún engine).
 
 ---
 
+### 20. Higiene de tests — varios archivos escriben en la `runs` real (`~/.orchestos/db.sqlite`) sin limpiar ✅
+
+**Resuelto el mismo día (2026-07-05).** Los 8 archivos identificados (`harness-evidence.test.ts`,
+`engine-selection.test.ts`, `cli-runs-detail-engine.test.ts`, `harness-engine-persistence.test.ts`,
+`harness-retry.test.ts`, `spec.test.ts`, `context-monitor-db.test.ts`, `suggest.test.ts`) ahora
+limpian sus propias filas de `runs` en `afterAll`/`afterEach` (por `task_id` fijo, o por
+`prompt`+`provider`/`project_id` cuando no había una clave fija). Se purgaron **1800 filas
+sucias acumuladas** (623 + 1177 en dos pasadas) que venían de meses de `bun test` locales sin
+cleanup. Verificado corriendo la suite completa dos veces seguidas: 621 tests · 0 fail · 0 filas
+sucias después de cada corrida.
+
+<details>
+<summary>Contexto original (hallazgo)</summary>
+
+**Origen**: hallazgo en vivo durante Mes 18 (2026-07-05) — Carlos notó filas raras en
+"Recent Runs" del dashboard real (`f3-3-evidence`/`g3-selection-test`, mismo timestamp
+exacto repetido, cascada de fallos que nunca ocurrió de verdad). Causa: `src/db/sqlite.ts`
+no distingue DB de test — todo apunta siempre a `~/.orchestos/db.sqlite`, la misma que usa
+el dashboard corriendo.
+
+</details>
+
+---
+
 ## 📚 Referencia — inspiración externa (NO es backlog)
 
 Repos analizados durante Mes 5-8. La mayoría de patrones ya están shipeados; esto queda

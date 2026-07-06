@@ -1,7 +1,8 @@
-import { describe, it, expect, afterEach } from 'bun:test'
+import { describe, it, expect, afterEach, afterAll } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { db } from '../db/sqlite.ts'
 
 // F1.3 (b): end-to-end wiring — el harness pasa el `retry_reason` de la tarea
 // al provider, sin importar el resto del flujo. Mocks: globalThis.fetch (captura
@@ -16,6 +17,12 @@ afterEach(() => {
   globalThis.fetch = originalFetch
   if (originalKey === undefined) delete process.env.OPENROUTER_API_KEY
   else process.env.OPENROUTER_API_KEY = originalKey
+})
+
+// IDEAS.md #20 (2026-07-05): runTask() real persiste en ~/.orchestos/db.sqlite,
+// la misma DB del dashboard — limpiar las 2 filas que este archivo inserta.
+afterAll(() => {
+  db.run("DELETE FROM runs WHERE task_id IN ('retry-test', 'first-run')")
 })
 
 function tmpDir(): string {
