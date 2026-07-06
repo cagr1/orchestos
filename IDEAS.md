@@ -56,14 +56,18 @@ call extra (haiku, barato) detectaría ambigüedad real semánticamente.
 
 **Esfuerzo**: bajo-medio — un call + parseo, pero gated en evidencia real.
 
-### 5. Resolver imports relativos en Graph (lenguajes no-JS)
+### 5. Resolver imports relativos en Graph — solo falta Ruby
 
-Hoy solo JS/Python resuelven paths relativos en `code_edges`. Para C#, Rust, Go, Java,
-Ruby → los imports se guardan pero `to_file_id` queda `null`.
+**Corregido (2026-07-06)**: esta nota estaba desactualizada — decía que C#/Rust/Go/Java no
+resolvían imports. Verificado contra el código real: los 4 resolvers existen y están
+registrados (`src/graph/resolvers/{csharp,rust,go,java}.ts`, wireados en
+[`graph/index.ts:15-18`](src/graph/index.ts)) desde S21 (`tasks.yaml`:
+`s21-6-integrate-resolvers`, done/qa:pass). **Solo Ruby sigue sin resolver.**
 
-**Trabajo**: extender `resolveImport()` con lógica por extensión de archivo.
+**Trabajo restante**: un `rubyResolver` nuevo siguiendo el patrón de los 4 existentes
+(namespace/require matching), registrarlo en `graph/index.ts`.
 
-**Esfuerzo**: medio — acotado, sin abstracción nueva (el registry de resolvers ya existe, S21).
+**Esfuerzo**: bajo — el registry y el patrón ya existen, es un resolver más.
 
 ### 6. Design.md condicional para tareas complejas (OpenSpec)
 
