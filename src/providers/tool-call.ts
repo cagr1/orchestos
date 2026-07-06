@@ -314,6 +314,31 @@ export const SEARCH_MEMORY_TOOL: ToolDef = {
   },
 }
 
+export const READ_PLAN_TOOL: ToolDef = {
+  name: 'read_plan',
+  description:
+    'Reads PLAN.md, this project\'s execution plan (active blocks, status, done-month history ' +
+    'reference). Use when the user references a plan, a block by name (e.g. "A1", "Bloque B"), ' +
+    'or asks what is next for this project.',
+  input_schema: { type: 'object', properties: {} },
+}
+
+export const READ_TASKS_TOOL: ToolDef = {
+  name: 'read_tasks',
+  description:
+    'Reads tasks.yaml, the source of truth for executable tasks (id, description, status, ' +
+    'dependencies). Use when the user asks about existing tasks or references one by id.',
+  input_schema: { type: 'object', properties: {} },
+}
+
+export const READ_IDEAS_TOOL: ToolDef = {
+  name: 'read_ideas',
+  description:
+    'Reads IDEAS.md, the backlog of ideas not yet scheduled into PLAN.md. Use when the user asks ' +
+    'about backlog items or unscheduled ideas.',
+  input_schema: { type: 'object', properties: {} },
+}
+
 /**
  * Builds a single ToolExecutor that dispatches by tool name to the matching
  * handler. ToolExecutor itself already carries `toolName` as a param, but

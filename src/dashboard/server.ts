@@ -7,7 +7,7 @@ import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasks
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiNatural } from './handlers/project.ts'
 import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
-import { handleApiChatUpload, handleApiChatModels, handleApiChat } from './handlers/chat.ts'
+import { handleApiChatUpload, handleApiChatModels, handleApiChat, handleApiChatTaskBarClick, handleApiChatTaskBarEvents } from './handlers/chat.ts'
 import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport } from './handlers/skills.ts'
 import { handleApiSystemReset, handleApiSystemEnginesExternalAvailability } from './handlers/system.ts'
 import { DEFAULT_PORT } from './types.ts'
@@ -120,6 +120,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname === '/api/chat') {
     return handleApiChat(req)
+  }
+  if (method === 'POST' && url.pathname === '/api/chat/task-bar-click') {
+    return handleApiChatTaskBarClick()
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/task-bar-events') {
+    return handleApiChatTaskBarEvents()
   }
   if (method === 'GET' && url.pathname === '/api/specs') {
     return handleApiSpecs()

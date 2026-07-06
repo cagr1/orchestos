@@ -223,6 +223,19 @@ const App = {
       state.contextStatus = 'error';
     }
   },
+  async fetchChatTaskBarEvents() {
+    state.chatTaskBarEventsStatus = 'loading';
+    try {
+      const res = await fetch('/api/chat/task-bar-events');
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      state.chatTaskBarEventsSummary = data.summary;
+      state.chatTaskBarEvents = data.events;
+      state.chatTaskBarEventsStatus = 'ok';
+    } catch {
+      state.chatTaskBarEventsStatus = 'error';
+    }
+  },
   async fetchAll() {
     await Promise.all([
       this.fetchRuns(),

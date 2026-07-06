@@ -158,6 +158,24 @@ export function runMigrations(): void {
     END;
   `)
 
+  // B.1 (Mes 18) — instrumentación de chat-create-task-bar: registra, por mensaje
+  // enviado, si la barra de 3+ mensajes se mostró y si el usuario terminó
+  // usándola. Gate de evidencia antes de escribir el clasificador semántico
+  // (ver docs/chat-task-detection-design.md) — sin esto no hay forma de saber
+  // si la heurística de conteo genera falsos negativos reales o es solo una
+  // sospecha.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chat_task_bar_events (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind        TEXT NOT NULL CHECK(kind IN ('message', 'click')),
+      message     TEXT,
+      history_len INTEGER,
+      bar_shown   INTEGER,
+      created_at  TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_task_bar_events_kind ON chat_task_bar_events(kind);
+  `)
+
   // S33.1 — instincts table
   db.exec(`
     CREATE TABLE IF NOT EXISTS instincts (

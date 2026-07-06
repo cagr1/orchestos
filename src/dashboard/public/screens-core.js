@@ -263,6 +263,8 @@ SCREENS.chat = {
 
     // D4 — create task from conversation
     root.querySelector('[data-act="chat-create-task"]')?.addEventListener('click', () => {
+      // B.1 (Mes 18) — gate de evidencia: registra que el usuario sí usó la barra.
+      fetch('/api/chat/task-bar-click', { method: 'POST' }).catch(() => {});
       // D4 — seed the task composer with the last 3 user messages (concise, actionable).
       // The AI draft handler will turn this into a structured task — no need to dump the full conversation.
       const history = st.chatHistory || [];

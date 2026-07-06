@@ -1,4 +1,5 @@
-import { resolve } from 'path'
+import { resolve, join } from 'path'
+import { readFileSync, existsSync } from 'fs'
 import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { loadContext } from '../../context/load.ts'
 import { db } from '../../db/sqlite.ts'
@@ -10,9 +11,9 @@ import type { ChatUploadResponse, ChatFileType } from '../types.ts'
 import { ollamaChat } from '../llm/clients.ts'
 import { readEnv } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
-import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, createToolRouter, supportsToolCalling } from '../../providers/tool-call.ts'
+import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL, createToolRouter, supportsToolCalling } from '../../providers/tool-call.ts'
 import { checkSsrSafe } from '../ssrf.ts'
-import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, DEFAULT_MAX_OUTPUT_TOKENS } from '../../router/model-catalog.ts'
+import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, maxOutputTokensFor, DEFAULT_MAX_OUTPUT_TOKENS } from '../../router/model-catalog.ts'
 import { estimateTokens } from '../../context/compress.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
@@ -196,6 +197,72 @@ export async function executeSearchMemory(_toolName: string, input: unknown): Pr
   }
 }
 
+function readProjectTextFile(name: string): string {
+  const path = join(resolve('.'), name)
+  if (!existsSync(path)) return `[${name} not found in this project]`
+  return readFileSync(path, 'utf-8').slice(0, 256 * 1024)
+}
+
+export async function executeReadPlan(_toolName: string, _input: unknown): Promise<string> {
+  return readProjectTextFile('PLAN.md')
+}
+
+export async function executeReadTasks(_toolName: string, _input: unknown): Promise<string> {
+  return readProjectTextFile('tasks.yaml')
+}
+
+export async function executeReadIdeas(_toolName: string, _input: unknown): Promise<string> {
+  return readProjectTextFile('IDEAS.md')
+}
+
+// B.1 (Mes 18) — gate de evidencia: un evento por mensaje enviado (para saber si
+// la barra se mostró) y uno por click en "Create task" (para saber si el
+// usuario la usó). Ver docs/chat-task-detection-design.md.
+function logChatTaskBarEvent(row: { kind: 'message' | 'click'; message?: string; historyLen?: number; barShown?: boolean }): void {
+  db.run(
+    'INSERT INTO chat_task_bar_events (kind, message, history_len, bar_shown, created_at) VALUES (?, ?, ?, ?, ?)',
+    [
+      row.kind,
+      row.message ?? null,
+      row.historyLen ?? null,
+      row.barShown === undefined ? null : (row.barShown ? 1 : 0),
+      new Date().toISOString(),
+    ],
+  )
+}
+
+export async function handleApiChatTaskBarClick(): Promise<Response> {
+  logChatTaskBarEvent({ kind: 'click' })
+  return jsonResponse({ ok: true })
+}
+
+interface ChatTaskBarEventRow {
+  id: number
+  kind: 'message' | 'click'
+  message: string | null
+  history_len: number | null
+  bar_shown: number | null
+  created_at: string
+}
+
+// B.1 (Mes 18) — vista de solo lectura para que Carlos vea la evidencia sin
+// pedirme que corra un query. Ver docs/chat-task-detection-design.md.
+export async function handleApiChatTaskBarEvents(): Promise<Response> {
+  const events = db.query<ChatTaskBarEventRow, []>(
+    'SELECT id, kind, message, history_len, bar_shown, created_at FROM chat_task_bar_events ORDER BY id DESC LIMIT 200'
+  ).all()
+
+  const messages = events.filter(e => e.kind === 'message')
+  const summary = {
+    totalMessages: messages.length,
+    barShownCount: messages.filter(e => e.bar_shown === 1).length,
+    barHiddenCount: messages.filter(e => e.bar_shown === 0).length,
+    clickCount: events.filter(e => e.kind === 'click').length,
+  }
+
+  return jsonResponse({ summary, events })
+}
+
 async function handleApiChat(req: Request): Promise<Response> {
   let body: { history: { role: string; content: string }[]; message: string; fileId?: string; model?: string; effort?: string }
   try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
@@ -206,7 +273,12 @@ async function handleApiChat(req: Request): Promise<Response> {
     return errorResponse(`effort must be one of: ${VALID_EFFORTS.join(', ')}`, 400)
   }
 
-  const history = Array.isArray(body.history) ? body.history.slice(-10) : []
+  const rawHistory = Array.isArray(body.history) ? body.history : []
+  const history = rawHistory.slice(-10)
+
+  // B.1 (Mes 18) — gate de evidencia: mismo umbral que chat-create-task-bar en
+  // screens-core.js (`history.length >= 3`, contando el mensaje recién enviado).
+  logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown: rawHistory.length + 1 >= 3 })
 
   let attachedFile: FileEntry | null = null
   if (body.fileId) {
@@ -328,14 +400,29 @@ Important: you cannot modify files or run code directly from this chat. However,
     const promptTokens = estimateTokens(systemPrompt) + estimateTokens(messagesText)
     const CHAT_SAFETY_MARGIN = 1024
     const available = contextWindowFor(model) - promptTokens - CHAT_SAFETY_MARGIN
-    const chatMaxTokens = available > 0 ? available : DEFAULT_MAX_OUTPUT_TOKENS
+    // B.2.1 (Mes 18, 2026-07-05): `available` solo mira la ventana de contexto
+    // TOTAL — para modelos con tope de salida real publicado por el catálogo
+    // (`maxOutputTokensFor`, 0 = desconocido), pedir más que ese tope hace que
+    // el proveedor rechace la llamada aunque "entre" en la ventana de contexto.
+    // Mismo bug y mismo fix que harness.ts aplicó en G.5 (2026-07-02) — nunca
+    // se había replicado acá. Reproducido en vivo: claude-haiku-4-5 pidiendo
+    // ~196K de salida contra una ventana de 200K → 400 del proveedor.
+    const providerMaxOutput = maxOutputTokensFor(model)
+    const clamped = providerMaxOutput > 0 ? Math.min(available, providerMaxOutput) : available
+    const chatMaxTokens = clamped > 0 ? clamped : DEFAULT_MAX_OUTPUT_TOKENS
 
     if (supportsToolCalling('openrouter', model)) {
       const result = await runToolLoop('openrouter', model, {
         system: systemPrompt,
         messages,
-        tools: [FETCH_URL_TOOL, SEARCH_MEMORY_TOOL],
-        executeTool: createToolRouter({ fetch_url: executeFetchUrl, search_memory: executeSearchMemory }),
+        tools: [FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL],
+        executeTool: createToolRouter({
+          fetch_url: executeFetchUrl,
+          search_memory: executeSearchMemory,
+          read_plan: executeReadPlan,
+          read_tasks: executeReadTasks,
+          read_ideas: executeReadIdeas,
+        }),
         effort,
         maxTokens: chatMaxTokens,
       })

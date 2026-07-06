@@ -6,6 +6,48 @@ window.SCREENS = window.SCREENS || {};
 /* ============================================================
    PROJECT — CONSTITUTION.md (editable) + CONTEXT.md (read-only)
    ============================================================ */
+// B.1 (Mes 18) — vista de solo lectura de chat_task_bar_events, para que
+// Carlos vea la evidencia del gate B.1.b sin depender de un query manual.
+function renderChatEvidence(st) {
+  const summary = st.chatTaskBarEventsSummary || { totalMessages: 0, barShownCount: 0, barHiddenCount: 0, clickCount: 0 };
+  const events = st.chatTaskBarEvents || [];
+
+  const summaryLine = `<div class="proj-helper">${t('project.chatEvidence.helper')}</div>
+    <div class="chat-evidence-summary">
+      <span><b>${summary.totalMessages}</b> ${t('project.chatEvidence.messages')}</span>
+      <span><b>${summary.barHiddenCount}</b> ${t('project.chatEvidence.barHidden')}</span>
+      <span><b>${summary.barShownCount}</b> ${t('project.chatEvidence.barShown')}</span>
+      <span><b>${summary.clickCount}</b> ${t('project.chatEvidence.clicks')}</span>
+    </div>`;
+
+  const rows = events.map(e => {
+    if (e.kind === 'click') {
+      return `<tr class="chat-evidence-click"><td colspan="3">${t('project.chatEvidence.clickRow')}</td><td>${esc((e.created_at || '').slice(0, 16))}</td></tr>`;
+    }
+    const barLabel = e.bar_shown === 1 ? t('project.chatEvidence.shown') : t('project.chatEvidence.hidden');
+    return `<tr>
+      <td>${esc(e.message || '')}</td>
+      <td>${e.history_len ?? ''}</td>
+      <td>${barLabel}</td>
+      <td>${esc((e.created_at || '').slice(0, 16))}</td>
+    </tr>`;
+  }).join('');
+
+  const table = events.length === 0
+    ? `<p class="muted">${t('project.chatEvidence.empty')}</p>`
+    : `<table class="tbl">
+        <thead><tr>
+          <th>${t('project.chatEvidence.colMessage')}</th>
+          <th>${t('project.chatEvidence.colHistoryLen')}</th>
+          <th>${t('project.chatEvidence.colBar')}</th>
+          <th>${t('project.chatEvidence.colWhen')}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+  return `<div class="proj-editor-wrap">${summaryLine}${table}</div>`;
+}
+
 SCREENS.project = {
   _saveTimer: null,
 
@@ -18,6 +60,9 @@ SCREENS.project = {
       </button>
       <button class="proj-tab ${tab === 'context' ? 'active' : ''}" data-tab="context">
         ${t('project.tab.context')}
+      </button>
+      <button class="proj-tab ${tab === 'chat-evidence' ? 'active' : ''}" data-tab="chat-evidence">
+        ${t('project.tab.chatEvidence')}
       </button>
     </div>`;
 
@@ -46,6 +91,14 @@ SCREENS.project = {
       return `<div class="screen">${head}${tabs}${body}</div>`;
     }
 
+    if (tab === 'chat-evidence') {
+      const isLoading = st.chatTaskBarEventsStatus === 'loading' || st.chatTaskBarEventsStatus === 'idle';
+      const body = isLoading
+        ? loadingState(t('project.loading'))
+        : renderChatEvidence(st);
+      return `<div class="screen">${head}${tabs}${body}</div>`;
+    }
+
     // context tab
     const ctxContent = st.contextContent ?? '';
     const ctxLoading = st.contextStatus === 'loading' || st.contextStatus === 'idle';
@@ -70,6 +123,12 @@ SCREENS.project = {
         App.fetchConstitution().then(() => App.rerender());
       } else if (btn.dataset.tab === 'context' && st.contextStatus === 'idle') {
         App.fetchContext().then(() => App.rerender());
+      } else if (btn.dataset.tab === 'chat-evidence') {
+        // Siempre refresca (no solo idle) — a diferencia de constitution/context,
+        // este dato cambia en cada mensaje real que Carlos manda al chat.
+        st.chatTaskBarEventsStatus = 'idle';
+        App.rerender();
+        App.fetchChatTaskBarEvents().then(() => App.rerender());
       } else {
         App.rerender();
       }
