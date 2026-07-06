@@ -1,0 +1,104 @@
+id: frontend-design
+version: 1.0.0
+name: Frontend Design
+description: Production-grade visual craft for landing pages, marketing sites, dashboards, and product UI. Kills the AI-slop tells.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+  - edit
+when_to_use:
+  - When building a landing page, marketing site, or any commercial/brand page
+  - When creating or restyling a dashboard, product UI, component, or form
+  - When a design looks generic, "AI-made", bland, or hard to read
+  - When choosing colors, typography, spacing, layout, or motion for a UI
+inputs_required:
+  - What is being built (landing / dashboard / component) and its brand or mood
+  - Existing design tokens, theme, or CSS if any (reuse before inventing)
+instructions: |
+  Produce ready-to-ship, production-grade UI — not prototypes. Reuse the project's
+  existing tokens/theme/components before inventing new ones. Design knowledge
+  distilled from the Impeccable skill (Apache 2.0, github.com/pbakaus/impeccable).
+
+  FIRST — pick before you pick colors:
+  - Write one sentence of physical scene: who uses this, where, under what light,
+    in what mood. If it doesn't force light-vs-dark, add detail until it does.
+    Dark/light is never a default.
+  - Pick a color strategy: Restrained (tinted neutrals + one accent ≤10%),
+    Committed (one saturated color 30-60% of surface), Full palette (3-4 named
+    roles), or Drenched (surface IS the color). Landing/brand pages lean Committed
+    or Drenched; product UI leans Restrained.
+
+  COLOR
+  - Verify contrast: body text ≥4.5:1, large text (≥18px or bold ≥14px) ≥3:1,
+    placeholders ≥4.5:1. Light-gray body text on a tinted near-white is the #1
+    readability failure — bump toward the ink end of the ramp.
+  - Gray on a colored bg looks washed out: use a darker shade of the bg's own hue,
+    or a transparency of the text color.
+  - Use OKLCH. The cream/sand/beige near-white body bg (and token names like
+    --paper/--cream/--sand/--linen) is the saturated AI default — avoid it. Carry
+    "warmth" via accent, type, and imagery, not the body bg.
+
+  TYPOGRAPHY
+  - Body line length 65-75ch. Hero heading clamp() max ≤6rem (~96px).
+  - Display letter-spacing floor ≥ -0.04em (tighter = letters touch).
+  - Pair fonts on a contrast axis (serif+sans, geometric+humanist) or one family
+    in multiple weights — never two similar sans.
+  - text-wrap: balance on h1-h3; text-wrap: pretty on long prose.
+
+  LAYOUT
+  - Flexbox for 1D, Grid for 2D. Responsive grid without breakpoints:
+    repeat(auto-fit, minmax(280px, 1fr)). Vary spacing for rhythm.
+  - Cards are the lazy answer; nested cards are always wrong.
+  - Semantic z-index scale (dropdown < sticky < modal < toast < tooltip), never 999.
+
+  MOTION
+  - Intentional, not reflexive. Ease-out exponential curves; no bounce/elastic.
+  - Every animation needs a prefers-reduced-motion alternative.
+  - Reveals must enhance already-visible content — never gate visibility on a
+    class-triggered transition (ships blank on headless renderers).
+
+  ABSOLUTE BANS (rewrite the element if you're about to do these):
+  - Side-stripe borders (border-left/right >1px as accent). Use full borders,
+    bg tints, or leading numbers/icons.
+  - Gradient text (background-clip:text + gradient). Solid color; emphasis via
+    weight/size.
+  - Glassmorphism as default; hero-metric template (big number + gradient);
+    identical icon+heading+text card grids repeated endlessly.
+  - Tiny uppercase tracked eyebrow above every section, and 01/02/03 numbered
+    markers as scaffolding. One deliberate instance is voice; on every section
+    it's AI grammar.
+  - border-radius ≥32px on cards (cap 12-16px; pill only for tags/buttons).
+  - 1px border + soft wide shadow (≥16px blur) on the same element (ghost-card).
+  - Animating <img> on hover (or via parent :hover). Animate the card's bg/border/
+    shadow instead.
+  - Text that overflows its container — test heading copy at every breakpoint.
+
+  THE AI-SLOP TEST (run before shipping):
+  If someone could look at it and say "AI made that" without doubt, it failed.
+  If someone could guess the theme+palette from the category alone, rework the
+  scene sentence and color strategy until the answer isn't obvious.
+anti_patterns:
+  - Cream/sand/beige near-white body background as the "safe warm" default
+  - Light gray body text on a tinted background (fails contrast, reads as elegant but unreadable)
+  - Eyebrow kicker or 01/02/03 marker above every section
+  - Identical card grids (icon + heading + text) repeated as the whole page
+  - Gradient text, side-stripe borders, default glassmorphism, over-rounded cards
+  - Shipping without checking contrast ratios or the reduced-motion alternative
+  - Inventing new tokens/colors when the project already has a committed theme
+verifiers:
+  - Body text contrast ≥4.5:1 and large text ≥3:1 against their backgrounds
+  - Heading copy does not overflow at any breakpoint
+  - Every animation has a prefers-reduced-motion alternative
+  - None of the absolute bans are present in the final markup/CSS
+  - The "AI made that" test does not obviously pass
+examples:
+  - title: Commercial landing page
+    input: "Build a landing page for a local artisan coffee roaster"
+    output: "Scene sentence: 'a coffee lover browsing on a phone in morning light, wanting warmth and craft.' Strategy: Committed — deep-roast oxblood carries the hero, off-white at chroma~0 for body (NOT cream). Serif display + humanist sans. No eyebrows, no 01/02/03, no identical card grid — sections vary in rhythm. Contrast verified ≥4.5:1."
+  - title: Fixing a bland AI-looking dashboard
+    input: "This dashboard looks generic and AI-made, make it better"
+    output: "Diagnosed slop tells: cream bg, gray-on-tint body text (3.1:1), eyebrow on every panel, 32px card radius, ghost-card borders. Fixes: true off-white bg, ink-end body color (4.7:1), removed eyebrows, radius to 14px, single solid border. Reduced-motion alt added."

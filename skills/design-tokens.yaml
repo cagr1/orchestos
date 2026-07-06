@@ -1,0 +1,79 @@
+id: design-tokens
+version: 1.0.0
+name: Design Tokens
+description: Three-layer token architecture (primitive→semantic→component) and component state specs for consistent, maintainable design systems.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+  - edit
+when_to_use:
+  - When creating or refactoring CSS variables, a Tailwind theme, or design tokens
+  - When a codebase has raw hex colors scattered through components
+  - When defining a new component's visual states (default/hover/active/disabled)
+  - When doing design-to-code handoff for a reusable component library
+inputs_required:
+  - Whether tokens already exist in the project (reuse, never duplicate)
+  - The component or token category being defined
+instructions: |
+  Distilled from UI-UX-Pro-Max's design-system skill (MIT). Complements
+  design-brief-inference (tokens serve prose/intent) and ux-guidelines
+  (semantic tokens, not raw hex, is itself an accessibility/consistency rule).
+
+  THREE-LAYER ARCHITECTURE (never skip a layer, never let a component reference
+  a primitive directly)
+
+  1. Primitive — raw values, no meaning attached.
+     --color-blue-600: #2563EB;
+  2. Semantic — purpose aliases, referencing primitives. This is the layer that
+     changes for theming (light/dark) without touching components.
+     --color-primary: var(--color-blue-600);
+  3. Component — component-specific, referencing semantics only.
+     --button-bg: var(--color-primary);
+
+  Rule: a component file should never contain a raw hex value or a primitive
+  reference. If you're tempted to write `background: #2563EB` inside a Button
+  component, that's the tell you skipped the semantic layer.
+
+  COMPONENT SPEC PATTERN — define every interactive component's full state
+  table before implementing, not after:
+
+  | Property   | Default  | Hover         | Active         | Disabled      |
+  |------------|----------|---------------|----------------|---------------|
+  | Background | primary  | primary-dark  | primary-darker | muted         |
+  | Text       | white    | white         | white          | muted-fg      |
+  | Border     | none     | none          | none           | muted-border  |
+  | Shadow     | sm       | md            | none           | none          |
+
+  Every interactive component needs at minimum: default, hover, active/pressed,
+  disabled, and (for form inputs) focus and error states — as semantic tokens,
+  not one-off hex values per state.
+
+  DARK MODE — design light/dark token sets together, not as an afterthought
+  inversion. Dark mode uses desaturated/lighter tonal variants of the same
+  semantic roles, not simply inverted primitives (see ux-guidelines §5).
+
+  WHEN NOT TO INVENT NEW TOKENS
+  If the project already has committed tokens/theme, reuse them — extend the
+  semantic layer if a role is missing, don't create a parallel token system.
+  Identity-preservation wins over "cleaner" tokens you'd prefer to invent.
+anti_patterns:
+  - Raw hex values or primitive references inside component code
+  - A component with only a "default" state defined — no hover/active/disabled spec
+  - Inverting colors naively for dark mode instead of designing a matching semantic set
+  - Creating a second parallel token system when the project already has one
+  - Naming semantic tokens after their visual value instead of their purpose (e.g. `--blue` instead of `--color-primary`)
+verifiers:
+  - No raw hex values found in component files (only semantic/component tokens)
+  - Every interactive component has default/hover/active/disabled states specified
+  - Dark mode token set exists and was contrast-checked independently of light mode
+examples:
+  - title: Refactoring a button with hardcoded colors
+    input: "This Button component has #2563EB hardcoded everywhere, clean it up"
+    output: "Added --color-blue-600 primitive → --color-primary semantic → --button-bg/--button-bg-hover/--button-bg-active component tokens. Replaced all 6 hardcoded hex occurrences. Disabled state now uses --color-muted, not a hardcoded gray."
+  - title: New design system for a dashboard
+    input: "Set up design tokens for a new admin dashboard project"
+    output: "Three-layer structure with primitive color/spacing/type scales, semantic roles (primary, surface, on-surface, error), and component specs for Button/Card/Table with full state tables before any component code was written."

@@ -1,0 +1,103 @@
+id: ux-guidelines
+version: 1.0.0
+name: UX Guidelines
+description: Priority-ranked, measurable UX checklist — accessibility, touch, performance, forms, navigation. WCAG/Apple HIG/Material sourced.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+  - edit
+when_to_use:
+  - When reviewing UI code for accessibility, usability, or interaction quality
+  - When building forms, navigation, touch targets, or any interactive component
+  - When a UI "looks fine" but has no explicit accessibility or performance review
+  - When the interface must work on mobile/touch, not just desktop with a mouse
+inputs_required:
+  - What is being reviewed or built (component, page, or full flow)
+  - Target platforms (web only, or also iOS/Android via native equivalents)
+instructions: |
+  Distilled from UI-UX-Pro-Max (MIT). Priority order 1→9 — fix higher-priority
+  categories first when triaging an existing UI; apply all when building new.
+
+  1. ACCESSIBILITY (critical)
+  - Contrast ≥4.5:1 body text, ≥3:1 large text (≥18px or bold ≥14px).
+  - Visible focus rings (2-4px) on every interactive element — never remove them.
+  - alt text on meaningful images; aria-label on icon-only buttons.
+  - Tab order matches visual order; full keyboard support, no keyboard traps.
+  - Sequential heading hierarchy (h1→h6, no level skip).
+  - Never convey info by color alone — pair with icon or text.
+  - Respect prefers-reduced-motion.
+
+  2. TOUCH & INTERACTION (critical)
+  - Min touch target 44×44pt (Apple) / 48×48dp (Material), 8px+ gap between targets.
+  - Never rely on hover alone for primary interactions — must work on tap.
+  - Disable buttons during async ops with visible spinner/progress feedback.
+  - cursor: pointer on every clickable element (web).
+  - Don't redefine standard platform gestures (swipe-back, pinch-zoom).
+
+  3. PERFORMANCE
+  - WebP/AVIF images, lazy-load below-the-fold, srcset for responsive images.
+  - Declare width/height or aspect-ratio on images to prevent layout shift (CLS).
+  - font-display: swap to avoid invisible text; preload only critical fonts.
+  - Virtualize lists with 50+ items. Skeleton screens instead of spinners >1s.
+
+  4. LAYOUT & RESPONSIVE
+  - Mobile-first; viewport meta width=device-width (never disable zoom).
+  - No horizontal scroll on mobile. Min body text 16px on mobile (avoids iOS
+    auto-zoom on inputs). Line length 35-60ch mobile, 60-75ch desktop.
+  - Systematic 4pt/8dp spacing scale. Consistent max-width container on desktop.
+  - Semantic z-index scale (0/10/20/40/100/1000), never arbitrary 999.
+  - Establish hierarchy via size/spacing/contrast — never color alone.
+
+  5. TYPOGRAPHY & COLOR
+  - Line-height 1.5-1.75 body text. Semantic color tokens (primary, error,
+    surface) — never raw hex scattered in components.
+  - Dark mode uses desaturated/lighter tonal variants, not simple color inversion
+    — verify contrast separately in dark mode.
+  - Functional color (error/success) always pairs with icon or text.
+  - Prefer wrapping over truncation; if truncating, provide full text via
+    tooltip/expand.
+
+  6. ANIMATION
+  - Duration 150-300ms; motion must convey meaning, not decorate.
+  - Never animate width/height (layout thrash) — use transform/opacity.
+  - Always provide a reduced-motion alternative.
+
+  7. FORMS & FEEDBACK
+  - Visible labels (never placeholder-only as the label).
+  - Errors appear near the field that caused them, not only at the top.
+  - Progressive disclosure — don't overwhelm the user with every field upfront.
+
+  8. NAVIGATION
+  - Predictable back behavior; deep linking works; mobile bottom nav ≤5 items.
+
+  9. CHARTS & DATA
+  - Legends and tooltips always present; never rely on color alone to convey
+    meaning in a chart.
+
+  DECISION RULE: if a change alters how something looks, feels, moves, or is
+  interacted with, apply this checklist before shipping.
+anti_patterns:
+  - Removing focus rings "because they look ugly"
+  - Icon-only buttons with no aria-label
+  - Touch targets smaller than 44×44pt or closer together than 8px
+  - Relying on hover-only interaction for anything on a touch device
+  - Raw hex colors scattered through components instead of semantic tokens
+  - Placeholder text used as the only label for a form field
+  - Truncating text with no way to see the full content
+  - Conveying state (error/success/warning) through color alone
+verifiers:
+  - Contrast ratios verified (4.5:1 body, 3:1 large text) with a real tool, not eyeballed
+  - Every interactive element reachable and operable via keyboard alone
+  - No horizontal scroll and no auto-zoom triggers on mobile viewport
+  - Every animation has a working prefers-reduced-motion fallback
+examples:
+  - title: Reviewing an existing form
+    input: "Review this signup form for UX issues"
+    output: "Found: placeholder-only labels (fails a11y), error only shown at top of form (fails forms&feedback), submit button stays enabled during the async call with no spinner (fails touch&interaction). Fixed all three, contrast re-verified at 4.6:1."
+  - title: Building a mobile-first pricing page
+    input: "Build a pricing page, must work well on phones"
+    output: "16px min body text, touch targets 48dp with 8dp gaps, no hover-only tier comparison — tap-to-expand on mobile, systematic 8dp spacing scale, CLS-safe image dimensions declared upfront."
