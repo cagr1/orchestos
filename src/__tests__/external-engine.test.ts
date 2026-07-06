@@ -29,7 +29,7 @@
  * diseño — no ejecutamos un proceso no controlado contra el repo real).
  */
 
-import { describe, it, expect, afterEach } from 'bun:test'
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
@@ -37,6 +37,22 @@ import { git, createWorktree, type Worktree } from '../run/sandbox.ts'
 import { ExecutorExternalError, externalEngine } from '../run/executors/external.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { RunContext } from '../run/middleware.ts'
+
+// IDEAS.md #22 — el CI de GitHub Actions no tiene el binario `claude` real
+// instalado (a diferencia de las máquinas de desarrollo), así que el guard
+// `findClaudeBinary()` de external.ts (que llama a `Bun.which` de verdad)
+// tiraba en los 13 tests que no mockeaban `Bun.which` explícitamente — solo
+// los 3 tests "C.2" de más abajo lo hacían. Mock global por defecto acá;
+// los tests C.2 siguen pudiendo sobreescribirlo puntualmente para sus casos
+// (binario ausente / presente) sin conflicto, porque capturan y restauran
+// su propio "original" dentro del mismo test.
+const originalWhich = Bun.which
+beforeEach(() => {
+  ;(Bun as any).which = (_bin: string) => '/usr/local/bin/claude'
+})
+afterEach(() => {
+  Bun.which = originalWhich
+})
 
 // -- fixtures ------------------------------------------------------------------
 

@@ -282,6 +282,11 @@ describe('B.2 — executor engine: external', () => {
     // Eso es la prueba de que el harness efectivamente seleccionó externalEngine
     // (no single-shot ni agentic) — la rama de selección B.2 se ejecutó. El
     // happy path con subprocess real + worktree es B.3.
+    // IDEAS.md #22 — CI no tiene el binario `claude` real; sin este mock,
+    // externalEngine.run() tira "not found in PATH" ANTES de llegar al guard
+    // de worktree que este test realmente quiere ejercitar.
+    const originalWhich = Bun.which
+    ;(Bun as any).which = (_bin: string) => '/usr/local/bin/claude'
     const task = baseTask({ engine: 'external' })
     const dir = tmpDir()
     try {
@@ -289,6 +294,7 @@ describe('B.2 — executor engine: external', () => {
       expect(result.status).toBe('failed')
       expect(result.retryReason).toMatch(/external engine requires worktree sandbox mode/)
     } finally {
+      Bun.which = originalWhich
       rmSync(dir, { recursive: true, force: true })
     }
   })

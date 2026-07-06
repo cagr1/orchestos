@@ -434,20 +434,25 @@ el dashboard corriendo.
 
 ---
 
-### 22. CI en rojo desde Mes 17 C.2 — dos causas distintas, una ya arreglada ✅ (parcial)
+### 22. CI en rojo desde Mes 17 C.2 — 4 causas encontradas, las 4 corregidas ✅
 
 **Origen**: Carlos pidió verificar `github.com/cagr1/orchestos/actions/runs/28797793800` tras el
 push del Bloque D (Mes 18, 2026-07-06). El run estaba en rojo — y **lo estaba desde antes de
 esta sesión**: todo commit desde `feat(mes17/C.2): detección honesta si Claude Code no está
 instalado` (2026-07-05) falla en CI, confirmado con `gh run list`.
 
-**Causa 1 — pre-existente, NO se toca hoy**: los ~16 tests de
-`src/__tests__/external-engine.test.ts` (Mes 17, ejecutor externo) esperan invocar el binario
-`claude` real — el runner de GitHub Actions no lo tiene instalado (`Claude Code binary "claude"
-not found in PATH`). Es un gap de infraestructura de CI (falta un paso de instalación o mockear
-el binario), no un bug del motor — localmente pasa porque el binario sí está instalado. Requiere
-su propia decisión (instalar `claude` en el workflow, o mockear `Bun.spawn` en esos tests) antes
-de tocarlo — no se resuelve a ciegas acá.
+**Causa 1 — real, ya corregida (2026-07-06, segunda pasada)**: los ~16 tests de
+`src/__tests__/external-engine.test.ts` (Mes 17, ejecutor externo) + 1 de
+`engine-selection.test.ts` (B.2) fallaban con `Claude Code binary "claude" not found in PATH`.
+No era que faltara instalar `claude` en el runner — era que **solo 3 de los ~19 tests
+mockeaban `Bun.which`** (los tests "C.2" dedicados a probar el guard de detección); el resto
+dependía sin querer de que la máquina real tuviera `claude` instalado, exactamente la misma
+clase de gotcha que la Causa 2 (dependencia oculta del entorno local). Fix: mock global de
+`Bun.which` en `beforeEach`/`afterEach` de `external-engine.test.ts` (los 3 tests C.2 siguen
+pudiendo sobreescribirlo puntualmente para sus casos binario-ausente/presente, sin conflicto),
+y mock puntual en el test de `engine-selection.test.ts`. **Verificado con el binario `claude`
+genuinamente fuera del PATH** (`env PATH="/usr/bin:/bin:$(dirname $(which bun))"`, sin depender
+de mockear nada más): 629/629 tests pasan, igual que con el PATH normal.
 
 **Causa 2 — real, introducida hoy, ya corregida**: los 2 tests nuevos de
 `skill-auto-selection.test.ts` (Bloque D) fallaban en CI con `Received: undefined` — pasaban
@@ -468,11 +473,10 @@ bug real. Fix: comparar contra el sentinel exacto de `readProjectTextFile()`
 (`[IDEAS.md not found in this project]` / `[tasks.yaml not found in this project]`) en vez de un
 `toContain` genérico que choca con prosa real.
 
-**Estado real tras las 3 correcciones**: confirmado en CI (`gh run view`) que el job `bun test`
-solo falla por la Causa 1 (16 tests de `external-engine.test.ts` + 1 de `engine-selection.test.ts`,
-todos por el binario `claude` ausente) — 0 fallas nuevas de código propio. Pendiente: decidir cómo
-tratar la Causa 1 (instalar `claude` en el workflow, o mockear `Bun.spawn`) antes de que CI vuelva
-a verde del todo.
+**Estado real tras las 4 correcciones**: las 4 causas encontradas están corregidas y verificadas
+localmente contra el escenario exacto de CI (sin `OPENROUTER_API_KEY`/`.env`, sin `claude` en
+PATH). Pendiente confirmar en el próximo push que `gh run view` reporta el job `bun test` en
+verde — este ítem se cierra formalmente ahí, no antes.
 
 ---
 
