@@ -470,6 +470,36 @@ el dashboard corriendo.
 
 ---
 
+### 22. CI en rojo desde Mes 17 C.2 — dos causas distintas, una ya arreglada ✅ (parcial)
+
+**Origen**: Carlos pidió verificar `github.com/cagr1/orchestos/actions/runs/28797793800` tras el
+push del Bloque D (Mes 18, 2026-07-06). El run estaba en rojo — y **lo estaba desde antes de
+esta sesión**: todo commit desde `feat(mes17/C.2): detección honesta si Claude Code no está
+instalado` (2026-07-05) falla en CI, confirmado con `gh run list`.
+
+**Causa 1 — pre-existente, NO se toca hoy**: los ~16 tests de
+`src/__tests__/external-engine.test.ts` (Mes 17, ejecutor externo) esperan invocar el binario
+`claude` real — el runner de GitHub Actions no lo tiene instalado (`Claude Code binary "claude"
+not found in PATH`). Es un gap de infraestructura de CI (falta un paso de instalación o mockear
+el binario), no un bug del motor — localmente pasa porque el binario sí está instalado. Requiere
+su propia decisión (instalar `claude` en el workflow, o mockear `Bun.spawn` en esos tests) antes
+de tocarlo — no se resuelve a ciegas acá.
+
+**Causa 2 — real, introducida hoy, ya corregida**: los 2 tests nuevos de
+`skill-auto-selection.test.ts` (Bloque D) fallaban en CI con `Received: undefined` — pasaban
+localmente por un motivo equivocado: la máquina de Carlos tiene `OPENROUTER_API_KEY` real en
+`~/.orchestos/.env`, así que `handleApiNatural()` llegaba a mi `fetch` mockeado sin problema.
+CI no tiene esa key (correctamente, es un secreto) — `openrouterChat()` tira antes de llegar al
+mock, cayendo al catch de `handleApiNatural` y devolviendo un error en vez del draft. Fix:
+mismo patrón ya usado en `harness-evidence.test.ts` — `process.env.OPENROUTER_API_KEY =
+'sk-test-or-key'` explícito en cada test, restaurado en `afterEach`. **Verificado localmente
+simulando el entorno de CI** (sin `OPENROUTER_API_KEY` ni `~/.orchestos/.env`): 5/5 pasan.
+
+**Pendiente**: confirmar que el próximo push deja el job `bun test` en verde (la Causa 1 seguirá
+en rojo hasta que se decida cómo tratarla — no es parte de este ítem).
+
+---
+
 ## 📚 Referencia — inspiración externa (NO es backlog)
 
 Repos analizados durante Mes 5-8. La mayoría de patrones ya están shipeados; esto queda

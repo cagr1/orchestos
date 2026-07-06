@@ -7,9 +7,12 @@ import { isKnownSkillId } from '../dashboard/handlers/tasks.ts'
 // skills/ o skills/pro/ sobreviven al filtro. Ver docs/semantic-skill-selection-design.md.
 
 const originalFetch = globalThis.fetch
+const originalKey = process.env.OPENROUTER_API_KEY
 
 afterEach(() => {
   globalThis.fetch = originalFetch
+  if (originalKey === undefined) delete process.env.OPENROUTER_API_KEY
+  else process.env.OPENROUTER_API_KEY = originalKey
 })
 
 function openRouterResponse(content: string) {
@@ -40,6 +43,7 @@ describe('isKnownSkillId', () => {
 
 describe('handleApiNatural — skill_candidates fail-safe', () => {
   it('discards an invented skill id the LLM hallucinates, keeps real ones', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     globalThis.fetch = (async () => openRouterResponse(JSON.stringify({
       id: 'landing-page',
       description: 'Build a commercial landing page',
@@ -59,6 +63,7 @@ describe('handleApiNatural — skill_candidates fail-safe', () => {
   })
 
   it('returns an empty skill list when the LLM finds nothing that fits', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     globalThis.fetch = (async () => openRouterResponse(JSON.stringify({
       id: 'fix-backend-bug',
       description: 'Fix a null pointer in the auth middleware',
