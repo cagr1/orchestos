@@ -195,6 +195,13 @@ SCREENS.instincts = {
   },
   row(i) {
     const v = this.verdict(i);
+    const confInput = i.verified
+      ? `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+           <input type="range" min="0" max="1" step="0.05" value="${i.confidence}"
+             data-conf-id="${esc(i.id)}" style="width:90px;accent-color:var(--accent)">
+           <span class="mono faint" style="font-size:11px" data-conf-val="${esc(i.id)}">${Math.round(i.confidence * 100)}%</span>
+         </div>`
+      : '';
     const actions = !i.verified
       ? `<div class="inline-actions">
            <button class="btn success sm" data-approve="${esc(i.id)}">${ICON.check} ${t('instincts.btn.approve')}</button>
@@ -204,7 +211,7 @@ SCREENS.instincts = {
     return `<tr class="${!i.verified ? 'proposal' : ''}">
       <td><span class="mono" style="color:var(--text)">${esc(i.trigger)}</span></td>
       <td class="muted">${esc(i.action)}</td>
-      <td>${this.confBar(i.confidence)}</td>
+      <td>${this.confBar(i.confidence)}${confInput}</td>
       <td style="text-align:right">${actions}</td>
     </tr>`;
   },
@@ -216,6 +223,7 @@ SCREENS.instincts = {
       </div>
       <div class="tools">
         <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
+        <button class="btn ghost" data-act="propose-instinct">${ICON.instinct} Proponer</button>
         <button class="btn primary" data-act="add-instinct">${ICON.plus} ${t('instincts.btn.add')}</button>
       </div>
     </div>`;
@@ -293,6 +301,26 @@ SCREENS.instincts = {
         if (res.ok) await App.fetchInstincts();
       } finally { b.disabled = false; }
     }));
+
+    root.querySelectorAll('[data-conf-id]').forEach(slider => {
+      const id = slider.dataset.confId;
+      const valEl = root.querySelector(`[data-conf-val="${id}"]`);
+      let debounce;
+      slider.addEventListener('input', () => {
+        const v = parseFloat(slider.value);
+        if (valEl) valEl.textContent = Math.round(v * 100) + '%';
+        clearTimeout(debounce);
+        debounce = setTimeout(async () => {
+          await fetch(`/api/instincts/${encodeURIComponent(id)}/confidence`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confidence: v }),
+          });
+          await App.fetchInstincts();
+        }, 600);
+      });
+    });
+
+    root.querySelector('[data-act="propose-instinct"]')?.addEventListener('click', () => Modal.openPropose());
   },
 };
 
@@ -1083,11 +1111,19 @@ SCREENS.specs = {
     const clarifyBadge = s.clarify !== 'none'
       ? `<div class="stat-box ${s.clarify === 'pending' ? 'bad' : 'ok'}"><div class="n" style="font-size:15px;margin-top:5px">${esc(s.clarify)}</div><div class="l">Clarify</div></div>`
       : '';
+    const canApprove = s.status === 'draft' && s.clarify !== 'pending';
+    const canArchive = s.status !== 'archived';
+    const actions = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      ${canApprove ? `<button class="btn sm" data-spec-act="approve" data-spec-id="${esc(s.id)}">${ICON.check} Aprobar</button>` : ''}
+      <button class="btn sm ghost" data-spec-act="lint" data-spec-id="${esc(s.id)}">${ICON.search} Lint</button>
+      ${canArchive ? `<button class="btn sm ghost" data-spec-act="archive" data-spec-id="${esc(s.id)}">${ICON.inbox} Archivar</button>` : ''}
+    </div>`;
     return `<tr class="detail-row"><td colspan="5"><div class="spec-detail">
       <div class="stat-box ${s.lintFindings > 0 ? 'bad' : 'ok'}"><div class="n">${s.lintFindings}</div><div class="l">Lint findings</div></div>
       <div class="stat-box ${s.deltaIssues > 0 ? 'bad' : 'ok'}"><div class="n">${s.deltaIssues}</div><div class="l">Delta issues</div></div>
       <div class="stat-box"><div class="n" style="font-size:15px;margin-top:5px">${s.hasCapabilities ? `<span class="cap-yes">${ICON.check} Defined</span>` : `<span class="cap-no">${ICON.x} Missing</span>`}</div><div class="l">Capabilities</div></div>
       ${clarifyBadge}
+      ${actions}
     </div></td></tr>`;
   },
   row(s, st) {
@@ -1162,6 +1198,30 @@ SCREENS.specs = {
       });
     });
     root.querySelector('[data-arch]')?.addEventListener('click', () => { st.archOpen = !st.archOpen; App.rerender(); });
+
+    root.querySelectorAll('[data-spec-act]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const act = btn.dataset.specAct;
+        const id = btn.dataset.specId;
+        if (act === 'approve') {
+          fetch(`/api/specs/${encodeURIComponent(id)}/approve`, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => { if (d.ok) { App.fetchAll(); showToast(`Spec "${id}" aprobada ✓`); } else showToast(d.error || 'Error al aprobar', 'error'); });
+        } else if (act === 'lint') {
+          fetch(`/api/specs/${encodeURIComponent(id)}/lint`)
+            .then(r => r.json())
+            .then(d => {
+              if (d.findings && d.findings.length === 0) showToast(`Lint OK — ${d.structuredCount} criterios WHEN/THEN ✓`);
+              else showToast(`${d.findings.length} lint finding(s) en "${id}"`, 'error');
+            });
+        } else if (act === 'archive') {
+          fetch(`/api/specs/${encodeURIComponent(id)}/archive`, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => { if (d.ok) { App.fetchAll(); showToast(`Spec "${id}" archivada`); } else showToast(d.error || 'Error al archivar', 'error'); });
+        }
+      });
+    });
   },
 };
 

@@ -153,14 +153,14 @@ describe('recalculateVerified', () => {
 describe('store — insert and get', () => {
   it('inserts and retrieves an instinct', () => {
     const inserted = insertInstinct({
-      trigger: 'When API returns 500',
+      trigger: 'When API returns 500 [test-unique]',
       action: 'Log the error and retry',
       confidence: 0.85,
       source: 'auto',
       verified: false,
     })
     expect(inserted.id).toBeTruthy()
-    expect(inserted.trigger).toBe('When API returns 500')
+    expect(inserted.trigger).toBe('When API returns 500 [test-unique]')
     expect(inserted.confidence).toBe(0.85)
     expect(inserted.verified).toBe(false)
     expect(inserted.source).toBe('auto')
@@ -169,7 +169,8 @@ describe('store — insert and get', () => {
     const loaded = getInstinct(inserted.id)
     expect(loaded).not.toBeNull()
     expect(loaded!.id).toBe(inserted.id)
-    expect(loaded!.trigger).toBe('When API returns 500')
+    expect(loaded!.trigger).toBe('When API returns 500 [test-unique]')
+    deleteInstinct(inserted.id)
   })
 
   it('returns null for non-existent id', () => {

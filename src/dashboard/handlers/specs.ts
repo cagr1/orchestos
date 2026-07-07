@@ -1,6 +1,8 @@
 import { resolve, join } from 'path'
-import { listSpecs } from '../../spec/store.ts'
+import { listSpecs, loadSpec, saveSpec } from '../../spec/store.ts'
 import { lintSpec } from '../../spec/lint.ts'
+import { validateSpec } from '../../spec/validate.ts'
+import { archiveSpec } from '../../spec/archive.ts'
 import type { SpecRow, SpecLintStatus } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
 
@@ -45,4 +47,65 @@ function handleApiSpecs(): Response {
   }
 }
 
-export { handleApiSpecsDraft, handleApiSpecs }
+function handleApiSpecsCreate(req: Request): Response {
+  const id = new URL(req.url).pathname.split('/').pop() ?? ''
+  const taskId = validateTaskId(id)
+  if (!taskId) return errorResponse('taskId inválido', 400)
+  const root = resolve('.')
+  const existing = loadSpec(root, taskId)
+  if (existing) return errorResponse(`Spec ya existe para "${taskId}"`, 409)
+  saveSpec(root, {
+    frontmatter: {
+      id: taskId,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      clarify: 'none',
+    },
+    body: `## Contexto\n<placeholder>\n\n## Descripción\n<placeholder>\n\n## Criterios de aceptación\n- [ ] <criterio 1>\n- [ ] <criterio 2>\n\n## Notas\n<placeholder>\n`,
+  })
+  return jsonResponse({ ok: true, taskId })
+}
+
+function handleApiSpecsApprove(req: Request): Response {
+  const id = new URL(req.url).pathname.split('/').at(-2) ?? ''
+  const taskId = validateTaskId(id)
+  if (!taskId) return errorResponse('taskId inválido', 400)
+  const root = resolve('.')
+  const s = loadSpec(root, taskId)
+  if (!s) return errorResponse(`No existe spec para "${taskId}"`, 404)
+  if (s.frontmatter.clarify === 'pending')
+    return errorResponse(`No se puede aprobar "${taskId}" — clarify está pending`, 422)
+  const validation = validateSpec(s)
+  if (!validation.valid)
+    return errorResponse(`Validación fallida: ${validation.errors.join('; ')}`, 422)
+  s.frontmatter.status = 'approved'
+  s.frontmatter.approvedAt = new Date().toISOString()
+  saveSpec(root, s)
+  return jsonResponse({ ok: true, taskId })
+}
+
+function handleApiSpecsLint(req: Request): Response {
+  const id = new URL(req.url).pathname.split('/').at(-2) ?? ''
+  const taskId = validateTaskId(id)
+  if (!taskId) return errorResponse('taskId inválido', 400)
+  const root = resolve('.')
+  const s = loadSpec(root, taskId)
+  if (!s) return errorResponse(`No existe spec para "${taskId}"`, 404)
+  const result = lintSpec(s)
+  return jsonResponse(result)
+}
+
+function handleApiSpecsArchive(req: Request): Response {
+  const id = new URL(req.url).pathname.split('/').at(-2) ?? ''
+  const taskId = validateTaskId(id)
+  if (!taskId) return errorResponse('taskId inválido', 400)
+  const root = resolve('.')
+  try {
+    const result = archiveSpec(root, taskId)
+    return jsonResponse({ ok: true, archivedPath: result.archivedPath })
+  } catch (e: any) {
+    return errorResponse(e.message, 422)
+  }
+}
+
+export { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive }

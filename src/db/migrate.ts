@@ -189,6 +189,7 @@ export function runMigrations(): void {
     );
     CREATE INDEX IF NOT EXISTS idx_instincts_verified ON instincts(verified);
     CREATE INDEX IF NOT EXISTS idx_instincts_confidence ON instincts(confidence);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_instincts_trigger_unique ON instincts(trigger);
   `)
 
   // Rebuild FTS5 index on every startup — keeps index consistent if rows were

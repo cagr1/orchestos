@@ -5,6 +5,12 @@ import { loadTasks, saveTasks } from '../../tasks/loader.ts'
 import type { TaskRow, DiagnoseRow } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
 import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/registry.ts'
+import { classifyTask } from '../../router/classify.ts'
+import { autoRoute } from '../../router/auto-route.ts'
+import { loadOrcheConfig } from '../../config/load.ts'
+import { loadConstitution } from '../../spec/constitution.ts'
+import { getProject } from '../../db/projects.ts'
+import { suggestContext } from '../../graph/suggest.ts'
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
@@ -106,18 +112,22 @@ async function handleApiTasksRun(req: Request, url: URL): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
-  let body: { model?: string } = {}
-  try { body = (await req.json()) as { model?: string } } catch { /* body opcional */ }
+  let body: { model?: string; clarification?: string } = {}
+  try { body = (await req.json()) as { model?: string; clarification?: string } } catch { /* body opcional */ }
   const model = body.model?.trim() || undefined
+  const clarification = body.clarification?.trim() || undefined
   const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   const file = loadTasks(root)
   const task = file.tasks.find((t: any) => t.id === id)
   if (!task) return errorResponse('Task not found', 404)
+  if (clarification) {
+    task.description = `${task.description}\n\nUser clarification: ${clarification}`
+  }
   if (task.status !== 'pending') {
     task.status = 'pending'
-    saveTasks(root, file)
   }
+  saveTasks(root, file)
   const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id]
   if (model) args.push('--model', model)
   Bun.spawn(args, {
@@ -145,6 +155,47 @@ function handleApiTasksDelete(url: URL): Response {
   }
 }
 
+function handleApiTasksExplain(url: URL): Response {
+  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
+  const id = validateTaskId(raw)
+  if (!id) return errorResponse('Missing or invalid task id', 400)
+  const root = resolve('.')
+  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
+  const file = loadTasks(root)
+  const task = file.tasks.find((t: any) => t.id === id)
+  if (!task) return errorResponse('Task not found', 404)
+
+  const taskClass = classifyTask(task.description)
+  const cfg = loadOrcheConfig(root)
+  const cfgFound = existsSync(join(root, 'orchestos.config.yaml'))
+  const route = autoRoute(task, cfg, cfgFound)
+  const model = route?.model ?? taskClass
+  const providerName = route?.provider ?? task.executor
+  const modelDisplay = route ? `${providerName}/${model} [${route.role}]` : `${model} (${taskClass})`
+
+  const project = getProject(root)
+  const suggestions = project ? suggestContext(project.id, task.description, { topN: 5 }) : []
+  const implicitInput = task.input.length === 0 ? suggestions.map((s: any) => s.path) : []
+  const inputSource = task.input.length > 0 ? 'explicit' : implicitInput.length > 0 ? 'graph' : 'none'
+
+  const cst = loadConstitution(root)
+
+  return jsonResponse({
+    id: task.id,
+    description: task.description,
+    status: task.status,
+    executor: providerName,
+    model: modelDisplay,
+    outputs: task.output,
+    inputSource,
+    inputFiles: task.input.length > 0 ? task.input : implicitInput,
+    graphSuggestions: suggestions.map((s: any) => ({ path: s.path, score: s.score })),
+    checks: task.checks ?? [],
+    acceptanceCriteria: task.acceptance_criteria ?? [],
+    constitution: cst ? { ruleCount: cst.ruleCount, forbidden: cst.forbidden.length, requireConfirmation: cst.require_confirmation.length, allowed: cst.allowed.length } : null,
+  })
+}
+
 async function handleApiTasksDiagnose(url: URL): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
@@ -167,4 +218,4 @@ async function handleApiTasksDiagnose(url: URL): Promise<Response> {
   }
 }
 
-export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, loadTaskRows, isKnownSkillId }
+export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, handleApiTasksExplain, loadTaskRows, isKnownSkillId }

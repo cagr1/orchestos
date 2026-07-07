@@ -43,6 +43,8 @@ por la puerta importar.
 
 **Esfuerzo**: bajo — dos skills, sin motor nuevo.
 
+- ~~**#23 — Sistema de notificaciones/toasts estilizado**~~ — Resuelto en E.7 (2026-07-07): todos los `alert()`/`prompt()` reemplazados por `showToast()` + modales propios.
+
 ---
 
 ## 🔨 Medio — capacidad nueva acotada
@@ -479,6 +481,68 @@ verificadas localmente contra el escenario exacto de CI (sin `OPENROUTER_API_KEY
 [run 28808032085](https://github.com/cagr1/orchestos/actions/runs/28808032085): `ci` ✓ en 14s,
 `bun test` y `typecheck` ambos verdes. Primera corrida en verde desde `feat(mes17/C.2)`
 (2026-07-05).
+
+---
+
+### 23. Dashboard — Impeccable + 21st.dev (diseño no memorable → memorable)
+
+**Origen**: sesión 2026-07-07. El dashboard existe y es funcional, pero visualmente genérico.
+
+**Qué hacer:**
+1. `npx impeccable install` en el repo → `/impeccable init` (surface = product) → genera `PRODUCT.md` + `DESIGN.md`
+2. Auditar el dashboard actual con `/impeccable audit` — detecta los problemas concretos
+3. Reemplazar componentes de tabla, cards y AI chat con equivalentes de 21st.dev (tiene MCP server para flujo agéntico)
+
+**Por qué no es urgente**: el dashboard funciona. Priorizar cuando haya usuario externo real o cuando se haga el bloque de chat multi-sesión (#17) que cambia la UI de todas formas.
+
+**Esfuerzo**: medio — no requiere reescribir lógica, solo UI encima de lo que existe. Candidato a bloque dedicado post-Mes 18.
+
+---
+
+### 24. OCR como task_class de primera clase
+
+**Origen**: sesión 2026-07-07. Hoy OrchestOS solo orquesta texto. OCR agregaría imágenes/PDFs.
+
+**Qué hacer:**
+- Nuevo `task_class: ocr` en el schema de tasks
+- Integrar `baidu/Unlimited-OCR` vía API (HuggingFace Spaces o Baidu Cloud — sin GPU propia)
+- El output del OCR entra al pipeline normal como texto → QA → SQLite
+
+**Caso de uso concreto**: imagen adjunta en chat de OrchestOS → OCR extrae texto → agente procesa. También útil para CitasBot (imágenes de agenda por WhatsApp).
+
+**Bloqueado por**: #12 (chat como entrada única, Mes 18) — sin adjuntos en el chat, no hay superficie de entrada natural para imágenes.
+
+**Esfuerzo**: medio-alto — nueva integración de modelo externo + cambio de schema. Evaluar cuando #12 esté cerrado.
+
+---
+
+### 25. Mintlify — agente de docs automático
+
+**Origen**: sesión 2026-07-07. Mintlify está conectado al repo de docs (auto-deploy en push). Los `.mdx` viven en un repo separado (pendiente confirmar cuál).
+
+**Gaps ya identificados (2026-07-07)** — en CLI pero NO documentados:
+- `detect`, `summary`, `index`, `context compress`, `skill run`, `instinct propose`, `instinct setup`, `reset`
+
+**Documentado pero NO existe**: `skill fetch` — eliminar de la doc.
+
+**Qué hacer:**
+1. Confirmar repo de docs con Carlos
+2. Corregir los 8 gaps manualmente (rápido)
+3. Scheduled agent que lea `src/cli.ts` y compare contra `.mdx` en cada push — propone actualizaciones
+
+**Esfuerzo**: bajo para la corrección manual, medio para el agente automático.
+
+---
+
+### 26. Spec Kit — formalizar tasks.yaml como spec ejecutable
+
+**Origen**: sesión 2026-07-07. `tasks.yaml` ya es una proto-spec. Spec Kit (github/spec-kit) lo convierte en spec ejecutable: defines el outcome primero, el agente genera la implementación, los tests validan que coincida.
+
+**Por qué es interesante**: reduce el "vibe coding" en el desarrollo de OrchestOS mismo. En vez de describir qué hacer en `description:`, describes el comportamiento esperado y Spec Kit genera la implementación.
+
+**Riesgo**: cambia el workflow central de cómo se escriben las tareas. Evaluar en un bloque experimental antes de adoptar globalmente.
+
+**Esfuerzo**: medio — instalación simple (`uv tool install specify-cli`), pero requiere repensar cómo se redactan las tareas en `tasks.yaml`. Candidato a spike de 1 bloque para evaluar si encaja.
 
 ---
 

@@ -431,10 +431,17 @@ const SidePanel = {
           <div><div class="label">${t2('panel.retries')}</div><div class="val mono" style="font-size:13px">↻ ${t.retryCount}</div></div>
         </div>
         ${t.runId ? `<div class="sp-section"><div class="label">${t2('panel.lastrun')}</div><div class="val mono" style="font-size:13px;color:var(--accent)">${esc(t.runId)}</div></div>` : ''}
+        <div class="sp-section">
+          <div class="label" style="margin-bottom:6px">Clarificación antes de ejecutar</div>
+          <textarea id="sp-clarify" placeholder="Opcional: añade contexto o instrucciones adicionales para el agente…"></textarea>
+          <button class="btn primary sm sp-run-clarify" style="margin-top:8px;width:100%">${ICON.send} Ejecutar con clarificación</button>
+        </div>
+        <div id="sp-explain-out" style="display:none"></div>
       </div>
       <div class="sp-foot">
-        <span class="muted" style="font-size:12px;flex:1">${t2('panel.cli.hint')} <span class="mono">orchestos task run --id ${esc(t.id)}</span></span>
-        <button class="btn danger sm sp-delete" style="margin-left:8px">${ICON.trash}</button>
+        <button class="btn ghost sm sp-explain">${ICON.search} Explain</button>
+        <span style="flex:1"></span>
+        <button class="btn danger sm sp-delete">${ICON.trash}</button>
       </div>`;
     this.el.querySelector('.sp-close').addEventListener('click', () => this.close());
     this.el.querySelector('.sp-delete').addEventListener('click', async () => {
@@ -442,8 +449,41 @@ const SidePanel = {
       try {
         const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}`, { method: 'DELETE' });
         if (res.ok) { this.close(); await App.fetchTasks(); App.rerender(); }
-        else { const e = await res.json(); alert(e.error || 'Delete failed'); }
-      } catch { alert('Connection error'); }
+        else { const e = await res.json(); showToast(e.error || 'Delete failed', 'error'); }
+      } catch { showToast('Connection error', 'error'); }
+    });
+    this.el.querySelector('.sp-explain')?.addEventListener('click', async () => {
+      const out = this.el.querySelector('#sp-explain-out');
+      out.style.display = 'block';
+      out.innerHTML = '<span class="muted" style="font-size:12px">Cargando…</span>';
+      try {
+        const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}/explain`);
+        const d = await res.json();
+        if (!res.ok) { out.innerHTML = `<span style="color:var(--error);font-size:12px">${esc(d.error || 'Error')}</span>`; return; }
+        out.innerHTML = `<div class="sp-explain-card">
+          <div class="sp-explain-row"><span class="sp-explain-k">Model</span><span class="sp-explain-v">${esc(d.model)}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Executor</span><span class="sp-explain-v">${esc(d.executor)}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Input (${esc(d.inputSource)})</span><span class="sp-explain-v">${d.inputFiles.length ? d.inputFiles.map(f => esc(f)).join(', ') : '—'}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Outputs</span><span class="sp-explain-v">${d.outputs.length ? d.outputs.map(f => esc(f)).join(', ') : '—'}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Checks</span><span class="sp-explain-v">${d.checks.length ? d.checks.map(c => esc(c.cmd)).join(', ') : '(none)'}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Criteria</span><span class="sp-explain-v">${d.acceptanceCriteria.length ? d.acceptanceCriteria.length + ' items' : '(none)'}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Constitution</span><span class="sp-explain-v">${d.constitution ? d.constitution.ruleCount + ' rules' : '(none)'}</span></div>
+        </div>`;
+      } catch { out.innerHTML = '<span style="color:var(--error);font-size:12px">Connection error</span>'; }
+    });
+    this.el.querySelector('.sp-run-clarify')?.addEventListener('click', async () => {
+      const clarification = this.el.querySelector('#sp-clarify')?.value?.trim();
+      const btn = this.el.querySelector('.sp-run-clarify');
+      btn.disabled = true;
+      try {
+        const body = clarification ? { clarification } : {};
+        const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}/run`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        if (res.ok) { this.close(); await App.fetchTasks(); App.rerender(); showToast('Tarea en cola ✓'); }
+        else { const e = await res.json(); showToast(e.error || 'Error al ejecutar', 'error'); }
+      } catch { showToast('Connection error', 'error'); }
+      finally { btn.disabled = false; }
     });
     requestAnimationFrame(() => { this.el.classList.add('open'); this.backdrop.classList.add('show'); });
   },
@@ -510,6 +550,48 @@ const Modal = {
         msg.style.color = 'var(--error)';
         msg.style.display = '';
       } finally { btn.disabled = false; }
+    });
+    requestAnimationFrame(() => this.el.classList.add('show'));
+  },
+
+  openPropose() {
+    this.el.innerHTML = `<div class="modal">
+      <div class="m-head"><span style="color:var(--accent)">${ICON.instinct}</span><h3>Proponer instinct</h3>
+        <button class="btn ghost sm" data-x>${ICON.x}</button></div>
+      <div class="m-body">
+        <div class="m-field">
+          <label>Cuándo se aplica</label>
+          <input id="p-trig" placeholder="Ej: When the agent sees a 500 error" autocomplete="off">
+          <div class="m-hint">Condición que activa este comportamiento</div>
+        </div>
+        <div class="m-field">
+          <label>Qué debe hacer el agente</label>
+          <input id="p-act" placeholder="Ej: Log the error and retry once" autocomplete="off">
+          <div class="m-hint">Acción concreta a tomar</div>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:4px">Se creará con confidence 0.6 y requerirá aprobación manual.</div>
+        <div id="p-msg" style="font-size:12px;display:none"></div>
+      </div>
+      <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
+        <button class="btn primary" data-propose>${ICON.instinct} Proponer</button></div>
+    </div>`;
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    this.el.querySelector('[data-propose]').addEventListener('click', async () => {
+      const trig = this.el.querySelector('#p-trig').value.trim();
+      const act  = this.el.querySelector('#p-act').value.trim();
+      const msg  = this.el.querySelector('#p-msg');
+      if (!trig || !act) { msg.textContent = 'Trigger y action son requeridos.'; msg.style.color = 'var(--error)'; msg.style.display = ''; return; }
+      const btn = this.el.querySelector('[data-propose]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/instincts/propose', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger: trig, action: act }),
+        });
+        if (res.ok) { this.close(); await App.fetchInstincts(); showToast('Instinct propuesto — pendiente de aprobación'); }
+        else { const e = await res.json(); msg.textContent = e.error || 'Error al proponer.'; msg.style.color = 'var(--error)'; msg.style.display = ''; }
+      } catch { msg.textContent = 'Connection error.'; msg.style.color = 'var(--error)'; msg.style.display = ''; }
+      finally { btn.disabled = false; }
     });
     requestAnimationFrame(() => this.el.classList.add('show'));
   },
