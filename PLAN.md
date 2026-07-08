@@ -96,6 +96,25 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 - [x] E.9 ⚡ `config init/show` (2026-07-08, verificado en vivo) — `GET /api/config` (fuente activa, roles resueltos, preview de routing de tareas pendientes vía `autoRoute()`/`formatRoute()` reales, mismo motor que el harness) y `POST /api/config/init` (crea `orchestos.config.yaml` con el scaffold real, 409 si ya existe). Nuevo tab "Model routing" en Settings (`handlers/config.ts`). Verificado en vivo: sin config → "Using defaults" + botón crear; clic real → `POST /api/config/init` 200 OK, archivo creado con contenido real, refetch mostró "found" + path, botón desaparece. Archivo de prueba borrado tras verificar (no se dejó `orchestos.config.yaml` en el repo real). 631 tests · 0 fail · `tsc --noEmit` limpio.
 - [x] E.10 🧠 `context suggest` (2026-07-08, verificado en vivo) — `GET /api/context/suggest?task=<texto>` reusa `suggestContext()` (S24) tal cual, sin motor nuevo: intenta un embedding real y cae en silencio a keyword-matching si no hay proveedor disponible (mismo comportamiento gracioso que la CLI — **no era cierto que dependiera de embeddings end-to-end**, `suggestContext()` ya soporta ambos caminos desde S24.4). Botón "Sugerir archivos" en el composer de Tasks (draft de `/api/natural`), debajo del campo de output — resultados como chips clicables (● directo / ◆ semántico / ○ vecino de 1-hop) que se agregan al textarea sin pisar lo ya escrito. Verificado en vivo: draft real "arreglar bug del graph runner" → `GET /api/context/suggest` 200 OK, top result `src/run/graph-runner.ts` (score 8, `direct`) — exactamente el archivo correcto, sin proveedor de embeddings configurado (`embeddingAvailable:false`, fallback keyword confirmado). Click en el chip agregó la ruta real al textarea. Draft cancelado sin confirmar — cero escritura en `tasks.yaml`. 631 tests · 0 fail · `tsc --noEmit` limpio. **Cierra el Bloque E completo (E.1-E.10) — paridad CLI↔Dashboard.**
 
+### Bloque F — Fechas en hora local, no UTC crudo (graduado 2026-07-08 — independiente de B.1.b, no bloquea el cierre del mes)
+**Origen**: Carlos, 2026-07-08 — todas las fechas del dashboard se muestran como el string UTC crudo de SQLite (`2026-07-05T00:08:34`), nunca convertidas a su hora local (Ecuador). Confirmado: es un patrón repetido en al menos 6 lugares, todos haciendo `.slice()` directo sobre el ISO string sin pasar por `new Date()` — no hay ningún helper de formato de fecha compartido en el dashboard.
+
+**Lugares confirmados (grep, 2026-07-08):**
+| Archivo | Línea | Qué muestra |
+|---|---|---|
+| `app.js` | 389 | Terminal footer "Recent Runs" |
+| `screens-ops.js` | 539 | Tabla de la pantalla Runs |
+| `screens-ops.js` | 1253 | Fecha de creación en Specs |
+| `screens-ops.js` | 25, 32 | Tabla "Chat evidence" (Project) |
+| `screens-core.js` | 357 | Fecha en detalle de tarea (diagnose) |
+| `screens-core.js` | 915 | Panel de conflictos de memoria |
+
+**Causa raíz**: `insertRun()`/otros inserts guardan `new Date().toISOString()` (UTC, correcto — así debe guardarse en DB). El problema es 100% de **presentación**: cada pantalla trunca el string crudo con `.slice(0, N)` en vez de convertirlo a la zona horaria del navegador.
+
+**Plan**: un helper único `formatLocalDate(isoString, opts?)` en `app.js` (o un nuevo `dates.js`) que use `new Date(isoString).toLocaleString()`/`toLocaleDateString()` respetando la zona horaria del navegador — reemplazar los 6 `.slice()` por llamadas a ese helper. No toca el schema de DB ni cómo se guardan las fechas, solo cómo se muestran.
+
+- [ ] F.1 ⚡ Crear `formatLocalDate()` compartido + reemplazar los 6 usos confirmados arriba. Verificar en vivo que una fecha real (ej. un run recién creado) se muestre en hora de Ecuador, no UTC.
+
 ### Cierre del mes
 - [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + aplicar la regla IDEAS→PLAN→DONE en el cierre. **NO se puede cerrar el mes mientras B.1.b siga en espera de evidencia** (decisión explícita de Carlos, 2026-07-05) — el mes queda abierto indefinidamente hasta que haya datos suficientes, no es un backlog que se pueda dar por bueno sin resolver.
 

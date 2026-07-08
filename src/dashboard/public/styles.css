@@ -113,7 +113,14 @@ button { font-family: inherit; }
   box-shadow: 0 0 0 1px rgba(88, 166, 255, .08), 0 6px 18px rgba(1, 4, 9, .35);
   overflow: hidden;
 }
-.brand .mark img { display: block; width: 100%; height: 100%; }
+.brand .mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* Logo por tema — hoy el dashboard es dark-only (sin toggle real, ver IDEAS.md),
+   así que el default es el logo blanco. Cuando se implemente el toggle
+   claro/oscuro, basta con setear [data-theme="light"] en <html>/<body> — el CSS
+   ya está listo, no hace falta tocar el JS del logo. */
+.brand .mark .logo-light { display: none; }
+[data-theme="light"] .brand .mark .logo-dark { display: none; }
+[data-theme="light"] .brand .mark .logo-light { display: block; }
 .brand b { color: var(--text); }
 .brand b span { color: var(--accent); }
 
