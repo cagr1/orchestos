@@ -354,7 +354,7 @@ SCREENS.runner = {
         const tag = r.taskId ? `[${r.taskId}]` : `[${r.id.slice(0, 8)}]`;
         const verdict = r.qaVerdict ? ` · qa:${esc(r.qaVerdict)}` : '';
         const cost = `$${Number(r.costUsd).toFixed(4)}`;
-        const ts = (r.createdAt || '').slice(0, 19);
+        const ts = formatLocalDate(r.createdAt, { seconds: true });
         return `<div class="feed-line ${cls}">
           <span class="ts">${esc(ts)}</span>
           <span class="msg"><span class="tag">${esc(tag)}</span> ${esc(r.model)}  ${esc(r.status)}${verdict}  ${esc(cost)}</span>
@@ -912,7 +912,7 @@ SCREENS.memory = {
     const conflictsPanel = conflicts.length === 0 ? '' : `<div class="proj-helper" style="border-left-color:var(--warning, #e0a030)">
       <strong>${t('memory.conflicts.title', conflicts.length)}</strong>
       <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">${conflicts.map(c =>
-        `<div style="display:flex;gap:10px;font-size:12.5px"><span>${esc(c.relation)}</span><span class="muted">${esc((c.created_at || '').slice(0, 10))} · ${esc(c.confidence)}</span></div>`
+        `<div style="display:flex;gap:10px;font-size:12.5px"><span>${esc(c.relation)}</span><span class="muted">${esc(formatLocalDate(c.created_at, { dateOnly: true }))} · ${esc(c.confidence)}</span></div>`
       ).join('')}</div>
     </div>`;
 

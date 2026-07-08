@@ -386,7 +386,7 @@ const Term = {
       const qa  = r.qaVerdict ? `  qa:${esc(r.qaVerdict)}` : '';
       const cost = `  $${Number(r.costUsd).toFixed(4)}`;
       const task = r.taskId ? `  ${esc(r.taskId)}` : '';
-      const ts = (r.createdAt || '').slice(0, 19);
+      const ts = formatLocalDate(r.createdAt, { seconds: true });
       return `<div class="ln ${cls}">${sym}  ${esc(r.id)}${task}  ${esc(r.model)}${qa}${cost}  <span class="dim">${esc(ts)}</span></div>`;
     }).join('');
   },

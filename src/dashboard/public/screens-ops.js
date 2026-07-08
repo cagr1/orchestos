@@ -22,14 +22,14 @@ function renderChatEvidence(st) {
 
   const rows = events.map(e => {
     if (e.kind === 'click') {
-      return `<tr class="chat-evidence-click"><td colspan="3">${t('project.chatEvidence.clickRow')}</td><td>${esc((e.created_at || '').slice(0, 16))}</td></tr>`;
+      return `<tr class="chat-evidence-click"><td colspan="3">${t('project.chatEvidence.clickRow')}</td><td>${esc(formatLocalDate(e.created_at))}</td></tr>`;
     }
     const barLabel = e.bar_shown === 1 ? t('project.chatEvidence.shown') : t('project.chatEvidence.hidden');
     return `<tr>
       <td>${esc(e.message || '')}</td>
       <td>${e.history_len ?? ''}</td>
       <td>${barLabel}</td>
-      <td>${esc((e.created_at || '').slice(0, 16))}</td>
+      <td>${esc(formatLocalDate(e.created_at))}</td>
     </tr>`;
   }).join('');
 
@@ -536,7 +536,7 @@ SCREENS.runs = {
         <td class="num">${fmt(r.inputTokens)} <span class="faint">/</span> ${fmt(r.outputTokens)}</td>
         <td class="num">${usd(r.costUsd)}</td>
         <td>${this.warnCell(warnCount)}</td>
-        <td class="mono faint">${esc((r.createdAt || '').slice(0, 19))}</td>
+        <td class="mono faint">${esc(formatLocalDate(r.createdAt, { seconds: true }))}</td>
       </tr>`;
       return main + (open ? this.detail(r) : '');
     }).join('');
@@ -1250,7 +1250,7 @@ SCREENS.specs = {
   },
   row(s, st) {
     const open = st.openSpec === s.id;
-    const date = (s.createdAt || '').slice(0, 10);
+    const date = formatLocalDate(s.createdAt, { dateOnly: true });
     const main = `<tr class="row ${open ? 'open' : ''}" data-spec="${esc(s.id)}" tabindex="0">
       <td class="mono" style="color:var(--text)">${esc(s.id)}</td>
       <td><span class="badge ${STATUS_BADGE[s.status] || 'gray'} square">${esc(s.status)}</span></td>

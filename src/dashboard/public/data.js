@@ -45,6 +45,25 @@ const STATUS_BADGE = {
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function fmt(n) { return Number(n).toLocaleString('en-US'); }
 function usd(n) { return '$' + Number(n).toFixed(4); }
+
+// Bloque F.1 (Mes 18) — todas las fechas venían de la DB como ISO-8601 UTC
+// (correcto para guardar) pero se mostraban truncando el string crudo con
+// .slice(), nunca convertidas a la hora del navegador. Este helper reemplaza
+// esos 6 usos: new Date() interpreta el 'Z' del ISO como UTC y toLocaleString()
+// convierte a la zona horaria + formato local del navegador automáticamente.
+function formatLocalDate(iso, opts) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  if (opts && opts.dateOnly) {
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' });
+  }
+  return d.toLocaleString(undefined, {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    ...(opts && opts.seconds ? { second: '2-digit' } : {}),
+  });
+}
 function descToId(desc) {
   return desc.trim().toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
