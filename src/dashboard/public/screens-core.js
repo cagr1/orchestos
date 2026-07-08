@@ -25,6 +25,28 @@ function renderSkillSuggestion(draft) {
   </div>`;
 }
 
+// E.10 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos context suggest`.
+// Lista clicable bajo el textarea de output; cada archivo sugerido se agrega al
+// textarea con un click, sin pisar lo que el usuario ya haya escrito a mano.
+function renderContextSuggestions(st) {
+  if (st.contextSuggestStatus === 'loading') {
+    return `<div class="muted" style="font-size:12px;margin-top:6px">${t('tasks.draft.suggestFiles.loading')}</div>`;
+  }
+  if (st.contextSuggestStatus === 'error') {
+    return `<div class="muted" style="font-size:12px;margin-top:6px;color:var(--error)">${t('tasks.draft.suggestFiles.err')}</div>`;
+  }
+  const results = st.contextSuggestResults;
+  if (!results) return '';
+  if (results.length === 0) {
+    return `<div class="muted" style="font-size:12px;margin-top:6px">${t('tasks.draft.suggestFiles.empty')}</div>`;
+  }
+  const tagFor = r => r.reason === 'direct' ? '●' : r.reason === 'embedding' ? '◆' : '○';
+  const chips = results.map(r =>
+    `<button type="button" class="btn ghost sm" data-suggest-file="${esc(r.path)}" style="font-family:var(--mono);font-size:11px">${tagFor(r)} ${esc(r.path)}</button>`
+  ).join(' ');
+  return `<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${chips}</div>`;
+}
+
 /* ============================================================
    0 · CHAT
    ============================================================ */
@@ -442,6 +464,8 @@ SCREENS.tasks = {
             <div class="draft-field" style="flex:2">
               <label>Archivos a crear o modificar <span class="muted">(uno por línea · opcional)</span></label>
               <textarea id="draft-output" class="draft-input" rows="2">${esc((draft.output || []).join('\n'))}</textarea>
+              <button type="button" class="btn ghost sm" data-act="suggest-files" style="margin-top:4px">${ICON.bolt} ${t('tasks.draft.suggestFiles')}</button>
+              ${renderContextSuggestions(st)}
             </div>
             <div class="draft-field">
               <label>${t('modal.task.model.label')}</label>
@@ -634,10 +658,14 @@ SCREENS.tasks = {
         } else {
           st.naturalDraft = await res.json();
         }
+        st.contextSuggestStatus = null;
+        st.contextSuggestResults = null;
         App.rerender();
       } catch {
         // fallback on network error
         st.naturalDraft = { id: descToId(desc), description: desc, output: [], executor: 'openrouter' };
+        st.contextSuggestStatus = null;
+        st.contextSuggestResults = null;
         App.rerender();
       } finally { if (btn) { btn.disabled = false; } }
     });
@@ -645,6 +673,8 @@ SCREENS.tasks = {
     // Phase 1 — cancel preview
     root.querySelector('[data-act="draft-cancel"]')?.addEventListener('click', () => {
       st.naturalDraft = null;
+      st.contextSuggestStatus = null;
+      st.contextSuggestResults = null;
       App.rerender();
     });
 
@@ -694,6 +724,36 @@ SCREENS.tasks = {
       // Tambien al montar, por si la engine ya viene preseleccionada (draft re-abierto)
       refreshEngineWarning()
     }
+
+    // E.10 — "Sugerir archivos" (context suggest, S24): pide sugerencias sobre
+    // la descripción actual del draft, cae en silencio a keyword-only si no hay
+    // proveedor de embeddings configurado (mismo comportamiento que la CLI).
+    root.querySelector('[data-act="suggest-files"]')?.addEventListener('click', async () => {
+      const desc = root.querySelector('#draft-desc')?.value.trim();
+      if (!desc) return;
+      st.contextSuggestStatus = 'loading';
+      st.contextSuggestResults = null;
+      App.rerender();
+      try {
+        const res = await fetch(`/api/context/suggest?task=${encodeURIComponent(desc)}&top=10`);
+        if (!res.ok) throw new Error(String(res.status));
+        const data = await res.json();
+        st.contextSuggestResults = data.results || [];
+        st.contextSuggestStatus = 'ok';
+      } catch {
+        st.contextSuggestStatus = 'error';
+      }
+      App.rerender();
+    });
+
+    root.querySelectorAll('[data-suggest-file]').forEach(btn => btn.addEventListener('click', () => {
+      const path = btn.dataset.suggestFile;
+      const ta = root.querySelector('#draft-output');
+      if (!ta) return;
+      const lines = ta.value.split('\n').map(l => l.trim()).filter(Boolean);
+      if (!lines.includes(path)) lines.push(path);
+      ta.value = lines.join('\n');
+    }));
 
     // Phase 2 — confirm draft → create + run
     root.querySelector('[data-act="draft-confirm"]')?.addEventListener('click', async () => {
