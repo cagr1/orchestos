@@ -1,9 +1,10 @@
-import { resolve, join } from 'path'
+import { resolve, join, relative } from 'path'
 import { readFileSync, existsSync } from 'fs'
 import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { loadContext } from '../../context/load.ts'
 import { db } from '../../db/sqlite.ts'
-import { listRuns } from '../../db/runs.ts'
+import { listRuns, insertRun } from '../../db/runs.ts'
+import { calcCost } from '../../router/pricing.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { listSpecs } from '../../spec/store.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
@@ -11,7 +12,7 @@ import type { ChatUploadResponse, ChatFileType } from '../types.ts'
 import { ollamaChat } from '../llm/clients.ts'
 import { readEnv } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
-import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL, createToolRouter, supportsToolCalling } from '../../providers/tool-call.ts'
+import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL, READ_FILE_TOOL, createToolRouter, supportsToolCalling } from '../../providers/tool-call.ts'
 import { checkSsrSafe } from '../ssrf.ts'
 import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, maxOutputTokensFor, DEFAULT_MAX_OUTPUT_TOKENS } from '../../router/model-catalog.ts'
 import { estimateTokens } from '../../context/compress.ts'
@@ -215,6 +216,54 @@ export async function executeReadIdeas(_toolName: string, _input: unknown): Prom
   return readProjectTextFile('IDEAS.md')
 }
 
+// Verificación en vivo (2026-07-08): el chat no tenía forma de leer un archivo arbitrario
+// del proyecto pedido por texto (solo el botón de adjuntar) — este tool cierra ese gap.
+// Mismo boundary que enforceContract (F4, contract.ts): refuse cualquier ruta que escape
+// del root del proyecto, en vez de confiar en que el LLM nunca pida "../".
+// Verificación en vivo (2026-07-08): el Chat nunca llamaba insertRun() — cada mensaje
+// enviado era invisible para "Recent Runs"/el costo mostrado en el dashboard, aunque sí
+// se facturaba en OpenRouter. `runs` solo reflejaba `task run`, no conversaciones — el
+// motivo real por el que el gasto en OpenRouter no coincidía con lo que mostraba OrchestOS.
+// Best-effort: un fallo al loguear no debe romper la respuesta de chat en sí.
+function logChatRun(message: string, model: string, inputTokens: number, outputTokens: number): void {
+  try {
+    insertRun({
+      project_id: null,
+      prompt: message.slice(0, 2000),
+      task_class: 'chat',
+      model,
+      provider: 'openrouter',
+      skill_id: null,
+      task_id: null,
+      allowed_outputs: null,
+      files_attempted: null,
+      files_authorized: null,
+      files_blocked: null,
+      snapshot_before: null,
+      snapshot_after: null,
+      qa_verdict: null,
+      qa_reason: null,
+      status: 'done',
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      usd_cost: calcCost(model, inputTokens, outputTokens),
+      elapsed_ms: 0,
+      result: null,
+    })
+  } catch { /* best-effort — nunca debe romper la respuesta de chat */ }
+}
+
+export async function executeReadFile(_toolName: string, input: unknown): Promise<string> {
+  const rawPath = typeof input === 'object' && input !== null ? (input as { path?: unknown }).path : undefined
+  if (typeof rawPath !== 'string' || !rawPath.trim()) return '[read_file: "path" is required]'
+  const root = resolve('.')
+  const target = resolve(root, rawPath)
+  if (target !== root && !target.startsWith(root + '/')) {
+    return '[read_file: path escapes the project directory, refused]'
+  }
+  return readProjectTextFile(relative(root, target))
+}
+
 // B.1 (Mes 18) — gate de evidencia: un evento por mensaje enviado (para saber si
 // la barra se mostró) y uno por click en "Create task" (para saber si el
 // usuario la usó). Ver docs/chat-task-detection-design.md.
@@ -415,17 +464,19 @@ Important: you cannot modify files or run code directly from this chat. However,
       const result = await runToolLoop('openrouter', model, {
         system: systemPrompt,
         messages,
-        tools: [FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL],
+        tools: [FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL, READ_FILE_TOOL],
         executeTool: createToolRouter({
           fetch_url: executeFetchUrl,
           search_memory: executeSearchMemory,
           read_plan: executeReadPlan,
           read_tasks: executeReadTasks,
           read_ideas: executeReadIdeas,
+          read_file: executeReadFile,
         }),
         effort,
         maxTokens: chatMaxTokens,
       })
+      logChatRun(message, model, result.inputTokens, result.outputTokens)
       return jsonResponse({ text: result.text, model, toolCalls: result.toolCallsExecuted })
     }
 
@@ -436,6 +487,7 @@ Important: you cannot modify files or run code directly from this chat. However,
       messages,
       maxTokens: chatMaxTokens,
     })
+    logChatRun(message, resp.model, resp.inputTokens, resp.outputTokens)
     return jsonResponse({ text: resp.text, model: resp.model })
   } catch (e: any) {
     return errorResponse(`Chat failed: ${e.message}`, 502)

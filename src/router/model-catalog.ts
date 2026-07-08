@@ -38,6 +38,8 @@ export interface ModelInfo {
   priceOut: number
   /** True si OpenRouter publica `"reasoning"` en `supported_parameters` para este modelo. */
   supportsReasoning: boolean
+  /** True si OpenRouter publica `"tools"` en `supported_parameters` para este modelo (function calling real, no solo Claude/GPT/Gemini). */
+  supportsTools: boolean
   /** Tope real de tokens de salida del proveedor (`top_provider.max_completion_tokens`), 0 si desconocido. */
   maxOutputTokens: number
 }
@@ -128,6 +130,7 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
       priceIn: Number.isFinite(rawPriceIn) ? rawPriceIn : 0,
       priceOut: Number.isFinite(rawPriceOut) ? rawPriceOut : 0,
       supportsReasoning: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
+      supportsTools: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('tools'),
       maxOutputTokens: typeof m.top_provider?.max_completion_tokens === 'number' ? m.top_provider.max_completion_tokens : 0,
     }
   }
@@ -212,6 +215,19 @@ export function hasRealContextWindow(modelId: string): boolean {
  */
 export function supportsReasoningEffort(modelId: string): boolean {
   return !!memoryCatalog?.get(modelId)?.supportsReasoning
+}
+
+/**
+ * True si el modelo soporta function calling real según OpenRouter (publicado en
+ * `supported_parameters`). Reemplaza la lista fija de prefijos (`anthropic/`,
+ * `openai/`, `google/gemini`) que `supportsToolCalling()` (tool-call.ts) usaba
+ * antes — esa lista dejaba afuera modelos que sí soportan tools (deepseek, grok,
+ * qwen, mistral, etc.), causando que el chat corriera SIN ninguna tool (ni
+ * siquiera `read_plan`/`read_tasks`) contra el modelo default. False si el
+ * catálogo no tiene el id (offline, Ollama local) — nunca asume soporte sin dato real.
+ */
+export function catalogSupportsTools(modelId: string): boolean {
+  return !!memoryCatalog?.get(modelId)?.supportsTools
 }
 
 /**

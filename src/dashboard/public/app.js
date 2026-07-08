@@ -262,26 +262,13 @@ const App = {
       state.screen = 'settings';
       state.setupRedirectDone = true;
     }
-    // C4/F5 — adaptive startup: Control Center only for truly urgent attention, else Chat
-    // (mismo principio de la pantalla principal: ver Mes 14 EXTRA "Chat convertido en
-    // pantalla principal"). Bug real reportado por el usuario: el refresh SIEMPRE caía en
-    // Settings, nunca en Chat — porque `attentionCount` (setup.ts) suma unverifiedInstincts +
-    // draftSpecs, que son backlogs pasivos de revisión (casi siempre > 0 en uso normal), no
-    // bloqueos urgentes. Solo blockedTasks (trabajo real atascado) y el costo semanal
-    // justifican secuestrar la pantalla de inicio — instincts/specs pendientes ya tienen su
-    // propio badge en el nav, no necesitan forzar una redirección.
-    if (!state.attentionRedirectDone && !state.setup?.criticalMissing && state.health) {
-      const costThreshold = parseFloat(localStorage.getItem('orchestos-cost-threshold') || '0.50');
-      const hasUrgentAttention = (state.health.blockedTasks?.length || 0) > 0 || state.health.costLast7d > costThreshold;
-      if (hasUrgentAttention) {
-        state.screen = 'settings'; // Control Center — priority in both modes
-      } else {
-        // F5 — advanced mode starts on Runs (familiar for the dev); normal mode stays on Chat
-        const mode = localStorage.getItem('orchestos-mode') || 'normal';
-        if (mode === 'advanced') state.screen = 'runs';
-      }
-      state.attentionRedirectDone = true;
-    }
+    // Home SIEMPRE es Chat, sin excepciones (decisión explícita de Carlos, reafirmada
+    // 2026-07-07). El redirect a Settings por "urgent attention" ya se había eliminado;
+    // el redirect a Runs en modo avanzado (F5, Mes 14) también se elimina acá — Carlos
+    // fue explícito: "el home siempre debe ser el chat principal SIEMPRE", sin excepción
+    // de modo. Solo el setup wizard (criticalMissing, arriba) sigue redirigiendo — sin
+    // eso el chat ni siquiera funciona.
+    state.attentionRedirectDone = true;
     // Bug fix (2026-06-29): fetchAll() runs every 30s via setInterval (boot()),
     // regardless of which screen is open. This used to call this.rerender()
     // unconditionally — rerender() replaces #main's entire innerHTML, which

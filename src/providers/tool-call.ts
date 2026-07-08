@@ -17,7 +17,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
-import { DEFAULT_MAX_OUTPUT_TOKENS } from '../router/model-catalog.ts'
+import { DEFAULT_MAX_OUTPUT_TOKENS, catalogSupportsTools } from '../router/model-catalog.ts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -208,14 +208,22 @@ export async function openaiCallWithTools(opts: {
 /**
  * Returns true if the given provider + model pair supports tool calling.
  *
- * For openrouter, we check the model prefix — Claude and GPT models expose
- * an OpenAI-compatible tool-calling API through the OpenRouter gateway.
+ * For openrouter, uses the real `supported_parameters` data from the model
+ * catalog (`catalogSupportsTools`) instead of a fixed prefix list — the old
+ * prefix list (anthropic/openai/google-gemini only) silently excluded models
+ * that do support tools (deepseek, grok, qwen, mistral, etc.), so the chat ran
+ * with zero tools — not even `read_plan`/`read_tasks` — whenever the user had
+ * a non-listed model selected, including the chat's own default model
+ * (`deepseek/deepseek-v4-flash`). Falls back to the anthropic/openai/gemini
+ * prefixes if the catalog hasn't loaded yet (e.g. `ensureCatalogLoaded()` not
+ * called by the caller) so known-good models still work offline.
  */
 export function supportsToolCalling(provider: string, model: string): boolean {
   switch (provider) {
     case 'anthropic': return true
     case 'openai':    return true
     case 'openrouter': {
+      if (catalogSupportsTools(model)) return true
       const m = model.toLowerCase()
       return (
         m.startsWith('anthropic/')  ||
@@ -337,6 +345,22 @@ export const READ_IDEAS_TOOL: ToolDef = {
     'Reads IDEAS.md, the backlog of ideas not yet scheduled into PLAN.md. Use when the user asks ' +
     'about backlog items or unscheduled ideas.',
   input_schema: { type: 'object', properties: {} },
+}
+
+export const READ_FILE_TOOL: ToolDef = {
+  name: 'read_file',
+  description:
+    'Reads the content of a specific file inside this project, given its path relative to the ' +
+    'project root (e.g. "src/cli.ts", "README.md"). Use when the user asks you to review, explain, ' +
+    'or discuss a specific file by name or path. Read-only — cannot modify files. Refuses paths ' +
+    'that escape the project directory. Truncated to 256 KB.',
+  input_schema: {
+    type: 'object',
+    required: ['path'],
+    properties: {
+      path: { type: 'string', description: 'File path relative to the project root, e.g. "src/cli.ts"' },
+    },
+  },
 }
 
 /**

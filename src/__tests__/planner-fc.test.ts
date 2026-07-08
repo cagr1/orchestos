@@ -1,7 +1,7 @@
 /**
  * S23.3 — Tests for S23.1 (function-calling planner) + S23.2 (YAML fallback)
  */
-import { describe, it, expect } from 'bun:test'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import {
   planWithFunctionCalling,
   generatePlan,
@@ -12,6 +12,7 @@ import {
 } from '../agents/planner.ts'
 import { supportsToolCalling } from '../providers/tool-call.ts'
 import type { ToolCallResponse } from '../providers/tool-call.ts'
+import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -82,6 +83,14 @@ describe('CREATE_SUBTASK_TOOL', () => {
 // ---------------------------------------------------------------------------
 
 describe('supportsToolCalling', () => {
+  // Sin catálogo cargado (offline/id desconocido), openrouter cae al fallback de
+  // prefijos fijos (anthropic/openai/google-gemini) — comportamiento real
+  // documentado en tool-call.ts, distinto del lookup real por `supported_parameters`
+  // (cubierto en model-catalog.test.ts: "supportsTools lee supported_parameters...").
+  beforeEach(() => {
+    _resetCatalog()
+  })
+
   it('returns true for anthropic', () => {
     expect(supportsToolCalling('anthropic', 'claude-3-haiku')).toBe(true)
   })
@@ -102,8 +111,27 @@ describe('supportsToolCalling', () => {
     expect(supportsToolCalling('openrouter', 'google/gemini-2.5-flash')).toBe(true)
   })
 
-  it('returns false for openrouter with deepseek model', () => {
+  it('returns false for openrouter with deepseek model when catalog has no data (offline fallback)', () => {
     expect(supportsToolCalling('openrouter', 'deepseek/deepseek-v4-flash')).toBe(false)
+  })
+
+  it('returns true for openrouter with deepseek model when the catalog says supported_parameters includes tools (real bug fixed 2026-07-08)', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({
+        data: [
+          { id: 'deepseek/deepseek-v4-flash', context_length: 1_000_000, pricing: { prompt: '0.00000009' }, supported_parameters: ['tools'] },
+        ],
+      }),
+      { status: 200 },
+    )) as unknown as typeof fetch
+
+    try {
+      await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
+      expect(supportsToolCalling('openrouter', 'deepseek/deepseek-v4-flash')).toBe(true)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 
   it('returns false for codex', () => {

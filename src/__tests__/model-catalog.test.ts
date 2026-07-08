@@ -7,6 +7,7 @@ import {
   contextWindowFor,
   hasRealContextWindow,
   supportsReasoningEffort,
+  catalogSupportsTools,
   _resetCatalog,
 } from '../router/model-catalog.ts'
 
@@ -143,6 +144,31 @@ describe('model-catalog', () => {
       expect(supportsReasoningEffort('no/params-field')).toBe(false)
       // id que ni siquiera está en el catálogo (offline/desconocido) → false, nunca asume soporte.
       expect(supportsReasoningEffort('totally/unknown-model')).toBe(false)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('catalogSupportsTools lee supported_parameters del catálogo real — reemplaza la lista fija de prefijos que excluía modelos con tool calling real (deepseek, etc.)', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({
+        data: [
+          { id: 'deepseek/deepseek-v4-flash', context_length: 1_000_000, pricing: { prompt: '0.00000009' }, supported_parameters: ['tools', 'temperature'] },
+          { id: 'mistralai/no-tools-model', context_length: 32_000, pricing: { prompt: '0.0000001' }, supported_parameters: ['temperature'] },
+          { id: 'no/params-field', context_length: 32_000, pricing: { prompt: '0.0000001' } },
+        ],
+      }),
+      { status: 200 },
+    )) as unknown as typeof fetch
+
+    try {
+      await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
+      expect(catalogSupportsTools('deepseek/deepseek-v4-flash')).toBe(true)
+      expect(catalogSupportsTools('mistralai/no-tools-model')).toBe(false)
+      expect(catalogSupportsTools('no/params-field')).toBe(false)
+      // id que ni siquiera está en el catálogo (offline/desconocido) → false, nunca asume soporte.
+      expect(catalogSupportsTools('totally/unknown-model')).toBe(false)
     } finally {
       globalThis.fetch = originalFetch
     }
