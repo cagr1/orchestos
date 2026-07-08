@@ -546,6 +546,33 @@ verificadas localmente contra el escenario exacto de CI (sin `OPENROUTER_API_KEY
 
 ---
 
+### 27. Tab de consumo/gasto en Settings — día/semana/mes por modelo
+
+**Origen**: sesión 2026-07-07. Al remover el redirect automático a Settings por `costLast7d > $0.50` (bug — el umbral era ridículo y secuestraba el home, ver [[feedback-home-siempre-chat]]), Carlos aclaró que sí quiere visibilidad de gasto — solo que como panel consultable, no como interrupción forzada. Referencia explícita: el estilo de openrouter.ai (desglose por modelo) y el contador de mensajes/tokens diario tipo GitHub (heatmap de actividad) de la app de escritorio de Claude.
+
+**Qué mostrar:**
+- Gasto en $ por día/semana/mes, desglosado por modelo (mismo dato que ya vive en `runs.cost` — no hace falta tracking nuevo, es agregación).
+- Conteo de mensajes/tokens consumidos por día — cubre tanto `runs` (task execution) como `chat_messages`/tokens de chat si ya se trackean ahí.
+- Idealmente un heatmap tipo GitHub contributions para actividad diaria, además de las sumas semanal/mensual.
+
+**Qué ya existe (NO reconstruir)**: `runs` (SQLite) ya tiene `cost`, `model`, `created_at` por cada corrida — es la fuente de verdad, ya usada por `costLast7d` (el cálculo que se acaba de remover del redirect, pero la función de agregación en sí puede reusarse para el nuevo tab). **Actualizado 2026-07-08**: se corrigió un gap real descubierto por Carlos — el Chat nunca llamaba `insertRun()`, así que cada mensaje conversacional era invisible para `runs`/el dashboard aunque sí se facturaba en OpenRouter (causa real de la discrepancia que notó entre su consumo real y lo que mostraba OrchestOS). Ya arreglado: cada turno de chat ahora inserta una fila en `runs` con `task_class: 'chat'` (`logChatRun()`, `handlers/chat.ts`). Este tab ya no necesita una tabla nueva — es agregación pura sobre `runs`, incluyendo tanto `task run` como chat.
+
+**Esfuerzo**: bajo-medio — es agregación SQL sobre datos que ya existen (`runs.cost`/`created_at`/`task_class`) + un tab nuevo en Settings (mismo patrón que "Chat evidence" en Project, Mes 18 B.1.b-ui). El heatmap tipo GitHub es la parte más nueva visualmente, resto es reuso de patrones ya probados.
+
+---
+
+### 28. Terminal real en vez de "Recent Runs" en el panel inferior
+
+**Origen**: sesión 2026-07-08. Carlos notó que el panel inferior del dashboard muestra un log de solo lectura de las últimas corridas ("Recent Runs") — propone que sea más útil un terminal real embebido ahí, donde se pueda ejecutar comandos directamente (`orchestos task run`, `git status`, etc.) en vez de solo ver qué ya se corrió.
+
+**Qué implica**: no es un cambio cosmético — es exponer un shell real desde el navegador al proceso del dashboard (mismo host, mismo usuario del sistema). Esto es una superficie de ejecución de comandos arbitrarios expuesta por HTTP — necesita el mismo criterio de seguridad que ya se aplicó a otras decisiones "leer vs actuar" del proyecto (Mes 18, chat tools): como mínimo, mismo-origen estricto (ya existe para POST/PUT/DELETE, `isSameOrigin()` en `server.ts`), y decidir si corre con los mismos permisos del proceso dashboard o en un sandbox acotado.
+
+**Qué ya existe (parcial)**: el patrón de "correr algo real y ver el resultado inline" ya está probado — `POST /api/runs/analyze` (Mes 18 E.4) y el botón "Explain" (E.7) devuelven resultados reales inline sin `alert()`. Un terminal es un salto de superficie distinto (ejecución arbitraria vs. una acción predefinida con parámetros validados), no una extensión trivial de esos patrones.
+
+**Esfuerzo**: medio-alto — no es solo UI (xterm.js + WebSocket/SSE al backend), es una decisión de seguridad real sobre qué comandos se permiten y con qué privilegios. Candidato a diseño previo (`docs/`) antes de tocar código, mismo patrón que Bloque A del Mes 18 (guardrails antes de implementar).
+
+---
+
 ## 📚 Referencia — inspiración externa (NO es backlog)
 
 Repos analizados durante Mes 5-8. La mayoría de patrones ya están shipeados; esto queda

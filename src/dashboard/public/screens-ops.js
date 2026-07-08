@@ -109,7 +109,11 @@ SCREENS.project = {
           <textarea id="context-editor" class="proj-editor proj-editor-ro" spellcheck="false" readonly>${esc(ctxContent)}</textarea>
           <div class="proj-context-foot">
             <span class="muted" style="font-size:12px">${t('project.context.note')}</span>
-            <button class="btn" data-act="regenerate">${ICON.refresh} ${t('project.context.regenerate')}</button>
+            <div class="tools">
+              <button class="btn" data-act="regenerate">${ICON.refresh} ${t('project.context.regenerate')}</button>
+              <button class="btn ghost" data-act="detect">${ICON.refresh} ${t('project.detect')}</button>
+              <button class="btn ghost" data-act="index">${ICON.refresh} ${t('project.index')}</button>
+            </div>
           </div>
         </div>`;
     return `<div class="screen">${head}${tabs}${body}</div>`;
@@ -168,6 +172,51 @@ SCREENS.project = {
         await App.fetchContext();
         App.rerender();
       }, 1500);
+    });
+
+    // E.8 (Mes 18) — orchestos detect [path]: regenera AGENTS.md + context.json.
+    // Destructivo: sobreescribe AGENTS.md por completo con contenido auto-generado,
+    // perdiendo cualquier edición manual (reglas de proyecto, instrucciones custom).
+    // Mismo comportamiento que `orchestos detect` en CLI — se descubrió al verificar
+    // este botón en vivo (2026-07-07): pisó el AGENTS.md real del propio repo.
+    root.querySelector('[data-act="detect"]')?.addEventListener('click', async (e) => {
+      if (!confirm(t('project.detect.confirm'))) return;
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/project/detect', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`${t('project.detect.done')} — ${data.name} (${data.runtime}/${data.framework}, ${data.elapsedMs}ms)`);
+          await App.fetchContext();
+          App.rerender();
+        } else {
+          showToast(data.error || t('project.detect.err'), 'error');
+        }
+      } catch {
+        showToast(t('project.detect.err'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // E.8 — orchestos index [path]: indexa el proyecto en el code graph (S21)
+    root.querySelector('[data-act="index"]')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/project/index', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`${t('project.index.done')} — ${data.files} files, ${data.edges} edges (${data.elapsedMs}ms)`);
+        } else {
+          showToast(data.error || t('project.index.err'), 'error');
+        }
+      } catch {
+        showToast(t('project.index.err'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
     });
   },
 };

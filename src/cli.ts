@@ -2,9 +2,8 @@
 import { Command } from 'commander'
 import { resolve, join } from 'path'
 import { writeFileSync, existsSync } from 'fs'
-import { readManifest } from './detect/manifest.ts'
-import { detectLanguages, detectPrimaryLanguage } from './detect/languages.ts'
-import { readConventions } from './detect/conventions.ts'
+import { detectPrimaryLanguage } from './detect/languages.ts'
+import { buildProfile } from './detect/profile.ts'
 import { generateAgentsMd, type StackProfile } from './generators/agents-md.ts'
 import { generateContextJson } from './generators/context-json.ts'
 import { runMigrations } from './db/migrate.ts'
@@ -1881,23 +1880,6 @@ if (import.meta.main) {
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 import { printGraphSummary } from './run/graph-summary.ts'
-
-async function buildProfile(root: string): Promise<StackProfile> {
-  const manifest = readManifest(root)
-  const languages = await detectLanguages(root)
-  const conventions = await readConventions(root)
-  const commands: string[] = []
-  try {
-    const pkg = JSON.parse(await Bun.file(join(root, 'package.json')).text())
-    const scripts = pkg.scripts ?? {}
-    const interesting = ['dev', 'build', 'start', 'test', 'lint', 'format', 'migrate', 'seed']
-    const pm = pkg.packageManager?.startsWith('bun') ? 'bun' : 'npm'
-    for (const key of interesting) {
-      if (scripts[key]) commands.push(`${pm} run ${key}`)
-    }
-  } catch { /* no package.json */ }
-  return { manifest, languages, conventions, commands }
-}
 
 function resolveIndexRoot(targetPath?: string, projectName?: string): string {
   if (!projectName) return resolve(targetPath ?? '.')

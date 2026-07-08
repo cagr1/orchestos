@@ -5,6 +5,11 @@ import { loadContext } from '../../context/load.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/registry.ts'
+import { buildProfile } from '../../detect/profile.ts'
+import { generateAgentsMd } from '../../generators/agents-md.ts'
+import { generateContextJson } from '../../generators/context-json.ts'
+import { getProject, upsertProject } from '../../db/projects.ts'
+import { indexProject } from '../../graph/index.ts'
 
 function handleApiProjectConstitutionGet(): Response {
   const root = resolve('.')
@@ -60,6 +65,45 @@ function listAllSkillCandidates(): SkillCandidateInfo[] {
     } catch {}
   }
   return out
+}
+
+// E.8 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos detect [path]`:
+// dry-run, regenera AGENTS.md + context.json sobre el proyecto actual sin tocar la DB.
+async function handleApiProjectDetect(): Promise<Response> {
+  const root = resolve('.')
+  const t0 = performance.now()
+  const profile = await buildProfile(root)
+  const agentsMd = generateAgentsMd(profile)
+  const contextJson = generateContextJson(profile)
+  writeFileSync(join(root, 'AGENTS.md'), agentsMd, 'utf-8')
+  writeFileSync(join(root, 'context.json'), JSON.stringify(contextJson, null, 2), 'utf-8')
+  const elapsedMs = Math.round(performance.now() - t0)
+  return jsonResponse({
+    ok: true,
+    name: profile.manifest.name,
+    runtime: profile.manifest.runtime,
+    framework: profile.manifest.framework,
+    elapsedMs,
+  })
+}
+
+// E.8 — equivalente de `orchestos index [path]`: indexa el proyecto actual en el
+// code graph (S21). Crea el registro de proyecto en DB si aún no existe (mismo
+// fallback que `ensureProject()` en cli.ts).
+async function handleApiProjectIndex(): Promise<Response> {
+  const root = resolve('.')
+  let project = getProject(root)
+  if (!project) {
+    const profile = await buildProfile(root)
+    const agentsMd = generateAgentsMd(profile)
+    upsertProject(root, profile, agentsMd)
+    project = getProject(root)
+    if (!project) return errorResponse('Failed to save project context', 500)
+  }
+  const t0 = performance.now()
+  const result = await indexProject(root, project.id)
+  const elapsedMs = Math.round(performance.now() - t0)
+  return jsonResponse({ ok: true, files: result.files, edges: result.edges, embeddings: result.embeddings, elapsedMs })
 }
 
 async function handleApiNatural(req: Request): Promise<Response> {
@@ -132,4 +176,4 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
   }
 }
 
-export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiNatural, listAllSkillCandidates }
+export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiNatural, listAllSkillCandidates }
