@@ -678,16 +678,7 @@ SCREENS.tasks = {
       App.rerender();
     });
 
-    // load-models in draft preview
-    root.querySelector('[data-load-models]')?.addEventListener('click', async () => {
-      await loadOrModels();
-      App.rerender();
-    });
-    root.querySelector('[data-refresh-models]')?.addEventListener('click', async () => {
-      await loadOrModels(true);
-      App.rerender();
-    });
-    root.querySelector('#draft-model')?.addEventListener('change', () => {});
+    // (el combo de modelo se carga solo al abrirse — wiring genérico en boot(), app.js)
 
     // Auto-load models when draft is showing (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)
     if (st.naturalDraft && st.orModels === null && !st.orModelsAttempted) {

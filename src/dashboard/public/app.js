@@ -61,6 +61,12 @@ const state = {
   chatToTask: null,   // non-null = condensed chat text to pre-fill compose bar
   chatModelComboOpen: false, // FRONT.6 — combobox de modelo del chat (trigger + panel de búsqueda)
   chatAttachMenuOpen: false, // FRONT.9 — menú de tipo de adjunto (Imagen/Documento/URL)
+  // 2026-07-08 — mismo patrón que chatModelComboOpen pero genérico para todos
+  // los demás selectores de modelo (draft composer, diagnose, roles de
+  // Settings→Model routing, modal de crear tarea). Antes cada uno era un
+  // <select> nativo con cientos de <option> sin filtro — Carlos lo reportó
+  // como falta de intuición de diseño real. Un solo combo abierto a la vez.
+  modelComboOpenKey: null,
   orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
   orModelsAttempted: false, // true once a fetch (success or failure) has completed — prevents retry-loop on every rerender
   orModelsLastFetch: 0, // timestamp of last successful fetch (ms), for TTL
@@ -627,14 +633,7 @@ const Modal = {
       previewEl.textContent = descToId(descEl.value) || '—';
     });
     this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
-    this.el.querySelector('[data-load-models]')?.addEventListener('click', async () => {
-      await loadOrModels();
-      this.openTask();
-    });
-    this.el.querySelector('[data-refresh-models]')?.addEventListener('click', async () => {
-      await loadOrModels(true);
-      this.openTask();
-    });
+    // (el combo de modelo se carga solo al abrirse — wiring genérico en boot())
 
     // Auto-load if not yet fetched (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)
     if (state.orModels === null && !state.orModelsAttempted) {
@@ -1362,44 +1361,51 @@ function buildModelOpts(locals, cloudModels, val, query) {
   return html;
 }
 
-/* Returns HTML for a model selector widget (draft/modal use — native <select> + refresh button).
-   If orModels is null → fallback list + load button.
-   If orModels is [] → loading spinner text.
-   Chat uses buildModelCombo() instead — single-height trigger with search-inside panel.
-   opts.allowEmpty (2026-07-08, Settings→Model routing QA role): cuando true, un
-   currentVal vacío NO se reemplaza por el default 'deepseek/deepseek-v4-flash' —
-   en cambio se antepone una opción real vacía (opts.emptyLabel) y queda
-   seleccionada. Sin esto, un campo legítimamente "sin configurar" (ej. QA judge,
-   que se auto-resuelve en harness.ts si está ausente) se guardaba como si el
-   usuario hubiera elegido deepseek a propósito — bug real encontrado al
-   verificar la edición de roles en vivo. */
+/* Searchable model picker — trigger button + search-inside dropdown panel,
+   same interaction pattern as buildModelCombo() (chat) but generalized to any
+   caller via `inputId`/state.modelComboOpenKey instead of a single hardcoded
+   field. Rewritten 2026-07-08: the previous version rendered a native
+   <select> with every OpenRouter model as an unfiltered <option> wall (100s
+   of entries, no way to search) — reported directly by Carlos as a concrete
+   symptom of not reusing the app's own existing patterns (buildModelCombo
+   already solved this for chat). Kept the exact same external contract
+   (same `inputId`, value still readable via `document.getElementById(id).value`
+   through a hidden input) so every existing caller (draft composer, diagnose
+   panel, Settings→Model routing roles, create-task modal) needed zero changes
+   at the call site — only this function's internals changed.
+   opts.allowEmpty (QA role): currentVal vacío no cae al default
+   'deepseek/deepseek-v4-flash' — se antepone una opción real vacía
+   (opts.emptyLabel) que representa "sin configurar" de verdad. */
 function buildModelSelect(inputId, currentVal, models, localModels, opts) {
   const allowEmpty = !!(opts && opts.allowEmpty);
-  const isEmpty = allowEmpty && !currentVal;
+  const isEmptyVal = allowEmpty && !currentVal;
   const val = currentVal || (allowEmpty ? '' : 'deepseek/deepseek-v4-flash');
   const locals = Array.isArray(localModels) && localModels.length > 0 ? localModels : [];
-  const emptyOpt = isEmpty ? `<option value="" selected>${esc((opts && opts.emptyLabel) || '—')}</option>` : '';
-
-  if (models === null) {
-    // Fallback: KNOWN_MODELS + any locals already available
-    const fallbackCloud = KNOWN_MODELS.map(m => ({ ...m }));
-    const optsHtml = buildModelOpts(locals, fallbackCloud, val, '');
-    return `<div style="display:flex;gap:8px;align-items:center">
-      <select id="${inputId}" class="model-sel">${emptyOpt}${optsHtml}</select>
-      <button class="btn ghost sm" data-load-models style="white-space:nowrap">${t('chat.models.load')} ↓</button>
-    </div>`;
-  }
-  if (models.length === 0) {
-    return `<span class="muted" style="font-size:12px">${t('common.loading')}</span>`;
-  }
-  // Ensure current value is present even if not returned by OpenRouter
-  const allCloud = (!val || models.some(m => m.id === val)) ? models : [{ id: val, name: val, priceIn: 0 }, ...models];
-  const optsHtml = buildModelOpts(locals, allCloud, val, '');
-  const combinedOpts = emptyOpt + optsHtml;
-  const refreshBtn = `<button class="btn ghost sm" data-refresh-models title="${t('btn.refresh')}" style="white-space:nowrap">${ICON.refresh}</button>`;
-  return `<div style="display:flex;gap:8px;align-items:center">
-    <select id="${inputId}" class="model-sel" style="flex:1">${combinedOpts}</select>
-    ${refreshBtn}
+  const isLoading = Array.isArray(models) && models.length === 0;
+  const cloudSource = models === null ? KNOWN_MODELS.map(m => ({ ...m })) : (Array.isArray(models) ? models : []);
+  const allCloud = (!val || models === null || cloudSource.some(m => m.id === val))
+    ? cloudSource
+    : [{ id: val, name: val, priceIn: 0 }, ...cloudSource];
+  const label = isLoading
+    ? t('common.loading')
+    : (isEmptyVal ? ((opts && opts.emptyLabel) || '—') : modelLabelFor(val, allCloud));
+  const isOpen = state.modelComboOpenKey === inputId && !isLoading;
+  const emptyOption = allowEmpty
+    ? `<div class="model-combo-option${isEmptyVal ? ' active' : ''}" data-combo-option data-value="">${esc((opts && opts.emptyLabel) || '—')}</div>`
+    : '';
+  const panel = isOpen
+    ? `<div class="model-combo-panel" data-combo-panel>
+        <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
+        <div class="model-combo-list" data-combo-list>${emptyOption}${buildComboOptions(locals, allCloud, val, '')}</div>
+      </div>`
+    : '';
+  return `<div class="model-combo${isOpen ? ' open' : ''}" data-model-combo data-combo-id="${esc(inputId)}">
+    <input type="hidden" id="${esc(inputId)}" value="${esc(val)}">
+    <button type="button" class="model-combo-trigger" data-combo-trigger ${isLoading ? 'disabled' : ''}>
+      <span class="model-combo-label">${esc(label)}</span>
+      ${ICON.chev}
+    </button>
+    ${panel}
   </div>`;
 }
 
@@ -1630,6 +1636,61 @@ function boot() {
       state.chatAttachMenuOpen = false;
       App.rerender();
     }
+  });
+
+  // 2026-07-08 — generic wiring for every buildModelSelect() instance (draft
+  // composer, diagnose panel, Settings→Model routing roles, create-task
+  // modal). Registered once here, delegated on document — same reasoning as
+  // the block above: these widgets can appear multiple times on one screen
+  // (5 role selects in Model routing), so per-instance querySelector-based
+  // wiring inside a screen's wire() would only ever bind the first one.
+  // rerenderCurrentContext() picks App.rerender() for #main-scoped screens or
+  // re-invokes the modal's own open function when the combo lives inside it
+  // (Modal doesn't participate in App.rerender(), it redraws via innerHTML
+  // directly in each openX() method).
+  function rerenderCurrentContext(target) {
+    if (target.closest('.modal-scrim')) { Modal.openTask(); return; }
+    App.rerender();
+  }
+  document.addEventListener('click', e => {
+    const trigger = e.target.closest('[data-combo-trigger]');
+    if (trigger) {
+      e.stopPropagation();
+      const wrap = trigger.closest('[data-model-combo]');
+      const id = wrap && wrap.dataset.comboId;
+      if (!id) return;
+      const opening = state.modelComboOpenKey !== id;
+      state.modelComboOpenKey = opening ? id : null;
+      rerenderCurrentContext(trigger);
+      if (opening) loadOrModels().then(() => { if (state.modelComboOpenKey === id) rerenderCurrentContext(trigger); });
+      return;
+    }
+    const option = e.target.closest('[data-combo-option]');
+    if (option && option.closest('[data-model-combo]')) {
+      const wrap = option.closest('[data-model-combo]');
+      const id = wrap.dataset.comboId;
+      const hidden = id ? document.getElementById(id) : null;
+      if (hidden) hidden.value = option.dataset.value;
+      state.modelComboOpenKey = null;
+      rerenderCurrentContext(option);
+      return;
+    }
+    if (state.modelComboOpenKey && !e.target.closest('[data-model-combo]')) {
+      state.modelComboOpenKey = null;
+      rerenderCurrentContext(e.target);
+    }
+  });
+  document.addEventListener('input', e => {
+    const search = e.target.closest('[data-combo-search]');
+    if (!search) return;
+    const wrap = search.closest('[data-model-combo]');
+    const list = wrap && wrap.querySelector('[data-combo-list]');
+    if (!wrap || !list) return;
+    const allCloud = Array.isArray(state.orModels) && state.orModels.length > 0 ? state.orModels : KNOWN_MODELS;
+    const locals = Array.isArray(state.localModels) && state.localModels.length > 0 ? state.localModels : [];
+    const hiddenId = wrap.dataset.comboId;
+    const hidden = hiddenId ? document.getElementById(hiddenId) : null;
+    list.innerHTML = buildComboOptions(locals, allCloud, hidden ? hidden.value : '', search.value);
   });
 
   // First render with loading state, then fetch

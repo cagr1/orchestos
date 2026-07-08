@@ -1118,17 +1118,7 @@ SCREENS.settings = {
       }
     }));
 
-    // Múltiples selects de modelo comparten el mismo botón data-load-models/
-    // data-refresh-models (uno por rol) — querySelectorAll + forEach en vez de
-    // querySelector para que los 5 se conecten, no solo el primero.
-    root.querySelectorAll('[data-load-models]').forEach(btn => btn.addEventListener('click', async () => {
-      await loadOrModels();
-      App.rerender();
-    }));
-    root.querySelectorAll('[data-refresh-models]').forEach(btn => btn.addEventListener('click', async () => {
-      await loadOrModels(true);
-      App.rerender();
-    }));
+    // (el combo de modelo se carga solo al abrirse — wiring genérico en boot(), app.js)
 
     root.querySelector('[data-act="save-routing"]')?.addEventListener('click', async () => {
       const roles = {};
