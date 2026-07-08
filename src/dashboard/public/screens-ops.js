@@ -909,6 +909,51 @@ SCREENS.settings = {
       <div class="health-list">${rows}</div>
     </div>`;
   },
+  // E.9 (Mes 18) — equivalente de `orchestos config init/show`.
+  routingPanel(st) {
+    const cfg = st.orcheConfig;
+    if (st.orcheConfigStatus === 'loading' || st.orcheConfigStatus === 'idle') {
+      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
+    }
+    if (st.orcheConfigStatus === 'error' || !cfg) {
+      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
+    }
+
+    const sourceLine = cfg.configFound
+      ? `<span class="badge green square">${ICON.check} ${t('settings.routing.customFound')}</span>`
+      : `<span class="badge gray square">${t('settings.routing.defaults')}</span>`;
+
+    const roleRows = Object.entries(cfg.roles)
+      .filter(([, v]) => v !== null)
+      .map(([role, v]) => `<div class="kv"><span class="k">${esc(role)}</span><span class="v mono" style="font-size:12px">${esc(v)}</span></div>`)
+      .join('');
+
+    const pendingRows = (cfg.pendingRouting || []).length === 0
+      ? `<p class="muted" style="margin:0;font-size:12.5px">${t('settings.routing.noPending')}</p>`
+      : `<table class="tbl"><thead><tr><th>${t('settings.routing.col.task')}</th><th>${t('settings.routing.col.model')}</th></tr></thead><tbody>
+          ${cfg.pendingRouting.map(r => `<tr><td class="mono">${esc(r.id)}</td><td class="mono" style="font-size:12px">${esc(r.model)}</td></tr>`).join('')}
+        </tbody></table>`;
+
+    const initBtn = cfg.configFound
+      ? ''
+      : `<button class="btn primary" data-act="config-init">${ICON.plus} ${t('settings.routing.initBtn')}</button>`;
+
+    return `<div class="card settings-card">
+        <div class="settings-header"><h3>${t('settings.routing.title')}</h3></div>
+        <div class="kv"><span class="k">${t('settings.routing.source')}</span><span class="v">${sourceLine}</span></div>
+        ${cfg.configFound ? `<div class="kv"><span class="k">${t('settings.routing.path')}</span><span class="v mono" style="font-size:12px;word-break:break-all">${esc(cfg.source)}</span></div>` : ''}
+        <div class="settings-foot" style="margin-top:8px">${initBtn}</div>
+      </div>
+      <div class="card settings-card">
+        <div class="settings-header"><h3>${t('settings.routing.roles')}</h3></div>
+        ${roleRows}
+      </div>
+      <div class="card settings-card">
+        <div class="settings-header"><h3>${t('settings.routing.pending')}</h3></div>
+        ${pendingRows}
+      </div>`;
+  },
+
   render(st) {
     const keys = st.settings || {};
     const lang = getLang();
@@ -975,6 +1020,7 @@ SCREENS.settings = {
         <nav class="settings-nav">
           ${navItem('general', ICON.sliders, t('settings.nav.general'))}
           ${navItem('keys', ICON.bolt, t('settings.nav.keys'))}
+          ${navItem('routing', ICON.runs, t('settings.nav.routing'))}
           ${navItem('health', ICON.runs, t('settings.nav.health'))}
           ${navItem('project', ICON.project, t('settings.nav.project'))}
           ${navItem('lang', ICON.globe, t('settings.nav.lang'))}
@@ -1003,6 +1049,10 @@ SCREENS.settings = {
 
           <section class="settings-panel${sec === 'health' ? ' active' : ''}" data-panel="health">
             ${this.healthBlocks(st) || `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`}
+          </section>
+
+          <section class="settings-panel${sec === 'routing' ? ' active' : ''}" data-panel="routing">
+            ${this.routingPanel(st)}
           </section>
 
           <section class="settings-panel${sec === 'project' ? ' active' : ''}" data-panel="project">
@@ -1045,7 +1095,30 @@ SCREENS.settings = {
       state.settingsSection = sec;
       root.querySelectorAll('[data-settings-sec]').forEach(b => b.classList.toggle('active', b.dataset.settingsSec === sec));
       root.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === sec));
+      if (sec === 'routing') {
+        App.fetchOrcheConfig().then(() => App.rerender());
+      }
     }));
+
+    root.querySelector('[data-act="config-init"]')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/config/init', { method: 'POST' });
+        if (res.ok) {
+          showToast(t('settings.routing.initDone'));
+          await App.fetchOrcheConfig();
+          App.rerender();
+        } else {
+          const data = await res.json();
+          showToast(data.error || t('settings.routing.initErr'), 'error');
+        }
+      } catch {
+        showToast(t('settings.routing.initErr'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     root.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', async () => {
       try {

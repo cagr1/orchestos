@@ -10,6 +10,7 @@ import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiH
 import { handleApiChatUpload, handleApiChatModels, handleApiChat, handleApiChatTaskBarClick, handleApiChatTaskBarEvents } from './handlers/chat.ts'
 import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport } from './handlers/skills.ts'
 import { handleApiSystemReset, handleApiSystemEnginesExternalAvailability } from './handlers/system.ts'
+import { handleApiConfigGet, handleApiConfigInit } from './handlers/config.ts'
 import { DEFAULT_PORT } from './types.ts'
 
 export async function route(req: Request, port: number): Promise<Response> {
@@ -192,6 +193,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/system/engines/external/availability') {
     return handleApiSystemEnginesExternalAvailability()
+  }
+  if (method === 'GET' && url.pathname === '/api/config') {
+    return await handleApiConfigGet()
+  }
+  if (method === 'POST' && url.pathname === '/api/config/init') {
+    return await handleApiConfigInit()
   }
 
   if (method === 'GET') {

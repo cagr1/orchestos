@@ -231,6 +231,17 @@ const App = {
       state.memoryConflicts = [];
     }
   },
+  async fetchOrcheConfig() {
+    state.orcheConfigStatus = 'loading';
+    try {
+      const res = await fetch('/api/config');
+      if (!res.ok) throw new Error(res.status);
+      state.orcheConfig = await res.json();
+      state.orcheConfigStatus = 'ok';
+    } catch {
+      state.orcheConfigStatus = 'error';
+    }
+  },
   async fetchChatTaskBarEvents() {
     state.chatTaskBarEventsStatus = 'loading';
     try {
