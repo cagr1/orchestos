@@ -10,7 +10,7 @@ import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiH
 import { handleApiChatUpload, handleApiChatModels, handleApiChat, handleApiChatTaskBarClick, handleApiChatTaskBarEvents } from './handlers/chat.ts'
 import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport } from './handlers/skills.ts'
 import { handleApiSystemReset, handleApiSystemEnginesExternalAvailability } from './handlers/system.ts'
-import { handleApiConfigGet, handleApiConfigInit } from './handlers/config.ts'
+import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import { handleApiContextSuggest } from './handlers/context-suggest.ts'
 import { DEFAULT_PORT } from './types.ts'
 
@@ -200,6 +200,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname === '/api/config/init') {
     return await handleApiConfigInit()
+  }
+  if (method === 'PUT' && url.pathname === '/api/config') {
+    return await handleApiConfigSet(req)
   }
   if (method === 'GET' && url.pathname === '/api/context/suggest') {
     return await handleApiContextSuggest(url)

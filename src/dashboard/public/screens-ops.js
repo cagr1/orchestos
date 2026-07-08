@@ -923,10 +923,22 @@ SCREENS.settings = {
       ? `<span class="badge green square">${ICON.check} ${t('settings.routing.customFound')}</span>`
       : `<span class="badge gray square">${t('settings.routing.defaults')}</span>`;
 
-    const roleRows = Object.entries(cfg.roles)
-      .filter(([, v]) => v !== null)
-      .map(([role, v]) => `<div class="kv"><span class="k">${esc(role)}</span><span class="v mono" style="font-size:12px">${esc(v)}</span></div>`)
-      .join('');
+    // Fix real (2026-07-08): esto era de solo lectura — Carlos no tenía forma
+    // de cambiar el modelo por rol, ni desde el CLI ni desde el dashboard.
+    // Asume siempre provider 'openrouter' al guardar, igual que el resto de
+    // los selectores de modelo de la app (chat, composer, diagnose).
+    const ROLE_LABELS = { planner: 'Planner', executor_heavy: 'Executor (heavy)', executor_light: 'Executor (light)', default: 'Default' };
+    const stripProvider = v => (v && v.startsWith('openrouter/')) ? v.slice('openrouter/'.length) : (v || '');
+    const roleRows = Object.keys(ROLE_LABELS).map(role => {
+      const val = stripProvider(cfg.roles[role]);
+      return `<div class="draft-field" style="margin-bottom:10px">
+        <label>${esc(ROLE_LABELS[role])}</label>
+        ${buildModelSelect(`role-${role}`, val, st.orModels, st.localModels)}
+      </div>`;
+    }).join('') + `<div class="draft-field" style="margin-bottom:10px">
+        <label>QA judge <span class="muted">(${t('settings.routing.qa.hint')})</span></label>
+        ${buildModelSelect('role-qa', stripProvider(cfg.roles.qa), st.orModels, st.localModels, { allowEmpty: true, emptyLabel: t('settings.routing.qa.auto') })}
+      </div>`;
 
     const pendingRows = (cfg.pendingRouting || []).length === 0
       ? `<p class="muted" style="margin:0;font-size:12.5px">${t('settings.routing.noPending')}</p>`
@@ -947,6 +959,11 @@ SCREENS.settings = {
       <div class="card settings-card">
         <div class="settings-header"><h3>${t('settings.routing.roles')}</h3></div>
         ${roleRows}
+        <div class="settings-foot" style="margin-top:8px">
+          <span id="routing-save-msg" style="font-size:12px;display:none"></span>
+          <span style="flex:1"></span>
+          <button class="btn primary" data-act="save-routing">${ICON.check} ${t('settings.routing.save')}</button>
+        </div>
       </div>
       <div class="card settings-card">
         <div class="settings-header"><h3>${t('settings.routing.pending')}</h3></div>
@@ -1097,8 +1114,54 @@ SCREENS.settings = {
       root.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === sec));
       if (sec === 'routing') {
         App.fetchOrcheConfig().then(() => App.rerender());
+        if (state.orModels === null) loadOrModels().then(() => App.rerender());
       }
     }));
+
+    // Múltiples selects de modelo comparten el mismo botón data-load-models/
+    // data-refresh-models (uno por rol) — querySelectorAll + forEach en vez de
+    // querySelector para que los 5 se conecten, no solo el primero.
+    root.querySelectorAll('[data-load-models]').forEach(btn => btn.addEventListener('click', async () => {
+      await loadOrModels();
+      App.rerender();
+    }));
+    root.querySelectorAll('[data-refresh-models]').forEach(btn => btn.addEventListener('click', async () => {
+      await loadOrModels(true);
+      App.rerender();
+    }));
+
+    root.querySelector('[data-act="save-routing"]')?.addEventListener('click', async () => {
+      const roles = {};
+      ['planner', 'executor_heavy', 'executor_light', 'default'].forEach(role => {
+        const el = root.querySelector(`#role-${role}`);
+        if (el?.value) roles[role] = el.value;
+      });
+      // qa siempre se manda, incluso vacío ("(auto)") — es el único rol que
+      // puede limpiarse explícitamente de vuelta a auto-resuelto.
+      const qaEl = root.querySelector('#role-qa');
+      if (qaEl) roles.qa = qaEl.value;
+      const btn = root.querySelector('[data-act="save-routing"]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roles }),
+        });
+        if (res.ok) {
+          showToast(t('settings.routing.saveDone'));
+          await App.fetchOrcheConfig();
+          App.rerender();
+        } else {
+          const data = await res.json();
+          showToast(data.error || t('settings.routing.saveErr'), 'error');
+        }
+      } catch {
+        showToast(t('settings.routing.saveErr'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     root.querySelector('[data-act="config-init"]')?.addEventListener('click', async (e) => {
       const btn = e.currentTarget;

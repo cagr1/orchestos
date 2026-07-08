@@ -280,17 +280,22 @@ const App = {
     // de modo. Solo el setup wizard (criticalMissing, arriba) sigue redirigiendo — sin
     // eso el chat ni siquiera funciona.
     state.attentionRedirectDone = true;
-    // Bug fix (2026-06-29): fetchAll() runs every 30s via setInterval (boot()),
-    // regardless of which screen is open. This used to call this.rerender()
-    // unconditionally — rerender() replaces #main's entire innerHTML, which
-    // silently wiped any uncontrolled input the user was mid-typing in (chat
-    // textarea, model combo search box, any filter input) every time the poll
-    // landed. Skip the destructive full rerender while focus is inside #main's
-    // input/textarea — just keep the nav badges (skills count) fresh instead.
-    // The next poll (or the user's own next action, which already rerenders)
-    // picks up the fresh data once they're done typing.
+    // Bug fix (2026-06-29, ampliado 2026-07-08): fetchAll() runs every 30s via
+    // setInterval (boot()), regardless of which screen is open. This used to
+    // call this.rerender() unconditionally — rerender() replaces #main's
+    // entire innerHTML, which silently wiped any uncontrolled input the user
+    // was mid-typing in (chat textarea, model combo search box, any filter
+    // input) every time the poll landed. Skip the destructive full rerender
+    // while focus is inside #main's input/textarea/select — just keep the nav
+    // badges (skills count) fresh instead. The next poll (or the user's own
+    // next action, which already rerenders) picks up the fresh data once
+    // they're done. Ampliado a SELECT (2026-07-08): el panel "Model routing"
+    // (Settings) tiene selects de modelo por rol — sin este guard, un poll de
+    // 30s mientras el usuario elige un modelo pero antes de guardar hacía
+    // rerender() y le devolvía el valor al default, perdiendo la elección en
+    // silencio (encontrado al verificar E.9/roles editables en vivo).
     const typingInMain = document.activeElement
-      && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)
+      && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)
       && document.getElementById('main')?.contains(document.activeElement);
     if (typingInMain) {
       this.syncNav();
@@ -1360,17 +1365,27 @@ function buildModelOpts(locals, cloudModels, val, query) {
 /* Returns HTML for a model selector widget (draft/modal use — native <select> + refresh button).
    If orModels is null → fallback list + load button.
    If orModels is [] → loading spinner text.
-   Chat uses buildModelCombo() instead — single-height trigger with search-inside panel. */
-function buildModelSelect(inputId, currentVal, models, localModels) {
-  const val = currentVal || 'deepseek/deepseek-v4-flash';
+   Chat uses buildModelCombo() instead — single-height trigger with search-inside panel.
+   opts.allowEmpty (2026-07-08, Settings→Model routing QA role): cuando true, un
+   currentVal vacío NO se reemplaza por el default 'deepseek/deepseek-v4-flash' —
+   en cambio se antepone una opción real vacía (opts.emptyLabel) y queda
+   seleccionada. Sin esto, un campo legítimamente "sin configurar" (ej. QA judge,
+   que se auto-resuelve en harness.ts si está ausente) se guardaba como si el
+   usuario hubiera elegido deepseek a propósito — bug real encontrado al
+   verificar la edición de roles en vivo. */
+function buildModelSelect(inputId, currentVal, models, localModels, opts) {
+  const allowEmpty = !!(opts && opts.allowEmpty);
+  const isEmpty = allowEmpty && !currentVal;
+  const val = currentVal || (allowEmpty ? '' : 'deepseek/deepseek-v4-flash');
   const locals = Array.isArray(localModels) && localModels.length > 0 ? localModels : [];
+  const emptyOpt = isEmpty ? `<option value="" selected>${esc((opts && opts.emptyLabel) || '—')}</option>` : '';
 
   if (models === null) {
     // Fallback: KNOWN_MODELS + any locals already available
     const fallbackCloud = KNOWN_MODELS.map(m => ({ ...m }));
-    const opts = buildModelOpts(locals, fallbackCloud, val, '');
+    const optsHtml = buildModelOpts(locals, fallbackCloud, val, '');
     return `<div style="display:flex;gap:8px;align-items:center">
-      <select id="${inputId}" class="model-sel">${opts}</select>
+      <select id="${inputId}" class="model-sel">${emptyOpt}${optsHtml}</select>
       <button class="btn ghost sm" data-load-models style="white-space:nowrap">${t('chat.models.load')} ↓</button>
     </div>`;
   }
@@ -1378,11 +1393,12 @@ function buildModelSelect(inputId, currentVal, models, localModels) {
     return `<span class="muted" style="font-size:12px">${t('common.loading')}</span>`;
   }
   // Ensure current value is present even if not returned by OpenRouter
-  const allCloud = models.some(m => m.id === val) ? models : [{ id: val, name: val, priceIn: 0 }, ...models];
-  const opts = buildModelOpts(locals, allCloud, val, '');
+  const allCloud = (!val || models.some(m => m.id === val)) ? models : [{ id: val, name: val, priceIn: 0 }, ...models];
+  const optsHtml = buildModelOpts(locals, allCloud, val, '');
+  const combinedOpts = emptyOpt + optsHtml;
   const refreshBtn = `<button class="btn ghost sm" data-refresh-models title="${t('btn.refresh')}" style="white-space:nowrap">${ICON.refresh}</button>`;
   return `<div style="display:flex;gap:8px;align-items:center">
-    <select id="${inputId}" class="model-sel" style="flex:1">${opts}</select>
+    <select id="${inputId}" class="model-sel" style="flex:1">${combinedOpts}</select>
     ${refreshBtn}
   </div>`;
 }
