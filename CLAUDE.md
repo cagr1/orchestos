@@ -24,6 +24,7 @@ Si necesitas saber el email activo, usa `git config user.email` (solo lectura).
 - No uses `--no-verify` en commits salvo que el usuario lo pida.
 - No hagas `git push --force` salvo instrucción explícita.
 - No crees ni borres ramas remotas sin confirmación del usuario.
+- **Push automático (autorización permanente, 2026-07-08):** hacer `git push origin master` automáticamente después de cada 2-3 commits locales, sin esperar a que Carlos lo pida. No aplica a fixes durante debugging activo (commits que se van a amendear/squashear) ni si hay un motivo explícito para retener el push (ej. cambio a mitad de verificar algo). Esta autorización cubre `git push` normal, NO `--force` (eso sigue requiriendo pedido explícito, regla de arriba).
 
 ## Pre-commit hook
 
