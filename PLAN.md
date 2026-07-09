@@ -50,21 +50,21 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 **Pre-flight (2026-07-09):** Mes 18 cerrado sin deuda bloqueante propia. Hallazgos abiertos heredados (backlog, no bloquean este mes): IDEAS.md #19 (`engine: external` sin `checks:` explícitos pierde su red determinista), IDEAS.md #29 (`commitTopicKey`/memoria de sub-tasks casi nunca se dispara en la práctica — hallazgo de I.6).
 
 ### Bloque A — Leer el repo real + diseño (ANTES de tocar código, se revisa con Carlos)
-- [x] A.1 🧠 (2026-07-09) Leído el código real de `baidu/Unlimited-OCR` (`gh api`, README completo) — **corrige la premisa original de IDEAS #13/#24**: no es una librería liviana, es un modelo de visión-lenguaje que solo corre self-hosted vía `transformers`+CUDA o servidor vLLM/SGLang — requiere GPU propia, descartado para OrchestOS (Bun/TS local, sin GPU). Camino recomendado: **Baidu Cloud API** (`aip.baidubce.com/rest/2.0/brain/online/v2/unlimited-ocr-parser/task`, verificado vía su documentación oficial) — REST asíncrono (submit→task_id→query), auth OAuth2 API Key/Secret, input base64/URL, 200-1000 páginas gratis luego pago, sin GPU ni Python. HF Spaces (ZeroGPU) documentado como fallback de prototipo, nunca dependencia de producción. **Corrección legal importante**: por esta vía no se reusa código MIT del repo (es una llamada HTTP a un servicio comercial de Baidu, regido por sus ToS) — la obligación de atribución MIT solo aplicaría si se hiciera self-host. Diseño completo, con los 3 caminos comparados, el contrato async, el wrapper "dato externo" para el texto extraído (mismo boundary que `fetch_url`), y la recomendación de diferir `task_class: ocr` (Bloque D) por falta de caso de uso real interno, en [docs/ocr-chat-design.md](../docs/ocr-chat-design.md).
-- [ ] A.2 🔍 Revisión del doc con Carlos antes de abrir B — incluye la decisión explícita de si el Bloque D (task_class) entra este mes o se difiere.
+- [x] A.1 🧠 (2026-07-09) Leído el código real de `baidu/Unlimited-OCR` (`gh api`, README completo) — **corrige la premisa original de IDEAS #13/#24**: no es una librería liviana, es un modelo de visión-lenguaje que solo corre self-hosted vía `transformers`+CUDA o servidor vLLM/SGLang — requiere GPU propia, descartado para OrchestOS (Bun/TS local, sin GPU). Único camino sin GPU (Baidu Cloud API, `aip.baidubce.com`) verificado real vía su documentación oficial, pero descartado en A.2. Diseño completo en [docs/ocr-chat-design.md](../docs/ocr-chat-design.md).
+- [x] A.2 🔍 (2026-07-09) Revisión con Carlos — **Baidu Cloud rechazado** (panel en chino, fricción de registro; "que después no se complique el uso de OCR"). Motor elegido: **`tesseract.js`** (verificado real vía `gh api`: Apache-2.0, JS, 38.1K★, activo) — wrapper WASM del motor Tesseract, corre en el mismo proceso Bun sin GPU/Python/cuenta externa. Diseño actualizado en [docs/ocr-chat-design.md](../docs/ocr-chat-design.md) §(a)/(b). Confirmado: Bloque D se difiere (sin caso de uso real interno), orden B→C (múltiples adjuntos antes que OCR).
 
 ### Bloque B — Múltiples adjuntos (base de UI/estado, independiente del OCR)
 - [ ] B.1 🧠 Estado del chat como array de adjuntos (`st.chatFiles[]` en vez de `chatFileId`/`chatFileMeta` singular) + decisión secuencial vs batch para el upload (propuesta: secuencial contra el endpoint existente, sin endpoint nuevo, salvo que A.1 encuentre razón en contra).
 - [ ] B.2 ⚡ UI: chips por adjunto con quitar individual, límite razonable de adjuntos por mensaje, i18n en/es de los textos nuevos.
 - [ ] B.3 ⚡ `handleApiChat` acepta N adjuntos en el payload — cada imagen pasa por el mismo gating de visión de J.2 (o su evolución OCR del Bloque C).
 
-### Bloque C — OCR en el chat (pendiente de diseño de A.1)
-- [ ] C.1 🧠 Integración del motor OCR según lo decidido en A.1 — imagen + modelo sin visión → texto extraído como contexto envuelto como dato, con atribución MIT si aplica.
+### Bloque C — OCR en el chat (`tesseract.js`, decidido en A.2)
+- [ ] C.1 🧠 `bun add tesseract.js` + integración: imagen + modelo sin visión → `createWorker('eng'+'spa')`/`recognize()` → texto extraído como contexto envuelto como dato (wrapper "dato externo", ver diseño §c). Worker creado una vez y reusado, no por mensaje.
 - [ ] C.2 ⚡ Superficie: el usuario ve que la imagen fue leída por OCR (transparencia, mismo principio que "qué URLs se fetchearon" del Mes 13) + aviso claro si el OCR falla.
 - [ ] C.3 🔍 Gate en vivo con dinero real: la misma imagen que falló en el dogfooding del Mes 18, con un modelo de solo texto (DeepSeek) → el chat responde usando el contenido real de la imagen. Control de seguridad: imagen con texto de prompt injection → el modelo no obedece.
 
-### Bloque D — `task_class: ocr` (ex-#24 — SOLO si A.2 decide que entra este mes)
-- [ ] D.1 🧠 Nuevo `task_class: ocr` en el schema de tasks — el output del OCR entra al pipeline normal como texto → QA → SQLite. Caso de uso externo: CitasBot (imágenes de agenda por WhatsApp).
+### Bloque D — `task_class: ocr` (ex-#24) — DIFERIDO (decisión A.2, 2026-07-09)
+Sin caso de uso real interno a OrchestOS (el ejemplo original era CitasBot, proyecto separado) — vuelve a IDEAS.md, se implementa si aparece evidencia concreta.
 
 ### Cierre del mes
 - [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + aplicar la regla IDEAS→PLAN→DONE en el cierre.

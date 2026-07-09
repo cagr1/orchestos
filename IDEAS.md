@@ -453,6 +453,29 @@ Además, la decomposición en sub-tasks (`createPlan()` en `cli.ts:1095`) **no e
 
 ---
 
+### 30. `task_class: ocr` como primera clase del pipeline de tareas formales
+
+**Origen**: evaluado en Mes 19 Bloque A/D (diseño en `docs/ocr-chat-design.md`) junto con el OCR
+del chat, y diferido explícitamente por Carlos (2026-07-09) por falta de caso de uso real dentro
+de OrchestOS mismo.
+
+**Qué sería**: nuevo `task_class: ocr` en el schema de `tasks.yaml` — una tarea formal (no del
+chat) que recibe una imagen/PDF como input y el output del OCR entra al pipeline normal
+(texto → QA → SQLite), igual que cualquier otra tarea.
+
+**Motor recomendado si se implementa**: `tesseract.js` (Apache-2.0, sin GPU, sin cuenta externa —
+mismo elegido para el OCR del chat en Mes 19, ver `docs/ocr-chat-design.md`), no
+`baidu/Unlimited-OCR` (requiere GPU propia o su Baidu Cloud API, descartada por fricción de
+registro).
+
+**Caso de uso original**: CitasBot (imágenes de agenda por WhatsApp) — proyecto separado, no
+OrchestOS. Sin evidencia de que OrchestOS mismo necesite tareas formales con imágenes.
+
+**Esfuerzo**: bajo-medio si se usa `tesseract.js` (ya integrado en el chat para entonces) — el
+grueso del trabajo sería el cambio de schema, no el motor OCR en sí.
+
+---
+
 ## 📚 Referencia — inspiración externa (NO es backlog)
 
 Repos analizados durante Mes 5-8. La mayoría de patrones ya están shipeados; esto queda

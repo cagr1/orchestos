@@ -13,50 +13,51 @@ ruta alternativa que funcione con **cualquier** modelo, vía OCR.
 Este documento decide las cinco cosas que Carlos pidió fijar antes de tocar código (A.1), para
 revisión en A.2. B/C/D no arrancan hasta que A.2 lo apruebe.
 
-## (a) Motor de OCR — el repo real, leído hoy (2026-07-09)
+## (a) Motor de OCR — el repo real, leído hoy (2026-07-09), y por qué NO es el elegido
 
 **Corrección importante al supuesto original de IDEAS.md #13/#24**: `baidu/Unlimited-OCR`
 (verificado real: MIT, Python, 13.8K★, `pushed_at: 2026-07-03`) **no es una librería liviana** —
 es un modelo de visión-lenguaje completo (`AutoModel.from_pretrained('baidu/Unlimited-OCR', ...)`)
 que corre vía `transformers`+CUDA, o se sirve con **vLLM**/**SGLang** en un servidor propio. El
 repo en sí (`README.md`, `infer.py`, `wheel/`) es infraestructura para **auto-hospedar el modelo
-en una GPU** — no hay ningún cliente HTTP liviano ni SDK sin GPU en el repo. Esto descarta
-self-host: OrchestOS es una herramienta local Bun/TypeScript que Carlos corre en su Mac, sin GPU
-NVIDIA — instalar `torch`/`transformers`/CUDA (o levantar un servidor vLLM/SGLang) para un solo
-paso de OCR es la fricción exacta que IDEAS.md #24 ya anticipaba y que se buscaba evitar.
+en una GPU** — no hay ningún cliente HTTP liviano ni SDK sin GPU en el repo. Self-host queda
+descartado sin discusión (sin GPU NVIDIA en la Mac de Carlos).
 
-Tres caminos reales encontrados, ninguno requiere GPU propia:
+La única forma de *consumir* el modelo sin GPU propia habría sido su **Baidu Cloud API**
+(`aip.baidubce.com`, REST asíncrono, verificado real vía su documentación oficial) — pero Carlos
+la revisó y el panel de Baidu Cloud está en chino y es confuso de navegar/registrar. **Decisión de
+Carlos (2026-07-09): descartar Baidu Cloud por completo** — el objetivo es que el uso de OCR no se
+complique, no forzar el repo original a toda costa. Queda documentado como referencia, no como plan:
 
-| Opción | Qué es | Viable para producción |
+| Opción | Qué es | Descartada por |
 |---|---|---|
-| **Baidu Cloud API** (recomendada) | REST API oficial y comercial de Baidu, documentada en [cloud.baidu.com/doc/OCR](https://cloud.baidu.com/doc/OCR/s/fmr1p39gb) | ✅ Sí — asíncrona, con SLA implícito de un producto pago |
-| HF Spaces demo | Gradio Space público (`huggingface.co/spaces/baidu/Unlimited-OCR`), corre en ZeroGPU | ⚠️ Solo para prototipar — cuota de GPU gratis limitada, sin garantía de disponibilidad, pensado para uso humano vía navegador |
-| Self-host (transformers/vLLM/SGLang) | El contenido real del repo GitHub | ❌ Descartado — requiere GPU + stack Python pesado, no encaja en el producto |
+| Self-host (transformers/vLLM/SGLang) | El contenido real del repo `baidu/Unlimited-OCR` | Requiere GPU NVIDIA — no existe en el entorno de Carlos |
+| Baidu Cloud API | REST oficial de Baidu (`cloud.baidu.com/doc/OCR`) | Panel en chino, fricción de registro — rechazado explícitamente por Carlos |
 
-**Baidu Cloud API — contrato real** (leído hoy vía la documentación oficial):
-- Endpoint: `POST https://aip.baidubce.com/rest/2.0/brain/online/v2/unlimited-ocr-parser/task`
-- Auth: `access_token` OAuth2 (API Key + Secret Key de una cuenta Baidu Cloud) — mismo patrón de
-  credenciales que ya maneja el wizard de API keys (Mes 10), un secreto más en `.env`.
-- Input: `file_data` (base64) o `file_url`, soporta imagen/PDF/doc — exactamente lo que ya
-  tenemos como `attachedFile.content` (base64 de imagen).
-- **Asíncrono en 2 pasos**: `submit` devuelve un `task_id` → `query` con ese id devuelve una URL de
-  resultado (markdown + JSON, válida 30 días). Rate limit bajo (2 QPS submit, 5 QPS query) — sin
-  problema para el volumen de un chat interactivo de un solo usuario.
-- Costo: "limitado por tiempo gratis" (200 páginas cuenta personal / 1000 empresa), pago después —
-  **primer riesgo abierto sin verificar**: no confirmé si el registro de cuenta Baidu Cloud es
-  accesible sin domicilio/teléfono chino. Sub-tarea de A.2: Carlos crea la cuenta y confirma antes
-  de que se escriba una sola línea de código contra este endpoint.
+**Motor elegido: [`tesseract.js`](https://github.com/naptha/tesseract.js)** (verificado real vía
+`gh api`: Apache-2.0, JavaScript, 38.1K★, `pushed_at: 2026-05-17`, sin archivar). Es el wrapper
+WebAssembly del motor Tesseract OCR (Google/open source desde hace años), corre **en el mismo
+proceso Bun/Node** sin GPU, sin Python, sin cuenta externa, sin llamada de red en cada uso (los
+datos de idioma se descargan una vez y se cachean). API mínima:
 
-**Corrección a la premisa de "atribución MIT" de IDEAS.md #13**: si se integra vía Baidu Cloud API,
-**no se reusa ni una línea del código MIT del repo** — es una llamada HTTP a un servicio comercial
-de Baidu, regido por los términos de servicio de Baidu Cloud (a leer antes de integrar), no por la
-licencia MIT del repo GitHub. La obligación de atribución MIT solo aplicaría si se copiara lógica
-del repo (self-host, descartado). Se documenta igual, como buena práctica, que el motor detrás es
-Unlimited-OCR de Baidu — pero es crédito, no obligación legal en este camino.
+```js
+import { createWorker } from 'tesseract.js'
+const worker = await createWorker('eng') // o 'spa', o ambos: 'eng+spa'
+const { data: { text } } = await worker.recognize(imageBase64OrPath)
+await worker.terminate()
+```
 
-**Decisión para A.2**: arrancar con Baidu Cloud API como único camino de producción. HF Spaces
-queda documentado como fallback de prototipo rápido (útil para C.3 si la cuenta de Baidu Cloud
-tarda en aprobarse), nunca como dependencia de la que el chat real dependa.
+Es exactamente el nivel de simplicidad que Carlos pidió — un `bun add tesseract.js` y una función,
+sin infraestructura nueva que mantener. Limitación conocida y aceptada: menor precisión que un
+VLM-OCR moderno en documentos complejos/manuscritos, y **no soporta PDF directamente** (sin
+problema — los PDF adjuntos ya extraen texto por su propia vía desde Mes 9, D1-D5; el OCR solo
+cubre el gap de imágenes). Licencia Apache-2.0: atribución estándar (mantener el aviso de licencia
+en el `package.json`/lockfile, como cualquier otra dependencia npm) — nada especial más allá de eso.
+
+**Nota de crédito, no de código**: `baidu/Unlimited-OCR` deja de ser el motor, pero su README
+reconoce a su vez a `PaddleOCR`/`DeepSeek-OCR` como base — la cadena de "OCR gratuito de GitHub"
+converge en Tesseract como el estándar simple y sin fricción del ecosistema, que es justo lo que
+Carlos pidió al descartar Baidu Cloud.
 
 ## (b) Dónde vive el paso OCR en el flujo del chat
 
@@ -73,14 +74,13 @@ attachedFile.type === 'image'
           nunca se degrada en silencio
 ```
 
-El submit/query asíncrono de Baidu Cloud significa que `handleApiChat` no puede resolver el OCR
-en la misma llamada sin bloquear al usuario un tiempo indeterminado. Diseño: al subir la imagen
-(en el endpoint de upload existente, no en el momento de enviar el mensaje), si el modelo elegido
-en ese momento no tiene visión, se lanza el `submit` de inmediato y se guarda el `task_id` junto al
-adjunto; `handleApiChat` hace el `query` (con reintento corto, no polling largo — si a los pocos
-segundos no está listo, cae al 422 de J.2 con un mensaje distinto: "OCR still processing, try
-again in a moment" en vez de "model has no vision"). Evita que el usuario espere el ciclo completo
-de submit→query dentro de un solo request HTTP del chat.
+A diferencia del diseño original (pensado para el submit/query asíncrono de Baidu Cloud),
+`tesseract.js` corre **síncrono, en el mismo proceso**, sin llamada de red — se resuelve dentro de
+la misma request de `handleApiChat`, sin task_id ni polling. Costo de tiempo real a medir en C.3
+(Tesseract con imágenes de tamaño normal de chat suele tardar 1-3s en CPU, aceptable para una
+respuesta de chat que ya espera al LLM de todos modos). Un worker de Tesseract se crea una vez
+(costo de arranque, ~carga del modelo WASM) y se reusa entre llamadas — no crear un worker nuevo
+por mensaje.
 
 ## (c) Contrato del texto extraído — dato externo, nunca instrucción
 
@@ -130,11 +130,10 @@ visión y llegar bien, la siguiente puede necesitar OCR, no es todo-o-nada por m
 - El pipeline de tareas formales (`tasks.yaml`/harness/QA): sin cambios, `task_class: ocr` queda
   fuera de alcance este mes (ver (d)).
 
-## Abierto para A.2 (decisión de Carlos, no asumida acá)
+## A.2 — decisiones de Carlos (2026-07-09, "GO")
 
-1. Confirmar que una cuenta Baidu Cloud es viable de crear y usar desde Ecuador antes de escribir
-   código contra su API — riesgo no verificable sin intentarlo.
-2. Confirmar que Bloque D (`task_class: ocr`) se difiere — o dar el caso de uso real que falta.
-3. Confirmar el orden B→C (múltiples adjuntos primero) vs. arrancar C directo sobre el adjunto
-   singular actual y migrar a array después — B es la base de datos compartida, pero C podría
-   probarse primero contra un solo adjunto si Carlos prefiere ver el OCR funcionando antes.
+1. **Motor**: Baidu Cloud descartado explícitamente (panel en chino, fricción de registro) — el
+   objetivo es que el uso de OCR no se complique. Elegido `tesseract.js` (ver (a)) en su lugar.
+2. **Bloque D** (`task_class: ocr`): diferido, vuelve a IDEAS.md — sin caso de uso real interno.
+3. **Orden B→C**: confirmado B primero (múltiples adjuntos como base de estado) antes de integrar
+   el OCR en C.
