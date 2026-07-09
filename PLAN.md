@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-18-cerrado--mes-19-pendiente-de-eje
+status: mes-18-cerrado--mes-19-abierto
 ---
 
 # OrchestOS — Plan activo
@@ -20,6 +20,54 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 **Regla de documentación obligatoria (2026-07-02):** todo hallazgo — bug real, deuda técnica, feature huérfana, contradicción entre `tasks.yaml`/DONE.md y el código real — se convierte en un ítem de este archivo (o de IDEAS.md si es backlog no inmediato) ANTES de tocar código. Si no está escrito acá, no se corrige. Motivo: una auditoría completa (2026-07-02) encontró deuda documentada en prosa dentro de DONE.md ("anotado como deuda conocida") que nunca se tradujo a un ítem accionable y por eso nadie la persiguió durante 3 meses (ver Bloque F0).
 
 **Regla de flujo IDEAS→PLAN→DONE (decisión Carlos, 2026-07-02):** cuando una idea pasa de IDEAS.md a PLAN.md (se convierte en el eje o en un bloque de un Mes), **se ELIMINA de IDEAS.md en el mismo commit** — no queda duplicada en ambos. La evidencia de que se realizó vive siempre en DONE.md (documentación extensa al cierre del Mes). IDEAS.md es solo backlog vivo: lo que está ahí es porque NADIE lo está haciendo todavía.
+
+---
+
+## MES 19 — El chat lee cualquier imagen: OCR + múltiples adjuntos
+
+**Eje decidido por Carlos (2026-07-09), graduado de IDEAS.md #13 y #24 en el cierre del Mes 18 (regla IDEAS→PLAN→DONE) — ítems eliminados de allá.**
+
+**Origen**: durante el dogfooding del Mes 18 (Bloque J), Carlos subió una imagen de referencia al chat y "no cargó" — J.2 corrigió el síntoma (ahora rechaza con 422 claro si el modelo no tiene visión, en vez de fallar en silencio), pero la dependencia de fondo sigue: la imagen solo sirve si el usuario eligió un modelo con visión, y la mayoría de los baratos (DeepSeek, Llama) no la tienen. El OCR mata esa dependencia de raíz: extraer el texto de la imagen y mandarlo como contexto de texto plano funciona con **cualquier** modelo. Decisión explícita de Carlos (2026-07-09): "no depender del modelo — que sí o sí lea todo, independiente del modelo".
+
+**Qué ya existe (NO reconstruir)**:
+- Gating de visión (Mes 18 J.2): `supportsVision` en `ModelInfo` (`model-catalog.ts`, leído de `architecture.input_modalities` de OpenRouter) + rechazo 422 con mensaje claro en `handleApiChat` antes de mandar el `image_url` block. **El OCR es el camino alternativo cuando ese gate rechaza** — no un reemplazo del gate: con modelo de visión la imagen sigue yendo directa como `image_url`, con modelo de solo texto entra el OCR.
+- Upload de un solo archivo: `POST /api/chat/upload` (un archivo por request), estado singular `st.chatFileId`/`st.chatFileMeta` (`app.js:59`), chip de adjunto singular en el composer (`screens-core.js:93`). PDF/txt/md ya extraen texto (Mes 9, D1-D5) — el gap de lectura es solo imágenes.
+- Pipeline de tareas formales: `task_class` en el schema, harness → QA → SQLite — el output del OCR entra ahí como texto normal, sin rama especial.
+
+**El gap real, en dos capas separadas (mismo principio que Mes 18 — no mezclarlas)**:
+1. **Múltiples adjuntos** (ex-#13 gap 2) — el estado del chat solo soporta UN archivo. Subir 2+ requiere: (a) estado como array de adjuntos, (b) decidir upload secuencial (N requests al endpoint existente) vs batch (endpoint nuevo multipart), (c) UI para listar/quitar cada adjunto individualmente. Es un cambio de modelo de datos del chat, deliberadamente separado del rediseño de UI del menú de adjuntar (2026-06-29).
+2. **OCR** (ex-#13 gap 1 + ex-#24) — motor que convierte imagen → texto. Independiente de la capa 1 (opera sobre cualquier imagen ya adjunta), pero la capa 1 es la base de UI/estado que ambos comparten.
+
+**Repo de referencia (dado por Carlos)**: https://github.com/baidu/Unlimited-OCR — verificado real vía `gh api` (2026-06-29): Python, licencia **MIT**, ~11.9K⭐, activo. **No leído todavía** — regla innegociable de este mes: leer el código real ANTES de decidir la integración, no asumir nada de su arquitectura. Por ser MIT, reusar su código es legal pero **exige atribución real** — documentar el origen en el archivo/commit que lo introduce, no es opcional (es parte de la licencia).
+
+**Decisión de integración abierta (se resuelve en A.1, no antes)**: el motor es Python — fricción con el stack Bun/TS. Las opciones que A.1 debe evaluar contra el código real del repo: (a) API remota (HuggingFace Spaces / Baidu Cloud, sin GPU propia ni runtime local — lo que ex-#24 sugería), (b) subproceso Python local (sin red, pero agrega runtime y dependencias al setup), (c) otro motor OCR si al leer el repo resulta que no encaja. No decidir por adelantado.
+
+**Reglas de seguridad/diseño innegociables**:
+1. El texto extraído por OCR de una imagen es **dato externo, nunca instrucción** — mismo wrapper/boundary ya probado con `fetch_url` (Mes 13): una imagen con texto malicioso no debe poder inyectar instrucciones al modelo.
+2. El OCR **nunca degrada en silencio** — si el motor falla o no está disponible, el usuario ve un aviso claro (mismo principio que el 422 de J.2), no una respuesta del modelo que ignoró la imagen.
+3. Costo visible: si el OCR usa una API remota con costo, se registra en `runs` como cualquier otro gasto — nunca `$0` silencioso (regla F0.8).
+
+**Pre-flight (2026-07-09):** Mes 18 cerrado sin deuda bloqueante propia. Hallazgos abiertos heredados (backlog, no bloquean este mes): IDEAS.md #19 (`engine: external` sin `checks:` explícitos pierde su red determinista), IDEAS.md #29 (`commitTopicKey`/memoria de sub-tasks casi nunca se dispara en la práctica — hallazgo de I.6).
+
+### Bloque A — Leer el repo real + diseño (ANTES de tocar código, se revisa con Carlos)
+- [ ] A.1 🧠 Leer el código real de `baidu/Unlimited-OCR` y escribir el doc de diseño (`docs/ocr-chat-design.md`) que decide: (a) modo de integración — API remota vs subproceso Python local vs otro motor, con la evidencia del repo real como base; (b) dónde vive el paso OCR en el flujo del chat — propuesta inicial: `handleApiChat` detecta imagen + modelo sin visión → en vez del 422 de J.2, corre OCR y adjunta el texto como contexto (el 422 queda solo para cuando el OCR también falla o está deshabilitado); (c) el contrato del wrapper "dato externo" para el texto extraído; (d) qué es `task_class: ocr` (ex-#24) — schema, cómo entra el output al pipeline texto → QA → SQLite, y si se implementa este mes o queda para cuando haya un caso de uso real de tareas formales con imágenes (el caso concreto del chat NO lo necesita); (e) atribución MIT si se reusa código del repo.
+- [ ] A.2 🔍 Revisión del doc con Carlos antes de abrir B — incluye la decisión explícita de si el Bloque D (task_class) entra este mes o se difiere.
+
+### Bloque B — Múltiples adjuntos (base de UI/estado, independiente del OCR)
+- [ ] B.1 🧠 Estado del chat como array de adjuntos (`st.chatFiles[]` en vez de `chatFileId`/`chatFileMeta` singular) + decisión secuencial vs batch para el upload (propuesta: secuencial contra el endpoint existente, sin endpoint nuevo, salvo que A.1 encuentre razón en contra).
+- [ ] B.2 ⚡ UI: chips por adjunto con quitar individual, límite razonable de adjuntos por mensaje, i18n en/es de los textos nuevos.
+- [ ] B.3 ⚡ `handleApiChat` acepta N adjuntos en el payload — cada imagen pasa por el mismo gating de visión de J.2 (o su evolución OCR del Bloque C).
+
+### Bloque C — OCR en el chat (pendiente de diseño de A.1)
+- [ ] C.1 🧠 Integración del motor OCR según lo decidido en A.1 — imagen + modelo sin visión → texto extraído como contexto envuelto como dato, con atribución MIT si aplica.
+- [ ] C.2 ⚡ Superficie: el usuario ve que la imagen fue leída por OCR (transparencia, mismo principio que "qué URLs se fetchearon" del Mes 13) + aviso claro si el OCR falla.
+- [ ] C.3 🔍 Gate en vivo con dinero real: la misma imagen que falló en el dogfooding del Mes 18, con un modelo de solo texto (DeepSeek) → el chat responde usando el contenido real de la imagen. Control de seguridad: imagen con texto de prompt injection → el modelo no obedece.
+
+### Bloque D — `task_class: ocr` (ex-#24 — SOLO si A.2 decide que entra este mes)
+- [ ] D.1 🧠 Nuevo `task_class: ocr` en el schema de tasks — el output del OCR entra al pipeline normal como texto → QA → SQLite. Caso de uso externo: CitasBot (imágenes de agenda por WhatsApp).
+
+### Cierre del mes
+- [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + aplicar la regla IDEAS→PLAN→DONE en el cierre.
 
 ---
 
