@@ -679,6 +679,14 @@ SCREENS.graph = {
       ? `<span class="live-indicator"><span class="live-dot"></span>${t('graph.running')}</span>`
       : `<span class="live-indicator idle">${t('graph.idle')}</span>`;
 
+    // I.7 (Mes 18) — "Run full plan" quedaba activo y sin explicación aunque
+    // no hubiera ninguna tarea 'pending' (el único status que el graph
+    // runner recoge, ver run/graph-runner.ts). Con todo en done/blocked el
+    // botón no tenía ningún efecto útil.
+    const tasks = run?.tasks || [];
+    const pendingCount = tasks.filter(task => task.status === 'pending').length;
+    const allDone = tasks.length > 0 && pendingCount === 0;
+
     const head = `<div class="screen-head">
       <div class="lead"><h1>${t('graph.title')}</h1><p>${t('graph.subtitle')}</p></div>
       <div class="tools">
@@ -689,7 +697,7 @@ SCREENS.graph = {
         <label style="display:flex;align-items:center;gap:4px;font-size:12px">${t('graph.maxMinutes')}
           <input type="number" id="graph-max-minutes" placeholder="${t('graph.maxMinutesHint')}" step="1" min="0" style="width:80px;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)">
         </label>
-        <button class="btn primary" data-act="run-graph" ${isRunning || st.graphLaunching ? 'disabled' : ''}>${ICON.play} ${t('graph.runBtn')}</button>
+        <button class="btn primary" data-act="run-graph" ${isRunning || st.graphLaunching || allDone ? 'disabled' : ''}>${ICON.play} ${allDone ? t('graph.nothingToRun') : t('graph.runBtn')}</button>
       </div>
     </div>`;
 
@@ -703,9 +711,16 @@ SCREENS.graph = {
     if (st.graphStatus === 'error')
       return `<div class="screen">${head}${explainer}${errorState(t('graph.err.title'), t('graph.err.body'))}</div>`;
 
-    const tasks = run?.tasks || [];
     if (tasks.length === 0)
       return `<div class="screen">${head}${explainer}${emptyState(ICON.graph, t('graph.empty.title'), t('graph.empty.body'))}</div>`;
+
+    const allDoneBanner = allDone ? `<div class="spec-explainer">
+      <span class="spec-explainer-icon">${ICON.check}</span>
+      <div>
+        <strong>${t('graph.allDone.title')}</strong> ${t('graph.allDone.body', tasks.length)}
+        <div style="margin-top:8px"><button class="btn sm" data-act="graph-add-task">${ICON.plus} ${t('graph.allDone.btn')}</button></div>
+      </div>
+    </div>` : '';
 
     const rows = tasks.map(task => `<tr data-task="${esc(task.id)}">
       <td><span class="badge ${STATUS_BADGE[task.status] || 'gray'}"><span class="d"></span>${esc(task.status)}</span></td>
@@ -715,7 +730,7 @@ SCREENS.graph = {
       <td class="num">${task.retryCount}</td>
     </tr>`).join('');
 
-    return `<div class="screen">${head}${explainer}
+    return `<div class="screen">${head}${explainer}${allDoneBanner}
       <div class="card" style="overflow:hidden">
         <table class="tbl">
           <thead><tr>
@@ -733,6 +748,7 @@ SCREENS.graph = {
   },
 
   wire(root, st) {
+    root.querySelector('[data-act="graph-add-task"]')?.addEventListener('click', () => Modal.openTask());
     root.querySelector('[data-act="run-graph"]')?.addEventListener('click', async () => {
       if (!confirm(t('graph.confirm'))) return;
       const maxCostEl = document.getElementById('graph-max-cost');

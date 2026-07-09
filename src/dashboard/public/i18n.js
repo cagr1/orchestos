@@ -594,6 +594,12 @@ const I18N = {
     'graph.bucket.retried':   'Retried and resolved',
     'graph.bucket.blocked':   'Branch blocked',
     'graph.bucket.unfinished':'Unfinished (circuit breaker)',
+    /* I.7 (Mes 18) — antes "Run full plan" quedaba activo aunque no hubiera
+       nada pendiente; ahora se comunica el estado explícitamente. */
+    'graph.allDone.title':  'Nothing to run',
+    'graph.allDone.body':   'All {0} task(s) are done. Add a new task to run the graph again.',
+    'graph.allDone.btn':    'Add task',
+    'graph.nothingToRun':   'Nothing to run',
   },
 
   /* ================================================================
@@ -1185,6 +1191,10 @@ const I18N = {
     'graph.bucket.retried':   'Reintentadas y resueltas',
     'graph.bucket.blocked':   'Rama bloqueada',
     'graph.bucket.unfinished':'Sin terminar (circuit breaker)',
+    'graph.allDone.title':  'Nada que correr',
+    'graph.allDone.body':   'Las {0} tarea(s) ya están done. Agregá una tarea nueva para volver a correr el grafo.',
+    'graph.allDone.btn':    'Agregar tarea',
+    'graph.nothingToRun':   'Nada que correr',
   },
 };
 
