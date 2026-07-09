@@ -1303,19 +1303,19 @@ SCREENS.specs = {
   },
   detail(s) {
     const clarifyBadge = s.clarify !== 'none'
-      ? `<div class="stat-box ${s.clarify === 'pending' ? 'bad' : 'ok'}"><div class="n" style="font-size:15px;margin-top:5px">${esc(s.clarify)}</div><div class="l">Clarify</div></div>`
+      ? `<div class="stat-box ${s.clarify === 'pending' ? 'bad' : 'ok'}"><div class="n" style="font-size:15px;margin-top:5px">${esc(s.clarify)}</div><div class="l">${t('specs.clarify')}</div></div>`
       : '';
     const canApprove = s.status === 'draft' && s.clarify !== 'pending';
     const canArchive = s.status !== 'archived';
     const actions = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      ${canApprove ? `<button class="btn sm" data-spec-act="approve" data-spec-id="${esc(s.id)}">${ICON.check} Aprobar</button>` : ''}
+      ${canApprove ? `<button class="btn sm" data-spec-act="approve" data-spec-id="${esc(s.id)}">${ICON.check} ${t('specs.btn.approve')}</button>` : ''}
       <button class="btn sm ghost" data-spec-act="lint" data-spec-id="${esc(s.id)}">${ICON.search} Lint</button>
-      ${canArchive ? `<button class="btn sm ghost" data-spec-act="archive" data-spec-id="${esc(s.id)}">${ICON.inbox} Archivar</button>` : ''}
+      ${canArchive ? `<button class="btn sm ghost" data-spec-act="archive" data-spec-id="${esc(s.id)}">${ICON.inbox} ${t('specs.btn.archive')}</button>` : ''}
     </div>`;
     return `<tr class="detail-row"><td colspan="5"><div class="spec-detail">
-      <div class="stat-box ${s.lintFindings > 0 ? 'bad' : 'ok'}"><div class="n">${s.lintFindings}</div><div class="l">Lint findings</div></div>
-      <div class="stat-box ${s.deltaIssues > 0 ? 'bad' : 'ok'}"><div class="n">${s.deltaIssues}</div><div class="l">Delta issues</div></div>
-      <div class="stat-box"><div class="n" style="font-size:15px;margin-top:5px">${s.hasCapabilities ? `<span class="cap-yes">${ICON.check} Defined</span>` : `<span class="cap-no">${ICON.x} Missing</span>`}</div><div class="l">Capabilities</div></div>
+      <div class="stat-box ${s.lintFindings > 0 ? 'bad' : 'ok'}"><div class="n">${s.lintFindings}</div><div class="l">${t('specs.stat.lintFindings')}</div></div>
+      <div class="stat-box ${s.deltaIssues > 0 ? 'bad' : 'ok'}"><div class="n">${s.deltaIssues}</div><div class="l">${t('specs.stat.deltaIssues')}</div></div>
+      <div class="stat-box"><div class="n" style="font-size:15px;margin-top:5px">${s.hasCapabilities ? `<span class="cap-yes">${ICON.check} ${t('specs.cap.defined')}</span>` : `<span class="cap-no">${ICON.x} ${t('specs.cap.missing')}</span>`}</div><div class="l">${t('specs.col.caps')}</div></div>
       ${clarifyBadge}
       ${actions}
     </div></td></tr>`;
@@ -1327,7 +1327,7 @@ SCREENS.specs = {
       <td class="mono" style="color:var(--text)">${esc(s.id)}</td>
       <td><span class="badge ${STATUS_BADGE[s.status] || 'gray'} square">${esc(s.status)}</span></td>
       <td>${this.lintBadge(s)}</td>
-      <td>${s.hasCapabilities ? `<span class="cap-yes mono" style="font-size:12px">${ICON.check} yes</span>` : `<span class="cap-no mono" style="font-size:12px">— no</span>`}</td>
+      <td>${s.hasCapabilities ? `<span class="cap-yes mono" style="font-size:12px">${ICON.check} ${t('specs.cap.yes')}</span>` : `<span class="cap-no mono" style="font-size:12px">— ${t('specs.cap.no')}</span>`}</td>
       <td class="mono faint" style="display:flex;align-items:center;justify-content:space-between;gap:10px">${date}</td>
     </tr>`;
     return main + (open ? this.detail(s) : '');
@@ -1337,40 +1337,38 @@ SCREENS.specs = {
     const whatIsSpec = `<div class="spec-explainer">
       <span class="spec-explainer-icon">${ICON.specs}</span>
       <div>
-        <strong>¿Qué es una Spec?</strong>
-        Una spec es el contrato de lo que debe hacer una tarea <em>antes</em> de ejecutarla.
-        Define criterios de aceptación, archivos afectados y capacidades esperadas.
-        El agente los verifica al terminar — si no los cumple, la tarea falla con detalle claro.
+        <strong>${t('specs.what.title')}</strong>
+        ${t('specs.what.body')}
       </div>
     </div>`;
 
     const head = `<div class="screen-head">
-      <div class="lead"><h1>Specs</h1><p>Contratos de calidad para cada tarea.</p></div>
+      <div class="lead"><h1>${t('specs.title')}</h1><p>${t('specs.subtitle')}</p></div>
       <div class="tools">
-        <button class="btn" data-act="refresh">${ICON.refresh} Refresh</button>
-        <button class="btn primary" data-act="new-spec">${ICON.plus} Nueva Spec</button>
+        <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
+        <button class="btn primary" data-act="new-spec">${ICON.plus} ${t('specs.btn.new')}</button>
       </div>
     </div>`;
 
     if (st.specsStatus === 'loading')
-      return `<div class="screen">${head}${whatIsSpec}${loadingState('Cargando specs…')}</div>`;
+      return `<div class="screen">${head}${whatIsSpec}${loadingState(t('specs.loading'))}</div>`;
     if (st.specsStatus === 'error')
-      return `<div class="screen">${head}${whatIsSpec}${errorState('No se pudieron cargar las specs', 'GET /api/specs falló. El directorio specs/ puede faltar o no ser accesible.')}</div>`;
+      return `<div class="screen">${head}${whatIsSpec}${errorState(t('specs.err.title'), t('specs.err.body'))}</div>`;
 
     const specs = st.specs || [];
     if (specs.length === 0)
-      return `<div class="screen">${head}${whatIsSpec}${emptyState(ICON.specs, 'Aún no hay specs', 'Pulsa "Nueva Spec", elige una tarea y el agente generará el contrato automáticamente.')}</div>`;
+      return `<div class="screen">${head}${whatIsSpec}${emptyState(ICON.specs, t('specs.empty.title'), t('specs.empty.body'))}</div>`;
 
     const active = specs.filter(s => s.status !== 'archived');
     const archived = specs.filter(s => s.status === 'archived');
 
     const table = list => `<div class="card" style="overflow:hidden"><table class="tbl">
-        <thead><tr><th>Spec ID</th><th style="width:110px">Status</th><th style="width:130px">Lint</th><th style="width:110px">Capabilities</th><th style="width:140px">Created</th></tr></thead>
+        <thead><tr><th>${t('specs.col.id')}</th><th style="width:110px">${t('specs.col.status')}</th><th style="width:130px">Lint</th><th style="width:110px">${t('specs.col.caps')}</th><th style="width:140px">${t('specs.col.date')}</th></tr></thead>
         <tbody>${list.map(s => this.row(s, st)).join('')}</tbody></table></div>`;
 
     const archSection = archived.length ? `
       <div class="section-title collapsible ${st.archOpen ? '' : 'closed'}" data-arch>
-        <span class="chev">${ICON.chev}</span><span>Archived</span><span class="ct">${archived.length}</span>
+        <span class="chev">${ICON.chev}</span><span>${t('specs.archived')}</span><span class="ct">${archived.length}</span>
       </div>
       ${st.archOpen ? table(archived) : ''}` : '';
 
@@ -1401,18 +1399,18 @@ SCREENS.specs = {
         if (act === 'approve') {
           fetch(`/api/specs/${encodeURIComponent(id)}/approve`, { method: 'POST' })
             .then(r => r.json())
-            .then(d => { if (d.ok) { App.fetchAll(); showToast(`Spec "${id}" aprobada ✓`); } else showToast(d.error || 'Error al aprobar', 'error'); });
+            .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.approved', id)); } else showToast(d.error || t('specs.toast.approveErr'), 'error'); });
         } else if (act === 'lint') {
           fetch(`/api/specs/${encodeURIComponent(id)}/lint`)
             .then(r => r.json())
             .then(d => {
-              if (d.findings && d.findings.length === 0) showToast(`Lint OK — ${d.structuredCount} criterios WHEN/THEN ✓`);
-              else showToast(`${d.findings.length} lint finding(s) en "${id}"`, 'error');
+              if (d.findings && d.findings.length === 0) showToast(t('specs.toast.lintOk', d.structuredCount));
+              else showToast(t('specs.toast.lintFindings', d.findings.length, id), 'error');
             });
         } else if (act === 'archive') {
           fetch(`/api/specs/${encodeURIComponent(id)}/archive`, { method: 'POST' })
             .then(r => r.json())
-            .then(d => { if (d.ok) { App.fetchAll(); showToast(`Spec "${id}" archivada`); } else showToast(d.error || 'Error al archivar', 'error'); });
+            .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.archived', id)); } else showToast(d.error || t('specs.toast.archiveErr'), 'error'); });
         }
       });
     });
