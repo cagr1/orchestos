@@ -326,7 +326,8 @@
 .section-title.closed .chev { transform: rotate(-90deg); }
 
 .proposal-card {
-  background: var(--surface); border: 1px solid var(--warning-dim); border-left: 3px solid var(--warning);
+  /* Impeccable audit G.3 (P2) — side-stripe border → fondo tintado, mismo criterio que .proj-helper */
+  background: color-mix(in oklab, var(--warning) 8%, var(--surface)); border: 1px solid var(--warning-dim);
   border-radius: var(--radius-lg); padding: 13px 15px; display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
 }
 .proposal-card .pc-main { flex: 1; }
@@ -347,9 +348,15 @@
 .proj-editor-wrap { display: flex; flex-direction: column; gap: 10px; }
 .proj-helper {
   font-size: 12.5px; color: var(--text-muted); line-height: 1.6;
-  background: var(--surface); border: 1px solid var(--border);
-  border-left: 3px solid var(--accent); border-radius: var(--radius-lg);
+  /* Impeccable audit G.3 (P2) — antes tenía border-left de 3px como acento,
+     el "side-stripe border" que Impeccable marca como nunca intencional.
+     Fondo tintado con el mismo color en vez de un borde lateral. */
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
   padding: 10px 14px;
+}
+.proj-helper.warn {
+  background: color-mix(in oklab, var(--warning) 8%, var(--surface));
 }
 .proj-editor {
   width: 100%; box-sizing: border-box; min-height: 420px; resize: vertical;
@@ -372,8 +379,8 @@
 /* ---------- SPECS ---------- */
 .spec-explainer {
   display: flex; align-items: flex-start; gap: 12px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
+  /* Impeccable audit G.3 (P2) — side-stripe border → fondo tintado */
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface)); border: 1px solid var(--border);
   border-radius: var(--radius-lg); padding: 13px 16px;
   font-size: 13px; color: var(--text-muted); line-height: 1.6;
   margin-bottom: 16px;
@@ -381,7 +388,8 @@
 .spec-explainer-icon { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
 .spec-explainer strong { color: var(--text); }
 
-.spec-detail { background: var(--bg); border-left: 2px solid var(--accent); padding: 16px 18px; display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+/* Impeccable audit G.3 (P2) — border-left quitado; borde superior sutil basta para separar el panel de detalle expandido de la fila */
+.spec-detail { background: var(--bg); border-top: 1px solid var(--border); padding: 16px 18px; display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
 .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
 .stat-box .n { font-size: 22px; font-weight: 700; font-family: var(--mono); }
 .stat-box .l { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }

@@ -95,6 +95,12 @@ button { font-family: inherit; }
   padding: 0 18px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  /* Impeccable audit G.1 (P1) — grid items default to min-width:auto, así
+     que su contenido intrínseco (texto mono, badges) podía forzar la
+     columna `1fr` de .app más ancha que el viewport pese a overflow-x:hidden
+     acá y en .main — bug clásico de CSS Grid, confirmado en vivo a 375px
+     (contenido cortado en el borde derecho). */
+  min-width: 0;
 }
 .brand {
   display: flex;
@@ -245,6 +251,7 @@ button { font-family: inherit; }
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
+  min-width: 0; /* ver comentario en .header — mismo fix, mismo motivo */
 }
 .screen { padding: 22px 26px 40px; max-width: 1280px; margin: 0 auto; }
 .screen-head {
@@ -489,6 +496,17 @@ select.bare {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast-error { border-color: var(--error); color: var(--error); }
+
+/* ── Mobile (Impeccable audit G.1, P1) ────────────────
+   min-width:0 en .header/.main (arriba) ya resuelve el overflow real —
+   esto además retira elementos secundarios del header para que lo que
+   queda (marca, estado) tenga aire en pantallas angostas. */
+@media (max-width: 640px) {
+  .header { gap: 10px; padding: 0 12px; }
+  .header .screen-title,
+  .header .active-counter { display: none; }
+  .screen { padding: 16px 14px 32px; }
+}
 
 /* ── Reduced motion ───────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {

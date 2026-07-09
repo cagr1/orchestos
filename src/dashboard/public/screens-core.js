@@ -425,7 +425,7 @@ SCREENS.tasks = {
         <div class="kv"><span class="k">${t('tasks.diagnose.confidence')}</span><span class="v">${t(confKey)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.suggestion')}</span><span class="v">${esc(d.suggestion)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.details')}</span><span class="v">${esc(d.details)}</span></div>
-        ${d.lastErrorResult ? `<div class="kv"><span class="k">${t('tasks.diagnose.lastError')}</span><div class="v"><pre style="white-space:pre-wrap;font-size:12px;max-height:200px;overflow:auto;background:#1a1a2e;padding:8px;border-radius:4px;margin:4px 0">${esc(d.lastErrorResult)}</pre></div></div>` : ''}
+        ${d.lastErrorResult ? `<div class="kv"><span class="k">${t('tasks.diagnose.lastError')}</span><div class="v"><pre style="white-space:pre-wrap;font-size:12px;max-height:200px;overflow:auto;background:var(--bg);padding:8px;border-radius:4px;margin:4px 0">${esc(d.lastErrorResult)}</pre></div></div>` : ''}
         <div class="diag-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
           <div style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px">
             <span style="font-size:12px;white-space:nowrap">${t('modal.task.model.label')}</span>
@@ -572,7 +572,7 @@ SCREENS.tasks = {
             ? `<span class="diag-link" data-diag="${esc(task.id)}">${open ? '▲' : '▼'}</span>`
             : `<span class="diag-link" data-diag="${esc(task.id)}">${t('tasks.diagnose.btn')}</span>`)
         : '';
-      const main = `<tr class="row ${open ? 'open' : ''}" data-task="${esc(task.id)}" title="${esc(task.description)}">
+      const main = `<tr class="row ${open ? 'open' : ''}" data-task="${esc(task.id)}" title="${esc(task.description)}" tabindex="0">
         <td><span class="badge ${STATUS_BADGE[task.status] || 'gray'}"><span class="d"></span>${esc(task.status)}</span></td>
         <td class="mono" style="color:var(--text);white-space:nowrap">${esc(task.id)}${skillBadge}</td>
         <td style="max-width:400px;color:var(--text-muted)">${esc(desc)}</td>
@@ -900,7 +900,7 @@ SCREENS.memory = {
     // Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos memory conflicts` no tenía
     // ninguna superficie en el dashboard, ni siquiera de solo lectura.
     const conflicts = st.memoryConflicts || [];
-    const conflictsPanel = conflicts.length === 0 ? '' : `<div class="proj-helper" style="border-left-color:var(--warning, #e0a030)">
+    const conflictsPanel = conflicts.length === 0 ? '' : `<div class="proj-helper warn">
       <strong>${t('memory.conflicts.title', conflicts.length)}</strong>
       <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">${conflicts.map(c =>
         `<div style="display:flex;gap:10px;font-size:12.5px"><span>${esc(c.relation)}</span><span class="muted">${esc(formatLocalDate(c.created_at, { dateOnly: true }))} · ${esc(c.confidence)}</span></div>`

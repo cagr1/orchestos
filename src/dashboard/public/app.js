@@ -1693,6 +1693,19 @@ function boot() {
     list.innerHTML = buildComboOptions(locals, allCloud, hidden ? hidden.value : '', search.value);
   });
 
+  // 2026-07-08 (Impeccable audit G.2, P1) — filas clicables de tabla
+  // (Tasks/Runs/Specs, todas `tabindex="0"`) no tenían forma de abrirse con
+  // teclado — Enter/Espacio no hacía nada pese a poder enfocarlas con Tab.
+  // Mismo patrón que el sidebar (`[role="button"]` + keydown), delegado una
+  // sola vez acá para cubrir las 3 tablas sin wiring por pantalla.
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const row = e.target.closest('tr[data-task], tr[data-run], tr[data-spec]');
+    if (!row) return;
+    e.preventDefault();
+    row.click();
+  });
+
   // First render with loading state, then fetch
   App.rerender();
   App.fetchAll();
