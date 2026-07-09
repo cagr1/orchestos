@@ -521,6 +521,21 @@ para Anthropic/OpenAI directos) — no bloquea el OCR de Mes 19 (Tesseract corre
 depender de ningún proveedor, así que no hereda esta limitación). Se pinea acá para no perderlo,
 con la captura de Hermes como referencia de diseño concreta.
 
+**Actualización (2026-07-09) — leído el repo real de Hermes** (`NousResearch/hermes-agent`,
+verificado vía `gh api`: MIT, Python, 212K⭐, activo): su `.env.example` (476 líneas) confirma el
+patrón exacto que hace esto barato de implementar — **13 proveedores de LLM** (OpenRouter,
+NovitaAI, Google AI Studio/Gemini, Ollama Cloud, z.ai/GLM, Kimi/Moonshot, Arcee AI, MiniMax,
+OpenCode Zen, OpenCode Go, Hugging Face Inference, Qwen OAuth, Xiaomi MiMo) siguen **el mismo
+molde**: `{PROVIDER}_API_KEY` + `{PROVIDER}_BASE_URL` opcional (override del endpoint por defecto,
+compatible con el formato OpenAI). Esto quiere decir que la mayoría de proveedores nuevos NO
+necesitan un cliente bespoke como `anthropic.ts`/`openai.ts` — **un solo cliente HTTP genérico
+"OpenAI-compatible" con `baseURL` configurable** cubriría casi todos, y sería la forma barata de
+cerrar el gap de #31 sin escribir un wrapper por proveedor. Fuera de LLM, el mismo repo también
+tiene integraciones de plataforma (Slack/Telegram/MS Teams/Google Chat), STT/TTS (relevante para
+IDEAS #8, micrófono/dictado), terminal tool con backends SSH/sudo/Modal cloud, y compresión de
+contexto automática — todo documentado abajo en "Referencia — inspiración externa" con lo que
+aplica y lo que no.
+
 **Esfuerzo**: alto — toca el schema de config, la UI de Settings/API & Models, el selector de
 modelos del Chat, y potencialmente un catálogo de capacidades propio por proveedor directo.
 
@@ -528,8 +543,9 @@ modelos del Chat, y potencialmente un catálogo de capacidades propio por provee
 
 ## 📚 Referencia — inspiración externa (NO es backlog)
 
-Repos analizados durante Mes 5-8. La mayoría de patrones ya están shipeados; esto queda
-como mapa de procedencia. El único pendiente vivo (`Design.md condicional`) está arriba (#6).
+Repos analizados durante Mes 5-8, más adiciones puntuales cuando aparece un repo real relevante
+(ej. Hermes Agent, Mes 19). La mayoría de patrones ya están shipeados; esto queda como mapa de
+procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-proveedor (#31).
 
 ### Patrones extraídos → estado
 
@@ -574,6 +590,20 @@ como mapa de procedencia. El único pendiente vivo (`Design.md condicional`) est
   agnóstico de harness, recomendado por usuario externo en producción ~1 año. Aportó:
   WHEN/THEN scenarios, capabilities contract, archive con fecha, delta headers. Pendiente:
   design.md condicional. NO aplica: carpetas por feature, slash commands `/opsx:*`.
+- **Hermes Agent** (NousResearch, ~212K⭐) — https://github.com/NousResearch/hermes-agent ·
+  agente conversacional Python, analizado 2026-07-09 (traído por Carlos, evaluando el OCR del
+  Chat de Mes 19). Aportó: el patrón de "helper tasks" — modelo dedicado opcional por función
+  transversal (Vision/Web extract/Compression/Skills hub/Approval/MCP/Title gen/Curator, cada
+  uno "auto · use main model" por defecto) — ver #31, mismo principio que ya usan los roles de
+  `orchestos.config.yaml`, aplicado con más granularidad; y el molde genérico
+  `{PROVIDER}_API_KEY`+`{PROVIDER}_BASE_URL` (OpenAI-compatible) que cubre 13 proveedores de LLM
+  sin cliente bespoke por proveedor — la forma barata de resolver #31 cuando se implemente. **NO
+  aplica** (fuera del alcance de OrchestOS como orquestador local de desarrollo, no un agente de
+  uso general): integraciones de plataforma (Slack/Telegram/MS Teams/Google Chat), terminal tool
+  con backends SSH/sudo/Modal cloud, browser tool (Browserbase), skill Hyperliquid. **Posible
+  candidato futuro, no pineado todavía**: compresión automática de contexto en conversaciones
+  largas (relacionado con IDEAS #17, chat multi-sesión + aviso al 75% de contexto) y STT/TTS
+  (relacionado con IDEAS #8, micrófono/dictado, ya gated).
 
 ---
 
