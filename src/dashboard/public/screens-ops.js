@@ -973,6 +973,17 @@ SCREENS.settings = {
   render(st) {
     const keys = st.settings || {};
     const lang = getLang();
+    const theme = getTheme();
+    const THEME_LABELS = { orchestos: 'settings.theme.orchestos', dark2026: 'settings.theme.dark2026', bright: 'settings.theme.bright' };
+    const themePicker = `<div class="card settings-card">
+      <div class="settings-header"><h3>${t('settings.theme.title')}</h3></div>
+      <div class="theme-picker">
+        ${THEMES.map(id => `<button class="theme-opt ${theme === id ? 'active' : ''}" data-theme-opt="${id}">
+          <span class="theme-swatch" data-swatch="${id}"><span class="sw-side"></span><span class="sw-main"><span class="sw-dot"></span></span></span>
+          <span class="theme-opt-label">${t(THEME_LABELS[id])}</span>
+        </button>`).join('')}
+      </div>
+    </div>`;
     const setupTitle = st.setup?.criticalMissing ? t('setup.title') : t('settings.title');
     const setupSubtitle = st.setup?.criticalMissing ? t('setup.subtitle') : t('settings.subtitle');
     const head = `<div class="screen-head">
@@ -1046,6 +1057,7 @@ SCREENS.settings = {
 
           <section class="settings-panel${sec === 'general' ? ' active' : ''}" data-panel="general">
             ${this.setupChecklist(st)}
+            ${themePicker}
           </section>
 
           <section class="settings-panel${sec === 'keys' ? ' active' : ''}" data-panel="keys">
@@ -1251,6 +1263,12 @@ SCREENS.settings = {
     // Language selector
     root.querySelectorAll('[data-lang]').forEach(btn => btn.addEventListener('click', () => {
       setLang(btn.dataset.lang);
+      App.rerender();
+    }));
+
+    // Theme selector
+    root.querySelectorAll('[data-theme-opt]').forEach(btn => btn.addEventListener('click', () => {
+      setTheme(btn.dataset.themeOpt);
       App.rerender();
     }));
 

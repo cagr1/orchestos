@@ -44,6 +44,71 @@
 
   --mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', ui-monospace, 'Menlo', monospace;
   --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   Temas alternativos — Settings→General→Appearance (theme.js
+   fija data-theme en <html> antes del primer paint). El bloque
+   :root de arriba es el tema "orchestos" (default histórico); los
+   tokens derivados (--accent-dim, --success-dim, etc., definidos
+   con color-mix(var(--accent)...)) se recalculan solos por cascada,
+   no hace falta redeclararlos por tema.
+   ============================================================ */
+
+/* "Dark 2026" — paleta del tema por defecto nuevo de VS Code (bundled,
+   theme-defaults/themes/2026-dark.json), no una extensión de terceros.
+   Fondo cálido casi-negro en vez del azulado de GitHub Dark, acento
+   teal-azul desaturado. */
+html[data-theme="dark2026"] {
+  --bg:            #121314;
+  --surface:       #191a1b;
+  --surface-2:     #202122;
+  --surface-hi:    #242526;
+  --border:        #2a2b2c;
+  --border-soft:   #242526;
+
+  --text:          #bfbfbf;
+  --text-muted:    #8c8c8c;
+  --text-faint:    #707070;
+
+  --accent:        #3994bc;
+
+  --success:       #73c991;
+  --error:         #f48771;
+  --warning:       #e5ba7d;
+
+  --term-bg:       #0c0d0e;
+  --term-green:    #6ab890;
+
+  color-scheme: dark;
+}
+
+/* "Bright" — tema claro, mismo origen (theme-defaults/themes/2026-light.json)
+   para quedar en pareja con "Dark 2026". */
+html[data-theme="bright"] {
+  --bg:            #ffffff;
+  --surface:       #fafafd;
+  --surface-2:     #f2f3f5;
+  --surface-hi:    #eceef0;
+  --border:        #dfe1e4;
+  --border-soft:   #ebecee;
+
+  --text:          #202020;
+  --text-muted:    #606060;
+  --text-faint:    #8a8a8a;
+
+  --accent:        #0069cc;
+
+  --success:       #2e7d32;
+  --error:         #ad0707;
+  --warning:       #8a6d1a;
+
+  --term-bg:       #14171a;
+  --term-green:    #3fa563;
+
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }

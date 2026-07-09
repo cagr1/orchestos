@@ -283,6 +283,39 @@
 .lang-opt:hover { background: var(--surface-2); color: var(--text); }
 .lang-opt.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
+/* ---------- THEME PICKER (Settings→General→Appearance) ----------
+   Swatches en colores fijos por tema (no var(--...)) porque tienen que
+   representar el tema de la opción, no el tema activo — al estilo del
+   selector de apariencia de macOS. */
+.theme-picker { display: flex; gap: 14px; padding: 16px 18px; flex-wrap: wrap; }
+.theme-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius-lg);
+  padding: 8px; cursor: pointer; transition: background .12s, border-color .12s;
+}
+.theme-opt:hover { background: var(--surface-2); }
+.theme-opt.active { border-color: var(--accent); }
+.theme-swatch {
+  width: 88px; height: 56px; border-radius: 8px; overflow: hidden;
+  display: grid; grid-template-columns: 20px 1fr;
+  border: 1px solid rgba(127, 127, 127, .35);
+}
+.theme-swatch .sw-side { grid-column: 1; }
+.theme-swatch .sw-main { grid-column: 2; position: relative; }
+.theme-swatch .sw-dot { position: absolute; width: 13px; height: 13px; border-radius: 50%; top: 8px; left: 8px; }
+.theme-opt-label { font-size: 12px; color: var(--text-muted); }
+.theme-opt.active .theme-opt-label { color: var(--text); font-weight: 600; }
+
+.theme-swatch[data-swatch="orchestos"] .sw-side  { background: #161b22; }
+.theme-swatch[data-swatch="orchestos"] .sw-main  { background: #0d1117; }
+.theme-swatch[data-swatch="orchestos"] .sw-dot   { background: #58a6ff; }
+.theme-swatch[data-swatch="dark2026"] .sw-side   { background: #191a1b; }
+.theme-swatch[data-swatch="dark2026"] .sw-main   { background: #121314; }
+.theme-swatch[data-swatch="dark2026"] .sw-dot    { background: #3994bc; }
+.theme-swatch[data-swatch="bright"] .sw-side     { background: #fafafd; }
+.theme-swatch[data-swatch="bright"] .sw-main     { background: #ffffff; }
+.theme-swatch[data-swatch="bright"] .sw-dot      { background: #0069cc; }
+
 .modal .m-field select {
   width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
   color: var(--text); padding: 9px 11px; font-family: inherit; font-size: 13.5px; outline: none;
