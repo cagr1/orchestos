@@ -8,6 +8,7 @@ import {
   hasRealContextWindow,
   supportsReasoningEffort,
   catalogSupportsTools,
+  supportsVisionInput,
   _resetCatalog,
 } from '../router/model-catalog.ts'
 
@@ -169,6 +170,35 @@ describe('model-catalog', () => {
       expect(catalogSupportsTools('no/params-field')).toBe(false)
       // id que ni siquiera está en el catálogo (offline/desconocido) → false, nunca asume soporte.
       expect(catalogSupportsTools('totally/unknown-model')).toBe(false)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  // J.2 (Mes 18) — bug real: el chat mandaba imágenes sin chequear si el
+  // modelo elegido las soporta. supportsVisionInput lee architecture.input_modalities.
+  it('supportsVisionInput lee architecture.input_modalities del catálogo real', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({
+        data: [
+          { id: 'openai/gpt-4o', context_length: 128_000, pricing: { prompt: '0.0000025' }, architecture: { input_modalities: ['text', 'image'] } },
+          { id: 'deepseek/deepseek-v4-flash', context_length: 1_000_000, pricing: { prompt: '0.00000009' }, architecture: { input_modalities: ['text'] } },
+          { id: 'no/architecture-field', context_length: 32_000, pricing: { prompt: '0.0000001' } },
+        ],
+      }),
+      { status: 200 },
+    )) as unknown as typeof fetch
+
+    try {
+      await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
+      expect(supportsVisionInput('openai/gpt-4o')).toBe(true)
+      expect(supportsVisionInput('deepseek/deepseek-v4-flash')).toBe(false)
+      expect(supportsVisionInput('no/architecture-field')).toBe(false)
+      // id que ni siquiera está en el catálogo (offline/desconocido) → false, nunca asume soporte.
+      expect(supportsVisionInput('totally/unknown-model')).toBe(false)
+      // Ollama local nunca está en el catálogo de OpenRouter — siempre false, sin excepción.
+      expect(supportsVisionInput('ollama/llava')).toBe(false)
     } finally {
       globalThis.fetch = originalFetch
     }

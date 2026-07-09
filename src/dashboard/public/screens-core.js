@@ -99,10 +99,15 @@ SCREENS.chat = {
         </div>`
       : '';
 
-    // D4 — "Create task" bar (visible after 4+ messages)
-    const createTaskBar = history.length >= 3
+    // D4 — "Create task" bar (visible after 3+ mensajes, red de respaldo).
+    // J.1 (Mes 18) — B.1.b: si el clasificador semántico marcó el ÚLTIMO
+    // mensaje como tarea, la barra aparece ya (sin esperar al conteo),
+    // citando su `reason` en vez del hint genérico.
+    const showByCount = history.length >= 3;
+    const suggestion = !showByCount ? st.chatTaskSuggestion : null;
+    const createTaskBar = (showByCount || suggestion)
       ? `<div class="chat-create-task-bar">
-          <span class="chat-create-task-hint">${t('chat.createTaskHint')}</span>
+          <span class="chat-create-task-hint">${suggestion ? esc(suggestion.reason) : t('chat.createTaskHint')}</span>
           <button class="btn primary sm" data-act="chat-create-task">${ICON.tasks} ${t('chat.createTask')}</button>
         </div>`
       : '';
@@ -184,8 +189,16 @@ SCREENS.chat = {
         if (res.ok) {
           const data = await res.json();
           st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model });
+          // J.1 (Mes 18) — B.1.b: si el clasificador marcó el mensaje como
+          // tarea, la barra aparece ya (sin esperar a 3+ mensajes) citando su reason.
+          st.chatTaskSuggestion = data.taskSuggestion || null;
         } else {
-          st.chatHistory.push({ role: 'assistant', content: t('chat.err.general') });
+          // J.2/J.3 (Mes 18) — antes se perdía el mensaje de error real del
+          // servidor (imagen sin soporte de visión, contexto insuficiente) y
+          // se mostraba siempre el mismo genérico.
+          let data = null;
+          try { data = await res.json(); } catch {}
+          st.chatHistory.push({ role: 'assistant', content: (data && data.error) || t('chat.err.general') });
         }
       } catch {
         st.chatHistory.push({ role: 'assistant', content: t('chat.err.conn') });
@@ -205,6 +218,7 @@ SCREENS.chat = {
       st.chatPending = false;
       st.chatFileId = null;
       st.chatFileMeta = null;
+      st.chatTaskSuggestion = null;
       App.rerender();
     });
 

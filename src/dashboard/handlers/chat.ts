@@ -14,8 +14,9 @@ import { readEnv } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL, READ_FILE_TOOL, createToolRouter, supportsToolCalling } from '../../providers/tool-call.ts'
 import { checkSsrSafe } from '../ssrf.ts'
-import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, maxOutputTokensFor, DEFAULT_MAX_OUTPUT_TOKENS } from '../../router/model-catalog.ts'
+import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, maxOutputTokensFor, DEFAULT_MAX_OUTPUT_TOKENS, supportsVisionInput } from '../../router/model-catalog.ts'
 import { estimateTokens } from '../../context/compress.ts'
+import { classifyTaskIntent } from '../../chat/classify-task-intent.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = typeof VALID_EFFORTS[number]
@@ -325,9 +326,18 @@ async function handleApiChat(req: Request): Promise<Response> {
   const rawHistory = Array.isArray(body.history) ? body.history : []
   const history = rawHistory.slice(-10)
 
-  // B.1 (Mes 18) — gate de evidencia: mismo umbral que chat-create-task-bar en
-  // screens-core.js (`history.length >= 3`, contando el mensaje recién enviado).
-  logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown: rawHistory.length + 1 >= 3 })
+  // J.1 (Mes 18, 2026-07-09) — B.1.b activado con evidencia real (34 mensajes,
+  // 2 falsos negativos confirmados en chat_task_bar_events). La heurística de
+  // 3+ mensajes sigue como red de respaldo (diseño (c) de A.1): el
+  // clasificador solo corre si el conteo TODAVÍA no mostró la barra — no se
+  // gasta el call si ya se iba a mostrar igual.
+  const barShownByCount = rawHistory.length + 1 >= 3
+  let taskSuggestion: { isTask: boolean; reason: string } | null = null
+  if (!barShownByCount) {
+    taskSuggestion = await classifyTaskIntent(message)
+  }
+  const barShown = barShownByCount || !!taskSuggestion?.isTask
+  logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown })
 
   let attachedFile: FileEntry | null = null
   if (body.fileId) {
@@ -413,6 +423,17 @@ Important: you cannot modify files or run code directly from this chat. However,
     .filter(h => h.role === 'user' || h.role === 'assistant')
     .map(h => ({ role: h.role as 'user' | 'assistant', content: String(h.content) }))
 
+  // J.2 (Mes 18) — bug real encontrado en dogfooding (2026-07-09): el chat
+  // mandaba el image_url block sin chequear si el modelo elegido soporta
+  // visión — con un modelo sin visión la imagen se manda y se ignora en
+  // silencio, el usuario ve "no cargó mi imagen" sin ninguna explicación.
+  if (attachedFile?.type === 'image' && !isOllama && !supportsVisionInput(model)) {
+    return errorResponse(
+      `The model "${model}" does not support image input. Choose a vision-capable model (e.g. a Claude, GPT-4o, or Gemini model) to use this image, or remove it and continue with text only.`,
+      422,
+    )
+  }
+
   if (attachedFile) {
     if (attachedFile.type === 'image') {
       messages.push({
@@ -435,7 +456,7 @@ Important: you cannot modify files or run code directly from this chat. However,
     if (isOllama) {
       const bareModel = model.replace('ollama/', '')
       const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages })
-      return jsonResponse({ text: resp.text, model: resp.model })
+      return jsonResponse({ text: resp.text, model: resp.model, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null })
     }
 
     // Presupuesto real derivado del catálogo — nunca un número hardcodeado
@@ -456,6 +477,21 @@ Important: you cannot modify files or run code directly from this chat. However,
     // Mismo bug y mismo fix que harness.ts aplicó en G.5 (2026-07-02) — nunca
     // se había replicado acá. Reproducido en vivo: claude-haiku-4-5 pidiendo
     // ~196K de salida contra una ventana de 200K → 400 del proveedor.
+    // J.3 (Mes 18, 2026-07-09): lo de arriba clampea el presupuesto de SALIDA,
+    // pero si el prompt en sí ya no entra (`available` muy negativo), seguía
+    // cayendo a DEFAULT_MAX_OUTPUT_TOKENS e intentando la llamada igual — el
+    // proveedor la rechaza con un 400 genérico ("maximum context length
+    // exceeded") que el usuario ve como un error opaco. harness.ts resuelve
+    // esto dejando la tarea `pending`; el chat no puede — es interactivo, el
+    // usuario está esperando ahí — así que en vez de reintentar a ciegas,
+    // avisamos claro ANTES de gastar la llamada.
+    const CHAT_MIN_OUTPUT_BUDGET = 512
+    if (available < CHAT_MIN_OUTPUT_BUDGET) {
+      return errorResponse(
+        `This conversation plus the project context (~${promptTokens} tokens) leaves no room to reply within "${model}"'s context window (${contextWindowFor(model)} tokens). Try a model with a bigger context window, or start a new/shorter conversation.`,
+        422,
+      )
+    }
     const providerMaxOutput = maxOutputTokensFor(model)
     const clamped = providerMaxOutput > 0 ? Math.min(available, providerMaxOutput) : available
     const chatMaxTokens = clamped > 0 ? clamped : DEFAULT_MAX_OUTPUT_TOKENS
@@ -477,7 +513,7 @@ Important: you cannot modify files or run code directly from this chat. However,
         maxTokens: chatMaxTokens,
       })
       logChatRun(message, model, result.inputTokens, result.outputTokens)
-      return jsonResponse({ text: result.text, model, toolCalls: result.toolCallsExecuted })
+      return jsonResponse({ text: result.text, model, toolCalls: result.toolCallsExecuted, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null })
     }
 
     const resp = await openrouterChat({
@@ -488,7 +524,7 @@ Important: you cannot modify files or run code directly from this chat. However,
       maxTokens: chatMaxTokens,
     })
     logChatRun(message, resp.model, resp.inputTokens, resp.outputTokens)
-    return jsonResponse({ text: resp.text, model: resp.model })
+    return jsonResponse({ text: resp.text, model: resp.model, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null })
   } catch (e: any) {
     return errorResponse(`Chat failed: ${e.message}`, 502)
   }

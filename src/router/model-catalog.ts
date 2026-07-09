@@ -42,6 +42,8 @@ export interface ModelInfo {
   supportsTools: boolean
   /** Tope real de tokens de salida del proveedor (`top_provider.max_completion_tokens`), 0 si desconocido. */
   maxOutputTokens: number
+  /** True si OpenRouter publica `"image"` en `architecture.input_modalities` — el modelo acepta input multimodal (visión). */
+  supportsVision: boolean
 }
 
 /** Fallback cuando el modelo no está en catálogo (offline / id desconocido / Ollama local) — mismo valor que se usaba hardcodeado antes de leer el catálogo real. */
@@ -115,6 +117,7 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
       pricing?: { prompt?: string; completion?: string }
       supported_parameters?: string[]
       top_provider?: { max_completion_tokens?: number }
+      architecture?: { input_modalities?: string[] }
     }>
   }
   const models: Record<string, ModelInfo> = {}
@@ -132,6 +135,7 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
       supportsReasoning: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
       supportsTools: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('tools'),
       maxOutputTokens: typeof m.top_provider?.max_completion_tokens === 'number' ? m.top_provider.max_completion_tokens : 0,
+      supportsVision: Array.isArray(m.architecture?.input_modalities) && m.architecture!.input_modalities!.includes('image'),
     }
   }
   return models
@@ -215,6 +219,18 @@ export function hasRealContextWindow(modelId: string): boolean {
  */
 export function supportsReasoningEffort(modelId: string): boolean {
   return !!memoryCatalog?.get(modelId)?.supportsReasoning
+}
+
+/**
+ * J.2 (Mes 18) — True si el modelo acepta input de imagen (`architecture.input_modalities`
+ * incluye `"image"` en OpenRouter). Bug real encontrado en dogfooding (2026-07-09): el chat
+ * mandaba el `image_url` block sin chequear esto — con un modelo sin visión la imagen se
+ * ignoraba en silencio. False si el catálogo no tiene el id — nunca asume soporte sin dato real
+ * (mismo fail-safe que supportsReasoningEffort/catalogSupportsTools).
+ */
+export function supportsVisionInput(modelId: string): boolean {
+  if (modelId.startsWith('ollama/')) return false
+  return !!memoryCatalog?.get(modelId)?.supportsVision
 }
 
 /**
