@@ -105,6 +105,12 @@ export function upsertMemory(
   return { id, candidates }
 }
 
+// I.8 (Mes 18) — Memory (entries) no tenía forma de borrar registros desde el dashboard.
+export function deleteMemoryEntry(id: string): boolean {
+  const result = db.run('DELETE FROM memory_entries WHERE id = ?', [id])
+  return result.changes > 0
+}
+
 export function getMemory(projectId: string, topicKey: string): MemoryEntry | null {
   return db.query<MemoryEntry, [string, string]>(
     'SELECT * FROM memory_entries WHERE project_id = ? AND topic_key = ?'

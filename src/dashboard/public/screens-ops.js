@@ -251,12 +251,17 @@ SCREENS.instincts = {
            <span class="mono faint" style="font-size:11px" data-conf-val="${esc(i.id)}">${Math.round(i.confidence * 100)}%</span>
          </div>`
       : '';
+    // I.8 (Mes 18) — un instinct ya aprobado no tenía ninguna acción, solo
+    // el badge de estado. Botón de borrar chico junto al badge.
     const actions = !i.verified
       ? `<div class="inline-actions">
            <button class="btn success sm" data-approve="${esc(i.id)}">${ICON.check} ${t('instincts.btn.approve')}</button>
            <button class="btn danger sm" data-reject="${esc(i.id)}">${ICON.x} ${t('instincts.btn.reject')}</button>
          </div>`
-      : `<span class="badge ${v.cls} instinct-state"><span class="d"></span>${v.txt}</span>`;
+      : `<div class="inline-actions">
+           <span class="badge ${v.cls} instinct-state"><span class="d"></span>${v.txt}</span>
+           <button class="btn ghost sm" data-delete-instinct="${esc(i.id)}" title="${t('instincts.btn.delete')}" aria-label="${t('instincts.btn.delete')}">${ICON.trash}</button>
+         </div>`;
     return `<tr class="${!i.verified ? 'proposal' : ''}">
       <td><span class="mono" style="color:var(--text)">${esc(i.trigger)}</span></td>
       <td class="muted">${esc(i.action)}</td>
@@ -348,6 +353,17 @@ SCREENS.instincts = {
       try {
         const res = await fetch(`/api/instincts/${encodeURIComponent(id)}/reject`, { method: 'POST' });
         if (res.ok) await App.fetchInstincts();
+      } finally { b.disabled = false; }
+    }));
+    // I.8 (Mes 18) — borrar un instinct ya aprobado/activo.
+    root.querySelectorAll('[data-delete-instinct]').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm(t('instincts.delete.confirm'))) return;
+      const id = b.dataset.deleteInstinct;
+      b.disabled = true;
+      try {
+        const res = await fetch(`/api/instincts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) await App.fetchInstincts();
+        else showToast(t('instincts.delete.err'), 'error');
       } finally { b.disabled = false; }
     }));
 
@@ -457,7 +473,12 @@ SCREENS.runs = {
       ${r.elapsedMs ? `<div class="kv"><span class="k">${t('runs.detail.elapsed')}</span><span class="v">${(r.elapsedMs / 1000).toFixed(1)}s</span></div>` : ''}
     </div>`;
 
-    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${bd}${warns}${qa}${meta}</div></td></tr>`;
+    // I.8 (Mes 18) — Runs no tenía forma de borrar registros viejos.
+    const deleteAction = `<div class="grp" style="margin-top:2px">
+      <button class="btn danger sm" data-run-act="delete" data-run-id="${esc(r.id)}">${ICON.trash} ${t('runs.btn.delete')}</button>
+    </div>`;
+
+    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${bd}${warns}${qa}${meta}${deleteAction}</div></td></tr>`;
   },
   render(st) {
     const hasRunning = (st.runs || []).some(r => r.status === 'running');
@@ -590,6 +611,21 @@ SCREENS.runs = {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
       });
     });
+
+    // I.8 (Mes 18) — borrar un run viejo desde el detail expandido.
+    root.querySelectorAll('[data-run-act="delete"]').forEach(btn => btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!confirm(t('runs.delete.confirm'))) return;
+      const id = btn.dataset.runId;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/runs/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) { st.openRun = null; await App.fetchRuns(); App.rerender(); }
+        else showToast(t('runs.delete.err'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }));
   },
 };
 
@@ -1323,10 +1359,14 @@ SCREENS.specs = {
       : '';
     const canApprove = s.status === 'draft' && s.clarify !== 'pending';
     const canArchive = s.status !== 'archived';
+    // I.8 (Mes 18) — borrado permanente solo para specs ya archivadas (soft
+    // delete primero, hard delete después — nunca sobre drafts/approved activos).
+    const canDelete = s.status === 'archived';
     const actions = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
       ${canApprove ? `<button class="btn sm" data-spec-act="approve" data-spec-id="${esc(s.id)}">${ICON.check} ${t('specs.btn.approve')}</button>` : ''}
       <button class="btn sm ghost" data-spec-act="lint" data-spec-id="${esc(s.id)}">${ICON.search} Lint</button>
       ${canArchive ? `<button class="btn sm ghost" data-spec-act="archive" data-spec-id="${esc(s.id)}">${ICON.inbox} ${t('specs.btn.archive')}</button>` : ''}
+      ${canDelete ? `<button class="btn sm danger" data-spec-act="delete" data-spec-id="${esc(s.id)}">${ICON.trash} ${t('specs.btn.delete')}</button>` : ''}
     </div>`;
     return `<tr class="detail-row"><td colspan="5"><div class="spec-detail">
       <div class="stat-box ${s.lintFindings > 0 ? 'bad' : 'ok'}"><div class="n">${s.lintFindings}</div><div class="l">${t('specs.stat.lintFindings')}</div></div>
@@ -1427,6 +1467,11 @@ SCREENS.specs = {
           fetch(`/api/specs/${encodeURIComponent(id)}/archive`, { method: 'POST' })
             .then(r => r.json())
             .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.archived', id)); } else showToast(d.error || t('specs.toast.archiveErr'), 'error'); });
+        } else if (act === 'delete') {
+          if (!confirm(t('specs.delete.confirm'))) return;
+          fetch(`/api/specs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(d => { if (d.ok) { st.openSpec = null; App.fetchAll(); showToast(t('specs.toast.deleted', id)); } else showToast(d.error || t('specs.toast.deleteErr'), 'error'); });
         }
       });
     });

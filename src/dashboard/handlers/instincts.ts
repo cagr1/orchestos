@@ -83,4 +83,16 @@ async function handleApiInstinctsSetConfidence(req: Request, url: URL): Promise<
   return jsonResponse(result, ok ? 200 : 404)
 }
 
-export { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence }
+// I.8 (Mes 18) — solo las propuestas sin verificar podían borrarse (vía
+// /reject). Un instinct ya aprobado/activo no tenía forma de eliminarse.
+// DELETE plano, semánticamente separado de /reject (que es una decisión de
+// revisión de propuesta, no un borrado genérico).
+function handleApiInstinctsDelete(url: URL): Response {
+  const id = url.pathname.slice('/api/instincts/'.length)
+  if (!id) return errorResponse('Missing instinct id', 400)
+  const ok = deleteInstinct(id)
+  const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Instinct not found' }
+  return jsonResponse(result, ok ? 200 : 404)
+}
+
+export { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete }

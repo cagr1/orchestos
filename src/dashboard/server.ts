@@ -1,8 +1,8 @@
 import { serveStatic, errorResponse, isSameOrigin } from './http.ts'
-import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve } from './handlers/memory.ts'
-import { handleApiRuns, handleApiRunsAnalyze } from './handlers/runs.ts'
-import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence } from './handlers/instincts.ts'
-import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive } from './handlers/specs.ts'
+import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete } from './handlers/memory.ts'
+import { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete } from './handlers/runs.ts'
+import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete } from './handlers/instincts.ts'
+import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete } from './handlers/specs.ts'
 import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, handleApiTasksExplain } from './handlers/tasks.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiNatural } from './handlers/project.ts'
@@ -27,6 +27,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && (url.pathname === '/api/runs' || url.pathname.startsWith('/api/runs/'))) {
     return handleApiRuns(url)
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
+    return handleApiRunsDelete(url)
   }
   if (method === 'GET' && url.pathname === '/api/tasks') {
     return handleApiTasks()
@@ -63,6 +66,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/reject$/)) {
     return handleApiInstinctsReject(url)
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/instincts\/[^/]+$/)) {
+    return handleApiInstinctsDelete(url)
   }
   if (method === 'POST' && url.pathname === '/api/instincts/propose') {
     return handleApiInstinctsPropose(req)
@@ -165,6 +171,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'POST' && url.pathname.endsWith('/archive')) {
     return handleApiSpecsArchive(req)
   }
+  if (method === 'DELETE' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
+    return handleApiSpecsDelete(req)
+  }
   if (method === 'GET' && url.pathname === '/api/memory/conflicts') {
     return handleApiMemoryConflicts(url)
   }
@@ -173,6 +182,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/memory') {
     return handleApiMemory(url)
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/memory\/[^/]+$/)) {
+    return handleApiMemoryDelete(url)
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
     return await handleApiSettingsGet()

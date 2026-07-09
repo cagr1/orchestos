@@ -1,4 +1,5 @@
-import { listRuns, getRun, type RunRecord } from '../../db/runs.ts'
+import { listRuns, getRun, deleteRun, type RunRecord } from '../../db/runs.ts'
+import type { MutationResult } from '../types.ts'
 import { parseCostBreakdownJson, type CostBreakdownEntry } from '../../run/transcript-parser.ts'
 import type { ContextWarningEntry, RunRow } from '../types.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
@@ -91,4 +92,13 @@ function handleApiRuns(url: URL): Response {
   return jsonResponse(rows.map(runRecordToRow))
 }
 
-export { handleApiRuns, handleApiRunsAnalyze }
+// I.8 (Mes 18) — Runs no tenía forma de borrar registros viejos desde el dashboard.
+function handleApiRunsDelete(url: URL): Response {
+  const id = url.pathname.slice('/api/runs/'.length)
+  if (!id) return errorResponse('Missing run id', 400)
+  const ok = deleteRun(id)
+  const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Run not found' }
+  return jsonResponse(result, ok ? 200 : 404)
+}
+
+export { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete }

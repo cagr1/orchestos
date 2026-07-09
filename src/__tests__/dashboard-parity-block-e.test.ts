@@ -1,8 +1,9 @@
 import { describe, it, expect, afterAll } from 'bun:test'
 import { db } from '../db/sqlite.ts'
-import { insertConflict, resolveConflict } from '../db/memory.ts'
-import { handleApiMemoryConflicts, handleApiMemoryConflictResolve } from '../dashboard/handlers/memory.ts'
-import { handleApiRunsAnalyze } from '../dashboard/handlers/runs.ts'
+import { insertConflict, resolveConflict, upsertMemory } from '../db/memory.ts'
+import { insertRun } from '../db/runs.ts'
+import { handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete } from '../dashboard/handlers/memory.ts'
+import { handleApiRunsAnalyze, handleApiRunsDelete } from '../dashboard/handlers/runs.ts'
 
 // Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos memory conflicts` y
 // `orchestos runs --analyze` ahora tienen equivalente en el dashboard.
@@ -85,5 +86,37 @@ describe('handleApiRunsAnalyze', () => {
     if (data.suggestions) {
       expect(Array.isArray(data.suggestions)).toBe(true)
     }
+  })
+})
+
+// I.8 (Mes 18) — Runs y Memory (entries) ganan su primera acción de borrado.
+describe('handleApiRunsDelete', () => {
+  it('deletes an existing run and 404s on a second delete', async () => {
+    const id = insertRun({
+      project_id: null, prompt: 'i8 test prompt', task_class: 'test', model: 'test-model', provider: 'test',
+      skill_id: null, task_id: null, allowed_outputs: null, files_attempted: null, files_authorized: null,
+      files_blocked: null, snapshot_before: null, snapshot_after: null, qa_verdict: null, qa_reason: null,
+      status: 'done', input_tokens: 1, output_tokens: 1, usd_cost: 0, elapsed_ms: 1, result: null,
+    })
+
+    const res = handleApiRunsDelete(new URL(`http://localhost/api/runs/${id}`))
+    expect(res.status).toBe(200)
+    expect((await res.json() as { ok: boolean }).ok).toBe(true)
+
+    const again = handleApiRunsDelete(new URL(`http://localhost/api/runs/${id}`))
+    expect(again.status).toBe(404)
+  })
+})
+
+describe('handleApiMemoryDelete', () => {
+  it('deletes an existing memory entry and 404s on a second delete', async () => {
+    const { id } = upsertMemory('i8-test-project', 'i8-test-topic', 'i8 test content')
+
+    const res = handleApiMemoryDelete(new URL(`http://localhost/api/memory/${id}`))
+    expect(res.status).toBe(200)
+    expect((await res.json() as { ok: boolean }).ok).toBe(true)
+
+    const again = handleApiMemoryDelete(new URL(`http://localhost/api/memory/${id}`))
+    expect(again.status).toBe(404)
   })
 })

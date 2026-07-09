@@ -1,5 +1,5 @@
 import { db } from '../../db/sqlite.ts'
-import { listConflicts, resolveConflict } from '../../db/memory.ts'
+import { listConflicts, resolveConflict, deleteMemoryEntry } from '../../db/memory.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
 import type { MemoryRow, MutationResult } from '../types.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
@@ -55,4 +55,13 @@ function handleApiMemoryConflictResolve(url: URL): Response {
   return jsonResponse(result, ok ? 200 : 404)
 }
 
-export { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve }
+// I.8 (Mes 18) — Memory (entries) no tenía forma de borrar registros desde el dashboard.
+function handleApiMemoryDelete(url: URL): Response {
+  const id = url.pathname.slice('/api/memory/'.length)
+  if (!id) return errorResponse('Missing entry id', 400)
+  const ok = deleteMemoryEntry(id)
+  const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Entry not found' }
+  return jsonResponse(result, ok ? 200 : 404)
+}
+
+export { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete }

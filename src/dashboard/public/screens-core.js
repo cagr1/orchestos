@@ -951,14 +951,17 @@ SCREENS.memory = {
       const scopeCls = sc => sc === 'session' ? 'amber' : sc === 'project' ? 'blue' : 'green';
       right = rows.length
         ? `<div class="mem-results">` + rows.map(m => `
-          <div class="mem-card" data-topic="${esc(m.topicKey)}" role="button" tabindex="0">
+          <div class="mem-card" data-topic="${esc(m.topicKey)}" data-mem-id="${esc(m.id)}" role="button" tabindex="0">
             <div class="top">
               <span class="topic">${esc(m.topicKey)}</span>
               <span class="badge ${scopeCls(m.scope)} square">${scopeLabel(m.scope)}</span>
               <span class="when">${esc((m.updatedAt || '').slice(0, 10))}</span>
             </div>
             <div class="preview">${esc(m.content)}</div>
-            <div class="full-note"><span>${t('common.expand')}</span></div>
+            <div class="full-note">
+              <span>${t('common.expand')}</span>
+              <button class="btn danger sm mem-delete-btn" data-mem-act="delete" data-mem-id="${esc(m.id)}">${ICON.trash} ${t('memory.btn.delete')}</button>
+            </div>
           </div>`).join('') + `</div>`
         : emptyState(ICON.memory, t('memory.no.title'), q ? t('memory.no.body', esc(q)) : t('memory.empty.body'));
     }
@@ -1002,5 +1005,21 @@ SCREENS.memory = {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.click(); }
       });
     });
+
+    // I.8 (Mes 18) — borrar una memory entry desde la card expandida.
+    root.querySelectorAll('[data-mem-act="delete"]').forEach(btn => btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!confirm(t('memory.delete.confirm'))) return;
+      const id = btn.dataset.memId;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/memory/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) await App.fetchMemory(st.memQuery || undefined);
+        else showToast(t('memory.delete.err'), 'error');
+        App.rerender();
+      } finally {
+        btn.disabled = false;
+      }
+    }));
   },
 };

@@ -365,7 +365,11 @@
 .mem-card .when { margin-left: auto; font-size: 11.5px; color: var(--text-faint); font-family: var(--mono); }
 .mem-card .preview { font-size: 13px; color: var(--text-muted); line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .mem-card.exp .preview { display: block; -webkit-line-clamp: unset; color: var(--text); }
-.mem-card .full-note { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border-soft); font-size: 11.5px; color: var(--text-faint); display: flex; gap: 14px; }
+.mem-card .full-note { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border-soft); font-size: 11.5px; color: var(--text-faint); display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+/* I.8 (Mes 18) — el botón de borrar solo aparece expandida, para que borrar
+   una memoria requiera verla completa primero, no un click accidental. */
+.mem-card .mem-delete-btn { display: none; }
+.mem-card.exp .mem-delete-btn { display: inline-flex; }
 
 /* ---------- INSTINCTS ---------- */
 .conf { display: flex; align-items: center; gap: 9px; min-width: 120px; }

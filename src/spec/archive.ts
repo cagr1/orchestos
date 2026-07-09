@@ -9,7 +9,7 @@
  */
 
 import { join } from 'path'
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
 import { loadSpec, specPath } from './store.ts'
 
 const SPECS_DIR = '.orchestos/specs'
@@ -52,6 +52,21 @@ export function archiveSpec(root: string, taskId: string): ArchiveResult {
   if (existsSync(original)) unlinkSync(original)
 
   return { archivedPath: archiveFile, archivedAt }
+}
+
+/**
+ * I.8 (Mes 18) — Specs solo tenía archive (soft), sin forma de borrar
+ * permanentemente. A propósito solo borra specs YA archivadas — nunca
+ * drafts/approved activos, que deben pasar por archiveSpec() primero.
+ * @returns true si se borró un archivo, false si no se encontró.
+ */
+export function deleteArchivedSpec(root: string, taskId: string): boolean {
+  const archiveDir = join(root, ARCHIVE_DIR)
+  if (!existsSync(archiveDir)) return false
+  const match = readdirSync(archiveDir).find(f => f.endsWith(`-${taskId}.md`))
+  if (!match) return false
+  unlinkSync(join(archiveDir, match))
+  return true
 }
 
 // Exposed for testing — raw serialization shared with store.ts logic

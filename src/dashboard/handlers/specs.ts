@@ -2,7 +2,7 @@ import { resolve, join } from 'path'
 import { listSpecs, loadSpec, saveSpec } from '../../spec/store.ts'
 import { lintSpec } from '../../spec/lint.ts'
 import { validateSpec } from '../../spec/validate.ts'
-import { archiveSpec } from '../../spec/archive.ts'
+import { archiveSpec, deleteArchivedSpec } from '../../spec/archive.ts'
 import type { SpecRow, SpecLintStatus } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
 
@@ -108,4 +108,17 @@ function handleApiSpecsArchive(req: Request): Response {
   }
 }
 
-export { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive }
+// I.8 (Mes 18) — Specs solo tenía archive (soft). A propósito solo borra
+// specs YA archivadas (deleteArchivedSpec busca en .orchestos/specs/archive/,
+// nunca toca drafts/approved activos).
+function handleApiSpecsDelete(req: Request): Response {
+  const id = new URL(req.url).pathname.split('/').pop() ?? ''
+  const taskId = validateTaskId(id)
+  if (!taskId) return errorResponse('taskId inválido', 400)
+  const root = resolve('.')
+  const ok = deleteArchivedSpec(root, taskId)
+  if (!ok) return errorResponse(`No hay spec archivada para "${taskId}"`, 404)
+  return jsonResponse({ ok: true, taskId })
+}
+
+export { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete }
