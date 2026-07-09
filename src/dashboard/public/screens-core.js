@@ -76,7 +76,7 @@ SCREENS.chat = {
       : `assets/${isBrightTheme ? 'AnimatedLogo' : 'AnimatedLogoDark'}.svg`;
 
     const msgs = history.length === 0
-      ? `<div class="chat-empty"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"><p>${t('chat.empty')}</p></div>`
+      ? `<div class="chat-empty"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"></div>`
       : history.map(m => {
           const text = esc(m.content).replace(/\n/g, '<br>');
           const modelTag = m.role === 'assistant' && m.model
