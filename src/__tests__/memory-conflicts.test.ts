@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
 import { runMigrations } from '../db/migrate.ts'
 import { db } from '../db/sqlite.ts'
 
@@ -6,12 +6,28 @@ const { upsertMemory, insertConflict, listConflicts, resolveConflict } = await i
 import type { ConflictRecord } from '../db/memory.ts'
 
 const TEST_PROJECT = 's26-3-test'
+const OTHER_PROJECT = 's26-3-other'
+const EMPTY_PROJECT = 's26-3-empty'
 
 beforeAll(() => {
   runMigrations()
   // clean slate for this test file
   db.run('DELETE FROM memory_conflicts')
   db.run('DELETE FROM memory_entries')
+})
+
+afterAll(() => {
+  // I.6 (Mes 18) — este archivo dejaba ~16 filas de fixture (topic-a..topic-p,
+  // "Alpha"/"Entry A content"/etc.) permanentes en memory_entries: no había
+  // afterAll, a diferencia de memory_conflicts que sí se limpiaba. Eso hacía
+  // que el dashboard real de Carlos mostrara memory cards con contenido de
+  // 1-2 palabras sin sentido, dando la falsa impresión de un bug de UI
+  // (IDEAS.md #20 — no dejar filas de test en la DB real).
+  db.run(
+    `DELETE FROM memory_conflicts WHERE entry_a_id IN (SELECT id FROM memory_entries WHERE project_id IN (?, ?, ?)) OR entry_b_id IN (SELECT id FROM memory_entries WHERE project_id IN (?, ?, ?))`,
+    [TEST_PROJECT, OTHER_PROJECT, EMPTY_PROJECT, TEST_PROJECT, OTHER_PROJECT, EMPTY_PROJECT],
+  )
+  db.run('DELETE FROM memory_entries WHERE project_id IN (?, ?, ?)', [TEST_PROJECT, OTHER_PROJECT, EMPTY_PROJECT])
 })
 
 describe('insertConflict', () => {

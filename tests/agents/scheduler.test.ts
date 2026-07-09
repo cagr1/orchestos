@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'bun:test'
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
 import { topoSort, validateSubTaskPlan, type SubTaskPlan } from '../../src/agents/sub-task-schema.ts'
 import { createSubTask } from '../../src/agents/sub-agent.ts'
 import { createPlan } from '../../src/agents/planner.ts'
@@ -150,6 +150,16 @@ describe('S22.7 (c) — topic_key merge on re-execution', () => {
   beforeAll(() => {
     const { runMigrations } = require('../../src/db/migrate.ts')
     runMigrations()
+  })
+
+  // I.6 (Mes 18) — este describe dejaba 4 filas de fixture ('test-project'/
+  // auth-schema, 'p1'/topic-a,b,c) permanentes en memory_entries, la misma
+  // fuga que en src/__tests__/memory-conflicts.test.ts: sin afterAll, esas
+  // filas quedaban en la DB real y aparecían como memory cards sin contenido
+  // útil en el dashboard de Carlos (IDEAS.md #20).
+  afterAll(() => {
+    const { db } = require('../../src/db/sqlite.ts')
+    db.run("DELETE FROM memory_entries WHERE project_id IN ('test-project', 'p1')")
   })
 
   it('upsertMemory replaces existing entry with same topic_key', async () => {
