@@ -258,7 +258,11 @@ button { font-family: inherit; }
   border: 1px solid transparent;
   transition: background .12s, color .12s;
 }
-.sidebar .nav-icon:hover { color: var(--text); background: var(--surface-2); }
+/* Bloque I (Mes 18) — antes iba a var(--text) puro, que en Bright es casi
+   negro (#202020): un ícono fino que se pone "negro sólido" al pasar el
+   mouse lee como error, no como resaltado. var(--accent) da la misma señal
+   de "esto es interactivo" en los 3 temas sin el efecto de mancha oscura. */
+.sidebar .nav-icon:hover { color: var(--accent); background: var(--surface-2); }
 .sidebar .nav-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .sidebar .nav-icon.active { color: var(--accent); background: var(--surface-hi); border-color: var(--border); }
 .sidebar .nav-icon.active::before {
@@ -306,7 +310,10 @@ button { font-family: inherit; }
 .nav-icon[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%);
-  background: #1c2128; color: var(--text); border: 1px solid var(--border);
+  /* fondo oscuro fijo a propósito (mismo tooltip en los 3 temas) — por eso
+     el texto también es un color fijo claro, no var(--text): en Bright
+     var(--text) es casi negro y quedaba ilegible sobre este fondo oscuro. */
+  background: #1c2128; color: #c9d1d9; border: 1px solid #30363d;
   padding: 4px 9px; border-radius: 6px; font-size: 11.5px; white-space: nowrap;
   z-index: 200; pointer-events: none;
   box-shadow: 0 6px 18px rgba(0,0,0,.4);
@@ -320,7 +327,15 @@ button { font-family: inherit; }
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
-  min-width: 0; /* ver comentario en .header — mismo fix, mismo motivo */
+  min-width: 0;  /* ver comentario en .header — mismo fix, mismo motivo */
+  min-height: 0; /* Bloque I (Mes 18) — sin esto, .main (grid row 1fr) usa su
+                    min-height:auto por defecto, que se calcula del contenido
+                    intrínseco y queda un poco más alto que la celda 1fr real;
+                    eso dispara un scrollbar fantasma en toda la altura aunque
+                    no haya overflow real. Muy visible en el tema Bright (se
+                    ve como una sombra vertical pegada al borde derecho),
+                    invisible en los temas oscuros porque el thumb translúcido
+                    se pierde contra el fondo oscuro. */
 }
 .screen { padding: 22px 26px 40px; max-width: 1280px; margin: 0 auto; }
 .screen-head {
