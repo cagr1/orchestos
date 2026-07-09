@@ -249,27 +249,3 @@ tasks:
     retry_count: 1
     qa_verdict: pass
     run_id: F0.3-reconciliation
-  - id: front-3-i18n-effort
-    description: >
-      Add i18n keys for reasoning effort selector. Already implemented in code (i18n.js keys chat.effort.* en/es).
-      Reconciliación tardía — F0.3.
-    executor: openrouter
-    executor_model: deepseek/deepseek-v4-flash
-    input:
-      - src/dashboard/public/i18n.js
-    output:
-      - src/dashboard/public/i18n.js
-    checks:
-      - cmd: grep -q "'chat.effort.label'" src/dashboard/public/i18n.js
-        expect_exit: 0
-      - cmd: grep -q "'chat.effort.low'" src/dashboard/public/i18n.js
-        expect_exit: 0
-      - cmd: grep -q "'chat.effort.medium'" src/dashboard/public/i18n.js
-        expect_exit: 0
-      - cmd: grep -q "'chat.effort.high'" src/dashboard/public/i18n.js
-        expect_exit: 0
-    depends_on: []
-    status: done
-    retry_count: 1
-    qa_verdict: pass
-    run_id: F0.3-reconciliation
