@@ -40,7 +40,7 @@ import { inferEmbeddingProvider } from './providers/embeddings.ts'
 import { scaffoldSkillYaml, SUPPORTED_LANGUAGES } from './skills/scaffold.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
 import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
-import { listConflicts } from './db/memory.ts'
+import { listConflicts, resolveConflict } from './db/memory.ts'
 import { resetTestData } from './db/reset.ts'
 
 // Run migrations on every boot (idempotent)
@@ -1515,6 +1515,15 @@ memory
       console.log(`  ${r.id.padEnd(28)} ${r.relation.padEnd(COL_REL)} ${r.confidence.padEnd(COL_CONF)} ${r.created_at.slice(0, 19)}`)
     }
     console.log()
+  })
+
+memory
+  .command('resolve <id>')
+  .description('Mark a memory conflict as resolved (does not touch the memory entries themselves)')
+  .action((id: string) => {
+    const ok = resolveConflict(id)
+    console.log(ok ? `[memory] Conflict ${id} marked as resolved.` : `[memory] Conflict ${id} not found (already resolved or invalid id).`)
+    if (!ok) process.exitCode = 1
   })
 
 // ── instinct ───────────────────────────────────────────────────────────────────

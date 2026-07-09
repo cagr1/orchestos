@@ -920,7 +920,7 @@ SCREENS.settings = {
     }
 
     const sourceLine = cfg.configFound
-      ? `<span class="badge green square">${ICON.check} ${t('settings.routing.customFound')}</span>`
+      ? `<span class="badge green square" title="${esc(cfg.source)}">${ICON.check} ${t('settings.routing.customFound')}</span>`
       : `<span class="badge gray square">${t('settings.routing.defaults')}</span>`;
 
     // Fix real (2026-07-08): esto era de solo lectura — Carlos no tenía forma
@@ -929,16 +929,16 @@ SCREENS.settings = {
     // los selectores de modelo de la app (chat, composer, diagnose).
     const ROLE_LABELS = { planner: 'Planner', executor_heavy: 'Executor (heavy)', executor_light: 'Executor (light)', default: 'Default' };
     const stripProvider = v => (v && v.startsWith('openrouter/')) ? v.slice('openrouter/'.length) : (v || '');
-    const roleRows = Object.keys(ROLE_LABELS).map(role => {
+    const roleRows = `<div class="role-grid">` + Object.keys(ROLE_LABELS).map(role => {
       const val = stripProvider(cfg.roles[role]);
-      return `<div class="draft-field" style="margin-bottom:10px">
+      return `<div class="draft-field">
         <label>${esc(ROLE_LABELS[role])}</label>
         ${buildModelSelect(`role-${role}`, val, st.orModels, st.localModels)}
       </div>`;
-    }).join('') + `<div class="draft-field" style="margin-bottom:10px">
+    }).join('') + `<div class="draft-field role-grid-full">
         <label>QA judge <span class="muted">(${t('settings.routing.qa.hint')})</span></label>
         ${buildModelSelect('role-qa', stripProvider(cfg.roles.qa), st.orModels, st.localModels, { allowEmpty: true, emptyLabel: t('settings.routing.qa.auto') })}
-      </div>`;
+      </div></div>`;
 
     const pendingRows = (cfg.pendingRouting || []).length === 0
       ? `<p class="muted" style="margin:0;font-size:12.5px">${t('settings.routing.noPending')}</p>`
@@ -953,10 +953,9 @@ SCREENS.settings = {
     return `<div class="card settings-card">
         <div class="settings-header"><h3>${t('settings.routing.title')}</h3></div>
         <div class="kv"><span class="k">${t('settings.routing.source')}</span><span class="v">${sourceLine}</span></div>
-        ${cfg.configFound ? `<div class="kv"><span class="k">${t('settings.routing.path')}</span><span class="v mono" style="font-size:12px;word-break:break-all">${esc(cfg.source)}</span></div>` : ''}
-        <div class="settings-foot" style="margin-top:8px">${initBtn}</div>
+        ${initBtn ? `<div class="settings-foot" style="margin-top:8px">${initBtn}</div>` : ''}
       </div>
-      <div class="card settings-card">
+      <div class="card settings-card settings-card-roles">
         <div class="settings-header"><h3>${t('settings.routing.roles')}</h3></div>
         ${roleRows}
         <div class="settings-foot" style="margin-top:8px">
@@ -1084,9 +1083,11 @@ SCREENS.settings = {
               <div class="kv"><span class="k">${t('settings.project.cli')}</span><span class="v mono" style="font-size:12px">orchestos dashboard --port 4242</span></div>
             </div>
             <div class="card settings-card">
-              <div class="settings-header"><h3>${t('settings.reset.title')}</h3></div>
-              <p class="muted" style="margin:0 0 12px;font-size:12.5px">${t('settings.reset.desc')}</p>
-              <button class="btn danger" data-act="system-reset">${ICON.trash} ${t('settings.reset.btn')}</button>
+              <div class="settings-header"><h3 class="danger-title">${t('settings.reset.title')}</h3></div>
+              <div class="settings-danger-body">
+                <p class="muted" style="margin:0 0 14px;font-size:12.5px">${t('settings.reset.desc')}</p>
+                <button class="btn danger" data-act="system-reset">${ICON.trash} ${t('settings.reset.btn')}</button>
+              </div>
             </div>
           </section>
 

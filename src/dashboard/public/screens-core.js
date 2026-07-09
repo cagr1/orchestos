@@ -900,10 +900,17 @@ SCREENS.memory = {
     // Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos memory conflicts` no tenía
     // ninguna superficie en el dashboard, ni siquiera de solo lectura.
     const conflicts = st.memoryConflicts || [];
+    // I.5 (Mes 18) — el panel era de solo lectura: 5 conflictos sin ninguna
+    // acción posible. "Resolve" marca el conflicto como revisado
+    // (resolved_at) y lo saca de la lista; no borra las memory_entries.
     const conflictsPanel = conflicts.length === 0 ? '' : `<div class="proj-helper warn">
       <strong>${t('memory.conflicts.title', conflicts.length)}</strong>
-      <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">${conflicts.map(c =>
-        `<div style="display:flex;gap:10px;font-size:12.5px"><span>${esc(c.relation)}</span><span class="muted">${esc(formatLocalDate(c.created_at, { dateOnly: true }))} · ${esc(c.confidence)}</span></div>`
+      <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px">${conflicts.map(c =>
+        `<div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+          <span style="flex:1">${esc(c.relation)}</span>
+          <span class="muted">${esc(formatLocalDate(c.created_at, { dateOnly: true }))} · ${esc(c.confidence)}</span>
+          <button class="btn sm" data-resolve-conflict="${esc(c.id)}">${t('memory.conflicts.resolve')}</button>
+        </div>`
       ).join('')}</div>
     </div>`;
 
@@ -968,6 +975,15 @@ SCREENS.memory = {
     });
     root.querySelectorAll('[data-sc]').forEach(s => s.addEventListener('click', () => {
       st.memScope = s.dataset.sc; App.rerender();
+    }));
+    root.querySelectorAll('[data-resolve-conflict]').forEach(b => b.addEventListener('click', async () => {
+      const id = b.dataset.resolveConflict;
+      b.disabled = true;
+      try {
+        const res = await fetch(`/api/memory/conflicts/${encodeURIComponent(id)}/resolve`, { method: 'POST' });
+        if (res.ok) await App.fetchMemoryConflicts();
+        App.rerender();
+      } finally { b.disabled = false; }
     }));
     const qInput = root.querySelector('#mem-query');
     qInput?.addEventListener('input', () => {

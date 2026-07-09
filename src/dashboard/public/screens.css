@@ -111,11 +111,13 @@
 .compose .actions .hint { font-size: 11.5px; color: var(--text-faint); font-family: var(--mono); }
 
 .feed { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+/* I.3 (Mes 18) — mismo tratamiento que .settings-header: separación por
+   peso tipográfico + padding, sin border-bottom. */
 .feed .feed-head {
   display: flex; align-items: center; gap: 9px;
-  padding: 11px 16px; border-bottom: 1px solid var(--border);
+  padding: 13px 16px 9px;
 }
-.feed .feed-head h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.feed .feed-head h3 { margin: 0; font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
 .feed .feed-head .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-dim); }
 .feed .feed-head .spacer { flex: 1; }
 .feed-body { font-family: var(--mono); font-size: 12.5px; line-height: 1.7; padding: 14px 16px; min-height: 160px; }
@@ -180,8 +182,17 @@
 .settings-panel { display: none; flex-direction: column; gap: 16px; }
 .settings-panel.active { display: flex; }
 .settings-card { padding: 0; overflow: hidden; }
-.settings-header { padding: 16px 18px; border-bottom: 1px solid var(--border); }
-.settings-header h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+/* I.3 (Mes 18) — separación por espacio/jerarquía en vez de línea divisoria:
+   el título de cada card de Settings ya no lleva border-bottom (patrón
+   repetido en 9 cards); el peso/tamaño del h3 y el padding-bottom extra
+   marcan el límite con el contenido de abajo. */
+.settings-header { padding: 18px 18px 10px; }
+.settings-header h3 { margin: 0 0 4px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+/* I.4 (Mes 18) — el botón "Reset test data" quedaba pegado al borde del card
+   (settings-card tiene padding:0). Body con padding propio + jerarquía de
+   acción destructiva (título en color de error) en vez de solo el botón rojo. */
+.settings-header h3.danger-title { color: var(--error); }
+.settings-danger-body { padding: 0 18px 18px; }
 .key-list { display: flex; flex-direction: column; }
 .key-row {
   display: grid; grid-template-columns: 1fr auto auto;
@@ -203,6 +214,17 @@
   display: flex; align-items: center; gap: 12px;
   padding: 13px 18px; border-top: 1px solid var(--border);
 }
+/* I.2 (Mes 18) — el combo de modelo abre un panel absoluto que `.settings-card`
+   recorta con overflow:hidden cuando cae cerca del borde inferior del card
+   (el caso QA judge, última fila). Este card en particular no necesita el
+   clip de esquinas de overflow:hidden porque no tiene contenido que sangre
+   hasta el borde, así que se deja visible para que el dropdown no se corte. */
+.settings-card-roles { overflow: visible; }
+.role-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px;
+  padding: 18px;
+}
+.role-grid-full { grid-column: 1 / -1; }
 .setup-card { margin-bottom: 16px; }
 .setup-header {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;

@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll } from 'bun:test'
 import { db } from '../db/sqlite.ts'
 import { insertConflict, resolveConflict } from '../db/memory.ts'
-import { handleApiMemoryConflicts } from '../dashboard/handlers/memory.ts'
+import { handleApiMemoryConflicts, handleApiMemoryConflictResolve } from '../dashboard/handlers/memory.ts'
 import { handleApiRunsAnalyze } from '../dashboard/handlers/runs.ts'
 
 // Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos memory conflicts` y
@@ -29,6 +29,29 @@ describe('handleApiMemoryConflicts', () => {
     const res = handleApiMemoryConflicts(new URL('http://localhost/api/memory/conflicts?project=no-such-project-xyz'))
     const data = await res.json() as unknown[]
     expect(data).toEqual([])
+  })
+})
+
+// I.5 (Mes 18) — el panel de conflictos gana su primera acción real.
+describe('handleApiMemoryConflictResolve', () => {
+  it('resolves an unresolved conflict and drops it from the list', async () => {
+    const id = insertConflict('i5-test-entry-a', 'i5-test-entry-b', 'contradiction', 'high')
+    insertedConflictIds.push(id)
+
+    const res = handleApiMemoryConflictResolve(new URL(`http://localhost/api/memory/conflicts/${id}/resolve`))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { ok: boolean }
+    expect(body.ok).toBe(true)
+
+    const after = await handleApiMemoryConflicts().json() as Array<{ id: string }>
+    expect(after.some(c => c.id === id)).toBe(false)
+  })
+
+  it('404s on an unknown conflict id', async () => {
+    const res = handleApiMemoryConflictResolve(new URL('http://localhost/api/memory/conflicts/no-such-id/resolve'))
+    expect(res.status).toBe(404)
+    const body = await res.json() as { ok: boolean; error?: string }
+    expect(body.ok).toBe(false)
   })
 })
 

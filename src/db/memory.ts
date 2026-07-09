@@ -162,9 +162,10 @@ export function listConflicts(projectId?: string): ConflictRecord[] {
   ).all()
 }
 
-export function resolveConflict(id: string): void {
+export function resolveConflict(id: string): boolean {
   const now = new Date().toISOString()
-  db.run('UPDATE memory_conflicts SET resolved_at = ? WHERE id = ?', [now, id])
+  const result = db.run('UPDATE memory_conflicts SET resolved_at = ? WHERE id = ? AND resolved_at IS NULL', [now, id])
+  return result.changes > 0
 }
 
 // S26.2 — re-export LLM judge for memory conflict detection

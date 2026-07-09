@@ -241,6 +241,7 @@ const I18N = {
     'memory.explainer.body':  "The agent stores things it learns about your project — file paths, conventions, past decisions. These are the raw entries. The agent updates them automatically; you rarely need to edit them directly.",
     /* Bloque E (Mes 18, ex-IDEAS #9b) — equivalente a `orchestos memory conflicts` */
     'memory.conflicts.title': '{0} unresolved memory conflict(s)',
+    'memory.conflicts.resolve': 'Resolve',
     'memory.filter':    'Filter',
     'memory.search.ph': 'Search by key or content…',
     'memory.scope':     'Scope',
@@ -472,7 +473,6 @@ const I18N = {
     'settings.nav.lang':    'Language',
     'settings.routing.title':      'Model routing config',
     'settings.routing.source':     'Source',
-    'settings.routing.path':       'File',
     'settings.routing.customFound': 'orchestos.config.yaml found',
     'settings.routing.defaults':   'Using defaults (no orchestos.config.yaml)',
     'settings.routing.initBtn':    'Create orchestos.config.yaml',
@@ -813,6 +813,7 @@ const I18N = {
     'memory.explainer.body':  'El agente guarda cosas que aprende sobre tu proyecto — rutas de archivos, convenciones, decisiones pasadas. Estas son las entradas crudas. El agente las actualiza automáticamente; rara vez necesitas editarlas directamente.',
     /* Bloque E (Mes 18, ex-IDEAS #9b) — equivalente a `orchestos memory conflicts` */
     'memory.conflicts.title': '{0} conflicto(s) de memoria sin resolver',
+    'memory.conflicts.resolve': 'Resolver',
     'memory.filter':    'Filtrar',
     'memory.search.ph': 'Buscar por clave o contenido…',
     'memory.scope':     'Alcance',
@@ -1044,7 +1045,6 @@ const I18N = {
     'settings.nav.lang':    'Idioma',
     'settings.routing.title':      'Configuración de routing',
     'settings.routing.source':     'Fuente',
-    'settings.routing.path':       'Archivo',
     'settings.routing.customFound': 'orchestos.config.yaml encontrado',
     'settings.routing.defaults':   'Usando defaults (sin orchestos.config.yaml)',
     'settings.routing.initBtn':    'Crear orchestos.config.yaml',

@@ -506,6 +506,7 @@ select.bare {
   .header .screen-title,
   .header .active-counter { display: none; }
   .screen { padding: 16px 14px 32px; }
+  .role-grid { grid-template-columns: 1fr; }
 }
 
 /* ── Reduced motion ───────────────────────────────── */

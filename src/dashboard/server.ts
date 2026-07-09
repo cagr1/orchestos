@@ -1,5 +1,5 @@
 import { serveStatic, errorResponse, isSameOrigin } from './http.ts'
-import { handleApiMemory, handleApiMemoryConflicts } from './handlers/memory.ts'
+import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve } from './handlers/memory.ts'
 import { handleApiRuns, handleApiRunsAnalyze } from './handlers/runs.ts'
 import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence } from './handlers/instincts.ts'
 import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive } from './handlers/specs.ts'
@@ -167,6 +167,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/memory/conflicts') {
     return handleApiMemoryConflicts(url)
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/memory\/conflicts\/([^/]+)\/resolve$/)) {
+    return handleApiMemoryConflictResolve(url)
   }
   if (method === 'GET' && url.pathname === '/api/memory') {
     return handleApiMemory(url)

@@ -1,8 +1,8 @@
 import { db } from '../../db/sqlite.ts'
-import { listConflicts } from '../../db/memory.ts'
+import { listConflicts, resolveConflict } from '../../db/memory.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
-import type { MemoryRow } from '../types.ts'
-import { jsonResponse } from '../http.ts'
+import type { MemoryRow, MutationResult } from '../types.ts'
+import { jsonResponse, errorResponse } from '../http.ts'
 
 function handleApiMemory(url?: URL): Response {
   const q = url?.searchParams.get('q')?.trim()
@@ -44,4 +44,15 @@ function handleApiMemoryConflicts(url?: URL): Response {
   }
 }
 
-export { handleApiMemory, handleApiMemoryConflicts }
+// I.5 (Mes 18) — el panel de conflictos era de solo lectura; sin esto no
+// había forma de bajar un conflicto de la lista una vez revisado.
+function handleApiMemoryConflictResolve(url: URL): Response {
+  const parts = url.pathname.split('/')
+  const id = parts[4]
+  if (!id) return errorResponse('Missing conflict id', 400)
+  const ok = resolveConflict(id)
+  const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Conflict not found' }
+  return jsonResponse(result, ok ? 200 : 404)
+}
+
+export { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve }
