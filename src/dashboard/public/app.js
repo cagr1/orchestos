@@ -56,8 +56,7 @@ const state = {
   chatPending: false,
   chatModel: 'deepseek/deepseek-v4-flash',
   chatEffort: localStorage.getItem('orchestos-chat-effort') || 'medium', // FRONT.1 — solo aplicado cuando el modelo elegido tiene supportsReasoning:true (BACK.4) · FRONT.2 — persistido en localStorage
-  chatFileId: null,
-  chatFileMeta: null,  // { filename, type, preview } from upload
+  chatFiles: [], // Mes 19 Bloque B — array de { fileId, filename, type, preview }, antes chatFileId/chatFileMeta singular
   chatToTask: null,   // non-null = condensed chat text to pre-fill compose bar
   chatModelComboOpen: false, // FRONT.6 — combobox de modelo del chat (trigger + panel de búsqueda)
   chatAttachMenuOpen: false, // FRONT.9 — menú de tipo de adjunto (Imagen/Documento/URL)

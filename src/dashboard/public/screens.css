@@ -683,6 +683,8 @@
 .chat-input-row {
   display: flex; gap: 8px; align-items: flex-end; width: 100%;
 }
+/* B.2 (Mes 19) — envoltorio para N chips en vez de uno solo */
+.chat-attach-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chat-attach-chip {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 12px; border-radius: var(--radius);

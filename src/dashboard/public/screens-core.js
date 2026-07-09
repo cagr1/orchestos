@@ -50,6 +50,10 @@ function renderContextSuggestions(st) {
 /* ============================================================
    0 · CHAT
    ============================================================ */
+// B.1 (Mes 19) — mismo tope que MAX_CHAT_ATTACHMENTS en handlers/chat.ts;
+// el servidor valida igual, esto solo evita el viaje de red innecesario.
+const MAX_CHAT_ATTACHMENTS = 5;
+
 SCREENS.chat = {
   render(st) {
     const history = st.chatHistory || [];
@@ -89,14 +93,16 @@ SCREENS.chat = {
     const clearBtn = history.length > 0
       ? `<button class="btn ghost sm" data-act="chat-clear">${t('chat.clear')}</button>` : '';
 
-    // D3 — attachment chip
-    const attachChip = st.chatFileMeta
-      ? `<div class="chat-attach-chip">
-          <span class="chat-attach-icon">${ICON.attachment}</span>
-          <span class="chat-attach-name">${esc(st.chatFileMeta.filename)}</span>
-          <span class="chat-attach-preview">${esc(st.chatFileMeta.preview || '')}</span>
-          <button class="btn ghost sm" data-act="chat-file-remove" style="padding:1px 6px;font-size:14px;line-height:1">×</button>
-        </div>`
+    // D3/B.2 (Mes 19) — chips de adjuntos, ahora N en vez de uno solo.
+    const chatFiles = st.chatFiles || [];
+    const attachChips = chatFiles.length > 0
+      ? `<div class="chat-attach-chips">${chatFiles.map(f => `
+          <div class="chat-attach-chip">
+            <span class="chat-attach-icon">${ICON.attachment}</span>
+            <span class="chat-attach-name">${esc(f.filename)}</span>
+            <span class="chat-attach-preview">${esc(f.preview || '')}</span>
+            <button class="btn ghost sm" data-act="chat-file-remove" data-file-id="${esc(f.fileId)}" style="padding:1px 6px;font-size:14px;line-height:1">×</button>
+          </div>`).join('')}</div>`
       : '';
 
     // D4 — "Create task" bar (visible after 3+ mensajes, red de respaldo).
@@ -121,7 +127,7 @@ SCREENS.chat = {
       <div class="chat-area" id="chat-area">${msgs}</div>
       ${createTaskBar}
       <div class="chat-input-bar">
-        ${attachChip}
+        ${attachChips}
         <div class="chat-input-row">
           <div class="attach-menu-wrap" data-attach-menu>
             <button class="chat-icon-btn chat-attach-btn" data-act="chat-attach" title="${t('chat.btn.attach')}" aria-label="${t('chat.btn.attach')}">${ICON.plus}</button>
@@ -166,10 +172,8 @@ SCREENS.chat = {
       st.chatHistory = st.chatHistory || [];
       st.chatHistory.push({ role: 'user', content: msg });
       st.chatPending = true;
-      const sentFileId = st.chatFileId;
-      const sentFileMeta = st.chatFileMeta;
-      st.chatFileId = null;
-      st.chatFileMeta = null;
+      const sentFileIds = (st.chatFiles || []).map(f => f.fileId);
+      st.chatFiles = [];
       App.rerender();
       scrollBottom();
       try {
@@ -178,7 +182,7 @@ SCREENS.chat = {
           message: msg,
           model: st.chatModel || 'deepseek/deepseek-v4-flash',
         };
-        if (sentFileId) body.fileId = sentFileId;
+        if (sentFileIds.length) body.fileIds = sentFileIds;
         // FRONT.1 — solo se manda si el control está visible (modelo con supportsReasoning:true)
         if (modelSupportsReasoning(st.chatModel, st.orModels)) body.effort = st.chatEffort || 'medium';
         const res = await fetch('/api/chat', {
@@ -216,8 +220,7 @@ SCREENS.chat = {
     root.querySelector('[data-act="chat-clear"]')?.addEventListener('click', () => {
       st.chatHistory = [];
       st.chatPending = false;
-      st.chatFileId = null;
-      st.chatFileMeta = null;
+      st.chatFiles = [];
       st.chatTaskSuggestion = null;
       App.rerender();
     });
@@ -247,11 +250,19 @@ SCREENS.chat = {
       input?.click();
     }));
 
-    // D3 — file input change → upload
+    // D3/B.1 (Mes 19) — file input change → upload. Sigue siendo secuencial
+    // contra el mismo endpoint (un archivo por request, decisión de A.1/B.1) —
+    // ahora agrega al array en vez de reemplazar el adjunto único.
     root.querySelector('#chat-file-input')?.addEventListener('change', async () => {
       const input = root.querySelector('#chat-file-input');
       const file = input?.files?.[0];
       if (!file) return;
+      st.chatFiles = st.chatFiles || [];
+      if (st.chatFiles.length >= MAX_CHAT_ATTACHMENTS) {
+        showToast(t('chat.file.maxReached'), 'error');
+        input.value = '';
+        return;
+      }
       const formData = new FormData();
       formData.append('file', file);
       const clipBtn = root.querySelector('[data-act="chat-attach"]');
@@ -260,8 +271,7 @@ SCREENS.chat = {
         const res = await fetch('/api/chat/upload', { method: 'POST', body: formData });
         if (res.ok) {
           const data = await res.json();
-          st.chatFileId = data.fileId;
-          st.chatFileMeta = { filename: data.filename, type: data.type, preview: data.preview };
+          st.chatFiles.push({ fileId: data.fileId, filename: data.filename, type: data.type, preview: data.preview });
         } else if (res.status === 413) {
           showToast(t('chat.file.tooLarge'), 'error');
         } else {
@@ -275,12 +285,14 @@ SCREENS.chat = {
       }
     });
 
-    // D3 — remove attachment
-    root.querySelector('[data-act="chat-file-remove"]')?.addEventListener('click', () => {
-      st.chatFileId = null;
-      st.chatFileMeta = null;
+    // D3/B.2 (Mes 19) — remover un adjunto puntual (ahora hay N chips, cada
+    // uno con su propio botón de quitar — mismo patrón de delegación por
+    // querySelectorAll que ya usa el menú de tipo de adjunto arriba).
+    root.querySelectorAll('[data-act="chat-file-remove"]').forEach(btn => btn.addEventListener('click', () => {
+      const fileId = btn.dataset.fileId;
+      st.chatFiles = (st.chatFiles || []).filter(f => f.fileId !== fileId);
       App.rerender();
-    });
+    }));
     // FRONT.6 — model combobox: trigger toggles the panel open/closed. Opening
     // also triggers a silent refresh — loadOrModels() is already TTL-gated
     // internally (no-ops if the cache is fresh), so this replaces the old

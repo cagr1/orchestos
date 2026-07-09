@@ -313,14 +313,23 @@ export async function handleApiChatTaskBarEvents(): Promise<Response> {
   return jsonResponse({ summary, events })
 }
 
+const MAX_CHAT_ATTACHMENTS = 5
+
 async function handleApiChat(req: Request): Promise<Response> {
-  let body: { history: { role: string; content: string }[]; message: string; fileId?: string; model?: string; effort?: string }
+  let body: { history: { role: string; content: string }[]; message: string; fileIds?: string[]; model?: string; effort?: string }
   try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
   const message = body.message?.trim()
   if (!message) return errorResponse('message is required', 400)
 
   if (body.effort !== undefined && !VALID_EFFORTS.includes(body.effort as ReasoningEffort)) {
     return errorResponse(`effort must be one of: ${VALID_EFFORTS.join(', ')}`, 400)
+  }
+
+  // B.3 (Mes 19) — múltiples adjuntos: el chat aceptaba un solo `fileId`, ahora
+  // un array. Límite defensivo del lado del servidor (el frontend ya lo respeta,
+  // pero nunca confiar solo en el cliente) — nunca truncar en silencio, error claro.
+  if (body.fileIds !== undefined && (!Array.isArray(body.fileIds) || body.fileIds.length > MAX_CHAT_ATTACHMENTS)) {
+    return errorResponse(`fileIds must be an array of at most ${MAX_CHAT_ATTACHMENTS} items`, 400)
   }
 
   const rawHistory = Array.isArray(body.history) ? body.history : []
@@ -339,10 +348,12 @@ async function handleApiChat(req: Request): Promise<Response> {
   const barShown = barShownByCount || !!taskSuggestion?.isTask
   logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown })
 
-  let attachedFile: FileEntry | null = null
-  if (body.fileId) {
+  let attachedFiles: FileEntry[] = []
+  if (Array.isArray(body.fileIds) && body.fileIds.length > 0) {
     pruneExpiredFiles()
-    attachedFile = fileStore.get(body.fileId) ?? null
+    attachedFiles = body.fileIds
+      .map(id => fileStore.get(id))
+      .filter((f): f is FileEntry => !!f)
   }
 
   const root = resolve('.')
@@ -427,30 +438,36 @@ Important: you cannot modify files or run code directly from this chat. However,
   // mandaba el image_url block sin chequear si el modelo elegido soporta
   // visión — con un modelo sin visión la imagen se manda y se ignora en
   // silencio, el usuario ve "no cargó mi imagen" sin ninguna explicación.
-  if (attachedFile?.type === 'image' && !isOllama && !supportsVisionInput(model)) {
+  // B.3 (Mes 19) — generalizado a N adjuntos: basta con que UNA imagen no
+  // pueda procesarse para rechazar el mensaje completo (nunca mandar solo
+  // algunas imágenes en silencio).
+  const hasImage = attachedFiles.some(f => f.type === 'image')
+  if (hasImage && !isOllama && !supportsVisionInput(model)) {
     return errorResponse(
       `The model "${model}" does not support image input. Choose a vision-capable model (e.g. a Claude, GPT-4o, or Gemini model) to use this image, or remove it and continue with text only.`,
       422,
     )
   }
 
-  if (attachedFile) {
-    if (attachedFile.type === 'image') {
-      messages.push({
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url: attachedFile.content } },
-          { type: 'text', text: message },
-        ],
-      })
-    } else {
-      const label = attachedFile.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'File'
-      const textBlock = `[${label}: ${attachedFile.filename}]\n${attachedFile.content}\n[End of ${label}]\n\n`
-      messages.push({ role: 'user', content: textBlock + message })
-    }
-  } else {
-    messages.push({ role: 'user', content: message })
-  }
+  // B.3 (Mes 19) — un solo mensaje de usuario con N bloques: las imágenes
+  // como `image_url` parts (una por adjunto), los archivos de texto/PDF
+  // concatenados antes del mensaje (mismo formato que el adjunto único
+  // anterior, ahora repetido por archivo).
+  const imageParts = attachedFiles
+    .filter(f => f.type === 'image')
+    .map(f => ({ type: 'image_url', image_url: { url: f.content } }))
+  const textBlocks = attachedFiles
+    .filter(f => f.type !== 'image')
+    .map(f => {
+      const label = f.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'File'
+      return `[${label}: ${f.filename}]\n${f.content}\n[End of ${label}]\n\n`
+    })
+  const combinedText = textBlocks.join('') + message
+
+  messages.push({
+    role: 'user',
+    content: imageParts.length > 0 ? [...imageParts, { type: 'text', text: combinedText }] : combinedText,
+  })
 
   try {
     if (isOllama) {
