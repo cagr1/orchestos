@@ -65,15 +65,18 @@ SCREENS.chat = {
     // como <img> queda aislado del documento, así que la regla catch-all de
     // prefers-reduced-motion (styles.css) no puede alcanzarlo. Se resuelve acá:
     // con reduced-motion, se muestra la marca estática (mismo mark, sin loop).
-    // La placa clara de `.chat-empty-mark-badge` es fija en los 3 temas
-    // (mismo principio que `.brand .mark` del header, que fija su propio fondo
-    // en vez de depender del fondo de la página) — la fase negra del ciclo de
-    // color se volvía casi invisible contra los 2 temas oscuros sin esto.
+    // Dos variantes por tema (mismo principio que `.logo-dark`/`.logo-light`
+    // del header): AnimatedLogo.svg cicla negro↔azul (pensado para fondo
+    // claro), AnimatedLogoDark.svg cicla blanco↔azul (fondo oscuro) — elegir
+    // la incorrecta deja la fase oscura casi invisible contra su propio fondo.
     const prefersReducedMotion = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const emptyMarkSrc = prefersReducedMotion ? 'assets/logo_black.png' : 'assets/AnimatedLogo.svg';
+    const isBrightTheme = document.documentElement.getAttribute('data-theme') === 'bright';
+    const emptyMarkSrc = prefersReducedMotion
+      ? `assets/${isBrightTheme ? 'logo_black' : 'logo_white'}.png`
+      : `assets/${isBrightTheme ? 'AnimatedLogo' : 'AnimatedLogoDark'}.svg`;
 
     const msgs = history.length === 0
-      ? `<div class="chat-empty"><div class="chat-empty-mark-badge"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"></div><p>${t('chat.empty')}</p></div>`
+      ? `<div class="chat-empty"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"><p>${t('chat.empty')}</p></div>`
       : history.map(m => {
           const text = esc(m.content).replace(/\n/g, '<br>');
           const modelTag = m.role === 'assistant' && m.model

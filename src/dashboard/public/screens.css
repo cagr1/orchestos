@@ -552,13 +552,10 @@
   flex: 1; padding: 40px 0; gap: 14px;
   color: var(--text-faint); font-size: 13.5px; text-align: center;
 }
-.chat-empty-mark-badge {
-  width: 96px; height: 96px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: radial-gradient(circle at 35% 30%, #fdfefe, #eef1f5);
-  box-shadow: 0 10px 28px rgba(0,0,0,.28), inset 0 0 0 1px rgba(0,0,0,.04);
+.chat-empty-mark {
+  width: 80px; height: 80px;
+  filter: drop-shadow(0 6px 20px rgba(0,105,204,.35));
 }
-.chat-empty-mark { width: 52px; height: 52px; }
 .chat-msg { display: flex; }
 .chat-msg.user { justify-content: flex-end; }
 .chat-msg.assistant { justify-content: flex-start; }
