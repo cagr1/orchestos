@@ -61,8 +61,19 @@ SCREENS.chat = {
       ? `<div class="chat-msg assistant"><div class="chat-bubble chat-thinking"><span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:6px"></span>${t('chat.thinking')}</div></div>`
       : '';
 
+    // El SVG anima vía SMIL (<animate>/<animateTransform>), no CSS — cargado
+    // como <img> queda aislado del documento, así que la regla catch-all de
+    // prefers-reduced-motion (styles.css) no puede alcanzarlo. Se resuelve acá:
+    // con reduced-motion, se muestra la marca estática (mismo mark, sin loop).
+    // La placa clara de `.chat-empty-mark-badge` es fija en los 3 temas
+    // (mismo principio que `.brand .mark` del header, que fija su propio fondo
+    // en vez de depender del fondo de la página) — la fase negra del ciclo de
+    // color se volvía casi invisible contra los 2 temas oscuros sin esto.
+    const prefersReducedMotion = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const emptyMarkSrc = prefersReducedMotion ? 'assets/logo_black.png' : 'assets/AnimatedLogo.svg';
+
     const msgs = history.length === 0
-      ? `<div class="chat-empty"><p>${t('chat.empty')}</p></div>`
+      ? `<div class="chat-empty"><div class="chat-empty-mark-badge"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"></div><p>${t('chat.empty')}</p></div>`
       : history.map(m => {
           const text = esc(m.content).replace(/\n/g, '<br>');
           const modelTag = m.role === 'assistant' && m.model
