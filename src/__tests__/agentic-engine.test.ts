@@ -201,10 +201,13 @@ describe('G.3 — agenticEngine', () => {
   it('maxIterations caps the loop — iterations never exceeds the configured limit', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     // The model never stops calling tools — 3 rounds available, all tool-call rounds.
+    // runToolLoop (bug real 2026-07-09, ver tool-loop.test.ts) fuerza una 4ta
+    // ronda sin tools para no devolver texto vacío — de ahí el 4to mock.
     installMockFetch([
       () => toolCallResponse([{ name: 'list_dir', args: { path: '.' } }]),
       () => toolCallResponse([{ name: 'list_dir', args: { path: '.' } }]),
       () => toolCallResponse([{ name: 'list_dir', args: { path: '.' } }]),
+      () => textResponse('Reached the iteration limit before finishing.'),
     ])
 
     const dir = tmpDir()
@@ -213,7 +216,7 @@ describe('G.3 — agenticEngine', () => {
       const ctx = await buildCtx(dir, baseTask())
       const outcome = await agenticEngine.run(ctx, { maxTokens: 4096, maxIterations: 3 })
 
-      expect(outcome.iterations).toBe(3)
+      expect(outcome.iterations).toBe(4)
       expect(outcome.files).toEqual([])
       expect(outcome.log.some(l => l.includes('maxIterations reached'))).toBe(true)
     } finally {

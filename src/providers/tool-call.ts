@@ -612,11 +612,34 @@ export async function runToolLoop(
     }
   }
 
+  // Bug real encontrado en vivo (verificado en el chat con dinero real,
+  // 2026-07-09): un mensaje que dispara más de `maxTurns` (default 3) rondas
+  // de tool calls encadenadas (ej. varios `search_memory`/`read_file` en
+  // secuencia) agotaba el loop y devolvía `text: ''` — el chat mostraba una
+  // burbuja vacía sin ninguna explicación, mismo tipo de degradación
+  // silenciosa que J.2/J.3 ya habían cerrado para otros casos. Fix: una
+  // ronda final SIN tools (`tools: []`) para forzar al modelo a sintetizar
+  // una respuesta de texto con lo que ya recolectó, en vez de cortar en seco.
+  // Segundo hallazgo en vivo: quitar `tools` del payload NO alcanza — con
+  // varios turnos previos de tool_calls/tool_result en el historial, DeepSeek
+  // (`deepseek/deepseek-v4-flash`) seguía "alucinando" su propio formato
+  // crudo de tool-call como texto (`<｜DSML｜tool_calls>...`) en vez de
+  // responder. Un mensaje explícito de usuario cerrando la puerta a más
+  // tools es lo que efectivamente lo detiene.
+  const closingMessage = {
+    role: 'user',
+    content: 'Tools are no longer available. Answer the original question directly, in plain text, using only what you already found above.',
+  }
+  const finalHistory = [...history, closingMessage]
+  const finalRound = provider === 'anthropic'
+    ? await anthropicRound(model, opts.system, finalHistory, [], opts.maxTokens)
+    : await openaiRound(model, opts.system, finalHistory, [], provider, opts.effort, opts.maxTokens)
+
   return {
-    text: '',
+    text: finalRound.text,
     toolCallsExecuted: executed,
-    inputTokens: totalInputTokens,
-    outputTokens: totalOutputTokens,
-    rounds: maxTurns,
+    inputTokens: totalInputTokens + finalRound.inputTokens,
+    outputTokens: totalOutputTokens + finalRound.outputTokens,
+    rounds: maxTurns + 1,
   }
 }

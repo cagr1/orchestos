@@ -173,7 +173,10 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
     expect(result.toolCallsExecuted[1]?.input).toEqual({ url: 'https://b.com' })
   })
 
-  it('respects maxTurns limit', async () => {
+  it('respects maxTurns limit, forcing a final tools-less round instead of returning empty text', async () => {
+    // Bug real (2026-07-09, verificado en vivo): agotar maxTurns sin esta
+    // ronda final devolvía `text: ''` — una burbuja de chat vacía sin
+    // explicación cuando el modelo encadenaba más tool calls de la cuenta.
     mockFetch([
       {
         body: {
@@ -197,6 +200,12 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
           usage: { prompt_tokens: 10, completion_tokens: 5 },
         },
       },
+      {
+        body: {
+          choices: [{ message: { content: 'Here is what I found so far.' } }],
+          usage: { prompt_tokens: 12, completion_tokens: 8 },
+        },
+      },
     ])
 
     const result = await runToolLoop('openrouter', 'openai/gpt-4o-mini', {
@@ -207,8 +216,9 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
       maxTurns: 2,
     })
 
-    expect(result.text).toBe('')
+    expect(result.text).toBe('Here is what I found so far.')
     expect(result.toolCallsExecuted).toHaveLength(2)
+    expect(result.rounds).toBe(3)
   })
 
   it('executor error string is passed to LLM (not thrown)', async () => {
