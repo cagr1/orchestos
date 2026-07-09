@@ -484,21 +484,6 @@ verificadas localmente contra el escenario exacto de CI (sin `OPENROUTER_API_KEY
 
 ---
 
-### 23. Dashboard — Impeccable + 21st.dev (diseño no memorable → memorable)
-
-**Origen**: sesión 2026-07-07. El dashboard existe y es funcional, pero visualmente genérico.
-
-**Qué hacer:**
-1. `npx impeccable install` en el repo → `/impeccable init` (surface = product) → genera `PRODUCT.md` + `DESIGN.md`
-2. Auditar el dashboard actual con `/impeccable audit` — detecta los problemas concretos
-3. Reemplazar componentes de tabla, cards y AI chat con equivalentes de 21st.dev (tiene MCP server para flujo agéntico)
-
-**Por qué no es urgente**: el dashboard funciona. Priorizar cuando haya usuario externo real o cuando se haga el bloque de chat multi-sesión (#17) que cambia la UI de todas formas.
-
-**Esfuerzo**: medio — no requiere reescribir lógica, solo UI encima de lo que existe. Candidato a bloque dedicado post-Mes 18.
-
----
-
 ### 24. OCR como task_class de primera clase
 
 **Origen**: sesión 2026-07-07. Hoy OrchestOS solo orquesta texto. OCR agregaría imágenes/PDFs.
