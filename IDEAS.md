@@ -476,6 +476,56 @@ grueso del trabajo sería el cambio de schema, no el motor OCR en sí.
 
 ---
 
+### 31. Chat multi-proveedor real + routing granular por función (inspirado en Hermes/Open WebUI) — PINEADO 2026-07-09
+
+**Origen**: Carlos, evaluando el OCR del Chat en Mes 19, preguntó qué pasa si un usuario es
+"cliente puro" de Anthropic/OpenAI/otro proveedor sin OpenRouter. Auditoría del código real
+(2026-07-09) confirmó una asimetría real:
+
+- **El pipeline de tareas formales (`tasks.yaml`) SÍ es multi-proveedor** — `orchestos.config.yaml`
+  permite `provider: anthropic|openai|codex|openrouter` por rol (`planner`/`executor_heavy`/
+  `executor_light`/`default`/`qa`, ver `src/config/schema.ts`), despachado por `getProvider()`
+  (`src/providers/index.ts`). Pero es "casi manual": `anthropic.ts`/`openai.ts` son wrappers
+  directos sin catálogo dinámico — el `model:` se escribe a mano en el YAML, sin buscador, sin
+  metadata de capacidades (visión/precio/ventana de contexto) como sí tiene el catálogo de
+  OpenRouter (`model-catalog.ts`).
+- **El Chat NO es multi-proveedor** — `handleApiChat` llama siempre a `openrouterChat()`
+  ([chat.ts:519](../src/dashboard/handlers/chat.ts#L519)), exige `OPENROUTER_API_KEY` sin
+  excepción ([chat.ts:115](../src/dashboard/handlers/chat.ts#L115)). Un usuario con solo clave de
+  Anthropic o OpenAI directa (sin OpenRouter) **no puede usar el Chat hoy, sin ningún fallback**.
+
+**Referencia externa que Carlos trajo** (captura de la app Hermes, pantalla de "Helper tasks"):
+Hermes tiene una fila por función auxiliar — **Vision** (image analysis), **Web extract** (page
+summarization), **Compression** (context compaction), **Skills hub** (skill search), **Approval**
+(smart auto-approve), **MCP** (MCP tool routing), **Title gen** (session titles), **Curator**
+(skill-usage review) — cada una con default "auto · use main model" y un link "Change" para asignar
+un modelo dedicado a esa función puntual. Es el mismo patrón conceptual que ya usan los roles de
+`orchestos.config.yaml` (planner/executor/qa) — Carlos lo reconoció como algo que "ya estábamos
+haciendo", solo que Hermes lo aplica también al lado de proveedor (cada conexión con su propia
+base_url/key) y con más granularidad de funciones.
+
+**Qué sería, si se implementa** (dos piezas separables, no mezclar):
+1. **Conexiones multi-proveedor para el Chat** — que el Chat pueda usar Anthropic/OpenAI directo
+   (no solo vía OpenRouter), con su propio selector de modelos por proveedor (sin catálogo dinámico
+   de capacidades salvo que se construya uno propio por proveedor, ya que solo OpenRouter expone
+   ese catálogo hoy).
+2. **Roles granulares por función, no solo por etapa del pipeline** — hoy los roles son
+   planner/executor_heavy/executor_light/default/qa (etapas del harness). El patrón de Hermes
+   sugiere roles por *función transversal*: Vision/OCR (relevante para Mes 19), Web extract
+   (ya existe como `fetch_url` tool, sin rol de modelo dedicado), Title gen, etc. — cada uno
+   opcional, "auto" por defecto.
+
+**Por qué no se resuelve ahora**: es un cambio de arquitectura grande (nuevo concepto de
+"conexión" por proveedor, UI de selección de proveedor, catálogo de capacidades sin OpenRouter
+para Anthropic/OpenAI directos) — no bloquea el OCR de Mes 19 (Tesseract corre local, sin
+depender de ningún proveedor, así que no hereda esta limitación). Se pinea acá para no perderlo,
+con la captura de Hermes como referencia de diseño concreta.
+
+**Esfuerzo**: alto — toca el schema de config, la UI de Settings/API & Models, el selector de
+modelos del Chat, y potencialmente un catálogo de capacidades propio por proveedor directo.
+
+---
+
 ## 📚 Referencia — inspiración externa (NO es backlog)
 
 Repos analizados durante Mes 5-8. La mayoría de patrones ya están shipeados; esto queda
