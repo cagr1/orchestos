@@ -196,13 +196,17 @@ button { font-family: inherit; }
   overflow: hidden;
 }
 .brand .mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
-/* Logo por tema — hoy el dashboard es dark-only (sin toggle real, ver IDEAS.md),
-   así que el default es el logo blanco. Cuando se implemente el toggle
-   claro/oscuro, basta con setear [data-theme="light"] en <html>/<body> — el CSS
-   ya está listo, no hace falta tocar el JS del logo. */
+/* Logo por tema — bug real encontrado (2026-07-09): este selector seguía
+   apuntando a [data-theme="light"], un valor que nunca existió desde que el
+   selector de 3 temas (Mes 18 I.11) shippeó — los temas reales son
+   "orchestos"/"dark2026"/"bright", nunca "light". El header nunca cambiaba
+   de logo con el tema. La placa `.brand .mark` también estaba fija en
+   #0d1117 (oscura) en los 3 temas — el logo negro se habría vuelto
+   invisible ahí, así que la placa también sigue el tema ahora. */
 .brand .mark .logo-light { display: none; }
-[data-theme="light"] .brand .mark .logo-dark { display: none; }
-[data-theme="light"] .brand .mark .logo-light { display: block; }
+[data-theme="bright"] .brand .mark { background: var(--surface-2); }
+[data-theme="bright"] .brand .mark .logo-dark { display: none; }
+[data-theme="bright"] .brand .mark .logo-light { display: block; }
 .brand b { color: var(--text); }
 .brand b span { color: var(--accent); }
 
