@@ -318,6 +318,9 @@
 .theme-swatch[data-swatch="dark2026"] .sw-side   { background: #191a1b; }
 .theme-swatch[data-swatch="dark2026"] .sw-main   { background: #121314; }
 .theme-swatch[data-swatch="dark2026"] .sw-dot    { background: #3994bc; }
+.theme-swatch[data-swatch="claude"] .sw-side     { background: #1a1a1a; }
+.theme-swatch[data-swatch="claude"] .sw-main     { background: #0d0d0d; }
+.theme-swatch[data-swatch="claude"] .sw-dot      { background: #5b9eff; }
 .theme-swatch[data-swatch="bright"] .sw-side     { background: #fafafd; }
 .theme-swatch[data-swatch="bright"] .sw-main     { background: #ffffff; }
 .theme-swatch[data-swatch="bright"] .sw-dot      { background: #0069cc; }

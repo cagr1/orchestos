@@ -6,7 +6,7 @@
 (function () {
   var THEME_KEY = 'orchestos-theme';
   var THEME_DEFAULT = 'orchestos';
-  var THEMES = ['orchestos', 'dark2026', 'bright'];
+  var THEMES = ['orchestos', 'dark2026', 'claude', 'bright'];
 
   function getTheme() {
     try {

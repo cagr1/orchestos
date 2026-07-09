@@ -1026,7 +1026,7 @@ SCREENS.settings = {
     const keys = st.settings || {};
     const lang = getLang();
     const theme = getTheme();
-    const THEME_LABELS = { orchestos: 'settings.theme.orchestos', dark2026: 'settings.theme.dark2026', bright: 'settings.theme.bright' };
+    const THEME_LABELS = { orchestos: 'settings.theme.orchestos', dark2026: 'settings.theme.dark2026', claude: 'settings.theme.claude', bright: 'settings.theme.bright' };
     const themePicker = `<div class="card settings-card">
       <div class="settings-header"><h3>${t('settings.theme.title')}</h3></div>
       <div class="theme-picker">

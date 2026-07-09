@@ -91,6 +91,34 @@ html[data-theme="dark2026"] {
   color-scheme: dark;
 }
 
+/* "Claude" — tema oscuro inspirado en la paleta del desktop de Claude
+   (ver `done.md` Mes 18, agregado tras el bloque de los 3 temas iniciales).
+   Negro casi puro, contraste alto de texto, acento azul. */
+html[data-theme="claude"] {
+  --bg:            #0d0d0d;
+  --surface:       #1a1a1a;
+  --surface-2:     #232323;
+  --surface-hi:    #2a2a2a;
+  --border:        #2a2a2a;
+  --border-soft:   #1f1f1f;
+
+  --text:          #ececec;
+  --text-muted:    #8e8e8e;
+  --text-faint:    #6a6a6a;
+
+  --accent:        #5b9eff;
+  --accent-contrast: #ffffff;
+
+  --success:       #73c991;
+  --error:         #f48771;
+  --warning:       #e5ba7d;
+
+  --term-bg:       #050505;
+  --term-green:    #6ab890;
+
+  color-scheme: dark;
+}
+
 /* "Bright" — tema claro, mismo origen (theme-defaults/themes/2026-light.json)
    para quedar en pareja con "Dark 2026". */
 html[data-theme="bright"] {
