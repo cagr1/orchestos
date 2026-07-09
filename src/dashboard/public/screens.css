@@ -666,6 +666,12 @@
   margin-top: 6px; font-size: 10.5px; color: var(--text-faint);
   font-family: var(--mono); text-align: right;
 }
+/* C.2 (Mes 19) — transparencia: nota de que una imagen se leyó vía OCR */
+.chat-ocr-tag {
+  margin-top: 6px; font-size: 11px; color: var(--text-faint);
+  display: flex; align-items: center; gap: 5px;
+}
+.chat-ocr-tag svg { width: 12px; height: 12px; flex-shrink: 0; }
 
 /* D4 — create task from conversation */
 .chat-create-task-bar {

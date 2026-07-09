@@ -91,6 +91,22 @@ function loadDiskCache(): DiskCache | null {
 }
 
 function saveDiskCache(cache: DiskCache): void {
+  // Bug real encontrado en vivo (Mes 19, Bloque C.3, 2026-07-09): `bun test`
+  // corre ~58 archivos en el mismo proceso; varios tests mutan
+  // `process.env.ORCHESTOS_HOME` (beforeEach/afterEach) mientras OTROS tests
+  // (`chat-effort.test.ts`, `planner-fc.test.ts`) invocan `ensureCatalogLoaded()`
+  // real SIN override, confiando en `~/.orchestos` real. `cacheFilePath()` relee
+  // `process.env.ORCHESTOS_HOME` en cada llamada (no lo captura una sola vez),
+  // así que una carrera entre ambos deja escribir el catálogo FAKE de un test
+  // (un solo modelo, `supportsVision:false` a propósito) al cache REAL de disco
+  // — reproducido de forma consistente corriendo la suite completa dos veces
+  // seguidas, nunca con <4 archivos a la vez. Con TTL de 24h esto rompía en
+  // silencio el gating de visión/razonamiento/tools del dashboard real durante
+  // un día entero cada vez que corría `bun test`. Guard: bajo `bun test`
+  // (`NODE_ENV=test`, seteado automáticamente por el runner) sin un
+  // `ORCHESTOS_HOME` explícito, jamás escribir al cache real — el catálogo en
+  // memoria del proceso de test sigue funcionando igual, solo no persiste.
+  if (process.env.NODE_ENV === 'test' && !process.env.ORCHESTOS_HOME) return
   try {
     const path = cacheFilePath()
     mkdirSync(dirname(path), { recursive: true })

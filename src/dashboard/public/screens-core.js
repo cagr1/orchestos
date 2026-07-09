@@ -67,7 +67,11 @@ SCREENS.chat = {
           const text = esc(m.content).replace(/\n/g, '<br>');
           const modelTag = m.role === 'assistant' && m.model
             ? `<div class="chat-model-tag">${esc(m.model)}</div>` : '';
-          return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${modelTag}</div></div>`;
+          // C.2 (Mes 19) — transparencia: si el modelo elegido no tenía visión,
+          // el chat leyó la imagen con OCR en vez de descartarla en silencio.
+          const ocrTag = m.role === 'assistant' && m.ocrUsed && m.ocrUsed.length
+            ? `<div class="chat-ocr-tag">${ICON.image} ${t('chat.ocr.used', m.ocrUsed.join(', '))}</div>` : '';
+          return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${ocrTag}${modelTag}</div></div>`;
         }).join('') + thinkingBubble;
 
     // FRONT.6 — combobox de altura única (trigger + panel con búsqueda integrada), reemplaza
@@ -192,7 +196,7 @@ SCREENS.chat = {
         });
         if (res.ok) {
           const data = await res.json();
-          st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model });
+          st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model, ocrUsed: data.ocrUsed });
           // J.1 (Mes 18) — B.1.b: si el clasificador marcó el mensaje como
           // tarea, la barra aparece ya (sin esperar a 3+ mensajes) citando su reason.
           st.chatTaskSuggestion = data.taskSuggestion || null;

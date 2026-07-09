@@ -28,6 +28,10 @@ runs/*.log
 .cache
 *.tsbuildinfo
 
+# tesseract.js — datos de idioma descargados al cwd en el primer uso de OCR (Mes 19)
+*.traineddata
+*.traineddata.gz
+
 # IntelliJ based IDEs
 .idea
 
