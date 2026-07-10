@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-18-cerrado--mes-19-abierto
+status: mes-19-cerrado-funcional--mes-20-abierto
 ---
 
 # OrchestOS — Plan activo
@@ -20,6 +20,36 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 **Regla de documentación obligatoria (2026-07-02):** todo hallazgo — bug real, deuda técnica, feature huérfana, contradicción entre `tasks.yaml`/DONE.md y el código real — se convierte en un ítem de este archivo (o de IDEAS.md si es backlog no inmediato) ANTES de tocar código. Si no está escrito acá, no se corrige. Motivo: una auditoría completa (2026-07-02) encontró deuda documentada en prosa dentro de DONE.md ("anotado como deuda conocida") que nunca se tradujo a un ítem accionable y por eso nadie la persiguió durante 3 meses (ver Bloque F0).
 
 **Regla de flujo IDEAS→PLAN→DONE (decisión Carlos, 2026-07-02):** cuando una idea pasa de IDEAS.md a PLAN.md (se convierte en el eje o en un bloque de un Mes), **se ELIMINA de IDEAS.md en el mismo commit** — no queda duplicada en ambos. La evidencia de que se realizó vive siempre en DONE.md (documentación extensa al cierre del Mes). IDEAS.md es solo backlog vivo: lo que está ahí es porque NADIE lo está haciendo todavía.
+
+---
+
+## MES 20 — Que OrchestOS entregue de verdad: dogfooding contra un producto real
+
+**Eje decidido por Carlos (2026-07-09), disparado por dogfooding real.** Carlos intentó lo más exigente hasta ahora: pedirle a OrchestOS un **producto premium real** (dashboard de cripto en React+TS+Vite, nivel Lovable) — *"no quiero avanzar si OrchestOS no puede hacer una página"*. El intento destapó una cadena de bugs que **nunca se habían probado** porque nadie había empujado el sistema hasta acá. Regla del mes (decisión de Carlos): **no meter esto como "idea" — atacar todo lo que se pueda ahora, seguir puliendo hasta que OrchestOS entregue el producto, y recién después agregar lo que falte.**
+
+**El descubrimiento central (la gran pregunta de Carlos):** un LLM **no sabe** cuántos tokens necesita antes de empezar — genera palabra por palabra sin cuenta regresiva. Si se le acaba el presupuesto a mitad, se corta en seco (misma clase de bug que G.5/Mes 16). Ningún sistema (Lovable/Cursor/etc.) resuelve esto con magia — todos usan pasos chicos + límites duros + verificación externa. **La diferencia real de OrchestOS: ya tiene el DAG de sub-tareas con contratos Read/Write construido y probado (S22, `executePlan`), y DOS caminos de planificación en `planner.ts` (`createPlan` desde YAML escrito + generador vía function-calling que hace que el LLM produzca el plan solo). La ventaja está construida a medias — falta SOLO el gatillo automático.**
+
+**Por qué `--expand` está "muerto en la práctica" hoy** (leído en `cli.ts:1073-1140`): es 100% manual y exige 3 cosas que nadie hace: (1) correr `orchestos task run --expand <id>` a mano, (2) que la tarea padre declare un `*.plan.yaml` en su `output`, (3) que el LLM haya escrito ese `.plan.yaml` durante su corrida. Sin las 3, falla o no se dispara. Nunca se activa solo → por eso el motor de sub-tareas, aunque existe y funciona, casi nunca corre (confirmado en I.6/IDEAS #29: 0 memorias reales de sub-tasks).
+
+### Pre-flight — bugs reales ya corregidos en la sesión de dogfooding (2026-07-09)
+Encontrados y corregidos ANTES de abrir el mes formalmente, porque bloqueaban cualquier prueba real. Se registran acá para que la evidencia no se pierda (regla de documentación obligatoria):
+- [x] **P.1 🧠 Loop de tools devolvía texto vacío/corrupto** (commit `de47025`) — un mensaje que dispara más de `maxTurns` (default 3) rondas de tool calls encadenadas agotaba `runToolLoop()` y devolvía `text:''` (burbuja de chat vacía, sin explicación). Confirmado contra un mensaje real de Carlos (211,716 input tokens, result vacío). Fix en 2 pasos: ronda final sin tools + mensaje explícito "tools ya no disponibles, respondé en texto plano" (quitar solo `tools` del payload no alcanzaba — DeepSeek seguía alucinando su formato crudo de tool-call). Verificado en vivo.
+- [x] **P.2 🧠 `maxTokens` pedía el techo absoluto del modelo sin ver el saldo real** (commit `3bc3ce8`) — `min(contextWindow−prompt, providerMaxOutput)` clampeaba directo a 128,000 (techo de `claude-sonnet-5`) porque el contexto es 1M y el prompt chico. OpenRouter pre-autoriza contra el PEOR CASO (128K × precio), no el gasto real — una cuenta con $0.78 no podía correr NINGUNA tarea con modelo caro aunque el gasto real fuera centavos. Carlos: *"OrchestOS debe adaptarse al modelo que el usuario use"*. Fix: `parseAffordableTokens()` extrae el número real que el 402 ya reporta y reintenta 1 vez con ese presupuesto, en los 2 puntos de llamada real. 652 tests. **Verificación en vivo del reintento pendiente hasta recargar saldo.**
+
+### Bloque A — Auto-split: el gatillo automático que le falta al motor de sub-tareas (🧠 diseño primero)
+- [ ] A.1 🧠 Doc de diseño (`docs/auto-split-design.md`), revisado con Carlos antes de tocar código. Debe decidir: (a) **el estimador de tamaño** — heurístico barato ANTES de correr (ej. nº de archivos en `output` × tamaño esperado por archivo vs. presupuesto real por corrida `availableForOutput` del harness) que clasifica una tarea como "cabe en una corrida" vs "necesita split"; (b) **el gatillo** — cuándo auto-generar el plan de sub-tareas (reusar el generador function-calling de `planner.ts:199`, NO reconstruir) en vez de correr single-shot/agéntico directo; (c) **el punto de control humano** — el usuario ve el plan de sub-tareas propuesto (qué archivos, qué orden, costo estimado) y aprueba ANTES de gastar, mismo principio "nunca auto-run silencioso" que ya rige el chat (B.1.b/Mes 18); (d) **fallback** — qué pasa si una sub-tarea igual se pasa de presupuesto (¿re-split recursivo con tope de profundidad? ¿o marcar `blocked` como hoy?). No decidir por adelantado, evaluar contra el código real de `executePlan`/`scheduler.ts`.
+- [ ] A.2 🔍 Revisión del doc con Carlos antes de abrir B.
+
+### Bloque B — Implementación del auto-split (pendiente de A)
+- [ ] B.1 🧠 Estimador de tamaño (`shouldSplit(task, budget)`) — función pura, testeable sin dinero real, que decide si una tarea supera el presupuesto de una corrida.
+- [ ] B.2 🧠 Gatillo en el harness/CLI — cuando `shouldSplit` da true, generar el plan (function-calling existente) y presentarlo para aprobación en vez de correr directo. Reusa `createSubTaskPlan`/`executePlan`, no construye motor nuevo.
+- [ ] B.3 ⚡ Superficie: el plan de sub-tareas propuesto es visible y aprobable desde el dashboard (no solo CLI — regla [[feedback-dashboard-no-solo-cli]]), con costo estimado por sub-tarea.
+
+### Bloque C — Gate de verificación real: el dashboard de cripto entregado de punta a punta (🔍, BLOQUEADO por saldo)
+- [ ] C.1 🔍 **La prueba que motivó todo el mes.** Con saldo recargado en OpenRouter, correr `crypto-dashboard-premium` (React+TS+Vite real bajo `demo/crypto-dashboard/`, motor agéntico, skill `frontend-design`, modelo capaz) HASTA COMPLETARSE: los checks reales (`bun install` + `bun run build`) pasan, el proyecto compila, y la página se ve en el navegador con nivel de acabado premium (no AI-slop). Este gate responde la pregunta abierta de Carlos: *"¿puede OrchestOS entregar un producto premium?"* — hoy sin responder porque el intento murió antes de escribir el primer archivo (bug P.2). Definición de la tarea documentada en [[project-state]] para recrearla. **Nota de contexto de Carlos**: un proyecto ANTERIOR ya lograba entregar una página (HTML+JS+CSS, no premium pero completa) — OrchestOS todavía no llegó ni a ese piso en una corrida real, así que este gate es el mínimo indispensable antes de hablar de "premium".
+
+### Cierre del mes
+- [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + cerrar también el H.1 pendiente del Mes 19 (OCR, A+B+C hechos) en la misma pasada.
 
 ---
 
