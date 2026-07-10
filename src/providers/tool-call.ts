@@ -18,6 +18,7 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import { DEFAULT_MAX_OUTPUT_TOKENS, catalogSupportsTools } from '../router/model-catalog.ts'
+import { parseAffordableTokens } from './openrouter.ts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -448,6 +449,7 @@ async function openaiRound(
   provider: string,
   effort?: 'low' | 'medium' | 'high',
   maxTokens?: number,
+  _retriedForBalance?: boolean,
 ): Promise<{
   text: string
   toolUses: RawToolUse[]
@@ -475,6 +477,7 @@ async function openaiRound(
     function: { name: t.name, description: t.description, parameters: t.input_schema },
   }))
 
+  const requestedMaxTokens = maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -487,7 +490,7 @@ async function openaiRound(
     },
     body: JSON.stringify({
       model: m,
-      max_tokens: maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
+      max_tokens: requestedMaxTokens,
       tool_choice: 'auto',
       tools: openaiTools,
       messages: [
@@ -500,6 +503,18 @@ async function openaiRound(
 
   if (!res.ok) {
     const err = await res.text()
+    // Bug real (2026-07-09, ver openrouter.ts:parseAffordableTokens) — el
+    // presupuesto pedido (a veces el techo absoluto del modelo, ej. 128K)
+    // puede exceder lo que la cuenta real puede pagar aunque la tarea use
+    // una fracción de eso. Reintentar UNA vez con el número real que
+    // OpenRouter ya reportó, en vez de fallar en seco.
+    if (baseUrl.includes('openrouter') && res.status === 402 && !_retriedForBalance) {
+      const affordable = parseAffordableTokens(err)
+      if (affordable && affordable < requestedMaxTokens) {
+        const retryBudget = Math.max(256, affordable - 256)
+        return openaiRound(model, system, history, tools, provider, effort, retryBudget, true)
+      }
+    }
     throw new Error(`OpenAI tool-call error ${res.status}: ${err}`)
   }
 

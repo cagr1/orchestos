@@ -41,6 +41,26 @@ function loadApiKey(): string {
   )
 }
 
+/**
+ * Bug real encontrado en vivo (2026-07-09): `maxTokens` siempre se calculaba
+ * como `min(contextWindow − prompt, providerMaxOutput)` — con un modelo de
+ * ventana grande (ej. 1M tokens de claude-sonnet-5) y un prompt chico, esto
+ * clampeaba directo al TECHO ABSOLUTO del modelo (128,000), sin relación
+ * ninguna con cuánto la tarea realmente necesitaba ni con el saldo real de
+ * la cuenta. OpenRouter pre-autoriza contra el PEOR CASO (128,000 tokens ×
+ * precio de salida), no contra el gasto real esperado — un usuario con
+ * saldo modesto ($0.78) no podía correr NINGUNA tarea con un modelo caro
+ * aunque la tarea real fuera a costar centavos. Carlos: "OrchestOS debe
+ * adaptarse al modelo que el usuario use", no asumir saldo ilimitado.
+ * `parseAffordableTokens()` extrae el número real que el 402 de OpenRouter
+ * ya reporta ("...can only afford 118057...") para reintentar UNA vez con
+ * un presupuesto que sí calza, en vez de fallar en seco.
+ */
+export function parseAffordableTokens(errorBody: string): number | null {
+  const m = errorBody.match(/can only afford (\d+)/i)
+  return m?.[1] ? parseInt(m[1], 10) : null
+}
+
 // OpenRouter uses the OpenAI chat completions format —
 // same endpoint works for Claude, GPT, Gemini, Mistral, local models, etc.
 export async function chat(opts: {
@@ -51,12 +71,15 @@ export async function chat(opts: {
   effort?: 'low' | 'medium' | 'high'
   /** Tope de tokens de salida — el caller debe resolverlo vía `maxOutputTokensFor()` (model-catalog.ts) en vez de adivinar; default 8192 si no se pasa (mismo valor histórico, para no romper callers que todavía no migraron). */
   maxTokens?: number
+  /** Interno — evita un segundo reintento si el 402 persiste con el presupuesto ya reducido. */
+  _retriedForBalance?: boolean
 }): Promise<ChatResponse> {
   const apiKey = loadApiKey()
 
+  const requestedMaxTokens = opts.maxTokens ?? 8192
   const body: Record<string, unknown> = {
     model: opts.model,
-    max_tokens: opts.maxTokens ?? 8192,
+    max_tokens: requestedMaxTokens,
     messages: [
       { role: 'system', content: opts.system },
       ...opts.messages,
@@ -77,6 +100,16 @@ export async function chat(opts: {
 
   if (!res.ok) {
     const err = await res.text()
+    // Bug real (2026-07-09) — ver parseAffordableTokens() arriba: reintentar
+    // UNA vez con el presupuesto real que la cuenta puede pagar, en vez de
+    // fallar en seco cuando `max_tokens` pedía el techo del modelo completo.
+    if (res.status === 402 && !opts._retriedForBalance) {
+      const affordable = parseAffordableTokens(err)
+      if (affordable && affordable < requestedMaxTokens) {
+        const retryBudget = Math.max(256, affordable - 256)
+        return chat({ ...opts, maxTokens: retryBudget, _retriedForBalance: true })
+      }
+    }
     throw new Error(`OpenRouter error ${res.status}: ${err}`)
   }
 
