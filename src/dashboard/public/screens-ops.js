@@ -758,13 +758,18 @@ SCREENS.graph = {
       </div>
     </div>` : '';
 
-    const rows = tasks.map(task => `<tr data-task="${esc(task.id)}">
-      <td><span class="badge ${STATUS_BADGE[task.status] || 'gray'}"><span class="d"></span>${esc(task.status)}</span></td>
-      <td class="mono" style="white-space:nowrap">${esc(task.id)}</td>
-      <td style="color:var(--text-muted)">${esc(task.description)}</td>
-      <td class="mono faint">${esc(task.executor || '—')}</td>
-      <td class="num">${task.retryCount}</td>
-    </tr>`).join('');
+    const rows = tasks.map(task => {
+      const splitBadge = task.hasSplitPlan
+        ? `<span class="badge amber square" style="margin-left:6px;cursor:pointer" data-approve-split="${esc(task.id)}" title="Split plan listo — click para ver y aprobar">⚡ Split</span>`
+        : '';
+      return `<tr data-task="${esc(task.id)}">
+        <td><span class="badge ${STATUS_BADGE[task.status] || 'gray'}"><span class="d"></span>${esc(task.status)}</span>${splitBadge}</td>
+        <td class="mono" style="white-space:nowrap">${esc(task.id)}</td>
+        <td style="color:var(--text-muted)">${esc(task.description)}</td>
+        <td class="mono faint">${esc(task.executor || '—')}</td>
+        <td class="num">${task.retryCount}</td>
+      </tr>`;
+    }).join('');
 
     return `<div class="screen">${head}${explainer}${allDoneBanner}
       <div class="card" style="overflow:hidden">
@@ -809,6 +814,36 @@ SCREENS.graph = {
         App.rerender();
       }
     });
+
+    // Mes 20 B.3 — approve split plan badge
+    root.querySelectorAll('[data-approve-split]').forEach(badge => badge.addEventListener('click', async e => {
+      e.stopPropagation();
+      const taskId = badge.dataset.approveSplit;
+      try {
+        const planRes = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/split-plan`);
+        if (!planRes.ok) { showToast('No se pudo leer el plan', 'error'); return; }
+        const plan = await planRes.json();
+        const subTaskLines = plan.subTasks.map((st, i) => {
+          const out = (st.output || [st.topic_key]).filter(Boolean).join(', ') || '—';
+          const deps = st.depends_on.length ? ` (deps: ${st.depends_on.join(', ')})` : '';
+          return `${i + 1}. ${st.id}${deps}\n   ${st.description}\n   → ${out}`;
+        }).join('\n\n');
+        const msg = `Plan de sub-tareas propuesto para "${taskId}" (${plan.subTasks.length} sub-tareas):\n\n${subTaskLines}\n\n¿Aprobar y ejecutar?`;
+        if (confirm(msg)) {
+          const approveRes = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/approve-split`, { method: 'POST' });
+          if (approveRes.ok) {
+            showToast(`Split aprobado — ejecutando ${plan.subTasks.length} sub-tareas`);
+            await App.fetchGraphStatus();
+            App.rerender();
+          } else {
+            const err = await approveRes.json().catch(() => ({}));
+            showToast(err.error || 'Error al aprobar', 'error');
+          }
+        }
+      } catch {
+        showToast('Error al cargar el plan', 'error');
+      }
+    }));
 
     // C2 — retry button per row (failed_permanent / blocked)
     root.querySelectorAll('[data-act="graph-retry"]').forEach(btn => btn.addEventListener('click', async e => {

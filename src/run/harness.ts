@@ -47,6 +47,11 @@ import { contextInject, skillRoute, memoryFetch, toolPolicy, instinctApply } fro
 import type { Task } from '../tasks/schema.ts'
 import type { Worktree } from './sandbox.ts'
 import type { ContextWarning } from '../hooks/context-monitor.ts'
+import { generatePlan } from '../agents/planner.ts'
+import type { SubTask } from '../agents/sub-agent.ts'
+import { stringify as yamlStringify } from 'yaml'
+import { writeFileSync } from 'fs'
+import { join } from 'path'
 
 // -- public types --------------------------------------------------------------
 
@@ -87,7 +92,7 @@ export interface HarnessOpts {
 }
 
 export interface TaskResult {
-  status: 'done' | 'retry' | 'failed' | 'blocked' | 'pending'
+  status: 'done' | 'retry' | 'failed' | 'blocked' | 'pending' | 'split_proposed'
   /** ID del run insertado en SQLite (vacio si dryRun o fallo antes de insertar) */
   runId: string
   qaVerdict?: 'pass' | 'fail'
@@ -100,6 +105,34 @@ export interface TaskResult {
   elapsedMs: number
   /** S27.4 — context-monitor warnings fired during this run */
   contextWarnings: ContextWarning[]
+  /** Mes 20 B.2 — auto-split: plan propuesto cuando shouldSplit=true */
+  planYamlPath?: string
+  plan?: SubTask[]
+}
+
+// -- Mes 20 B.1 — estimador de tamaño (función pura, testeable sin LLM) ------
+
+/** Tokens promedio estimados por archivo de output (conservador: ~150 líneas TS). */
+export const SPLIT_AVG_TOKENS_PER_FILE = 2048
+/**
+ * Si el output estimado supera esta fracción del presupuesto real por llamada,
+ * la tarea se divide en sub-tareas antes de correr.
+ */
+export const SPLIT_THRESHOLD = 0.7
+
+/**
+ * Decide si una tarea excede el presupuesto de output de una sola llamada LLM.
+ * Usa el `maxTokens` ya clampeado por `providerMaxOutput` (no `availableForOutput`
+ * crudo) para evitar falsos negativos con modelos de tope bajo (ej. gpt-4o-mini).
+ *
+ * Exclusiones:
+ *  - engine 'external': el executor es `claude -p`, no la API directa.
+ *  - sin archivos de output (tareas topic_key-only): no hay nada que estimar.
+ */
+export function shouldSplit(task: Task, maxTokens: number): boolean {
+  if (!task.output || task.output.length === 0) return false
+  if (task.engine === 'external') return false
+  return task.output.length * SPLIT_AVG_TOKENS_PER_FILE > maxTokens * SPLIT_THRESHOLD
 }
 
 // -- QA judge resolution (F2) ---------------------------------------------------
@@ -270,6 +303,63 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // segundo clamp con el dato real del catálogo SOLO cuando está disponible.
     const providerMaxOutput = maxOutputTokensFor(ctx.model)
     const maxTokens = providerMaxOutput > 0 ? Math.min(availableForOutput, providerMaxOutput) : availableForOutput
+
+    // -- Mes 20 B.2 — auto-split gate ------------------------------------------
+    // Si el output estimado supera el 70% del presupuesto real, el LLM se va a
+    // cortar a mitad. En vez de intentarlo y fallar, generamos un plan de
+    // sub-tareas (reutilizando el generador de function-calling existente) y
+    // devolvemos 'split_proposed' para que el caller (CLI o dashboard) pida
+    // aprobación antes de gastar.
+    if (shouldSplit(ctx.task, maxTokens)) {
+      const estimated = ctx.task.output.length * SPLIT_AVG_TOKENS_PER_FILE
+      log.info(`auto-split: output estimado ~${estimated} tokens supera ${Math.round(SPLIT_THRESHOLD * 100)}% de maxTokens=${maxTokens} — generando plan de sub-tareas`)
+
+      let subTasks: SubTask[] = []
+      try {
+        subTasks = await generatePlan(ctx.task.description, ctx.task.id, {
+          provider: ctx.providerName,
+          model:    ctx.model,
+        })
+      } catch (e: any) {
+        log.info(`auto-split: generatePlan falló (${e.message}) — continuando como single-shot`)
+        // fallback: dejar que engine.run() intente la tarea directamente
+      }
+
+      if (subTasks.length > 0) {
+        // Serializar el plan al formato YAML que createPlan() ya puede consumir
+        const planObj = {
+          version: 1,
+          parent_task_id: ctx.task.id,
+          sub_tasks: subTasks.map(st => ({
+            id:            st.id,
+            description:   st.description,
+            acceptance:    st.acceptance,
+            depends_on:    st.depends_on,
+            allowed_tools: st.allowed_tools,
+            ...(st.output    ? { output:    st.output }    : {}),
+            ...(st.topic_key ? { topic_key: st.topic_key } : {}),
+            ...(st.input     ? { input:     st.input }     : {}),
+          })),
+        }
+        const planYaml = yamlStringify(planObj)
+        const planYamlPath = join(projectRoot, `${ctx.task.id}.plan.yaml`)
+        writeFileSync(planYamlPath, planYaml, 'utf-8')
+        log.info(`auto-split: plan escrito en ${planYamlPath} (${subTasks.length} sub-tareas)`)
+
+        return {
+          status: 'split_proposed',
+          runId: '',
+          planYamlPath,
+          plan: subTasks,
+          filesWritten: [],
+          filesBlocked: [],
+          cost: { inputTokens: 0, outputTokens: 0, usd: 0 },
+          elapsedMs: Math.round(performance.now() - t0),
+          contextWarnings: ctx.contextWarnings,
+        }
+      }
+      // si generatePlan falló → seguir con el engine normal (ya logueado arriba)
+    }
 
     // -- executor engine selection (G.3 / B.2) ---------------------------------
     // Default absoluto 'single-shot' — cero cambio de comportamiento para todo

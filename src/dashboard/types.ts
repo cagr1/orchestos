@@ -103,6 +103,26 @@ export interface TaskRow {
   runId: string | null     // link to latest run in /api/runs
   /** G.4 / B.2 — 'single-shot' | 'agentic' | 'external' | null (undefined → inherit from orchestos.config.yaml, default 'single-shot') */
   engine: 'single-shot' | 'agentic' | 'external' | null
+  /** Mes 20 B.3 — true si existe un <task_id>.plan.yaml pendiente de aprobación */
+  hasSplitPlan: boolean
+}
+
+// ── /api/tasks/:id/split-plan ──────────────────────────────────────────────────
+
+export interface SplitPlanSubTask {
+  id: string
+  description: string
+  acceptance: string[]
+  depends_on: string[]
+  allowed_tools: string[]
+  output?: string[]
+  topic_key?: string
+}
+
+export interface SplitPlanResponse {
+  parentTaskId: string
+  subTasks: SplitPlanSubTask[]
+  planYamlPath: string
 }
 
 // ── /api/run/graph, /api/run/graph/status ──────────────────────────────────────

@@ -1,8 +1,8 @@
 import { resolve, join } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { diagnoseTask } from '../../agents/diagnose.ts'
 import { loadTasks, saveTasks } from '../../tasks/loader.ts'
-import type { TaskRow, DiagnoseRow } from '../types.ts'
+import type { TaskRow, DiagnoseRow, SplitPlanResponse } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
 import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/registry.ts'
 import { classifyTask } from '../../router/classify.ts'
@@ -11,6 +11,7 @@ import { loadOrcheConfig } from '../../config/load.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
 import { getProject } from '../../db/projects.ts'
 import { suggestContext } from '../../graph/suggest.ts'
+import { parsePlan } from '../../agents/planner.ts'
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
@@ -27,6 +28,7 @@ function loadTaskRows(root: string): TaskRow[] {
       qaVerdict: t.qa_verdict ?? null,
       runId: t.run_id ?? null,
       engine: t.engine ?? null,
+      hasSplitPlan: existsSync(join(root, `${t.id}.plan.yaml`)),
     }))
   } catch {
     return []
@@ -218,4 +220,59 @@ async function handleApiTasksDiagnose(url: URL): Promise<Response> {
   }
 }
 
-export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, handleApiTasksExplain, loadTaskRows, isKnownSkillId }
+// Mes 20 B.3 — GET /api/tasks/:id/split-plan
+function handleApiTasksSplitPlan(url: URL): Response {
+  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
+  const id = validateTaskId(raw)
+  if (!id) return errorResponse('Missing or invalid task id', 400)
+  const root = resolve('.')
+  const planPath = join(root, `${id}.plan.yaml`)
+  if (!existsSync(planPath)) return errorResponse('No split plan found for this task', 404)
+
+  let yaml: string
+  try { yaml = readFileSync(planPath, 'utf-8') } catch { return errorResponse('Cannot read plan file', 500) }
+
+  let plan: ReturnType<typeof parsePlan>
+  try { plan = parsePlan(yaml) } catch (e: any) { return errorResponse(`Invalid plan YAML: ${e.message}`, 422) }
+
+  const resp: SplitPlanResponse = {
+    parentTaskId: id,
+    planYamlPath: planPath,
+    subTasks: plan.sub_tasks.map(st => ({
+      id:            st.id,
+      description:   st.description,
+      acceptance:    st.acceptance,
+      depends_on:    st.depends_on,
+      allowed_tools: st.allowed_tools,
+      ...(st.output    ? { output:    st.output }    : {}),
+      ...(st.topic_key ? { topic_key: st.topic_key } : {}),
+    })),
+  }
+  return jsonResponse(resp)
+}
+
+// Mes 20 B.3 — POST /api/tasks/:id/approve-split
+function handleApiTasksApproveSplit(url: URL): Response {
+  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
+  const id = validateTaskId(raw)
+  if (!id) return errorResponse('Missing or invalid task id', 400)
+  const root = resolve('.')
+  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
+  const planPath = join(root, `${id}.plan.yaml`)
+  if (!existsSync(planPath)) return errorResponse('No split plan found — run the task first to generate a plan', 404)
+
+  // Reset task to pending so the CLI doesn't skip it
+  const file = loadTasks(root)
+  const task = file.tasks.find((t: any) => t.id === id)
+  if (!task) return errorResponse('Task not found', 404)
+  task.status = 'pending'
+  saveTasks(root, file)
+
+  // Spawn CLI with --expand — it detects the existing .plan.yaml and runs it directly
+  const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--expand', id]
+  Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
+
+  return jsonResponse({ ok: true, id, message: `Split plan for "${id}" approved — executing ${planPath}` })
+}
+
+export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, loadTaskRows, isKnownSkillId }

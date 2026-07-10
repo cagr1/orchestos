@@ -3,7 +3,7 @@ import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResol
 import { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete } from './handlers/runs.ts'
 import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete } from './handlers/instincts.ts'
 import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete } from './handlers/specs.ts'
-import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, handleApiTasksExplain } from './handlers/tasks.ts'
+import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit } from './handlers/tasks.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiNatural } from './handlers/project.ts'
 import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
@@ -48,6 +48,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/explain$/)) {
     return handleApiTasksExplain(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/split-plan$/)) {
+    return handleApiTasksSplitPlan(url)
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/approve-split$/)) {
+    return handleApiTasksApproveSplit(url)
   }
   if (method === 'POST' && url.pathname === '/api/run/graph') {
     return handleApiRunGraph(req)

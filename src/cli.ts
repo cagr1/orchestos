@@ -1051,6 +1051,45 @@ task
         return 'blocked'
       }
 
+      // Mes 20 B.2 — auto-split: el harness detectó que el output estimado supera
+      // el presupuesto de una llamada y generó un plan de sub-tareas.
+      if (result.status === 'split_proposed' && result.plan && result.planYamlPath) {
+        const plan = result.plan
+        const planPath = result.planYamlPath
+        const retryReason = `split plan propuesto en ${planPath} — aprobar con: orchestos task run --id ${taskId} --expand o desde el dashboard`
+        updateTaskStatus(root, taskId, { status: 'pending', retry_reason: retryReason })
+
+        console.log(`\n[auto-split] La tarea "${taskId}" requiere dividirse en sub-tareas.`)
+        console.log(`  Output estimado supera el presupuesto del modelo.`)
+        console.log(`  Plan propuesto (${plan.length} sub-tareas):\n`)
+        for (let i = 0; i < plan.length; i++) {
+          const st = plan[i]!
+          const out = st.output?.join(', ') ?? st.topic_key ?? '—'
+          const deps = st.depends_on.length > 0 ? ` (depends: ${st.depends_on.join(', ')})` : ''
+          console.log(`  ${i + 1}. ${st.id}${deps}`)
+          console.log(`       ${st.description}`)
+          console.log(`       → ${out}`)
+        }
+        console.log(`\n  Plan guardado en: ${planPath}`)
+
+        // En sesión interactiva (TTY) preguntamos directamente.
+        // En subprocess del dashboard: dejar pending, el dashboard detecta el plan via API.
+        if (process.stdin.isTTY) {
+          process.stdout.write('\n¿Aprobar y ejecutar? [y/N] ')
+          const buf = Buffer.alloc(4)
+          const n = require('fs').readSync(0, buf, 0, 4, null)
+          const answer = buf.slice(0, n).toString().trim().toLowerCase()
+          if (answer === 'y' || answer === 'yes') {
+            await runApprovedSplitPlan(taskId, planPath, t, root, opts)
+            return 'done'
+          }
+          console.log('[auto-split] Cancelado. Tarea queda en pending. Aprobá desde el dashboard o con --expand.')
+        } else {
+          console.log('[auto-split] Plan escrito. Aprobá desde el dashboard o con: orchestos task run --expand --id ' + taskId)
+        }
+        return 'blocked'
+      }
+
       // failed
       const isPermanent = t.retry_count + 1 >= MAX_RETRIES
       updateTaskStatus(root, taskId, { status: isPermanent ? 'failed_permanent' : 'failed', retry_reason: result.retryReason })
@@ -1070,14 +1109,123 @@ task
       return 'failed'
     }
 
-    // S22.6 — expand: run parent task, then execute sub-tasks from plan
+    // Mes 20 B.2 — ejecuta un plan de sub-tareas ya aprobado (escrito en .plan.yaml).
+    // Usado tanto por el handler de split_proposed (TTY) como por --expand cuando el
+    // archivo ya existe (aprobación desde dashboard).
+    async function runApprovedSplitPlan(
+      parentTaskId: string,
+      planPath: string,
+      parentTask: ReturnType<typeof loadTasks>['tasks'][0],
+      projectRoot: string,
+      runOpts: { model?: string; keepWorktree?: boolean } | undefined,
+    ): Promise<'done' | 'failed'> {
+      const planContent = readFileSync(planPath, 'utf-8')
+      let subTasks: SubTask[]
+      try {
+        subTasks = createPlan(planContent)
+      } catch (e) {
+        console.error(`[auto-split] Plan inválido: ${(e as Error).message}`)
+        return 'failed'
+      }
+
+      console.log(`\n[auto-split] Ejecutando ${subTasks.length} sub-tareas:\n`)
+      for (const st of subTasks) {
+        const deps = st.depends_on.length > 0 ? ` (depends: ${st.depends_on.join(', ')})` : ''
+        console.log(`  ${st.id}${deps}`)
+        console.log(`    ${st.description}`)
+      }
+
+      const planResult = await executePlan(subTasks, {
+        parentTaskId,
+        projectRoot,
+        baseBranch: 'main',
+        parentExecutor: parentTask.executor,
+        parentModel: runOpts?.model ?? parentTask.executor_model,
+      }, async (st, worktree) => {
+        const stT0 = performance.now()
+        const stLog = new RunLogger(projectRoot, st.id)
+        console.log(`\n  [sub] Running: ${st.id} — ${st.description}`)
+
+        const subTaskModel = st.executor_model ?? runOpts?.model ?? parentTask.executor_model
+        const subTaskAsTask = {
+          id: st.id,
+          description: st.description,
+          executor: st.executor ?? parentTask.executor,
+          executor_model: subTaskModel,
+          input: st.input ?? parentTask.input,
+          output: st.output ?? parentTask.output,
+          acceptance_criteria: st.acceptance,
+          checks: st.checks,
+          depends_on: st.depends_on,
+          status: 'pending' as const,
+          retry_count: 0,
+          skill: st.skill,
+        }
+
+        const harnessResult = await runTask({
+          projectRoot: worktree.path,
+          contextText: projectContext,
+          task: subTaskAsTask as any,
+          projectId: project?.id,
+          logger: stLog,
+          orcheConfig,
+          orcheConfigFound,
+          sandboxMode: 'cwd',
+          keepWorktree: runOpts?.keepWorktree,
+        })
+
+        const elapsed = Math.round(performance.now() - stT0)
+        const modelUsed = harnessResult.cost.inputTokens > 0 || harnessResult.cost.outputTokens > 0
+          ? (subTaskModel ?? 'unknown') : 'unknown'
+
+        if (harnessResult.status === 'done') {
+          console.log(`  [sub] ✓ ${st.id} done — ${harnessResult.qaReason}`)
+          return { sub_task_id: st.id, status: 'completed' as const, result: harnessResult.qaReason, model: modelUsed, usd_cost: harnessResult.cost.usd, tokens: { input: harnessResult.cost.inputTokens, output: harnessResult.cost.outputTokens }, elapsed_ms: elapsed, files_written: harnessResult.filesWritten, qa_verdict: harnessResult.qaVerdict }
+        }
+
+        const reason = harnessResult.retryReason ?? 'unknown error'
+        console.error(`  [sub] ✗ ${st.id} failed — ${reason}`)
+        return { sub_task_id: st.id, status: 'failed' as const, error: reason, model: modelUsed, usd_cost: harnessResult.cost.usd, tokens: { input: harnessResult.cost.inputTokens, output: harnessResult.cost.outputTokens }, elapsed_ms: elapsed, files_written: [], qa_verdict: 'fail' as const }
+      })
+
+      console.log(`\n[auto-split] ── Resultados ──`)
+      for (const log of planResult.sub_tasks) {
+        const icon = log.status === 'completed' ? '✓' : log.status === 'skipped' ? '—' : '✗'
+        console.log(`  ${icon} ${log.id.padEnd(22)} ${log.status.padEnd(12)} $${log.usd_cost.toFixed(5)} ${log.error ?? ''}`)
+      }
+      const tc = planResult.aggregated_tokens
+      console.log(`\n  total: ${planResult.sub_tasks.length} sub-tareas · ${tc.input}/${tc.output} tokens · $${planResult.aggregated_cost.toFixed(5)}`)
+
+      if (planResult.all_passed) {
+        updateTaskStatus(root, parentTaskId, { status: 'done', retry_reason: undefined })
+        console.log(`  status: todas pasaron ✓`)
+        return 'done'
+      }
+      console.log(`  status: alguna falló ✗`)
+      return 'failed'
+    }
+
+    // S22.6 — expand: run parent task, then execute sub-tasks from plan.
+    // Mes 20 B.2: si el archivo <task_id>.plan.yaml ya existe (escrito por
+    // auto-split), saltamos el paso de correr el parent task directamente.
     if (opts?.expand) {
+      const file = loadTasks(root)
+      const parentTask = file.tasks.find(x => x.id === opts.expand)!
+
+      // Check if auto-split already wrote the plan file
+      const autoSplitPlanPath = join(root, `${opts.expand}.plan.yaml`)
+      if (existsSync(autoSplitPlanPath)) {
+        await runApprovedSplitPlan(opts.expand!, autoSplitPlanPath, parentTask, root, opts)
+        return
+      }
+
+      // Legacy path: run parent first, then read plan from output
       const parentStatus = await executeTask(opts.expand)
       if (parentStatus !== 'done') return
 
-      const file = loadTasks(root)
-      const parentTask = file.tasks.find(x => x.id === opts.expand)!
-      const planFiles = parentTask.output.filter(o => o.endsWith('.plan.yaml'))
+      const file2 = loadTasks(root)
+      const parentTask2 = file2.tasks.find(x => x.id === opts.expand)!
+      const planFiles = parentTask2.output.filter(o => o.endsWith('.plan.yaml'))
       if (planFiles.length === 0) {
         console.error(`[task] --expand: no .plan.yaml file in task "${opts.expand}" output — add a plan file to its output list`)
         return
@@ -1194,13 +1342,14 @@ task
       }
 
       // S35.3 — update parent run with full cost breakdown
+      // parentTask2: recargado después de correr el parent — tiene run_id actualizado
       const { getRun: getRunCost, updateRunCost } = require('./db/runs.ts')
       const { calcEntryCost, sumCosts, costBreakdownToJson } = await import('./run/transcript-parser.ts')
-      if (parentTask.run_id) {
-        const parentRun = getRunCost(parentTask.run_id)
+      if (parentTask2.run_id) {
+        const parentRun = getRunCost(parentTask2.run_id)
         if (parentRun) {
           const breakdown = [
-            calcEntryCost(parentTask.id, parentRun.model, parentRun.input_tokens, parentRun.output_tokens),
+            calcEntryCost(parentTask2.id, parentRun.model, parentRun.input_tokens, parentRun.output_tokens),
             ...result.sub_tasks.filter(log => log.usd_cost > 0).map(log =>
               calcEntryCost(log.id, log.model ?? parentRun.model, log.tokens.input, log.tokens.output)
             ),
