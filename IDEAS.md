@@ -108,6 +108,100 @@ descarta: Google-only, audio a servidores externos, mal en español técnico.)
 **Esfuerzo**: medio-alto — abstracción nueva (`STTProvider`) + wiring Electron + superficie
 en dashboard. El tope del tramo medio.
 
+### 32. Presupuesto de outputs de tools en el executor agéntico — el hueco que dispara `pending` por contexto
+
+**Eslabón defectuoso verificado (2026-07-11)**: en `src/run/executors/agentic.ts`,
+`read_file` devuelve el archivo **completo sin cap de tamaño** (línea ~116) y `run_check`
+mete stdout/stderr **enteros** al historial (línea ~158). Ningún punto del pipeline trunca
+o comprime outputs de tools antes de que entren a `messages[]`. Un archivo grande o un
+check verboso infla el prompt hasta que `contextWindow − prompt` ya no da para maxTokens
+→ pending automático (la regla de `feedback-context-no-max-tokens`). Es el mismo modo de
+fallo que pausó la prueba de "página premium" (React+TS+Vite).
+
+**Qué hacer** (nativo en TS, sin dependencias):
+1. **Cap duro por tool-result** (ej. ~20-30k chars) con marcador `[...truncado: N chars
+   omitidos de M]` — la mitigación del 80% en una tarde.
+2. **Truncado inteligente para `run_check`**: conservar cabeza + cola de stdout/stderr
+   (los errores casi siempre viven al final), no solo la cabeza.
+3. (Opcional, después de evidencia) compresión estadística de resultados JSON tipo
+   "SmartCrusher": conservar primeros/últimos items + anomalías + matches relevantes al
+   query. Solo si (1)+(2) no bastan.
+
+**Origen**: patrón Headroom (`chopratejas/headroom`, visto vía awesome-llm-apps).
+**Verificado**: la librería es Python — NO portable directo; lo que se toma es la técnica,
+implementada nativa sobre el executor propio. Los demos del repo awesome-llm-apps son
+wrappers, no código original.
+
+**Esfuerzo**: bajo para (1)+(2) — un módulo `capToolOutput()` + tests, se inyecta en los
+4 tools de `agentic.ts` y en el executeTool del chat. (3) es medio y espera evidencia.
+
+### 33. Refuter en el QA loop — segunda opinión barata antes de quemar un retry
+
+**Origen**: gentle-ai v2.0.0 (2026-07, re-verificado). Su sistema de review separa 5
+funciones (`review-risk/readability/reliability/resilience/refuter`) con modelo asignable
+por función. OJO: en gentle-ai eso sigue siendo **prompts/config generados para OpenCode**,
+no runtime — consistente con el veredicto de 2026-07-06 (capa opuesta del stack). Lo
+robable es el patrón **refuter**: un agente adversarial que intenta tumbar los hallazgos
+del reviewer antes de que cuenten.
+
+**Eslabón débil en OrchestOS (verificado en `src/run/qa.ts`)**: `runQA()` es una sola
+pasada, un solo modelo, y su veredicto es ley — un `fail` falso dispara un re-run completo
+de la tarea (hasta `MAX_RETRIES=3`). Cada falso-fail cuesta 1-3 ejecuciones enteras del
+executor + QA de nuevo. Ya hay evidencia de veredictos QA imperfectos en el historial
+(falsos negativos del Mes 18).
+
+**Qué hacer**: cuando `runQA()` devuelve `fail`, una segunda llamada barata (modelo
+económico, prompt corto: "aquí está el veredicto fail y la evidencia — ¿el hallazgo es
+CONFIRMED o PLAUSIBLE? refuta si puedes") antes de gastar el retry. Solo un `fail`
+confirmado quema retry; un `fail` refutado pasa. Es asimétrico a propósito: los `pass`
+no se re-verifican (el costo del falso-pass lo cubren los `checks:` deterministas).
+
+**No hacer**: los 5 ejes de review de gentle-ai — para el tamaño de tareas de OrchestOS
+es sobre-ingeniería; el refuter solo es donde está el ROI.
+
+**Esfuerzo**: bajo-medio — una función `refuteVerdict()` + wiring en los 2 puntos del
+harness donde se consume `qa.verdict === 'fail'` + tests. Se apoya en el routing por
+función existente para elegir modelo económico (y alimenta la evidencia del #31).
+
+**Nota de costo (verificada en hermes-agent, 2026-07-12)**: su `background_review.py`
+documenta la política exacta para este tipo de segunda llamada — **mismo modelo que el
+principal → replay completo reutilizando prompt cache tibio (cache reads baratos); modelo
+distinto → digest compacto** (un modelo distinto no puede reusar el cache del padre, así
+que replayar todo solo escribe tokens fríos). Aplicar el mismo criterio al refuter: si el
+modelo económico ≠ modelo de QA, mandarle un resumen corto del veredicto+evidencia, no la
+transcripción entera.
+
+### 34. `orchestos audit` — auditoría híbrida de código muerto y hardcodeos, con ledger
+
+**Origen**: Carlos (2026-07-12) — "un agente que revise archivo por archivo si hay basura:
+código que ya no se ocupa, código hardcodeado — una revisión real, no superficial — y que
+vaya documentando sobre qué archivo/ruta trabajó".
+
+**Diseño híbrido (no puramente LLM)** — la ventaja injusta de OrchestOS es que el code
+graph en SQLite ya sabe qué importa a qué:
+
+1. **Pasada determinista primero** (barata, sin LLM):
+   - Código muerto candidato: archivos/exports con **cero edges entrantes** en `code_edges`.
+   - Hardcodeos candidatos: grep de patrones (URLs, API keys, IPs, magic numbers, paths
+     absolutos).
+2. **LLM solo sobre los sospechosos** — juzga con contexto si el candidato es realmente
+   muerto/hardcodeado o falso positivo. Es la "revisión real" pero anclada en evidencia,
+   no opinión archivo por archivo (eso alucina y cuesta una fortuna).
+3. **Ledger por archivo** (la pieza que pidió Carlos): tabla con
+   `path + estado (clean/flagged/pending) + hash del contenido + timestamp + hallazgos`.
+   El hash da gratis: **reanudar** sin repetir archivos y **invalidar** solo lo que cambió
+   en la siguiente corrida.
+
+**Blindaje contra falsos positivos**: entry points (cli.ts, index.*), imports dinámicos,
+exports públicos de API declarados. Regla dura: el agente **propone, nunca borra**
+(mismo principio que Dreaming).
+
+**Superficie**: comando `orchestos audit` + endpoint + pantalla en dashboard con el ledger
+navegable (regla de "no solo CLI"). Conecta con #16 (escala honesta).
+
+**Esfuerzo**: medio — la pasada determinista reusa el graph existente; lo nuevo es el
+ledger (tabla + migración), el prompt de juicio por sospechoso, y la pantalla.
+
 ## 🧱 Largo plazo / mucho código o esperar evidencia
 
 ### 9. Runner de grafo autónomo — el loop que se conduce solo ✅
@@ -564,6 +658,7 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
 | DAG con contratos Read/Write | gentle-ai | ✅ S22.0.2 |
 | apply-progress continuity | gentle-ai | ✅ S22.5a |
 | Reglas de delegación con umbrales | gentle-ai | ✅ docs/AGENTS.md |
+| Refuter en QA loop (v2.0.0) | gentle-ai | ⏳ ver backlog #33 |
 | WHEN/THEN en acceptance_criteria | OpenSpec | ✅ S28 |
 | Capabilities contract | OpenSpec | ✅ S32 |
 | Archive de specs con fecha | OpenSpec | ✅ S29 |
@@ -604,6 +699,18 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
   candidato futuro, no pineado todavía**: compresión automática de contexto en conversaciones
   largas (relacionado con IDEAS #17, chat multi-sesión + aviso al 75% de contexto) y STT/TTS
   (relacionado con IDEAS #8, micrófono/dictado, ya gated).
+  · **Re-verificado con clon del código 2026-07-12 — el claim "aprende solo" ES real pero
+  acotado**: aprendizaje procedimental (archivos skill/memoria), NO fine-tuning ni RL. Tres
+  mecanismos en código: (a) nudge en system prompt (`prompt_builder.py`): tras tarea compleja
+  (5+ tool calls) guardar el approach como skill, y si una skill resulta desactualizada,
+  patcharla en el momento; (b) `background_review.py`: fork daemon post-turno que replaya la
+  conversación con whitelist de tools solo memoria/skills y decide qué guardar/actualizar —
+  el análogo de Dreaming, pero aplicando en vez de solo proponer; (c) `curator.py` +
+  `skill_provenance.py`: curación autónoma que **solo consolida/poda skills que el propio
+  agente creó** (provenance), skills pineadas protegidas, borrar = archivar recuperable.
+  El patrón (c) es la pieza de seguridad que le falta a Dreaming si algún día gradúa de
+  proponer a aplicar. La política de cache del fork (mismo modelo → replay completo tibio;
+  modelo distinto → digest frío compacto) quedó anotada en #33.
 
 ---
 
