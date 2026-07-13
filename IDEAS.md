@@ -202,7 +202,50 @@ navegable (regla de "no solo CLI"). Conecta con #16 (escala honesta).
 **Esfuerzo**: medio — la pasada determinista reusa el graph existente; lo nuevo es el
 ledger (tabla + migración), el prompt de juicio por sospechoso, y la pantalla.
 
-## 🧱 Largo plazo / mucho código o esperar evidencia
+### 35. Directorio de proyecto configurable — OrchestOS trabaja donde tú elijas, no solo donde vive
+
+**Origen**: Carlos (2026-07-13), tras un bug real: el Chat le preguntaba "¿dónde quieres
+que se genere?" para cada tarea nueva — pregunta que no debería existir, porque hoy **no
+hay ningún lugar donde elegir eso**. Ya se corrigió el síntoma (el system prompt del chat
+ya no pregunta, ver `chat.ts`), pero la causa de fondo sigue: OrchestOS solo puede escribir
+dentro de la carpeta donde él mismo vive. Carlos quiere el modelo mental de Claude Code —
+"puedo elegir el directorio de trabajo por proyecto/sesión, con un default razonable".
+
+**Verificado en código (2026-07-13) — por qué es así hoy**: `effectiveRoot` en
+`src/run/middleware.ts:163` se fija siempre a `opts.projectRoot`, que en cada handler del
+dashboard es `resolve('.')` — literal `process.cwd()` del proceso Bun al arrancar
+(`chat.ts:261`, `tasks.ts:178`, `project.ts:95`, `context-suggest.ts:18`, y ~10 handlers
+más, todos con el mismo patrón). `isSafeRelPath()` en `agentic.ts:34` bloquea cualquier
+`..` que intente escapar esa raíz — es un límite de seguridad real, no un descuido.
+Curiosamente la tabla `projects` en SQLite (`db/projects.ts`) ya está diseñada para
+multi-proyecto (guarda `path` como llave), pero nada en el dashboard la usa para *cambiar*
+de proyecto en caliente — solo se lee para el proyecto ya fijo por cwd.
+
+**Diseño propuesto** (default = la carpeta donde vive OrchestOS, igual que hoy; cambiable
+por el usuario, como pide Carlos):
+
+1. **Un "proyecto activo" persistido**, no atado al cwd del proceso. Vive en la tabla
+   `projects` ya existente (`db/projects.ts`) + una fila de config `active_project_path`
+   (o reusar el patrón de `orchestos.config.yaml` pero a nivel de instalación, en
+   `~/.orchestos/`, ya que el propio proyecto no puede describir dónde vive él mismo).
+2. **Reemplazar `resolve('.')` por un getter `getActiveProjectRoot()`** en los ~15 call
+   sites de handlers — un solo punto de verdad, no 15 lugares hardcodeados.
+3. **Selector de proyecto en Settings** — input de ruta (con validación: existe, es
+   directorio, opcionalmente ofrecer un picker nativo si Electron lo permite) + lista de
+   proyectos ya indexados (la tabla `projects` ya trae historial) para cambiar entre ellos
+   sin volver a indexar desde cero.
+4. **El sandbox de escritura NO cambia** — sigue prohibido escapar la raíz con `..`; lo que
+   cambia es *cuál* raíz aplica, no la regla de que hay una raíz.
+
+**Riesgo a vigilar**: el dashboard hoy corre como un solo proceso de larga duración; cambiar
+de proyecto en caliente implica invalidar todo el estado cacheado en memoria del servidor
+(catálogo de modelos ya cargado, no es problema; pero sí el `state.tasks/runs/memory` del
+cliente, que hay que re-fetch completo al cambiar — mismo patrón que ya usa `App.fetchAll()`
+al bootear).
+
+**Esfuerzo**: medio-alto — no es un feature aislado, toca el punto de entrada de casi todos
+los handlers del dashboard. Candidato a Plan formal (no autoría directa) antes de tocar
+los 15 call sites.
 
 ### 9. Runner de grafo autónomo — el loop que se conduce solo ✅
 

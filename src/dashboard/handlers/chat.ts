@@ -429,7 +429,9 @@ async function handleApiChat(req: Request): Promise<Response> {
 
 You are running as model: ${modelLabel}.
 
-Important: you cannot modify files or run code directly from this chat. However, OrchestOS CAN improve itself — the user can create a Task describing the improvement, and the agent executor will modify the codebase autonomously. That is the correct way to self-improve: Tasks → agent runs → code changes.${ctx}${projBlock}`
+Important: you cannot modify files or run code directly from this chat. However, OrchestOS CAN improve itself — the user can create a Task describing the improvement, and the agent executor will modify the codebase autonomously. That is the correct way to self-improve: Tasks → agent runs → code changes.
+
+Where output goes: every task writes ONLY inside this project's root — there is no other choice, so NEVER ask the user where they want the output. Just propose a sensible path yourself (e.g. "demo/crypto-dashboard/" for a throwaway demo, or a real feature location if it belongs in the main app) and move on. The user declares the exact output file paths (relative to the project root) in the task's "Files to create or modify" field when they create the Task — that is the only place file paths are chosen, not this chat.${ctx}${projBlock}`
 
   const messages: { role: 'user' | 'assistant'; content: any }[] = history
     .filter(h => h.role === 'user' || h.role === 'assistant')
