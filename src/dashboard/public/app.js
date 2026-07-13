@@ -1352,12 +1352,24 @@ const Modal = {
       return hits;
     };
 
+    // updateActive() solo togglea la clase — NO toca innerHTML. renderList()
+    // reconstruye el DOM y solo se llama cuando `filtered` cambia de verdad
+    // (input). Antes, mouseenter llamaba renderList() en cada hover: eso
+    // reemplazaba el nodo bajo el cursor por uno nuevo, lo que dispara OTRO
+    // mouseenter sobre el nodo nuevo → loop infinito de mouseenter que nunca
+    // deja pasar un click real (reproducido: cientos de mouseenter, cero
+    // clicks). Con el DOM estable, mousedown/mouseup ocurren sobre el MISMO
+    // nodo y el click llega.
+    const updateActive = () => {
+      this.el.querySelectorAll('.cmdk-item').forEach((el, i) => el.classList.toggle('active', i === selected));
+    };
+
     const renderList = () => {
       const list = this.el.querySelector('#cmdk-list');
       if (!list) return;
       list.innerHTML = filtered.length
         ? filtered.map((it, i) => `
-          <div class="cmdk-item${i === selected ? ' active' : ''}" data-i="${i}">
+          <div class="cmdk-item" data-i="${i}">
             <span class="cmdk-item-ic">${it.icon}</span>
             <span class="cmdk-item-body">
               <span class="cmdk-item-label">${esc(it.label || '')}</span>
@@ -1366,9 +1378,10 @@ const Modal = {
             ${it.type !== 'screen' ? `<span class="cmdk-item-type">${TYPE_LABEL[it.type]}</span>` : ''}
           </div>`).join('')
         : `<div class="cmdk-empty">${t('cmdk.empty')}</div>`;
+      updateActive();
       list.querySelectorAll('.cmdk-item').forEach(el => {
         el.addEventListener('click', () => { filtered[Number(el.dataset.i)]?.go(); this.close(); });
-        el.addEventListener('mouseenter', () => { selected = Number(el.dataset.i); renderList(); });
+        el.addEventListener('mouseenter', () => { selected = Number(el.dataset.i); updateActive(); });
       });
     };
 
@@ -1389,8 +1402,8 @@ const Modal = {
       renderList();
     });
     input.addEventListener('keydown', e => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, filtered.length - 1); renderList(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); renderList(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, filtered.length - 1); updateActive(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); updateActive(); }
       else if (e.key === 'Enter') { e.preventDefault(); filtered[selected]?.go(); this.close(); }
       else if (e.key === 'Escape') { e.preventDefault(); this.close(); }
     });
