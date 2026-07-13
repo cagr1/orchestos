@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-07-13T15:44:05.049Z",
+  "exported_at": "2026-07-13T18:26:48.445Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "1b5e90bf-7b14-4c18-9225-659f9efa7516",
+      "task_class": "chat",
+      "model": "anthropic/claude-haiku-4.5",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.049121,
+      "elapsed_ms": 0,
+      "tokens": 43233,
+      "created_at": "2026-07-13T17:20:00.165Z"
+    },
+    {
+      "id": "53aed990-c408-4c48-a957-5da56d39b7d1",
+      "task_class": "plan",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "check failed: bun run build exit 2",
+      "files_blocked": [],
+      "checks_failed": 2,
+      "usd_cost": 0.049889455000000006,
+      "elapsed_ms": 286592,
+      "tokens": 630723,
+      "created_at": "2026-07-13T16:08:54.376Z"
+    },
+    {
+      "id": "2df0dd0f-a192-4f4f-a788-1f8803408004",
+      "task_class": "plan",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "check failed: bun run build exit 1",
+      "files_blocked": [],
+      "checks_failed": 2,
+      "usd_cost": 0.060054764,
+      "elapsed_ms": 309612,
+      "tokens": 756752,
+      "created_at": "2026-07-13T15:54:45.273Z"
+    },
     {
       "id": "c968bdbd-cf8c-4c1f-b492-9a4cb50b2e6b",
       "task_class": "chat",
@@ -256,58 +301,13 @@
       "elapsed_ms": 20822,
       "tokens": 4923,
       "created_at": "2026-07-05T00:08:34.467Z"
-    },
-    {
-      "id": "1e9d7cef-79a9-4d0f-beea-bddd69dbea66",
-      "task_class": "doc",
-      "model": "gpt-4o-mini",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "missing declared output(s): src/dashboard/handlers/skills.ts",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.16446660000000002,
-      "elapsed_ms": 20925,
-      "tokens": 573,
-      "created_at": "2026-07-05T00:04:03.361Z"
-    },
-    {
-      "id": "3100d656-95f2-4842-a4e2-f0cef7a91eef",
-      "task_class": "doc",
-      "model": "gpt-4o-mini",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "missing declared output(s): src/dashboard/handlers/skills.ts",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.2187555,
-      "elapsed_ms": 17549,
-      "tokens": 402,
-      "created_at": "2026-07-05T00:01:22.029Z"
-    },
-    {
-      "id": "be8e9954-1526-43ab-9177-8683eb6106c0",
-      "task_class": "implement",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: exit 1 exit 1",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.000059237000000000016,
-      "elapsed_ms": 4566,
-      "tokens": 639,
-      "created_at": "2026-07-02T17:51:45.212Z"
     }
   ],
   "stats": {
-    "failed": 7,
+    "failed": 6,
     "blocked": 0,
-    "done": 13,
-    "qa_failed": 6,
-    "total_cost_usd": "5.7865"
+    "done": 14,
+    "qa_failed": 5,
+    "total_cost_usd": "5.5623"
   }
 }

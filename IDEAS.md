@@ -757,6 +757,46 @@ aplica y lo que no.
 **Esfuerzo**: alto — toca el schema de config, la UI de Settings/API & Models, el selector de
 modelos del Chat, y potencialmente un catálogo de capacidades propio por proveedor directo.
 
+### 39. Generalizar el executor `external` — hoy solo detecta `claude`, no `opencode`/`codex`/otros CLIs
+
+**Origen**: Carlos (2026-07-13), tras ver [Orca](https://github.com/stablyai/orca) (Electron, MIT,
+detecta y orquesta CUALQUIER CLI de agente instalado — Claude Code, Codex, OpenCode, Cursor, etc.
+como subprocesos, no vía API) — "se me abrieron los ojos", si alguien ya paga una suscripción de
+Claude/Codex, correrla vía su propio CLI es potencialmente más barata que quemar saldo de
+OpenRouter sin vuelta atrás.
+
+**Verificado — OrchestOS YA hace esto, parcialmente, desde Mes 17**: `engine: external`
+(`src/run/executors/external.ts`) lanza `claude -p` como subproceso dentro del worktree, con
+detección honesta vía `findClaudeBinary()` (`Bun.which('claude')`, expuesto también en
+`GET /api/system/engines/external/availability`). El patrón de detección de Orca **ya existe en
+OrchestOS**, solo que **hardcodeado a un único binario** (`claude`) — no generaliza a `opencode`,
+`codex`, u otros. Cerrar esta idea es extender un patrón probado, no construir uno nuevo.
+
+**Qué hacer**: generalizar `findClaudeBinary()` → `findAgentBinary(name: 'claude'|'opencode'|'codex')`,
+un registro de "external agents" conocidos (comando, flag headless, cómo leer su salida), y que
+`engine: external` acepte cuál binario usar por tarea. El opencode CLI trae DeepSeek como agente
+default — closing este gap habilita exactamente el combo que Carlos quiere probar: "quien ya paga
+una suscripción usa su CLI, quien no, usa OpenRouter/API".
+
+**⚠️ Riesgo real, no cosmético — verificado en los Términos de Consumidor de Anthropic
+(2026-07-13)**: *"Except when you are accessing our Services via an Anthropic API Key or where we
+otherwise explicitly permit it, [you may not] access the Services through automated or non-human
+means."* Automatizar `claude` CLI vía un orquestador externo (Orca, o el `engine: external` que
+YA existe en OrchestOS) cae en zona gris real — no hay excepción explícita para "automatización
+de CLI vía suscripción", solo para acceso vía API key. Anthropic se reserva discreción amplia para
+suspender cuentas. **Esto no es exclusivo de Orca — el `engine: external` de OrchestOS YA corre
+este mismo riesgo hoy**, simplemente nadie lo había señalado. Si se generaliza a más CLIs, el
+riesgo se generaliza igual. No es razón para no hacerlo, pero si se expone en el dashboard,
+necesita un aviso explícito al usuario — no silencioso.
+
+**Conecta con**: [#28](#28-terminal-real-en-vez-de-recent-runs-en-el-panel-inferior) (terminal
+real embebido — Orca valida que esta dirección es correcta, mismo principio "el CLI real, no un
+resumen"). Múltiples chats/worktrees en paralelo (lo que Orca llama "fleet of parallel agents")
+es una extensión natural una vez que el terminal real (#28) exista — no vale la pena antes.
+
+**Esfuerzo**: medio — reusa el patrón de detección ya probado; lo nuevo es el registro
+multi-agente + el aviso de riesgo ToS en la UI antes de habilitarlo.
+
 ---
 
 ## 📚 Referencia — inspiración externa (NO es backlog)
