@@ -3,6 +3,34 @@
    ============================================================ */
 window.SCREENS = window.SCREENS || {};
 
+// B.1 (Mes 21) — renderizado Markdown para burbujas del asistente.
+// El contenido del LLM es dato externo: se sanitiza antes de inyectar al DOM.
+// Solo se usa en mensajes del asistente; los del usuario quedan como texto plano.
+const SAFE_MD_TAGS = new Set([
+  'p','br','strong','em','b','i','s','del','code','pre','ul','ol','li',
+  'h1','h2','h3','h4','blockquote','hr','a','span',
+  'table','thead','tbody','tr','td','th'
+]);
+function renderMarkdown(raw) {
+  const html = marked.parse(raw, { breaks: false, gfm: true });
+  const root = document.createElement('div');
+  root.innerHTML = html;
+  (function sanitize(node) {
+    for (const child of [...node.children]) {
+      if (!SAFE_MD_TAGS.has(child.tagName.toLowerCase())) { child.remove(); continue; }
+      for (const attr of [...child.attributes]) {
+        if (attr.name.startsWith('on') ||
+            (attr.name === 'href' && /^javascript:/i.test(attr.value))) {
+          child.removeAttribute(attr.name);
+        }
+      }
+      if (child.tagName.toLowerCase() === 'a') child.setAttribute('target', '_blank');
+      sanitize(child);
+    }
+  })(root);
+  return `<div class="md-body">${root.innerHTML}</div>`;
+}
+
 // Bloque D (Mes 18, ex-IDEAS #21) — sugerencia de skill en el composer.
 // 0 candidatos: sin campo (cero cambio visual). 1 candidato: pre-cargado,
 // revisable. 2+ candidatos: "Ninguna" preseleccionada — nunca resolver el
@@ -78,7 +106,9 @@ SCREENS.chat = {
     const msgs = history.length === 0
       ? `<div class="chat-empty"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"></div>`
       : history.map(m => {
-          const text = esc(m.content).replace(/\n/g, '<br>');
+          const text = m.role === 'user'
+            ? esc(m.content).replace(/\n/g, '<br>')
+            : renderMarkdown(m.content);
           const modelTag = m.role === 'assistant' && m.model
             ? `<div class="chat-model-tag">${esc(m.model)}</div>` : '';
           // C.2 (Mes 19) — transparencia: si el modelo elegido no tenía visión,

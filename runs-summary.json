@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-07-13T21:26:30.337Z",
+  "exported_at": "2026-07-13T21:36:30.941Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "e7479eee-d3e6-46d4-a170-80e4f5c30165",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.000170478,
+      "elapsed_ms": 0,
+      "tokens": 2122,
+      "created_at": "2026-07-13T21:35:27.295Z"
+    },
     {
       "id": "1b5e90bf-7b14-4c18-9225-659f9efa7516",
       "task_class": "chat",
@@ -286,28 +301,13 @@
       "elapsed_ms": 0,
       "tokens": 40222,
       "created_at": "2026-07-08T21:03:09.370Z"
-    },
-    {
-      "id": "b8cb602b-eb59-491d-bcf9-939e376de33d",
-      "task_class": "doc",
-      "model": "gpt-4o-mini",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "The output already contains a JSDoc comment above the function.",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.1533096,
-      "elapsed_ms": 20822,
-      "tokens": 4923,
-      "created_at": "2026-07-05T00:08:34.467Z"
     }
   ],
   "stats": {
-    "failed": 6,
+    "failed": 5,
     "blocked": 0,
-    "done": 14,
-    "qa_failed": 5,
-    "total_cost_usd": "5.5623"
+    "done": 15,
+    "qa_failed": 4,
+    "total_cost_usd": "5.4092"
   }
 }

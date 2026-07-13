@@ -80,12 +80,17 @@ nativo, `app.js:419`, que este bloque reemplaza por modal propio).
 ### Bloque B — El Chat renderiza Markdown (graduado de IDEAS #38)
 Graduado de IDEAS.md #38 (eliminado de allá, regla IDEAS→PLAN→DONE). Verificado: `screens-core.js`
 hace `esc(m.content).replace(/\n/g,'<br>')` — cero parseo Markdown, cero librería en el proyecto.
-- [ ] B.1 🧠 Parser Markdown ligero (candidato `marked`, MIT) renderizando `m.content` a HTML,
-  sanitizado con la misma disciplina de "dato externo, nunca confiable" que el wrapper de
-  `fetch_url`/OCR — el contenido del LLM no es 100% confiable.
+- [x] B.1 🧠 Parser Markdown ligero. ✅ 2026-07-13 `marked` v18.0.6 (MIT, UMD, sin build
+  step — copiado a `src/dashboard/public/marked.umd.js`). Sanitizador DOM propio inline en
+  `screens-core.js`: allow-list de tags seguros, strip de atributos `on*` y hrefs
+  `javascript:`, `target="_blank"` en links. Solo aplica a mensajes del asistente —
+  mensajes del usuario siguen como texto plano `esc()`. CSS scoped a
+  `.chat-bubble .md-body` (listas, código, blockquote, tablas, headings) usando las CSS
+  vars existentes del dashboard. Verificado en vivo: lista, code block con fondo
+  diferenciado, model tag intacto, burbuja de usuario sin cambio. 660 tests · 0 fail.
 - [ ] B.2 ⚡ Highlight de `task_id` y nombre de modelo dentro de la respuesta como chip/badge
-  (contra `state.tasks` y el catálogo) — lógica nueva, no solo estilo. Puede diferirse si B.1
-  ya cubre el 90% del dolor visible.
+  (contra `state.tasks` y el catálogo) — lógica nueva, no solo estilo. **Diferido**: B.1
+  ya cubre el dolor visible; B.2 es mejora incremental, puede esperar a Mes 22+.
 
 ### Bloque C — Visor de diff por run: la superficie de revisión que falta (🧠 diseño primero)
 Origen: Carlos (2026-07-13) — "el diff nos sirve de algo?". Sí: OrchestOS ya calcula el diff del
