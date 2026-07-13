@@ -11,7 +11,130 @@ const SAFE_MD_TAGS = new Set([
   'h1','h2','h3','h4','blockquote','hr','a','span',
   'table','thead','tbody','tr','td','th'
 ]);
-function renderMarkdown(raw) {
+
+// B.2 (Mes 21) — highlight de task_id y nombre de modelo "dentro de la
+// respuesta" como chip/badge. Lógica nueva (no solo estilo): se construye un
+// índice de candidatos a partir de `state.tasks` + el catálogo de modelos
+// (state.orModels + state.localModels), y SOLO se resalta lo que matchea
+// contra ese índice. El LLM puede mencionar un id de tarea o de modelo por
+// coincidencia sin que se vuelva chip — los falsos positivos desaparecen.
+//
+// Restricciones de seguridad (mismo principio que sanitize arriba):
+//  - Solo texto (text nodes), nunca dentro de <code>/<pre> (el LLM podría
+//    estar discutiendo el id literal) ni dentro de <a> (ya está linkeado).
+//  - Word-boundary chequeado a mano (char antes/después no es [a-z0-9_]) —
+//    los ids de modelo contienen "/" que no es word-char, así que \b no
+//    alcanza para cubrirlos.
+//  - El texto del chip se asigna con `textContent` (nunca innerHTML); los
+//    data-attr vienen de state controlada (state.tasks + catálogo), no del
+//    LLM, así que no hay superficie de inyección.
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function isWordChar(c) {
+  return /[A-Za-z0-9_]/.test(c);
+}
+
+// Devuelve un Map<needle, {type, ...meta}> con todos los candidatos a
+// resaltar. Orden importa: longest-first en el regex final para que
+// "deepseek/deepseek-v4-flash" gane sobre cualquier prefijo accidental.
+function buildHighlightIndex(st) {
+  const idx = new Map();
+  const add = (needle, meta) => {
+    if (!needle || typeof needle !== 'string' || needle.length < 2) return;
+    if (!idx.has(needle)) idx.set(needle, meta);
+  };
+  for (const t of (st && st.tasks) || []) {
+    if (t && t.id) add(t.id, { type: 'task', id: t.id });
+  }
+  for (const m of ((st && st.orModels) || [])) {
+    if (m && m.id) add(m.id, { type: 'model', id: m.id, name: m.name || m.id });
+    if (m && m.name && m.name !== m.id) add(m.name, { type: 'model', id: m.id, name: m.name });
+  }
+  for (const m of ((st && st.localModels) || [])) {
+    const id = typeof m === 'string' ? m : (m && m.id);
+    if (id) add(id, { type: 'model', id, name: id });
+  }
+  return idx;
+}
+
+function highlightRefs(root, st) {
+  const idx = buildHighlightIndex(st);
+  if (idx.size === 0) return;
+  const needles = [...idx.keys()].sort((a, b) => b.length - a.length);
+  const re = new RegExp(needles.map(escapeRegExp).join('|'), 'g');
+
+  // No resaltar dentro de <code>/<pre> (texto literal) ni <a> (ya navega).
+  const SKIP = new Set(['code', 'pre', 'a', 'script', 'style']);
+
+  // Walk iterativo (no recursivo) para no romper al reemplazar text nodes.
+  const stack = [root];
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node) continue;
+    for (let i = node.childNodes.length - 1; i >= 0; i--) {
+      const child = node.childNodes[i];
+      if (child.nodeType === 1 /* ELEMENT */) {
+        const tag = child.tagName ? child.tagName.toLowerCase() : '';
+        if (SKIP.has(tag)) continue;
+        // No descender en spans que YA son chips nuestros (defensa contra
+        // re-entrada si renderMarkdown se llamara dos veces por error).
+        if (tag === 'span' && child.classList && child.classList.contains('md-chip')) continue;
+        stack.push(child);
+      } else if (child.nodeType === 3 /* TEXT */) {
+        processTextNode(child, re, idx);
+      }
+    }
+  }
+}
+
+function processTextNode(textNode, re, idx) {
+  const text = textNode.nodeValue;
+  if (!text || text.length < 2) return;
+
+  // Reunir matches; filtrar los que tocan un word-char al lado (evita que
+  // "deepseek/deepseek-v4-flash" matchee dentro de "mydeepseek/deepseek-v4-flash").
+  re.lastIndex = 0;
+  const matches = [];
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const before = m.index > 0 ? text[m.index - 1] : '';
+    const after = m.index + m[0].length < text.length ? text[m.index + m[0].length] : '';
+    if (isWordChar(before) || isWordChar(after)) continue;
+    matches.push({ start: m.index, end: m.index + m[0].length, meta: idx.get(m[0]) });
+    if (m[0].length === 0) re.lastIndex++; // safety contra zero-width
+  }
+  if (matches.length === 0) return;
+
+  // Reemplazar el text node por un fragment: texto plano + chips.
+  const frag = document.createDocumentFragment();
+  let cursor = 0;
+  for (const match of matches) {
+    if (match.start > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, match.start)));
+    const span = document.createElement('span');
+    span.className = `md-chip md-chip-${match.meta.type}`;
+    span.textContent = text.slice(match.start, match.end);
+    if (match.meta.type === 'task') {
+      span.dataset.taskId = match.meta.id;
+      span.setAttribute('role', 'button');
+      span.setAttribute('tabindex', '0');
+      span.title = t('chat.chip.openTask');
+    } else {
+      span.dataset.modelId = match.meta.id;
+      span.setAttribute('role', 'button');
+      span.setAttribute('tabindex', '0');
+      span.title = match.meta.name && match.meta.name !== match.meta.id
+        ? t('chat.chip.useModel') + ` — ${match.meta.name}`
+        : t('chat.chip.useModel');
+    }
+    frag.appendChild(span);
+    cursor = match.end;
+  }
+  if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+  textNode.parentNode.replaceChild(frag, textNode);
+}
+
+function renderMarkdown(raw, st) {
   const html = marked.parse(raw, { breaks: false, gfm: true });
   const root = document.createElement('div');
   root.innerHTML = html;
@@ -28,6 +151,10 @@ function renderMarkdown(raw) {
       sanitize(child);
     }
   })(root);
+  // B.2 — después de sanitizar (no antes: si un padre inseguro fuera
+  // removido, sus hijos ya no existen). El walk es sobre el DOM vivo, así
+  // que el `root.innerHTML` final ya trae los <span class="md-chip">.
+  highlightRefs(root, st);
   return `<div class="md-body">${root.innerHTML}</div>`;
 }
 
@@ -108,7 +235,7 @@ SCREENS.chat = {
       : history.map(m => {
           const text = m.role === 'user'
             ? esc(m.content).replace(/\n/g, '<br>')
-            : renderMarkdown(m.content);
+            : renderMarkdown(m.content, st); // B.2 — st alimenta el índice task_id + catálogo de modelos
           const modelTag = m.role === 'assistant' && m.model
             ? `<div class="chat-model-tag">${esc(m.model)}</div>` : '';
           // C.2 (Mes 19) — transparencia: si el modelo elegido no tenía visión,
@@ -210,6 +337,41 @@ SCREENS.chat = {
       textareaEl.style.height = Math.min(textareaEl.scrollHeight, 120) + 'px';
     };
     textareaEl?.addEventListener('input', autoGrowTextarea);
+
+    // B.2 (Mes 21) — click handlers de los chips dentro de la respuesta.
+    // Task chip → abre la tarea en su side panel (Tasks screen). Model chip →
+    // setea el modelo del chat + enfoca el composer para que el próximo
+    // mensaje lo use. Mismo patrón de delegación que el resto de wire().
+    root.querySelectorAll('.md-chip-task').forEach(chip => {
+      const activate = (e) => {
+        e.stopPropagation();
+        const task = (st.tasks || []).find(x => x.id === chip.dataset.taskId);
+        if (!task) return;
+        App.go('tasks');
+        SidePanel.openTask(task);
+      };
+      chip.addEventListener('click', activate);
+      chip.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(e); }
+      });
+    });
+    root.querySelectorAll('.md-chip-model').forEach(chip => {
+      const activate = (e) => {
+        e.stopPropagation();
+        const modelId = chip.dataset.modelId;
+        if (!modelId) return;
+        st.chatModel = modelId;
+        App.rerender();
+        requestAnimationFrame(() => {
+          const ta = document.getElementById('chat-input');
+          if (ta) { ta.focus(); scrollBottom(); }
+        });
+      };
+      chip.addEventListener('click', activate);
+      chip.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(e); }
+      });
+    });
 
     const send = async () => {
       const textarea = root.querySelector('#chat-input');

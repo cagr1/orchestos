@@ -88,9 +88,24 @@ hace `esc(m.content).replace(/\n/g,'<br>')` — cero parseo Markdown, cero libre
   `.chat-bubble .md-body` (listas, código, blockquote, tablas, headings) usando las CSS
   vars existentes del dashboard. Verificado en vivo: lista, code block con fondo
   diferenciado, model tag intacto, burbuja de usuario sin cambio. 660 tests · 0 fail.
-- [ ] B.2 ⚡ Highlight de `task_id` y nombre de modelo dentro de la respuesta como chip/badge
-  (contra `state.tasks` y el catálogo) — lógica nueva, no solo estilo. **Diferido**: B.1
-  ya cubre el dolor visible; B.2 es mejora incremental, puede esperar a Mes 22+.
+- [x] B.2 ⚡ Highlight de `task_id` y nombre de modelo dentro de la respuesta como chip/badge
+  (contra `state.tasks` y el catálogo) — lógica nueva, no solo estilo. ✅ 2026-07-13
+  Índice construido desde `state.tasks` + `state.orModels` + `state.localModels`
+  (longest-first, escape de regex, word-boundary chequeado a mano porque los
+  model ids contienen "/" que no es word char — `\b` no alcanzaba). Walk de
+  text nodes en `renderMarkdown` post-sanitize (no entra a `<code>`/`<pre>`/`<a>`);
+  el texto del chip se asigna con `textContent` y los `data-*` vienen del state
+  controlado, no del LLM — sin superficie de inyección. Click handlers: task
+  → `App.go('tasks') + SidePanel.openTask()`; model → `st.chatModel = id` +
+  focus composer. CSS scoped a `.chat-bubble .md-body .md-chip{,-task,-model}`
+  con dos variantes de color para distinguir a simple vista. i18n en/es
+  (`chat.chip.openTask` / `chat.chip.useModel`). **Override de diferido a
+  Mes 22+ (decisión Carlos, 2026-07-13)**. Test focalizado de la lógica
+  pura (`src/dashboard/__tests__/chat-md-highlight.test.ts`, 20 tests):
+  cubre el set cerrado de needles (no se pueden inyectar), longest-first,
+  word-boundary, no-match dentro de `<code>`, escape de metacharacteres en
+  ids con regex specials. `tsc --noEmit` limpio · 680 tests · 0 fail.
+  Verificación visual del browser la hace Carlos.
 
 ### Bloque C — Visor de diff por run: la superficie de revisión que falta (🧠 diseño primero)
 Origen: Carlos (2026-07-13) — "el diff nos sirve de algo?". Sí: OrchestOS ya calcula el diff del

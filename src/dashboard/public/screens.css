@@ -723,6 +723,51 @@
 .chat-bubble .md-body td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
 .chat-bubble .md-body th { background: var(--surface-hi); font-weight: 600; }
 
+/* B.2 (Mes 21) — chips para task_id y nombre de modelo dentro de la respuesta.
+   Inline (mismo line-height que el texto), monoespaciado (los ids son
+   tokens técnicos), fondo tenue, hover marcado. Dos variantes por color
+   semántico: task usa el accent, model usa un azul distinto para que se
+   distingan a simple vista cuando el LLM menciona ambos en la misma línea. */
+.chat-bubble .md-body .md-chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.84em;
+  line-height: 1.35;
+  padding: 1px 6px;
+  margin: 0 1px;
+  border-radius: 4px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-hi);
+  color: var(--text);
+  cursor: pointer;
+  user-select: text;
+  vertical-align: baseline;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.chat-bubble .md-body .md-chip:hover,
+.chat-bubble .md-body .md-chip:focus-visible {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  outline: none;
+}
+.chat-bubble .md-body .md-chip-task { color: var(--accent); }
+.chat-bubble .md-body .md-chip-task:hover,
+.chat-bubble .md-body .md-chip-task:focus-visible { color: var(--accent); }
+.chat-bubble .md-body .md-chip-model { color: #2563eb; border-color: rgba(37, 99, 235, 0.3); }
+[data-theme="bright"] .chat-bubble .md-body .md-chip-model { color: #1d4ed8; border-color: rgba(29, 78, 216, 0.3); }
+.chat-bubble .md-body .md-chip-model:hover,
+.chat-bubble .md-body .md-chip-model:focus-visible {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: #2563eb;
+  color: #2563eb;
+}
+[data-theme="bright"] .chat-bubble .md-body .md-chip-model:hover,
+[data-theme="bright"] .chat-bubble .md-body .md-chip-model:focus-visible {
+  background: rgba(29, 78, 216, 0.1);
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+}
+
 .chat-model-tag {
   margin-top: 6px; font-size: 10.5px; color: var(--text-faint);
   font-family: var(--mono); text-align: right;
