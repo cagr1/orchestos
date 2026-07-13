@@ -1555,11 +1555,18 @@ function buildNav() {
     <span class="nav-label">${t(tipKey)}</span>
   </div>`;
 
-  const collapseBtn = `<div class="nav-icon nav-collapse-btn" id="navCollapseBtn" role="button" tabindex="0">
-    <span class="nav-ic">${ICON.chevR}</span>
+  const sbExpanded = document.querySelector('.app').dataset.sidebar === 'expanded';
+  const collapseBtn = `<div class="nav-icon nav-collapse-btn" id="navCollapseBtn" data-tip="${t(sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}" role="button" tabindex="0">
+    <span class="nav-ic">${sbExpanded ? ICON.panelClose : ICON.panelOpen}</span>
   </div>`;
 
-  side.innerHTML = collapseBtn + '<div class="nav-sep"></div>' + mainNav.map(navItem).join('') +
+  const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K';
+  const searchBtn = `<div class="nav-icon nav-search-btn" id="navSearchBtn" data-tip="${t('nav.search')}" role="button" tabindex="0">
+    <span class="nav-ic">${ICON.search}</span>
+    <span class="nav-label">${t('nav.search')}<kbd class="nav-kbd">${kbdHint}</kbd></span>
+  </div>`;
+
+  side.innerHTML = collapseBtn + searchBtn + '<div class="nav-sep"></div>' + mainNav.map(navItem).join('') +
     '<div class="grow"></div>' + modeBtn + bottomNav.map(navItem).join('');
 
   if (isAdv) {
@@ -1587,6 +1594,8 @@ function buildNav() {
     buildNav();
     App.syncNav();
   });
+
+  document.getElementById('navSearchBtn').addEventListener('click', () => Modal.openCommandPalette());
 
   document.getElementById('navCollapseBtn').addEventListener('click', () => {
     const appEl = document.querySelector('.app');
