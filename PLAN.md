@@ -106,6 +106,26 @@ hace `esc(m.content).replace(/\n/g,'<br>')` — cero parseo Markdown, cero libre
   word-boundary, no-match dentro de `<code>`, escape de metacharacteres en
   ids con regex specials. `tsc --noEmit` limpio · 680 tests · 0 fail.
   Verificación visual del browser la hace Carlos.
+  **Verificado en vivo por Claude (2026-07-13, puerto 4242, servidor preexistente — no
+  levantado ni bajado por esta verificación):** mensaje real con `crypto-page-v1` +
+  `deepseek/deepseek-v4-flash` → tabla Markdown, code block inline y ambos chips
+  renderizados correctamente; click en el chip de tarea navegó a Tasks y abrió el side
+  panel real de la tarea. 5 corridas de chat de prueba limpiadas de `runs` tras verificar
+  (mismo patrón de higiene que C.3/J.4, confirmado con Carlos antes de borrar).
+
+- [ ] B.3 🧠 **Hallazgo real, fuera del scope de B.1/B.2 — bug preexistente del composer del
+  chat.** Si el usuario escribe un mensaje y el poll de 30s (`app.js` `setInterval(() =>
+  App.fetchAll(), 30_000)`) dispara un `App.rerender()` antes de que dé Send, el textarea se
+  reconstruye vacío en el siguiente render y el texto tipeado se pierde en silencio — el click
+  en Send queda como no-op (sin error, sin feedback al usuario). Reproducido de forma
+  consistente en vivo (2026-07-13): mensaje tipeado, esperar >8s con varios re-renders del
+  poll de por medio, Send no dispara `POST /api/chat`, `state.chatHistory` no cambia. Mismo
+  patrón de bug ya corregido para el compose de creación de tarea (Mes 20/Bloque C, "el botón
+  crear tarea del chat perdía el texto seed en el primer re-render" — `composeDraft` ahora
+  vive en `state`); el composer principal del chat (`#chat-input`) nunca recibió el mismo
+  fix. Corrección: sincronizar el valor tipeado a un campo en `state` (ej. `state.chatDraft`)
+  en el evento `input`, y que `render()` lo restaure como `value` del textarea en cada
+  re-render — mismo patrón que `composeDraft`, sin motor nuevo.
 
 ### Bloque C — Visor de diff por run: la superficie de revisión que falta (🧠 diseño primero)
 Origen: Carlos (2026-07-13) — "el diff nos sirve de algo?". Sí: OrchestOS ya calcula el diff del
