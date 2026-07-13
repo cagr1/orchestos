@@ -66,6 +66,40 @@ condicional, sin motor nuevo.
 
 ## 🔨 Medio — capacidad nueva acotada
 
+### 37. Modo "empezar gratis" — modelos free-tier de OpenRouter por defecto para el no-dev
+
+**Origen**: Carlos (2026-07-13) vio [CodebuffAI/codebuff](https://github.com/CodebuffAI/codebuff)
+(agente de código con tier gratis "Freebuff" soportado por publicidad) y preguntó si se puede
+añadir como opción gratuita — *"oro para quienes quieren comenzar y tiene buenos modelos"*.
+
+**Verificado contra el repo/SDK real de Codebuff (2026-07-13) — NO es viable como proveedor:**
+- Codebuff **es un agente de código completo** (loop multi-agente: File Picker → Planner →
+  Editor → Reviewer), TypeScript+Bun, Apache-2.0. Es la MISMA categoría que OrchestOS —
+  **competidor, no proveedor**. Mismo veredicto que gentle-ai: capa de agente, no de inferencia.
+- El `@codebuff/sdk` **exige `CODEBUFF_API_KEY` de pago** y **rutea por los servidores de
+  Codebuff**; solo expone su loop de agente completo (`client.run()` → agent/tool events),
+  **NO completions crudas** ni BYOK. Si OrchestOS lo llamara, delegaría a OTRO orquestador y
+  tiraría a la basura su propio contrato/QA/graph/checks/costo en SQLite — incoherente.
+- **Freebuff (el tier gratis con ads, lo que Carlos vio como "oro") NO es accesible por API** —
+  es el CLI interactivo donde un humano ve los ads de texto. No hay endpoint headless: los ads
+  financian una sesión humano-en-el-loop, no llamadas de tokens de máquina. `5 sesiones de 1h/día`.
+
+**Pero el objetivo real de Carlos SÍ es viable, nativo, sin dependencia de terceros:** los
+modelos que Freebuff regala (DeepSeek V4 Pro/Flash, MiMo 2.5, Kimi K2.7 Code, MiniMax M3) están
+**todos en OpenRouter, que OrchestOS ya usa** — y OpenRouter tiene variantes `:free` (precio 0).
+El catálogo (`model-catalog.ts:145`) ya ingiere `pricing.prompt`/`pricing.completion`, así que
+**detectar modelos gratis es trivial** (precio == 0). Lo que falta es superficie:
+1. Marcar/filtrar modelos `:free` en el selector (`buildModelSelect`) con un badge "Free".
+2. Un preset "empezar gratis" que fije los roles (`planner`/`executor_*`/`default`) a modelos
+   `:free` por defecto para un usuario nuevo sin saldo — el onboarding cero-costo que Carlos
+   quiere, honesto (rate limits de OpenRouter aplican, no es infinito, pero es real y gratis).
+
+**Conecta con [#31](#31-chat-multi-proveedor-real--routing-granular-por-función-inspirado-en-hermesopen-webui--pineado-2026-07-09)** (multi-proveedor): es un subcaso — no un proveedor nuevo,
+sino usar mejor el que ya existe. **NO requiere** tocar el molde de conexiones de #31.
+
+**Esfuerzo**: bajo-medio — badge + filtro en el selector (reusa el combo buscable existente) +
+un preset de config. Sin motor nuevo, sin dependencia externa.
+
 ### 4. Clasificador semántico para `clarify`
 
 Hoy `needsClarify` es heurística de palabras clave (verbo ambiguo + sin `input[]`). Un LLM
