@@ -19,6 +19,7 @@ Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashb
 
 **P1 — acabado / papercuts que hacen que se sienta terminado (candidatos v0.12 tardío / v0.13):**
 - #36 — check de sintaxis JS/HTML en `defaultChecksFor` (barato, hallazgo real de Mes 20/C.1)
+- #40 — editor de Constitution: Guardar/Limpiar explícitos en vez de auto-save silencioso (bug real)
 - #14 — notificaciones del sistema cuando algo termina en segundo plano
 - #27 — tab de consumo/gasto en Settings (agregación pura sobre `runs`)
 - #17 — chat multi-sesión + aviso al 75% de contexto
@@ -32,6 +33,8 @@ Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashb
 - #29 — decisión pendiente sobre `topic_key`/memoria de sub-tasks
 
 **P3 — capacidad nueva grande (post-estable, v0.13+):**
+- #41 — **empaquetar como app de escritorio Electron (Mac/Linux/Windows)** — la que más se acerca a
+  la forma de producto de Orca; prototipo chico, distribución real medio-alta
 - #39 — generalizar `engine: external` a más CLIs (Orca) · #28 — terminal real embebido
 - #35 — directorio de proyecto configurable · #10 — cliente MCP · #31 — chat multi-proveedor
 - #34 — `orchestos audit` · #7 — brainstorming socrático · #8 — micrófono/dictado
@@ -769,6 +772,71 @@ es una extensión natural una vez que el terminal real (#28) exista — no vale 
 
 **Esfuerzo**: medio — reusa el patrón de detección ya probado; lo nuevo es el registro
 multi-agente + el aviso de riesgo ToS en la UI antes de habilitarlo.
+
+### 40. Editor de Constitution — Guardar/Limpiar explícitos, no auto-save silencioso en cada tecla
+
+**Origen**: Carlos (2026-07-13) — escribió "hola" en el editor de Constitution solo para probar y
+**se grabó a `CONSTITUTION.md` en disco solo**, sin pedirlo. "Eso no debe ser así — darme la opción
+de escribir Y limpiar." Un archivo de basura terminó en el working tree sin intención.
+
+**Verificado en código (2026-07-13)**: `screens-ops.js:141-157` — el `#constitution-editor` tiene
+un `input` listener con **auto-save debounced a 1 s**: cualquier tecleo, tras 1 s de pausa, dispara
+`PUT /api/project/constitution` que escribe el archivo real. No hay botón de guardar ni de limpiar;
+el guardado es un efecto invisible del tecleo. (El tab de Context de al lado ya tiene botonera
+—Regenerate/Detect/Index— así que el patrón de acciones explícitas ya existe en la misma pantalla,
+solo que Constitution no lo usa.)
+
+**Qué hacer**:
+1. Quitar el auto-save por tecla. Reemplazarlo por acciones explícitas: **Guardar** (escribe el
+   archivo) y **Limpiar** (vacía el editor; decidir si "Limpiar" solo borra el textarea local o
+   además borra el archivo — probablemente pedir confirmación con el `Modal.confirm()` que ya existe
+   desde v0.12/A, y nunca borrar el archivo en silencio).
+2. Indicador de "cambios sin guardar" (dirty state) para que el usuario sepa que hay algo pendiente,
+   en vez del actual "saved" que aparece solo porque se guardó sin pedirlo.
+3. Considerar el mismo tratamiento para cualquier otro editor que hoy auto-guarde en cada tecla.
+
+**Esfuerzo**: bajo — es UI de una sola pantalla (mover de `input`-debounce a botón), reusa
+`Modal.confirm()` (v0.12/A) y el patrón de botonera que el tab de Context ya tiene al lado.
+
+### 41. Empaquetar OrchestOS como app de escritorio (Electron) — Mac, Linux y Windows
+
+**Origen**: Carlos (2026-07-13) — quiere OrchestOS como app de escritorio nativa para las 3
+plataformas, la misma forma de producto que Orca (Electron) y que ya usa en su stack (MusicKind es
+Electron). Pregunta explícita: ¿es un movimiento chico o difícil?
+
+**Respuesta honesta, verificada contra la arquitectura real (2026-07-13) — dos mitades muy distintas:**
+
+*La ventana en sí es un movimiento CHICO.* El dashboard ya es un servidor HTTP local
+(`Bun.serve`, `server.ts:258`) que sirve un frontend vanilla JS estático en `localhost:PORT`. El
+patrón Electron más barato es: el proceso `main` de Electron **lanza el servidor Bun existente como
+subproceso** (igual que hoy `orchestos dashboard`) y abre un `BrowserWindow` apuntando a
+`http://localhost:PORT`. Cero reescritura del backend o del frontend — se envuelve lo que ya
+funciona. Un prototipo "corre en una ventana en mi Mac" es de una tarde.
+
+*Distribuirlo de verdad es medio-alto, por una razón concreta:* **Electron trae Node+Chromium, no
+Bun** — y el backend es Bun-específico y no portable a Node tal cual: `Bun.serve`, `Bun.spawn`, y
+sobre todo `bun:sqlite` (`src/db/sqlite.ts:1`). No se puede correr el backend dentro del proceso
+`main` de Electron. Caminos:
+- **(A, recomendado) empotrar el runtime de Bun**: `bun build --compile` produce un binario
+  standalone con el runtime + `bun:sqlite` embebidos; Electron lo trae por plataforma y lo spawnea.
+  Es el camino que preserva todo el backend tal cual.
+- **(B) exigir Bun instalado** en la máquina del usuario — más simple de empaquetar pero rompe la
+  promesa de "app de escritorio para no-dev", así que no.
+- **(C) portar el backend a Node** — grande y tira a la basura la ventaja de Bun; descartado salvo
+  que aparezca otra razón.
+
+Lo que hace el trabajo real de distribución (independiente de OrchestOS): empaquetar con
+electron-builder/forge para 3 OSes, **firma + notarización en macOS** (sin eso Gatekeeper lo
+bloquea), instaladores, y auto-update. El data dir (`~/.orchestos/`) no cambia.
+
+**Nota — no es idea nueva del todo**: varias entradas de este backlog ya asumen Electron a futuro
+(#8 micrófono: "Pila mínima (Electron)"); el stack de Carlos ya lo incluye. Esto solo lo formaliza
+como su propio hito.
+
+**Esfuerzo**: **bajo para un prototipo** (BrowserWindow → localhost + spawn de Bun), **medio-alto
+para un instalable real firmado** en las 3 plataformas (empotrar el binario Bun compilado + firma/
+notarización + auto-update). Candidato a hito propio post-estable, con doc de diseño previo
+(decidir camino A vs B, y si el binario Bun se compila en CI por plataforma).
 
 ---
 
