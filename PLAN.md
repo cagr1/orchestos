@@ -45,8 +45,56 @@ Encontrados y corregidos ANTES de abrir el mes formalmente, porque bloqueaban cu
 - [x] B.2 🧠 Gatillo en el harness/CLI — cuando `shouldSplit` da true, generar el plan (function-calling existente) y presentarlo para aprobación en vez de correr directo. Reusa `createSubTaskPlan`/`executePlan`, no construye motor nuevo. ✅ 2026-07-10 — gate en `harness.ts`, `runApprovedSplitPlan()` en CLI, prompt TTY + subprocess-safe
 - [x] B.3 ⚡ Superficie: el plan de sub-tareas propuesto es visible y aprobable desde el dashboard (no solo CLI — regla [[feedback-dashboard-no-solo-cli]]), con costo estimado por sub-tarea. ✅ 2026-07-10 — `GET /api/tasks/:id/split-plan`, `POST /api/tasks/:id/approve-split`, badge `⚡ Split` en tabla de tareas
 
-### Bloque C — Gate de verificación real: el dashboard de cripto entregado de punta a punta (🔍, BLOQUEADO por saldo)
-- [ ] C.1 🔍 **La prueba que motivó todo el mes.** Con saldo recargado en OpenRouter, correr `crypto-dashboard-premium` (React+TS+Vite real bajo `demo/crypto-dashboard/`, motor agéntico, skill `frontend-design`, modelo capaz) HASTA COMPLETARSE: los checks reales (`bun install` + `bun run build`) pasan, el proyecto compila, y la página se ve en el navegador con nivel de acabado premium (no AI-slop). Este gate responde la pregunta abierta de Carlos: *"¿puede OrchestOS entregar un producto premium?"* — hoy sin responder porque el intento murió antes de escribir el primer archivo (bug P.2). Definición de la tarea documentada en [[project-state]] para recrearla. **Nota de contexto de Carlos**: un proyecto ANTERIOR ya lograba entregar una página (HTML+JS+CSS, no premium pero completa) — OrchestOS todavía no llegó ni a ese piso en una corrida real, así que este gate es el mínimo indispensable antes de hablar de "premium".
+### Bloque C — Gate de verificación real: al menos UN entregable de punta a punta (🔍)
+
+**Corrección del registro (2026-07-13):** este bloque decía "BLOQUEADO por saldo" — impreciso.
+Con el saldo ya recargado, Carlos intentó de nuevo *vía el Chat* y encontró que el bloqueo real
+eran dos bugs de frontend, no dinero: (1) el chat entraba en loop preguntando "¿dónde quieres
+que se genere?" cuando no hay ningún lugar donde elegir eso — corregido en `chat.ts` (system
+prompt ahora lo sabe: siempre dentro de la raíz del proyecto); (2) el botón "crear tarea" del
+chat perdía el texto seed en el primer re-render (poll de 30s) — corregido en `app.js`/
+`screens-core.js` (`composeDraft` ahora vive en `state`, sobrevive cualquier rerender). Ambos
+pusheados (`d1cb2f5`, `72622aa`) antes de reabrir este bloque. El saldo nunca fue insuficiente
+esta vez — el intento simplemente no llegaba a crear la tarea.
+
+**Decisión de alcance (Carlos, 2026-07-13):** en vez de apostar directo al dashboard premium
+multi-archivo (React+TS+Vite+Three.js) que mató el intento anterior antes del primer archivo,
+probar primero el mecanismo end-to-end con **un solo entregable simple** — reduce piezas que
+pueden fallar en la primera corrida real. El premium multi-archivo queda como C.2, para después
+de probar con más lenguajes/stacks (palabras de Carlos).
+
+- [x] C.1 🔍 **Primer entregable real, alcance reducido a propósito. ✅ 2026-07-13** Tarea
+  `crypto-page-v1` en `tasks.yaml`: una sola página HTML+CSS+JS autocontenida
+  (`demo/crypto-page/index.html`, sin build/npm install), datos LIVE de la API gratuita de
+  CoinGecko (top 10 por market cap, precio, %24h, market cap, sparkline de 7 días), skill
+  `frontend-design`, motor `single-shot`, modelo `anthropic/claude-sonnet-5`. Corrida real:
+  $0.19434 · 27,603/15,331 tokens · 155.8s · QA pass. Checks deterministas (archivo no vacío
+  + contiene llamada real a CoinGecko) pasaron.
+
+  **Hallazgo real (por qué este gate importaba de verdad):** ni los checks ni el veredicto QA
+  del LLM detectaron un bug real — el archivo generado tenía un error de sintaxis JS
+  (`sortIcon()`: `... : '</span>'` donde debía ir `+ '</span>'`, un `:` suelto de una
+  concatenación mal escrita) que rompía TODO el script — la página se quedaba en "Loading
+  live prices…" para siempre, sin ninguna llamada real a CoinGecko, sin ningún error visible
+  en consola (el error de parseo mata el script entero antes de que corra nada). Ni
+  `test -s` ni `grep -qi coingecko` lo detectan (ambos solo miran el archivo como texto), y
+  el juez QA (`qa.ts`) tampoco — mismo gap ya documentado en `checks.ts` para TS/tsc, pero sin
+  cobertura para JS embebido en HTML. **Verificado abriendo la página de verdad en el
+  navegador** (no solo por los checks) — así se encontró. Fix: 1 carácter, aplicado y
+  reverificado (`node --check` limpio + reload real: datos en vivo, logos, sparklines
+  coloreadas, responsive sin overflow horizontal en mobile — screenshots tomados).
+  **Sigue pendiente**: agregar un check tipo `node --check` para output `.html`/`.js` a
+  `defaultChecksFor` — este gate hoy solo cubre `.ts`/`.tsx`. Anotado como follow-up, no
+  bloquea el cierre de C.1 (el hallazgo ya se corrigió y verificó a mano).
+- [ ] C.2 🔍 **El gate original, diferido — dashboard premium multi-archivo.** Con C.1 en
+  verde, repetir con `crypto-dashboard-premium` (React+TS+Vite real bajo
+  `demo/crypto-dashboard/`, motor agéntico, skill `frontend-design`, modelo capaz) HASTA
+  COMPLETARSE: los checks reales (`bun install` + `bun run build`) pasan, el proyecto
+  compila, y la página se ve con nivel de acabado premium. Responde la pregunta original de
+  Carlos: *"¿puede OrchestOS entregar un producto premium?"*. Definición completa en
+  [[project-state]] para recrearla. **Nota de contexto**: un proyecto ANTERIOR (previo a
+  OrchestOS) ya lograba entregar una página HTML+JS+CSS completa — C.1 es el piso que ese
+  proyecto anterior ya alcanzaba; C.2 es el techo que todavía no se ha probado.
 
 ### Cierre del mes
 - [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + cerrar también el H.1 pendiente del Mes 19 (OCR, A+B+C hechos) en la misma pasada.

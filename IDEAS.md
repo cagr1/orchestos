@@ -45,6 +45,23 @@ por la puerta importar.
 
 - ~~**#23 — Sistema de notificaciones/toasts estilizado**~~ — Resuelto en E.7 (2026-07-07): todos los `alert()`/`prompt()` reemplazados por `showToast()` + modales propios.
 
+### 36. `defaultChecksFor` — validar sintaxis JS embebida en HTML, no solo `.ts`/`.tsx`
+
+**Origen**: hallazgo real en Mes 20/C.1 (2026-07-13) — el archivo `.html` generado tenía un
+error de sintaxis JS (`:` donde iba `+` en una concatenación) que rompía el script entero.
+Ni `test -s` (¿existe, no vacío?) ni `grep` (busca texto) lo detectan, y el juez QA (`qa.ts`)
+tampoco corre el código, solo lo lee — el mismo gap que `checks.ts` ya documenta para
+TS/tsc, pero sin cobertura para `.js`/`.html`. Se encontró abriendo la página de verdad en
+el navegador, no por ningún check automático.
+
+**Qué hacer**: en `defaultChecksFor` (`src/run/checks.ts`), cuando `output` incluye `.html`
+o `.js`, agregar un check que extraiga el/los `<script>` inline (o el archivo `.js` directo)
+y corra `node --check` sobre eso — detecta errores de sintaxis sin ejecutar el código (sin
+riesgo), mismo principio que el check de `tsc --noEmit` ya existente.
+
+**Esfuerzo**: bajo — una función de extracción de `<script>` + un `Check` más en la lista
+condicional, sin motor nuevo.
+
 ---
 
 ## 🔨 Medio — capacidad nueva acotada
