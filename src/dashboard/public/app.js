@@ -69,6 +69,9 @@ const state = {
   // parecía no hacer nada. Ahora el borrador vive en state y se sincroniza
   // con el input en cada tecla, así sobrevive cualquier rerender.
   composeDraft: '',
+  // B.3 (Mes 21) — mismo bug y mismo fix que composeDraft: el poll de 30s
+  // reconstruía #chat-input vacío en medio de tipear, Send quedaba como no-op.
+  chatDraft: '',
   chatModelComboOpen: false, // FRONT.6 — combobox de modelo del chat (trigger + panel de búsqueda)
   chatAttachMenuOpen: false, // FRONT.9 — menú de tipo de adjunto (Imagen/Documento/URL)
   // 2026-07-08 — mismo patrón que chatModelComboOpen pero genérico para todos

@@ -312,7 +312,7 @@ SCREENS.chat = {
               <button class="attach-menu-item" data-attach-kind="url">${ICON.globe}<span>${t('chat.attachMenu.url')}</span></button>
             </div>` : ''}
           </div>
-          <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}></textarea>
+          <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}>${esc(st.chatDraft || '')}</textarea>
           <button class="chat-icon-btn chat-send-btn" data-act="chat-send" title="${t('chat.btn.send')}" aria-label="${t('chat.btn.send')}" ${st.chatPending ? 'disabled' : ''}>${ICON.send}</button>
         </div>
         <input type="file" id="chat-file-input" accept="image/*,.pdf,.txt,.md" style="display:none">
@@ -337,6 +337,9 @@ SCREENS.chat = {
       textareaEl.style.height = Math.min(textareaEl.scrollHeight, 120) + 'px';
     };
     textareaEl?.addEventListener('input', autoGrowTextarea);
+    // B.3 (Mes 21) — sincroniza cada tecla a state.chatDraft para sobrevivir
+    // al poll de 30s (mismo patrón que composeDraft, línea ~872).
+    textareaEl?.addEventListener('input', () => { st.chatDraft = textareaEl.value; });
 
     // B.2 (Mes 21) — click handlers de los chips dentro de la respuesta.
     // Task chip → abre la tarea en su side panel (Tasks screen). Model chip →
@@ -378,6 +381,7 @@ SCREENS.chat = {
       const msg = textarea?.value.trim();
       if (!msg || st.chatPending) return;
       textarea.value = '';
+      st.chatDraft = ''; // mensaje enviado — el borrador ya cumplió su función
       textarea.style.height = ''; // FRONT.9 — vuelve a la altura base de 2 filas
       st.chatHistory = st.chatHistory || [];
       st.chatHistory.push({ role: 'user', content: msg });
