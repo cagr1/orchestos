@@ -1283,24 +1283,91 @@ const Modal = {
 
   close() { this.el.classList.remove('show'); },
 
+  // 2026-07-12 — el palette busca todo, no solo pantallas: tareas, skills,
+  // runs, instincts y memoria, todo ya vive en `state` (poll de 30s), así que
+  // la búsqueda es 100% cliente, sin ida y vuelta al backend por tecla.
+  // Cierra el gap con el buscador tipo Claude/Raycast que pedía Carlos.
   openCommandPalette() {
     const isAdv = (localStorage.getItem('orchestos-mode') || 'normal') === 'advanced';
-    const items = NAV.filter(n => !n.operator || isAdv);
+    const screenItems = NAV.filter(n => !n.operator || isAdv).map(n => ({
+      type: 'screen', icon: n.icon, label: t(n.key), sub: '',
+      go: () => App.go(n.id),
+    }));
+
+    const entityItems = [];
+    for (const tk of state.tasks || []) {
+      entityItems.push({
+        type: 'task', icon: ICON.tasks, label: tk.description, sub: tk.id,
+        go: () => { App.go('tasks'); SidePanel.openTask(tk); },
+      });
+    }
+    for (const sk of [...(state.skills || []), ...(state.proSkills || [])]) {
+      entityItems.push({
+        type: 'skill', icon: ICON.flask, label: sk.name, sub: sk.description,
+        go: () => { App.go('skills'); this.openSkillDetail(sk); },
+      });
+    }
+    for (const r of state.runs || []) {
+      entityItems.push({
+        type: 'run', icon: ICON.runs, label: r.taskId || r.id, sub: [r.model, r.status].filter(Boolean).join(' · '),
+        go: () => { App.go('runs'); state.openRun = r.id; App.rerender(); },
+      });
+    }
+    for (const ins of state.instincts || []) {
+      entityItems.push({
+        type: 'instinct', icon: ICON.instinct, label: ins.trigger, sub: ins.action,
+        go: () => App.go('instincts'),
+      });
+    }
+    for (const m of state.memory || []) {
+      entityItems.push({
+        type: 'memory', icon: ICON.memory, label: (m.content || '').replace(/\s+/g, ' ').trim().slice(0, 90), sub: m.topic_key || m.scope || '',
+        go: () => App.go('memory'),
+      });
+    }
+
+    const TYPE_LABEL = {
+      task: t('cmdk.type.task'), skill: t('cmdk.type.skill'), run: t('cmdk.type.run'),
+      instinct: t('cmdk.type.instinct'), memory: t('cmdk.type.memory'),
+    };
+
     let selected = 0;
-    let filtered = items;
+    let filtered = screenItems;
+
+    const matches = (it, q) => (it.label || '').toLowerCase().includes(q) || (it.sub || '').toLowerCase().includes(q);
+
+    // Screens primero (navegación pura), luego resultados de datos — con un
+    // tope por tipo para que una query corta y frecuente (ej. "a") no ahogue
+    // la lista con 200 memorias y nada más.
+    const search = q => {
+      if (!q) return screenItems;
+      const hits = [];
+      const counts = {};
+      for (const it of [...screenItems, ...entityItems]) {
+        if (!matches(it, q)) continue;
+        counts[it.type] = (counts[it.type] || 0) + 1;
+        if (it.type !== 'screen' && counts[it.type] > 8) continue;
+        hits.push(it);
+      }
+      return hits;
+    };
 
     const renderList = () => {
       const list = this.el.querySelector('#cmdk-list');
       if (!list) return;
       list.innerHTML = filtered.length
-        ? filtered.map((n, i) => `
-          <div class="cmdk-item${i === selected ? ' active' : ''}" data-id="${n.id}" data-i="${i}">
-            <span class="cmdk-item-ic">${n.icon}</span>
-            <span class="cmdk-item-label">${t(n.key)}</span>
+        ? filtered.map((it, i) => `
+          <div class="cmdk-item${i === selected ? ' active' : ''}" data-i="${i}">
+            <span class="cmdk-item-ic">${it.icon}</span>
+            <span class="cmdk-item-body">
+              <span class="cmdk-item-label">${esc(it.label || '')}</span>
+              ${it.sub ? `<span class="cmdk-item-sub">${esc(it.sub)}</span>` : ''}
+            </span>
+            ${it.type !== 'screen' ? `<span class="cmdk-item-type">${TYPE_LABEL[it.type]}</span>` : ''}
           </div>`).join('')
         : `<div class="cmdk-empty">${t('cmdk.empty')}</div>`;
       list.querySelectorAll('.cmdk-item').forEach(el => {
-        el.addEventListener('click', () => { App.go(el.dataset.id); this.close(); });
+        el.addEventListener('click', () => { filtered[Number(el.dataset.i)]?.go(); this.close(); });
         el.addEventListener('mouseenter', () => { selected = Number(el.dataset.i); renderList(); });
       });
     };
@@ -1317,15 +1384,14 @@ const Modal = {
     renderList();
     const input = this.el.querySelector('#cmdk-input');
     input.addEventListener('input', () => {
-      const q = input.value.toLowerCase().trim();
-      filtered = items.filter(n => t(n.key).toLowerCase().includes(q));
+      filtered = search(input.value.toLowerCase().trim());
       selected = 0;
       renderList();
     });
     input.addEventListener('keydown', e => {
       if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, filtered.length - 1); renderList(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); renderList(); }
-      else if (e.key === 'Enter') { e.preventDefault(); const n = filtered[selected]; if (n) { App.go(n.id); this.close(); } }
+      else if (e.key === 'Enter') { e.preventDefault(); filtered[selected]?.go(); this.close(); }
       else if (e.key === 'Escape') { e.preventDefault(); this.close(); }
     });
     requestAnimationFrame(() => { this.el.classList.add('show'); input.focus(); });

@@ -20,9 +20,14 @@ const I18N = {
     'nav.graph':     'Graph Runner',
 
     /* ── Command palette ────────────────────── */
-    'cmdk.placeholder': 'Go to…',
-    'cmdk.empty':       'No matching screens',
-    'cmdk.hint':        '↑↓ navigate · ↵ select · esc close',
+    'cmdk.placeholder':    'Search anything…',
+    'cmdk.empty':          'No results',
+    'cmdk.hint':           '↑↓ navigate · ↵ select · esc close',
+    'cmdk.type.task':      'Task',
+    'cmdk.type.skill':     'Skill',
+    'cmdk.type.run':       'Run',
+    'cmdk.type.instinct':  'Instinct',
+    'cmdk.type.memory':    'Memory',
 
     /* ── Project ─────────────────────────────── */
     'project.title':    'Project',
@@ -635,9 +640,14 @@ const I18N = {
     'nav.graph':     'Runner de grafo',
 
     /* ── Command palette ────────────────────── */
-    'cmdk.placeholder': 'Ir a…',
-    'cmdk.empty':       'Sin pantallas que coincidan',
-    'cmdk.hint':        '↑↓ navegar · ↵ seleccionar · esc cerrar',
+    'cmdk.placeholder':    'Buscar cualquier cosa…',
+    'cmdk.empty':          'Sin resultados',
+    'cmdk.hint':           '↑↓ navegar · ↵ seleccionar · esc cerrar',
+    'cmdk.type.task':      'Tarea',
+    'cmdk.type.skill':     'Skill',
+    'cmdk.type.run':       'Run',
+    'cmdk.type.instinct':  'Instinto',
+    'cmdk.type.memory':    'Memoria',
 
     /* ── Project ─────────────────────────────── */
     'project.title':    'Proyecto',
