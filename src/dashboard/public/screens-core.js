@@ -362,7 +362,7 @@ SCREENS.chat = {
         .map(m => m.content.trim())
         .filter(Boolean)
         .join('\n');
-      st.chatToTask = seed || '';
+      st.composeDraft = seed || '';
       App.go('tasks');
     });
 
@@ -487,7 +487,7 @@ SCREENS.tasks = {
   render(st) {
     // H1 — two-phase compose: input → AI draft preview → confirm
     const draft = st.naturalDraft;
-    const composeInitial = st.chatToTask || '';
+    const composeInitial = st.composeDraft || '';
     const compose = draft
       ? `<div class="compose-bar compose-preview">
           <div class="draft-header">
@@ -649,10 +649,6 @@ SCREENS.tasks = {
   },
 
   wire(root, st) {
-    // D4 — consume chat-to-task draft after first render
-    if (st.chatToTask) {
-      st.chatToTask = null;
-    }
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
     root.querySelector('[data-act="new-task"]')?.addEventListener('click', () => Modal.openTask());
 
@@ -673,6 +669,7 @@ SCREENS.tasks = {
       input.style.height = Math.min(input.scrollHeight, 120) + 'px';
     };
     input?.addEventListener('input', () => {
+      st.composeDraft = input.value; // sobrevive rerenders (poll 30s, loadOrModels)
       const id = descToId(input.value);
       preview.textContent = id ? `ID: ${id}` : '';
       autoGrowCompose();
@@ -825,6 +822,7 @@ SCREENS.tasks = {
         const taskId = created.id || id;
         await fetch(`/api/tasks/${encodeURIComponent(taskId)}/run`, { method: 'POST' });
         st.naturalDraft = null;
+        st.composeDraft = ''; // tarea creada — el borrador ya cumplió su función
         await App.fetchTasks();
         App.rerender();
       } catch {
