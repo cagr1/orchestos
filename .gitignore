@@ -41,7 +41,11 @@ runs/*.log
 dist/
 
 # local tool configs
-.claude/settings.local.json
+.claude/
+.github/workflows/
+
+# temporary test directories
+.tmp-spec-test-*/
 
 # playwright test artifacts
 .playwright-mcp/
