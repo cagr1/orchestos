@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-07-13T14:39:50.369Z",
+  "exported_at": "2026-07-13T15:44:05.049Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "c968bdbd-cf8c-4c1f-b492-9a4cb50b2e6b",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.001646953,
+      "elapsed_ms": 0,
+      "tokens": 20047,
+      "created_at": "2026-07-13T15:34:34.406Z"
+    },
+    {
+      "id": "79edc1bf-4750-4ca9-9987-624e2cb512c8",
+      "task_class": "plan",
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "openrouter",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "The app does not handle and display the fetched data correctly.",
+      "files_blocked": [],
+      "checks_failed": 2,
+      "usd_cost": 2.73007505,
+      "elapsed_ms": 621430,
+      "tokens": 1131585,
+      "created_at": "2026-07-13T15:08:50.634Z"
+    },
+    {
+      "id": "8461cdf2-3a53-437e-a772-3c4ced5a1338",
+      "task_class": "plan",
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "openrouter",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "The result of running `bun install` and `bun run build` is not provided to verify success.",
+      "files_blocked": [],
+      "checks_failed": 2,
+      "usd_cost": 2.2758817000000002,
+      "elapsed_ms": 431417,
+      "tokens": 1035398,
+      "created_at": "2026-07-13T14:56:55.922Z"
+    },
     {
       "id": "ffd3116c-e40b-4788-bbf5-0fa7b59294f9",
       "task_class": "implement",
@@ -256,58 +301,13 @@
       "elapsed_ms": 4566,
       "tokens": 639,
       "created_at": "2026-07-02T17:51:45.212Z"
-    },
-    {
-      "id": "4fbd8067-e9e7-414a-97d3-eb565d0b75fd",
-      "task_class": "implement",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: exit 1 exit 1",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.000066661,
-      "elapsed_ms": 3416,
-      "tokens": 658,
-      "created_at": "2026-07-02T17:51:04.887Z"
-    },
-    {
-      "id": "10514a2f-13d2-482f-bcb3-c3c04b34a94a",
-      "task_class": "doc",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: exit 1 exit 1",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.00020639999999999998,
-      "elapsed_ms": 4942,
-      "tokens": 881,
-      "created_at": "2026-07-01T17:11:28.381Z"
-    },
-    {
-      "id": "ff94b923-d6d5-497b-86c2-5e5cc85e4c5c",
-      "task_class": "doc",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: exit 1 exit 1",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.00014879999999999998,
-      "elapsed_ms": 8783,
-      "tokens": 785,
-      "created_at": "2026-07-01T17:11:15.988Z"
     }
   ],
   "stats": {
-    "failed": 8,
+    "failed": 7,
     "blocked": 0,
-    "done": 12,
-    "qa_failed": 7,
-    "total_cost_usd": "0.7793"
+    "done": 13,
+    "qa_failed": 6,
+    "total_cost_usd": "5.7865"
   }
 }

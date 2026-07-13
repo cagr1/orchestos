@@ -100,6 +100,36 @@ sino usar mejor el que ya existe. **NO requiere** tocar el molde de conexiones d
 **Esfuerzo**: bajo-medio — badge + filtro en el selector (reusa el combo buscable existente) +
 un preset de config. Sin motor nuevo, sin dependencia externa.
 
+### 38. El Chat no renderiza Markdown — se ve `**bold**`/`### header` literal, no formateado
+
+**Origen**: Carlos (2026-07-13) notó que las respuestas del LLM en el Chat muestran la sintaxis
+Markdown cruda (`**Para el dashboard 3D:**`, `### ¿Qué hacer ahora?`) en vez de renderizarse
+como texto con jerarquía visual — quiere que se vea como las respuestas de Claude Code: bold,
+headers, listas, código inline, todo formateado. También quiere que referencias a task-id y
+nombre de modelo dentro de la respuesta se resalten visualmente (ej. `crypto-dashboard-3d-premium`
+y `deepseek/deepseek-v4-flash` como chips/badges, no texto plano).
+
+**Verificado en código**: `screens-core.js` (chat message render) hace
+`esc(m.content).replace(/\n/g, '<br>')` — escapa TODO el texto y solo convierte saltos de
+línea a `<br>`. **Cero parseo de Markdown.** Confirmado también que no hay ninguna librería de
+Markdown en el proyecto (`grep` de `marked`/`markdown-it` en `package.json` y en todo
+`dashboard/public/*.js` → vacío) — es una feature nueva, no un bug de una librería mal cableada.
+
+**Qué hacer**:
+1. Agregar un parser de Markdown ligero (ej. `marked` — MIT, cero dependencias runtime pesadas)
+   y renderizar `m.content` a HTML sano en vez de solo escapar+`<br>`. Sanitizar con la misma
+   disciplina que ya usa el proyecto (`esc()`) — el contenido del LLM nunca es 100% confiable,
+   mismo principio que el wrapper "dato externo" de `fetch_url`/OCR (Mes 13/19).
+2. **Highlight de task-id y modelo** — más específico que Markdown genérico: un regex/patrón
+   que detecte menciones de `task_id` conocidos (contra `state.tasks`) y nombres de modelo
+   (contra el catálogo) dentro de la respuesta del LLM, y los envuelva en un chip visual
+   (mismo estilo `.badge`/`.chip` que ya usa el dashboard en Tasks/Runs) — para que un usuario
+   como Carlos vea de un vistazo "esto es una tarea real, esto es un modelo real" sin tener que
+   leerlo como texto plano.
+
+**Esfuerzo**: bajo (Markdown genérico, una librería + wiring) a medio (el highlight de
+task-id/modelo específico, que es lógica nueva, no solo estilo).
+
 ### 4. Clasificador semántico para `clarify`
 
 Hoy `needsClarify` es heurística de palabras clave (verbo ambiguo + sin `input[]`). Un LLM
