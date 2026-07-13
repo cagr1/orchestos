@@ -1,12 +1,46 @@
 # IDEAS.md — OrchestOS
 
-Backlog accionable, **ordenado por esfuerzo** (rápido → lento). De aquí sale el próximo PLAN.md.
+Backlog accionable. De aquí sale el próximo PLAN.md.
 
 - Dirección de producto y norte estratégico → [VISION.md](VISION.md)
 - Lo ya implementado → [DONE.md](DONE.md)
 - Estructura de trabajo activa → [PLAN.md](PLAN.md)
 
-Reorganizado: 2026-06-23 (cierre Mes 13). Verificado contra DONE.md — ningún item de abajo está implementado.
+Reorganizado: 2026-07-13 (apertura v0.12). El detalle de cada idea sigue abajo con su número
+histórico intacto; lo que cambió es el **lente de orden**: ya no "por esfuerzo" sino **por
+prioridad de diseño hacia un producto estable**. El mapa manda; los bloques numerados de abajo
+son la referencia detallada, no el orden de ejecución.
+
+## 🗺️ Mapa de prioridad (2026-07-13)
+
+**P0 — graduado a PLAN v0.12 (ya NO vive acá):** borrado masivo en tablas (+absorbe #18),
+Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashboard. Ver
+[PLAN.md](PLAN.md) § v0.12.
+
+**P1 — acabado / papercuts que hacen que se sienta terminado (candidatos v0.12 tardío / v0.13):**
+- #36 — check de sintaxis JS/HTML en `defaultChecksFor` (barato, hallazgo real de Mes 20/C.1)
+- #14 — notificaciones del sistema cuando algo termina en segundo plano
+- #27 — tab de consumo/gasto en Settings (agregación pura sobre `runs`)
+- #17 — chat multi-sesión + aviso al 75% de contexto
+- #37 — modo "empezar gratis" (modelos `:free` de OpenRouter por defecto)
+
+**P2 — robustez del motor, gated en evidencia (habilitan reintentar Mes 20/C.2):**
+- #32 — presupuesto de outputs de tools en el executor agéntico ← **prerequisito de C.2**
+- #33 — refuter en el QA loop (segunda opinión barata antes de quemar retry)
+- #19 — `engine: external` sin `checks:` pierde su red determinista
+- #4 — clasificador semántico para `clarify` · #5 — resolver Ruby · #16 — escala honesta
+- #29 — decisión pendiente sobre `topic_key`/memoria de sub-tasks
+
+**P3 — capacidad nueva grande (post-estable, v0.13+):**
+- #39 — generalizar `engine: external` a más CLIs (Orca) · #28 — terminal real embebido
+- #35 — directorio de proyecto configurable · #10 — cliente MCP · #31 — chat multi-proveedor
+- #34 — `orchestos audit` · #7 — brainstorming socrático · #8 — micrófono/dictado
+- #6 — Design.md condicional · #26 — Spec Kit · #25 — Mintlify docs · #11 — KuzuDB
+- #30 — `task_class: ocr` · #1/#2/#3 — endurecimiento de skills (autoría, sin motor)
+
+**Nota de diseño (parqueado hasta las capturas de Carlos):** el "estándar visual de dashboard"
+(patrón de chat/config/diseño de Hermes, Claude Desktop, Codex) es la semilla de v0.13, NO está
+en v0.12. Se abre cuando Carlos termine las capturas de pantalla, con material real enfrente.
 
 ---
 
@@ -99,36 +133,6 @@ sino usar mejor el que ya existe. **NO requiere** tocar el molde de conexiones d
 
 **Esfuerzo**: bajo-medio — badge + filtro en el selector (reusa el combo buscable existente) +
 un preset de config. Sin motor nuevo, sin dependencia externa.
-
-### 38. El Chat no renderiza Markdown — se ve `**bold**`/`### header` literal, no formateado
-
-**Origen**: Carlos (2026-07-13) notó que las respuestas del LLM en el Chat muestran la sintaxis
-Markdown cruda (`**Para el dashboard 3D:**`, `### ¿Qué hacer ahora?`) en vez de renderizarse
-como texto con jerarquía visual — quiere que se vea como las respuestas de Claude Code: bold,
-headers, listas, código inline, todo formateado. También quiere que referencias a task-id y
-nombre de modelo dentro de la respuesta se resalten visualmente (ej. `crypto-dashboard-3d-premium`
-y `deepseek/deepseek-v4-flash` como chips/badges, no texto plano).
-
-**Verificado en código**: `screens-core.js` (chat message render) hace
-`esc(m.content).replace(/\n/g, '<br>')` — escapa TODO el texto y solo convierte saltos de
-línea a `<br>`. **Cero parseo de Markdown.** Confirmado también que no hay ninguna librería de
-Markdown en el proyecto (`grep` de `marked`/`markdown-it` en `package.json` y en todo
-`dashboard/public/*.js` → vacío) — es una feature nueva, no un bug de una librería mal cableada.
-
-**Qué hacer**:
-1. Agregar un parser de Markdown ligero (ej. `marked` — MIT, cero dependencias runtime pesadas)
-   y renderizar `m.content` a HTML sano en vez de solo escapar+`<br>`. Sanitizar con la misma
-   disciplina que ya usa el proyecto (`esc()`) — el contenido del LLM nunca es 100% confiable,
-   mismo principio que el wrapper "dato externo" de `fetch_url`/OCR (Mes 13/19).
-2. **Highlight de task-id y modelo** — más específico que Markdown genérico: un regex/patrón
-   que detecte menciones de `task_id` conocidos (contra `state.tasks`) y nombres de modelo
-   (contra el catálogo) dentro de la respuesta del LLM, y los envuelva en un chip visual
-   (mismo estilo `.badge`/`.chip` que ya usa el dashboard en Tasks/Runs) — para que un usuario
-   como Carlos vea de un vistazo "esto es una tarea real, esto es un modelo real" sin tener que
-   leerlo como texto plano.
-
-**Esfuerzo**: bajo (Markdown genérico, una librería + wiring) a medio (el highlight de
-task-id/modelo específico, que es lógica nueva, no solo estilo).
 
 ### 4. Clasificador semántico para `clarify`
 
@@ -525,37 +529,6 @@ el 20% del esfuerzo.
 
 **Esfuerzo**: medio — 2 tablas + extender un endpoint existente + UI de lista de sesiones.
 La parte 2 (aviso 75%) es chica y puede entrar sola si las sesiones se difieren.
-
-### 18. Higiene de notificaciones in-page — cero `alert()`/`confirm()` nativos, todo toast/modal propio
-
-**Origen**: Carlos, 2026-07-04. Vio diálogos nativos del navegador ("localhost dice: ...")
-saliendo desde arriba de la página — no quiere ver NINGUNA notificación de ese tipo; todo
-debe ser toast (o modal propio cuando se necesita decisión del usuario).
-
-**Auditoría verificada (2026-07-04, grep completo de `public/`)** — 6 usos nativos vivos:
-- [app.js:419](src/dashboard/public/app.js) — `confirm()` al borrar una task
-- [app.js:423](src/dashboard/public/app.js) — `alert()` si el delete falla
-- [app.js:424](src/dashboard/public/app.js) — `alert()` en error de conexión del delete
-- [screens-ops.js:546](src/dashboard/public/screens-ops.js) — `confirm()` en Graph Runner
-- [screens-ops.js:866](src/dashboard/public/screens-ops.js) — `alert()` para mostrar texto a copiar
-- [screens-ops.js:912](src/dashboard/public/screens-ops.js) — `confirm()` en reset de Settings
-
-**Qué ya existe (NO reconstruir)**: `showToast()` + estilos `.toast`/`.toast-error`
-([app.js:1525](src/dashboard/public/app.js), `styles.css:475`) — los 3 `alert()` migran
-directo a esto. Los 3 `confirm()` necesitan pieza nueva: un **modal de confirmación propio**
-(promesa que resuelve confirmar/cancelar), porque un toast no puede bloquear una acción
-destructiva esperando decisión.
-
-**Regla resultante**: prohibido `alert()`/`confirm()`/`prompt()` nativos en `public/` —
-candidato a check determinista (grep en CI o pre-commit) para que no vuelvan a entrar.
-
-**Relación**: complementa el ítem #14 (Web Notification API para background) — #14 es avisar
-cuando NO estás mirando la pestaña; este es que lo que ves cuando SÍ estás mirando nunca sea
-un diálogo nativo del navegador. El toast del 75% de contexto (ítem #17) depende de esta
-higiene para nacer bien.
-
-**Esfuerzo**: bajo-medio — 3 reemplazos triviales de `alert()` + un componente modal de
-confirmación reutilizable + opcionalmente el check anti-regresión.
 
 ### 19. `engine: external` sin `checks:` explícitos pierde silenciosamente su única red determinista
 

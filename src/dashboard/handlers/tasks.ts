@@ -157,6 +157,29 @@ function handleApiTasksDelete(url: URL): Response {
   }
 }
 
+// v0.12 Bloque A — borrado en lote sobre tasks.yaml. A diferencia de runs/
+// instincts/memory (SQLite, un DELETE por id sin costo), tasks.yaml es un
+// archivo — se filtra una sola vez y se guarda una sola vez, en vez de N
+// llamadas a saveTasks() (N reescrituras completas del YAML).
+async function handleApiTasksBulkDelete(req: Request): Promise<Response> {
+  let body: { ids?: unknown }
+  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
+  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  const ids = new Set(body.ids.filter((id): id is string => typeof id === 'string'))
+  const root = resolve('.')
+  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
+  try {
+    const file = loadTasks(root)
+    const before = file.tasks.length
+    ;(file as any).tasks = file.tasks.filter((t: any) => !ids.has(t.id))
+    const deleted = before - file.tasks.length
+    if (deleted > 0) saveTasks(root, file)
+    return jsonResponse({ ok: true, deleted })
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
 function handleApiTasksExplain(url: URL): Response {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
@@ -275,4 +298,4 @@ function handleApiTasksApproveSplit(url: URL): Response {
   return jsonResponse({ ok: true, id, message: `Split plan for "${id}" approved — executing ${planPath}` })
 }
 
-export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, loadTaskRows, isKnownSkillId }
+export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, loadTaskRows, isKnownSkillId }

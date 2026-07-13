@@ -463,7 +463,7 @@ SCREENS.tasks = {
     const patternLabel = patternHuman[d.pattern] || esc(d.pattern);
     // habitTrigger for data-* attribute — uses raw strings (esc applied at the attribute site)
     const habitTrigger = `${t('tasks.diagnose.habit.trigger.prefix')} "${d.taskId}" (${patternHuman[d.pattern] || d.pattern})`;
-    return `<tr class="detail-row"><td colspan="7"><div class="detail">
+    return `<tr class="detail-row"><td colspan="8"><div class="detail">
       <div class="grp"><h4>${t('tasks.diagnose.title')}</h4>
         <div class="kv"><span class="k">${t('tasks.diagnose.pattern')}</span><span class="v">${patternLabel}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.confidence')}</span><span class="v">${t(confKey)}</span></div>
@@ -595,6 +595,10 @@ SCREENS.tasks = {
 
     const sortIcon = c => col === c ? (dir === 'asc' ? ' ▲' : ' ▼') : ' ⇅';
 
+    const tSel = bulkSet('tasks');
+    const taskIds = tasks.map(task => task.id);
+    const allTaskChecked = taskIds.length > 0 && taskIds.every(id => tSel.has(id));
+
     const rows = tasks.map(task => {
       const MAX = 72;
       const desc = task.description.length > MAX ? task.description.slice(0, MAX - 1) + '…' : task.description;
@@ -617,6 +621,7 @@ SCREENS.tasks = {
             : `<span class="diag-link" data-diag="${esc(task.id)}">${t('tasks.diagnose.btn')}</span>`)
         : '';
       const main = `<tr class="row ${open ? 'open' : ''}" data-task="${esc(task.id)}" title="${esc(task.description)}" tabindex="0">
+        <td style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-row="tasks" data-bulk-id="${esc(task.id)}" ${tSel.has(task.id) ? 'checked' : ''}></td>
         <td><span class="badge ${STATUS_BADGE[task.status] || 'gray'}"><span class="d"></span>${esc(task.status)}</span></td>
         <td class="mono" style="color:var(--text);white-space:nowrap">${esc(task.id)}${skillBadge}</td>
         <td style="max-width:400px;color:var(--text-muted)">${esc(desc)}</td>
@@ -634,6 +639,7 @@ SCREENS.tasks = {
       <div class="card" style="overflow:hidden">
         <table class="tbl">
           <thead><tr>
+            <th style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-all="tasks" ${allTaskChecked ? 'checked' : ''}></th>
             <th class="sortable" data-sort="status" style="width:140px">${t('tasks.col.status')}<span class="sort-arrow">${sortIcon('status')}</span></th>
             <th style="width:200px">${t('tasks.col.id')}</th>
             <th>${t('tasks.col.desc')}</th>
@@ -645,10 +651,12 @@ SCREENS.tasks = {
           <tbody>${rows}</tbody>
         </table>
       </div>
+      ${renderBulkBar('tasks', t('bulk.resource.tasks'))}
     </div>`;
   },
 
   wire(root, st) {
+    wireBulkSelect(root, 'tasks', '/api/tasks/bulk-delete', () => App.fetchTasks(), t('bulk.resource.tasks'));
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
     root.querySelector('[data-act="new-task"]')?.addEventListener('click', () => Modal.openTask());
 
@@ -991,10 +999,17 @@ SCREENS.memory = {
       let rows = memory.filter(m => st.memScope === 'all' || m.scope === st.memScope);
       const q = st.memQuery || '';
       const scopeCls = sc => sc === 'session' ? 'amber' : sc === 'project' ? 'blue' : 'green';
+      const mSel = bulkSet('memory');
+      const rowIds = rows.map(m => m.id);
+      const allMemChecked = rowIds.length > 0 && rowIds.every(id => mSel.has(id));
+      const selectAllRow = rows.length ? `<label class="mem-select-all" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:8px;cursor:pointer">
+        <input type="checkbox" class="bulk-checkbox" data-bulk-all="memory" ${allMemChecked ? 'checked' : ''}> ${t('bulk.selectAll')}
+      </label>` : '';
       right = rows.length
-        ? `<div class="mem-results">` + rows.map(m => `
+        ? selectAllRow + `<div class="mem-results">` + rows.map(m => `
           <div class="mem-card" data-topic="${esc(m.topicKey)}" data-mem-id="${esc(m.id)}" role="button" tabindex="0">
             <div class="top">
+              <input type="checkbox" class="bulk-checkbox" data-bulk-row="memory" data-bulk-id="${esc(m.id)}" ${mSel.has(m.id) ? 'checked' : ''}>
               <span class="topic">${esc(m.topicKey)}</span>
               <span class="badge ${scopeCls(m.scope)} square">${scopeLabel(m.scope)}</span>
               <span class="when">${esc((m.updatedAt || '').slice(0, 10))}</span>
@@ -1008,9 +1023,10 @@ SCREENS.memory = {
         : emptyState(ICON.memory, t('memory.no.title'), q ? t('memory.no.body', esc(q)) : t('memory.empty.body'));
     }
 
-    return `<div class="screen">${head}${memExplainer}${conflictsPanel}<div class="mem-grid">${left}${right}</div></div>`;
+    return `<div class="screen">${head}${memExplainer}${conflictsPanel}<div class="mem-grid">${left}${right}</div>${renderBulkBar('memory', t('bulk.resource.memory'))}</div>`;
   },
   wire(root, st) {
+    wireBulkSelect(root, 'memory', '/api/memory/bulk-delete', () => App.fetchMemory(st.memQuery || undefined), t('bulk.resource.memory'));
     let _searchTimer;
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => {
       st.memQuery = '';
@@ -1051,7 +1067,8 @@ SCREENS.memory = {
     // I.8 (Mes 18) — borrar una memory entry desde la card expandida.
     root.querySelectorAll('[data-mem-act="delete"]').forEach(btn => btn.addEventListener('click', async e => {
       e.stopPropagation();
-      if (!confirm(t('memory.delete.confirm'))) return;
+      const ok = await Modal.confirm(t('memory.delete.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
+      if (!ok) return;
       const id = btn.dataset.memId;
       btn.disabled = true;
       try {

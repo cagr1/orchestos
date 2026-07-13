@@ -121,4 +121,20 @@ function handleApiSpecsDelete(req: Request): Response {
   return jsonResponse({ ok: true, taskId })
 }
 
-export { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete }
+// v0.12 Bloque A — borrado en lote de specs ARCHIVADAS (mismo alcance que
+// handleApiSpecsDelete — deleteArchivedSpec nunca toca drafts/approved activos).
+async function handleApiSpecsBulkDelete(req: Request): Promise<Response> {
+  let body: { ids?: unknown }
+  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
+  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  const root = resolve('.')
+  const ids = body.ids.filter((id): id is string => typeof id === 'string')
+  let deleted = 0
+  for (const id of ids) {
+    const taskId = validateTaskId(id)
+    if (taskId && deleteArchivedSpec(root, taskId)) deleted++
+  }
+  return jsonResponse({ ok: true, deleted })
+}
+
+export { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete }

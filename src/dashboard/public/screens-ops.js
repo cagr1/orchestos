@@ -180,7 +180,8 @@ SCREENS.project = {
     // Mismo comportamiento que `orchestos detect` en CLI — se descubrió al verificar
     // este botón en vivo (2026-07-07): pisó el AGENTS.md real del propio repo.
     root.querySelector('[data-act="detect"]')?.addEventListener('click', async (e) => {
-      if (!confirm(t('project.detect.confirm'))) return;
+      const ok = await Modal.confirm(t('project.detect.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
+      if (!ok) return;
       const btn = e.currentTarget;
       btn.disabled = true;
       try {
@@ -262,7 +263,9 @@ SCREENS.instincts = {
            <span class="badge ${v.cls} instinct-state"><span class="d"></span>${v.txt}</span>
            <button class="btn ghost sm" data-delete-instinct="${esc(i.id)}" title="${t('instincts.btn.delete')}" aria-label="${t('instincts.btn.delete')}">${ICON.trash}</button>
          </div>`;
+    const sel = bulkSet('instincts');
     return `<tr class="${!i.verified ? 'proposal' : ''}">
+      <td style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-row="instincts" data-bulk-id="${esc(i.id)}" ${sel.has(i.id) ? 'checked' : ''}></td>
       <td><span class="mono" style="color:var(--text)">${esc(i.trigger)}</span></td>
       <td class="muted">${esc(i.action)}</td>
       <td>${this.confBar(i.confidence)}${confInput}</td>
@@ -295,11 +298,18 @@ SCREENS.instincts = {
     const active    = all.filter(i =>  i.verified && i.confidence >= 0.8);
     const inactive  = all.filter(i =>  i.verified && i.confidence < 0.8);
 
+    const sel = bulkSet('instincts');
+    // v0.12 Bloque A — dos tablas independientes (active/inactive) comparten
+    // el mismo screen "instincts" de selección; el checkbox "todo" de cada
+    // <thead> solo afecta las filas de ESA tabla (data-bulk-section-all +
+    // wiring propio más abajo, en vez del data-bulk-all genérico compartido
+    // que asume una sola tabla por screen).
     const makeSection = (titleKey, ct, items) => items.length === 0 ? '' : `
       <div class="section-title"><span>${t(titleKey)}</span><span class="ct">${ct}</span></div>
       <div class="card" style="overflow:hidden;margin-bottom:16px">
         <table class="tbl">
           <thead><tr>
+            <th style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-section-all="instincts" ${items.length > 0 && items.every(i => sel.has(i.id)) ? 'checked' : ''}></th>
             <th>${t('instincts.col.when')}</th>
             <th>${t('instincts.col.what')}</th>
             <th style="width:180px">${t('instincts.col.conf')}</th>
@@ -334,9 +344,19 @@ SCREENS.instincts = {
       ${proposalCards}
       ${makeSection('instincts.sec.active', active.length, active)}
       ${makeSection('instincts.sec.inactive', inactive.length, inactive)}
+      ${renderBulkBar('instincts', t('bulk.resource.instincts'))}
     </div>`;
   },
   wire(root, st) {
+    wireBulkSelect(root, 'instincts', '/api/instincts/bulk-delete', () => App.fetchInstincts(), t('bulk.resource.instincts'));
+    root.querySelectorAll('[data-bulk-section-all]').forEach(cb => {
+      cb.addEventListener('click', e => e.stopPropagation());
+      cb.addEventListener('change', () => {
+        const table = cb.closest('table');
+        const ids = [...table.querySelectorAll('[data-bulk-row="instincts"]')].map(r => r.dataset.bulkId);
+        bulkToggleAll('instincts', ids);
+      });
+    });
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
     root.querySelector('[data-act="add-instinct"]')?.addEventListener('click', () => Modal.openInstinct(st));
     root.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', async () => {
@@ -357,7 +377,8 @@ SCREENS.instincts = {
     }));
     // I.8 (Mes 18) — borrar un instinct ya aprobado/activo.
     root.querySelectorAll('[data-delete-instinct]').forEach(b => b.addEventListener('click', async () => {
-      if (!confirm(t('instincts.delete.confirm'))) return;
+      const ok = await Modal.confirm(t('instincts.delete.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
+      if (!ok) return;
       const id = b.dataset.deleteInstinct;
       b.disabled = true;
       try {
@@ -547,10 +568,14 @@ SCREENS.runs = {
       ? allRuns
       : allRuns.filter(r => (r.status === 'failed_permanent' ? 'failed' : r.status) === st.runsFilter);
 
+    const sel = bulkSet('runs');
+    const runIds = runs.map(r => r.id);
+    const allChecked = runIds.length > 0 && runIds.every(id => sel.has(id));
     const rows = runs.map(r => {
       const open = st.openRun === r.id;
       const warnCount = (r.contextWarnings || []).length;
       const main = `<tr class="row ${open ? 'open' : ''}" data-run="${esc(r.id)}" tabindex="0">
+        <td style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-row="runs" data-bulk-id="${esc(r.id)}" ${sel.has(r.id) ? 'checked' : ''}></td>
         <td><span class="badge ${STATUS_BADGE[r.status] || 'gray'}"><span class="d"></span>${esc(r.status)}</span></td>
         <td class="mono">${r.taskId ? esc(r.taskId) : '<span class="faint">—</span>'}</td>
         <td class="mono">${esc(r.model)}</td>
@@ -566,12 +591,15 @@ SCREENS.runs = {
       <div class="filter-tabs" style="margin-bottom:12px">${tabs}</div>
       <div class="card" style="overflow:hidden">
         <table class="tbl">
-          <thead><tr><th style="width:90px">${t('runs.col.status')}</th><th>${t('runs.col.taskid')}</th><th>${t('runs.col.model')}</th><th>${t('runs.col.tokens')}</th><th>${t('runs.col.cost')}</th><th style="width:80px">${t('runs.col.warn')}</th><th>${t('runs.col.date')}</th></tr></thead>
+          <thead><tr><th style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-all="runs" ${allChecked ? 'checked' : ''}></th><th style="width:90px">${t('runs.col.status')}</th><th>${t('runs.col.taskid')}</th><th>${t('runs.col.model')}</th><th>${t('runs.col.tokens')}</th><th>${t('runs.col.cost')}</th><th style="width:80px">${t('runs.col.warn')}</th><th>${t('runs.col.date')}</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div></div>`;
+      </div>
+      ${renderBulkBar('runs', t('bulk.resource.runs'))}
+      </div>`;
   },
   wire(root, st) {
+    wireBulkSelect(root, 'runs', '/api/runs/bulk-delete', () => App.fetchRuns(), t('bulk.resource.runs'));
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
     root.querySelector('[data-act="runs-analyze"]')?.addEventListener('click', async () => {
       st.runsAnalyzeStatus = 'loading';
@@ -615,7 +643,8 @@ SCREENS.runs = {
     // I.8 (Mes 18) — borrar un run viejo desde el detail expandido.
     root.querySelectorAll('[data-run-act="delete"]').forEach(btn => btn.addEventListener('click', async e => {
       e.stopPropagation();
-      if (!confirm(t('runs.delete.confirm'))) return;
+      const ok = await Modal.confirm(t('runs.delete.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
+      if (!ok) return;
       const id = btn.dataset.runId;
       btn.disabled = true;
       try {
@@ -791,7 +820,8 @@ SCREENS.graph = {
   wire(root, st) {
     root.querySelector('[data-act="graph-add-task"]')?.addEventListener('click', () => Modal.openTask());
     root.querySelector('[data-act="run-graph"]')?.addEventListener('click', async () => {
-      if (!confirm(t('graph.confirm'))) return;
+      const okGraph = await Modal.confirm(t('graph.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
+      if (!okGraph) return;
       const maxCostEl = document.getElementById('graph-max-cost');
       const maxMinutesEl = document.getElementById('graph-max-minutes');
       const body = {};
@@ -828,8 +858,12 @@ SCREENS.graph = {
           const deps = st.depends_on.length ? ` (deps: ${st.depends_on.join(', ')})` : '';
           return `${i + 1}. ${st.id}${deps}\n   ${st.description}\n   → ${out}`;
         }).join('\n\n');
-        const msg = `Plan de sub-tareas propuesto para "${taskId}" (${plan.subTasks.length} sub-tareas):\n\n${subTaskLines}\n\n¿Aprobar y ejecutar?`;
-        if (confirm(msg)) {
+        const okSplit = await Modal.confirm(
+          `¿Aprobar el plan de "${taskId}"?`,
+          `${plan.subTasks.length} sub-tareas:\n\n${subTaskLines}`,
+          'Aprobar y ejecutar',
+        );
+        if (okSplit) {
           const approveRes = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/approve-split`, { method: 'POST' });
           if (approveRes.ok) {
             showToast(`Split aprobado — ejecutando ${plan.subTasks.length} sub-tareas`);
@@ -1280,7 +1314,7 @@ SCREENS.settings = {
         btn.textContent = t('setup.copied');
         setTimeout(() => { btn.textContent = old; }, 1200);
       } catch {
-        alert(btn.dataset.copy || '');
+        Modal.showCopyText(t('setup.copyManually'), btn.dataset.copy || '');
       }
     }));
     root.querySelectorAll('[data-open-wizard]').forEach(btn => btn.addEventListener('click', () => Modal.openWizard()));
@@ -1326,7 +1360,8 @@ SCREENS.settings = {
     });
 
     root.querySelector('[data-act="system-reset"]')?.addEventListener('click', async () => {
-      if (!confirm(t('settings.reset.confirm'))) return;
+      const okReset = await Modal.confirm(t('settings.reset.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
+      if (!okReset) return;
       const btn = root.querySelector('[data-act="system-reset"]');
       btn.disabled = true;
       try {
@@ -1411,17 +1446,28 @@ SCREENS.specs = {
       ${actions}
     </div></td></tr>`;
   },
-  row(s, st) {
+  row(s, st, selectable) {
     const open = st.openSpec === s.id;
     const date = formatLocalDate(s.createdAt, { dateOnly: true });
+    // v0.12 Bloque A — el bulk-delete de specs solo borra ARCHIVADAS
+    // (deleteArchivedSpec nunca toca drafts/approved) — el checkbox solo se
+    // renderiza cuando `selectable` (tabla de archivadas), para no ofrecer
+    // una acción de borrado que en drafts/approved sería un no-op silencioso.
+    const checkboxCell = selectable
+      ? `<td style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-row="specs" data-bulk-id="${esc(s.id)}" ${bulkSet('specs').has(s.id) ? 'checked' : ''}></td>`
+      : '';
     const main = `<tr class="row ${open ? 'open' : ''}" data-spec="${esc(s.id)}" tabindex="0">
+      ${checkboxCell}
       <td class="mono" style="color:var(--text)">${esc(s.id)}</td>
       <td><span class="badge ${STATUS_BADGE[s.status] || 'gray'} square">${esc(s.status)}</span></td>
       <td>${this.lintBadge(s)}</td>
       <td>${s.hasCapabilities ? `<span class="cap-yes mono" style="font-size:12px">${ICON.check} ${t('specs.cap.yes')}</span>` : `<span class="cap-no mono" style="font-size:12px">— ${t('specs.cap.no')}</span>`}</td>
       <td class="mono faint" style="display:flex;align-items:center;justify-content:space-between;gap:10px">${date}</td>
     </tr>`;
-    return main + (open ? this.detail(s) : '');
+    const detail = open ? this.detail(s) : '';
+    // colspan del detail sigue en 5 salvo cuando hay checkbox — reusar el
+    // mismo <td colspan> de detail() ajustando solo si selectable agrega columna.
+    return main + (selectable ? detail.replace('colspan="5"', 'colspan="6"') : detail);
   },
   render(st) {
     // G1 — banner explicativo siempre visible
@@ -1453,19 +1499,28 @@ SCREENS.specs = {
     const active = specs.filter(s => s.status !== 'archived');
     const archived = specs.filter(s => s.status === 'archived');
 
-    const table = list => `<div class="card" style="overflow:hidden"><table class="tbl">
-        <thead><tr><th>${t('specs.col.id')}</th><th style="width:110px">${t('specs.col.status')}</th><th style="width:130px">Lint</th><th style="width:110px">${t('specs.col.caps')}</th><th style="width:140px">${t('specs.col.date')}</th></tr></thead>
-        <tbody>${list.map(s => this.row(s, st)).join('')}</tbody></table></div>`;
+    const table = (list, selectable) => {
+      const sel = bulkSet('specs');
+      const ids = list.map(s => s.id);
+      const allChecked = selectable && ids.length > 0 && ids.every(id => sel.has(id));
+      const checkboxHead = selectable
+        ? `<th style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-all="specs" ${allChecked ? 'checked' : ''}></th>`
+        : '';
+      return `<div class="card" style="overflow:hidden"><table class="tbl">
+        <thead><tr>${checkboxHead}<th>${t('specs.col.id')}</th><th style="width:110px">${t('specs.col.status')}</th><th style="width:130px">Lint</th><th style="width:110px">${t('specs.col.caps')}</th><th style="width:140px">${t('specs.col.date')}</th></tr></thead>
+        <tbody>${list.map(s => this.row(s, st, selectable)).join('')}</tbody></table></div>`;
+    };
 
     const archSection = archived.length ? `
       <div class="section-title collapsible ${st.archOpen ? '' : 'closed'}" data-arch>
         <span class="chev">${ICON.chev}</span><span>${t('specs.archived')}</span><span class="ct">${archived.length}</span>
       </div>
-      ${st.archOpen ? table(archived) : ''}` : '';
+      ${st.archOpen ? table(archived, true) : ''}` : '';
 
-    return `<div class="screen">${head}${whatIsSpec}${table(active)}${archSection}</div>`;
+    return `<div class="screen">${head}${whatIsSpec}${table(active, false)}${archSection}${renderBulkBar('specs', t('bulk.resource.specs'))}</div>`;
   },
   wire(root, st) {
+    wireBulkSelect(root, 'specs', '/api/specs/bulk-delete', () => App.fetchSpecs(), t('bulk.resource.specs'));
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
 
     // G2 — Nueva Spec button
@@ -1483,7 +1538,7 @@ SCREENS.specs = {
     root.querySelector('[data-arch]')?.addEventListener('click', () => { st.archOpen = !st.archOpen; App.rerender(); });
 
     root.querySelectorAll('[data-spec-act]').forEach(btn => {
-      btn.addEventListener('click', e => {
+      btn.addEventListener('click', async e => {
         e.stopPropagation();
         const act = btn.dataset.specAct;
         const id = btn.dataset.specId;
@@ -1503,7 +1558,8 @@ SCREENS.specs = {
             .then(r => r.json())
             .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.archived', id)); } else showToast(d.error || t('specs.toast.archiveErr'), 'error'); });
         } else if (act === 'delete') {
-          if (!confirm(t('specs.delete.confirm'))) return;
+          const ok = await Modal.confirm(t('specs.delete.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
+          if (!ok) return;
           fetch(`/api/specs/${encodeURIComponent(id)}`, { method: 'DELETE' })
             .then(r => r.json())
             .then(d => { if (d.ok) { st.openSpec = null; App.fetchAll(); showToast(t('specs.toast.deleted', id)); } else showToast(d.error || t('specs.toast.deleteErr'), 'error'); });

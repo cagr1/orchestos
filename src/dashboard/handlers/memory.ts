@@ -64,4 +64,15 @@ function handleApiMemoryDelete(url: URL): Response {
   return jsonResponse(result, ok ? 200 : 404)
 }
 
-export { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete }
+// v0.12 Bloque A — borrado en lote, reusa deleteMemoryEntry() por id.
+async function handleApiMemoryBulkDelete(req: Request): Promise<Response> {
+  let body: { ids?: unknown }
+  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
+  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  const ids = body.ids.filter((id): id is string => typeof id === 'string')
+  let deleted = 0
+  for (const id of ids) if (deleteMemoryEntry(id)) deleted++
+  return jsonResponse({ ok: true, deleted })
+}
+
+export { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete, handleApiMemoryBulkDelete }

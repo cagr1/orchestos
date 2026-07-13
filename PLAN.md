@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-19-cerrado-funcional--mes-20-abierto
+status: mes-20-en-cierre--v0.12-abierto-estabilizacion
 ---
 
 # OrchestOS — Plan activo
@@ -20,6 +20,103 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 **Regla de documentación obligatoria (2026-07-02):** todo hallazgo — bug real, deuda técnica, feature huérfana, contradicción entre `tasks.yaml`/DONE.md y el código real — se convierte en un ítem de este archivo (o de IDEAS.md si es backlog no inmediato) ANTES de tocar código. Si no está escrito acá, no se corrige. Motivo: una auditoría completa (2026-07-02) encontró deuda documentada en prosa dentro de DONE.md ("anotado como deuda conocida") que nunca se tradujo a un ítem accionable y por eso nadie la persiguió durante 3 meses (ver Bloque F0).
 
 **Regla de flujo IDEAS→PLAN→DONE (decisión Carlos, 2026-07-02):** cuando una idea pasa de IDEAS.md a PLAN.md (se convierte en el eje o en un bloque de un Mes), **se ELIMINA de IDEAS.md en el mismo commit** — no queda duplicada en ambos. La evidencia de que se realizó vive siempre en DONE.md (documentación extensa al cierre del Mes). IDEAS.md es solo backlog vivo: lo que está ahí es porque NADIE lo está haciendo todavía.
+
+---
+
+## v0.12 (MES 21) — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
+
+**Eje decidido por Carlos (2026-07-13).** Con el motor probado end-to-end (Mes 20/C.1 entregó y
+verificó un producto real en navegador), el norte cambia de "¿puede el motor?" a **"¿se siente
+terminado y confiable?"**. Regla dura del milestone: **cero features nuevas en el motor** (MCP,
+multi-proveedor, terminal, directorio configurable, auto-split recursivo — TODO diferido a v0.13+).
+v0.12 solo pule lo que ya existe: higiene de datos, la superficie de revisión que falta (diff),
+los papercuts visibles del chat, y la paridad real CLI↔dashboard. El estándar visual del dashboard
+(patrón Hermes/Claude Desktop/Codex) se aborda **después de que Carlos termine las capturas** — es
+la semilla de v0.13, no entra acá.
+
+**Regla de decisión de modelo (innegociable, [[feedback-modelo-decision-final-carlos]]):** ninguna
+tarea delegada de este milestone define su propio modelo; lo fija Carlos o `orchestos.config.yaml`.
+
+### Bloque A — Higiene de tablas: borrado masivo en TODA tabla (🧠 diseño primero)
+Origen: Carlos (2026-07-13) — "corrí varias tareas, necesito un botón para limpiar, o una por una
+tipo select, o todas de una vez, en tasks/runs/etc. Ir una por una no es bueno para nadie."
+Verificado: los 7 DELETE del dashboard (`runs`/`tasks`/`instincts`/`skills`/`specs`/`memory`) son
+todos de **un solo id** — no hay bulk. Absorbe IDEA #18 (el borrar-tarea de hoy usa `confirm()`
+nativo, `app.js:419`, que este bloque reemplaza por modal propio).
+- [x] A.0 🔍 **Diagnóstico previo del "no se reflejó en memoria". ✅ 2026-07-13** Confirmado con
+  datos reales (`sqlite3 ~/.orchestos/db.sqlite`): `memory_entries` tiene **0 filas en total**, no
+  solo hoy — descarta la fuga de fixtures. Causa (a) confirmada: las corridas del día (7 chat done,
+  1 implement done, 4 plan failed) están correctamente en `runs`; `memory_entries` solo se llena vía
+  `commitTopicKey`/`--expand` (IDEA #29), que casi nunca se dispara. No hay bug — es expectativa.
+  De paso, confirmado que no existe tabla `tasks` en SQLite — `tasks.yaml` es la única fuente real.
+- [x] A.1 🧠 Diseño. ✅ 2026-07-13 Componente reusable en `app.js`: `state.bulkSelected` (un `Set`
+  por screen), `wireBulkSelect()` (deriva los ids visibles del DOM ya renderizado — así
+  "seleccionar todo" siempre respeta el filtro/tab activo sin duplicar lógica de filtrado en cada
+  pantalla), `renderBulkBar()` y `Modal.confirm()` (modal de confirmación genérico vía Promesa,
+  reemplaza los `confirm()` nativos). Endpoint: `POST /api/<recurso>/bulk-delete` con
+  `{ ids: string[] }` — elegido sobre `DELETE` porque body en DELETE es atípico y menos soportado.
+- [x] A.2 ⚡ Backend. ✅ 2026-07-13 5 endpoints (`runs`/`tasks`/`instincts`/`memory`/`specs`), cada
+  uno reusa la función de delete individual ya existente en un loop (sin motor nuevo); `tasks`
+  filtra+guarda `tasks.yaml` una sola vez (no N reescrituras). `specs` solo borra ARCHIVADAS —
+  mismo alcance que el delete individual. Hallazgo real en el camino: el regex genérico
+  `POST /^\/api\/specs\/[^/]+$/` (create) atrapaba `/api/specs/bulk-delete` — reordenado antes de
+  esa ruta. `tsc --noEmit` limpio, 660 tests · 0 fail.
+- [x] A.3 ⚡ Frontend. ✅ 2026-07-13 Checkbox por fila + "seleccionar todo" + barra flotante en las
+  5 tablas (Tasks, Runs, Instincts — 2 secciones con su propio "todo" acotado a esa tabla —, Memory
+  — cards, no tabla —, Specs — checkbox solo en archivadas, ya que ahí es donde el bulk-delete
+  realmente actúa). De paso, cerrado IDEA #18 completo: los **9** `confirm()`/`alert()` nativos que
+  quedaban en `public/` (más de los 6 documentados originalmente) reemplazados por `Modal.confirm()`
+  o `Modal.showCopyText()` — cero diálogos nativos en el dashboard, verificado por grep.
+  **Follow-up no implementado (idea de #18 preservada)**: un check determinista (grep en CI o
+  pre-commit) que bloquee la reintroducción de `confirm()`/`alert()`/`prompt()` nativos en
+  `public/` — anotado, no bloquea el cierre de A.3.
+- [x] A.4 🔍 Verificado en vivo contra el dashboard real. ✅ 2026-07-13 (puerto 4299, servidor
+  bajado al terminar): borrado real de una tarea (`crypto-dashboard-3d-premium`, la que había
+  quedado `failed` de un intento anterior) — confirmado con `grep` que desapareció de `tasks.yaml`
+  en disco, no solo del estado en memoria del dashboard. En Runs: selección individual (2/27),
+  "Clear selection", y "seleccionar todo" (27/27) — los tres caminos funcionan. Checkbox no dispara
+  el toggle de la fila (stopPropagation confirmado visualmente).
+
+### Bloque B — El Chat renderiza Markdown (graduado de IDEAS #38)
+Graduado de IDEAS.md #38 (eliminado de allá, regla IDEAS→PLAN→DONE). Verificado: `screens-core.js`
+hace `esc(m.content).replace(/\n/g,'<br>')` — cero parseo Markdown, cero librería en el proyecto.
+- [ ] B.1 🧠 Parser Markdown ligero (candidato `marked`, MIT) renderizando `m.content` a HTML,
+  sanitizado con la misma disciplina de "dato externo, nunca confiable" que el wrapper de
+  `fetch_url`/OCR — el contenido del LLM no es 100% confiable.
+- [ ] B.2 ⚡ Highlight de `task_id` y nombre de modelo dentro de la respuesta como chip/badge
+  (contra `state.tasks` y el catálogo) — lógica nueva, no solo estilo. Puede diferirse si B.1
+  ya cubre el 90% del dolor visible.
+
+### Bloque C — Visor de diff por run: la superficie de revisión que falta (🧠 diseño primero)
+Origen: Carlos (2026-07-13) — "el diff nos sirve de algo?". Sí: OrchestOS ya calcula el diff del
+worktree (`external.ts`, `git status --porcelain` → `FileChange[]`) pero es plomería interna, el
+humano nunca lo ve. Es la pieza de confianza (revisar/aprobar el cambio) que tienen Claude
+Desktop/Cursor/Orca y OrchestOS no.
+- [ ] C.1 🧠 Diseño (`docs/diff-review-design.md`): **read-only primero** — mostrar el diff de un
+  run (qué archivos, qué cambió) en el detalle del run, reusando el `FileChange[]` que el motor ya
+  produce. Decidir: ¿solo los 3 engines o también single-shot/agentic (que hoy bufferean en
+  memoria)? ¿diff contra qué base? Sin aprobar/rechazar todavía — solo *ver* (aprobar es superficie
+  nueva de acción, se evalúa después con la misma disciplina "leer vs actuar" del Mes 13).
+- [ ] C.2 ⚡ Implementación del visor en el detalle del run + endpoint que sirve el diff.
+- [ ] C.3 🔍 Verificar contra un run real (reusar `crypto-page-v1`/C.1 del Mes 20).
+
+### Bloque D — Paridad CLI↔dashboard REAL: auditar, no asumir (🧠)
+Origen: presentimiento de Carlos de que "el CLI no está del todo conectado". Verificado parcial: a
+nivel de pantalla la paridad está casi completa; el gap real es la capa de **bootstrap de proyecto**
+(`constitution`, `detect`, `summary`, `index`, `context compress`) que quedó CLI-only. La paridad
+de Mes 18/Bloque E cerró 9 gaps del *chat*, no ésta.
+- [ ] D.1 🧠 Auditoría real: mapear cada comando top-level del CLI (`src/cli.ts`) contra su
+  pantalla/endpoint del dashboard, y listar los gaps concretos como sub-ítems accionables (regla
+  de documentación obligatoria: cada gap es un ítem antes de tocar código). No asumir cuáles faltan
+  — leerlos.
+- [ ] D.2 ⚡ Cerrar los gaps que la auditoría marque como "necesarios para el no-dev" (superficie
+  mínima, regla [[feedback-dashboard-no-solo-cli]]); los CLI-only que solo sirven a un dev quedan
+  documentados como intencionales, no como deuda.
+
+### Cierre del milestone
+- [ ] E.1 🧠 Cierre formal v0.12 (4 acciones obligatorias — [[feedback-orden-desarrollo]]):
+  IDEAS→DONE, tabla de estado, PLAN.md limpio, pre-flight del siguiente. Etiquetar `v0.12` (hoy no
+  hay versión en `package.json` — este es el primer tag formal).
 
 ---
 
@@ -95,6 +192,12 @@ de probar con más lenguajes/stacks (palabras de Carlos).
   [[project-state]] para recrearla. **Nota de contexto**: un proyecto ANTERIOR (previo a
   OrchestOS) ya lograba entregar una página HTML+JS+CSS completa — C.1 es el piso que ese
   proyecto anterior ya alcanzaba; C.2 es el techo que todavía no se ha probado.
+  **PAUSADO (2026-07-13):** 2 intentos fallidos por configuración de modelo
+  ([[feedback-modelo-decision-final-carlos]]) — sin dato real todavía. Reintentar C.2 queda
+  **gated en dos cosas**: (1) decisión explícita de modelo de Carlos para la corrida, y (2) el
+  presupuesto de outputs de tools del executor agéntico (IDEAS #32) — el modo de fallo concreto
+  que corta la generación multi-archivo a mitad. No reabrir C.2 antes de #32 y sin el modelo
+  decidido. v0.12 se prioriza por delante de C.2.
 
 ### Cierre del mes
 - [ ] H.1 🧠 Cierre formal (4 acciones obligatorias — [[feedback-orden-desarrollo]]) + cerrar también el H.1 pendiente del Mes 19 (OCR, A+B+C hechos) en la misma pasada.

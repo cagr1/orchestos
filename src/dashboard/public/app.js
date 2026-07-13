@@ -45,6 +45,12 @@ const state = {
   runsFilter: 'all',
   naturalDraft: null,
 
+  // v0.12 Bloque A — selección múltiple por tabla, una entrada por screen que
+  // ya tiene borrado individual (runs/tasks/instincts/memory/specs). Un Set
+  // vive en memoria del navegador, no persiste entre reloads (mismo criterio
+  // que taskFilter/runsFilter — estado de UI transitorio, no dato real).
+  bulkSelected: { tasks: new Set(), runs: new Set(), instincts: new Set(), memory: new Set(), specs: new Set() },
+
   projectTab: 'constitution',
   constitutionContent: null,
   contextContent: null,
@@ -458,7 +464,8 @@ const SidePanel = {
       </div>`;
     this.el.querySelector('.sp-close').addEventListener('click', () => this.close());
     this.el.querySelector('.sp-delete').addEventListener('click', async () => {
-      if (!confirm(`Delete task "${t.id}"? This cannot be undone.`)) return;
+      const ok = await Modal.confirm(`Delete task "${t.id}"?`, t('bulk.confirm.body'), t('btn.confirm'));
+      if (!ok) return;
       try {
         const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}`, { method: 'DELETE' });
         if (res.ok) { this.close(); await App.fetchTasks(); App.rerender(); }
@@ -513,6 +520,44 @@ const Modal = {
     this.el.className = 'modal-scrim';
     document.body.appendChild(this.el);
     this.el.addEventListener('click', e => { if (e.target === this.el) this.close(); });
+  },
+
+  // v0.12 Bloque A (ex-IDEAS #18) — modal de confirmación genérico, reemplaza
+  // los confirm()/prompt() nativos del navegador (regla: nunca alert/confirm
+  // nativo en public/). Promesa que resuelve true/false — el llamador espera
+  // el resultado antes de proceder, mismo contrato que confirm() nativo pero
+  // sin bloquear el hilo ni verse como un diálogo del OS.
+  confirm(title, body, confirmLabel) {
+    return new Promise(resolve => {
+      this.el.innerHTML = `<div class="modal" style="max-width:480px">
+        <div class="m-head"><h3>${esc(title)}</h3><button class="btn ghost sm" data-x>${ICON.x}</button></div>
+        <div class="m-body"><p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.5;white-space:pre-wrap;max-height:50vh;overflow-y:auto">${esc(body)}</p></div>
+        <div class="m-foot"><button class="btn" data-cancel>${t('btn.cancel')}</button>
+          <button class="btn danger" data-confirm>${esc(confirmLabel ?? t('btn.confirm'))}</button></div>
+      </div>`;
+      const settle = val => { this.close(); resolve(val); };
+      this.el.querySelectorAll('[data-x],[data-cancel]').forEach(b => b.addEventListener('click', () => settle(false)));
+      this.el.querySelector('[data-confirm]').addEventListener('click', () => settle(true));
+      requestAnimationFrame(() => this.el.classList.add('show'));
+    });
+  },
+
+  // v0.12 Bloque A — reemplaza el alert(text) usado como fallback cuando
+  // navigator.clipboard.writeText() falla (permiso denegado/no soportado):
+  // en vez de un diálogo nativo, un textarea de solo lectura ya seleccionado
+  // para que el usuario copie a mano con Ctrl/Cmd+C.
+  showCopyText(title, text) {
+    this.el.innerHTML = `<div class="modal" style="max-width:480px">
+      <div class="m-head"><h3>${esc(title)}</h3><button class="btn ghost sm" data-x>${ICON.x}</button></div>
+      <div class="m-body"><textarea readonly style="width:100%;min-height:80px;font-family:var(--mono);font-size:12.5px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;color:var(--text)">${esc(text)}</textarea></div>
+      <div class="m-foot"><button class="btn primary" data-x>${t('btn.confirm')}</button></div>
+    </div>`;
+    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    requestAnimationFrame(() => {
+      this.el.classList.add('show');
+      const ta = this.el.querySelector('textarea');
+      ta?.focus(); ta?.select();
+    });
   },
   openInstinct() {
     this.el.innerHTML = `<div class="modal">
@@ -1415,6 +1460,101 @@ const Modal = {
     requestAnimationFrame(() => { this.el.classList.add('show'); input.focus(); });
   },
 };
+
+/* ============================================================
+   v0.12 Bloque A — selección múltiple + borrado en lote (reusable)
+   Una sola implementación para runs/tasks/instincts/memory/specs — el
+   endpoint bulk-delete difiere por recurso, la UI (checkboxes + barra
+   flotante + modal de confirmación) es idéntica en las 5 pantallas.
+   ============================================================ */
+
+function bulkSet(screen) { return state.bulkSelected[screen]; }
+
+function bulkToggle(screen, id) {
+  const s = bulkSet(screen);
+  s.has(id) ? s.delete(id) : s.add(id);
+  App.rerender();
+}
+
+function bulkToggleAll(screen, ids) {
+  const s = bulkSet(screen);
+  const allSelected = ids.length > 0 && ids.every(id => s.has(id));
+  if (allSelected) ids.forEach(id => s.delete(id));
+  else ids.forEach(id => s.add(id));
+  App.rerender();
+}
+
+function bulkClear(screen) {
+  bulkSet(screen).clear();
+  App.rerender();
+}
+
+/** Barra flotante — solo se renderiza si hay selección activa en ese screen. */
+function renderBulkBar(screen, resourceLabel) {
+  const n = bulkSet(screen).size;
+  if (n === 0) return '';
+  return `<div class="bulk-bar" data-bulk-screen="${screen}">
+    <span class="bulk-count">${t('bulk.selected', n)}</span>
+    <span class="bulk-spacer"></span>
+    <button class="btn ghost sm" data-bulk-clear="${screen}">${t('bulk.clear')}</button>
+    <button class="btn danger sm" data-bulk-delete="${screen}">${ICON.trash || ''} ${t('bulk.delete', resourceLabel)}</button>
+  </div>`;
+}
+
+/**
+ * Wiring compartido de checkboxes + barra para una tabla ya renderizada.
+ * `root` = contenedor del screen, `screen` = key en state.bulkSelected,
+ * `endpoint` = URL del bulk-delete, `refetch` = función async que recarga
+ * los datos de ese recurso, `resourceLabel` = plural para el copy de
+ * confirmación (ej. "tasks"). Los ids se leen del DOM ya renderizado (no se
+ * piden como parámetro) — así "seleccionar todo" siempre respeta el filtro/
+ * tab activo del screen sin que cada pantalla tenga que duplicar su propia
+ * lógica de filtrado acá.
+ */
+function wireBulkSelect(root, screen, endpoint, refetch, resourceLabel) {
+  const visibleIds = () => [...root.querySelectorAll(`[data-bulk-row="${screen}"]`)].map(cb => cb.dataset.bulkId);
+  root.querySelectorAll(`[data-bulk-row="${screen}"]`).forEach(cb => {
+    cb.addEventListener('click', e => e.stopPropagation());
+    cb.addEventListener('change', e => {
+      e.stopPropagation();
+      bulkToggle(screen, cb.dataset.bulkId);
+    });
+  });
+  root.querySelector(`[data-bulk-all="${screen}"]`)?.addEventListener('click', e => e.stopPropagation());
+  root.querySelector(`[data-bulk-all="${screen}"]`)?.addEventListener('change', e => {
+    e.stopPropagation();
+    bulkToggleAll(screen, visibleIds());
+  });
+  root.querySelector(`[data-bulk-clear="${screen}"]`)?.addEventListener('click', () => bulkClear(screen));
+  root.querySelector(`[data-bulk-delete="${screen}"]`)?.addEventListener('click', async () => {
+    const selected = [...bulkSet(screen)];
+    if (selected.length === 0) return;
+    const ok = await Modal.confirm(
+      t('bulk.confirm.title', selected.length, resourceLabel),
+      t('bulk.confirm.body'),
+      t('bulk.confirm.btn', selected.length, resourceLabel),
+    );
+    if (!ok) return;
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selected }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast(t('bulk.done', data.deleted ?? selected.length));
+        bulkClear(screen);
+        await refetch();
+        App.rerender();
+      } else {
+        showToast(data.error || t('bulk.err'), 'error');
+      }
+    } catch {
+      showToast(t('bulk.err'), 'error');
+    }
+  });
+}
 
 /* ============================================================
    Shared model selector helpers (chat + tasks)

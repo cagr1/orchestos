@@ -128,7 +128,25 @@ const I18N = {
     /* ── Common ──────────────────────────────── */
     'btn.refresh':   'Refresh',
     'btn.cancel':    'Cancel',
+    'btn.confirm':   'Confirm',
     'btn.advanced':  'Advanced',
+
+    /* ── Bulk-select (v0.12 Bloque A) ──────────── */
+    'bulk.selected':      '{0} selected',
+    'bulk.selectAll':     'Select all',
+    'bulk.clear':         'Clear selection',
+    'bulk.delete':        'Delete {0}',
+    'bulk.confirm.title': 'Delete {0} {1}?',
+    'bulk.confirm.body':  'This cannot be undone.',
+    'bulk.confirm.btn':   'Delete {0} {1}',
+    'bulk.done':          '{0} deleted',
+    'bulk.err':           'Delete failed.',
+    'bulk.resource.tasks':     'tasks',
+    'bulk.resource.runs':      'runs',
+    'bulk.resource.instincts': 'instincts',
+    'bulk.resource.memory':    'memory entries',
+    'bulk.resource.specs':     'specs',
+
     'nav.mode.enable':  'Advanced mode',
     'nav.mode.disable': 'Exit advanced mode',
     'nav.sidebar.expand':   'Expand sidebar',
@@ -572,6 +590,7 @@ const I18N = {
     'setup.summary.blocked': 'Action needed',
     'setup.copy':        'Copy command',
     'setup.copied':      'Copied',
+    'setup.copyManually': 'Copy manually',
     'setup.btn.configure': 'Configure now',
     'settings.btn.change.key': 'Change key',
 
@@ -748,7 +767,25 @@ const I18N = {
     /* ── Common ──────────────────────────────── */
     'btn.refresh':   'Actualizar',
     'btn.cancel':    'Cancelar',
+    'btn.confirm':   'Confirmar',
     'btn.advanced':  'Avanzado',
+
+    /* ── Selección múltiple (v0.12 Bloque A) ────── */
+    'bulk.selected':      '{0} seleccionados',
+    'bulk.selectAll':     'Seleccionar todo',
+    'bulk.clear':         'Quitar selección',
+    'bulk.delete':        'Borrar {0}',
+    'bulk.confirm.title': '¿Borrar {0} {1}?',
+    'bulk.confirm.body':  'No se puede deshacer.',
+    'bulk.confirm.btn':   'Borrar {0} {1}',
+    'bulk.done':          '{0} borrados',
+    'bulk.err':           'Falló el borrado.',
+    'bulk.resource.tasks':     'tareas',
+    'bulk.resource.runs':      'runs',
+    'bulk.resource.instincts': 'instincts',
+    'bulk.resource.memory':    'entradas de memoria',
+    'bulk.resource.specs':     'specs',
+
     'nav.mode.enable':  'Modo avanzado',
     'nav.mode.disable': 'Salir del modo avanzado',
     'nav.sidebar.expand':   'Expandir barra lateral',
@@ -1190,6 +1227,7 @@ const I18N = {
     'setup.summary.blocked': 'Accion requerida',
     'setup.copy':        'Copiar comando',
     'setup.copied':      'Copiado',
+    'setup.copyManually': 'Copiar manualmente',
     'setup.btn.configure': 'Configurar ahora',
     'settings.btn.change.key': 'Cambiar clave',
 

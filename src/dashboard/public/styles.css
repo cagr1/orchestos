@@ -627,6 +627,18 @@ select.bare {
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast-error { border-color: var(--error); color: var(--error); }
 
+/* ── Bulk-select bar (v0.12 Bloque A) ─────────────── */
+.bulk-bar {
+  position: sticky; bottom: 0; z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 14px; margin-top: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+.bulk-count { font-size: 13px; font-weight: 600; color: var(--text); }
+.bulk-spacer { flex: 1; }
+.bulk-checkbox { cursor: pointer; width: 15px; height: 15px; accent-color: var(--accent); }
+
 /* ── Mobile (Impeccable audit G.1, P1) ────────────────
    min-width:0 en .header/.main (arriba) ya resuelve el overflow real —
    esto además retira elementos secundarios del header para que lo que

@@ -1,9 +1,9 @@
 import { serveStatic, errorResponse, isSameOrigin } from './http.ts'
-import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete } from './handlers/memory.ts'
-import { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete } from './handlers/runs.ts'
-import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete } from './handlers/instincts.ts'
-import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete } from './handlers/specs.ts'
-import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit } from './handlers/tasks.ts'
+import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete, handleApiMemoryBulkDelete } from './handlers/memory.ts'
+import { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete, handleApiRunsBulkDelete } from './handlers/runs.ts'
+import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete, handleApiInstinctsBulkDelete } from './handlers/instincts.ts'
+import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete } from './handlers/specs.ts'
+import { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit } from './handlers/tasks.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiNatural } from './handlers/project.ts'
 import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
@@ -31,6 +31,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
     return handleApiRunsDelete(url)
   }
+  if (method === 'POST' && url.pathname === '/api/runs/bulk-delete') {
+    return handleApiRunsBulkDelete(req)
+  }
   if (method === 'GET' && url.pathname === '/api/tasks') {
     return handleApiTasks()
   }
@@ -42,6 +45,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
     return handleApiTasksDelete(url)
+  }
+  if (method === 'POST' && url.pathname === '/api/tasks/bulk-delete') {
+    return handleApiTasksBulkDelete(req)
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/diagnose$/)) {
     return handleApiTasksDiagnose(url)
@@ -75,6 +81,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/instincts\/[^/]+$/)) {
     return handleApiInstinctsDelete(url)
+  }
+  if (method === 'POST' && url.pathname === '/api/instincts/bulk-delete') {
+    return handleApiInstinctsBulkDelete(req)
   }
   if (method === 'POST' && url.pathname === '/api/instincts/propose') {
     return handleApiInstinctsPropose(req)
@@ -165,6 +174,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'POST' && url.pathname === '/api/specs/draft') {
     return handleApiSpecsDraft(req)
   }
+  // v0.12 Bloque A — DEBE ir antes del /^\/api\/specs\/[^/]+$/ genérico de abajo
+  // (handleApiSpecsCreate): sin id con slash, ese regex también matchea
+  // "/api/specs/bulk-delete" y se comería esta ruta.
+  if (method === 'POST' && url.pathname === '/api/specs/bulk-delete') {
+    return handleApiSpecsBulkDelete(req)
+  }
   if (method === 'POST' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
     return handleApiSpecsCreate(req)
   }
@@ -191,6 +206,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/memory\/[^/]+$/)) {
     return handleApiMemoryDelete(url)
+  }
+  if (method === 'POST' && url.pathname === '/api/memory/bulk-delete') {
+    return handleApiMemoryBulkDelete(req)
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
     return await handleApiSettingsGet()

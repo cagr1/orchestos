@@ -101,4 +101,17 @@ function handleApiRunsDelete(url: URL): Response {
   return jsonResponse(result, ok ? 200 : 404)
 }
 
-export { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete }
+// v0.12 Bloque A — borrado en lote, reusa deleteRun() por id (mismo camino
+// que el delete individual, sin motor nuevo). `deleted` cuenta solo los ids
+// que existían de verdad — un id ya borrado no cuenta como fallo.
+async function handleApiRunsBulkDelete(req: Request): Promise<Response> {
+  let body: { ids?: unknown }
+  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
+  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  const ids = body.ids.filter((id): id is string => typeof id === 'string')
+  let deleted = 0
+  for (const id of ids) if (deleteRun(id)) deleted++
+  return jsonResponse({ ok: true, deleted })
+}
+
+export { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete, handleApiRunsBulkDelete }

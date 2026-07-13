@@ -95,4 +95,15 @@ function handleApiInstinctsDelete(url: URL): Response {
   return jsonResponse(result, ok ? 200 : 404)
 }
 
-export { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete }
+// v0.12 Bloque A — borrado en lote, reusa deleteInstinct() por id.
+async function handleApiInstinctsBulkDelete(req: Request): Promise<Response> {
+  let body: { ids?: unknown }
+  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
+  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  const ids = body.ids.filter((id): id is string => typeof id === 'string')
+  let deleted = 0
+  for (const id of ids) if (deleteInstinct(id)) deleted++
+  return jsonResponse({ ok: true, deleted })
+}
+
+export { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete, handleApiInstinctsBulkDelete }
