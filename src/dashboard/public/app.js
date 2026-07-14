@@ -82,9 +82,12 @@ const state = {
   // B.3 (Mes 21) — mismo bug y mismo fix que composeDraft: el poll de 30s
   // reconstruía #chat-input vacío en medio de tipear, Send quedaba como no-op.
   chatDraft: '',
-  chatModelComboOpen: false, // FRONT.6 — combobox de modelo del chat (trigger + panel de búsqueda)
+  // 2026-07-13 (corrección de Carlos) — pill único modelo+esfuerzo del composer:
+  // null | 'root' | 'model' | 'effort'. Reemplaza al viejo chatModelComboOpen
+  // (combobox de modelo separado del <select> de esfuerzo).
+  chatFxView: null,
   chatAttachMenuOpen: false, // FRONT.9 — menú de tipo de adjunto (Imagen/Documento/URL)
-  // 2026-07-08 — mismo patrón que chatModelComboOpen pero genérico para todos
+  // 2026-07-08 — mismo patrón (antes chatModelComboOpen) pero genérico para todos
   // los demás selectores de modelo (draft composer, diagnose, roles de
   // Settings→Model routing, modal de crear tarea). Antes cada uno era un
   // <select> nativo con cientos de <option> sin filtro — Carlos lo reportó
@@ -1821,31 +1824,75 @@ function buildComboOptions(locals, cloudModels, val, query) {
   return html;
 }
 
-/* FRONT.6 — chat model combobox: a single-height trigger (label + chevron) that
-   opens a search-inside dropdown panel, replacing the old two-row layout
-   (search input above a native <select> + a manual refresh button beside it).
-   Refresh is now silent/automatic: loadOrModels() is already TTL-gated
-   internally, so the caller just calls it on open without a visible button. */
-function buildModelCombo(currentVal, models, localModels, open) {
-  const val = currentVal || 'deepseek/deepseek-v4-flash';
-  const locals = Array.isArray(localModels) && localModels.length > 0 ? localModels : [];
-  const isLoading = Array.isArray(models) && models.length === 0;
-  const cloudSource = models === null ? KNOWN_MODELS.map(m => ({ ...m })) : (Array.isArray(models) ? models : []);
-  const allCloud = (models === null || cloudSource.some(m => m.id === val))
+/* 2026-07-13 (corrección de Carlos) — pill único modelo+esfuerzo en el
+   composer del chat (antes: combobox de modelo + <select> de esfuerzo, dos
+   controles separados arriba de la pantalla). Un solo trigger ("DeepSeek V4
+   · Medium ⌄") abre un menú de 2 niveles:
+   - root: filas "Model >" / "Effort >" / "Reset to default"
+   - model: reusa buildComboOptions() (mismo buscador que ya existía, la
+     regla de [[reference-model-combo-pattern]] sigue intacta — nunca un
+     <select> nativo con la lista completa sin buscador)
+   - effort: 3 opciones con checkmark en la seleccionada (estilo del menú de
+     Claude Code/Codex que trajo Carlos como referencia)
+   `st.chatFxView` (null|'root'|'model'|'effort') controla cuál se muestra. */
+function shortModelLabel(val, cloudPool) {
+  const full = modelLabelFor(val, cloudPool);
+  // OpenRouter nombra los modelos "Vendor: Model Name" — el prefijo del vendor
+  // es redundante en el pill compacto del composer (ya se sabe por el ícono/
+  // contexto), y sin recortarlo "DeepSeek: DeepSeek V4 Flash" se comía casi
+  // todo el ancho disponible antes de llegar al esfuerzo.
+  const withoutVendor = full.includes(': ') ? full.slice(full.indexOf(': ') + 2) : full;
+  return withoutVendor.length > 18 ? withoutVendor.slice(0, 16) + '…' : withoutVendor;
+}
+
+function buildChatModelFx(st) {
+  const val = st.chatModel || 'deepseek/deepseek-v4-flash';
+  const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
+  const isLoading = Array.isArray(st.orModels) && st.orModels.length === 0;
+  const cloudSource = st.orModels === null ? KNOWN_MODELS.map(m => ({ ...m })) : (Array.isArray(st.orModels) ? st.orModels : []);
+  const allCloud = (st.orModels === null || cloudSource.some(m => m.id === val))
     ? cloudSource
     : [{ id: val, name: val, priceIn: 0 }, ...cloudSource];
-  const label = isLoading ? t('common.loading') : modelLabelFor(val, allCloud);
-  const isOpen = !!open && !isLoading;
-  const panel = isOpen
-    ? `<div class="model-combo-panel" data-combo-panel>
-        <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
-        <div class="model-combo-list" data-combo-list>${buildComboOptions(locals, allCloud, val, '')}</div>
-      </div>`
-    : '';
-  return `<div class="model-combo${isOpen ? ' open' : ''}" data-model-combo>
-    <button type="button" class="model-combo-trigger" data-combo-trigger ${isLoading ? 'disabled' : ''}>
-      <span class="model-combo-label">${esc(label)}</span>
-      ${ICON.chev}
+  const modelLabel = isLoading ? t('common.loading') : shortModelLabel(val, allCloud);
+  const effortAvailable = modelSupportsReasoning(val, st.orModels);
+  const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null;
+  const triggerLabel = effortLabel ? `${modelLabel} · ${effortLabel}` : modelLabel;
+
+  const view = st.chatFxView; // null | 'root' | 'model' | 'effort'
+  let panel = '';
+  if (view === 'root') {
+    panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
+      <button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
+        <span class="k">${t('chat.modelfx.model')}</span>
+        <span class="v">${esc(modelLabel)}</span>${ICON.chevR}
+      </button>
+      ${effortAvailable ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="effort">
+        <span class="k">${t('chat.effort.label')}</span>
+        <span class="v">${esc(effortLabel)}</span>${ICON.chevR}
+      </button>` : ''}
+      <div class="chat-modelfx-sep"></div>
+      <button type="button" class="chat-modelfx-item chat-modelfx-reset" data-modelfx-reset>
+        ${ICON.refresh}<span>${t('chat.modelfx.reset')}</span>
+      </button>
+    </div>`;
+  } else if (view === 'model') {
+    panel = `<div class="chat-modelfx-panel chat-modelfx-panel-wide" data-modelfx-panel>
+      <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
+      <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
+      <div class="model-combo-list" data-combo-list>${buildComboOptions(locals, allCloud, val, '')}</div>
+    </div>`;
+  } else if (view === 'effort') {
+    panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
+      <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
+      ${['low', 'medium', 'high'].map(v => `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${st.chatEffort === v ? ' active' : ''}" data-modelfx-effort="${v}">
+        <span>${t('chat.effort.' + v)}</span>${st.chatEffort === v ? ICON.check : ''}
+      </button>`).join('')}
+    </div>`;
+  }
+
+  return `<div class="chat-modelfx${view ? ' open' : ''}" data-modelfx>
+    <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger ${isLoading ? 'disabled' : ''}>
+      <span class="chat-modelfx-label">${esc(triggerLabel)}</span>${ICON.chev}
     </button>
     ${panel}
   </div>`;
@@ -1929,30 +1976,24 @@ function buildNav() {
     <span class="nav-label">${t(tipKey)}</span>
   </div>`;
 
-  // 2026-07-13 (corrección de Carlos) — brand + panel-left + search viven
-  // DENTRO del sidebar (antes vivían en el header). Al colapsar, solo queda
-  // el logo (mismo patrón que .nav-label: .brand-text se oculta por CSS).
-  const brand = `<div class="brand sidebar-brand">
-    <span class="mark">
-      <img class="logo-dark" src="assets/logo_white.png" alt="" aria-hidden="true">
-      <img class="logo-light" src="assets/logo_black.png" alt="" aria-hidden="true">
-    </span>
-    <b class="brand-text">Orchest<span>OS</span></b>
-  </div>`;
-
+  // 2026-07-13 (corrección de Carlos, ronda 2) — sin logo: solo el texto
+  // "OrchestOS" totalmente a la izquierda, y search+collapse a la derecha
+  // en la MISMA fila (nunca muestran label, solo ícono+tooltip — por eso no
+  // usan `.nav-icon`/`.nav-label`, tienen su propia clase `.sidebar-toprow-btn`
+  // así no heredan la regla que oculta el tooltip cuando el sidebar expande).
+  // Colapsado: el texto y el botón de search desaparecen (CSS), solo queda
+  // panel-left, centrado.
   const sbExpanded = document.querySelector('.app').dataset.sidebar === 'expanded';
-  const collapseBtn = `<div class="nav-icon nav-collapse-btn" id="navCollapseBtn" data-tip="${t(sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}" role="button" tabindex="0">
-    <span class="nav-ic">${ICON.panelLeft}</span>
-    <span class="nav-label">${t(sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}</span>
-  </div>`;
-
   const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K';
-  const searchBtn = `<div class="nav-icon nav-search-btn" id="navSearchBtn" data-tip="${t('nav.search')}" role="button" tabindex="0">
-    <span class="nav-ic">${ICON.search}</span>
-    <span class="nav-label">${t('nav.search')}<kbd class="nav-kbd">${kbdHint}</kbd></span>
+  const toprow = `<div class="sidebar-toprow">
+    <b class="sidebar-brand-text">Orchest<span>OS</span></b>
+    <div class="sidebar-toprow-icons">
+      <div class="sidebar-toprow-btn sidebar-search-btn" id="navSearchBtn" data-tip="${t('nav.search')} (${kbdHint})" role="button" tabindex="0">${ICON.search}</div>
+      <div class="sidebar-toprow-btn" id="navCollapseBtn" data-tip="${t(sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}" role="button" tabindex="0">${ICON.panelLeft}</div>
+    </div>
   </div>`;
 
-  side.innerHTML = brand + collapseBtn + searchBtn + '<div class="nav-sep"></div>' + mainNav.map(navItem).join('') +
+  side.innerHTML = toprow + '<div class="nav-sep"></div>' + mainNav.map(navItem).join('') +
     '<div class="grow"></div>' + modeBtn + bottomNav.map(navItem).join('');
 
   if (isAdv) {
@@ -1964,7 +2005,7 @@ function buildNav() {
   side.querySelectorAll('.nav-icon[data-nav]').forEach(n =>
     n.addEventListener('click', () => App.go(n.dataset.nav)));
 
-  side.querySelectorAll('.nav-icon[role="button"]').forEach(n =>
+  side.querySelectorAll('.nav-icon[role="button"], .sidebar-toprow-btn[role="button"]').forEach(n =>
     n.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); n.click(); }
     }));
@@ -2143,12 +2184,12 @@ function boot() {
     }
   });
 
-  // FRONT.6/FRONT.9 — close the chat model combobox / attach menu on outside
+  // FRONT.9 / 2026-07-13 — close the chat modelfx pill / attach menu on outside
   // click. Registered once here (not inside SCREENS.chat.wire(), which
   // reruns on every rerender) so it never stacks duplicate listeners.
   document.addEventListener('click', e => {
-    if (state.chatModelComboOpen && !e.target.closest('[data-model-combo]')) {
-      state.chatModelComboOpen = false;
+    if (state.chatFxView && !e.target.closest('[data-modelfx]')) {
+      state.chatFxView = null;
       App.rerender();
     }
     if (state.chatAttachMenuOpen && !e.target.closest('[data-attach-menu]')) {

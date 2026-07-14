@@ -94,6 +94,10 @@ const I18N = {
     'chat.effort.low':    'Low',
     'chat.effort.medium': 'Medium',
     'chat.effort.high':   'High',
+    /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
+    'chat.modelfx.model': 'Model',
+    'chat.modelfx.back':  'Back',
+    'chat.modelfx.reset': 'Reset to default',
     'chat.createTask':    'Create task from this conversation',
     'chat.createTaskHint':'Turn this chat into a task — pre-fills the task composer with the conversation context.',
     'chat.attachMenu.image':   'Image',
@@ -752,6 +756,10 @@ const I18N = {
     'chat.effort.low':    'Bajo',
     'chat.effort.medium': 'Medio',
     'chat.effort.high':   'Alto',
+    /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
+    'chat.modelfx.model': 'Modelo',
+    'chat.modelfx.back':  'Volver',
+    'chat.modelfx.reset': 'Restablecer a lo predeterminado',
     'chat.createTask':    'Crear tarea desde esta conversación',
     'chat.createTaskHint':'Convierte este chat en una tarea — pre-rellena el compositor con el contexto de la conversación.',
     'chat.attachMenu.image':   'Imagen',

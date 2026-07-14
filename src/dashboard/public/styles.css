@@ -223,50 +223,48 @@ button { font-family: inherit; }
      (contenido cortado en el borde derecho). */
   min-width: 0;
 }
-/* .brand vive ahora DENTRO del sidebar (2026-07-13, corrección de Carlos) —
-   ver .sidebar-brand más abajo. Las reglas de acá son genéricas (logo+wordmark)
-   y se reusan tal cual en su nueva ubicación. */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  font-size: 14px;
+/* Fila superior del sidebar — brand (solo texto, SIN logo, 2026-07-13
+   corrección de Carlos ronda 2) a la izquierda, search+collapse a la derecha
+   en la misma fila. Colapsado: solo queda panel-left, centrado — ni el
+   texto ni el botón de search se muestran (display:none, no solo width:0,
+   porque nunca hay label que los reemplace). */
+.sidebar-toprow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 8px 9px; flex-shrink: 0;
 }
-.brand .mark {
-  width: 22px; height: 22px;
+.sidebar-brand-text {
+  font-weight: 600; letter-spacing: -0.01em; font-size: 14px; color: var(--text);
+  white-space: nowrap; overflow: hidden;
+}
+.sidebar-brand-text span { color: var(--accent); }
+.sidebar-toprow-icons { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+/* Mismo tamaño que .header-icon-btn — "todos los íconos más pequeños". Clase
+   propia (no `.nav-icon`) para no heredar la regla que oculta el tooltip
+   cuando el sidebar está expandido: acá el tooltip SIEMPRE debe mostrarse,
+   nunca hay label de texto que lo reemplace. */
+.sidebar-toprow-btn {
+  position: relative;
   display: grid; place-items: center;
-  border-radius: 6px;
-  background: #0d1117;
-  border: 1px solid var(--border);
-  box-shadow: 0 0 0 1px rgba(88, 166, 255, .08), 0 6px 18px rgba(1, 4, 9, .35);
-  overflow: hidden;
-  flex-shrink: 0;
+  width: 30px; height: 30px; flex-shrink: 0;
+  border-radius: var(--radius);
+  color: var(--text-muted); cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .12s, color .12s, border-color .12s;
 }
-.brand .mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
-/* Logo por tema — bug real encontrado (2026-07-09): este selector seguía
-   apuntando a [data-theme="light"], un valor que nunca existió desde que el
-   selector de 3 temas (Mes 18 I.11) shippeó — los temas reales son
-   "orchestos"/"dark2026"/"bright", nunca "light". El header nunca cambiaba
-   de logo con el tema. La placa `.brand .mark` también estaba fija en
-   #0d1117 (oscura) en los 3 temas — el logo negro se habría vuelto
-   invisible ahí, así que la placa también sigue el tema ahora. */
-.brand .mark .logo-light { display: none; }
-[data-theme="bright"] .brand .mark { background: var(--surface-2); }
-[data-theme="bright"] .brand .mark .logo-dark { display: none; }
-[data-theme="bright"] .brand .mark .logo-light { display: block; }
-.brand b { color: var(--text); }
-.brand b span { color: var(--accent); }
-
-/* Riel de brand dentro del sidebar — cuando colapsa, solo queda el logo
-   (mismo patrón que .nav-label: oculto por defecto, visible en expanded). */
-.sidebar-brand { padding: 11px 9px 9px; flex-shrink: 0; }
-.sidebar-brand .brand-text {
-  width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
-  transition: opacity .12s ease;
+.sidebar-toprow-btn svg { width: 16px; height: 16px; }
+.sidebar-toprow-btn:hover { color: var(--accent); background: var(--surface-2); border-color: var(--border); }
+.sidebar-toprow-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sidebar-toprow-btn[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%);
+  background: #1c2128; color: #c9d1d9; border: 1px solid #30363d;
+  padding: 4px 9px; border-radius: 6px; font-size: 11.5px; white-space: nowrap;
+  z-index: 200; pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0,0,0,.4);
 }
-.app[data-sidebar="expanded"] .sidebar-brand .brand-text { width: auto; opacity: 1; margin-left: 1px; }
+.app[data-sidebar="collapsed"] .sidebar-toprow { justify-content: center; padding: 10px 0 9px; }
+.app[data-sidebar="collapsed"] .sidebar-brand-text,
+.app[data-sidebar="collapsed"] .sidebar-search-btn { display: none; }
 
 .header .spacer { flex: 1; }
 
@@ -536,12 +534,6 @@ button { font-family: inherit; }
   overflow: hidden;
 }
 .app[data-rightpanel="expanded"] .rightpanel { display: flex; }
-.rp-tabs {
-  display: flex; align-items: center; gap: 2px;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
 .rp-body { flex: 1; min-height: 0; overflow-y: auto; }
 
 /* Terminal tab — mismo contenido que antes vivía en el footer fijo, ahora

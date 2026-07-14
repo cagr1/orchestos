@@ -245,18 +245,10 @@ SCREENS.chat = {
           return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${ocrTag}${modelTag}</div></div>`;
         }).join('') + thinkingBubble;
 
-    // FRONT.6 — combobox de altura única (trigger + panel con búsqueda integrada), reemplaza
-    // el viejo layout de dos filas (input de búsqueda arriba + <select> nativo + botón de refresh).
-    const modelCombo = buildModelCombo(st.chatModel, st.orModels, st.localModels, st.chatModelComboOpen);
-
-    // FRONT.1 — oculto/disabled salvo que el modelo elegido tenga supportsReasoning:true real (BACK.4)
-    const effortSelect = modelSupportsReasoning(st.chatModel, st.orModels)
-      ? `<select id="chat-effort-select" class="model-sel chat-effort-sel" title="${t('chat.effort.label')}">
-          <option value="low" ${st.chatEffort === 'low' ? 'selected' : ''}>${t('chat.effort.low')}</option>
-          <option value="medium" ${st.chatEffort === 'medium' ? 'selected' : ''}>${t('chat.effort.medium')}</option>
-          <option value="high" ${st.chatEffort === 'high' ? 'selected' : ''}>${t('chat.effort.high')}</option>
-        </select>`
-      : '';
+    // 2026-07-13 (corrección de Carlos) — modelo+esfuerzo ahora es un solo pill
+    // dentro del composer (ver chat-modelfx-row más abajo), no dos controles
+    // separados arriba de la pantalla. buildChatModelFx() vive en app.js.
+    const modelFx = buildChatModelFx(st);
 
     // D0-3 — local model warning banner (shown once per session)
     const isLocalModel = (st.chatModel || '').startsWith('ollama/');
@@ -296,24 +288,28 @@ SCREENS.chat = {
     return `<div class="screen chat-screen">
       <div class="screen-head">
         <div class="lead"><h1>${t('chat.title')}</h1><p>${t('chat.subtitle')}</p></div>
-        <div class="tools" style="align-items:center;gap:8px">${modelCombo}${effortSelect}${clearBtn}</div>
+        <div class="tools" style="align-items:center;gap:8px">${clearBtn}</div>
       </div>
       ${localWarnBanner}
       <div class="chat-area" id="chat-area">${msgs}</div>
       ${createTaskBar}
       <div class="chat-input-bar">
         ${attachChips}
-        <div class="chat-input-row">
-          <div class="attach-menu-wrap" data-attach-menu>
-            <button class="chat-icon-btn chat-attach-btn" data-act="chat-attach" title="${t('chat.btn.attach')}" aria-label="${t('chat.btn.attach')}">${ICON.plus}</button>
-            ${st.chatAttachMenuOpen ? `<div class="attach-menu">
-              <button class="attach-menu-item" data-attach-kind="image">${ICON.image}<span>${t('chat.attachMenu.image')}</span></button>
-              <button class="attach-menu-item" data-attach-kind="doc">${ICON.specs}<span>${t('chat.attachMenu.doc')}</span></button>
-              <button class="attach-menu-item" data-attach-kind="url">${ICON.globe}<span>${t('chat.attachMenu.url')}</span></button>
-            </div>` : ''}
-          </div>
+        <div class="chat-composer">
           <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}>${esc(st.chatDraft || '')}</textarea>
-          <button class="chat-icon-btn chat-send-btn" data-act="chat-send" title="${t('chat.btn.send')}" aria-label="${t('chat.btn.send')}" ${st.chatPending ? 'disabled' : ''}>${ICON.send}</button>
+          <div class="chat-composer-row">
+            <div class="attach-menu-wrap" data-attach-menu>
+              <button class="chat-icon-btn chat-attach-btn" data-act="chat-attach" title="${t('chat.btn.attach')}" aria-label="${t('chat.btn.attach')}">${ICON.plus}</button>
+              ${st.chatAttachMenuOpen ? `<div class="attach-menu">
+                <button class="attach-menu-item" data-attach-kind="image">${ICON.image}<span>${t('chat.attachMenu.image')}</span></button>
+                <button class="attach-menu-item" data-attach-kind="doc">${ICON.specs}<span>${t('chat.attachMenu.doc')}</span></button>
+                <button class="attach-menu-item" data-attach-kind="url">${ICON.globe}<span>${t('chat.attachMenu.url')}</span></button>
+              </div>` : ''}
+            </div>
+            <span class="chat-composer-spacer"></span>
+            ${modelFx}
+            <button class="chat-icon-btn chat-send-btn" data-act="chat-send" title="${t('chat.btn.send')}" aria-label="${t('chat.btn.send')}" ${st.chatPending ? 'disabled' : ''}>${ICON.send}</button>
+          </div>
         </div>
         <input type="file" id="chat-file-input" accept="image/*,.pdf,.txt,.md" style="display:none">
       </div>
@@ -507,37 +503,55 @@ SCREENS.chat = {
       st.chatFiles = (st.chatFiles || []).filter(f => f.fileId !== fileId);
       App.rerender();
     }));
-    // FRONT.6 — model combobox: trigger toggles the panel open/closed. Opening
-    // also triggers a silent refresh — loadOrModels() is already TTL-gated
-    // internally (no-ops if the cache is fresh), so this replaces the old
-    // manual refresh button without spamming the network on every open.
-    root.querySelector('[data-combo-trigger]')?.addEventListener('click', e => {
+    // 2026-07-13 (corrección de Carlos) — pill único modelo+esfuerzo del
+    // composer (buildChatModelFx() en app.js). Un solo trigger + un panel
+    // de 2 niveles (root → model|effort), toda la navegación se delega
+    // acá porque las 3 vistas nunca coexisten en el DOM al mismo tiempo.
+    root.querySelector('[data-modelfx-trigger]')?.addEventListener('click', e => {
       e.stopPropagation();
-      const opening = !st.chatModelComboOpen;
-      st.chatModelComboOpen = opening;
+      const opening = !st.chatFxView;
+      st.chatFxView = opening ? 'root' : null;
       App.rerender();
-      if (opening) loadOrModels().then(() => { if (st.chatModelComboOpen) App.rerender(); });
+      if (opening) loadOrModels().then(() => { if (st.chatFxView) App.rerender(); });
     });
-    root.querySelector('[data-combo-list]')?.addEventListener('click', e => {
-      const opt = e.target.closest('[data-combo-option]');
-      if (!opt) return;
-      st.chatModel = opt.dataset.value;
-      st.chatModelComboOpen = false;
-      App.rerender(); // refresh warning banner + show/hide effort selector
+    root.querySelector('[data-modelfx-panel]')?.addEventListener('click', e => {
+      const nav = e.target.closest('[data-modelfx-nav]');
+      if (nav) { st.chatFxView = nav.dataset.modelfxNav; App.rerender(); return; }
+      const back = e.target.closest('[data-modelfx-back]');
+      if (back) { st.chatFxView = 'root'; App.rerender(); return; }
+      const reset = e.target.closest('[data-modelfx-reset]');
+      if (reset) {
+        st.chatEffort = 'medium';
+        localStorage.setItem('orchestos-chat-effort', 'medium');
+        st.chatFxView = null;
+        App.rerender();
+        return;
+      }
+      const effortOpt = e.target.closest('[data-modelfx-effort]');
+      if (effortOpt) {
+        st.chatEffort = effortOpt.dataset.modelfxEffort;
+        localStorage.setItem('orchestos-chat-effort', st.chatEffort);
+        st.chatFxView = null;
+        App.rerender();
+        return;
+      }
+      const modelOpt = e.target.closest('[data-combo-option]');
+      if (modelOpt) {
+        st.chatModel = modelOpt.dataset.value;
+        st.chatFxView = null;
+        App.rerender(); // refresh warning banner + show/hide effort item
+      }
     });
-    // model search filter — patches the list in place (no full rerender, keeps input focus)
-    root.querySelector('[data-combo-search]')?.addEventListener('input', e => {
+    // model search filter (vista 'model') — patches the list in place (no full
+    // rerender, keeps input focus), mismo patrón que ya usaba el combo viejo.
+    root.querySelector('[data-modelfx-panel] [data-combo-search]')?.addEventListener('input', e => {
       const q = e.target.value;
-      const list = root.querySelector('[data-combo-list]');
+      const list = root.querySelector('[data-modelfx-panel] [data-combo-list]');
       if (!list) return;
       const allCloud = Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : KNOWN_MODELS;
       const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
       // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
       list.innerHTML = buildComboOptions(locals, allCloud, st.chatModel, q);
-    });
-    root.querySelector('#chat-effort-select')?.addEventListener('change', e => {
-      st.chatEffort = e.target.value;
-      localStorage.setItem('orchestos-chat-effort', e.target.value);
     });
     // D0-3 — dismiss local model warning
     root.querySelector('[data-act="local-warn-dismiss"]')?.addEventListener('click', () => {

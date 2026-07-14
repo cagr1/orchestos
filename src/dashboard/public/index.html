@@ -13,9 +13,9 @@
 <body data-cards="flat">
   <div class="app">
 
-    <!-- SIDEBAR — brand, panel-left toggle y search viven acá (2026-07-13, corrección de
-         Carlos): buildNav() los inyecta al tope del riel de íconos, así el logo (colapsado)
-         o logo+wordmark (expandido) quedan dentro del nav, no del header. -->
+    <!-- SIDEBAR — brand (solo texto, sin logo) + panel-left + search viven acá
+         (2026-07-13, corrección de Carlos): buildNav() los inyecta como una fila al
+         tope del riel de íconos. Colapsado, solo queda el ícono panel-left. -->
     <nav class="sidebar" id="sidebar"></nav>
     <div class="resize-handle resize-handle-sidebar" id="sidebarResizeHandle"></div>
 
@@ -32,9 +32,11 @@
     <!-- MAIN -->
     <main class="main" id="main"></main>
 
-    <!-- RIGHT PANEL — explorer / terminal / diff (v0.13 seed, header redesign) -->
+    <!-- RIGHT PANEL — explorer / terminal / diff (v0.13 seed, header redesign).
+         Sin barra de tabs propia — las 3 vistas se eligen desde los íconos del
+         header (folder/terminal/diff), #rpTabs se eliminó (2026-07-13, era un div
+         vacío que dejaba una línea/borde fantasma sin contenido). -->
     <aside class="rightpanel" id="rightpanel">
-      <div class="rp-tabs" id="rpTabs"></div>
       <div class="rp-body" id="rightpanelBody"></div>
     </aside>
     <div class="resize-handle resize-handle-rightpanel" id="rightpanelResizeHandle"></div>
