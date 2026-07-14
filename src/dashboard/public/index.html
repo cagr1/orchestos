@@ -19,25 +19,24 @@
     <nav class="sidebar" id="sidebar"></nav>
     <div class="resize-handle resize-handle-sidebar" id="sidebarResizeHandle"></div>
 
-    <!-- HEADER — sin borde inferior, sin contador "N active" (2026-07-13,
-         corrección de Carlos ronda 3). El único ícono que queda acá es el
-         toggle del panel derecho, al final de todo (después del pill IDLE) —
-         explorer/terminal/diff se mudaron al toprow del aside mismo. -->
+    <!-- HEADER — sin borde inferior, sin contador "N active", SIN íconos
+         (2026-07-13, corrección de Carlos ronda 4): el toggle del panel
+         derecho vive únicamente DENTRO del aside (#rpToprow) — nunca acá,
+         nunca se duplica. El header solo lleva el pill de estado. -->
     <header class="header">
       <span class="spacer"></span>
       <div class="status-badge" id="statusBadge" data-state="idle">
         <span class="dot"></span><span class="txt">IDLE</span>
       </div>
-      <div class="header-icons" id="headerRightIcons"></div>
     </header>
 
     <!-- MAIN -->
     <main class="main" id="main"></main>
 
-    <!-- RIGHT PANEL — explorer / terminal / diff. Ahora ocupa toda la altura
-         (mismo grid-area que el sidebar, ver .app[data-rightpanel="expanded"])
-         y tiene su propio toprow con las 3 vistas + cerrar, todo a la
-         izquierda (2026-07-13, corrección de Carlos ronda 3). -->
+    <!-- RIGHT PANEL — SIEMPRE presente (igual que el sidebar izquierdo, ronda 4):
+         riel angosto con el ícono de toggle fijo cuando está cerrado, se
+         ensancha a --rightpanel-w mostrando explorer/terminal/diff al abrir.
+         El toggle nunca cambia de posición ni de contenedor. -->
     <aside class="rightpanel" id="rightpanel">
       <div class="rp-toprow" id="rpToprow"></div>
       <div class="rp-body" id="rightpanelBody"></div>

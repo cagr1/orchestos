@@ -48,8 +48,15 @@
      angosto que el valor de acá) — límites en app.js `wireResizeHandle()`. */
   --sidebar-w:     46px;
   --sidebar-w-exp: 200px;
-  --header-h:      52px;
+  /* 2026-07-13 (corrección de Carlos, ronda 4) — header más bajo, ahora que
+     solo lleva el pill de estado (sin íconos: el toggle del panel derecho
+     vive DENTRO del aside, nunca en el header). */
+  --header-h:      44px;
   --rightpanel-w:  360px;
+  /* ronda 4 — el aside derecho SIEMPRE está presente (igual que el
+     izquierdo): riel angosto cuando está cerrado, con el ícono de toggle
+     fijo ahí adentro — nunca se mueve a otro lugar ni desaparece. */
+  --rightpanel-w-collapsed: 46px;
 
   --mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', ui-monospace, 'Menlo', monospace;
   --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -178,30 +185,26 @@ button { font-family: inherit; }
 /* ============================================================
    App grid
    ============================================================ */
+/* 2026-07-13 (corrección de Carlos, ronda 4) — el aside derecho es una
+   columna SIEMPRE presente, simétrica al sidebar izquierdo: riel angosto
+   (--rightpanel-w-collapsed) cuando está cerrado, con su ícono de toggle
+   fijo ahí adentro (nunca en el header, nunca desaparece/reaparece en otro
+   lugar), y se ensancha a --rightpanel-w al abrir. Por eso "rightpanel" ya
+   NO es condicional a [data-rightpanel="expanded"] — solo el ANCHO cambia. */
 .app {
   position: relative; /* ancla los resize-handle, ver más abajo */
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-columns: var(--sidebar-w) 1fr var(--rightpanel-w-collapsed);
   grid-template-rows: var(--header-h) 1fr;
   grid-template-areas:
-    "sidebar header"
-    "sidebar main";
+    "sidebar header rightpanel"
+    "sidebar main   rightpanel";
   height: 100vh;
   overflow: hidden;
   transition: grid-template-columns .16s ease;
 }
-.app[data-sidebar="expanded"] { grid-template-columns: var(--sidebar-w-exp) 1fr; }
-/* v0.13 seed — panel derecho (explorer/terminal/diff). Columna extra reservada
-   solo cuando está abierto. 2026-07-13 (corrección de Carlos, ronda 3): "rightpanel"
-   ahora ocupa las 2 filas (como "sidebar") — llega al tope de la pantalla igual
-   que el aside izquierdo, en vez de arrancar debajo del header. El header ya NO
-   se estira sobre esa columna (solo cubre sidebar→main). */
-.app[data-rightpanel="expanded"] {
-  grid-template-columns: var(--sidebar-w) 1fr var(--rightpanel-w);
-  grid-template-areas:
-    "sidebar header rightpanel"
-    "sidebar main   rightpanel";
-}
+.app[data-sidebar="expanded"] { grid-template-columns: var(--sidebar-w-exp) 1fr var(--rightpanel-w-collapsed); }
+.app[data-rightpanel="expanded"] { grid-template-columns: var(--sidebar-w) 1fr var(--rightpanel-w); }
 .app[data-sidebar="expanded"][data-rightpanel="expanded"] {
   grid-template-columns: var(--sidebar-w-exp) 1fr var(--rightpanel-w);
 }
@@ -270,10 +273,9 @@ button { font-family: inherit; }
 
 .header .spacer { flex: 1; }
 
-/* v0.13 seed — íconos de header, solo el grupo derecho ahora (explorer/terminal/
-   diff/panel-right); panel-left+search se mudaron al sidebar (2026-07-13, corrección
-   de Carlos). Mismo tamaño que .sidebar .nav-ic — "todos los íconos más pequeños". */
-.header-icons { display: flex; align-items: center; gap: 2px; }
+/* Botón de ícono reusado por #rpToprow (toggle + explorer/terminal/diff) —
+   ya no hay grupo de íconos en el header (ronda 4, ver .rp-toprow). Mismo
+   tamaño que .sidebar .nav-ic — "todos los íconos más pequeños". */
 .header-icon-btn {
   display: grid; place-items: center;
   width: 30px; height: 30px; flex-shrink: 0;
@@ -520,16 +522,18 @@ button { font-family: inherit; }
 /* ============================================================
    Right panel — explorer / terminal / diff (v0.13 seed, header redesign)
    ============================================================ */
+/* 2026-07-13 (corrección de Carlos, ronda 4) — SIEMPRE `flex` (nunca
+   display:none): es una columna permanente, como .sidebar, que solo cambia
+   de ancho entre riel colapsado y expandido. */
 .rightpanel {
   grid-area: rightpanel;
-  display: none;
+  display: flex;
   flex-direction: column;
   border-left: 1px solid var(--border);
   background: var(--surface);
   min-width: 0;
   overflow: hidden;
 }
-.app[data-rightpanel="expanded"] .rightpanel { display: flex; }
 /* 2026-07-13 (corrección de Carlos, ronda 3) — toprow propio del aside
    derecho: explorer/terminal/diff/cerrar, TODOS a la izquierda (pedido
    explícito — nada empujado a la derecha). Misma altura que .header
@@ -539,7 +543,11 @@ button { font-family: inherit; }
   display: flex; align-items: center; gap: 2px;
   padding: 0 8px;
   border-bottom: 1px solid var(--border);
+  overflow: hidden; /* riel colapsado (46px): el toggle es el único hijo, nunca desborda */
 }
+/* ronda 4 — sin contenido visible mientras el riel está colapsado (el
+   toggle vive solo en .rp-toprow ahí arriba). */
+.app[data-rightpanel="collapsed"] .rp-body { display: none; }
 .rp-body { flex: 1; min-height: 0; overflow-y: auto; }
 
 /* Terminal tab — mismo contenido que antes vivía en el footer fijo, ahora
@@ -761,15 +769,20 @@ select.bare {
    queda (marca, estado) tenga aire en pantallas angostas. */
 @media (max-width: 640px) {
   .header { gap: 10px; padding: 0 12px; }
-  .header-icons { display: none; }
   .screen { padding: 16px 14px 32px; }
   .role-grid { grid-template-columns: 1fr; }
-  /* el panel derecho no cabe en mobile — sin ícono para abrirlo (arriba),
-     forzamos la columna a 0 aunque el estado en localStorage diga "expanded". */
-  .app[data-rightpanel="expanded"] {
+  /* el panel derecho (ronda 4: siempre presente, ni el riel colapsado cabe
+     en mobile, cero ícono para abrirlo tampoco) — se fuerza a 2 columnas
+     en los 4 combos de [data-sidebar]×[data-rightpanel] posibles. */
+  .app,
+  .app[data-sidebar="expanded"],
+  .app[data-rightpanel="expanded"],
+  .app[data-sidebar="expanded"][data-rightpanel="expanded"] {
     grid-template-columns: var(--sidebar-w) 1fr;
     grid-template-areas: "sidebar header" "sidebar main";
   }
+  .app[data-sidebar="expanded"] { grid-template-columns: var(--sidebar-w-exp) 1fr; }
+  .rightpanel, .resize-handle-rightpanel { display: none; }
 }
 
 /* ── Reduced motion ───────────────────────────────── */

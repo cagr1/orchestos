@@ -2033,65 +2033,47 @@ function buildNav() {
   });
 }
 
-/* ============================================================
-   Header icons — 2026-07-13 (corrección de Carlos, ronda 3): solo queda el
-   toggle del panel derecho (último botón del header, después del pill
-   IDLE/RUNNING). explorer/terminal/diff se mudaron al toprow del aside
-   mismo (buildRightPanelToprow más abajo) — solo visibles cuando está
-   abierto, ya que ahora viven DENTRO del aside, no en el header global.
-   panel-left+search viven en el sidebar (ver buildNav()).
-   ============================================================ */
 function headerIconBtn(id, icon, tipKey, active) {
   return `<div class="header-icon-btn${active ? ' active' : ''}" id="${id}" data-tip="${t(tipKey)}" role="button" tabindex="0">${icon}</div>`;
 }
 
-function buildHeaderIcons() {
-  const right = document.getElementById('headerRightIcons');
-  if (!right) return;
+/* 2026-07-13 (corrección de Carlos, ronda 4) — UN SOLO botón panel-right,
+   SIEMPRE dentro del aside (nunca en el header — eso fue el bug de la ronda
+   3: dos botones, uno "afuera"). Es el PRIMER ítem del toprow, en la misma
+   posición tanto colapsado (riel angosto, único ícono visible) como
+   expandido (explorer/terminal/diff aparecen a su derecha) — nunca se mueve
+   ni cambia de contenedor, solo lo que hay A SU LADO cambia. */
+function buildRightPanelToprow() {
+  const row = document.getElementById('rpToprow');
+  if (!row) return;
+  const open = state.rightPanelOpen;
+  const tab = state.rightPanelTab;
 
-  const rpOpen = state.rightPanelOpen;
-  right.innerHTML = headerIconBtn('headerRightPanelToggle', ICON.panelRight, rpOpen ? 'rp.toggle.close' : 'rp.toggle.open', rpOpen);
+  const toggleBtn = headerIconBtn('rpToggle', ICON.panelRight, open ? 'rp.toggle.close' : 'rp.toggle.open', open);
+  const tabs = open
+    ? headerIconBtn('rpTabExplorer', ICON.folder, 'rp.tab.explorer', tab === 'explorer') +
+      headerIconBtn('rpTabTerminal', ICON.term, 'rp.tab.terminal', tab === 'terminal') +
+      headerIconBtn('rpTabDiff', ICON.diff, 'rp.tab.diff', tab === 'diff')
+    : '';
+  row.innerHTML = toggleBtn + tabs;
 
-  document.getElementById('headerRightPanelToggle').addEventListener('click', () => {
+  document.getElementById('rpToggle').addEventListener('click', () => {
     state.rightPanelOpen = !state.rightPanelOpen;
     localStorage.setItem('orchestos-rightpanel', state.rightPanelOpen ? 'expanded' : 'collapsed');
     syncRightPanel();
   });
 
-  right.querySelectorAll('[role="button"]').forEach(n =>
-    n.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); n.click(); }
-    }));
-}
-
-/* 2026-07-13 (corrección de Carlos, ronda 3) — toprow del aside derecho:
-   explorer/terminal/diff/cerrar, todos agrupados a la izquierda (pedido
-   explícito, sin spacer que empuje nada a la derecha). Solo se construye
-   cuando el panel está abierto (syncRightPanel/boot lo llaman condicional). */
-function buildRightPanelToprow() {
-  const row = document.getElementById('rpToprow');
-  if (!row) return;
-  const tab = state.rightPanelTab;
-  row.innerHTML =
-    headerIconBtn('rpTabExplorer', ICON.folder, 'rp.tab.explorer', tab === 'explorer') +
-    headerIconBtn('rpTabTerminal', ICON.term, 'rp.tab.terminal', tab === 'terminal') +
-    headerIconBtn('rpTabDiff', ICON.diff, 'rp.tab.diff', tab === 'diff') +
-    headerIconBtn('rpToprowClose', ICON.panelRight, 'rp.toggle.close', false);
-
-  const openTab = tabName => {
-    state.rightPanelTab = tabName;
-    localStorage.setItem('orchestos-rightpanel-tab', tabName);
-    buildRightPanelToprow();
-    RightPanel.render();
-  };
-  document.getElementById('rpTabExplorer').addEventListener('click', () => openTab('explorer'));
-  document.getElementById('rpTabTerminal').addEventListener('click', () => openTab('terminal'));
-  document.getElementById('rpTabDiff').addEventListener('click', () => openTab('diff'));
-  document.getElementById('rpToprowClose').addEventListener('click', () => {
-    state.rightPanelOpen = false;
-    localStorage.setItem('orchestos-rightpanel', 'collapsed');
-    syncRightPanel();
-  });
+  if (open) {
+    const openTab = tabName => {
+      state.rightPanelTab = tabName;
+      localStorage.setItem('orchestos-rightpanel-tab', tabName);
+      buildRightPanelToprow();
+      RightPanel.render();
+    };
+    document.getElementById('rpTabExplorer').addEventListener('click', () => openTab('explorer'));
+    document.getElementById('rpTabTerminal').addEventListener('click', () => openTab('terminal'));
+    document.getElementById('rpTabDiff').addEventListener('click', () => openTab('diff'));
+  }
 
   row.querySelectorAll('[role="button"]').forEach(n =>
     n.addEventListener('keydown', e => {
@@ -2102,8 +2084,8 @@ function buildRightPanelToprow() {
 /** Aplica el estado abierto/cerrado + tab activa del panel derecho al DOM. */
 function syncRightPanel() {
   document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
-  buildHeaderIcons();
-  if (state.rightPanelOpen) { buildRightPanelToprow(); RightPanel.render(); }
+  buildRightPanelToprow();
+  if (state.rightPanelOpen) RightPanel.render();
 }
 
 /* ============================================================
@@ -2168,14 +2150,15 @@ function boot() {
   applySidebarMode();
   applyResizedWidths();
 
-  // Build sidebar (brand + panel-left + search + nav) + header icons
-  // (solo el toggle del panel derecho) — 2026-07-13, corrección de Carlos.
+  // Build sidebar (brand + panel-left + search + nav) — 2026-07-13, corrección de Carlos.
   buildNav();
-  buildHeaderIcons();
 
-  // Panel derecho: aplica el estado persistido (localStorage) al primer render.
+  // Panel derecho: SIEMPRE presente (riel colapsado o expandido, ronda 4) —
+  // aplica el estado persistido (localStorage) al primer render. El toggle
+  // vive únicamente en #rpToprow, nunca en el header.
   document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
-  if (state.rightPanelOpen) { buildRightPanelToprow(); RightPanel.render(); }
+  buildRightPanelToprow();
+  if (state.rightPanelOpen) RightPanel.render();
 
   // Resize handles — piso = ancho por defecto de cada uno, techo distinto
   // (el derecho puede crecer más: ahí se lee diff/código).
