@@ -19,24 +19,27 @@
     <nav class="sidebar" id="sidebar"></nav>
     <div class="resize-handle resize-handle-sidebar" id="sidebarResizeHandle"></div>
 
-    <!-- HEADER -->
+    <!-- HEADER — sin borde inferior, sin contador "N active" (2026-07-13,
+         corrección de Carlos ronda 3). El único ícono que queda acá es el
+         toggle del panel derecho, al final de todo (después del pill IDLE) —
+         explorer/terminal/diff se mudaron al toprow del aside mismo. -->
     <header class="header">
       <span class="spacer"></span>
-      <div class="header-icons" id="headerRightIcons"></div>
       <div class="status-badge" id="statusBadge" data-state="idle">
         <span class="dot"></span><span class="txt">IDLE</span>
       </div>
-      <span class="active-counter" id="activeCount"><b>0</b> active</span>
+      <div class="header-icons" id="headerRightIcons"></div>
     </header>
 
     <!-- MAIN -->
     <main class="main" id="main"></main>
 
-    <!-- RIGHT PANEL — explorer / terminal / diff (v0.13 seed, header redesign).
-         Sin barra de tabs propia — las 3 vistas se eligen desde los íconos del
-         header (folder/terminal/diff), #rpTabs se eliminó (2026-07-13, era un div
-         vacío que dejaba una línea/borde fantasma sin contenido). -->
+    <!-- RIGHT PANEL — explorer / terminal / diff. Ahora ocupa toda la altura
+         (mismo grid-area que el sidebar, ver .app[data-rightpanel="expanded"])
+         y tiene su propio toprow con las 3 vistas + cerrar, todo a la
+         izquierda (2026-07-13, corrección de Carlos ronda 3). -->
     <aside class="rightpanel" id="rightpanel">
+      <div class="rp-toprow" id="rpToprow"></div>
       <div class="rp-body" id="rightpanelBody"></div>
     </aside>
     <div class="resize-handle resize-handle-rightpanel" id="rightpanelResizeHandle"></div>

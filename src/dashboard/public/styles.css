@@ -192,14 +192,15 @@ button { font-family: inherit; }
 }
 .app[data-sidebar="expanded"] { grid-template-columns: var(--sidebar-w-exp) 1fr; }
 /* v0.13 seed — panel derecho (explorer/terminal/diff). Columna extra reservada
-   solo cuando está abierto — igual que el sidebar, pero puede llegar a 0 en
-   vez de quedarse en un riel de íconos, porque no tiene contenido colapsado
-   propio (el toggle vive en el header). */
+   solo cuando está abierto. 2026-07-13 (corrección de Carlos, ronda 3): "rightpanel"
+   ahora ocupa las 2 filas (como "sidebar") — llega al tope de la pantalla igual
+   que el aside izquierdo, en vez de arrancar debajo del header. El header ya NO
+   se estira sobre esa columna (solo cubre sidebar→main). */
 .app[data-rightpanel="expanded"] {
   grid-template-columns: var(--sidebar-w) 1fr var(--rightpanel-w);
   grid-template-areas:
-    "sidebar header header"
-    "sidebar main rightpanel";
+    "sidebar header rightpanel"
+    "sidebar main   rightpanel";
 }
 .app[data-sidebar="expanded"][data-rightpanel="expanded"] {
   grid-template-columns: var(--sidebar-w-exp) 1fr var(--rightpanel-w);
@@ -214,8 +215,9 @@ button { font-family: inherit; }
   align-items: center;
   gap: 16px;
   padding: 0 18px;
-  border-bottom: 1px solid var(--border);
   background: var(--surface);
+  /* 2026-07-13 (corrección de Carlos, ronda 3) — sin línea/borde inferior:
+     el header deja de leerse como una barra separada, se funde con el fondo. */
   /* Impeccable audit G.1 (P1) — grid items default to min-width:auto, así
      que su contenido intrínseco (texto mono, badges) podía forzar la
      columna `1fr` de .app más ancha que el viewport pese a overflow-x:hidden
@@ -305,12 +307,6 @@ button { font-family: inherit; }
 .status-badge[data-state="running"] .dot { background: var(--success); box-shadow: 0 0 0 3px var(--success-dim); animation: pulse 1.6s ease-in-out infinite; }
 .status-badge[data-state="idle"] { color: var(--text-muted); }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
-
-.active-counter {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--text-muted);
-}
-.active-counter b { color: var(--text); font-variant-numeric: tabular-nums; }
 
 /* ============================================================
    Sidebar
@@ -534,6 +530,16 @@ button { font-family: inherit; }
   overflow: hidden;
 }
 .app[data-rightpanel="expanded"] .rightpanel { display: flex; }
+/* 2026-07-13 (corrección de Carlos, ronda 3) — toprow propio del aside
+   derecho: explorer/terminal/diff/cerrar, TODOS a la izquierda (pedido
+   explícito — nada empujado a la derecha). Misma altura que .header
+   (var(--header-h)) para que las líneas de ambos asides queden a nivel. */
+.rp-toprow {
+  height: var(--header-h); flex-shrink: 0;
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+}
 .rp-body { flex: 1; min-height: 0; overflow-y: auto; }
 
 /* Terminal tab — mismo contenido que antes vivía en el footer fijo, ahora
@@ -755,7 +761,6 @@ select.bare {
    queda (marca, estado) tenga aire en pantallas angostas. */
 @media (max-width: 640px) {
   .header { gap: 10px; padding: 0 12px; }
-  .header .active-counter,
   .header-icons { display: none; }
   .screen { padding: 16px 14px 32px; }
   .role-grid { grid-template-columns: 1fr; }
