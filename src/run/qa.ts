@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
+import { createPatch } from 'diff'
 import { chat } from '../providers/openrouter.ts'
 import type { ProviderClient } from '../providers/index.ts'
 import type { FileChange } from './contract.ts'
@@ -44,6 +45,25 @@ export function restoreContents(root: string, snap: ContentSnapshot): void {
       unlinkSync(full)
     }
   }
+}
+
+// v0.12 Bloque C — visor de diff por run (docs/diff-review-design.md, Decisión 1/3/4).
+// Calculado por CONTENIDO (before/after ya en memoria), no por `git diff` — cubre los 3
+// engines uniformemente y no depende de que el worktree sobreviva al run. Solo
+// 'added'/'modified': el contrato del LLM (enforceContract) nunca borra archivos.
+export interface FileDiffEntry {
+  path: string
+  status: 'added' | 'modified'
+  diff: string   // unified diff completo (formato `diff`/git) — nunca recortado
+}
+
+export function computeFileDiffs(before: ContentSnapshot, written: FileChange[]): FileDiffEntry[] {
+  return written.map(file => {
+    const prior = before[file.path]
+    const status: FileDiffEntry['status'] = prior?.existed ? 'modified' : 'added'
+    const diff = createPatch(file.path, prior?.content ?? '', file.content)
+    return { path: file.path, status, diff }
+  })
 }
 
 export async function runQA(opts: {

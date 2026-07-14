@@ -62,6 +62,7 @@ function makeRow(overrides: Partial<RunRecord> = {}): RunRecord {
     embed_hits: 0,
     context_warnings_json: null,
     cost_breakdown_json: null,
+    file_diffs: null,
     status: 'done',
     input_tokens: 5,
     output_tokens: 3,

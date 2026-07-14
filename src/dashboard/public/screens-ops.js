@@ -488,6 +488,38 @@ SCREENS.runs = {
          </div>`
       : '';
 
+    // v0.12/C.2 — visor de diff por run (docs/diff-review-design.md). Solo presente en
+    // runs 'done' con al menos un archivo escrito. Render estilo Claude Desktop/GitHub:
+    // líneas +/- coloreadas con gutter, colapsado (no truncado) si el diff es largo.
+    const DIFF_COLLAPSE_AFTER = 40;
+    const DIFF_COLLAPSE_SHOW = 15;
+    const filesChanged = (r.fileDiffs && r.fileDiffs.length)
+      ? `<div class="grp"><h4>${t('runs.detail.files')}</h4>` +
+        r.fileDiffs.map(f => {
+          const key = `${r.id}:${f.path}`;
+          const rows = parseUnifiedDiff(f.diff).filter(row => row.type !== 'hunk');
+          const expanded = state.diffExpanded.has(key) || rows.length <= DIFF_COLLAPSE_AFTER;
+          const visible = expanded ? rows : rows.slice(0, DIFF_COLLAPSE_SHOW);
+          const added = rows.filter(row => row.type === 'add').length;
+          const removed = rows.filter(row => row.type === 'del').length;
+          const lineHtml = row => {
+            const gutter = row.type === 'add' ? '+' : row.type === 'del' ? '−' : '';
+            return `<div class="diff-line ${row.type}"><span class="diff-gutter">${gutter}</span><span class="diff-text">${esc(row.text) || '&nbsp;'}</span></div>`;
+          };
+          const collapseBtn = !expanded
+            ? `<button class="diff-more-btn" data-diff-expand="${esc(key)}">${t('runs.detail.diff.more').replace('{n}', String(rows.length - DIFF_COLLAPSE_SHOW))}</button>`
+            : '';
+          return `<div class="diff-file">
+            <div class="diff-file-head">
+              <span class="badge square ${f.status === 'added' ? 'green' : 'blue'}">${f.status}</span>
+              <span class="diff-file-path mono">${esc(f.path)}</span>
+              <span class="diff-file-stats"><span class="diff-add-count">+${added}</span> <span class="diff-del-count">−${removed}</span></span>
+            </div>
+            <div class="diff-body">${visible.map(lineHtml).join('')}${collapseBtn}</div>
+          </div>`;
+        }).join('') + `</div>`
+      : '';
+
     const meta = `<div class="grp"><h4>${t('runs.detail.meta')}</h4>
       ${r.skillId ? `<div class="kv"><span class="k">${t('runs.detail.skill')}</span><span class="v">${esc(r.skillId)}</span></div>` : ''}
       ${r.provider ? `<div class="kv"><span class="k">${t('runs.detail.provider')}</span><span class="v">${esc(r.provider)}</span></div>` : ''}
@@ -499,7 +531,7 @@ SCREENS.runs = {
       <button class="btn danger sm" data-run-act="delete" data-run-id="${esc(r.id)}">${ICON.trash} ${t('runs.btn.delete')}</button>
     </div>`;
 
-    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${bd}${warns}${qa}${meta}${deleteAction}</div></td></tr>`;
+    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${filesChanged}${bd}${warns}${qa}${meta}${deleteAction}</div></td></tr>`;
   },
   render(st) {
     const hasRunning = (st.runs || []).some(r => r.status === 'running');
@@ -639,6 +671,13 @@ SCREENS.runs = {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
       });
     });
+
+    // v0.12/C.2 — expandir un diff colapsado (líneas ocultas por tamaño, ver Decisión 6).
+    root.querySelectorAll('[data-diff-expand]').forEach(btn => btn.addEventListener('click', e => {
+      e.stopPropagation();
+      state.diffExpanded.add(btn.dataset.diffExpand);
+      App.rerender();
+    }));
 
     // I.8 (Mes 18) — borrar un run viejo desde el detail expandido.
     root.querySelectorAll('[data-run-act="delete"]').forEach(btn => btn.addEventListener('click', async e => {

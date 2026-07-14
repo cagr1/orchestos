@@ -50,6 +50,9 @@ const state = {
   // vive en memoria del navegador, no persiste entre reloads (mismo criterio
   // que taskFilter/runsFilter — estado de UI transitorio, no dato real).
   bulkSelected: { tasks: new Set(), runs: new Set(), instincts: new Set(), memory: new Set(), specs: new Set() },
+  // v0.12 Bloque C — visor de diff por run: qué archivos están expandidos (mostrando
+  // el diff completo en vez de colapsado a las primeras líneas). Clave: `${runId}:${path}`.
+  diffExpanded: new Set(),
 
   projectTab: 'constitution',
   constitutionContent: null,

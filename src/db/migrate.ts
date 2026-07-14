@@ -108,6 +108,7 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'context_warnings_json', 'TEXT')     // S27.4: JSON array of ContextWarning[] fired during this run
   safeAddColumn('runs', 'cost_breakdown_json',   'TEXT')     // S35.3: JSON array of CostBreakdownEntry[]
   safeAddColumn('runs', 'qa_model',              'TEXT')     // F2.5: judge model resolved by resolveQAJudge(), distinct from executor `model` column
+  safeAddColumn('runs', 'file_diffs',            'TEXT')     // v0.12/C: JSON array of FileDiffEntry[] (docs/diff-review-design.md) — NULL para runs previos a este cambio, sin backfill
 
   // S26.3 — memory conflict detection records
   db.exec(`

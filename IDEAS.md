@@ -31,6 +31,7 @@ Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashb
 - #19 — `engine: external` sin `checks:` pierde su red determinista
 - #4 — clasificador semántico para `clarify` · #5 — resolver Ruby · #16 — escala honesta
 - #29 — decisión pendiente sobre `topic_key`/memoria de sub-tasks
+- #42 — auto-repair dirigido tras `failed_permanent` (cerrar el lazo diagnose→reparación)
 
 **P3 — capacidad nueva grande (post-estable, v0.13+):**
 - #41 — **empaquetar como app de escritorio Electron (Mac/Linux/Windows)** — la que más se acerca a
@@ -837,6 +838,34 @@ como su propio hito.
 para un instalable real firmado** en las 3 plataformas (empotrar el binario Bun compilado + firma/
 notarización + auto-update). Candidato a hito propio post-estable, con doc de diseño previo
 (decidir camino A vs B, y si el binario Bun se compila en CI por plataforma).
+
+### 42. Auto-repair dirigido tras `failed_permanent` — cerrar el lazo diagnose→reparación
+
+**Origen**: crítica externa de otro LLM (2026-07-13) sobre el motor de OrchestOS, contrastada
+contra el código real antes de aceptarla — dos de sus tres puntos ya existen (ejecución híbrida
+por sub-tarea vía `executor_model`/`autoRoute`, y checkpoint/reanudación a granularidad de
+tarea vía `tasks.yaml`); este es el único hallazgo real.
+
+**Eslabón débil verificado (`src/run/graph-runner.ts:466-501`)**: cuando una tarea agota
+`MAX_RETRIES`, `diagnoseTask` (Haiku) clasifica el patrón de fallo y da una `suggestion` —
+pero el resultado **solo informa**: `rate_limit` dispara un requeue, cualquier otro patrón
+bloquea la rama entera (tarea + todos sus descendientes) y lo escala al humano. La sugerencia
+del diagnóstico nunca se usa para intentar un fix dirigido antes de rendirse. El lazo
+diagnose→reparación está partido a la mitad.
+
+**Qué hacer** (cuando se aborde, fuera de v0.12 — ver nota de alcance): tras `failed_permanent`
+y diagnóstico != `rate_limit`, un intento de reparación dirigido usando la `suggestion` del
+diagnóstico como instrucción explícita al sub-agente (ej. "el diagnóstico indica: falta el
+import X — corrígelo") antes de bloquear la rama. Solo si ese intento dirigido también falla,
+bloquear y escalar como hoy. Escalar de modelo (no bajar a uno más barato — eso fue un error
+de la crítica original) si el patrón sugiere que el modelo actual no da para la tarea.
+
+**No hacer**: no confundir con #33 (refuter, que evita gastar un retry ante un falso-fail del
+QA) — son puntos distintos del ciclo. #33 es ANTES de reintentar; #42 es DESPUÉS de agotar
+todos los reintentos, cuando hoy la única salida es rendirse.
+
+**Alcance**: v0.12 tiene regla dura de cero features nuevas en el motor — este es motor, no
+papercut. Candidato v0.13+.
 
 ---
 

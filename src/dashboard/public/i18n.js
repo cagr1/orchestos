@@ -375,6 +375,9 @@ const I18N = {
     'runs.detail.process.binary':    'Binary',
     'runs.detail.process.cmd':       'Command',
     'runs.detail.process.cmd.tip':   'Command line used to spawn the subprocess. `<contract>` is the rendered contract + skills + instincts + context injected via --append-system-prompt.',
+    /* v0.12/C.2 — visor de diff por run (docs/diff-review-design.md) */
+    'runs.detail.files':      'Files changed',
+    'runs.detail.diff.more':  'Show {n} more lines',
     'runs.empty.title': 'No runs yet',
     'runs.empty.body':  'Execute a task from Tasks or from the CLI — runs appear here with full cost and QA detail.',
     'runs.loading':     'Loading runs…',
@@ -1016,6 +1019,9 @@ const I18N = {
     'runs.detail.process.binary':    'Binario',
     'runs.detail.process.cmd':       'Comando',
     'runs.detail.process.cmd.tip':   'Línea de comandos usada para lanzar el subproceso. `<contract>` es el contrato + skills + instincts + context renderizado, inyectado vía --append-system-prompt.',
+    /* v0.12/C.2 — visor de diff por run (docs/diff-review-design.md) */
+    'runs.detail.files':      'Archivos cambiados',
+    'runs.detail.diff.more':  'Mostrar {n} líneas más',
     'runs.empty.title': 'Sin ejecuciones aún',
     'runs.empty.body':  'Ejecuta una tarea desde Tareas o desde el CLI — los runs aparecen aquí con costo y detalle de QA.',
     'runs.loading':     'Cargando ejecuciones…',

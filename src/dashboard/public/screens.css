@@ -723,6 +723,40 @@
 .chat-bubble .md-body td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
 .chat-bubble .md-body th { background: var(--surface-hi); font-weight: 600; }
 
+/* v0.12/C.2 — visor de diff por run (docs/diff-review-design.md, Decisión 5b).
+   Mismo tratamiento de código monoespaciado que .md-body pre, estilo Claude Desktop/GitHub:
+   líneas +/- con fondo coloreado y gutter, no texto crudo de unified diff. */
+.diff-file {
+  border: 1px solid var(--border); border-radius: 6px; margin: 0.5em 0; overflow: hidden;
+}
+.diff-file-head {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  background: var(--surface-hi); border-bottom: 1px solid var(--border);
+}
+.diff-file-path { font-size: 12.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.diff-file-stats { font-size: 11.5px; font-family: var(--mono); flex-shrink: 0; }
+.diff-add-count { color: var(--success); }
+.diff-del-count { color: var(--error); }
+.diff-body { background: var(--bg); overflow-x: auto; }
+.diff-line {
+  display: flex; font-family: var(--mono); font-size: 12px; line-height: 1.5; white-space: pre;
+}
+.diff-line.add { background: var(--success-dim); }
+.diff-line.del { background: var(--error-dim); }
+.diff-gutter {
+  flex-shrink: 0; width: 20px; text-align: center; user-select: none;
+  color: var(--text-faint);
+}
+.diff-line.add .diff-gutter { color: var(--success); }
+.diff-line.del .diff-gutter { color: var(--error); }
+.diff-text { flex: 1; padding-right: 10px; }
+.diff-more-btn {
+  display: block; width: 100%; text-align: center; padding: 6px; margin-top: 2px;
+  background: var(--surface-hi); border: none; border-top: 1px solid var(--border);
+  color: var(--accent); font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.diff-more-btn:hover { background: var(--surface); }
+
 /* B.2 (Mes 21) — chips para task_id y nombre de modelo dentro de la respuesta.
    Inline (mismo line-height que el texto), monoespaciado (los ids son
    tokens técnicos), fondo tenue, hover marcado. Dos variantes por color

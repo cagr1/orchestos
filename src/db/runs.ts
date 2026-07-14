@@ -26,6 +26,7 @@ export interface RunRecord {
   embed_hits: number | null
   context_warnings_json: string | null
   cost_breakdown_json: string | null
+  file_diffs: string | null
   status: 'done' | 'blocked' | 'failed'
   input_tokens: number
   output_tokens: number
@@ -35,7 +36,7 @@ export interface RunRecord {
   created_at: string
 }
 
-type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'qa_model' | 'checks_json' | 'constitution_rules' | 'context_source' | 'context_tokens' | 'embed_hits' | 'context_warnings_json' | 'cost_breakdown_json'> & {
+type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'qa_model' | 'checks_json' | 'constitution_rules' | 'context_source' | 'context_tokens' | 'embed_hits' | 'context_warnings_json' | 'cost_breakdown_json' | 'file_diffs'> & {
   qa_model?: string | null
   checks_json?: string | null
   constitution_rules?: number | null
@@ -44,6 +45,7 @@ type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'qa_model' | 'check
   embed_hits?: number | null
   context_warnings_json?: string | null
   cost_breakdown_json?: string | null
+  file_diffs?: string | null
 }
 
 export function insertRun(r: InsertRunRecord): string {
@@ -55,9 +57,9 @@ export function insertRun(r: InsertRunRecord): string {
       allowed_outputs, files_attempted, files_authorized, files_blocked,
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
-      cost_breakdown_json,
+      cost_breakdown_json, file_diffs,
       status, input_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id, r.project_id, r.prompt, r.task_class, r.model, r.provider, r.skill_id, r.task_id,
       r.allowed_outputs, r.files_attempted, r.files_authorized, r.files_blocked,
@@ -66,6 +68,7 @@ export function insertRun(r: InsertRunRecord): string {
       r.context_source ?? null, r.context_tokens ?? null, r.embed_hits ?? null,
       r.context_warnings_json ?? null,
       r.cost_breakdown_json ?? null,
+      r.file_diffs ?? null,
       r.status, r.input_tokens, r.output_tokens, r.usd_cost, r.elapsed_ms, r.result, now,
     ]
   )

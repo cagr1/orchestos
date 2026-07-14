@@ -50,6 +50,14 @@ export interface ContextWarningEntry {
   message: string
 }
 
+// v0.12/C — visor de diff por run (docs/diff-review-design.md). Solo presente en runs
+// 'done' (los caminos de fallo revierten el contenido, no hay nada que revisar).
+export interface FileDiffEntry {
+  path: string
+  status: 'added' | 'modified'
+  diff: string
+}
+
 export interface RunRow {
   id: string
   taskId: string | null
@@ -68,6 +76,8 @@ export interface RunRow {
   engine: 'single-shot' | 'agentic' | 'external' | null
   /** G.4 / B.2 — derived from costBreakdown[0].label (e.g. "agentic (N rounds)" → N). 1 for single-shot/external, null if unknown. */
   iterations: number | null
+  /** v0.12/C — parsed from file_diffs. [] si el run no lo produjo (fail/blocked, o previo al cambio). */
+  fileDiffs: FileDiffEntry[]
   createdAt: string
 }
 

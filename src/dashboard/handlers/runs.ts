@@ -1,13 +1,22 @@
 import { listRuns, getRun, deleteRun, type RunRecord } from '../../db/runs.ts'
 import type { MutationResult } from '../types.ts'
 import { parseCostBreakdownJson, type CostBreakdownEntry } from '../../run/transcript-parser.ts'
-import type { ContextWarningEntry, RunRow } from '../types.ts'
+import type { ContextWarningEntry, FileDiffEntry, RunRow } from '../types.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 
 function parseContextWarnings(raw: string | null | undefined): ContextWarningEntry[] {
   if (!raw) return []
   try {
     return JSON.parse(raw) as ContextWarningEntry[]
+  } catch {
+    return []
+  }
+}
+
+function parseFileDiffs(raw: string | null | undefined): FileDiffEntry[] {
+  if (!raw) return []
+  try {
+    return JSON.parse(raw) as FileDiffEntry[]
   } catch {
     return []
   }
@@ -49,6 +58,7 @@ function runRecordToRow(r: RunRecord): RunRow {
     contextWarnings: parseContextWarnings(r.context_warnings_json),
     engine,
     iterations,
+    fileDiffs: parseFileDiffs(r.file_diffs),
     elapsedMs: r.elapsed_ms,
     createdAt: r.created_at,
   }

@@ -49,6 +49,25 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&l
 function fmt(n) { return Number(n).toLocaleString('en-US'); }
 function usd(n) { return '$' + Number(n).toFixed(4); }
 
+// v0.12/C.2 — visor de diff por run (docs/diff-review-design.md, Decisión 5b).
+// El servidor persiste un unified diff (formato `diff`/git, vía createPatch de jsdiff);
+// acá solo se parsea a filas {type, text} para pintar +/- con color y gutter — no se
+// vuelve a calcular el diff en el navegador, solo se interpreta el texto ya generado.
+function parseUnifiedDiff(patchText) {
+  const lines = String(patchText || '').split('\n');
+  const rows = [];
+  for (const line of lines) {
+    if (line.startsWith('Index:') || line.startsWith('===') || line.startsWith('--- ') || line.startsWith('+++ ')) continue;
+    if (line.startsWith('@@')) { rows.push({ type: 'hunk', text: line }); continue; }
+    if (line.startsWith('+')) { rows.push({ type: 'add', text: line.slice(1) }); continue; }
+    if (line.startsWith('-')) { rows.push({ type: 'del', text: line.slice(1) }); continue; }
+    if (line.startsWith(' ')) { rows.push({ type: 'ctx', text: line.slice(1) }); continue; }
+    if (line === '' ) continue; // línea vacía final del patch
+    rows.push({ type: 'ctx', text: line });
+  }
+  return rows;
+}
+
 // Bloque F.1 (Mes 18) — todas las fechas venían de la DB como ISO-8601 UTC
 // (correcto para guardar) pero se mostraban truncando el string crudo con
 // .slice(), nunca convertidas a la hora del navegador. Este helper reemplaza

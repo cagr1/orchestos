@@ -130,13 +130,37 @@ Origen: Carlos (2026-07-13) — "el diff nos sirve de algo?". Sí: OrchestOS ya 
 worktree (`external.ts`, `git status --porcelain` → `FileChange[]`) pero es plomería interna, el
 humano nunca lo ve. Es la pieza de confianza (revisar/aprobar el cambio) que tienen Claude
 Desktop/Cursor/Orca y OrchestOS no.
-- [ ] C.1 🧠 Diseño (`docs/diff-review-design.md`): **read-only primero** — mostrar el diff de un
-  run (qué archivos, qué cambió) en el detalle del run, reusando el `FileChange[]` que el motor ya
-  produce. Decidir: ¿solo los 3 engines o también single-shot/agentic (que hoy bufferean en
-  memoria)? ¿diff contra qué base? Sin aprobar/rechazar todavía — solo *ver* (aprobar es superficie
-  nueva de acción, se evalúa después con la misma disciplina "leer vs actuar" del Mes 13).
-- [ ] C.2 ⚡ Implementación del visor en el detalle del run + endpoint que sirve el diff.
-- [ ] C.3 🔍 Verificar contra un run real (reusar `crypto-page-v1`/C.1 del Mes 20).
+- [x] C.1 🧠 Diseño (`docs/diff-review-design.md`). ✅ 2026-07-13 **read-only primero** — diff
+  calculado por CONTENIDO (before/after en memoria, `beforeContent`+`contractResult.written` que
+  el harness ya captura), no por `git diff` — el worktree se destruye siempre al terminar un run
+  disparado desde el dashboard, así que un `git diff` post-hoc no tendría contra qué correr.
+  Cobertura de los 3 engines gratis (el cálculo vive en `harness.ts`, después de que cualquier
+  engine ya normalizó su salida). Status solo `added`/`modified` (el contrato del LLM no puede
+  borrar archivos). Librería `diff` (jsdiff, MIT) para el patch + `diffLines()` para el
+  renderizado. Renderizado estilo Claude Desktop/GitHub (líneas +/- coloreadas con gutter,
+  colapsable en vez de truncado con pérdida de datos — decisión revisada con Carlos). Sin
+  aprobar/rechazar todavía (superficie de acción nueva, evaluada después, disciplina del Mes 13).
+- [x] C.2 ⚡ Implementación del visor en el detalle del run + endpoint que sirve el diff. ✅
+  2026-07-13 `bun add diff` (jsdiff v9, MIT). `computeFileDiffs(before, written)` en
+  `qa.ts` (junto a `ContentSnapshot`, evita import circular con `contract.ts`) — usa
+  `createPatch()` para el unified diff. Hook en `harness.ts` línea ~571 (camino de éxito
+  únicamente), pasando `beforeContent`+`contractResult.written` ya en scope. Nueva columna
+  `file_diffs TEXT` (`migrate.ts`/`runs.ts`), expuesta en `GET /api/runs/:id` (`RunRow.fileDiffs`,
+  antes esa ruta no exponía NINGÚN campo de archivos). Frontend: `parseUnifiedDiff()` (`data.js`)
+  interpreta el patch persistido a filas `{type, text}`; `SCREENS.runs.detail()` (`screens-ops.js`)
+  las pinta con gutter +/− y fondo verde/rojo (`screens.css`), colapsado a 15 líneas con botón
+  "Mostrar N más" si el diff supera 40 (nunca trunca datos — `state.diffExpanded` Set). i18n en/es.
+  5 tests unitarios de `computeFileDiffs` (added/modified/orden/vacío/defensivo). 685 tests · 0
+  fail · `tsc --noEmit` limpio.
+- [x] C.3 🔍 Verificado en vivo, dinero real (no seed manual). ✅ 2026-07-13 Tarea disposable
+  (`zzz-disposable-diff-viewer-c3`, DeepSeek, single-shot, `--sandbox cwd`) corrida de punta a
+  punta vía CLI real — confirmado en SQLite que `harness.ts` calculó `file_diffs` de verdad
+  (no solo en tests): `{"path":"scratch/diff-viewer-c3.md","status":"added","diff":"..."}`.
+  Renderizado en el dashboard real (puerto 4299, servidor bajado al terminar): badge `added`,
+  `+2 −0`, líneas verdes con gutter `+`. Colapso verificado por separado con un archivo de 60
+  líneas (datos sembrados para ese caso puntual): colapsa a 15 + botón, expande a 60 al click,
+  botón desaparece. Limpieza: run + tarea disposable + `scratch/diff-viewer-c3.md` borrados
+  tras verificar (mismo patrón de higiene que C.3/Mes 20).
 
 ### Bloque D — Paridad CLI↔dashboard REAL: auditar, no asumir (🧠)
 Origen: presentimiento de Carlos de que "el CLI no está del todo conectado". Verificado parcial: a

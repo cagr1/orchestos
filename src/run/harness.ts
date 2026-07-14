@@ -30,7 +30,7 @@ import { agenticEngine } from './executors/agentic.ts'
 import { externalEngine } from './executors/external.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './executors/types.ts'
 import { supportsToolCalling } from '../providers/tool-call.ts'
-import { runQA, snapshotContents, restoreContents, MAX_RETRIES } from './qa.ts'
+import { runQA, snapshotContents, restoreContents, computeFileDiffs, MAX_RETRIES } from './qa.ts'
 import { RunLogger } from './logger.ts'
 import { insertRun } from '../db/runs.ts'
 import { costBreakdownToJson } from './transcript-parser.ts'
@@ -568,7 +568,12 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       log.info(`sandbox: merged ${mergedBranch} into ${sandboxBranch ?? ''}`)
     }
 
-    const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, qa_model: qa.model, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, cost_breakdown_json: breakdownJson, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
+    // v0.12/C.2 — visor de diff (docs/diff-review-design.md): solo en el camino de éxito,
+    // los caminos de fallo revierten el contenido (restoreContents) así que "lo que cambió"
+    // no sobrevive y no tiene valor de revisión.
+    const fileDiffs = computeFileDiffs(beforeContent, contractResult.written)
+
+    const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, qa_model: qa.model, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, cost_breakdown_json: breakdownJson, file_diffs: fileDiffs.length ? JSON.stringify(fileDiffs) : null, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
 
     log.qaPass(qa.reason)
     log.done()
