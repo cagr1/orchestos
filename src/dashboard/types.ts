@@ -20,6 +20,9 @@
  *   GET  /api/providers/local      → LocalProviderResponse
  *   POST /api/chat/upload          → ChatUploadResponse
  *   POST /api/setup/api-key        → ApiKeyValidationResponse
+ *   GET  /api/project/constitution → { content, exists }   (D.1.b)
+ *   PUT  /api/project/constitution → MutationResult       (D.1.b)
+ *   GET  /api/project/summary      → application/pdf      (D.1.c)
  *
  * All GET endpoints return JSON arrays sorted by most-recent first.
  * All POST endpoints return MutationResult.

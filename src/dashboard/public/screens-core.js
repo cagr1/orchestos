@@ -337,6 +337,14 @@ SCREENS.chat = {
     // al poll de 30s (mismo patrón que composeDraft, línea ~872).
     textareaEl?.addEventListener('input', () => { st.chatDraft = textareaEl.value; });
 
+    // 2026-07-14 (corrección de Carlos) — el botón de enviar arranca en
+    // color "muted" y solo recupera su color de acento cuando hay texto,
+    // sin depender de un rerender completo (perdería el foco/caret).
+    const sendBtn = root.querySelector('.chat-send-btn[data-act="chat-send"]');
+    const syncSendBtnState = () => sendBtn?.classList.toggle('has-text', !!textareaEl?.value.trim());
+    textareaEl?.addEventListener('input', syncSendBtnState);
+    syncSendBtnState();
+
     // B.2 (Mes 21) — click handlers de los chips dentro de la respuesta.
     // Task chip → abre la tarea en su side panel (Tasks screen). Model chip →
     // setea el modelo del chat + enfoca el composer para que el próximo
@@ -767,6 +775,24 @@ SCREENS.tasks = {
       return `<div class="screen">${head}${compose}${errorState(t('tasks.err.title'), t('tasks.err.body'))}</div>`;
 
     const allTasks = st.tasks || [];
+
+    // v0.12 / Bloque D.1.a — si tasks.yaml no existe, el composer no puede
+    // funcionar (POST /api/tasks devuelve 404). En vez de esconder el botón
+    // a secas, mostramos un empty state con CTA claro que llama a
+    // POST /api/tasks/init. Es el cierre del gap "no-dev bloqueado antes de
+    // crear su primera tarea". El `Modal.confirm()` en el handler es la red
+    // de seguridad contra clicks accidentales.
+    if (st.tasksYamlExists === false) {
+      return `<div class="screen">${head}${emptyState(ICON.tasks, t('tasks.init.empty.title'), t('tasks.init.empty.body'))}<div style="text-align:center;margin-top:8px">
+        <button class="btn primary" data-act="tasks-init">${ICON.plus} ${t('tasks.init.btn')}</button>
+        <div id="tasks-init-msg" style="font-size:12px;display:none;margin-top:8px"></div>
+      </div></div>`;
+    }
+
+    if (st.tasksYamlError) {
+      return `<div class="screen">${head}${compose}${errorState(t('tasks.parseErr.title'), t('tasks.parseErr.body', esc(st.tasksYamlError)))}</div>`;
+    }
+
     if (allTasks.length === 0)
       return `<div class="screen">${head}${compose}${emptyState(ICON.tasks, t('tasks.empty.title'), t('tasks.empty.body'))}</div>`;
 
@@ -868,6 +894,30 @@ SCREENS.tasks = {
   wire(root, st) {
     wireBulkSelect(root, 'tasks', '/api/tasks/bulk-delete', () => App.fetchTasks(), t('bulk.resource.tasks'));
     root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
+
+    // v0.12 / Bloque D.1.a — CTA "Initialize tasks.yaml" del empty state de
+    // archivo faltante. Modal.confirm() da la red de seguridad (mismo patrón
+    // que el resto de acciones destructivas del Bloque A); on success,
+    // refetchAll para que la sidebar de runs/health también reflejen el cambio.
+    const initBtn = root.querySelector('[data-act="tasks-init"]');
+    if (initBtn) initBtn.addEventListener('click', async () => {
+      const ok = await Modal.confirm(t('tasks.init.confirm.title'), t('tasks.init.confirm.body'), t('tasks.init.btn'));
+      if (!ok) return;
+      const btn = initBtn;
+      const msg = root.querySelector('#tasks-init-msg');
+      btn.disabled = true;
+      try {
+        const result = await App.initTasksYaml();
+        msg.textContent = t('tasks.init.ok', result.taskIds?.length || 0);
+        msg.style.color = 'var(--accent)'; msg.style.display = '';
+        showToast(t('tasks.init.toast', result.taskIds?.length || 0));
+        App.rerender();
+      } catch (e) {
+        msg.textContent = e.message;
+        msg.style.color = 'var(--error)'; msg.style.display = '';
+      } finally { btn.disabled = false; }
+    });
+
     root.querySelector('[data-act="new-task"]')?.addEventListener('click', () => Modal.openTask());
 
     const input = root.querySelector('#compose-input');

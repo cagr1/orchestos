@@ -234,14 +234,22 @@ button { font-family: inherit; }
    texto ni el botón de search se muestran (display:none, no solo width:0,
    porque nunca hay label que los reemplace). */
 .sidebar-toprow {
+  height: var(--header-h); box-sizing: border-box;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 8px 9px; flex-shrink: 0;
+  padding: 0 8px; flex-shrink: 0;
 }
 .sidebar-brand-text {
   font-weight: 600; letter-spacing: -0.01em; font-size: 14px; color: var(--text);
   white-space: nowrap; overflow: hidden;
 }
 .sidebar-brand-text span { color: var(--accent); }
+/* 2026-07-14 (corrección de Carlos) — logo del riel colapsado: oculto por
+   defecto (expandido ya muestra el texto de marca), visible SOLO cuando el
+   sidebar está colapsado Y el mouse no está encima de la fila (ver el swap
+   con `.sidebar-toprow-icons` más abajo — nunca los dos a la vez). */
+.sidebar-toprow-logo { display: none; width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+.app[data-sidebar="collapsed"] .sidebar-toprow-logo { display: block; }
+.app[data-sidebar="collapsed"] .sidebar-toprow:hover .sidebar-toprow-logo { display: none; }
 .sidebar-toprow-icons { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 /* Mismo tamaño que .header-icon-btn — "todos los íconos más pequeños". Clase
    propia (no `.nav-icon`) para no heredar la regla que oculta el tooltip
@@ -267,9 +275,17 @@ button { font-family: inherit; }
   z-index: 200; pointer-events: none;
   box-shadow: 0 6px 18px rgba(0,0,0,.4);
 }
-.app[data-sidebar="collapsed"] .sidebar-toprow { justify-content: center; padding: 10px 0 9px; }
+/* sin padding vertical propio (2026-07-14, corrección de Carlos) — la fila
+   ya tiene su altura fija arriba (var(--header-h)); un padding acá la volvía
+   a desalinear del header/rp-toprow, que es justo el bug que se reportó. */
+.app[data-sidebar="collapsed"] .sidebar-toprow { justify-content: center; padding: 0; }
 .app[data-sidebar="collapsed"] .sidebar-brand-text,
 .app[data-sidebar="collapsed"] .sidebar-search-btn { display: none; }
+/* Colapsado: por defecto solo se ve el logo (arriba); al hacer hover sobre
+   la fila, el logo se oculta y aparece el botón panel-left en su lugar
+   (mismo `justify-content:center` los mantiene centrados a ambos). */
+.app[data-sidebar="collapsed"] .sidebar-toprow-icons { display: none; }
+.app[data-sidebar="collapsed"] .sidebar-toprow:hover .sidebar-toprow-icons { display: flex; }
 
 .header .spacer { flex: 1; }
 
@@ -290,6 +306,21 @@ button { font-family: inherit; }
 .header-icon-btn:hover { color: var(--accent); background: var(--surface-2); }
 .header-icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .header-icon-btn.active { color: var(--accent); background: var(--surface-hi); border-color: var(--border); }
+.header-icon-btn { position: relative; }
+/* 2026-07-14 (corrección de Carlos) — #rpToggle SIEMPRE pegado al borde
+   derecho de #rpToprow (margin-left:auto lo empuja ahí, sea que existan 0 o
+   3 hermanos a su izquierda). Ese borde derecho ES el borde derecho de la
+   pantalla (última columna del grid), así que el ícono queda fijo en
+   pantalla al expandir/colapsar el aside — ver comentario en app.js. */
+#rpToggle { margin-left: auto; }
+.header-icon-btn[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; right: calc(100% + 12px); top: 50%; transform: translateY(-50%);
+  background: #1c2128; color: #c9d1d9; border: 1px solid #30363d;
+  padding: 4px 9px; border-radius: 6px; font-size: 11.5px; white-space: nowrap;
+  z-index: 200; pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0,0,0,.4);
+}
 
 /* status badge */
 .status-badge {
@@ -319,7 +350,10 @@ button { font-family: inherit; }
   flex-direction: column;
   align-items: stretch;
   gap: 3px;
-  padding: 9px 8px;
+  /* sin padding-top: .sidebar-toprow fija su propia altura (var(--header-h))
+     para quedar a nivel exacto con .header y .rp-toprow (2026-07-14,
+     corrección de Carlos) — un padding acá lo desplazaría hacia abajo. */
+  padding: 0 8px 9px;
   border-right: 1px solid var(--border);
   background: var(--surface);
   z-index: 1;
@@ -532,7 +566,10 @@ button { font-family: inherit; }
   border-left: 1px solid var(--border);
   background: var(--surface);
   min-width: 0;
-  overflow: hidden;
+  /* sin overflow:hidden acá (2026-07-14, corrección de Carlos) — igual que
+     .sidebar, nunca clippea a nivel de aside: el clip horizontal real vive
+     en .rp-body (ver abajo), así el tooltip del toggle (::after, abre hacia
+     la izquierda) puede escapar sobre .main sin cortarse. */
 }
 /* 2026-07-13 (corrección de Carlos, ronda 3) — toprow propio del aside
    derecho: explorer/terminal/diff/cerrar, TODOS a la izquierda (pedido
@@ -543,12 +580,15 @@ button { font-family: inherit; }
   display: flex; align-items: center; gap: 2px;
   padding: 0 8px;
   border-bottom: 1px solid var(--border);
-  overflow: hidden; /* riel colapsado (46px): el toggle es el único hijo, nunca desborda */
+  /* sin overflow:hidden (2026-07-14, corrección de Carlos) — con el riel
+     colapsado el toggle sigue siendo el único hijo (nunca desborda el
+     ancho), pero overflow:hidden acá recortaba su tooltip (::after, abre
+     hacia la izquierda porque el aside está pegado al borde derecho). */
 }
 /* ronda 4 — sin contenido visible mientras el riel está colapsado (el
    toggle vive solo en .rp-toprow ahí arriba). */
 .app[data-rightpanel="collapsed"] .rp-body { display: none; }
-.rp-body { flex: 1; min-height: 0; overflow-y: auto; }
+.rp-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 
 /* Terminal tab — mismo contenido que antes vivía en el footer fijo, ahora
    dentro del panel derecho como una de sus 3 vistas. */

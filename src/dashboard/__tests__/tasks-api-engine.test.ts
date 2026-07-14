@@ -51,6 +51,20 @@ interface TaskRow {
   engine: 'single-shot' | 'agentic' | 'external' | null
 }
 
+/** v0.12 / Bloque D.1.a — GET /api/tasks ahora devuelve { exists, tasks, error? }
+ * en vez de un array pelado. Este helper extrae `tasks` con la misma forma
+ * que antes para no tocar cada expect() del archivo. */
+interface TasksListResponse {
+  exists: boolean
+  tasks: TaskRow[]
+  error?: string
+}
+async function getTasks(): Promise<TaskRow[]> {
+  const res = await route(req('GET', '/api/tasks'), PORT)
+  const body = await res.json() as TasksListResponse
+  return body.tasks
+}
+
 describe('G.4 — POST /api/tasks acepta engine', () => {
   it('engine="agentic" persiste el campo en tasks.yaml y aparece en GET /api/tasks', async () => {
     const res = await route(req('POST', '/api/tasks', {
@@ -70,8 +84,7 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     expect(yaml).toContain('engine: agentic')
 
     // Visible en GET /api/tasks
-    const listRes = await route(req('GET', '/api/tasks'), PORT)
-    const rows = await listRes.json() as TaskRow[]
+    const rows = await getTasks()
     expect(rows).toHaveLength(1)
     expect(rows[0]!.id).toBe('agentic-task')
     expect(rows[0]!.engine).toBe('agentic')
@@ -89,8 +102,7 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
     expect(yaml).toContain('engine: single-shot')
 
-    const listRes = await route(req('GET', '/api/tasks'), PORT)
-    const rows = await listRes.json() as TaskRow[]
+    const rows = await getTasks()
     expect(rows[0]!.engine).toBe('single-shot')
   })
 
@@ -105,8 +117,7 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
     expect(yaml).not.toContain('engine:')
 
-    const listRes = await route(req('GET', '/api/tasks'), PORT)
-    const rows = await listRes.json() as TaskRow[]
+    const rows = await getTasks()
     expect(rows[0]!.engine).toBeNull()
   })
 
@@ -136,8 +147,7 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
     expect(yaml).not.toContain('engine:')
 
-    const listRes = await route(req('GET', '/api/tasks'), PORT)
-    const rows = await listRes.json() as TaskRow[]
+    const rows = await getTasks()
     expect(rows[0]!.engine).toBeNull()
   })
 
@@ -146,8 +156,7 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     await route(req('POST', '/api/tasks', { id: 'b', description: 'B', output: ['o.txt'], engine: 'single-shot' }), PORT)
     await route(req('POST', '/api/tasks', { id: 'c', description: 'C', output: ['o.txt'] }), PORT)
 
-    const listRes = await route(req('GET', '/api/tasks'), PORT)
-    const rows = (await listRes.json() as TaskRow[]).sort((x, y) => x.id.localeCompare(y.id))
+    const rows = (await getTasks()).sort((x, y) => x.id.localeCompare(y.id))
     expect(rows).toHaveLength(3)
     expect(rows[0]!.engine).toBe('agentic')
     expect(rows[1]!.engine).toBe('single-shot')
@@ -167,8 +176,7 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
     expect(yaml).toContain('engine: external')
 
-    const listRes = await route(req('GET', '/api/tasks'), PORT)
-    const rows = await listRes.json() as TaskRow[]
+    const rows = await getTasks()
     expect(rows).toHaveLength(1)
     expect(rows[0]!.engine).toBe('external')
   })
@@ -194,8 +202,7 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     await route(req('POST', '/api/tasks', { id: 'e', description: 'E', output: ['o.txt'], engine: 'external' }), PORT)
     await route(req('POST', '/api/tasks', { id: 'n', description: 'N', output: ['o.txt'] }), PORT)
 
-    const listRes = await route(req('GET', '/api/tasks'), PORT)
-    const rows = (await listRes.json() as TaskRow[]).sort((x, y) => x.id.localeCompare(y.id))
+    const rows = (await getTasks()).sort((x, y) => x.id.localeCompare(y.id))
     expect(rows).toHaveLength(4)
     expect(rows[0]!.engine).toBe('agentic')
     expect(rows[1]!.engine).toBe('single-shot')

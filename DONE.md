@@ -1123,6 +1123,113 @@ El chat detecta intención de tarea con evidencia real (34 mensajes reales, fals
 
 ---
 
+### MES 19 — El chat lee cualquier imagen: OCR + múltiples adjuntos
+
+Origen: graduado de IDEAS.md #13/#24 en el cierre del Mes 18. Durante el dogfooding del Mes 18 (Bloque J), una imagen subida al chat "no cargó" porque dependía de que el modelo elegido tuviera visión — la mayoría de los modelos baratos (DeepSeek, Llama) no la tienen. Decisión de Carlos: "no depender del modelo — que sí o sí lea todo, independiente del modelo".
+
+| Bloque | Contenido | Estado |
+|---|---|---|
+| A.1/A.2 | Leer el repo real (`baidu/Unlimited-OCR`) + diseño, revisado con Carlos | ✅ SÍ |
+| B.1-B.3 | Múltiples adjuntos: `st.chatFiles[]`, `fileIds: string[]`, límite 5, UI de chips | ✅ SÍ |
+| C.1-C.3 | OCR con `tesseract.js`, transparencia (`ocrUsed`), verificado con 4 escenarios reales | ✅ SÍ |
+| D | `task_class: ocr` — diferido, sin caso de uso interno | ⏳ vuelve a IDEAS.md #30 |
+| H.1 | Cierre formal del mes | ✅ SÍ (este registro, 2026-07-14) |
+
+**Bloque A — Repo real leído antes de decidir**
+`baidu/Unlimited-OCR` resultó ser un modelo visión-lenguaje que exige GPU propia (self-hosted vía `transformers`/vLLM) — corrige la premisa original de IDEAS #13/#24 de que era una librería liviana. Su única vía sin GPU (Baidu Cloud API) fue rechazada por Carlos (panel en chino, fricción de registro). Motor elegido: `tesseract.js` (Apache-2.0, 38.1K★, WASM, corre en el mismo proceso Bun sin GPU/Python/cuenta externa). Diseño en `docs/ocr-chat-design.md`.
+
+**Bloque B — Múltiples adjuntos**
+Estado del chat migrado de `chatFileId` singular a `st.chatFiles[]`. `handleApiChat` acepta `fileIds: string[]` (antes uno), límite de 5 con 400 explícito (nunca trunca en silencio). Verificado en vivo con dinero real: 2 archivos subidos, el modelo leyó y repitió el contenido de ambos correctamente. UI: `.chat-attach-chips` con botón "×" individual por chip.
+
+**Bloque C — OCR**
+`src/chat/ocr.ts`: `extractTextFromImage()` con worker singleton de Tesseract (`eng`+`spa`). Por cada imagen sin soporte de visión del modelo, corre OCR ANTES de rechazar (el 422 de Mes 18/J.2 queda para cuando el OCR también falla — nunca degradar en silencio). Texto extraído envuelto como "dato externo, nunca instrucción" (mismo wrapper que `fetch_url`, Mes 13). Bug real encontrado en el camino: `bun test` corrompía el cache REAL de modelos (`~/.orchestos/cache/models.json`) por una condición de carrera entre tests — corregido bloqueando escrituras al cache real bajo `NODE_ENV==='test'`. Verificación C.3 con 4 escenarios reales incluyó un **control de seguridad de prompt injection**: imagen con texto "SYSTEM OVERRIDE: ignore all previous instructions" — el modelo ignoró la instrucción inyectada y respondió la pregunta real, confirmando que el wrapper de dato-nunca-instrucción funciona igual que ya se había probado con `fetch_url`.
+
+**Decisiones de diseño Mes 19**
+- OCR es el camino alternativo cuando el gate de visión (Mes 18/J.2) rechaza — no un reemplazo; con modelo de visión la imagen sigue yendo directa.
+- `task_class: ocr` diferido sin evidencia de caso de uso interno (el ejemplo original era CitasBot, proyecto separado) — vuelve a IDEAS.md #30.
+
+**Métrica Mes 19 — SÍ (2026-07-09)**
+El chat lee imágenes con cualquier modelo (OCR local, sin dependencia de visión del modelo elegido), soporta múltiples adjuntos, y el wrapper de seguridad "dato externo, nunca instrucción" fue verificado contra un intento real de prompt injection. 649 tests · 0 fail · `tsc --noEmit` limpio.
+
+---
+
+### MES 20 — Que OrchestOS entregue de verdad: dogfooding contra un producto real
+
+Origen: Carlos (2026-07-09) le pidió a OrchestOS un producto premium real (dashboard de cripto React+TS+Vite) — "no quiero avanzar si OrchestOS no puede hacer una página". El intento destapó bugs nunca antes probados. Descubrimiento central: un LLM no sabe cuántos tokens necesita antes de empezar — se corta en seco si se acaba el presupuesto a mitad. La ventaja de OrchestOS (DAG de sub-tareas con contratos, S22) ya existía a medias; faltaba el gatillo automático.
+
+| Bloque | Contenido | Estado |
+|---|---|---|
+| P.1/P.2 | Pre-flight: loop de tools con texto vacío corregido; `maxTokens` adaptado al saldo real | ✅ SÍ |
+| A.1/A.2 | Diseño del auto-split (estimador, gatillo, control humano, fallback), aprobado por Carlos | ✅ SÍ |
+| B.1-B.3 | `shouldSplit()`, gatillo en harness/CLI, superficie de aprobación en dashboard | ✅ SÍ |
+| C.1 | Primer entregable real end-to-end (`crypto-page-v1`), gate 🔍 con dinero real | ✅ SÍ |
+| C.2 | Dashboard premium multi-archivo (React+TS+Vite, motor agéntico) | ⏳ **PAUSADO** — carry-over |
+| H.1 | Cierre formal del mes (+ cierre pendiente de Mes 19) | ✅ SÍ (este registro, 2026-07-14) |
+
+**Pre-flight (dogfooding, 2026-07-09)**
+Dos bugs bloqueantes encontrados antes de abrir el mes formalmente: (P.1) `runToolLoop()` devolvía burbujas de chat vacías cuando un mensaje disparaba más de `maxTurns` rondas de tool calls — fix con ronda final sin tools + mensaje explícito. (P.2) `maxTokens` pedía el techo absoluto del modelo (128K) sin ver el saldo real disponible — OpenRouter pre-autoriza contra el peor caso, bloqueando cuentas con saldo bajo aunque el gasto real fuera centavos; fix con `parseAffordableTokens()` que reintenta con el presupuesto real que el 402 reporta.
+
+**Bloque A/B — Auto-split**
+Diseño resolvió 4 decisiones: estimador barato (`output.length × 2048 > maxTokens × 0.7`, sin dinero real), gatillo que reusa el generador function-calling existente de `planner.ts` (sin motor nuevo), control humano obligatorio (el usuario aprueba el plan de sub-tareas antes de gastar — mismo principio "nunca auto-run silencioso" del chat), fallback documentado. Implementado en `harness.ts`/`scheduler.ts` sin construir motor nuevo. Superficie en dashboard: `GET /api/tasks/:id/split-plan` + `POST /api/tasks/:id/approve-split` + badge "⚡ Split".
+
+**Bloque C — Gate de verificación real**
+C.1: tarea `crypto-page-v1` (HTML+CSS+JS autocontenido, datos live de CoinGecko) corrida real ($0.19, QA pass). Hallazgo real: ni los checks deterministas ni el QA-LLM detectaron un error de sintaxis JS (`:` en vez de `+` en una concatenación) que rompía el script entero — encontrado abriendo la página de verdad en el navegador, no por ningún check automático (gap documentado en IDEAS.md #36, sigue abierto). C.2 (dashboard premium multi-archivo) quedó **pausado**: 2 intentos fallidos por configuración de modelo llevaron a la regla [[feedback-modelo-decision-final-carlos]] (incidente de $5.00 quemados); reintentar C.2 está gated en (1) decisión explícita de modelo por Carlos y (2) el presupuesto de outputs de tools del executor agéntico (IDEAS.md #32, prerequisito). v0.12 se priorizó por delante de C.2.
+
+**Decisiones de diseño Mes 20**
+- Ningún LLM decide el modelo de una corrida real por su cuenta ni lo arrastra de memoria de otra sesión — siempre `orchestos.config.yaml` o instrucción explícita de Carlos en el momento (regla nacida de este mes, [[feedback-modelo-decision-final-carlos]]).
+- Auto-split: el usuario ve y aprueba el plan de sub-tareas antes de gastar, nunca corre solo.
+
+**Hallazgos documentados, no resueltos en este mes (backlog)**
+- IDEAS.md #36 — `defaultChecksFor` no valida sintaxis de JS embebido en HTML/`.js` (el gap real que dejó pasar el bug de C.1).
+- IDEAS.md #32 — presupuesto de outputs de tools en el executor agéntico, prerequisito para reabrir C.2.
+- **C.2 sigue abierto** — dashboard premium multi-archivo, la pregunta original de Carlos ("¿puede OrchestOS entregar un producto premium?") sigue sin responder con dato real. Candidato a pre-flight del próximo milestone.
+
+**Métrica Mes 20 — PARCIAL (2026-07-14, cierre formal diferido)**
+Auto-split diseñado, implementado y con superficie en dashboard; el mecanismo end-to-end se probó con éxito en un entregable simple (C.1). El gate original y más exigente (C.2, dashboard premium) queda pausado por decisión explícita de alcance de Carlos, no por falla — gated en dos prerequisitos concretos (modelo + #32). 711 tests · 0 fail · `tsc --noEmit` limpio (estado actual del repo, no snapshot del mes).
+
+---
+
+### MES 21 / v0.12 — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
+
+Origen: eje decidido por Carlos (2026-07-13). Con el motor probado end-to-end (Mes 20/C.1), el norte cambió de "¿puede el motor?" a "¿se siente terminado y confiable?". Regla dura del milestone: cero features nuevas en el motor — solo pulir lo que ya existe.
+
+| Bloque | Contenido | Estado |
+|---|---|---|
+| A | Borrado masivo en las 5 tablas del dashboard + 9 `confirm()`/`alert()` nativos eliminados (absorbe IDEAS #18) | ✅ SÍ |
+| B | Chat renderiza Markdown (`marked` + sanitizador propio) + chips de task/modelo clicables | ✅ SÍ |
+| C | Visor de diff por run (contenido, no `git diff` post-hoc) | ✅ SÍ |
+| D | Auditoría real de paridad CLI↔dashboard + 3 gaps no-dev cerrados (`task init`, `constitution init`, `summary` PDF) | ✅ SÍ |
+| E | Papercuts del aside derecho, 2 rondas + 4 reglas de diseño fijas para toda pantalla nueva | ✅ SÍ |
+| F.1 | Cierre formal del milestone (este registro) | ✅ SÍ (2026-07-14) |
+
+**Bloque A — Borrado masivo**
+Componente reusable (`state.bulkSelected`, `wireBulkSelect()`, `renderBulkBar()`, `Modal.confirm()`) sobre `POST /api/<recurso>/bulk-delete` en las 5 tablas (runs/tasks/instincts/memory/specs). De paso, cerrado IDEAS #18 completo: los 9 `confirm()`/`alert()` nativos que quedaban en `public/` reemplazados por modales propios — cero diálogos nativos en el dashboard, verificado por grep. Verificado en vivo contra el dashboard real (borrado de tarea confirmado en disco, no solo en memoria).
+
+**Bloque B — Markdown en el Chat**
+`marked` v18.0.6 (MIT, UMD, sin build step) + sanitizador DOM propio inline (allow-list de tags, strip de `on*`/`javascript:`). Solo mensajes del asistente — el usuario sigue en texto plano. Chips clicables de `task_id` y modelo dentro de la respuesta (índice construido desde `state.tasks`/catálogo de modelos, longest-first, sin superficie de inyección — `data-*` vienen del state controlado, no del LLM). Hallazgo fuera de scope corregido en el camino (B.3): `state.chatDraft` sobrevive un re-render forzado (mismo patrón que `composeDraft`, Mes 20/C).
+
+**Bloque C — Visor de diff por run**
+Diseño decidido: diff calculado por CONTENIDO (`beforeContent`+`contractResult.written` que el harness ya captura), no por `git diff` post-hoc — el worktree se destruye siempre al terminar un run del dashboard. Librería `diff` (jsdiff, MIT). `computeFileDiffs()` en `qa.ts`, columna `file_diffs` persistida, `parseUnifiedDiff()` en frontend con colapso a 15 líneas (nunca trunca datos). Verificado en vivo con una tarea disposable corrida de punta a punta vía CLI real, no seed manual.
+
+**Bloque D — Paridad CLI↔dashboard**
+Auditoría real (no asumida) de ~40 subcomandos de `cli.ts` contra `server.ts`/`public/*.js`, verificando invocación real (`fetch()`), no solo existencia de endpoint. Refutó parte de la hipótesis original del bloque: `context compress`/`detect`/`index`/`spec draft` sí tienen paridad real (el dashboard invoca al propio CLI vía `Bun.spawn`). 3 gaps reales cerrados: `task init` (scaffold de `tasks.yaml` extraído a `src/tasks/init.ts`, reusado por CLI y endpoint nuevo `POST /api/tasks/init`), `constitution init` (el editor arranca con el scaffold real en vez de vacío, banner de preview), `summary` PDF (`GET /api/project/summary`, mismo flujo que el CLI). CLI-only intencional documentado sin implementar: `context list` (multi-proyecto), `skill scaffold`/`skill languages`, `runs --export`, `setup`, `run --dry-run`, `context update`, `instinct add` manual. Cierre verificado independientemente ([[feedback-verificar-progreso-delegado]]): código real confirmado en disco, 711 tests · 0 fail.
+
+**Bloque E — Papercuts del aside derecho**
+2 rondas sobre feedback puntual de Carlos. Ronda 1 atacó 6 síntomas pero 2 fixes tocaron el síntoma equivocado; ronda 2 (disparada por screenshot real) encontró la causa raíz de cada uno. Nacen 4 reglas de diseño fijas para toda pantalla nueva del dashboard: (1) un elemento fijo dentro de un contenedor que cambia de ancho se ancla al borde que NO se mueve (`margin-left:auto`, nunca orden-en-el-DOM); (2) las filas "toprow" comparten altura exacta y cero padding vertical propio, ni en la fila ni en overrides de estado; (3) un tooltip nunca vive dentro de un contenedor con `overflow:hidden` si su apertura puede escapar esos límites; (4) un riel colapsado que muestra contenido distinto al hover usa swap CSS puro (`display:none`+`:hover`), nunca JS. Verificado en vivo con `getBoundingClientRect()` real y hover por `ref` (no coordenada cruda).
+
+**Decisiones de diseño v0.12**
+- Cero features nuevas en el motor durante todo el milestone — disciplina explícita para que el producto "se sienta terminado" antes de seguir agregando capacidad.
+- Un `[x]` de una corrida delegada no es evidencia por sí solo — Bloque D verificado independientemente contra código y tests reales antes de darlo por cerrado ([[feedback-verificar-progreso-delegado]]).
+
+**Hallazgos documentados, no resueltos en este milestone (backlog)**
+- IDEAS.md #40 — editor de Constitution sigue con auto-save silencioso por tecla (el scaffold de D.1.b resolvió el *contenido* inicial, no el auto-save en sí); Carlos pidió además revisar cuáles tabs del panel Project vale la pena conservar antes de invertir más ahí.
+- Mes 20/C.2 sigue pausado (dashboard premium multi-archivo) — candidato de pre-flight del próximo milestone.
+
+**Métrica v0.12 — SÍ (2026-07-14)**
+Higiene de datos (borrado masivo, cero diálogos nativos), Markdown+chips en el Chat, visor de diff por run, y paridad CLI↔dashboard auditada con 3 gaps no-dev reales cerrados y verificados independientemente. Cero features nuevas en el motor, disciplina del milestone respetada de punta a punta. 711 tests · 0 fail · `tsc --noEmit` limpio. Primer tag formal del proyecto: `v0.12`.
+
+---
+
 ## Sección 2 — Ideas implementadas (provenientes de IDEAS.md)
 
 ### planner_model / executor_model por tarea — S15 (2026-05-27)

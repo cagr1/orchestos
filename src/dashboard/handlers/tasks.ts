@@ -2,6 +2,7 @@ import { resolve, join } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { diagnoseTask } from '../../agents/diagnose.ts'
 import { loadTasks, saveTasks } from '../../tasks/loader.ts'
+import { scaffoldTasksYaml } from '../../tasks/init.ts'
 import type { TaskRow, DiagnoseRow, SplitPlanResponse } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
 import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/registry.ts'
@@ -35,8 +36,75 @@ function loadTaskRows(root: string): TaskRow[] {
   }
 }
 
+/**
+ * v0.12 / Bloque D.1.a — GET /api/tasks ahora devuelve un wrapper
+ * `{ exists, tasks, error? }` en vez de un array pelado, para que el frontend
+ * pueda distinguir 3 estados que antes colapsaban a "lista vacía":
+ *   - `exists:false` → el archivo no existe (D.1.a — antes era indistinguible)
+ *   - `exists:true, tasks:[]` → archivo existe pero está vacío
+ *   - `exists:true, tasks:[...], error?` → archivo existe pero está malformado
+ *     (el `error` viene del loader; las `tasks` se devuelven como [] en ese caso)
+ * Es un breaking change para los 2 consumidores internos (app.js:343 y
+ * tasks.html:52) — ambos se actualizan en este mismo bloque.
+ *
+ * NOTA: usamos `loadTasks()` directamente en vez de `loadTaskRows()` (que
+ * traga el error internamente) — necesitamos exponer el error de parseo al
+ * frontend para que pueda mostrar el mensaje real en vez de un "no hay
+ * tareas" engañoso. `loadTaskRows()` se sigue usando en otros sitios (graph
+ * runner) que sí quieren tragarse el error.
+ */
 function handleApiTasks(): Response {
-  return jsonResponse(loadTaskRows(resolve('.')))
+  const root = resolve('.')
+  const tasksYamlPath = join(root, 'tasks.yaml')
+  if (!existsSync(tasksYamlPath)) {
+    return jsonResponse({ exists: false, tasks: [] })
+  }
+  try {
+    const file = loadTasks(root)
+    const rows: TaskRow[] = file.tasks.map(t => ({
+      id: t.id,
+      description: t.description,
+      status: t.status,
+      skill: t.skill ?? null,
+      executor: t.executor,
+      retryCount: t.retry_count,
+      qaVerdict: t.qa_verdict ?? null,
+      runId: t.run_id ?? null,
+      engine: t.engine ?? null,
+      hasSplitPlan: existsSync(join(root, `${t.id}.plan.yaml`)),
+    }))
+    return jsonResponse({ exists: true, tasks: rows })
+  } catch (e: any) {
+    return jsonResponse({ exists: true, tasks: [], error: e.message })
+  }
+}
+
+/**
+ * v0.12 / Bloque D.1.a — POST /api/tasks/init
+ * Crea el primer `tasks.yaml` con 2 tareas starter basadas en el stack
+ * detectado. Devuelve 409 si el archivo ya existe (no se sobreescribe), 500
+ * en cualquier otro fallo. La lógica de scaffold vive en `src/tasks/init.ts`
+ * para que el CLI `orchestos task init` y este endpoint compartan el mismo
+ * código.
+ */
+async function handleApiTasksInit(): Promise<Response> {
+  const root = resolve('.')
+  try {
+    const result = await scaffoldTasksYaml(root)
+    return jsonResponse({
+      ok: true,
+      path: result.path,
+      project: result.project,
+      framework: result.framework,
+      runtime: result.runtime,
+      taskIds: result.taskIds,
+    })
+  } catch (e: any) {
+    if (/already exists/i.test(e.message)) {
+      return errorResponse(e.message, 409)
+    }
+    return errorResponse(e.message, 500)
+  }
 }
 
 function descToTaskId(desc: string): string {
@@ -298,4 +366,4 @@ function handleApiTasksApproveSplit(url: URL): Response {
   return jsonResponse({ ok: true, id, message: `Split plan for "${id}" approved — executing ${planPath}` })
 }
 
-export { handleApiTasks, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, loadTaskRows, isKnownSkillId }
+export { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, loadTaskRows, isKnownSkillId }

@@ -18,6 +18,9 @@ Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashb
 [PLAN.md](PLAN.md) § v0.12.
 
 **P1 — acabado / papercuts que hacen que se sienta terminado (candidatos v0.12 tardío / v0.13):**
+- #43 — **panel derecho como IDE embebido**: tabs reales en `main`, explorer estilo VS Code
+  (modificados/untracked), diff+archivo clickeable con gutter y syntax highlighting — pedido
+  textual de Carlos (2026-07-14), transcrito sin reinterpretar en el ítem completo
 - #36 — check de sintaxis JS/HTML en `defaultChecksFor` (barato, hallazgo real de Mes 20/C.1)
 - #40 — editor de Constitution: Guardar/Limpiar explícitos en vez de auto-save silencioso (bug real)
 - #14 — notificaciones del sistema cuando algo termina en segundo plano
@@ -949,6 +952,67 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
   El patrón (c) es la pieza de seguridad que le falta a Dreaming si algún día gradúa de
   proponer a aplicar. La política de cache del fork (mismo modelo → replay completo tibio;
   modelo distinto → digest frío compacto) quedó anotada en #33.
+
+---
+
+### 43. Panel derecho como IDE embebido — diff/explorer con tabs reales en el main, todo DENTRO de OrchestOS
+
+**Origen — palabras textuales de Carlos (2026-07-14), transcritas sin reinterpretar a propósito
+(pidió explícitamente que quedaran anotadas así, tal cual, para no tener que repetirlas ni que se
+reinterpreten distinto cada vez):**
+
+> Vamos a dejar esto sobre ideas.md algo que tiene que ver con diseño y comportamiento de
+> OrchestOS.
+>
+> 1. Todos los botones que están en la parte superior (sean del aside derecho o izquierdo) el
+>    tooltip debe mostrarse hacia abajo.
+> 2. Existe un pequeño espacio de 5 pixeles entre el header y la parte superior de la página, no
+>    debe tener espacios superiores.
+> 3. Al presionar el botón diff debe mostrarme los archivos modificados de la carpeta y los
+>    untracked separados, primero los modificados y luego los untracked.
+> 4. Al hacer clic en uno de estos archivos (del diff) me va a mostrar dónde están los cambios así
+>    como lo hace un IDE, también las ln (líneas) del lado izquierdo, pero esto debe abrirse justo
+>    en el espacio del medio como un tab diferente, y es más que obvio que el nombre de este tab
+>    será el mismo del archivo.
+> 5. Si estoy en el explorer debe mostrar todos los archivos, pero con la diferencia que ahora
+>    (así como lo hace VS Code) me mostrará los archivos que fueron modificados y los untracked,
+>    copiando tal cual el estilo de VS Code.
+> 6. Además, si hago clic en uno de estos archivos podré así mismo ver un tab en el espacio del
+>    chat (NO DENTRO DEL CHAT, en el Main) y cuando eso pase así mismo podré ver las líneas del
+>    izquierdo y el color respectivo de código como si estuviera en un IDE.
+> 7. En la parte del medio (el espacio del main) ahora va a actuar como tabs, es decir habrá un
+>    (+) para agregar un nuevo tab, esto con la finalidad de poder ver código, o abrir un nuevo
+>    terminal.
+
+**Lectura de Claude (por qué — interpretación, esto SÍ se puede reinterpretar, lo de arriba no):**
+Carlos está trabajando activamente en OrchestOS ahora mismo alternando con VS Code abierto en
+paralelo para revisar diffs y navegar archivos — el pedido es que esa segunda ventana deje de
+hacer falta. Los 7 puntos son un solo movimiento de diseño, no siete features sueltas: **el `main`
+deja de ser una sola pantalla fija y pasa a ser un tab strip real** (punto 7), donde el explorer
+(punto 5, estilo VS Code: modificados/untracked resaltados en el árbol) y el diff (puntos 3-4)
+alimentan ese tab strip con un editor de solo-lectura con gutter de líneas y color de sintaxis
+(puntos 4 y 6 piden lo mismo — un visor tipo IDE — desde dos entradas distintas: clic en un archivo
+del diff, o clic en un archivo del explorer). El punto 6 aclara un límite importante: el tab abre
+en el `main`, nunca dentro del panel de Chat — el chat sigue siendo conversación, el `main` pasa a
+ser el espacio de "ver/inspeccionar código". Los puntos 1-2 son papercuts de pulido chicos y no
+relacionados al resto (tooltip hacia abajo en vez de a los costados, y un gap de 5px sobre el
+header) — se agrupan acá porque llegaron en el mismo pedido, no porque compartan causa con 3-7.
+
+**Qué ya existe (no reconstruir):** el explorer read-only (`GET /api/explorer/tree`+`/file`, un
+nivel por request, shipeado en el tramo "Nota de diseño — primer tramo cerrado" de arriba) y el
+visor de diff por run (Mes 21/Bloque C, `PLAN.md`) — ya calculan y sirven diffs reales
+(`computeFileDiffs`, `parseUnifiedDiff()`), y el explorer ya lista archivos. Lo que falta es (a)
+separar modificados/untracked ahí (hoy el árbol no distingue estado git), (b) el tab strip nuevo
+en `main` (hoy es una sola pantalla por ruta, sin concepto de "tabs abiertos"), y (c) el visor de
+código con gutter+syntax highlighting (hoy el diff se pinta línea por línea +/− pero no hay un
+"abrir archivo completo con highlighting" fuera del contexto de un diff).
+
+**Esfuerzo**: alto — no es un papercut, es un cambio de arquitectura del `main` (de "una pantalla
+por ruta" a "tab strip con estado de tabs abiertos"), más un motor de resaltado de sintaxis nuevo
+(librería, o extender lo que `marked`/highlight ya trae para el chat) y diferenciar
+modificado/untracked en el explorer (necesita `git status --porcelain` real, no solo el árbol de
+archivos). Candidato a diseño formal (`docs/`) antes de tocar código — mismo patrón que Bloque A
+del Mes 18 o Bloque C del Mes 21 (diseño primero, revisado con Carlos, luego implementación).
 
 ---
 

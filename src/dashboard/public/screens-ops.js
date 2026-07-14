@@ -74,18 +74,38 @@ SCREENS.project = {
           ? `<span class="save-indicator error">${t('project.save.err')}</span>`
           : '';
 
+    // v0.12 D.1.c — botón "Download PDF summary" en el header de Project
+    // (visible en los 3 tabs). Equivalente de `orchestos summary [path]`,
+    // pero servido como application/pdf con Content-Disposition: attachment
+    // para que el browser dispare la descarga al click. Sin confirmación
+    // previa — no hay side effect destructivo en disco (el PDF se genera
+    // a un tmp file que se borra al final, ver handler en project.ts).
+    const summaryBtn = `<button class="btn ghost" data-act="download-summary" title="${t('project.summary.btn')}">
+      ${ICON.download} <span class="summary-btn-label">${t('project.summary.btn')}</span>
+    </button>`;
+
     const head = `<div class="screen-head">
       <div class="lead"><h1>${t('project.title')}</h1><p>${t('project.subtitle')}</p></div>
-      <div class="tools" style="align-items:center">${saveIndicator}</div>
+      <div class="tools" style="align-items:center;gap:8px">${saveIndicator}${summaryBtn}</div>
     </div>`;
 
     if (tab === 'constitution') {
       const content = st.constitutionContent ?? '';
       const isLoading = st.constitutionStatus === 'loading' || st.constitutionStatus === 'idle';
+      // v0.12 D.1.b — banner visible solo cuando CONSTITUTION.md NO existe en disco.
+      // El editor ya viene pre-cargado con el scaffold (vía GET), así que un no-dev
+      // nunca arranca con un textarea vacío. El banner deja explícito que el archivo
+      // se materializa al primer edit (autosave → PUT).
+      const previewBanner = !st.constitutionExists
+        ? `<div class="proj-preview-banner" role="status">
+             <span>${t('project.constitution.previewBanner')}</span>
+           </div>`
+        : '';
       const body = isLoading
         ? loadingState(t('project.loading'))
         : `<div class="proj-editor-wrap">
             <div class="proj-helper">${t('project.constitution.helper')}</div>
+            ${previewBanner}
             <textarea id="constitution-editor" class="proj-editor" spellcheck="false">${esc(content)}</textarea>
           </div>`;
       return `<div class="screen">${head}${tabs}${body}</div>`;
@@ -152,7 +172,14 @@ SCREENS.project = {
               body: JSON.stringify({ content: editor.value }),
             });
             st.constitutionContent = editor.value;
-            st.projectSaveState = res.ok ? 'saved' : 'error';
+            if (res.ok) {
+              st.projectSaveState = 'saved';
+              // v0.12 D.1.b — el primer PUT crea el archivo; el banner preview debe
+              // desaparecer a partir de acá (en el próximo rerender).
+              st.constitutionExists = true;
+            } else {
+              st.projectSaveState = 'error';
+            }
           } catch {
             st.projectSaveState = 'error';
           }
@@ -217,6 +244,51 @@ SCREENS.project = {
         showToast(t('project.index.err'), 'error');
       } finally {
         btn.disabled = false;
+      }
+    });
+
+    // v0.12 D.1.c — Download PDF summary (equivalente de `orchestos summary`).
+    // El endpoint devuelve application/pdf con Content-Disposition: attachment,
+    // así que el browser dispara la descarga directamente. El fetch→blob→URL
+    // approach (en vez de un <a href> directo) es para poder mostrar
+    // loading/error en pantalla: si el endpoint devuelve 5xx con `{error:...}`,
+    // el blob falla y mostramos toast con el mensaje real. Sin esto, un
+    // <a download> "silencioso" se traga el error del backend.
+    root.querySelector('[data-act="download-summary"]')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const labelEl = btn.querySelector('.summary-btn-label');
+      const originalLabel = labelEl ? labelEl.textContent : '';
+      btn.disabled = true;
+      if (labelEl) labelEl.textContent = t('project.summary.generating');
+      try {
+        const res = await fetch('/api/project/summary');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: '' }));
+          showToast(err.error || t('project.summary.err'), 'error');
+          return;
+        }
+        const blob = await res.blob();
+        // extraer filename del header Content-Disposition (mismo que el server
+        // puso). Fallback defensivo por si el header no viene.
+        const disp = res.headers.get('Content-Disposition') || '';
+        const m = disp.match(/filename="?([^";]+)"?/);
+        const filename = m ? m[1] : 'project-summary.pdf';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // revoke diferido — el browser necesita el URL vivo al menos un tick
+        // para que la descarga dispare antes de invalidarlo.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(t('project.summary.ok'));
+      } catch (e) {
+        showToast(t('project.summary.err'), 'error');
+      } finally {
+        btn.disabled = false;
+        if (labelEl) labelEl.textContent = originalLabel;
       }
     });
   },

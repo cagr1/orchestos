@@ -426,6 +426,18 @@
 .proj-helper.warn {
   background: color-mix(in oklab, var(--warning) 8%, var(--surface));
 }
+/* v0.12 D.1.b — banner de "Preview" que aparece en la pestaña Constitution cuando
+   CONSTITUTION.md NO existe aún en disco. Usa el mismo lenguaje visual que
+   .proj-helper (sin el side-stripe que Impeccable marca como never-intentional),
+   con color de warning para que se distinga claramente del helper normal. */
+.proj-preview-banner {
+  font-size: 12.5px; color: var(--text);
+  background: color-mix(in oklab, var(--warning) 12%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--warning) 35%, var(--border));
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  line-height: 1.5;
+}
 .proj-editor {
   width: 100%; box-sizing: border-box; min-height: 420px; resize: vertical;
   background: var(--surface); border: 1px solid var(--border);
@@ -631,10 +643,12 @@
 }
 .chat-icon-btn svg { width: 17px; height: 17px; }
 .chat-icon-btn:disabled { cursor: default; opacity: .5; }
-.chat-attach-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); }
+.chat-attach-btn { background: none; border: 1px solid transparent; color: var(--text-muted); }
 .chat-attach-btn:hover { color: var(--text); border-color: var(--accent); }
-.chat-send-btn { background: var(--accent); border: none; color: var(--accent-contrast); }
-.chat-send-btn:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 88%, white); }
+.chat-send-btn { background: var(--surface-2); border: none; color: var(--text-faint); }
+.chat-send-btn:hover:not(:disabled) { background: var(--surface-hi); color: var(--text-muted); }
+.chat-send-btn.has-text { background: var(--accent); color: var(--accent-contrast); }
+.chat-send-btn.has-text:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 88%, white); }
 
 /* FRONT.9 — menú de tipo de adjunto (Imagen/Documento/URL), se abre hacia arriba del botón "+" */
 .attach-menu-wrap { position: relative; flex-shrink: 0; }
@@ -693,7 +707,7 @@
 .chat-modelfx { position: relative; flex-shrink: 0; }
 .chat-modelfx-trigger {
   display: flex; align-items: center; gap: 6px;
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface-2); border: 1px solid transparent; border-radius: 999px;
   color: var(--text); font-size: 12px; font-family: var(--mono);
   padding: 6px 10px; cursor: pointer;
   transition: border-color .12s, background-color .12s;

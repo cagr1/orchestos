@@ -14,6 +14,12 @@ const state = {
 
   runs: [],
   tasks: [],
+  /** v0.12 / Bloque D.1.a — false hasta que el primer GET /api/tasks confirme
+   * que el archivo existe. true después. null = aún no se fetcheó (loading). */
+  tasksYamlExists: null,
+  /** v0.12 / Bloque D.1.a — mensaje de error de parseo si tasks.yaml existe
+   * pero está malformado (el endpoint lo devuelve en `error`). null si todo OK. */
+  tasksYamlError: null,
   instincts: [],
   specs: [],
   skills: [],
@@ -63,6 +69,9 @@ const state = {
 
   projectTab: 'constitution',
   constitutionContent: null,
+  // v0.12 D.1.b — true cuando CONSTITUTION.md existe en disco. false = el editor
+  // está mostrando el scaffold pre-cargado (vía GET) y la primera edición lo crea.
+  constitutionExists: false,
   contextContent: null,
   constitutionStatus: 'idle',
   contextStatus: 'idle',
@@ -238,6 +247,7 @@ const App = {
       if (!res.ok) throw new Error(res.status);
       const data = await res.json();
       state.constitutionContent = data.content;
+      state.constitutionExists = data.exists === true;
       state.constitutionStatus = 'ok';
     } catch {
       state.constitutionStatus = 'error';
@@ -342,11 +352,28 @@ const App = {
     try {
       const res = await fetch('/api/tasks');
       if (!res.ok) throw new Error(res.status);
-      state.tasks = await res.json();
+      // v0.12 / Bloque D.1.a — shape wrapper { exists, tasks, error? }.
+      // Antes era un array pelado; ahora distinguimos "no existe el archivo"
+      // (UI muestra CTA de init) de "existe pero vacío" (UI muestra composer
+      // normal) de "existe pero malformado" (UI muestra error de parseo).
+      const body = await res.json();
+      state.tasks = Array.isArray(body) ? body : (body.tasks || []);
+      state.tasksYamlExists = Array.isArray(body) ? true : !!body.exists;
+      state.tasksYamlError = Array.isArray(body) ? null : (body.error || null);
       state.tasksStatus = 'ok';
     } catch {
       state.tasksStatus = 'error';
     }
+  },
+  /** v0.12 / Bloque D.1.a — llama POST /api/tasks/init y refresca el estado.
+   * Devuelve `{ ok, project, framework, runtime, taskIds }` o lanza Error
+   * con el mensaje del backend (e.g. "tasks.yaml already exists"). */
+  async initTasksYaml() {
+    const res = await fetch('/api/tasks/init', { method: 'POST' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || `init failed (${res.status})`);
+    await this.fetchTasks();
+    return body;
   },
   async fetchGraphStatus() {
     try {
@@ -1980,11 +2007,18 @@ function buildNav() {
   // en la MISMA fila (nunca muestran label, solo ícono+tooltip — por eso no
   // usan `.nav-icon`/`.nav-label`, tienen su propia clase `.sidebar-toprow-btn`
   // así no heredan la regla que oculta el tooltip cuando el sidebar expande).
-  // Colapsado: el texto y el botón de search desaparecen (CSS), solo queda
-  // panel-left, centrado.
+  // 2026-07-14 (corrección de Carlos) — colapsado ahora SÍ lleva logo (mismo
+  // asset que la marca vacía del chat, `logo_white`/`logo_black` según tema):
+  // se ve solo el logo centrado por defecto, y al pasar el mouse por la fila
+  // el logo se oculta y aparece el botón panel-left en su lugar (mismo CSS
+  // que ya oculta search/brand-text en colapsado, ver `.sidebar-toprow-logo`
+  // en styles.css) — nunca los dos a la vez.
   const sbExpanded = document.querySelector('.app').dataset.sidebar === 'expanded';
   const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K';
+  const isBrightTheme = document.documentElement.getAttribute('data-theme') === 'bright';
+  const logoSrc = `assets/${isBrightTheme ? 'logo_black' : 'logo_white'}.png`;
   const toprow = `<div class="sidebar-toprow">
+    <img class="sidebar-toprow-logo" src="${logoSrc}" alt="OrchestOS" aria-hidden="true">
     <b class="sidebar-brand-text">Orchest<span>OS</span></b>
     <div class="sidebar-toprow-icons">
       <div class="sidebar-toprow-btn sidebar-search-btn" id="navSearchBtn" data-tip="${t('nav.search')} (${kbdHint})" role="button" tabindex="0">${ICON.search}</div>
@@ -2037,12 +2071,15 @@ function headerIconBtn(id, icon, tipKey, active) {
   return `<div class="header-icon-btn${active ? ' active' : ''}" id="${id}" data-tip="${t(tipKey)}" role="button" tabindex="0">${icon}</div>`;
 }
 
-/* 2026-07-13 (corrección de Carlos, ronda 4) — UN SOLO botón panel-right,
-   SIEMPRE dentro del aside (nunca en el header — eso fue el bug de la ronda
-   3: dos botones, uno "afuera"). Es el PRIMER ítem del toprow, en la misma
-   posición tanto colapsado (riel angosto, único ícono visible) como
-   expandido (explorer/terminal/diff aparecen a su derecha) — nunca se mueve
-   ni cambia de contenedor, solo lo que hay A SU LADO cambia. */
+/* 2026-07-14 (corrección de Carlos) — el botón panel-right vive SIEMPRE
+   pegado al borde derecho de la fila (`margin-left:auto` en CSS, ver
+   `#rpToggle` en styles.css), no al izquierdo. Es una distinción clave: el
+   borde DERECHO del aside es el borde derecho de la PANTALLA (última
+   columna del grid), así que nunca se mueve al expandir/colapsar — el
+   izquierdo sí, porque ahí es donde el aside crece. Anclar el toggle al
+   izquierdo (como antes) lo hacía viajar con ese borde; anclado a la
+   derecha, queda fijo en pantalla. explorer/terminal/diff van ANTES en el
+   DOM (a su izquierda) — esos sí aparecen/desaparecen, el toggle no. */
 function buildRightPanelToprow() {
   const row = document.getElementById('rpToprow');
   if (!row) return;
@@ -2055,7 +2092,7 @@ function buildRightPanelToprow() {
       headerIconBtn('rpTabTerminal', ICON.term, 'rp.tab.terminal', tab === 'terminal') +
       headerIconBtn('rpTabDiff', ICON.diff, 'rp.tab.diff', tab === 'diff')
     : '';
-  row.innerHTML = toggleBtn + tabs;
+  row.innerHTML = tabs + toggleBtn;
 
   document.getElementById('rpToggle').addEventListener('click', () => {
     state.rightPanelOpen = !state.rightPanelOpen;
@@ -2135,7 +2172,7 @@ function wireResizeHandle(handle, opts) {
 /** Restaura los anchos guardados (localStorage) ANTES del primer paint del grid. */
 function applyResizedWidths() {
   const appEl = document.querySelector('.app');
-  const SIDEBAR_MIN = 200, RIGHTPANEL_MIN = 360;
+  const SIDEBAR_MIN = 200, RIGHTPANEL_MIN = 220;
   const sw = parseInt(localStorage.getItem('orchestos-sidebar-width'), 10);
   if (sw >= SIDEBAR_MIN) appEl.style.setProperty('--sidebar-w-exp', sw + 'px');
   const rw = parseInt(localStorage.getItem('orchestos-rightpanel-width'), 10);
@@ -2168,7 +2205,7 @@ function boot() {
     storageKey: 'orchestos-sidebar-width',
   });
   wireResizeHandle(document.getElementById('rightpanelResizeHandle'), {
-    min: 360, max: 720, sign: -1,
+    min: 220, max: 720, sign: -1,
     cssVar: '--rightpanel-w', target: document.querySelector('.app'),
     storageKey: 'orchestos-rightpanel-width',
   });

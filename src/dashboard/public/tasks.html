@@ -50,9 +50,24 @@ function esc(s) { return String(s).replace(/[&<>"]/g, function(c){return {'&':'&
 async function load() {
   try {
     const res = await fetch('/api/tasks')
-    const tasks = await res.json()
+    // v0.12 / Bloque D.1.a — wrapper { exists, tasks, error? } en vez de array
+    // pelado. Mantener compat: si por alguna razón llega un array directo
+    // (cliente viejo), tratarlo como exists:true.
+    const body = await res.json()
+    const tasks = Array.isArray(body) ? body : (body.tasks || [])
+    const exists = Array.isArray(body) ? true : !!body.exists
+    const errMsg = Array.isArray(body) ? null : (body.error || null)
+
+    if (!exists) {
+      document.getElementById('loading').textContent = 'tasks.yaml not found. Run: orchestos task init (or use the main dashboard to initialize it).'
+      return
+    }
+    if (errMsg) {
+      document.getElementById('loading').textContent = 'Could not parse tasks.yaml: ' + errMsg
+      return
+    }
     if (tasks.length === 0) {
-      document.getElementById('loading').textContent = 'No tasks found. Create a tasks.yaml file to get started.'
+      document.getElementById('loading').textContent = 'No tasks found. tasks.yaml exists but is empty.'
       return
     }
     document.getElementById('loading').style.display = 'none'

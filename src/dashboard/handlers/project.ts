@@ -1,5 +1,6 @@
 import { resolve, join } from 'path'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
+import { tmpdir } from 'os'
 import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { loadContext } from '../../context/load.ts'
 import { loadTasks } from '../../tasks/loader.ts'
@@ -10,12 +11,21 @@ import { generateAgentsMd } from '../../generators/agents-md.ts'
 import { generateContextJson } from '../../generators/context-json.ts'
 import { getProject, upsertProject } from '../../db/projects.ts'
 import { indexProject } from '../../graph/index.ts'
+import { scaffoldConstitutionMd } from '../../spec/constitution.ts'
+import { generateSummaryPdf } from '../../generators/summary-pdf.ts'
+import { listRuns } from '../../db/runs.ts'
 
+// v0.12 D.1.b — equivalente de `orchestos constitution init` para el dashboard.
+// Si CONSTITUTION.md NO existe en disco, devolvemos el scaffold ALLOWED/FORBIDDEN/
+// REQUIRE_CONFIRMATION (mismo contenido que `scaffoldConstitutionMd()` en CLI) con
+// `exists:false` para que la UI muestre un banner "Preview — not saved yet" y sepa
+// que el primer PUT (autosave al editar) es el que materializa el archivo. Cierra
+// el gap "editor arranca vacío → no-dev escribe cualquier cosa y rompe el formato".
 function handleApiProjectConstitutionGet(): Response {
   const root = resolve('.')
   const path = join(root, 'CONSTITUTION.md')
   const exists = existsSync(path)
-  const content = exists ? readFileSync(path, 'utf-8') : ''
+  const content = exists ? readFileSync(path, 'utf-8') : scaffoldConstitutionMd()
   return jsonResponse({ content, exists })
 }
 
@@ -176,4 +186,48 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
   }
 }
 
-export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiNatural, listAllSkillCandidates }
+// v0.12 D.1.c — equivalente de `orchestos summary [path]` para el dashboard.
+// Mismo flujo que el CLI: buildProfile → generateAgentsMd → upsertProject
+// (persiste el proyecto en DB, igual que el CLI; no es destructivo sobre
+// archivos en disco, solo refresca el registro de DB) → listRuns(10) →
+// generateSummaryPdf. Se escribe a un tmp file (no al project root) para
+// evitar dejar un PDF en el working dir que el usuario no pidió persistir
+// — el CLI escribe al root por diseño (es un comando explícito de export);
+// el dashboard solo sirve el binario para descarga inmediata.
+async function handleApiProjectSummary(): Promise<Response> {
+  const root = resolve('.')
+  const t0 = performance.now()
+  const profile = await buildProfile(root)
+  const agentsMd = generateAgentsMd(profile)
+  upsertProject(root, profile, agentsMd)
+  const recentRuns = listRuns(10)
+
+  const tmpPath = join(tmpdir(), `orchestos-summary-${process.pid}-${Date.now()}.pdf`)
+  try {
+    await generateSummaryPdf(profile, agentsMd, tmpPath, recentRuns)
+    const buf = readFileSync(tmpPath)
+    const elapsedMs = Math.round(performance.now() - t0)
+    // filename seguro: igual que la convención del CLI (`<project>-summary.pdf`),
+    // pero escapando comillas por si el nombre trae caracteres raros.
+    const safeName = (profile.manifest.name || 'project').replace(/[^\w.-]/g, '_')
+    const filename = `${safeName}-summary.pdf`
+    return new Response(buf, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Length': String(buf.length),
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        // útil para observabilidad sin tener que parsear logs
+        'X-Elapsed-Ms': String(elapsedMs),
+        'X-Project': safeName,
+      },
+    })
+  } catch (e: any) {
+    return errorResponse(`Failed to generate summary: ${e.message}`, 500)
+  } finally {
+    // cleanup siempre — incluso si el response falló, no queremos leaks en /tmp
+    try { unlinkSync(tmpPath) } catch { /* tmp file puede no existir si write falló */ }
+  }
+}
+
+export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiProjectSummary, handleApiNatural, listAllSkillCandidates }

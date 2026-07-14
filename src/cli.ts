@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
 import { resolve, join } from 'path'
-import { writeFileSync, existsSync } from 'fs'
+import { writeFileSync, existsSync, readFileSync } from 'fs'
 import { detectPrimaryLanguage } from './detect/languages.ts'
 import { buildProfile } from './detect/profile.ts'
 import { generateAgentsMd, type StackProfile } from './generators/agents-md.ts'
@@ -31,8 +31,7 @@ import { diagnoseTask } from './agents/diagnose.ts'
 import type { SubTask } from './agents/sub-agent.ts'
 import { insertRun } from './db/runs.ts'
 import { loadTasks, tasksExist, updateTaskStatus, tasksPath } from './tasks/loader.ts'
-import { stringify as yamlStringify } from 'yaml'
-import { readFileSync } from 'fs'
+import { scaffoldTasksYaml } from './tasks/init.ts'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
 import { indexProject } from './graph/index.ts'
 import { suggestContext } from './graph/suggest.ts'
@@ -806,33 +805,19 @@ task
   .command('init [path]')
   .description('Generate tasks.yaml scaffold based on detected stack')
   .action(async (targetPath?: string) => {
+    // v0.12 / Bloque D.1.a — la lógica de scaffold vive en src/tasks/init.ts
+    // para que el endpoint del dashboard POST /api/tasks/init comparta exactamente
+    // el mismo código (mismas 2 starter tasks, mismo formato YAML, mismo
+    // comportamiento de "ya existe" → error). El CLI solo traduce el resultado
+    // a stdout.
     const root = resolve(targetPath ?? '.')
     if (tasksExist(root)) {
       console.error(`[task] tasks.yaml already exists in ${root}`)
       process.exit(1)
     }
-    const profile = await buildProfile(root)
-    const { manifest } = profile
-
-    // Generate 2 starter tasks based on detected stack
-    const isNext   = manifest.framework === 'Next.js'
-    const isPython = manifest.runtime   === 'Python'
-
-    const tasks = isNext ? [
-      { id: 't1-component', description: 'Create a reusable Button component', skill: 'implement', input: [], output: ['src/components/Button.tsx'], depends_on: [], status: 'pending', retry_count: 0 },
-      { id: 't2-styles',    description: 'Add CSS module styles for Button', skill: 'implement', input: ['src/components/Button.tsx'], output: ['src/components/Button.module.css'], depends_on: ['t1-component'], status: 'pending', retry_count: 0 },
-    ] : isPython ? [
-      { id: 't1-util', description: 'Create a utility function for string normalization', skill: 'implement', input: [], output: ['utils/normalize.py'], depends_on: [], status: 'pending', retry_count: 0 },
-      { id: 't2-test', description: 'Write unit tests for the normalize utility', skill: 'implement', input: ['utils/normalize.py'], output: ['tests/test_normalize.py'], depends_on: ['t1-util'], status: 'pending', retry_count: 0 },
-    ] : [
-      { id: 't1-util', description: 'Create a utility helper function', skill: 'implement', input: [], output: ['src/utils/helper.js'], depends_on: [], status: 'pending', retry_count: 0 },
-      { id: 't2-doc',  description: 'Add JSDoc comments to the helper', skill: 'doc', input: ['src/utils/helper.js'], output: ['src/utils/helper.js'], depends_on: ['t1-util'], status: 'pending', retry_count: 0 },
-    ]
-
-    const content = yamlStringify({ version: 1, project: manifest.name, tasks }, { lineWidth: 120 })
-    writeFileSync(tasksPath(root), content, 'utf-8')
+    const result = await scaffoldTasksYaml(root)
     console.log(`[task] Created tasks.yaml in ${root}`)
-    console.log(`  → ${tasks.length} starter tasks for ${manifest.framework || manifest.runtime}`)
+    console.log(`  → ${result.taskIds.length} starter tasks for ${result.framework || result.runtime}`)
     console.log(`  Edit tasks.yaml to define your actual work, then run: orchestos task run <path>`)
   })
 
