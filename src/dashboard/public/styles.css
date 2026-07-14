@@ -43,7 +43,10 @@
   --radius:        6px;
   --radius-lg:     calc(var(--radius) + 2px);
 
-  --sidebar-w:     56px;
+  /* 2026-07-13 (corrección de Carlos) — --sidebar-w-exp y --rightpanel-w son
+     además el PISO de su propio resize-handle (nunca se puede arrastrar más
+     angosto que el valor de acá) — límites en app.js `wireResizeHandle()`. */
+  --sidebar-w:     46px;
   --sidebar-w-exp: 200px;
   --header-h:      52px;
   --rightpanel-w:  360px;
@@ -176,6 +179,7 @@ button { font-family: inherit; }
    App grid
    ============================================================ */
 .app {
+  position: relative; /* ancla los resize-handle, ver más abajo */
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
   grid-template-rows: var(--header-h) 1fr;
@@ -219,22 +223,26 @@ button { font-family: inherit; }
      (contenido cortado en el borde derecho). */
   min-width: 0;
 }
+/* .brand vive ahora DENTRO del sidebar (2026-07-13, corrección de Carlos) —
+   ver .sidebar-brand más abajo. Las reglas de acá son genéricas (logo+wordmark)
+   y se reusan tal cual en su nueva ubicación. */
 .brand {
   display: flex;
   align-items: center;
   gap: 9px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  font-size: 15px;
+  font-size: 14px;
 }
 .brand .mark {
-  width: 24px; height: 24px;
+  width: 22px; height: 22px;
   display: grid; place-items: center;
-  border-radius: 7px;
+  border-radius: 6px;
   background: #0d1117;
   border: 1px solid var(--border);
   box-shadow: 0 0 0 1px rgba(88, 166, 255, .08), 0 6px 18px rgba(1, 4, 9, .35);
   overflow: hidden;
+  flex-shrink: 0;
 }
 .brand .mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
 /* Logo por tema — bug real encontrado (2026-07-09): este selector seguía
@@ -251,15 +259,24 @@ button { font-family: inherit; }
 .brand b { color: var(--text); }
 .brand b span { color: var(--accent); }
 
+/* Riel de brand dentro del sidebar — cuando colapsa, solo queda el logo
+   (mismo patrón que .nav-label: oculto por defecto, visible en expanded). */
+.sidebar-brand { padding: 11px 9px 9px; flex-shrink: 0; }
+.sidebar-brand .brand-text {
+  width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
+  transition: opacity .12s ease;
+}
+.app[data-sidebar="expanded"] .sidebar-brand .brand-text { width: auto; opacity: 1; margin-left: 1px; }
+
 .header .spacer { flex: 1; }
 
-/* v0.13 seed — íconos de header (2026-07-13, patrón Claude Desktop/Codex/Orca):
-   panel-left + search a la izquierda del brand; explorer/terminal/diff/panel-right
-   al final antes del status badge. Mismo tamaño en los dos grupos. */
+/* v0.13 seed — íconos de header, solo el grupo derecho ahora (explorer/terminal/
+   diff/panel-right); panel-left+search se mudaron al sidebar (2026-07-13, corrección
+   de Carlos). Mismo tamaño que .sidebar .nav-ic — "todos los íconos más pequeños". */
 .header-icons { display: flex; align-items: center; gap: 2px; }
 .header-icon-btn {
   display: grid; place-items: center;
-  width: 32px; height: 32px; flex-shrink: 0;
+  width: 30px; height: 30px; flex-shrink: 0;
   border-radius: var(--radius);
   color: var(--text-muted);
   cursor: pointer;
@@ -267,7 +284,7 @@ button { font-family: inherit; }
   background: transparent;
   transition: background .12s, color .12s;
 }
-.header-icon-btn svg { width: 18px; height: 18px; }
+.header-icon-btn svg { width: 16px; height: 16px; }
 .header-icon-btn:hover { color: var(--accent); background: var(--surface-2); }
 .header-icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .header-icon-btn.active { color: var(--accent); background: var(--surface-hi); border-color: var(--border); }
@@ -306,7 +323,7 @@ button { font-family: inherit; }
   flex-direction: column;
   align-items: stretch;
   gap: 3px;
-  padding: 10px 9px;
+  padding: 9px 8px;
   border-right: 1px solid var(--border);
   background: var(--surface);
   z-index: 1;
@@ -314,7 +331,7 @@ button { font-family: inherit; }
 .sidebar .nav-icon {
   position: relative;
   display: flex; align-items: center;
-  height: 38px;
+  height: 30px;
   border-radius: var(--radius);
   color: var(--text-muted);
   cursor: pointer;
@@ -329,16 +346,18 @@ button { font-family: inherit; }
 .sidebar .nav-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .sidebar .nav-icon.active { color: var(--accent); background: var(--surface-hi); border-color: var(--border); }
 .sidebar .nav-icon.active::before {
-  content: ""; position: absolute; left: -9px; top: 8px; bottom: 8px;
+  content: ""; position: absolute; left: -9px; top: 5px; bottom: 5px;
   width: 3px; border-radius: 0 3px 3px 0; background: var(--accent);
   box-shadow: 0 0 8px var(--accent-dim);
 }
 .sidebar .nav-ic {
   position: relative;
-  width: 38px; height: 38px; flex-shrink: 0;
+  width: 30px; height: 30px; flex-shrink: 0;
   display: grid; place-items: center;
 }
-.sidebar .nav-ic svg { width: 19px; height: 19px; }
+/* 2026-07-13 (corrección de Carlos) — "todos los íconos más pequeños en
+   general": 19px→16px, junto con el resto de los tamaños de este archivo. */
+.sidebar .nav-ic svg { width: 16px; height: 16px; }
 .sidebar .nav-label {
   font-size: 13px; font-weight: 500; white-space: nowrap;
   width: 0; opacity: 0; overflow: hidden;
@@ -597,6 +616,33 @@ button { font-family: inherit; }
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
 .rp-diff-meta .mono { color: var(--text); }
+
+/* ============================================================
+   Resize handles — sidebar (expandido) y panel derecho (2026-07-13,
+   corrección de Carlos). Ancla en `.app` (position:relative arriba) para
+   no depender del innerHTML que buildNav()/RightPanel reemplazan.
+   ============================================================ */
+.resize-handle {
+  position: absolute; top: var(--header-h); bottom: 0; width: 7px;
+  cursor: col-resize; z-index: 6; background: transparent;
+  transition: background .12s;
+}
+.resize-handle:hover, .resize-handle.dragging { background: var(--accent-dim); }
+.resize-handle-sidebar {
+  left: calc(var(--sidebar-w-exp) - 3px);
+  display: none;
+}
+.app[data-sidebar="expanded"] .resize-handle-sidebar { display: block; }
+.resize-handle-rightpanel {
+  right: calc(var(--rightpanel-w) - 3px);
+  display: none;
+}
+.app[data-rightpanel="expanded"] .resize-handle-rightpanel { display: block; }
+/* Mientras se arrastra: sin transición (el var cambia en cada pointermove,
+   animarlo se ve con lag) y cursor col-resize forzado en toda la página
+   (si el mouse se adelanta al borde exacto del handle). */
+body.resizing-ew { cursor: col-resize !important; user-select: none; }
+body.resizing-ew .app { transition: none; }
 
 /* ============================================================
    Tables

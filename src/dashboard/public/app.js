@@ -1929,9 +1929,30 @@ function buildNav() {
     <span class="nav-label">${t(tipKey)}</span>
   </div>`;
 
-  // v0.13 seed — collapse (panel-left) y search se mudaron al header
-  // (2026-07-13, captura de Carlos); ver buildHeaderIcons().
-  side.innerHTML = mainNav.map(navItem).join('') +
+  // 2026-07-13 (corrección de Carlos) — brand + panel-left + search viven
+  // DENTRO del sidebar (antes vivían en el header). Al colapsar, solo queda
+  // el logo (mismo patrón que .nav-label: .brand-text se oculta por CSS).
+  const brand = `<div class="brand sidebar-brand">
+    <span class="mark">
+      <img class="logo-dark" src="assets/logo_white.png" alt="" aria-hidden="true">
+      <img class="logo-light" src="assets/logo_black.png" alt="" aria-hidden="true">
+    </span>
+    <b class="brand-text">Orchest<span>OS</span></b>
+  </div>`;
+
+  const sbExpanded = document.querySelector('.app').dataset.sidebar === 'expanded';
+  const collapseBtn = `<div class="nav-icon nav-collapse-btn" id="navCollapseBtn" data-tip="${t(sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}" role="button" tabindex="0">
+    <span class="nav-ic">${ICON.panelLeft}</span>
+    <span class="nav-label">${t(sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}</span>
+  </div>`;
+
+  const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K';
+  const searchBtn = `<div class="nav-icon nav-search-btn" id="navSearchBtn" data-tip="${t('nav.search')}" role="button" tabindex="0">
+    <span class="nav-ic">${ICON.search}</span>
+    <span class="nav-label">${t('nav.search')}<kbd class="nav-kbd">${kbdHint}</kbd></span>
+  </div>`;
+
+  side.innerHTML = brand + collapseBtn + searchBtn + '<div class="nav-sep"></div>' + mainNav.map(navItem).join('') +
     '<div class="grow"></div>' + modeBtn + bottomNav.map(navItem).join('');
 
   if (isAdv) {
@@ -1959,26 +1980,31 @@ function buildNav() {
     buildNav();
     App.syncNav();
   });
+
+  document.getElementById('navSearchBtn').addEventListener('click', () => Modal.openCommandPalette());
+
+  document.getElementById('navCollapseBtn').addEventListener('click', () => {
+    const appEl = document.querySelector('.app');
+    const next = appEl.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded';
+    appEl.dataset.sidebar = next;
+    localStorage.setItem('orchestos-sidebar', next);
+    buildNav();
+    App.syncNav();
+  });
 }
 
 /* ============================================================
-   Header icons — v0.13 seed (2026-07-13, captura de Carlos): panel-left +
-   search a la izquierda del brand; explorer/terminal/diff/panel-right al
-   final antes del status badge. Mismo componente para los dos grupos.
+   Header icons — solo el grupo derecho (explorer/terminal/diff/panel-right).
+   panel-left+search viven en el sidebar ahora (2026-07-13, corrección de
+   Carlos) — ver buildNav().
    ============================================================ */
 function headerIconBtn(id, icon, tipKey, active) {
   return `<div class="header-icon-btn${active ? ' active' : ''}" id="${id}" data-tip="${t(tipKey)}" role="button" tabindex="0">${icon}</div>`;
 }
 
 function buildHeaderIcons() {
-  const sbExpanded = document.querySelector('.app').dataset.sidebar === 'expanded';
-  const left = document.getElementById('headerLeftIcons');
   const right = document.getElementById('headerRightIcons');
-  if (!left || !right) return;
-
-  left.innerHTML =
-    headerIconBtn('headerSidebarToggle', ICON.panelLeft, sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand') +
-    headerIconBtn('headerSearchBtn', ICON.search, 'nav.search');
+  if (!right) return;
 
   const rpOpen = state.rightPanelOpen;
   const tab = state.rightPanelTab;
@@ -1987,15 +2013,6 @@ function buildHeaderIcons() {
     headerIconBtn('rpTabTerminal', ICON.term, 'rp.tab.terminal', rpOpen && tab === 'terminal') +
     headerIconBtn('rpTabDiff', ICON.diff, 'rp.tab.diff', rpOpen && tab === 'diff') +
     headerIconBtn('headerRightPanelToggle', ICON.panelRight, rpOpen ? 'rp.toggle.close' : 'rp.toggle.open', rpOpen);
-
-  document.getElementById('headerSidebarToggle').addEventListener('click', () => {
-    const appEl = document.querySelector('.app');
-    const next = appEl.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded';
-    appEl.dataset.sidebar = next;
-    localStorage.setItem('orchestos-sidebar', next);
-    buildHeaderIcons();
-  });
-  document.getElementById('headerSearchBtn').addEventListener('click', () => Modal.openCommandPalette());
 
   const openTab = tabName => {
     if (state.rightPanelOpen && state.rightPanelTab === tabName) {
@@ -2017,12 +2034,10 @@ function buildHeaderIcons() {
     syncRightPanel();
   });
 
-  [left, right].forEach(group => {
-    group.querySelectorAll('[role="button"]').forEach(n =>
-      n.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); n.click(); }
-      }));
-  });
+  right.querySelectorAll('[role="button"]').forEach(n =>
+    n.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); n.click(); }
+    }));
 }
 
 /** Aplica el estado abierto/cerrado + tab activa del panel derecho al DOM. */
@@ -2033,19 +2048,88 @@ function syncRightPanel() {
 }
 
 /* ============================================================
+   Resize handles — sidebar (expandido) y panel derecho (2026-07-13,
+   corrección de Carlos): ambos ajustables arrastrando, con un piso = el
+   ancho por defecto de cada uno (nunca más angosto que lo que ya ships hoy)
+   y un techo distinto — el derecho puede crecer bastante más porque ahí se
+   lee diff/código, el izquierdo solo lleva íconos+labels cortos.
+   ============================================================ */
+function wireResizeHandle(handle, opts) {
+  // opts: { min, max, sign (1 arrastra-derecha-agranda, -1 arrastra-izquierda-agranda),
+  //         cssVar, target, storageKey }
+  if (!handle) return;
+  let dragging = false, startX = 0, startW = 0;
+
+  const onMove = e => {
+    if (!dragging) return;
+    const delta = (e.clientX - startX) * opts.sign;
+    const w = Math.max(opts.min, Math.min(opts.max, Math.round(startW + delta)));
+    opts.target.style.setProperty(opts.cssVar, w + 'px');
+  };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.classList.remove('resizing-ew');
+    const current = getComputedStyle(opts.target).getPropertyValue(opts.cssVar).trim();
+    if (current) localStorage.setItem(opts.storageKey, current.replace('px', ''));
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  };
+  // mousedown/mousemove/mouseup en vez de Pointer Events — más compatible
+  // con automatización de browser (CDP no siempre dispara pointer events) y
+  // funciona igual para mouse/trackpad real.
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    startX = e.clientX;
+    startW = parseInt(getComputedStyle(opts.target).getPropertyValue(opts.cssVar), 10) || opts.min;
+    handle.classList.add('dragging');
+    document.body.classList.add('resizing-ew');
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  });
+}
+
+/** Restaura los anchos guardados (localStorage) ANTES del primer paint del grid. */
+function applyResizedWidths() {
+  const appEl = document.querySelector('.app');
+  const SIDEBAR_MIN = 200, RIGHTPANEL_MIN = 360;
+  const sw = parseInt(localStorage.getItem('orchestos-sidebar-width'), 10);
+  if (sw >= SIDEBAR_MIN) appEl.style.setProperty('--sidebar-w-exp', sw + 'px');
+  const rw = parseInt(localStorage.getItem('orchestos-rightpanel-width'), 10);
+  if (rw >= RIGHTPANEL_MIN) appEl.style.setProperty('--rightpanel-w', rw + 'px');
+}
+
+/* ============================================================
    Boot
    ============================================================ */
 function boot() {
   // Sidebar collapsed/expanded mode (persisted)
   applySidebarMode();
+  applyResizedWidths();
 
-  // Build sidebar + header icons (v0.13 seed: panel-left/search/explorer/terminal/diff/panel-right)
+  // Build sidebar (brand + panel-left + search + nav) + header icons
+  // (explorer/terminal/diff/panel-right) — 2026-07-13, corrección de Carlos.
   buildNav();
   buildHeaderIcons();
 
   // Panel derecho: aplica el estado persistido (localStorage) al primer render.
   document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
   if (state.rightPanelOpen) RightPanel.render();
+
+  // Resize handles — piso = ancho por defecto de cada uno, techo distinto
+  // (el derecho puede crecer más: ahí se lee diff/código).
+  wireResizeHandle(document.getElementById('sidebarResizeHandle'), {
+    min: 200, max: 320, sign: 1,
+    cssVar: '--sidebar-w-exp', target: document.querySelector('.app'),
+    storageKey: 'orchestos-sidebar-width',
+  });
+  wireResizeHandle(document.getElementById('rightpanelResizeHandle'), {
+    min: 360, max: 720, sign: -1,
+    cssVar: '--rightpanel-w', target: document.querySelector('.app'),
+    storageKey: 'orchestos-rightpanel-width',
+  });
 
   // Panels
   SidePanel.init();

@@ -13,22 +13,15 @@
 <body data-cards="flat">
   <div class="app">
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR — brand, panel-left toggle y search viven acá (2026-07-13, corrección de
+         Carlos): buildNav() los inyecta al tope del riel de íconos, así el logo (colapsado)
+         o logo+wordmark (expandido) quedan dentro del nav, no del header. -->
     <nav class="sidebar" id="sidebar"></nav>
+    <div class="resize-handle resize-handle-sidebar" id="sidebarResizeHandle"></div>
 
     <!-- HEADER -->
     <header class="header">
-      <div class="brand">
-        <span class="mark">
-          <img class="logo-dark" src="assets/logo_white.png" alt="" aria-hidden="true">
-          <img class="logo-light" src="assets/logo_black.png" alt="" aria-hidden="true">
-        </span>
-        <b>Orchest<span>OS</span></b>
-      </div>
-      <div class="header-icons" id="headerLeftIcons"></div>
-
       <span class="spacer"></span>
-
       <div class="header-icons" id="headerRightIcons"></div>
       <div class="status-badge" id="statusBadge" data-state="idle">
         <span class="dot"></span><span class="txt">IDLE</span>
@@ -44,6 +37,7 @@
       <div class="rp-tabs" id="rpTabs"></div>
       <div class="rp-body" id="rightpanelBody"></div>
     </aside>
+    <div class="resize-handle resize-handle-rightpanel" id="rightpanelResizeHandle"></div>
 
   </div>
 
