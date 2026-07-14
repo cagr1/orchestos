@@ -53,6 +53,13 @@ const state = {
   // v0.12 Bloque C — visor de diff por run: qué archivos están expandidos (mostrando
   // el diff completo en vez de colapsado a las primeras líneas). Clave: `${runId}:${path}`.
   diffExpanded: new Set(),
+  // v0.13 seed — panel derecho del header redesign (2026-07-13, captura de Carlos):
+  // explorer/terminal/diff, un ícono de header por vista + un toggle. Abierto/tab
+  // persisten en localStorage (mismo patrón que orchestos-sidebar).
+  rightPanelOpen: localStorage.getItem('orchestos-rightpanel') === 'expanded',
+  rightPanelTab: localStorage.getItem('orchestos-rightpanel-tab') || 'terminal',
+  // Explorer: ruta del archivo abierto en preview (null = mostrando el árbol).
+  explorerOpenFile: null,
 
   projectTab: 'constitution',
   constitutionContent: null,
@@ -324,7 +331,9 @@ const App = {
     } else {
       this.rerender();
     }
-    Term.render();
+    // v0.13 seed — solo refresca la pestaña activa del panel derecho si está
+    // abierto; Explorer no depende de state.runs, se refresca a sí mismo.
+    if (state.rightPanelOpen && state.rightPanelTab !== 'explorer') RightPanel.render();
   },
   async fetchTasks() {
     try {
@@ -396,7 +405,7 @@ const App = {
 };
 
 /* ============================================================
-   Terminal footer — shows recent runs
+   Terminal (right panel tab) — shows recent runs
    ============================================================ */
 const Term = {
   render() {
@@ -417,7 +426,142 @@ const Term = {
       return `<div class="ln ${cls}">${sym}  ${esc(r.id)}${task}  ${esc(r.model)}${qa}${cost}  <span class="dim">${esc(ts)}</span></div>`;
     }).join('');
   },
-  toggle() { document.getElementById('terminal').classList.toggle('collapsed'); },
+};
+
+/* ============================================================
+   Right panel — explorer / terminal / diff (v0.13 seed, header redesign)
+   ============================================================ */
+const RightPanel = {
+  render() {
+    const body = document.getElementById('rightpanelBody');
+    if (!body) return;
+    if (state.rightPanelTab === 'explorer') { Explorer.render(); return; }
+    if (state.rightPanelTab === 'diff') { this.renderDiff(); return; }
+    this.renderTerminal();
+  },
+  renderTerminal() {
+    const body = document.getElementById('rightpanelBody');
+    body.innerHTML = `<div class="rp-terminal">
+      <div class="rp-terminal-head">
+        <span class="rp-terminal-label">${ICON.term} ${t('rp.terminal.title')}</span>
+        <span class="live">● live</span>
+      </div>
+      <div class="rp-terminal-body" id="termBody"></div>
+    </div>`;
+    Term.render();
+  },
+  // Diff tab — reusa fileDiffs de la corrida más reciente que produjo alguno
+  // (v0.12 Bloque C). No repite el motor: mismo `renderFileDiffGroup()` que
+  // usa el detalle de Runs.
+  renderDiff() {
+    const body = document.getElementById('rightpanelBody');
+    const runs = state.runs || [];
+    const withDiff = runs.find(r => r.fileDiffs && r.fileDiffs.length);
+    if (!withDiff) {
+      body.innerHTML = `<div class="rp-explorer-empty">${t('rp.diff.empty')}</div>`;
+      return;
+    }
+    const ts = formatLocalDate(withDiff.createdAt, { seconds: true });
+    body.innerHTML = `<div class="rp-diff">
+      <div class="rp-diff-meta">
+        <span class="mono">${esc(withDiff.taskId || withDiff.id)}</span>
+        <span>·</span><span>${esc(ts)}</span>
+      </div>
+      ${withDiff.fileDiffs.map(f => renderFileDiffEntry(withDiff.id, f)).join('')}
+    </div>`;
+  },
+};
+
+/* ============================================================
+   Explorer (right panel tab) — árbol read-only del proyecto, un nivel
+   por request (docs: src/dashboard/handlers/explorer.ts). Se maneja fuera
+   del ciclo App.rerender() — igual que Term/SidePanel/Modal — porque su
+   estado (directorios expandidos, archivo abierto) no debe reconstruirse
+   en cada poll de 30s.
+   ============================================================ */
+const Explorer = {
+  cache: {},
+  async fetchDir(path) {
+    if (this.cache[path]) return this.cache[path];
+    try {
+      const res = await fetch(`/api/explorer/tree?path=${encodeURIComponent(path)}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      this.cache[path] = data.entries;
+      return data.entries;
+    } catch { return []; }
+  },
+  entryRow(e, depth) {
+    const typeIc = e.type === 'dir'
+      ? `<span class="exp-ic">${ICON.chevR}</span>`
+      : `<span class="exp-ic"></span>`;
+    const fileIc = `<span class="exp-type-ic">${e.type === 'dir' ? ICON.folder : ICON.file}</span>`;
+    return `<div class="exp-row" data-exp-path="${esc(e.path)}" data-exp-type="${e.type}" data-exp-depth="${depth}" style="padding-left:${depth * 14 + 6}px" role="button" tabindex="0">${typeIc}${fileIc}<span class="exp-name">${esc(e.name)}</span></div>`;
+  },
+  async render() {
+    const body = document.getElementById('rightpanelBody');
+    if (!body) return;
+    if (state.explorerOpenFile) { this.renderFile(state.explorerOpenFile); return; }
+    const entries = await this.fetchDir('');
+    body.innerHTML = entries.length
+      ? `<div class="rp-explorer" id="explorerTree">${entries.map(e => this.entryRow(e, 0)).join('')}</div>`
+      : `<div class="rp-explorer-empty">${t('rp.explorer.empty')}</div>`;
+    this.wire();
+  },
+  wire() {
+    const tree = document.getElementById('explorerTree');
+    if (!tree) return;
+    tree.querySelectorAll('.exp-row').forEach(row => {
+      row.addEventListener('click', async () => {
+        if (row.dataset.expType === 'file') {
+          state.explorerOpenFile = row.dataset.expPath;
+          this.render();
+          return;
+        }
+        const depth = Number(row.dataset.expDepth);
+        const next = row.nextElementSibling;
+        if (next && next.classList.contains('exp-children')) {
+          next.remove();
+          row.classList.remove('open');
+          return;
+        }
+        row.classList.add('open');
+        const children = await this.fetchDir(row.dataset.expPath);
+        const wrap = document.createElement('div');
+        wrap.className = 'exp-children';
+        wrap.innerHTML = children.map(c => this.entryRow(c, depth + 1)).join('');
+        row.after(wrap);
+        this.wire();
+      });
+      row.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.click(); }
+      });
+    });
+  },
+  async renderFile(path) {
+    const body = document.getElementById('rightpanelBody');
+    body.innerHTML = `<div class="rp-file-preview"><div class="rp-file-preview-head"><button class="rp-file-back" id="expBack">${ICON.chevR} ${t('rp.explorer.back')}</button><span class="rp-file-path mono">${esc(path)}</span></div><div class="rp-file-note">${t('rp.explorer.loading')}</div></div>`;
+    document.getElementById('expBack').addEventListener('click', () => {
+      state.explorerOpenFile = null;
+      this.render();
+    });
+    try {
+      const res = await fetch(`/api/explorer/file?path=${encodeURIComponent(path)}`);
+      const data = await res.json();
+      const note = document.querySelector('.rp-file-preview .rp-file-note, .rp-file-preview pre');
+      if (!note) return; // el usuario ya volvió al árbol antes de que respondiera
+      if (data.binary) {
+        note.outerHTML = `<div class="rp-file-note">${t('rp.explorer.binary')}</div>`;
+      } else if (data.tooLarge) {
+        note.outerHTML = `<div class="rp-file-note">${t('rp.explorer.toolarge')}</div>`;
+      } else {
+        note.outerHTML = `<pre>${esc(data.content)}</pre>`;
+      }
+    } catch {
+      const note = document.querySelector('.rp-file-preview .rp-file-note');
+      if (note) note.textContent = t('rp.explorer.error');
+    }
+  },
 };
 
 /* ============================================================
@@ -1785,18 +1929,9 @@ function buildNav() {
     <span class="nav-label">${t(tipKey)}</span>
   </div>`;
 
-  const sbExpanded = document.querySelector('.app').dataset.sidebar === 'expanded';
-  const collapseBtn = `<div class="nav-icon nav-collapse-btn" id="navCollapseBtn" data-tip="${t(sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}" role="button" tabindex="0">
-    <span class="nav-ic">${sbExpanded ? ICON.panelClose : ICON.panelOpen}</span>
-  </div>`;
-
-  const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K';
-  const searchBtn = `<div class="nav-icon nav-search-btn" id="navSearchBtn" data-tip="${t('nav.search')}" role="button" tabindex="0">
-    <span class="nav-ic">${ICON.search}</span>
-    <span class="nav-label">${t('nav.search')}<kbd class="nav-kbd">${kbdHint}</kbd></span>
-  </div>`;
-
-  side.innerHTML = collapseBtn + searchBtn + '<div class="nav-sep"></div>' + mainNav.map(navItem).join('') +
+  // v0.13 seed — collapse (panel-left) y search se mudaron al header
+  // (2026-07-13, captura de Carlos); ver buildHeaderIcons().
+  side.innerHTML = mainNav.map(navItem).join('') +
     '<div class="grow"></div>' + modeBtn + bottomNav.map(navItem).join('');
 
   if (isAdv) {
@@ -1824,17 +1959,77 @@ function buildNav() {
     buildNav();
     App.syncNav();
   });
+}
 
-  document.getElementById('navSearchBtn').addEventListener('click', () => Modal.openCommandPalette());
+/* ============================================================
+   Header icons — v0.13 seed (2026-07-13, captura de Carlos): panel-left +
+   search a la izquierda del brand; explorer/terminal/diff/panel-right al
+   final antes del status badge. Mismo componente para los dos grupos.
+   ============================================================ */
+function headerIconBtn(id, icon, tipKey, active) {
+  return `<div class="header-icon-btn${active ? ' active' : ''}" id="${id}" data-tip="${t(tipKey)}" role="button" tabindex="0">${icon}</div>`;
+}
 
-  document.getElementById('navCollapseBtn').addEventListener('click', () => {
+function buildHeaderIcons() {
+  const sbExpanded = document.querySelector('.app').dataset.sidebar === 'expanded';
+  const left = document.getElementById('headerLeftIcons');
+  const right = document.getElementById('headerRightIcons');
+  if (!left || !right) return;
+
+  left.innerHTML =
+    headerIconBtn('headerSidebarToggle', ICON.panelLeft, sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand') +
+    headerIconBtn('headerSearchBtn', ICON.search, 'nav.search');
+
+  const rpOpen = state.rightPanelOpen;
+  const tab = state.rightPanelTab;
+  right.innerHTML =
+    headerIconBtn('rpTabExplorer', ICON.folder, 'rp.tab.explorer', rpOpen && tab === 'explorer') +
+    headerIconBtn('rpTabTerminal', ICON.term, 'rp.tab.terminal', rpOpen && tab === 'terminal') +
+    headerIconBtn('rpTabDiff', ICON.diff, 'rp.tab.diff', rpOpen && tab === 'diff') +
+    headerIconBtn('headerRightPanelToggle', ICON.panelRight, rpOpen ? 'rp.toggle.close' : 'rp.toggle.open', rpOpen);
+
+  document.getElementById('headerSidebarToggle').addEventListener('click', () => {
     const appEl = document.querySelector('.app');
     const next = appEl.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded';
     appEl.dataset.sidebar = next;
     localStorage.setItem('orchestos-sidebar', next);
-    buildNav();
-    App.syncNav();
+    buildHeaderIcons();
   });
+  document.getElementById('headerSearchBtn').addEventListener('click', () => Modal.openCommandPalette());
+
+  const openTab = tabName => {
+    if (state.rightPanelOpen && state.rightPanelTab === tabName) {
+      state.rightPanelOpen = false;
+    } else {
+      state.rightPanelOpen = true;
+      state.rightPanelTab = tabName;
+    }
+    localStorage.setItem('orchestos-rightpanel', state.rightPanelOpen ? 'expanded' : 'collapsed');
+    localStorage.setItem('orchestos-rightpanel-tab', state.rightPanelTab);
+    syncRightPanel();
+  };
+  document.getElementById('rpTabExplorer').addEventListener('click', () => openTab('explorer'));
+  document.getElementById('rpTabTerminal').addEventListener('click', () => openTab('terminal'));
+  document.getElementById('rpTabDiff').addEventListener('click', () => openTab('diff'));
+  document.getElementById('headerRightPanelToggle').addEventListener('click', () => {
+    state.rightPanelOpen = !state.rightPanelOpen;
+    localStorage.setItem('orchestos-rightpanel', state.rightPanelOpen ? 'expanded' : 'collapsed');
+    syncRightPanel();
+  });
+
+  [left, right].forEach(group => {
+    group.querySelectorAll('[role="button"]').forEach(n =>
+      n.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); n.click(); }
+      }));
+  });
+}
+
+/** Aplica el estado abierto/cerrado + tab activa del panel derecho al DOM. */
+function syncRightPanel() {
+  document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
+  buildHeaderIcons();
+  if (state.rightPanelOpen) RightPanel.render();
 }
 
 /* ============================================================
@@ -1844,11 +2039,13 @@ function boot() {
   // Sidebar collapsed/expanded mode (persisted)
   applySidebarMode();
 
-  // Build sidebar
+  // Build sidebar + header icons (v0.13 seed: panel-left/search/explorer/terminal/diff/panel-right)
   buildNav();
+  buildHeaderIcons();
 
-  // Terminal toggle
-  document.getElementById('termBar').addEventListener('click', () => Term.toggle());
+  // Panel derecho: aplica el estado persistido (localStorage) al primer render.
+  document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
+  if (state.rightPanelOpen) RightPanel.render();
 
   // Panels
   SidePanel.init();

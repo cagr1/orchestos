@@ -46,6 +46,7 @@
   --sidebar-w:     56px;
   --sidebar-w-exp: 200px;
   --header-h:      52px;
+  --rightpanel-w:  360px;
 
   --mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', ui-monospace, 'Menlo', monospace;
   --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -177,16 +178,28 @@ button { font-family: inherit; }
 .app {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
-  grid-template-rows: var(--header-h) 1fr auto;
+  grid-template-rows: var(--header-h) 1fr;
   grid-template-areas:
     "sidebar header"
-    "sidebar main"
-    "sidebar terminal";
+    "sidebar main";
   height: 100vh;
   overflow: hidden;
   transition: grid-template-columns .16s ease;
 }
 .app[data-sidebar="expanded"] { grid-template-columns: var(--sidebar-w-exp) 1fr; }
+/* v0.13 seed — panel derecho (explorer/terminal/diff). Columna extra reservada
+   solo cuando está abierto — igual que el sidebar, pero puede llegar a 0 en
+   vez de quedarse en un riel de íconos, porque no tiene contenido colapsado
+   propio (el toggle vive en el header). */
+.app[data-rightpanel="expanded"] {
+  grid-template-columns: var(--sidebar-w) 1fr var(--rightpanel-w);
+  grid-template-areas:
+    "sidebar header header"
+    "sidebar main rightpanel";
+}
+.app[data-sidebar="expanded"][data-rightpanel="expanded"] {
+  grid-template-columns: var(--sidebar-w-exp) 1fr var(--rightpanel-w);
+}
 
 /* ============================================================
    Header
@@ -238,15 +251,26 @@ button { font-family: inherit; }
 .brand b { color: var(--text); }
 .brand b span { color: var(--accent); }
 
-.header .screen-title {
-  color: var(--text-muted);
-  font-size: 13px;
-  border-left: 1px solid var(--border);
-  padding-left: 16px;
-  margin-left: -2px;
-}
-
 .header .spacer { flex: 1; }
+
+/* v0.13 seed — íconos de header (2026-07-13, patrón Claude Desktop/Codex/Orca):
+   panel-left + search a la izquierda del brand; explorer/terminal/diff/panel-right
+   al final antes del status badge. Mismo tamaño en los dos grupos. */
+.header-icons { display: flex; align-items: center; gap: 2px; }
+.header-icon-btn {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background .12s, color .12s;
+}
+.header-icon-btn svg { width: 18px; height: 18px; }
+.header-icon-btn:hover { color: var(--accent); background: var(--surface-2); }
+.header-icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.header-icon-btn.active { color: var(--accent); background: var(--surface-hi); border-color: var(--border); }
 
 /* status badge */
 .status-badge {
@@ -481,50 +505,98 @@ button { font-family: inherit; }
 .spinner.sm { width: 14px; height: 14px; border-width: 2px; }
 
 /* ============================================================
-   Terminal footer
+   Right panel — explorer / terminal / diff (v0.13 seed, header redesign)
    ============================================================ */
-.terminal {
-  grid-area: terminal;
-  border-top: 1px solid var(--border);
-  background: var(--term-bg);
-  display: grid;
-  grid-template-rows: auto 130px;
-  transition: grid-template-rows .2s ease;
+.rightpanel {
+  grid-area: rightpanel;
+  display: none;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  min-width: 0;
+  overflow: hidden;
 }
-.terminal.collapsed { grid-template-rows: auto 0px; }
-.terminal .bar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 7px 16px;
-  border-bottom: 1px solid #0b0f15;
-  cursor: pointer;
-  user-select: none;
-  background: #0a0e14;
+.app[data-rightpanel="expanded"] .rightpanel { display: flex; }
+.rp-tabs {
+  display: flex; align-items: center; gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
-.terminal .bar .t-label {
+.rp-body { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* Terminal tab — mismo contenido que antes vivía en el footer fijo, ahora
+   dentro del panel derecho como una de sus 3 vistas. */
+.rp-terminal { display: flex; flex-direction: column; height: 100%; background: var(--term-bg); }
+.rp-terminal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; border-bottom: 1px solid #0b0f15; background: #0a0e14;
+  flex-shrink: 0;
+}
+.rp-terminal-label {
   display: flex; align-items: center; gap: 8px;
-  font-size: 12px; font-weight: 600; color: var(--text-muted);
-  letter-spacing: 0.02em;
+  font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.02em;
 }
-.terminal .bar .t-label svg { width: 14px; height: 14px; }
-.terminal .bar .chev { transition: transform .18s; color: var(--text-faint); display: grid; }
-.terminal.collapsed .bar .chev { transform: rotate(-90deg); }
-.terminal .bar .live {
-  margin-left: 6px; font-size: 10.5px; color: var(--term-green);
-  font-family: var(--mono); opacity: .8; white-space: nowrap;
+.rp-terminal-label svg { width: 14px; height: 14px; }
+.rp-terminal-head .live {
+  font-size: 10.5px; color: var(--term-green); font-family: var(--mono); opacity: .8; white-space: nowrap;
 }
-.terminal .body {
-  font-family: var(--mono); font-size: 12px; line-height: 1.65;
-  color: var(--term-green);
-  padding: 10px 16px 14px;
-  min-height: 0; overflow-y: auto;
+.rp-terminal-body {
+  font-family: var(--mono); font-size: 12px; line-height: 1.65; color: var(--term-green);
+  padding: 10px 12px 14px; flex: 1; min-height: 0; overflow-y: auto;
 }
-.terminal.collapsed .body { overflow: hidden; }
-.terminal .body .ln { white-space: pre-wrap; }
-.terminal .body .ln .p { color: #2ea043; }
-.terminal .body .ln.dim { color: #3a8c44; }
-.terminal .body .ln.warn { color: var(--warning); }
-.terminal .body .ln.err { color: var(--error); }
-.terminal .body .ln.info { color: var(--accent); }
+.rp-terminal-body .ln { white-space: pre-wrap; }
+.rp-terminal-body .ln .p { color: #2ea043; }
+.rp-terminal-body .ln.dim { color: #3a8c44; }
+.rp-terminal-body .ln.warn { color: var(--warning); }
+.rp-terminal-body .ln.err { color: var(--error); }
+.rp-terminal-body .ln.info { color: var(--accent); }
+
+/* Explorer tab — árbol read-only, un nivel por request (docs: explorer.ts) */
+.rp-explorer { padding: 6px 0; }
+.exp-row {
+  display: flex; align-items: center; gap: 5px;
+  height: 26px; padding-right: 8px;
+  font-size: 12.5px; color: var(--text-muted);
+  cursor: pointer; white-space: nowrap;
+  border-radius: 4px;
+}
+.exp-row:hover { background: var(--surface-2); color: var(--text); }
+.exp-row.selected { background: var(--surface-hi); color: var(--accent); }
+.exp-ic { width: 14px; height: 14px; flex-shrink: 0; display: grid; place-items: center; color: var(--text-faint); transition: transform .12s; }
+.exp-row.open > .exp-ic { transform: rotate(90deg); }
+.exp-row .exp-type-ic { width: 15px; height: 15px; flex-shrink: 0; display: grid; place-items: center; }
+.exp-row .exp-type-ic svg { width: 14px; height: 14px; }
+.exp-name { overflow: hidden; text-overflow: ellipsis; }
+.rp-explorer-empty { padding: 16px 12px; font-size: 12.5px; color: var(--text-faint); }
+.rp-file-preview { display: flex; flex-direction: column; height: 100%; }
+.rp-file-preview-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted); flex-shrink: 0;
+}
+.rp-file-back {
+  display: flex; align-items: center; gap: 4px;
+  color: var(--accent); cursor: pointer; background: none; border: none;
+  font: inherit; font-size: 12px; padding: 2px 4px; border-radius: 4px;
+}
+.rp-file-back:hover { background: var(--surface-2); }
+.rp-file-back svg { width: 13px; height: 13px; transform: rotate(180deg); }
+.rp-file-path { font-family: var(--mono); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-file-preview pre {
+  flex: 1; min-height: 0; overflow: auto; margin: 0;
+  padding: 10px 12px; font-family: var(--mono); font-size: 12px; line-height: 1.55;
+  background: var(--bg); white-space: pre-wrap; word-break: break-word;
+}
+.rp-file-note { padding: 16px 12px; font-size: 12.5px; color: var(--text-faint); }
+
+/* Diff tab — reusa las clases .diff-file/.diff-line de Runs (Bloque C) */
+.rp-diff { padding: 10px; }
+.rp-diff-meta {
+  font-size: 12px; color: var(--text-muted); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.rp-diff-meta .mono { color: var(--text); }
 
 /* ============================================================
    Tables
@@ -645,10 +717,16 @@ select.bare {
    queda (marca, estado) tenga aire en pantallas angostas. */
 @media (max-width: 640px) {
   .header { gap: 10px; padding: 0 12px; }
-  .header .screen-title,
-  .header .active-counter { display: none; }
+  .header .active-counter,
+  .header-icons { display: none; }
   .screen { padding: 16px 14px 32px; }
   .role-grid { grid-template-columns: 1fr; }
+  /* el panel derecho no cabe en mobile — sin ícono para abrirlo (arriba),
+     forzamos la columna a 0 aunque el estado en localStorage diga "expanded". */
+  .app[data-rightpanel="expanded"] {
+    grid-template-columns: var(--sidebar-w) 1fr;
+    grid-template-areas: "sidebar header" "sidebar main";
+  }
 }
 
 /* ── Reduced motion ───────────────────────────────── */

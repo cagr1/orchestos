@@ -12,6 +12,7 @@ import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleA
 import { handleApiSystemReset, handleApiSystemEnginesExternalAvailability } from './handlers/system.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import { handleApiContextSuggest } from './handlers/context-suggest.ts'
+import { handleApiExplorerTree, handleApiExplorerFile } from './handlers/explorer.ts'
 import { DEFAULT_PORT } from './types.ts'
 
 export async function route(req: Request, port: number): Promise<Response> {
@@ -245,6 +246,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/context/suggest') {
     return await handleApiContextSuggest(url)
+  }
+  if (method === 'GET' && url.pathname === '/api/explorer/tree') {
+    return handleApiExplorerTree(url)
+  }
+  if (method === 'GET' && url.pathname === '/api/explorer/file') {
+    return handleApiExplorerFile(url)
   }
 
   if (method === 'GET') {

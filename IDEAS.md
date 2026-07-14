@@ -42,9 +42,13 @@ Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashb
 - #6 — Design.md condicional · #26 — Spec Kit · #25 — Mintlify docs · #11 — KuzuDB
 - #30 — `task_class: ocr` · #1/#2/#3 — endurecimiento de skills (autoría, sin motor)
 
-**Nota de diseño (parqueado hasta las capturas de Carlos):** el "estándar visual de dashboard"
-(patrón de chat/config/diseño de Hermes, Claude Desktop, Codex) es la semilla de v0.13, NO está
-en v0.12. Se abre cuando Carlos termine las capturas de pantalla, con material real enfrente.
+**Nota de diseño — primer tramo cerrado (2026-07-13), con capturas reales de Carlos** (Claude
+Desktop/Codex/Orca/Hermes): rediseño del header + panel derecho (explorer/terminal/diff), un
+solo ícono estático panel-left/panel-right (sin flecha que cambia con el estado), `localhost:4242`
+eliminado del header, terminal reubicado del footer fijo a una pestaña del panel derecho, y un
+explorador de archivos read-only nuevo (`GET /api/explorer/tree`+`/file`, un nivel por request).
+El resto del "estándar visual" (burbujas de chat, pantallas de Settings/Config) sigue siendo
+semilla de v0.13 — no tocado en este tramo.
 
 ---
 

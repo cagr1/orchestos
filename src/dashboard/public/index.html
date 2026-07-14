@@ -25,10 +25,11 @@
         </span>
         <b>Orchest<span>OS</span></b>
       </div>
-      <span class="screen-title mono">localhost:4242</span>
+      <div class="header-icons" id="headerLeftIcons"></div>
 
       <span class="spacer"></span>
 
+      <div class="header-icons" id="headerRightIcons"></div>
       <div class="status-badge" id="statusBadge" data-state="idle">
         <span class="dot"></span><span class="txt">IDLE</span>
       </div>
@@ -38,15 +39,11 @@
     <!-- MAIN -->
     <main class="main" id="main"></main>
 
-    <!-- TERMINAL FOOTER -->
-    <section class="terminal collapsed" id="terminal">
-      <div class="bar" id="termBar">
-        <span class="chev" id="termChev"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
-        <span class="t-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 9 12 4 17"/><line x1="12" y1="17" x2="19" y2="17"/></svg> Recent Runs</span>
-        <span class="live" id="termLive">● live</span>
-      </div>
-      <div class="body" id="termBody"></div>
-    </section>
+    <!-- RIGHT PANEL — explorer / terminal / diff (v0.13 seed, header redesign) -->
+    <aside class="rightpanel" id="rightpanel">
+      <div class="rp-tabs" id="rpTabs"></div>
+      <div class="rp-body" id="rightpanelBody"></div>
+    </aside>
 
   </div>
 

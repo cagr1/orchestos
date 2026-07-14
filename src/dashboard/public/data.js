@@ -13,9 +13,14 @@ const ICON = {
   term:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 9 12 4 17"/><line x1="12" y1="17" x2="19" y2="17"/></svg>',
   chev:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
   chevR:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>',
-  /* lucide:panel-left-close / panel-left-open — toggle del sidebar */
-  panelClose: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>',
-  panelOpen:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg>',
+  /* lucide:panel-left / panel-right — mismo ícono estático para abrir y cerrar
+     (2026-07-13, decisión de Carlos: nada de flecha que cambia con el estado,
+     igual que Claude Desktop/Codex/Orca). */
+  panelLeft:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>',
+  panelRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></svg>',
+  folder:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
+  file:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  diff:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14"/><path d="M5 10h14"/><path d="M5 21h14"/></svg>',
   x:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   search:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
@@ -66,6 +71,35 @@ function parseUnifiedDiff(patchText) {
     rows.push({ type: 'ctx', text: line });
   }
   return rows;
+}
+
+// v0.12/C.2 — un archivo del visor de diff (badge + gutter +/− + colapso).
+// Compartido entre el detalle de Runs y la pestaña Diff del panel derecho
+// (v0.13 seed) — mismo motor, no dos implementaciones del mismo widget.
+const DIFF_COLLAPSE_AFTER = 40;
+const DIFF_COLLAPSE_SHOW = 15;
+function renderFileDiffEntry(runId, f) {
+  const key = `${runId}:${f.path}`;
+  const rows = parseUnifiedDiff(f.diff).filter(row => row.type !== 'hunk');
+  const expanded = state.diffExpanded.has(key) || rows.length <= DIFF_COLLAPSE_AFTER;
+  const visible = expanded ? rows : rows.slice(0, DIFF_COLLAPSE_SHOW);
+  const added = rows.filter(row => row.type === 'add').length;
+  const removed = rows.filter(row => row.type === 'del').length;
+  const lineHtml = row => {
+    const gutter = row.type === 'add' ? '+' : row.type === 'del' ? '−' : '';
+    return `<div class="diff-line ${row.type}"><span class="diff-gutter">${gutter}</span><span class="diff-text">${esc(row.text) || '&nbsp;'}</span></div>`;
+  };
+  const collapseBtn = !expanded
+    ? `<button class="diff-more-btn" data-diff-expand="${esc(key)}">${t('runs.detail.diff.more').replace('{n}', String(rows.length - DIFF_COLLAPSE_SHOW))}</button>`
+    : '';
+  return `<div class="diff-file">
+    <div class="diff-file-head">
+      <span class="badge square ${f.status === 'added' ? 'green' : 'blue'}">${f.status}</span>
+      <span class="diff-file-path mono">${esc(f.path)}</span>
+      <span class="diff-file-stats"><span class="diff-add-count">+${added}</span> <span class="diff-del-count">−${removed}</span></span>
+    </div>
+    <div class="diff-body">${visible.map(lineHtml).join('')}${collapseBtn}</div>
+  </div>`;
 }
 
 // Bloque F.1 (Mes 18) — todas las fechas venían de la DB como ISO-8601 UTC
