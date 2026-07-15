@@ -56,4 +56,16 @@ describe('executeFetchUrl', () => {
     const result = await executeFetchUrl('fetch_url', { url: 'https://example.com/file.bin' })
     expect(result).toMatch(/unsupported content-type/)
   })
+
+  // A.3 (PLAN.md Mes 22): un fetch de >25K chars no debe inflar el prompt del chat.
+  it('caps the returned body with the truncation marker when the fetched content is large', async () => {
+    const big = 'X'.repeat(40_000)
+    globalThis.fetch = (async () => new Response(big, {
+      headers: { 'content-type': 'text/plain' },
+    })) as unknown as typeof fetch
+
+    const result = await executeFetchUrl('fetch_url', { url: 'https://example.com/big' })
+    expect(result).toContain('[...truncado:')
+    expect(result.length).toBeLessThan(big.length + 200)
+  })
 })

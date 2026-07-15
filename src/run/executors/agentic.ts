@@ -23,6 +23,7 @@ import { join } from 'path'
 import { calcCost } from '../../router/pricing.ts'
 import { normalizeRelPath } from '../contract.ts'
 import { runChecks } from '../checks.ts'
+import { capToolOutput, capCheckOutput } from '../tool-output-cap.ts'
 import {
   runToolLoop, createToolRouter,
   type ToolDef, type ToolExecutor,
@@ -112,11 +113,16 @@ export const agenticEngine: ExecutorEngine = {
       if (buffer.has(normalized)) return buffer.get(normalized)!
       const full = join(effectiveRoot, normalized)
       if (!existsSync(full)) return `[Error: file not found: ${normalized}]`
+      let raw: string
       try {
-        return readFileSync(full, 'utf-8')
+        raw = readFileSync(full, 'utf-8')
       } catch (e: any) {
         return `[Error reading ${normalized}: ${e.message}]`
       }
+      // IDEAS.md #32 / PLAN.md Mes 22 A.3: cap duro antes de meter el contenido
+      // a messages[]. Sin esto, un archivo grande infla el prompt hasta que
+      // contextWindow−prompt no da para maxTokens → `pending` automático.
+      return capToolOutput(raw)
     }
 
     function writeFile(relPath: string, content: string): string {
@@ -127,7 +133,8 @@ export const agenticEngine: ExecutorEngine = {
       }
       buffer.set(normalized, content)
       log.push(`write_file: ${normalized} (${content.length} chars)`)
-      return `OK: buffered ${normalized} (${content.length} chars) — will be written after all tool calls complete`
+      // El OK es corto, pero cap por defensa en profundidad y consistencia.
+      return capToolOutput(`OK: buffered ${normalized} (${content.length} chars) — will be written after all tool calls complete`)
     }
 
     function listDir(relPath: string): string {
@@ -138,12 +145,14 @@ export const agenticEngine: ExecutorEngine = {
       if (!existsSync(full) || !statSync(full).isDirectory()) {
         return `[Error: not a directory: ${normalized}]`
       }
+      let raw: string
       try {
         const entries = readdirSync(full, { withFileTypes: true })
-        return entries.map(e => e.isDirectory() ? `${e.name}/` : e.name).join('\n') || '(empty directory)'
+        raw = entries.map(e => e.isDirectory() ? `${e.name}/` : e.name).join('\n') || '(empty directory)'
       } catch (e: any) {
         return `[Error listing ${normalized}: ${e.message}]`
       }
+      return capToolOutput(raw)
     }
 
     async function runCheck(cmd: string): Promise<string> {
@@ -155,7 +164,9 @@ export const agenticEngine: ExecutorEngine = {
       const r = results[0]
       if (!r) return `[Error: check produced no result]`
       log.push(`run_check: ${cmd} → exit ${r.exitCode}${r.timedOut ? ' (timed out)' : ''}`)
-      return `exit ${r.exitCode}${r.timedOut ? ' (TIMED OUT)' : ''}\nstdout:\n${r.stdout}\nstderr:\n${r.stderr}`
+      // A.3: capCheckOutput (cabeza+cola) en vez de head-only — los errores
+      // viven al final del stderr y un truncado de cabeza los perdería.
+      return capCheckOutput(`exit ${r.exitCode}${r.timedOut ? ' (TIMED OUT)' : ''}\nstdout:\n${r.stdout}\nstderr:\n${r.stderr}`)
     }
 
     const executeTool: ToolExecutor = createToolRouter({
