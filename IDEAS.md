@@ -17,11 +17,15 @@ son la referencia detallada, no el orden de ejecución.
 Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashboard. Ver
 [PLAN.md](PLAN.md) § v0.12.
 
-**P1 — acabado / papercuts que hacen que se sienta terminado (candidatos v0.12 tardío / v0.13):**
+**Graduado a PLAN v0.13 (ya NO vive acá):** #32 (presupuesto de outputs de tools, Bloque A) y
+#36 (check de sintaxis JS/HTML en `defaultChecksFor`, Bloque A.5) — prerequisitos para reabrir
+C.2. Ver [PLAN.md](PLAN.md) § Mes 22 (v0.13). Decisión de Carlos (2026-07-15): primero que
+OrchestOS *entregue* un producto premium (C.2), luego las modificaciones de UI.
+
+**P1 — acabado / papercuts que hacen que se sienta terminado (POSPUESTOS hasta después de C.2):**
 - #43 — **panel derecho como IDE embebido**: tabs reales en `main`, explorer estilo VS Code
   (modificados/untracked), diff+archivo clickeable con gutter y syntax highlighting — pedido
   textual de Carlos (2026-07-14), transcrito sin reinterpretar en el ítem completo
-- #36 — check de sintaxis JS/HTML en `defaultChecksFor` (barato, hallazgo real de Mes 20/C.1)
 - #40 — editor de Constitution: Guardar/Limpiar explícitos en vez de auto-save silencioso (bug real)
 - #14 — notificaciones del sistema cuando algo termina en segundo plano
 - #27 — tab de consumo/gasto en Settings (agregación pura sobre `runs`)
@@ -29,7 +33,6 @@ Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashb
 - #37 — modo "empezar gratis" (modelos `:free` de OpenRouter por defecto)
 
 **P2 — robustez del motor, gated en evidencia (habilitan reintentar Mes 20/C.2):**
-- #32 — presupuesto de outputs de tools en el executor agéntico ← **prerequisito de C.2**
 - #33 — refuter en el QA loop (segunda opinión barata antes de quemar retry)
 - #19 — `engine: external` sin `checks:` pierde su red determinista
 - #4 — clasificador semántico para `clarify` · #5 — resolver Ruby · #16 — escala honesta
@@ -39,7 +42,11 @@ Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashb
 **P3 — capacidad nueva grande (post-estable, v0.13+):**
 - #41 — **empaquetar como app de escritorio Electron (Mac/Linux/Windows)** — la que más se acerca a
   la forma de producto de Orca; prototipo chico, distribución real medio-alta
-- #39 — generalizar `engine: external` a más CLIs (Orca) · #28 — terminal real embebido
+- #39 — generalizar `engine: external` a más CLIs (Orca) → **prerequisito de #44**
+- #44 — **cascada de selección Local→CLI→API** (Orca-style, "usa lo ya pagado antes que gastar
+  saldo") — gated en #39 + una decisión explícita de Carlos por la tensión con
+  [[feedback-modelo-decision-final-carlos]] (ver ítem completo)
+- #28 — terminal real embebido
 - #35 — directorio de proyecto configurable · #10 — cliente MCP · #31 — chat multi-proveedor
 - #34 — `orchestos audit` · #7 — brainstorming socrático · #8 — micrófono/dictado
 - #6 — Design.md condicional · #26 — Spec Kit · #25 — Mintlify docs · #11 — KuzuDB
@@ -89,25 +96,6 @@ por la puerta importar.
 **Esfuerzo**: bajo — dos skills, sin motor nuevo.
 
 - ~~**#23 — Sistema de notificaciones/toasts estilizado**~~ — Resuelto en E.7 (2026-07-07): todos los `alert()`/`prompt()` reemplazados por `showToast()` + modales propios.
-
-### 36. `defaultChecksFor` — validar sintaxis JS embebida en HTML, no solo `.ts`/`.tsx`
-
-**Origen**: hallazgo real en Mes 20/C.1 (2026-07-13) — el archivo `.html` generado tenía un
-error de sintaxis JS (`:` donde iba `+` en una concatenación) que rompía el script entero.
-Ni `test -s` (¿existe, no vacío?) ni `grep` (busca texto) lo detectan, y el juez QA (`qa.ts`)
-tampoco corre el código, solo lo lee — el mismo gap que `checks.ts` ya documenta para
-TS/tsc, pero sin cobertura para `.js`/`.html`. Se encontró abriendo la página de verdad en
-el navegador, no por ningún check automático.
-
-**Qué hacer**: en `defaultChecksFor` (`src/run/checks.ts`), cuando `output` incluye `.html`
-o `.js`, agregar un check que extraiga el/los `<script>` inline (o el archivo `.js` directo)
-y corra `node --check` sobre eso — detecta errores de sintaxis sin ejecutar el código (sin
-riesgo), mismo principio que el check de `tsc --noEmit` ya existente.
-
-**Esfuerzo**: bajo — una función de extracción de `<script>` + un `Check` más en la lista
-condicional, sin motor nuevo.
-
----
 
 ## 🔨 Medio — capacidad nueva acotada
 
@@ -203,33 +191,6 @@ descarta: Google-only, audio a servidores externos, mal en español técnico.)
 
 **Esfuerzo**: medio-alto — abstracción nueva (`STTProvider`) + wiring Electron + superficie
 en dashboard. El tope del tramo medio.
-
-### 32. Presupuesto de outputs de tools en el executor agéntico — el hueco que dispara `pending` por contexto
-
-**Eslabón defectuoso verificado (2026-07-11)**: en `src/run/executors/agentic.ts`,
-`read_file` devuelve el archivo **completo sin cap de tamaño** (línea ~116) y `run_check`
-mete stdout/stderr **enteros** al historial (línea ~158). Ningún punto del pipeline trunca
-o comprime outputs de tools antes de que entren a `messages[]`. Un archivo grande o un
-check verboso infla el prompt hasta que `contextWindow − prompt` ya no da para maxTokens
-→ pending automático (la regla de `feedback-context-no-max-tokens`). Es el mismo modo de
-fallo que pausó la prueba de "página premium" (React+TS+Vite).
-
-**Qué hacer** (nativo en TS, sin dependencias):
-1. **Cap duro por tool-result** (ej. ~20-30k chars) con marcador `[...truncado: N chars
-   omitidos de M]` — la mitigación del 80% en una tarde.
-2. **Truncado inteligente para `run_check`**: conservar cabeza + cola de stdout/stderr
-   (los errores casi siempre viven al final), no solo la cabeza.
-3. (Opcional, después de evidencia) compresión estadística de resultados JSON tipo
-   "SmartCrusher": conservar primeros/últimos items + anomalías + matches relevantes al
-   query. Solo si (1)+(2) no bastan.
-
-**Origen**: patrón Headroom (`chopratejas/headroom`, visto vía awesome-llm-apps).
-**Verificado**: la librería es Python — NO portable directo; lo que se toma es la técnica,
-implementada nativa sobre el executor propio. Los demos del repo awesome-llm-apps son
-wrappers, no código original.
-
-**Esfuerzo**: bajo para (1)+(2) — un módulo `capToolOutput()` + tests, se inyecta en los
-4 tools de `agentic.ts` y en el executeTool del chat. (3) es medio y espera evidencia.
 
 ### 33. Refuter en el QA loop — segunda opinión barata antes de quemar un retry
 
@@ -952,6 +913,28 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
   El patrón (c) es la pieza de seguridad que le falta a Dreaming si algún día gradúa de
   proponer a aplicar. La política de cache del fork (mismo modelo → replay completo tibio;
   modelo distinto → digest frío compacto) quedó anotada en #33.
+- **Aden Hive / OpenHive** (Aden, YC S2021, ~10.7K⭐ Apache-2.0) — https://github.com/aden-hive/hive
+  · framework multi-agente Python "outcome-driven" para producción. **Traído por Carlos
+  (2026-07-15) vía outreach en frío** (ver contexto abajo). **PENDIENTE DE ESTUDIO EN OTRA SESIÓN**
+  — el ángulo NO es partnership (es un competidor directo bien financiado, no un socio), sino
+  *qué patrones concretos de su código pueden ayudar a OrchestOS*, siendo Apache-2.0 legalmente
+  legible. Es la articulación mejor financiada de exactamente lo que OrchestOS construye, así que
+  vale como benchmark de arquitectura, no como fuente de features nuevas. **ADN compartido
+  verificado (2026-07-15)**: "queen" que genera el grafo de agentes desde lenguaje natural (=
+  planner con function calling de OrchestOS, S23), DAG con contratos, memoria role-based
+  persistente, cost caps / spend enforcement, checkpoint/crash recovery, multi-proveedor vía
+  LiteLLM, MCP como capa de tools. **A revisar en la sesión de estudio** (hipótesis, no
+  verificado en su código todavía): (a) cómo aísla estado entre workers y el checkpoint-based
+  crash recovery — contrastar con el harness actual; (b) su "outcome-driven" (describe el
+  resultado, no los pasos) vs. el `tasks.yaml` explícito de OrchestOS — ¿hay algo adoptable sin
+  romper "tasks.yaml es la fuente de verdad"?; (c) observabilidad (WebSocket streaming en vivo,
+  analytics de costo) vs. el dashboard actual; (d) los 100+ conectores MCP como catálogo de
+  referencia para #10 (cliente MCP). **Higiene**: los claims de marketing (logos enterprise sobre
+  v0.2.x, ratio forks:stars ~1:2 anómalo, "Richard Tang co-founder" que no cuadra con los
+  fundadores YC Vincent Jiang/Timothy Zhang) son ruido de ventas — separar el código real (sólido)
+  del outreach (template masivo en frío). El correo pedía a Carlos ser *implementation partner*
+  con comisión: descartado, es vender producto de un competidor, opuesto al objetivo de producto
+  propio. Solo el código es interesante.
 
 ---
 
@@ -1013,6 +996,60 @@ por ruta" a "tab strip con estado de tabs abiertos"), más un motor de resaltado
 modificado/untracked en el explorer (necesita `git status --porcelain` real, no solo el árbol de
 archivos). Candidato a diseño formal (`docs/`) antes de tocar código — mismo patrón que Bloque A
 del Mes 18 o Bloque C del Mes 21 (diseño primero, revisado con Carlos, luego implementación).
+
+### 44. Cascada de selección Local → CLI → API — el CLI corre contra la cuenta ya pagada del usuario, no gasta saldo
+
+**Origen**: Carlos (2026-07-15), tras ver de nuevo Orca — quiere que OrchestOS, al elegir cómo
+correr una tarea, intente en este orden: (1) **Local** — LLM local si se detecta uno (Ollama ya
+soportado como *proveedor*, ver abajo), (2) **CLI** — si el usuario tiene un CLI de agente
+instalado (Claude Code, OpenCode, u otro — ya corre contra SU cuenta/suscripción, no contra saldo
+medido), (3) **API** — OpenRouter u otro proveedor por API key, **solo como último recurso**,
+porque es la opción que más dinero quema.
+
+**Verificado contra el código real (2026-07-15) — los 3 tramos existen por separado, pero NINGUNA
+cascada los conecta:**
+- **Local**: Ollama ya está soportado, pero únicamente como *proveedor de modelo* dentro del flujo
+  API-style (`router/model-catalog.ts`, `dashboard/llm/clients.ts`) — se elige explícitamente un
+  `model: "ollama/..."`, no se autodetecta como tramo preferente de una cascada.
+- **CLI**: `engine: external` (`src/run/executors/external.ts`, Mes 17) ya ejecuta un CLI de agente
+  como subproceso contra la cuenta del usuario — pero está **hardcodeado a un único binario**
+  (`claude`, vía `findClaudeBinary()`) y la selección de engine es **siempre manual**
+  (`--engine external` / composer del dashboard), nunca automática. Generalizar a más binarios
+  (`opencode`, `codex`) es exactamente [#39](#39-generalizar-el-executor-external), que ya cubre
+  el registro de agentes y el riesgo de ToS de automatizar un CLI de suscripción — **prerequisito
+  de este ítem**, no un sustituto: #39 generaliza QUÉ binarios se detectan, #44 decide EN QUÉ
+  ORDEN se prueban, automáticamente.
+- **API**: es el único tramo con selección real hoy — y es manual también (`orchestos.config.yaml`
+  o decisión explícita de Carlos por corrida).
+
+**⚠️ Tensión real con [[feedback-modelo-decision-final-carlos]] — no la resuelvo yo, la anoto**:
+esa regla nació de un incidente de $5 quemados y dice que el modelo/engine de una corrida
+**siempre lo decide Carlos explícitamente — ningún LLM lo decide ni lo arrastra de memoria**. Una
+cascada automática Local→CLI→API es, por construcción, una decisión de engine tomada por el
+sistema, no por Carlos en el momento. Antes de implementar, esto necesita una decisión explícita
+de Carlos: ¿la cascada es el *default* que él puede overridear, o sigue exigiendo confirmación
+manual por corrida como hoy? Sin esa respuesta, el ítem no se toca.
+
+**Dificultad arquitectónica (verificada, no solo intuida por Carlos)**: el `router/` (pricing,
+`model-catalog.ts`, cost tracking en `transcript-parser.ts`) fue diseñado asumiendo que el costo en
+USD por token es la unidad universal de medición — todo `ExecutorOutcome` reporta
+`inputTokens`/`outputTokens`/`usd`. Un tramo Local o CLI-por-suscripción no tiene ese costo real
+(o es $0, o está fuera del medidor). Introducir tramos "gratis-ish" cruza selección de engine,
+catálogo de modelos, y tracking de costo simultáneamente — no es un feature aislado como #39.
+
+**Qué hacer (no antes de la decisión de Carlos arriba)**:
+1. Cerrar #39 primero (registro de binarios CLI detectables).
+2. Definir cómo se reporta costo real de un tramo Local/CLI en `ExecutorOutcome` (¿`usd: 0` con un
+   flag `costFree: true`? ¿no medir en absoluto?) — decisión de diseño, no trivial.
+3. Función de detección en orden (`selectEngineCascade()`): Ollama local disponible → binario CLI
+   conocido disponible → fallback API. Expuesta en dashboard/CLI como lo que decidió, nunca
+   silenciosa (mismo principio que C.2 del engine external: "detección honesta").
+4. Decidir el punto de override manual (composer del dashboard / flag CLI) para cuando Carlos
+   quiere forzar un tramo específico pese a la cascada.
+
+**Esfuerzo**: medio-alto — depende en gran parte de la respuesta de Carlos a la tensión de arriba;
+si la cascada es solo un *default* con override siempre visible, es medio; si tiene que coexistir
+con la regla de decisión-explícita-siempre, es más diseño que código.
 
 ---
 

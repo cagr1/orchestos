@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: v0.12-cerrado--proximo-milestone-por-decidir
+status: v0.13-abierto--que-orchestos-entregue-un-producto-premium
 ---
 
 # OrchestOS — Plan activo
@@ -12,14 +12,114 @@ Historial completado → ver [DONE.md](DONE.md).
 Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
 **Regla**: marcar `[x]` con fecha al cerrar. Si una validación falla, no abrir el siguiente bloque.
-**Delegación**:
-- 🧠 = Claude implementa — requiere criterio arquitectural o decisión de diseño
-- ⚡ = DeepSeek implementa — tarea bien especificada, ejecuta leyendo el plan
-- 🔍 = revisión obligatoria por Claude — gate antes de cerrar el sprint, independiente de quién implementó
+
+**Delegación — NO es una leyenda, son muros dirigidos a ti, el que ejecuta (endurecido 2026-07-15):**
+- 🧠 = **Claude implementa** — requiere criterio arquitectural o decisión de diseño.
+- ⚡ = **DeepSeek implementa** — tarea bien especificada. **Si eres Claude: NO la implementas, NO la
+  adelantas porque sea trivial o esté adyacente a lo tuyo, NO te ofreces a hacerla.** Si un ⚡ está
+  sin cerrar y bloquea tu 🔍, **PARA y repórtalo** — no lo absorbas.
+- 🔍 = **revisión/gate obligatorio por Claude** — independiente de quién implementó.
+
+**Regla de alcance (scope-lock, 2026-07-15):** ejecuta **EXACTAMENTE** el/los ítem(s) que el usuario
+nombró — nada adyacente, ni el prerequisito, ni el siguiente, sin instrucción explícita. Si el ítem
+nombrado tiene un prerequisito sin cerrar, **PARA y avísalo**; no lo hagas en silencio. Motivo real
+(2026-07-15): con "continua con A.4" un LLM tocó A.3 (⚡, ajeno) y se ofreció a hacer A.5 (⚡, ajeno).
+
+**Regla de commits (cadencia, 2026-07-15):** cada ítem cerrado (`[x]`) se commitea **en el mismo
+turno** en que se cierra. Tras 2-3 commits locales, `git push origin master` **automáticamente**
+(autorización permanente en CLAUDE.md) — **NO pidas permiso por lo ya autorizado, NO acumules** una
+pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 **Regla de documentación obligatoria (2026-07-02):** todo hallazgo — bug real, deuda técnica, feature huérfana, contradicción entre `tasks.yaml`/DONE.md y el código real — se convierte en un ítem de este archivo (o de IDEAS.md si es backlog no inmediato) ANTES de tocar código. Si no está escrito acá, no se corrige. Motivo: una auditoría completa (2026-07-02) encontró deuda documentada en prosa dentro de DONE.md ("anotado como deuda conocida") que nunca se tradujo a un ítem accionable y por eso nadie la persiguió durante 3 meses (ver Bloque F0).
 
 **Regla de flujo IDEAS→PLAN→DONE (decisión Carlos, 2026-07-02):** cuando una idea pasa de IDEAS.md a PLAN.md (se convierte en el eje o en un bloque de un Mes), **se ELIMINA de IDEAS.md en el mismo commit** — no queda duplicada en ambos. La evidencia de que se realizó vive siempre en DONE.md (documentación extensa al cierre del Mes). IDEAS.md es solo backlog vivo: lo que está ahí es porque NADIE lo está haciendo todavía.
+
+---
+
+## MES 22 (v0.13) — Que OrchestOS entregue de verdad un producto premium: cerrar C.2
+
+**Eje decidido por Carlos (2026-07-15):** primero que *entregue* algo real, luego las
+modificaciones de UI. El norte vuelve a la pregunta que Mes 20 dejó abierta a propósito
+— *"¿puede OrchestOS entregar un producto premium?"* — que sigue sin respuesta con dato
+real ([DONE.md](DONE.md) § Mes 20/C.2). Las modificaciones (P1: #43 panel IDE embebido,
+papercuts #40/#36/#27/#14) quedan **explícitamente pospuestas** hasta después de esta
+corrida — no se abren en este Mes.
+
+**Prerequisitos duros para la corrida cara (Bloque C), ambos declarados en el pre-flight
+de v0.12:** (1) Bloque A — #32 resuelto; (2) Bloque B — decisión de modelo por Carlos.
+No abrir C sin los dos verdes.
+
+### Bloque A — 🧠 #32: presupuesto de outputs de tools en el executor agéntico (prerequisito)
+
+Eslabón defectuoso verificado (IDEAS.md #32): en `src/run/executors/agentic.ts`, `read_file`
+devuelve el archivo completo sin cap y `run_check` mete stdout/stderr enteros al historial;
+nada trunca outputs de tools antes de `messages[]` → un archivo grande o check verboso infla
+el prompt hasta que `contextWindow − prompt` no da para maxTokens → `pending` automático. Es
+el mismo modo de fallo que pausó C.2.
+
+- [x] **A.1 — 🧠 (2026-07-15)** `capToolOutput()`: módulo nativo TS (sin deps) con cap duro por
+  tool-result (25k chars default) + marcador `[...truncado: N chars omitidos de M]`.
+  [src/run/tool-output-cap.ts](src/run/tool-output-cap.ts).
+- [x] **A.2 — 🧠 (2026-07-15)** `capCheckOutput()`: truncado cabeza+cola para stdout/stderr de
+  `run_check` (los errores viven al final, no solo la cabeza). Mismo archivo. 7 tests · 0 fail ·
+  `tsc --noEmit` limpio.
+- [x] **A.3 — ⚡ (2026-07-15)** Wiring: `capToolOutput()` inyectado en los 4 tools de
+  `agentic.ts` (read_file/write_file/list_dir con `capToolOutput`, run_check con
+  `capCheckOutput` para preservar stderr al final) y en el `executeTool` del chat
+  (executeFetchUrl/executeSearchMemory y el helper `readProjectTextFile` que cubre
+  read_plan/read_tasks/read_ideas/read_file). 7 tests del módulo (A.1+A.2) +
+  7 tests nuevos por punto de inyección (4 en `agentic-tool-cap.test.ts`,
+  1 en `chat-fetch-url.test.ts`, 2 en `chat-read-project-tools.test.ts`).
+  Hallazgo real del integration test: `checks.ts:7 OUTPUT_LIMIT=2_000` ya trunca
+  cada stream con `tail()` antes de salir del check — el capCheckOutput del
+  executor queda como defensa en profundidad (no dispara en la práctica),
+  documentado en el test. 725 tests · 0 fail · `tsc --noEmit` limpio.
+- [x] **A.4 — 🔍 (2026-07-15)** Gate causal cerrado. Test en
+  [agentic-tool-cap.test.ts](src/__tests__/agentic-tool-cap.test.ts) que prueba con las MISMAS
+  funciones que el motor usa para presupuestar (`estimateTokens`/`contextWindowFor`), no umbrales
+  inventados: (control) el `read_file` crudo de un archivo dimensionado a `contextWindow*4+50k`
+  chars supera la ventana del modelo → es la condición exacta de `pending`/overflow de #32;
+  (con cap) el `messages[]` REAL capturado de la ronda siguiente estima por debajo de la ventana,
+  con el tool-result bajo `contextWindow/4` → queda margen de sobra para el output (lo que #32
+  decía que se perdía: `contextWindow−prompt < maxTokens`). Evidencia = request capturado, no
+  `[x]` de reporte ([[feedback-verificar-progreso-delegado]]). 726 tests · 0 fail · `tsc` limpio.
+  **Matiz honesto**: el loop agéntico (`runToolLoop`) no emite un status `pending` propio dentro
+  del loop — usa un `maxTokens` fijo por ronda; el `pending` formal vive en el pre-check del
+  harness (`harness.ts:287`). El gate prueba la causa raíz común (contexto acumulado que revienta
+  la ventana), que es el fallo que #32 describe, no un literal `status==='pending'` dentro del loop.
+- [ ] **A.5 — ⚡** (opcional, refuerza la red antes de la corrida cara) #36: `defaultChecksFor`
+  valida sintaxis de JS embebido en HTML/`.js` — el gap real que dejó pasar el bug de sintaxis
+  de C.1 (`:` en vez de `+`) que ni checks ni QA detectaron.
+
+### Bloque B — 🧠 GATE DE CARLOS: decisión de modelo para la corrida
+
+**No lo decide ningún LLM ni se arrastra de memoria** ([[feedback-modelo-decision-final-carlos]],
+incidente de $5.00 quemados). El modelo de la corrida C.2 es el de `orchestos.config.yaml` o el
+que Carlos indique en el momento. Este bloque está VERDE solo cuando Carlos lo confirma
+explícitamente en el turno de la corrida.
+
+- [ ] **B.1 — 🧠 Carlos** Modelo de la corrida C.2 confirmado explícitamente (executor + QA).
+
+**Nota — no bloquea este Mes (2026-07-15):** Carlos planteó una idea de arquitectura mayor —
+cascada de selección Local (LLM local) → CLI (Orca/OpenCode/Claude Code, corre contra la cuenta ya
+pagada del usuario) → API (OpenRouter, último recurso, la que más gasta) — inspirada en Orca.
+Anotada completa en [IDEAS.md #44](IDEAS.md), P3, gated en #39 (generalizar `engine: external` a
+más binarios) + una decisión explícita de Carlos aún pendiente por la tensión con
+[[feedback-modelo-decision-final-carlos]] (cascada automática vs. "el modelo/engine siempre lo
+decide Carlos, nunca un LLM"). No se toca código de esto hasta esa decisión.
+
+### Bloque C — 🔍 Reabrir C.2: dashboard premium multi-archivo con dinero real
+
+Solo con A y B en verde. Es el gate original y más exigente del Mes 20: dashboard premium
+multi-archivo (React+TS+Vite), motor agéntico + auto-split (S22 + Mes 20), contratos y
+verificación por sub-tarea. Responde con dato real la pregunta de producto.
+
+- [ ] **C.1 — 🔍** Corrida real de la tarea premium multi-archivo, gate con dinero real (mismo
+  patrón G.5/Mes 14/Mes 17). Registrar costo, veredicto QA y el entregable abierto de verdad en
+  el navegador (no confiar solo en checks — el bug de C.1 solo apareció abriendo la página).
+- [ ] **C.2 — 🔍** Verdicto honesto: ¿entregó un producto premium usable end-to-end? Sí/No con
+  evidencia. Todo bug real destapado en el camino se convierte en ítem antes de tocar código
+  (regla de documentación obligatoria).
 
 ---
 
