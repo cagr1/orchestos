@@ -164,6 +164,32 @@ presupuesto de deepseek pasa a ~1M y el archivo único entra sin truncar, así q
 falta para este caso. Mejorar el gate para que estime tamaño real (y así partir un solo archivo
 grande en varias llamadas) es un ítem aparte → IDEAS #47.
 
+- [x] **E.3 — 🧠 (2026-07-16)** Fallo distinto encontrado al reintentar tras E.1: `crypto-dashboard-v2`
+  (auto-creada por D.7 mientras `crypto-page-v2` corría en su propio worktree) falló con
+  `git merge orchestos/crypto-dashboard-v2/... failed after rebase` — QA había pasado, el LLM
+  generó el archivo, pero `mergeWorktreeBack()` (harness.ts:566) lanzó ANTES de `insertRun()`
+  (línea 576) → **cero fila en `runs` para un intento que sí gastó dinero real**. Consecuencia en
+  cascada: `diagnoseTask()` hacía `if (runs.length===0) throw` → 404 → el click handler del
+  frontend guardaba `diagnoseCache[id] = null` en silencio → **"View diagnosis" nunca abría nada**,
+  sin ningún error visible (el bug que Carlos reportó: "trate de ver pero nunca se abrió"). Fix
+  aplicado (rápido, a pedido de Carlos, no delegado):
+  - `diagnoseTask()` ([src/agents/diagnose.ts](src/agents/diagnose.ts)): con 0 runs pero
+    `task.retry_reason` presente, sintetiza el diagnóstico DESDE el retry_reason (ya tiene los
+    comandos manuales de arreglo) sin gastar una llamada a Haiku — solo revienta si de verdad no
+    hay ni runs ni retry_reason.
+  - Frontend: el catch del click de diagnose ya no descarta el error en silencio — lo guarda y
+    `diagnoseDetail()` lo muestra como bloque de error visible en vez de cerrarse sin avisar.
+  - Verificado en vivo contra el dashboard real: el panel abre y muestra patrón/confianza/detalle
+    con los comandos de arreglo manual del worktree huérfano.
+  **Causa raíz de fondo, NO resuelta acá** (candidato para cuando se retome, relacionado con D.5/D.7):
+  correr dos tareas simultáneas donde una usa worktree y la otra auto-commitea directo a `master`
+  (D.5/D.7) mueve la rama base mientras el worktree intenta hacer `--ff-only` merge de vuelta —
+  condición de carrera real entre nuestro propio auto-commit y el merge-back del sandbox. El fix de
+  hoy hace el fallo DIAGNOSTICABLE (y no gastó dinero de más), pero no evita que vuelva a pasar.
+  750 tests · 0 fail (incluye ajuste de `chat-read-project-tools.test.ts`: verificaba "MES 18" en
+  `read_plan`, quedó fuera del cap de 25k al crecer PLAN.md hoy — ahora verifica "MES 22", la
+  sección vigente). `tsc` limpio.
+
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 
 Excepción explícita de Carlos al freeze de UI de este Mes: el primer intento real de correr

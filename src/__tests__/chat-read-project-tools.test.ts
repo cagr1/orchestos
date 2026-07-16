@@ -9,7 +9,11 @@ import { executeReadPlan, executeReadTasks, executeReadIdeas, executeReadFile } 
 describe('read-project tools', () => {
   it('read_plan returns the real content of PLAN.md', async () => {
     const result = await executeReadPlan('read_plan', {})
-    expect(result).toContain('MES 18')
+    // MES 22 es la sección activa vigente — no un número fijo de mes viejo:
+    // PLAN.md crece y secciones más antiguas caen fuera del cap de
+    // capToolOutput (25k chars), así que el test debe verificar lo que SÍ
+    // está garantizado al inicio del archivo, no una sección de meses atrás.
+    expect(result).toContain('MES 22')
   })
 
   it('read_tasks returns the real content of tasks.yaml', async () => {

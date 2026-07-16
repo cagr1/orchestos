@@ -680,6 +680,13 @@ SCREENS.runner = {
    ============================================================ */
 SCREENS.tasks = {
   diagnoseDetail(d, st) {
+    if (d.error) {
+      return `<tr class="detail-row"><td colspan="8"><div class="detail">
+        <div class="grp"><h4>${t('tasks.diagnose.title')}</h4>
+          <div class="kv"><span class="k" style="color:var(--error)">${t('tasks.diagnose.err')}</span><span class="v">${esc(d.error)}</span></div>
+        </div>
+      </div></td></tr>`;
+    }
     const confKey = d.confidence === 'high' ? 'tasks.diagnose.conf.high'
       : d.confidence === 'medium' ? 'tasks.diagnose.conf.med'
       : 'tasks.diagnose.conf.low';
@@ -1204,10 +1211,16 @@ SCREENS.tasks = {
       App.rerender();
       try {
         const res = await fetch(`/api/tasks/${encodeURIComponent(id)}/diagnose`);
-        if (!res.ok) throw new Error(res.statusText);
+        if (!res.ok) {
+          const e = await res.json().catch(() => null);
+          throw new Error((e && e.error) || res.statusText);
+        }
         st.diagnoseCache[id] = await res.json();
-      } catch {
-        st.diagnoseCache[id] = null;
+      } catch (err) {
+        // Bug real (2026-07-16): antes esto guardaba `null` y el panel se
+        // cerraba en silencio sin avisar nada — Carlos hizo click y "nunca
+        // se abrió". Ahora se guarda el error para mostrarlo (Bloque F.4).
+        st.diagnoseCache[id] = { error: err && err.message ? err.message : t('tasks.diagnose.err') };
       }
       st.openDiagnose = id;
       App.rerender();

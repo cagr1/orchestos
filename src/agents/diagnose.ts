@@ -15,7 +15,7 @@ import { chat } from '../providers/openrouter.ts'
 import { getProvider } from '../providers/index.ts'
 import { calcCost } from '../router/pricing.ts'
 
-type LoadTasksFn = (root: string) => { tasks: Array<{ id: string; description: string }> }
+type LoadTasksFn = (root: string) => { tasks: Array<{ id: string; description: string; retry_reason?: string }> }
 type ListRunsByTaskIdFn = (taskId: string) => RunRecord[]
 
 export type FailurePattern =
@@ -120,7 +120,28 @@ export async function diagnoseTask(
   if (!task) throw new Error(`Task "${taskId}" not found in tasks.yaml`)
 
   const runs = listRuns_(taskId).slice(0, 3)
-  if (runs.length === 0) throw new Error(`No runs found for task "${taskId}"`)
+  if (runs.length === 0) {
+    // Bug real (2026-07-16): un fallo en mergeWorktreeBack() DESPUÉS de que
+    // QA ya pasó (harness.ts, camino de éxito) lanza antes de insertRun() —
+    // el intento cuesta dinero real pero no deja fila en `runs`. Antes esto
+    // hacía throw() → 404 → el front descartaba el error en silencio y el
+    // panel de diagnosis nunca se abría (ver PLAN.md Bloque F.4). Con
+    // retry_reason presente (tasks.yaml sí lo tiene siempre) se sintetiza un
+    // diagnóstico sin gastar una llamada a Haiku — el motivo real YA está
+    // en el mensaje de error del harness.
+    if (task.retry_reason) {
+      return {
+        taskId,
+        pattern: 'unknown',
+        confidence: 'high',
+        suggestion: 'Failure happened after QA passed (worktree merge-back), not during generation — no LLM run was recorded. See the exact error and manual-fix commands below.',
+        details: task.retry_reason,
+        usdCost: 0,
+        lastErrorResult: task.retry_reason,
+      }
+    }
+    throw new Error(`No runs found for task "${taskId}"`)
+  }
 
   const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'blocked')?.result ?? undefined
 
