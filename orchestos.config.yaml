@@ -1,0 +1,19 @@
+config_version: 1
+models:
+  planner:
+    provider: openrouter
+    model: anthropic/claude-haiku-4-5
+  executor_heavy:
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+  executor_light:
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+  default:
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+  qa:
+    provider: openrouter
+    model: anthropic/claude-haiku-4-5
+agentic:
+  maxIterations: 25
