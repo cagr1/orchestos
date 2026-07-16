@@ -228,6 +228,71 @@ solo, y 3 bugs visuales/funcionales concretos. Evidencia: screenshot del draft d
   748 tests · 0 fail · `tsc` limpio. Verificado que el server bootea sin errores de wiring;
   el flujo end-to-end (gasta LLM real) queda para que Carlos lo pruebe él mismo en vivo.
 
+### Bloque F — 🧠 Ledger de responsabilidad de LLMs + fix visual del panel de diagnosis (orden de Carlos, 2026-07-16)
+
+Nace de un caso real de este Mes: el fix G.5 (algún modelo, alguna sesión) reintrodujo una
+regresión contra una regla que Carlos había marcado "no reabrir" ([[feedback-context-no-max-tokens]],
+ver Bloque E) — y **hoy no hay forma de saber qué modelo lo hizo ni por qué**. Carlos quiere un
+registro que le diga, por tarea/sesión, **qué LLM actuó y por qué cambió (o respetó) una regla que
+él dejó**. El objetivo no es castigar: es distinguir tres comportamientos para saber con qué modelo
+le conviene trabajar —
+  1. **Obediencia ciega** — sigue la regla sin pensar (aceptable, pero no lo más valioso).
+  2. **Desviación razonada** — decide NO seguir una regla y **explica el porqué** con un argumento
+     sólido (el comportamiento MÁS inteligente y el que Carlos más quiere premiar).
+  3. **Desviación silenciosa / regresión** — cambia o rompe una regla sin avisar ni justificar
+     (el que "destruye" — exactamente lo que pasó con G.5).
+
+- [ ] **F.1 — 🧠 Diseño del ledger (especificación, requiere OK de Carlos antes de tocar código):**
+  archivo append-only `LEDGER.md` en la raíz del repo (mismo estatus que PLAN/IDEAS/DONE:
+  versionado en git, legible por humano, sin infra extra — coherente con la filosofía del vault de
+  Carlos). Cada entrada registra:
+  - **Fecha/hora real** (zona de Carlos, America/Guayaquil — nunca adivinar el momento del día).
+  - **Modelo** — el id exacto (`claude-opus-4-8`, `claude-sonnet-5`, `claude-fable-5`,
+    `deepseek/deepseek-v4-flash`, `minimax-m3`, `kimi-*`, etc.). **Dato autoritativo, no
+    auto-reportado**: en sesión interactiva de Claude Code el runtime YA sabe el modelo activo (lo
+    fija Carlos con `/model`); en corridas agénticas el modelo vive en la tabla `runs`. El ledger
+    toma ese dato de la fuente confiable, no de que el LLM "diga" quién es (un modelo podría mentir).
+  - **Regla tocada** — link al slug de memoria / ítem de PLAN.md / sección de CLAUDE.md afectada.
+  - **Clasificación** — uno de: `RESPETÓ` · `DESVIÓ-CON-RAZÓN` · `OVERRIDE-PEDIDO-POR-CARLOS` ·
+    `REGRESIÓN` (rompió una regla marcada "no reabrir" sin que Carlos lo pidiera).
+  - **El porqué (obligatorio si no es `RESPETÓ`)** — el argumento concreto de por qué desvió o
+    cambió la regla. Una entrada `DESVIÓ-CON-RAZÓN` sin argumento sólido cuenta como `REGRESIÓN`.
+  - **Reversibilidad + evidencia** — ¿se puede deshacer?, ¿qué prueba/commit lo respalda? (mismo
+    eje reversibilidad+demostrabilidad de [[project-improver-and-4-states-candidate]] / el
+    "Owner Decision Brief" de maintainer-orchestrator en el vault).
+- [ ] **F.2 — 🧠 Regla de obligatoriedad + enforcement (parte del diseño F.1):** ningún LLM puede
+  saltarse el ledger cuando toca una regla documentada de Carlos. Definir el mecanismo (no es solo
+  "pedir por favor" en CLAUDE.md): candidatos — (a) hook `UserPromptSubmit`/por-turno que recuerde
+  y exija la entrada cuando detecta cambio de regla (mismo patrón que el AUTO-CONTEXT hook actual),
+  (b) chequeo en pre-commit que falle si un commit toca un archivo de reglas (memory/`CLAUDE.md`/
+  ítems "no reabrir") sin una entrada nueva en `LEDGER.md`. Decidir cuál (o combinación) con Carlos.
+  **Cuándo es obligatorio**: solo cuando se cambia/override/reinterpreta/decide-no-seguir una regla
+  documentada — NO por cada acción trivial (el ledger no es un log de actividad, es un registro de
+  decisiones sobre reglas).
+- [ ] **F.3 — 🧠 Superficie en dashboard (parte del diseño, [[feedback-dashboard-no-solo-cli]]):**
+  el ledger no está hecho si solo vive en un `.md` — necesita una pantalla que le muestre a Carlos,
+  de un vistazo, la tabla por modelo (cuántas veces `RESPETÓ` / `DESVIÓ-CON-RAZÓN` / `REGRESIÓN`
+  cada LLM) para poder graderar con el tiempo cuál le ayuda y cuál le destruye.
+
+**Nota honesta de alcance (F.1-F.3):** esto es DISEÑO en PLAN.md. No se escribe código hasta que
+Carlos apruebe el esquema exacto de la entrada + el mecanismo de enforcement (F.2 tiene tensión
+real: un hook por-turno puede ser ruidoso; un gate de pre-commit puede bloquear commits legítimos).
+
+- [ ] **F.4 — ⚡/visual (Carlos asignó a Sonnet o MinimaxM3, NO a Opus, 2026-07-16):** dar acabado
+  visual al panel "view diagnosis" de una tarea (`diagnoseDetail`, [screens-core.js:682](src/dashboard/public/screens-core.js:682)).
+  Problema reportado por Carlos: al abrirlo "no tenía estilo" y el selector de modelo para
+  "volver a correr la tarea" se ve como un `<select>` plano, no el combo buscable que usa el resto
+  del dashboard. Hallazgo al inspeccionar: el panel **ya llama** a `buildModelSelect('diagnose-model', …)`
+  (el combo correcto, [[reference-model-combo-pattern]]) pero se renderiza dentro de una fila de
+  tabla (`<tr class="detail-row">`) — la hipótesis es que en ese contexto el combo no recibe su
+  wiring/CSS y cae a apariencia de select plano, y el bloque `.detail`/`.grp`/`.kv` se ve sin
+  jerarquía. Alcance del ítem: (1) verificar por qué el combo no se ve/no funciona como buscable en
+  ese render path y arreglarlo (nunca un `<select>` plano con lista larga — regla de frontend
+  global de Carlos); (2) dar acabado visual al panel de diagnosis (espaciado, jerarquía tipográfica,
+  el `<pre>` de lastError, los botones retry/make-habit) al nivel del resto del dashboard.
+  **Antes de tocar UI**: invocar la skill `frontend-design` y grep de patrones existentes
+  (regla global de Carlos). Verificar en el dashboard real, no solo en código.
+
 ---
 
 ## v0.12 (MES 21) — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
