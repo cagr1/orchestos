@@ -1051,6 +1051,32 @@ catálogo de modelos, y tracking de costo simultáneamente — no es un feature 
 si la cascada es solo un *default* con override siempre visible, es medio; si tiene que coexistir
 con la regla de decisión-explícita-siempre, es más diseño que código.
 
+### 45. Visibilidad de gasto real — cuánto se gastó, si vino de API o CLI, cuota de LLM restante
+
+**Origen**: Carlos (2026-07-16), al confirmar que el chat puede crear+correr tareas solo sin pedir
+confirmación (Bloque D.7 de PLAN.md/Mes 22) — aclaró explícitamente: **no quiere un límite/tope de
+gasto** (eso no se implementa), lo que sí necesita siempre es **saber cuánto se gastó**, distinguir
+si el gasto vino de **consumo de API medido en USD** o de una corrida por **CLI contra una cuenta
+ya pagada** (sin costo marginal medible, pero con cuota/tiempo de uso que si se agota bloquea), y
+ver ese **tiempo/cuota restante por LLM** cuando aplica.
+
+Toca la misma tensión ya documentada en [#44](#44-cascada-de-selección-local--cli--api--el-cli-corre-contra-la-cuenta-ya-pagada-del-usuario-no-gasta-saldo) ("Dificultad arquitectónica"): el `router/`
+asume que el costo en USD por token es la única unidad de medición (`ExecutorOutcome.usd`); un
+tramo CLI-por-suscripción no tiene ese costo real. Antes de resolver #44 (la cascada automática)
+hace falta esto: una forma de reportar/mostrar gasto que sepa distinguir "$X consumidos de saldo
+API" de "N llamadas contra una cuota de suscripción, quedan Y" — sin eso, correr tareas solas
+(D.7) es gastar a ciegas en el tramo API.
+
+**Qué hacer**: (1) decidir el modelo de dato — `ExecutorOutcome` necesita un campo de tipo de gasto
+(`usd` vs `quota`), no solo `usd`; (2) superficie en dashboard: un total visible de gasto USD
+acumulado + si hay CLI activo, su cuota/tiempo restante (si el binario expone esa info — investigar
+qué exponen `claude`/`opencode`/etc, puede no ser trivial); (3) CLI: mismo dato por `orchestos
+run status` o similar.
+
+**Esfuerzo**: medio — el modelo de dato y la superficie en dashboard son alcanzables; la parte de
+"cuota restante de un CLI de terceros" depende de qué exponga cada binario, puede no ser posible
+para todos.
+
 ---
 
 ## Feedback
