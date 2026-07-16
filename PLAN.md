@@ -107,7 +107,9 @@ incidente de $5.00 quemados). El modelo de la corrida C.2 es el de `orchestos.co
 que Carlos indique en el momento. Este bloque está VERDE solo cuando Carlos lo confirma
 explícitamente en el turno de la corrida.
 
-- [ ] **B.1 — 🧠 Carlos** Modelo de la corrida C.2 confirmado explícitamente (executor + QA).
+- [x] **B.1 — 🧠 Carlos (2026-07-16)** Modelo confirmado explícitamente por Carlos: tal cual
+  `orchestos.config.yaml` — executor `deepseek/deepseek-v4-flash`, QA `anthropic/claude-haiku-4-5`.
+  La corrida C.1 la ejecuta Carlos mismo desde el dashboard (no CLI) para observar el proceso real.
 
 **Nota — no bloquea este Mes (2026-07-15):** Carlos planteó una idea de arquitectura mayor —
 cascada de selección Local (LLM local) → CLI (Orca/OpenCode/Claude Code, corre contra la cuenta ya
