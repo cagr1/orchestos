@@ -48,12 +48,3 @@ tasks:
     depends_on: []
     status: pending
     retry_count: 0
-  - id: build-a-premium-darkmode-cryptocurrency
-    description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
-      API data, client-side search/sort, auto-refresh every 60s, skeleton loading, error handling, and full
-      responsiveness — no build tooling required.
-    output:
-      - demo/crypto-page-v2/index.html
-    executor: openrouter
-    status: pending
-    retry_count: 0

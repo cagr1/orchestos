@@ -164,6 +164,16 @@ solo, y 3 bugs visuales/funcionales concretos. Evidencia: screenshot del draft d
   si el usuario tenía OTROS archivos sucios ajenos, siguen bloqueando el run como corresponde.
   [src/dashboard/handlers/tasks.ts](src/dashboard/handlers/tasks.ts). 748 tests · 0 fail ·
   `tsc` limpio.
+  **Follow-up real encontrado al probar D.7 en vivo (2026-07-16, 3er fallo distinto)**:
+  `runs-summary.json` lleva `exported_at: new Date().toISOString()` y se regenera en CADA
+  `git commit` vía el hook pre-commit — incluso los auto-commits de D.5 mismos. Eso lo deja "sucio"
+  con solo el timestamp cambiado justo después de un commit, y la corrida siguiente lo veía como
+  working tree sucio y abortaba (`retry_reason: "M runs-summary.json"`, tarea
+  `build-a-premium-darkmode-cryptocurrency`). No es trabajo de usuario en riesgo — es 100%
+  derivado de la DB. Fix: `resolveSandboxMode()` excluye `runs-summary.json` del chequeo de
+  limpieza. [src/run/sandbox-policy.ts](src/run/sandbox-policy.ts). También corregido en el mismo
+  pase: el auto-flow de D.7 no pasaba el `id` que el LLM eligió a `createTaskRecord()`, cayendo
+  siempre al slug autogenerado feo — ahora pasa `draft.id`. 748 tests · 0 fail · `tsc` limpio.
 - [x] **D.6 — 🧠 (2026-07-16)** System prompt del chat (`handlers/chat.ts`): ante pedido de
   construir algo, respuesta corta (3-4 frases) + señalar el botón "Create task"; prohibido dictar
   tablas de campos, YAML o pasos manuales de creación. (Evidencia del fallo: respuesta del chat

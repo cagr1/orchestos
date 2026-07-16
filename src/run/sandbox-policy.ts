@@ -26,12 +26,25 @@ export function resolveSandboxMode(projectRoot: string, preferred?: SandboxMode)
 
   // check for uncommitted changes (only relevant for worktree mode)
   const status = git(['status', '--porcelain'], projectRoot)
-  if (status.exitCode === 0 && status.stdout.length > 0) {
-    const fileList = status.stdout.split('\n').slice(0, 10).map(l => {
+  // D.5 follow-up (Mes 22, 2026-07-16) — runs-summary.json lleva
+  // `exported_at: new Date().toISOString()` (scripts/export-runs-summary.ts)
+  // y se regenera en CADA `git commit` vía el hook pre-commit — incluso los
+  // que no lo tocan a propósito. Eso lo deja "sucio" con solo el timestamp
+  // distinto justo después de un commit, condición de carrera real: el
+  // auto-commit de tasks.yaml (D.5) dispara el hook, que reescribe este
+  // archivo con un timestamp nuevo, y la corrida siguiente lo ve sucio y
+  // aborta — reproducido en vivo (retry_reason: "M runs-summary.json").
+  // No es trabajo del usuario en riesgo (es 100% derivado de la DB), así
+  // que no cuenta para la limpieza que el sandbox de worktree necesita.
+  const relevantLines = status.stdout
+    .split('\n')
+    .filter(l => l.trim().length > 0 && !/\bruns-summary\.json$/.test(l))
+  if (status.exitCode === 0 && relevantLines.length > 0) {
+    const fileList = relevantLines.slice(0, 10).map(l => {
       const [flag, ...rest] = l.trim().split(/\s+/)
       return `  ${flag} ${rest.join(' ')}`
     }).join('\n')
-    const suffix = status.stdout.split('\n').length > 10 ? '\n  ... and more' : ''
+    const suffix = relevantLines.length > 10 ? '\n  ... and more' : ''
     throw new Error(
       `Uncommitted changes in ${projectRoot}. Worktree sandbox requires a clean working tree.\n` +
       `Either commit or stash before running with sandbox:\n${fileList}${suffix}`

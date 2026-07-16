@@ -378,6 +378,7 @@ async function handleApiChat(req: Request): Promise<Response> {
       // empate a ciegas). Ver renderSkillSuggestion, screens-core.js.
       const skill = draft.skillOptions.length === 1 ? draft.skillOptions[0]?.id : undefined
       const created = createTaskRecord(root, {
+        id: draft.id,
         description: draft.description,
         output: draft.output,
         executor: draft.executor,
