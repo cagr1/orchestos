@@ -1077,6 +1077,42 @@ run status` o similar.
 "cuota restante de un CLI de terceros" depende de qué exponga cada binario, puede no ser posible
 para todos.
 
+### 46. Graphify — grafo de codebase consultable para que los agentes dejen de hacer grep repetido
+
+**Origen**: encontrado en el vault (`MemoriesMD/wiki/tools/graphify.md`, ingerido 2026-07-16;
+repo github.com/Graphify-Labs/graphify, 4k stars, MIT). Skill + CLI que convierte una carpeta
+(código, SQL, docs, PDFs) en un **grafo de conocimiento** consultable en vez de índice vectorial.
+El código se parsea localmente con tree-sitter (AST), sin LLM, nada sale de la máquina; solo
+docs/imágenes usan el modelo. Cada edge etiquetado `EXTRACTED` (explícito en la fuente) vs
+`INFERRED` (resuelto por graphify) — distingue lo leído de lo inferido. Se consulta con
+`graphify explain "X"`, `graphify path "A" "B"`, `graphify query "pregunta"`; expone MCP server
+(`python -m graphify.serve`).
+
+**Por qué encaja con OrchestOS (candidato de arquitectura, no urgente)**:
+- Hoy los agentes orquestados entienden el código haciendo `read_file`/grep repetido — devuelve
+  bloques crudos que inflan el contexto. Un `graphify query` da una respuesta acotada y
+  estructurada. **Ataca directamente el mismo modo de fallo que cerró Mes 22/Bloque A ([#32](#32),
+  cap de outputs de tools)**: en vez de truncar un `read_file` gigante, se evita pedirlo.
+- OrchestOS ya tiene su propio grafo de código (`graph/`, S21, resuelve C#) y `context suggest`
+  (S24) — así que esto NO es adoptar una dependencia nueva a ciegas: es un candidato para
+  **comparar** contra lo propio (¿graphify da mejor recall/confidence-tagging que el grafo
+  actual?, ¿vale exponerlo como engine de contexto o robar solo el etiquetado EXTRACTED/INFERRED?).
+- El MCP server lo haría exponible como herramienta para los agentes, sin acoplar su binario.
+
+**Escepticismo honesto (de la ficha del vault)**: los benchmarks (LOCOMO recall@10 0.497,
+LongMemEval-S 76%) son **auto-reportados** por el proyecto, no independientes — tratar como
+cualquier claim de marketing propio. Tiene producto comercial derivado (Penpax) en waitlist; el
+repo en sí es MIT y funcional aparte de eso.
+
+**Qué hacer (cuando se retome, no ahora)**: (1) correr `graphify . ` sobre el propio repo de
+OrchestOS y comparar `graphify query` contra el `context suggest` actual sobre las mismas
+preguntas; (2) decidir si se adopta como engine de contexto, se expone como MCP a los agentes, o
+solo se roba el patrón de etiquetado EXTRACTED/INFERRED para el grafo propio. No adoptar sin ese
+A/B — OrchestOS ya tiene grafo, la pregunta es si este es mejor, no si "grafo" es buena idea.
+
+**Esfuerzo**: bajo para el spike de comparación (instalar + correr + un puñado de queries);
+medio-alto si se decide integrarlo como engine de contexto real de los agentes.
+
 ---
 
 ## Feedback
