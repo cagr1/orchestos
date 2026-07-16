@@ -9,7 +9,7 @@ import { generateContextJson } from './generators/context-json.ts'
 import { runMigrations } from './db/migrate.ts'
 import { upsertProject, getProject, listProjects } from './db/projects.ts'
 import { loadContext } from './context/load.ts'
-import { buildContextMd } from './context/compress.ts'
+import { buildContextMd, estimateTokens } from './context/compress.ts'
 import { loadSkill, listSkillFiles, getSkillPath, type SkillTarget } from './skills/registry.ts'
 import { compileSkill } from './skills/compile.ts'
 import { classifyTask } from './router/classify.ts'
@@ -17,7 +17,7 @@ import { resolveModel } from './router/models.ts'
 import { calcCost } from './router/pricing.ts'
 import { parseCostBreakdownJson } from './run/transcript-parser.ts'
 import { chat } from './providers/openrouter.ts'
-import { ensureCatalogLoaded, maxOutputTokensFor } from './router/model-catalog.ts'
+import { ensureCatalogLoaded, contextWindowFor, knownMaxOutputTokensFor } from './router/model-catalog.ts'
 import { parseLLMResponse, enforceContract } from './run/contract.ts'
 import { MAX_RETRIES } from './run/qa.ts'
 import { RunLogger } from './run/logger.ts'
@@ -572,7 +572,13 @@ program
 
     // 4. Call LLM
     await ensureCatalogLoaded()
-    const maxTokens = maxOutputTokensFor(model)
+    // Mes 22/E.1 — mismo patrón que harness.ts: base = contextWindow − prompt
+    // (decisión de Carlos, feedback-context-no-max-tokens), clamp de seguridad
+    // solo con tope real >0. `maxOutputTokensFor` (0→8192) truncaba a 8192.
+    const runPromptTokens = estimateTokens(system) + estimateTokens(userContent)
+    const runAvailable = contextWindowFor(model) - runPromptTokens - 1024
+    const runRealCap = knownMaxOutputTokensFor(model)
+    const maxTokens = runRealCap > 0 ? Math.min(runAvailable, runRealCap) : runAvailable
     let llmResponse
     try {
       llmResponse = await chat({ model, system, messages: [{ role: 'user', content: userContent }], maxTokens })

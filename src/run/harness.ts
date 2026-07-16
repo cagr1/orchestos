@@ -40,7 +40,7 @@ import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import { loadSpec } from '../spec/store.ts'
 import { checkContextHealth, shouldCheck, type RunState } from '../hooks/context-monitor.ts'
-import { ensureCatalogLoaded, contextWindowFor, maxOutputTokensFor } from '../router/model-catalog.ts'
+import { ensureCatalogLoaded, contextWindowFor, knownMaxOutputTokensFor } from '../router/model-catalog.ts'
 import { estimateTokens } from '../context/compress.ts'
 import { createRunContext, createChain, type RunContext } from './middleware.ts'
 import { contextInject, skillRoute, memoryFetch, toolPolicy, instinctApply } from './middlewares/index.ts'
@@ -290,19 +290,19 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       log.info(`context budget: ${reason} — dejando pending sin llamar al LLM`)
       return { status: 'pending', runId: '', retryReason: reason, filesWritten: [], filesBlocked: [], cost: { inputTokens: 0, outputTokens: 0, usd: 0 }, elapsedMs: Math.round(performance.now() - t0), contextWarnings: ctx.contextWarnings }
     }
-    // Bug real encontrado en el re-test de G.5 (2026-07-02): `availableForOutput`
-    // solo mira la ventana de contexto TOTAL — para modelos donde el catálogo SÍ
-    // publica un tope de salida por llamada confiable (`top_provider.max_completion_tokens`,
-    // `maxOutputTokensFor`, 0 = desconocido), pedir más que ese tope hace que el
-    // proveedor rechace la llamada con 400 aunque technically "entre" en la ventana
-    // de contexto (ej. gpt-4o-mini: ventana 128K pero tope de salida real 16384 —
-    // `availableForOutput` sin este clamp pedía ~122K, el proveedor devolvió
-    // "requested about 132044 tokens... maximum context length is 128000"). No se
-    // reemplaza `contextWindow - prompt` (sigue siendo la única fuente confiable
-    // para TODOS los modelos, ver decisión 2026-06-30 arriba) — se le aplica un
-    // segundo clamp con el dato real del catálogo SOLO cuando está disponible.
-    const providerMaxOutput = maxOutputTokensFor(ctx.model)
-    const maxTokens = providerMaxOutput > 0 ? Math.min(availableForOutput, providerMaxOutput) : availableForOutput
+    // Base = `contextWindow − prompt` (decisión de Carlos 2026-06-30, "no reabrir":
+    // max_tokens NUNCA sale de un tope de catálogo poco confiable; ver
+    // feedback-context-no-max-tokens). El único uso legítimo del tope de catálogo
+    // es un clamp de SEGURIDAD hacia abajo cuando el proveedor SÍ publica un límite
+    // real menor que la ventana (gpt-4o-mini: ventana 128K pero salida real 16384 →
+    // sin clamp pedía ~122K y devolvía 400). `knownMaxOutputTokensFor` devuelve 0
+    // cuando el catálogo NO lo publica (ej. deepseek-v4-flash) — en ese caso NO se
+    // clampa: presupuesto completo de la ventana. Mes 22/E.1: el bug era que la
+    // versión anterior usaba `maxOutputTokensFor` (que colapsa 0→8192), topando
+    // TODA salida a 8192 y truncando páginas premium a mitad de generación —
+    // regresión de la decisión de arriba reintroducida por G.5.
+    const providerRealCap = knownMaxOutputTokensFor(ctx.model)
+    const maxTokens = providerRealCap > 0 ? Math.min(availableForOutput, providerRealCap) : availableForOutput
 
     // -- Mes 20 B.2 — auto-split gate ------------------------------------------
     // Si el output estimado supera el 70% del presupuesto real, el LLM se va a

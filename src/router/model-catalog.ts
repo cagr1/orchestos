@@ -275,6 +275,27 @@ export function maxOutputTokensFor(modelId: string): number {
   return DEFAULT_MAX_OUTPUT_TOKENS
 }
 
+/**
+ * Mes 22/E.1 — tope real de salida SIN el fallback a DEFAULT (8192). Devuelve
+ * `0` cuando el catálogo no lo publica (ej. `deepseek/deepseek-v4-flash`),
+ * preservando la distinción "tope real conocido" vs "sin info" que
+ * `maxOutputTokensFor()` destruye al colapsar todo en 8192.
+ *
+ * Por qué existe: la regla de Carlos ([[feedback-context-no-max-tokens]],
+ * 2026-06-30, "no reabrir") es que `max_tokens` se deriva de `contextWindow −
+ * prompt`, NUNCA de un tope de catálogo poco confiable. El único uso legítimo
+ * del tope de catálogo es un clamp de SEGURIDAD hacia abajo cuando el proveedor
+ * SÍ publica un límite real menor que la ventana (caso gpt-4o-mini: ventana
+ * 128K pero salida real 16384 → sin clamp da 400). Ese clamp solo debe aplicar
+ * cuando el dato es real (>0); con 0/desconocido no se clampa nada — se usa el
+ * presupuesto completo de la ventana. Meter 8192 ahí es exactamente el bug que
+ * truncó tareas a mitad de generación (regresión reintroducida por G.5).
+ */
+export function knownMaxOutputTokensFor(modelId: string): number {
+  const entry = memoryCatalog?.get(modelId)
+  return entry && entry.maxOutputTokens > 0 ? entry.maxOutputTokens : 0
+}
+
 /** Solo para tests: limpia el estado en memoria. */
 export function _resetCatalog(): void {
   memoryCatalog = null

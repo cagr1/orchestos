@@ -14,7 +14,7 @@ import { readEnv } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL, READ_FILE_TOOL, createToolRouter, supportsToolCalling } from '../../providers/tool-call.ts'
 import { checkSsrSafe } from '../ssrf.ts'
-import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, maxOutputTokensFor, DEFAULT_MAX_OUTPUT_TOKENS, supportsVisionInput } from '../../router/model-catalog.ts'
+import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, knownMaxOutputTokensFor, DEFAULT_MAX_OUTPUT_TOKENS, supportsVisionInput } from '../../router/model-catalog.ts'
 import { estimateTokens } from '../../context/compress.ts'
 import { classifyTaskIntent } from '../../chat/classify-task-intent.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
@@ -581,8 +581,12 @@ When the user asks you to BUILD something (a page, a feature, a script): if this
         422,
       )
     }
-    const providerMaxOutput = maxOutputTokensFor(model)
-    const clamped = providerMaxOutput > 0 ? Math.min(available, providerMaxOutput) : available
+    // Mes 22/E.1 — mismo fix que harness.ts: `knownMaxOutputTokensFor` (0 =
+    // desconocido) en vez de `maxOutputTokensFor` (que colapsa 0→8192 y topaba
+    // toda respuesta a 8192). Base = `available` (contextWindow − prompt);
+    // clamp de seguridad solo con tope real >0.
+    const providerRealCap = knownMaxOutputTokensFor(model)
+    const clamped = providerRealCap > 0 ? Math.min(available, providerRealCap) : available
     const chatMaxTokens = clamped > 0 ? clamped : DEFAULT_MAX_OUTPUT_TOKENS
 
     if (supportsToolCalling('openrouter', model)) {

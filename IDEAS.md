@@ -1113,6 +1113,39 @@ A/B — OrchestOS ya tiene grafo, la pregunta es si este es mejor, no si "grafo"
 **Esfuerzo**: bajo para el spike de comparación (instalar + correr + un puñado de queries);
 medio-alto si se decide integrarlo como engine de contexto real de los agentes.
 
+### 47. Auto-split por tamaño estimado, no por número de archivos
+
+**Origen**: destapado corriendo C.1 en vivo (2026-07-16, ver PLAN.md Bloque E). El gate de
+auto-split (`shouldSplit` en `harness.ts`) decide si invocar al planner (Haiku) para partir una
+tarea en sub-tareas midiendo `output.length × SPLIT_AVG_TOKENS_PER_FILE (2048)` contra
+`maxTokens × 0.7`. El problema: **mide por NÚMERO de archivos, no por tamaño real esperado**. Una
+tarea de UN archivo premium (HTML+CSS+JS autocontenido, o un componente grande) da
+`1 × 2048 = 2048` → nunca supera el umbral → nunca se parte, aunque el output real sea 20-30k
+tokens. Resultado: el planner que Carlos puso justamente para "dividir tareas grandes en varias
+llamadas y no quemar todo en una" no se invoca para el caso que más lo necesita.
+
+**Por qué NO es urgente ahora**: el fallo inmediato (truncado a 8192) lo resuelve E.1 (quitar el
+clamp arbitrario → deepseek recupera su presupuesto de ~1M, el archivo único entra sin partir).
+Así que esto no bloquea la corrida premium de C.1. Pero sigue siendo una mejora real: para un
+archivo genuinamente enorme (más grande que la ventana de salida real del modelo), partir en
+varias llamadas es la única salida — y hoy el gate no lo detecta.
+
+**Complicación honesta**: un HTML autocontenido **no se puede** partir en sub-tareas (es un solo
+archivo por diseño). El split por tamaño solo tiene sentido cuando la tarea produce varios
+archivos (React+TS+Vite, el C.2 original) o cuando se puede pedir el archivo en secciones y
+concatenar. Estimar el tamaño de salida ANTES de generarlo es intrínsecamente difícil (no hay
+forma exacta sin generar) — probablemente una heurística por tipo de tarea/skill (una landing
+premium ≈ N tokens) o una primera llamada de "esqueleto + estimación" antes de comprometerse.
+
+**Qué hacer (cuando se retome)**: (1) reemplazar/complementar el conteo de archivos con una
+estimación de tamaño (heurística por skill, o señal del planner); (2) definir qué hacer cuando el
+output no se puede partir (un solo archivo que excede la ventana real) — ¿pedir en secciones?,
+¿rechazar con mensaje claro en vez de truncar? Conecta con [#32](#32) (cap de outputs) y con el
+Bloque E de PLAN.md.
+
+**Esfuerzo**: medio — la estimación de tamaño es el núcleo difícil; el resto es wiring sobre el
+`shouldSplit`/`generatePlan` que ya existen.
+
 ---
 
 ## Feedback

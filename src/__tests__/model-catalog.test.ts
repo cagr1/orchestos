@@ -9,6 +9,9 @@ import {
   supportsReasoningEffort,
   catalogSupportsTools,
   supportsVisionInput,
+  maxOutputTokensFor,
+  knownMaxOutputTokensFor,
+  DEFAULT_MAX_OUTPUT_TOKENS,
   _resetCatalog,
 } from '../router/model-catalog.ts'
 
@@ -17,7 +20,7 @@ let home: string
 const prevHome = process.env.ORCHESTOS_HOME
 const prevKey = process.env.OPENROUTER_API_KEY
 
-function seedDiskCache(models: Record<string, { contextLength: number; priceIn: number; priceOut?: number }>, fetchedAt: number) {
+function seedDiskCache(models: Record<string, { contextLength: number; priceIn: number; priceOut?: number; maxOutputTokens?: number }>, fetchedAt: number) {
   const dir = join(home, '.orchestos', 'cache')
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'models.json'), JSON.stringify({ fetchedAt, models }), 'utf-8')
@@ -89,6 +92,35 @@ describe('model-catalog', () => {
     // contextLength 0 no es confiable → fallback por familia (default 128K).
     expect(contextWindowFor('broken/no-context')).toBe(128_000)
     expect(hasRealContextWindow('broken/no-context')).toBe(false)
+  })
+
+  // Mes 22/E.1 — el bug que truncaba páginas premium: `maxOutputTokensFor`
+  // colapsa "sin dato" (0) en 8192, así que el harness topaba TODA salida a
+  // 8192 aunque la ventana fuera 1M. `knownMaxOutputTokensFor` preserva la
+  // distinción para que el harness derive de contextWindow−prompt cuando el
+  // catálogo no publica el tope (regla feedback-context-no-max-tokens).
+  it('E.1: knownMaxOutputTokensFor devuelve 0 cuando el catálogo no publica el tope (no 8192)', async () => {
+    seedDiskCache(
+      // maxOutputTokens ausente = el caso real de deepseek-v4-flash
+      { 'deepseek/deepseek-v4-flash': { contextLength: 1_048_576, priceIn: 0.098, maxOutputTokens: 0 } },
+      Date.now(),
+    )
+    await ensureCatalogLoaded()
+    // La función vieja miente con 8192; la nueva dice la verdad: desconocido.
+    expect(maxOutputTokensFor('deepseek/deepseek-v4-flash')).toBe(DEFAULT_MAX_OUTPUT_TOKENS)
+    expect(knownMaxOutputTokensFor('deepseek/deepseek-v4-flash')).toBe(0)
+  })
+
+  it('E.1: knownMaxOutputTokensFor devuelve el tope real cuando el catálogo SÍ lo publica', async () => {
+    // gpt-4o-mini: el caso que justifica el clamp de seguridad — ventana grande
+    // pero salida real acotada. Ese tope real SÍ debe respetarse.
+    seedDiskCache(
+      { 'openai/gpt-4o-mini': { contextLength: 128_000, priceIn: 0.15, maxOutputTokens: 16_384 } },
+      Date.now(),
+    )
+    await ensureCatalogLoaded()
+    expect(knownMaxOutputTokensFor('openai/gpt-4o-mini')).toBe(16_384)
+    expect(maxOutputTokensFor('openai/gpt-4o-mini')).toBe(16_384)
   })
 
   it('ensureCatalogLoaded no lanza cuando no hay cache ni API key', async () => {

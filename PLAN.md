@@ -132,6 +132,38 @@ verificación por sub-tarea. Responde con dato real la pregunta de producto.
   evidencia. Todo bug real destapado en el camino se convierte en ítem antes de tocar código
   (regla de documentación obligatoria).
 
+### Bloque E — 🧠 Regresión crítica: el clamp de `max_tokens` al catálogo volvió (viola decisión de Carlos)
+
+Destapado corriendo C.1 en vivo (2026-07-16): la tarea `crypto-page-v2` (single-shot,
+deepseek-v4-flash) falló con `parse error: No <<<FILE>>> blocks found` — el output se truncó
+a mitad del CSS (`--primary: #0f172a;`), sin `<<<ENDFILE>>>`. Causa raíz verificada:
+
+- `deepseek/deepseek-v4-flash` tiene `maxOutputTokens: 0` en el catálogo (OpenRouter no lo publica).
+- `maxOutputTokensFor()` colapsa ese 0 en `DEFAULT_MAX_OUTPUT_TOKENS = 8192`.
+- `harness.ts:304-305` hace `maxTokens = min(availableForOutput, 8192)` → topa TODA salida a 8192,
+  aunque la ventana del modelo es 1M. Una página premium en un archivo necesita >8192 de salida.
+
+**Esto es una REGRESIÓN de [[feedback-context-no-max-tokens]]** (decisión de Carlos 2026-06-30,
+marcada "no reabrir"): `max_tokens` se deriva de `contextWindow − prompt`, **nunca** de
+`maxOutputTokensFor()`. El fix G.5 (2026-07-02, para un 400 de gpt-4o-mini) reintrodujo el clamp
+al catálogo que esa decisión había matado — la misma memoria nombra el mismo modelo y el mismo
+síntoma exacto. Reconciliación (honra ambas cosas): base = `contextWindow − prompt` (regla de
+Carlos); clamp hacia abajo **solo** si el catálogo publica un tope REAL >0 (protege gpt-4o-mini);
+cuando es 0/desconocido → presupuesto completo, nunca el 8192 arbitrario.
+
+- [x] **E.1 — 🧠 (2026-07-16)** `knownMaxOutputTokensFor()` (raw, 0 = desconocido) en model-catalog.ts;
+  `harness.ts` y `chat.ts` derivan de `contextWindow − prompt` y solo clampean con topes reales >0.
+  Elimina el 8192 del path de `max_tokens`. [src/router/model-catalog.ts](src/router/model-catalog.ts).
+- [ ] **E.2 — 🔍** Re-correr `crypto-page-v2` en vivo con el fix y confirmar que completa sin truncar
+  (lo corre Carlos, gasta dinero real). Recién ahí se retoma el veredicto C.2.
+
+**Nota sobre el planner (pregunta de Carlos):** Haiku-como-planner SÍ es el mecanismo de auto-split
+(`shouldSplit` → `generatePlan`), pero el gate mide por NÚMERO de archivos (`output.length × 2048`),
+no por tamaño estimado — con 1 archivo nunca dispara, así que el planner no se invocó. Con E.1 el
+presupuesto de deepseek pasa a ~1M y el archivo único entra sin truncar, así que el split no hace
+falta para este caso. Mejorar el gate para que estime tamaño real (y así partir un solo archivo
+grande en varias llamadas) es un ítem aparte → IDEAS #47.
+
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 
 Excepción explícita de Carlos al freeze de UI de este Mes: el primer intento real de correr
