@@ -35,43 +35,10 @@ tasks:
     retry_count: 0
     qa_verdict: pass
     run_id: ffd3116c-e40b-4788-bbf5-0fa7b59294f9
-  - id: crypto-dashboard-v2
+  - id: crypto-page-v2
     description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
-      API data, client-side search/sort, auto-refresh every 60s, skeleton loading, error handling, and full
-      responsiveness — no build tooling required.
-    skill: frontend-design
-    executor: openrouter
-    executor_model: deepseek/deepseek-v4-flash
-    input: []
-    output:
-      - demo/crypto-page-v2/index.html
-    depends_on: []
-    status: pending
-    retry_count: 0
-  - id: build-a-premium-darkmode-cryptocurrency
-    description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
-      API data, client-side search/sort, auto-refresh every 60s, skeleton loading, error handling, and full
-      responsiveness — no build tooling required.
-    executor: openrouter
-    input: []
-    output:
-      - demo/crypto-page-v2/index.html
-    depends_on: []
-    status: failed
-    retry_count: 0
-    retry_reason: >-
-      unexpected: git merge orchestos/build-a-premium-darkmode-cryptocurrency/1784226485226 failed after rebase. Fix
-      manually:
-        cd /Users/carlosgallardo/Documents/projects/orchestos/.orchestos/worktrees/build-a-premium-darkmode-cryptocurrency-1784226485226
-        git rebase --abort  # if needed
-        git checkout master
-        git merge orchestos/build-a-premium-darkmode-cryptocurrency/1784226485226
-        git branch -D orchestos/build-a-premium-darkmode-cryptocurrency/1784226485226
-        git worktree remove --force /Users/carlosgallardo/Documents/projects/orchestos/.orchestos/worktrees/build-a-premium-darkmode-cryptocurrency-1784226485226
-  - id: crypto-dashboard-premium-v2
-    description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
-      API data, client-side search/sort, auto-refresh every 60s, skeleton loading, error handling, and full
-      responsiveness — no build tooling required.
+      API data, search/filter, sorting, auto-refresh every 60s, skeleton loading, error handling, and fully responsive
+      design — all in one self-contained HTML file.
     output:
       - demo/crypto-page-v2/index.html
     executor: openrouter
