@@ -13,6 +13,7 @@ import { loadConstitution } from '../../spec/constitution.ts'
 import { getProject } from '../../db/projects.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { parsePlan } from '../../agents/planner.ts'
+import { git } from '../../run/sandbox.ts'
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
@@ -172,6 +173,15 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
     if (skill && isKnownSkillId(skill)) newTask.skill = skill
     ;(file.tasks as any[]).push(newTask)
     saveTasks(root, file)
+    // D.5 (Mes 22) — el sandbox de worktree exige un working tree limpio
+    // (sandbox-policy.ts:29). saveTasks() deja tasks.yaml modificado, así que
+    // crear una tarea desde el dashboard y correrla enseguida fallaba SIEMPRE
+    // con "Uncommitted changes" — el propio flujo se auto-bloqueaba. Auto-commit
+    // best-effort de solo tasks.yaml (mismo archivo que se acaba de tocar); si
+    // el usuario tenía OTROS archivos sucios, esos siguen bloqueando el run
+    // como corresponde — esto no oculta desprolijidad ajena a la creación.
+    git(['add', 'tasks.yaml'], root)
+    git(['commit', '-m', `chore(tasks): add ${finalId} (dashboard)`], root)
     return jsonResponse({ ok: true, id: finalId })
   } catch (e: any) {
     return errorResponse(e.message, 500)
@@ -198,6 +208,12 @@ async function handleApiTasksRun(req: Request, url: URL): Promise<Response> {
     task.status = 'pending'
   }
   saveTasks(root, file)
+  // D.5 — mismo motivo que handleApiTasksCreate: esta escritura (clarificación
+  // o reset a pending) deja tasks.yaml sucio justo antes de spawnear el `task
+  // run`, que dispara el check de sandbox limpio. Sin este commit, CUALQUIER
+  // clarificación o reintento desde el panel de detalle fallaba siempre.
+  git(['add', 'tasks.yaml'], root)
+  git(['commit', '-m', `chore(tasks): run ${id} (dashboard)`], root)
   const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id]
   if (model) args.push('--model', model)
   Bun.spawn(args, {

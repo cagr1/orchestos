@@ -39,6 +39,7 @@ tasks:
     description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
       API data, client-side search/sort, auto-refresh every 60s, skeleton loading, error handling, and full
       responsiveness — no build tooling required.
+    skill: frontend-design
     executor: openrouter
     executor_model: deepseek/deepseek-v4-flash
     input: []
@@ -47,3 +48,4 @@ tasks:
     depends_on: []
     status: pending
     retry_count: 0
+        M tasks.yaml

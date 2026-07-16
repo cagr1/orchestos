@@ -154,9 +154,16 @@ solo, y 3 bugs visuales/funcionales concretos. Evidencia: screenshot del draft d
   (`st.contextSuggestError`, ej. "Project not indexed yet — run Index code graph first") en vez
   del genérico. Verificado en vivo contra el endpoint real (404 por proyecto sin indexar).
   El botón quedó dentro de avanzados (D.1).
-- [ ] **D.5 — 🧠** El sandbox de worktree rechaza la corrida con working tree sucio recién DESPUÉS
-  de confirmar (la tarea muere en `failed` sin gastar). Pre-check en el server al confirmar
-  ("Confirmar y ejecutar") que devuelva el aviso ANTES, con mensaje accionable en el form.
+- [x] **D.5 — 🧠 (2026-07-16)** No era un edge case — era un fallo garantizado al 100%: crear
+  o correr una tarea desde el dashboard escribe `tasks.yaml` (`saveTasks()`) sin commitear, y el
+  sandbox de worktree exige árbol limpio (`sandbox-policy.ts:29`) — el propio flujo se
+  autobloqueaba en dos puntos: `handleApiTasksCreate` (crear) y `handleApiTasksRun` (correr /
+  "Ejecutar con clarificación"). Reproducido en vivo dos veces seguidas por Carlos
+  (`crypto-dashboard-v2`, `crypto-dashboard-v2-mrntco26`). Fix: auto-commit best-effort de
+  `tasks.yaml` (solo ese archivo) inmediatamente después de cada `saveTasks()` en ambos handlers —
+  si el usuario tenía OTROS archivos sucios ajenos, siguen bloqueando el run como corresponde.
+  [src/dashboard/handlers/tasks.ts](src/dashboard/handlers/tasks.ts). 748 tests · 0 fail ·
+  `tsc` limpio.
 - [x] **D.6 — 🧠 (2026-07-16)** System prompt del chat (`handlers/chat.ts`): ante pedido de
   construir algo, respuesta corta (3-4 frases) + señalar el botón "Create task"; prohibido dictar
   tablas de campos, YAML o pasos manuales de creación. (Evidencia del fallo: respuesta del chat

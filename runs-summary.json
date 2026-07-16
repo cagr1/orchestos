@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-07-16T17:48:59.351Z",
-  "total_runs": 1,
+  "exported_at": "2026-07-16T18:04:03.704Z",
+  "total_runs": 2,
   "runs": [
+    {
+      "id": "d10b3acd-b5e2-4459-b782-0ceb01e6901e",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00060172,
+      "elapsed_ms": 0,
+      "tokens": 5172,
+      "created_at": "2026-07-16T17:58:45.261Z"
+    },
     {
       "id": "1bd1a4e9-b458-4b12-9a29-ace9953e7c2c",
       "task_class": "chat",
@@ -21,8 +36,8 @@
   "stats": {
     "failed": 0,
     "blocked": 0,
-    "done": 1,
+    "done": 2,
     "qa_failed": 0,
-    "total_cost_usd": "0.0035"
+    "total_cost_usd": "0.0041"
   }
 }
