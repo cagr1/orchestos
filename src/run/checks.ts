@@ -1,11 +1,16 @@
 import { resolve, join } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import type { Check } from '../tasks/schema.ts'
 import type { RunLogger } from './logger.ts'
+import {
+  jsSyntaxCheckForJsFile,
+  jsSyntaxCheckForHtmlFile,
+} from './html-script-check.ts'
 
 const DEFAULT_TIMEOUT_MS = 60_000
 const OUTPUT_LIMIT = 2_000
 const TSC_TIMEOUT_MS = 120_000
+const JS_CHECK_TIMEOUT_MS = 15_000
 
 /**
  * D3 finding (Mes 14, 2026-06-25): a task with no explicit `checks:` only gets
@@ -14,22 +19,55 @@ const TSC_TIMEOUT_MS = 120_000
  * sensible defaults for code-output tasks that don't declare their own checks —
  * explicit `checks:` always wins (this is never consulted if the task has any).
  *
- * Both checks are skipped when `effectiveRoot` has no node_modules (e.g. a fresh
- * git worktree that doesn't symlink dependencies — see follow-up task on worktree
- * isolation) — running `tsc`/`bun test` there would fail on missing modules, not
- * on the generated code, producing a false failure unrelated to what we're checking.
+ * A.5 (Mes 22 / IDEAS #36): cierra el hueco análogo para JS embebido en `.html`/`.js`
+ * que dejó pasar el bug de Mes 20/C.1 — `:` en vez de `+` en una concatenación dentro
+ * de `<script>` no lo detectaron ni `tsc` (cubre `.ts/.tsx`) ni el QA-LLM. Se valida
+ * con `node --check` sobre el código extraído, sin ejecutar — mismo principio que
+ * `tsc --noEmit`.
+ *
+ * Los checks de TS/JS-test siguen gateados por la presencia de `node_modules` (un
+ * worktree fresco sin deps no debe producir fails falsos por módulos no resueltos);
+ * los checks de sintaxis JS NO — `node --check` solo parsea, no carga deps.
  */
 export function defaultChecksFor(output: string[], effectiveRoot: string): Check[] {
-  if (!existsSync(join(effectiveRoot, 'node_modules'))) return []
   const checks: Check[] = []
-  if (output.some(p => p.endsWith('.ts') || p.endsWith('.tsx'))) {
-    checks.push({ cmd: 'bunx tsc --noEmit', timeout_ms: TSC_TIMEOUT_MS })
-  }
-  for (const p of output) {
-    if (p.endsWith('.test.ts') || p.endsWith('.test.tsx')) {
-      checks.push({ cmd: `bun test ${p}` })
+  const hasNodeModules = existsSync(join(effectiveRoot, 'node_modules'))
+
+  if (hasNodeModules) {
+    if (output.some(p => p.endsWith('.ts') || p.endsWith('.tsx'))) {
+      checks.push({ cmd: 'bunx tsc --noEmit', timeout_ms: TSC_TIMEOUT_MS })
+    }
+    for (const p of output) {
+      if (p.endsWith('.test.ts') || p.endsWith('.test.tsx')) {
+        checks.push({ cmd: `bun test ${p}` })
+      }
     }
   }
+
+  // A.5 — checks de sintaxis JS (no requieren node_modules).
+  // Para `.js` standalone y para `<script>` inline en `.html`. Si el archivo no existe
+  // cuando se computan los checks, no emitimos nada (el contrato / filesystem lo flaggea
+  // por otra vía — no agregar ruido acá).
+  for (const p of output) {
+    const abs = resolve(effectiveRoot, p)
+    if (p.endsWith('.js')) {
+      if (existsSync(abs)) {
+        checks.push(jsSyntaxCheckForJsFile(abs, JS_CHECK_TIMEOUT_MS))
+      }
+      continue
+    }
+    if (p.endsWith('.html')) {
+      if (!existsSync(abs)) continue
+      try {
+        const content = readFileSync(abs, 'utf-8')
+        const built = jsSyntaxCheckForHtmlFile(abs, content, { timeoutMs: JS_CHECK_TIMEOUT_MS })
+        if (built) checks.push(built.check)
+      } catch {
+        // Permisos o lectura parcial — pasamos; el contrato es la red principal.
+      }
+    }
+  }
+
   return checks
 }
 

@@ -87,9 +87,18 @@ el mismo modo de fallo que pausó C.2.
   del loop — usa un `maxTokens` fijo por ronda; el `pending` formal vive en el pre-check del
   harness (`harness.ts:287`). El gate prueba la causa raíz común (contexto acumulado que revienta
   la ventana), que es el fallo que #32 describe, no un literal `status==='pending'` dentro del loop.
-- [ ] **A.5 — ⚡** (opcional, refuerza la red antes de la corrida cara) #36: `defaultChecksFor`
-  valida sintaxis de JS embebido en HTML/`.js` — el gap real que dejó pasar el bug de sintaxis
-  de C.1 (`:` en vez de `+`) que ni checks ni QA detectaron.
+- [x] **A.5 — ⚡ (excepción: Claude implementa por orden explícita de Carlos, 2026-07-16)**
+  #36: `defaultChecksFor` ahora valida sintaxis de JS embebido en `.html` y standalone `.js`
+  vía `node --check` sobre el código extraído. Cierra el gap real que dejó pasar el bug de
+  Mes 20/C.1 (`:` en vez de `+` en `sortIcon()` dentro de un `<script>` inline). Detalle y
+  evidencia en [DONE.md § A.5](DONE.md).
+  Módulo nuevo: [src/run/html-script-check.ts](src/run/html-script-check.ts) — extractor de
+  `<script>` (whitelist de `type=` JS para evitar falsos positivos sobre JSON/templates), wires
+  en [src/run/checks.ts](src/run/checks.ts). **Importante**: los checks de sintaxis JS NO están
+  gateados por `node_modules` (a diferencia de `tsc`/`bun test` que ya lo estaban) — `node
+  --check` solo parsea, sin resolver imports. 22 tests nuevos (11 del módulo + 11 del wiring,
+  incluyendo 3 integration tests que prueban end-to-end que el bug de C.1 ahora se detecta).
+  748 tests · 0 fail · `tsc --noEmit` limpio.
 
 ### Bloque B — 🧠 GATE DE CARLOS: decisión de modelo para la corrida
 

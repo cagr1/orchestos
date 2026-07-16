@@ -1228,6 +1228,41 @@ Auditoría real (no asumida) de ~40 subcomandos de `cli.ts` contra `server.ts`/`
 **Métrica v0.12 — SÍ (2026-07-14)**
 Higiene de datos (borrado masivo, cero diálogos nativos), Markdown+chips en el Chat, visor de diff por run, y paridad CLI↔dashboard auditada con 3 gaps no-dev reales cerrados y verificados independientemente. Cero features nuevas en el motor, disciplina del milestone respetada de punta a punta. 711 tests · 0 fail · `tsc --noEmit` limpio. Primer tag formal del proyecto: `v0.12`.
 
+### MES 22 / v0.13 — Que OrchestOS entregue de verdad un producto premium: cerrar C.2 (parcial)
+
+Origen: Carlos (2026-07-15) reabrió la pregunta original de Mes 20 — *"¿puede OrchestOS entregar un producto premium?"* — y puso el eje en **entregar primero**, las modificaciones de UI (P1: #43/#40/#36/#27/#14) explícitamente pospuestas hasta después de C.2. Prerequisitos duros para la corrida C.2 (Bloque C): #32 resuelto + decisión de modelo de Carlos.
+
+| Bloque | Contenido | Estado |
+|---|---|---|
+| A.1 — 🧠 | `capToolOutput()`: cap duro por tool-result (25k chars) | ✅ SÍ (2026-07-15) |
+| A.2 — 🧠 | `capCheckOutput()`: truncado cabeza+cola para stdout/stderr de `run_check` | ✅ SÍ (2026-07-15) |
+| A.3 — ⚡ | Wiring de `capToolOutput`/`capCheckOutput` en los 4 tools de `agentic.ts` + helpers de chat | ✅ SÍ (2026-07-15) |
+| A.4 — 🔍 | Gate causal: prueba que el cap resuelve el modo `pending` real de #32 | ✅ SÍ (2026-07-15) |
+| **A.5 — ⚡ (excepción: Claude por orden explícita de Carlos, 2026-07-16)** | `defaultChecksFor`: sintaxis JS en `<script>` inline y `.js` standalone vía `node --check` | ✅ SÍ (2026-07-16) |
+| B.1 — 🧠 Carlos | Decisión de modelo para C.2 | ⏳ pendiente |
+| C.1 — 🔍 | Corrida real del entregable premium multi-archivo, gate con dinero real | ⏳ gated por A.5 verde + B.1 |
+| C.2 — 🔍 | Verdicto de producto premium end-to-end | ⏳ gated por C.1 |
+
+**Bloque A.5 — `defaultChecksFor` valida sintaxis JS embebida (2026-07-16)**
+IDEAS #36, etiquetado ⚡ en PLAN.md (DeepSeek-implementa). Implementado por **Claude por orden explícita de Carlos en el turno de A.4** — quedó registrado como excepción en el commit del propio ítem y al cierre de este mes, **no escala como precedente**. Sin la excepción, A.5 se habría delegado a DeepSeek (regla de scope-lock del PLAN.md § "Regla de alcance").
+
+Bug original que cierra (Mes 20/C.1, 2026-07-13): el archivo `.html` generado tenía un error de sintaxis JS real (`:` suelto donde iba `+` en una concatenación dentro de `sortIcon()`) que rompía el script entero. Ni `tsc` (no cubre `.html`/`.js`) ni el juez QA-LLM lo detectaron — solo abriendo la página de verdad en el navegador.
+
+**Diseño**: 
+- **Módulo nativo nuevo** [`src/run/html-script-check.ts`](src/run/html-script-check.ts) (sin deps) con tres building blocks: `extractInlineScripts(html)` devuelve `{code, startLine, endLine}[]` filtrando por whitelist de `type=` JS ejecutable (excluye `application/json`/`text/template` para evitar falsos positivos de `node --check`), `jsCheckTempPath(sourceAbsPath)` genera path determinístico en `os.tmpdir()` (sha1 del abs-path), `jsSyntaxCheckForJsFile` y `jsSyntaxCheckForHtmlFile` construyen los `Check` con `node --check <path>`.
+- **Wiring** en [`src/run/checks.ts:32`](src/run/checks.ts): el guard `node_modules` se reduce de early-return global a scope-local (solo afecta `tsc`/`bun test`). Los checks de sintaxis JS corren **sin** `node_modules` — `node --check` solo parsea, no resuelve imports. Si el `.html`/`.js` declarado en `output[]` no existe en disco, no se emite check (el contrato ya cubre el caso por otra vía; no ruido doble).
+
+**Tests (22 nuevos, todos en `bun test`):**
+- [`src/__tests__/html-script-check.test.ts`](src/__tests__/html-script-check.test.ts) — 11 tests del módulo: extracción básica, múltiples scripts, skip de `<script src>`, skip de `application/json`/`text/template`, inclusión de `type="module"`/`type="application/javascript"`, `=>` arrows sin romper el regex, números de línea 1-indexados, vacío, `<script>` sin cerrar (graceful stop).
+- [`src/__tests__/checks.test.ts`](src/__tests__/checks.test.ts) — 11 tests del wiring: emite check para `.js` y `.html` con script, no emite si no existe, no depende de `node_modules`, coexiste con `tsc`/`bun test` cuando están, **3 integration tests** que corren `runChecks` end-to-end y prueban: (a) el bug de C.1 (`"a" : "b"`) ahora se detecta con exit≠0 y stderr conteniendo `Unexpected token ':'`, (b) un script válido pasa, (c) un `.js` standalone con el mismo bug se detecta.
+
+**Resultados**: 726 → 748 tests · 0 fail (estado del repo al cerrar A.5) · `tsc --noEmit` limpio · 0 archivos `orchestos-jscheck-*.js` huérfanos tras `afterEach`.
+
+**Decisiones de implementación que vale la pena tener registradas:**
+- **Por qué `node --check` y no un parser dedicado (acorn, esprima)**: dependencia nativa en cualquier máquina con Node ≥ 18 (la cual ya está implícita porque el ecosistema la usa), sin lock-in a una versión de gramática, mismo binario que el LLM habría usado para validar. Cambio de versión de Node rotaría el comportamiento — aceptable.
+- **Por qué `os.tmpdir()` y no al lado del `.html`**: deja el árbol del proyecto limpio (importante para git status / revisores) y la purga es responsabilidad del SO; el path con hash del abs-path permite `cleanupJsCheckTemp(source)` deterministico cuando se necesita (en tests).
+- **Por qué whitelist de `type=` y no blacklist**: hay más tipos no-JS (JSON, templates, LD+JSON, vtt, webdata…) que JS; blacklisting dejaría huecos.
+
 ---
 
 ## Sección 2 — Ideas implementadas (provenientes de IDEAS.md)
