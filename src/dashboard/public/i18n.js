@@ -211,6 +211,9 @@ const I18N = {
     /* Bloque D (Mes 18, ex-IDEAS #21) — sugerencia de skill en el composer */
     'tasks.draft.field.skill': 'Suggested skill',
     'tasks.draft.skill.none':  'None',
+    /* Bloque D (Mes 22) — capa simple del draft */
+    'tasks.draft.advanced':      'Advanced settings',
+    'tasks.draft.summary.files': '{0} file(s)',
     'tasks.draft.btn.confirm':    'Confirm & Run',
     'tasks.draft.btn.cancel':     'Cancel',
     'tasks.draft.exec.or':        'OpenRouter (default)',
@@ -892,6 +895,9 @@ const I18N = {
     /* Bloque D (Mes 18, ex-IDEAS #21) — sugerencia de skill en el composer */
     'tasks.draft.field.skill': 'Skill sugerida',
     'tasks.draft.skill.none':  'Ninguna',
+    /* Bloque D (Mes 22) — capa simple del draft */
+    'tasks.draft.advanced':      'Ajustes avanzados',
+    'tasks.draft.summary.files': '{0} archivo(s)',
     'tasks.draft.btn.confirm':    'Confirmar y ejecutar',
     'tasks.draft.btn.cancel':     'Cancelar',
     'tasks.draft.exec.or':        'OpenRouter (por defecto)',

@@ -166,8 +166,10 @@ function renderSkillSuggestion(draft) {
   const options = draft.skillOptions || [];
   if (options.length === 0) return '';
   const single = options.length === 1;
+  // D.3 (Mes 22) — solo el nombre en el <option>; la descripción completa
+  // hacía las opciones kilométricas e ilegibles. Queda como title (tooltip).
   const choices = options.map(o =>
-    `<option value="${esc(o.id)}" ${single ? 'selected' : ''}>${esc(o.name)} — ${esc(o.description)}</option>`
+    `<option value="${esc(o.id)}" title="${esc(o.description)}" ${single ? 'selected' : ''}>${esc(o.name)}</option>`
   ).join('');
   return `<div class="draft-fields" style="margin-top:8px">
     <div class="draft-field" style="flex:1">
@@ -188,7 +190,11 @@ function renderContextSuggestions(st) {
     return `<div class="muted" style="font-size:12px;margin-top:6px">${t('tasks.draft.suggestFiles.loading')}</div>`;
   }
   if (st.contextSuggestStatus === 'error') {
-    return `<div class="muted" style="font-size:12px;margin-top:6px;color:var(--error)">${t('tasks.draft.suggestFiles.err')}</div>`;
+    // D.4 (Mes 22) — el server manda la causa real (ej. "Project not indexed
+    // yet — run Index code graph first"); tragársela dejaba un error genérico
+    // sin nada accionable.
+    const reason = st.contextSuggestError || t('tasks.draft.suggestFiles.err');
+    return `<div class="muted" style="font-size:12px;margin-top:6px;color:var(--error)">${esc(reason)}</div>`;
   }
   const results = st.contextSuggestResults;
   if (!results) return '';
@@ -706,50 +712,58 @@ SCREENS.tasks = {
     // H1 — two-phase compose: input → AI draft preview → confirm
     const draft = st.naturalDraft;
     const composeInitial = st.composeDraft || '';
+    // Bloque D (Mes 22) — simple por defecto: descripción editable (misma
+    // ergonomía que el chat) + resumen de una línea con lo que OrchestOS ya
+    // decidió. id/archivos/modelo/engine/skill viven colapsados en "Ajustes
+    // avanzados" — el usuario final no necesita saber qué es un engine para
+    // correr una tarea. Los IDs de los controles no cambian: draft-confirm
+    // lee los mismos campos estén o no desplegados.
     const compose = draft
       ? `<div class="compose-bar compose-preview">
           <div class="draft-header">
-            <span class="draft-label">${ICON.bolt} Borrador generado por IA — revisa y confirma</span>
-            <button class="btn ghost sm" data-act="draft-cancel">Cancelar</button>
+            <span class="draft-label">${ICON.bolt} ${t('tasks.draft.label')}</span>
+            <button class="btn ghost sm" data-act="draft-cancel">${t('tasks.draft.btn.cancel')}</button>
           </div>
-          <div class="draft-fields">
-            <div class="draft-field">
-              <label>ID de tarea</label>
-              <input id="draft-id" class="draft-input mono" value="${esc(draft.id)}">
-            </div>
-            <div class="draft-field" style="flex:2">
-              <label>Descripción</label>
-              <input id="draft-desc" class="draft-input" value="${esc(draft.description)}">
-            </div>
+          <div class="draft-main">
+            <textarea id="draft-desc" class="draft-desc" rows="2">${esc(draft.description)}</textarea>
+            <div class="draft-summary" id="draft-summary"></div>
           </div>
-          <div class="draft-fields" style="margin-top:8px">
-            <div class="draft-field" style="flex:2">
-              <label>Archivos a crear o modificar <span class="muted">(uno por línea · opcional)</span></label>
-              <textarea id="draft-output" class="draft-input" rows="2">${esc((draft.output || []).join('\n'))}</textarea>
-              <button type="button" class="btn ghost sm" data-act="suggest-files" style="margin-top:4px">${ICON.bolt} ${t('tasks.draft.suggestFiles')}</button>
-              ${renderContextSuggestions(st)}
+          <details class="draft-advanced" id="draft-advanced" ${st.draftAdvancedOpen ? 'open' : ''}>
+            <summary>${t('tasks.draft.advanced')}</summary>
+            <div class="draft-fields">
+              <div class="draft-field">
+                <label>${t('tasks.draft.field.id')}</label>
+                <input id="draft-id" class="draft-input mono" value="${esc(draft.id)}">
+              </div>
+              <div class="draft-field">
+                <label>${t('modal.task.model.label')}</label>
+                ${buildModelSelect('draft-model', draft.executor_model || 'deepseek/deepseek-v4-flash', st.orModels)}
+              </div>
+              <div class="draft-field">
+                <label>${t('tasks.draft.field.engine')}</label>
+                <select id="draft-engine" class="draft-input" data-act="draft-engine">
+                  <option value="">${t('tasks.draft.engine.inherit')}</option>
+                  <option value="single-shot">${t('tasks.draft.engine.single-shot')}</option>
+                  <option value="agentic">${t('tasks.draft.engine.agentic')}</option>
+                  <option value="external">${t('tasks.draft.engine.external')}</option>
+                </select>
+                <div id="draft-engine-warning" class="draft-engine-warning" style="display:none"></div>
+              </div>
             </div>
-            <div class="draft-field">
-              <label>${t('modal.task.model.label')}</label>
-              ${buildModelSelect('draft-model', draft.executor_model || 'deepseek/deepseek-v4-flash', st.orModels)}
+            <div class="draft-fields" style="margin-top:8px">
+              <div class="draft-field" style="flex:2">
+                <label>${t('tasks.draft.field.output')}</label>
+                <textarea id="draft-output" class="draft-input" rows="2">${esc((draft.output || []).join('\n'))}</textarea>
+                <button type="button" class="btn ghost sm" data-act="suggest-files" style="margin-top:4px;align-self:flex-start">${ICON.bolt} ${t('tasks.draft.suggestFiles')}</button>
+                ${renderContextSuggestions(st)}
+              </div>
             </div>
-            <div class="draft-field">
-              <label>${t('tasks.draft.field.engine')}</label>
-              <select id="draft-engine" class="draft-input" data-act="draft-engine">
-                <option value="">${t('tasks.draft.engine.inherit')}</option>
-                <option value="single-shot">${t('tasks.draft.engine.single-shot')}</option>
-                <option value="agentic">${t('tasks.draft.engine.agentic')}</option>
-                <option value="external">${t('tasks.draft.engine.external')}</option>
-              </select>
-              <div id="draft-engine-warning" class="draft-engine-warning" style="display:none"></div>
-            </div>
-          </div>
-          ${renderSkillSuggestion(draft)}
+            ${renderSkillSuggestion(draft)}
+          </details>
           <div class="compose-actions" style="margin-top:10px">
             <div id="compose-msg" style="font-size:12px;display:none;flex:1"></div>
             <span style="flex:1"></span>
-            <button class="btn ghost" data-act="draft-cancel">Cancelar</button>
-            <button class="btn primary" data-act="draft-confirm">${ICON.play} Confirmar y ejecutar</button>
+            <button class="btn primary" data-act="draft-confirm">${ICON.play} ${t('tasks.draft.btn.confirm')}</button>
           </div>
         </div>`
       : `<div class="compose-bar">
@@ -987,6 +1001,43 @@ SCREENS.tasks = {
       App.rerender();
     });
 
+    // D.1 (Mes 22) — ergonomía del draft: la descripción crece como el chat,
+    // el estado abierto/cerrado de "Ajustes avanzados" sobrevive rerenders
+    // (suggest-files y el combo de modelo rerenderizan), y el resumen de una
+    // línea refleja en vivo lo que se va a ejecutar.
+    const draftDesc = root.querySelector('#draft-desc');
+    if (draftDesc) {
+      const growDesc = () => {
+        draftDesc.style.height = 'auto';
+        draftDesc.style.height = Math.min(draftDesc.scrollHeight, 180) + 'px';
+      };
+      draftDesc.addEventListener('input', growDesc);
+      growDesc();
+    }
+    const advPanel = root.querySelector('#draft-advanced');
+    advPanel?.addEventListener('toggle', () => { st.draftAdvancedOpen = advPanel.open; });
+    const summaryEl = root.querySelector('#draft-summary');
+    const updateDraftSummary = () => {
+      if (!summaryEl || !st.naturalDraft) return;
+      const id = root.querySelector('#draft-id')?.value.trim() || '';
+      const modelId = root.querySelector('#draft-model')?.value || st.naturalDraft.executor_model || 'deepseek/deepseek-v4-flash';
+      const engine = root.querySelector('#draft-engine')?.value || '';
+      const skillSel = root.querySelector('#draft-skill');
+      const skillName = skillSel && skillSel.value
+        ? (skillSel.options[skillSel.selectedIndex]?.text || skillSel.value) : '';
+      const files = (root.querySelector('#draft-output')?.value || '')
+        .split('\n').map(s => s.trim()).filter(Boolean);
+      const parts = [id, modelId.split('/').pop(), `engine: ${engine || 'auto'}`];
+      if (skillName) parts.push(`skill: ${skillName}`);
+      if (files.length) parts.push(t('tasks.draft.summary.files', String(files.length)));
+      summaryEl.textContent = parts.filter(Boolean).join('  ·  ');
+    };
+    updateDraftSummary();
+    ['#draft-id', '#draft-output'].forEach(sel =>
+      root.querySelector(sel)?.addEventListener('input', updateDraftSummary));
+    ['#draft-engine', '#draft-skill'].forEach(sel =>
+      root.querySelector(sel)?.addEventListener('change', updateDraftSummary));
+
     // (el combo de modelo se carga solo al abrirse — wiring genérico en boot(), app.js)
 
     // Auto-load models when draft is showing (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)
@@ -1033,14 +1084,22 @@ SCREENS.tasks = {
       if (!desc) return;
       st.contextSuggestStatus = 'loading';
       st.contextSuggestResults = null;
+      st.contextSuggestError = null;
       App.rerender();
       try {
         const res = await fetch(`/api/context/suggest?task=${encodeURIComponent(desc)}&top=10`);
-        if (!res.ok) throw new Error(String(res.status));
-        const data = await res.json();
-        st.contextSuggestResults = data.results || [];
-        st.contextSuggestStatus = 'ok';
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          // D.4 — conservar la causa del server ("Project not indexed yet…"),
+          // no reducirla a un error genérico.
+          st.contextSuggestError = (data && data.error) || null;
+          st.contextSuggestStatus = 'error';
+        } else {
+          st.contextSuggestResults = (data && data.results) || [];
+          st.contextSuggestStatus = 'ok';
+        }
       } catch {
+        st.contextSuggestError = null;
         st.contextSuggestStatus = 'error';
       }
       App.rerender();

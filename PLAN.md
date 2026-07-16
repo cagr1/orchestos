@@ -132,6 +132,36 @@ verificación por sub-tarea. Responde con dato real la pregunta de producto.
   evidencia. Todo bug real destapado en el camino se convierte en ítem antes de tocar código
   (regla de documentación obligatoria).
 
+### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
+
+Excepción explícita de Carlos al freeze de UI de este Mes: el primer intento real de correr
+C desde el dashboard (crypto-dashboard-v2) destapó que el flujo de "crear tarea desde el chat"
+es inusable para un usuario normal — demasiados campos, decisiones que OrchestOS debería tomar
+solo, y 3 bugs visuales/funcionales concretos. Evidencia: screenshot del draft del 2026-07-16.
+
+- [x] **D.1 — 🧠 (2026-07-16)** Draft "simple por defecto": descripción como textarea auto-grow
+  (misma ergonomía que el chat), resumen de una línea con lo auto-decidido
+  (`id · modelo · engine · skill · N archivos`, actualizado en vivo), y `<details>` "Ajustes
+  avanzados" colapsado con id/modelo/engine/archivos/skill (estado abierto sobrevive rerenders
+  vía `st.draftAdvancedOpen`). IDs de controles intactos — `draft-confirm` no cambió. Verificado
+  en navegador contra el dashboard real (capa simple + panel abierto). screens-core.js +
+  screens.css + i18n (en/es). 748 tests · 0 fail · `tsc` limpio.
+- [x] **D.2 — 🧠 (2026-07-16)** Ícono gigante corregido: `.draft-label svg { width:13px }` —
+  el SVG inline solo tenía viewBox y se expandía al ancho del contenedor.
+- [x] **D.3 — 🧠 (2026-07-16)** `<option>` de skill muestra solo el nombre; la descripción
+  completa pasa a `title`. Verificado: "Frontend Design" a secas en el select.
+- [x] **D.4 — 🧠 (2026-07-16)** "Suggest files" ahora muestra la causa real del server
+  (`st.contextSuggestError`, ej. "Project not indexed yet — run Index code graph first") en vez
+  del genérico. Verificado en vivo contra el endpoint real (404 por proyecto sin indexar).
+  El botón quedó dentro de avanzados (D.1).
+- [ ] **D.5 — 🧠** El sandbox de worktree rechaza la corrida con working tree sucio recién DESPUÉS
+  de confirmar (la tarea muere en `failed` sin gastar). Pre-check en el server al confirmar
+  ("Confirmar y ejecutar") que devuelva el aviso ANTES, con mensaje accionable en el form.
+- [x] **D.6 — 🧠 (2026-07-16)** System prompt del chat (`handlers/chat.ts`): ante pedido de
+  construir algo, respuesta corta (3-4 frases) + señalar el botón "Create task"; prohibido dictar
+  tablas de campos, YAML o pasos manuales de creación. (Evidencia del fallo: respuesta del chat
+  del 2026-07-16 con tabla "create a new Task with these exact fields".)
+
 ---
 
 ## v0.12 (MES 21) — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes

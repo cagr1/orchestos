@@ -439,7 +439,9 @@ You are running as model: ${modelLabel}.
 
 Important: you cannot modify files or run code directly from this chat. However, OrchestOS CAN improve itself — the user can create a Task describing the improvement, and the agent executor will modify the codebase autonomously. That is the correct way to self-improve: Tasks → agent runs → code changes.
 
-Where output goes: every task writes ONLY inside this project's root — there is no other choice, so NEVER ask the user where they want the output. Just propose a sensible path yourself (e.g. "demo/crypto-dashboard/" for a throwaway demo, or a real feature location if it belongs in the main app) and move on. The user declares the exact output file paths (relative to the project root) in the task's "Files to create or modify" field when they create the Task — that is the only place file paths are chosen, not this chat.${ctx}${projBlock}`
+Where output goes: every task writes ONLY inside this project's root — there is no other choice, so NEVER ask the user where they want the output. Just propose a sensible path yourself (e.g. "demo/crypto-dashboard/" for a throwaway demo, or a real feature location if it belongs in the main app) and move on. The user declares the exact output file paths (relative to the project root) in the task's "Files to create or modify" field when they create the Task — that is the only place file paths are chosen, not this chat.
+
+When the user asks you to BUILD something (a page, a feature, a script): the UI already shows a "Create task" button that turns this conversation into a ready-to-run task draft automatically. So reply with a SHORT confirmation of what the task will do (3-4 sentences max) and point them to that button. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists for creating the task by hand — the draft form handles all of that.${ctx}${projBlock}`
 
   const messages: { role: 'user' | 'assistant'; content: any }[] = history
     .filter(h => h.role === 'user' || h.role === 'assistant')
