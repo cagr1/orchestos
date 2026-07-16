@@ -417,9 +417,19 @@ SCREENS.chat = {
         if (res.ok) {
           const data = await res.json();
           st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model, ocrUsed: data.ocrUsed });
-          // J.1 (Mes 18) — B.1.b: si el clasificador marcó el mensaje como
-          // tarea, la barra aparece ya (sin esperar a 3+ mensajes) citando su reason.
-          st.chatTaskSuggestion = data.taskSuggestion || null;
+          // D.7 (Mes 22) — si el server ya creó+corrió la tarea sola, la barra
+          // "Create task" quedaría redundante (o peor, invitaría a duplicarla)
+          // — se omite. Refrescamos st.tasks para que el chip `task_id` que
+          // aparece en el texto de la respuesta (autoTaskNote) sea clicable
+          // de inmediato (highlightRefs necesita conocer el id).
+          if (data.autoTask && data.autoTask.id) {
+            st.chatTaskSuggestion = null;
+            App.fetchTasks().then(() => App.rerender());
+          } else {
+            // J.1 (Mes 18) — B.1.b: si el clasificador marcó el mensaje como
+            // tarea, la barra aparece ya (sin esperar a 3+ mensajes) citando su reason.
+            st.chatTaskSuggestion = data.taskSuggestion || null;
+          }
         } else {
           // J.2/J.3 (Mes 18) — antes se perdía el mensaje de error real del
           // servidor (imagen sin soporte de visión, contexto insuficiente) y

@@ -131,28 +131,31 @@ function isKnownSkillId(id: string): boolean {
   return false
 }
 
-async function handleApiTasksCreate(req: Request): Promise<Response> {
-  let body: { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string; engine?: string; skill?: string }
-  try { body = (await req.json()) as { id?: string; description: string; output?: string[]; executor?: string; executor_model?: string; engine?: string; skill?: string } } catch { return errorResponse('Invalid JSON', 400) }
-  if (!body.description?.trim()) {
-    return errorResponse('description is required', 400)
-  }
-  const description = body.description.trim()
-  const id = body.id?.trim() || descToTaskId(description)
-  const output = Array.isArray(body.output) ? body.output : []
-  const executorModel = body.executor_model?.trim() || undefined
-  const executor = body.executor || inferExecutorFromModel(executorModel)
-  // G.4 / B.2 — engine opcional; validateTask() de tasks/schema.ts re-valida al re-leer
-  // el YAML, así que si llega un valor inválido caemos al mensaje "unknown engine"
-  // via el guard siguiente (mismo set que validateEngine en schema.ts:86-92).
-  const engineRaw = body.engine?.trim()
+export interface CreateTaskParams {
+  id?: string
+  description: string
+  output?: string[]
+  executor?: string
+  executor_model?: string
+  engine?: string
+  skill?: string
+}
+
+// D.7 (Mes 22) — extraído de handleApiTasksCreate para que el auto-flow del
+// chat (creates tasks sin pasar por una Request HTTP) reuse exactamente la
+// misma lógica (dedupe de id, commit del sandbox, etc.) en vez de duplicarla.
+function createTaskRecord(root: string, params: CreateTaskParams): { id: string } | { error: string; status: number } {
+  if (!params.description?.trim()) return { error: 'description is required', status: 400 }
+  const description = params.description.trim()
+  const id = params.id?.trim() || descToTaskId(description)
+  const output = Array.isArray(params.output) ? params.output : []
+  const executorModel = params.executor_model?.trim() || undefined
+  const executor = params.executor || inferExecutorFromModel(executorModel)
+  const engineRaw = params.engine?.trim()
   let engine: 'single-shot' | 'agentic' | 'external' | undefined
   if (engineRaw === 'single-shot' || engineRaw === 'agentic' || engineRaw === 'external') engine = engineRaw
-  else if (engineRaw && engineRaw.length > 0) return errorResponse(`unknown engine '${engineRaw}' — allowed: single-shot, agentic, external`, 400)
-  const root = resolve('.')
-  if (!existsSync(join(root, 'tasks.yaml'))) {
-    return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
-  }
+  else if (engineRaw && engineRaw.length > 0) return { error: `unknown engine '${engineRaw}' — allowed: single-shot, agentic, external`, status: 400 }
+  if (!existsSync(join(root, 'tasks.yaml'))) return { error: 'tasks.yaml not found — run: orchestos task init', status: 404 }
   try {
     const file = loadTasks(root)
     let finalId = id
@@ -169,7 +172,7 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
     }
     if (executorModel) newTask.executor_model = executorModel
     if (engine) newTask.engine = engine
-    const skill = body.skill?.trim()
+    const skill = params.skill?.trim()
     if (skill && isKnownSkillId(skill)) newTask.skill = skill
     ;(file.tasks as any[]).push(newTask)
     saveTasks(root, file)
@@ -182,10 +185,28 @@ async function handleApiTasksCreate(req: Request): Promise<Response> {
     // como corresponde — esto no oculta desprolijidad ajena a la creación.
     git(['add', 'tasks.yaml'], root)
     git(['commit', '-m', `chore(tasks): add ${finalId} (dashboard)`], root)
-    return jsonResponse({ ok: true, id: finalId })
+    return { id: finalId }
   } catch (e: any) {
-    return errorResponse(e.message, 500)
+    return { error: e.message, status: 500 }
   }
+}
+
+// D.7 — mismo motivo de extracción: reusable por el auto-flow del chat.
+function spawnTaskRun(root: string, id: string, model?: string): void {
+  git(['add', 'tasks.yaml'], root)
+  git(['commit', '-m', `chore(tasks): run ${id} (dashboard)`], root)
+  const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id]
+  if (model) args.push('--model', model)
+  Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
+}
+
+async function handleApiTasksCreate(req: Request): Promise<Response> {
+  let body: CreateTaskParams
+  try { body = (await req.json()) as CreateTaskParams } catch { return errorResponse('Invalid JSON', 400) }
+  const root = resolve('.')
+  const result = createTaskRecord(root, body)
+  if ('error' in result) return errorResponse(result.error, result.status)
+  return jsonResponse({ ok: true, id: result.id })
 }
 
 async function handleApiTasksRun(req: Request, url: URL): Promise<Response> {
@@ -208,19 +229,7 @@ async function handleApiTasksRun(req: Request, url: URL): Promise<Response> {
     task.status = 'pending'
   }
   saveTasks(root, file)
-  // D.5 — mismo motivo que handleApiTasksCreate: esta escritura (clarificación
-  // o reset a pending) deja tasks.yaml sucio justo antes de spawnear el `task
-  // run`, que dispara el check de sandbox limpio. Sin este commit, CUALQUIER
-  // clarificación o reintento desde el panel de detalle fallaba siempre.
-  git(['add', 'tasks.yaml'], root)
-  git(['commit', '-m', `chore(tasks): run ${id} (dashboard)`], root)
-  const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id]
-  if (model) args.push('--model', model)
-  Bun.spawn(args, {
-    cwd: root,
-    stdout: 'inherit',
-    stderr: 'inherit',
-  })
+  spawnTaskRun(root, id, model)
   return jsonResponse({ ok: true, id })
 }
 
@@ -382,4 +391,4 @@ function handleApiTasksApproveSplit(url: URL): Response {
   return jsonResponse({ ok: true, id, message: `Split plan for "${id}" approved — executing ${planPath}` })
 }
 
-export { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, loadTaskRows, isKnownSkillId }
+export { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, loadTaskRows, isKnownSkillId, createTaskRecord, spawnTaskRun }

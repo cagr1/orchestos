@@ -168,20 +168,23 @@ solo, y 3 bugs visuales/funcionales concretos. Evidencia: screenshot del draft d
   construir algo, respuesta corta (3-4 frases) + señalar el botón "Create task"; prohibido dictar
   tablas de campos, YAML o pasos manuales de creación. (Evidencia del fallo: respuesta del chat
   del 2026-07-16 con tabla "create a new Task with these exact fields".)
-- [ ] **D.7 — 🧠** Decisión explícita de Carlos (2026-07-16): cuando el clasificador de intención
-  detecta que un mensaje del chat es una tarea real, OrchestOS crea Y corre la tarea sola —
-  sin navegar a la pantalla Tasks, sin mostrar el draft/formulario, sin pedir confirmación de
-  click. Todo (id, modelo, engine, skill, archivos) decidido por el sistema con los defaults del
-  config ya vigentes ([[feedback-modelo-decision-final-carlos]] sigue cubierto porque el modelo
-  no lo elige el LLM en el momento — ya está fijado en `orchestos.config.yaml`). El chat responde
-  con lo que va a hacer + el resultado cuando termina (mismo patrón que el resto del chat), no con
-  una redirección de pantalla. Reemplaza el flujo actual `chat-create-task` → `App.go('tasks')` →
-  draft de `screens-core.js` para el camino detectado-por-clasificador (el draft manual sigue
-  existiendo para cuando el usuario abre Tasks directamente y escribe ahí).
-  **Fuera de alcance de este ítem** (anotado aparte, no se resuelve acá): límite de gasto por
-  corrida — Carlos aclaró que no quiere un tope de dinero, sino visibilidad real de cuánto se
-  gastó, si vino de API o de CLI, y cuánto tiempo/cuota de LLM queda — eso es un ítem de
-  tracking/observabilidad separado, no de este flujo de auto-ejecución.
+- [x] **D.7 — 🧠 (2026-07-16)** Chat auto-ejecuta: cuando el clasificador SEMÁNTICO
+  (`classifyTaskIntent`, no el fallback de conteo de 3+ mensajes — señal débil, no dice que
+  ESE mensaje sea la tarea) marca `isTask`, `handlers/chat.ts` llama `buildNaturalDraft()`
+  (extraído de `handleApiNatural`, ahora exportado desde `handlers/project.ts`) y
+  `createTaskRecord()` + `spawnTaskRun()` (extraídos de los handlers HTTP de tasks, ahora
+  exportados desde `handlers/tasks.ts`) — todo server-side, antes de que el LLM genere su
+  respuesta. Sin navegar a Tasks, sin draft, sin click de confirmación. `executor_model` nunca se
+  fija desde el chat — queda sin definir para heredar `orchestos.config.yaml`
+  ([[feedback-modelo-decision-final-carlos]] sigue cubierto: el modelo lo fija el config, no un
+  LLM en el momento). La respuesta del chat lleva una nota corta (`▶ Started task `id`.`) + el
+  frontend refresca `st.tasks` para que el chip del id sea clicable de inmediato y omite la barra
+  "Create task" (quedaría redundante). System prompt (D.6) actualizado: ya no le dice al LLM que
+  señale un botón — la tarea ya está corriendo cuando el LLM responde.
+  **Fuera de alcance** (anotado en [IDEAS.md #45](IDEAS.md)): visibilidad de gasto real
+  (USD vs. cuota de CLI) — Carlos aclaró que no quiere un tope de gasto, solo verlo.
+  748 tests · 0 fail · `tsc` limpio. Verificado que el server bootea sin errores de wiring;
+  el flujo end-to-end (gasta LLM real) queda para que Carlos lo pruebe él mismo en vivo.
 
 ---
 

@@ -116,12 +116,19 @@ async function handleApiProjectIndex(): Promise<Response> {
   return jsonResponse({ ok: true, files: result.files, edges: result.edges, embeddings: result.embeddings, elapsedMs })
 }
 
-async function handleApiNatural(req: Request): Promise<Response> {
-  let body: { input: string }
-  try { body = (await req.json()) as { input: string } } catch { return errorResponse('Invalid JSON', 400) }
-  const input = body.input?.trim()
-  if (!input) return errorResponse('input is required', 400)
+export interface NaturalDraft {
+  id: string
+  description: string
+  output: string[]
+  executor: string
+  skillCandidates: string[]
+  skillOptions: { id: string; name: string; description: string }[]
+}
 
+// D.7 (Mes 22) — extraído de handleApiNatural para que el auto-flow del chat
+// (handlers/chat.ts) pueda pedir el mismo draft por lenguaje natural sin pasar
+// por una Request/Response HTTP. handleApiNatural queda como wrapper delgado.
+async function buildNaturalDraft(input: string): Promise<NaturalDraft> {
   const root = resolve('.')
   const projectCtx = loadContext(root)
   let tasksSummary = ''
@@ -152,35 +159,43 @@ ${skillsSummary ? `Skills instaladas disponibles:\n${skillsSummary}\n` : ''}
 
 Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
 
+  const resp = await openrouterChat({
+    model: 'anthropic/claude-haiku-4-5',
+    system: systemPrompt,
+    messages: [{ role: 'user', content: input }],
+  })
+  const raw = resp.text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+  const draft = JSON.parse(raw) as { id: string; description: string; output: string[]; executor: string; skill_candidates?: unknown }
+  draft.id = (draft.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || 'nueva-tarea'
+  if (!Array.isArray(draft.output)) draft.output = []
+  if (!['openrouter', 'anthropic', 'openai'].includes(draft.executor)) draft.executor = 'openrouter'
+
+  // Fail-safe: solo se aceptan ids que existen de verdad — un id inventado
+  // por el LLM se descarta como si no hubiera dicho nada (mismo espíritu
+  // que needsClarify/el clasificador de intención del Mes 18).
+  const validIds = new Set(skillCandidateInfos.map(s => s.id))
+  const rawCandidates = Array.isArray(draft.skill_candidates) ? draft.skill_candidates : []
+  const skillCandidates = rawCandidates.filter((id): id is string => typeof id === 'string' && validIds.has(id))
+  const skillOptions = skillCandidateInfos.filter(s => skillCandidates.includes(s.id))
+    .map(s => ({ id: s.id, name: s.name, description: s.description }))
+
+  return {
+    id: draft.id,
+    description: draft.description,
+    output: draft.output,
+    executor: draft.executor,
+    skillCandidates,
+    skillOptions,
+  }
+}
+
+async function handleApiNatural(req: Request): Promise<Response> {
+  let body: { input: string }
+  try { body = (await req.json()) as { input: string } } catch { return errorResponse('Invalid JSON', 400) }
+  const input = body.input?.trim()
+  if (!input) return errorResponse('input is required', 400)
   try {
-    const resp = await openrouterChat({
-      model: 'anthropic/claude-haiku-4-5',
-      system: systemPrompt,
-      messages: [{ role: 'user', content: input }],
-    })
-    const raw = resp.text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-    const draft = JSON.parse(raw) as { id: string; description: string; output: string[]; executor: string; skill_candidates?: unknown }
-    draft.id = (draft.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || 'nueva-tarea'
-    if (!Array.isArray(draft.output)) draft.output = []
-    if (!['openrouter', 'anthropic', 'openai'].includes(draft.executor)) draft.executor = 'openrouter'
-
-    // Fail-safe: solo se aceptan ids que existen de verdad — un id inventado
-    // por el LLM se descarta como si no hubiera dicho nada (mismo espíritu
-    // que needsClarify/el clasificador de intención del Mes 18).
-    const validIds = new Set(skillCandidateInfos.map(s => s.id))
-    const rawCandidates = Array.isArray(draft.skill_candidates) ? draft.skill_candidates : []
-    const skillCandidates = rawCandidates.filter((id): id is string => typeof id === 'string' && validIds.has(id))
-    const skillOptions = skillCandidateInfos.filter(s => skillCandidates.includes(s.id))
-      .map(s => ({ id: s.id, name: s.name, description: s.description }))
-
-    return jsonResponse({
-      id: draft.id,
-      description: draft.description,
-      output: draft.output,
-      executor: draft.executor,
-      skillCandidates,
-      skillOptions,
-    })
+    return jsonResponse(await buildNaturalDraft(input))
   } catch (e: any) {
     return errorResponse(`LLM draft failed: ${e.message}`, 502)
   }
@@ -230,4 +245,4 @@ async function handleApiProjectSummary(): Promise<Response> {
   }
 }
 
-export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiProjectSummary, handleApiNatural, listAllSkillCandidates }
+export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiProjectSummary, handleApiNatural, listAllSkillCandidates, buildNaturalDraft }

@@ -19,6 +19,8 @@ import { estimateTokens } from '../../context/compress.ts'
 import { classifyTaskIntent } from '../../chat/classify-task-intent.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
+import { buildNaturalDraft } from './project.ts'
+import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = typeof VALID_EFFORTS[number]
@@ -357,6 +359,41 @@ async function handleApiChat(req: Request): Promise<Response> {
   const barShown = barShownByCount || !!taskSuggestion?.isTask
   logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown })
 
+  // D.7 (Mes 22) — decisión explícita de Carlos (2026-07-16): cuando el
+  // clasificador SEMÁNTICO (no el fallback de conteo — esa señal es débil,
+  // "ya van 3 mensajes" no dice que ESTE mensaje sea una tarea) marca el
+  // mensaje como tarea, OrchestOS crea y corre la tarea sola — sin
+  // redirigir a la pantalla Tasks ni pedir un click de confirmación.
+  // Modelo/engine: nunca se fijan acá — se dejan sin `executor_model` para
+  // heredar `orchestos.config.yaml`, que es la fuente de verdad de qué
+  // modelo corre ([[feedback-modelo-decision-final-carlos]] sigue
+  // cubierto: el LLM del chat no decide el modelo, el config ya lo fijó).
+  let autoTask: { id: string } | { error: string } | null = null
+  if (taskSuggestion?.isTask) {
+    try {
+      const root = resolve('.')
+      const draft = await buildNaturalDraft(message)
+      // Mismo criterio que el <select> de skill en el dashboard: 1 candidato
+      // se preselecciona, 0 o 2+ se dejan sin asignar (nunca resolver un
+      // empate a ciegas). Ver renderSkillSuggestion, screens-core.js.
+      const skill = draft.skillOptions.length === 1 ? draft.skillOptions[0]?.id : undefined
+      const created = createTaskRecord(root, {
+        description: draft.description,
+        output: draft.output,
+        executor: draft.executor,
+        skill,
+      })
+      if ('error' in created) {
+        autoTask = { error: created.error }
+      } else {
+        spawnTaskRun(root, created.id)
+        autoTask = { id: created.id }
+      }
+    } catch (e: any) {
+      autoTask = { error: e.message }
+    }
+  }
+
   let attachedFiles: FileEntry[] = []
   if (Array.isArray(body.fileIds) && body.fileIds.length > 0) {
     pruneExpiredFiles()
@@ -441,7 +478,7 @@ Important: you cannot modify files or run code directly from this chat. However,
 
 Where output goes: every task writes ONLY inside this project's root — there is no other choice, so NEVER ask the user where they want the output. Just propose a sensible path yourself (e.g. "demo/crypto-dashboard/" for a throwaway demo, or a real feature location if it belongs in the main app) and move on. The user declares the exact output file paths (relative to the project root) in the task's "Files to create or modify" field when they create the Task — that is the only place file paths are chosen, not this chat.
 
-When the user asks you to BUILD something (a page, a feature, a script): the UI already shows a "Create task" button that turns this conversation into a ready-to-run task draft automatically. So reply with a SHORT confirmation of what the task will do (3-4 sentences max) and point them to that button. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists for creating the task by hand — the draft form handles all of that.${ctx}${projBlock}`
+When the user asks you to BUILD something (a page, a feature, a script): if this happens, OrchestOS has ALREADY created and started running the task in the background by the time you reply (the system does this automatically, before you generate this response) — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max). NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists — there is no manual creation step anymore.${ctx}${projBlock}`
 
   const messages: { role: 'user' | 'assistant'; content: any }[] = history
     .filter(h => h.role === 'user' || h.role === 'assistant')
@@ -489,6 +526,15 @@ When the user asks you to BUILD something (a page, a feature, a script): the UI 
   }
   const combinedText = textBlocks.join('') + message
 
+  // D.7 — nota corta y neutral (no depende del idioma de la respuesta del
+  // LLM, que puede ser español o inglés): se agrega al texto final en los
+  // 3 caminos de respuesta posibles (ollama / tool-loop / openrouter plano).
+  const autoTaskNote = autoTask
+    ? ('id' in autoTask
+        ? `\n\n▶ Started task \`${autoTask.id}\`.`
+        : `\n\n⚠ Could not auto-create the task: ${autoTask.error}`)
+    : ''
+
   messages.push({
     role: 'user',
     content: imageParts.length > 0 ? [...imageParts, { type: 'text', text: combinedText }] : combinedText,
@@ -498,7 +544,7 @@ When the user asks you to BUILD something (a page, a feature, a script): the UI 
     if (isOllama) {
       const bareModel = model.replace('ollama/', '')
       const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages })
-      return jsonResponse({ text: resp.text, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null })
+      return jsonResponse({ text: resp.text + autoTaskNote, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
     }
 
     // Presupuesto real derivado del catálogo — nunca un número hardcodeado
@@ -555,7 +601,7 @@ When the user asks you to BUILD something (a page, a feature, a script): the UI 
         maxTokens: chatMaxTokens,
       })
       logChatRun(message, model, result.inputTokens, result.outputTokens)
-      return jsonResponse({ text: result.text, model, toolCalls: result.toolCallsExecuted, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null })
+      return jsonResponse({ text: result.text + autoTaskNote, model, toolCalls: result.toolCallsExecuted, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
     }
 
     const resp = await openrouterChat({
@@ -566,7 +612,7 @@ When the user asks you to BUILD something (a page, a feature, a script): the UI 
       maxTokens: chatMaxTokens,
     })
     logChatRun(message, resp.model, resp.inputTokens, resp.outputTokens)
-    return jsonResponse({ text: resp.text, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null })
+    return jsonResponse({ text: resp.text + autoTaskNote, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
   } catch (e: any) {
     return errorResponse(`Chat failed: ${e.message}`, 502)
   }
