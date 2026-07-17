@@ -77,6 +77,47 @@ describe('G.5 fix — maxTokens threaded through tool-calling, never hardcoded',
     expect(getBody().max_tokens).toBe(42000)
   })
 
+  it('Mes 22 (2026-07-17): shrinks max_tokens on later rounds as tool results grow the prompt, instead of reusing the stale initial budget', async () => {
+    // Repro of the live 400: caller computes maxTokens against a small initial
+    // prompt, then a tool call appends a large result to history — the FINAL
+    // round's real prompt is now much bigger, so its max_tokens must shrink
+    // by roughly that growth, not stay pinned to the original number.
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    const bodies: any[] = []
+    let call = 0
+    globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body))
+      bodies.push(body)
+      call++
+      if (call === 1) {
+        // first round: model asks to call the tool
+        return new Response(JSON.stringify({
+          choices: [{ message: { tool_calls: [{ id: 't1', type: 'function', function: { name: FETCH_URL_TOOL.name, arguments: '{}' } }] } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      // second round (closing round): plain text answer
+      return new Response(JSON.stringify({
+        choices: [{ message: { content: 'ok' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }) as unknown as typeof fetch
+
+    const largeToolResult = 'x'.repeat(40000) // ~10k tokens by the chars/4 estimate
+
+    await runToolLoop('openrouter', 'openai/gpt-4o-mini', {
+      system: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      tools: [FETCH_URL_TOOL],
+      executeTool: async () => largeToolResult,
+      maxTokens: 187000,
+    })
+
+    expect(bodies[0].max_tokens).toBe(187000) // first round: no growth yet, honors caller's number exactly
+    expect(bodies[1].max_tokens).toBeLessThan(187000) // closing round: shrunk by the tool result's growth
+    expect(bodies[1].max_tokens).toBeGreaterThan(170000) // shrunk, not collapsed to near-zero or clamped to some other cap
+  })
+
   it('callWithTools (anthropic direct) forwards maxTokens', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-test-anthropic-key'
     let capturedBody: any = null

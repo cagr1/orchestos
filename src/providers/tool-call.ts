@@ -19,6 +19,28 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { DEFAULT_MAX_OUTPUT_TOKENS, catalogSupportsTools } from '../router/model-catalog.ts'
 import { parseAffordableTokens } from './openrouter.ts'
+import { estimateTokens } from '../context/compress.ts'
+
+/**
+ * Mes 22 (2026-07-17): `opts.maxTokens` era un presupuesto FIJO calculado una
+ * sola vez por el caller (contextWindow − prompt inicial), pero `history`
+ * crece en cada ronda del loop (tool results se van agregando) — así que en
+ * la ronda final (o la de cierre sin tools) el prompt real ya es mucho más
+ * grande que el que el caller vio al calcular el presupuesto. Reproducido
+ * en vivo: proveedor rechazó con 400 pidiendo ~1.06M tokens contra una
+ * ventana de 1.048M — el prompt real había crecido por resultados de tool
+ * calls (ej. read_plan) posteriores al cálculo del presupuesto inicial.
+ *
+ * Fix: no recalcular el presupuesto absoluto (eso pisaría un `opts.maxTokens`
+ * explícito del caller — contrato existente, ver tool-call-maxtokens.test.ts),
+ * solo restarle el CRECIMIENTO del prompt desde la primera ronda. Si el
+ * caller no pasó `maxTokens`, se sigue dejando `undefined` (cae al default
+ * del round, sin cambios de comportamiento).
+ */
+function shrinkForGrowth(maxTokens: number | undefined, growthTokens: number): number | undefined {
+  if (maxTokens === undefined || growthTokens <= 0) return maxTokens
+  return Math.max(1, maxTokens - growthTokens)
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -576,6 +598,9 @@ export async function runToolLoop(
   let totalOutputTokens = 0
 
   const history: unknown[] = opts.messages.map(m => ({ ...m }))
+  const baselinePromptTokens = estimateTokens(opts.system) + estimateTokens(JSON.stringify(history))
+  const growthSince = (currentHistory: unknown[]) =>
+    Math.max(0, estimateTokens(opts.system) + estimateTokens(JSON.stringify(currentHistory)) - baselinePromptTokens)
 
   for (let turn = 0; turn < maxTurns; turn++) {
     let result: {
@@ -587,10 +612,11 @@ export async function runToolLoop(
       assistantMessage?: unknown
     }
 
+    const turnMaxTokens = shrinkForGrowth(opts.maxTokens, growthSince(history))
     if (provider === 'anthropic') {
-      result = await anthropicRound(model, opts.system, history, opts.tools, opts.maxTokens)
+      result = await anthropicRound(model, opts.system, history, opts.tools, turnMaxTokens)
     } else {
-      result = await openaiRound(model, opts.system, history, opts.tools, provider, opts.effort, opts.maxTokens)
+      result = await openaiRound(model, opts.system, history, opts.tools, provider, opts.effort, turnMaxTokens)
     }
 
     totalInputTokens += result.inputTokens
@@ -646,9 +672,10 @@ export async function runToolLoop(
     content: 'Tools are no longer available. Answer the original question directly, in plain text, using only what you already found above.',
   }
   const finalHistory = [...history, closingMessage]
+  const finalMaxTokens = shrinkForGrowth(opts.maxTokens, growthSince(finalHistory))
   const finalRound = provider === 'anthropic'
-    ? await anthropicRound(model, opts.system, finalHistory, [], opts.maxTokens)
-    : await openaiRound(model, opts.system, finalHistory, [], provider, opts.effort, opts.maxTokens)
+    ? await anthropicRound(model, opts.system, finalHistory, [], finalMaxTokens)
+    : await openaiRound(model, opts.system, finalHistory, [], provider, opts.effort, finalMaxTokens)
 
   return {
     text: finalRound.text,

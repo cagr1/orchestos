@@ -359,6 +359,25 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
      planner nunca puede terminar escribiendo el entregable real, sin importar cómo lo clasifique
      el heurístico. 1 test nuevo (`autoRoute` con tarea mal clasificada como plan + output real).
   764 tests · 0 fail · `tsc` limpio.
+- [x] **E.13 — 🧠 (2026-07-17)** Bug real destapado en el chat en vivo: pregunta sobre el switch
+  API↔CLI disparó tool-calling (`read_plan`, PLAN.md ya grande) y el proveedor rechazó con 400
+  pidiendo ~1.06M tokens de salida contra una ventana de 1.048M. Causa raíz: `runToolLoop()`
+  (`src/providers/tool-call.ts`) recibía `opts.maxTokens` como presupuesto FIJO, calculado por el
+  caller (`chat.ts`, `contextWindow − prompt inicial`) ANTES de que el loop corriera — pero
+  `history` crece en cada ronda (los resultados de tool calls se van agregando), así que la ronda
+  de cierre (después de `read_plan`) tenía un prompt real mucho más grande que el que existía
+  cuando se calculó el presupuesto. El bug NO es el clamp-al-catálogo que E.1 ya mató, ni el
+  margen de tool-schemas que E.4 ya cubrió — es un tercer punto ciego: crecimiento del historial
+  DENTRO del loop, nunca contemplado.
+  Fix: `shrinkForGrowth()` en `tool-call.ts` — no recalcula el presupuesto absoluto (eso pisaría
+  un `opts.maxTokens` explícito del caller, contrato ya cubierto por
+  `tool-call-maxtokens.test.ts`), solo le resta a cada ronda el crecimiento real del prompt desde
+  la primera ronda (`estimateTokens` sobre `system + JSON.stringify(history)`, mismo baseline vs.
+  historial actual). La primera ronda no se toca (honra el número del caller tal cual); la ronda
+  de cierre y cualquier ronda intermedia con tool results de por medio sí se achican. 1 test de
+  regresión nuevo que simula un tool call con un resultado grande y confirma que la ronda de
+  cierre pide menos `max_tokens` que la inicial, sin colapsar a casi cero. 765 tests · 0 fail ·
+  `tsc` limpio.
 
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 
