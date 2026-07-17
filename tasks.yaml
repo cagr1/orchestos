@@ -81,9 +81,24 @@ tasks:
     description: Build a data-dense, self-contained crypto price terminal at demo/crypto-page-v4/index.html with live
       CoinGecko top-15 coins, search, column sorting, 30s auto-refresh with cell-level change pulse animations, skeleton
       loading, OKLCH palette, tabular-nums pricing, inline SVG sparklines, and mobile-responsive design.
+    skill: frontend-design
+    executor: openrouter
+    input: []
     output:
       - demo/crypto-page-v4/index.html
-    executor: openrouter
+    depends_on: []
+    status: done
+    retry_count: 0
+    qa_verdict: pass
+    run_id: 2f70c9fc-79e4-429d-a2f0-694477a60898
+  - id: crypto-terminal-coinmarketcap-v5
+    description: "Rebuild demo/crypto-page-v5/index.html to visually match coinmarketcap.com's design system using exact
+      color palette (#0d1421, #222531, #ffffff, #8c8ea3, #16c784, #ea3943, #3861fb), flat opacity-pulse loading states,
+      Inter typography, tabular-nums pricing, and precise row/hover/motion specs. Preserve all CoinGecko fetch, search,
+      sort, and auto-refresh behavior."
+    output:
+      - demo/crypto-page-v5/index.html
+    executor: anthropic
     status: pending
     retry_count: 0
     skill: frontend-design
