@@ -247,6 +247,34 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   dashboard para tomar efecto; los fixes de hoy se probaron contra un proceso de las 17:36 durante
   varias rondas antes de notar esto.
 
+- [ ] **E.7 — 🔍 ABIERTO, requiere corrida real de Carlos para confirmar** — con el dashboard YA
+  reiniciado tras E.6, `crypto-dashboard-v2` falló DE NUEVO con la misma clase de error
+  (`git merge ... failed after rebase`). Investigación en vivo (no solo teoría): revisada la tabla
+  `runs` — sin fila para este intento (mismo patrón que E.3, el merge falla después de QA, antes
+  de `insertRun`), y `demo/crypto-page-v2/` nunca llegó a existir en ningún branch de `master` (se
+  descartó la hipótesis de "dos tareas duplicadas creando el mismo archivo con contenido
+  distinto" — no hay conflicto de contenido real posible con solo un archivo nuevo). Con E.5+E.6 ya
+  activos, la sección crítica completa (chequeo inicial + creación de worktree + rebase + reintento
+  de merge) corre bajo el MISMO lock de principio a fin — en teoría nada más puede tocar `master`
+  durante ese reintento. **El bug real seguía siendo indiagnosticable a distancia**: el código
+  descartaba por completo el `stderr` real del segundo intento de `git merge --ff-only` (solo
+  decía "failed after rebase", nunca por qué). Fix aplicado: el error ahora incluye el `stderr`
+  real de AMBOS intentos de merge (`retryMerge.stderr` + `merge.stderr` del primero), en vez de
+  reemplazarlo con instrucciones genéricas. [src/run/sandbox.ts](src/run/sandbox.ts).
+  **Este ítem queda en 🔍 (no `[x]`) hasta que el próximo fallo (si lo hay) traiga el stderr real**
+  — recién con ese dato se sabe si sigue siendo timing (un bug en el lock que todavía no encontré)
+  o un conflicto de contenido genuino de otra naturaleza. 753 tests · 0 fail · `tsc` limpio.
+- [x] **E.8 — 🧠/⚡ (2026-07-16)** Botón "Copy" en el panel de diagnosis (pedido directo de
+  Carlos: seleccionar a mano el texto largo del error era tedioso) — junto al bloque de error
+  (`d.error`) y junto a "Last Error Output"/`lastErrorResult`. Mismo patrón `data-copy` +
+  `navigator.clipboard.writeText()` que ya usa `screens-ops.js` (skills) — reusado, no inventado.
+  Bug propio encontrado y corregido en el mismo pase: la primera versión usaba `textContent` para
+  capturar/restaurar el estado del botón, lo que descarta el ícono SVG para siempre tras el primer
+  click (el `textContent` de un `<svg>` no incluye su markup); ahora usa `innerHTML` con
+  contenido 100% estático (`ICON.check` + i18n), nunca datos del usuario. Claves i18n nuevas
+  `btn.copy` (en/es). Verificado en navegador real: clipboard funciona, ícono se restaura
+  correctamente tras el ciclo "Copied". 753 tests · 0 fail · `tsc` limpio.
+
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 
 Excepción explícita de Carlos al freeze de UI de este Mes: el primer intento real de correr

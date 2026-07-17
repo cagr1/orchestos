@@ -35,12 +35,3 @@ tasks:
     retry_count: 0
     qa_verdict: pass
     run_id: ffd3116c-e40b-4788-bbf5-0fa7b59294f9
-  - id: crypto-dashboard-v2
-    description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
-      API data, search/filter, sorting, auto-refresh, skeleton loading, error handling, and responsive design — fully
-      self-contained, no build tools.
-    output:
-      - demo/crypto-page-v2/index.html
-    executor: openrouter
-    status: pending
-    retry_count: 0

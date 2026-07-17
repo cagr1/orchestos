@@ -144,6 +144,7 @@ const I18N = {
     'btn.cancel':    'Cancel',
     'btn.confirm':   'Confirm',
     'btn.advanced':  'Advanced',
+    'btn.copy':      'Copy',
 
     /* ── Bulk-select (v0.12 Bloque A) ──────────── */
     'bulk.selected':      '{0} selected',
@@ -828,6 +829,7 @@ const I18N = {
     'btn.cancel':    'Cancelar',
     'btn.confirm':   'Confirmar',
     'btn.advanced':  'Avanzado',
+    'btn.copy':      'Copiar',
 
     /* ── Selección múltiple (v0.12 Bloque A) ────── */
     'bulk.selected':      '{0} seleccionados',

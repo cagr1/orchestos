@@ -684,6 +684,7 @@ SCREENS.tasks = {
       return `<tr class="detail-row"><td colspan="8"><div class="detail">
         <div class="grp"><h4>${t('tasks.diagnose.title')}</h4>
           <div class="kv"><span class="k" style="color:var(--error)">${t('tasks.diagnose.err')}</span><span class="v">${esc(d.error)}</span></div>
+          <button type="button" class="btn ghost sm" style="margin-top:8px" data-copy="${esc(d.error)}">${ICON.copy} ${t('btn.copy')}</button>
         </div>
       </div></td></tr>`;
     }
@@ -710,7 +711,10 @@ SCREENS.tasks = {
         <div class="kv"><span class="k">${t('tasks.diagnose.confidence')}</span><span class="v">${t(confKey)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.suggestion')}</span><span class="v">${esc(d.suggestion)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.details')}</span><span class="v">${esc(d.details)}</span></div>
-        ${d.lastErrorResult ? `<div class="kv"><span class="k">${t('tasks.diagnose.lastError')}</span><div class="v"><pre style="white-space:pre-wrap;font-size:12px;max-height:200px;overflow:auto;background:var(--bg);padding:8px;border-radius:4px;margin:4px 0">${esc(d.lastErrorResult)}</pre></div></div>` : ''}
+        ${d.lastErrorResult ? `<div class="kv"><span class="k">${t('tasks.diagnose.lastError')}</span><div class="v">
+          <pre style="white-space:pre-wrap;font-size:12px;max-height:200px;overflow:auto;background:var(--bg);padding:8px;border-radius:4px;margin:4px 0">${esc(d.lastErrorResult)}</pre>
+          <button type="button" class="btn ghost sm" data-copy="${esc(d.lastErrorResult)}">${ICON.copy} ${t('btn.copy')}</button>
+        </div></div>` : ''}
         <div class="diag-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
           <div style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px">
             <span style="font-size:12px;white-space:nowrap">${t('modal.task.model.label')}</span>
@@ -1195,6 +1199,27 @@ SCREENS.tasks = {
       if (e.target.closest('[data-diag]')) return;
       const t = (st.tasks || []).find(x => x.id === tr.dataset.task);
       if (t) SidePanel.openTask(t);
+    }));
+
+    // Mes 22/E.7 — botón de copiar en el panel de diagnosis (Carlos: seleccionar
+    // a mano el texto largo del error era tedioso). Mismo patrón data-copy que
+    // ya usa screens-ops.js (skills), no uno nuevo.
+    root.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy || '');
+        // innerHTML acá es seguro: ambos lados (`old` capturado del propio botón
+        // que ESTE módulo renderizó, y el reemplazo `ICON.check + t(...)`) son
+        // marcado propio estático — nunca `d.error`/`d.details`/contenido del
+        // usuario, que van siempre por `esc()` en el render. textContent solo
+        // (como screens-ops.js:1401) descartaría el ícono SVG para siempre en
+        // el revert, porque su textContent no incluye el markup del ícono.
+        const old = btn.innerHTML;
+        btn.innerHTML = `${ICON.check} ${t('setup.copied')}`;
+        setTimeout(() => { btn.innerHTML = old; }, 1200);
+      } catch {
+        Modal.showCopyText(t('setup.copyManually'), btn.dataset.copy || '');
+      }
     }));
 
     // A3 — diagnose click

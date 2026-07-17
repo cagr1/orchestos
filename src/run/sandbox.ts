@@ -120,8 +120,13 @@ function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, me
         if (retry.exitCode !== 0) throw new Error(`git checkout ${worktree.baseBranch} failed after rebase: ${retry.stderr}`)
         const retryMerge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
         if (retryMerge.exitCode !== 0) {
+          // Mes 22/E.7 — antes esto descartaba retryMerge.stderr por completo:
+          // el fallo era indiagnosticable a distancia (reproducido 4+ veces con
+          // E.5/E.6 ya activos sin poder confirmar si era timing o un conflicto
+          // real de contenido). Ahora el mensaje real de git queda en el error.
           throw new Error(
-            `git merge ${worktree.branch} failed after rebase. ` +
+            `git merge ${worktree.branch} failed after rebase — retry ff-only said: ${retryMerge.stderr || '(sin stderr)'}\n` +
+            `(primer intento ff-only: ${merge.stderr || '(sin stderr)'})\n` +
             `Fix manually:\n` +
             `  cd ${worktree.path}\n` +
             `  git rebase --abort  # if needed\n` +
