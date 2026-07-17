@@ -1222,13 +1222,36 @@ persistencia (disco, resuelve (a)) vs. ventana de contexto (modelo, ya cubierto 
 límite existente en el chat + [[feedback-no-compactar-contexto]]: nunca comprimir a ciegas, avisar
 y cortar a sesión nueva — que con (b) se convierte en "avisar y abrir una de las 20 sesiones").
 
+**Refinamiento de Carlos (2026-07-17)**: mostrar **15 sesiones en el nav izquierdo**; al superar
+el tope, la más antigua NO se borra — se mueve completa a un tab de "archivadas". El problema
+central no es mover de posición sino **medir el contexto por chat con varios modelos**.
+
+**Cómo medir el contexto por chat (la maquinaria YA existe, verificado en código)**:
+- `estimateTokens()` (chars/4) + `contextWindowFor(model)` del catálogo — es exactamente lo que
+  `handlers/chat.ts:559-586` ya calcula por request para decidir si la respuesta cabe.
+- **Insight clave**: "qué tan lleno está un chat" NO es una propiedad del chat — es relativa al
+  MODELO ACTIVO. La misma conversación de 150k tokens está al 75% en Haiku (200k) y al 14% en
+  deepseek-v4-flash (1M). El medidor se recalcula al cambiar el modelo del combo, no se guarda
+  como número fijo por sesión.
+- Umbral: la propia regla del 70% que Carlos ya usa consigo mismo ([[feedback-limite-contexto-70]])
+  aplicada como producto — al cruzar 70% de la ventana del modelo activo, aviso visible +
+  ofrecer "continuar en sesión nueva". Nunca compactar en silencio.
+
+**Hallazgo real al investigar esto (2026-07-17)**: el chat HOY trunca en silencio —
+`handlers/chat.ts:347` hace `rawHistory.slice(-10)`: solo los últimos 10 mensajes viajan al
+modelo, los anteriores se descartan sin avisar. Eso contradice [[feedback-no-compactar-contexto]]
+(nunca degradar en silencio) y explica por qué el chat "olvida" cosas de la misma conversación.
+Al implementar #50, esa línea debe reemplazarse por el presupuesto real de contexto (mandar todo
+lo que quepa bajo el 70%, avisar cuando no quepa) — no un número mágico de mensajes.
+
 **Qué hacer**: (1) tabla `chat_sessions` + `chat_messages` en SQLite (mismo patrón que `runs`);
-(2) lista de sesiones en la UI del chat (crear/cambiar/borrar), con el límite de ~20 aplicado al
-crear; (3) al refrescar, restaurar la sesión activa; (4) el aviso de contexto lleno ofrece
-"continuar en sesión nueva" que arrastra un resumen corto opcional — nunca compactar en silencio.
+(2) nav izquierdo con 15 sesiones + tab "archivadas" para las que pasen el tope; (3) al
+refrescar, restaurar la sesión activa; (4) medidor de contexto por sesión relativo al modelo
+activo, umbral 70%, con CTA "continuar en sesión nueva" (resumen corto opcional, nunca
+compactación silenciosa); (5) eliminar el `slice(-10)` a favor del presupuesto real.
 
 **Esfuerzo**: medio — el modelo de datos es simple (SQLite ya está); el grueso es la UI de
-sesiones en el chat y decidir la política exacta del tope.
+sesiones en el chat y el medidor por modelo activo.
 
 ---
 
