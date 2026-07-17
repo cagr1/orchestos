@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-07-17T21:03:54.875Z",
+  "exported_at": "2026-07-17T21:17:39.901Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "0c01f2b5-ad38-4d65-ad4a-5a1c2b3d07f7",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.000488432,
+      "elapsed_ms": 0,
+      "tokens": 4692,
+      "created_at": "2026-07-17T21:10:17.680Z"
+    },
+    {
+      "id": "1501f976-1647-4fe9-ace0-6405787fff71",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0047502560000000004,
+      "elapsed_ms": 0,
+      "tokens": 42867,
+      "created_at": "2026-07-17T21:05:56.215Z"
+    },
+    {
+      "id": "2f70c9fc-79e4-429d-a2f0-694477a60898",
+      "task_class": "implement",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "File is a complete, self-contained crypto terminal with live CoinGecko data, search, sorting, 30s auto-refresh, cell-level pulse animations, skeleton loading, OKLCH palette, tabular-nums pricing, inline SVG sparklines, and responsive mobile design.",
+      "files_blocked": [],
+      "checks_failed": 1,
+      "usd_cost": 0.13722810000000002,
+      "elapsed_ms": 112016,
+      "tokens": 17221,
+      "created_at": "2026-07-17T21:05:49.327Z"
+    },
     {
       "id": "46a1c7b1-4374-4f8f-bdd2-b18b757faf93",
       "task_class": "chat",
@@ -256,58 +301,13 @@
       "elapsed_ms": 0,
       "tokens": 2752,
       "created_at": "2026-07-16T22:37:15.135Z"
-    },
-    {
-      "id": "1987c61d-afbb-4f1d-81c5-648d353fc304",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00032271400000000004,
-      "elapsed_ms": 0,
-      "tokens": 2933,
-      "created_at": "2026-07-16T22:18:43.471Z"
-    },
-    {
-      "id": "3da60e11-8c2b-4ab2-98a2-5bf0c0c44841",
-      "task_class": "plan",
-      "model": "anthropic/claude-haiku-4-5",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.033324,
-      "elapsed_ms": 34115,
-      "tokens": 8887,
-      "created_at": "2026-07-16T21:55:21.843Z"
-    },
-    {
-      "id": "8e47b2f5-0455-4ac0-8468-0d49d12c77b7",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0014119840000000002,
-      "elapsed_ms": 0,
-      "tokens": 13863,
-      "created_at": "2026-07-16T21:55:00.016Z"
     }
   ],
   "stats": {
-    "failed": 1,
+    "failed": 0,
     "blocked": 0,
-    "done": 19,
+    "done": 20,
     "qa_failed": 0,
-    "total_cost_usd": "0.7700"
+    "total_cost_usd": "0.8774"
   }
 }

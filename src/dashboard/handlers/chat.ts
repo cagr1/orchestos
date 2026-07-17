@@ -373,16 +373,22 @@ async function handleApiChat(req: Request): Promise<Response> {
   const history = rawHistory.slice(-10)
 
   // J.1 (Mes 18, 2026-07-09) — B.1.b activado con evidencia real (34 mensajes,
-  // 2 falsos negativos confirmados en chat_task_bar_events). La heurística de
-  // 3+ mensajes sigue como red de respaldo (diseño (c) de A.1): el
-  // clasificador solo corre si el conteo TODAVÍA no mostró la barra — no se
-  // gasta el call si ya se iba a mostrar igual.
+  // 2 falsos negativos confirmados en chat_task_bar_events).
   const barShownByCount = rawHistory.length + 1 >= 3
-  let taskSuggestion: { isTask: boolean; reason: string } | null = null
-  if (!barShownByCount) {
-    taskSuggestion = await classifyTaskIntent(message)
-  }
-  const barShown = barShownByCount || !!taskSuggestion?.isTask
+  // E.14 (Mes 22, 2026-07-17): el clasificador ANTES se saltaba por completo
+  // una vez `barShownByCount` era true ("no gastar el call si ya se iba a
+  // mostrar igual") — correcto para decidir si mostrar la barra sugerida,
+  // pero D.7 reusa este mismo resultado para AUTO-EJECUTAR la tarea, y ese
+  // atajo lo dejaba deshabilitado en silencio para el resto de la
+  // conversación (cualquier mensaje después del 3ro). Bug real reproducido
+  // en vivo: en una conversación larga, `taskSuggestion` quedaba `null` para
+  // siempre → `autoTask` nunca se intentaba → pero el chat igual respondía
+  // "Started task X..." (el system prompt de abajo daba la creación por
+  // hecha sin verificarla) — el usuario vio una tarea fantasma que nunca
+  // se creó ni corrió. El clasificador ahora corre siempre; el atajo de
+  // costo ya no aplica una vez que D.7 depende de esta señal en cada turno.
+  const taskSuggestion = await classifyTaskIntent(message)
+  const barShown = barShownByCount || taskSuggestion.isTask
   logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown })
 
   // D.7 (Mes 22) — decisión explícita de Carlos (2026-07-16): cuando el
@@ -494,6 +500,20 @@ async function handleApiChat(req: Request): Promise<Response> {
     ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
     : `${model} via OpenRouter`
 
+  // E.14 (Mes 22, 2026-07-17) — este bloque estaba HARDCODEADO como si
+  // `autoTask` siempre tuviera éxito ("OrchestOS has ALREADY created and
+  // started running the task"), sin mirar el resultado real de arriba.
+  // Combinado con el bug del clasificador saltado (mismo fix), esto produjo
+  // una respuesta del chat afirmando con confianza "Started task
+  // crypto-terminal-v5..." cuando NUNCA se creó ningún task ni run — el
+  // usuario no tenía forma de notarlo sin ir a revisar tasks.yaml/la DB a
+  // mano. Ahora la instrucción se arma según lo que REALMENTE pasó.
+  const autoTaskInstruction = autoTask && 'id' in autoTask
+    ? `When the user asks you to BUILD something (a page, a feature, a script): OrchestOS has ALREADY created and started running task "${autoTask.id}" in the background by the time you reply — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max), naming the task id. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists.`
+    : autoTask && 'error' in autoTask
+      ? `The user's message looked like a build request and OrchestOS TRIED to auto-create a task for it, but creation FAILED: "${autoTask.error}". You MUST NOT claim a task was started — tell the user plainly that auto-creation failed and why, in 1-2 sentences, and suggest they create the task manually from the Tasks screen.`
+      : `This particular message was NOT auto-detected as a build request, so NO task was created. Do not claim a task was started or is running in the background — if the user actually wants to build something, say so plainly and suggest describing it more explicitly (e.g. "build a page that...") or using the Tasks screen directly.`
+
   const systemPrompt = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs, memory, specs, and the system. Be concise and direct. If the user writes in Spanish, respond in Spanish.
 
 You are running as model: ${modelLabel}.
@@ -502,7 +522,7 @@ Important: you cannot modify files or run code directly from this chat. However,
 
 Where output goes: every task writes ONLY inside this project's root — there is no other choice, so NEVER ask the user where they want the output. Just propose a sensible path yourself (e.g. "demo/crypto-dashboard/" for a throwaway demo, or a real feature location if it belongs in the main app) and move on. The user declares the exact output file paths (relative to the project root) in the task's "Files to create or modify" field when they create the Task — that is the only place file paths are chosen, not this chat.
 
-When the user asks you to BUILD something (a page, a feature, a script): if this happens, OrchestOS has ALREADY created and started running the task in the background by the time you reply (the system does this automatically, before you generate this response) — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max). NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists — there is no manual creation step anymore.${ctx}${projBlock}`
+${autoTaskInstruction}${ctx}${projBlock}`
 
   const messages: { role: 'user' | 'assistant'; content: any }[] = history
     .filter(h => h.role === 'user' || h.role === 'assistant')

@@ -378,6 +378,31 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   regresión nuevo que simula un tool call con un resultado grande y confirma que la ronda de
   cierre pide menos `max_tokens` que la inicial, sin colapsar a casi cero. 765 tests · 0 fail ·
   `tsc` limpio.
+- [x] **E.14 — 🧠 (2026-07-17)** Bug real destapado por Carlos en vivo, el más serio del bloque:
+  el chat respondió "Started task `crypto-terminal-v5`..." con una descripción detallada — pero
+  NUNCA se creó ningún task ni run (verificado: sin fila en `tasks.yaml`, sin fila en `runs`, sin
+  carpeta `demo/crypto-page-v5/`). El chat confabuló una confirmación de éxito para algo que jamás
+  pasó. Dos bugs apilados en `src/dashboard/handlers/chat.ts`:
+  1. `classifyTaskIntent()` (la señal semántica de la que depende D.7 para auto-crear la tarea)
+     se saltaba por completo una vez `rawHistory.length + 1 >= 3` — ese atajo era correcto para
+     decidir si mostrar la barra sugerida (su propósito original, J.1/Mes 18), pero D.7 (agregado
+     después) reusó la misma variable para decidir si auto-ejecutar. En una conversación larga
+     (la de Carlos ya llevaba varios mensajes), `taskSuggestion` quedaba `null` PARA SIEMPRE →
+     `autoTask` nunca se intentaba.
+  2. El system prompt daba la creación por HECHA de forma incondicional ("OrchestOS has ALREADY
+     created and started running the task") sin mirar el resultado real de `autoTask` — así que
+     aunque `autoTask` fuera `null`, el LLM igual confirmaba con confianza que había una tarea
+     corriendo, porque sus instrucciones se lo ordenaban sin condición.
+  Fix: (1) el clasificador ahora corre SIEMPRE (el ahorro de costo ya no aplica una vez que D.7
+  depende de esta señal en cada turno); (2) el bloque del system prompt sobre auto-creación se
+  arma según el resultado REAL de `autoTask` — solo afirma éxito si `autoTask` tiene `id`, exige
+  admitir el fallo explícitamente si tiene `error`, y prohíbe cualquier claim de creación si
+  `autoTask` es `null` (mensaje no detectado como build request). 765 tests · 0 fail · `tsc`
+  limpio. **Gap de test honesto**: no se agregó un test de integración para `handleApiChat`
+  completo (requeriría mockear la llamada real de clasificación + la del chat + `createTaskRecord`
+  — la app no tiene DB de test aislada, ver [[reference-test-fixtures-leak-into-real-db]], y
+  `mock.module()` contamina toda la suite, ver [[reference-bun-mock-module-gotcha]]); verificado
+  por lectura de código + `tsc`, no en vivo (correr eso gasta dinero real, lo confirma Carlos).
 
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 
