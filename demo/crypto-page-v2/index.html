@@ -48,12 +48,10 @@
         }
 
         h1 {
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 20px;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            color: #ffffff;
         }
 
         .controls {
@@ -73,9 +71,9 @@
         .search-box input {
             width: 100%;
             padding: 10px 14px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 8px;
+            background: #1a1a1f;
+            border: 1px solid #2d3139;
+            border-radius: 3px;
             color: #e4e4e7;
             font-size: 14px;
             transition: all 0.2s;
@@ -94,7 +92,7 @@
         .btn {
             padding: 10px 16px;
             border: none;
-            border-radius: 8px;
+            border-radius: 3px;
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
@@ -102,9 +100,9 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            background: #1e293b;
+            background: #1a1a1f;
             color: #e4e4e7;
-            border: 1px solid #334155;
+            border: 1px solid #2d3139;
         }
 
         .btn:hover {
@@ -136,9 +134,9 @@
 
         .sort-btn {
             padding: 8px 12px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 6px;
+            background: #1a1a1f;
+            border: 1px solid #2d3139;
+            border-radius: 3px;
             color: #a1a5b4;
             cursor: pointer;
             font-size: 13px;
@@ -183,238 +181,156 @@
         }
 
         .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
             flex: 1;
-        }
-
-        .card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            cursor: pointer;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            border: 1px solid #2d3139;
+            border-radius: 3px;
+            overflow: hidden;
         }
 
-        .card:hover {
-            border-color: #475569;
-            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.1);
-            transform: translateY(-2px);
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
         }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
+        thead {
+            background: #0f0f12;
+            border-bottom: 1px solid #2d3139;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
-        .coin-info {
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            border-right: 1px solid #2d3139;
+        }
+
+        th:last-child {
+            border-right: none;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #1a1a1f;
+            transition: background 0.15s ease;
+            height: 64px;
+        }
+
+        tbody tr:hover {
+            background: #1a1a1f;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #0f0f12;
+        }
+
+        td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            color: #e4e4e7;
+            border-right: 1px solid #2d3139;
+        }
+
+        td:last-child {
+            border-right: none;
+        }
+
+        .coin-cell {
             display: flex;
             align-items: center;
-            gap: 10px;
-            flex: 1;
+            gap: 12px;
+            min-width: 180px;
         }
 
         .coin-icon {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: #334155;
+            background: #1a1a1f;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            flex-shrink: 0;
         }
 
         .coin-details {
             display: flex;
             flex-direction: column;
             gap: 2px;
+            min-width: 0;
         }
 
         .coin-name {
-            font-weight: 600;
-            font-size: 15px;
-            color: #e4e4e7;
+            font-weight: 500;
+            font-size: 13px;
+            color: #ffffff;
         }
 
         .coin-symbol {
-            font-size: 12px;
-            color: #64748b;
-            text-transform: uppercase;
-        }
-
-        .price-change {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-        }
-
-        .price {
-            font-size: 20px;
-            font-weight: 700;
-            color: #e4e4e7;
-        }
-
-        .change {
-            font-size: 13px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .change.positive {
-            color: #10b981;
-        }
-
-        .change.negative {
-            color: #ef4444;
-        }
-
-        .sparkline-container {
-            height: 40px;
-            display: flex;
-            align-items: flex-end;
-            gap: 2px;
-        }
-
-        .chart-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #334155;
-        }
-
-        .stat {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .stat-label {
             font-size: 11px;
             color: #64748b;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        .stat-value {
+        .price {
+            font-family: 'IBM Plex Mono', 'Menlo', 'Monaco', monospace;
             font-size: 14px;
             font-weight: 600;
-            color: #e4e4e7;
+            color: #ffffff;
+            font-feature-settings: "tnum";
+            min-width: 140px;
+            text-align: right;
         }
 
-        .skeleton {
-            animation: skeleton-loading 1s linear infinite alternate;
+        .change {
+            font-size: 12px;
+            font-weight: 500;
+            text-align: right;
+            min-width: 80px;
         }
 
-        @keyframes skeleton-loading {
-            0% { background-color: #334155; }
-            100% { background-color: #475569; }
+        .change.positive {
+            color: #00d084;
         }
 
-        .skeleton-card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 20px;
+        .change.negative {
+            color: #ff3860;
         }
 
-        .skeleton-header {
+        .sparkline-cell {
+            width: 160px;
+            padding: 12px 16px;
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            gap: 12px;
+            align-items: center;
+            justify-content: center;
         }
 
-        .skeleton-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #334155;
-            skeleton: true;
+        .sparkline-container {
+            height: 32px;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
+            gap: 1px;
         }
 
-        .skeleton-title {
-            height: 16px;
-            background: #334155;
-            border-radius: 4px;
-            width: 100px;
-            skeleton: true;
+        .market-cap-cell {
+            font-family: 'IBM Plex Mono', 'Menlo', 'Monaco', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: #a1a5b4;
+            text-align: right;
+            min-width: 100px;
+            font-feature-settings: "tnum";
         }
 
-        .skeleton-price {
-            height: 24px;
-            background: #334155;
-            border-radius: 4px;
-            width: 80px;
-            skeleton: true;
-        }
-
-        .skeleton-chart {
-            height: 40px;
-            background: #334155;
-            border-radius: 4px;
-            margin-bottom: 12px;
-            skeleton: true;
-        }
-
-        .error-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 40px 20px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            color: #64748b;
-        }
-
-        .error-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .error-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #e4e4e7;
-            margin-bottom: 8px;
-        }
-
-        .error-message {
-            margin-bottom: 16px;
-            line-height: 1.5;
-        }
-
-        .empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 40px 20px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            color: #64748b;
-        }
-
-        .empty-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .empty-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #e4e4e7;
-            margin-bottom: 8px;
-        }
 
         @media (max-width: 768px) {
             .container {
@@ -422,7 +338,7 @@
             }
 
             h1 {
-                font-size: 22px;
+                font-size: 18px;
             }
 
             .header-content {
@@ -444,10 +360,50 @@
 
             .sort-btn {
                 flex: 1;
+                font-size: 12px;
             }
 
-            .cards-grid {
-                grid-template-columns: 1fr;
+            th, td {
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+
+            .coin-cell {
+                gap: 8px;
+            }
+
+            .coin-icon {
+                width: 32px;
+                height: 32px;
+            }
+
+            .coin-name {
+                font-size: 12px;
+            }
+
+            .coin-symbol {
+                font-size: 10px;
+            }
+
+            .price {
+                font-size: 13px;
+            }
+
+            .change {
+                font-size: 11px;
+            }
+
+            .market-cap-cell {
+                font-size: 11px;
+            }
+
+            .sparkline-cell {
+                width: 120px;
+                padding: 8px;
+            }
+
+            .sparkline-container {
+                height: 24px;
             }
         }
 
@@ -465,9 +421,9 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 8px;
+            background: #1a1a1f;
+            border: 1px solid #2d3139;
+            border-radius: 3px;
             padding: 16px 20px;
             color: #e4e4e7;
             font-size: 14px;
@@ -535,7 +491,20 @@
         </header>
 
         <div class="cards-grid" id="cardsGrid">
-            <!-- Cards will be generated here -->
+            <table id="coinsTable">
+                <thead>
+                    <tr>
+                        <th>Coin</th>
+                        <th style="text-align: right;">Price</th>
+                        <th style="text-align: right;">24h Change</th>
+                        <th style="text-align: center;">7d Trend</th>
+                        <th style="text-align: right;">Market Cap</th>
+                    </tr>
+                </thead>
+                <tbody id="coinsList">
+                    <!-- Rows will be generated here -->
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -558,6 +527,7 @@
 
         const elements = {
             cardsGrid: document.getElementById('cardsGrid'),
+            coinsList: document.getElementById('coinsList'),
             searchInput: document.getElementById('searchInput'),
             refreshBtn: document.getElementById('refreshBtn'),
             statusText: document.getElementById('statusText'),
@@ -683,35 +653,28 @@
             const filtered = filterAndSortCoins();
 
             if (state.coins.length === 0) {
-                elements.cardsGrid.innerHTML = '<div class="error-state"><div class="error-icon">⏳</div><div class="error-title">Loading...</div></div>';
+                elements.coinsList.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #64748b;">Loading...</td></tr>';
                 return;
             }
 
             if (filtered.length === 0) {
-                elements.cardsGrid.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">🔍</div>
-                        <div class="empty-title">No coins found</div>
-                        <div class="empty-message">Try adjusting your search or filters</div>
-                    </div>
-                `;
+                elements.coinsList.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #64748b;">🔍 No coins found — try adjusting your search</td></tr>';
                 return;
             }
 
-            elements.cardsGrid.innerHTML = filtered.map(coin => createCoinCard(coin)).join('');
+            elements.coinsList.innerHTML = filtered.map(coin => createCoinRow(coin)).join('');
         }
 
-        function createCoinCard(coin) {
+        function createCoinRow(coin) {
             const isPositive = coin.change24h >= 0;
             const sparklineSvg = createSparkline(coin.sparklineData, isPositive);
             const formattedPrice = formatPrice(coin.price);
             const formattedMarketCap = formatLargeNumber(coin.marketCap);
-            const formattedVolume = formatLargeNumber(coin.volume24h);
 
             return `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="coin-info">
+                <tr>
+                    <td>
+                        <div class="coin-cell">
                             <div class="coin-icon">
                                 <img src="${coin.image}" alt="${coin.name}" style="width: 100%; height: 100%; border-radius: 50%;" onerror="this.style.display='none'">
                             </div>
@@ -720,37 +683,36 @@
                                 <div class="coin-symbol">${coin.symbol}</div>
                             </div>
                         </div>
-                        <div class="price-change">
-                            <div class="price">${formattedPrice}</div>
-                            <div class="change ${isPositive ? 'positive' : 'negative'}">
-                                ${isPositive ? '↑' : '↓'} ${Math.abs(coin.change24h).toFixed(2)}%
+                    </td>
+                    <td>
+                        <div class="price">${formattedPrice}</div>
+                    </td>
+                    <td>
+                        <div class="change ${isPositive ? 'positive' : 'negative'}">
+                            ${isPositive ? '↑' : '↓'} ${Math.abs(coin.change24h).toFixed(2)}%
+                        </div>
+                    </td>
+                    <td>
+                        <div class="sparkline-cell">
+                            <div class="sparkline-container">
+                                ${sparklineSvg}
                             </div>
                         </div>
-                    </div>
-                    <div class="sparkline-container">
-                        ${sparklineSvg}
-                    </div>
-                    <div class="chart-stats">
-                        <div class="stat">
-                            <div class="stat-label">Market Cap</div>
-                            <div class="stat-value">${formattedMarketCap}</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-label">24h Volume</div>
-                            <div class="stat-value">${formattedVolume}</div>
-                        </div>
-                    </div>
-                </div>
+                    </td>
+                    <td>
+                        <div class="market-cap-cell">${formattedMarketCap}</div>
+                    </td>
+                </tr>
             `;
         }
 
         function createSparkline(data, isPositive) {
             if (!data || data.length === 0) {
-                return '<div style="width: 100%; height: 100%; background: #334155; border-radius: 4px;"></div>';
+                return '<svg width="160" height="32" viewBox="0 0 160 32" style="width: 100%; height: 100%;"><rect width="160" height="32" fill="#1a1a1f" rx="2"/></svg>';
             }
 
-            const width = 180;
-            const height = 40;
+            const width = 160;
+            const height = 32;
             const padding = 2;
             const availableWidth = width - (padding * 2);
             const availableHeight = height - (padding * 2);
@@ -765,19 +727,19 @@
                 return `${x},${y}`;
             }).join(' ');
 
-            const color = isPositive ? '#10b981' : '#ef4444';
-            const fillColor = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+            const color = isPositive ? '#00d084' : '#ff3860';
+            const gradId = `grad-${Math.random().toString(36).substr(2, 9)}`;
 
             return `
-                <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="flex: 1;">
+                <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="width: 100%; height: 100%;">
                     <defs>
-                        <linearGradient id="grad-${Math.random()}" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:${color};stop-opacity:0.3" />
+                        <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:${color};stop-opacity:0.25" />
                             <stop offset="100%" style="stop-color:${color};stop-opacity:0" />
                         </linearGradient>
                     </defs>
-                    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-                    <polyline points="${points} ${width - padding},${height} ${padding},${height}" fill="url(#grad-${Math.random()})" stroke="none"/>
+                    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+                    <polyline points="${points} ${width - padding},${height} ${padding},${height}" fill="url(#${gradId})" stroke="none"/>
                 </svg>
             `;
         }
@@ -819,13 +781,15 @@
         }
 
         function showError(message) {
-            elements.cardsGrid.innerHTML = `
-                <div class="error-state">
-                    <div class="error-icon">⚠️</div>
-                    <div class="error-title">Unable to load data</div>
-                    <div class="error-message">${message}</div>
-                    <button class="btn btn-primary" onclick="location.reload()">Retry</button>
-                </div>
+            elements.coinsList.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 60px 20px; color: #64748b;">
+                        <div style="font-size: 32px; margin-bottom: 16px;">⚠️</div>
+                        <div style="font-size: 16px; font-weight: 500; color: #e4e4e7; margin-bottom: 8px;">Unable to load data</div>
+                        <div style="margin-bottom: 20px;">${message}</div>
+                        <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+                    </td>
+                </tr>
             `;
         }
 
