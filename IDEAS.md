@@ -1298,6 +1298,56 @@ reinventar); rebobinar depende de la decisión de comportamiento (truncar vs. ed
 de que #50 ya tenga sesiones persistentes en SQLite (rebobinar una conversación que solo vive en
 memoria JS tiene menos sentido — encaja mejor DESPUÉS de #50, no antes).
 
+### 52. Nivel "premium de verdad" — de "no se ve genérico" a un lenguaje visual deliberado
+
+**Origen**: Carlos (2026-07-17), tras E.11 (skill de diseño ahora se asigna bien en el auto-flow).
+Trajo una lista concreta de referencia de lo que SÍ es premium para él — open-hive.com,
+cloudflare.com, helmcode.com, vectrfl.com, db-longbow.webflow.io, shopify.com/editions/winter2026
+("la mejor que jamás he visto"), landonorris.com, lusion.co/about, orano.group (slider de
+innovación), igloo.inc. Aclaración honesta de Carlos: no espera que OrchestOS alcance ESE nivel
+todavía, pero quiere que la dirección apunte ahí — al menos alcanzable cuando quien pide la tarea
+es alguien con criterio (diseñador/dev con experiencia describiendo bien lo que quiere).
+
+**Por qué `frontend-design.yaml` no alcanza solo**: es una guía de PRINCIPIOS (contraste,
+jerarquía, "nunca gradient-text genérico") — evita lo peor, pero no da DIRECCIÓN. Cloudflare y
+Lusion no comparten reglas, comparten un lenguaje visual específico y deliberado (tipografía,
+ritmo, motion, densidad) que ningún checklist genérico produce por sí solo.
+
+**Conexión con el propio vault de Carlos**: `helmcode.com` (de su lista) YA está documentado en
+`MemoriesMD/wiki/concepts/design-systems-md.md` — caso real de diseñar con Claude Code sin tocar
+Figma usando `design.md`/`brandbook.md` + `tokens.css` como **criterio externalizado que el agente
+lee antes de construir**. Es literalmente el mecanismo que resuelve esto — ya estaba documentado,
+no hay que inventarlo.
+
+**Las 4 palancas identificadas (orden de impacto, ninguna implementada)**:
+1. **Referencia visual explícita por tarea** — no "hazlo premium" (adjetivo sin objetivo), sino
+   "estilo Lusion: minimalista, mucho espacio negativo, motion como protagonista" o una URL/
+   screenshot de referencia directo en la descripción de la tarea.
+2. **Un `design.md` por proyecto** (el patrón del vault) — paleta, tipografía, densidad, tono de
+   motion decididos UNA vez y reusados en cada tarea, en vez de que el LLM improvise de cero cada
+   corrida.
+3. **Iteración visual real, no un solo intento** — Lovable/v0 tampoco aciertan a la primera; su
+   ventaja es que el usuario ve el resultado y pide ajustes en el mismo turno. Conecta directo con
+   [#49](#49-visibilidad-en-vivo-de-lo-que-el-agente-está-haciendo--no-solo-el-resultado-final)
+   (sin visibilidad en vivo, no hay loop de iteración rápida — cada corrida tiene que acertar sola).
+4. **QA visual, no solo funcional** — hoy el QA de OrchestOS revisa criterios de aceptación
+   funcionales; nada evalúa "¿esto se ve premium?" con un modelo de visión comparando contra la
+   referencia.
+
+**Por qué NO se toca ahora (decisión explícita, no descuido)**: (a) scope-lock del Mes 22/v0.13 —
+el eje es cerrar C.1/C.2, ya con 2 demos reales corridas; meter un subsistema de referencias de
+diseño a mitad de eso es el desvío que la propia regla de PLAN.md prohíbe; (b) es una decisión de
+arquitectura con varios caminos válidos (los 4 de arriba, o una combinación) — necesita que Carlos
+la piense con calma, no una elección unilateral a mitad de sesión; (c) el veredicto de C.2 con la
+capacidad ACTUAL debe cerrarse primero — recién con ese dato real tiene sentido decidir si este es
+el siguiente escalón. **No cambia la función de OrchestOS** (sigue siendo el mismo orquestador:
+decide skill/modelo, ejecuta, verifica) — es aditivo, profundiza la calidad del input al skill de
+diseño, misma categoría que E.11 de hoy, no un giro de producto.
+
+**Esfuerzo**: alto — toca el modelo de datos de tareas (referencia visual como campo nuevo),
+posible nuevo artefacto por proyecto (`design.md`), un loop de iteración que hoy no existe, y un
+QA con visión que hoy tampoco existe. Candidato de milestone propio, no un ítem suelto.
+
 ---
 
 ## Feedback
