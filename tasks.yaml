@@ -48,11 +48,10 @@ tasks:
     retry_count: 0
     qa_verdict: pass
     run_id: 1e8891ce-9004-4ecc-9304-b42bb9f955c4
-  - id: crypto-dashboard-v2-visual-redesign
-    description: Redesign demo/crypto-page-v2/index.html visual language to match Cloudflare's restrained dashboard
-      aesthetic — dense trading-terminal–style tables, deliberate typography hierarchy, minimal corner radii, no
-      gradients or decorative shadows, technical high-contrast feel. Keep all data fetching, search, sort, and
-      auto-refresh logic unchanged.
+  - id: crypto-dashboard-visual-iteration
+    description: Restyle demo/crypto-page-v2/index.html with Cloudflare/vectrfl aesthetic — dense trading-terminal table,
+      deliberate typography hierarchy, minimal corners (2-4px), high-contrast pricing signals, and data-driven
+      sparklines. Keep all CoinGecko fetch, search, sort, and auto-refresh logic unchanged.
     output:
       - demo/crypto-page-v2/index.html
     executor: openrouter
