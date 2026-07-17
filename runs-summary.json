@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-07-17T21:27:48.845Z",
+  "exported_at": "2026-07-17T21:40:52.743Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "e1131319-7b0c-4056-8aa2-72a841d923af",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0009392320000000001,
+      "elapsed_ms": 0,
+      "tokens": 9278,
+      "created_at": "2026-07-17T21:34:19.518Z"
+    },
+    {
+      "id": "404ead78-6c59-4a3c-86f1-3fe887232e75",
+      "task_class": "doc",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "All four files are comprehensive, non-trivial, and substantively address the task of creating a design system with typography, color, spacing, motion, and accessibility for an Apple España e-commerce storefront.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.24186850000000001,
+      "elapsed_ms": 232686,
+      "tokens": 37074,
+      "created_at": "2026-07-17T21:31:44.086Z"
+    },
+    {
+      "id": "04bd26b7-dba4-4c3c-bb65-31da44d74bb5",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.002931082,
+      "elapsed_ms": 0,
+      "tokens": 28522,
+      "created_at": "2026-07-17T21:28:37.853Z"
+    },
     {
       "id": "241687e8-d9c7-4c95-909d-bf0e9f8838fd",
       "task_class": "implement",
@@ -256,51 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 3031,
       "created_at": "2026-07-17T01:57:47.253Z"
-    },
-    {
-      "id": "5e374a79-ab85-461d-82ad-cde8feea5f90",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.000787626,
-      "elapsed_ms": 0,
-      "tokens": 7309,
-      "created_at": "2026-07-17T01:52:24.488Z"
-    },
-    {
-      "id": "ba875cad-ba64-486c-a5ef-39948c943337",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.000342804,
-      "elapsed_ms": 0,
-      "tokens": 3110,
-      "created_at": "2026-07-17T01:46:10.071Z"
-    },
-    {
-      "id": "db179b78-25ff-4caf-b8ef-c69ce1037d0c",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.000305956,
-      "elapsed_ms": 0,
-      "tokens": 2885,
-      "created_at": "2026-07-17T01:42:02.167Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 0,
-    "total_cost_usd": "1.1510"
+    "total_cost_usd": "1.3953"
   }
 }

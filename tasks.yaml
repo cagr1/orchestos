@@ -110,11 +110,26 @@ tasks:
     description: Create a comprehensive design token system and component guidance document for an Apple (España)-inspired
       e-commerce storefront, covering typography, color, spacing, motion, and interactive component rules with
       accessibility requirements.
+    skill: frontend-design
+    executor: openrouter
+    input: []
     output:
       - DESIGN_SYSTEM.md
       - TOKENS.json
       - COMPONENTS.md
       - ACCESSIBILITY.md
+    depends_on: []
+    status: done
+    retry_count: 0
+    qa_verdict: pass
+    run_id: 404ead78-6c59-4a3c-86f1-3fe887232e75
+  - id: apple-es-storefront-hero-grid
+    description: "Build a single-page Apple España storefront at demo/apple-es/index.html with alternating full-bleed black
+      hero and white product sections, sticky navigation, and product card grid — static content, exact Apple color
+      palette (#000000, #f5f5f7, #86868b, #1d1d1f, #ffffff, #0071e3), SF Pro system font stack, and motion specs (250ms
+      hover, 320ms scroll reveals, 1000ms hero entrance)."
+    output:
+      - demo/apple-es/index.html
     executor: openrouter
     status: pending
     retry_count: 0
