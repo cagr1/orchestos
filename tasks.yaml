@@ -96,9 +96,26 @@ tasks:
       color palette (#0d1421, #222531, #ffffff, #8c8ea3, #16c784, #ea3943, #3861fb), flat opacity-pulse loading states,
       Inter typography, tabular-nums pricing, and precise row/hover/motion specs. Preserve all CoinGecko fetch, search,
       sort, and auto-refresh behavior."
+    skill: frontend-design
+    executor: anthropic
+    input: []
     output:
       - demo/crypto-page-v5/index.html
-    executor: anthropic
+    depends_on: []
+    status: done
+    retry_count: 0
+    qa_verdict: pass
+    run_id: 241687e8-d9c7-4c95-909d-bf0e9f8838fd
+  - id: apple-es-design-system
+    description: Create a comprehensive design token system and component guidance document for an Apple (España)-inspired
+      e-commerce storefront, covering typography, color, spacing, motion, and interactive component rules with
+      accessibility requirements.
+    output:
+      - DESIGN_SYSTEM.md
+      - TOKENS.json
+      - COMPONENTS.md
+      - ACCESSIBILITY.md
+    executor: openrouter
     status: pending
     retry_count: 0
     skill: frontend-design
