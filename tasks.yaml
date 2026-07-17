@@ -39,9 +39,11 @@ tasks:
     description: Build a premium dark-mode cryptocurrency dashboard fetching live top 10 coins from CoinGecko API with
       search, sorting, auto-refresh, skeleton loading, error states, and 7-day sparkline charts — all in one
       self-contained HTML file.
+    executor: openrouter
+    executor_model: deepseek/deepseek-v4-flash
+    input: []
     output:
       - demo/crypto-page-v2/index.html
-    executor: openrouter
+    depends_on: []
     status: pending
     retry_count: 0
-    executor_model: deepseek/deepseek-v4-flash
