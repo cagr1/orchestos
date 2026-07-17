@@ -137,30 +137,62 @@ function buildSystemPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
  * no aporta a "info de proceso" — el usuario quiere ver la forma del comando,
  * no su contenido.
  */
-function buildClaudeArgs(systemPrompt: string): string[] {
-  return [
+/**
+ * E.15 (Mes 22, 2026-07-17) — bug real reportado por Carlos: `ctx.model` ya
+ * se resolvía (executor_model / config role) y hasta se guardaba en el
+ * registro de costo (`costByIteration[0].model` más abajo), pero nunca se
+ * pasaba al subproceso real — `claude -p` corría siempre con el modelo por
+ * defecto del binario, ignorando en silencio cualquier elección explícita
+ * del usuario. Mismo problema con el nivel de esfuerzo: el CLI real soporta
+ * `--effort low|medium|high|xhigh|max` (verificado con `claude --help`) y
+ * OrchestOS nunca lo exponía. `orchestosModelToCliModel()` solo traduce el
+ * prefijo `provider/` de nuestros ids estilo OpenRouter (`anthropic/claude-
+ * sonnet-5`) al nombre que el CLI espera (`claude-sonnet-5`) — si el modelo
+ * configurado no es de Anthropic, se omite `--model` a propósito: el CLI
+ * solo sirve modelos de Anthropic, y forzar un id ajeno fallaría con un
+ * error del propio binario en vez de un mal comportamiento silencioso.
+ */
+export function orchestosModelToCliModel(model: string | undefined): string | undefined {
+  if (!model || !model.startsWith('anthropic/')) return undefined
+  return model.slice('anthropic/'.length)
+}
+
+function buildClaudeArgs(systemPrompt: string, model?: string, effort?: string): string[] {
+  const args = [
     '-p',
     '--output-format', 'json',
     '--append-system-prompt', systemPrompt,
     '--allowedTools', 'Edit,Write,Read,Glob,Grep',
   ]
+  const cliModel = orchestosModelToCliModel(model)
+  if (cliModel) args.push('--model', cliModel)
+  if (effort) args.push('--effort', effort)
+  return args
 }
 
-const CLAUDE_ARGS_DISPLAY: readonly string[] = [
-  '-p',
-  '--output-format', 'json',
-  '--append-system-prompt', '<contract>',
-  '--allowedTools', 'Edit,Write,Read,Glob,Grep',
-]
+function buildClaudeArgsDisplay(model?: string, effort?: string): string[] {
+  const args = [
+    '-p',
+    '--output-format', 'json',
+    '--append-system-prompt', '<contract>',
+    '--allowedTools', 'Edit,Write,Read,Glob,Grep',
+  ]
+  const cliModel = orchestosModelToCliModel(model)
+  if (cliModel) args.push('--model', cliModel)
+  if (effort) args.push('--effort', effort)
+  return args
+}
 
 async function runClaudeCode(
   cwd: string,
   systemPrompt: string,
   userPrompt: string,
   timeoutMs: number,
+  model: string | undefined,
+  effort: string | undefined,
 ): Promise<{ stdout: string; timedOut: boolean }> {
   const proc = Bun.spawn(
-    [CLAUDE_BINARY, ...buildClaudeArgs(systemPrompt)],
+    [CLAUDE_BINARY, ...buildClaudeArgs(systemPrompt, model, effort)],
     { cwd, stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' },
   )
   proc.stdin.write(userPrompt)
@@ -207,7 +239,7 @@ export const externalEngine: ExecutorEngine = {
     let stdout: string
     let timedOut: boolean
     try {
-      ({ stdout, timedOut } = await runClaudeCode(ctx.effectiveRoot, systemPrompt, ctx.prompt.userContent, timeoutMs))
+      ({ stdout, timedOut } = await runClaudeCode(ctx.effectiveRoot, systemPrompt, ctx.prompt.userContent, timeoutMs, ctx.model, ctx.task.cli_effort))
     } catch (e: any) {
       throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
     }
@@ -258,7 +290,7 @@ export const externalEngine: ExecutorEngine = {
         // para no inflar la DB. La UI muestra la línea de comandos reconstruida
         // a partir de estos campos — ver screens-ops.js detail().
         binary: CLAUDE_BINARY,
-        args: [...CLAUDE_ARGS_DISPLAY],
+        args: buildClaudeArgsDisplay(ctx.model, ctx.task.cli_effort),
       }],
       log: [`claude code: ${files.length} file(s) changed in worktree${timedOut ? ' (killed by timeout, partial output parsed)' : ''}`],
     }

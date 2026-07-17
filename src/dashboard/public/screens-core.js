@@ -770,6 +770,17 @@ SCREENS.tasks = {
                 </select>
                 <div id="draft-engine-warning" class="draft-engine-warning" style="display:none"></div>
               </div>
+              <div class="draft-field" id="draft-cli-effort-field" style="display:${draft.engine === 'external' ? '' : 'none'}">
+                <label>${t('tasks.draft.field.cliEffort')}</label>
+                <select id="draft-cli-effort" class="draft-input" data-act="draft-cli-effort">
+                  <option value="">${t('tasks.draft.cliEffort.inherit')}</option>
+                  <option value="low" ${draft.cli_effort === 'low' ? 'selected' : ''}>low</option>
+                  <option value="medium" ${draft.cli_effort === 'medium' ? 'selected' : ''}>medium</option>
+                  <option value="high" ${draft.cli_effort === 'high' ? 'selected' : ''}>high</option>
+                  <option value="xhigh" ${draft.cli_effort === 'xhigh' ? 'selected' : ''}>xhigh</option>
+                  <option value="max" ${draft.cli_effort === 'max' ? 'selected' : ''}>max</option>
+                </select>
+              </div>
             </div>
             <div class="draft-fields" style="margin-top:8px">
               <div class="draft-field" style="flex:2">
@@ -1097,6 +1108,16 @@ SCREENS.tasks = {
       refreshEngineWarning()
     }
 
+    // E.15 — cli_effort (claude --effort) solo tiene sentido con engine=external;
+    // se oculta con las demás opciones para no confundir con el effort de 3
+    // niveles del chat (mecanismo distinto, reasoning param de OpenRouter).
+    const cliEffortField = root.querySelector('#draft-cli-effort-field');
+    if (engineSel && cliEffortField) {
+      const toggleCliEffort = () => { cliEffortField.style.display = engineSel.value === 'external' ? '' : 'none' };
+      engineSel.addEventListener('change', toggleCliEffort);
+      toggleCliEffort();
+    }
+
     // E.10 — "Sugerir archivos" (context suggest, S24): pide sugerencias sobre
     // la descripción actual del draft, cae en silencio a keyword-only si no hay
     // proveedor de embeddings configurado (mismo comportamiento que la CLI).
@@ -1142,6 +1163,7 @@ SCREENS.tasks = {
       const outRaw = root.querySelector('#draft-output')?.value.trim() || '';
       const modelId = root.querySelector('#draft-model')?.value?.trim() || 'deepseek/deepseek-v4-flash';
       const engine = root.querySelector('#draft-engine')?.value || '';
+      const cliEffort = root.querySelector('#draft-cli-effort')?.value || '';
       const skill = root.querySelector('#draft-skill')?.value || '';
       const executor = inferExecutor(modelId);
       const output = outRaw.split('\n').map(s => s.trim()).filter(Boolean);
@@ -1155,6 +1177,7 @@ SCREENS.tasks = {
       try {
         const createBody = { id, description: desc, output, executor, executor_model: modelId };
         if (engine === 'single-shot' || engine === 'agentic' || engine === 'external') createBody.engine = engine;
+        if (engine === 'external' && cliEffort) createBody.cli_effort = cliEffort;
         if (skill) createBody.skill = skill;
         const createRes = await fetch('/api/tasks', {
           method: 'POST',

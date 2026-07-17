@@ -403,6 +403,30 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   — la app no tiene DB de test aislada, ver [[reference-test-fixtures-leak-into-real-db]], y
   `mock.module()` contamina toda la suite, ver [[reference-bun-mock-module-gotcha]]); verificado
   por lectura de código + `tsc`, no en vivo (correr eso gasta dinero real, lo confirma Carlos).
+- [x] **E.15 — 🧠 (2026-07-17)** Pregunta directa de Carlos: "si uso el CLI de Claude ¿por qué no
+  puedo elegir modelo ni esfuerzo?". Bug real confirmado leyendo `src/run/executors/external.ts`:
+  `ctx.model` ya se resolvía (executor_model / rol de config) y hasta se guardaba en el registro de
+  costo (`costByIteration[0].model`) — pero **nunca se pasaba al subproceso real**. `claude -p`
+  corría siempre con el modelo por defecto del binario, ignorando en silencio cualquier elección
+  explícita. Mismo problema con el nivel de esfuerzo: `claude --help` confirma que el CLI real
+  soporta `--effort low|medium|high|xhigh|max` (5 niveles, no 3 — coincide con lo que Carlos había
+  notado antes sobre el select de 3 esfuerzos del chat, que es un mecanismo DISTINTO — reasoning
+  param de OpenRouter, no el `--effort` del CLI) y OrchestOS nunca lo exponía.
+  Fix: `orchestosModelToCliModel()` traduce el prefijo `anthropic/` de nuestros ids estilo
+  OpenRouter (`anthropic/claude-sonnet-5`) al nombre que el CLI espera (`claude-sonnet-5`) — si el
+  modelo configurado NO es de Anthropic, se omite `--model` a propósito (el CLI solo sirve modelos
+  Claude; forzar un id ajeno fallaría con un error del propio binario en vez de un mal
+  comportamiento silencioso). Nuevo campo `Task.cli_effort` (schema.ts, 5 valores válidos,
+  solo aplica a `engine: external`) fluye a `buildClaudeArgs()` → `--effort`. UI: selector
+  "CLI effort" en el composer de tareas (`screens-core.js`), visible solo cuando `engine=external`,
+  mismo patrón show/hide que ya usaba el aviso de binario ausente (C.2). Backend
+  (`handlers/tasks.ts`) valida y persiste `cli_effort`. 2 tests nuevos en
+  `external-engine.test.ts` (modelo Anthropic → `--model`/`--effort` presentes y coinciden con
+  `costByIteration[0].args`; modelo no-Anthropic → ambos flags omitidos). 767 tests · 0 fail ·
+  `tsc` limpio. **Gap de verificación honesto**: el selector nuevo en `screens-core.js` no se
+  confirmó visualmente en el navegador — sigue el mismo patrón exacto de `draft-engine-warning`
+  (ya probado en vivo por C.2) y pasa `tsc`, pero abrir el draft real requiere una llamada LLM
+  paga (`/api/tasks/natural`); no se gastó dinero solo para una captura de pantalla.
 
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 

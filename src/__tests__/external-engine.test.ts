@@ -828,4 +828,53 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       ;(Bun as any).which = originalWhich
     }
   })
+
+  // E.15 (Mes 22, 2026-07-17) — bug real reportado por Carlos: ctx.model y
+  // task.cli_effort se resolvían pero nunca llegaban al subproceso real.
+  it('E.15 — pasa --model (Anthropic, prefijo provider/ pelado) y --effort al subproceso claude', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('e15-model-effort', 'main', root)
+    trackWorktree(wt)
+    writeFileSync(join(wt.path, 'out.txt'), 'ok')
+
+    const proc = installMockSpawn(JSON.stringify({
+      usage: { input_tokens: 1, output_tokens: 1 },
+      total_cost_usd: 0.0001,
+      num_turns: 1,
+    }))
+    overrideBunSpawn(proc)
+
+    const ctx = buildCtx(wt, baseTask({ cli_effort: 'xhigh' }))
+    ctx.model = 'anthropic/claude-sonnet-5'
+    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+
+    expect(spawnCalls[0]!.cmd).toContain('--model')
+    expect(spawnCalls[0]!.cmd[spawnCalls[0]!.cmd.indexOf('--model') + 1]).toBe('claude-sonnet-5')
+    expect(spawnCalls[0]!.cmd).toContain('--effort')
+    expect(spawnCalls[0]!.cmd[spawnCalls[0]!.cmd.indexOf('--effort') + 1]).toBe('xhigh')
+    // costByIteration persiste los MISMOS args que se le pasaron a Bun.spawn (regla C.1)
+    expect(outcome.costByIteration[0]!.args).toContain('--model')
+    expect(outcome.costByIteration[0]!.args).toContain('--effort')
+  })
+
+  it('E.15 — omite --model cuando el modelo configurado no es de Anthropic (el CLI solo sirve modelos Claude)', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('e15-non-anthropic', 'main', root)
+    trackWorktree(wt)
+    writeFileSync(join(wt.path, 'out.txt'), 'ok')
+
+    const proc = installMockSpawn(JSON.stringify({
+      usage: { input_tokens: 1, output_tokens: 1 },
+      total_cost_usd: 0.0001,
+      num_turns: 1,
+    }))
+    overrideBunSpawn(proc)
+
+    const ctx = buildCtx(wt, baseTask())
+    ctx.model = 'deepseek/deepseek-v4-flash'
+    await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+
+    expect(spawnCalls[0]!.cmd).not.toContain('--model')
+    expect(spawnCalls[0]!.cmd).not.toContain('--effort')
+  })
 })

@@ -4,8 +4,13 @@ export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
 // Lanza el subproceso `claude -p` dentro del worktree; el harness aplica enforceContract post-hoc
 // igual que con single-shot/agentic. Opt-in por tarea o por config de proyecto.
 export type TaskEngine = 'single-shot' | 'agentic' | 'external'
+// Niveles reales del CLI de Claude Code (`claude --effort`) — solo tiene sentido
+// para engine 'external'. Distinto del `effort` de 3 niveles del chat (OpenRouter
+// reasoning param), que es un mecanismo separado para modelos servidos vía API.
+export type ClaudeCliEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
 const EXECUTORS: TaskExecutor[] = ['openrouter', 'anthropic', 'openai', 'codex']
+const CLI_EFFORTS: ClaudeCliEffort[] = ['low', 'medium', 'high', 'xhigh', 'max']
 
 export interface Check {
   cmd: string
@@ -25,6 +30,8 @@ export interface Task {
   planner_model?: string
   /** Which ExecutorEngine runs this task — undefined resolves via orchestos.config.yaml, default 'single-shot' (G.3) */
   engine?: TaskEngine
+  /** Only meaningful when engine='external' — maps to `claude --effort <level>`. Ignored by single-shot/agentic. */
+  cli_effort?: ClaudeCliEffort
   input: string[]         // files the LLM can read (relative to project root)
   output: string[]        // files the LLM is allowed to write — REQUIRED, must be non-empty
   acceptance_criteria?: string[]
@@ -62,6 +69,7 @@ export function validateTask(t: unknown, index: number): Task {
     executor_model: typeof task.executor_model === 'string' ? task.executor_model : undefined,
     planner_model:  typeof task.planner_model  === 'string' ? task.planner_model  : undefined,
     engine:       validateEngine(task.engine, err),
+    cli_effort:   validateCliEffort(task.cli_effort, err),
     input:        Array.isArray(task.input) ? task.input as string[] : [],
     output:       task.output as string[],
     acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),
@@ -92,6 +100,14 @@ function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine
     err(`unknown engine '${String(value)}' — allowed: single-shot, agentic, external`)
   }
   return value as TaskEngine
+}
+
+function validateCliEffort(value: unknown, err: (msg: string) => never): ClaudeCliEffort | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string' || !CLI_EFFORTS.includes(value as ClaudeCliEffort)) {
+    err(`unknown cli_effort '${String(value)}' — allowed: ${CLI_EFFORTS.join(', ')}`)
+  }
+  return value as ClaudeCliEffort
 }
 
 function validateStringArray(

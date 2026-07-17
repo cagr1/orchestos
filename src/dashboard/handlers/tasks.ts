@@ -139,6 +139,7 @@ export interface CreateTaskParams {
   executor?: string
   executor_model?: string
   engine?: string
+  cli_effort?: string
   skill?: string
 }
 
@@ -156,6 +157,11 @@ function createTaskRecord(root: string, params: CreateTaskParams): { id: string 
   let engine: 'single-shot' | 'agentic' | 'external' | undefined
   if (engineRaw === 'single-shot' || engineRaw === 'agentic' || engineRaw === 'external') engine = engineRaw
   else if (engineRaw && engineRaw.length > 0) return { error: `unknown engine '${engineRaw}' — allowed: single-shot, agentic, external`, status: 400 }
+  const cliEffortRaw = params.cli_effort?.trim()
+  const CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
+  let cliEffort: typeof CLI_EFFORTS[number] | undefined
+  if (cliEffortRaw && (CLI_EFFORTS as readonly string[]).includes(cliEffortRaw)) cliEffort = cliEffortRaw as typeof CLI_EFFORTS[number]
+  else if (cliEffortRaw) return { error: `unknown cli_effort '${cliEffortRaw}' — allowed: ${CLI_EFFORTS.join(', ')}`, status: 400 }
   if (!existsSync(join(root, 'tasks.yaml'))) return { error: 'tasks.yaml not found — run: orchestos task init', status: 404 }
   try {
     const file = loadTasks(root)
@@ -173,6 +179,7 @@ function createTaskRecord(root: string, params: CreateTaskParams): { id: string 
     }
     if (executorModel) newTask.executor_model = executorModel
     if (engine) newTask.engine = engine
+    if (cliEffort) newTask.cli_effort = cliEffort
     const skill = params.skill?.trim()
     if (skill && isKnownSkillId(skill)) newTask.skill = skill
     ;(file.tasks as any[]).push(newTask)

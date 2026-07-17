@@ -209,6 +209,9 @@ const I18N = {
     'tasks.draft.engine.external':   'external (claude-code)',
     /* C.2 — aviso inline cuando `external` está seleccionado pero el binario no está */
     'tasks.draft.engine.external.unavailable': 'Claude Code binary `claude` not found in PATH. Install from {0} or choose a different engine.',
+    /* E.15 — solo visible con engine=external; mapea a `claude --effort` (5 niveles reales del CLI) */
+    'tasks.draft.field.cliEffort':   'CLI effort',
+    'tasks.draft.cliEffort.inherit': 'Default',
     /* Bloque D (Mes 18, ex-IDEAS #21) — sugerencia de skill en el composer */
     'tasks.draft.field.skill': 'Suggested skill',
     'tasks.draft.skill.none':  'None',
@@ -910,6 +913,9 @@ const I18N = {
     'tasks.draft.engine.external':   'external (claude-code)',
     /* C.2 — aviso inline cuando `external` está seleccionado pero el binario no está */
     'tasks.draft.engine.external.unavailable': 'Binario `claude` de Claude Code no encontrado en PATH. Instálalo desde {0} o elegí otro motor.',
+    /* E.15 — solo visible con engine=external; mapea a `claude --effort` (5 niveles reales del CLI) */
+    'tasks.draft.field.cliEffort':   'Esfuerzo (CLI)',
+    'tasks.draft.cliEffort.inherit': 'Default',
     /* Bloque D (Mes 18, ex-IDEAS #21) — sugerencia de skill en el composer */
     'tasks.draft.field.skill': 'Skill sugerida',
     'tasks.draft.skill.none':  'Ninguna',
