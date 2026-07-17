@@ -35,15 +35,12 @@ tasks:
     retry_count: 0
     qa_verdict: pass
     run_id: ffd3116c-e40b-4788-bbf5-0fa7b59294f9
-  - id: crypto-page-v2
-    description: Build a premium dark-mode cryptocurrency dashboard fetching live top 10 coins from CoinGecko API with
-      search, sorting, auto-refresh, skeleton loading, error states, and 7-day sparkline charts — all in one
-      self-contained HTML file.
-    executor: openrouter
-    executor_model: deepseek/deepseek-v4-flash
-    input: []
+  - id: crypto-dashboard-v2
+    description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
+      API data, search/filter, sorting, auto-refresh, skeleton loading, error handling, and responsive design — fully
+      self-contained, no build tools.
     output:
       - demo/crypto-page-v2/index.html
-    depends_on: []
+    executor: openrouter
     status: pending
     retry_count: 0
