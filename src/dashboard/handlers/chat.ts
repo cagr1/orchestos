@@ -326,6 +326,32 @@ export async function handleApiChatTaskBarEvents(): Promise<Response> {
 
 const MAX_CHAT_ATTACHMENTS = 5
 
+/**
+ * D.7 (Mes 22) — decide qué skill (si alguna) asignar a una tarea creada por
+ * el auto-flow del chat, SIN un humano presente para desempatar.
+ *
+ * Bug real encontrado en vivo (2026-07-17): la regla original ("2+
+ * candidatos → sin asignar") viene del `<select>` manual del dashboard
+ * (screens-core.js, `renderSkillSuggestion`) — ahí tiene sentido porque hay
+ * un humano eligiendo. En este flujo autónomo, con una descripción tipo
+ * "dashboard premium", varios skills compiten legítimamente por
+ * `when_to_use` (frontend-design, ux-guidelines, design-brief-inference) —
+ * Haiku devuelve 2+ candidatos, la regla vieja los descartaba TODOS, y la
+ * tarea corría sin ninguna guía de diseño (el origen real del output
+ * "AI slop" reportado sobre `crypto-dashboard-v2`).
+ *
+ * Fix: si `frontend-design` está entre los candidatos, se prioriza siempre
+ * — es el skill general "mata AI-slop-tells"; aplicarlo de más a una tarea
+ * no visual no hace daño real (son instrucciones no usadas), pero omitirlo
+ * en una tarea visual sí. Con exactamente 1 candidato (sin frontend-design)
+ * se usa ese. Con 2+ candidatos SIN frontend-design entre ellos, sigue sin
+ * asignar — ahí no hay señal segura para desempatar sola.
+ */
+export function pickAutoSkill(skillOptions: { id: string }[]): string | undefined {
+  if (skillOptions.some(s => s.id === 'frontend-design')) return 'frontend-design'
+  return skillOptions.length === 1 ? skillOptions[0]?.id : undefined
+}
+
 async function handleApiChat(req: Request): Promise<Response> {
   let body: { history: { role: string; content: string }[]; message: string; fileIds?: string[]; model?: string; effort?: string }
   try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
@@ -373,10 +399,7 @@ async function handleApiChat(req: Request): Promise<Response> {
     try {
       const root = resolve('.')
       const draft = await buildNaturalDraft(message)
-      // Mismo criterio que el <select> de skill en el dashboard: 1 candidato
-      // se preselecciona, 0 o 2+ se dejan sin asignar (nunca resolver un
-      // empate a ciegas). Ver renderSkillSuggestion, screens-core.js.
-      const skill = draft.skillOptions.length === 1 ? draft.skillOptions[0]?.id : undefined
+      const skill = pickAutoSkill(draft.skillOptions)
       const created = createTaskRecord(root, {
         id: draft.id,
         description: draft.description,

@@ -35,7 +35,7 @@ tasks:
     retry_count: 0
     qa_verdict: pass
     run_id: ffd3116c-e40b-4788-bbf5-0fa7b59294f9
-  - id: crypto-dashboard-v2
+  - id: crypto-dashboard-v2-mrobnuay
     description: Build a premium dark-mode cryptocurrency price dashboard at demo/crypto-page-v2/index.html that fetches
       live top-10 coins from CoinGecko API with search, sorting, auto-refresh, skeleton/error states, and responsive
       design — all self-contained HTML with inline SVG sparklines.
@@ -44,14 +44,7 @@ tasks:
     output:
       - demo/crypto-page-v2/index.html
     depends_on: []
-    status: pending
+    status: done
     retry_count: 0
-  - id: crypto-dashboard-v2-mrobnuay
-    description: Build a premium dark-mode cryptocurrency price dashboard at demo/crypto-page-v2/index.html that fetches
-      live top-10 coins from CoinGecko API with search, sorting, auto-refresh, skeleton/error states, and responsive
-      design — all self-contained HTML with inline SVG sparklines.
-    output:
-      - demo/crypto-page-v2/index.html
-    executor: openrouter
-    status: pending
-    retry_count: 0
+    qa_verdict: pass
+    run_id: 1e8891ce-9004-4ecc-9304-b42bb9f955c4

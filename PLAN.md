@@ -311,6 +311,24 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   commit en worktree → master avanza con su propio commit → primer ff-only falla → rebase → merge
   reintentado) corrida en un repo git real aislado, confirmando éxito limpio con el fix, y el
   conflicto de contenido real sin él** — no es una suposición. 756 tests · 0 fail · `tsc` limpio.
+- [x] **E.11 — 🧠 (2026-07-17)** Causa real de por qué `crypto-dashboard-v2` salió "AI slop" pese
+  a pedir "premium": la tarea auto-creada por el chat (D.7) **no tenía `skill:` asignado en
+  absoluto** — verificado comparando `tasks.yaml` (`crypto-page-v1`, manual, sí tiene
+  `skill: frontend-design`; la auto-creada, no) y confirmando en `prompt.ts:51-56` que sin
+  `task.skill` el prompt del ejecutor NO lleva ninguna guía de diseño (`SKILL GUIDELINES` completo
+  ausente). Causa raíz: la regla de desempate "2+ candidatos → sin asignar" viene del `<select>`
+  manual del dashboard (pensada para que un HUMANO desempate) — en el auto-flow D.7 nadie
+  desempata, y con una descripción "dashboard premium" varios skills compiten legítimamente por
+  `when_to_use` (frontend-design, ux-guidelines, design-brief-inference), así que Haiku devuelve
+  2+ candidatos y la regla vieja los descartaba TODOS — la tarea corrió a ciegas.
+  Fix: `pickAutoSkill()` extraída como función pura y testeable
+  ([src/dashboard/handlers/chat.ts](src/dashboard/handlers/chat.ts)) — si `frontend-design` está
+  entre los candidatos, se prioriza siempre (skill general "mata AI-slop-tells", aplicarlo de más
+  a una tarea no visual no hace daño real); con 2+ candidatos SIN frontend-design, sigue sin
+  asignar (ahí no hay señal segura). 5 tests unitarios nuevos
+  ([src/__tests__/skill-auto-selection.test.ts](src/__tests__/skill-auto-selection.test.ts))
+  cubriendo los 5 casos (0, 1 sin frontend-design, 1 es frontend-design, 2+ sin frontend-design,
+  2+ con frontend-design — el bug real). 761 tests · 0 fail · `tsc` limpio.
 - [x] **E.8 — 🧠/⚡ (2026-07-16)** Botón "Copy" en el panel de diagnosis (pedido directo de
   Carlos: seleccionar a mano el texto largo del error era tedioso) — junto al bloque de error
   (`d.error`) y junto a "Last Error Output"/`lastErrorResult`. Mismo patrón `data-copy` +

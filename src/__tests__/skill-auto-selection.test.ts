@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'bun:test'
 import { handleApiNatural, listAllSkillCandidates } from '../dashboard/handlers/project.ts'
 import { isKnownSkillId } from '../dashboard/handlers/tasks.ts'
+import { pickAutoSkill } from '../dashboard/handlers/chat.ts'
 
 // Bloque D (Mes 18, ex-IDEAS #21) — el motor de auto-selección de skill nunca
 // confía en un id que el LLM invente; solo ids que existen de verdad en
@@ -80,5 +81,33 @@ describe('handleApiNatural — skill_candidates fail-safe', () => {
     const data = await res.json() as { skillCandidates: string[]; skillOptions: unknown[] }
     expect(data.skillCandidates).toEqual([])
     expect(data.skillOptions).toEqual([])
+  })
+})
+
+// D.7/E.11 (Mes 22) — bug real: con 2+ candidatos (frecuente en descripciones
+// tipo "dashboard premium", donde frontend-design/ux-guidelines/
+// design-brief-inference compiten legítimamente), la regla vieja del auto-flow
+// del chat dejaba la tarea SIN NINGÚN skill — cero guía de diseño, el origen
+// real del output "AI slop" reportado en crypto-dashboard-v2.
+describe('pickAutoSkill — desempate del auto-flow del chat (sin humano presente)', () => {
+  it('0 candidatos → sin asignar', () => {
+    expect(pickAutoSkill([])).toBeUndefined()
+  })
+
+  it('1 candidato (no frontend-design) → se usa ese', () => {
+    expect(pickAutoSkill([{ id: 'tdd-enforcer' }])).toBe('tdd-enforcer')
+  })
+
+  it('1 candidato es frontend-design → se usa', () => {
+    expect(pickAutoSkill([{ id: 'frontend-design' }])).toBe('frontend-design')
+  })
+
+  it('2+ candidatos SIN frontend-design → sigue sin asignar (sin señal segura)', () => {
+    expect(pickAutoSkill([{ id: 'ux-guidelines' }, { id: 'design-brief-inference' }])).toBeUndefined()
+  })
+
+  it('BUG REAL: 2+ candidatos CON frontend-design entre ellos → se prioriza frontend-design (antes quedaba sin asignar)', () => {
+    expect(pickAutoSkill([{ id: 'ux-guidelines' }, { id: 'frontend-design' }])).toBe('frontend-design')
+    expect(pickAutoSkill([{ id: 'frontend-design' }, { id: 'design-brief-inference' }, { id: 'ux-guidelines' }])).toBe('frontend-design')
   })
 })
