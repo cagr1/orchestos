@@ -576,7 +576,9 @@ program
     // (decisión de Carlos, feedback-context-no-max-tokens), clamp de seguridad
     // solo con tope real >0. `maxOutputTokensFor` (0→8192) truncaba a 8192.
     const runPromptTokens = estimateTokens(system) + estimateTokens(userContent)
-    const runAvailable = contextWindowFor(model) - runPromptTokens - 1024
+    // Mes 22/E.4 — mismo margen que harness.ts/chat.ts: estimateTokens (chars/4)
+    // no es la tokenización real, 1024 no absorbía el drift observado en vivo.
+    const runAvailable = contextWindowFor(model) - runPromptTokens - 8192
     const runRealCap = knownMaxOutputTokensFor(model)
     const maxTokens = runRealCap > 0 ? Math.min(runAvailable, runRealCap) : runAvailable
     let llmResponse

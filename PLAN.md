@@ -190,6 +190,19 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   `read_plan`, quedó fuera del cap de 25k al crecer PLAN.md hoy — ahora verifica "MES 22", la
   sección vigente). `tsc` limpio.
 
+- [x] **E.4 — 🧠 (2026-07-16)** Caso límite real de E.1, NO una regresión: al reintentar el chat
+  (que dispara D.7 → tool-calling), el proveedor rechazó con 400 — pidió ~1.045M tokens de salida
+  contra una ventana de 1.048M. Causa exacta verificada por los números: `promptTokens` estimado
+  (`estimateTokens`, chars/4) ≈ 2001, real 2733 texto + 611 de **schemas de tools** (`runToolLoop`
+  adjunta 6 tools al request real, `estimateTokens` nunca los ve) = 3344 — el `SAFETY_MARGIN` de
+  1024 no cubre esa diferencia. **Distinción importante con E.1**: esto NO reintroduce el clamp al
+  catálogo prohibido por [[feedback-context-no-max-tokens]] — sigue siendo 100% derivado de
+  `contextWindow − prompt`; el fix es un margen de seguridad más realista (1024→8192) para una
+  fuente de error conocida (tool schemas + drift de estimación chars/4 vs tokenización real).
+  Aplicado en `harness.ts` (afecta también al engine agéntico, que hereda `maxTokens` del harness),
+  `chat.ts`, y el comando `run` de `cli.ts` (por consistencia, aunque no usa tools). 750 tests ·
+  0 fail · `tsc` limpio.
+
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 
 Excepción explícita de Carlos al freeze de UI de este Mes: el primer intento real de correr

@@ -557,7 +557,15 @@ When the user asks you to BUILD something (a page, a feature, a script): if this
     // último recurso en vez de bloquear la respuesta.
     const messagesText = messages.map(m => typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).join('\n')
     const promptTokens = estimateTokens(systemPrompt) + estimateTokens(messagesText)
-    const CHAT_SAFETY_MARGIN = 1024
+    // Mes 22/E.4 (2026-07-16): 1024 no alcanza cuando el chat usa tool-calling
+    // (runToolLoop adjunta 6 tool schemas al request real que `promptTokens`
+    // nunca ve — estimateTokens solo mira systemPrompt+messagesText). Reproducido
+    // en vivo: prompt estimado ~2001, real 2733 texto + 611 de tool schemas =
+    // 3344 → 400 del proveedor pidiendo ~1.045M de salida contra una ventana de
+    // 1.048M. No es el clamp-al-catálogo prohibido por
+    // [[feedback-context-no-max-tokens]] (E.1) — sigue derivado 100% de
+    // `contextWindow − prompt`, con margen realista para tool schemas + drift.
+    const CHAT_SAFETY_MARGIN = 8192
     const available = contextWindowFor(model) - promptTokens - CHAT_SAFETY_MARGIN
     // B.2.1 (Mes 18, 2026-07-05): `available` solo mira la ventana de contexto
     // TOTAL — para modelos con tope de salida real publicado por el catálogo

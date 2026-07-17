@@ -283,7 +283,16 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // proveedor — sin margen, prompts cerca del límite exacto de contextWindow
     // devuelven 400 "maximum context length exceeded" (visto en vivo: estimado
     // 556, real ~46 tokens más, overflow contra ventana de 1048576).
-    const SAFETY_MARGIN = 1024
+    // Mes 22/E.4 (2026-07-16): 1024 no alcanza cuando el engine agéntico usa
+    // tool-calling — los schemas de las tools NO están contados en `promptTokens`
+    // (estimateTokens solo ve system+userContent, nunca la lista de tools que
+    // runToolLoop adjunta al request real). Reproducido en vivo: prompt
+    // estimado ~2001, real 2733 texto + 611 de tool schemas = 3344 → overflow
+    // de 400 en un modelo de ventana 1M. Esto NO es el clamp-al-catálogo
+    // prohibido por [[feedback-context-no-max-tokens]] (E.1) — sigue siendo
+    // 100% derivado de `contextWindow − prompt`, solo con un margen realista
+    // para la fuente de error conocida (tool schemas + drift de estimación).
+    const SAFETY_MARGIN = 8192
     const availableForOutput = contextWindow - promptTokens - SAFETY_MARGIN
     if (availableForOutput < MIN_OUTPUT_BUDGET) {
       const reason = `context insuficiente: prompt ~${promptTokens} tokens deja sólo ~${Math.max(availableForOutput, 0)} tokens de margen en una ventana de ${contextWindow} (modelo ${ctx.model}) — se necesitan al menos ${MIN_OUTPUT_BUDGET}`
