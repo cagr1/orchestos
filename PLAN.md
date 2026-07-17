@@ -286,6 +286,31 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   manual: con el `git checkout --` deshabilitado, el test de "queda limpio" FALLA con el mismo
   síntoma exacto reproducido en vivo (`M runs-summary.json` persiste) — confirma que el test
   prueba el bug real, no un artefacto. 756 tests · 0 fail · `tsc` limpio.
+- [x] **E.10 — 🧠 (2026-07-16)** E.9 no bastó — reprodujo el MISMO error una tercera vez.
+  Investigado con una reproducción real (no teoría): el mecanismo de fondo era distinto al
+  sospechado. `scripts/pre-commit.sh` hacía `cd "$(git rev-parse --git-dir)/..")` — dentro de un
+  **worktree**, `--git-dir` resuelve al gitdir INTERNO (`.git/worktrees/<name>` del repo
+  PRINCIPAL, no la carpeta del propio worktree), así que `bun run dreaming:export` (que resuelve
+  su ruta de salida vía `import.meta.dir`, relativo al propio script) terminaba escribiendo
+  `runs-summary.json` en el REPO PRINCIPAL cada vez que el worktree hacía SU PROPIO commit interno
+  — ensuciándolo de nuevo justo antes del merge, después de que el discard de E.9 ya había corrido.
+  Reproducido con un repo git real aislado (`/tmp/wt-repro`), confirmando la escritura cruzada.
+  Fix parte 1: `--git-dir` → `git rev-parse --show-toplevel` (resuelve correctamente la raíz del
+  working tree en AMBOS casos — repo principal o worktree). Con eso solo, la reproducción destapó
+  un problema MÁS de fondo: incluso aislado correctamente, si el worktree TAMBIÉN commitea su
+  propia copia de `runs-summary.json`, y `master` avanzó mientras tanto con OTRA versión del mismo
+  archivo (vía su propio commit/hook), el `rebase` produce un **conflicto de contenido real**
+  (`CONFLICT (content): Merge conflict in runs-summary.json` — verificado en la reproducción, no
+  un timing issue). Fix parte 2: el hook ahora detecta si está corriendo dentro de un worktree
+  (`.git` es un ARCHIVO en la raíz de un worktree, una CARPETA en el repo principal) y se salta
+  el export+commit de `runs-summary.json` por completo ahí — el archivo es un reporte compartido
+  derivado de la DB, nunca parte del output de una tarea, el worktree no tiene por qué tocarlo.
+  [scripts/pre-commit.sh](scripts/pre-commit.sh) (y `.git/hooks/pre-commit`, la copia instalada,
+  actualizada en el mismo commit — recordatorio en CLAUDE.md: `cp scripts/pre-commit.sh
+  .git/hooks/pre-commit` tras clonar). **Reproducción end-to-end completa (crear worktree →
+  commit en worktree → master avanza con su propio commit → primer ff-only falla → rebase → merge
+  reintentado) corrida en un repo git real aislado, confirmando éxito limpio con el fix, y el
+  conflicto de contenido real sin él** — no es una suposición. 756 tests · 0 fail · `tsc` limpio.
 - [x] **E.8 — 🧠/⚡ (2026-07-16)** Botón "Copy" en el panel de diagnosis (pedido directo de
   Carlos: seleccionar a mano el texto largo del error era tedioso) — junto al bloque de error
   (`d.error`) y junto a "Last Error Output"/`lastErrorResult`. Mismo patrón `data-copy` +

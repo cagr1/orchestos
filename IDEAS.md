@@ -1157,6 +1157,42 @@ entre dos subprocesos del SO (no solo dos llamadas en el mismo proceso, que habr
 trivialmente secuenciales por ser JS de un hilo) — confirmado que sin el lock las ventanas se
 solapan y con el lock no. Detalle completo → PLAN.md Bloque E.5.
 
+### 49. Visibilidad en vivo de lo que el agente está haciendo — no solo el resultado final
+
+**Origen**: Carlos (2026-07-16), tras la cadena de fixes E.1-E.10 de hoy — pidió explícitamente
+poder "ver" qué está haciendo el modelo mientras trabaja en una tarea, no solo enterarse al final
+si falló o no. Comparación explícita con cómo el propio Claude Code narra su proceso en el chat
+(qué archivo lee, qué comando corre, qué decide) — "sino el usuario como sabe que OrchestOS
+realmente está haciendo algo".
+
+**El problema real que esto ataca**: hoy una tarea corre en un subproceso completamente opaco
+(`Bun.spawn(['bun','run','src/cli.ts','task','run','--id',...])`) — el dashboard no muestra nada
+mientras corre, solo el estado final (`done`/`failed`) cuando termina. Para el no-dev (el usuario
+objetivo de OrchestOS), un sistema que "no muestra nada por 30-60 segundos y después dice si
+funcionó o no" es indistinguible de uno que no está haciendo nada — no genera confianza, y hace
+que debuggear un fallo (como los de hoy) dependa 100% de leer logs después del hecho.
+
+**Dónde debería verse (pedido explícito)**: idealmente DENTRO del chat mismo cuando el auto-flow
+(D.7) crea y corre una tarea — el usuario ve el progreso ahí, no solo la nota final
+(`▶ Started task...`). También aplica a la pantalla Tasks/Runner existente.
+
+**Qué hacer (no investigado en profundidad, requiere diseño)**:
+1. El harness (`src/run/harness.ts`) ya tiene puntos de log internos (`log.info(...)`, ver
+   `sandbox: worktree created...`, `auto-split: ...`, etc.) — hoy van a stdout del subproceso
+   (visible solo en la terminal si corres el dashboard con `stdout: 'inherit'`), nunca al
+   dashboard/chat.
+2. Necesita un canal de streaming del subproceso `task run` hacia el frontend — opciones: (a)
+   SSE/WebSocket desde el endpoint que spawnea la tarea, reenviando líneas de `log.info` en vivo;
+   (b) polling del estado de la tarea con un campo "current step" que el harness actualiza en la
+   DB conforme avanza (más simple, sin infra de streaming nueva); (c) si se resuelve el chat
+   auto-flow (D.7), inyectar esas actualizaciones como mensajes intermedios en `chatHistory`.
+3. Mínimo viable: mostrar la etapa actual (ej. "generando código...", "verificando con QA...",
+   "corriendo checks...", "guardando cambios...") — no hace falta el output crudo del LLM en vivo,
+   con las etapas del harness ya alcanza para responder "¿está haciendo algo?".
+
+**Esfuerzo**: medio — el mecanismo de streaming/polling es la parte nueva; las etapas ya existen
+como eventos internos del harness, solo hace falta exponerlas.
+
 ---
 
 ## Feedback
