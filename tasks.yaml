@@ -52,9 +52,24 @@ tasks:
     description: Restyle demo/crypto-page-v2/index.html with Cloudflare/vectrfl aesthetic — dense trading-terminal table,
       deliberate typography hierarchy, minimal corners (2-4px), high-contrast pricing signals, and data-driven
       sparklines. Keep all CoinGecko fetch, search, sort, and auto-refresh logic unchanged.
+    skill: frontend-design
+    executor: openrouter
+    input: []
     output:
       - demo/crypto-page-v2/index.html
-    executor: openrouter
+    depends_on: []
+    status: done
+    retry_count: 0
+    qa_verdict: pass
+    run_id: 07a9deec-41ce-4155-a41a-28d9d60ac489
+  - id: crypto-terminal-v3
+    description: Build a data-dense, self-contained crypto price terminal at demo/crypto-page-v3/index.html. Fetch live
+      top-15 coins from CoinGecko with search, column sorting, 30s auto-refresh with cell-level pulse animations, and
+      skeleton loading — all OKLCH palette, dense table layout, tabular-nums pricing, inline SVG sparklines, responsive
+      design, no build tooling.
+    output:
+      - demo/crypto-page-v3/index.html
+    executor: anthropic
     status: pending
     retry_count: 0
     skill: frontend-design
