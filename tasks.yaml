@@ -67,9 +67,23 @@ tasks:
       top-15 coins from CoinGecko with search, column sorting, 30s auto-refresh with cell-level pulse animations, and
       skeleton loading — all OKLCH palette, dense table layout, tabular-nums pricing, inline SVG sparklines, responsive
       design, no build tooling.
+    skill: frontend-design
+    executor: anthropic
+    input: []
     output:
       - demo/crypto-page-v3/index.html
-    executor: anthropic
+    depends_on: []
+    status: done
+    retry_count: 0
+    qa_verdict: pass
+    run_id: 3b273760-07b8-4ae0-bdd5-caf8cb8d7d0a
+  - id: crypto-terminal-v4
+    description: Build a data-dense, self-contained crypto price terminal at demo/crypto-page-v4/index.html with live
+      CoinGecko top-15 coins, search, column sorting, 30s auto-refresh with cell-level change pulse animations, skeleton
+      loading, OKLCH palette, tabular-nums pricing, inline SVG sparklines, and mobile-responsive design.
+    output:
+      - demo/crypto-page-v4/index.html
+    executor: openrouter
     status: pending
     retry_count: 0
     skill: frontend-design
