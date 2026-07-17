@@ -50,6 +50,25 @@ tasks:
     description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
       API data, search/filter, sorting, auto-refresh every 60s, skeleton loading, error handling, and fully responsive
       design — all in one self-contained HTML file.
+    executor: openrouter
+    input: []
+    output:
+      - demo/crypto-page-v2/index.html
+    depends_on: []
+    status: failed
+    retry_count: 0
+    retry_reason: >-
+      unexpected: git merge orchestos/crypto-dashboard-v2-build/1784252516861 failed after rebase. Fix manually:
+        cd /Users/carlosgallardo/Documents/projects/orchestos/.orchestos/worktrees/crypto-dashboard-v2-build-1784252516861
+        git rebase --abort  # if needed
+        git checkout master
+        git merge orchestos/crypto-dashboard-v2-build/1784252516861
+        git branch -D orchestos/crypto-dashboard-v2-build/1784252516861
+        git worktree remove --force /Users/carlosgallardo/Documents/projects/orchestos/.orchestos/worktrees/crypto-dashboard-v2-build-1784252516861
+  - id: crypto-dashboard-v2-premium
+    description: Build a premium dark-mode cryptocurrency dashboard at demo/crypto-page-v2/index.html with live CoinGecko
+      API data, search/filter, sorting, auto-refresh every 60s, skeleton loading, error handling, and fully responsive
+      design — all in one self-contained HTML file.
     output:
       - demo/crypto-page-v2/index.html
     executor: openrouter
