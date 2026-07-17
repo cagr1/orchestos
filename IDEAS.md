@@ -1244,14 +1244,59 @@ modelo, los anteriores se descartan sin avisar. Eso contradice [[feedback-no-com
 Al implementar #50, esa línea debe reemplazarse por el presupuesto real de contexto (mandar todo
 lo que quepa bajo el 70%, avisar cuando no quepa) — no un número mágico de mensajes.
 
-**Qué hacer**: (1) tabla `chat_sessions` + `chat_messages` en SQLite (mismo patrón que `runs`);
-(2) nav izquierdo con 15 sesiones + tab "archivadas" para las que pasen el tope; (3) al
-refrescar, restaurar la sesión activa; (4) medidor de contexto por sesión relativo al modelo
-activo, umbral 70%, con CTA "continuar en sesión nueva" (resumen corto opcional, nunca
-compactación silenciosa); (5) eliminar el `slice(-10)` a favor del presupuesto real.
+**Confirmación de Carlos (2026-07-17) — qué se archiva**: la sesión archivada (tab aparte, no
+borrada) guarda la conversación COMPLETA — mensajes del usuario Y respuestas del LLM, tal cual
+se ven hoy en pantalla. No es un resumen ni solo lo que escribió Carlos; al reabrir una sesión
+vieja debe verse el intercambio entero como si nunca se hubiera archivado.
+
+**Nota de diseño — no confundir con lo que ya existe**: OrchestOS YA tiene una pantalla llamada
+"Chat evidence" (`project.chatEvidence.*` en i18n, `screens-ops.js`) — pero es otra cosa por
+completo: telemetría del clasificador de intención (J.1/B.1.b — cuántas veces se mostró/ocultó la
+barra "Create task", clicks registrados), no el contenido de las conversaciones. El archivo de
+sesiones viejas de este ítem es una superficie NUEVA — no reusar ni renombrar la pantalla
+existente, evitar que quien lo implemente las mezcle.
+
+**Qué hacer**: (1) tabla `chat_sessions` + `chat_messages` en SQLite (mismo patrón que `runs`) —
+`chat_messages` guarda CADA mensaje (role, content, model, timestamp), tanto user como assistant;
+(2) nav izquierdo con 15 sesiones + tab "archivadas" para las que pasen el tope, cada una abre la
+conversación completa igual que una activa, solo de solo lectura o reactivable; (3) al refrescar,
+restaurar la sesión activa; (4) medidor de contexto por sesión relativo al modelo activo, umbral
+70%, con CTA "continuar en sesión nueva" (resumen corto opcional, nunca compactación silenciosa);
+(5) eliminar el `slice(-10)` a favor del presupuesto real.
 
 **Esfuerzo**: medio — el modelo de datos es simple (SQLite ya está); el grueso es la UI de
 sesiones en el chat y el medidor por modelo activo.
+
+### 51. Acciones por mensaje en el chat — copiar y rebobinar (hover, esquina inferior derecha)
+
+**Origen**: Carlos (2026-07-17), pedido explícito de UX — patrón estándar de las herramientas de
+chat (ChatGPT/Claude/etc.): cada burbuja de mensaje (usuario Y asistente) tiene un set de acciones
+que solo aparece con hover, en la esquina inferior derecha del mensaje.
+
+**Qué debe tener cada mensaje**:
+- **Copiar** — copia el texto del mensaje al portapapeles. Reusar el patrón `data-copy` +
+  `navigator.clipboard.writeText()` que Mes 22/E.8 ya instaló en el panel de diagnosis
+  ([src/dashboard/public/screens-core.js](src/dashboard/public/screens-core.js)) — mismo ícono
+  (`ICON.copy`), mismo tamaño que el resto de íconos del chat (`.chat-icon-btn`/`ICON.*` ya usan
+  16px consistente en toda la UI, ver `styles.css` — nunca un ícono de tamaño distinto al resto).
+- **Rebobinar** ("rewind") — vuelve la conversación a ese punto (descarta los mensajes
+  posteriores). Comportamiento exacto a definir: ¿solo trunca el historial visible?, ¿permite
+  re-editar el mensaje del usuario y reenviar desde ahí (como "edit and resubmit" de ChatGPT)?
+  Necesita un ícono nuevo — no hay uno de "undo/rewind" en `ICON.*` hoy (`data.js`), agregar uno
+  (ej. `corner-up-left` o `rotate-ccw` de Lucide, mismo set que ya usa el resto de `ICON`).
+- **Timestamp** — fecha/hora del mensaje, visible junto a los botones (no permanente, aparece
+  con el mismo hover).
+
+**Interacción**: todo el bloque (copiar, rebobinar, timestamp) oculto por defecto, aparece con
+`:hover` sobre el mensaje o sobre la franja inferior del mismo — mismo patrón estándar de
+la industria que Carlos pidió explícitamente replicar (a diferencia de #50, acá SÍ quiere copiar
+el patrón porque es puramente de usabilidad, no de retención de datos).
+
+**Esfuerzo**: bajo-medio — copiar es trivial (patrón ya existe); el hover-reveal es CSS estándar
+(`opacity:0` + `:hover { opacity:1 }`, ya usado en otros lados del dashboard — grep antes de
+reinventar); rebobinar depende de la decisión de comportamiento (truncar vs. editar-y-reenviar) y
+de que #50 ya tenga sesiones persistentes en SQLite (rebobinar una conversación que solo vive en
+memoria JS tiene menos sentido — encaja mejor DESPUÉS de #50, no antes).
 
 ---
 
