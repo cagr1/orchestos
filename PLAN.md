@@ -557,6 +557,65 @@ real: un hook por-turno puede ser ruidoso; un gate de pre-commit puede bloquear 
   **Antes de tocar UI**: invocar la skill `frontend-design` y grep de patrones existentes
   (regla global de Carlos). Verificar en el dashboard real, no solo en código.
 
+### Bloque G — 🧠 Cascada de selección de motor: local → CLI → API (decisión de Carlos, 2026-07-17)
+
+Decisión explícita de Carlos, repetida varias veces en el chat de este Mes hasta quedar clara:
+ya tiene CLIs pagados (Claude Code, opencode) y no quiere seguir gastando saldo de OpenRouter en
+tareas que esos CLIs pueden resolver gratis (para él). Tampoco quiere volver a usar la pantalla
+Tasks a mano — **todo entra por el chat**, Tasks queda como vista de resultado/seguimiento, no
+como punto de creación. Orden de la cascada cuando el chat no fija nada explícito: (1) LLM local
+(Ollama) si hay uno detectado — no cuesta nada; (2) si no, el CLI ya pagado del usuario; (3) recién
+al final, API (OpenRouter — se mantiene como base del tier API porque su catálogo de costo y
+contexto se actualiza solo, a diferencia de mantener esa tabla a mano).
+
+Esto NO es "un LLM decidiendo el modelo" — [[feedback-modelo-decision-final-carlos]] sigue vigente
+igual que antes: es la implementación de una regla que Carlos fijó él mismo, con el mismo estatus
+que `orchestos.config.yaml` ya tenía. Aplica la regla nueva de [[feedback-planificar-cambios-grandes]]
+(2026-07-17): esto toca múltiples módulos y redefine un comportamiento central (routing de
+modelo/motor) — por eso queda como plan ordenado acá antes de seguir codeando en caliente (se
+había empezado sin plan compartido y Carlos cortó a mitad de camino).
+
+- [ ] **G.1 — 🧠 EN CURSO (2026-07-17, sin tests todavía — no cerrar como [x] hasta tenerlos)**
+  Detección de tiers: [src/router/engine-cascade.ts](src/router/engine-cascade.ts)
+  — `resolveCascadeTier()` chequea Ollama local (`localhost:11434/api/tags`, timeout corto propio
+  para no colgar el camino caliente del chat) y el binario `claude` (reusa `findClaudeBinary()` de
+  `external.ts`, ya existente). `opencode` queda fuera a propósito — sin contrato CLI verificado en
+  este repo, ver G.5.
+- [ ] **G.2 — 🧠 EN CURSO (2026-07-17, sin commitear, sin tests todavía — no cerrar como [x] hasta
+  tenerlos)** Wiring parcial en D.7 (`handlers/chat.ts`): cuando
+  el chat auto-crea una tarea de build, si `resolveCascadeTier()` devuelve tier `'cli'`, la tarea
+  se crea con `engine: external` + `executor_model: anthropic/claude-sonnet-5` en vez de heredar
+  siempre `orchestos.config.yaml`. Tier `'local'` se detecta pero NO actúa todavía — no hay
+  executor de tareas para Ollama (`ollamaChat` solo sirve al chat interactivo, no a build tasks
+  vía harness); aterrizar en ese tier hoy no fija nada y la tarea sigue heredando el config normal,
+  igual que tier `'api'` (que ya es el comportamiento por defecto actual). **Falta**: tests de
+  regresión para `resolveCascadeTier()` y para el wiring en `chat.ts` (cortado a mitad por la
+  pausa de planificación) — es lo primero para retomar.
+- [ ] **G.3 — 🧠 Chat conversacional en vivo vía CLI:** que las respuestas normales del chat (no
+  solo las tareas de build de G.2) también puedan correr por `claude -p` cuando la cascada aterrice
+  en tier `'cli'`. Es el ítem más grande del bloque — `chat.ts` hoy solo sabe hablar con Ollama u
+  OpenRouter (`ollamaChat` / `openrouterChat` / `runToolLoop`); correr una conversación interactiva
+  por el CLI headless es un camino nuevo (continuidad de turnos, costo por mensaje, sin streaming
+  real como hoy). Diseñar antes de tocar código — no reusa la lógica actual de `tool-call.ts`.
+- [ ] **G.4 — 🧠 Selector de modelo dinámico en el chat:** el dropdown de modelo debe reflejar
+  SOLO los modelos del tier activo — si la cascada aterrizó en `'cli'`, mostrar los alias del CLI
+  (sonnet/opus/haiku/fable), no el catálogo completo de OpenRouter (que no tiene sentido ahí, y es
+  exactamente el tipo de "select largo sin filtrar" que la regla de frontend global de Carlos
+  prohíbe). Depende de G.3 (necesita que el chat pueda correr por CLI para que el selector tenga
+  sentido).
+- [ ] **G.5 — BLOQUEADO — 🧠 Generalizar `external.ts` a más binarios (`opencode`):** Carlos
+  mencionó tener también `opencode` como CLI. No se implementa a ciegas — no hay contrato de
+  invocación verificado (flags reales, formato de salida, manejo de costo) para ese binario en
+  este repo, a diferencia de Claude Code (`claude --help` ya se verificó en E.15). Mismo criterio
+  que ya aplicó E.15/G.1: no fingir soporte de algo no probado. Reevaluar cuando haya forma real
+  de probar el contrato de `opencode` (ej. Carlos lo tiene instalado y puede correr `opencode
+  --help` para documentar los flags reales antes de codear contra ellos).
+
+**Orden de ejecución sugerido**: G.2 (retomar, cerrar con tests) tiene el impacto más inmediato en
+la calidad de lo que se viene probando toda la sesión (las páginas de crypto/Apple) y es el cambio
+más chico — cerrarlo primero. G.3+G.4 son la pieza grande (diseño propio antes de codear). G.5
+queda pendiente de que Carlos pueda darle a Claude el contrato real de `opencode`.
+
 ---
 
 ## v0.12 (MES 21) — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
