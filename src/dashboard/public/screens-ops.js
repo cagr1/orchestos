@@ -1177,6 +1177,58 @@ SCREENS.settings = {
         ${pendingRows}
       </div>`;
   },
+  // Redisño 2026-07-17 — el motor de ejecución por defecto (executorEngine
+  // en orchestos.config.yaml) solo vivía en YAML/CLI, sin superficie en el
+  // dashboard (regla: feedback-dashboard-no-solo-cli). Reusa el patrón visual
+  // de theme-picker (cards + estado activo) en vez de un <select> genérico.
+  executorPanel(st) {
+    const cfg = st.orcheConfig;
+    if (st.orcheConfigStatus === 'loading' || st.orcheConfigStatus === 'idle') {
+      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
+    }
+    if (st.orcheConfigStatus === 'error' || !cfg) {
+      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
+    }
+    const engine = cfg.executorEngine || 'single-shot';
+    const ENGINES = [
+      { id: 'single-shot', icon: ICON.bolt },
+      { id: 'agentic',     icon: ICON.refresh },
+      { id: 'external',    icon: ICON.term },
+    ];
+    const opts = ENGINES.map(e => `
+      <button class="engine-opt${engine === e.id ? ' active' : ''}" data-engine-opt="${e.id}">
+        ${e.icon}<span>${esc(t(`settings.executor.opt.${e.id}.label`))}</span>
+        ${engine === e.id ? `<span class="engine-opt-check">${ICON.check}</span>` : ''}
+      </button>`).join('');
+    const activeDesc = t(`settings.executor.opt.${engine}.desc`);
+
+    const cliBadge = cfg.claudeCliDetected
+      ? `<span class="badge green square">${ICON.check} ${t('settings.executor.external.detected')}</span>`
+      : `<span class="badge gray square">${esc(t('settings.executor.external.unavailable', 'https://claude.com/download'))}</span>`;
+
+    const tuneRow = engine === 'agentic'
+      ? `<div class="engine-tune-row"><label>${t('settings.executor.maxIterations')}</label>
+          <input type="number" id="executor-max-iterations" min="1" step="1" value="${esc(String(cfg.agenticMaxIterations ?? 15))}"></div>`
+      : engine === 'external'
+      ? `<div class="engine-tune-row"><label>${t('settings.executor.timeoutMinutes')}</label>
+          <input type="number" id="executor-timeout-minutes" min="1" step="1" value="${esc(String(cfg.externalTimeoutMinutes ?? 20))}">
+          ${cliBadge}</div>`
+      : '';
+
+    return `<div class="card settings-card" data-executor-engine="${esc(engine)}">
+      <div class="settings-header"><h3>${t('settings.executor.title')}</h3>
+        <p class="muted" style="margin:0;font-size:12.5px">${t('settings.executor.subtitle')}</p>
+      </div>
+      <div class="engine-picker">${opts}</div>
+      <p class="engine-desc">${esc(activeDesc)}</p>
+      ${tuneRow}
+      <div class="settings-foot" style="margin-top:8px">
+        <span id="executor-save-msg" style="font-size:12px;display:none"></span>
+        <span style="flex:1"></span>
+        <button class="btn primary" data-act="save-executor">${ICON.check} ${t('settings.executor.save')}</button>
+      </div>
+    </div>`;
+  },
 
   render(st) {
     const keys = st.settings || {};
@@ -1256,6 +1308,7 @@ SCREENS.settings = {
           ${navItem('general', ICON.sliders, t('settings.nav.general'))}
           ${navItem('keys', ICON.bolt, t('settings.nav.keys'))}
           ${navItem('routing', ICON.runs, t('settings.nav.routing'))}
+          ${navItem('executor', ICON.refresh, t('settings.nav.executor'))}
           ${navItem('health', ICON.runs, t('settings.nav.health'))}
           ${navItem('project', ICON.project, t('settings.nav.project'))}
           ${navItem('lang', ICON.globe, t('settings.nav.lang'))}
@@ -1289,6 +1342,10 @@ SCREENS.settings = {
 
           <section class="settings-panel${sec === 'routing' ? ' active' : ''}" data-panel="routing">
             ${this.routingPanel(st)}
+          </section>
+
+          <section class="settings-panel${sec === 'executor' ? ' active' : ''}" data-panel="executor">
+            ${this.executorPanel(st)}
           </section>
 
           <section class="settings-panel${sec === 'project' ? ' active' : ''}" data-panel="project">
@@ -1333,11 +1390,50 @@ SCREENS.settings = {
       state.settingsSection = sec;
       root.querySelectorAll('[data-settings-sec]').forEach(b => b.classList.toggle('active', b.dataset.settingsSec === sec));
       root.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === sec));
-      if (sec === 'routing') {
+      if (sec === 'routing' || sec === 'executor') {
         App.fetchOrcheConfig().then(() => App.rerender());
-        if (state.orModels === null) loadOrModels().then(() => App.rerender());
+        if (sec === 'routing' && state.orModels === null) loadOrModels().then(() => App.rerender());
       }
     }));
+
+    // Executor engine picker — clic en una card cambia st.orcheConfig localmente
+    // (sin round-trip) y rerenderiza, igual que el theme-picker; el POST real
+    // ocurre recién al tocar "Guardar" (save-executor), no por card.
+    root.querySelectorAll('[data-engine-opt]').forEach(btn => btn.addEventListener('click', () => {
+      if (state.orcheConfig) state.orcheConfig.executorEngine = btn.dataset.engineOpt;
+      App.rerender();
+    }));
+
+    root.querySelector('[data-act="save-executor"]')?.addEventListener('click', async () => {
+      const engine = root.querySelector('[data-executor-engine]')?.dataset.executorEngine
+        || state.orcheConfig?.executorEngine || 'single-shot';
+      const body = { executorEngine: engine };
+      const iterEl = root.querySelector('#executor-max-iterations');
+      const timeoutEl = root.querySelector('#executor-timeout-minutes');
+      if (iterEl?.value) body.agenticMaxIterations = Number(iterEl.value);
+      if (timeoutEl?.value) body.externalTimeoutMinutes = Number(timeoutEl.value);
+      const btn = root.querySelector('[data-act="save-executor"]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          showToast(t('settings.executor.saveDone'));
+          await App.fetchOrcheConfig();
+          App.rerender();
+        } else {
+          const data = await res.json();
+          showToast(data.error || t('settings.executor.saveErr'), 'error');
+        }
+      } catch {
+        showToast(t('settings.executor.saveErr'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     // (el combo de modelo se carga solo al abrirse — wiring genérico en boot(), app.js)
 

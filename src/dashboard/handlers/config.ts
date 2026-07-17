@@ -5,7 +5,10 @@ import { loadOrcheConfig, scaffoldConfigYaml } from '../../config/load.ts'
 import type { OrcheConfig } from '../../config/schema.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
+import { findClaudeBinary } from '../../run/executors/external.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
+
+const EXECUTOR_ENGINES = ['single-shot', 'agentic', 'external'] as const
 
 const ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa'] as const
 
@@ -42,6 +45,10 @@ export async function handleApiConfigGet(): Promise<Response> {
     configFound,
     roles,
     pendingRouting,
+    executorEngine: cfg.executorEngine ?? 'single-shot',
+    agenticMaxIterations: cfg.agentic?.maxIterations ?? 15,
+    externalTimeoutMinutes: Math.round((cfg.external?.timeoutMs ?? 20 * 60 * 1000) / 60000),
+    claudeCliDetected: findClaudeBinary() !== null,
   })
 }
 
@@ -66,9 +73,17 @@ export async function handleApiConfigInit(): Promise<Response> {
 // provider 'openrouter' — igual que el resto del selector de modelos en la
 // app (chat, composer de tareas, diagnose), ninguno expone otros providers.
 export async function handleApiConfigSet(req: Request): Promise<Response> {
-  let body: { roles?: Record<string, string> }
+  let body: {
+    roles?: Record<string, string>
+    executorEngine?: string
+    agenticMaxIterations?: number
+    externalTimeoutMinutes?: number
+  }
   try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
-  if (!body.roles || typeof body.roles !== 'object') return errorResponse('roles object is required', 400)
+  if (body.roles !== undefined && typeof body.roles !== 'object') return errorResponse('roles must be an object', 400)
+  if (!body.roles && body.executorEngine === undefined && body.agenticMaxIterations === undefined && body.externalTimeoutMinutes === undefined) {
+    return errorResponse('nothing to save', 400)
+  }
 
   const root = resolve('.')
   const configPath = join(root, 'orchestos.config.yaml')
@@ -76,7 +91,7 @@ export async function handleApiConfigSet(req: Request): Promise<Response> {
   const models: OrcheConfig['models'] = { ...current.models }
 
   for (const key of ROLE_KEYS) {
-    const raw = body.roles[key]
+    const raw = body.roles?.[key]
     if (typeof raw !== 'string') continue
     // qa es el único rol legítimamente "sin configurar" (harness.ts lo
     // auto-resuelve si está ausente, nunca el mismo modelo que el executor).
@@ -90,6 +105,17 @@ export async function handleApiConfigSet(req: Request): Promise<Response> {
   }
 
   const newConfig: OrcheConfig = { ...current, models }
+
+  if (typeof body.executorEngine === 'string' && (EXECUTOR_ENGINES as readonly string[]).includes(body.executorEngine)) {
+    newConfig.executorEngine = body.executorEngine as OrcheConfig['executorEngine']
+  }
+  if (typeof body.agenticMaxIterations === 'number' && Number.isFinite(body.agenticMaxIterations) && body.agenticMaxIterations > 0) {
+    newConfig.agentic = { maxIterations: Math.round(body.agenticMaxIterations) }
+  }
+  if (typeof body.externalTimeoutMinutes === 'number' && Number.isFinite(body.externalTimeoutMinutes) && body.externalTimeoutMinutes > 0) {
+    newConfig.external = { timeoutMs: Math.round(body.externalTimeoutMinutes * 60000) }
+  }
+
   writeFileSync(configPath, yamlStringify(newConfig), 'utf8')
   return jsonResponse({ ok: true })
 }
