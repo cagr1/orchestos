@@ -41,7 +41,13 @@ export function autoRoute(task: Task, config: OrcheConfig, configFound: boolean)
   if (!configFound && !task.executor_model) return null
 
   const taskClass = classifyTask(task.description)
-  const role      = CLASS_TO_ROLE[taskClass]
+  let role = CLASS_TO_ROLE[taskClass]
+  // Structural guarantee, independent of classifyTask's keyword heuristic:
+  // the planner role never becomes the executor for a task with real output
+  // files. Planner is for planning/scaffolding-without-deliverables; a task
+  // that declares files to write must run on an executor tier, even if the
+  // description got misclassified as 'plan'.
+  if (role === 'planner' && task.output.length > 0) role = 'executor_heavy'
   const roleCfg: ModelRoleConfig = config.models[role]
 
   const provider = roleCfg.provider

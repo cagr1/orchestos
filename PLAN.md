@@ -339,6 +339,26 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   contenido 100% estático (`ICON.check` + i18n), nunca datos del usuario. Claves i18n nuevas
   `btn.copy` (en/es). Verificado en navegador real: clipboard funciona, ícono se restaura
   correctamente tras el ciclo "Copied". 753 tests · 0 fail · `tsc` limpio.
+- [x] **E.12 — 🧠 (2026-07-17)** Bug real destapado corriendo `crypto-terminal-v3` en vivo (a
+  pedido directo de Carlos, arreglado de inmediato — "no vamos a avanzar hasta ver que el sistema
+  comience a dar buenos productos"): `classifyTask()` (`src/router/classify.ts`) clasificaba
+  como `'plan'` cualquier descripción que contuviera la palabra "design" EN CUALQUIER POSICIÓN —
+  "...responsive design, no build tooling" bastaba. `'plan'` mapea al rol `planner` de
+  `orchestos.config.yaml` (`anthropic/claude-haiku-4-5`, pensado para planificación liviana), no
+  al `executor_heavy` (`deepseek/deepseek-v4-flash`) que debía escribir el archivo real —
+  confirmado en la DB (`run 3b273760...`: model=`anthropic/claude-haiku-4-5`). Explica por qué
+  el resultado salió peor que las dos corridas anteriores pese al prompt mucho más detallado.
+  **Fix de dos capas** (principio de Carlos: "el planner solo planifica, deja a otros modelos que
+  sigan instrucciones"):
+  1. `classify.ts`: "plan"/"design"/"diseña" solo cuentan como intención de planificación como
+     imperativo AL INICIO de la descripción (`^(plan|design|diseña)\b`) — términos estructurales
+     sin ambigüedad (`arquitectura`, `estructura`, `architect`, `scaffold`, `blueprint`,
+     `roadmap`) se mantienen como match libre. 2 tests de regresión nuevos.
+  2. `auto-route.ts` — garantía estructural independiente del regex: si el rol resuelto es
+     `planner` pero la tarea declara archivos de `output`, se degrada a `executor_heavy` — el
+     planner nunca puede terminar escribiendo el entregable real, sin importar cómo lo clasifique
+     el heurístico. 1 test nuevo (`autoRoute` con tarea mal clasificada como plan + output real).
+  764 tests · 0 fail · `tsc` limpio.
 
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 

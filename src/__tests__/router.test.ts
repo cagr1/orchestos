@@ -27,6 +27,10 @@ describe('classifyTask', () => {
     ['Add a button to the header', 'implement'],
     ['Create a new endpoint for user registration', 'implement'],
     ['Agrega validación al formulario de contacto', 'implement'],
+    // regression 2026-07-17 (Mes 22): "design" mid-sentence as an ordinary
+    // UI noun must NOT trigger 'plan' — only a leading imperative does
+    ['Build a data-dense crypto terminal with responsive design, no build tooling', 'implement'],
+    ['Add a pricing plan selector to the billing page', 'implement'],
   ]
 
   for (const [prompt, expected] of cases) {
@@ -111,6 +115,13 @@ describe('autoRoute', () => {
     const task = makeTask('Fix the bug', { executor_model: 'claude-sonnet-4-6' })
     const result = autoRoute(task, baseConfig, true)
     expect(result?.model).toBe('claude-sonnet-4-6')
+  })
+
+  it('never routes a task with declared output files to the planner role, even if misclassified as plan', () => {
+    const task = makeTask('Design a premium login form', { output: ['demo/login.html'] })
+    const result = autoRoute(task, baseConfig, true)
+    expect(result?.role).toBe('executor_heavy')
+    expect(result?.model).toBe('deepseek/deepseek-r1')
   })
 
   it('per-task executor_model works even without config file', () => {
