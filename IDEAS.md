@@ -1146,28 +1146,16 @@ Bloque E de PLAN.md.
 **Esfuerzo**: medio — la estimación de tamaño es el núcleo difícil; el resto es wiring sobre el
 `shouldSplit`/`generatePlan` que ya existen.
 
-### 48. Carrera real entre auto-commit de tasks.yaml (D.5/D.7) y el merge-back del worktree sandbox
+### 48. ~~Carrera real entre auto-commit de tasks.yaml (D.5/D.7) y el merge-back del worktree sandbox~~
 
-**Origen**: destapado en PLAN.md Bloque E.3 (2026-07-16). `crypto-dashboard-v2` (creada por el
-auto-flow del chat, D.7) falló en `git merge ... failed after rebase` — QA había pasado, el
-archivo se generó bien, pero el merge de vuelta a `master` chocó.
-
-**Mecanismo sospechado**: cuando dos tareas corren cerca en el tiempo — una en un worktree
-(`engine` con sandbox), otra que auto-commitea `tasks.yaml` DIRECTO a `master` (D.5: crear/correr
-tarea; D.7: chat auto-ejecuta) — `master` se mueve mientras el worktree todavía tiene su rama base
-en un commit viejo. El merge-back intenta `--ff-only`, falla (master divergió), reintenta con
-`rebase` + retry — pero si `master` vuelve a moverse ENTRE el rebase y el retry (otro auto-commit
-en el medio), el segundo intento también falla. `src/run/sandbox.ts:100-124`.
-
-**Por qué no se resolvió ahora**: E.3 solo arregló la CONSECUENCIA (diagnosis no abría, dinero
-gastado sin fila en `runs`) — no la causa. Resolverla de raíz probablemente implica: (a) serializar
-auto-commits de tasks.yaml contra merges de worktree activos (lock), o (b) que el merge-back
-reintente más de una vez con backoff en vez de rendirse al segundo fallo, o (c) que los
-auto-commits de D.5/D.7 NO vayan a `master` sino a una rama de "staging" que no interfiera con
-worktrees en vuelo. Necesita diseño, no es un fix de una línea.
-
-**Esfuerzo**: medio — el diagnóstico ya está hecho (E.3); falta decidir la estrategia de
-serialización/reintento y probarla bajo concurrencia real (2+ tareas simultáneas).
+**RESUELTO — PLAN.md Bloque E.5 (2026-07-16).** Se reprodujo una tercera vez (misma tarea,
+`crypto-dashboard-v2`, mismo `git merge ... failed after rebase`) y se resolvió de raíz: mutex de
+archivo entre procesos (`src/run/git-lock.ts`, `withGitLock()`) que serializa `mergeWorktreeBack()`
+contra los auto-commits de `tasks.yaml` (D.5/D.7) — ambos tocan `projectRoot` (checkout/commit/merge
+sobre el mismo working dir), nunca pueden intercalarse. Verificado con un test de concurrencia REAL
+entre dos subprocesos del SO (no solo dos llamadas en el mismo proceso, que habrían sido
+trivialmente secuenciales por ser JS de un hilo) — confirmado que sin el lock las ventanas se
+solapan y con el lock no. Detalle completo → PLAN.md Bloque E.5.
 
 ---
 

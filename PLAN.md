@@ -203,6 +203,27 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   `chat.ts`, y el comando `run` de `cli.ts` (por consistencia, aunque no usa tools). 750 tests ·
   0 fail · `tsc` limpio.
 
+- [x] **E.5 — 🧠 (2026-07-16)** Resuelto de raíz IDEAS #48 (la carrera worktree-vs-auto-commit
+  que E.3 solo diagnosticó, no arregló) — se reprodujo una TERCERA vez (misma tarea
+  `crypto-dashboard-v2`, mismo `git merge ... failed after rebase`), confirmando que era
+  estructural, no casualidad. Causa exacta: `mergeWorktreeBack()` (`git checkout master; git merge`)
+  y los auto-commits de D.5/D.7 (`git add tasks.yaml; git commit`) tocan el MISMO working dir
+  (`projectRoot`) desde procesos del SO distintos (el server del dashboard vs. el subproceso
+  `task run`) — sin serialización, uno podía moverle `master` al otro a mitad de operación.
+  Fix: [src/run/git-lock.ts](src/run/git-lock.ts) — mutex de archivo entre procesos
+  (`withGitLock()`, lockfile atómico `wx` + robo de lock si está más viejo que 60s, para que un
+  proceso muerto no deje al resto bloqueado para siempre). Envuelve `mergeWorktreeBack()` completa
+  ([src/run/sandbox.ts](src/run/sandbox.ts)) y los dos puntos de auto-commit en
+  `handlers/tasks.ts` (`createTaskRecord`/`spawnTaskRun`). `.orchestos/git.lock` +
+  `.orchestos/worktrees/` agregados a `.gitignore`.
+  **Verificación real, no simulada**: test de concurrencia entre dos SUBPROCESOS Bun reales
+  (`git-lock.test.ts`) — dos llamadas en el mismo proceso habrían sido trivialmente secuenciales
+  (JS de un hilo, no prueba nada); el test spawnea 2 procesos del SO, cada uno toma el lock y
+  duerme 150ms, y el padre confirma que sus ventanas [enter,exit] nunca se solapan. Sanity-check
+  manual: con el lock reemplazado por un no-op, el mismo test FALLA (solapamiento detectado) —
+  confirma que el test realmente prueba el mutex, no un artefacto de timing. 753 tests · 0 fail ·
+  `tsc` limpio.
+
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 
 Excepción explícita de Carlos al freeze de UI de este Mes: el primer intento real de correr

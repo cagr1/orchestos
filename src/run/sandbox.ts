@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import { withGitLock } from './git-lock.ts'
 
 export interface Worktree {
   path: string
@@ -74,7 +75,15 @@ export function createWorktree(taskId: string, baseBranch: string, projectRoot: 
   return { path: worktreeDir, branch, baseBranch, projectRoot, cleanup }
 }
 
+// Mes 22/E.5 — toda esta función toca `worktree.projectRoot` (checkout, merge,
+// worktree remove, branch -D) — el mismo repo/working-dir que los auto-commits
+// de tasks.yaml (D.5/D.7) y que OTRO merge-back concurrente. `withGitLock`
+// serializa contra ambos (ver git-lock.ts para la causa raíz que esto cierra).
 export function mergeWorktreeBack(worktree: Worktree, strategy: MergeStrategy, message?: string): void {
+  withGitLock(worktree.projectRoot, () => mergeWorktreeBackLocked(worktree, strategy, message))
+}
+
+function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, message?: string): void {
   if (strategy === 'discard') {
     worktree.cleanup()
     return

@@ -14,6 +14,7 @@ import { getProject } from '../../db/projects.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { parsePlan } from '../../agents/planner.ts'
 import { git } from '../../run/sandbox.ts'
+import { withGitLock } from '../../run/git-lock.ts'
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
@@ -183,8 +184,13 @@ function createTaskRecord(root: string, params: CreateTaskParams): { id: string 
     // best-effort de solo tasks.yaml (mismo archivo que se acaba de tocar); si
     // el usuario tenía OTROS archivos sucios, esos siguen bloqueando el run
     // como corresponde — esto no oculta desprolijidad ajena a la creación.
-    git(['add', 'tasks.yaml'], root)
-    git(['commit', '-m', `chore(tasks): add ${finalId} (dashboard)`], root)
+    // E.5 — bajo el mismo lock que mergeWorktreeBack: sin esto, este commit
+    // directo a master podía intercalarse con el checkout+merge de un
+    // worktree en vuelo (IDEAS #48, reproducido en vivo 3+ veces).
+    withGitLock(root, () => {
+      git(['add', 'tasks.yaml'], root)
+      git(['commit', '-m', `chore(tasks): add ${finalId} (dashboard)`], root)
+    })
     return { id: finalId }
   } catch (e: any) {
     return { error: e.message, status: 500 }
@@ -193,8 +199,11 @@ function createTaskRecord(root: string, params: CreateTaskParams): { id: string 
 
 // D.7 — mismo motivo de extracción: reusable por el auto-flow del chat.
 function spawnTaskRun(root: string, id: string, model?: string): void {
-  git(['add', 'tasks.yaml'], root)
-  git(['commit', '-m', `chore(tasks): run ${id} (dashboard)`], root)
+  // E.5 — mismo lock que arriba.
+  withGitLock(root, () => {
+    git(['add', 'tasks.yaml'], root)
+    git(['commit', '-m', `chore(tasks): run ${id} (dashboard)`], root)
+  })
   const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id]
   if (model) args.push('--model', model)
   Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })

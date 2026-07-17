@@ -49,3 +49,7 @@ dist/
 
 # playwright test artifacts
 .playwright-mcp/
+
+# runtime state del sandbox: worktrees temporales + lockfile entre procesos (E.5)
+.orchestos/worktrees/
+.orchestos/git.lock
