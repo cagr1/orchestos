@@ -102,3 +102,29 @@ examples:
   - title: Fixing a bland AI-looking dashboard
     input: "This dashboard looks generic and AI-made, make it better"
     output: "Diagnosed slop tells: cream bg, gray-on-tint body text (3.1:1), eyebrow on every panel, 32px card radius, ghost-card borders. Fixes: true off-white bg, ink-end body color (4.7:1), removed eyebrows, radius to 14px, single solid border. Reduced-motion alt added."
+  - title: Data-dense dashboard (prices, metrics, trading-style tables)
+    input: "Premium dark-mode dashboard showing live numeric data (prices, market cap, % change) for many rows"
+    output: |
+      This category fails toward "AI slop" the hardest — a soft SaaS card grid with
+      pill buttons and a blue-purple gradient CTA is the default a weak model reaches
+      for. It is WRONG for data-dense UI. Anchor on these concrete numbers instead of
+      inventing your own when the brief doesn't specify a competing style:
+      - Radius: 4-6px everywhere (never 12px+, never pill cards). Sharp reads technical.
+      - Buttons/accents: solid single color, flat. No linear-gradient, ever, on a
+        button or badge — it is the #1 tell.
+      - Font: system-ui/-apple-system stack for body IS acceptable here (it's a data
+        tool, not a brand page) — but numeric columns (price, %, market cap) MUST use
+        a tabular/monospace font-variant (font-variant-numeric: tabular-nums, or a
+        mono family) so digits align vertically as data updates. Non-monospace numbers
+        jittering in a live table is a dead giveaway of a non-serious build.
+      - Row density: table rows ≤40px tall, tight vertical padding (6-8px), not
+        48-56px "card-like" rows with generous whitespace — that's marketing-page
+        density leaking into a data tool.
+      - Color signal, not decoration: green/red for price direction should be the
+        LOUDEST color on the page; everything else (borders, secondary text, panel
+        bg) stays desaturated/neutral so the signal isn't competing with decoration.
+      - Sparklines: thin (1-1.5px stroke), no fill/gradient area under the line,
+        color matches the row's direction (green/red), not a fixed accent color.
+      - Zero rounded avatar/logo badges with a soft shadow floating over a gradient
+        circle — a coin logo is a 16-20px flat image or initials chip, not a hero
+        element.
