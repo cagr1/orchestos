@@ -247,23 +247,45 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   dashboard para tomar efecto; los fixes de hoy se probaron contra un proceso de las 17:36 durante
   varias rondas antes de notar esto.
 
-- [ ] **E.7 — 🔍 ABIERTO, requiere corrida real de Carlos para confirmar** — con el dashboard YA
-  reiniciado tras E.6, `crypto-dashboard-v2` falló DE NUEVO con la misma clase de error
-  (`git merge ... failed after rebase`). Investigación en vivo (no solo teoría): revisada la tabla
-  `runs` — sin fila para este intento (mismo patrón que E.3, el merge falla después de QA, antes
-  de `insertRun`), y `demo/crypto-page-v2/` nunca llegó a existir en ningún branch de `master` (se
-  descartó la hipótesis de "dos tareas duplicadas creando el mismo archivo con contenido
-  distinto" — no hay conflicto de contenido real posible con solo un archivo nuevo). Con E.5+E.6 ya
-  activos, la sección crítica completa (chequeo inicial + creación de worktree + rebase + reintento
-  de merge) corre bajo el MISMO lock de principio a fin — en teoría nada más puede tocar `master`
-  durante ese reintento. **El bug real seguía siendo indiagnosticable a distancia**: el código
-  descartaba por completo el `stderr` real del segundo intento de `git merge --ff-only` (solo
-  decía "failed after rebase", nunca por qué). Fix aplicado: el error ahora incluye el `stderr`
-  real de AMBOS intentos de merge (`retryMerge.stderr` + `merge.stderr` del primero), en vez de
-  reemplazarlo con instrucciones genéricas. [src/run/sandbox.ts](src/run/sandbox.ts).
-  **Este ítem queda en 🔍 (no `[x]`) hasta que el próximo fallo (si lo hay) traiga el stderr real**
-  — recién con ese dato se sabe si sigue siendo timing (un bug en el lock que todavía no encontré)
-  o un conflicto de contenido genuino de otra naturaleza. 753 tests · 0 fail · `tsc` limpio.
+- [x] **E.7 — 🔍 (2026-07-16)** Con el dashboard YA reiniciado tras E.6, `crypto-dashboard-v2`
+  falló DE NUEVO con la misma clase de error (`git merge ... failed after rebase`). El código
+  descartaba por completo el `stderr` real del segundo intento de `git merge --ff-only` — fix
+  aplicado: el error ahora incluye el `stderr` real de AMBOS intentos de merge
+  [src/run/sandbox.ts](src/run/sandbox.ts). Quedó abierto hasta el siguiente fallo — **y llegó**:
+  el stderr real fue `"Your local changes to... runs-summary.json would be overwritten by
+  merge"`. Cierra con evidencia real, ver E.9.
+- [x] **E.8 — 🧠/⚡ (2026-07-16)** Botón "Copy" en el panel de diagnosis (pedido directo de
+  Carlos: seleccionar a mano el texto largo del error era tedioso) — junto al bloque de error
+  (`d.error`) y junto a "Last Error Output"/`lastErrorResult`. Mismo patrón `data-copy` +
+  `navigator.clipboard.writeText()` que ya usa `screens-ops.js` (skills) — reusado, no inventado.
+  Bug propio encontrado y corregido en el mismo pase: la primera versión usaba `textContent` para
+  capturar/restaurar el estado del botón, lo que descarta el ícono SVG para siempre tras el primer
+  click (el `textContent` de un `<svg>` no incluye su markup); ahora usa `innerHTML` con
+  contenido 100% estático (`ICON.check` + i18n), nunca datos del usuario. Claves i18n nuevas
+  `btn.copy` (en/es). Verificado en navegador real: clipboard funciona, ícono se restaura
+  correctamente tras el ciclo "Copied". 753 tests · 0 fail · `tsc` limpio.
+- [x] **E.9 — 🧠 (2026-07-16)** El stderr real de E.7 confirmó la causa: `git merge` rechazó
+  sobreescribir `runs-summary.json` por cambios locales sin commitear. El fix de E.1 solo
+  **ignoraba** este archivo en el REPORTE de "árbol sucio" (`resolveSandboxMode`) — lo dejaba
+  genuinamente sucio en disco. Eso no rompía el chequeo de arranque (por diseño), pero SÍ rompía
+  el merge más tarde: `git merge` no sabe nada de nuestra regla de "ignóralo" y rechaza
+  sobreescribir un archivo con diff local sin commitear — el fallo real, reproducido 2 veces
+  seguidas. **Por qué no se puede simplemente dejar de trackear el archivo**: el scheduled task
+  de dreaming corre en un sandbox de Claude Code en la nube y lee `runs-summary.json` vía
+  `git pull` del repo — necesita que esté commiteado ([[project-dreaming-setup]]).
+  Fix real: no solo ignorar el diff, DESCARTARLO (`git checkout -- runs-summary.json`) para que
+  el working dir quede genuinamente limpio — aplicado en dos puntos: al inicio
+  (`resolveSandboxMode()`, [src/run/sandbox-policy.ts](src/run/sandbox-policy.ts)) y de nuevo,
+  defensivamente, justo antes del merge (`mergeWorktreeBackLocked()`,
+  [src/run/sandbox.ts](src/run/sandbox.ts)) — por si algo lo ensucia de nuevo durante la ventana
+  larga sin lock (LLM+QA+checks) entre esos dos puntos.
+  **Primer test real para `sandbox-policy.ts`** (gap pre-existente notado en E.6, cerrado ahora):
+  [src/__tests__/sandbox-policy.test.ts](src/__tests__/sandbox-policy.test.ts) con repos git
+  reales (no mocks) — prueba que el archivo queda con diff CERO después de la llamada (no solo
+  "no lanzó"), que otro archivo sucio real SÍ sigue bloqueando, y el caso limpio. Sanity-check
+  manual: con el `git checkout --` deshabilitado, el test de "queda limpio" FALLA con el mismo
+  síntoma exacto reproducido en vivo (`M runs-summary.json` persiste) — confirma que el test
+  prueba el bug real, no un artefacto. 756 tests · 0 fail · `tsc` limpio.
 - [x] **E.8 — 🧠/⚡ (2026-07-16)** Botón "Copy" en el panel de diagnosis (pedido directo de
   Carlos: seleccionar a mano el texto largo del error era tedioso) — junto al bloque de error
   (`d.error`) y junto a "Last Error Output"/`lastErrorResult`. Mismo patrón `data-copy` +

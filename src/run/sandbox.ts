@@ -105,6 +105,16 @@ function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, me
     }
   }
 
+  // Mes 22/E.9 — descarte defensivo del mismo archivo que resolveSandboxMode()
+  // ya descarta al empezar la corrida (sandbox-policy.ts). Entre ese momento y
+  // este merge pasa la ventana LARGA sin lock (LLM + QA + checks) — si algo
+  // dejó runs-summary.json sucio en projectRoot durante esa ventana (ej. un
+  // hook de OTRO commit que falló a mitad de camino, típicamente por
+  // `bun run typecheck` fallando de forma transitoria), `git merge` lo
+  // rechazaría con "your local changes would be overwritten" — el error real
+  // reproducido en vivo que E.5/E.6 no cubrían. Best-effort, nunca bloquea.
+  git(['checkout', '--', 'runs-summary.json'], worktree.projectRoot)
+
   // switch to baseBranch in the main repo and merge
   const checkout = git(['checkout', worktree.baseBranch], worktree.projectRoot)
   if (checkout.exitCode !== 0) throw new Error(`git checkout ${worktree.baseBranch} failed: ${checkout.stderr}`)

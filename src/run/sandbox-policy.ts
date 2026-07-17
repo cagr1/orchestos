@@ -25,17 +25,28 @@ export function resolveSandboxMode(projectRoot: string, preferred?: SandboxMode)
   }
 
   // check for uncommitted changes (only relevant for worktree mode)
-  const status = git(['status', '--porcelain'], projectRoot)
   // D.5 follow-up (Mes 22, 2026-07-16) — runs-summary.json lleva
   // `exported_at: new Date().toISOString()` (scripts/export-runs-summary.ts)
   // y se regenera en CADA `git commit` vía el hook pre-commit — incluso los
   // que no lo tocan a propósito. Eso lo deja "sucio" con solo el timestamp
-  // distinto justo después de un commit, condición de carrera real: el
-  // auto-commit de tasks.yaml (D.5) dispara el hook, que reescribe este
-  // archivo con un timestamp nuevo, y la corrida siguiente lo ve sucio y
-  // aborta — reproducido en vivo (retry_reason: "M runs-summary.json").
-  // No es trabajo del usuario en riesgo (es 100% derivado de la DB), así
-  // que no cuenta para la limpieza que el sandbox de worktree necesita.
+  // distinto justo después de un commit. No es trabajo del usuario en riesgo
+  // (es 100% derivado de la DB, y el repo lo necesita commiteado para que el
+  // scheduled task de dreaming en la nube lo lea vía `git pull` — no se puede
+  // simplemente dejar de trackearlo, ver [[project-dreaming-setup]]).
+  //
+  // Mes 22/E.9 — el fix anterior solo IGNORABA este archivo en el reporte de
+  // "sucio", pero lo dejaba sucio de verdad en el working dir. Eso no rompía
+  // el chequeo de arranque, pero SÍ rompía el merge-back más tarde: `git
+  // merge` no sabe nada de nuestra regla de "ignora este archivo" y rechaza
+  // sobreescribir un cambio local sin commitear — reproducido en vivo
+  // (stderr real: "Your local changes to... runs-summary.json would be
+  // overwritten by merge"). Fix real: no solo ignorar el diff, DESCARTARLO
+  // (`git checkout --`) para que el working dir quede genuinamente limpio
+  // antes de que cualquier otra operación de git (incluido un merge futuro)
+  // lo encuentre. Best-effort — si el archivo no existe o el checkout falla
+  // por cualquier motivo, seguimos con la lógica de abajo igual.
+  git(['checkout', '--', 'runs-summary.json'], projectRoot)
+  const status = git(['status', '--porcelain'], projectRoot)
   const relevantLines = status.stdout
     .split('\n')
     .filter(l => l.trim().length > 0 && !/\bruns-summary\.json$/.test(l))
