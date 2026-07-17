@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-07-17T02:31:51.564Z",
-  "total_runs": 18,
+  "exported_at": "2026-07-17T10:59:19.105Z",
+  "total_runs": 20,
   "runs": [
+    {
+      "id": "1e8891ce-9004-4ecc-9304-b42bb9f955c4",
+      "task_class": "plan",
+      "model": "anthropic/claude-haiku-4-5",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "The file is a comprehensive, self-contained cryptocurrency dashboard with live CoinGecko API integration, search/sorting/auto-refresh functionality, inline SVG sparklines, skeleton/error/empty states, responsive dark-mode design, and all features working as specified.",
+      "files_blocked": [],
+      "checks_failed": 1,
+      "usd_cost": 0.036557400000000004,
+      "elapsed_ms": 34059,
+      "tokens": 15157,
+      "created_at": "2026-07-17T02:32:30.032Z"
+    },
+    {
+      "id": "5fe69365-4431-4589-b19f-b8241ecbd6ad",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.000317912,
+      "elapsed_ms": 0,
+      "tokens": 2945,
+      "created_at": "2026-07-17T02:32:02.111Z"
+    },
     {
       "id": "de85ddc1-e8b8-45fc-b39a-e0ef994111a9",
       "task_class": "chat",
@@ -276,8 +306,8 @@
   "stats": {
     "failed": 2,
     "blocked": 0,
-    "done": 16,
+    "done": 18,
     "qa_failed": 0,
-    "total_cost_usd": "0.0464"
+    "total_cost_usd": "0.0833"
   }
 }

@@ -1193,6 +1193,43 @@ que debuggear un fallo (como los de hoy) dependa 100% de leer logs después del 
 **Esfuerzo**: medio — el mecanismo de streaming/polling es la parte nueva; las etapas ya existen
 como eventos internos del harness, solo hace falta exponerlas.
 
+### 50. Chat persistente con sesiones acotadas (máx ~20) — no copiar el patrón de chats infinitos
+
+**Origen**: Carlos (2026-07-17), decisión de diseño de producto explícita — NO quiere copiar el
+patrón de la industria (Claude Desktop, ChatGPT, Codex: historial infinito de conversaciones que
+nadie vuelve a abrir). Dos partes:
+
+**(a) Bug/gap verificado en código**: `chatHistory` vive SOLO en memoria JS (`app.js:80`,
+`state.chatHistory: []`) — ni localStorage ni SQLite. Al refrescar la página se pierde TODA la
+conversación. OrchestOS ya tiene SQLite local como DB — no hay razón para que el chat sea efímero
+cuando la memoria del sistema (tabla `memory`, `runs`) ya persiste todo lo demás. "De qué sirve
+tener memoria si no la ocupo en esto" (Carlos, literal).
+
+**(b) Sesiones con límite duro (~20, configurable)**: en vez de historial infinito, un máximo de
+~20 conversaciones. Al llegar al tope: la más vieja se archiva/borra (política a decidir — puede
+ser FIFO automático con aviso, o pedir al usuario elegir). Racional de Carlos: la mayoría de
+usuarios jamás regresa a un chat viejo; sesiones infinitas solo acumulan ruido. Contexto de la
+industria (investigado 2026-07-17): los proveedores guardan todo porque (1) almacenar texto es
+casi gratis y borrar cuesta confianza del usuario, (2) en planes consumer las conversaciones
+pueden usarse para entrenamiento (ChatGPT por defecto con opt-out; Anthropic pide consentimiento
+explícito desde 2025) — OrchestOS no entrena nada, así que ese incentivo no aplica: puede
+permitirse el diseño más honesto (límite + persistencia local).
+
+**Distinción técnica clave para el diseño** (por qué "el LLM te pide abrir chat nuevo"): guardar
+el historial es barato; RE-ENVIARLO al modelo en cada mensaje es lo caro — cada turno re-manda
+toda la conversación, y un chat largo degrada calidad y quema tokens. Son dos problemas distintos:
+persistencia (disco, resuelve (a)) vs. ventana de contexto (modelo, ya cubierto por el aviso de
+límite existente en el chat + [[feedback-no-compactar-contexto]]: nunca comprimir a ciegas, avisar
+y cortar a sesión nueva — que con (b) se convierte en "avisar y abrir una de las 20 sesiones").
+
+**Qué hacer**: (1) tabla `chat_sessions` + `chat_messages` en SQLite (mismo patrón que `runs`);
+(2) lista de sesiones en la UI del chat (crear/cambiar/borrar), con el límite de ~20 aplicado al
+crear; (3) al refrescar, restaurar la sesión activa; (4) el aviso de contexto lleno ofrece
+"continuar en sesión nueva" que arrastra un resumen corto opcional — nunca compactar en silencio.
+
+**Esfuerzo**: medio — el modelo de datos es simple (SQLite ya está); el grueso es la UI de
+sesiones en el chat y decidir la política exacta del tope.
+
 ---
 
 ## Feedback
