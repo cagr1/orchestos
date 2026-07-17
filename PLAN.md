@@ -224,6 +224,29 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   confirma que el test realmente prueba el mutex, no un artefacto de timing. 753 tests · 0 fail ·
   `tsc` limpio.
 
+- [x] **E.6 — 🧠 (2026-07-16)** E.5 protegió las ESCRITURAS (auto-commit) y el MERGE, pero no la
+  LECTURA — `resolveSandboxMode()` (`git status --porcelain`, el chequeo de "árbol limpio" al
+  INICIAR una corrida) corría fuera del lock. Reproducido en vivo tras reiniciar el dashboard con
+  E.5 ya activo: `crypto-dashboard-v2-premium` falló con el mensaje ORIGINAL de D.5
+  ("Uncommitted changes... M tasks.yaml") — porque `git add`/`git commit` del auto-commit son DOS
+  llamadas separadas (no atómicas); si el chequeo de OTRA corrida cae justo entre esas dos, ve el
+  `git add` ya hecho pero el commit todavía no, y aborta por un estado transitorio que un instante
+  después iba a quedar limpio. Fix: `resolveSandboxMode()` + `createWorktree()` ahora corren
+  DENTRO del mismo `withGitLock()` que ya protegía el merge-back y los auto-commits — una sola
+  sección crítica corta al INICIO de la corrida (el LLM/QA/checks siguen corriendo SIN el lock
+  tomado, no se serializa la ejecución completa, solo el chequeo+creación de worktree).
+  [src/run/harness.ts](src/run/harness.ts). 753 tests · 0 fail · `tsc` limpio.
+  **Gap de test honesto**: la cobertura de este wiring específico (harness.ts sí llama al lock en
+  el punto correcto) descansa en el typecheck + la suite existente, no en un test de integración
+  end-to-end con git real reproduciendo la ventana exacta — `sandbox.ts`/`sandbox-policy.ts` no
+  tienen test file dedicado (gap pre-existente, no nuevo de hoy). El mecanismo del mutex en sí
+  (`git-lock.ts`) SÍ tiene la prueba de concurrencia real de E.5.
+  **Nota operativa importante (no es bug de código)**: este fallo específico salió con el
+  dashboard YA reiniciado después de E.5 — confirma que Bun no recarga código en caliente y
+  cualquier fix a `src/dashboard/`, `src/run/`, `src/cli.ts` exige reiniciar el proceso del
+  dashboard para tomar efecto; los fixes de hoy se probaron contra un proceso de las 17:36 durante
+  varias rondas antes de notar esto.
+
 ### Bloque D — 🧠 Flujo chat→tarea usable (orden directa de Carlos, 2026-07-16)
 
 Excepción explícita de Carlos al freeze de UI de este Mes: el primer intento real de correr

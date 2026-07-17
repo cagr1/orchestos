@@ -38,6 +38,7 @@ import { buildPrompt } from './prompt.ts'
 import { runChecks, defaultChecksFor, type CheckResult } from './checks.ts'
 import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
+import { withGitLock } from './git-lock.ts'
 import { loadSpec } from '../spec/store.ts'
 import { checkContextHealth, shouldCheck, type RunState } from '../hooks/context-monitor.ts'
 import { ensureCatalogLoaded, contextWindowFor, knownMaxOutputTokensFor } from '../router/model-catalog.ts'
@@ -197,14 +198,27 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       }
     }
 
-    // resolve sandbox (if not already resolved by caller, do it here)
-    const policy = sandboxMode
-      ? { mode: sandboxMode, branch: sandboxBranch ?? null, warnings: [] as string[] }
-      : resolveSandboxMode(projectRoot)
+    // Mes 22/E.6 — resolveSandboxMode() (git status --porcelain) y createWorktree()
+    // (git branch + worktree add) tienen que correr bajo el MISMO lock que
+    // mergeWorktreeBack() y los auto-commits de tasks.yaml (E.5) — sin esto,
+    // un auto-commit a medio camino (git add hecho, git commit todavía no) deja
+    // una ventana donde `git status --porcelain` ve el árbol sucio de forma
+    // transitoria y esta corrida aborta con "Uncommitted changes" aunque el
+    // auto-commit ya iba a completar un instante después. Reproducido en vivo
+    // (retry_reason: "M tasks.yaml" sin ningún archivo ajeno sucio). Solo se
+    // bloquea esta sección corta (chequeo + creación de worktree), no la
+    // corrida completa — el LLM/QA/checks corren SIN el lock tomado.
+    const { policy, worktree: createdWorktree } = withGitLock(projectRoot, () => {
+      const p = sandboxMode
+        ? { mode: sandboxMode, branch: sandboxBranch ?? null, warnings: [] as string[] }
+        : resolveSandboxMode(projectRoot)
+      const wt = (p.mode === 'worktree' && p.branch && t.id) ? createWorktree(t.id, p.branch, projectRoot) : null
+      return { policy: p, worktree: wt }
+    })
     for (const w of policy.warnings) log.info(w)
 
-    if (policy.mode === 'worktree' && policy.branch && t.id) {
-      worktree = createWorktree(t.id, policy.branch, projectRoot)
+    if (createdWorktree) {
+      worktree = createdWorktree
       effectiveRoot = worktree.path
       log.info(`sandbox: worktree created at ${worktree.path} (branch: ${worktree.branch})`)
     } else if (policy.mode === 'worktree') {
