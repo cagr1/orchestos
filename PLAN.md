@@ -510,24 +510,38 @@ le conviene trabajar —
   3. **Desviación silenciosa / regresión** — cambia o rompe una regla sin avisar ni justificar
      (el que "destruye" — exactamente lo que pasó con G.5).
 
-- [ ] **F.1 — 🧠 Diseño del ledger (especificación, requiere OK de Carlos antes de tocar código):**
-  archivo append-only `LEDGER.md` en la raíz del repo (mismo estatus que PLAN/IDEAS/DONE:
-  versionado en git, legible por humano, sin infra extra — coherente con la filosofía del vault de
-  Carlos). Cada entrada registra:
-  - **Fecha/hora real** (zona de Carlos, America/Guayaquil — nunca adivinar el momento del día).
-  - **Modelo** — el id exacto (`claude-opus-4-8`, `claude-sonnet-5`, `claude-fable-5`,
-    `deepseek/deepseek-v4-flash`, `minimax-m3`, `kimi-*`, etc.). **Dato autoritativo, no
-    auto-reportado**: en sesión interactiva de Claude Code el runtime YA sabe el modelo activo (lo
-    fija Carlos con `/model`); en corridas agénticas el modelo vive en la tabla `runs`. El ledger
-    toma ese dato de la fuente confiable, no de que el LLM "diga" quién es (un modelo podría mentir).
-  - **Regla tocada** — link al slug de memoria / ítem de PLAN.md / sección de CLAUDE.md afectada.
-  - **Clasificación** — uno de: `RESPETÓ` · `DESVIÓ-CON-RAZÓN` · `OVERRIDE-PEDIDO-POR-CARLOS` ·
-    `REGRESIÓN` (rompió una regla marcada "no reabrir" sin que Carlos lo pidiera).
-  - **El porqué (obligatorio si no es `RESPETÓ`)** — el argumento concreto de por qué desvió o
-    cambió la regla. Una entrada `DESVIÓ-CON-RAZÓN` sin argumento sólido cuenta como `REGRESIÓN`.
-  - **Reversibilidad + evidencia** — ¿se puede deshacer?, ¿qué prueba/commit lo respalda? (mismo
-    eje reversibilidad+demostrabilidad de [[project-improver-and-4-states-candidate]] / el
-    "Owner Decision Brief" de maintainer-orchestrator en el vault).
+- [x] **F.1 — 🧠 (2026-07-18) Diseño del ledger APROBADO por Carlos.** `LEDGER.md` append-only en
+  la raíz del repo (mismo estatus que PLAN/IDEAS/DONE: versionado en git, texto plano, sin infra
+  nueva). Formato de entrada aprobado:
+
+  ```markdown
+  ## 2026-07-18 14:32 America/Guayaquil — claude-sonnet-5
+
+  **Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E)
+  **Clasificación**: REGRESIÓN
+  **Por qué**: harness.ts volvió a clampear max_tokens al catálogo (8192 fijo) en vez de
+  derivar de contextWindow−prompt. No fue una decisión consciente — se reintrodujo el patrón
+  viejo sin darse cuenta de que pisaba una regla marcada "no reabrir".
+  **Reversibilidad/evidencia**: commit d6e1791 revierte el clamp. Sin backup necesario —
+  cambio de código puro, sin side-effects en datos.
+
+  ---
+  ```
+
+  Campos: **fecha/hora real** (zona de Carlos, America/Guayaquil — nunca adivinar el momento del
+  día); **modelo** — id exacto, dato **autoritativo, no auto-reportado** (runtime activo en sesión
+  interactiva vía `/model`; columna `model` de `runs` en corridas agénticas — nunca lo que el LLM
+  "diga" ser); **regla tocada** — link al slug de memoria / ítem de PLAN.md / sección de CLAUDE.md;
+  **clasificación** — uno de `RESPETÓ` · `DESVIÓ-CON-RAZÓN` · `OVERRIDE-PEDIDO-POR-CARLOS` ·
+  `REGRESIÓN`; **por qué** (obligatorio si no es `RESPETÓ` — una entrada `DESVIÓ-CON-RAZÓN` sin
+  argumento sólido cuenta como `REGRESIÓN`); **reversibilidad + evidencia** — ¿se puede deshacer?,
+  ¿qué prueba/commit lo respalda? (mismo eje de [[project-improver-and-4-states-candidate]]).
+
+  **Decisión de disparo (Carlos, 2026-07-18, define el alcance de F.2)**: `RESPETÓ` se registra
+  **siempre** que un LLM toca una regla documentada marcada "no reabrir"/relevante y la respeta —
+  no solo on-demand. Da el conteo completo por modelo que F.3 necesita mostrar (RESPETÓ vs.
+  DESVIÓ vs. REGRESIÓN), a costa de más volumen de entradas — aceptado explícitamente sobre las
+  alternativas de "solo on-demand" o "no registrar obediencia".
 - [ ] **F.2 — 🧠 Regla de obligatoriedad + enforcement (parte del diseño F.1):** ningún LLM puede
   saltarse el ledger cuando toca una regla documentada de Carlos. Definir el mecanismo (no es solo
   "pedir por favor" en CLAUDE.md): candidatos — (a) hook `UserPromptSubmit`/por-turno que recuerde
