@@ -154,8 +154,20 @@ cuando es 0/desconocido → presupuesto completo, nunca el 8192 arbitrario.
 - [x] **E.1 — 🧠 (2026-07-16)** `knownMaxOutputTokensFor()` (raw, 0 = desconocido) en model-catalog.ts;
   `harness.ts` y `chat.ts` derivan de `contextWindow − prompt` y solo clampean con topes reales >0.
   Elimina el 8192 del path de `max_tokens`. [src/router/model-catalog.ts](src/router/model-catalog.ts).
-- [ ] **E.2 — 🔍** Re-correr `crypto-page-v2` en vivo con el fix y confirmar que completa sin truncar
-  (lo corre Carlos, gasta dinero real). Recién ahí se retoma el veredicto C.2.
+- [x] **E.2 — 🔍 (2026-07-18) CERRADO con evidencia real ya existente, sin gate manual nuevo.**
+  Corrección de una lectura errónea del mismo día: no existe ni existió una tarea con id literal
+  `crypto-page-v2` — ese bloque de `tasks.yaml` es `crypto-dashboard-v2-mrobnuay` (sufijo random =
+  auto-creación desde el chat, Bloque D.7), cuyo `output` apunta a `demo/crypto-page-v2/index.html`
+  (el path, no el id). El gate tal como estaba escrito (re-correr una tarea con ese id exacto) ya
+  no aplica. En su lugar, la DB confirma la prueba con evidencia más fuerte que la que el gate
+  original pedía: el fix de E.1 se commiteó `d6e1791` (2026-07-16T22:09 UTC); los 2 truncamientos
+  reales en `runs` (`crypto-dashboard-premium-v2` 20:48 UTC, `crypto-page-v2` 21:55 UTC) son ambos
+  **previos** a ese commit. Desde el fix, **7 corridas reales consecutivas** (dinero real, sin
+  gate artificial) — `crypto-dashboard-v2-mrobnuay`, `crypto-dashboard-visual-iteration`,
+  `crypto-terminal-v3`, `crypto-terminal-v4`, `crypto-terminal-coinmarketcap-v5`,
+  `apple-es-design-system` (4 archivos), `apple-es-storefront-hero-grid` — todas `status: done`,
+  cero errores de truncamiento, incluyendo salidas más grandes que las que fallaban antes (hasta
+  $0.40/corrida). El fix está probado en producción real, no hace falta repetir el gate.
 
 **Nota sobre el planner (pregunta de Carlos):** Haiku-como-planner SÍ es el mecanismo de auto-split
 (`shouldSplit` → `generatePlan`), pero el gate mide por NÚMERO de archivos (`output.length × 2048`),
@@ -615,6 +627,103 @@ había empezado sin plan compartido y Carlos cortó a mitad de camino).
 la calidad de lo que se viene probando toda la sesión (las páginas de crypto/Apple) y es el cambio
 más chico — cerrarlo primero. G.3+G.4 son la pieza grande (diseño propio antes de codear). G.5
 queda pendiente de que Carlos pueda darle a Claude el contrato real de `opencode`.
+
+---
+
+### Bloque H — 🧠 Rediseño de Settings: de "debug-dump" a producto premium (orden de Carlos, 2026-07-18)
+
+Carlos auditó la pantalla de Settings en vivo y marcó 5 puntos concretos donde la UI muestra datos
+correctos pero sin propósito ni acabado, más una referencia explícita a **cómo lo hace Orca**
+(`github.com/stablyai/orca`, Electron/React MIT, `src/` público — auditado en esta sesión) y a
+**graduar la idea #27** (tab de consumo/gasto estilo OpenRouter + heatmap tipo GitHub). Esto toca
+múltiples módulos (`handlers/config.ts`, `handlers/setup.ts`, `db/runs.ts`, `public/screens-ops.js`,
+`public/i18n.js`, CSS del `settings-shell`) y redefine una superficie central (Settings) — por eso,
+regla [[feedback-planificar-cambios-grandes]] (2026-07-17): queda escrito acá ANTES de codear.
+
+**Antes de tocar cualquier UI de este bloque:** invocar la skill `frontend-design` (y `ux-guidelines`
+si el cambio es de interacción), grep de patrones ya existentes en el dashboard para reusar en vez de
+reconstruir (ej. `buildModelSelect()`, `theme-picker`, cards de `settings-card`), y nunca introducir
+un `<select>` largo sin buscador — regla de frontend global de Carlos (`~/.claude/CLAUDE.md`).
+
+Referencia de diseño auditada en Orca (no copiar 1:1, sí robar el patrón):
+- **Config de agentes/CLI** (`AgentsPane.tsx`): cada agente CLI es una *fila de catálogo* — icono,
+  estado detectado/no-detectado, toggle enabled, radio "default", y campos de Command/Args/Env
+  editables inline SOLO como override con botón "Reset". El path/comando nunca se muestra como texto
+  suelto: se muestra como default editable con estado explícito.
+- **Uso vs gasto separados**: Orca muestra *porcentaje de uso del rate-limit del proveedor* en la
+  status bar (usado/restante configurable, por cuenta), distinto del *gasto en $*. Son dos métricas
+  distintas — no mezclarlas en una sola card.
+- **Settings con búsqueda en vivo** y agrupación por categorías + una entrada por proyecto (no un tab
+  genérico "Project" con paths crudos).
+
+- [ ] **H.1 — 🧠 Tab de consumo/gasto (graduación de IDEAS #27) — la pieza grande.**
+  Tab nuevo en Settings, agregación **pura** sobre `runs` (SQLite ya tiene `usd_cost`, `model`,
+  `task_class`, `created_at` por corrida — incluye chat desde `logChatRun()`, `handlers/chat.ts`).
+  NO crear tabla nueva. Mostrar: (a) gasto en $ por día/semana/mes con desglose **por modelo** estilo
+  openrouter.ai; (b) conteo de mensajes/tokens por día; (c) **heatmap tipo GitHub contributions** de
+  actividad diaria — es la parte más nueva visualmente, el resto reusa patrones ya probados. Endpoint
+  nuevo de agregación (`GET /api/usage` o similar), reusando la lógica de suma que hoy vive suelta en
+  `costLast7d` ([setup.ts:221](src/dashboard/handlers/setup.ts:221)). Esfuerzo real: bajo-medio en
+  backend (SQL), medio en frontend (heatmap + desglose).
+- [ ] **H.2 — 🔍 Investigar el gap del costo ($1.56 vs. run caro que falló).** Carlos vio ~$1.56 en
+  "estado del proyecto" cuando una corrida anterior costó casi $5. Dos hipótesis a verificar contra
+  la DB real (`sqlite3 .orchestos/db.sqlite "select id,created_at,usd_cost,status from runs order by
+  created_at desc limit 20"`): (1) el run caro cayó **fuera de la ventana de 7 días** de `costLast7d`
+  — no es bug, es falta de contexto en la UI (ver H.3); (2) el proceso murió **antes de llegar a
+  `insertRun()`** — sería un bug de persistencia real. Nota: el executor externo ya rechaza reportar
+  $0 silencioso ([external.ts:262](src/run/executors/external.ts:262)), así que un timeout normal SÍ
+  persiste con costo conocido — un gap apunta a crash pre-persistencia, no a timeout. Gate 🔍: no
+  cerrar H.1 declarando "el costo ya se ve bien" sin haber corrido este query y explicado el número.
+- [ ] **H.3 — ⚡ Contexto "7 días" visible en el costo.** El health panel dice "Costo (7 días)"
+  ([screens-ops.js:1092](src/dashboard/public/screens-ops.js:1092)) pero la card de "estado del
+  proyecto" que ve Carlos pierde ese marco y el número se lee como "gasto total". Fix chico: rótulo
+  explícito de ventana temporal donde se muestre el costo. Reemplazado en gran parte por H.1 si el
+  tab de consumo pasa a ser la fuente canónica de gasto.
+- [ ] **H.4 — 🧠 Preview de routing: de card permanente a preview inline.** Hoy "Tareas pendientes —
+  preview de routing" es una card aislada al fondo que **duplica la lista de Tasks** sin aportar más
+  que el modelo resuelto ([config.ts:32-41](src/dashboard/handlers/config.ts:32),
+  [screens-ops.js:1175](src/dashboard/public/screens-ops.js:1175)). El propósito real es válido
+  (simular qué modelo le tocaría a cada tarea pending con los roles actuales vía el mismo `autoRoute()`
+  del harness), pero mal enmarcado. Moverlo a preview inline pegado al botón "Guardar routing"
+  ("guardar esto afecta a N tareas pendientes — ver") en vez de tabla huérfana permanente. Título que
+  comunique "simulación", no "lista de tareas".
+- [ ] **H.5 — ⚡ Executor timeout: copy que explique el propósito.** El campo de minutos
+  ([screens-ops.js:1213](src/dashboard/public/screens-ops.js:1213)) es una salvaguarda técnica del
+  proceso hijo cuando `engine: external` (CLI headless que puede colgarse), NO un límite arbitrario
+  de ejecución. Agregar copy que lo explique (helper text / tooltip) para que no se lea como una
+  decisión de producto sin origen.
+- [ ] **H.6 — 🧠 Fuente de config: mejor presentación.** El badge `configFound` (custom vs defaults,
+  [config.ts:44](src/dashboard/handlers/config.ts:44), [screens-ops.js:1130](src/dashboard/public/screens-ops.js:1130))
+  muestra el dato correcto pero como `<span>` suelto con tooltip. El archivo NO es obligatorio (si
+  falta, `loadOrcheConfig()` cae a defaults, por eso hay botón "Crear config"). Mejorar: explicar qué
+  defaults se usan cuando falta, y por qué el archivo importa cuando existe. Sí tiene sentido mostrar
+  la fuente — el problema es la presentación, no el dato.
+- [ ] **H.7 — 🧠 Tab "Proyecto": ELIMINAR la card de paths crudos (decisión de Carlos, 2026-07-18).**
+  `cwd`, `~/.orchestos/.env` y el comando `orchestos dashboard --port 4242`
+  ([screens-ops.js:1354-1360](src/dashboard/public/screens-ops.js:1354)) son texto plano no accionable
+  — debug info de dev expuesta al usuario final. Carlos decidió **quitar la card entera** (no volverla
+  accionable ni fusionarla). El bloque "danger zone" (system reset) de ese mismo tab SÍ se queda —
+  reevaluar entonces si el tab "Proyecto" sigue teniendo razón de existir con solo el danger zone, o
+  ese reset se reubica (ej. en General) y el tab desaparece.
+- [ ] **H.8 — 🧠 Acabado visual general al estándar premium.** Una vez resueltos H.1-H.7, pasar la
+  pantalla completa por el estándar Orca/Anthropic: patrón fila-de-catálogo donde aplique (routing,
+  executor), jerarquía tipográfica real, espaciado consistente, sin cards genéricas repetidas. Gate
+  visual: verificar en vivo contra el dashboard real (levantar, revisar, **cerrar el servidor** —
+  [[feedback-siempre-cerrar-servidor]]), no solo en el código.
+
+**Explícitamente FUERA de esta pasada** (no expandir el scope sin nueva orden de Carlos):
+- **NO** construir un "AI Vault" / workspace de sesiones de Claude escaneadas de disco (lo que Orca
+  hace en `AiVaultPanel.tsx`, tab del sidebar derecho con resume de sesiones). Es un feature nuevo
+  grande, no un rediseño de Settings — si Carlos lo quiere, entra como idea aparte en IDEAS.md.
+- **NO** el selector de modelo dinámico por tier ni el chat-por-CLI — eso es Bloque G (G.3/G.4).
+- **NO** multi-proveedor en el chat (IDEAS #31) ni porcentaje de rate-limit por cuenta estilo Orca
+  (requeriría leer el rate-limit del proveedor, no está en `runs`) — anotar como idea si interesa,
+  pero el gasto en $ (H.1) es lo pedido hoy.
+
+**Orden de ejecución sugerido**: H.2 primero (query a la DB — destapa si hay bug de persistencia
+antes de construir el tab sobre datos posiblemente incompletos). Luego H.1 (la pieza grande, sobre
+la que H.3 se apoya o se absorbe). H.4/H.5/H.6/H.7 son fixes acotados de una card cada uno — pueden
+ir en cualquier orden. H.8 al final (acabado sobre lo ya resuelto).
 
 ---
 

@@ -17,10 +17,11 @@ son la referencia detallada, no el orden de ejecución.
 Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashboard. Ver
 [PLAN.md](PLAN.md) § v0.12.
 
-**Graduado a PLAN v0.13 (ya NO vive acá):** #32 (presupuesto de outputs de tools, Bloque A) y
+**Graduado a PLAN v0.13 (ya NO vive acá):** #32 (presupuesto de outputs de tools, Bloque A),
 #36 (check de sintaxis JS/HTML en `defaultChecksFor`, Bloque A.5) — prerequisitos para reabrir
-C.2. Ver [PLAN.md](PLAN.md) § Mes 22 (v0.13). Decisión de Carlos (2026-07-15): primero que
-OrchestOS *entregue* un producto premium (C.2), luego las modificaciones de UI.
+C.2 — y #27 (tab de consumo/gasto estilo OpenRouter + heatmap tipo GitHub, Bloque H — rediseño de
+Settings, 2026-07-18). Ver [PLAN.md](PLAN.md) § Mes 22 (v0.13). Decisión de Carlos (2026-07-15):
+primero que OrchestOS *entregue* un producto premium (C.2), luego las modificaciones de UI.
 
 **P1 — acabado / papercuts que hacen que se sienta terminado (POSPUESTOS hasta después de C.2):**
 - #43 — **panel derecho como IDE embebido**: tabs reales en `main`, explorer estilo VS Code
@@ -28,7 +29,6 @@ OrchestOS *entregue* un producto premium (C.2), luego las modificaciones de UI.
   textual de Carlos (2026-07-14), transcrito sin reinterpretar en el ítem completo
 - #40 — editor de Constitution: Guardar/Limpiar explícitos en vez de auto-save silencioso (bug real)
 - #14 — notificaciones del sistema cuando algo termina en segundo plano
-- #27 — tab de consumo/gasto en Settings (agregación pura sobre `runs`)
 - #17 — chat multi-sesión + aviso al 75% de contexto
 - #37 — modo "empezar gratis" (modelos `:free` de OpenRouter por defecto)
 
@@ -563,21 +563,6 @@ edita ningún engine).
 **Riesgo**: cambia el workflow central de cómo se escriben las tareas. Evaluar en un bloque experimental antes de adoptar globalmente.
 
 **Esfuerzo**: medio — instalación simple (`uv tool install specify-cli`), pero requiere repensar cómo se redactan las tareas en `tasks.yaml`. Candidato a spike de 1 bloque para evaluar si encaja.
-
----
-
-### 27. Tab de consumo/gasto en Settings — día/semana/mes por modelo
-
-**Origen**: sesión 2026-07-07. Al remover el redirect automático a Settings por `costLast7d > $0.50` (bug — el umbral era ridículo y secuestraba el home, ver [[feedback-home-siempre-chat]]), Carlos aclaró que sí quiere visibilidad de gasto — solo que como panel consultable, no como interrupción forzada. Referencia explícita: el estilo de openrouter.ai (desglose por modelo) y el contador de mensajes/tokens diario tipo GitHub (heatmap de actividad) de la app de escritorio de Claude.
-
-**Qué mostrar:**
-- Gasto en $ por día/semana/mes, desglosado por modelo (mismo dato que ya vive en `runs.cost` — no hace falta tracking nuevo, es agregación).
-- Conteo de mensajes/tokens consumidos por día — cubre tanto `runs` (task execution) como `chat_messages`/tokens de chat si ya se trackean ahí.
-- Idealmente un heatmap tipo GitHub contributions para actividad diaria, además de las sumas semanal/mensual.
-
-**Qué ya existe (NO reconstruir)**: `runs` (SQLite) ya tiene `cost`, `model`, `created_at` por cada corrida — es la fuente de verdad, ya usada por `costLast7d` (el cálculo que se acaba de remover del redirect, pero la función de agregación en sí puede reusarse para el nuevo tab). **Actualizado 2026-07-08**: se corrigió un gap real descubierto por Carlos — el Chat nunca llamaba `insertRun()`, así que cada mensaje conversacional era invisible para `runs`/el dashboard aunque sí se facturaba en OpenRouter (causa real de la discrepancia que notó entre su consumo real y lo que mostraba OrchestOS). Ya arreglado: cada turno de chat ahora inserta una fila en `runs` con `task_class: 'chat'` (`logChatRun()`, `handlers/chat.ts`). Este tab ya no necesita una tabla nueva — es agregación pura sobre `runs`, incluyendo tanto `task run` como chat.
-
-**Esfuerzo**: bajo-medio — es agregación SQL sobre datos que ya existen (`runs.cost`/`created_at`/`task_class`) + un tab nuevo en Settings (mismo patrón que "Chat evidence" en Project, Mes 18 B.1.b-ui). El heatmap tipo GitHub es la parte más nueva visualmente, resto es reuso de patrones ya probados.
 
 ---
 
