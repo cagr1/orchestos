@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git remote -v)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git fetch *)",
+      "Read(runs-summary.json)",
+      "Write(DREAMING.md)",
+      "Edit(DREAMING.md)"
+    ]
+  },
+  "description": "Allowlist mínimo para que la rutina programada orchestos-dreaming (scripts/dreaming) corra sin prompts de permiso en el sandbox cloud, donde el repo se clona fresco y .claude/settings.local.json (gitignored) no está disponible."
+}

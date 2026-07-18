@@ -40,8 +40,10 @@ runs/*.log
 
 dist/
 
-# local tool configs
-.claude/
+# local tool configs (settings.json se commitea a propósito: allowlist de permisos
+# para rutinas programadas que corren en un clon fresco del repo, ej. dreaming)
+.claude/*
+!.claude/settings.json
 .github/workflows/
 
 # temporary test directories
