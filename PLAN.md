@@ -565,6 +565,16 @@ le conviene trabajar —
   bloquear commits legítimos. **Cuándo es obligatorio**: solo cuando se cambia/override/reinterpreta/
   decide-no-seguir una regla documentada — NO por cada acción trivial (el ledger no es un log de
   actividad, es un registro de decisiones sobre reglas).
+- [ ] **F.3 — 🧠 Reporte agregado bajo demanda (pedido de Carlos, 2026-07-18: "al final del
+  desarrollo o cada cierto tiempo quiero ver esta tabla").** NO es una pantalla del dashboard
+  (esa era la confusión original que motivó sacar el viejo F.3) — es un script que Carlos corre
+  cuando quiere, mismo molde que `scripts/export-runs-summary.ts` (+ entrada en `package.json`,
+  ej. `bun run ledger:report`). Parsea `LEDGER.md`, agrega por modelo: conteo de `RESPETÓ` /
+  `DESVIÓ-CON-RAZÓN` / `OVERRIDE-PEDIDO-POR-CARLOS` / `REGRESIÓN`, y una tabla en texto plano a
+  stdout (mismo estilo que el resumen de `dreaming:export`). Es la base de conocimiento propia de
+  Carlos sobre cómo actúa cada LLM en este repo — vive fuera del producto, corre cuando él decide,
+  no on-demand en cada turno. Depende de que F.1/F.2 ya estén generando entradas reales en
+  `LEDGER.md` — sin datos que agregar, este ítem no tiene nada que mostrar todavía.
 
 ### Bloque F2 — ⚡/visual Fix del panel de diagnosis (bug real de producto, separado del ledger)
 
