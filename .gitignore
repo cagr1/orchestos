@@ -41,9 +41,12 @@ runs/*.log
 dist/
 
 # local tool configs (settings.json se commitea a propósito: allowlist de permisos
-# para rutinas programadas que corren en un clon fresco del repo, ej. dreaming)
+# para rutinas programadas que corren en un clon fresco del repo, ej. dreaming.
+# protected-rules.json también se commitea a propósito: registro del gate de
+# LEDGER.md, Mes 22/F.2 — tiene que viajar con el repo, no es config local)
 .claude/*
 !.claude/settings.json
+!.claude/protected-rules.json
 .github/workflows/
 
 # temporary test directories

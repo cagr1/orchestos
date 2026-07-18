@@ -553,18 +553,29 @@ le conviene trabajar —
   día Carlos quiere revisarlo con un query/script sobre `LEDGER.md`, a costa de más volumen de
   entradas — aceptado explícitamente sobre las alternativas de "solo on-demand" o "no registrar
   obediencia".
-- [ ] **F.2 — 🧠 Regla de obligatoriedad + enforcement — mecanismo de Claude Code para ESTE repo,
-  no código de `src/`.** Ningún LLM puede saltarse el ledger cuando toca una regla documentada de
-  Carlos. Vive en `.claude/settings.json` de este proyecto (mismo lugar que el hook `AUTO-CONTEXT`
-  ya activo) — OrchestOS-el-producto no necesita saber que `LEDGER.md` existe. Candidatos: (a) hook
-  `UserPromptSubmit`/por-turno que recuerde y exija la entrada cuando detecta cambio de regla, (b)
-  chequeo en pre-commit (`scripts/pre-commit.sh`, ya existe para `tsc --noEmit`) que falle si un
-  commit toca un archivo de reglas (memory/`CLAUDE.md`/ítems "no reabrir") sin una entrada nueva en
-  `LEDGER.md`. Decidir cuál (o combinación) con Carlos antes de tocar `.claude/settings.json` o el
-  hook — misma tensión ya anotada: un hook por-turno puede ser ruidoso, un gate de pre-commit puede
-  bloquear commits legítimos. **Cuándo es obligatorio**: solo cuando se cambia/override/reinterpreta/
-  decide-no-seguir una regla documentada — NO por cada acción trivial (el ledger no es un log de
-  actividad, es un registro de decisiones sobre reglas).
+- [x] **F.2 — 🧠 (2026-07-18) IMPLEMENTADO.** Carlos eligió gate de pre-commit (sobre hook
+  por-turno o combinación) — se activa solo en el momento exacto que importa, cuando el cambio ya
+  va a quedar en git history.
+  - [.claude/protected-rules.json](.claude/protected-rules.json) — registro `{pattern, rule, note}`
+    nuevo, mismo espíritu que `.claude/settings.json` (gobernanza de este repo, nunca importado
+    desde `src/`). Seed inicial con evidencia real, no cobertura inventada: `src/run/harness.ts` y
+    `src/router/model-catalog.ts`, ambos ligados a [[feedback-context-no-max-tokens]] (la regla que
+    ya se regresionó una vez, Bloque E). **Mantenimiento a mano**: cada regla nueva marcada "no
+    reabrir" necesita su archivo agregado acá o el gate no la protege.
+  - [scripts/check-ledger-gate.ts](scripts/check-ledger-gate.ts) — lee staged files
+    (`git diff --cached --name-only`), si alguno matchea el registro exige que `LEDGER.md` esté
+    staged CON una línea agregada que matchee `^## \d{4}-\d{2}-\d{2}` (una entrada nueva real, no
+    solo el archivo tocado). Sin eso, aborta con el archivo/regla/nota exactos que faltan. Script
+    de gobernanza — vive en `scripts/`, no en `src/`, mismo criterio que `export-runs-summary.ts`.
+  - Wireado en [scripts/pre-commit.sh](scripts/pre-commit.sh) (`bun run ledger:gate`, nuevo script
+    en `package.json`) + copiado a `.git/hooks/pre-commit` (regla del `CLAUDE.md` del proyecto).
+  - **Verificado en vivo, 3 casos reales** (staged/reset manual, sin commits de prueba): (1) commit
+    sin tocar archivos del registro → pasa silencioso; (2) `harness.ts` tocado sin entrada en
+    `LEDGER.md` → bloquea con el mensaje exacto (archivo + regla + nota); (3) `harness.ts` tocado
+    CON entrada nueva en `LEDGER.md` → pasa. `tsc --noEmit` limpio.
+  - **No verifica calidad del argumento** — un LLM podría escribir una entrada vacía de contenido
+    solo para pasar el gate. Eso lo revisa Carlos leyendo `LEDGER.md`/el reporte de F.3 — el gate
+    solo garantiza que *algo* quedó escrito, no que esté bien razonado.
 - [ ] **F.3 — 🧠 Reporte agregado bajo demanda (pedido de Carlos, 2026-07-18: "al final del
   desarrollo o cada cierto tiempo quiero ver esta tabla").** NO es una pantalla del dashboard
   (esa era la confusión original que motivó sacar el viejo F.3) — es un script que Carlos corre

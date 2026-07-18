@@ -15,6 +15,12 @@ echo "🔍 Running pre-commit typecheck..."
 cd "$(git rev-parse --show-toplevel)"
 bun run typecheck
 
+# Mes 22/F.2 — gate del ledger de responsabilidad de LLMs: si el commit toca un
+# archivo listado en .claude/protected-rules.json, exige una entrada nueva en
+# LEDGER.md en el mismo commit. Gobernanza de este repo, no feature del producto.
+echo "📒 Verificando gate del ledger (Mes 22/F.2)..."
+bun run ledger:gate
+
 # Mes 22/E.10 — un worktree (sandbox de una tarea) NUNCA debe commitear
 # runs-summary.json. Con la ruta ya corregida arriba, el export queda
 # aislado a la copia del worktree (ya no ensucia el repo principal) — pero

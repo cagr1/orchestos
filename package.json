@@ -13,7 +13,8 @@
     "db:migrate": "bun run scripts/migrate-db.ts",
     "e2e:smoke": "bun run src/run/e2e-smoke.ts",
     "e2e:smoke-agents": "bun run src/run/e2e-smoke-agents.ts",
-    "dreaming:export": "bun run scripts/export-runs-summary.ts"
+    "dreaming:export": "bun run scripts/export-runs-summary.ts",
+    "ledger:gate": "bun run scripts/check-ledger-gate.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",

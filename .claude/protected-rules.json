@@ -1,0 +1,12 @@
+[
+  {
+    "pattern": "src/run/harness.ts",
+    "rule": "[[feedback-context-no-max-tokens]]",
+    "note": "max_tokens se deriva de contextWindow−prompt, nunca del clamp de maxOutputTokensFor al catálogo — ya se reintrodujo una vez (Mes 22 Bloque E, fix E.1) sin que nadie supiera qué modelo/sesión lo hizo."
+  },
+  {
+    "pattern": "src/router/model-catalog.ts",
+    "rule": "[[feedback-context-no-max-tokens]]",
+    "note": "knownMaxOutputTokensFor() debe devolver 0 (desconocido) en vez de colapsar a DEFAULT_MAX_OUTPUT_TOKENS — la misma regresión de E.1 puede reintroducirse acá."
+  }
+]
