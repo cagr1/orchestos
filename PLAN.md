@@ -36,18 +36,18 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 ---
 
-## MES 22 (v0.13) — Que OrchestOS entregue de verdad un producto premium: cerrar C.2
+## MES 22 (v0.13) — Que OrchestOS entregue de verdad un producto premium: corregir primero
 
-**Eje decidido por Carlos (2026-07-15):** primero que *entregue* algo real, luego las
-modificaciones de UI. El norte vuelve a la pregunta que Mes 20 dejó abierta a propósito
-— *"¿puede OrchestOS entregar un producto premium?"* — que sigue sin respuesta con dato
-real ([DONE.md](DONE.md) § Mes 20/C.2). Las modificaciones (P1: #43 panel IDE embebido,
-papercuts #40/#36/#27/#14) quedan **explícitamente pospuestas** hasta después de esta
-corrida — no se abren en este Mes.
-
-**Prerequisitos duros para la corrida cara (Bloque C), ambos declarados en el pre-flight
-de v0.12:** (1) Bloque A — #32 resuelto; (2) Bloque B — decisión de modelo por Carlos.
-No abrir C sin los dos verdes.
+**Eje corregido por Carlos (2026-07-18, reemplaza el eje original de 2026-07-15):** esperar un
+veredicto premium (Bloque C / Mes 20 C.2) fue prematuro — para que el motor entregue algo bueno o
+premium tiene que existir primero **la configuración** (`design.md` por niveles: normal/bueno/muy
+bueno/premium, trabajo que Carlos hace él mismo, fuera de PLAN.md). Sin eso, correr la corrida cara
+solo mediría lo que ya se sabe (E.11: el "AI slop" es falta de contexto de diseño, no bug del
+motor) y confundiría dos preguntas distintas (¿el motor agéntico multi-archivo coordina bien? vs.
+¿el resultado se ve premium?). **Bloque C sacado de este Mes** — movido a
+[IDEAS.md #52](IDEAS.md), gated en que exista el `design.md`. El eje real ahora: cerrar las
+correcciones ya identificadas (Bloques F/G/H) en orden, antes de volver a intentar un veredicto de
+producto premium.
 
 ### Bloque A — 🧠 #32: presupuesto de outputs de tools en el executor agéntico (prerequisito)
 
@@ -100,16 +100,14 @@ el mismo modo de fallo que pausó C.2.
   incluyendo 3 integration tests que prueban end-to-end que el bug de C.1 ahora se detecta).
   748 tests · 0 fail · `tsc --noEmit` limpio.
 
-### Bloque B — 🧠 GATE DE CARLOS: decisión de modelo para la corrida
+### Bloque B — 🧠 GATE DE CARLOS: decisión de modelo (prerequisito, ya no ligado a una corrida de este Mes)
 
 **No lo decide ningún LLM ni se arrastra de memoria** ([[feedback-modelo-decision-final-carlos]],
-incidente de $5.00 quemados). El modelo de la corrida C.2 es el de `orchestos.config.yaml` o el
-que Carlos indique en el momento. Este bloque está VERDE solo cuando Carlos lo confirma
-explícitamente en el turno de la corrida.
+incidente de $5.00 quemados). El modelo de cualquier corrida cara real es siempre el de
+`orchestos.config.yaml` o el que Carlos indique en el momento — nunca decisión de un LLM.
 
 - [x] **B.1 — 🧠 Carlos (2026-07-16)** Modelo confirmado explícitamente por Carlos: tal cual
   `orchestos.config.yaml` — executor `deepseek/deepseek-v4-flash`, QA `anthropic/claude-haiku-4-5`.
-  La corrida C.1 la ejecuta Carlos mismo desde el dashboard (no CLI) para observar el proceso real.
 
 **Nota — no bloquea este Mes (2026-07-15):** Carlos planteó una idea de arquitectura mayor —
 cascada de selección Local (LLM local) → CLI (Orca/OpenCode/Claude Code, corre contra la cuenta ya
@@ -119,18 +117,12 @@ más binarios) + una decisión explícita de Carlos aún pendiente por la tensi�
 [[feedback-modelo-decision-final-carlos]] (cascada automática vs. "el modelo/engine siempre lo
 decide Carlos, nunca un LLM"). No se toca código de esto hasta esa decisión.
 
-### Bloque C — 🔍 Reabrir C.2: dashboard premium multi-archivo con dinero real
-
-Solo con A y B en verde. Es el gate original y más exigente del Mes 20: dashboard premium
-multi-archivo (React+TS+Vite), motor agéntico + auto-split (S22 + Mes 20), contratos y
-verificación por sub-tarea. Responde con dato real la pregunta de producto.
-
-- [ ] **C.1 — 🔍** Corrida real de la tarea premium multi-archivo, gate con dinero real (mismo
-  patrón G.5/Mes 14/Mes 17). Registrar costo, veredicto QA y el entregable abierto de verdad en
-  el navegador (no confiar solo en checks — el bug de C.1 solo apareció abriendo la página).
-- [ ] **C.2 — 🔍** Verdicto honesto: ¿entregó un producto premium usable end-to-end? Sí/No con
-  evidencia. Todo bug real destapado en el camino se convierte en ítem antes de tocar código
-  (regla de documentación obligatoria).
+**Bloque C — SACADO de este Mes (2026-07-18, decisión de Carlos).** Era "Reabrir C.2: dashboard
+premium multi-archivo con dinero real" (C.1 corrida real + C.2 veredicto premium Sí/No). Carlos
+identificó que esperar un veredicto premium ahora fue prematuro — falta la configuración
+(`design.md` por niveles) antes de que ese veredicto tenga sentido. Movido completo a
+[IDEAS.md #52](IDEAS.md), gated en que el `design.md` exista. Se retoma como bloque de este Mes (o
+del siguiente) recién cuando esa dependencia esté resuelta — no antes.
 
 ### Bloque E — 🧠 Regresión crítica: el clamp de `max_tokens` al catálogo volvió (viola decisión de Carlos)
 

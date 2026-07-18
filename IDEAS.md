@@ -1319,19 +1319,29 @@ no hay que inventarlo.
    funcionales; nada evalúa "¿esto se ve premium?" con un modelo de visión comparando contra la
    referencia.
 
-**Por qué NO se toca ahora (decisión explícita, no descuido)**: (a) scope-lock del Mes 22/v0.13 —
-el eje es cerrar C.1/C.2, ya con 2 demos reales corridas; meter un subsistema de referencias de
-diseño a mitad de eso es el desvío que la propia regla de PLAN.md prohíbe; (b) es una decisión de
-arquitectura con varios caminos válidos (los 4 de arriba, o una combinación) — necesita que Carlos
-la piense con calma, no una elección unilateral a mitad de sesión; (c) el veredicto de C.2 con la
-capacidad ACTUAL debe cerrarse primero — recién con ese dato real tiene sentido decidir si este es
-el siguiente escalón. **No cambia la función de OrchestOS** (sigue siendo el mismo orquestador:
-decide skill/modelo, ejecuta, verifica) — es aditivo, profundiza la calidad del input al skill de
-diseño, misma categoría que E.11 de hoy, no un giro de producto.
+**Por qué NO se toca ahora (decisión explícita, no descuido)**: es una decisión de arquitectura con
+varios caminos válidos (los 4 de arriba, o una combinación) — necesita que Carlos la piense con
+calma, no una elección unilateral a mitad de sesión. **No cambia la función de OrchestOS** (sigue
+siendo el mismo orquestador: decide skill/modelo, ejecuta, verifica) — es aditivo, profundiza la
+calidad del input al skill de diseño, misma categoría que E.11, no un giro de producto.
 
 **Esfuerzo**: alto — toca el modelo de datos de tareas (referencia visual como campo nuevo),
 posible nuevo artefacto por proyecto (`design.md`), un loop de iteración que hoy no existe, y un
 QA con visión que hoy tampoco existe. Candidato de milestone propio, no un ítem suelto.
+
+**Orden invertido (decisión de Carlos, 2026-07-18) — corrige el punto (c) original de esta
+entrada**: la versión anterior de esta idea asumía que el veredicto de C.2 (Mes 20/22, "¿entrega
+premium?") debía cerrarse primero, y que el `design.md` sería el "siguiente escalón" solo si hacía
+falta. Carlos revirtió esa relación: esperar un veredicto premium **sin** que exista primero la
+configuración (`design.md` por niveles) fue un error — el motor no puede dar un resultado bueno o
+premium si no existe antes la config que define qué es cada nivel. Palanca **2** (arriba) pasa a
+ser **prerequisito**, no opción entre cuatro: Carlos va a construir él mismo un `design.md` con
+niveles explícitos — **normal / bueno / muy bueno / premium** — antes de que valga la pena volver
+a intentar el veredicto. **Bloque C** (Mes 20/22 — dashboard premium multi-archivo, C.1 corrida
+real + C.2 veredicto) se sacó de PLAN.md § Mes 22 y queda **gated en esta idea**: no se reabre
+hasta que el `design.md` por niveles exista. Las palancas 1/3/4 (referencia visual por tarea,
+iteración real, QA con visión) siguen sin decidir — el `design.md` es el primer paso, no todo el
+alcance de esta idea.
 
 ---
 
