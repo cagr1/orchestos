@@ -496,7 +496,17 @@ solo, y 3 bugs visuales/funcionales concretos. Evidencia: screenshot del draft d
   748 tests · 0 fail · `tsc` limpio. Verificado que el server bootea sin errores de wiring;
   el flujo end-to-end (gasta LLM real) queda para que Carlos lo pruebe él mismo en vivo.
 
-### Bloque F — 🧠 Ledger de responsabilidad de LLMs + fix visual del panel de diagnosis (orden de Carlos, 2026-07-16)
+### Bloque F — 🧠 Ledger de responsabilidad de LLMs (gobernanza del repo, NO feature de OrchestOS)
+
+**Reclasificación (Carlos, 2026-07-18):** esto NO es un feature del producto OrchestOS — es
+control interno de CÓMO se desarrolla OrchestOS (varios LLMs en distintas sesiones tocando este
+mismo repo, sin forma de saber después quién tocó algo que no debía). Misma categoría que
+`CLAUDE.md`, las reglas de scope-lock/delegación de este archivo, o el hook `AUTO-CONTEXT` que ya
+corre en cada sesión — **no vive en `src/`, no tiene superficie en el dashboard del producto**
+(eso sería para los usuarios finales de OrchestOS, que no son quienes esto gobierna). Por eso F.3
+(superficie en dashboard) se elimina, y el fix del panel de diagnosis (antes F.4, bug real de
+producto sin relación con el ledger, agrupado solo por coincidir en fecha) se movió a **Bloque F2**
+como ítem independiente, más abajo.
 
 Nace de un caso real de este Mes: el fix G.5 (algún modelo, alguna sesión) reintrodujo una
 regresión contra una regla que Carlos había marcado "no reabrir" ([[feedback-context-no-max-tokens]],
@@ -539,28 +549,29 @@ le conviene trabajar —
 
   **Decisión de disparo (Carlos, 2026-07-18, define el alcance de F.2)**: `RESPETÓ` se registra
   **siempre** que un LLM toca una regla documentada marcada "no reabrir"/relevante y la respeta —
-  no solo on-demand. Da el conteo completo por modelo que F.3 necesita mostrar (RESPETÓ vs.
-  DESVIÓ vs. REGRESIÓN), a costa de más volumen de entradas — aceptado explícitamente sobre las
-  alternativas de "solo on-demand" o "no registrar obediencia".
-- [ ] **F.2 — 🧠 Regla de obligatoriedad + enforcement (parte del diseño F.1):** ningún LLM puede
-  saltarse el ledger cuando toca una regla documentada de Carlos. Definir el mecanismo (no es solo
-  "pedir por favor" en CLAUDE.md): candidatos — (a) hook `UserPromptSubmit`/por-turno que recuerde
-  y exija la entrada cuando detecta cambio de regla (mismo patrón que el AUTO-CONTEXT hook actual),
-  (b) chequeo en pre-commit que falle si un commit toca un archivo de reglas (memory/`CLAUDE.md`/
-  ítems "no reabrir") sin una entrada nueva en `LEDGER.md`. Decidir cuál (o combinación) con Carlos.
-  **Cuándo es obligatorio**: solo cuando se cambia/override/reinterpreta/decide-no-seguir una regla
-  documentada — NO por cada acción trivial (el ledger no es un log de actividad, es un registro de
-  decisiones sobre reglas).
-- [ ] **F.3 — 🧠 Superficie en dashboard (parte del diseño, [[feedback-dashboard-no-solo-cli]]):**
-  el ledger no está hecho si solo vive en un `.md` — necesita una pantalla que le muestre a Carlos,
-  de un vistazo, la tabla por modelo (cuántas veces `RESPETÓ` / `DESVIÓ-CON-RAZÓN` / `REGRESIÓN`
-  cada LLM) para poder graderar con el tiempo cuál le ayuda y cuál le destruye.
+  no solo on-demand. Da el conteo completo por modelo (RESPETÓ vs. DESVIÓ vs. REGRESIÓN) si algún
+  día Carlos quiere revisarlo con un query/script sobre `LEDGER.md`, a costa de más volumen de
+  entradas — aceptado explícitamente sobre las alternativas de "solo on-demand" o "no registrar
+  obediencia".
+- [ ] **F.2 — 🧠 Regla de obligatoriedad + enforcement — mecanismo de Claude Code para ESTE repo,
+  no código de `src/`.** Ningún LLM puede saltarse el ledger cuando toca una regla documentada de
+  Carlos. Vive en `.claude/settings.json` de este proyecto (mismo lugar que el hook `AUTO-CONTEXT`
+  ya activo) — OrchestOS-el-producto no necesita saber que `LEDGER.md` existe. Candidatos: (a) hook
+  `UserPromptSubmit`/por-turno que recuerde y exija la entrada cuando detecta cambio de regla, (b)
+  chequeo en pre-commit (`scripts/pre-commit.sh`, ya existe para `tsc --noEmit`) que falle si un
+  commit toca un archivo de reglas (memory/`CLAUDE.md`/ítems "no reabrir") sin una entrada nueva en
+  `LEDGER.md`. Decidir cuál (o combinación) con Carlos antes de tocar `.claude/settings.json` o el
+  hook — misma tensión ya anotada: un hook por-turno puede ser ruidoso, un gate de pre-commit puede
+  bloquear commits legítimos. **Cuándo es obligatorio**: solo cuando se cambia/override/reinterpreta/
+  decide-no-seguir una regla documentada — NO por cada acción trivial (el ledger no es un log de
+  actividad, es un registro de decisiones sobre reglas).
 
-**Nota honesta de alcance (F.1-F.3):** esto es DISEÑO en PLAN.md. No se escribe código hasta que
-Carlos apruebe el esquema exacto de la entrada + el mecanismo de enforcement (F.2 tiene tensión
-real: un hook por-turno puede ser ruidoso; un gate de pre-commit puede bloquear commits legítimos).
+### Bloque F2 — ⚡/visual Fix del panel de diagnosis (bug real de producto, separado del ledger)
 
-- [ ] **F.4 — ⚡/visual (Carlos asignó a Sonnet o MinimaxM3, NO a Opus, 2026-07-16):** dar acabado
+Pedido original de Carlos el mismo día que F, pero sin relación con el ledger — es un bug de UI
+real de OrchestOS-el-producto, agrupado antes solo por coincidir en fecha.
+
+- [ ] **F2.1 — ⚡/visual (Carlos asignó a Sonnet o MinimaxM3, NO a Opus, 2026-07-16):** dar acabado
   visual al panel "view diagnosis" de una tarea (`diagnoseDetail`, [screens-core.js:682](src/dashboard/public/screens-core.js:682)).
   Problema reportado por Carlos: al abrirlo "no tenía estilo" y el selector de modelo para
   "volver a correr la tarea" se ve como un `<select>` plano, no el combo buscable que usa el resto
