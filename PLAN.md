@@ -592,20 +592,29 @@ le conviene trabajar —
 Pedido original de Carlos el mismo día que F, pero sin relación con el ledger — es un bug de UI
 real de OrchestOS-el-producto, agrupado antes solo por coincidir en fecha.
 
-- [ ] **F2.1 — ⚡/visual (Carlos asignó a Sonnet o MinimaxM3, NO a Opus, 2026-07-16):** dar acabado
-  visual al panel "view diagnosis" de una tarea (`diagnoseDetail`, [screens-core.js:682](src/dashboard/public/screens-core.js:682)).
-  Problema reportado por Carlos: al abrirlo "no tenía estilo" y el selector de modelo para
-  "volver a correr la tarea" se ve como un `<select>` plano, no el combo buscable que usa el resto
-  del dashboard. Hallazgo al inspeccionar: el panel **ya llama** a `buildModelSelect('diagnose-model', …)`
-  (el combo correcto, [[reference-model-combo-pattern]]) pero se renderiza dentro de una fila de
-  tabla (`<tr class="detail-row">`) — la hipótesis es que en ese contexto el combo no recibe su
-  wiring/CSS y cae a apariencia de select plano, y el bloque `.detail`/`.grp`/`.kv` se ve sin
-  jerarquía. Alcance del ítem: (1) verificar por qué el combo no se ve/no funciona como buscable en
-  ese render path y arreglarlo (nunca un `<select>` plano con lista larga — regla de frontend
-  global de Carlos); (2) dar acabado visual al panel de diagnosis (espaciado, jerarquía tipográfica,
-  el `<pre>` de lastError, los botones retry/make-habit) al nivel del resto del dashboard.
-  **Antes de tocar UI**: invocar la skill `frontend-design` y grep de patrones existentes
-  (regla global de Carlos). Verificar en el dashboard real, no solo en código.
+- [x] **F2.1 — ⚡/visual (2026-07-18, Sonnet, tal como Carlos asignó — NO Opus).** Dar acabado
+  visual al panel "view diagnosis" de una tarea (`diagnoseDetail`,
+  [screens-core.js:682](src/dashboard/public/screens-core.js:682)).
+  **Hipótesis original DESCARTADA con evidencia en vivo** — antes de tocar código se invocó la
+  skill `frontend-design` y se verificó en el dashboard real (puerto 4299, sin tareas `failed`
+  reales disponibles → estado sintético inyectado vía `state.diagnoseCache`/`App.rerender()`,
+  nunca tocó la DB): el combo `buildModelSelect()` **ya renderizaba y funcionaba correctamente**
+  ahí — CSS aplicado (`getComputedStyle` confirmó border/background/border-radius reales), abre,
+  busca, filtra. La causa "cae a select plano" nunca existió — pudo ya estar resuelta de antes, o
+  el reporte original describía el problema real (2) sin que fuera realmente (1).
+  El problema real: acabado visual pobre. `lastErrorResult` (un `<pre>` + botón) estaba forzado
+  dentro del patrón `.kv` (pensado para pares clave/valor simples de una línea), y la fila de
+  acciones (modelo + retry/habit) no tenía separación del contenido de arriba.
+  **Fix aplicado**: [screens-core.js](src/dashboard/public/screens-core.js) — `lastErrorResult`
+  sacado del `.kv` a su propia sub-sección (`.diag-error-grp`, mismo patrón `.grp > h4` que ya
+  usaba el resto del panel); `.diag-actions` con clase propia en vez de estilos inline sueltos.
+  [styles.css](src/dashboard/public/styles.css) — `.detail` con `background: var(--surface)` (antes
+  `var(--bg)`, plano) y más padding/gap; `.diag-error-grp`/`.diag-error-pre`/`.diag-actions` nuevos,
+  reusando el patrón de borde superior de `.settings-foot` para separar secciones (regla de reusar
+  patrones existentes en vez de inventar). Verificado en vivo tras el fix: secciones con jerarquía
+  clara, bloque de error en su propio contenedor, combo confirmado funcional (abrió, buscó,
+  filtró modelos reales del catálogo). Server bajado al terminar
+  ([[feedback-siempre-cerrar-servidor]]). `tsc --noEmit` limpio.
 
 ### Bloque G — 🧠 Cascada de selección de motor: local → CLI → API (decisión de Carlos, 2026-07-17)
 

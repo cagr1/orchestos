@@ -705,19 +705,27 @@ SCREENS.tasks = {
     const patternLabel = patternHuman[d.pattern] || esc(d.pattern);
     // habitTrigger for data-* attribute — uses raw strings (esc applied at the attribute site)
     const habitTrigger = `${t('tasks.diagnose.habit.trigger.prefix')} "${d.taskId}" (${patternHuman[d.pattern] || d.pattern})`;
+    // Mes 22/F2.1 — verificado en vivo (state.diagnoseCache inyectado + App.rerender(),
+    // sin tarea real) que buildModelSelect() ya renderiza y funciona correctamente acá —
+    // la hipótesis original de "cae a select plano" no se sostuvo. El problema real era
+    // acabado visual: sin tarjeta propia, lastErrorResult forzado dentro del patrón .kv
+    // (que es para pares clave/valor simples, no para un <pre> + botón), y las acciones
+    // pegadas sin separación del contenido de arriba.
     return `<tr class="detail-row"><td colspan="8"><div class="detail">
       <div class="grp"><h4>${t('tasks.diagnose.title')}</h4>
         <div class="kv"><span class="k">${t('tasks.diagnose.pattern')}</span><span class="v">${patternLabel}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.confidence')}</span><span class="v">${t(confKey)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.suggestion')}</span><span class="v">${esc(d.suggestion)}</span></div>
         <div class="kv"><span class="k">${t('tasks.diagnose.details')}</span><span class="v">${esc(d.details)}</span></div>
-        ${d.lastErrorResult ? `<div class="kv"><span class="k">${t('tasks.diagnose.lastError')}</span><div class="v">
-          <pre style="white-space:pre-wrap;font-size:12px;max-height:200px;overflow:auto;background:var(--bg);padding:8px;border-radius:4px;margin:4px 0">${esc(d.lastErrorResult)}</pre>
-          <button type="button" class="btn ghost sm" data-copy="${esc(d.lastErrorResult)}">${ICON.copy} ${t('btn.copy')}</button>
-        </div></div>` : ''}
-        <div class="diag-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-          <div style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px">
-            <span style="font-size:12px;white-space:nowrap">${t('modal.task.model.label')}</span>
+      </div>
+      ${d.lastErrorResult ? `<div class="grp diag-error-grp">
+        <h4>${t('tasks.diagnose.lastError')}</h4>
+        <pre class="diag-error-pre">${esc(d.lastErrorResult)}</pre>
+        <button type="button" class="btn ghost sm" data-copy="${esc(d.lastErrorResult)}">${ICON.copy} ${t('btn.copy')}</button>
+      </div>` : ''}
+        <div class="diag-actions">
+          <div class="diag-actions-model">
+            <span>${t('modal.task.model.label')}</span>
             ${buildModelSelect('diagnose-model', st.orModels?.length ? st.orModels[0]?.id : null, st.orModels, st.localModels)}
           </div>
           <div style="display:flex;gap:8px">
@@ -725,7 +733,6 @@ SCREENS.tasks = {
             <button class="btn ghost sm" data-act="make-habit" data-trigger="${esc(habitTrigger)}" data-action="${esc(d.suggestion)}">${ICON.bolt} ${t('tasks.diagnose.habit')}</button>
           </div>
         </div>
-      </div>
     </div></td></tr>`;
   },
 
