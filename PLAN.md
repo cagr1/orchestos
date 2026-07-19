@@ -576,16 +576,24 @@ le conviene trabajar —
   - **No verifica calidad del argumento** — un LLM podría escribir una entrada vacía de contenido
     solo para pasar el gate. Eso lo revisa Carlos leyendo `LEDGER.md`/el reporte de F.3 — el gate
     solo garantiza que *algo* quedó escrito, no que esté bien razonado.
-- [ ] **F.3 — 🧠 Reporte agregado bajo demanda (pedido de Carlos, 2026-07-18: "al final del
-  desarrollo o cada cierto tiempo quiero ver esta tabla").** NO es una pantalla del dashboard
-  (esa era la confusión original que motivó sacar el viejo F.3) — es un script que Carlos corre
-  cuando quiere, mismo molde que `scripts/export-runs-summary.ts` (+ entrada en `package.json`,
-  ej. `bun run ledger:report`). Parsea `LEDGER.md`, agrega por modelo: conteo de `RESPETÓ` /
-  `DESVIÓ-CON-RAZÓN` / `OVERRIDE-PEDIDO-POR-CARLOS` / `REGRESIÓN`, y una tabla en texto plano a
-  stdout (mismo estilo que el resumen de `dreaming:export`). Es la base de conocimiento propia de
-  Carlos sobre cómo actúa cada LLM en este repo — vive fuera del producto, corre cuando él decide,
-  no on-demand en cada turno. Depende de que F.1/F.2 ya estén generando entradas reales en
-  `LEDGER.md` — sin datos que agregar, este ítem no tiene nada que mostrar todavía.
+- [x] **F.3 — 🧠 (2026-07-18) IMPLEMENTADO.** Reporte agregado bajo demanda (pedido de Carlos:
+  "al final del desarrollo o cada cierto tiempo quiero ver esta tabla"). NO es una pantalla del
+  dashboard (esa era la confusión original que motivó sacar el viejo F.3) — es un script que
+  Carlos corre cuando quiere, mismo molde que `scripts/export-runs-summary.ts`.
+  - [scripts/ledger-report.ts](scripts/ledger-report.ts) — `bun run ledger:report` (nuevo en
+    `package.json`). `parseLedgerEntries()` lee `LEDGER.md`, extrae cada entrada real (heading
+    `## <fecha> — <modelo>` + `**Clasificación**: X`) ignorando el header introductorio del
+    archivo (sin esos dos campos, no cuenta como entrada). `aggregateByModel()` cuenta
+    `RESPETÓ`/`DESVIÓ-CON-RAZÓN`/`OVERRIDE-PEDIDO-POR-CARLOS`/`REGRESIÓN` por modelo, tabla en
+    texto plano a stdout.
+  - **Caso real de hoy manejado explícitamente**: `LEDGER.md` no tiene entradas todavía (nunca se
+    disparó el gate de F.2 en esta sesión — ningún commit tocó `harness.ts`/`model-catalog.ts`) —
+    el script lo detecta y avisa en vez de fallar o mostrar una tabla vacía confusa. Se corrió de
+    verdad contra el `LEDGER.md` real del repo y confirmó el mensaje correcto.
+  - [scripts/ledger-report.test.ts](scripts/ledger-report.test.ts) — 6 tests: ledger vacío, una
+    entrada completa, varias entradas de distintos modelos, bloque sin `Clasificación` ignorado
+    (no cuenta como entrada falsa), agregación con conteos reales, agregación de lista vacía.
+  - 773 tests · 0 fail · `tsc --noEmit` limpio (suite completa, no solo el archivo nuevo).
 
 ### Bloque F2 — ⚡/visual Fix del panel de diagnosis (bug real de producto, separado del ledger)
 
