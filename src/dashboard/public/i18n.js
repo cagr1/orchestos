@@ -163,7 +163,7 @@ const I18N = {
     'bulk.resource.specs':     'specs',
 
     'nav.mode.enable':  'Advanced mode',
-    'nav.mode.disable': 'Exit advanced mode',
+    'nav.mode.disable': 'Normal mode',
     'nav.sidebar.expand':   'Expand sidebar',
     'nav.sidebar.collapse': 'Collapse sidebar',
     'nav.search':           'Search',
@@ -867,7 +867,7 @@ const I18N = {
     'bulk.resource.specs':     'specs',
 
     'nav.mode.enable':  'Modo avanzado',
-    'nav.mode.disable': 'Salir del modo avanzado',
+    'nav.mode.disable': 'Modo normal',
     'nav.sidebar.expand':   'Expandir barra lateral',
     'nav.sidebar.collapse': 'Colapsar barra lateral',
     'nav.search':           'Buscar',

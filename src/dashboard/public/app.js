@@ -1987,11 +1987,14 @@ function buildNav() {
 
   const navItem = n => {
     if (n.operator && !isAdv) return '';
-    const badge = n.operator ? '<span class="nav-adv-badge">adv</span>' : '';
+    // Mes 22/F2 (2026-07-18, corrección de Carlos) — se quita el badge "adv":
+    // estos ítems SOLO se renderizan cuando isAdv ya es true (línea de arriba),
+    // así que marcarlos uno por uno como "adv" era redundante y además el
+    // texto crudo "adv" no comunicaba "avanzado" — no aportaba nada.
     const countBadge = n.badge ? `<span class="nav-count-badge" data-count="${n.id}">0</span>` : '';
     const cls = n.operator ? ' operator' : '';
     return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}" role="button" tabindex="0">
-      <span class="nav-ic">${n.icon}${badge}${countBadge}</span>
+      <span class="nav-ic">${n.icon}${countBadge}</span>
       <span class="nav-label">${t(n.key)}</span>
     </div>`;
   };

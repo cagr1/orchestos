@@ -405,7 +405,13 @@ button { font-family: inherit; }
   background: var(--surface-2);
   border: 1px solid var(--border-soft); border-radius: 4px;
 }
-.sidebar .nav-sep { height: 1px; margin: 5px 2px 6px; background: var(--border-soft); flex-shrink: 0; }
+/* Mes 22/F2 (2026-07-18, corrección de Carlos) — sin margin-top: la línea debe
+   quedar pegada al borde inferior de .sidebar-toprow (var(--header-h)=44px),
+   el mismo borde que el .header del panel derecho — "parejo" en toda la app,
+   no flotando en medio de un hueco arbitrario (regla ya fija de
+   [[feedback-ui-toprow-alignment-rules]]: cero padding/margin vertical propio
+   en el límite del toprow). */
+.sidebar .nav-sep { height: 1px; margin: 0 2px 6px; background: var(--border-soft); flex-shrink: 0; }
 .sidebar .grow { flex: 1; }
 
 /* operator nav items — hidden until advanced mode */
@@ -415,15 +421,6 @@ button { font-family: inherit; }
 /* mode toggle button */
 .sidebar .nav-mode-btn { transition: background .12s, color .12s; }
 .sidebar .nav-mode-btn.active { color: var(--accent); }
-
-/* badge shown on operator items in advanced mode */
-.nav-adv-badge {
-  position: absolute; bottom: 1px; right: 1px;
-  font-size: 7px; font-weight: 700; line-height: 1;
-  padding: 1px 3px; border-radius: 3px;
-  background: var(--surface-hi); color: var(--text-muted);
-  pointer-events: none;
-}
 
 /* tooltip */
 .nav-icon[data-tip]:hover::after {
