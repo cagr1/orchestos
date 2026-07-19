@@ -656,6 +656,14 @@ había empezado sin plan compartido y Carlos cortó a mitad de camino).
   OpenRouter (`ollamaChat` / `openrouterChat` / `runToolLoop`); correr una conversación interactiva
   por el CLI headless es un camino nuevo (continuidad de turnos, costo por mensaje, sin streaming
   real como hoy). Diseñar antes de tocar código — no reusa la lógica actual de `tool-call.ts`.
+  **Insumo de diseño real (Orca, investigado 2026-07-18 a pedido de Carlos, ver
+  [[reference-external-repos]] #9)**: Orca acopla sus agentes CLI como sesiones de terminal
+  **pty reales** (usuario ve la salida en vivo, puede escribirle) — no como llamadas headless de
+  una sola vuelta. Decisión de diseño pendiente antes de codear G.3: ¿imitar el modelo pty-vivo
+  (más caro, resuelve IDEAS #49 de raíz — visibilidad en vivo del agente) o quedarse con el
+  headless-batch actual de `external.ts` (más simple, sin streaming real)? No decidir a ciegas —
+  es la misma pregunta de fondo que IDEAS #49 dejó abierta, ahora con un ejemplo real de cómo lo
+  resuelve otro producto.
 - [ ] **G.4 — 🧠 Selector de modelo dinámico en el chat:** el dropdown de modelo debe reflejar
   SOLO los modelos del tier activo — si la cascada aterrizó en `'cli'`, mostrar los alias del CLI
   (sonnet/opus/haiku/fable), no el catálogo completo de OpenRouter (que no tiene sentido ahí, y es

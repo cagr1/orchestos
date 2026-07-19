@@ -1178,6 +1178,14 @@ que debuggear un fallo (como los de hoy) dependa 100% de leer logs después del 
 **Esfuerzo**: medio — el mecanismo de streaming/polling es la parte nueva; las etapas ya existen
 como eventos internos del harness, solo hace falta exponerlas.
 
+**Referencia externa (Orca, 2026-07-18, ver [[reference-external-repos]] #9)**: Orca resuelve esto
+de raíz porque acopla los agentes como **sesiones de terminal pty reales** (el usuario ve la salida
+en vivo, puede escribirle) en vez de un subproceso headless que solo reporta al final — es un modelo
+de acople distinto, no solo una feature de UI encima de lo que ya existe. Relevante para el diseño
+de PLAN.md § Mes 22 Bloque G/G.3 ("chat conversacional en vivo vía CLI"): la decisión de diseño
+pendiente ahí es si conviene imitar el modelo pty-vivo de Orca o quedarse con el headless-batch más
+simple que ya usa `external.ts`.
+
 ### 50. Chat persistente con sesiones acotadas (máx ~20) — no copiar el patrón de chats infinitos
 
 **Origen**: Carlos (2026-07-17), decisión de diseño de producto explícita — NO quiere copiar el
