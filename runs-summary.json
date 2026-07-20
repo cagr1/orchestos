@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-07-20T20:30:50.082Z",
+  "exported_at": "2026-07-20T20:36:56.828Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "55467334-642c-4928-bb0d-870a6ff2ef6e",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00186494,
+      "elapsed_ms": 0,
+      "tokens": 17156,
+      "created_at": "2026-07-20T20:31:27.820Z"
+    },
+    {
+      "id": "c198a55d-15eb-43be-9923-f7a5f5cb2305",
+      "task_class": "implement",
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "openrouter",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "missing declared output(s): scratch/design-test-premium-a1.html",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 5263,
+      "tokens": 0,
+      "created_at": "2026-07-20T20:30:56.590Z"
+    },
     {
       "id": "ba7dbc00-3bfa-4fe8-87d8-c5e857dde74b",
       "task_class": "chat",
@@ -271,43 +301,13 @@
       "elapsed_ms": 0,
       "tokens": 11347,
       "created_at": "2026-07-17T17:47:37.334Z"
-    },
-    {
-      "id": "1e8891ce-9004-4ecc-9304-b42bb9f955c4",
-      "task_class": "plan",
-      "model": "anthropic/claude-haiku-4-5",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "The file is a comprehensive, self-contained cryptocurrency dashboard with live CoinGecko API integration, search/sorting/auto-refresh functionality, inline SVG sparklines, skeleton/error/empty states, responsive dark-mode design, and all features working as specified.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.036557400000000004,
-      "elapsed_ms": 34059,
-      "tokens": 15157,
-      "created_at": "2026-07-17T02:32:30.032Z"
-    },
-    {
-      "id": "5fe69365-4431-4589-b19f-b8241ecbd6ad",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.000317912,
-      "elapsed_ms": 0,
-      "tokens": 2945,
-      "created_at": "2026-07-17T02:32:02.111Z"
     }
   ],
   "stats": {
-    "failed": 0,
+    "failed": 1,
     "blocked": 0,
-    "done": 20,
-    "qa_failed": 0,
-    "total_cost_usd": "1.5252"
+    "done": 19,
+    "qa_failed": 1,
+    "total_cost_usd": "1.4902"
   }
 }
