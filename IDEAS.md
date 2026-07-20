@@ -1353,5 +1353,46 @@ alcance de esta idea.
 
 ---
 
+### 53. QA que verifica de verdad (ejecutando), no leyendo el código — candidato `fable-judge` del vault
+
+**Origen**: 2026-07-20, revisando DREAMING.md con Carlos. Un falso positivo de instrumentación
+(`checks_failed` mal calculado, ya corregido — PLAN.md § Bloque I) destapó un hallazgo real de
+fondo: **el QA de OrchestOS (`src/run/qa.ts`) lee el código y emite un veredicto, NO lo ejecuta.**
+Ya está documentado desde Mes 20/C.1 ([[project-state]]): el juez QA no detectó un error de sintaxis
+JS real porque "lee el código, no lo ejecuta" — se encontró solo abriendo la página en el navegador.
+Los checks deterministas (`checks.ts`, `node --check`/`tsc`/`bun test`) SÍ ejecutan, pero son un
+carril separado del veredicto QA-LLM; no hay un juez que re-corra lo que el executor CLAMÓ haber
+hecho y lo contraste con lo que realmente cambió.
+
+**Candidato del vault (pedido explícito de Carlos: "busca un QA real que verifique")**:
+`fable-judge` (Fable Method, [[reference-external-repos]] / `MemoriesMD/wiki/tools/fable-method.md`,
+github.com/Sahir619/fable-method). Es exactamente esto: **verificación adversarial de trabajo ya
+terminado** — re-corre cada check reclamado, diffea qué cambió de verdad, caza tests debilitados y
+claims de "completado" falsos. Verdicts: `VERIFIED` / `CAVEATS` / `REFUTED`. Tiene evidencia real
+(15 rondas de eval, 260+ corridas contra fixtures con trampas plantadas, jueces LLM ciegos que
+verifican por ejecución/diff, nunca leyendo el reporte del ejecutor). Hallazgo de diseño del repo
+directamente aplicable: **"artefacto forzado en punto de decisión, no regla en prosa"** — modelos
+económicos siguen reglas cuando son un campo obligatorio del reporte (`INTENT: code does X / check
+expects Y / spec says Z`), no cuando son una viñeta en una lista. Aplicable a `qa.ts` para que el
+veredicto sea robusto incluso con el executor barato (deepseek).
+
+**Segundo candidato (principio, no herramienta)**: el "live-proof gate" de
+[[maintainer-orchestrator]] — no basta con que compile, hay que probar el flujo real antes de dar
+por cerrada una tarea. Es la misma tesis que fable-judge desde el ángulo de gobernanza.
+
+**Por qué NO se implementa ahora (regla [[feedback-planificar-cambios-grandes]])**: adoptar un QA
+que ejecuta toca `qa.ts` + `harness.ts` (el paso QA del pipeline) + posiblemente cómo se combinan
+checks deterministas y veredicto LLM — multi-módulo, redefine un comportamiento central
+(aceptación de tareas). Necesita plan corto confirmado por Carlos antes de codear, no implementación
+en caliente. Conecta con [[project-improver-and-4-states-candidate]] (fraud-hunting de reportes
+"listos" falsos) y con IDEAS #52 palanca 4 ("QA con visión") — son la misma familia: que la
+verificación deje de confiar en lo que el ejecutor DICE.
+
+**Esfuerzo**: medio-alto — el motor de re-ejecución adversarial es nuevo; los checks deterministas
+que re-correr ya existen (`checks.ts`), lo nuevo es el juez que los orquesta contra el claim del
+executor y el artefacto-forzado en el reporte.
+
+---
+
 ## Feedback
 _(se llena cuando haya un usuario externo real usando orchestos en su proyecto)_

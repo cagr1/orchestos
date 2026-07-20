@@ -26,8 +26,30 @@
 - Por qué: con la muestra actual, un check fallido nunca impidió un "pass" — no hay evidencia de que el check importe para la decisión final, lo cual le resta valor a tenerlo.
 - Riesgo: medio (cambia el criterio de aceptación de runs; podría convertir passes actuales en warnings/fails).
 
-## Decisión (llenar manualmente)
-- [ ] Aplicar propuesta 1
-- [ ] Aplicar propuesta 2
-- [ ] Ignorar
-- [ ] Requiere revisión
+## Decisión (2026-07-20, Carlos + Claude)
+- [x] **Ignorar ambas propuestas — el patrón era un FALSO POSITIVO de instrumentación.**
+
+**Verificado contra la DB real** (`sqlite3 ~/.orchestos/db.sqlite`): los 6 runs implement/plan
+tienen `checks_json` con `exitCode: 0` en TODOS los checks — es decir, todos **pasaron**. El
+`checks_failed: 1` del resumen era un bug: `scripts/export-runs-summary.ts` filtraba por `!c.pass`,
+pero `CheckResult` (`src/run/checks.ts`) no tiene campo `pass` (sus campos son cmd/exitCode/stdout/
+stderr/elapsedMs/timedOut) — `c.pass` era siempre `undefined`, así que todo check con resultado se
+contaba como fallado. El "100% de implement/plan falla un check" era en realidad "100% de los runs
+que TIENEN un check muestran el bug".
+
+- **Propuesta 2 (QA considere checks_failed)** — descartada: reaccionaba a una señal fantasma. La
+  aceptación real de tareas nunca estuvo afectada — el harness evalúa checks por `exitCode !==
+  expected` (`checks.ts:96`), no por un campo `pass`. El bug estaba aislado al pipeline del dreaming.
+- **Propuesta 1 (agregar id del check al resumen)** — el arreglo real fue más simple: corregir el
+  `.pass` inexistente por `c.timedOut || c.exitCode !== 0`.
+
+**Corregido** (commit de esta sesión): `countFailedChecks()` extraído como función pura testeada
+(7 tests) en `scripts/export-runs-summary.ts`; `runs-summary.json` regenerado (ahora `checks_failed:
+0` en todos). La próxima corrida nocturna partirá de datos correctos y no volverá a alucinar este
+patrón.
+
+**Hallazgo secundario (real, no fantasma) que esto destapó**: el QA de OrchestOS (`qa.ts`) lee el
+código, NO lo ejecuta — verifica por lectura, no por corrida real. Candidato del vault para un QA
+que verifique de verdad: `fable-judge` (Fable Method, verificación adversarial que re-corre cada
+check reclamado, verdicts VERIFIED/CAVEATS/REFUTED). Anotado como ítem en PLAN.md/IDEAS.md — adopción
+real es cambio grande, no se hace en caliente.

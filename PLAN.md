@@ -790,6 +790,30 @@ ir en cualquier orden. H.8 al final (acabado sobre lo ya resuelto).
 
 ---
 
+### Bloque I — 🔍 Falso positivo de `checks_failed` en el dreaming (hallazgo revisando DREAMING.md, 2026-07-20)
+
+- [x] **I.1 — 🔍 (2026-07-20) Bug de instrumentación encontrado y corregido.** El análisis nocturno
+  (DREAMING.md 2026-07-20) reportó como "patrón" que el 100% de los runs `implement`/`plan` tenían
+  `checks_failed: 1` con QA `pass`. Verificado contra la DB real (`sqlite3 ~/.orchestos/db.sqlite`):
+  **falso positivo** — los `checks_json` de esos runs tienen `exitCode: 0` en todos los checks (todos
+  pasaron). Causa: [scripts/export-runs-summary.ts](scripts/export-runs-summary.ts) filtraba por
+  `!c.pass`, pero `CheckResult` ([checks.ts:74](src/run/checks.ts:74)) no tiene campo `pass`
+  (cmd/exitCode/stdout/stderr/elapsedMs/timedOut) — `c.pass` siempre `undefined` → todo check con
+  resultado se contaba como fallado. Aislado al pipeline del dreaming: la aceptación real de tareas
+  usa `exitCode !== expected` ([checks.ts:96](src/run/checks.ts:96)), nunca estuvo afectada.
+  **Fix**: `countFailedChecks()` extraído como función pura (`c.timedOut || c.exitCode !== 0`), 7
+  tests ([export-runs-summary.test.ts](scripts/export-runs-summary.test.ts)); módulo guardado bajo
+  `import.meta.main` para que el test no dispare la DB; `runs-summary.json` regenerado (`checks_failed:
+  0` en todos); DREAMING.md § Decisión anotado (ambas propuestas descartadas — fantasma). Suite
+  completa · 0 fail · `tsc` limpio.
+- **Hallazgo secundario real (no fantasma), graduado a IDEAS #53**: revisar este falso positivo
+  confirmó que el QA de OrchestOS (`qa.ts`) **lee el código, no lo ejecuta** — verifica por lectura,
+  no por corrida real. Candidato del vault: `fable-judge` (Fable Method — verificación adversarial
+  que re-corre cada check reclamado). Adopción = cambio grande multi-módulo → queda en IDEAS #53,
+  no se codea en caliente ([[feedback-planificar-cambios-grandes]]).
+
+---
+
 ## v0.12 (MES 21) — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
 
 - [x] **SÍ — v0.12 cerrado (2026-07-14)**
