@@ -154,9 +154,9 @@ function createTaskRecord(root: string, params: CreateTaskParams): { id: string 
   const executorModel = params.executor_model?.trim() || undefined
   const executor = params.executor || inferExecutorFromModel(executorModel)
   const engineRaw = params.engine?.trim()
-  let engine: 'single-shot' | 'agentic' | 'external' | undefined
-  if (engineRaw === 'single-shot' || engineRaw === 'agentic' || engineRaw === 'external') engine = engineRaw
-  else if (engineRaw && engineRaw.length > 0) return { error: `unknown engine '${engineRaw}' — allowed: single-shot, agentic, external`, status: 400 }
+  let engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | undefined
+  if (engineRaw === 'single-shot' || engineRaw === 'agentic' || engineRaw === 'external' || engineRaw === 'opencode') engine = engineRaw
+  else if (engineRaw && engineRaw.length > 0) return { error: `unknown engine '${engineRaw}' — allowed: single-shot, agentic, external, opencode`, status: 400 }
   const cliEffortRaw = params.cli_effort?.trim()
   const CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
   let cliEffort: typeof CLI_EFFORTS[number] | undefined

@@ -18,3 +18,19 @@ Reporte agregado (tabla por modelo) → `bun run ledger:report` ([PLAN.md § F.3
 de implementar).
 
 ---
+
+## 2026-07-20 16:53 America/Guayaquil — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: el cambio (Bloque G/G.5) no toca la derivación de `max_tokens`/contextWindow — solo
+agrega el import de `opencodeEngine` y una rama `else if (requestedEngine === 'opencode')` a la
+selección de executor, más un ajuste de comentario en `shouldSplit()` para excluir también el
+nuevo engine 'opencode' del split (mismo motivo ya existente para 'external': el executor no es la
+API LLM directa). Cero líneas tocadas en el cálculo de `maxTokens`.
+**Reversibilidad/evidencia**: commit de G.5 (feat(Bloque G/G.5): executor opencode (batch), cierra
+G.5) — revertible con `git revert`, sin side-effects en datos. 797 tests · 0 fail · `tsc --noEmit`
+limpio antes del commit.
+
+---

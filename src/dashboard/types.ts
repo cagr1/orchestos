@@ -75,8 +75,8 @@ export interface RunRow {
   elapsedMs: number
   costBreakdown: CostBreakdownEntry[]   // parsed from cost_breakdown_json
   contextWarnings: ContextWarningEntry[] // parsed from context_warnings_json
-  /** G.4 / B.2 — derived from costBreakdown[0].label. 'single-shot' | 'agentic' | 'external' | null (no breakdown persisted). */
-  engine: 'single-shot' | 'agentic' | 'external' | null
+  /** G.4 / B.2 — derived from costBreakdown[0].label. 'single-shot' | 'agentic' | 'external' | 'opencode' | null (no breakdown persisted). */
+  engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | null
   /** G.4 / B.2 — derived from costBreakdown[0].label (e.g. "agentic (N rounds)" → N). 1 for single-shot/external, null if unknown. */
   iterations: number | null
   /** v0.12/C — parsed from file_diffs. [] si el run no lo produjo (fail/blocked, o previo al cambio). */
@@ -114,8 +114,8 @@ export interface TaskRow {
   retryCount: number
   qaVerdict: 'pass' | 'fail' | null
   runId: string | null     // link to latest run in /api/runs
-  /** G.4 / B.2 — 'single-shot' | 'agentic' | 'external' | null (undefined → inherit from orchestos.config.yaml, default 'single-shot') */
-  engine: 'single-shot' | 'agentic' | 'external' | null
+  /** G.4 / B.2 — 'single-shot' | 'agentic' | 'external' | 'opencode' | null (undefined → inherit from orchestos.config.yaml, default 'single-shot') */
+  engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | null
   /** Mes 20 B.3 — true si existe un <task_id>.plan.yaml pendiente de aprobación */
   hasSplitPlan: boolean
 }

@@ -689,12 +689,30 @@ correcciones de fondo tras auditar en vivo qué CLIs existen de verdad en la má
 
 **Orden de ejecución correcto (reordenado — G.5 ya no depende de G.3, al revés)**:
 
-- [ ] **G.5 — 🧠 Generalizar `external.ts` a un segundo binario (`opencode`).** Ya no bloqueado —
-  contrato verificado en vivo arriba. Nuevo executor paralelo a `external.ts` (mismo contrato
-  `ExecutorEngine`), reusando `findClaudeBinary()`-style detection para `opencode` (`Bun.which`).
-  Batch primero (equivalente a como está `external.ts` hoy: `opencode run --format json`, un
-  parseo del último evento con costo/tokens) — el streaming es G.3. Es el ítem con impacto más
-  inmediato y el contrato más simple de los tres.
+- [x] **G.5 — 🧠 (2026-07-20)** Generalizar a un segundo binario (`opencode`). Nuevo executor
+  [opencode.ts](src/run/executors/opencode.ts), mismo contrato `ExecutorEngine` que `external.ts`,
+  batch (`opencode run "<prompt>" --format json --auto` — `--auto` es obligatorio en headless o
+  opencode cuelga esperando confirmación interactiva de cada tool call). NDJSON incremental, no un
+  blob único: costo/tokens se suman entre todos los eventos `step_finish` del stream (nunca $0
+  silencioso si no aparece ninguno). `readWorktreeDiff()` extraído de `external.ts` a
+  [worktree-diff.ts](src/run/executors/worktree-diff.ts) para reusarlo entre los dos executors sin
+  duplicar la lógica (con historial real de bugs — ver comentario ahí) — sin cambio de
+  comportamiento en `external.ts`, solo relocación. `orchestosModelToOpencodeModel()` devuelve
+  `undefined` a propósito: el namespace de modelos de opencode (`opencode/*-free`,
+  `openrouter/<provider>/<model>`, 2-3 partes) no coincide con el de OrchestOS — pasar el id tal
+  cual sería silenciosamente incorrecto; la tabla de traducción real queda para G.4, cuando se
+  cargue el catálogo de `opencode models`. `TaskEngine` extendido a `'opencode'` en
+  `tasks/schema.ts` + los 4 puntos de validación/tipo que ya distinguían los otros 3 engines
+  (`dashboard/types.ts`, `dashboard/handlers/tasks.ts`, `dashboard/handlers/runs.ts` —
+  `deriveEngineFromBreakdown()` reconoce el label `"opencode (N steps)"` —, `cli.ts` con el mismo
+  chequeo temprano de binario que ya tenía `external`). **Fuera de esta pasada, a propósito**: el
+  dropdown de engine del composer de Tasks y el endpoint de disponibilidad
+  (`/api/system/engines/.../availability`) — esa superficie es manual, y la regla del proyecto es
+  que todo se resuelve desde el chat (G.3/G.4 son los que de verdad la exponen ahí). 8 tests nuevos
+  en [opencode-engine.test.ts](src/__tests__/opencode-engine.test.ts) (happy path con 2
+  `step_finish` sumados, `--variant` desde `cli_effort`, binario ausente, sin worktree, timeout,
+  sin `step_finish` → error explícito, líneas NDJSON corruptas no abortan el parseo, traducción de
+  modelo siempre `undefined`). 797 tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **G.3 — 🧠 Chat conversacional en vivo vía CLI (rediseñado).** Cambiar ambos executors
   (`external.ts` para claude, el nuevo de G.5 para opencode) de modo batch a modo streaming, y
   parsear los eventos NDJSON como una secuencia de "pasos" que el chat de OrchestOS renderiza en

@@ -3,7 +3,7 @@ export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
 // B.2 — 'external' es la tercera implementación de ExecutorEngine (B.1, docs/external-executor-design.md).
 // Lanza el subproceso `claude -p` dentro del worktree; el harness aplica enforceContract post-hoc
 // igual que con single-shot/agentic. Opt-in por tarea o por config de proyecto.
-export type TaskEngine = 'single-shot' | 'agentic' | 'external'
+export type TaskEngine = 'single-shot' | 'agentic' | 'external' | 'opencode'
 // Niveles reales del CLI de Claude Code (`claude --effort`) — solo tiene sentido
 // para engine 'external'. Distinto del `effort` de 3 niveles del chat (OpenRouter
 // reasoning param), que es un mecanismo separado para modelos servidos vía API.
@@ -96,8 +96,8 @@ function validateExecutor(value: unknown, err: (msg: string) => never): TaskExec
 
 function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine | undefined {
   if (value === undefined) return undefined
-  if (value !== 'single-shot' && value !== 'agentic' && value !== 'external') {
-    err(`unknown engine '${String(value)}' — allowed: single-shot, agentic, external`)
+  if (value !== 'single-shot' && value !== 'agentic' && value !== 'external' && value !== 'opencode') {
+    err(`unknown engine '${String(value)}' — allowed: single-shot, agentic, external, opencode`)
   }
   return value as TaskEngine
 }

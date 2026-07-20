@@ -28,6 +28,7 @@ import { enforceContract, snapshotHashes, normalizeRelPath, type LLMFileResponse
 import { singleShotEngine, ExecutorParseError } from './executors/single-shot.ts'
 import { agenticEngine } from './executors/agentic.ts'
 import { externalEngine } from './executors/external.ts'
+import { opencodeEngine } from './executors/opencode.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './executors/types.ts'
 import { supportsToolCalling } from '../providers/tool-call.ts'
 import { runQA, snapshotContents, restoreContents, computeFileDiffs, MAX_RETRIES } from './qa.ts'
@@ -127,12 +128,12 @@ export const SPLIT_THRESHOLD = 0.7
  * crudo) para evitar falsos negativos con modelos de tope bajo (ej. gpt-4o-mini).
  *
  * Exclusiones:
- *  - engine 'external': el executor es `claude -p`, no la API directa.
+ *  - engine 'external'/'opencode': el executor es `claude -p`/`opencode run`, no la API directa.
  *  - sin archivos de output (tareas topic_key-only): no hay nada que estimar.
  */
 export function shouldSplit(task: Task, maxTokens: number): boolean {
   if (!task.output || task.output.length === 0) return false
-  if (task.engine === 'external') return false
+  if (task.engine === 'external' || task.engine === 'opencode') return false
   return task.output.length * SPLIT_AVG_TOKENS_PER_FILE > maxTokens * SPLIT_THRESHOLD
 }
 
@@ -396,6 +397,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     let engine: ExecutorEngine = singleShotEngine
     if (requestedEngine === 'agentic') engine = agenticEngine
     else if (requestedEngine === 'external') engine = externalEngine
+    else if (requestedEngine === 'opencode') engine = opencodeEngine
     if (requestedEngine === 'agentic' && !supportsToolCalling(ctx.providerName, ctx.model)) {
       log.info(`agentic engine requested but ${ctx.providerName}/${ctx.model} does not support tool-calling — falling back to single-shot`)
       engine = singleShotEngine
