@@ -21,6 +21,7 @@ import { extractTextFromImage } from '../../chat/ocr.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
 import { buildNaturalDraft } from './project.ts'
 import { createTaskRecord, spawnTaskRun } from './tasks.ts'
+import { resolveCascadeTier, cascadeTaskFields } from '../../router/engine-cascade.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = typeof VALID_EFFORTS[number]
@@ -396,21 +397,32 @@ async function handleApiChat(req: Request): Promise<Response> {
   // "ya van 3 mensajes" no dice que ESTE mensaje sea una tarea) marca el
   // mensaje como tarea, OrchestOS crea y corre la tarea sola — sin
   // redirigir a la pantalla Tasks ni pedir un click de confirmación.
-  // Modelo/engine: nunca se fijan acá — se dejan sin `executor_model` para
-  // heredar `orchestos.config.yaml`, que es la fuente de verdad de qué
-  // modelo corre ([[feedback-modelo-decision-final-carlos]] sigue
-  // cubierto: el LLM del chat no decide el modelo, el config ya lo fijó).
+  // E.16 (Mes 22, 2026-07-17) — decisión explícita de Carlos: el motor de
+  // esa tarea sigue una cascada local → CLI → API en vez de heredar siempre
+  // `orchestos.config.yaml` a ciegas. Esto NO es "un LLM decidiendo el
+  // modelo" ([[feedback-modelo-decision-final-carlos]] sigue cubierto) — es
+  // la regla que Carlos fijó él mismo, aplicada por código, igual que el
+  // config ya lo era. Hoy la cascada solo puede ACTUAR en el tier 'cli'
+  // (Claude Code vía external.ts, con --model/--effort reales desde E.15):
+  // el tier 'local' se detecta pero no hay executor de tareas para Ollama
+  // todavía (ollamaChat solo sirve al chat interactivo, no a build tasks) —
+  // aterrizar ahí no fija nada y la tarea sigue heredando el config normal,
+  // igual que el tier 'api' (que YA es el comportamiento por defecto).
   let autoTask: { id: string } | { error: string } | null = null
   if (taskSuggestion?.isTask) {
     try {
       const root = resolve('.')
       const draft = await buildNaturalDraft(message)
       const skill = pickAutoSkill(draft.skillOptions)
+      // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
+      // evita el probe de Ollama + Bun.which en cada mensaje de chat normal.
+      const cascade = await resolveCascadeTier()
       const created = createTaskRecord(root, {
         id: draft.id,
         description: draft.description,
         output: draft.output,
         executor: draft.executor,
+        ...cascadeTaskFields(cascade),
         skill,
       })
       if ('error' in created) {

@@ -653,16 +653,20 @@ había empezado sin plan compartido y Carlos cortó a mitad de camino).
   tier api sin fijar nada, gana `orchestos.config.yaml`) — mismo patrón que
   `external-engine.test.ts`/`model-catalog.test.ts` (override directo de `Bun.which`/
   `globalThis.fetch`, sin `mock.module`). 786 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **G.2 — 🧠 EN CURSO (2026-07-17, sin commitear, sin tests todavía — no cerrar como [x] hasta
-  tenerlos)** Wiring parcial en D.7 (`handlers/chat.ts`): cuando
-  el chat auto-crea una tarea de build, si `resolveCascadeTier()` devuelve tier `'cli'`, la tarea
-  se crea con `engine: external` + `executor_model: anthropic/claude-sonnet-5` en vez de heredar
-  siempre `orchestos.config.yaml`. Tier `'local'` se detecta pero NO actúa todavía — no hay
-  executor de tareas para Ollama (`ollamaChat` solo sirve al chat interactivo, no a build tasks
-  vía harness); aterrizar en ese tier hoy no fija nada y la tarea sigue heredando el config normal,
-  igual que tier `'api'` (que ya es el comportamiento por defecto actual). **Falta**: tests de
-  regresión para `resolveCascadeTier()` y para el wiring en `chat.ts` (cortado a mitad por la
-  pausa de planificación) — es lo primero para retomar.
+- [x] **G.2 — 🧠 (2026-07-20)** Wiring en D.7 (`handlers/chat.ts`): cuando el chat auto-crea una
+  tarea de build, si `resolveCascadeTier()` devuelve tier `'cli'`, la tarea se crea con
+  `engine: external` + `executor_model: anthropic/claude-sonnet-5` en vez de heredar siempre
+  `orchestos.config.yaml`. Tier `'local'` se detecta pero NO actúa todavía — no hay executor de
+  tareas para Ollama (`ollamaChat` solo sirve al chat interactivo, no a build tasks vía harness);
+  aterrizar en ese tier hoy no fija nada y la tarea sigue heredando el config normal, igual que
+  tier `'api'` (que ya es el comportamiento por defecto actual). El mapeo tier→campos se extrajo
+  como función pura `cascadeTaskFields()` en
+  [engine-cascade.ts](src/router/engine-cascade.ts) — `handleApiChat` tiene un preámbulo async
+  largo que hace racy mockear `globalThis.fetch` contra él en la suite completa (confirmado
+  empíricamente en `chat-effort.test.ts`, BACK.3/BACK.4), así que la lógica testeable vive fuera
+  de esa ventana en vez de un test end-to-end del handler. 3 tests nuevos en
+  [engine-cascade.test.ts](src/__tests__/engine-cascade.test.ts) (tier cli fija ambos campos;
+  tier local/api no fijan nada). 789 tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **G.3 — 🧠 Chat conversacional en vivo vía CLI:** que las respuestas normales del chat (no
   solo las tareas de build de G.2) también puedan correr por `claude -p` cuando la cascada aterrice
   en tier `'cli'`. Es el ítem más grande del bloque — `chat.ts` hoy solo sabe hablar con Ollama u

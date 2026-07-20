@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'bun:test'
-import { resolveCascadeTier } from '../router/engine-cascade.ts'
+import { resolveCascadeTier, cascadeTaskFields } from '../router/engine-cascade.ts'
 
 // G.1 (Bloque G, PLAN.md) — resolveCascadeTier() decide el tier (local → cli → api)
 // para las tareas de build auto-creadas desde el chat. Mismo patrón que
@@ -83,5 +83,26 @@ describe('resolveCascadeTier()', () => {
     expect(res.tier).toBe('api')
     expect(res.engine).toBeUndefined()
     expect(res.executorModel).toBeUndefined()
+  })
+})
+
+// G.2 (Bloque G, PLAN.md) — cascadeTaskFields() es la función pura que
+// handlers/chat.ts usa para mapear el tier resuelto a los campos que
+// createTaskRecord() necesita. Sin I/O — no comparte la ventana racy de
+// handleApiChat con globalThis.fetch (ver nota en chat-effort.test.ts).
+describe('cascadeTaskFields()', () => {
+  it("tier 'cli' → fija executor_model y engine desde la resolución", () => {
+    const fields = cascadeTaskFields({ tier: 'cli', engine: 'external', executorModel: 'anthropic/claude-sonnet-5' })
+    expect(fields).toEqual({ executor_model: 'anthropic/claude-sonnet-5', engine: 'external' })
+  })
+
+  it("tier 'local' → no fija nada, no hay executor de tareas para Ollama todavía", () => {
+    const fields = cascadeTaskFields({ tier: 'local' })
+    expect(fields).toEqual({})
+  })
+
+  it("tier 'api' → no fija nada, gana orchestos.config.yaml", () => {
+    const fields = cascadeTaskFields({ tier: 'api' })
+    expect(fields).toEqual({})
   })
 })

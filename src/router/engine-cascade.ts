@@ -61,3 +61,19 @@ export async function resolveCascadeTier(): Promise<CascadeResolution> {
   if (findClaudeBinary()) return { tier: 'cli', engine: 'external', executorModel: 'anthropic/claude-sonnet-5' }
   return { tier: 'api' }
 }
+
+/**
+ * G.2 — mapea una `CascadeResolution` a los campos de `CreateTaskParams` que
+ * el auto-flow del chat (`handlers/chat.ts`) le pasa a `createTaskRecord()`.
+ * Solo el tier 'cli' fija algo; 'local' (sin executor de tareas todavía) y
+ * 'api' (gana `orchestos.config.yaml`) devuelven `{}` a propósito — mismo
+ * comportamiento que el ternario inline que reemplaza, ahora extraído como
+ * función pura y sin I/O para poder testearla directo. `handleApiChat` tiene
+ * un preámbulo async largo que hace racy mockear `globalThis.fetch` contra
+ * él en la suite completa (ver nota en chat-effort.test.ts, BACK.3/BACK.4) —
+ * la lógica que sí importa verificar vive acá, fuera de esa ventana.
+ */
+export function cascadeTaskFields(cascade: CascadeResolution): { executor_model?: string; engine?: string } {
+  if (cascade.tier !== 'cli') return {}
+  return { executor_model: cascade.executorModel, engine: cascade.engine }
+}
