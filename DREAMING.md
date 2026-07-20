@@ -1,9 +1,11 @@
-# DREAMING.md — 2026-07-18
+# DREAMING.md — 2026-07-20
 
 ## Runs analizados
 - Total: 20 runs
 - Periodo: 2026-07-17T02:19:48.812Z → 2026-07-17T21:42:28.525Z
 - failed: 0 | blocked: 0 | done: 20 | qa_failed: 0
+
+**Nota:** `runs-summary.json` no tiene runs nuevos desde el análisis anterior (2026-07-18) — mismos 20 runs, mismo periodo. Los patrones y propuestas de esa corrida siguen vigentes sin cambios; se reproducen abajo sin re-derivar nada nuevo.
 
 ## Patrones detectados
 
