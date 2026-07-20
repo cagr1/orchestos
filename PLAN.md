@@ -642,12 +642,17 @@ que `orchestos.config.yaml` ya tenía. Aplica la regla nueva de [[feedback-plani
 modelo/motor) — por eso queda como plan ordenado acá antes de seguir codeando en caliente (se
 había empezado sin plan compartido y Carlos cortó a mitad de camino).
 
-- [ ] **G.1 — 🧠 EN CURSO (2026-07-17, sin tests todavía — no cerrar como [x] hasta tenerlos)**
-  Detección de tiers: [src/router/engine-cascade.ts](src/router/engine-cascade.ts)
-  — `resolveCascadeTier()` chequea Ollama local (`localhost:11434/api/tags`, timeout corto propio
-  para no colgar el camino caliente del chat) y el binario `claude` (reusa `findClaudeBinary()` de
-  `external.ts`, ya existente). `opencode` queda fuera a propósito — sin contrato CLI verificado en
-  este repo, ver G.5.
+- [x] **G.1 — 🧠 (2026-07-20)** Detección de tiers:
+  [src/router/engine-cascade.ts](src/router/engine-cascade.ts) — `resolveCascadeTier()` chequea
+  Ollama local (`localhost:11434/api/tags`, timeout corto propio para no colgar el camino caliente
+  del chat) y el binario `claude` (reusa `findClaudeBinary()` de `external.ts`, ya existente).
+  `opencode` queda fuera a propósito — sin contrato CLI verificado en este repo, ver G.5. Tests de
+  regresión en [engine-cascade.test.ts](src/__tests__/engine-cascade.test.ts) (6 casos: Ollama con
+  modelos → local; Ollama ok sin modelos / status no-ok / fetch rechazado → no cuenta como local;
+  claude en PATH → tier cli + engine external + modelo sonnet por defecto; sin Ollama ni claude →
+  tier api sin fijar nada, gana `orchestos.config.yaml`) — mismo patrón que
+  `external-engine.test.ts`/`model-catalog.test.ts` (override directo de `Bun.which`/
+  `globalThis.fetch`, sin `mock.module`). 786 tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **G.2 — 🧠 EN CURSO (2026-07-17, sin commitear, sin tests todavía — no cerrar como [x] hasta
   tenerlos)** Wiring parcial en D.7 (`handlers/chat.ts`): cuando
   el chat auto-crea una tarea de build, si `resolveCascadeTier()` devuelve tier `'cli'`, la tarea
