@@ -667,33 +667,51 @@ había empezado sin plan compartido y Carlos cortó a mitad de camino).
   de esa ventana en vez de un test end-to-end del handler. 3 tests nuevos en
   [engine-cascade.test.ts](src/__tests__/engine-cascade.test.ts) (tier cli fija ambos campos;
   tier local/api no fijan nada). 789 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **G.3 — 🧠 Chat conversacional en vivo vía CLI:** que las respuestas normales del chat (no
-  solo las tareas de build de G.2) también puedan correr por `claude -p` cuando la cascada aterrice
-  en tier `'cli'`. Es el ítem más grande del bloque — `chat.ts` hoy solo sabe hablar con Ollama u
-  OpenRouter (`ollamaChat` / `openrouterChat` / `runToolLoop`); correr una conversación interactiva
-  por el CLI headless es un camino nuevo (continuidad de turnos, costo por mensaje, sin streaming
-  real como hoy). Diseñar antes de tocar código — no reusa la lógica actual de `tool-call.ts`.
-  **Insumo de diseño real (Orca, investigado 2026-07-18 a pedido de Carlos, ver
-  [[reference-external-repos]] #9)**: Orca acopla sus agentes CLI como sesiones de terminal
-  **pty reales** (usuario ve la salida en vivo, puede escribirle) — no como llamadas headless de
-  una sola vuelta. Decisión de diseño pendiente antes de codear G.3: ¿imitar el modelo pty-vivo
-  (más caro, resuelve IDEAS #49 de raíz — visibilidad en vivo del agente) o quedarse con el
-  headless-batch actual de `external.ts` (más simple, sin streaming real)? No decidir a ciegas —
-  es la misma pregunta de fondo que IDEAS #49 dejó abierta, ahora con un ejemplo real de cómo lo
-  resuelve otro producto.
-- [ ] **G.4 — 🧠 Selector de modelo dinámico en el chat:** el dropdown de modelo debe reflejar
-  SOLO los modelos del tier activo — si la cascada aterrizó en `'cli'`, mostrar los alias del CLI
-  (sonnet/opus/haiku/fable), no el catálogo completo de OpenRouter (que no tiene sentido ahí, y es
-  exactamente el tipo de "select largo sin filtrar" que la regla de frontend global de Carlos
-  prohíbe). Depende de G.3 (necesita que el chat pueda correr por CLI para que el selector tenga
-  sentido).
-- [ ] **G.5 — BLOQUEADO — 🧠 Generalizar `external.ts` a más binarios (`opencode`):** Carlos
-  mencionó tener también `opencode` como CLI. No se implementa a ciegas — no hay contrato de
-  invocación verificado (flags reales, formato de salida, manejo de costo) para ese binario en
-  este repo, a diferencia de Claude Code (`claude --help` ya se verificó en E.15). Mismo criterio
-  que ya aplicó E.15/G.1: no fingir soporte de algo no probado. Reevaluar cuando haya forma real
-  de probar el contrato de `opencode` (ej. Carlos lo tiene instalado y puede correr `opencode
-  --help` para documentar los flags reales antes de codear contra ellos).
+**Redefinición 2026-07-20 (decisión de Carlos, corrige el diseño original de G.3-G.5):** dos
+correcciones de fondo tras auditar en vivo qué CLIs existen de verdad en la máquina:
+1. **Los CLIs reales son 3: Claude, opencode (free + OpenRouter) y Kimi** (recién instalado).
+   Codex queda **descartado** — Carlos ya no tiene suscripción, el `~/.codex/` que aparecía en el
+   filesystem es config huérfana, no instalar soporte para él. Kimi hoy es solo `Kimi.app`
+   (Electron GUI en `/Applications`) — **sin binario CLI alcanzable por PATH todavía**
+   (`command -v kimi*` no encuentra nada, el bundle no trae uno). Mismo criterio que ya aplicó
+   E.15/G.1 con opencode: no fingir soporte de un binario que no se puede invocar — Kimi queda
+   fuera de esta pasada hasta que exista un CLI real que probar.
+2. **No es pty-vivo estilo Orca.** Carlos aclaró: quiere la visibilidad DENTRO del chat de
+   OrchestOS (cards de "qué se está haciendo", expandibles, mismo patrón que ya usa Claude Code
+   con el usuario) — no una terminal aparte (eso es lo que hace Orca, y Orca no tiene chat). El
+   desbloqueo técnico: **ambos CLIs soportan streaming real**, no hace falta pty.
+   - `claude -p --output-format stream-json --include-partial-messages` (verificado con
+     `claude --help`, no usado hoy — `external.ts` usa el modo batch `--output-format json`).
+   - `opencode run "msg" --format json` — NDJSON incremental (`step_start` / `text` con deltas /
+     `step_finish` con tokens+costo por paso), probado en vivo el 2026-07-20. Además expone
+     `-m provider/model` (mismo formato que ya usa `orchestos.config.yaml`), `--variant`
+     (esfuerzo/reasoning) y `opencode models [provider]` — catálogo de modelos dinámico real.
+
+**Orden de ejecución correcto (reordenado — G.5 ya no depende de G.3, al revés)**:
+
+- [ ] **G.5 — 🧠 Generalizar `external.ts` a un segundo binario (`opencode`).** Ya no bloqueado —
+  contrato verificado en vivo arriba. Nuevo executor paralelo a `external.ts` (mismo contrato
+  `ExecutorEngine`), reusando `findClaudeBinary()`-style detection para `opencode` (`Bun.which`).
+  Batch primero (equivalente a como está `external.ts` hoy: `opencode run --format json`, un
+  parseo del último evento con costo/tokens) — el streaming es G.3. Es el ítem con impacto más
+  inmediato y el contrato más simple de los tres.
+- [ ] **G.3 — 🧠 Chat conversacional en vivo vía CLI (rediseñado).** Cambiar ambos executors
+  (`external.ts` para claude, el nuevo de G.5 para opencode) de modo batch a modo streaming, y
+  parsear los eventos NDJSON como una secuencia de "pasos" que el chat de OrchestOS renderiza en
+  vivo (cards expandibles: qué tool corrió, qué texto generó, costo acumulado) — mismo patrón
+  visual que ya existe para uso normal del chat, no una superficie nueva. Sigue siendo el ítem más
+  grande — toca el transporte del executor Y el rendering del chat. Diseñar el shape de evento
+  intermedio (¿normalizar claude stream-json y opencode NDJSON a un formato común, o renderizar
+  cada uno distinto?) antes de codear.
+- [ ] **G.4 — 🧠 Selector de modelo consciente de tier y de CLI.** El dropdown de modelo refleja
+  SOLO lo que aplica al tier activo: cloud (OpenRouter, ya existe) — CLI-claude (lista fija:
+  sonnet/opus/haiku/fable + 5 niveles de esfuerzo `--effort`) — CLI-opencode (catálogo dinámico
+  real vía `opencode models [provider]` + `--variant` por modelo, no una lista fija). Depende de
+  G.5 (necesita que opencode ya sea un executor real) y se beneficia de G.3 para mostrarse en el
+  chat en vez de solo en Tasks.
+
+**Explícitamente fuera de esta pasada**: Kimi (sin CLI instalable todavía), Codex (sin
+suscripción, no se re-agrega salvo pedido explícito de Carlos).
 
 **Orden de ejecución sugerido**: G.2 (retomar, cerrar con tests) tiene el impacto más inmediato en
 la calidad de lo que se viene probando toda la sesión (las páginas de crypto/Apple) y es el cambio
