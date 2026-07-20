@@ -142,6 +142,20 @@ tasks:
     description: Create a premium landing page for a fictional technical SaaS (dev tool / AI infra category) in a single
       self-contained HTML file with inline CSS, emphasizing conviction-driven typography, full-bleed hero, extreme
       border radius choices, and deliberate differentiation from generic dashboards.
+    skill: frontend-design
+    executor: openrouter
+    executor_model: anthropic/claude-sonnet-5
+    engine: external
+    input: []
+    output:
+      - scratch/design-test-premium-a1.html
+    depends_on: []
+    status: pending
+    retry_count: 0
+  - id: design-test-premium-saas-a1-mrtoizht
+    description: Create a premium landing page for a fictional technical SaaS (dev tool / AI infra category) in a single
+      self-contained HTML file with inline CSS, emphasizing conviction-driven typography, full-bleed hero, extreme
+      border radius choices, and deliberate differentiation from generic dashboards.
     output:
       - scratch/design-test-premium-a1.html
     executor: openrouter
