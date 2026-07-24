@@ -1,13 +1,14 @@
-# DREAMING.md — 2026-07-22
+# DREAMING.md — 2026-07-24
 
 ## Runs analizados
 - Total: 20 runs
 - Periodo: 2026-07-17T18:06:29.537Z → 2026-07-20T20:36:58.556Z
 - failed: 2 | blocked: 0 | done: 18 | qa_failed: 2
 
-**Nota:** dataset distinto al de la corrida anterior (2026-07-20) — esta ventana de 20 runs ya
-incluye 2 runs nuevos de `anthropic/claude-sonnet-5` del 2026-07-20 que no estaban antes; los runs
-más viejos de deepseek (17/plan/doc) rotaron fuera de la ventana de 20.
+**Nota:** `runs-summary.json` no tiene datos nuevos desde la corrida de dreaming anterior
+(2026-07-22) — mismo `exported_at`, mismos 20 runs, mismas estadísticas. No hubo actividad
+registrada entre esa corrida y esta. Los patrones y propuestas de abajo son los mismos que
+2026-07-22; se reitera el hallazgo porque sigue sin decisión tomada (ver sección Decisión).
 
 ## Patrones detectados
 
