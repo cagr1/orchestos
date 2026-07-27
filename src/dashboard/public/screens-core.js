@@ -215,6 +215,74 @@ function renderContextSuggestions(st) {
 // el servidor valida igual, esto solo evita el viaje de red innecesario.
 const MAX_CHAT_ATTACHMENTS = 5;
 
+// G.3.3 — polling en vivo de GET /api/tasks/:id/steps mientras la tarea
+// auto-creada por el chat corre en background (spawnTaskRun es un proceso
+// separado, no hay SSE posible sin restructurar cómo se lanza — ver PLAN.md).
+// Termina cuando st.tasks (poll general de 30s + fetchTasks tras autoTask)
+// reporta un status terminal, o tras STEP_POLL_MAX_TRIES como red de seguridad.
+const STEP_POLL_INTERVAL_MS = 1500;
+const STEP_POLL_MAX_TRIES = 400; // ~10min, mismo orden que el timeout del executor
+const TERMINAL_TASK_STATUSES = new Set(['done', 'failed', 'failed_permanent', 'blocked']);
+
+function isTaskTerminal(st, taskId) {
+  const task = (st.tasks || []).find(x => x.id === taskId);
+  return !!task && TERMINAL_TASK_STATUSES.has(task.status);
+}
+
+function pollTaskSteps(st, taskId, tries = 0) {
+  if (tries >= STEP_POLL_MAX_TRIES) return;
+  fetch(`/api/tasks/${encodeURIComponent(taskId)}/steps?since=${st.chatLiveSteps[taskId].sinceSeq}`)
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      const entry = st.chatLiveSteps[taskId];
+      if (!entry) return; // chat-clear pudo haber borrado el estado
+      if (data && data.steps && data.steps.length) {
+        entry.steps = entry.steps.concat(data.steps);
+        entry.sinceSeq = data.steps[data.steps.length - 1].seq;
+        App.rerender();
+      }
+      if (isTaskTerminal(st, taskId)) { entry.polling = false; return; }
+      setTimeout(() => pollTaskSteps(st, taskId, tries + 1), STEP_POLL_INTERVAL_MS);
+    })
+    .catch(() => {
+      setTimeout(() => pollTaskSteps(st, taskId, tries + 1), STEP_POLL_INTERVAL_MS);
+    });
+}
+
+function startStepPolling(st, taskId) {
+  st.chatLiveSteps = st.chatLiveSteps || {};
+  if (st.chatLiveSteps[taskId]) return; // ya está pollenado (ej. rerender)
+  st.chatLiveSteps[taskId] = { steps: [], sinceSeq: 0, polling: true, expanded: false };
+  pollTaskSteps(st, taskId);
+}
+
+function stepIcon(type) {
+  if (type === 'tool_use') return '🔧';
+  if (type === 'step_finish') return '✓';
+  return '💬';
+}
+
+function renderStepsCard(st, taskId) {
+  const entry = (st.chatLiveSteps || {})[taskId];
+  if (!entry || entry.steps.length === 0) return '';
+  const count = entry.steps.length;
+  const summary = entry.polling ? t('chat.steps.running', count) : t('chat.steps.done', count);
+  const rows = entry.steps.map(s => {
+    if (s.type === 'step_finish') return '';
+    const detail = s.detail ? esc(String(s.detail)).slice(0, 300) : '';
+    const label = s.type === 'tool_use' ? `${t('chat.steps.toolUse')} ${esc(s.label)}` : esc(s.label);
+    return `<div class="chat-step-row"><span class="chat-step-icon">${stepIcon(s.type)}</span><span class="chat-step-label">${label}</span>${detail ? `<div class="chat-step-detail">${detail}</div>` : ''}</div>`;
+  }).join('');
+  return `<div class="chat-steps-card${entry.expanded ? ' exp' : ''}" data-steps-task="${esc(taskId)}">
+    <button type="button" class="chat-steps-summary" data-act="chat-steps-toggle" data-task-id="${esc(taskId)}">
+      <span class="chat-steps-caret">${entry.expanded ? '▾' : '▸'}</span>
+      <span>${summary}</span>
+      ${entry.polling ? '<span class="spinner" style="width:10px;height:10px;border-width:2px;margin-left:6px"></span>' : ''}
+    </button>
+    ${entry.expanded ? `<div class="chat-steps-body">${rows}</div>` : ''}
+  </div>`;
+}
+
 SCREENS.chat = {
   render(st) {
     const history = st.chatHistory || [];
@@ -248,7 +316,10 @@ SCREENS.chat = {
           // el chat leyó la imagen con OCR en vez de descartarla en silencio.
           const ocrTag = m.role === 'assistant' && m.ocrUsed && m.ocrUsed.length
             ? `<div class="chat-ocr-tag">${ICON.image} ${t('chat.ocr.used', m.ocrUsed.join(', '))}</div>` : '';
-          return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${ocrTag}${modelTag}</div></div>`;
+          // G.3.3 — cards en vivo de pasos del executor CLI (external/opencode),
+          // solo para el mensaje que auto-creó la tarea.
+          const stepsCard = m.role === 'assistant' && m.taskId ? renderStepsCard(st, m.taskId) : '';
+          return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${ocrTag}${modelTag}${stepsCard}</div></div>`;
         }).join('') + thinkingBubble;
 
     // 2026-07-13 (corrección de Carlos) — modelo+esfuerzo ahora es un solo pill
@@ -416,15 +487,17 @@ SCREENS.chat = {
         });
         if (res.ok) {
           const data = await res.json();
-          st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model, ocrUsed: data.ocrUsed });
+          const taskId = data.autoTask && data.autoTask.id;
+          st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model, ocrUsed: data.ocrUsed, taskId: taskId || undefined });
           // D.7 (Mes 22) — si el server ya creó+corrió la tarea sola, la barra
           // "Create task" quedaría redundante (o peor, invitaría a duplicarla)
           // — se omite. Refrescamos st.tasks para que el chip `task_id` que
           // aparece en el texto de la respuesta (autoTaskNote) sea clicable
           // de inmediato (highlightRefs necesita conocer el id).
-          if (data.autoTask && data.autoTask.id) {
+          if (taskId) {
             st.chatTaskSuggestion = null;
             App.fetchTasks().then(() => App.rerender());
+            startStepPolling(st, taskId); // G.3.3 — cards en vivo
           } else {
             // J.1 (Mes 18) — B.1.b: si el clasificador marcó el mensaje como
             // tarea, la barra aparece ya (sin esperar a 3+ mensajes) citando su reason.
@@ -456,7 +529,18 @@ SCREENS.chat = {
       st.chatPending = false;
       st.chatFiles = [];
       st.chatTaskSuggestion = null;
+      st.chatLiveSteps = {}; // G.3.3 — corta el polling en vuelo (pollTaskSteps chequea `entry` sigue vivo)
       App.rerender();
+    });
+
+    // G.3.3 — expandir/colapsar la card de pasos en vivo.
+    root.querySelectorAll('[data-act="chat-steps-toggle"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const entry = (st.chatLiveSteps || {})[btn.dataset.taskId];
+        if (!entry) return;
+        entry.expanded = !entry.expanded;
+        App.rerender();
+      });
     });
 
     // FRONT.9 — el botón "+" ahora abre un menú de tipo de adjunto en vez de

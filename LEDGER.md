@@ -34,3 +34,19 @@ G.5) — revertible con `git revert`, sin side-effects en datos. 797 tests · 0 
 limpio antes del commit.
 
 ---
+
+## 2026-07-27 10:19 America/Guayaquil — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: el cambio (Bloque G/G.3.3) no toca `max_tokens`/contextWindow — agrega
+`clearRunSteps(ctx.task.id)` antes de `engine.run()` y pasa `onStep: (event) => insertRunStep(...)`
+en el objeto `opts` que ya se le pasaba al engine (junto a `maxTokens`/`maxIterations`, sin
+modificar esos dos campos). Cero líneas tocadas en el cálculo de `maxTokens`.
+**Reversibilidad/evidencia**: commit de G.3.3 (feat(Bloque G/G.3.3): transporte + UI de cards en
+vivo — cierra Bloque G.3) — revertible con `git revert`, sin side-effects en datos (tabla
+`run_steps` nueva, no toca `runs`). 813 tests · 0 fail · `tsc --noEmit` limpio antes del commit;
+verificado además en vivo contra el dashboard real (ver PLAN.md § G.3.3).
+
+---

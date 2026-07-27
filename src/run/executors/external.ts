@@ -19,6 +19,7 @@
 
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
+import { claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
 
 export class ExecutorExternalError extends Error {}
 
@@ -157,6 +158,7 @@ async function runClaudeCode(
   timeoutMs: number,
   model: string | undefined,
   effort: string | undefined,
+  onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean; resultLine?: string }> {
   const proc = Bun.spawn(
     [CLAUDE_BINARY, ...buildClaudeArgs(systemPrompt, model, effort)],
@@ -188,6 +190,7 @@ async function runClaudeCode(
         try {
           const evt = JSON.parse(line)
           if (evt?.type === 'result') resultLine = line
+          if (onStep) for (const step of claudeEventToStep(evt)) onStep(step)
         } catch {
           // línea parcial/corrupta — no aborta el resto del stream
         }
@@ -234,7 +237,7 @@ export const externalEngine: ExecutorEngine = {
     let timedOut: boolean
     let resultLine: string | undefined
     try {
-      ({ timedOut, resultLine } = await runClaudeCode(ctx.effectiveRoot, systemPrompt, ctx.prompt.userContent, timeoutMs, ctx.model, ctx.task.cli_effort))
+      ({ timedOut, resultLine } = await runClaudeCode(ctx.effectiveRoot, systemPrompt, ctx.prompt.userContent, timeoutMs, ctx.model, ctx.task.cli_effort, opts.onStep))
     } catch (e: any) {
       throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
     }

@@ -735,9 +735,26 @@ es bubble simple) y la tarea corre en background fuera del request HTTP del chat
   soporte no verificado (mismo criterio que G.1/G.5). Standalone, sin wiring a los executors
   todavía (eso es G.3.3). 11 tests nuevos con fixtures de los probes reales
   ([step-event.test.ts](src/__tests__/step-event.test.ts)). 808 tests · 0 fail · `tsc` limpio.
-- [ ] **G.3.3 — 🧠 Transporte + UI de cards en vivo.** Persistir cada evento (tabla `run_steps` o
-  JSON incremental en `runs`); dashboard hace poll corto mientras `running` (evaluar SSE si el
-  volumen lo justifica); cards expandibles nuevas en `screens-core.js` (colapsadas por default).
+- [x] **G.3.3 — 🧠 (2026-07-27) Transporte + UI de cards en vivo.** SSE descartado: `spawnTaskRun()`
+  lanza `cli.ts task run` como proceso OS separado ([tasks.ts:214](src/dashboard/handlers/tasks.ts:214),
+  `stdout: 'inherit'`) — el dashboard no tiene conexión viva a él, solo polling es viable. Tabla
+  `run_steps` keyeada por **task_id, no run_id** ([migrate.ts](src/db/migrate.ts):
+  `insertRun()` solo crea la fila de `runs` al final del run, pero el chat conoce el task_id desde
+  que lo auto-crea). [db/run-steps.ts](src/db/run-steps.ts): `insertRunStep`/`getRunSteps`/
+  `clearRunSteps`, `seq` incremental por task_id. `ExecutorEngine.run()` gana `opts.onStep`
+  ([types.ts](src/run/executors/types.ts)), conectado en `external.ts`/`opencode.ts` a los
+  traductores de G.3.2 dentro del loop de lectura ya streaming de G.3.1; `harness.ts` lo persiste
+  vía `insertRunStep(ctx.task.id, event)` + `clearRunSteps()` al arrancar. Endpoint
+  `GET /api/tasks/:id/steps?since=<seq>` ([tasks.ts](src/dashboard/handlers/tasks.ts)). Chat
+  (`screens-core.js`): `startStepPolling()` arranca al recibir `autoTask.id`, poll 1.5s hasta
+  status terminal (`st.tasks`) o 400 intentos (~10min, red de seguridad); cards colapsadas por
+  default (`renderStepsCard()`), expand/collapse en `st.chatLiveSteps[taskId].expanded`. Verificado
+  en vivo contra el dashboard real (fixtures sembrados vía `db/run-steps.ts`, no simulados): card
+  colapsada, expand con filas correctas, poll incremental 2→3 pasos automático, `step_finish`
+  correctamente oculto de las filas — un bug real de CSS encontrado y corregido en el camino
+  (`.chat-step-row` sin `flex-wrap` partía palabras del label a la mitad). 5 tests nuevos
+  ([run-steps.test.ts](src/__tests__/run-steps.test.ts)). 813 tests · 0 fail · `tsc --noEmit`
+  limpio. **Cierra Bloque G.3 completo.**
 - [ ] **G.4 — 🧠 Selector de modelo consciente de tier y de CLI.** El dropdown de modelo refleja
   SOLO lo que aplica al tier activo: cloud (OpenRouter, ya existe) — CLI-claude (lista fija:
   sonnet/opus/haiku/fable + 5 niveles de esfuerzo `--effort`) — CLI-opencode (catálogo dinámico

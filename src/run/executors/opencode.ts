@@ -37,6 +37,7 @@
 
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
+import { opencodeEventToStep, type ExecutorStepEvent } from './step-event.ts'
 
 export class ExecutorOpencodeError extends Error {}
 
@@ -143,13 +144,15 @@ function parseOpencodeStream(stdout: string): { usd: number; inputTokens: number
  * línea del buffer) en vez de `new Response(proc.stdout).text()` de una
  * sola vez. `parseOpencodeStream()` sigue operando sobre el `stdout`
  * acumulado — sin cambio de comportamiento, solo de cómo se lee mientras
- * el proceso corre (prerequisito de G.3.2/G.3.3, mismo criterio que
- * external.ts).
+ * el proceso corre. G.3.3 — cada línea completa se traduce con
+ * `opencodeEventToStep()` y se emite vía `onStep`, mismo criterio que
+ * external.ts.
  */
 async function runOpencode(
   cwd: string,
   args: string[],
   timeoutMs: number,
+  onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean }> {
   const proc = Bun.spawn([OPENCODE_BINARY, ...args], { cwd, stdout: 'pipe', stderr: 'pipe' })
 
@@ -159,11 +162,26 @@ async function runOpencode(
   const reader = proc.stdout.getReader()
   const decoder = new TextDecoder()
   let stdout = ''
+  let lineBuffer = ''
   try {
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      stdout += decoder.decode(value, { stream: true })
+      const chunk = decoder.decode(value, { stream: true })
+      stdout += chunk
+      lineBuffer += chunk
+      let nl: number
+      while ((nl = lineBuffer.indexOf('\n')) !== -1) {
+        const line = lineBuffer.slice(0, nl).trim()
+        lineBuffer = lineBuffer.slice(nl + 1)
+        if (!line || !onStep) continue
+        try {
+          const evt = JSON.parse(line)
+          for (const step of opencodeEventToStep(evt)) onStep(step)
+        } catch {
+          // línea parcial/corrupta — no aborta el resto del stream
+        }
+      }
     }
   } finally {
     reader.releaseLock()
@@ -197,7 +215,7 @@ export const opencodeEngine: ExecutorEngine = {
     let stdout: string
     let timedOut: boolean
     try {
-      ({ stdout, timedOut } = await runOpencode(ctx.effectiveRoot, buildOpencodeArgs(prompt, model, variant), timeoutMs))
+      ({ stdout, timedOut } = await runOpencode(ctx.effectiveRoot, buildOpencodeArgs(prompt, model, variant), timeoutMs, opts.onStep))
     } catch (e: any) {
       throw new ExecutorOpencodeError(`failed to spawn opencode: ${e.message}`)
     }

@@ -13,6 +13,7 @@
 import type { FileChange } from '../contract.ts'
 import type { CostBreakdownEntry } from '../transcript-parser.ts'
 import type { RunContext } from '../middleware.ts'
+import type { ExecutorStepEvent } from './step-event.ts'
 
 export interface ExecutorOutcome {
   files: FileChange[]
@@ -40,6 +41,13 @@ export interface ExecutorEngine {
        * maxIterations en agentic.ts).
        */
       timeoutMs?: number
+      /**
+       * G.3.3 — invocado en vivo por cada evento NDJSON normalizado que el
+       * engine externo (claude/opencode) emite mientras corre. Solo
+       * external.ts/opencode.ts lo usan; single-shot/agentic lo ignoran
+       * (no son multi-turno vía CLI). Cero ripple si no se pasa.
+       */
+      onStep?: (event: ExecutorStepEvent) => void
     },
   ): Promise<ExecutorOutcome>
 }

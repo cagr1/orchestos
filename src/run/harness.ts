@@ -34,6 +34,7 @@ import { supportsToolCalling } from '../providers/tool-call.ts'
 import { runQA, snapshotContents, restoreContents, computeFileDiffs, MAX_RETRIES } from './qa.ts'
 import { RunLogger } from './logger.ts'
 import { insertRun } from '../db/runs.ts'
+import { insertRunStep, clearRunSteps } from '../db/run-steps.ts'
 import { costBreakdownToJson } from './transcript-parser.ts'
 import { buildPrompt } from './prompt.ts'
 import { runChecks, defaultChecksFor, type CheckResult } from './checks.ts'
@@ -425,7 +426,15 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // missing, check, QA) sí tienen `outcome` y por eso ya pasan breakdownJson.
     let outcome: ExecutorOutcome | null = null
     try {
-      const runOutcome: ExecutorOutcome = await engine.run(ctx, { maxTokens, maxIterations, timeoutMs: externalTimeoutMs })
+      // G.3.3 — limpia pasos de una corrida previa del mismo task_id antes de
+      // arrancar (evita que el dashboard muestre steps viejos si se relanza),
+      // y persiste cada evento en vivo vía onStep. Solo external/opencode lo
+      // usan (ver comentario de tipos.ts) — single-shot/agentic lo ignoran.
+      clearRunSteps(ctx.task.id)
+      const runOutcome: ExecutorOutcome = await engine.run(ctx, {
+        maxTokens, maxIterations, timeoutMs: externalTimeoutMs,
+        onStep: (event) => insertRunStep(ctx.task.id, event),
+      })
       outcome = runOutcome
       llmResponse = { inputTokens: runOutcome.inputTokens, outputTokens: runOutcome.outputTokens }
       cost = runOutcome.usd

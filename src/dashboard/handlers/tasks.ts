@@ -15,6 +15,7 @@ import { suggestContext } from '../../graph/suggest.ts'
 import { parsePlan } from '../../agents/planner.ts'
 import { git } from '../../run/sandbox.ts'
 import { withGitLock } from '../../run/git-lock.ts'
+import { getRunSteps } from '../../db/run-steps.ts'
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
@@ -249,6 +250,20 @@ async function handleApiTasksRun(req: Request, url: URL): Promise<Response> {
   return jsonResponse({ ok: true, id })
 }
 
+/**
+ * G.3.3 — polling incremental de pasos en vivo (chat → cards de tool-call).
+ * `?since=<seq>` devuelve solo lo nuevo desde el último seq visto por el
+ * cliente; sin el param, devuelve todo lo que haya (retomar una pestaña).
+ */
+async function handleApiTasksSteps(url: URL): Promise<Response> {
+  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
+  const id = validateTaskId(raw)
+  if (!id) return errorResponse('Missing or invalid task id', 400)
+  const since = Number(url.searchParams.get('since') ?? '0') || 0
+  const steps = getRunSteps(id, since)
+  return jsonResponse({ steps })
+}
+
 function handleApiTasksDelete(url: URL): Response {
   const id = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   if (!id) return errorResponse('Missing task id', 400)
@@ -407,4 +422,4 @@ function handleApiTasksApproveSplit(url: URL): Response {
   return jsonResponse({ ok: true, id, message: `Split plan for "${id}" approved — executing ${planPath}` })
 }
 
-export { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, loadTaskRows, isKnownSkillId, createTaskRecord, spawnTaskRun }
+export { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, handleApiTasksSteps, loadTaskRows, isKnownSkillId, createTaskRecord, spawnTaskRun }

@@ -193,6 +193,25 @@ export function runMigrations(): void {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_instincts_trigger_unique ON instincts(trigger);
   `)
 
+  // G.3.3 — pasos en vivo de los executors CLI (external/opencode). Keyeado
+  // por task_id, NO run_id: insertRun() solo crea la fila de `runs` al final
+  // del run (ver harness.ts), pero el chat conoce el task_id desde que lo
+  // auto-crea — es lo único disponible mientras el CLI todavía está corriendo.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS run_steps (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id     TEXT NOT NULL,
+      seq         INTEGER NOT NULL,
+      type        TEXT NOT NULL CHECK(type IN ('tool_use', 'text', 'step_finish')),
+      label       TEXT NOT NULL,
+      detail      TEXT,
+      cost_usd    REAL,
+      tokens_json TEXT,
+      created_at  TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_run_steps_task_id ON run_steps(task_id, seq);
+  `)
+
   // Rebuild FTS5 index on every startup — keeps index consistent if rows were
   // inserted before triggers existed (first migration) or after corruption.
   // Idempotent and fast for the small memory tables this tool uses.
