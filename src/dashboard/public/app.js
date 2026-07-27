@@ -297,6 +297,18 @@ const App = {
       state.executorModesStatus = 'error';
     }
   },
+  // H.1 — agregación de gasto/actividad por día+modelo, para el tab de Usage.
+  async fetchUsage() {
+    state.usageDataStatus = 'loading';
+    try {
+      const res = await fetch('/api/usage');
+      if (!res.ok) throw new Error(res.status);
+      state.usageData = await res.json();
+      state.usageDataStatus = 'ok';
+    } catch {
+      state.usageDataStatus = 'error';
+    }
+  },
   async fetchChatTaskBarEvents() {
     state.chatTaskBarEventsStatus = 'loading';
     try {

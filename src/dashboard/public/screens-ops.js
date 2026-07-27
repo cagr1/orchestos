@@ -1184,6 +1184,133 @@ SCREENS.settings = {
   // cascada solo SUGIERE cuando no hay preferencia guardada ('auto' acá);
   // elegir un modo no-detectado se permite igual (se guarda, se usa cuando
   // se instale) — [[feedback-deteccion-no-decision-automatica]].
+  // H.1 — tab de consumo/gasto (graduación de IDEAS #27). GET /api/usage
+  // (handler delegado a Codex, revisado + testeado aparte) devuelve
+  // byDayModel: [{date,model,usd,runs,inputTokens,outputTokens}] — toda la
+  // agregación por rango/heatmap se hace acá, cliente, para no fijar el
+  // endpoint a un rango particular.
+  usageHeatmapWeeks(byDayModel) {
+    const byDate = new Map();
+    for (const row of byDayModel) byDate.set(row.date, (byDate.get(row.date) || 0) + row.usd);
+
+    const DAYS = 371; // 53 semanas — mismo horizonte que el heatmap de GitHub
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const start = new Date(today); start.setDate(start.getDate() - (DAYS - 1));
+    start.setDate(start.getDate() - start.getDay()); // retrocede al domingo
+
+    const cells = [];
+    const values = [];
+    for (const cur = new Date(start); cur <= today; cur.setDate(cur.getDate() + 1)) {
+      const key = cur.toISOString().slice(0, 10);
+      const v = byDate.get(key) || 0;
+      cells.push({ date: key, value: v });
+      if (v > 0) values.push(v);
+    }
+    values.sort((a, b) => a - b);
+    const quantile = (p) => values.length ? values[Math.min(values.length - 1, Math.floor(p * values.length))] : 0;
+    const t1 = quantile(0.25), t2 = quantile(0.5), t3 = quantile(0.75);
+    const levelFor = (v) => v <= 0 ? 0 : v <= t1 ? 1 : v <= t2 ? 2 : v <= t3 ? 3 : 4;
+
+    const weeks = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      weeks.push(cells.slice(i, i + 7).map(c => ({ ...c, level: levelFor(c.value) })));
+    }
+    return weeks;
+  },
+  buildUsageHeatmap(byDayModel) {
+    const weeks = this.usageHeatmapWeeks(byDayModel);
+    const MONTHS = getLang() === 'es'
+      ? ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let lastMonth = -1;
+    const monthLabels = weeks.map(week => {
+      const firstOfMonth = week.find(d => d.date.endsWith('-01'));
+      if (!firstOfMonth) return '';
+      const m = parseInt(firstOfMonth.date.slice(5, 7), 10) - 1;
+      if (m === lastMonth) return '';
+      lastMonth = m;
+      return MONTHS[m];
+    });
+
+    const cols = weeks.map(week => `<div class="usage-heatmap-week">
+      ${week.map(d => `<div class="usage-heatmap-cell" data-level="${d.level}" title="${esc(d.date)} — $${d.value.toFixed(4)}"></div>`).join('')}
+    </div>`).join('');
+
+    return `<div class="usage-heatmap-wrap">
+      <div class="usage-heatmap-months">${monthLabels.map(m => `<span>${esc(m)}</span>`).join('')}</div>
+      <div class="usage-heatmap">${cols}</div>
+      <div class="usage-heatmap-legend">
+        <span>${t('settings.usage.heatmap.less')}</span>
+        <span class="usage-heatmap-cell" data-level="0"></span>
+        <span class="usage-heatmap-cell" data-level="1"></span>
+        <span class="usage-heatmap-cell" data-level="2"></span>
+        <span class="usage-heatmap-cell" data-level="3"></span>
+        <span class="usage-heatmap-cell" data-level="4"></span>
+        <span>${t('settings.usage.heatmap.more')}</span>
+      </div>
+    </div>`;
+  },
+  buildUsageByModel(byDayModel, range) {
+    const CUTOFF_DAYS = { '7d': 7, '30d': 30, '90d': 90, all: Infinity };
+    const days = CUTOFF_DAYS[range] ?? 30;
+    const cutoff = Number.isFinite(days)
+      ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : null;
+
+    const byModel = new Map();
+    for (const row of byDayModel) {
+      if (cutoff && row.date < cutoff) continue;
+      const cur = byModel.get(row.model) || { usd: 0, runs: 0, tokens: 0 };
+      cur.usd += row.usd; cur.runs += row.runs; cur.tokens += row.inputTokens + row.outputTokens;
+      byModel.set(row.model, cur);
+    }
+    const sorted = [...byModel.entries()].sort((a, b) => b[1].usd - a[1].usd);
+    if (sorted.length === 0) return `<div class="muted" style="padding:16px 18px;font-size:12.5px">${t('settings.usage.empty')}</div>`;
+
+    return `<table class="usage-table">
+      <thead><tr>
+        <th>${t('settings.usage.col.model')}</th>
+        <th>${t('settings.usage.col.spend')}</th>
+        <th>${t('settings.usage.col.runs')}</th>
+        <th>${t('settings.usage.col.tokens')}</th>
+      </tr></thead>
+      <tbody>${sorted.map(([model, v]) => `<tr>
+        <td class="mono">${esc(model)}</td>
+        <td>$${v.usd.toFixed(4)}</td>
+        <td>${v.runs}</td>
+        <td>${v.tokens.toLocaleString()}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  },
+  usagePanel(st) {
+    if (st.usageDataStatus === 'loading' || st.usageDataStatus === 'idle') {
+      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
+    }
+    const data = st.usageData;
+    if (st.usageDataStatus === 'error' || !data) {
+      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
+    }
+    const avg = data.totalRuns > 0 ? data.totalUsd / data.totalRuns : 0;
+    const range = state.usageRange || '30d';
+    const RANGES = ['7d', '30d', '90d', 'all'];
+
+    return `<div class="card settings-card usage-stats">
+      <div class="usage-stat"><div class="usage-stat-label">${t('settings.usage.totalSpend')}</div><div class="usage-stat-value">$${data.totalUsd.toFixed(4)}</div></div>
+      <div class="usage-stat"><div class="usage-stat-label">${t('settings.usage.totalRuns')}</div><div class="usage-stat-value">${data.totalRuns}</div></div>
+      <div class="usage-stat"><div class="usage-stat-label">${t('settings.usage.avgCost')}</div><div class="usage-stat-value">$${avg.toFixed(4)}</div></div>
+    </div>
+    <div class="card settings-card">
+      <div class="settings-header"><h3>${t('settings.usage.heatmap.title')}</h3></div>
+      ${this.buildUsageHeatmap(data.byDayModel)}
+    </div>
+    <div class="card settings-card">
+      <div class="settings-header"><h3>${t('settings.usage.byModel.title')}</h3></div>
+      <div class="usage-range-picker">
+        ${RANGES.map(r => `<button class="lang-opt${range === r ? ' active' : ''}" data-usage-range="${r}">${t('settings.usage.range.' + r)}</button>`).join('')}
+      </div>
+      ${this.buildUsageByModel(data.byDayModel, range)}
+    </div>`;
+  },
   executorModePanel(st) {
     if (st.executorModesStatus === 'loading' || st.executorModesStatus === 'idle') {
       return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
@@ -1357,6 +1484,7 @@ SCREENS.settings = {
           ${navItem('general', ICON.sliders, t('settings.nav.general'))}
           ${navItem('keys', ICON.bolt, t('settings.nav.keys'))}
           ${navItem('routing', ICON.runs, t('settings.nav.routing'))}
+          ${navItem('usage', ICON.graph, t('settings.nav.usage'))}
           ${navItem('executor', ICON.refresh, t('settings.nav.executor'))}
           ${navItem('health', ICON.runs, t('settings.nav.health'))}
           ${navItem('project', ICON.project, t('settings.nav.project'))}
@@ -1391,6 +1519,10 @@ SCREENS.settings = {
 
           <section class="settings-panel${sec === 'routing' ? ' active' : ''}" data-panel="routing">
             ${this.routingPanel(st)}
+          </section>
+
+          <section class="settings-panel${sec === 'usage' ? ' active' : ''}" data-panel="usage">
+            ${this.usagePanel(st)}
           </section>
 
           <section class="settings-panel${sec === 'executor' ? ' active' : ''}" data-panel="executor">
@@ -1445,6 +1577,14 @@ SCREENS.settings = {
         if (sec === 'routing' && state.orModels === null) loadOrModels().then(() => App.rerender());
         if (sec === 'executor') App.fetchExecutorModes().then(() => App.rerender());
       }
+      if (sec === 'usage' && !state.usageData) App.fetchUsage().then(() => App.rerender());
+    }));
+
+    // H.1 — range picker de la tabla por modelo: local, sin refetch (el
+    // endpoint ya trae los 400 días, la agregación por rango es en cliente).
+    root.querySelectorAll('[data-usage-range]').forEach(btn => btn.addEventListener('click', () => {
+      state.usageRange = btn.dataset.usageRange;
+      App.rerender();
     }));
 
     // G.4.4 — executor_mode picker: clic cambia state.executorModePending local

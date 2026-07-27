@@ -914,15 +914,20 @@ reskin; (2) limpieza obligatoria de settings que hoy solo muestran texto sin fun
 antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedback-acabados-elegantes-siempre]]
 — estándar permanente de acabado, no una petición puntual de esta pasada.
 
-- [ ] **H.1 — 🧠 Tab de consumo/gasto (graduación de IDEAS #27) — la pieza grande.**
-  Tab nuevo en Settings, agregación **pura** sobre `runs` (SQLite ya tiene `usd_cost`, `model`,
-  `task_class`, `created_at` por corrida — incluye chat desde `logChatRun()`, `handlers/chat.ts`).
-  NO crear tabla nueva. Mostrar: (a) gasto en $ por día/semana/mes con desglose **por modelo** estilo
-  openrouter.ai; (b) conteo de mensajes/tokens por día; (c) **heatmap tipo GitHub contributions** de
-  actividad diaria — es la parte más nueva visualmente, el resto reusa patrones ya probados. Endpoint
-  nuevo de agregación (`GET /api/usage` o similar), reusando la lógica de suma que hoy vive suelta en
-  `costLast7d` ([setup.ts:221](src/dashboard/handlers/setup.ts:221)). Esfuerzo real: bajo-medio en
-  backend (SQL), medio en frontend (heatmap + desglose).
+- [x] **H.1 — 🧠 (2026-07-27) Tab de consumo/gasto (graduación de IDEAS #27).** Nuevo tab "Usage" en
+  Settings ([usageHeatmapWeeks/buildUsageHeatmap/buildUsageByModel/usagePanel en
+  screens-ops.js](src/dashboard/public/screens-ops.js)). Backend delegado a Codex
+  ([usage.ts](src/dashboard/handlers/usage.ts): `GET /api/usage` agrega `runs` por día+modelo,
+  últimos 400 días, `{byDayModel,totalUsd,totalRuns}`, nunca lanza) — diff revisado, sin scope
+  creep esta vez, tests escritos aparte (4 en
+  [usage-endpoint.test.ts](src/__tests__/usage-endpoint.test.ts)). Frontend (heatmap + tabla) por
+  Claude, con skill `dataviz`: heatmap estilo GitHub-contributions (53 semanas, rampa secuencial de
+  un solo hue vía `color-mix(in oklab, var(--accent) N%, var(--surface-2))` — theme-aware en los 4
+  temas, mismo mecanismo que `--accent-dim`/`--accent-soft` ya usaban), niveles por cuartiles del
+  gasto diario, tabla por modelo con selector de rango (7d/30d/90d/todo) agregado en cliente sobre
+  el mismo payload. Verificado en vivo contra el dashboard real: datos reales (44 runs, $1.5778,
+  desglose por modelo correcto), selector de rango funcional. 869 tests · 0 fail ·
+  `tsc --noEmit` limpio.
 - [x] **H.2 — 🔍 (2026-07-27) Investigar el gap del costo ($1.56 vs. run caro que falló).**
   Verificado contra la DB real (`sqlite3 ~/.orchestos/db.sqlite`, corrido dos veces — primero por
   Codex, re-verificado independiente por Claude, mismos números ambas veces): 44 runs persistidos,

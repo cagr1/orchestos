@@ -310,6 +310,44 @@
 .lang-opt:hover { background: var(--surface-2); color: var(--text); }
 .lang-opt.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
+/* ---------- USAGE TAB (Settings→Usage, H.1) ---------- */
+.usage-stats { display: flex; gap: 0; padding: 0; }
+.usage-stat { flex: 1; padding: 18px; text-align: center; border-right: 1px solid var(--border-soft); }
+.usage-stat:last-child { border-right: none; }
+.usage-stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.usage-stat-value { font-size: 22px; font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.usage-heatmap-wrap { padding: 16px 18px 18px; overflow-x: auto; }
+.usage-heatmap-months { display: flex; gap: 3px; margin-bottom: 4px; }
+.usage-heatmap-months span { width: 11px; font-size: 10px; color: var(--text-faint); flex-shrink: 0; overflow: visible; white-space: nowrap; }
+.usage-heatmap { display: flex; gap: 3px; }
+.usage-heatmap-week { display: flex; flex-direction: column; gap: 3px; }
+/* Rampa secuencial de un solo hue (var(--accent)), light→dark vía color-mix —
+   mismo mecanismo que --accent-dim/--accent-soft, así queda theme-aware sin
+   fijar hex y funciona en los 4 temas del picker. */
+.usage-heatmap-cell {
+  width: 11px; height: 11px; border-radius: 2px; background: var(--surface-2);
+  flex-shrink: 0;
+}
+.usage-heatmap-cell[data-level="1"] { background: color-mix(in oklab, var(--accent) 25%, var(--surface-2)); }
+.usage-heatmap-cell[data-level="2"] { background: color-mix(in oklab, var(--accent) 50%, var(--surface-2)); }
+.usage-heatmap-cell[data-level="3"] { background: color-mix(in oklab, var(--accent) 75%, var(--surface-2)); }
+.usage-heatmap-cell[data-level="4"] { background: var(--accent); }
+.usage-heatmap-legend { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 11px; color: var(--text-faint); }
+.usage-heatmap-legend .usage-heatmap-cell { width: 10px; height: 10px; }
+
+.usage-range-picker { display: flex; gap: 8px; padding: 0 18px 14px; }
+.usage-range-picker .lang-opt { flex: 0 1 auto; padding: 6px 12px; font-size: 12.5px; }
+
+.usage-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.usage-table th {
+  text-align: left; padding: 8px 18px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .03em; color: var(--text-faint); border-bottom: 1px solid var(--border-soft);
+}
+.usage-table td { padding: 9px 18px; border-bottom: 1px solid var(--border-soft); color: var(--text); }
+.usage-table tbody tr:last-child td { border-bottom: none; }
+.usage-table td:not(:first-child), .usage-table th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+
 /* ---------- THEME PICKER (Settings→General→Appearance) ----------
    Swatches en colores fijos por tema (no var(--...)) porque tienen que
    representar el tema de la opción, no el tema activo — al estilo del
