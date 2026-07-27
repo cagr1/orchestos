@@ -938,11 +938,12 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   ese momento, no el gasto total — falta de contexto en la UI (H.3), no bug de persistencia. H.1
   debe separar explícitamente gasto histórico / ventana seleccionada / runs fallidos, sin
   presentar una ventana móvil como total global.
-- [ ] **H.3 — ⚡ Contexto "7 días" visible en el costo.** El health panel dice "Costo (7 días)"
-  ([screens-ops.js:1092](src/dashboard/public/screens-ops.js:1092)) pero la card de "estado del
-  proyecto" que ve Carlos pierde ese marco y el número se lee como "gasto total". Fix chico: rótulo
-  explícito de ventana temporal donde se muestre el costo. Reemplazado en gran parte por H.1 si el
-  tab de consumo pasa a ser la fuente canónica de gasto.
+- [x] **H.3 — ⚡ (2026-07-27) Contexto "7 días" visible en el costo.** Verificado en vivo contra el
+  dashboard real: `t('health.cost')` = "Cost (7 days)" / "Costo (7 días)" ya lleva la ventana
+  explícita, y [screens-ops.js:1092](src/dashboard/public/screens-ops.js:1092) es el ÚNICO sitio
+  donde se renderiza `costLast7d` (`grep` confirmado, sin duplicado sin label en ningún otro
+  screen). No hace falta código nuevo — ya estaba resuelto antes de que existiera H.1. No se
+  delegó a Codex por no haber trabajo real que hacer.
 - [ ] **H.4 — 🧠 Preview de routing: de card permanente a preview inline.** Hoy "Tareas pendientes —
   preview de routing" es una card aislada al fondo que **duplica la lista de Tasks** sin aportar más
   que el modelo resuelto ([config.ts:32-41](src/dashboard/handlers/config.ts:32),
