@@ -102,10 +102,22 @@ export function orchestosModelToCliModel(model: string | undefined): string | un
   return model.slice('anthropic/'.length)
 }
 
+/**
+ * G.3.1 — `--output-format json` (blob único al final) reemplazado por
+ * `stream-json` + `--include-partial-messages`: NDJSON incremental, requiere
+ * `--verbose` (el CLI lo exige junto con stream-json en modo --print).
+ * Habilita leer línea por línea mientras el proceso corre en vez de esperar
+ * a que termine — prerequisito de G.3.2 (normalización de eventos) y G.3.3
+ * (persistencia/UI en vivo). El evento final `type: "result"` trae los
+ * mismos campos (`total_cost_usd`/`usage`/`num_turns`) que antes traía el
+ * blob de `--output-format json` — verificado en vivo 2026-07-27.
+ */
 function buildClaudeArgs(systemPrompt: string, model?: string, effort?: string): string[] {
   const args = [
     '-p',
-    '--output-format', 'json',
+    '--output-format', 'stream-json',
+    '--include-partial-messages',
+    '--verbose',
     '--append-system-prompt', systemPrompt,
     '--allowedTools', 'Edit,Write,Read,Glob,Grep',
   ]
@@ -118,7 +130,9 @@ function buildClaudeArgs(systemPrompt: string, model?: string, effort?: string):
 function buildClaudeArgsDisplay(model?: string, effort?: string): string[] {
   const args = [
     '-p',
-    '--output-format', 'json',
+    '--output-format', 'stream-json',
+    '--include-partial-messages',
+    '--verbose',
     '--append-system-prompt', '<contract>',
     '--allowedTools', 'Edit,Write,Read,Glob,Grep',
   ]
@@ -128,6 +142,14 @@ function buildClaudeArgsDisplay(model?: string, effort?: string): string[] {
   return args
 }
 
+/**
+ * G.3.1 — lee stdout incremental (chunk por chunk del reader, línea por
+ * línea del buffer) en vez de `new Response(proc.stdout).text()` de una
+ * sola vez. Trackea `resultLine` (última línea `type: "result"` vista) en
+ * vez de esperar el blob completo — resiliente a líneas de ruido (hooks de
+ * sesión, eventos parciales) intercaladas antes del resultado final, mismo
+ * criterio de resiliencia que `parseOpencodeStream()` en opencode.ts.
+ */
 async function runClaudeCode(
   cwd: string,
   systemPrompt: string,
@@ -135,7 +157,7 @@ async function runClaudeCode(
   timeoutMs: number,
   model: string | undefined,
   effort: string | undefined,
-): Promise<{ stdout: string; timedOut: boolean }> {
+): Promise<{ stdout: string; timedOut: boolean; resultLine?: string }> {
   const proc = Bun.spawn(
     [CLAUDE_BINARY, ...buildClaudeArgs(systemPrompt, model, effort)],
     { cwd, stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' },
@@ -146,11 +168,39 @@ async function runClaudeCode(
   let timedOut = false
   const timer = setTimeout(() => { timedOut = true; proc.kill('SIGTERM') }, timeoutMs)
 
-  const stdout = await new Response(proc.stdout).text()
+  const reader = proc.stdout.getReader()
+  const decoder = new TextDecoder()
+  let stdout = ''
+  let lineBuffer = ''
+  let resultLine: string | undefined
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = decoder.decode(value, { stream: true })
+      stdout += chunk
+      lineBuffer += chunk
+      let nl: number
+      while ((nl = lineBuffer.indexOf('\n')) !== -1) {
+        const line = lineBuffer.slice(0, nl).trim()
+        lineBuffer = lineBuffer.slice(nl + 1)
+        if (!line) continue
+        try {
+          const evt = JSON.parse(line)
+          if (evt?.type === 'result') resultLine = line
+        } catch {
+          // línea parcial/corrupta — no aborta el resto del stream
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
   await proc.exited
   clearTimeout(timer)
 
-  return { stdout, timedOut }
+  return { stdout, timedOut, resultLine }
 }
 
 // -- engine ------------------------------------------------------------------------
@@ -181,27 +231,31 @@ export const externalEngine: ExecutorEngine = {
     const systemPrompt = buildSystemPrompt(ctx)
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
-    let stdout: string
     let timedOut: boolean
+    let resultLine: string | undefined
     try {
-      ({ stdout, timedOut } = await runClaudeCode(ctx.effectiveRoot, systemPrompt, ctx.prompt.userContent, timeoutMs, ctx.model, ctx.task.cli_effort))
+      ({ timedOut, resultLine } = await runClaudeCode(ctx.effectiveRoot, systemPrompt, ctx.prompt.userContent, timeoutMs, ctx.model, ctx.task.cli_effort))
     } catch (e: any) {
       throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
     }
 
     // Decisión b: costo desconocido explícito, nunca $0 silencioso (F0.8).
-    // Se intenta parsear el JSON aunque haya habido timeout — si `claude`
-    // alcanzó a flushear una respuesta final antes de morir, se usa; si no,
-    // se lanza en vez de inventar un costo.
+    // G.3.1 — se busca el evento `type: "result"` visto durante el stream en
+    // vez de parsear un blob único; si `claude` alcanzó a emitirlo antes de
+    // morir por timeout, se usa igual — si no, se lanza en vez de inventar
+    // un costo.
     let parsed: ClaudeCodeJson
-    try {
-      parsed = JSON.parse(stdout)
-    } catch {
+    if (!resultLine) {
       throw new ExecutorExternalError(
         timedOut
-          ? `claude code timed out after ${timeoutMs}ms with no parseable output — cost unknown, not reported as $0`
-          : `claude code produced no parseable JSON output — cost unknown, not reported as $0`,
+          ? `claude code timed out after ${timeoutMs}ms with no result event — cost unknown, not reported as $0`
+          : `claude code produced no result event — cost unknown, not reported as $0`,
       )
+    }
+    try {
+      parsed = JSON.parse(resultLine)
+    } catch {
+      throw new ExecutorExternalError('claude code result event was not valid JSON — cost unknown, not reported as $0')
     }
 
     if (typeof parsed.total_cost_usd !== 'number') {

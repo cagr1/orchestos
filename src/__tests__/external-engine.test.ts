@@ -106,6 +106,14 @@ function makeMockProc(stdoutText: string, opts: { hang?: boolean; exitDelayMs?: 
   }
 }
 
+// G.3.1 — el engine ahora lee NDJSON (`stream-json`) y busca la línea
+// `type: "result"` en vez de parsear un blob único. Los fixtures de mock
+// stdout se arman igual que antes (campos total_cost_usd/usage/num_turns)
+// pero envueltos como línea de evento `result`.
+function mockResultLine(fields: Record<string, unknown>): string {
+  return JSON.stringify({ type: 'result', ...fields }) + '\n'
+}
+
 const spawnCalls: MockSpawnCall[] = []
 function installMockSpawn(stdout: string, opts: { hang?: boolean; exitDelayMs?: number } = {}): MockProc {
   const proc = makeMockProc(stdout, opts)
@@ -206,7 +214,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // Simulamos lo que el proceso externo escribiría: out.txt creado.
     writeFileSync(join(wt.path, 'out.txt'), 'hello from claude code\n')
 
-    const mockStdout = JSON.stringify({
+    const mockStdout = mockResultLine({
       usage: { input_tokens: 1234, output_tokens: 567 },
       total_cost_usd: 0.0123,
       num_turns: 4,
@@ -224,7 +232,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     expect(spawnCalls[0]!.cmd[0]).toBe('claude')
     expect(spawnCalls[0]!.cmd).toContain('-p')
     expect(spawnCalls[0]!.cmd).toContain('--output-format')
-    expect(spawnCalls[0]!.cmd).toContain('json')
+    expect(spawnCalls[0]!.cmd).toContain('stream-json')
     expect(spawnCalls[0]!.cmd).toContain('--append-system-prompt')
     expect(spawnCalls[0]!.cmd).toContain('--allowedTools')
 
@@ -249,7 +257,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // real fue reemplazado por `<contract>` en el engine para no inflar la DB.
     expect(outcome.costByIteration[0]!.binary).toBe('claude')
     expect(outcome.costByIteration[0]!.args).toEqual([
-      '-p', '--output-format', 'json',
+      '-p', '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
       '--append-system-prompt', '<contract>',
       '--allowedTools', 'Edit,Write,Read,Glob,Grep',
     ])
@@ -284,7 +292,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // Simula lo que Claude Code hizo en vivo: editar un archivo YA trackeado.
     writeFileSync(join(wt.path, 'out.txt'), 'modified by claude code\n')
 
-    const mockStdout = JSON.stringify({
+    const mockStdout = mockResultLine({
       usage: { input_tokens: 10, output_tokens: 20 },
       total_cost_usd: 0.01,
       num_turns: 1,
@@ -312,7 +320,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     writeFileSync(join(wt.path, 'out.txt'), 'in contract\n')
     writeFileSync(join(wt.path, 'rogue.txt'), 'should be reported, not filtered\n')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 100, output_tokens: 50 },
       total_cost_usd: 0.001,
       num_turns: 1,
@@ -340,7 +348,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     git(['mv', 'README.md', 'README2.md'], wt.path)
     // El "diff" efectivo: README2.md existe, README.md ya no.
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       num_turns: 1,
@@ -417,7 +425,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       caught = e
     }
     expect(caught).toBeInstanceOf(ExecutorExternalError)
-    expect(caught!.message).toContain('no parseable JSON')
+    expect(caught!.message).toContain('no result event')
     expect(caught!.message).toContain('not reported as $0')
   })
 
@@ -429,7 +437,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
 
     // JSON valido pero el campo crítico falta. Decisión b: "if not a number,
     // refusing to report cost as $0" (línea 141-143 de external.ts).
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 100, output_tokens: 50 },
       num_turns: 1,
       // total_cost_usd ausente
@@ -459,7 +467,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'partial usage')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       // usage ausente
       total_cost_usd: 0.005,
       num_turns: 2,
@@ -481,7 +489,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'x')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       // num_turns ausente
@@ -540,7 +548,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     const wt = createWorktree('b3-noop', 'main', root)
     trackWorktree(wt)
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 10, output_tokens: 5 },
       total_cost_usd: 0.0001,
       num_turns: 1,
@@ -566,7 +574,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'normalized path test')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       num_turns: 1,
@@ -602,7 +610,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // no afecta a archivos hermanos.
     writeFileSync(join(wt.path, 'out.txt'), 'sibling of empty dir\n')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       num_turns: 1,
@@ -633,7 +641,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     mkdirSync(join(wt.path, 'sub'), { recursive: true })
     writeFileSync(join(wt.path, 'sub', 'inner.txt'), 'nested file\n')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       num_turns: 1,
@@ -666,7 +674,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'ok')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       num_turns: 1,
@@ -686,19 +694,21 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     expect(spawned[0]).toBe(persistedBinary)
     expect(spawned.length).toBe(1 + persisted.length)
     // Mismas flags en las mismas posiciones (todo lo que no es el system prompt)
-    // spawned = ['claude', '-p', '--output-format', 'json', '--append-system-prompt', '<prompt real>', '--allowedTools', 'Edit,Write,Read,Glob,Grep']
-    // persisted = ['-p', '--output-format', 'json', '--append-system-prompt', '<contract>', '--allowedTools', 'Edit,Write,Read,Glob,Grep']
+    // spawned = ['claude', '-p', '--output-format', 'stream-json', '--include-partial-messages', '--verbose', '--append-system-prompt', '<prompt real>', '--allowedTools', 'Edit,Write,Read,Glob,Grep']
+    // persisted = ['-p', '--output-format', 'stream-json', '--include-partial-messages', '--verbose', '--append-system-prompt', '<contract>', '--allowedTools', 'Edit,Write,Read,Glob,Grep']
     expect(spawned[1]).toBe(persisted[0]) // -p
     expect(spawned[2]).toBe(persisted[1]) // --output-format
-    expect(spawned[3]).toBe(persisted[2]) // json
-    expect(spawned[4]).toBe(persisted[3]) // --append-system-prompt
-    // spawned[5] es el prompt real (largo); persisted[4] es el placeholder
-    expect(persisted[4]).toBe('<contract>')
-    expect(spawned[5]).not.toBe('<contract>') // no se persiste el prompt real
-    expect(spawned[5]!.length).toBeGreaterThan(0) // y se pasa algo
+    expect(spawned[3]).toBe(persisted[2]) // stream-json
+    expect(spawned[4]).toBe(persisted[3]) // --include-partial-messages
+    expect(spawned[5]).toBe(persisted[4]) // --verbose
+    expect(spawned[6]).toBe(persisted[5]) // --append-system-prompt
+    // spawned[7] es el prompt real (largo); persisted[6] es el placeholder
+    expect(persisted[6]).toBe('<contract>')
+    expect(spawned[7]).not.toBe('<contract>') // no se persiste el prompt real
+    expect(spawned[7]!.length).toBeGreaterThan(0) // y se pasa algo
     // Cola
-    expect(spawned[6]).toBe(persisted[5]) // --allowedTools
-    expect(spawned[7]).toBe(persisted[6]) // Edit,Write,Read,Glob,Grep
+    expect(spawned[8]).toBe(persisted[7]) // --allowedTools
+    expect(spawned[9]).toBe(persisted[8]) // Edit,Write,Read,Glob,Grep
   })
 
   it('C.1 — el system prompt pasado a Bun.spawn NO contiene el placeholder `<contract>` (es el contrato real)', async () => {
@@ -711,7 +721,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'ok')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       num_turns: 1,
@@ -726,7 +736,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
 
     const spawned = spawnCalls[0]!.cmd
-    const systemPromptArg = spawned[5] // el unico que no esta en args persistidos
+    const systemPromptArg = spawned[7] // el unico que no esta en args persistidos
     // El system prompt real es la cadena del contrato, no el placeholder
     expect(systemPromptArg).not.toBe('<contract>')
     // Y debe contener la marca canonica del contrato (output[])
@@ -749,7 +759,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       // o un setup), el engine debe fallar antes de tocar nada.
       writeFileSync(join(wt.path, 'out.txt'), 'would be reported if binary existed')
 
-      const proc = installMockSpawn(JSON.stringify({
+      const proc = installMockSpawn(mockResultLine({
         usage: { input_tokens: 1, output_tokens: 1 },
         total_cost_usd: 0.0001,
         num_turns: 1,
@@ -813,7 +823,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       trackWorktree(wt)
       writeFileSync(join(wt.path, 'out.txt'), 'all good')
 
-      const proc = installMockSpawn(JSON.stringify({
+      const proc = installMockSpawn(mockResultLine({
         usage: { input_tokens: 1, output_tokens: 1 },
         total_cost_usd: 0.0001,
         num_turns: 1,
@@ -837,7 +847,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'ok')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       num_turns: 1,
@@ -863,7 +873,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'ok')
 
-    const proc = installMockSpawn(JSON.stringify({
+    const proc = installMockSpawn(mockResultLine({
       usage: { input_tokens: 1, output_tokens: 1 },
       total_cost_usd: 0.0001,
       num_turns: 1,

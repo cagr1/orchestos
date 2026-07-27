@@ -713,14 +713,23 @@ correcciones de fondo tras auditar en vivo qué CLIs existen de verdad en la má
   `step_finish` sumados, `--variant` desde `cli_effort`, binario ausente, sin worktree, timeout,
   sin `step_finish` → error explícito, líneas NDJSON corruptas no abortan el parseo, traducción de
   modelo siempre `undefined`). 797 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **G.3 — 🧠 Chat conversacional en vivo vía CLI (rediseñado).** Cambiar ambos executors
-  (`external.ts` para claude, el nuevo de G.5 para opencode) de modo batch a modo streaming, y
-  parsear los eventos NDJSON como una secuencia de "pasos" que el chat de OrchestOS renderiza en
-  vivo (cards expandibles: qué tool corrió, qué texto generó, costo acumulado) — mismo patrón
-  visual que ya existe para uso normal del chat, no una superficie nueva. Sigue siendo el ítem más
-  grande — toca el transporte del executor Y el rendering del chat. Diseñar el shape de evento
-  intermedio (¿normalizar claude stream-json y opencode NDJSON a un formato común, o renderizar
-  cada uno distinto?) antes de codear.
+**G.3 — 🧠 Chat conversacional en vivo vía CLI.** Nota de diseño (2026-07-27): NO existe hoy
+patrón de cards de tool-call en el chat ([screens-core.js:222](src/dashboard/public/screens-core.js:222)
+es bubble simple) y la tarea corre en background fuera del request HTTP del chat
+([chat.ts:524](src/dashboard/handlers/chat.ts:524)) — subdividido en 3 por eso:
+
+- [x] **G.3.1 — 🧠 (2026-07-27) Executor batch → streaming.** `external.ts`: `--output-format
+  json` → `stream-json --include-partial-messages --verbose` (verificado en vivo), lee stdout con
+  reader+buffer de línea, busca la última línea `type: "result"` (mismos campos que el blob viejo)
+  en vez de `JSON.parse(stdout)` completo. `opencode.ts`: mismo cambio de lectura (reader
+  incremental), sin cambio de args (ya emitía NDJSON). Sin cambio de comportamiento observable —
+  prerequisito de G.3.2/G.3.3. 797 tests · 0 fail · `tsc --noEmit` limpio.
+- [ ] **G.3.2 — 🧠 Evento común `ExecutorStepEvent`.** `{ type: 'tool_use'|'text'|'step_finish',
+  label, detail?, costUsd?, tokens? }` + traducción por CLI (`claudeEventToStep()`/
+  `opencodeEventToStep()`), mismo patrón que `orchestosModelToCliModel()`.
+- [ ] **G.3.3 — 🧠 Transporte + UI de cards en vivo.** Persistir cada evento (tabla `run_steps` o
+  JSON incremental en `runs`); dashboard hace poll corto mientras `running` (evaluar SSE si el
+  volumen lo justifica); cards expandibles nuevas en `screens-core.js` (colapsadas por default).
 - [ ] **G.4 — 🧠 Selector de modelo consciente de tier y de CLI.** El dropdown de modelo refleja
   SOLO lo que aplica al tier activo: cloud (OpenRouter, ya existe) — CLI-claude (lista fija:
   sonnet/opus/haiku/fable + 5 niveles de esfuerzo `--effort`) — CLI-opencode (catálogo dinámico
@@ -856,6 +865,48 @@ ir en cualquier orden. H.8 al final (acabado sobre lo ya resuelto).
   no por corrida real. Candidato del vault: `fable-judge` (Fable Method — verificación adversarial
   que re-corre cada check reclamado). Adopción = cambio grande multi-módulo → queda en IDEAS #53,
   no se codea en caliente ([[feedback-planificar-cambios-grandes]]).
+
+---
+
+### Bloque J — ⚡ Coverage gate en CI: medir y trinquetear la cobertura (hallazgo del vault, 2026-07-27)
+
+**Origen**: consulta al vault sobre mutation testing / coverage gate / QA-por-ejecución
+(`MemoriesMD/outputs/2026-07-27-mutation-testing-coverage-gate-qa-ejecutando.md`). Al verificar
+contra el repo real salió que **la cobertura nunca se había medido**: no existe `bunfig.toml` y
+`ci.yml` corre `bun test` sin `--coverage`.
+
+**Medición base (2026-07-27, suite completa 797 tests / 75 archivos / 13.6s / 0 fail):**
+
+```
+Coverage global: 69.41% funcs · 69.44% líneas   (125 archivos fuente, 19.269 líneas)
+```
+
+No es cobertura pareja, es **bimodal** — y eso decide dónde vale la pena invertir:
+
+| Zona | Líneas |
+|---|---|
+| `src/run/*` (executors, middleware, contract, checks) | 76–100%, mayoría >95% |
+| `src/spec/*`, `src/skills/*` | 90–100% con huecos puntuales (`skills/fetch.ts` 13%, `spec/draft.ts` 6.7%) |
+| `src/dashboard/handlers/*` | 6–42% |
+| `src/cli.ts`, `src/agents/sub-agent.ts`, `src/context/compress.ts` | 1.8–17% |
+
+El núcleo del motor está bien testeado. Lo flojo es periferia (dashboard, CLI).
+
+- [ ] **J.1 — ⚡ Coverage gate con umbral-trinquete en el número actual.** Crear `bunfig.toml` con
+  `[test] coverage = true` + `coverageThreshold = 0.69` (el valor medido HOY, no uno aspiracional), y
+  cambiar `bun test` → `bun test --coverage` en
+  [.github/workflows/ci.yml](.github/workflows/ci.yml). Bun trae el umbral nativo — no hace falta
+  Stryker, nyc ni ninguna dependencia nueva. **Validación**: el CI falla si la cobertura baja del
+  umbral; con el árbol actual, pasa verde sin tocar un solo test.
+- **Regla de trinquete (por qué 0.69 y no 0.80)**: el umbral se fija en el número real y solo sube
+  cuando la cobertura sube de verdad — nunca se pone una meta aspiracional. Un 80% "porque lo
+  recomienda ECC" rompe el CI al día siguiente y termina desactivado, que es peor que no tenerlo.
+  Mismo espíritu que [scripts/check-ledger-gate.ts](scripts/check-ledger-gate.ts): gate barato que
+  no bloquea salvo regresión real.
+- **Nota de alcance (NO es un ítem, no lo adelantes)**: los módulos de 6–42% (`dashboard/handlers/*`,
+  `cli.ts`) necesitan tests, no métricas. Se cubren **cuando se toquen por otra razón**, subiendo el
+  umbral en el mismo commit. No se abre un bloque de "subir cobertura" por sí solo — sería trabajo
+  sin producto detrás.
 
 ---
 

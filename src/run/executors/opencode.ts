@@ -138,6 +138,14 @@ function parseOpencodeStream(stdout: string): { usd: number; inputTokens: number
 
 // -- subprocess -------------------------------------------------------------
 
+/**
+ * G.3.1 — lee stdout incremental (chunk por chunk del reader, línea por
+ * línea del buffer) en vez de `new Response(proc.stdout).text()` de una
+ * sola vez. `parseOpencodeStream()` sigue operando sobre el `stdout`
+ * acumulado — sin cambio de comportamiento, solo de cómo se lee mientras
+ * el proceso corre (prerequisito de G.3.2/G.3.3, mismo criterio que
+ * external.ts).
+ */
 async function runOpencode(
   cwd: string,
   args: string[],
@@ -148,7 +156,19 @@ async function runOpencode(
   let timedOut = false
   const timer = setTimeout(() => { timedOut = true; proc.kill('SIGTERM') }, timeoutMs)
 
-  const stdout = await new Response(proc.stdout).text()
+  const reader = proc.stdout.getReader()
+  const decoder = new TextDecoder()
+  let stdout = ''
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      stdout += decoder.decode(value, { stream: true })
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
   await proc.exited
   clearTimeout(timer)
 
