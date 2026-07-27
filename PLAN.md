@@ -796,8 +796,8 @@ de una conversación. Separación de responsabilidades:
   `ExecutorEngine` para ese CLI — Codex/Kimi pueden aparecer `installed: true` sin poder ejecutarse
   todavía (G.4.2b). `findClaudeBinary()`/`findOpencodeBinary()` (external.ts/opencode.ts) NO se
   tocaron — siguen con su mensaje de error específico por engine; el registro es la capa de
-  detección genérica para UI/disponibilidad (consumidor real: endpoint G.4.3, todavía pendiente —
-  `resolveCascadeTier()` no se tocó en esta pasada, sigue con su lógica ya testeada). 5 tests
+  detección genérica para UI/disponibilidad (consumidor real: endpoint G.4.3 — ver abajo).
+  `resolveCascadeTier()` no se tocó en esta pasada, sigue con su lógica ya testeada. 5 tests
   nuevos ([cli-registry.test.ts](src/__tests__/cli-registry.test.ts)). 827 tests · 0 fail ·
   `tsc --noEmit` limpio.
 - [x] **G.4.2b — 🧠 (2026-07-27) `ExecutorEngine` real para Codex.**
@@ -820,8 +820,19 @@ de una conversación. Separación de responsabilidades:
   [codex-engine.test.ts](src/__tests__/codex-engine.test.ts), 7 en `step-event.test.ts`, 1 en
   `engine-cascade.test.ts` actualizado). 843 tests · 0 fail · `tsc --noEmit` limpio. Ventana real de
   la suscripción: activo hasta 2026-08-22.
-- [ ] **G.4.3 — 🧠 Endpoint `GET /api/system/executor-modes`.** Expone detección (qué está
-  disponible) + selección (qué eligió el usuario) al dashboard — hoy 100% backend/invisible.
+- [x] **G.4.3 — 🧠 (2026-07-27) Endpoint `GET /api/system/executor-modes`.**
+  `handleApiSystemExecutorModes()` en [tasks.ts](src/dashboard/handlers/tasks.ts), registrado en
+  [server.ts](src/dashboard/server.ts) junto a `/api/system/engines/external/availability`.
+  Devuelve `{ modes: [{id,label,detected,path}] (local/cli-claude/cli-opencode/cli-codex/api, sin
+  kimi), selected: ExecutorMode|null }` — `local` prueba Ollama igual que `setup.ts`, los 3 CLI
+  vienen de `detectInstalledClis()` (G.4.2), `api` siempre `detected:true`, `selected` lee
+  `loadOrcheConfig().executor_mode` (G.4.1). **Delegado a Codex** (`gpt-5.6-luna`, cuidando cupo
+  semanal de Claude — usuario en 70%, reset jueves) con prompt self-contained citando los archivos
+  exactos a seguir; Codex corrió su propio `tsc --noEmit` antes de terminar. Revisado (diff limpio,
+  sin scope creep), verificado en vivo contra el dashboard real (`curl` real: 3 CLIs detectados de
+  verdad — claude/opencode/codex con sus paths reales), y testeado a mano después (6 tests,
+  [executor-modes-endpoint.test.ts](src/__tests__/executor-modes-endpoint.test.ts) — Codex no tocó
+  tests, por instrucción explícita del prompt). 849 tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **G.4.4 — 🧠 UI: selector de modo en Settings.** Toggle explícito (no dropdown-por-mensaje):
   Local / Claude CLI / opencode CLI / Codex CLI / API — cada opción con su estado real (detectado/
   no) y precio (gratis vs. gasta saldo). Reemplaza cualquier idea de "dropdown en el composer que

@@ -9,6 +9,8 @@ import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/regis
 import { classifyTask } from '../../router/classify.ts'
 import { autoRoute } from '../../router/auto-route.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
+import type { ExecutorMode } from '../../config/schema.ts'
+import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
 import { getProject } from '../../db/projects.ts'
 import { suggestContext } from '../../graph/suggest.ts'
@@ -16,6 +18,29 @@ import { parsePlan } from '../../agents/planner.ts'
 import { git } from '../../run/sandbox.ts'
 import { withGitLock } from '../../run/git-lock.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
+
+async function handleApiSystemExecutorModes(): Promise<Response> {
+  let localDetected = false
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 800)
+    const res = await fetch('http://localhost:11434/api/tags', { signal: controller.signal })
+    clearTimeout(timer)
+    localDetected = res.ok
+  } catch {}
+
+  const detectedClis = detectInstalledClis()
+  const cliById = new Map(detectedClis.map(cli => [cli.id, cli]))
+  const modes: { id: ExecutorMode; label: string; detected: boolean; path: string | null }[] = [
+    { id: 'local', label: 'Local (Ollama)', detected: localDetected, path: null },
+    { id: 'cli-claude', label: cliById.get('claude')?.label ?? 'Claude Code', detected: cliById.get('claude')?.installed ?? false, path: cliById.get('claude')?.path ?? null },
+    { id: 'cli-opencode', label: cliById.get('opencode')?.label ?? 'opencode', detected: cliById.get('opencode')?.installed ?? false, path: cliById.get('opencode')?.path ?? null },
+    { id: 'cli-codex', label: cliById.get('codex')?.label ?? 'Codex', detected: cliById.get('codex')?.installed ?? false, path: cliById.get('codex')?.path ?? null },
+    { id: 'api', label: 'OpenRouter API', detected: true, path: null },
+  ]
+
+  return jsonResponse({ modes, selected: loadOrcheConfig(resolve('.')).executor_mode ?? null })
+}
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
@@ -422,4 +447,4 @@ function handleApiTasksApproveSplit(url: URL): Response {
   return jsonResponse({ ok: true, id, message: `Split plan for "${id}" approved — executing ${planPath}` })
 }
 
-export { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, handleApiTasksSteps, loadTaskRows, isKnownSkillId, createTaskRecord, spawnTaskRun }
+export { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, handleApiTasksSteps, handleApiSystemExecutorModes, loadTaskRows, isKnownSkillId, createTaskRecord, spawnTaskRun }

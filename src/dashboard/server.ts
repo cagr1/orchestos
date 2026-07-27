@@ -3,7 +3,7 @@ import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResol
 import { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete, handleApiRunsBulkDelete } from './handlers/runs.ts'
 import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete, handleApiInstinctsBulkDelete } from './handlers/instincts.ts'
 import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete } from './handlers/specs.ts'
-import { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, handleApiTasksSteps } from './handlers/tasks.ts'
+import { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, handleApiTasksSteps, handleApiSystemExecutorModes } from './handlers/tasks.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiProjectSummary, handleApiNatural } from './handlers/project.ts'
 import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
@@ -247,6 +247,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/system/engines/external/availability') {
     return handleApiSystemEnginesExternalAvailability()
+  }
+  if (method === 'GET' && url.pathname === '/api/system/executor-modes') {
+    return handleApiSystemExecutorModes()
   }
   if (method === 'GET' && url.pathname === '/api/config') {
     return await handleApiConfigGet()
