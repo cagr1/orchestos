@@ -1394,5 +1394,131 @@ executor y el artefacto-forzado en el reporte.
 
 ---
 
+### 54. Mutation testing — la métrica anti-trampa para los tests que escriben los agentes
+
+**Origen**: 2026-07-27, consulta al vault sobre mutation testing / coverage gate
+(`MemoriesMD/outputs/2026-07-27-mutation-testing-coverage-gate-qa-ejecutando.md`, skill
+`github.com/V3RNE42/mutation-testing-skill`). El coverage gate que salió de la misma consulta ya
+está accionado en PLAN.md § Bloque J; **esto es lo otro, y no es lo mismo.**
+
+**Qué es**: la cobertura mide qué líneas se *ejecutaron*. Mutation testing introduce bugs a propósito
+en el código (`>` → `>=`, invertir un `if`, borrar una llamada) y verifica si algún test falla. Si el
+test sigue pasando con el código roto, ese test no sirve — "mutante sobreviviente". Mide **calidad
+del test**, no cantidad. Se puede tener 100% de coverage con tests que no aseveran nada.
+
+**Por qué encaja específicamente con este repo (no es consejo genérico)**: [DONE.md:795](DONE.md)
+registra la lección "los gates 🔍 deben correr contra el sistema real, no solo `bun test` — los 3
+bugs de Mes 13 solo aparecieron verificando en vivo; **los mocks de los tests ya tenían la forma
+correcta y los escondían**". El patrón se repite en Mes 13, 14 y 22 ([DONE.md:1064](DONE.md)).
+Mutation testing es exactamente la herramienta que detecta "tests que pasan sin importar lo que haga
+el código": si un módulo está mockeado de más, sus mutantes sobreviven y quedan listados. Convierte
+una lección que hoy se aprende a golpes en una métrica.
+
+**El uso de más valor NO es interno, es de producto** — y por eso vive acá y no en PLAN.md:
+OrchestOS genera código *y sus tests* con agentes, y los verifica con
+`verifiers: ["bun test", "npx tsc --noEmit"]`. Un ejecutor barato (deepseek) puede escribir tests que
+pasan vacíamente y reportar "listo". Mutation score sobre los tests que escribió el agente es la
+métrica anti-trampa **objetiva**, complementaria a `fable-judge` de [IDEAS #53](IDEAS.md):
+fable-judge lo caza por inspección adversarial, mutation testing lo caza por ejecución.
+
+**Los bloqueos concretos (medidos, no estimados a ojo):**
+
+1. **StrykerJS no tiene runner nativo para `bun test`.** Sus runners oficiales son Jest, Mocha,
+   Jasmine, Karma, Vitest y `command`. Quedaría el runner `command`, el peor caso: corre la suite
+   **completa** por cada mutante y no permite `coverageAnalysis` para filtrar mutantes no cubiertos.
+   **Este es el supuesto que hunde o salva todo el cálculo — verificarlo ANTES de invertir nada.**
+2. **Costo con los números reales del repo**: ~19.269 líneas → del orden de 2.500–5.000 mutantes. A
+   13.6s de suite completa cada uno, una corrida full se mide en **horas, no minutos**, incluso
+   paralelizando. Inviable en CI por PR.
+3. La mitad de la superficie de baja cobertura (`dashboard/handlers`, `cli.ts`) no necesita mutation
+   testing — necesita tests. Mutation testing sobre código sin tests solo dice "no hay tests".
+
+**Dónde sí tendría sentido**: modo `--incremental`, acotado a `src/run/` y `src/spec/` (donde ya hay
+80–100% de cobertura y la pregunta legítima pasa a ser "¿esos tests sirven?"), corrido a mano una
+vez, nunca en CI. Los candidatos naturales son los tres módulos donde históricamente aparecieron los
+bugs que los tests no vieron: `harness.ts` (81%), `sandbox.ts` (67%), `graph-runner.ts` (76%).
+
+**Descartado en la misma consulta**: `start-fish/riskradar-tracemap-ai` (skills de "quality gate" y
+trazabilidad PRD→test→código). Genera **reportes** — un LLM leyendo un diff y opinando, exactamente
+el antipatrón que IDEAS #53 identifica en `qa.ts` (lee, no ejecuta). Además el repo trae
+`ops/github-star-growth-playbook.md` y posts de lanzamiento: star-farming, no herramienta. No aporta
+nada sobre `fable-judge` + live-proof gate.
+
+**Esfuerzo**: bajo para el spike de validación (confirmar bloqueo 1 y medir el costo real sobre
+`src/run/`); alto para adoptarlo como gate del producto. **No arrancar por la adopción** — el spike
+primero, y solo cuando se ataque IDEAS #53, que es donde esto tiene su lugar natural.
+
+---
+
+### 55. models.dev + Vercel AI SDK — dejar de depender de OpenRouter para catálogo y clientes
+
+**Origen**: Carlos, 2026-07-27 — leyendo la documentación de opencode vio que se apoyan en
+[models.dev](https://models.dev) y [ai-sdk.dev](https://ai-sdk.dev), y preguntó si sirven para
+"ya no depender de un tercero o de un proveedor".
+
+**Precisión necesaria antes de nada**: adoptar esto **no elimina la dependencia de un tercero** —
+cambia *cuál*. Hoy OrchestOS depende de OpenRouter en dos capas distintas, y cada herramienta
+ataca una:
+
+| Capa | Hoy | Qué cambiaría |
+|---|---|---|
+| **Catálogo** (precio, contexto, capacidades) | `model-catalog.ts` → `openrouter.ai/api/v1/models`, TTL 24h, cache en `~/.orchestos/cache/models.json` | models.dev: catálogo de 172 proveedores / 5.751 modelos, incluye los que OpenRouter no vende |
+| **Clientes HTTP** | `anthropic.ts` (67) + `openai.ts` (64) + `codex.ts` (59) + `openrouter.ts` (129) — wrappers bespoke, uno por proveedor | AI SDK: una interfaz `generateText`/`streamText` para 25+ proveedores |
+
+**models.dev — verificado en vivo (2026-07-27, `curl https://models.dev/api.json`)**:
+- MIT, mantenido por sst (los de SST/opencode). Endpoints: `api.json` (3.2 MB), `models.json`,
+  `catalog.json`, `logos/{provider}.svg`.
+- **172 proveedores, 5.751 modelos.** Schema por modelo: `cost` (input/output/cache_read/
+  cache_write), `limit` (context/output), `modalities`, `reasoning` + `reasoning_options`,
+  `tool_call`, `temperature`, `release_date`, `last_updated`. Cubre casi 1:1 el `ModelInfo` que
+  `model-catalog.ts` ya define (`supportsReasoning`/`supportsTools`/`maxOutputTokens`/
+  `supportsVision`).
+- **Hallazgo que importa para G.4**: tiene namespace `opencode` **y** `openrouter`. G.4 quedó
+  bloqueado justamente porque `orchestosModelToOpencodeModel()` devuelve `undefined` a falta de
+  tabla de traducción entre namespaces ([opencode.ts:64](src/run/executors/opencode.ts#L64)) —
+  models.dev es esa tabla, ya mantenida por terceros. **Este es el uso más inmediato y concreto.**
+- Cada proveedor trae un campo `npm` (ej. `"@ai-sdk/openai-compatible"`) — models.dev y el AI SDK
+  están diseñados juntos, no son dos decisiones independientes.
+- **NO tiene `ollama`** — el tier local de la cascada (Bloque G) seguiría necesitando su propia
+  detección, models.dev no lo cubre.
+
+**El escepticismo real (por qué NO es swap obvio)**:
+1. **Frescura del dato.** OpenRouter publica el precio de lo que *él mismo vende*: es autoritativo
+   y en vivo. models.dev se mantiene **por PRs de la comunidad** (con validación de schema por
+   GitHub Action, pero el dato lo carga una persona). Para el catálogo del tier API — donde el
+   precio decide gasto real — eso es un downgrade de confiabilidad, no un upgrade. La decisión
+   registrada en PLAN.md § Bloque G ("OpenRouter se mantiene porque su catálogo se actualiza solo")
+   sigue siendo válida para ese caso.
+2. **El AI SDK no es una dependencia chica.** Los 4 clientes bespoke suman ~320 LOC, pero la
+   superficie de integración real es `tool-call.ts` (687 LOC: `runToolLoop`, router de tools,
+   6 tool schemas, cap de outputs de A.32). Migrar eso a `generateText`/`streamText` es un cambio
+   multi-módulo del núcleo — regla de [[feedback-planificar-cambios-grandes]], nunca en caliente.
+3. **Cambiar de amo no es independencia.** Pasar de "dependo de OpenRouter" a "dependo del SDK de
+   Vercel + un dataset comunitario" es una dependencia distinta, con otro perfil de riesgo. La
+   independencia real que **sí** se gana es otra y vale nombrarla bien: poder hablar **directo**
+   con cada proveedor (clave propia de Anthropic/OpenAI, sin intermediario que cobre margen ni
+   pueda caerse) — que es exactamente el gap ya pineado en [#31](#31-chat-multi-proveedor-real--routing-granular-por-función-inspirado-en-hermesopen-webui--pineado-2026-07-09).
+
+**Cómo encaja con lo ya pineado**: #31 identificó el problema (el Chat exige `OPENROUTER_API_KEY`
+sin fallback; `anthropic.ts`/`openai.ts` no tienen catálogo dinámico) y la nota de Hermes en
+[[reference-external-repos]] propuso la solución barata (un cliente genérico OpenAI-compatible con
+`baseURL`, molde `{PROVIDER}_API_KEY`). **El AI SDK es la versión "comprada" de esa misma solución**
+— más completa y mantenida, a cambio de una dependencia grande. Son alternativas del mismo problema,
+no dos ideas: cuando se ataque #31 hay que elegir entre las dos, no hacer ambas.
+
+**Adopción sugerida — por partes, no en bloque:**
+1. **models.dev solo para el namespace de opencode (G.4)** — riesgo bajo, resuelve un bloqueo
+   concreto y hoy real, no toca el catálogo del tier API. Empezar por acá.
+2. **models.dev como *fallback* del catálogo**, no como reemplazo: OpenRouter sigue siendo la
+   fuente para lo que OpenRouter vende; models.dev cubre lo que no está ahí (modelos directos de
+   proveedor, modelos de CLI). Mantiene la garantía de frescura donde importa.
+3. **AI SDK — solo dentro de #31**, como una de las dos opciones evaluadas contra el cliente
+   genérico propio. No adoptarlo por separado.
+
+**Esfuerzo**: bajo el punto 1 (una tabla de traducción alimentada por un JSON ya público); medio el
+2; alto el 3 (multi-módulo, requiere plan).
+
+---
+
 ## Feedback
 _(se llena cuando haya un usuario externo real usando orchestos en su proyecto)_
