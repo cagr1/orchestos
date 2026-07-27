@@ -878,6 +878,19 @@ Referencia de diseño auditada en Orca (no copiar 1:1, sí robar el patrón):
 - **Settings con búsqueda en vivo** y agrupación por categorías + una entrada por proyecto (no un tab
   genérico "Project" con paths crudos).
 
+**Refuerzo 2026-07-27**: Carlos mandó capturas REALES de la app de escritorio de Orca (no solo
+código fuente) — confirma y extiende la referencia de arriba. Patrones nuevos que aportan las
+capturas: nav lateral con secciones en mayúsculas pequeñas (AI CAPABILITIES / SET UP / WORKFLOWS /
+REMOTE HOSTS / PRIVACY & SECURITY), badges de estado por sección en el nav mismo ("Not installed",
+"OPTIONAL", "BETA"), selector de agente por defecto como fila de botones segmentados con check en
+el activo (mismo patrón que resolvió G.4.4), cards de integración con badge de color por estado
+(verde=conectado, ámbar=no instalado) + botón de acción contextual ("Install X CLI" / "Re-check").
+**Mandato explícito, no solo estética**: (1) "no hablo solo de estética sino también de las
+configuraciones similares" — este bloque cubre layout Y contenido/comportamiento, no un simple
+reskin; (2) limpieza obligatoria de settings que hoy solo muestran texto sin función real (auditar
+antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedback-acabados-elegantes-siempre]]
+— estándar permanente de acabado, no una petición puntual de esta pasada.
+
 - [ ] **H.1 — 🧠 Tab de consumo/gasto (graduación de IDEAS #27) — la pieza grande.**
   Tab nuevo en Settings, agregación **pura** sobre `runs` (SQLite ya tiene `usd_cost`, `model`,
   `task_class`, `created_at` por corrida — incluye chat desde `logChatRun()`, `handlers/chat.ts`).
