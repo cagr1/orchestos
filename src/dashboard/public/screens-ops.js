@@ -1400,7 +1400,8 @@ SCREENS.settings = {
       : engine === 'external'
       ? `<div class="engine-tune-row"><label>${t('settings.executor.timeoutMinutes')}</label>
           <input type="number" id="executor-timeout-minutes" min="1" step="1" value="${esc(String(cfg.externalTimeoutMinutes ?? 20))}">
-          ${cliBadge}</div>`
+          ${cliBadge}</div>
+        <p class="engine-desc">${esc(t('settings.executor.timeoutMinutes.hint'))}</p>`
       : '';
 
     return `<div class="card settings-card" data-executor-engine="${esc(engine)}">

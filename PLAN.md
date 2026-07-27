@@ -957,11 +957,13 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   ([config-get-resilience.test.ts](src/__tests__/config-get-resilience.test.ts)). Verificado en
   vivo (toggle real + datos simulados, ya que la única tarea pending real es la malformada). 871
   tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **H.5 — ⚡ Executor timeout: copy que explique el propósito.** El campo de minutos
-  ([screens-ops.js:1213](src/dashboard/public/screens-ops.js:1213)) es una salvaguarda técnica del
-  proceso hijo cuando `engine: external` (CLI headless que puede colgarse), NO un límite arbitrario
-  de ejecución. Agregar copy que lo explique (helper text / tooltip) para que no se lea como una
-  decisión de producto sin origen.
+- [x] **H.5 — ⚡ (2026-07-27) Executor timeout: copy que explique el propósito.** Delegado a Codex
+  (`gpt-5.6-luna`) — hint inline debajo del campo ("If the external CLI hangs, OrchestOS stops it
+  after this many minutes so it cannot block forever" / ES equivalente), i18n en ambos bloques
+  (EN/ES) de `i18n.js`. **Un problema de layout en el diff**: Codex metió el `<p>` de bloque DENTRO
+  de `.engine-tune-row` (flex de una sola línea), quedando apretado entre el input y el badge —
+  corregido a mano, movido fuera de la fila. Verificado en vivo contra el dashboard real. 871
+  tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **H.6 — 🧠 Fuente de config: mejor presentación.** El badge `configFound` (custom vs defaults,
   [config.ts:44](src/dashboard/handlers/config.ts:44), [screens-ops.js:1130](src/dashboard/public/screens-ops.js:1130))
   muestra el dato correcto pero como `<span>` suelto con tooltip. El archivo NO es obligatorio (si
