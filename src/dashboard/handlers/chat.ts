@@ -21,7 +21,8 @@ import { extractTextFromImage } from '../../chat/ocr.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
 import { buildNaturalDraft } from './project.ts'
 import { createTaskRecord, spawnTaskRun } from './tasks.ts'
-import { resolveCascadeTier, cascadeTaskFields } from '../../router/engine-cascade.ts'
+import { resolveCascadeTier, resolveExecutorSelection } from '../../router/engine-cascade.ts'
+import { loadOrcheConfig } from '../../config/load.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = typeof VALID_EFFORTS[number]
@@ -408,21 +409,28 @@ async function handleApiChat(req: Request): Promise<Response> {
   // todavía (ollamaChat solo sirve al chat interactivo, no a build tasks) —
   // aterrizar ahí no fija nada y la tarea sigue heredando el config normal,
   // igual que el tier 'api' (que YA es el comportamiento por defecto).
+  // G.4.1 — [[feedback-deteccion-no-decision-automatica]]: si el usuario ya
+  // fijó `executor_mode` en orchestos.config.yaml, esa preferencia gana
+  // siempre — la cascada (abajo) solo sugiere un default cuando no hay
+  // preferencia guardada.
   let autoTask: { id: string } | { error: string } | null = null
   if (taskSuggestion?.isTask) {
     try {
       const root = resolve('.')
       const draft = await buildNaturalDraft(message)
       const skill = pickAutoSkill(draft.skillOptions)
+      const preferredMode = loadOrcheConfig(root).executor_mode
       // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
       // evita el probe de Ollama + Bun.which en cada mensaje de chat normal.
+      // Sigue calculándose aunque haya preferredMode: resolveExecutorSelection
+      // la usa como fallback si preferredMode es undefined.
       const cascade = await resolveCascadeTier()
       const created = createTaskRecord(root, {
         id: draft.id,
         description: draft.description,
         output: draft.output,
         executor: draft.executor,
-        ...cascadeTaskFields(cascade),
+        ...resolveExecutorSelection(preferredMode, cascade),
         skill,
       })
       if ('error' in created) {

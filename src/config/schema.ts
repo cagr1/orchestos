@@ -12,6 +12,16 @@ export interface ModelRoleConfig {
   model: string      // e.g. 'claude-opus-4-7', 'deepseek/deepseek-v3' (empty for codex)
 }
 
+/**
+ * G.4.1 — preferencia PERSISTENTE del usuario para tareas de build auto-creadas
+ * desde el chat (D.7/G.2). [[feedback-deteccion-no-decision-automatica]]:
+ * `resolveCascadeTier()` (engine-cascade.ts) SOLO detecta qué hay disponible —
+ * nunca decide en nombre del usuario. Este campo es la decisión real, fijada
+ * a mano; ausente (undefined) = comportamiento actual (la cascada sugiere un
+ * default de bootstrap, ver `cascadeTaskFields()`).
+ */
+export type ExecutorMode = 'local' | 'cli-claude' | 'cli-opencode' | 'cli-codex' | 'api'
+
 export interface OrcheConfig {
   config_version: number
   models: {
@@ -22,6 +32,8 @@ export interface OrcheConfig {
     /** Optional QA judge model — absence triggers the resolution logic in harness.ts (never same model as executor) */
     qa?:            ModelRoleConfig
   }
+  /** G.4.1 — ver ExecutorMode arriba. Ausente = sin preferencia guardada todavía. */
+  executor_mode?: ExecutorMode
   /** If true, every task must have an approved spec before it can run */
   requireSpec?: boolean
   /** Default ExecutorEngine for tasks that don't declare their own `engine:` — absence means 'single-shot' (G.3, opt-in). B.2 — extended with 'external'. */

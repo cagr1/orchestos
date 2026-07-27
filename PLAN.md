@@ -775,12 +775,18 @@ de una conversación. Separación de responsabilidades:
 - Onboarding no-dev (default sugerido = opencode, sin subscripción/pago) queda anotado para
   después, no en esta pasada — [[IDEAS #56 pendiente de crear]].
 
-- [ ] **G.4.1 — 🧠 `orchestos.config.yaml`: campo `executor_mode` persistente.** Nuevo campo
-  (`local | cli-claude | cli-opencode | cli-codex | api`, default `api` = comportamiento actual)
-  que el usuario fija a mano — reemplaza la decisión silenciosa de la cascada para tareas
-  auto-creadas del chat (D.7/G.2). `cascadeTaskFields()` pasa a leer este campo primero; solo
-  cuando está ausente cae al orden sugerido local→CLI→API (mismo criterio que hoy, pero como
-  sugerencia de bootstrap, no como decisión recurrente).
+- [x] **G.4.1 — 🧠 (2026-07-27) `orchestos.config.yaml`: campo `executor_mode` persistente.**
+  [schema.ts](src/config/schema.ts): `ExecutorMode = 'local'|'cli-claude'|'cli-opencode'|
+  'cli-codex'|'api'`, campo opcional (ausente = sin preferencia guardada). [load.ts](src/config/load.ts)
+  lo parsea con el mismo criterio que `executorEngine` (valor desconocido/typo → `undefined`, nunca
+  inventa una preferencia). Nueva `resolveExecutorSelection(preferredMode, cascade)` en
+  [engine-cascade.ts](src/router/engine-cascade.ts): `preferredMode` gana siempre; `cli-codex`
+  devuelve `{}` a propósito (sin `ExecutorEngine` todavía, G.4.2) — mismo criterio de "no fingir
+  soporte" que `orchestosModelToOpencodeModel()`. `chat.ts` la usa en vez de `cascadeTaskFields()`
+  directo, pasándole `loadOrcheConfig(root).executor_mode`. 15 tests nuevos en
+  [engine-cascade.test.ts](src/__tests__/engine-cascade.test.ts) + 3 en
+  [engine-selection.test.ts](src/__tests__/engine-selection.test.ts) (parseo de `executor_mode`).
+  822 tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **G.4.2 — 🧠 Detección extendida a Codex.** `resolveCascadeTier()`/endpoint de disponibilidad
   reconocen `codex` (binario real confirmado 2026-07-27, `codex-cli 0.145.0`) junto a
   Claude/opencode. Codex hoy es solo *provider* de rol ([codex.ts](src/providers/codex.ts)) — para

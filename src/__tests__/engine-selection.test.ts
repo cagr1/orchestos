@@ -273,6 +273,42 @@ describe('B.2 — executor engine: external', () => {
     }
   })
 
+  // G.4.1 — executor_mode: preferencia persistente del usuario.
+  it('loadOrcheConfig resuelve executor_mode="cli-opencode"', () => {
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-g41-mode-'))
+    try {
+      writeFileSync(join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexecutor_mode: cli-opencode\nmodels: {}\n', 'utf-8')
+      const cfg = loadOrcheConfig(home)
+      expect(cfg.executor_mode).toBe('cli-opencode')
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('loadOrcheConfig ignora executor_mode con valor desconocido (no rompe, undefined)', () => {
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-g41-mode-bad-'))
+    try {
+      writeFileSync(join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexecutor_mode: not-a-real-mode\nmodels: {}\n', 'utf-8')
+      const cfg = loadOrcheConfig(home)
+      expect(cfg.executor_mode).toBeUndefined()
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('loadOrcheConfig sin executor_mode → undefined (sin preferencia guardada)', () => {
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-g41-mode-absent-'))
+    try {
+      writeFileSync(join(home, 'orchestos.config.yaml'), 'config_version: 1\nmodels: {}\n', 'utf-8')
+      const cfg = loadOrcheConfig(home)
+      expect(cfg.executor_mode).toBeUndefined()
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
   it('task.engine="external" selecciona externalEngine y falla con error canónico de worktree (sandbox cwd)', async () => {
     // callRunTask usa sandboxMode 'cwd' — el external engine rechaza esto con
     // ExecutorExternalError("external engine requires worktree sandbox mode...").

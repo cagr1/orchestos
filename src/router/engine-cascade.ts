@@ -24,6 +24,7 @@
  */
 
 import { findClaudeBinary } from '../run/executors/external.ts'
+import type { ExecutorMode } from '../config/schema.ts'
 
 export type CascadeTier = 'local' | 'cli' | 'api'
 
@@ -76,4 +77,33 @@ export async function resolveCascadeTier(): Promise<CascadeResolution> {
 export function cascadeTaskFields(cascade: CascadeResolution): { executor_model?: string; engine?: string } {
   if (cascade.tier !== 'cli') return {}
   return { executor_model: cascade.executorModel, engine: cascade.engine }
+}
+
+/**
+ * G.4.1 — [[feedback-deteccion-no-decision-automatica]]: `preferredMode` es
+ * la preferencia PERSISTENTE del usuario (`orchestos.config.yaml`
+ * `executor_mode`, ver schema.ts). Cuando está fijada, gana sobre la
+ * sugerencia de bootstrap de `cascade` — la cascada solo decide cuando el
+ * usuario no configuró nada todavía (`preferredMode` undefined).
+ * `cli-codex` queda sin efecto (`{}`) a propósito: no existe todavía un
+ * `ExecutorEngine` para Codex (G.4.2, pendiente) — fijar un `engine` que no
+ * se puede ejecutar sería el mismo "silent behavior" que este proyecto evita
+ * en otros lados (ver `orchestosModelToOpencodeModel()` en opencode.ts).
+ */
+export function resolveExecutorSelection(
+  preferredMode: ExecutorMode | undefined,
+  cascade: CascadeResolution,
+): { executor_model?: string; engine?: string } {
+  switch (preferredMode) {
+    case 'cli-claude':
+      return { executor_model: 'anthropic/claude-sonnet-5', engine: 'external' }
+    case 'cli-opencode':
+      return { engine: 'opencode' }
+    case 'local':
+    case 'cli-codex':
+    case 'api':
+      return {}
+    case undefined:
+      return cascadeTaskFields(cascade)
+  }
 }

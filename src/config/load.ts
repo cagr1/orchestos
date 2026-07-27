@@ -13,7 +13,9 @@ import { parse } from 'yaml'
 import { join } from 'path'
 import { homedir } from 'os'
 import { existsSync, readFileSync } from 'fs'
-import { DEFAULT_CONFIG, parseRoleValue, type OrcheConfig } from './schema.ts'
+import { DEFAULT_CONFIG, parseRoleValue, type OrcheConfig, type ExecutorMode } from './schema.ts'
+
+const EXECUTOR_MODES: ExecutorMode[] = ['local', 'cli-claude', 'cli-opencode', 'cli-codex', 'api']
 
 const GLOBAL_CONFIG_PATH = join(homedir(), '.orchestos', 'config.yaml')
 
@@ -55,6 +57,8 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     },
     // B.2 — extends the G.3 set with 'external'. Unknown values (incl. typos) become undefined → falls through to G.3 default 'single-shot'.
     executorEngine: raw.executorEngine === 'agentic' ? 'agentic' : raw.executorEngine === 'single-shot' ? 'single-shot' : raw.executorEngine === 'external' ? 'external' : undefined,
+    // G.4.1 — mismo criterio: valor desconocido/typo → undefined, nunca inventa una preferencia.
+    executor_mode: EXECUTOR_MODES.includes(raw.executor_mode as ExecutorMode) ? raw.executor_mode as ExecutorMode : undefined,
     agentic: parseAgenticConfig(raw.agentic),
     external: parseExternalConfig(raw.external),
   }

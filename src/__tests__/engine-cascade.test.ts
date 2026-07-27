@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'bun:test'
-import { resolveCascadeTier, cascadeTaskFields } from '../router/engine-cascade.ts'
+import { resolveCascadeTier, cascadeTaskFields, resolveExecutorSelection } from '../router/engine-cascade.ts'
 
 // G.1 (Bloque G, PLAN.md) — resolveCascadeTier() decide el tier (local → cli → api)
 // para las tareas de build auto-creadas desde el chat. Mismo patrón que
@@ -104,5 +104,41 @@ describe('cascadeTaskFields()', () => {
   it("tier 'api' → no fija nada, gana orchestos.config.yaml", () => {
     const fields = cascadeTaskFields({ tier: 'api' })
     expect(fields).toEqual({})
+  })
+})
+
+// G.4.1 — resolveExecutorSelection() es la capa nueva: preferredMode
+// (preferencia persistente del usuario) gana sobre la cascada; la cascada
+// solo entra como fallback cuando preferredMode es undefined (sin
+// preferencia guardada todavía). [[feedback-deteccion-no-decision-automatica]]
+describe('resolveExecutorSelection()', () => {
+  const apiCascade = { tier: 'api' as const }
+
+  it("preferredMode 'cli-claude' → fija executor_model + engine external, sin importar la cascada", () => {
+    const fields = resolveExecutorSelection('cli-claude', apiCascade)
+    expect(fields).toEqual({ executor_model: 'anthropic/claude-sonnet-5', engine: 'external' })
+  })
+
+  it("preferredMode 'cli-opencode' → fija engine opencode, sin modelo fijo (traducción pendiente G.4.5)", () => {
+    const fields = resolveExecutorSelection('cli-opencode', apiCascade)
+    expect(fields).toEqual({ engine: 'opencode' })
+  })
+
+  it("preferredMode 'local' → no fija nada (sin executor de tareas para Ollama)", () => {
+    expect(resolveExecutorSelection('local', apiCascade)).toEqual({})
+  })
+
+  it("preferredMode 'cli-codex' → no fija nada a propósito (sin ExecutorEngine todavía, G.4.2 pendiente)", () => {
+    expect(resolveExecutorSelection('cli-codex', apiCascade)).toEqual({})
+  })
+
+  it("preferredMode 'api' → no fija nada, gana orchestos.config.yaml", () => {
+    expect(resolveExecutorSelection('api', apiCascade)).toEqual({})
+  })
+
+  it('preferredMode undefined → cae a la cascada de bootstrap (mismo comportamiento que cascadeTaskFields)', () => {
+    const cliCascade = { tier: 'cli' as const, engine: 'external' as const, executorModel: 'anthropic/claude-sonnet-5' }
+    expect(resolveExecutorSelection(undefined, cliCascade)).toEqual({ executor_model: 'anthropic/claude-sonnet-5', engine: 'external' })
+    expect(resolveExecutorSelection(undefined, apiCascade)).toEqual({})
   })
 })
