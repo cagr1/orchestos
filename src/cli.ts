@@ -25,6 +25,7 @@ import { runTask } from './run/harness.ts'
 import { resolveSandboxMode } from './run/sandbox-policy.ts'
 import { findClaudeBinary, claudeUnavailableMessage } from './run/executors/external.ts'
 import { findOpencodeBinary, opencodeUnavailableMessage } from './run/executors/opencode.ts'
+import { findCodexBinary, codexUnavailableMessage } from './run/executors/codex.ts'
 import { executePlan } from './run/scheduler.ts'
 import { runGraph } from './run/graph-runner.ts'
 import { createPlan } from './agents/planner.ts'
@@ -937,8 +938,8 @@ task
       // memoria, NO persiste en tasks.yaml. Validación de valores: 'single-shot',
       // 'agentic' o 'external' (B.2); cualquier otro cae con error explicativo.
       if (opts?.engine !== undefined) {
-        if (opts.engine !== 'single-shot' && opts.engine !== 'agentic' && opts.engine !== 'external' && opts.engine !== 'opencode') {
-          console.error(`[task] --engine: unknown engine '${opts.engine}' — allowed: single-shot, agentic, external, opencode`)
+        if (opts.engine !== 'single-shot' && opts.engine !== 'agentic' && opts.engine !== 'external' && opts.engine !== 'opencode' && opts.engine !== 'codex') {
+          console.error(`[task] --engine: unknown engine '${opts.engine}' — allowed: single-shot, agentic, external, opencode, codex`)
           return 'failed'
         }
         t.engine = opts.engine
@@ -955,6 +956,10 @@ task
       }
       if (t.engine === 'opencode' && !findOpencodeBinary()) {
         console.error(`[task] ${opencodeUnavailableMessage(process.env.PATH)}`)
+        return 'failed'
+      }
+      if (t.engine === 'codex' && !findCodexBinary()) {
+        console.error(`[task] ${codexUnavailableMessage(process.env.PATH)}`)
         return 'failed'
       }
       if (t.status === 'done')             { console.log(`[task] ${taskId} already done`); return 'done' }

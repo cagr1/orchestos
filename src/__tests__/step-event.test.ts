@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'bun:test'
-import { claudeEventToStep, opencodeEventToStep } from '../run/executors/step-event.ts'
+import { claudeEventToStep, opencodeEventToStep, codexEventToStep } from '../run/executors/step-event.ts'
 
 describe('claudeEventToStep', () => {
   it('assistant con bloque de texto → step "text"', () => {
@@ -93,5 +93,65 @@ describe('opencodeEventToStep', () => {
   it('línea no-objeto o null → [] sin throw', () => {
     expect(opencodeEventToStep(null)).toEqual([])
     expect(opencodeEventToStep(undefined)).toEqual([])
+  })
+})
+
+describe('codexEventToStep', () => {
+  it('item.completed agent_message → step "text"', () => {
+    const steps = codexEventToStep({
+      type: 'item.completed',
+      item: { id: 'item_9', type: 'agent_message', text: 'Creé hello.txt con el contenido `hi`.' },
+    })
+    expect(steps).toEqual([{ type: 'text', label: 'text', detail: 'Creé hello.txt con el contenido `hi`.' }])
+  })
+
+  it('item.completed command_execution → step "tool_use" con el comando', () => {
+    const steps = codexEventToStep({
+      type: 'item.completed',
+      item: { id: 'item_6', type: 'command_execution', command: "/bin/zsh -lc 'ls -la /private/tmp/codex-probe'" },
+    })
+    expect(steps).toEqual([{ type: 'tool_use', label: 'command', detail: "/bin/zsh -lc 'ls -la /private/tmp/codex-probe'" }])
+  })
+
+  it('item.completed file_change → step "tool_use" con los paths', () => {
+    const steps = codexEventToStep({
+      type: 'item.completed',
+      item: { id: 'item_8', type: 'file_change', changes: [{ path: '/private/tmp/codex-probe/hello.txt', kind: 'add' }] },
+    })
+    expect(steps).toEqual([{ type: 'tool_use', label: 'file_change', detail: '/private/tmp/codex-probe/hello.txt' }])
+  })
+
+  it('item.completed error → [] (informational, no se muestra como fallo)', () => {
+    const steps = codexEventToStep({
+      type: 'item.completed',
+      item: { id: 'item_0', type: 'error', text: 'Skill descriptions were shortened...' },
+    })
+    expect(steps).toEqual([])
+  })
+
+  it('item.started (no item.completed) → [] — evita filas duplicadas a medio terminar', () => {
+    const steps = codexEventToStep({
+      type: 'item.started',
+      item: { id: 'item_2', type: 'command_execution', command: 'pwd' },
+    })
+    expect(steps).toEqual([])
+  })
+
+  it('turn.completed → step "step_finish" con tokens, sin costo (codex no lo expone)', () => {
+    const steps = codexEventToStep({
+      type: 'turn.completed',
+      usage: { input_tokens: 71345, output_tokens: 533 },
+    })
+    expect(steps).toEqual([{ type: 'step_finish', label: 'step_finish', tokens: { input: 71345, output: 533 } }])
+  })
+
+  it('thread.started / turn.started (ruido de sesión real) → [] sin romper', () => {
+    expect(codexEventToStep({ type: 'thread.started', thread_id: 'abc' })).toEqual([])
+    expect(codexEventToStep({ type: 'turn.started' })).toEqual([])
+  })
+
+  it('línea no-objeto o null → [] sin throw', () => {
+    expect(codexEventToStep(null)).toEqual([])
+    expect(codexEventToStep(undefined)).toEqual([])
   })
 })

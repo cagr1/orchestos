@@ -50,3 +50,21 @@ vivo — cierra Bloque G.3) — revertible con `git revert`, sin side-effects en
 verificado además en vivo contra el dashboard real (ver PLAN.md § G.3.3).
 
 ---
+
+## 2026-07-27 11:44 America/Guayaquil — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: el cambio (Bloque G/G.4.2b, nuevo executor `codex.ts`) toca dos puntos de
+`harness.ts`: (1) `import { codexEngine }` + una rama `else if (requestedEngine === 'codex')` en
+la selección de executor, mismo patrón que ya tenían `external`/`opencode`; (2) `shouldSplit()`
+gana `|| task.engine === 'codex'` en su exclusión — mismo motivo ya documentado ahí para
+`external`/`opencode` (el executor es un CLI, no la API LLM directa, así que el split por tokens
+no aplica). Cero líneas tocadas en la derivación de `maxTokens`/`contextWindow`.
+**Reversibilidad/evidencia**: commit de G.4.2b (feat(Bloque G/G.4.2b): ExecutorEngine real para
+Codex) — revertible con `git revert`, sin side-effects en datos. 843 tests · 0 fail ·
+`tsc --noEmit` limpio antes del commit. Contrato de `codex exec --json` verificado con un probe
+real contra un git repo temporal (2026-07-27) antes de codear el parser — no asumido.
+
+---

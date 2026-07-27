@@ -128,8 +128,8 @@ describe('resolveExecutorSelection()', () => {
     expect(resolveExecutorSelection('local', apiCascade)).toEqual({})
   })
 
-  it("preferredMode 'cli-codex' → no fija nada a propósito (sin ExecutorEngine todavía, G.4.2 pendiente)", () => {
-    expect(resolveExecutorSelection('cli-codex', apiCascade)).toEqual({})
+  it("preferredMode 'cli-codex' → fija executor_model + engine codex (G.4.2b: ExecutorEngine real)", () => {
+    expect(resolveExecutorSelection('cli-codex', apiCascade)).toEqual({ executor_model: 'openai/gpt-5.4', engine: 'codex' })
   })
 
   it("preferredMode 'api' → no fija nada, gana orchestos.config.yaml", () => {

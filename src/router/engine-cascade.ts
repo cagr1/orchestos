@@ -80,15 +80,14 @@ export function cascadeTaskFields(cascade: CascadeResolution): { executor_model?
 }
 
 /**
- * G.4.1 — [[feedback-deteccion-no-decision-automatica]]: `preferredMode` es
- * la preferencia PERSISTENTE del usuario (`orchestos.config.yaml`
+ * G.4.1/G.4.2b — [[feedback-deteccion-no-decision-automatica]]: `preferredMode`
+ * es la preferencia PERSISTENTE del usuario (`orchestos.config.yaml`
  * `executor_mode`, ver schema.ts). Cuando está fijada, gana sobre la
  * sugerencia de bootstrap de `cascade` — la cascada solo decide cuando el
- * usuario no configuró nada todavía (`preferredMode` undefined).
- * `cli-codex` queda sin efecto (`{}`) a propósito: no existe todavía un
- * `ExecutorEngine` para Codex (G.4.2, pendiente) — fijar un `engine` que no
- * se puede ejecutar sería el mismo "silent behavior" que este proyecto evita
- * en otros lados (ver `orchestosModelToOpencodeModel()` en opencode.ts).
+ * usuario no configuró nada todavía (`preferredMode` undefined). `cli-codex`
+ * fija `executor_model: 'openai/gpt-5.4'` (default real del binario, ver
+ * `~/.codex/config.toml`, confirmado en vivo 2026-07-27) desde que
+ * `codex.ts` (G.4.2b) existe como `ExecutorEngine` real.
  */
 export function resolveExecutorSelection(
   preferredMode: ExecutorMode | undefined,
@@ -99,8 +98,9 @@ export function resolveExecutorSelection(
       return { executor_model: 'anthropic/claude-sonnet-5', engine: 'external' }
     case 'cli-opencode':
       return { engine: 'opencode' }
-    case 'local':
     case 'cli-codex':
+      return { executor_model: 'openai/gpt-5.4', engine: 'codex' }
+    case 'local':
     case 'api':
       return {}
     case undefined:

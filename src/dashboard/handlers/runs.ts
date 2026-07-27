@@ -24,10 +24,10 @@ function parseFileDiffs(raw: string | null | undefined): FileDiffEntry[] {
 
 // G.4 / B.2 — deriva engine + iteraciones del primer label de costBreakdown.
 // Label canónico: "single-shot" (1 vuelta) | "agentic (N rounds)" (N vueltas) | "external (claude-code, N turn[s])" (B.2)
-// | "opencode (N step[s])" (G.5).
+// | "opencode (N step[s])" (G.5) | "codex (exec)" (G.4.2b, siempre 1 — sin conteo de turnos).
 // Si el breakdown está vacío (run legacy pre-G.4 o path sin outcome), devuelve null/null.
 function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
-  engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | null
+  engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null
   iterations: number | null
 } {
   const label = breakdown[0]?.label
@@ -41,6 +41,8 @@ function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
   // G.5 — opencode.ts escribe "opencode (N step[s])".
   const o = label.match(/^opencode \((\d+) steps?\)$/)
   if (o) return { engine: 'opencode', iterations: parseInt(o[1]!, 10) }
+  // G.4.2b — codex.ts escribe "codex (exec)" (label fijo, sin N — codex exec no expone conteo de turnos).
+  if (label === 'codex (exec)') return { engine: 'codex', iterations: 1 }
   return { engine: null, iterations: null }
 }
 

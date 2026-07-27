@@ -800,11 +800,26 @@ de una conversación. Separación de responsabilidades:
   `resolveCascadeTier()` no se tocó en esta pasada, sigue con su lógica ya testeada). 5 tests
   nuevos ([cli-registry.test.ts](src/__tests__/cli-registry.test.ts)). 827 tests · 0 fail ·
   `tsc --noEmit` limpio.
-- [ ] **G.4.2b — 🧠 `ExecutorEngine` real para Codex.** Codex hoy es solo *provider* de rol
-  ([codex.ts](src/providers/codex.ts)) — para contar como opción real de `executor_mode` en build
-  tasks hace falta `src/run/executors/codex.ts`, mismo contrato que `external.ts`/`opencode.ts`.
-  Requiere probe en vivo del formato de salida de `codex exec --json` (no asumirlo, mismo criterio
-  que G.3.1/G.5). Ventana real de la suscripción: activo hasta 2026-08-22.
+- [x] **G.4.2b — 🧠 (2026-07-27) `ExecutorEngine` real para Codex.**
+  [codex.ts](src/run/executors/codex.ts): mismo contrato `ExecutorEngine` que `external.ts`/
+  `opencode.ts`. Contrato verificado en vivo (probe real contra un git repo temporal, no asumido):
+  `codex exec "<prompt>" --json --sandbox workspace-write --color never` — headless por diseño, sin
+  flag `--auto` equivalente. JSONL: `thread.started`/`turn.started`/`item.started`/`item.completed`
+  (`item.type`: `agent_message`/`command_execution`/`file_change`/`error`)/`turn.completed`.
+  **Sin `total_cost_usd` en el evento** (a diferencia de claude/opencode) — costo computado vía
+  `calcCost()` sobre el catálogo real, y SOLO si `getCatalog()?.has(model)`; si no, lanza en vez de
+  reportar $0 (F0.8). `orchestosModelToCodexModel()` pela `openai/` (default real del binario,
+  `gpt-5.4`, confirmado en `~/.codex/config.toml`). `codexEventToStep()` nuevo en
+  [step-event.ts](src/run/executors/step-event.ts) (solo `item.completed`, ignora `error` —
+  informational en la práctica). `TaskEngine` extendido a `'codex'` (mismos 5 puntos que G.5:
+  `schema.ts`, `dashboard/types.ts`, `dashboard/handlers/tasks.ts`, `dashboard/handlers/runs.ts` —
+  `deriveEngineFromBreakdown()` reconoce `"codex (exec)"` —, `cli.ts`); `harness.ts` gana la rama de
+  selección + `shouldSplit()` excluye `'codex'` (mismo motivo que external/opencode, ver LEDGER.md).
+  `resolveExecutorSelection('cli-codex', ...)` (G.4.1) ya no devuelve `{}` — fija
+  `executor_model: 'openai/gpt-5.4', engine: 'codex'`. 21 tests nuevos (8 en
+  [codex-engine.test.ts](src/__tests__/codex-engine.test.ts), 7 en `step-event.test.ts`, 1 en
+  `engine-cascade.test.ts` actualizado). 843 tests · 0 fail · `tsc --noEmit` limpio. Ventana real de
+  la suscripción: activo hasta 2026-08-22.
 - [ ] **G.4.3 — 🧠 Endpoint `GET /api/system/executor-modes`.** Expone detección (qué está
   disponible) + selección (qué eligió el usuario) al dashboard — hoy 100% backend/invisible.
 - [ ] **G.4.4 — 🧠 UI: selector de modo en Settings.** Toggle explícito (no dropdown-por-mensaje):

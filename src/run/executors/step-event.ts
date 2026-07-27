@@ -127,3 +127,55 @@ export function opencodeEventToStep(raw: unknown): ExecutorStepEvent[] {
 
   return []
 }
+
+// -- codex (JSONL) ------------------------------------------------------------
+// G.4.2b — shape verificado en vivo 2026-07-27 (`codex exec --json`, probe
+// real contra un git repo temporal). Solo se mapea `item.completed` (no
+// `item.started`) — evita filas duplicadas a medio terminar; `error` es
+// informational en la práctica (ej. aviso de presupuesto de skills, no
+// aborta el run) y se ignora a propósito, no se muestra como fallo.
+
+interface CodexItem {
+  type?: string
+  text?: string
+  command?: string
+  changes?: { path?: string; kind?: string }[]
+}
+
+interface CodexEvent {
+  type?: string
+  item?: CodexItem
+  usage?: { input_tokens?: number; output_tokens?: number }
+}
+
+export function codexEventToStep(raw: unknown): ExecutorStepEvent[] {
+  const evt = raw as CodexEvent
+  if (!evt || typeof evt !== 'object') return []
+
+  if (evt.type === 'item.completed' && evt.item) {
+    const item = evt.item
+    if (item.type === 'agent_message') {
+      return [{ type: 'text', label: 'text', detail: item.text }]
+    }
+    if (item.type === 'command_execution') {
+      return [{ type: 'tool_use', label: 'command', detail: item.command }]
+    }
+    if (item.type === 'file_change') {
+      const paths = (item.changes ?? []).map(c => c.path).filter(Boolean).join(', ')
+      return [{ type: 'tool_use', label: 'file_change', detail: paths || undefined }]
+    }
+    return []
+  }
+
+  if (evt.type === 'turn.completed') {
+    return [{
+      type: 'step_finish',
+      label: 'step_finish',
+      // Sin costo en el evento (a diferencia de claude/opencode) — se
+      // computa aparte en codex.ts vía calcCost(), no acá.
+      tokens: { input: evt.usage?.input_tokens, output: evt.usage?.output_tokens },
+    }]
+  }
+
+  return []
+}
