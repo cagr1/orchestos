@@ -1576,5 +1576,42 @@ estado en tiempo real, UI de tabs y recuperación. Debe tener diseño formal ant
 
 ---
 
+### 57. % de cuota semanal de suscripción CLI (Claude/Codex) en el tab de Usage
+
+**Origen**: Carlos (2026-07-27), viendo el tab de Usage de Orca — muestra "Codex: 12% usado, resetea
+en 4d 22h" junto al gasto en $. Es una métrica DISTINTA a H.1 (gasto vía API/OpenRouter): esto es
+cuánto del **plan de suscripción del CLI** (Claude Pro/Max, ChatGPT Plus/Pro) ya se consumió esa
+semana. No se cruzan — Carlos no usa `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` en absoluto (verificado:
+ninguna seteada en `~/.orchestos/.env` ni en el entorno), solo login de suscripción vía `claude
+login`/`codex login`.
+
+**Mecanismo real, verificado contra el código fuente de Orca** (`github.com/stablyai/orca`, MIT,
+`gh api search/code`) — no es teoría, es lo que Orca hace de verdad:
+- **Codex**: `codex app-server` — subcomando real del binario (`[experimental]`, con
+  `codex app-server generate-json-schema` para el schema), protocolo JSON-RPC. Es el camino
+  primario en [codex-fetcher.ts](https://github.com/stablyai/orca/blob/main/src/main/rate-limits/codex-fetcher.ts).
+  Fallback: PTY oculta corriendo `codex` interactivo, envía `/status`, parsea el texto de salida
+  (con manejo especial de timing — Orca documenta bugs reales de timing del composer TUI).
+- **Claude**: el campo `limits[]` que viene en la respuesta del refresh de la sesión OAuth (la
+  misma que usa `claude login` para renovar el token) — no documentado públicamente, cambió de
+  forma una vez ya (ver `docs/claude-scoped-oauth-usage-limits.md` del propio repo de Orca, bug
+  real que tuvieron que parchear). Fallback: mismo truco de PTY oculta con `/usage`.
+
+**Esfuerzo real** (no trivial, verificado en el propio código de Orca): medio-alto.
+`codex-fetcher.ts` solo son ~350+ líneas con `eslint-disable max-lines`, maneja WSL/Windows/SSH
+como casos separados, y el camino de Claude depende de un contrato no documentado que ya rompió
+una vez. No es "un curl y ya" — es un cliente JSON-RPC + fallback de PTY + parches por SO.
+
+**Orden sugerido si se ataca**: empezar SOLO por Codex (`app-server` es un protocolo real y más
+estable que depender del shape no documentado del OAuth de Claude) — Claude queda para una segunda
+pasada, aceptando que puede requerir el mismo tipo de parche reactivo que tuvo Orca si Anthropic
+cambia el shape de nuevo.
+
+**Esfuerzo**: medio-alto — cliente JSON-RPC contra `codex app-server` (Codex), reverse-engineering
+del OAuth refresh de Claude (frágil, ya cambió una vez), fallback de PTY para ambos. No bloquea
+nada de Bloque H.
+
+---
+
 ## Feedback
 _(se llena cuando haya un usuario externo real usando orchestos en su proyecto)_
