@@ -923,15 +923,16 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   nuevo de agregación (`GET /api/usage` o similar), reusando la lógica de suma que hoy vive suelta en
   `costLast7d` ([setup.ts:221](src/dashboard/handlers/setup.ts:221)). Esfuerzo real: bajo-medio en
   backend (SQL), medio en frontend (heatmap + desglose).
-- [ ] **H.2 — 🔍 Investigar el gap del costo ($1.56 vs. run caro que falló).** Carlos vio ~$1.56 en
-  "estado del proyecto" cuando una corrida anterior costó casi $5. Dos hipótesis a verificar contra
-  la DB real (`sqlite3 .orchestos/db.sqlite "select id,created_at,usd_cost,status from runs order by
-  created_at desc limit 20"`): (1) el run caro cayó **fuera de la ventana de 7 días** de `costLast7d`
-  — no es bug, es falta de contexto en la UI (ver H.3); (2) el proceso murió **antes de llegar a
-  `insertRun()`** — sería un bug de persistencia real. Nota: el executor externo ya rechaza reportar
-  $0 silencioso ([external.ts:262](src/run/executors/external.ts:262)), así que un timeout normal SÍ
-  persiste con costo conocido — un gap apunta a crash pre-persistencia, no a timeout. Gate 🔍: no
-  cerrar H.1 declarando "el costo ya se ve bien" sin haber corrido este query y explicado el número.
+- [x] **H.2 — 🔍 (2026-07-27) Investigar el gap del costo ($1.56 vs. run caro que falló).**
+  Verificado contra la DB real (`sqlite3 ~/.orchestos/db.sqlite`, corrido dos veces — primero por
+  Codex, re-verificado independiente por Claude, mismos números ambas veces): 44 runs persistidos,
+  costo individual máximo `$0.4029228` — no hay ningún run cercano a `$5` en esta DB, ni evidencia
+  de crash pre-`insertRun()`. Total histórico `$1.577759`; total de los últimos 7 días
+  `$0.009213` (7 runs) — los `$1.568546` restantes quedan fuera de esa ventana (concentrados
+  16-17 de julio). Confirma hipótesis (1): el `$1.56` que vio Carlos era la ventana de 7 días en
+  ese momento, no el gasto total — falta de contexto en la UI (H.3), no bug de persistencia. H.1
+  debe separar explícitamente gasto histórico / ventana seleccionada / runs fallidos, sin
+  presentar una ventana móvil como total global.
 - [ ] **H.3 — ⚡ Contexto "7 días" visible en el costo.** El health panel dice "Costo (7 días)"
   ([screens-ops.js:1092](src/dashboard/public/screens-ops.js:1092)) pero la card de "estado del
   proyecto" que ve Carlos pierde ese marco y el número se lee como "gasto total". Fix chico: rótulo
