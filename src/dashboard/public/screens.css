@@ -247,6 +247,8 @@
    clip de esquinas de overflow:hidden porque no tiene contenido que sangre
    hasta el borde, así que se deja visible para que el dropdown no se corte. */
 .settings-card-roles { overflow: visible; }
+/* H.4 — preview de routing inline, colapsado por default */
+.routing-preview-inline { border-top: 1px solid var(--border-soft); }
 .role-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px;
   padding: 18px;

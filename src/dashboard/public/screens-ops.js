@@ -1148,11 +1148,25 @@ SCREENS.settings = {
         ${buildModelSelect('role-qa', stripProvider(cfg.roles.qa), st.orModels, st.localModels, { allowEmpty: true, emptyLabel: t('settings.routing.qa.auto') })}
       </div></div>`;
 
-    const pendingRows = (cfg.pendingRouting || []).length === 0
+    // H.4 — de card huérfana permanente (duplicaba Tasks) a preview inline
+    // pegado al botón Guardar, colapsado por default. Título "simulación",
+    // no "lista de tareas" — el propósito real es "qué modelo LE TOCARÍA a
+    // cada tarea pending si guardo esto ahora", vía el mismo autoRoute() del
+    // harness (config.ts), no un inventario de tareas.
+    const pending = cfg.pendingRouting || [];
+    const previewOpen = !!state.routingPreviewOpen;
+    const previewBody = pending.length === 0
       ? `<p class="muted" style="margin:0;font-size:12.5px">${t('settings.routing.noPending')}</p>`
       : `<table class="tbl"><thead><tr><th>${t('settings.routing.col.task')}</th><th>${t('settings.routing.col.model')}</th></tr></thead><tbody>
-          ${cfg.pendingRouting.map(r => `<tr><td class="mono">${esc(r.id)}</td><td class="mono" style="font-size:12px">${esc(r.model)}</td></tr>`).join('')}
+          ${pending.map(r => `<tr><td class="mono">${esc(r.id)}</td><td class="mono" style="font-size:12px">${esc(r.model)}</td></tr>`).join('')}
         </tbody></table>`;
+    const previewToggle = pending.length === 0 ? '' : `<button class="btn ghost sm" data-act="toggle-routing-preview">
+        ${esc(t('settings.routing.previewCount', pending.length))} — ${previewOpen ? t('settings.routing.previewHide') : t('settings.routing.previewShow')}
+      </button>`;
+    const previewInline = previewOpen ? `<div class="routing-preview-inline">
+        <div class="settings-header" style="padding-top:14px"><h3 style="font-size:13px">${t('settings.routing.pending')}</h3></div>
+        ${previewBody}
+      </div>` : '';
 
     const initBtn = cfg.configFound
       ? ''
@@ -1169,12 +1183,10 @@ SCREENS.settings = {
         <div class="settings-foot" style="margin-top:8px">
           <span id="routing-save-msg" style="font-size:12px;display:none"></span>
           <span style="flex:1"></span>
+          ${previewToggle}
           <button class="btn primary" data-act="save-routing">${ICON.check} ${t('settings.routing.save')}</button>
         </div>
-      </div>
-      <div class="card settings-card">
-        <div class="settings-header"><h3>${t('settings.routing.pending')}</h3></div>
-        ${pendingRows}
+        ${previewInline}
       </div>`;
   },
   // G.4.4 — selector de `executor_mode` (preferencia de CÓMO corre el chat las
@@ -1661,6 +1673,12 @@ SCREENS.settings = {
     });
 
     // (el combo de modelo se carga solo al abrirse — wiring genérico en boot(), app.js)
+
+    // H.4 — toggle local del preview de routing, sin refetch.
+    root.querySelector('[data-act="toggle-routing-preview"]')?.addEventListener('click', () => {
+      state.routingPreviewOpen = !state.routingPreviewOpen;
+      App.rerender();
+    });
 
     root.querySelector('[data-act="save-routing"]')?.addEventListener('click', async () => {
       const roles = {};

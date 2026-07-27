@@ -29,15 +29,26 @@ export async function handleApiConfigGet(): Promise<Response> {
     qa: cfg.models.qa ? `${cfg.models.qa.provider}/${cfg.models.qa.model || '(self)'}` : null,
   }
 
+  // Bug real encontrado en vivo (2026-07-27, verificando H.4): una tasks.yaml
+  // con una sola tarea malformada (ej. `output: []`) tiraba `loadTasks()` sin
+  // atrapar, y ESE throw tumbaba el endpoint ENTERO con 500 — Settings
+  // dejaba de cargar por completo (routing, executor, todo). Mismo patrón de
+  // resiliencia que ya usa `handleApiTasks()` (dashboard/handlers/tasks.ts):
+  // el preview de routing es un extra, nunca debe poder romper el config.
   let pendingRouting: Array<{ id: string; model: string; executor: string }> = []
   if (tasksExist(root)) {
-    const tasksFile = loadTasks(root)
-    const pending = tasksFile.tasks.filter(t => t.status === 'pending')
-    pendingRouting = pending.map(t => {
-      const route = autoRoute(t, cfg, configFound)
-      const modelStr = route ? formatRoute(route) : `${t.executor} (legacy)`
-      return { id: t.id, model: modelStr, executor: t.executor }
-    })
+    try {
+      const tasksFile = loadTasks(root)
+      const pending = tasksFile.tasks.filter(t => t.status === 'pending')
+      pendingRouting = pending.map(t => {
+        const route = autoRoute(t, cfg, configFound)
+        const modelStr = route ? formatRoute(route) : `${t.executor} (legacy)`
+        return { id: t.id, model: modelStr, executor: t.executor }
+      })
+    } catch {
+      // tasks.yaml malformado — el resto del config sigue siendo válido y se
+      // devuelve igual; el preview de routing queda vacío en vez de 500.
+    }
   }
 
   return jsonResponse({

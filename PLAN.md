@@ -944,14 +944,19 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   donde se renderiza `costLast7d` (`grep` confirmado, sin duplicado sin label en ningún otro
   screen). No hace falta código nuevo — ya estaba resuelto antes de que existiera H.1. No se
   delegó a Codex por no haber trabajo real que hacer.
-- [ ] **H.4 — 🧠 Preview de routing: de card permanente a preview inline.** Hoy "Tareas pendientes —
-  preview de routing" es una card aislada al fondo que **duplica la lista de Tasks** sin aportar más
-  que el modelo resuelto ([config.ts:32-41](src/dashboard/handlers/config.ts:32),
-  [screens-ops.js:1175](src/dashboard/public/screens-ops.js:1175)). El propósito real es válido
-  (simular qué modelo le tocaría a cada tarea pending con los roles actuales vía el mismo `autoRoute()`
-  del harness), pero mal enmarcado. Moverlo a preview inline pegado al botón "Guardar routing"
-  ("guardar esto afecta a N tareas pendientes — ver") en vez de tabla huérfana permanente. Título que
-  comunique "simulación", no "lista de tareas".
+- [x] **H.4 — 🧠 (2026-07-27) Preview de routing: de card permanente a preview inline.** La card
+  huérfana ("Tareas pendientes — preview de routing") se quitó; ahora es un toggle pegado al botón
+  "Guardar routing" ("N tareas pendientes se verían afectadas — ver/ocultar simulación"), colapsado
+  por default, título "Simulación de routing" ([routingPanel()](src/dashboard/public/screens-ops.js)).
+  **Bug real encontrado y arreglado al verificar en vivo**: `handleApiConfigGet()` no atrapaba el
+  throw de `loadTasks()` — una sola tarea malformada en `tasks.yaml` (`output: []`, la tarea
+  fantasma auto-creada por el falso positivo del chat, ver conversación) tumbaba con 500 el
+  endpoint `/api/config` ENTERO, dejando toda la pantalla de Settings sin cargar (no solo el
+  preview). Mismo patrón de resiliencia que ya usaba `handleApiTasks()`. No se tocó la tarea
+  malformada en sí — queda pendiente de que Carlos decida si la borra o la corrige. 2 tests nuevos
+  ([config-get-resilience.test.ts](src/__tests__/config-get-resilience.test.ts)). Verificado en
+  vivo (toggle real + datos simulados, ya que la única tarea pending real es la malformada). 871
+  tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **H.5 — ⚡ Executor timeout: copy que explique el propósito.** El campo de minutos
   ([screens-ops.js:1213](src/dashboard/public/screens-ops.js:1213)) es una salvaguarda técnica del
   proceso hijo cuando `engine: external` (CLI headless que puede colgarse), NO un límite arbitrario
