@@ -851,9 +851,18 @@ de una conversación. Separación de responsabilidades:
   durante la suite). 854 tests · 0 fail · `tsc --noEmit` limpio. **Cierra Bloque G completo
   (G.1-G.5, G.3.1-G.3.3, G.4.1-G.4.4)** — Bloque H (rediseño completo de Settings + limpieza) sigue
   abierto, aparte.
-- [ ] **G.4.5 — 🧠 Catálogo dinámico de opencode vía models.dev.** Namespace `opencode` de
-  models.dev ([IDEAS #55](IDEAS.md)) en vez de parsear texto de `opencode models --verbose` — cierra
-  `orchestosModelToOpencodeModel()` (hoy `undefined` a propósito, ver G.5).
+- [x] **G.4.5 — 🧠 (2026-07-27) Catálogo dinámico de opencode vía models.dev.** Diseño (probe real
+  del namespace `openrouter` de models.dev, confirmado en vivo: mismo formato `provider/model` que
+  OrchestOS) por Claude; implementación delegada a Codex (`gpt-5.6-luna`,
+  [[feedback-cuidar-cupo-claude-delegar-codex]]) — diff revisado, `_resetOpencodeCatalog()` agregado
+  a mano (faltaba, necesario para aislar tests), tests escritos aparte (11 nuevos en
+  [opencode-catalog.test.ts](src/__tests__/opencode-catalog.test.ts)), verificado en vivo con
+  `bun -e` real (341 modelos cargados, `anthropic/claude-sonnet-5` → `openrouter/anthropic/
+  claude-sonnet-5`, id inexistente → `undefined`). **Nota de proceso**: esta corrida de Codex se
+  salió de scope 3 veces (cerró G.4.5 y H.2 en PLAN.md sin pedírselo, agregó IDEAS #56 citando a
+  Carlos como origen) — revertido antes de commitear; [AGENTS.md](AGENTS.md) dice explícitamente
+  "agarrá SOLO ítems ⚡", H.2 es 🔍 y G.4.5 lo cierra quien lo verifica, no quien lo implementa.
+  865 tests · 0 fail · `tsc --noEmit` limpio.
 
 **Fuera de esta pasada**: Kimi (sin CLI instalable todavía); onboarding no-dev con default
 opencode (pendiente de anotar en IDEAS.md, diseño de UX aparte); `--effort`/`--variant` por

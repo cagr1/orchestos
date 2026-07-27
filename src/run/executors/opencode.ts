@@ -24,20 +24,15 @@
  *     tokens NO vienen en un campo final único — cada `step_finish` trae su
  *     propio `part.cost` y `part.tokens`; hay que sumarlos.
  *   - `-m provider/model`: el namespace de opencode NO coincide con el de
- *     OrchestOS (`opencode/deepseek-v4-flash-free`,
- *     `openrouter/anthropic/claude-sonnet-5` — tres partes para lo que pasa
- *     por OpenRouter, dos para los modelos free propios). Pasar el id de
- *     OrchestOS tal cual sería tan silenciosamente incorrecto como no
- *     traducirlo — mismo criterio que `orchestosModelToCliModel()` en
- *     external.ts: mejor omitir `--model` (opencode usa su default
- *     configurado) que adivinar mal. La tabla de traducción real es trabajo
- *     de G.4 (ahí es donde el catálogo de `opencode models` se carga de
- *     verdad).
+ *     OrchestOS. Los ids OpenRouter verificados en models.dev se traducen a
+ *     `openrouter/<provider>/<model>`; ids ausentes en ese catálogo omiten
+ *     `--model` en vez de fingir soporte.
  */
 
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
 import { opencodeEventToStep, type ExecutorStepEvent } from './step-event.ts'
+import { getOpencodeCatalog } from '../../router/opencode-catalog.ts'
 
 export class ExecutorOpencodeError extends Error {}
 
@@ -56,14 +51,12 @@ export function opencodeUnavailableMessage(pathHint?: string): string {
   ].join(' ')
 }
 
-/**
- * G.5 — sin tabla de traducción real todavía (ver comentario de arriba del
- * archivo). Devuelve `undefined` a propósito para cualquier id: sería
- * "silent behavior" pasar un id de OrchestOS que no existe en el namespace
- * de opencode. Se retoma en G.4.
- */
-export function orchestosModelToOpencodeModel(_model: string | undefined): string | undefined {
-  return undefined
+/** Traduce un id OrchestOS solo si models.dev confirma su namespace OpenRouter. */
+export function orchestosModelToOpencodeModel(model: string | undefined): string | undefined {
+  if (!model) return undefined
+  const catalog = getOpencodeCatalog()
+  if (!catalog?.has(model)) return undefined
+  return 'openrouter/' + model
 }
 
 function buildOpencodePrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
