@@ -787,13 +787,24 @@ de una conversación. Separación de responsabilidades:
   [engine-cascade.test.ts](src/__tests__/engine-cascade.test.ts) + 3 en
   [engine-selection.test.ts](src/__tests__/engine-selection.test.ts) (parseo de `executor_mode`).
   822 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **G.4.2 — 🧠 Detección extendida a Codex.** `resolveCascadeTier()`/endpoint de disponibilidad
-  reconocen `codex` (binario real confirmado 2026-07-27, `codex-cli 0.145.0`) junto a
-  Claude/opencode. Codex hoy es solo *provider* de rol ([codex.ts](src/providers/codex.ts)) — para
-  contar como opción de `executor_mode` en build tasks hace falta un `ExecutorEngine` real
-  (`src/run/executors/codex.ts`, mismo contrato que `external.ts`/`opencode.ts` — requiere probe en
-  vivo del formato de salida de `codex exec --json`, no asumirlo). Ventana real: activo hasta
-  2026-08-22.
+- [x] **G.4.2 — 🧠 (2026-07-27) Detección GENÉRICA de CLIs** (corrección de Carlos: no una función
+  ad-hoc por CLI). [cli-registry.ts](src/run/executors/cli-registry.ts): registro de datos
+  `KNOWN_CLIS: { id, binary, label }[]` (claude, codex, opencode, kimi — kimi sin binario real
+  todavía, igual queda en el registro) + `detectInstalledClis()` genérica que corre `Bun.which()`
+  sobre TODO el registro, devuelve `{ id, label, binary, installed, path }[]`. Agregar un CLI nuevo
+  a futuro = una entrada en el registro, no una función nueva. Detección independiente de si existe
+  `ExecutorEngine` para ese CLI — Codex/Kimi pueden aparecer `installed: true` sin poder ejecutarse
+  todavía (G.4.2b). `findClaudeBinary()`/`findOpencodeBinary()` (external.ts/opencode.ts) NO se
+  tocaron — siguen con su mensaje de error específico por engine; el registro es la capa de
+  detección genérica para UI/disponibilidad (consumidor real: endpoint G.4.3, todavía pendiente —
+  `resolveCascadeTier()` no se tocó en esta pasada, sigue con su lógica ya testeada). 5 tests
+  nuevos ([cli-registry.test.ts](src/__tests__/cli-registry.test.ts)). 827 tests · 0 fail ·
+  `tsc --noEmit` limpio.
+- [ ] **G.4.2b — 🧠 `ExecutorEngine` real para Codex.** Codex hoy es solo *provider* de rol
+  ([codex.ts](src/providers/codex.ts)) — para contar como opción real de `executor_mode` en build
+  tasks hace falta `src/run/executors/codex.ts`, mismo contrato que `external.ts`/`opencode.ts`.
+  Requiere probe en vivo del formato de salida de `codex exec --json` (no asumirlo, mismo criterio
+  que G.3.1/G.5). Ventana real de la suscripción: activo hasta 2026-08-22.
 - [ ] **G.4.3 — 🧠 Endpoint `GET /api/system/executor-modes`.** Expone detección (qué está
   disponible) + selección (qué eligió el usuario) al dashboard — hoy 100% backend/invisible.
 - [ ] **G.4.4 — 🧠 UI: selector de modo en Settings.** Toggle explícito (no dropdown-por-mensaje):
