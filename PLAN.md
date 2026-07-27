@@ -964,12 +964,12 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   de `.engine-tune-row` (flex de una sola línea), quedando apretado entre el input y el badge —
   corregido a mano, movido fuera de la fila. Verificado en vivo contra el dashboard real. 871
   tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **H.6 — 🧠 Fuente de config: mejor presentación.** El badge `configFound` (custom vs defaults,
-  [config.ts:44](src/dashboard/handlers/config.ts:44), [screens-ops.js:1130](src/dashboard/public/screens-ops.js:1130))
-  muestra el dato correcto pero como `<span>` suelto con tooltip. El archivo NO es obligatorio (si
-  falta, `loadOrcheConfig()` cae a defaults, por eso hay botón "Crear config"). Mejorar: explicar qué
-  defaults se usan cuando falta, y por qué el archivo importa cuando existe. Sí tiene sentido mostrar
-  la fuente — el problema es la presentación, no el dato.
+- [x] **H.6 — 🧠 (2026-07-27) Fuente de config: mejor presentación.** La ruta real ya no vive solo
+  en un `title` de hover — texto visible siempre debajo del badge: con config, "Reading roles from
+  {ruta real}"; sin config, explica el default real y verificado (`deepseek/deepseek-v4-flash` en
+  los 4 roles, confirmado contra `DEFAULT_CONFIG` en `schema.ts`, no un genérico "usa defaults") +
+  que guardar cualquier rol crea el archivo solo. Verificado en vivo. 871 tests · 0 fail ·
+  `tsc --noEmit` limpio.
 - [ ] **H.7 — 🧠 Tab "Proyecto": ELIMINAR la card de paths crudos (decisión de Carlos, 2026-07-18).**
   `cwd`, `~/.orchestos/.env` y el comando `orchestos dashboard --port 4242`
   ([screens-ops.js:1354-1360](src/dashboard/public/screens-ops.js:1354)) son texto plano no accionable

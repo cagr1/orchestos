@@ -1127,9 +1127,16 @@ SCREENS.settings = {
       return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
     }
 
+    // H.6 — el dato ya era correcto, el problema era la presentación: un
+    // <span> con tooltip escondía la ruta real (hay que pasar el mouse para
+    // verla) y no explicaba qué pasa cuando el archivo falta. Ahora la ruta
+    // y la explicación van siempre visibles, no solo en hover.
     const sourceLine = cfg.configFound
-      ? `<span class="badge green square" title="${esc(cfg.source)}">${ICON.check} ${t('settings.routing.customFound')}</span>`
+      ? `<span class="badge green square">${ICON.check} ${t('settings.routing.customFound')}</span>`
       : `<span class="badge gray square">${t('settings.routing.defaults')}</span>`;
+    const sourceHint = cfg.configFound
+      ? esc(t('settings.routing.source.foundHint', cfg.source))
+      : esc(t('settings.routing.source.defaultsHint'));
 
     // Fix real (2026-07-08): esto era de solo lectura — Carlos no tenía forma
     // de cambiar el modelo por rol, ni desde el CLI ni desde el dashboard.
@@ -1175,6 +1182,7 @@ SCREENS.settings = {
     return `<div class="card settings-card">
         <div class="settings-header"><h3>${t('settings.routing.title')}</h3></div>
         <div class="kv"><span class="k">${t('settings.routing.source')}</span><span class="v">${sourceLine}</span></div>
+        <p class="muted" style="margin:8px 18px 0;font-size:12.5px">${sourceHint}</p>
         ${initBtn ? `<div class="settings-foot" style="margin-top:8px">${initBtn}</div>` : ''}
       </div>
       <div class="card settings-card settings-card-roles">
