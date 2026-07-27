@@ -833,10 +833,24 @@ de una conversación. Separación de responsabilidades:
   verdad — claude/opencode/codex con sus paths reales), y testeado a mano después (6 tests,
   [executor-modes-endpoint.test.ts](src/__tests__/executor-modes-endpoint.test.ts) — Codex no tocó
   tests, por instrucción explícita del prompt). 849 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **G.4.4 — 🧠 UI: selector de modo en Settings.** Toggle explícito (no dropdown-por-mensaje):
-  Local / Claude CLI / opencode CLI / Codex CLI / API — cada opción con su estado real (detectado/
-  no) y precio (gratis vs. gasta saldo). Reemplaza cualquier idea de "dropdown en el composer que
-  cambia de tier solo" del diseño original.
+- [x] **G.4.4 — 🧠 (2026-07-27) UI: selector de modo en Settings.** Nueva card "Chat build mode" en
+  Settings → Executor (`executorModePanel()`, [screens-ops.js](src/dashboard/public/screens-ops.js)),
+  ANTES del `executorPanel()` viejo — ejes distintos, no se reemplazan (el viejo es el motor
+  default para tareas manuales sin `engine:`, éste es la preferencia para tareas auto-creadas por
+  el chat). Fila segmentada Auto/Local/Claude CLI/opencode CLI/Codex CLI/API (reusa
+  `.engine-picker`/`.engine-opt`, ya existente), dot verde/gris por opción (detectado real vía
+  G.4.3), checkmark en la activa. Elegir un modo no-detectado se permite (nota inline, no bloquea)
+  — [[feedback-deteccion-no-decision-automatica]]. Backend: `handleApiConfigSet` (config.ts) gana
+  `executorMode: ExecutorMode|null` (`null` limpia la preferencia, vuelve a "Auto"),
+  `EXECUTOR_MODES` exportado desde `load.ts` para no duplicar la lista de valores válidos.
+  Verificado en vivo contra el dashboard real (no solo tests): seleccioné "Codex CLI" → persistió
+  de verdad en `orchestos.config.yaml` → volví a "Auto" → se limpió de verdad — con curl/grep
+  directo al archivo, no solo la UI. 5 tests nuevos
+  ([config-set-executor-mode.test.ts](src/__tests__/config-set-executor-mode.test.ts), escritos con
+  `process.chdir()` a un dir temporal para NUNCA tocar el `orchestos.config.yaml` real del repo
+  durante la suite). 854 tests · 0 fail · `tsc --noEmit` limpio. **Cierra Bloque G completo
+  (G.1-G.5, G.3.1-G.3.3, G.4.1-G.4.4)** — Bloque H (rediseño completo de Settings + limpieza) sigue
+  abierto, aparte.
 - [ ] **G.4.5 — 🧠 Catálogo dinámico de opencode vía models.dev.** Namespace `opencode` de
   models.dev ([IDEAS #55](IDEAS.md)) en vez de parsear texto de `opencode models --verbose` — cierra
   `orchestosModelToOpencodeModel()` (hoy `undefined` a propósito, ver G.5).

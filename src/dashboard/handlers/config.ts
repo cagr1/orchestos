@@ -1,8 +1,8 @@
 import { resolve, join } from 'path'
 import { existsSync, writeFileSync } from 'fs'
 import { stringify as yamlStringify } from 'yaml'
-import { loadOrcheConfig, scaffoldConfigYaml } from '../../config/load.ts'
-import type { OrcheConfig } from '../../config/schema.ts'
+import { loadOrcheConfig, scaffoldConfigYaml, EXECUTOR_MODES } from '../../config/load.ts'
+import type { OrcheConfig, ExecutorMode } from '../../config/schema.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
@@ -78,10 +78,16 @@ export async function handleApiConfigSet(req: Request): Promise<Response> {
     executorEngine?: string
     agenticMaxIterations?: number
     externalTimeoutMinutes?: number
+    /** G.4.4 — preferencia persistente de executor_mode. `null` limpia la preferencia
+     * guardada (vuelve a "Auto" — la cascada sugiere, ver [[feedback-deteccion-no-decision-automatica]]). */
+    executorMode?: ExecutorMode | null
   }
   try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
   if (body.roles !== undefined && typeof body.roles !== 'object') return errorResponse('roles must be an object', 400)
-  if (!body.roles && body.executorEngine === undefined && body.agenticMaxIterations === undefined && body.externalTimeoutMinutes === undefined) {
+  if (body.executorMode !== undefined && body.executorMode !== null && !EXECUTOR_MODES.includes(body.executorMode)) {
+    return errorResponse(`executorMode must be one of: ${EXECUTOR_MODES.join(', ')}`, 400)
+  }
+  if (!body.roles && body.executorEngine === undefined && body.agenticMaxIterations === undefined && body.externalTimeoutMinutes === undefined && body.executorMode === undefined) {
     return errorResponse('nothing to save', 400)
   }
 
@@ -114,6 +120,11 @@ export async function handleApiConfigSet(req: Request): Promise<Response> {
   }
   if (typeof body.externalTimeoutMinutes === 'number' && Number.isFinite(body.externalTimeoutMinutes) && body.externalTimeoutMinutes > 0) {
     newConfig.external = { timeoutMs: Math.round(body.externalTimeoutMinutes * 60000) }
+  }
+  if (body.executorMode === null) {
+    delete newConfig.executor_mode
+  } else if (body.executorMode !== undefined) {
+    newConfig.executor_mode = body.executorMode
   }
 
   writeFileSync(configPath, yamlStringify(newConfig), 'utf8')

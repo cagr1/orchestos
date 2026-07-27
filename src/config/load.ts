@@ -15,7 +15,7 @@ import { homedir } from 'os'
 import { existsSync, readFileSync } from 'fs'
 import { DEFAULT_CONFIG, parseRoleValue, type OrcheConfig, type ExecutorMode } from './schema.ts'
 
-const EXECUTOR_MODES: ExecutorMode[] = ['local', 'cli-claude', 'cli-opencode', 'cli-codex', 'api']
+export const EXECUTOR_MODES: ExecutorMode[] = ['local', 'cli-claude', 'cli-opencode', 'cli-codex', 'api']
 
 const GLOBAL_CONFIG_PATH = join(homedir(), '.orchestos', 'config.yaml')
 

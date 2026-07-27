@@ -284,6 +284,19 @@ const App = {
       state.orcheConfigStatus = 'error';
     }
   },
+  // G.4.4 — detección (qué CLI/tier hay disponible) + selección (executor_mode
+  // guardado) para el selector segmentado de Settings.
+  async fetchExecutorModes() {
+    state.executorModesStatus = 'loading';
+    try {
+      const res = await fetch('/api/system/executor-modes');
+      if (!res.ok) throw new Error(res.status);
+      state.executorModes = await res.json();
+      state.executorModesStatus = 'ok';
+    } catch {
+      state.executorModesStatus = 'error';
+    }
+  },
   async fetchChatTaskBarEvents() {
     state.chatTaskBarEventsStatus = 'loading';
     try {

@@ -1177,6 +1177,55 @@ SCREENS.settings = {
         ${pendingRows}
       </div>`;
   },
+  // G.4.4 — selector de `executor_mode` (preferencia de CÓMO corre el chat las
+  // tareas de build que auto-crea, D.7/G.2). Eje DISTINTO al executorPanel()
+  // de abajo (ese es el motor por defecto para tareas manuales sin `engine:`
+  // propio). Detección vía GET /api/system/executor-modes (G.4.3) — la
+  // cascada solo SUGIERE cuando no hay preferencia guardada ('auto' acá);
+  // elegir un modo no-detectado se permite igual (se guarda, se usa cuando
+  // se instale) — [[feedback-deteccion-no-decision-automatica]].
+  executorModePanel(st) {
+    if (st.executorModesStatus === 'loading' || st.executorModesStatus === 'idle') {
+      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
+    }
+    const data = st.executorModes;
+    if (st.executorModesStatus === 'error' || !data) {
+      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
+    }
+    const pending = st.executorModePending;
+    const current = pending !== undefined ? pending : (data.selected || 'auto');
+    const byId = new Map((data.modes || []).map(m => [m.id, m]));
+    const OPTIONS = ['auto', 'local', 'cli-claude', 'cli-opencode', 'cli-codex', 'api'];
+
+    const opts = OPTIONS.map(id => {
+      const info = byId.get(id);
+      const dot = id === 'auto'
+        ? ''
+        : `<span class="exec-mode-dot ${info?.detected ? 'green' : 'gray'}" title="${info?.detected ? t('common.detected') : t('common.notDetected')}"></span>`;
+      return `<button class="engine-opt${current === id ? ' active' : ''}" data-exec-mode-opt="${id}">
+        ${dot}<span>${esc(t('settings.executorMode.opt.' + id))}</span>
+        ${current === id ? `<span class="engine-opt-check">${ICON.check}</span>` : ''}
+      </button>`;
+    }).join('');
+
+    const activeInfo = current === 'auto' ? null : byId.get(current);
+    const notDetectedNote = activeInfo && !activeInfo.detected
+      ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('settings.executorMode.notDetected')}</p>`
+      : '';
+
+    return `<div class="card settings-card" data-exec-mode="${esc(current)}">
+      <div class="settings-header"><h3>${t('settings.executorMode.title')}</h3>
+        <p class="muted" style="margin:0;font-size:12.5px">${t('settings.executorMode.subtitle')}</p>
+      </div>
+      <div class="engine-picker">${opts}</div>
+      <p class="engine-desc">${esc(t('settings.executorMode.desc.' + current))}</p>
+      ${notDetectedNote}
+      <div class="settings-foot" style="margin-top:8px">
+        <span style="flex:1"></span>
+        <button class="btn primary" data-act="save-exec-mode">${ICON.check} ${t('settings.executorMode.save')}</button>
+      </div>
+    </div>`;
+  },
   // Redisño 2026-07-17 — el motor de ejecución por defecto (executorEngine
   // en orchestos.config.yaml) solo vivía en YAML/CLI, sin superficie en el
   // dashboard (regla: feedback-dashboard-no-solo-cli). Reusa el patrón visual
@@ -1345,6 +1394,7 @@ SCREENS.settings = {
           </section>
 
           <section class="settings-panel${sec === 'executor' ? ' active' : ''}" data-panel="executor">
+            ${this.executorModePanel(st)}
             ${this.executorPanel(st)}
           </section>
 
@@ -1393,8 +1443,43 @@ SCREENS.settings = {
       if (sec === 'routing' || sec === 'executor') {
         App.fetchOrcheConfig().then(() => App.rerender());
         if (sec === 'routing' && state.orModels === null) loadOrModels().then(() => App.rerender());
+        if (sec === 'executor') App.fetchExecutorModes().then(() => App.rerender());
       }
     }));
+
+    // G.4.4 — executor_mode picker: clic cambia state.executorModePending local
+    // (sin round-trip), el POST real ocurre recién al tocar "Guardar".
+    root.querySelectorAll('[data-exec-mode-opt]').forEach(btn => btn.addEventListener('click', () => {
+      state.executorModePending = btn.dataset.execModeOpt;
+      App.rerender();
+    }));
+
+    root.querySelector('[data-act="save-exec-mode"]')?.addEventListener('click', async () => {
+      const current = root.querySelector('[data-exec-mode]')?.dataset.execMode || 'auto';
+      const executorMode = current === 'auto' ? null : current;
+      const btn = root.querySelector('[data-act="save-exec-mode"]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ executorMode }),
+        });
+        if (res.ok) {
+          showToast(t('settings.executorMode.saveDone'));
+          state.executorModePending = undefined;
+          await App.fetchExecutorModes();
+          App.rerender();
+        } else {
+          const data = await res.json();
+          showToast(data.error || t('settings.executorMode.saveErr'), 'error');
+        }
+      } catch {
+        showToast(t('settings.executorMode.saveErr'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     // Executor engine picker — clic en una card cambia st.orcheConfig localmente
     // (sin round-trip) y rerenderiza, igual que el theme-picker; el POST real

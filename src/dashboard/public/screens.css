@@ -347,6 +347,13 @@
 .theme-swatch[data-swatch="bright"] .sw-dot      { background: #0069cc; }
 
 /* ---------- ENGINE PICKER (Settings→Executor) ---------- */
+/* G.4.4 — dot de estado detectado/no-detectado dentro de un .engine-opt */
+.exec-mode-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.exec-mode-dot.green { background: var(--success); box-shadow: 0 0 4px var(--success); }
+.exec-mode-dot.gray  { background: var(--text-faint); }
+
 .engine-picker { display: flex; gap: 10px; padding: 16px 18px; flex-wrap: wrap; }
 .engine-opt {
   display: flex; align-items: center; gap: 8px;
