@@ -46,6 +46,8 @@ primero que OrchestOS *entregue* un producto premium (C.2), luego las modificaci
 - #44 — **cascada de selección Local→CLI→API** (Orca-style, "usa lo ya pagado antes que gastar
   saldo") — gated en #39 + una decisión explícita de Carlos por la tensión con
   [[feedback-modelo-decision-final-carlos]] (ver ítem completo)
+- #56 — **workspace multiagente con tabs y ejecución paralela** (Orca-style): supervisar varias
+  sesiones/agentes a la vez, con estado y controles operativos
 - #28 — terminal real embebido
 - #35 — directorio de proyecto configurable · #10 — cliente MCP · #31 — chat multi-proveedor
 - #34 — `orchestos audit` · #7 — brainstorming socrático · #8 — micrófono/dictado
@@ -1517,6 +1519,60 @@ no dos ideas: cuando se ataque #31 hay que elegir entre las dos, no hacer ambas.
 
 **Esfuerzo**: bajo el punto 1 (una tabla de traducción alimentada por un JSON ya público); medio el
 2; alto el 3 (multi-módulo, requiere plan).
+
+---
+
+### 56. Workspace multiagente con tabs y ejecución paralela — supervisar una flota de agentes desde OrchestOS
+
+**Origen**: Carlos (2026-07-27), después de usar Orca y observar que sus tabs permiten trabajar con
+varios agentes a la vez. La necesidad no es solo tener tabs visuales: cada tab debe representar una
+sesión o corrida independiente, con su propio contexto, proyecto/worktree, agente y resultado.
+
+**No confundir con ideas existentes**:
+- [#43](#43-panel-derecho-como-ide-embebido--diffexplorer-con-tabs-reales-en-el-main-todo-dentro-de-orchestos)
+  cubre tabs del `main` para explorer, código, diff y terminal.
+- [#49](#49-visibilidad-en-vivo-de-lo-que-el-agente-está-haciendo--no-solo-el-resultado-final)
+  cubre mostrar el progreso interno de una corrida.
+- [#50](#50-chat-persistente-con-sesiones-acotadas-máx-20--no-copiar-el-patrón-de-chats-infinitos)
+  cubre persistencia y archivo de conversaciones de chat.
+- [#39](#39-generalizar-el-executor-external--hoy-solo-detecta-claude-no-opencodecodexotros-clis)
+  cubre detectar y ejecutar distintos CLIs.
+
+Este ítem combina esas piezas en una superficie operativa nueva: una barra o gestor de tabs de
+sesiones/agentes donde el usuario pueda crear, cambiar y cerrar sesiones sin perder el contexto.
+
+**Qué debería ofrecer**:
+1. Tabs persistentes para sesiones de chat, tareas o corridas de agentes, con nombre, icono y
+   proyecto/worktree identificables.
+2. Ejecución realmente paralela, sin mezclar el contexto ni los logs de una sesión con otra.
+3. Estado visible por tab: `idle`, `running`, `waiting`, `needs approval`, `done`, `failed` o
+   `cancelled`, incluyendo duración y coste cuando estén disponibles.
+4. Vista global de actividad para ver qué agentes están trabajando, esperando o bloqueados.
+5. Acciones operativas por sesión: abrir, pausar si el executor lo permite, cancelar, reintentar,
+   enfocar el diagnóstico y abrir el diff/resultados.
+6. Aislamiento explícito de proyecto, rama o worktree, con advertencias antes de compartir un
+   working tree entre corridas.
+7. Recuperación tras refrescar o reiniciar el dashboard, enlazada con la persistencia de #50 y
+   los registros de `runs`.
+8. Notificaciones no intrusivas cuando una sesión termina o necesita aprobación, conectando con
+   #14.
+
+**Decisiones pendientes**:
+- definir si el tab representa un chat, una task run o una sesión de CLI; puede haber una entidad
+  de sesión que agrupe los tres, pero no debe duplicar `runs` ni `chat_sessions` sin necesidad;
+- definir si la ejecución paralela inicial se limita a worktrees aislados o también permite tareas
+  sobre el mismo proyecto con un lock explícito;
+- decidir si los CLIs se muestran como terminal pty en vivo, como eventos de progreso o ambas cosas;
+  esto depende del diseño de #39 y #49;
+- establecer límites de concurrencia, presupuesto y confirmación de coste antes de lanzar varias
+  corridas.
+
+**Dependencias**: diseño de #43 para el tab strip del `main`, #49 para progreso en vivo, #50 para
+persistencia de sesiones, #39 para el registro multi-CLI y #14 para notificaciones. No construir un
+"AI Vault" de sesiones escaneadas del disco: esta idea trata sesiones que OrchestOS crea y controla.
+
+**Esfuerzo**: alto — requiere modelo de sesión, coordinación de procesos, aislamiento de worktrees,
+estado en tiempo real, UI de tabs y recuperación. Debe tener diseño formal antes de implementar.
 
 ---
 
