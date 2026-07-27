@@ -676,6 +676,13 @@ correcciones de fondo tras auditar en vivo qué CLIs existen de verdad en la má
    (`command -v kimi*` no encuentra nada, el bundle no trae uno). Mismo criterio que ya aplicó
    E.15/G.1 con opencode: no fingir soporte de un binario que no se puede invocar — Kimi queda
    fuera de esta pasada hasta que exista un CLI real que probar.
+
+   **Corrección 2026-07-27 (G.4)**: Carlos volvió a pagar Codex (activo 2026-07-22 → 2026-08-22,
+   quería aprovecharlo). Binario `codex` SÍ está instalado (`codex-cli 0.145.0`, verificado en
+   vivo). Codex re-entra como 4to candidato de CLI — pero solo existe como *provider* de rol
+   ([src/providers/codex.ts](src/providers/codex.ts), usado en `orchestos.config.yaml` para
+   planner/qa), NO como `ExecutorEngine` de build tasks (no hay `src/run/executors/codex.ts` — ver
+   G.4 abajo, es trabajo nuevo si se lo incluye ahí). Kimi sigue GUI-only, sin cambios.
 2. **No es pty-vivo estilo Orca.** Carlos aclaró: quiere la visibilidad DENTRO del chat de
    OrchestOS (cards de "qué se está haciendo", expandibles, mismo patrón que ya usa Claude Code
    con el usuario) — no una terminal aparte (eso es lo que hace Orca, y Orca no tiene chat). El
@@ -755,15 +762,45 @@ es bubble simple) y la tarea corre en background fuera del request HTTP del chat
   (`.chat-step-row` sin `flex-wrap` partía palabras del label a la mitad). 5 tests nuevos
   ([run-steps.test.ts](src/__tests__/run-steps.test.ts)). 813 tests · 0 fail · `tsc --noEmit`
   limpio. **Cierra Bloque G.3 completo.**
-- [ ] **G.4 — 🧠 Selector de modelo consciente de tier y de CLI.** El dropdown de modelo refleja
-  SOLO lo que aplica al tier activo: cloud (OpenRouter, ya existe) — CLI-claude (lista fija:
-  sonnet/opus/haiku/fable + 5 niveles de esfuerzo `--effort`) — CLI-opencode (catálogo dinámico
-  real vía `opencode models [provider]` + `--variant` por modelo, no una lista fija). Depende de
-  G.5 (necesita que opencode ya sea un executor real) y se beneficia de G.3 para mostrarse en el
-  chat en vez de solo en Tasks.
+**Rediseño 2026-07-27 (corrección de Carlos)**: el diseño original de G.4 dejaba que la cascada
+ELIGIERA el motor de la tarea auto-creada en silencio — Carlos lo objetó: la cascada debe
+**detectar** disponibilidad, nunca **decidir** en nombre del usuario sin que se dé cuenta a mitad
+de una conversación. Separación de responsabilidades:
+- **Detección** (`resolveCascadeTier()` y sucesores) → solo informa qué hay disponible ahora
+  mismo (local/Claude/opencode/Codex/API). Nunca cambia de motor a mitad de sesión en silencio.
+- **Selección** → preferencia persistente y explícita del usuario (`orchestos.config.yaml` /
+  Settings), un toggle que se guarda hasta que el usuario lo cambie. La cascada solo SUGIERE un
+  default razonable la primera vez que no hay preferencia guardada (o si el modo elegido deja de
+  estar disponible — ahí se avisa y se pregunta, nunca se salta en silencio).
+- Onboarding no-dev (default sugerido = opencode, sin subscripción/pago) queda anotado para
+  después, no en esta pasada — [[IDEAS #56 pendiente de crear]].
 
-**Explícitamente fuera de esta pasada**: Kimi (sin CLI instalable todavía), Codex (sin
-suscripción, no se re-agrega salvo pedido explícito de Carlos).
+- [ ] **G.4.1 — 🧠 `orchestos.config.yaml`: campo `executor_mode` persistente.** Nuevo campo
+  (`local | cli-claude | cli-opencode | cli-codex | api`, default `api` = comportamiento actual)
+  que el usuario fija a mano — reemplaza la decisión silenciosa de la cascada para tareas
+  auto-creadas del chat (D.7/G.2). `cascadeTaskFields()` pasa a leer este campo primero; solo
+  cuando está ausente cae al orden sugerido local→CLI→API (mismo criterio que hoy, pero como
+  sugerencia de bootstrap, no como decisión recurrente).
+- [ ] **G.4.2 — 🧠 Detección extendida a Codex.** `resolveCascadeTier()`/endpoint de disponibilidad
+  reconocen `codex` (binario real confirmado 2026-07-27, `codex-cli 0.145.0`) junto a
+  Claude/opencode. Codex hoy es solo *provider* de rol ([codex.ts](src/providers/codex.ts)) — para
+  contar como opción de `executor_mode` en build tasks hace falta un `ExecutorEngine` real
+  (`src/run/executors/codex.ts`, mismo contrato que `external.ts`/`opencode.ts` — requiere probe en
+  vivo del formato de salida de `codex exec --json`, no asumirlo). Ventana real: activo hasta
+  2026-08-22.
+- [ ] **G.4.3 — 🧠 Endpoint `GET /api/system/executor-modes`.** Expone detección (qué está
+  disponible) + selección (qué eligió el usuario) al dashboard — hoy 100% backend/invisible.
+- [ ] **G.4.4 — 🧠 UI: selector de modo en Settings.** Toggle explícito (no dropdown-por-mensaje):
+  Local / Claude CLI / opencode CLI / Codex CLI / API — cada opción con su estado real (detectado/
+  no) y precio (gratis vs. gasta saldo). Reemplaza cualquier idea de "dropdown en el composer que
+  cambia de tier solo" del diseño original.
+- [ ] **G.4.5 — 🧠 Catálogo dinámico de opencode vía models.dev.** Namespace `opencode` de
+  models.dev ([IDEAS #55](IDEAS.md)) en vez de parsear texto de `opencode models --verbose` — cierra
+  `orchestosModelToOpencodeModel()` (hoy `undefined` a propósito, ver G.5).
+
+**Fuera de esta pasada**: Kimi (sin CLI instalable todavía); onboarding no-dev con default
+opencode (pendiente de anotar en IDEAS.md, diseño de UX aparte); `--effort`/`--variant` por
+modelo dentro de cada CLI-mode (detalle de G.4.4, no bloquea la estructura base).
 
 **Orden de ejecución sugerido**: G.2 (retomar, cerrar con tests) tiene el impacto más inmediato en
 la calidad de lo que se viene probando toda la sesión (las páginas de crypto/Apple) y es el cambio
