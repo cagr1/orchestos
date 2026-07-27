@@ -724,9 +724,17 @@ es bubble simple) y la tarea corre en background fuera del request HTTP del chat
   en vez de `JSON.parse(stdout)` completo. `opencode.ts`: mismo cambio de lectura (reader
   incremental), sin cambio de args (ya emitía NDJSON). Sin cambio de comportamiento observable —
   prerequisito de G.3.2/G.3.3. 797 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **G.3.2 — 🧠 Evento común `ExecutorStepEvent`.** `{ type: 'tool_use'|'text'|'step_finish',
-  label, detail?, costUsd?, tokens? }` + traducción por CLI (`claudeEventToStep()`/
-  `opencodeEventToStep()`), mismo patrón que `orchestosModelToCliModel()`.
+- [x] **G.3.2 — 🧠 (2026-07-27) Evento común `ExecutorStepEvent`.**
+  [step-event.ts](src/run/executors/step-event.ts): `{ type: 'tool_use'|'text'|'step_finish',
+  label, detail?, costUsd?, tokens? }` + `claudeEventToStep()`/`opencodeEventToStep()`. Shapes
+  verificados en vivo (no asumidos): opencode con `opencode run --format json --auto` real
+  (`evt.type` en `tool_use`/`text`/`step_finish`/`step_start`); claude con
+  `claude -p --output-format stream-json --include-partial-messages --verbose` real (blocks
+  `text`/`tool_use` en `message.content[]`, mismo shape que ya usa `tool-call.ts`). Deltas de
+  `stream_event` de claude NO se mapean — no se pudo probar su shape en este entorno, no fingir
+  soporte no verificado (mismo criterio que G.1/G.5). Standalone, sin wiring a los executors
+  todavía (eso es G.3.3). 11 tests nuevos con fixtures de los probes reales
+  ([step-event.test.ts](src/__tests__/step-event.test.ts)). 808 tests · 0 fail · `tsc` limpio.
 - [ ] **G.3.3 — 🧠 Transporte + UI de cards en vivo.** Persistir cada evento (tabla `run_steps` o
   JSON incremental en `runs`); dashboard hace poll corto mientras `running` (evaluar SSE si el
   volumen lo justifica); cards expandibles nuevas en `screens-core.js` (colapsadas por default).
