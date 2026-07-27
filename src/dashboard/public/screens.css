@@ -220,6 +220,20 @@
    acción destructiva (título en color de error) en vez de solo el botón rojo. */
 .settings-header h3.danger-title { color: var(--error); }
 .settings-danger-body { padding: 0 18px 18px; }
+/* H.7 — el tab "Project" quedó siendo solo esto tras quitar la card de paths
+   crudos; tratamiento de "danger zone" real (borde + eyebrow), no solo un
+   título en rojo, mismo patrón que GitHub/Vercel usan para acciones
+   destructivas de settings. */
+.settings-card-danger {
+  border-color: color-mix(in oklab, var(--error) 35%, var(--border));
+  background: color-mix(in oklab, var(--error) 3%, var(--surface));
+}
+.danger-eyebrow {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--error); margin-bottom: 4px;
+}
+.danger-eyebrow svg { width: 12px; height: 12px; }
 .key-list { display: flex; flex-direction: column; }
 .key-row {
   display: grid; grid-template-columns: 1fr auto auto;

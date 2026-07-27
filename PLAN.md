@@ -970,13 +970,16 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   los 4 roles, confirmado contra `DEFAULT_CONFIG` en `schema.ts`, no un genérico "usa defaults") +
   que guardar cualquier rol crea el archivo solo. Verificado en vivo. 871 tests · 0 fail ·
   `tsc --noEmit` limpio.
-- [ ] **H.7 — 🧠 Tab "Proyecto": ELIMINAR la card de paths crudos (decisión de Carlos, 2026-07-18).**
-  `cwd`, `~/.orchestos/.env` y el comando `orchestos dashboard --port 4242`
-  ([screens-ops.js:1354-1360](src/dashboard/public/screens-ops.js:1354)) son texto plano no accionable
-  — debug info de dev expuesta al usuario final. Carlos decidió **quitar la card entera** (no volverla
-  accionable ni fusionarla). El bloque "danger zone" (system reset) de ese mismo tab SÍ se queda —
-  reevaluar entonces si el tab "Proyecto" sigue teniendo razón de existir con solo el danger zone, o
-  ese reset se reubica (ej. en General) y el tab desaparece.
+- [x] **H.7 — 🧠 (2026-07-27) Tab "Proyecto": ELIMINAR la card de paths crudos.** Card quitada
+  entera (`cwd`/env file/comando CLI eran debug info no accionable), i18n keys muertas removidas.
+  **Decisión sobre la pregunta abierta** (reevaluar si el tab sigue teniendo razón de existir):
+  Carlos pidió explícitamente, mientras se cerraba este ítem, que cualquier acción destructiva
+  (reset test data y futuras) viva en una "Danger Zone" clara, patrón estándar (GitHub/Vercel) —
+  así que el tab se RENOMBRÓ a "Danger zone" (`ICON.warn`) en vez de desaparecer, con tratamiento
+  visual real: card con borde rojo (`color-mix` sobre `var(--error)`, no solo texto en rojo) +
+  eyebrow "DANGER ZONE". Precedente para cualquier acción destructiva futura — usar
+  `.settings-card-danger`/`.danger-eyebrow`, no reinventar el patrón. Verificado en vivo. 871
+  tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **H.8 — 🧠 Acabado visual general al estándar premium.** Una vez resueltos H.1-H.7, pasar la
   pantalla completa por el estándar Orca/Anthropic: patrón fila-de-catálogo donde aplique (routing,
   executor), jerarquía tipográfica real, espaciado consistente, sin cards genéricas repetidas. Gate

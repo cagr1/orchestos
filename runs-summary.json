@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-07-27T22:19:14.764Z",
+  "exported_at": "2026-07-27T22:37:04.712Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "0f2e93e7-aa84-462d-bda4-5e694f70c73f",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00026404000000000005,
+      "elapsed_ms": 0,
+      "tokens": 1854,
+      "created_at": "2026-07-27T22:24:25.712Z"
+    },
     {
       "id": "58092287-88f8-45c6-b42a-cb8b08ce4067",
       "task_class": "chat",
@@ -286,21 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 2662,
       "created_at": "2026-07-17T20:54:37.509Z"
-    },
-    {
-      "id": "3b273760-07b8-4ae0-bdd5-caf8cb8d7d0a",
-      "task_class": "plan",
-      "model": "anthropic/claude-haiku-4-5",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "File is self-contained, implements all required features: live CoinGecko API fetch (top-15), search filtering, column sorting, 30s auto-refresh, cell-level pulse animations, skeleton loading, OKLCH palette, dense table layout, tabular-nums, inline SVG sparklines, responsive design, and no build tooling.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.2887676999999999,
-      "elapsed_ms": 190998,
-      "tokens": 20432,
-      "created_at": "2026-07-17T20:44:44.576Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 18,
     "qa_failed": 2,
-    "total_cost_usd": "1.0889"
+    "total_cost_usd": "0.8004"
   }
 }

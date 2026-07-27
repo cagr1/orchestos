@@ -1495,9 +1495,7 @@ SCREENS.settings = {
       </div>`;
     }).join('');
 
-    const cwd  = keys['_cwd']?.masked  || '—';
     const envF = keys['_envFile']?.masked || '~/.orchestos/.env';
-    const envSet = keys['_envFile']?.set;
 
     return `<div class="screen">${head}
       <div class="settings-shell">
@@ -1508,7 +1506,7 @@ SCREENS.settings = {
           ${navItem('usage', ICON.graph, t('settings.nav.usage'))}
           ${navItem('executor', ICON.refresh, t('settings.nav.executor'))}
           ${navItem('health', ICON.runs, t('settings.nav.health'))}
-          ${navItem('project', ICON.project, t('settings.nav.project'))}
+          ${navItem('project', ICON.warn, t('settings.nav.project'))}
           ${navItem('lang', ICON.globe, t('settings.nav.lang'))}
         </nav>
 
@@ -1552,18 +1550,11 @@ SCREENS.settings = {
           </section>
 
           <section class="settings-panel${sec === 'project' ? ' active' : ''}" data-panel="project">
-            <div class="card settings-card">
-              <div class="settings-header"><h3>${t('settings.project.title')}</h3></div>
-              <div class="kv"><span class="k">${t('settings.project.cwd')}</span><span class="v mono" style="font-size:12px;word-break:break-all">${esc(cwd)}</span></div>
-              <div class="kv"><span class="k">${t('settings.project.config')}</span>
-                <span class="v mono" style="font-size:12px">${esc(envF)}
-                  ${envSet ? `<span class="badge green square" style="margin-left:6px">${ICON.check} ${t('settings.project.exists')}</span>` : `<span class="badge gray square" style="margin-left:6px">${t('settings.project.missing')}</span>`}
-                </span>
+            <div class="card settings-card settings-card-danger">
+              <div class="settings-header">
+                <span class="danger-eyebrow">${ICON.warn} ${t('settings.danger.eyebrow')}</span>
+                <h3 class="danger-title">${t('settings.reset.title')}</h3>
               </div>
-              <div class="kv"><span class="k">${t('settings.project.cli')}</span><span class="v mono" style="font-size:12px">orchestos dashboard --port 4242</span></div>
-            </div>
-            <div class="card settings-card">
-              <div class="settings-header"><h3 class="danger-title">${t('settings.reset.title')}</h3></div>
               <div class="settings-danger-body">
                 <p class="muted" style="margin:0 0 14px;font-size:12.5px">${t('settings.reset.desc')}</p>
                 <button class="btn danger" data-act="system-reset">${ICON.trash} ${t('settings.reset.btn')}</button>
