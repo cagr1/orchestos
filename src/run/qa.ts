@@ -128,7 +128,7 @@ export async function runQA(opts: {
     messages: [{ role: 'user', content: userContent }],
   })
 
-  const parsed = parseVerdict(resp.text, hasCriteria ?? false, opts.written)
+  const parsed = parseVerdict(resp.text, opts.acceptance_criteria?.length ?? 0, opts.written)
   return {
     verdict: parsed.verdict,
     reason: parsed.reason,
@@ -141,7 +141,7 @@ export async function runQA(opts: {
 
 function parseVerdict(
   raw: string,
-  expectCriteria: boolean,
+  expectedCriteriaCount: number,
   written: FileChange[]
 ): { verdict: 'pass' | 'fail'; reason: string; criteria?: QACriterionResult[] } {
   const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
@@ -152,11 +152,22 @@ function parseVerdict(
   } catch {
     return { verdict: 'fail', reason: `QA response not parseable: ${raw.slice(0, 200)}` }
   }
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return { verdict: 'fail', reason: 'QA response must be a JSON object' }
+  }
   const o = obj as Record<string, unknown>
   const v = o.verdict === 'pass' ? 'pass' : 'fail'
   const reason = typeof o.reason === 'string' ? o.reason : '(no reason)'
 
-  if (!expectCriteria) return { verdict: v, reason }
+  if (expectedCriteriaCount === 0) return { verdict: v, reason }
+
+  if (!Array.isArray(o.criteria) || o.criteria.length !== expectedCriteriaCount) {
+    return {
+      verdict: 'fail',
+      reason: `QA response must include exactly ${expectedCriteriaCount} criterion results`,
+      criteria: [],
+    }
+  }
 
   // K.4a — un juez QA puede citar un excerpt plausible que nunca aparece en el
   // archivo (evidencia fabricada). K.1 solo exigía evidencia no vacía; esto
@@ -164,21 +175,19 @@ function parseVerdict(
   // un segundo LLM.
   const byPath = new Map(written.map(f => [f.path, f.content]))
 
-  const criteria: QACriterionResult[] = Array.isArray(o.criteria)
-    ? (o.criteria as unknown[]).map(c => {
-        const cr = c as Record<string, unknown>
-        const rawEvidence = cr.evidence as Record<string, unknown> | undefined
-        const evidence = rawEvidence && typeof rawEvidence === 'object' &&
-          typeof rawEvidence.file === 'string' && rawEvidence.file.trim() &&
-          typeof rawEvidence.excerpt === 'string' && rawEvidence.excerpt.trim()
-          ? { file: rawEvidence.file, excerpt: rawEvidence.excerpt }
-          : undefined
-        const evidenceIsReal = evidence !== undefined &&
-          (byPath.get(evidence.file) ?? '').includes(evidence.excerpt)
-        const pass = cr.pass === true && evidenceIsReal
-        return { text: typeof cr.text === 'string' ? cr.text : '?', pass, ...(evidence ? { evidence } : {}) }
-      })
-    : []
+  const criteria: QACriterionResult[] = (o.criteria as unknown[]).map(c => {
+    const cr = c as Record<string, unknown>
+    const rawEvidence = cr.evidence as Record<string, unknown> | undefined
+    const evidence = rawEvidence && typeof rawEvidence === 'object' &&
+      typeof rawEvidence.file === 'string' && rawEvidence.file.trim() &&
+      typeof rawEvidence.excerpt === 'string' && rawEvidence.excerpt.trim()
+      ? { file: rawEvidence.file, excerpt: rawEvidence.excerpt }
+      : undefined
+    const evidenceIsReal = evidence !== undefined &&
+      (byPath.get(evidence.file) ?? '').includes(evidence.excerpt)
+    const pass = cr.pass === true && evidenceIsReal
+    return { text: typeof cr.text === 'string' ? cr.text : '?', pass, ...(evidence ? { evidence } : {}) }
+  })
 
   // If any criterion failed, force verdict to fail regardless of what LLM said
   const anyFailed = criteria.some(c => !c.pass)
@@ -273,6 +282,9 @@ function parseAdversarialVerdict(raw: string): { verdict: AdversarialVerdict['ve
   } catch {
     // fail-safe: una respuesta no parseable no puede sostener un pase silencioso
     return { verdict: 'REFUTED', reason: `adversarial QA response not parseable: ${raw.slice(0, 200)}` }
+  }
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return { verdict: 'REFUTED', reason: 'adversarial QA response must be a JSON object' }
   }
   const o = obj as Record<string, unknown>
   const verdict: AdversarialVerdict['verdict'] =

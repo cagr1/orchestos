@@ -1194,7 +1194,7 @@ cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
   [harness-adversarial-qa.test.ts](src/__tests__/harness-adversarial-qa.test.ts) cubriendo
   desactivado/REFUTED/CAVEATS/VERIFIED/no-corre-si-QA-ya-falló. 886 tests · 0 fail · `tsc --noEmit`
   limpio.
-- [ ] **K.5 — ⚡ Spike de mutation testing (medición, NO adopción).** Gradúa SOLO la parte de
+- [x] **K.5 — ⚡ (2026-07-28) Spike de mutation testing (medición, NO adopción).** Gradúa SOLO la parte de
   medición de [IDEAS #54](IDEAS.md) — la adopción como gate sigue siendo backlog ahí. Verificar los
   dos supuestos que hunden o salvan el cálculo, y **reportar números, no instalar nada permanente**:
   (1) ¿StrykerJS puede correr contra `bun test` vía su runner `command`? (sus runners nativos son
@@ -1203,12 +1203,377 @@ cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
   `src/run/` solamente? Medir con la suite real (~15s hoy). **Entregable**: un comentario en este
   ítem con los dos números reales medidos, no una implementación. Si el costo resulta inviable
   (probable: se mide en horas), decirlo con el número medido y parar ahí.
+  **Resultado medido, sin cambios permanentes en el repo**: StrykerJS `0.35.1` sí puede invocar
+  `bun test` mediante `testRunner: 'command'` + `commandRunner.command` en un config temporal. La
+  suite normal completa pasó `747/747` en `5.747 s` (`5.668 s` dentro de la copia inicial de
+  Stryker tras excluir las 3 pruebas de integración A.5 incompatibles con su copia temporal). La
+  corrida completa no produjo mutation score: abortó después de la suite inicial porque el mutador
+  ES5 incluido por defecto no puede parsear los 33 archivos TypeScript de `src/run/` (`Unexpected
+  token`). Una comprobación temporal del mutador moderno sugerido por Stryker (`stryker-javascript-mutator`)
+  tardó `458.7 s` resolviendo dependencias y terminó sin ejecutable utilizable vía `bunx`; no se
+  instaló en el proyecto. Conclusión: el runner es compatible, pero medir `src/run/` requiere una
+  toolchain/mutador TS permanente y una revisión de compatibilidad de tests; el coste real de la
+  corrida completa no es medible honestamente con este spike y no se adopta mutation testing.
+
+### Cadena K.6 — Integración correcta de mutation testing con StrykerJS + Bun (orden obligatorio, 2026-07-28)
+
+**Propósito**: el K.5 anterior fue un spike válido sobre el paquete antiguo `stryker@0.35.1`,
+pero no es el veredicto final sobre StrykerJS moderno. Este encadenamiento queda documentado para
+TODOS los LLM (Claude, Codex, DeepSeek y cualquier otro): no se salta un paso, no se instala una
+toolchain permanente antes de validar el paso anterior y no se convierte mutation testing en gate
+global sin evidencia de costo y estabilidad.
+
+**Decisión técnica de partida**:
+- StrykerJS moderno para TypeScript, no el paquete antiguo `stryker@0.35.1` usado en K.5.
+- Runner `command` con Bun, porque Bun no tiene runner nativo de Stryker ni emite TAP documentado.
+- `coverageAnalysis: off` durante el piloto: el runner command no puede mapear cobertura por test.
+- TypeScript checker oficial activado para descartar mutantes que solo rompen tipos.
+- Mutación por módulo y test dedicado, no `bun test` completo desde el primer intento.
+
+**Regla de cadena**: cada paso debe dejar evidencia en este bloque antes de abrir el siguiente.
+Si un paso falla, se documenta la causa y se detiene la cadena; no se compensa ampliando el alcance,
+ocultando tests, bajando thresholds ni instalando otra herramienta por intuición.
+
+- [x] **K.6.1 — ⚡ Inventario y selección de toolchain (2026-07-28).** Inventario local confirmado:
+  Bun `1.3.14`, Node `v22.23.1`, TypeScript `6.0.3` en `node_modules` y `tsconfig.json` con
+  `moduleResolution: bundler`, `strict`, `noEmit` y `allowImportingTsExtensions`. El test piloto
+  `bun test src/__tests__/qa-judge.test.ts --timeout 30000` pasó con `15 pass`, `0 fail` y
+  `33 expect() calls`.
+
+  **Selección:** StrykerJS moderno `@stryker-mutator/core@9.6.1` y
+  `@stryker-mutator/typescript-checker@9.6.1`. Ambos declaran Node `>=20.0.0`, por lo que el runtime
+  disponible es compatible. No se añade un paquete mutador separado: StrykerJS moderno muta
+  JavaScript/TypeScript integrado. No hay runner Bun nativo documentado; se usará `testRunner: command`
+  y Bun como proceso hijo. El checker oficial usará `checkers: ['typescript']` y `tsconfigFile`.
+
+  **Config propuesta para K.6.2 (todavía no creada):**
+  `mutate: ['src/run/qa.ts']`, `commandRunner.command: 'bun test src/__tests__/qa-judge.test.ts --timeout 30000'`,
+  `coverageAnalysis: 'off'`, `checkers: ['typescript']`, `tsconfigFile: 'tsconfig.json'`,
+  `concurrency: 1`, `timeoutMS: 120000` y reporter `clear-text`. Se omite `buildCommand` inicialmente
+  porque el proyecto usa Bun JIT y `tsconfig.json` tiene `noEmit: true`; se reconsiderará solo si el
+  piloto demuestra que el checker necesita una compilación previa.
+
+  **Paquetes planificados:** mover/asegurar `typescript` como `devDependency` del proyecto e instalar
+  los dos paquetes Stryker anteriores. **No se modificó `package.json`, `bun.lock` ni la configuración
+  permanente en este paso.** Resultado: toolchain seleccionada y lista para K.6.2; la compatibilidad
+  completa del ciclo Stryker↔Bun queda deliberadamente pendiente de la ejecución real del piloto.
+- [x] **K.6.2 — ⚡ Piloto mínimo en `qa.ts` (2026-07-28).** Toolchain instalada:
+  `@stryker-mutator/core@9.6.1`, `@stryker-mutator/typescript-checker@9.6.1` y TypeScript `6.0.3`
+  como `devDependencies`. Configuración en `stryker.config.mjs`; comando reproducible:
+  `bun run mutation:qa` (`stryker run stryker.config.mjs`). Alcance exacto: solo `src/run/qa.ts`,
+  solo `src/__tests__/qa-judge.test.ts`, `testRunner: command`, Bun `1.3.14`,
+  `coverageAnalysis: off`, checker TypeScript y `concurrency: 1`.
+
+  **Resultado:** `275` mutantes totales; `32 killed`; `145 survived`; `98 CompileError`; `0 timeout`;
+  score Stryker `18.08%` (`32 / 177` mutantes ejecutables); duración `2m26s`. El dry run pasó y el
+  test base fue `15 pass`, `0 fail`, `33 expect() calls`; después del proceso completo,
+  `tsc --noEmit` también pasó. El reporte JSON se genera en `reports/mutation/mutation.json` y su
+  directorio está ignorado por Git.
+
+  **Sobrevivientes por mutador:** `StringLiteral` 66, `Regex` 21, `ConditionalExpression` 20,
+  `BlockStatement` 10, `MethodExpression` 7, `ArrowFunction` 5, `EqualityOperator` 5,
+  `ArrayDeclaration` 4, `BooleanLiteral` 3, `ArithmeticOperator` 2 y `LogicalOperator` 2.
+  La lista completa (IDs y ubicaciones) queda en el JSON del reporte; no se oculta detrás del score.
+  Los `98 CompileError` son mutantes que el checker TypeScript rechazó y no se cuentan como
+  sobrevivientes. El primer comando probado con `--config` falló por opción CLI inválida; se corrigió
+  usando el archivo como argumento posicional, sin cambiar el alcance.
+
+  **Decisión:** K.6.2 es técnicamente viable, pero el score es bajo y el costo por ejecución es alto;
+  no se establece threshold ni gate. K.6.3 queda pendiente de revisión y autorización explícita.
+
+### Cadena K.6.2-R — Hacer representativo el score de `qa.ts` (orden obligatorio, 2026-07-28)
+
+**Motivo:** el `18.08%` no debe interpretarse todavía como calidad final de `qa.ts`. El test usado
+(`src/__tests__/qa-judge.test.ts`) cubre principalmente `runQA` y la resolución del juez, pero el
+módulo también contiene snapshot/restore, cálculo de diffs y el juez adversarial. Por eso muchos de
+los `145 survived` pueden ser código exportado sin tests, no mutantes que revelen un bug real.
+
+**Regla para todos los LLM:** no corregir producción solo para matar mutantes, no excluir mutantes
+sin justificar equivalencia y no fijar un threshold antes de completar esta cadena. Cada paso debe
+dejar tests, resultado de Bun y evidencia de mutation testing en este bloque antes de abrir el siguiente.
+
+**Orden de trabajo:**
+
+- [x] **K.6.2-R1 — Mapa de superficie (2026-07-28).** Comando de evidencia:
+  `jq` sobre `reports/mutation/mutation.json`, complementado con `nl -ba src/run/qa.ts` y
+  `rg -n "it\\(" src/__tests__/qa-judge.test.ts`. Superficie y estado:
+
+  | Función | Tests directos actuales | Sobrevivientes asignados |
+  |---|---:|---:|
+  | `snapshotContents` | 0 | 8 |
+  | `restoreContents` | 0 | 8 |
+  | `computeFileDiffs` | 0 | 1 |
+  | `runQA` | 7 | 35 |
+  | `parseVerdict` | 0 (solo indirectos vía `runQA`) | 25 |
+  | `runAdversarialQA` | 0 | 46 |
+  | `parseAdversarialVerdict` | 0 (solo indirectos, actualmente ninguno) | 22 |
+  | **Total** | **7 directos sobre `qa.ts`** | **145** |
+
+  `MAX_RETRIES` no genera mutantes sobrevivientes. Diagnóstico: el test piloto no representa toda la
+  superficie de `qa.ts`; R2 debe comenzar por snapshots, R3 por diffs y R5 debe crear cobertura para
+  el juez adversarial. No se modificó producción ni se excluyó ningún mutante.
+- [x] **K.6.2-R2 — Tests de snapshots (2026-07-28).** Se creó
+  `src/__tests__/qa-core.test.ts` con cobertura directa para `snapshotContents` y `restoreContents`:
+  archivo existente, archivo ausente, restauración de contenido, eliminación de archivo creado y
+  archivo ausente que no debe intentar eliminarse. Comandos ejecutados:
+  `bun test src/__tests__/qa-core.test.ts --timeout 30000`,
+  `bun test src/__tests__/qa-core.test.ts src/__tests__/qa-judge.test.ts --timeout 30000`,
+  `bun run typecheck` y `bun run mutation:qa`.
+
+  Resultado final: `3 pass` en el test R2, typecheck limpio, `44 killed`, `133 survived`,
+  `98 CompileError`, `0 timeout`, score `24.86%` y duración `2m29s`. Frente al baseline de K.6.2
+  (`32 killed`, `145 survived`, `18.08%`), R2 mató `12` mutantes adicionales y elevó el score
+  `6.78` puntos. Los mutantes de `snapshotContents` y `restoreContents` sobrevivientes quedaron en
+  `0`; permanece `1` mutante de `computeFileDiffs`, reservado para R3. No se modificó producción.
+- [x] **K.6.2-R3 — Tests de diff (2026-07-28).** Se amplió
+  `src/__tests__/qa-core.test.ts` con cuatro casos directos de `computeFileDiffs`: archivo agregado,
+  archivo modificado, contenido idéntico y diff unificado con ruta/contenido correcto. La aserción
+  del archivo agregado también verifica que no se invente contenido previo.
+
+  Comandos ejecutados: `bun test src/__tests__/qa-core.test.ts --timeout 30000`,
+  `bun run typecheck` y `bun run mutation:qa`. Resultado: `7 pass`, `0 fail`, `19 expect() calls`,
+  typecheck limpio, `45 killed`, `132 survived`, `98 CompileError`, `0 timeout`, score `25.42%`
+  y duración `2m24s`. Frente a R2 (`44 killed`, `24.86%`), R3 mató `1` mutante adicional.
+  Verificación específica: `0` sobrevivientes en las líneas de `computeFileDiffs`; no se modificó
+  producción.
+- [x] **K.6.2-R4 — Tests completos de `runQA` (2026-07-28).** Se añadieron tests directos en
+  `src/__tests__/qa-core.test.ts` para: ejecución sin criterios con múltiples archivos, JSON inválido
+  (fail-closed), JSON fenced, criterio pass con evidencia literal y múltiples criterios donde una
+  evidencia apunta a una ruta incorrecta. Los casos de evidencia ausente, excerpt falso y criterios
+  pass/fail ya existentes en `qa-judge.test.ts` quedaron incluidos en el mismo piloto.
+
+  Comandos ejecutados: `bun test src/__tests__/qa-core.test.ts --timeout 30000`,
+  `bun run typecheck` y `bun run mutation:qa`. Resultado: `11 pass`, `0 fail`, `30 expect() calls`,
+  typecheck limpio, `53 killed`, `124 survived`, `98 CompileError`, `0 timeout`, score `29.94%`
+  y duración `2m24s`. Frente a R3 (`45 killed`, `25.42%`), R4 mató `8` mutantes adicionales.
+  No quedan sobrevivientes en snapshots, restauración ni diffs; los restantes se concentran en
+  formatting/prompts de `runQA` (`34`) y parsers aún no cubiertos (`parseVerdict: 22`, juez
+  adversarial: `46` y su parser: `22`). No se modificó producción.
+- [x] **K.6.2-R5 — Tests de `runAdversarialQA` (2026-07-28).** Se añadieron cuatro casos directos
+  en `src/__tests__/qa-core.test.ts`: estados `VERIFIED`, `CAVEATS` desde JSON fenced, `REFUTED` y
+  respuesta no parseable con fail-safe a `REFUTED`.
+
+  Comandos ejecutados: `bun test src/__tests__/qa-core.test.ts --timeout 30000`,
+  `bun run typecheck` y `bun run mutation:qa`. Resultado: `15 pass`, `0 fail`, `38 expect() calls`,
+  typecheck limpio, `59 killed`, `118 survived`, `98 CompileError`, `0 timeout`, score `33.33%`
+  y duración `2m23s`. Frente a R4 (`53 killed`, `29.94%`), R5 mató `6` mutantes adicionales.
+  La cobertura funcional del parser quedó verificada; los `46` sobrevivientes asignados a la
+  construcción de prompt de `runAdversarialQA` no se consideran automáticamente defectos: los tests
+  actuales verifican el veredicto observable, no cada string interno. Quedan para el triage R6 junto
+  con los equivalentes de formato. No se modificó producción.
+- [x] **K.6.2-R6 — Repetición y triage (2026-07-28).** Se ejecutaron `bun test --timeout 30000`
+  (con acceso ampliado porque el harness usa `~/.orchestos/db.sqlite`), `bun run typecheck` y
+  `bun run mutation:qa`. La suite completa terminó con `903 pass`, `0 fail` y `2044 expect() calls`;
+  el typecheck quedó limpio. La integración específica de harness cubrió `14 pass`, `0 fail` y
+  `76 expect() calls`, incluyendo `harness.ts` → `runQA`, provider fallido, respuesta malformada,
+  retry, criterios múltiples, `VERIFIED`, `CAVEATS`, `REFUTED` y propagación del veredicto.
+
+  Stryker (`@stryker-mutator/core` `9.6.1`): `275` mutantes, `84 killed`, `93 survived`,
+  `98 CompileError`, `0 timeout`, score `47.46%`, duración `2m28s`. No quedan sobrevivientes en
+  `snapshotContents`, `restoreContents` ni `computeFileDiffs`. Los sobrevivientes restantes se
+  clasifican así: `55` `StringLiteral` de prompts/formato, `22` `Regex` y `16` mutantes de
+  expresiones/arrays/operadores; los primeros son contrato interno solo si un consumidor exige el
+  texto exacto, y los demás fueron revisados contra los caminos observables de parseo y se consideran
+  equivalentes o no críticos para este baseline. Los `98 CompileError` fueron auditados por muestra:
+  son mutantes que producen tipos inválidos y son rechazados por el checker oficial de TypeScript,
+  no fallos de configuración. No se cambió producción, no se excluyeron mutadores y no se fijó
+  threshold/gate. La decisión de ampliar cobertura o aceptar/documentar equivalentes queda para R7.
+- [ ] **K.6.2-R7 — Endurecimiento de comportamientos críticos (cadena obligatoria, iniciada
+  2026-07-28).** El objetivo no es perseguir `100%`, sino matar mutantes que representen regresiones
+  reales en la decisión de QA. No se añadirá cobertura solo para strings internos de prompts, formato
+  equivalente o mutantes que el checker de TypeScript ya invalida.
+  - [x] **R7.1 — Parsers de veredictos (2026-07-28).** Se añadió en `src/__tests__/qa-core.test.ts`
+    la prueba de respuesta sin `criteria` y respuesta truncada cuando hay múltiples criterios. Se
+    corrigió `parseVerdict` para exigir exactamente un resultado por criterio; si falta el array o no
+    coincide su cardinalidad, fuerza `fail` aunque el proveedor declare `pass`. Esto cierra una vía de
+    falso positivo real, no un detalle de formato.
+
+    Verificación: `bun test src/__tests__/qa-core.test.ts --timeout 30000` (`22 pass`, `0 fail`,
+    `57 expect() calls`), `bun test src/__tests__/harness-adversarial-qa.test.ts
+    src/__tests__/harness-evidence.test.ts src/__tests__/harness-retry.test.ts --timeout 30000`
+    (`14 pass`, `0 fail`, `76 expect() calls`), `bun run typecheck` limpio y `bun run mutation:qa`
+    (`285` mutantes, `87 killed`, `94 survived`, `104 CompileError`, `0 timeout`, score `48.07%`,
+    `2m31s`). Los mutantes adicionales corresponden a la nueva lógica; los sobrevivientes restantes
+    siguen concentrados en prompts/formato y equivalentes de parseo ya clasificados en R6.
+  - [x] **R7.2 — Ejecución QA (2026-07-28).** Se reforzaron `runQA` y `runAdversarialQA` para
+    rechazar de forma segura JSON válido que no sea un objeto (`null` o array), además de conservar
+    la cobertura de criterios vacíos/múltiples, archivos escritos, respuestas inválidas y estados
+    `PASS`, `FAIL`, `VERIFIED`, `CAVEATS` y `REFUTED`. El provider fallido, el retry y la propagación
+    del veredicto quedaron verificados en la integración existente del harness.
+
+    Verificación: `bun test src/__tests__/qa-core.test.ts --timeout 30000` (`24 pass`, `0 fail`,
+    `63 expect() calls`), `bun test src/__tests__/harness-adversarial-qa.test.ts
+    src/__tests__/harness-evidence.test.ts src/__tests__/harness-retry.test.ts --timeout 30000`
+    (`14 pass`, `0 fail`, `76 expect() calls`), `bun run typecheck` limpio y `bun run mutation:qa`
+    (`313` mutantes, `103 killed`, `96 survived`, `114 CompileError`, `0 timeout`, score `51.76%`,
+    `2m46s`). El aumento de sobrevivientes absolutos proviene del crecimiento del conjunto mutado;
+    las ramas nuevas de validación de forma fueron cubiertas. No se añadieron exclusiones ni threshold.
+  - [x] **R7.3 — Integración del harness (2026-07-28).** La auditoría confirmó que `harness.ts`
+    revierte/reintenta ante QA fallido, degrada el resultado ante adversarial `REFUTED`, permite
+    `CAVEATS` sin bloqueo, persiste `VERIFIED`/`CAVEATS` y registra fallos de provider, parseo,
+    contrato y checks. No faltó una prueba de integración nueva: los casos existentes cubren estos
+    caminos y se ejecutaron tras los cambios de R7.2.
+
+    Evidencia: `bun test src/__tests__/harness-adversarial-qa.test.ts
+    src/__tests__/harness-evidence.test.ts src/__tests__/harness-retry.test.ts --timeout 30000`:
+    `14 pass`, `0 fail`, `76 expect() calls`; `bun run typecheck` limpio.
+  - [x] **R7.4 — Medición y triage final (2026-07-28).** Se ejecutaron la suite completa, typecheck
+    y mutation QA después de R7.1-R7.3. Resultado de suite: `910 pass`, `0 fail`, `2060 expect() calls`
+    en `86` archivos; `tsc --noEmit` limpio. Resultado Stryker vigente sobre `src/run/qa.ts`:
+    `313` mutantes, `103 killed`, `96 survived`, `114 CompileError`, `0 timeout`, score `51.76%`,
+    duración `2m46s`.
+
+    Triage: los mutantes funcionales de cardinalidad de criterios y forma JSON quedaron cubiertos;
+    los `96` sobrevivientes restantes siguen concentrados en strings/formato de prompts, regex y
+    equivalentes de parseo ya revisados, mientras que los `114 CompileError` son mutantes rechazados
+    por TypeScript. No se añadieron exclusiones, no se cambió producción fuera de las validaciones
+    fail-safe y no se fijó threshold/gate.
+  - [ ] **R7.5 — Decisión.** Con la evidencia de R7.1-R7.4 decidir si el baseline es suficiente o si
+    se continúa con K.6.3 para `checks.ts`, `sandbox-policy.ts` y `graph-runner.ts`. La decisión debe
+    ponderar riesgo cubierto, estabilidad integrada y costo medido, no el porcentaje bruto.
+
+    Auditoría previa (2026-07-28): se revisaron individualmente los `41` sobrevivientes que no son
+    `StringLiteral`. Los `Regex` de las dos funciones parser son variantes equivalentes del extractor
+    JSON en los casos soportados; los operadores de arrays/numeración afectan solo la construcción del
+    prompt; `trim`/`slice` afectan mensajes o entradas que ya fallan; y las condiciones restantes no
+    permiten convertir una respuesta inválida en un veredicto aprobado. No queda evidencia de un
+    sobreviviente que altere `pass/fail`, `VERIFIED/CAVEATS/REFUTED`, retry, rollback o persistencia.
+    Los `55` `StringLiteral` restantes tampoco justifican snapshots de cada prompt salvo que se defina
+    explícitamente el texto como contrato externo. Esta auditoría no cierra R7.5: Carlos debe decidir
+    si acepta el baseline funcional de QA o continúa con la expansión por módulos de K.6.3.
+
+**Memoria obligatoria:** al cerrar cada R1-R7 escribir fecha, comando exacto, conteos, tests creados,
+mutantes afectados, sobrevivientes restantes y decisión. El resumen final debe permanecer aquí para
+Claude, Codex y cualquier otro LLM; no depender de la conversación.
+- [ ] **K.6.3 — ⚡ Expansión controlada por módulo.** Repetir el patrón, uno por uno y sin paralelizar,
+  para `checks.ts`→`checks.test.ts`, `sandbox-policy.ts`→`sandbox-policy.test.ts` y
+  `graph-runner.ts`→`graph-runner.test.ts`. Cada módulo debe tener su propio resultado; no aceptar
+  un score agregado que oculte qué módulo tiene tests débiles.
+- [ ] **K.6.4 — ⚡ Benchmark acotado de `src/run/`.** Solo después de que K.6.2 y K.6.3 pasen,
+  medir el conjunto completo de `src/run/` con `concurrency` controlada. Entregable: duración real,
+  cantidad de mutantes, score global y proyección del costo en CI. Si la corrida es inviable, queda
+  como métrica manual/nocturna y no se implementa como gate de commit.
+- [ ] **K.6.5 — 🔍 Decisión de adopción.** Revisar evidencia de K.6.1-K.6.4 y decidir entre:
+  (a) comando manual, (b) nightly/CI, (c) gate solo para módulos críticos, o (d) no adoptar todavía.
+  Esta decisión no la toma un LLM por su cuenta y no se gradúa a IDEAS #54 como gate hasta que Carlos
+  la confirme explícitamente.
+
+**Memoria obligatoria para cualquier LLM**: cuando un paso se cierre, actualizar aquí el checkbox
+con fecha, comando exacto, versión, números medidos, fallos y decisión. Al cerrar K.6.5, copiar el
+resumen final a `DONE.md` y a la memoria compartida del proyecto; no dejar la cadena solo en una
+conversación.
 
 **Nota de delegación para esta pasada (Carlos, 2026-07-27)**: por cupo semanal de Claude (74% un
 lunes, reset el jueves), Carlos va a trabajar hoy/mañana principalmente con Codex. K.1, K.2, K.3 y
 K.5 están escritos como spec ejecutable a propósito — el diseño ya está decidido acá, son mecánicos,
 y Codex puede tomarlos sin Claude en el loop. **K.4 NO**: es el diferenciador central del producto y
 tiene 3 decisiones de diseño sin resolver; si sale mal diseñado, sale mal el CORE.
+
+---
+
+## MES 23 — L: línea base profesional de seguridad (nuevo, 2026-07-28)
+
+**Motivo:** seguridad no se ha tratado todavía como un frente propio. OrchestOS no es solo un
+dashboard: lee y escribe archivos del usuario, ejecuta comandos, crea worktrees, invoca CLIs/LLMs,
+recibe contenido externo y almacena API keys/configuración. Por lo tanto, el límite de confianza no
+es únicamente la UI: una tarea, archivo, skill, respuesta de modelo o URL puede ser entrada hostil.
+
+**Estado verificado antes de abrir este bloque:** ya existen controles puntuales para SSRF
+([src/dashboard/ssrf.ts](src/dashboard/ssrf.ts)), sandbox/worktrees, límites de tools, sanitización
+de HTML/XSS y separación de datos externos en OCR. También existe [sandbox-policy.test.ts](src/__tests__/sandbox-policy.test.ts)
+y [ssrf.test.ts](src/__tests__/ssrf.test.ts). Eso es una base útil, pero no equivale todavía a una
+auditoría de seguridad: no hay threat model formal, matriz de activos/amenazas, revisión completa de
+autenticación/exposición de red, ni gate repetible para secretos/dependencias.
+
+**Objetivo:** establecer una baseline de seguridad adecuada para una herramienta local de desarrollo,
+sin fingir que eso la convierte automáticamente en un servicio multiusuario o en un producto con
+certificación. Si algún día el dashboard se expone fuera de localhost o se vuelve multiusuario, se
+debe abrir un bloque separado de seguridad de producción; no ampliar estos controles por intuición.
+
+### L.0 — 🧠 Threat model y límites de confianza (prerequisito)
+
+- [ ] Identificar activos y daños: API keys/tokens, código fuente, archivos fuera del proyecto, DB,
+  prompts/contexto, costos, historial de runs y capacidad de ejecutar comandos.
+- [ ] Documentar actores y entradas no confiables: usuario local, proceso local comprometido,
+  tarea/skill importada, contenido web, imagen/OCR, salida de LLM y CLI externo.
+- [ ] Dibujar los límites entre dashboard HTTP, CLI, filesystem, SQLite, subprocesses, proveedores
+  externos y worktrees. Para cada límite, registrar autorización, validación, aislamiento y logging.
+- [ ] Entregable: `docs/security-threat-model.md` con riesgos clasificados por impacto/probabilidad,
+  controles existentes, gaps y decisión explícita de qué queda fuera de alcance.
+
+### L.1 — ⚡ Inventario de superficie y secretos
+
+- [ ] Inventariar endpoints del dashboard, comandos CLI, tools del chat, subprocesses, rutas de
+  filesystem, variables de entorno y archivos de configuración que puedan contener secretos.
+- [ ] Añadir un check automatizado que detecte secretos accidentales en archivos generados/diffs
+  (API keys conocidas, tokens, private keys y credenciales), con fixtures positivos y negativos; no
+  imprimir el valor encontrado en logs ni en el mensaje de error.
+- [ ] Verificar que logs, `runs`, diagnósticos, errores de proveedores y exports no persistan ni
+  expongan API keys, headers `Authorization`, prompts sensibles o contenido fuera de scope.
+- [ ] Documentar rotación/revocación y manejo local de keys. No inventar cifrado propio: si se
+  requiere protección en reposo, dejar explícita la decisión de keychain del sistema o mecanismo
+  equivalente antes de implementarlo.
+
+### L.2 — 🧠 Autenticación, exposición de red y CSRF
+
+- [ ] Confirmar y documentar el modelo de despliegue: dashboard solo localhost y usuario único, o
+  accesible desde LAN/internet. Si el proceso escucha fuera de loopback, exigir decisión explícita
+  de autenticación antes de habilitarlo.
+- [ ] Para el modelo local: bind explícito a loopback, advertencia visible si se cambia el host,
+  rechazo de configuración insegura y pruebas que confirmen que no queda expuesto accidentalmente.
+- [ ] Para cualquier exposición no-local: autenticación fuerte, autorización por operación, protección
+  CSRF para mutaciones, cookies/headers seguros, rate limits y auditoría de acciones. Este ítem no se
+  considera cerrado con un simple token fijo en la URL.
+- [ ] Tests negativos: endpoint mutador sin credencial, credencial inválida, origen no permitido,
+  replay de petición y usuario sin permiso para proyecto/ruta.
+
+### L.3 — ⚡ Filesystem, worktrees y ejecución de comandos
+
+- [ ] Crear una matriz de rutas permitidas por operación y probar traversal (`../`, rutas absolutas,
+  encoded traversal), symlinks, junctions, paths fuera del proyecto, archivos especiales y cambios
+  de `cwd`.
+- [ ] Verificar que contract, sandbox y tools aplican la misma política; ningún path declarado por
+  una tarea o devuelto por un LLM debe ampliar silenciosamente el alcance autorizado.
+- [ ] Auditar cada `Bun.spawn`/CLI: argumentos como arrays (sin shell interpolation), `cwd` validado,
+  entorno mínimo, timeout, límites de stdout/stderr, señales y limpieza de procesos hijos.
+- [ ] Tests de regresión para command injection, variables de entorno heredadas, escape del worktree,
+  proceso que no termina y race conditions de cleanup. El test debe demostrar el rechazo observable,
+  no solo inspeccionar strings del código.
+
+### L.4 — ⚡ SSRF, contenido externo y prompt injection
+
+- [ ] Mantener SSRF como defensa en profundidad: bloquear loopback, redes privadas/link-local,
+  metadata endpoints, esquemas no HTTP(S), redirecciones peligrosas y resolución DNS que cambie de
+  destino entre validación y conexión.
+- [ ] Añadir casos para IPv6, DNS rebinding, redirects, puertos no estándar, credenciales embebidas,
+  URLs con encoding ambiguo y límites de tamaño/tiempo/respuesta.
+- [ ] Tratar web, OCR, archivos importados y outputs de herramientas como **datos**, nunca como
+  instrucciones con autoridad. Probar inyección en cada canal que alimenta prompts y verificar que
+  no puede cambiar tools, paths, modelo, permisos ni criterios de aceptación.
+- [ ] Definir allowlist/origen y límites de fetch antes de añadir nuevas fuentes externas.
+
+### L.5 — ⚡ SQLite, configuración y privacidad
+
+- [ ] Probar migraciones desde DB vacía, DB de cada versión relevante, columnas faltantes,
+  constraints, índices/FTS y rollback ante fallo; nunca borrar datos como estrategia de migración.
+- [ ] Auditar queries para confirmar parametrización, límites de tamaño, manejo de corrupción y
+  concurrencia entre dashboard/CLI/subprocesos. Añadir backup/export y procedimiento de recuperación
+  documentado antes de declarar la DB confiable.
+- [ ] Clasificar qué datos se guardan (código, prompts, resultados, costos, errores) y ofrecer una
+  política clara de retención/borrado. Los exports y diagnósticos deben respetar esa clasificación.
+
+### L.6 — 🔍 Gate de seguridad y operación
+
+- [ ] Ejecutar la matriz completa de pruebas negativas, typecheck, suite, coverage y auditoría de
+  dependencias desde un comando reproducible; el gate debe fallar ante una regresión crítica.
+- [ ] Revisar manualmente los flujos de mayor riesgo en dashboard y CLI: importar skill, configurar
+  provider, ejecutar tarea, usar fetch, crear worktree, diagnosticar y exportar datos.
+- [ ] Registrar cada hallazgo con severidad, evidencia, impacto, mitigación y prueba de regresión.
+  No cerrar el bloque por “no encontré vulnerabilidades”: se cierra solo con alcance documentado,
+  tests ejecutados y riesgos aceptados explícitamente por Carlos.
+- [ ] Después del gate, copiar el resumen a `DONE.md` y actualizar `CONTEXT.md` con los límites de
+  confianza permanentes. Si se habilita red externa o multiusuario, reabrir una revisión de seguridad
+  específica; esta baseline no cubre ese cambio de amenaza.
 
 ---
 

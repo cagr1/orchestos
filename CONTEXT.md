@@ -3,6 +3,19 @@
 ## Project
 AGENTS.md — orchestos
 
+### Memoria compartida
+Las mejoras de proceso, hallazgos y decisiones que deban sobrevivir a una conversación se documentan
+en el mismo turno: las cadenas activas y su evidencia viven en `PLAN.md`; las reglas transversales para
+LLMs viven en `AGENTS.md` y `CLAUDE.md`; la arquitectura y el estado estable viven aquí. Ningún LLM debe
+tratar el historial del chat como memoria persistente ni eliminar una regla histórica sin dejar registro.
+
+### Invariante QA
+Cuando una tarea tiene criterios de aceptación, `runQA` solo puede devolver `pass` si la respuesta del
+proveedor contiene exactamente un resultado por criterio y cada criterio aprobado tiene evidencia literal
+real en el archivo indicado. Una respuesta incompleta, malformada o con cardinalidad incorrecta debe
+fallar de forma segura; una respuesta JSON que no sea un objeto también debe fallar de forma segura. No
+se debe relajar esta regla para mejorar el mutation score.
+
 ### Hot files
 - src/cli.ts (63 edges)
 - src/run/harness.ts (34 edges)
