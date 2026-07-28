@@ -566,7 +566,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const qaJudge = resolveQAJudge(ctx.providerName, ctx.model, orcheConfig, log)
     let qa: Awaited<ReturnType<typeof runQA>>
     try {
-      qa = await runQA({ description: ctx.task.description, output: ctx.task.output, written: contractResult.written, model: qaJudge.model, acceptance_criteria: ctx.task.acceptance_criteria, provider: qaJudge.provider })
+      qa = await runQA({ description: ctx.task.description, output: ctx.task.output, written: contractResult.written, model: qaJudge.model, acceptance_criteria: ctx.task.acceptance_criteria, checksResults, provider: qaJudge.provider })
     } catch (e: any) {
       qa = { verdict: 'fail' as const, reason: `QA call error: ${e.message}`, inputTokens: 0, outputTokens: 0, model: qaJudge.model }
     }

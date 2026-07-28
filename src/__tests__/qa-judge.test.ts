@@ -123,6 +123,7 @@ describe('runQA — K.1 criterion evidence', () => {
       written: [{ path: 'src/greeting.ts', content: 'export const greeting = "hello"' }],
       model: 'test-model',
       acceptance_criteria: ['The module exports greeting'],
+      checksResults: [],
       provider: {
         name: 'test',
         chat: async () => ({
@@ -151,6 +152,7 @@ describe('runQA — K.1 criterion evidence', () => {
       written: [{ path: 'src/greeting.ts', content: 'export const greeting = "hello"' }],
       model: 'test-model',
       acceptance_criteria: ['The module exports greeting'],
+      checksResults: [],
       provider: {
         name: 'test',
         chat: async () => ({
@@ -175,5 +177,50 @@ describe('runQA — K.1 criterion evidence', () => {
       file: 'src/greeting.ts',
       excerpt: 'export const greeting = "hello"',
     })
+  })
+})
+
+describe('runQA — K.2 checks context', () => {
+  it('includes command and exit code for executed checks', async () => {
+    let userContent = ''
+    await runQA({
+      description: 'Run checks',
+      output: ['src/greeting.ts'],
+      written: [{ path: 'src/greeting.ts', content: 'export const greeting = "hello"' }],
+      model: 'test-model',
+      checksResults: [{ cmd: 'bunx tsc --noEmit', exitCode: 0, stdout: '', stderr: '', elapsedMs: 12, timedOut: false }],
+      provider: {
+        name: 'test',
+        chat: async opts => {
+          userContent = opts.messages[0]?.content ?? ''
+          return { text: '{"verdict":"pass","reason":"ok"}', inputTokens: 1, outputTokens: 1, model: 'test-model' }
+        },
+      },
+    })
+
+    expect(userContent).toContain('## Checks executed')
+    expect(userContent).toContain('bunx tsc --noEmit')
+    expect(userContent).toContain('exitCode: 0')
+  })
+
+  it('explicitly reports when no mechanical checks ran', async () => {
+    let userContent = ''
+    await runQA({
+      description: 'Review output',
+      output: ['notes.md'],
+      written: [{ path: 'notes.md', content: 'A useful note.' }],
+      model: 'test-model',
+      checksResults: [],
+      provider: {
+        name: 'test',
+        chat: async opts => {
+          userContent = opts.messages[0]?.content ?? ''
+          return { text: '{"verdict":"pass","reason":"ok"}', inputTokens: 1, outputTokens: 1, model: 'test-model' }
+        },
+      },
+    })
+
+    expect(userContent).toContain('## Checks executed')
+    expect(userContent).toContain('NINGUNA verificación mecánica corrió.')
   })
 })

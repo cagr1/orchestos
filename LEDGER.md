@@ -19,6 +19,7 @@ de implementar).
 
 ---
 
+
 ## 2026-07-20 16:53 America/Guayaquil — claude-sonnet-5
 
 **Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
@@ -68,3 +69,16 @@ Codex) — revertible con `git revert`, sin side-effects en datos. 843 tests · 
 real contra un git repo temporal (2026-07-27) antes de codear el parser — no asumido.
 
 ---
+
+## 2026-07-28 09:51 America/Guayaquil — codex-gpt-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: el cambio K.2 solo pasa el `checksResults` que el harness ya calculaba a `runQA()`;
+no modifica `maxTokens`, `contextWindow` ni la selección del presupuesto de salida. La línea
+tocada está en la llamada al QA, después de ejecutar los checks deterministas. Cero líneas tocadas
+en la derivación de `maxTokens`.
+**Reversibilidad/evidencia**: commit de K.2 (`feat(qa): expose check results to judge`) — revertible
+con `git revert`, sin side-effects adicionales en datos. Suite completa: 875 tests · 0 fail ·
+`tsc --noEmit` limpio.

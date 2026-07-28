@@ -1134,7 +1134,7 @@ cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
   el criterio a `pass: false` si la evidencia falta o está vacía. Tests de regresión en
   [qa-judge.test.ts](src/__tests__/qa-judge.test.ts): evidencia ausente falla y evidencia literal
   válida se conserva. 9 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **K.2 — ⚡ Los resultados de checks entran al prompt del QA.** Hoy el juez no sabe qué se
+- [x] **K.2 — ⚡ (2026-07-28) Los resultados de checks entran al prompt del QA.** Hoy el juez no sabe qué se
   ejecutó. Pasar `checksResults: CheckResult[]` a `runQA()` (el harness ya los tiene en
   `checksResults` justo antes de llamarlo) y renderizarlos en el `userContent` como un bloque
   `## Checks executed` con `cmd` + `exitCode` de cada uno. **Lo importante es el caso vacío**: cuando
@@ -1144,6 +1144,10 @@ cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
   fallan; esto solo deja de ocultarle al juez lo que el sistema ya sabe. **Validación**: dos tests —
   con checks y sin checks — asertando que el `userContent` enviado al provider contiene el bloque
   correcto en cada caso (mockear el provider vía el parámetro `opts.provider`, que ya existe).
+  Implementado: `runQA()` recibe `checksResults` desde el harness y agrega `## Checks executed`
+  con comando + `exitCode`; si está vacío, declara explícitamente que **NINGUNA verificación
+  mecánica corrió** y el system prompt ordena máxima cautela. Tests en [qa-judge.test.ts](src/__tests__/qa-judge.test.ts).
+  11 tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **K.3 — ⚡ Gate anti-test-vacío.** Un `.test.ts` que no asevera nada pasa `bun test` igual —
   es la trampa más barata para un executor económico, y `defaultChecksFor()` hoy la premia (corre
   `bun test <archivo>` y da verde). Nuevo check en `checks.ts`: para cada output `*.test.ts`/`*.test.tsx`

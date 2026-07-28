@@ -4,6 +4,7 @@ import { createPatch } from 'diff'
 import { chat } from '../providers/openrouter.ts'
 import type { ProviderClient } from '../providers/index.ts'
 import type { FileChange } from './contract.ts'
+import type { CheckResult } from './checks.ts'
 
 export interface QAEvidence {
   file: string
@@ -78,6 +79,7 @@ export async function runQA(opts: {
   written: FileChange[]
   model: string
   acceptance_criteria?: string[]
+  checksResults: CheckResult[]
   provider?: ProviderClient
 }): Promise<QAVerdict> {
   const filesBlock = opts.written.map(f =>
@@ -95,6 +97,7 @@ export async function runQA(opts: {
     'The "criteria" array must have one entry per criterion, in the same order as given.',
     'For every criterion with pass: true, evidence is REQUIRED: cite a literal excerpt from one of the written files using its relative path.',
     'If no written file contains evidence that satisfies a criterion, mark that criterion pass: false.',
+    'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
   ].join('\n') : [
     'You are a QA reviewer. You receive a task description and the files an LLM wrote to fulfill it.',
     'Your job: decide if the output addresses the task.',
@@ -102,6 +105,7 @@ export async function runQA(opts: {
     '{ "verdict": "pass" | "fail", "reason": "one short sentence" }',
     'Verdict "fail" if: files are empty, contain placeholders/TODOs, do not address the task, or are obviously broken.',
     'Verdict "pass" if: files are non-trivial, on-topic, and a reasonable attempt at the task.',
+    'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
   ].join('\n')
 
   const criteriaBlock = hasCriteria
@@ -112,6 +116,9 @@ export async function runQA(opts: {
     `## Task description\n${opts.description}\n` +
     criteriaBlock +
     `\n## Declared output files\n${opts.output.join(', ')}\n\n` +
+    `## Checks executed\n${opts.checksResults.length > 0
+      ? opts.checksResults.map(c => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
+      : 'NINGUNA verificación mecánica corrió.'}\n\n` +
     `## Files written\n${filesBlock}\n\n` +
     `Return your JSON verdict now.`
 
