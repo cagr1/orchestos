@@ -1119,7 +1119,7 @@ campo OBLIGATORIO del reporte, no cuando es una viñeta en el prompt.
 **Orden deliberado**: K.1→K.3 son baratos, independientes entre sí y no tocan el flujo del harness —
 cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
 
-- [ ] **K.1 — ⚡ Evidencia forzada por criterio en el veredicto QA.** Hoy cada entrada de
+- [x] **K.1 — ⚡ (2026-07-28) Evidencia forzada por criterio en el veredicto QA.** Hoy cada entrada de
   `criteria[]` es `{text, pass}` — una opinión sin respaldo. Extender `QACriterionResult` a
   `{text, pass, evidence}` donde `evidence` es una **cita literal** (`file` + `excerpt`) de los
   archivos escritos que respalda el veredicto de ESE criterio. Reglas duras en el prompt del system
@@ -1129,7 +1129,11 @@ cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
   `pass: false` (mismo mecanismo defensivo que ya existe ahí: "if any criterion failed, force verdict
   to fail regardless of what LLM said"). Persistir la evidencia en `qa_reason`/`criteria` como ya se
   hace. **Validación**: un test donde el juez mockeado devuelve `pass:true` sin evidencia → el
-  veredicto final debe ser `fail`.
+  veredicto final debe ser `fail`. Implementado en [qa.ts](src/run/qa.ts): `QACriterionResult`
+  admite `{file, excerpt}`, el prompt lo exige para todo `pass: true`, y `parseVerdict()` fuerza
+  el criterio a `pass: false` si la evidencia falta o está vacía. Tests de regresión en
+  [qa-judge.test.ts](src/__tests__/qa-judge.test.ts): evidencia ausente falla y evidencia literal
+  válida se conserva. 9 tests · 0 fail · `tsc --noEmit` limpio.
 - [ ] **K.2 — ⚡ Los resultados de checks entran al prompt del QA.** Hoy el juez no sabe qué se
   ejecutó. Pasar `checksResults: CheckResult[]` a `runQA()` (el harness ya los tiene en
   `checksResults` justo antes de llamarlo) y renderizarlos en el `userContent` como un bloque

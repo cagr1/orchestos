@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { resolveQAJudge, QA_JUDGE_DEFAULTS } from '../run/harness.ts'
+import { runQA } from '../run/qa.ts'
 import { RunLogger } from '../run/logger.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 
@@ -111,5 +112,68 @@ describe('resolveQAJudge — F2.4', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('runQA — K.1 criterion evidence', () => {
+  it('forces a criterion without evidence to fail', async () => {
+    const result = await runQA({
+      description: 'Add a greeting',
+      output: ['src/greeting.ts'],
+      written: [{ path: 'src/greeting.ts', content: 'export const greeting = "hello"' }],
+      model: 'test-model',
+      acceptance_criteria: ['The module exports greeting'],
+      provider: {
+        name: 'test',
+        chat: async () => ({
+          text: JSON.stringify({
+            verdict: 'pass',
+            reason: 'Looks good',
+            criteria: [{ text: 'The module exports greeting', pass: true }],
+          }),
+          inputTokens: 1,
+          outputTokens: 1,
+          model: 'test-model',
+        }),
+      },
+    })
+
+    expect(result.verdict).toBe('fail')
+    expect(result.criteria).toEqual([
+      { text: 'The module exports greeting', pass: false },
+    ])
+  })
+
+  it('preserves literal evidence for a passing criterion', async () => {
+    const result = await runQA({
+      description: 'Add a greeting',
+      output: ['src/greeting.ts'],
+      written: [{ path: 'src/greeting.ts', content: 'export const greeting = "hello"' }],
+      model: 'test-model',
+      acceptance_criteria: ['The module exports greeting'],
+      provider: {
+        name: 'test',
+        chat: async () => ({
+          text: JSON.stringify({
+            verdict: 'pass',
+            reason: 'Evidence found',
+            criteria: [{
+              text: 'The module exports greeting',
+              pass: true,
+              evidence: { file: 'src/greeting.ts', excerpt: 'export const greeting = "hello"' },
+            }],
+          }),
+          inputTokens: 1,
+          outputTokens: 1,
+          model: 'test-model',
+        }),
+      },
+    })
+
+    expect(result.verdict).toBe('pass')
+    expect(result.criteria?.[0]?.evidence).toEqual({
+      file: 'src/greeting.ts',
+      excerpt: 'export const greeting = "hello"',
+    })
   })
 })
