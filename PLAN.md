@@ -1470,8 +1470,20 @@ Claude, Codex y cualquier otro LLM; no depender de la conversación.
     Los sobrevivientes restantes afectan únicamente formato/recorte del diagnóstico de archivos sucios;
     el branch survivor restante es equivalente en estados reales de Git ya cubiertos. No se cambió
     producción.
-  - [ ] **K.6.3.3 — `graph-runner.ts` → `graph-runner.test.ts`.** Ejecutar solo después de cerrar
-    K.6.3.2; proteger retries, dependencias, branch isolation, rate limits y circuit breaker.
+  - [x] **K.6.3.3 — `graph-runner.ts` → `graph-runner.test.ts` (2026-07-28).** Se añadieron
+    pruebas para wall-clock positivo y cero, límite de `200` iteraciones, graph stalled, task pendiente
+    por contexto, task desaparecida, task marcada done externamente, retry con acumulación de tokens/costo,
+    requeue único por rate limit y fallo del proveedor de diagnóstico. Se corrigió producción para propagar
+    `harnessResult.retryReason` en el `GraphTaskEntry` bloqueado por contexto.
+
+    Verificación: `bun test src/__tests__/graph-runner.test.ts --timeout 30000` (`21 pass`, `0 fail`,
+    `67 expect() calls`), `bun run typecheck` limpio y `bun run mutation:graph-runner`: `360` mutantes,
+    `151 killed`, `76 survived`, `132 CompileError`, `1 timeout`, score `66.67%`, duración `7m27s`.
+    El timeout corresponde al mutante `iteration--`, que vuelve no terminable el límite de iteraciones.
+    Los sobrevivientes restantes se clasifican como diagnóstico/formato de graph stalled, logging,
+    métricas de duración/costo y ramas defensivas de estado externo; no cambian outcomes, retries,
+    bloqueo de descendientes ni circuit breakers bajo el contrato normal probado. No se añadieron
+    exclusiones ni threshold.
   - [ ] **K.6.3.4 — Consolidación.** Registrar score, costo y sobrevivientes de cada módulo por separado;
     no convertir todavía el resultado en threshold o gate.
 - [ ] **K.6.4 — ⚡ Benchmark acotado de `src/run/`.** Solo después de que K.6.2 y K.6.3 pasen,

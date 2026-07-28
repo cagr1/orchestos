@@ -18,7 +18,8 @@
     "ledger:report": "bun run scripts/ledger-report.ts",
     "mutation:qa": "stryker run stryker.config.mjs",
     "mutation:checks": "stryker run stryker.checks.config.mjs",
-    "mutation:sandbox-policy": "stryker run stryker.sandbox-policy.config.mjs"
+    "mutation:sandbox-policy": "stryker run stryker.sandbox-policy.config.mjs",
+    "mutation:graph-runner": "stryker run stryker.graph-runner.config.mjs"
   },
   "devDependencies": {
     "@stryker-mutator/core": "9.6.1",

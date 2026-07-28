@@ -437,6 +437,7 @@ async function executeSingleTask(
       return {
         id: taskId,
         outcome: 'blocked',
+        error: harnessResult.retryReason,
         usd_cost: accCost,
         tokens: { input: accInput, output: accOutput },
         elapsed_ms: 0,
