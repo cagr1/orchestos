@@ -46,6 +46,25 @@ SIEMPRE es `PLAN.md`. Antes de tocar código:
    criterio que ya pide el pre-commit hook, pero verificalo vos ANTES de terminar, no dejes que el
    hook sea la primera vez que se entera de un error de tipos.
 
+## Qué está listo para tomar ahora (2026-07-27)
+
+Carlos trabaja hoy/mañana principalmente contigo (cupo semanal de Claude alto, reset el jueves).
+Estos ítems están escritos como spec ejecutable — el diseño ya está decidido en PLAN.md, no hace
+falta que Claude esté en el loop:
+
+- **PLAN.md § Bloque K — K.1, K.2, K.3, K.5** (⚡). Es el CORE del producto: hacer que el QA
+  verifique ejecutando en vez de leer. Cada uno cierra solo, son independientes entre sí, y el
+  spec incluye qué validar. Empezá por K.1 o K.3 (los más acotados).
+- **PLAN.md § Bloque J — J.1** (⚡). Coverage gate con umbral-trinquete. Chico y autocontenido.
+
+**NO tomes**:
+- **K.4** — 🧠 con 3 decisiones de diseño sin resolver, marcadas explícitas en el ítem. Es el
+  diferenciador central; requiere plan corto confirmado por Carlos antes de codear.
+- **H.8** — 🧠, pase visual final. Necesita verificación en vivo en navegador con juicio estético.
+- La tarea `debug-codex-cli-deepseek` de `tasks.yaml` (`output: []` inválido, fantasma de un falso
+  positivo) — está anotada en PLAN.md § Bloque H, pendiente de decisión de Carlos. No la borres ni
+  la corrijas sin que él lo pida.
+
 ## Pre-commit hook
 
 El proyecto tiene un pre-commit hook en `scripts/pre-commit.sh` que corre `tsc --noEmit` antes de cada commit. Se instala automáticamente copiándolo a `.git/hooks/pre-commit`. Si clonas el repo en otro lado, ejecuta:

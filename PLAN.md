@@ -1029,8 +1029,8 @@ ir en cualquier orden. H.8 al final (acabado sobre lo ya resuelto).
 - **Hallazgo secundario real (no fantasma), graduado a IDEAS #53**: revisar este falso positivo
   confirmó que el QA de OrchestOS (`qa.ts`) **lee el código, no lo ejecuta** — verifica por lectura,
   no por corrida real. Candidato del vault: `fable-judge` (Fable Method — verificación adversarial
-  que re-corre cada check reclamado). Adopción = cambio grande multi-módulo → queda en IDEAS #53,
-  no se codea en caliente ([[feedback-planificar-cambios-grandes]]).
+  que re-corre cada check reclamado). Adopción = cambio grande multi-módulo → **graduado a Bloque K**
+  (spec completo, 2026-07-27), ya no vive en IDEAS.md.
 
 ---
 
@@ -1073,6 +1073,91 @@ El núcleo del motor está bien testeado. Lo flojo es periferia (dashboard, CLI)
   `cli.ts`) necesitan tests, no métricas. Se cubren **cuando se toquen por otra razón**, subiendo el
   umbral en el mismo commit. No se abre un bloque de "subir cobertura" por sí solo — sería trabajo
   sin producto detrás.
+
+---
+
+### Bloque K — 🧠 QA que verifica ejecutando, no leyendo (gradúa IDEAS #53, spec escrito 2026-07-27)
+
+**Por qué este bloque es el CORE del producto, no una mejora más.** Carlos fijó la tesis (2026-07-27,
+citando a Uncle Bob): *"no leo nada del código de mis agentes; en su lugar los rodeo de restricciones
+externas — tests, QA, métricas, mutation testing, cobertura"*. Esa es exactamente la apuesta de
+OrchestOS y lo que lo separa de Orca/Hermes (que asumen un humano supervisando en vivo). Auditoría
+honesta de hoy: de las 6 restricciones de esa cita, OrchestOS tiene **3**. La que falta y rompe la
+premisa entera es que **`qa.ts` LEE el código y opina; no ejecuta nada**. Mientras siga así, el
+usuario tampoco puede dejar de leer — evidencia real de esta misma semana: el 500 de `/api/config`
+(H.4) y el `<p>` dentro del flex (H.5) los atrapó un humano mirando, no el sistema.
+
+**Estado real del pipeline hoy** (verificado leyendo el código, no asumido):
+- `runChecks()` ([checks.ts:83](src/run/checks.ts:83)) SÍ ejecuta (`tsc`, `bun test`, `node --check`)
+  y corre ANTES del QA — si falla, el QA nunca gasta tokens. Ese carril está bien.
+- `runQA()` ([qa.ts:75](src/run/qa.ts:75)) recibe `description` + `acceptance_criteria` + el
+  **contenido de los archivos** y devuelve `{verdict, reason, criteria[]}`. Nunca ve los resultados
+  de los checks, nunca ejecuta nada, y su "pass" por criterio es una opinión sin evidencia forzada.
+- `defaultChecksFor()` ([checks.ts:32](src/run/checks.ts:32)) puede devolver **cero checks**
+  (sin `node_modules`, o outputs que no son `.ts/.js/.html`) — y en ese caso el QA-LLM es el ÚNICO
+  gate, sin que el juez sepa que nada se verificó mecánicamente.
+
+**Referencia**: `fable-judge` (Fable Method, github.com/Sahir619/fable-method) — verificación
+adversarial de trabajo terminado. Hallazgo de diseño directamente aplicable: **"artefacto forzado en
+punto de decisión, no regla en prosa"** — los modelos económicos cumplen una regla cuando es un
+campo OBLIGATORIO del reporte, no cuando es una viñeta en el prompt.
+
+**Orden deliberado**: K.1→K.3 son baratos, independientes entre sí y no tocan el flujo del harness —
+cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
+
+- [ ] **K.1 — ⚡ Evidencia forzada por criterio en el veredicto QA.** Hoy cada entrada de
+  `criteria[]` es `{text, pass}` — una opinión sin respaldo. Extender `QACriterionResult` a
+  `{text, pass, evidence}` donde `evidence` es una **cita literal** (`file` + `excerpt`) de los
+  archivos escritos que respalda el veredicto de ESE criterio. Reglas duras en el prompt del system
+  (`qa.ts`, rama `hasCriteria`): (a) `evidence` es obligatorio cuando `pass: true`; (b) si el juez no
+  puede citar una porción real del archivo que satisfaga el criterio, **debe** marcar `pass: false`;
+  (c) en `parseVerdict()`, un criterio con `pass: true` y `evidence` ausente/vacío se fuerza a
+  `pass: false` (mismo mecanismo defensivo que ya existe ahí: "if any criterion failed, force verdict
+  to fail regardless of what LLM said"). Persistir la evidencia en `qa_reason`/`criteria` como ya se
+  hace. **Validación**: un test donde el juez mockeado devuelve `pass:true` sin evidencia → el
+  veredicto final debe ser `fail`.
+- [ ] **K.2 — ⚡ Los resultados de checks entran al prompt del QA.** Hoy el juez no sabe qué se
+  ejecutó. Pasar `checksResults: CheckResult[]` a `runQA()` (el harness ya los tiene en
+  `checksResults` justo antes de llamarlo) y renderizarlos en el `userContent` como un bloque
+  `## Checks executed` con `cmd` + `exitCode` de cada uno. **Lo importante es el caso vacío**: cuando
+  la lista está vacía, el bloque debe decir explícitamente que **NINGUNA verificación mecánica corrió**
+  y el system prompt debe instruir que en ese caso el juez sea máximamente escéptico (sin checks, un
+  `pass` se apoya solo en lectura). No cambia el flujo: los checks ya corren antes y ya cortan si
+  fallan; esto solo deja de ocultarle al juez lo que el sistema ya sabe. **Validación**: dos tests —
+  con checks y sin checks — asertando que el `userContent` enviado al provider contiene el bloque
+  correcto en cada caso (mockear el provider vía el parámetro `opts.provider`, que ya existe).
+- [ ] **K.3 — ⚡ Gate anti-test-vacío.** Un `.test.ts` que no asevera nada pasa `bun test` igual —
+  es la trampa más barata para un executor económico, y `defaultChecksFor()` hoy la premia (corre
+  `bun test <archivo>` y da verde). Nuevo check en `checks.ts`: para cada output `*.test.ts`/`*.test.tsx`
+  que el agente escribió, contar aserciones reales (`expect(`, `assert`, `.toBe`, `.toEqual`, etc. —
+  búsqueda textual, no AST: barato y suficiente). **Cero aserciones → el check falla** con mensaje
+  explícito ("test file has no assertions — passing vacuously"). Emitirlo desde `defaultChecksFor()`
+  junto a los que ya genera. **Validación**: fixture con un test vacío (`it('x', () => {})`) → check
+  falla; fixture con un test real → pasa.
+- [ ] **K.4 — 🧠 Re-ejecución adversarial (la pieza grande, NO empezar sin las 3 anteriores
+  cerradas).** El juez deja de confiar en el reporte del executor: re-corre él mismo los checks
+  declarados sobre el estado final y contrasta lo que el executor CLAMÓ con lo que realmente cambió
+  (`computeFileDiffs()` ya existe en `qa.ts` y da el diff real por archivo). Verdicts estilo
+  fable-judge: `VERIFIED` / `CAVEATS` / `REFUTED`. **Decisiones de diseño abiertas — requieren
+  criterio, por eso es 🧠 y NO se delega**: (a) ¿el re-run es sobre el worktree antes de mergear, o
+  sobre una copia limpia?; (b) ¿`CAVEATS` bloquea la tarea o la deja pasar con marca?; (c) ¿cómo se
+  concilia con el `MAX_RETRIES` actual? Ninguna de las tres está decidida — quien tome este ítem
+  presenta plan corto a Carlos primero ([[feedback-planificar-cambios-grandes]]).
+- [ ] **K.5 — ⚡ Spike de mutation testing (medición, NO adopción).** Gradúa SOLO la parte de
+  medición de [IDEAS #54](IDEAS.md) — la adopción como gate sigue siendo backlog ahí. Verificar los
+  dos supuestos que hunden o salvan el cálculo, y **reportar números, no instalar nada permanente**:
+  (1) ¿StrykerJS puede correr contra `bun test` vía su runner `command`? (sus runners nativos son
+  Jest/Mocha/Jasmine/Karma/Vitest — `bun test` NO está); (2) con el runner `command` (que re-corre la
+  suite COMPLETA por cada mutante, sin `coverageAnalysis`), ¿cuánto tarda una corrida acotada a
+  `src/run/` solamente? Medir con la suite real (~15s hoy). **Entregable**: un comentario en este
+  ítem con los dos números reales medidos, no una implementación. Si el costo resulta inviable
+  (probable: se mide en horas), decirlo con el número medido y parar ahí.
+
+**Nota de delegación para esta pasada (Carlos, 2026-07-27)**: por cupo semanal de Claude (74% un
+lunes, reset el jueves), Carlos va a trabajar hoy/mañana principalmente con Codex. K.1, K.2, K.3 y
+K.5 están escritos como spec ejecutable a propósito — el diseño ya está decidido acá, son mecánicos,
+y Codex puede tomarlos sin Claude en el loop. **K.4 NO**: es el diferenciador central del producto y
+tiene 3 decisiones de diseño sin resolver; si sale mal diseñado, sale mal el CORE.
 
 ---
 
