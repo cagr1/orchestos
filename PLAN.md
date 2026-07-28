@@ -1476,14 +1476,22 @@ Claude, Codex y cualquier otro LLM; no depender de la conversación.
     requeue único por rate limit y fallo del proveedor de diagnóstico. Se corrigió producción para propagar
     `harnessResult.retryReason` en el `GraphTaskEntry` bloqueado por contexto.
 
-    Verificación: `bun test src/__tests__/graph-runner.test.ts --timeout 30000` (`21 pass`, `0 fail`,
+    Verificación final: `bun test src/__tests__/graph-runner.test.ts --timeout 30000` (`21 pass`, `0 fail`,
     `67 expect() calls`), `bun run typecheck` limpio y `bun run mutation:graph-runner`: `360` mutantes,
-    `151 killed`, `76 survived`, `132 CompileError`, `1 timeout`, score `66.67%`, duración `7m27s`.
-    El timeout corresponde al mutante `iteration--`, que vuelve no terminable el límite de iteraciones.
-    Los sobrevivientes restantes se clasifican como diagnóstico/formato de graph stalled, logging,
-    métricas de duración/costo y ramas defensivas de estado externo; no cambian outcomes, retries,
-    bloqueo de descendientes ni circuit breakers bajo el contrato normal probado. No se añadieron
-    exclusiones ni threshold.
+    `152 killed`, `75 survived`, `132 CompileError`, `1 timeout`, score `67.11%`, duración `7m26s`.
+    El timeout corresponde al mutante `iteration--`, que vuelve no terminable el límite de iteraciones;
+    es un timeout de Stryker, no un timeout observado en producción. Los `132 CompileError` son mutantes
+    rechazados por el compilador TypeScript y no fallos del código base.
+
+    La revisión de sobrevivientes encontró una debilidad real: el mutante que cambiaba la conversión del
+    wall-clock de `/ 60_000` a `* 60_000` sobrevivía porque la prueba anterior solo verificaba que un límite
+    estrecho disparara el circuit breaker en ambos casos. Se corrigió la prueba para ejecutar una cadena rápida
+    con límite amplio (`maxMinutes: 0.1`) y exigir que ambas tareas terminen; el mutante ahora muere.
+    Los `75` sobrevivientes restantes se concentran en formato/filtrado del diagnóstico de graph stalled,
+    logging, métricas de duración/costo y ramas defensivas de estado externo o payloads de actualización.
+    No hay evidencia actual de que cambien outcomes, retries, bloqueo de descendientes o circuit breakers
+    bajo el contrato normal probado; las ramas defensivas de concurrencia quedan como riesgo residual de baja
+    frecuencia, no como garantía absoluta. No se añadieron exclusiones ni threshold.
   - [ ] **K.6.3.4 — Consolidación.** Registrar score, costo y sobrevivientes de cada módulo por separado;
     no convertir todavía el resultado en threshold o gate.
 - [ ] **K.6.4 — ⚡ Benchmark acotado de `src/run/`.** Solo después de que K.6.2 y K.6.3 pasen,
