@@ -986,6 +986,14 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   visual: verificar en vivo contra el dashboard real (levantar, revisar, **cerrar el servidor** —
   [[feedback-siempre-cerrar-servidor]]), no solo en el código.
 
+**Cabo suelto sin cerrar (hallado en H.4, 2026-07-27, decisión pendiente de Carlos)**: `tasks.yaml`
+tiene una tarea fantasma `debug-codex-cli-deepseek` con `output: []` inválido — el chat la
+auto-creó por un falso positivo (mensaje de troubleshooting mal clasificado como pedido de build,
+ver conversación de esa fecha). Ya no rompe nada (H.4 hizo `handleApiConfigGet()` resiliente a
+esto), pero la tarea sigue en el archivo, sin ejecutarse, sin borrarse. **No tocar sin que Carlos
+decida** si la borra o la corrige — el bug de fondo (falso positivo del detector D.7) queda
+también sin investigar.
+
 **Explícitamente FUERA de esta pasada** (no expandir el scope sin nueva orden de Carlos):
 - **NO** construir un "AI Vault" / workspace de sesiones de Claude escaneadas de disco (lo que Orca
   hace en `AiVaultPanel.tsx`, tab del sidebar derecho con resume de sesiones). Es un feature nuevo
