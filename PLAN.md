@@ -1428,8 +1428,8 @@ dejar tests, resultado de Bun y evidencia de mutation testing en este bloque ant
     equivalentes de parseo ya revisados, mientras que los `114 CompileError` son mutantes rechazados
     por TypeScript. No se añadieron exclusiones, no se cambió producción fuera de las validaciones
     fail-safe y no se fijó threshold/gate.
-  - [ ] **R7.5 — Decisión.** Con la evidencia de R7.1-R7.4 decidir si el baseline es suficiente o si
-    se continúa con K.6.3 para `checks.ts`, `sandbox-policy.ts` y `graph-runner.ts`. La decisión debe
+  - [x] **R7.5 — Decisión (2026-07-28).** Carlos acepta `51.76%` como baseline funcional de `qa.ts`
+    y autoriza continuar con K.6.3 para `checks.ts`, `sandbox-policy.ts` y `graph-runner.ts`. La decisión debe
     ponderar riesgo cubierto, estabilidad integrada y costo medido, no el porcentaje bruto.
 
     Auditoría previa (2026-07-28): se revisaron individualmente los `41` sobrevivientes que no son
@@ -1445,10 +1445,26 @@ dejar tests, resultado de Bun y evidencia de mutation testing en este bloque ant
 **Memoria obligatoria:** al cerrar cada R1-R7 escribir fecha, comando exacto, conteos, tests creados,
 mutantes afectados, sobrevivientes restantes y decisión. El resumen final debe permanecer aquí para
 Claude, Codex y cualquier otro LLM; no depender de la conversación.
-- [ ] **K.6.3 — ⚡ Expansión controlada por módulo.** Repetir el patrón, uno por uno y sin paralelizar,
-  para `checks.ts`→`checks.test.ts`, `sandbox-policy.ts`→`sandbox-policy.test.ts` y
-  `graph-runner.ts`→`graph-runner.test.ts`. Cada módulo debe tener su propio resultado; no aceptar
-  un score agregado que oculte qué módulo tiene tests débiles.
+- [ ] **K.6.3 — ⚡ Expansión controlada por módulo (iniciada 2026-07-28).** Repetir el patrón, uno
+  por uno y sin paralelizar. Cada módulo debe tener su propio resultado; no aceptar un score agregado
+  que oculte qué módulo tiene tests débiles.
+  - [x] **K.6.3.1 — `checks.ts` → `checks.test.ts` (2026-07-28).** Se añadieron pruebas para
+    salida mixta con TypeScript, `.test.tsx`, assertion gate existente, archivos no-HTML con texto
+    `<script>`, timeout, `timedOut: false` normal, truncado de salida, argumentos con comillas simples
+    y comando vacío. Se creó `stryker.checks.config.mjs` y el script aislado `mutation:checks`.
+
+    Verificación: `bun test src/__tests__/checks.test.ts --timeout 30000` (`28 pass`, `0 fail`,
+    `53 expect() calls`), `bun run typecheck` limpio y `bun run mutation:checks`: `127` mutantes,
+    `77 killed`, `18 survived`, `32 CompileError`, `0 timeout`, score `81.05%`, duración `1m34s`.
+    Los sobrevivientes restantes son equivalentes/no críticos: defaults de `resolve` y timeout,
+    guard redundante protegido por `try/catch`, logging, medición de duración, límite exacto de
+    `2000` caracteres y valores vacíos de resultados de error. No se cambió producción.
+  - [ ] **K.6.3.2 — `sandbox-policy.ts` → `sandbox-policy.test.ts`.** Ejecutar solo después de cerrar
+    K.6.3.1; proteger decisiones de worktree, dirty state y excepciones de seguridad.
+  - [ ] **K.6.3.3 — `graph-runner.ts` → `graph-runner.test.ts`.** Ejecutar solo después de cerrar
+    K.6.3.2; proteger retries, dependencias, branch isolation, rate limits y circuit breaker.
+  - [ ] **K.6.3.4 — Consolidación.** Registrar score, costo y sobrevivientes de cada módulo por separado;
+    no convertir todavía el resultado en threshold o gate.
 - [ ] **K.6.4 — ⚡ Benchmark acotado de `src/run/`.** Solo después de que K.6.2 y K.6.3 pasen,
   medir el conjunto completo de `src/run/` con `concurrency` controlada. Entregable: duración real,
   cantidad de mutantes, score global y proyección del costo en CI. Si la corrida es inviable, queda

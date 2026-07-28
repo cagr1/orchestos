@@ -16,7 +16,8 @@
     "dreaming:export": "bun run scripts/export-runs-summary.ts",
     "ledger:gate": "bun run scripts/check-ledger-gate.ts",
     "ledger:report": "bun run scripts/ledger-report.ts",
-    "mutation:qa": "stryker run stryker.config.mjs"
+    "mutation:qa": "stryker run stryker.config.mjs",
+    "mutation:checks": "stryker run stryker.checks.config.mjs"
   },
   "devDependencies": {
     "@stryker-mutator/core": "9.6.1",

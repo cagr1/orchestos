@@ -102,6 +102,33 @@ describe('defaultChecksFor', () => {
     expect(checks.filter(c => c.cmd === 'bunx tsc --noEmit')).toHaveLength(1)
   })
 
+  it('adds tsc for mixed TypeScript and non-code output when dependencies exist', () => {
+    const root = makeRoot(true)
+    const checks = defaultChecksFor(['src/a.ts', 'docs/README.md'], root)
+    expect(checks.some(c => c.cmd === 'bunx tsc --noEmit')).toBe(true)
+  })
+
+  it('adds a bun test check for TSX test output', () => {
+    const root = makeRoot(true)
+    const checks = defaultChecksFor(['src/Foo.test.tsx'], root)
+    expect(checks).toContainEqual(expect.objectContaining({ cmd: 'bun test src/Foo.test.tsx' }))
+  })
+
+  it('adds the assertion gate for an existing TSX test file', () => {
+    const root = makeRoot(false)
+    mkdirSync(join(root, 'src'))
+    writeFileSync(join(root, 'src/Foo.test.tsx'), 'it("x", () => {})')
+    const checks = defaultChecksFor(['src/Foo.test.tsx'], root)
+    expect(checks.some(c => c.cmd.includes('check-test-assertions'))).toBe(true)
+  })
+
+  it('does not add an assertion check for a non-test TypeScript file', () => {
+    const root = makeRoot(false)
+    writeFileSync(join(root, 'src.ts'), 'export const value = 1')
+    const checks = defaultChecksFor(['src.ts'], root)
+    expect(checks.some(c => c.cmd.includes('check-test-assertions'))).toBe(false)
+  })
+
   // ── A.5 (Mes 22 / IDEAS #36): sintaxis JS embebido en HTML/.js ───────────────
 
   it('emits a node --check for an existing .js output even without node_modules', () => {
@@ -134,12 +161,20 @@ describe('defaultChecksFor', () => {
     expect(jsCheck).toBeDefined()
     expect(jsCheck!.cmd).not.toContain('page.html')
     expect(jsCheck!.cmd).toMatch(/orchestos-jscheck-/)
+    expect(jsCheck!.timeout_ms).toBe(15_000)
   })
 
   it('does NOT emit a JS check for an .html without inline scripts', () => {
     const root = makeRoot(true)
     writeFileSync(join(root, 'static.html'), '<!doctype html><html><body></body></html>')
     const checks = defaultChecksFor(['static.html'], root)
+    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(false)
+  })
+
+  it('does not treat script-like text in a non-HTML file as inline JavaScript', () => {
+    const root = makeRoot(true)
+    writeFileSync(join(root, 'notes.md'), '<script>const broken = :;</script>')
+    const checks = defaultChecksFor(['notes.md'], root)
     expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(false)
   })
 
@@ -231,6 +266,8 @@ describe('defaultChecksFor', () => {
     const jsResult = results.find(r => r.cmd.startsWith('node --check '))
     expect(jsResult).toBeDefined()
     expect(jsResult!.exitCode).toBe(0)
+    expect(jsResult!.timedOut).toBe(false)
+    expect(jsResult!.elapsedMs).toBeGreaterThanOrEqual(0)
   })
 
   it('A.5 integration: catches a JS syntax error in a standalone .js file', async () => {
@@ -260,5 +297,54 @@ describe('defaultChecksFor', () => {
     try { unlinkSync(path); throw new Error('expected ENOENT') } catch (e: any) {
       expect(e.code).toBe('ENOENT')
     }
+  })
+
+  it('runChecks marks a command timeout and kills the process', async () => {
+    const root = makeRoot(false)
+    const [result] = await runChecks(
+      [{ cmd: 'sleep 1', timeout_ms: 10 }],
+      root,
+      new RunLogger(root, 'timeout'),
+    )
+
+    expect(result?.timedOut).toBe(true)
+    expect(result?.exitCode).not.toBe(0)
+  })
+
+  it('runChecks keeps only the tail of oversized command output', async () => {
+    const root = makeRoot(false)
+    const [result] = await runChecks(
+      [{ cmd: `${process.execPath} -e "process.stdout.write('x'.repeat(2500))"` }],
+      root,
+      new RunLogger(root, 'output-limit'),
+    )
+
+    expect(result?.exitCode).toBe(0)
+    expect(result?.stdout).toHaveLength(2000)
+    expect(result?.timedOut).toBe(false)
+  })
+
+  it('splitCommand preserves spaces inside single-quoted arguments', async () => {
+    const root = makeRoot(false)
+    const [result] = await runChecks(
+      [{ cmd: "printf 'hello world'" }],
+      root,
+      new RunLogger(root, 'quoted-args'),
+    )
+
+    expect(result?.exitCode).toBe(0)
+    expect(result?.stdout).toBe('hello world')
+  })
+
+  it('runChecks fails closed for an empty command', async () => {
+    const root = makeRoot(false)
+    const [result] = await runChecks(
+      [{ cmd: '' }],
+      root,
+      new RunLogger(root, 'empty-command'),
+    )
+
+    expect(result).toMatchObject({ cmd: '', exitCode: 1, timedOut: false })
+    expect(result?.stderr).toContain('empty command')
   })
 })
