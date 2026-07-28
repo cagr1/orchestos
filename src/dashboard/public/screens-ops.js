@@ -1443,8 +1443,12 @@ SCREENS.settings = {
     </div>`;
     const setupTitle = st.setup?.criticalMissing ? t('setup.title') : t('settings.title');
     const setupSubtitle = st.setup?.criticalMissing ? t('setup.subtitle') : t('settings.subtitle');
-    const head = `<div class="screen-head">
-      <div class="lead"><h1>${setupTitle}</h1><p>${setupSubtitle}</p></div>
+    const head = `<div class="screen-head settings-screen-head">
+      <div class="lead">
+        <div class="settings-eyebrow">${ICON.sliders} ${t('settings.eyebrow')}</div>
+        <h1>${setupTitle}</h1><p>${setupSubtitle}</p>
+      </div>
+      <div class="settings-head-mark" aria-hidden="true"><span></span><span></span><span></span></div>
     </div>`;
     const sec = state.settingsSection || 'general';
     const navItem = (id, icon, label) =>
@@ -1499,15 +1503,27 @@ SCREENS.settings = {
 
     return `<div class="screen">${head}
       <div class="settings-shell">
-        <nav class="settings-nav">
-          ${navItem('general', ICON.sliders, t('settings.nav.general'))}
-          ${navItem('keys', ICON.bolt, t('settings.nav.keys'))}
-          ${navItem('routing', ICON.runs, t('settings.nav.routing'))}
-          ${navItem('usage', ICON.graph, t('settings.nav.usage'))}
-          ${navItem('executor', ICON.refresh, t('settings.nav.executor'))}
-          ${navItem('health', ICON.runs, t('settings.nav.health'))}
-          ${navItem('project', ICON.warn, t('settings.nav.project'))}
-          ${navItem('lang', ICON.globe, t('settings.nav.lang'))}
+        <nav class="settings-nav" aria-label="${esc(t('settings.title'))}">
+          <div class="settings-nav-group">
+            <div class="settings-nav-label">${t('settings.navGroup.workspace')}</div>
+            ${navItem('general', ICON.sliders, t('settings.nav.general'))}
+            ${navItem('health', ICON.runs, t('settings.nav.health'))}
+          </div>
+          <div class="settings-nav-group">
+            <div class="settings-nav-label">${t('settings.navGroup.configure')}</div>
+            ${navItem('keys', ICON.bolt, t('settings.nav.keys'))}
+            ${navItem('routing', ICON.runs, t('settings.nav.routing'))}
+            ${navItem('executor', ICON.refresh, t('settings.nav.executor'))}
+          </div>
+          <div class="settings-nav-group">
+            <div class="settings-nav-label">${t('settings.navGroup.observe')}</div>
+            ${navItem('usage', ICON.graph, t('settings.nav.usage'))}
+          </div>
+          <div class="settings-nav-group">
+            <div class="settings-nav-label">${t('settings.navGroup.protect')}</div>
+            ${navItem('project', ICON.warn, t('settings.nav.project'))}
+            ${navItem('lang', ICON.globe, t('settings.nav.lang'))}
+          </div>
         </nav>
 
         <div class="settings-panels">

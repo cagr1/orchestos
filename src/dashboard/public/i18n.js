@@ -574,6 +574,11 @@ const I18N = {
     /* ── Settings ────────────────────────────── */
     'settings.title':    'Settings',
     'settings.subtitle': 'API keys and project configuration.',
+    'settings.eyebrow':  'Control room',
+    'settings.navGroup.workspace': 'Workspace',
+    'settings.navGroup.configure': 'Configure',
+    'settings.navGroup.observe':  'Observe',
+    'settings.navGroup.protect':  'Protect',
     'settings.nav.general': 'General',
     'settings.nav.keys':    'API & Models',
     'settings.nav.routing': 'Model routing',
@@ -1325,6 +1330,11 @@ const I18N = {
     /* ── Settings ────────────────────────────── */
     'settings.title':    'Ajustes',
     'settings.subtitle': 'Claves de API y configuración del proyecto.',
+    'settings.eyebrow':  'Centro de control',
+    'settings.navGroup.workspace': 'Espacio de trabajo',
+    'settings.navGroup.configure': 'Configurar',
+    'settings.navGroup.observe':  'Observar',
+    'settings.navGroup.protect':  'Protección',
     'settings.nav.general': 'General',
     'settings.nav.keys':    'APIs y modelos',
     'settings.nav.routing': 'Routing de modelos',

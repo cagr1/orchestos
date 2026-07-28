@@ -980,11 +980,22 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   eyebrow "DANGER ZONE". Precedente para cualquier acción destructiva futura — usar
   `.settings-card-danger`/`.danger-eyebrow`, no reinventar el patrón. Verificado en vivo. 871
   tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **H.8 — 🧠 Acabado visual general al estándar premium.** Una vez resueltos H.1-H.7, pasar la
+- [x] **H.8 — 🧠 (2026-07-28) Acabado visual general al estándar premium.** Una vez resueltos H.1-H.7, pasar la
   pantalla completa por el estándar Orca/Anthropic: patrón fila-de-catálogo donde aplique (routing,
   executor), jerarquía tipográfica real, espaciado consistente, sin cards genéricas repetidas. Gate
   visual: verificar en vivo contra el dashboard real (levantar, revisar, **cerrar el servidor** —
   [[feedback-siempre-cerrar-servidor]]), no solo en el código.
+  **Primera pasada Codex autorizada por Carlos (2026-07-28)**: navegación agrupada por intención
+  (Workspace / Configure / Observe / Protect), eyebrow de "Control room", rail luminoso del item
+  activo, cards con jerarquía y hover sutil, filas de catálogo con feedback de interacción, focus
+  visible y navegación responsive horizontal en mobile. Cambios en `screens-ops.js`, `screens.css`
+  e `i18n.js`; `tsc --noEmit` y `git diff --check` pasan. Gate visual aún abierto: el entorno no
+  permitió levantar una instancia temporal (puertos 4243, 4249 y 49173 reportados como ocupados),
+  y `4242` no tenía un dashboard accesible; no se mató ningún proceso ajeno.
+  **Gate cerrado en vivo (2026-07-28):** se liberó `4242` y se levantó el dashboard real. Verificado
+  visualmente en desktop y viewport móvil: navegación por grupos, estado activo, tarjetas, heatmap,
+  routing, executor, usage y scroll horizontal responsive. Consola sin errores ni warnings. Servidor
+  cerrado al terminar la revisión.
 
 **Cabo suelto sin cerrar (hallado en H.4, 2026-07-27, decisión pendiente de Carlos)**: `tasks.yaml`
 tiene una tarea fantasma `debug-codex-cli-deepseek` con `output: []` inválido — el chat la
