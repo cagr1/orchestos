@@ -1445,7 +1445,7 @@ dejar tests, resultado de Bun y evidencia de mutation testing en este bloque ant
 **Memoria obligatoria:** al cerrar cada R1-R7 escribir fecha, comando exacto, conteos, tests creados,
 mutantes afectados, sobrevivientes restantes y decisión. El resumen final debe permanecer aquí para
 Claude, Codex y cualquier otro LLM; no depender de la conversación.
-- [ ] **K.6.3 — ⚡ Expansión controlada por módulo (iniciada 2026-07-28).** Repetir el patrón, uno
+- [x] **K.6.3 — ⚡ Expansión controlada por módulo (cerrada 2026-07-28).** Repetir el patrón, uno
   por uno y sin paralelizar. Cada módulo debe tener su propio resultado; no aceptar un score agregado
   que oculte qué módulo tiene tests débiles.
   - [x] **K.6.3.1 — `checks.ts` → `checks.test.ts` (2026-07-28).** Se añadieron pruebas para
@@ -1492,8 +1492,26 @@ Claude, Codex y cualquier otro LLM; no depender de la conversación.
     No hay evidencia actual de que cambien outcomes, retries, bloqueo de descendientes o circuit breakers
     bajo el contrato normal probado; las ramas defensivas de concurrencia quedan como riesgo residual de baja
     frecuencia, no como garantía absoluta. No se añadieron exclusiones ni threshold.
-  - [ ] **K.6.3.4 — Consolidación.** Registrar score, costo y sobrevivientes de cada módulo por separado;
-    no convertir todavía el resultado en threshold o gate.
+  - [x] **K.6.3.4 — Consolidación (2026-07-28).** Se consolidaron los cuatro módulos sin mezclar sus
+    resultados durante las corridas:
+
+    | Módulo | Mutantes | Killed | Survived | CompileError | Timeout | Score | Duración |
+    | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+    | `qa.ts` | 313 | 103 | 96 | 114 | 0 | 51.76% | 2m46s |
+    | `checks.ts` | 127 | 77 | 18 | 32 | 0 | 81.05% | 1m34s |
+    | `sandbox-policy.ts` | 83 | 62 | 11 | 10 | 0 | 84.93% | 1m26s |
+    | `graph-runner.ts` | 360 | 152 | 75 | 132 | 1 | 67.11% | 7m26s |
+    | **Total ponderado** | **883** | **394** | **200** | **288** | **1** | **66.22%** | **13m12s** |
+
+    El total ponderado usa `394 / (883 - 288)` y sirve únicamente como referencia; no sustituye los
+    scores por módulo. La duración es el costo operativo medido en ejecución serial; no se estimó costo
+    monetario porque no existe telemetría de consumo/precio en estos comandos. Los `200` sobrevivientes
+    agregados permanecen clasificados por módulo en las entradas anteriores: predominan formato/logging,
+    métricas, diagnósticos y ramas defensivas, con el riesgo real de wall-clock de `graph-runner.ts` ya
+    corregido y cubierto.
+
+    Decisión: K.6.3 queda cerrado como expansión de pruebas por módulo. No se añaden exclusiones, threshold
+    ni gate de commit; el siguiente paso autorizado por el plan es K.6.4, benchmark acotado de `src/run/`.
 - [ ] **K.6.4 — ⚡ Benchmark acotado de `src/run/`.** Solo después de que K.6.2 y K.6.3 pasen,
   medir el conjunto completo de `src/run/` con `concurrency` controlada. Entregable: duración real,
   cantidad de mutantes, score global y proyección del costo en CI. Si la corrida es inviable, queda
