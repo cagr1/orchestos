@@ -997,13 +997,16 @@ antes de rediseñar, no asumir que todo lo existente se conserva); (3) [[feedbac
   routing, executor, usage y scroll horizontal responsive. Consola sin errores ni warnings. Servidor
   cerrado al terminar la revisión.
 
-**Cabo suelto sin cerrar (hallado en H.4, 2026-07-27, decisión pendiente de Carlos)**: `tasks.yaml`
-tiene una tarea fantasma `debug-codex-cli-deepseek` con `output: []` inválido — el chat la
-auto-creó por un falso positivo (mensaje de troubleshooting mal clasificado como pedido de build,
-ver conversación de esa fecha). Ya no rompe nada (H.4 hizo `handleApiConfigGet()` resiliente a
-esto), pero la tarea sigue en el archivo, sin ejecutarse, sin borrarse. **No tocar sin que Carlos
-decida** si la borra o la corrige — el bug de fondo (falso positivo del detector D.7) queda
-también sin investigar.
+**Cabo suelto resuelto (2026-07-28):** se eliminó de `tasks.yaml` la tarea fantasma
+`debug-codex-cli-deepseek`; no tenía ningún run asociado en SQLite. Causa confirmada: el mensaje de
+troubleshooting de Carlos (evento `chat_task_bar_events` 113, 2026-07-27 17:36:14) fue marcado
+erróneamente como tarea por el clasificador `deepseek/deepseek-v4-flash`. El auto-flow D.7 llamó
+después a `buildNaturalDraft()` (Claude Haiku), que devolvió `output: []`; `createTaskRecord()` no
+validaba que el output fuera no vacío, así que persistió la tarea inválida y el dashboard hizo el
+commit automático `ac2ed54`. La selección `executor_mode: cli-codex` sí explica `engine: codex` y
+`executor_model: openai/gpt-5.4`, pero no fue la causa del falso positivo. El bug de fondo queda
+identificado: falta un guard de creación automática para rechazar drafts sin output antes de
+persistirlos.
 
 **Explícitamente FUERA de esta pasada** (no expandir el scope sin nueva orden de Carlos):
 - **NO** construir un "AI Vault" / workspace de sesiones de Claude escaneadas de disco (lo que Orca

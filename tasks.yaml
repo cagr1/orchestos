@@ -168,12 +168,3 @@ tasks:
     retry_count: 2
     retry_reason: "missing declared output(s): scratch/design-test-premium-a1.html"
     qa_verdict: fail
-  - id: debug-codex-cli-deepseek
-    description: Investigar por qué la CLI Codex responde con Deepseek en lugar del modelo esperado, diagnosticar la
-      configuración de executor y variables de entorno.
-    output: []
-    executor: anthropic
-    status: pending
-    retry_count: 0
-    executor_model: openai/gpt-5.4
-    engine: codex
