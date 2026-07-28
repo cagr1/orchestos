@@ -82,3 +82,24 @@ en la derivación de `maxTokens`.
 **Reversibilidad/evidencia**: commit de K.2 (`feat(qa): expose check results to judge`) — revertible
 con `git revert`, sin side-effects adicionales en datos. Suite completa: 875 tests · 0 fail ·
 `tsc --noEmit` limpio.
+
+---
+
+## 2026-07-28 10:41 America/Guayaquil — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: el cambio K.4b agrega el segundo juez adversarial (`runAdversarialQA()`) entre
+`qa.verdict === 'pass'` y `mergeWorktreeBack()`, reusando `qaJudge.model`/`qaJudge.provider` ya
+resueltos — no toca `maxTokens`, `contextWindow` ni la selección del presupuesto de salida en
+ningún punto. Las líneas nuevas leen `orcheConfig?.adversarialQA`, acumulan tokens del segundo
+call en `qa.inputTokens/outputTokens` (para que `qaCost`/`totalCost`, ya existentes, los incluyan)
+y downgradean `qa.verdict`/`qa.reason` cuando `REFUTED` — todo aguas abajo de donde `maxTokens` ya
+se calculó para el executor. Cero líneas tocadas en esa derivación.
+**Reversibilidad/evidencia**: commit de K.4b (`feat(qa): opt-in adversarial second QA judge`) —
+revertible con `git revert`; feature opt-in (`orcheConfig.adversarialQA`, default off), cero
+side-effects en runs existentes (columnas nuevas `adversarial_verdict`/`adversarial_reason` vía
+`safeAddColumn`, NULL para filas previas). 886 tests · 0 fail · `tsc --noEmit` limpio antes del
+commit. Gate destrabado con evidencia sintética real (3 tests adversariales en `qa-judge.test.ts`
+probando que K.4a deja pasar evidencia literal-pero-engañosa), no por decisión de saltarlo.

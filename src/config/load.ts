@@ -61,6 +61,8 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     executor_mode: EXECUTOR_MODES.includes(raw.executor_mode as ExecutorMode) ? raw.executor_mode as ExecutorMode : undefined,
     agentic: parseAgenticConfig(raw.agentic),
     external: parseExternalConfig(raw.external),
+    // K.4b — opt-in explícito: cualquier valor que no sea `true` literal se ignora (queda undefined/desactivado).
+    adversarialQA: raw.adversarialQA === true ? true : undefined,
   }
 }
 
@@ -115,6 +117,10 @@ models:
   # qa:
   #   provider: anthropic
   #   model: claude-haiku-4-5
+
+# Optional: K.4b — segundo juez adversarial después de que el QA normal pase
+# (VERIFIED/CAVEATS/REFUTED). Dobla el costo de QA por tarea que pasa — opt-in.
+# adversarialQA: true
 
 # Examples:
 #   planner:        "anthropic/claude-opus-4-7"

@@ -42,6 +42,13 @@ export interface OrcheConfig {
   agentic?: { maxIterations?: number }
   /** B.2 — External engine tuning. timeoutMs = wall-clock guarantee of termination (no cost cap by design, same as maxIterations). Absence = default in external.ts (20min, see docs §4). */
   external?: { timeoutMs?: number }
+  /**
+   * K.4b — segundo juez adversarial DESPUÉS de que el QA normal dé pass, ANTES del merge.
+   * Reusa el mismo qaJudge (modelo/provider) ya resuelto — no agrega selección de modelo
+   * nueva. Opt-in porque dobla el costo de QA por tarea que pasa; absencia = desactivado
+   * (comportamiento actual, sin cambios). Ver PLAN.md § K.4b.
+   */
+  adversarialQA?: boolean
 }
 
 // Defaults — used when no config file is found or a role is missing

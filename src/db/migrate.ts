@@ -109,6 +109,8 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'cost_breakdown_json',   'TEXT')     // S35.3: JSON array of CostBreakdownEntry[]
   safeAddColumn('runs', 'qa_model',              'TEXT')     // F2.5: judge model resolved by resolveQAJudge(), distinct from executor `model` column
   safeAddColumn('runs', 'file_diffs',            'TEXT')     // v0.12/C: JSON array of FileDiffEntry[] (docs/diff-review-design.md) — NULL para runs previos a este cambio, sin backfill
+  safeAddColumn('runs', 'adversarial_verdict',   'TEXT')     // K.4b: 'VERIFIED' | 'CAVEATS' | 'REFUTED' | NULL (opt-in, NULL si adversarialQA no está activado)
+  safeAddColumn('runs', 'adversarial_reason',    'TEXT')     // K.4b: razón del segundo juez adversarial
 
   // S26.3 — memory conflict detection records
   db.exec(`

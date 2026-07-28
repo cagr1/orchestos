@@ -1174,17 +1174,26 @@ cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
   mecánica de K.4 con costo cero. Test de regresión en
   [qa-judge.test.ts](src/__tests__/qa-judge.test.ts): excerpt fabricado → verdict forzado a `fail`.
   878 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **K.4b — 🧠 Segundo juez adversarial (opcional, backlog — no es prerequisito de nada).**
-  Si K.4a no resulta suficiente en la práctica (evidencia real de un `pass` que igual estuvo mal
-  aunque la cita fuera literal), agregar una segunda pasada de LLM explícitamente adversarial
-  (`VERIFIED`/`CAVEATS`/`REFUTED`, estilo fable-judge) DESPUÉS de que el QA normal dé `pass` y ANTES
-  del merge (entre `qa.verdict === 'pass'` y `mergeWorktreeBack()`, harness.ts:598-600) — sobre el
-  mismo `ctx.effectiveRoot`, sin copia limpia aparte (el worktree ya es el estado real aislado).
-  Decisiones ya resueltas para cuando se tome: `CAVEATS` NO bloquea ni consume retry, solo se
-  persiste/marca (regresión D3 si bloqueara: retries agotándose sin necesidad real); `REFUTED`
-  reusa EXACTAMENTE el path de fallo existente (`revert` + `retryCount+1` + mismo chequeo de
-  exhaución) — sin contador de retry paralelo. Costo real a asumir: dobla el gasto de QA por tarea.
-  No arrancar sin evidencia concreta de que K.4a se queda corto.
+- [x] **K.4b — 🧠 (2026-07-28) Segundo juez adversarial, opt-in.** Gate destrabado con evidencia
+  concreta antes de arrancar (no "adelantarlo igual"): 3 tests adversariales sintéticos
+  (`qa-judge.test.ts`, "K.4a limitation") probaron que K.4a deja pasar `pass:true` con evidencia
+  LITERAL pero de contexto equivocado, código muerto/inalcanzable, o contradictoria — confirma que
+  K.1/K.4a solo garantizan presencia del string, no validez semántica. Implementado
+  `runAdversarialQA()` ([qa.ts](src/run/qa.ts)): re-evalúa desde cero (sin ver el veredicto/evidencia
+  del primer QA, para no anclarse) con framing explícitamente adversarial, devuelve
+  `VERIFIED`/`CAVEATS`/`REFUTED`. Wireado en [harness.ts](src/run/harness.ts) entre
+  `qa.verdict === 'pass'` y `mergeWorktreeBack()`, sobre el mismo `ctx.effectiveRoot` (sin copia
+  limpia — el worktree ya es el estado real aislado, decisión (a)). `REFUTED` downgradea
+  `qa.verdict` a `'fail'` y reusa EXACTAMENTE el path de revert/retry/exhaución existente, sin
+  contador de retry paralelo (decisión (c)). `CAVEATS` no bloquea ni consume retry, solo se
+  persiste en 2 columnas nuevas (`adversarial_verdict`, `adversarial_reason`, migración segura vía
+  `safeAddColumn`) para que un humano lo vea (decisión (b) — bloquear reintroduciría la clase de
+  bug que D3 ya arregló). **Opt-in** vía `orcheConfig.adversarialQA: true` (default: desactivado,
+  cero cambio de comportamiento ni de costo si no se activa) — dobla el gasto de QA por tarea que
+  pasa, costo real documentado en el schema y en `orchestos.config.yaml` scaffold. 5 tests nuevos en
+  [harness-adversarial-qa.test.ts](src/__tests__/harness-adversarial-qa.test.ts) cubriendo
+  desactivado/REFUTED/CAVEATS/VERIFIED/no-corre-si-QA-ya-falló. 886 tests · 0 fail · `tsc --noEmit`
+  limpio.
 - [ ] **K.5 — ⚡ Spike de mutation testing (medición, NO adopción).** Gradúa SOLO la parte de
   medición de [IDEAS #54](IDEAS.md) — la adopción como gate sigue siendo backlog ahí. Verificar los
   dos supuestos que hunden o salvan el cálculo, y **reportar números, no instalar nada permanente**:

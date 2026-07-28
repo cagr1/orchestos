@@ -186,3 +186,97 @@ function parseVerdict(
 }
 
 export const MAX_RETRIES = 3
+
+// K.4b — segundo juez adversarial, opt-in (orcheConfig.adversarialQA). Corre SOLO
+// cuando el QA normal ya dio pass, y ANTES del merge (harness.ts). Reusa el mismo
+// qaJudge (modelo/provider) ya resuelto para el QA normal — no hay selección de
+// modelo nueva. Deliberadamente NO recibe el veredicto/evidencia del primer QA
+// (re-evalúa desde cero) para no anclarse en el razonamiento que puede estar
+// fallando: el hallazgo real (ver src/__tests__/qa-judge.test.ts, tests
+// "K.4a limitation") es que evidencia LITERAL puede venir de contexto
+// equivocado, código muerto, o ser contradictoria — K.1/K.4a solo garantizan
+// que el string existe, no que el criterio se cumple de verdad.
+export interface AdversarialVerdict {
+  verdict: 'VERIFIED' | 'CAVEATS' | 'REFUTED'
+  reason: string
+  inputTokens: number
+  outputTokens: number
+  model: string
+}
+
+export async function runAdversarialQA(opts: {
+  description: string
+  output: string[]
+  written: FileChange[]
+  model: string
+  acceptance_criteria?: string[]
+  checksResults: CheckResult[]
+  provider?: ProviderClient
+}): Promise<AdversarialVerdict> {
+  const filesBlock = opts.written.map(f =>
+    `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``
+  ).join('\n\n')
+
+  const hasCriteria = opts.acceptance_criteria && opts.acceptance_criteria.length > 0
+  const criteriaBlock = hasCriteria
+    ? `\n## Acceptance criteria\n${opts.acceptance_criteria!.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`
+    : ''
+
+  const system = [
+    'You are a skeptical second-opinion reviewer. A first QA pass already approved this work — your',
+    'job is to try to REFUTE that approval, not to rubber-stamp it.',
+    'A prior weakness this review exists to catch: a criterion can look satisfied because a quoted',
+    'excerpt is LITERALLY present in a file, while the excerpt does not actually prove the criterion —',
+    'e.g. the excerpt is a comment/TODO or unrelated string mentioning the right keywords, the excerpt',
+    'is real code but sits in a dead/unreachable branch, or the excerpt technically matches the words',
+    'of the criterion but its logic does the OPPOSITE of what is required.',
+    'Read the actual files and checks below and judge honestly, from scratch, whether the task',
+    'description and acceptance criteria are TRULY satisfied by working, reachable code — not by',
+    'the mere presence of matching text.',
+    'Respond with ONLY a JSON object — no markdown fences, no prose:',
+    '{ "verdict": "VERIFIED" | "CAVEATS" | "REFUTED", "reason": "one or two sentences explaining what you checked and why" }',
+    '"REFUTED": you found concrete proof the work does NOT do what is required (dead code, wrong logic, missing behavior).',
+    '"CAVEATS": it plausibly works but you found something worth a human look (untested edge case, weak evidence, ambiguity) — not severe enough to block.',
+    '"VERIFIED": you independently confirmed the criteria are genuinely met by working code.',
+  ].join('\n')
+
+  const userContent =
+    `## Task description\n${opts.description}\n` +
+    criteriaBlock +
+    `\n## Declared output files\n${opts.output.join(', ')}\n\n` +
+    `## Checks executed\n${opts.checksResults.length > 0
+      ? opts.checksResults.map(c => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
+      : 'NINGUNA verificación mecánica corrió.'}\n\n` +
+    `## Files written\n${filesBlock}\n\n` +
+    `Return your JSON verdict now.`
+
+  const resp = await (opts.provider?.chat ?? chat)({
+    model: opts.model,
+    system,
+    messages: [{ role: 'user', content: userContent }],
+  })
+
+  return {
+    ...parseAdversarialVerdict(resp.text),
+    inputTokens: resp.inputTokens,
+    outputTokens: resp.outputTokens,
+    model: resp.model,
+  }
+}
+
+function parseAdversarialVerdict(raw: string): { verdict: AdversarialVerdict['verdict']; reason: string } {
+  const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
+  const jsonStr = jsonMatch?.[1] ?? raw.trim()
+  let obj: unknown
+  try {
+    obj = JSON.parse(jsonStr)
+  } catch {
+    // fail-safe: una respuesta no parseable no puede sostener un pase silencioso
+    return { verdict: 'REFUTED', reason: `adversarial QA response not parseable: ${raw.slice(0, 200)}` }
+  }
+  const o = obj as Record<string, unknown>
+  const verdict: AdversarialVerdict['verdict'] =
+    o.verdict === 'VERIFIED' || o.verdict === 'CAVEATS' || o.verdict === 'REFUTED' ? o.verdict : 'REFUTED'
+  const reason = typeof o.reason === 'string' ? o.reason : '(no reason)'
+  return { verdict, reason }
+}

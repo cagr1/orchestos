@@ -209,6 +209,114 @@ describe('runQA — K.1 criterion evidence', () => {
     expect(result.verdict).toBe('fail')
     expect(result.criteria?.[0]?.pass).toBe(false)
   })
+
+  it('K.4a limitation — accepts literal evidence from the wrong context', async () => {
+    const written = [{
+      path: 'src/math.ts',
+      content: '// TODO: implement sum(a, b)\nexport const label = "unrelated module"',
+    }]
+    const result = await runQA({
+      description: 'Implement a function sum that adds two numbers',
+      output: ['src/math.ts'],
+      written,
+      model: 'test-model',
+      acceptance_criteria: ['The module exports a function sum that adds two numbers'],
+      checksResults: [],
+      provider: {
+        name: 'test',
+        chat: async () => ({
+          text: JSON.stringify({
+            verdict: 'pass',
+            reason: 'The excerpt mentions sum',
+            criteria: [{
+              text: 'The module exports a function sum that adds two numbers',
+              pass: true,
+              evidence: { file: 'src/math.ts', excerpt: '// TODO: implement sum(a, b)' },
+            }],
+          }),
+          inputTokens: 1,
+          outputTokens: 1,
+          model: 'test-model',
+        }),
+      },
+    })
+
+    // Hallazgo: evidencia literal, pero solo comentario; K.4a deja pasar.
+    expect(result.verdict).toBe('pass')
+    expect(result.criteria?.[0]?.pass).toBe(true)
+  })
+
+  it('K.4a limitation — accepts literal evidence for unreachable code', async () => {
+    const written = [{
+      path: 'src/math.ts',
+      content: 'if (false) {\n  export function sum(a, b) { return a + b }\n}\n',
+    }]
+    const result = await runQA({
+      description: 'Implement a function sum that adds two numbers',
+      output: ['src/math.ts'],
+      written,
+      model: 'test-model',
+      acceptance_criteria: ['The module provides a callable sum function that adds two numbers'],
+      checksResults: [],
+      provider: {
+        name: 'test',
+        chat: async () => ({
+          text: JSON.stringify({
+            verdict: 'pass',
+            reason: 'The sum implementation is present',
+            criteria: [{
+              text: 'The module provides a callable sum function that adds two numbers',
+              pass: true,
+              evidence: { file: 'src/math.ts', excerpt: 'export function sum(a, b) { return a + b }' },
+            }],
+          }),
+          inputTokens: 1,
+          outputTokens: 1,
+          model: 'test-model',
+        }),
+      },
+    })
+
+    // Hallazgo: la cita es código real, pero está en un branch muerto; K.4a deja pasar.
+    expect(result.verdict).toBe('pass')
+    expect(result.criteria?.[0]?.pass).toBe(true)
+  })
+
+  it('K.4a limitation — accepts literal evidence that contradicts the criterion', async () => {
+    const written = [{
+      path: 'src/validate.ts',
+      content: 'export function validate(input) {\n  if (isInvalid(input)) return null\n  return input\n}\n',
+    }]
+    const result = await runQA({
+      description: 'Reject invalid input by throwing an error',
+      output: ['src/validate.ts'],
+      written,
+      model: 'test-model',
+      acceptance_criteria: ['The function throws an error when the input is invalid'],
+      checksResults: [],
+      provider: {
+        name: 'test',
+        chat: async () => ({
+          text: JSON.stringify({
+            verdict: 'pass',
+            reason: 'The invalid-input branch is handled',
+            criteria: [{
+              text: 'The function throws an error when the input is invalid',
+              pass: true,
+              evidence: { file: 'src/validate.ts', excerpt: 'if (isInvalid(input)) return null' },
+            }],
+          }),
+          inputTokens: 1,
+          outputTokens: 1,
+          model: 'test-model',
+        }),
+      },
+    })
+
+    // Hallazgo: la cita hace lo contrario de lo pedido, pero es literal; K.4a deja pasar.
+    expect(result.verdict).toBe('pass')
+    expect(result.criteria?.[0]?.pass).toBe(true)
+  })
 })
 
 describe('runQA — K.2 checks context', () => {
