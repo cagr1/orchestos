@@ -128,7 +128,7 @@ export async function runQA(opts: {
     messages: [{ role: 'user', content: userContent }],
   })
 
-  const parsed = parseVerdict(resp.text, hasCriteria ?? false)
+  const parsed = parseVerdict(resp.text, hasCriteria ?? false, opts.written)
   return {
     verdict: parsed.verdict,
     reason: parsed.reason,
@@ -141,7 +141,8 @@ export async function runQA(opts: {
 
 function parseVerdict(
   raw: string,
-  expectCriteria: boolean
+  expectCriteria: boolean,
+  written: FileChange[]
 ): { verdict: 'pass' | 'fail'; reason: string; criteria?: QACriterionResult[] } {
   const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
   const jsonStr = jsonMatch?.[1] ?? raw.trim()
@@ -157,6 +158,12 @@ function parseVerdict(
 
   if (!expectCriteria) return { verdict: v, reason }
 
+  // K.4a — un juez QA puede citar un excerpt plausible que nunca aparece en el
+  // archivo (evidencia fabricada). K.1 solo exigía evidencia no vacía; esto
+  // verifica que sea una cita LITERAL del contenido real escrito, sin costo de
+  // un segundo LLM.
+  const byPath = new Map(written.map(f => [f.path, f.content]))
+
   const criteria: QACriterionResult[] = Array.isArray(o.criteria)
     ? (o.criteria as unknown[]).map(c => {
         const cr = c as Record<string, unknown>
@@ -166,7 +173,9 @@ function parseVerdict(
           typeof rawEvidence.excerpt === 'string' && rawEvidence.excerpt.trim()
           ? { file: rawEvidence.file, excerpt: rawEvidence.excerpt }
           : undefined
-        const pass = cr.pass === true && evidence !== undefined
+        const evidenceIsReal = evidence !== undefined &&
+          (byPath.get(evidence.file) ?? '').includes(evidence.excerpt)
+        const pass = cr.pass === true && evidenceIsReal
         return { text: typeof cr.text === 'string' ? cr.text : '?', pass, ...(evidence ? { evidence } : {}) }
       })
     : []

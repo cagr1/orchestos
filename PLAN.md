@@ -1159,15 +1159,32 @@ cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
   [check-test-assertions.ts](scripts/check-test-assertions.ts), conectado desde [checks.ts](src/run/checks.ts)
   y cubierto en [checks.test.ts](src/__tests__/checks.test.ts). 19 tests · 0 fail · `tsc --noEmit`
   limpio.
-- [ ] **K.4 — 🧠 Re-ejecución adversarial (la pieza grande, NO empezar sin las 3 anteriores
-  cerradas).** El juez deja de confiar en el reporte del executor: re-corre él mismo los checks
-  declarados sobre el estado final y contrasta lo que el executor CLAMÓ con lo que realmente cambió
-  (`computeFileDiffs()` ya existe en `qa.ts` y da el diff real por archivo). Verdicts estilo
-  fable-judge: `VERIFIED` / `CAVEATS` / `REFUTED`. **Decisiones de diseño abiertas — requieren
-  criterio, por eso es 🧠 y NO se delega**: (a) ¿el re-run es sobre el worktree antes de mergear, o
-  sobre una copia limpia?; (b) ¿`CAVEATS` bloquea la tarea o la deja pasar con marca?; (c) ¿cómo se
-  concilia con el `MAX_RETRIES` actual? Ninguna de las tres está decidida — quien tome este ítem
-  presenta plan corto a Carlos primero ([[feedback-planificar-cambios-grandes]]).
+- [x] **K.4a — ⚡ (2026-07-28) Cita literal obligatoria en la evidencia del criterio.** Auditoría
+  del K.4 original (2026-07-28, [[feedback-planificar-cambios-grandes]]): la premisa de que "el juez
+  re-corre checks sobre el estado final" ya estaba resuelta — `runChecks()` (harness.ts:528-533) YA
+  corre sobre `ctx.effectiveRoot` real, post-`enforceContract()`, y nada muta el estado entre eso y
+  el merge; re-correrlos de nuevo hubiera sido puro gasto redundante. El contenido que ve el QA
+  también es ya el real (`contractResult.written`, único punto de escritura a disco — el motor
+  agéntico solo bufferea en memoria). El hueco real y concreto: K.1 forzaba `pass:false` solo si
+  `evidence` venía vacía/ausente, nunca verificaba que el excerpt fuera una cita LITERAL del
+  archivo — un juez puede alucinar una cita plausible que no existe. Fix en `parseVerdict()`
+  ([qa.ts](src/run/qa.ts)): un criterio con `pass:true` cuyo `evidence.excerpt` no es substring
+  literal del contenido real de `evidence.file` (vía `written: FileChange[]`, ya disponible) se
+  fuerza a `pass:false` — mismo mecanismo defensivo de K.1, sin LLM adicional. Cierra la parte
+  mecánica de K.4 con costo cero. Test de regresión en
+  [qa-judge.test.ts](src/__tests__/qa-judge.test.ts): excerpt fabricado → verdict forzado a `fail`.
+  878 tests · 0 fail · `tsc --noEmit` limpio.
+- [ ] **K.4b — 🧠 Segundo juez adversarial (opcional, backlog — no es prerequisito de nada).**
+  Si K.4a no resulta suficiente en la práctica (evidencia real de un `pass` que igual estuvo mal
+  aunque la cita fuera literal), agregar una segunda pasada de LLM explícitamente adversarial
+  (`VERIFIED`/`CAVEATS`/`REFUTED`, estilo fable-judge) DESPUÉS de que el QA normal dé `pass` y ANTES
+  del merge (entre `qa.verdict === 'pass'` y `mergeWorktreeBack()`, harness.ts:598-600) — sobre el
+  mismo `ctx.effectiveRoot`, sin copia limpia aparte (el worktree ya es el estado real aislado).
+  Decisiones ya resueltas para cuando se tome: `CAVEATS` NO bloquea ni consume retry, solo se
+  persiste/marca (regresión D3 si bloqueara: retries agotándose sin necesidad real); `REFUTED`
+  reusa EXACTAMENTE el path de fallo existente (`revert` + `retryCount+1` + mismo chequeo de
+  exhaución) — sin contador de retry paralelo. Costo real a asumir: dobla el gasto de QA por tarea.
+  No arrancar sin evidencia concreta de que K.4a se queda corto.
 - [ ] **K.5 — ⚡ Spike de mutation testing (medición, NO adopción).** Gradúa SOLO la parte de
   medición de [IDEAS #54](IDEAS.md) — la adopción como gate sigue siendo backlog ahí. Verificar los
   dos supuestos que hunden o salvan el cálculo, y **reportar números, no instalar nada permanente**:

@@ -178,6 +178,37 @@ describe('runQA — K.1 criterion evidence', () => {
       excerpt: 'export const greeting = "hello"',
     })
   })
+
+  it('K.4a — forces a criterion to fail when the cited excerpt is fabricated (not a literal substring)', async () => {
+    const result = await runQA({
+      description: 'Add a greeting',
+      output: ['src/greeting.ts'],
+      written: [{ path: 'src/greeting.ts', content: 'export const greeting = "hello"' }],
+      model: 'test-model',
+      acceptance_criteria: ['The module exports greeting'],
+      checksResults: [],
+      provider: {
+        name: 'test',
+        chat: async () => ({
+          text: JSON.stringify({
+            verdict: 'pass',
+            reason: 'Evidence found',
+            criteria: [{
+              text: 'The module exports greeting',
+              pass: true,
+              evidence: { file: 'src/greeting.ts', excerpt: 'export function greeting() { return "hello" }' },
+            }],
+          }),
+          inputTokens: 1,
+          outputTokens: 1,
+          model: 'test-model',
+        }),
+      },
+    })
+
+    expect(result.verdict).toBe('fail')
+    expect(result.criteria?.[0]?.pass).toBe(false)
+  })
 })
 
 describe('runQA — K.2 checks context', () => {
