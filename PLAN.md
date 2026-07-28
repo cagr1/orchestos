@@ -1459,8 +1459,17 @@ Claude, Codex y cualquier otro LLM; no depender de la conversación.
     Los sobrevivientes restantes son equivalentes/no críticos: defaults de `resolve` y timeout,
     guard redundante protegido por `try/catch`, logging, medición de duración, límite exacto de
     `2000` caracteres y valores vacíos de resultados de error. No se cambió producción.
-  - [ ] **K.6.3.2 — `sandbox-policy.ts` → `sandbox-policy.test.ts`.** Ejecutar solo después de cerrar
-    K.6.3.1; proteger decisiones de worktree, dirty state y excepciones de seguridad.
+  - [x] **K.6.3.2 — `sandbox-policy.ts` → `sandbox-policy.test.ts` (2026-07-28).** Se añadieron
+    pruebas para repositorio inexistente, `preferred: "cwd"`, detached HEAD, nombres similares a
+    `runs-summary.json` y diagnóstico con más de diez archivos sucios. Se creó
+    `stryker.sandbox-policy.config.mjs` y el script aislado `mutation:sandbox-policy`.
+
+    Verificación: `bun test src/__tests__/sandbox-policy.test.ts --timeout 30000` (`8 pass`, `0 fail`,
+    `21 expect() calls`), `bun run typecheck` limpio y `bun run mutation:sandbox-policy`: `83` mutantes,
+    `62 killed`, `11 survived`, `10 CompileError`, `0 timeout`, score `84.93%`, duración `1m26s`.
+    Los sobrevivientes restantes afectan únicamente formato/recorte del diagnóstico de archivos sucios;
+    el branch survivor restante es equivalente en estados reales de Git ya cubiertos. No se cambió
+    producción.
   - [ ] **K.6.3.3 — `graph-runner.ts` → `graph-runner.test.ts`.** Ejecutar solo después de cerrar
     K.6.3.2; proteger retries, dependencias, branch isolation, rate limits y circuit breaker.
   - [ ] **K.6.3.4 — Consolidación.** Registrar score, costo y sobrevivientes de cada módulo por separado;
