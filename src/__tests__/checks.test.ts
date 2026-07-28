@@ -10,7 +10,8 @@ import { describe, it, expect, afterEach } from 'bun:test'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { defaultChecksFor } from '../run/checks.ts'
+import { defaultChecksFor, runChecks } from '../run/checks.ts'
+import { RunLogger } from '../run/logger.ts'
 import { jsCheckTempPath, cleanupJsCheckTemp } from '../run/html-script-check.ts'
 
 let tmpDirs: string[] = []
@@ -56,6 +57,31 @@ describe('defaultChecksFor', () => {
     const root = makeRoot(true)
     const checks = defaultChecksFor(['src/foo.ts', 'src/__tests__/foo.test.ts'], root)
     expect(checks).toContainEqual(expect.objectContaining({ cmd: 'bun test src/__tests__/foo.test.ts' }))
+  })
+
+  it('K.3: empty test file gets an assertion check that fails', async () => {
+    const root = makeRoot(true)
+    const testPath = join(root, 'empty.test.ts')
+    writeFileSync(testPath, `import { it } from 'bun:test'\nit('x', () => {})\n`)
+    const checks = defaultChecksFor(['empty.test.ts'], root)
+    const assertionCheck = checks.find(c => c.cmd.includes('check-test-assertions'))
+    expect(assertionCheck).toBeDefined()
+
+    const results = await runChecks([assertionCheck!], root, new RunLogger(root, 'k3-empty'))
+    expect(results[0]?.exitCode).not.toBe(0)
+    expect(results[0]?.stderr).toContain('test file has no assertions — passing vacuously')
+  })
+
+  it('K.3: test file with a real assertion passes the assertion check', async () => {
+    const root = makeRoot(true)
+    const testPath = join(root, 'real.test.ts')
+    writeFileSync(testPath, `import { expect, it } from 'bun:test'\nit('x', () => expect(1).toBe(1))\n`)
+    const checks = defaultChecksFor(['real.test.ts'], root)
+    const assertionCheck = checks.find(c => c.cmd.includes('check-test-assertions'))
+    expect(assertionCheck).toBeDefined()
+
+    const results = await runChecks([assertionCheck!], root, new RunLogger(root, 'k3-real'))
+    expect(results[0]?.exitCode).toBe(0)
   })
 
   it('returns no checks for non-code output (e.g. markdown)', () => {

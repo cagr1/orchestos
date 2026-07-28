@@ -11,6 +11,15 @@ const DEFAULT_TIMEOUT_MS = 60_000
 const OUTPUT_LIMIT = 2_000
 const TSC_TIMEOUT_MS = 120_000
 const JS_CHECK_TIMEOUT_MS = 15_000
+const TEST_ASSERTION_CHECK_TIMEOUT_MS = 15_000
+
+function testAssertionCheckFor(path: string): Check {
+  const checker = resolve(import.meta.dir, '../../scripts/check-test-assertions.ts')
+  return {
+    cmd: `${process.execPath} run ${checker} ${JSON.stringify(path)}`,
+    timeout_ms: TEST_ASSERTION_CHECK_TIMEOUT_MS,
+  }
+}
 
 /**
  * D3 finding (Mes 14, 2026-06-25): a task with no explicit `checks:` only gets
@@ -41,6 +50,15 @@ export function defaultChecksFor(output: string[], effectiveRoot: string): Check
       if (p.endsWith('.test.ts') || p.endsWith('.test.tsx')) {
         checks.push({ cmd: `bun test ${p}` })
       }
+    }
+  }
+
+  // K.3 — a test file with zero assertions passes `bun test` vacuously. This
+  // static check is independent of node_modules and therefore also runs in a
+  // fresh worktree. Missing files are left to the output contract check.
+  for (const p of output) {
+    if ((p.endsWith('.test.ts') || p.endsWith('.test.tsx')) && existsSync(resolve(effectiveRoot, p))) {
+      checks.push(testAssertionCheckFor(p))
     }
   }
 

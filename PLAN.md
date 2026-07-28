@@ -1148,14 +1148,17 @@ cada uno cierra solo. K.4 es el cambio grande y va al final, con su propio gate.
   con comando + `exitCode`; si está vacío, declara explícitamente que **NINGUNA verificación
   mecánica corrió** y el system prompt ordena máxima cautela. Tests en [qa-judge.test.ts](src/__tests__/qa-judge.test.ts).
   11 tests · 0 fail · `tsc --noEmit` limpio.
-- [ ] **K.3 — ⚡ Gate anti-test-vacío.** Un `.test.ts` que no asevera nada pasa `bun test` igual —
+- [x] **K.3 — ⚡ (2026-07-28) Gate anti-test-vacío.** Un `.test.ts` que no asevera nada pasa `bun test` igual —
   es la trampa más barata para un executor económico, y `defaultChecksFor()` hoy la premia (corre
   `bun test <archivo>` y da verde). Nuevo check en `checks.ts`: para cada output `*.test.ts`/`*.test.tsx`
   que el agente escribió, contar aserciones reales (`expect(`, `assert`, `.toBe`, `.toEqual`, etc. —
   búsqueda textual, no AST: barato y suficiente). **Cero aserciones → el check falla** con mensaje
   explícito ("test file has no assertions — passing vacuously"). Emitirlo desde `defaultChecksFor()`
   junto a los que ya genera. **Validación**: fixture con un test vacío (`it('x', () => {})`) → check
-  falla; fixture con un test real → pasa.
+  falla; fixture con un test real → pasa. Implementado con búsqueda textual barata en
+  [check-test-assertions.ts](scripts/check-test-assertions.ts), conectado desde [checks.ts](src/run/checks.ts)
+  y cubierto en [checks.test.ts](src/__tests__/checks.test.ts). 19 tests · 0 fail · `tsc --noEmit`
+  limpio.
 - [ ] **K.4 — 🧠 Re-ejecución adversarial (la pieza grande, NO empezar sin las 3 anteriores
   cerradas).** El juez deja de confiar en el reporte del executor: re-corre él mismo los checks
   declarados sobre el estado final y contrasta lo que el executor CLAMÓ con lo que realmente cambió
