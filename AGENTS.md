@@ -24,6 +24,10 @@ Si necesitas saber el email activo, usa `git config user.email` (solo lectura).
 - No uses `--no-verify` en commits salvo que el usuario lo pida.
 - No hagas `git push --force` salvo instrucción explícita.
 - No crees ni borres ramas remotas sin confirmación del usuario.
+- Cadencia de sincronización: después de 2–3 commits locales (o cuando la rama quede con 3
+  commits de ventaja sobre `origin/master`), ejecuta `git push origin master` automáticamente.
+  No acumules más commits sin subir; el push normal está autorizado. `--force` sigue prohibido
+  salvo instrucción explícita.
 
 ## Trabajo en equipo (Claude + Codex, en paralelo)
 
