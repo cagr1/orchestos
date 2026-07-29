@@ -81,3 +81,11 @@ El proyecto tiene un pre-commit hook en `scripts/pre-commit.sh` que corre `tsc -
 
     cp scripts/pre-commit.sh .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
+
+## Estado operativo de seguridad (2026-07-29)
+
+L.0–L.6.1 del baseline están cerrados. L.6.2 sigue abierto: la revisión CLI/HTTP inicial y sus
+límites viven en `docs/security-manual-review.md`; falta una sesión con navegador para la revisión
+visual y los flujos manuales de ejecución/worktree/diagnóstico/exportación. Hallazgos pendientes
+`L62-001` (migración concurrente) y `L62-002` (provider key persistida antes de validación). No
+corregirlos fuera de un ítem explícito de `PLAN.md`.

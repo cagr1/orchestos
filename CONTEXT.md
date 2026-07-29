@@ -44,3 +44,15 @@ se debe relajar esta regla para mejorar el mutation score.
 - 2026-07-09 22:37:11 chat         algo pasa con tus repsuesta [done]
 - 2026-07-09 22:11:01 chat         realiza una pagina web sobre criptomoneda con gráficos 3D o  [done]
 - 2026-07-09 21:23:08 chat         realiza una pagina web sobre criptomoneda con gráficos 3D o  [done]
+
+### Estado de seguridad — Mes 23 (2026-07-29)
+
+- L.0–L.6.1 están cerrados: threat model, secretos, CSRF/origen, filesystem/subprocesses, SSRF,
+  SQLite/privacidad y gate reproducible.
+- L.6.2 está en avance, no cerrado. La evidencia está en
+  `docs/security-manual-review.md`; la revisión visual requiere una sesión con navegador.
+- Límites permanentes: dashboard solo en `127.0.0.1`, usuario único, sin autenticación multiusuario;
+  si se expone fuera de loopback debe abrirse otra revisión de seguridad.
+- Hallazgos abiertos: `L62-001` (migraciones concurrentes pueden fallar con `duplicate column name`)
+  y `L62-002` (provider key persistida antes de validar). No corregirlos fuera de un ítem explícito
+  de `PLAN.md`.

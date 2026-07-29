@@ -1814,6 +1814,15 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   confianza permanentes. Si se habilita red externa o multiusuario, reabrir una revisión de seguridad
   específica; esta baseline no cubre ese cambio de amenaza.
 
+**L.6.2 — avance inicial (2026-07-29):** evidencia y hallazgos detallados en
+[docs/security-manual-review.md](docs/security-manual-review.md). CLI y superficie HTTP local
+verificadas sin gasto ni escrituras sensibles: dry-runs del runner/DAG, ayuda de comandos,
+status/list/config, dashboard HTML y GET, CSRF por origen/puerto, SSRF de import, validación de
+paths e ids. Hallazgos abiertos: `L62-001` (migración concurrente no serializada) y `L62-002`
+(provider key persistida antes de validación). La UI visual no pudo revisarse porque esta sesión no
+tuvo navegador disponible; no se marca el gate como cerrado. Pendientes: ejecutar una tarea/worktree/
+diagnóstico/exportación manual y decidir mitigación/aceptación de ambos hallazgos.
+
 ---
 
 ## MES 24 — M: guías reproducibles por lenguaje y ecosistema (nuevo, 2026-07-29)
