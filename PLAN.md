@@ -1653,16 +1653,24 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
 
 ### L.3 — ⚡ Filesystem, worktrees y ejecución de comandos
 
-- [ ] Crear una matriz de rutas permitidas por operación y probar traversal (`../`, rutas absolutas,
-  encoded traversal), symlinks, junctions, paths fuera del proyecto, archivos especiales y cambios
-  de `cwd`.
-- [ ] Verificar que contract, sandbox y tools aplican la misma política; ningún path declarado por
-  una tarea o devuelto por un LLM debe ampliar silenciosamente el alcance autorizado.
-- [ ] Auditar cada `Bun.spawn`/CLI: argumentos como arrays (sin shell interpolation), `cwd` validado,
-  entorno mínimo, timeout, límites de stdout/stderr, señales y limpieza de procesos hijos.
-- [ ] Tests de regresión para command injection, variables de entorno heredadas, escape del worktree,
-  proceso que no termina y race conditions de cleanup. El test debe demostrar el rechazo observable,
-  no solo inspeccionar strings del código.
+- [x] **L.3 — Filesystem y subprocesses (2026-07-29).** Se creó la política común en
+  [src/run/path-policy.ts](src/run/path-policy.ts) y la matriz documentada en
+  [docs/security-filesystem-policy.md](docs/security-filesystem-policy.md): paths relativos,
+  absolutos, `../`, traversal con una y dos capas de encoding, symlinks externos e internos,
+  `cwd` fuera del root y archivos no regulares. `enforceContract`, tools, checks y diff de
+  worktree usan ahora la misma resolución real del root; un path LLM no puede ampliar
+  silenciosamente `output[]`.
+- [x] Todos los puntos de CLI auditados mantienen arrays de argumentos sin shell interpolation.
+  `runChecks` valida `cwd` y filtra el entorno con `safeChildEnv()`; se mantienen timeouts,
+  señales de terminación y límites de salida existentes. Las rutas de executor apuntan al
+  worktree ya creado por sandbox y la lectura de diff descarta paths que no resuelven dentro de él.
+- [x] Regresión observable en `src/__tests__/path-policy.test.ts`: `36 pass`, `0 fail`, `106
+  expect()` calls contando contract/sandbox/path-policy; incluye command injection por metacaracteres,
+  variable arbitraria heredada, symlink escape, symlink de escritura, `cwd` y traversal codificado.
+  Verificación adicional: `bunx tsc --noEmit` limpio. La terminación de procesos hijos ya existentes
+  sigue dependiendo del mecanismo de señal de Bun; no se inventa un process-group portable en esta
+  pasada. Junctions y FIFO no aplican al filesystem/runtime soportado en macOS sin añadir un
+  fixture dependiente del sistema; quedan explícitamente como gap residual, no como cobertura falsa.
 
 ### L.4 — ⚡ SSRF, contenido externo y prompt injection
 

@@ -31,6 +31,7 @@
 
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
+import { safeChildEnv } from '../path-policy.ts'
 import { opencodeEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import { getOpencodeCatalog } from '../../router/opencode-catalog.ts'
 
@@ -147,7 +148,7 @@ async function runOpencode(
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean }> {
-  const proc = Bun.spawn([OPENCODE_BINARY, ...args], { cwd, stdout: 'pipe', stderr: 'pipe' })
+  const proc = Bun.spawn([OPENCODE_BINARY, ...args], { cwd, env: safeChildEnv(), stdout: 'pipe', stderr: 'pipe' })
 
   let timedOut = false
   const timer = setTimeout(() => { timedOut = true; proc.kill('SIGTERM') }, timeoutMs)

@@ -19,6 +19,7 @@
 
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
+import { safeChildEnv } from '../path-policy.ts'
 import { claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
 
 export class ExecutorExternalError extends Error {}
@@ -162,7 +163,7 @@ async function runClaudeCode(
 ): Promise<{ stdout: string; timedOut: boolean; resultLine?: string }> {
   const proc = Bun.spawn(
     [CLAUDE_BINARY, ...buildClaudeArgs(systemPrompt, model, effort)],
-    { cwd, stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' },
+    { cwd, env: safeChildEnv(), stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' },
   )
   proc.stdin.write(userPrompt)
   proc.stdin.end()

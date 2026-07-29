@@ -6,6 +6,7 @@ import {
   jsSyntaxCheckForJsFile,
   jsSyntaxCheckForHtmlFile,
 } from './html-script-check.ts'
+import { PathPolicyError, resolveProjectCwd, safeChildEnv } from './path-policy.ts'
 
 const DEFAULT_TIMEOUT_MS = 60_000
 const OUTPUT_LIMIT = 2_000
@@ -122,9 +123,16 @@ async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResu
   const argv = splitCommand(check.cmd)
   const command = argv[0]
   const args = argv.slice(1)
-  const cwd = resolve(projectRoot, check.cwd ?? '.')
   const timeoutMs = check.timeout_ms ?? DEFAULT_TIMEOUT_MS
   const started = performance.now()
+
+  let cwd: string
+  try {
+    cwd = resolveProjectCwd(projectRoot, check.cwd ?? '.')
+  } catch (e) {
+    const message = e instanceof PathPolicyError ? e.message : 'invalid command cwd'
+    return failureResult(check.cmd, message, started, false)
+  }
 
   if (!command) {
     return failureResult(check.cmd, 'empty command', started, false)
@@ -134,6 +142,7 @@ async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResu
   try {
     const proc = Bun.spawn([command, ...args], {
       cwd,
+      env: safeChildEnv(),
       stdout: 'pipe',
       stderr: 'pipe',
     })

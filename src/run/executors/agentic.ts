@@ -19,9 +19,8 @@
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
-import { join } from 'path'
 import { calcCost } from '../../router/pricing.ts'
-import { normalizeRelPath } from '../contract.ts'
+import { isSafeRelPath, normalizeRelPath, resolveProjectPath } from '../path-policy.ts'
 import { runChecks } from '../checks.ts'
 import { capToolOutput, capCheckOutput } from '../tool-output-cap.ts'
 import {
@@ -29,13 +28,6 @@ import {
   type ToolDef, type ToolExecutor,
 } from '../../providers/tool-call.ts'
 import type { ExecutorEngine } from './types.ts'
-
-// -- path safety (same anti-escape convention as F4: never resolve `..`, just refuse it) --
-
-function isSafeRelPath(p: string): boolean {
-  const normalized = normalizeRelPath(p)
-  return !normalized.split('/').includes('..')
-}
 
 // -- tool definitions -----------------------------------------------------------
 
@@ -111,7 +103,8 @@ export const agenticEngine: ExecutorEngine = {
         return `[Error: '${normalized}' is not in the declared input files: ${[...declaredInputs].join(', ')}]`
       }
       if (buffer.has(normalized)) return buffer.get(normalized)!
-      const full = join(effectiveRoot, normalized)
+      let full: string
+      try { full = normalized === '.' ? effectiveRoot : resolveProjectPath(effectiveRoot, normalized, 'read') } catch { return `[Error: path '${relPath}' is outside the project]` }
       if (!existsSync(full)) return `[Error: file not found: ${normalized}]`
       let raw: string
       try {
@@ -139,9 +132,10 @@ export const agenticEngine: ExecutorEngine = {
 
     function listDir(relPath: string): string {
       const p = relPath?.trim() || '.'
-      if (!isSafeRelPath(p)) return `[Error: path '${p}' escapes the project root]`
-      const normalized = normalizeRelPath(p)
-      const full = join(effectiveRoot, normalized)
+      if (p !== '.' && !isSafeRelPath(p)) return `[Error: path '${p}' escapes the project root]`
+      const normalized = p === '.' ? '.' : normalizeRelPath(p)
+      let full: string
+      try { full = normalized === '.' ? effectiveRoot : resolveProjectPath(effectiveRoot, normalized, 'read') } catch { return `[Error: path '${relPath}' is outside the project]` }
       if (!existsSync(full) || !statSync(full).isDirectory()) {
         return `[Error: not a directory: ${normalized}]`
       }

@@ -10,8 +10,7 @@
  */
 
 import { existsSync, readFileSync, statSync } from 'fs'
-import { join } from 'path'
-import { normalizeRelPath } from '../contract.ts'
+import { normalizeRelPath, resolveProjectPath } from '../path-policy.ts'
 
 function parseGitStatusPorcelain(stdout: string): string[] {
   if (!stdout) return []
@@ -56,7 +55,8 @@ export function readWorktreeDiff(effectiveRoot: string): { path: string; content
   const files: { path: string; content: string }[] = []
   for (const p of paths) {
     const normalized = normalizeRelPath(p)
-    const full = join(effectiveRoot, normalized)
+    let full: string
+    try { full = resolveProjectPath(effectiveRoot, normalized, 'read') } catch { continue }
     if (!existsSync(full)) continue // archivo borrado por el proceso externo — nada que reportar como FileChange
     // B.4 — git reporta el directorio untracked (con -uall) como una entrada mas;
     // readFileSync sobre un directorio tira EISDIR. isFile() lo descarta. Si en el

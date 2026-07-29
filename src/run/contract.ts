@@ -1,6 +1,7 @@
 import { createHash } from 'crypto'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join, dirname } from 'path'
+import { dirname, join } from 'path'
+import { normalizeRelPath, resolveProjectPath } from './path-policy.ts'
 
 export interface FileChange {
   path: string   // relative to project root
@@ -61,14 +62,7 @@ export function parseLLMResponse(raw: string): LLMFileResponse {
   return { files }
 }
 
-// ── path normalization (F4.1) ──────────────────────────────────────────────────
-export function normalizeRelPath(p: string): string {
-  let s = p.replaceAll('\\', '/')
-  s = s.replace(/\/+/g, '/')
-  while (s.startsWith('./')) s = s.slice(2)
-  if (s.length > 1 && s.endsWith('/')) s = s.slice(0, -1)
-  return s
-}
+export { normalizeRelPath } from './path-policy.ts'
 
 // ── enforce contract ──────────────────────────────────────────────────────────
 // BLOCKS writes outside allowedPaths — throws on violation.
@@ -77,6 +71,7 @@ export function enforceContract(
   response: LLMFileResponse,
   allowedPaths: string[]
 ): ContractResult {
+  mkdirSync(root, { recursive: true })
   const normalizedAllowed = allowedPaths.map(normalizeRelPath)
   const attempted: string[] = []
   const authorized: string[] = []
@@ -103,7 +98,7 @@ export function enforceContract(
   const written: FileChange[] = []
   for (const file of response.files) {
     const normalizedPath = normalizeRelPath(file.path)
-    const fullPath = join(root, normalizedPath)
+    const fullPath = resolveProjectPath(root, normalizedPath, 'write')
     mkdirSync(dirname(fullPath), { recursive: true })
     writeFileSync(fullPath, file.content, 'utf-8')
     written.push({ path: normalizedPath, content: file.content })

@@ -32,6 +32,7 @@ import { readWorktreeDiff } from './worktree-diff.ts'
 import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import { calcCost } from '../../router/pricing.ts'
 import { getCatalog } from '../../router/model-catalog.ts'
+import { safeChildEnv } from '../path-policy.ts'
 
 export class ExecutorCodexError extends Error {}
 
@@ -88,7 +89,7 @@ async function runCodex(
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean }> {
-  const proc = Bun.spawn([CODEX_BINARY, ...args], { cwd, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
+  const proc = Bun.spawn([CODEX_BINARY, ...args], { cwd, env: safeChildEnv(), stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
 
   let timedOut = false
   const timer = setTimeout(() => { timedOut = true; proc.kill('SIGTERM') }, timeoutMs)
