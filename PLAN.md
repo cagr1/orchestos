@@ -1766,8 +1766,11 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
     transformación y postcondición: cada uno deja `0` artefactos parciales y `0` versión marcada.
     Después de ambos fallos de contrato, una migración válida v2 continúa y registra una sola evidencia.
     El rollback es transaccional; no borra/recrea ni restaura automáticamente la DB activa.
-  - [ ] Documentar procedimiento operativo: backup validado → detener procesos → migrar → integrity
-    check → reabrir; si falla, conservar la DB original y restaurar a un destino nuevo.
+  - [x] **L.5.7.7 — Procedimiento operativo (2026-07-29).** Se documentó en
+    [docs/security-migration-recovery.md](docs/security-migration-recovery.md) el flujo backup
+    consistente/validado → detener procesos → migrar → `integrity_check` → reabrir. En fallo se
+    conserva la DB original, se valida el backup y se restaura solo a un destino nuevo; el reemplazo
+    de la DB activa queda como acción manual revisada, nunca automática.
 - [x] **L.5.5a — Auditoría de queries y límites (2026-07-29).** Se auditó el inventario completo de
   `bun:sqlite`: valores externos parametrizados, FTS tokenizado, SQL dinámico limitado a identificadores
   constantes y único `VACUUM INTO` con path escapado. Se corrigió el hallazgo real del endpoint de runs:
