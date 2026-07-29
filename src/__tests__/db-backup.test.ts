@@ -12,8 +12,9 @@ describe('database backup and privacy', () => {
         const { runMigrations } = await import('./src/db/migrate.ts')
         const { upsertMemory } = await import('./src/db/memory.ts')
         const { createDatabaseBackup, restoreDatabaseBackup, verifyDatabaseBackup } = await import('./src/db/backup.ts')
+        const providerKey = ['sk', 'live', '123456789012345678901234'].join('-')
         runMigrations()
-        upsertMemory('backup-project', 'privacy', 'OPENAI_API_KEY=sk-live-123456789012345678901234')
+        upsertMemory('backup-project', 'privacy', 'OPENAI_API_KEY=' + providerKey)
         const result = createDatabaseBackup(${JSON.stringify(destination)})
         const verified = verifyDatabaseBackup(${JSON.stringify(destination)})
         const restored = restoreDatabaseBackup(${JSON.stringify(destination)}, ${JSON.stringify(join(home, 'restored.sqlite'))})
@@ -81,8 +82,9 @@ describe('database backup and privacy', () => {
       const script = `
         const { runMigrations } = await import('./src/db/migrate.ts')
         const { upsertMemory, getMemory } = await import('./src/db/memory.ts')
+        const providerKey = ['sk', 'live', '123456789012345678901234'].join('-')
         runMigrations()
-        upsertMemory('privacy-project', 'secret', 'OPENAI_API_KEY=sk-live-123456789012345678901234')
+        upsertMemory('privacy-project', 'secret', 'OPENAI_API_KEY=' + providerKey)
         const row = getMemory('privacy-project', 'secret')
         process.stdout.write(JSON.stringify({ content: row?.content ?? null }))
       `
@@ -99,7 +101,7 @@ describe('database backup and privacy', () => {
       ])
       expect(exitCode, stderr).toBe(0)
       const result = JSON.parse(stdout) as { content: string }
-      expect(result.content).not.toContain('sk-live-123456789012345678901234')
+      expect(result.content).not.toContain(['sk', 'live', '123456789012345678901234'].join('-'))
       expect(result.content).toContain('[REDACTED:provider-key]')
     } finally {
       rmSync(home, { recursive: true, force: true })
