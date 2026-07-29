@@ -1579,14 +1579,18 @@ debe abrir un bloque separado de seguridad de producción; no ampliar estos cont
 
 ### L.0 — 🧠 Threat model y límites de confianza (prerequisito)
 
-- [ ] Identificar activos y daños: API keys/tokens, código fuente, archivos fuera del proyecto, DB,
-  prompts/contexto, costos, historial de runs y capacidad de ejecutar comandos.
-- [ ] Documentar actores y entradas no confiables: usuario local, proceso local comprometido,
-  tarea/skill importada, contenido web, imagen/OCR, salida de LLM y CLI externo.
-- [ ] Dibujar los límites entre dashboard HTTP, CLI, filesystem, SQLite, subprocesses, proveedores
-  externos y worktrees. Para cada límite, registrar autorización, validación, aislamiento y logging.
-- [ ] Entregable: `docs/security-threat-model.md` con riesgos clasificados por impacto/probabilidad,
-  controles existentes, gaps y decisión explícita de qué queda fuera de alcance.
+- [x] **L.0 — 🧠 (2026-07-29)** Threat model escrito y verificado contra el código real (no
+  asumido): activos (API keys en `~/.orchestos/.env` texto plano, código del usuario, DB SQLite,
+  prompts, capacidad de `Bun.spawn`), actores/entradas no confiables (tarea/skill importada,
+  contenido web, imagen/OCR, salida de LLM, CLI externo), y límites de confianza verificados
+  (bind `127.0.0.1` + `isSameOrigin()` sin auth real en `server.ts`, traversal check en estáticos,
+  `enforceContract()` como único punto de escritura, 8 sitios de `Bun.spawn` confirmados con arrays
+  de argumentos — sin interpolación de shell, `ssrf.ts` con resolución DNS real, `sandbox-policy.ts`
+  exigiendo working tree limpio). Entregable: [docs/security-threat-model.md](docs/security-threat-model.md).
+  6 gaps reales documentados para L.1-L.6 (sin auth, API keys sin cifrar, contenido externo
+  como dato solo por convención de prompt, sin matriz de path traversal, sin `bun audit`, sin
+  retención/backup de la DB), y alcance explícitamente fuera de esta baseline (exposición no-local,
+  multiusuario, cifrado completo de DB, compliance formal). No se cambió código de producción.
 
 ### L.1 — ⚡ Inventario de superficie y secretos
 
