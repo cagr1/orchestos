@@ -14,6 +14,9 @@ if (!existsSync(DB_DIR)) {
 }
 
 export const db = new Database(DB_PATH, { create: true })
+// Foreign-key clauses are present throughout the schema; enforce them for
+// every connection instead of relying on SQLite's connection-local default.
+db.exec('PRAGMA foreign_keys = ON;')
 // Short concurrent writes (dashboard + CLI) wait for the writer instead of
 // failing immediately with SQLITE_BUSY. Higher-level operations still need
 // bounded transactions; this is not an infinite retry policy.

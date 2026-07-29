@@ -57,6 +57,15 @@ export function applyMigrationSteps(
   }
 }
 
+export function rebuildMemoryFts(database: Database = db): boolean {
+  try {
+    database.exec(`INSERT INTO memory_fts(memory_fts) VALUES('rebuild')`)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function runMigrations(): void {
   // L.5.7.1 — metadata de linaje. La baseline se registra al final, después
   // de que todas las tablas/columnas actuales hayan sido comprobadas.
@@ -284,9 +293,7 @@ export function runMigrations(): void {
   // Rebuild FTS5 index on every startup — keeps index consistent if rows were
   // inserted before triggers existed (first migration) or after corruption.
   // Idempotent and fast for the small memory tables this tool uses.
-  try {
-    db.exec(`INSERT INTO memory_fts(memory_fts) VALUES('rebuild')`)
-  } catch { /* ignore if FTS5 not available */ }
+  rebuildMemoryFts()
 
   // Existing installations have no historical migration ledger. Record one
   // honest baseline only after the current schema has completed successfully;

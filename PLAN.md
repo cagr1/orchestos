@@ -1758,8 +1758,10 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
     contadores/costos/tiempo, `NOT NULL` de `runs.status`, tipo nulo de columnas añadidas y rechazo
     de path duplicado por constraint `UNIQUE`, además de la existencia del índice único de `files`.
     Foreign keys, FTS5, triggers y conteos de integridad quedan para L.5.7.5.
-  - [ ] Verificar `PRAGMA foreign_keys`, índices, FTS5, triggers y conteos de filas antes/después;
-    probar corrupción o incompatibilidad de FTS con un fallo explícito y recuperable.
+  - [x] **L.5.7.5 — Integridad relacional y FTS (2026-07-29).** Se activó `PRAGMA foreign_keys = ON`
+    por conexión y se verifican foreign keys, índices requeridos, los tres triggers FTS5 y conteos de
+    memoria antes/después. `rebuildMemoryFts()` reporta recuperación exitosa tras borrar el índice y
+    `false` ante una tabla FTS incompatible, sin ocultar el resultado ni tocar datos fuente.
   - [ ] Probar rollback por inyección de fallo en cada etapa crítica. No se acepta “borrar y recrear”
     como rollback ni restaurar automáticamente la DB activa desde un backup.
   - [ ] Documentar procedimiento operativo: backup validado → detener procesos → migrar → integrity

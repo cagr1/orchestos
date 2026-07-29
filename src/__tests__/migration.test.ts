@@ -20,6 +20,13 @@ interface ChildResult {
   duplicatePathRejected?: boolean
   uniqueFilesIndex?: boolean
   legacyTaskIdDefault?: string | null
+  foreignKeys?: number
+  requiredIndexes?: boolean
+  memoryCountBefore?: number
+  memoryCountAfter?: number
+  ftsMatchCount?: number
+  ftsRebuiltAfterCorruption?: boolean
+  ftsRebuiltWithIncompatibility?: boolean
   error?: string
 }
 
@@ -48,8 +55,9 @@ describe('SQLite migrations', () => {
     const home = tempHome()
     try {
       const result = await runMigrationProcess(home, `
-        const { runMigrations } = await import('./src/db/migrate.ts')
+        const { runMigrations, rebuildMemoryFts } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
+        const memoryCountBefore = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'memory_entries'").get().count
         runMigrations()
         const tables = db.query("SELECT name FROM sqlite_master WHERE type IN ('table', 'virtual table') AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(row => row.name)
         const runsColumns = db.query('PRAGMA table_info(runs)').all().map(row => row.name)
@@ -64,7 +72,16 @@ describe('SQLite migrations', () => {
           db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['fixture-project-2', '/fixture', '{}', '', '2026-07-29T00:00:00.000Z'])
         } catch { duplicatePathRejected = true }
         const uniqueFilesIndex = db.query('PRAGMA index_list(files)').all().some(row => row.unique === 1)
-        process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns, schemaVersions, runDefaults, statusNotNull, duplicatePathRejected, uniqueFilesIndex }))
+        const foreignKeys = db.query('PRAGMA foreign_keys').get().foreign_keys
+        const requiredIndexes = ['idx_files_project', 'idx_edges_from', 'idx_edges_to', 'idx_memory_project_scope'].every(name => db.query("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?").get(name) !== null)
+        db.run('INSERT INTO memory_entries (id, project_id, topic_key, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)', ['fixture-memory', 'fixture-project-1', 'fixture-topic', 'recoverable fts content', '2026-07-29T00:00:00.000Z', '2026-07-29T00:00:00.000Z'])
+        const memoryCountAfter = db.query('SELECT COUNT(*) AS count FROM memory_entries').get().count
+        const ftsMatchCount = db.query("SELECT COUNT(*) AS count FROM memory_fts WHERE memory_fts MATCH 'recoverable'").get().count
+        db.exec('DELETE FROM memory_fts')
+        const ftsRebuiltAfterCorruption = rebuildMemoryFts()
+        db.exec('DROP TABLE memory_fts')
+        const ftsRebuiltWithIncompatibility = rebuildMemoryFts()
+        process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns, schemaVersions, runDefaults, statusNotNull, duplicatePathRejected, uniqueFilesIndex, foreignKeys, requiredIndexes, memoryCountBefore, memoryCountAfter, ftsMatchCount, ftsRebuiltAfterCorruption, ftsRebuiltWithIncompatibility }))
         db.close()
       `)
 
@@ -83,6 +100,13 @@ describe('SQLite migrations', () => {
       expect(result.statusNotNull).toBe(1)
       expect(result.duplicatePathRejected).toBe(true)
       expect(result.uniqueFilesIndex).toBe(true)
+      expect(result.foreignKeys).toBe(1)
+      expect(result.requiredIndexes).toBe(true)
+      expect(result.memoryCountBefore).toBe(0)
+      expect(result.memoryCountAfter).toBe(1)
+      expect(result.ftsMatchCount).toBe(1)
+      expect(result.ftsRebuiltAfterCorruption).toBe(true)
+      expect(result.ftsRebuiltWithIncompatibility).toBe(false)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
