@@ -195,3 +195,8 @@ contrato roadmap↔skill↔checks (§6), y la regla de evidencia por sección (c
 (`backend`, `frontend`, `qa-seguridad`, `architecture`, `devops`, `ai-agents`) a
 `docs/roadmaps/disciplines/`. Cada sección conserva estado `known` hasta verificarse contra un
 proyecto real; no se promovieron perfiles de lenguaje ni se conectaron todavía skills/QA.
+
+**Perfiles de lenguaje iniciales (M.2.2, 2026-07-29)**: se añadieron perfiles secundarios para
+TypeScript/Bun, Rust y Go en `languages/`. TypeScript/Bun tiene evidencia de herramientas detectadas
+en OrchestOS; Rust permanece `known` y Go `detected` solo por un fixture, con toolchains de producción
+`missing`.

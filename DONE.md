@@ -23,6 +23,8 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 - M.2.1: promovidos desde `MemoriesMD` los seis roadmaps de disciplina — backend, frontend,
   qa-seguridad, arquitectura, DevOps y AI Agents — a `docs/roadmaps/disciplines/`, preservando
   trazabilidad y estado inicial `known`.
+- M.2.2: creados perfiles secundarios para TypeScript/Bun, Rust y Go con evidencia de toolchain y
+  estados honestos (`detected`, `verified`, `known`, `missing`), sin duplicar las disciplinas.
 
 ---
 

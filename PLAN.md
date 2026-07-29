@@ -1934,20 +1934,22 @@ un proyecto concreto lo necesita, crear el perfil de lenguaje angosto correspond
   Se incorporaron explícitamente buenas prácticas de API/SQL, seguridad, performance, system design,
   AWS/operación y agent loop/tool security. No se promovieron los perfiles de lenguaje secundarios
   ni se conectaron todavía skills/QA (M.2/M.4 restantes).
-- [ ] Crear perfiles de **lenguaje** versionados como capa secundaria, angosta, para TypeScript/Bun,
-  Rust y Go como primera muestra — solo entorno/toolchain/idiomas, sin repetir lo que ya cubre la
-  disciplina. Cada perfil debe distinguir lenguaje, runtime, package/dependency manager, framework,
-  persistencia y tipo de entrega.
-- [ ] Rust: cubrir `cargo`/`Cargo.toml`, edición/formato, compilación, tests, documentación,
-  errores/resultados, ownership/concurrencia, dependencias y checks de seguridad; los comandos como
-  `clippy` o auditoría de dependencias deben marcarse como `available` solo después de detectarlos.
-- [ ] Go: cubrir `go.mod`, formato, `go test`, build, `vet`/static analysis disponible, errores,
-  goroutines/race conditions, contexto/timeouts, dependencias y checks de seguridad; verificar cada
-  herramienta en el entorno antes de convertirla en gate.
-- [ ] TypeScript/Bun: cubrir runtime/package manager real, typecheck, tests, lint/format, bundling,
-  dependencias, secretos, SSRF/XSS y diferencias entre código de servidor, cliente y scripts.
-- [ ] Cada perfil (disciplina o lenguaje) debe tener una sección “no asumir”: comandos alternativos,
-  diferencias entre proyecto library/service/CLI, y qué información debe pedir o detectar OrchestOS.
+- [x] **M.2.2 — (2026-07-29) Perfiles secundarios de lenguaje.** Se crearon perfiles versionados y
+  angostos para TypeScript/Bun, Rust y Go en
+  [docs/roadmaps/languages/](docs/roadmaps/languages/). Cada uno distingue lenguaje, runtime,
+  package/dependency manager, framework, persistencia y tipo de entrega sin duplicar las disciplinas.
+  TypeScript/Bun queda `detected` con evidencia real; Rust queda `known` y Go `detected` solo por un
+  fixture, con las herramientas de producción ausentes marcadas `missing`.
+- [x] Rust: el perfil cubre `cargo`/`Cargo.toml`, edición/formato, compilación, tests, documentación,
+  errores/resultados, ownership/concurrencia, dependencias y checks de seguridad; `clippy`/auditoría
+  no se declaran disponibles sin detección.
+- [x] Go: el perfil cubre `go.mod`, formato, `go test`, build, `vet`/static analysis, errores,
+  goroutines/race conditions, contexto/timeouts, dependencias y checks de seguridad; herramientas
+  ausentes quedan explícitamente `missing`.
+- [x] TypeScript/Bun: el perfil cubre runtime/package manager real, typecheck, tests, lint/format,
+  bundling, dependencias, secretos, SSRF/XSS y diferencias entre servidor, cliente y scripts.
+- [x] Cada perfil incluye sección “No asumir” con comandos alternativos, diferencias entre library/
+  service/CLI y qué información debe pedir o detectar OrchestOS.
 
 ### M.3 — 🧠 Perfil efectivo del proyecto
 
