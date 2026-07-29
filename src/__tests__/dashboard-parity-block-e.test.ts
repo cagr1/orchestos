@@ -9,16 +9,23 @@ import { handleApiRunsAnalyze, handleApiRunsDelete } from '../dashboard/handlers
 // `orchestos runs --analyze` ahora tienen equivalente en el dashboard.
 
 const insertedConflictIds: string[] = []
+const insertedMemoryIds: string[] = []
 
 afterAll(() => {
   // IDEAS.md #20 — no dejar filas de test en la DB real.
   for (const id of insertedConflictIds) resolveConflict(id)
   db.run("DELETE FROM memory_conflicts WHERE id IN (" + insertedConflictIds.map(() => '?').join(',') + ")", insertedConflictIds)
+  if (insertedMemoryIds.length > 0) {
+    db.run("DELETE FROM memory_entries WHERE id IN (" + insertedMemoryIds.map(() => '?').join(',') + ")", insertedMemoryIds)
+  }
 })
 
 describe('handleApiMemoryConflicts', () => {
   it('returns an unresolved conflict just inserted', async () => {
-    const id = insertConflict('block-e-test-entry-a', 'block-e-test-entry-b', 'contradiction', 'high')
+    const entryA = upsertMemory('block-e-test-project', 'entry-a', 'block e entry a').id
+    const entryB = upsertMemory('block-e-test-project', 'entry-b', 'block e entry b').id
+    insertedMemoryIds.push(entryA, entryB)
+    const id = insertConflict(entryA, entryB, 'contradiction', 'high')
     insertedConflictIds.push(id)
 
     const res = handleApiMemoryConflicts()
@@ -36,7 +43,10 @@ describe('handleApiMemoryConflicts', () => {
 // I.5 (Mes 18) — el panel de conflictos gana su primera acción real.
 describe('handleApiMemoryConflictResolve', () => {
   it('resolves an unresolved conflict and drops it from the list', async () => {
-    const id = insertConflict('i5-test-entry-a', 'i5-test-entry-b', 'contradiction', 'high')
+    const entryA = upsertMemory('i5-test-project', 'entry-a', 'i5 entry a').id
+    const entryB = upsertMemory('i5-test-project', 'entry-b', 'i5 entry b').id
+    insertedMemoryIds.push(entryA, entryB)
+    const id = insertConflict(entryA, entryB, 'contradiction', 'high')
     insertedConflictIds.push(id)
 
     const res = handleApiMemoryConflictResolve(new URL(`http://localhost/api/memory/conflicts/${id}/resolve`))

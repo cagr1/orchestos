@@ -18,6 +18,7 @@
     "ledger:report": "bun run scripts/ledger-report.ts",
     "security:secrets": "bun run scripts/check-secrets.ts --staged",
     "security:secrets:tracked": "bun run scripts/check-secrets.ts --tracked",
+    "security:gate": "bun run scripts/security-gate.ts",
     "mutation:qa": "stryker run stryker.config.mjs",
     "mutation:checks": "stryker run stryker.checks.config.mjs",
     "mutation:sandbox-policy": "stryker run stryker.sandbox-policy.config.mjs",
@@ -43,5 +44,8 @@
     "pdfkit": "^0.18.0",
     "tesseract.js": "^7.0.0",
     "yaml": "^2.9.0"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8"
   }
 }

@@ -15,7 +15,7 @@ const PLACEHOLDER_WORDS = [
 ]
 
 const DETECTORS: Array<{ kind: SecretKind; pattern: RegExp }> = [
-  { kind: 'private-key', pattern: /-----BEGIN [A-Z0-9 ]+ PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]+ PRIVATE KEY-----/g },
+  { kind: 'private-key', pattern: /-----BEGIN [A-Z0-9\s]+PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9\s]+PRIVATE KEY-----/g },
   { kind: 'provider-key', pattern: /\b(?:sk-or-v1-[A-Za-z0-9_-]{20,}|sk-ant-api\d{2}-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{24,})\b/g },
   { kind: 'github-token', pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g },
   { kind: 'aws-access-key', pattern: /\bAKIA[0-9A-Z]{16}\b/g },
@@ -31,6 +31,10 @@ function isPlaceholder(value: string): boolean {
   return PLACEHOLDER_WORDS.some(word => normalized.includes(word))
 }
 
+function hasSpecificSecretKind(value: string): boolean {
+  return /^(?:sk-or-v1-|sk-ant-api\d{2}-|sk-|gh[pousr]_|github_pat_|AKIA|Bearer\s)/i.test(value)
+}
+
 export function findSecrets(text: string): SecretFinding[] {
   const findings: SecretFinding[] = []
   for (const detector of DETECTORS) {
@@ -38,7 +42,9 @@ export function findSecrets(text: string): SecretFinding[] {
     for (const match of text.matchAll(detector.pattern)) {
       const value = match[0]
       const credential = detector.kind === 'credential-assignment' ? (match[1] ?? value) : value
-      if (!isPlaceholder(credential)) findings.push({ kind: detector.kind })
+      if (!isPlaceholder(credential) && !(detector.kind === 'credential-assignment' && hasSpecificSecretKind(credential))) {
+        findings.push({ kind: detector.kind })
+      }
     }
   }
   return findings

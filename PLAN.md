@@ -1798,8 +1798,13 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
 
 ### L.6 — 🔍 Gate de seguridad y operación
 
-- [ ] Ejecutar la matriz completa de pruebas negativas, typecheck, suite, coverage y auditoría de
-  dependencias desde un comando reproducible; el gate debe fallar ante una regresión crítica.
+- [x] **L.6.1 — Gate reproducible de seguridad (2026-07-29).** Se implementaron `bun run security:gate` y
+  [docs/security-gate.md](docs/security-gate.md): typecheck, DB temporal migrada, matriz completa
+  serial/aislada con coverage y `bun audit --audit-level=high`; cualquier salida distinta de cero
+  detiene el gate. La matriz final pasó `983 pass`, `0 fail`, `2184 expect()` en `95` archivos y la
+  auditoría quedó limpia tras fijar `brace-expansion` en `5.0.8` mediante override. Durante el gate
+  se corrigió la clasificación duplicada de credenciales (`provider-key` + `credential-assignment`),
+  se ajustaron fixtures de conflictos para foreign keys y se verificó el dashboard fuera del sandbox.
 - [ ] Revisar manualmente los flujos de mayor riesgo en dashboard y CLI: importar skill, configurar
   provider, ejecutar tarea, usar fetch, crear worktree, diagnosticar y exportar datos.
 - [ ] Registrar cada hallazgo con severidad, evidencia, impacto, mitigación y prueba de regresión.
