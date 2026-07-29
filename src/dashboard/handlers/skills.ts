@@ -12,6 +12,7 @@ import { parse, stringify } from 'yaml'
 import { fetchRegistryList, fetchRegistrySkillContent } from '../../skills/fetch.ts'
 import type { SkillRow, SkillBuildResponse, SkillProRow, SkillCurateResponse, SkillImportResponse, MutationResult, RegistryListResponse, RegistryImportResponse } from '../types.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
+import { checkSsrSafe } from '../ssrf.ts'
 import { CURATOR_SYSTEM, IMPORT_SYSTEM } from '../prompts/curator.ts'
 
 function handleApiSkillsList(): Response {
@@ -204,9 +205,14 @@ async function handleApiSkillsImport(req: Request): Promise<Response> {
     if (!body.url) return errorResponse('url is required', 400)
     sourceDesc = `URL: ${body.url}`
     try {
-      const resp = await fetch(body.url, { signal: AbortSignal.timeout(15000) })
+      const parsed = new URL(body.url)
+      const ssrfBlock = await checkSsrSafe(parsed)
+      if (ssrfBlock) return errorResponse(ssrfBlock, 400)
+      const resp = await fetch(body.url, { redirect: 'error', signal: AbortSignal.timeout(15000) })
       if (!resp.ok) return errorResponse(`HTTP ${resp.status} fetching URL`, 400)
-      rawYaml = await resp.text()
+      const contentLength = Number(resp.headers.get('content-length') ?? 0)
+      if (contentLength > 256 * 1024) return errorResponse('Fetched skill exceeds the 256 KB limit', 413)
+      rawYaml = (await resp.text()).slice(0, 256 * 1024)
     } catch (e: any) {
       return errorResponse(`Failed to fetch URL: ${e.message}`, 400)
     }

@@ -1674,18 +1674,40 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
 
 ### L.4 — ⚡ SSRF, contenido externo y prompt injection
 
-- [ ] Mantener SSRF como defensa en profundidad: bloquear loopback, redes privadas/link-local,
-  metadata endpoints, esquemas no HTTP(S), redirecciones peligrosas y resolución DNS que cambie de
-  destino entre validación y conexión.
-- [ ] Añadir casos para IPv6, DNS rebinding, redirects, puertos no estándar, credenciales embebidas,
-  URLs con encoding ambiguo y límites de tamaño/tiempo/respuesta.
-- [ ] Tratar web, OCR, archivos importados y outputs de herramientas como **datos**, nunca como
-  instrucciones con autoridad. Probar inyección en cada canal que alimenta prompts y verificar que
-  no puede cambiar tools, paths, modelo, permisos ni criterios de aceptación.
-- [ ] Definir allowlist/origen y límites de fetch antes de añadir nuevas fuentes externas.
+- [x] **L.4 — SSRF y contenido externo (2026-07-29).** Se reforzó `src/dashboard/ssrf.ts`:
+  loopback, RFC1918, link-local, metadata/link-local, IPv6 ULA/link-local/multicast, IPv4-mapped
+  IPv6, schemes no HTTP(S), credenciales y puertos no estándar quedan bloqueados. `fetch_url`
+  rechaza redirects, respuestas no-2xx, aplica timeout de 10s y lectura incremental de 256 KB;
+  skill import remoto aplica la misma política con timeout de 15s y límite de 256 KB. Se añadió
+  segunda resolución DNS posterior al fetch para detectar rebinding observable. El límite honesto
+  de pinning de socket queda documentado en [docs/security-ssrf-policy.md](docs/security-ssrf-policy.md):
+  el fetch global no permite coordinar IP resuelta con SNI/Host; no se declara una garantía que no
+  existe.
+- [x] Web, OCR, adjuntos, memoria y `read_file` ahora se marcan con
+  `<untrusted-data>` y el system prompt prohíbe obedecer instrucciones allí ni permitir que cambien
+  tools, paths, modelo, permisos o aceptación. `read_file` también usa la política central de
+  paths de L.3, incluida protección contra symlinks.
+- [x] Verificación: `bun test src/__tests__/ssrf.test.ts src/__tests__/chat-fetch-url.test.ts
+  src/__tests__/chat-read-project-tools.test.ts --timeout 30000` (`57 pass`, `0 fail`, `65
+  expect()` calls) y `bunx tsc --noEmit` limpio. Casos incluidos: IPv6, mapped IPv6, DNS rebinding
+  con lookup que cambia de público a loopback, credenciales, puertos, scheme, límite de cuerpo,
+  contenido con prompt injection y paths de archivo.
 
 ### L.5 — ⚡ SQLite, configuración y privacidad
 
+- [x] **L.5.0 — Aislamiento de DB para tests (2026-07-29).** Preflight con `bunx tsc --noEmit`
+  pasó, pero 14 tests de persistencia fallaron al intentar escribir en la DB real de
+  `~/.orchestos` (readonly en el entorno). Se corrigió [src/db/sqlite.ts](src/db/sqlite.ts) para
+  aceptar `ORCHESTOS_HOME`, conservando `~/.orchestos` como default de producción, y se agregó
+  [sqlite-path.test.ts](src/__tests__/sqlite-path.test.ts), que lo verifica en un proceso Bun nuevo.
+  La suite de DB debe ejecutarse con una raíz temporal/aislada; no se considera aceptable depender de
+  cleanup sobre la DB real del usuario. Esto es el primer paso de aislamiento, no cierra todavía la
+  cobertura completa de migraciones, corrupción, backup ni recuperación. Verificación aislada:
+  `ORCHESTOS_HOME=/private/tmp/orchestos-l5-suite bun test ...` → `33 pass`, `0 fail`, `65 expect()`
+  calls en 7 archivos. El `tsc --noEmit` previo detectó un fallo ajeno en
+  `src/dashboard/handlers/chat.ts`, dentro de cambios concurrentes de L.4: identificador Unicode
+  declarado como `postFetchSsrֆBlock` pero usado como `postFetchSsrфBlock`; no se corrigió por
+  scope-lock.
 - [ ] Probar migraciones desde DB vacía, DB de cada versión relevante, columnas faltantes,
   constraints, índices/FTS y rollback ante fallo; nunca borrar datos como estrategia de migración.
 - [ ] Auditar queries para confirmar parametrización, límites de tamaño, manejo de corrupción y

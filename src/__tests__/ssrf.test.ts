@@ -55,6 +55,10 @@ describe('isPrivateIP', () => {
   it('returns false for invalid string', () => {
     expect(isPrivateIP('invalid')).toBe(false)
   })
+
+  it.each(['::', '::1', 'fc00::1', 'fd12:3456::1', 'fe80::1', 'ff02::1', '::ffff:10.0.0.1'])('blocks private IPv6 %s', (ip) => {
+    expect(isPrivateIP(ip)).toBe(true)
+  })
 })
 
 const mockLookup: (hostname: string, _opts: any) => Promise<Array<{ address: string; family: number }>> =
@@ -136,5 +140,19 @@ describe('checkSsrSafe — reserved domains', () => {
 
   it('blocks .localhost domain', async () => {
     expect(await checkSsrSafe(new URL('http://myapp.localhost/'), mockLookup)).toMatch(/SSRF blocked.*local\/reserved/)
+  })
+
+  it('blocks IPv6 loopback and private ranges', async () => {
+    expect(await checkSsrSafe(new URL('http://[::1]/'), mockLookup)).toMatch(/SSRF blocked/)
+    expect(await checkSsrSafe(new URL('http://[fd00::1]/'), mockLookup)).toMatch(/SSRF blocked/)
+  })
+
+  it('rejects credentials and non-standard ports', async () => {
+    expect(await checkSsrSafe(new URL('https://user:pass@example.com/'), mockLookup)).toMatch(/credentials/)
+    expect(await checkSsrSafe(new URL('https://public.example.com:8443/'), mockLookup)).toMatch(/non-standard port/)
+  })
+
+  it('rejects unsupported schemes even when called directly', async () => {
+    expect(await checkSsrSafe(new URL('ftp://public.example.com/'), mockLookup)).toMatch(/unsupported URL scheme/)
   })
 })
