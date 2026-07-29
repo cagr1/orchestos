@@ -1,6 +1,7 @@
 import { db } from './sqlite.ts'
 import { randomUUID } from 'crypto'
 import { judgeConflict, type ConflictRelation, type ConflictJudgment } from '../memory/judge.ts'
+import { redactSensitive } from '../security/secrets.ts'
 
 export type MemoryScope = 'session' | 'project' | 'global'
 
@@ -79,6 +80,7 @@ export function upsertMemory(
   content: string,
   scope: MemoryScope = 'session',
 ): UpsertResult {
+  const safeContent = redactSensitive(content)
   const existing = db.query<MemoryEntry, [string, string]>(
     'SELECT * FROM memory_entries WHERE project_id = ? AND topic_key = ?'
   ).get(projectId, topicKey)
@@ -89,7 +91,7 @@ export function upsertMemory(
     const now = new Date().toISOString()
     db.run(
       'UPDATE memory_entries SET content = ?, scope = ?, updated_at = ? WHERE id = ?',
-      [content, scope, now, existing.id],
+      [safeContent, scope, now, existing.id],
     )
     id = existing.id
   } else {
@@ -97,11 +99,11 @@ export function upsertMemory(
     const now = new Date().toISOString()
     db.run(
       'INSERT INTO memory_entries (id, project_id, topic_key, scope, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, projectId, topicKey, scope, content, now, now],
+      [id, projectId, topicKey, scope, safeContent, now, now],
     )
   }
 
-  const candidates = findCandidates(projectId, id, content)
+  const candidates = findCandidates(projectId, id, safeContent)
   return { id, candidates }
 }
 

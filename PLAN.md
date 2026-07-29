@@ -1708,11 +1708,47 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   `src/dashboard/handlers/chat.ts`, dentro de cambios concurrentes de L.4: identificador Unicode
   declarado como `postFetchSsrֆBlock` pero usado como `postFetchSsrфBlock`; no se corrigió por
   scope-lock.
-- [ ] Probar migraciones desde DB vacía, DB de cada versión relevante, columnas faltantes,
-  constraints, índices/FTS y rollback ante fallo; nunca borrar datos como estrategia de migración.
-- [ ] Auditar queries para confirmar parametrización, límites de tamaño, manejo de corrupción y
-  concurrencia entre dashboard/CLI/subprocesos. Añadir backup/export y procedimiento de recuperación
-  documentado antes de declarar la DB confiable.
+- [x] **L.5.1 — Migraciones reproducibles (2026-07-29).** Se agregó
+  [migration.test.ts](src/__tests__/migration.test.ts), con procesos Bun aislados para verificar DB
+  vacía, DB legacy con preservación de filas y ejecución idempotente. No se tocó la DB real del
+  usuario ni se simuló SQLite. Verificación: `ORCHESTOS_HOME=/private/tmp/orchestos-l5-suite bun test
+  src/__tests__/migration.test.ts --timeout 30000` → `3 pass`, `0 fail`, `11 expect() calls`.
+- [x] **L.5.2a — Integridad de queries y concurrencia (2026-07-29).** Se verificó persistencia
+  parametrizada contra SQL-looking content y se corrigió la carrera real de `run_steps`: la secuencia
+  `MAX(seq)+1` ahora está dentro de `BEGIN IMMEDIATE`; SQLite usa `busy_timeout=5000` y el cambio de
+  WAL concurrente no rompe el arranque si otro proceso está recuperando la DB. Test con dos procesos
+  reales: `40` pasos, secuencia `1..40`, `40` valores únicos. Verificación conjunta con migraciones y
+  DB: `7 pass`, `0 fail` para backup/integrity/migrations; `10 pass`, `0 fail` para integridad,
+  concurrencia y run-steps. Siguen pendientes límites explícitos de tamaño y un escenario de
+  corrupción recuperable; no se declaran cubiertos por estos tests.
+- [x] **L.5.3a — Backup y privacidad básica (2026-07-29).** Se agregó
+  [src/db/backup.ts](src/db/backup.ts): snapshot consistente con `VACUUM INTO`, escritura temporal
+  + rename atómico, permisos `0600` y `PRAGMA integrity_check` sobre el backup. `upsertMemory()` ya
+  redacta credenciales antes de persistir contenido. Test real: backup privado e íntegro + secreto
+  redacted, incluido en `7 pass`, `0 fail`, `28 expect() calls`.
+- [x] **L.5.4a — Detección de corrupción y recuperación segura (2026-07-29).**
+  `verifyDatabaseBackup()` ahora falla cerrado (`ok:false`) ante un archivo corrupto y
+  `restoreDatabaseBackup()` valida antes de copiar, se niega a sobrescribir destinos existentes,
+  escribe temporal + rename y vuelve a ejecutar `integrity_check`. No toca automáticamente
+  `~/.orchestos/db.sqlite`. Tests reales: backup válido restaurado a un archivo nuevo y backup
+  corrupto rechazado; `bunx tsc --noEmit` limpio y `bun test src/__tests__/db-backup.test.ts` →
+  `3 pass`, `0 fail`, `12 expect() calls`.
+- [ ] Probar migraciones de cada versión relevante, constraints, índices/FTS y rollback ante fallo;
+  nunca borrar datos como estrategia de migración. L.5.1 ya cubre DB vacía, legacy con columnas
+  faltantes, preservación de filas e idempotencia.
+- [x] **L.5.5a — Auditoría de queries y límites (2026-07-29).** Se auditó el inventario completo de
+  `bun:sqlite`: valores externos parametrizados, FTS tokenizado, SQL dinámico limitado a identificadores
+  constantes y único `VACUUM INTO` con path escapado. Se corrigió el hallazgo real del endpoint de runs:
+  `limit` inválido/negativo/0/NaN ya no puede pedir una consulta ilimitada al dashboard; positivos se
+  acotan a 200 (1000 en la función DB para callers internos), mientras exportación CLI conserva el
+  `listRuns(0)` explícito. Queries FTS públicas se acotan a 256 caracteres. Verificación: `10 pass`,
+  `0 fail`, `38 expect()` calls en límites, integridad, concurrencia, migraciones y backup; `bunx
+  tsc --noEmit` limpio.
+- [x] Evidencia y límites de corrupción/concurrencia quedan documentados en
+  [docs/security-db-query-audit.md](docs/security-db-query-audit.md), junto con los controles ya
+  implementados por L.5.0–L.5.3a: aislamiento `ORCHESTOS_HOME`, `busy_timeout`, `BEGIN IMMEDIATE`,
+  backup consistente, restore no destructivo e `integrity_check`. No se mezclaron cambios concurrentes
+  de SQLite; retención/clasificación y recuperación de la DB viva siguen abiertos para L.5.5/L.5.6.
 - [ ] Clasificar qué datos se guardan (código, prompts, resultados, costos, errores) y ofrecer una
   política clara de retención/borrado. Los exports y diagnósticos deben respetar esa clasificación.
 

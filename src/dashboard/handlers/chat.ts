@@ -210,7 +210,7 @@ async function readResponseTextLimited(resp: Response, maxBytes: number): Promis
 }
 
 export async function executeSearchMemory(_toolName: string, input: unknown): Promise<string> {
-  const query = (input as { query?: string })?.query
+  const query = (input as { query?: string })?.query?.trim().slice(0, 256)
   if (!query) return '[Error: no search query provided]'
 
   try {

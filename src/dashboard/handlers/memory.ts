@@ -5,7 +5,7 @@ import type { MemoryRow, MutationResult } from '../types.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 
 function handleApiMemory(url?: URL): Response {
-  const q = url?.searchParams.get('q')?.trim()
+  const q = url?.searchParams.get('q')?.trim().slice(0, 256)
   try {
     const rows = q
       ? db.query<MemoryEntry, [string]>(

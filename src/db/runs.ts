@@ -83,13 +83,22 @@ export function insertRun(r: InsertRunRecord): string {
   return id
 }
 
+export function normalizeRunLimit(limit: number, fallback = 20, max = 1000): number {
+  if (limit === 0) return 0
+  if (!Number.isFinite(limit) || limit < 1) return fallback
+  return Math.min(Math.floor(limit), max)
+}
+
 export function listRuns(limit = 20): RunRecord[] {
   if (limit === 0) {
     return db.query<RunRecord, []>('SELECT * FROM runs ORDER BY created_at DESC').all()
   }
+  // 0 is reserved for the explicit CLI export path. Every bounded caller gets
+  // a finite, positive limit even if input came from a URL or CLI string.
+  const safeLimit = normalizeRunLimit(limit)
   return db.query<RunRecord, number>(
     'SELECT * FROM runs ORDER BY created_at DESC LIMIT ?'
-  ).all(limit)
+  ).all(safeLimit)
 }
 
 export function getRun(id: string): RunRecord | null {

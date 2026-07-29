@@ -76,7 +76,9 @@ function runRecordToRow(r: RunRecord): RunRow {
 async function handleApiRunsAnalyze(req: Request): Promise<Response> {
   let body: { last?: number } = {}
   try { body = (await req.json()) as { last?: number } } catch { /* body opcional */ }
-  const n = body.last && body.last > 0 ? body.last : 20
+  const n = typeof body.last === 'number' && Number.isFinite(body.last) && body.last > 0
+    ? Math.min(Math.floor(body.last), 200)
+    : 20
 
   const { groupRunsByOutcome, analyzeRunPatterns } = await import('../../analyze/patterns.ts')
   const { proposeInstinctsFromPatterns } = await import('../../analyze/propose.ts')
@@ -103,8 +105,10 @@ function handleApiRuns(url: URL): Response {
     if (!r) return errorResponse('Run not found', 404)
     return jsonResponse(runRecordToRow(r))
   }
-  const limit = url.searchParams.get('limit')
-  const rows = listRuns(limit ? parseInt(limit) : 50)
+  const rawLimit = url.searchParams.get('limit')
+  const parsedLimit = rawLimit === null ? 50 : Number(rawLimit)
+  const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 200) : 50
+  const rows = listRuns(limit)
   return jsonResponse(rows.map(runRecordToRow))
 }
 
