@@ -1876,28 +1876,19 @@ verificado en este repo), nunca `verified`.
 
 ### M.0 — 🧠 Diseño del sistema de roadmaps (prerequisito)
 
-- [ ] Auditar y listar qué ya cubren `skills/*.yaml`, `defaultChecksFor()`/resolvers de lenguaje y
-  `AGENTS.md`/`CONTEXT.md` — el roadmap no duplica esto, solo el orden que falta entre ellos.
-- [ ] Definir el esquema común de cada guía: propósito, supuestos, toolchain/versiones, estructura
-  esperada, comandos de desarrollo, formato/lint, compilación, tests, integración/E2E, dependencias,
-  seguridad, observabilidad, CI/CD, despliegue, rollback y checklist de revisión.
-- [ ] **Modelar el orden como una secuencia de etapas explícitas, no solo categorías** — cada etapa
-  declara sus prerequisitos (qué etapas anteriores deben estar en `verified`/`not-applicable`) y su
-  salida esperada. Esto es lo que permite el caso real que motiva el bloque: OrchestOS entra a
-  trabajar a la MITAD de un proyecto ya existente y necesita responder dos preguntas, no solo "qué
-  lenguaje es esto" — (a) ¿en qué etapa está el proyecto hoy, según lo que ya está `verified`? y
-  (b) ¿qué etapa(s) anteriores están `missing` y deberían resolverse antes de seguir, aunque nadie
-  las pida explícitamente? El diagnóstico de "qué falta antes" es tan importante como "qué sigue
-  después".
-- [ ] Separar tres niveles de conocimiento: universal, específico del lenguaje/ecosistema y específico
-  del repositorio. El perfil del repositorio siempre tiene prioridad sobre defaults genéricos.
-- [ ] Definir estados explícitos por sección/etapa: `known`, `detected`, `verified`, `missing` y
-  `not-applicable`. No presentar un comando como válido si solo proviene de una plantilla, y no
-  marcar `verified` sin evidencia (comando + salida real) — ver contrato de evidencia arriba.
-- [ ] Decidir el contrato entre roadmap y skill: el roadmap explica qué debe comprobarse y en qué
-  orden; la skill explica cómo ejecutar la tarea; `checks.ts`/CI comprueban lo que sea automatizable.
-- [ ] Entregable: `docs/roadmaps/README.md` con la jerarquía, esquema de etapas y prerequisitos,
-  reglas de precedencia, versionado y proceso de actualización.
+- [x] **M.0 — 🧠 (2026-07-29)** Auditoría previa completada contra el código real (no asumida):
+  `skills/*.yaml` solo cubre instrucciones operativas por tarea (`description`/`when_to_use`), los
+  resolvers de lenguaje (`src/graph/resolvers/{rust,go,java,csharp}.ts`, Mes 5/S21) solo resuelven
+  imports para el grafo de dependencias, `defaultChecksFor()` ([checks.ts](src/run/checks.ts)) hoy
+  **no genera ningún check para Rust/Go/Python** (solo `.ts/.tsx/.js/.html`), y `AGENTS.md`/
+  `CONTEXT.md` son reglas de colaboración y snapshot de arquitectura de este repo, no una guía
+  reutilizable de orden de etapas. Ninguna pieza existente cubre el hueco real: **el orden** entre
+  toolchain→build→tests→seguridad→observabilidad→deploy→rollback. Diseño completo, esquema,
+  modelo de etapas con prerequisitos (12 etapas, cada una gateada en que la anterior esté
+  `verified`/`not-applicable`), 5 estados explícitos (`known/detected/verified/missing/
+  not-applicable`) y contrato roadmap↔skill↔checks documentados en
+  [docs/roadmaps/README.md](docs/roadmaps/README.md). No se creó todavía ningún perfil de lenguaje
+  concreto (M.2) ni se conectó a skills/QA (M.4) — explícitamente fuera de alcance de este ítem.
 
 ### M.1 — ⚡ Guía universal de ingeniería
 
