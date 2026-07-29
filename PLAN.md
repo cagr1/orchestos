@@ -1594,16 +1594,23 @@ debe abrir un bloque separado de seguridad de producción; no ampliar estos cont
 
 ### L.1 — ⚡ Inventario de superficie y secretos
 
-- [ ] Inventariar endpoints del dashboard, comandos CLI, tools del chat, subprocesses, rutas de
-  filesystem, variables de entorno y archivos de configuración que puedan contener secretos.
-- [ ] Añadir un check automatizado que detecte secretos accidentales en archivos generados/diffs
-  (API keys conocidas, tokens, private keys y credenciales), con fixtures positivos y negativos; no
-  imprimir el valor encontrado en logs ni en el mensaje de error.
-- [ ] Verificar que logs, `runs`, diagnósticos, errores de proveedores y exports no persistan ni
-  expongan API keys, headers `Authorization`, prompts sensibles o contenido fuera de scope.
-- [ ] Documentar rotación/revocación y manejo local de keys. No inventar cifrado propio: si se
-  requiere protección en reposo, dejar explícita la decisión de keychain del sistema o mecanismo
-  equivalente antes de implementarlo.
+- [x] **L.1 — Inventario y secretos (2026-07-29).** Se documentó el inventario de dashboard, CLI,
+  tools, subprocesses, filesystem, configuración y persistencia en
+  [docs/security-secrets-audit.md](docs/security-secrets-audit.md). Se confirmó que las keys de
+  proveedores viven en `~/.orchestos/.env` en texto plano y que los datos históricos no se migran
+  automáticamente.
+- [x] Se añadió `src/security/secrets.ts` y `scripts/check-secrets.ts` con detección de claves
+  conocidas, Bearer tokens, private keys y asignaciones de credenciales. `bun run security:secrets`
+  revisa líneas añadidas del diff staged sin imprimir valores; `secrets.test.ts` cubre fixtures
+  positivos, negativos y redacción en logs/respuestas HTTP.
+- [x] Se aplicó `redactSensitive()` antes de persistir logs, `runs`, `run_steps`, errores HTTP y
+  exports derivados. Se documentó rotación/revocación y se decidió no inventar cifrado propio;
+  keychain del sistema queda como opción futura si el modelo local necesita protección en reposo.
+- [x] Verificación: `bun test src/__tests__/secrets.test.ts --timeout 30000` (`4 pass`, `0 fail`,
+  `8 expect() calls`) y `bun run typecheck` limpio. La suite completa validada con acceso de escritura
+  a SQLite: `938 pass`, `0 fail`, `2125 expect() calls` en `87` archivos; el intento sin acceso elevado
+  produjo solo `SQLITE_READONLY` en `~/.orchestos/db.sqlite` y no fue un fallo funcional.
+  `bun run security:secrets:tracked` queda listo para CI. No se imprime el valor de ningún hallazgo.
 
 ### L.2 — 🧠 Autenticación, exposición de red y CSRF
 
@@ -1665,6 +1672,145 @@ debe abrir un bloque separado de seguridad de producción; no ampliar estos cont
 - [ ] Después del gate, copiar el resumen a `DONE.md` y actualizar `CONTEXT.md` con los límites de
   confianza permanentes. Si se habilita red externa o multiusuario, reabrir una revisión de seguridad
   específica; esta baseline no cubre ese cambio de amenaza.
+
+---
+
+## MES 24 — M: guías reproducibles por lenguaje y ecosistema (nuevo, 2026-07-29)
+
+**Motivo:** detectar que un repositorio contiene Rust, Go, Python o TypeScript no significa saber
+cómo trabajarlo correctamente. El conocimiento actual de OrchestOS está repartido entre detección de
+lenguajes, skills, `AGENTS.md`, comandos descubiertos del proyecto y la intuición del desarrollador.
+Eso permite empezar una tarea, pero no garantiza que se hayan considerado toolchain, dependencias,
+tests, seguridad, observabilidad, build, despliegue y rollback.
+
+**Decisión de arquitectura:** sí, el conocimiento debe vivir en Markdown versionado, pero en capas.
+No se creará un `roadmap.md` monolítico ni se tratará `roadmap.sh` como una autoridad ejecutable.
+La fuente de verdad será:
+
+1. `docs/roadmaps/engineering-baseline.md`: orden universal para cualquier proyecto.
+2. `docs/roadmaps/languages/<lenguaje>.md`: diferencias de Rust, Go, Python, TypeScript, etc.
+3. `docs/roadmaps/project-profile.md`: decisiones y comandos reales del repositorio detectado.
+4. `skills/*.yaml`: instrucciones operativas que el agente recibe durante una tarea.
+5. `AGENTS.md`/`CONTEXT.md`: reglas y contexto estable del proyecto, no listas genéricas de aprendizaje.
+
+El Markdown es la memoria durable y revisable; la detección del proyecto y los checks deben convertir
+esa memoria en evidencia ejecutable. Una guía que solo se inyecta en el prompt, pero no verifica sus
+comandos, es documentación aspiracional y no un control de calidad.
+
+**Secuenciación (2026-07-29):** Bloque L (seguridad) sigue abierto en L.1. M no compite por foco —
+M.0/M.1 (diseño + guía universal, baratos) pueden avanzar en paralelo por ser prerequisito de
+lectura, pero M.2 en adelante (perfiles por lenguaje, integración) no arranca en serio hasta que
+L llegue al menos a L.4 (los ítems ⚡ restantes son mecánicos y baratos). No abrir un cuarto bloque
+nuevo mientras K/L/M sigan con ítems sin cerrar.
+
+**Auditoría previa obligatoria, antes de diseñar nada (2026-07-29):** M.0 no empieza por un esquema
+en blanco. Antes de escribir `docs/roadmaps/README.md`, grep/leer qué de esto ya existe para no crear
+una segunda fuente de verdad — mismo principio que evitó trabajo redundante en K.4a ("la premisa ya
+estaba resuelta, reconstruir hubiera sido puro gasto"): qué cubre ya `description` en `skills/*.yaml`
+como condición de disparo, qué detecta ya `defaultChecksFor()`/los resolvers multi-lenguaje (Mes 5),
+y qué vive ya en `AGENTS.md`/`CONTEXT.md`. El roadmap solo debe cubrir el hueco real: **el orden**
+entre esas piezas, que hoy no existe en ningún lado.
+
+**Contrato de evidencia por sección, no opinión de LLM (2026-07-29):** este bloque nace de la misma
+tesis que Bloque K — no confiar en que un LLM "lea y sepa". Sería contradictorio que M.1-M.3
+terminen siendo exactamente eso al revés: un LLM escribiendo de memoria "así se testea en Go" sin que
+nadie lo corra. Ninguna sección de un perfil de lenguaje se marca `verified` sin citar el comando
+exacto ejecutado y su salida real (mismo estándar de cita literal que `qa.ts` exige en K.4a); si el
+autor no puede correrlo, el estado correcto es `known` (viene de documentación/entrenamiento, no
+verificado en este repo), nunca `verified`.
+
+### M.0 — 🧠 Diseño del sistema de roadmaps (prerequisito)
+
+- [ ] Auditar y listar qué ya cubren `skills/*.yaml`, `defaultChecksFor()`/resolvers de lenguaje y
+  `AGENTS.md`/`CONTEXT.md` — el roadmap no duplica esto, solo el orden que falta entre ellos.
+- [ ] Definir el esquema común de cada guía: propósito, supuestos, toolchain/versiones, estructura
+  esperada, comandos de desarrollo, formato/lint, compilación, tests, integración/E2E, dependencias,
+  seguridad, observabilidad, CI/CD, despliegue, rollback y checklist de revisión.
+- [ ] **Modelar el orden como una secuencia de etapas explícitas, no solo categorías** — cada etapa
+  declara sus prerequisitos (qué etapas anteriores deben estar en `verified`/`not-applicable`) y su
+  salida esperada. Esto es lo que permite el caso real que motiva el bloque: OrchestOS entra a
+  trabajar a la MITAD de un proyecto ya existente y necesita responder dos preguntas, no solo "qué
+  lenguaje es esto" — (a) ¿en qué etapa está el proyecto hoy, según lo que ya está `verified`? y
+  (b) ¿qué etapa(s) anteriores están `missing` y deberían resolverse antes de seguir, aunque nadie
+  las pida explícitamente? El diagnóstico de "qué falta antes" es tan importante como "qué sigue
+  después".
+- [ ] Separar tres niveles de conocimiento: universal, específico del lenguaje/ecosistema y específico
+  del repositorio. El perfil del repositorio siempre tiene prioridad sobre defaults genéricos.
+- [ ] Definir estados explícitos por sección/etapa: `known`, `detected`, `verified`, `missing` y
+  `not-applicable`. No presentar un comando como válido si solo proviene de una plantilla, y no
+  marcar `verified` sin evidencia (comando + salida real) — ver contrato de evidencia arriba.
+- [ ] Decidir el contrato entre roadmap y skill: el roadmap explica qué debe comprobarse y en qué
+  orden; la skill explica cómo ejecutar la tarea; `checks.ts`/CI comprueban lo que sea automatizable.
+- [ ] Entregable: `docs/roadmaps/README.md` con la jerarquía, esquema de etapas y prerequisitos,
+  reglas de precedencia, versionado y proceso de actualización.
+
+### M.1 — ⚡ Guía universal de ingeniería
+
+- [ ] Crear `docs/roadmaps/engineering-baseline.md` con el flujo mínimo antes de modificar código:
+  entender el dominio y arquitectura, localizar límites de confianza, confirmar toolchain, leer
+  configuración y convenciones, identificar comandos existentes, definir criterios de aceptación,
+  planificar pruebas y revisar impacto en datos/deploy.
+- [ ] Incluir una matriz mínima de calidad: typecheck/compile, unit, integration, E2E, coverage,
+  mutation cuando aplique, seguridad, performance, observabilidad y documentación.
+- [ ] Incluir un checklist de “antes de cerrar”: diff/scope, errores y retries, inputs inválidos,
+  secretos, migraciones, compatibilidad, logs, rollback y evidencia de comandos ejecutados.
+- [ ] La guía debe enseñar el orden de trabajo, no exigir que todos los lenguajes usen las mismas
+  herramientas. Si un proyecto no tiene lint, por ejemplo, el estado debe ser `missing`, no un falso
+  `pass`.
+
+### M.2 — ⚡ Perfiles iniciales de lenguaje/ecosistema
+
+- [ ] Crear perfiles versionados para TypeScript/Bun, Rust y Go como primera muestra. Cada perfil debe
+  distinguir lenguaje, runtime, package/dependency manager, framework, persistencia y tipo de entrega.
+- [ ] Rust: cubrir `cargo`/`Cargo.toml`, edición/formato, compilación, tests, documentación,
+  errores/resultados, ownership/concurrencia, dependencias y checks de seguridad; los comandos como
+  `clippy` o auditoría de dependencias deben marcarse como `available` solo después de detectarlos.
+- [ ] Go: cubrir `go.mod`, formato, `go test`, build, `vet`/static analysis disponible, errores,
+  goroutines/race conditions, contexto/timeouts, dependencias y checks de seguridad; verificar cada
+  herramienta en el entorno antes de convertirla en gate.
+- [ ] TypeScript/Bun: cubrir runtime/package manager real, typecheck, tests, lint/format, bundling,
+  dependencias, secretos, SSRF/XSS y diferencias entre código de servidor, cliente y scripts.
+- [ ] Cada perfil debe tener una sección “no asumir”: comandos alternativos, diferencias entre
+  proyecto library/service/CLI, y qué información debe pedir o detectar OrchestOS.
+
+### M.3 — 🧠 Perfil efectivo del proyecto
+
+- [ ] Extender el perfil detectado para combinar manifiestos (`Cargo.toml`, `go.mod`, `package.json`,
+  etc.), lockfiles, scripts, CI, Docker/deploy, base de datos, frameworks y archivos de instrucciones.
+- [ ] Generar o actualizar `docs/roadmaps/project-profile.md` con evidencia: archivo de origen,
+  comando detectado, versión detectada y fecha. Separar “detectado” de “ejecutado con éxito”.
+- [ ] Detectar proyectos políglotas sin reducirlos a un solo lenguaje primario: registrar backend,
+  frontend, scripts, infraestructura y tests por separado. Rust y Go pueden coexistir y cada uno debe
+  recibir su checklist correspondiente.
+- [ ] Añadir un comando de diagnóstico, por ejemplo `orchestos roadmap show`/`check`, que muestre qué
+  partes están completas, cuáles faltan y qué comandos concretos recomienda ejecutar.
+
+### M.4 — ⚡ Integración con skills, prompts y QA
+
+- [ ] Hacer que una tarea de implementación cargue el roadmap relevante junto con la skill, sin
+  duplicar instrucciones ni inflar innecesariamente el contexto del LLM.
+- [ ] Convertir los pasos verificables del roadmap en `verifiers`/checks deterministas cuando sea
+  posible; registrar el comando, exit code, duración y versión utilizada.
+- [ ] Si el roadmap declara un check obligatorio no disponible, el resultado debe ser `blocked` o
+  `missing`, nunca `pass` por omisión. El QA-LLM puede evaluar calidad, pero no sustituye comandos
+  faltantes ni inventa evidencia.
+- [ ] Añadir tests de selección: proyecto Rust → perfil Rust; proyecto Go → perfil Go; mixto → perfiles
+  combinados; comando ausente → estado explícito; override del proyecto → gana al default.
+
+### M.5 — 🔍 Gate de onboarding técnico
+
+- [ ] Probar el flujo completo en tres fixtures: OrchestOS actual, un proyecto Rust y un proyecto Go.
+- [ ] Para cada fixture, demostrar que un desarrollador nuevo puede obtener: qué instalar, cómo
+  ejecutar, cómo probar, cómo revisar seguridad, cómo preparar deploy y cómo recuperar un fallo.
+- [ ] Revisar manualmente que la guía no imponga prácticas falsas, comandos no instalados o decisiones
+  de arquitectura que el proyecto no adoptó.
+- [ ] Cerrar solo con documentación versionada, perfiles seleccionados, evidencia de detección y una
+  ejecución real de los checks. Copiar el resumen a `DONE.md` y las reglas permanentes a `CONTEXT.md`.
+
+**Regla de evolución:** cuando aparezca un nuevo lenguaje o framework, primero se crea/actualiza su
+perfil y fixture; después se permite convertirlo en skill automática. Los hallazgos se documentan en
+este bloque antes de modificar el motor. Así OrchestOS aprende de forma acumulativa y no depende de
+que Carlos o un LLM recuerden todos los protocolos en cada sesión.
 
 ---
 

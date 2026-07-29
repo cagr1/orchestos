@@ -10,6 +10,7 @@
 
 import { db } from './sqlite.ts'
 import type { ExecutorStepEvent } from '../run/executors/step-event.ts'
+import { redactSensitive } from '../security/secrets.ts'
 
 export interface RunStepRecord {
   id: number
@@ -32,7 +33,7 @@ export function insertRunStep(taskId: string, event: ExecutorStepEvent): void {
     `INSERT INTO run_steps (task_id, seq, type, label, detail, cost_usd, tokens_json, created_at)
      VALUES (?,?,?,?,?,?,?,?)`,
     [
-      taskId, seq, event.type, event.label, event.detail ?? null,
+      taskId, seq, event.type, redactSensitive(event.label), event.detail ? redactSensitive(event.detail) : null,
       event.costUsd ?? null, event.tokens ? JSON.stringify(event.tokens) : null,
       new Date().toISOString(),
     ]

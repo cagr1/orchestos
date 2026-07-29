@@ -1,5 +1,6 @@
 import { mkdirSync, appendFileSync } from 'fs'
 import { join } from 'path'
+import { redactSensitive } from '../security/secrets.ts'
 
 /** Writes structured run events to runs/YYYY-MM-DD-HH-mm.log in the project root. */
 export class RunLogger {
@@ -30,6 +31,6 @@ export class RunLogger {
 
   private write(event: string) {
     const ts = new Date().toISOString().slice(11, 23)   // HH:mm:ss.mmm
-    appendFileSync(this.logPath, `${ts}  ${this.prefix}  ${event}\n`, 'utf-8')
+    appendFileSync(this.logPath, `${ts}  ${this.prefix}  ${redactSensitive(event)}\n`, 'utf-8')
   }
 }

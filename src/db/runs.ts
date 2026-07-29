@@ -1,5 +1,6 @@
 import { db } from './sqlite.ts'
 import { randomUUID } from 'crypto'
+import { redactSensitive } from '../security/secrets.ts'
 
 export interface RunRecord {
   id: string
@@ -53,6 +54,8 @@ type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'qa_model' | 'check
 }
 
 export function insertRun(r: InsertRunRecord): string {
+  const scrub = (value: string | null | undefined): string | null =>
+    value == null ? null : redactSensitive(value)
   const id = randomUUID()
   const now = new Date().toISOString()
   db.run(
@@ -65,16 +68,16 @@ export function insertRun(r: InsertRunRecord): string {
       status, input_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at
     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
-      id, r.project_id, r.prompt, r.task_class, r.model, r.provider, r.skill_id, r.task_id,
-      r.allowed_outputs, r.files_attempted, r.files_authorized, r.files_blocked,
-      r.snapshot_before, r.snapshot_after, r.qa_verdict, r.qa_reason, r.qa_model ?? null, r.checks_json ?? null,
+      id, scrub(r.project_id), scrub(r.prompt), scrub(r.task_class), scrub(r.model), scrub(r.provider), scrub(r.skill_id), scrub(r.task_id),
+      scrub(r.allowed_outputs), scrub(r.files_attempted), scrub(r.files_authorized), scrub(r.files_blocked),
+      scrub(r.snapshot_before), scrub(r.snapshot_after), scrub(r.qa_verdict), scrub(r.qa_reason), scrub(r.qa_model) ?? null, scrub(r.checks_json) ?? null,
       r.constitution_rules ?? null,
-      r.context_source ?? null, r.context_tokens ?? null, r.embed_hits ?? null,
-      r.context_warnings_json ?? null,
-      r.cost_breakdown_json ?? null,
-      r.file_diffs ?? null,
-      r.adversarial_verdict ?? null, r.adversarial_reason ?? null,
-      r.status, r.input_tokens, r.output_tokens, r.usd_cost, r.elapsed_ms, r.result, now,
+      scrub(r.context_source), r.context_tokens ?? null, r.embed_hits ?? null,
+      scrub(r.context_warnings_json) ?? null,
+      scrub(r.cost_breakdown_json) ?? null,
+      scrub(r.file_diffs) ?? null,
+      scrub(r.adversarial_verdict) ?? null, scrub(r.adversarial_reason) ?? null,
+      r.status, r.input_tokens, r.output_tokens, r.usd_cost, r.elapsed_ms, scrub(r.result), now,
     ]
   )
   return id

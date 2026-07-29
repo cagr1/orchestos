@@ -1,6 +1,7 @@
 import { extname, join, sep } from 'path'
 import { existsSync, readFileSync, realpathSync } from 'fs'
 import { STATIC_DIR } from './types.ts'
+import { redactSensitive } from '../security/secrets.ts'
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -52,7 +53,7 @@ function jsonResponse(data: unknown, status = 200): Response {
 }
 
 function errorResponse(msg: string, status: number): Response {
-  return jsonResponse({ error: msg }, status)
+  return jsonResponse({ error: redactSensitive(msg) }, status)
 }
 
 function isSameOrigin(req: Request, _port: number): boolean {

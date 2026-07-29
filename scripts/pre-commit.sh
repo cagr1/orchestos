@@ -15,6 +15,9 @@ echo "🔍 Running pre-commit typecheck..."
 cd "$(git rev-parse --show-toplevel)"
 bun run typecheck
 
+echo "🔐 Verificando secretos en cambios staged..."
+bun run security:secrets
+
 # Mes 22/F.2 — gate del ledger de responsabilidad de LLMs: si el commit toca un
 # archivo listado en .claude/protected-rules.json, exige una entrada nueva en
 # LEDGER.md en el mismo commit. Gobernanza de este repo, no feature del producto.
