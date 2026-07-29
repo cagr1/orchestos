@@ -1733,9 +1733,32 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   `~/.orchestos/db.sqlite`. Tests reales: backup válido restaurado a un archivo nuevo y backup
   corrupto rechazado; `bunx tsc --noEmit` limpio y `bun test src/__tests__/db-backup.test.ts` →
   `3 pass`, `0 fail`, `12 expect() calls`.
-- [ ] Probar migraciones de cada versión relevante, constraints, índices/FTS y rollback ante fallo;
-  nunca borrar datos como estrategia de migración. L.5.1 ya cubre DB vacía, legacy con columnas
-  faltantes, preservación de filas e idempotencia.
+- [ ] **L.5.7 — Linaje versionado y rollback de migraciones.** L.5.1 cubre DB vacía, legacy con
+  columnas faltantes, preservación de filas e idempotencia, pero no existe todavía una secuencia
+  histórica formal ni un `schema_version`. Cerrar este gap en el siguiente orden:
+  - [x] **L.5.7.1 — Baseline de esquema (2026-07-29).** Se creó `schema_migrations` y se registra
+    `version=1`, `baseline-current-schema` solo después de completar el esquema actual. DB vacía,
+    legacy con fila preservada e idempotencia verificadas; no se borran ni reconstruyen datos.
+    Verificación: `bunx tsc --noEmit` limpio y `bun test src/__tests__/migration.test.ts` → `3 pass`,
+    `0 fail`, `14 expect() calls`.
+  - [x] **L.5.7.2 — Registro de pasos futuros (2026-07-29).** Se añadió `SchemaMigrationStep` y
+    `applyMigrationSteps()`: exige secuencia consecutiva desde la baseline, nombre explícito,
+    precondición, postcondición y registra `version/name/applied_at` solo después de verificarlas.
+    Los pasos ya aplicados se omiten para preservar idempotencia; `FUTURE_MIGRATIONS` queda como
+    registro único para las transformaciones reales siguientes. El test ejecuta un paso v2 dos veces,
+    preserva una sola evidencia y confirma el postcondition. La transacción y rollback siguen siendo
+    deliberadamente L.5.7.3, no se declaran cubiertos aquí.
+  - [ ] Ejecutar cada paso dentro de una transacción SQLite; marcar la versión solo después del
+    commit. Si falla un paso, reabrir la DB y demostrar que no quedan columnas/tablas/índices parciales
+    ni una versión marcada incorrectamente.
+  - [ ] Crear fixtures de DB vacía, baseline actual y al menos una versión legacy representativa;
+    preservar filas y validar tipos/defaults/constraints después de cada transición.
+  - [ ] Verificar `PRAGMA foreign_keys`, índices, FTS5, triggers y conteos de filas antes/después;
+    probar corrupción o incompatibilidad de FTS con un fallo explícito y recuperable.
+  - [ ] Probar rollback por inyección de fallo en cada etapa crítica. No se acepta “borrar y recrear”
+    como rollback ni restaurar automáticamente la DB activa desde un backup.
+  - [ ] Documentar procedimiento operativo: backup validado → detener procesos → migrar → integrity
+    check → reabrir; si falla, conservar la DB original y restaurar a un destino nuevo.
 - [x] **L.5.5a — Auditoría de queries y límites (2026-07-29).** Se auditó el inventario completo de
   `bun:sqlite`: valores externos parametrizados, FTS tokenizado, SQL dinámico limitado a identificadores
   constantes y único `VACUUM INTO` con path escapado. Se corrigió el hallazgo real del endpoint de runs:
@@ -1748,9 +1771,18 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   [docs/security-db-query-audit.md](docs/security-db-query-audit.md), junto con los controles ya
   implementados por L.5.0–L.5.3a: aislamiento `ORCHESTOS_HOME`, `busy_timeout`, `BEGIN IMMEDIATE`,
   backup consistente, restore no destructivo e `integrity_check`. No se mezclaron cambios concurrentes
-  de SQLite; retención/clasificación y recuperación de la DB viva siguen abiertos para L.5.5/L.5.6.
-- [ ] Clasificar qué datos se guardan (código, prompts, resultados, costos, errores) y ofrecer una
-  política clara de retención/borrado. Los exports y diagnósticos deben respetar esa clasificación.
+  de SQLite; recuperación de la DB viva y rollback/versionado de migraciones siguen abiertos como
+  gaps separados, no se declaran cubiertos por esta auditoría.
+- [x] **L.5.6 — Clasificación, retención y privacidad (2026-07-29).** Política documentada en
+  [docs/security-data-retention.md](docs/security-data-retention.md): credenciales restringidas,
+  contenido de trabajo sensible, metadatos internos y derivados separados; runs/memoria no se borran
+  automáticamente, mientras `run_steps` y `chat_task_bar_events` tienen purga explícita por defecto
+  a 30 días. Se agregó preview + purga transaccional en [src/db/retention.ts](src/db/retention.ts),
+  sin invocación automática ni borrado de la DB real. `runs-summary.json` ya exporta solo metadatos;
+  el diagnóstico ahora redacta task, resultado, checks y campos de contexto antes de enviarlos al
+  proveedor. Verificación: `bunx tsc --noEmit` limpio; `bun test src/__tests__/retention.test.ts
+  src/__tests__/diagnose.test.ts --timeout 30000` → `8 pass`, `0 fail`, `27 expect() calls`,
+  incluyendo preview, purga selectiva, periodos inválidos y payload sensible sin credenciales.
 
 ### L.6 — 🔍 Gate de seguridad y operación
 

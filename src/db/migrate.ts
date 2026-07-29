@@ -1,6 +1,68 @@
 import { db } from './sqlite.ts'
+import type { Database } from 'bun:sqlite'
+
+export const CURRENT_SCHEMA_VERSION = 1
+const BASELINE_NAME = 'baseline-current-schema'
+
+export interface SchemaMigrationStep {
+  version: number
+  name: string
+  precondition: (database: Database) => void
+  apply: (database: Database) => void
+  postcondition: (database: Database) => void
+}
+
+// Future schema changes belong here as numbered, independently verifiable steps.
+// The current schema remains the v1 baseline; no historical transformation is
+// fabricated for installations that predate this ledger.
+export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = []
+
+function appliedVersions(database: Database): Set<number> {
+  return new Set(
+    database.query<{ version: number }, []>(
+      'SELECT version FROM schema_migrations ORDER BY version'
+    ).all().map(row => row.version),
+  )
+}
+
+export function applyMigrationSteps(
+  steps: readonly SchemaMigrationStep[] = FUTURE_MIGRATIONS,
+  database: Database = db,
+): void {
+  const applied = appliedVersions(database)
+  let expectedVersion = CURRENT_SCHEMA_VERSION + 1
+
+  for (const step of steps) {
+    if (!Number.isInteger(step.version) || step.version !== expectedVersion) {
+      throw new Error(`Migration sequence must start at ${expectedVersion}`)
+    }
+    if (!step.name.trim()) throw new Error(`Migration ${step.version} requires a name`)
+    expectedVersion += 1
+
+    if (applied.has(step.version)) continue
+
+    step.precondition(database)
+    step.apply(database)
+    step.postcondition(database)
+    database.run(
+      'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
+      [step.version, step.name, new Date().toISOString()],
+    )
+    applied.add(step.version)
+  }
+}
 
 export function runMigrations(): void {
+  // L.5.7.1 — metadata de linaje. La baseline se registra al final, después
+  // de que todas las tablas/columnas actuales hayan sido comprobadas.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version    INTEGER PRIMARY KEY,
+      name       TEXT NOT NULL,
+      applied_at TEXT NOT NULL
+    );
+  `)
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS projects (
       id          TEXT PRIMARY KEY,
@@ -220,4 +282,20 @@ export function runMigrations(): void {
   try {
     db.exec(`INSERT INTO memory_fts(memory_fts) VALUES('rebuild')`)
   } catch { /* ignore if FTS5 not available */ }
+
+  // Existing installations have no historical migration ledger. Record one
+  // honest baseline only after the current schema has completed successfully;
+  // future numbered migrations will extend this ledger instead of pretending
+  // that CREATE IF NOT EXISTS is a historical migration system.
+  const applied = db.query<{ count: number }, []>(
+    'SELECT COUNT(*) AS count FROM schema_migrations'
+  ).get()?.count ?? 0
+  if (applied === 0) {
+    db.run(
+      'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
+      [CURRENT_SCHEMA_VERSION, BASELINE_NAME, new Date().toISOString()],
+    )
+  }
+
+  applyMigrationSteps()
 }

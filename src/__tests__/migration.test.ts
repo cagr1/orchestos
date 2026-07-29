@@ -7,8 +7,12 @@ interface ChildResult {
   tables?: string[]
   runsColumns?: string[]
   filesColumns?: string[]
+  schemaVersions?: Array<{ version: number; name: string }>
   runCount?: number
   ftsTriggers?: number
+  schemaCount?: number
+  evidence?: Array<{ version: number; name: string; applied_at: string }>
+  probeCount?: number
   error?: string
 }
 
@@ -43,15 +47,17 @@ describe('SQLite migrations', () => {
         const tables = db.query("SELECT name FROM sqlite_master WHERE type IN ('table', 'virtual table') AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(row => row.name)
         const runsColumns = db.query('PRAGMA table_info(runs)').all().map(row => row.name)
         const filesColumns = db.query('PRAGMA table_info(files)').all().map(row => row.name)
-        process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns }))
+        const schemaVersions = db.query('SELECT version, name FROM schema_migrations ORDER BY version').all()
+        process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns, schemaVersions }))
         db.close()
       `)
 
       expect(result.tables).toEqual(expect.arrayContaining([
         'projects', 'context_chunks', 'runs', 'files', 'code_edges',
         'memory_entries', 'memory_conflicts', 'memory_fts', 'chat_task_bar_events',
-        'instincts', 'run_steps',
+        'instincts', 'run_steps', 'schema_migrations',
       ]))
+      expect(result.schemaVersions).toEqual([{ version: 1, name: 'baseline-current-schema' }])
       expect(result.runsColumns).toEqual(expect.arrayContaining([
         'task_id', 'qa_verdict', 'checks_json', 'context_warnings_json',
         'cost_breakdown_json', 'file_diffs', 'adversarial_verdict',
@@ -77,13 +83,15 @@ describe('SQLite migrations', () => {
         runMigrations()
         const row = db.query('SELECT prompt, status FROM runs WHERE id = ?').get('legacy-1')
         const runsColumns = db.query('PRAGMA table_info(runs)').all().map(row => row.name)
-        process.stdout.write(JSON.stringify({ runCount: row ? 1 : 0, runsColumns }))
+        const schemaVersions = db.query('SELECT version, name FROM schema_migrations ORDER BY version').all()
+        process.stdout.write(JSON.stringify({ runCount: row ? 1 : 0, runsColumns, schemaVersions }))
         db.close()
       `)
 
       expect(result.runCount).toBe(1)
       expect(result.runsColumns).toContain('adversarial_reason')
       expect(result.runsColumns).toContain('context_source')
+      expect(result.schemaVersions).toEqual([{ version: 1, name: 'baseline-current-schema' }])
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -99,12 +107,55 @@ describe('SQLite migrations', () => {
         runMigrations()
         const runCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'runs'").get().count
         const ftsTriggers = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'memory_fts_%'").get().count
-        process.stdout.write(JSON.stringify({ runCount, ftsTriggers }))
+        const schemaCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations').get().count
+        process.stdout.write(JSON.stringify({ runCount, ftsTriggers, schemaCount }))
         db.close()
       `)
 
       expect(result.runCount).toBe(1)
       expect(result.ftsTriggers).toBe(3)
+      expect(result.schemaCount).toBe(1)
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('applies numbered steps once and records their evidence', async () => {
+    const home = tempHome()
+    try {
+      const result = await runMigrationProcess(home, `
+        const { runMigrations, applyMigrationSteps } = await import('./src/db/migrate.ts')
+        const { db } = await import('./src/db/sqlite.ts')
+        runMigrations()
+        const step = {
+          version: 2,
+          name: 'migration-test-probe',
+          precondition(database) {
+            if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'runs'").get() === null) {
+              throw new Error('runs table must exist before v2')
+            }
+          },
+          apply(database) {
+            database.exec('CREATE TABLE IF NOT EXISTS migration_probe (id INTEGER PRIMARY KEY)')
+          },
+          postcondition(database) {
+            if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'migration_probe'").get() === null) {
+              throw new Error('migration_probe must exist after v2')
+            }
+          },
+        }
+        applyMigrationSteps([step])
+        applyMigrationSteps([step])
+        const evidence = db.query('SELECT version, name, applied_at FROM schema_migrations ORDER BY version').all()
+        const probeCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_probe'").get().count
+        process.stdout.write(JSON.stringify({ evidence, probeCount }))
+        db.close()
+      `)
+
+      expect(result.evidence).toHaveLength(2)
+      expect(result.evidence?.[1]).toMatchObject({ version: 2, name: 'migration-test-probe' })
+      expect(result.evidence?.[1]?.applied_at).toEqual(expect.any(String))
+      expect(result.probeCount).toBe(1)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
