@@ -103,3 +103,17 @@ side-effects en runs existentes (columnas nuevas `adversarial_verdict`/`adversar
 `safeAddColumn`, NULL para filas previas). 886 tests · 0 fail · `tsc --noEmit` limpio antes del
 commit. Gate destrabado con evidencia sintética real (3 tests adversariales en `qa-judge.test.ts`
 probando que K.4a deja pasar evidencia literal-pero-engañosa), no por decisión de saltarlo.
+
+---
+
+## 2026-07-29 16:20 America/Guayaquil — codex-gpt-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: M4 agrega el middleware de roadmaps, el bloqueo explícito de toolchains ausentes y la
+selección de checks deterministas; todo ocurre antes o después de la derivación existente y no
+modifica `maxTokens`, `contextWindow` ni el presupuesto de salida.
+**Reversibilidad/evidencia**: commit M4 (`feat: integrate roadmaps into task execution`) — revertible
+con `git revert`, sin cambios de datos. `bunx tsc --noEmit` limpio; tests específicos M4/M3/checks:
+51 pass, 0 fail.

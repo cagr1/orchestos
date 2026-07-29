@@ -1,6 +1,6 @@
 # project-profile.md — perfil efectivo del proyecto
 
-Generado: 2026-07-29T21:02:13.040Z. Regenerar con `orchestos roadmap check`.
+Generado: 2026-07-29T21:11:15.270Z. Regenerar con `orchestos roadmap check`.
 
 ## Entorno
 
@@ -24,10 +24,10 @@ Generado: 2026-07-29T21:02:13.040Z. Regenerar con `orchestos roadmap check`.
 |---|---|---|
 | backend | `detected` | servidor custom detectado en src/dashboard/server.ts |
 | frontend | `detected` | archivos .html detectados |
-| qa-seguridad | `detected` | 95 archivos de test encontrados |
+| qa-seguridad | `detected` | 97 archivos de test encontrados |
 | devops | `detected` | 3 workflow(s) de CI |
-| architecture | `not-applicable` | sin heurística automática para arquitectura — requiere revisión manual |
-| ai-agents | `not-applicable` | sin dependencia de SDK de agente/LLM detectada |
+| architecture | `detected` | incluida explícitamente por docs/roadmaps/project-overrides.yaml |
+| ai-agents | `detected` | incluida explícitamente por docs/roadmaps/project-overrides.yaml |
 
 ## Infraestructura
 

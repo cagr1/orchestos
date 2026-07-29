@@ -16,6 +16,7 @@ export function buildPrompt(
   skillGuidelines?: string,
   instinctBlock?: string,
   previousFailure?: string,
+  roadmapInstructions?: string,
 ): BuiltPrompt {
   const guidelines = skillGuidelines ?? loadSkillGuidelines(task.skill)
 
@@ -23,6 +24,7 @@ export function buildPrompt(
     contextText || '# Project context\nNo AGENTS.md found.',
     constitutionBlock ?? '',
     guidelines,
+    roadmapInstructions ?? '',
     instinctBlock ?? '',
     `\n## OUTPUT CONTRACT`,
     `You may ONLY write to these files: ${task.output.join(', ')}`,

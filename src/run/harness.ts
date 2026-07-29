@@ -38,7 +38,7 @@ import { insertRun } from '../db/runs.ts'
 import { insertRunStep, clearRunSteps } from '../db/run-steps.ts'
 import { costBreakdownToJson } from './transcript-parser.ts'
 import { buildPrompt } from './prompt.ts'
-import { runChecks, defaultChecksFor, type CheckResult } from './checks.ts'
+import { runChecks, defaultChecksFor, roadmapChecksFor, type CheckResult } from './checks.ts'
 import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 import { withGitLock } from './git-lock.ts'
@@ -47,7 +47,7 @@ import { checkContextHealth, shouldCheck, type RunState } from '../hooks/context
 import { ensureCatalogLoaded, contextWindowFor, knownMaxOutputTokensFor } from '../router/model-catalog.ts'
 import { estimateTokens } from '../context/compress.ts'
 import { createRunContext, createChain, type RunContext } from './middleware.ts'
-import { contextInject, skillRoute, memoryFetch, toolPolicy, instinctApply } from './middlewares/index.ts'
+import { contextInject, skillRoute, roadmapContext, memoryFetch, toolPolicy, instinctApply } from './middlewares/index.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { Worktree } from './sandbox.ts'
 import type { ContextWarning } from '../hooks/context-monitor.ts'
@@ -244,11 +244,26 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     chain
       .use(memoryFetch)
       .use(skillRoute)
+      .use(roadmapContext)
       .use(toolPolicy)
       .use(contextInject)
       .use(instinctApply)
 
     await chain.run(ctx)
+
+    if (ctx.roadmapBlockReason) {
+      log.info(`roadmap blocked: ${ctx.roadmapBlockReason}`)
+      return {
+        status: 'blocked',
+        runId: '',
+        retryReason: ctx.roadmapBlockReason,
+        filesWritten: [],
+        filesBlocked: ctx.task.output,
+        cost: { inputTokens: 0, outputTokens: 0, usd: 0 },
+        elapsedMs: Math.round(performance.now() - t0),
+        contextWarnings: ctx.contextWarnings,
+      }
+    }
 
     // constitution-load (inline — not yet a middleware)
     const constitution = loadConstitution(projectRoot)
@@ -266,6 +281,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       ctx.skillInstructions,
       ctx.instinctBlock,
       previousFailure,
+      ctx.roadmapInstructions,
     )
     ctx.prompt = { system, userContent }
 
@@ -525,9 +541,16 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // which approved code that didn't even compile. defaultChecksFor() fills in
     // tsc/bun test for code-output tasks that don't declare their own checks —
     // explicit `checks:` always takes precedence over the defaults.
-    const effectiveChecks = ctx.task.checks && ctx.task.checks.length > 0
-      ? ctx.task.checks
+    const declaredChecks = ctx.task.checks && ctx.task.checks.length > 0 ? ctx.task.checks : []
+    const baseChecks = declaredChecks.length > 0
+      ? declaredChecks
       : defaultChecksFor(ctx.task.output, ctx.effectiveRoot)
+    const declaredCommands = new Set(baseChecks.map(check => check.cmd))
+    const effectiveChecks = [
+      ...baseChecks,
+      ...roadmapChecksFor(ctx.task.output, ctx.effectiveRoot)
+        .filter(check => !declaredCommands.has(check.cmd)),
+    ]
     let checksResults: CheckResult[] = []
     if (effectiveChecks.length > 0) {
       checksResults = await runChecks(effectiveChecks, ctx.effectiveRoot, log)

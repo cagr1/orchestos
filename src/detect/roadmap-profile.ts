@@ -4,6 +4,7 @@ import { glob } from 'glob'
 import { readManifest, type Manifest } from './manifest.ts'
 import { detectLanguages, type LangStat } from './languages.ts'
 import { readConventions, type Conventions } from './conventions.ts'
+import { parse } from 'yaml'
 
 /**
  * M.3 (Mes 24) — perfil efectivo del proyecto para el sistema de roadmaps.
@@ -45,6 +46,78 @@ export interface RoadmapProfile {
   database: Finding
   instructionFiles: Record<string, StageState>
   toolchain: { name: string; version: string }[]
+}
+
+export interface RoadmapOverrides {
+  disciplines?: { include?: string[]; exclude?: string[] }
+  languages?: { include?: string[]; exclude?: string[] }
+}
+
+const DISCIPLINES = new Set(['backend', 'frontend', 'qa-seguridad', 'devops', 'architecture', 'ai-agents'])
+
+function validList(value: unknown, allowed: Set<string>): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((v): v is string => typeof v === 'string' && allowed.has(v))
+}
+
+export function readRoadmapOverrides(root: string): RoadmapOverrides {
+  const path = join(root, 'docs', 'roadmaps', 'project-overrides.yaml')
+  if (!existsSync(path)) return {}
+  try {
+    const raw = parse(readFileSync(path, 'utf-8')) as Record<string, unknown>
+    const source = (raw.roadmap_overrides ?? raw) as Record<string, unknown>
+    const disciplines = (source.disciplines ?? {}) as Record<string, unknown>
+    const languages = (source.languages ?? {}) as Record<string, unknown>
+    return {
+      disciplines: {
+        include: validList(disciplines.include, DISCIPLINES),
+        exclude: validList(disciplines.exclude, DISCIPLINES),
+      },
+      languages: {
+        include: validList(languages.include, new Set(['typescript', 'rust', 'go', 'javascript', 'html', 'csharp'])),
+        exclude: validList(languages.exclude, new Set(['typescript', 'rust', 'go', 'javascript', 'html', 'csharp'])),
+      },
+    }
+  } catch {
+    return {}
+  }
+}
+
+function applyRoadmapOverrides(profile: RoadmapProfile, overrides: RoadmapOverrides): RoadmapProfile {
+  const disciplines = [...profile.disciplines]
+  const d = overrides.disciplines ?? {}
+  for (const slug of d.exclude ?? []) {
+    const found = disciplines.find(item => item.discipline === slug)
+    if (found) {
+      found.state = 'not-applicable'
+      found.evidence = 'excluida explícitamente por docs/roadmaps/project-overrides.yaml'
+    }
+  }
+  for (const slug of d.include ?? []) {
+    const found = disciplines.find(item => item.discipline === slug)
+    if (found) {
+      found.state = 'detected'
+      found.evidence = 'incluida explícitamente por docs/roadmaps/project-overrides.yaml'
+    }
+  }
+
+  const languageProfiles = [...profile.languageProfiles]
+  const l = overrides.languages ?? {}
+  for (const slug of l.exclude ?? []) {
+    const found = languageProfiles.find(item => item.language.toLowerCase() === slug)
+    if (found) {
+      found.state = 'not-applicable'
+      found.evidence = 'excluido explícitamente por docs/roadmaps/project-overrides.yaml'
+    }
+  }
+  for (const slug of l.include ?? []) {
+    const found = languageProfiles.find(item => item.language.toLowerCase() === slug)
+    if (found) {
+      found.state = found.docPath ? 'known' : 'missing'
+      found.evidence = `incluido explícitamente por docs/roadmaps/project-overrides.yaml${found.docPath ? '' : ' — roadmap ausente'}`
+    }
+  }
+  return { ...profile, disciplines, languageProfiles }
 }
 
 const BACKEND_FRAMEWORKS = new Set([
@@ -174,7 +247,7 @@ function detectInstructionFiles(root: string): Record<string, StageState> {
 }
 
 /** Comandos read-only y baratos — nunca build/test completo. Fallo → 'missing', nunca bloquea. */
-function verifyToolchain(): { name: string; version: string }[] {
+function verifyToolchain(languages: LangStat[]): { name: string; version: string }[] {
   const out: { name: string; version: string }[] = [{ name: 'bun', version: Bun.version }]
   try {
     const proc = Bun.spawnSync(['bunx', 'tsc', '--version'])
@@ -183,6 +256,14 @@ function verifyToolchain(): { name: string; version: string }[] {
       out.push({ name: 'typescript', version: text.replace(/^Version\s+/, '') })
     }
   } catch { /* tsc no disponible localmente — se omite, no bloquea */ }
+  const verify = (name: string, args: string[]) => {
+    try {
+      const proc = Bun.spawnSync([name, ...args])
+      if (proc.exitCode === 0) out.push({ name, version: proc.stdout.toString().trim() })
+    } catch { /* toolchain ausente — el perfil lo deja explícito */ }
+  }
+  if (languages.some(l => l.lang === 'Rust')) verify('cargo', ['--version'])
+  if (languages.some(l => l.lang === 'Go')) verify('go', ['version'])
   return out
 }
 
@@ -199,7 +280,7 @@ export async function buildRoadmapProfile(root: string): Promise<RoadmapProfile>
     for (const key of interesting) if (scripts[key]) commands.push(`${pm} run ${key}`)
   } catch { /* sin package.json */ }
 
-  return {
+  return applyRoadmapOverrides({
     generatedAt: new Date().toISOString(),
     manifest,
     languages,
@@ -218,8 +299,8 @@ export async function buildRoadmapProfile(root: string): Promise<RoadmapProfile>
       : { state: 'not-applicable', evidence: 'sin Dockerfile/docker-compose.yml — no necesariamente aplica' },
     database: detectDatabase(root, manifest),
     instructionFiles: detectInstructionFiles(root),
-    toolchain: verifyToolchain(),
-  }
+    toolchain: verifyToolchain(languages),
+  }, readRoadmapOverrides(root))
 }
 
 export function renderProjectProfileMarkdown(profile: RoadmapProfile): string {

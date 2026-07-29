@@ -14,6 +14,28 @@ const TSC_TIMEOUT_MS = 120_000
 const JS_CHECK_TIMEOUT_MS = 15_000
 const TEST_ASSERTION_CHECK_TIMEOUT_MS = 15_000
 
+function commandAvailable(command: string, args: string[]): boolean {
+  try {
+    return Bun.spawnSync([command, ...args]).exitCode === 0
+  } catch {
+    return false
+  }
+}
+
+/** Checks deterministas derivados del perfil de lenguaje, cuando el proyecto
+ * tiene el manifiesto correspondiente y el toolchain está disponible. La
+ * ausencia se reporta antes como missing/blocked por roadmap-context.ts. */
+export function roadmapChecksFor(output: string[], effectiveRoot: string): Check[] {
+  const checks: Check[] = []
+  if (output.some(p => p.endsWith('.rs')) && existsSync(join(effectiveRoot, 'Cargo.toml')) && commandAvailable('cargo', ['--version'])) {
+    checks.push({ cmd: 'cargo test', timeout_ms: DEFAULT_TIMEOUT_MS })
+  }
+  if (output.some(p => p.endsWith('.go')) && existsSync(join(effectiveRoot, 'go.mod')) && commandAvailable('go', ['version'])) {
+    checks.push({ cmd: 'go test ./...', timeout_ms: DEFAULT_TIMEOUT_MS })
+  }
+  return checks
+}
+
 function testAssertionCheckFor(path: string): Check {
   const checker = resolve(import.meta.dir, '../../scripts/check-test-assertions.ts')
   return {
@@ -87,11 +109,15 @@ export function defaultChecksFor(output: string[], effectiveRoot: string): Check
     }
   }
 
+  checks.push(...roadmapChecksFor(output, effectiveRoot))
+
   return checks
 }
 
 export interface CheckResult {
   cmd: string
+  /** Versión observada del ejecutable antes del check, cuando se puede consultar. */
+  version?: string
   exitCode: number
   stdout: string
   stderr: string
@@ -138,6 +164,8 @@ async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResu
     return failureResult(check.cmd, 'empty command', started, false)
   }
 
+  const version = commandVersion(command)
+
   let timedOut = false
   try {
     const proc = Bun.spawn([command, ...args], {
@@ -161,6 +189,7 @@ async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResu
 
     return {
       cmd: check.cmd,
+      version,
       exitCode,
       stdout: tail(stdout),
       stderr: tail(stderr),
@@ -193,5 +222,17 @@ function failureResult(cmd: string, message: string, started: number, timedOut: 
     stderr: tail(message),
     elapsedMs: Math.round(performance.now() - started),
     timedOut,
+  }
+}
+
+function commandVersion(command: string): string | undefined {
+  const executable = command === 'bunx' ? 'bun' : command
+  const args = executable === 'go' ? ['version'] : ['--version']
+  try {
+    const proc = Bun.spawnSync([executable, ...args])
+    if (proc.exitCode !== 0) return undefined
+    return proc.stdout.toString().trim() || undefined
+  } catch {
+    return undefined
   }
 }

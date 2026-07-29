@@ -74,6 +74,11 @@ export interface RunContext {
   /** Instrucciones compiladas de la skill activa; '' si no hay skill */
   skillInstructions: string
 
+  /** Roadmaps aplicables, seleccionados por el perfil efectivo del proyecto. */
+  roadmapInstructions?: string
+  /** Check obligatorio ausente que impide declarar pass por omisión. */
+  roadmapBlockReason?: string | null
+
   // --- tool-policy ---
   /** Lista de tool ids permitidos por la skill; [] significa sin restricción */
   allowedTools: string[]
@@ -154,6 +159,8 @@ export function createRunContext(opts: HarnessOpts): RunContext {
     task:             opts.task,
     embedHits:        0,
     skillInstructions:'',
+    roadmapInstructions:'',
+    roadmapBlockReason: null,
     allowedTools:     [],
     constitutionBlock:'',
     constitutionRules:null,

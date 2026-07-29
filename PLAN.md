@@ -1989,15 +1989,28 @@ un proyecto concreto lo necesita, crear el perfil de lenguaje angosto correspond
 
 ### M.4 — ⚡ Integración con skills, prompts y QA
 
-- [ ] Hacer que una tarea de implementación cargue el roadmap relevante junto con la skill, sin
+- [x] Hacer que una tarea de implementación cargue el roadmap relevante junto con la skill, sin
   duplicar instrucciones ni inflar innecesariamente el contexto del LLM.
-- [ ] Convertir los pasos verificables del roadmap en `verifiers`/checks deterministas cuando sea
+- [x] Convertir los pasos verificables del roadmap en `verifiers`/checks deterministas cuando sea
   posible; registrar el comando, exit code, duración y versión utilizada.
-- [ ] Si el roadmap declara un check obligatorio no disponible, el resultado debe ser `blocked` o
+- [x] Si el roadmap declara un check obligatorio no disponible, el resultado debe ser `blocked` o
   `missing`, nunca `pass` por omisión. El QA-LLM puede evaluar calidad, pero no sustituye comandos
   faltantes ni inventa evidencia.
-- [ ] Añadir tests de selección: proyecto Rust → perfil Rust; proyecto Go → perfil Go; mixto → perfiles
+- [x] Añadir tests de selección: proyecto Rust → perfil Rust; proyecto Go → perfil Go; mixto → perfiles
   combinados; comando ausente → estado explícito; override del proyecto → gana al default.
+
+  Implementado en `src/roadmaps/context.ts` y el middleware de enrichment: el roadmap seleccionado
+  se inyecta después de la skill, con límites de 4k por perfil, 3k por documento y 12k total. El
+  proyecto puede declarar inclusiones/exclusiones en `docs/roadmaps/project-overrides.yaml`; el
+  override actual selecciona explícitamente `architecture` y `ai-agents` para OrchestOS porque la
+  heurística no puede inferir esas disciplinas con seguridad. `cargo test` y `go test ./...` se
+  agregan como checks cuando hay manifiesto y toolchain verificado; cada resultado conserva comando,
+  exit code, duración y versión observada. Si falta el toolchain para un output Rust/Go, la tarea
+  queda `blocked` antes del LLM y el contexto registra `missing/blocked`, nunca `pass`.
+  Tests: `src/__tests__/roadmap-context.test.ts` (4 casos Rust/Go/mix/override/missing), más
+  `roadmap-profile.test.ts` y `checks.test.ts`. Verificación M4: `bunx tsc --noEmit` limpio y
+  `bun test src/__tests__/roadmap-context.test.ts src/__tests__/checks.test.ts src/__tests__/roadmap-profile.test.ts`
+  (51 pass, 0 fail).
 
 ### M.5 — 🔍 Gate de onboarding técnico
 
