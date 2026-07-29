@@ -1512,10 +1512,20 @@ Claude, Codex y cualquier otro LLM; no depender de la conversación.
 
     Decisión: K.6.3 queda cerrado como expansión de pruebas por módulo. No se añaden exclusiones, threshold
     ni gate de commit; el siguiente paso autorizado por el plan es K.6.4, benchmark acotado de `src/run/`.
-- [ ] **K.6.4 — ⚡ Benchmark acotado de `src/run/`.** Solo después de que K.6.2 y K.6.3 pasen,
-  medir el conjunto completo de `src/run/` con `concurrency` controlada. Entregable: duración real,
-  cantidad de mutantes, score global y proyección del costo en CI. Si la corrida es inviable, queda
-  como métrica manual/nocturna y no se implementa como gate de commit.
+- [x] **K.6.4 — ⚡ Benchmark acotado de `src/run/` (2026-07-28).** Se creó
+  `stryker.run.config.mjs` y el script `mutation:run`, mutando `src/run/**/*.ts` completo con
+  `concurrency: 1` y ejecutando `bun test src/__tests__ --timeout 30000`.
+
+  El `dryRun` validó la configuración con `bunx stryker run stryker.run.config.mjs --dryRunOnly`:
+  `33` archivos mutables, `3385` mutantes instrumentados, suite base exitosa en `14s`, `1` test runner
+  y `1` checker. La corrida real se inició con `bunx stryker run stryker.run.config.mjs` a las `20:52:13`
+  y se detuvo manualmente a las `21:04:41` (`12m28s`) sin producir reporte final ni score; no hubo error
+  de la suite, pero tampoco progreso parcial utilizable.
+
+  Decisión: el benchmark completo es inviable como ejecución interactiva y no se implementa como gate de
+  commit. Queda clasificado como métrica manual/nocturna, con el comando ya preparado para ejecutarlo en
+  una ventana larga. No se inventa una proyección monetaria ni un score global a partir de una corrida
+  abortada; la única cifra global válida disponible sigue siendo la consolidación modular de K.6.3.
 - [ ] **K.6.5 — 🔍 Decisión de adopción.** Revisar evidencia de K.6.1-K.6.4 y decidir entre:
   (a) comando manual, (b) nightly/CI, (c) gate solo para módulos críticos, o (d) no adoptar todavía.
   Esta decisión no la toma un LLM por su cuenta y no se gradúa a IDEAS #54 como gate hasta que Carlos

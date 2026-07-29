@@ -19,7 +19,8 @@
     "mutation:qa": "stryker run stryker.config.mjs",
     "mutation:checks": "stryker run stryker.checks.config.mjs",
     "mutation:sandbox-policy": "stryker run stryker.sandbox-policy.config.mjs",
-    "mutation:graph-runner": "stryker run stryker.graph-runner.config.mjs"
+    "mutation:graph-runner": "stryker run stryker.graph-runner.config.mjs",
+    "mutation:run": "stryker run stryker.run.config.mjs"
   },
   "devDependencies": {
     "@stryker-mutator/core": "9.6.1",
