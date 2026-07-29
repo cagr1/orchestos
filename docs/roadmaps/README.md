@@ -1,12 +1,21 @@
 # Sistema de roadmaps de OrchestOS
 
-Bloque M.0 (Mes 24, PLAN.md), 2026-07-29. Diseño del sistema — no un roadmap en sí.
+Bloque M.0 (Mes 24, PLAN.md), 2026-07-29. **Revisado en M.0-R1 (2026-07-29)** — ver §9.
+Diseño del sistema — no un roadmap en sí.
 
 **Origen**: Carlos notó que, como desarrollador, también olvida protocolos/configuraciones previas
 al trabajar en un lenguaje que no domina a fondo, y que OrchestOS aumenta capacidades (mutation
 testing, seguridad) por lectura/intuición sin un orden fijo. La referencia fue `roadmap.sh`. Este
 documento decide **cómo** ese conocimiento entra a OrchestOS sin volverse una segunda fuente de
 verdad ni documentación aspiracional sin verificar.
+
+**Corrección de eje (M.0-R1)**: el diseño original (§1-§2 de abajo) trataba "lenguaje" como el
+segundo eje principal. La evidencia real dice otra cosa: Carlos ya alimentó el vault privado
+(`MemoriesMD`) con roadmaps por **disciplina/rol** (frontend, backend, QA-seguridad —
+`wiki/roadmaps/*.md`, anclados en `areas/professional/*` existentes), mientras el conocimiento por
+lenguaje (TypeScript, ASP.NET Core, Node.js, Android/iOS...) sigue crudo y sin destilar en
+`Clippings/`. Disciplina es el eje que realmente se está construyendo primero; lenguaje pasa a ser
+un eje secundario y más angosto (ver §9).
 
 ---
 
@@ -30,30 +39,42 @@ Ese es el único hueco real que este sistema debe llenar — no reemplaza skills
 
 ---
 
-## 1. Jerarquía de capas (fuente de verdad)
+## 1. Jerarquía de capas (fuente de verdad) — actualizada en M.0-R1
 
 ```
-docs/roadmaps/engineering-baseline.md   ← universal, cualquier proyecto/lenguaje
-docs/roadmaps/languages/<lenguaje>.md   ← diferencias del lenguaje/ecosistema
-docs/roadmaps/project-profile.md        ← evidencia real de ESTE repositorio detectado
+docs/roadmaps/engineering-baseline.md      ← universal, cualquier proyecto/disciplina/lenguaje
+docs/roadmaps/disciplines/<disciplina>.md  ← EJE PRINCIPAL: backend/frontend/qa-seguridad/devops
+docs/roadmaps/languages/<lenguaje>.md      ← eje secundario y angosto: solo entorno/toolchain/idiomas
+docs/roadmaps/project-profile.md           ← evidencia real de ESTE repositorio (disciplina(s) +
+                                              lenguaje(s) detectados, combinados)
         ↓ (consumido por)
-skills/*.yaml                           ← cómo ejecutar la tarea (instrucciones al agente)
-checks.ts / CI                          ← qué se comprueba automáticamente
-AGENTS.md / CONTEXT.md                  ← reglas y estado estable del repo
+skills/*.yaml                              ← cómo ejecutar la tarea (instrucciones al agente)
+checks.ts / CI                             ← qué se comprueba automáticamente
+AGENTS.md / CONTEXT.md                     ← reglas y estado estable del repo
 ```
 
-Precedencia: **project-profile > language > universal**. El perfil del proyecto real siempre gana
-sobre un default genérico — si `project-profile.md` dice que este repo no usa `clippy`, ninguna
-guía de Rust debe imponerlo como obligatorio.
+Precedencia: **project-profile > discipline > language > universal**. El perfil del proyecto real
+siempre gana sobre un default genérico; dentro de una disciplina, el lenguaje solo ajusta el
+"cómo" (comandos, idiomas), nunca reemplaza el "qué" que ya define la disciplina (auth, caching,
+testing, etc. no se redefinen por lenguaje).
 
-## 2. Las tres capas de conocimiento
+## 2. Las cuatro capas de conocimiento (M.0-R1: disciplina reemplaza a lenguaje como eje principal)
 
 1. **Universal** (`engineering-baseline.md`): el orden mínimo antes de tocar código, independiente
-   del lenguaje — entender dominio, ubicar límites de confianza, confirmar toolchain, etc.
-2. **Lenguaje/ecosistema** (`languages/<lenguaje>.md`): lo que cambia por lenguaje — `cargo` vs
-   `go.mod` vs `package.json`, ownership vs GC, goroutines vs async/await, etc.
-3. **Proyecto** (`project-profile.md`): lo que es verdad SOLO en este repositorio — comandos reales
-   detectados, versión de toolchain instalada, si hay CI, si hay Docker, etc.
+   de disciplina o lenguaje — entender dominio, ubicar límites de confianza, confirmar toolchain.
+2. **Disciplina/rol** (`disciplines/<disciplina>.md`) — **eje principal**: qué significa hacer bien
+   un backend, un frontend, QA/seguridad, DevOps — auth, caching, testing, performance, arquitectura
+   recurrente. Espejo directo de `wiki/roadmaps/<disciplina>.md` en el vault (`MemoriesMD`), promovido
+   vía `/knowledge-promote` — el vault es la fuente autoral, este archivo es la versión anclada a
+   este repo.
+3. **Lenguaje/ecosistema** (`languages/<lenguaje>.md`) — **eje secundario, acotado a propósito**:
+   solo lo que cambia por lenguaje dentro de una disciplina ya cubierta — `cargo` vs `go.mod` vs
+   `package.json`, ownership vs GC, goroutines vs async/await. No repite auth/testing/caching; eso
+   vive en la disciplina. Se completa bajo demanda (cuando el proyecto real lo necesita), no
+   proactivamente para cada lenguaje que exista.
+4. **Proyecto** (`project-profile.md`): lo que es verdad SOLO en este repositorio — qué disciplina(s)
+   aplica, qué lenguaje(s) detectados, comandos reales, versión de toolchain instalada, si hay CI,
+   si hay Docker, etc.
 
 ## 3. Modelo de etapas (el hueco real que llena este sistema)
 
@@ -89,7 +110,8 @@ diagnóstico de "qué debería estar antes" que un desarrollador (humano o LLM) 
 | `missing` | Se buscó explícitamente y no existe (ej. no hay lint configurado) — un hueco real, no un olvido de documentarlo. |
 | `not-applicable` | La etapa no aplica a este tipo de proyecto (ej. "despliegue" en una librería sin release propio) — decisión explícita, no silencio. |
 
-## 5. Esquema común de cada guía (`engineering-baseline.md` y `languages/<lenguaje>.md`)
+## 5. Esquema común de cada guía (`engineering-baseline.md`, `disciplines/<disciplina>.md` y
+   `languages/<lenguaje>.md`)
 
 Cada archivo de guía sigue esta estructura fija:
 
@@ -113,9 +135,9 @@ Cada archivo de guía sigue esta estructura fija:
 ## No asumir — alternativas y qué preguntar/detectar en vez de suponer
 ```
 
-Cada sección de `languages/<lenguaje>.md` y `project-profile.md` lleva su estado (`known` /
-`detected` / `verified` / `missing` / `not-applicable`) junto al contenido — nunca texto suelto sin
-estado.
+Cada sección de `disciplines/<disciplina>.md`, `languages/<lenguaje>.md` y `project-profile.md`
+lleva su estado (`known` / `detected` / `verified` / `missing` / `not-applicable`) junto al
+contenido — nunca texto suelto sin estado.
 
 ## 6. Contrato roadmap ↔ skill ↔ checks
 
@@ -142,7 +164,32 @@ estado.
 
 ## 8. Explícitamente fuera de alcance de M.0
 
-- No se construye todavía ningún perfil de lenguaje concreto (eso es M.2).
+- No se construye todavía ningún perfil de disciplina/lenguaje concreto (eso es M.2).
 - No se conecta todavía a skills/prompts/QA (eso es M.4).
 - No se trata `roadmap.sh` como fuente ejecutable — solo fue la inspiración inicial de Carlos; el
-  contenido real de cada perfil se verifica contra este repo y este lenguaje, no se copia de ahí.
+  contenido real de cada perfil se verifica contra este repo, esta disciplina y este lenguaje, no se
+  copia de ahí ni del vault sin pasar por `/knowledge-promote`.
+
+## 9. M.0-R1 — historial de la revisión (2026-07-29)
+
+**Qué cambió**: el eje principal de la capa 2 pasó de "lenguaje" a "disciplina/rol". Antes:
+`languages/<lenguaje>.md` era el único segundo nivel. Ahora: `disciplines/<disciplina>.md` es el
+eje principal (backend/frontend/qa-seguridad/devops) y `languages/<lenguaje>.md` queda como capa
+adicional, más angosta, que solo cubre entorno/toolchain/idiomas dentro de una disciplina ya
+definida — no duplica auth/testing/caching/arquitectura, eso vive en la disciplina.
+
+**Por qué**: evidencia real, no preferencia estética. Carlos alimentó primero el vault
+(`MemoriesMD/wiki/roadmaps/{frontend,backend,qa-seguridad}.md`) organizado por disciplina, anclado
+en áreas profesionales que ya existían (`design-frontend`, `software-quality`; backend se ancló en
+`agent-engineering` a falta de área propia). El conocimiento por lenguaje (TypeScript, ASP.NET
+Core, Node.js, Android/iOS, Software Architect) sigue crudo en `Clippings/`, sin destilar. El
+diseño debe seguir el trabajo real, no al revés.
+
+**Qué NO cambió**: el modelo de 12 etapas con prerequisitos (§3), los 5 estados explícitos (§4), el
+contrato roadmap↔skill↔checks (§6), y la regla de evidencia por sección (comando + salida real para
+`verified`) siguen exactamente iguales — la corrección es solo de eje, no de rigor.
+
+**Qué queda pendiente, sin decidir todavía**: si/cuándo se promueve contenido de
+`wiki/roadmaps/*.md` (vault) a `docs/roadmaps/disciplines/*.md` (este repo) es una decisión de M.2,
+no de este documento — cada promoción pasa por `/knowledge-promote` con propuesta, diff y
+confirmación explícita, nunca automática.

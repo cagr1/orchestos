@@ -1889,6 +1889,20 @@ verificado en este repo), nunca `verified`.
   not-applicable`) y contrato roadmap↔skill↔checks documentados en
   [docs/roadmaps/README.md](docs/roadmaps/README.md). No se creó todavía ningún perfil de lenguaje
   concreto (M.2) ni se conectó a skills/QA (M.4) — explícitamente fuera de alcance de este ítem.
+- [x] **M.0-R1 — 🧠 (2026-07-29) Corrección de eje: disciplina/rol reemplaza a lenguaje como capa
+  principal.** Motivo, no preferencia: Carlos alimentó primero el vault privado (`MemoriesMD`) con
+  roadmaps por disciplina (`wiki/roadmaps/{frontend,backend,qa-seguridad}.md`), anclados en áreas
+  profesionales ya existentes (`design-frontend`, `software-quality`; backend ancló en
+  `agent-engineering` a falta de área propia), mientras el conocimiento por lenguaje (TypeScript,
+  ASP.NET Core, Node.js, Android/iOS, Software Architect) sigue crudo sin destilar en `Clippings/`
+  del vault. El diseño debía seguir el trabajo real, no al revés. Cambio: capa 2 pasa a ser
+  `docs/roadmaps/disciplines/<disciplina>.md` (eje principal — espejo de `wiki/roadmaps/*.md` del
+  vault, promovido vía `/knowledge-promote`, nunca copiado automático); `languages/<lenguaje>.md`
+  baja a capa 3, secundaria y acotada a entorno/toolchain/idiomas dentro de una disciplina ya
+  definida (no repite auth/testing/caching). El modelo de 12 etapas, los 5 estados explícitos y el
+  contrato roadmap↔skill↔checks **no cambiaron** — la corrección es solo de eje, no de rigor.
+  Detalle completo en [docs/roadmaps/README.md §9](docs/roadmaps/README.md). Cierre original de M.0
+  preservado arriba, no borrado — mismo criterio que el resto de PLAN.md con reglas que evolucionan.
 
 ### M.1 — ⚡ Guía universal de ingeniería
 
@@ -1904,10 +1918,22 @@ verificado en este repo), nunca `verified`.
   herramientas. Si un proyecto no tiene lint, por ejemplo, el estado debe ser `missing`, no un falso
   `pass`.
 
-### M.2 — ⚡ Perfiles iniciales de lenguaje/ecosistema
+### M.2 — ⚡ Perfiles iniciales de disciplina (eje principal, M.0-R1) + lenguaje (secundario)
 
-- [ ] Crear perfiles versionados para TypeScript/Bun, Rust y Go como primera muestra. Cada perfil debe
-  distinguir lenguaje, runtime, package/dependency manager, framework, persistencia y tipo de entrega.
+**Orden actualizado por M.0-R1**: empezar por disciplina, no por lenguaje. La fuente autoral son
+los roadmaps ya destilados en el vault (`MemoriesMD/wiki/roadmaps/{frontend,backend,qa-seguridad}.md`)
+— promoverlos vía `/knowledge-promote` a `docs/roadmaps/disciplines/*.md`, con propuesta/diff y
+confirmación explícita de Carlos por cada uno, no copiarlos automático. Recién después, y solo si
+un proyecto concreto lo necesita, crear el perfil de lenguaje angosto correspondiente.
+
+- [ ] Promover `docs/roadmaps/disciplines/{backend,frontend,qa-seguridad}.md` desde el vault (3
+  disciplinas ya destiladas ahí). Cada uno con su estado por sección (`known/detected/verified/
+  missing/not-applicable`) — el contenido del vault entra como `known` hasta que se verifique contra
+  un proyecto real.
+- [ ] Crear perfiles de **lenguaje** versionados como capa secundaria, angosta, para TypeScript/Bun,
+  Rust y Go como primera muestra — solo entorno/toolchain/idiomas, sin repetir lo que ya cubre la
+  disciplina. Cada perfil debe distinguir lenguaje, runtime, package/dependency manager, framework,
+  persistencia y tipo de entrega.
 - [ ] Rust: cubrir `cargo`/`Cargo.toml`, edición/formato, compilación, tests, documentación,
   errores/resultados, ownership/concurrencia, dependencias y checks de seguridad; los comandos como
   `clippy` o auditoría de dependencias deben marcarse como `available` solo después de detectarlos.
@@ -1916,8 +1942,8 @@ verificado en este repo), nunca `verified`.
   herramienta en el entorno antes de convertirla en gate.
 - [ ] TypeScript/Bun: cubrir runtime/package manager real, typecheck, tests, lint/format, bundling,
   dependencias, secretos, SSRF/XSS y diferencias entre código de servidor, cliente y scripts.
-- [ ] Cada perfil debe tener una sección “no asumir”: comandos alternativos, diferencias entre
-  proyecto library/service/CLI, y qué información debe pedir o detectar OrchestOS.
+- [ ] Cada perfil (disciplina o lenguaje) debe tener una sección “no asumir”: comandos alternativos,
+  diferencias entre proyecto library/service/CLI, y qué información debe pedir o detectar OrchestOS.
 
 ### M.3 — 🧠 Perfil efectivo del proyecto
 
@@ -1925,9 +1951,9 @@ verificado en este repo), nunca `verified`.
   etc.), lockfiles, scripts, CI, Docker/deploy, base de datos, frameworks y archivos de instrucciones.
 - [ ] Generar o actualizar `docs/roadmaps/project-profile.md` con evidencia: archivo de origen,
   comando detectado, versión detectada y fecha. Separar “detectado” de “ejecutado con éxito”.
-- [ ] Detectar proyectos políglotas sin reducirlos a un solo lenguaje primario: registrar backend,
-  frontend, scripts, infraestructura y tests por separado. Rust y Go pueden coexistir y cada uno debe
-  recibir su checklist correspondiente.
+- [ ] Detectar proyectos políglotas y multi-disciplina sin reducirlos a una sola etiqueta: registrar
+  qué disciplina(s) aplica (backend/frontend/QA-seguridad/DevOps) y qué lenguaje(s) coexisten
+  (ej. Rust y Go), cada uno con su checklist correspondiente.
 - [ ] Añadir un comando de diagnóstico, por ejemplo `orchestos roadmap show`/`check`, que muestre qué
   partes están completas, cuáles faltan y qué comandos concretos recomienda ejecutar.
 
