@@ -1753,8 +1753,11 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
     SQLite; la versión solo se marca cuando todo confirma. La prueba inyecta un fallo después de
     crear una tabla, cierra y reabre la DB, y demuestra `0` tabla parcial y `0` versión v2 marcada.
     No se borra ni se reconstruye la DB activa.
-  - [ ] Crear fixtures de DB vacía, baseline actual y al menos una versión legacy representativa;
-    preservar filas y validar tipos/defaults/constraints después de cada transición.
+  - [x] **L.5.7.4 — Fixtures y contrato de esquema (2026-07-29).** `migration.test.ts` cubre DB
+    vacía, baseline v1 y legacy representativa con fila preservada. Los fixtures validan defaults de
+    contadores/costos/tiempo, `NOT NULL` de `runs.status`, tipo nulo de columnas añadidas y rechazo
+    de path duplicado por constraint `UNIQUE`, además de la existencia del índice único de `files`.
+    Foreign keys, FTS5, triggers y conteos de integridad quedan para L.5.7.5.
   - [ ] Verificar `PRAGMA foreign_keys`, índices, FTS5, triggers y conteos de filas antes/después;
     probar corrupción o incompatibilidad de FTS con un fallo explícito y recuperable.
   - [ ] Probar rollback por inyección de fallo en cada etapa crítica. No se acepta “borrar y recrear”

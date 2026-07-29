@@ -15,6 +15,11 @@ interface ChildResult {
   probeCount?: number
   failedTableCount?: number
   failedVersionCount?: number
+  runDefaults?: { input_tokens: number; output_tokens: number; usd_cost: number; elapsed_ms: number }
+  statusNotNull?: number
+  duplicatePathRejected?: boolean
+  uniqueFilesIndex?: boolean
+  legacyTaskIdDefault?: string | null
   error?: string
 }
 
@@ -50,7 +55,16 @@ describe('SQLite migrations', () => {
         const runsColumns = db.query('PRAGMA table_info(runs)').all().map(row => row.name)
         const filesColumns = db.query('PRAGMA table_info(files)').all().map(row => row.name)
         const schemaVersions = db.query('SELECT version, name FROM schema_migrations ORDER BY version').all()
-        process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns, schemaVersions }))
+        db.run('INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', ['fixture-run', 'fixture', 'test', 'model', 'provider', 'done', '2026-07-29T00:00:00.000Z'])
+        const runDefaults = db.query('SELECT input_tokens, output_tokens, usd_cost, elapsed_ms FROM runs WHERE id = ?').get('fixture-run')
+        const statusNotNull = db.query('PRAGMA table_info(runs)').all().find(row => row.name === 'status').notnull
+        let duplicatePathRejected = false
+        db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['fixture-project-1', '/fixture', '{}', '', '2026-07-29T00:00:00.000Z'])
+        try {
+          db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['fixture-project-2', '/fixture', '{}', '', '2026-07-29T00:00:00.000Z'])
+        } catch { duplicatePathRejected = true }
+        const uniqueFilesIndex = db.query('PRAGMA index_list(files)').all().some(row => row.unique === 1)
+        process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns, schemaVersions, runDefaults, statusNotNull, duplicatePathRejected, uniqueFilesIndex }))
         db.close()
       `)
 
@@ -65,6 +79,10 @@ describe('SQLite migrations', () => {
         'cost_breakdown_json', 'file_diffs', 'adversarial_verdict',
       ]))
       expect(result.filesColumns).toContain('embedding')
+      expect(result.runDefaults).toEqual({ input_tokens: 0, output_tokens: 0, usd_cost: 0, elapsed_ms: 0 })
+      expect(result.statusNotNull).toBe(1)
+      expect(result.duplicatePathRejected).toBe(true)
+      expect(result.uniqueFilesIndex).toBe(true)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -86,7 +104,8 @@ describe('SQLite migrations', () => {
         const row = db.query('SELECT prompt, status FROM runs WHERE id = ?').get('legacy-1')
         const runsColumns = db.query('PRAGMA table_info(runs)').all().map(row => row.name)
         const schemaVersions = db.query('SELECT version, name FROM schema_migrations ORDER BY version').all()
-        process.stdout.write(JSON.stringify({ runCount: row ? 1 : 0, runsColumns, schemaVersions }))
+        const legacyTaskIdDefault = db.query('PRAGMA table_info(runs)').all().find(row => row.name === 'task_id').dflt_value
+        process.stdout.write(JSON.stringify({ runCount: row ? 1 : 0, runsColumns, schemaVersions, legacyTaskIdDefault }))
         db.close()
       `)
 
@@ -94,6 +113,7 @@ describe('SQLite migrations', () => {
       expect(result.runsColumns).toContain('adversarial_reason')
       expect(result.runsColumns).toContain('context_source')
       expect(result.schemaVersions).toEqual([{ version: 1, name: 'baseline-current-schema' }])
+      expect(result.legacyTaskIdDefault).toBeNull()
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
