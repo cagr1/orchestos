@@ -4,6 +4,7 @@ import { resolve, join } from 'path'
 import { writeFileSync, existsSync, readFileSync } from 'fs'
 import { detectPrimaryLanguage } from './detect/languages.ts'
 import { buildProfile } from './detect/profile.ts'
+import { buildRoadmapProfile, renderProjectProfileMarkdown } from './detect/roadmap-profile.ts'
 import { generateAgentsMd, type StackProfile } from './generators/agents-md.ts'
 import { generateContextJson } from './generators/context-json.ts'
 import { runMigrations } from './db/migrate.ts'
@@ -235,6 +236,54 @@ ctx
     const saved = result.agentsMdTokens - result.tokenEstimate
     console.log(`[context] CONTEXT.md written to ${outPath}`)
     console.log(`  AGENTS.md: ~${result.agentsMdTokens} tokens → CONTEXT.md: ~${result.tokenEstimate} tokens (saved ~${saved} tokens)`)
+  })
+
+// ── roadmap (M.3, Mes 24) ──────────────────────────────────────────────────────
+
+const roadmap = program.command('roadmap').description('Diagnóstico de disciplinas/lenguajes aplicables (docs/roadmaps/)')
+
+roadmap
+  .command('show [path]')
+  .description('Print the cached docs/roadmaps/project-profile.md')
+  .action((targetPath?: string) => {
+    const root = resolve(targetPath ?? '.')
+    const profilePath = join(root, 'docs', 'roadmaps', 'project-profile.md')
+    if (!existsSync(profilePath)) {
+      console.error('[roadmap] No hay project-profile.md todavía. Corré: orchestos roadmap check')
+      process.exit(1)
+    }
+    console.log(readFileSync(profilePath, 'utf-8'))
+  })
+
+roadmap
+  .command('check [path]')
+  .description('Re-detect disciplinas/lenguajes/infra y regenerar docs/roadmaps/project-profile.md')
+  .action(async (targetPath?: string) => {
+    const root = resolve(targetPath ?? '.')
+    const profile = await buildRoadmapProfile(root)
+    const md = renderProjectProfileMarkdown(profile)
+    const outDir = join(root, 'docs', 'roadmaps')
+    if (!existsSync(outDir)) {
+      console.error(`[roadmap] ${outDir} no existe — corré esto dentro de un proyecto con docs/roadmaps/ inicializado.`)
+      process.exit(1)
+    }
+    writeFileSync(join(outDir, 'project-profile.md'), md, 'utf-8')
+    console.log(`[roadmap] project-profile.md actualizado en ${outDir}`)
+    console.log('')
+    console.log('Disciplinas:')
+    for (const d of profile.disciplines) console.log(`  ${d.discipline.padEnd(14)} ${d.state.padEnd(15)} ${d.evidence}`)
+    console.log('')
+    console.log('Lenguajes:')
+    for (const l of profile.languageProfiles) console.log(`  ${l.language.padEnd(14)} ${String(l.pct + '%').padEnd(5)} ${l.state.padEnd(10)} ${l.evidence}`)
+    console.log('')
+    const missing = [
+      ...profile.disciplines.filter(d => d.state === 'missing').map(d => `disciplina ${d.discipline}: ${d.evidence}`),
+      ...(profile.ci.state === 'missing' ? [`CI: ${profile.ci.evidence}`] : []),
+    ]
+    if (missing.length > 0) {
+      console.log('Pendiente (missing):')
+      for (const m of missing) console.log(`  - ${m}`)
+    }
   })
 
 // ── skill ─────────────────────────────────────────────────────────────────────

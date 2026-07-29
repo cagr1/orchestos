@@ -1953,15 +1953,39 @@ un proyecto concreto lo necesita, crear el perfil de lenguaje angosto correspond
 
 ### M.3 — 🧠 Perfil efectivo del proyecto
 
-- [ ] Extender el perfil detectado para combinar manifiestos (`Cargo.toml`, `go.mod`, `package.json`,
-  etc.), lockfiles, scripts, CI, Docker/deploy, base de datos, frameworks y archivos de instrucciones.
-- [ ] Generar o actualizar `docs/roadmaps/project-profile.md` con evidencia: archivo de origen,
-  comando detectado, versión detectada y fecha. Separar “detectado” de “ejecutado con éxito”.
-- [ ] Detectar proyectos políglotas y multi-disciplina sin reducirlos a una sola etiqueta: registrar
-  qué disciplina(s) aplica (backend/frontend/QA-seguridad/DevOps) y qué lenguaje(s) coexisten
-  (ej. Rust y Go), cada uno con su checklist correspondiente.
-- [ ] Añadir un comando de diagnóstico, por ejemplo `orchestos roadmap show`/`check`, que muestre qué
-  partes están completas, cuáles faltan y qué comandos concretos recomienda ejecutar.
+- [x] **M.3 — 🧠 (2026-07-29)** Auditoría previa (mismo principio de M.0): `src/detect/{manifest,
+  languages,conventions,profile}.ts` YA detecta manifest/runtime/framework/deps, lenguajes políglotas
+  con % (`LangStat[]`, top 5) y convenciones — usado hoy por `context update` para AGENTS.md/
+  CONTEXT.md. M.3 no reimplementa esto: lo reusa y agrega solo lo que faltaba (disciplina/lenguaje
+  de `docs/roadmaps/` aplicable + infraestructura + estado explícito). Nuevo módulo
+  [src/detect/roadmap-profile.ts](src/detect/roadmap-profile.ts): `buildRoadmapProfile()` combina
+  manifest/languages/conventions/commands existentes con detección de disciplinas (backend por
+  framework conocido O servidor custom vía patrón de código como `Bun.serve(`/`createServer(`/
+  `express()`; frontend por `.html`; qa-seguridad por conteo real de `*.test.*`/`*.spec.*`; devops
+  por `.github/workflows`/`Dockerfile`; architecture/ai-agents sin heurística confiable →
+  `not-applicable` explícito, no inventado), CI/Docker/DB (por dependencia conocida O uso real de
+  `bun:sqlite` en código fuente) y 4 archivos de instrucciones (AGENTS/CLAUDE/CONTEXT/PLAN.md).
+  Estados `known/detected/verified/missing/not-applicable` en cada hallazgo — nunca texto sin estado.
+  `verified` solo en toolchain: `Bun.version` (introspección real del runtime) y `bunx tsc --version`
+  (comando real ejecutado, cae a omitido si no está disponible, nunca bloquea). Perfiles de lenguaje
+  se cruzan contra `docs/roadmaps/languages/` por PREFIJO de slug, no nombre exacto — encontró y
+  corrigió en el camino que el perfil real de TypeScript quedó nombrado `typescript-bun.md`, no
+  `typescript.md`; una búsqueda por nombre exacto lo hubiera marcado `missing` por error.
+  `renderProjectProfileMarkdown()` genera `docs/roadmaps/project-profile.md`. CLI:
+  `orchestos roadmap show` (lee el archivo cacheado) y `orchestos roadmap check` (re-detecta,
+  regenera el archivo, imprime disciplinas/lenguajes/pendientes). **Dogfooding real, no solo unit
+  tests**: correr `orchestos roadmap check` contra OrchestOS mismo destapó un bug de heurística
+  (backend salía `not-applicable` porque el dashboard usa `Bun.serve` custom, no un framework npm
+  conocido) — corregido agregando detección por patrón de código, no solo por dependencia declarada.
+  19 tests nuevos en [roadmap-profile.test.ts](src/__tests__/roadmap-profile.test.ts) (fixtures
+  aislados en `mkdtempSync` + 2 casos de dogfooding contra `process.cwd()` real). Verificación:
+  `bun test src/__tests__/roadmap-profile.test.ts` (`19 pass`, `0 fail`, `38 expect() calls`),
+  `bun run typecheck` limpio, suite completa `1002 pass`, `0 fail`, `2278 expect() calls` en `96`
+  archivos. **Limitación honesta, no resuelta**: `ai-agents` sale `not-applicable` para OrchestOS
+  mismo (un orquestador de agentes) porque la heurística solo busca SDKs de terceros (`@anthropic-ai/
+  sdk`, `openai`, etc.) en dependencias — OrchestOS llama proveedores por HTTP directo, sin SDK
+  declarado. Documentado en el código y acá en vez de forzar una heurística débil que invente un
+  `detected` sin evidencia real.
 
 ### M.4 — ⚡ Integración con skills, prompts y QA
 
