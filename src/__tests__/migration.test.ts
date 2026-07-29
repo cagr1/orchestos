@@ -13,6 +13,8 @@ interface ChildResult {
   schemaCount?: number
   evidence?: Array<{ version: number; name: string; applied_at: string }>
   probeCount?: number
+  failedTableCount?: number
+  failedVersionCount?: number
   error?: string
 }
 
@@ -156,6 +158,42 @@ describe('SQLite migrations', () => {
       expect(result.evidence?.[1]).toMatchObject({ version: 2, name: 'migration-test-probe' })
       expect(result.evidence?.[1]?.applied_at).toEqual(expect.any(String))
       expect(result.probeCount).toBe(1)
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('rolls back a failed step after reopening the database', async () => {
+    const home = tempHome()
+    try {
+      const result = await runMigrationProcess(home, `
+        import { Database } from 'bun:sqlite'
+        const { runMigrations, applyMigrationSteps } = await import('./src/db/migrate.ts')
+        const { db } = await import('./src/db/sqlite.ts')
+        runMigrations()
+        const failedStep = {
+          version: 2,
+          name: 'migration-test-failure',
+          precondition() {},
+          apply(database) {
+            database.exec('CREATE TABLE migration_partial (id INTEGER PRIMARY KEY)')
+            throw new Error('injected migration failure')
+          },
+          postcondition() {},
+        }
+        try {
+          applyMigrationSteps([failedStep])
+        } catch {}
+        db.close()
+        const reopened = new Database(process.env.ORCHESTOS_HOME + '/.orchestos/db.sqlite')
+        const failedTableCount = reopened.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_partial'").get().count
+        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 2').get().count
+        process.stdout.write(JSON.stringify({ failedTableCount, failedVersionCount }))
+        reopened.close()
+      `)
+
+      expect(result.failedTableCount).toBe(0)
+      expect(result.failedVersionCount).toBe(0)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }

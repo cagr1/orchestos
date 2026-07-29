@@ -41,13 +41,18 @@ export function applyMigrationSteps(
 
     if (applied.has(step.version)) continue
 
-    step.precondition(database)
-    step.apply(database)
-    step.postcondition(database)
-    database.run(
-      'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
-      [step.version, step.name, new Date().toISOString()],
-    )
+    // The schema change and its evidence must commit together. Bun rolls the
+    // transaction back if any contract check or the evidence insert throws.
+    const applyStep = database.transaction(() => {
+      step.precondition(database)
+      step.apply(database)
+      step.postcondition(database)
+      database.run(
+        'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
+        [step.version, step.name, new Date().toISOString()],
+      )
+    })
+    applyStep()
     applied.add(step.version)
   }
 }

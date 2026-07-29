@@ -1748,9 +1748,11 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
     registro único para las transformaciones reales siguientes. El test ejecuta un paso v2 dos veces,
     preserva una sola evidencia y confirma el postcondition. La transacción y rollback siguen siendo
     deliberadamente L.5.7.3, no se declaran cubiertos aquí.
-  - [ ] Ejecutar cada paso dentro de una transacción SQLite; marcar la versión solo después del
-    commit. Si falla un paso, reabrir la DB y demostrar que no quedan columnas/tablas/índices parciales
-    ni una versión marcada incorrectamente.
+  - [x] **L.5.7.3 — Transacción y rollback (2026-07-29).** Cada `SchemaMigrationStep` ejecuta
+    precondición, transformación, postcondición y registro de evidencia dentro de una transacción
+    SQLite; la versión solo se marca cuando todo confirma. La prueba inyecta un fallo después de
+    crear una tabla, cierra y reabre la DB, y demuestra `0` tabla parcial y `0` versión v2 marcada.
+    No se borra ni se reconstruye la DB activa.
   - [ ] Crear fixtures de DB vacía, baseline actual y al menos una versión legacy representativa;
     preservar filas y validar tipos/defaults/constraints después de cada transición.
   - [ ] Verificar `PRAGMA foreign_keys`, índices, FTS5, triggers y conteos de filas antes/después;
