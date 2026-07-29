@@ -1073,14 +1073,12 @@ No es cobertura pareja, es **bimodal** — y eso decide dónde vale la pena inve
 El núcleo del motor está bien testeado. Lo flojo es periferia (dashboard, CLI).
 
 - [x] **J.1 — ⚡ (2026-07-29) Coverage gate con umbral-trinquete en el número actual.** Se creó
-  `bunfig.toml` con
-  `[test] coverage = true` + `coverageThreshold = 0.69` (el valor medido HOY, no uno aspiracional), y
-  cambiar `bun test` → `bun test --coverage` en
-  [.github/workflows/ci.yml](.github/workflows/ci.yml). Bun trae el umbral nativo — no hace falta
-  Stryker, nyc ni ninguna dependencia nueva. **Validación**: `bunx tsc --noEmit` pasó; la matriz
-  aislada/serializada reportó `71.26%` de funciones y `71.84%` de líneas, por encima de `0.69`.
-  Quedó `982 pass`, `1 fail` por la colisión preexistente del puerto 0 en el test de bind de L.2;
-  no se corrigió por scope-lock. El CI falla si la cobertura baja del umbral.
+  `bunfig.toml` con cobertura habilitada y un gate propio en
+  `scripts/check-coverage.ts`: ejecuta la suite, genera LCOV, calcula cobertura agregada de líneas y
+  funciones y exige `0.69`. Se evitó `coverageThreshold` nativo de Bun porque hacía fallar CI por
+  archivos individuales sin explicar cuál, aunque el agregado superara el umbral. El gate imprime
+  ambas métricas, propaga fallos reales de tests y limpia su directorio temporal. No se añadieron
+  dependencias. Tests del parser: 2 pass; la suite completa sigue siendo la fuente de la medición.
 - **Regla de trinquete (por qué 0.69 y no 0.80)**: el umbral se fija en el número real y solo sube
   cuando la cobertura sube de verdad — nunca se pone una meta aspiracional. Un 80% "porque lo
   recomienda ECC" rompe el CI al día siguiente y termina desactivado, que es peor que no tenerlo.
@@ -2014,13 +2012,45 @@ un proyecto concreto lo necesita, crear el perfil de lenguaje angosto correspond
 
 ### M.5 — 🔍 Gate de onboarding técnico
 
-- [ ] Probar el flujo completo en tres fixtures: OrchestOS actual, un proyecto Rust y un proyecto Go.
-- [ ] Para cada fixture, demostrar que un desarrollador nuevo puede obtener: qué instalar, cómo
-  ejecutar, cómo probar, cómo revisar seguridad, cómo preparar deploy y cómo recuperar un fallo.
-- [ ] Revisar manualmente que la guía no imponga prácticas falsas, comandos no instalados o decisiones
-  de arquitectura que el proyecto no adoptó.
-- [ ] Cerrar solo con documentación versionada, perfiles seleccionados, evidencia de detección y una
-  ejecución real de los checks. Copiar el resumen a `DONE.md` y las reglas permanentes a `CONTEXT.md`.
+- [x] **M.5 — 🔍 (2026-07-29)** Flujo completo probado con `orchestos roadmap check` +
+  `loadRoadmapContext()` reales (no simulados) contra 3 fixtures: OrchestOS mismo, y dos proyectos
+  nuevos creados para este gate —
+  [tests/fixtures/roadmap-onboarding/rust-hello](tests/fixtures/roadmap-onboarding/rust-hello)
+  (`Cargo.toml` + `src/main.rs` con test inline `#[cfg(test)]`) y
+  [.../go-hello](tests/fixtures/roadmap-onboarding/go-hello) (`go.mod` + paquete con `_test.go`
+  real). Cada fixture recibió una copia puntual de los docs de disciplina/lenguaje relevantes
+  (`qa-seguridad.md` + `rust.md`/`go.md`) para poder probar el flujo de selección/consumo end-to-end
+  — no hay todavía un mecanismo que provisione esto automáticamente (hallazgo, ver abajo).
+
+  **Bug real encontrado y corregido por el gate** (el tercero de esta cadena, tras los 2 de M.3):
+  la detección de `qa-seguridad` solo reconocía la convención JS/TS (`*.test.ts`/`*.spec.js`) —
+  ambos fixtures, con tests reales, salían `missing`. Se agregó reconocimiento de `_test.go` (Go) y
+  de `#[cfg(test)]`/directorio `tests/` (Rust) en
+  [roadmap-profile.ts](src/detect/roadmap-profile.ts) (`findTestSignals()`). 2 tests de regresión
+  nuevos confirman ambas convenciones.
+
+  **Checklist del desarrollador nuevo, verificado contra el contenido real de cada doc** (no
+  supuesto): `docs/roadmaps/languages/{rust,go}.md` responden qué instalar (`rustc`/`cargo`,
+  `go`/módulos), cómo compilar/formatear, cómo testear (`cargo test`, `go test ./...`), seguridad
+  (`cargo audit`/`govulncheck`, con nota explícita de que ausencia = `missing`, no se asume), y cada
+  uno tiene sección "No asumir" que impide tratar el lenguaje como garantía de tooling. Deploy/
+  rollback viven en la disciplina `devops.md`, no en el perfil de lenguaje — confirmado que no se
+  duplica contenido entre capas.
+
+  **Verificación en vivo de que nada se inventa** (sin `rustc`/`cargo`/`go` instalados en esta
+  máquina): tanto el CLI como `loadRoadmapContext()` muestran `toolchain Rust`/`toolchain Go` como
+  `missing` de punta a punta para ambos fixtures — el sistema completo (detección → selección →
+  contexto de tarea) nunca produce un `verified` falso cuando el comando real no existe.
+
+  **2 límites reales encontrados y documentados, NO resueltos en este gate** (decisión pendiente de
+  Carlos, no de un LLM): (1) `orchestos init` no provisiona `docs/roadmaps/` en un proyecto nuevo —
+  hoy el sistema solo tiene contenido real para OrchestOS mismo; (2) el presupuesto de 12k chars de
+  `loadRoadmapContext` (M.4) ya no alcanza para las 6 disciplinas + lenguajes que aplican a
+  OrchestOS mismo — se recorta con `missing` visible (nunca en silencio), pero el recorte es real.
+  Ambos anotados en [CONTEXT.md § Invariante roadmap](CONTEXT.md).
+
+  Resumen copiado a [DONE.md § Mes 24](DONE.md). Verificación: `bun run typecheck` limpio, suite
+  completa `1010 pass`, `0 fail`, `2303 expect() calls` en `98` archivos.
 
 **Regla de evolución:** cuando aparezca un nuevo lenguaje o framework, primero se crea/actualiza su
 perfil y fixture; después se permite convertirlo en skill automática. Los hallazgos se documentan en

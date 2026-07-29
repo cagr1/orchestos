@@ -76,6 +76,27 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     expect(qa.evidence).toContain('1 archivos')
   })
 
+  it('M.5: detecta qa-seguridad con convención Go (_test.go), no solo *.test.ts', async () => {
+    const root = tmpDir()
+    writePkg(root)
+    mkdirSync(join(root, 'pkg'), { recursive: true })
+    writeFileSync(join(root, 'go.mod'), 'module fixture\n\ngo 1.22\n')
+    writeFileSync(join(root, 'pkg', 'greet.go'), 'package pkg')
+    writeFileSync(join(root, 'pkg', 'greet_test.go'), 'package pkg')
+    const profile = await buildRoadmapProfile(root)
+    expect(profile.disciplines.find(d => d.discipline === 'qa-seguridad')!.state).toBe('detected')
+  })
+
+  it('M.5: detecta qa-seguridad con módulo inline #[cfg(test)] de Rust, sin archivo *.test.rs', async () => {
+    const root = tmpDir()
+    writePkg(root)
+    mkdirSync(join(root, 'src'), { recursive: true })
+    writeFileSync(join(root, 'Cargo.toml'), '[package]\nname = "fixture"\n')
+    writeFileSync(join(root, 'src', 'main.rs'), 'fn main() {}\n\n#[cfg(test)]\nmod tests {}\n')
+    const profile = await buildRoadmapProfile(root)
+    expect(profile.disciplines.find(d => d.discipline === 'qa-seguridad')!.state).toBe('detected')
+  })
+
   it('detecta devops por workflows de CI', async () => {
     const root = tmpDir()
     writePkg(root)

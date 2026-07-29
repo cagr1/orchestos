@@ -158,11 +158,30 @@ function findServerEntry(root: string): string | undefined {
   return undefined
 }
 
+/**
+ * M.5 (dogfooding contra rust-hello/go-hello) — el patrón `*.test.*`/`*.spec.*`
+ * es convención JS/TS; Go usa sufijo `_test.go` (sin punto) y Rust usa módulos
+ * inline `#[cfg(test)]` o un directorio `tests/` — sin esto, un proyecto Go/Rust
+ * real con tests reales salía `missing` de qa-seguridad, un falso negativo.
+ */
+function findTestSignals(root: string): string[] {
+  const ignore = ['node_modules/**', '.git/**']
+  const files = [
+    ...glob.sync('**/*.{test,spec}.{ts,tsx,js,jsx}', { cwd: root, ignore }),
+    ...glob.sync('**/*_test.go', { cwd: root, ignore }),
+    ...glob.sync('**/{test_*,*_test}.py', { cwd: root, ignore }),
+    ...glob.sync('**/tests/**/*.rs', { cwd: root, ignore }),
+  ]
+  if (files.length > 0) return files
+  const hasInlineRustTests = glob.sync('**/*.rs', { cwd: root, ignore }).some(f => {
+    try { return readFileSync(join(root, f), 'utf-8').includes('#[cfg(test)]') } catch { return false }
+  })
+  return hasInlineRustTests ? ['#[cfg(test)] inline (Rust)'] : []
+}
+
 function detectDisciplines(root: string, manifest: Manifest, languages: LangStat[]): DisciplineFinding[] {
   const hasHtml = languages.some(l => l.lang === 'HTML')
-  const testFiles = glob.sync('**/*.{test,spec}.{ts,tsx,js,jsx,py,go,rs}', {
-    cwd: root, ignore: ['node_modules/**', '.git/**'],
-  })
+  const testFiles = findTestSignals(root)
   const ciFiles = existsSync(join(root, '.github', 'workflows'))
     ? glob.sync('*.{yml,yaml}', { cwd: join(root, '.github', 'workflows') })
     : []

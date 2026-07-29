@@ -25,6 +25,26 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
   trazabilidad y estado inicial `known`.
 - M.2.2: creados perfiles secundarios para TypeScript/Bun, Rust y Go con evidencia de toolchain y
   estados honestos (`detected`, `verified`, `known`, `missing`), sin duplicar las disciplinas.
+- M.3: `src/detect/roadmap-profile.ts` + CLI `orchestos roadmap show`/`check`, reusando
+  `src/detect/{manifest,languages,conventions}.ts` en vez de reimplementarlos. Dogfooding contra
+  OrchestOS mismo destapó y corrigió 2 bugs reales antes del cierre: backend no se detectaba con
+  `Bun.serve` custom (sin framework npm), y el lookup de perfil de lenguaje por nombre exacto hubiera
+  marcado TypeScript `missing` porque el archivo real es `typescript-bun.md`.
+- M.4: `src/roadmaps/context.ts` conecta el roadmap a las tareas (presupuesto 4k/3k/12k chars),
+  con `project-overrides.yaml` para que el proyecto gane sobre la heurística por defecto; checks
+  `cargo test`/`go test` se agregan solo si el toolchain está verificado; sin él, la tarea queda
+  `blocked` antes del LLM.
+- M.5 (gate 🔍): flujo completo probado contra 3 fixtures reales — OrchestOS, y dos proyectos nuevos
+  creados para el gate (`tests/fixtures/roadmap-onboarding/{rust-hello,go-hello}`, con `Cargo.toml`/
+  `go.mod` y tests reales). El gate encontró y corrigió un tercer bug: la detección de disciplina
+  `qa-seguridad` solo reconocía la convención JS/TS (`*.test.ts`), no `_test.go` de Go ni
+  `#[cfg(test)]`/`tests/` de Rust — ambos fixtures salían `missing` de tests aunque los tenían. 2
+  tests de regresión nuevos. Sin `cargo`/`go` instalados en esta máquina, ambos fixtures muestran
+  `toolchain Rust`/`toolchain Go` como `missing` de punta a punta (vía CLI y `loadRoadmapContext`) —
+  confirma en vivo que el sistema nunca inventa un `verified` sin comando real. Dos límites reales
+  quedaron documentados (no resueltos) en `CONTEXT.md` § Invariante roadmap: no existe provisioning
+  automático de `docs/roadmaps/` para un proyecto nuevo, y el presupuesto de contexto de 12k ya no
+  alcanza para las 6 disciplinas de OrchestOS mismo. 1010 tests · 0 fail · `tsc --noEmit` limpio.
 
 ---
 

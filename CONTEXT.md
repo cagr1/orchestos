@@ -16,6 +16,21 @@ real en el archivo indicado. Una respuesta incompleta, malformada o con cardinal
 fallar de forma segura; una respuesta JSON que no sea un objeto también debe fallar de forma segura. No
 se debe relajar esta regla para mejorar el mutation score.
 
+### Invariante roadmap (Bloque M, Mes 24)
+`docs/roadmaps/` (universal → disciplina → lenguaje → project-profile) nunca marca `verified` sin
+un comando real ejecutado y su salida citada; sin evidencia, el estado correcto es `known`
+(conocimiento general) o `missing` (se buscó y no está) — nunca un `pass` implícito. `orchestos
+roadmap check` es determinista y evidence-based: cero heurísticas que inventen `detected` sin una
+señal real de filesystem/código. Gate M.5 (2026-07-29) probó el flujo completo contra 3 fixtures
+(OrchestOS, `tests/fixtures/roadmap-onboarding/{rust-hello,go-hello}`) y confirmó dos límites
+reales, no bugs a esconder: (1) no existe todavía un mecanismo que provisione `docs/roadmaps/`
+dentro de un proyecto NUEVO que OrchestOS empiece a manejar — `orchestos init` no lo hace; los
+fixtures del gate se armaron copiando manualmente los docs relevantes. (2) el presupuesto de
+contexto de `loadRoadmapContext` (12k chars) ya no alcanza para las 6 disciplinas + lenguajes de
+OrchestOS mismo — se recorta con `missing` visible, nunca en silencio, pero el recorte es real.
+Ninguno de los dos se resuelve automáticamente; quedan como decisión pendiente de Carlos antes de
+ampliarse a proyectos externos reales.
+
 ### Hot files
 - src/cli.ts (63 edges)
 - src/run/harness.ts (34 edges)
