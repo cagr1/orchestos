@@ -1614,16 +1614,42 @@ debe abrir un bloque separado de seguridad de producción; no ampliar estos cont
 
 ### L.2 — 🧠 Autenticación, exposición de red y CSRF
 
-- [ ] Confirmar y documentar el modelo de despliegue: dashboard solo localhost y usuario único, o
-  accesible desde LAN/internet. Si el proceso escucha fuera de loopback, exigir decisión explícita
-  de autenticación antes de habilitarlo.
-- [ ] Para el modelo local: bind explícito a loopback, advertencia visible si se cambia el host,
-  rechazo de configuración insegura y pruebas que confirmen que no queda expuesto accidentalmente.
-- [ ] Para cualquier exposición no-local: autenticación fuerte, autorización por operación, protección
-  CSRF para mutaciones, cookies/headers seguros, rate limits y auditoría de acciones. Este ítem no se
-  considera cerrado con un simple token fijo en la URL.
-- [ ] Tests negativos: endpoint mutador sin credencial, credencial inválida, origen no permitido,
-  replay de petición y usuario sin permiso para proyecto/ruta.
+- [x] **L.2 — 🧠 (2026-07-29)** Modelo de despliegue confirmado como el documentado en
+  [docs/security-threat-model.md](docs/security-threat-model.md) §6: **solo localhost, usuario
+  único, sin autenticación multiusuario**; no se implementó auth/CSRF-token/rate-limit para
+  exposición no-local porque esa exposición no existe hoy y construirla sería diseñar
+  especulativamente para una amenaza que no aplica — queda explícitamente gated a que Carlos decida
+  exponer el dashboard fuera de loopback, momento en el que se abre una revisión de seguridad aparte
+  (ya anotado como límite en L.0).
+- [x] **Bind a loopback verificado con test real, no solo lectura de código.** `startServer()`
+  (`server.ts`) sigue haciendo bind exclusivo a `127.0.0.1` — no existe ningún flag `--host` en el
+  CLI que permita cambiarlo, por lo que "advertencia si se cambia" no aplica todavía (no hay forma de
+  cambiarlo). Test de regresión: `src/dashboard/__tests__/csrf-origin.test.ts` levanta el server real
+  y confirma `server.hostname === '127.0.0.1'` vía la API de Bun, no un grep de string.
+- [x] **Hallazgo real de CSRF corregido, no solo documentado.** `isSameOrigin()` ([http.ts](src/dashboard/http.ts))
+  solo comparaba `hostname` (`localhost`/`127.0.0.1`) e ignoraba el puerto (`_port` recibido pero sin
+  usar) — cualquier página servida desde OTRO puerto de localhost (ej. un dev server abierto en el
+  mismo navegador) pasaba la verificación y podía enviar mutaciones al dashboard. Confirmado
+  causalmente: con el código anterior, un origen `http://localhost:9999` contra el dashboard en otro
+  puerto devolvía `400` (pasó la verificación de origen, falló después por otra razón), no `403`. Fix:
+  ahora exige que el puerto del origen coincida exactamente con el puerto del server.
+- [x] **Tests negativos** en `csrf-origin.test.ts` (7 casos): mismo host+puerto → autorizado (2
+  variantes, `localhost`/`127.0.0.1`); puerto distinto → `403`; origen remoto arbitrario → `403`;
+  sin header `Origin` (cliente no-navegador, ej. CLI/curl) → no bloqueado por origen (comportamiento
+  intencional, documentado); `GET` no se filtra por origen (solo POST/PUT/DELETE mutan). Los casos de
+  "credencial inválida", "replay" y "usuario sin permiso por proyecto/ruta" del ítem original se
+  marcan **not-applicable**: no hay credenciales ni multiusuario en el modelo local confirmado — no
+  se inventa un sistema de auth falso para tener algo que testear.
+- [x] **Verificación:** `bun test src/dashboard/__tests__/csrf-origin.test.ts --timeout 30000` (`7
+  pass`, `0 fail`, `7 expect() calls`), `bun run typecheck` limpio. Suite completa: `944 pass`, `1
+  fail`, `2132 expect() calls` en `88` archivos — el único fallo es preexistente y **ajeno a este
+  ítem**: `src/__tests__/secrets.test.ts` (L.1, ⚡) falla el caso `private-key` también en HEAD sin
+  ningún cambio de L.2 (confirmado con `git stash`). No se tocó por scope-lock — reportado, no
+  corregido, porque L.1 es ⚡ y ya está cerrado.
+
+**Cabo suelto para reportar, no para resolver acá:** `secrets.test.ts` (L.1) tiene una regresión real
+(`private-key` no detectado) posterior al cierre documentado de L.1 en este mismo PLAN.md. Alguien
+debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
 
 ### L.3 — ⚡ Filesystem, worktrees y ejecución de comandos
 

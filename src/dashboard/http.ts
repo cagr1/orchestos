@@ -56,12 +56,19 @@ function errorResponse(msg: string, status: number): Response {
   return jsonResponse({ error: redactSensitive(msg) }, status)
 }
 
-function isSameOrigin(req: Request, _port: number): boolean {
+// L.2 (Mes 23) — comparar solo el hostname dejaba pasar cualquier página servida
+// desde OTRO puerto de localhost (ej. un dev server en :3000 abierto en el mismo
+// navegador) porque `localhost`/`127.0.0.1` matcheaban sin importar el puerto —
+// CSRF real entre apps locales, no solo entre sitios remotos. Ahora se exige que
+// el origen declare exactamente el mismo puerto en el que corre este server.
+function isSameOrigin(req: Request, port: number): boolean {
   const origin = req.headers.get('origin')
   if (!origin) return true
   try {
     const o = new URL(origin)
-    return o.hostname === 'localhost' || o.hostname === '127.0.0.1'
+    const hostOk = o.hostname === 'localhost' || o.hostname === '127.0.0.1'
+    const portOk = o.port === String(port)
+    return hostOk && portOk
   } catch {
     return false
   }
