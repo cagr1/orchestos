@@ -1822,9 +1822,11 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
 verificadas sin gasto ni escrituras sensibles: dry-runs del runner/DAG, ayuda de comandos,
 status/list/config, dashboard HTML y GET, CSRF por origen/puerto, SSRF de import, validación de
 paths e ids. Hallazgos abiertos: `L62-001` (migración concurrente no serializada) y `L62-002`
-(provider key persistida antes de validación). La UI visual no pudo revisarse porque esta sesión no
-tuvo navegador disponible; no se marca el gate como cerrado. Pendientes: ejecutar una tarea/worktree/
-diagnóstico/exportación manual y decidir mitigación/aceptación de ambos hallazgos.
+(provider key persistida antes de validación). En la continuación del 2026-07-29 tampoco hubo navegador
+disponible; además, el dashboard no pudo iniciar en `4243` ni `4343` por `EADDRINUSE`, sin proceso del
+dashboard escuchando en esos puertos. No se marca el gate como cerrado. Pendientes: revisión visual,
+ejecutar una tarea/worktree/diagnóstico/exportación manual y decidir mitigación/aceptación de ambos
+hallazgos.
 
 ---
 

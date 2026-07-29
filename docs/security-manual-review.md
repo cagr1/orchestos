@@ -3,6 +3,16 @@
 Fecha: 2026-07-29  
 Alcance: dashboard local y CLI, usando `ORCHESTOS_HOME` temporal cuando la operación podía tocar SQLite.
 
+## Continuación de la revisión
+
+- Se intentó repetir la revisión visual en esta sesión (2026-07-29), pero no hay navegador integrado
+  ni extensión de Chrome disponible en el entorno.
+- También se intentó iniciar el dashboard en los puertos `4243` y `4343` con dos `ORCHESTOS_HOME`
+  temporales; Bun devolvió `EADDRINUSE` en ambos casos y no fue posible abrir la superficie HTTP real
+  desde un navegador. No se mató ningún proceso existente ni se alteró la configuración del usuario.
+- Por lo tanto, siguen sin estar verificados visualmente los flujos de ejecutar tarea, crear worktree,
+  diagnosticar y exportar. El gate permanece abierto; esta limitación no se cuenta como aprobación.
+
 ## Evidencia ejecutada
 
 ### CLI
