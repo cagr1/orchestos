@@ -43,7 +43,8 @@ Ese es el único hueco real que este sistema debe llenar — no reemplaza skills
 
 ```
 docs/roadmaps/engineering-baseline.md      ← universal, cualquier proyecto/disciplina/lenguaje
-docs/roadmaps/disciplines/<disciplina>.md  ← EJE PRINCIPAL: backend/frontend/qa-seguridad/devops
+docs/roadmaps/disciplines/<disciplina>.md  ← EJE PRINCIPAL: backend/frontend/qa-seguridad/
+                                              architecture/devops/ai-agents
 docs/roadmaps/languages/<lenguaje>.md      ← eje secundario y angosto: solo entorno/toolchain/idiomas
 docs/roadmaps/project-profile.md           ← evidencia real de ESTE repositorio (disciplina(s) +
                                               lenguaje(s) detectados, combinados)
@@ -63,7 +64,8 @@ testing, etc. no se redefinen por lenguaje).
 1. **Universal** (`engineering-baseline.md`): el orden mínimo antes de tocar código, independiente
    de disciplina o lenguaje — entender dominio, ubicar límites de confianza, confirmar toolchain.
 2. **Disciplina/rol** (`disciplines/<disciplina>.md`) — **eje principal**: qué significa hacer bien
-   un backend, un frontend, QA/seguridad, DevOps — auth, caching, testing, performance, arquitectura
+   backend, frontend, QA/seguridad, arquitectura, DevOps o agentes — auth, caching, testing,
+   performance, diseño de sistemas, operación y seguridad
    recurrente. Espejo directo de `wiki/roadmaps/<disciplina>.md` en el vault (`MemoriesMD`), promovido
    vía `/knowledge-promote` — el vault es la fuente autoral, este archivo es la versión anclada a
    este repo.
@@ -189,7 +191,7 @@ diseño debe seguir el trabajo real, no al revés.
 contrato roadmap↔skill↔checks (§6), y la regla de evidencia por sección (comando + salida real para
 `verified`) siguen exactamente iguales — la corrección es solo de eje, no de rigor.
 
-**Qué queda pendiente, sin decidir todavía**: si/cuándo se promueve contenido de
-`wiki/roadmaps/*.md` (vault) a `docs/roadmaps/disciplines/*.md` (este repo) es una decisión de M.2,
-no de este documento — cada promoción pasa por `/knowledge-promote` con propuesta, diff y
-confirmación explícita, nunca automática.
+**Promoción realizada en M.2 (2026-07-29)**: se promovieron los seis roadmaps organizados en el vault
+(`backend`, `frontend`, `qa-seguridad`, `architecture`, `devops`, `ai-agents`) a
+`docs/roadmaps/disciplines/`. Cada sección conserva estado `known` hasta verificarse contra un
+proyecto real; no se promovieron perfiles de lenguaje ni se conectaron todavía skills/QA.

@@ -20,6 +20,9 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
   ejecución de `bun test --coverage`, sin dependencias nuevas.
 - M.1: guía universal de ingeniería en `docs/roadmaps/engineering-baseline.md`, con secuencia de
   12 etapas, estados explícitos, matriz de calidad, checklist de cierre y contrato de evidencia.
+- M.2.1: promovidos desde `MemoriesMD` los seis roadmaps de disciplina — backend, frontend,
+  qa-seguridad, arquitectura, DevOps y AI Agents — a `docs/roadmaps/disciplines/`, preservando
+  trazabilidad y estado inicial `known`.
 
 ---
 

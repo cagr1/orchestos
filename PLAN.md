@@ -1926,10 +1926,14 @@ los roadmaps ya destilados en el vault (`MemoriesMD/wiki/roadmaps/{frontend,back
 confirmación explícita de Carlos por cada uno, no copiarlos automático. Recién después, y solo si
 un proyecto concreto lo necesita, crear el perfil de lenguaje angosto correspondiente.
 
-- [ ] Promover `docs/roadmaps/disciplines/{backend,frontend,qa-seguridad}.md` desde el vault (3
-  disciplinas ya destiladas ahí). Cada uno con su estado por sección (`known/detected/verified/
-  missing/not-applicable`) — el contenido del vault entra como `known` hasta que se verifique contra
-  un proyecto real.
+- [x] **M.2.1 — (2026-07-29) Promover roadmaps de disciplina desde el vault.** Se promovieron los
+  seis roadmaps ya organizados en `MemoriesMD/wiki/roadmaps/` a
+  [docs/roadmaps/disciplines/](docs/roadmaps/disciplines/): `backend`, `frontend`, `qa-seguridad`,
+  `architecture`, `devops` y `ai-agents`. La promoción conserva la fuente, fecha y estado global;
+  cada contenido entra como `known`, nunca como `verified`, hasta ejecutarse contra un proyecto real.
+  Se incorporaron explícitamente buenas prácticas de API/SQL, seguridad, performance, system design,
+  AWS/operación y agent loop/tool security. No se promovieron los perfiles de lenguaje secundarios
+  ni se conectaron todavía skills/QA (M.2/M.4 restantes).
 - [ ] Crear perfiles de **lenguaje** versionados como capa secundaria, angosta, para TypeScript/Bun,
   Rust y Go como primera muestra — solo entorno/toolchain/idiomas, sin repetir lo que ya cubre la
   disciplina. Cada perfil debe distinguir lenguaje, runtime, package/dependency manager, framework,
