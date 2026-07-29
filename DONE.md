@@ -5,6 +5,22 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 
 ---
 
+### MES 23 — Línea base profesional de seguridad (2026-07-29)
+
+- L.0–L.6.1: threat model, inventario de secretos, límites de red/CSRF, filesystem/subprocesses,
+  SSRF, SQLite/privacidad y gate reproducible cerrados con evidencia en `PLAN.md`.
+- L.6.2: revisión manual inicial de CLI y superficie HTTP local documentada en
+  `docs/security-manual-review.md`, con hallazgos `L62-001` y `L62-002` registrados junto con
+  severidad, evidencia, impacto y mitigación. La revisión visual/interactiva y la aceptación o
+  mitigación de esos hallazgos quedan pendientes del gate `🔍`.
+
+### MES 24 — Guías reproducibles por lenguaje y ecosistema (2026-07-29)
+
+- J.1: coverage gate en CI con `bunfig.toml`, cobertura habilitada, umbral-trinquete `0.69` y
+  ejecución de `bun test --coverage`, sin dependencias nuevas.
+
+---
+
 ## Sección 1 — Plan ejecutado (S1–S18)
 
 ### MES 1 — CLI base + detección de stack

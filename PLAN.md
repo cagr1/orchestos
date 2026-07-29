@@ -1072,12 +1072,15 @@ No es cobertura pareja, es **bimodal** — y eso decide dónde vale la pena inve
 
 El núcleo del motor está bien testeado. Lo flojo es periferia (dashboard, CLI).
 
-- [ ] **J.1 — ⚡ Coverage gate con umbral-trinquete en el número actual.** Crear `bunfig.toml` con
+- [x] **J.1 — ⚡ (2026-07-29) Coverage gate con umbral-trinquete en el número actual.** Se creó
+  `bunfig.toml` con
   `[test] coverage = true` + `coverageThreshold = 0.69` (el valor medido HOY, no uno aspiracional), y
   cambiar `bun test` → `bun test --coverage` en
   [.github/workflows/ci.yml](.github/workflows/ci.yml). Bun trae el umbral nativo — no hace falta
-  Stryker, nyc ni ninguna dependencia nueva. **Validación**: el CI falla si la cobertura baja del
-  umbral; con el árbol actual, pasa verde sin tocar un solo test.
+  Stryker, nyc ni ninguna dependencia nueva. **Validación**: `bunx tsc --noEmit` pasó; la matriz
+  aislada/serializada reportó `71.26%` de funciones y `71.84%` de líneas, por encima de `0.69`.
+  Quedó `982 pass`, `1 fail` por la colisión preexistente del puerto 0 en el test de bind de L.2;
+  no se corrigió por scope-lock. El CI falla si la cobertura baja del umbral.
 - **Regla de trinquete (por qué 0.69 y no 0.80)**: el umbral se fija en el número real y solo sube
   cuando la cobertura sube de verdad — nunca se pone una meta aspiracional. Un 80% "porque lo
   recomienda ECC" rompe el CI al día siguiente y termina desactivado, que es peor que no tenerlo.
@@ -1805,12 +1808,12 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   auditoría quedó limpia tras fijar `brace-expansion` en `5.0.8` mediante override. Durante el gate
   se corrigió la clasificación duplicada de credenciales (`provider-key` + `credential-assignment`),
   se ajustaron fixtures de conflictos para foreign keys y se verificó el dashboard fuera del sandbox.
-- [ ] Revisar manualmente los flujos de mayor riesgo en dashboard y CLI: importar skill, configurar
+- [x] Revisar manualmente los flujos de mayor riesgo en dashboard y CLI: importar skill, configurar
   provider, ejecutar tarea, usar fetch, crear worktree, diagnosticar y exportar datos.
-- [ ] Registrar cada hallazgo con severidad, evidencia, impacto, mitigación y prueba de regresión.
+- [x] Registrar cada hallazgo con severidad, evidencia, impacto, mitigación y prueba de regresión.
   No cerrar el bloque por “no encontré vulnerabilidades”: se cierra solo con alcance documentado,
   tests ejecutados y riesgos aceptados explícitamente por Carlos.
-- [ ] Después del gate, copiar el resumen a `DONE.md` y actualizar `CONTEXT.md` con los límites de
+- [x] Después del gate, copiar el resumen a `DONE.md` y actualizar `CONTEXT.md` con los límites de
   confianza permanentes. Si se habilita red externa o multiusuario, reabrir una revisión de seguridad
   específica; esta baseline no cubre ese cambio de amenaza.
 
