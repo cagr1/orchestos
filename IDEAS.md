@@ -1517,6 +1517,29 @@ sesiones/agentes donde el usuario pueda crear, cambiar y cerrar sesiones sin per
 8. Notificaciones no intrusivas cuando una sesión termina o necesita aprobación, conectando con
    #14.
 
+**Refinamiento (Carlos, 2026-07-29) — el proyecto es la dimensión de scoping, no un atributo del tab**:
+Al volver a usar Orca, lo que destaca no son los tabs en sí sino la separación por proyecto: el
+sidebar lista Projects (cada uno con su ruta), dentro de cada proyecto viven ramas/worktrees y
+dentro de estas los agentes en corrida, y la barra de tabs superior muestra **solo** los tabs del
+proyecto activo. Agregar otra ruta de proyecto y trabajar en paralelo sin mezclar nada es el
+comportamiento a capturar. La decisión arquitectural de fondo: *la sesión pertenece al proyecto,
+no al proceso*.
+
+**Secuencia técnica (verificada contra el código, 2026-07-29)**:
+1. **Sesiones de chat persistentes con `project_id`** — hoy la historia viaja en el body del
+   request desde el cliente y se recorta a 10 mensajes (`src/dashboard/handlers/chat.ts`), no hay
+   tabla de sesiones. La capa de datos ya está lista: `projects` existe con `path UNIQUE`
+   (`src/db/migrate.ts`) y `runs.project_id` también.
+2. **Desacoplar los handlers del cwd** — los handlers hacen `resolve('.')` (chat.ts, explorer,
+   path-policy) y hay ~22 usos de `process.cwd()` en `src/`; el proyecto activo debe viajar
+   explícito por request/sesión. Este desacople es pre-requisito compartido con la migración a
+   Electron (un proceso gestionando N proyectos), así que no es trabajo extra sino adelantado.
+3. **Tabs UI filtrados por proyecto activo** — recién aquí entra la capa visual estilo Orca.
+   Hacer los tabs sin 1 y 2 daría tabs cosméticos.
+
+Al retomar este ítem: revisar primero cómo Orca resuelve esta parte (modelo de sesión y su
+interfaz) como referencia de diseño — robar el modelo mental, no copiar la superficie.
+
 **Decisiones pendientes**:
 - definir si el tab representa un chat, una task run o una sesión de CLI; puede haber una entidad
   de sesión que agrupe los tres, pero no debe duplicar `runs` ni `chat_sessions` sin necesidad;
