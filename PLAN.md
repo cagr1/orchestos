@@ -1762,8 +1762,10 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
     por conexión y se verifican foreign keys, índices requeridos, los tres triggers FTS5 y conteos de
     memoria antes/después. `rebuildMemoryFts()` reporta recuperación exitosa tras borrar el índice y
     `false` ante una tabla FTS incompatible, sin ocultar el resultado ni tocar datos fuente.
-  - [ ] Probar rollback por inyección de fallo en cada etapa crítica. No se acepta “borrar y recrear”
-    como rollback ni restaurar automáticamente la DB activa desde un backup.
+  - [x] **L.5.7.6 — Inyección de fallos por etapa (2026-07-29).** Se probaron fallos en precondición,
+    transformación y postcondición: cada uno deja `0` artefactos parciales y `0` versión marcada.
+    Después de ambos fallos de contrato, una migración válida v2 continúa y registra una sola evidencia.
+    El rollback es transaccional; no borra/recrea ni restaura automáticamente la DB activa.
   - [ ] Documentar procedimiento operativo: backup validado → detener procesos → migrar → integrity
     check → reabrir; si falla, conservar la DB original y restaurar a un destino nuevo.
 - [x] **L.5.5a — Auditoría de queries y límites (2026-07-29).** Se auditó el inventario completo de

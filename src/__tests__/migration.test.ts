@@ -27,6 +27,10 @@ interface ChildResult {
   ftsMatchCount?: number
   ftsRebuiltAfterCorruption?: boolean
   ftsRebuiltWithIncompatibility?: boolean
+  preconditionTableCount?: number
+  postconditionTableCount?: number
+  recoveryCount?: number
+  recoveryVersionCount?: number
   error?: string
 }
 
@@ -238,6 +242,58 @@ describe('SQLite migrations', () => {
 
       expect(result.failedTableCount).toBe(0)
       expect(result.failedVersionCount).toBe(0)
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('rolls back precondition and postcondition failures before recovery', async () => {
+    const home = tempHome()
+    try {
+      const result = await runMigrationProcess(home, `
+        const { runMigrations, applyMigrationSteps } = await import('./src/db/migrate.ts')
+        const { db } = await import('./src/db/sqlite.ts')
+        runMigrations()
+        const preconditionFailure = {
+          version: 2,
+          name: 'migration-test-precondition-failure',
+          precondition() { throw new Error('injected precondition failure') },
+          apply(database) { database.exec('CREATE TABLE migration_precondition_partial (id INTEGER PRIMARY KEY)') },
+          postcondition() {},
+        }
+        try { applyMigrationSteps([preconditionFailure]) } catch {}
+        const preconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_precondition_partial'").get().count
+
+        const postconditionFailure = {
+          version: 2,
+          name: 'migration-test-postcondition-failure',
+          precondition() {},
+          apply(database) { database.exec('CREATE TABLE migration_postcondition_partial (id INTEGER PRIMARY KEY)') },
+          postcondition() { throw new Error('injected postcondition failure') },
+        }
+        try { applyMigrationSteps([postconditionFailure]) } catch {}
+        const postconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_postcondition_partial'").get().count
+
+        const recoveryStep = {
+          version: 2,
+          name: 'migration-test-recovery',
+          precondition() {},
+          apply(database) { database.exec('CREATE TABLE migration_recovery (id INTEGER PRIMARY KEY)') },
+          postcondition(database) {
+            if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'migration_recovery'").get() === null) throw new Error('recovery table missing')
+          },
+        }
+        applyMigrationSteps([recoveryStep])
+        const recoveryCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_recovery'").get().count
+        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 2').get().count
+        process.stdout.write(JSON.stringify({ preconditionTableCount, postconditionTableCount, recoveryCount, recoveryVersionCount }))
+        db.close()
+      `)
+
+      expect(result.preconditionTableCount).toBe(0)
+      expect(result.postconditionTableCount).toBe(0)
+      expect(result.recoveryCount).toBe(1)
+      expect(result.recoveryVersionCount).toBe(1)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
