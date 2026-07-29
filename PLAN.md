@@ -1522,14 +1522,28 @@ Claude, Codex y cualquier otro LLM; no depender de la conversación.
   y se detuvo manualmente a las `21:04:41` (`12m28s`) sin producir reporte final ni score; no hubo error
   de la suite, pero tampoco progreso parcial utilizable.
 
-  Decisión: el benchmark completo es inviable como ejecución interactiva y no se implementa como gate de
-  commit. Queda clasificado como métrica manual/nocturna, con el comando ya preparado para ejecutarlo en
-  una ventana larga. No se inventa una proyección monetaria ni un score global a partir de una corrida
-  abortada; la única cifra global válida disponible sigue siendo la consolidación modular de K.6.3.
-- [ ] **K.6.5 — 🔍 Decisión de adopción.** Revisar evidencia de K.6.1-K.6.4 y decidir entre:
-  (a) comando manual, (b) nightly/CI, (c) gate solo para módulos críticos, o (d) no adoptar todavía.
-  Esta decisión no la toma un LLM por su cuenta y no se gradúa a IDEAS #54 como gate hasta que Carlos
-  la confirme explícitamente.
+  Decisión: el benchmark monolítico es inviable como ejecución interactiva y no se implementa como gate de
+  commit. Se conserva como métrica manual/nocturna de referencia; la adopción operativa se decide en K.6.5.
+- [x] **K.6.5 — 🔍 Decisión de adopción (2026-07-29).** Carlos decide adoptar el modelo profesional de
+  **nightly/CI no bloqueante**, dividido en cuatro shards con `concurrency: 1`: `orchestration`, `executors`,
+  `runtime-boundaries` y `context-routing`. Cada shard ejecuta la suite completa, tiene timeout de workflow
+  de `180` minutos y publica su `mutation.json` como artifact durante `14` días.
+
+  El workflow `.github/workflows/mutation-nightly.yml` corre a las `03:00 UTC` (`22:00` Ecuador) y también
+  ofrece `workflow_dispatch`. Usa `max-parallel: 2` entre shards para controlar consumo de CI, pero cada
+  proceso Stryker mantiene `concurrency: 1`. No se conecta al workflow normal de PR, no bloquea commits,
+  no fija threshold y no modifica automáticamente el código. El benchmark monolítico `mutation:run` se
+  conserva como referencia manual, no como job de CI.
+
+  Validación local de configuración: los cuatro comandos `bunx stryker run <config> --dryRunOnly` pasaron
+  con la suite completa: `orchestration` (`6` archivos, `1205` mutantes, `14s`), `executors` (`9`, `913`,
+  `13s`), `runtime-boundaries` (`7`, `634`, `13s`) y `context-routing` (`11`, `633`, `14s`). La suma
+  coincide con los `3385` mutantes del benchmark monolítico; todavía no se han ejecutado corridas de mutación
+  completas de los shards, por lo que no se inventa score, costo ni clasificación de sobrevivientes.
+
+  Decisión final: opción (b), nightly/CI informativo. La opción (c), gate por módulos críticos, queda
+  explícitamente descartada por ahora porque los scores y sobrevivientes todavía requieren observación
+  longitudinal; podrá reabrirse con evidencia posterior. No se gradúa a IDEAS #54 como gate.
 
 **Memoria obligatoria para cualquier LLM**: cuando un paso se cierre, actualizar aquí el checkbox
 con fecha, comando exacto, versión, números medidos, fallos y decisión. Al cerrar K.6.5, copiar el

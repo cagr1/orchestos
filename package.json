@@ -20,7 +20,11 @@
     "mutation:checks": "stryker run stryker.checks.config.mjs",
     "mutation:sandbox-policy": "stryker run stryker.sandbox-policy.config.mjs",
     "mutation:graph-runner": "stryker run stryker.graph-runner.config.mjs",
-    "mutation:run": "stryker run stryker.run.config.mjs"
+    "mutation:run": "stryker run stryker.run.config.mjs",
+    "mutation:run:orchestration": "stryker run stryker.run-orchestration.config.mjs",
+    "mutation:run:executors": "stryker run stryker.run-executors.config.mjs",
+    "mutation:run:runtime-boundaries": "stryker run stryker.run-runtime-boundaries.config.mjs",
+    "mutation:run:context-routing": "stryker run stryker.run-context-routing.config.mjs"
   },
   "devDependencies": {
     "@stryker-mutator/core": "9.6.1",
