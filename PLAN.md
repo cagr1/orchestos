@@ -1906,17 +1906,17 @@ verificado en este repo), nunca `verified`.
 
 ### M.1 — ⚡ Guía universal de ingeniería
 
-- [ ] Crear `docs/roadmaps/engineering-baseline.md` con el flujo mínimo antes de modificar código:
-  entender el dominio y arquitectura, localizar límites de confianza, confirmar toolchain, leer
-  configuración y convenciones, identificar comandos existentes, definir criterios de aceptación,
-  planificar pruebas y revisar impacto en datos/deploy.
-- [ ] Incluir una matriz mínima de calidad: typecheck/compile, unit, integration, E2E, coverage,
-  mutation cuando aplique, seguridad, performance, observabilidad y documentación.
-- [ ] Incluir un checklist de “antes de cerrar”: diff/scope, errores y retries, inputs inválidos,
-  secretos, migraciones, compatibilidad, logs, rollback y evidencia de comandos ejecutados.
-- [ ] La guía debe enseñar el orden de trabajo, no exigir que todos los lenguajes usen las mismas
-  herramientas. Si un proyecto no tiene lint, por ejemplo, el estado debe ser `missing`, no un falso
-  `pass`.
+- [x] **M.1 — (2026-07-29) Guía universal de ingeniería.** Se creó
+  [docs/roadmaps/engineering-baseline.md](docs/roadmaps/engineering-baseline.md) con el flujo mínimo
+  antes de modificar código: dominio/arquitectura, límites de confianza, toolchain, configuración,
+  comandos, aceptación, pruebas, datos y deploy. Mantiene los estados `known/detected/verified/
+  missing/not-applicable` y exige evidencia de comando para `verified`.
+- [x] La guía incluye una matriz mínima de calidad: typecheck/compile, unit, integration, E2E,
+  coverage, mutation cuando aplique, seguridad, performance, observabilidad y documentación.
+- [x] La guía incluye checklist de cierre: diff/scope, errores/retries, inputs inválidos, secretos,
+  migraciones, compatibilidad, logs, rollback y evidencia de comandos ejecutados.
+- [x] La guía enseña el orden y permite declarar herramientas inexistentes como `missing` o etapas
+  no aplicables como `not-applicable`; no exige que todos los lenguajes usen las mismas herramientas.
 
 ### M.2 — ⚡ Perfiles iniciales de disciplina (eje principal, M.0-R1) + lenguaje (secundario)
 
