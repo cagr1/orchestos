@@ -3,8 +3,18 @@ import { join } from 'path'
 import { buildRoadmapProfile, type RoadmapProfile } from '../detect/roadmap-profile.ts'
 
 const MAX_PROFILE_CHARS = 4_000
-const MAX_DOC_CHARS = 3_000
-const MAX_TOTAL_CHARS = 12_000
+const MAX_DOC_CHARS = 4_000
+const MAX_TOTAL_CHARS = 26_000
+
+/**
+ * Las guías genéricas (engineering-baseline/disciplines/languages) son conocimiento de OrchestOS,
+ * no del proyecto que gestiona — viven centralizadas en la instalación de OrchestOS y no viajan
+ * copiadas a cada proyecto nuevo (decisión Carlos, 2026-07-30, IDEAS #M). `project-profile.md` es
+ * la única excepción: describe el repo detectado, así que sigue leyéndose solo desde `root` y
+ * NUNCA cae al fallback (mostrar el perfil de OrchestOS en un proyecto ajeno sería activamente
+ * engañoso, peor que no mostrar nada).
+ */
+const ROADMAP_DOCS_ROOT = join(import.meta.dir, '..', '..')
 
 export interface RoadmapContext {
   profile: RoadmapProfile
@@ -14,8 +24,11 @@ export interface RoadmapContext {
   blockReason?: string
 }
 
-function readBounded(root: string, relativePath: string, max: number): string {
-  const path = join(root, relativePath)
+function readBounded(root: string, relativePath: string, max: number, fallbackRoot?: string): string {
+  let path = join(root, relativePath)
+  if (!existsSync(path) && fallbackRoot) {
+    path = join(fallbackRoot, relativePath)
+  }
   if (!existsSync(path)) return ''
   const content = readFileSync(path, 'utf-8')
   return content.length <= max ? content : `${content.slice(0, max)}\n\n[roadmap truncado por presupuesto de contexto]`
@@ -44,7 +57,7 @@ export async function loadRoadmapContext(root: string, output: string[] = []): P
       missing.push('language' in item ? item.language : item.discipline)
       continue
     }
-    const content = readBounded(root, item.docPath, MAX_DOC_CHARS)
+    const content = readBounded(root, item.docPath, MAX_DOC_CHARS, ROADMAP_DOCS_ROOT)
     if (!content) {
       missing.push('language' in item ? item.language : item.discipline)
       continue

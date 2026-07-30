@@ -175,15 +175,29 @@ describe('M.3 — perfiles de lenguaje (eje secundario, contra docs/roadmaps/lan
     expect(ts.docPath).toBe(join('docs', 'roadmaps', 'languages', 'typescript-bun.md'))
   })
 
-  it('missing cuando no hay doc de lenguaje todavía — nunca inventa contenido', async () => {
+  it('missing cuando no hay doc de lenguaje todavía (ni local ni centralizado) — nunca inventa contenido', async () => {
+    // C# no tiene doc ni en el proyecto ni en docs/roadmaps/languages/ de OrchestOS —
+    // a diferencia de TypeScript/Go/Rust, que desde 2026-07-30 resuelven por fallback
+    // a la guía centralizada de OrchestOS aunque el proyecto no tenga la suya propia.
+    const root = tmpDir()
+    writePkg(root)
+    mkdirSync(join(root, 'src'), { recursive: true })
+    writeFileSync(join(root, 'src', 'a.cs'), 'class Program { static void Main() {} }')
+    const profile = await buildRoadmapProfile(root)
+    const cs = profile.languageProfiles.find(l => l.language === 'C#')!
+    expect(cs.state).toBe('missing')
+    expect(cs.docPath).toBeUndefined()
+  })
+
+  it('known por fallback a la guía centralizada de OrchestOS cuando el proyecto no tiene docs/roadmaps propio', async () => {
     const root = tmpDir()
     writePkg(root)
     mkdirSync(join(root, 'src'), { recursive: true })
     writeFileSync(join(root, 'src', 'a.ts'), 'export const x = 1')
     const profile = await buildRoadmapProfile(root)
     const ts = profile.languageProfiles.find(l => l.language === 'TypeScript')!
-    expect(ts.state).toBe('missing')
-    expect(ts.docPath).toBeUndefined()
+    expect(ts.state).toBe('known')
+    expect(ts.docPath).toBe(join('docs', 'roadmaps', 'languages', 'typescript-bun.md'))
   })
 
   it('proyecto políglota: registra cada lenguaje detectado, no reduce a uno primario', async () => {

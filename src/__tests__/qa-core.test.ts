@@ -404,4 +404,15 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
     expect(userContent).toContain('bun test --timeout 30000')
     expect(userContent).toContain('exitCode: 0')
   })
+
+  it('tells the adversarial reviewer explicitly when no checks ran', async () => {
+    let userContent = ''
+    await runAdversarialQA({
+      ...baseOptions,
+      checksResults: [],
+      provider: providerReply('{"verdict":"VERIFIED","reason":"no checks needed"}', content => { userContent = content }),
+    })
+
+    expect(userContent).toContain('NINGUNA verificación mecánica corrió.')
+  })
 })

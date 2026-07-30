@@ -50,16 +50,30 @@ describe('M.4 roadmap context selection', () => {
   })
 
   it('missing roadmap/tooling is visible and never represented as pass', async () => {
+    // C# no tiene guía ni local ni centralizada (a diferencia de Rust, que desde
+    // 2026-07-30 resuelve por fallback a docs/roadmaps/languages/ de OrchestOS aunque
+    // el proyecto no tenga su propia copia) — sigue probando el mismo principio: un
+    // estado missing real nunca se representa como pass.
+    const root = fixture()
+    packageJson(root)
+    mkdirSync(join(root, 'src'), { recursive: true })
+    writeFileSync(join(root, 'src', 'main.cs'), 'class Program { static void Main() {} }')
+    const context = await loadRoadmapContext(root)
+    expect(context.profile.languageProfiles.find(l => l.language === 'C#')?.state).toBe('missing')
+    expect(context.markdown).toContain('missing/blocked')
+    expect(context.markdown).not.toContain(': pass')
+    expect(context.missing).toContain('lenguaje C#')
+  })
+
+  it('toolchain ausente sigue bloqueando aunque el lenguaje resuelva por fallback centralizado', async () => {
     const root = fixture()
     packageJson(root)
     mkdirSync(join(root, 'src'), { recursive: true })
     writeFileSync(join(root, 'src', 'main.rs'), 'fn main() {}')
-    writeFileSync(join(root, 'docs', 'roadmaps', 'languages', 'rust.md'), '# rust guidance')
     const context = await loadRoadmapContext(root, ['src/main.rs'])
     expect(context.profile.languageProfiles.find(l => l.language === 'Rust')?.state).toBe('known')
-    expect(context.markdown).toContain('missing/blocked')
-    expect(context.markdown).not.toContain(': pass')
-    expect(context.blockReason).toContain('cargo')
+    expect(context.missing).toContain('toolchain Rust')
+    expect(context.blockReason).toContain('cargo no está disponible')
   })
 
   it('polygot fixture selects each available language profile', async () => {

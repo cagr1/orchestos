@@ -46,7 +46,7 @@ Este mes conserva pendientes reales que no se cierran por arrastre documental (c
 | --- | --- | --- |
 | Mes 22 / v0.13 | A–K | ✅ Cerrado formalmente, sin pendientes |
 | Mes 23 | L | ⏳ L.5.7 cerrado (2026-07-30); L.6.2 sigue abierto |
-| Mes 24 | M | ✅ Cerrado formalmente; límites de roadmap pendientes de decisión |
+| Mes 24 | M | ✅ Cerrado formalmente, sin pendientes (resueltos 2026-07-30) |
 | Mes 25 | Pendientes heredados | ⏳ Activo |
 
 ### Pendientes explícitos
@@ -54,8 +54,8 @@ Este mes conserva pendientes reales que no se cierran por arrastre documental (c
 - [x] **K.6.2-R7 — Endurecimiento de comportamientos críticos (cerrado 2026-07-30).** Carlos aceptó `51.76%` como baseline funcional de `qa.ts`, re-verificado por Claude corriendo `mutation:qa` en limpio: confirma que ningún sobreviviente altera lógica de veredicto. Historial completo: [DONE.md § Mes 22](DONE.md).
 - [x] **L.5.7 — Linaje versionado y rollback de migraciones (cerrado 2026-07-30).** L.5.7.1–L.5.7.7 estaban documentados y verificados; solo faltaba marcar el ítem contenedor. Historial completo: [DONE.md § Mes 23](DONE.md).
 - [ ] **L.6.2 — Gate manual de seguridad.** Procede de Mes 23. Falta revisión visual con navegador y los flujos manuales de ejecución, worktree, diagnóstico y exportación; además Carlos debe decidir mitigación o aceptación de `L62-001` (migración concurrente) y `L62-002` (provider key persistida antes de validar). No corregirlos fuera de un ítem explícito.
-- [ ] **M — Provisioning de roadmaps para proyectos nuevos.** Procede de Mes 24. `orchestos init` aún no provisiona `docs/roadmaps/`; no decidir ni implementar sin orden explícita de Carlos.
-- [ ] **M — Presupuesto de contexto de roadmaps.** Procede de Mes 24. Los 12k chars de `loadRoadmapContext` no alcanzan para las seis disciplinas y lenguajes de OrchestOS; el recorte es visible, pero la estrategia de presupuesto sigue pendiente de decisión de Carlos.
+- [x] **M — Provisioning de roadmaps para proyectos nuevos (cerrado 2026-07-30, decisión Carlos: centralizado, no copiado).** Carlos decidió que `docs/roadmaps/{engineering-baseline,disciplines,languages}` NO viaja copiado a cada proyecto — es conocimiento de OrchestOS, centralizado, y cualquier proyecto que gestione lo lee desde ahí. `project-profile.md` es la única excepción (describe el repo detectado, sigue siendo por proyecto, nunca cae al fallback). Implementado: `src/detect/roadmap-profile.ts` (`findLanguageDoc`/`docExists` ahora prueban `root` primero y caen a `ROADMAP_DOCS_ROOT`, la instalación de OrchestOS vía `import.meta.dir`) y `src/roadmaps/context.ts` (mismo fallback en `readBounded()` para el contenido, nunca para `profilePath`). Verificado en vivo con un proyecto Rust real sin `docs/roadmaps/` propio: `Lenguaje: Rust` pasa a `known`/`selected` con contenido real; `project-profile.md` correctamente ausente. Tests actualizados (2 nuevos, 2 reescritos con C# como caso "verdaderamente missing" ya que Rust/Go/TS ahora resuelven por fallback). 1013 tests · 0 fail · `tsc --noEmit` limpio.
+- [x] **M — Presupuesto de contexto de roadmaps (cerrado 2026-07-30).** Verificado en vivo antes de tocar código: `loadRoadmapContext()` corrido contra este mismo repo confirmó que el presupuesto de 12.000 chars SÍ se agotaba en producción (11.781/12.000, omitiendo `architecture`, `ai-agents` y el lenguaje TypeScript — el principal de OrchestOS). El total real necesario sin truncar es ~22.800 chars; los archivos individuales más grandes (`backend.md` 3.407, `typescript-bun.md` 3.711) ya excedían el tope por-documento de 3.000. Subidos `MAX_TOTAL_CHARS` 12.000→26.000 y `MAX_DOC_CHARS` 3.000→4.000 en [src/roadmaps/context.ts](src/roadmaps/context.ts). Reverificado en vivo: 22.962 chars, cero truncado, las 6 disciplinas + TypeScript + Rust entran completos.
 
 ### Bloque N — 🧠 IDEAS #1: endurecimiento de skills (Iron Law / Common Rationalizations / Red Flags)
 

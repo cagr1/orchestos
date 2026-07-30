@@ -7,6 +7,15 @@ import { readConventions, type Conventions } from './conventions.ts'
 import { parse } from 'yaml'
 
 /**
+ * Las guías genéricas de `docs/roadmaps/{disciplines,languages}/` viven centralizadas en la
+ * instalación de OrchestOS, no en cada proyecto gestionado (decisión Carlos, 2026-07-30) — un
+ * proyecto sin `docs/roadmaps/` propio igual debe poder resolver `state: 'known'`/`'detected'`
+ * contra la guía central. Mismo constante que [[src/roadmaps/context.ts]] usa para leer el
+ * contenido; acá se usa solo para decidir existencia.
+ */
+const ROADMAP_DOCS_ROOT = join(import.meta.dir, '..', '..')
+
+/**
  * M.3 (Mes 24) — perfil efectivo del proyecto para el sistema de roadmaps.
  *
  * Reusa la detección existente (manifest/languages/conventions de `src/detect/`,
@@ -134,17 +143,25 @@ const SERVER_ENTRY_PATTERNS = [/Bun\.serve\s*\(/, /createServer\s*\(/, /express\
  * evita hardcodear cada variante de nombre (ej. `typescript-bun.md` en vez de
  * `typescript.md`, que es como quedó nombrado el perfil real de TypeScript/Bun).
  */
-function findLanguageDoc(root: string, lang: string): string | undefined {
+function findLanguageDocUnder(base: string, lang: string): string | undefined {
   const slug = lang.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-  const dir = join(root, 'docs', 'roadmaps', 'languages')
+  const dir = join(base, 'docs', 'roadmaps', 'languages')
   if (!existsSync(dir)) return undefined
   const matches = glob.sync(`${slug}*.md`, { cwd: dir })
   return matches[0] ? join('docs', 'roadmaps', 'languages', matches[0]) : undefined
 }
 
-function docExists(root: string, kind: 'disciplines' | 'languages', slug: string): string | undefined {
+function findLanguageDoc(root: string, lang: string): string | undefined {
+  return findLanguageDocUnder(root, lang) ?? findLanguageDocUnder(ROADMAP_DOCS_ROOT, lang)
+}
+
+function docExistsUnder(base: string, kind: 'disciplines' | 'languages', slug: string): string | undefined {
   const rel = join('docs', 'roadmaps', kind, `${slug}.md`)
-  return existsSync(join(root, rel)) ? rel : undefined
+  return existsSync(join(base, rel)) ? rel : undefined
+}
+
+function docExists(root: string, kind: 'disciplines' | 'languages', slug: string): string | undefined {
+  return docExistsUnder(root, kind, slug) ?? docExistsUnder(ROADMAP_DOCS_ROOT, kind, slug)
 }
 
 function findServerEntry(root: string): string | undefined {
