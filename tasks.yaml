@@ -168,25 +168,3 @@ tasks:
     retry_count: 2
     retry_reason: "missing declared output(s): scratch/design-test-premium-a1.html"
     qa_verdict: fail
-  - id: l62-security-gate-disposable
-    description: "Write a file at demo/l62-check.txt containing exactly the text: L62 GATE OK"
-    executor: openrouter
-    executor_model: deepseek/deepseek-v4-flash
-    engine: single-shot
-    input: []
-    output:
-      - demo/l62-check.txt
-    depends_on: []
-    status: failed
-    retry_count: 0
-    retry_reason: >-
-      Uncommitted changes in /Users/carlosgallardo/Documents/projects/orchestos. Worktree sandbox requires a clean
-      working tree.
-
-      Either commit or stash before running with sandbox:
-        M src/__tests__/diagnose.test.ts
-        M src/agents/diagnose.ts
-        M tasks.yaml
-        ?? docs/security-data-retention.md
-        ?? src/__tests__/retention.test.ts
-        ?? src/db/retention.ts
