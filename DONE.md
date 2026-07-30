@@ -9,7 +9,7 @@ Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 
 | Mes | Alcance | Estado |
 | --- | --- | --- |
-| Mes 22 / v0.13 | Bloques A–K | ✅ Cerrado formalmente; K.6.2-R7 heredado en Mes 25 |
+| Mes 22 / v0.13 | Bloques A–K | ✅ Cerrado formalmente, sin pendientes |
 | Mes 23 | Bloque L | ✅ Cerrado formalmente; L.5.7 y L.6.2 heredados en Mes 25 |
 | Mes 24 | Bloque M | ✅ Cerrado formalmente; dos límites de roadmap pendientes de decisión en Mes 25 |
 
@@ -1354,8 +1354,7 @@ dejar tests, resultado de Bun y evidencia de mutation testing en este bloque ant
   son mutantes que producen tipos inválidos y son rechazados por el checker oficial de TypeScript,
   no fallos de configuración. No se cambió producción, no se excluyeron mutadores y no se fijó
   threshold/gate. La decisión de ampliar cobertura o aceptar/documentar equivalentes queda para R7.
-- [ ] **K.6.2-R7 — Endurecimiento de comportamientos críticos (cadena obligatoria, iniciada
-  2026-07-28).** El objetivo no es perseguir `100%`, sino matar mutantes que representen regresiones
+- [x] **K.6.2-R7 — Endurecimiento de comportamientos críticos (cerrado 2026-07-30).** El objetivo no es perseguir `100%`, sino matar mutantes que representen regresiones
   reales en la decisión de QA. No se añadirá cobertura solo para strings internos de prompts, formato
   equivalente o mutantes que el checker de TypeScript ya invalida.
   - [x] **R7.1 — Parsers de veredictos (2026-07-28).** Se añadió en `src/__tests__/qa-core.test.ts`
@@ -1415,8 +1414,22 @@ dejar tests, resultado de Bun y evidencia de mutation testing en este bloque ant
     permiten convertir una respuesta inválida en un veredicto aprobado. No queda evidencia de un
     sobreviviente que altere `pass/fail`, `VERIFIED/CAVEATS/REFUTED`, retry, rollback o persistencia.
     Los `55` `StringLiteral` restantes tampoco justifican snapshots de cada prompt salvo que se defina
-    explícitamente el texto como contrato externo. Esta auditoría no cierra R7.5: Carlos debe decidir
-    si acepta el baseline funcional de QA o continúa con la expansión por módulos de K.6.3.
+    explícitamente el texto como contrato externo.
+
+    **Cierre formal (2026-07-30):** Carlos confirmó la aceptación (ya operativa en la práctica desde
+    que K.6.3 se ejecutó sobre 3 módulos más el 2026-07-28) pidiendo re-verificación previa. Claude
+    re-corrió `bun run mutation:qa` en limpio (el `reports/mutation/mutation.json` guardado había sido
+    sobrescrito por una corrida posterior de `graph-runner.ts`): reproduce exactamente `51.76%`, `96`
+    sobrevivientes. Auditoría manual de los `40` no-`StringLiteral` (categorías `Regex`(22, ya
+    cubiertos)/`MethodExpression`(6)/`ConditionalExpression`(5)/`ArrayDeclaration`(3)/
+    `LogicalOperator`(2)/`ArithmeticOperator`(1)/`EqualityOperator`(1)): confirmado que ninguno altera
+    el cómputo de `pass/fail`/`VERIFIED/CAVEATS/REFUTED` — los `ConditionalExpression` sobre
+    `typeof obj !== 'object'` (líneas 155/286) quedan protegidos por el fallback seguro de
+    `o.verdict === 'pass' ? 'pass' : 'fail'` sobre un primitivo; el de línea 181 es un guard redundante
+    ya cubierto por los checks de propiedad siguientes. **Único hallazgo nuevo, no crítico**: línea 256
+    de `qa.ts`, si `checksResults` está vacío el mutante hace desaparecer en silencio el texto
+    `"NINGUNA verificación mecánica corrió."` del prompt del revisor adversarial (contenido de prompt
+    sin test para ese caso puntual, no lógica de veredicto) — anotado, no bloquea el cierre.
 
 **Memoria obligatoria:** al cerrar cada R1-R7 escribir fecha, comando exacto, conteos, tests creados,
 mutantes afectados, sobrevivientes restantes y decisión. El resumen final debe permanecer aquí para
@@ -1541,7 +1554,7 @@ tiene 3 decisiones de diseño sin resolver; si sale mal diseñado, sale mal el C
 | Bloque | Estado |
 | --- | --- |
 | L.0–L.5.6 | ✅ Cerrado con evidencia en este registro |
-| L.5.7 | ⏳ Pendiente heredado: el contenedor sigue abierto aunque L.5.7.1–L.5.7.7 estén documentados como hechos |
+| L.5.7 | ✅ Cerrado (2026-07-30) — L.5.7.1–L.5.7.7 documentados y verificados |
 | L.6.1 | ✅ Gate reproducible cerrado |
 | L.6.2 | ⏳ Pendiente heredado: revisión visual/manual y decisión sobre L62-001/L62-002 |
 
@@ -1718,7 +1731,7 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   `~/.orchestos/db.sqlite`. Tests reales: backup válido restaurado a un archivo nuevo y backup
   corrupto rechazado; `bunx tsc --noEmit` limpio y `bun test src/__tests__/db-backup.test.ts` →
   `3 pass`, `0 fail`, `12 expect() calls`.
-- [ ] **L.5.7 — Linaje versionado y rollback de migraciones.** L.5.1 cubre DB vacía, legacy con
+- [x] **L.5.7 — Linaje versionado y rollback de migraciones (cerrado 2026-07-30).** L.5.1 cubre DB vacía, legacy con
   columnas faltantes, preservación de filas e idempotencia, pero no existe todavía una secuencia
   histórica formal ni un `schema_version`. Cerrar este gap en el siguiente orden:
   - [x] **L.5.7.1 — Baseline de esquema (2026-07-29).** Se creó `schema_migrations` y se registra

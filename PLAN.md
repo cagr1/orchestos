@@ -44,15 +44,15 @@ Este mes conserva pendientes reales que no se cierran por arrastre documental (c
 
 | Mes | Bloques | Estado |
 | --- | --- | --- |
-| Mes 22 / v0.13 | A–K | ✅ Cerrado formalmente; K.6.2-R7 heredado |
-| Mes 23 | L | ✅ Cerrado formalmente; L.5.7 y L.6.2 heredados |
+| Mes 22 / v0.13 | A–K | ✅ Cerrado formalmente, sin pendientes |
+| Mes 23 | L | ⏳ L.5.7 cerrado (2026-07-30); L.6.2 sigue abierto |
 | Mes 24 | M | ✅ Cerrado formalmente; límites de roadmap pendientes de decisión |
 | Mes 25 | Pendientes heredados | ⏳ Activo |
 
 ### Pendientes explícitos
 
-- [ ] **K.6.2-R7 — Endurecimiento de comportamientos críticos.** Procede de Mes 22. Aunque R7.1–R7.5 tienen evidencia registrada, el ítem padre quedó abierto; no se declara cerrado hasta que Carlos decida formalmente aceptar el baseline funcional de QA o pedir expansión adicional. Historial completo: [DONE.md § Mes 22](DONE.md).
-- [ ] **L.5.7 — Linaje versionado y rollback de migraciones.** Procede de Mes 23. L.5.7.1–L.5.7.7 están documentados como realizados, pero el ítem contenedor seguía `[ ]`; queda explícitamente pendiente de reconciliación/decisión antes de cerrarlo. Historial completo: [DONE.md § Mes 23](DONE.md).
+- [x] **K.6.2-R7 — Endurecimiento de comportamientos críticos (cerrado 2026-07-30).** Carlos aceptó `51.76%` como baseline funcional de `qa.ts`, re-verificado por Claude corriendo `mutation:qa` en limpio: confirma que ningún sobreviviente altera lógica de veredicto. Historial completo: [DONE.md § Mes 22](DONE.md).
+- [x] **L.5.7 — Linaje versionado y rollback de migraciones (cerrado 2026-07-30).** L.5.7.1–L.5.7.7 estaban documentados y verificados; solo faltaba marcar el ítem contenedor. Historial completo: [DONE.md § Mes 23](DONE.md).
 - [ ] **L.6.2 — Gate manual de seguridad.** Procede de Mes 23. Falta revisión visual con navegador y los flujos manuales de ejecución, worktree, diagnóstico y exportación; además Carlos debe decidir mitigación o aceptación de `L62-001` (migración concurrente) y `L62-002` (provider key persistida antes de validar). No corregirlos fuera de un ítem explícito.
 - [ ] **M — Provisioning de roadmaps para proyectos nuevos.** Procede de Mes 24. `orchestos init` aún no provisiona `docs/roadmaps/`; no decidir ni implementar sin orden explícita de Carlos.
 - [ ] **M — Presupuesto de contexto de roadmaps.** Procede de Mes 24. Los 12k chars de `loadRoadmapContext` no alcanzan para las seis disciplinas y lenguajes de OrchestOS; el recorte es visible, pero la estrategia de presupuesto sigue pendiente de decisión de Carlos.
