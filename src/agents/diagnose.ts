@@ -14,6 +14,7 @@ import { listRunsByTaskId as realListRunsByTaskId, type RunRecord } from '../db/
 import { chat } from '../providers/openrouter.ts'
 import { getProvider } from '../providers/index.ts'
 import { calcCost } from '../router/pricing.ts'
+import { redactSensitive } from '../security/secrets.ts'
 
 type LoadTasksFn = (root: string) => { tasks: Array<{ id: string; description: string; retry_reason?: string }> }
 type ListRunsByTaskIdFn = (taskId: string) => RunRecord[]
@@ -52,22 +53,22 @@ function buildDiagnosePrompt(taskId: string, description: string, runs: RunRecor
     const checks = parseJson<Array<{ cmd: string; exitCode: number; elapsedMs: number; timedOut?: boolean }>>(r.checks_json, [])
     const checksStr = checks.length > 0
       ? checks.map(c =>
-          `  - cmd: ${c.cmd}  exit: ${c.exitCode}  elapsed: ${c.elapsedMs}ms${c.timedOut ? ' TIMED_OUT' : ''}`
+          `  - cmd: ${redactSensitive(c.cmd)}  exit: ${c.exitCode}  elapsed: ${c.elapsedMs}ms${c.timedOut ? ' TIMED_OUT' : ''}`
         ).join('\n')
       : '  (none)'
 
     return `### Run ${i + 1} (${r.created_at})
-status:     ${r.status}
-model:      ${r.model}
-provider:   ${r.provider}
+status:     ${redactSensitive(r.status)}
+model:      ${redactSensitive(r.model)}
+provider:   ${redactSensitive(r.provider)}
 tokens:     ${r.input_tokens} in / ${r.output_tokens} out
 cost:       $${r.usd_cost.toFixed(6)}
 elapsed:    ${r.elapsed_ms}ms
-qa_verdict: ${r.qa_verdict ?? 'N/A'}
-qa_reason:  ${r.qa_reason ?? 'N/A'}
-result:     ${r.result ?? 'N/A'}
-files_attempted: ${r.files_attempted ?? 'N/A'}
-files_blocked:   ${r.files_blocked ?? 'N/A'}
+qa_verdict: ${redactSensitive(r.qa_verdict ?? 'N/A')}
+qa_reason:  ${redactSensitive(r.qa_reason ?? 'N/A')}
+result:     ${redactSensitive(r.result ?? 'N/A')}
+files_attempted: ${redactSensitive(r.files_attempted ?? 'N/A')}
+files_blocked:   ${redactSensitive(r.files_blocked ?? 'N/A')}
 checks:
 ${checksStr}
 `
@@ -75,8 +76,8 @@ ${checksStr}
 
   return `You are a failure diagnosis assistant. Analyze the following task and its last 3 runs to identify WHY the task failed permanently.
 
-TASK ID: ${taskId}
-DESCRIPTION: ${description}
+TASK ID: ${redactSensitive(taskId)}
+DESCRIPTION: ${redactSensitive(description)}
 
 AVAILABLE PROVIDERS: openrouter, anthropic, openai, codex
 
@@ -143,7 +144,9 @@ export async function diagnoseTask(
     throw new Error(`No runs found for task "${taskId}"`)
   }
 
-  const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'blocked')?.result ?? undefined
+const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'blocked')?.result
+    ? redactSensitive(runs.find(r => r.status === 'failed' || r.status === 'blocked')!.result!)
+    : undefined
 
   const model = modelOverride ?? 'anthropic/claude-haiku-4-5'
 

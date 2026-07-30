@@ -62,13 +62,17 @@ const mockListRunsByTaskId = (taskId: string) => {
 
 const originalFetch = globalThis.fetch
 const prevOpenrouterKey = process.env.OPENROUTER_API_KEY
+let lastChatBody = ''
 
 function mockChatFetch(content: string) {
-  globalThis.fetch = (async () => new Response(JSON.stringify({
+  globalThis.fetch = (async (_input: string | URL | Request, init?: RequestInit) => {
+    lastChatBody = typeof init?.body === 'string' ? init.body : ''
+    return new Response(JSON.stringify({
     choices: [{ message: { content } }],
     usage: { prompt_tokens: 100, completion_tokens: 50 },
     model: 'anthropic/claude-3-haiku',
-  }), { status: 200 })) as unknown as typeof fetch
+    }), { status: 200 })
+  }) as unknown as typeof fetch
 }
 
 beforeAll(() => {
@@ -127,5 +131,27 @@ describe('diagnoseTask - fallback on bad JSON', () => {
     expect(result.pattern).toBe('unknown')
     expect(result.confidence).toBe('low')
     expect(result.suggestion).toContain('manually')
+  })
+})
+
+describe('diagnoseTask - data privacy', () => {
+  it('redacts sensitive task and run data before the provider call', async () => {
+    const secret = ['sk', 'live', '123456789012345678901234'].join('-')
+    mockChatFetch(JSON.stringify({
+      pattern: 'unknown', confidence: 'low', suggestion: 'review', details: 'redacted',
+    }))
+    const loadSensitive = () => ({
+      tasks: [{ id: 'sensitive-task', description: `Fix ${secret}`, retry_reason: undefined }],
+    })
+    const listSensitive = () => [{
+      ...mockRuns[0],
+      task_id: 'sensitive-task',
+      result: `failed with ${secret}`,
+      checks_json: JSON.stringify([{ cmd: `echo ${secret}`, exitCode: 1, elapsedMs: 1 }]),
+    }]
+
+    await diagnoseTask('sensitive-task', '/fake/root', undefined, loadSensitive, listSensitive)
+    expect(lastChatBody).not.toContain(secret)
+    expect(lastChatBody).toContain('[REDACTED:provider-key]')
   })
 })
