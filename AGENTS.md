@@ -56,24 +56,47 @@ SIEMPRE es `PLAN.md`. Antes de tocar código:
    criterio que ya pide el pre-commit hook, pero verificalo vos ANTES de terminar, no dejes que el
    hook sea la primera vez que se entera de un error de tipos.
 
-## Qué está listo para tomar ahora (2026-07-27)
+## Qué está listo para tomar ahora (2026-07-30)
 
-Carlos trabaja hoy/mañana principalmente contigo (cupo semanal de Claude alto, reset el jueves).
-Estos ítems están escritos como spec ejecutable — el diseño ya está decidido en PLAN.md, no hace
-falta que Claude esté en el loop:
+**Cambio de régimen**: Meses 22 (A–K), 23 (L) y 24 (M) están **cerrados formalmente** — los ítems
+de Bloque K/J que esta sección listaba antes ya no aplican. El mes activo es **Mes 25**, y desde
+2026-07-30 ejecuta el **backlog canónico por esfuerzo de `IDEAS.md`**: ese índice (`Mínimo` → `Bajo`
+→ `Bajo-medio` → …) es el **único orden de ejecución**, se baja a PLAN.md un bloque a la vez, y al
+graduar una idea **se elimina de IDEAS.md en el mismo commit**. Al terminar el backlog arranca ~1
+mes de dogfooding real: cero features nuevas salvo bugs que impidan usar el producto.
 
-- **PLAN.md § Bloque K — K.1, K.2, K.3, K.5** (⚡). Es el CORE del producto: hacer que el QA
-  verifique ejecutando en vez de leer. Cada uno cierra solo, son independientes entre sí, y el
-  spec incluye qué validar. Empezá por K.1 o K.3 (los más acotados).
-- **PLAN.md § Bloque J — J.1** (⚡). Coverage gate con umbral-trinquete. Chico y autocontenido.
+**Ahora mismo NO hay ningún ⚡ desbloqueado.** El bloque abierto es **PLAN.md § Bloque N** (IDEAS #1,
+endurecimiento de skills con Iron Law / Common Rationalizations / Red Flags) y sus dos ⚡ dependen de
+🧠 sin cerrar:
+
+- **N.4** (⚡, superficie en dashboard + i18n) — bloqueado por N.1/N.2: los campos todavía no existen
+  en el contrato ni en el renderer, no hay nada que mostrar.
+- **N.5** (⚡, autoría del contenido en las skills) — bloqueado por N.1/N.2 **y además por una
+  decisión de Carlos** escrita en el ítem (¿las 24 skills o solo las 5 recomendadas?). No arranques
+  sin esa respuesta.
+
+Cuando N.1/N.2 cierren, N.4 y N.5 quedan tomables en ese orden. Si llegás antes, **PARÁ y decilo**
+(regla 1 de arriba) — no adelantes el 🧠.
 
 **NO tomes**:
-- **K.4** — 🧠 con 3 decisiones de diseño sin resolver, marcadas explícitas en el ítem. Es el
-  diferenciador central; requiere plan corto confirmado por Carlos antes de codear.
-- **H.8** — 🧠, pase visual final. Necesita verificación en vivo en navegador con juicio estético.
+- **N.1, N.2, N.3** — 🧠. N.2 en particular reordena el prompt de las 24 skills existentes
+  (`iron_law` pasa a ir ANTES de `instructions`, hoy `sections[0]`); es criterio de diseño, no
+  wiring mecánico.
+- **N.6** — 🔍, gate con verificación en vivo.
+- Los 5 **pendientes heredados** del Mes 25 (K.6.2-R7, L.5.7, L.6.2 y los 2 de roadmaps del Mes 24):
+  **todos esperan una decisión de Carlos, no trabajo de código**. No los "cierres" ni los
+  implementes por tu cuenta.
 - La tarea `debug-codex-cli-deepseek` de `tasks.yaml` (`output: []` inválido, fantasma de un falso
-  positivo) — está anotada en PLAN.md § Bloque H, pendiente de decisión de Carlos. No la borres ni
-  la corrijas sin que él lo pida.
+  positivo) — pendiente de decisión de Carlos. No la borres ni la corrijas sin que él lo pida.
+
+**Antes de agregar un campo nuevo a una skill** (aplica a todo el Bloque N): un campo en
+`skills/*.yaml` no llega al LLM por existir. `validateSkill()` **no es strict** — un campo
+desconocido carga sin error y se descarta en silencio. Hay que tocar los 3 puntos:
+`SkillDef` + `validateSkill()` ([src/skills/registry.ts](src/skills/registry.ts)) y **`buildSections()`**
+([src/skills/targets/_shared.ts](src/skills/targets/_shared.ts), el único renderer skill→prompt,
+compartido por los 3 targets). Si además la skill se crea/importa por dashboard, sumá
+[src/dashboard/prompts/curator.ts](src/dashboard/prompts/curator.ts) o toda skill importada nacerá
+sin el campo.
 
 ## Pre-commit hook
 

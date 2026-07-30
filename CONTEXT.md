@@ -31,6 +31,17 @@ OrchestOS mismo — se recorta con `missing` visible, nunca en silencio, pero el
 Ninguno de los dos se resuelve automáticamente; quedan como decisión pendiente de Carlos antes de
 ampliarse a proyectos externos reales.
 
+### Invariante contrato de skill (2026-07-30)
+Un campo del YAML de una skill (`skills/*.yaml`) solo llega al LLM si está en los tres puntos:
+`SkillDef` y `validateSkill()` (`src/skills/registry.ts`) y **`buildSections()`**
+(`src/skills/targets/_shared.ts`) — este último es el ÚNICO renderer skill→prompt y lo comparten los
+tres targets (`claude`/`cursor`/`openai`). `validateSkill()` **no rechaza campos desconocidos**: un
+campo mal cableado carga sin error y se descarta en silencio, así que el modo de fallo es contenido
+muerto, no una excepción. Si la skill además se crea o importa por el dashboard, el contrato descrito
+al LLM curador (`src/dashboard/prompts/curator.ts`) debe incluirlo o toda skill importada nacerá sin
+ese campo. El orden de las secciones dentro de `buildSections()` es parte del contrato, no un
+detalle: es el orden en que el modelo lee la skill.
+
 ### Hot files
 - src/cli.ts (63 edges)
 - src/run/harness.ts (34 edges)

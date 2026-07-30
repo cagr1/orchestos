@@ -22,7 +22,7 @@ la nueva categoría y conserva su historial.
 
 ### Mínimo
 
-1. `#1` Endurecimiento de skills: Iron Law, racionalizaciones y red flags.
+_(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 
 ### Bajo
 
@@ -32,7 +32,6 @@ la nueva categoría y conserva su historial.
 4. `#19` `engine: external` sin checks.
 5. `#40` Editor de Constitution con Guardar/Limpiar.
 6. `#46` Spike de Graphify.
-7. `#54` Spike inicial de mutation testing.
 
 ### Bajo-medio
 
@@ -55,7 +54,7 @@ la nueva categoría y conserva su historial.
 9. `#45` Visibilidad de gasto real.
 10. `#47` Auto-split por tamaño estimado.
 11. `#50` Chat persistente con sesiones limitadas.
-12. `#55-B` Migración completa a Vercel AI SDK.
+12. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
 
 ### Medio-alto
 
@@ -74,6 +73,7 @@ la nueva categoría y conserva su historial.
 4. `#43` Panel derecho como IDE embebido.
 5. `#52` Lenguaje visual premium completo.
 6. `#56` Workspace multiagente paralelo.
+7. `#54` Mutation testing — adopción como gate del producto (el spike ya se graduó a PLAN.md § Bloque K / K.5).
 
 ### Reconciliadas y fuera del backlog
 
@@ -100,22 +100,13 @@ semilla de v0.13 — no tocado en este tramo.
 
 ## ⚡ Rápido — autoría sobre puertas que ya existen (casi sin código nuevo)
 
-Estos tres items se entregan por la **puerta "importar" del curador** (Mes 11, ✅) o como
+Estos items se entregan por la **puerta "importar" del curador** (Mes 11, ✅) o como
 upgrade de skills existentes. No requieren motor nuevo — son contenido endurecido que
 entra por infraestructura ya probada. Independientes entre sí.
 
 Son el resto del delta identificado en [obra/superpowers](https://github.com/obra/superpowers)
 y [mattpocock/skills](https://github.com/mattpocock/skills); el curador + pack "pro"
 (8 skills) ya está shipeado (Mes 11, ver DONE.md § MES 11).
-
-### 1. Endurecimiento de skills — Iron Law / Common Rationalizations / Red Flags
-
-Además de `anti_patterns`, añadir a las skills existentes secciones **"Iron Law"** (la regla
-innegociable), **"Common Rationalizations"** (las excusas que el agente se dice para saltarse
-la skill, con su refutación) y **"Red Flags"**. Hace que la skill se *respete bajo presión*
-en vez de ignorarse. Es un upgrade a las skills que ya existen, no contenido nuevo.
-
-**Esfuerzo**: mínimo — autoría + paso por la puerta importar. Sin código.
 
 ### 2. `verification-before-completion` (superpowers)
 
@@ -1410,6 +1401,10 @@ no dos ideas: cuando se ataque #31 hay que elegir entre las dos, no hacer ambas.
 
 **Esfuerzo**: bajo el punto 1 (una tabla de traducción alimentada por un JSON ya público); medio el
 2; alto el 3 (multi-módulo, requiere plan).
+
+**Nota de categorización**: en el índice canónico, `#55-B` corresponde solo al punto 2 (fallback de
+catálogo, esfuerzo medio) — el punto 3 (AI SDK) NO es un ítem independiente del backlog, va **dentro
+de `#31`** cuando se ataque esa idea, como ya aclara la sección "Adopción sugerida" de arriba.
 
 ---
 

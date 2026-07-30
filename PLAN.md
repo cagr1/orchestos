@@ -38,7 +38,7 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 ## MES 25 — Pendientes heredados de los cierres 22–24
 
-Este mes conserva únicamente pendientes reales que no se cierran por arrastre documental. Cada uno mantiene su procedencia y evidencia completa en [DONE.md](DONE.md).
+Este mes conserva pendientes reales que no se cierran por arrastre documental (cada uno mantiene su procedencia y evidencia completa en [DONE.md](DONE.md)) **y, desde 2026-07-30, abre la ejecución del backlog canónico por esfuerzo de [IDEAS.md](IDEAS.md)** — el orden ahí es el único orden de ejecución, y al graduar una idea se elimina de IDEAS.md en el mismo commit (regla de flujo IDEAS→PLAN→DONE).
 
 **Tabla de estado del proyecto (2026-07-29)**
 
@@ -56,6 +56,67 @@ Este mes conserva únicamente pendientes reales que no se cierran por arrastre d
 - [ ] **L.6.2 — Gate manual de seguridad.** Procede de Mes 23. Falta revisión visual con navegador y los flujos manuales de ejecución, worktree, diagnóstico y exportación; además Carlos debe decidir mitigación o aceptación de `L62-001` (migración concurrente) y `L62-002` (provider key persistida antes de validar). No corregirlos fuera de un ítem explícito.
 - [ ] **M — Provisioning de roadmaps para proyectos nuevos.** Procede de Mes 24. `orchestos init` aún no provisiona `docs/roadmaps/`; no decidir ni implementar sin orden explícita de Carlos.
 - [ ] **M — Presupuesto de contexto de roadmaps.** Procede de Mes 24. Los 12k chars de `loadRoadmapContext` no alcanzan para las seis disciplinas y lenguajes de OrchestOS; el recorte es visible, pero la estrategia de presupuesto sigue pendiente de decisión de Carlos.
+
+### Bloque N — 🧠 IDEAS #1: endurecimiento de skills (Iron Law / Common Rationalizations / Red Flags)
+
+Primer ítem del backlog canónico de IDEAS.md (categoría **Mínimo**, graduado 2026-07-30). Origen:
+delta pendiente de [obra/superpowers](https://github.com/obra/superpowers) y
+[mattpocock/skills](https://github.com/mattpocock/skills) — el curador + pack "pro" ya está
+shipeado (Mes 11). El objetivo real no es "más contenido": es que una skill **se respete bajo
+presión** en vez de ignorarse cuando el agente encuentra una excusa para saltársela.
+
+**Corrección de alcance sobre IDEAS #1 (verificada en código, 2026-07-30):** la idea afirmaba
+*"Esfuerzo: mínimo — autoría + paso por la puerta importar. Sin código."* — **es falso**.
+`buildSections()` ([src/skills/targets/_shared.ts:3](src/skills/targets/_shared.ts)) es el ÚNICO
+renderer skill→prompt y solo conoce 6 campos (`instructions`, `when_to_use`, `inputs_required`,
+`anti_patterns`, `verifiers`, `examples` + `language_targets`); `SkillDef`
+([src/skills/registry.ts:18](src/skills/registry.ts)) tampoco declara los campos nuevos, y
+`validateSkill()` no es strict — **un `iron_law:` en el YAML cargaría sin error y jamás llegaría al
+LLM**. Autoría sin wiring = contenido muerto. Por eso el bloque arranca por el contrato, no por el
+contenido. Sigue siendo un bloque chico, pero no es cero código.
+
+- [ ] **N.1 — 🧠** Extender el contrato de skill en
+  [src/skills/registry.ts](src/skills/registry.ts): `iron_law?: string` (la regla innegociable, una
+  sola), `common_rationalizations?: { excuse: string; refutation: string }[]` (la excusa que el
+  agente se dice + su refutación — el par es el punto, una lista plana de excusas sin refutar sería
+  darle munición), `red_flags?: string[]`. Añadir validación en `validateSkill()` con el mismo
+  patrón de los campos existentes (tipos, arrays no vacíos, `excuse`/`refutation` ambos presentes) y
+  un cap de longitud para `iron_law` (es una regla, no un párrafo). Tests de validación.
+- [ ] **N.2 — 🧠** Renderizar los 3 campos en `buildSections()`
+  ([src/skills/targets/_shared.ts](src/skills/targets/_shared.ts)) con **orden deliberado, no
+  append al final**: `iron_law` va **antes** de `instructions` (hoy `sections[0]` es
+  `skill.instructions` — cambiarlo afecta el prompt de las 24 skills existentes, es el punto del
+  ítem: la regla innegociable se lee primero, no sepultada); `common_rationalizations` y
+  `red_flags` van **después** de `anti_patterns` (son su escalón siguiente: anti_patterns dice qué
+  no hacer, rationalizations dice con qué excusa te lo vas a permitir). Verificar los 3 targets
+  (`claude`/`cursor`/`openai`) — comparten `_shared.ts`, confirmar que ninguno reordene por su
+  cuenta. Tests de render.
+- [ ] **N.3 — 🧠** Enseñar los campos nuevos a la **puerta importar del curador**
+  ([src/dashboard/prompts/curator.ts](src/dashboard/prompts/curator.ts), líneas ~17 y ~45 describen
+  el contrato al LLM): sin esto, toda skill importada de ahora en adelante nace sin `iron_law` y el
+  endurecimiento solo aplicaría a lo ya existente — la puerta por la que IDEAS #1 decía que esto
+  entra quedaría desalineada del contrato real.
+- [ ] **N.4 — ⚡** Superficie en dashboard (regla [[feedback-dashboard-no-solo-cli]]): los 3 campos
+  en el detalle de skill y en el formulario de creación/edición
+  ([src/dashboard/public/app.js](src/dashboard/public/app.js) ~936/949/1076/1131/1146/1250) +
+  claves i18n **en inglés y español** ([src/dashboard/public/i18n.js](src/dashboard/public/i18n.js)
+  ~499/544/1255/1300). `common_rationalizations` es el único par excusa/refutación — decidir su
+  edición (dos columnas o `excusa :: refutación` por línea), no forzarlo al `listField` plano de
+  los demás.
+- [ ] **N.5 — ⚡** Autoría del contenido: `iron_law` + `common_rationalizations` + `red_flags` en
+  las skills existentes (16 en `skills/` + 8 en `skills/pro/`). **Decisión pendiente de Carlos
+  antes de arrancar este ítem**: ¿las 24, o solo aquellas donde la presión de saltarse la skill es
+  real y ya documentada? Recomendación (no aplicada sin su OK): empezar por `tdd-enforcer`,
+  `security-review`, `qa-structured`, `test-writer` y `frontend-design` — son las que un ejecutor
+  barato tiene más incentivo a esquivar (escribir el test después, "el linter ya lo cubre", "se ve
+  bien así"), y `test-writer`/`qa-structured` conectan directo con el antipatrón que persigue
+  [IDEAS.md #54](IDEAS.md) (tests que pasan vacíamente).
+- [ ] **N.6 — 🔍** Gate: verificar contra el **prompt real compilado**, no contra el YAML — que el
+  `iron_law` aparece antes de las instrucciones en la salida de `buildSections()` para una skill
+  endurecida, en los 3 targets, y que una skill sin los campos nuevos compila idéntico a como
+  compilaba antes (cero regresión sobre las skills no tocadas). Verificación en vivo en el
+  dashboard de N.4 ([[feedback-verificar-gates-en-vivo]]), no solo `bun test`. Cerrar con conteo de
+  tests + `tsc --noEmit` limpio.
 
 ---
 
