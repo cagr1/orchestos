@@ -6,53 +6,87 @@ Backlog accionable. De aquí sale el próximo PLAN.md.
 - Lo ya implementado → [DONE.md](DONE.md)
 - Estructura de trabajo activa → [PLAN.md](PLAN.md)
 
-Reorganizado: 2026-07-13 (apertura v0.12). El detalle de cada idea sigue abajo con su número
-histórico intacto; lo que cambió es el **lente de orden**: ya no "por esfuerzo" sino **por
-prioridad de diseño hacia un producto estable**. El mapa manda; los bloques numerados de abajo
-son la referencia detallada, no el orden de ejecución.
+Reorganizado: 2026-07-29. Desde este momento, el índice siguiente es el **único orden de
+ejecución**. Las secciones detalladas que aparecen más abajo conservan contexto histórico y no
+constituyen otro orden.
 
-## 🗺️ Mapa de prioridad (2026-07-13)
+## 🧭 Backlog canónico por esfuerzo — fase de dogfooding
 
-**P0 — graduado a PLAN v0.12 (ya NO vive acá):** borrado masivo en tablas (+absorbe #18),
-Markdown en Chat (#38), visor de diff por run, auditoría de paridad CLI↔dashboard. Ver
-[PLAN.md](PLAN.md) § v0.12.
+Objetivo operativo: desde 2026-07-30 trabajar únicamente estas ideas, en orden. Después de cerrar
+este backlog comienza la prueba real de OrchestOS durante aproximadamente un mes; no se agregan
+features nuevas durante esa fase salvo bugs que impidan usar el producto.
 
-**Graduado a PLAN v0.13 (ya NO vive acá):** #32 (presupuesto de outputs de tools, Bloque A),
-#36 (check de sintaxis JS/HTML en `defaultChecksFor`, Bloque A.5) — prerequisitos para reabrir
-C.2 — y #27 (tab de consumo/gasto estilo OpenRouter + heatmap tipo GitHub, Bloque H — rediseño de
-Settings, 2026-07-18). Ver [PLAN.md](PLAN.md) § Mes 22 (v0.13). Decisión de Carlos (2026-07-15):
-primero que OrchestOS *entregue* un producto premium (C.2), luego las modificaciones de UI.
+Regla permanente: toda idea nueva debe tener exactamente una categoría de esfuerzo. Se agrega al
+final de su categoría, nunca se inserta por preferencia. Si cambia su estimación, pasa al final de
+la nueva categoría y conserva su historial.
 
-**P1 — acabado / papercuts que hacen que se sienta terminado (POSPUESTOS hasta después de C.2):**
-- #43 — **panel derecho como IDE embebido**: tabs reales en `main`, explorer estilo VS Code
-  (modificados/untracked), diff+archivo clickeable con gutter y syntax highlighting — pedido
-  textual de Carlos (2026-07-14), transcrito sin reinterpretar en el ítem completo
-- #40 — editor de Constitution: Guardar/Limpiar explícitos en vez de auto-save silencioso (bug real)
-- #14 — notificaciones del sistema cuando algo termina en segundo plano
-- #17 — chat multi-sesión + aviso al 75% de contexto
-- #37 — modo "empezar gratis" (modelos `:free` de OpenRouter por defecto)
+### Mínimo
 
-**P2 — robustez del motor, gated en evidencia (habilitan reintentar Mes 20/C.2):**
-- #33 — refuter en el QA loop (segunda opinión barata antes de quemar retry)
-- #19 — `engine: external` sin `checks:` pierde su red determinista
-- #4 — clasificador semántico para `clarify` · #5 — resolver Ruby · #16 — escala honesta
-- #29 — decisión pendiente sobre `topic_key`/memoria de sub-tasks
-- #42 — auto-repair dirigido tras `failed_permanent` (cerrar el lazo diagnose→reparación)
+1. `#1` Endurecimiento de skills: Iron Law, racionalizaciones y red flags.
 
-**P3 — capacidad nueva grande (post-estable, v0.13+):**
-- #41 — **empaquetar como app de escritorio Electron (Mac/Linux/Windows)** — la que más se acerca a
-  la forma de producto de Orca; prototipo chico, distribución real medio-alta
-- #39 — generalizar `engine: external` a más CLIs (Orca) → **prerequisito de #44**
-- #44 — **cascada de selección Local→CLI→API** (Orca-style, "usa lo ya pagado antes que gastar
-  saldo") — gated en #39 + una decisión explícita de Carlos por la tensión con
-  [[feedback-modelo-decision-final-carlos]] (ver ítem completo)
-- #56 — **workspace multiagente con tabs y ejecución paralela** (Orca-style): supervisar varias
-  sesiones/agentes a la vez, con estado y controles operativos
-- #28 — terminal real embebido
-- #35 — directorio de proyecto configurable · #10 — cliente MCP · #31 — chat multi-proveedor
-- #34 — `orchestos audit` · #7 — brainstorming socrático · #8 — micrófono/dictado
-- #6 — Design.md condicional · #26 — Spec Kit · #25 — Mintlify docs · #11 — KuzuDB
-- #30 — `task_class: ocr` · #1/#2/#3 — endurecimiento de skills (autoría, sin motor)
+### Bajo
+
+1. `#2` `verification-before-completion`.
+2. `#3` `requesting-code-review` / `receiving-code-review`.
+3. `#5` Resolver imports Ruby.
+4. `#19` `engine: external` sin checks.
+5. `#40` Editor de Constitution con Guardar/Limpiar.
+6. `#46` Spike de Graphify.
+7. `#54` Spike inicial de mutation testing.
+
+### Bajo-medio
+
+1. `#4` Clasificador semántico para `clarify`.
+2. `#30` `task_class: ocr`.
+3. `#33` Refuter en QA.
+4. `#37` Modo “empezar gratis”.
+5. `#51` Acciones por mensaje: copiar y rebobinar.
+
+### Medio
+
+1. `#6` `Design.md` condicional.
+2. `#7` Brainstorming socrático.
+3. `#14` Notificaciones en segundo plano.
+4. `#16` Escala honesta de DB, `input[]` y `cli.ts`.
+5. `#25` Agente automático de documentación.
+6. `#26` Spec Kit.
+7. `#29` Impulsar `topic_key` en sub-tasks.
+8. `#34` `orchestos audit`.
+9. `#45` Visibilidad de gasto real.
+10. `#47` Auto-split por tamaño estimado.
+11. `#50` Chat persistente con sesiones limitadas.
+12. `#55-B` Migración completa a Vercel AI SDK.
+
+### Medio-alto
+
+1. `#8` Micrófono/dictado.
+2. `#28` Terminal real embebido.
+3. `#35` Directorio de proyecto configurable.
+4. `#41` App Electron distribuible.
+5. `#42` Auto-repair dirigido.
+6. `#57` Cuota semanal de suscripciones CLI.
+
+### Alto
+
+1. `#10` Cliente MCP.
+2. `#11` KuzuDB.
+3. `#31` Chat multi-proveedor y routing granular.
+4. `#43` Panel derecho como IDE embebido.
+5. `#52` Lenguaje visual premium completo.
+6. `#56` Workspace multiagente paralelo.
+
+### Reconciliadas y fuera del backlog
+
+- `#27`, `#32` y `#36`: graduadas a PLAN y cerradas según DONE/PLAN.
+- `#39`: generalización de CLIs cerrada en G.4.2/G.4.2b.
+- `#44`: cascada de selección cerrada en el Bloque G.
+- `#49`: visibilidad en vivo cerrada en G.3.
+- `#55-A`: catálogo `models.dev` para opencode cerrado en G.4.5.
+
+Las entradas anteriores a `#43` que sigan apareciendo abajo son detalle histórico; las entradas
+`#43–#57` se mantienen abajo porque contienen especificación extensa, pero el índice de arriba
+manda. Las superficies que agregan shell, filesystem, MCP o ejecución externa (`#10`, `#28`, `#35`)
+requieren declarar límites y pasar revisión de seguridad antes de implementarse.
 
 **Nota de diseño — primer tramo cerrado (2026-07-13), con capturas reales de Carlos** (Claude
 Desktop/Codex/Orca/Hermes): rediseño del header + panel derecho (explorer/terminal/diff), un
@@ -96,8 +130,6 @@ Validación estructurada antes de mergear y cómo procesar feedback. Dos skills 
 por la puerta importar.
 
 **Esfuerzo**: bajo — dos skills, sin motor nuevo.
-
-- ~~**#23 — Sistema de notificaciones/toasts estilizado**~~ — Resuelto en E.7 (2026-07-07): todos los `alert()`/`prompt()` reemplazados por `showToast()` + modales propios.
 
 ## 🔨 Medio — capacidad nueva acotada
 
@@ -306,60 +338,6 @@ al bootear).
 los handlers del dashboard. Candidato a Plan formal (no autoría directa) antes de tocar
 los 15 call sites.
 
-### 9. Runner de grafo autónomo — el loop que se conduce solo ✅
-
-**Implementado en Mes 14 (2026-06-29)** — ver [DONE.md § MES 14](DONE.md) para el detalle completo (Bloques 0/A/A.R/B/C/D). `orchestos run --graph` recorre el DAG completo de `tasks.yaml` sin intervención humana en el happy path, decide retry-vs-bloqueo vía `diagnoseTask()`, y aísla ramas fallidas sin detener el grafo completo. Verificado en vivo (dashboard real + CLI real contra `tasks.yaml` de producción).
-
-<details>
-<summary>Contexto original (pre-implementación)</summary>
-
-**Candidato directo para Mes 14** (anotado en DONE.md § MES 12 y MES 13).
-
-**Tendencia (2026-06)**: "No deberías estar prompteando agentes manualmente — deberías
-diseñar loops que prompteen a tus agentes." (Peter, creador de OpenClaw, en X). La dirección
-de la industria es que el humano diseña el grafo y el sistema lo ejecuta solo de principio
-a fin, sin intervención por tarea.
-
-**Lo que OrchestOS ya tiene** (las piezas del loop están, falta el conductor):
-- `tasks.yaml` con `depends_on` (DAG implícito) ✅
-- Status machine (`pending → running → done / failed_permanent`) ✅
-- QA verdict por tarea (pass/fail) ✅
-- Retry logic (`retry_count`) ✅
-- Diagnose automático en `failed_permanent` ✅
-- Instincts: aprende de cada run ✅
-
-**Lo que falta — el conductor de grafo:**
-```
-while (pendingTasks.length) {
-  tarea = nextExecutable(tasks, depends_on)   // orden topológico
-  resultado = run(tarea)
-  if (!resultado.ok) {
-    diagnose(tarea) → estrategia de retry
-    if (agotado) → bloquear dependientes, notificar
-  }
-  // siguiente iteración automática, sin humano
-}
-```
-
-**Qué lo hace diferente de lo que hay hoy**: hoy el humano ejecuta `orchestos run` por
-cada tarea. El conductor lo haría de forma autónoma recorriendo el grafo completo — y si
-una tarea falla, decide solo si reintenta con otra estrategia o bloquea la rama, sin pedir
-permiso por cada decisión individual.
-
-**Cómo probarlo cuando llegue el momento**: ejecutar el runner contra un `tasks.yaml` real
-de CitasBot o del propio OrchestOS y observar si el grafo se completa sin intervención.
-Comparar: número de tasks completadas solas vs. número de veces que el humano tuvo que
-intervenir. El objetivo es intervención = 0 en el happy path.
-
-**Prerequisito**: motor de runs ✅ + QA ✅ + diagnose ✅. La implementación es un
-`orchestos run --all` (o `--plan`) que lee el DAG completo. No requiere nada nuevo en
-el schema, solo el conductor encima.
-
-**Esfuerzo**: poco código nuevo (reusa todo el motor) pero **alto riesgo** — es autonomía
-sin humano por tarea. Por eso es eje propio y va después del hardening (Mes 12 ✅).
-
-</details>
-
 ### 10. Cliente MCP — OrchestOS habla con herramientas externas (Vercel, GitHub, etc.)
 
 **Por qué importa (norte estratégico)**: MCP (Model Context Protocol) es el estándar
@@ -463,46 +441,6 @@ usuario que las priorice todavía (probado solo en <50 archivos):
 
 **Esfuerzo**: medio cada uno, independientes. **Gated en evidencia**: no abrir hasta que un
 proyecto real (propio o de usuario externo) golpee el límite concreto.
-
-### 17. Chat multi-sesión — conversaciones persistentes + aviso al 75% del contexto
-
-**Origen**: Carlos, 2026-07-04. "No creo que todo avance en un solo chat... todas las
-herramientas (Claude Code, Codex, Hermes) manejan varios chats." Candidato natural a
-integrarse al eje del Mes 18 (chat como entrada única, ítem #12) — si el chat va a ser LA
-puerta de entrada del producto, no puede evaporarse con un F5.
-
-**Estado actual verificado (2026-07-04)**: el chat NO persiste nada — `st.chatHistory` es un
-array en memoria del navegador ([app.js:55](src/dashboard/public/app.js)), el servidor es
-stateless (recibe el historial completo en cada request, `chat.ts:291`), y un refresh borra
-toda la conversación. No existe ninguna tabla de chat en SQLite.
-
-**Qué ya existe (NO reconstruir)**:
-- El backend ya calcula `promptTokens` contra `contextWindowFor(model)` en cada turno
-  ([chat.ts:328](src/dashboard/handlers/chat.ts)) — la medición para el aviso del 75% ya
-  está hecha, solo falta exponerla en la respuesta y dispararle un toast.
-- Patrón de tablas + handlers de SQLite idéntico al de `runs` (misma DB, mismo estilo).
-- `showToast()` ([app.js:1525](src/dashboard/public/app.js)) para el aviso in-page.
-
-**Las dos piezas**:
-1. **Sesiones persistentes**: tablas `chat_sessions` (id, título, created_at, model) y
-   `chat_messages` (session_id, role, content, tokens). El endpoint gana `sessionId`, carga
-   el historial de DB (no confía en el que manda el cliente) y persiste cada turno. Frontend:
-   selector/lista de sesiones + "nueva conversación". Título autogenerado (primer mensaje o
-   resumen con modelo barato). Bonus alineado con medición honesta: mostrar gasto de contexto
-   acumulado por sesión.
-2. **Aviso al 75% del contexto (dependiente del modelo)**: cuando `promptTokens` del turno
-   supera el 75% del `contextWindowFor(model)` activo, la respuesta del endpoint incluye un
-   flag y el frontend muestra un **toast** (ver ítem #18 — NUNCA `alert()` nativo) sugiriendo
-   abrir una conversación nueva. El umbral se recalcula si el usuario cambia de modelo a mitad
-   de sesión (ventanas distintas). Mismo espíritu que la regla personal de Carlos de cortar al
-   70% en vez de esperar el límite real.
-
-**Deliberadamente FUERA de alcance**: compactación/resumen automático del historial para
-"seguir infinito" en una misma sesión — frágil y caro; sesión nueva es el 90% del valor con
-el 20% del esfuerzo.
-
-**Esfuerzo**: medio — 2 tablas + extender un endpoint existente + UI de lista de sesiones.
-La parte 2 (aviso 75%) es chica y puede entrar sola si las sesiones se difieren.
 
 ### 19. `engine: external` sin `checks:` explícitos pierde silenciosamente su única red determinista
 
@@ -886,7 +824,7 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
   uso general): integraciones de plataforma (Slack/Telegram/MS Teams/Google Chat), terminal tool
   con backends SSH/sudo/Modal cloud, browser tool (Browserbase), skill Hyperliquid. **Posible
   candidato futuro, no pineado todavía**: compresión automática de contexto en conversaciones
-  largas (relacionado con IDEAS #17, chat multi-sesión + aviso al 75% de contexto) y STT/TTS
+  largas (relacionado con #50, chat persistente + medidor de contexto por modelo) y STT/TTS
   (relacionado con IDEAS #8, micrófono/dictado, ya gated).
   · **Re-verificado con clon del código 2026-07-12 — el claim "aprende solo" ES real pero
   acotado**: aprendizaje procedimental (archivos skill/memoria), NO fine-tuning ni RL. Tres
@@ -1133,17 +1071,6 @@ Bloque E de PLAN.md.
 **Esfuerzo**: medio — la estimación de tamaño es el núcleo difícil; el resto es wiring sobre el
 `shouldSplit`/`generatePlan` que ya existen.
 
-### 48. ~~Carrera real entre auto-commit de tasks.yaml (D.5/D.7) y el merge-back del worktree sandbox~~
-
-**RESUELTO — PLAN.md Bloque E.5 (2026-07-16).** Se reprodujo una tercera vez (misma tarea,
-`crypto-dashboard-v2`, mismo `git merge ... failed after rebase`) y se resolvió de raíz: mutex de
-archivo entre procesos (`src/run/git-lock.ts`, `withGitLock()`) que serializa `mergeWorktreeBack()`
-contra los auto-commits de `tasks.yaml` (D.5/D.7) — ambos tocan `projectRoot` (checkout/commit/merge
-sobre el mismo working dir), nunca pueden intercalarse. Verificado con un test de concurrencia REAL
-entre dos subprocesos del SO (no solo dos llamadas en el mismo proceso, que habrían sido
-trivialmente secuenciales por ser JS de un hilo) — confirmado que sin el lock las ventanas se
-solapan y con el lock no. Detalle completo → PLAN.md Bloque E.5.
-
 ### 49. Visibilidad en vivo de lo que el agente está haciendo — no solo el resultado final
 
 **Origen**: Carlos (2026-07-16), tras la cadena de fixes E.1-E.10 de hoy — pidió explícitamente
@@ -1190,7 +1117,11 @@ simple que ya usa `external.ts`.
 
 ### 50. Chat persistente con sesiones acotadas (máx ~20) — no copiar el patrón de chats infinitos
 
-**Origen**: Carlos (2026-07-17), decisión de diseño de producto explícita — NO quiere copiar el
+**Origen**: consolida #17 (Carlos, 2026-07-04) y su refinamiento posterior de Carlos
+(2026-07-17). La versión vigente sustituye el aviso original al 75% por un umbral del 70% y
+define sesiones activas + archivadas; no se perdió ningún requisito accionable de #17.
+
+**Decisión de diseño**: Carlos (2026-07-17) no quiere copiar el
 patrón de la industria (Claude Desktop, ChatGPT, Codex: historial infinito de conversaciones que
 nadie vuelve a abrir). Dos partes:
 
