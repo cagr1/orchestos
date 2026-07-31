@@ -96,13 +96,14 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   el contrato al LLM): sin esto, toda skill importada de ahora en adelante nace sin `iron_law` y el
   endurecimiento solo aplicaría a lo ya existente — la puerta por la que IDEAS #1 decía que esto
   entra quedaría desalineada del contrato real.
-- [ ] **N.4 — ⚡** Superficie en dashboard (regla [[feedback-dashboard-no-solo-cli]]): los 3 campos
+- [x] **N.4 — ⚡** (2026-07-31) Superficie en dashboard (regla [[feedback-dashboard-no-solo-cli]]): los 3 campos
   en el detalle de skill y en el formulario de creación/edición
   ([src/dashboard/public/app.js](src/dashboard/public/app.js) ~936/949/1076/1131/1146/1250) +
   claves i18n **en inglés y español** ([src/dashboard/public/i18n.js](src/dashboard/public/i18n.js)
-  ~499/544/1255/1300). `common_rationalizations` es el único par excusa/refutación — decidir su
-  edición (dos columnas o `excusa :: refutación` por línea), no forzarlo al `listField` plano de
-  los demás.
+  ~499/544/1255/1300). `common_rationalizations` se edita como un par `excuse :: refutation`
+  por línea (se separa solo en el primer delimitador), no como `listField` plano. La superficie
+  también incluye esos campos en el preview de importación y en el preview YAML del formulario.
+  Verificado: `bunx tsc --noEmit`, `git diff --check` y 42 tests relevantes pasan.
 - [ ] **N.5 — ⚡** Autoría del contenido: `iron_law` + `common_rationalizations` + `red_flags` en
   las skills existentes (16 en `skills/` + 8 en `skills/pro/`). **Decisión pendiente de Carlos
   antes de arrancar este ítem**: ¿las 24, o solo aquellas donde la presión de saltarse la skill es

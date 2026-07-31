@@ -932,6 +932,7 @@ const Modal = {
   openSkillDetail(skill) {
     const field = (label, val) => val ? `<div class="m-field"><label>${label}</label><div class="val mono" style="font-size:13px;line-height:1.5;white-space:pre-wrap">${esc(val)}</div></div>` : '';
     const listField = (label, items) => items && items.length ? `<div class="m-field"><label>${label}</label><div class="val" style="font-size:13px">${items.map(i => `<span class="badge blue square" style="margin:2px">${esc(i)}</span>`).join(' ')}</div></div>` : '';
+    const rationalizationsField = skill.common_rationalizations && skill.common_rationalizations.length ? `<div class="m-field"><label>${t('skills.detail.common_rationalizations')}</label><div style="font-size:13px">${skill.common_rationalizations.map(r => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px"><div><span class="muted">${t('skills.detail.excuse')}:</span> ${esc(r.excuse)}</div><div style="margin-top:4px"><span class="muted">${t('skills.detail.refutation')}:</span> ${esc(r.refutation)}</div></div>`).join('')}</div></div>` : '';
     const examplesField = skill.examples && skill.examples.length ? `<div class="m-field"><label>${t('skills.detail.examples')}</label><div style="font-size:12px">${skill.examples.map(ex => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px"><b>${esc(ex.title)}</b><div class="muted" style="margin-top:4px">${esc(ex.input)}</div><div class="muted" style="margin-top:2px;color:var(--text)">→ ${esc(ex.output)}</div></div>`).join('')}</div></div>` : '';
     const langTargets = skill.language_targets ? Object.entries(skill.language_targets).map(([lang, cfg]) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:4px"><b>${esc(lang)}</b>${cfg.verifiers ? `<div class="muted" style="margin-top:4px">${t('skills.detail.verifiers')}: ${cfg.verifiers.map(v => esc(v)).join(', ')}</div>` : ''}${cfg.anti_patterns ? `<div class="muted">${t('skills.detail.anti_patterns')}: ${cfg.anti_patterns.map(a => esc(a)).join(', ')}</div>` : ''}</div>`).join('') : '';
     const langSection = langTargets ? `<div class="m-field"><label>${t('skills.detail.language_targets')}</label>${langTargets}</div>` : '';
@@ -943,10 +944,13 @@ const Modal = {
         ${field(t('skills.detail.id'), skill.id)}
         ${skill.description ? `<div class="m-field"><label>${t('skills.detail.description')}</label><div class="val" style="font-size:13px">${esc(skill.description)}</div></div>` : ''}
         ${listField(t('skills.detail.targets'), skill.targets)}
+        ${field(t('skills.detail.iron_law'), skill.iron_law)}
         ${field(t('skills.detail.instructions'), skill.instructions)}
         ${listField(t('skills.detail.verifiers'), skill.verifiers)}
         ${listField(t('skills.detail.when_to_use'), skill.when_to_use)}
         ${listField(t('skills.detail.anti_patterns'), skill.anti_patterns)}
+        ${rationalizationsField}
+        ${listField(t('skills.detail.red_flags'), skill.red_flags)}
         ${listField(t('skills.detail.inputs'), skill.inputs_required)}
         ${listField(t('skills.detail.tools'), skill.allowed_tools)}
         ${examplesField}
@@ -1048,6 +1052,7 @@ const Modal = {
     const tCursor = targets.includes('cursor') ? 'checked' : '';
     const tOpenai = targets.includes('openai') ? 'checked' : '';
     const listVal = (key) => esc((s[key] || []).join('\n'));
+    const rationalizationsVal = (s.common_rationalizations || []).map(r => `${r.excuse} :: ${r.refutation}`).join('\n');
     const preview = this._yamlFromForm(s);
     this.el.innerHTML = `<div class="modal" style="width:640px">
       <div class="m-head"><span style="color:var(--accent)">${ICON.flask}</span><h3>${isEdit ? t('modal.skill.title.edit') : t('modal.skill.title')}</h3>
@@ -1063,6 +1068,9 @@ const Modal = {
           <input id="ns-name" value="${esc(s.name || '')}" autocomplete="off"></div>
         <div class="m-field"><label>${t('modal.skill.form.description')}</label>
           <textarea id="ns-desc" rows="2" style="resize:vertical">${esc(s.description || '')}</textarea></div>
+        <div class="m-field"><label>${t('modal.skill.form.iron_law')}</label>
+          <textarea id="ns-iron-law" rows="2" maxlength="300" style="resize:vertical">${esc(s.iron_law || '')}</textarea>
+          <div class="m-hint">${t('modal.skill.form.iron_law.hint')}</div></div>
         <div class="m-field"><label>${t('modal.skill.form.targets')}</label>
           <div style="display:flex;gap:14px;flex-wrap:wrap">
             <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="ns-t-claude" ${tClaude}> claude</label>
@@ -1075,6 +1083,11 @@ const Modal = {
           <textarea id="ns-when" rows="3" style="resize:vertical">${listVal('when_to_use')}</textarea></div>
         <div class="m-field"><label>${t('modal.skill.form.anti_patterns')}</label>
           <textarea id="ns-anti" rows="3" style="resize:vertical">${listVal('anti_patterns')}</textarea></div>
+        <div class="m-field"><label>${t('modal.skill.form.common_rationalizations')}</label>
+          <textarea id="ns-rationalizations" rows="3" style="resize:vertical">${esc(rationalizationsVal)}</textarea>
+          <div class="m-hint">${t('modal.skill.form.common_rationalizations.hint')}</div></div>
+        <div class="m-field"><label>${t('modal.skill.form.red_flags')}</label>
+          <textarea id="ns-red-flags" rows="3" style="resize:vertical">${listVal('red_flags')}</textarea></div>
         <div class="m-field"><label>${t('modal.skill.form.verifiers')}</label>
           <textarea id="ns-verifiers" rows="3" style="resize:vertical">${listVal('verifiers')}</textarea></div>
         <div class="m-field"><label>${t('modal.skill.form.inputs_required')}</label>
@@ -1121,6 +1134,10 @@ const Modal = {
   _gatherFormData() {
     const g = (id) => (this.el.querySelector(id)?.value || '').trim();
     const gl = (id) => g(id).split('\n').map(s => s.trim()).filter(Boolean);
+    const rationalizations = gl('#ns-rationalizations').map(line => {
+      const separator = line.indexOf(' :: ');
+      return { excuse: separator === -1 ? line : line.slice(0, separator).trim(), refutation: separator === -1 ? '' : line.slice(separator + 4).trim() };
+    });
     const targets = [];
     if (this.el.querySelector('#ns-t-claude')?.checked) targets.push('claude');
     if (this.el.querySelector('#ns-t-cursor')?.checked) targets.push('cursor');
@@ -1128,7 +1145,10 @@ const Modal = {
     return {
       id: g('#ns-id'), version: g('#ns-version') || '1.0.0', name: g('#ns-name'),
       description: g('#ns-desc'), targets, instructions: g('#ns-instructions'),
+      iron_law: g('#ns-iron-law') || undefined,
       when_to_use: gl('#ns-when'), anti_patterns: gl('#ns-anti'),
+      common_rationalizations: rationalizations.length ? rationalizations : undefined,
+      red_flags: gl('#ns-red-flags'),
       verifiers: gl('#ns-verifiers'), inputs_required: gl('#ns-inputs'),
       allowed_tools: gl('#ns-tools'),
     };
@@ -1139,11 +1159,13 @@ const Modal = {
     if (!d) return '';
     const lines = [];
     const pushArr = (k, arr) => { if (arr && arr.length) { lines.push(k + ':'); arr.forEach(v => lines.push('  - ' + v)); } };
+    const pushPairs = (k, pairs) => { if (pairs && pairs.length) { lines.push(k + ':'); pairs.forEach(r => { lines.push('  - excuse: ' + JSON.stringify(r.excuse)); lines.push('    refutation: ' + JSON.stringify(r.refutation)); }); } };
     const pushStr = (k, v) => { if (v) { if (v.includes('\n')) { lines.push(k + ': |'); v.split('\n').forEach(l => lines.push('  ' + l)); } else { lines.push(k + ': ' + v); } } };
     pushStr('id', d.id); pushStr('version', d.version);
     pushStr('name', d.name); pushStr('description', d.description);
-    pushArr('targets', d.targets); pushStr('instructions', d.instructions);
+    pushArr('targets', d.targets); pushStr('iron_law', d.iron_law); pushStr('instructions', d.instructions);
     pushArr('when_to_use', d.when_to_use); pushArr('anti_patterns', d.anti_patterns);
+    pushPairs('common_rationalizations', d.common_rationalizations); pushArr('red_flags', d.red_flags);
     pushArr('verifiers', d.verifiers); pushArr('inputs_required', d.inputs_required);
     pushArr('allowed_tools', d.allowed_tools);
     return lines.join('\n');
@@ -1245,9 +1267,12 @@ const Modal = {
       { label: t('modal.skill.form.name'), val: s.name },
       { label: t('modal.skill.form.description'), val: s.description },
       { label: t('modal.skill.form.targets'), val: (s.targets || []).join(', ') },
+      { label: t('modal.skill.form.iron_law'), val: s.iron_law },
       { label: t('modal.skill.form.instructions'), val: s.instructions },
       { label: t('modal.skill.form.when_to_use'), val: (s.when_to_use || []).join('\n') },
       { label: t('modal.skill.form.anti_patterns'), val: (s.anti_patterns || []).join('\n') },
+      { label: t('modal.skill.form.common_rationalizations'), val: (s.common_rationalizations || []).map(r => `${r.excuse} :: ${r.refutation}`).join('\n') },
+      { label: t('modal.skill.form.red_flags'), val: (s.red_flags || []).join('\n') },
       { label: t('modal.skill.form.verifiers'), val: (s.verifiers || []).join('\n') },
       { label: t('modal.skill.form.inputs_required'), val: (s.inputs_required || []).join('\n') },
       { label: t('modal.skill.form.allowed_tools'), val: (s.allowed_tools || []).join('\n') },
