@@ -167,6 +167,41 @@ Los tres mecanismos se separan a propósito — tratarlos como uno solo es lo qu
 un problema grande: **retrieval** (qué skills son relevantes), **binding** (dónde se engancha cada
 una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
 
+- [ ] **O.0 — 🧠 Contrato de activación mínimo (prerequisito de O.2 y O.3).** Añadido 2026-07-31
+  tras contrastar con el análisis de Codex: la primera versión de este bloque descartó el contrato
+  de activación entero por sobreingeniería y **sobre-corrigió** — O.2 y O.3 dependían en silencio de
+  una declaración que **no existe en ningún lado**. Verificado: `activation` / `mandatory` /
+  `trigger` dan **cero resultados** en `src/skills/` y en las 24 YAML. Sin esto, "skill obligatoria
+  por señal de riesgo" termina hardcodeado en el código y deja de ser portable a otros proyectos
+  (contradice O.1). Es un artefacto verificable en el punto de decisión, no prosa (INS-2026-001).
+  **Exactamente 3 campos, nada más:**
+  - `activation.mode: automatic | suggest | explicit` — resuelve el segundo hueco: hoy **nadie
+    construye el modo sugerir para el camino automático**. Ojo, el modo sugerir **ya existe en el
+    camino manual**: `renderSkillSuggestion()`
+    ([screens-core.js:165](src/dashboard/public/screens-core.js)) ya define la convención (0
+    candidatas → sin campo; 1 → precargada; 2+ → "Ninguna" preseleccionada, *"nunca resolver el
+    empate a ciegas"*). Esa filosofía conservadora es **la misma** que hace que `pickAutoSkill()`
+    devuelva `undefined` con 2+ candidatas. **No es un bug: es una regla deliberada que servía
+    cuando había un humano mirando el composer y que, desde que D.7 crea tareas sola, se traduce en
+    "no se aplica ninguna skill nunca".** Es el origen concreto del dolor que reporta Carlos.
+  - `activation.triggers: string[]` — **solo para gates**, y deterministas/observables (tocó
+    archivos de auth, la tarea declara endpoints, hay secretos en el diff). **Distinción
+    arquitectónica central del bloque:** una skill de implementación puede activarse por
+    clasificador semántico (`when_to_use` en lenguaje natural, tolerante y flexible); **un gate de
+    seguridad NO** — si se activa porque a un LLM le pareció que había autenticación, falla
+    exactamente cuando el LLM se equivoca, o sea en los casos raros, que son los peligrosos. Un gate
+    que depende del mismo juicio probabilístico que puede fallar **no es un gate, es una sugerencia
+    con mejor nombre**.
+  - Fase de aplicación: **reusar `TaskClass`** (`plan|implement|fix|review|doc`,
+    [classify.ts:7](src/router/classify.ts), ya se persiste en `runs.task_class`) — **no** inventar
+    un campo `phases`.
+
+  **Descartado explícitamente de la propuesta de Codex** (evaluado con el código a la vista, no por
+  capricho): `requires_confirmation` (redundante con `mode: suggest`); `composes_with`, conflictos y
+  `confidence` (no hay consumidor — config que nadie lee); `phases` como campo nuevo (`TaskClass` ya
+  existe); y la taxonomía de 6 tipos de skill (implementación/análisis/revisión/verificación/
+  seguridad/diseño) — **dos categorías alcanzan**: *guía el trabajo* vs *lo bloquea*; seis tipos sin
+  diferencia de comportamiento es config decorativa.
 - [ ] **O.1 — 🧠 (C) Las skills se resuelven desde la instalación, no desde `cwd`.**
   `getSkillsDir()` es `join(process.cwd(), 'skills')` **sin fallback**
   ([registry.ts:47](src/skills/registry.ts)). Cuando OrchestOS gestiona **otro** proyecto, `cwd` es
@@ -185,7 +220,8 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   `pickAutoSkill()` ([chat.ts:377-380](src/dashboard/handlers/chat.ts)), que son 3 líneas — si hay
   `frontend-design` gana, si no solo aplica cuando hay **exactamente una** candidata; con 3
   candidatas razonables devuelve `undefined` y la tarea corre **sin ninguna skill**. Es literalmente
-  lo contrario del objetivo: hoy la ambigüedad se resuelve descartando todo en silencio. Validar
+  lo contrario del objetivo: hoy la ambigüedad se resuelve descartando todo en silencio — la
+  ambigüedad pasa a resolverse según `activation.mode` (O.0), no descartando. Validar
   contra ids reales también en el camino de sub-tareas (`isKnownSkillId` hoy vive solo en el handler
   del dashboard, [tasks.ts:155](src/dashboard/handlers/tasks.ts)) — el planner no debe poder
   inventar un id.
@@ -193,9 +229,11 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   `qa-structured` **no son "una sub-tarea más"**: son transversales al output completo y **no deben
   ser elegibles por el mismo LLM que hace el trabajo** — se autoconvence de saltárselas. Esa es la
   razón de ser de `iron_law`/`common_rationalizations` (N.1–N.3): si el mismo criterio que elige la
-  skill puede descartarla, el endurecimiento no sirve de nada. Lista corta de skills obligatorias
-  por señal de riesgo, aplicadas post-hoc sobre el stage de QA/adversarial que **ya existe** en el
-  harness (no inventar un stage nuevo). Si un gate no se ejecuta → `missing`/`blocked`, **nunca
+  skill puede descartarla, el endurecimiento no sirve de nada. **La condición de gate se declara en
+  `activation.mode: automatic` + `activation.triggers` del YAML de la skill (O.0), nunca en un `if`
+  del código** — si vive en código no es portable a otros proyectos y contradice O.1. Aplicados
+  post-hoc sobre el stage de QA/adversarial que **ya existe** en el harness (no inventar un stage
+  nuevo). Si un gate no se ejecuta → `missing`/`blocked`, **nunca
   "listo"** (INS-2026-011). Registrar por corrida: candidatas, aplicadas, rechazadas, motivo de
   activación y resultado de cada gate — hoy `runs.skill_id` es un escalar nullable y **no permite
   distinguir "ninguna skill aplicaba" de "el selector falló en silencio"**; un gate saltado es
