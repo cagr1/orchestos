@@ -1,16 +1,16 @@
-# DREAMING.md — 2026-07-28
+# DREAMING.md — 2026-07-31
 
 ## Runs analizados
 - Total: 20 runs
-- Periodo: 2026-07-17T18:06:29.537Z → 2026-07-20T20:36:58.556Z
+- Periodo: 2026-07-17T20:54:37.509Z → 2026-07-27T22:24:25.712Z
 - failed: 2 | blocked: 0 | done: 18 | qa_failed: 2
 
-**Nota:** `runs-summary.json` sigue sin datos nuevos desde la corrida de dreaming del 2026-07-22
-(`exported_at: 2026-07-27T22:37:04.712Z` en el archivo, pero el contenido de `runs` es idéntico:
-mismos 20 runs, mismos IDs, mismas estadísticas). No hubo actividad nueva registrada entre
-2026-07-24, 2026-07-27 y esta corrida. Los patrones y propuestas de abajo son los mismos que las
-corridas anteriores; se reitera el hallazgo porque sigue sin decisión tomada (ver sección Decisión,
-sin marcar desde 2026-07-22).
+**Nota:** `runs-summary.json` sigue sin datos nuevos desde al menos la corrida de dreaming del
+2026-07-22 (y las siguientes del 2026-07-24, 2026-07-27, 2026-07-28): mismos 20 runs, mismos IDs,
+mismas estadísticas (`total_cost_usd: 0.8004`). No hubo actividad nueva registrada desde entonces
+hasta esta corrida. Los patrones y propuestas de abajo son los mismos que las corridas anteriores;
+se reitera el hallazgo porque sigue sin decisión tomada (ver sección Decisión, sin marcar desde
+2026-07-22 — van ya 4+ corridas consecutivas sin resolver).
 
 ## Patrones detectados
 
