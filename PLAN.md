@@ -91,7 +91,7 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   no hacer, rationalizations dice con qué excusa te lo vas a permitir). Verificar los 3 targets
   (`claude`/`cursor`/`openai`) — comparten `_shared.ts`, confirmar que ninguno reordene por su
   cuenta. Tests de render.
-- [ ] **N.3 — 🧠** Enseñar los campos nuevos a la **puerta importar del curador**
+- [x] **N.3 — 🧠** (2026-07-31) Enseñar los campos nuevos a la **puerta importar del curador**
   ([src/dashboard/prompts/curator.ts](src/dashboard/prompts/curator.ts), líneas ~17 y ~45 describen
   el contrato al LLM): sin esto, toda skill importada de ahora en adelante nace sin `iron_law` y el
   endurecimiento solo aplicaría a lo ya existente — la puerta por la que IDEAS #1 decía que esto

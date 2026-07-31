@@ -18,6 +18,12 @@ OPTIONAL (include only when relevant):
 - verifiers: array of shell commands or steps to verify the work is correct
 - inputs_required: array of inputs the agent needs before starting
 - examples: array of {title: string, input: string, output: string} objects
+- iron_law: the ONE non-negotiable rule for this skill (max 300 chars) — only include when the
+  skill covers work with a real temptation to cut a corner (e.g. testing, security)
+- common_rationalizations: array of {excuse: string, refutation: string} — the excuse an agent
+  would tell itself to skip the iron_law, paired with why that excuse is wrong. Never include an
+  excuse without its refutation.
+- red_flags: array of warning signs that the agent is about to violate the iron_law
 
 Rules:
 - Respond ONLY with a valid JSON object — no markdown fences, no extra text, no explanations
@@ -48,6 +54,11 @@ OPTIONAL (include only if present in the original content):
 - examples: array of {title, input, output}
 - allowed_tools: array of tool names
 - language_targets: object with per-language overrides
+- iron_law: the ONE non-negotiable rule for this skill (max 300 chars) — carry it over if present
+  in the original content, never invent one that wasn't there
+- common_rationalizations: array of {excuse: string, refutation: string} — carry over if present,
+  never include an excuse without its refutation
+- red_flags: array of warning signs that the iron_law is about to be violated — carry over if present
 
 Rules:
 - Respond ONLY with a valid JSON object — no markdown fences, no extra text, no explanations
