@@ -78,7 +78,15 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 ### Reconciliadas y fuera del backlog
 
 - `#27`, `#32` y `#36`: graduadas a PLAN y cerradas según DONE/PLAN.
-- `#39`: generalización de CLIs cerrada en G.4.2/G.4.2b.
+- `#39`: **REABIERTO (2026-07-31) — el índice decía "cerrada en G.4.2/G.4.2b" y es impreciso.**
+  G.4.2 cerró solo la mitad: **detección** (`cli-registry.ts`, `KNOWN_CLIS`). La otra mitad del
+  ítem original — que `engine: external` pueda **invocar** el CLI detectado, no solo listarlo —
+  sigue sin hacer. Evidencia: `kimi` está en `KNOWN_CLIS` pero **no** en
+  `ExecutorMode` ([schema.ts:23](src/config/schema.ts)) — ni con el binario real instalado hay
+  forma de configurar `executorEngine: cli-kimi`. `engine-cascade.ts` solo sabe usar Claude Code
+  como tier `cli`; `opencode`/`codex`/`kimi` quedan documentados a propósito como pendientes. Ver
+  cuerpo del ítem #39 más abajo, corregido con el diseño validado de Orca (registro +
+  `promptInjectionMode`).
 - `#44`: cascada de selección cerrada en el Bloque G.
 - `#49`: visibilidad en vivo cerrada en G.3.
 - `#55-A`: catálogo `models.dev` para opencode cerrado en G.4.5.
@@ -657,6 +665,56 @@ es una extensión natural una vez que el terminal real (#28) exista — no vale 
 
 **Esfuerzo**: medio — reusa el patrón de detección ya probado; lo nuevo es el registro
 multi-agente + el aviso de riesgo ToS en la UI antes de habilitarlo.
+
+**Corrección de alcance (2026-07-31) — verificado contra el código real de Orca, no contra
+suposición.** Pregunta de Carlos: "hoy existen ya muchos CLIs (Kimi CLI, GLM, etc.) — ¿cómo lo
+resuelve un sistema profesional?". Se investigó el repo público de Orca
+(`github.com/stablyai/orca`, MIT) en vez de reinventar:
+
+- **`src/shared/agent-kind.ts`** — registro plano, **34 agentes** conocidos, un `Record` literal.
+  El propio comentario del archivo: *"Centralizing here means a new TuiAgent member is one edit,
+  not a sweep across renderer + main."* — el mismo principio que ya rige `cli-registry.ts`
+  ([[feedback-deteccion-generica-no-por-cli]]), a mayor escala.
+- **`src/shared/tui-agent-config.ts`** — esto es lo que le faltaba al diseño de OrchestOS: la capa
+  de **invocación** (Capa 3 — no solo "¿está instalado?" sino "¿cómo le paso el prompt?") también
+  se resuelve con datos, no con una función nueva por CLI. Campo clave:
+  `promptInjectionMode: 'argv' | 'flag-prompt' | 'flag-prompt-interactive' | 'flag-interactive' |
+  'hermes-query' | 'stdin-after-start'` — un enum de **6 estrategias conocidas** de cómo un CLI
+  recibe el prompt. Agregar un CLI nuevo (Kimi, GLM, el que sea) normalmente es rellenar el
+  registro y elegir cuál de esas 6 estrategias ya existentes aplica — código nuevo solo en el caso
+  raro de una estrategia realmente distinta.
+- **Settings → Agents → Add custom agent** (`onorca.dev/docs/agents/custom-cli`, doc pública): el
+  usuario declara un CLI propio (nombre, binario, args por defecto, hook de inicio previo) **sin
+  tocar el código fuente de Orca**. Confirma que la lista curada en código y la extensión por el
+  usuario son capas separadas — patrón validado en producción, no invención propia.
+
+**Traducción concreta a OrchestOS, con lo que ya existe vs. lo que falta:**
+
+| Pieza de Orca | Estado en OrchestOS |
+|---|---|
+| `agent-kind.ts` (registro plano) | Existe: `cli-registry.ts` / `KNOWN_CLIS` (4 entradas) |
+| `tui-agent-config.ts` + `promptInjectionMode` | **No existe** — la invocación de Claude está ad-hoc en `external.ts`, no como dato parametrizado; sin esto, generalizar a `opencode`/`codex`/`kimi` significa repetir código, no rellenar registro |
+| Settings → Add custom agent | **No existe** — sería `extra_clis:` en `orchestos.config.yaml`, mergeado con `KNOWN_CLIS` en `detectInstalledClis()` |
+
+**Qué hacer, reemplazando el "Qué hacer" original de este ítem:**
+1. `ExecutorMode` deja de ser un enum cerrado por CLI (`'cli-claude' | 'cli-opencode' |
+   'cli-codex'`) — se deriva del registro, no se lista a mano (cierra el gap de `kimi` encontrado).
+2. `cli-registry.ts` gana un campo tipo `promptInjectionMode` (empezar con 2-3 modos reales:
+   los que ya cubren `claude` vía `-p` y lo que use `opencode`/`codex`; no importar los 6 de Orca
+   sin evidencia de que hacen falta acá — agregar el modo cuando aparezca el CLI que lo necesite).
+3. `orchestos.config.yaml` admite `extra_clis: [{id, binary, label}]`, mergeado en
+   `detectInstalledClis()` — vos agregás el próximo CLI que salga sin esperar un commit al repo.
+4. `engine-cascade.ts` deja de tener a Claude Code hardcodeado como único tier `cli` — recorre el
+   registro y usa el primero instalado con invocación conocida.
+
+**Relación con el Bloque O (PLAN.md, skills que se activan solas):** son ejes independientes que
+no deben mezclarse — #39 es "qué motor/CLI ejecuta la tarea", Bloque O es "qué skill guía el
+trabajo dentro de esa ejecución". Ambos pueden convivir: una tarea puede correr vía `cli-kimi` y
+tener `qa-structured` como gate, son ortogonales.
+
+**Esfuerzo actualizado**: medio — el registro de invocación (`promptInjectionMode`-lite) y
+`extra_clis` son extensiones de patrones que ya existen en el repo, no diseño desde cero; el
+riesgo de ToS señalado arriba sigue aplicando igual, se generaliza con el alcance.
 
 ### 40. Editor de Constitution — Guardar/Limpiar explícitos, no auto-save silencioso en cada tecla
 
@@ -1524,3 +1582,31 @@ nada de Bloque H.
 
 ## Feedback
 _(se llena cuando haya un usuario externo real usando orchestos en su proyecto)_
+
+## Knowledge promotions
+
+<!-- knowledge-promotion:KP-20260731-085936-15fa5b -->
+### Un reviewer mejora con correcciones humanas, no con autorreflexión aislada
+
+- Insight: `INS-2026-009` (candidate/medium)
+- Razón: Reviewer manual (contrato 5 líneas + Codex primera pasada) resuelve el cuello de botella de revisión del flujo de Carlos; la feature en OrchestOS se construye después sobre las correcciones acumuladas
+- Acción propuesta: Ítem futuro sin apuro: fase 1 manual de acumulación de evidencia; fase 2 skill review-pr read-only + improver como instancia de Dreaming con scope angosto
+- Regla: Separar el reviewer operativo del improver periódico. El segundo solo modifica criterios cuando puede contrastar el finding del agente con una corrección o validación humana posterior.
+- Evidencia en vault: wiki/concepts/self-improving-code-review-agent
+<!-- /knowledge-promotion:KP-20260731-085936-15fa5b -->
+
+### Auditoría de basura del repo: hardcodes, dead code, archivos huérfanos
+
+- Motivo: el repo debe quedar limpio para quien lo clone — solo lo que se usa
+  realmente, no lo que "funciona bien pero contamina". Detectado por Carlos
+  como preocupación recurrente, 2026-07-31.
+- Señal inicial (grep rápido, no exhaustivo): 11 TODO/FIXME/@deprecated en
+  src/**/*.ts; 23 archivos con localhost/paths absolutos hardcodeados;
+  candidatos a huérfanos por confirmar uno por uno (no asumir sin verificar
+  referencias reales).
+- Alcance: barrido por categoría (hardcodes → dead code → archivos sin
+  importar), un PR chico por categoría, no un solo cambio masivo. Cada
+  hallazgo se verifica con grep de referencias antes de borrar — nunca borrar
+  por sospecha.
+- Explícitamente fuera de esta pasada: refactors de arquitectura, cambios de
+  comportamiento. Es limpieza, no rediseño.
