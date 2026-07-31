@@ -75,7 +75,7 @@ renderer skill→prompt y solo conoce 6 campos (`instructions`, `when_to_use`, `
 LLM**. Autoría sin wiring = contenido muerto. Por eso el bloque arranca por el contrato, no por el
 contenido. Sigue siendo un bloque chico, pero no es cero código.
 
-- [ ] **N.1 — 🧠** Extender el contrato de skill en
+- [x] **N.1 — 🧠** (2026-07-31) Extender el contrato de skill en
   [src/skills/registry.ts](src/skills/registry.ts): `iron_law?: string` (la regla innegociable, una
   sola), `common_rationalizations?: { excuse: string; refutation: string }[]` (la excusa que el
   agente se dice + su refutación — el par es el punto, una lista plana de excusas sin refutar sería

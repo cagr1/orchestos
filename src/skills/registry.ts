@@ -15,6 +15,11 @@ export interface LanguageTarget {
   anti_patterns?: string[]
 }
 
+export interface SkillRationalization {
+  excuse: string
+  refutation: string
+}
+
 export interface SkillDef {
   id: string
   version: string
@@ -29,7 +34,12 @@ export interface SkillDef {
   examples?: SkillExample[]
   language_targets?: Record<string, LanguageTarget>
   allowed_tools?: string[]
+  iron_law?: string
+  common_rationalizations?: SkillRationalization[]
+  red_flags?: string[]
 }
+
+const IRON_LAW_MAX_LENGTH = 300
 
 const VALID_TARGETS: SkillTarget[] = ['claude', 'cursor', 'openai']
 
@@ -57,6 +67,29 @@ export function validateSkill(raw: Record<string, unknown>, filePath: string): S
     if (!Array.isArray(raw.allowed_tools)) err('"allowed_tools" must be an array of strings')
     for (const tool of raw.allowed_tools as string[]) {
       if (typeof tool !== 'string') err(`"allowed_tools" entries must be strings, got ${typeof tool}`)
+    }
+  }
+
+  if (raw.iron_law !== undefined) {
+    if (typeof raw.iron_law !== 'string' || raw.iron_law.length === 0) err('"iron_law" must be a non-empty string')
+    if ((raw.iron_law as string).length > IRON_LAW_MAX_LENGTH) err(`"iron_law" exceeds ${IRON_LAW_MAX_LENGTH} chars — it's a rule, not a paragraph`)
+  }
+
+  if (raw.common_rationalizations !== undefined) {
+    if (!Array.isArray(raw.common_rationalizations) || raw.common_rationalizations.length === 0) {
+      err('"common_rationalizations" must be a non-empty array')
+    }
+    for (const r of raw.common_rationalizations as Record<string, unknown>[]) {
+      if (typeof r !== 'object' || r === null) err('"common_rationalizations" entries must be objects with "excuse" and "refutation"')
+      if (!r.excuse || typeof r.excuse !== 'string') err('"common_rationalizations" entry missing string "excuse"')
+      if (!r.refutation || typeof r.refutation !== 'string') err('"common_rationalizations" entry missing string "refutation"')
+    }
+  }
+
+  if (raw.red_flags !== undefined) {
+    if (!Array.isArray(raw.red_flags) || raw.red_flags.length === 0) err('"red_flags" must be a non-empty array')
+    for (const f of raw.red_flags as string[]) {
+      if (typeof f !== 'string') err(`"red_flags" entries must be strings, got ${typeof f}`)
     }
   }
 
