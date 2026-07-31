@@ -1,6 +1,7 @@
 import { join } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { loadSkill, getSkillPath } from '../skills/registry.ts'
+import { buildSections } from '../skills/targets/_shared.ts'
 import type { Task } from '../tasks/schema.ts'
 
 export interface BuiltPrompt {
@@ -50,12 +51,17 @@ export function buildPrompt(
   return { system, userContent }
 }
 
+// N.4.5 (Mes 25, 2026-07-31) — usa buildSections(), el mismo renderer que
+// compila las skills para Claude Code/Cursor/OpenAI. Antes este helper
+// duplicaba `skill.instructions` a mano y nunca incluía iron_law /
+// common_rationalizations / red_flags (N.1-N.3) — el endurecimiento llegaba
+// a herramientas externas pero nunca al ejecutor propio de OrchestOS.
 function loadSkillGuidelines(skillId?: string): string {
   if (!skillId) return ''
 
   try {
     const skill = loadSkill(getSkillPath(skillId))
-    return `\n## SKILL GUIDELINES: ${skill.name}\n${skill.instructions}\n`
+    return `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
   } catch {
     return ''
   }

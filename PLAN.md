@@ -104,7 +104,7 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   por línea (se separa solo en el primer delimitador), no como `listField` plano. La superficie
   también incluye esos campos en el preview de importación y en el preview YAML del formulario.
   Verificado: `bunx tsc --noEmit`, `git diff --check` y 42 tests relevantes pasan.
-- [ ] **N.4.5 — 🧠 BLOQUEANTE (hallazgo 2026-07-31).** N.1–N.3 endurecieron **solo la vía de
+- [x] **N.4.5 — 🧠 BLOQUEANTE (hallazgo 2026-07-31, cerrado 2026-07-31).** N.1–N.3 endurecieron **solo la vía de
   exportación**. `buildSections()` lo llaman únicamente los 3 targets que OrchestOS *escribe para
   otras herramientas* ([claude.ts:12](src/skills/targets/claude.ts),
   [cursor.ts:12](src/skills/targets/cursor.ts), [openai.ts:10](src/skills/targets/openai.ts)). El
