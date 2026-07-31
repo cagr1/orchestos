@@ -104,20 +104,119 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   por línea (se separa solo en el primer delimitador), no como `listField` plano. La superficie
   también incluye esos campos en el preview de importación y en el preview YAML del formulario.
   Verificado: `bunx tsc --noEmit`, `git diff --check` y 42 tests relevantes pasan.
-- [ ] **N.5 — ⚡** Autoría del contenido: `iron_law` + `common_rationalizations` + `red_flags` en
-  las skills existentes (16 en `skills/` + 8 en `skills/pro/`). **Decisión pendiente de Carlos
-  antes de arrancar este ítem**: ¿las 24, o solo aquellas donde la presión de saltarse la skill es
-  real y ya documentada? Recomendación (no aplicada sin su OK): empezar por `tdd-enforcer`,
-  `security-review`, `qa-structured`, `test-writer` y `frontend-design` — son las que un ejecutor
-  barato tiene más incentivo a esquivar (escribir el test después, "el linter ya lo cubre", "se ve
-  bien así"), y `test-writer`/`qa-structured` conectan directo con el antipatrón que persigue
+- [ ] **N.4.5 — 🧠 BLOQUEANTE (hallazgo 2026-07-31).** N.1–N.3 endurecieron **solo la vía de
+  exportación**. `buildSections()` lo llaman únicamente los 3 targets que OrchestOS *escribe para
+  otras herramientas* ([claude.ts:12](src/skills/targets/claude.ts),
+  [cursor.ts:12](src/skills/targets/cursor.ts), [openai.ts:10](src/skills/targets/openai.ts)). El
+  runner propio **no lo usa**: inyecta `skill.instructions` crudo, duplicado en dos lugares
+  ([prompt.ts:58](src/run/prompt.ts) y
+  [skill-route.ts:8](src/run/middlewares/skill-route.ts)) — el mismo snippet copiado, divergente del
+  renderer canónico. Consecuencia: el `iron_law` llega a Claude Code y a Cursor, **nunca al ejecutor
+  de OrchestOS**. Es el mismo fallo de "autoría sin wiring = contenido muerto" que motivó la
+  corrección de alcance de este bloque, una capa más abajo. Unificar ambos sitios sobre
+  `buildSections()`. Va **antes** de N.5: sin esto el bloque cerraría con 5 skills endurecidas cuya
+  regla innegociable no aplica en ninguna corrida real.
+- [ ] **N.5 — ⚡** Autoría piloto de **5 skills** (decisión Carlos 2026-07-31: las 5, no las 24):
+  `tdd-enforcer`, `security-review`, `qa-structured`, `test-writer`, `frontend-design` — las que un
+  ejecutor barato tiene más incentivo a esquivar (escribir el test después, "el linter ya lo cubre",
+  "se ve bien así"); `test-writer`/`qa-structured` conectan directo con el antipatrón que persigue
   [IDEAS.md #54](IDEAS.md) (tests que pasan vacíamente).
+  **Alcance corregido (2026-07-31):** el ítem NO es solo `iron_law` + `common_rationalizations` +
+  `red_flags`. El clasificador de selección automática **no lee el `iron_law`** — lee `description`
+  + `when_to_use` ([project.ts:143-145](src/dashboard/handlers/project.ts)). Esos dos campos **son
+  el criterio de disparo**, y por lo tanto son la parte de este ítem que habilita el Bloque O.
+  Verificado 2026-07-31: 21/24 skills tienen `when_to_use`; **sin él están `fix-typescript-errors`,
+  `generate-prisma-migration` y `summarize-pr-diff`** — hoy prácticamente inelegibles de forma
+  automática. Escribir `description` como condición de disparo ("Use when…"), no como resumen.
+  Las 5 piloto deben escribirse ya con el contrato de activación de O.2 definido, para no volver a
+  generar contenido que el motor no sabe interpretar.
 - [ ] **N.6 — 🔍** Gate: verificar contra el **prompt real compilado**, no contra el YAML — que el
   `iron_law` aparece antes de las instrucciones en la salida de `buildSections()` para una skill
   endurecida, en los 3 targets, y que una skill sin los campos nuevos compila idéntico a como
   compilaba antes (cero regresión sobre las skills no tocadas). Verificación en vivo en el
   dashboard de N.4 ([[feedback-verificar-gates-en-vivo]]), no solo `bun test`. Cerrar con conteo de
   tests + `tsc --noEmit` limpio.
+
+### Bloque O — 🧠 Skills que se activan solas (decisión Carlos 2026-07-31)
+
+**Problema de raíz, en palabras de Carlos:** *"tengo muchas skills pero tengo que llamarlas — yo,
+incluso un usuario avanzado, no me voy a acordar de tantos comandos. Quería traer las skills a
+cualquier proyecto como una 'armadura' para ciertas 'batallas', pero no por tenerlas debo usarlas
+todas: debe haber un criterio. Y una tarea conlleva varias skills, no una."*
+
+**Hallazgo que redujo el alcance (verificado en código 2026-07-31): el 90% ya existe.** La
+intuición de "subdividir la tarea para que cada skill se aplique en su campo" **ya es cómo funciona
+OrchestOS**: `planner.ts` descompone en un DAG de sub-tareas, `SubTask` **ya tiene su propio campo
+`skill`** ([sub-task-schema.ts:248](src/agents/sub-task-schema.ts)), `subTaskToTask()` lo pasa a
+`Task.skill` ([executor.ts:139](src/agents/executor.ts)) y de ahí va al harness → `skillRoute` →
+prompt. El límite de "1 skill por tarea" **no es del modelo de datos** — es de la creación manual.
+El cable suelto: **`planner.ts` menciona la palabra `skill` cero veces**; su schema JSON obliga
+`id`/`description`/`acceptance`/`depends_on`/`allowed_tools` y nunca `skill`. El único componente
+que decide cómo se reparte el trabajo es ciego al arsenal.
+
+**Por eso este bloque REEMPLAZA la propuesta N-AUTO.1–5** (contrato de activación / descubrimiento /
+activación por fases / evidencia / gate): mezclaba conceptos nuevos con mecanismos que ya existen.
+Descartado explícitamente por sobreingeniería: embeddings (24 skills, un clasificador barato contra
+lista cerrada alcanza — ver [docs/semantic-skill-selection-design.md](docs/semantic-skill-selection-design.md));
+una máquina de fases nueva (`TaskClass = plan|implement|fix|review|doc` ya existe en
+[classify.ts:7](src/router/classify.ts) y ya se persiste en `runs.task_class`); y migrar
+`Task.skill` a `{primary, gates}` (el DAG ya da la multiplicidad; los gates son transversales, no
+van en el `Task`).
+
+Los tres mecanismos se separan a propósito — tratarlos como uno solo es lo que hacía parecer esto
+un problema grande: **retrieval** (qué skills son relevantes), **binding** (dónde se engancha cada
+una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
+
+- [ ] **O.1 — 🧠 (C) Las skills se resuelven desde la instalación, no desde `cwd`.**
+  `getSkillsDir()` es `join(process.cwd(), 'skills')` **sin fallback**
+  ([registry.ts:47](src/skills/registry.ts)). Cuando OrchestOS gestiona **otro** proyecto, `cwd` es
+  ese proyecto, ahí no hay carpeta `skills/`, `listSkillFiles()` devuelve `[]` → cero candidatas →
+  **no se activa ninguna skill, jamás**. Sin este ítem, todo el Bloque O funciona solo dentro de
+  este repo y no entrega nada en CitasBot / Cisepro / cualquier otro. Aplicar el patrón **idéntico**
+  ya decidido para roadmaps (decisión M, 2026-07-30, "centralizado, no copiado"): probar `root`
+  primero y caer a la instalación vía `import.meta.dir` — ver `ROADMAP_DOCS_ROOT` en
+  [roadmap-profile.ts:16](src/detect/roadmap-profile.ts) y [context.ts:17](src/roadmaps/context.ts).
+  Las skills propias del proyecto siguen ganando sobre las centralizadas.
+- [ ] **O.2 — 🧠 (A) El planner ve el catálogo y asigna skill por sub-tarea.** Agregar `skill` al
+  schema JSON de [planner.ts](src/agents/planner.ts) + pasarle la lista resumida (id + description
+  + when_to_use, que ya arma `listAllSkillCandidates()`,
+  [project.ts:68](src/dashboard/handlers/project.ts)). El resto del camino ya está cableado. Cubrir
+  **los dos caminos**, no solo el planner: las tareas chicas que no se descomponen hoy dependen de
+  `pickAutoSkill()` ([chat.ts:377-380](src/dashboard/handlers/chat.ts)), que son 3 líneas — si hay
+  `frontend-design` gana, si no solo aplica cuando hay **exactamente una** candidata; con 3
+  candidatas razonables devuelve `undefined` y la tarea corre **sin ninguna skill**. Es literalmente
+  lo contrario del objetivo: hoy la ambigüedad se resuelve descartando todo en silencio. Validar
+  contra ids reales también en el camino de sub-tareas (`isKnownSkillId` hoy vive solo en el handler
+  del dashboard, [tasks.ts:155](src/dashboard/handlers/tasks.ts)) — el planner no debe poder
+  inventar un id.
+- [ ] **O.3 — 🧠 (B) Gates transversales que no se pueden perder en silencio.** `security-review` y
+  `qa-structured` **no son "una sub-tarea más"**: son transversales al output completo y **no deben
+  ser elegibles por el mismo LLM que hace el trabajo** — se autoconvence de saltárselas. Esa es la
+  razón de ser de `iron_law`/`common_rationalizations` (N.1–N.3): si el mismo criterio que elige la
+  skill puede descartarla, el endurecimiento no sirve de nada. Lista corta de skills obligatorias
+  por señal de riesgo, aplicadas post-hoc sobre el stage de QA/adversarial que **ya existe** en el
+  harness (no inventar un stage nuevo). Si un gate no se ejecuta → `missing`/`blocked`, **nunca
+  "listo"** (INS-2026-011). Registrar por corrida: candidatas, aplicadas, rechazadas, motivo de
+  activación y resultado de cada gate — hoy `runs.skill_id` es un escalar nullable y **no permite
+  distinguir "ninguna skill aplicaba" de "el selector falló en silencio"**; un gate saltado es
+  indistinguible de uno que nunca se consideró.
+  **Consecuencia de seguridad a resolver dentro de este ítem (INS-2026-014):**
+  [tool-policy.ts:5](src/run/middlewares/tool-policy.ts) hace
+  `ctx.allowedTools = skill.allowed_tools ?? []`. Hoy es inocuo porque la skill la elige Carlos; con
+  selección automática, **elegir una skill pasa a cambiar solo los permisos de herramientas del
+  agente** (puede restringirlos y hacer fallar la tarea de forma confusa, o ampliarlos). Debe quedar
+  explícito y registrado, nunca silencioso.
+- [ ] **O.4 — 🔍** Gate con **casos reales**, no tests unitarios
+  ([[feedback-verificar-gates-en-vivo]]): crear una pantalla → sugiere `frontend-design`; endpoint
+  con input de usuario → activa `security-review`; feature nueva → sugiere/activa `tdd-enforcer`;
+  bug sin tests → sugiere `test-writer`; tarea con criterios de aceptación → ejecuta
+  `qa-structured`; tarea documental simple → **no carga ninguna skill de código**. Además: una skill
+  irrelevante no aparece en el prompt; una obligatoria no desaparece en silencio; una sugerencia
+  ambigua muestra opciones; el usuario puede rechazar una sugerencia; un gate de seguridad no se
+  ignora sin evidencia explícita. **Criterio de éxito del bloque** (decisión Carlos): no es
+  *"OrchestOS tiene muchas skills instaladas"* sino *"un usuario describe su objetivo normalmente y
+  OrchestOS identifica, carga, aplica y verifica las skills pertinentes sin exigir que conozca sus
+  nombres"*. Verificar en **un proyecto distinto de este repo** — es la prueba real de O.1.
 
 ---
 
