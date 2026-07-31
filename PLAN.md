@@ -82,7 +82,7 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   darle munición), `red_flags?: string[]`. Añadir validación en `validateSkill()` con el mismo
   patrón de los campos existentes (tipos, arrays no vacíos, `excuse`/`refutation` ambos presentes) y
   un cap de longitud para `iron_law` (es una regla, no un párrafo). Tests de validación.
-- [ ] **N.2 — 🧠** Renderizar los 3 campos en `buildSections()`
+- [x] **N.2 — 🧠** (2026-07-31) Renderizar los 3 campos en `buildSections()`
   ([src/skills/targets/_shared.ts](src/skills/targets/_shared.ts)) con **orden deliberado, no
   append al final**: `iron_law` va **antes** de `instructions` (hoy `sections[0]` es
   `skill.instructions` — cambiarlo afecta el prompt de las 24 skills existentes, es el punto del

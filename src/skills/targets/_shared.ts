@@ -1,7 +1,14 @@
 import type { SkillDef } from '../registry.ts'
 
 export function buildSections(skill: SkillDef, detectedLanguage?: string): string[] {
-  const sections: string[] = [skill.instructions]
+  const sections: string[] = []
+
+  if (skill.iron_law) {
+    sections.push('## Iron law')
+    sections.push(skill.iron_law)
+  }
+
+  sections.push(skill.instructions)
 
   if (skill.when_to_use?.length) {
     sections.push('## When to use')
@@ -16,6 +23,16 @@ export function buildSections(skill: SkillDef, detectedLanguage?: string): strin
   if (skill.anti_patterns?.length) {
     sections.push('## Anti-patterns')
     sections.push(...skill.anti_patterns.map(a => `- ${a}`))
+  }
+
+  if (skill.common_rationalizations?.length) {
+    sections.push('## Common rationalizations')
+    sections.push(...skill.common_rationalizations.map(r => `- Excuse: ${r.excuse} → Refutation: ${r.refutation}`))
+  }
+
+  if (skill.red_flags?.length) {
+    sections.push('## Red flags')
+    sections.push(...skill.red_flags.map(f => `- ${f}`))
   }
 
   if (skill.verifiers?.length) {
