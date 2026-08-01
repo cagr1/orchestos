@@ -38,8 +38,24 @@ export function parseLcovSummary(lcov: string): CoverageSummary {
   }
 }
 
+/**
+ * Trinquete de cobertura: nunca retroceder por debajo de donde YA estamos.
+ * Cada umbral se calibra contra la medición real, redondeada hacia abajo — un
+ * trinquete puesto por encima del valor actual no es un trinquete, es un CI
+ * permanentemente rojo. Ese fue el bug: cddbc14 (2026-07-29) aplicó 69% a ambas
+ * métricas sin medir líneas, que estaban en 60% — el gate nunca pasó ni una vez
+ * y bloqueó todos los pushes hasta el 2026-08-01.
+ *
+ * Estos números SOLO SUBEN. Al subirlos, medir primero con `bun run test:coverage`.
+ */
+export const THRESHOLDS = {
+  /** medido: 74.08% (2026-08-01) */
+  functions: 0.69,
+  /** medido: 60.40% (2026-08-01) — deuda conocida, subir a medida que crezca */
+  lines: 0.60,
+} as const
+
 function runCoverageGate(): void {
-  const threshold = 0.69
   const coverageDir = mkdtempSync(join(tmpdir(), 'orchestos-coverage-'))
 
   try {
@@ -55,11 +71,11 @@ function runCoverageGate(): void {
 
     const lcov = readFileSync(join(coverageDir, 'lcov.info'), 'utf8')
     const summary = parseLcovSummary(lcov)
-    const functionsOk = summary.functionsPercent / 100 >= threshold
-    const linesOk = summary.linesPercent / 100 >= threshold
+    const functionsOk = summary.functionsPercent / 100 >= THRESHOLDS.functions
+    const linesOk = summary.linesPercent / 100 >= THRESHOLDS.lines
 
-    console.log(`coverage gate: functions ${summary.functionsPercent.toFixed(2)}% (required ${(threshold * 100).toFixed(2)}%)`)
-    console.log(`coverage gate: lines ${summary.linesPercent.toFixed(2)}% (required ${(threshold * 100).toFixed(2)}%)`)
+    console.log(`coverage gate: functions ${summary.functionsPercent.toFixed(2)}% (required ${(THRESHOLDS.functions * 100).toFixed(2)}%)`)
+    console.log(`coverage gate: lines ${summary.linesPercent.toFixed(2)}% (required ${(THRESHOLDS.lines * 100).toFixed(2)}%)`)
 
     if (!functionsOk || !linesOk) {
       console.error('coverage gate failed: aggregate coverage is below the ratchet')
