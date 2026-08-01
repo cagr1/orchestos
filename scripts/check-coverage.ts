@@ -46,13 +46,22 @@ export function parseLcovSummary(lcov: string): CoverageSummary {
  * métricas sin medir líneas, que estaban en 60% — el gate nunca pasó ni una vez
  * y bloqueó todos los pushes hasta el 2026-08-01.
  *
- * Estos números SOLO SUBEN. Al subirlos, medir primero con `bun run test:coverage`.
+ * El umbral lleva MARGEN deliberado (~2-3 puntos) porque la cobertura no es
+ * idéntica entre entornos: partes del código hacen spawn de binarios del host
+ * (cargo, tsc, CLIs externas), y en una máquina donde ese binario existe se
+ * ejecutan ramas que en otra no. Medido el 2026-08-01: Mac 74.08%/60.42%,
+ * ubuntu-latest 72.98%/59.71%. Un trinquete calibrado al filo del valor local
+ * vuelve a poner el CI rojo al primer punto decimal de diferencia — pasó
+ * exactamente eso al primer intento de este fix.
+ *
+ * Calibrar SIEMPRE contra el número de CI (el más bajo), nunca contra el local.
+ * Estos números SOLO SUBEN. Antes de subirlos, mirar el log de un run real.
  */
 export const THRESHOLDS = {
-  /** medido: 74.08% (2026-08-01) */
+  /** CI 2026-08-01: 72.98% */
   functions: 0.69,
-  /** medido: 60.40% (2026-08-01) — deuda conocida, subir a medida que crezca */
-  lines: 0.60,
+  /** CI 2026-08-01: 59.71% — deuda conocida, subir a medida que crezca */
+  lines: 0.57,
 } as const
 
 function runCoverageGate(): void {
