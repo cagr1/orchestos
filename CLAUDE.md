@@ -44,9 +44,40 @@ ameritaba. Fixes puntuales de un solo archivo/función (como la mayoría del Blo
 NO necesitan este paso — la señal es "¿esto toca más de un módulo o redefine un comportamiento
 central?", no el conteo de líneas. Ver también la regla de scope-lock más arriba en PLAN.md.
 
-## Pre-commit hook
+## Hooks de git
 
-El proyecto tiene un pre-commit hook en `scripts/pre-commit.sh` que corre `tsc --noEmit` antes de cada commit. Se instala automáticamente copiándolo a `.git/hooks/pre-commit`. Si clonas el repo en otro lado, ejecuta:
+El proyecto tiene dos hooks. Si clonas el repo en otra máquina, instala **ambos**:
 
     cp scripts/pre-commit.sh .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
+    cp scripts/pre-push.sh .git/hooks/pre-push
+    chmod +x .git/hooks/pre-push
+
+- **pre-commit** (`scripts/pre-commit.sh`) — `tsc --noEmit`, `security:secrets`, `ledger:gate`
+  y el export de `runs-summary.json`. Rápido, corre en cada commit.
+- **pre-push** (`scripts/pre-push.sh`, 2026-08-01) — corre `bun run test:coverage`, el
+  comando **exacto** del workflow de CI (~20s).
+
+## Verificar contra CI, no contra tu máquina (regla 2026-08-01)
+
+Al tocar algo que CI ejercita, correr **el comando exacto del workflow** (`bun run
+test:coverage`), nunca `bun test` a secas — el gate de cobertura vive dentro de ese
+script y `bun test` no lo toca. Motivo real: CI estuvo verde por última vez el
+2026-07-13 y rojo en el **100%** de los pushes desde el 2026-07-29, por dos bugs que
+solo se manifestaban fuera del Mac:
+
+1. Un test afirmaba que `cargo` no estaba disponible — o sea, afirmaba sobre el PATH
+   del host. El Mac no tiene Rust, `ubuntu-latest` sí lo trae preinstalado. Cualquier
+   cosa que dependa de un binario del sistema va detrás de una **sonda inyectable**
+   (`ToolchainProbe` en `src/detect/roadmap-profile.ts`), nunca de un spawn directo
+   dentro del test.
+2. El trinquete de cobertura se calibró contra el número del Mac. La cobertura **no es
+   igual entre entornos** (Mac 74.08%/60.42% vs CI 72.98%/59.71%), porque según qué
+   binarios existan se ejecutan ramas distintas. Los umbrales de
+   `scripts/check-coverage.ts` se calibran contra el número del **log de CI**, con
+   margen, y solo suben.
+
+Corolario que costó semanas: un CI que falla siempre deja de dar señal. Si CI está
+rojo, arreglarlo es prioridad — no ruido de fondo. Y `Mutation Shards` rojo casi nunca
+es un problema de mutación: Stryker aborta con "failed tests in the initial test run"
+cuando la suite normal falla.
