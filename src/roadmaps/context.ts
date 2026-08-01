@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { buildRoadmapProfile, type RoadmapProfile } from '../detect/roadmap-profile.ts'
+import { buildRoadmapProfile, type RoadmapProfile, type RoadmapProfileOptions } from '../detect/roadmap-profile.ts'
 
 const MAX_PROFILE_CHARS = 4_000
 const MAX_DOC_CHARS = 4_000
@@ -34,8 +34,12 @@ function readBounded(root: string, relativePath: string, max: number, fallbackRo
   return content.length <= max ? content : `${content.slice(0, max)}\n\n[roadmap truncado por presupuesto de contexto]`
 }
 
-export async function loadRoadmapContext(root: string, output: string[] = []): Promise<RoadmapContext> {
-  const profile = await buildRoadmapProfile(root)
+export async function loadRoadmapContext(
+  root: string,
+  output: string[] = [],
+  options: RoadmapProfileOptions = {},
+): Promise<RoadmapContext> {
+  const profile = await buildRoadmapProfile(root, options)
   const selected: string[] = []
   const missing: string[] = []
   const sections: string[] = ['## ROADMAP GUIDANCE', 'Usa estas guías como restricciones y contexto de trabajo.',

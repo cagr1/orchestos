@@ -282,28 +282,41 @@ function detectInstructionFiles(root: string): Record<string, StageState> {
   return out
 }
 
-/** Comandos read-only y baratos — nunca build/test completo. Fallo → 'missing', nunca bloquea. */
-function verifyToolchain(languages: LangStat[]): { name: string; version: string }[] {
-  const out: { name: string; version: string }[] = [{ name: 'bun', version: Bun.version }]
+/**
+ * Ejecuta un comando read-only de versión y devuelve su stdout, o null si el binario
+ * no está en el PATH. Inyectable para que un test no dependa de qué toolchains tenga
+ * instalada la máquina que lo corre (Mac sin cargo vs. ubuntu-latest con Rust
+ * preinstalado hacía verde en local y rojo en CI — incidente 2026-08-01).
+ */
+export type ToolchainProbe = (name: string, args: string[]) => string | null
+
+export const spawnToolchainProbe: ToolchainProbe = (name, args) => {
   try {
-    const proc = Bun.spawnSync(['bunx', 'tsc', '--version'])
-    if (proc.exitCode === 0) {
-      const text = proc.stdout.toString().trim()
-      out.push({ name: 'typescript', version: text.replace(/^Version\s+/, '') })
-    }
-  } catch { /* tsc no disponible localmente — se omite, no bloquea */ }
+    const proc = Bun.spawnSync([name, ...args])
+    return proc.exitCode === 0 ? proc.stdout.toString().trim() : null
+  } catch { return null /* toolchain ausente — el perfil lo deja explícito */ }
+}
+
+export interface RoadmapProfileOptions {
+  /** Sonda de toolchain. Default: el spawn real contra el PATH del host. */
+  probe?: ToolchainProbe
+}
+
+/** Comandos read-only y baratos — nunca build/test completo. Fallo → 'missing', nunca bloquea. */
+function verifyToolchain(languages: LangStat[], probe: ToolchainProbe): { name: string; version: string }[] {
+  const out: { name: string; version: string }[] = [{ name: 'bun', version: Bun.version }]
+  const tsc = probe('bunx', ['tsc', '--version'])
+  if (tsc !== null) out.push({ name: 'typescript', version: tsc.replace(/^Version\s+/, '') })
   const verify = (name: string, args: string[]) => {
-    try {
-      const proc = Bun.spawnSync([name, ...args])
-      if (proc.exitCode === 0) out.push({ name, version: proc.stdout.toString().trim() })
-    } catch { /* toolchain ausente — el perfil lo deja explícito */ }
+    const version = probe(name, args)
+    if (version !== null) out.push({ name, version })
   }
   if (languages.some(l => l.lang === 'Rust')) verify('cargo', ['--version'])
   if (languages.some(l => l.lang === 'Go')) verify('go', ['version'])
   return out
 }
 
-export async function buildRoadmapProfile(root: string): Promise<RoadmapProfile> {
+export async function buildRoadmapProfile(root: string, options: RoadmapProfileOptions = {}): Promise<RoadmapProfile> {
   const manifest = readManifest(root)
   const languages = await detectLanguages(root)
   const conventions = await readConventions(root)
@@ -335,7 +348,7 @@ export async function buildRoadmapProfile(root: string): Promise<RoadmapProfile>
       : { state: 'not-applicable', evidence: 'sin Dockerfile/docker-compose.yml — no necesariamente aplica' },
     database: detectDatabase(root, manifest),
     instructionFiles: detectInstructionFiles(root),
-    toolchain: verifyToolchain(languages),
+    toolchain: verifyToolchain(languages, options.probe ?? spawnToolchainProbe),
   }, readRoadmapOverrides(root))
 }
 
