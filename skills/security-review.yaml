@@ -1,13 +1,25 @@
 id: security-review
 version: 1.0.0
 name: Security Review
-description: Reviews code changes for common OWASP Top 10 vulnerabilities before merge.
+description: Use when code touches authentication, authorization, user input, secrets, or exposes a new API endpoint or webhook — before merge.
 targets:
   - claude
   - cursor
   - openai
 allowed_tools:
   - read
+activation:
+  mode: automatic
+  phases:
+    - review
+  triggers:
+    - authentication
+    - authorization
+    - user_input
+    - secrets
+    - file_upload
+    - api_endpoint
+iron_law: Never approve code touching auth, secrets, or user input without checking it against all 5 OWASP categories below.
 when_to_use:
   - Before merging code that touches authentication or authorization
   - When changes involve user input, SQL queries, or file uploads
@@ -66,6 +78,17 @@ anti_patterns:
   - Suggest encryption without specifying where keys are stored
   - Flag false positives to inflate the count
   - Ignore the review because "it's just an internal tool"
+common_rationalizations:
+  - excuse: It's just an internal tool, no external users will see this.
+    refutation: Internal tools get breached from the inside more often than public APIs — access control still matters.
+  - excuse: The linter or type checker already catches this kind of issue.
+    refutation: Static analysis catches type errors, not broken access control or injection via string concatenation.
+  - excuse: This endpoint isn't finished yet, auth can be added before it ships.
+    refutation: Unauthenticated endpoints in a shared branch are exploitable the moment they're reachable, finished or not.
+red_flags:
+  - A new API route was added without a visible authorization check
+  - A secret, key, or token appears as a literal string in the diff
+  - User input flows into a query or shell command via string concatenation
 verifiers:
   - Every endpoint has an authorisation check
   - No hardcoded secrets or API keys

@@ -1,7 +1,7 @@
 id: test-writer
 version: 1.0.0
 name: Test Writer
-description: Adds comprehensive tests to existing code. Unlike tdd-enforcer, the implementation already exists.
+description: Use when a function or module has zero test coverage, before refactoring untested code, or after a bug fix with no regression test.
 targets:
   - claude
   - cursor
@@ -10,6 +10,12 @@ allowed_tools:
   - read
   - write
   - edit
+activation:
+  mode: suggest
+  phases:
+    - implement
+    - fix
+iron_law: Never write a test without at least one assertion that can actually fail.
 when_to_use:
   - When a function or module has zero test coverage
   - Before refactoring code that lacks tests
@@ -46,6 +52,17 @@ anti_patterns:
   - Copy-paste test cases without adapting assertions
   - Modify the source to make it "more testable" during this task — that is a separate refactor
   - Hit real external services — mock HTTP, DB, and filesystem calls
+common_rationalizations:
+  - excuse: A smoke test that just calls the function without asserting anything still counts as coverage.
+    refutation: A test with no assertion that can fail proves nothing — it inflates the coverage number without testing behavior (see IDEAS #54).
+  - excuse: I'll only test the happy path, edge cases would take too long.
+    refutation: Untested edge cases are where the actual bugs live — the happy path rarely breaks.
+  - excuse: Mocking is extra work, I'll just hit the real database or API once.
+    refutation: One real call becomes a flaky, slow test suite the moment that service is unavailable or rate-limited.
+red_flags:
+  - A new test file has zero assert/expect calls that could fail
+  - Every test in the file passes on the very first run, including ones for edge cases
+  - The source file under test was modified during the task
 verifiers:
   - Test suite passes with the new tests added
   - Every public function has at least one test

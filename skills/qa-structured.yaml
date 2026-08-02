@@ -1,13 +1,18 @@
 id: qa-structured
 version: 1.0.0
 name: Structured QA Review
-description: Evaluates implemented code against acceptance criteria with structured evidence.
+description: Use when implementation is complete and passes deterministic checks, before marking a task done — verifies acceptance criteria with evidence, not intent.
 targets:
   - claude
   - cursor
   - openai
 allowed_tools:
   - read
+activation:
+  mode: automatic
+  phases:
+    - review
+iron_law: Never mark a task pass when a single acceptance criterion lacks concrete evidence.
 when_to_use:
   - After implementation is complete and passes deterministic checks
   - Before marking a task as done
@@ -56,6 +61,17 @@ anti_patterns:
   - Mark fail without explaining what is missing
   - QA the AI output — QA is about the generated code, not how it was made
   - Judge code style, naming conventions, or formatting (those are for human review)
+common_rationalizations:
+  - excuse: The code looks right and the deterministic checks passed, that's evidence enough.
+    refutation: Deterministic checks confirm it runs, not that it satisfies the acceptance criteria — those are different questions.
+  - excuse: This edge case is unlikely, the user would never do that.
+    refutation: Unlikely inputs are exactly what breaks in production — "unlikely" is not the same as "impossible".
+  - excuse: Most criteria pass, that's close enough to ship.
+    refutation: One failing criterion means the task fails — partial credit isn't a verdict this gate can give.
+red_flags:
+  - The verdict is "pass" but one or more criteria have no cited evidence
+  - Only the happy path was checked before marking pass
+  - The reason field paraphrases the task description instead of citing what was verified
 verifiers:
   - Every acceptance criterion has a pass/fail with evidence
   - At least one edge case was considered per criterion

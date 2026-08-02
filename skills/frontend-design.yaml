@@ -1,7 +1,7 @@
 id: frontend-design
 version: 1.0.0
 name: Frontend Design
-description: Production-grade visual craft for landing pages, marketing sites, dashboards, and product UI. Kills the AI-slop tells.
+description: Use when building a landing page, marketing site, dashboard, or product UI — or when a design looks generic, bland, or AI-made.
 targets:
   - claude
   - cursor
@@ -10,6 +10,11 @@ allowed_tools:
   - read
   - write
   - edit
+activation:
+  mode: suggest
+  phases:
+    - implement
+iron_law: Never ship a UI that visibly reads as AI-generated — if the AI-slop test fails, it isn't done.
 when_to_use:
   - When building a landing page, marketing site, or any commercial/brand page
   - When creating or restyling a dashboard, product UI, component, or form
@@ -89,6 +94,17 @@ anti_patterns:
   - Gradient text, side-stripe borders, default glassmorphism, over-rounded cards
   - Shipping without checking contrast ratios or the reduced-motion alternative
   - Inventing new tokens/colors when the project already has a committed theme
+common_rationalizations:
+  - excuse: It functions correctly, visual polish is secondary.
+    refutation: A UI that reads as generic AI output erodes trust in the product before the user evaluates any functionality.
+  - excuse: The default framework styles are safe and neutral.
+    refutation: Default styles are exactly what makes an interface recognizable as templated — "safe" here means "forgettable".
+  - excuse: I'll fix the contrast or spacing issues if someone complains.
+    refutation: Contrast failures are an accessibility defect, not a taste preference — shipping them is shipping a known bug.
+red_flags:
+  - The page uses a cream/sand/beige body background with gray text
+  - Every section has an uppercase eyebrow label or a 01/02/03 numbered marker
+  - Body text contrast was never checked against the background
 verifiers:
   - Body text contrast ≥4.5:1 and large text ≥3:1 against their backgrounds
   - Heading copy does not overflow at any breakpoint

@@ -116,7 +116,7 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   corrección de alcance de este bloque, una capa más abajo. Unificar ambos sitios sobre
   `buildSections()`. Va **antes** de N.5: sin esto el bloque cerraría con 5 skills endurecidas cuya
   regla innegociable no aplica en ninguna corrida real.
-- [ ] **N.5 — ⚡** Autoría piloto de **5 skills** (decisión Carlos 2026-07-31: las 5, no las 24):
+- [x] **N.5 — ⚡** Autoría piloto de **5 skills** (decisión Carlos 2026-07-31: las 5, no las 24):
   `tdd-enforcer`, `security-review`, `qa-structured`, `test-writer`, `frontend-design` — las que un
   ejecutor barato tiene más incentivo a esquivar (escribir el test después, "el linter ya lo cubre",
   "se ve bien así"); `test-writer`/`qa-structured` conectan directo con el antipatrón que persigue
@@ -130,6 +130,19 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   automática. Escribir `description` como condición de disparo ("Use when…"), no como resumen.
   Las 5 piloto deben escribirse ya con el contrato de activación de O.2 definido, para no volver a
   generar contenido que el motor no sabe interpretar.
+  **Cerrado 2026-08-02.** Las 5 skills (`skills/*.yaml`) recibieron: `description` reescrita como
+  condición de disparo ("Use when…", antes eran resúmenes); `iron_law` (una regla, ≤300 chars);
+  3 `common_rationalizations` (excusa real que un ejecutor barato usaría + su refutación, no
+  genéricas); 3 `red_flags` observables en el diff/output, no juicios subjetivos; y `activation`
+  (O.0) — `security-review`/`qa-structured` en `mode: automatic` + `phases: [review]`
+  (`security-review` además con `triggers:` deterministas: auth/secrets/user_input/file_upload/
+  api_endpoint — es un gate, no debe depender del juicio semántico del mismo LLM que hace el
+  trabajo); `tdd-enforcer`/`test-writer`/`frontend-design` en `mode: suggest` +
+  `phases: [implement, fix]` (guían el trabajo, no lo bloquean). Verificado contra el registro real
+  (`loadSkill()`/`validateSkill()`, no solo YAML a ojo) y contra `buildSections()`: el `iron_law` de
+  `security-review` compila antes de las instrucciones — el gate de N.4.5 funciona con contenido
+  real, no solo con el fixture de test. `tsc --noEmit` limpio, `bun run test:coverage` (comando
+  exacto de CI): 1044 tests, 0 fail, cobertura sobre el umbral.
 - [ ] **N.6 — 🔍** Gate: verificar contra el **prompt real compilado**, no contra el YAML — que el
   `iron_law` aparece antes de las instrucciones en la salida de `buildSections()` para una skill
   endurecida, en los 3 targets, y que una skill sin los campos nuevos compila idéntico a como

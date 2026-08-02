@@ -1,7 +1,7 @@
 id: tdd-enforcer
 version: 1.0.0
 name: TDD Enforcer
-description: Enforces red-green-refactor. The test must fail before the implementation is written.
+description: Use when adding new functionality, fixing a bug, or touching code with zero tests — the test must fail before the implementation exists.
 targets:
   - claude
   - cursor
@@ -10,6 +10,12 @@ allowed_tools:
   - read
   - write
   - edit
+activation:
+  mode: suggest
+  phases:
+    - implement
+    - fix
+iron_law: Never write implementation code before a failing test exists for it.
 when_to_use:
   - When adding a new function, class, or module
   - When fixing a bug — write a test that reproduces the bug first
@@ -48,6 +54,17 @@ anti_patterns:
   - Skip the refactor phase — green + messy is not done
   - Delete or comment out a test to make the suite pass
   - Write multiple features in one red-green-refactor cycle
+common_rationalizations:
+  - excuse: The implementation is simple enough that I don't need to see the test fail first.
+    refutation: A test that never failed never proved it tests anything — it could be passing for the wrong reason.
+  - excuse: I'll write the tests right after, it's basically the same thing.
+    refutation: Tests written after the fact get shaped to match what the code already does, not what it should do — they stop catching real bugs.
+  - excuse: This is just a small fix, TDD is overkill here.
+    refutation: Small fixes without a reproducing test first are exactly how regressions come back silently.
+red_flags:
+  - Implementation file was created or edited before any test file for the same feature
+  - The first test run after writing the test immediately passes
+  - A test was deleted or commented out to reach green
 verifiers:
   - Test suite fails before implementation is written (red confirmed)
   - Test suite passes after implementation (green confirmed)
