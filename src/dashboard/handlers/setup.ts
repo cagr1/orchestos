@@ -7,7 +7,7 @@ import { listInstincts } from '../../instincts/store.ts'
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import type { SetupItem, SetupResponse, LocalProviderResponse, ApiKeyValidationResponse, HealthResponse, HealthBlockedTask, HealthRecentLearning } from '../types.ts'
-import { ENV_FILE, SETTINGS_KEYS, readEnv, writeEnv, maskKey } from '../settings-store.ts'
+import { envFilePath, SETTINGS_KEYS, readEnv, writeEnv, maskKey } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 
 async function handleApiSettingsGet(): Promise<Response> {
@@ -17,7 +17,7 @@ async function handleApiSettingsGet(): Promise<Response> {
     const v = parsed[k] ?? process.env[k] ?? ''
     result[k] = { set: !!v, masked: v ? maskKey(v) : '' }
   }
-  result['_envFile'] = { set: existsSync(ENV_FILE), masked: ENV_FILE }
+  result['_envFile'] = { set: existsSync(envFilePath()), masked: envFilePath() }
   result['_cwd'] = { set: true, masked: process.cwd() }
 
   try {
@@ -151,7 +151,7 @@ function handleApiSetup(): Response {
   const result: SetupResponse = {
     ready: !criticalMissing,
     criticalMissing,
-    envFile: ENV_FILE,
+    envFile: envFilePath(),
     cwd: root,
     items,
   }
@@ -197,7 +197,7 @@ function handleApiHealth(): Response {
     const hasDb = existsSync(dbPath)
     items.push({ id: 'db', label: hasDb ? 'SQLite initialized' : 'SQLite not initialized', ok: hasDb, critical: false, kind: 'database', hint: hasDb ? 'OK' : 'Created automatically on first run.' })
     const criticalMissing = items.some(i => i.critical && !i.ok)
-    return { ready: !criticalMissing, criticalMissing, envFile: ENV_FILE, cwd: root, items }
+    return { ready: !criticalMissing, criticalMissing, envFile: envFilePath(), cwd: root, items }
   })()
 
   const blockedTasks: HealthBlockedTask[] = []
@@ -305,10 +305,14 @@ async function handleApiSetupApiKey(req: Request): Promise<Response> {
     return errorResponse(`Unknown provider "${provider}". Use: openrouter, anthropic, openai`, 400)
   }
 
-  const current = readEnv()
-  current[cfg.envKey] = key
-  writeEnv(current)
-
+  // L62-002 (gate de seguridad L.6.2, corregido 2026-08-02) — ANTES esta función
+  // escribía la key en `~/.orchestos/.env` acá arriba, *antes* del fetch de
+  // validación, y solo revertía si la respuesta era 401. Un timeout, un error de
+  // red o cualquier otro status dejaba una key sin validar persistida en texto
+  // plano, aunque el usuario nunca hubiera confirmado una configuración válida.
+  // Ahora se valida primero y se persiste SOLO en el camino válido: la key no
+  // toca el disco a menos que el proveedor la haya aceptado. La validación no
+  // depende del env — `cfg.headers(key)` usa el parámetro directo.
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 15_000)
@@ -321,16 +325,14 @@ async function handleApiSetupApiKey(req: Request): Promise<Response> {
     clearTimeout(timer)
 
     if (res.ok || res.status === 400) {
+      const current = readEnv()
+      current[cfg.envKey] = key
+      writeEnv(current)
       return jsonResponse({ valid: true } satisfies ApiKeyValidationResponse)
     }
 
     const errBody = await res.text().catch(() => '')
     const errMsg = humanizeKeyError(res.status, errBody)
-
-    if (res.status === 401) {
-      delete current[cfg.envKey]
-      writeEnv(current)
-    }
 
     return jsonResponse({ valid: false, error: errMsg } satisfies ApiKeyValidationResponse)
   } catch (e: any) {
