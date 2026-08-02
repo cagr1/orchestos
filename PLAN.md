@@ -178,12 +178,22 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
     visual de una marca específica. **No es una corrección de `frontend-design`/`design-tokens`** —
     es una capacidad nueva que OrchestOS no tiene (importar un `DESIGN.md` externo para una tarea
     puntual). Candidato de IDEAS.md, no se toca en este ítem.
-- [ ] **N.6 — 🔍** Gate: verificar contra el **prompt real compilado**, no contra el YAML — que el
-  `iron_law` aparece antes de las instrucciones en la salida de `buildSections()` para una skill
-  endurecida, en los 3 targets, y que una skill sin los campos nuevos compila idéntico a como
-  compilaba antes (cero regresión sobre las skills no tocadas). Verificación en vivo en el
-  dashboard de N.4 ([[feedback-verificar-gates-en-vivo]]), no solo `bun test`. Cerrar con conteo de
-  tests + `tsc --noEmit` limpio.
+- [x] **N.6 — 🔍** (cerrado 2026-08-02) Gate: verificar contra el **prompt real compilado**, no
+  contra el YAML. Tests nuevos ([src/__tests__/skill-compile-gate.test.ts](src/__tests__/skill-compile-gate.test.ts))
+  contra los 3 compiladores reales (`compileClaude`/`compileCursor`/`compileOpenAI`, no solo
+  `buildSections()`) usando skills reales del repo, no fixtures: `security-review` (endurecida) —
+  `iron_law` antes de `instructions` en los 3 targets; `diagnose` (sin campos nuevos) — cero
+  secciones de endurecimiento, cero regresión.
+  **Verificación en vivo en el dashboard de N.4** ([[feedback-verificar-gates-en-vivo]]), no solo
+  `bun test`: servidor real levantado (`PORT=4310 bun run src/dashboard/server.ts`),
+  `POST /api/skills/security-review/build` (el botón Build real de N.4) escribió
+  `dist/skills/{claude,cursor,openai}/security-review.{md,mdc,json}` — inspeccionados en disco,
+  `## Iron law` aparece antes de la sección OWASP en los 3. Mismo build contra `diagnose`: cero
+  secciones nuevas, `instructions` arranca igual que antes de N.1. `GET /api/skills/security-review`
+  (el detalle que consume N.4) devuelve `iron_law`/`activation`/`common_rationalizations`/
+  `red_flags` reales. Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
+  1060 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` (comando exacto de CI)
+  verde, cobertura sobre el umbral. **Bloque N cerrado por completo.**
 
 ### Bloque O — 🧠 Skills que se activan solas (decisión Carlos 2026-07-31)
 
