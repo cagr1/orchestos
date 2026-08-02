@@ -920,8 +920,13 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
   arquitectura — sería una skill nueva (`design-brand-match` o similar) que el usuario elige a
   mano cuando quiere "que se vea como Stripe/Linear/etc.", no algo que el clasificador de N-AUTO/O
   active solo (el criterio "qué marca" no es inferible del código, es una decisión de producto que
-  el humano trae). **NO aplica todavía**: sin evidencia de que Carlos lo necesite hoy en un
-  proyecto real — no pinear al backlog canónico sin ese caso concreto.
+  el humano trae).
+  **Actualización (2026-08-02) — SÍ aplica, caso concreto encontrado el mismo día**: resuelve
+  [IDEAS #52](#52-nivel-premium-de-verdad--de-no-se-ve-genérico--a-un-lenguaje-visual-deliberado),
+  palanca 2 (`design.md` por proyecto) — Carlos decidió que esta colección **es** el `design.md`
+  que iba a construir él mismo, no un candidato aparte. Ver el detalle completo en #52. Verificado
+  leyendo un `DESIGN.md` real completo (`design-md/linear.app/DESIGN.md`, 548 líneas) antes de
+  aceptar la decisión — no solo el README de la colección.
 
 ---
 
@@ -1345,6 +1350,37 @@ real + C.2 veredicto) se sacó de PLAN.md § Mes 22 y queda **gated en esta idea
 hasta que el `design.md` por niveles exista. Las palancas 1/3/4 (referencia visual por tarea,
 iteración real, QA con visión) siguen sin decidir — el `design.md` es el primer paso, no todo el
 alcance de esta idea.
+
+**Palanca 2 resuelta — `design.md` YA NO se construye desde cero (decisión de Carlos, 2026-08-02).**
+El prerequisito de arriba ("Carlos va a construir él mismo un `design.md` con niveles explícitos")
+queda **satisfecho, no pendiente**: la guía oficial es
+[VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) (MIT — ya anotado
+como fuente externa, ver "Los repos" más abajo). Carlos verificó que su idea original de "niveles
+normal/bueno/muy bueno/premium" descritos en prosa **era el enfoque equivocado**: *"mi intención
+era crear algo premium, pero eso se logra no con un prompt sino con ejemplos de capturas de
+pantalla, especificaciones precisas, etc."* — exactamente lo que un `DESIGN.md` de esta colección
+ya provee, verificado leyendo uno completo (`design-md/linear.app/DESIGN.md`, 548 líneas): hex
+exactos por rol semántico, tipografía en px con letter-spacing y line-height, tokens de componente
+con estados (hover/pressed/focus), breakpoints con cambios de layout explícitos, sección **Do's
+and Don'ts** concreta (no principios genéricos — "Don't use lavender as a section background",
+no "usa buen contraste"), y un **Known Gaps** honesto (qué no se pudo inferir del sitio real). Las
+36 marcas de la colección + el formato [Stitch de Google](https://stitch.withgoogle.com/docs/design-md/specification/)
+que todas siguen **son el `design.md` que Carlos iba a construir** — no un reemplazo parcial, la
+guía completa.
+
+**Qué cambia en consecuencia:**
+- El prerequisito de Bloque C dejó de ser "esperar a que Carlos escriba un `design.md`" — ya está
+  listo para usarse. **No implica que Bloque C se reabra automáticamente hoy** — es una decisión
+  aparte que Carlos no tomó todavía en este turno, solo que el bloqueo documental ya no aplica.
+- Palanca **1** (referencia visual explícita por tarea) y palanca 2 se fusionan en la práctica: en
+  vez de "un `design.md` por proyecto" fijo, el mecanismo real es **elegir o adaptar un `DESIGN.md`
+  de la colección por tarea/proyecto** ("estilo Linear: negro casi puro, un solo acento lavanda,
+  cero gradientes") — más cerca de cómo describía la palanca 1 originalmente que de un artefacto
+  único congelado por proyecto.
+- Palancas 3 (iteración real) y 4 (QA visual con modelo de visión) **siguen sin resolver** — un
+  `DESIGN.md` de referencia no reemplaza el loop de iteración ni el QA que compara el resultado
+  contra la referencia. Esta idea sigue sin graduar a PLAN.md hasta que Carlos decida sobre esas
+  dos, o sobre reabrir Bloque C.
 
 ---
 
