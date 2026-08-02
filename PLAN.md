@@ -40,14 +40,29 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 Este mes conserva pendientes reales que no se cierran por arrastre documental (cada uno mantiene su procedencia y evidencia completa en [DONE.md](DONE.md)) **y, desde 2026-07-30, abre la ejecución del backlog canónico por esfuerzo de [IDEAS.md](IDEAS.md)** — el orden ahí es el único orden de ejecución, y al graduar una idea se elimina de IDEAS.md en el mismo commit (regla de flujo IDEAS→PLAN→DONE).
 
-**Tabla de estado del proyecto (2026-07-29)**
+**Tabla de estado del proyecto (2026-08-02)**
 
 | Mes | Bloques | Estado |
 | --- | --- | --- |
 | Mes 22 / v0.13 | A–K | ✅ Cerrado formalmente, sin pendientes |
-| Mes 23 | L | ⏳ L.5.7 cerrado (2026-07-30); L.6.2 sigue abierto |
+| Mes 23 | L | ⏳ L.5.7 cerrado (2026-07-30); **L.6.2 sigue abierto** |
 | Mes 24 | M | ✅ Cerrado formalmente, sin pendientes (resueltos 2026-07-30) |
-| Mes 25 | Pendientes heredados | ⏳ Activo |
+| Mes 25 | Pendientes heredados + N, O, P | ⏳ Activo — desglose abajo |
+
+**Desglose del Mes 25 (2026-08-02)** — se agrega porque la tabla anterior enterraba una semana
+entera de trabajo dentro de "Pendientes heredados" sin decir qué había adentro; Carlos reportó
+desorientación real por esto en la revisión del 2026-08-02.
+
+| Bloque | Qué es | Estado |
+| --- | --- | --- |
+| Pendientes heredados | K.6.2-R7, L.5.7, M ×2 | ✅ cerrados · ⏳ **L.6.2 abierto** (el pendiente más viejo) |
+| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ **cerrado completo** (N.1–N.6, incluidos N.4.5 y N.5.1) |
+| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **1 de 5** — solo O.0 (contrato); **nadie lo consume todavía** |
+| **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
+
+**Estado de CI (2026-08-02)**: verde. Estuvo rojo en el **100%** de los pushes desde 2026-07-29
+hasta 2026-08-01 14:01; verde desde 2026-08-01 14:03, 6 pushes seguidos. El hook `pre-push`
+(`scripts/pre-push.sh`) corre el comando exacto de CI antes de cada push — ver CLAUDE.md.
 
 ### Pendientes explícitos
 
@@ -194,6 +209,63 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   `red_flags` reales. Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
   1060 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` (comando exacto de CI)
   verde, cobertura sobre el umbral. **Bloque N cerrado por completo.**
+
+#### ⚠️ Aclaración obligatoria sobre "las 5 piloto" (Carlos, 2026-08-02) — leer antes de tocar skills
+
+**"5 piloto" fue una decisión sobre CUÁNTO CONTENIDO ESCRIBIR, no sobre qué skills usa OrchestOS.**
+Si algún LLM (o Carlos en 3 meses) lee N.5 y concluye "OrchestOS ahora usa 5 skills", está mal.
+Palabras de Carlos: *"no usar las 24 no significa descartar, significa usar cuando sea el caso de
+usar"*.
+
+- **Las 24 siguen activas e instaladas.** 16 en `skills/` + 8 en `skills/pro/`. Ninguna fue
+  deprecada, borrada ni despriorizada. Las 19 que no recibieron `iron_law` simplemente **todavía no
+  tienen ese contenido escrito** — siguen cargando, compilando y aplicándose exactamente igual que
+  antes (verificado en N.6: `diagnose` sin campos nuevos compila idéntico a como compilaba antes de
+  N.1, cero regresión).
+- **Por qué Carlos quiere muchas skills** (criterio de producto, no colección): que sirvan **tanto a
+  un dev como a un no-dev**. No busca acumular — busca "las suficientes para que sea de ayuda para
+  el usuario". Una skill de más que nunca se activa no molesta (el Bloque O decide cuál aplica); una
+  skill que falta sí deja al usuario sin ayuda en ese caso.
+- **Corrección de un número que se cruzó esta semana:** son **24 skills**, no 34. El 34 eran los
+  CLIs de agente que detecta Orca (`agent-kind.ts`, investigación de IDEAS #39) — concepto
+  distinto, se mezcló en la misma semana.
+- **La fuente de skills NO se abandona.** `obra/superpowers`, `mattpocock/skills` y el resto siguen
+  siendo fuentes vivas de las que traer skills nuevas cuando haga falta — ver Bloque P
+  (`sources-drift`), que existe justamente para no perderlas de vista.
+
+- [ ] **N.7 — 🧠 Extender la auditoría de fidelidad (N.5.1) a las 19 skills restantes.** Pedido
+  explícito de Carlos (2026-08-02): *"si se hizo con las 5 debe hacerse con el resto en base a las
+  repos originales donde viven realmente cada una"*. **Prerequisito real: hoy no existe un registro
+  confiable de procedencia por skill** — lo que hay está disperso y en parte es contradictorio.
+  Evidencia recogida el 2026-08-02, sin inventar el resto:
+  - `skills/pro/` (8) — [DONE.md:3529](DONE.md) dice *"curados desde mattpocock/skills y
+    obra/superpowers"* pero **no dice cuál vino de cuál**: `code-review`, `refactor-guided`,
+    `pr-description`, `bug-hypothesis`, `api-contract`, `db-migration-safe`, `perf-profile`,
+    `doc-gen`. Mapeo probable pero **no verificado**: `code-review` ↔ mattpocock
+    `engineering/code-review`; `bug-hypothesis` ↔ mattpocock `engineering/diagnosing-bugs`.
+  - `skills/` (16) — [DONE.md:2208](DONE.md) declara nativas de S14.4–S14.8 (2026-05-27):
+    `pre-task-alignment`, `diagnose`, `tdd-enforcer`, `context-compression`,
+    `improve-architecture`; S18.1–S18.3 nativas: `security-review`, `qa-structured`, `test-writer`;
+    [DONE.md:3151](DONE.md) declara 4 de diseño nativas: `frontend-design`, `ux-guidelines`,
+    `design-brief-inference`, `design-tokens`.
+  - **Contradicción real a resolver, no ignorar:** `improve-architecture` figura como *nativa* pero
+    mattpocock tiene `engineering/improve-codebase-architecture` (nombre casi idéntico, y es una de
+    las skills que Carlos tiene instaladas en su propio Claude Code). Igual `tdd-enforcer` (nativa)
+    vs. mattpocock `engineering/tdd` **y** superpowers `test-driven-development` — de esta última
+    sí se confirmó relación en N.5.1. "Nativa" en DONE.md puede significar "escrita acá" o "escrita
+    acá inspirándose en X sin anotarlo" — hay que verificar caso por caso contra el upstream real,
+    no confiar en la etiqueta.
+  - Sin fuente externa conocida: `fix-typescript-errors`, `generate-prisma-migration`,
+    `summarize-pr-diff` (además son las 3 sin `when_to_use`, ver N.5).
+  **Qué hacer:** (1) auditar procedencia real skill por skill contra los repos upstream (mismo
+  método que N.5.1: `gh api`, leer la fuente, no suponer); (2) las que SÍ tengan fuente real →
+  portar el contenido rico que se haya perdido, como se hizo con `tdd-enforcer` (10
+  rationalizations + 13 red flags en vez de 3+3 genéricas); (3) las genuinamente nativas → escribir
+  contenido propio o dejarlas sin endurecer, pero **declarándolo**, no por omisión; (4) **cada
+  fuente confirmada entra en [docs/sources-registry.yaml](docs/sources-registry.yaml)** (Bloque P)
+  para que la deriva futura se detecte sola — hoy el registro solo tiene 5 entradas porque son las
+  únicas verificadas. Corregir de paso `when_to_use` en las 3 que no lo tienen (son inelegibles
+  para la selección automática del Bloque O sin él).
 
 ### Bloque O — 🧠 Skills que se activan solas (decisión Carlos 2026-07-31)
 
