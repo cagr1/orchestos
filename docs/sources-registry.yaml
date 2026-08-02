@@ -1,0 +1,80 @@
+# Registro de fuentes externas de las que OrchestOS robó contenido/diseño.
+# Bloque P (PLAN.md), 2026-08-02 — pregunta de Carlos: "todas las repos se
+# actualizan, ¿cómo sabemos si mejoraron justo la pieza que ocupamos?"
+#
+# Vigilamos PATHS exactos, no repos completos — un repo cambia por cosas que
+# no importan; solo el archivo/carpeta de donde copiamos algo es relevante.
+#
+# `last_synced_sha` es el commit contra el que se verificó fidelidad la
+# última vez (no el commit original en que se copió, que en varios casos se
+# perdió — los 4 primeros se fijaron en la auditoría de N.5.1, 2026-08-02).
+# `scripts/check-sources-drift.ts` compara este campo contra el HEAD actual
+# del path y reporta en SOURCES_DRIFT.md — nunca actualiza este archivo solo.
+#
+# Al aplicar una mejora real desde una fuente, actualizar `last_synced_sha`
+# a mano en el mismo commit que aplica el cambio.
+
+sources:
+  - id: superpowers-tdd
+    repo: obra/superpowers
+    path: skills/test-driven-development/SKILL.md
+    license: MIT
+    local_artifact: skills/tdd-enforcer.yaml
+    last_synced_sha: b9e75dddec7a384f42ce08532ec17bb1ef5d9459
+    last_synced_date: "2026-08-02"
+    note: >
+      Fuente literal del patrón Iron Law/Common Rationalizations/Red Flags.
+      tdd-enforcer.yaml copia las 10 rationalizations y 13 red_flags casi
+      verbatim (N.5.1) — cualquier cambio en esta tabla en la fuente es
+      candidato directo a portar.
+
+  - id: superpowers-verification
+    repo: obra/superpowers
+    path: skills/verification-before-completion/SKILL.md
+    license: MIT
+    local_artifact: skills/qa-structured.yaml
+    last_synced_sha: 3be5aad3dd2400ef23b15680969f4bcd3b6d7b8b
+    last_synced_date: "2026-08-02"
+    note: >
+      Principio compartido ("evidencia antes que afirmación"), NO traducción
+      1:1 — qa-structured evalúa contra criterios de aceptación, esta skill
+      es sobre no afirmar éxito sin correr el comando. Vigilar por si aparece
+      contenido portable, no por drift de una copia.
+
+  - id: impeccable-checks
+    repo: pbakaus/impeccable
+    path: .claude/skills/impeccable/scripts/detector/rules/checks.mjs
+    license: Apache-2.0
+    local_artifact: skills/frontend-design.yaml
+    last_synced_sha: 9a949fb543d44cfb406f61bcab99d95d7f12cf1d
+    last_synced_date: "2026-08-02"
+    note: >
+      Detector mecánico real (5580 líneas) del que frontend-design.yaml
+      destila reglas en prosa (contraste 4.5:1/3:1, gradient-text, eyebrow
+      chip, round-dot radius). Verificado fiel en N.5.1 — un cambio acá
+      puede traer un anti-patrón nuevo que vale la pena portar a los bans.
+
+  - id: orca-agent-kind
+    repo: stablyai/orca
+    path: src/shared/agent-kind.ts
+    license: MIT
+    local_artifact: "IDEAS.md #39"
+    last_synced_sha: 2d232171663a5a1fe24e2d2d7a95d7c6859155de
+    last_synced_date: "2026-08-02"
+    note: >
+      Patrón de registro plano multi-CLI (34 agentes) que inspiró el
+      registro de OrchestOS (cli-registry.ts) y el diseño propuesto para
+      generalizar la invocación (promptInjectionMode-lite). Vigilar por
+      nuevos agentes que Orca ya soporta y OrchestOS todavía no detecta.
+
+  - id: orca-tui-agent-config
+    repo: stablyai/orca
+    path: src/shared/tui-agent-config.ts
+    license: MIT
+    local_artifact: "IDEAS.md #39"
+    last_synced_sha: e58c051d16c179106ccbb8737fc55ccd85a0afc7
+    last_synced_date: "2026-08-02"
+    note: >
+      Fuente del enum promptInjectionMode (6 estrategias de invocación) que
+      IDEAS #39 propone adaptar como promptInjectionMode-lite. Vigilar por
+      estrategias nuevas o cambios en las 6 existentes.

@@ -909,6 +909,19 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
   del outreach (template masivo en frío). El correo pedía a Carlos ser *implementation partner*
   con comisión: descartado, es vender producto de un competidor, opuesto al objetivo de producto
   propio. Solo el código es interesante.
+- **VoltAgent/awesome-design-md** — https://github.com/VoltAgent/awesome-design-md (MIT) ·
+  colección de `DESIGN.md` por marca (Stripe, Apple, Linear, Vercel, etc. — formato
+  [Stitch de Google](https://stitch.withgoogle.com/docs/design-md/overview/)), traído por Carlos
+  vía el vault (`raw/ai/skills/VoltAgentawesome-design-md...md`) el 2026-08-02, verificando
+  fidelidad de `frontend-design` (N.5.1). **No es una corrección de `frontend-design` ni
+  `design-tokens`** — esas dos ya cubren "cómo evitar que una UI se vea genérica/AI-made"
+  (disciplina universal); esto es una capacidad **distinta y nueva**: clonar el lenguaje visual de
+  una marca específica dejando caer su `DESIGN.md` en el proyecto. Candidato de contenido, no de
+  arquitectura — sería una skill nueva (`design-brand-match` o similar) que el usuario elige a
+  mano cuando quiere "que se vea como Stripe/Linear/etc.", no algo que el clasificador de N-AUTO/O
+  active solo (el criterio "qué marca" no es inferible del código, es una decisión de producto que
+  el humano trae). **NO aplica todavía**: sin evidencia de que Carlos lo necesite hoy en un
+  proyecto real — no pinear al backlog canónico sin ese caso concreto.
 
 ---
 

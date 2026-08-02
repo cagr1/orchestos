@@ -143,6 +143,41 @@ contenido. Sigue siendo un bloque chico, pero no es cero código.
   `security-review` compila antes de las instrucciones — el gate de N.4.5 funciona con contenido
   real, no solo con el fixture de test. `tsc --noEmit` limpio, `bun run test:coverage` (comando
   exacto de CI): 1044 tests, 0 fail, cobertura sobre el umbral.
+- [x] **N.5.1 — 🧠 Corrección de fidelidad contra la fuente real (2026-08-02).** Carlos pidió volver
+  a la fuente antes de dar N.5 por bueno — patrón recurrente suyo en otros proyectos ("por escribir
+  muy general a veces se pierden detalles"). Auditoría contra el código fuente real (`gh api`, no
+  memoria ni suposición) de las 5 skills:
+  - **`tdd-enforcer` — hallazgo confirmado, no hipótesis.** `obra/superpowers`
+    (`skills/test-driven-development/SKILL.md`, MIT) es el origen literal del patrón "Iron Law /
+    Common Rationalizations / Red Flags" que da nombre a este Bloque N — no una inspiración vaga, el
+    vocabulario es idéntico. Su tabla real tiene **10** rationalizations con refutación específica y
+    **13** red flags verificados en batalla; N.5 había escrito **3+3 genéricas, inventadas**. Corregido:
+    las 10+13 ahora viven en [skills/tdd-enforcer.yaml](skills/tdd-enforcer.yaml) copiadas fieles al
+    original (excuse/refutation ≈ Excuse/Reality de la fuente), con comentario de atribución en el
+    YAML. Recargado contra `loadSkill()` real: 10 rationalizations, 13 red_flags, valida limpio.
+  - **`security-review` y `test-writer` — sin fuente 1:1.** Revisada la lista completa de skills de
+    `obra/superpowers` (`brainstorming`, `verification-before-completion`, `systematic-debugging`,
+    `writing-plans`, etc.) — ninguna es de seguridad OWASP ni de "agregar tests a código existente".
+    Según DONE.md (líneas 2263-2265) nacieron directo en S18 (2026-05-27) sin importación. No hay
+    pérdida de fidelidad posible porque nunca fueron traducción de nada — contenido propio.
+  - **`qa-structured` — prima, no copia.** `verification-before-completion` (superpowers) comparte
+    el principio ("evidencia antes que afirmación") pero es una skill distinta (esa es "no digas que
+    terminaste sin correr el comando"; la nuestra evalúa contra criterios de aceptación). Sin drift
+    porque nunca fue traducción de esa skill.
+  - **`frontend-design` — verificado contra `pbakaus/impeccable` (Apache 2.0), fiel.** El YAML ya
+    citaba la fuente explícitamente. Se comparó contra el detector mecánico real del plugin
+    (`scripts/detector/rules/checks.mjs`, 5580 líneas — el linter real, no solo prosa): contraste
+    4.5:1/3:1 coincide exacto (`reference/colorize.md:59-61`), `gradient-text`
+    (`background-clip:text`+gradient) coincide exacto (`checks.mjs:175-176`), `eyebrow chip` y
+    `round-dot radius` coinciden en concepto. Veredicto: distilación fiel, no genérica — no requiere
+    corrección.
+  - **Hallazgo adicional, fuera de alcance de N.5, anotado para no perderlo:**
+    `VoltAgent/awesome-design-md` (vault:
+    `raw/ai/skills/VoltAgentawesome-design-md...md`) es una colección de `DESIGN.md` por marca
+    (Stripe, Apple, Linear, etc. — formato Google Stitch) que un agente lee para clonar el lenguaje
+    visual de una marca específica. **No es una corrección de `frontend-design`/`design-tokens`** —
+    es una capacidad nueva que OrchestOS no tiene (importar un `DESIGN.md` externo para una tarea
+    puntual). Candidato de IDEAS.md, no se toca en este ítem.
 - [ ] **N.6 — 🔍** Gate: verificar contra el **prompt real compilado**, no contra el YAML — que el
   `iron_law` aparece antes de las instrucciones en la salida de `buildSections()` para una skill
   endurecida, en los 3 targets, y que una skill sin los campos nuevos compila idéntico a como
@@ -279,6 +314,61 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   *"OrchestOS tiene muchas skills instaladas"* sino *"un usuario describe su objetivo normalmente y
   OrchestOS identifica, carga, aplica y verifica las skills pertinentes sin exigir que conozca sus
   nombres"*. Verificar en **un proyecto distinto de este repo** — es la prueba real de O.1.
+
+### Bloque P — 🧠 Vigilancia de deriva de fuentes externas (`sources-drift`)
+
+**Origen — pregunta de Carlos (2026-08-02), tras el hallazgo real de N.5.1:** *"todas las repos
+siempre se actualizan... mi idea es tener una función o agente que observe las repos y si tiene
+algo interesante que mejoró justo en la pieza que ocupamos de ese repo, deberíamos aplicar esa
+mejora — podría estar anotado en un update.md."* Verificado: **no existe nada así hoy.** Dreaming
+(`DREAMING.md`) analiza telemetría propia (`runs-summary.json`), no repos externos — es un
+mecanismo hermano, no el mismo.
+
+**Las piezas, deliberadamente separadas** (tratarlas como una sola es lo que hace parecer esto un
+proyecto grande):
+
+1. **Qué se vigila no es "un repo completo"** — es un registro explícito de
+   `fuente + path exacto + artefacto local que nació de ahí + último commit sincronizado`. Vigilar
+   el repo entero genera ruido (un repo cambia por cosas que no importan); acotar por path es lo
+   que hace esto barato y preciso.
+2. **Detección es mecánica, sin LLM** — `gh api repos/{repo}/commits?path={path}` da el último SHA
+   que tocó ese path exacto. Comparar contra el registrado es determinista.
+3. **Relevancia SÍ requiere criterio** — que la fuente cambió no dice si el cambio importa. Mismo
+   contrato que Dreaming: **propone, nunca aplica.** La primera versión del checker deja la lectura
+   del diff a quien revisa `SOURCES_DRIFT.md` (Carlos o Claude en la siguiente sesión) — un paso
+   de resumen automático vía LLM queda anotado como mejora futura, no bloqueante para la primera
+   corrida real.
+4. **Salida separada de `DREAMING.md`** — nombre propio (`SOURCES_DRIFT.md`) para no mezclar
+   "cómo se comporta OrchestOS" (Dreaming, hacia adentro) con "cómo cambiaron las fuentes de las
+   que robamos" (esto, hacia afuera).
+5. **Cadencia baja** — semanal/mensual alcanza (fuentes de inspiración curada, no dependencias que
+   rompen builds), muy distinto de los 2am nocturnos de Dreaming. Sin cron nuevo en este ítem —
+   correr a mano o vía el mismo mecanismo externo que ya dispara Dreaming (fuera del repo, en la
+   máquina de Carlos).
+
+- [x] **P.1 — 🧠** (2026-08-02) Registro [docs/sources-registry.yaml](docs/sources-registry.yaml):
+  `id`, `repo`, `path`, `license`, `local_artifact`, `last_synced_sha`, `last_synced_date`, `note`.
+  Semilla con las 5 fuentes ya verificadas hoy: `obra/superpowers`
+  (`test-driven-development` → `tdd-enforcer`, `verification-before-completion` → relación con
+  `qa-structured`, sin ser traducción 1:1), `pbakaus/impeccable`
+  (`scripts/detector/rules/checks.mjs` → `frontend-design`), `stablyai/orca`
+  (`src/shared/agent-kind.ts` y `src/shared/tui-agent-config.ts` → IDEAS #39/Bloque O). Los
+  `last_synced_sha` se fijan al SHA verificado **hoy**, no a un origen histórico desconocido — el
+  registro establece línea base limpia desde este punto en adelante.
+- [x] **P.2 — 🧠** (2026-08-02) [scripts/check-sources-drift.ts](scripts/check-sources-drift.ts):
+  función pura `computeDrift(registry, latestShas)` (testeada, sin I/O) + wrapper que llama
+  `gh api` por cada entrada y escribe `SOURCES_DRIFT.md` con lo que cambió desde el último sync
+  (repo, path, SHA viejo→nuevo, link de comparación en GitHub). Nunca modifica `local_artifact` ni
+  el registro — eso es una decisión humana explícita, mismo gate que rige toda esta conversación
+  ("no promover sin propuesta, diff y confirmación explícita").
+  `bun run scripts/check-sources-drift.ts` (alias `sources:drift` en `package.json`).
+- [x] **P.3 — 🔍** (2026-08-02) **Primera corrida real**, no simulada — pedida explícitamente por
+  Carlos en el mismo turno que P.1/P.2. Resultado y hallazgos anotados en el commit y en
+  `SOURCES_DRIFT.md`.
+- [ ] **P.4 — ⚡** Mejora futura, no bloqueante: paso de resumen vía LLM (reusar el patrón de
+  `classifyAgainstOptions` de `docs/semantic-skill-selection-design.md` si aplica) que lea el diff
+  real entre `last_synced_sha` y el HEAD actual del path y redacte la propuesta en
+  `SOURCES_DRIFT.md`, en vez de solo listar "cambió, revisar a mano".
 
 ---
 

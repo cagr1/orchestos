@@ -54,17 +54,45 @@ anti_patterns:
   - Skip the refactor phase — green + messy is not done
   - Delete or comment out a test to make the suite pass
   - Write multiple features in one red-green-refactor cycle
+# common_rationalizations y red_flags copiados casi verbatim de la fuente real
+# (obra/superpowers, skills/test-driven-development/SKILL.md, MIT, verificado
+# 2026-08-02) — el bloque N.5 original los escribió genéricos y perdió el
+# detalle real de la tabla; corregido tras auditoría de fidelidad de Carlos.
 common_rationalizations:
-  - excuse: The implementation is simple enough that I don't need to see the test fail first.
-    refutation: A test that never failed never proved it tests anything — it could be passing for the wrong reason.
-  - excuse: I'll write the tests right after, it's basically the same thing.
-    refutation: Tests written after the fact get shaped to match what the code already does, not what it should do — they stop catching real bugs.
-  - excuse: This is just a small fix, TDD is overkill here.
-    refutation: Small fixes without a reproducing test first are exactly how regressions come back silently.
+  - excuse: Too simple to test.
+    refutation: Simple code breaks. Test takes 30 seconds.
+  - excuse: I'll test after.
+    refutation: Tests written after pass immediately — which proves nothing. They may test the wrong thing, test the implementation instead of the behavior, or miss the edge case you forgot. You never watched it fail, so you never proved it can catch the bug. Test-first forces that failure.
+  - excuse: Tests after achieve the same goals — it's about spirit, not ritual.
+    refutation: Tests-after answer "what does this do?"; tests-first answer "what should this do?" Tests written after are biased by the code you already wrote — you verify the cases you remembered, not the ones you'd have discovered. Coverage without proof the tests work.
+  - excuse: Already manually tested it.
+    refutation: Manual testing is ad-hoc — no record of what you covered, no way to re-run it when the code changes, easy to forget cases under pressure. "Worked when I tried it" is not the same as comprehensive. Automated tests run the same way every time.
+  - excuse: I already spent hours on this, deleting it is wasteful.
+    refutation: Sunk cost fallacy — that time is already spent either way. The real choice is rewrite with TDD (high confidence) vs. keep it and bolt tests on after (low confidence, likely bugs). Keeping code you can't trust is the waste.
+  - excuse: I'll keep the existing code as reference and write the tests first.
+    refutation: You'll adapt it. That's testing after. Delete means delete.
+  - excuse: I need to explore the problem first before writing a test.
+    refutation: Fine — throw away the exploration code, then start fresh with TDD.
+  - excuse: This code is hard to write a test for, so the test approach doesn't fit here.
+    refutation: Listen to the test. Hard to test means hard to use — that's a design signal, not a reason to skip TDD.
+  - excuse: TDD will slow me down on this task.
+    refutation: TDD is the pragmatic path — it catches bugs before commit, prevents regressions, and lets you refactor without fear. "Pragmatic" shortcuts mean debugging in production, which is slower, not faster.
+  - excuse: A manual test is faster than writing an automated one.
+    refutation: Manual testing doesn't prove edge cases, and you'll have to re-run it by hand on every future change.
 red_flags:
-  - Implementation file was created or edited before any test file for the same feature
-  - The first test run after writing the test immediately passes
-  - A test was deleted or commented out to reach green
+  - Code was written before the test
+  - The test was written after the implementation
+  - The test passed immediately on the first run
+  - Cannot explain why the test failed before the fix
+  - Tests were added "later" instead of first
+  - Rationalizing "just this once"
+  - "I already manually tested it"
+  - "Tests after achieve the same purpose"
+  - "It's about spirit, not ritual"
+  - 'Keep as reference, or "adapt" existing code instead of deleting it'
+  - "Already spent hours on this, deleting it is wasteful"
+  - "TDD is dogmatic, I'm being pragmatic"
+  - "This case is different because..."
 verifiers:
   - Test suite fails before implementation is written (red confirmed)
   - Test suite passes after implementation (green confirmed)
