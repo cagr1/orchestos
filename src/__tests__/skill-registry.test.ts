@@ -67,3 +67,60 @@ describe('validateSkill — hardening fields (N.1)', () => {
     expect(() => validateSkill(baseSkill({ red_flags: [42] }), 'test.yaml')).toThrow(/red_flags/)
   })
 })
+
+describe('validateSkill — activation contract (O.0)', () => {
+  test('accepts a skill without activation (backward compatible)', () => {
+    expect(() => validateSkill(baseSkill(), 'test.yaml')).not.toThrow()
+  })
+
+  test('accepts a minimal activation with only mode', () => {
+    const skill = validateSkill(baseSkill({ activation: { mode: 'suggest' } }), 'test.yaml')
+    expect(skill.activation?.mode).toBe('suggest')
+  })
+
+  test('rejects an invalid mode', () => {
+    expect(() => validateSkill(baseSkill({ activation: { mode: 'always' } }), 'test.yaml')).toThrow(/activation\.mode/)
+  })
+
+  test('rejects activation missing mode', () => {
+    expect(() => validateSkill(baseSkill({ activation: {} }), 'test.yaml')).toThrow(/activation\.mode/)
+  })
+
+  test('accepts valid triggers', () => {
+    const skill = validateSkill(baseSkill({
+      activation: { mode: 'automatic', triggers: ['auth', 'secrets'] },
+    }), 'test.yaml')
+    expect(skill.activation?.triggers).toEqual(['auth', 'secrets'])
+  })
+
+  test('rejects an empty triggers array', () => {
+    expect(() => validateSkill(baseSkill({
+      activation: { mode: 'automatic', triggers: [] },
+    }), 'test.yaml')).toThrow(/activation\.triggers/)
+  })
+
+  test('rejects triggers entries that are not strings', () => {
+    expect(() => validateSkill(baseSkill({
+      activation: { mode: 'automatic', triggers: [42] },
+    }), 'test.yaml')).toThrow(/activation\.triggers/)
+  })
+
+  test('accepts valid phases reusing TaskClass values', () => {
+    const skill = validateSkill(baseSkill({
+      activation: { mode: 'automatic', phases: ['review', 'implement'] },
+    }), 'test.yaml')
+    expect(skill.activation?.phases).toEqual(['review', 'implement'])
+  })
+
+  test('rejects a phases entry outside TaskClass', () => {
+    expect(() => validateSkill(baseSkill({
+      activation: { mode: 'automatic', phases: ['deployment'] },
+    }), 'test.yaml')).toThrow(/activation\.phases/)
+  })
+
+  test('rejects an empty phases array', () => {
+    expect(() => validateSkill(baseSkill({
+      activation: { mode: 'automatic', phases: [] },
+    }), 'test.yaml')).toThrow(/activation\.phases/)
+  })
+})

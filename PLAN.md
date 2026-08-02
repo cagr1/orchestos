@@ -167,8 +167,19 @@ Los tres mecanismos se separan a propósito — tratarlos como uno solo es lo qu
 un problema grande: **retrieval** (qué skills son relevantes), **binding** (dónde se engancha cada
 una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
 
-- [ ] **O.0 — 🧠 Contrato de activación mínimo (prerequisito de O.2 y O.3).** Añadido 2026-07-31
-  tras contrastar con el análisis de Codex: la primera versión de este bloque descartó el contrato
+- [x] **O.0 — 🧠 Contrato de activación mínimo (prerequisito de O.2 y O.3).** (cerrado 2026-08-02,
+  adelantado como prerequisito real de N.5 — sin esto, escribir `activation:` en las 5 skills piloto
+  habría sido el mismo "contenido muerto" que motivó N.1-N.3). Implementado en
+  [src/skills/registry.ts](src/skills/registry.ts): `SkillActivation { mode, triggers?, phases? }`,
+  `phases` tipado como `TaskClass[]` (import type de
+  [router/classify.ts](src/router/classify.ts), sin taxonomía nueva) y validación en
+  `validateSkill()` con el mismo patrón que los campos de N.1 (mode contra allowlist, triggers/phases
+  no vacíos y tipados). 12 tests nuevos. `tsc --noEmit` limpio, 1044 tests, cobertura sobre el
+  umbral de CI. Consumo real (O.2/O.3: el planner y los gates leyendo este campo) queda para cuando
+  se ataque el resto del Bloque O — este ítem es solo el contrato, adelantado.
+
+  Contexto original (2026-07-31), tras contrastar con el análisis de Codex: la primera versión de
+  este bloque descartó el contrato
   de activación entero por sobreingeniería y **sobre-corrigió** — O.2 y O.3 dependían en silencio de
   una declaración que **no existe en ningún lado**. Verificado: `activation` / `mandatory` /
   `trigger` dan **cero resultados** en `src/skills/` y en las 24 YAML. Sin esto, "skill obligatoria
