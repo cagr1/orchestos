@@ -60,8 +60,67 @@ const VALID_TARGETS: SkillTarget[] = ['claude', 'cursor', 'openai']
 const VALID_ACTIVATION_MODES: SkillActivationMode[] = ['automatic', 'suggest', 'explicit']
 const VALID_TASK_CLASSES: TaskClass[] = ['plan', 'implement', 'fix', 'review', 'doc']
 
+/**
+ * O.1 (Bloque O, 2026-08-03) — las skills viven CENTRALIZADAS en la instalación
+ * de OrchestOS, no copiadas en cada proyecto gestionado. Mismo patrón y misma
+ * decisión que los roadmaps (decisión M, 2026-07-30, "centralizado, no
+ * copiado"): se prueba el proyecto primero y se cae a la instalación.
+ *
+ * Antes `getSkillsDir()` era `join(process.cwd(), 'skills')` **sin fallback**:
+ * cuando OrchestOS gestionaba otro proyecto, ahí no hay carpeta `skills/`,
+ * `listSkillFiles()` devolvía `[]` y **no se activaba ninguna skill jamás**.
+ * Todo el Bloque O habría funcionado solo dentro de este repo.
+ *
+ * Lectura y escritura NO son simétricas, a propósito:
+ * - leer  → proyecto primero, instalación como fallback (`resolveSkillPath`)
+ * - escribir → SIEMPRE el proyecto (`getSkillPath`), nunca la instalación:
+ *   crear/editar una skill mientras se gestiona otro repo no debe mutar el
+ *   OrchestOS instalado. Es la misma excepción que `project-profile.md` en la
+ *   decisión M.
+ */
+const SKILLS_INSTALL_ROOT = join(import.meta.dir, '..', '..')
+
+/** Carpeta de skills del proyecto en curso. Destino de toda ESCRITURA. */
 function getSkillsDir(): string {
   return join(process.cwd(), 'skills')
+}
+
+/** Carpeta de skills de la instalación de OrchestOS. Solo LECTURA. */
+function getInstallSkillsDir(): string {
+  return join(SKILLS_INSTALL_ROOT, 'skills')
+}
+
+/**
+ * Ruta de la que LEER una skill: la del proyecto gana; si no existe, la
+ * centralizada. Devuelve la ruta del proyecto cuando no hay ninguna, para que
+ * el mensaje de error apunte a donde el usuario esperaría crearla.
+ */
+export function resolveSkillPath(id: string): string {
+  const own = join(getSkillsDir(), `${id}.yaml`)
+  if (existsSync(own)) return own
+  const central = join(getInstallSkillsDir(), `${id}.yaml`)
+  if (existsSync(central)) return central
+  const centralPro = join(getInstallSkillsDir(), 'pro', `${id}.yaml`)
+  if (existsSync(centralPro)) return centralPro
+  return own
+}
+
+/**
+ * Une los `.yaml` del proyecto con los de la instalación, **el proyecto gana**
+ * ante mismo id. Dedupe por nombre de archivo, no por ruta: si `cwd` es la
+ * propia instalación (OrchestOS trabajando sobre sí mismo) las dos carpetas son
+ * la misma y sin dedupe cada skill aparecería dos veces.
+ */
+function mergeSkillDirs(ownDir: string, installDir: string): string[] {
+  const byName = new Map<string, string>()
+  for (const dir of [installDir, ownDir]) {   // ownDir segundo: pisa al central
+    if (!existsSync(dir)) continue
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith('.yaml') && !f.endsWith('.yml')) continue
+      byName.set(f, join(dir, f))
+    }
+  }
+  return [...byName.values()]
 }
 
 export function validateSkill(raw: Record<string, unknown>, filePath: string): SkillDef {
@@ -145,14 +204,12 @@ export function loadSkill(filePath: string): SkillDef {
   return validateSkill(raw, filePath)
 }
 
+/** Catálogo legible: skills del proyecto + las centralizadas (proyecto gana). */
 export function listSkillFiles(): string[] {
-  const dir = getSkillsDir()
-  if (!existsSync(dir)) return []
-  return readdirSync(dir)
-    .filter(f => f.endsWith('.yaml') || f.endsWith('.yml'))
-    .map(f => join(dir, f))
+  return mergeSkillDirs(getSkillsDir(), getInstallSkillsDir())
 }
 
+/** Destino de ESCRITURA — siempre el proyecto, nunca la instalación. Para leer usar `resolveSkillPath()`. */
 export function getSkillPath(id: string): string {
   return join(getSkillsDir(), `${id}.yaml`)
 }
@@ -161,14 +218,25 @@ function getProSkillsDir(): string {
   return join(getSkillsDir(), 'pro')
 }
 
-export function listProSkillFiles(): string[] {
-  const dir = getProSkillsDir()
-  if (!existsSync(dir)) return []
-  return readdirSync(dir)
-    .filter(f => f.endsWith('.yaml') || f.endsWith('.yml'))
-    .map(f => join(dir, f))
+function getInstallProSkillsDir(): string {
+  return join(getInstallSkillsDir(), 'pro')
 }
 
+/** Catálogo pro legible: pro del proyecto + pro centralizadas (proyecto gana). */
+export function listProSkillFiles(): string[] {
+  return mergeSkillDirs(getProSkillsDir(), getInstallProSkillsDir())
+}
+
+/** Destino de ESCRITURA de una skill pro — siempre el proyecto. */
 export function getProSkillPath(id: string): string {
   return join(getProSkillsDir(), `${id}.yaml`)
+}
+
+/** Ruta de LECTURA de una skill pro: proyecto primero, instalación como fallback. */
+export function resolveProSkillPath(id: string): string {
+  const own = join(getProSkillsDir(), `${id}.yaml`)
+  if (existsSync(own)) return own
+  const central = join(getInstallProSkillsDir(), `${id}.yaml`)
+  if (existsSync(central)) return central
+  return own
 }

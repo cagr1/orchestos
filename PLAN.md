@@ -57,7 +57,7 @@ desorientación real por esto en la revisión del 2026-08-02.
 | --- | --- | --- |
 | Pendientes heredados | K.6.2-R7, L.5.7, L.6.2, M ×2 | ✅ **todos cerrados** (L.6.2 el 2026-08-02, era el más viejo) |
 | **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ N.1–N.6 cerrados (incl. N.4.5 y N.5.1) · ⏳ **N.7a (⚡ Codex) y N.7b (🧠) abiertos** — auditoría de procedencia de las 24, agregada 2026-08-02 tras cerrar el resto |
-| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **1 de 5** — solo O.0 (contrato); **nadie lo consume todavía** |
+| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **2 de 5** — O.0 (contrato) y O.1 (resolución central, 2026-08-03); el consumo real es O.2/O.3 |
 | **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
 
 **Estado de CI (2026-08-02)**: verde. Estuvo rojo en el **100%** de los pushes desde 2026-07-29
@@ -377,7 +377,7 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   existe); y la taxonomía de 6 tipos de skill (implementación/análisis/revisión/verificación/
   seguridad/diseño) — **dos categorías alcanzan**: *guía el trabajo* vs *lo bloquea*; seis tipos sin
   diferencia de comportamiento es config decorativa.
-- [ ] **O.1 — 🧠 (C) Las skills se resuelven desde la instalación, no desde `cwd`.**
+- [x] **O.1 — 🧠 (C) Las skills se resuelven desde la instalación, no desde `cwd`.**
   `getSkillsDir()` es `join(process.cwd(), 'skills')` **sin fallback**
   ([registry.ts:47](src/skills/registry.ts)). Cuando OrchestOS gestiona **otro** proyecto, `cwd` es
   ese proyecto, ahí no hay carpeta `skills/`, `listSkillFiles()` devuelve `[]` → cero candidatas →
@@ -387,6 +387,34 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   primero y caer a la instalación vía `import.meta.dir` — ver `ROADMAP_DOCS_ROOT` en
   [roadmap-profile.ts:16](src/detect/roadmap-profile.ts) y [context.ts:17](src/roadmaps/context.ts).
   Las skills propias del proyecto siguen ganando sobre las centralizadas.
+
+  **CERRADO 2026-08-03.** `SKILLS_INSTALL_ROOT = join(import.meta.dir, '..', '..')` en
+  [registry.ts](src/skills/registry.ts), mismo patrón que roadmaps.
+  **Lectura y escritura quedaron deliberadamente asimétricas** — es la decisión de diseño del ítem,
+  no un detalle: leer cae al fallback (`resolveSkillPath`/`resolveProSkillPath`), pero **escribir
+  apunta siempre al proyecto** (`getSkillPath`/`getProSkillPath`), porque crear o editar una skill
+  mientras se gestiona otro repo no debe mutar la instalación de OrchestOS. Es la misma excepción
+  que `project-profile.md` en la decisión M.
+  - `listSkillFiles()`/`listProSkillFiles()` ahora **unen** proyecto + instalación con el proyecto
+    ganando ante mismo id. Dedupe por nombre de archivo, no por ruta: cuando `cwd` **es** la
+    instalación (OrchestOS trabajando sobre sí mismo) las dos carpetas son la misma y sin dedupe
+    cada skill aparecería dos veces — cubierto por test.
+  - **Editar** una skill centralizada desde otro proyecto hace **copy-on-write**: escribe una copia
+    local que la pisa, nunca toca la central. **Borrar** una skill que solo existe centralmente se
+    rechaza con `409` explícito en vez de fallar en silencio o borrarla para todos los proyectos.
+  - **Hallazgo colateral — N.4.5 estaba incompleto.** [cli.ts:582](src/cli.ts) era una **tercera
+    copia** del snippet que inyecta `skill.instructions` crudo; N.4.5 solo corrigió `prompt.ts` y
+    `skill-route.ts`. Y como el CLI pasa `skillGuidelines` explícito a `buildPrompt()`, bypasseaba
+    el fallback ya arreglado: **por el camino del CLI el `iron_law` seguía sin llegar al ejecutor**.
+    Ahora usa `buildSections()`. Es el mismo fallo de N.4.5, encontrado un mes después en un tercer
+    sitio — señal de que el snippet duplicado era el problema real.
+  - 7 tests nuevos ([skill-central-resolution.test.ts](src/__tests__/skill-central-resolution.test.ts)),
+    incluido el caso que antes era imposible de probar: proyecto ajeno sin `skills/` propia.
+    Gotcha anotado: en macOS `tmpdir()` da `/var/...` pero `chdir()` resuelve a `/private/var/...`,
+    hay que pasar por `realpathSync` o las comparaciones de ruta fallan.
+  - **Verificación en vivo** (no solo tests): directorio vacío en `/tmp`, `chdir`, `listSkillFiles()`
+    → **16 skills visibles donde antes eran 0**, y `security-review` resolviendo contra la
+    instalación real. 1073 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde.
 - [ ] **O.2 — 🧠 (A) El planner ve el catálogo y asigna skill por sub-tarea.** Agregar `skill` al
   schema JSON de [planner.ts](src/agents/planner.ts) + pasarle la lista resumida (id + description
   + when_to_use, que ya arma `listAllSkillCandidates()`,

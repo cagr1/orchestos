@@ -11,7 +11,8 @@ import { runMigrations } from './db/migrate.ts'
 import { upsertProject, getProject, listProjects } from './db/projects.ts'
 import { loadContext } from './context/load.ts'
 import { buildContextMd, estimateTokens } from './context/compress.ts'
-import { loadSkill, listSkillFiles, getSkillPath, type SkillTarget } from './skills/registry.ts'
+import { loadSkill, listSkillFiles, getSkillPath, resolveSkillPath, type SkillTarget } from './skills/registry.ts'
+import { buildSections } from './skills/targets/_shared.ts'
 import { compileSkill } from './skills/compile.ts'
 import { classifyTask } from './router/classify.ts'
 import { resolveModel } from './router/models.ts'
@@ -364,7 +365,7 @@ skill
     }
 
     const files = opts.id
-      ? [getSkillPath(opts.id)]
+      ? [resolveSkillPath(opts.id)]
       : listSkillFiles()
 
     if (files.length === 0) {
@@ -578,8 +579,13 @@ program
     let skillGuidelines = ''
     if (opts.skill) {
       try {
-        const skillDef = loadSkill(getSkillPath(opts.skill))
-        skillGuidelines = `\n## SKILL GUIDELINES: ${skillDef.name}\n${skillDef.instructions}\n`
+        // N.4.5 (completado 2026-08-03) — esta era la TERCERA copia del snippet
+        // que inyectaba `skill.instructions` crudo, y N.4.5 solo corrigió las de
+        // prompt.ts y skill-route.ts. Como el CLI pasa `skillGuidelines` explícito
+        // a buildPrompt(), bypasseaba el fallback ya arreglado: por el CLI, el
+        // iron_law seguía sin llegar al ejecutor. Ahora usa buildSections().
+        const skillDef = loadSkill(resolveSkillPath(opts.skill))
+        skillGuidelines = `\n## SKILL GUIDELINES: ${skillDef.name}\n${buildSections(skillDef).join('\n\n')}\n`
       } catch (e: any) {
         console.warn(`[run] Skill "${opts.skill}" not found — continuing without it`)
       }

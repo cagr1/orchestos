@@ -1,4 +1,4 @@
-import { loadSkill, getSkillPath } from '../../skills/registry.ts'
+import { loadSkill, resolveSkillPath } from '../../skills/registry.ts'
 import { buildSections } from '../../skills/targets/_shared.ts'
 import type { MiddlewareFn, RunContext } from '../middleware.ts'
 
@@ -12,7 +12,7 @@ export const skillRoute: MiddlewareFn<RunContext> = async (ctx, next) => {
   const skillId = ctx.task.skill
   if (skillId) {
     try {
-      const skill = loadSkill(getSkillPath(skillId))
+      const skill = loadSkill(resolveSkillPath(skillId))
       ctx.skillInstructions = `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
     } catch {
       // skill file not found or invalid — leave skillInstructions as empty string

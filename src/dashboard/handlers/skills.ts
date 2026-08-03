@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
-import { getSkillPath, getProSkillPath, loadSkill, listSkillFiles, listProSkillFiles, validateSkill } from '../../skills/registry.ts'
+import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'fs'
+import { dirname } from 'path'
+import { getSkillPath, resolveSkillPath, resolveProSkillPath, loadSkill, listSkillFiles, listProSkillFiles, validateSkill } from '../../skills/registry.ts'
 import { compileSkill } from '../../skills/compile.ts'
 import { chat as realOpenrouterChat } from '../../providers/openrouter.ts'
 import type { ChatResponse, ChatMessage } from '../../providers/openrouter.ts'
@@ -44,7 +45,7 @@ function handleApiSkillsGet(url: URL): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
-  const path = getSkillPath(id)
+  const path = resolveSkillPath(id)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
   try {
     const skill = loadSkill(path)
@@ -58,7 +59,7 @@ function handleApiSkillsExport(url: URL): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
-  const path = getSkillPath(id)
+  const path = resolveSkillPath(id)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
   try {
     const yaml = readFileSync(path, 'utf-8')
@@ -100,8 +101,11 @@ async function handleApiSkillsUpdate(req: Request, url: URL): Promise<Response> 
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
+  // O.1 — existe si está en el proyecto O centralizada, pero se escribe SIEMPRE
+  // en el proyecto: editar una skill centralizada desde otro repo crea una
+  // copia local que la pisa (copy-on-write), nunca muta la instalación.
+  if (!existsSync(resolveSkillPath(id))) return errorResponse('Skill not found', 404)
   const path = getSkillPath(id)
-  if (!existsSync(path)) return errorResponse('Skill not found', 404)
 
   let body: Record<string, unknown>
   try { body = await req.json() as Record<string, unknown> } catch { return errorResponse('Invalid JSON', 400) }
@@ -109,6 +113,7 @@ async function handleApiSkillsUpdate(req: Request, url: URL): Promise<Response> 
   try {
     const validated = validateSkill(body, `api:${id}`)
     const yaml = stringify(validated, { lineWidth: 120 })
+    mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, yaml, 'utf-8')
     return jsonResponse({ ok: true, id } satisfies MutationResult)
   } catch (e: any) {
@@ -120,8 +125,17 @@ async function handleApiSkillsDelete(req: Request, url: URL): Promise<Response> 
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
+  // O.1 — borrar SOLO toca el proyecto, nunca la instalación de OrchestOS: si
+  // la skill resuelve únicamente contra la carpeta central, borrarla desde este
+  // proyecto la haría desaparecer de todos los demás. Se rechaza explícito en
+  // vez de fallar en silencio o de mutar la instalación.
   const path = getSkillPath(id)
-  if (!existsSync(path)) return errorResponse('Skill not found', 404)
+  if (!existsSync(path)) {
+    if (existsSync(resolveSkillPath(id))) {
+      return errorResponse(`"${id}" is a centrally installed skill — it can't be deleted from this project`, 409)
+    }
+    return errorResponse('Skill not found', 404)
+  }
 
   let body: { confirm?: boolean }
   try { body = await req.json() as { confirm?: boolean } } catch { return errorResponse('Invalid JSON', 400) }
@@ -139,7 +153,7 @@ function handleApiSkillsBuild(url: URL): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/build$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
-  const path = getSkillPath(id)
+  const path = resolveSkillPath(id)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
 
   try {
@@ -178,7 +192,7 @@ function handleApiSkillsProImport(url: URL): Response {
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
 
-  const proPath = getProSkillPath(id)
+  const proPath = resolveProSkillPath(id)
   if (!existsSync(proPath)) return errorResponse('Pro skill not found', 404)
 
   const targetPath = getSkillPath(id)

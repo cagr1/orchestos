@@ -1,6 +1,6 @@
 import { join } from 'path'
 import { existsSync, readFileSync } from 'fs'
-import { loadSkill, getSkillPath } from '../skills/registry.ts'
+import { loadSkill, resolveSkillPath } from '../skills/registry.ts'
 import { buildSections } from '../skills/targets/_shared.ts'
 import type { Task } from '../tasks/schema.ts'
 
@@ -60,7 +60,7 @@ function loadSkillGuidelines(skillId?: string): string {
   if (!skillId) return ''
 
   try {
-    const skill = loadSkill(getSkillPath(skillId))
+    const skill = loadSkill(resolveSkillPath(skillId))
     return `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
   } catch {
     return ''
