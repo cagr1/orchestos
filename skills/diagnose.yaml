@@ -50,6 +50,37 @@ anti_patterns:
   - Skip the hypothesis step and jump straight to reading code
   - Apply multiple changes at once — you lose the ability to know which one worked
   - Mark a bug as fixed before re-running the reproducer
+# N.7b (2026-08-03) — iron_law/common_rationalizations/red_flags portados casi
+# verbatim de obra/superpowers `skills/systematic-debugging/SKILL.md` (MIT).
+# N.7a había emparejado `diagnose` con mattpocock `diagnosing-bugs` por parecido
+# de NOMBRE, pero esa no tiene contenido portable; el match SEMÁNTICO correcto
+# es systematic-debugging (Iron Law + 8 rationalizations + red flags).
+iron_law: No fixes without root cause investigation first — if you haven't completed the reproduce-and-evidence phase, you cannot propose a fix.
+common_rationalizations:
+  - excuse: The issue is simple, it doesn't need the process.
+    refutation: Simple issues have root causes too. The process is fast for simple bugs.
+  - excuse: This is an emergency, there's no time for the process.
+    refutation: Systematic debugging is FASTER than guess-and-check thrashing.
+  - excuse: Let me just try this one thing first, then investigate.
+    refutation: The first fix sets the pattern. Do it right from the start.
+  - excuse: I'll write the test after confirming the fix works.
+    refutation: Untested fixes don't stick. Writing the test first proves it.
+  - excuse: Applying multiple fixes at once saves time.
+    refutation: You can't isolate what worked, and it causes new bugs.
+  - excuse: That reference is too long, I'll adapt the pattern from memory.
+    refutation: Partial understanding guarantees bugs. Read it completely.
+  - excuse: I see the problem, let me just fix it.
+    refutation: Seeing symptoms is not the same as understanding the root cause.
+  - excuse: One more fix attempt (after 2+ failures).
+    refutation: 3+ failures means an architectural problem. Question the pattern, don't fix again.
+red_flags:
+  - '"Quick fix for now, investigate later"'
+  - '"Just try changing X and see if it works"'
+  - '"Skip the test, I''ll manually verify"'
+  - '"It''s probably X, let me fix that"'
+  - '"I don''t fully understand but this might work"'
+  - Proposing solutions before tracing the data flow
+  - Each fix reveals a new problem in a different place
 verifiers:
   - Bug is reproducible before the fix
   - Root cause is stated explicitly before the fix is written

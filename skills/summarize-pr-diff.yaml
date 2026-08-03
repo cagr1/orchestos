@@ -1,7 +1,12 @@
 id: summarize-pr-diff
 version: 1.0.0
 name: Summarize PR Diff
-description: Produces a concise, structured summary of a pull request diff.
+description: Use when a pull request or branch diff needs a readable summary — for a PR description, a review handoff, or a changelog entry.
+when_to_use:
+  - When opening a pull request that needs a clear description of what changed
+  - When a reviewer needs to understand a large diff before reading the code
+  - When handing off work in progress to someone else
+  - When writing a changelog or release note from a set of commits
 targets:
   - claude
   - cursor

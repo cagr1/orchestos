@@ -1,7 +1,12 @@
 id: generate-prisma-migration
 version: 1.0.0
 name: Generate Prisma Migration
-description: Generates a safe Prisma schema change and migration for a requested model update.
+description: Use when a Prisma model needs to change — adding, altering or removing fields, relations or indexes — and a migration must be generated safely.
+when_to_use:
+  - When adding, renaming or removing a field, model or relation in schema.prisma
+  - When a change could drop data or lock a table and needs a safe migration path
+  - When an index or constraint has to change on an existing table
+  - Before deploying a schema change that runs against existing production data
 targets:
   - claude
   - cursor

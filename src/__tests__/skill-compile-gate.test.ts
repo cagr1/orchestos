@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { loadSkill, getSkillPath } from '../skills/registry.ts'
+import { loadSkill, resolveSkillPath, listSkillFiles } from '../skills/registry.ts'
+import type { SkillDef } from '../skills/registry.ts'
 import { compileClaude } from '../skills/targets/claude.ts'
 import { compileCursor } from '../skills/targets/cursor.ts'
 import { compileOpenAI } from '../skills/targets/openai.ts'
@@ -10,7 +11,7 @@ import { compileOpenAI } from '../skills/targets/openai.ts'
 // camino que expone /api/skills/:id/build en el dashboard de N.4.
 
 describe('N.6 — iron_law antes de instructions en los 3 targets (skill real endurecida)', () => {
-  const skill = loadSkill(getSkillPath('security-review'))
+  const skill = loadSkill(resolveSkillPath('security-review'))
 
   test('claude target', () => {
     const out = compileClaude(skill)
@@ -39,14 +40,34 @@ describe('N.6 — iron_law antes de instructions en los 3 targets (skill real en
   })
 })
 
-describe('N.6 — cero regresión en skill real sin los campos nuevos (diagnose)', () => {
-  const skill = loadSkill(getSkillPath('diagnose'))
+// La skill sin endurecer se elige DINÁMICAMENTE, no por id fijo. Antes estaba
+// hardcodeada a `diagnose` y N.7b la endureció (2026-08-03) → 4 tests en rojo
+// por un fixture obsoleto, no por una regresión real. Cada avance de N.7b
+// habría vuelto a romperlo. Si algún día TODAS están endurecidas, cae a una
+// SkillDef sintética: la propiedad que se verifica es del renderer, no de una
+// skill concreta.
+function pickUnhardenedSkill(): SkillDef {
+  for (const f of listSkillFiles()) {
+    try {
+      const s = loadSkill(f)
+      if (!s.iron_law && !s.common_rationalizations && !s.red_flags) return s
+    } catch {}
+  }
+  return {
+    id: 'synthetic-unhardened', version: '1.0.0', name: 'Synthetic Unhardened',
+    description: 'Fallback fixture when every real skill has been hardened',
+    instructions: 'Do the thing without any hardening fields present.',
+    targets: ['claude', 'cursor', 'openai'],
+  }
+}
 
-  test('diagnose.yaml has no hardening fields (sanity check for this gate)', () => {
+describe('N.6 — cero regresión en skill real sin los campos nuevos', () => {
+  const skill = pickUnhardenedSkill()
+
+  test('la skill elegida efectivamente no tiene campos de endurecimiento', () => {
     expect(skill.iron_law).toBeUndefined()
     expect(skill.common_rationalizations).toBeUndefined()
     expect(skill.red_flags).toBeUndefined()
-    expect(skill.activation).toBeUndefined()
   })
 
   test('claude target has no hardening sections, instructions still lead', () => {

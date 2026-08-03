@@ -56,7 +56,7 @@ desorientación real por esto en la revisión del 2026-08-02.
 | Bloque | Qué es | Estado |
 | --- | --- | --- |
 | Pendientes heredados | K.6.2-R7, L.5.7, L.6.2, M ×2 | ✅ **todos cerrados** (L.6.2 el 2026-08-02, era el más viejo) |
-| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ N.1–N.6 cerrados (incl. N.4.5 y N.5.1) · ⏳ **N.7a (⚡ Codex) y N.7b (🧠) abiertos** — auditoría de procedencia de las 24, agregada 2026-08-02 tras cerrar el resto |
+| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ N.1–N.6, N.7a y N.7b cerrados · ⏳ **N.7c abierto** (auditoría de las 8 de `skills/pro/`, prioridad baja) |
 | **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **2 de 5** — O.0 (contrato) y O.1 (resolución central, 2026-08-03); el consumo real es O.2/O.3 |
 | **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
 
@@ -287,7 +287,7 @@ usar"*.
   copia o coincidencia — solo reportar lo que existe; (c) **NO resumir ni parafrasear** el contenido
   upstream, pegar el fragmento literal; (d) si no hay candidato, escribir *"sin candidato"*, nunca
   inventar uno plausible. El entregable es un documento nuevo, cero cambios en skills.
-- [ ] **N.7b — 🧠 Decisión, porteo y registro (sobre la tabla de N.7a).** (1) Decidir caso por caso
+- [x] **N.7b — 🧠 (2026-08-03) Decisión, porteo y registro para las 16 de `skills/` (sobre la tabla de N.7a).** (1) Decidir caso por caso
   si el parecido es copia derivada o trabajo independiente — es criterio, con el contexto del
   proyecto a la vista (ej. `improve-architecture` vs. mattpocock `improve-codebase-architecture`:
   DONE.md dice "nativa", el nombre dice otra cosa); (2) las que SÍ tengan fuente confirmada →
@@ -302,6 +302,47 @@ usar"*.
   de N.7b espere.
   Al revisar lo que devuelva N.7a: **un `[x]` de una corrida delegada no es evidencia** — grepear lo
   concreto antes de confiar ([[feedback-verificar-progreso-delegado]]).
+
+  **Resultado (evidencia completa en [docs/skills-provenance-audit.md](docs/skills-provenance-audit.md) § N.7b):**
+  - **Verificada la entrega de Codex antes de usarla**: no tocó ningún YAML (commit `4b09004` toca
+    solo 3 archivos, ninguno de `skills/`), usó "sin candidato" 14 veces (no inventó), y el
+    spot-check de un fragmento contra el upstream real dio **byte-idéntico** (no parafraseó). 24/24
+    cubiertas, con los SHA upstream declarados. Respetó los 4 límites duros.
+  - **Las 16 de `skills/` son NATIVAS.** Los 4 candidatos con parecido de nombre resultaron
+    coincidencias **solo léxicas**, verificado leyendo el contenido: `qa-structured` vs el `qa` de
+    mattpocock (el upstream abre issues de GitHub conversando; el nuestro da un veredicto pass/fail
+    contra criterios), `security-review` vs `code-review` (OWASP vs Standards+Spec),
+    `frontend-design` vs `design-an-interface` (diseño de API de módulo, no visual — su fuente real
+    es Impeccable, ya verificada en N.5.1), y `test-writer` vs TDD (opuesto: la implementación ya
+    existe). **`improve-architecture` queda resuelto**: el upstream *rechaza explícitamente* las
+    heurísticas rígidas que el nuestro usa (>300 líneas, >5 imports) y depende de primitivas de
+    Claude Code que OrchestOS no tiene — la etiqueta "nativa" de DONE.md **era correcta**, la
+    contradicción marcada en N.7 se cierra. **No había contenido perdido que portar en esta
+    carpeta**: el riesgo que motivó N.7 no se materializó acá.
+  - **Hallazgo de método — match nominal ≠ match semántico.** N.7a emparejó `diagnose` con
+    mattpocock `diagnosing-bugs` por nombre, y esa **no tiene contenido portable**; el match real
+    era `obra/superpowers/skills/systematic-debugging` (Iron Law + 8 rationalizations + red flags),
+    que una búsqueda por nombre jamás encuentra. **Esto valida el corte N.7a/N.7b**: buscar es
+    delegable, *decidir qué es la misma cosa* no.
+  - **Porteo aplicado**: `diagnose` recibió `iron_law` + 8 `common_rationalizations` + 7
+    `red_flags` casi verbatim de `systematic-debugging`, y la fuente quedó registrada en
+    [sources-registry.yaml](docs/sources-registry.yaml) (6 entradas, `sources:drift` verde).
+  - **`when_to_use` faltantes: resueltos.** Los 3 escritos y sus `description` reescritas como
+    condición de disparo. **0 skills sin `when_to_use`** (eran 3) — **prerequisito de O.2 cerrado**.
+  - **Fixture frágil corregido de paso**: el gate de N.6 tenía `diagnose` hardcodeada como "skill
+    sin endurecer"; endurecerla puso 4 tests en rojo por un fixture obsoleto, no por una regresión.
+    Ahora la elige dinámicamente (con fallback sintético si algún día todas están endurecidas), así
+    cada avance de N.7c no vuelve a romperlo.
+  - 1073 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde.
+- [ ] **N.7c — 🧠 Auditoría de las 8 de `skills/pro/`.** Separado de N.7b para no dejar un estado
+  ambiguo: N.7b cerró `skills/`, esto queda abierto. [DONE.md:3529](DONE.md) dice que las 8 se
+  curaron desde mattpocock/superpowers, y N.7a encontró candidatos reales para 3 (`code-review`,
+  `bug-hypothesis`, `refactor-guided`) — falta comparar contenido y portar lo que corresponda.
+  Contenido portable ya confirmado en superpowers: `systematic-debugging` (4 secciones),
+  `requesting-code-review` (3), `verification-before-completion` (3).
+  **Prioridad más baja que la de `skills/`, a propósito**: `skills/pro/` es el catálogo de
+  *recomendadas para importar*, no las activas — una skill pro sin endurecer no degrada ninguna
+  corrida hasta que alguien la importe.
 
 ### Bloque O — 🧠 Skills que se activan solas (decisión Carlos 2026-07-31)
 

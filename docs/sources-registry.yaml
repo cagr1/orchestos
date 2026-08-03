@@ -78,3 +78,17 @@ sources:
       Fuente del enum promptInjectionMode (6 estrategias de invocación) que
       IDEAS #39 propone adaptar como promptInjectionMode-lite. Vigilar por
       estrategias nuevas o cambios en las 6 existentes.
+
+  - id: superpowers-systematic-debugging
+    repo: obra/superpowers
+    path: skills/systematic-debugging/SKILL.md
+    license: MIT
+    local_artifact: skills/diagnose.yaml
+    last_synced_sha: c74782ead66b8ded584d9b9cf64dcba95457f320
+    last_synced_date: "2026-08-03"
+    note: >
+      Confirmado en N.7b (2026-08-03) por match SEMÁNTICO, no nominal: N.7a
+      había emparejado `diagnose` con mattpocock `diagnosing-bugs` por
+      parecido de nombre, pero esa no tiene contenido portable. De acá se
+      portaron casi verbatim el iron_law, 8 common_rationalizations y los
+      red_flags de diagnose.yaml — vigilar cambios en esas tablas.

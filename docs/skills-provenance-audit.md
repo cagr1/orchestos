@@ -263,3 +263,83 @@ This skill will be invoked when the user wants to create a refactor request. You
 - No se determinó procedencia, copia, derivación ni independencia de ningún candidato.
 - No se resumió ni parafraseó contenido upstream; los únicos contenidos upstream incluidos son los fragmentos literales iniciales de los candidatos.
 - La ausencia de candidato significa ausencia de coincidencia nominal en los árboles completos consultados, no prueba de que no exista inspiración o relación conceptual.
+
+---
+
+# N.7b — Decisiones sobre esta evidencia (2026-08-03)
+
+Esta sección la escribe N.7b (🧠). La auditoría de arriba (N.7a, ⚡) solo recogió
+evidencia nominal y **deliberadamente no decidió nada**; acá se decide caso por
+caso y se declara el porqué.
+
+## Verificación de la entrega de N.7a
+
+Un `[x]` de una corrida delegada no es evidencia ([[feedback-verificar-progreso-delegado]]),
+así que se verificó antes de usarla:
+
+- **No tocó ningún YAML de skills** — el commit `4b09004` toca solo `PLAN.md`,
+  `docs/skills-provenance-audit.md` y `runs-summary.json`. ✅
+- **No inventó candidatos** — "sin candidato" aparece 14 veces. ✅
+- **Literal, no parafraseado** — spot-check de `E8` contra el upstream real vía
+  `gh api`: byte-idéntico. Desviación menor: pegó 13 líneas donde el pedido decía
+  ~15. No afecta la utilidad. ✅
+- Cobertura 24/24 skills, con los commits upstream exactos declarados. ✅
+
+## Hallazgo de método: match nominal ≠ match semántico
+
+N.7a emparejó `diagnose` con mattpocock `diagnosing-bugs` por parecido de
+**nombre** — y esa skill **no tiene contenido portable**. El match **semántico**
+correcto era `obra/superpowers/skills/systematic-debugging`, que sí trae Iron Law
++ 8 rationalizations + red flags. La búsqueda por nombre nunca lo habría
+encontrado (`diagnose` vs `systematic-debugging` no se parecen).
+
+**Esto valida el corte N.7a/N.7b**: la parte mecánica (buscar por nombre) es
+delegable, pero *decidir qué es realmente la misma cosa* no lo es.
+
+## Decisiones — `skills/` (16): todas NATIVAS
+
+Verificado leyendo los candidatos, no por el nombre. En los cuatro casos con
+candidato, la coincidencia es **solo léxica**:
+
+| Skill local | Candidato de N.7a | Decisión | Por qué |
+|---|---|---|---|
+| `improve-architecture` | mattpocock `improve-codebase-architecture` | **Coincidencia** | Contenido opuesto: el nuestro usa umbrales numéricos (>300 líneas, >5 imports); el upstream **rechaza explícitamente las heurísticas rígidas** ("Don't follow rigid heuristics — explore organically") y produce un reporte HTML con Tailwind+Mermaid. Además depende de primitivas de Claude Code (Agent tool `subagent_type=Explore`, skill hermana `/codebase-design`, `CONTEXT.md`/ADRs) que OrchestOS no tiene. **Resuelve la contradicción marcada en N.7**: la etiqueta "nativa" de DONE.md era correcta. |
+| `qa-structured` | mattpocock `deprecated/qa` | **Coincidencia** | El upstream es una sesión interactiva de QA que **abre issues de GitHub** conversando con el usuario. El nuestro es un motor de veredicto pass/fail contra criterios de aceptación dentro del harness. Comparten las letras "qa" y nada más. |
+| `security-review` | mattpocock `engineering/code-review` | **Coincidencia** | El upstream revisa Standards+Spec con sub-agentes paralelos. El nuestro es OWASP Top 10. Comparten la palabra "review". |
+| `frontend-design` | mattpocock `deprecated/design-an-interface` | **Coincidencia** | El upstream diseña **interfaces de módulo/API** ("design it twice" con sub-agentes), no diseño visual. La palabra "design" hace todo el trabajo. Su fuente real ya estaba confirmada en N.5.1: `pbakaus/impeccable`, que N.7a no podía ver porque solo buscó en 2 repos. |
+| `test-writer` | superpowers TDD / mattpocock `tdd` | **Coincidencia** | `test-writer` es explícitamente *"unlike tdd-enforcer, the implementation already exists"* — lo contrario de TDD. |
+| `tdd-enforcer` | superpowers `test-driven-development` | **Ya resuelto en N.5.1** | Derivación real, ya portada verbatim (10 rationalizations + 13 red flags). |
+| Las otras 10 | sin candidato | **Nativas** | Sin coincidencia nominal en los árboles consultados. |
+
+**Conclusión para `skills/`:** las 16 son nativas de OrchestOS salvo
+`tdd-enforcer` (ya corregida) y `frontend-design` (fuente Impeccable, ya
+verificada fiel). **No había contenido perdido que portar.** El riesgo que
+motivó N.7 no se materializó en esta carpeta.
+
+## Porteo aplicado — `diagnose`
+
+Único porteo real de N.7b, y salió del match semántico, no del nominal:
+`iron_law`, 8 `common_rationalizations` y 7 `red_flags` portados casi verbatim de
+`obra/superpowers/skills/systematic-debugging/SKILL.md` (MIT). Registrado en
+[sources-registry.yaml](sources-registry.yaml) para que la deriva futura se
+detecte sola.
+
+## `when_to_use` faltantes — resueltos
+
+`fix-typescript-errors`, `generate-prisma-migration` y `summarize-pr-diff` no
+tenían `when_to_use` y por eso eran **inelegibles para la selección automática**
+del Bloque O. Escritos los tres, y sus `description` reescritas como condición de
+disparo ("Use when…") en vez de resumen. **0 skills sin `when_to_use`** (eran 3).
+Esto era el prerequisito de O.2.
+
+## Pendiente de N.7b — `skills/pro/` (8)
+
+**No cerrado en esta pasada, se declara en vez de omitirse.** DONE.md:3529 dice
+que las 8 se curaron desde mattpocock/superpowers, y N.7a encontró candidatos
+reales para 3 (`code-review`, `bug-hypothesis`, `refactor-guided`). Falta
+comparar contenido y portar lo que corresponda. Prioridad más baja que las de
+`skills/`: `skills/pro/` es el catálogo de *recomendadas para importar*, no las
+activas — una skill pro sin endurecer no degrada ninguna corrida hasta que
+alguien la importe. Hay contenido portable confirmado en superpowers para
+`systematic-debugging` (4), `requesting-code-review` (3) y
+`verification-before-completion` (3).

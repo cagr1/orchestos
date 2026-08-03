@@ -1,7 +1,12 @@
 id: fix-typescript-errors
 version: 1.0.0
 name: Fix TypeScript Errors
-description: Finds and fixes TypeScript compilation errors with minimal changes.
+description: Use when `tsc` fails, the build breaks on type errors, or an editor shows red squiggles across TypeScript files.
+when_to_use:
+  - When `tsc --noEmit` or the build reports TypeScript compilation errors
+  - When a dependency upgrade broke types across the codebase
+  - When migrating a JavaScript file to TypeScript leaves type errors behind
+  - When strict mode was enabled and the codebase now fails to compile
 targets:
   - claude
   - cursor
