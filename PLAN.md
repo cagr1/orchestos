@@ -56,7 +56,7 @@ desorientación real por esto en la revisión del 2026-08-02.
 | Bloque | Qué es | Estado |
 | --- | --- | --- |
 | Pendientes heredados | K.6.2-R7, L.5.7, L.6.2, M ×2 | ✅ **todos cerrados** (L.6.2 el 2026-08-02, era el más viejo) |
-| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ N.1–N.6 cerrados (incl. N.4.5 y N.5.1) · ⏳ **N.7 abierto** (auditoría de las 19 restantes, agregado 2026-08-02 tras cerrar el resto) |
+| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ N.1–N.6 cerrados (incl. N.4.5 y N.5.1) · ⏳ **N.7a (⚡ Codex) y N.7b (🧠) abiertos** — auditoría de procedencia de las 24, agregada 2026-08-02 tras cerrar el resto |
 | **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **1 de 5** — solo O.0 (contrato); **nadie lo consume todavía** |
 | **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
 
@@ -242,10 +242,17 @@ usar"*.
   siendo fuentes vivas de las que traer skills nuevas cuando haga falta — ver Bloque P
   (`sources-drift`), que existe justamente para no perderlas de vista.
 
-- [ ] **N.7 — 🧠 Extender la auditoría de fidelidad (N.5.1) a las 19 skills restantes.** Pedido
+**N.7 — Extender la auditoría de fidelidad (N.5.1) a las 19 skills restantes.** Pedido
   explícito de Carlos (2026-08-02): *"si se hizo con las 5 debe hacerse con el resto en base a las
   repos originales donde viven realmente cada una"*. **Prerequisito real: hoy no existe un registro
   confiable de procedencia por skill** — lo que hay está disperso y en parte es contradictorio.
+
+  **Partido en dos (decisión Carlos, 2026-08-03).** Motivo: la descripción original ("largo y
+  mecánico") era imprecisa — N.7 es largo, pero mecánico **solo en parte**. Y hay una ironía a
+  respetar: *N.7 existe porque se escribió contenido genérico en vez de ir a la fuente*; delegar la
+  parte de fidelidad a un modelo barato corre exactamente el mismo riesgo de parafrasear. Por eso el
+  corte deja a Codex **sin poder tocar contenido**.
+
   Evidencia recogida el 2026-08-02, sin inventar el resto:
   - `skills/pro/` (8) — [DONE.md:3529](DONE.md) dice *"curados desde mattpocock/skills y
     obra/superpowers"* pero **no dice cuál vino de cuál**: `code-review`, `refactor-guided`,
@@ -266,15 +273,33 @@ usar"*.
     no confiar en la etiqueta.
   - Sin fuente externa conocida: `fix-typescript-errors`, `generate-prisma-migration`,
     `summarize-pr-diff` (además son las 3 sin `when_to_use`, ver N.5).
-  **Qué hacer:** (1) auditar procedencia real skill por skill contra los repos upstream (mismo
-  método que N.5.1: `gh api`, leer la fuente, no suponer); (2) las que SÍ tengan fuente real →
-  portar el contenido rico que se haya perdido, como se hizo con `tdd-enforcer` (10
+- [ ] **N.7a — ⚡ Descubrimiento de procedencia (solo evidencia, NO toca contenido).** Para cada una
+  de las **24** skills (16 en `skills/` + 8 en `skills/pro/`), buscar en `obra/superpowers`
+  (`skills/*/SKILL.md`) y `mattpocock/skills` (`skills/engineering/*`, y las otras categorías) si
+  existe un archivo con nombre igual o parecido, vía `gh api`. Producir **una tabla de evidencia**
+  en `docs/skills-provenance-audit.md` con, por fila: `skill local` · `candidato upstream (repo +
+  path)` · `tamaño` · `primeras ~15 líneas del upstream` · `parecido del nombre (exacto / parcial /
+  ninguno)`.
+  **Límites duros de este ítem** — están para que la delegación no pueda reintroducir el error que
+  motivó N.7: (a) **NO modificar ningún `.yaml` de `skills/`**; (b) **NO decidir** si un parecido es
+  copia o coincidencia — solo reportar lo que existe; (c) **NO resumir ni parafrasear** el contenido
+  upstream, pegar el fragmento literal; (d) si no hay candidato, escribir *"sin candidato"*, nunca
+  inventar uno plausible. El entregable es un documento nuevo, cero cambios en skills.
+- [ ] **N.7b — 🧠 Decisión, porteo y registro (sobre la tabla de N.7a).** (1) Decidir caso por caso
+  si el parecido es copia derivada o trabajo independiente — es criterio, con el contexto del
+  proyecto a la vista (ej. `improve-architecture` vs. mattpocock `improve-codebase-architecture`:
+  DONE.md dice "nativa", el nombre dice otra cosa); (2) las que SÍ tengan fuente confirmada →
+  portar **verbatim** el contenido rico perdido, como se hizo con `tdd-enforcer` (10
   rationalizations + 13 red flags en vez de 3+3 genéricas); (3) las genuinamente nativas → escribir
   contenido propio o dejarlas sin endurecer, pero **declarándolo**, no por omisión; (4) **cada
   fuente confirmada entra en [docs/sources-registry.yaml](docs/sources-registry.yaml)** (Bloque P)
   para que la deriva futura se detecte sola — hoy el registro solo tiene 5 entradas porque son las
-  únicas verificadas. Corregir de paso `when_to_use` en las 3 que no lo tienen (son inelegibles
-  para la selección automática del Bloque O sin él).
+  únicas verificadas; (5) `when_to_use` en las 3 que no lo tienen (`fix-typescript-errors`,
+  `generate-prisma-migration`, `summarize-pr-diff`) — **esta parte es prerequisito de O.2**, sin ese
+  campo son inelegibles para la selección automática, así que conviene adelantarla aunque el resto
+  de N.7b espere.
+  Al revisar lo que devuelva N.7a: **un `[x]` de una corrida delegada no es evidencia** — grepear lo
+  concreto antes de confiar ([[feedback-verificar-progreso-delegado]]).
 
 ### Bloque O — 🧠 Skills que se activan solas (decisión Carlos 2026-07-31)
 
