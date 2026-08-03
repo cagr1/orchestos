@@ -273,13 +273,15 @@ usar"*.
     no confiar en la etiqueta.
   - Sin fuente externa conocida: `fix-typescript-errors`, `generate-prisma-migration`,
     `summarize-pr-diff` (además son las 3 sin `when_to_use`, ver N.5).
-- [ ] **N.7a — ⚡ Descubrimiento de procedencia (solo evidencia, NO toca contenido).** Para cada una
+- [x] **N.7a — ⚡** (2026-08-03) Descubrimiento de procedencia (solo evidencia, NO toca contenido). Para cada una
   de las **24** skills (16 en `skills/` + 8 en `skills/pro/`), buscar en `obra/superpowers`
   (`skills/*/SKILL.md`) y `mattpocock/skills` (`skills/engineering/*`, y las otras categorías) si
   existe un archivo con nombre igual o parecido, vía `gh api`. Producir **una tabla de evidencia**
   en `docs/skills-provenance-audit.md` con, por fila: `skill local` · `candidato upstream (repo +
   path)` · `tamaño` · `primeras ~15 líneas del upstream` · `parecido del nombre (exacto / parcial /
   ninguno)`.
+  Verificado contra los árboles completos de ambas repos en los commits consignados en el documento;
+  24 skills auditadas, cero YAMLs modificados.
   **Límites duros de este ítem** — están para que la delegación no pueda reintroducir el error que
   motivó N.7: (a) **NO modificar ningún `.yaml` de `skills/`**; (b) **NO decidir** si un parecido es
   copia o coincidencia — solo reportar lo que existe; (c) **NO resumir ni parafrasear** el contenido
