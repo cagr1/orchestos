@@ -56,7 +56,7 @@ desorientación real por esto en la revisión del 2026-08-02.
 | Bloque | Qué es | Estado |
 | --- | --- | --- |
 | Pendientes heredados | K.6.2-R7, L.5.7, L.6.2, M ×2 | ✅ **todos cerrados** (L.6.2 el 2026-08-02, era el más viejo) |
-| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ **cerrado completo** (N.1–N.6, incluidos N.4.5 y N.5.1) |
+| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ N.1–N.6 cerrados (incl. N.4.5 y N.5.1) · ⏳ **N.7 abierto** (auditoría de las 19 restantes, agregado 2026-08-02 tras cerrar el resto) |
 | **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **1 de 5** — solo O.0 (contrato); **nadie lo consume todavía** |
 | **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
 
