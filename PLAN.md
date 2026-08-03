@@ -57,7 +57,7 @@ desorientación real por esto en la revisión del 2026-08-02.
 | --- | --- | --- |
 | Pendientes heredados | K.6.2-R7, L.5.7, L.6.2, M ×2 | ✅ **todos cerrados** (L.6.2 el 2026-08-02, era el más viejo) |
 | **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ N.1–N.6, N.7a y N.7b cerrados · ⏳ **N.7c abierto** (auditoría de las 8 de `skills/pro/`, prioridad baja) |
-| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **2 de 5** — O.0 (contrato) y O.1 (resolución central, 2026-08-03); el consumo real es O.2/O.3 |
+| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **3 de 5** — O.0, O.1 y O.2 (2026-08-03); faltan O.3 (gates) y O.4 (🔍 gate real) |
 | **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
 
 **Estado de CI (2026-08-02)**: verde. Estuvo rojo en el **100%** de los pushes desde 2026-07-29
@@ -458,7 +458,7 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   - **Verificación en vivo** (no solo tests): directorio vacío en `/tmp`, `chdir`, `listSkillFiles()`
     → **16 skills visibles donde antes eran 0**, y `security-review` resolviendo contra la
     instalación real. 1073 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde.
-- [ ] **O.2 — 🧠 (A) El planner ve el catálogo y asigna skill por sub-tarea.** Agregar `skill` al
+- [x] **O.2 — 🧠 (A) El planner ve el catálogo y asigna skill por sub-tarea.** Agregar `skill` al
   schema JSON de [planner.ts](src/agents/planner.ts) + pasarle la lista resumida (id + description
   + when_to_use, que ya arma `listAllSkillCandidates()`,
   [project.ts:68](src/dashboard/handlers/project.ts)). El resto del camino ya está cableado. Cubrir
@@ -471,6 +471,35 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   contra ids reales también en el camino de sub-tareas (`isKnownSkillId` hoy vive solo en el handler
   del dashboard, [tasks.ts:155](src/dashboard/handlers/tasks.ts)) — el planner no debe poder
   inventar un id.
+
+  **CERRADO 2026-08-03.** `planner.ts` mencionaba la palabra "skill" **cero veces** — el único
+  componente que decide cómo se reparte el trabajo era ciego al arsenal. Ahora:
+  - **Módulo compartido nuevo** [src/skills/catalog.ts](src/skills/catalog.ts):
+    `listAllSkillCandidates()` e `isKnownSkillId()` vivían dentro de la capa dashboard
+    (`handlers/project.ts` y `handlers/tasks.ts`) y el planner (capa agents) las necesita —
+    importar dashboard desde agents habría invertido las capas. Extraídas; los handlers re-exportan
+    para no romper su API ni los tests existentes.
+  - **El planner ve el catálogo**: `skill` agregado al schema JSON de `create_subtask` y al fallback
+    YAML, y `withSkillCatalog()` inyecta el catálogo real en ambos system prompts. Verificado en
+    vivo: **24 skills, 9.335 chars** — **solo metadata** (id + description + when_to_use), nunca el
+    cuerpo; cargar las 24 completas inflaría el contexto y diluiría las instrucciones que importan.
+    El cuerpo se sigue cargando después y solo el de la skill elegida. Sin skills instaladas el
+    prompt queda idéntico al de antes (cero regresión).
+  - **Fail-safe contra ids inventados en el camino de sub-tareas**: `dropUnknownSkills()` en los dos
+    puntos de retorno de `createPlan`. Un id inventado se descarta en silencio y la sub-tarea corre
+    sin skill — el comportamiento previo a O.2 — en vez de romper el plan entero.
+  - **`pickAutoSkill()` deja de descartar ante ambigüedad** — era el origen concreto del dolor. Eran
+    3 líneas: con 2+ candidatas y sin `frontend-design` devolvía `undefined` y **la tarea corría sin
+    ninguna skill**. Esa regla venía del camino manual (`renderSkillSuggestion`, "nunca resolver el
+    empate a ciegas"), correcta con un humano mirando el composer, pero desde que D.7 crea tareas
+    sola se traducía en "no se aplica ninguna skill nunca". Ahora desempata por
+    `activation.mode: automatic` (contrato O.0) → `frontend-design`
+    ([[feedback-skill-autoselect-tiebreak]], conservado) → candidata única → sin asignar. **Acá
+    `activation` deja de ser contenido inerte: es el primer consumidor real de O.0.**
+  - 12 tests nuevos ([planner-skill-catalog.test.ts](src/__tests__/planner-skill-catalog.test.ts)),
+    incluido el de regresión explícito (`security-review` + `test-writer` ya no devuelve `undefined`)
+    y uno que verifica que el cuerpo de las skills **no** se filtra al prompt.
+  - 1085 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde.
 - [ ] **O.3 — 🧠 (B) Gates transversales que no se pueden perder en silencio.** `security-review` y
   `qa-structured` **no son "una sub-tarea más"**: son transversales al output completo y **no deben
   ser elegibles por el mismo LLM que hace el trabajo** — se autoconvence de saltárselas. Esa es la

@@ -5,7 +5,7 @@ import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { loadContext } from '../../context/load.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
-import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/registry.ts'
+import { listAllSkillCandidates, renderSkillCatalog } from '../../skills/catalog.ts'
 import { buildProfile } from '../../detect/profile.ts'
 import { generateAgentsMd } from '../../generators/agents-md.ts'
 import { generateContextJson } from '../../generators/context-json.ts'
@@ -58,24 +58,8 @@ function handleApiProjectContextRegenerate(): Response {
 // su `when_to_use`/`description`, usada tanto para el prompt del clasificador
 // como para validar los candidatos que devuelva el LLM (nunca confiar en un id
 // inventado). Ver docs/semantic-skill-selection-design.md.
-interface SkillCandidateInfo {
-  id: string
-  name: string
-  description: string
-  whenToUse: string[]
-}
-
-function listAllSkillCandidates(): SkillCandidateInfo[] {
-  const files = [...listSkillFiles(), ...listProSkillFiles()]
-  const out: SkillCandidateInfo[] = []
-  for (const f of files) {
-    try {
-      const s = loadSkill(f)
-      out.push({ id: s.id, name: s.name, description: s.description, whenToUse: s.when_to_use ?? [] })
-    } catch {}
-  }
-  return out
-}
+// O.2 — la implementación vive en skills/catalog.ts (la necesita también el
+// planner, capa agents). Acá se re-exporta para no romper la API ni los tests.
 
 // E.8 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos detect [path]`:
 // dry-run, regenera AGENTS.md + context.json sobre el proyecto actual sin tocar la DB.
@@ -140,9 +124,7 @@ async function buildNaturalDraft(input: string): Promise<NaturalDraft> {
   } catch {}
 
   const skillCandidateInfos = listAllSkillCandidates()
-  const skillsSummary = skillCandidateInfos
-    .map(s => `- ${s.id}: ${s.description}${s.whenToUse.length ? ' — Use when: ' + s.whenToUse.join('; ') : ''}`)
-    .join('\n')
+  const skillsSummary = renderSkillCatalog(skillCandidateInfos)
 
   const systemPrompt = `Eres un asistente que convierte instrucciones en lenguaje natural en definiciones de tareas para el orquestador OrchestOS.
 

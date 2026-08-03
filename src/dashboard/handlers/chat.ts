@@ -16,6 +16,7 @@ import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_T
 import { checkSsrSafe } from '../ssrf.ts'
 import { untrustedContent } from '../../security/untrusted-content.ts'
 import { ensureCatalogLoaded, supportsReasoningEffort, contextWindowFor, knownMaxOutputTokensFor, DEFAULT_MAX_OUTPUT_TOKENS, supportsVisionInput } from '../../router/model-catalog.ts'
+import { listAllSkillCandidates } from '../../skills/catalog.ts'
 import { estimateTokens } from '../../context/compress.ts'
 import { classifyTaskIntent } from '../../chat/classify-task-intent.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
@@ -374,7 +375,32 @@ const MAX_CHAT_ATTACHMENTS = 5
  * se usa ese. Con 2+ candidatos SIN frontend-design entre ellos, sigue sin
  * asignar — ahí no hay señal segura para desempatar sola.
  */
+/**
+ * O.2 (Bloque O, 2026-08-03) — la ambigüedad se resuelve por `activation.mode`
+ * (contrato O.0), no descartando.
+ *
+ * La versión anterior eran 3 líneas: con 2+ candidatas y sin `frontend-design`
+ * devolvía `undefined` y **la tarea corría sin ninguna skill**. Esa regla venía
+ * del camino manual (`renderSkillSuggestion`, "nunca resolver el empate a
+ * ciegas") y era correcta cuando había un humano mirando el composer — pero
+ * desde que D.7 crea tareas sola se traducía en "no se aplica ninguna skill
+ * nunca". Es el origen concreto del dolor que motivó el Bloque O.
+ *
+ * Orden de desempate:
+ *  1. `mode: automatic` — la skill declaró que se aplica sola. Si hay varias,
+ *     gana la primera del catálogo; los gates transversales NO se resuelven acá
+ *     (eso es O.3, se aplican además de la principal, no compiten con ella).
+ *  2. `frontend-design` — desempate histórico de D.7, se conserva
+ *     ([[feedback-skill-autoselect-tiebreak]]): aplicarlo de más a una tarea no
+ *     visual no hace daño real, omitirlo en una visual sí.
+ *  3. Candidata única — comportamiento previo.
+ *  4. Varias, ninguna `automatic` — ahí sí no hay señal segura y se deja sin
+ *     asignar, igual que antes. Con el contrato O.0 poblado esto se vuelve raro.
+ */
 export function pickAutoSkill(skillOptions: { id: string }[]): string | undefined {
+  const byId = new Map(listAllSkillCandidates().map(c => [c.id, c]))
+  const automatic = skillOptions.find(s => byId.get(s.id)?.mode === 'automatic')
+  if (automatic) return automatic.id
   if (skillOptions.some(s => s.id === 'frontend-design')) return 'frontend-design'
   return skillOptions.length === 1 ? skillOptions[0]?.id : undefined
 }

@@ -5,7 +5,7 @@ import { loadTasks, saveTasks } from '../../tasks/loader.ts'
 import { scaffoldTasksYaml } from '../../tasks/init.ts'
 import type { TaskRow, DiagnoseRow, SplitPlanResponse } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
-import { listSkillFiles, listProSkillFiles, loadSkill } from '../../skills/registry.ts'
+import { isKnownSkillId } from '../../skills/catalog.ts'
 import { classifyTask } from '../../router/classify.ts'
 import { autoRoute } from '../../router/auto-route.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
@@ -149,14 +149,8 @@ function inferExecutorFromModel(modelId: string | undefined): string {
   return 'openrouter'
 }
 
-/** Bloque D (Mes 18, ex-IDEAS #21) — un `skill` inventado o mal escrito se ignora
- * en silencio en vez de romper la creación de la tarea; solo importa que exista. */
-function isKnownSkillId(id: string): boolean {
-  for (const f of [...listSkillFiles(), ...listProSkillFiles()]) {
-    try { if (loadSkill(f).id === id) return true } catch {}
-  }
-  return false
-}
+// O.2 — la implementación vive en skills/catalog.ts (la necesita también el
+// camino de sub-tareas del planner). Acá se re-exporta, misma API.
 
 export interface CreateTaskParams {
   id?: string

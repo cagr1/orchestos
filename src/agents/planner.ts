@@ -26,6 +26,7 @@ import { callWithTools, supportsToolCalling, type ToolDef } from '../providers/t
 import { getProvider } from '../providers/index.ts'
 import { ensureCatalogLoaded, contextWindowFor, DEFAULT_MAX_OUTPUT_TOKENS } from '../router/model-catalog.ts'
 import { estimateTokens } from '../context/compress.ts'
+import { renderSkillCatalog, isKnownSkillId } from '../skills/catalog.ts'
 import type { SubTask } from './sub-agent.ts'
 import type { SubTaskDef, SubTaskPlan } from './sub-task-schema.ts'
 
@@ -70,7 +71,7 @@ export function parsePlan(yamlText: string): SubTaskPlan {
 export function createPlan(yamlText: string): SubTask[] {
   const plan = parsePlan(yamlText)
   const sorted = topoSort(plan.sub_tasks)
-  return sorted.map(def => createSubTask(def))
+  return dropUnknownSkills(sorted.map(def => createSubTask(def)))
 }
 
 /**
@@ -139,6 +140,10 @@ export const CREATE_SUBTASK_TOOL: ToolDef = {
         description: 'File paths the LLM may read.',
         items:       { type: 'string' },
       },
+      skill: {
+        type:        'string',
+        description: 'Optional id of an installed skill that should guide this sub-task. Must be one of the ids listed in the system prompt — never invent one. Omit if none applies.',
+      },
     },
   },
 }
@@ -150,7 +155,10 @@ Rules:
 - depends_on must reference only ids of other sub-tasks in this plan.
 - allowed_tools must be a subset of: read, write, edit, bash, git.
 - Every sub-task must have either output (file paths) or topic_key (or both).
-- Order your calls so that dependencies are created before dependents (the plan is sorted automatically).`
+- Order your calls so that dependencies are created before dependents (the plan is sorted automatically).
+- skill is optional. Set it only when one of the installed skills below clearly applies to that
+  sub-task, using its exact id. A sub-task may have a different skill than its siblings — that is
+  the point: each sub-task gets the skill for its own kind of work. Never invent an id.`
 
 const YAML_FALLBACK_SYSTEM = `You are a task decomposition assistant.
 Given a task description, output a YAML plan with the following schema:
@@ -167,12 +175,52 @@ sub_tasks:
     topic_key: <optional>
     output:
       - <relative file path>
+    skill: <optional id of an installed skill>
 
 Rules:
 - At least one sub-task required.
 - Every sub-task needs output OR topic_key (or both).
 - depends_on references must be valid IDs in the same plan.
+- skill is optional; use only an exact id from the installed skills listed below, never invent one.
 - Output ONLY the YAML block, no markdown fences, no prose.`
+
+/**
+ * O.2 (Bloque O, 2026-08-03) — el planner ve el catálogo de skills instaladas.
+ *
+ * Antes `planner.ts` mencionaba la palabra "skill" CERO veces: el único
+ * componente que decide cómo se reparte el trabajo era ciego al arsenal, así que
+ * las sub-tareas nacían siempre sin skill y había que asignarlas a mano. El DAG
+ * ya soportaba una skill por sub-tarea (`SubTask.skill` → `subTaskToTask()` →
+ * harness); lo que faltaba era decírselo.
+ *
+ * Se inyecta SOLO metadata (id + description + when_to_use), nunca el cuerpo de
+ * las skills: cargar las 24 completas en cada plan inflaría el contexto y
+ * diluiría las instrucciones que importan. El cuerpo se carga después y solo el
+ * de la skill elegida.
+ *
+ * Si no hay skills instaladas el prompt queda idéntico al de antes — cero
+ * regresión para un proyecto sin catálogo.
+ */
+function withSkillCatalog(base: string): string {
+  const catalog = renderSkillCatalog()
+  return catalog ? `${base}\n\nInstalled skills available for the "skill" field:\n${catalog}` : base
+}
+
+/**
+ * Fail-safe compartido con el camino del chat: un id inventado o mal escrito se
+ * descarta en silencio en vez de romper el plan — la sub-tarea corre sin skill,
+ * que es exactamente el comportamiento previo a O.2. Nunca se confía en que el
+ * LLM devuelva un id real.
+ */
+function dropUnknownSkills(subTasks: SubTask[]): SubTask[] {
+  return subTasks.map(st => {
+    if (st.skill && !isKnownSkillId(st.skill)) {
+      const { skill, ...rest } = st
+      return rest as SubTask
+    }
+    return st
+  })
+}
 
 // ---------------------------------------------------------------------------
 // S23.1 — Function-calling path
@@ -203,7 +251,8 @@ export async function planWithFunctionCalling(
   // G.5: tool-call.ts tenía max_tokens=4096 fijo, sin forma de sobreescribirlo).
   await ensureCatalogLoaded()
   const userMessage = `Decompose the following task into sub-tasks:\n\n${description}`
-  const promptTokens = estimateTokens(FUNCTION_CALLING_SYSTEM) + estimateTokens(userMessage)
+  const systemPrompt = withSkillCatalog(FUNCTION_CALLING_SYSTEM)
+  const promptTokens = estimateTokens(systemPrompt) + estimateTokens(userMessage)
   const PLANNER_SAFETY_MARGIN = 1024
   const available = contextWindowFor(opts.model) - promptTokens - PLANNER_SAFETY_MARGIN
   const maxTokens = available > 0 ? available : DEFAULT_MAX_OUTPUT_TOKENS
@@ -211,7 +260,7 @@ export async function planWithFunctionCalling(
   let response: Awaited<ReturnType<typeof callWithTools>>
   try {
     response = await caller(opts.provider, opts.model, {
-      system:      FUNCTION_CALLING_SYSTEM,
+      system:      systemPrompt,
       userMessage,
       tools:       [CREATE_SUBTASK_TOOL],
       maxTokens,
@@ -250,7 +299,7 @@ export async function planWithFunctionCalling(
   }
 
   const sorted = topoSort(defs)
-  return sorted.map(def => createSubTask(def))
+  return dropUnknownSkills(sorted.map(def => createSubTask(def)))
 }
 
 // ---------------------------------------------------------------------------
@@ -285,7 +334,7 @@ export async function generatePlan(
   try {
     const resp = await provider.chat({
       model:    opts.model,
-      system:   YAML_FALLBACK_SYSTEM,
+      system:   withSkillCatalog(YAML_FALLBACK_SYSTEM),
       messages: [{ role: 'user', content: `parent_task_id: ${parentTaskId}\n\n${description}` }],
     })
     text = resp.text
