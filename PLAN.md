@@ -57,7 +57,7 @@ desorientación real por esto en la revisión del 2026-08-02.
 | --- | --- | --- |
 | Pendientes heredados | K.6.2-R7, L.5.7, L.6.2, M ×2 | ✅ **todos cerrados** (L.6.2 el 2026-08-02, era el más viejo) |
 | **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ **N.1–N.7c cerrado completo** (N.7c el 2026-08-05) |
-| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **4 de 5** — O.0, O.1, O.2 y O.3 (2026-08-05); falta O.4 (🔍 gate real) |
+| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ✅ **cerrado completo** (O.0–O.4, O.4 el 2026-08-05) |
 | **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
 
 **Estado de CI (2026-08-02)**: verde. Estuvo rojo en el **100%** de los pushes desde 2026-07-29
@@ -594,7 +594,7 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
     provider mock que captura el `system` prompt real para confirmar la inyección (y la exclusión
     de `qa-structured`).
   - 1093 tests · 0 fail · `tsc --noEmit` limpio · gate de drift verde (7 fuentes, 0 deriva).
-- [ ] **O.4 — 🔍** Gate con **casos reales**, no tests unitarios
+- [x] **O.4 — 🔍 (2026-08-05) CERRADO.** Gate con **casos reales**, no tests unitarios
   ([[feedback-verificar-gates-en-vivo]]): crear una pantalla → sugiere `frontend-design`; endpoint
   con input de usuario → activa `security-review`; feature nueva → sugiere/activa `tdd-enforcer`;
   bug sin tests → sugiere `test-writer`; tarea con criterios de aceptación → ejecuta
@@ -605,6 +605,56 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   *"OrchestOS tiene muchas skills instaladas"* sino *"un usuario describe su objetivo normalmente y
   OrchestOS identifica, carga, aplica y verifica las skills pertinentes sin exigir que conozca sus
   nombres"*. Verificar en **un proyecto distinto de este repo** — es la prueba real de O.1.
+
+  **Método**: proyecto scratch nuevo fuera de este repo (sin `skills/` ni `docs/roadmaps/`
+  propios — package.json + `tasks.yaml`, git inicializado), `cd` real a ese directorio y llamadas
+  reales (nada mockeado): `listAllSkillCandidates()`/`resolveGates()` con `cwd` = scratch,
+  `buildNaturalDraft()` (LLM haiku real, el mismo clasificador que usa D.7) para los 6 escenarios
+  del checklist, y **dos corridas end-to-end reales** vía `orchestos task run` contra ese
+  proyecto (executor `gpt-4o-mini`, costo real ~$0.001 c/u).
+
+  **Resultado — 6 escenarios, cero bugs encontrados:**
+  | Escenario | Gates (`resolveGates`, determinista) | `skillOptions` del LLM | `pickAutoSkill()` |
+  |---|---|---|---|
+  | Crear pantalla nueva | `qa-structured` | ux-guidelines, design-brief-inference, **frontend-design**, design-tokens | **frontend-design** ✅ |
+  | Endpoint con user input | `qa-structured`, **security-review** ✅ | pre-task-alignment, api-contract, **security-review** | **security-review** ✅ |
+  | Feature nueva (TDD) | `qa-structured` | pre-task-alignment, test-writer, tdd-enforcer | *(sin asignar — 3 candidatas empatadas, ninguna automática/frontend-design)* |
+  | Bug sin tests | `qa-structured` | diagnose, **test-writer**, tdd-enforcer, bug-hypothesis | *(sin asignar — mismo empate)* |
+  | Con criterios de aceptación | `qa-structured` | qa-structured, ux-guidelines, tdd-enforcer | **qa-structured** ✅ |
+  | Doc simple (README) | `qa-structured` | **doc-gen** | **doc-gen** ✅ (no es una skill de código) |
+
+  El "sin asignar" de feature-nueva/bug-sin-tests **no es un bug** — es el desempate documentado en
+  O.2 (`activation.mode: automatic` → `frontend-design` → candidata única → sin asignar) operando
+  como se diseñó: la skill SÍ aparece en `skillOptions` ("sugiere" del checklist), y para el camino
+  manual del composer (`renderSkillSuggestion()`, `screens-core.js`) 2+ candidatos muestran un
+  `<select>` con "Ninguna" preseleccionada — el usuario elige o rechaza, nunca se resuelve el
+  empate a ciegas ([[feedback-skill-autoselect-tiebreak]]). Cubre "sugerencia ambigua muestra
+  opciones" y "usuario puede rechazar" sin tocar código, ya estaba correcto desde el Bloque D
+  (Mes 18).
+
+  **Prueba capstone — E2E real con vulnerabilidad de verdad, no simulada**: tarea
+  `login-endpoint` ("SQL concatenada, credenciales hardcodeadas, sin input sanitizado") corrida de
+  punta a punta. El executor escribió el código pedido (vulnerable, tal como se le pidió); el
+  gate resolvió `security-review` aplicada (`trigger match: user_input`) y `qa-structured` siempre
+  aplicada; el juez de QA **falló la tarea citando explícitamente OWASP**: *"Code contains multiple
+  critical OWASP vulnerabilities: hardcoded credentials, SQL injection risk (concatenation pattern
+  established), and lack of cryptographic protections for authentication"* — el checklist inyectado
+  por O.3 llegó al juez real y las políticas se hicieron cumplir contra código real. `runs.
+  skill_gates_json` quedó `[{"id":"security-review","applied":true,"reason":"trigger match:
+  user_input"},{"id":"qa-structured","applied":true,...}]`, confirmando el registro end-to-end.
+  **Control negativo**: tarea `docs-update` (README, sin triggers) corrida contra el mismo
+  proyecto — `security-review` quedó `applied:false` con el motivo explícito, QA pasó limpio, sin
+  ningún checklist de seguridad inyectado. Confirma "skill irrelevante no aparece en el prompt" y
+  "obligatoria no desaparece en silencio" simultáneamente (`qa-structured` siempre presente en el
+  log de ambas corridas).
+
+  **Limpieza**: los 2 runs reales (`login-endpoint`, `docs-update`) borrados de
+  `~/.orchestos/db.sqlite` tras verificar — no quedan filas fantasma en el dashboard real
+  ([[feedback-verificar-progreso-delegado]] / precedente IDEAS.md #20). Proyecto scratch borrado.
+  Cero código nuevo en este ítem — es puramente el gate de verificación de O.1–O.3, y no encontró
+  nada que corregir.
+
+  **Bloque O cierra completo (O.0–O.4).**
 
 ### Bloque P — 🧠 Vigilancia de deriva de fuentes externas (`sources-drift`)
 
