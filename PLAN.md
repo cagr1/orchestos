@@ -56,8 +56,8 @@ desorientación real por esto en la revisión del 2026-08-02.
 | Bloque | Qué es | Estado |
 | --- | --- | --- |
 | Pendientes heredados | K.6.2-R7, L.5.7, L.6.2, M ×2 | ✅ **todos cerrados** (L.6.2 el 2026-08-02, era el más viejo) |
-| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ N.1–N.6, N.7a y N.7b cerrados · ⏳ **N.7c abierto** (auditoría de las 8 de `skills/pro/`, prioridad baja) |
-| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **3 de 5** — O.0, O.1 y O.2 (2026-08-03); faltan O.3 (gates) y O.4 (🔍 gate real) |
+| **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ **N.1–N.7c cerrado completo** (N.7c el 2026-08-05) |
+| **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ⏳ **4 de 5** — O.0, O.1, O.2 y O.3 (2026-08-05); falta O.4 (🔍 gate real) |
 | **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
 
 **Estado de CI (2026-08-02)**: verde. Estuvo rojo en el **100%** de los pushes desde 2026-07-29
@@ -535,7 +535,7 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
     incluido el de regresión explícito (`security-review` + `test-writer` ya no devuelve `undefined`)
     y uno que verifica que el cuerpo de las skills **no** se filtra al prompt.
   - 1085 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde.
-- [ ] **O.3 — 🧠 (B) Gates transversales que no se pueden perder en silencio.** `security-review` y
+- [x] **O.3 — 🧠 (2026-08-05) (B) Gates transversales que no se pueden perder en silencio.** `security-review` y
   `qa-structured` **no son "una sub-tarea más"**: son transversales al output completo y **no deben
   ser elegibles por el mismo LLM que hace el trabajo** — se autoconvence de saltárselas. Esa es la
   razón de ser de `iron_law`/`common_rationalizations` (N.1–N.3): si el mismo criterio que elige la
@@ -554,6 +554,46 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   selección automática, **elegir una skill pasa a cambiar solo los permisos de herramientas del
   agente** (puede restringirlos y hacer fallar la tarea de forma confusa, o ampliarlos). Debe quedar
   explícito y registrado, nunca silencioso.
+
+  **CERRADO 2026-08-05.**
+  - **`resolveGates(taskText, phase)`** nuevo en
+    [src/skills/catalog.ts](src/skills/catalog.ts): busca skills con `activation.mode: automatic` +
+    `phases` incluye la fase actual. Sin `triggers` → aplica siempre (`qa-structured`). Con
+    `triggers` → requiere al menos una coincidencia case-insensitive contra el texto de la tarea
+    (`security-review`; `_` también matchea con espacio). La decisión vive 100% en el YAML — cero
+    `if` de código, portable a otros proyectos (O.1).
+  - **Inyección en el stage existente** ([src/run/qa.ts](src/run/qa.ts)): `runQA()` acepta
+    `gateSkills?: SkillDef[]` y agrega un bloque `## GATE: <nombre>` por cada gate aplicada, con el
+    texto "this gate is mandatory — it was NOT chosen by you" para que el mismo LLM que revisa no
+    se autoconvenza de saltarla. `qa-structured` se excluye a propósito de la inyección: su
+    metodología YA es el branch `hasCriteria` que existía antes de O.3 — inyectarla de nuevo sería
+    contenido duplicado, no una gate adicional. `runAdversarialQA()` (el segundo juez, opt-in) queda
+    fuera a propósito: es una segunda opinión sobre un veredicto que ya pasó, no el punto donde el
+    gate debe pesar.
+  - **Registro por corrida**: columna nueva `runs.skill_gates_json` (`db/migrate.ts`,
+    `db/runs.ts`) — JSON `[{id, candidate, applied, reason}]`, calculado una vez en `harness.ts`
+    antes de invocar `runQA()` y persistido en los dos `insertRun()` posteriores al stage de QA.
+    Las corridas que fallan ANTES de llegar a QA (checks, contrato) guardan `NULL` — distinto a
+    distinguir de un array con `applied: false`, que sí llegó a evaluarse y no aplicaba. Expuesto
+    también en el dashboard (`RunRow.skillGates`, `dashboard/handlers/runs.ts`) para que O.4 tenga
+    el dato sin tener que releer JSON crudo — sin UI todavía, eso es O.4.
+  - **INS-2026-014, hallazgo real al verificar antes de "arreglar"**: `ctx.allowedTools` (seteado
+    por `tool-policy.ts`) **no lo lee ningún ejecutor** — `grep -rn ".allowedTools\b" src/` no
+    devuelve nada fuera de ese propio middleware. El riesgo literal del ítem (una skill
+    auto-elegida restringe permisos en silencio) **no se materializa hoy** porque el campo es dead
+    code, no porque esté bien defendido. El mecanismo que sí enforcea de verdad es otro:
+    `SubTask.allowed_tools` del planner, requerido y chequeado hard en `agents/executor.ts`.
+    Cablear una enforcement real en `tool-policy.ts` redefiniría el modelo de seguridad de 3+
+    ejecutores — cambio de comportamiento central, out of scope para este ítem (regla de
+    planificar antes de cambios grandes). Documentado con un comentario largo en el archivo y
+    registrado como [IDEAS.md #58](IDEAS.md) en vez de improvisar el cableado a mitad de O.3.
+  - 8 tests nuevos ([skill-gates.test.ts](src/__tests__/skill-gates.test.ts)): `resolveGates()`
+    contra las skills reales del repo (no mocks) — `qa-structured` siempre aplica en `review`,
+    `security-review` requiere match de trigger, guión bajo↔espacio, ninguna gate fuera de fase
+    `review`, skills sin `activation.mode: automatic` nunca son candidatas — y `runQA()` con
+    provider mock que captura el `system` prompt real para confirmar la inyección (y la exclusión
+    de `qa-structured`).
+  - 1093 tests · 0 fail · `tsc --noEmit` limpio · gate de drift verde (7 fuentes, 0 deriva).
 - [ ] **O.4 — 🔍** Gate con **casos reales**, no tests unitarios
   ([[feedback-verificar-gates-en-vivo]]): crear una pantalla → sugiere `frontend-design`; endpoint
   con input de usuario → activa `security-review`; feature nueva → sugiere/activa `tdd-enforcer`;

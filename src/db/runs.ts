@@ -30,6 +30,8 @@ export interface RunRecord {
   file_diffs: string | null
   adversarial_verdict: string | null
   adversarial_reason: string | null
+  /** O.3: JSON [{id, candidate, applied, reason}] — NULL si el run nunca llegó al stage de QA. */
+  skill_gates_json: string | null
   status: 'done' | 'blocked' | 'failed'
   input_tokens: number
   output_tokens: number
@@ -39,7 +41,7 @@ export interface RunRecord {
   created_at: string
 }
 
-type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'qa_model' | 'checks_json' | 'constitution_rules' | 'context_source' | 'context_tokens' | 'embed_hits' | 'context_warnings_json' | 'cost_breakdown_json' | 'file_diffs' | 'adversarial_verdict' | 'adversarial_reason'> & {
+type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'qa_model' | 'checks_json' | 'constitution_rules' | 'context_source' | 'context_tokens' | 'embed_hits' | 'context_warnings_json' | 'cost_breakdown_json' | 'file_diffs' | 'adversarial_verdict' | 'adversarial_reason' | 'skill_gates_json'> & {
   qa_model?: string | null
   checks_json?: string | null
   constitution_rules?: number | null
@@ -51,6 +53,7 @@ type InsertRunRecord = Omit<RunRecord, 'id' | 'created_at' | 'qa_model' | 'check
   file_diffs?: string | null
   adversarial_verdict?: string | null
   adversarial_reason?: string | null
+  skill_gates_json?: string | null
 }
 
 export function insertRun(r: InsertRunRecord): string {
@@ -64,9 +67,9 @@ export function insertRun(r: InsertRunRecord): string {
       allowed_outputs, files_attempted, files_authorized, files_blocked,
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
-      cost_breakdown_json, file_diffs, adversarial_verdict, adversarial_reason,
+      cost_breakdown_json, file_diffs, adversarial_verdict, adversarial_reason, skill_gates_json,
       status, input_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id, scrub(r.project_id), scrub(r.prompt), scrub(r.task_class), scrub(r.model), scrub(r.provider), scrub(r.skill_id), scrub(r.task_id),
       scrub(r.allowed_outputs), scrub(r.files_attempted), scrub(r.files_authorized), scrub(r.files_blocked),
@@ -77,6 +80,7 @@ export function insertRun(r: InsertRunRecord): string {
       scrub(r.cost_breakdown_json) ?? null,
       scrub(r.file_diffs) ?? null,
       scrub(r.adversarial_verdict) ?? null, scrub(r.adversarial_reason) ?? null,
+      scrub(r.skill_gates_json) ?? null,
       r.status, r.input_tokens, r.output_tokens, r.usd_cost, r.elapsed_ms, scrub(r.result), now,
     ]
   )

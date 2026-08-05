@@ -81,7 +81,17 @@ export interface RunRow {
   iterations: number | null
   /** v0.12/C — parsed from file_diffs. [] si el run no lo produjo (fail/blocked, o previo al cambio). */
   fileDiffs: FileDiffEntry[]
+  /** O.3 — parsed from skill_gates_json. null si el run nunca llegó al stage de QA (distinto de [] "ninguna gate aplicaba"). */
+  skillGates: SkillGateEntry[] | null
   createdAt: string
+}
+
+/** O.3 (Bloque O) — resultado de resolveGates() para un run puntual. */
+export interface SkillGateEntry {
+  id: string
+  candidate: boolean
+  applied: boolean
+  reason: string
 }
 
 // ── /api/tasks/:id/diagnose ───────────────────────────────────────────────────

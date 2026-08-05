@@ -48,6 +48,7 @@ import { ensureCatalogLoaded, contextWindowFor, knownMaxOutputTokensFor } from '
 import { estimateTokens } from '../context/compress.ts'
 import { createRunContext, createChain, type RunContext } from './middleware.ts'
 import { contextInject, skillRoute, roadmapContext, memoryFetch, toolPolicy, instinctApply } from './middlewares/index.ts'
+import { resolveGates } from '../skills/catalog.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { Worktree } from './sandbox.ts'
 import type { ContextWarning } from '../hooks/context-monitor.ts'
@@ -586,10 +587,20 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
 
     // -- QA stage (LLM) --------------------------------------------------------
+    // O.3 (Bloque O, 2026-08-05) — gates transversales (security-review, qa-structured)
+    // resueltos ANTES de invocar el juez, nunca por el mismo LLM que hizo el trabajo.
+    // Registrados en el run (`skill_gates_json`) para distinguir "ninguna aplicaba"
+    // de "el selector falló en silencio" — hoy indistinguibles con el escalar `skill_id`.
+    const gateEvaluations = resolveGates(ctx.task.description, 'review')
+    const gatesJson = gateEvaluations.length
+      ? JSON.stringify(gateEvaluations.map(g => ({ id: g.skill.id, candidate: g.candidate, applied: g.applied, reason: g.reason })))
+      : null
+    const appliedGateSkills = gateEvaluations.filter(g => g.applied).map(g => g.skill)
+
     const qaJudge = resolveQAJudge(ctx.providerName, ctx.model, orcheConfig, log)
     let qa: Awaited<ReturnType<typeof runQA>>
     try {
-      qa = await runQA({ description: ctx.task.description, output: ctx.task.output, written: contractResult.written, model: qaJudge.model, acceptance_criteria: ctx.task.acceptance_criteria, checksResults, provider: qaJudge.provider })
+      qa = await runQA({ description: ctx.task.description, output: ctx.task.output, written: contractResult.written, model: qaJudge.model, acceptance_criteria: ctx.task.acceptance_criteria, checksResults, provider: qaJudge.provider, gateSkills: appliedGateSkills })
     } catch (e: any) {
       qa = { verdict: 'fail' as const, reason: `QA call error: ${e.message}`, inputTokens: 0, outputTokens: 0, model: qaJudge.model }
     }
@@ -636,7 +647,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const retryCount = ctx.task.retry_count + 1
       const newStatus = retryCount >= MAX_RETRIES ? 'failed_permanent' : 'pending'
 
-      const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, qa_model: qa.model, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, cost_breakdown_json: breakdownJson, adversarial_verdict: adversarialVerdict, adversarial_reason: adversarialReason, status: 'failed', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail - reverted ${contractResult.written.length} file(s)` })
+      const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'fail', qa_reason: qa.reason, qa_model: qa.model, skill_gates_json: gatesJson, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, cost_breakdown_json: breakdownJson, adversarial_verdict: adversarialVerdict, adversarial_reason: adversarialReason, status: 'failed', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `QA fail - reverted ${contractResult.written.length} file(s)` })
 
       if (newStatus === 'failed_permanent') {
         log.failedPermanent(qa.reason)
@@ -659,7 +670,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // no sobrevive y no tiene valor de revisión.
     const fileDiffs = computeFileDiffs(beforeContent, contractResult.written)
 
-    const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, qa_model: qa.model, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, cost_breakdown_json: breakdownJson, file_diffs: fileDiffs.length ? JSON.stringify(fileDiffs) : null, adversarial_verdict: adversarialVerdict, adversarial_reason: adversarialReason, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
+    const runId = insertRun({ project_id: null, prompt: ctx.task.description, task_class: ctx.taskClass, model: ctx.model, provider: ctx.provider.name, skill_id: ctx.task.skill ?? null, task_id: ctx.task.id, allowed_outputs: JSON.stringify(ctx.task.output), files_attempted: JSON.stringify(contractResult.filesAttempted), files_authorized: JSON.stringify(contractResult.filesAuthorized), files_blocked: JSON.stringify(contractResult.filesBlocked), snapshot_before: JSON.stringify(before), snapshot_after: JSON.stringify(after), qa_verdict: 'pass', qa_reason: qa.reason, qa_model: qa.model, skill_gates_json: gatesJson, checks_json: checksResults.length ? JSON.stringify(checksResults) : null, constitution_rules: ctx.constitutionRules, context_source: ctx.contextSource, context_tokens: ctx.contextTokens, embed_hits: ctx.embedHits, context_warnings_json: ctx.contextWarnings.length ? JSON.stringify(ctx.contextWarnings) : null, cost_breakdown_json: breakdownJson, file_diffs: fileDiffs.length ? JSON.stringify(fileDiffs) : null, adversarial_verdict: adversarialVerdict, adversarial_reason: adversarialReason, status: 'done', input_tokens: totalTokens.inputTokens, output_tokens: totalTokens.outputTokens, usd_cost: totalCost, elapsed_ms: totalElapsed, result: `${contractResult.written.length} file(s) written` })
 
     log.qaPass(qa.reason)
     log.done()

@@ -5,6 +5,8 @@ import { chat } from '../providers/openrouter.ts'
 import type { ProviderClient } from '../providers/index.ts'
 import type { FileChange } from './contract.ts'
 import type { CheckResult } from './checks.ts'
+import type { SkillDef } from '../skills/registry.ts'
+import { buildSections } from '../skills/targets/_shared.ts'
 
 export interface QAEvidence {
   file: string
@@ -81,6 +83,15 @@ export async function runQA(opts: {
   acceptance_criteria?: string[]
   checksResults: CheckResult[]
   provider?: ProviderClient
+  /**
+   * O.3 (Bloque O, 2026-08-05) — skills-gate resueltas por `resolveGates()`
+   * que aplicaron a esta corrida (nunca decidido por este mismo LLM). Se
+   * inyectan post-hoc sobre este stage existente, no un stage nuevo.
+   * `qa-structured` se excluye a propósito: su metodología YA es el branch
+   * `hasCriteria` de abajo — inyectarla de nuevo sería el mismo contenido
+   * duplicado, no una gate adicional.
+   */
+  gateSkills?: SkillDef[]
 }): Promise<QAVerdict> {
   const filesBlock = opts.written.map(f =>
     `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``
@@ -88,7 +99,12 @@ export async function runQA(opts: {
 
   const hasCriteria = opts.acceptance_criteria && opts.acceptance_criteria.length > 0
 
-  const system = hasCriteria ? [
+  const gateBlock = (opts.gateSkills ?? [])
+    .filter(s => s.id !== 'qa-structured')
+    .map(s => `\n## GATE: ${s.name}\nThis gate is mandatory — it was NOT chosen by you, it activated because the task matched its trigger conditions. Apply it in addition to everything else below; do not skip it because the rest of the review already looks fine.\n${buildSections(s).join('\n\n')}`)
+    .join('\n')
+
+  const system = (hasCriteria ? [
     'You are a QA reviewer. You receive a task description, specific acceptance criteria, and the files an LLM wrote.',
     'Evaluate EACH criterion independently. A single failing criterion makes the whole verdict "fail".',
     'For criteria in WHEN/THEN format: verify that the implementation handles the WHEN condition and produces the THEN result.',
@@ -106,7 +122,7 @@ export async function runQA(opts: {
     'Verdict "fail" if: files are empty, contain placeholders/TODOs, do not address the task, or are obviously broken.',
     'Verdict "pass" if: files are non-trivial, on-topic, and a reasonable attempt at the task.',
     'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
-  ].join('\n')
+  ].join('\n')) + gateBlock
 
   const criteriaBlock = hasCriteria
     ? `\n## Acceptance criteria (evaluate each)\n${opts.acceptance_criteria!.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`

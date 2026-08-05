@@ -117,3 +117,21 @@ modifica `maxTokens`, `contextWindow` ni el presupuesto de salida.
 **Reversibilidad/evidencia**: commit M4 (`feat: integrate roadmaps into task execution`) — revertible
 con `git revert`, sin cambios de datos. `bunx tsc --noEmit` limpio; tests específicos M4/M3/checks:
 51 pass, 0 fail.
+
+---
+
+## 2026-08-05 16:57 America/Guayaquil — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: O.3 agrega la resolución de gates transversales (`resolveGates()`) justo antes de
+invocar `runQA()` y suma el campo `skill_gates_json` a los `insertRun()` que ya existían después del
+veredicto. Las líneas nuevas leen `ctx.task.description` y arman `gatesJson`/`appliedGateSkills` —
+no tocan `maxTokens`, `contextWindow`, `resolveQAJudge()` ni la selección del presupuesto de salida
+del executor en ningún punto de la función.
+**Reversibilidad/evidencia**: commit de O.3 (`feat(skills): O.3 — gates transversales...`) —
+revertible con `git revert`; columna nueva `runs.skill_gates_json` vía `safeAddColumn` (NULL para
+filas previas, sin backfill ni migración destructiva). 8 tests nuevos en `skill-gates.test.ts`
+contra las skills reales del repo (no mocks); `tsc --noEmit` limpio; gate de drift verde antes del
+commit.

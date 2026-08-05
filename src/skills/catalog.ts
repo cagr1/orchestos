@@ -1,5 +1,6 @@
 import { listSkillFiles, listProSkillFiles, loadSkill } from './registry.ts'
-import type { SkillActivationMode } from './registry.ts'
+import type { SkillActivationMode, SkillDef } from './registry.ts'
+import type { TaskClass } from '../router/classify.ts'
 
 /**
  * O.2 (Bloque O, 2026-08-03) — catálogo de skills compartido.
@@ -63,4 +64,61 @@ export function renderSkillCatalog(candidates?: SkillCandidateInfo[]): string {
   return list
     .map(s => `- ${s.id}: ${s.description}${s.whenToUse.length ? ' — Use when: ' + s.whenToUse.join('; ') : ''}`)
     .join('\n')
+}
+
+export interface GateEvaluation {
+  skill: SkillDef
+  /** Coincide fase + `mode: automatic` — era elegible, sin importar `triggers`. */
+  candidate: boolean
+  /** Candidata Y (sin triggers, o al menos uno coincidió con el texto de la tarea). */
+  applied: boolean
+  reason: string
+}
+
+/**
+ * O.3 (Bloque O, 2026-08-05) — gates transversales que NO puede decidir el
+ * mismo LLM que hace el trabajo (esa es la razón de ser de iron_law/
+ * common_rationalizations, N.1-N.3: si quien elige la skill puede
+ * descartarla, el endurecimiento no sirve). La condición de gate vive
+ * enteramente en `activation.mode: automatic` + `activation.phases` +
+ * `activation.triggers` del YAML de la skill (contrato O.0) — nunca en un
+ * `if` de código, para no romper la portabilidad a otros proyectos (O.1).
+ *
+ * `triggers` ausente o vacío = la skill aplica siempre que la fase coincide
+ * (caso `qa-structured`, sin triggers). `triggers` presente = requiere al
+ * menos una coincidencia case-insensitive contra la descripción de la tarea
+ * (caso `security-review`, con "authentication"/"user_input"/etc — los guiones
+ * bajos también matchean con espacio, ya que las skills los escriben así por
+ * legibilidad pero el texto de la tarea normalmente no).
+ */
+export function resolveGates(taskText: string, phase: TaskClass): GateEvaluation[] {
+  const out: GateEvaluation[] = []
+  const haystack = taskText.toLowerCase()
+  for (const f of [...listSkillFiles(), ...listProSkillFiles()]) {
+    let skill: SkillDef
+    try {
+      skill = loadSkill(f)
+    } catch {
+      continue
+    }
+    const activation = skill.activation
+    if (!activation || activation.mode !== 'automatic') continue
+    if (!activation.phases || !activation.phases.includes(phase)) continue
+
+    const triggers = activation.triggers
+    if (!triggers || triggers.length === 0) {
+      out.push({ skill, candidate: true, applied: true, reason: 'sin triggers declarados — aplica siempre en esta fase' })
+      continue
+    }
+    const matched = triggers.filter(t => {
+      const needle = t.toLowerCase()
+      return haystack.includes(needle) || haystack.includes(needle.replace(/_/g, ' '))
+    })
+    if (matched.length > 0) {
+      out.push({ skill, candidate: true, applied: true, reason: `trigger match: ${matched.join(', ')}` })
+    } else {
+      out.push({ skill, candidate: true, applied: false, reason: 'ningún trigger coincidió con la descripción de la tarea' })
+    }
+  }
+  return out
 }

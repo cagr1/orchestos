@@ -1629,6 +1629,36 @@ nada de Bloque H.
 
 ---
 
+### 58. `tool-policy.ts` es dead code — `ctx.allowedTools` no lo lee ningún ejecutor
+
+**Origen**: hallazgo real al implementar O.3 (2026-08-05), no propuesta especulativa. INS-2026-014
+pedía hacer explícito el riesgo de que una skill auto-elegida cambie los permisos de herramientas
+del agente en silencio. Al verificar dónde se consume `ctx.allowedTools`
+([tool-policy.ts:9](../src/run/middlewares/tool-policy.ts)) — `grep -rn ".allowedTools\b" src/`
+no devuelve NADA fuera de ese propio middleware. Ningún ejecutor (`single-shot`, `agentic`,
+`external`, `opencode`, `codex`) lo lee. El campo se calcula, se guarda en `ctx`, y no pasa a
+ningún lado.
+
+**Por qué existe la confusión**: hay un mecanismo hermano que sí enforcea de verdad —
+`SubTask.allowed_tools` (`agents/sub-task-schema.ts`, **requerido**, validado por el schema del
+planner, chequeado hard en `agents/executor.ts` con `tool-violation` si se viola). Mismo nombre de
+campo, dos caminos distintos: el de sub-tareas del planner protege de verdad; el de
+`tool-policy.ts` para tareas simples no hace nada desde que se escribió.
+
+**Dos salidas, ninguna implementada todavía** (decidir cuál al atacar esto):
+1. Cablear `ctx.allowedTools` de verdad en los ejecutores — redefine el modelo de seguridad de
+   cada uno, especialmente `agentic.ts` (sus 4 tools fijos tendrían que filtrarse) y los CLIs
+   externos (`external.ts` hardcodea `--allowedTools Edit,Write,Read,Glob,Grep`, ignorando la
+   skill por completo).
+2. Borrar `tool-policy.ts` y el campo `allowedTools` de `RunContext` si no vale la pena esa
+   enforcement para tareas simples (el camino de sub-tareas ya cubre el caso que más importa).
+
+**Esfuerzo**: bajo para la opción 2 (borrar dead code); medio para la opción 1 (tocar 3+
+ejecutores). No bloquea nada de Bloque O — O.3 documentó el hallazgo en vez de improvisar una
+enforcement no planificada a mitad de otro ítem.
+
+---
+
 ## Feedback
 _(se llena cuando haya un usuario externo real usando orchestos en su proyecto)_
 
