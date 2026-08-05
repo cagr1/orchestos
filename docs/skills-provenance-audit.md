@@ -343,3 +343,26 @@ activas — una skill pro sin endurecer no degrada ninguna corrida hasta que
 alguien la importe. Hay contenido portable confirmado en superpowers para
 `systematic-debugging` (4), `requesting-code-review` (3) y
 `verification-before-completion` (3).
+
+# N.7c — Decisiones sobre `skills/pro/` (2026-08-05)
+
+Cierra el pendiente de arriba. Método: leer el contenido **completo** de cada
+candidato con parecido nominal (no solo el fragmento de N.7a), igual que en
+N.7b — un match de nombre no es un match de contenido.
+
+| Skill local | Candidato(s) | Decisión | Por qué |
+|---|---|---|---|
+| `skills/pro/bug-hypothesis.yaml` | superpowers `systematic-debugging` (Fase 3) | **Coincidencia léxica** | El upstream pide UNA hipótesis, root-cause primero; el nuestro rankea 3-5 candidatos ANTES de tocar código — triage rápido, propósito opuesto. Su Iron Law ya está portada en `skills/diagnose.yaml` (N.7b); duplicarla acá sería redundante. |
+| `skills/pro/refactor-guided.yaml` | mattpocock `deprecated/request-refactor-plan` | **Coincidencia léxica** | El upstream es fase de *planificación* (entrevista + issue de GitHub); el nuestro es fase de *ejecución* (pasos chicos, tests verdes). Leído completo (68 líneas): no tiene tabla de rationalizations/red_flags que portar. |
+| `skills/pro/code-review.yaml` | superpowers `receiving-code-review` | **Coincidencia léxica** | Trata de cómo *recibir* feedback (actor distinto); no existe contraparte local para ese rol. |
+| `skills/pro/code-review.yaml` | superpowers `requesting-code-review` | **Coincidencia léxica, con préstamo puntual** | Trata de *despachar* un subagente revisor (mecánica que no tenemos igual); pero su Red Flag "no saltar review por simple" se adaptó como `anti_pattern` nuevo. |
+| `skills/pro/code-review.yaml` | mattpocock `engineering/code-review` | **Porteo real** | El diseño de 2 ejes con subagentes paralelos no es portable (depende de `docs/agents/issue-tracker.md`); pero el catálogo de 12 code smells de Fowler (*Refactoring* ch.3) que usa como baseline de Standards es contenido genérico real. Portado verbatim a la Pass 2 (Design), con fix de una línea por smell igual que el upstream. Nota: `security-review` (N.7b) comparó contra esta misma fuente y la declaró coincidencia total — acá **sí** hubo contenido portable porque el ángulo de comparación es distinto (Pass de diseño vs. OWASP). |
+| Las otras 5 (`api-contract`, `db-migration-safe`, `doc-gen`, `perf-profile`, `pr-description`) | sin candidato (N.7a) | **Nativas** | Releídas, sin overlap conceptual con nada de lo encontrado. |
+
+**Porteo aplicado**: catálogo de 12 smells de Fowler + 1 `anti_pattern` en
+[skills/pro/code-review.yaml](../skills/pro/code-review.yaml). Fuente
+registrada en [sources-registry.yaml](sources-registry.yaml)
+(`mattpocock-code-review-smells`), sha `a2f9333669ff53db762c87ecda5a15442060a3be`.
+
+**Conclusión**: 7/8 nativas, 1 con porteo real y acotado. Bloque N cierra
+completo (N.1–N.7c).

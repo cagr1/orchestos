@@ -79,6 +79,23 @@ sources:
       IDEAS #39 propone adaptar como promptInjectionMode-lite. Vigilar por
       estrategias nuevas o cambios en las 6 existentes.
 
+  - id: mattpocock-code-review-smells
+    repo: mattpocock/skills
+    path: skills/engineering/code-review/SKILL.md
+    license: MIT
+    local_artifact: skills/pro/code-review.yaml
+    last_synced_sha: a2f9333669ff53db762c87ecda5a15442060a3be
+    last_synced_date: "2026-08-05"
+    note: >
+      Confirmado en N.7c. El catálogo de 12 code smells de Fowler
+      (Mysterious Name, Duplicated Code, Feature Envy, Data Clumps, Primitive
+      Obsession, Repeated Switches, Shotgun Surgery, Divergent Change,
+      Speculative Generality, Message Chains, Middle Man, Refused Bequest) se
+      portó a la Pass 2 (Design) de code-review.yaml. El resto del upstream
+      (subagentes paralelos Standards+Spec, plantilla de issue tracker) no es
+      portable — depende de primitivas que OrchestOS no tiene igual. Vigilar
+      si la fuente agrega o cambia smells del baseline.
+
   - id: superpowers-systematic-debugging
     repo: obra/superpowers
     path: skills/systematic-debugging/SKILL.md

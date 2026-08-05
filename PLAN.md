@@ -334,15 +334,50 @@ usar"*.
     Ahora la elige dinámicamente (con fallback sintético si algún día todas están endurecidas), así
     cada avance de N.7c no vuelve a romperlo.
   - 1073 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde.
-- [ ] **N.7c — 🧠 Auditoría de las 8 de `skills/pro/`.** Separado de N.7b para no dejar un estado
-  ambiguo: N.7b cerró `skills/`, esto queda abierto. [DONE.md:3529](DONE.md) dice que las 8 se
-  curaron desde mattpocock/superpowers, y N.7a encontró candidatos reales para 3 (`code-review`,
-  `bug-hypothesis`, `refactor-guided`) — falta comparar contenido y portar lo que corresponda.
-  Contenido portable ya confirmado en superpowers: `systematic-debugging` (4 secciones),
-  `requesting-code-review` (3), `verification-before-completion` (3).
-  **Prioridad más baja que la de `skills/`, a propósito**: `skills/pro/` es el catálogo de
-  *recomendadas para importar*, no las activas — una skill pro sin endurecer no degrada ninguna
-  corrida hasta que alguien la importe.
+- [x] **N.7c — 🧠 (2026-08-05) Auditoría de las 8 de `skills/pro/` (sobre la tabla de N.7a).**
+  Leído el contenido completo de los 4 candidatos con parecido nominal (`systematic-debugging`,
+  `receiving-code-review`, `requesting-code-review` de `obra/superpowers`; `code-review` y
+  `request-refactor-plan` de `mattpocock/skills`), no solo el nombre — mismo método que N.7b.
+
+  **Decisiones:**
+  - **`bug-hypothesis` vs `systematic-debugging`: coincidencia léxica, no copia.** El upstream
+    (Fase 3, "Hypothesis and Testing") pide **una** hipótesis a la vez, root-cause primero; nuestro
+    `bug-hypothesis` es lo opuesto a propósito: triage rápido que **rankea 3-5 candidatos** ANTES de
+    tocar código, paso previo a un debugging profundo. Además su Iron Law/rationalizations ya están
+    portados en `skills/diagnose.yaml` (N.7b) — duplicarlos acá sería redundante, no fidelidad.
+    **Nativa, sin porteo.**
+  - **`refactor-guided` vs `request-refactor-plan`: coincidencia léxica, no copia.** El upstream es
+    una fase de **planificación** (entrevista al usuario, abre un issue de GitHub con plantilla);
+    `refactor-guided` es la fase de **ejecución** (pasos chicos, tests verdes en cada uno). Ninguna
+    superposición de contenido — el upstream ni siquiera tiene tabla de rationalizations/red_flags
+    que portar (confirmado leyendo las 68 líneas completas, no solo el fragmento de N.7a).
+    **Nativa, sin porteo.**
+  - **`code-review` vs `receiving-code-review`/`requesting-code-review`: coincidencia léxica, no
+    copia.** Ambas superpowers skills son sobre **recibir** feedback o **despachar** un subagente
+    revisor — actores y mecánica distintos al nuestro (que **da** la revisión, 4 passes sobre un
+    diff). `receiving-code-review` no tiene contraparte local (no existe una skill de "cómo
+    responder a review" en `skills/pro/`). **Sin porteo de estas dos.**
+  - **`code-review` vs mattpocock `engineering/code-review`: SÍ hay contenido portable**, a
+    diferencia del veredicto de N.7b para `security-review` contra la misma fuente (ahí era
+    coincidencia total). El diseño de 2 ejes con subagentes paralelos no es portable (depende de
+    `docs/agents/issue-tracker.md` y de convocar Agent tool en paralelo, que nuestro Pass-based
+    review no usa), **pero el catálogo de 12 code smells de Fowler** (*Refactoring* ch.3) que el
+    upstream usa como baseline de la Standards axis es contenido genérico y real, no específico de
+    su mecánica. Portado a la Pass 2 (Design) de
+    [skills/pro/code-review.yaml](skills/pro/code-review.yaml): Mysterious Name, Duplicated Code,
+    Feature Envy, Data Clumps, Primitive Obsession, Repeated Switches, Shotgun Surgery, Divergent
+    Change, Speculative Generality, Message Chains, Middle Man, Refused Bequest — cada uno con su
+    fix de una línea, igual que el upstream. También un `anti_pattern` nuevo ("no saltar review por
+    simple"), adaptado del Red Flags de `requesting-code-review`. Registrado en
+    [sources-registry.yaml](docs/sources-registry.yaml) (`mattpocock-code-review-smells`).
+  - **Las otras 5 (`api-contract`, `db-migration-safe`, `doc-gen`, `perf-profile`,
+    `pr-description`): sin candidato en N.7a, confirmado sin overlap conceptual al releerlas.
+    Nativas.**
+
+  **Conclusión:** de 8 skills de `skills/pro/`, 7 son nativas y 1 (`code-review`) recibió un porteo
+  real y acotado (un catálogo de smells, no una reescritura). Documentado en
+  [docs/skills-provenance-audit.md § N.7c](docs/skills-provenance-audit.md). Cierra Bloque N por
+  completo (N.1–N.7c).
 
 ### Bloque O — 🧠 Skills que se activan solas (decisión Carlos 2026-07-31)
 
