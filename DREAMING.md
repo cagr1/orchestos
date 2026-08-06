@@ -31,8 +31,38 @@ sin marcar desde 2026-07-22 — van ya 7+ corridas consecutivas sin resolver).
 - Por qué: mismo patrón que Propuesta 1 — ambos runs fallidos tienen esta firma (tokens=0, elapsed muy bajo), consistente con una llamada que nunca llegó a ejecutar el modelo.
 - Riesgo: medio (cambia lógica de retry del executor, requiere validar que no enmascare fallos reales de calidad).
 
-## Decisión (llenar manualmente)
-- [ ] Aplicar propuesta 1
-- [ ] Aplicar propuesta 2
+## Resolución (investigado 2026-08-06, 7+ corridas después)
+
+**Propuesta 1 — investigado con evidencia real, no solo lectura de código.** Las dos corridas
+fallidas (`96f4e52d`, `c198a55d`) son del **2026-07-20**. `cost_breakdown_json` confirma que
+corrieron por el **engine `external`** (`claude -p`, Claude Code headless), no por la API directa
+— el patrón `tokens: 0` + `elapsed_ms` bajo + `total_cost_usd: 0` es típico de esa ruta, no de
+un fallo de calidad del contenido.
+
+`git log -- src/run/executors/external.ts` ubica el estado del código en esa fecha: el fix de
+E.15 (pasar `ctx.model` al CLI) ya estaba activo (2026-07-17), pero **G.3.1** — el rewrite de
+parseo de `--output-format json` (blob único) a `stream-json` incremental — recién llegó el
+**2026-07-27**, una semana DESPUÉS de estas dos corridas. La causa más probable: un bug en el
+parseo batch viejo (ya reemplazado), no un problema de wiring del modelo en sí.
+
+**Reproducido en vivo hoy contra un proyecto scratch** (mismo comando: `--engine external --model
+anthropic/claude-sonnet-5`): corrida real con **222/235 tokens, $0.16652, 12754ms, archivo escrito
+correctamente, QA pass**. Cero rastro del patrón `tokens:0`/instant-fail. Ninguna corrida real
+volvió a ejercitar este camino entre el 07-20 y hoy (la DB no tiene runs nuevos desde el 07-27),
+así que nadie lo había re-verificado desde que G.3.1 aterrizó.
+
+**Conclusión: el bug ya no reproduce — muy probablemente superado por G.3.1, sin relación directa
+con la causa que Dreaming sugería (wiring específico de sonnet-5).** No se aplica un fix nuevo
+porque no hay nada que arreglar hoy; se documenta la causa real en vez de dejarlo "pendiente" sin
+explicación.
+
+**Propuesta 2 (retry/fallback ante `tokens:0`)**: sigue siendo un endurecimiento defensivo
+razonable en general (cualquier causa transitoria futura de un resultado vacío), pero deja de ser
+urgente al no tener causa activa conocida — se retira de la mira inmediata. Si vuelve a aparecer
+el patrón en runs futuros, es la primera propuesta a reconsiderar.
+
+## Decisión
+- [x] Aplicar propuesta 1 — investigado, causa real identificada y ya superada por G.3.1 (2026-07-27); reproducción real confirma que no reproduce hoy.
+- [ ] Aplicar propuesta 2 — no urgente, sin causa activa; reconsiderar solo si el patrón reaparece.
 - [ ] Ignorar
 - [ ] Requiere revisión
