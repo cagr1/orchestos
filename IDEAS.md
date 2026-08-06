@@ -228,12 +228,17 @@ en dashboard. El tope del tramo medio.
 
 ### 33. Refuter en el QA loop — segunda opinión barata antes de quemar un retry
 
-**Origen**: gentle-ai v2.0.0 (2026-07, re-verificado). Su sistema de review separa 5
-funciones (`review-risk/readability/reliability/resilience/refuter`) con modelo asignable
-por función. OJO: en gentle-ai eso sigue siendo **prompts/config generados para OpenCode**,
-no runtime — consistente con el veredicto de 2026-07-06 (capa opuesta del stack). Lo
-robable es el patrón **refuter**: un agente adversarial que intenta tumbar los hallazgos
-del reviewer antes de que cuenten.
+**Origen**: gentle-ai v2.0.0 (2026-07). Su sistema de review separaba 5 funciones
+(`review-risk/readability/reliability/resilience/refuter`) con modelo asignable por función —
+en esa versión, prompts/config generados para OpenCode, no runtime.
+
+**Revalidado 2026-08-06 contra el HEAD real** (`v2.2.0`, PR #1801 "Organic RDD"): el patrón
+`refuter` sigue vivo y creció (`gentle-ai review schema refuter`, ahora parte de un sistema
+"Receipt-Driven Development" con candidate congelado por hash de contenido, gates de entrega y
+evidencia de verificación tipada — ver [[reference-external-repos]] y la fila `gentle-ai` en
+"Los repos" más abajo). Confirma que sigue siendo capa de gobernanza sobre un agente anfitrión,
+no runtime — el veredicto de 2026-07-06 sigue de pie. Lo robable sigue siendo el mismo: un
+agente adversarial que intenta tumbar los hallazgos del reviewer antes de que cuenten.
 
 **Eslabón débil en OrchestOS (verificado en `src/run/qa.ts`)**: `runQA()` es una sola
 pasada, un solo modelo, y su veredicto es ley — un `fail` falso dispara un re-run completo
@@ -854,10 +859,18 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
 - **Engram** (Gentleman-Programming, ~3.8K⭐) — https://github.com/Gentleman-Programming/engram
   · motor de memoria persistente Go/FTS5. Aportó: BM25 conflict detection, `topic_key`
   upsert. NO aplica: el binario Go, cloud sync, TUI.
-- **gentle-ai** (Gentleman-Programming, ~3.4K⭐) — https://github.com/Gentleman-Programming/gentle-ai
-  · workflow SDD multi-harness. Aportó: DAG de fases con contratos Read/Write,
-  apply-progress merge, reglas de delegación con umbrales. NO aplica: binario Go, adaptadores
-  por harness.
+- **gentle-ai** (Gentleman-Programming, ~5.4K⭐, revalidado 2026-08-06) —
+  https://github.com/Gentleman-Programming/gentle-ai · workflow SDD multi-harness. Aportó: DAG
+  de fases con contratos Read/Write, apply-progress merge, reglas de delegación con umbrales.
+  **Evolución real desde julio (PR #1801, "Organic RDD", v2.2.0)**: reemplazó su control-plane
+  viejo por *Receipt-Driven Development* — un candidate se congela contra su hash de contenido
+  exacto (sha256), la autoridad de revisión nunca avanza sobre nada que no sean esos bytes, y 5
+  gates de entrega (`post-apply`/`pre-commit`/`pre-push`/`pre-pr`/`release`) re-validan el mismo
+  receipt. Sigue confirmado sin ninguna llamada a LLM (`go.mod` sin SDK de IA) — es gobernanza
+  que un agente anfitrión invoca desde afuera, no un runtime. Detalle completo en
+  [[reference-external-repos]]. NO aplica: binario Go, adaptadores por harness. Idea robable sin
+  gradutar todavía: atar el gate de OrchestOS a un hash de contenido inmutable en vez de solo
+  "archivos declarados" — no en backlog, anotado por si surge más adelante.
 - **OpenSpec** (Fission-AI) — https://github.com/Fission-AI/OpenSpec · framework SDD
   agnóstico de harness, recomendado por usuario externo en producción ~1 año. Aportó:
   WHEN/THEN scenarios, capabilities contract, archive con fecha, delta headers. Pendiente:
