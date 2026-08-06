@@ -83,8 +83,8 @@ sources:
     path: skills/engineering/code-review/SKILL.md
     license: MIT
     local_artifact: skills/pro/code-review.yaml
-    last_synced_sha: a2f9333669ff53db762c87ecda5a15442060a3be
-    last_synced_date: "2026-08-05"
+    last_synced_sha: c0d69015e0cc8b66715beb3f93f9e53256e20f30
+    last_synced_date: "2026-08-06"
     note: >
       Confirmado en N.7c. El catálogo de 12 code smells de Fowler
       (Mysterious Name, Duplicated Code, Feature Envy, Data Clumps, Primitive
@@ -94,6 +94,13 @@ sources:
       (subagentes paralelos Standards+Spec, plantilla de issue tracker) no es
       portable — depende de primitivas que OrchestOS no tiene igual. Vigilar
       si la fuente agrega o cambia smells del baseline.
+      PRIMERA DERIVA REAL DEL BLOQUE P (2026-08-06, detectada 1 día después de
+      N.7c): upstream pasó a c0d6901. Diff real inspeccionado — quita 2 líneas
+      sobre cómo invocar dos sub-agentes en paralelo ("Send a single message
+      with two Agent tool calls"). NO toca el catálogo de smells, que es lo
+      único que portamos. Nada que portar; `last_synced_sha` avanzado porque
+      la fidelidad SÍ se re-verificó contra ese commit (dejarlo viejo
+      reportaría deriva para siempre y mataría la señal).
 
   - id: superpowers-systematic-debugging
     repo: obra/superpowers

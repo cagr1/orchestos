@@ -11,5 +11,5 @@ Generado: 2026-08-06 — ver [docs/sources-registry.yaml](docs/sources-registry.
 - `impeccable-checks` — `9a949fb543d4`
 - `orca-agent-kind` — `2d232171663a`
 - `orca-tui-agent-config` — `e58c051d16c1`
-- `mattpocock-code-review-smells` — `a2f9333669ff`
+- `mattpocock-code-review-smells` — `c0d69015e0cc`
 - `superpowers-systematic-debugging` — `c74782ead66b`
