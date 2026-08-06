@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-25-cerrado--sin-mes-activo--siguiente-por-decidir-via-ideas-backlog-canonico
+status: mes-26-activo--backlog-canonico-categoria-bajo
 ---
 
 # OrchestOS — Plan activo
@@ -33,6 +33,79 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 **Regla de documentación obligatoria (2026-07-02):** todo hallazgo — bug real, deuda técnica, feature huérfana, contradicción entre `tasks.yaml`/DONE.md y el código real — se convierte en un ítem de este archivo (o de IDEAS.md si es backlog no inmediato) ANTES de tocar código. Si no está escrito acá, no se corrige. Motivo: una auditoría completa (2026-07-02) encontró deuda documentada en prosa dentro de DONE.md ("anotado como deuda conocida") que nunca se tradujo a un ítem accionable y por eso nadie la persiguió durante 3 meses (ver Bloque F0).
 
 **Regla de flujo IDEAS→PLAN→DONE (decisión Carlos, 2026-07-02):** cuando una idea pasa de IDEAS.md a PLAN.md (se convierte en el eje o en un bloque de un Mes), **se ELIMINA de IDEAS.md en el mismo commit** — no queda duplicada en ambos. La evidencia de que se realizó vive siempre en DONE.md (documentación extensa al cierre del Mes). IDEAS.md es solo backlog vivo: lo que está ahí es porque NADIE lo está haciendo todavía.
+
+---
+
+## MES 26 — Backlog canónico, categoría **Bajo** (abierto 2026-08-06)
+
+Mes 25 cerró los tres bloques que graduaron de la categoría **Mínimo** (vacía desde entonces).
+Este Mes ejecuta la categoría **Bajo** del backlog canónico de [IDEAS.md](IDEAS.md), en el orden
+del índice — que es el **único** orden de ejecución (regla desde 2026-07-30). Al graduar cada
+idea se elimina de IDEAS.md en el mismo commit.
+
+| Bloque | Idea de IDEAS.md | Estado |
+| --- | --- | --- |
+| **Q** | `#2` `verification-before-completion` (superpowers) | ⏳ en curso |
+| R | `#3` `requesting-code-review` / `receiving-code-review` | pendiente |
+| S | `#5` Resolver imports Ruby | pendiente |
+| T | `#19` `engine: external` sin `checks:` | pendiente |
+| U | `#40` Editor de Constitution con Guardar/Limpiar | pendiente |
+| V | `#46` Spike de Graphify | pendiente |
+| W | `#58` `tool-policy.ts` dead code | pendiente |
+
+### Bloque Q — ⚡🧠 IDEAS #2: `verification-before-completion`
+
+**Lo que pedía la idea**: *"Checklist que confirma que el fix realmente funciona antes de declarar
+`done`. Complementa el QA loop existente. Entra como skill vía la puerta importar. Esfuerzo: bajo
+— skill nueva, sin motor nuevo."*
+
+**Corrección de alcance (verificada en código antes de escribir contenido, 2026-08-06)** — misma
+disciplina que forzó la corrección de alcance del Bloque N: la idea asumía "solo contenido", y hay
+un hallazgo real que la idea no conocía.
+
+1. **No duplica `qa-structured`** — confirmado en N.5.1 y revalidado: son **actores distintos**.
+   `qa-structured` es el **juez** evaluando criterios de aceptación después del hecho;
+   `verification-before-completion` es disciplina del **ejecutor** antes de afirmar que terminó.
+   Que compartan el principio ("evidencia antes que afirmación") no las hace la misma skill.
+2. **El hueco existe y es citable, no hipotético.** El prompt del ejecutor agéntico
+   ([agentic.ts:173-181](src/run/executors/agentic.ts)) dice hoy, textual:
+   `Declared checks you can run to verify your work: …` (**"you can"** — opcional) y
+   `When all declared output files are written and correct, stop calling tools` (**"and correct"**
+   — autoevaluado, sin exigir evidencia). Es literalmente la invitación al modo de fallo que esta
+   skill ataca. El harness re-corre los checks después y atrapa la mentira — **pero solo cuando
+   hay checks declarados**: `defaultChecksFor()` ([checks.ts:64](src/run/checks.ts)) no genera
+   ninguno para Python/Rust/Go/C#/markdown, ni para nada si falta `node_modules`. En esos casos el
+   único gate es el juez de QA leyendo archivos.
+3. **Por eso el bloque se parte en contenido (⚡) y wiring (🧠)** — importar la skill sin mirar el
+   punto 2 habría dejado el hueco real intacto y la skill como contenido decorativo.
+
+- [ ] **Q.1 — ⚡ Importar la skill, verbatim, por la vía real.** Autoría de
+  `skills/verification-before-completion.yaml` portando **fiel** (no parafraseado) el contenido de
+  `obra/superpowers/skills/verification-before-completion/SKILL.md` (MIT): `iron_law` ("NO
+  COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE", ≤300 chars), la tabla
+  *Rationalization Prevention* (8 pares) → `common_rationalizations`, *Red Flags - STOP* (8) →
+  `red_flags`, la *Gate Function* de 5 pasos y la tabla *Common Failures* → `instructions`,
+  `when_to_use` como condición de disparo. Registrar en
+  [docs/sources-registry.yaml](docs/sources-registry.yaml) — **la entrada ya existe**
+  (`superpowers-verification`) apuntando a `qa-structured` con la nota *"vigilar por si aparece
+  contenido portable"*: ese momento llegó, así que la entrada se **actualiza** (nuevo
+  `local_artifact`), no se duplica. **Límite duro**: contenido copiado fiel de la fuente, cero
+  invención — es el error exacto que costó N.5.1 (3+3 rationalizations inventadas vs. las 10+13
+  reales). Delegable a Codex con la fuente literal a la vista.
+- [ ] **Q.2 — 🧠 Decidir y cablear dónde aplica de verdad (el hallazgo del punto 2).** El
+  `activation` de esta skill no es obvio y decidirlo mal la vuelve contenido muerto: con
+  `mode: suggest` + `phases: [implement, fix]` sería la **4.ª** candidata de ese bucket, y el
+  desempate de O.2 devuelve *sin asignar* con 3+ candidatas — se auto-anularía. Decidir con el
+  contrato O.0 en la mano y **declarar el porqué**, no elegir por inercia. Incluye el arreglo del
+  wording del prompt agéntico si la decisión es que la disciplina es transversal (no por-tarea) —
+  **acotado a redacción de prompt existente, sin maquinaria nueva**; si crece más que eso, para y
+  se registra como idea aparte en vez de expandir el bloque en caliente.
+- [ ] **Q.3 — 🔍 Gate contra el prompt real compilado y una corrida real**
+  ([[feedback-verificar-gates-en-vivo]]), no solo `bun test`: que el `iron_law` aparezca en el
+  prompt que sale al ejecutor (no solo en el YAML), y una corrida real de una tarea **sin checks
+  deterministas posibles** (el caso donde el hueco duele) confirmando el comportamiento decidido
+  en Q.2. Runs de prueba borrados de la DB real al terminar
+  ([[reference-test-fixtures-leak-into-real-db]]).
 
 ---
 

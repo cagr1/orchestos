@@ -26,13 +26,14 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 
 ### Bajo
 
-1. `#2` `verification-before-completion`.
-2. `#3` `requesting-code-review` / `receiving-code-review`.
-3. `#5` Resolver imports Ruby.
-4. `#19` `engine: external` sin checks.
-5. `#40` Editor de Constitution con Guardar/Limpiar.
-6. `#46` Spike de Graphify.
-7. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
+_(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06)_
+
+1. `#3` `requesting-code-review` / `receiving-code-review`.
+2. `#5` Resolver imports Ruby.
+3. `#19` `engine: external` sin checks.
+4. `#40` Editor de Constitution con Guardar/Limpiar.
+5. `#46` Spike de Graphify.
+6. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
 
 ### Bajo-medio
 
@@ -116,13 +117,6 @@ entra por infraestructura ya probada. Independientes entre sí.
 Son el resto del delta identificado en [obra/superpowers](https://github.com/obra/superpowers)
 y [mattpocock/skills](https://github.com/mattpocock/skills); el curador + pack "pro"
 (8 skills) ya está shipeado (Mes 11, ver DONE.md § MES 11).
-
-### 2. `verification-before-completion` (superpowers)
-
-Checklist que confirma que el fix realmente funciona antes de declarar `done`. Complementa
-el QA loop existente. Entra como skill vía la puerta importar.
-
-**Esfuerzo**: bajo — skill nueva, sin motor nuevo.
 
 ### 3. Par `requesting-code-review` / `receiving-code-review` (superpowers)
 
