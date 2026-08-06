@@ -11,6 +11,20 @@ targets:
 allowed_tools:
   - read
   - bash
+# Q.2 (Mes 26, 2026-08-06) — `explicit` es una decisión declarada, no un olvido.
+# NO es `suggest` + [implement, fix]: sería la 4.ª candidata de ese bucket y el
+# desempate de O.2 devuelve "sin asignar" con 3+ candidatas — verificado en vivo
+# en O.4 ("feature nueva" y "bug sin tests" ya empataban con 3). Agregarla ahí
+# degradaría la auto-selección en vez de mejorarla.
+# NO es `automatic` + [review]: los gates automáticos corren en el stage de QA,
+# donde el actor es el juez — y ese lado ya lo cubre `qa-structured` con su
+# propio iron_law. Esta skill es disciplina del EJECUTOR, otro actor.
+# La disciplina en el runner propio NO depende de ganar un slot de selección:
+# es transversal y vive en el prompt del ejecutor agéntico (Q.2, agentic.ts).
+# Acá queda como artefacto invocable por nombre y compilable a Claude Code /
+# Cursor / OpenAI, que es donde el contenido rinde tal cual.
+activation:
+  mode: explicit
 iron_law: NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 when_to_use:
   - Before any variation of a success or completion claim

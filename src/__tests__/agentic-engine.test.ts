@@ -224,3 +224,65 @@ describe('G.3 — agenticEngine', () => {
     }
   })
 })
+
+// Q.2 (Mes 26, 2026-08-06) — el prompt del ejecutor invitaba al modo de fallo
+// que ataca `verification-before-completion`: "checks you can run" (opcional) y
+// "when written and correct, stop" (correcto autoevaluado). Estos tests miran el
+// system prompt REAL que sale al proveedor (capturado del body del request), no
+// la constante en el código — mismo criterio que el gate de N.6.
+describe('Q.2 — el prompt agéntico exige evidencia, no autoevaluación', () => {
+  async function captureSystemPrompt(task: Task, dir: string): Promise<string> {
+    let captured = ''
+    globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? '{}'))
+      captured = body.messages?.find((m: { role: string }) => m.role === 'system')?.content ?? ''
+      return textResponse('done')
+    }) as unknown as typeof fetch
+
+    const { agenticEngine } = await import('../run/executors/agentic.ts')
+    const ctx = await buildCtx(dir, task)
+    await agenticEngine.run(ctx, { maxTokens: 4096, maxIterations: 2 })
+    return captured
+  }
+
+  it('con checks declarados: ordena correrlos, no los ofrece como opcionales', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    const dir = tmpDir()
+    try {
+      const prompt = await captureSystemPrompt(
+        baseTask({ checks: [{ cmd: 'bun test' }] }),
+        dir,
+      )
+      expect(prompt).toContain('Run them with run_check before you stop')
+      // Regresión: la redacción permisiva vieja no debe volver.
+      expect(prompt).not.toContain('checks you can run')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('sin checks declarados: sigue exigiendo evidencia (leer de vuelta), no deja el vacío', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    const dir = tmpDir()
+    try {
+      const prompt = await captureSystemPrompt(baseTask(), dir)
+      // Es el caso que más duele: defaultChecksFor() no genera checks para
+      // Python/Rust/Go/markdown, así que sin esto no queda ninguna exigencia.
+      expect(prompt).toContain('read_file before you stop')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('la condición de parada pide evidencia, no que el modelo se declare correcto', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    const dir = tmpDir()
+    try {
+      const prompt = await captureSystemPrompt(baseTask(), dir)
+      expect(prompt).toContain('you hold evidence it is correct')
+      expect(prompt).not.toContain('written and correct, stop calling tools')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})

@@ -174,10 +174,19 @@ export const agenticEngine: ExecutorEngine = {
       '## TOOLS',
       `You have tools to explore and edit this project: read_file, list_dir, run_check, write_file.`,
       `You may ONLY write to these files: ${ctx.task.output.join(', ')}. write_file will return an error if you try any other path — fix it and retry.`,
+      // Q.2 (Mes 26, 2026-08-06) — antes decía `checks you can run` (opcional) y
+      // `when written and correct, stop` (correcto = autoevaluado). Eso invitaba
+      // exactamente al modo de fallo de `verification-before-completion`
+      // (superpowers, importada en Q.1): afirmar que está listo sin evidencia
+      // fresca. El harness re-corre los checks después y atrapa la mentira, pero
+      // SOLO si hay checks declarados — `defaultChecksFor()` no genera ninguno
+      // para Python/Rust/Go/C#/markdown. Es redacción, no maquinaria nueva: la
+      // disciplina es transversal a toda corrida agéntica, así que vive acá y no
+      // en una skill que tendría que ganar un slot de selección.
       declaredChecks.length > 0
-        ? `Declared checks you can run to verify your work: ${declaredChecks.map(c => c.cmd).join(', ')}.`
-        : `No deterministic checks are declared for this task.`,
-      `When all declared output files are written and correct, stop calling tools and reply with a short summary of what you did.`,
+        ? `Declared checks for this task: ${declaredChecks.map(c => c.cmd).join(', ')}. Run them with run_check before you stop — do not judge your work correct by inspection alone.`
+        : `No deterministic checks are declared for this task. Read back what you wrote with read_file before you stop — that is your only available evidence.`,
+      `Stop calling tools only when every declared output file is written AND you hold evidence it is correct: a check you ran, or file content you read back. Then reply with a short summary of what you did and what evidence you have.`,
     ].join('\n')
 
     const system = [ctx.effectiveContext, ctx.constitutionBlock, ctx.skillInstructions, ctx.instinctBlock, toolInstructions]

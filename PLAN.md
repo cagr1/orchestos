@@ -45,7 +45,7 @@ idea se elimina de IDEAS.md en el mismo commit.
 
 | Bloque | Idea de IDEAS.md | Estado |
 | --- | --- | --- |
-| **Q** | `#2` `verification-before-completion` (superpowers) | ⏳ en curso |
+| **Q** | `#2` `verification-before-completion` (superpowers) | ✅ cerrado (2026-08-06) |
 | R | `#3` `requesting-code-review` / `receiving-code-review` | pendiente |
 | S | `#5` Resolver imports Ruby | pendiente |
 | T | `#19` `engine: external` sin `checks:` | pendiente |
@@ -104,7 +104,7 @@ un hallazgo real que la idea no conocía.
   matiz de N.5.1 (`qa-structured` sigue siendo prima independiente, no traducción). **25 skills**
   en el catálogo (eran 24), 0 sin `when_to_use`. 1099 tests · 0 fail · `tsc --noEmit` limpio ·
   `bun run test:coverage` verde.
-- [ ] **Q.2 — 🧠 Decidir y cablear dónde aplica de verdad (el hallazgo del punto 2).** El
+- [x] **Q.2 — 🧠 (2026-08-06) Decidir y cablear dónde aplica de verdad (el hallazgo del punto 2).** El
   `activation` de esta skill no es obvio y decidirlo mal la vuelve contenido muerto: con
   `mode: suggest` + `phases: [implement, fix]` sería la **4.ª** candidata de ese bucket, y el
   desempate de O.2 devuelve *sin asignar* con 3+ candidatas — se auto-anularía. Decidir con el
@@ -112,12 +112,55 @@ un hallazgo real que la idea no conocía.
   wording del prompt agéntico si la decisión es que la disciplina es transversal (no por-tarea) —
   **acotado a redacción de prompt existente, sin maquinaria nueva**; si crece más que eso, para y
   se registra como idea aparte en vez de expandir el bloque en caliente.
-- [ ] **Q.3 — 🔍 Gate contra el prompt real compilado y una corrida real**
+
+  **Decisión: `mode: explicit` + arreglar el prompt del ejecutor. Las dos mitades, y el porqué de
+  cada una declarado en el propio YAML** (no por omisión, regla de N.7b):
+  - **No `suggest`**: verificado ejecutando `pickAutoSkill()` con el escenario real de O.4
+    (`pre-task-alignment` + `test-writer` + `tdd-enforcer`) — ya devuelve *sin asignar* con 3
+    candidatas; sumar una 4.ª solo empeora el empate. Habría degradado la auto-selección.
+  - **No `automatic` + `[review]`**: los gates automáticos corren en el stage de QA, donde el actor
+    es el **juez** — y ese lado ya lo cubre `qa-structured` con su propio `iron_law`. Esta skill es
+    disciplina del **ejecutor**, otro actor. Verificado con `resolveGates()` en las 5 fases: no
+    aparece como gate en ninguna, que es lo correcto.
+  - **La disciplina en el runner propio no depende de ganar un slot**: es transversal a toda
+    corrida agéntica, así que vive en el prompt ([agentic.ts](src/run/executors/agentic.ts)) —
+    `checks you can run` → *"Run them with run_check before you stop"*; y para el caso sin checks,
+    donde antes no quedaba ninguna exigencia, → *"Read back what you wrote with read_file"*. La
+    condición de parada pasó de *"written **and correct**"* (autoevaluado) a *"written AND you hold
+    evidence it is correct"*. Redacción, cero maquinaria nueva — el límite del ítem se respetó.
+  - **No se duplica contenido de la skill dentro del código** (sería el anti-patrón de N.4.5): el
+    prompt exige evidencia, no recita el `iron_law`.
+  - 3 tests nuevos ([agentic-engine.test.ts](src/__tests__/agentic-engine.test.ts)) que miran el
+    system prompt **real capturado del body del request**, no la constante en el código, e incluyen
+    guardas de regresión contra la redacción permisiva vieja.
+- [x] **Q.3 — 🔍 (2026-08-06) Gate contra el prompt real compilado y una corrida real**
   ([[feedback-verificar-gates-en-vivo]]), no solo `bun test`: que el `iron_law` aparezca en el
   prompt que sale al ejecutor (no solo en el YAML), y una corrida real de una tarea **sin checks
   deterministas posibles** (el caso donde el hueco duele) confirmando el comportamiento decidido
   en Q.2. Runs de prueba borrados de la DB real al terminar
   ([[reference-test-fixtures-leak-into-real-db]]).
+
+  **(a) Prompt compilado**: `compileClaude`/`compileCursor`/`compileOpenAI` sobre la skill real —
+  `iron_law` presente en los 3, **antes** de `instructions`, con las 8 rationalizations. No es el
+  YAML: es lo que se le entrega a la herramienta.
+
+  **(b) Gate causal con dinero real, con control** — mismo patrón que A.4 (Mes 22). Proyecto
+  scratch fuera del repo, tarea con output `.md` (`defaultChecksFor()` no genera **ningún** check
+  — el caso exacto donde el harness no puede atrapar una afirmación falsa), `gpt-4o-mini`, y el
+  `fetch` instrumentado para capturar los `tool_calls` reales:
+
+  | | instrucción de evidencia en el prompt | tool calls reales | rondas |
+  |---|---|---|---|
+  | **control** (redacción vieja) | *(no llegó ninguna)* | `write_file` | 2 |
+  | **con el fix** | *"Read back… with read_file"* + *"you hold evidence"* | `write_file` → **`read_file`** | 3 |
+
+  Misma tarea, mismo modelo, mismo proyecto: con la redacción vieja el modelo **escribió y paró sin
+  verificar nada**; con el fix leyó de vuelta lo que había escrito antes de parar. La evidencia es
+  la traza de tool calls capturada del request, no el reporte del modelo — que es literalmente lo
+  que enseña la skill importada en Q.1. Runs y proyecto scratch borrados; `SELECT` de residuos
+  contra la DB real devuelve 0.
+
+**Bloque Q cerrado (Q.1–Q.3).**
 
 ---
 
