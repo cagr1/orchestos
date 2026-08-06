@@ -115,3 +115,29 @@ sources:
       parecido de nombre, pero esa no tiene contenido portable. De acá se
       portaron casi verbatim el iron_law, 8 common_rationalizations y los
       red_flags de diagnose.yaml — vigilar cambios en esas tablas.
+
+  - id: superpowers-requesting-code-review
+    repo: obra/superpowers
+    path: skills/requesting-code-review/SKILL.md
+    license: MIT
+    local_artifact: skills/pro/requesting-code-review.yaml
+    last_synced_sha: cfb6281371ef2d2b7937b22eb475a11a9644ff87
+    last_synced_date: "2026-08-06"
+    note: >
+      Porteo verbatim en R.1 (Bloque R, Mes 26). Las 2 common_rationalizations y
+      los 4 red_flags ("Never:") vienen literales de la fuente. El Red Flag "no
+      saltar review por simple" ya se había adaptado antes como anti_pattern de
+      skills/pro/code-review.yaml (N.7c) -- esa skill sigue siendo el dador de
+      una revisión, esta es el solicitante, actores distintos.
+
+  - id: superpowers-receiving-code-review
+    repo: obra/superpowers
+    path: skills/receiving-code-review/SKILL.md
+    license: MIT
+    local_artifact: skills/pro/receiving-code-review.yaml
+    last_synced_sha: 3fb75974186ea7fada621d8ab77b3b02169baf57
+    last_synced_date: "2026-08-06"
+    note: >
+      Porteo verbatim en R.1 (Bloque R, Mes 26). La fuente no tiene tabla de
+      rationalizations ni Red Flags explícita -- la skill local tampoco los
+      declara, por fidelidad (no inventar contenido que la fuente no tiene).

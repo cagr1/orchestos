@@ -46,7 +46,7 @@ idea se elimina de IDEAS.md en el mismo commit.
 | Bloque | Idea de IDEAS.md | Estado |
 | --- | --- | --- |
 | **Q** | `#2` `verification-before-completion` (superpowers) | ✅ cerrado (2026-08-06) |
-| R | `#3` `requesting-code-review` / `receiving-code-review` | pendiente |
+| R | `#3` `requesting-code-review` / `receiving-code-review` | ✅ cerrado (2026-08-06) |
 | S | `#5` Resolver imports Ruby | pendiente |
 | T | `#19` `engine: external` sin `checks:` | pendiente |
 | U | `#40` Editor de Constitution con Guardar/Limpiar | pendiente |
@@ -192,7 +192,7 @@ asumido:
   **dador** de una revisión; estas dos son el **solicitante** y el **receptor** — actores
   distintos, sin duplicación real, ver punto 1 de la corrección de alcance del Bloque Q.
 
-- [ ] **R.1 — ⚡ Importar las dos skills, verbatim, por la vía real.** Autoría de
+- [x] **R.1 — ⚡ (2026-08-06) Importar las dos skills, verbatim, por la vía real.** Autoría de
   `skills/pro/requesting-code-review.yaml` y `skills/pro/receiving-code-review.yaml` portando
   fiel el contenido de `obra/superpowers/skills/requesting-code-review/SKILL.md` y
   `.../receiving-code-review/SKILL.md` (MIT). `requesting-code-review`: `common_rationalizations`
@@ -204,12 +204,29 @@ asumido:
   Registrar ambas en [docs/sources-registry.yaml](docs/sources-registry.yaml) como entradas
   nuevas (no hay entrada previa para ninguna de las dos). **Límite duro**: cero invención, mismo
   error que costó N.5.1. Delegable a Codex con las 2 fuentes literales a la vista.
-- [ ] **R.2 — 🔍 Gate de fidelidad + integridad del catálogo**, más liviano que Q.3 a propósito —
-  no hay comportamiento de runtime que gatear (R.1 lo estableció: sin motor nuevo, sin wiring).
-  Verificar contra la fuente real (no el reporte de Codex): contenido de `common_rationalizations`/
-  `red_flags`/`anti_patterns` coincide con las tablas de origen; **27 skills** en el catálogo
-  (eran 25 tras Q.1); ninguna de las dos aparece en `resolveGates()` en ninguna fase (correcto —
-  no llevan `activation`); `tsc --noEmit` + `bun run test:coverage`.
+
+  **Delegado a Codex (`codex exec --sandbox workspace-write`), verificado contra la fuente
+  real antes de aceptarlo** ([[feedback-verificar-progreso-delegado]]): `requesting-code-review` —
+  2/2 rationalizations verbatim (script de comparación par a par), 4/4 red flags verbatim
+  confirmados a mano contra la sección "Never:" de la fuente. `receiving-code-review` —
+  `common_rationalizations`/`red_flags` correctamente **ausentes** (la fuente no los tiene, cero
+  invención) y 7/7 `anti_patterns` desde "Common Mistakes" verbatim; `instructions` cubre las 9
+  secciones sustantivas de la fuente (Response Pattern, Forbidden Responses, Unclear Feedback,
+  Source-Specific, YAGNI, Implementation Order, Push Back, Acknowledging, Pushback). Ninguna de
+  las dos tiene `activation` — respetado. Tocó solo los 3 archivos autorizados, sin commit.
+- [x] **R.2 — 🔍 (2026-08-06) Gate de fidelidad + integridad del catálogo**, más liviano que Q.3 a
+  propósito — no hay comportamiento de runtime que gatear (R.1 lo estableció: sin motor nuevo,
+  sin wiring). Verificar contra la fuente real (no el reporte de Codex): contenido de
+  `common_rationalizations`/`red_flags`/`anti_patterns` coincide con las tablas de origen; **27
+  skills** en el catálogo (eran 25 tras Q.1); ninguna de las dos aparece en `resolveGates()` en
+  ninguna fase (correcto — no llevan `activation`); `tsc --noEmit` + `bun run test:coverage`.
+
+  **27/27 skills en catálogo confirmado. Gate de deriva también verde**: los 2 `last_synced_sha`
+  que Codex escribió en el registro son commits reales del path exacto (9 fuentes · 0 con deriva
+  · 0 con error) — no inventó un SHA plausible. 1102 tests · 0 fail · `tsc --noEmit` limpio ·
+  `bun run test:coverage` verde.
+
+**Bloque R cerrado (R.1–R.2).**
 
 ---
 

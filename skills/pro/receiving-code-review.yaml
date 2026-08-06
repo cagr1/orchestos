@@ -1,0 +1,79 @@
+id: receiving-code-review
+version: 1.0.0
+name: Receiving Code Review
+description: Use when receiving code review feedback before implementing suggestions, especially when feedback is unclear or technically questionable; verify before agreeing or implementing
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+when_to_use:
+  - When receiving code review feedback
+  - When any feedback item is unclear and must be clarified before implementation
+  - When feedback is technically questionable and needs verification against the codebase
+inputs_required:
+  - The code review feedback received
+  - Context on the relevant codebase and change
+instructions: |
+  **The Response Pattern**
+  WHEN receiving code review feedback:
+  1. READ: Complete feedback without reacting
+  2. UNDERSTAND: Restate requirement in own words (or ask)
+  3. VERIFY: Check against codebase reality
+  4. EVALUATE: Technically sound for THIS codebase?
+  5. RESPOND: Technical acknowledgment or reasoned pushback
+  6. IMPLEMENT: One item at a time, test each
+
+  **Forbidden Responses**
+  **NEVER:** "You're absolutely right!" (explicit instruction-file violation); "Great point!" / "Excellent feedback!" (performative); "Let me implement that now" (before verification).
+  **INSTEAD:** Restate the technical requirement; ask clarifying questions; push back with technical reasoning if wrong; just start working (actions > words).
+
+  **Handling Unclear Feedback**
+  IF any item is unclear: STOP - do not implement anything yet. ASK for clarification on unclear items.
+  WHY: Items may be related. Partial understanding = wrong implementation.
+  Example: your human partner says "Fix 1-6"; you understand 1,2,3,6 but not 4,5. WRONG: implement 1,2,3,6 now and ask later. RIGHT: "I understand items 1,2,3,6. Need clarification on 4 and 5 before implementing."
+
+  **Source-Specific Handling**
+  From your human partner: Trusted - implement after understanding; still ask if scope unclear; no performative agreement; skip to action or technical acknowledgment.
+  From External Reviewers, BEFORE implementing: 1. Check: Technically correct for THIS codebase? 2. Check: Breaks existing functionality? 3. Check: Reason for current implementation? 4. Check: Works on all platforms/versions? 5. Check: Does reviewer understand full context? If suggestion seems wrong, push back with technical reasoning. If can't easily verify, say: "I can't verify this without [X]. Should I [investigate/ask/proceed]?" If it conflicts with your human partner's prior decisions, stop and discuss with your human partner first.
+  **your human partner's rule:** "External feedback - be skeptical, but check carefully"
+
+  **YAGNI Check**
+  IF reviewer suggests "implementing properly": grep codebase for actual usage. IF unused: "This endpoint isn't called. Remove it (YAGNI)?" IF used: Then implement properly.
+  **your human partner's rule:** "You and reviewer both report to me. If we don't need this feature, don't add it."
+
+  **Implementation Order**
+  FOR multi-item feedback: 1. Clarify anything unclear FIRST. 2. Then implement in this order: Blocking issues (breaks, security); Simple fixes (typos, imports); Complex fixes (refactoring, logic). 3. Test each fix individually. 4. Verify no regressions.
+
+  **When To Push Back**
+  Push back when: Suggestion breaks existing functionality; reviewer lacks full context; violates YAGNI (unused feature); technically incorrect for this stack; legacy/compatibility reasons exist; conflicts with your human partner's architectural decisions.
+  **How to push back:** Use technical reasoning, not defensiveness; ask specific questions; reference working tests/code; involve your human partner if architectural.
+  If uncomfortable pushing back out loud: Name that tension, then tell your partner about the issue you've seen. They'll appreciate your honesty.
+
+  **Acknowledging Correct Feedback**
+  When feedback IS correct: "Fixed. [Brief description of what changed]"; "Good catch - [specific issue]. Fixed in [location]."; or just fix it and show in the code.
+  Do not say "You're absolutely right!", "Great point!", "Thanks for catching that!", "Thanks for [anything]", or any gratitude expression. Actions speak. The code itself shows you heard the feedback. If you catch yourself about to write "Thanks": DELETE IT. State the fix.
+
+  **Gracefully Correcting Your Pushback**
+  If you pushed back and were wrong: "You were right - I checked [X] and it does [Y]. Implementing now." or "Verified this and you're correct. My initial understanding was wrong because [reason]. Fixing."
+  Do not give a long apology, defend why you pushed back, or over-explain. State the correction factually and move on.
+anti_patterns:
+  - "Performative agreement: State requirement or just act"
+  - "Blind implementation: Verify against codebase first"
+  - "Batch without testing: One at a time, test each"
+  - "Assuming reviewer is right: Check if breaks things"
+  - "Avoiding pushback: Technical correctness > comfort"
+  - "Partial implementation: Clarify all items first"
+  - "Can't verify, proceed anyway: State limitation, ask for direction"
+verifiers:
+  - No expressions of gratitude, agreement, or performative acknowledgment occur before verification
+  - Every unclear item is clarified before implementation, and each implemented fix is tested individually
+  - Feedback is evaluated against the actual codebase before it is accepted or rejected
+examples:
+  - title: Technical verification instead of performative agreement
+    input: "Reviewer: Remove legacy code"
+    output: "Checking... build target is 10.15+, this API needs 13+. Need legacy for backward compat. Current impl has wrong bundle ID - fix it or drop pre-13 support?"
+  - title: YAGNI check for a professional feature
+    input: "Reviewer: Implement proper metrics tracking with database, date filters, CSV export"
+    output: "Grepped codebase - nothing calls this endpoint. Remove it (YAGNI)? Or is there usage I'm missing?"
