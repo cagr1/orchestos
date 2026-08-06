@@ -2,7 +2,7 @@
 
 Generado: 2026-08-06 — ver [docs/sources-registry.yaml](docs/sources-registry.yaml) y PLAN.md § Bloque P.
 
-0 con deriva · 7 sin cambios · 0 con error de consulta.
+0 con deriva · 9 sin cambios · 0 con error de consulta.
 
 ## Sin cambios
 
@@ -13,3 +13,5 @@ Generado: 2026-08-06 — ver [docs/sources-registry.yaml](docs/sources-registry.
 - `orca-tui-agent-config` — `e58c051d16c1`
 - `mattpocock-code-review-smells` — `c0d69015e0cc`
 - `superpowers-systematic-debugging` — `c74782ead66b`
+- `superpowers-requesting-code-review` — `cfb6281371ef`
+- `superpowers-receiving-code-review` — `3fb75974186e`

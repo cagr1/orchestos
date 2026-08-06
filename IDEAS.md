@@ -26,13 +26,13 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 
 ### Bajo
 
-_(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` graduado a Bloque R el 2026-08-06)_
+_(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06; `#5` a
+Bloque S el 2026-08-06)_
 
-1. `#5` Resolver imports Ruby.
-2. `#19` `engine: external` sin checks.
-3. `#40` Editor de Constitution con Guardar/Limpiar.
-4. `#46` Spike de Graphify.
-5. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
+1. `#19` `engine: external` sin checks.
+2. `#40` Editor de Constitution con Guardar/Limpiar.
+3. `#46` Spike de Graphify.
+4. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
 
 ### Bajo-medio
 
@@ -161,19 +161,6 @@ call extra (haiku, barato) detectaría ambigüedad real semánticamente.
 **Costo**: un call por task run. **Solo vale la pena si hay evidencia de falsos negativos.**
 
 **Esfuerzo**: bajo-medio — un call + parseo, pero gated en evidencia real.
-
-### 5. Resolver imports relativos en Graph — solo falta Ruby
-
-**Corregido (2026-07-06)**: esta nota estaba desactualizada — decía que C#/Rust/Go/Java no
-resolvían imports. Verificado contra el código real: los 4 resolvers existen y están
-registrados (`src/graph/resolvers/{csharp,rust,go,java}.ts`, wireados en
-[`graph/index.ts:15-18`](src/graph/index.ts)) desde S21 (`tasks.yaml`:
-`s21-6-integrate-resolvers`, done/qa:pass). **Solo Ruby sigue sin resolver.**
-
-**Trabajo restante**: un `rubyResolver` nuevo siguiendo el patrón de los 4 existentes
-(namespace/require matching), registrarlo en `graph/index.ts`.
-
-**Esfuerzo**: bajo — el registry y el patrón ya existen, es un resolver más.
 
 ### 6. Design.md condicional para tareas complejas (OpenSpec)
 

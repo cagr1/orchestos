@@ -8,6 +8,7 @@ import { csharpResolver } from './resolvers/csharp.ts'
 import { rustResolver } from './resolvers/rust.ts'
 import { goResolver } from './resolvers/go.ts'
 import { javaResolver } from './resolvers/java.ts'
+import { rubyResolver } from './resolvers/ruby.ts'
 import { inferEmbeddingProvider } from '../providers/embeddings.ts'
 
 const INDEX_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs,py,cs,rs,go,java,kt,rb,php,swift,scala,ex,exs,hs,lua,pl,pm}'
@@ -16,6 +17,7 @@ registerResolver(csharpResolver)
 registerResolver(rustResolver)
 registerResolver(goResolver)
 registerResolver(javaResolver)
+registerResolver(rubyResolver)
 const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '/index.ts', '/index.js']
 
 export interface IndexOpts {
@@ -257,7 +259,21 @@ function extractJvmImports(content: string): ImportEdge[] {
 
 function extractRubyImports(content: string): ImportEdge[] {
   const edges: ImportEdge[] = []
-  for (const match of content.matchAll(/^\s*require(?:_relative)?\s+['"]([^'"]+)['"]/gm)) {
+  // S.2 (Mes 26, 2026-08-06) — `require_relative` y `require` tienen semántica
+  // de resolución distinta (relativo al archivo vs. `$LOAD_PATH`, que puede ser
+  // una gema externa), pero el `Resolver.resolve()` compartido solo recibe
+  // `specifier` (nunca `kind`) — no hay forma de distinguirlos ahí. Se
+  // distinguen ACÁ, en la extracción: `require_relative` siempre es relativo
+  // por definición del lenguaje, así que se normaliza con `./` al frente si no
+  // lo trae ya (`require_relative 'foo'` y `require_relative './foo'` son el
+  // mismo require) — no es un hack, es la semántica real de Ruby.
+  for (const match of content.matchAll(/^\s*require_relative\s+['"]([^'"]+)['"]/gm)) {
+    if (match[1]) {
+      const specifier = match[1].startsWith('.') ? match[1] : `./${match[1]}`
+      edges.push({ kind: 'require', specifier, raw: match[0].trim() })
+    }
+  }
+  for (const match of content.matchAll(/^\s*require\s+['"]([^'"]+)['"]/gm)) {
     if (match[1]) edges.push({ kind: 'require', specifier: match[1], raw: match[0].trim() })
   }
   return edges

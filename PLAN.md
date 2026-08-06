@@ -47,7 +47,7 @@ idea se elimina de IDEAS.md en el mismo commit.
 | --- | --- | --- |
 | **Q** | `#2` `verification-before-completion` (superpowers) | ✅ cerrado (2026-08-06) |
 | R | `#3` `requesting-code-review` / `receiving-code-review` | ✅ cerrado (2026-08-06) |
-| S | `#5` Resolver imports Ruby | ⏳ S.1 cerrado (bug raíz), S.2 en curso |
+| S | `#5` Resolver imports Ruby | ✅ cerrado (2026-08-06) |
 | T | `#19` `engine: external` sin `checks:` | pendiente |
 | U | `#40` Editor de Constitution con Guardar/Limpiar | pendiente |
 | V | `#46` Spike de Graphify | pendiente |
@@ -271,7 +271,7 @@ decidió (pregunta explícita, 2026-08-06) arreglar la raíz primero, Ruby despu
   los extractores), más 2 tests de regresión causal del bug de orden con un proyecto sintético
   donde `a-first.ts` importa `z-second.ts` (el caso exacto que fallaba). 1108 tests · 0 fail ·
   `tsc --noEmit` limpio · `bun run test:coverage` verde.
-- [ ] **S.2 — 🧠 El `rubyResolver` en sí**, ahora sobre una base que sí funciona. Patrón
+- [x] **S.2 — 🧠 (2026-08-06) El `rubyResolver` en sí**, ahora sobre una base que sí funciona. Patrón
   `require_relative './foo'` (relativo al archivo, resoluble directo) vs `require 'foo/bar'`
   (basado en `$LOAD_PATH` — puede ser una gema externa, no siempre un archivo local; el resolver
   debe devolver `null` sin tratar de adivinar cuando no hay candidato real). Registrar en
@@ -279,6 +279,30 @@ decidió (pregunta explícita, 2026-08-06) arreglar la raíz primero, Ruby despu
   produce `languageFor()` — verificar, no asumir, dado lo encontrado en S.1). Tests contra
   `extractRubyImports()` (ya existe) + un fixture nuevo en `tests/fixtures/graph/ruby/` con
   `require_relative` cruzando archivos, mismo patrón que `graph-resolver-e2e.test.ts`.
+
+  **Hallazgo adicional al implementar**: `Resolver.resolve(importStr, fromFile, repo)` nunca
+  recibe `kind` — no hay forma de que el resolver distinga `require_relative` de `require` a
+  partir del `specifier` solo, y ambas formas tienen resolución distinta (relativo al archivo vs.
+  `$LOAD_PATH`). Resuelto en la **extracción**, no en el resolver:
+  [extractRubyImports()](src/graph/index.ts:258) normaliza todo `require_relative` con `./` al
+  frente si no lo trae (`require_relative 'foo'` y `require_relative './foo'` son el mismo require
+  por semántica del lenguaje — no es un hack). [ruby.ts](src/graph/resolvers/ruby.ts) resuelve
+  después por el prefijo: `.` → relativo a `fromFile` con extensión `.rb`; sin prefijo → intenta
+  `<specifier>.rb` y `lib/<specifier>.rb` (las dos convenciones reales de `$LOAD_PATH` en un repo
+  Ruby), `null` si ninguna existe — **verificado que `require 'json'` (stdlib) da `null` limpio,
+  no un candidato inventado**.
+  Registrado con `language: 'rb'` desde el inicio (S.1 destapó que `rust`/`csharp` no seguían este
+  criterio).
+  **Corrección de test drift encontrada de paso**: `graph-imports.test.ts` no importa los
+  extractores reales de `graph/index.ts` (no están exportados) — tiene sus **propias copias
+  reimplementadas** para no depender de la DB. La copia de Ruby estaba desincronizada del fix real;
+  actualizada para no dejar una suite verde que no prueba el código que corre.
+  6 tests nuevos (2 en `graph-imports.test.ts` sobre la extracción normalizada, 1 end-to-end en
+  `graph-resolver-e2e.test.ts` contra el fixture real con las 4 formas: `require_relative` con y
+  sin `./`, `require 'lib/...'`, y `require 'json'` confirmando `null`). 1111 tests · 0 fail ·
+  `tsc --noEmit` limpio · `bun run test:coverage` verde.
+
+**Bloque S cerrado (S.1–S.2).**
 
 ---
 

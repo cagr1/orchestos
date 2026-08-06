@@ -59,9 +59,19 @@ function extractJvmImports(content: string) {
 }
 
 function extractRubyImports(content: string) {
-  const edges: { kind: string; specifier: string }[] = []
-  for (const match of content.matchAll(/^\s*require(?:_relative)?\s+['"]([^'"]+)['"]/gm)) {
-    if (match[1]) edges.push({ kind: 'require', specifier: match[1] })
+  const edges: { kind: string; raw: string; specifier: string }[] = []
+  // S.2 (Mes 26, 2026-08-06) — mantener sincronizado con extractRubyImports()
+  // real en src/graph/index.ts: require_relative siempre es relativo por
+  // semántica del lenguaje, se normaliza con `./` al frente acá porque
+  // Resolver.resolve() nunca recibe `kind`.
+  for (const match of content.matchAll(/^\s*require_relative\s+['"]([^'"]+)['"]/gm)) {
+    if (match[1]) {
+      const specifier = match[1].startsWith('.') ? match[1] : `./${match[1]}`
+      edges.push({ kind: 'require', raw: match[0].trim(), specifier })
+    }
+  }
+  for (const match of content.matchAll(/^\s*require\s+['"]([^'"]+)['"]/gm)) {
+    if (match[1]) edges.push({ kind: 'require', raw: match[0].trim(), specifier: match[1] })
   }
   return edges
 }
@@ -191,5 +201,22 @@ describe('Ruby import extraction', () => {
     const code = `require_relative '../models/user'`
     const edges = extractRubyImports(code)
     expect(edges.some(e => e.specifier === '../models/user')).toBe(true)
+  })
+
+  // S.2 (Mes 26, 2026-08-06) — require_relative sin `./` explícito se
+  // normaliza en la extracción, porque el Resolver.resolve() compartido solo
+  // recibe el specifier (nunca kind) y no hay otra forma de que sepa que es
+  // relativo.
+  it('normaliza require_relative sin ./ explícito — sigue siendo relativo por semántica del lenguaje', () => {
+    const edges = extractRubyImports(`require_relative 'helper'`)
+    expect(edges[0]?.specifier).toBe('./helper')
+  })
+
+  it('no confunde require_relative con require al extraer ambos de un archivo', () => {
+    const code = `require_relative './helper'\nrequire 'json'`
+    const edges = extractRubyImports(code)
+    expect(edges).toHaveLength(2)
+    expect(edges.find(e => e.raw.startsWith('require_relative'))?.specifier).toBe('./helper')
+    expect(edges.find(e => e.raw === "require 'json'")?.specifier).toBe('json')
   })
 })

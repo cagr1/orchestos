@@ -86,6 +86,24 @@ describe('resoluciones cross-file end-to-end contra los fixtures reales', () => 
     expect(edges.length).toBeGreaterThan(0)
     expect(edges.every(e => e.to_file_id !== null)).toBe(true)
   })
+
+  // S.2 (Mes 26, 2026-08-06) — rubyResolver nuevo, sobre la base que S.1 arregló.
+  it('Ruby: require_relative (con y sin ./) resuelve, require de gema externa no inventa un match', async () => {
+    const id = newPid()
+    const edges = await resolvedEdges(join(FIXTURES, 'ruby'), id)
+    const byRaw = Object.fromEntries(edges.map(e => [e.raw, e.to_file_id]))
+
+    expect(byRaw["require_relative './helper'"]).not.toBeNull()
+    // require_relative sin `./` explícito sigue siendo relativo por semántica
+    // del lenguaje — extractRubyImports() lo normaliza en la extracción.
+    expect(byRaw["require_relative 'other_helper'"]).not.toBeNull()
+    // Convención de $LOAD_PATH vía lib/ — best-effort, no garantizado por el
+    // lenguaje, pero es el layout real más común.
+    expect(byRaw["require 'lib/service'"]).not.toBeNull()
+    // 'json' es la librería estándar — no hay archivo local, y el resolver no
+    // debe inventar un candidato falso. null es el resultado CORRECTO acá.
+    expect(byRaw["require 'json'"]).toBeNull()
+  })
 })
 
 describe('regresión del bug de orden — independiente de qué archivo llegue primero al glob', () => {
