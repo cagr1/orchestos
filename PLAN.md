@@ -47,7 +47,7 @@ idea se elimina de IDEAS.md en el mismo commit.
 | --- | --- | --- |
 | **Q** | `#2` `verification-before-completion` (superpowers) | ✅ cerrado (2026-08-06) |
 | R | `#3` `requesting-code-review` / `receiving-code-review` | ✅ cerrado (2026-08-06) |
-| S | `#5` Resolver imports Ruby | pendiente |
+| S | `#5` Resolver imports Ruby | ⏳ S.1 cerrado (bug raíz), S.2 en curso |
 | T | `#19` `engine: external` sin `checks:` | pendiente |
 | U | `#40` Editor de Constitution con Guardar/Limpiar | pendiente |
 | V | `#46` Spike de Graphify | pendiente |
@@ -227,6 +227,58 @@ asumido:
   `bun run test:coverage` verde.
 
 **Bloque R cerrado (R.1–R.2).**
+
+### Bloque S — 🧠 IDEAS #5: resolver imports Ruby en el Graph
+
+**Lo que pedía la idea**: *"un `rubyResolver` nuevo siguiendo el patrón de los 4 existentes... el
+registry y el patrón ya existen, es un resolver más. Esfuerzo: bajo."*
+
+**Hallazgo real al verificar el patrón antes de copiarlo (2026-08-06)** — no hipotético, reproducido
+en vivo con los fixtures reales de `tests/fixtures/graph/`: **el patrón de los 4 resolvers
+"existentes" estaba roto**, y agregar un `rubyResolver` sobre él habría producido exactamente lo
+mismo — un resolver que funciona aislado pero cuyo resultado nunca llega a `code_edges`. Carlos
+decidió (pregunta explícita, 2026-08-06) arreglar la raíz primero, Ruby después.
+
+- [x] **S.1 — 🧠 (2026-08-06) Arreglar el bug de orden en `indexProject()` + los 2 bugs de
+  resolver que destapó.** Tres fallos independientes, verificados con `to_file_id` real contra
+  los fixtures del repo antes de tocar nada:
+  1. **Bug de orden (universal, todos los lenguajes, desde S21)**:
+     [indexProject()](src/graph/index.ts:69) resolvía los edges de un archivo **en el mismo
+     instante** en que lo insertaba en `files` — un pase único. Si el archivo importado ordenaba
+     alfabéticamente **después** en el glob, su fila todavía no existía cuando `resolveFileId()`
+     lo buscaba: el resolver encontraba el path correcto, pero el lookup por id fallaba y el edge
+     quedaba huérfano **para siempre** (un archivo sin cambios de `sha1` nunca vuelve a pasar por
+     el cálculo). Medido antes del fix: **0/2 Rust, 0/3 C#, 0/1 Go, 1/3 Java, 0/1 JS/TS**
+     resueltos con los fixtures reales — no era de un lenguaje, era el pase entero.
+  2. **`rust.ts`/`csharp.ts` registrados bajo la clave equivocada**: `language: 'rust'`/`'csharp'`,
+     pero `languageFor()` (la extensión del archivo) produce `'rs'`/`'cs'` — el registry nunca los
+     encontraba. `csharp.ts` además filtraba internamente `f.language !== 'csharp'` en
+     `buildNsMap()`, mismo mismatch una segunda vez.
+  3. **`rust.ts` comparaba contra el string equivocado**: `resolveWithRegistry()` pasa
+     `edge.specifier`, que `extractRustImports()` ya captura **sin** el prefijo `use ` (regex de
+     captura). El resolver comparaba `importStr.startsWith('use crate::')` — nunca podía ser
+     `true`, para ningún input. Este resolver **no había resuelto nada jamás**, independiente del
+     bug de orden.
+
+  **Fix**: `indexProject()` pasa a dos pasadas — (1) upsert de TODOS los archivos, `files` queda
+  completa; (2) edges solo para los archivos que cambiaron, contra el estado final de `files`.
+  Más las dos correcciones puntuales de clave/prefijo. Reverificado con los mismos 4 fixtures
+  después del fix: **100% resuelto en los 4 lenguajes** (Rust 2/2, C# 3/3, Go 1/1, Java 3/3).
+  Verificado también que el proyecto propio de OrchestOS nunca se había indexado (`0` archivos en
+  `code_edges`) — no había datos viejos rotos que migrar.
+  6 tests nuevos ([graph-resolver-e2e.test.ts](src/__tests__/graph-resolver-e2e.test.ts)): los 4
+  fixtures reales end-to-end contra `indexProject()` completo (nunca se había testeado más allá de
+  los extractores), más 2 tests de regresión causal del bug de orden con un proyecto sintético
+  donde `a-first.ts` importa `z-second.ts` (el caso exacto que fallaba). 1108 tests · 0 fail ·
+  `tsc --noEmit` limpio · `bun run test:coverage` verde.
+- [ ] **S.2 — 🧠 El `rubyResolver` en sí**, ahora sobre una base que sí funciona. Patrón
+  `require_relative './foo'` (relativo al archivo, resoluble directo) vs `require 'foo/bar'`
+  (basado en `$LOAD_PATH` — puede ser una gema externa, no siempre un archivo local; el resolver
+  debe devolver `null` sin tratar de adivinar cuando no hay candidato real). Registrar en
+  `graph/index.ts` siguiendo `registerResolver(...)`, con la clave correcta (`'rb'`, la que
+  produce `languageFor()` — verificar, no asumir, dado lo encontrado en S.1). Tests contra
+  `extractRubyImports()` (ya existe) + un fixture nuevo en `tests/fixtures/graph/ruby/` con
+  `require_relative` cruzando archivos, mismo patrón que `graph-resolver-e2e.test.ts`.
 
 ---
 

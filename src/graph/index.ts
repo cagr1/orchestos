@@ -63,9 +63,26 @@ export async function indexProject(projectRoot: string, projectId: string, opts?
 
   const embedProvider = opts?.noEmbed ? null : inferEmbeddingProvider('openrouter')
 
+  // S (Mes 26, 2026-08-06) — bug real encontrado al investigar #5 (Ruby resolver):
+  // este bucle era UN SOLO PASE — cada archivo se upsertaba y sus edges se
+  // resolvían en el mismo instante, contra la tabla `files` tal como estaba EN
+  // ESE MOMENTO. Si el archivo importado ordenaba alfabéticamente DESPUÉS en el
+  // glob (ej. `a.ts` importa `z.ts`), su fila todavía no existía cuando
+  // `resolveFileId()` se llamaba — el resolver encontraba el path correcto, pero
+  // el lookup por id fallaba y el edge quedaba huérfano (`to_file_id: null`)
+  // PARA SIEMPRE, porque un archivo sin cambios (`sha1` igual) nunca vuelve a
+  // pasar por acá. Verificado en vivo: 0/2 Rust, 0/3 C#, 0/1 Go, 1/3 Java,
+  // 0/1 JS/TS resueltos con los fixtures reales de tests/fixtures/graph/ — no
+  // era específico de un lenguaje, era el pase entero desde S21.
+  //
+  // Fix: dos pasadas. (1) upsert de TODOS los archivos primero — la tabla
+  // `files` queda completa antes de resolver un solo edge. (2) edges solo para
+  // los archivos que cambiaron, ahora contra el estado final de `files`.
   let changed = 0
   let edges = 0
   let embeddings = 0
+  const toResolve: Array<{ file: string; fileId: number; content: string }> = []
+
   for (const file of files) {
     const fullPath = join(projectRoot, file)
     const content = readFileSync(fullPath, 'utf-8')
@@ -89,6 +106,7 @@ export async function indexProject(projectRoot: string, projectId: string, opts?
 
     const fileId = upsertFile(projectId, file, languageFor(file), sha1, size, now)
     changed++
+    toResolve.push({ file, fileId, content })
 
     if (embedProvider) {
       const emb = await embedFile(embedProvider, file, content)
@@ -97,10 +115,13 @@ export async function indexProject(projectRoot: string, projectId: string, opts?
         embeddings++
       }
     }
+  }
 
+  // Pass 2 — `files` ya tiene TODAS las filas (cambiadas y sin cambios) antes
+  // de resolver un solo edge, sin importar el orden del glob.
+  const repoFiles = files.map(p => ({ path: p, language: languageFor(p) }))
+  for (const { file, fileId, content } of toResolve) {
     db.run('DELETE FROM code_edges WHERE from_file_id = ?', [fileId])
-
-    const repoFiles = files.map(p => ({ path: p, language: languageFor(p) }))
     for (const edge of extractImports(file, content)) {
       const toPath = resolveImport(projectRoot, file, edge.specifier) ?? edge.specifier
       const language = languageFor(file)

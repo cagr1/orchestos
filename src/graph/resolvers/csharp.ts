@@ -11,7 +11,7 @@ function buildNsMap(repo: RepoIndex): Map<string, string[]> {
 
   const map = new Map<string, string[]>()
   for (const f of repo.files) {
-    if (f.language !== 'csharp') continue
+    if (f.language !== 'cs') continue
     try {
       const src = readFileSync(join(repo.projectRoot, f.path), 'utf-8')
       const m = src.match(/\bnamespace\s+([\w.]+)/)
@@ -29,7 +29,11 @@ function buildNsMap(repo: RepoIndex): Map<string, string[]> {
 }
 
 export const csharpResolver: Resolver = {
-  language: 'csharp',
+  // S (Mes 26, 2026-08-06) — debe ser 'cs' (el valor real de languageFor()),
+  // mismo bug que rust.ts: con 'csharp' el registry nunca encontraba este
+  // resolver Y el filtro interno de buildNsMap() de abajo tampoco matcheaba
+  // ningún archivo — doble fallo, 0/3 edges resueltos en los fixtures reales.
+  language: 'cs',
   resolve(importStr: string, _fromFile: string, repo: RepoIndex): string | null {
     // Handle: "using X.Y.Z;" or bare "X.Y.Z"
     const ns = importStr.replace(/^using\s+/, '').replace(/;$/, '').trim()
