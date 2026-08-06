@@ -32,6 +32,7 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 4. `#19` `engine: external` sin checks.
 5. `#40` Editor de Constitution con Guardar/Limpiar.
 6. `#46` Spike de Graphify.
+7. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
 
 ### Bajo-medio
 
@@ -822,7 +823,7 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
 | Patrón | Repo | Estado |
 |--------|------|--------|
 | Middleware chain ordenado | DeerFlow | ✅ S31 |
-| Skills con tool policy (`allowed_tools`) | DeerFlow | ✅ S22.0.1 |
+| Skills con tool policy (`allowed_tools`) | DeerFlow | ⚠️ S22.0.1 — parcial, ver [#58](#58-tool-policyts-es-dead-code--ctxallowedtools-no-lo-lee-ningún-ejecutor): el camino de tareas simples (`tool-policy.ts`) es dead code, el enforcement real vive en `SubTask.allowed_tools` (planner) |
 | Memoria estructurada en capas | DeerFlow | ✅ parcial — S22.0.3 |
 | Subagent executor con status tracking | DeerFlow | ✅ S22 |
 | Instincts con confidence scoring | ECC | ✅ S33 |
