@@ -47,7 +47,7 @@ Este mes conserva pendientes reales que no se cierran por arrastre documental (c
 | Mes 22 / v0.13 | A–K | ✅ Cerrado formalmente, sin pendientes |
 | Mes 23 | L | ✅ Cerrado — L.5.7 (2026-07-30) y **L.6.2 (2026-08-02)**, sin pendientes |
 | Mes 24 | M | ✅ Cerrado formalmente, sin pendientes (resueltos 2026-07-30) |
-| Mes 25 | Pendientes heredados + N, O, P | ⏳ Activo — desglose abajo |
+| Mes 25 | Pendientes heredados + N, O, P | ⏳ Todos los bloques cerrados (N, O, P — P.4 el 2026-08-06); falta la ceremonia formal de cierre de mes ([[feedback-orden-desarrollo]]) |
 
 **Desglose del Mes 25 (2026-08-02)** — se agrega porque la tabla anterior enterraba una semana
 entera de trabajo dentro de "Pendientes heredados" sin decir qué había adentro; Carlos reportó
@@ -58,7 +58,7 @@ desorientación real por esto en la revisión del 2026-08-02.
 | Pendientes heredados | K.6.2-R7, L.5.7, L.6.2, M ×2 | ✅ **todos cerrados** (L.6.2 el 2026-08-02, era el más viejo) |
 | **N** | Endurecimiento de skills (Iron Law / Rationalizations / Red Flags) | ✅ **N.1–N.7c cerrado completo** (N.7c el 2026-08-05) |
 | **O** | Skills que se activan solas (el problema de fondo: no invocarlas por nombre) | ✅ **cerrado completo** (O.0–O.4, O.4 el 2026-08-05) |
-| **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ⏳ 3 de 4 — P.4 (resumen vía LLM) es mejora, no bloqueante |
+| **P** | Vigilancia de deriva de fuentes externas (`sources-drift`) | ✅ **cerrado completo** (P.1–P.4, P.4 el 2026-08-06) |
 
 **Estado de CI (2026-08-02)**: verde. Estuvo rojo en el **100%** de los pushes desde 2026-07-29
 hasta 2026-08-01 14:01; verde desde 2026-08-01 14:03, 6 pushes seguidos. El hook `pre-push`
@@ -706,10 +706,32 @@ proyecto grande):
 - [x] **P.3 — 🔍** (2026-08-02) **Primera corrida real**, no simulada — pedida explícitamente por
   Carlos en el mismo turno que P.1/P.2. Resultado y hallazgos anotados en el commit y en
   `SOURCES_DRIFT.md`.
-- [ ] **P.4 — ⚡** Mejora futura, no bloqueante: paso de resumen vía LLM (reusar el patrón de
-  `classifyAgainstOptions` de `docs/semantic-skill-selection-design.md` si aplica) que lea el diff
-  real entre `last_synced_sha` y el HEAD actual del path y redacte la propuesta en
+- [x] **P.4 — ⚡ (2026-08-06) CERRADO.** Mejora futura, no bloqueante: paso de resumen vía LLM (reusar
+  el patrón de `classifyAgainstOptions` de `docs/semantic-skill-selection-design.md` si aplica) que
+  lea el diff real entre `last_synced_sha` y el HEAD actual del path y redacte la propuesta en
   `SOURCES_DRIFT.md`, en vez de solo listar "cambió, revisar a mano".
+
+  **Implementado en [scripts/check-sources-drift.ts](scripts/check-sources-drift.ts)**:
+  `fetchDiffPatch()` trae el patch real del path vía `gh api compare` (no el repo entero);
+  `buildSummaryPrompt()` (pura, testeada) arma el prompt con el artefacto local, la nota del
+  registro y el diff literal; `summarizeDrift()` llama un modelo barato (`claude-haiku-4-5`) con
+  `chatFn` inyectable para test sin red. **Opt-in a propósito** — mismo patrón que
+  `orcheConfig.adversarialQA`: el camino mecánico de P.1-P.3 sigue siendo el default sin costo ni
+  LLM; `--summarize` (`bun run sources:drift:summarize`) lo activa. Sigue sin tocar
+  `local_artifact` ni el registro — el LLM solo redacta la propuesta que ya requería revisión
+  humana, la promoción real sigue pasando por `/knowledge-promote`.
+
+  **Verificado en vivo, no solo con tests**: `last_synced_sha` de `superpowers-systematic-debugging`
+  bajado a mano a un commit 2 versiones atrás, corrido `--summarize` de verdad contra el registro
+  real. Resultado real del LLM: identificó que el upstream agregó una referencia a
+  `verification-before-completion` y **removió la sección "Real-World Impact"** que menciona el
+  framing de `iron_law` — exactamente la tabla que la nota del registro marca como portada,
+  detectado sin que el prompt se lo dijera explícitamente. Registro restaurado al SHA correcto
+  después de verificar, `SOURCES_DRIFT.md` regenerado limpio (0 deriva).
+  8 tests nuevos (`check-sources-drift.test.ts`) — `buildSummaryPrompt` puro, `summarizeDrift` con
+  `chatFn` fake, `renderReport` con/sin `summaries[]`. `tsc --noEmit` limpio.
+
+  **Bloque P cierra completo (P.1–P.4).**
 
 ---
 

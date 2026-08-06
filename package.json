@@ -16,6 +16,7 @@
     "e2e:smoke-agents": "bun run src/run/e2e-smoke-agents.ts",
     "dreaming:export": "bun run scripts/export-runs-summary.ts",
     "sources:drift": "bun run scripts/check-sources-drift.ts",
+    "sources:drift:summarize": "bun run scripts/check-sources-drift.ts --summarize",
     "ledger:gate": "bun run scripts/check-ledger-gate.ts",
     "ledger:report": "bun run scripts/ledger-report.ts",
     "security:secrets": "bun run scripts/check-secrets.ts --staged",

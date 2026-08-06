@@ -1,6 +1,6 @@
 # Sources drift report
 
-Generado: 2026-08-05 — ver [docs/sources-registry.yaml](docs/sources-registry.yaml) y PLAN.md § Bloque P.
+Generado: 2026-08-06 — ver [docs/sources-registry.yaml](docs/sources-registry.yaml) y PLAN.md § Bloque P.
 
 0 con deriva · 7 sin cambios · 0 con error de consulta.
 

@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { execFileSync } from 'child_process'
 import { parse } from 'yaml'
+import { chat as openrouterChat, type ChatResponse } from '../src/providers/openrouter.ts'
 
 /**
  * Bloque P (PLAN.md, 2026-08-02) — vigilancia de deriva de las fuentes
@@ -69,7 +70,57 @@ export function computeDrift(
   })
 }
 
-export function renderReport(findings: DriftFinding[], generatedAt: string): string {
+// P.4 (PLAN.md § Bloque P, 2026-08-05) — mejora opt-in sobre P.1-P.3: en vez de
+// solo listar "cambió, revisar a mano", lee el diff real del path entre
+// last_synced_sha y el HEAD actual y le pide a un modelo barato que redacte
+// una propuesta corta. Sigue sin decidir ni tocar `local_artifact`/el
+// registro — el LLM solo redacta la propuesta que ya requería "revisión
+// humana"; la promoción real sigue pasando por /knowledge-promote (mismo
+// gate que rige todo esto: "no promover sin propuesta, diff y confirmación
+// explícita"). `chatFn` inyectable para que el prompt sea testeable sin red.
+
+export function fetchDiffPatch(repo: string, base: string, head: string, path: string): string | null {
+  try {
+    const out = execFileSync('gh', [
+      'api', `repos/${repo}/compare/${base}...${head}`,
+      '--jq', `.files[] | select(.filename == "${path}") | .patch // ""`,
+    ], { encoding: 'utf-8' }).trim()
+    return out.length > 0 ? out : null
+  } catch {
+    return null
+  }
+}
+
+export function buildSummaryPrompt(entry: SourceEntry, patch: string): { system: string; user: string } {
+  const system = [
+    'You are drafting a short review note for a human maintainer about an upstream source file that',
+    'a local project previously borrowed content or design from.',
+    'Given the diff since the last sync and a note about what was borrowed, write a proposal in 2-4',
+    'sentences: (1) what changed in plain terms, (2) whether it looks like it could be relevant to',
+    'port into the local artifact, or whether it looks unrelated to what was borrowed.',
+    'Never claim certainty and never say something was already applied — this is a suggestion for a',
+    'human to review, not a decision. Respond with plain text, no markdown headers, no JSON.',
+  ].join('\n')
+  const user =
+    `## Local artifact\n${entry.local_artifact}\n\n` +
+    `## What was borrowed (registry note)\n${entry.note ?? '(sin nota registrada)'}\n\n` +
+    `## Diff since last sync (${entry.path})\n\`\`\`diff\n${patch}\n\`\`\`\n\n` +
+    `Write the proposal now.`
+  return { system, user }
+}
+
+export async function summarizeDrift(
+  entry: SourceEntry,
+  patch: string,
+  chatFn: (opts: { model: string; system: string; messages: { role: 'user'; content: string }[] }) => Promise<ChatResponse> = openrouterChat,
+  model = 'anthropic/claude-haiku-4-5',
+): Promise<string> {
+  const { system, user } = buildSummaryPrompt(entry, patch)
+  const resp = await chatFn({ model, system, messages: [{ role: 'user', content: user }] })
+  return resp.text.trim()
+}
+
+export function renderReport(findings: DriftFinding[], generatedAt: string, summaries?: Record<string, string>): string {
   const drifted = findings.filter(f => f.status === 'drift')
   const errored = findings.filter(f => f.status === 'error')
   const clean = findings.filter(f => f.status === 'clean')
@@ -92,7 +143,10 @@ export function renderReport(findings: DriftFinding[], generatedAt: string): str
       lines.push(`- Artefacto local: \`${f.local_artifact}\``)
       lines.push(`- SHA sincronizado: \`${f.last_synced_sha}\` → SHA actual: \`${f.latest_sha}\``)
       lines.push(`- Comparar: ${f.compare_url}`)
-      lines.push('- Estado: `pendiente` — no aplicado, decisión humana requerida.')
+      const summary = summaries?.[f.id]
+      lines.push(summary
+        ? `- Propuesta (LLM, revisar — nunca aplicado solo): ${summary}`
+        : '- Estado: `pendiente` — no aplicado, decisión humana requerida.')
       lines.push('')
     }
   }
@@ -129,8 +183,9 @@ function fetchLatestSha(repo: string, path: string): string | null {
   }
 }
 
-function main() {
+async function main() {
   const root = process.cwd()
+  const doSummarize = process.argv.includes('--summarize')
   const registryPath = join(root, 'docs', 'sources-registry.yaml')
   const entries = parseRegistry(readFileSync(registryPath, 'utf-8'))
 
@@ -140,12 +195,32 @@ function main() {
   }
 
   const findings = computeDrift(entries, latestShas)
-  const report = renderReport(findings, new Date().toISOString().slice(0, 10))
+
+  // P.4 — opt-in a propósito (mismo patrón que orcheConfig.adversarialQA): el
+  // camino mecánico de P.1-P.3 sigue siendo el default, sin costo ni llamada
+  // a un LLM. Un fallo de red/LLM al resumir degrada a la línea "pendiente"
+  // de siempre, nunca rompe el reporte entero.
+  let summaries: Record<string, string> | undefined
+  if (doSummarize) {
+    summaries = {}
+    for (const f of findings.filter(f => f.status === 'drift')) {
+      const entry = entries.find(e => e.id === f.id)!
+      const patch = fetchDiffPatch(entry.repo, entry.last_synced_sha, f.latest_sha!, entry.path)
+      if (!patch) continue
+      try {
+        summaries[f.id] = await summarizeDrift(entry, patch)
+      } catch {
+        // sin resumen — renderReport cae al "pendiente" mecánico de siempre
+      }
+    }
+  }
+
+  const report = renderReport(findings, new Date().toISOString().slice(0, 10), summaries)
   writeFileSync(join(root, 'SOURCES_DRIFT.md'), report, 'utf-8')
 
   const drifted = findings.filter(f => f.status === 'drift').length
   const errored = findings.filter(f => f.status === 'error').length
-  console.log(`sources-drift: ${findings.length} fuentes · ${drifted} con deriva · ${errored} con error → SOURCES_DRIFT.md`)
+  console.log(`sources-drift: ${findings.length} fuentes · ${drifted} con deriva · ${errored} con error → SOURCES_DRIFT.md${doSummarize ? ' (resumen LLM activado)' : ''}`)
 }
 
 if (import.meta.main) main()

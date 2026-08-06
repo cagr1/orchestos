@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test'
-import { parseRegistry, computeDrift, renderReport, type SourceEntry } from './check-sources-drift.ts'
+import { parseRegistry, computeDrift, renderReport, buildSummaryPrompt, summarizeDrift, type SourceEntry } from './check-sources-drift.ts'
 
 const entry = (overrides: Partial<SourceEntry> = {}): SourceEntry => ({
   id: 'test-source',
@@ -87,5 +87,63 @@ describe('renderReport', () => {
     const report = renderReport(findings, '2026-08-02')
     expect(report).toContain('pendiente')
     expect(report).not.toContain('aplicado automáticamente')
+  })
+
+  it('P.4 — con summaries[], usa la propuesta del LLM en vez de "pendiente" para ese id', () => {
+    const findings = computeDrift([entry({ id: 'drifted' })], { drifted: 'new-sha' })
+    const report = renderReport(findings, '2026-08-02', { drifted: 'El diff agrega una sección nueva sobre X.' })
+    expect(report).toContain('Propuesta (LLM, revisar')
+    expect(report).toContain('El diff agrega una sección nueva sobre X.')
+    expect(report).not.toContain('pendiente')
+  })
+
+  it('P.4 — sin resumen para un id drifted, cae al "pendiente" mecánico de siempre', () => {
+    const findings = computeDrift([entry({ id: 'drifted' })], { drifted: 'new-sha' })
+    const report = renderReport(findings, '2026-08-02', {})
+    expect(report).toContain('pendiente')
+    expect(report).not.toContain('Propuesta (LLM')
+  })
+})
+
+describe('buildSummaryPrompt (P.4)', () => {
+  it('incluye el artefacto local, la nota del registro y el diff literal', () => {
+    const e = entry({ note: 'Fuente literal del patrón Iron Law.' })
+    const { system, user } = buildSummaryPrompt(e, '+added line\n-removed line')
+    expect(system).toContain('Never claim certainty')
+    expect(system).toContain('never say something was already applied')
+    expect(user).toContain('skills/x.yaml')
+    expect(user).toContain('Fuente literal del patrón Iron Law.')
+    expect(user).toContain('+added line')
+  })
+
+  it('sin nota registrada, lo declara en vez de omitirlo', () => {
+    const e = entry({ note: undefined })
+    const { user } = buildSummaryPrompt(e, 'diff')
+    expect(user).toContain('sin nota registrada')
+  })
+})
+
+describe('summarizeDrift (P.4)', () => {
+  it('llama al chatFn inyectado con el prompt construido y devuelve el texto sin recortar', async () => {
+    const e = entry()
+    let capturedSystem = ''
+    const fakeChat = async (opts: { model: string; system: string; messages: { role: 'user'; content: string }[] }) => {
+      capturedSystem = opts.system
+      return { text: '  Propuesta de prueba.  ', inputTokens: 10, outputTokens: 5, model: opts.model }
+    }
+    const summary = await summarizeDrift(e, 'diff de prueba', fakeChat)
+    expect(summary).toBe('Propuesta de prueba.')
+    expect(capturedSystem).toContain('Never claim certainty')
+  })
+
+  it('usa el modelo barato por defecto (haiku), no el executor', async () => {
+    const e = entry()
+    let capturedModel = ''
+    const fakeChat = async (opts: { model: string; system: string; messages: { role: 'user'; content: string }[] }) => {
+      capturedModel = opts.model
+      return { text: 'ok', inputTokens: 1, outputTokens: 1, model: opts.model }
+    }
+    await summarizeDrift(e, 'diff', fakeChat)
+    expect(capturedModel).toContain('haiku')
   })
 })
