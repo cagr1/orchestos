@@ -32,14 +32,13 @@ sources:
     repo: obra/superpowers
     path: skills/verification-before-completion/SKILL.md
     license: MIT
-    local_artifact: skills/qa-structured.yaml
+    local_artifact: skills/verification-before-completion.yaml
     last_synced_sha: 3be5aad3dd2400ef23b15680969f4bcd3b6d7b8b
-    last_synced_date: "2026-08-02"
+    last_synced_date: "2026-08-06"
     note: >
-      Principio compartido ("evidencia antes que afirmación"), NO traducción
-      1:1 — qa-structured evalúa contra criterios de aceptación, esta skill
-      es sobre no afirmar éxito sin correr el comando. Vigilar por si aparece
-      contenido portable, no por drift de una copia.
+      En Q.1 (2026-08-06) el contenido SÍ se portó verbatim a una skill propia.
+      qa-structured sigue siendo una prima independiente: evalúa criterios de
+      aceptación, no es traducción de esta skill.
 
   - id: impeccable-checks
     repo: pbakaus/impeccable

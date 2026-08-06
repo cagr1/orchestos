@@ -79,7 +79,7 @@ un hallazgo real que la idea no conocía.
 3. **Por eso el bloque se parte en contenido (⚡) y wiring (🧠)** — importar la skill sin mirar el
    punto 2 habría dejado el hueco real intacto y la skill como contenido decorativo.
 
-- [ ] **Q.1 — ⚡ Importar la skill, verbatim, por la vía real.** Autoría de
+- [x] **Q.1 — ⚡ (2026-08-06) Importar la skill, verbatim, por la vía real.** Autoría de
   `skills/verification-before-completion.yaml` portando **fiel** (no parafraseado) el contenido de
   `obra/superpowers/skills/verification-before-completion/SKILL.md` (MIT): `iron_law` ("NO
   COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE", ≤300 chars), la tabla
@@ -92,6 +92,18 @@ un hallazgo real que la idea no conocía.
   `local_artifact`), no se duplica. **Límite duro**: contenido copiado fiel de la fuente, cero
   invención — es el error exacto que costó N.5.1 (3+3 rationalizations inventadas vs. las 10+13
   reales). Delegable a Codex con la fuente literal a la vista.
+
+  **Cerrado 2026-08-06 — delegado a Codex (`codex exec --sandbox workspace-write`), verificado
+  antes de aceptarlo** ([[feedback-verificar-progreso-delegado]]): la verificación no fue leer su
+  reporte, fue un script que compara el YAML cargado por `loadSkill()` contra la tabla real de
+  `/tmp/vbc-source.md` par por par. Resultado: `iron_law` **byte-idéntico** a la fuente, **8/8**
+  `common_rationalizations` verbatim, **8/8** `red_flags` verbatim, cero invención. Respetó los 4
+  límites duros: tocó solo los 2 archivos autorizados (`git status` lo confirma), **no** agregó
+  `activation` (queda para Q.2), no commiteó. La entrada `superpowers-verification` del registro se
+  **actualizó** (no duplicó): `local_artifact` ahora apunta a la skill nueva y la nota conserva el
+  matiz de N.5.1 (`qa-structured` sigue siendo prima independiente, no traducción). **25 skills**
+  en el catálogo (eran 24), 0 sin `when_to_use`. 1099 tests · 0 fail · `tsc --noEmit` limpio ·
+  `bun run test:coverage` verde.
 - [ ] **Q.2 — 🧠 Decidir y cablear dónde aplica de verdad (el hallazgo del punto 2).** El
   `activation` de esta skill no es obvio y decidirlo mal la vuelve contenido muerto: con
   `mode: suggest` + `phases: [implement, fix]` sería la **4.ª** candidata de ese bucket, y el
