@@ -26,14 +26,13 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 
 ### Bajo
 
-_(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06)_
+_(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` graduado a Bloque R el 2026-08-06)_
 
-1. `#3` `requesting-code-review` / `receiving-code-review`.
-2. `#5` Resolver imports Ruby.
-3. `#19` `engine: external` sin checks.
-4. `#40` Editor de Constitution con Guardar/Limpiar.
-5. `#46` Spike de Graphify.
-6. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
+1. `#5` Resolver imports Ruby.
+2. `#19` `engine: external` sin checks.
+3. `#40` Editor de Constitution con Guardar/Limpiar.
+4. `#46` Spike de Graphify.
+5. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
 
 ### Bajo-medio
 
@@ -117,13 +116,6 @@ entra por infraestructura ya probada. Independientes entre sí.
 Son el resto del delta identificado en [obra/superpowers](https://github.com/obra/superpowers)
 y [mattpocock/skills](https://github.com/mattpocock/skills); el curador + pack "pro"
 (8 skills) ya está shipeado (Mes 11, ver DONE.md § MES 11).
-
-### 3. Par `requesting-code-review` / `receiving-code-review` (superpowers)
-
-Validación estructurada antes de mergear y cómo procesar feedback. Dos skills que entran
-por la puerta importar.
-
-**Esfuerzo**: bajo — dos skills, sin motor nuevo.
 
 ## 🔨 Medio — capacidad nueva acotada
 

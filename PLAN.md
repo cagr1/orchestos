@@ -162,6 +162,55 @@ un hallazgo real que la idea no conocía.
 
 **Bloque Q cerrado (Q.1–Q.3).**
 
+### Bloque R — ⚡ IDEAS #3: par `requesting-code-review` / `receiving-code-review`
+
+**Lo que pedía la idea**: *"Validación estructurada antes de mergear y cómo procesar feedback. Dos
+skills que entran por la puerta importar. Esfuerzo: bajo — dos skills, sin motor nuevo."*
+
+**Verificación de alcance antes de escribir contenido (misma disciplina que N y Q, 2026-08-06)** —
+a diferencia de `#2`, acá **no hay un hueco de wiring citable que corregir**, verificado, no
+asumido:
+- `requesting-code-review` es disciplina de **cuándo despachar un subagente revisor**.
+  [mergeWorktreeBack()](src/run/sandbox.ts:82) confirma que el harness de OrchestOS mergea al
+  branch de sandbox automático tras un QA pass — **no hay gate de aprobación humana antes de
+  mergear**, y crear uno sería motor nuevo (fuera de "Bajo", necesitaría plan corto). No se
+  inventa ese gate acá.
+- `receiving-code-review` es disciplina de **cómo procesar feedback humano antes de implementarlo**.
+  Verificado en `dashboard/handlers/tasks.ts`: no existe un endpoint de "rechazar con comentario y
+  reintentar" — todo `retry_reason` en el harness viene del veredicto **automático** de QA
+  ([cli.ts](src/cli.ts), 8 sitios), nunca de texto libre de un humano. No hay bucle de feedback
+  humano al que atarle disciplina.
+- **Conclusión: el reclamo original de la idea ("sin motor nuevo") es correcto para este par** —
+  a diferencia de `#2`, donde "sin motor nuevo" resultó falso. Entran como contenido puro,
+  igual que las 8 skills de `skills/pro/` ya existentes (ninguna de esas 8 tiene `activation:`
+  tampoco — son catálogo importable, no automático).
+- **Ubicación**: `skills/pro/`, no `skills/` — son import puro del pack de superpowers, sin skill
+  nativa preexistente a la que fusionarse (a diferencia de `tdd-enforcer`/N.5.1). Mismo criterio
+  documentado en DONE.md § Mes 11 para las 8 pro existentes.
+- **Nota, no acción**: `N.7c` ya portó el Red Flag de `requesting-code-review` ("no saltar review
+  por simple") como `anti_pattern` en `skills/pro/code-review.yaml`. Esa skill sigue siendo el
+  **dador** de una revisión; estas dos son el **solicitante** y el **receptor** — actores
+  distintos, sin duplicación real, ver punto 1 de la corrección de alcance del Bloque Q.
+
+- [ ] **R.1 — ⚡ Importar las dos skills, verbatim, por la vía real.** Autoría de
+  `skills/pro/requesting-code-review.yaml` y `skills/pro/receiving-code-review.yaml` portando
+  fiel el contenido de `obra/superpowers/skills/requesting-code-review/SKILL.md` y
+  `.../receiving-code-review/SKILL.md` (MIT). `requesting-code-review`: `common_rationalizations`
+  (2 pares de "Common Rationalizations"), `red_flags` (la lista "Never:" de "Red Flags"),
+  `instructions` con "When to Request Review" + "How to Request" + placeholders del template.
+  `receiving-code-review`: sin tabla de rationalizations en la fuente — `instructions` con "The
+  Response Pattern", "Forbidden Responses", "Source-Specific Handling", "YAGNI Check", "When To
+  Push Back"; `anti_patterns` desde "Common Mistakes" (7 filas); `examples` desde "Real Examples".
+  Registrar ambas en [docs/sources-registry.yaml](docs/sources-registry.yaml) como entradas
+  nuevas (no hay entrada previa para ninguna de las dos). **Límite duro**: cero invención, mismo
+  error que costó N.5.1. Delegable a Codex con las 2 fuentes literales a la vista.
+- [ ] **R.2 — 🔍 Gate de fidelidad + integridad del catálogo**, más liviano que Q.3 a propósito —
+  no hay comportamiento de runtime que gatear (R.1 lo estableció: sin motor nuevo, sin wiring).
+  Verificar contra la fuente real (no el reporte de Codex): contenido de `common_rationalizations`/
+  `red_flags`/`anti_patterns` coincide con las tablas de origen; **27 skills** en el catálogo
+  (eran 25 tras Q.1); ninguna de las dos aparece en `resolveGates()` en ninguna fase (correcto —
+  no llevan `activation`); `tsc --noEmit` + `bun run test:coverage`.
+
 ---
 
 ## MES 25 — Pendientes heredados de los cierres 22–24 + backlog canónico (N, O, P)
