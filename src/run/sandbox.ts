@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, symlinkSync } from 'fs'
 import { join } from 'path'
 import { withGitLock } from './git-lock.ts'
 
@@ -53,6 +53,29 @@ export function createWorktree(taskId: string, baseBranch: string, projectRoot: 
     throw new Error(`Failed to create worktree at ${worktreeDir}: ${wtResult.stderr}`)
   }
 
+  // T (Mes 26, IDEAS #19, 2026-08-06) — `git worktree add` solo trae contenido
+  // versionado; `node_modules` (siempre gitignored) nunca llega al worktree
+  // nuevo. `defaultChecksFor()` (checks.ts) gatea `tsc --noEmit` y `bun test`
+  // en `existsSync(node_modules)` — sin él, una tarea SIN `checks:` explícitos
+  // pierde su única red determinista y queda solo el juez de QA-LLM (el mismo
+  // que el gate D.1, Mes 17, mostró que puede dar falso negativo). Symlink en
+  // vez de copia: comparte el mismo árbol de dependencias, no lo aísla ni
+  // debería — ningún engine escribe ahí (el contrato solo autoriza
+  // `task.output`), y `node_modules` gitignored no aparece en el diff que lee
+  // el engine externo (`git status --porcelain` respeta `.gitignore`).
+  // Best-effort: un symlink fallido (permisos, Windows sin modo dev) no debe
+  // tumbar la creación del worktree — el gap vuelve a ser el de antes, no uno
+  // nuevo.
+  const nodeModulesSrc = join(projectRoot, 'node_modules')
+  const nodeModulesDest = join(worktreeDir, 'node_modules')
+  if (existsSync(nodeModulesSrc) && !existsSync(nodeModulesDest)) {
+    try {
+      symlinkSync(nodeModulesSrc, nodeModulesDest, 'dir')
+    } catch (e: any) {
+      console.warn(`[sandbox] could not symlink node_modules into worktree: ${e.message}`)
+    }
+  }
+
   const cleanup = () => {
     try {
       const r1 = git(['worktree', 'remove', '--force', worktreeDir], projectRoot)
@@ -89,10 +112,15 @@ function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, me
     return
   }
 
-  const hasChanges = git(['status', '--porcelain'], worktree.path).stdout.length > 0
+  // T (Mes 26, IDEAS #19, 2026-08-06) — mismo motivo que worktree-diff.ts: sin
+  // el pathspec, el symlink de `node_modules` que `createWorktree()` agrega
+  // sale como `??` en el status pese al `.gitignore` (el patrón con slash no
+  // matchea un symlink), y el `git add -A` de abajo lo commitearía al branch
+  // real — un side effect serio, no cosmético.
+  const hasChanges = git(['status', '--porcelain', '--', '.', ':!node_modules'], worktree.path).stdout.length > 0
 
   if (hasChanges) {
-    const add = git(['add', '-A'], worktree.path)
+    const add = git(['add', '-A', '--', '.', ':!node_modules'], worktree.path)
     if (add.exitCode !== 0) throw new Error(`git add failed in worktree: ${add.stderr}`)
 
     const commitMsg = message ?? `orchestos: changes from ${worktree.branch}`

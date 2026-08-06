@@ -40,7 +40,15 @@ function parseGitStatusPorcelain(stdout: string): string[] {
  * global, solo recortando el/los newline(s) finales.
  */
 function gitStatusRawStdout(cwd: string): string {
-  const proc = Bun.spawnSync(['git', 'status', '--porcelain', '-uall'], { cwd })
+  // T (Mes 26, IDEAS #19, 2026-08-06) — `createWorktree()` symlinkea
+  // `node_modules` para que `defaultChecksFor()` deje de perder tsc/bun test
+  // en worktrees frescos. Un `.gitignore` con `node_modules/` (con slash) NO
+  // matchea un symlink — solo directorios reales — así que sin este pathspec
+  // el symlink aparecería como `?? node_modules` y `readWorktreeDiff()`
+  // intentaría leerlo como si fuera output del engine. Verificado en vivo con
+  // un fixture real: sin el pathspec, `node_modules` sale en el status pese
+  // al `.gitignore`; con él, desaparece del todo.
+  const proc = Bun.spawnSync(['git', 'status', '--porcelain', '-uall', '--', '.', ':!node_modules'], { cwd })
   return proc.stdout.toString()
 }
 

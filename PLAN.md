@@ -48,7 +48,7 @@ idea se elimina de IDEAS.md en el mismo commit.
 | **Q** | `#2` `verification-before-completion` (superpowers) | ✅ cerrado (2026-08-06) |
 | R | `#3` `requesting-code-review` / `receiving-code-review` | ✅ cerrado (2026-08-06) |
 | S | `#5` Resolver imports Ruby | ✅ cerrado (2026-08-06) |
-| T | `#19` `engine: external` sin `checks:` | pendiente |
+| T | `#19` `engine: external` sin `checks:` | ✅ cerrado (2026-08-06) |
 | U | `#40` Editor de Constitution con Guardar/Limpiar | pendiente |
 | V | `#46` Spike de Graphify | pendiente |
 | W | `#58` `tool-policy.ts` dead code | pendiente |
@@ -303,6 +303,52 @@ decidió (pregunta explícita, 2026-08-06) arreglar la raíz primero, Ruby despu
   `tsc --noEmit` limpio · `bun run test:coverage` verde.
 
 **Bloque S cerrado (S.1–S.2).**
+
+### Bloque T — 🧠 IDEAS #19: `engine: external` sin `checks:` pierde su única red determinista
+
+**Origen**: gate D.1 (Mes 17). `defaultChecksFor()` gatea `tsc --noEmit`/`bun test` en
+`existsSync(node_modules)`, y `git worktree add` (que `engine: external` exige sin excepción,
+§5 de `docs/external-executor-design.md`) nunca trae `node_modules` — está siempre gitignored. Una
+tarea `engine: external` **sin** `checks:` explícitos quedaba con el juez de QA-LLM como única red
+— el mismo que D.1 mostró que puede dar falso negativo.
+
+- [x] **T.1 — 🧠 (2026-08-06) Symlink de `node_modules` en `createWorktree()`** (la dirección que
+  la propia idea marcaba como preferida: "arregla el gap de raíz", afecta los 3 engines por igual
+  ya que cualquiera puede correr en modo worktree). [sandbox.ts](src/run/sandbox.ts): tras el
+  `git worktree add`, si `node_modules` existe en `projectRoot` y no en el worktree, symlink
+  (`fs.symlinkSync(..., 'dir')`), best-effort — un fallo (permisos, Windows sin modo dev) no tumba
+  la creación del worktree, el gap simplemente vuelve a ser el de antes.
+
+  **Efecto colateral real encontrado al verificar en vivo, no hipotético**: un `.gitignore` con
+  `node_modules/` (con slash, la convención casi universal) **NO matchea un symlink** — el patrón
+  con slash solo matchea directorios reales. Sin corregir esto, el symlink aparecía como `??
+  node_modules` en `git status`, y **`mergeWorktreeBack()` lo habría commiteado al branch real**
+  (`git add -A` + commit) — un side effect serio que la propia idea pedía verificar ("no rompa el
+  aislamiento del sandbox") y que un fix ingenuo habría introducido. Corregido con pathspec
+  `-- . ':!node_modules'` en los 3 sitios que hacen `git status`/`git add` sobre el worktree:
+  [worktree-diff.ts](src/run/executors/worktree-diff.ts) (usado por `external.ts` y `opencode.ts`)
+  y los dos call sites de [sandbox.ts](src/run/sandbox.ts) (`mergeWorktreeBackLocked`). Verificado
+  con un repo git real: symlink presente y legible, `readWorktreeDiff()` reporta solo el archivo
+  real escrito, `git show --stat`/`git ls-tree` tras el merge confirman que `node_modules` nunca
+  entra al historial.
+
+  **Gate en vivo con dinero real** ([[feedback-verificar-gates-en-vivo]]), con control causal —
+  mismo patrón que A.4/O.4/Q.3: proyecto scratch con `node_modules` fake + `tsconfig.json`
+  `strict`, tarea `engine: external` **sin `checks:` declarados** pidiendo un archivo `.ts` con un
+  error de tipo intencional (`claude-sonnet-5` real). Antes del fix, `defaultChecksFor()` medido
+  directo contra el mismo worktree devolvía `[]` — el error de tipo habría quedado solo a criterio
+  del juez de QA-LLM. Con el fix: `tsc --noEmit` corrió de verdad y **atrapó el error
+  determinísticamente** — `src/broken.ts(1,7): error TS2322: Type 'string' is not assignable to
+  type 'number'.`, `QA fail — check failed: bunx tsc --noEmit exit 1`. El archivo se revirtió
+  (contrato de checks fallidos), tal como debía. Runs de prueba borrados de la DB real.
+
+  9 tests nuevos ([sandbox-node-modules.test.ts](src/__tests__/sandbox-node-modules.test.ts)) con
+  repos git reales: symlink creado/ausente según corresponda, el gap real cerrado
+  (`defaultChecksFor` con `tsc` presente), `readWorktreeDiff` sin contaminación, y 2 tests de
+  `mergeWorktreeBack` confirmando que `node_modules` nunca llega al commit (con cambios reales y
+  sin ellos). 1117 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde.
+
+**Bloque T cerrado (T.1).**
 
 ---
 

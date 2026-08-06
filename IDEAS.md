@@ -27,12 +27,11 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 ### Bajo
 
 _(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06; `#5` a
-Bloque S el 2026-08-06)_
+Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06)_
 
-1. `#19` `engine: external` sin checks.
-2. `#40` Editor de Constitution con Guardar/Limpiar.
-3. `#46` Spike de Graphify.
-4. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
+1. `#40` Editor de Constitution con Guardar/Limpiar.
+2. `#46` Spike de Graphify.
+3. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
 
 ### Bajo-medio
 
@@ -419,40 +418,6 @@ usuario que las priorice todavía (probado solo en <50 archivos):
 
 **Esfuerzo**: medio cada uno, independientes. **Gated en evidencia**: no abrir hasta que un
 proyecto real (propio o de usuario externo) golpee el límite concreto.
-
-### 19. `engine: external` sin `checks:` explícitos pierde silenciosamente su única red determinista
-
-**Origen**: hallazgo del gate D.1 (Mes 17, 2026-07-05, dinero real). `defaultChecksFor()`
-([checks.ts:22](src/run/checks.ts)) devuelve `[]` cuando `effectiveRoot` no tiene
-`node_modules` — gap documentado desde el Mes 14 (D3) para worktrees frescos que no
-symlinkean dependencias. Hasta el Mes 17 esto era un riesgo teórico y acotado (single-shot/
-agéntico pueden correr en modo `cwd`, donde sí hay `node_modules`). El ejecutor externo
-**exige** modo worktree sin excepción (decisión d, §5 de
-[docs/external-executor-design.md](docs/external-executor-design.md), por la razón de
-seguridad correcta: un proceso no controlado no puede editar el repo real sin sandbox
-desechable) — así que para una tarea `engine: external` **sin** `checks:` declarados
-explícitamente, `defaultChecksFor()` siempre devuelve `[]` en la práctica, dejando el
-QA-LLM como única red. El gate D.1 mismo mostró que el QA-LLM puede fallar (falso negativo
-sobre un diff objetivamente correcto) — con checks determinísticos ausentes, ese es el
-único filtro que queda.
-
-**Qué NO se rompe**: si la tarea declara `checks:` explícitos (como hizo la tarea de D.1),
-corren normal — `bunx tsc --noEmit` pasó limpio en el worktree pese a la ausencia de
-`node_modules` (`bunx` resuelve desde la caché global de Bun). El gap es específico de
-tareas SIN checks declarados que dependan del default automático.
-
-**Posibles direcciones (no decidido)**: symlinkear `node_modules` al crear el worktree
-(`createWorktree()`, `sandbox.ts`) para que `defaultChecksFor()` deje de verse forzado a
-devolver `[]`; o exigir `checks:` explícitos como requisito de schema cuando
-`engine: external`; o simplemente documentar la recomendación fuerte de declarar checks
-explícitos para toda tarea `engine: external`.
-
-**Esfuerzo**: bajo si es symlink en `createWorktree()` (una línea, afecta los 3 engines
-por igual, arregla el gap de raíz) — pero verificar que no rompa el aislamiento del
-sandbox (symlink compartido = las dependencias no están "aisladas", aunque tampoco las
-edita ningún engine).
-
----
 
 ### 25. Mintlify — agente de docs automático
 
