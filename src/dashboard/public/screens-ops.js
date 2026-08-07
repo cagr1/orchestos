@@ -101,12 +101,22 @@ SCREENS.project = {
              <span>${t('project.constitution.previewBanner')}</span>
            </div>`
         : '';
+      // #40 (Mes 26, 2026-08-07) — Guardar/Limpiar explícitos en vez de auto-save por
+      // tecla. `data-dirty` arranca en "false": recién cargado, el textarea coincide
+      // con `st.constitutionContent` — no hay nada que guardar todavía.
       const body = isLoading
         ? loadingState(t('project.loading'))
         : `<div class="proj-editor-wrap">
             <div class="proj-helper">${t('project.constitution.helper')}</div>
             ${previewBanner}
             <textarea id="constitution-editor" class="proj-editor" spellcheck="false">${esc(content)}</textarea>
+            <div class="proj-context-foot">
+              <span id="constitution-dirty" class="save-indicator unsaved" style="display:none">${t('project.constitution.unsaved')}</span>
+              <div class="tools">
+                <button class="btn ghost" data-act="constitution-clear">${ICON.trash} ${t('project.constitution.clear')}</button>
+                <button class="btn primary" data-act="constitution-save" disabled>${ICON.check} ${t('project.constitution.save')}</button>
+              </div>
+            </div>
           </div>`;
       return `<div class="screen">${head}${tabs}${body}</div>`;
     }
@@ -143,6 +153,13 @@ SCREENS.project = {
     // Tab switching
     root.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => {
       st.projectTab = btn.dataset.tab;
+      // #40 (Mes 26, 2026-08-07) — salir del tab reconstruye el textarea desde
+      // st.constitutionContent en el próximo render (rama `else` de abajo), así
+      // que cualquier cambio sin guardar ya se pierde con esta navegación
+      // explícita — bajar el flag para que el guard de fetchAll() no siga
+      // bloqueando el poll de 30s en otras pantallas por un editor que ya no
+      // está en pantalla.
+      if (btn.dataset.tab !== 'constitution') st.constitutionDirty = false;
       if (btn.dataset.tab === 'constitution' && st.constitutionStatus === 'idle') {
         App.fetchConstitution().then(() => App.rerender());
       } else if (btn.dataset.tab === 'context' && st.contextStatus === 'idle') {
@@ -158,35 +175,73 @@ SCREENS.project = {
       }
     }));
 
-    // Constitution editor — debounced auto-save (1 s)
+    // Constitution editor — #40 (Mes 26, 2026-08-07): Guardar/Limpiar explícitos,
+    // nunca autosave por tecla. Hallazgo real de Carlos (2026-07-13): escribió "hola"
+    // para probar y se grabó a CONSTITUTION.md solo, sin pedirlo.
     const editor = root.querySelector('#constitution-editor');
+    const dirtyIndicator = root.querySelector('#constitution-dirty');
+    const saveBtn = root.querySelector('[data-act="constitution-save"]');
     if (editor) {
+      // Sin App.rerender() acá a propósito: el render() reconstruye el <textarea>
+      // desde st.constitutionContent en cada rerender — hacerlo en cada tecla
+      // borraría lo que el usuario está escribiendo. Toggle directo del DOM.
       editor.addEventListener('input', () => {
-        if (this._saveTimer) clearTimeout(this._saveTimer);
-        st.projectSaveState = 'saving';
-        this._saveTimer = setTimeout(async () => {
-          try {
-            const res = await fetch('/api/project/constitution', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content: editor.value }),
-            });
-            st.constitutionContent = editor.value;
-            if (res.ok) {
-              st.projectSaveState = 'saved';
-              // v0.12 D.1.b — el primer PUT crea el archivo; el banner preview debe
-              // desaparecer a partir de acá (en el próximo rerender).
-              st.constitutionExists = true;
-            } else {
-              st.projectSaveState = 'error';
-            }
-          } catch {
-            st.projectSaveState = 'error';
-          }
-          App.rerender();
-        }, 1000);
+        const dirty = editor.value !== (st.constitutionContent ?? '');
+        if (dirtyIndicator) dirtyIndicator.style.display = dirty ? '' : 'none';
+        if (saveBtn) saveBtn.disabled = !dirty;
+        // #40 — state.constitutionDirty (no solo el DOM) es lo que fetchAll()
+        // consulta para no pisar un cambio sin guardar cuando el foco ya se
+        // movió a un botón/modal (Guardar/Limpiar), fuera del textarea.
+        st.constitutionDirty = dirty;
       });
     }
+
+    saveBtn?.addEventListener('click', async () => {
+      const editorEl = root.querySelector('#constitution-editor');
+      if (!editorEl) return;
+      // #40 — sin App.rerender() antes de que termine el fetch: un rerender
+      // acá reconstruye el textarea desde st.constitutionContent, que todavía
+      // tiene el valor VIEJO — el usuario vería su texto desaparecer mientras
+      // guarda. Solo deshabilitar el botón (DOM directo) hasta que termine.
+      saveBtn.disabled = true;
+      try {
+        const res = await fetch('/api/project/constitution', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: editorEl.value }),
+        });
+        st.constitutionContent = editorEl.value;
+        st.constitutionDirty = false;
+        if (res.ok) {
+          st.projectSaveState = 'saved';
+          // v0.12 D.1.b — el primer PUT crea el archivo; el banner preview debe
+          // desaparecer a partir de acá (en el próximo rerender).
+          st.constitutionExists = true;
+        } else {
+          st.projectSaveState = 'error';
+        }
+      } catch {
+        st.projectSaveState = 'error';
+      }
+      App.rerender();
+    });
+
+    root.querySelector('[data-act="constitution-clear"]')?.addEventListener('click', async () => {
+      const ok = await Modal.confirm(t('project.constitution.clear.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
+      if (!ok) return;
+      const editorEl = root.querySelector('#constitution-editor');
+      if (!editorEl) return;
+      // Solo local — nunca toca disco por sí solo. El archivo real solo cambia si
+      // el usuario después hace click en Guardar, acción separada y explícita.
+      editorEl.value = '';
+      const dirty = editorEl.value !== (st.constitutionContent ?? '');
+      const dirtyEl = root.querySelector('#constitution-dirty');
+      if (dirtyEl) dirtyEl.style.display = dirty ? '' : 'none';
+      const saveBtnEl = root.querySelector('[data-act="constitution-save"]');
+      if (saveBtnEl) saveBtnEl.disabled = !dirty;
+      st.constitutionDirty = dirty; // #40 — mismo flag que consulta fetchAll()
+      editorEl.focus();
+    });
 
     // Regenerate CONTEXT.md
     root.querySelector('[data-act="regenerate"]')?.addEventListener('click', async () => {

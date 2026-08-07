@@ -27,11 +27,10 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 ### Bajo
 
 _(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06; `#5` a
-Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06)_
+Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07)_
 
-1. `#40` Editor de Constitution con Guardar/Limpiar.
-2. `#46` Spike de Graphify.
-3. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
+1. `#46` Spike de Graphify.
+2. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
 
 ### Bajo-medio
 
@@ -659,31 +658,6 @@ tener `qa-structured` como gate, son ortogonales.
 **Esfuerzo actualizado**: medio — el registro de invocación (`promptInjectionMode`-lite) y
 `extra_clis` son extensiones de patrones que ya existen en el repo, no diseño desde cero; el
 riesgo de ToS señalado arriba sigue aplicando igual, se generaliza con el alcance.
-
-### 40. Editor de Constitution — Guardar/Limpiar explícitos, no auto-save silencioso en cada tecla
-
-**Origen**: Carlos (2026-07-13) — escribió "hola" en el editor de Constitution solo para probar y
-**se grabó a `CONSTITUTION.md` en disco solo**, sin pedirlo. "Eso no debe ser así — darme la opción
-de escribir Y limpiar." Un archivo de basura terminó en el working tree sin intención.
-
-**Verificado en código (2026-07-13)**: `screens-ops.js:141-157` — el `#constitution-editor` tiene
-un `input` listener con **auto-save debounced a 1 s**: cualquier tecleo, tras 1 s de pausa, dispara
-`PUT /api/project/constitution` que escribe el archivo real. No hay botón de guardar ni de limpiar;
-el guardado es un efecto invisible del tecleo. (El tab de Context de al lado ya tiene botonera
-—Regenerate/Detect/Index— así que el patrón de acciones explícitas ya existe en la misma pantalla,
-solo que Constitution no lo usa.)
-
-**Qué hacer**:
-1. Quitar el auto-save por tecla. Reemplazarlo por acciones explícitas: **Guardar** (escribe el
-   archivo) y **Limpiar** (vacía el editor; decidir si "Limpiar" solo borra el textarea local o
-   además borra el archivo — probablemente pedir confirmación con el `Modal.confirm()` que ya existe
-   desde v0.12/A, y nunca borrar el archivo en silencio).
-2. Indicador de "cambios sin guardar" (dirty state) para que el usuario sepa que hay algo pendiente,
-   en vez del actual "saved" que aparece solo porque se guardó sin pedirlo.
-3. Considerar el mismo tratamiento para cualquier otro editor que hoy auto-guarde en cada tecla.
-
-**Esfuerzo**: bajo — es UI de una sola pantalla (mover de `input`-debounce a botón), reusa
-`Modal.confirm()` (v0.12/A) y el patrón de botonera que el tab de Context ya tiene al lado.
 
 ### 41. Empaquetar OrchestOS como app de escritorio (Electron) — Mac, Linux y Windows
 

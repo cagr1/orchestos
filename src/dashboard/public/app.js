@@ -361,9 +361,18 @@ const App = {
     // 30s mientras el usuario elige un modelo pero antes de guardar hacía
     // rerender() y le devolvía el valor al default, perdiendo la elección en
     // silencio (encontrado al verificar E.9/roles editables en vivo).
-    const typingInMain = document.activeElement
+    // #40 (Mes 26, 2026-08-07) — hallazgo real al verificar el editor de
+    // Constitution en vivo: el guard de arriba protege mientras el foco sigue
+    // en el textarea, pero con Guardar/Limpiar explícitos el usuario mueve el
+    // foco al botón (o a Modal.confirm()) ANTES de guardar — si el poll de 30s
+    // aterriza en esa ventana, el rerender destructivo vuelve a pasar y borra
+    // el cambio sin guardar en silencio, exactamente el bug que este guard
+    // existe para prevenir. `state.constitutionDirty` cubre la ventana que el
+    // chequeo de foco solo no cubre.
+    const typingInMain = (document.activeElement
       && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)
-      && document.getElementById('main')?.contains(document.activeElement);
+      && document.getElementById('main')?.contains(document.activeElement))
+      || state.constitutionDirty;
     if (typingInMain) {
       this.syncNav();
     } else {

@@ -49,7 +49,7 @@ idea se elimina de IDEAS.md en el mismo commit.
 | R | `#3` `requesting-code-review` / `receiving-code-review` | ✅ cerrado (2026-08-06) |
 | S | `#5` Resolver imports Ruby | ✅ cerrado (2026-08-06) |
 | T | `#19` `engine: external` sin `checks:` | ✅ cerrado (2026-08-06) |
-| U | `#40` Editor de Constitution con Guardar/Limpiar | pendiente |
+| U | `#40` Editor de Constitution con Guardar/Limpiar | ✅ cerrado (2026-08-07) |
 | V | `#46` Spike de Graphify | pendiente |
 | W | `#58` `tool-policy.ts` dead code | pendiente |
 
@@ -349,6 +349,74 @@ tarea `engine: external` **sin** `checks:` explícitos quedaba con el juez de QA
   sin ellos). 1117 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde.
 
 **Bloque T cerrado (T.1).**
+
+### Bloque U — ⚡ IDEAS #40: editor de Constitution — Guardar/Limpiar explícitos
+
+**Origen**: Carlos (2026-07-13) escribió "hola" para probar y se grabó a `CONSTITUTION.md` solo,
+sin pedirlo — `#constitution-editor` tenía auto-save debounced a 1s en cada tecla, sin botón de
+guardar ni de limpiar.
+
+**Verificado antes de tocar código (2026-08-07)**: el `input` listener de auto-save sigue ahí
+([screens-ops.js:161-189](src/dashboard/public/screens-ops.js)), sin cambios desde julio. El tab
+Context, al lado, ya tiene botonera explícita (Regenerate/Detect/Index) — mismo patrón a copiar,
+no a inventar. Grep de `addEventListener('input'...)` en las 3 pantallas del dashboard confirma
+que **Constitution es el único editor con este patrón** — el punto 3 de la idea ("considerar el
+mismo tratamiento para cualquier otro editor") no aplica a nada más, declarado y no silencio.
+
+- [x] **U.1 — ⚡ (2026-08-07) Reemplazar el auto-save por Guardar/Limpiar explícitos.**
+  - Quitado el `input` listener con `setTimeout` de 1s que hacía `PUT /api/project/constitution`
+    solo. `Guardar` (`btn primary`, icono check) hace el mismo `PUT` que antes, ahora solo al
+    click — mismo endpoint, mismo `st.projectSaveState`/`st.constitutionExists`, cero cambio de
+    contrato con el backend.
+  - `Limpiar` (`btn ghost`, icono trash) pide confirmación con `Modal.confirm()` (el mismo patrón
+    que ya usan runs/instincts/specs) antes de vaciar el textarea. **Decisión sobre la ambigüedad
+    que la idea dejaba abierta**: Limpiar vacía el editor **localmente**, nunca toca disco por sí
+    solo — si el usuario quiere que el archivo quede vacío de verdad, tiene que confirmar la
+    limpieza Y después click Guardar, dos acciones explícitas separadas. Nunca un DELETE
+    silencioso.
+  - Indicador de cambios sin guardar: al tipear, comparación directa contra `st.constitutionContent`
+    (el último valor cargado/guardado) sin `App.rerender()` — igual disciplina que el código viejo
+    (que tampoco rerenderizaba en cada tecla, solo al completar el save). Un rerender en cada tecla
+    reconstruiría el `<textarea>` desde `st.constitutionContent` y **borraría lo que el usuario
+    estaba escribiendo** — verificado leyendo el flujo antes de escribir el fix, no supuesto.
+    `Guardar` queda deshabilitado mientras no hay cambios sin guardar.
+  - 4 claves i18n nuevas en inglés y español
+    ([i18n.js](src/dashboard/public/i18n.js)): `project.constitution.save`,
+    `project.constitution.clear`, `project.constitution.clear.confirm`,
+    `project.constitution.unsaved`.
+  - **Segundo hallazgo real, encontrado verificando en vivo, no en `bun test`**: quitar el
+    autosave expuso un bug de pérdida de datos que el autosave **enmascaraba sin querer**.
+    `fetchAll()` sondea cada 30s ([app.js](src/dashboard/public/app.js), bug real de 2026-06-29/
+    2026-07-08) y hace un rerender destructivo que reconstruye `#main` completo — ya tenía un
+    guard (`typingInMain`) que lo salta mientras el foco sigue en un input/textarea/select. Pero
+    con Guardar/Limpiar como botones explícitos, el usuario mueve el foco AL BOTÓN (o a
+    `Modal.confirm()`) antes de guardar — si el poll de 30s aterriza en esa ventana, el guard por
+    foco no protege y el rerender vuelve a pisar el cambio sin guardar, en silencio. Antes del
+    fix esto no pasaba porque el autosave de 1s sincronizaba `st.constitutionContent` tan rápido
+    que la ventana de riesgo casi no existía — al alargarla (el usuario ahora decide cuándo
+    guardar) el bug latente se volvió real.
+    **Reproducido y corregido**: agregado `state.constitutionDirty` (además del toggle del DOM),
+    consultado por el guard de `fetchAll()` junto al chequeo de foco. Verificado en vivo con el
+    escenario exacto: tipear, sacar el foco del textarea, esperar 35s reales (cruzando el poll) —
+    el texto sobrevive. Bajado el flag al cambiar de tab (el textarea se reconstruye igual en ese
+    caso, navegación explícita del usuario, no pérdida silenciosa).
+  - **Tercer hallazgo, mismo patrón**: el handler de `Guardar` en un intento inicial llamaba
+    `App.rerender()` **antes** de que el `fetch` terminara — eso reconstruye el textarea desde
+    `st.constitutionContent`, que todavía tiene el valor viejo, y el usuario vería su texto
+    desaparecer un instante mientras guarda. Corregido: solo deshabilitar el botón (DOM directo)
+    durante el `PUT`, `App.rerender()` recién al final cuando `st.constitutionContent` ya
+    coincide — misma disciplina que ya tenía el código de autosave original.
+  - Verificado en vivo en el dashboard real ([[feedback-verificar-gates-en-vivo]]), con Playwright
+    contra un servidor real, no solo `bun test`: tipear ya no dispara ningún `PUT` (mtime de
+    `CONSTITUTION.md` sin cambios mientras se tipea), texto sobrevive el poll de 30s sin foco en
+    el textarea, `Guardar` deshabilitado hasta que hay cambios y habilitado al tipear, click en
+    `Guardar` sí hace el `PUT` (verificado leyendo el archivo real en disco) y el indicador pasa
+    de "Unsaved changes" a "Saved", `Limpiar` pide confirmación real (`Modal.confirm()`), cancelar
+    no toca el textarea, confirmar lo vacía localmente sin tocar el archivo en disco hasta el
+    próximo `Guardar` explícito. `CONSTITUTION.md` restaurado a su estado original (vacío) al
+    terminar. Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
+
+**Bloque U cerrado (U.1).**
 
 ---
 

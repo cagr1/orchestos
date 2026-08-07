@@ -617,9 +617,11 @@
 .chat-evidence-summary b { color: var(--text); font-size: 13px; }
 .chat-evidence-click td { color: var(--text-faint); font-style: italic; font-size: 12px; }
 .save-indicator { font-size: 12px; font-weight: 500; }
-.save-indicator.saving { color: var(--text-faint); }
-.save-indicator.saved  { color: var(--success); }
-.save-indicator.error  { color: var(--error); }
+.save-indicator.saving  { color: var(--text-faint); }
+.save-indicator.saved   { color: var(--success); }
+.save-indicator.error   { color: var(--error); }
+/* #40 (Mes 26, 2026-08-07) — "cambios sin guardar" en el editor de Constitution */
+.save-indicator.unsaved { color: var(--warning); }
 
 /* ---------- SPECS ---------- */
 .spec-explainer {
