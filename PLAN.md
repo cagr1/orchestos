@@ -50,7 +50,7 @@ idea se elimina de IDEAS.md en el mismo commit.
 | S | `#5` Resolver imports Ruby | ✅ cerrado (2026-08-06) |
 | T | `#19` `engine: external` sin `checks:` | ✅ cerrado (2026-08-06) |
 | U | `#40` Editor de Constitution con Guardar/Limpiar | ✅ cerrado (2026-08-07) |
-| V | `#46` Spike de Graphify | pendiente |
+| V | `#46` Spike de Graphify | ✅ cerrado (2026-08-08) |
 | W | `#58` `tool-policy.ts` dead code | pendiente |
 
 ### Bloque Q — ⚡🧠 IDEAS #2: `verification-before-completion`
@@ -417,6 +417,57 @@ mismo tratamiento para cualquier otro editor") no aplica a nada más, declarado 
     terminar. Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
 
 **Bloque U cerrado (U.1).**
+
+### Bloque V — 🧠 IDEAS #46: spike de comparación Graphify vs. `graph/`/`context suggest` propios
+
+**Lo que pedía la idea**: correr `graphify` sobre el propio repo, comparar contra `context suggest`
+con las mismas preguntas, y decidir: ¿se adopta como engine de contexto, se expone como MCP a los
+agentes, o solo se roba el patrón de etiquetado `EXTRACTED`/`INFERRED`? No adoptar sin ese A/B.
+
+**Antes de instalar nada — chequeo de realidad (2026-08-08)**: el repo cambió sustancialmente
+desde julio (ficha del vault desactualizada). Ya no es un CLI Python simple: paquete PyPI renombrado
+a `graphifyy`, YC S26, y el flujo de instalación **registra un skill que modifica `CLAUDE.md` y
+agrega hooks `PreToolUse`** a `.claude/settings.json` del proyecto — más invasivo que lo que la
+idea original imaginaba. Los stars saltaron a 104K en 3 semanas (verifiqué que no es farming: 10.103
+forks, 855 issues abiertas, 30+ contribuidores, releases diarias — señales reales). Confirmado con
+Carlos antes de instalar: spike completo, con instalación real (`AskUserQuestion`, 2026-08-08).
+
+- [x] **V.1 — 🧠 (2026-08-08) Spike ejecutado en vivo, con dinero cero (código local, sin API key).**
+  `uv tool install graphifyy` + `graphify install --project` (scoped al repo, nunca global) +
+  `graphify . --no-viz --code-only` (sin key de LLM — el pase semántico de docs/imágenes cuesta,
+  el de código es AST local puro, gratis). Grafo real: **1941 nodos, 4654 edges, 165 comunidades**
+  sobre los 336 archivos de código del repo.
+
+  **Resultado del A/B — la comparación reveló algo más interesante que "cuál es mejor"**:
+  `graphify explain "resolveGates"` y `graphify query "context suggest command definition"`
+  ubicaron `resolveGates()` (O.3) y `suggestContext()` (S24) **exactos, con sus llamadas reales**
+  (`resolveGates() --calls--> loadSkill()`, `--calls--> listSkillFiles()`), sin un solo grep manual.
+  Pero `graph/` (S21, propio) y `graphify` **no resuelven el mismo problema**: el grafo propio
+  indexa **imports a nivel de archivo** (`archivo A importa archivo B`); graphify indexa
+  **funciones y llamadas dentro de los archivos**, vía tree-sitter real (~40 lenguajes) — un nivel
+  de profundidad que `graph/` genuinamente no tiene hoy, no una versión "mejor" de lo mismo.
+
+  **Decisión — no se adopta el binario, se anota el patrón real para más adelante:**
+  1. **NO adoptar `graphifyy` como dependencia de runtime.** Es un producto de una startup en pleno
+     pivot a SaaS hosteado ("eso es lo que construimos en graphify.com"), con un flujo de instalación
+     que reescribe `CLAUDE.md`/hooks del proyecto sin pedir confirmación por archivo — comprometer
+     una pieza central de la arquitectura de OrchestOS (cómo los agentes exploran código) a un
+     binario externo de evolución rápida y ajena es el riesgo que el bloque P (`sources-drift`)
+     existe justamente para vigilar, multiplicado: acá sería runtime, no solo contenido de skill.
+  2. **Sí es robable, y queda como candidato nuevo, no ejecutado ahora**: extracción a nivel de
+     función/símbolo vía tree-sitter (no solo imports de archivo) para `graph/` propio — la brecha
+     real que este spike encontró. Y el etiquetado `EXTRACTED`/`INFERRED` en los edges (barato,
+     mejora la confianza de cualquier respuesta del grafo propio). Ninguno de los dos se implementa
+     en este ítem — es un spike de comparación, no de adopción; graduarlos a IDEAS.md si se retoman.
+  3. **MCP server**: no se expone — no aplica si no se adopta el binario.
+
+  **Limpieza completa verificada** (esto era un spike, no una adopción):
+  `git checkout -- CLAUDE.md .claude/settings.json` restauró ambos archivos byte a byte;
+  `.claude/skills/graphify/`, `.claude/CLAUDE.md`, `graphify-out/` borrados. `git status` limpio,
+  cero rastro en el repo. `uv`/`graphify` quedan instalados en el entorno local (`~/.local/bin`) —
+  no son parte del repo, Carlos decide si los desinstala.
+
+**Bloque V cerrado (V.1).**
 
 ---
 

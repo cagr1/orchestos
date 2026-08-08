@@ -27,10 +27,11 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 ### Bajo
 
 _(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06; `#5` a
-Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07)_
+Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07; `#46` a
+Bloque V el 2026-08-08)_
 
-1. `#46` Spike de Graphify.
-2. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
+1. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
+2. `#59` Etiquetar `code_edges` con `EXTRACTED`/`INFERRED` en `graph/` propio.
 
 ### Bajo-medio
 
@@ -63,6 +64,7 @@ Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026
 4. `#41` App Electron distribuible.
 5. `#42` Auto-repair dirigido.
 6. `#57` Cuota semanal de suscripciones CLI.
+7. `#60` Extracción a nivel de función/símbolo en `graph/` propio (tree-sitter).
 
 ### Alto
 
@@ -995,42 +997,6 @@ run status` o similar.
 "cuota restante de un CLI de terceros" depende de qué exponga cada binario, puede no ser posible
 para todos.
 
-### 46. Graphify — grafo de codebase consultable para que los agentes dejen de hacer grep repetido
-
-**Origen**: encontrado en el vault (`MemoriesMD/wiki/tools/graphify.md`, ingerido 2026-07-16;
-repo github.com/Graphify-Labs/graphify, 4k stars, MIT). Skill + CLI que convierte una carpeta
-(código, SQL, docs, PDFs) en un **grafo de conocimiento** consultable en vez de índice vectorial.
-El código se parsea localmente con tree-sitter (AST), sin LLM, nada sale de la máquina; solo
-docs/imágenes usan el modelo. Cada edge etiquetado `EXTRACTED` (explícito en la fuente) vs
-`INFERRED` (resuelto por graphify) — distingue lo leído de lo inferido. Se consulta con
-`graphify explain "X"`, `graphify path "A" "B"`, `graphify query "pregunta"`; expone MCP server
-(`python -m graphify.serve`).
-
-**Por qué encaja con OrchestOS (candidato de arquitectura, no urgente)**:
-- Hoy los agentes orquestados entienden el código haciendo `read_file`/grep repetido — devuelve
-  bloques crudos que inflan el contexto. Un `graphify query` da una respuesta acotada y
-  estructurada. **Ataca directamente el mismo modo de fallo que cerró Mes 22/Bloque A ([#32](#32),
-  cap de outputs de tools)**: en vez de truncar un `read_file` gigante, se evita pedirlo.
-- OrchestOS ya tiene su propio grafo de código (`graph/`, S21, resuelve C#) y `context suggest`
-  (S24) — así que esto NO es adoptar una dependencia nueva a ciegas: es un candidato para
-  **comparar** contra lo propio (¿graphify da mejor recall/confidence-tagging que el grafo
-  actual?, ¿vale exponerlo como engine de contexto o robar solo el etiquetado EXTRACTED/INFERRED?).
-- El MCP server lo haría exponible como herramienta para los agentes, sin acoplar su binario.
-
-**Escepticismo honesto (de la ficha del vault)**: los benchmarks (LOCOMO recall@10 0.497,
-LongMemEval-S 76%) son **auto-reportados** por el proyecto, no independientes — tratar como
-cualquier claim de marketing propio. Tiene producto comercial derivado (Penpax) en waitlist; el
-repo en sí es MIT y funcional aparte de eso.
-
-**Qué hacer (cuando se retome, no ahora)**: (1) correr `graphify . ` sobre el propio repo de
-OrchestOS y comparar `graphify query` contra el `context suggest` actual sobre las mismas
-preguntas; (2) decidir si se adopta como engine de contexto, se expone como MCP a los agentes, o
-solo se roba el patrón de etiquetado EXTRACTED/INFERRED para el grafo propio. No adoptar sin ese
-A/B — OrchestOS ya tiene grafo, la pregunta es si este es mejor, no si "grafo" es buena idea.
-
-**Esfuerzo**: bajo para el spike de comparación (instalar + correr + un puñado de queries);
-medio-alto si se decide integrarlo como engine de contexto real de los agentes.
-
 ### 47. Auto-split por tamaño estimado, no por número de archivos
 
 **Origen**: destapado corriendo C.1 en vivo (2026-07-16, ver PLAN.md Bloque E). El gate de
@@ -1582,6 +1548,51 @@ campo, dos caminos distintos: el de sub-tareas del planner protege de verdad; el
 **Esfuerzo**: bajo para la opción 2 (borrar dead code); medio para la opción 1 (tocar 3+
 ejecutores). No bloquea nada de Bloque O — O.3 documentó el hallazgo en vez de improvisar una
 enforcement no planificada a mitad de otro ítem.
+
+---
+
+### 59. Etiquetar `code_edges` con `EXTRACTED`/`INFERRED` en `graph/` propio
+
+**Origen**: spike de comparación contra Graphify (#46, Bloque V, 2026-08-08) — no adoptado como
+dependencia (ver PLAN.md § Bloque V para el porqué), pero el patrón de confianza por edge es
+robable y barato. Graphify marca cada edge `EXTRACTED` (referencia literal en el código fuente,
+ej. un `import` real) vs `INFERRED` (resuelto por su propio motor de resolución, ej. un `path`
+adivinado entre dos nodos sin conexión directa). `graph/` propio (S21) hoy no distingue: un edge
+con `to_file_id: null` (sin resolver) y uno resuelto por un `Resolver` custom (`csharpResolver`,
+`rustResolver`, etc. — que a veces adivina por convención, ver `ruby.ts` intentando `lib/X.rb`)
+se ven igual de "confiables" para quien consuma el grafo.
+
+**Qué hacer**: agregar una columna `confidence` (`extracted` | `inferred`) a `code_edges`.
+`extracted` cuando el edge sale directo de la extracción de imports (regex/AST) con match exacto
+de path; `inferred` cuando pasó por un `Resolver` que tuvo que adivinar (convención de `$LOAD_PATH`
+en Ruby, matching por namespace en C#, etc. — los casos que ya tienen comentarios "best-effort" en
+el código de S/Bloque T).
+
+**Esfuerzo**: bajo — un campo nuevo en el schema + marcar el origen en los ~6 sitios donde se
+inserta un `code_edges` row.
+
+### 60. Extracción a nivel de función/símbolo en `graph/` propio (no solo imports de archivo)
+
+**Origen**: mismo spike (#46, Bloque V, 2026-08-08) — la brecha real que encontró, no una idea
+copiada de Graphify. Verificado en vivo contra el propio código de OrchestOS: Graphify (tree-sitter
+real, ~40 lenguajes) devolvió `resolveGates() --calls--> loadSkill()`, `--calls--> listSkillFiles()`
+— relaciones a nivel de **función**, dentro de un archivo. `graph/` propio (S21) solo resuelve
+`archivo A importa archivo B` — no sabe qué función llama a qué función. No es "Graphify hace lo
+mismo pero mejor": es una capacidad que `graph/` genuinamente no tiene hoy.
+
+**Por qué importaría**: `context suggest` (S24) hoy rankea **archivos** relevantes para una tarea.
+Un grafo a nivel de función permitiría respuestas más finas ("qué más llama a `runQA()`") sin leer
+el archivo completo — el mismo modo de fallo que motivó el spike de Graphify en primer lugar (#32,
+cap de outputs de tools), pero resuelto con capacidad propia en vez de un binario externo.
+
+**Qué NO es**: adoptar tree-sitter como dependencia nueva no es gratis — hoy `graph/` usa regex
+sobre el texto fuente (`extractCSharpImports`, etc.), no un parser AST real. Tree-sitter en Bun/Node
+requiere bindings nativos por lenguaje (`tree-sitter-typescript`, `tree-sitter-rust`, etc.) — el
+mismo catálogo de paquetes que Graphify instaló en Python, pero del lado de Node. Verificar el
+estado de esos bindings para Bun específicamente antes de estimar esto como "bajo".
+
+**Esfuerzo**: medio-alto — no es un resolver más (patrón de S/Bloque S), es una capa de parsing
+nueva. Empezar por UN lenguaje (TypeScript, el propio de OrchestOS) antes de generalizar.
 
 ---
 
