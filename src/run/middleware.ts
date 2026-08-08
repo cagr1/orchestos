@@ -79,10 +79,6 @@ export interface RunContext {
   /** Check obligatorio ausente que impide declarar pass por omisión. */
   roadmapBlockReason?: string | null
 
-  // --- tool-policy ---
-  /** Lista de tool ids permitidos por la skill; [] significa sin restricción */
-  allowedTools: string[]
-
   // --- constitution-load ---
   constitutionBlock: string
   constitutionRules: number | null
@@ -122,7 +118,6 @@ export interface RunContext {
  *  classify-route   — resuelve taskClass, model y provider
  *  memory-fetch     — suggestContext + embeddings → enriquece task.input
  *  skill-route      — carga skill YAML → skillInstructions
- *  tool-policy      — extrae allowed_tools de la skill
  *  constitution-load— carga CONSTITUTION.md → constitutionBlock
  *  context-source   — elige CONTEXT.md vs AGENTS.md → effectiveContext
  *  instinct-apply   — (S33) inyecta instincts verificados → instinctBlock
@@ -134,7 +129,6 @@ export const ENRICHMENT_MIDDLEWARE_ORDER = [
   'classify-route',
   'memory-fetch',
   'skill-route',
-  'tool-policy',
   'constitution-load',
   'context-source',
   'instinct-apply',
@@ -161,7 +155,6 @@ export function createRunContext(opts: HarnessOpts): RunContext {
     skillInstructions:'',
     roadmapInstructions:'',
     roadmapBlockReason: null,
-    allowedTools:     [],
     constitutionBlock:'',
     constitutionRules:null,
     effectiveContext: opts.contextText,

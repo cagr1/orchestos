@@ -26,11 +26,9 @@ _(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
 
 ### Bajo
 
-_(`#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06; `#5` a
-Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07; `#46` a
-Bloque V el 2026-08-08)_
-
-1. `#58` `tool-policy.ts` es dead code — cablear `ctx.allowedTools` o borrarlo.
+_(vacía — `#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06;
+`#5` a Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07; `#46`
+a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Mes 26 cierra)_
 2. `#59` Etiquetar `code_edges` con `EXTRACTED`/`INFERRED` en `graph/` propio.
 
 ### Bajo-medio
@@ -742,7 +740,7 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
 | Patrón | Repo | Estado |
 |--------|------|--------|
 | Middleware chain ordenado | DeerFlow | ✅ S31 |
-| Skills con tool policy (`allowed_tools`) | DeerFlow | ⚠️ S22.0.1 — parcial, ver [#58](#58-tool-policyts-es-dead-code--ctxallowedtools-no-lo-lee-ningún-ejecutor): el camino de tareas simples (`tool-policy.ts`) es dead code, el enforcement real vive en `SubTask.allowed_tools` (planner) |
+| Skills con tool policy (`allowed_tools`) | DeerFlow | ✅ S22.0.1 (sub-tareas del planner, `SubTask.allowed_tools`) — el camino paralelo de tareas simples (`tool-policy.ts`) resultó dead code y se borró en PLAN.md § Mes 26 / Bloque W (2026-08-08) |
 | Memoria estructurada en capas | DeerFlow | ✅ parcial — S22.0.3 |
 | Subagent executor con status tracking | DeerFlow | ✅ S22 |
 | Instincts con confidence scoring | ECC | ✅ S33 |
@@ -1518,36 +1516,6 @@ cambia el shape de nuevo.
 **Esfuerzo**: medio-alto — cliente JSON-RPC contra `codex app-server` (Codex), reverse-engineering
 del OAuth refresh de Claude (frágil, ya cambió una vez), fallback de PTY para ambos. No bloquea
 nada de Bloque H.
-
----
-
-### 58. `tool-policy.ts` es dead code — `ctx.allowedTools` no lo lee ningún ejecutor
-
-**Origen**: hallazgo real al implementar O.3 (2026-08-05), no propuesta especulativa. INS-2026-014
-pedía hacer explícito el riesgo de que una skill auto-elegida cambie los permisos de herramientas
-del agente en silencio. Al verificar dónde se consume `ctx.allowedTools`
-([tool-policy.ts:9](../src/run/middlewares/tool-policy.ts)) — `grep -rn ".allowedTools\b" src/`
-no devuelve NADA fuera de ese propio middleware. Ningún ejecutor (`single-shot`, `agentic`,
-`external`, `opencode`, `codex`) lo lee. El campo se calcula, se guarda en `ctx`, y no pasa a
-ningún lado.
-
-**Por qué existe la confusión**: hay un mecanismo hermano que sí enforcea de verdad —
-`SubTask.allowed_tools` (`agents/sub-task-schema.ts`, **requerido**, validado por el schema del
-planner, chequeado hard en `agents/executor.ts` con `tool-violation` si se viola). Mismo nombre de
-campo, dos caminos distintos: el de sub-tareas del planner protege de verdad; el de
-`tool-policy.ts` para tareas simples no hace nada desde que se escribió.
-
-**Dos salidas, ninguna implementada todavía** (decidir cuál al atacar esto):
-1. Cablear `ctx.allowedTools` de verdad en los ejecutores — redefine el modelo de seguridad de
-   cada uno, especialmente `agentic.ts` (sus 4 tools fijos tendrían que filtrarse) y los CLIs
-   externos (`external.ts` hardcodea `--allowedTools Edit,Write,Read,Glob,Grep`, ignorando la
-   skill por completo).
-2. Borrar `tool-policy.ts` y el campo `allowedTools` de `RunContext` si no vale la pena esa
-   enforcement para tareas simples (el camino de sub-tareas ya cubre el caso que más importa).
-
-**Esfuerzo**: bajo para la opción 2 (borrar dead code); medio para la opción 1 (tocar 3+
-ejecutores). No bloquea nada de Bloque O — O.3 documentó el hallazgo en vez de improvisar una
-enforcement no planificada a mitad de otro ítem.
 
 ---
 

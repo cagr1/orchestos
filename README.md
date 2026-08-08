@@ -337,11 +337,11 @@ When a sub-agent writes to `memory_entries`, BM25 (SQLite FTS5) finds candidate 
 
 ## Middleware chain
 
-The enrichment phase before each LLM call runs 10 middlewares in canonical order:
+The enrichment phase before each LLM call runs 9 middlewares in canonical order:
 
 ```
 spec-gate → sandbox-setup → classify-route → memory-fetch → skill-route →
-tool-policy → constitution-load → context-source → instinct-apply → prompt-build
+constitution-load → context-source → instinct-apply → prompt-build
 ```
 
 Each middleware mutates a shared `RunContext` and calls `next()`. The execution phase (LLM → contract → checks → QA → revert → insertRun) remains inline in the harness — it is a stateful error-flow, not independent enrichment steps.

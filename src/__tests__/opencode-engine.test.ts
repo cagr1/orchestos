@@ -123,7 +123,6 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
     task,
     embedHits: 0,
     skillInstructions: '',
-    allowedTools: [],
     constitutionBlock: '',
     constitutionRules: null,
     effectiveContext: '',

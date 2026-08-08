@@ -51,7 +51,7 @@ idea se elimina de IDEAS.md en el mismo commit.
 | T | `#19` `engine: external` sin `checks:` | ✅ cerrado (2026-08-06) |
 | U | `#40` Editor de Constitution con Guardar/Limpiar | ✅ cerrado (2026-08-07) |
 | V | `#46` Spike de Graphify | ✅ cerrado (2026-08-08) |
-| W | `#58` `tool-policy.ts` dead code | pendiente |
+| W | `#58` `tool-policy.ts` dead code | ✅ cerrado (2026-08-08) |
 
 ### Bloque Q — ⚡🧠 IDEAS #2: `verification-before-completion`
 
@@ -469,6 +469,30 @@ Carlos antes de instalar: spike completo, con instalación real (`AskUserQuestio
 
 **Bloque V cerrado (V.1).**
 
+### Bloque W — 🧠 IDEAS #58: `tool-policy.ts` es dead code
+
+**Lo que pedía la idea**: decidir entre cablear `ctx.allowedTools` de verdad en los ejecutores
+(redefine el modelo de seguridad de 3+ engines) o borrar el dead code, ya que `SubTask.allowed_tools`
+del planner cubre el enforcement real. Decisión de Carlos (pregunta explícita, 2026-08-08): borrar.
+
+- [x] **W.1 — 🧠 (2026-08-08) Borrado completo.** [tool-policy.ts](src/run/middlewares/tool-policy.ts)
+  eliminado; wiring quitado de [middlewares/index.ts](src/run/middlewares/index.ts) y de la cadena
+  de enrichment en [harness.ts](src/run/harness.ts) (`.use(toolPolicy)`); campo `allowedTools` y su
+  default quitados de `RunContext`/`createRunContext()` en
+  [middleware.ts](src/run/middleware.ts), junto con su entrada en `ENRICHMENT_MIDDLEWARE_ORDER` y
+  el comentario de orden canónico (de 10 a 9 middlewares). `README.md` actualizado (mismo diagrama
+  de la cadena, desactualizado si no se tocaba).
+  6 tests que probaban el middleware directamente (`tests/run/skill-middlewares.test.ts`, describe
+  `toolPolicy middleware`) borrados con él — probaban código que ya no existe, no comportamiento
+  del producto. 4 fixtures sueltos (`codex-engine.test.ts`, `external-engine.test.ts` ×2,
+  `opencode-engine.test.ts`) que solo incluían `allowedTools: []` como campo del objeto `RunContext`
+  de prueba, sin ejercitar lógica — actualizados para compilar contra el tipo nuevo, sin cambiar lo
+  que cada test verifica de verdad. 1111 tests (eran 1117, -6 del middleware borrado) · 0 fail ·
+  `tsc --noEmit` limpio · `bun run test:coverage` verde.
+
+**Bloque W cerrado (W.1). Mes 26 cierra completo (Q–W) — el backlog canónico de categoría Bajo
+queda en cero.**
+
 ---
 
 ## MES 25 — Pendientes heredados de los cierres 22–24 + backlog canónico (N, O, P)
@@ -511,18 +535,14 @@ lo fija el backlog canónico por esfuerzo de [IDEAS.md](IDEAS.md), no este bloqu
 no dejar un gap real sin registrar mientras el mecanismo que debía atraparlo (esta sección) estaba
 desactualizado.
 
-**Gap real encontrado durante Mes 25 (O.3, 2026-08-05), sin corregir todavía:** `ctx.allowedTools`
-en [src/run/middlewares/tool-policy.ts](src/run/middlewares/tool-policy.ts) es dead code — ningún
-ejecutor lo lee (verificado, no supuesto: `grep -rn ".allowedTools\b" src/` no devuelve nada fuera
-de ese propio middleware). El enforcement real de herramientas por tarea vive en otro lado
-(`SubTask.allowed_tools`, requerido y chequeado hard por el planner). No es bloqueante — no corrompe
-ninguna corrida ni métrica hoy — pero si el próximo Mes toca seguridad de ejecutores o el camino de
-tareas simples, resolver esto primero (cablear de verdad o borrar el middleware). Detalle completo
-en [IDEAS.md #58](IDEAS.md).
+**Actualizado al cierre de Mes 26 (2026-08-08)** — el gap de `tool-policy.ts` (`ctx.allowedTools`
+dead code, encontrado en O.3) ya se resolvió: borrado en PLAN.md § Mes 26 / Bloque W. La categoría
+**Bajo** completa del backlog canónico (`#2`, `#3`, `#5`, `#19`, `#40`, `#46`, `#58`) quedó cerrada
+en Mes 26 — ver tabla de estado al inicio de esa sección.
 
 **Próximo milestone: por decidir con Carlos** — el orden lo fija
-[IDEAS.md § 🧭 Backlog canónico por esfuerzo](IDEAS.md); con Mínimo vaciado (graduado a Bloque N),
-la categoría **Bajo** es la siguiente en el índice (`#2`, `#3`, `#5`, `#19`, `#40`, `#46`, `#58`).
+[IDEAS.md § 🧭 Backlog canónico por esfuerzo](IDEAS.md); con **Mínimo** y **Bajo** vaciadas, la
+categoría **Bajo-medio** es la siguiente en el índice (`#4`, `#30`, `#33`, `#37`, `#51`).
 
 ---
 

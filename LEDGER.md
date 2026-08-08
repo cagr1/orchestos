@@ -135,3 +135,20 @@ revertible con `git revert`; columna nueva `runs.skill_gates_json` vía `safeAdd
 filas previas, sin backfill ni migración destructiva). 8 tests nuevos en `skill-gates.test.ts`
 contra las skills reales del repo (no mocks); `tsc --noEmit` limpio; gate de drift verde antes del
 commit.
+
+---
+
+## 2026-08-08 09:42 America/Guayaquil — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: W.1 borra el middleware `tool-policy.ts` (dead code, decisión de Carlos) y quita su
+línea `.use(toolPolicy)` de la cadena de enrichment en `harness.ts`. El cambio es remover una
+llamada a un middleware que solo seteaba `ctx.allowedTools` (nunca leído por ningún ejecutor) — no
+toca `maxTokens`, `contextWindow`, `resolveQAJudge()` ni ningún punto de la derivación del
+presupuesto de salida del executor.
+**Reversibilidad/evidencia**: commit de W.1 (`chore(run): W.1 — borrar tool-policy.ts dead code...`)
+— revertible con `git revert`; sin cambios de esquema ni de datos (el campo `allowedTools` era de
+`RunContext` en memoria, nunca persistido). 1111 tests (eran 1117, -6 del middleware borrado) ·
+0 fail · `tsc --noEmit` limpio antes del commit.

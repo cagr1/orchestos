@@ -64,11 +64,9 @@ import type { MiddlewareFn, RunContext } from '../../src/run/middleware.ts'
 
 // Dynamically import middlewares AFTER cwd is set (registry.ts SKILLS_DIR depends on cwd)
 let skillRoute: MiddlewareFn<RunContext>
-let toolPolicy: MiddlewareFn<RunContext>
 
 beforeAll(async () => {
   skillRoute = (await import('../../src/run/middlewares/skill-route.ts')).skillRoute
-  toolPolicy = (await import('../../src/run/middlewares/tool-policy.ts')).toolPolicy
 })
 
 // ---------------------------------------------------------------------------
@@ -131,70 +129,3 @@ describe('skillRoute middleware', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// toolPolicy tests (S31.5)
-// ---------------------------------------------------------------------------
-
-describe('toolPolicy middleware', () => {
-  it('extracts allowed_tools from skill', async () => {
-    makeSkillFile('tp-with-tools', 'WithTools', 'instr', ['read', 'write', 'bash'])
-    const ctx = createRunContext(makeOpts(testDir, 'tp-with-tools'))
-
-    await toolPolicy(ctx, async () => {})
-
-    expect(ctx.allowedTools).toEqual(['read', 'write', 'bash'])
-  })
-
-  it('sets empty array when skill has no allowed_tools', async () => {
-    makeSkillFile('tp-no-tools', 'NoTools', 'instr')
-    const ctx = createRunContext(makeOpts(testDir, 'tp-no-tools'))
-
-    await toolPolicy(ctx, async () => {})
-
-    expect(ctx.allowedTools).toEqual([])
-  })
-
-  it('sets empty array when task has no skill', async () => {
-    const ctx = createRunContext(makeOpts(testDir))
-
-    await toolPolicy(ctx, async () => {})
-
-    expect(ctx.allowedTools).toEqual([])
-  })
-
-  it('sets empty array when skill file does not exist', async () => {
-    const ctx = createRunContext(makeOpts(testDir, 'nonexistent'))
-
-    await toolPolicy(ctx, async () => {})
-
-    expect(ctx.allowedTools).toEqual([])
-  })
-
-  it('works within createChain pipeline', async () => {
-    makeSkillFile('tp-chain', 'ChainTool', 'instr', ['read'])
-    const ctx = createRunContext(makeOpts(testDir, 'tp-chain'))
-    const chain = createChain<typeof ctx>()
-
-    chain.use(toolPolicy)
-    await chain.run(ctx)
-
-    expect(ctx.allowedTools).toEqual(['read'])
-  })
-
-  it('calls next() to continue chain', async () => {
-    const ctx = createRunContext(makeOpts(testDir))
-
-    let afterMiddleware = false
-    const chain = createChain<typeof ctx>()
-
-    chain.use(toolPolicy)
-    chain.use(async (_ctx, next) => {
-      afterMiddleware = true
-      await next()
-    })
-
-    await chain.run(ctx)
-
-    expect(afterMiddleware).toBe(true)
-  })
-})

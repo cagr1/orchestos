@@ -47,7 +47,7 @@ import { checkContextHealth, shouldCheck, type RunState } from '../hooks/context
 import { ensureCatalogLoaded, contextWindowFor, knownMaxOutputTokensFor } from '../router/model-catalog.ts'
 import { estimateTokens } from '../context/compress.ts'
 import { createRunContext, createChain, type RunContext } from './middleware.ts'
-import { contextInject, skillRoute, roadmapContext, memoryFetch, toolPolicy, instinctApply } from './middlewares/index.ts'
+import { contextInject, skillRoute, roadmapContext, memoryFetch, instinctApply } from './middlewares/index.ts'
 import { resolveGates } from '../skills/catalog.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { Worktree } from './sandbox.ts'
@@ -246,7 +246,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       .use(memoryFetch)
       .use(skillRoute)
       .use(roadmapContext)
-      .use(toolPolicy)
       .use(contextInject)
       .use(instinctApply)
 
