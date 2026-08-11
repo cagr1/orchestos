@@ -187,6 +187,8 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'file_diffs',            'TEXT')     // v0.12/C: JSON array of FileDiffEntry[] (docs/diff-review-design.md) — NULL para runs previos a este cambio, sin backfill
   safeAddColumn('runs', 'adversarial_verdict',   'TEXT')     // K.4b: 'VERIFIED' | 'CAVEATS' | 'REFUTED' | NULL (opt-in, NULL si adversarialQA no está activado)
   safeAddColumn('runs', 'adversarial_reason',    'TEXT')     // K.4b: razón del segundo juez adversarial
+  safeAddColumn('runs', 'refuter_verdict',       'TEXT')     // X.2 (IDEAS #33): 'CONFIRMED' | 'REFUTED' | NULL (opt-in, NULL si refuterQA no está activado)
+  safeAddColumn('runs', 'refuter_reason',        'TEXT')     // X.2 (IDEAS #33): razón del refuter
   safeAddColumn('runs', 'skill_gates_json',      'TEXT')     // O.3: JSON [{id, candidate, applied, reason}] de resolveGates() — NULL si el run nunca llegó al stage de QA (distinto de "ninguna gate aplicaba", que es un array con applied:false)
 
   // S26.3 — memory conflict detection records

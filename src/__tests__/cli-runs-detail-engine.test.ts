@@ -65,6 +65,8 @@ function makeRow(overrides: Partial<RunRecord> = {}): RunRecord {
     file_diffs: null,
     adversarial_verdict: null,
     adversarial_reason: null,
+    refuter_verdict: null,
+    refuter_reason: null,
     skill_gates_json: null,
     status: 'done',
     input_tokens: 5,

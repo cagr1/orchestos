@@ -152,3 +152,25 @@ presupuesto de salida del executor.
 — revertible con `git revert`; sin cambios de esquema ni de datos (el campo `allowedTools` era de
 `RunContext` en memoria, nunca persistido). 1111 tests (eran 1117, -6 del middleware borrado) ·
 0 fail · `tsc --noEmit` limpio antes del commit.
+
+---
+
+## 2026-08-10 — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: X.2 (IDEAS #33) agrega el refuter opt-in (`orcheConfig.refuterQA`) entre
+`qa.verdict === 'fail'` y el bloque de revert/retry, reusando `qaJudge.model`/`qaJudge.provider`
+ya resueltos — mismo patrón que K.4b (2026-07-28) en la dirección opuesta. Las líneas nuevas leen
+`orcheConfig?.refuterQA`, acumulan tokens del segundo call en `qa.inputTokens/outputTokens` (para
+que `qaCost`/`totalCost`, ya existentes, los incluyan) y suben `qa.verdict` a `'pass'` cuando
+`REFUTED` — todo aguas abajo de donde `maxTokens` ya se calculó para el executor. Cero líneas
+tocadas en esa derivación.
+**Reversibilidad/evidencia**: commit de X.1/X.2/X.3 (`feat(qa): X — refuter en el QA loop, opt-in`)
+— revertible con `git revert`; feature opt-in (`orcheConfig.refuterQA`, default off), cero
+side-effects en runs existentes (columnas nuevas `refuter_verdict`/`refuter_reason` vía
+`safeAddColumn`, NULL para filas previas). 1122 tests (eran 1111, +11) · 0 fail · `tsc --noEmit`
+limpio antes del commit. Gate X.3 corrido con `harness-refuter-qa.test.ts` (4 tests contra
+`runTask()` completo, no `qa.ts` aislado) — sin `OPENROUTER_API_KEY` disponible para un control
+pagado real, mismo nivel de rigor que el propio gate de K.4b (ver entrada 2026-07-28).

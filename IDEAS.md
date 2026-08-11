@@ -35,9 +35,10 @@ a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo com
 
 1. `#4` Clasificador semántico para `clarify`.
 2. `#30` `task_class: ocr`.
-3. `#33` Refuter en QA.
-4. `#37` Modo “empezar gratis”.
-5. `#51` Acciones por mensaje: copiar y rebobinar.
+3. `#37` Modo “empezar gratis”.
+4. `#51` Acciones por mensaje: copiar y rebobinar.
+
+_(`#33` graduó a Bloque X el 2026-08-10 — categoría Bajo-medio en curso, Mes 27)_
 
 ### Medio
 
@@ -196,47 +197,6 @@ descarta: Google-only, audio a servidores externos, mal en español técnico.)
 
 **Esfuerzo**: medio-alto — abstracción nueva (`STTProvider`) + wiring Electron + superficie
 en dashboard. El tope del tramo medio.
-
-### 33. Refuter en el QA loop — segunda opinión barata antes de quemar un retry
-
-**Origen**: gentle-ai v2.0.0 (2026-07). Su sistema de review separaba 5 funciones
-(`review-risk/readability/reliability/resilience/refuter`) con modelo asignable por función —
-en esa versión, prompts/config generados para OpenCode, no runtime.
-
-**Revalidado 2026-08-06 contra el HEAD real** (`v2.2.0`, PR #1801 "Organic RDD"): el patrón
-`refuter` sigue vivo y creció (`gentle-ai review schema refuter`, ahora parte de un sistema
-"Receipt-Driven Development" con candidate congelado por hash de contenido, gates de entrega y
-evidencia de verificación tipada — ver [[reference-external-repos]] y la fila `gentle-ai` en
-"Los repos" más abajo). Confirma que sigue siendo capa de gobernanza sobre un agente anfitrión,
-no runtime — el veredicto de 2026-07-06 sigue de pie. Lo robable sigue siendo el mismo: un
-agente adversarial que intenta tumbar los hallazgos del reviewer antes de que cuenten.
-
-**Eslabón débil en OrchestOS (verificado en `src/run/qa.ts`)**: `runQA()` es una sola
-pasada, un solo modelo, y su veredicto es ley — un `fail` falso dispara un re-run completo
-de la tarea (hasta `MAX_RETRIES=3`). Cada falso-fail cuesta 1-3 ejecuciones enteras del
-executor + QA de nuevo. Ya hay evidencia de veredictos QA imperfectos en el historial
-(falsos negativos del Mes 18).
-
-**Qué hacer**: cuando `runQA()` devuelve `fail`, una segunda llamada barata (modelo
-económico, prompt corto: "aquí está el veredicto fail y la evidencia — ¿el hallazgo es
-CONFIRMED o PLAUSIBLE? refuta si puedes") antes de gastar el retry. Solo un `fail`
-confirmado quema retry; un `fail` refutado pasa. Es asimétrico a propósito: los `pass`
-no se re-verifican (el costo del falso-pass lo cubren los `checks:` deterministas).
-
-**No hacer**: los 5 ejes de review de gentle-ai — para el tamaño de tareas de OrchestOS
-es sobre-ingeniería; el refuter solo es donde está el ROI.
-
-**Esfuerzo**: bajo-medio — una función `refuteVerdict()` + wiring en los 2 puntos del
-harness donde se consume `qa.verdict === 'fail'` + tests. Se apoya en el routing por
-función existente para elegir modelo económico (y alimenta la evidencia del #31).
-
-**Nota de costo (verificada en hermes-agent, 2026-07-12)**: su `background_review.py`
-documenta la política exacta para este tipo de segunda llamada — **mismo modelo que el
-principal → replay completo reutilizando prompt cache tibio (cache reads baratos); modelo
-distinto → digest compacto** (un modelo distinto no puede reusar el cache del padre, así
-que replayar todo solo escribe tokens fríos). Aplicar el mismo criterio al refuter: si el
-modelo económico ≠ modelo de QA, mandarle un resumen corto del veredicto+evidencia, no la
-transcripción entera.
 
 ### 34. `orchestos audit` — auditoría híbrida de código muerto y hardcodeos, con ledger
 
@@ -752,7 +712,7 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
 | DAG con contratos Read/Write | gentle-ai | ✅ S22.0.2 |
 | apply-progress continuity | gentle-ai | ✅ S22.5a |
 | Reglas de delegación con umbrales | gentle-ai | ✅ docs/AGENTS.md |
-| Refuter en QA loop (v2.0.0) | gentle-ai | ⏳ ver backlog #33 |
+| Refuter en QA loop (v2.0.0) | gentle-ai | ✅ Bloque X (2026-08-10) |
 | WHEN/THEN en acceptance_criteria | OpenSpec | ✅ S28 |
 | Capabilities contract | OpenSpec | ✅ S32 |
 | Archive de specs con fecha | OpenSpec | ✅ S29 |

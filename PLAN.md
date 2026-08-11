@@ -36,6 +36,68 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 ---
 
+## MES 27 — Backlog canónico, categoría Bajo-medio (abierto 2026-08-10)
+
+Este Mes ejecuta la categoría **Bajo-medio** de [IDEAS.md](IDEAS.md): `#4`, `#30`, `#33`, `#37`,
+`#51`. Mismo orden de índice = único orden de ejecución (regla desde 2026-07-30).
+
+**`#4` y `#30` verificadas y saltadas antes de tocar código (2026-08-10)** — ambas tienen su propio
+gate explícito en el texto de la idea, y ninguna lo cumple hoy:
+- `#4` (clasificador semántico para `clarify`): *"Solo vale la pena si hay evidencia de falsos
+  negativos."* Grep de `needsClarify`/incidentes en DONE.md/PLAN.md: cero evidencia. Verificado
+  además en código que hoy `needsClarify()` solo decide si se muestra un banner de advertencia en
+  `orchestos task run --clarify` (comando manual, opt-in) — no gatea nada automático, mucho menos
+  consecuente que lo que la idea describe.
+- `#30` (`task_class: ocr`): *"diferido explícitamente por Carlos (2026-07-09) por falta de caso de
+  uso real dentro de OrchestOS mismo."* El caso de uso real es CitasBot, proyecto aparte. Sin
+  evidencia nueva de que cambió.
+
+Ninguna de las dos se elimina de IDEAS.md — seguir sin evidencia no es lo mismo que resolver.
+
+### Bloque X — 🧠 IDEAS #33: refuter en el QA loop — segunda opinión barata antes de quemar un retry
+
+**Lo que pedía la idea**: cuando `runQA()` da `fail`, una segunda llamada barata decide si el
+hallazgo es real (`CONFIRMED`, consume el retry) o un error del juez (`REFUTED`, pasa) — antes de
+gastar un retry completo (executor + QA de nuevo). Mirror asimétrico de K.4b (que hace lo mismo
+para el lado `pass`, opt-in, catch de falsos-positivos); esto ataca falsos-negativos.
+
+**Evidencia verificada, no asumida**: `DONE.md` (gate D.1, Mes 17, dinero real) — *"El QA-LLM dio un
+falso negativo sobre un diff objetivamente correcto"*. Incidente real, no hipotético. Verificado
+también que `qa.verdict === 'fail'` solo se consume en **un** punto de `harness.ts` (línea 639) —
+la nota original de la idea decía "2 puntos", desactualizada.
+
+- [x] **X.1 — 🧠 `runRefuter()` en `qa.ts`.** (2026-08-10) Mismo patrón que `runAdversarialQA()` (K.4b): recibe
+  la descripción, criterios, archivos escritos, checks y el veredicto/razón del `fail` original;
+  devuelve `{ verdict: 'CONFIRMED' | 'REFUTED', reason, inputTokens, outputTokens, model }`.
+  **Fail-safe en la dirección opuesta a K.4b a propósito**: una respuesta no parseable o ambigua
+  debe caer en `CONFIRMED` (el fail original se sostiene, se consume el retry) — nunca en
+  `REFUTED` (dejar pasar sería el error que este ítem existe para evitar, no para reintroducir del
+  otro lado).
+- [x] **X.2 — 🧠 Wiring en `harness.ts`.** (2026-08-10) Nuevo flag `refuterQA?: boolean` en `OrcheConfig`
+  (`config/schema.ts`), opt-in — mismo criterio de "Carlos decide el costo explícito" que
+  `adversarialQA`. Cuando `qa.verdict === 'fail'` (línea 639) y `orcheConfig?.refuterQA`, llamar
+  `runRefuter()` ANTES del bloque de revert/retry: `REFUTED` → tratar como `pass` (mismo path de
+  éxito, sin consumir `retry_count`); `CONFIRMED` → seguir el path de fail normal, sin cambios.
+  Persistir el veredicto del refuter en `runs` (columna nueva, mismo patrón que
+  `adversarial_verdict`/`adversarial_reason` de K.4b — no reusar esas dos, son ejes distintos:
+  uno vigila falsos-positivos, el otro falsos-negativos, y verlos mezclados en un dashboard futuro
+  sería engañoso).
+- [x] **X.3 — 🔍** (2026-08-10) Sin `OPENROUTER_API_KEY` en esta shell — no hay LLM real disponible
+  para un control pagado end-to-end. Gate ejecutado al mismo nivel de rigor que el propio gate de
+  K.4b (LEDGER 2026-07-28: *"destrabado con evidencia sintética real... no por decisión de
+  saltarlo"*): `src/__tests__/harness-refuter-qa.test.ts`, 4 tests que corren `runTask()` completo
+  (no `qa.ts` aislado) contra un `fetch` mockeado por llamada, cubriendo el ciclo real del harness
+  — executor → QA fail → refuter → decisión: (1) desactivado por default, 2 fetch calls, sin
+  refuter; (2) `REFUTED` sube `qa_verdict` a `pass`, `status: 'done'`, sin retry consumido; (3)
+  **control**: `CONFIRMED` sostiene el fail, `status: 'failed'`, retry consumido normalmente; (4)
+  el refuter NO corre si el QA normal ya dio pass. Los 4 verifican columnas `refuter_verdict`/
+  `refuter_reason` persistidas via `getRun()` contra la DB real (no mock de DB). Runs de prueba
+  borrados en `afterAll` (`task_id = 'x2-refuter'`). `bun run test:coverage`: 1122 pass · 0 fail
+  (eran 1111, +11: 7 en `qa-core.test.ts` + 4 en `harness-refuter-qa.test.ts`) · `tsc --noEmit`
+  limpio.
+
+---
+
 ## MES 26 — Backlog canónico, categoría Bajo (Q–W)
 
 - [x] **SÍ — Mes 26 cerrado (2026-08-08)**

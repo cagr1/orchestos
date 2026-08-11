@@ -49,6 +49,14 @@ export interface OrcheConfig {
    * (comportamiento actual, sin cambios). Ver PLAN.md § K.4b.
    */
   adversarialQA?: boolean
+  /**
+   * X.2 (IDEAS #33) — refuter barato DESPUÉS de que el QA normal dé fail, ANTES de consumir un
+   * retry. Mirror asimétrico de adversarialQA: ese ataca falsos-positivos en el lado `pass`, este
+   * ataca falsos-negativos en el lado `fail` (evidencia real: DONE.md gate D.1). Opt-in porque
+   * agrega una llamada de QA extra a cada fail; absencia = desactivado (comportamiento actual,
+   * sin cambios). Ver PLAN.md § Mes 27 Bloque X.
+   */
+  refuterQA?: boolean
 }
 
 // Defaults — used when no config file is found or a role is missing

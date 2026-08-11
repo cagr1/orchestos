@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { computeFileDiffs, restoreContents, runAdversarialQA, runQA, snapshotContents } from '../run/qa.ts'
+import { computeFileDiffs, restoreContents, runAdversarialQA, runQA, runRefuter, snapshotContents } from '../run/qa.ts'
 import type { ProviderClient } from '../providers/index.ts'
 
 function freshRoot() {
@@ -411,6 +411,92 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
       ...baseOptions,
       checksResults: [],
       provider: providerReply('{"verdict":"VERIFIED","reason":"no checks needed"}', content => { userContent = content }),
+    })
+
+    expect(userContent).toContain('NINGUNA verificación mecánica corrió.')
+  })
+})
+
+describe('runRefuter and parseRefuterVerdict (X.1, IDEAS #33)', () => {
+  const baseOptions = {
+    description: 'Review the implementation',
+    output: ['src/example.ts'],
+    written: [{ path: 'src/example.ts', content: 'export const answer = 42' }],
+    model: 'test-model',
+    acceptance_criteria: ['The module exports answer'],
+    checksResults: [],
+    qaVerdictReason: 'the file does not export answer',
+  }
+
+  it('returns CONFIRMED when the refuter agrees the fail is correct', async () => {
+    const result = await runRefuter({
+      ...baseOptions,
+      provider: providerReply('{"verdict":"CONFIRMED","reason":"The judge was right, answer is not exported."}'),
+    })
+
+    expect(result.verdict).toBe('CONFIRMED')
+    expect(result.reason).toBe('The judge was right, answer is not exported.')
+  })
+
+  it('returns REFUTED from fenced JSON when the refuter finds the fail was wrong', async () => {
+    const result = await runRefuter({
+      ...baseOptions,
+      provider: providerReply('```json\n{"verdict":"REFUTED","reason":"answer is clearly exported, the judge misread the file."}\n```'),
+    })
+
+    expect(result.verdict).toBe('REFUTED')
+    expect(result.reason).toBe('answer is clearly exported, the judge misread the file.')
+  })
+
+  it('fails safe to CONFIRMED (opposite of adversarial QA) when the response is not parseable', async () => {
+    const result = await runRefuter({
+      ...baseOptions,
+      provider: providerReply('not-json'),
+    })
+
+    expect(result.verdict).toBe('CONFIRMED')
+    expect(result.reason).toContain('refuter response not parseable: not-json')
+  })
+
+  it('fails safe to CONFIRMED when the response is valid JSON but not an object', async () => {
+    const nullResult = await runRefuter({ ...baseOptions, provider: providerReply('null') })
+    const arrayResult = await runRefuter({ ...baseOptions, provider: providerReply('[]') })
+
+    expect(nullResult.verdict).toBe('CONFIRMED')
+    expect(arrayResult.verdict).toBe('CONFIRMED')
+    expect(nullResult.reason).toContain('JSON object')
+  })
+
+  it('falls back to CONFIRMED for an unknown refuter verdict', async () => {
+    const result = await runRefuter({
+      ...baseOptions,
+      provider: providerReply('{"verdict":"maybe","reason":"unclear"}'),
+    })
+
+    expect(result.verdict).toBe('CONFIRMED')
+    expect(result.reason).toBe('unclear')
+  })
+
+  it('includes the original fail reason and executed checks in the refuter prompt', async () => {
+    let userContent = ''
+    await runRefuter({
+      ...baseOptions,
+      checksResults: [{ cmd: 'bun test --timeout 30000', exitCode: 0, stdout: '', stderr: '', elapsedMs: 10, timedOut: false }],
+      provider: providerReply('{"verdict":"CONFIRMED","reason":"context received"}', content => { userContent = content }),
+    })
+
+    expect(userContent).toContain('### src/example.ts')
+    expect(userContent).toContain('the file does not export answer')
+    expect(userContent).toContain('bun test --timeout 30000')
+    expect(userContent).toContain('exitCode: 0')
+  })
+
+  it('tells the refuter explicitly when no checks ran', async () => {
+    let userContent = ''
+    await runRefuter({
+      ...baseOptions,
+      checksResults: [],
+      provider: providerReply('{"verdict":"CONFIRMED","reason":"no checks needed"}', content => { userContent = content }),
     })
 
     expect(userContent).toContain('NINGUNA verificación mecánica corrió.')

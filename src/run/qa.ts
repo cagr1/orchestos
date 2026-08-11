@@ -308,3 +308,97 @@ function parseAdversarialVerdict(raw: string): { verdict: AdversarialVerdict['ve
   const reason = typeof o.reason === 'string' ? o.reason : '(no reason)'
   return { verdict, reason }
 }
+
+// X.1 (IDEAS #33) — refuter barato en el lado del `fail`, mirror asimétrico de K.4b: ahí una
+// segunda opinión intenta REFUTAR un `pass` (catch de falsos-positivos); aquí intenta refutar un
+// `fail` (catch de falsos-negativos, evidencia real en DONE.md gate D.1). El fail-safe es
+// DELIBERADAMENTE el opuesto de `parseAdversarialVerdict`: ahí lo no-parseable cae en REFUTED
+// (no dejar pasar un pase dudoso); aquí lo no-parseable debe caer en CONFIRMED (no dejar pasar
+// un downgrade dudoso a costa de saltarse el retry) — ambos "fail-safe" significan "sostener el
+// veredicto más conservador", pero apuntan a extremos opuestos porque protegen contra riesgos
+// opuestos.
+export interface RefuterVerdict {
+  verdict: 'CONFIRMED' | 'REFUTED'
+  reason: string
+  inputTokens: number
+  outputTokens: number
+  model: string
+}
+
+export async function runRefuter(opts: {
+  description: string
+  output: string[]
+  written: FileChange[]
+  model: string
+  acceptance_criteria?: string[]
+  checksResults: CheckResult[]
+  qaVerdictReason: string
+  provider?: ProviderClient
+}): Promise<RefuterVerdict> {
+  const filesBlock = opts.written.map(f =>
+    `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``
+  ).join('\n\n')
+
+  const hasCriteria = opts.acceptance_criteria && opts.acceptance_criteria.length > 0
+  const criteriaBlock = hasCriteria
+    ? `\n## Acceptance criteria\n${opts.acceptance_criteria!.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`
+    : ''
+
+  const system = [
+    'A first QA judge just REJECTED this work (verdict: fail). Your job is to check whether that',
+    'rejection is actually correct, before a retry gets consumed.',
+    'Be skeptical of the FAIL, not of the work: only overturn it if you find concrete proof the',
+    'judge was wrong — e.g. it misread working code as broken, missed a file, or its stated reason',
+    'does not match what the files actually show.',
+    'If you are unsure, or the fail looks even plausibly correct, keep it standing — a wrong retry',
+    'burned on a bad refute is worse than one extra legitimate retry.',
+    'Respond with ONLY a JSON object — no markdown fences, no prose:',
+    '{ "verdict": "CONFIRMED" | "REFUTED", "reason": "one or two sentences explaining what you checked" }',
+    '"CONFIRMED": the fail is correct (or you cannot be sure it is wrong) — it stands.',
+    '"REFUTED": you independently verified the work is actually correct and the judge was wrong.',
+  ].join('\n')
+
+  const userContent =
+    `## Task description\n${opts.description}\n` +
+    criteriaBlock +
+    `\n## Declared output files\n${opts.output.join(', ')}\n\n` +
+    `## Original QA verdict: fail\n${opts.qaVerdictReason}\n\n` +
+    `## Checks executed\n${opts.checksResults.length > 0
+      ? opts.checksResults.map(c => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
+      : 'NINGUNA verificación mecánica corrió.'}\n\n` +
+    `## Files written\n${filesBlock}\n\n` +
+    `Return your JSON verdict now.`
+
+  const resp = await (opts.provider?.chat ?? chat)({
+    model: opts.model,
+    system,
+    messages: [{ role: 'user', content: userContent }],
+  })
+
+  return {
+    ...parseRefuterVerdict(resp.text),
+    inputTokens: resp.inputTokens,
+    outputTokens: resp.outputTokens,
+    model: resp.model,
+  }
+}
+
+function parseRefuterVerdict(raw: string): { verdict: RefuterVerdict['verdict']; reason: string } {
+  const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
+  const jsonStr = jsonMatch?.[1] ?? raw.trim()
+  let obj: unknown
+  try {
+    obj = JSON.parse(jsonStr)
+  } catch {
+    // fail-safe OPUESTO a parseAdversarialVerdict: acá no-parseable sostiene el fail original
+    return { verdict: 'CONFIRMED', reason: `refuter response not parseable: ${raw.slice(0, 200)}` }
+  }
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return { verdict: 'CONFIRMED', reason: 'refuter response must be a JSON object' }
+  }
+  const o = obj as Record<string, unknown>
+  const verdict: RefuterVerdict['verdict'] =
+    o.verdict === 'CONFIRMED' || o.verdict === 'REFUTED' ? o.verdict : 'CONFIRMED'
+  const reason = typeof o.reason === 'string' ? o.reason : '(no reason)'
+  return { verdict, reason }
+}
