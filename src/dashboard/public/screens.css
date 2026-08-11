@@ -864,6 +864,7 @@
 .model-combo-option:hover, .model-combo-option.active { background: var(--accent-soft); }
 .model-combo-opt-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-combo-price { color: var(--text-faint); font-size: 11px; flex-shrink: 0; }
+.model-combo-price.free { color: var(--success, #2e9c5b); font-weight: 600; }
 .model-combo-empty { padding: 16px 8px; text-align: center; color: var(--text-faint); font-size: 12px; }
 
 /* 2026-07-13 (corrección de Carlos) — pill único modelo+esfuerzo del composer

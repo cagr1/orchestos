@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-26-cerrado--sin-mes-activo--siguiente-categoria-bajo-medio-por-decidir
+status: mes-27-en-curso--categoria-bajo-medio--bloque-x-cerrado--bloque-y-en-curso
 ---
 
 # OrchestOS — Plan activo
@@ -95,6 +95,55 @@ la nota original de la idea decía "2 puntos", desactualizada.
   borrados en `afterAll` (`task_id = 'x2-refuter'`). `bun run test:coverage`: 1122 pass · 0 fail
   (eran 1111, +11: 7 en `qa-core.test.ts` + 4 en `harness-refuter-qa.test.ts`) · `tsc --noEmit`
   limpio.
+
+---
+
+### Bloque Y — 🧠 IDEAS #37: modo "empezar gratis" — badge + preset de modelos `:free`
+
+**Lo que pedía la idea**: superficie para el onboarding cero-costo — (1) marcar/filtrar modelos
+`:free` de OpenRouter en el selector con badge "Free"; (2) un preset que fije los roles
+(`planner`/`executor_*`/`default`) a modelos `:free` por defecto. Verificado en el propio texto de
+la idea: **no** requiere motor nuevo ni dependencia externa (Codebuff/Freebuff se descartaron como
+proveedor en la investigación de origen) — es solo mejor uso del catálogo de OpenRouter que
+OrchestOS ya consume (`priceIn`/`priceOut` en `model-catalog.ts`).
+
+- [x] **Y.1 — ⚡ Badge "Free" en el combo de modelos.** (2026-08-10) `buildComboOptions()`
+  (app.js) — por `id.endsWith(':free')`, NO por `priceIn === 0`: verificado en vivo contra el
+  catálogo real de OpenRouter que los meta-routers sin pricing (`openrouter/auto*`,
+  `openrouter/fusion`, `openrouter/pareto-code`) también caen en precio 0/negativo y NO son
+  gratis — badgearlos habría sido un falso "Free". Nueva clave i18n `chat.models.free`
+  (en/es) + clase CSS `.model-combo-price.free`.
+- [x] **Y.2 — 🧠 Bug real encontrado al verificar en vivo: la selección de rol en Model routing
+  se revertía en silencio.** (2026-08-10) Antes de construir el preset, probé manualmente elegir
+  un modelo distinto para el rol Planner en Settings → Model routing (Playwright contra el
+  dashboard real, puerto 4242) — el valor volvía al anterior de inmediato. Causa: el click
+  handler genérico de `buildModelSelect` (app.js) muta el input oculto vía DOM y dispara
+  `App.rerender()`, que reemplaza `#main.innerHTML` por completo; `routingPanel()`
+  (screens-ops.js) recalculaba `val` desde `cfg.roles[role]` (estado del servidor, sin cambios
+  hasta Guardar) en cada render, pisando la elección recién hecha. Bug preexistente, no
+  introducido por esta sesión — nadie lo había reportado porque nadie probó seleccionar y
+  esperar el rerender sin guardar de inmediato. **Fix**: `routingPanel()` ahora prefiere el
+  valor vivo del input oculto en el DOM (todavía presente en el momento en que el string HTML se
+  arma, antes del reemplazo) sobre `cfg.roles[role]`, sin estado global nuevo. Sin este fix el
+  preset de Y.3 tampoco habría sobrevivido su propio `App.rerender()`.
+- [x] **Y.3 — ⚡ Preset "Empezar gratis".** (2026-08-10) Botón nuevo en el footer de "Roles"
+  (Settings → Model routing) — filtra `st.orModels` por `:free`, ordena por `contextK`
+  descendente, aplica el mejor a los 4 roles (`planner`/`executor_heavy`/`executor_light`/
+  `default`). **No auto-guarda** — mismo patrón de Guardar explícito que el resto del panel
+  (consistente con el fix de U.1 de este Mes: mover foco sin persistir es la clase de bug que
+  ese Bloque ya cerró). Sin id de modelo hardcodeado — el catálogo `:free` de OpenRouter cambia
+  con el tiempo.
+- [x] **Y.4 — 🔍** (2026-08-10) Verificado en vivo contra el dashboard real (puerto 4242,
+  `OPENROUTER_API_KEY` configurada en esta máquina — catálogo real, no fixture): (1) badge
+  "Free" visible solo en modelos `:free` reales (confirmado contra 200+ opciones del catálogo
+  real, incluyendo los meta-routers que NO llevan badge); (2) selección manual de rol ya no se
+  revierte (Y.2, antes/después comparado); (3) click en "Empezar gratis" pobló los 4 roles con
+  `nvidia/nemotron-3-ultra-550b-a55b:free` (el `:free` de mayor contexto disponible en ese
+  momento) + toast de confirmación, sin tocar `orchestos.config.yaml` (verificado con `cat` antes
+  y después — el preset no llegó a Guardar, como diseñado). Servidor de dashboard bajado al
+  terminar. `tsc --noEmit` limpio; `bun run test:coverage`: 1122 pass · 0 fail (sin cambio — este
+  Bloque es JS de dashboard sin harness de test unitario, mismo criterio que otros cambios de UI
+  de este Mes; la verificación real es la corrida en vivo de arriba).
 
 ---
 

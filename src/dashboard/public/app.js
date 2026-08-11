@@ -1900,10 +1900,15 @@ function buildComboOptions(locals, cloudModels, val, query) {
   }
   if (matchCloud.length > 0) {
     if (matchLocal.length > 0) html += `<div class="model-combo-group-label">${esc(t('chat.cloud.group'))}</div>`;
-    html += matchCloud.map(m => `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}">
+    // #37 — badge por id (":free"), no por priceIn===0: algunos meta-routers sin
+    // pricing real (openrouter/auto*) también caen en 0/negativo y NO son gratis.
+    html += matchCloud.map(m => {
+      const isFree = m.id.endsWith(':free');
+      return `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}">
       <span class="model-combo-opt-name">${esc(m.name || m.id)}</span>
-      <span class="model-combo-price">$${m.priceIn.toFixed(2)}/M</span>
-    </div>`).join('');
+      <span class="model-combo-price${isFree ? ' free' : ''}">${isFree ? esc(t('chat.models.free')) : `$${m.priceIn.toFixed(2)}/M`}</span>
+    </div>`;
+    }).join('');
   }
   if (!html) html = `<div class="model-combo-empty">${esc(q ? 'No results' : t('common.loading'))}</div>`;
   return html;

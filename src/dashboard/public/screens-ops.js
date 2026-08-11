@@ -1199,15 +1199,23 @@ SCREENS.settings = {
     // los selectores de modelo de la app (chat, composer, diagnose).
     const ROLE_LABELS = { planner: 'Planner', executor_heavy: 'Executor (heavy)', executor_light: 'Executor (light)', default: 'Default' };
     const stripProvider = v => (v && v.startsWith('openrouter/')) ? v.slice('openrouter/'.length) : (v || '');
+    // Bug real encontrado al verificar #37 en vivo (2026-08-10): elegir un modelo en
+    // cualquiera de estos combos disparaba rerenderCurrentContext() → App.rerender(),
+    // que vuelve a llamar routingPanel(st) y recalculaba `val` desde cfg.roles[role]
+    // (server-side, sin cambios hasta Guardar) — la selección recién hecha se perdía
+    // al instante, en silencio. El input oculto ya vive en el DOM viejo en el momento
+    // en que este render corre (main.innerHTML se reemplaza DESPUÉS); preferirlo sobre
+    // cfg solo cuando ya existe conserva la elección no guardada sin estado global nuevo.
+    const pendingVal = id => { const el = document.getElementById(id); return el ? el.value : null; };
     const roleRows = `<div class="role-grid">` + Object.keys(ROLE_LABELS).map(role => {
-      const val = stripProvider(cfg.roles[role]);
+      const val = pendingVal(`role-${role}`) ?? stripProvider(cfg.roles[role]);
       return `<div class="draft-field">
         <label>${esc(ROLE_LABELS[role])}</label>
         ${buildModelSelect(`role-${role}`, val, st.orModels, st.localModels)}
       </div>`;
     }).join('') + `<div class="draft-field role-grid-full">
         <label>QA judge <span class="muted">(${t('settings.routing.qa.hint')})</span></label>
-        ${buildModelSelect('role-qa', stripProvider(cfg.roles.qa), st.orModels, st.localModels, { allowEmpty: true, emptyLabel: t('settings.routing.qa.auto') })}
+        ${buildModelSelect('role-qa', pendingVal('role-qa') ?? stripProvider(cfg.roles.qa), st.orModels, st.localModels, { allowEmpty: true, emptyLabel: t('settings.routing.qa.auto') })}
       </div></div>`;
 
     // H.4 — de card huérfana permanente (duplicaba Tasks) a preview inline
@@ -1245,6 +1253,7 @@ SCREENS.settings = {
         ${roleRows}
         <div class="settings-foot" style="margin-top:8px">
           <span id="routing-save-msg" style="font-size:12px;display:none"></span>
+          <button class="btn ghost sm" data-act="routing-free-preset">${t('settings.routing.freePreset')}</button>
           <span style="flex:1"></span>
           ${previewToggle}
           <button class="btn primary" data-act="save-routing">${ICON.check} ${t('settings.routing.save')}</button>
@@ -1744,6 +1753,35 @@ SCREENS.settings = {
     });
 
     // (el combo de modelo se carga solo al abrirse — wiring genérico en boot(), app.js)
+
+    // #37 — preset "empezar gratis": llena los 4 roles con el mejor modelo `:free`
+    // disponible en el catálogo ya cargado (st.orModels), sin auto-guardar — mismo
+    // patrón explícito-Save que el resto del panel. No decide un id hardcodeado (el
+    // catálogo de OpenRouter cambia) — filtra por sufijo `:free` (no por priceIn===0,
+    // que los meta-routers sin pricing real también pisan) y toma el de mayor
+    // contextK como default razonable para las 4 filas.
+    root.querySelector('[data-act="routing-free-preset"]')?.addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        if (!Array.isArray(st.orModels) || st.orModels.length === 0) await loadOrModels();
+        const pool = Array.isArray(st.orModels) ? st.orModels : [];
+        const free = pool.filter(m => m.id.endsWith(':free')).sort((a, b) => (b.contextK || 0) - (a.contextK || 0));
+        if (free.length === 0) {
+          showToast(t('settings.routing.freePresetErr'), 'error');
+          return;
+        }
+        const pick = free[0].id;
+        ['role-planner', 'role-executor_heavy', 'role-executor_light', 'role-default'].forEach(id => {
+          const el = root.querySelector(`#${id}`);
+          if (el) el.value = pick;
+        });
+        App.rerender();
+        showToast(t('settings.routing.freePresetDone'));
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     // H.4 — toggle local del preview de routing, sin refetch.
     root.querySelector('[data-act="toggle-routing-preview"]')?.addEventListener('click', () => {
