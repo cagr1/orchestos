@@ -168,11 +168,3 @@ tasks:
     retry_count: 2
     retry_reason: "missing declared output(s): scratch/design-test-premium-a1.html"
     qa_verdict: fail
-  - id: ping-test
-    description: Simple connectivity and system health check to verify OrchestOS is responding and operational.
-    output: []
-    executor: openrouter
-    status: pending
-    retry_count: 0
-    executor_model: anthropic/claude-sonnet-5
-    engine: external

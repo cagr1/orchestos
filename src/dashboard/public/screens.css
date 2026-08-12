@@ -757,8 +757,13 @@
 .chat-msg { display: flex; }
 .chat-msg.user { justify-content: flex-end; }
 .chat-msg.assistant { justify-content: flex-start; }
+/* #51 — columna que envuelve burbuja + fila de acciones (copiar/hora), para que
+   ambas queden alineadas al mismo lado que ya definía justify-content arriba. */
+.chat-msg-col { display: flex; flex-direction: column; max-width: 72%; }
+.chat-msg.user .chat-msg-col { align-items: flex-end; }
+.chat-msg.assistant .chat-msg-col { align-items: flex-start; }
 .chat-bubble {
-  max-width: 72%; padding: 10px 14px; border-radius: 12px;
+  max-width: 100%; padding: 10px 14px; border-radius: 12px;
   font-size: 13.5px; line-height: 1.6; word-break: break-word;
 }
 .chat-msg.user .chat-bubble {
@@ -769,6 +774,22 @@
   background: var(--surface); border: 1px solid var(--border);
   color: var(--text); border-bottom-left-radius: 4px;
 }
+/* #51 — oculto por default, aparece con hover sobre el mensaje (o foco, para
+   teclado/lectores de pantalla) — mismo patrón `:hover`/`:focus-within` que
+   ya usa `.modal-scrim`/`.local-model-warn` en este archivo. */
+.chat-msg-actions {
+  display: flex; align-items: center; gap: 6px; margin-top: 3px;
+  opacity: 0; transition: opacity .15s; font-size: 11px; color: var(--text-faint);
+}
+.chat-msg:hover .chat-msg-actions, .chat-msg-actions:focus-within { opacity: 1; }
+.chat-msg-time { font-variant-numeric: tabular-nums; }
+.chat-msg-copy-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 5px; border: none; background: none;
+  color: var(--text-faint); cursor: pointer; padding: 0;
+}
+.chat-msg-copy-btn:hover { background: var(--surface-hi); color: var(--text); }
+.chat-msg-copy-btn svg { width: 13px; height: 13px; }
 .chat-bubble.chat-thinking {
   display: flex; align-items: center; color: var(--text-muted); font-style: italic;
 }

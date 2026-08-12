@@ -306,7 +306,7 @@ SCREENS.chat = {
 
     const msgs = history.length === 0
       ? `<div class="chat-empty"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"></div>`
-      : history.map(m => {
+      : history.map((m, i) => {
           const text = m.role === 'user'
             ? esc(m.content).replace(/\n/g, '<br>')
             : renderMarkdown(m.content, st); // B.2 — st alimenta el índice task_id + catálogo de modelos
@@ -319,7 +319,20 @@ SCREENS.chat = {
           // G.3.3 — cards en vivo de pasos del executor CLI (external/opencode),
           // solo para el mensaje que auto-creó la tarea.
           const stepsCard = m.role === 'assistant' && m.taskId ? renderStepsCard(st, m.taskId) : '';
-          return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-bubble">${text}${ocrTag}${modelTag}${stepsCard}</div></div>`;
+          // #51 — acciones por mensaje (hover, esquina inferior). Solo "copiar" +
+          // timestamp por ahora: "rebobinar" queda explícitamente fuera de este
+          // Bloque (IDEAS.md #51 lo liga a #50 — sesiones persistentes en SQLite;
+          // rebobinar una conversación que solo vive en memoria JS no tiene
+          // el mismo sentido, y #50 sigue sin implementar). `m.ts` puede faltar
+          // en historiales viejos de esta misma sesión (mensajes ya en memoria
+          // antes de este cambio) — sin fallback inventado, simplemente no se
+          // muestra la hora para esos.
+          const timeLabel = m.ts ? new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+          const actionsRow = `<div class="chat-msg-actions">
+              ${timeLabel ? `<span class="chat-msg-time">${esc(timeLabel)}</span>` : ''}
+              <button type="button" class="chat-msg-copy-btn" data-chat-copy="${i}" title="${esc(t('btn.copy'))}">${ICON.copy}</button>
+            </div>`;
+          return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-msg-col"><div class="chat-bubble">${text}${ocrTag}${modelTag}${stepsCard}</div>${actionsRow}</div></div>`;
         }).join('') + thinkingBubble;
 
     // 2026-07-13 (corrección de Carlos) — modelo+esfuerzo ahora es un solo pill
@@ -422,6 +435,26 @@ SCREENS.chat = {
     textareaEl?.addEventListener('input', syncSendBtnState);
     syncSendBtnState();
 
+    // #51 — botón "copiar" por mensaje (hover). Copia por índice contra
+    // st.chatHistory (no el atributo HTML) para no depender de re-escapar
+    // mensajes potencialmente largos en un data-* — mismo ICON.check +
+    // revert temporal que el patrón data-copy ya usado en Tasks (screens-core.js,
+    // panel de diagnosis), sin reusar ESE handler porque vive en otro screen.wire().
+    root.querySelectorAll('[data-chat-copy]').forEach(btn => btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const idx = Number(btn.dataset.chatCopy);
+      const msg = (st.chatHistory || [])[idx];
+      if (!msg) return;
+      try {
+        await navigator.clipboard.writeText(msg.content || '');
+        const old = btn.innerHTML;
+        btn.innerHTML = ICON.check;
+        setTimeout(() => { btn.innerHTML = old; }, 1200);
+      } catch {
+        showToast(t('chat.copyErr'), 'error');
+      }
+    }));
+
     // B.2 (Mes 21) — click handlers de los chips dentro de la respuesta.
     // Task chip → abre la tarea en su side panel (Tasks screen). Model chip →
     // setea el modelo del chat + enfoca el composer para que el próximo
@@ -465,7 +498,7 @@ SCREENS.chat = {
       st.chatDraft = ''; // mensaje enviado — el borrador ya cumplió su función
       textarea.style.height = ''; // FRONT.9 — vuelve a la altura base de 2 filas
       st.chatHistory = st.chatHistory || [];
-      st.chatHistory.push({ role: 'user', content: msg });
+      st.chatHistory.push({ role: 'user', content: msg, ts: Date.now() });
       st.chatPending = true;
       const sentFileIds = (st.chatFiles || []).map(f => f.fileId);
       st.chatFiles = [];
@@ -488,7 +521,7 @@ SCREENS.chat = {
         if (res.ok) {
           const data = await res.json();
           const taskId = data.autoTask && data.autoTask.id;
-          st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model, ocrUsed: data.ocrUsed, taskId: taskId || undefined });
+          st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model, ocrUsed: data.ocrUsed, taskId: taskId || undefined, ts: Date.now() });
           // D.7 (Mes 22) — si el server ya creó+corrió la tarea sola, la barra
           // "Create task" quedaría redundante (o peor, invitaría a duplicarla)
           // — se omite. Refrescamos st.tasks para que el chip `task_id` que
@@ -509,10 +542,10 @@ SCREENS.chat = {
           // se mostraba siempre el mismo genérico.
           let data = null;
           try { data = await res.json(); } catch {}
-          st.chatHistory.push({ role: 'assistant', content: (data && data.error) || t('chat.err.general') });
+          st.chatHistory.push({ role: 'assistant', content: (data && data.error) || t('chat.err.general'), ts: Date.now() });
         }
       } catch {
-        st.chatHistory.push({ role: 'assistant', content: t('chat.err.conn') });
+        st.chatHistory.push({ role: 'assistant', content: t('chat.err.conn'), ts: Date.now() });
       } finally {
         st.chatPending = false;
         App.rerender();

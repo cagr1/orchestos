@@ -35,7 +35,8 @@ a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo com
 
 1. `#4` Clasificador semántico para `clarify`.
 2. `#30` `task_class: ocr`.
-3. `#51` Acciones por mensaje: copiar y rebobinar.
+3. `#51` Acciones por mensaje: **rebobinar** (copiar + timestamp ya implementados, Bloque Z,
+   2026-08-12 — bloqueado por `#50`, sin sesiones persistentes rebobinar no tiene sentido).
 
 _(`#33` graduó a Bloque X el 2026-08-10; `#37` graduó a Bloque Y el 2026-08-10 — categoría
 Bajo-medio en curso, Mes 27)_
@@ -1076,36 +1077,30 @@ restaurar la sesión activa; (4) medidor de contexto por sesión relativo al mod
 **Esfuerzo**: medio — el modelo de datos es simple (SQLite ya está); el grueso es la UI de
 sesiones en el chat y el medidor por modelo activo.
 
-### 51. Acciones por mensaje en el chat — copiar y rebobinar (hover, esquina inferior derecha)
+### 51. Acciones por mensaje en el chat — rebobinar (hover, esquina inferior derecha)
 
 **Origen**: Carlos (2026-07-17), pedido explícito de UX — patrón estándar de las herramientas de
 chat (ChatGPT/Claude/etc.): cada burbuja de mensaje (usuario Y asistente) tiene un set de acciones
 que solo aparece con hover, en la esquina inferior derecha del mensaje.
 
-**Qué debe tener cada mensaje**:
-- **Copiar** — copia el texto del mensaje al portapapeles. Reusar el patrón `data-copy` +
-  `navigator.clipboard.writeText()` que Mes 22/E.8 ya instaló en el panel de diagnosis
-  ([src/dashboard/public/screens-core.js](src/dashboard/public/screens-core.js)) — mismo ícono
-  (`ICON.copy`), mismo tamaño que el resto de íconos del chat (`.chat-icon-btn`/`ICON.*` ya usan
-  16px consistente en toda la UI, ver `styles.css` — nunca un ícono de tamaño distinto al resto).
-- **Rebobinar** ("rewind") — vuelve la conversación a ese punto (descarta los mensajes
-  posteriores). Comportamiento exacto a definir: ¿solo trunca el historial visible?, ¿permite
-  re-editar el mensaje del usuario y reenviar desde ahí (como "edit and resubmit" de ChatGPT)?
-  Necesita un ícono nuevo — no hay uno de "undo/rewind" en `ICON.*` hoy (`data.js`), agregar uno
-  (ej. `corner-up-left` o `rotate-ccw` de Lucide, mismo set que ya usa el resto de `ICON`).
-- **Timestamp** — fecha/hora del mensaje, visible junto a los botones (no permanente, aparece
-  con el mismo hover).
+**Copiar y timestamp — implementados (Bloque Z, 2026-08-12)**: ver PLAN.md § Mes 27 Bloque Z.
+`screens-core.js`/`screens.css` — botón copiar (por índice contra `chatHistory`, no por atributo
+HTML) + timestamp por mensaje, hover-reveal vía `:hover`/`:focus-within`, ambos lados (usuario y
+asistente).
 
-**Interacción**: todo el bloque (copiar, rebobinar, timestamp) oculto por defecto, aparece con
-`:hover` sobre el mensaje o sobre la franja inferior del mismo — mismo patrón estándar de
-la industria que Carlos pidió explícitamente replicar (a diferencia de #50, acá SÍ quiere copiar
-el patrón porque es puramente de usabilidad, no de retención de datos).
+**Pendiente — Rebobinar** ("rewind"): vuelve la conversación a ese punto (descarta los mensajes
+posteriores). Comportamiento exacto a definir: ¿solo trunca el historial visible?, ¿permite
+re-editar el mensaje del usuario y reenviar desde ahí (como "edit and resubmit" de ChatGPT)?
+Necesita un ícono nuevo — no hay uno de "undo/rewind" en `ICON.*` hoy (`data.js`), agregar uno
+(ej. `corner-up-left` o `rotate-ccw` de Lucide, mismo set que ya usa el resto de `ICON`).
 
-**Esfuerzo**: bajo-medio — copiar es trivial (patrón ya existe); el hover-reveal es CSS estándar
-(`opacity:0` + `:hover { opacity:1 }`, ya usado en otros lados del dashboard — grep antes de
-reinventar); rebobinar depende de la decisión de comportamiento (truncar vs. editar-y-reenviar) y
-de que #50 ya tenga sesiones persistentes en SQLite (rebobinar una conversación que solo vive en
-memoria JS tiene menos sentido — encaja mejor DESPUÉS de #50, no antes).
+**Por qué sigue sin implementar**: depende de la decisión de comportamiento (truncar vs.
+editar-y-reenviar) y de que #50 ya tenga sesiones persistentes en SQLite — rebobinar una
+conversación que solo vive en memoria JS (`state.chatHistory`, sigue así tras Bloque Z) tiene
+menos sentido. Encaja mejor DESPUÉS de #50, no antes — verificado que #50 sigue sin implementar
+(2026-08-12).
+
+**Esfuerzo restante**: bajo — solo rebobinar; depende de #50.
 
 ### 52. Nivel "premium de verdad" — de "no se ve genérico" a un lenguaje visual deliberado
 

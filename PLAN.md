@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-27-en-curso--categoria-bajo-medio--bloque-x-cerrado--bloque-y-en-curso
+status: mes-27-en-curso--categoria-bajo-medio--bloques-x-y-cerrados--bloque-z-en-curso
 ---
 
 # OrchestOS — Plan activo
@@ -144,6 +144,47 @@ OrchestOS ya consume (`priceIn`/`priceOut` en `model-catalog.ts`).
   terminar. `tsc --noEmit` limpio; `bun run test:coverage`: 1122 pass · 0 fail (sin cambio — este
   Bloque es JS de dashboard sin harness de test unitario, mismo criterio que otros cambios de UI
   de este Mes; la verificación real es la corrida en vivo de arriba).
+
+---
+
+### Bloque Z — ⚡ IDEAS #51: acciones por mensaje en el chat (copiar + timestamp)
+
+**Lo que pedía la idea**: hover-reveal en cada burbuja (usuario Y asistente) con **copiar**,
+**rebobinar** y **timestamp**. El propio texto de la idea gatea "rebobinar" explícitamente:
+*"encaja mejor DESPUÉS de #50, no antes"* (sesiones persistentes en SQLite) — verificado que `#50`
+sigue sin implementar en IDEAS.md (no graduado). **Alcance de este Bloque: copiar + timestamp
+únicamente** — "rebobinar" queda fuera, no por evitar trabajo sino porque la propia idea dice que
+rebobinar una conversación que solo vive en memoria JS (`state.chatHistory`, sin persistencia
+todavía) no tiene el mismo sentido. `#51` **no se gradúa completo** de IDEAS.md — se deja anotado
+como parcial hasta que `#50` desbloquee el resto.
+
+- [x] **Z.1 — ⚡ Botón "copiar" + timestamp por mensaje, hover-reveal.** (2026-08-12)
+  `screens-core.js` (`SCREENS.chat`): `ts: Date.now()` en los 4 sitios donde se hace
+  `chatHistory.push()` (mensaje de usuario, respuesta ok, error de servidor, error de conexión).
+  Markup nuevo `.chat-msg-col` (envuelve burbuja + fila de acciones, mismo lado que ya definía
+  `justify-content` en `.chat-msg`) + `.chat-msg-actions` (oculto por default, visible en
+  `:hover`/`:focus-within` — mismo patrón que `.modal-scrim`/`.local-model-warn` ya usan en
+  `screens.css`). Copiar por índice contra `st.chatHistory[i].content` (no por atributo HTML) para
+  no depender de re-escapar mensajes largos en un `data-*`. Reusa `ICON.copy`/`ICON.check` de
+  `data.js`, mismo patrón visual que el `data-copy` de E.8 (panel de diagnosis) pero con su propio
+  handler — ese vive en `SCREENS.tasks.wire()`, otro screen. 2 claves i18n nuevas
+  (`chat.copyErr`, en/es).
+- [x] **Z.2 — parked.** `#51` deja fuera "rebobinar" — no es un ítem de este Bloque, ver nota de
+  scope arriba. Sin sub-tarea porque no hay trabajo que hacer hasta que `#50` exista.
+- [x] **Z.3 — 🔍** (2026-08-12) Verificado en vivo contra el dashboard real (puerto 4242,
+  Playwright): mensaje enviado → burbuja de usuario y respuesta del asistente muestran ambas su
+  fila de acciones oculta (`opacity:0` confirmado por `getComputedStyle`); hover sobre `.chat-msg`
+  → `opacity:1`; click en copiar → ícono cambia a check (mismo revert temporal que el patrón
+  existente) — verificación por swap de ícono, no por leer el portapapeles (headless Playwright
+  cuelga esperando el permiso de lectura de `navigator.clipboard.readText()`, gap conocido de la
+  herramienta, no del código). Alineación correcta a cada lado (`chat-msg-col` con
+  `align-items: flex-end` en usuario, `flex-start` en asistente) confirmada por captura de
+  pantalla. **Efecto secundario encontrado y limpiado**: el mensaje de prueba disparó
+  auto-creación de una tarea real (`ping-test`) en `tasks.yaml` — sin runs asociados en la DB
+  (nunca llegó a ejecutar), removida a mano antes de cerrar el Bloque. Servidor de dashboard
+  bajado al terminar. `tsc --noEmit` limpio; `bun run test:coverage`: 1122 pass · 0 fail (sin
+  cambio — mismo criterio que Y: JS de dashboard sin harness de test unitario, la verificación
+  real es la corrida en vivo).
 
 ---
 
