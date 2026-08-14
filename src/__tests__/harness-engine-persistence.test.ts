@@ -34,6 +34,7 @@ function seedCatalog(): string {
 }
 
 const _testOrchHome = seedCatalog()
+const _prevOrchHome = process.env.ORCHESTOS_HOME
 const originalFetch = globalThis.fetch
 const originalKey = process.env.OPENROUTER_API_KEY
 
@@ -53,8 +54,17 @@ afterEach(() => {
 
 // IDEAS.md #20 (2026-07-05): cada test de este archivo llama runTask() de
 // verdad, que persiste en ~/.orchestos/db.sqlite (la misma DB del dashboard).
+//
+// Restaurar ORCHESTOS_HOME acá es igual de crítico: sin esto, cualquier archivo
+// de test que corra DESPUÉS de este en el mismo proceso de `bun test` y sea el
+// PRIMERO en importar `db.ts` (el singleton se resuelve una sola vez, en su
+// primer import) queda apuntando a este `_testOrchHome` — un directorio que
+// nunca corrió `runMigrations()` fuera de este `beforeAll` — con fallos tipo
+// "no such table: instincts". Hallazgo real de CI (2026-08-14), ver LEDGER.md.
 afterAll(() => {
   db.run("DELETE FROM runs WHERE task_id = 'g4-persist-test'")
+  if (_prevOrchHome === undefined) delete process.env.ORCHESTOS_HOME
+  else process.env.ORCHESTOS_HOME = _prevOrchHome
 })
 
 function tmpDir(): string {

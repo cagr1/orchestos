@@ -32,6 +32,7 @@ function seedCatalog(): string {
 }
 
 const _testOrchHome = seedCatalog()
+const _prevOrchHome = process.env.ORCHESTOS_HOME
 beforeAll(() => {
   process.env.ORCHESTOS_HOME = _testOrchHome
   // Limpia el catálogo en memoria de tests anteriores en el mismo proceso (ej.
@@ -44,8 +45,17 @@ beforeAll(() => {
 // ~/.orchestos/db.sqlite que usa el dashboard real — sin este cleanup, cada
 // `bun test` local deja filas fantasma (task_id 'g3-selection-test') visibles
 // en "Recent Runs" del dashboard que Carlos usa a diario.
+//
+// Restaurar ORCHESTOS_HOME acá es igual de crítico: sin esto, cualquier archivo
+// de test que corra DESPUÉS de este en el mismo proceso de `bun test` y sea el
+// PRIMERO en importar `db.ts` (el singleton se resuelve una sola vez, en su
+// primer import) queda apuntando a este `_testOrchHome` — un directorio que
+// nunca corrió `runMigrations()` — con fallos tipo "no such table: instincts".
+// Hallazgo real de CI (2026-08-14), ver LEDGER.md.
 afterAll(() => {
   db.run("DELETE FROM runs WHERE task_id = 'g3-selection-test'")
+  if (_prevOrchHome === undefined) delete process.env.ORCHESTOS_HOME
+  else process.env.ORCHESTOS_HOME = _prevOrchHome
 })
 
 const originalFetch = globalThis.fetch

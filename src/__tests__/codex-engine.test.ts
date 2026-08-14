@@ -10,7 +10,7 @@
  * un precio real en vez de lanzar "not in the pricing catalog".
  */
 
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'bun:test'
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'bun:test'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
@@ -36,12 +36,25 @@ function seedCatalog(): string {
 }
 
 const _testOrchHome = seedCatalog()
+const _prevOrchHome = process.env.ORCHESTOS_HOME
 const originalWhich = Bun.which
 
 beforeAll(async () => {
   process.env.ORCHESTOS_HOME = _testOrchHome
   _resetCatalog()
   await ensureCatalogLoaded()
+})
+
+// Sin esto, cualquier archivo de test que corra DESPUÉS de este en el mismo
+// proceso de `bun test` y sea el PRIMERO en importar `db.ts` (el singleton se
+// resuelve una sola vez, en su primer import) queda apuntando a este
+// `_testOrchHome` — un directorio que nunca corrió `runMigrations()` — con
+// fallos tipo "no such table: instincts". Hallazgo real de CI (2026-08-14),
+// ver LEDGER.md. Mismo patrón de restauración que engine-selection.test.ts/
+// harness-engine-persistence.test.ts.
+afterAll(() => {
+  if (_prevOrchHome === undefined) delete process.env.ORCHESTOS_HOME
+  else process.env.ORCHESTOS_HOME = _prevOrchHome
 })
 
 beforeEach(() => {
