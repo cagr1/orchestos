@@ -3,7 +3,7 @@ import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResol
 import { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete, handleApiRunsBulkDelete } from './handlers/runs.ts'
 import { handleApiUsage } from './handlers/usage.ts'
 import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete, handleApiInstinctsBulkDelete } from './handlers/instincts.ts'
-import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete } from './handlers/specs.ts'
+import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsApproveDesign, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete } from './handlers/specs.ts'
 import { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, handleApiTasksSteps, handleApiSystemExecutorModes } from './handlers/tasks.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiProjectSummary, handleApiNatural } from './handlers/project.ts'
@@ -200,6 +200,10 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
     return handleApiSpecsCreate(req)
+  }
+  // AA.4 (IDEAS #6) — ruta propia junto al resto de approve/lint/archive.
+  if (method === 'POST' && url.pathname.endsWith('/approve-design')) {
+    return handleApiSpecsApproveDesign(req)
   }
   if (method === 'POST' && url.pathname.endsWith('/approve')) {
     return handleApiSpecsApprove(req)

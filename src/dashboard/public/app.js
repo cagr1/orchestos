@@ -1519,6 +1519,10 @@ const Modal = {
           <label>Descripción <span class="muted">(se auto-rellena al elegir tarea)</span></label>
           <textarea id="sd-desc" rows="3" placeholder="Describe qué debe lograr la tarea…"></textarea>
         </div>
+        <div class="m-field" style="flex-direction:row;align-items:center;gap:8px">
+          <input type="checkbox" id="sd-design" style="width:auto">
+          <label for="sd-design" style="margin:0">${t('specs.modal.design')}</label>
+        </div>
         <div class="muted" style="font-size:12px">El borrador se genera con IA y queda en estado <b>draft</b> para que lo revises antes de aprobar.</div>
         <div id="sd-msg" style="font-size:12px;display:none"></div>
       </div>
@@ -1537,6 +1541,7 @@ const Modal = {
     this.el.querySelector('[data-draft]').addEventListener('click', async () => {
       const taskId = sel?.value.trim();
       const description = descEl?.value.trim();
+      const design = this.el.querySelector('#sd-design')?.checked === true;
       const msg = this.el.querySelector('#sd-msg');
       if (!taskId || !description) {
         msg.textContent = 'Elige una tarea y asegúrate de que tenga descripción.';
@@ -1550,7 +1555,7 @@ const Modal = {
         const res = await fetch('/api/specs/draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ taskId, description }),
+          body: JSON.stringify({ taskId, description, design }),
         });
         if (res.ok) {
           this.close();

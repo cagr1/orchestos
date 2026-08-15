@@ -7,18 +7,21 @@ import type { SpecRow, SpecLintStatus } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
 
 async function handleApiSpecsDraft(req: Request): Promise<Response> {
-  let body: { taskId: string; description: string }
-  try { body = (await req.json()) as { taskId: string; description: string } } catch { return errorResponse('Invalid JSON', 400) }
+  let body: { taskId: string; description: string; design?: boolean }
+  try { body = (await req.json()) as { taskId: string; description: string; design?: boolean } } catch { return errorResponse('Invalid JSON', 400) }
   const taskId = validateTaskId(body.taskId ?? '')
   if (!taskId || !body.description?.trim()) {
     return errorResponse('taskId (alphanumeric/hyphen/dot, max 64) and description are required', 400)
   }
   const root = resolve('.')
-  Bun.spawn(
-    [process.execPath, 'run', join(root, 'src/cli.ts'), 'spec', 'draft',
-     '--description', body.description.trim(), '--', taskId],
-    { cwd: root, stdout: 'inherit', stderr: 'inherit' }
-  )
+  // AA (IDEAS #6) — el modal "Nueva Spec" del dashboard no pasa por `spec create`
+  // (ver comentario en cli.ts): el flag va acá para que ESTE sea el único punto
+  // donde marcar la tarea como compleja desde ese flujo de un solo paso.
+  const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'spec', 'draft',
+    '--description', body.description.trim()]
+  if (body.design === true) args.push('--design')
+  args.push('--', taskId)
+  Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
   return jsonResponse({ ok: true, taskId })
 }
 
@@ -39,6 +42,7 @@ function handleApiSpecs(): Response {
         deltaIssues: lint.deltaIssuesCount,
         hasCapabilities: !!caps && (caps.added.length > 0 || caps.modified.length > 0 || caps.removed.length > 0),
         createdAt: s.frontmatter.createdAt,
+        ...(s.frontmatter.design ? { design: s.frontmatter.design } : {}),
       }
     })
     return jsonResponse(rows)
@@ -47,21 +51,30 @@ function handleApiSpecs(): Response {
   }
 }
 
-function handleApiSpecsCreate(req: Request): Response {
+async function handleApiSpecsCreate(req: Request): Promise<Response> {
   const id = new URL(req.url).pathname.split('/').pop() ?? ''
   const taskId = validateTaskId(id)
   if (!taskId) return errorResponse('taskId inválido', 400)
   const root = resolve('.')
   const existing = loadSpec(root, taskId)
   if (existing) return errorResponse(`Spec ya existe para "${taskId}"`, 409)
+  // AA.4 (IDEAS #6) — body opcional: sin body o `{}`, comportamiento idéntico al de
+  // siempre (spec simple). Mismo criterio de "ausente = sin cambio" que el CLI.
+  let design = false
+  try {
+    const body = (await req.json()) as { design?: boolean }
+    design = body?.design === true
+  } catch { /* sin body o JSON inválido — spec simple, no es un error */ }
+  const designSection = design ? `## Design\n<placeholder>\n\n` : ''
   saveSpec(root, {
     frontmatter: {
       id: taskId,
       status: 'draft',
       createdAt: new Date().toISOString(),
       clarify: 'none',
+      ...(design ? { design: 'pending' as const } : {}),
     },
-    body: `## Contexto\n<placeholder>\n\n## Descripción\n<placeholder>\n\n## Criterios de aceptación\n- [ ] <criterio 1>\n- [ ] <criterio 2>\n\n## Notas\n<placeholder>\n`,
+    body: `## Contexto\n<placeholder>\n\n## Descripción\n<placeholder>\n\n${designSection}## Criterios de aceptación\n- [ ] <criterio 1>\n- [ ] <criterio 2>\n\n## Notas\n<placeholder>\n`,
   })
   return jsonResponse({ ok: true, taskId })
 }
@@ -73,6 +86,9 @@ function handleApiSpecsApprove(req: Request): Response {
   const root = resolve('.')
   const s = loadSpec(root, taskId)
   if (!s) return errorResponse(`No existe spec para "${taskId}"`, 404)
+  // AA.2/AA.4 (IDEAS #6) — mismo orden que el CLI: design antes que clarify.
+  if (s.frontmatter.design === 'pending')
+    return errorResponse(`No se puede aprobar "${taskId}" — design está pending`, 422)
   if (s.frontmatter.clarify === 'pending')
     return errorResponse(`No se puede aprobar "${taskId}" — clarify está pending`, 422)
   const validation = validateSpec(s)
@@ -80,6 +96,25 @@ function handleApiSpecsApprove(req: Request): Response {
     return errorResponse(`Validación fallida: ${validation.errors.join('; ')}`, 422)
   s.frontmatter.status = 'approved'
   s.frontmatter.approvedAt = new Date().toISOString()
+  saveSpec(root, s)
+  return jsonResponse({ ok: true, taskId })
+}
+
+// AA.4 (IDEAS #6) — mismo contrato que handleApiSpecsApprove: id desde la URL
+// (.../[id]/approve-design), 404/422 según corresponda.
+function handleApiSpecsApproveDesign(req: Request): Response {
+  const id = new URL(req.url).pathname.split('/').at(-2) ?? ''
+  const taskId = validateTaskId(id)
+  if (!taskId) return errorResponse('taskId inválido', 400)
+  const root = resolve('.')
+  const s = loadSpec(root, taskId)
+  if (!s) return errorResponse(`No existe spec para "${taskId}"`, 404)
+  if (s.frontmatter.design === undefined)
+    return errorResponse(`"${taskId}" no fue marcada como compleja — nada que aprobar`, 422)
+  if (s.frontmatter.design === 'approved')
+    return errorResponse(`El design de "${taskId}" ya está aprobado`, 422)
+  s.frontmatter.design = 'approved'
+  s.frontmatter.designApprovedAt = new Date().toISOString()
   saveSpec(root, s)
   return jsonResponse({ ok: true, taskId })
 }
@@ -137,4 +172,4 @@ async function handleApiSpecsBulkDelete(req: Request): Promise<Response> {
   return jsonResponse({ ok: true, deleted })
 }
 
-export { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete }
+export { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsApproveDesign, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete }

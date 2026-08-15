@@ -43,18 +43,19 @@ Bajo-medio en curso, Mes 27)_
 
 ### Medio
 
-1. `#6` `Design.md` condicional.
-2. `#7` Brainstorming socrático.
-3. `#14` Notificaciones en segundo plano.
-4. `#16` Escala honesta de DB, `input[]` y `cli.ts`.
-5. `#25` Agente automático de documentación.
-6. `#26` Spec Kit.
-7. `#29` Impulsar `topic_key` en sub-tasks.
-8. `#34` `orchestos audit`.
-9. `#45` Visibilidad de gasto real.
-10. `#47` Auto-split por tamaño estimado.
-11. `#50` Chat persistente con sesiones limitadas.
-12. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
+1. `#7` Brainstorming socrático.
+2. `#14` Notificaciones en segundo plano.
+3. `#16` Escala honesta de DB, `input[]` y `cli.ts`.
+4. `#25` Agente automático de documentación.
+5. `#26` Spec Kit.
+6. `#29` Impulsar `topic_key` en sub-tasks.
+7. `#34` `orchestos audit`.
+8. `#45` Visibilidad de gasto real.
+9. `#47` Auto-split por tamaño estimado.
+10. `#50` Chat persistente con sesiones limitadas.
+11. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
+
+_(`#6` graduó a Bloque AA el 2026-08-15 — categoría Medio en curso, Mes 28)_
 
 ### Medio-alto
 
@@ -127,15 +128,6 @@ call extra (haiku, barato) detectaría ambigüedad real semánticamente.
 **Costo**: un call por task run. **Solo vale la pena si hay evidencia de falsos negativos.**
 
 **Esfuerzo**: bajo-medio — un call + parseo, pero gated en evidencia real.
-
-### 6. Design.md condicional para tareas complejas (OpenSpec)
-
-Único patrón de OpenSpec aún no shipeado (el resto → S28/S29/S32). Para tareas complejas,
-generar un `design.md` intermedio entre `proposal` y `tasks`, condicional a la complejidad.
-
-**Prerequisito**: flujo spec (S20/S32) ✅.
-
-**Esfuerzo**: medio — se apoya en el flujo spec existente, añade un paso condicional.
 
 ### 7. `brainstorming` / planning socrático
 
@@ -660,7 +652,7 @@ papercut. Candidato v0.13+.
 
 Repos analizados durante Mes 5-8, más adiciones puntuales cuando aparece un repo real relevante
 (ej. Hermes Agent, Mes 19). La mayoría de patrones ya están shipeados; esto queda como mapa de
-procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-proveedor (#31).
+procedencia. Pendiente vivo: el molde multi-proveedor (#31).
 
 ### Patrones extraídos → estado
 
@@ -684,7 +676,7 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
 | Capabilities contract | OpenSpec | ✅ S32 |
 | Archive de specs con fecha | OpenSpec | ✅ S29 |
 | Delta headers (ADDED/MODIFIED/REMOVED) | OpenSpec | ✅ S32 |
-| Design.md condicional | OpenSpec | ⏳ ver backlog #6 |
+| Design.md condicional | OpenSpec | ✅ Bloque AA (2026-08-15) |
 
 ### Los repos (una línea cada uno)
 
@@ -712,8 +704,8 @@ procedencia. Los pendientes vivos: `Design.md condicional` (#6), el molde multi-
   "archivos declarados" — no en backlog, anotado por si surge más adelante.
 - **OpenSpec** (Fission-AI) — https://github.com/Fission-AI/OpenSpec · framework SDD
   agnóstico de harness, recomendado por usuario externo en producción ~1 año. Aportó:
-  WHEN/THEN scenarios, capabilities contract, archive con fecha, delta headers. Pendiente:
-  design.md condicional. NO aplica: carpetas por feature, slash commands `/opsx:*`.
+  WHEN/THEN scenarios, capabilities contract, archive con fecha, delta headers, design.md
+  condicional (Bloque AA). NO aplica: carpetas por feature, slash commands `/opsx:*`.
 - **Hermes Agent** (NousResearch, ~212K⭐) — https://github.com/NousResearch/hermes-agent ·
   agente conversacional Python, analizado 2026-07-09 (traído por Carlos, evaluando el OCR del
   Chat de Mes 19). Aportó: el patrón de "helper tasks" — modelo dedicado opcional por función

@@ -23,6 +23,13 @@ export interface SpecFrontmatter {
   archivedAt?: string
   clarify: 'pending' | 'resolved' | 'none'
   capabilities?: CapabilitiesContract
+  /**
+   * AA.1 (IDEAS #6) — design.md condicional. Ausente = spec simple, cero cambio de
+   * comportamiento (mismo criterio que `capabilities?`). Disparado manualmente por
+   * `spec create --design`, nunca por un clasificador — ver PLAN.md § Mes 28 Bloque AA.
+   */
+  design?: 'pending' | 'approved'
+  designApprovedAt?: string
 }
 
 export interface Spec {
@@ -118,6 +125,8 @@ function parseSpec(text: string): Spec {
   }
   if (raw.approvedAt) frontmatter.approvedAt = String(raw.approvedAt)
   if (raw.archivedAt) frontmatter.archivedAt = String(raw.archivedAt)
+  if (raw.design === 'pending' || raw.design === 'approved') frontmatter.design = raw.design
+  if (raw.designApprovedAt) frontmatter.designApprovedAt = String(raw.designApprovedAt)
 
   const caps = raw.capabilities
   if (caps !== undefined && caps !== null && typeof caps === 'object' && !Array.isArray(caps)) {
@@ -141,6 +150,8 @@ function serializeSpec(spec: Spec): string {
   }
   if (spec.frontmatter.approvedAt) fm.approvedAt = spec.frontmatter.approvedAt
   if (spec.frontmatter.archivedAt) fm.archivedAt = spec.frontmatter.archivedAt
+  if (spec.frontmatter.design) fm.design = spec.frontmatter.design
+  if (spec.frontmatter.designApprovedAt) fm.designApprovedAt = spec.frontmatter.designApprovedAt
 
   const caps = spec.frontmatter.capabilities
   if (caps && (caps.added.length > 0 || caps.modified.length > 0 || caps.removed.length > 0)) {

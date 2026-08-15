@@ -1962,12 +1962,18 @@ SCREENS.specs = {
     const clarifyBadge = s.clarify !== 'none'
       ? `<div class="stat-box ${s.clarify === 'pending' ? 'bad' : 'ok'}"><div class="n" style="font-size:15px;margin-top:5px">${esc(s.clarify)}</div><div class="l">${t('specs.clarify')}</div></div>`
       : '';
-    const canApprove = s.status === 'draft' && s.clarify !== 'pending';
+    // AA (IDEAS #6) — undefined = spec simple, ningún badge nuevo, cero cambio visual.
+    const designBadge = s.design
+      ? `<div class="stat-box ${s.design === 'pending' ? 'bad' : 'ok'}"><div class="n" style="font-size:15px;margin-top:5px">${esc(s.design)}</div><div class="l">${t('specs.design')}</div></div>`
+      : '';
+    const designPending = s.design === 'pending';
+    const canApprove = s.status === 'draft' && s.clarify !== 'pending' && !designPending;
     const canArchive = s.status !== 'archived';
     // I.8 (Mes 18) — borrado permanente solo para specs ya archivadas (soft
     // delete primero, hard delete después — nunca sobre drafts/approved activos).
     const canDelete = s.status === 'archived';
     const actions = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      ${designPending ? `<button class="btn sm" data-spec-act="approve-design" data-spec-id="${esc(s.id)}">${ICON.check} ${t('specs.btn.approveDesign')}</button>` : ''}
       ${canApprove ? `<button class="btn sm" data-spec-act="approve" data-spec-id="${esc(s.id)}">${ICON.check} ${t('specs.btn.approve')}</button>` : ''}
       <button class="btn sm ghost" data-spec-act="lint" data-spec-id="${esc(s.id)}">${ICON.search} Lint</button>
       ${canArchive ? `<button class="btn sm ghost" data-spec-act="archive" data-spec-id="${esc(s.id)}">${ICON.inbox} ${t('specs.btn.archive')}</button>` : ''}
@@ -1978,6 +1984,7 @@ SCREENS.specs = {
       <div class="stat-box ${s.deltaIssues > 0 ? 'bad' : 'ok'}"><div class="n">${s.deltaIssues}</div><div class="l">${t('specs.stat.deltaIssues')}</div></div>
       <div class="stat-box"><div class="n" style="font-size:15px;margin-top:5px">${s.hasCapabilities ? `<span class="cap-yes">${ICON.check} ${t('specs.cap.defined')}</span>` : `<span class="cap-no">${ICON.x} ${t('specs.cap.missing')}</span>`}</div><div class="l">${t('specs.col.caps')}</div></div>
       ${clarifyBadge}
+      ${designBadge}
       ${actions}
     </div></td></tr>`;
   },
@@ -2081,6 +2088,10 @@ SCREENS.specs = {
           fetch(`/api/specs/${encodeURIComponent(id)}/approve`, { method: 'POST' })
             .then(r => r.json())
             .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.approved', id)); } else showToast(d.error || t('specs.toast.approveErr'), 'error'); });
+        } else if (act === 'approve-design') {
+          fetch(`/api/specs/${encodeURIComponent(id)}/approve-design`, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.designApproved', id)); } else showToast(d.error || t('specs.toast.approveDesignErr'), 'error'); });
         } else if (act === 'lint') {
           fetch(`/api/specs/${encodeURIComponent(id)}/lint`)
             .then(r => r.json())

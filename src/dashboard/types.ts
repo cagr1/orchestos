@@ -183,6 +183,8 @@ export interface SpecRow {
   deltaIssues: number           // S32 delta header issues
   hasCapabilities: boolean      // true if capabilities field is set
   createdAt: string
+  /** AA (IDEAS #6) — undefined = spec simple, cero cambio de comportamiento. */
+  design?: 'pending' | 'approved'
 }
 
 // ── /api/memory ───────────────────────────────────────────────────────────────

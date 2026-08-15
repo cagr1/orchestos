@@ -77,6 +77,46 @@ describe('saveSpec + loadSpec', () => {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+
+  // AA (IDEAS #6) — design.md condicional. Ausente = spec simple, cero cambio de
+  // comportamiento: la propia serialización no debe escribir la clave `design` en
+  // absoluto cuando no está presente (mismo criterio que `capabilities`).
+  it('does not write a design key when the field is absent (spec simple, cero regresión)', () => {
+    const dir = tmpDir()
+    try {
+      saveSpec(dir, makeSpec({ id: 'no-design-task' }))
+      const loaded = loadSpec(dir, 'no-design-task')
+      expect(loaded!.frontmatter.design).toBeUndefined()
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('preserves design and designApprovedAt when present', () => {
+    const dir = tmpDir()
+    try {
+      const ts = '2026-01-01T00:00:00.000Z'
+      const s = makeSpec({ id: 'design-task', design: 'approved', designApprovedAt: ts })
+      saveSpec(dir, s)
+      const loaded = loadSpec(dir, 'design-task')
+      expect(loaded!.frontmatter.design).toBe('approved')
+      expect(loaded!.frontmatter.designApprovedAt).toBe(ts)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('round-trips design: pending distinctly from design: approved', () => {
+    const dir = tmpDir()
+    try {
+      saveSpec(dir, makeSpec({ id: 'design-pending-task', design: 'pending' }))
+      const loaded = loadSpec(dir, 'design-pending-task')
+      expect(loaded!.frontmatter.design).toBe('pending')
+      expect(loaded!.frontmatter.designApprovedAt).toBeUndefined()
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('listSpecs', () => {
@@ -169,6 +209,22 @@ describe('spec approve gate', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+
+  // AA (IDEAS #6) — mismo gate simulado que clarify arriba. Cobertura real de
+  // integración (POST /api/specs/*/approve vía route()) en
+  // src/dashboard/__tests__/specs-design-gate.test.ts.
+  it('approve is blocked when design is pending', () => {
+    const s = makeSpec({ design: 'pending' })
+    const blocked = s.frontmatter.design === 'pending'
+    expect(blocked).toBe(true)
+  })
+
+  it('approve is not blocked when design is undefined (spec simple) or approved', () => {
+    const simple = makeSpec()
+    const approved = makeSpec({ design: 'approved' })
+    expect(simple.frontmatter.design === 'pending').toBe(false)
+    expect(approved.frontmatter.design === 'pending').toBe(false)
   })
 })
 

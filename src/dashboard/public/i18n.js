@@ -473,6 +473,12 @@ const I18N = {
     'specs.cap.no':           'no',
     'specs.toast.approved':     'Spec "{0}" approved ✓',
     'specs.toast.approveErr':   'Approve failed',
+    /* AA (IDEAS #6) — design.md condicional */
+    'specs.design':                'Design',
+    'specs.btn.approveDesign':     'Approve design',
+    'specs.toast.designApproved':  'Design for "{0}" approved ✓',
+    'specs.toast.approveDesignErr':'Approve design failed',
+    'specs.modal.design':          'Mark as complex (requires design.md approval before the spec can be approved)',
     'specs.toast.lintOk':       'Lint OK — {0} WHEN/THEN criteria ✓',
     'specs.toast.lintFindings': '{0} lint finding(s) in "{1}"',
     'specs.toast.archived':     'Spec "{0}" archived',
@@ -1252,6 +1258,12 @@ const I18N = {
     'specs.toast.lintFindings': '{0} hallazgo(s) de lint en "{1}"',
     'specs.toast.archived':     'Spec "{0}" archivada',
     'specs.toast.archiveErr':   'Error al archivar',
+    /* AA (IDEAS #6) — design.md condicional */
+    'specs.design':                'Design',
+    'specs.btn.approveDesign':     'Aprobar design',
+    'specs.toast.designApproved':  'Design de "{0}" aprobado ✓',
+    'specs.toast.approveDesignErr':'Error al aprobar el design',
+    'specs.modal.design':          'Marcar como compleja (requiere aprobar el design.md antes de poder aprobar la spec)',
 
     /* ── Skills ──────────────────────────────── */
     'skills.title':       'Skills',

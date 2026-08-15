@@ -1468,24 +1468,27 @@ spec
   .command('create <task-id>')
   .description('Create a new spec file with draft status')
   .option('--project <path>', 'Project root (defaults to cwd)')
-  .action((taskId: string, opts: { project?: string }) => {
+  .option('--design', 'Mark this task as complex — requires "spec approve-design" before "spec approve" (AA, IDEAS #6)')
+  .action((taskId: string, opts: { project?: string; design?: boolean }) => {
     const root = resolve(opts.project ?? '.')
     const existing = loadSpec(root, taskId)
     if (existing) {
       console.error(`[spec] Spec already exists for "${taskId}". Use: orchestos spec show ${taskId}`)
       process.exit(1)
     }
-    const body = `## Contexto\n<placeholder>\n\n## Descripción\n<placeholder>\n\n## Criterios de aceptación\n- [ ] <criterio 1>\n- [ ] <criterio 2>\n\n## Notas\n<placeholder>\n`
+    const designSection = opts.design ? `## Design\n<placeholder>\n\n` : ''
+    const body = `## Contexto\n<placeholder>\n\n## Descripción\n<placeholder>\n\n${designSection}## Criterios de aceptación\n- [ ] <criterio 1>\n- [ ] <criterio 2>\n\n## Notas\n<placeholder>\n`
     saveSpec(root, {
       frontmatter: {
         id: taskId,
         status: 'draft',
         createdAt: new Date().toISOString(),
         clarify: 'none',
+        ...(opts.design ? { design: 'pending' as const } : {}),
       },
       body,
     })
-    console.log(`[spec] Created: ${specPath(root, taskId)}`)
+    console.log(`[spec] Created: ${specPath(root, taskId)}${opts.design ? ' (design: pending — run "spec approve-design" before "spec approve")' : ''}`)
   })
 
 spec
@@ -1502,8 +1505,10 @@ spec
     console.log(`id:        ${s.frontmatter.id}`)
     console.log(`status:    ${s.frontmatter.status}`)
     console.log(`clarify:   ${s.frontmatter.clarify}`)
+    if (s.frontmatter.design) console.log(`design:    ${s.frontmatter.design}`)
     console.log(`createdAt: ${s.frontmatter.createdAt}`)
     if (s.frontmatter.approvedAt) console.log(`approvedAt: ${s.frontmatter.approvedAt}`)
+    if (s.frontmatter.designApprovedAt) console.log(`designApprovedAt: ${s.frontmatter.designApprovedAt}`)
     if (s.frontmatter.capabilities) {
       const c = s.frontmatter.capabilities
       console.log(`capabilities:`)
@@ -1540,13 +1545,19 @@ spec
 
 spec
   .command('approve <task-id>')
-  .description('Approve a spec (blocked if clarify: pending or validation fails)')
+  .description('Approve a spec (blocked if design: pending, clarify: pending, or validation fails)')
   .option('--project <path>', 'Project root (defaults to cwd)')
   .action((taskId: string, opts: { project?: string }) => {
     const root = resolve(opts.project ?? '.')
     const s = loadSpec(root, taskId)
     if (!s) {
       console.error(`[spec] No spec found for "${taskId}". Run: orchestos spec create ${taskId}`)
+      process.exit(1)
+    }
+    // AA.2 (IDEAS #6) — chequeo de design ANTES que clarify: si la tarea se marcó compleja,
+    // la revisión de diseño es el gate más temprano del flujo.
+    if (s.frontmatter.design === 'pending') {
+      console.error(`[spec] Cannot approve "${taskId}" — design is pending. Run: orchestos spec approve-design ${taskId}`)
       process.exit(1)
     }
     if (s.frontmatter.clarify === 'pending') {
@@ -1566,11 +1577,37 @@ spec
   })
 
 spec
+  .command('approve-design <task-id>')
+  .description('Approve the "## Design" section of a complex spec (AA, IDEAS #6) — required before "spec approve"')
+  .option('--project <path>', 'Project root (defaults to cwd)')
+  .action((taskId: string, opts: { project?: string }) => {
+    const root = resolve(opts.project ?? '.')
+    const s = loadSpec(root, taskId)
+    if (!s) {
+      console.error(`[spec] No spec found for "${taskId}". Run: orchestos spec create ${taskId}`)
+      process.exit(1)
+    }
+    if (s.frontmatter.design === undefined) {
+      console.error(`[spec] "${taskId}" was not marked complex — nothing to approve. Use "spec create --design" for complex tasks.`)
+      process.exit(1)
+    }
+    if (s.frontmatter.design === 'approved') {
+      console.error(`[spec] Design for "${taskId}" is already approved.`)
+      process.exit(1)
+    }
+    s.frontmatter.design = 'approved'
+    s.frontmatter.designApprovedAt = new Date().toISOString()
+    saveSpec(root, s)
+    console.log(`[spec] Design approved: ${taskId}`)
+  })
+
+spec
   .command('draft <task-id>')
   .description('Use the LLM to draft spec body for an existing or new spec')
   .requiredOption('--description <text>', 'Task description to draft spec for')
   .option('--project <path>', 'Project root (defaults to cwd)')
-  .action(async (taskId: string, opts: { description: string; project?: string }) => {
+  .option('--design', 'Mark this task as complex (AA, IDEAS #6) — no-op if already pending/approved')
+  .action(async (taskId: string, opts: { description: string; project?: string; design?: boolean }) => {
     const root = resolve(opts.project ?? '.')
     let s = loadSpec(root, taskId)
     if (!s) {
@@ -1585,9 +1622,13 @@ spec
         body: '',
       }
     }
+    // AA (IDEAS #6) — dashboard "Nueva Spec" salta directo a `spec draft` (no pasa por
+    // `spec create`), así que este es el único punto donde ESE flujo puede marcar la
+    // tarea como compleja. No pisa un design ya aprobado (comando no-op en ese caso).
+    if (opts.design && s.frontmatter.design === undefined) s.frontmatter.design = 'pending'
     console.log(`[spec] Drafting spec body for "${taskId}" via LLM...`)
     try {
-      const { body, capabilities } = await draftSpecBody(root, taskId, opts.description)
+      const { body, capabilities } = await draftSpecBody(root, taskId, opts.description, { design: s.frontmatter.design === 'pending' })
       s.frontmatter.status = 'draft'
       delete s.frontmatter.approvedAt
       if (capabilities) s.frontmatter.capabilities = capabilities

@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-27-cerrado--x37-completos--51-parcial--4-30-parqueados--siguiente-categoria-medio-por-decidir
+status: mes-28-en-curso--bloque-aa-cerrado--siguiente-item-medio-7-por-decidir
 ---
 
 # OrchestOS — Plan activo
@@ -33,6 +33,85 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 **Regla de documentación obligatoria (2026-07-02):** todo hallazgo — bug real, deuda técnica, feature huérfana, contradicción entre `tasks.yaml`/DONE.md y el código real — se convierte en un ítem de este archivo (o de IDEAS.md si es backlog no inmediato) ANTES de tocar código. Si no está escrito acá, no se corrige. Motivo: una auditoría completa (2026-07-02) encontró deuda documentada en prosa dentro de DONE.md ("anotado como deuda conocida") que nunca se tradujo a un ítem accionable y por eso nadie la persiguió durante 3 meses (ver Bloque F0).
 
 **Regla de flujo IDEAS→PLAN→DONE (decisión Carlos, 2026-07-02):** cuando una idea pasa de IDEAS.md a PLAN.md (se convierte en el eje o en un bloque de un Mes), **se ELIMINA de IDEAS.md en el mismo commit** — no queda duplicada en ambos. La evidencia de que se realizó vive siempre en DONE.md (documentación extensa al cierre del Mes). IDEAS.md es solo backlog vivo: lo que está ahí es porque NADIE lo está haciendo todavía.
+
+---
+
+## MES 28 — Backlog canónico, categoría Medio (abierto 2026-08-15)
+
+Este Mes ejecuta la categoría **Medio** de [IDEAS.md](IDEAS.md), empezando por `#6`. Mismo orden
+de índice = único orden de ejecución (regla desde 2026-07-30).
+
+### Bloque AA — 🧠 IDEAS #6: `design.md` condicional para tareas complejas (OpenSpec)
+
+**Lo que pedía la idea**: único patrón de OpenSpec aún no shipeado (el resto → S28/S29/S32) — un
+paso `design.md` intermedio entre la creación de la spec y su aprobación, condicional a la
+complejidad de la tarea.
+
+**Verificado antes de escribir código**: el flujo real hoy (`src/spec/`, `spec` en `cli.ts`) es
+`spec create → spec draft --description → spec approve`, uniforme para toda tarea — **no existe
+noción de "compleja" en ningún lado**. El único gate condicional que ya existe es `clarify`
+(`pending` bloquea `spec approve` con mensaje explícito, `src/cli.ts` línea ~1552) — mismo patrón
+a mirror para `design`. `requireSpec` (harness.ts línea 198) es un flag global de proyecto, no
+por-tarea — no sirve como mecanismo de "esta tarea en particular es compleja".
+
+**2 decisiones de diseño resueltas con Carlos (2026-08-15), no asumidas**:
+1. **Disparador de "compleja"**: manual, flag `--design` en `spec create` — no un clasificador
+   heurístico. Mismo criterio que ya aplicó el saltar `#4` (clasificador semántico para `clarify`)
+   este Mes 27: sin evidencia de que un heurístico automático acierte, la decisión explícita del
+   humano es lo único honesto.
+2. **Gate de aprobación**: paso separado `spec approve-design <id>`, mismo patrón de dos momentos
+   de revisión que el gate de `clarify: pending` — `spec approve` falla si `design: pending`.
+
+**No romper el 99% de specs simples**: sin `--design`, el campo `design` queda ausente
+(`undefined`), cero cambio de comportamiento — mismo criterio que `capabilities?` (opcional,
+ausente = comportamiento actual).
+
+- [x] **AA.1 — 🧠 `SpecFrontmatter.design` en `store.ts`.** (2026-08-15) Campo
+  `design?: 'pending' | 'approved'` (ausente = "no complex", nunca un tercer valor string tipo
+  `'none'` — un campo opcional YA modela "no aplica" sin inventar un estado extra). Nuevo
+  `designApprovedAt?: string` mirror de `approvedAt`. `parseSpec()`/`serializeSpec()` extendidos,
+  mismo patrón que `capabilities`/`approvedAt` (opcionales, solo se serializan si están presentes).
+- [x] **AA.2 — 🧠 CLI: `spec create --design`, `spec approve-design <id>`, gate en `spec approve`.**
+  (2026-08-15) `spec create <id> --design` setea `design: 'pending'` en el frontmatter inicial +
+  inserta `## Design` en el body template. Nuevo comando `spec approve-design <id>`: 404 si no hay
+  spec, error si `design` no es `'pending'` (ni ausente ni ya `'approved'` — mensaje distinto para
+  cada caso), si no `design: 'approved'` + `designApprovedAt`. `spec approve <id>`: nuevo chequeo
+  `design === 'pending'` → bloquea con `Cannot approve "<id>" — design is pending. Run: orchestos
+  spec approve-design <id>`, ANTES del chequeo de `clarify`. Verificado en vivo (CLI real, proyecto
+  scratch): flujo completo `create --design → approve (bloqueado) → approve-design → approve
+  (pasa)`, más el caso simple sin `--design` (cero fricción nueva) y los 2 casos de error de
+  `approve-design` (sin marcar compleja / ya aprobado).
+- [x] **AA.3 — 🧠 `spec draft` genera la sección `## Design` cuando `design: 'pending'`.**
+  (2026-08-15) `draftSpec()` (`src/spec/draft.ts`) recibe `opts.design`; cuando está activo, el
+  prompt del LLM pide una sección `## Design` adicional (Decisiones y alternativas consideradas —
+  contenido DISTINTO de "## Descripción"/"## Criterios de aceptación", no relleno) insertada antes
+  de Criterios. Sin el flag, cero cambio en el prompt/output actual (verificado: el system prompt
+  generado no menciona "Design"/"COMPLEJA" en absoluto). `spec draft` (CLI) deriva el flag de
+  `s.frontmatter.design === 'pending'` — sin flag nuevo redundante, reusa el estado ya guardado por
+  `spec create --design`.
+- [x] **AA.4 — ⚡ Superficie en dashboard.** (2026-08-15) [[feedback-dashboard-no-solo-cli]]: botón
+  "Approve design" en la pantalla Specs (`screens-ops.js`), visible solo cuando
+  `design === 'pending'`; el botón "Approve" normal oculto mientras `design` siga `'pending'`.
+  Nueva ruta `POST /api/specs/<id>/approve-design` (`server.ts`/`handlers/specs.ts`,
+  `handleApiSpecsApproveDesign`) — mismo gate que el CLI. **Hallazgo real durante la
+  implementación**: el modal "Nueva Spec" del dashboard salta directo a `spec draft` (nunca pasa
+  por `spec create`) — sin cablear ahí, no habría forma de marcar una tarea compleja desde el
+  dashboard en absoluto. Cerrado con un checkbox "Mark as complex" en el modal +
+  `spec draft --design` (CLI, nuevo flag idempotente: no pisa un `design` ya
+  pending/approved) + `handleApiSpecsCreate` también acepta `{ design: true }` en el body (para
+  paridad con el CLI, aunque el modal usa el camino de `draft`).
+- [x] **AA.5 — 🔍** (2026-08-15) `tsc --noEmit` limpio. 16 tests nuevos (1122→1138, 0 fail):
+  round-trip de `design`/`designApprovedAt` en `store.ts` (incluida la ausencia — cero regresión),
+  gate simulado de `design: pending` (mismo estilo que el de `clarify` ya existente),
+  `draftSpec()` con/sin `{ design: true }` (mock fetch, verifica el system prompt real enviado al
+  LLM), y un archivo de integración nuevo (`specs-design-gate.test.ts`) que ejercita
+  `POST /api/specs/*` completo vía `route()` real (mismo patrón que `constitution-api.test.ts`) —
+  create con/sin `design`, approve bloqueado/no-bloqueado en los 3 estados de `design`, y los 3
+  casos de `approve-design` (éxito, sin marcar compleja, ya aprobado). Además, verificación en
+  vivo contra el dashboard real (puerto 4242, Playwright, proyecto scratch): botón "Approve
+  design" visible solo con `design: pending`, desaparece y "Approve" aparece tras aprobarlo, toast
+  de confirmación real, checkbox del modal "Nueva Spec" presente y correctamente etiquetado.
+  Servidor bajado al terminar. `bun run test:coverage`: 1138 pass · 0 fail.
 
 ---
 

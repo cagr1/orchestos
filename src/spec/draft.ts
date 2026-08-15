@@ -12,12 +12,26 @@ import { getProvider } from '../providers/index.ts'
 import { loadOrcheConfig } from '../config/load.ts'
 import { listSpecs, type CapabilitiesContract } from './store.ts'
 
-const SYSTEM_PROMPT = `Eres un arquitecto de software. Genera una spec técnica para la tarea dada.
+// AA.3 (IDEAS #6) — fragmento insertado SOLO cuando la tarea se marcó compleja
+// (`spec create --design`). Contenido deliberadamente DISTINTO de "Descripción"/"Criterios de
+// aceptación": esas responden qué hay que hacer, esto responde por qué esta forma y no otra —
+// decisiones y alternativas descartadas, no relleno repetido.
+const DESIGN_SECTION_INSTRUCTIONS = `
+Esta tarea fue marcada como COMPLEJA — antes de "Criterios de aceptación", incluí una sección
+## Design con:
+  - Decisiones técnicas clave y su justificación (por qué esta forma, no otra).
+  - Alternativas consideradas y por qué se descartaron.
+  - Riesgos o trade-offs conocidos.
+No repitas el contenido de "Descripción" acá — Design explica el CÓMO y el PORQUÉ, no el QUÉ.
+`
+
+function buildSystemPrompt(design: boolean): string {
+  return `Eres un arquitecto de software. Genera una spec técnica para la tarea dada.
 Los criterios de aceptación DEBEN estar en formato WHEN/THEN:
   - WHEN <condición observable> THEN <resultado esperado>
 Nunca uses criterios vagos como "funciona correctamente" o "la función retorna algo".
-Responde SOLO con el body markdown (sin frontmatter): secciones Contexto, Descripción, Criterios de aceptación, Notas.
-
+Responde SOLO con el body markdown (sin frontmatter): secciones Contexto, Descripción${design ? ', Design' : ''}, Criterios de aceptación, Notas.
+${design ? DESIGN_SECTION_INSTRUCTIONS : ''}
 Además, al final incluye un bloque ---capabilities con el contrato de capacidades en YAML:
 
 ---capabilities
@@ -28,6 +42,7 @@ modified:
 removed: []
 
 Si no hay modificaciones o eliminaciones, deja los arrays vacíos.`
+}
 
 export interface DraftResult {
   body: string
@@ -93,7 +108,8 @@ function extractCapabilities(text: string): { body: string; capabilities?: Capab
  * Draft a spec body for the given task using the LLM.
  * Returns the body string and optional capabilities contract.
  */
-export async function draftSpec(root: string, taskId: string, taskDescription: string): Promise<DraftResult> {
+export async function draftSpec(root: string, taskId: string, taskDescription: string, opts: { design?: boolean } = {}): Promise<DraftResult> {
+  const design = opts.design ?? false
   const contextParts: string[] = []
 
   const constitutionPath = join(root, 'CONSTITUTION.md')
@@ -126,6 +142,7 @@ export async function draftSpec(root: string, taskId: string, taskDescription: s
     '## Descripción',
     '<explain what must be done>',
     '',
+    ...(design ? ['## Design', '<key decisions, alternatives considered, trade-offs — NOT a repeat of Descripción>', ''] : []),
     '## Criterios de aceptación',
     '- [ ] WHEN <trigger/condition> THEN <observable result>',
     '',
@@ -146,7 +163,7 @@ export async function draftSpec(root: string, taskId: string, taskDescription: s
 
   const response = await provider.chat({
     model,
-    system: SYSTEM_PROMPT,
+    system: buildSystemPrompt(design),
     messages: [{ role: 'user', content: userContent }],
   })
 
