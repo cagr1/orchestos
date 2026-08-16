@@ -93,11 +93,49 @@ general:
 - [ ] **BB.3 — ⚡ Un solo control en Settings.** El selector de Executor y el de Executor mode se
   unifican en la UI según la tabla de precedencia; el que quede visible debe decir la verdad sobre
   su alcance (a qué tareas aplica). [[feedback-dashboard-no-solo-cli]].
-- [ ] **BB.4 — 🔍 La comparación que Carlos pidió, medida.** Proyecto scratch limpio, **la misma
-  tarea idéntica corrida 3 veces**: `external` (Claude Code), `codex` y `opencode`. Registrar por
-  corrida: salida producida, costo real, tiempo, veredicto de QA. Es la primera comparación real
-  entre motores del proyecto — y el criterio para elegir con cuál se hace el dogfooding de
-  CitasBot después. Runs de prueba borrados de la DB real al terminar.
+- [x] **BB.1 — 🧠 `executor_mode` aplica a TODA tarea.** (2026-08-16) Cableado en `harness.ts` vía
+  `resolveExecutorSelection()` (reusada, no duplicada). Precedencia: `task.engine` →
+  `executor_mode` → `executorEngine` → `single-shot`. Decide solo el engine, nunca el modelo
+  ([[feedback-modelo-decision-final-carlos]]) — verificado que los mappers de CLI
+  (`codex.ts:54`, `opencode.ts:56`) ya degradan a `undefined` y dejan que el binario use su
+  default, así que no hacía falta forzar modelo. 3 tests de precedencia nuevos en
+  `engine-selection.test.ts` (incluido "task.engine gana sobre executor_mode").
+- [x] **BB.2 — ⚡ Fin del descarte silencioso.** (2026-08-16) `executorEngine` acepta los 5
+  motores reales; valor inválido **avisa por stderr** en vez de caer a `undefined`. Verificado en
+  vivo: `executorEngine: codex` ahora parsea a `codex`; `cdex`/`cli-clod` imprimen el aviso con
+  la lista de valores permitidos. De paso: el texto de `--help` de `task run --engine` mentía
+  (listaba 3 de 5 motores aunque la validación real ya aceptaba los 5) — corregido.
+- [x] **BB.4 — 🔍 La comparación, medida.** (2026-08-16) Proyecto scratch limpio, misma tarea
+  (`slugify.ts` + tests, con 3 acceptance criteria WHEN/THEN), corrida con los 3 motores CLI.
+  **Los 3 pasaron QA y produjeron código que funciona** (los tests generados por opencode corren
+  verdes: 4 pass). Resultados:
+
+  | Motor | Veredicto | Tiempo | Tokens in/out | Costo reportado | Líneas producidas |
+  |---|---|---|---|---|---|
+  | `external` (Claude Code) | ✅ QA pass | 31.5s | 1.012 / 1.731 | $0.35044 | impl 13L · test 28L |
+  | `codex` | ✅ QA pass | 43.7s | 101.608 / 1.704 | $0.00924 | impl 7L · test 22L |
+  | `opencode` | ✅ QA pass | 28.0s | 10.129 / 1.098 | $0.00297 | impl 8L · test 27L |
+
+  **Los costos NO son comparables entre sí** — hallazgo del propio ejercicio: `external` reporta
+  el `total_cost_usd` real que le devuelve Claude Code; `codex` **no expone costo** y OrchestOS lo
+  estima con `calcCost()` sobre el modelo del config (`deepseek-v4-flash`) — pero codex no usó ese
+  modelo, usó el suyo propio, así que ese $0.00924 es **ficticio**. Poner los tres en la misma
+  columna sin esta nota sería engañoso. Registrado como `BB.6`.
+- [ ] **BB.5 — 🧠 Los artefactos del tooling del host rompen toda tarea CLI.** Encontrado al correr
+  BB.4, antes de poder medir nada. `claude -p` hereda el `~/.claude/settings.json` del usuario
+  (plugins y hooks incluidos); esos hooks escriben en el worktree (`.impeccable/hook.cache.json`),
+  `worktree-diff.ts` los ve con `git status --porcelain -uall` y el contrato los cuenta como
+  escritura no autorizada → **la tarea falla aunque el trabajo esté perfecto**. Evidencia:
+  `?? .impeccable/hook.cache.json` junto a los 2 archivos correctos que sí pidió la tarea.
+  Afecta a los 3 motores CLI (comparten `worktree-diff.ts`). Workaround usado para poder medir:
+  agregarlo al `.gitignore` del scratch (`git status` no lista lo ignorado). **El fix real es
+  decisión de diseño de Carlos** — precedente exacto: T.1 (Mes 26) ya excluyó `node_modules` del
+  pathspec por la misma clase de razón. Sin esto, cualquier usuario con hooks globales ve fallar
+  todas sus tareas CLI con un mensaje que culpa a un archivo ajeno a su tarea.
+- [ ] **BB.6 — ⚡ El costo de los motores CLI es ficticio o incomparable.** Ver tabla de BB.4.
+  `codex` estima con un modelo que no usó. Decidir: (a) reportar `null`/"n/a" cuando el costo no
+  es medible en vez de un número inventado, o (b) mapear el modelo real que el CLI usó. Hoy el
+  dashboard muestra esos números como si fueran equivalentes.
 
 Este Mes ejecuta la categoría **Medio** de [IDEAS.md](IDEAS.md), empezando por `#6`. Mismo orden
 de índice = único orden de ejecución (regla desde 2026-07-30).

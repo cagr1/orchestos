@@ -966,7 +966,7 @@ task
   .option('--sandbox <mode>', 'Sandbox mode: worktree | cwd | auto (default: auto)', 'auto')
   .option('--model <model>', 'Transient model override for this run only — does NOT persist in tasks.yaml')
   // G.4 — engine override (transient, como --model). Mutamos `t` en memoria, no tocamos tasks.yaml.
-  .option('--engine <engine>', 'Executor engine override for this run: single-shot | agentic | external (transient — does NOT persist in tasks.yaml)')
+  .option('--engine <engine>', 'Executor engine override for this run: single-shot | agentic | external | opencode | codex (transient — does NOT persist in tasks.yaml)')
   .action(async (targetPath?: string, opts?: { id?: string; all?: boolean; expand?: string; explain?: string; clarify?: string; keepWorktree?: boolean; sandbox?: string; model?: string; engine?: string }) => {
     const root = resolve(targetPath ?? '.')
     const projectContext = loadContext(root)
