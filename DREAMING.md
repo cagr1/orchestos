@@ -1,4 +1,4 @@
-# DREAMING.md — 2026-08-14
+# DREAMING.md — 2026-08-16
 
 ## Runs analizados
 - Total: 20 runs
@@ -7,18 +7,24 @@
 
 ## Patrones detectados
 
-### Fallo 100% de anthropic/claude-sonnet-5 en task_class "implement", con qa_reason idéntico y coste/tokens en cero
-- Evidencia: runs `96f4e52d-54a9-49b6-a329-474cfec3bdf3` (2026-07-20T20:36:58.556Z) y `c198a55d-15eb-43be-9923-f7a5f5cb2305` (2026-07-20T20:30:56.590Z). Ambos: `task_class: implement`, `model: anthropic/claude-sonnet-5`, `provider: openrouter`, `status: failed`, `qa_verdict: fail`, `qa_reason: "missing declared output(s): scratch/design-test-premium-a1.html"` — texto exacto en ambos.
-- Frecuencia: 2/2 runs de ese modelo en `task_class: implement` (100%). Es el único par de runs con `usd_cost: 0` y `tokens: 0` en todo el dataset.
+### Output declarado no producido, repetido idéntico (task_class implement, claude-sonnet-5)
+- Evidencia: 2 runs, ambos 2026-07-20T20:3x, `task_class: implement`, `model: anthropic/claude-sonnet-5`, `status: failed`, `qa_verdict: fail`. El `qa_reason` es EXACTAMENTE el mismo texto en los dos: "missing declared output(s): scratch/design-test-premium-a1.html".
+- Frecuencia: 2/5 runs `implement` (40%), 2/2 runs `qa_verdict: fail` totales.
 - qa_reason recurrente: "missing declared output(s): scratch/design-test-premium-a1.html"
-- Nota: `elapsed_ms` muy bajo (1549ms y 5263ms) frente a runs `implement` exitosos de deepseek en el mismo periodo (93195–232686ms). `tokens: 0` + `usd_cost: 0` sugieren que el run terminó antes de generar contenido (fallo de arranque/routing vía openrouter), no un fallo de calidad de la salida.
+
+Nota: con solo 20 runs en la ventana y un único par de fallos idénticos, la muestra es chica — pero que el mismo path exacto (`scratch/design-test-premium-a1.html`) falle dos veces seguidas sugiere una tarea repetida (retry) que sigue apuntando al mismo output declarado sin corregir la causa raíz, no dos incidentes independientes.
 
 ## Propuestas
 
-### Propuesta 1 — Investigar por qué anthropic/claude-sonnet-5 vía openrouter no llegó a generar tokens en ninguno de sus 2 runs "implement"
-- Qué cambiar: revisar logs/config del provider openrouter para el modelo `anthropic/claude-sonnet-5` en tareas `implement` (mismo target de archivo `scratch/design-test-premium-a1.html` en ambos runs, 2026-07-20). Confirmar si es un problema de disponibilidad del modelo en openrouter, de mapeo de nombre de modelo, o de un bug puntual en la generación de ese archivo concreto.
-- Por qué: 100% de fallo con `tokens: 0` es una señal de fallo estructural/de arranque, no de calidad — distinto a los demás `qa_verdict: fail` que sí tienen tokens y costo.
-- Riesgo: bajo (solo investigación, no requiere tocar código de producción).
+### Propuesta 1 — Verificar por qué `scratch/design-test-premium-a1.html` no se generó en ninguno de los 2 intentos
+- Qué cambiar: revisar el prompt/tarea que declaró ese output (probablemente en `tasks.yaml` o el run log asociado a esos dos runs del 2026-07-20) y ver si el modelo escribió el archivo en otra ruta, no lo escribió, o el gate de verificación busca en el lugar equivocado.
+- Por qué: mismo qa_reason letra por letra en 2 corridas consecutivas indica que el segundo intento (probablemente un retry manual) repitió el mismo fallo sin cambios — señal de que el problema no se diagnosticó entre el primer y segundo intento.
+- Riesgo: bajo (solo investigación, no cambia código)
+
+### Propuesta 2 — Sin acción adicional recomendada por ahora
+- Qué cambiar: ninguno — el resto de los runs (18/20) están `done` sin `checks_failed`, sin patrón de fallo por modelo (deepseek-v4-flash: 0 fallos en 15 runs) ni por `task_class chat/doc`.
+- Por qué: la muestra de 20 runs es demasiado chica para inferir una tendencia sistémica más allá del caso puntual de Propuesta 1; conviene esperar a que se acumulen más runs de `implement` antes de tocar el pipeline de verificación de outputs.
+- Riesgo: bajo
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
