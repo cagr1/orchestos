@@ -64,10 +64,38 @@ explícita, no se repara en el camino.
 `#50` (chat persistente con sesiones acotadas). Estaban dispersas y mal enmarcadas como ideas
 sueltas — son partes de un mismo eje estructural.
 
-- [ ] **CC.0 — ⚡ Auditoría tab por tab (delegable a codex/opencode).** Las 11 tabs, una por una:
-  qué promete, qué hace hoy, si alguna vez se usó (evidencia en DB, no impresión), y **veredicto:
-  `vive` / `va a Settings` / `se borra`**. Salida: una tabla en este PLAN.md. **Prohibido arreglar
-  nada** — lo roto se anota como ítem de deuda con su nombre, y se prueba después.
+- [x] **CC.0 — ⚡ Auditoría tab por tab (2026-08-16).** Las 11 superficies quedaron auditadas
+  contra código, rutas HTTP y la SQLite real (`~/.orchestos/db.sqlite`, 49 runs, 3 proyectos,
+  1 instinct, 0 memorias, 43 eventos de chat). No se corrigió ninguna superficie en este ítem.
+
+  | Tab | Qué promete | Qué hace hoy | Evidencia de uso real | Veredicto |
+  |---|---|---|---|---|
+  | Chat | Conversar con OrchestOS y crear tareas desde lenguaje natural | Chat interactivo con historial en memoria del navegador, selector de modelo, adjuntos y auto-creación de tareas | `chat_task_bar_events`: 43 mensajes; `runs`: 38 filas `task_class=chat` | **vive** |
+  | Tasks | Administrar y ejecutar las tareas de `tasks.yaml` | Lista estados/reintentos/QA, crea, diagnostica, elimina y ejecuta tareas | `tasks.yaml` activo; `runs`: 49 filas históricas asociadas a ejecuciones | **vive** |
+  | Runs | Inspeccionar evidencia, costo, QA, warnings y diffs de ejecuciones | Tabla filtrable con detalle expandible, análisis y borrado | `runs`: 49 (45 done, 4 failed); `run_steps`: 21 | **vive** |
+  | Graph | Ejecutar y observar el DAG completo de tareas | Lanza `/api/run/graph`, hace polling de estado y muestra resultados/autonomía | Endpoint y runner existen; `runs` no registra una corrida identificable como graph | **vive** |
+  | Memory | Consultar, resolver conflictos y borrar memoria persistida | Búsqueda/filtros por scope, conflictos y borrado | `memory_entries`: 0; `memory_conflicts`: sin filas | **va a Settings** |
+  | Specs | Crear, aprobar, lintar y archivar specs por tarea | Lista specs y expone gates de clarify/design/approve | `.orchestos/specs`: 0 specs activas (solo `.DS_Store`); no hay uso histórico persistido | **vive** |
+  | Skills | Gestionar skills instaladas, pro/registry e importación | CRUD, build, export, curación e importación; 27 YAML locales | 8 runs con `skill_id=frontend-design`; 27 archivos YAML | **vive** |
+  | Instincts | Revisar/aprobar/aplicar aprendizaje automático | CRUD, aprobación y confidence; el runtime solo aplica `verified=true` y `confidence≥0.8` | 1 fila: `block-e-test-pattern`, confidence 0.6, `verified=0`; 0 evidencia de aplicación en runs | **va a Settings** |
+  | Project | Editar constitution/context y ejecutar detect/index/summary del proyecto | Pantalla de contexto/configuración del proyecto actual; usa el cwd, no selector multi-proyecto | `projects`: 3 registros (1 OrchestOS + 2 scratch); `CONSTITUTION.md` existe | **va a Settings** |
+  | Runner | Mostrar un feed simple de ejecuciones para monitoreo | `SCREENS.runner` existe, pero no está en `NAV`; duplica el feed de Runs y solo instruye usar CLI | No tiene ruta de navegación ni estado propio; el mismo historial vive en `runs` | **se borra** |
+  | Settings | Configurar claves, routing, executor, idioma, health, usage y reset | Agrupa configuración y observabilidad operativa | `settings`/`setup` consultados en cada boot; usage deriva de `runs` | **vive** |
+
+  **Deudas descubiertas (no corregidas aquí; probar en su ítem correspondiente):**
+
+  - **CC.0-D1 — Chat: sesiones persistentes y motor por sesión.** `state.chatHistory` vive solo
+    en memoria JS; no hay tabla de sesiones. Queda absorbida por CC.2.
+  - **CC.0-D2 — Multi-proyecto del dashboard.** La pantalla Project y 10 handlers resuelven el
+    cwd (`resolve('.')`); los 3 proyectos de DB no son seleccionables desde la UI. Queda absorbida
+    por CC.3.
+  - **CC.0-D3 — Instincts sin ciclo de verificación operativo.** La única fila está por debajo del
+    umbral y nunca aparece evidencia de aplicación; debe probarse el flujo de propuesta,
+    aprobación y aplicación antes de considerarlo funcional.
+  - **CC.0-D4 — Graph sin evidencia histórica.** La superficie ejecutable existe, pero no hay una
+    corrida graph identificable en la DB; queda como escenario obligatorio del gate CC.5.
+  - **CC.0-D5 — Navegación desincronizada por Runner huérfano.** `SCREENS.runner` no es accesible
+    desde `NAV` y duplica Runs; CC.4 decide su eliminación efectiva.
 - [ ] **CC.1 — 🧠 El chat corre sobre el motor elegido, no solo sobre la API.** Romper el hardcode
   a `'openrouter'` en `handlers/chat.ts`. Si el usuario eligió Claude CLI, el chat conversa por
   Claude CLI. Es el gap #1 del reporte de Carlos y lo que hace que la configuración signifique
