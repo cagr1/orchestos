@@ -145,3 +145,46 @@ describe('mergeWorktreeBack — el symlink de node_modules nunca se commitea al 
     }
   })
 })
+
+// ── BB.5 (2026-08-16) — artefactos del tooling del host ───────────────────────
+//
+// Hallazgo real de BB.4: `claude -p` hereda ~/.claude/settings.json del usuario
+// (hooks/plugins) y esos hooks escriben en el worktree. git status los reporta
+// igual que output del agente → el contrato los cuenta como escritura no
+// autorizada y mata la tarea con el trabajo correcto al lado.
+describe('readWorktreeDiff — el ruido del tooling del host no rompe la tarea (BB.5)', () => {
+  it('descarta .impeccable/ y .DS_Store, pero conserva el output real de la tarea', () => {
+    const dir = initRepoWithNodeModules()
+    let wt
+    try {
+      wt = createWorktree('bb5-noise', 'main', dir)
+      mkdirSync(join(wt.path, '.impeccable'), { recursive: true })
+      writeFileSync(join(wt.path, '.impeccable', 'hook.cache.json'), '{"cache":1}')
+      writeFileSync(join(wt.path, '.DS_Store'), 'junk')
+      mkdirSync(join(wt.path, 'src'), { recursive: true })
+      writeFileSync(join(wt.path, 'src', 'slugify.ts'), 'export const x = 1')
+
+      const diff = readWorktreeDiff(wt.path, ['src/slugify.ts'])
+      expect(diff.map(f => f.path)).toEqual(['src/slugify.ts'])
+    } finally {
+      wt?.cleanup()
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('si la tarea DECLARA el path de tooling en output[], se respeta (no se filtra a ciegas)', () => {
+    const dir = initRepoWithNodeModules()
+    let wt
+    try {
+      wt = createWorktree('bb5-declared', 'main', dir)
+      mkdirSync(join(wt.path, '.claude'), { recursive: true })
+      writeFileSync(join(wt.path, '.claude', 'settings.json'), '{"a":1}')
+
+      expect(readWorktreeDiff(wt.path, []).map(f => f.path)).not.toContain('.claude/settings.json')
+      expect(readWorktreeDiff(wt.path, ['.claude/settings.json']).map(f => f.path)).toContain('.claude/settings.json')
+    } finally {
+      wt?.cleanup()
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})

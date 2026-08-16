@@ -200,7 +200,7 @@ export const codexEngine: ExecutorEngine = {
     }
     const usd = calcCost(ctx.model, parsed.inputTokens, parsed.outputTokens)
 
-    const files = readWorktreeDiff(ctx.effectiveRoot)
+    const files = readWorktreeDiff(ctx.effectiveRoot, ctx.task.output)
 
     const outcome: ExecutorOutcome = {
       files,

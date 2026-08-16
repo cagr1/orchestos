@@ -52,7 +52,42 @@ function gitStatusRawStdout(cwd: string): string {
   return proc.stdout.toString()
 }
 
-export function readWorktreeDiff(effectiveRoot: string): { path: string; content: string }[] {
+/**
+ * BB.5 (2026-08-16) — artefactos que escribe el TOOLING DEL HOST, no la tarea.
+ *
+ * Hallazgo real al correr la comparación de motores (PLAN.md § BB.4): un `claude -p`
+ * lanzado por el executor hereda el `~/.claude/settings.json` del usuario, plugins y
+ * hooks incluidos. Esos hooks escriben dentro del worktree (`.impeccable/hook.cache.json`)
+ * y `git status` los reporta igual que cualquier archivo del agente → el contrato los
+ * cuenta como escritura no autorizada y MATA la tarea, con el trabajo hecho correcto al
+ * lado. Evidencia: `?? .impeccable/hook.cache.json` junto a los 2 archivos que la tarea
+ * sí pidió, ambos correctos. Afecta a los 3 engines CLI (comparten este módulo).
+ *
+ * Mismo criterio que el pathspec `':!node_modules'` de T (Mes 26): esto no es output del
+ * engine, es ruido del entorno. La diferencia es que acá NO se excluye a ciegas — si la
+ * tarea declaró explícitamente ese path en su `output[]`, se respeta y se reporta normal.
+ * Así una tarea que de verdad quiera editar `.claude/settings.json` sigue pudiendo, y el
+ * ruido incidental deja de romper corridas ajenas.
+ */
+const HOST_TOOLING_PREFIXES = [
+  '.impeccable/',
+  '.claude/',
+  '.codex/',
+  '.opencode/',
+  '.cursor/',
+  '.aider/',
+] as const
+
+function isHostToolingArtifact(relPath: string, declaredOutputs: readonly string[]): boolean {
+  if (declaredOutputs.includes(relPath)) return false // la tarea lo pidió explícitamente
+  if (relPath === '.DS_Store' || relPath.endsWith('/.DS_Store')) return true
+  return HOST_TOOLING_PREFIXES.some(prefix => relPath.startsWith(prefix))
+}
+
+export function readWorktreeDiff(
+  effectiveRoot: string,
+  declaredOutputs: readonly string[] = [],
+): { path: string; content: string }[] {
   // B.4 — `-uall` (--untracked-files=all): sin este flag, git status --porcelain colapsa
   // un directorio untracked con contenido en una sola entrada `?? sub/`, ignorando los
   // archivos internos. Eso rompería la decisión d de B.1 ("diff completo, sin filtrar")
@@ -63,6 +98,9 @@ export function readWorktreeDiff(effectiveRoot: string): { path: string; content
   const files: { path: string; content: string }[] = []
   for (const p of paths) {
     const normalized = normalizeRelPath(p)
+    // BB.5 — ruido del tooling del host: se descarta ANTES de resolver el path, para
+    // que no llegue nunca al contrato como "archivo escrito no autorizado".
+    if (isHostToolingArtifact(normalized, declaredOutputs)) continue
     let full: string
     try { full = resolveProjectPath(effectiveRoot, normalized, 'read') } catch { continue }
     if (!existsSync(full)) continue // archivo borrado por el proceso externo — nada que reportar como FileChange

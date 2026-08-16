@@ -36,7 +36,7 @@ a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo com
 1. `#4` Clasificador semántico para `clarify`.
 2. `#30` `task_class: ocr`.
 3. `#51` Acciones por mensaje: **rebobinar** (copiar + timestamp ya implementados, Bloque Z,
-   2026-08-12 — bloqueado por `#50`, sin sesiones persistentes rebobinar no tiene sentido).
+   2026-08-12 — bloqueado por las sesiones persistentes, hoy en PLAN.md § Mes 29 / CC.2).
 
 _(`#33` graduó a Bloque X el 2026-08-10; `#37` graduó a Bloque Y el 2026-08-10 — categoría
 Bajo-medio en curso, Mes 27)_
@@ -52,16 +52,15 @@ Bajo-medio en curso, Mes 27)_
 7. `#34` `orchestos audit`.
 8. `#45` Visibilidad de gasto real.
 9. `#47` Auto-split por tamaño estimado.
-10. `#50` Chat persistente con sesiones limitadas.
-11. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
+10. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
 
-_(`#6` graduó a Bloque AA el 2026-08-15 — categoría Medio en curso, Mes 28)_
+_(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Mes 29
+(orquestador real) el 2026-08-16 — eran partes de un mismo eje estructural, no ideas sueltas.)_
 
 ### Medio-alto
 
 1. `#8` Micrófono/dictado.
 2. `#28` Terminal real embebido.
-3. `#35` Directorio de proyecto configurable.
 4. `#41` App Electron distribuible.
 5. `#42` Auto-repair dirigido.
 6. `#57` Cuota semanal de suscripciones CLI.
@@ -71,7 +70,6 @@ _(`#6` graduó a Bloque AA el 2026-08-15 — categoría Medio en curso, Mes 28)_
 
 1. `#10` Cliente MCP.
 2. `#11` KuzuDB.
-3. `#31` Chat multi-proveedor y routing granular.
 4. `#43` Panel derecho como IDE embebido.
 5. `#52` Lenguaje visual premium completo.
 6. `#56` Workspace multiagente paralelo.
@@ -187,51 +185,6 @@ navegable (regla de "no solo CLI"). Conecta con #16 (escala honesta).
 
 **Esfuerzo**: medio — la pasada determinista reusa el graph existente; lo nuevo es el
 ledger (tabla + migración), el prompt de juicio por sospechoso, y la pantalla.
-
-### 35. Directorio de proyecto configurable — OrchestOS trabaja donde tú elijas, no solo donde vive
-
-**Origen**: Carlos (2026-07-13), tras un bug real: el Chat le preguntaba "¿dónde quieres
-que se genere?" para cada tarea nueva — pregunta que no debería existir, porque hoy **no
-hay ningún lugar donde elegir eso**. Ya se corrigió el síntoma (el system prompt del chat
-ya no pregunta, ver `chat.ts`), pero la causa de fondo sigue: OrchestOS solo puede escribir
-dentro de la carpeta donde él mismo vive. Carlos quiere el modelo mental de Claude Code —
-"puedo elegir el directorio de trabajo por proyecto/sesión, con un default razonable".
-
-**Verificado en código (2026-07-13) — por qué es así hoy**: `effectiveRoot` en
-`src/run/middleware.ts:163` se fija siempre a `opts.projectRoot`, que en cada handler del
-dashboard es `resolve('.')` — literal `process.cwd()` del proceso Bun al arrancar
-(`chat.ts:261`, `tasks.ts:178`, `project.ts:95`, `context-suggest.ts:18`, y ~10 handlers
-más, todos con el mismo patrón). `isSafeRelPath()` en `agentic.ts:34` bloquea cualquier
-`..` que intente escapar esa raíz — es un límite de seguridad real, no un descuido.
-Curiosamente la tabla `projects` en SQLite (`db/projects.ts`) ya está diseñada para
-multi-proyecto (guarda `path` como llave), pero nada en el dashboard la usa para *cambiar*
-de proyecto en caliente — solo se lee para el proyecto ya fijo por cwd.
-
-**Diseño propuesto** (default = la carpeta donde vive OrchestOS, igual que hoy; cambiable
-por el usuario, como pide Carlos):
-
-1. **Un "proyecto activo" persistido**, no atado al cwd del proceso. Vive en la tabla
-   `projects` ya existente (`db/projects.ts`) + una fila de config `active_project_path`
-   (o reusar el patrón de `orchestos.config.yaml` pero a nivel de instalación, en
-   `~/.orchestos/`, ya que el propio proyecto no puede describir dónde vive él mismo).
-2. **Reemplazar `resolve('.')` por un getter `getActiveProjectRoot()`** en los ~15 call
-   sites de handlers — un solo punto de verdad, no 15 lugares hardcodeados.
-3. **Selector de proyecto en Settings** — input de ruta (con validación: existe, es
-   directorio, opcionalmente ofrecer un picker nativo si Electron lo permite) + lista de
-   proyectos ya indexados (la tabla `projects` ya trae historial) para cambiar entre ellos
-   sin volver a indexar desde cero.
-4. **El sandbox de escritura NO cambia** — sigue prohibido escapar la raíz con `..`; lo que
-   cambia es *cuál* raíz aplica, no la regla de que hay una raíz.
-
-**Riesgo a vigilar**: el dashboard hoy corre como un solo proceso de larga duración; cambiar
-de proyecto en caliente implica invalidar todo el estado cacheado en memoria del servidor
-(catálogo de modelos ya cargado, no es problema; pero sí el `state.tasks/runs/memory` del
-cliente, que hay que re-fetch completo al cambiar — mismo patrón que ya usa `App.fetchAll()`
-al bootear).
-
-**Esfuerzo**: medio-alto — no es un feature aislado, toca el punto de entrada de casi todos
-los handlers del dashboard. Candidato a Plan formal (no autoría directa) antes de tocar
-los 15 call sites.
 
 ### 10. Cliente MCP — OrchestOS habla con herramientas externas (Vercel, GitHub, etc.)
 
@@ -425,69 +378,6 @@ grueso del trabajo sería el cambio de schema, no el motor OCR en sí.
 
 ---
 
-### 31. Chat multi-proveedor real + routing granular por función (inspirado en Hermes/Open WebUI) — PINEADO 2026-07-09
-
-**Origen**: Carlos, evaluando el OCR del Chat en Mes 19, preguntó qué pasa si un usuario es
-"cliente puro" de Anthropic/OpenAI/otro proveedor sin OpenRouter. Auditoría del código real
-(2026-07-09) confirmó una asimetría real:
-
-- **El pipeline de tareas formales (`tasks.yaml`) SÍ es multi-proveedor** — `orchestos.config.yaml`
-  permite `provider: anthropic|openai|codex|openrouter` por rol (`planner`/`executor_heavy`/
-  `executor_light`/`default`/`qa`, ver `src/config/schema.ts`), despachado por `getProvider()`
-  (`src/providers/index.ts`). Pero es "casi manual": `anthropic.ts`/`openai.ts` son wrappers
-  directos sin catálogo dinámico — el `model:` se escribe a mano en el YAML, sin buscador, sin
-  metadata de capacidades (visión/precio/ventana de contexto) como sí tiene el catálogo de
-  OpenRouter (`model-catalog.ts`).
-- **El Chat NO es multi-proveedor** — `handleApiChat` llama siempre a `openrouterChat()`
-  ([chat.ts:519](../src/dashboard/handlers/chat.ts#L519)), exige `OPENROUTER_API_KEY` sin
-  excepción ([chat.ts:115](../src/dashboard/handlers/chat.ts#L115)). Un usuario con solo clave de
-  Anthropic o OpenAI directa (sin OpenRouter) **no puede usar el Chat hoy, sin ningún fallback**.
-
-**Referencia externa que Carlos trajo** (captura de la app Hermes, pantalla de "Helper tasks"):
-Hermes tiene una fila por función auxiliar — **Vision** (image analysis), **Web extract** (page
-summarization), **Compression** (context compaction), **Skills hub** (skill search), **Approval**
-(smart auto-approve), **MCP** (MCP tool routing), **Title gen** (session titles), **Curator**
-(skill-usage review) — cada una con default "auto · use main model" y un link "Change" para asignar
-un modelo dedicado a esa función puntual. Es el mismo patrón conceptual que ya usan los roles de
-`orchestos.config.yaml` (planner/executor/qa) — Carlos lo reconoció como algo que "ya estábamos
-haciendo", solo que Hermes lo aplica también al lado de proveedor (cada conexión con su propia
-base_url/key) y con más granularidad de funciones.
-
-**Qué sería, si se implementa** (dos piezas separables, no mezclar):
-1. **Conexiones multi-proveedor para el Chat** — que el Chat pueda usar Anthropic/OpenAI directo
-   (no solo vía OpenRouter), con su propio selector de modelos por proveedor (sin catálogo dinámico
-   de capacidades salvo que se construya uno propio por proveedor, ya que solo OpenRouter expone
-   ese catálogo hoy).
-2. **Roles granulares por función, no solo por etapa del pipeline** — hoy los roles son
-   planner/executor_heavy/executor_light/default/qa (etapas del harness). El patrón de Hermes
-   sugiere roles por *función transversal*: Vision/OCR (relevante para Mes 19), Web extract
-   (ya existe como `fetch_url` tool, sin rol de modelo dedicado), Title gen, etc. — cada uno
-   opcional, "auto" por defecto.
-
-**Por qué no se resuelve ahora**: es un cambio de arquitectura grande (nuevo concepto de
-"conexión" por proveedor, UI de selección de proveedor, catálogo de capacidades sin OpenRouter
-para Anthropic/OpenAI directos) — no bloquea el OCR de Mes 19 (Tesseract corre local, sin
-depender de ningún proveedor, así que no hereda esta limitación). Se pinea acá para no perderlo,
-con la captura de Hermes como referencia de diseño concreta.
-
-**Actualización (2026-07-09) — leído el repo real de Hermes** (`NousResearch/hermes-agent`,
-verificado vía `gh api`: MIT, Python, 212K⭐, activo): su `.env.example` (476 líneas) confirma el
-patrón exacto que hace esto barato de implementar — **13 proveedores de LLM** (OpenRouter,
-NovitaAI, Google AI Studio/Gemini, Ollama Cloud, z.ai/GLM, Kimi/Moonshot, Arcee AI, MiniMax,
-OpenCode Zen, OpenCode Go, Hugging Face Inference, Qwen OAuth, Xiaomi MiMo) siguen **el mismo
-molde**: `{PROVIDER}_API_KEY` + `{PROVIDER}_BASE_URL` opcional (override del endpoint por defecto,
-compatible con el formato OpenAI). Esto quiere decir que la mayoría de proveedores nuevos NO
-necesitan un cliente bespoke como `anthropic.ts`/`openai.ts` — **un solo cliente HTTP genérico
-"OpenAI-compatible" con `baseURL` configurable** cubriría casi todos, y sería la forma barata de
-cerrar el gap de #31 sin escribir un wrapper por proveedor. Fuera de LLM, el mismo repo también
-tiene integraciones de plataforma (Slack/Telegram/MS Teams/Google Chat), STT/TTS (relevante para
-IDEAS #8, micrófono/dictado), terminal tool con backends SSH/sudo/Modal cloud, y compresión de
-contexto automática — todo documentado abajo en "Referencia — inspiración externa" con lo que
-aplica y lo que no.
-
-**Esfuerzo**: alto — toca el schema de config, la UI de Settings/API & Models, el selector de
-modelos del Chat, y potencialmente un catálogo de capacidades propio por proveedor directo.
-
 ### 39. Generalizar el executor `external` — hoy solo detecta `claude`, no `opencode`/`codex`/otros CLIs
 
 **Origen**: Carlos (2026-07-13), tras ver [Orca](https://github.com/stablyai/orca) (Electron, MIT,
@@ -652,7 +542,7 @@ papercut. Candidato v0.13+.
 
 Repos analizados durante Mes 5-8, más adiciones puntuales cuando aparece un repo real relevante
 (ej. Hermes Agent, Mes 19). La mayoría de patrones ya están shipeados; esto queda como mapa de
-procedencia. Pendiente vivo: el molde multi-proveedor (#31).
+procedencia. El molde multi-proveedor (ex-#31) fue absorbido por PLAN.md § Mes 29 / CC.1.
 
 ### Patrones extraídos → estado
 
@@ -990,84 +880,6 @@ de acople distinto, no solo una feature de UI encima de lo que ya existe. Releva
 de PLAN.md § Mes 22 Bloque G/G.3 ("chat conversacional en vivo vía CLI"): la decisión de diseño
 pendiente ahí es si conviene imitar el modelo pty-vivo de Orca o quedarse con el headless-batch más
 simple que ya usa `external.ts`.
-
-### 50. Chat persistente con sesiones acotadas (máx ~20) — no copiar el patrón de chats infinitos
-
-**Origen**: consolida #17 (Carlos, 2026-07-04) y su refinamiento posterior de Carlos
-(2026-07-17). La versión vigente sustituye el aviso original al 75% por un umbral del 70% y
-define sesiones activas + archivadas; no se perdió ningún requisito accionable de #17.
-
-**Decisión de diseño**: Carlos (2026-07-17) no quiere copiar el
-patrón de la industria (Claude Desktop, ChatGPT, Codex: historial infinito de conversaciones que
-nadie vuelve a abrir). Dos partes:
-
-**(a) Bug/gap verificado en código**: `chatHistory` vive SOLO en memoria JS (`app.js:80`,
-`state.chatHistory: []`) — ni localStorage ni SQLite. Al refrescar la página se pierde TODA la
-conversación. OrchestOS ya tiene SQLite local como DB — no hay razón para que el chat sea efímero
-cuando la memoria del sistema (tabla `memory`, `runs`) ya persiste todo lo demás. "De qué sirve
-tener memoria si no la ocupo en esto" (Carlos, literal).
-
-**(b) Sesiones con límite duro (~20, configurable)**: en vez de historial infinito, un máximo de
-~20 conversaciones. Al llegar al tope: la más vieja se archiva/borra (política a decidir — puede
-ser FIFO automático con aviso, o pedir al usuario elegir). Racional de Carlos: la mayoría de
-usuarios jamás regresa a un chat viejo; sesiones infinitas solo acumulan ruido. Contexto de la
-industria (investigado 2026-07-17): los proveedores guardan todo porque (1) almacenar texto es
-casi gratis y borrar cuesta confianza del usuario, (2) en planes consumer las conversaciones
-pueden usarse para entrenamiento (ChatGPT por defecto con opt-out; Anthropic pide consentimiento
-explícito desde 2025) — OrchestOS no entrena nada, así que ese incentivo no aplica: puede
-permitirse el diseño más honesto (límite + persistencia local).
-
-**Distinción técnica clave para el diseño** (por qué "el LLM te pide abrir chat nuevo"): guardar
-el historial es barato; RE-ENVIARLO al modelo en cada mensaje es lo caro — cada turno re-manda
-toda la conversación, y un chat largo degrada calidad y quema tokens. Son dos problemas distintos:
-persistencia (disco, resuelve (a)) vs. ventana de contexto (modelo, ya cubierto por el aviso de
-límite existente en el chat + [[feedback-no-compactar-contexto]]: nunca comprimir a ciegas, avisar
-y cortar a sesión nueva — que con (b) se convierte en "avisar y abrir una de las 20 sesiones").
-
-**Refinamiento de Carlos (2026-07-17)**: mostrar **15 sesiones en el nav izquierdo**; al superar
-el tope, la más antigua NO se borra — se mueve completa a un tab de "archivadas". El problema
-central no es mover de posición sino **medir el contexto por chat con varios modelos**.
-
-**Cómo medir el contexto por chat (la maquinaria YA existe, verificado en código)**:
-- `estimateTokens()` (chars/4) + `contextWindowFor(model)` del catálogo — es exactamente lo que
-  `handlers/chat.ts:559-586` ya calcula por request para decidir si la respuesta cabe.
-- **Insight clave**: "qué tan lleno está un chat" NO es una propiedad del chat — es relativa al
-  MODELO ACTIVO. La misma conversación de 150k tokens está al 75% en Haiku (200k) y al 14% en
-  deepseek-v4-flash (1M). El medidor se recalcula al cambiar el modelo del combo, no se guarda
-  como número fijo por sesión.
-- Umbral: la propia regla del 70% que Carlos ya usa consigo mismo ([[feedback-limite-contexto-70]])
-  aplicada como producto — al cruzar 70% de la ventana del modelo activo, aviso visible +
-  ofrecer "continuar en sesión nueva". Nunca compactar en silencio.
-
-**Hallazgo real al investigar esto (2026-07-17)**: el chat HOY trunca en silencio —
-`handlers/chat.ts:347` hace `rawHistory.slice(-10)`: solo los últimos 10 mensajes viajan al
-modelo, los anteriores se descartan sin avisar. Eso contradice [[feedback-no-compactar-contexto]]
-(nunca degradar en silencio) y explica por qué el chat "olvida" cosas de la misma conversación.
-Al implementar #50, esa línea debe reemplazarse por el presupuesto real de contexto (mandar todo
-lo que quepa bajo el 70%, avisar cuando no quepa) — no un número mágico de mensajes.
-
-**Confirmación de Carlos (2026-07-17) — qué se archiva**: la sesión archivada (tab aparte, no
-borrada) guarda la conversación COMPLETA — mensajes del usuario Y respuestas del LLM, tal cual
-se ven hoy en pantalla. No es un resumen ni solo lo que escribió Carlos; al reabrir una sesión
-vieja debe verse el intercambio entero como si nunca se hubiera archivado.
-
-**Nota de diseño — no confundir con lo que ya existe**: OrchestOS YA tiene una pantalla llamada
-"Chat evidence" (`project.chatEvidence.*` en i18n, `screens-ops.js`) — pero es otra cosa por
-completo: telemetría del clasificador de intención (J.1/B.1.b — cuántas veces se mostró/ocultó la
-barra "Create task", clicks registrados), no el contenido de las conversaciones. El archivo de
-sesiones viejas de este ítem es una superficie NUEVA — no reusar ni renombrar la pantalla
-existente, evitar que quien lo implemente las mezcle.
-
-**Qué hacer**: (1) tabla `chat_sessions` + `chat_messages` en SQLite (mismo patrón que `runs`) —
-`chat_messages` guarda CADA mensaje (role, content, model, timestamp), tanto user como assistant;
-(2) nav izquierdo con 15 sesiones + tab "archivadas" para las que pasen el tope, cada una abre la
-conversación completa igual que una activa, solo de solo lectura o reactivable; (3) al refrescar,
-restaurar la sesión activa; (4) medidor de contexto por sesión relativo al modelo activo, umbral
-70%, con CTA "continuar en sesión nueva" (resumen corto opcional, nunca compactación silenciosa);
-(5) eliminar el `slice(-10)` a favor del presupuesto real.
-
-**Esfuerzo**: medio — el modelo de datos es simple (SQLite ya está); el grueso es la UI de
-sesiones en el chat y el medidor por modelo activo.
 
 ### 51. Acciones por mensaje en el chat — rebobinar (hover, esquina inferior derecha)
 

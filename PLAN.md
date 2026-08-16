@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-28-en-curso--bloque-aa-cerrado--siguiente-item-medio-7-por-decidir
+status: mes-29-abierto--orquestador-real--cc0-auditoria-en-curso
 ---
 
 # OrchestOS — Plan activo
@@ -33,6 +33,56 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 **Regla de documentación obligatoria (2026-07-02):** todo hallazgo — bug real, deuda técnica, feature huérfana, contradicción entre `tasks.yaml`/DONE.md y el código real — se convierte en un ítem de este archivo (o de IDEAS.md si es backlog no inmediato) ANTES de tocar código. Si no está escrito acá, no se corrige. Motivo: una auditoría completa (2026-07-02) encontró deuda documentada en prosa dentro de DONE.md ("anotado como deuda conocida") que nunca se tradujo a un ítem accionable y por eso nadie la persiguió durante 3 meses (ver Bloque F0).
 
 **Regla de flujo IDEAS→PLAN→DONE (decisión Carlos, 2026-07-02):** cuando una idea pasa de IDEAS.md a PLAN.md (se convierte en el eje o en un bloque de un Mes), **se ELIMINA de IDEAS.md en el mismo commit** — no queda duplicada en ambos. La evidencia de que se realizó vive siempre en DONE.md (documentación extensa al cierre del Mes). IDEAS.md es solo backlog vivo: lo que está ahí es porque NADIE lo está haciendo todavía.
+
+---
+
+## MES 29 — Que "OrchestOS" deje de quedarle grande al sistema (abierto 2026-08-16)
+
+**Eje, en palabras de Carlos**: *"para realmente poderlo llamar así debería poder abrir varios
+chats y elegir el CLI de mi gusto, así como lo estamos haciendo para este propio trabajo… al día
+de hoy eso se cumple para 1 solo proyecto, no para varios"*.
+
+**Diagnóstico verificado en código (2026-08-16), no opinión**: OrchestOS hoy es **un ejecutor de
+tareas con dashboard**, no un orquestador. Lo que falta es estructural, y cada punto está medido:
+
+| Reclamo | Verificado | Evidencia |
+|---|---|---|
+| El selector de modelo no cambia al elegir un CLI | ✅ | `handlers/chat.ts:715` hardcodea `runToolLoop('openrouter', …)`. **El chat no sabe correr sobre un CLI**, solo API. Elegir "Claude CLI" no puede cambiar nada ahí. |
+| No se pueden tener varios chats con distinto CLI | ✅ | No existe tabla de sesiones de chat. Vive en `state.chatHistory` (memoria JS), se pierde al refrescar. |
+| Multi-proyecto no existe | ✅ | **10 handlers** del dashboard hardcodean `resolve('.')`. La tabla `projects` existe en la DB pero la UI es mono-proyecto. |
+| Instincts nunca se probó / no sirve | ✅ **peor** | **1 solo** instinct en la DB: `block-e-test-pattern`, `confidence 0.6`, `verified: false`. Umbral de aplicación: `≥0.8 Y verified` (`instincts/schema.ts:165`). **Nunca se aplicó ni se aplicará.** La intuición de Carlos ("si es bueno que se aplique solo") YA es el diseño — lo que falta es que algo verifique instincts. |
+| Tabs sin razón de ser | ✅ | 11 tabs: chat · tasks · runs · graph · memory · specs · skills · instincts · project · runner · settings. |
+
+**Regla de este Mes, fijada por Carlos**: *"si un tab no está haciendo lo que dice que debe hacer,
+lo ponemos igual dentro de settings pero sin olvidar que hay que probarlo después. Si nos ponemos
+a arreglar uno a uno ahora no vamos a aterrizar sobre lo que acabo de mencionar y no quiero eso."*
+→ **La auditoría NO arregla nada.** Clasifica y mueve. Lo que se descubre roto se anota como deuda
+explícita, no se repara en el camino.
+
+**Absorbe de IDEAS.md** (se eliminan de ahí en el mismo commit, regla de flujo IDEAS→PLAN→DONE):
+`#31` (chat multi-proveedor / routing por función), `#35` (directorio de proyecto configurable),
+`#50` (chat persistente con sesiones acotadas). Estaban dispersas y mal enmarcadas como ideas
+sueltas — son partes de un mismo eje estructural.
+
+- [ ] **CC.0 — ⚡ Auditoría tab por tab (delegable a codex/opencode).** Las 11 tabs, una por una:
+  qué promete, qué hace hoy, si alguna vez se usó (evidencia en DB, no impresión), y **veredicto:
+  `vive` / `va a Settings` / `se borra`**. Salida: una tabla en este PLAN.md. **Prohibido arreglar
+  nada** — lo roto se anota como ítem de deuda con su nombre, y se prueba después.
+- [ ] **CC.1 — 🧠 El chat corre sobre el motor elegido, no solo sobre la API.** Romper el hardcode
+  a `'openrouter'` en `handlers/chat.ts`. Si el usuario eligió Claude CLI, el chat conversa por
+  Claude CLI. Es el gap #1 del reporte de Carlos y lo que hace que la configuración signifique
+  algo. Absorbe la parte útil de `#31`.
+- [ ] **CC.2 — 🧠 Sesiones de chat reales, agrupadas por proyecto.** Persistidas en SQLite, lista
+  lateral acumulativa (patrón estándar que Carlos pidió explícitamente, "así como lo hacen todas
+  estas herramientas"), **motor por sesión**. Esto es literalmente "abrir varios chats y elegir el
+  CLI de cada uno". Absorbe `#50`.
+- [ ] **CC.3 — 🧠 Multi-proyecto real.** Matar los 10 `resolve('.')` del dashboard; el proyecto
+  activo es una selección del usuario, no el cwd donde se lanzó el server. Absorbe `#35`.
+- [ ] **CC.4 — ⚡ Colapsar la navegación según el veredicto de CC.0.** Incluye el ex-BB.3 (unificar
+  los dos selectores de Settings) — se hace acá, con la navegación ya decidida, no antes.
+- [ ] **CC.5 — 🔍 Gate: el caso de uso completo, en vivo.** Dos proyectos reales abiertos a la vez,
+  un chat por proyecto, **cada uno sobre un CLI distinto**, y trabajo real hecho en ambos sin
+  cruzar contexto. Si eso no se puede hacer de punta a punta, el Mes no cierra.
 
 ---
 
@@ -81,18 +131,6 @@ general:
 | 3 | `executorEngine` (proyecto) | refina `api`/`local`: single-shot vs agentic |
 | 4 | default | `single-shot` |
 
-- [ ] **BB.1 — 🧠 `executor_mode` aplica a TODA tarea, no solo a las del chat.** Cablear
-  `resolveExecutorSelection()` en `harness.ts` con la precedencia de la tabla. **Verificar antes
-  de cablear** si el modelo debe forzarse o no: los engines CLI traducen el modelo con su propio
-  mapper (`orchestosModelToCodexModel`), y un `deepseek/*` del config con `engine: codex` puede
-  no resolver — decidir con el código a la vista, no asumir.
-- [ ] **BB.2 — ⚡ Fin del descarte silencioso.** `executorEngine` acepta también `opencode`/`codex`
-  (`config/schema.ts`, `config/load.ts`, `dashboard/handlers/config.ts`), y un valor inválido
-  **avisa** (log explícito) en vez de caer a `undefined` sin decir nada — la clase de bug que este
-  Bloque existe para cerrar no se debe poder repetir en silencio.
-- [ ] **BB.3 — ⚡ Un solo control en Settings.** El selector de Executor y el de Executor mode se
-  unifican en la UI según la tabla de precedencia; el que quede visible debe decir la verdad sobre
-  su alcance (a qué tareas aplica). [[feedback-dashboard-no-solo-cli]].
 - [x] **BB.1 — 🧠 `executor_mode` aplica a TODA tarea.** (2026-08-16) Cableado en `harness.ts` vía
   `resolveExecutorSelection()` (reusada, no duplicada). Precedencia: `task.engine` →
   `executor_mode` → `executorEngine` → `single-shot`. Decide solo el engine, nunca el modelo
@@ -121,17 +159,19 @@ general:
   estima con `calcCost()` sobre el modelo del config (`deepseek-v4-flash`) — pero codex no usó ese
   modelo, usó el suyo propio, así que ese $0.00924 es **ficticio**. Poner los tres en la misma
   columna sin esta nota sería engañoso. Registrado como `BB.6`.
-- [ ] **BB.5 — 🧠 Los artefactos del tooling del host rompen toda tarea CLI.** Encontrado al correr
-  BB.4, antes de poder medir nada. `claude -p` hereda el `~/.claude/settings.json` del usuario
-  (plugins y hooks incluidos); esos hooks escriben en el worktree (`.impeccable/hook.cache.json`),
-  `worktree-diff.ts` los ve con `git status --porcelain -uall` y el contrato los cuenta como
-  escritura no autorizada → **la tarea falla aunque el trabajo esté perfecto**. Evidencia:
-  `?? .impeccable/hook.cache.json` junto a los 2 archivos correctos que sí pidió la tarea.
-  Afecta a los 3 motores CLI (comparten `worktree-diff.ts`). Workaround usado para poder medir:
-  agregarlo al `.gitignore` del scratch (`git status` no lista lo ignorado). **El fix real es
-  decisión de diseño de Carlos** — precedente exacto: T.1 (Mes 26) ya excluyó `node_modules` del
-  pathspec por la misma clase de razón. Sin esto, cualquier usuario con hooks globales ve fallar
-  todas sus tareas CLI con un mensaje que culpa a un archivo ajeno a su tarea.
+- [x] **BB.5 — 🧠 Los artefactos del tooling del host rompen toda tarea CLI.** (2026-08-16)
+  **Fix**: `readWorktreeDiff()` recibe ahora los `output[]` declarados y descarta los artefactos
+  de tooling del host (`.impeccable/`, `.claude/`, `.codex/`, `.opencode/`, `.cursor/`,
+  `.aider/`, `.DS_Store`) — **salvo que la tarea los declare explícitamente**, en cuyo caso se
+  respetan. No es un filtro ciego: una tarea que de verdad quiera editar `.claude/settings.json`
+  sigue pudiendo. Mismo criterio que el pathspec `':!node_modules'` de T (Mes 26): no es output
+  del engine, es ruido del entorno. Aplicado a los 3 engines CLI (comparten el módulo).
+  **Gate en vivo**: la MISMA corrida que fallaba con `contract violation:
+  .impeccable/hook.cache.json` ahora da ✅ QA pass, en un repo **sin** el workaround de
+  `.gitignore` (18.6s). 2 tests nuevos (8 pass en `sandbox-node-modules.test.ts`).
+- [x] **BB.3 — ABSORBIDO en Mes 29 (2026-08-16).** Unificar los dos selectores de Settings no
+  tiene sentido aislado si la navegación completa se rediseña — pasa a ser parte de CC.4.
+  Decisión de Carlos: *"si nos ponemos a arreglar uno a uno ahora no vamos a aterrizar"*.
 - [ ] **BB.6 — ⚡ El costo de los motores CLI es ficticio o incomparable.** Ver tabla de BB.4.
   `codex` estima con un modelo que no usó. Decidir: (a) reportar `null`/"n/a" cuando el costo no
   es medible en vez de un número inventado, o (b) mapear el modelo real que el CLI usó. Hoy el

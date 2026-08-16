@@ -225,7 +225,7 @@ export const opencodeEngine: ExecutorEngine = {
       )
     }
 
-    const files = readWorktreeDiff(ctx.effectiveRoot)
+    const files = readWorktreeDiff(ctx.effectiveRoot, ctx.task.output)
 
     const outcome: ExecutorOutcome = {
       files,

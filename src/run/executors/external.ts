@@ -271,7 +271,7 @@ export const externalEngine: ExecutorEngine = {
     const iterations = parsed.num_turns ?? 1
     const usd = parsed.total_cost_usd
 
-    const files = readWorktreeDiff(ctx.effectiveRoot)
+    const files = readWorktreeDiff(ctx.effectiveRoot, ctx.task.output)
 
     const outcome: ExecutorOutcome = {
       files,
