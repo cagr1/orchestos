@@ -55,15 +55,51 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
       // qa has no default fallback — absence means "not configured", resolved at call time (harness.ts F2.2)
       qa: models.qa !== undefined ? parseRoleValue(models.qa, d.default) : undefined,
     },
-    // B.2 — extends the G.3 set with 'external'. Unknown values (incl. typos) become undefined → falls through to G.3 default 'single-shot'.
-    executorEngine: raw.executorEngine === 'agentic' ? 'agentic' : raw.executorEngine === 'single-shot' ? 'single-shot' : raw.executorEngine === 'external' ? 'external' : undefined,
-    // G.4.1 — mismo criterio: valor desconocido/typo → undefined, nunca inventa una preferencia.
-    executor_mode: EXECUTOR_MODES.includes(raw.executor_mode as ExecutorMode) ? raw.executor_mode as ExecutorMode : undefined,
+    // B.2 — extends the G.3 set with 'external'. BB.2 (2026-08-16) — agrega
+    // 'opencode'/'codex': el harness YA los soportaba (harness.ts, ramas de
+    // requestedEngine) pero este parser los descartaba, así que `executorEngine: codex`
+    // en el YAML caía a 'single-shot' EN SILENCIO. Un valor inválido ahora avisa por
+    // stderr en vez de desaparecer sin rastro — ese silencio fue exactamente el bug
+    // que Carlos reportó el 2026-08-16 ("está escrita en el dashboard pero no es real").
+    executorEngine: parseExecutorEngine(raw.executorEngine),
+    // G.4.1 — mismo criterio: valor desconocido/typo → undefined, nunca inventa una
+    // preferencia. BB.2 — pero ahora también avisa en vez de tragárselo.
+    executor_mode: parseExecutorMode(raw.executor_mode),
     agentic: parseAgenticConfig(raw.agentic),
     external: parseExternalConfig(raw.external),
     // K.4b — opt-in explícito: cualquier valor que no sea `true` literal se ignora (queda undefined/desactivado).
     adversarialQA: raw.adversarialQA === true ? true : undefined,
   }
+}
+
+/**
+ * BB.2 — los 5 motores que `harness.ts` sabe ejecutar de verdad. Mantener esta lista
+ * sincronizada con las ramas de `requestedEngine` en harness.ts: si divergen, el
+ * usuario puede escribir un motor válido en el YAML y ver otro corriendo.
+ */
+const EXECUTOR_ENGINES = ['single-shot', 'agentic', 'external', 'opencode', 'codex'] as const
+type ExecutorEngineValue = typeof EXECUTOR_ENGINES[number]
+
+/** Avisa en vez de descartar en silencio — un typo no debe cambiar el motor sin decirlo. */
+function warnIgnored(field: string, value: unknown, allowed: readonly string[]): void {
+  console.error(
+    `[config] ignorando ${field}: '${String(value)}' no es un valor válido — ` +
+    `se usará el default. Valores permitidos: ${allowed.join(', ')}.`
+  )
+}
+
+function parseExecutorEngine(v: unknown): ExecutorEngineValue | undefined {
+  if (v === undefined || v === null) return undefined
+  if ((EXECUTOR_ENGINES as readonly unknown[]).includes(v)) return v as ExecutorEngineValue
+  warnIgnored('executorEngine', v, EXECUTOR_ENGINES)
+  return undefined
+}
+
+function parseExecutorMode(v: unknown): ExecutorMode | undefined {
+  if (v === undefined || v === null) return undefined
+  if (EXECUTOR_MODES.includes(v as ExecutorMode)) return v as ExecutorMode
+  warnIgnored('executor_mode', v, EXECUTOR_MODES)
+  return undefined
 }
 
 function parseAgenticConfig(v: unknown): { maxIterations?: number } | undefined {

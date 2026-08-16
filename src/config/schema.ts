@@ -36,8 +36,15 @@ export interface OrcheConfig {
   executor_mode?: ExecutorMode
   /** If true, every task must have an approved spec before it can run */
   requireSpec?: boolean
-  /** Default ExecutorEngine for tasks that don't declare their own `engine:` — absence means 'single-shot' (G.3, opt-in). B.2 — extended with 'external'. */
-  executorEngine?: 'single-shot' | 'agentic' | 'external'
+  /**
+   * Default ExecutorEngine for tasks that don't declare their own `engine:` — absence
+   * means 'single-shot' (G.3, opt-in). B.2 — extended with 'external'.
+   * BB.2 (2026-08-16) — extendido con 'opencode'/'codex': el harness ya los ejecutaba,
+   * este tipo era el que impedía configurarlos (y `load.ts` los descartaba en silencio).
+   * Con BB.1, `executor_mode` es el eje principal de "dónde corre"; este campo refina
+   * "cómo corre" cuando el modo es api/local (single-shot vs agentic).
+   */
+  executorEngine?: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex'
   /** Agentic engine tuning — absence means default (maxIterations: 15). No cost cap by design (see docs/executor-engine-design.md §3). */
   agentic?: { maxIterations?: number }
   /** B.2 — External engine tuning. timeoutMs = wall-clock guarantee of termination (no cost cap by design, same as maxIterations). Absence = default in external.ts (20min, see docs §4). */

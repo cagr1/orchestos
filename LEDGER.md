@@ -174,3 +174,26 @@ side-effects en runs existentes (columnas nuevas `refuter_verdict`/`refuter_reas
 limpio antes del commit. Gate X.3 corrido con `harness-refuter-qa.test.ts` (4 tests contra
 `runTask()` completo, no `qa.ts` aislado) — sin `OPENROUTER_API_KEY` disponible para un control
 pagado real, mismo nivel de rigor que el propio gate de K.4b (ver entrada 2026-07-28).
+
+---
+
+## 2026-08-16 — claude-opus-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: BB.1 cambia SOLO la selección de motor (`requestedEngine`): agrega `executor_mode`
+como escalón intermedio de precedencia entre `task.engine` y `executorEngine`, reusando
+`resolveExecutorSelection()` que ya existía en `router/engine-cascade.ts`. No toca `maxTokens`,
+`contextWindow`, `resolveQAJudge()` ni el presupuesto de salida del executor en ningún punto —
+las líneas nuevas leen `orcheConfig.executor_mode` y escriben una línea de log. Deliberadamente
+NO fija el modelo (aunque `resolveExecutorSelection` devuelve un `executor_model` sugerido, acá
+solo se consume `.engine`): [[feedback-modelo-decision-final-carlos]] manda que el modelo salga de
+`orchestos.config.yaml` o de Carlos, nunca de una regla derivada.
+**Reversibilidad/evidencia**: commit de BB.1/BB.2 (`fix(config): BB — un solo selector de motor...`)
+— revertible con `git revert`; sin cambios de esquema ni de datos. Cambio de comportamiento
+acotado y buscado: un proyecto con `executor_mode` fijado ahora corre sus tareas manuales por ese
+motor (antes lo ignoraba en silencio — el bug reportado). Proyectos sin `executor_mode`: cero
+cambio. 3 tests nuevos de precedencia en `engine-selection.test.ts` (16 pass, 0 fail) + parser
+verificado en vivo (acepta `codex`, y un typo ahora avisa por stderr en vez de desaparecer).
+`tsc --noEmit` limpio.

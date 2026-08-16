@@ -1,5 +1,4 @@
 config_version: 1
-executorEngine: external
 models:
   planner:
     provider: openrouter
@@ -16,5 +15,9 @@ models:
   qa:
     provider: openrouter
     model: anthropic/claude-haiku-4-5
+executorEngine: external
+executor_mode: cli-claude
 agentic:
   maxIterations: 25
+external:
+  timeoutMs: 1200000

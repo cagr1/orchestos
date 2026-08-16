@@ -38,6 +38,67 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 ## MES 28 — Backlog canónico, categoría Medio (abierto 2026-08-15)
 
+> **Backlog canónico PAUSADO desde 2026-08-16** (decisión de Carlos). Motivo medido, no opinión:
+> 487 commits construyendo el sistema vs. **46 runs reales** en toda su historia ($1.58 total), y
+> **1 solo run en todo agosto** mientras se cerraban los Bloques N–AA. Se estaba construyendo un
+> orquestador sin orquestar nada. El backlog vuelve a abrirse cuando el dogfooding real produzca
+> su propia lista de prioridades. Bloque BB es el desbloqueo mínimo para que ese dogfooding sea
+> posible — no es una idea de IDEAS.md, es un gap encontrado por Carlos al intentar usar el
+> producto de verdad.
+
+### Bloque BB — 🧠 Un solo selector de "cómo corre OrchestOS", y que sea real
+
+**Reporte de Carlos (2026-08-16), verificado en código antes de escribir nada**: *"aún no puedo
+trabajar con modo CLI… la configuración está escrita en el dashboard pero no es real; quiero ver
+la diferencia de usarlo como CLI con codex o claude"*. Confirmado, con dos causas distintas:
+
+1. **El harness soporta 5 motores, la config deja elegir 3.** `harness.ts:414-419` resuelve
+   `single-shot | agentic | external | opencode | codex`, pero `config/schema.ts:40` tipa
+   `executorEngine` como solo los 3 primeros y `config/load.ts:59` **descarta a `undefined`
+   cualquier otro valor sin un warning**. Escribir `executorEngine: codex` en el YAML cae a
+   `single-shot` en silencio. `dashboard/handlers/config.ts:11` tampoco los ofrece.
+2. **`executor_mode` (el selector que SÍ ofrece los CLIs) se lee en un solo punto de todo el
+   runtime**: `dashboard/handlers/chat.ts:473`. Solo aplica a tareas que el chat auto-crea. Una
+   tarea corrida por CLI o escrita a mano en `tasks.yaml` lo ignora por completo. Carlos tenía
+   `executor_mode: cli-claude` fijado y sus tareas manuales nunca lo usaron.
+
+**La pieza que ya existe y nadie conectó**: `resolveExecutorSelection()`
+(`router/engine-cascade.ts:92`) ya mapea los 5 modos → `{ executor_model, engine }`, ya está
+testeada, y respeta [[feedback-deteccion-no-decision-automatica]] (la preferencia del usuario gana
+sobre la cascada). El fix no es escribir un traductor nuevo — es llamarlo desde el harness.
+
+**Decisión de Carlos (2026-08-16)**: unificar en **un solo selector**, no parchar los dos.
+
+**Diseño acordado** — `executor_mode` pasa a ser el eje único de "dónde corre", `executorEngine`
+queda como refinamiento de "cómo corre cuando es la API" (único caso donde single-shot vs agentic
+tiene sentido; un CLI no expone esa distinción). Orden de precedencia, del más específico al más
+general:
+
+| # | Fuente | Gana sobre |
+|---|---|---|
+| 1 | `task.engine` (por tarea, `tasks.yaml`) | todo — override explícito, sin cambios |
+| 2 | `executor_mode` (proyecto) | decide el engine cuando es `cli-*` |
+| 3 | `executorEngine` (proyecto) | refina `api`/`local`: single-shot vs agentic |
+| 4 | default | `single-shot` |
+
+- [ ] **BB.1 — 🧠 `executor_mode` aplica a TODA tarea, no solo a las del chat.** Cablear
+  `resolveExecutorSelection()` en `harness.ts` con la precedencia de la tabla. **Verificar antes
+  de cablear** si el modelo debe forzarse o no: los engines CLI traducen el modelo con su propio
+  mapper (`orchestosModelToCodexModel`), y un `deepseek/*` del config con `engine: codex` puede
+  no resolver — decidir con el código a la vista, no asumir.
+- [ ] **BB.2 — ⚡ Fin del descarte silencioso.** `executorEngine` acepta también `opencode`/`codex`
+  (`config/schema.ts`, `config/load.ts`, `dashboard/handlers/config.ts`), y un valor inválido
+  **avisa** (log explícito) en vez de caer a `undefined` sin decir nada — la clase de bug que este
+  Bloque existe para cerrar no se debe poder repetir en silencio.
+- [ ] **BB.3 — ⚡ Un solo control en Settings.** El selector de Executor y el de Executor mode se
+  unifican en la UI según la tabla de precedencia; el que quede visible debe decir la verdad sobre
+  su alcance (a qué tareas aplica). [[feedback-dashboard-no-solo-cli]].
+- [ ] **BB.4 — 🔍 La comparación que Carlos pidió, medida.** Proyecto scratch limpio, **la misma
+  tarea idéntica corrida 3 veces**: `external` (Claude Code), `codex` y `opencode`. Registrar por
+  corrida: salida producida, costo real, tiempo, veredicto de QA. Es la primera comparación real
+  entre motores del proyecto — y el criterio para elegir con cuál se hace el dogfooding de
+  CitasBot después. Runs de prueba borrados de la DB real al terminar.
+
 Este Mes ejecuta la categoría **Medio** de [IDEAS.md](IDEAS.md), empezando por `#6`. Mismo orden
 de índice = único orden de ejecución (regla desde 2026-07-30).
 

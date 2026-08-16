@@ -345,3 +345,75 @@ describe('B.2 — executor engine: external', () => {
     }
   })
 })
+
+// ── BB.1 (2026-08-16) — executor_mode aplica a TODA tarea ─────────────────────
+//
+// Antes de BB.1, `executor_mode` se leía en UN SOLO punto del runtime
+// (dashboard/handlers/chat.ts) — una tarea corrida por CLI o escrita a mano en
+// tasks.yaml lo ignoraba por completo, así que la config decía una cosa y el
+// sistema hacía otra en silencio (reporte real de Carlos, 2026-08-16).
+//
+// Mismo truco de verificación que el test de B.2 de arriba: `external` rechaza
+// sandbox 'cwd' con un error canónico, así que ver ESE error es la prueba de que
+// el harness efectivamente seleccionó ese engine — acá vía executor_mode, no vía
+// task.engine.
+describe('BB.1 — executor_mode decide el engine de tareas manuales', () => {
+  it('executor_mode "cli-claude" selecciona external aunque la tarea no declare engine', async () => {
+    const originalWhich = Bun.which
+    ;(Bun as any).which = (_bin: string) => '/usr/local/bin/claude'
+    const { DEFAULT_CONFIG } = await import('../config/schema.ts')
+    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, executor_mode: 'cli-claude' }
+    const dir = tmpDir()
+    try {
+      const result = await callRunTask(baseTask(), dir, { orcheConfig, modelOverride: 'anthropic/claude-haiku-4-5' })
+      expect(result.status).toBe('failed')
+      expect(result.retryReason).toMatch(/external engine requires worktree sandbox mode/)
+    } finally {
+      Bun.which = originalWhich
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('task.engine gana sobre executor_mode (override explícito por tarea)', async () => {
+    // executor_mode pide cli-claude (external) pero la tarea declara single-shot:
+    // gana la tarea. Si la precedencia estuviera invertida, esto fallaría con el
+    // error de worktree de external en vez de completar.
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    installMockFetch([
+      () => plainResponse('<<<FILE:out.txt>>>\ntask.engine wins\n<<<ENDFILE>>>'),
+      () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
+    ])
+    const { DEFAULT_CONFIG } = await import('../config/schema.ts')
+    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, executor_mode: 'cli-claude' }
+    const dir = tmpDir()
+    try {
+      const task = baseTask({ engine: 'single-shot' })
+      const result = await callRunTask(task, dir, { orcheConfig, modelOverride: 'anthropic/claude-haiku-4-5' })
+      expect(result.status).toBe('done')
+      expect(readFileSync(join(dir, 'out.txt'), 'utf-8')).toBe('task.engine wins\n')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('executor_mode "api" deja pasar a executorEngine (refina cómo corre, no dónde)', async () => {
+    // 'api' devuelve {} en resolveExecutorSelection → fallthrough a executorEngine.
+    // Con executorEngine 'agentic' y un modelo con tool-calling, corre agentic.
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    installMockFetch([
+      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'agentic via api mode' } }]),
+      () => plainResponse('Done'),
+      () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
+    ])
+    const { DEFAULT_CONFIG } = await import('../config/schema.ts')
+    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, executor_mode: 'api', executorEngine: 'agentic' }
+    const dir = tmpDir()
+    try {
+      const result = await callRunTask(baseTask(), dir, { orcheConfig, modelOverride: 'anthropic/claude-haiku-4-5' })
+      expect(result.status).toBe('done')
+      expect(readFileSync(join(dir, 'out.txt'), 'utf-8')).toBe('agentic via api mode')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
