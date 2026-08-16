@@ -561,15 +561,26 @@ async function handleApiChat(req: Request): Promise<Response> {
   const projBlock = projectCtx ? `\nProject context:\n${projectCtx}\n` : ''
   const model = body.model?.trim() || 'deepseek/deepseek-v4-flash'
   const isOllama = /^ollama\//.test(model)
+  // CC.1 (Mes 29, 2026-08-16) — reporte real de Carlos: elegir "Claude" como
+  // executor_mode en Settings no cambiaba nada en el chat, seguía yendo por la
+  // API de OpenRouter. Mismo eje que ya decide el engine de la tarea que el chat
+  // auto-crea (D.7/E.16, más abajo) — acá decide por dónde sale la RESPUESTA
+  // VISIBLE. Solo `cli-claude` implementado: Codex/OpenCode no tienen un flag de
+  // solo-lectura tan directo como `--allowedTools` de Claude Code — documentado
+  // como pendiente en PLAN.md § CC.1, no improvisado a ciegas.
+  const chatExecutorMode = loadOrcheConfig(root).executor_mode
+  const useClaudeCli = chatExecutorMode === 'cli-claude'
 
   // BACK.3: el efecto se descarta en silencio si el modelo no lo soporta — el
   // cliente (frontend) ya debería ocultar el control, pero esto evita mandarle
   // un `reasoning` ignorado o, peor, un error a un modelo que no lo entiende.
   await ensureCatalogLoaded()
   const effort = (body.effort && supportsReasoningEffort(model)) ? (body.effort as ReasoningEffort) : undefined
-  const modelLabel = isOllama
-    ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
-    : `${model} via OpenRouter`
+  const modelLabel = useClaudeCli
+    ? `Claude Code CLI (executor_mode: cli-claude) — herramientas: solo lectura (Read, Glob, Grep), no puede editar archivos desde el chat`
+    : isOllama
+      ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
+      : `${model} via OpenRouter`
 
   // E.14 (Mes 22, 2026-07-17) — este bloque estaba HARDCODEADO como si
   // `autoTask` siempre tuviera éxito ("OrchestOS has ALREADY created and
@@ -656,6 +667,26 @@ ${autoTaskInstruction}${ctx}${projBlock}`
   })
 
   try {
+    // CC.1 — corre ANTES de isOllama: `executor_mode` es una preferencia de
+    // proyecto explícita ([[feedback-deteccion-no-decision-automatica]], el
+    // usuario la fijó a mano en Settings), gana sobre lo que haya seleccionado
+    // el combo de modelo del chat — mismo criterio que `resolveExecutorSelection`
+    // ya aplica para la tarea que el chat auto-crea más arriba. Limitación
+    // conocida y documentada (PLAN.md § CC.1): imágenes adjuntas se ignoran acá
+    // (imageParts no se envía a runClaudeChat todavía) — combinedText sí incluye
+    // el texto de PDFs/archivos adjuntos vía untrustedContent.
+    const CLAUDE_CHAT_TIMEOUT_MS = 120_000
+    if (useClaudeCli) {
+      const { runClaudeChat } = await import('../../run/executors/external.ts')
+      try {
+        const result = await runClaudeChat(root, systemPrompt, combinedText, CLAUDE_CHAT_TIMEOUT_MS)
+        logChatRun(message, result.model, result.inputTokens, result.outputTokens)
+        return jsonResponse({ text: result.text + autoTaskNote, model: result.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
+      } catch (e: any) {
+        return errorResponse(`Claude Code CLI: ${e.message}`, 502)
+      }
+    }
+
     if (isOllama) {
       const bareModel = model.replace('ollama/', '')
       const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages })

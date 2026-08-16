@@ -152,17 +152,19 @@ function buildClaudeArgsDisplay(model?: string, effort?: string): string[] {
  * sesión, eventos parciales) intercaladas antes del resultado final, mismo
  * criterio de resiliencia que `parseOpencodeStream()` en opencode.ts.
  */
+// CC.1 (Mes 29, 2026-08-16) — `args` ya armados por el caller en vez de reconstruirlos
+// acá: el executor de tareas sigue usando `buildClaudeArgs` (Edit/Write habilitado,
+// contrato de output[]); `runClaudeChat` (abajo) usa `buildClaudeChatArgs` (solo
+// lectura, sin worktree) — mismo spawn/parseo de stream, permisos distintos.
 async function runClaudeCode(
   cwd: string,
-  systemPrompt: string,
+  args: string[],
   userPrompt: string,
   timeoutMs: number,
-  model: string | undefined,
-  effort: string | undefined,
   onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean; resultLine?: string }> {
   const proc = Bun.spawn(
-    [CLAUDE_BINARY, ...buildClaudeArgs(systemPrompt, model, effort)],
+    [CLAUDE_BINARY, ...args],
     { cwd, env: safeChildEnv(), stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' },
   )
   proc.stdin.write(userPrompt)
@@ -207,6 +209,96 @@ async function runClaudeCode(
   return { stdout, timedOut, resultLine }
 }
 
+// -- chat (CC.1, Mes 29) ----------------------------------------------------------
+//
+// Reporte real de Carlos (2026-08-16): eligió "Claude" como executor_mode en
+// Settings y el chat siguió respondiendo por la API de OpenRouter — la config
+// no cambiaba nada ahí. Verificado en código: `handlers/chat.ts` llamaba
+// `runToolLoop('openrouter', ...)`/`openrouterChat(...)` sin mirar
+// `executor_mode` en absoluto; ese campo solo se consultaba para la tarea que
+// el chat auto-crea en segundo plano (D.7/E.16), nunca para la respuesta
+// conversacional visible.
+//
+// Deliberadamente SIN worktree y SIN Edit/Write: el chat no es una tarea con
+// contrato de output[], es una conversación. El guard de seguridad de
+// `externalEngine` ("nunca un proceso no controlado edita el repo real sin
+// worktree desechable") se cumple acá por el lado de los permisos en vez del
+// aislamiento de filesystem — sin Edit/Write en `--allowedTools`, el binario
+// no puede escribir nada aunque corra contra el proyecto real.
+function buildClaudeChatArgs(systemPrompt: string, model?: string): string[] {
+  const args = [
+    '-p',
+    '--output-format', 'stream-json',
+    '--include-partial-messages',
+    '--verbose',
+    '--append-system-prompt', systemPrompt,
+    '--allowedTools', 'Read,Glob,Grep',
+  ]
+  const cliModel = orchestosModelToCliModel(model)
+  if (cliModel) args.push('--model', cliModel)
+  return args
+}
+
+export interface ClaudeChatResult {
+  text: string
+  inputTokens: number
+  outputTokens: number
+  usd: number
+  model: string
+}
+
+/**
+ * CC.1 — respuesta conversacional vía Claude Code CLI, para `executor_mode:
+ * cli-claude`. `cwd` es el proyecto REAL (no un worktree): con `--allowedTools`
+ * limitado a lectura, no hay nada que un proceso descontrolado pueda dañar.
+ */
+export async function runClaudeChat(
+  cwd: string,
+  systemPrompt: string,
+  userMessage: string,
+  timeoutMs: number,
+  model?: string,
+): Promise<ClaudeChatResult> {
+  if (!findClaudeBinary()) {
+    throw new ExecutorExternalError(claudeUnavailableMessage(process.env.PATH))
+  }
+
+  let text = ''
+  const onStep = (step: ExecutorStepEvent) => {
+    if (step.type === 'text' && step.detail) text += step.detail
+  }
+
+  let timedOut: boolean
+  let resultLine: string | undefined
+  try {
+    ;({ timedOut, resultLine } = await runClaudeCode(cwd, buildClaudeChatArgs(systemPrompt, model), userMessage, timeoutMs, onStep))
+  } catch (e: any) {
+    throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
+  }
+
+  if (!resultLine) {
+    throw new ExecutorExternalError(
+      timedOut
+        ? `claude code timed out after ${timeoutMs}ms with no result event`
+        : `claude code produced no result event`,
+    )
+  }
+  let parsed: ClaudeCodeJson
+  try {
+    parsed = JSON.parse(resultLine)
+  } catch {
+    throw new ExecutorExternalError('claude code result event was not valid JSON')
+  }
+
+  return {
+    text,
+    inputTokens: parsed.usage?.input_tokens ?? 0,
+    outputTokens: parsed.usage?.output_tokens ?? 0,
+    usd: typeof parsed.total_cost_usd === 'number' ? parsed.total_cost_usd : 0,
+    model: orchestosModelToCliModel(model) ? model! : 'claude (cli default)',
+  }
+}
+
 // -- engine ------------------------------------------------------------------------
 
 export const externalEngine: ExecutorEngine = {
@@ -238,7 +330,7 @@ export const externalEngine: ExecutorEngine = {
     let timedOut: boolean
     let resultLine: string | undefined
     try {
-      ({ timedOut, resultLine } = await runClaudeCode(ctx.effectiveRoot, systemPrompt, ctx.prompt.userContent, timeoutMs, ctx.model, ctx.task.cli_effort, opts.onStep))
+      ({ timedOut, resultLine } = await runClaudeCode(ctx.effectiveRoot, buildClaudeArgs(systemPrompt, ctx.model, ctx.task.cli_effort), ctx.prompt.userContent, timeoutMs, opts.onStep))
     } catch (e: any) {
       throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
     }

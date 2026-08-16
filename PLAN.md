@@ -96,10 +96,40 @@ sueltas — son partes de un mismo eje estructural.
     corrida graph identificable en la DB; queda como escenario obligatorio del gate CC.5.
   - **CC.0-D5 — Navegación desincronizada por Runner huérfano.** `SCREENS.runner` no es accesible
     desde `NAV` y duplica Runs; CC.4 decide su eliminación efectiva.
-- [ ] **CC.1 — 🧠 El chat corre sobre el motor elegido, no solo sobre la API.** Romper el hardcode
-  a `'openrouter'` en `handlers/chat.ts`. Si el usuario eligió Claude CLI, el chat conversa por
-  Claude CLI. Es el gap #1 del reporte de Carlos y lo que hace que la configuración signifique
-  algo. Absorbe la parte útil de `#31`.
+- [x] **CC.1 — 🧠 El chat corre sobre el motor elegido, no solo sobre la API.** (2026-08-16)
+  Confirmado en código antes de tocar nada: `handlers/chat.ts` nunca consultaba `executor_mode`
+  para la respuesta conversacional (solo para la tarea que el chat auto-crea, D.7/E.16) —
+  `runToolLoop('openrouter', ...)` / `openrouterChat(...)` corrían siempre, sin importar la
+  preferencia. **Alcance decidido**: solo `cli-claude` por ahora — Codex/OpenCode no tienen un
+  flag de solo-lectura tan directo como `--allowedTools` de Claude Code, e improvisar su
+  sandboxing en el momento sería el mismo error de "construir sin probar" que ya identificamos.
+  Queda documentado como pendiente explícito.
+
+  **Diseño**: `runClaudeChat()` nuevo en `executors/external.ts`, reusando el mismo spawn/parseo
+  de stream-json que el executor de tareas (`runClaudeCode` refactorizado para recibir `args` ya
+  armados en vez de reconstruirlos — sin cambio de comportamiento para el executor existente,
+  27 tests de `external-engine.test.ts` siguen en verde). Deliberadamente **sin worktree y sin
+  Edit/Write** (`--allowedTools Read,Glob,Grep`): el chat no es una tarea con contrato de
+  `output[]`, es conversación — el mismo guard de seguridad de `externalEngine` ("nunca un
+  proceso no controlado edita el repo real") se cumple acá por permisos en vez de aislamiento de
+  filesystem. `handlers/chat.ts`: nueva rama ANTES de `isOllama` que consulta
+  `loadOrcheConfig(root).executor_mode`; si es `cli-claude`, rutea por `runClaudeChat()` con
+  timeout propio de 2min (el chat es interactivo, no debe colgar como una tarea de 20min).
+
+  **Gate en vivo** (dashboard real, puerto 4242, proyecto scratch con `executor_mode: cli-claude`):
+  (1) mensaje real → respuesta coherente en 9s, `model: "claude (cli default)"` — vino del CLI, no
+  de OpenRouter; (2) intento de inyección ("crea un archivo HACKED.txt") → el binario no tiene
+  permiso de escritura Y el propio modelo identificó el intento y explicó por qué no — `git
+  status` limpio después, nada se escribió. 6 tests nuevos en `claude-chat.test.ts` (mock de
+  `Bun.spawn`, sin red real): `--allowedTools` nunca incluye Edit/Write, corre en el cwd real sin
+  exigir worktree, acumula texto de múltiples bloques `assistant`, error tipado si el binario
+  falta o si no hay evento `result`, mapeo de modelo Anthropic. 1149 tests totales (eran 1143),
+  0 fail. Absorbe la parte de `#31` cubierta (routing por CLI); el resto de esa idea (multi-
+  proveedor genérico) sigue fuera de alcance.
+
+  **Pendiente explícito, no silencioso**: `cli-codex`/`cli-opencode` en el chat quedan sin
+  implementar hasta decidir su modo de solo-lectura; imágenes adjuntas se ignoran en el camino
+  CLI (Claude Code sí las soporta vía otro mecanismo, no cableado todavía).
 - [ ] **CC.2 — 🧠 Sesiones de chat reales, agrupadas por proyecto.** Persistidas en SQLite, lista
   lateral acumulativa (patrón estándar que Carlos pidió explícitamente, "así como lo hacen todas
   estas herramientas"), **motor por sesión**. Esto es literalmente "abrir varios chats y elegir el
