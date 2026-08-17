@@ -690,7 +690,25 @@ dentro de su propio bloque). Historial completo de los tres cierres → [DONE.md
   corregidas fuera de alcance. Insight decisivo: `INS-2026-005`; `INS-2026-004` evitó confundir
   coverage con capacidad real de detectar regresiones.
 
-- [ ] **GOV.2 — 🔍 Resolver audit de dependencias high sin actualización ciega.** Hallazgo del gate
+- [x] **GOV.2 — 🔍 Resolver audit de dependencias high sin actualización ciega.** (2026-08-17) Hallazgo del gate
   GOV.1: `bun audit` reporta `fast-uri >=3.0.0 <3.1.5` vía Stryker/Ajv y
   `brace-expansion >=4.0.0 <5.0.9` vía Stryker/minimatch y glob/minimatch. Evaluar actualización
   compatible y correr suite + mutation shards relevantes; no usar `bun update --latest` a ciegas.
+
+  **Resolución mínima:** no se actualizaron Stryker, Ajv, Glob ni Minimatch. `package.json` fija
+  overrides de `fast-uri: 3.1.5` y `brace-expansion: 5.0.9`; ambos permanecen dentro de los rangos
+  que sus padres ya aceptaban (`ajv@8.18.0` → `fast-uri ^3.0.1`; `minimatch@10.2.5` →
+  `brace-expansion ^5.0.5`). `bun.lock` confirma únicamente esos dos saltos de parche. Advisories
+  cerrados: `GHSA-7p8r-x3mc-p8w7` y `GHSA-rgw5-rvv9-x895`.
+
+  **Evidencia:** `bun pm ls --all` → `fast-uri@3.1.5`/`brace-expansion@5.0.9`; `bun audit
+  --audit-level high` ✅; `bunx tsc --noEmit` ✅; `bun run test:coverage` (1157 pass, 0 fail) ✅;
+  `bun run security:gate` completo ✅; `bun run mutation:qa` arrancó Stryker, ejecutó 429 mutantes
+  y terminó en 4m01s con score 46.79% ✅. La fuente primaria (GitHub Advisory Database) y el
+  registry npm confirman las primeras versiones corregidas. Insight aplicado: `INS-2026-005` —
+  cambio acotado, sin actualización multi-capa.
+
+- [ ] **GOV.3 — 🔍 Evaluar advisory moderate de `qs` sin mezclar alcance.** El audit total posterior
+  a GOV.2 conserva `GHSA-q8mj-m7cp-5q26`: `qs@6.15.1` llega fijado exactamente por
+  `typed-rest-client@2.3.1` dentro de Stryker. No bloquea `security:gate` (`high+`), pero debe
+  evaluarse por separado antes de forzar un override sobre una dependencia con versión exacta.
