@@ -196,7 +196,7 @@ describe('G.3 — executor engine selection', () => {
     }
   })
 
-  it('orcheConfig.executorEngine=agentic applies as project-level default when the task does not declare its own engine', async () => {
+  it('orcheConfig.apiMode=agentic applies as project-level default when the task does not declare its own engine', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'project default agentic' } }]),
@@ -208,7 +208,7 @@ describe('G.3 — executor engine selection', () => {
     try {
       const task = baseTask({ executor_model: 'anthropic/claude-haiku-4-5' })
       const { DEFAULT_CONFIG } = await import('../config/schema.ts')
-      const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, executorEngine: 'agentic' }
+      const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, apiMode: 'agentic' }
       const result = await callRunTask(task, dir, { orcheConfig })
       expect(result.status).toBe('done')
       expect(readFileSync(join(dir, 'out.txt'), 'utf-8')).toBe('project default agentic')
@@ -247,13 +247,13 @@ describe('B.2 — executor engine: external', () => {
     }, 0)).toThrow(/unknown engine 'bogus2'.*external/)
   })
 
-  it('loadOrcheConfig resuelve executorEngine="external"', () => {
+  it('loadOrcheConfig migra executorEngine="external" (legacy) a agent="claude" (CC.D1)', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-b2-ext-cfg-'))
     try {
       writeFileSync(join(home, 'orchestos.config.yaml'),
         'config_version: 1\nexecutorEngine: external\nmodels: {}\n', 'utf-8')
       const cfg = loadOrcheConfig(home)
-      expect(cfg.executorEngine).toBe('external')
+      expect(cfg.agent).toBe('claude')
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -283,37 +283,37 @@ describe('B.2 — executor engine: external', () => {
     }
   })
 
-  // G.4.1 — executor_mode: preferencia persistente del usuario.
-  it('loadOrcheConfig resuelve executor_mode="cli-opencode"', () => {
+  // CC.D1 (antes G.4.1) — executor_mode (legacy) migra a agent en la carga.
+  it('loadOrcheConfig migra executor_mode="cli-opencode" (legacy) a agent="opencode"', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-g41-mode-'))
     try {
       writeFileSync(join(home, 'orchestos.config.yaml'),
         'config_version: 1\nexecutor_mode: cli-opencode\nmodels: {}\n', 'utf-8')
       const cfg = loadOrcheConfig(home)
-      expect(cfg.executor_mode).toBe('cli-opencode')
+      expect(cfg.agent).toBe('opencode')
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
   })
 
-  it('loadOrcheConfig ignora executor_mode con valor desconocido (no rompe, undefined)', () => {
+  it('loadOrcheConfig ignora executor_mode legacy con valor desconocido (no rompe, agent undefined)', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-g41-mode-bad-'))
     try {
       writeFileSync(join(home, 'orchestos.config.yaml'),
         'config_version: 1\nexecutor_mode: not-a-real-mode\nmodels: {}\n', 'utf-8')
       const cfg = loadOrcheConfig(home)
-      expect(cfg.executor_mode).toBeUndefined()
+      expect(cfg.agent).toBeUndefined()
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
   })
 
-  it('loadOrcheConfig sin executor_mode → undefined (sin preferencia guardada)', () => {
+  it('loadOrcheConfig sin executor_mode ni agent → undefined (sin preferencia guardada)', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-g41-mode-absent-'))
     try {
       writeFileSync(join(home, 'orchestos.config.yaml'), 'config_version: 1\nmodels: {}\n', 'utf-8')
       const cfg = loadOrcheConfig(home)
-      expect(cfg.executor_mode).toBeUndefined()
+      expect(cfg.agent).toBeUndefined()
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -346,23 +346,23 @@ describe('B.2 — executor engine: external', () => {
   })
 })
 
-// ── BB.1 (2026-08-16) — executor_mode aplica a TODA tarea ─────────────────────
+// ── BB.1 (2026-08-16), renombrado a `agent` en CC.D1 — aplica a TODA tarea ────
 //
-// Antes de BB.1, `executor_mode` se leía en UN SOLO punto del runtime
-// (dashboard/handlers/chat.ts) — una tarea corrida por CLI o escrita a mano en
-// tasks.yaml lo ignoraba por completo, así que la config decía una cosa y el
-// sistema hacía otra en silencio (reporte real de Carlos, 2026-08-16).
+// Antes de BB.1, `executor_mode` (hoy `agent`) se leía en UN SOLO punto del
+// runtime (dashboard/handlers/chat.ts) — una tarea corrida por CLI o escrita
+// a mano en tasks.yaml lo ignoraba por completo, así que la config decía una
+// cosa y el sistema hacía otra en silencio (reporte real de Carlos, 2026-08-16).
 //
 // Mismo truco de verificación que el test de B.2 de arriba: `external` rechaza
 // sandbox 'cwd' con un error canónico, así que ver ESE error es la prueba de que
-// el harness efectivamente seleccionó ese engine — acá vía executor_mode, no vía
+// el harness efectivamente seleccionó ese engine — acá vía agent, no vía
 // task.engine.
-describe('BB.1 — executor_mode decide el engine de tareas manuales', () => {
-  it('executor_mode "cli-claude" selecciona external aunque la tarea no declare engine', async () => {
+describe('BB.1 — agent decide el engine de tareas manuales', () => {
+  it('agent "claude" selecciona external aunque la tarea no declare engine', async () => {
     const originalWhich = Bun.which
     ;(Bun as any).which = (_bin: string) => '/usr/local/bin/claude'
     const { DEFAULT_CONFIG } = await import('../config/schema.ts')
-    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, executor_mode: 'cli-claude' }
+    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, agent: 'claude' }
     const dir = tmpDir()
     try {
       const result = await callRunTask(baseTask(), dir, { orcheConfig, modelOverride: 'anthropic/claude-haiku-4-5' })
@@ -374,8 +374,8 @@ describe('BB.1 — executor_mode decide el engine de tareas manuales', () => {
     }
   })
 
-  it('task.engine gana sobre executor_mode (override explícito por tarea)', async () => {
-    // executor_mode pide cli-claude (external) pero la tarea declara single-shot:
+  it('task.engine gana sobre agent (override explícito por tarea)', async () => {
+    // agent pide claude (external) pero la tarea declara single-shot:
     // gana la tarea. Si la precedencia estuviera invertida, esto fallaría con el
     // error de worktree de external en vez de completar.
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
@@ -384,7 +384,7 @@ describe('BB.1 — executor_mode decide el engine de tareas manuales', () => {
       () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
     ])
     const { DEFAULT_CONFIG } = await import('../config/schema.ts')
-    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, executor_mode: 'cli-claude' }
+    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, agent: 'claude' }
     const dir = tmpDir()
     try {
       const task = baseTask({ engine: 'single-shot' })
@@ -396,9 +396,9 @@ describe('BB.1 — executor_mode decide el engine de tareas manuales', () => {
     }
   })
 
-  it('executor_mode "api" deja pasar a executorEngine (refina cómo corre, no dónde)', async () => {
-    // 'api' devuelve {} en resolveExecutorSelection → fallthrough a executorEngine.
-    // Con executorEngine 'agentic' y un modelo con tool-calling, corre agentic.
+  it('agent "api" deja pasar a apiMode (refina cómo corre, no dónde)', async () => {
+    // 'api' devuelve {} en resolveAgentSelection → fallthrough a apiMode.
+    // Con apiMode 'agentic' y un modelo con tool-calling, corre agentic.
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'agentic via api mode' } }]),
@@ -406,7 +406,7 @@ describe('BB.1 — executor_mode decide el engine de tareas manuales', () => {
       () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
     ])
     const { DEFAULT_CONFIG } = await import('../config/schema.ts')
-    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, executor_mode: 'api', executorEngine: 'agentic' }
+    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, agent: 'api', apiMode: 'agentic' }
     const dir = tmpDir()
     try {
       const result = await callRunTask(baseTask(), dir, { orcheConfig, modelOverride: 'anthropic/claude-haiku-4-5' })

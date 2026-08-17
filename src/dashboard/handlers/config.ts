@@ -1,14 +1,18 @@
 import { resolve, join } from 'path'
 import { existsSync, writeFileSync } from 'fs'
 import { stringify as yamlStringify } from 'yaml'
-import { loadOrcheConfig, scaffoldConfigYaml, EXECUTOR_MODES } from '../../config/load.ts'
-import type { OrcheConfig, ExecutorMode } from '../../config/schema.ts'
+import { loadOrcheConfig, scaffoldConfigYaml, AGENT_CHOICES } from '../../config/load.ts'
+import type { OrcheConfig, AgentChoice } from '../../config/schema.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 
-const EXECUTOR_ENGINES = ['single-shot', 'agentic', 'external'] as const
+// CC.D1 (2026-08-17) — `apiMode` solo tiene sentido cuando `agent` es 'api' (o
+// ausente): un CLI no expone la distinción single-shot/agentic, la decide el
+// binario. Antes esto vivía mezclado dentro de `executorEngine` junto con los
+// valores CLI (external/opencode/codex) — separado ahora, ver schema.ts.
+const API_MODES = ['single-shot', 'agentic'] as const
 
 const ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa'] as const
 
@@ -56,17 +60,19 @@ export async function handleApiConfigGet(): Promise<Response> {
     configFound,
     roles,
     pendingRouting,
-    executorEngine: cfg.executorEngine ?? 'single-shot',
+    // CC.D1 (2026-08-17) — `executorEngine` renombrado a `apiMode` (solo aplica
+    // cuando `agent` es 'api'/ausente). `executor_mode` renombrado a `agent`.
+    apiMode: cfg.apiMode ?? 'single-shot',
     // CC.1b bugfix (2026-08-17) — hallazgo real de Carlos: bajó el server varias
     // veces y el selector de esfuerzo del chat seguía mostrando 3 niveles en vez
-    // de 5. Causa real: este endpoint nunca devolvía `executor_mode` — el PUT
-    // (más abajo) sí lo escribía al YAML, pero el GET no lo leía de vuelta. El
-    // label de la respuesta del chat SÍ reflejaba el CLI (ese código lee
-    // loadOrcheConfig() directo en el servidor, sin pasar por este endpoint) —
-    // pero el frontend (buildChatModelFx) depende de `/api/config` para saber el
-    // modo activo, así que `executor_mode` quedaba `undefined` ahí siempre,
-    // sin importar cuántas veces se reiniciara el servidor.
-    executor_mode: cfg.executor_mode ?? null,
+    // de 5. Causa real: este endpoint nunca devolvía la preferencia de agente —
+    // el PUT (más abajo) sí la escribía al YAML, pero el GET no la leía de
+    // vuelta. El label de la respuesta del chat SÍ reflejaba el CLI (ese código
+    // lee loadOrcheConfig() directo en el servidor, sin pasar por este
+    // endpoint) — pero el frontend (buildChatModelFx) depende de `/api/config`
+    // para saber el agente activo, así que quedaba `undefined` ahí siempre, sin
+    // importar cuántas veces se reiniciara el servidor.
+    agent: cfg.agent ?? null,
     agenticMaxIterations: cfg.agentic?.maxIterations ?? 15,
     externalTimeoutMinutes: Math.round((cfg.external?.timeoutMs ?? 20 * 60 * 1000) / 60000),
     claudeCliDetected: findClaudeBinary() !== null,
@@ -96,19 +102,20 @@ export async function handleApiConfigInit(): Promise<Response> {
 export async function handleApiConfigSet(req: Request): Promise<Response> {
   let body: {
     roles?: Record<string, string>
-    executorEngine?: string
+    apiMode?: string
     agenticMaxIterations?: number
     externalTimeoutMinutes?: number
-    /** G.4.4 — preferencia persistente de executor_mode. `null` limpia la preferencia
-     * guardada (vuelve a "Auto" — la cascada sugiere, ver [[feedback-deteccion-no-decision-automatica]]). */
-    executorMode?: ExecutorMode | null
+    /** CC.D1 (era G.4.4, `executorMode`) — preferencia persistente de agente. `null`
+     * limpia la preferencia guardada (vuelve a "Auto" — la cascada sugiere, ver
+     * [[feedback-deteccion-no-decision-automatica]]). */
+    agent?: AgentChoice | null
   }
   try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
   if (body.roles !== undefined && typeof body.roles !== 'object') return errorResponse('roles must be an object', 400)
-  if (body.executorMode !== undefined && body.executorMode !== null && !EXECUTOR_MODES.includes(body.executorMode)) {
-    return errorResponse(`executorMode must be one of: ${EXECUTOR_MODES.join(', ')}`, 400)
+  if (body.agent !== undefined && body.agent !== null && !AGENT_CHOICES.includes(body.agent)) {
+    return errorResponse(`agent must be one of: ${AGENT_CHOICES.join(', ')}`, 400)
   }
-  if (!body.roles && body.executorEngine === undefined && body.agenticMaxIterations === undefined && body.externalTimeoutMinutes === undefined && body.executorMode === undefined) {
+  if (!body.roles && body.apiMode === undefined && body.agenticMaxIterations === undefined && body.externalTimeoutMinutes === undefined && body.agent === undefined) {
     return errorResponse('nothing to save', 400)
   }
 
@@ -133,8 +140,8 @@ export async function handleApiConfigSet(req: Request): Promise<Response> {
 
   const newConfig: OrcheConfig = { ...current, models }
 
-  if (typeof body.executorEngine === 'string' && (EXECUTOR_ENGINES as readonly string[]).includes(body.executorEngine)) {
-    newConfig.executorEngine = body.executorEngine as OrcheConfig['executorEngine']
+  if (typeof body.apiMode === 'string' && (API_MODES as readonly string[]).includes(body.apiMode)) {
+    newConfig.apiMode = body.apiMode as OrcheConfig['apiMode']
   }
   if (typeof body.agenticMaxIterations === 'number' && Number.isFinite(body.agenticMaxIterations) && body.agenticMaxIterations > 0) {
     newConfig.agentic = { maxIterations: Math.round(body.agenticMaxIterations) }
@@ -142,10 +149,10 @@ export async function handleApiConfigSet(req: Request): Promise<Response> {
   if (typeof body.externalTimeoutMinutes === 'number' && Number.isFinite(body.externalTimeoutMinutes) && body.externalTimeoutMinutes > 0) {
     newConfig.external = { timeoutMs: Math.round(body.externalTimeoutMinutes * 60000) }
   }
-  if (body.executorMode === null) {
-    delete newConfig.executor_mode
-  } else if (body.executorMode !== undefined) {
-    newConfig.executor_mode = body.executorMode
+  if (body.agent === null) {
+    delete newConfig.agent
+  } else if (body.agent !== undefined) {
+    newConfig.agent = body.agent
   }
 
   writeFileSync(configPath, yamlStringify(newConfig), 'utf8')

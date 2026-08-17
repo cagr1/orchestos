@@ -1,5 +1,28 @@
 # OrchestOS — Instrucciones para Claude / LLMs
 
+## Regla cero — vale para CUALQUIER LLM, no solo Claude (2026-08-17, ESTRICTA)
+
+Este archivo, `PLAN.md` y `AGENTS.md` no son sugerencias para un asistente en particular.
+Aplican por igual a Claude, Codex, DeepSeek, opencode o cualquier otro modelo/CLI que
+trabaje en este repo. **Antes de tocar código**, el agente debe leer este archivo y la
+sección relevante de `PLAN.md`; si va a cerrar un ítem, debe verificar que no repite un
+patrón ya documentado como fallo (ver `LEDGER.md` y memorias de tipo feedback).
+
+Motivo real, incidente 2026-08-17: el hook `.git/hooks/pre-commit` (no versionado por
+git) estuvo 11 días desincronizado de su fuente (`scripts/pre-commit.sh`) — el paso de
+`security:secrets` se agregó a la fuente el 29-jul y nadie reinstaló el hook, así que
+todos los commits pasaron sin ese chequeo, en silencio, sin error visible. Es el mismo
+patrón de fondo que el "botón que no hace nada" en el dashboard: una regla escrita que
+nadie hace cumplir mecánicamente deja de existir en la práctica. Corregido con un
+self-check en el propio pre-commit (compara `scripts/*.sh` vs `.git/hooks/*`, aborta el
+commit si difieren).
+
+**No se admite más "interfaz que no aporta":** ningún botón, config o pantalla se
+entrega sin verificar en vivo (dashboard real corriendo, no mocks) que hace lo que dice
+que hace — ver `feedback-verificar-gates-en-vivo` y `feedback-dashboard-no-solo-cli` en
+memoria. Si una feature no se puede verificar en el momento, se dice explícitamente en
+vez de reportarse como lista.
+
 ## Identidad git — PROHIBIDO modificar
 
 El email y nombre de git ya están configurados globalmente y son correctos.

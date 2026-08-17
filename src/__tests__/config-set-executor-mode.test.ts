@@ -1,5 +1,5 @@
 /**
- * G.4.4 — handleApiConfigSet(): validación y persistencia de `executorMode`.
+ * CC.D1 — handleApiConfigSet(): validación y persistencia de `agent`.
  *
  * `handleApiConfigSet` resuelve el path de escritura con `resolve('.')`
  * (cwd), sin parámetro de root inyectable — mismo patrón que el resto de
@@ -26,57 +26,57 @@ function req(body: unknown): Request {
 const originalCwd = process.cwd()
 afterEach(() => process.chdir(originalCwd))
 
-describe('handleApiConfigSet — executorMode', () => {
+describe('handleApiConfigSet — agent', () => {
   it('valor inválido → 400, no escribe nada (cwd real intacto)', async () => {
-    const res = await handleApiConfigSet(req({ executorMode: 'not-a-real-mode' }))
+    const res = await handleApiConfigSet(req({ agent: 'not-a-real-agent' }))
     expect(res.status).toBe(400)
   })
 
-  it('solo executorMode undefined y nada más → 400 "nothing to save"', async () => {
+  it('body vacío → 400 "nothing to save"', async () => {
     const res = await handleApiConfigSet(req({}))
     expect(res.status).toBe(400)
   })
 
-  it('executorMode válido → persiste en orchestos.config.yaml (dir temporal)', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'orchestos-g44-cfgset-'))
+  it('agent válido → persiste en orchestos.config.yaml (dir temporal)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'orchestos-ccd1-cfgset-'))
     try {
       process.chdir(dir)
-      const res = await handleApiConfigSet(req({ executorMode: 'cli-opencode' }))
+      const res = await handleApiConfigSet(req({ agent: 'opencode' }))
       expect(res.status).toBe(200)
       const cfg = loadOrcheConfig(dir)
-      expect(cfg.executor_mode).toBe('cli-opencode')
+      expect(cfg.agent).toBe('opencode')
     } finally {
       process.chdir(originalCwd)
       rmSync(dir, { recursive: true, force: true })
     }
   })
 
-  it('executorMode: null → limpia la preferencia guardada (vuelve a undefined)', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'orchestos-g44-cfgset-clear-'))
+  it('agent: null → limpia la preferencia guardada (vuelve a undefined)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'orchestos-ccd1-cfgset-clear-'))
     try {
       process.chdir(dir)
-      await handleApiConfigSet(req({ executorMode: 'cli-claude' }))
-      expect(loadOrcheConfig(dir).executor_mode).toBe('cli-claude')
+      await handleApiConfigSet(req({ agent: 'claude' }))
+      expect(loadOrcheConfig(dir).agent).toBe('claude')
 
-      const res = await handleApiConfigSet(req({ executorMode: null }))
+      const res = await handleApiConfigSet(req({ agent: null }))
       expect(res.status).toBe(200)
-      expect(loadOrcheConfig(dir).executor_mode).toBeUndefined()
+      expect(loadOrcheConfig(dir).agent).toBeUndefined()
     } finally {
       process.chdir(originalCwd)
       rmSync(dir, { recursive: true, force: true })
     }
   })
 
-  it('no toca otros campos existentes del config al setear solo executorMode', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'orchestos-g44-cfgset-preserve-'))
+  it('no toca otros campos existentes del config al setear solo agent', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'orchestos-ccd1-cfgset-preserve-'))
     try {
       process.chdir(dir)
-      await handleApiConfigSet(req({ executorEngine: 'agentic' }))
-      const res = await handleApiConfigSet(req({ executorMode: 'api' }))
+      await handleApiConfigSet(req({ apiMode: 'agentic' }))
+      const res = await handleApiConfigSet(req({ agent: 'api' }))
       expect(res.status).toBe(200)
       const cfg = loadOrcheConfig(dir)
-      expect(cfg.executorEngine).toBe('agentic')
-      expect(cfg.executor_mode).toBe('api')
+      expect(cfg.apiMode).toBe('agentic')
+      expect(cfg.agent).toBe('api')
     } finally {
       process.chdir(originalCwd)
       rmSync(dir, { recursive: true, force: true })

@@ -284,8 +284,8 @@ const App = {
       state.orcheConfigStatus = 'error';
     }
   },
-  // G.4.4 — detección (qué CLI/tier hay disponible) + selección (executor_mode
-  // guardado) para el selector segmentado de Settings.
+  // G.4.4 — detección (qué CLI/tier hay disponible) + selección (agente
+  // guardado, CC.D1) para el selector segmentado de Settings.
   async fetchExecutorModes() {
     state.executorModesStatus = 'loading';
     try {
@@ -1956,12 +1956,12 @@ function buildChatModelFx(st) {
     : [{ id: val, name: val, priceIn: 0 }, ...cloudSource];
   const modelLabel = isLoading ? t('common.loading') : shortModelLabel(val, allCloud);
   // CC.1b (2026-08-16) — hallazgo real de Carlos: el chat corriendo vía Claude
-  // Code CLI (executor_mode: cli-claude) mostraba el selector de 3 niveles
+  // Code CLI (agent: claude, CC.D1) mostraba el selector de 3 niveles
   // pensado para el `reasoning` de OpenRouter, cuando el CLI real acepta 5
-  // (`claude --help`: low/medium/high/xhigh/max). El modo es una preferencia
+  // (`claude --help`: low/medium/high/xhigh/max). El agente es una preferencia
   // de PROYECTO (Settings), no depende del modelo elegido en este combo — a
   // diferencia de `modelSupportsReasoning`, que sí es por-modelo.
-  const useClaudeCli = st.orcheConfig?.executor_mode === 'cli-claude';
+  const useClaudeCli = st.orcheConfig?.agent === 'claude';
   const effortLevels = useClaudeCli ? CLAUDE_CLI_EFFORT_LEVELS : ['low', 'medium', 'high'];
   const effortAvailable = useClaudeCli || modelSupportsReasoning(val, st.orModels);
   const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null;

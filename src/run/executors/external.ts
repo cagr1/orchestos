@@ -211,13 +211,14 @@ async function runClaudeCode(
 
 // -- chat (CC.1, Mes 29) ----------------------------------------------------------
 //
-// Reporte real de Carlos (2026-08-16): eligió "Claude" como executor_mode en
+// Reporte real de Carlos (2026-08-16): eligió "Claude" como agente en
 // Settings y el chat siguió respondiendo por la API de OpenRouter — la config
 // no cambiaba nada ahí. Verificado en código: `handlers/chat.ts` llamaba
-// `runToolLoop('openrouter', ...)`/`openrouterChat(...)` sin mirar
-// `executor_mode` en absoluto; ese campo solo se consultaba para la tarea que
-// el chat auto-crea en segundo plano (D.7/E.16), nunca para la respuesta
-// conversacional visible.
+// `runToolLoop('openrouter', ...)`/`openrouterChat(...)` sin mirar el agente
+// en absoluto; ese campo solo se consultaba para la tarea que el chat
+// auto-crea en segundo plano (D.7/E.16), nunca para la respuesta
+// conversacional visible. (Campo renombrado de `executor_mode` a `agent` en
+// CC.D1, 2026-08-17.)
 //
 // Deliberadamente SIN worktree y SIN Edit/Write: el chat no es una tarea con
 // contrato de output[], es una conversación. El guard de seguridad de
@@ -262,9 +263,9 @@ export interface ClaudeChatResult {
 }
 
 /**
- * CC.1 — respuesta conversacional vía Claude Code CLI, para `executor_mode:
- * cli-claude`. `cwd` es el proyecto REAL (no un worktree): con `--allowedTools`
- * limitado a lectura, no hay nada que un proceso descontrolado pueda dañar.
+ * CC.1 — respuesta conversacional vía Claude Code CLI, para `agent: claude`.
+ * `cwd` es el proyecto REAL (no un worktree): con `--allowedTools` limitado a
+ * lectura, no hay nada que un proceso descontrolado pueda dañar.
  */
 export async function runClaudeChat(
   cwd: string,

@@ -512,10 +512,10 @@ SCREENS.chat = {
         };
         if (sentFileIds.length) body.fileIds = sentFileIds;
         // FRONT.1 — solo se manda si el control está visible (modelo con supportsReasoning:true).
-        // CC.1b (2026-08-16) — con executor_mode: cli-claude, el control SÍ está visible
+        // CC.1b (2026-08-16) — con agent: claude (CC.D1), el control SÍ está visible
         // (buildChatModelFx) aunque `modelSupportsReasoning` no lo sepa — ese chequeo es
         // del catálogo de OpenRouter, ajeno al CLI.
-        const chatUsesClaudeCli = st.orcheConfig && st.orcheConfig.executor_mode === 'cli-claude';
+        const chatUsesClaudeCli = st.orcheConfig && st.orcheConfig.agent === 'claude';
         if (chatUsesClaudeCli || modelSupportsReasoning(st.chatModel, st.orModels)) body.effort = st.chatEffort || 'medium';
         const res = await fetch('/api/chat', {
           method: 'POST',

@@ -1261,13 +1261,14 @@ SCREENS.settings = {
         ${previewInline}
       </div>`;
   },
-  // G.4.4 — selector de `executor_mode` (preferencia de CÓMO corre el chat las
-  // tareas de build que auto-crea, D.7/G.2). Eje DISTINTO al executorPanel()
-  // de abajo (ese es el motor por defecto para tareas manuales sin `engine:`
-  // propio). Detección vía GET /api/system/executor-modes (G.4.3) — la
-  // cascada solo SUGIERE cuando no hay preferencia guardada ('auto' acá);
-  // elegir un modo no-detectado se permite igual (se guarda, se usa cuando
-  // se instale) — [[feedback-deteccion-no-decision-automatica]].
+  // G.4.4 — selector de `agent` (CC.D1; preferencia de CÓMO corre el chat las
+  // tareas de build que auto-crea, D.7/G.2, y ahora también el chat mismo,
+  // CC.1). Eje DISTINTO al executorPanel() de abajo (ese es `apiMode`, solo
+  // aplica cuando el agente es la API propia). Detección vía GET
+  // /api/system/executor-modes (G.4.3) — la cascada solo SUGIERE cuando no
+  // hay preferencia guardada ('auto' acá); elegir un agente no-detectado se
+  // permite igual (se guarda, se usa cuando se instale) —
+  // [[feedback-deteccion-no-decision-automatica]].
   // H.1 — tab de consumo/gasto (graduación de IDEAS #27). GET /api/usage
   // (handler delegado a Codex, revisado + testeado aparte) devuelve
   // byDayModel: [{date,model,usd,runs,inputTokens,outputTokens}] — toda la
@@ -1395,6 +1396,11 @@ SCREENS.settings = {
       ${this.buildUsageByModel(data.byDayModel, range)}
     </div>`;
   },
+  // CC.D1 (Mes 29, 2026-08-17) — `executor_mode`/valores `cli-*` renombrados a
+  // `agent` (`claude`/`opencode`/`codex`, sin el prefijo `cli-` redundante: ya
+  // implica CLI). El timeout del CLI (antes en `executorPanel`, atado a un
+  // valor 'external' que ya no existe como apiMode) se movió acá — es una
+  // afinación específica del agente `claude`, no de cómo se llama a la API.
   executorModePanel(st) {
     if (st.executorModesStatus === 'loading' || st.executorModesStatus === 'idle') {
       return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
@@ -1403,10 +1409,11 @@ SCREENS.settings = {
     if (st.executorModesStatus === 'error' || !data) {
       return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
     }
+    const cfg = st.orcheConfig;
     const pending = st.executorModePending;
     const current = pending !== undefined ? pending : (data.selected || 'auto');
     const byId = new Map((data.modes || []).map(m => [m.id, m]));
-    const OPTIONS = ['auto', 'local', 'cli-claude', 'cli-opencode', 'cli-codex', 'api'];
+    const OPTIONS = ['auto', 'local', 'claude', 'opencode', 'codex', 'api'];
 
     const opts = OPTIONS.map(id => {
       const info = byId.get(id);
@@ -1424,6 +1431,14 @@ SCREENS.settings = {
       ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('settings.executorMode.notDetected')}</p>`
       : '';
 
+    // El timeout de Claude CLI (config.external.timeoutMs) solo aplica cuando
+    // el agente elegido es 'claude' — trasplantado de executorPanel (ver arriba).
+    const claudeTimeoutRow = current === 'claude' && cfg
+      ? `<div class="engine-tune-row"><label>${t('settings.executor.timeoutMinutes')}</label>
+          <input type="number" id="executor-timeout-minutes" min="1" step="1" value="${esc(String(cfg.externalTimeoutMinutes ?? 20))}"></div>
+        <p class="engine-desc">${esc(t('settings.executor.timeoutMinutes.hint'))}</p>`
+      : '';
+
     return `<div class="card settings-card" data-exec-mode="${esc(current)}">
       <div class="settings-header"><h3>${t('settings.executorMode.title')}</h3>
         <p class="muted" style="margin:0;font-size:12.5px">${t('settings.executorMode.subtitle')}</p>
@@ -1431,16 +1446,21 @@ SCREENS.settings = {
       <div class="engine-picker">${opts}</div>
       <p class="engine-desc">${esc(t('settings.executorMode.desc.' + current))}</p>
       ${notDetectedNote}
+      ${claudeTimeoutRow}
       <div class="settings-foot" style="margin-top:8px">
         <span style="flex:1"></span>
         <button class="btn primary" data-act="save-exec-mode">${ICON.check} ${t('settings.executorMode.save')}</button>
       </div>
     </div>`;
   },
-  // Redisño 2026-07-17 — el motor de ejecución por defecto (executorEngine
-  // en orchestos.config.yaml) solo vivía en YAML/CLI, sin superficie en el
+  // Redisño 2026-07-17 — el modo de ejecución de la API propia (apiMode en
+  // orchestos.config.yaml) solo vivía en YAML/CLI, sin superficie en el
   // dashboard (regla: feedback-dashboard-no-solo-cli). Reusa el patrón visual
   // de theme-picker (cards + estado activo) en vez de un <select> genérico.
+  // CC.D1 (2026-08-17) — 'external' YA NO es una opción acá: era el mismo
+  // concepto que hoy es `agent: claude` (ver executorModePanel arriba), solo
+  // que mezclado con single-shot/agentic bajo el nombre viejo `executorEngine`.
+  // apiMode solo tiene sentido cuando el agente es la API propia.
   executorPanel(st) {
     const cfg = st.orcheConfig;
     if (st.orcheConfigStatus === 'loading' || st.orcheConfigStatus === 'idle') {
@@ -1449,34 +1469,24 @@ SCREENS.settings = {
     if (st.orcheConfigStatus === 'error' || !cfg) {
       return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
     }
-    const engine = cfg.executorEngine || 'single-shot';
-    const ENGINES = [
+    const mode = cfg.apiMode || 'single-shot';
+    const MODES = [
       { id: 'single-shot', icon: ICON.bolt },
       { id: 'agentic',     icon: ICON.refresh },
-      { id: 'external',    icon: ICON.term },
     ];
-    const opts = ENGINES.map(e => `
-      <button class="engine-opt${engine === e.id ? ' active' : ''}" data-engine-opt="${e.id}">
+    const opts = MODES.map(e => `
+      <button class="engine-opt${mode === e.id ? ' active' : ''}" data-api-mode-opt="${e.id}">
         ${e.icon}<span>${esc(t(`settings.executor.opt.${e.id}.label`))}</span>
-        ${engine === e.id ? `<span class="engine-opt-check">${ICON.check}</span>` : ''}
+        ${mode === e.id ? `<span class="engine-opt-check">${ICON.check}</span>` : ''}
       </button>`).join('');
-    const activeDesc = t(`settings.executor.opt.${engine}.desc`);
+    const activeDesc = t(`settings.executor.opt.${mode}.desc`);
 
-    const cliBadge = cfg.claudeCliDetected
-      ? `<span class="badge green square">${ICON.check} ${t('settings.executor.external.detected')}</span>`
-      : `<span class="badge gray square">${esc(t('settings.executor.external.unavailable', 'https://claude.com/download'))}</span>`;
-
-    const tuneRow = engine === 'agentic'
+    const tuneRow = mode === 'agentic'
       ? `<div class="engine-tune-row"><label>${t('settings.executor.maxIterations')}</label>
           <input type="number" id="executor-max-iterations" min="1" step="1" value="${esc(String(cfg.agenticMaxIterations ?? 15))}"></div>`
-      : engine === 'external'
-      ? `<div class="engine-tune-row"><label>${t('settings.executor.timeoutMinutes')}</label>
-          <input type="number" id="executor-timeout-minutes" min="1" step="1" value="${esc(String(cfg.externalTimeoutMinutes ?? 20))}">
-          ${cliBadge}</div>
-        <p class="engine-desc">${esc(t('settings.executor.timeoutMinutes.hint'))}</p>`
       : '';
 
-    return `<div class="card settings-card" data-executor-engine="${esc(engine)}">
+    return `<div class="card settings-card" data-api-mode="${esc(mode)}">
       <div class="settings-header"><h3>${t('settings.executor.title')}</h3>
         <p class="muted" style="margin:0;font-size:12.5px">${t('settings.executor.subtitle')}</p>
       </div>
@@ -1679,8 +1689,8 @@ SCREENS.settings = {
       App.rerender();
     }));
 
-    // G.4.4 — executor_mode picker: clic cambia state.executorModePending local
-    // (sin round-trip), el POST real ocurre recién al tocar "Guardar".
+    // CC.D1 (era G.4.4) — agent picker: clic cambia state.executorModePending
+    // local (sin round-trip), el POST real ocurre recién al tocar "Guardar".
     root.querySelectorAll('[data-exec-mode-opt]').forEach(btn => btn.addEventListener('click', () => {
       state.executorModePending = btn.dataset.execModeOpt;
       App.rerender();
@@ -1688,19 +1698,24 @@ SCREENS.settings = {
 
     root.querySelector('[data-act="save-exec-mode"]')?.addEventListener('click', async () => {
       const current = root.querySelector('[data-exec-mode]')?.dataset.execMode || 'auto';
-      const executorMode = current === 'auto' ? null : current;
+      const agent = current === 'auto' ? null : current;
+      const body = { agent };
+      // El timeout de Claude CLI vive en este panel cuando el agente es 'claude'
+      // (ver executorModePanel) — se manda junto si el input está presente.
+      const timeoutEl = root.querySelector('#executor-timeout-minutes');
+      if (timeoutEl?.value) body.externalTimeoutMinutes = Number(timeoutEl.value);
       const btn = root.querySelector('[data-act="save-exec-mode"]');
       btn.disabled = true;
       try {
         const res = await fetch('/api/config', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ executorMode }),
+          body: JSON.stringify(body),
         });
         if (res.ok) {
           showToast(t('settings.executorMode.saveDone'));
           state.executorModePending = undefined;
-          await App.fetchExecutorModes();
+          await Promise.all([App.fetchExecutorModes(), App.fetchOrcheConfig()]);
           App.rerender();
         } else {
           const data = await res.json();
@@ -1713,22 +1728,22 @@ SCREENS.settings = {
       }
     });
 
-    // Executor engine picker — clic en una card cambia st.orcheConfig localmente
-    // (sin round-trip) y rerenderiza, igual que el theme-picker; el POST real
-    // ocurre recién al tocar "Guardar" (save-executor), no por card.
-    root.querySelectorAll('[data-engine-opt]').forEach(btn => btn.addEventListener('click', () => {
-      if (state.orcheConfig) state.orcheConfig.executorEngine = btn.dataset.engineOpt;
+    // API mode picker (single-shot/agentic) — clic en una card cambia
+    // st.orcheConfig localmente (sin round-trip) y rerenderiza, igual que el
+    // theme-picker; el POST real ocurre recién al tocar "Guardar" (save-executor).
+    // CC.D1 — antes 'external' vivía acá como una 3ra opción (era el mismo
+    // concepto que hoy es agent:'claude', ver arriba); ya no es una opción de apiMode.
+    root.querySelectorAll('[data-api-mode-opt]').forEach(btn => btn.addEventListener('click', () => {
+      if (state.orcheConfig) state.orcheConfig.apiMode = btn.dataset.apiModeOpt;
       App.rerender();
     }));
 
     root.querySelector('[data-act="save-executor"]')?.addEventListener('click', async () => {
-      const engine = root.querySelector('[data-executor-engine]')?.dataset.executorEngine
-        || state.orcheConfig?.executorEngine || 'single-shot';
-      const body = { executorEngine: engine };
+      const mode = root.querySelector('[data-api-mode]')?.dataset.apiMode
+        || state.orcheConfig?.apiMode || 'single-shot';
+      const body = { apiMode: mode };
       const iterEl = root.querySelector('#executor-max-iterations');
-      const timeoutEl = root.querySelector('#executor-timeout-minutes');
       if (iterEl?.value) body.agenticMaxIterations = Number(iterEl.value);
-      if (timeoutEl?.value) body.externalTimeoutMinutes = Number(timeoutEl.value);
       const btn = root.querySelector('[data-act="save-executor"]');
       btn.disabled = true;
       try {

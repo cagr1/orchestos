@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'bun:test'
-import { resolveCascadeTier, cascadeTaskFields, resolveExecutorSelection } from '../router/engine-cascade.ts'
+import { resolveCascadeTier, cascadeTaskFields, resolveAgentSelection } from '../router/engine-cascade.ts'
 
 // G.1 (Bloque G, PLAN.md) — resolveCascadeTier() decide el tier (local → cli → api)
 // para las tareas de build auto-creadas desde el chat. Mismo patrón que
@@ -107,38 +107,38 @@ describe('cascadeTaskFields()', () => {
   })
 })
 
-// G.4.1 — resolveExecutorSelection() es la capa nueva: preferredMode
+// CC.D1 (antes G.4.1) — resolveAgentSelection() es la capa nueva: preferredAgent
 // (preferencia persistente del usuario) gana sobre la cascada; la cascada
-// solo entra como fallback cuando preferredMode es undefined (sin
+// solo entra como fallback cuando preferredAgent es undefined (sin
 // preferencia guardada todavía). [[feedback-deteccion-no-decision-automatica]]
-describe('resolveExecutorSelection()', () => {
+describe('resolveAgentSelection()', () => {
   const apiCascade = { tier: 'api' as const }
 
-  it("preferredMode 'cli-claude' → fija executor_model + engine external, sin importar la cascada", () => {
-    const fields = resolveExecutorSelection('cli-claude', apiCascade)
+  it("preferredAgent 'claude' → fija executor_model + engine external, sin importar la cascada", () => {
+    const fields = resolveAgentSelection('claude', apiCascade)
     expect(fields).toEqual({ executor_model: 'anthropic/claude-sonnet-5', engine: 'external' })
   })
 
-  it("preferredMode 'cli-opencode' → fija engine opencode, sin modelo fijo (traducción pendiente G.4.5)", () => {
-    const fields = resolveExecutorSelection('cli-opencode', apiCascade)
+  it("preferredAgent 'opencode' → fija engine opencode, sin modelo fijo (traducción pendiente G.4.5)", () => {
+    const fields = resolveAgentSelection('opencode', apiCascade)
     expect(fields).toEqual({ engine: 'opencode' })
   })
 
-  it("preferredMode 'local' → no fija nada (sin executor de tareas para Ollama)", () => {
-    expect(resolveExecutorSelection('local', apiCascade)).toEqual({})
+  it("preferredAgent 'local' → no fija nada (sin executor de tareas para Ollama)", () => {
+    expect(resolveAgentSelection('local', apiCascade)).toEqual({})
   })
 
-  it("preferredMode 'cli-codex' → fija executor_model + engine codex (G.4.2b: ExecutorEngine real)", () => {
-    expect(resolveExecutorSelection('cli-codex', apiCascade)).toEqual({ executor_model: 'openai/gpt-5.4', engine: 'codex' })
+  it("preferredAgent 'codex' → fija executor_model + engine codex (G.4.2b: ExecutorEngine real)", () => {
+    expect(resolveAgentSelection('codex', apiCascade)).toEqual({ executor_model: 'openai/gpt-5.4', engine: 'codex' })
   })
 
-  it("preferredMode 'api' → no fija nada, gana orchestos.config.yaml", () => {
-    expect(resolveExecutorSelection('api', apiCascade)).toEqual({})
+  it("preferredAgent 'api' → no fija nada, gana orchestos.config.yaml", () => {
+    expect(resolveAgentSelection('api', apiCascade)).toEqual({})
   })
 
-  it('preferredMode undefined → cae a la cascada de bootstrap (mismo comportamiento que cascadeTaskFields)', () => {
+  it('preferredAgent undefined → cae a la cascada de bootstrap (mismo comportamiento que cascadeTaskFields)', () => {
     const cliCascade = { tier: 'cli' as const, engine: 'external' as const, executorModel: 'anthropic/claude-sonnet-5' }
-    expect(resolveExecutorSelection(undefined, cliCascade)).toEqual({ executor_model: 'anthropic/claude-sonnet-5', engine: 'external' })
-    expect(resolveExecutorSelection(undefined, apiCascade)).toEqual({})
+    expect(resolveAgentSelection(undefined, cliCascade)).toEqual({ executor_model: 'anthropic/claude-sonnet-5', engine: 'external' })
+    expect(resolveAgentSelection(undefined, apiCascade)).toEqual({})
   })
 })

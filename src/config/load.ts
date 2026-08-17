@@ -13,9 +13,9 @@ import { parse } from 'yaml'
 import { join } from 'path'
 import { homedir } from 'os'
 import { existsSync, readFileSync } from 'fs'
-import { DEFAULT_CONFIG, parseRoleValue, type OrcheConfig, type ExecutorMode } from './schema.ts'
+import { DEFAULT_CONFIG, parseRoleValue, type OrcheConfig, type AgentChoice } from './schema.ts'
 
-export const EXECUTOR_MODES: ExecutorMode[] = ['local', 'cli-claude', 'cli-opencode', 'cli-codex', 'api']
+export const AGENT_CHOICES: AgentChoice[] = ['local', 'claude', 'opencode', 'codex', 'api']
 
 const GLOBAL_CONFIG_PATH = join(homedir(), '.orchestos', 'config.yaml')
 
@@ -55,32 +55,25 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
       // qa has no default fallback — absence means "not configured", resolved at call time (harness.ts F2.2)
       qa: models.qa !== undefined ? parseRoleValue(models.qa, d.default) : undefined,
     },
-    // B.2 — extends the G.3 set with 'external'. BB.2 (2026-08-16) — agrega
-    // 'opencode'/'codex': el harness YA los soportaba (harness.ts, ramas de
-    // requestedEngine) pero este parser los descartaba, así que `executorEngine: codex`
-    // en el YAML caía a 'single-shot' EN SILENCIO. Un valor inválido ahora avisa por
-    // stderr en vez de desaparecer sin rastro — ese silencio fue exactamente el bug
-    // que Carlos reportó el 2026-08-16 ("está escrita en el dashboard pero no es real").
-    executorEngine: parseExecutorEngine(raw.executorEngine),
-    // G.4.1 — mismo criterio: valor desconocido/typo → undefined, nunca inventa una
-    // preferencia. BB.2 — pero ahora también avisa en vez de tragárselo.
-    executor_mode: parseExecutorMode(raw.executor_mode),
+    // CC.D1 (2026-08-17) — `agent`/`apiMode` reemplazan a `executor_mode`/`executorEngine`
+    // (dos campos que eran el mismo concepto con nombres distintos para sus valores CLI —
+    // ver schema.ts). Configs existentes con los nombres viejos se migran en memoria acá,
+    // sin reescribir el archivo — la próxima vez que Settings guarde, se persiste con el
+    // nombre nuevo y el viejo queda huérfano en el YAML (inofensivo, ya no se lee).
+    agent: resolveAgent(raw),
+    apiMode: resolveApiMode(raw),
     agentic: parseAgenticConfig(raw.agentic),
     external: parseExternalConfig(raw.external),
     // K.4b — opt-in explícito: cualquier valor que no sea `true` literal se ignora (queda undefined/desactivado).
     adversarialQA: raw.adversarialQA === true ? true : undefined,
+    // X.2 (IDEAS #33) — mismo criterio que adversarialQA. Hallazgo real al escribir CC.D1:
+    // este campo existía en schema.ts desde Bloque X pero NUNCA se leía acá — `refuterQA: true`
+    // en el YAML se ignoraba en silencio desde que se creó. Bug de la misma clase que BB.2/CC.1c.
+    refuterQA: raw.refuterQA === true ? true : undefined,
   }
 }
 
-/**
- * BB.2 — los 5 motores que `harness.ts` sabe ejecutar de verdad. Mantener esta lista
- * sincronizada con las ramas de `requestedEngine` en harness.ts: si divergen, el
- * usuario puede escribir un motor válido en el YAML y ver otro corriendo.
- */
-const EXECUTOR_ENGINES = ['single-shot', 'agentic', 'external', 'opencode', 'codex'] as const
-type ExecutorEngineValue = typeof EXECUTOR_ENGINES[number]
-
-/** Avisa en vez de descartar en silencio — un typo no debe cambiar el motor sin decirlo. */
+/** Avisa en vez de descartar en silencio — un typo no debe cambiar el agente sin decirlo. */
 function warnIgnored(field: string, value: unknown, allowed: readonly string[]): void {
   console.error(
     `[config] ignorando ${field}: '${String(value)}' no es un valor válido — ` +
@@ -88,17 +81,43 @@ function warnIgnored(field: string, value: unknown, allowed: readonly string[]):
   )
 }
 
-function parseExecutorEngine(v: unknown): ExecutorEngineValue | undefined {
-  if (v === undefined || v === null) return undefined
-  if ((EXECUTOR_ENGINES as readonly unknown[]).includes(v)) return v as ExecutorEngineValue
-  warnIgnored('executorEngine', v, EXECUTOR_ENGINES)
+// CC.D1 — mapeo de migración desde los dos campos viejos. `executor_mode` tenía prioridad
+// sobre `executorEngine` en la precedencia de BB.1 (task.engine → executor_mode →
+// executorEngine) — se conserva ese orden acá: si ambos están presentes en un YAML viejo,
+// gana lo que vendría de executor_mode.
+const LEGACY_EXECUTOR_MODE_TO_AGENT: Record<string, AgentChoice> = {
+  'cli-claude': 'claude',
+  'cli-opencode': 'opencode',
+  'cli-codex': 'codex',
+  local: 'local',
+  api: 'api',
+}
+const LEGACY_EXECUTOR_ENGINE_TO_AGENT: Record<string, AgentChoice> = {
+  external: 'claude',
+  opencode: 'opencode',
+  codex: 'codex',
+}
+
+function resolveAgent(raw: Record<string, unknown>): AgentChoice | undefined {
+  if (raw.agent !== undefined && raw.agent !== null) {
+    if ((AGENT_CHOICES as readonly unknown[]).includes(raw.agent)) return raw.agent as AgentChoice
+    warnIgnored('agent', raw.agent, AGENT_CHOICES)
+    return undefined
+  }
+  if (typeof raw.executor_mode === 'string' && raw.executor_mode in LEGACY_EXECUTOR_MODE_TO_AGENT) {
+    return LEGACY_EXECUTOR_MODE_TO_AGENT[raw.executor_mode]
+  }
+  if (typeof raw.executorEngine === 'string' && raw.executorEngine in LEGACY_EXECUTOR_ENGINE_TO_AGENT) {
+    return LEGACY_EXECUTOR_ENGINE_TO_AGENT[raw.executorEngine]
+  }
   return undefined
 }
 
-function parseExecutorMode(v: unknown): ExecutorMode | undefined {
-  if (v === undefined || v === null) return undefined
-  if (EXECUTOR_MODES.includes(v as ExecutorMode)) return v as ExecutorMode
-  warnIgnored('executor_mode', v, EXECUTOR_MODES)
+function resolveApiMode(raw: Record<string, unknown>): 'single-shot' | 'agentic' | undefined {
+  if (raw.apiMode === 'single-shot' || raw.apiMode === 'agentic') return raw.apiMode
+  // Legacy: executorEngine solo migra a apiMode cuando tenía uno de estos 2 valores —
+  // los valores CLI (external/opencode/codex) ya se migraron a `agent` arriba.
+  if (raw.executorEngine === 'single-shot' || raw.executorEngine === 'agentic') return raw.executorEngine
   return undefined
 }
 

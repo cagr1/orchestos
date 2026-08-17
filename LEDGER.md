@@ -197,3 +197,36 @@ motor (antes lo ignoraba en silencio — el bug reportado). Proyectos sin `execu
 cambio. 3 tests nuevos de precedencia en `engine-selection.test.ts` (16 pass, 0 fail) + parser
 verificado en vivo (acepta `codex`, y un typo ahora avisa por stderr en vez de desaparecer).
 `tsc --noEmit` limpio.
+
+---
+
+## 2026-08-17 — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+protegido por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: CC.D1 renombra `resolveExecutorSelection()` → `resolveAgentSelection()` (mismo import,
+misma firma salvo el nombre del primer parámetro: `preferredMode` → `preferredAgent`) y cambia las
+dos líneas que leían `orcheConfig?.executor_mode`/`orcheConfig?.executorEngine` para leer
+`orcheConfig?.agent`/`orcheConfig?.apiMode` — la consolidación de schema decidida en PLAN.md § CC.D
+tras investigar el Agent Client Protocol de Zed (el agente externo, no el orquestador, es dueño de
+su selección de modelo). Cero líneas tocadas en `maxTokens`, `contextWindow`, `resolveQAJudge()` ni
+el presupuesto de salida del executor — el bloque modificado es exclusivamente la selección de
+`requestedEngine`, igual que BB.1 (2026-08-16), del cual esta entrada es la continuación directa
+(mismo bloque de código, solo cambia de qué campos de config lee).
+**Reversibilidad/evidencia**: commit de CC.D1 (`refactor(config): CC.D1 — consolidar executor_mode
++ executorEngine en agent + apiMode`) — revertible con `git revert`; sin cambios de esquema de
+datos (SQLite intacto). `orchestos.config.yaml` con los nombres legacy (`executor_mode`,
+`executorEngine`) sigue funcionando sin edición manual vía migración-en-lectura en `config/load.ts`
+(`resolveAgent()`/`resolveApiMode()`) — verificado en vivo: el `orchestos.config.yaml` real de este
+repo (`executor_mode: cli-claude` + `executorEngine: external`, nunca editado) resuelve
+`agent: "claude"` / `apiMode: "single-shot"` vía `GET /api/config`, y el panel Settings → Executor
+muestra "Claude CLI" ya seleccionado con el timeout reubicado. El próximo guardado explícito desde
+Settings persiste solo los campos nuevos, dejando las claves legacy huérfanas pero inofensivas en
+el YAML. Verificación en vivo con Playwright (no solo curl, per
+[[feedback-verificar-gates-en-vivo]]): picker de agente muestra las 5 opciones
+(`local`/`claude`/`opencode`/`codex`/`api`) con labels traducidos correctamente (no claves crudas),
+panel "Executor engine" reducido a 2 opciones (`single-shot`/`agentic`, sin `external`), y el chat
+sigue mostrando los 5 niveles reales de esfuerzo de Claude CLI (Low/Medium/High/Extra
+high/Max) — sin regresión de CC.1/CC.1b/CC.1c. 1154 tests (eran 1152 antes del fix del último
+archivo de test, 0 fail) · `tsc --noEmit` limpio en todo el repo.

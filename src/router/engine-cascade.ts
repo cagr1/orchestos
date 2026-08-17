@@ -24,7 +24,7 @@
  */
 
 import { findClaudeBinary } from '../run/executors/external.ts'
-import type { ExecutorMode } from '../config/schema.ts'
+import type { AgentChoice } from '../config/schema.ts'
 
 export type CascadeTier = 'local' | 'cli' | 'api'
 
@@ -80,25 +80,34 @@ export function cascadeTaskFields(cascade: CascadeResolution): { executor_model?
 }
 
 /**
- * G.4.1/G.4.2b — [[feedback-deteccion-no-decision-automatica]]: `preferredMode`
- * es la preferencia PERSISTENTE del usuario (`orchestos.config.yaml`
- * `executor_mode`, ver schema.ts). Cuando está fijada, gana sobre la
- * sugerencia de bootstrap de `cascade` — la cascada solo decide cuando el
- * usuario no configuró nada todavía (`preferredMode` undefined). `cli-codex`
- * fija `executor_model: 'openai/gpt-5.4'` (default real del binario, ver
+ * G.4.1/G.4.2b — [[feedback-deteccion-no-decision-automatica]]: `preferredAgent`
+ * es la preferencia PERSISTENTE del usuario (`orchestos.config.yaml` `agent`,
+ * ver schema.ts). Cuando está fijada, gana sobre la sugerencia de bootstrap de
+ * `cascade` — la cascada solo decide cuando el usuario no configuró nada
+ * todavía (`preferredAgent` undefined). `codex` fija
+ * `executor_model: 'openai/gpt-5.4'` (default real del binario, ver
  * `~/.codex/config.toml`, confirmado en vivo 2026-07-27) desde que
  * `codex.ts` (G.4.2b) existe como `ExecutorEngine` real.
+ *
+ * CC.D1 (2026-08-17) — renombrada desde `resolveExecutorSelection()`: mismo
+ * comportamiento para la creación de TAREAS (sigue anotando un
+ * `executor_model` explícito en `tasks.yaml`, necesario para el registro de
+ * costo del harness). Esto es DISTINTO del chat (`runClaudeChat` en
+ * `executors/external.ts`), donde el modelo es opcional a propósito — ahí
+ * aplica [[wiki/concepts/agent-client-protocol]] sin reservas: si no se fija
+ * modelo, el CLI usa el suyo. Acá se sigue fijando uno porque una tarea
+ * persistida necesita un valor concreto para su registro histórico.
  */
-export function resolveExecutorSelection(
-  preferredMode: ExecutorMode | undefined,
+export function resolveAgentSelection(
+  preferredAgent: AgentChoice | undefined,
   cascade: CascadeResolution,
 ): { executor_model?: string; engine?: string } {
-  switch (preferredMode) {
-    case 'cli-claude':
+  switch (preferredAgent) {
+    case 'claude':
       return { executor_model: 'anthropic/claude-sonnet-5', engine: 'external' }
-    case 'cli-opencode':
+    case 'opencode':
       return { engine: 'opencode' }
-    case 'cli-codex':
+    case 'codex':
       return { executor_model: 'openai/gpt-5.4', engine: 'codex' }
     case 'local':
     case 'api':

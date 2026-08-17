@@ -9,7 +9,7 @@ import { isKnownSkillId } from '../../skills/catalog.ts'
 import { classifyTask } from '../../router/classify.ts'
 import { autoRoute } from '../../router/auto-route.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
-import type { ExecutorMode } from '../../config/schema.ts'
+import type { AgentChoice } from '../../config/schema.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
 import { getProject } from '../../db/projects.ts'
@@ -29,17 +29,19 @@ async function handleApiSystemExecutorModes(): Promise<Response> {
     localDetected = res.ok
   } catch {}
 
+  // CC.D1 (2026-08-17) — `executor_mode`/valores `cli-*` renombrados a `agent`
+  // (`claude`/`opencode`/`codex`, sin el prefijo `cli-` redundante).
   const detectedClis = detectInstalledClis()
   const cliById = new Map(detectedClis.map(cli => [cli.id, cli]))
-  const modes: { id: ExecutorMode; label: string; detected: boolean; path: string | null }[] = [
+  const modes: { id: AgentChoice; label: string; detected: boolean; path: string | null }[] = [
     { id: 'local', label: 'Local (Ollama)', detected: localDetected, path: null },
-    { id: 'cli-claude', label: cliById.get('claude')?.label ?? 'Claude Code', detected: cliById.get('claude')?.installed ?? false, path: cliById.get('claude')?.path ?? null },
-    { id: 'cli-opencode', label: cliById.get('opencode')?.label ?? 'opencode', detected: cliById.get('opencode')?.installed ?? false, path: cliById.get('opencode')?.path ?? null },
-    { id: 'cli-codex', label: cliById.get('codex')?.label ?? 'Codex', detected: cliById.get('codex')?.installed ?? false, path: cliById.get('codex')?.path ?? null },
+    { id: 'claude', label: cliById.get('claude')?.label ?? 'Claude Code', detected: cliById.get('claude')?.installed ?? false, path: cliById.get('claude')?.path ?? null },
+    { id: 'opencode', label: cliById.get('opencode')?.label ?? 'opencode', detected: cliById.get('opencode')?.installed ?? false, path: cliById.get('opencode')?.path ?? null },
+    { id: 'codex', label: cliById.get('codex')?.label ?? 'Codex', detected: cliById.get('codex')?.installed ?? false, path: cliById.get('codex')?.path ?? null },
     { id: 'api', label: 'OpenRouter API', detected: true, path: null },
   ]
 
-  return jsonResponse({ modes, selected: loadOrcheConfig(resolve('.')).executor_mode ?? null })
+  return jsonResponse({ modes, selected: loadOrcheConfig(resolve('.')).agent ?? null })
 }
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */

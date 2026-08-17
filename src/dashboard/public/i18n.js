@@ -111,7 +111,7 @@ const I18N = {
     'chat.effort.low':    'Low',
     'chat.effort.medium': 'Medium',
     'chat.effort.high':   'High',
-    /* CC.1b (2026-08-16) — niveles reales de Claude Code CLI (`claude --help`), solo visibles cuando executor_mode: cli-claude */
+    /* CC.1b (2026-08-16) — niveles reales de Claude Code CLI (`claude --help`), solo visibles cuando agent: claude */
     'chat.effort.xhigh':  'Extra high',
     'chat.effort.max':    'Max',
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
@@ -658,21 +658,21 @@ const I18N = {
     'settings.routing.freePresetDone': 'Free models applied to every role — click Save routing to confirm.',
     'settings.routing.freePresetErr': 'No free (:free) models found in the loaded catalog yet.',
     'settings.nav.executor':       'Executor',
-    // G.4.4 — executor_mode segmented picker (chat build tasks, distinct from the
+    // G.4.4 — agent segmented picker (chat build tasks, distinct from the
     // per-task default engine picker below).
     'settings.executorMode.title':     'Chat build mode',
     'settings.executorMode.subtitle':  'How OrchestOS runs build tasks the chat creates automatically.',
     'settings.executorMode.opt.auto':          'Auto',
     'settings.executorMode.opt.local':         'Local',
-    'settings.executorMode.opt.cli-claude':    'Claude CLI',
-    'settings.executorMode.opt.cli-opencode':  'opencode CLI',
-    'settings.executorMode.opt.cli-codex':     'Codex CLI',
+    'settings.executorMode.opt.claude':    'Claude CLI',
+    'settings.executorMode.opt.opencode':  'opencode CLI',
+    'settings.executorMode.opt.codex':     'Codex CLI',
     'settings.executorMode.opt.api':           'API',
     'settings.executorMode.desc.auto':         'OrchestOS suggests local → CLI → API automatically, based on what you have installed — never switches mid-conversation.',
     'settings.executorMode.desc.local':        'Uses your local Ollama models. Free, but needs a model already pulled.',
-    'settings.executorMode.desc.cli-claude':   'Uses your Claude Code subscription — no OpenRouter balance spent.',
-    'settings.executorMode.desc.cli-opencode': 'Uses opencode. Free tier available, no subscription needed — good default to try OrchestOS.',
-    'settings.executorMode.desc.cli-codex':    'Uses your Codex subscription — no OpenRouter balance spent.',
+    'settings.executorMode.desc.claude':   'Uses your Claude Code subscription — no OpenRouter balance spent.',
+    'settings.executorMode.desc.opencode': 'Uses opencode. Free tier available, no subscription needed — good default to try OrchestOS.',
+    'settings.executorMode.desc.codex':    'Uses your Codex subscription — no OpenRouter balance spent.',
     'settings.executorMode.desc.api':          'Uses OpenRouter. Spends balance, but works with nothing installed.',
     'settings.executorMode.notDetected':       "Not detected on this machine yet — you can still pick it, it'll be used once installed.",
     'settings.executorMode.save':      'Save',
@@ -897,7 +897,7 @@ const I18N = {
     'chat.effort.low':    'Bajo',
     'chat.effort.medium': 'Medio',
     'chat.effort.high':   'Alto',
-    /* CC.1b (2026-08-16) — niveles reales de Claude Code CLI (`claude --help`), solo visibles con executor_mode: cli-claude */
+    /* CC.1b (2026-08-16) — niveles reales de Claude Code CLI (`claude --help`), solo visibles con agent: claude */
     'chat.effort.xhigh':  'Extra alto',
     'chat.effort.max':    'Máximo',
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
@@ -1445,15 +1445,15 @@ const I18N = {
     'settings.executorMode.subtitle':  'Cómo corre OrchestOS las tareas de build que el chat crea automáticamente.',
     'settings.executorMode.opt.auto':          'Auto',
     'settings.executorMode.opt.local':         'Local',
-    'settings.executorMode.opt.cli-claude':    'Claude CLI',
-    'settings.executorMode.opt.cli-opencode':  'opencode CLI',
-    'settings.executorMode.opt.cli-codex':     'Codex CLI',
+    'settings.executorMode.opt.claude':    'Claude CLI',
+    'settings.executorMode.opt.opencode':  'opencode CLI',
+    'settings.executorMode.opt.codex':     'Codex CLI',
     'settings.executorMode.opt.api':           'API',
     'settings.executorMode.desc.auto':         'OrchestOS sugiere local → CLI → API automáticamente, según lo que tengas instalado — nunca cambia a mitad de conversación.',
     'settings.executorMode.desc.local':        'Usa tus modelos locales de Ollama. Gratis, pero necesita un modelo ya descargado.',
-    'settings.executorMode.desc.cli-claude':   'Usa tu suscripción de Claude Code — sin gastar saldo de OpenRouter.',
-    'settings.executorMode.desc.cli-opencode': 'Usa opencode. Tiene tier gratis, sin necesidad de suscripción — buen default para probar OrchestOS.',
-    'settings.executorMode.desc.cli-codex':    'Usa tu suscripción de Codex — sin gastar saldo de OpenRouter.',
+    'settings.executorMode.desc.claude':   'Usa tu suscripción de Claude Code — sin gastar saldo de OpenRouter.',
+    'settings.executorMode.desc.opencode': 'Usa opencode. Tiene tier gratis, sin necesidad de suscripción — buen default para probar OrchestOS.',
+    'settings.executorMode.desc.codex':    'Usa tu suscripción de Codex — sin gastar saldo de OpenRouter.',
     'settings.executorMode.desc.api':          'Usa OpenRouter. Gasta saldo, pero funciona sin nada instalado.',
     'settings.executorMode.notDetected':       'Todavía no detectado en esta máquina — igual podés elegirlo, se usará en cuanto lo instales.',
     'settings.executorMode.save':      'Guardar',

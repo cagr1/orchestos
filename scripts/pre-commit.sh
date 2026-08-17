@@ -13,6 +13,22 @@ echo "🔍 Running pre-commit typecheck..."
 # `--show-toplevel` resuelve correctamente la raíz del working tree en AMBOS
 # casos (repo principal o worktree) — verificado con una reproducción real.
 cd "$(git rev-parse --show-toplevel)"
+
+# 2026-08-17 — el hook instalado en .git/hooks/ (NO versionado por git) estuvo
+# 11 días desincronizado de esta fuente (18 jul → 29 jul) sin que nadie lo
+# notara: el paso de security:secrets se agregó acá pero nunca se recopió a
+# .git/hooks/pre-commit, así que ningún commit en esa ventana pasó por el
+# chequeo de secretos, en silencio, sin error. Este check se autodetecta a
+# partir de la PRÓXIMA vez que alguien edite este archivo sin reinstalar.
+for hook in pre-commit pre-push; do
+  if [ -f ".git/hooks/$hook" ] && ! diff -q "scripts/$hook.sh" ".git/hooks/$hook" >/dev/null 2>&1; then
+    echo "❌ .git/hooks/$hook está DESINCRONIZADO de scripts/$hook.sh — reinstalar:"
+    echo "   cp scripts/$hook.sh .git/hooks/$hook && chmod +x .git/hooks/$hook"
+    exit 1
+  fi
+done
+
+echo "🔍 Running pre-commit typecheck..."
 bun run typecheck
 
 echo "🔐 Verificando secretos en cambios staged..."

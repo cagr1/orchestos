@@ -28,7 +28,7 @@ describe('GET /api/system/executor-modes', () => {
     const res = await handleApiSystemExecutorModes()
     const data = await res.json() as { modes: { id: string }[]; selected: string | null }
 
-    expect(data.modes.map(m => m.id)).toEqual(['local', 'cli-claude', 'cli-opencode', 'cli-codex', 'api'])
+    expect(data.modes.map(m => m.id)).toEqual(['local', 'claude', 'opencode', 'codex', 'api'])
   })
 
   it("'api' siempre detected:true, path:null — no depende de ningún binario", async () => {
@@ -60,24 +60,24 @@ describe('GET /api/system/executor-modes', () => {
     expect(data.modes.find(m => m.id === 'local')!.detected).toBe(false)
   })
 
-  it('cli-claude/cli-opencode/cli-codex reflejan Bun.which por binario, con su path real', async () => {
+  it('claude/opencode/codex reflejan Bun.which por binario, con su path real', async () => {
     ;(Bun as any).which = (bin: string) => bin === 'claude' ? '/fake/claude' : bin === 'opencode' ? '/fake/opencode' : null
     globalThis.fetch = (async () => { throw new Error('connection refused') }) as unknown as typeof fetch
 
     const res = await handleApiSystemExecutorModes()
     const data = await res.json() as { modes: { id: string; detected: boolean; path: string | null }[] }
-    expect(data.modes.find(m => m.id === 'cli-claude')).toMatchObject({ detected: true, path: '/fake/claude' })
-    expect(data.modes.find(m => m.id === 'cli-opencode')).toMatchObject({ detected: true, path: '/fake/opencode' })
-    expect(data.modes.find(m => m.id === 'cli-codex')).toMatchObject({ detected: false, path: null })
+    expect(data.modes.find(m => m.id === 'claude')).toMatchObject({ detected: true, path: '/fake/claude' })
+    expect(data.modes.find(m => m.id === 'opencode')).toMatchObject({ detected: true, path: '/fake/opencode' })
+    expect(data.modes.find(m => m.id === 'codex')).toMatchObject({ detected: false, path: null })
   })
 
-  it('selected refleja loadOrcheConfig(root).executor_mode real (null si no hay preferencia guardada)', async () => {
+  it('selected refleja loadOrcheConfig(root).agent real (null si no hay preferencia guardada)', async () => {
     ;(Bun as any).which = (_bin: string) => null
     globalThis.fetch = (async () => { throw new Error('connection refused') }) as unknown as typeof fetch
 
     const res = await handleApiSystemExecutorModes()
     const data = await res.json() as { selected: string | null }
-    const expected = loadOrcheConfig(process.cwd()).executor_mode ?? null
+    const expected = loadOrcheConfig(process.cwd()).agent ?? null
     expect(data.selected).toBe(expected)
   })
 })

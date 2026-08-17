@@ -57,7 +57,7 @@ import type { SubTask } from '../agents/sub-agent.ts'
 import { stringify as yamlStringify } from 'yaml'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
-import { resolveExecutorSelection } from '../router/engine-cascade.ts'
+import { resolveAgentSelection } from '../router/engine-cascade.ts'
 
 // -- public types --------------------------------------------------------------
 
@@ -412,19 +412,22 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // proceder" que la colisión juez==ejecutor de F2.2, no bloquea la tarea.
     // 'external' no consulta tool-calling (el ejecutor es `claude -p`, no la
     // API LLM directa — irrelevant).
-    // BB.1 (2026-08-16) — `executor_mode` aplica ahora a TODA tarea, no solo a las
-    // que el chat auto-crea. Antes se leía en UN SOLO punto del runtime
-    // (`dashboard/handlers/chat.ts`), así que un usuario con `executor_mode: cli-claude`
+    // BB.1 (2026-08-16) — `agent` aplica ahora a TODA tarea, no solo a las que el
+    // chat auto-crea. Antes se leía en UN SOLO punto del runtime
+    // (`dashboard/handlers/chat.ts`), así que un usuario con `agent: claude`
     // fijado veía sus tareas manuales/CLI correr igual por la API — la config decía
     // una cosa y el sistema hacía otra, en silencio (reporte real de Carlos,
-    // 2026-08-16). Reusa `resolveExecutorSelection()`, que ya existía y ya estaba
-    // testeada, en vez de duplicar el mapeo modo→engine.
+    // 2026-08-16). Reusa `resolveAgentSelection()`, que ya existía y ya estaba
+    // testeada, en vez de duplicar el mapeo agente→engine.
+    // CC.D1 (2026-08-17) — renombrado desde `executor_mode`/`executorEngine`
+    // (dos campos que eran el mismo concepto con nombres distintos) a un solo
+    // campo `agent`, guiado por [[wiki/concepts/agent-client-protocol]] (ACP).
     //
-    // Precedencia (del más específico al más general): task.engine → executor_mode →
-    // executorEngine → 'single-shot'. `executor_mode` decide DÓNDE corre (cli-* fija
-    // engine); `executorEngine` refina CÓMO corre cuando es la API (single-shot vs
-    // agentic) — por eso los modos 'api'/'local' devuelven `{}` y dejan pasar a
-    // executorEngine, que es exactamente el fallthrough que se quiere.
+    // Precedencia (del más específico al más general): task.engine → agent →
+    // apiMode → 'single-shot'. `agent` decide DÓNDE corre (claude/codex/opencode
+    // fijan engine); `apiMode` refina CÓMO corre cuando el agente es la propia API
+    // (single-shot vs agentic) — por eso 'api'/'local' devuelven `{}` y dejan pasar
+    // a apiMode, que es exactamente el fallthrough que se quiere.
     //
     // SOLO decide el engine, nunca el modelo: [[feedback-modelo-decision-final-carlos]]
     // manda que el modelo salga de orchestos.config.yaml o de Carlos, no de una regla
@@ -432,16 +435,16 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // engine devuelve undefined y el binario usa su propio default — degradación ya
     // existente y verificada (codex.ts:54, opencode.ts:56), no un caso nuevo.
     //
-    // El segundo argumento (cascade) nunca se lee acá: `resolveExecutorSelection` solo
-    // lo consulta en la rama `preferredMode === undefined`, y este guard garantiza que
-    // el modo está definido. La cascada de bootstrap es del chat (hace I/O a Ollama),
-    // no del harness.
-    const modeEngine = orcheConfig?.executor_mode
-      ? resolveExecutorSelection(orcheConfig.executor_mode, { tier: 'api' }).engine
+    // El segundo argumento (cascade) nunca se lee acá: `resolveAgentSelection` solo
+    // lo consulta en la rama `preferredAgent === undefined`, y este guard garantiza
+    // que el agente está definido. La cascada de bootstrap es del chat (hace I/O a
+    // Ollama), no del harness.
+    const agentEngine = orcheConfig?.agent
+      ? resolveAgentSelection(orcheConfig.agent, { tier: 'api' }).engine
       : undefined
-    const requestedEngine = ctx.task.engine ?? modeEngine ?? orcheConfig?.executorEngine ?? 'single-shot'
-    if (modeEngine && !ctx.task.engine) {
-      log.info(`executor_mode '${orcheConfig!.executor_mode}' → engine '${modeEngine}'`)
+    const requestedEngine = ctx.task.engine ?? agentEngine ?? orcheConfig?.apiMode ?? 'single-shot'
+    if (agentEngine && !ctx.task.engine) {
+      log.info(`agent '${orcheConfig!.agent}' → engine '${agentEngine}'`)
     }
     let engine: ExecutorEngine = singleShotEngine
     if (requestedEngine === 'agentic') engine = agenticEngine

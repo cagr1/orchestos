@@ -24,7 +24,7 @@ import { capToolOutput } from '../../run/tool-output-cap.ts'
 import { PathPolicyError, resolveProjectPath } from '../../run/path-policy.ts'
 import { buildNaturalDraft } from './project.ts'
 import { createTaskRecord, spawnTaskRun } from './tasks.ts'
-import { resolveCascadeTier, resolveExecutorSelection } from '../../router/engine-cascade.ts'
+import { resolveCascadeTier, resolveAgentSelection } from '../../router/engine-cascade.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
 
@@ -415,12 +415,13 @@ async function handleApiChat(req: Request): Promise<Response> {
   // CC.1b (2026-08-16) — hallazgo real de Carlos el mismo día del gate de CC.1:
   // el selector de esfuerzo (3 niveles, pensado para el `reasoning` de OpenRouter)
   // no alcanza a Claude Code CLI, que acepta 5 niveles reales (`claude --help`:
-  // low/medium/high/xhigh/max). `root`/`chatExecutorMode` se calculan acá (temprano,
+  // low/medium/high/xhigh/max). `root`/`chatAgent` se calculan acá (temprano,
   // antes del classifier costoso) para validar contra el set correcto según el
-  // motor activo — nunca los 3 genéricos cuando el motor real acepta más.
+  // agente activo — nunca los 3 genéricos cuando el CLI real acepta más.
+  // CC.D1 (2026-08-17) — `executor_mode` renombrado a `agent`.
   const root = resolve('.')
-  const chatExecutorMode = loadOrcheConfig(root).executor_mode
-  const useClaudeCli = chatExecutorMode === 'cli-claude'
+  const chatAgent = loadOrcheConfig(root).agent
+  const useClaudeCli = chatAgent === 'claude'
   const allowedEfforts: readonly string[] = useClaudeCli ? CLAUDE_CLI_EFFORTS : VALID_EFFORTS
   if (body.effort !== undefined && !allowedEfforts.includes(body.effort)) {
     return errorResponse(`effort must be one of: ${allowedEfforts.join(', ')}`, 400)
@@ -472,27 +473,27 @@ async function handleApiChat(req: Request): Promise<Response> {
   // aterrizar ahí no fija nada y la tarea sigue heredando el config normal,
   // igual que el tier 'api' (que YA es el comportamiento por defecto).
   // G.4.1 — [[feedback-deteccion-no-decision-automatica]]: si el usuario ya
-  // fijó `executor_mode` en orchestos.config.yaml, esa preferencia gana
-  // siempre — la cascada (abajo) solo sugiere un default cuando no hay
-  // preferencia guardada.
+  // fijó `agent` en orchestos.config.yaml, esa preferencia gana siempre — la
+  // cascada (abajo) solo sugiere un default cuando no hay preferencia guardada.
+  // CC.D1 (2026-08-17) — `executor_mode` renombrado a `agent`.
   let autoTask: { id: string } | { error: string } | null = null
   if (taskSuggestion?.isTask) {
     try {
       const root = resolve('.')
       const draft = await buildNaturalDraft(message)
       const skill = pickAutoSkill(draft.skillOptions)
-      const preferredMode = loadOrcheConfig(root).executor_mode
+      const preferredAgent = loadOrcheConfig(root).agent
       // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
       // evita el probe de Ollama + Bun.which en cada mensaje de chat normal.
-      // Sigue calculándose aunque haya preferredMode: resolveExecutorSelection
-      // la usa como fallback si preferredMode es undefined.
+      // Sigue calculándose aunque haya preferredAgent: resolveAgentSelection
+      // la usa como fallback si preferredAgent es undefined.
       const cascade = await resolveCascadeTier()
       const created = createTaskRecord(root, {
         id: draft.id,
         description: draft.description,
         output: draft.output,
         executor: draft.executor,
-        ...resolveExecutorSelection(preferredMode, cascade),
+        ...resolveAgentSelection(preferredAgent, cascade),
         skill,
       })
       if ('error' in created) {
@@ -572,13 +573,14 @@ async function handleApiChat(req: Request): Promise<Response> {
   const model = body.model?.trim() || 'deepseek/deepseek-v4-flash'
   const isOllama = /^ollama\//.test(model)
   // CC.1 (Mes 29, 2026-08-16) — reporte real de Carlos: elegir "Claude" como
-  // executor_mode en Settings no cambiaba nada en el chat, seguía yendo por la
-  // API de OpenRouter. Mismo eje que ya decide el engine de la tarea que el chat
+  // agente en Settings no cambiaba nada en el chat, seguía yendo por la API de
+  // OpenRouter. Mismo eje que ya decide el engine de la tarea que el chat
   // auto-crea (D.7/E.16, más abajo) — acá decide por dónde sale la RESPUESTA
-  // VISIBLE. Solo `cli-claude` implementado: Codex/OpenCode no tienen un flag de
-  // solo-lectura tan directo como `--allowedTools` de Claude Code — documentado
-  // como pendiente en PLAN.md § CC.1, no improvisado a ciegas.
-  // (chatExecutorMode/useClaudeCli ya se calcularon arriba, antes de validar `effort`.)
+  // VISIBLE. Solo `claude` implementado: Codex/OpenCode no tienen un flag de
+  // solo-lectura verificado seguro todavía (`codex exec --sandbox read-only`
+  // NO impidió escribir en la prueba en vivo del 2026-08-17) — documentado
+  // como pendiente en PLAN.md § CC.D, no improvisado a ciegas.
+  // (chatAgent/useClaudeCli ya se calcularon arriba, antes de validar `effort`.)
 
   // BACK.3: el efecto se descarta en silencio si el modelo no lo soporta — el
   // cliente (frontend) ya debería ocultar el control, pero esto evita mandarle
@@ -591,7 +593,7 @@ async function handleApiChat(req: Request): Promise<Response> {
   const cliEffort = useClaudeCli ? (body.effort as string | undefined) : undefined
   const effort = (!useClaudeCli && body.effort && supportsReasoningEffort(model)) ? (body.effort as ReasoningEffort) : undefined
   const modelLabel = useClaudeCli
-    ? `Claude Code CLI (executor_mode: cli-claude) — modelo: ${model || '(default del CLI)'}${cliEffort ? `, esfuerzo: ${cliEffort}` : ''} — herramientas: solo lectura (Read, Glob, Grep), no puede editar archivos desde el chat`
+    ? `Claude Code CLI (agent: claude) — modelo: ${model || '(default del CLI)'}${cliEffort ? `, esfuerzo: ${cliEffort}` : ''} — herramientas: solo lectura (Read, Glob, Grep), no puede editar archivos desde el chat`
     : isOllama
       ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
       : `${model} via OpenRouter`
@@ -681,7 +683,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
   })
 
   try {
-    // CC.1 — corre ANTES de isOllama: `executor_mode` es una preferencia de
+    // CC.1 — corre ANTES de isOllama: `agent` (CC.D1) es una preferencia de
     // proyecto explícita ([[feedback-deteccion-no-decision-automatica]], el
     // usuario la fijó a mano en Settings) que decide EL MOTOR (CLI vs API) —
     // gana sobre eso. El modelo/esfuerzo que el usuario elija en el combo del

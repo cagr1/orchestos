@@ -189,9 +189,95 @@ sueltas — son partes de un mismo eje estructural.
   `/api/config`) pasó el gate anterior sin detectarse. Confirma
   [[feedback-verificar-gates-en-vivo]]: un gate 🔍 debe correr contra el sistema real completo,
   no contra la pieza que se acaba de tocar.
+
+### CC.D — 🧠 Decisión de arquitectura: un solo eje "agente", guiado por el estándar (ACP)
+
+**Cómo llegamos acá**: al intentar arreglar "el selector dice deepseek aunque corrió Claude CLI",
+Carlos pidió explícitamente **parar y averiguar cómo lo resolvieron otras herramientas antes de
+escribir el plan** — *"no quiero pedir algo y después crear un caos interno… tu deber también es
+precautelar que no se dañe el sistema, incluso cuando yo me equivoco"*. Cumple
+[[INS-2026-007]] (activar conocimiento antes de decidir), que se había salteado.
+
+**Lo investigado (fuentes primarias, 2026-08-17)**: Zed —el caso más cercano: un editor que corre
+Claude Code, Codex y Gemini CLI lado a lado— creó el **Agent Client Protocol (ACP)**, hoy estándar
+adoptado por varios editores. Su decisión es explícita y textual:
+
+> *"External Agents usually own its own runtime, auth, **model selection**, tools, and native
+> configuration."* · *"Model/provider config [is] **Usually owned by the External Agent**"*
+
+Y la consecuencia de UI: **Zed no tiene selector unificado de modelos para agentes externos.** El
+usuario elige **el agente** (por thread, desde el botón `+`), y el agente elige su modelo. El
+protocolo ni siquiera define model selection — define *session modes* (Ask/Architect/Code), donde
+**el agente publica sus modos y el cliente solo los muestra**. Capturado en el vault:
+[[wiki/concepts/agent-client-protocol]] + [[INS-2026-015]].
+
+**Lo que esto REFUTA de la propuesta original** (mía y de Carlos): la idea de *"si elijo Claude, el
+select muestra los modelos de Claude; si elijo Codex, los de Codex"* exige que OrchestOS mantenga
+un catálogo hardcodeado por CLI. Verificado en la máquina real: **ningún CLI publica un catálogo
+consultable** — Claude no lo expone, Codex acepta `-m` sin listar, OpenCode tiene catálogo (vía
+models.dev) pero sin curar. Mantenerlo a mano = queda desactualizado en silencio con cada modelo
+nuevo. Es exactamente el "caos interno" que Carlos quería evitar, y la razón por la que el
+estándar no lo hace.
+
+**Lo que VALIDA del instinto de Carlos** (coincide con el estándar en 3 puntos):
+1. *"con que se elija el CLI es más que suficiente"* → ACP: se elige el agente, punto.
+2. *"debo poder elegir el CLI desde el chat"* → Zed: por thread, no config global.
+3. *"Orca solo muestra los CLI que detecta, no se complica con API"* → mismo patrón.
+
+**Decisión final (Carlos, 2026-08-17)**: seguir el estándar. Un solo eje `agent`; bajo un CLI el
+selector de modelo **desaparece** y se muestra "modelo: lo decide <agente>". Sin catálogos
+hardcodeados. Lo que sí se expone es lo verificable por flag real (`--effort` de Claude, 5 niveles
+confirmados con `claude --help`). **"Speed" NO se implementa** — ningún motor expone un toggle de
+velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clase de mentira que
+`/api/config` con `executor_mode` faltante (CC.1c).
+
+- [x] **CC.D1 — 🧠 Consolidar `executor_mode` + `executorEngine` en un solo campo `agent`.** (2026-08-17)
+  Hoy son dos enums que se pisan: `ExecutorMode` (`local|cli-claude|cli-opencode|cli-codex|api`) y
+  `executorEngine` (`single-shot|agentic|external|opencode|codex`) — donde `cli-claude`↔`external`,
+  `cli-codex`↔`codex`, `cli-opencode`↔`opencode` son **el mismo concepto con dos nombres**, y
+  `resolveExecutorSelection()` existe solo para traducir entre ellos. Nuevo esquema:
+  `agent: claude|codex|opencode|api|local` + `apiMode: single-shot|agentic` (solo aplica cuando
+  `agent: api` — **refutación explícita a "meter todo en un campo"**: single-shot vs agentic NO es
+  un agente, es cómo se llama a la API propia, y colapsarlo perdería esa distinción real).
+  Migración automática de configs existentes al leerlas; `resolveExecutorSelection()` desaparece
+  (renombrada `resolveAgentSelection()`).
+  **Evidencia**: 12 archivos tocados —
+  `config/{schema,load}.ts` (nuevo tipo `AgentChoice`, `AGENT_CHOICES`, `resolveAgent()`/
+  `resolveApiMode()` migran los campos legacy en `mergeWithDefaults()`, sin reescribir el YAML),
+  `router/engine-cascade.ts` (`resolveAgentSelection()`), `run/harness.ts` (selección de
+  `requestedEngine`, protegido — ver entrada LEDGER.md 2026-08-17), `dashboard/handlers/{chat,
+  config,tasks}.ts`, `run/executors/external.ts` (comentarios), `dashboard/public/{app,
+  screens-core,screens-ops,i18n}.js` (picker de Settings, labels traducidos, chat). De paso se
+  encontró y arregló un bug preexistente: `refuterQA` (Bloque X, IDEAS #33) nunca se leía en
+  `mergeWithDefaults()` — `refuterQA: true` en cualquier YAML se ignoraba en silencio desde que
+  existe el campo. 1154 tests (eran 1152, +6 de tests renombrados/reescritos con los nombres de
+  campo nuevos, -4 archivos legacy actualizados) · 0 fail · `tsc --noEmit` limpio en todo el repo.
+  Verificado en vivo con Playwright (no solo curl): el `orchestos.config.yaml` real de este repo
+  (nunca editado, sigue con `executor_mode: cli-claude` + `executorEngine: external`) resuelve
+  `agent: "claude"` / `apiMode: "single-shot"` correctamente vía `GET /api/config`; Settings →
+  Executor muestra "Claude CLI" ya seleccionado (con el input de timeout reubicado ahí) y el panel
+  "Executor engine" reducido a 2 opciones (sin `external`, que ahora es el agente); el chat sigue
+  mostrando los 5 niveles reales de esfuerzo de Claude CLI (Low/Medium/High/Extra high/Max) — cero
+  regresión de CC.1/CC.1b/CC.1c.
+- [ ] **CC.D2 — 🧠 El picker del chat: elegir agente, no modelo.** El pill del composer pasa a
+  elegir **agente** entre los CLIs realmente detectados (`Bun.which`) + API + Local — patrón Orca/
+  Zed. Bajo un CLI: sin selector de modelo (dice "lo decide <agente>"), con Effort si el CLI lo
+  acepta por flag. Bajo API: selector de modelo actual + los 3 efforts de OpenRouter. Arregla el
+  bug reportado ("dice deepseek aunque corrió Claude") por construcción, no con un parche.
+- [ ] **CC.D3 — ⚡ Nombres de modelo legibles.** Reclamo de Carlos: *"algunos modelos tienen el
+  nombre muy largo, no se alcanza a leer cuál es"*. Truncado con el nombre completo accesible
+  (tooltip/`title`), sin romper [[reference-model-combo-pattern]] (el combo sigue siendo buscable).
+- [ ] **CC.D4 — 🔍 Gate en vivo, con navegador real.** Aprendizaje de CC.1c: `curl` al backend no
+  alcanza. Playwright: cambiar de agente desde el chat, verificar que el label refleja el agente
+  real, que bajo CLI no hay selector de modelo fantasma, y que bajo API sigue funcionando igual
+  (cero regresión). Codex/OpenCode visibles pero marcados "no disponible para chat" —
+  **verificado en vivo que `codex exec --sandbox read-only` NO impide escribir** (creó
+  `HACKED.txt` en la prueba), así que ofrecerlos para chat sería inseguro hasta resolverlo.
+- [ ] **CC.2 — 🧠 Sesiones de chat reales, agrupadas por proyecto.** Persistidas en SQLite, lista
   lateral acumulativa (patrón estándar que Carlos pidió explícitamente, "así como lo hacen todas
-  estas herramientas"), **motor por sesión**. Esto es literalmente "abrir varios chats y elegir el
-  CLI de cada uno". Absorbe `#50`.
+  estas herramientas"), **agente por sesión** (no "motor" — ver CC.D1). Alineado con ACP: en Zed el
+  agente se elige por thread, así que la sesión es el lugar natural donde vive esa elección.
+  Absorbe `#50`.
 - [ ] **CC.3 — 🧠 Multi-proyecto real.** Matar los 10 `resolve('.')` del dashboard; el proyecto
   activo es una selección del usuario, no el cwd donde se lanzó el server. Absorbe `#35`.
 - [ ] **CC.4 — ⚡ Colapsar la navegación según el veredicto de CC.0.** Incluye el ex-BB.3 (unificar

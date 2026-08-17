@@ -9,6 +9,11 @@
  * `loadOrcheConfig()` directo en el servidor, sin pasar por este endpoint —
  * por eso el síntoma era confuso (una parte funcionaba, otra no).
  *
+ * CC.D1 (2026-08-17) — el campo se renombró a `agent` (consolidación
+ * executor_mode/executorEngine → agent/apiMode, ver PLAN.md § CC.D). Los
+ * nombres de los tests conservan "executor_mode" porque documentan el bug
+ * original; las aserciones usan el nombre de campo real, `agent`.
+ *
  * Mismo patrón que constitution-api.test.ts / specs-design-gate.test.ts: tmp
  * dir + chdir + route() real, sin mock.module().
  */
@@ -33,8 +38,8 @@ function req(method: string, path: string): Request {
   return new Request(`http://localhost:${PORT}${path}`, { method })
 }
 
-describe('GET /api/config — executor_mode (CC.1b bugfix)', () => {
-  it('devuelve executor_mode cuando está fijado en orchestos.config.yaml', async () => {
+describe('GET /api/config — agent (CC.1b bugfix)', () => {
+  it('devuelve agent cuando está fijado en orchestos.config.yaml (vía legacy executor_mode)', async () => {
     writeFileSync(join(tmpDir, 'orchestos.config.yaml'), [
       'config_version: 1',
       'executor_mode: cli-claude',
@@ -44,8 +49,8 @@ describe('GET /api/config — executor_mode (CC.1b bugfix)', () => {
 
     const res = await route(req('GET', '/api/config'), PORT)
     expect(res.status).toBe(200)
-    const data = await res.json() as { executor_mode: string | null }
-    expect(data.executor_mode).toBe('cli-claude')
+    const data = await res.json() as { agent: string | null }
+    expect(data.agent).toBe('claude')
   })
 
   it('devuelve null (no undefined ni ausente) cuando no está fijado — spec simple, cero regresión', async () => {
@@ -56,8 +61,8 @@ describe('GET /api/config — executor_mode (CC.1b bugfix)', () => {
     ].join('\n'))
 
     const res = await route(req('GET', '/api/config'), PORT)
-    const data = await res.json() as { executor_mode: string | null }
-    expect(data.executor_mode).toBeNull()
-    expect('executor_mode' in data).toBe(true)
+    const data = await res.json() as { agent: string | null }
+    expect(data.agent).toBeNull()
+    expect('agent' in data).toBe(true)
   })
 })
