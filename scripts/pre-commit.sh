@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "🔍 Running pre-commit typecheck..."
 # Mes 22/E.10 — `--git-dir` resuelve al gitdir INTERNO cuando el commit corre
 # dentro de un worktree (ej. .git/worktrees/<name> del repo principal, no la
 # carpeta del propio worktree) — `cd "$(git rev-parse --git-dir)/.."` aterrizaba
@@ -20,13 +19,8 @@ cd "$(git rev-parse --show-toplevel)"
 # .git/hooks/pre-commit, así que ningún commit en esa ventana pasó por el
 # chequeo de secretos, en silencio, sin error. Este check se autodetecta a
 # partir de la PRÓXIMA vez que alguien edite este archivo sin reinstalar.
-for hook in pre-commit pre-push; do
-  if [ -f ".git/hooks/$hook" ] && ! diff -q "scripts/$hook.sh" ".git/hooks/$hook" >/dev/null 2>&1; then
-    echo "❌ .git/hooks/$hook está DESINCRONIZADO de scripts/$hook.sh — reinstalar:"
-    echo "   cp scripts/$hook.sh .git/hooks/$hook && chmod +x .git/hooks/$hook"
-    exit 1
-  fi
-done
+echo "🧭 Verificando protocolo de agentes y hooks..."
+bun run hooks:check
 
 echo "🔍 Running pre-commit typecheck..."
 bun run typecheck
@@ -39,6 +33,9 @@ bun run security:secrets
 # LEDGER.md en el mismo commit. Gobernanza de este repo, no feature del producto.
 echo "📒 Verificando gate del ledger (Mes 22/F.2)..."
 bun run ledger:gate
+
+echo "🖥️ Verificando evidencia en vivo para dashboard/config..."
+bun run agent:live-gate
 
 # Mes 22/E.10 — un worktree (sandbox de una tarea) NUNCA debe commitear
 # runs-summary.json. Con la ruta ya corregida arriba, el export queda

@@ -655,3 +655,42 @@ dentro de su propio bloque). Historial completo de los tres cierres → [DONE.md
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
+
+## Knowledge promotions
+
+<!-- knowledge-promotion:KP-20260817-102752-93e4d5 -->
+### Planificar antes de cambios multi-módulo
+
+- Insight: `INS-2026-005` (adopted/high)
+- Razón: El incidente del hook desincronizado y las entregas de UI/configuración sin wiring demuestran que las reglas narrativas no bastan; se necesita un protocolo universal con gates mecánicos y evidencia en vivo para cualquier LLM.
+- Acción propuesta: Agregar al Mes 29 un bloque de gobernanza cross-LLM: orden obligatorio de preflight, verificación de scope y trabajo paralelo, doctor de hooks, gates de seguridad/typecheck/tests y prohibición de cerrar UI/configuración sin prueba real de navegador y backend.
+- Regla: Si una modificación cambia arquitectura o atraviesa varias capas, presentar alcance, pasos, validación y exclusiones antes de editar.
+- Evidencia en vault: projects/orchestos/decisions, projects/orchestos/aprendizajes
+<!-- /knowledge-promotion:KP-20260817-102752-93e4d5 -->
+
+- [x] **GOV.1 — 🧠 Protocolo universal y verificable para cualquier LLM.** (2026-08-17) Una sola fuente de
+  verdad define el orden obligatorio antes de editar, los límites de alcance, los gates por tipo
+  de cambio y qué hacer cuando falta evidencia. `AGENTS.md` y `CLAUDE.md` deben apuntar al mismo
+  protocolo; un preflight debe validar ítem abierto + hooks sin drift; pre-commit debe impedir
+  cerrar cambios de dashboard/configuración sin evidencia explícita de navegador real. El gate
+  debe distinguir con honestidad lo mecánicamente verificable de lo que sigue requiriendo criterio.
+
+  **Implementado:** `docs/agent-work-protocol.md` es la fuente común; `AGENTS.md`/`CLAUDE.md`
+  obligan a ejecutar `bun run agent:preflight -- --item <ID> --agent <nombre>`; el preflight
+  valida ítem abierto, muestra cambios ajenos y bloquea hooks ausentes/con drift usando
+  `git rev-parse --git-path hooks` (portable a worktrees). `agent:live-gate` bloquea commits que
+  toquen dashboard/config sin un `[x]` y una línea `Gate en vivo:` con navegador/browser/Playwright
+  en el diff staged de `PLAN.md`. El protocolo declara honestamente que el hook verifica que la
+  evidencia esté documentada, no que sea verdadera: observar el flujo sigue siendo gate humano/LLM.
+
+  **Evidencia:** `bun run agent:preflight -- --item GOV.1 --agent codex` ✅; `bun run hooks:check`
+  ✅; `bunx tsc --noEmit` ✅; `bun test scripts/agent-governance.test.ts` (3 pass) ✅;
+  `bun run test:coverage` (1157 pass, 0 fail) ✅. `bun run security:gate` llegó al audit y bloqueó
+  por dos vulnerabilidades transitivas preexistentes; quedan registradas en GOV.2, no ocultas ni
+  corregidas fuera de alcance. Insight decisivo: `INS-2026-005`; `INS-2026-004` evitó confundir
+  coverage con capacidad real de detectar regresiones.
+
+- [ ] **GOV.2 — 🔍 Resolver audit de dependencias high sin actualización ciega.** Hallazgo del gate
+  GOV.1: `bun audit` reporta `fast-uri >=3.0.0 <3.1.5` vía Stryker/Ajv y
+  `brace-expansion >=4.0.0 <5.0.9` vía Stryker/minimatch y glob/minimatch. Evaluar actualización
+  compatible y correr suite + mutation shards relevantes; no usar `bun update --latest` a ciegas.

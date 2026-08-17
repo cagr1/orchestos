@@ -4,9 +4,13 @@
 
 Este archivo, `PLAN.md` y `AGENTS.md` no son sugerencias para un asistente en particular.
 Aplican por igual a Claude, Codex, DeepSeek, opencode o cualquier otro modelo/CLI que
-trabaje en este repo. **Antes de tocar código**, el agente debe leer este archivo y la
-sección relevante de `PLAN.md`; si va a cerrar un ítem, debe verificar que no repite un
-patrón ya documentado como fallo (ver `LEDGER.md` y memorias de tipo feedback).
+trabaje en este repo. La fuente común y el orden obligatorio viven en
+`docs/agent-work-protocol.md`. **Antes de tocar código**, ejecutar:
+
+    bun run agent:preflight -- --item <ID> --agent claude
+
+El preflight no sustituye leer las reglas: valida que el ítem exista y siga abierto, muestra el
+working tree y bloquea hooks ausentes o desincronizados.
 
 Motivo real, incidente 2026-08-17: el hook `.git/hooks/pre-commit` (no versionado por
 git) estuvo 11 días desincronizado de su fuente (`scripts/pre-commit.sh`) — el paso de
@@ -71,10 +75,7 @@ central?", no el conteo de líneas. Ver también la regla de scope-lock más arr
 
 El proyecto tiene dos hooks. Si clonas el repo en otra máquina, instala **ambos**:
 
-    cp scripts/pre-commit.sh .git/hooks/pre-commit
-    chmod +x .git/hooks/pre-commit
-    cp scripts/pre-push.sh .git/hooks/pre-push
-    chmod +x .git/hooks/pre-push
+    bun run hooks:install
 
 - **pre-commit** (`scripts/pre-commit.sh`) — `tsc --noEmit`, `security:secrets`, `ledger:gate`
   y el export de `runs-summary.json`. Rápido, corre en cada commit.
