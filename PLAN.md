@@ -160,6 +160,35 @@ sueltas — son partes de un mismo eje estructural.
   pasa al binario y se refleja en el resultado; sin effort explícito no se manda la flag (el
   binario usa su propio default); label honesto sin modelo Anthropic. 1152 tests totales (eran
   1149), 0 fail.
+
+- [x] **CC.1c — 🧠 Bug real: `GET /api/config` nunca devolvía `executor_mode`.** (2026-08-17)
+  Reporte de Carlos: reinició el dashboard varias veces y el selector de esfuerzo seguía en 3
+  niveles — no era caché del navegador. Verificado con Playwright contra un navegador limpio
+  (sin ningún caché previo) para descartar bug propio antes de culpar al cliente: el **label** de
+  la respuesta del chat SÍ reflejaba `via Claude Code CLI` (ese código lee `loadOrcheConfig()`
+  directo en el servidor), pero el **selector de esfuerzo** seguía en 3 — confirmó que el bug
+  estaba en el frontend, no en caché.
+
+  **Causa raíz**: `handleApiConfigGet()` (`handlers/config.ts`) construye la respuesta a mano,
+  campo por campo, y `executor_mode` nunca estuvo en esa lista — el `PUT` (mismo archivo) sí lo
+  escribe al YAML, pero el `GET` nunca lo leía de vuelta. `buildChatModelFx` (frontend) depende
+  100% de `GET /api/config` para saber el motor activo, así que el campo llegaba `undefined`
+  sin importar cuántas veces se reiniciara el servidor — no era un problema de caché en absoluto.
+  **Fix de una línea**: agregar `executor_mode: cfg.executor_mode ?? null` a la respuesta.
+
+  **Gate en vivo, esta vez completo (Playwright, no `curl`)**: navegador limpio → abrir menú de
+  esfuerzo → **5 opciones reales** (`low/medium/high/xhigh/max`) → elegir `xhigh` → mandar
+  mensaje → pill del composer dice "Extra high" y la respuesta real llega con ese esfuerzo.
+  2 tests nuevos (`config-executor-mode.test.ts`, vía `route()` real): `executor_mode` presente
+  cuando está fijado, `null` explícito (no ausente) cuando no. 1154 tests totales (eran 1152),
+  0 fail.
+
+  **Lección de proceso**: el gate de CC.1b se había verificado con `curl` directo al backend
+  (`handleApiChat`) y con revisión de código del frontend, pero nunca con un navegador real
+  ejecutando el flujo completo end-to-end — por eso este bug (puramente de un endpoint distinto,
+  `/api/config`) pasó el gate anterior sin detectarse. Confirma
+  [[feedback-verificar-gates-en-vivo]]: un gate 🔍 debe correr contra el sistema real completo,
+  no contra la pieza que se acaba de tocar.
   lateral acumulativa (patrón estándar que Carlos pidió explícitamente, "así como lo hacen todas
   estas herramientas"), **motor por sesión**. Esto es literalmente "abrir varios chats y elegir el
   CLI de cada uno". Absorbe `#50`.

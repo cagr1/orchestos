@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-08-17T02:45:04.638Z",
+  "exported_at": "2026-08-17T13:37:49.238Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "041227eb-2e68-4c6b-a8bf-43bcd4f1fac7",
+      "task_class": "chat",
+      "model": "claude (cli default model) via Claude Code CLI (effort: xhigh)",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 59,
+      "created_at": "2026-08-17T13:35:44.368Z"
+    },
+    {
+      "id": "ebd62ca2-3006-48a1-95bb-b1809ec970e5",
+      "task_class": "chat",
+      "model": "claude (cli default model) via Claude Code CLI (effort: medium)",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 76,
+      "created_at": "2026-08-17T13:33:27.593Z"
+    },
+    {
+      "id": "1156e6ef-1a0c-41e4-b94f-b4e5bd25afa5",
+      "task_class": "chat",
+      "model": "claude (cli default model) via Claude Code CLI (effort: xhigh)",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 85,
+      "created_at": "2026-08-17T02:48:24.328Z"
+    },
     {
       "id": "e765d8ac-cf3e-4d06-a0ec-40c4947c59a9",
       "task_class": "chat",
@@ -256,58 +301,13 @@
       "elapsed_ms": 0,
       "tokens": 17156,
       "created_at": "2026-07-20T20:31:27.820Z"
-    },
-    {
-      "id": "c198a55d-15eb-43be-9923-f7a5f5cb2305",
-      "task_class": "implement",
-      "model": "anthropic/claude-sonnet-5",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "missing declared output(s): scratch/design-test-premium-a1.html",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 5263,
-      "tokens": 0,
-      "created_at": "2026-07-20T20:30:56.590Z"
-    },
-    {
-      "id": "ba7dbc00-3bfa-4fe8-87d8-c5e857dde74b",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.003028886,
-      "elapsed_ms": 0,
-      "tokens": 18654,
-      "created_at": "2026-07-20T20:24:37.277Z"
-    },
-    {
-      "id": "ec1a242e-7a91-42bd-9c37-e0e97bdf4e6f",
-      "task_class": "implement",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "The file comprehensively implements a single-page Apple España storefront with alternating hero/product sections, sticky navigation, product card grids, exact color palette, SF Pro font stack, and all specified motion timings (250ms hover, 320ms reveals, 1000ms entrance).",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.1241407,
-      "elapsed_ms": 93195,
-      "tokens": 15908,
-      "created_at": "2026-07-17T21:42:28.525Z"
     }
   ],
   "stats": {
-    "failed": 2,
+    "failed": 1,
     "blocked": 0,
-    "done": 18,
-    "qa_failed": 2,
-    "total_cost_usd": "0.1366"
+    "done": 19,
+    "qa_failed": 1,
+    "total_cost_usd": "0.0095"
   }
 }

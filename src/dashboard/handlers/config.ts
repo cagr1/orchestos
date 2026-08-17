@@ -57,6 +57,16 @@ export async function handleApiConfigGet(): Promise<Response> {
     roles,
     pendingRouting,
     executorEngine: cfg.executorEngine ?? 'single-shot',
+    // CC.1b bugfix (2026-08-17) — hallazgo real de Carlos: bajó el server varias
+    // veces y el selector de esfuerzo del chat seguía mostrando 3 niveles en vez
+    // de 5. Causa real: este endpoint nunca devolvía `executor_mode` — el PUT
+    // (más abajo) sí lo escribía al YAML, pero el GET no lo leía de vuelta. El
+    // label de la respuesta del chat SÍ reflejaba el CLI (ese código lee
+    // loadOrcheConfig() directo en el servidor, sin pasar por este endpoint) —
+    // pero el frontend (buildChatModelFx) depende de `/api/config` para saber el
+    // modo activo, así que `executor_mode` quedaba `undefined` ahí siempre,
+    // sin importar cuántas veces se reiniciara el servidor.
+    executor_mode: cfg.executor_mode ?? null,
     agenticMaxIterations: cfg.agentic?.maxIterations ?? 15,
     externalTimeoutMinutes: Math.round((cfg.external?.timeoutMs ?? 20 * 60 * 1000) / 60000),
     claudeCliDetected: findClaudeBinary() !== null,
