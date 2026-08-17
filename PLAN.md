@@ -130,7 +130,36 @@ sueltas — son partes de un mismo eje estructural.
   **Pendiente explícito, no silencioso**: `cli-codex`/`cli-opencode` en el chat quedan sin
   implementar hasta decidir su modo de solo-lectura; imágenes adjuntas se ignoran en el camino
   CLI (Claude Code sí las soporta vía otro mecanismo, no cableado todavía).
-- [ ] **CC.2 — 🧠 Sesiones de chat reales, agrupadas por proyecto.** Persistidas en SQLite, lista
+
+- [x] **CC.1b — 🧠 El modelo/esfuerzo reales, no genéricos.** (2026-08-16) Hallazgo real de
+  Carlos el mismo día del gate de CC.1: la respuesta decía `"claude (cli default)"` — no
+  reflejaba qué modelo ni qué esfuerzo corrió de verdad, y el selector de esfuerzo (3 niveles,
+  hardcodeado para el `reasoning` param de OpenRouter) le quedaba chico a Claude Code CLI, que
+  `claude --help` confirma con **5 niveles reales**: `low, medium, high, xhigh, max`.
+
+  **Causa raíz**: `runClaudeChat()` no recibía `model`/`effort` en absoluto — la primera versión
+  de CC.1 corría siempre con el default del binario. Y `VALID_EFFORTS` (3 niveles) era el único
+  set de validación en `handlers/chat.ts`, sin distinguir motor.
+
+  **Fix**: `CLAUDE_CLI_EFFORTS` (5 niveles) exportado desde `executors/external.ts`, reusado por
+  el validador de `handlers/chat.ts` — el body acepta los 5 niveles solo cuando
+  `executor_mode: cli-claude`, sigue rechazando los ajenos a OpenRouter en modo API (verificado
+  en vivo: `xhigh` → 400 en modo API, 200 en modo CLI). `runClaudeChat()` ahora recibe y pasa
+  `--effort`/`--model` reales; el label devuelto ya no es genérico:
+  `"anthropic/claude-haiku-4-5 via Claude Code CLI (effort: xhigh)"`, verificado en vivo con ese
+  valor exacto. Sin modelo Anthropic explícito, el label dice honestamente "claude (cli default
+  model)" en vez de inventar uno.
+
+  **Frontend**: `orcheConfig` ahora se carga en el boot general (`fetchAll()`, antes solo se
+  cargaba al abrir Settings) — el chat necesita saber el motor activo sin que el usuario haya
+  visitado Settings antes. El menú de esfuerzo del composer (`buildChatModelFx`) ofrece 5
+  opciones cuando `executor_mode: cli-claude`, 3 si no — la disponibilidad ya no depende solo de
+  `modelSupportsReasoning` (concepto por-modelo de OpenRouter, no aplica al CLI).
+
+  4 tests nuevos en `claude-chat.test.ts` (30 pass entre ambos archivos tocados): `--effort` se
+  pasa al binario y se refleja en el resultado; sin effort explícito no se manda la flag (el
+  binario usa su propio default); label honesto sin modelo Anthropic. 1152 tests totales (eran
+  1149), 0 fail.
   lateral acumulativa (patrón estándar que Carlos pidió explícitamente, "así como lo hacen todas
   estas herramientas"), **motor por sesión**. Esto es literalmente "abrir varios chats y elegir el
   CLI de cada uno". Absorbe `#50`.

@@ -26,6 +26,7 @@ import { buildNaturalDraft } from './project.ts'
 import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 import { resolveCascadeTier, resolveExecutorSelection } from '../../router/engine-cascade.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
+import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = typeof VALID_EFFORTS[number]
@@ -411,8 +412,18 @@ async function handleApiChat(req: Request): Promise<Response> {
   const message = body.message?.trim()
   if (!message) return errorResponse('message is required', 400)
 
-  if (body.effort !== undefined && !VALID_EFFORTS.includes(body.effort as ReasoningEffort)) {
-    return errorResponse(`effort must be one of: ${VALID_EFFORTS.join(', ')}`, 400)
+  // CC.1b (2026-08-16) — hallazgo real de Carlos el mismo día del gate de CC.1:
+  // el selector de esfuerzo (3 niveles, pensado para el `reasoning` de OpenRouter)
+  // no alcanza a Claude Code CLI, que acepta 5 niveles reales (`claude --help`:
+  // low/medium/high/xhigh/max). `root`/`chatExecutorMode` se calculan acá (temprano,
+  // antes del classifier costoso) para validar contra el set correcto según el
+  // motor activo — nunca los 3 genéricos cuando el motor real acepta más.
+  const root = resolve('.')
+  const chatExecutorMode = loadOrcheConfig(root).executor_mode
+  const useClaudeCli = chatExecutorMode === 'cli-claude'
+  const allowedEfforts: readonly string[] = useClaudeCli ? CLAUDE_CLI_EFFORTS : VALID_EFFORTS
+  if (body.effort !== undefined && !allowedEfforts.includes(body.effort)) {
+    return errorResponse(`effort must be one of: ${allowedEfforts.join(', ')}`, 400)
   }
 
   // B.3 (Mes 19) — múltiples adjuntos: el chat aceptaba un solo `fileId`, ahora
@@ -503,7 +514,6 @@ async function handleApiChat(req: Request): Promise<Response> {
       .filter((f): f is FileEntry => !!f)
   }
 
-  const root = resolve('.')
   const lines: string[] = []
 
   try {
@@ -568,16 +578,20 @@ async function handleApiChat(req: Request): Promise<Response> {
   // VISIBLE. Solo `cli-claude` implementado: Codex/OpenCode no tienen un flag de
   // solo-lectura tan directo como `--allowedTools` de Claude Code — documentado
   // como pendiente en PLAN.md § CC.1, no improvisado a ciegas.
-  const chatExecutorMode = loadOrcheConfig(root).executor_mode
-  const useClaudeCli = chatExecutorMode === 'cli-claude'
+  // (chatExecutorMode/useClaudeCli ya se calcularon arriba, antes de validar `effort`.)
 
   // BACK.3: el efecto se descarta en silencio si el modelo no lo soporta — el
   // cliente (frontend) ya debería ocultar el control, pero esto evita mandarle
   // un `reasoning` ignorado o, peor, un error a un modelo que no lo entiende.
   await ensureCatalogLoaded()
-  const effort = (body.effort && supportsReasoningEffort(model)) ? (body.effort as ReasoningEffort) : undefined
+  // CC.1b — el effort del camino CLI (5 niveles posibles, ya validado arriba
+  // contra CLAUDE_CLI_EFFORTS) es un tipo distinto del `ReasoningEffort` de 3
+  // niveles que espera el `reasoning` param de OpenRouter — separados para que
+  // el tipo del segundo siga siendo estricto en el resto de esta función.
+  const cliEffort = useClaudeCli ? (body.effort as string | undefined) : undefined
+  const effort = (!useClaudeCli && body.effort && supportsReasoningEffort(model)) ? (body.effort as ReasoningEffort) : undefined
   const modelLabel = useClaudeCli
-    ? `Claude Code CLI (executor_mode: cli-claude) — herramientas: solo lectura (Read, Glob, Grep), no puede editar archivos desde el chat`
+    ? `Claude Code CLI (executor_mode: cli-claude) — modelo: ${model || '(default del CLI)'}${cliEffort ? `, esfuerzo: ${cliEffort}` : ''} — herramientas: solo lectura (Read, Glob, Grep), no puede editar archivos desde el chat`
     : isOllama
       ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
       : `${model} via OpenRouter`
@@ -669,9 +683,12 @@ ${autoTaskInstruction}${ctx}${projBlock}`
   try {
     // CC.1 — corre ANTES de isOllama: `executor_mode` es una preferencia de
     // proyecto explícita ([[feedback-deteccion-no-decision-automatica]], el
-    // usuario la fijó a mano en Settings), gana sobre lo que haya seleccionado
-    // el combo de modelo del chat — mismo criterio que `resolveExecutorSelection`
-    // ya aplica para la tarea que el chat auto-crea más arriba. Limitación
+    // usuario la fijó a mano en Settings) que decide EL MOTOR (CLI vs API) —
+    // gana sobre eso. El modelo/esfuerzo que el usuario elija en el combo del
+    // chat SÍ se propagan al CLI (CC.1b, 2026-08-16: la primera versión no lo
+    // hacía, corría siempre con el default del binario — hallazgo real de
+    // Carlos el mismo día). `runClaudeChat` ignora el modelo si no es de
+    // Anthropic (`orchestosModelToCliModel`), nunca lo fuerza. Limitación
     // conocida y documentada (PLAN.md § CC.1): imágenes adjuntas se ignoran acá
     // (imageParts no se envía a runClaudeChat todavía) — combinedText sí incluye
     // el texto de PDFs/archivos adjuntos vía untrustedContent.
@@ -679,9 +696,10 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     if (useClaudeCli) {
       const { runClaudeChat } = await import('../../run/executors/external.ts')
       try {
-        const result = await runClaudeChat(root, systemPrompt, combinedText, CLAUDE_CHAT_TIMEOUT_MS)
-        logChatRun(message, result.model, result.inputTokens, result.outputTokens)
-        return jsonResponse({ text: result.text + autoTaskNote, model: result.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
+        const result = await runClaudeChat(root, systemPrompt, combinedText, CLAUDE_CHAT_TIMEOUT_MS, model, cliEffort)
+        const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
+        logChatRun(message, resultLabel, result.inputTokens, result.outputTokens)
+        return jsonResponse({ text: result.text + autoTaskNote, model: resultLabel, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
       } catch (e: any) {
         return errorResponse(`Claude Code CLI: ${e.message}`, 502)
       }

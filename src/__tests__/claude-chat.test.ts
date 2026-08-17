@@ -137,9 +137,46 @@ describe('runClaudeChat (CC.1)', () => {
     const stdout = streamOf(assistantText('x'), resultEvent({ total_cost_usd: 0, usage: {} }))
     overrideBunSpawn(makeMockProc(stdout))
 
-    await runClaudeChat('/tmp/p', 'sys', 'msg', 5000, 'anthropic/claude-sonnet-5')
+    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000, 'anthropic/claude-sonnet-5')
 
     const idx = spawnCalls[0]!.cmd.indexOf('--model')
     expect(spawnCalls[0]!.cmd[idx + 1]).toBe('claude-sonnet-5')
+    expect(result.model).toBe('anthropic/claude-sonnet-5')
+  })
+
+  // CC.1b (2026-08-16) — hallazgo real de Carlos el mismo día del gate de CC.1:
+  // la primera versión no pasaba effort al binario, ni lo devolvía en el label —
+  // "muy genérico" (sic). Claude CLI acepta 5 niveles reales (claude --help),
+  // no los 3 del selector pensado para el `reasoning` de OpenRouter.
+  it('pasa el effort al CLI con --effort y lo devuelve en el resultado', async () => {
+    const stdout = streamOf(assistantText('x'), resultEvent({ total_cost_usd: 0, usage: {} }))
+    overrideBunSpawn(makeMockProc(stdout))
+
+    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000, undefined, 'xhigh')
+
+    const idx = spawnCalls[0]!.cmd.indexOf('--effort')
+    expect(idx).toBeGreaterThan(-1)
+    expect(spawnCalls[0]!.cmd[idx + 1]).toBe('xhigh')
+    expect(result.effort).toBe('xhigh')
+  })
+
+  it('sin effort explícito, no manda --effort (el binario usa su propio default)', async () => {
+    const stdout = streamOf(assistantText('x'), resultEvent({ total_cost_usd: 0, usage: {} }))
+    overrideBunSpawn(makeMockProc(stdout))
+
+    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000)
+
+    expect(spawnCalls[0]!.cmd).not.toContain('--effort')
+    expect(result.effort).toBeUndefined()
+  })
+
+  it('sin modelo de Anthropic, el label dice explícitamente "default del CLI" en vez de inventar un modelo', async () => {
+    const stdout = streamOf(assistantText('x'), resultEvent({ total_cost_usd: 0, usage: {} }))
+    overrideBunSpawn(makeMockProc(stdout))
+
+    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000, 'deepseek/deepseek-v4-flash')
+
+    expect(spawnCalls[0]!.cmd).not.toContain('--model')
+    expect(result.model).toBe('claude (cli default model)')
   })
 })

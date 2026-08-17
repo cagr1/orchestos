@@ -160,6 +160,12 @@ const KNOWN_MODELS = [
   { id: 'meta-llama/llama-3.3-70b-instruct',    name: 'Llama 3.3 70B',             priceIn: 0.12 },
 ];
 
+/* CC.1b (2026-08-16) — niveles reales de `claude --help` (confirmado en la
+   máquina de Carlos), no los 3 genéricos del `reasoning` param de OpenRouter.
+   Mismo orden que src/run/executors/external.ts:CLAUDE_CLI_EFFORTS — si el
+   CLI cambia sus niveles, actualizar los dos lados. */
+const CLAUDE_CLI_EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'];
+
 function loadingState(msg) {
   return `<div class="card"><div class="placeholder">
     <div class="spinner"></div>

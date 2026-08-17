@@ -225,7 +225,17 @@ async function runClaudeCode(
 // worktree desechable") se cumple acá por el lado de los permisos en vez del
 // aislamiento de filesystem — sin Edit/Write en `--allowedTools`, el binario
 // no puede escribir nada aunque corra contra el proyecto real.
-function buildClaudeChatArgs(systemPrompt: string, model?: string): string[] {
+//
+// Hallazgo real de Carlos (2026-08-16, mismo día): la primera versión de esto
+// no pasaba `model` ni `effort` al binario — corría siempre con el default del
+// CLI y el label devuelto era genérico ("claude (cli default)"), sin decir qué
+// modelo/esfuerzo se usó de verdad. `claude --help` confirma 5 niveles reales
+// de esfuerzo (`low, medium, high, xhigh, max`) — el selector de 3 niveles del
+// chat (pensado para el `reasoning` de OpenRouter) le queda chico a este CLI.
+export const CLAUDE_CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
+export type ClaudeCliEffort = typeof CLAUDE_CLI_EFFORTS[number]
+
+function buildClaudeChatArgs(systemPrompt: string, model?: string, effort?: string): string[] {
   const args = [
     '-p',
     '--output-format', 'stream-json',
@@ -236,6 +246,7 @@ function buildClaudeChatArgs(systemPrompt: string, model?: string): string[] {
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
+  if (effort) args.push('--effort', effort)
   return args
 }
 
@@ -244,7 +255,10 @@ export interface ClaudeChatResult {
   inputTokens: number
   outputTokens: number
   usd: number
+  /** Modelo real que corrió — el que se resolvió al CLI, o el default del binario si no se fijó ninguno. */
   model: string
+  /** Esfuerzo real pasado al CLI, o `undefined` si no se fijó (el binario usa su propio default). */
+  effort?: string
 }
 
 /**
@@ -258,6 +272,7 @@ export async function runClaudeChat(
   userMessage: string,
   timeoutMs: number,
   model?: string,
+  effort?: string,
 ): Promise<ClaudeChatResult> {
   if (!findClaudeBinary()) {
     throw new ExecutorExternalError(claudeUnavailableMessage(process.env.PATH))
@@ -271,7 +286,7 @@ export async function runClaudeChat(
   let timedOut: boolean
   let resultLine: string | undefined
   try {
-    ;({ timedOut, resultLine } = await runClaudeCode(cwd, buildClaudeChatArgs(systemPrompt, model), userMessage, timeoutMs, onStep))
+    ;({ timedOut, resultLine } = await runClaudeCode(cwd, buildClaudeChatArgs(systemPrompt, model, effort), userMessage, timeoutMs, onStep))
   } catch (e: any) {
     throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
   }
@@ -290,12 +305,14 @@ export async function runClaudeChat(
     throw new ExecutorExternalError('claude code result event was not valid JSON')
   }
 
+  const cliModel = orchestosModelToCliModel(model)
   return {
     text,
     inputTokens: parsed.usage?.input_tokens ?? 0,
     outputTokens: parsed.usage?.output_tokens ?? 0,
     usd: typeof parsed.total_cost_usd === 'number' ? parsed.total_cost_usd : 0,
-    model: orchestosModelToCliModel(model) ? model! : 'claude (cli default)',
+    model: cliModel ? model! : 'claude (cli default model)',
+    effort,
   }
 }
 

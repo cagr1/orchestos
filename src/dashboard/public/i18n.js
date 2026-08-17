@@ -111,6 +111,9 @@ const I18N = {
     'chat.effort.low':    'Low',
     'chat.effort.medium': 'Medium',
     'chat.effort.high':   'High',
+    /* CC.1b (2026-08-16) — niveles reales de Claude Code CLI (`claude --help`), solo visibles cuando executor_mode: cli-claude */
+    'chat.effort.xhigh':  'Extra high',
+    'chat.effort.max':    'Max',
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
     'chat.modelfx.model': 'Model',
     'chat.modelfx.back':  'Back',
@@ -894,6 +897,9 @@ const I18N = {
     'chat.effort.low':    'Bajo',
     'chat.effort.medium': 'Medio',
     'chat.effort.high':   'Alto',
+    /* CC.1b (2026-08-16) — niveles reales de Claude Code CLI (`claude --help`), solo visibles con executor_mode: cli-claude */
+    'chat.effort.xhigh':  'Extra alto',
+    'chat.effort.max':    'Máximo',
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
     'chat.modelfx.model': 'Modelo',
     'chat.modelfx.back':  'Volver',

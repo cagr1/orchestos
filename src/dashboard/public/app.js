@@ -335,6 +335,12 @@ const App = {
       this.fetchSettings(),
       this.fetchSetup(),
       this.fetchHealth(),
+      // CC.1b (2026-08-16) — antes solo se cargaba al abrir Settings; el chat
+      // necesita saber si executor_mode es cli-claude para ofrecer los 5
+      // niveles reales de esfuerzo del CLI (no los 3 genéricos de OpenRouter)
+      // y mostrar qué corre de verdad. Dato liviano (lee un YAML), sin costo
+      // real de agregarlo al boot.
+      this.fetchOrcheConfig(),
     ]);
     if (!state.setupRedirectDone && state.setup?.criticalMissing) {
       state.screen = 'settings';
@@ -1949,7 +1955,15 @@ function buildChatModelFx(st) {
     ? cloudSource
     : [{ id: val, name: val, priceIn: 0 }, ...cloudSource];
   const modelLabel = isLoading ? t('common.loading') : shortModelLabel(val, allCloud);
-  const effortAvailable = modelSupportsReasoning(val, st.orModels);
+  // CC.1b (2026-08-16) — hallazgo real de Carlos: el chat corriendo vía Claude
+  // Code CLI (executor_mode: cli-claude) mostraba el selector de 3 niveles
+  // pensado para el `reasoning` de OpenRouter, cuando el CLI real acepta 5
+  // (`claude --help`: low/medium/high/xhigh/max). El modo es una preferencia
+  // de PROYECTO (Settings), no depende del modelo elegido en este combo — a
+  // diferencia de `modelSupportsReasoning`, que sí es por-modelo.
+  const useClaudeCli = st.orcheConfig?.executor_mode === 'cli-claude';
+  const effortLevels = useClaudeCli ? CLAUDE_CLI_EFFORT_LEVELS : ['low', 'medium', 'high'];
+  const effortAvailable = useClaudeCli || modelSupportsReasoning(val, st.orModels);
   const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null;
   const triggerLabel = effortLabel ? `${modelLabel} · ${effortLabel}` : modelLabel;
 
@@ -1979,7 +1993,7 @@ function buildChatModelFx(st) {
   } else if (view === 'effort') {
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
-      ${['low', 'medium', 'high'].map(v => `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${st.chatEffort === v ? ' active' : ''}" data-modelfx-effort="${v}">
+      ${effortLevels.map(v => `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${st.chatEffort === v ? ' active' : ''}" data-modelfx-effort="${v}">
         <span>${t('chat.effort.' + v)}</span>${st.chatEffort === v ? ICON.check : ''}
       </button>`).join('')}
     </div>`;
