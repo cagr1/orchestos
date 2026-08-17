@@ -117,6 +117,11 @@ const I18N = {
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
     'chat.modelfx.model': 'Model',
     'chat.modelfx.agent': 'Agent',
+    'chat.modelfx.agentLabel.claude': 'Claude · your subscription',
+    'chat.modelfx.agentLabel.codex': 'Codex · your subscription',
+    'chat.modelfx.agentLabel.opencode': 'OpenCode · your subscription',
+    'chat.modelfx.agentLabel.api': 'OpenRouter · credits',
+    'chat.modelfx.agentLabel.local': 'Local · free',
     'chat.modelfx.modelDecidedBy': 'Decided by {0}',
     'chat.modelfx.back':  'Back',
     'chat.modelfx.reset': 'Reset to default',
@@ -905,6 +910,11 @@ const I18N = {
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
     'chat.modelfx.model': 'Modelo',
     'chat.modelfx.agent': 'Agente',
+    'chat.modelfx.agentLabel.claude': 'Claude · tu suscripción',
+    'chat.modelfx.agentLabel.codex': 'Codex · tu suscripción',
+    'chat.modelfx.agentLabel.opencode': 'OpenCode · tu suscripción',
+    'chat.modelfx.agentLabel.api': 'OpenRouter · créditos',
+    'chat.modelfx.agentLabel.local': 'Local · gratis',
     'chat.modelfx.modelDecidedBy': 'Lo decide {0}',
     'chat.modelfx.back':  'Volver',
     'chat.modelfx.reset': 'Restablecer a lo predeterminado',

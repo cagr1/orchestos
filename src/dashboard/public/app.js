@@ -1959,10 +1959,15 @@ function buildChatModelFx(st) {
     : [{ id: val, name: val, priceIn: 0 }, ...cloudSource];
   const agent = st.orcheConfig?.agent || 'api';
   const agentInfo = st.executorModes?.modes?.find(m => m.id === agent);
-  const agentLabel = t('settings.executorMode.opt.' + agent);
-  const isCliAgent = agent === 'claude' || agent === 'codex' || agent === 'opencode';
+  const agentLabel = t('chat.modelfx.agentLabel.' + agent);
+  const modelHiddenAgent = agent === 'codex' || agent === 'opencode';
+  const showsClaudeModelPicker = agent === 'claude';
   const isLocalAgent = agent === 'local';
-  const modelLabel = isLoading ? t('common.loading') : shortModelLabel(val, allCloud);
+  const claudeModels = Array.isArray(st.orModels)
+    ? st.orModels.filter(m => m && typeof m.id === 'string' && m.id.startsWith('anthropic/') && !m.id.endsWith(':batch'))
+    : [];
+  const modelCloud = showsClaudeModelPicker ? claudeModels : allCloud;
+  const modelLabel = isLoading && showsClaudeModelPicker ? t('common.loading') : shortModelLabel(val, modelCloud);
   // CC.1b (2026-08-16) — hallazgo real de Carlos: el chat corriendo vía Claude
   // Code CLI (agent: claude, CC.D1) mostraba el selector de 3 niveles
   // pensado para el `reasoning` de OpenRouter, cuando el CLI real acepta 5
@@ -1973,14 +1978,14 @@ function buildChatModelFx(st) {
   const effortLevels = useClaudeCli ? CLAUDE_CLI_EFFORT_LEVELS : ['low', 'medium', 'high'];
   const effortAvailable = !isLocalAgent && (useClaudeCli || modelSupportsReasoning(val, st.orModels));
   const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null;
-  const triggerBase = isCliAgent ? agentLabel : modelLabel;
+  const triggerBase = (modelHiddenAgent || showsClaudeModelPicker) ? agentLabel : modelLabel;
   const triggerLabel = effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase;
 
   const view = st.chatFxView; // null | 'root' | 'model' | 'effort' | 'agent'
   let panel = '';
   if (view === 'root') {
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
-      ${isCliAgent ? `<div class="chat-modelfx-item">
+      ${modelHiddenAgent ? `<div class="chat-modelfx-item">
         <span class="k">${t('chat.modelfx.model')}</span>
         <span class="v">${esc(t('chat.modelfx.modelDecidedBy', agentLabel))}</span>
       </div>` : `<button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
@@ -2004,7 +2009,7 @@ function buildChatModelFx(st) {
     panel = `<div class="chat-modelfx-panel chat-modelfx-panel-wide" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
       <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
-      <div class="model-combo-list" data-combo-list>${buildComboOptions(locals, isLocalAgent ? [] : allCloud, val, '')}</div>
+      <div class="model-combo-list" data-combo-list>${buildComboOptions(showsClaudeModelPicker ? [] : locals, isLocalAgent ? [] : modelCloud, val, '')}</div>
     </div>`;
   } else if (view === 'effort') {
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
@@ -2021,14 +2026,14 @@ function buildChatModelFx(st) {
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
       ${modes.map(info => `<button type="button" class="chat-modelfx-item chat-modelfx-agent-opt${agent === info.id ? ' active' : ''}" data-modelfx-agent="${esc(info.id)}">
-        <span>${esc(t('settings.executorMode.opt.' + info.id))}</span>${agent === info.id ? ICON.check : ''}
+        <span>${esc(t('chat.modelfx.agentLabel.' + info.id))}</span>${agent === info.id ? ICON.check : ''}
       </button>`).join('')}
       ${notDetectedNote}
     </div>`;
   }
 
   return `<div class="chat-modelfx${view ? ' open' : ''}" data-modelfx>
-    <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger ${(!isCliAgent && isLoading) ? 'disabled' : ''}>
+    <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger ${(!modelHiddenAgent && !showsClaudeModelPicker && isLoading) ? 'disabled' : ''}>
       <span class="chat-modelfx-label">${esc(triggerLabel)}</span>${ICON.chev}
     </button>
     ${panel}

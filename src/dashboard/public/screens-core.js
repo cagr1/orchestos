@@ -718,9 +718,15 @@ SCREENS.chat = {
       if (!list) return;
       const allCloud = Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : KNOWN_MODELS;
       const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
-      const cloud = st.orcheConfig?.agent === 'local' ? [] : allCloud;
+      const agent = st.orcheConfig?.agent;
+      const cloud = agent === 'claude'
+        ? (Array.isArray(st.orModels)
+          ? st.orModels.filter(m => m && typeof m.id === 'string' && m.id.startsWith('anthropic/') && !m.id.endsWith(':batch'))
+          : [])
+        : (agent === 'local' ? [] : allCloud);
+      const comboLocals = agent === 'claude' ? [] : locals;
       // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
-      list.innerHTML = buildComboOptions(locals, cloud, st.chatModel, q);
+      list.innerHTML = buildComboOptions(comboLocals, cloud, st.chatModel, q);
     });
     // D0-3 — dismiss local model warning
     root.querySelector('[data-act="local-warn-dismiss"]')?.addEventListener('click', () => {

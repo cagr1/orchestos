@@ -259,7 +259,7 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   "Executor engine" reducido a 2 opciones (sin `external`, que ahora es el agente); el chat sigue
   mostrando los 5 niveles reales de esfuerzo de Claude CLI (Low/Medium/High/Extra high/Max) — cero
   regresión de CC.1/CC.1b/CC.1c.
-- [x] **CC.D2 — 🧠 El picker del chat: elegir agente, no modelo.** (2026-08-17)
+- [x] **CC.D2 — 🧠 El picker del chat: elegir agente, no modelo.** (2026-08-17; segunda pasada)
   `buildChatModelFx()` ahora agrega la vista root `Agent` y la vista `agent`, alimentada únicamente
   por `state.executorModes` (`GET /api/system/executor-modes`); cada opción usa checkmark y el
   mismo PUT `/api/config` de Settings, con manejo de error y advertencia `notDetected` cuando
@@ -289,6 +289,22 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   **1157 pass / 0 fail**, functions 76.81% (mínimo 69%), lines 63.75% (mínimo 57%). Límite:
   el comando CI contra la DB real sigue bloqueado por ese estado externo y queda pendiente
   resolverlo fuera del scope de CC.D2.
+
+  **Segunda pasada (2026-08-17):** se corrigió el hallazgo de Carlos sobre `claude --model`: Claude
+  conserva la fila `Model >` y sus 5 efforts, pero su combo usa únicamente `st.orModels` vivo,
+  filtrado a `anthropic/*` y sin sufijo `:batch`; no se agregó endpoint ni catálogo hardcodeado.
+  Codex/OpenCode mantienen `Lo decide <agente>`. El pill y la vista Agent usan labels orientados
+  a pago (`tu suscripción`, `créditos`, `gratis`) solo en este picker; Settings conserva sus
+  labels técnicos. Playwright real en `http://localhost:45679`: Claude mostró **17** modelos Anthropic
+  reales, se eligió `anthropic/claude-opus-5` y el pill lo reflejó; Codex mostró `Lo decide Codex ·
+  tu suscripción` sin selector; API mostró **414** modelos del catálogo completo. El servidor fue
+  detenido y la configuración YAML quedó restaurada a su contenido legacy original.
+  Gate en vivo: Playwright real en navegador local, con 17 modelos Anthropic de Claude, 414 modelos de API y restauración final a Claude.
+  En esta pasada
+  `bunx tsc --noEmit` y `git diff --check` pasan; `bun run test:coverage` contra la DB real repitió
+  el bloqueo externo (1036 pass / 125 fail: `SQLITE_READONLY` + `EADDRINUSE`) y la corrida aislada
+  con DB temporal dio 1156 pass / 1 fail, únicamente el bind `EADDRINUSE` preexistente de
+  `csrf-origin` (cobertura 78.53% funciones / 77.96% líneas, sobre los umbrales).
 - [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe
