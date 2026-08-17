@@ -305,6 +305,20 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   el bloqueo externo (1036 pass / 125 fail: `SQLITE_READONLY` + `EADDRINUSE`) y la corrida aislada
   con DB temporal dio 1156 pass / 1 fail, únicamente el bind `EADDRINUSE` preexistente de
   `csrf-origin` (cobertura 78.53% funciones / 77.96% líneas, sobre los umbrales).
+
+  **Verificación independiente (Claude, 2026-08-17):** ambos fallos (`SQLITE_READONLY` y
+  `EADDRINUSE`) reproducidos y descartados como **no reales** — eran colisión de concurrencia
+  (dos corridas de `test:coverage` compartiendo el mismo `~/.orchestos/db.sqlite` y el mismo puerto
+  fijo de test al mismo tiempo, patrón ya conocido en [[reference-test-fixtures-leak-into-real-db]]).
+  Corrida en solitario, sin nada más en paralelo: `bun run test:coverage` → **1157 pass / 0 fail**,
+  cero `EADDRINUSE`. `node --check` limpio en los 3 archivos JS tocados
+  (`app.js`/`screens-core.js`/`i18n.js`). `GET /api/config` real confirma `agent: "claude"`;
+  `GET /api/system/executor-modes` real confirma los 5 agentes con detección correcta (claude/
+  opencode/codex detectados vía `Bun.which`, local no detectado, api siempre detectado). Diff de
+  `buildChatModelFx()`/`screens-core.js` revisado línea por línea, lógica consistente con el diseño
+  acordado. Límite honesto: esta sesión no tiene Playwright/navegador disponible — la verificación
+  visual de clicks/render (17 modelos Anthropic, 414 de API, restauración de config) descansa
+  únicamente en la corrida de Codex documentada arriba, no fue repetida independientemente.
 - [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe
