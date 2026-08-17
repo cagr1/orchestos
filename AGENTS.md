@@ -90,3 +90,40 @@ límites viven en `docs/security-manual-review.md`; falta una sesión con navega
 visual y los flujos manuales de ejecución/worktree/diagnóstico/exportación. Hallazgos pendientes
 `L62-001` (migración concurrente) y `L62-002` (provider key persistida antes de validación). No
 corregirlos fuera de un ítem explícito de `PLAN.md`.
+
+## Invariantes de arquitectura permanentes
+
+Recuperados el 2026-08-17: vivían solo en `CONTEXT.md` y se perdieron en un regen manual. Portados
+acá porque `CONTEXT.md` nunca es la fuente, solo un derivado — y porque `orchestos context update`
+resultó tener un bug real (sobreescribe `AGENTS.md` con una plantilla autodetectada genérica en vez
+de leerlo como fuente; ver PLAN.md, ítem de hallazgo 2026-08-17). No volver a correr ese comando
+hasta que el bug esté arreglado.
+
+**Invariante QA**: cuando una tarea tiene criterios de aceptación, `runQA` solo puede devolver
+`pass` si la respuesta del proveedor contiene exactamente un resultado por criterio y cada
+criterio aprobado tiene evidencia literal real en el archivo indicado. Una respuesta incompleta,
+malformada o con cardinalidad incorrecta debe fallar de forma segura; una respuesta JSON que no
+sea un objeto también debe fallar de forma segura. No relajar esta regla para mejorar el mutation
+score.
+
+**Invariante roadmap** (Bloque M, Mes 24): `docs/roadmaps/` (universal → disciplina → lenguaje →
+project-profile) nunca marca `verified` sin un comando real ejecutado y su salida citada; sin
+evidencia, el estado correcto es `known` (conocimiento general) o `missing` (se buscó y no está)
+— nunca un `pass` implícito. `orchestos roadmap check` es determinista y evidence-based: cero
+heurísticas que inventen `detected` sin una señal real de filesystem/código. Límites conocidos, no
+bugs a esconder: (1) no existe mecanismo que provisione `docs/roadmaps/` dentro de un proyecto
+NUEVO — `orchestos init` no lo hace. (2) el presupuesto de contexto de `loadRoadmapContext` (12k
+chars) no alcanza para las 6 disciplinas + lenguajes de OrchestOS mismo — se recorta con `missing`
+visible, nunca en silencio, pero el recorte es real. Pendientes de decisión de Carlos antes de
+ampliarse a proyectos externos reales.
+
+**Invariante contrato de skill** (2026-07-30): un campo del YAML de una skill (`skills/*.yaml`)
+solo llega al LLM si está en los tres puntos: `SkillDef` y `validateSkill()`
+(`src/skills/registry.ts`) y **`buildSections()`** (`src/skills/targets/_shared.ts`) — este
+último es el ÚNICO renderer skill→prompt, compartido por los tres targets
+(`claude`/`cursor`/`openai`). `validateSkill()` **no rechaza campos desconocidos**: un campo mal
+cableado carga sin error y se descarta en silencio — el modo de fallo es contenido muerto, no una
+excepción. Si la skill se crea o importa por el dashboard, el contrato descrito al LLM curador
+(`src/dashboard/prompts/curator.ts`) debe incluirlo o toda skill importada nace sin ese campo. El
+orden de las secciones dentro de `buildSections()` es parte del contrato — es el orden en que el
+modelo lee la skill.

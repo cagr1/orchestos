@@ -1,4 +1,5 @@
 {
+  "enabledPlugins": {},
   "permissions": {
     "allow": [
       "Bash(git status)",
@@ -12,7 +13,6 @@
       "Bash(git pull *)",
       "Bash(git fetch *)",
       "Read(runs-summary.json)",
-      "Write(DREAMING.md)",
       "Edit(DREAMING.md)"
     ]
   },

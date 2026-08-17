@@ -264,6 +264,17 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   Zed. Bajo un CLI: sin selector de modelo (dice "lo decide <agente>"), con Effort si el CLI lo
   acepta por flag. Bajo API: selector de modelo actual + los 3 efforts de OpenRouter. Arregla el
   bug reportado ("dice deepseek aunque corrió Claude") por construcción, no con un parche.
+- [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
+  (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
+  `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe
+  `AGENTS.md` sin fusionar con el contenido existente**, borrando reglas escritas a mano (identidad
+  git, hooks, invariantes, estado de seguridad). Confirmado en vivo: una corrida redujo este
+  `AGENTS.md` de 92 líneas con reglas reales a 19 líneas de plantilla ("Stack/Conventions/Notes for
+  AI agents" genérico). Distinto de `context compress` (línea ~224), que SÍ es seguro — solo lee
+  AGENTS.md y escribe CONTEXT.md, nunca al revés. Fix mínimo: `update` debe fusionar/preservar
+  secciones manuales o, si es solo para proyectos nuevos sin AGENTS.md propio, negarse a
+  sobreescribir uno que ya exista sin `--force`. Restaurado a mano vía `git checkout -- AGENTS.md`
+  + re-aplicación del invariante perdido; sin pérdida real porque no había commit de por medio.
 - [ ] **CC.D3 — ⚡ Nombres de modelo legibles.** Reclamo de Carlos: *"algunos modelos tienen el
   nombre muy largo, no se alcanza a leer cuál es"*. Truncado con el nombre completo accesible
   (tooltip/`title`), sin romper [[reference-model-combo-pattern]] (el combo sigue siendo buscable).
