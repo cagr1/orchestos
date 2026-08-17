@@ -259,11 +259,36 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   "Executor engine" reducido a 2 opciones (sin `external`, que ahora es el agente); el chat sigue
   mostrando los 5 niveles reales de esfuerzo de Claude CLI (Low/Medium/High/Extra high/Max) — cero
   regresión de CC.1/CC.1b/CC.1c.
-- [ ] **CC.D2 — 🧠 El picker del chat: elegir agente, no modelo.** El pill del composer pasa a
-  elegir **agente** entre los CLIs realmente detectados (`Bun.which`) + API + Local — patrón Orca/
-  Zed. Bajo un CLI: sin selector de modelo (dice "lo decide <agente>"), con Effort si el CLI lo
-  acepta por flag. Bajo API: selector de modelo actual + los 3 efforts de OpenRouter. Arregla el
-  bug reportado ("dice deepseek aunque corrió Claude") por construcción, no con un parche.
+- [x] **CC.D2 — 🧠 El picker del chat: elegir agente, no modelo.** (2026-08-17)
+  `buildChatModelFx()` ahora agrega la vista root `Agent` y la vista `agent`, alimentada únicamente
+  por `state.executorModes` (`GET /api/system/executor-modes`); cada opción usa checkmark y el
+  mismo PUT `/api/config` de Settings, con manejo de error y advertencia `notDetected` cuando
+  corresponde. `fetchExecutorModes()` quedó incluido en el boot de `fetchAll()` y el estado tiene
+  carga explícita. En CLI (`claude`/`codex`/`opencode`) el pill muestra el agente, desaparece el
+  combo de modelo y el root dice "Lo decide <agente>"; solo Claude conserva los 5 efforts reales.
+  API conserva Model + los 3 efforts de OpenRouter, y Local ofrece únicamente la lista Ollama
+  existente, sin effort. Se agregaron las claves i18n inglés/español; no se duplicó ni modificó
+  `buildComboOptions()`/el patrón de combo buscable.
+
+  **Gate en vivo:** Playwright + navegador real; dashboard levantado temporalmente en
+  `http://localhost:45678` y detenido al terminar. Boot observado con `GET /api/config` 200 y
+  `GET /api/system/executor-modes` 200. Con Claude, el pill mostró `Claude CLI · Medium`; al
+  abrirlo se vio `Model → Decided by Claude CLI`, `Reasoning effort → Medium` y `Agent → Claude
+  CLI`, sin combo de modelo. La vista Agent listó Local, Claude CLI, opencode CLI, Codex CLI y
+  API. Se seleccionó opencode y la red mostró `PUT /api/config` 200; el pill cambió a
+  `opencode CLI · Medium`, sin Model ni Effort. Se seleccionó API con otro `PUT /api/config` 200;
+  el pill volvió a `DeepSeek V4 Flas… · Medium`, el root recuperó Model + Reasoning effort y la
+  vista Model mostró el combo buscable con modelos reales. Finalmente se restauró Claude y
+  `GET /api/config` confirmó `agent: "claude"`; el YAML se dejó nuevamente con su contenido
+  original legacy (`executor_mode: cli-claude` + `executorEngine: external`).
+
+  **Validación:** `bunx tsc --noEmit` + `git diff --check` pasan. `bun run test:coverage` exacto
+  se ejecutó dos veces contra el entorno real: 1036 pass / 125 fail por `SQLITE_READONLY` en la
+  DB real y `EADDRINUSE` en el test de bind, sin fallos en archivos de CC.D2. Corrida aislada
+  reproducible con `ORCHESTOS_HOME` temporal + `bun run db:migrate` + `bun run test:coverage`:
+  **1157 pass / 0 fail**, functions 76.81% (mínimo 69%), lines 63.75% (mínimo 57%). Límite:
+  el comando CI contra la DB real sigue bloqueado por ese estado externo y queda pendiente
+  resolverlo fuera del scope de CC.D2.
 - [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe

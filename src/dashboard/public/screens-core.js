@@ -659,7 +659,7 @@ SCREENS.chat = {
       App.rerender();
       if (opening) loadOrModels().then(() => { if (st.chatFxView) App.rerender(); });
     });
-    root.querySelector('[data-modelfx-panel]')?.addEventListener('click', e => {
+    root.querySelector('[data-modelfx-panel]')?.addEventListener('click', async e => {
       const nav = e.target.closest('[data-modelfx-nav]');
       if (nav) { st.chatFxView = nav.dataset.modelfxNav; App.rerender(); return; }
       const back = e.target.closest('[data-modelfx-back]');
@@ -680,6 +680,29 @@ SCREENS.chat = {
         App.rerender();
         return;
       }
+      const agentOpt = e.target.closest('[data-modelfx-agent]');
+      if (agentOpt) {
+        const agent = agentOpt.dataset.modelfxAgent;
+        try {
+          const res = await fetch('/api/config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agent }),
+          });
+          if (res.ok) {
+            if (st.orcheConfig) st.orcheConfig.agent = agent;
+            if (st.executorModes) st.executorModes.selected = agent;
+            st.chatFxView = null;
+            App.rerender();
+          } else {
+            const data = await res.json();
+            showToast(data.error || t('settings.executorMode.saveErr'), 'error');
+          }
+        } catch {
+          showToast(t('settings.executorMode.saveErr'), 'error');
+        }
+        return;
+      }
       const modelOpt = e.target.closest('[data-combo-option]');
       if (modelOpt) {
         st.chatModel = modelOpt.dataset.value;
@@ -695,8 +718,9 @@ SCREENS.chat = {
       if (!list) return;
       const allCloud = Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : KNOWN_MODELS;
       const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
+      const cloud = st.orcheConfig?.agent === 'local' ? [] : allCloud;
       // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
-      list.innerHTML = buildComboOptions(locals, allCloud, st.chatModel, q);
+      list.innerHTML = buildComboOptions(locals, cloud, st.chatModel, q);
     });
     // D0-3 — dismiss local model warning
     root.querySelector('[data-act="local-warn-dismiss"]')?.addEventListener('click', () => {

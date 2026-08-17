@@ -116,6 +116,8 @@ const I18N = {
     'chat.effort.max':    'Max',
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
     'chat.modelfx.model': 'Model',
+    'chat.modelfx.agent': 'Agent',
+    'chat.modelfx.modelDecidedBy': 'Decided by {0}',
     'chat.modelfx.back':  'Back',
     'chat.modelfx.reset': 'Reset to default',
     'chat.createTask':    'Create task from this conversation',
@@ -902,6 +904,8 @@ const I18N = {
     'chat.effort.max':    'Máximo',
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
     'chat.modelfx.model': 'Modelo',
+    'chat.modelfx.agent': 'Agente',
+    'chat.modelfx.modelDecidedBy': 'Lo decide {0}',
     'chat.modelfx.back':  'Volver',
     'chat.modelfx.reset': 'Restablecer a lo predeterminado',
     'chat.createTask':    'Crear tarea desde esta conversación',
