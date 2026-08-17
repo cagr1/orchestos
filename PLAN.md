@@ -708,7 +708,21 @@ dentro de su propio bloque). Historial completo de los tres cierres → [DONE.md
   registry npm confirman las primeras versiones corregidas. Insight aplicado: `INS-2026-005` —
   cambio acotado, sin actualización multi-capa.
 
-- [ ] **GOV.3 — 🔍 Evaluar advisory moderate de `qs` sin mezclar alcance.** El audit total posterior
+- [x] **GOV.3 — 🔍 Evaluar advisory moderate de `qs` sin mezclar alcance.** (2026-08-17) El audit total posterior
   a GOV.2 conserva `GHSA-q8mj-m7cp-5q26`: `qs@6.15.1` llega fijado exactamente por
   `typed-rest-client@2.3.1` dentro de Stryker. No bloquea `security:gate` (`high+`), pero debe
   evaluarse por separado antes de forzar un override sobre una dependencia con versión exacta.
+
+  **Resolución mínima:** `package.json` añade `qs: 6.15.3` a los overrides existentes. Se conserva
+  `@stryker-mutator/core@9.6.1` y `typed-rest-client@2.3.1`: actualizar este último a `3.x` rompería
+  el rango `~2.3.0` declarado por Stryker y ampliaría el alcance. `bun.lock` cambia únicamente
+  `qs 6.15.1 → 6.15.3`, sus dependencias internas (`side-channel ^1.1.1` y
+  `es-define-property ^1.0.1`) y el registro del override. El override corrige la resolución de este
+  repositorio, pero no modifica el manifest upstream de `typed-rest-client`; debe reevaluarse al
+  actualizar Stryker o cuando ese cliente publique/adopte una versión compatible sin el pin vulnerable.
+
+  **Evidencia:** `bun run agent:preflight -- --item GOV.3 --agent codex` ✅; baseline
+  `bunx tsc --noEmit` ✅; `bun pm ls --all` → `typed-rest-client@2.3.1` y `qs@6.15.3`; `bun audit`
+  → cero vulnerabilidades ✅; `bun run security:gate` completo (1157 pass, 0 fail, audit limpio) ✅;
+  `bun run mutation:qa` ejecutó el consumidor real Stryker, 429 mutantes en 4m00s, score 46.79% ✅.
+  Knowledge radar: sin insights aplicables; no se promovió ni inventó conocimiento.
