@@ -234,7 +234,12 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(outcome.log[0]).toContain('1 file(s) changed')
   })
 
-  it('modelo no-OpenAI: omite -m (codex usa su default) igual que orchestosModelToCliModel', async () => {
+  // BB.6 (2026-08-18) — este test afirmaba antes que un modelo no-OpenAI "omite
+  // -m y codex usa su default". Ese era exactamente el bug: codex corría con un
+  // modelo desconocido y el costo se tarifaba igual con `ctx.model`, produciendo
+  // un número falso con apariencia de real (el $0.00924 de BB.4). Ahora el run
+  // se rechaza ANTES del spawn.
+  it('modelo no-OpenAI: falla ANTES de spawnear, sin fabricar un costo (BB.6)', async () => {
     const root = makeGitRepo()
     const wt = createWorktree('g42b-nonopenai', 'main', root)
     trackWorktree(wt)
@@ -248,9 +253,34 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
       await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
     } catch (e: any) { caught = e }
 
-    // Sin -m en el spawn...
-    expect(spawnCalls[0]!.cmd).not.toContain('-m')
-    // ...y sin ese modelo en el catálogo de test, el costo es explícitamente desconocido.
+    // No se gastó un solo token: el guard corre antes de lanzar el proceso.
+    expect(spawnCalls.length).toBe(0)
+    expect(caught).toBeInstanceOf(ExecutorCodexError)
+    expect(caught!.message).toContain('refuses to fabricate')
+    // El mensaje dice qué hacer, no solo qué falló.
+    expect(caught!.message).toContain('anthropic/claude-sonnet-5')
+    expect(caught!.message).toMatch(/--engine external|--engine opencode/)
+  })
+
+  // BB.6 — el guard F0.8 preexistente sigue vivo y cubre su propio caso: modelo
+  // openai/* (así que -m SÍ se pasa y sabemos qué corrió) pero ausente del
+  // catálogo de precios. Son dos modos de fallo distintos, no uno solo.
+  it('modelo openai/* fuera del catálogo: spawnea pero no reporta $0 (F0.8 sigue vigente)', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('bb6-openai-uncatalogued', 'main', root)
+    trackWorktree(wt)
+
+    const proc = installMockSpawn(jsonl(turnCompleted(10, 1)))
+    overrideBunSpawn(proc)
+
+    const ctx = buildCtx(wt, baseTask(), 'openai/gpt-not-in-catalog')
+    let caught: Error | null = null
+    try {
+      await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    } catch (e: any) { caught = e }
+
+    expect(spawnCalls[0]!.cmd).toContain('-m')
+    expect(spawnCalls[0]!.cmd).toContain('gpt-not-in-catalog')
     expect(caught).toBeInstanceOf(ExecutorCodexError)
     expect(caught!.message).toContain('not in the pricing catalog')
   })

@@ -20,11 +20,16 @@
  *     modelo corrido está en catálogo (`getCatalog()?.has(model)`); si no,
  *     se lanza en vez de reportar $0 silencioso (F0.8, mismo criterio que
  *     los otros dos executors).
- *   - `-m <model>`: Codex usa naming nativo de OpenAI (`gpt-5.4`, confirmado
- *     en `~/.codex/config.toml`, default real del binario), NO el id estilo
- *     OpenRouter de OrchestOS (`openai/gpt-5.4`) — mismo criterio que
- *     `orchestosModelToCliModel()`: si el modelo configurado no es de OpenAI,
- *     se omite `-m` (Codex usa su default) en vez de forzar un id ajeno.
+ *   - `-m <model>`: Codex usa naming nativo de OpenAI (`gpt-5.4`), NO el id
+ *     estilo OpenRouter de OrchestOS (`openai/gpt-5.4`) — mismo criterio que
+ *     `orchestosModelToCliModel()`.
+ *   - **BB.6 (2026-08-18)**: si el modelo configurado NO es `openai/*`, ya no
+ *     se corre con el default de Codex — se lanza antes del spawn. Ver
+ *     `codexCostUnmeasurableMessage()` para el porqué completo. El comentario
+ *     anterior afirmaba que el default era `gpt-5.4` "confirmado en
+ *     `~/.codex/config.toml`"; al verificarlo ese archivo declaraba
+ *     `gpt-5.6-luna` — el dato se desactualizó solo, que es exactamente por qué
+ *     no se puede tarifar contra un default que OrchestOS no controla.
  */
 
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
@@ -54,6 +59,35 @@ export function codexUnavailableMessage(pathHint?: string): string {
 export function orchestosModelToCodexModel(model: string | undefined): string | undefined {
   if (!model || !model.startsWith('openai/')) return undefined
   return model.slice('openai/'.length)
+}
+
+/**
+ * BB.6 (2026-08-18) — guard de costo medible, ANTES de gastar tokens.
+ *
+ * El costo de codex se computa con `calcCost(ctx.model, …)` porque el binario
+ * no reporta USD. Eso solo es válido si `ctx.model` es **el modelo que codex
+ * realmente corrió**, y eso pasa únicamente cuando le pasamos `-m`.
+ *
+ * Si `ctx.model` no es un id `openai/*`, `orchestosModelToCodexModel()` devuelve
+ * `undefined`, se omite `-m`, y **codex corre con su propio default** — que es
+ * un valor que OrchestOS no controla ni puede leer del stream. Verificado contra
+ * el binario real (2026-08-18): ningún evento de `codex exec --json`
+ * (`thread.started` / `turn.started` / `item.completed` / `turn.completed`)
+ * expone el modelo; `turn.completed` solo trae `usage`. Tampoco sirve leer
+ * `~/.codex/config.toml`: en esta máquina declara `gpt-5.6-luna`, mientras el
+ * comentario de este archivo afirmaba `gpt-5.4` — el dato se desactualizó solo.
+ *
+ * Sin esto, tarifar tokens de un modelo con el precio de otro produce un número
+ * con apariencia de real: el `$0.00924` de BB.4 eran tokens del default de codex
+ * cobrados a precio de `deepseek-v4-flash`. Mismo criterio que F0.8 y que
+ * opencode/external: costo desconocido se declara, no se fabrica.
+ */
+export function codexCostUnmeasurableMessage(orchestosModel: string | undefined): string {
+  return [
+    `codex would run with its own default model because OrchestOS model "${orchestosModel ?? '(none)'}" is not an "openai/*" id, so -m was omitted.`,
+    `The real model is unknowable (codex does not report it in --json), so its cost cannot be measured and OrchestOS refuses to fabricate one.`,
+    `Set an "openai/*" model that exists in the pricing catalog, or run this task with --engine external / --engine opencode instead.`,
+  ].join(' ')
 }
 
 function buildCodexPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
@@ -169,6 +203,14 @@ export const codexEngine: ExecutorEngine = {
 
     const prompt = buildCodexPrompt(ctx)
     const codexModel = orchestosModelToCodexModel(ctx.model)
+
+    // BB.6 — se valida ANTES del spawn, no después: si el costo no va a poder
+    // medirse, fallar acá evita gastar tokens y tiempo en un run cuya evidencia
+    // económica iba a ser falsa de todos modos. Ver codexCostUnmeasurableMessage().
+    if (!codexModel) {
+      throw new ExecutorCodexError(codexCostUnmeasurableMessage(ctx.model))
+    }
+
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
     let stdout: string

@@ -989,8 +989,8 @@ general:
 - [x] **BB.3 — ABSORBIDO en Mes 29 (2026-08-16).** Unificar los dos selectores de Settings no
   tiene sentido aislado si la navegación completa se rediseña — pasa a ser parte de CC.4.
   Decisión de Carlos: *"si nos ponemos a arreglar uno a uno ahora no vamos a aterrizar"*.
-- [ ] **BB.6 — 🧠 (re-clasificado desde ⚡ el 2026-08-18) El costo de `codex` es ficticio.**
-  Ver tabla de BB.4. **Sigue abierto — nunca se implementó**: el único commit asociado
+- [x] **BB.6 — 🧠 (re-clasificado desde ⚡) El costo de `codex` es ficticio.** (2026-08-18)
+  Ver tabla de BB.4. Estuvo abierto desde el 2026-08-16: el único commit asociado
   (`2e0adef`) lo registró como hallazgo, no lo corrigió.
 
   **Causa raíz verificada en código (2026-08-18), dos líneas de `run/executors/codex.ts`:**
@@ -1021,13 +1021,43 @@ general:
   costo opcional toca el tipo, el schema de SQLite y toda superficie que hoy asume que siempre hay
   un número. Eso excede una tarea ⚡ bien especificada.
 
-  **Decisión pendiente** (sin resolver, es parte del ítem): (a) costo nullable de punta a punta con
-  "n/a" honesto, o (b) leer del stream JSON de codex qué modelo corrió realmente y tarifar con ese
-  — pendiente verificar si `turn.completed` lo expone; hoy `parseCodexStream()` solo extrae
-  `usage`. La (b) es más chica pero depende de un dato que puede no existir.
+  **La opción (b) quedó DESCARTADA por evidencia** (probe contra el binario real, 2026-08-18):
+  ningún evento de `codex exec --json` expone el modelo. El stream completo es
+  `thread.started` (solo `thread_id`) · `turn.started` (vacío) · `item.completed` (mensajes) ·
+  `turn.completed` (solo `usage`). Tampoco sirve leer `~/.codex/config.toml`: declara
+  `gpt-5.6-luna`, mientras el comentario de `codex.ts` afirmaba `gpt-5.4` "confirmado" en ese mismo
+  archivo — **el dato se desactualizó solo**, que es la prueba de por qué no se puede tarifar
+  contra un default que OrchestOS no controla.
 
-  **No bloquea CC.2 ni el Mes 29.** Queda acá, en el Mes 28 pausado, con el diagnóstico completo
-  para que quien lo retome no tenga que re-investigarlo.
+  **La opción (a) se implementó en su forma mínima: fallar antes del spawn.** Hacer
+  `ExecutorOutcome.usd` nullable tocaba ~30 sitios (`cli.ts`, `agents/executor.ts`,
+  `agents/diagnose.ts`, `graph-runner.ts`, `handlers/usage.ts`, varios `.toFixed(5)`) más una
+  migración de `runs.usd_cost` a nullable. Se logró el mismo objetivo —**no fabricar el número**—
+  con un guard de 3 líneas en `codex.ts`, sin tocar tipo, schema ni UI: si `ctx.model` no es
+  `openai/*`, se lanza **antes** de spawnear, así no se gastan tokens ni tiempo en un run cuya
+  evidencia económica iba a ser falsa igual. Mismo criterio que F0.8 y que opencode/external:
+  el costo desconocido se declara, no se inventa.
+
+  **Cambio de comportamiento declarado:** correr `codex` con un modelo no-OpenAI ahora **falla** en
+  vez de devolver un número mentiroso. Es exactamente la configuración de BB.4, y es la única que
+  producía datos falsos. El mensaje de error es accionable (dice qué configurar o qué engine usar).
+
+  **Evidencia:** `bunx tsc --noEmit` limpio · `bun run test:coverage` (comando exacto de CI) →
+  **1163 pass / 0 fail** (eran 1158), functions 77.77% / lines 64.43%, ambos sobre umbral ·
+  cobertura de `codex.ts` 96.71% de líneas. Se reescribió el test que **codificaba el bug**
+  (`codex-engine.test.ts`, afirmaba "omite `-m` y codex usa su default") para afirmar que ahora
+  `spawnCalls.length === 0`, y se agregó un segundo test que prueba que el guard F0.8 preexistente
+  sigue vigente para su propio caso (modelo `openai/*` ausente del catálogo → sí spawnea, pero no
+  reporta $0). Son dos modos de fallo distintos y ahora ambos están cubiertos.
+  **Gate en vivo (CLI real, no mocks):** repo scratch con `agent: codex` +
+  `model: deepseek/deepseek-v4-flash` — la configuración exacta que generó el `$0.00924` de BB.4 —
+  `task run` falla al instante con el mensaje accionable y **sin spawnear codex**.
+
+  **Hallazgo anotado, NO corregido acá** (fuera del alcance del ítem): `turn.completed` trae
+  `cached_input_tokens` y `cache_write_input_tokens`, y `parseCodexStream()` los descarta. No se
+  tocó porque no está verificado si `input_tokens` ya los incluye (en la API de OpenAI los cacheados
+  son un subconjunto de los de prompt, no un extra) — sumarlos a ciegas duplicaría el conteo.
+  Requiere un probe propio antes de cambiar nada.
 
 Este Mes ejecuta la categoría **Medio** de [IDEAS.md](IDEAS.md), empezando por `#6`. Mismo orden
 de índice = único orden de ejecución (regla desde 2026-07-30).
