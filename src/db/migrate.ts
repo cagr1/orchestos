@@ -15,7 +15,54 @@ export interface SchemaMigrationStep {
 // Future schema changes belong here as numbered, independently verifiable steps.
 // The current schema remains the v1 baseline; no historical transformation is
 // fabricated for installations that predate this ledger.
-export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = []
+export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
+  {
+    version: 2,
+    name: 'chat-sessions',
+    precondition: database => {
+      const projects = database.query<{ count: number }, []>(
+        "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'projects'",
+      ).get()?.count ?? 0
+      if (projects !== 1) throw new Error('Migration 2 requires projects table')
+    },
+    apply: database => {
+      database.exec(`
+        CREATE TABLE chat_sessions (
+          id         TEXT PRIMARY KEY,
+          project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+          agent      TEXT NOT NULL CHECK(agent IN ('local', 'claude', 'opencode', 'codex', 'api')),
+          mode       TEXT NOT NULL CHECK(mode IN ('chat', 'code')),
+          title      TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        CREATE INDEX idx_chat_sessions_project_updated
+          ON chat_sessions(project_id, updated_at DESC);
+
+        CREATE TABLE chat_messages (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+          role       TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+          content    TEXT NOT NULL,
+          model      TEXT,
+          task_id    TEXT,
+          ocr_used   TEXT,
+          created_at TEXT NOT NULL
+        );
+        CREATE INDEX idx_chat_messages_session_id
+          ON chat_messages(session_id, id);
+      `)
+    },
+    postcondition: database => {
+      const tables = database.query<{ name: string }, []>(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('chat_sessions', 'chat_messages') ORDER BY name",
+      ).all().map(row => row.name)
+      if (tables.join(',') !== 'chat_messages,chat_sessions') {
+        throw new Error('Migration 2 did not create chat session tables')
+      }
+    },
+  },
+]
 
 function appliedVersions(database: Database): Set<number> {
   return new Set(

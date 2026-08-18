@@ -19,6 +19,11 @@
  *   GET  /api/health               → HealthResponse
  *   GET  /api/providers/local      → LocalProviderResponse
  *   POST /api/chat/upload          → ChatUploadResponse
+ *   GET  /api/chat/sessions        → ChatSessionRow[]
+ *   POST /api/chat/sessions        → ChatSessionRow
+ *   GET  /api/chat/sessions/:id/messages → ChatMessageRow[]
+ *   PATCH /api/chat/sessions/:id   → ChatSessionRow
+ *   DELETE /api/chat/sessions/:id  → MutationResult
  *   POST /api/setup/api-key        → ApiKeyValidationResponse
  *   GET  /api/project/constitution → { content, exists }   (D.1.b)
  *   PUT  /api/project/constitution → MutationResult       (D.1.b)
@@ -36,6 +41,30 @@
  *   - instinct.verified is stored as INTEGER 0/1 in SQLite;
  *     the API always returns it as boolean
  */
+
+import type { AgentChoice } from '../config/schema.ts'
+import type { ChatSessionMode } from '../db/chat-sessions.ts'
+
+export interface ChatSessionRow {
+  id: string
+  projectId: string | null
+  agent: AgentChoice
+  mode: ChatSessionMode
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ChatMessageRow {
+  id: number
+  sessionId: string
+  role: 'user' | 'assistant'
+  content: string
+  model: string | null
+  taskId: string | null
+  ocrUsed: string[]
+  createdAt: string
+}
 
 // ── /api/runs ─────────────────────────────────────────────────────────────────
 

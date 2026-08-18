@@ -92,9 +92,12 @@ describe('SQLite migrations', () => {
       expect(result.tables).toEqual(expect.arrayContaining([
         'projects', 'context_chunks', 'runs', 'files', 'code_edges',
         'memory_entries', 'memory_conflicts', 'memory_fts', 'chat_task_bar_events',
-        'instincts', 'run_steps', 'schema_migrations',
+        'chat_sessions', 'chat_messages', 'instincts', 'run_steps', 'schema_migrations',
       ]))
-      expect(result.schemaVersions).toEqual([{ version: 1, name: 'baseline-current-schema' }])
+      expect(result.schemaVersions).toEqual([
+        { version: 1, name: 'baseline-current-schema' },
+        { version: 2, name: 'chat-sessions' },
+      ])
       expect(result.runsColumns).toEqual(expect.arrayContaining([
         'task_id', 'qa_verdict', 'checks_json', 'context_warnings_json',
         'cost_breakdown_json', 'file_diffs', 'adversarial_verdict',
@@ -140,7 +143,10 @@ describe('SQLite migrations', () => {
       expect(result.runCount).toBe(1)
       expect(result.runsColumns).toContain('adversarial_reason')
       expect(result.runsColumns).toContain('context_source')
-      expect(result.schemaVersions).toEqual([{ version: 1, name: 'baseline-current-schema' }])
+      expect(result.schemaVersions).toEqual([
+        { version: 1, name: 'baseline-current-schema' },
+        { version: 2, name: 'chat-sessions' },
+      ])
       expect(result.legacyTaskIdDefault).toBeNull()
     } finally {
       rmSync(home, { recursive: true, force: true })
@@ -164,7 +170,7 @@ describe('SQLite migrations', () => {
 
       expect(result.runCount).toBe(1)
       expect(result.ftsTriggers).toBe(3)
-      expect(result.schemaCount).toBe(1)
+      expect(result.schemaCount).toBe(2)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -174,15 +180,15 @@ describe('SQLite migrations', () => {
     const home = tempHome()
     try {
       const result = await runMigrationProcess(home, `
-        const { runMigrations, applyMigrationSteps } = await import('./src/db/migrate.ts')
+        const { runMigrations, applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const step = {
-          version: 2,
+          version: 3,
           name: 'migration-test-probe',
           precondition(database) {
             if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'runs'").get() === null) {
-              throw new Error('runs table must exist before v2')
+              throw new Error('runs table must exist before v3')
             }
           },
           apply(database) {
@@ -190,21 +196,21 @@ describe('SQLite migrations', () => {
           },
           postcondition(database) {
             if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'migration_probe'").get() === null) {
-              throw new Error('migration_probe must exist after v2')
+              throw new Error('migration_probe must exist after v3')
             }
           },
         }
-        applyMigrationSteps([step])
-        applyMigrationSteps([step])
+        applyMigrationSteps([...FUTURE_MIGRATIONS, step])
+        applyMigrationSteps([...FUTURE_MIGRATIONS, step])
         const evidence = db.query('SELECT version, name, applied_at FROM schema_migrations ORDER BY version').all()
         const probeCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_probe'").get().count
         process.stdout.write(JSON.stringify({ evidence, probeCount }))
         db.close()
       `)
 
-      expect(result.evidence).toHaveLength(2)
-      expect(result.evidence?.[1]).toMatchObject({ version: 2, name: 'migration-test-probe' })
-      expect(result.evidence?.[1]?.applied_at).toEqual(expect.any(String))
+      expect(result.evidence).toHaveLength(3)
+      expect(result.evidence?.[2]).toMatchObject({ version: 3, name: 'migration-test-probe' })
+      expect(result.evidence?.[2]?.applied_at).toEqual(expect.any(String))
       expect(result.probeCount).toBe(1)
     } finally {
       rmSync(home, { recursive: true, force: true })
@@ -216,11 +222,11 @@ describe('SQLite migrations', () => {
     try {
       const result = await runMigrationProcess(home, `
         import { Database } from 'bun:sqlite'
-        const { runMigrations, applyMigrationSteps } = await import('./src/db/migrate.ts')
+        const { runMigrations, applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const failedStep = {
-          version: 2,
+          version: 3,
           name: 'migration-test-failure',
           precondition() {},
           apply(database) {
@@ -230,12 +236,12 @@ describe('SQLite migrations', () => {
           postcondition() {},
         }
         try {
-          applyMigrationSteps([failedStep])
+          applyMigrationSteps([...FUTURE_MIGRATIONS, failedStep])
         } catch {}
         db.close()
         const reopened = new Database(process.env.ORCHESTOS_HOME + '/.orchestos/db.sqlite')
         const failedTableCount = reopened.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_partial'").get().count
-        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 2').get().count
+        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 3').get().count
         process.stdout.write(JSON.stringify({ failedTableCount, failedVersionCount }))
         reopened.close()
       `)
@@ -251,31 +257,31 @@ describe('SQLite migrations', () => {
     const home = tempHome()
     try {
       const result = await runMigrationProcess(home, `
-        const { runMigrations, applyMigrationSteps } = await import('./src/db/migrate.ts')
+        const { runMigrations, applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const preconditionFailure = {
-          version: 2,
+          version: 3,
           name: 'migration-test-precondition-failure',
           precondition() { throw new Error('injected precondition failure') },
           apply(database) { database.exec('CREATE TABLE migration_precondition_partial (id INTEGER PRIMARY KEY)') },
           postcondition() {},
         }
-        try { applyMigrationSteps([preconditionFailure]) } catch {}
+        try { applyMigrationSteps([...FUTURE_MIGRATIONS, preconditionFailure]) } catch {}
         const preconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_precondition_partial'").get().count
 
         const postconditionFailure = {
-          version: 2,
+          version: 3,
           name: 'migration-test-postcondition-failure',
           precondition() {},
           apply(database) { database.exec('CREATE TABLE migration_postcondition_partial (id INTEGER PRIMARY KEY)') },
           postcondition() { throw new Error('injected postcondition failure') },
         }
-        try { applyMigrationSteps([postconditionFailure]) } catch {}
+        try { applyMigrationSteps([...FUTURE_MIGRATIONS, postconditionFailure]) } catch {}
         const postconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_postcondition_partial'").get().count
 
         const recoveryStep = {
-          version: 2,
+          version: 3,
           name: 'migration-test-recovery',
           precondition() {},
           apply(database) { database.exec('CREATE TABLE migration_recovery (id INTEGER PRIMARY KEY)') },
@@ -283,9 +289,9 @@ describe('SQLite migrations', () => {
             if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'migration_recovery'").get() === null) throw new Error('recovery table missing')
           },
         }
-        applyMigrationSteps([recoveryStep])
+        applyMigrationSteps([...FUTURE_MIGRATIONS, recoveryStep])
         const recoveryCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_recovery'").get().count
-        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 2').get().count
+        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 3').get().count
         process.stdout.write(JSON.stringify({ preconditionTableCount, postconditionTableCount, recoveryCount, recoveryVersionCount }))
         db.close()
       `)

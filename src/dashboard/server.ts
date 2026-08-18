@@ -9,6 +9,7 @@ import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph
 import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiProjectSummary, handleApiNatural } from './handlers/project.ts'
 import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
 import { handleApiChatUpload, handleApiChatModels, handleApiChat, handleApiChatTaskBarClick, handleApiChatTaskBarEvents } from './handlers/chat.ts'
+import { handleApiChatSessionsList, handleApiChatSessionsCreate, handleApiChatSessionMessages, handleApiChatSessionPatch, handleApiChatSessionDelete } from './handlers/chat-sessions.ts'
 import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport } from './handlers/skills.ts'
 import { handleApiSystemReset, handleApiSystemEnginesExternalAvailability } from './handlers/system.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
@@ -20,7 +21,7 @@ export async function route(req: Request, port: number): Promise<Response> {
   const url = new URL(req.url)
   const method = req.method
 
-  if ((method === 'POST' || method === 'PUT' || method === 'DELETE') && !isSameOrigin(req, port)) {
+  if ((method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') && !isSameOrigin(req, port)) {
     return errorResponse('Forbidden', 403)
   }
 
@@ -173,6 +174,21 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/chat/models') {
     return handleApiChatModels()
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/sessions') {
+    return handleApiChatSessionsList()
+  }
+  if (method === 'POST' && url.pathname === '/api/chat/sessions') {
+    return handleApiChatSessionsCreate(req)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/messages$/)) {
+    return handleApiChatSessionMessages(url)
+  }
+  if (method === 'PATCH' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+$/)) {
+    return handleApiChatSessionPatch(req, url)
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+$/)) {
+    return handleApiChatSessionDelete(url)
   }
   if (method === 'POST' && url.pathname === '/api/chat/upload') {
     return handleApiChatUpload(req)

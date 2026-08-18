@@ -806,7 +806,7 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
    *Nota: Carlos escribió "lado lateral derecho" pero describió la posición de "modo avanzado",
    que vive en el sidebar IZQUIERDO — se asume izquierdo; corregir si era literal.*
 
-- [ ] **CC.2 — 🧠 Sesiones de chat reales (BACKEND PURO — cero frontend).** Absorbe `#50` y
+- [x] **CC.2 — 🧠 Sesiones de chat reales (BACKEND PURO — cero frontend).** Absorbe `#50` y
   la deuda CC.0-D1. Hoy `state.chatHistory` vive solo en memoria del navegador
   (`screens-core.js:288-528`) y se pierde en cada reload; el run que el chat crea guarda
   `project_id: null` a propósito (`chat.ts:273`).
@@ -822,6 +822,20 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
   que ya funciona y de CC.1/CC.D2.
   **Validación**: tests de endpoints + inmutabilidad de `agent` + que `mode: chat` nunca habilite
   Edit/Write. Sin Playwright — no hay UI nueva que mirar.
+  **Implementado (2026-08-18):** migración v2 transaccional con FK (`project_id ON DELETE SET
+  NULL`, mensajes `ON DELETE CASCADE`), módulo `src/db/chat-sessions.ts`, contratos y las cinco
+  rutas acordadas. `POST /api/chat` toma la historia desde SQLite cuando recibe `sessionId` (ignora
+  la historia suministrada por el cliente), aplica el agente inmutable, persiste el par
+  usuario/asistente y conserva exactamente el comportamiento legacy cuando no hay sesión. Una
+  sesión general (`project_id:null`) no carga contexto ni tools del repo; Claude corre en un cwd
+  temporal vacío. `mode:chat` corta mecánicamente el único camino de escritura existente (creación
+  de task/worktree), aun cuando el clasificador detecta una tarea. Codex/OpenCode siguen rechazados
+  con 422 para chat porque CC.D4 comprobó que todavía no existe un transporte read-only seguro; no
+  se hace fallback silencioso a API. `PATCH` quedó incluido en el gate same-origin.
+  **Evidencia:** preflight CC.2 ✅; `bunx tsc --noEmit` ✅; suites dirigidas de migración/chat/config/
+  CSRF (21 pass, 0 fail) ✅; prueba aislada confirma agente inmutable, cascade delete, historia no
+  inyectable y cero `tasks.yaml` en modo Chat; `bun run test:coverage` final (1166 pass, 0 fail,
+  118 archivos) ✅. Sin Playwright por contrato backend-only.
 
 - [ ] **CC.3 — 🧠 Multi-proyecto real (BACKEND PURO).** Matar los 10 `resolve('.')` del dashboard;
   el proyecto activo es una selección del usuario, no el cwd donde se lanzó el server.

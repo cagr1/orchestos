@@ -14,6 +14,20 @@ Ver `AGENTS.md` § "Invariantes de arquitectura permanentes" — QA, roadmap, co
 Movidos ahí el 2026-08-17 porque `orchestos context update` sobreescribe este archivo por completo
 y no debe ser la fuente de nada permanente.
 
+### Estado estable — sesiones de chat CC.2 (2026-08-18)
+
+- SQLite schema v2 añade `chat_sessions` y `chat_messages`; `agent` pertenece a la sesión y es
+  inmutable, mientras `mode` (`chat|code`) y `title` son mutables.
+- `POST /api/chat` sin `sessionId` conserva el chat efímero previo. Con `sessionId`, SQLite es la
+  fuente de verdad de la historia y se persiste cada intercambio exitoso.
+- `mode:chat` es una frontera read-only mecánica: nunca crea task/worktree. Una sesión sin proyecto
+  tampoco recibe contexto/tools del repo; Claude se ejecuta desde un directorio temporal vacío.
+- Codex/OpenCode se almacenan como agentes válidos, pero el transporte de chat responde 422 hasta
+  que exista una vía read-only verificada; nunca degradar silenciosamente a API. CC.3 sigue siendo
+  responsable de resolver el proyecto activo sin `resolve('.')`; no adelantar esa deuda aquí.
+- No existe UI de sesiones en vanilla. La superficie visual está reservada para Mes 30 (`UI.6`/
+  `UI.7`) por decisión explícita de Carlos.
+
 ### Hot files
 - src/cli.ts (63 edges)
 - src/run/harness.ts (34 edges)

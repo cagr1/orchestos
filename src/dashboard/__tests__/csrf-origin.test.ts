@@ -56,12 +56,21 @@ describe('L.2 — isSameOrigin rechaza CSRF entre apps locales de distinto puert
     expect(res.status).toBe(403)
   })
 
+  it('PATCH también queda protegido por same-origin', async () => {
+    const response = await route(new Request('http://localhost:50852/api/chat/sessions/example', {
+      method: 'PATCH',
+      headers: { Origin: 'http://localhost:3000' },
+      body: JSON.stringify({ title: 'blocked' }),
+    }), 50852)
+    expect(response.status).toBe(403)
+  })
+
   it('header Origin ausente (cliente no-navegador, ej. curl/CLI) → no bloqueado por origen', async () => {
     const res = await route(mutatingReq(undefined), PORT)
     expect(res.status).not.toBe(403)
   })
 
-  it('GET no se filtra por origen (solo POST/PUT/DELETE mutan)', async () => {
+  it('GET no se filtra por origen (solo POST/PUT/PATCH/DELETE mutan)', async () => {
     const res = await route(
       new Request(`http://localhost:${PORT}/api/tasks`, {
         method: 'GET',

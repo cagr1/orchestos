@@ -1,5 +1,6 @@
 import { resolve, join, relative } from 'path'
-import { readFileSync, existsSync } from 'fs'
+import { tmpdir } from 'os'
+import { readFileSync, existsSync, mkdtempSync, rmSync } from 'fs'
 import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { loadContext } from '../../context/load.ts'
 import { db } from '../../db/sqlite.ts'
@@ -27,6 +28,7 @@ import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 import { resolveCascadeTier, resolveAgentSelection } from '../../router/engine-cascade.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
+import { appendChatExchange, getChatSession, listChatMessages, sessionAllowsTaskExecution } from '../../db/chat-sessions.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = typeof VALID_EFFORTS[number]
@@ -407,8 +409,12 @@ export function pickAutoSkill(skillOptions: { id: string }[]): string | undefine
 }
 
 async function handleApiChat(req: Request): Promise<Response> {
-  let body: { history: { role: string; content: string }[]; message: string; fileIds?: string[]; model?: string; effort?: string }
-  try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
+  let parsed: unknown
+  try { parsed = await req.json() } catch { return errorResponse('Invalid JSON', 400) }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return errorResponse('JSON body must be an object', 400)
+  }
+  const body = parsed as { history: { role: string; content: string }[]; message: string; fileIds?: string[]; model?: string; effort?: string; sessionId?: string }
   const message = body.message?.trim()
   if (!message) return errorResponse('message is required', 400)
 
@@ -420,7 +426,16 @@ async function handleApiChat(req: Request): Promise<Response> {
   // agente activo — nunca los 3 genéricos cuando el CLI real acepta más.
   // CC.D1 (2026-08-17) — `executor_mode` renombrado a `agent`.
   const root = resolve('.')
-  const chatAgent = loadOrcheConfig(root).agent
+  if (body.sessionId !== undefined && (typeof body.sessionId !== 'string' || !body.sessionId.trim())) {
+    return errorResponse('sessionId must be a non-empty string', 400)
+  }
+  const session = body.sessionId ? getChatSession(body.sessionId.trim()) : null
+  if (body.sessionId && !session) return errorResponse('Chat session not found', 404)
+
+  const chatAgent = session?.agent ?? loadOrcheConfig(root).agent
+  if (session && (chatAgent === 'codex' || chatAgent === 'opencode')) {
+    return errorResponse(`Agent "${chatAgent}" does not have a verified read-only chat transport yet`, 422)
+  }
   const useClaudeCli = chatAgent === 'claude'
   const allowedEfforts: readonly string[] = useClaudeCli ? CLAUDE_CLI_EFFORTS : VALID_EFFORTS
   if (body.effort !== undefined && !allowedEfforts.includes(body.effort)) {
@@ -434,7 +449,11 @@ async function handleApiChat(req: Request): Promise<Response> {
     return errorResponse(`fileIds must be an array of at most ${MAX_CHAT_ATTACHMENTS} items`, 400)
   }
 
-  const rawHistory = Array.isArray(body.history) ? body.history : []
+  // CC.2 — una sesión es la fuente de verdad de su historia. Ignorar el array
+  // enviado por el cliente evita mezclar/injectar mensajes de otra sesión.
+  const rawHistory = session
+    ? listChatMessages(session.id).map(row => ({ role: row.role, content: row.content }))
+    : (Array.isArray(body.history) ? body.history : [])
   const history = rawHistory.slice(-10)
 
   // J.1 (Mes 18, 2026-07-09) — B.1.b activado con evidencia real (34 mensajes,
@@ -477,12 +496,12 @@ async function handleApiChat(req: Request): Promise<Response> {
   // cascada (abajo) solo sugiere un default cuando no hay preferencia guardada.
   // CC.D1 (2026-08-17) — `executor_mode` renombrado a `agent`.
   let autoTask: { id: string } | { error: string } | null = null
-  if (taskSuggestion?.isTask) {
+  if (taskSuggestion?.isTask && sessionAllowsTaskExecution(session?.mode ?? null)) {
     try {
       const root = resolve('.')
       const draft = await buildNaturalDraft(message)
       const skill = pickAutoSkill(draft.skillOptions)
-      const preferredAgent = loadOrcheConfig(root).agent
+      const preferredAgent = session?.agent ?? loadOrcheConfig(root).agent
       // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
       // evita el probe de Ollama + Bun.which en cada mensaje de chat normal.
       // Sigue calculándose aunque haya preferredAgent: resolveAgentSelection
@@ -516,8 +535,9 @@ async function handleApiChat(req: Request): Promise<Response> {
   }
 
   const lines: string[] = []
+  const hasProjectContext = !session || session.project_id !== null
 
-  try {
+  if (hasProjectContext) try {
     const file = loadTasks(root)
     const counts: Record<string, number> = { pending: 0, running: 0, done: 0, failed: 0 }
     for (const task of file.tasks as any[]) {
@@ -532,7 +552,7 @@ async function handleApiChat(req: Request): Promise<Response> {
     }
   } catch {}
 
-  try {
+  if (hasProjectContext) try {
     const recentRuns = listRuns(10)
     if (recentRuns.length > 0) {
       const totalCost = recentRuns.reduce((s, r) => s + Number(r.usd_cost), 0)
@@ -544,7 +564,7 @@ async function handleApiChat(req: Request): Promise<Response> {
     }
   } catch {}
 
-  try {
+  if (hasProjectContext) try {
     const memRows = db.query<MemoryEntry, []>(
       'SELECT topic_key, scope, content FROM memory_entries ORDER BY updated_at DESC LIMIT 20'
     ).all()
@@ -556,7 +576,7 @@ async function handleApiChat(req: Request): Promise<Response> {
     }
   } catch {}
 
-  try {
+  if (hasProjectContext) try {
     const specs = listSpecs(root, true)
     if (specs.length > 0) {
       lines.push(`\nSpecs (${specs.length}):`)
@@ -566,12 +586,18 @@ async function handleApiChat(req: Request): Promise<Response> {
     }
   } catch {}
 
-  const projectCtx = loadContext(root)
+  const projectCtx = hasProjectContext ? loadContext(root) : ''
 
   const ctx = lines.length ? `\nProject state:\n${lines.join('\n')}\n` : ''
   const projBlock = projectCtx ? `\nProject context:\n${projectCtx}\n` : ''
   const model = body.model?.trim() || 'deepseek/deepseek-v4-flash'
   const isOllama = /^ollama\//.test(model)
+  if (session?.agent === 'local' && !isOllama) {
+    return errorResponse('A local session requires an ollama/* model', 400)
+  }
+  if (session?.agent === 'api' && isOllama) {
+    return errorResponse('An api session cannot use an ollama/* model', 400)
+  }
   // CC.1 (Mes 29, 2026-08-16) — reporte real de Carlos: elegir "Claude" como
   // agente en Settings no cambiaba nada en el chat, seguía yendo por la API de
   // OpenRouter. Mismo eje que ya decide el engine de la tarea que el chat
@@ -606,7 +632,9 @@ async function handleApiChat(req: Request): Promise<Response> {
   // crypto-terminal-v5..." cuando NUNCA se creó ningún task ni run — el
   // usuario no tenía forma de notarlo sin ir a revisar tasks.yaml/la DB a
   // mano. Ahora la instrucción se arma según lo que REALMENTE pasó.
-  const autoTaskInstruction = autoTask && 'id' in autoTask
+  const autoTaskInstruction = session?.mode === 'chat' && taskSuggestion?.isTask
+    ? `This session is in Chat mode, which is a hard read-only boundary. The message looks like a build request, but NO task was created and no worktree or file write was started. Say that plainly and tell the user they must switch this session to Code mode before execution can begin.`
+    : autoTask && 'id' in autoTask
     ? `When the user asks you to BUILD something (a page, a feature, a script): OrchestOS has ALREADY created and started running task "${autoTask.id}" in the background by the time you reply — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max), naming the task id. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists.`
     : autoTask && 'error' in autoTask
       ? `The user's message looked like a build request and OrchestOS TRIED to auto-create a task for it, but creation FAILED: "${autoTask.error}". You MUST NOT claim a task was started — tell the user plainly that auto-creation failed and why, in 1-2 sentences, and suggest they create the task manually from the Tasks screen.`
@@ -668,6 +696,18 @@ ${autoTaskInstruction}${ctx}${projBlock}`
   }
   const combinedText = textBlocks.join('') + message
 
+  const persistResponse = (text: string, responseModel: string): void => {
+    if (!session) return
+    appendChatExchange({
+      sessionId: session.id,
+      userContent: message,
+      assistantContent: text,
+      model: responseModel,
+      taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
+      ocrUsed,
+    })
+  }
+
   // D.7 — nota corta y neutral (no depende del idioma de la respuesta del
   // LLM, que puede ser español o inglés): se agrega al texto final en los
   // 3 caminos de respuesta posibles (ollama / tool-loop / openrouter plano).
@@ -697,20 +737,27 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     const CLAUDE_CHAT_TIMEOUT_MS = 120_000
     if (useClaudeCli) {
       const { runClaudeChat } = await import('../../run/executors/external.ts')
+      const isolatedCwd = hasProjectContext ? null : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
       try {
-        const result = await runClaudeChat(root, systemPrompt, combinedText, CLAUDE_CHAT_TIMEOUT_MS, model, cliEffort)
+        const result = await runClaudeChat(isolatedCwd ?? root, systemPrompt, combinedText, CLAUDE_CHAT_TIMEOUT_MS, model, cliEffort)
         const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
         logChatRun(message, resultLabel, result.inputTokens, result.outputTokens)
-        return jsonResponse({ text: result.text + autoTaskNote, model: resultLabel, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
+        const responseText = result.text + autoTaskNote
+        persistResponse(responseText, resultLabel)
+        return jsonResponse({ text: responseText, model: resultLabel, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
       } catch (e: any) {
         return errorResponse(`Claude Code CLI: ${e.message}`, 502)
+      } finally {
+        if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
       }
     }
 
     if (isOllama) {
       const bareModel = model.replace('ollama/', '')
       const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages })
-      return jsonResponse({ text: resp.text + autoTaskNote, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
+      const responseText = resp.text + autoTaskNote
+      persistResponse(responseText, resp.model)
+      return jsonResponse({ text: responseText, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
     }
 
     // Presupuesto real derivado del catálogo — nunca un número hardcodeado
@@ -762,7 +809,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     const clamped = providerRealCap > 0 ? Math.min(available, providerRealCap) : available
     const chatMaxTokens = clamped > 0 ? clamped : DEFAULT_MAX_OUTPUT_TOKENS
 
-    if (supportsToolCalling('openrouter', model)) {
+    if (hasProjectContext && supportsToolCalling('openrouter', model)) {
       const result = await runToolLoop('openrouter', model, {
         system: systemPrompt,
         messages,
@@ -779,7 +826,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         maxTokens: chatMaxTokens,
       })
       logChatRun(message, model, result.inputTokens, result.outputTokens)
-      return jsonResponse({ text: result.text + autoTaskNote, model, toolCalls: result.toolCallsExecuted, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
+      const responseText = result.text + autoTaskNote
+      persistResponse(responseText, model)
+      return jsonResponse({ text: responseText, model, toolCalls: result.toolCallsExecuted, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
     }
 
     const resp = await openrouterChat({
@@ -790,7 +839,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       maxTokens: chatMaxTokens,
     })
     logChatRun(message, resp.model, resp.inputTokens, resp.outputTokens)
-    return jsonResponse({ text: resp.text + autoTaskNote, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
+    const responseText = resp.text + autoTaskNote
+    persistResponse(responseText, resp.model)
+    return jsonResponse({ text: responseText, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
   } catch (e: any) {
     return errorResponse(`Chat failed: ${e.message}`, 502)
   }
