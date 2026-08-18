@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-08-17T22:14:23.314Z",
+  "exported_at": "2026-08-18T01:08:45.566Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "59dd2a37-fe96-4d15-a110-d25d840f507b",
+      "task_class": "chat",
+      "model": "anthropic/claude-sonnet-5 via Claude Code CLI (effort: medium)",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 353,
+      "created_at": "2026-08-17T22:36:30.586Z"
+    },
+    {
+      "id": "07edb0f5-4ccc-48dc-888b-99a09037d57c",
+      "task_class": "chat",
+      "model": "anthropic/claude-sonnet-4.6 via Claude Code CLI (effort: medium)",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-08-17T22:35:19.150Z"
+    },
     {
       "id": "041227eb-2e68-4c6b-a8bf-43bcd4f1fac7",
       "task_class": "chat",
@@ -271,43 +301,13 @@
       "elapsed_ms": 0,
       "tokens": 3005,
       "created_at": "2026-07-27T17:29:42.885Z"
-    },
-    {
-      "id": "96f4e52d-54a9-49b6-a329-474cfec3bdf3",
-      "task_class": "implement",
-      "model": "anthropic/claude-sonnet-5",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "missing declared output(s): scratch/design-test-premium-a1.html",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 1549,
-      "tokens": 0,
-      "created_at": "2026-07-20T20:36:58.556Z"
-    },
-    {
-      "id": "55467334-642c-4928-bb0d-870a6ff2ef6e",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00186494,
-      "elapsed_ms": 0,
-      "tokens": 17156,
-      "created_at": "2026-07-20T20:31:27.820Z"
     }
   ],
   "stats": {
-    "failed": 1,
+    "failed": 0,
     "blocked": 0,
-    "done": 19,
-    "qa_failed": 1,
-    "total_cost_usd": "0.0095"
+    "done": 20,
+    "qa_failed": 0,
+    "total_cost_usd": "0.0076"
   }
 }

@@ -319,6 +319,53 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   acordado. Límite honesto: esta sesión no tiene Playwright/navegador disponible — la verificación
   visual de clicks/render (17 modelos Anthropic, 414 de API, restauración de config) descansa
   únicamente en la corrida de Codex documentada arriba, no fue repetida independientemente.
+
+- [x] **CC.D2 — tercera pasada (2026-08-17), Claude directo sin Codex — bug real de Carlos al usarlo.**
+  Eligió "Sonnet 4.6" de la lista de 17 modelos Anthropic vivos de OpenRouter y el CLI
+  falló. Reproducido: `claude -p --model claude-sonnet-4.6` → `404 "may not exist or you may not
+  have access to it"`. Causa raíz, 3 modos de fallo distintos en el mismo catálogo, no solo uno:
+  (1) **formato** — el CLI exige guiones (`claude-sonnet-4-5`), OpenRouter da los ids con punto de
+  versión (`claude-sonnet-4.6`); `orchestosModelToCliModel()` solo quita el prefijo `anthropic/`,
+  nunca traduce el separador. (2) **SKUs de reventa sin equivalente real** — `claude-opus-4-8-fast`
+  (variante "fast" de OpenRouter) también 404: no es un modelo que el CLI reconozca. (3) **modelos
+  retirados** — `claude-3-haiku` 404 aunque el formato sea correcto. Verificado en vivo, los tres,
+  contra el binario real. Conclusión: no hay forma confiable de saber desde afuera cuál id del
+  catálogo de OpenRouter el binario `claude` va a aceptar — exactamente el catálogo frágil que la
+  decisión de arquitectura de este Mes (ver más arriba, sección CC.D) ya advertía evitar, solo que
+  con fuente viva en vez de hardcodeada. El diseño de la segunda pasada era insuficiente.
+
+  **Fix (definitivo, no parche temporal):** reemplazado el catálogo de OpenRouter para `agent:
+  claude` por los alias que el propio binario documenta y promete mantener apuntando al modelo
+  vigente — `claude --help`: *"an alias for the **latest** model (e.g. 'fable', 'opus', or
+  'sonnet')"*. Agregado `haiku` (no documentado en `--help`, pero verificado funcional en vivo).
+  Los 4 — `anthropic/{opus,sonnet,haiku,fable}` — probados uno por uno contra el binario real: los
+  4 responden `is_error: false`, salvo `fable` que devolvió un error real y esperado de créditos
+  agotados de la cuenta (`"Out of usage credits"` — no un bug, comportamiento correcto). Sin
+  traducción de formato, sin SKUs muertos, sin dependencia del fetch de OpenRouter para Claude en
+  absoluto — cero mantenimiento futuro, los alias siguen resolviendo solos cuando Anthropic saque
+  modelos nuevos. `buildChatModelFx()` (app.js) reemplaza `claudeModels`/combo de OpenRouter por
+  una lista fija de 4 botones (sin buscador, sin badges de precio — no aplica a un nivel de
+  suscripción); `screens-core.js` agrega el handler `data-modelfx-claude-alias` y limpia el filtro
+  de búsqueda muerto que la segunda pasada había dejado condicionado a `agent === 'claude'`.
+  `orchestosModelToCliModel()` (`external.ts`, sin tocar) ya traduce `anthropic/opus` → `opus`
+  correctamente — verificado con una llamada directa a la función real, los 4 ids resuelven limpio.
+
+  **Límite conocido, no oculto:** `haiku` no está en el contrato documentado del `--help`, solo
+  verificado empíricamente — si Anthropic lo retira sin avisar, se rompe. Codex/OpenCode siguen sin
+  selector de modelo ("lo decide el agente") — no se investigó si esos CLIs tienen su propio
+  mecanismo de alias estables equivalente al de Claude; puede que estemos siendo más restrictivos
+  de lo necesario con esos dos. Queda anotado, no es trabajo de esta pasada (evaluar junto a CC.D3).
+
+  **Evidencia:** `node --check` limpio en los 3 JS tocados; `bunx tsc --noEmit` limpio; `bun run
+  test:coverage` en solitario → 1157 pass / 0 fail. Verificación end-to-end de la traducción real:
+  llamada directa a `orchestosModelToCliModel()` con los 4 ids → `opus`/`sonnet`/`haiku`/`fable`.
+  Gate en vivo: sin navegador/Playwright disponible en esta sesión (mismo límite honesto que la
+  pasada anterior, no oculto) — dashboard real levantado igual (puerto 4242, arrancado después de
+  los cambios, confirmado por timestamp), `GET /api/config`/`GET /api/system/executor-modes`
+  reales responden 200 con `agent: "claude"` intacto, `curl` al `app.js`/`screens-core.js`
+  servidos confirma que el código nuevo (no una versión cacheada) está en producción del
+  dashboard — el click-through visual queda pendiente de una sesión con navegador. Servidor
+  detenido al terminar.
 - [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe

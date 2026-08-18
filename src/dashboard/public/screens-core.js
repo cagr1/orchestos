@@ -709,24 +709,30 @@ SCREENS.chat = {
         st.chatFxView = null;
         App.rerender(); // refresh warning banner + show/hide effort item
       }
+      // Hallazgo real de Carlos (2026-08-17): bajo Claude, el modelo NO sale
+      // del combo genérico de OpenRouter (buildComboOptions) — ese catálogo
+      // trae ids que el binario `claude` rechaza (formato de versión con
+      // punto, SKUs "-fast" de reventa, modelos retirados). Solo los 4 alias
+      // que `claude --help` garantiza (fable/opus/sonnet + haiku verificado
+      // en vivo) son opciones seguras — ver `buildChatModelFx()` en app.js.
+      const claudeAliasOpt = e.target.closest('[data-modelfx-claude-alias]');
+      if (claudeAliasOpt) {
+        st.chatModel = claudeAliasOpt.dataset.modelfxClaudeAlias;
+        st.chatFxView = null;
+        App.rerender();
+      }
     });
-    // model search filter (vista 'model') — patches the list in place (no full
-    // rerender, keeps input focus), mismo patrón que ya usaba el combo viejo.
+    // model search filter (vista 'model', solo agentes con catálogo real —
+    // Claude usa una lista fija de 4 alias sin buscador, ver arriba).
     root.querySelector('[data-modelfx-panel] [data-combo-search]')?.addEventListener('input', e => {
       const q = e.target.value;
       const list = root.querySelector('[data-modelfx-panel] [data-combo-list]');
       if (!list) return;
       const allCloud = Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : KNOWN_MODELS;
       const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
-      const agent = st.orcheConfig?.agent;
-      const cloud = agent === 'claude'
-        ? (Array.isArray(st.orModels)
-          ? st.orModels.filter(m => m && typeof m.id === 'string' && m.id.startsWith('anthropic/') && !m.id.endsWith(':batch'))
-          : [])
-        : (agent === 'local' ? [] : allCloud);
-      const comboLocals = agent === 'claude' ? [] : locals;
+      const isLocalAgent = st.orcheConfig?.agent === 'local';
       // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
-      list.innerHTML = buildComboOptions(comboLocals, cloud, st.chatModel, q);
+      list.innerHTML = buildComboOptions(isLocalAgent ? [] : locals, isLocalAgent ? [] : allCloud, st.chatModel, q);
     });
     // D0-3 — dismiss local model warning
     root.querySelector('[data-act="local-warn-dismiss"]')?.addEventListener('click', () => {

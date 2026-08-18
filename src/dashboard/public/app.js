@@ -1963,11 +1963,30 @@ function buildChatModelFx(st) {
   const modelHiddenAgent = agent === 'codex' || agent === 'opencode';
   const showsClaudeModelPicker = agent === 'claude';
   const isLocalAgent = agent === 'local';
-  const claudeModels = Array.isArray(st.orModels)
-    ? st.orModels.filter(m => m && typeof m.id === 'string' && m.id.startsWith('anthropic/') && !m.id.endsWith(':batch'))
-    : [];
-  const modelCloud = showsClaudeModelPicker ? claudeModels : allCloud;
-  const modelLabel = isLoading && showsClaudeModelPicker ? t('common.loading') : shortModelLabel(val, modelCloud);
+  // Hallazgo real de Carlos (2026-08-17): la primera versión de este picker
+  // ofrecía TODO el catálogo `anthropic/*` de OpenRouter bajo el agente Claude
+  // — pero el binario real `claude` no acepta esos ids: rechaza el punto de
+  // versión (`claude-sonnet-4.6` → 404, el CLI exige guiones), no reconoce
+  // los SKUs `-fast` de reventa de OpenRouter, y modelos retirados
+  // (`claude-3-haiku`) tampoco existen aunque el formato sea correcto. No hay
+  // forma confiable de saber desde afuera cuál de esos ids el binario va a
+  // aceptar — es el mismo catálogo frágil que la decisión de arquitectura de
+  // este Mes ya advertía evitar, solo que con fuente viva en vez de
+  // hardcodeada. La única lista que el CLI garantiza (`claude --help`: "an
+  // alias for the latest model, e.g. 'fable', 'opus', or 'sonnet'") + `haiku`
+  // (alias real, no documentado pero verificado funcional en vivo) son las 4
+  // únicas opciones seguras: siempre resuelven al modelo vigente de esa
+  // familia, sin traducir formato ni arriesgar un id muerto.
+  const CLAUDE_CLI_ALIASES = [
+    { id: 'anthropic/opus', label: 'Opus' },
+    { id: 'anthropic/sonnet', label: 'Sonnet' },
+    { id: 'anthropic/haiku', label: 'Haiku' },
+    { id: 'anthropic/fable', label: 'Fable' },
+  ];
+  const claudeAliasMatch = CLAUDE_CLI_ALIASES.find(m => m.id === val);
+  const modelLabel = showsClaudeModelPicker
+    ? (claudeAliasMatch ? claudeAliasMatch.label : t('chat.modelfx.modelAuto'))
+    : (isLoading ? t('common.loading') : shortModelLabel(val, allCloud));
   // CC.1b (2026-08-16) — hallazgo real de Carlos: el chat corriendo vía Claude
   // Code CLI (agent: claude, CC.D1) mostraba el selector de 3 niveles
   // pensado para el `reasoning` de OpenRouter, cuando el CLI real acepta 5
@@ -1978,7 +1997,7 @@ function buildChatModelFx(st) {
   const effortLevels = useClaudeCli ? CLAUDE_CLI_EFFORT_LEVELS : ['low', 'medium', 'high'];
   const effortAvailable = !isLocalAgent && (useClaudeCli || modelSupportsReasoning(val, st.orModels));
   const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null;
-  const triggerBase = (modelHiddenAgent || showsClaudeModelPicker) ? agentLabel : modelLabel;
+  const triggerBase = modelHiddenAgent ? agentLabel : modelLabel;
   const triggerLabel = effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase;
 
   const view = st.chatFxView; // null | 'root' | 'model' | 'effort' | 'agent'
@@ -2005,11 +2024,22 @@ function buildChatModelFx(st) {
         ${ICON.refresh}<span>${t('chat.modelfx.reset')}</span>
       </button>
     </div>`;
+  } else if (view === 'model' && showsClaudeModelPicker) {
+    // Solo 4 opciones, siempre las mismas — sin buscador (sería ruido para
+    // 4 ítems) y sin buildComboOptions() (ese combo asume forma de OpenRouter
+    // con priceIn/badges, que estos alias no tienen — no son fichas de precio
+    // por token, son un nivel de la suscripción).
+    panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
+      <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
+      ${CLAUDE_CLI_ALIASES.map(m => `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}">
+        <span>${esc(m.label)}</span>${val === m.id ? ICON.check : ''}
+      </button>`).join('')}
+    </div>`;
   } else if (view === 'model') {
     panel = `<div class="chat-modelfx-panel chat-modelfx-panel-wide" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
       <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
-      <div class="model-combo-list" data-combo-list>${buildComboOptions(showsClaudeModelPicker ? [] : locals, isLocalAgent ? [] : modelCloud, val, '')}</div>
+      <div class="model-combo-list" data-combo-list>${buildComboOptions(isLocalAgent ? [] : locals, isLocalAgent ? [] : allCloud, val, '')}</div>
     </div>`;
   } else if (view === 'effort') {
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
