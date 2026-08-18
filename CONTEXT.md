@@ -21,7 +21,11 @@ y no debe ser la fuente de nada permanente.
 - `POST /api/chat` sin `sessionId` conserva el chat efímero previo. Con `sessionId`, SQLite es la
   fuente de verdad de la historia y se persiste cada intercambio exitoso.
 - `mode:chat` es una frontera read-only mecánica: nunca crea task/worktree. Una sesión sin proyecto
-  tampoco recibe contexto/tools del repo; Claude se ejecuta desde un directorio temporal vacío.
+  tampoco recibe contexto/tools del repo y, sin importar que su modo sea `chat` o `code`, nunca
+  puede crear ni ejecutar una tarea real: `autoTask` queda nulo y la respuesta explica que debe
+  usarse una sesión asociada a un proyecto. El fallback legacy al cwd solo sostiene config/transporte
+  conversacional; no concede autoridad de escritura. Claude se ejecuta desde un directorio temporal
+  vacío en este caso.
 - Codex/OpenCode se almacenan como agentes válidos, pero el transporte de chat responde 422 hasta
   que exista una vía read-only verificada; nunca degradar silenciosamente a API. CC.3 sigue siendo
   responsable de resolver el proyecto activo sin `resolve('.')`; no adelantar esa deuda aquí.

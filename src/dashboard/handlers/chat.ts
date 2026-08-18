@@ -440,6 +440,12 @@ async function handleApiChat(req: Request, fallbackProject?: DashboardProjectCon
   }
   const session = body.sessionId ? getChatSession(body.sessionId.trim()) : null
   if (body.sessionId && !session) return errorResponse('Chat session not found', 404)
+  // CC.2a — una sesión persistida general no tiene autoridad sobre ningún
+  // proyecto, aunque `mode:code` permita ejecución en sesiones que sí están
+  // asociadas. Debe calcularse antes de autoTask: `project` puede ser el cwd
+  // legacy solo para sostener el transporte conversacional/config heredado,
+  // nunca para convertir ese fallback en destino de escritura o spawn.
+  const hasProjectContext = !session || session.project_id !== null
   let project: DashboardProjectContext
   try {
     project = session?.project_id
@@ -515,7 +521,7 @@ async function handleApiChat(req: Request, fallbackProject?: DashboardProjectCon
   // cascada (abajo) solo sugiere un default cuando no hay preferencia guardada.
   // CC.D1 (2026-08-17) — `executor_mode` renombrado a `agent`.
   let autoTask: { id: string } | { error: string } | null = null
-  if (taskSuggestion?.isTask && sessionAllowsTaskExecution(session?.mode ?? null)) {
+  if (taskSuggestion?.isTask && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
     try {
       const draft = await buildNaturalDraft(message, root)
       const skill = pickAutoSkill(draft.skillOptions)
@@ -553,7 +559,6 @@ async function handleApiChat(req: Request, fallbackProject?: DashboardProjectCon
   }
 
   const lines: string[] = []
-  const hasProjectContext = !session || session.project_id !== null
 
   if (hasProjectContext) try {
     const file = loadTasks(root)
@@ -656,6 +661,8 @@ async function handleApiChat(req: Request, fallbackProject?: DashboardProjectCon
   // mano. Ahora la instrucción se arma según lo que REALMENTE pasó.
   const autoTaskInstruction = session?.mode === 'chat' && taskSuggestion?.isTask
     ? `This session is in Chat mode, which is a hard read-only boundary. The message looks like a build request, but NO task was created and no worktree or file write was started. Say that plainly and tell the user they must switch this session to Code mode before execution can begin.`
+    : !hasProjectContext && taskSuggestion?.isTask
+      ? `This chat session has no associated project, so it has no real tasks.yaml or project root where OrchestOS may create or run a task. NO task was created, no process was spawned, and no file write was started. Say that plainly and tell the user to switch to or create a project-associated session before execution can begin.`
     : autoTask && 'id' in autoTask
     ? `When the user asks you to BUILD something (a page, a feature, a script): OrchestOS has ALREADY created and started running task "${autoTask.id}" in the background by the time you reply — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max), naming the task id. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists.`
     : autoTask && 'error' in autoTask
@@ -733,11 +740,13 @@ ${autoTaskInstruction}${ctx}${projBlock}`
   // D.7 — nota corta y neutral (no depende del idioma de la respuesta del
   // LLM, que puede ser español o inglés): se agrega al texto final en los
   // 3 caminos de respuesta posibles (ollama / tool-loop / openrouter plano).
-  const autoTaskNote = autoTask
-    ? ('id' in autoTask
+  const autoTaskNote = session?.mode !== 'chat' && !hasProjectContext && taskSuggestion?.isTask
+    ? `\n\n⚠ Could not auto-create the task: this chat session has no associated project. Switch to a project-associated session before creating or running real tasks.`
+    : autoTask
+      ? ('id' in autoTask
         ? `\n\n▶ Started task \`${autoTask.id}\`.`
         : `\n\n⚠ Could not auto-create the task: ${autoTask.error}`)
-    : ''
+      : ''
 
   messages.push({
     role: 'user',

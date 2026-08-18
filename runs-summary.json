@@ -1,37 +1,7 @@
 {
-  "exported_at": "2026-08-18T17:26:19.685Z",
+  "exported_at": "2026-08-18T17:39:36.446Z",
   "total_runs": 20,
   "runs": [
-    {
-      "id": "6370fc57-29f1-4899-86b8-2611a3995a22",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.000034200600000000006,
-      "elapsed_ms": 0,
-      "tokens": 465,
-      "created_at": "2026-08-18T17:26:12.596Z"
-    },
-    {
-      "id": "f236626a-87c6-4f12-b186-c151bc4fcf4b",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0000613326,
-      "elapsed_ms": 0,
-      "tokens": 656,
-      "created_at": "2026-08-18T17:25:42.553Z"
-    },
     {
       "id": "cf88fdf5-984a-44f1-99c9-98392082f1eb",
       "task_class": "chat",
@@ -301,6 +271,36 @@
       "elapsed_ms": 0,
       "tokens": 3225,
       "created_at": "2026-08-16T18:34:53.714Z"
+    },
+    {
+      "id": "c33c8ef8-173c-47a5-92cb-8beca55979a4",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00034622000000000006,
+      "elapsed_ms": 0,
+      "tokens": 2275,
+      "created_at": "2026-08-12T22:33:07.698Z"
+    },
+    {
+      "id": "0f2e93e7-aa84-462d-bda4-5e694f70c73f",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00026404000000000005,
+      "elapsed_ms": 0,
+      "tokens": 1854,
+      "created_at": "2026-07-27T22:24:25.712Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 0,
-    "total_cost_usd": "0.0036"
+    "total_cost_usd": "0.0042"
   }
 }

@@ -837,6 +837,33 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
   inyectable y cero `tasks.yaml` en modo Chat; `bun run test:coverage` final (1166 pass, 0 fail,
   118 archivos) ✅. Sin Playwright por contrato backend-only.
 
+- [x] **CC.2a — 🧠 Fix de aislamiento para sesiones generales en `mode:code` (BACKEND PURO).**
+  Repro externo real (2026-08-18): una sesión persistida con `project_id:null` y `mode:code`
+  heredó el cwd del dashboard mediante el fallback legacy de `resolveDashboardProject()`; el
+  clasificador disparó `autoTask`, escribió `python-hello-world-script` en el `tasks.yaml` de este
+  repo y llamó `spawnTaskRun()` contra su root. El cwd temporal de CC.2 protegía solo la respuesta
+  conversacional de Claude CLI, no la auto-creación previa. El fix debe hacer que una sesión sin
+  proyecto nunca cree/spawnee una tarea real sin importar su modo, devolver `autoTask` nulo o un
+  error explicado y comunicar claramente que falta un proyecto asociado. Mantener intactos agente
+  inmutable, frontera `mode:chat`, aislamiento de `runClaudeChat` y cero UI vanilla. Prueba de
+  regresión exacta + typecheck + coverage CI + gate real en puerto aislado obligatorios; limpiar
+  por endpoint el residuo del repro antes de cerrar.
+  **Implementado (2026-08-18):** `hasProjectContext` ahora se calcula antes de `autoTask` y forma
+  parte del guard mecánico de creación: el cwd que resuelve el fallback legacy puede sostener la
+  conversación de una sesión general, pero nunca llega a `buildNaturalDraft`, `createTaskRecord` ni
+  `spawnTaskRun`. En `mode:code`, el prompt y una nota determinista explican que falta un proyecto;
+  `mode:chat` conserva sin cambios su mensaje y su frontera read-only previa.
+  **Evidencia:** preflight CC.2a ✅; test exacto `project_id:null` + `mode:code` + mensaje del repro
+  verifica `autoTask:null`, explicación visible, `tasks.yaml` byte-a-byte intacto y solo dos llamadas
+  al proveedor (clasificador + respuesta; ninguna para draft) ✅; suites CC.2/CC.3 (4 pass, 0 fail)
+  ✅; `bunx tsc --noEmit` ✅; `bun run security:gate` ✅ (1169 pass, 0 fail, audit sin
+  vulnerabilidades); `bun run test:coverage` ✅ (1169 pass, 0 fail; functions 73.95%, lines
+  63.29%). **Gate en vivo:** dashboard real en `http://localhost:43861`, sin navegador por contrato
+  backend-only: el repro HTTP exacto devolvió `autoTask:null` y el mensaje "no associated project";
+  SHA-256 de `tasks.yaml` fue idéntico antes/después (`43d6aebd…6069`). La tarea residual
+  `python-hello-world-script`, la sesión/mensajes y el run del gate se borraron mediante endpoints
+  `DELETE` (HTTP 200), y el servidor se detuvo al terminar.
+
 - [x] **CC.3 — 🧠 Multi-proyecto real (BACKEND PURO).** Matar los 10 `resolve('.')` del dashboard;
   el proyecto activo es una selección del usuario, no el cwd donde se lanzó el server.
   Absorbe `#35` y la deuda CC.0-D2. La UI de selección va en `UI.6` (Mes 30).

@@ -173,4 +173,75 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.fetchCalls).toBe(2)
     expect(result.unsupportedStatus).toBe(422)
   })
+
+  it('never auto-creates a real task for a general project-less session in Code mode', async () => {
+    const result = await runIsolated(`
+      const { mkdirSync, writeFileSync, readFileSync } = await import('fs')
+      const { join } = await import('path')
+      const home = process.env.ORCHESTOS_HOME
+      const cacheDir = join(home, '.orchestos', 'cache')
+      mkdirSync(cacheDir, { recursive: true })
+      writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({
+        fetchedAt: Date.now(),
+        models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } }
+      }))
+      const serverRoot = join(home, 'real-server-project')
+      mkdirSync(serverRoot, { recursive: true })
+      const tasksPath = join(serverRoot, 'tasks.yaml')
+      const originalTasks = 'version: 1\\ntasks:\\n  - id: existing-real-task\\n    description: Must remain unchanged\\n    output: []\\n    executor: openrouter\\n    status: pending\\n    retry_count: 0\\n'
+      writeFileSync(tasksPath, originalTasks)
+
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      runMigrations()
+      const session = createChatSession({ projectId: null, agent: 'api', mode: 'code', title: 'General code session' })
+      process.chdir(serverRoot)
+
+      let openRouterCalls = 0
+      globalThis.fetch = async (url, init) => {
+        if (String(url).includes('localhost:11434')) {
+          return new Response(JSON.stringify({ models: [] }), { status: 200 })
+        }
+        openRouterCalls += 1
+        const requestBody = JSON.parse(String(init.body))
+        const system = String(requestBody.messages?.[0]?.content ?? '')
+        const content = system.includes('convierte instrucciones en lenguaje natural')
+          ? JSON.stringify({ id: 'python-hello-world-script', description: 'Create hello.py', output: ['hello.py'], executor: 'openrouter', skill_candidates: [] })
+          : openRouterCalls === 1
+            ? JSON.stringify({ isTask: true, reason: 'The user asks to build and save a script' })
+            : 'No se creó una tarea real porque esta sesión general no tiene un proyecto asociado.'
+        return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: 'deepseek/deepseek-v4-flash' }), { status: 200 })
+      }
+
+      const response = await handleApiChat(new Request('http://localhost/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          sessionId: session.id,
+          message: 'build me a python script that prints hello world, save it as hello.py',
+        }),
+      }))
+      const payload = await response.json()
+      const finalTasks = readFileSync(tasksPath, 'utf8')
+      process.stdout.write(JSON.stringify({
+        status: response.status,
+        payload,
+        tasksUnchanged: finalTasks === originalTasks,
+        leakedTask: finalTasks.includes('python-hello-world-script'),
+        openRouterCalls,
+      }))
+      db.close()
+    `)
+
+    expect(result.status).toBe(200)
+    expect(result.payload).toMatchObject({
+      autoTask: null,
+      taskSuggestion: { reason: 'The user asks to build and save a script' },
+    })
+    expect(String((result.payload as { text?: unknown }).text)).toContain('no associated project')
+    expect(result.tasksUnchanged).toBe(true)
+    expect(result.leakedTask).toBe(false)
+    expect(result.openRouterCalls).toBe(2)
+  })
 })
