@@ -1949,6 +1949,25 @@ function shortModelLabel(val, cloudPool) {
   return withoutVendor.length > 18 ? withoutVendor.slice(0, 16) + '…' : withoutVendor;
 }
 
+// Hallazgo real de Carlos (2026-08-17): un alias de Claude ("sonnet") no dice
+// a qué versión concreta resuelve — nadie puede saberlo de antemano, ni
+// siquiera Anthropic lo publica. Pero cada respuesta SÍ trae la resolución
+// real (ver `rememberResolvedClaudeModel()` en screens-core.js, que llama acá
+// tras cada mensaje). Se persiste en localStorage por alias, así el selector
+// muestra "la última vez resolvió a X" — nunca inventado, nunca prospectivo.
+const CLAUDE_RESOLVED_KEY_PREFIX = 'orchestos-claude-resolved-';
+function rememberResolvedClaudeModel(isClaudeCli, aliasId, resultLabel) {
+  if (!isClaudeCli || !aliasId || typeof resultLabel !== 'string') return;
+  // resultLabel = "<canonical> via Claude Code CLI (effort: ...)" — nos quedamos
+  // solo con el nombre canónico, antes del primer " via ".
+  const canonical = resultLabel.split(' via ')[0].trim();
+  if (!canonical || canonical === 'claude (cli default model)') return;
+  try { localStorage.setItem(CLAUDE_RESOLVED_KEY_PREFIX + aliasId, canonical); } catch {}
+}
+function getResolvedClaudeModel(aliasId) {
+  try { return localStorage.getItem(CLAUDE_RESOLVED_KEY_PREFIX + aliasId) || null; } catch { return null; }
+}
+
 function buildChatModelFx(st) {
   const val = st.chatModel || 'deepseek/deepseek-v4-flash';
   const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
@@ -1984,8 +2003,9 @@ function buildChatModelFx(st) {
     { id: 'anthropic/fable', label: 'Fable' },
   ];
   const claudeAliasMatch = CLAUDE_CLI_ALIASES.find(m => m.id === val);
+  const claudeResolved = showsClaudeModelPicker && claudeAliasMatch ? getResolvedClaudeModel(val) : null;
   const modelLabel = showsClaudeModelPicker
-    ? (claudeAliasMatch ? claudeAliasMatch.label : t('chat.modelfx.modelAuto'))
+    ? (claudeAliasMatch ? claudeAliasMatch.label + (claudeResolved ? ` (${claudeResolved})` : '') : t('chat.modelfx.modelAuto'))
     : (isLoading ? t('common.loading') : shortModelLabel(val, allCloud));
   // CC.1b (2026-08-16) — hallazgo real de Carlos: el chat corriendo vía Claude
   // Code CLI (agent: claude, CC.D1) mostraba el selector de 3 niveles
@@ -2031,9 +2051,12 @@ function buildChatModelFx(st) {
     // por token, son un nivel de la suscripción).
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
-      ${CLAUDE_CLI_ALIASES.map(m => `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}">
-        <span>${esc(m.label)}</span>${val === m.id ? ICON.check : ''}
-      </button>`).join('')}
+      ${CLAUDE_CLI_ALIASES.map(m => {
+        const resolved = getResolvedClaudeModel(m.id);
+        return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}">
+        <span>${esc(m.label)}${resolved ? ` <span class="muted">(${esc(resolved)})</span>` : ''}</span>${val === m.id ? ICON.check : ''}
+      </button>`;
+      }).join('')}
     </div>`;
   } else if (view === 'model') {
     panel = `<div class="chat-modelfx-panel chat-modelfx-panel-wide" data-modelfx-panel>

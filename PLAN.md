@@ -393,6 +393,33 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   esta sesión (mismo límite ya declarado), la ruta HTTP completa (`handlers/chat.ts` → dashboard →
   pill del composer) no se re-verificó con Playwright — la corrección se probó contra la función
   real del backend y el binario real, no contra el click-through de la UI.
+
+- [x] **CC.D2 — quinta pasada (2026-08-17), Carlos al probarlo — el selector, no el label post-respuesta.**
+  El fix de la cuarta pasada corrige el tag DESPUÉS de la respuesta; Carlos señaló que el problema
+  real era el SELECTOR de antes de mandar: sigue diciendo solo "Sonnet"/"Opus"/etc., sin versión.
+  Límite estructural confirmado (no hay forma de evitarlo del todo): nadie puede saber a qué
+  versión concreta resuelve un alias hasta que el CLI la resuelve — ni Anthropic lo publica por
+  adelantado (`claude doctor` verificado, no lo dice; no existe comando de resolución sin gastar
+  una llamada real).
+
+  **Solución honesta implementada**: cada respuesta YA trae la resolución real (fix de la cuarta
+  pasada) — se persiste por alias en `localStorage` (`rememberResolvedClaudeModel()`, app.js) justo
+  donde llega `data.model` (`screens-core.js`, tras el `fetch('/api/chat')`), y el selector la lee
+  de vuelta (`getResolvedClaudeModel()`) tanto en el trigger/root ("Sonnet (claude-sonnet-5)") como
+  en cada opción de la lista de 4 alias. Nunca inventa nada: si todavía no hay una respuesta previa
+  para ese alias en esta máquina, el selector simplemente no muestra el paréntesis — no hay
+  "prospectivo" honesto posible, solo "última vez que lo usaste, resolvió a esto".
+
+  **Evidencia:** `node --check` limpio en `app.js`/`screens-core.js`; `bunx tsc --noEmit` limpio;
+  `bun run test:coverage` → 1158 pass / 0 fail (sin regresión, la lógica nueva es frontend puro sin
+  test unitario dedicado — el codebase no tiene suite de frontend, solo backend/integración).
+  Parseo de `resultLabel` verificado con 3 casos (con effort, sin effort, fallback "cli default
+  model" → no persiste nada falso). Gate en vivo: sin navegador en esta sesión (mismo límite
+  declarado en las pasadas anteriores) — verificado que el servidor real que Carlos ya tenía
+  corriendo (archivos estáticos, sin build step) sirve el código nuevo sin reiniciar: `curl
+  127.0.0.1:4242/app.js` y `/screens-core.js` confirman las funciones nuevas presentes en lo que el
+  navegador de Carlos está cargando ahora mismo. El click-through real (elegir alias, mandar
+  mensaje, volver al selector y ver el paréntesis) queda pendiente de que Carlos lo confirme.
 - [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe

@@ -526,6 +526,15 @@ SCREENS.chat = {
           const data = await res.json();
           const taskId = data.autoTask && data.autoTask.id;
           st.chatHistory.push({ role: 'assistant', content: data.text, model: data.model, ocrUsed: data.ocrUsed, taskId: taskId || undefined, ts: Date.now() });
+          // Hallazgo real de Carlos (2026-08-17): con un alias de Claude
+          // ("sonnet") nadie puede saber de antemano a qué versión concreta
+          // resuelve — ni Anthropic lo publica por adelantado. Pero cada
+          // respuesta SÍ trae la resolución real (`chat.ts`/`external.ts`,
+          // vía `modelUsage` del CLI) — se guarda por alias para que el
+          // PRÓXIMO selector la muestre, en vez de dejar al usuario
+          // adivinando para siempre. Nunca se inventa: si no hay respuesta
+          // todavía para ese alias, el selector simplemente no muestra nada.
+          rememberResolvedClaudeModel(chatUsesClaudeCli, st.chatModel, data.model);
           // D.7 (Mes 22) — si el server ya creó+corrió la tarea sola, la barra
           // "Create task" quedaría redundante (o peor, invitaría a duplicarla)
           // — se omite. Refrescamos st.tasks para que el chip `task_id` que

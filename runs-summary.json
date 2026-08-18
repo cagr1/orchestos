@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-08-18T01:12:48.832Z",
+  "exported_at": "2026-08-18T01:20:25.411Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "a00a1baf-425f-403a-ac8e-7a826b8f3c35",
+      "task_class": "chat",
+      "model": "claude-sonnet-5 via Claude Code CLI",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 7,
+      "created_at": "2026-08-18T01:15:25.413Z"
+    },
     {
       "id": "59dd2a37-fe96-4d15-a110-d25d840f507b",
       "task_class": "chat",
@@ -286,21 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 3218,
       "created_at": "2026-07-27T17:30:15.936Z"
-    },
-    {
-      "id": "2e177e4e-b2ba-4c0e-9e8f-03afdd5eaac5",
-      "task_class": "chat",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00043974000000000004,
-      "elapsed_ms": 0,
-      "tokens": 3005,
-      "created_at": "2026-07-27T17:29:42.885Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 0,
-    "total_cost_usd": "0.0076"
+    "total_cost_usd": "0.0071"
   }
 }
