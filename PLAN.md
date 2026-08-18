@@ -366,6 +366,33 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   servidos confirma que el código nuevo (no una versión cacheada) está en producción del
   dashboard — el click-through visual queda pendiente de una sesión con navegador. Servidor
   detenido al terminar.
+
+- [x] **CC.D2 — cuarta pasada (2026-08-17), Carlos al probarlo — segundo bug real, más de fondo.** el label
+  post-respuesta seguía diciendo "Sonnet" sin decir qué versión concreta corrió (4.6, 5, la que
+  sea) — un alias resuelve a "lo último" por diseño, pero la UI nunca revelaba a qué resolvió.
+  Causa raíz: `runClaudeChat()` (`external.ts:309-317`, previo al fix) devolvía `model: model!` —
+  hacía eco del alias PEDIDO, nunca leía lo que el CLI REALMENTE resolvió. Verificado contra el
+  binario real: `--model sonnet --output-format stream-json` incluye en el evento `result` un
+  campo `modelUsage` con el nombre canónico exacto (`{"claude-sonnet-5": {"canonicalModel":
+  "claude-sonnet-5", ...}}`) — dato que `ClaudeCodeJson` ni siquiera declaraba, así que se
+  descartaba en silencio.
+
+  **Fix:** `ClaudeCodeJson.modelUsage` agregado al tipo; nueva `resolvedCliModel(parsed)` lee la
+  primera key de `modelUsage` (el nombre canónico real); `runClaudeChat()` usa ese valor con
+  prioridad, cayendo al alias pedido solo si el evento no trae `modelUsage` (defensivo, nunca
+  inventa nada). `handlers/chat.ts:702` no cambió — ya construía el label desde `result.model`,
+  así que el fix es transparente a esa capa: el label ahora dice `claude-sonnet-5 via Claude Code
+  CLI` en vez de `Sonnet via Claude Code CLI`.
+
+  **Evidencia:** test nuevo en `claude-chat.test.ts` (mock con `modelUsage` en el evento result,
+  confirma que gana sobre el alias pedido) + el test existente de CC.1 sigue verde como caso de
+  fallback (evento sin `modelUsage` → usa el alias pedido, comportamiento intacto). 10/10 pass en
+  el archivo, `bun run test:coverage` → **1158 pass / 0 fail** (era 1157). Verificación end-to-end
+  contra el binario real, sin mocks: `runClaudeChat(cwd, sys, msg, 30000, 'anthropic/sonnet')` →
+  `result.model === 'claude-sonnet-5'` (confirmado, no simulado). Gate en vivo: sin navegador en
+  esta sesión (mismo límite ya declarado), la ruta HTTP completa (`handlers/chat.ts` → dashboard →
+  pill del composer) no se re-verificó con Playwright — la corrección se probó contra la función
+  real del backend y el binario real, no contra el click-through de la UI.
 - [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe

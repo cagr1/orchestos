@@ -53,6 +53,17 @@ interface ClaudeCodeJson {
   usage?: { input_tokens?: number; output_tokens?: number }
   total_cost_usd?: number
   num_turns?: number
+  /** Hallazgo real de Carlos (2026-08-17): pedir `--model sonnet` (alias) muestra
+   *  "Sonnet" en la UI sin decir a qué versión concreta resolvió — el CLI SÍ lo
+   *  reporta acá, keyed por el nombre canónico real (ej. "claude-sonnet-5"). */
+  modelUsage?: Record<string, { canonicalModel?: string }>
+}
+
+/** Nombre canónico real que el CLI resolvió (ej. "claude-sonnet-5"), leído de
+ *  `modelUsage` — nunca inventado. `undefined` si el evento no lo trae. */
+function resolvedCliModel(parsed: ClaudeCodeJson): string | undefined {
+  const keys = parsed.modelUsage ? Object.keys(parsed.modelUsage) : []
+  return keys[0]
 }
 
 // -- worktree diff → FileChange[] (decisión d: diff completo, sin filtrar) ------
@@ -306,13 +317,17 @@ export async function runClaudeChat(
     throw new ExecutorExternalError('claude code result event was not valid JSON')
   }
 
-  const cliModel = orchestosModelToCliModel(model)
   return {
     text,
     inputTokens: parsed.usage?.input_tokens ?? 0,
     outputTokens: parsed.usage?.output_tokens ?? 0,
     usd: typeof parsed.total_cost_usd === 'number' ? parsed.total_cost_usd : 0,
-    model: cliModel ? model! : 'claude (cli default model)',
+    // Hallazgo real de Carlos: con un alias (`--model sonnet`) el pedido nunca
+    // dice la versión real que corrió. `resolvedCliModel()` lee el nombre
+    // canónico que el propio CLI reporta en `modelUsage` (ej. "claude-sonnet-5")
+    // — si por lo que sea el evento no lo trae, cae al valor pedido, nunca a
+    // un string inventado.
+    model: resolvedCliModel(parsed) ?? (orchestosModelToCliModel(model) ? model! : 'claude (cli default model)'),
     effort,
   }
 }

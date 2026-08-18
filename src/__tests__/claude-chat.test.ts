@@ -133,7 +133,7 @@ describe('runClaudeChat (CC.1)', () => {
     await expect(runClaudeChat('/tmp/p', 'sys', 'msg', 5000)).rejects.toThrow(ExecutorExternalError)
   })
 
-  it('pasa el modelo cuando es de Anthropic (mismo mapper que el executor de tareas)', async () => {
+  it('pasa el modelo cuando es de Anthropic (mismo mapper que el executor de tareas); sin modelUsage en el evento, cae al valor pedido', async () => {
     const stdout = streamOf(assistantText('x'), resultEvent({ total_cost_usd: 0, usage: {} }))
     overrideBunSpawn(makeMockProc(stdout))
 
@@ -142,6 +142,30 @@ describe('runClaudeChat (CC.1)', () => {
     const idx = spawnCalls[0]!.cmd.indexOf('--model')
     expect(spawnCalls[0]!.cmd[idx + 1]).toBe('claude-sonnet-5')
     expect(result.model).toBe('anthropic/claude-sonnet-5')
+  })
+
+  // CC.D2 (2026-08-17) — hallazgo real de Carlos usando el picker de alias:
+  // pedir "sonnet" (alias, resuelve a lo que sea la versión vigente) devolvía
+  // el label "Sonnet" sin decir a qué versión concreta corrió — el request
+  // nunca refleja la resolución real del CLI. `modelUsage` en el evento
+  // `result` SÍ trae el nombre canónico real (verificado contra el binario en
+  // vivo: `--model sonnet` → `modelUsage: { "claude-sonnet-5": {...} }`).
+  it('con alias (ej. "sonnet"), el label usa el nombre canónico real de modelUsage, no el alias pedido', async () => {
+    const stdout = streamOf(
+      assistantText('x'),
+      resultEvent({
+        total_cost_usd: 0.009,
+        usage: {},
+        modelUsage: { 'claude-sonnet-5': { canonicalModel: 'claude-sonnet-5' } },
+      }),
+    )
+    overrideBunSpawn(makeMockProc(stdout))
+
+    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000, 'anthropic/sonnet')
+
+    const idx = spawnCalls[0]!.cmd.indexOf('--model')
+    expect(spawnCalls[0]!.cmd[idx + 1]).toBe('sonnet')
+    expect(result.model).toBe('claude-sonnet-5')
   })
 
   // CC.1b (2026-08-16) — hallazgo real de Carlos el mismo día del gate de CC.1:
