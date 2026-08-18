@@ -1876,7 +1876,7 @@ function buildModelSelect(inputId, currentVal, models, localModels, opts) {
     : '';
   return `<div class="model-combo${isOpen ? ' open' : ''}" data-model-combo data-combo-id="${esc(inputId)}">
     <input type="hidden" id="${esc(inputId)}" value="${esc(val)}">
-    <button type="button" class="model-combo-trigger" data-combo-trigger ${isLoading ? 'disabled' : ''}>
+    <button type="button" class="model-combo-trigger" data-combo-trigger title="${esc(label)}" aria-label="${esc(label)}" ${isLoading ? 'disabled' : ''}>
       <span class="model-combo-label">${esc(label)}</span>
       ${ICON.chev}
     </button>
@@ -1907,10 +1907,13 @@ function buildComboOptions(locals, cloudModels, val, query) {
   let html = '';
   if (matchLocal.length > 0) {
     html += `<div class="model-combo-group-label">${esc(t('chat.local.group'))}</div>` +
-      matchLocal.map(m => `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}">
-        <span class="model-combo-opt-name">${esc(m.id.replace('ollama/', ''))}</span>
+      matchLocal.map(m => {
+        const fullName = m.id.replace('ollama/', '');
+        return `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
+        <span class="model-combo-opt-name">${esc(fullName)}</span>
         <span class="model-combo-price">${esc(t('chat.local.free'))}</span>
-      </div>`).join('');
+      </div>`;
+      }).join('');
   }
   if (matchCloud.length > 0) {
     if (matchLocal.length > 0) html += `<div class="model-combo-group-label">${esc(t('chat.cloud.group'))}</div>`;
@@ -1918,8 +1921,9 @@ function buildComboOptions(locals, cloudModels, val, query) {
     // pricing real (openrouter/auto*) también caen en 0/negativo y NO son gratis.
     html += matchCloud.map(m => {
       const isFree = m.id.endsWith(':free');
-      return `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}">
-      <span class="model-combo-opt-name">${esc(m.name || m.id)}</span>
+      const fullName = m.name || m.id;
+      return `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
+      <span class="model-combo-opt-name">${esc(fullName)}</span>
       <span class="model-combo-price${isFree ? ' free' : ''}">${isFree ? esc(t('chat.models.free')) : `$${m.priceIn.toFixed(2)}/M`}</span>
     </div>`;
     }).join('');
@@ -2065,11 +2069,12 @@ function buildChatModelFx(st) {
   const claudePinnedLabel = showsClaudeModelPicker && !claudeAliasMatch && val.startsWith('anthropic/')
     ? claudeHumanModelLabel(val.slice('anthropic/'.length))
     : null;
-  const modelLabel = showsClaudeModelPicker
+  const fullModelLabel = showsClaudeModelPicker
     ? (claudeAliasMatch
         ? claudeAliasMatch.label + (claudeResolved ? ` (${claudeResolved})` : '')
         : (claudePinnedLabel || t('chat.modelfx.modelAuto')))
-    : (isLoading ? t('common.loading') : shortModelLabel(val, allCloud));
+    : (isLoading ? t('common.loading') : modelLabelFor(val, allCloud));
+  const modelLabel = showsClaudeModelPicker ? fullModelLabel : shortModelLabel(val, allCloud);
   // CC.1b (2026-08-16) — hallazgo real de Carlos: el chat corriendo vía Claude
   // Code CLI (agent: claude, CC.D1) mostraba el selector de 3 niveles
   // pensado para el `reasoning` de OpenRouter, cuando el CLI real acepta 5
@@ -2082,6 +2087,7 @@ function buildChatModelFx(st) {
   const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null;
   const triggerBase = modelHiddenAgent ? agentLabel : modelLabel;
   const triggerLabel = effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase;
+  const triggerTitle = effortLabel ? `${fullModelLabel} · ${effortLabel}` : fullModelLabel;
 
   const view = st.chatFxView; // null | 'root' | 'model' | 'effort' | 'agent'
   let panel = '';
@@ -2101,7 +2107,7 @@ function buildChatModelFx(st) {
         <span class="v">${esc(t('chat.modelfx.modelDecidedBy', agentLabel))}</span>
       </div>` : `<button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
         <span class="k">${t('chat.modelfx.model')}</span>
-        <span class="v">${esc(modelLabel)}</span>${ICON.chevR}
+        <span class="v" title="${esc(fullModelLabel)}">${esc(modelLabel)}</span>${ICON.chevR}
       </button>`}
       ${effortAvailable ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="effort">
         <span class="k">${t('chat.effort.label')}</span>
@@ -2127,7 +2133,8 @@ function buildChatModelFx(st) {
       ${CLAUDE_CLI_ALIASES.map(m => {
         const resolved = getResolvedClaudeModel(m.id) || CLAUDE_SEED_RESOLVED_2026_08_17[m.id];
         const humanResolved = resolved ? claudeHumanModelLabel(resolved) : null;
-        return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}">
+        const fullName = humanResolved ? `${m.label} (${humanResolved})` : m.label;
+        return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
         <span>${esc(m.label)}${humanResolved ? ` <span class="muted">(${esc(humanResolved)})</span>` : ''}</span>${val === m.id ? ICON.check : ''}
       </button>`;
       }).join('')}
@@ -2138,8 +2145,9 @@ function buildChatModelFx(st) {
         <div class="chat-modelfx-group-label muted">${t('chat.modelfx.claudePinned')}</div>
         ${pinned.map(canonical => {
           const pinnedId = 'anthropic/' + canonical;
-          return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === pinnedId ? ' active' : ''}" data-modelfx-claude-alias="${esc(pinnedId)}">
-          <span>${esc(claudeHumanModelLabel(canonical))}</span>${val === pinnedId ? ICON.check : ''}
+          const fullName = claudeHumanModelLabel(canonical);
+          return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === pinnedId ? ' active' : ''}" data-modelfx-claude-alias="${esc(pinnedId)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
+          <span>${esc(fullName)}</span>${val === pinnedId ? ICON.check : ''}
         </button>`;
         }).join('')}`;
       })()}
@@ -2190,7 +2198,7 @@ function buildChatModelFx(st) {
   }
 
   return `<div class="chat-modelfx${view ? ' open' : ''}" data-modelfx>
-    <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger ${(!modelHiddenAgent && !showsClaudeModelPicker && isLoading) ? 'disabled' : ''}>
+    <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger title="${esc(triggerTitle)}" aria-label="${esc(triggerTitle)}" ${(!modelHiddenAgent && !showsClaudeModelPicker && isLoading) ? 'disabled' : ''}>
       <span class="chat-modelfx-label">${esc(triggerLabel)}</span>${ICON.chev}
     </button>
     ${panel}

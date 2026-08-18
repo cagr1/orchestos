@@ -883,7 +883,7 @@
   padding: 6px 8px; border-radius: 6px; font-size: 12px; color: var(--text); cursor: pointer;
 }
 .model-combo-option:hover, .model-combo-option.active { background: var(--accent-soft); }
-.model-combo-opt-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-combo-opt-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-combo-price { color: var(--text-faint); font-size: 11px; flex-shrink: 0; }
 .model-combo-price.free { color: var(--success, #2e9c5b); font-weight: 600; }
 .model-combo-empty { padding: 16px 8px; text-align: center; color: var(--text-faint); font-size: 12px; }
@@ -921,7 +921,7 @@
 }
 .chat-modelfx-item:hover { background: var(--accent-soft); border-color: var(--accent-dim); }
 .chat-modelfx-item .k { color: var(--text-muted); }
-.chat-modelfx-item .v { flex: 1; text-align: right; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-modelfx-item .v { flex: 1; min-width: 0; text-align: right; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-modelfx-item svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-faint); }
 .chat-modelfx-sep { height: 1px; margin: 4px 2px; background: var(--border-soft); }
 /* CC.D2 (2026-08-17) — mismo patrón visual que .model-combo-group-label,
@@ -936,6 +936,7 @@
 .chat-modelfx-back:hover { color: var(--text); background: var(--surface-hi); }
 .chat-modelfx-back svg { width: 13px; height: 13px; transform: rotate(180deg); flex-shrink: 0; }
 .chat-modelfx-effort-opt { justify-content: space-between; }
+.chat-modelfx-effort-opt > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-modelfx-effort-opt.active { color: var(--accent); }
 .chat-modelfx-effort-opt svg { color: var(--accent); margin-left: auto; }
 /* la vista "model" reusa .model-combo-search/.model-combo-list tal cual —

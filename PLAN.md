@@ -603,9 +603,16 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   tests específicos (7 pass, 0 fail) ✅; `bun run test:coverage` final (1162 pass, 0 fail, 117
   archivos) ✅. La prueba de proceso confirma que el rechazo conserva `AGENTS.md` y evita
   `context.json`; el caso `--force` confirma el reemplazo explícitamente autorizado.
-- [ ] **CC.D3 — ⚡ Nombres de modelo legibles.** Reclamo de Carlos: *"algunos modelos tienen el
+- [x] **CC.D3 — ⚡ Nombres de modelo legibles.** Reclamo de Carlos: *"algunos modelos tienen el
   nombre muy largo, no se alcanza a leer cuál es"*. Truncado con el nombre completo accesible
   (tooltip/`title`), sin romper [[reference-model-combo-pattern]] (el combo sigue siendo buscable).
+  **Evidencia:** `node --check src/dashboard/public/app.js` ✅; `bunx tsc --noEmit` ✅; suite
+  `src/dashboard/__tests__/chat-md-highlight.test.ts` (20 pass, 0 fail) ✅. El renderer conserva
+  el ID completo para búsqueda/selección y añade `title`/`aria-label`; el CSS agrega `min-width: 0`
+  para que la elipsis funcione dentro de flex. **Gate en vivo:** navegador real Playwright ✅:
+  dashboard en `http://localhost:4244`, picker Chat abierto, buscador presente, opción larga
+  inspeccionada con `text-overflow: ellipsis` y tooltip/aria con el nombre completo; consola actual
+  sin errores.
 - [ ] **CC.D4 — 🔍 Gate en vivo, con navegador real.** Aprendizaje de CC.1c: `curl` al backend no
   alcanza. Playwright: cambiar de agente desde el chat, verificar que el label refleja el agente
   real, que bajo CLI no hay selector de modelo fantasma, y que bajo API sigue funcionando igual
