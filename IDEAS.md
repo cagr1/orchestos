@@ -50,9 +50,8 @@ Bajo-medio en curso, Mes 27)_
 5. `#26` Spec Kit.
 6. `#29` Impulsar `topic_key` en sub-tasks.
 7. `#34` `orchestos audit`.
-8. `#45` Visibilidad de gasto real.
-9. `#47` Auto-split por tamaño estimado.
-10. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
+8. `#47` Auto-split por tamaño estimado.
+9. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
 
 _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Mes 29
 (orquestador real) el 2026-08-16 — eran partes de un mismo eje estructural, no ideas sueltas.)_
@@ -65,6 +64,8 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
 5. `#42` Auto-repair dirigido.
 6. `#57` Cuota semanal de suscripciones CLI.
 7. `#60` Extracción a nivel de función/símbolo en `graph/` propio (tree-sitter).
+8. `#45` Visibilidad de gasto real — API vs CLI (movida desde Medio el 2026-08-18; va **antes**
+   que `#57`, que depende de su paso 0).
 
 ### Alto
 
@@ -804,6 +805,67 @@ run status` o similar.
 "cuota restante de un CLI de terceros" depende de qué exponga cada binario, puede no ser posible
 para todos.
 
+---
+
+#### Actualización 2026-08-18 — la incógnita quedó resuelta, con evidencia
+
+Carlos volvió a llegar a esta misma idea por su cuenta, un mes después, tras cerrar BB.6. Su
+precisión nueva: **para un agente CLI se muestran las DOS métricas a la vez**, no una u otra —
+tokens consumidos **y** cuota/tiempo restante. *"Si se usa CLI entonces claro hay salidas de tokens
+y tiempo que queda de uso del CLI."*
+
+**Precedente externo (verificado en docs oficiales)**: Orca resuelve esto con una barra en la barra
+de estado, y lo hace **leyendo el estado que cada agente ya guarda en disco** (`~/.claude`,
+`~/.codex`, equivalentes) — sin API calls ni auth extra. Declara explícitamente la limitación: el
+dato *"is only as fresh as the agent's own bookkeeping"*.
+
+**Lo que expone cada CLI — probado en la máquina real, ya no es una incógnita:**
+
+| CLI | Consumo de tokens | Cuota restante |
+|---|---|---|
+| **Codex** | ✅ `~/.codex/sessions/**/*.jsonl` → `payload.info.total_token_usage` (input · output · cached · cache_write · reasoning) | ✅ `payload.rate_limits` → `primary.used_percent`, `primary.window_minutes`, `primary.resets_at`, `plan_type`, `credits.balance`. Valor real leído: `used_percent: 10.0`, ventana `10080` min (7 días) |
+| **Claude** | ✅ `~/.claude/stats-cache.json` → `modelUsage` (por modelo) + `dailyModelTokens` (por día); también `message.usage` por mensaje en los `.jsonl` de sesión | ❌ **no lo persiste.** `/usage` existe solo dentro de la sesión interactiva; ningún archivo de `~/.claude` guarda `rate_limits` (verificado excluyendo la sesión activa, para no leer el propio transcript) |
+| **opencode** | ✅ SQLite propia en `~/.local/share/opencode/opencode.db`, tabla `session`: `cost`, `tokens_input`, `tokens_output`, `tokens_reasoning`, `tokens_cache_read`, `tokens_cache_write`. Valor real leído: **$6.94** en 34 sesiones — es el único de los tres que reporta USD real | ❌ ninguna tabla de rate limits (`account_state` solo tiene ids de cuenta activa) |
+
+**Confirmación de la premisa**: en `stats-cache.json` cada modelo trae `"costUSD": 0`. No es un
+bug — bajo suscripción el costo monetario marginal **es** cero y la propia herramienta lo reporta
+así. Esto valida la tesis original de esta idea: para CLI la unidad correcta no es el dólar.
+
+**Pre-requisito estructural descubierto (bloquea todo lo demás):** `runs` **no guarda el engine**.
+Solo tiene `model`, `provider` y `qa_model`, y `provider` dice `openrouter` en los **64** runs de la
+DB — incluidos los que corrieron por CLI. Hoy **es imposible separar API de CLI en el gráfico de
+Usage porque el dato nunca se persistió.** `handlers/usage.ts` hace un `SUM(usd_cost)` sobre todos
+los runs y devuelve un `totalUsd` único: mezcla dólares reales de API con ceros (o números
+inventados) de CLI. Es el mismo pecado que BB.4 denunció en una tabla, pero en el dashboard.
+**Paso 0 obligatorio: agregar `engine` a `runs` + backfill.**
+
+**Relación con BB.6 (cerrado 2026-08-18)**: BB.6 resolvió la mitad *negativa* — dejar de fabricar un
+costo falso para codex. Esta idea es la mitad *constructiva*: mostrar la métrica que sí importa.
+Son dos caras del mismo problema.
+
+**Diseño acordado con Carlos**: separar la pantalla Usage en dos vistas —
+**API** (gráfico de gasto USD, como hoy) y **CLI** (mismo gráfico de tokens por día/modelo que ya
+existe, más la barra de cuota + reset por agente). El modelo a copiar es el de Claude Code desktop:
+uso diario, por modelo, y cantidad de tokens.
+
+**Regla no negociable si se implementa** (aprendida en BB.6, no teórica): leer archivos internos de
+otra herramienta es un contrato que nadie prometió — `codex.ts` afirmaba que el default era
+`gpt-5.4` "confirmado en `~/.codex/config.toml`" y ese archivo hoy dice `gpt-5.6-luna`; el dato se
+desactualizó solo. Por lo tanto: **formato inesperado o archivo ausente → "no disponible", jamás un
+número inferido.** Y la barra de cuota debe ser **por agente detectado**: para Claude, que no
+expone el dato, se muestra "no disponible", no una barra vacía que parezca cero.
+
+**Relación con `#57`** (cuota semanal de suscripción CLI): **no son la misma idea, se complementan
+y hay que hacerlas en orden.** `#45` es el marco — separar Usage en API vs CLI y mostrar el consumo
+de tokens, que es implementable para los **tres** CLIs con los datos de la tabla de arriba. `#57` es
+solo la barra de cuota, que hoy únicamente Codex expone. **`#45` primero** (incluye el paso 0 del
+que `#57` también depende: sin `engine` en `runs` no hay vista de CLI donde poner la barra).
+
+**Esfuerzo actualizado**: medio-alto — no por el gráfico, sino por el paso 0 (migración de `runs` +
+backfill) y por los tres lectores de estado ajeno con degradación honesta.
+**Movida de Medio a Medio-alto el 2026-08-18** por la regla permanente de este archivo ("si cambia
+su estimación, pasa al final de la nueva categoría y conserva su historial").
+
 ### 47. Auto-split por tamaño estimado, no por número de archivos
 
 **Origen**: destapado corriendo C.1 en vivo (2026-07-16, ver PLAN.md Bloque E). El gate de
@@ -1237,6 +1299,39 @@ una vez. No es "un curl y ya" — es un cliente JSON-RPC + fallback de PTY + par
 estable que depender del shape no documentado del OAuth de Claude) — Claude queda para una segunda
 pasada, aceptando que puede requerir el mismo tipo de parche reactivo que tuvo Orca si Anthropic
 cambia el shape de nuevo.
+
+#### Actualización 2026-08-18 — hay un camino MUCHO más barato para Codex, con un trade-off
+
+Verificado en la máquina real: **Codex ya escribe su propio estado de cuota en disco**, en cada
+archivo de sesión (`~/.codex/sessions/**/*.jsonl`), bajo `payload.rate_limits`. Valor real leído:
+
+```json
+{ "limit_id": "codex", "plan_type": "plus",
+  "primary": { "used_percent": 10.0, "window_minutes": 10080, "resets_at": 1787245078 },
+  "credits": { "has_credits": false, "unlimited": false, "balance": "0" } }
+```
+
+Eso es exactamente lo que se quiere mostrar ("Codex: 10% usado, resetea en Nd Nh") **sin JSON-RPC,
+sin PTY oculta y sin parches por SO** — leer el último `.jsonl` y tomar el `rate_limits` más
+reciente. Las docs de Orca confirman que ese es justamente su mecanismo declarado
+(*"reads the local usage state each agent maintains on disk… no API calls and no extra auth"*), así
+que las ~350 líneas de `codex-fetcher.ts` con `app-server` son el camino de **frescura**, no el
+único camino.
+
+**El trade-off, explícito:** el dato de disco es tan fresco como la última vez que corriste codex.
+Si no lo usaste en 3 días, `used_percent` es de hace 3 días. `app-server` da el valor del momento.
+**Decisión sugerida**: implementar primero la lectura de disco (barata, cubre el 90% del valor) y
+mostrar **junto al número la marca de tiempo de cuándo se leyó** — un "10% usado (hace 2h)" es
+honesto; un "10% usado" a secas, cuando el dato tiene 3 días, no lo es. `app-server` queda como
+mejora posterior si la frescura resulta insuficiente en uso real.
+
+**Claude sigue sin camino barato**: confirmado que ningún archivo de `~/.claude` persiste
+`rate_limits` (verificado excluyendo la sesión activa, para no leer el propio transcript). Para
+Claude sigue valiendo lo de arriba: OAuth refresh o PTY, ambos frágiles. Se muestra **"no
+disponible"** hasta que exista un mecanismo estable — nunca una barra vacía que parezca cero.
+
+**Ver `#45`**, que es el marco donde vive esta barra y trae el pre-requisito estructural (`runs` no
+guarda `engine`, así que hoy no existe una vista de "CLI" donde ponerla).
 
 **Esfuerzo**: medio-alto — cliente JSON-RPC contra `codex app-server` (Codex), reverse-engineering
 del OAuth refresh de Claude (frágil, ya cambió una vez), fallback de PTY para ambos. No bloquea
