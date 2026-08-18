@@ -519,6 +519,38 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   pasadas) — `curl
   127.0.0.1:4242/app.js` confirma el código nuevo servido sin reiniciar por el servidor real que
   Carlos ya tenía abierto.
+
+- [x] **CC.D2 — CIERRE FINAL (2026-08-17).** Decisión explícita de Carlos: alias + versión fija
+  (lo ya construido) es el diseño definitivo, sin API key de Anthropic — investigado y descartado:
+  mostrar el catálogo de OpenRouter bajo Claude reabriría el bug original del día (ids que el CLI
+  rechaza), y no hay otra fuente confiable sin esa key. **No se vuelve a tocar "mostrar más
+  versiones históricas" sin una decisión nueva de Carlos.**
+
+  Último hallazgo real, encontrado por Carlos al cambiar a Codex desde el nuevo picker de agente:
+  `handlers/chat.ts` solo tiene rama especial para `agent === 'claude'` (decisión de alcance de
+  CC.1, documentada — Codex/OpenCode no tienen flag de solo-lectura confirmado). Elegir "Codex"
+  desde el picker de CC.D2 dejaba el agente del proyecto en `codex`, pero el chat caía en silencio
+  al camino de OpenRouter (el label de la respuesta sí decía la verdad, "via OpenRouter", pero el
+  SELECTOR prometía algo que el chat no puede cumplir). Fix: `codex`/`opencode` aparecen
+  deshabilitados en el picker de AGENTE del chat (con nota "sin cablear para el chat todavía — cae
+  a OpenRouter"), y un aviso visible en la fila raíz del menú si el agente activo del proyecto ya
+  es uno de esos dos (por ejemplo, quedado de antes de este fix). Siguen siendo agentes válidos
+  para tareas en Settings — esto es solo el picker del chat. Coincide con lo que CC.D4 (más abajo,
+  todavía abierto) ya preveía hacer ("Codex/OpenCode visibles pero marcados 'no disponible para
+  chat'"); adelantado acá porque el bug ya era visible en vivo.
+
+  **Evidencia:** `node --check`/`tsc --noEmit` limpios; `bun run test:coverage` → 1158 pass / 0
+  fail. Gate en vivo: sin navegador en esta sesión (mismo límite declarado en todas las pasadas) —
+  `curl 127.0.0.1:4242/api/config` confirma `agent: "claude"` en el servidor real que Carlos ya
+  tenía corriendo (no se tocó su config), `curl .../app.js` confirma el código nuevo servido sin
+  reiniciar.
+
+  **Balance honesto de esta tarea, para no repetir el patrón**: 8 pasadas para lo que debió ser 1–2.
+  Causa de fondo, no las herramientas usadas: reaccionar a cada síntoma con código nuevo en vez de
+  parar a investigar el límite real (formato del CLI, luego versión resuelta, luego catálogo
+  completo) antes de la primera implementación. La octava pasada solo costó tiempo porque la
+  séptima ya tenía la respuesta (ninguna herramienta muestra catálogo completo sin key) y no se
+  aplicó hasta que Carlos lo señaló de nuevo.
 - [ ] **CC.D1c — ⚡ `PUT /api/config` reescribe TODO el YAML, migra campos legacy sin que se pida.**
   Hallazgo real reproducido 2 veces en esta misma sesión (2026-08-17): `orchestos.config.yaml` de
   este repo se dejó deliberadamente con `executor_mode`/`executorEngine` (formato legacy) como

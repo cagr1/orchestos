@@ -2086,7 +2086,16 @@ function buildChatModelFx(st) {
   const view = st.chatFxView; // null | 'root' | 'model' | 'effort' | 'agent'
   let panel = '';
   if (view === 'root') {
+    // Aviso visible sin abrir el submenu si el agente activo del PROYECTO
+    // (elegido en Settings, o quedado de antes de este fix) es Codex/OpenCode
+    // — el chat cae a OpenRouter en silencio para esos dos (ver nota en la
+    // vista 'agent' más abajo). No se auto-corrige el config acá, solo se
+    // avisa — cambiar el agente del proyecto sigue siendo decisión del usuario.
+    const chatAgentUnsupportedWarning = (agent === 'codex' || agent === 'opencode')
+      ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('chat.modelfx.agentChatUnsupported')}</p>`
+      : '';
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
+      ${chatAgentUnsupportedWarning}
       ${modelHiddenAgent ? `<div class="chat-modelfx-item">
         <span class="k">${t('chat.modelfx.model')}</span>
         <span class="v">${esc(t('chat.modelfx.modelDecidedBy', agentLabel))}</span>
@@ -2153,11 +2162,29 @@ function buildChatModelFx(st) {
     const notDetectedNote = agentInfo && !agentInfo.detected
       ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('settings.executorMode.notDetected')}</p>`
       : '';
+    // Hallazgo real de Carlos (2026-08-17): elegir "Codex" acá lo dejaba
+    // fijado como agente del proyecto, pero `handlers/chat.ts` solo tiene
+    // rama especial para `agent === 'claude'` (CC.1, alcance decidido a
+    // propósito: Codex/OpenCode no tienen un flag de solo-lectura confirmado
+    // — pendiente explícito, nunca silencioso, desde esa misma pasada). El
+    // chat entonces caía en silencio al camino de OpenRouter — el label de
+    // la respuesta SÍ decía la verdad ("via OpenRouter", no mentía sobre qué
+    // corrió), pero el SELECTOR prometía algo que el chat no puede cumplir
+    // todavía. Deshabilitados acá — siguen siendo agentes válidos para
+    // tareas en Settings, esto es solo el picker del chat.
+    const CHAT_UNSUPPORTED_AGENTS = new Set(['codex', 'opencode']);
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
-      ${modes.map(info => `<button type="button" class="chat-modelfx-item chat-modelfx-agent-opt${agent === info.id ? ' active' : ''}" data-modelfx-agent="${esc(info.id)}">
-        <span>${esc(t('chat.modelfx.agentLabel.' + info.id))}</span>${agent === info.id ? ICON.check : ''}
-      </button>`).join('')}
+      ${modes.map(info => {
+        const unsupported = CHAT_UNSUPPORTED_AGENTS.has(info.id);
+        return unsupported
+          ? `<div class="chat-modelfx-item chat-modelfx-agent-opt disabled" title="${esc(t('chat.modelfx.agentChatUnsupported'))}">
+            <span class="muted">${esc(t('chat.modelfx.agentLabel.' + info.id))} — ${esc(t('chat.modelfx.agentChatUnsupported'))}</span>
+          </div>`
+          : `<button type="button" class="chat-modelfx-item chat-modelfx-agent-opt${agent === info.id ? ' active' : ''}" data-modelfx-agent="${esc(info.id)}">
+            <span>${esc(t('chat.modelfx.agentLabel.' + info.id))}</span>${agent === info.id ? ICON.check : ''}
+          </button>`;
+      }).join('')}
       ${notDetectedNote}
     </div>`;
   }
