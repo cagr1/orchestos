@@ -420,6 +420,37 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   127.0.0.1:4242/app.js` y `/screens-core.js` confirman las funciones nuevas presentes en lo que el
   navegador de Carlos está cargando ahora mismo. El click-through real (elegir alias, mandar
   mensaje, volver al selector y ver el paréntesis) queda pendiente de que Carlos lo confirme.
+
+- [x] **CC.D2 — sexta pasada (2026-08-17), Carlos confirmó la quinta funciona pero pidió más:
+  "sin poder elegir".** Verificado en vivo por Carlos: eligió "Sonnet", la respuesta vino etiquetada
+  "sonnet 5" — el fix de la 4ta/5ta pasada funciona. Pero el pedido real es más profundo: quiere
+  poder ELEGIR esa versión concreta a propósito, no solo verla después de que ya resolvió sola.
+
+  **Diseño**: el binario acepta el nombre canónico completo directo, no solo el alias — ya
+  verificado en la investigación original de esta tarea (`claude --model claude-sonnet-5` funciona
+  igual que `claude --model sonnet`). Así que cualquier versión ya vista una vez (via
+  `getResolvedClaudeModel()`, las 4 keys de alias en localStorage) se ofrece como opción "fija"
+  aparte, en una segunda sección de la lista de modelo bajo Claude: "Siempre la última" (los 4
+  alias, como antes) + "Versión fija" (aparece solo cuando ya se conoce al menos una versión real,
+  ej. "claude-sonnet-5"), cada una con su propio id `anthropic/<canonical>`. `getKnownClaudePinnedModels()`
+  (app.js) junta y deduplica lo aprendido de los 4 alias. Reusa el mismo handler de clic
+  `data-modelfx-claude-alias` que ya existía (mismo dataset, sin wiring nuevo en screens-core.js) —
+  el value que setea `st.chatModel` ahora puede ser un alias o un id fijo, ambos pasan igual por
+  `orchestosModelToCliModel()` sin cambios de backend. `modelLabel`/`claudePinnedLabel` detectan
+  cuándo `val` es una versión fija (no matchea los 4 alias, empieza con `anthropic/`) y muestran el
+  nombre canónico directo. CSS: `.chat-modelfx-group-label`, mismo patrón visual que
+  `.model-combo-group-label` (mayúsculas chicas, separador). i18n nuevo:
+  `chat.modelfx.claudeAuto`/`.claudePinned` (en/es).
+
+  **Evidencia:** `node --check` limpio en `app.js`/`i18n.js`; `bunx tsc --noEmit` limpio; `bun run
+  test:coverage` → 1158 pass / 0 fail. Verificación end-to-end contra el binario real, sin mocks:
+  `runClaudeChat(cwd, sys, msg, 30000, 'anthropic/claude-sonnet-5')` → `result.model ===
+  'claude-sonnet-5'` (el id fijo se traduce y corre igual que el alias).
+  Gate en vivo: sin navegador/Playwright en esta sesión (mismo límite declarado) — confirmado por
+  `curl` que el servidor real que Carlos ya tenía corriendo sirve `app.js`/`i18n.js` con las
+  funciones y claves nuevas, sin
+  reiniciar. El click-through de la sección "Versión fija" apareciendo tras un uso previo queda
+  pendiente de confirmación de Carlos.
 - [ ] **CC.D1c — ⚡ `PUT /api/config` reescribe TODO el YAML, migra campos legacy sin que se pida.**
   Hallazgo real reproducido 2 veces en esta misma sesión (2026-08-17): `orchestos.config.yaml` de
   este repo se dejó deliberadamente con `executor_mode`/`executorEngine` (formato legacy) como

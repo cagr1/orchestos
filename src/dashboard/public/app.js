@@ -1967,6 +1967,20 @@ function rememberResolvedClaudeModel(isClaudeCli, aliasId, resultLabel) {
 function getResolvedClaudeModel(aliasId) {
   try { return localStorage.getItem(CLAUDE_RESOLVED_KEY_PREFIX + aliasId) || null; } catch { return null; }
 }
+// Hallazgo real de Carlos (2026-08-17, segunda vuelta): mostrar "resolvió a
+// X" no alcanza — quiere poder ELEGIR esa versión concreta, no solo el alias
+// que sigue moviéndose. El binario SÍ acepta el nombre canónico completo
+// directo (`--model claude-sonnet-5`, verificado en vivo contra el binario
+// real, igual que los alias) — así que cualquier versión ya vista una vez se
+// ofrece como opción "fija" aparte, con su propio id `anthropic/<canonical>`.
+function getKnownClaudePinnedModels() {
+  const seen = new Set();
+  for (const a of ['anthropic/opus', 'anthropic/sonnet', 'anthropic/haiku', 'anthropic/fable']) {
+    const resolved = getResolvedClaudeModel(a);
+    if (resolved) seen.add(resolved);
+  }
+  return Array.from(seen).sort();
+}
 
 function buildChatModelFx(st) {
   const val = st.chatModel || 'deepseek/deepseek-v4-flash';
@@ -2004,8 +2018,16 @@ function buildChatModelFx(st) {
   ];
   const claudeAliasMatch = CLAUDE_CLI_ALIASES.find(m => m.id === val);
   const claudeResolved = showsClaudeModelPicker && claudeAliasMatch ? getResolvedClaudeModel(val) : null;
+  // `val` bajo Claude puede ser un alias (los 4 de arriba, "sigue la última")
+  // o una versión FIJA que el usuario ya eligió a propósito (`anthropic/<canonical>`,
+  // ej. "anthropic/claude-sonnet-5") — ese id no matchea CLAUDE_CLI_ALIASES.
+  const claudePinnedLabel = showsClaudeModelPicker && !claudeAliasMatch && val.startsWith('anthropic/')
+    ? val.slice('anthropic/'.length)
+    : null;
   const modelLabel = showsClaudeModelPicker
-    ? (claudeAliasMatch ? claudeAliasMatch.label + (claudeResolved ? ` (${claudeResolved})` : '') : t('chat.modelfx.modelAuto'))
+    ? (claudeAliasMatch
+        ? claudeAliasMatch.label + (claudeResolved ? ` (${claudeResolved})` : '')
+        : (claudePinnedLabel || t('chat.modelfx.modelAuto')))
     : (isLoading ? t('common.loading') : shortModelLabel(val, allCloud));
   // CC.1b (2026-08-16) — hallazgo real de Carlos: el chat corriendo vía Claude
   // Code CLI (agent: claude, CC.D1) mostraba el selector de 3 niveles
@@ -2051,12 +2073,25 @@ function buildChatModelFx(st) {
     // por token, son un nivel de la suscripción).
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
+      <div class="chat-modelfx-group-label muted">${t('chat.modelfx.claudeAuto')}</div>
       ${CLAUDE_CLI_ALIASES.map(m => {
         const resolved = getResolvedClaudeModel(m.id);
         return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}">
         <span>${esc(m.label)}${resolved ? ` <span class="muted">(${esc(resolved)})</span>` : ''}</span>${val === m.id ? ICON.check : ''}
       </button>`;
       }).join('')}
+      ${(() => {
+        const pinned = getKnownClaudePinnedModels();
+        if (pinned.length === 0) return '';
+        return `<div class="chat-modelfx-sep"></div>
+        <div class="chat-modelfx-group-label muted">${t('chat.modelfx.claudePinned')}</div>
+        ${pinned.map(canonical => {
+          const pinnedId = 'anthropic/' + canonical;
+          return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === pinnedId ? ' active' : ''}" data-modelfx-claude-alias="${esc(pinnedId)}">
+          <span>${esc(canonical)}</span>${val === pinnedId ? ICON.check : ''}
+        </button>`;
+        }).join('')}`;
+      })()}
     </div>`;
   } else if (view === 'model') {
     panel = `<div class="chat-modelfx-panel chat-modelfx-panel-wide" data-modelfx-panel>

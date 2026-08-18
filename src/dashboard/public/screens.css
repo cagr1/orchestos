@@ -924,6 +924,9 @@
 .chat-modelfx-item .v { flex: 1; text-align: right; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-modelfx-item svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-faint); }
 .chat-modelfx-sep { height: 1px; margin: 4px 2px; background: var(--border-soft); }
+/* CC.D2 (2026-08-17) — mismo patrón visual que .model-combo-group-label,
+   separa "alias auto" de "versión fija" en la lista de modelo de Claude. */
+.chat-modelfx-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px 2px; }
 .chat-modelfx-reset span { flex: 1; }
 .chat-modelfx-back {
   display: flex; align-items: center; gap: 6px; width: 100%; box-sizing: border-box;
