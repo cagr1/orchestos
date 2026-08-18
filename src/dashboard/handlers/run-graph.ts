@@ -8,8 +8,8 @@
  * The runner executes in-process (not via Bun.spawn like /api/tasks/:id/run) because
  * its result (GraphRunResult: cost, autonomy metric, per-task outcome) only exists as
  * an in-memory object returned by runGraph() — a subprocess would force us to either
- * parse stdout or serialize the result to a file. In-process + a module-level state
- * singleton is the simplest option that still satisfies "lanza el runner en background":
+ * parse stdout or serialize the result to a file. In-process + a project-keyed state
+ * map keeps concurrent projects isolated while satisfying "lanza el runner en background":
  * the POST handler doesn't await runGraph(), so the HTTP response returns immediately
  * while the promise keeps running against the shared Bun.serve event loop.
  *
@@ -17,7 +17,7 @@
  * updateTaskStatus() synchronously per task as it executes, so polling tasks.yaml
  * already gives accurate per-task state without needing a separate progress channel.
  */
-import { resolve, join } from 'path'
+import { join } from 'path'
 import { existsSync } from 'fs'
 import { runGraph as realRunGraph } from '../../run/graph-runner.ts'
 import type { GraphRunResult, GraphRunOpts } from '../../run/graph-runner.ts'
@@ -35,7 +35,11 @@ type RunState =
   | { phase: 'done'; startedAt: number; finishedAt: number; result: GraphRunResult }
   | { phase: 'error'; startedAt: number; finishedAt: number; error: string }
 
-let state: RunState = { phase: 'idle' }
+const states = new Map<string, RunState>()
+
+function stateFor(root: string): RunState {
+  return states.get(root) ?? { phase: 'idle' }
+}
 
 // Test-only injection seam (mirrors GraphRunOpts.runTaskFn/diagnoseFn in graph-runner.ts):
 // Bun's mock.module() on a shared module like run/graph-runner.ts would leak into every
@@ -56,11 +60,11 @@ let deps = {
   loadTaskRows: realLoadTaskRows,
 }
 
-async function handleApiRunGraph(req: Request): Promise<Response> {
+async function handleApiRunGraph(req: Request, root: string): Promise<Response> {
+  const state = stateFor(root)
   if (state.phase === 'running') {
     return errorResponse('A graph run is already in progress', 409)
   }
-  const root = resolve('.')
   if (!deps.tasksExist(root)) {
     return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
   }
@@ -76,7 +80,7 @@ async function handleApiRunGraph(req: Request): Promise<Response> {
   const orcheConfig = deps.loadOrcheConfig(root)
 
   const startedAt = Date.now()
-  state = { phase: 'running', startedAt }
+  states.set(root, { phase: 'running', startedAt })
 
   runGraphImpl({
     projectRoot: root,
@@ -87,16 +91,17 @@ async function handleApiRunGraph(req: Request): Promise<Response> {
     maxCost,
     maxMinutes,
   }).then(result => {
-    state = { phase: 'done', startedAt, finishedAt: Date.now(), result }
+    states.set(root, { phase: 'done', startedAt, finishedAt: Date.now(), result })
   }).catch(e => {
-    state = { phase: 'error', startedAt, finishedAt: Date.now(), error: e instanceof Error ? e.message : String(e) }
+    states.set(root, { phase: 'error', startedAt, finishedAt: Date.now(), error: e instanceof Error ? e.message : String(e) })
   })
 
   return jsonResponse({ ok: true })
 }
 
-function handleApiRunGraphStatus(): Response {
-  const tasks = deps.loadTaskRows(resolve('.'))
+function handleApiRunGraphStatus(root: string): Response {
+  const state = stateFor(root)
+  const tasks = deps.loadTaskRows(root)
   const body: GraphRunStatusResponse =
     state.phase === 'idle'
       ? { phase: 'idle', tasks }
@@ -108,9 +113,9 @@ function handleApiRunGraphStatus(): Response {
   return jsonResponse(body)
 }
 
-/** Test-only: reset the module-level singleton between test files. */
+/** Test-only: reset all project states between test files. */
 function resetRunGraphState(): void {
-  state = { phase: 'idle' }
+  states.clear()
 }
 
 /** Test-only: swap runGraph for a stub without touching the shared module graph. */

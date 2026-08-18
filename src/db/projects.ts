@@ -34,6 +34,12 @@ export function getProject(path: string): ProjectRow | null {
   ).get(path) ?? null
 }
 
+export function getProjectById(id: string): ProjectRow | null {
+  return db.query<ProjectRow, string>(
+    'SELECT * FROM projects WHERE id = ?'
+  ).get(id) ?? null
+}
+
 export function listProjects(): ProjectRow[] {
   return db.query<ProjectRow, []>('SELECT * FROM projects ORDER BY last_updated DESC').all()
 }

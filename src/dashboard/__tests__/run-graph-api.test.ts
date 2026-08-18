@@ -80,6 +80,7 @@ let lastCallOpts: GraphRunOpts | undefined
 
 beforeEach(() => {
   resetRunGraphState()
+  __resetDepsForTests()
   writeTasksYaml([TASK_T1])
   runGraphImpl = async () => makeResult()
   lastCallOpts = undefined
@@ -123,6 +124,33 @@ describe('POST /api/run/graph', () => {
     expect(res2.status).toBe(409)
 
     d.resolve(makeResult())
+  })
+
+  it('mantiene ejecuciones simultáneas aisladas por proyecto', async () => {
+    const alpha = deferred<GraphRunResult>()
+    const beta = deferred<GraphRunResult>()
+    runGraphImpl = opts => opts.projectRoot.endsWith('alpha') ? alpha.promise : beta.promise
+    __setDepsForTests({
+      tasksExist: () => true,
+      loadTaskRows: () => [],
+      loadContext: () => '',
+      getProject: root => ({ id: root.endsWith('alpha') ? 'alpha' : 'beta' }) as any,
+      loadOrcheConfig: () => undefined as any,
+    })
+
+    const alphaRoot = join(tmpDir, 'alpha')
+    const betaRoot = join(tmpDir, 'beta')
+    const alphaResponse = await (await import('../handlers/run-graph.ts')).handleApiRunGraph(req('POST', '/api/run/graph'), alphaRoot)
+    const betaResponse = await (await import('../handlers/run-graph.ts')).handleApiRunGraph(req('POST', '/api/run/graph'), betaRoot)
+    const alphaStatus = await (await import('../handlers/run-graph.ts')).handleApiRunGraphStatus(alphaRoot).json() as { phase: string }
+    const betaStatus = await (await import('../handlers/run-graph.ts')).handleApiRunGraphStatus(betaRoot).json() as { phase: string }
+
+    expect(alphaResponse.status).toBe(200)
+    expect(betaResponse.status).toBe(200)
+    expect(alphaStatus.phase).toBe('running')
+    expect(betaStatus.phase).toBe('running')
+    alpha.resolve(makeResult())
+    beta.resolve(makeResult())
   })
 
   it('passes maxCost/maxMinutes from the request body through to runGraph', async () => {

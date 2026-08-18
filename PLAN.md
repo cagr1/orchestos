@@ -837,9 +837,30 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
   inyectable y cero `tasks.yaml` en modo Chat; `bun run test:coverage` final (1166 pass, 0 fail,
   118 archivos) ✅. Sin Playwright por contrato backend-only.
 
-- [ ] **CC.3 — 🧠 Multi-proyecto real (BACKEND PURO).** Matar los 10 `resolve('.')` del dashboard;
+- [x] **CC.3 — 🧠 Multi-proyecto real (BACKEND PURO).** Matar los 10 `resolve('.')` del dashboard;
   el proyecto activo es una selección del usuario, no el cwd donde se lanzó el server.
   Absorbe `#35` y la deuda CC.0-D2. La UI de selección va en `UI.6` (Mes 30).
+  **Implementado (2026-08-18):** `GET /api/projects` expone el registro de proyectos y
+  `src/dashboard/project-context.ts` resuelve una selección request-scoped mediante
+  `X-Orchestos-Project-Id` (o `?project=`), acepta únicamente ids registrados y valida que el
+  directorio todavía exista. Los handlers de tasks/config/project/specs/setup/explorer/context,
+  chat y graph reciben el root explícito; los estados de graph dejaron de ser un singleton y se
+  separan por root. La sesión de chat conserva autoridad sobre su `project_id` aunque el header
+  del navegador esté obsoleto, y runs/memoria inyectados al chat se filtran por proyecto. Queda
+  **un solo** `resolve('.')`, centralizado y documentado como compatibilidad temporal para clientes
+  legacy hasta que UI.6 envíe siempre el id; ya no existe en ningún handler.
+  **Evidencia:** preflight CC.3 ✅; `bunx tsc --noEmit` ✅; prueba aislada con dos roots/ids reales
+  confirma separación de tasks, `CONTEXT.md` y explorer, selector por header/query, 404 para id
+  desconocido y 410 para path desaparecido; prueba de graph confirma dos ejecuciones simultáneas
+  sin 409 cruzado; prueba de sesiones confirma que el proyecto persistido prevalece sobre un
+  header inválido. `bun test src/dashboard/__tests__` (114 pass, 0 fail) ✅;
+  `bun run test:coverage` (1168 pass, 0 fail, 119 archivos) ✅. Sin Playwright por contrato
+  backend-only: UI.6/UI.7 son quienes materializan y verifican el selector visual.
+  **Gate en vivo:** navegador real con Chrome DevTools contra `Bun.serve` en un
+  `ORCHESTOS_HOME` temporal: `/api/projects` listó `alpha` y `beta`; requests con header/query
+  devolvieron exclusivamente `alpha-task`/`LIVE-ALPHA` y `beta-task`/`LIVE-BETA`; un id no
+  registrado devolvió 404. La verificación usó endpoints reales, no mocks, y el fixture temporal
+  fue enviado a la papelera al terminar.
 
 - [ ] **CC.4 — ABSORBIDO por el Mes 30 (2026-08-18).** "Colapsar la navegación" era un rediseño
   de navegación en vanilla; ahora la navegación entera se reconstruye en React (`UI.3` + `UI.7`).

@@ -1,10 +1,10 @@
-import { resolve, join, relative } from 'path'
+import { join, relative } from 'path'
 import { tmpdir } from 'os'
 import { readFileSync, existsSync, mkdtempSync, rmSync } from 'fs'
 import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { loadContext } from '../../context/load.ts'
 import { db } from '../../db/sqlite.ts'
-import { listRuns, insertRun } from '../../db/runs.ts'
+import { listRuns, listRunsByProjectId, insertRun } from '../../db/runs.ts'
 import { calcCost } from '../../router/pricing.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { listSpecs } from '../../spec/store.ts'
@@ -29,6 +29,7 @@ import { resolveCascadeTier, resolveAgentSelection } from '../../router/engine-c
 import { loadOrcheConfig } from '../../config/load.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
 import { appendChatExchange, getChatSession, listChatMessages, sessionAllowsTaskExecution } from '../../db/chat-sessions.ts'
+import { DashboardProjectError, dashboardProjectFromId, resolveDashboardProject, type DashboardProjectContext } from '../project-context.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = typeof VALID_EFFORTS[number]
@@ -213,19 +214,29 @@ async function readResponseTextLimited(resp: Response, maxBytes: number): Promis
   }
 }
 
-export async function executeSearchMemory(_toolName: string, input: unknown): Promise<string> {
+export async function executeSearchMemory(_toolName: string, input: unknown, projectId?: string | null): Promise<string> {
   const query = (input as { query?: string })?.query?.trim().slice(0, 256)
   if (!query) return '[Error: no search query provided]'
 
   try {
-    const rows = db.query<Pick<MemoryEntry, 'topic_key' | 'scope' | 'content'>, [string]>(
-      `SELECT e.topic_key, e.scope, e.content
-       FROM memory_entries e
-       JOIN memory_fts ON memory_fts.rowid = e.rowid
-       WHERE memory_fts MATCH ?
-       ORDER BY bm25(memory_fts)
-       LIMIT 20`
-    ).all(`"${query.replace(/"/g, '""')}"*`)
+    const ftsQuery = `"${query.replace(/"/g, '""')}"*`
+    const rows = projectId
+      ? db.query<Pick<MemoryEntry, 'topic_key' | 'scope' | 'content'>, [string, string]>(
+          `SELECT e.topic_key, e.scope, e.content
+           FROM memory_entries e
+           JOIN memory_fts ON memory_fts.rowid = e.rowid
+           WHERE e.project_id = ? AND memory_fts MATCH ?
+           ORDER BY bm25(memory_fts)
+           LIMIT 20`
+        ).all(projectId, ftsQuery)
+      : db.query<Pick<MemoryEntry, 'topic_key' | 'scope' | 'content'>, [string]>(
+          `SELECT e.topic_key, e.scope, e.content
+           FROM memory_entries e
+           JOIN memory_fts ON memory_fts.rowid = e.rowid
+           WHERE memory_fts MATCH ?
+           ORDER BY bm25(memory_fts)
+           LIMIT 20`
+        ).all(ftsQuery)
 
     if (rows.length === 0) return '[No memory entries found for "' + query + '"]'
 
@@ -240,24 +251,24 @@ export async function executeSearchMemory(_toolName: string, input: unknown): Pr
   }
 }
 
-function readProjectTextFile(name: string): string {
-  const path = join(resolve('.'), name)
+function readProjectTextFile(name: string, root: string): string {
+  const path = join(root, name)
   if (!existsSync(path)) return `[${name} not found in this project]`
   // slice(256K) = guard de memoria; capToolOutput() = guard de contexto (A.3).
   // Aplica a los 4 callers (read_plan/tasks/ideas/file) — un solo punto.
   return capToolOutput(readFileSync(path, 'utf-8').slice(0, 256 * 1024))
 }
 
-export async function executeReadPlan(_toolName: string, _input: unknown): Promise<string> {
-  return readProjectTextFile('PLAN.md')
+export async function executeReadPlan(_toolName: string, _input: unknown, root = process.cwd()): Promise<string> {
+  return readProjectTextFile('PLAN.md', root)
 }
 
-export async function executeReadTasks(_toolName: string, _input: unknown): Promise<string> {
-  return readProjectTextFile('tasks.yaml')
+export async function executeReadTasks(_toolName: string, _input: unknown, root = process.cwd()): Promise<string> {
+  return readProjectTextFile('tasks.yaml', root)
 }
 
-export async function executeReadIdeas(_toolName: string, _input: unknown): Promise<string> {
-  return readProjectTextFile('IDEAS.md')
+export async function executeReadIdeas(_toolName: string, _input: unknown, root = process.cwd()): Promise<string> {
+  return readProjectTextFile('IDEAS.md', root)
 }
 
 // Verificación en vivo (2026-07-08): el chat no tenía forma de leer un archivo arbitrario
@@ -269,10 +280,10 @@ export async function executeReadIdeas(_toolName: string, _input: unknown): Prom
 // se facturaba en OpenRouter. `runs` solo reflejaba `task run`, no conversaciones — el
 // motivo real por el que el gasto en OpenRouter no coincidía con lo que mostraba OrchestOS.
 // Best-effort: un fallo al loguear no debe romper la respuesta de chat en sí.
-function logChatRun(message: string, model: string, inputTokens: number, outputTokens: number): void {
+function logChatRun(message: string, model: string, inputTokens: number, outputTokens: number, projectId: string | null): void {
   try {
     insertRun({
-      project_id: null,
+      project_id: projectId,
       prompt: message.slice(0, 2000),
       task_class: 'chat',
       model,
@@ -297,14 +308,13 @@ function logChatRun(message: string, model: string, inputTokens: number, outputT
   } catch { /* best-effort — nunca debe romper la respuesta de chat */ }
 }
 
-export async function executeReadFile(_toolName: string, input: unknown): Promise<string> {
+export async function executeReadFile(_toolName: string, input: unknown, root = process.cwd()): Promise<string> {
   const rawPath = typeof input === 'object' && input !== null ? (input as { path?: unknown }).path : undefined
   if (typeof rawPath !== 'string' || !rawPath.trim()) return '[read_file: "path" is required]'
-  const root = resolve('.')
   let target: string
   try { target = resolveProjectPath(root, rawPath, 'read') }
   catch (e) { return `[read_file: ${e instanceof PathPolicyError ? e.message : 'path refused'}]` }
-  return untrustedContent(`project-file:${relative(root, target)}`, readProjectTextFile(relative(root, target)))
+  return untrustedContent(`project-file:${relative(root, target)}`, readProjectTextFile(relative(root, target), root))
 }
 
 // B.1 (Mes 18) — gate de evidencia: un evento por mensaje enviado (para saber si
@@ -408,7 +418,7 @@ export function pickAutoSkill(skillOptions: { id: string }[]): string | undefine
   return skillOptions.length === 1 ? skillOptions[0]?.id : undefined
 }
 
-async function handleApiChat(req: Request): Promise<Response> {
+async function handleApiChat(req: Request, fallbackProject?: DashboardProjectContext): Promise<Response> {
   let parsed: unknown
   try { parsed = await req.json() } catch { return errorResponse('Invalid JSON', 400) }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
@@ -425,12 +435,21 @@ async function handleApiChat(req: Request): Promise<Response> {
   // antes del classifier costoso) para validar contra el set correcto según el
   // agente activo — nunca los 3 genéricos cuando el CLI real acepta más.
   // CC.D1 (2026-08-17) — `executor_mode` renombrado a `agent`.
-  const root = resolve('.')
   if (body.sessionId !== undefined && (typeof body.sessionId !== 'string' || !body.sessionId.trim())) {
     return errorResponse('sessionId must be a non-empty string', 400)
   }
   const session = body.sessionId ? getChatSession(body.sessionId.trim()) : null
   if (body.sessionId && !session) return errorResponse('Chat session not found', 404)
+  let project: DashboardProjectContext
+  try {
+    project = session?.project_id
+      ? dashboardProjectFromId(session.project_id)
+      : fallbackProject ?? resolveDashboardProject(req)
+  } catch (error) {
+    if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
+    return errorResponse(error instanceof Error ? error.message : String(error), 500)
+  }
+  const root = project.root
 
   const chatAgent = session?.agent ?? loadOrcheConfig(root).agent
   if (session && (chatAgent === 'codex' || chatAgent === 'opencode')) {
@@ -498,8 +517,7 @@ async function handleApiChat(req: Request): Promise<Response> {
   let autoTask: { id: string } | { error: string } | null = null
   if (taskSuggestion?.isTask && sessionAllowsTaskExecution(session?.mode ?? null)) {
     try {
-      const root = resolve('.')
-      const draft = await buildNaturalDraft(message)
+      const draft = await buildNaturalDraft(message, root)
       const skill = pickAutoSkill(draft.skillOptions)
       const preferredAgent = session?.agent ?? loadOrcheConfig(root).agent
       // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
@@ -553,7 +571,7 @@ async function handleApiChat(req: Request): Promise<Response> {
   } catch {}
 
   if (hasProjectContext) try {
-    const recentRuns = listRuns(10)
+    const recentRuns = project.id ? listRunsByProjectId(project.id, 10) : listRuns(10)
     if (recentRuns.length > 0) {
       const totalCost = recentRuns.reduce((s, r) => s + Number(r.usd_cost), 0)
       lines.push(`\nRecent runs (last ${recentRuns.length}, total cost $${totalCost.toFixed(4)}):`)
@@ -565,9 +583,13 @@ async function handleApiChat(req: Request): Promise<Response> {
   } catch {}
 
   if (hasProjectContext) try {
-    const memRows = db.query<MemoryEntry, []>(
-      'SELECT topic_key, scope, content FROM memory_entries ORDER BY updated_at DESC LIMIT 20'
-    ).all()
+    const memRows = project.id
+      ? db.query<MemoryEntry, string>(
+          'SELECT topic_key, scope, content FROM memory_entries WHERE project_id = ? ORDER BY updated_at DESC LIMIT 20'
+        ).all(project.id)
+      : db.query<MemoryEntry, []>(
+          'SELECT topic_key, scope, content FROM memory_entries ORDER BY updated_at DESC LIMIT 20'
+        ).all()
     if (memRows.length > 0) {
       lines.push(`\nMemory (${memRows.length} entries):`)
       for (const m of memRows) {
@@ -741,7 +763,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       try {
         const result = await runClaudeChat(isolatedCwd ?? root, systemPrompt, combinedText, CLAUDE_CHAT_TIMEOUT_MS, model, cliEffort)
         const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
-        logChatRun(message, resultLabel, result.inputTokens, result.outputTokens)
+        logChatRun(message, resultLabel, result.inputTokens, result.outputTokens, session?.project_id ?? project.id)
         const responseText = result.text + autoTaskNote
         persistResponse(responseText, resultLabel)
         return jsonResponse({ text: responseText, model: resultLabel, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
@@ -816,16 +838,16 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         tools: [FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, READ_PLAN_TOOL, READ_TASKS_TOOL, READ_IDEAS_TOOL, READ_FILE_TOOL],
         executeTool: createToolRouter({
           fetch_url: executeFetchUrl,
-          search_memory: executeSearchMemory,
-          read_plan: executeReadPlan,
-          read_tasks: executeReadTasks,
-          read_ideas: executeReadIdeas,
-          read_file: executeReadFile,
+          search_memory: (name, input) => executeSearchMemory(name, input, project.id),
+          read_plan: (name, input) => executeReadPlan(name, input, root),
+          read_tasks: (name, input) => executeReadTasks(name, input, root),
+          read_ideas: (name, input) => executeReadIdeas(name, input, root),
+          read_file: (name, input) => executeReadFile(name, input, root),
         }),
         effort,
         maxTokens: chatMaxTokens,
       })
-      logChatRun(message, model, result.inputTokens, result.outputTokens)
+      logChatRun(message, model, result.inputTokens, result.outputTokens, session?.project_id ?? project.id)
       const responseText = result.text + autoTaskNote
       persistResponse(responseText, model)
       return jsonResponse({ text: responseText, model, toolCalls: result.toolCallsExecuted, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
@@ -838,7 +860,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       messages,
       maxTokens: chatMaxTokens,
     })
-    logChatRun(message, resp.model, resp.inputTokens, resp.outputTokens)
+    logChatRun(message, resp.model, resp.inputTokens, resp.outputTokens, session?.project_id ?? project.id)
     const responseText = resp.text + autoTaskNote
     persistResponse(responseText, resp.model)
     return jsonResponse({ text: responseText, model: resp.model, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })

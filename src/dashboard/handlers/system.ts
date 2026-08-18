@@ -1,13 +1,12 @@
-import { resolve } from 'path'
 import { resetTestData } from '../../db/reset.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
 
-async function handleApiSystemReset(req: Request): Promise<Response> {
+async function handleApiSystemReset(req: Request, root: string): Promise<Response> {
   let body: { confirm?: boolean } = {}
   try { body = await req.json() as { confirm?: boolean } } catch {}
   if (body.confirm !== true) return errorResponse('confirm:true required', 400)
-  const summary = resetTestData(resolve('.'))
+  const summary = resetTestData(root)
   return jsonResponse({ ok: true, ...summary })
 }
 

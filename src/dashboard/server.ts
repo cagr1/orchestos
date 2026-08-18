@@ -16,6 +16,20 @@ import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './h
 import { handleApiContextSuggest } from './handlers/context-suggest.ts'
 import { handleApiExplorerTree, handleApiExplorerFile } from './handlers/explorer.ts'
 import { DEFAULT_PORT } from './types.ts'
+import { DashboardProjectError, resolveDashboardProject, type DashboardProjectContext } from './project-context.ts'
+import { handleApiProjects } from './handlers/projects.ts'
+
+async function withDashboardProject(
+  req: Request,
+  handler: (project: DashboardProjectContext) => Response | Promise<Response>,
+): Promise<Response> {
+  try {
+    return await handler(resolveDashboardProject(req))
+  } catch (error) {
+    if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
+    return errorResponse(error instanceof Error ? error.message : String(error), 500)
+  }
+}
 
 export async function route(req: Request, port: number): Promise<Response> {
   const url = new URL(req.url)
@@ -41,45 +55,45 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiRunsBulkDelete(req)
   }
   if (method === 'GET' && url.pathname === '/api/tasks') {
-    return handleApiTasks()
+    return withDashboardProject(req, project => handleApiTasks(project.root))
   }
   // v0.12 / Bloque D.1.a — ruta literal DEBE ir antes de los regex `/api/tasks/[^/]+/...`
   // para que `init` no sea interpretado como un task id.
   if (method === 'POST' && url.pathname === '/api/tasks/init') {
-    return handleApiTasksInit()
+    return withDashboardProject(req, project => handleApiTasksInit(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/tasks') {
-    return handleApiTasksCreate(req)
+    return withDashboardProject(req, project => handleApiTasksCreate(req, project.root))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/run$/)) {
-    return handleApiTasksRun(req, url)
+    return withDashboardProject(req, project => handleApiTasksRun(req, url, project.root))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
-    return handleApiTasksDelete(url)
+    return withDashboardProject(req, project => handleApiTasksDelete(url, project.root))
   }
   if (method === 'POST' && url.pathname === '/api/tasks/bulk-delete') {
-    return handleApiTasksBulkDelete(req)
+    return withDashboardProject(req, project => handleApiTasksBulkDelete(req, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/diagnose$/)) {
-    return handleApiTasksDiagnose(url)
+    return withDashboardProject(req, project => handleApiTasksDiagnose(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/explain$/)) {
-    return handleApiTasksExplain(url)
+    return withDashboardProject(req, project => handleApiTasksExplain(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/split-plan$/)) {
-    return handleApiTasksSplitPlan(url)
+    return withDashboardProject(req, project => handleApiTasksSplitPlan(url, project.root))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/approve-split$/)) {
-    return handleApiTasksApproveSplit(url)
+    return withDashboardProject(req, project => handleApiTasksApproveSplit(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/steps$/)) {
     return handleApiTasksSteps(url)
   }
   if (method === 'POST' && url.pathname === '/api/run/graph') {
-    return handleApiRunGraph(req)
+    return withDashboardProject(req, project => handleApiRunGraph(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/run/graph/status') {
-    return handleApiRunGraphStatus()
+    return withDashboardProject(req, project => handleApiRunGraphStatus(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/instincts') {
     return handleApiInstincts()
@@ -146,31 +160,34 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiSkillsProImport(url)
   }
 
+  if (method === 'GET' && url.pathname === '/api/projects') {
+    return handleApiProjects()
+  }
   if (method === 'GET' && url.pathname === '/api/project/constitution') {
-    return handleApiProjectConstitutionGet()
+    return withDashboardProject(req, project => handleApiProjectConstitutionGet(project.root))
   }
   if (method === 'PUT' && url.pathname === '/api/project/constitution') {
-    return handleApiProjectConstitutionPut(req)
+    return withDashboardProject(req, project => handleApiProjectConstitutionPut(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/project/context') {
-    return handleApiProjectContextGet()
+    return withDashboardProject(req, project => handleApiProjectContextGet(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/context/regenerate') {
-    return handleApiProjectContextRegenerate()
+    return withDashboardProject(req, project => handleApiProjectContextRegenerate(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/detect') {
-    return await handleApiProjectDetect()
+    return withDashboardProject(req, project => handleApiProjectDetect(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/index') {
-    return await handleApiProjectIndex()
+    return withDashboardProject(req, project => handleApiProjectIndex(project.root))
   }
   // v0.12 D.1.c — ruta literal DEBE ir antes del catch-all GET→serveStatic
   // de abajo (sirve un PDF binario, no HTML estático).
   if (method === 'GET' && url.pathname === '/api/project/summary') {
-    return await handleApiProjectSummary()
+    return withDashboardProject(req, project => handleApiProjectSummary(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/natural') {
-    return handleApiNatural(req)
+    return withDashboardProject(req, project => handleApiNatural(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/chat/models') {
     return handleApiChatModels()
@@ -203,35 +220,35 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiChatTaskBarEvents()
   }
   if (method === 'GET' && url.pathname === '/api/specs') {
-    return handleApiSpecs()
+    return withDashboardProject(req, project => handleApiSpecs(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/specs/draft') {
-    return handleApiSpecsDraft(req)
+    return withDashboardProject(req, project => handleApiSpecsDraft(req, project.root))
   }
   // v0.12 Bloque A — DEBE ir antes del /^\/api\/specs\/[^/]+$/ genérico de abajo
   // (handleApiSpecsCreate): sin id con slash, ese regex también matchea
   // "/api/specs/bulk-delete" y se comería esta ruta.
   if (method === 'POST' && url.pathname === '/api/specs/bulk-delete') {
-    return handleApiSpecsBulkDelete(req)
+    return withDashboardProject(req, project => handleApiSpecsBulkDelete(req, project.root))
   }
   if (method === 'POST' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
-    return handleApiSpecsCreate(req)
+    return withDashboardProject(req, project => handleApiSpecsCreate(req, project.root))
   }
   // AA.4 (IDEAS #6) — ruta propia junto al resto de approve/lint/archive.
   if (method === 'POST' && url.pathname.endsWith('/approve-design')) {
-    return handleApiSpecsApproveDesign(req)
+    return withDashboardProject(req, project => handleApiSpecsApproveDesign(req, project.root))
   }
   if (method === 'POST' && url.pathname.endsWith('/approve')) {
-    return handleApiSpecsApprove(req)
+    return withDashboardProject(req, project => handleApiSpecsApprove(req, project.root))
   }
   if (method === 'GET' && url.pathname.endsWith('/lint')) {
-    return handleApiSpecsLint(req)
+    return withDashboardProject(req, project => handleApiSpecsLint(req, project.root))
   }
   if (method === 'POST' && url.pathname.endsWith('/archive')) {
-    return handleApiSpecsArchive(req)
+    return withDashboardProject(req, project => handleApiSpecsArchive(req, project.root))
   }
   if (method === 'DELETE' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
-    return handleApiSpecsDelete(req)
+    return withDashboardProject(req, project => handleApiSpecsDelete(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/memory/conflicts') {
     return handleApiMemoryConflicts(url)
@@ -249,13 +266,13 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiMemoryBulkDelete(req)
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
-    return await handleApiSettingsGet()
+    return withDashboardProject(req, project => handleApiSettingsGet(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/setup') {
-    return handleApiSetup()
+    return withDashboardProject(req, project => handleApiSetup(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/health') {
-    return handleApiHealth()
+    return withDashboardProject(req, project => handleApiHealth(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/providers/local') {
     return handleApiProvidersLocal()
@@ -267,31 +284,31 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiSettingsPost(req)
   }
   if (method === 'POST' && url.pathname === '/api/system/reset') {
-    return handleApiSystemReset(req)
+    return withDashboardProject(req, project => handleApiSystemReset(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/system/engines/external/availability') {
     return handleApiSystemEnginesExternalAvailability()
   }
   if (method === 'GET' && url.pathname === '/api/system/executor-modes') {
-    return handleApiSystemExecutorModes()
+    return withDashboardProject(req, project => handleApiSystemExecutorModes(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/config') {
-    return await handleApiConfigGet()
+    return withDashboardProject(req, project => handleApiConfigGet(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/config/init') {
-    return await handleApiConfigInit()
+    return withDashboardProject(req, project => handleApiConfigInit(project.root))
   }
   if (method === 'PUT' && url.pathname === '/api/config') {
-    return await handleApiConfigSet(req)
+    return withDashboardProject(req, project => handleApiConfigSet(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/context/suggest') {
-    return await handleApiContextSuggest(url)
+    return withDashboardProject(req, project => handleApiContextSuggest(url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/explorer/tree') {
-    return handleApiExplorerTree(url)
+    return withDashboardProject(req, project => handleApiExplorerTree(url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/explorer/file') {
-    return handleApiExplorerFile(url)
+    return withDashboardProject(req, project => handleApiExplorerFile(url, project.root))
   }
 
   if (method === 'GET') {

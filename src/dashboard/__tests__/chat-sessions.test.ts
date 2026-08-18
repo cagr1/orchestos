@@ -29,14 +29,18 @@ describe('CC.2 — chat sessions backend', () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
+      const { mkdirSync } = await import('fs')
+      const { join } = await import('path')
       const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
       const sessions = await import('./src/db/chat-sessions.ts')
       const { route } = await import('./src/dashboard/server.ts')
       runMigrations()
-      db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['p1', '/tmp/p1', '{}', '', new Date().toISOString()])
+      const projectPath = join(process.env.ORCHESTOS_HOME, 'p1')
+      mkdirSync(projectPath, { recursive: true })
+      db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['p1', projectPath, '{}', '', new Date().toISOString()])
 
       const createdResponse = await handlers.handleApiChatSessionsCreate(new Request('http://localhost/api/chat/sessions', {
-        method: 'POST', body: JSON.stringify({ projectId: 'p1', agent: 'claude', mode: 'chat', title: 'Session one' })
+        method: 'POST', headers: { 'X-Orchestos-Project-Id': 'stale-project' }, body: JSON.stringify({ projectId: 'p1', agent: 'claude', mode: 'chat', title: 'Session one' })
       }))
       const created = await createdResponse.json()
       const routedListResponse = await route(new Request('http://localhost:50852/api/chat/sessions'), 50852)
@@ -55,6 +59,10 @@ describe('CC.2 — chat sessions backend', () => {
       const invalidProject = await handlers.handleApiChatSessionsCreate(new Request('http://localhost/api/chat/sessions', {
         method: 'POST', body: JSON.stringify({ projectId: 'missing', agent: 'api' })
       }))
+      const sessionBound = sessions.createChatSession({ projectId: 'p1', agent: 'codex', mode: 'chat', title: 'Bound' })
+      const sessionBoundResponse = await (await import('./src/dashboard/handlers/chat.ts')).handleApiChat(new Request('http://localhost/api/chat', {
+        method: 'POST', headers: { 'X-Orchestos-Project-Id': 'stale-project' }, body: JSON.stringify({ sessionId: sessionBound.id, message: 'hola' })
+      }))
       const deleted = handlers.handleApiChatSessionDelete(new URL('http://localhost/api/chat/sessions/' + created.id))
       const remainingMessages = db.query('SELECT COUNT(*) AS count FROM chat_messages WHERE session_id = ?').get(created.id).count
 
@@ -69,6 +77,7 @@ describe('CC.2 — chat sessions backend', () => {
         messagesStatus: messagesResponse.status,
         messages,
         invalidProjectStatus: invalidProject.status,
+        sessionBoundStatus: sessionBoundResponse.status,
         deleteStatus: deleted.status,
         remainingMessages,
         chatAllowsExecution: sessions.sessionAllowsTaskExecution('chat'),
@@ -89,7 +98,8 @@ describe('CC.2 — chat sessions backend', () => {
       expect.objectContaining({ role: 'user', content: 'hola', ocrUsed: ['image.png'] }),
       expect.objectContaining({ role: 'assistant', content: 'respuesta', model: 'test-model', ocrUsed: ['image.png'] }),
     ])
-    expect(result.invalidProjectStatus).toBe(400)
+    expect(result.invalidProjectStatus).toBe(404)
+    expect(result.sessionBoundStatus).toBe(422)
     expect(result.deleteStatus).toBe(200)
     expect(result.remainingMessages).toBe(0)
     expect(result.chatAllowsExecution).toBe(false)

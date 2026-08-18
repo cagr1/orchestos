@@ -111,6 +111,18 @@ export function listRuns(limit = 20): RunRecord[] {
   ).all(safeLimit)
 }
 
+export function listRunsByProjectId(projectId: string, limit = 20): RunRecord[] {
+  if (limit === 0) {
+    return db.query<RunRecord, string>(
+      'SELECT * FROM runs WHERE project_id = ? ORDER BY created_at DESC'
+    ).all(projectId)
+  }
+  const safeLimit = normalizeRunLimit(limit)
+  return db.query<RunRecord, [string, number]>(
+    'SELECT * FROM runs WHERE project_id = ? ORDER BY created_at DESC LIMIT ?'
+  ).all(projectId, safeLimit)
+}
+
 export function getRun(id: string): RunRecord | null {
   return db.query<RunRecord, string>(
     'SELECT * FROM runs WHERE id = ?'

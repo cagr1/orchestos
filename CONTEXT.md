@@ -28,6 +28,21 @@ y no debe ser la fuente de nada permanente.
 - No existe UI de sesiones en vanilla. La superficie visual está reservada para Mes 30 (`UI.6`/
   `UI.7`) por decisión explícita de Carlos.
 
+### Estado estable — contexto multi-proyecto CC.3 (2026-08-18)
+
+- El proyecto del dashboard es request-scoped: clientes envían `X-Orchestos-Project-Id` o
+  `?project=<id>`. Solo se aceptan ids de `projects`; nunca paths arbitrarios del cliente.
+- `GET /api/projects` es la fuente para el futuro selector de UI.6. Hasta entonces existe un único
+  fallback legacy al cwd, aislado en `src/dashboard/project-context.ts`; ningún handler debe volver
+  a llamar `resolve('.')` ni inferir el proyecto por su cuenta.
+- Los handlers reciben `root` explícito. El estado in-memory del graph se particiona por root y el
+  contexto dinámico del chat (runs, memoria y tools de lectura) se filtra por proyecto.
+- Una sesión persistida manda sobre el selector request-scoped: su `project_id` inmutable no puede
+  cambiar por un header obsoleto o manipulado. Sesiones generales (`project_id:null`) conservan la
+  frontera sin contexto de repo definida en CC.2.
+- La selección visual y el envío automático del header pertenecen a UI.6 (Mes 30); no agregar una
+  UI vanilla provisional.
+
 ### Hot files
 - src/cli.ts (63 edges)
 - src/run/harness.ts (34 edges)

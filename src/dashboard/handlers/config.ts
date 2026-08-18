@@ -1,4 +1,4 @@
-import { resolve, join } from 'path'
+import { join } from 'path'
 import { existsSync, writeFileSync } from 'fs'
 import { parseDocument, stringify as yamlStringify } from 'yaml'
 import { loadOrcheConfig, scaffoldConfigYaml, AGENT_CHOICES } from '../../config/load.ts'
@@ -19,8 +19,7 @@ const ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa
 // E.9 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos config show`:
 // fuente activa (orchestos.config.yaml vs defaults), roles resueltos, y preview
 // de routing para tareas pendientes (mismo autoRoute() que usa el harness real).
-export async function handleApiConfigGet(): Promise<Response> {
-  const root = resolve('.')
+export async function handleApiConfigGet(root = process.cwd()): Promise<Response> {
   const configPath = join(root, 'orchestos.config.yaml')
   const configFound = existsSync(configPath)
   const cfg = loadOrcheConfig(root)
@@ -82,8 +81,7 @@ export async function handleApiConfigGet(): Promise<Response> {
 // E.9 — equivalente de `orchestos config init`: crea orchestos.config.yaml con
 // el scaffold de siempre. 409 si ya existe (mismo comportamiento que la CLI,
 // que hace process.exit(1) en vez de sobreescribir en silencio).
-export async function handleApiConfigInit(): Promise<Response> {
-  const root = resolve('.')
+export async function handleApiConfigInit(root = process.cwd()): Promise<Response> {
   const configPath = join(root, 'orchestos.config.yaml')
   if (existsSync(configPath)) {
     return errorResponse('orchestos.config.yaml already exists', 409)
@@ -99,7 +97,7 @@ export async function handleApiConfigInit(): Promise<Response> {
 // pero ya con los roles elegidos en vez del scaffold default). Siempre asume
 // provider 'openrouter' — igual que el resto del selector de modelos en la
 // app (chat, composer de tareas, diagnose), ninguno expone otros providers.
-export async function handleApiConfigSet(req: Request): Promise<Response> {
+export async function handleApiConfigSet(req: Request, root = process.cwd()): Promise<Response> {
   let body: {
     roles?: Record<string, string>
     apiMode?: string
@@ -119,7 +117,6 @@ export async function handleApiConfigSet(req: Request): Promise<Response> {
     return errorResponse('nothing to save', 400)
   }
 
-  const root = resolve('.')
   const configPath = join(root, 'orchestos.config.yaml')
   const current = loadOrcheConfig(root)
   const models: OrcheConfig['models'] = { ...current.models }

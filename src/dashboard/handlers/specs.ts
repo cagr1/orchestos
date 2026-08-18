@@ -1,4 +1,4 @@
-import { resolve, join } from 'path'
+import { join } from 'path'
 import { listSpecs, loadSpec, saveSpec } from '../../spec/store.ts'
 import { lintSpec } from '../../spec/lint.ts'
 import { validateSpec } from '../../spec/validate.ts'
@@ -6,14 +6,13 @@ import { archiveSpec, deleteArchivedSpec } from '../../spec/archive.ts'
 import type { SpecRow, SpecLintStatus } from '../types.ts'
 import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
 
-async function handleApiSpecsDraft(req: Request): Promise<Response> {
+async function handleApiSpecsDraft(req: Request, root: string): Promise<Response> {
   let body: { taskId: string; description: string; design?: boolean }
   try { body = (await req.json()) as { taskId: string; description: string; design?: boolean } } catch { return errorResponse('Invalid JSON', 400) }
   const taskId = validateTaskId(body.taskId ?? '')
   if (!taskId || !body.description?.trim()) {
     return errorResponse('taskId (alphanumeric/hyphen/dot, max 64) and description are required', 400)
   }
-  const root = resolve('.')
   // AA (IDEAS #6) — el modal "Nueva Spec" del dashboard no pasa por `spec create`
   // (ver comentario en cli.ts): el flag va acá para que ESTE sea el único punto
   // donde marcar la tarea como compleja desde ese flujo de un solo paso.
@@ -25,8 +24,7 @@ async function handleApiSpecsDraft(req: Request): Promise<Response> {
   return jsonResponse({ ok: true, taskId })
 }
 
-function handleApiSpecs(): Response {
-  const root = resolve('.')
+function handleApiSpecs(root: string): Response {
   try {
     const specs = listSpecs(root, true)
     const rows: SpecRow[] = specs.map(s => {
@@ -51,11 +49,10 @@ function handleApiSpecs(): Response {
   }
 }
 
-async function handleApiSpecsCreate(req: Request): Promise<Response> {
+async function handleApiSpecsCreate(req: Request, root: string): Promise<Response> {
   const id = new URL(req.url).pathname.split('/').pop() ?? ''
   const taskId = validateTaskId(id)
   if (!taskId) return errorResponse('taskId inválido', 400)
-  const root = resolve('.')
   const existing = loadSpec(root, taskId)
   if (existing) return errorResponse(`Spec ya existe para "${taskId}"`, 409)
   // AA.4 (IDEAS #6) — body opcional: sin body o `{}`, comportamiento idéntico al de
@@ -79,11 +76,10 @@ async function handleApiSpecsCreate(req: Request): Promise<Response> {
   return jsonResponse({ ok: true, taskId })
 }
 
-function handleApiSpecsApprove(req: Request): Response {
+function handleApiSpecsApprove(req: Request, root: string): Response {
   const id = new URL(req.url).pathname.split('/').at(-2) ?? ''
   const taskId = validateTaskId(id)
   if (!taskId) return errorResponse('taskId inválido', 400)
-  const root = resolve('.')
   const s = loadSpec(root, taskId)
   if (!s) return errorResponse(`No existe spec para "${taskId}"`, 404)
   // AA.2/AA.4 (IDEAS #6) — mismo orden que el CLI: design antes que clarify.
@@ -102,11 +98,10 @@ function handleApiSpecsApprove(req: Request): Response {
 
 // AA.4 (IDEAS #6) — mismo contrato que handleApiSpecsApprove: id desde la URL
 // (.../[id]/approve-design), 404/422 según corresponda.
-function handleApiSpecsApproveDesign(req: Request): Response {
+function handleApiSpecsApproveDesign(req: Request, root: string): Response {
   const id = new URL(req.url).pathname.split('/').at(-2) ?? ''
   const taskId = validateTaskId(id)
   if (!taskId) return errorResponse('taskId inválido', 400)
-  const root = resolve('.')
   const s = loadSpec(root, taskId)
   if (!s) return errorResponse(`No existe spec para "${taskId}"`, 404)
   if (s.frontmatter.design === undefined)
@@ -119,22 +114,20 @@ function handleApiSpecsApproveDesign(req: Request): Response {
   return jsonResponse({ ok: true, taskId })
 }
 
-function handleApiSpecsLint(req: Request): Response {
+function handleApiSpecsLint(req: Request, root: string): Response {
   const id = new URL(req.url).pathname.split('/').at(-2) ?? ''
   const taskId = validateTaskId(id)
   if (!taskId) return errorResponse('taskId inválido', 400)
-  const root = resolve('.')
   const s = loadSpec(root, taskId)
   if (!s) return errorResponse(`No existe spec para "${taskId}"`, 404)
   const result = lintSpec(s)
   return jsonResponse(result)
 }
 
-function handleApiSpecsArchive(req: Request): Response {
+function handleApiSpecsArchive(req: Request, root: string): Response {
   const id = new URL(req.url).pathname.split('/').at(-2) ?? ''
   const taskId = validateTaskId(id)
   if (!taskId) return errorResponse('taskId inválido', 400)
-  const root = resolve('.')
   try {
     const result = archiveSpec(root, taskId)
     return jsonResponse({ ok: true, archivedPath: result.archivedPath })
@@ -146,11 +139,10 @@ function handleApiSpecsArchive(req: Request): Response {
 // I.8 (Mes 18) — Specs solo tenía archive (soft). A propósito solo borra
 // specs YA archivadas (deleteArchivedSpec busca en .orchestos/specs/archive/,
 // nunca toca drafts/approved activos).
-function handleApiSpecsDelete(req: Request): Response {
+function handleApiSpecsDelete(req: Request, root: string): Response {
   const id = new URL(req.url).pathname.split('/').pop() ?? ''
   const taskId = validateTaskId(id)
   if (!taskId) return errorResponse('taskId inválido', 400)
-  const root = resolve('.')
   const ok = deleteArchivedSpec(root, taskId)
   if (!ok) return errorResponse(`No hay spec archivada para "${taskId}"`, 404)
   return jsonResponse({ ok: true, taskId })
@@ -158,11 +150,10 @@ function handleApiSpecsDelete(req: Request): Response {
 
 // v0.12 Bloque A — borrado en lote de specs ARCHIVADAS (mismo alcance que
 // handleApiSpecsDelete — deleteArchivedSpec nunca toca drafts/approved activos).
-async function handleApiSpecsBulkDelete(req: Request): Promise<Response> {
+async function handleApiSpecsBulkDelete(req: Request, root: string): Promise<Response> {
   let body: { ids?: unknown }
   try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
   if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
-  const root = resolve('.')
   const ids = body.ids.filter((id): id is string => typeof id === 'string')
   let deleted = 0
   for (const id of ids) {

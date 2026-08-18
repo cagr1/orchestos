@@ -66,6 +66,13 @@ export interface ChatMessageRow {
   createdAt: string
 }
 
+export interface ProjectRow {
+  id: string
+  path: string
+  stackProfile: string
+  lastUpdated: string
+}
+
 // ── /api/runs ─────────────────────────────────────────────────────────────────
 
 export interface CostBreakdownEntry {

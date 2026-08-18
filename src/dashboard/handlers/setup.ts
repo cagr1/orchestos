@@ -1,4 +1,4 @@
-import { resolve, join } from 'path'
+import { join } from 'path'
 import { existsSync } from 'fs'
 import { homedir } from 'os'
 import { getProject } from '../../db/projects.ts'
@@ -10,7 +10,7 @@ import type { SetupItem, SetupResponse, LocalProviderResponse, ApiKeyValidationR
 import { envFilePath, SETTINGS_KEYS, readEnv, writeEnv, maskKey } from '../settings-store.ts'
 import { jsonResponse, errorResponse } from '../http.ts'
 
-async function handleApiSettingsGet(): Promise<Response> {
+async function handleApiSettingsGet(root: string): Promise<Response> {
   const parsed = readEnv()
   const result: Record<string, { set: boolean; masked: string }> = {}
   for (const k of SETTINGS_KEYS) {
@@ -18,7 +18,7 @@ async function handleApiSettingsGet(): Promise<Response> {
     result[k] = { set: !!v, masked: v ? maskKey(v) : '' }
   }
   result['_envFile'] = { set: existsSync(envFilePath()), masked: envFilePath() }
-  result['_cwd'] = { set: true, masked: process.cwd() }
+  result['_cwd'] = { set: true, masked: root }
 
   try {
     const controller = new AbortController()
@@ -39,8 +39,7 @@ async function handleApiSettingsGet(): Promise<Response> {
   return jsonResponse(result)
 }
 
-function handleApiSetup(): Response {
-  const root = resolve('.')
+function handleApiSetup(root: string): Response {
   const dbPath = join(homedir(), '.orchestos', 'db.sqlite')
   const env = readEnv()
   const items: SetupItem[] = []
@@ -178,8 +177,7 @@ async function handleApiSettingsPost(req: Request): Promise<Response> {
   }
 }
 
-function handleApiHealth(): Response {
-  const root = resolve('.')
+function handleApiHealth(root: string): Response {
 
   const system = (() => {
     const dbPath = join(homedir(), '.orchestos', 'db.sqlite')

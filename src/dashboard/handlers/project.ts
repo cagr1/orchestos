@@ -1,4 +1,4 @@
-import { resolve, join } from 'path'
+import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { chat as openrouterChat } from '../../providers/openrouter.ts'
@@ -21,33 +21,29 @@ import { listRuns } from '../../db/runs.ts'
 // `exists:false` para que la UI muestre un banner "Preview — not saved yet" y sepa
 // que el primer PUT (autosave al editar) es el que materializa el archivo. Cierra
 // el gap "editor arranca vacío → no-dev escribe cualquier cosa y rompe el formato".
-function handleApiProjectConstitutionGet(): Response {
-  const root = resolve('.')
+function handleApiProjectConstitutionGet(root: string): Response {
   const path = join(root, 'CONSTITUTION.md')
   const exists = existsSync(path)
   const content = exists ? readFileSync(path, 'utf-8') : scaffoldConstitutionMd()
   return jsonResponse({ content, exists })
 }
 
-async function handleApiProjectConstitutionPut(req: Request): Promise<Response> {
+async function handleApiProjectConstitutionPut(req: Request, root: string): Promise<Response> {
   let body: { content: string }
   try { body = (await req.json()) as { content: string } } catch { return errorResponse('Invalid JSON', 400) }
   if (typeof body.content !== 'string') return errorResponse('content must be a string', 400)
-  const root = resolve('.')
   writeFileSync(join(root, 'CONSTITUTION.md'), body.content, 'utf-8')
   return jsonResponse({ ok: true })
 }
 
-function handleApiProjectContextGet(): Response {
-  const root = resolve('.')
+function handleApiProjectContextGet(root: string): Response {
   const path = join(root, 'CONTEXT.md')
   const exists = existsSync(path)
   const content = exists ? readFileSync(path, 'utf-8') : ''
   return jsonResponse({ content, exists })
 }
 
-function handleApiProjectContextRegenerate(): Response {
-  const root = resolve('.')
+function handleApiProjectContextRegenerate(root: string): Response {
   Bun.spawn([process.execPath, 'run', join(root, 'src/cli.ts'), 'context', 'compress'], {
     cwd: root, stdout: 'inherit', stderr: 'inherit',
   })
@@ -63,8 +59,7 @@ function handleApiProjectContextRegenerate(): Response {
 
 // E.8 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos detect [path]`:
 // dry-run, regenera AGENTS.md + context.json sobre el proyecto actual sin tocar la DB.
-async function handleApiProjectDetect(): Promise<Response> {
-  const root = resolve('.')
+async function handleApiProjectDetect(root: string): Promise<Response> {
   const t0 = performance.now()
   const profile = await buildProfile(root)
   const agentsMd = generateAgentsMd(profile)
@@ -84,8 +79,7 @@ async function handleApiProjectDetect(): Promise<Response> {
 // E.8 — equivalente de `orchestos index [path]`: indexa el proyecto actual en el
 // code graph (S21). Crea el registro de proyecto en DB si aún no existe (mismo
 // fallback que `ensureProject()` en cli.ts).
-async function handleApiProjectIndex(): Promise<Response> {
-  const root = resolve('.')
+async function handleApiProjectIndex(root: string): Promise<Response> {
   let project = getProject(root)
   if (!project) {
     const profile = await buildProfile(root)
@@ -112,8 +106,7 @@ export interface NaturalDraft {
 // D.7 (Mes 22) — extraído de handleApiNatural para que el auto-flow del chat
 // (handlers/chat.ts) pueda pedir el mismo draft por lenguaje natural sin pasar
 // por una Request/Response HTTP. handleApiNatural queda como wrapper delgado.
-async function buildNaturalDraft(input: string): Promise<NaturalDraft> {
-  const root = resolve('.')
+async function buildNaturalDraft(input: string, root = process.cwd()): Promise<NaturalDraft> {
   const projectCtx = loadContext(root)
   let tasksSummary = ''
   try {
@@ -171,13 +164,13 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
   }
 }
 
-async function handleApiNatural(req: Request): Promise<Response> {
+async function handleApiNatural(req: Request, root = process.cwd()): Promise<Response> {
   let body: { input: string }
   try { body = (await req.json()) as { input: string } } catch { return errorResponse('Invalid JSON', 400) }
   const input = body.input?.trim()
   if (!input) return errorResponse('input is required', 400)
   try {
-    return jsonResponse(await buildNaturalDraft(input))
+    return jsonResponse(await buildNaturalDraft(input, root))
   } catch (e: any) {
     return errorResponse(`LLM draft failed: ${e.message}`, 502)
   }
@@ -191,8 +184,7 @@ async function handleApiNatural(req: Request): Promise<Response> {
 // evitar dejar un PDF en el working dir que el usuario no pidió persistir
 // — el CLI escribe al root por diseño (es un comando explícito de export);
 // el dashboard solo sirve el binario para descarga inmediata.
-async function handleApiProjectSummary(): Promise<Response> {
-  const root = resolve('.')
+async function handleApiProjectSummary(root: string): Promise<Response> {
   const t0 = performance.now()
   const profile = await buildProfile(root)
   const agentsMd = generateAgentsMd(profile)

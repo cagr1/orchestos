@@ -11,8 +11,8 @@
  * materializa el archivo en disco.
  *
  * Patrón: tmp dir real con chdir, sin mock.module() (mismo que
- * tasks-api-engine.test.ts / run-graph-api.test.ts). El handler hace `resolve('.')`,
- * así que el cwd del test es el cwd del handler — crítico que el CONSTITUTION.md
+ * tasks-api-engine.test.ts / run-graph-api.test.ts). El request sin selector usa el fallback
+ * legacy al cwd — crítico que el CONSTITUTION.md
  * del repo REAL nunca aparezca en este test (de ahí el tmp dir).
  */
 import { describe, it, expect, afterAll, beforeEach } from 'bun:test'

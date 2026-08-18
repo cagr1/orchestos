@@ -1,4 +1,3 @@
-import { resolve } from 'path'
 import type { AgentChoice } from '../../config/schema.ts'
 import { AGENT_CHOICES, loadOrcheConfig } from '../../config/load.ts'
 import {
@@ -14,6 +13,7 @@ import {
 } from '../../db/chat-sessions.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type { ChatMessageRow, ChatSessionRow } from '../types.ts'
+import { dashboardProjectFromId, resolveDashboardProject, type DashboardProjectContext } from '../project-context.ts'
 
 const MODES = new Set<ChatSessionMode>(['chat', 'code'])
 const AGENTS = new Set<AgentChoice>(AGENT_CHOICES)
@@ -63,7 +63,7 @@ export function handleApiChatSessionsList(): Response {
   return jsonResponse(listChatSessions().map(toSessionRow))
 }
 
-export async function handleApiChatSessionsCreate(req: Request): Promise<Response> {
+export async function handleApiChatSessionsCreate(req: Request, fallbackProject?: DashboardProjectContext): Promise<Response> {
   let parsed: unknown
   try {
     parsed = await req.json()
@@ -78,7 +78,28 @@ export async function handleApiChatSessionsCreate(req: Request): Promise<Respons
   if (body.projectId !== undefined && body.projectId !== null && typeof body.projectId !== 'string') {
     return errorResponse('projectId must be a string or null', 400)
   }
-  const defaultAgent = loadOrcheConfig(resolve('.')).agent ?? 'api'
+  let selectedProject = fallbackProject
+  if (body.projectId === undefined && !selectedProject) {
+    try {
+      selectedProject = resolveDashboardProject(req)
+    } catch (error) {
+      const status = error instanceof Error && 'status' in error ? Number(error.status) : 400
+      return errorResponse(error instanceof Error ? error.message : String(error), status)
+    }
+  }
+  const projectId = body.projectId === undefined
+    ? selectedProject?.id ?? null
+    : body.projectId as string | null
+  let configRoot = selectedProject?.root
+  if (projectId) {
+    try {
+      configRoot = dashboardProjectFromId(projectId).root
+    } catch (error) {
+      const status = error instanceof Error && 'status' in error ? Number(error.status) : 400
+      return errorResponse(error instanceof Error ? error.message : String(error), status)
+    }
+  }
+  const defaultAgent = projectId === null ? 'api' : (loadOrcheConfig(configRoot!).agent ?? 'api')
   const agent = body.agent ?? defaultAgent
   if (typeof agent !== 'string' || !AGENTS.has(agent as AgentChoice)) {
     return errorResponse('Invalid agent', 400)
@@ -93,7 +114,7 @@ export async function handleApiChatSessionsCreate(req: Request): Promise<Respons
 
   try {
     const session = createChatSession({
-      projectId: body.projectId as string | null | undefined,
+      projectId,
       agent: agent as AgentChoice,
       mode: mode as ChatSessionMode,
       title: body.title as string | undefined,

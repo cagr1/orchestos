@@ -1,4 +1,4 @@
-import { resolve, join } from 'path'
+import { join } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { diagnoseTask } from '../../agents/diagnose.ts'
 import { loadTasks, saveTasks } from '../../tasks/loader.ts'
@@ -19,7 +19,7 @@ import { git } from '../../run/sandbox.ts'
 import { withGitLock } from '../../run/git-lock.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 
-async function handleApiSystemExecutorModes(): Promise<Response> {
+async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Response> {
   let localDetected = false
   try {
     const controller = new AbortController()
@@ -41,7 +41,7 @@ async function handleApiSystemExecutorModes(): Promise<Response> {
     { id: 'api', label: 'OpenRouter API', detected: true, path: null },
   ]
 
-  return jsonResponse({ modes, selected: loadOrcheConfig(resolve('.')).agent ?? null })
+  return jsonResponse({ modes, selected: loadOrcheConfig(root).agent ?? null })
 }
 
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
@@ -83,8 +83,7 @@ function loadTaskRows(root: string): TaskRow[] {
  * tareas" engañoso. `loadTaskRows()` se sigue usando en otros sitios (graph
  * runner) que sí quieren tragarse el error.
  */
-function handleApiTasks(): Response {
-  const root = resolve('.')
+function handleApiTasks(root: string): Response {
   const tasksYamlPath = join(root, 'tasks.yaml')
   if (!existsSync(tasksYamlPath)) {
     return jsonResponse({ exists: false, tasks: [] })
@@ -117,8 +116,7 @@ function handleApiTasks(): Response {
  * para que el CLI `orchestos task init` y este endpoint compartan el mismo
  * código.
  */
-async function handleApiTasksInit(): Promise<Response> {
-  const root = resolve('.')
+async function handleApiTasksInit(root: string): Promise<Response> {
   try {
     const result = await scaffoldTasksYaml(root)
     return jsonResponse({
@@ -238,16 +236,15 @@ function spawnTaskRun(root: string, id: string, model?: string): void {
   Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
 }
 
-async function handleApiTasksCreate(req: Request): Promise<Response> {
+async function handleApiTasksCreate(req: Request, root: string): Promise<Response> {
   let body: CreateTaskParams
   try { body = (await req.json()) as CreateTaskParams } catch { return errorResponse('Invalid JSON', 400) }
-  const root = resolve('.')
   const result = createTaskRecord(root, body)
   if ('error' in result) return errorResponse(result.error, result.status)
   return jsonResponse({ ok: true, id: result.id })
 }
 
-async function handleApiTasksRun(req: Request, url: URL): Promise<Response> {
+async function handleApiTasksRun(req: Request, url: URL, root: string): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
@@ -255,7 +252,6 @@ async function handleApiTasksRun(req: Request, url: URL): Promise<Response> {
   try { body = (await req.json()) as { model?: string; clarification?: string } } catch { /* body opcional */ }
   const model = body.model?.trim() || undefined
   const clarification = body.clarification?.trim() || undefined
-  const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   const file = loadTasks(root)
   const task = file.tasks.find((t: any) => t.id === id)
@@ -285,10 +281,9 @@ async function handleApiTasksSteps(url: URL): Promise<Response> {
   return jsonResponse({ steps })
 }
 
-function handleApiTasksDelete(url: URL): Response {
+function handleApiTasksDelete(url: URL, root: string): Response {
   const id = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   if (!id) return errorResponse('Missing task id', 400)
-  const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   try {
     const file = loadTasks(root)
@@ -306,12 +301,11 @@ function handleApiTasksDelete(url: URL): Response {
 // instincts/memory (SQLite, un DELETE por id sin costo), tasks.yaml es un
 // archivo — se filtra una sola vez y se guarda una sola vez, en vez de N
 // llamadas a saveTasks() (N reescrituras completas del YAML).
-async function handleApiTasksBulkDelete(req: Request): Promise<Response> {
+async function handleApiTasksBulkDelete(req: Request, root: string): Promise<Response> {
   let body: { ids?: unknown }
   try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
   if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
   const ids = new Set(body.ids.filter((id): id is string => typeof id === 'string'))
-  const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   try {
     const file = loadTasks(root)
@@ -325,11 +319,10 @@ async function handleApiTasksBulkDelete(req: Request): Promise<Response> {
   }
 }
 
-function handleApiTasksExplain(url: URL): Response {
+function handleApiTasksExplain(url: URL, root: string): Response {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
-  const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   const file = loadTasks(root)
   const task = file.tasks.find((t: any) => t.id === id)
@@ -366,11 +359,10 @@ function handleApiTasksExplain(url: URL): Response {
   })
 }
 
-async function handleApiTasksDiagnose(url: URL): Promise<Response> {
+async function handleApiTasksDiagnose(url: URL, root: string): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
-  const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   try {
     const result = await diagnoseTask(id, root)
@@ -389,11 +381,10 @@ async function handleApiTasksDiagnose(url: URL): Promise<Response> {
 }
 
 // Mes 20 B.3 — GET /api/tasks/:id/split-plan
-function handleApiTasksSplitPlan(url: URL): Response {
+function handleApiTasksSplitPlan(url: URL, root: string): Response {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
-  const root = resolve('.')
   const planPath = join(root, `${id}.plan.yaml`)
   if (!existsSync(planPath)) return errorResponse('No split plan found for this task', 404)
 
@@ -420,11 +411,10 @@ function handleApiTasksSplitPlan(url: URL): Response {
 }
 
 // Mes 20 B.3 — POST /api/tasks/:id/approve-split
-function handleApiTasksApproveSplit(url: URL): Response {
+function handleApiTasksApproveSplit(url: URL, root: string): Response {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
-  const root = resolve('.')
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   const planPath = join(root, `${id}.plan.yaml`)
   if (!existsSync(planPath)) return errorResponse('No split plan found — run the task first to generate a plan', 404)

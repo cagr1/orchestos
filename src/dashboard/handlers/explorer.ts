@@ -21,8 +21,7 @@ function safeResolve(root: string, rel: string): string | null {
   return target
 }
 
-function handleApiExplorerTree(url: URL): Response {
-  const root = resolve('.')
+function handleApiExplorerTree(url: URL, root: string): Response {
   const rel = url.searchParams.get('path') || ''
   const target = safeResolve(root, rel)
   if (!target) return errorResponse('Invalid path', 400)
@@ -46,8 +45,7 @@ function handleApiExplorerTree(url: URL): Response {
   return jsonResponse({ path: rel, entries })
 }
 
-function handleApiExplorerFile(url: URL): Response {
-  const root = resolve('.')
+function handleApiExplorerFile(url: URL, root: string): Response {
   const rel = url.searchParams.get('path')
   if (!rel) return errorResponse('Missing path', 400)
   const target = safeResolve(root, rel)

@@ -1,8 +1,8 @@
 /**
  * AA (IDEAS #6) — design.md condicional. Gate real end-to-end vía POST /api/specs/*,
  * mismo patrón que constitution-api.test.ts (tmp dir + chdir + route(), sin
- * mock.module() — el handler hace `resolve('.')`, así que el cwd del test ES el
- * cwd del handler).
+ * mock.module() — el request sin selector usa el fallback legacy, así que el cwd del test ES
+ * el root seleccionado).
  */
 import { describe, it, expect, afterAll, beforeEach } from 'bun:test'
 import { mkdtempSync, rmSync, mkdirSync } from 'fs'
