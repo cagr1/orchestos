@@ -613,12 +613,19 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   dashboard en `http://localhost:4244`, picker Chat abierto, buscador presente, opción larga
   inspeccionada con `text-overflow: ellipsis` y tooltip/aria con el nombre completo; consola actual
   sin errores.
-- [ ] **CC.D4 — 🔍 Gate en vivo, con navegador real.** Aprendizaje de CC.1c: `curl` al backend no
+- [x] **CC.D4 — 🔍 Gate en vivo, con navegador real.** Aprendizaje de CC.1c: `curl` al backend no
   alcanza. Playwright: cambiar de agente desde el chat, verificar que el label refleja el agente
   real, que bajo CLI no hay selector de modelo fantasma, y que bajo API sigue funcionando igual
   (cero regresión). Codex/OpenCode visibles pero marcados "no disponible para chat" —
   **verificado en vivo que `codex exec --sandbox read-only` NO impide escribir** (creó
   `HACKED.txt` en la prueba), así que ofrecerlos para chat sería inseguro hasta resolverlo.
+  **Evidencia:** `bun run agent:preflight -- --item CC.D4 --agent codex` ✅; `bunx tsc --noEmit` ✅;
+  suites de governance/config/engines (9 pass, 0 fail) ✅. **Gate en vivo:** navegador real
+  Playwright ✅ en `http://localhost:4245`: API → Claude → API, `/api/config` devolvió
+  `agent: api` y el valor sobrevivió una recarga; Claude mostró aliases/versiones sin buscador;
+  API conservó el buscador y filtró `dots-studio/dots-3-note-preview:free`; Codex/OpenCode
+  aparecieron deshabilitados con "Not wired for chat yet" y sin `data-modelfx-agent` ni selector
+  de modelo; consola posterior a la recarga: 0 errores.
 - [ ] **CC.2 — 🧠 Sesiones de chat reales, agrupadas por proyecto.** Persistidas en SQLite, lista
   lateral acumulativa (patrón estándar que Carlos pidió explícitamente, "así como lo hacen todas
   estas herramientas"), **agente por sesión** (no "motor" — ver CC.D1). Alineado con ACP: en Zed el
