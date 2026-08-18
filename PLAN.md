@@ -451,6 +451,43 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   funciones y claves nuevas, sin
   reiniciar. El click-through de la sección "Versión fija" apareciendo tras un uso previo queda
   pendiente de confirmación de Carlos.
+
+- [x] **CC.D2 — séptima pasada (2026-08-17), Carlos pidió investigar afuera antes de seguir
+  parchando: "alguna otra herramienta en internet resuelve esto de mejor manera?"** Investigación
+  externa real (WebSearch + docs oficiales `code.claude.com/docs/en/model-config`), no otra
+  adivinanza: **ninguna herramienta, incluido el propio picker nativo `/model` de Claude Code
+  (interactivo, first-party de Anthropic), muestra un catálogo completo de versiones.** Usa el
+  mismo patrón de alias (`default/best/fable/sonnet/opus/haiku/sonnet[1m]/opus[1m]/opusplan`) y la
+  documentación oficial dice textual: *"Aliases point to the recommended version for your provider
+  and update over time. To pin to a specific version, use the full model name, for example
+  `claude-opus-5`."* — es EXACTAMENTE el diseño de alias+fijar-versión ya implementado en la pasada
+  anterior. La tabla oficial confirma además la resolución actual documentada por Anthropic mismo
+  (Anthropic API: `opus`→Opus 5, `sonnet`→Sonnet 5). Un WebSearch adicional sobre Haiku dio un dato
+  viejo/contradictorio (mezclaba Haiku 3.5 con 4.5) — descartado, no se usa nada de eso; se
+  reverificó contra el binario real en su lugar.
+
+  **El hueco real, ahora sí identificado con precisión**: la sección "Versión fija" (pasada
+  anterior) solo se llena con USO real — vacía hasta que Carlos gastara al menos un mensaje por
+  alias. No estaba roto, estaba vacío por diseño (nunca inventa nada), pero eso generaba la
+  sensación de "no funciona".
+
+  **Fix**: `CLAUDE_SEED_RESOLVED_2026_08_17` (app.js) — 3 valores (`opus`→`claude-opus-5`,
+  `sonnet`→`claude-sonnet-5`, `haiku`→`claude-haiku-4-5-20251001`) verificados en vivo contra el
+  binario real en el momento de este commit (`claude -p --model <alias> --output-format json`,
+  leyendo `modelUsage`), NO sacados de la búsqueda web. `fable` deliberadamente excluido — no se
+  pudo confirmar (la cuenta se quedó sin créditos de usage al probarlo, error real y esperado, no
+  un bug). La semilla se usa como fallback SOLO cuando no hay valor aprendido en `localStorage`
+  (`getResolvedClaudeModel(id) || CLAUDE_SEED_RESOLVED_2026_08_17[id]`) — en cuanto Carlos use un
+  alias de verdad, ese valor real gana y sobreescribe la semilla.
+
+  **Evidencia:** `node --check`/`tsc --noEmit` limpios; `bun run test:coverage` → 1158 pass / 0
+  fail (sin cambio, misma lógica frontend sin suite dedicada). Verificación end-to-end contra el
+  binario real, sin mocks, de los 3 valores sembrados: `runClaudeChat(..., 'anthropic/claude-opus-5')`
+  y `'anthropic/claude-haiku-4-5-20251001'` ambos devuelven exactamente esos ids de vuelta (además
+  de `claude-sonnet-5` ya confirmado en la pasada anterior) — los 3 nombres canónicos sembrados
+  corren de verdad, no son un placeholder. Gate en vivo: sin navegador en esta sesión (mismo
+  límite ya declarado) — `curl 127.0.0.1:4242/app.js` confirma que el servidor real que Carlos ya
+  tenía corriendo sirve el código nuevo sin reiniciar.
 - [ ] **CC.D1c — ⚡ `PUT /api/config` reescribe TODO el YAML, migra campos legacy sin que se pida.**
   Hallazgo real reproducido 2 veces en esta misma sesión (2026-08-17): `orchestos.config.yaml` de
   este repo se dejó deliberadamente con `executor_mode`/`executorEngine` (formato legacy) como

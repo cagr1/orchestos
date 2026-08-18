@@ -1973,10 +1973,27 @@ function getResolvedClaudeModel(aliasId) {
 // directo (`--model claude-sonnet-5`, verificado en vivo contra el binario
 // real, igual que los alias) — así que cualquier versión ya vista una vez se
 // ofrece como opción "fija" aparte, con su propio id `anthropic/<canonical>`.
+// Investigación externa (2026-08-17, pedido explícito de Carlos): ni el
+// propio picker nativo de Claude Code (`/model`, dentro de una sesión
+// interactiva) muestra un catálogo completo de versiones — usa el mismo
+// patrón de alias, y la documentación oficial dice textual "to pin to a
+// specific version, use the full model name, for example claude-opus-5". No
+// hay ninguna herramienta que resuelva esto mostrando el catálogo completo
+// de antemano porque Anthropic mismo no lo expone así. Estos 3 valores
+// (Fable excluido — no se pudo confirmar, la cuenta se quedó sin créditos al
+// probarlo) se verificaron en vivo contra el binario real el 2026-08-17, NO
+// se inventaron ni se sacaron de una búsqueda web (que dio datos viejos y
+// contradictorios para Haiku). Son solo la semilla inicial — en cuanto
+// `rememberResolvedClaudeModel()` aprenda un valor real del uso, ese gana.
+const CLAUDE_SEED_RESOLVED_2026_08_17 = {
+  'anthropic/opus': 'claude-opus-5',
+  'anthropic/sonnet': 'claude-sonnet-5',
+  'anthropic/haiku': 'claude-haiku-4-5-20251001',
+};
 function getKnownClaudePinnedModels() {
   const seen = new Set();
   for (const a of ['anthropic/opus', 'anthropic/sonnet', 'anthropic/haiku', 'anthropic/fable']) {
-    const resolved = getResolvedClaudeModel(a);
+    const resolved = getResolvedClaudeModel(a) || CLAUDE_SEED_RESOLVED_2026_08_17[a];
     if (resolved) seen.add(resolved);
   }
   return Array.from(seen).sort();
@@ -2017,7 +2034,9 @@ function buildChatModelFx(st) {
     { id: 'anthropic/fable', label: 'Fable' },
   ];
   const claudeAliasMatch = CLAUDE_CLI_ALIASES.find(m => m.id === val);
-  const claudeResolved = showsClaudeModelPicker && claudeAliasMatch ? getResolvedClaudeModel(val) : null;
+  const claudeResolved = showsClaudeModelPicker && claudeAliasMatch
+    ? (getResolvedClaudeModel(val) || CLAUDE_SEED_RESOLVED_2026_08_17[val])
+    : null;
   // `val` bajo Claude puede ser un alias (los 4 de arriba, "sigue la última")
   // o una versión FIJA que el usuario ya eligió a propósito (`anthropic/<canonical>`,
   // ej. "anthropic/claude-sonnet-5") — ese id no matchea CLAUDE_CLI_ALIASES.
@@ -2075,7 +2094,7 @@ function buildChatModelFx(st) {
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
       <div class="chat-modelfx-group-label muted">${t('chat.modelfx.claudeAuto')}</div>
       ${CLAUDE_CLI_ALIASES.map(m => {
-        const resolved = getResolvedClaudeModel(m.id);
+        const resolved = getResolvedClaudeModel(m.id) || CLAUDE_SEED_RESOLVED_2026_08_17[m.id];
         return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}">
         <span>${esc(m.label)}${resolved ? ` <span class="muted">(${esc(resolved)})</span>` : ''}</span>${val === m.id ? ICON.check : ''}
       </button>`;
