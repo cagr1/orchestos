@@ -582,7 +582,7 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   fixture temporal: página cargó con contenido (`bodyText: 1112`); `PUT /api/config` devolvió
   `200 {ok:true}`; `GET /api/config` confirmó `apiMode: agentic` y `agent: api`; consola del
   navegador registró 0 errores y 0 warnings. El YAML del repo no participó en la mutación.
-- [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
+- [x] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** (2026-08-18) Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe
   `AGENTS.md` sin fusionar con el contenido existente**, borrando reglas escritas a mano (identidad
@@ -593,6 +593,16 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   secciones manuales o, si es solo para proyectos nuevos sin AGENTS.md propio, negarse a
   sobreescribir uno que ya exista sin `--force`. Restaurado a mano vía `git checkout -- AGENTS.md`
   + re-aplicación del invariante perdido; sin pérdida real porque no había commit de por medio.
+
+  **Resolución:** `orchestos context update [path]` ahora se niega con código de salida 1 cuando
+  `AGENTS.md` ya existe y no se pasa `--force`; no ejecuta detección, no actualiza la DB y no crea
+  `context.json` en ese caso. `--force` es el opt-in explícito para reemplazar las reglas manuales;
+  conserva el flujo anterior de detección, generación y persistencia cuando se solicita.
+
+  **Evidencia:** `bun run agent:preflight -- --item CC.D1b --agent codex` ✅; `bunx tsc --noEmit` ✅;
+  tests específicos (7 pass, 0 fail) ✅; `bun run test:coverage` final (1162 pass, 0 fail, 117
+  archivos) ✅. La prueba de proceso confirma que el rechazo conserva `AGENTS.md` y evita
+  `context.json`; el caso `--force` confirma el reemplazo explícitamente autorizado.
 - [ ] **CC.D3 — ⚡ Nombres de modelo legibles.** Reclamo de Carlos: *"algunos modelos tienen el
   nombre muy largo, no se alcanza a leer cuál es"*. Truncado con el nombre completo accesible
   (tooltip/`title`), sin romper [[reference-model-combo-pattern]] (el combo sigue siendo buscable).

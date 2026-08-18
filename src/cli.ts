@@ -156,8 +156,16 @@ ctx
 ctx
   .command('update [path]')
   .description('Re-detect and update saved context in DB')
-  .action(async (targetPath?: string) => {
+  .option('--force', 'Overwrite an existing AGENTS.md after explicit confirmation')
+  .action(async (targetPath?: string, opts?: { force?: boolean }) => {
     const root = resolve(targetPath ?? '.')
+    const agentsPath = join(root, 'AGENTS.md')
+    if (existsSync(agentsPath) && !opts?.force) {
+      console.error(`[context] AGENTS.md already exists at ${agentsPath}. Refusing to overwrite it.`)
+      console.error('[context] Re-run with --force only if replacing its manual rules is intentional.')
+      process.exitCode = 1
+      return
+    }
     const t0 = performance.now()
     const profile = await buildProfile(root)
     const agentsMd = generateAgentsMd(profile)
