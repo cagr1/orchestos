@@ -989,10 +989,45 @@ general:
 - [x] **BB.3 — ABSORBIDO en Mes 29 (2026-08-16).** Unificar los dos selectores de Settings no
   tiene sentido aislado si la navegación completa se rediseña — pasa a ser parte de CC.4.
   Decisión de Carlos: *"si nos ponemos a arreglar uno a uno ahora no vamos a aterrizar"*.
-- [ ] **BB.6 — ⚡ El costo de los motores CLI es ficticio o incomparable.** Ver tabla de BB.4.
-  `codex` estima con un modelo que no usó. Decidir: (a) reportar `null`/"n/a" cuando el costo no
-  es medible en vez de un número inventado, o (b) mapear el modelo real que el CLI usó. Hoy el
-  dashboard muestra esos números como si fueran equivalentes.
+- [ ] **BB.6 — 🧠 (re-clasificado desde ⚡ el 2026-08-18) El costo de `codex` es ficticio.**
+  Ver tabla de BB.4. **Sigue abierto — nunca se implementó**: el único commit asociado
+  (`2e0adef`) lo registró como hallazgo, no lo corrigió.
+
+  **Causa raíz verificada en código (2026-08-18), dos líneas de `run/executors/codex.ts`:**
+
+  ```
+  :171   const codexModel = orchestosModelToCodexModel(ctx.model)   → undefined si ctx.model no es openai/*
+  :201   const usd = calcCost(ctx.model, ...)                        → tarifa con ctx.model igual
+  ```
+
+  Cuando el modelo configurado no es de OpenAI, `orchestosModelToCodexModel()` (`codex.ts:54`)
+  devuelve `undefined`, se omite `-m` y **codex corre con su propio default** (`gpt-5.4`,
+  confirmado en `~/.codex/config.toml`) — pero el costo se calcula con el precio de
+  `deepseek/deepseek-v4-flash`. Ese es el `$0.00924` de la tabla de BB.4: **tokens de GPT-5.4
+  tarifados como DeepSeek**.
+
+  **Por qué el guard F0.8 no lo atrapa** (`codex.ts:196`): ese chequeo protege contra *"modelo
+  ausente del catálogo → $0 silencioso"*. Acá el modelo **sí** está en el catálogo — es el modelo
+  equivocado. El guard pasa limpio y el número sale inventado con apariencia de real. Es un modo de
+  fallo distinto del que F0.8 fue diseñado a cubrir, no un agujero en su implementación.
+
+  **Los otros dos motores están correctos** (verificado, no asumido): `external.ts:390` exige
+  `total_cost_usd` real de Claude Code y lanza si falta; `opencode.ts:123` suma `part.cost` del
+  propio stream. **Solo `codex` estima.**
+
+  **Por qué se re-clasificó a 🧠**: la opción (a) —reportar `null`/"n/a" cuando el costo no es
+  medible— no es un cambio local. `ExecutorOutcome.usd` es `number` **no-nullable**
+  (`run/executors/types.ts:22`) y `runs.usd_cost` es `REAL NOT NULL` en la DB, así que hacer el
+  costo opcional toca el tipo, el schema de SQLite y toda superficie que hoy asume que siempre hay
+  un número. Eso excede una tarea ⚡ bien especificada.
+
+  **Decisión pendiente** (sin resolver, es parte del ítem): (a) costo nullable de punta a punta con
+  "n/a" honesto, o (b) leer del stream JSON de codex qué modelo corrió realmente y tarifar con ese
+  — pendiente verificar si `turn.completed` lo expone; hoy `parseCodexStream()` solo extrae
+  `usage`. La (b) es más chica pero depende de un dato que puede no existir.
+
+  **No bloquea CC.2 ni el Mes 29.** Queda acá, en el Mes 28 pausado, con el diagnóstico completo
+  para que quien lo retome no tenga que re-investigarlo.
 
 Este Mes ejecuta la categoría **Medio** de [IDEAS.md](IDEAS.md), empezando por `#6`. Mismo orden
 de índice = único orden de ejecución (regla desde 2026-07-30).
