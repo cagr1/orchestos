@@ -1,6 +1,6 @@
 import { resolve, join } from 'path'
 import { existsSync, writeFileSync } from 'fs'
-import { stringify as yamlStringify } from 'yaml'
+import { parseDocument, stringify as yamlStringify } from 'yaml'
 import { loadOrcheConfig, scaffoldConfigYaml, AGENT_CHOICES } from '../../config/load.ts'
 import type { OrcheConfig, AgentChoice } from '../../config/schema.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
@@ -155,6 +155,56 @@ export async function handleApiConfigSet(req: Request): Promise<Response> {
     newConfig.agent = body.agent
   }
 
-  writeFileSync(configPath, yamlStringify(newConfig), 'utf8')
+  // CC.D1c (2026-08-18) — `loadOrcheConfig()` migra los nombres legacy en
+  // memoria. Serializar `newConfig` directamente después de cargarlo hacía
+  // que cualquier PUT (incluso un cambio de roles no relacionado) reescribiera
+  // todo el YAML, borrara campos desconocidos y limpiara silenciosamente
+  // `executor_mode`/`executorEngine`. Editar el documento existente por rutas
+  // concretas conserva el resto del archivo y deja la migración explícita.
+  let output = yamlStringify(newConfig)
+  if (existsSync(configPath)) {
+    try {
+      const document = parseDocument(await Bun.file(configPath).text())
+      if (document.errors.length === 0) {
+        for (const key of ROLE_KEYS) {
+          const raw = body.roles?.[key]
+          if (typeof raw !== 'string') continue
+          if (!raw.trim()) {
+            if (key === 'qa') document.deleteIn(['models', key])
+            continue
+          }
+          document.setIn(['models', key], { provider: 'openrouter', model: raw.trim() })
+        }
+
+        if (typeof body.apiMode === 'string' && (API_MODES as readonly string[]).includes(body.apiMode)) {
+          document.set('apiMode', body.apiMode)
+          // `executorEngine` used these values before apiMode existed. Remove
+          // only that legacy field when the user explicitly edits apiMode;
+          // CLI values there belong to the separate agent migration.
+          const legacyEngine = document.get('executorEngine')
+          if (legacyEngine === 'single-shot' || legacyEngine === 'agentic') document.delete('executorEngine')
+        }
+        if (typeof body.agenticMaxIterations === 'number' && Number.isFinite(body.agenticMaxIterations) && body.agenticMaxIterations > 0) {
+          document.setIn(['agentic', 'maxIterations'], Math.round(body.agenticMaxIterations))
+        }
+        if (typeof body.externalTimeoutMinutes === 'number' && Number.isFinite(body.externalTimeoutMinutes) && body.externalTimeoutMinutes > 0) {
+          document.setIn(['external', 'timeoutMs'], Math.round(body.externalTimeoutMinutes * 60000))
+        }
+        if (body.agent === null || body.agent !== undefined) {
+          if (body.agent === null) document.delete('agent')
+          else document.set('agent', body.agent)
+          // The user explicitly touched the canonical agent field, so this is
+          // the one case where cleaning its legacy aliases is intentional.
+          document.delete('executor_mode')
+          document.delete('executorEngine')
+        }
+        output = document.toString()
+      }
+    } catch {
+      // Invalid existing YAML keeps the previous safe behavior: write the
+      // validated, fully resolved configuration instead of failing silently.
+    }
+  }
+  writeFileSync(configPath, output, 'utf8')
   return jsonResponse({ ok: true })
 }

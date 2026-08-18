@@ -551,7 +551,7 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   completo) antes de la primera implementación. La octava pasada solo costó tiempo porque la
   séptima ya tenía la respuesta (ninguna herramienta muestra catálogo completo sin key) y no se
   aplicó hasta que Carlos lo señaló de nuevo.
-- [ ] **CC.D1c — ⚡ `PUT /api/config` reescribe TODO el YAML, migra campos legacy sin que se pida.**
+- [x] **CC.D1c — ⚡ `PUT /api/config` reescribe TODO el YAML, migra campos legacy sin que se pida.** (2026-08-18)
   Hallazgo real reproducido 2 veces en esta misma sesión (2026-08-17): `orchestos.config.yaml` de
   este repo se dejó deliberadamente con `executor_mode`/`executorEngine` (formato legacy) como
   fixture vivo de que la migración de CC.D1 funciona en lectura sin reescribir. Pero
@@ -563,6 +563,25 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   aviso. No corregido acá (fuera de alcance de la sesión); revertido a mano las 2 veces que apareció.
   Fix mínimo cuando se tome: no reescribir campos que el body no pidió cambiar, o al menos no
   "limpiar" el formato legacy salvo que el usuario haya tocado ese campo específico.
+
+  **Resolución:** `handleApiConfigSet()` ahora carga el documento YAML existente y aplica cambios
+  únicamente en las rutas solicitadas (`models.*`, `apiMode`, `agentic.maxIterations`,
+  `external.timeoutMs`, `agent`). Conserva comentarios, campos desconocidos y los aliases
+  `executor_mode`/`executorEngine` cuando el PUT no toca `agent`; al editar `agent` explícitamente,
+  elimina esos aliases porque la migración ya fue solicitada por el usuario. Si el YAML existente
+  es inválido, conserva el fallback anterior: escribe la configuración validada y resuelta.
+
+  **Evidencia:** `bun run agent:preflight -- --item CC.D1c --agent codex` ✅; baseline
+  `bunx tsc --noEmit` + `bun run test:coverage` (1158 pass, 0 fail) ✅; tests específicos después
+  del fix (9 pass, 0 fail) ✅; `bun run test:coverage` final (1160 pass, 0 fail) ✅. Los tests prueban
+  preservación real del comentario, campos legacy y desconocidos ante un PUT ajeno, además de la
+  limpieza intencional al editar `agent`. No se modificó el `orchestos.config.yaml` del repo:
+  ya tenía un cambio ajeno (`agent: codex`) al iniciar esta tarea.
+
+  **Gate en vivo: Playwright (2026-08-18):** dashboard real en `http://localhost:4244` sobre un
+  fixture temporal: página cargó con contenido (`bodyText: 1112`); `PUT /api/config` devolvió
+  `200 {ok:true}`; `GET /api/config` confirmó `apiMode: agentic` y `agent: api`; consola del
+  navegador registró 0 errores y 0 warnings. El YAML del repo no participó en la mutación.
 - [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe

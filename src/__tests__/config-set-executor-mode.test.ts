@@ -9,7 +9,7 @@
  * try/finally que SIEMPRE restaura el cwd — incluso si el assert falla.
  */
 import { describe, it, expect, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { handleApiConfigSet } from '../dashboard/handlers/config.ts'
@@ -77,6 +77,61 @@ describe('handleApiConfigSet — agent', () => {
       const cfg = loadOrcheConfig(dir)
       expect(cfg.apiMode).toBe('agentic')
       expect(cfg.agent).toBe('api')
+    } finally {
+      process.chdir(originalCwd)
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('PUT no relacionado preserva campos legacy y desconocidos del YAML', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'orchestos-ccd1c-legacy-preserve-'))
+    try {
+      process.chdir(dir)
+      writeFileSync(join(dir, 'orchestos.config.yaml'), [
+        '# fixture legacy: no debe migrarse por un PUT ajeno',
+        'config_version: 1',
+        'executor_mode: cli-claude',
+        'executorEngine: external',
+        'customField: preserve-me',
+        'models:',
+        '  default: { provider: openrouter, model: old-model }',
+      ].join('\n') + '\n', 'utf8')
+
+      const res = await handleApiConfigSet(req({ apiMode: 'agentic' }))
+      expect(res.status).toBe(200)
+
+      const saved = readFileSync(join(dir, 'orchestos.config.yaml'), 'utf8')
+      expect(saved).toContain('# fixture legacy: no debe migrarse por un PUT ajeno')
+      expect(saved).toContain('executor_mode: cli-claude')
+      expect(saved).toContain('executorEngine: external')
+      expect(saved).toContain('customField: preserve-me')
+      expect(loadOrcheConfig(dir).agent).toBe('claude')
+      expect(loadOrcheConfig(dir).apiMode).toBe('agentic')
+    } finally {
+      process.chdir(originalCwd)
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('PUT explícito de agent sí retira sus aliases legacy', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'orchestos-ccd1c-legacy-migrate-'))
+    try {
+      process.chdir(dir)
+      writeFileSync(join(dir, 'orchestos.config.yaml'), [
+        'config_version: 1',
+        'executor_mode: cli-claude',
+        'executorEngine: external',
+        'models:',
+        '  default: { provider: openrouter, model: old-model }',
+      ].join('\n') + '\n', 'utf8')
+
+      const res = await handleApiConfigSet(req({ agent: 'api' }))
+      expect(res.status).toBe(200)
+
+      const saved = readFileSync(join(dir, 'orchestos.config.yaml'), 'utf8')
+      expect(saved).toContain('agent: api')
+      expect(saved).not.toContain('executor_mode:')
+      expect(saved).not.toContain('executorEngine:')
     } finally {
       process.chdir(originalCwd)
       rmSync(dir, { recursive: true, force: true })
