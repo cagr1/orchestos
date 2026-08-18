@@ -36,6 +36,144 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 ---
 
+## MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (PLANIFICADO 2026-08-18, NO ABIERTO)
+
+> **Estado: NO ARRANCA hasta cerrar el Mes 29.** Decisión de Carlos (2026-08-18): primero se
+> termina Mes 29, después se abre este bloque. Ningún ítem `UI.*` se toca antes de eso.
+
+### Decisión y por qué (2026-08-18, NO RE-LITIGAR)
+
+Carlos decide adoptar el estándar de facto de la industria para la UI del dashboard. La decisión
+**está tomada y no se vuelve a discutir** — ningún LLM debe re-proponer "hacerlo a mano en vanilla",
+pedir que se re-justifique, ni volver a plantear el trade-off. Si un LLM cree que hay un problema
+técnico concreto en la *ejecución*, lo dice; la *dirección* no se re-abre.
+
+**La evidencia que motivó la decisión sale de este mismo archivo:**
+
+- v0.12 (Mes 21) tuvo que **inventar 4 reglas de diseño propias desde cero** (anclaje de elementos
+  fijos, altura de toprow, overflow en el nivel correcto, hover-swap CSS) — ver línea del cierre de
+  v0.12 más abajo. Son problemas que Radix UI resuelve de fábrica hace años.
+- Mes 21 registró **13 ajustes "premium dashboard"** con causa raíz individual cada uno.
+- El patrón `render()` → `innerHTML` → `wire()` (62 `innerHTML` + 186 `addEventListener`) **es** un
+  mini-framework escrito a mano. La pregunta nunca fue "¿meto un framework?" sino "¿mantengo el mío
+  o uso el que ya resolvió esto?".
+- Costo real medido por Carlos: horas por un `<select>`. Meses de "hacerlo sencillo" salieron **más
+  caros en tiempo** que adoptar la librería.
+
+**Verificación externa (2026-08-18)**: Claude Desktop es Electron; el combo dominante en apps de
+este tipo es React + Vite/Bun + Tailwind + shadcn/ui. Codex integra shadcn/ui vía MCP como registry
+de referencia. shadcn/ui está construido sobre **Radix Primitives** (accesibilidad, foco, teclado,
+overflow, z-index ya resueltos) + Tailwind. No hay equivalente igual de maduro para vanilla JS.
+
+### Estado inicial medido (2026-08-18, no estimado)
+
+| Pieza | Números reales |
+|---|---|
+| Pantallas en `window.SCREENS` | **11** — chat, runner, tasks, memory, project, instincts, runs, graph, settings, specs, skills |
+| JS de frontend | **~8.300 líneas** — `app.js` 2612, `screens-ops.js` 2408, `screens-core.js` 1647, `i18n.js` 1618, `data.js` 184, `theme.js` 31 |
+| CSS | **~2.043 líneas** — `screens.css` 1193, `styles.css` 850 |
+| Framework casero | 62 `innerHTML` + 186 `addEventListener`, patrón `render()`/`wire()` |
+| Build step | **Ninguno** — `<script src>` globales en `index.html`, sin módulos ES, sin bundler |
+| Tests de frontend | **Cero** — los 13 de `src/dashboard/__tests__/` son de handlers/API |
+| Tokens de diseño | **30 CSS vars** ya definidas (`--bg`, `--surface`, `--accent`, `--radius`, …) |
+| Bun | 1.3.14 — **transpila TSX nativo y tiene bundler propio** |
+
+### Stack elegido
+
+**React 19 + TypeScript + Tailwind v4 + shadcn/ui (sobre Radix), bundleado con `bun build`.**
+
+**No Vite, no Rollup, no webpack, no esbuild.** El punto no obvio que abarata toda la migración:
+Bun 1.3.14 ya hace TSX nativo y bundlea. El build es una línea, en el runtime que el repo ya usa.
+Tailwind v4 entra por `bun-plugin-tailwind` dentro del mismo `Bun.build()`.
+
+### Costos reales — declarados ANTES, no descubiertos después
+
+1. **Aparece un build step donde hoy no hay ninguno.** Hoy: editar `.js` → recargar. Después:
+   `bun run build:ui` (o watch). Toca el flujo de desarrollo y probablemente `scripts/pre-commit.sh`.
+   Es el precio real de la decisión y no es negociable.
+2. **Coverage gate.** Los umbrales de `scripts/check-coverage.ts` (72.98% / 59.71%) miden
+   `src/**/*.ts`. Meter `.tsx` mueve el número. Decidir **explícitamente**: excluir el UI del
+   coverage o recalibrar **contra el log de CI, nunca contra el Mac**
+   (ver regla "Verificar contra CI" en CLAUDE.md y `reference-ci-host-environment-drift`).
+3. **i18n NO se migra.** 223 llamadas a `t()` solo en `app.js`, sistema propio con `window.t`.
+   React sigue llamando `window.t()`. Migrar i18n está **fuera de alcance de todo el Mes 30**.
+4. **Las 4 reglas de diseño de v0.12** se verifican una por una contra Radix, en vivo. Radix las
+   resuelve — pero eso **se comprueba, no se asume** (regla cero de CLAUDE.md: nada se entrega sin
+   verificar contra el dashboard real corriendo, no mocks).
+5. **11 pantallas.** No es un fin de semana. Carlos asume ese costo explícitamente (2026-08-18).
+
+### Ítems
+
+- [ ] **UI.0 — 🧠 Andamiaje (ninguna pantalla migrada).**
+  `public-src/` con React+TS; `bun build` → `public/dist/`; script `build:ui`;
+  `bun-plugin-tailwind`. Mapeo de las **30 CSS vars actuales** a tokens shadcn
+  (`--background`, `--foreground`, `--border`, `--primary`, `--muted`, `--destructive`, `--radius`)
+  — **shadcn adopta la paleta existente, no al revés**: el look actual se preserva.
+  Convivencia: React monta en contenedores dentro del DOM vanilla; nada existente se rompe.
+  **Validación**: el dashboard actual sigue funcionando idéntico + pipeline de build listo.
+
+- [ ] **UI.1 — 🔍 GATE DE ABORTAR: el combobox de modelo.**
+  Una sola isla React dentro del dashboard vanilla actual: reemplazar `buildModelSelect()` por
+  shadcn `Command` + `Popover` (patrón combobox buscable — que es literalmente lo que exige
+  `reference-model-combo-pattern`, resuelto de fábrica).
+  **Es el componente exacto que costó horas.** Si en ~1 día queda mejor que lo actual y se comporta
+  bien **verificado en vivo** (dashboard real corriendo), la tesis quedó probada y se sigue.
+  Si no, **se aborta acá** habiendo perdido un día en vez de meses.
+
+- [ ] **UI.2 — 🧠 Design system: los 6 componentes que se repiten.**
+  Button, Input/Search, Select/Combobox, Dialog, Toast (reemplaza `showToast`), Tabs.
+  Más primitives del shell (`cn()`, variantes). Todo shadcn, cero CSS a mano.
+
+- [ ] **UI.3 — 🧠 Shell: sidebar + header + rightpanel + search.**
+  El navbar/toolbar/panel colapsable — donde viven las 4 reglas de diseño descubiertas a los golpes.
+  Va **después** del design system, no antes, porque toca las 11 pantallas a la vez.
+
+- [ ] **UI.4 — 🧠 Pantallas, en orden de valor.**
+  `specs` y `skills` primero (las más chicas — validan el patrón de migración de pantalla completa),
+  después `chat` (la home, mayor valor visual), `tasks`, `runs`, `graph`, y `settings` al final
+  (la más grande, ~900 líneas).
+  **Una pantalla = un commit = verificación en vivo.** Sin acumular (regla de cadencia de commits).
+  **Migrar ≠ rediseñar**: primero paridad funcional, las mejoras visuales vienen después.
+
+- [ ] **UI.5 — 🧠 Limpieza.**
+  Borrar el `render()`/`wire()` muerto; `screens.css`/`styles.css` reducidos a tokens;
+  `index.html` con un solo `<script>`.
+
+- [ ] **UI.6 — 🧠 La UI de sesiones y proyectos (backend ya listo por CC.2/CC.3).**
+  Absorbida desde el Mes 29 el 2026-08-18: CC.2 y CC.3 entregan schema + endpoints + tests, y toda
+  su superficie visual se construye acá, en React, **nunca en vanilla**.
+  Sidebar izquierdo: **toggle Chat | Code** arriba (shadcn `Tabs`), y debajo el árbol de proyectos
+  como carpetas colapsables (shadcn `Collapsible`/`Sidebar`) con sus sesiones. En `Code` se ven los
+  proyectos con sus agentes; en `Chat` se ven las conversaciones — incluidas las "generales"
+  (`project_id NULL`). Cada sesión muestra su agente (inmutable) y su modo (mutable).
+  El picker de agente de CC.D2 se reconstruye acá apuntando a `PATCH /api/chat/sessions/:id`,
+  ya no a `PUT /api/config`.
+
+- [ ] **UI.7 — 🧠 Navegación nueva: muere "modo avanzado", nace "Observabilidad".**
+  Absorbe el ex-CC.4 y el ex-BB.3. Elimina `navModeBtn` y el flag
+  `localStorage['orchestos-mode']` (`app.js:1593`, `2263`, `2286-2337`) — el eje deja de ser
+  normal/avanzado y pasa a ser Chat/Code.
+  En el lugar exacto que ocupaba "modo avanzado" (abajo de todo, justo arriba de Settings) va el
+  grupo colapsable **Observabilidad**: Tasks · Runs · Graph · Specs · Skills.
+  Memory · Instincts · Project van dentro de Settings (veredicto de CC.0).
+  `SCREENS.runner` se borra (deuda CC.0-D5).
+  **Gate 🔍 en vivo**: es el equivalente visual de CC.5 — dos proyectos, una sesión por proyecto,
+  cada una con un CLI distinto, verificado con navegador real.
+
+### Fuera de alcance del Mes 30 (explícito)
+
+- Migrar i18n a una librería.
+- Tocar handlers, endpoints o cualquier cosa de `src/dashboard/*.ts` que no sea servir el bundle.
+- Cambiar navegación, rutas o comportamiento funcional — **este mes es puramente visual/estructural**.
+- Rediseñar pantallas mientras se migran.
+
+### Riesgo principal
+
+No es React. Es que **a mitad de camino queden dos sistemas conviviendo indefinidamente.**
+Por eso UI.1 es un gate de abortar real, y por eso el orden es shell→pantallas y no al revés.
+
+---
+
 ## MES 29 — Que "OrchestOS" deje de quedarle grande al sistema (abierto 2026-08-16)
 
 **Eje, en palabras de Carlos**: *"para realmente poderlo llamar así debería poder abrir varios
@@ -626,18 +764,142 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   API conservó el buscador y filtró `dots-studio/dots-3-note-preview:free`; Codex/OpenCode
   aparecieron deshabilitados con "Not wired for chat yet" y sin `data-modelfx-agent` ni selector
   de modelo; consola posterior a la recarga: 0 errores.
-- [ ] **CC.2 — 🧠 Sesiones de chat reales, agrupadas por proyecto.** Persistidas en SQLite, lista
-  lateral acumulativa (patrón estándar que Carlos pidió explícitamente, "así como lo hacen todas
-  estas herramientas"), **agente por sesión** (no "motor" — ver CC.D1). Alineado con ACP: en Zed el
-  agente se elige por thread, así que la sesión es el lugar natural donde vive esa elección.
-  Absorbe `#50`.
-- [ ] **CC.3 — 🧠 Multi-proyecto real.** Matar los 10 `resolve('.')` del dashboard; el proyecto
-  activo es una selección del usuario, no el cwd donde se lanzó el server. Absorbe `#35`.
-- [ ] **CC.4 — ⚡ Colapsar la navegación según el veredicto de CC.0.** Incluye el ex-BB.3 (unificar
-  los dos selectores de Settings) — se hace acá, con la navegación ya decidida, no antes.
-- [ ] **CC.5 — 🔍 Gate: el caso de uso completo, en vivo.** Dos proyectos reales abiertos a la vez,
-  un chat por proyecto, **cada uno sobre un CLI distinto**, y trabajo real hecho en ambos sin
-  cruzar contexto. Si eso no se puede hacer de punta a punta, el Mes no cierra.
+### CC.2 — Sesiones de chat reales: diseño cerrado (2026-08-18)
+
+**Regla de frontend para todo el resto del Mes 29 (decisión de Carlos, 2026-08-18):**
+**NO se escribe UI nueva en JS vanilla.** Ni "mínima", ni "provisional", ni "para el gate".
+Toda superficie visual nueva se construye en el Mes 30 con React+shadcn. Textual de Carlos:
+*"YA NO RECOMENDAR vanilla, eso lo vamos a cambiar; insistir en lo mismo es caer en un loop"*.
+Consecuencia directa: **CC.2 y CC.3 son backend puro** (schema + endpoints + tests), y todo lo
+visual de sesiones/navegación son ítems del Mes 30 (`UI.6`, `UI.7`). Ver
+[[feedback-no-reinventar-ui-usar-libreria]].
+
+**Verificación externa (2026-08-18, fuentes primarias)** — se investigó en vez de opinar, a pedido
+de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
+
+| Fuente | Hallazgo textual | Consecuencia para OrchestOS |
+|---|---|---|
+| **Orca** (docs oficiales) | *"An agent session is one CLI agent running in one terminal in one worktree."* Sin cambio de agente a mitad de sesión — si querés otro, es otra sesión o un fork. | `agent` es columna de la sesión e **INMUTABLE** tras crearla. |
+| **ACP** (spec de session modes) | 3 modos: `Ask` (permiso antes de cambiar), `Architect` (diseña sin implementar), `Code` (acceso completo). *"The current mode can be changed at any point during a session."* | `mode` es columna de la sesión y **MUTABLE en caliente**. Agente y modo son **dos ejes distintos** — confundirlos sería el mismo error que `executor_mode`+`executorEngine` (CC.D1). |
+| **Claude Code** (docs de permission modes) | `plan` es read-only **para toda la sesión** (lee y explora, nunca escribe ni ejecuta); `acceptEdits` escribe. Se togglea en caliente (Shift+Tab). | El toggle Chat\|Code **no es cosmético: es la frontera de permisos**. Ya está a medias implementado en CC.1 (`--allowedTools Read,Glob,Grep`). |
+| **Zed** (profiles del agente propio) | Separa `Ask` (read-only tools) de `Minimal` (**no tools, pure chat**). | El chat "general" que pidió Carlos es el `Minimal` de Zed. **No hace falta un tercer modo**: una sesión sin `project_id` no tiene repo que leer, así que degrada sola a chat puro. |
+
+**Decisiones cerradas (Carlos, 2026-08-18)** — no re-preguntar:
+
+1. **Un agente por sesión, inmutable.** *"No podemos mezclar agente dentro de un chat."* Coincide
+   1:1 con Orca. El picker de agente del chat (CC.D2) **deja de hacer `PUT /api/config`** — escribe
+   en la sesión. El `agent` de `orchestos.config.yaml` queda como **default al crear sesión nueva**,
+   nada más.
+2. **`mode: 'chat' | 'code'`**, mutable en caliente (ACP). `chat` = read-only (`Read,Glob,Grep`, lo
+   que ya hace CC.1); `code` = worktree + escritura. Es una frontera de seguridad real y auditable
+   — cumple [[INS-2026-014]] (declarar explícitamente qué puede tocar cada agente, no confiar en el
+   prompt).
+3. **`project_id` NULLABLE.** *"No necesariamente trabajar en algo significa un proyecto de
+   desarrollo, puede ser algo sencillo"* — ese es el chat "general". El schema lo soporta desde el
+   día uno para no rediseñarlo después. Qué más significa "general" se decide en el Mes 30.
+4. **Desaparece el botón "modo avanzado"** (`navModeBtn`, `app.js:2286-2337`, flag
+   `localStorage['orchestos-mode']`). Lo reemplaza el toggle **Chat | Code**.
+5. **Grupo "Observabilidad"** en el sidebar, **en el lugar exacto donde estaba "modo avanzado"**:
+   abajo de todo, justo arriba de Settings (`app.js:2316`, entre `<div class="grow">` y
+   `bottomNav`). Al presionarlo se despliegan Tasks/Runs/Graph/Specs/Skills. Memory, Instincts y
+   Project sí van a Settings (veredicto de CC.0, sin cambios).
+   *Nota: Carlos escribió "lado lateral derecho" pero describió la posición de "modo avanzado",
+   que vive en el sidebar IZQUIERDO — se asume izquierdo; corregir si era literal.*
+
+- [ ] **CC.2 — 🧠 Sesiones de chat reales (BACKEND PURO — cero frontend).** Absorbe `#50` y
+  la deuda CC.0-D1. Hoy `state.chatHistory` vive solo en memoria del navegador
+  (`screens-core.js:288-528`) y se pierde en cada reload; el run que el chat crea guarda
+  `project_id: null` a propósito (`chat.ts:273`).
+  **Schema** (`src/db/migrate.ts`):
+  `chat_sessions(id, project_id NULL→projects, agent, mode, title, created_at, updated_at)` +
+  `chat_messages(id, session_id→chat_sessions, role, content, model, task_id, ocr_used, created_at)`.
+  **Módulo** `src/db/chat-sessions.ts` (mismo patrón que `db/runs.ts`).
+  **Endpoints**: `GET/POST /api/chat/sessions`, `GET /api/chat/sessions/:id/messages`,
+  `PATCH /api/chat/sessions/:id` (solo `mode` y `title` — `agent` rechaza 400, es inmutable),
+  `DELETE /api/chat/sessions/:id`.
+  `POST /api/chat` acepta `sessionId` **opcional**: si viene, persiste y aplica el `agent`/`mode`
+  de la sesión; si no viene, comportamiento actual intacto — **cero regresión** del chat efímero
+  que ya funciona y de CC.1/CC.D2.
+  **Validación**: tests de endpoints + inmutabilidad de `agent` + que `mode: chat` nunca habilite
+  Edit/Write. Sin Playwright — no hay UI nueva que mirar.
+
+- [ ] **CC.3 — 🧠 Multi-proyecto real (BACKEND PURO).** Matar los 10 `resolve('.')` del dashboard;
+  el proyecto activo es una selección del usuario, no el cwd donde se lanzó el server.
+  Absorbe `#35` y la deuda CC.0-D2. La UI de selección va en `UI.6` (Mes 30).
+
+- [ ] **CC.4 — ABSORBIDO por el Mes 30 (2026-08-18).** "Colapsar la navegación" era un rediseño
+  de navegación en vanilla; ahora la navegación entera se reconstruye en React (`UI.3` + `UI.7`).
+  El ex-BB.3 (unificar los dos selectores de Settings) viaja con él.
+
+- [ ] **CC.5 — 🔍 Gate: el caso de uso completo, por API.** Dos proyectos reales, una sesión por
+  proyecto, **cada una sobre un CLI distinto**, trabajo real hecho en ambas sin cruzar contexto —
+  verificado contra los endpoints reales y la SQLite real, **no por click-through** (no hay UI
+  nueva en este Mes). El gate visual equivalente es `UI.7` en el Mes 30. Incluye el escenario de
+  graph pendiente (deuda CC.0-D4). Si esto no se puede hacer de punta a punta, el Mes no cierra.
+
+### Nota de estado — ¿se está perdiendo la esencia? (2026-08-18)
+
+Carlos preguntó, al cerrar el diseño de CC.2, si tanto mirar a otras herramientas (ACP, Orca,
+shadcn) estaba desviando a OrchestOS de su objetivo. Se midió antes de opinar. **Queda anotado
+como criterio de contraste, no como veredicto** — incluido el error de medición que cometí.
+
+**Números reales de este día** (`~/.orchestos/db.sqlite` + `git`):
+
+| Métrica | Valor |
+|---|---|
+| Commits | 515 · costo acumulado **$1.58** en toda la historia |
+| Runs en la DB | 64 — de los cuales **53 son `task_class=chat`** |
+| Ejecución de tareas | 11 (implement 6 · plan 3 · fix 1 · doc 1) |
+| Último run de tarea **en la DB principal** | 2026-07-20 |
+| Runs con QA | 9 de 64 (7 pass · 2 fail) · con checks ejecutados: 6 |
+| Runs de agosto | 19 — **todos `chat`** |
+
+**Mi lectura inicial fue incorrecta y Carlos la refutó.** Yo concluí "el harness lleva 29 días sin
+encenderse". Falso: BB.4 (2026-08-16) corrió los **3 motores CLI** sobre la misma tarea con
+resultados documentados, y los gates en vivo de CC.D corrieron el 17 y 18. Lo que pasa es que
+**todas esas corridas usan `ORCHESTOS_HOME` temporal y su evidencia se borra con el tmpdir** —
+verificado: existe una sola DB en el sistema (`~/.orchestos/db.sqlite`), y los scratch de
+`/private/tmp/orchestos-*` no dejan filas. La DB principal solo ve el chat.
+
+**Hallazgo real, que vale más que la observación original:** *no existe una serie de tiempo del
+uso del harness.* Ni Carlos ni un LLM pueden responder "¿cuánto se ha ejercitado de verdad?" con
+datos, porque la instrumentación mide el chat y descarta justamente las corridas que importan.
+Es el mismo patrón que motivó el **Mes 15.F0** ("los instrumentos de medición deben decir la
+verdad antes de tocar el motor"), reaparecido en otra capa. **No se corrige acá** (regla del Mes:
+la auditoría clasifica, no repara) — queda como deuda `CC.0-D6`.
+
+**Respuesta de Carlos (2026-08-18), aceptada:** *"aún no se ha probado porque aún no está listo,
+lo seguimos desarrollando"*. Es consistente con los datos: el chat recién sabe correr sobre un CLI
+desde CC.1 (2026-08-16) y las sesiones no existen todavía. Probar "como es debido" antes de eso
+habría medido un producto que no estaba.
+
+**Lo que sí queda como criterio permanente:**
+
+1. **Imitar el estándar no diluye la esencia.** Las 3 investigaciones externas de este Mes (ACP en
+   CC.D, Orca hoy, shadcn ayer) dieron el mismo resultado: el instinto de Carlos ya coincidía con
+   el estándar, y lo caro era demostrarlo desde cero. Copiar lo resuelto libera tiempo para lo
+   diferencial — no lo reemplaza.
+2. **El diferencial de OrchestOS es el harness de verificación, y sigue intacto.** Orca es un
+   cockpit de terminales paralelas (agentes lado a lado + diff, **cero verificación**); Claude Code
+   tiene permission modes, que no son un contrato de `output[]` + checks + QA. `enforceContract`,
+   `checks`, QA, ledger y spec-driven no existen en ninguna de las dos. Mes 17 ya demostró que
+   funcionan sobre un motor que OrchestOS no controla.
+3. **La vara se movió a favor, no en contra.** Que los CLI agénticos hayan resuelto *ejecutar* mata
+   a OrchestOS-como-ejecutor, pero hace más valioso a OrchestOS-como-harness: hay más agentes que
+   nunca escribiendo código y nadie verificando la salida. El diferencial se corrió de "ejecutar" a
+   "verificar lo que otro ejecutó".
+4. **"Usable por personas comunes" no cambió, y los datos lo confirman.** 53 de 64 runs son chat
+   (83%). Un no-dev no va a abrir `tasks.yaml` ni leer un `qa_verdict`. La forma que el propio uso
+   está dictando es: **el chat es la puerta, el harness corre detrás sin que se vea.** Coherente con
+   todo lo decidido en CC.2 y en el Mes 30.
+
+- [ ] **CC.0-D6 — ⚡ El uso real del harness no es medible.** Las corridas de verificación
+  (BB.4, gates en vivo) usan `ORCHESTOS_HOME` temporal y no dejan filas en la DB principal, así que
+  la única serie de tiempo disponible mide solo el chat y subestima el uso del motor. Decidir:
+  (a) que los gates en vivo escriban en la DB real con una marca `task_class` distinguible, o
+  (b) exportar la evidencia del tmpdir al ledger antes de borrarlo. Sin esto, cualquier pregunta
+  futura de "¿esto se está usando?" se responde con datos incompletos — que es exactamente el error
+  que se cometió al escribir esta nota.
 
 ---
 
