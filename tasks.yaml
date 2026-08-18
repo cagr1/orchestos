@@ -168,3 +168,10 @@ tasks:
     retry_count: 2
     retry_reason: "missing declared output(s): scratch/design-test-premium-a1.html"
     qa_verdict: fail
+  - id: python-hello-world-script
+    description: Create a simple Python script that prints 'hello world' and save it as hello.py in the project root.
+    output:
+      - hello.py
+    executor: openrouter
+    status: pending
+    retry_count: 0
