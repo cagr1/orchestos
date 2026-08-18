@@ -420,6 +420,18 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   127.0.0.1:4242/app.js` y `/screens-core.js` confirman las funciones nuevas presentes en lo que el
   navegador de Carlos está cargando ahora mismo. El click-through real (elegir alias, mandar
   mensaje, volver al selector y ver el paréntesis) queda pendiente de que Carlos lo confirme.
+- [ ] **CC.D1c — ⚡ `PUT /api/config` reescribe TODO el YAML, migra campos legacy sin que se pida.**
+  Hallazgo real reproducido 2 veces en esta misma sesión (2026-08-17): `orchestos.config.yaml` de
+  este repo se dejó deliberadamente con `executor_mode`/`executorEngine` (formato legacy) como
+  fixture vivo de que la migración de CC.D1 funciona en lectura sin reescribir. Pero
+  `handleApiConfigSet()` (`handlers/config.ts:158`) hace `writeFileSync(configPath,
+  yamlStringify(newConfig))` **incondicional**, y `newConfig` parte de `current = loadOrcheConfig()`
+  — que YA migró los campos legacy a `agent`/`apiMode` en memoria. Resultado: cualquier PUT, aunque
+  sea guardar un valor sin relación (ej. tocar el selector de agente en el chat, aunque sea al MISMO
+  agente que ya tenías), reescribe el archivo completo al formato nuevo — silencioso, sin flag, sin
+  aviso. No corregido acá (fuera de alcance de la sesión); revertido a mano las 2 veces que apareció.
+  Fix mínimo cuando se tome: no reescribir campos que el body no pidió cambiar, o al menos no
+  "limpiar" el formato legacy salvo que el usuario haya tocado ese campo específico.
 - [ ] **CC.D1b — ⚡ `orchestos context update` sobreescribe `AGENTS.md` a ciegas.** Hallazgo real
   (2026-08-17), no en camino de CC.D: `ctx.command('update')` (`src/cli.ts:154-169`) corre
   `buildProfile(root)` (auto-detección genérica) → `generateAgentsMd(profile)` → **escribe
