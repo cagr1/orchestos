@@ -488,6 +488,37 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   corren de verdad, no son un placeholder. Gate en vivo: sin navegador en esta sesión (mismo
   límite ya declarado) — `curl 127.0.0.1:4242/app.js` confirma que el servidor real que Carlos ya
   tenía corriendo sirve el código nuevo sin reiniciar.
+
+- [x] **CC.D2 — octava pasada (2026-08-17), Carlos: "no podemos llamar a un modelo
+  claude-haiku-4-5-20251001" + "faltan modelos" + "cambio de modelo si o no."** Dos hallazgos
+  reales, no adivinanzas nuevas:
+
+  1. **Id crudo mostrado sin formatear.** El id que devuelve el binario (`claude-haiku-4-5-20251001`,
+     con sufijo de fecha de snapshot) se mostraba tal cual en la UI — ilegible. `claudeHumanModelLabel()`
+     (app.js) nuevo: separa familia + versión, descarta el sufijo de fecha (regex `\d{8}`, formato
+     `YYYYMMDD`) que el binario agrega a algunos snapshots pero no aporta nada al usuario. Verificado
+     con los 4 casos reales: `claude-opus-5`→"Opus 5", `claude-sonnet-5`→"Sonnet 5",
+     `claude-haiku-4-5-20251001`→"Haiku 4.5", `claude-fable-5`→"Fable 5". Aplicado en los 3 puntos
+     donde antes se mostraba el id crudo (fila del alias, lista de "Versión fija", label del pill
+     cuando hay una versión fija seleccionada).
+  2. **Fable faltaba en la semilla** (pasada anterior lo excluyó por no poder probarlo — créditos
+     agotados). Encontrado: el id real (`claude-fable-5`) YA estaba disponible como dato provisto
+     directo por el propio harness de Claude Code en el contexto del sistema de esta sesión
+     ("Model IDs — Fable 5: 'claude-fable-5'") — fuente autoritativa que no requería adivinar ni
+     reintentar contra la cuenta sin créditos. Agregado a `CLAUDE_SEED_RESOLVED_2026_08_17`.
+
+  **Sobre "cambio de modelo sí o no"**: no, no era un límite de capacidad — fue no pensar la capa
+  de presentación antes de implementar (mostrar el id técnico tal cual) y no revisar el propio
+  contexto disponible antes de declarar un dato "no confirmable". Ambos son procesos corregibles,
+  no una limitación del modelo usado en esta sesión.
+
+  **Evidencia:** `node --check`/`tsc --noEmit` limpios; `bun run test:coverage` → 1158 pass / 0 fail
+  (sin cambio, mismo motivo de siempre — frontend puro sin suite dedicada); formateador probado con
+  los 4 casos reales conocidos (ver arriba), resultado exacto esperado en los 4.
+  Gate en vivo: sin navegador/Playwright en esta sesión (mismo límite declarado en todas las
+  pasadas) — `curl
+  127.0.0.1:4242/app.js` confirma el código nuevo servido sin reiniciar por el servidor real que
+  Carlos ya tenía abierto.
 - [ ] **CC.D1c — ⚡ `PUT /api/config` reescribe TODO el YAML, migra campos legacy sin que se pida.**
   Hallazgo real reproducido 2 veces en esta misma sesión (2026-08-17): `orchestos.config.yaml` de
   este repo se dejó deliberadamente con `executor_mode`/`executorEngine` (formato legacy) como

@@ -1989,6 +1989,11 @@ const CLAUDE_SEED_RESOLVED_2026_08_17 = {
   'anthropic/opus': 'claude-opus-5',
   'anthropic/sonnet': 'claude-sonnet-5',
   'anthropic/haiku': 'claude-haiku-4-5-20251001',
+  // Fable: no se pudo probar contra el binario (créditos agotados en la
+  // cuenta), pero el id es dato provisto directo por el propio harness de
+  // Claude Code en el contexto de esta sesión ("Model IDs — Fable 5:
+  // 'claude-fable-5'") — fuente autoritativa, no una adivinanza.
+  'anthropic/fable': 'claude-fable-5',
 };
 function getKnownClaudePinnedModels() {
   const seen = new Set();
@@ -1997,6 +2002,21 @@ function getKnownClaudePinnedModels() {
     if (resolved) seen.add(resolved);
   }
   return Array.from(seen).sort();
+}
+// Hallazgo real de Carlos (2026-08-17, tercera vuelta): mostrar el id crudo
+// del binario ("claude-haiku-4-5-20251001") es ilegible para un usuario —
+// nadie llama a un modelo así. Formatea a "Familia N.N" (ej. "Haiku 4.5"),
+// descartando el sufijo de fecha (8 dígitos, YYYYMMDD) que el binario agrega
+// a algunos snapshots pero que no aporta nada a la UI.
+function claudeHumanModelLabel(canonical) {
+  const parts = canonical.replace(/^claude-/, '').split('-');
+  const family = parts[0] ? parts[0][0].toUpperCase() + parts[0].slice(1) : canonical;
+  const versionParts = [];
+  for (let i = 1; i < parts.length; i++) {
+    if (/^\d{8}$/.test(parts[i])) break; // fecha de snapshot, no versión
+    if (/^\d+$/.test(parts[i])) versionParts.push(parts[i]); else break;
+  }
+  return versionParts.length ? `${family} ${versionParts.join('.')}` : family;
 }
 
 function buildChatModelFx(st) {
@@ -2034,14 +2054,16 @@ function buildChatModelFx(st) {
     { id: 'anthropic/fable', label: 'Fable' },
   ];
   const claudeAliasMatch = CLAUDE_CLI_ALIASES.find(m => m.id === val);
-  const claudeResolved = showsClaudeModelPicker && claudeAliasMatch
+  const claudeResolvedRaw = showsClaudeModelPicker && claudeAliasMatch
     ? (getResolvedClaudeModel(val) || CLAUDE_SEED_RESOLVED_2026_08_17[val])
     : null;
+  const claudeResolved = claudeResolvedRaw ? claudeHumanModelLabel(claudeResolvedRaw) : null;
   // `val` bajo Claude puede ser un alias (los 4 de arriba, "sigue la última")
   // o una versión FIJA que el usuario ya eligió a propósito (`anthropic/<canonical>`,
   // ej. "anthropic/claude-sonnet-5") — ese id no matchea CLAUDE_CLI_ALIASES.
+  // Se muestra formateado ("Sonnet 5"), nunca el id crudo del binario.
   const claudePinnedLabel = showsClaudeModelPicker && !claudeAliasMatch && val.startsWith('anthropic/')
-    ? val.slice('anthropic/'.length)
+    ? claudeHumanModelLabel(val.slice('anthropic/'.length))
     : null;
   const modelLabel = showsClaudeModelPicker
     ? (claudeAliasMatch
@@ -2095,8 +2117,9 @@ function buildChatModelFx(st) {
       <div class="chat-modelfx-group-label muted">${t('chat.modelfx.claudeAuto')}</div>
       ${CLAUDE_CLI_ALIASES.map(m => {
         const resolved = getResolvedClaudeModel(m.id) || CLAUDE_SEED_RESOLVED_2026_08_17[m.id];
+        const humanResolved = resolved ? claudeHumanModelLabel(resolved) : null;
         return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}">
-        <span>${esc(m.label)}${resolved ? ` <span class="muted">(${esc(resolved)})</span>` : ''}</span>${val === m.id ? ICON.check : ''}
+        <span>${esc(m.label)}${humanResolved ? ` <span class="muted">(${esc(humanResolved)})</span>` : ''}</span>${val === m.id ? ICON.check : ''}
       </button>`;
       }).join('')}
       ${(() => {
@@ -2107,7 +2130,7 @@ function buildChatModelFx(st) {
         ${pinned.map(canonical => {
           const pinnedId = 'anthropic/' + canonical;
           return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === pinnedId ? ' active' : ''}" data-modelfx-claude-alias="${esc(pinnedId)}">
-          <span>${esc(canonical)}</span>${val === pinnedId ? ICON.check : ''}
+          <span>${esc(claudeHumanModelLabel(canonical))}</span>${val === pinnedId ? ICON.check : ''}
         </button>`;
         }).join('')}`;
       })()}
