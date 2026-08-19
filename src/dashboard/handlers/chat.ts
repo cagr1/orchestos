@@ -457,11 +457,18 @@ async function handleApiChat(req: Request, fallbackProject?: DashboardProjectCon
   }
   const root = project.root
 
+  // CC.1-D1 (2026-08-19) — el 422 que bloqueaba codex/opencode en el chat
+  // entero era una decisión de implementación de CC.1, no un límite pedido:
+  // en ese momento nadie había verificado que esos binarios tuvieran un
+  // control de solo-lectura real. Sí lo tienen (`codex exec --sandbox
+  // read-only`, `opencode run --agent plan` con `edit: deny`) — ver
+  // `runCodexChat`/`runOpencodeChat`. El usuario elige libremente con qué
+  // agente hablar; la frontera de lectura/escritura la sigue poniendo el
+  // flag real de cada CLI, nunca una lista de agentes permitidos.
   const chatAgent = session?.agent ?? loadOrcheConfig(root).agent
-  if (session && (chatAgent === 'codex' || chatAgent === 'opencode')) {
-    return errorResponse(`Agent "${chatAgent}" does not have a verified read-only chat transport yet`, 422)
-  }
   const useClaudeCli = chatAgent === 'claude'
+  const useCodexCli = chatAgent === 'codex'
+  const useOpencodeCli = chatAgent === 'opencode'
   const allowedEfforts: readonly string[] = useClaudeCli ? CLAUDE_CLI_EFFORTS : VALID_EFFORTS
   if (body.effort !== undefined && !allowedEfforts.includes(body.effort)) {
     return errorResponse(`effort must be one of: ${allowedEfforts.join(', ')}`, 400)
@@ -778,6 +785,43 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         return jsonResponse({ text: responseText, model: resultLabel, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
       } catch (e: any) {
         return errorResponse(`Claude Code CLI: ${e.message}`, 502)
+      } finally {
+        if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
+      }
+    }
+
+    // CC.1-D1 — mismo patrón que useClaudeCli arriba: cwd real si la sesión
+    // tiene proyecto (el flag de solo-lectura del binario es la frontera),
+    // cwd aislado desechable si no (sesión general sin autoridad de escritura).
+    if (useCodexCli) {
+      const { runCodexChat } = await import('../../run/executors/codex.ts')
+      const isolatedCwd = hasProjectContext ? null : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
+      try {
+        const result = await runCodexChat(isolatedCwd ?? root, systemPrompt, combinedText, CLAUDE_CHAT_TIMEOUT_MS, model)
+        const resultLabel = `${result.model} via Codex CLI`
+        logChatRun(message, resultLabel, result.inputTokens, result.outputTokens, session?.project_id ?? project.id)
+        const responseText = result.text + autoTaskNote
+        persistResponse(responseText, resultLabel)
+        return jsonResponse({ text: responseText, model: resultLabel, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
+      } catch (e: any) {
+        return errorResponse(`Codex CLI: ${e.message}`, 502)
+      } finally {
+        if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
+      }
+    }
+
+    if (useOpencodeCli) {
+      const { runOpencodeChat } = await import('../../run/executors/opencode.ts')
+      const isolatedCwd = hasProjectContext ? null : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
+      try {
+        const result = await runOpencodeChat(isolatedCwd ?? root, systemPrompt, combinedText, CLAUDE_CHAT_TIMEOUT_MS, model)
+        const resultLabel = `${result.model} via OpenCode CLI`
+        logChatRun(message, resultLabel, result.inputTokens, result.outputTokens, session?.project_id ?? project.id)
+        const responseText = result.text + autoTaskNote
+        persistResponse(responseText, resultLabel)
+        return jsonResponse({ text: responseText, model: resultLabel, ocrUsed: ocrUsed.length ? ocrUsed : undefined, taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null, autoTask })
+      } catch (e: any) {
+        return errorResponse(`OpenCode CLI: ${e.message}`, 502)
       } finally {
         if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
       }

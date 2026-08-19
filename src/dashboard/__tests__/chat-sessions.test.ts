@@ -3,12 +3,24 @@ import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
+// CC.1-D1 — este archivo prueba el WIRING (agente → transporte correcto),
+// nunca el binario real (eso ya lo cubre el gate en vivo de CC.5). Sin esto,
+// una máquina de dev con claude/codex/opencode instalados haría que los
+// tests que ejercitan esos agentes spawneen procesos reales y gasten cupo —
+// filtrar sus directorios de instalación conocidos del PATH del subproceso
+// deja el resultado determinístico (siempre "binary not found") sin importar
+// el host, igual que ya pasa naturalmente en CI.
+const NO_CLI_PATH = (process.env.PATH ?? '')
+  .split(':')
+  .filter(dir => !dir.includes('.local/bin') && !dir.includes('.opencode/bin'))
+  .join(':')
+
 async function runIsolated(body: string): Promise<Record<string, unknown>> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-chat-sessions-'))
   try {
     const proc = Bun.spawn(['bun', '-e', body], {
       cwd: process.cwd(),
-      env: { ...process.env, ORCHESTOS_HOME: home, OPENROUTER_API_KEY: 'test-key' },
+      env: { ...process.env, ORCHESTOS_HOME: home, OPENROUTER_API_KEY: 'test-key', PATH: NO_CLI_PATH },
       stdout: 'pipe',
       stderr: 'pipe',
     })
@@ -99,7 +111,10 @@ describe('CC.2 — chat sessions backend', () => {
       expect.objectContaining({ role: 'assistant', content: 'respuesta', model: 'test-model', ocrUsed: ['image.png'] }),
     ])
     expect(result.invalidProjectStatus).toBe(404)
-    expect(result.sessionBoundStatus).toBe(422)
+    // CC.1-D1 — codex ya no es un 422 fijo: intenta el transporte real
+    // (runCodexChat) y falla 502 porque el binario no está en el PATH
+    // filtrado de este subproceso (ver NO_CLI_PATH) — nunca por el agente.
+    expect(result.sessionBoundStatus).toBe(502)
     expect(result.deleteStatus).toBe(200)
     expect(result.remainingMessages).toBe(0)
     expect(result.chatAllowsExecution).toBe(false)
@@ -146,9 +161,9 @@ describe('CC.2 — chat sessions backend', () => {
       const payload = await response.json()
       const messages = listChatMessages(session.id)
       const finalRequest = requests[1]
-      const unsupportedSession = createChatSession({ projectId: null, agent: 'codex', mode: 'chat', title: 'Unsupported transport' })
-      const unsupportedResponse = await handleApiChat(new Request('http://localhost/api/chat', {
-        method: 'POST', body: JSON.stringify({ sessionId: unsupportedSession.id, message: 'hola' })
+      const codexSession = createChatSession({ projectId: null, agent: 'codex', mode: 'chat', title: 'Codex transport' })
+      const codexResponse = await handleApiChat(new Request('http://localhost/api/chat', {
+        method: 'POST', body: JSON.stringify({ sessionId: codexSession.id, message: 'hola' })
       }))
       process.stdout.write(JSON.stringify({
         status: response.status,
@@ -157,7 +172,7 @@ describe('CC.2 — chat sessions backend', () => {
         tasksFileCreated: existsSync(join(projectDir, 'tasks.yaml')),
         injectedHistoryForwarded: JSON.stringify(finalRequest).includes('INJECTED-HISTORY'),
         fetchCalls: call,
-        unsupportedStatus: unsupportedResponse.status,
+        codexStatus: codexResponse.status,
       }))
       db.close()
     `)
@@ -170,8 +185,15 @@ describe('CC.2 — chat sessions backend', () => {
     ])
     expect(result.tasksFileCreated).toBe(false)
     expect(result.injectedHistoryForwarded).toBe(false)
-    expect(result.fetchCalls).toBe(2)
-    expect(result.unsupportedStatus).toBe(422)
+    // CC.1-D1 — antes el codex-session request cortaba en el 422 sin llegar
+    // a classifyTaskIntent (2 fetches totales). Ahora sí llega — corre el
+    // clasificador igual que cualquier mensaje — y recién después intenta
+    // runCodexChat, que falla al spawn (3er fetch: la 2da llamada al
+    // clasificador, para el mensaje "hola" de la sesión codex).
+    expect(result.fetchCalls).toBe(3)
+    // Mismo criterio: 502 por binario ausente en el PATH filtrado, no un
+    // 422 por el agente elegido.
+    expect(result.codexStatus).toBe(502)
   })
 
   it('never auto-creates a real task for a general project-less session in Code mode', async () => {

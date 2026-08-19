@@ -187,6 +187,87 @@ function parseCodexStream(stdout: string): { inputTokens: number; outputTokens: 
   return { inputTokens: last.usage?.input_tokens ?? 0, outputTokens: last.usage?.output_tokens ?? 0 }
 }
 
+// -- chat (CC.1-D1, 2026-08-19) -----------------------------------------------
+//
+// CC.1 (2026-08-16) bloqueaba `agent: codex` en el chat entero con un 422
+// ("no verified read-only transport") — decisión de implementación, no un
+// límite pedido por Carlos: en ese momento nadie había verificado si el
+// binario tenía un flag real de solo-lectura equivalente a
+// `--allowedTools Read,Glob,Grep` de Claude. Sí lo tiene: `codex exec --help`
+// confirma `--sandbox <read-only|workspace-write|danger-full-access>`. Mismo
+// criterio que `runClaudeChat` en external.ts: `--sandbox read-only` es la
+// frontera real (el binario no puede escribir aunque corra contra el
+// proyecto real), no un texto en el prompt pidiéndoselo por favor.
+export interface CodexChatResult {
+  text: string
+  inputTokens: number
+  outputTokens: number
+  usd: number
+  model: string
+}
+
+function buildCodexChatArgs(prompt: string, model?: string): string[] {
+  const args = ['exec', prompt, '--json', '--sandbox', 'read-only', '--color', 'never']
+  if (model) args.push('-m', model)
+  return args
+}
+
+export async function runCodexChat(
+  cwd: string,
+  systemPrompt: string,
+  userMessage: string,
+  timeoutMs: number,
+  model?: string,
+): Promise<CodexChatResult> {
+  if (!findCodexBinary()) {
+    throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
+  }
+
+  const codexModel = orchestosModelToCodexModel(model)
+  const prompt = [systemPrompt, userMessage].filter(Boolean).join('\n\n')
+
+  let text = ''
+  const onStep = (step: ExecutorStepEvent) => {
+    if (step.type === 'text' && step.detail) text += step.detail
+  }
+
+  let stdout: string
+  let timedOut: boolean
+  try {
+    ;({ stdout, timedOut } = await runCodex(cwd, buildCodexChatArgs(prompt, codexModel), timeoutMs, onStep))
+  } catch (e: any) {
+    throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
+  }
+
+  let parsed: { inputTokens: number; outputTokens: number }
+  try {
+    parsed = parseCodexStream(stdout)
+  } catch (e: any) {
+    throw new ExecutorCodexError(
+      timedOut
+        ? `codex timed out after ${timeoutMs}ms with no parseable output — cost unknown, not reported as $0`
+        : e.message,
+    )
+  }
+
+  // F0.8 — mismo criterio que el engine de tareas: costo desconocido explícito
+  // (no $0 fabricado) cuando el modelo corrido no está en el catálogo real.
+  // A diferencia del engine de tareas, el chat NO aborta antes de gastar
+  // tokens si el modelo no es `openai/*` — es interactivo, el usuario está
+  // esperando una respuesta; codex corre con su propio default y el costo
+  // queda en 0 con el modelo etiquetado como "cli default", igual que
+  // `runClaudeChat` hace cuando el modelo pedido no es de Anthropic.
+  const usd = model && getCatalog()?.has(model) ? calcCost(model, parsed.inputTokens, parsed.outputTokens) : 0
+
+  return {
+    text,
+    inputTokens: parsed.inputTokens,
+    outputTokens: parsed.outputTokens,
+    usd,
+    model: codexModel ? model! : 'codex (cli default model)',
+  }
+}
+
 // -- engine ---------------------------------------------------------------------
 
 export const codexEngine: ExecutorEngine = {

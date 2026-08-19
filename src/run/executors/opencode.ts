@@ -187,6 +187,77 @@ async function runOpencode(
   return { stdout, timedOut }
 }
 
+// -- chat (CC.1-D1, 2026-08-19) -----------------------------------------------
+//
+// Mismo motivo que `runCodexChat` en codex.ts: CC.1 bloqueaba `agent:
+// opencode` en el chat entero por no tener, en ese momento, un control de
+// solo-lectura verificado. Sí existe: `opencode agent list` muestra un
+// agente built-in `plan` cuya policy tiene `{permission:"edit", pattern:"*",
+// action:"deny"}` — un permiso real del propio binario, no un texto en el
+// prompt. `--agent plan` en vez de `--auto` (que el comentario de arriba ya
+// marca como "dangerous": auto-aprueba TODO lo no denegado explícitamente,
+// lo opuesto de lo que quiere el chat).
+export interface OpencodeChatResult {
+  text: string
+  inputTokens: number
+  outputTokens: number
+  usd: number
+  model: string
+}
+
+function buildOpencodeChatArgs(message: string, model?: string): string[] {
+  const args = ['run', message, '--format', 'json', '--agent', 'plan']
+  if (model) args.push('--model', model)
+  return args
+}
+
+export async function runOpencodeChat(
+  cwd: string,
+  systemPrompt: string,
+  userMessage: string,
+  timeoutMs: number,
+  model?: string,
+): Promise<OpencodeChatResult> {
+  if (!findOpencodeBinary()) {
+    throw new ExecutorOpencodeError(opencodeUnavailableMessage(process.env.PATH))
+  }
+
+  const opencodeModel = orchestosModelToOpencodeModel(model)
+  const message = [systemPrompt, userMessage].filter(Boolean).join('\n\n')
+
+  let text = ''
+  const onStep = (step: ExecutorStepEvent) => {
+    if (step.type === 'text' && step.detail) text += step.detail
+  }
+
+  let stdout: string
+  let timedOut: boolean
+  try {
+    ;({ stdout, timedOut } = await runOpencode(cwd, buildOpencodeChatArgs(message, opencodeModel), timeoutMs, onStep))
+  } catch (e: any) {
+    throw new ExecutorOpencodeError(`failed to spawn opencode: ${e.message}`)
+  }
+
+  let parsed: { usd: number; inputTokens: number; outputTokens: number; steps: number }
+  try {
+    parsed = parseOpencodeStream(stdout)
+  } catch (e: any) {
+    throw new ExecutorOpencodeError(
+      timedOut
+        ? `opencode timed out after ${timeoutMs}ms with no parseable output — cost unknown, not reported as $0`
+        : e.message,
+    )
+  }
+
+  return {
+    text,
+    inputTokens: parsed.inputTokens,
+    outputTokens: parsed.outputTokens,
+    usd: parsed.usd,
+    model: opencodeModel ?? 'opencode (cli default model)',
+  }
+}
+
 // -- engine -------------------------------------------------------------------
 
 export const opencodeEngine: ExecutorEngine = {
