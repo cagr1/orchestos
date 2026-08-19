@@ -136,6 +136,7 @@ function makeOpts(root: string, overrides: Record<string, unknown> = {}) {
     diagnoseFn: diagnoseTaskMock as any,
     loadTasksFn: fakeLoadTasks as any,
     updateTaskStatusFn: fakeUpdateTaskStatus as any,
+    commitTasksYamlFn: (() => {}) as any,
     ...overrides,
   }
 }

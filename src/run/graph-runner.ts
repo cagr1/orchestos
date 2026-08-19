@@ -30,7 +30,8 @@ import { MAX_RETRIES } from './qa.ts'
 import { RunLogger } from './logger.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { OrcheConfig } from '../config/schema.ts'
-import type { SandboxMode } from './sandbox-policy.ts'
+import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
+import { git } from './sandbox.ts'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -40,6 +41,25 @@ const GRAPH_MAX_ITERATIONS = 200
 const RATE_LIMIT_REQUEUE_DELAY_MS = 10_000
 /** Aviso informativo de costo de sesión, alineado con el cost_notice de context-monitor ($5). */
 const COST_NOTICE_THRESHOLD_USD = 5
+
+/**
+ * CC.5 (2026-08-19) — bug real encontrado corriendo el gate multi-proyecto/multi-CLI:
+ * a diferencia del path de tarea única (cli.ts task run --id / dashboard spawnTaskRun,
+ * que commitea `tasks.yaml` ANTES de invocar el harness), el graph runner nunca
+ * commiteaba sus propias escrituras de estado. Eso resolvía el chequeo de árbol
+ * limpio para la PRIMERA tarea (fix de más arriba: resolver sandbox antes de marcar
+ * running), pero la escritura de `status: done` al terminar esa tarea dejaba
+ * `tasks.yaml` sucio para el chequeo de la SIGUIENTE — reproducido en vivo: t1-util
+ * completó con QA real, t2-doc falló de inmediato con "Uncommitted changes... M
+ * tasks.yaml" pese a que ningún archivo ajeno al propio bookkeeping estaba sucio.
+ * Best-effort (igual que el resto de commits automáticos del harness): si el
+ * proyecto no es un repo git, o el commit falla por cualquier motivo, no aborta el
+ * grafo — el próximo resolveSandboxMode() ya reportará el problema real si lo hay.
+ */
+function commitTasksYamlReal(projectRoot: string, message: string): void {
+  git(['add', 'tasks.yaml'], projectRoot)
+  git(['commit', '-m', message], projectRoot)
+}
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -95,6 +115,7 @@ export interface GraphRunOpts {
   diagnoseFn?: typeof diagnoseTask
   loadTasksFn?: typeof loadTasksReal
   updateTaskStatusFn?: typeof updateTaskStatusReal
+  commitTasksYamlFn?: typeof commitTasksYamlReal
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +130,7 @@ export async function runGraph(
     maxCost, maxMinutes, sandboxMode, keepWorktree,
     runTaskFn = runTask, diagnoseFn = diagnoseTask,
     loadTasksFn = loadTasksReal, updateTaskStatusFn = updateTaskStatusReal,
+    commitTasksYamlFn = commitTasksYamlReal,
   } = opts
 
   const entries: GraphTaskEntry[] = []
@@ -181,7 +203,7 @@ export async function runGraph(
       const t0 = performance.now()
       const entry = await executeSingleTask(
         task,
-        { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree, runTaskFn, diagnoseFn, loadTasksFn, updateTaskStatusFn },
+        { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree, runTaskFn, diagnoseFn, loadTasksFn, updateTaskStatusFn, commitTasksYamlFn },
         requeuedForRateLimit,
         blockedAncestors,
       )
@@ -292,12 +314,17 @@ async function executeSingleTask(
     diagnoseFn: typeof diagnoseTask
     loadTasksFn: typeof loadTasksReal
     updateTaskStatusFn: typeof updateTaskStatusReal
+    commitTasksYamlFn: typeof commitTasksYamlReal
   },
   requeuedForRateLimit: Set<string>,
   blockedAncestors: Set<string>,
 ): Promise<GraphTaskEntry> {
-  const { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree, runTaskFn, diagnoseFn, loadTasksFn, updateTaskStatusFn } = ctx
+  const { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree, runTaskFn, diagnoseFn, loadTasksFn, updateTaskStatusFn, commitTasksYamlFn } = ctx
   const taskId = task.id
+  const persist = (id: string, patch: Parameters<typeof updateTaskStatusFn>[2]): void => {
+    updateTaskStatusFn(projectRoot, id, patch)
+    commitTasksYamlFn(projectRoot, `orchestos(graph): ${id} → ${patch.status ?? 'update'}`)
+  }
 
   // Acumuladores de TODOS los intentos: una tarea puede hacer varias llamadas
   // LLM (retries + requeue de rate_limit) y cada una cuesta dinero. El costo
@@ -332,7 +359,7 @@ async function executeSingleTask(
     const depTask = initialFile.tasks.find(x => x.id === dep)
     if (!depTask || depTask.status !== 'done') {
       new RunLogger(projectRoot, taskId).blocked(dep)
-      updateTaskStatusFn(projectRoot, taskId, {
+      persist(taskId, {
         status: 'blocked',
         retry_reason: `dependency not done: ${dep}`,
       })
@@ -376,9 +403,31 @@ async function executeSingleTask(
       }
     }
 
+    // Resolve sandbox BEFORE marking running — updateTaskStatusFn writes tasks.yaml
+    // to disk, and resolveSandboxMode's clean-tree check would then trip on that
+    // very write if run afterward (same chicken-and-egg fix already applied to the
+    // CLI single-task path in cli.ts, never ported here). Resolving explicitly and
+    // passing the result to runTaskFn also skips its internal fallback re-check,
+    // which would otherwise hit the same self-inflicted dirty tree a second time.
+    let policy: ReturnType<typeof resolveSandboxMode>
+    try {
+      policy = sandboxMode
+        ? { mode: sandboxMode, branch: null, warnings: [] }
+        : resolveSandboxMode(projectRoot)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      new RunLogger(projectRoot, taskId).error(message)
+      persist(taskId, { status: 'failed', retry_reason: message })
+      return {
+        id: taskId, outcome: 'failed_permanent',
+        error: message,
+        usd_cost: accCost, tokens: { input: accInput, output: accOutput }, elapsed_ms: 0,
+      }
+    }
+
     // Mark running and execute
     const log = new RunLogger(projectRoot, taskId)
-    updateTaskStatusFn(projectRoot, taskId, { status: 'running' })
+    persist(taskId, { status: 'running' })
     console.error(`  → ${taskId} attempt ${attempt + 1}`)
 
     const harnessResult = await runTaskFn({
@@ -386,7 +435,7 @@ async function executeSingleTask(
       task: currentTask,
       projectId, logger: log,
       orcheConfig, orcheConfigFound,
-      sandboxMode, keepWorktree,
+      sandboxMode: policy.mode, sandboxBranch: policy.branch, keepWorktree,
     })
 
     const cost = harnessResult.cost
@@ -395,7 +444,7 @@ async function executeSingleTask(
     accOutput += cost.outputTokens
 
     if (harnessResult.status === 'done') {
-      updateTaskStatusFn(projectRoot, taskId, {
+      persist(taskId, {
         status: 'done',
         run_id: harnessResult.runId,
         qa_verdict: 'pass',
@@ -414,7 +463,7 @@ async function executeSingleTask(
 
     if (harnessResult.status === 'retry') {
       const retryCount = currentTask.retry_count + 1
-      updateTaskStatusFn(projectRoot, taskId, {
+      persist(taskId, {
         status: 'pending',
         qa_verdict: 'fail',
         retry_reason: harnessResult.retryReason,
@@ -430,7 +479,7 @@ async function executeSingleTask(
     // gasta una llamada de diagnose. 'blocked' evita que el loop principal la
     // vuelva a tomar como 'ready' en la siguiente iteración (ver filtro arriba).
     if (harnessResult.status === 'pending') {
-      updateTaskStatusFn(projectRoot, taskId, {
+      persist(taskId, {
         status: 'blocked',
         retry_reason: harnessResult.retryReason,
       })
@@ -447,7 +496,7 @@ async function executeSingleTask(
     // ── Failed (all harness retries exhausted) ───────────────────────────
     const isPermanent = currentTask.retry_count + 1 >= MAX_RETRIES
     const newStatus = isPermanent ? 'failed_permanent' : 'failed'
-    updateTaskStatusFn(projectRoot, taskId, {
+    persist(taskId, {
       status: newStatus,
       retry_reason: harnessResult.retryReason,
     })
@@ -457,7 +506,7 @@ async function executeSingleTask(
       // 'failed' (no 'retry') para parse_error y contract_violation sin mirar
       // retry_count (harness.ts:198,210), así que esta rama es el camino normal
       // para esos dos fallos mientras queden retries: tratarlos como retry.
-      updateTaskStatusFn(projectRoot, taskId, {
+      persist(taskId, {
         status: 'pending',
         retry_count: currentTask.retry_count + 1,
       })
@@ -481,7 +530,7 @@ async function executeSingleTask(
     // rate_limit → one requeue with backoff (design.md §2)
     if (diag.pattern === 'rate_limit' && !requeuedForRateLimit.has(taskId)) {
       requeuedForRateLimit.add(taskId)
-      updateTaskStatusFn(projectRoot, taskId, {
+      persist(taskId, {
         status: 'pending',
         retry_count: 0,
         retry_reason: 'rate_limit — requeue once with backoff',
@@ -495,7 +544,7 @@ async function executeSingleTask(
     blockedAncestors.add(taskId)
     const descendants = findAllDescendants(taskId, loadTasksFn(projectRoot).tasks)
     for (const descId of descendants) {
-      updateTaskStatusFn(projectRoot, descId, {
+      persist(descId, {
         status: 'blocked',
         retry_reason: `blocked by failed_permanent ancestor: ${taskId} — ${diag.suggestion}`,
       })

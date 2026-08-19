@@ -15,8 +15,7 @@ models:
   qa:
     provider: openrouter
     model: anthropic/claude-haiku-4-5
-executorEngine: external
-executor_mode: cli-claude
+agent: codex
 agentic:
   maxIterations: 25
 external:

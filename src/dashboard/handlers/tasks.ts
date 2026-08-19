@@ -1,4 +1,5 @@
 import { join } from 'path'
+import { fileURLToPath } from 'url'
 import { existsSync, readFileSync } from 'fs'
 import { diagnoseTask } from '../../agents/diagnose.ts'
 import { loadTasks, saveTasks } from '../../tasks/loader.ts'
@@ -224,6 +225,21 @@ function createTaskRecord(root: string, params: CreateTaskParams): { id: string 
   }
 }
 
+// CC.5 (2026-08-18) — bug real encontrado al ejecutar el gate multi-proyecto:
+// `join(root, 'src/cli.ts')` asumía que `src/cli.ts` vive DENTRO del proyecto
+// seleccionado. Eso solo era cierto porque OrchestOS históricamente se corría
+// dogfooding sobre sí mismo (root === instalación de OrchestOS). Con CC.3
+// (selección real de proyecto), `root` pasa a ser el proyecto del usuario —
+// que casi nunca tiene `src/cli.ts` — y el spawn fallaba con "Module not
+// found" en CUALQUIER proyecto que no fuera este mismo repo. Verificado en
+// vivo: `task run` quedaba `pending` para siempre, sin error visible en la
+// API, solo en el log del proceso del dashboard.
+// Fix: resolver la instalación de OrchestOS desde la ubicación real de este
+// archivo (`import.meta.url`), independiente de qué proyecto se está
+// orquestando, y pasar `root` como el `[path]` posicional que `task run`
+// y `task run --expand` ya aceptan (cli.ts:966) en vez de cwd implícito.
+const ORCHESTOS_CLI_PATH = join(fileURLToPath(new URL('../../cli.ts', import.meta.url)))
+
 // D.7 — mismo motivo de extracción: reusable por el auto-flow del chat.
 function spawnTaskRun(root: string, id: string, model?: string): void {
   // E.5 — mismo lock que arriba.
@@ -231,7 +247,7 @@ function spawnTaskRun(root: string, id: string, model?: string): void {
     git(['add', 'tasks.yaml'], root)
     git(['commit', '-m', `chore(tasks): run ${id} (dashboard)`], root)
   })
-  const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--id', id]
+  const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--id', id]
   if (model) args.push('--model', model)
   Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
 }
@@ -426,8 +442,9 @@ function handleApiTasksApproveSplit(url: URL, root: string): Response {
   task.status = 'pending'
   saveTasks(root, file)
 
-  // Spawn CLI with --expand — it detects the existing .plan.yaml and runs it directly
-  const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'task', 'run', '--expand', id]
+  // Spawn CLI with --expand — it detects the existing .plan.yaml and runs it directly.
+  // CC.5 — mismo fix que spawnTaskRun: ORCHESTOS_CLI_PATH en vez de join(root, ...).
+  const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--expand', id]
   Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
 
   return jsonResponse({ ok: true, id, message: `Split plan for "${id}" approved — executing ${planPath}` })

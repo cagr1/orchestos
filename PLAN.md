@@ -893,11 +893,43 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
   de navegación en vanilla; ahora la navegación entera se reconstruye en React (`UI.3` + `UI.7`).
   El ex-BB.3 (unificar los dos selectores de Settings) viaja con él.
 
-- [ ] **CC.5 — 🔍 Gate: el caso de uso completo, por API.** Dos proyectos reales, una sesión por
-  proyecto, **cada una sobre un CLI distinto**, trabajo real hecho en ambas sin cruzar contexto —
-  verificado contra los endpoints reales y la SQLite real, **no por click-through** (no hay UI
-  nueva en este Mes). El gate visual equivalente es `UI.7` en el Mes 30. Incluye el escenario de
-  graph pendiente (deuda CC.0-D4). Si esto no se puede hacer de punta a punta, el Mes no cierra.
+- [x] **CC.5 — 🔍 Gate: el caso de uso completo, por API.** (2026-08-19) Dos proyectos reales
+  (`cc5-project-a`/`cc5-project-b`, registrados en la SQLite real vía `orchestos init`), una
+  sesión por proyecto, **cada una sobre un CLI distinto**, trabajo real hecho en ambas sin cruzar
+  contexto — verificado contra los endpoints reales y la SQLite real, **no por click-through**
+  (no hay UI nueva en este Mes).
+  **Encontró y arregló 2 bugs reales en el camino** (no solo verificó, el gate hizo su trabajo):
+  1. `ORCHESTOS_CLI_PATH` (`src/dashboard/handlers/tasks.ts`) — `spawnTaskRun`/
+     `handleApiTasksApproveSplit` asumían `src/cli.ts` dentro del proyecto orquestado (cierto solo
+     por dogfooding histórico); con CC.3 (multi-proyecto real) eso rompía `task run` en cualquier
+     proyecto ajeno con "Module not found" silencioso. Fix: resolver la instalación de OrchestOS
+     por `import.meta.url`, pasar `root` como `[path]` posicional.
+  2. **Bug nuevo, sin relación con el de arriba**: `graph-runner.ts` nunca commiteaba sus propias
+     escrituras de estado a `tasks.yaml` — la marca `status:'running'` (y cualquier transición
+     posterior) dejaba el árbol sucio justo antes de que `resolveSandboxMode()` lo revisara,
+     abortando con "Uncommitted changes... M tasks.yaml" incluso con el repo genuinamente limpio.
+     El path de tarea única ya tenía el fix correcto (`cli.ts:1044`, comentario explícito: "resolve
+     sandbox BEFORE marking running") pero nunca se portó al graph runner. Fix: mismo patrón
+     (resolver sandbox antes de marcar `running`) + un `commitTasksYamlFn` inyectable que
+     auto-commitea cada transición de estado (`persist()`), igual que ya hacía `spawnTaskRun` para
+     el path de tarea única. Reproducido y confirmado en vivo con dinero real: sin el fix, la
+     segunda tarea de un grafo de 2 fallaba siempre (100%) aunque la primera pasara; con el fix,
+     3 intentos reales consecutivos de una tarea corrieron sin un solo error de sandbox.
+  **Evidencia (SQLite real, `~/.orchestos/db.sqlite`):**
+  - Proyecto A (`agent: claude`): sesión de chat real (`mode:code`) auto-creó y corrió
+    `create-hello-file` por el CLI real de Claude → QA pass → `hello-a.txt` correcto.
+  - Proyecto B (`agent: codex`): `create-hello-file` corrida por `task run` real (chat bloqueado
+    para codex por diseño, ver CC.1) → CLI real de Codex (`binary:"codex"`, `-m gpt-5.4`,
+    `cost_breakdown_json` confirmado) → QA pass → `hello-b.txt` correcto.
+  - Graph run real en Proyecto A (`/api/run/graph`, escenario CC.0-D4): `t1-util` completó con QA
+    pass real ($0.23); `t2-doc` agotó sus 3 reintentos y falló por contenido
+    (`missing declared output(s)`, tarea starter deliberadamente vaga) — **cero** fallos de
+    sandbox en los 4 intentos totales entre ambas tareas, confirmando el fix #2.
+  - Aislamiento: `chat_sessions`/`chat_messages` con `project_id` correcto sin cruce;
+    `hello-a.txt`/`hello-b.txt` cada uno solo en su propio repo; `projects` con roots distintos.
+  - `bunx tsc --noEmit` ✅; `bun test src/__tests__/graph-runner.test.ts` (21 pass) ✅;
+    `bun test src/dashboard/__tests__/run-graph-api.test.ts` (8 pass) ✅.
+  El gate visual equivalente es `UI.7` en el Mes 30.
 
 ### Nota de estado — ¿se está perdiendo la esencia? (2026-08-18)
 
