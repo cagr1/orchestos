@@ -47,6 +47,18 @@ y no debe ser la fuente de nada permanente.
 - La selección visual y el envío automático del header pertenecen a UI.6 (Mes 30); no agregar una
   UI vanilla provisional.
 
+### Estado estable — evidencia durable de gates CC.0-D6 (2026-08-20)
+
+- Las corridas reales del harness en entornos temporales usan `bun run gate:evidence`; no se borra
+  un `ORCHESTOS_HOME` manualmente después de un gate real.
+- El hijo permanece aislado de la DB personal. Al terminar —también si el comando falla— se copian
+  sus runs no-chat a la DB durable con `task_class=gate:<gate-id>:<clase-original>` y
+  `project_id=NULL`. El UUID original hace la exportación idempotente.
+- Si migrar o exportar falla, el wrapper conserva el directorio temporal y devuelve error. La
+  evidencia nunca se sacrifica por cleanup.
+- Esto mide uso desde CC.0-D6 hacia adelante. BB.4 y gates históricos cuyo tmpdir ya fue eliminado
+  no pueden reconstruirse sin inventar datos y permanecen solo como evidencia narrativa en Git.
+
 ### Hot files
 - src/cli.ts (63 edges)
 - src/run/harness.ts (34 edges)

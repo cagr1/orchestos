@@ -14,6 +14,7 @@
     "db:migrate": "bun run scripts/migrate-db.ts",
     "e2e:smoke": "bun run src/run/e2e-smoke.ts",
     "e2e:smoke-agents": "bun run src/run/e2e-smoke-agents.ts",
+    "gate:evidence": "bun run scripts/run-evidence-gate.ts",
     "dreaming:export": "bun run scripts/export-runs-summary.ts",
     "sources:drift": "bun run scripts/check-sources-drift.ts",
     "sources:drift:summarize": "bun run scripts/check-sources-drift.ts --summarize",

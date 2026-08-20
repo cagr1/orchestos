@@ -83,6 +83,21 @@ Validar sin modificar:
 
     bun run hooks:check
 
+## Evidencia de gates reales del harness (CC.0-D6)
+
+Todo gate en vivo que ejecute tareas reales con un `ORCHESTOS_HOME` temporal debe usar el wrapper
+oficial; no crear y borrar el home temporal a mano:
+
+    bun run gate:evidence -- --label <gate-id> -- <comando> [args...]
+
+El wrapper mantiene aislada la ejecución y, antes del cleanup, copia los runs no-chat a la DB
+durable con `task_class=gate:<gate-id>:<clase-original>`. Deduplica por `run.id` y pone
+`project_id=NULL` para no filtrar registros de proyectos desechables. Si la exportación falla,
+conserva el temporal y devuelve error: nunca borrar la única evidencia para hacer pasar un gate.
+`ORCHESTOS_EVIDENCE_HOME` permite elegir explícitamente la DB durable; en su ausencia usa el
+`ORCHESTOS_HOME` estable del proceso o el home del usuario. Tests unitarios/CI que no hacen una
+corrida real del harness no se exportan ni cuentan como uso real.
+
 ## Estado operativo de seguridad (2026-07-29)
 
 L.0–L.6.1 del baseline están cerrados. L.6.2 sigue abierto: la revisión CLI/HTTP inicial y sus

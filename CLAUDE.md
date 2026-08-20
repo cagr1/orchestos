@@ -82,6 +82,11 @@ El proyecto tiene dos hooks. Si clonas el repo en otra máquina, instala **ambos
 - **pre-push** (`scripts/pre-push.sh`, 2026-08-01) — corre `bun run test:coverage`, el
   comando **exacto** del workflow de CI (~20s).
 
+Los gates en vivo del harness con home temporal se ejecutan mediante
+`bun run gate:evidence -- --label <gate-id> -- <comando>`. La regla y sus límites están en
+`AGENTS.md` § "Evidencia de gates reales del harness"; aplica a cualquier LLM y evita borrar la
+serie histórica junto con el tmpdir.
+
 ## Verificar contra CI, no contra tu máquina (regla 2026-08-01)
 
 Al tocar algo que CI ejercita, correr **el comando exacto del workflow** (`bun run

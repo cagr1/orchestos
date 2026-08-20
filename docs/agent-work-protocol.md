@@ -32,6 +32,11 @@ terminado basándose solo en revisión visual del código, mocks o la afirmació
 9. Añadir en `PLAN.md` evidencia concreta y comandos/resultados. Solo entonces marcar `[x]`.
 10. Commit por ítem sin `--no-verify`. Tras 2–3 commits locales, push normal autorizado.
 
+Cuando un gate en vivo ejecute el harness con `ORCHESTOS_HOME` temporal, el paso 8 debe usar
+`bun run gate:evidence -- --label <gate-id> -- <comando> [args...]`. El wrapper exporta los runs
+reales a la DB durable antes del cleanup. Crear/borrar el temporal manualmente deja la medición
+incompleta y no satisface el gate de evidencia, aunque el comando haya terminado verde.
+
 ## Matriz mínima de cierre
 
 | Cambio | Gates requeridos |

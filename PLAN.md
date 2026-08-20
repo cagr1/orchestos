@@ -1022,13 +1022,28 @@ habría medido un producto que no estaba.
    está dictando es: **el chat es la puerta, el harness corre detrás sin que se vea.** Coherente con
    todo lo decidido en CC.2 y en el Mes 30.
 
-- [ ] **CC.0-D6 — ⚡ El uso real del harness no es medible.** Las corridas de verificación
+- [x] **CC.0-D6 — ⚡ El uso real del harness no es medible.** Las corridas de verificación
   (BB.4, gates en vivo) usan `ORCHESTOS_HOME` temporal y no dejan filas en la DB principal, así que
   la única serie de tiempo disponible mide solo el chat y subestima el uso del motor. Decidir:
   (a) que los gates en vivo escriban en la DB real con una marca `task_class` distinguible, o
   (b) exportar la evidencia del tmpdir al ledger antes de borrarlo. Sin esto, cualquier pregunta
   futura de "¿esto se está usando?" se responde con datos incompletos — que es exactamente el error
   que se cometió al escribir esta nota.
+  **Cerrado (2026-08-20) — elegida (b).** `bun run gate:evidence -- --label <gate-id> -- <cmd>`
+  crea el `ORCHESTOS_HOME` aislado, ejecuta el comando sin acceso a la DB durable y copia después
+  todos los runs no-chat a la DB estable antes del cleanup. Cada fila conserva su UUID y evidencia,
+  queda distinguible como `task_class=gate:<gate-id>:<clase-original>` y usa `project_id=NULL` para
+  no filtrar el registry desechable. Reexportar el mismo run es idempotente; un run ya marcado
+  `gate:*` no se vuelve a anidar. Si migrar/copiar falla, el wrapper devuelve error y conserva el
+  temporal: nunca destruye la única evidencia. Esta regla quedó en `AGENTS.md`, `CLAUDE.md`,
+  `docs/agent-work-protocol.md` y `CONTEXT.md` para todos los LLM. No se reconstruyó BB.4: sus DB
+  temporales ya no existen y fabricar filas históricas repetiría el error que originó D6.
+  **Evidencia:** preflight CC.0-D6 ✅; baseline `tsc` + 79 tests relevantes ✅; 5 tests nuevos
+  prueban filtrado de chat/gate, `project_id=NULL`, procedencia, deduplicación, exportación aun con
+  exit 7, cleanup posterior y preservación ante fallo de exportación; probe del comando real exportó
+  1 fila `gate:cc.0-d6-live:fix` byte-verificada en SQLite y dejó cero tmpdirs; fixture durable
+  enviado a la papelera. `bunx tsc --noEmit` ✅; `bun run test:coverage` — 1174 pass, 0 fail,
+  120 archivos ✅.
 
 ---
 
