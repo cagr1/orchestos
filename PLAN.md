@@ -91,16 +91,43 @@ Tailwind v4 entra por `bun-plugin-tailwind` dentro del mismo `Bun.build()`.
 1. **Aparece un build step donde hoy no hay ninguno.** Hoy: editar `.js` → recargar. Después:
    `bun run build:ui` (o watch). Toca el flujo de desarrollo y probablemente `scripts/pre-commit.sh`.
    Es el precio real de la decisión y no es negociable.
-2. **Coverage gate.** Los umbrales de `scripts/check-coverage.ts` (72.98% / 59.71%) miden
-   `src/**/*.ts`. Meter `.tsx` mueve el número. Decidir **explícitamente**: excluir el UI del
-   coverage o recalibrar **contra el log de CI, nunca contra el Mac**
-   (ver regla "Verificar contra CI" en CLAUDE.md y `reference-ci-host-environment-drift`).
-3. **i18n NO se migra.** 223 llamadas a `t()` solo en `app.js`, sistema propio con `window.t`.
-   React sigue llamando `window.t()`. Migrar i18n está **fuera de alcance de todo el Mes 30**.
+   **Decisión de Carlos (2026-08-22): el bundle NO se commitea.** `public/dist/` va a
+   `.gitignore` — versionar un artefacto generado es exactamente el patrón que ya explotó con
+   `runs-summary.json` (conflictos de contenido en cada rebase, documentado en `pre-commit.sh`).
+   Consecuencia obligatoria, no opcional: `install.sh`/`install.ps1`/`install.bat` y el README
+   deben correr `build:ui`, o un clone fresco sirve un dashboard roto. Es entregable de `UI.0`.
+2. **Coverage gate — el costo se midió y NO existe.** (Corregido 2026-08-22; la versión anterior
+   de esta línea afirmaba que los umbrales miden `src/**/*.ts` y que "meter `.tsx` mueve el
+   número". **Las dos mitades eran falsas.**) `scripts/check-coverage.ts` no tiene ningún filtro
+   include/exclude y `bunfig.toml` solo declara `coverage = true`: Bun instrumenta **solo lo que
+   los tests importan**. Verificado empíricamente — los ~8.500 líneas de `.js` en `public/` **no
+   aparecen** en el reporte de cobertura hoy. Los `.tsx` tampoco lo harán mientras ningún test los
+   importe. **Decisión de Carlos (2026-08-22): el Mes 30 NO introduce tests de frontend** — se
+   mantiene el estándar actual de verificación en vivo con navegador real
+   (`feedback-verificar-gates-en-vivo`). Por lo tanto el ratchet **no se toca y no se recalibra**.
+   Si algún Mes futuro agrega tests de componentes, ahí —y solo ahí— reaparece la decisión de
+   aislarlos, calibrando **contra el log de CI, nunca contra el Mac** (regla "Verificar contra CI"
+   en CLAUDE.md y `reference-ci-host-environment-drift`).
+3. **i18n NO se migra, pero SÍ hay que puentearlo.** 223 llamadas a `t()` solo en `app.js`,
+   sistema propio con `window.t`. React sigue llamando `window.t()`. Migrar i18n está **fuera de
+   alcance de todo el Mes 30**. **Lo que el plan daba por trivial y no lo es** (verificado
+   2026-08-22): `setLang()` solo escribe en `localStorage` y el llamador hace `App.rerender()`
+   (`screens-ops.js:1937-1938`), que repinta el DOM vanilla — **React no se entera**, y sus islas
+   se quedan con el idioma viejo hasta desmontarse. `t()` lee el idioma en cada llamada, no hay
+   estado reactivo del que React pueda colgarse. Decidir el puente en `UI.0` (contexto React con
+   listener, o remount forzado de las islas desde `App.rerender()`), **no descubrirlo a mitad de
+   UI.3**.
 4. **Las 4 reglas de diseño de v0.12** se verifican una por una contra Radix, en vivo. Radix las
    resuelve — pero eso **se comprueba, no se asume** (regla cero de CLAUDE.md: nada se entrega sin
    verificar contra el dashboard real corriendo, no mocks).
 5. **11 pantallas.** No es un fin de semana. Carlos asume ese costo explícitamente (2026-08-18).
+
+**Un costo que el plan asumía y NO existe** (verificado 2026-08-22): servir el bundle **no
+requiere tocar `server.ts` ni `http.ts`**. `STATIC_DIR` es `./public` (`types.ts:437`) y
+`serveStatic()` sirve cualquier ruta bajo ese árbol con el guard de path traversal ya resuelto
+(`http.ts:23-46`) — un `public/dist/bundle.js` queda servido solo, sin código nuevo. Esto mantiene
+intacta la regla "no tocar nada de `src/dashboard/*.ts` que no sea servir el bundle": resulta que
+ni eso hace falta.
 
 ### Ítems
 
@@ -110,15 +137,36 @@ Tailwind v4 entra por `bun-plugin-tailwind` dentro del mismo `Bun.build()`.
   (`--background`, `--foreground`, `--border`, `--primary`, `--muted`, `--destructive`, `--radius`)
   — **shadcn adopta la paleta existente, no al revés**: el look actual se preserva.
   Convivencia: React monta en contenedores dentro del DOM vanilla; nada existente se rompe.
-  **Validación**: el dashboard actual sigue funcionando idéntico + pipeline de build listo.
+  **Entregables adicionales, cerrados el 2026-08-22 al auditar el plan** (no descubrir después):
+  (a) `public/dist/` en `.gitignore` — el bundle no se versiona (ver Costo 1);
+  (b) `build:ui` cableado en `install.sh`/`install.ps1`/`install.bat` y README, o un clone fresco
+  sirve un dashboard roto;
+  (c) **el puente de i18n decidido e implementado** (ver Costo 3) — cómo un `setLang()` llega a
+  las islas React, que hoy no se enteran.
+  **Validación**: el dashboard actual sigue funcionando idéntico + pipeline de build listo +
+  cambio de idioma verificado en vivo sobre una isla React de prueba.
 
 - [ ] **UI.1 — 🔍 GATE DE ABORTAR: el combobox de modelo.**
   Una sola isla React dentro del dashboard vanilla actual: reemplazar `buildModelSelect()` por
   shadcn `Command` + `Popover` (patrón combobox buscable — que es literalmente lo que exige
   `reference-model-combo-pattern`, resuelto de fábrica).
-  **Es el componente exacto que costó horas.** Si en ~1 día queda mejor que lo actual y se comporta
-  bien **verificado en vivo** (dashboard real corriendo), la tesis quedó probada y se sigue.
+  **Es el componente exacto que costó horas.** Si en ~1 día pasa la lista de abajo **verificada en
+  vivo** (dashboard real corriendo, no mocks), la tesis quedó probada y se sigue.
   Si no, **se aborta acá** habiendo perdido un día en vez de meses.
+
+  **Criterio de aprobación — medible, no "queda mejor"** (definido 2026-08-22; la versión anterior
+  decía "si se comporta bien", que no es verificable y este ítem decide meses de trabajo):
+  1. Las **4 reglas de diseño de v0.12** se comprueban una por una contra Radix — anclaje a borde
+     fijo, altura de toprow sin padding vertical, `overflow:hidden` en el nivel interno correcto,
+     hover-swap. Radix debería resolverlas de fábrica: **se comprueba, no se asume**
+     (`feedback-ui-toprow-alignment-rules`).
+  2. El combobox sigue siendo **buscable** y nunca degrada a un `<select>` nativo con la lista
+     completa — el contrato duro de `reference-model-combo-pattern`.
+  3. Navegación completa por teclado (abrir, filtrar, flechas, Enter, Esc) y foco devuelto al
+     trigger al cerrar.
+  4. El toprow que lo contiene **no se rompe**: sin scroll horizontal, sin tooltip cortado por
+     `overflow` — la regresión real que ya ocurrió antes y que solo se ve en el navegador.
+  5. Cambio de idioma en vivo repinta el combobox (valida el puente de i18n de `UI.0`).
 
 - [ ] **UI.2 — 🧠 Design system: los 6 componentes que se repiten.**
   Button, Input/Search, Select/Combobox, Dialog, Toast (reemplaza `showToast`), Tabs.
@@ -162,9 +210,18 @@ Tailwind v4 entra por `bun-plugin-tailwind` dentro del mismo `Bun.build()`.
 
 ### Fuera de alcance del Mes 30 (explícito)
 
-- Migrar i18n a una librería.
-- Tocar handlers, endpoints o cualquier cosa de `src/dashboard/*.ts` que no sea servir el bundle.
-- Cambiar navegación, rutas o comportamiento funcional — **este mes es puramente visual/estructural**.
+- Migrar i18n a una librería (el **puente** de `UI.0` sí entra; la librería no).
+- Tocar handlers, endpoints o cualquier cosa de `src/dashboard/*.ts` — verificado el 2026-08-22:
+  ni siquiera hace falta para servir el bundle.
+- Cambiar navegación, rutas o comportamiento funcional durante la **migración** (`UI.0`–`UI.6`) —
+  esa parte es puramente visual/estructural.
+  **Excepción única y explícita: `UI.7`** (resuelto 2026-08-22 — el plan se contradecía a sí
+  mismo: prohibía cambiar navegación y a la vez incluía un ítem titulado "Navegación nueva", que
+  borra `SCREENS.runner`, elimina el flag `localStorage['orchestos-mode']` y mueve
+  Memory/Instincts/Project dentro de Settings). `UI.7` es el **único** ítem autorizado a cambiar
+  navegación y comportamiento, corre **al final** y absorbe los veredictos ya decididos en CC.0 y
+  el ex-CC.4. Ningún otro ítem toca navegación: si aparece la tentación durante `UI.0`–`UI.6`, se
+  anota para `UI.7` y se sigue.
 - Rediseñar pantallas mientras se migran.
 
 ### Riesgo principal
