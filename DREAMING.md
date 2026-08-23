@@ -1,4 +1,4 @@
-# DREAMING.md — 2026-08-22
+# DREAMING.md — 2026-08-23
 
 ## Runs analizados
 - Total: 20 runs
@@ -7,41 +7,38 @@
 
 ## Patrones detectados
 
-### task_class "doc" falla el 100% de las veces con la misma causa
-- Evidencia: los 3 runs con `task_class: "doc"` (ids `696cc3ca`, `01f9b0e6`, `516bcb21`), todos `model: deepseek/deepseek-v4-flash`, `status: failed`, `qa_verdict: fail`.
-- Frecuencia: 3/3 runs de esa clase (100%)
+### 1. `doc` con deepseek-v4-flash: 100% de fallo por output faltante
+- Evidencia: los 3 runs de `task_class: doc` (2026-08-19T20:30:14/30/48) usan `deepseek/deepseek-v4-flash` y fallan con exactamente el mismo `qa_reason`: `missing declared output(s): src/utils/helper.js`.
+- Frecuencia: 3/3 runs de esta task_class (100%)
 - qa_reason recurrente: "missing declared output(s): src/utils/helper.js"
 
-### Todo `qa_failed` del período comparte el mismo tipo de causa
-- Evidencia: los 4 runs con `qa_verdict: fail` (3 de `task_class: doc` arriba + `d064d1b9` de `task_class: implement`, `model: openai/gpt-5.4`) fallan por archivo declarado que no se creó — solo cambia el nombre del archivo (`src/utils/helper.js` vs `hello-b.txt`).
-- Frecuencia: 4/4 runs con qa_failed (100%)
-- qa_reason recurrente: prefijo "missing declared output(s): ..."
+### 2. `qa_reason` "missing declared output(s)" repetido entre task_class y modelos distintos
+- Evidencia: además de los 3 runs de `doc` de arriba, el run `implement` de `openai/gpt-5.4` (2026-08-19T18:17:58.433Z) falla con `missing declared output(s): hello-b.txt` — el mismo archivo que sí se creó correctamente 1h39min después en el run de las 20:19:55 (mismo modelo, mismo path, esta vez `pass`).
+- Frecuencia: 4/20 runs totales (20%), abarca 2 task_class y 2 modelos distintos (deepseek-v4-flash, gpt-5.4)
+- qa_reason recurrente: "missing declared output(s): <archivo>"
+- Nota: que el mismo modelo/archivo pase en un reintento y falle en otro sugiere una condición de carrera o de timing en la verificación del output declarado (el archivo se escribe pero el check de QA corre antes de que exista, o hay inconsistencia entre el path declarado y el path real de escritura), más que un problema de capacidad del modelo.
 
-### deepseek/deepseek-v4-flash con qa_verdict fail en 3+ runs
-- Evidencia: los 3 runs de `task_class: doc` (`696cc3ca`, `01f9b0e6`, `516bcb21`) usan `deepseek/deepseek-v4-flash` y todos terminan `qa_verdict: fail`. Nota: el mismo modelo también tiene 3 runs `done`/`pass` en `task_class: implement`, así que el fallo no parece ser del modelo en general sino específico a la combinación modelo+task_class "doc".
-- Frecuencia: 3/3 runs qa_verdict fail para ese modelo en el período
-- qa_reason recurrente: "missing declared output(s): src/utils/helper.js"
-
-### Anomalía aislada — run "implement" sin ejecución real
-- Evidencia: run `182c0955` (`task_class: implement`, `deepseek/deepseek-v4-flash`) termina `status: failed` pero con `qa_verdict: null`, `qa_reason: null`, `usd_cost: 0`, `tokens: 0`, `elapsed_ms: 179`. Parece un fallo de arranque/config previo a invocar el modelo, no un fallo de QA.
-- Frecuencia: 1/20 runs — no es un patrón recurrente todavía, se deja registrado por si vuelve a aparecer.
+### 3. `implement` con deepseek-v4-flash: 1 fallo sin `qa_reason`
+- Evidencia: run 2026-08-19T18:16:53.745Z, `status: failed`, `qa_verdict: None`, sin `qa_reason` registrado.
+- Frecuencia: 1/20 runs (5%)
+- qa_reason recurrente: N/A — este caso concreto no tiene reason, lo cual es en sí mismo una brecha de instrumentación (un run failed debería dejar traza de por qué).
 
 ## Propuestas
 
-### Propuesta 1 — Revisar el prompt/contrato de salida para `task_class: "doc"`
-- Qué cambiar: el prompt o la definición de outputs esperados para tareas de clase "doc" (probablemente en la config de skills/tasks que arma el prompt para esa clase), específicamente el caso que declara `src/utils/helper.js` como output.
-- Por qué: 3/3 runs de esta clase fallan exactamente por no producir ese archivo declarado — sugiere que el contrato de salida está mal especificado para esta clase de tarea, no un problema puntual del modelo.
-- Riesgo: bajo
+### Propuesta 1 — Investigar timing de verificación de "declared output(s)"
+- Qué cambiar: el paso de QA que verifica `declared output(s)` (probablemente en el pipeline de verificación post-ejecución, cerca de `qa_verdict`/`checks_failed`)
+- Por qué: mismo modelo + mismo archivo (`hello-b.txt`, gpt-5.4) falla una vez y pasa otra vez en menos de 2 horas — indica una condición de carrera (check corre antes de que el filesystem refleje la escritura) o una desalineación entre el path declarado por el modelo y el path real verificado, no un problema del modelo en sí.
+- Riesgo: medio — si el fix toca el pipeline de verificación, puede afectar el gate de QA de todos los task_class.
 
-### Propuesta 2 — Endurecer la verificación de "declared output(s)" antes de correr el modelo
-- Qué cambiar: el paso de QA que verifica outputs declarados vs. producidos — agregar una comprobación temprana (pre-flight) de que el path declarado es alcanzable/escribible por el agente antes de gastar tokens, ya que el patrón se repite igual en `implement` con gpt-5.4 y en `doc` con deepseek.
-- Por qué: 4/4 de los fallos de QA en el período son exactamente esta causa, cruzando modelos distintos (deepseek y gpt-5.4) — sugiere un problema sistémico de contrato output-declarado vs. output-real, no de un modelo específico.
-- Riesgo: medio (toca el flujo de QA compartido por todas las clases de tarea)
+### Propuesta 2 — Registrar `qa_reason` también en fallos sin qa_verdict
+- Qué cambiar: el run de 2026-08-19T18:16:53.745Z tiene `status: failed` pero `qa_verdict: None` y `qa_reason: None` — no hay forma de saber por qué falló sin ir a logs crudos.
+- Por qué: sin razón registrada, este tipo de fallo es invisible para el propio Dreaming (no se puede agregar a un patrón) y para cualquier revisión posterior.
+- Riesgo: bajo — es un cambio de instrumentación/logging, no de lógica de negocio.
 
-### Propuesta 3 — Investigar el run `182c0955` como posible bug de arranque
-- Qué cambiar: revisar logs/código alrededor del punto de entrada de `task_class: implement` con deepseek para el caso donde el run termina en 179ms con 0 tokens y 0 costo — posible excepción no capturada antes de llamar al proveedor.
-- Por qué: un run "failed" sin qa_verdict ni costo es indistinguible en el dashboard de un fallo de QA real; solo 1 ocurrencia hasta ahora, vale la pena confirmar si es reproducible antes de invertir más.
-- Riesgo: bajo
+### Propuesta 3 — Revisar confiabilidad de deepseek-v4-flash en `doc`
+- Qué cambiar: la task_class `doc` (o el prompt/skill que la genera) cuando el modelo asignado es `deepseek-v4-flash`.
+- Por qué: 3/3 runs de `doc` fallan, todos con el mismo modelo y el mismo archivo declarado. La muestra es pequeña (n=3) pero 100% de fallo con causa idéntica amerita revisión antes de acumular más runs fallidos con el mismo patrón.
+- Riesgo: bajo — es diagnóstico, no cambia código de producción hasta que se confirme la causa raíz (que probablemente coincide con la Propuesta 1).
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
