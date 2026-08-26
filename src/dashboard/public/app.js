@@ -2594,6 +2594,17 @@ function boot() {
 
   // Auto-refresh every 30s
   setInterval(() => App.fetchAll(), 30_000);
+
+  // Puente para el bundle de islas React (UI.0, Mes 30).
+  // Dos motivos, los dos reales y verificados en vivo el 2026-08-25:
+  //  1. `const App` en el top level de un script clasico NO crea window.App
+  //     (const/let no crean propiedad global), asi que el bundle no tenia como
+  //     alcanzarlo. Se expone explicitamente.
+  //  2. Un <script type="module"> se ejecuta ANTES de que dispare DOMContentLoaded,
+  //     o sea antes de este boot(): el bundle no puede envolver App.rerender() al
+  //     cargarse porque todavia no existe. Este evento le avisa cuando ya puede.
+  window.App = App;
+  window.dispatchEvent(new CustomEvent('orchestos:ready'));
 }
 
 /** Simple toast notification — auto-dismisses after 3s */

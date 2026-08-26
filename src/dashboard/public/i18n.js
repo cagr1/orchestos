@@ -1597,6 +1597,11 @@ function getLang() {
 
 function setLang(lang) {
   try { localStorage.setItem(_LANG_KEY, lang); } catch {}
+  // Puente de i18n vanilla -> React (UI.0, Mes 30). Las islas React no se enteran
+  // de App.rerender(): se suscriben a este evento (public-src/lib/i18n.ts). Se emite
+  // aca, dentro de la fuente unica del cambio de idioma, para que cualquier llamador
+  // futuro lo obtenga gratis sin acordarse de avisar.
+  try { window.dispatchEvent(new CustomEvent('orchestos:langchange', { detail: { lang } })); } catch {}
 }
 
 /**

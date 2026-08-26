@@ -60,6 +60,14 @@ echo -e "  $INFO  Instalando dependencias (bun install)..."
 bun install
 echo -e "  $OK  Dependencias instaladas."
 
+# ── 3b. Bundle de UI ──────────────────────────────────────────────────────────
+# El dashboard sirve las islas React desde src/dashboard/public/dist/, que es un
+# artefacto GENERADO y no se versiona (está en .gitignore, decisión de 2026-08-22).
+# Sin este paso, un clone fresco sirve un dashboard sin islas.
+echo -e "  $INFO  Compilando la interfaz (bun run build:ui)..."
+bun run build:ui
+echo -e "  $OK  Interfaz compilada."
+
 # ── 4. ~/.orchestos/.env ──────────────────────────────────────────────────────
 ORCHESTOS_DIR="$HOME/.orchestos"
 ENV_PATH="$ORCHESTOS_DIR/.env"

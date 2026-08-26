@@ -9,6 +9,10 @@
   <link rel="icon" href="assets/logo_black.png" media="(prefers-color-scheme: light)">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="screens.css">
+  <!-- Capa Tailwind/shadcn de las islas React (Mes 30). Se genera con `bun run build:ui`
+       y NO se versiona: install.sh/ps1/bat la reconstruyen. Va DESPUES del CSS vanilla
+       para que las utilidades ganen por orden, no por !important. -->
+  <link rel="stylesheet" href="dist/ui.css">
 </head>
 <body data-cards="flat">
   <div class="app">
@@ -51,5 +55,9 @@
   <script src="screens-core.js"></script>
   <script src="screens-ops.js"></script>
   <script src="app.js"></script>
+  <!-- Bundle de islas React. Va ULTIMO y a proposito: necesita que `window.App` ya
+       exista para envolver App.rerender() (ver public-src/lib/islands.ts). Es un modulo
+       ESM, asi que corre diferido despues de todos los scripts clasicos de arriba. -->
+  <script type="module" src="dist/ui.js"></script>
 </body>
 </html>

@@ -1,0 +1,72 @@
+/* ============================================================
+   OrchestOS — capa Tailwind/shadcn para las islas React (UI.0, Mes 30)
+   ============================================================
+
+   DOS DECISIONES QUE NO SE PUEDEN CAMBIAR SIN ROMPER EL DASHBOARD:
+
+   1. SIN PREFLIGHT. `@import "tailwindcss"` arrastra el reset de Tailwind, que
+      resetea márgenes, tipografía, bordes y `display` de TODO el documento — o sea,
+      las ~2.000 líneas de CSS vanilla que ya funcionan. Por eso se importan las capas
+      una por una y `preflight.css` queda afuera, a propósito. Si alguien "arregla"
+      esto poniendo el import corto, el dashboard entero se despinta.
+
+   2. shadcn ADOPTA LA PALETA EXISTENTE, NO AL REVÉS (decisión del Mes 30).
+      El mapeo de abajo apunta a las variables que ya declara `styles.css`. Como los
+      temas alternativos se declaran redefiniendo esas mismas variables en
+      `html[data-theme="..."]`, los componentes React heredan CADA tema por cascada,
+      gratis, sin registrar un tema nuevo por cada uno.
+
+   NOTA sobre `--accent`: en shadcn `accent` es el color de hover/selección de ítems,
+   mientras que en OrchestOS `--accent` es el azul de marca. Se mapea `--color-accent`
+   a `--surface-hi` (el hover real del dashboard) y el azul de marca va a
+   `--color-primary`, que es donde shadcn lo espera. Los nombres coinciden, los roles no.
+*/
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* `inline` = las utilidades resuelven a la var de OrchestOS en tiempo de uso, así el
+   cambio de tema en caliente (theme.js fija data-theme en <html>) las arrastra. */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+
+  --color-popover: var(--surface-2);
+  --color-popover-foreground: var(--text);
+
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-contrast);
+
+  --color-secondary: var(--surface-hi);
+  --color-secondary-foreground: var(--text);
+
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--text-muted);
+
+  /* hover/selección de ítems — NO el azul de marca (ver nota de arriba) */
+  --color-accent: var(--surface-hi);
+  --color-accent-foreground: var(--text);
+
+  --color-destructive: var(--error);
+  --color-destructive-foreground: var(--bg);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+
+  --font-sans: var(--sans);
+  --font-mono: var(--mono);
+}

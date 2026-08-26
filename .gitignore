@@ -5,6 +5,11 @@ node_modules
 out
 dist
 *.tgz
+# bundle de UI generado por `bun run build:ui` (Mes 30). Explicito aunque `dist`
+# de arriba ya lo cubra: es un artefacto generado y NO se versiona nunca — versionarlo
+# repite el problema de conflictos que ya tuvo runs-summary.json. install.sh/ps1/bat
+# lo reconstruyen en cada instalacion.
+src/dashboard/public/dist/
 
 # code coverage
 coverage

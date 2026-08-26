@@ -2,6 +2,7 @@
 import { Command } from 'commander'
 import { resolve, join } from 'path'
 import { writeFileSync, existsSync, readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
 import { detectPrimaryLanguage } from './detect/languages.ts'
 import { buildProfile } from './detect/profile.ts'
 import { buildRoadmapProfile, renderProjectProfileMarkdown } from './detect/roadmap-profile.ts'
@@ -2128,6 +2129,23 @@ program
       } else {
         console.error(`[dashboard] bun install failed (exit ${proc.exitCode}): ${proc.stderr.toString()}`)
         console.error('[dashboard] Run "bun install" manually in the project directory.')
+      }
+    }
+
+    // Mes 30 (UI.0): el bundle de islas React es un artefacto generado que NO se
+    // versiona, así que puede faltar. Los instaladores corren `build:ui`, pero no son
+    // la única forma de arrancar el dashboard (clone + `bun run src/cli.ts dashboard`
+    // es igual de común). Mismo patrón que el auto-`bun install` de arriba: si falta,
+    // se construye acá en vez de servir en silencio una UI incompleta.
+    const uiBundle = fileURLToPath(new URL('./dashboard/public/dist/ui.js', import.meta.url))
+    if (!existsSync(uiBundle)) {
+      console.log('[dashboard] UI bundle missing — running build:ui...')
+      const uiProc = Bun.spawnSync(['bun', 'run', 'build:ui'], { cwd: root })
+      if (uiProc.exitCode === 0) {
+        console.log('[dashboard] UI bundle built.')
+      } else {
+        console.error(`[dashboard] build:ui failed (exit ${uiProc.exitCode}): ${uiProc.stderr.toString()}`)
+        console.error('[dashboard] Run "bun run build:ui" manually in the project directory.')
       }
     }
 

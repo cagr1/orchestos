@@ -91,8 +91,9 @@ Tailwind v4 entra por `bun-plugin-tailwind` dentro del mismo `Bun.build()`.
 1. **Aparece un build step donde hoy no hay ninguno.** Hoy: editar `.js` → recargar. Después:
    `bun run build:ui` (o watch). Toca el flujo de desarrollo y probablemente `scripts/pre-commit.sh`.
    Es el precio real de la decisión y no es negociable.
-   **Decisión de Carlos (2026-08-22): el bundle NO se commitea.** `public/dist/` va a
-   `.gitignore` — versionar un artefacto generado es exactamente el patrón que ya explotó con
+   **Decisión de Carlos (2026-08-22): el bundle NO se commitea.** `src/dashboard/public/dist/`
+   (ruta corregida al implementar UI.0 el 2026-08-25: la carpeta `public/` de la raíz no existe)
+   va a `.gitignore` — versionar un artefacto generado es exactamente el patrón que ya explotó con
    `runs-summary.json` (conflictos de contenido en cada rebase, documentado en `pre-commit.sh`).
    Consecuencia obligatoria, no opcional: `install.sh`/`install.ps1`/`install.bat` y el README
    deben correr `build:ui`, o un clone fresco sirve un dashboard roto. Es entregable de `UI.0`.
@@ -131,7 +132,7 @@ ni eso hace falta.
 
 ### Ítems
 
-- [ ] **UI.0 — 🧠 Andamiaje (ninguna pantalla migrada).**
+- [x] **UI.0 — 🧠 Andamiaje (ninguna pantalla migrada).** (cerrado 2026-08-25)
   `public-src/` con React+TS; `bun build` → `public/dist/`; script `build:ui`;
   `bun-plugin-tailwind`. Mapeo de las **30 CSS vars actuales** a tokens shadcn
   (`--background`, `--foreground`, `--border`, `--primary`, `--muted`, `--destructive`, `--radius`)
@@ -145,6 +146,62 @@ ni eso hace falta.
   las islas React, que hoy no se enteran.
   **Validación**: el dashboard actual sigue funcionando idéntico + pipeline de build listo +
   cambio de idioma verificado en vivo sobre una isla React de prueba.
+
+  **Cerrado el 2026-08-25.** Entregado: `src/dashboard/public-src/` (React 19 + TS + Tailwind 4),
+  `bun run build:ui` (`scripts/build-ui.ts`, con `--watch`), `@theme inline` mapeando los tokens
+  shadcn a las CSS vars existentes, `src/dashboard/public/dist/` en `.gitignore`, `build:ui`
+  cableado en `install.sh`/`install.ps1` + README, y el puente de i18n implementado.
+  **Evidencia:** `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1174 pass / 0 fail, gate
+  73.94%/62.90% sobre 69/57 — el ratchet NO se movió, confirmando empíricamente el Costo 2).
+  **Gate en vivo:** navegador real (Playwright sobre Chromium) contra el dashboard corriendo en
+  `localhost:4319`, **16/16 PASS** — script versionado en `scripts/ui-gates/ui0-islands.mjs`.
+  Verifica que sin `?island-probe=1` el dashboard queda idéntico (cero islas, cero errores de
+  consola, sidebar y `#main` vanilla intactos), que `bg-card`/`border-border` resuelven a
+  `--surface`/`--border`, que el preflight de Tailwind no se coló, que el idioma cambia en vivo
+  conservando el estado local de la isla, y que tras 6 `rerender()` + navegación no hay islas
+  duplicadas ni roots React leakeados.
+
+  **Tres correcciones de rumbo, encontradas al implementar — ninguna estaba en el plan:**
+
+  1. **La ruta era otra.** El plan decía `public/dist/`; `public/` en la raíz **no existe**.
+     El `STATIC_DIR` real es `src/dashboard/public/` (`src/dashboard/types.ts:437`), así que el
+     bundle va a `src/dashboard/public/dist/`. Lo verificado el 2026-08-22 sigue en pie: no hizo
+     falta tocar **nada** de `src/dashboard/*.ts` para servirlo.
+  2. **El problema no era i18n, era el ciclo de vida de las islas** — y es más grande.
+     `App.rerender()` hace `main.innerHTML = sc.render(state)` (`app.js:432`): eso **destruye**
+     cualquier isla React montada dentro de `#main`, sin avisarle a React, que sigue suscrito a
+     stores y timers mientras su nodo quedó huérfano. Y `rerender()` no corre solo al navegar: lo
+     dispara el **poll de 30s**, el cambio de idioma y el de tema. Sin resolverlo, cada isla
+     acumulaba un leak por poll y una copia duplicada por repintado — o sea, UI.1 en adelante
+     habría sido inviable. Resuelto con un registro de islas (`public-src/lib/islands.ts`) que
+     desmonta → repinta → remonta en el orden correcto, envolviendo `rerender()` una sola vez.
+     El puente de i18n quedó como lo que siempre debió ser: `setLang()` emite
+     `orchestos:langchange` (dentro de `i18n.js`, la fuente única) y `useT()` se suscribe con
+     `useSyncExternalStore`, así las islas **se repintan sin remontarse** y conservan su estado
+     local. El remount es solo la red de seguridad. El gate verifica las dos cosas por separado.
+  3. **`window.App` no existía y el orden de arranque estaba invertido.** `const App` en el top
+     level de un script clásico **no** crea propiedad global (const/let no lo hacen), y un
+     `<script type="module">` se ejecuta **antes** de que dispare `DOMContentLoaded`, que es
+     cuando `app.js` corre su `boot()`. O sea: al cargarse, el bundle no tenía a quién envolver y
+     `#main` estaba vacío — las islas se montaban y el primer repintado del boot vanilla las
+     borraba. `app.js` ahora expone `window.App` y emite `orchestos:ready` al terminar su boot;
+     el bundle espera ese evento. Los dos síntomas se vieron en el navegador, no en los tests:
+     es exactamente el tipo de bug que un mock hubiera escondido.
+
+  **Dos decisiones que UI.1–UI.7 heredan y no deben deshacer:**
+  - **El preflight de Tailwind queda fuera, a propósito.** `@import "tailwindcss"` arrastra un
+    reset que despinta las ~2.000 líneas de CSS vanilla que hoy funcionan; por eso `ui.css`
+    importa `theme.css` y `utilities.css` por separado. El gate lo verifica midiendo que un `<h1>`
+    conserve su margen de UA. Si alguien "simplifica" ese import, el dashboard entero se despinta.
+  - **`--accent` significa cosas distintas en cada lado**: en shadcn es el color de hover/selección
+    de ítems; en OrchestOS es el azul de marca. Mapeo: `--color-primary` ← `--accent` (marca),
+    `--color-accent` ← `--surface-hi` (hover real del dashboard).
+
+  **Un costo que el plan no había previsto y sí existe:** arrancar el dashboard por fuera de los
+  instaladores (`bun run src/cli.ts dashboard`, la ruta más común en desarrollo) también servía un
+  dashboard sin islas. Resuelto con un guard en `src/cli.ts` que construye el bundle si falta,
+  mismo patrón que el auto-`bun install` que ya estaba ahí — verificado en vivo borrando
+  `dist/` y arrancando.
 
 - [ ] **UI.1 — 🔍 GATE DE ABORTAR: el combobox de modelo.**
   Una sola isla React dentro del dashboard vanilla actual: reemplazar `buildModelSelect()` por
