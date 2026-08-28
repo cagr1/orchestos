@@ -26,13 +26,14 @@
  * dos conceptos distintos. Con cmdk el fondo es el ítem **resaltado** (el que mueven las
  * flechas, compartido con el mouse) y la opción **elegida** se marca con un check. Sin
  * eso, navegar con teclado no se vería, que es el criterio 3 del gate.
+ *
+ * UI.2: la mecánica de trigger + popover + lista buscable se mudó al `Combobox` del
+ * design system. Acá queda SOLO lo que es propio de elegir un modelo: de dónde sale el
+ * catálogo, cómo se arma el label, el badge de precio y el contrato del hidden input.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../lib/i18n.ts'
-import {
-  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
-} from '../components/ui/command.tsx'
-import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover.tsx'
+import { Combobox, type ComboboxOption } from '../components/ui/combobox.tsx'
 
 export interface ModelInfo {
   id: string
@@ -76,7 +77,6 @@ export function ModelCombo(props: Record<string, unknown>) {
   // `tick` fuerza un repintado cuando el catálogo termina de cargar: vive en el estado
   // vanilla, que no es reactivo — no hay nada a lo que suscribirse.
   const [, setTick] = useState(0)
-  const triggerRef = useRef<HTMLButtonElement>(null)
 
   const { cloud, local, known } = api?.getModels() ?? { cloud: null, local: null, known: [] }
 
@@ -109,112 +109,54 @@ export function ModelCombo(props: Record<string, unknown>) {
       ? (emptyLabel || '—')
       : (api?.modelLabelFor(value, cloudModels) ?? value)
 
-  function choose(next: string): void {
-    setValue(next === EMPTY ? '' : next)
-    setOpen(false)
-  }
+  const options = useMemo<ComboboxOption[]>(() => {
+    const list: ComboboxOption[] = []
+    if (allowEmpty) list.push({ value: EMPTY, label: emptyLabel || '—' })
+    for (const m of locals) {
+      const fullName = m.id.replace('ollama/', '')
+      list.push({
+        value: m.id,
+        label: fullName,
+        searchText: `${m.id} ${fullName}`,
+        group: t('chat.local.group'),
+        hint: <span className="text-muted-foreground">{t('chat.local.free')}</span>,
+      })
+    }
+    for (const m of cloudModels) {
+      const fullName = m.name || m.id
+      // Badge por id (":free"), NO por priceIn === 0: hay meta-routers sin pricing real
+      // que caen en 0 y no son gratis (hallazgo #37).
+      const isFree = m.id.endsWith(':free')
+      list.push({
+        value: m.id,
+        label: fullName,
+        searchText: `${m.id} ${fullName}`,
+        // El encabezado "Cloud" solo aparece si hay locales arriba con los que contrastar.
+        group: locals.length > 0 ? t('chat.cloud.group') : undefined,
+        hint: (
+          <span className={isFree ? 'font-semibold text-[var(--success)]' : 'text-muted-foreground'}>
+            {isFree ? t('chat.models.free') : `$${(m.priceIn ?? 0).toFixed(2)}/M`}
+          </span>
+        ),
+      })
+    }
+    return list
+  }, [allowEmpty, emptyLabel, locals, cloudModels, t])
 
   return (
     <div className="model-combo relative max-w-[260px]">
       {/* El contrato con el mundo vanilla. `readOnly` porque React es el dueño del valor. */}
       <input type="hidden" id={inputId} value={value} readOnly />
-
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            ref={triggerRef}
-            type="button"
-            disabled={isLoading}
-            title={label}
-            aria-label={label}
-            className={
-              'flex w-full items-center gap-2 rounded-md border border-border bg-muted px-2.5 py-1.5 ' +
-              'font-mono text-xs text-foreground transition-colors hover:bg-secondary ' +
-              'data-[state=open]:border-primary disabled:cursor-not-allowed disabled:opacity-60'
-            }
-          >
-            <span className="min-w-0 flex-1 truncate text-left">{label}</span>
-            <ChevronDown />
-          </button>
-        </PopoverTrigger>
-
-        <PopoverContent className="p-0">
-          {/* Filtro propio: se replican las reglas del combo vanilla — match por id O por
-              nombre, substring simple, sin reordenar por score. */}
-          <Command
-            filter={(itemValue, search) =>
-              itemValue.toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0
-            }
-          >
-            <CommandInput placeholder={t('chat.models.search')} />
-            <CommandList>
-              <CommandEmpty>No results</CommandEmpty>
-
-              {allowEmpty && (
-                <CommandItem value={EMPTY} onSelect={choose}>
-                  <span className="min-w-0 flex-1 truncate">{emptyLabel || '—'}</span>
-                  {isEmptyVal && <Check />}
-                </CommandItem>
-              )}
-
-              {locals.length > 0 && (
-                <CommandGroup heading={t('chat.local.group')}>
-                  {locals.map((m) => {
-                    const fullName = m.id.replace('ollama/', '')
-                    return (
-                      <CommandItem key={m.id} value={`${m.id} ${fullName}`} onSelect={() => choose(m.id)} title={fullName}>
-                        <span className="min-w-0 flex-1 truncate">{fullName}</span>
-                        <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-                          {t('chat.local.free')}
-                          {m.id === value && <Check />}
-                        </span>
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
-              )}
-
-              <CommandGroup heading={locals.length > 0 ? t('chat.cloud.group') : undefined}>
-                {cloudModels.map((m) => {
-                  const fullName = m.name || m.id
-                  // Badge por id (":free"), NO por priceIn === 0: hay meta-routers sin
-                  // pricing real que caen en 0 y no son gratis (hallazgo #37).
-                  const isFree = m.id.endsWith(':free')
-                  return (
-                    <CommandItem key={m.id} value={`${m.id} ${fullName}`} onSelect={() => choose(m.id)} title={fullName}>
-                      <span className="min-w-0 flex-1 truncate">{fullName}</span>
-                      <span className="flex shrink-0 items-center gap-1.5 text-[11px]">
-                        <span className={isFree ? 'font-semibold text-[var(--success)]' : 'text-muted-foreground'}>
-                          {isFree ? t('chat.models.free') : `$${(m.priceIn ?? 0).toFixed(2)}/M`}
-                        </span>
-                        {m.id === value && <Check />}
-                      </span>
-                    </CommandItem>
-                  )
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+      <Combobox
+        open={open}
+        onOpenChange={setOpen}
+        value={isEmptyVal ? EMPTY : value}
+        onValueChange={(next) => { setValue(next === EMPTY ? '' : next); setOpen(false) }}
+        options={options}
+        triggerLabel={label}
+        searchPlaceholder={t('chat.models.search')}
+        disabled={isLoading}
+      />
     </div>
-  )
-}
-
-function ChevronDown() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      className="shrink-0 text-[var(--text-faint)] transition-transform" aria-hidden="true">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  )
-}
-
-function Check() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-      className="shrink-0 text-primary" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
   )
 }

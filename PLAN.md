@@ -303,9 +303,61 @@ ni eso hace falta.
   visual deliberada; todo lo demás es paridad (grupos, badge `:free` por id y no por precio 0,
   `allowEmpty` del QA judge, carga perezosa del catálogo al abrir).
 
-- [ ] **UI.2 — 🧠 Design system: los 6 componentes que se repiten.**
+- [x] **UI.2 — 🧠 Design system: los 6 componentes que se repiten.** (cerrado 2026-08-28)
   Button, Input/Search, Select/Combobox, Dialog, Toast (reemplaza `showToast`), Tabs.
   Más primitives del shell (`cn()`, variantes). Todo shadcn, cero CSS a mano.
+
+  **Cerrado el 2026-08-28, en equipo con Codex.** Reparto: Codex vendorizó Button, Input,
+  Tabs y Dialog (mecánico, sin cruce de frontera); Claude hizo el Toast y su puente, extrajo
+  el `Combobox` genérico, y revisó el diff de Codex — que es donde aparecieron dos defectos
+  reales (abajo).
+  **Evidencia:** `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1174 pass / 0 fail,
+  ratchet sin mover). **Gate en vivo:** navegador real, **32/32 PASS**
+  (`scripts/ui-gates/ui2-design-system.mjs`) + el gate de UI.1 sigue **27/27** tras
+  refactorizar `ModelCombo` sobre el `Combobox` nuevo, o sea que la extracción no rompió nada.
+
+  **El gate mide contra el CSS vanilla, no contra números copiados a mano**: crea un `.btn`,
+  un `.filter-tab` y un input reales en el documento y compara el estilo computado del
+  componente React contra ellos. Así "espeja el look vanilla" es verificable, y el día que
+  alguien toque `styles.css` el gate lo detecta en vez de quedar desactualizado en silencio.
+
+  **Adopción real, no componentes muertos.** `Toast` reemplaza `showToast()` **con sus 71
+  llamadores intactos** — misma estrategia que UI.1 con `buildModelSelect()`: se cambia el
+  cuerpo, no los call sites. Funciona porque una `function` declarada en el scope global SÍ
+  crea propiedad de `window` (a diferencia de `const`/`let`), así que reasignarla redirige las
+  71 llamadas `showToast(...)` sin prefijo. El gate lo verifica resolviendo el identificador
+  igual que lo hace `app.js`, no llamando `window.showToast(...)` — que probaría otra cosa.
+  `Combobox` sale de extraer la parte genérica de `ModelCombo`, así que también nace con
+  consumidor real. `Button`, `Input`, `Tabs` y `Dialog` **no tienen consumidor todavía** (llega
+  en UI.3/UI.4): para no entregar cuatro archivos que compilan y que nadie probó, se agregó un
+  banco de pruebas tras `?ui-probe=1` (invisible en el dashboard normal) que el gate ejercita.
+
+  **Dos defectos reales en la pasada de Codex, encontrados al revisar el diff** — los dos del
+  tipo "compila, carga y no hace nada", que es justo lo que un reporte de "✅ pasa" no detecta:
+  1. `Button` usaba `bg-secondary hover:bg-accent`. **Los dos tokens mapean a `--surface-hi`**
+     (ver la nota de roles en `styles/ui.css`): el hover compilaba y no cambiaba un solo píxel.
+     Corregido a `bg-muted hover:bg-secondary`, que es el salto real del `.btn` vanilla
+     (`--surface-2` → `--surface-hi`). Faltaba además la variante `success`, que sí existe en
+     el CSS vanilla. El gate ahora exige que **todas** las variantes sean visualmente distintas.
+  2. `Dialog` usaba `animate-out`/`fade-out-0`/`zoom-out-95`, clases del plugin
+     `tailwindcss-animate`, **que no está instalado**: 0 ocurrencias en el bundle generado.
+     Reemplazadas por utilidades que existen. El gate exige ahora que la transición sea real.
+
+  **Y dos correcciones de criterio propias, del mismo tipo:**
+  - `Tabs` venía con el segmented control por defecto de shadcn. El dashboard **ya tiene** su
+    patrón de pestañas (`.filter-tab`: pills de radio 20px, activa en `--accent` sólido) y el
+    default se veía como un injerto. Alineado al patrón existente — el objetivo del Mes 30 es
+    cambiar la tecnología sin cambiar el aspecto, no sumar un segundo lenguaje visual.
+  - **No hay variante `outline`.** En shadcn se distingue de `ghost` por no tener borde, pero
+    el `.btn.ghost` de OrchestOS **sí lo tiene** (lo hereda de `.btn`): con esta paleta las dos
+    daban el mismo botón exacto. Lo detectó el gate al medir que las variantes fueran
+    distintas. Se deja una sola, en vez de dos nombres para lo mismo.
+
+  **Nota de mejora deliberada (no rediseño):** el toast vanilla creaba un `div` con
+  `position: fixed` en la misma coordenada por cada llamada, así que dos avisos seguidos se
+  **superponían**. Radix los apila y expone la región como `aria-live`, o sea que ahora un
+  lector de pantalla los anuncia. Nadie decidió que se taparan ni que fueran mudos: es una
+  corrección, y el gate verifica el apilado. Las coordenadas y los 3 segundos no se movieron.
 
 - [ ] **UI.3 — 🧠 Shell: sidebar + header + rightpanel + search.**
   El navbar/toolbar/panel colapsable — donde viven las 4 reglas de diseño descubiertas a los golpes.
