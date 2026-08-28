@@ -101,7 +101,6 @@ const state = {
   // Settings→Model routing, modal de crear tarea). Antes cada uno era un
   // <select> nativo con cientos de <option> sin filtro — Carlos lo reportó
   // como falta de intuición de diseño real. Un solo combo abierto a la vez.
-  modelComboOpenKey: null,
   orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
   orModelsAttempted: false, // true once a fetch (success or failure) has completed — prevents retry-loop on every rerender
   orModelsLastFetch: 0, // timestamp of last successful fetch (ms), for TTL
@@ -1836,9 +1835,10 @@ function buildModelOpts(locals, cloudModels, val, query) {
   return html;
 }
 
-/* Searchable model picker — trigger button + search-inside dropdown panel,
+/* HISTORIA (el comportamiento vigente esta en el bloque de abajo, UI.1):
+   Searchable model picker — trigger button + search-inside dropdown panel,
    same interaction pattern as buildModelCombo() (chat) but generalized to any
-   caller via `inputId`/state.modelComboOpenKey instead of a single hardcoded
+   caller via `inputId` instead of a single hardcoded
    field. Rewritten 2026-07-08: the previous version rendered a native
    <select> with every OpenRouter model as an unfiltered <option> wall (100s
    of entries, no way to search) — reported directly by Carlos as a concrete
@@ -1851,37 +1851,31 @@ function buildModelOpts(locals, cloudModels, val, query) {
    opts.allowEmpty (QA role): currentVal vacío no cae al default
    'deepseek/deepseek-v4-flash' — se antepone una opción real vacía
    (opts.emptyLabel) que representa "sin configurar" de verdad. */
+/**
+ * UI.1 (Mes 30) — este selector YA NO se dibuja acá: emite el contenedor de una isla
+ * React (`public-src/islands/ModelCombo.tsx`, shadcn Popover + Command) y el bundle la
+ * monta. Es el único punto que cambió: los 5 call sites (modal de crear tarea, los 5
+ * roles de Settings->Model routing, diagnose y draft) siguen llamando a esta misma
+ * funcion con la misma firma, y siguen leyendo el valor con
+ * `document.getElementById(inputId).value`, porque la isla renderiza el mismo
+ * `<input type="hidden">` ([[reference-model-combo-pattern]], contrato intacto).
+ *
+ * `models`/`localModels` ya no viajan como argumento hacia la isla: son cientos de
+ * entradas compartidas por hasta 5 combos en pantalla, y serializarlas en `data-props`
+ * de cada uno las duplicaria en cada repintado. La isla las lee por `window.OrchestOS`
+ * (mas abajo en boot()). Los parametros se conservan en la firma para no tocar los call
+ * sites, y porque `models === []` sigue siendo la senal de "cargando".
+ */
 function buildModelSelect(inputId, currentVal, models, localModels, opts) {
   const allowEmpty = !!(opts && opts.allowEmpty);
-  const isEmptyVal = allowEmpty && !currentVal;
   const val = currentVal || (allowEmpty ? '' : 'deepseek/deepseek-v4-flash');
-  const locals = Array.isArray(localModels) && localModels.length > 0 ? localModels : [];
-  const isLoading = Array.isArray(models) && models.length === 0;
-  const cloudSource = models === null ? KNOWN_MODELS.map(m => ({ ...m })) : (Array.isArray(models) ? models : []);
-  const allCloud = (!val || models === null || cloudSource.some(m => m.id === val))
-    ? cloudSource
-    : [{ id: val, name: val, priceIn: 0 }, ...cloudSource];
-  const label = isLoading
-    ? t('common.loading')
-    : (isEmptyVal ? ((opts && opts.emptyLabel) || '—') : modelLabelFor(val, allCloud));
-  const isOpen = state.modelComboOpenKey === inputId && !isLoading;
-  const emptyOption = allowEmpty
-    ? `<div class="model-combo-option${isEmptyVal ? ' active' : ''}" data-combo-option data-value="">${esc((opts && opts.emptyLabel) || '—')}</div>`
-    : '';
-  const panel = isOpen
-    ? `<div class="model-combo-panel" data-combo-panel>
-        <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
-        <div class="model-combo-list" data-combo-list>${emptyOption}${buildComboOptions(locals, allCloud, val, '')}</div>
-      </div>`
-    : '';
-  return `<div class="model-combo${isOpen ? ' open' : ''}" data-model-combo data-combo-id="${esc(inputId)}">
-    <input type="hidden" id="${esc(inputId)}" value="${esc(val)}">
-    <button type="button" class="model-combo-trigger" data-combo-trigger title="${esc(label)}" aria-label="${esc(label)}" ${isLoading ? 'disabled' : ''}>
-      <span class="model-combo-label">${esc(label)}</span>
-      ${ICON.chev}
-    </button>
-    ${panel}
-  </div>`;
+  const props = {
+    inputId,
+    value: val,
+    allowEmpty,
+    emptyLabel: (opts && opts.emptyLabel) || '',
+  };
+  return `<div data-island="model-combo" data-props="${esc(JSON.stringify(props))}"></div>`;
 }
 
 /* FRONT.6 — display label for a model id: locals (Ollama) first, then the
@@ -2520,60 +2514,16 @@ function boot() {
     }
   });
 
-  // 2026-07-08 — generic wiring for every buildModelSelect() instance (draft
-  // composer, diagnose panel, Settings→Model routing roles, create-task
-  // modal). Registered once here, delegated on document — same reasoning as
-  // the block above: these widgets can appear multiple times on one screen
-  // (5 role selects in Model routing), so per-instance querySelector-based
-  // wiring inside a screen's wire() would only ever bind the first one.
-  // rerenderCurrentContext() picks App.rerender() for #main-scoped screens or
-  // re-invokes the modal's own open function when the combo lives inside it
-  // (Modal doesn't participate in App.rerender(), it redraws via innerHTML
-  // directly in each openX() method).
-  function rerenderCurrentContext(target) {
-    if (target.closest('.modal-scrim')) { Modal.openTask(); return; }
-    App.rerender();
-  }
-  document.addEventListener('click', e => {
-    const trigger = e.target.closest('[data-combo-trigger]');
-    if (trigger) {
-      e.stopPropagation();
-      const wrap = trigger.closest('[data-model-combo]');
-      const id = wrap && wrap.dataset.comboId;
-      if (!id) return;
-      const opening = state.modelComboOpenKey !== id;
-      state.modelComboOpenKey = opening ? id : null;
-      rerenderCurrentContext(trigger);
-      if (opening) loadOrModels().then(() => { if (state.modelComboOpenKey === id) rerenderCurrentContext(trigger); });
-      return;
-    }
-    const option = e.target.closest('[data-combo-option]');
-    if (option && option.closest('[data-model-combo]')) {
-      const wrap = option.closest('[data-model-combo]');
-      const id = wrap.dataset.comboId;
-      const hidden = id ? document.getElementById(id) : null;
-      if (hidden) hidden.value = option.dataset.value;
-      state.modelComboOpenKey = null;
-      rerenderCurrentContext(option);
-      return;
-    }
-    if (state.modelComboOpenKey && !e.target.closest('[data-model-combo]')) {
-      state.modelComboOpenKey = null;
-      rerenderCurrentContext(e.target);
-    }
-  });
-  document.addEventListener('input', e => {
-    const search = e.target.closest('[data-combo-search]');
-    if (!search) return;
-    const wrap = search.closest('[data-model-combo]');
-    const list = wrap && wrap.querySelector('[data-combo-list]');
-    if (!wrap || !list) return;
-    const allCloud = Array.isArray(state.orModels) && state.orModels.length > 0 ? state.orModels : KNOWN_MODELS;
-    const locals = Array.isArray(state.localModels) && state.localModels.length > 0 ? state.localModels : [];
-    const hiddenId = wrap.dataset.comboId;
-    const hidden = hiddenId ? document.getElementById(hiddenId) : null;
-    list.innerHTML = buildComboOptions(locals, allCloud, hidden ? hidden.value : '', search.value);
-  });
+  // 2026-07-08 — el wiring delegado de buildModelSelect() (abrir/cerrar panel,
+  // elegir opcion, filtrar, cerrar al click afuera) vivia aca, junto con
+  // `state.modelComboOpenKey` y el helper `rerenderCurrentContext()`.
+  //
+  // UI.1 (Mes 30) lo BORRO, no lo dejo por las dudas: el combo ahora es una isla React
+  // (`public-src/islands/ModelCombo.tsx`) y Radix maneja apertura, foco, teclado y
+  // cierre-al-click-afuera. Dejar estos handlers no era neutro — seguirian escuchando
+  // en `document` y compitiendo con Radix por los mismos clicks, que es la clase de bug
+  // que despues nadie encuentra. El combo del chat (el pill modelo+esfuerzo) NO usa este
+  // wiring: tiene el suyo en `screens-core.js` con `data-modelfx-*`, y sigue intacto.
 
   // 2026-07-08 (Impeccable audit G.2, P1) — filas clicables de tabla
   // (Tasks/Runs/Specs, todas `tabindex="0"`) no tenían forma de abrirse con
@@ -2604,6 +2554,26 @@ function boot() {
   //     o sea antes de este boot(): el bundle no puede envolver App.rerender() al
   //     cargarse porque todavia no existe. Este evento le avisa cuando ya puede.
   window.App = App;
+
+  // Puente de datos vanilla -> islas React (UI.1, Mes 30). Superficie ESTRECHA a
+  // proposito: React no alcanza `state` ni ninguna funcion interna, solo lo que se
+  // declara aca. El catalogo de modelos se comparte por esta via en vez de viajar
+  // serializado en el `data-props` de cada combo — son cientos de entradas y puede
+  // haber 5 combos en pantalla a la vez (los roles de Settings).
+  // `Modal` es otro `const` de top level (no crea propiedad global). Se expone porque
+  // redibuja con `innerHTML` por fuera de App.rerender() y el gate en vivo de UI.1
+  // necesita abrirlo/cerrarlo para verificar que la isla monta y se limpia ahi tambien.
+  window.Modal = Modal;
+  // Idem `state`: el gate en vivo necesita poder pararse en una pestaña concreta de
+  // Settings sin depender de encontrar y clickear el tab correcto por CSS.
+  window.state = state;
+
+  window.OrchestOS = {
+    getModels: () => ({ cloud: state.orModels, local: state.localModels, known: KNOWN_MODELS }),
+    loadModels: () => loadOrModels(),
+    modelLabelFor,
+  };
+
   window.dispatchEvent(new CustomEvent('orchestos:ready'));
 }
 

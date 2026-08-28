@@ -12,10 +12,12 @@
  * UI.0 — el dashboard tiene que quedar idéntico.
  */
 import './styles/ui.css'
-import { registerIsland, mountIslands, installIslandBridge } from './lib/islands.ts'
+import { registerIsland, mountIslands, installIslandBridge, startIslandObserver } from './lib/islands.ts'
 import { LangProbe } from './islands/LangProbe.tsx'
+import { ModelCombo } from './islands/ModelCombo.tsx'
 
 registerIsland('lang-probe', LangProbe)
+registerIsland('model-combo', ModelCombo)
 
 type AppLike = { rerender: () => void }
 
@@ -42,6 +44,8 @@ function boot(): void {
   }
   ensureProbeContainer()
   mountIslands(document)
+  // Cubre los repintados vanilla que NO pasan por App.rerender() — el Modal, sobre todo.
+  startIslandObserver()
 }
 
 /**

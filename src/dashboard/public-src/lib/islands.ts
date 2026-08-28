@@ -95,7 +95,22 @@ type AppLike = { rerender: () => void }
 
 /**
  * Envuelve `App.rerender()` para que el ciclo sea:
- *   desmontar → repintar vanilla → `beforeMount` → montar.
+ *   repintar vanilla → limpiar lo que quedó huérfano → `beforeMount` → montar.
+ *
+ * EL ORDEN IMPORTA Y NO ES EL INTUITIVO. La versión de UI.0 desmontaba ANTES de
+ * repintar, que suena más prolijo. Está mal, y rompe algo real: `root.unmount()` borra
+ * el DOM del contenedor de forma síncrona, y el dashboard vanilla LEE ese DOM viejo
+ * mientras arma el HTML nuevo. El caso concreto es `pendingVal()`
+ * (`screens-ops.js:1208`): al repintar Settings, lee `#role-planner` del DOM que todavía
+ * está en pantalla para conservar una selección de modelo que aún no se guardó. Si la
+ * isla se desmontó antes, ese input ya no existe, `pendingVal()` devuelve null y la
+ * elección se pierde en silencio — en cada poll de 30s. Es exactamente el bug que el
+ * equipo ya había arreglado una vez en vanilla el 2026-08-10.
+ *
+ * Desmontar DESPUÉS es correcto igual: `original()` reemplaza `#main` con `innerHTML`,
+ * así que los contenedores viejos quedan detached, y desmontar un root cuyo contenedor
+ * ya salió del documento es legal en React — corre los cleanups de efectos, que es todo
+ * lo que hace falta. De eso se ocupa `pruneDetachedIslands()`.
  *
  * `beforeMount` es el punto donde el llamador puede reinsertar contenedores que el
  * `innerHTML = …` acaba de borrar, antes de que se monte nada. Existe para que no haga
@@ -111,11 +126,59 @@ export function installIslandBridge(app: AppLike, beforeMount?: () => void): voi
 
   const original = app.rerender.bind(app)
   app.rerender = () => {
-    const main = document.getElementById('main')
-    if (main) unmountIslandsIn(main)
     original()
     pruneDetachedIslands()
     beforeMount?.()
     mountIslands(document)
   }
+}
+
+/**
+ * Observador que monta/desmonta islas ante CUALQUIER repintado del DOM vanilla, no solo
+ * el de `App.rerender()`.
+ *
+ * Por qué hace falta además del wrapper: `#main` no es el único sitio que se redibuja
+ * con `innerHTML`. `Modal` (`app.js`) arma su contenido con `this.el.innerHTML = …` y no
+ * participa de `App.rerender()` — y ahí adentro vive uno de los 5 combos de modelo. La
+ * alternativa era pedirle a cada sitio vanilla que llame a montar/desmontar a mano, que
+ * es justamente la clase de regla que nadie termina cumpliendo (regla cero de CLAUDE.md:
+ * lo que no se hace cumplir mecánicamente deja de existir en la práctica). El observador
+ * lo vuelve automático: si aparece un `[data-island]` en el DOM, se monta.
+ *
+ * No entra en bucle: las mutaciones que ocurren DENTRO de una isla ya montada son las de
+ * React pintando lo suyo, y se ignoran.
+ */
+let observer: MutationObserver | null = null
+
+export function startIslandObserver(): void {
+  if (observer) return
+  let queued = false
+
+  const flush = (): void => {
+    queued = false
+    pruneDetachedIslands()
+    mountIslands(document)
+  }
+
+  observer = new MutationObserver((records) => {
+    if (queued) return
+    for (const record of records) {
+      const target = record.target as Node
+      // Mutación interna de una isla ya montada = React haciendo su trabajo.
+      let insideIsland = false
+      for (const el of mounted.keys()) {
+        if (el === target || el.contains(target)) { insideIsland = true; break }
+      }
+      if (insideIsland) continue
+
+      const touched = [...record.addedNodes, ...record.removedNodes]
+      const relevant = touched.some((node) => {
+        if (!(node instanceof Element)) return false
+        return node.hasAttribute('data-island') || node.querySelector('[data-island]') !== null
+      })
+      if (relevant) { queued = true; queueMicrotask(flush); return }
+    }
+  })
+
+  observer.observe(document.body, { childList: true, subtree: true })
 }

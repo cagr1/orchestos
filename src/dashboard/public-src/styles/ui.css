@@ -70,3 +70,24 @@
   --font-sans: var(--sans);
   --font-mono: var(--mono);
 }
+
+/* ------------------------------------------------------------
+   Capa de los flotantes de Radix sobre el z-index vanilla.
+
+   Bug REAL encontrado por el gate en vivo de UI.1 (2026-08-28), invisible en tests:
+   Radix portalea el contenido del popover a `<body>`, lo que resuelve el recorte por
+   `overflow` (regla 3 de v0.12) pero lo saca del contexto de apilamiento donde estaba.
+   El combo dentro del modal de crear tarea quedaba DEBAJO de `.modal-scrim`
+   (`z-index: 200`), que además captura los clicks: el panel se veía tapado y no se
+   podía elegir nada. En vanilla no pasaba porque el panel era hijo del modal.
+
+   El z-index va en el wrapper de posicionamiento, no en el contenido: el wrapper es el
+   que participa del apilamiento de `<body>`, y con `z-index: auto` pierde contra
+   cualquier ancestro con z-index explícito, sin importar el orden en el DOM.
+
+   300 = arriba de modales (200), abajo de los toasts (9999), que deben seguir
+   viéndose sobre cualquier cosa.
+   ------------------------------------------------------------ */
+[data-radix-popper-content-wrapper] {
+  z-index: 300 !important; /* Radix escribe z-index inline en el wrapper */
+}

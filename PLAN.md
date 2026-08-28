@@ -203,7 +203,7 @@ ni eso hace falta.
   mismo patrón que el auto-`bun install` que ya estaba ahí — verificado en vivo borrando
   `dist/` y arrancando.
 
-- [ ] **UI.1 — 🔍 GATE DE ABORTAR: el combobox de modelo.**
+- [x] **UI.1 — 🔍 GATE DE ABORTAR: el combobox de modelo.** (cerrado 2026-08-28 — **APROBADO, el Mes 30 sigue**)
   Una sola isla React dentro del dashboard vanilla actual: reemplazar `buildModelSelect()` por
   shadcn `Command` + `Popover` (patrón combobox buscable — que es literalmente lo que exige
   `reference-model-combo-pattern`, resuelto de fábrica).
@@ -224,6 +224,84 @@ ni eso hace falta.
   4. El toprow que lo contiene **no se rompe**: sin scroll horizontal, sin tooltip cortado por
      `overflow` — la regresión real que ya ocurrió antes y que solo se ve en el navegador.
   5. Cambio de idioma en vivo repinta el combobox (valida el puente de i18n de `UI.0`).
+
+  **VEREDICTO (2026-08-28): APROBADO. La tesis quedó probada — el Mes 30 continúa.**
+  Costó **un día**, que era exactamente el presupuesto del gate.
+
+  **Gate en vivo:** navegador real (Playwright sobre Chromium) contra el dashboard
+  corriendo, **27/27 PASS** — script versionado en `scripts/ui-gates/ui1-model-combo.mjs`,
+  se corre a mano (Playwright no entra a devDependencies por un gate manual).
+  `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1174 pass / 0 fail, ratchet sin mover).
+
+  **Los 5 criterios, uno por uno:**
+  1. **Las 4 reglas de v0.12 contra Radix: las resuelve, y ahora está medido.** Anclaje: el
+     panel mantiene `dx = 0` respecto del trigger aunque se cambie el ancho del contenedor
+     (Radix ancla al elemento, no al orden en el DOM). Recorte: el contenido se portalea a
+     `<body>` — se midió que **ningún** ancestro tiene `overflow` que pueda cortarlo, que es
+     la solución estructural a la regla 3, mejor que moverla al nivel interno correcto a mano.
+     Sin scroll horizontal ni en la página ni en `#main`; el label largo corta con ellipsis.
+  2. **Sigue buscable, y el filtro replica las reglas del combo vanilla** (match por id **o**
+     por nombre, substring, sin reordenar por score): 389 modelos → 33 al escribir "claude".
+     Cero `<select>` nativos con lista larga en pantalla.
+  3. **Teclado completo**: flechas mueven el resaltado, Enter elige y escribe el hidden input,
+     Esc cierra — y en los dos casos el foco vuelve al trigger. Todo de Radix, sin código propio.
+  4. **La fila no se rompe**: medido arriba (criterio 1).
+  5. **El idioma cambia en vivo con el panel abierto**: "Search models…" → "Buscar modelo…".
+
+  **Cómo se hizo, y por qué el riesgo de migración es menor de lo que parecía:** el único
+  punto que cambió es el **cuerpo de `buildModelSelect()`**, que ahora emite
+  `<div data-island="model-combo">` en vez de HTML. Los **5 call sites no se tocaron** — ni
+  una línea — porque la isla sigue renderizando el mismo `<input type="hidden" id={inputId}>`
+  y todos leen el valor con `document.getElementById(id).value`
+  ([[reference-model-combo-pattern]], contrato intacto). Esto es la mejor noticia del gate:
+  una pantalla se puede migrar por dentro sin tocar a quien la consume.
+
+  **Tres hallazgos reales, ninguno visible sin navegador:**
+
+  1. **El orden del registro de islas de UI.0 estaba mal, y rompía algo.** `pendingVal()`
+     (`screens-ops.js:1208`) lee el hidden input **del DOM viejo, durante el render**, para
+     conservar una selección de modelo sin guardar a través de un `App.rerender()`. El bridge
+     de UI.0 desmontaba antes de repintar, y `root.unmount()` borra el DOM del contenedor de
+     forma síncrona: `pendingVal()` encontraba null y la elección se perdía **en cada poll de
+     30s**, en silencio. Es literalmente el mismo bug que ya se había arreglado en vanilla el
+     2026-08-10. Corregido a repintar → limpiar huérfanos → montar (desmontar un root ya
+     detached es legal en React y corre los cleanups igual). El gate lo verifica explícitamente.
+  2. **El panel quedaba debajo del scrim del modal.** El portal a `<body>` que resuelve el
+     recorte también saca el panel del contexto de apilamiento del modal: con
+     `.modal-scrim { z-index: 200 }`, el combo de crear tarea se veía tapado y no se podía
+     clickear. El `z-index` va en `[data-radix-popper-content-wrapper]` (el wrapper es quien
+     participa del apilamiento de `<body>`; con `auto` pierde contra cualquier ancestro con
+     z-index explícito, sin importar el orden en el DOM). Fijado en 300: arriba de modales,
+     abajo de los toasts. **Es el precio del portal, y hay que pagarlo una sola vez** — vale
+     para todo popover/dropdown/tooltip de UI.2 en adelante.
+  3. **Hacía falta un mecanismo general para el DOM que se repinta fuera de `rerender()`.**
+     `Modal` arma su contenido con `this.el.innerHTML = …` y no participa de `App.rerender()`,
+     y ahí vive uno de los 5 combos. En vez de pedirle a cada sitio vanilla que llame a
+     montar/desmontar a mano — la clase de regla que nadie termina cumpliendo (regla cero de
+     CLAUDE.md) — se agregó un `MutationObserver` que monta cualquier `[data-island]` que
+     aparezca en el DOM y limpia los que se van. Verificado abriendo y cerrando el modal 3
+     veces sin acumular islas ni hidden inputs.
+
+  **Lo que se borró, a propósito y no en UI.5:** el wiring delegado de `buildModelSelect()` en
+  `boot()` (abrir/cerrar, elegir, filtrar, cerrar-al-click-afuera) y `state.modelComboOpenKey`.
+  Dejarlo no era neutro: seguiría escuchando en `document` y compitiendo con Radix por los
+  mismos clicks. El pill modelo+esfuerzo del chat **no** usaba ese wiring (tiene el suyo con
+  `data-modelfx-*` en `screens-core.js`) y se verificó en vivo que sigue funcionando.
+
+  **Lo que NO se verificó en vivo, dicho explícitamente:** 2 de los 5 call sites
+  (`diagnose-model`, que necesita un run fallido con diagnóstico, y `draft-model`, que necesita
+  un draft natural activo) no se pudieron poner en pantalla en esta corrida. Comparten
+  mecanismo de montaje con los 5 combos de Settings (dentro de `#main`, vía el bridge de
+  `rerender()`), que sí se verificó; el otro mecanismo posible —`innerHTML` fuera de
+  `rerender()`— se verificó con el modal. Los dos mecanismos están cubiertos; esos dos call
+  sites concretos, no.
+
+  **Nota de paridad:** en vanilla el fondo `--accent-soft` significaba a la vez "opción
+  elegida" y "opción bajo el mouse". Con cmdk el fondo pasa a ser el ítem **resaltado** (el que
+  mueven las flechas) y la opción **elegida** se marca con un check — sin esa separación, el
+  criterio 3 (navegación por teclado visible) no se podía cumplir. Es la única diferencia
+  visual deliberada; todo lo demás es paridad (grupos, badge `:free` por id y no por precio 0,
+  `allowEmpty` del QA judge, carga perezosa del catálogo al abrir).
 
 - [ ] **UI.2 — 🧠 Design system: los 6 componentes que se repiten.**
   Button, Input/Search, Select/Combobox, Dialog, Toast (reemplaza `showToast`), Tabs.
