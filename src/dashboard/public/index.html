@@ -20,19 +20,14 @@
     <!-- SIDEBAR — brand (solo texto, sin logo) + panel-left + search viven acá
          (2026-07-13, corrección de Carlos): buildNav() los inyecta como una fila al
          tope del riel de íconos. Colapsado, solo queda el ícono panel-left. -->
-    <nav class="sidebar" id="sidebar"></nav>
+    <nav class="sidebar" id="sidebar" data-island="shell-sidebar"></nav>
     <div class="resize-handle resize-handle-sidebar" id="sidebarResizeHandle"></div>
 
     <!-- HEADER — sin borde inferior, sin contador "N active", SIN íconos
          (2026-07-13, corrección de Carlos ronda 4): el toggle del panel
          derecho vive únicamente DENTRO del aside (#rpToprow) — nunca acá,
          nunca se duplica. El header solo lleva el pill de estado. -->
-    <header class="header">
-      <span class="spacer"></span>
-      <div class="status-badge" id="statusBadge" data-state="idle">
-        <span class="dot"></span><span class="txt">IDLE</span>
-      </div>
-    </header>
+    <header class="header" data-island="shell-header"></header>
 
     <!-- MAIN -->
     <main class="main" id="main"></main>
@@ -42,7 +37,7 @@
          ensancha a --rightpanel-w mostrando explorer/terminal/diff al abrir.
          El toggle nunca cambia de posición ni de contenedor. -->
     <aside class="rightpanel" id="rightpanel">
-      <div class="rp-toprow" id="rpToprow"></div>
+      <div class="rp-toprow" id="rpToprow" data-island="shell-rp-toprow"></div>
       <div class="rp-body" id="rightpanelBody"></div>
     </aside>
     <div class="resize-handle resize-handle-rightpanel" id="rightpanelResizeHandle"></div>

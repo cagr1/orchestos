@@ -459,19 +459,24 @@ const App = {
     }
     this.rerender();
   },
+  // UI.3 (Mes 30) — estos dos ya no escriben el DOM: EMPUJAN ESTADO al shell React.
+  // Antes hacian `classList.toggle('active')` y `badge.textContent = ...` a mano, que es
+  // exactamente lo que no se le puede hacer a un componente de React: lo pisa en su
+  // siguiente render. Ahora publican en el store (`public-src/lib/shell-store.ts`) y el
+  // shell se suscribe. El store ignora los empujones que no cambian nada, asi que el poll
+  // de 30s no repinta el riel al pedo ni le roba el foco a un boton.
   syncNav() {
-    document.querySelectorAll('.nav-icon').forEach(n =>
-      n.classList.toggle('active', n.dataset.nav === state.screen));
-    const sc = (state.skills || []).length;
-    const badge = document.querySelector('[data-count="skills"]');
-    if (badge) badge.textContent = sc;
+    pushShellState({
+      screen: state.screen,
+      skillsCount: (state.skills || []).length,
+      advanced: (localStorage.getItem('orchestos-mode') || 'normal') === 'advanced',
+      sidebarExpanded: document.querySelector('.app').dataset.sidebar === 'expanded',
+    });
   },
   syncHeader() {
     // 2026-07-13 (corrección de Carlos, ronda 3) — se quitó el contador
     // "N active" del header: le quitaba espacio al pill de IDLE/RUNNING.
-    const running = (state.tasks || []).some(t => t.status === 'running');
-    const sb = document.getElementById('statusBadge');
-    if (sb) { sb.dataset.state = running ? 'running' : 'idle'; sb.querySelector('.txt').textContent = running ? 'RUNNING' : 'IDLE'; }
+    pushShellState({ running: (state.tasks || []).some(t => t.status === 'running') });
   },
 };
 
@@ -2252,102 +2257,40 @@ function applySidebarMode() {
   return expanded;
 }
 
-function buildNav() {
-  const mode = localStorage.getItem('orchestos-mode') || 'normal';
-  const isAdv = mode === 'advanced';
-  const side = document.getElementById('sidebar');
+/**
+ * UI.3 (Mes 30) — `buildNav()` ya no existe: el riel izquierdo lo pinta React
+ * (`public-src/islands/shell/Sidebar.tsx`). Lo que queda son las ACCIONES, que siguen
+ * viviendo acá a proposito: navegar, colapsar y togglear el modo avanzado persisten en
+ * localStorage y coordinan cosas fuera del shell (salir de una pantalla de operador al
+ * apagar el modo avanzado). Reimplementarlas en React seria una segunda fuente de verdad
+ * de la navegacion — justo lo que UI.7 va a tener que reordenar. React dibuja y avisa;
+ * aca se decide y se persiste.
+ *
+ * El wiring de teclado (Enter/Espacio) y el swap logo<->panel-left tambien se fueron: el
+ * primero lo hace cada componente, el segundo SIEMPRE fue CSS puro y sigue igual.
+ */
+function toggleSidebarMode() {
+  const appEl = document.querySelector('.app');
+  const next = appEl.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded';
+  appEl.dataset.sidebar = next;
+  localStorage.setItem('orchestos-sidebar', next);
+  App.syncNav();
+}
 
-  const mainNav = NAV.filter(n => n.id !== 'settings');
-  const bottomNav = NAV.filter(n => n.id === 'settings');
-
-  const navItem = n => {
-    if (n.operator && !isAdv) return '';
-    // Mes 22/F2 (2026-07-18, corrección de Carlos) — se quita el badge "adv":
-    // estos ítems SOLO se renderizan cuando isAdv ya es true (línea de arriba),
-    // así que marcarlos uno por uno como "adv" era redundante y además el
-    // texto crudo "adv" no comunicaba "avanzado" — no aportaba nada.
-    const countBadge = n.badge ? `<span class="nav-count-badge" data-count="${n.id}">0</span>` : '';
-    const cls = n.operator ? ' operator' : '';
-    return `<div class="nav-icon${cls}" data-nav="${n.id}" data-tip="${t(n.key)}" role="button" tabindex="0">
-      <span class="nav-ic">${n.icon}${countBadge}</span>
-      <span class="nav-label">${t(n.key)}</span>
-    </div>`;
-  };
-
-  const tipKey = isAdv ? 'nav.mode.disable' : 'nav.mode.enable';
-  const modeBtn = `<div class="nav-icon nav-mode-btn${isAdv ? ' active' : ''}" id="navModeBtn" data-tip="${t(tipKey)}" role="button" tabindex="0">
-    <span class="nav-ic">${ICON.sliders}</span>
-    <span class="nav-label">${t(tipKey)}</span>
-  </div>`;
-
-  // 2026-07-13 (corrección de Carlos, ronda 2) — sin logo: solo el texto
-  // "OrchestOS" totalmente a la izquierda, y search+collapse a la derecha
-  // en la MISMA fila (nunca muestran label, solo ícono+tooltip — por eso no
-  // usan `.nav-icon`/`.nav-label`, tienen su propia clase `.sidebar-toprow-btn`
-  // así no heredan la regla que oculta el tooltip cuando el sidebar expande).
-  // 2026-07-14 (corrección de Carlos) — colapsado ahora SÍ lleva logo (mismo
-  // asset que la marca vacía del chat, `logo_white`/`logo_black` según tema):
-  // se ve solo el logo centrado por defecto, y al pasar el mouse por la fila
-  // el logo se oculta y aparece el botón panel-left en su lugar (mismo CSS
-  // que ya oculta search/brand-text en colapsado, ver `.sidebar-toprow-logo`
-  // en styles.css) — nunca los dos a la vez.
-  const sbExpanded = document.querySelector('.app').dataset.sidebar === 'expanded';
-  const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K';
-  const isBrightTheme = document.documentElement.getAttribute('data-theme') === 'bright';
-  const logoSrc = `assets/${isBrightTheme ? 'logo_black' : 'logo_white'}.png`;
-  const toprow = `<div class="sidebar-toprow">
-    <img class="sidebar-toprow-logo" src="${logoSrc}" alt="OrchestOS" aria-hidden="true">
-    <b class="sidebar-brand-text">Orchest<span>OS</span></b>
-    <div class="sidebar-toprow-icons">
-      <div class="sidebar-toprow-btn sidebar-search-btn" id="navSearchBtn" data-tip="${t('nav.search')} (${kbdHint})" role="button" tabindex="0">${ICON.search}</div>
-      <div class="sidebar-toprow-btn" id="navCollapseBtn" data-tip="${t(sbExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}" role="button" tabindex="0">${ICON.panelLeft}</div>
-    </div>
-  </div>`;
-
-  side.innerHTML = toprow + '<div class="nav-sep"></div>' + mainNav.map(navItem).join('') +
-    '<div class="grow"></div>' + modeBtn + bottomNav.map(navItem).join('');
-
-  if (isAdv) {
-    requestAnimationFrame(() => {
-      side.querySelectorAll('.nav-icon.operator').forEach(el => el.classList.add('visible'));
-    });
+function toggleAdvancedMode() {
+  const cur = localStorage.getItem('orchestos-mode') || 'normal';
+  const next = cur === 'advanced' ? 'normal' : 'advanced';
+  localStorage.setItem('orchestos-mode', next);
+  if (next === 'normal') {
+    const opIds = NAV.filter(n => n.operator).map(n => n.id);
+    if (opIds.includes(state.screen)) App.go('chat');
   }
-
-  side.querySelectorAll('.nav-icon[data-nav]').forEach(n =>
-    n.addEventListener('click', () => App.go(n.dataset.nav)));
-
-  side.querySelectorAll('.nav-icon[role="button"], .sidebar-toprow-btn[role="button"]').forEach(n =>
-    n.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); n.click(); }
-    }));
-
-  document.getElementById('navModeBtn').addEventListener('click', () => {
-    const cur = localStorage.getItem('orchestos-mode') || 'normal';
-    const next = cur === 'advanced' ? 'normal' : 'advanced';
-    localStorage.setItem('orchestos-mode', next);
-    if (next === 'normal') {
-      const opIds = NAV.filter(n => n.operator).map(n => n.id);
-      if (opIds.includes(state.screen)) App.go('chat');
-    }
-    buildNav();
-    App.syncNav();
-  });
-
-  document.getElementById('navSearchBtn').addEventListener('click', () => Modal.openCommandPalette());
-
-  document.getElementById('navCollapseBtn').addEventListener('click', () => {
-    const appEl = document.querySelector('.app');
-    const next = appEl.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded';
-    appEl.dataset.sidebar = next;
-    localStorage.setItem('orchestos-sidebar', next);
-    buildNav();
-    App.syncNav();
-  });
+  App.syncNav();
 }
 
-function headerIconBtn(id, icon, tipKey, active) {
-  return `<div class="header-icon-btn${active ? ' active' : ''}" id="${id}" data-tip="${t(tipKey)}" role="button" tabindex="0">${icon}</div>`;
-}
+// `headerIconBtn()` se borro en UI.3 (Mes 30): su unico consumidor era
+// buildRightPanelToprow(), que ahora es un componente React. La clase `.header-icon-btn`
+// sigue viva en el CSS y la usa ese componente.
 
 /* 2026-07-14 (corrección de Carlos) — el botón panel-right vive SIEMPRE
    pegado al borde derecho de la fila (`margin-left:auto` en CSS, ver
@@ -2358,49 +2301,38 @@ function headerIconBtn(id, icon, tipKey, active) {
    izquierdo (como antes) lo hacía viajar con ese borde; anclado a la
    derecha, queda fijo en pantalla. explorer/terminal/diff van ANTES en el
    DOM (a su izquierda) — esos sí aparecen/desaparecen, el toggle no. */
-function buildRightPanelToprow() {
-  const row = document.getElementById('rpToprow');
-  if (!row) return;
-  const open = state.rightPanelOpen;
-  const tab = state.rightPanelTab;
+/**
+ * UI.3 (Mes 30) — la fila superior del aside derecho la pinta React
+ * (`public-src/islands/shell/RightPanelToprow.tsx`). Aca quedan las dos acciones, que
+ * persisten en localStorage. El CONTENIDO del panel (Explorer/Term/Diff) sigue en vanilla
+ * a proposito: es contenido de pantalla, no shell, y le toca en UI.4.
+ */
+function toggleRightPanel() {
+  state.rightPanelOpen = !state.rightPanelOpen;
+  localStorage.setItem('orchestos-rightpanel', state.rightPanelOpen ? 'expanded' : 'collapsed');
+  syncRightPanel();
+}
 
-  const toggleBtn = headerIconBtn('rpToggle', ICON.panelRight, open ? 'rp.toggle.close' : 'rp.toggle.open', open);
-  const tabs = open
-    ? headerIconBtn('rpTabExplorer', ICON.folder, 'rp.tab.explorer', tab === 'explorer') +
-      headerIconBtn('rpTabTerminal', ICON.term, 'rp.tab.terminal', tab === 'terminal') +
-      headerIconBtn('rpTabDiff', ICON.diff, 'rp.tab.diff', tab === 'diff')
-    : '';
-  row.innerHTML = tabs + toggleBtn;
-
-  document.getElementById('rpToggle').addEventListener('click', () => {
-    state.rightPanelOpen = !state.rightPanelOpen;
-    localStorage.setItem('orchestos-rightpanel', state.rightPanelOpen ? 'expanded' : 'collapsed');
-    syncRightPanel();
-  });
-
-  if (open) {
-    const openTab = tabName => {
-      state.rightPanelTab = tabName;
-      localStorage.setItem('orchestos-rightpanel-tab', tabName);
-      buildRightPanelToprow();
-      RightPanel.render();
-    };
-    document.getElementById('rpTabExplorer').addEventListener('click', () => openTab('explorer'));
-    document.getElementById('rpTabTerminal').addEventListener('click', () => openTab('terminal'));
-    document.getElementById('rpTabDiff').addEventListener('click', () => openTab('diff'));
-  }
-
-  row.querySelectorAll('[role="button"]').forEach(n =>
-    n.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); n.click(); }
-    }));
+function setRightPanelTab(tabName) {
+  state.rightPanelTab = tabName;
+  localStorage.setItem('orchestos-rightpanel-tab', tabName);
+  syncRightPanel();
 }
 
 /** Aplica el estado abierto/cerrado + tab activa del panel derecho al DOM. */
 function syncRightPanel() {
   document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
-  buildRightPanelToprow();
+  pushShellState({ rightPanelOpen: state.rightPanelOpen, rightPanelTab: state.rightPanelTab });
   if (state.rightPanelOpen) RightPanel.render();
+}
+
+/**
+ * Empuja estado al shell React. Es un no-op mientras el bundle no haya cargado, asi que el
+ * dashboard sigue arrancando aunque `dist/ui.js` falte — degrada a un shell vacio, no a un
+ * error. El bundle publica esta funcion en `window` al montar (ver `ui.tsx`).
+ */
+function pushShellState(patch) {
+  if (typeof window.__orchestosPushShell === 'function') window.__orchestosPushShell(patch);
 }
 
 /* ============================================================
@@ -2465,14 +2397,10 @@ function boot() {
   applySidebarMode();
   applyResizedWidths();
 
-  // Build sidebar (brand + panel-left + search + nav) — 2026-07-13, corrección de Carlos.
-  buildNav();
-
-  // Panel derecho: SIEMPRE presente (riel colapsado o expandido, ronda 4) —
-  // aplica el estado persistido (localStorage) al primer render. El toggle
-  // vive únicamente en #rpToprow, nunca en el header.
+  // El riel y la fila del aside derecho los pinta React (UI.3): aca solo se aplica el
+  // estado persistido al contenedor. El toggle del aside vive unicamente en #rpToprow,
+  // nunca en el header (ronda 4).
   document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
-  buildRightPanelToprow();
   if (state.rightPanelOpen) RightPanel.render();
 
   // Resize handles — piso = ancho por defecto de cada uno, techo distinto
@@ -2572,7 +2500,23 @@ function boot() {
     getModels: () => ({ cloud: state.orModels, local: state.localModels, known: KNOWN_MODELS }),
     loadModels: () => loadOrModels(),
     modelLabelFor,
+    // UI.3 — superficie del shell. React dibuja; estas acciones deciden y persisten.
+    nav: NAV,
+    icons: ICON,
+    go: id => App.go(id),
+    toggleSidebar: toggleSidebarMode,
+    toggleAdvanced: toggleAdvancedMode,
+    openCommandPalette: () => Modal.openCommandPalette(),
+    toggleRightPanel,
+    setRightPanelTab,
   };
+
+  // Primer empujon de estado ANTES de avisar que el shell puede montar: sin esto, React
+  // pinta una vez con los valores por defecto del store y recien despues corrige — un
+  // parpadeo visible en el riel, que esta siempre en pantalla.
+  App.syncNav();
+  App.syncHeader();
+  pushShellState({ rightPanelOpen: state.rightPanelOpen, rightPanelTab: state.rightPanelTab });
 
   window.dispatchEvent(new CustomEvent('orchestos:ready'));
 }

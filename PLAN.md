@@ -359,9 +359,83 @@ ni eso hace falta.
   lector de pantalla los anuncia. Nadie decidió que se taparan ni que fueran mudos: es una
   corrección, y el gate verifica el apilado. Las coordenadas y los 3 segundos no se movieron.
 
-- [ ] **UI.3 — 🧠 Shell: sidebar + header + rightpanel + search.**
+- [x] **UI.3 — 🧠 Shell: sidebar + header + rightpanel + search.** (cerrado 2026-08-28)
   El navbar/toolbar/panel colapsable — donde viven las 4 reglas de diseño descubiertas a los golpes.
   Va **después** del design system, no antes, porque toca las 11 pantallas a la vez.
+
+  **Cerrado el 2026-08-28, con Codex escribiendo el gate.** Reparto nuevo y deliberado: Codex
+  escribió el instrumento de verificación (`scripts/ui-gates/ui3-shell.mjs`) a partir del
+  enunciado de las 4 reglas, **sin ver la implementación**, mientras Claude implementaba el
+  shell. Que el test lo escriba quien no escribió el código encontró cosas (abajo).
+  **Evidencia:** `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1174 pass / 0 fail, ratchet
+  sin mover).
+  **Gate en vivo:** navegador real (Playwright sobre Chromium) contra el dashboard corriendo,
+  **19/19 PASS** e idempotente (dos corridas seguidas dan lo mismo), y **sin regresión**:
+  UI.1 sigue 27/27 y UI.2 32/32.
+
+  **DECISIÓN DE ALCANCE, y es la más importante del ítem: se migran la estructura y el
+  comportamiento; el CSS del shell se queda tal cual.** Las 4 reglas de v0.12 **están
+  implementadas en CSS, no en JS** — el hover-swap del logo por el botón panel-left, por
+  ejemplo, es `.app[data-sidebar="collapsed"] .sidebar-toprow:hover .sidebar-toprow-logo
+  { display: none }`: CSS puro, sin una línea de JavaScript. Reescribir esas ~460 líneas a
+  Tailwind **en el componente que está siempre en pantalla y que concentra los bugs históricos
+  del proyecto** sería tomar todo el riesgo junto, y encima sin poder distinguir después si algo
+  se rompió por React o por el CSS nuevo. Reducir ese CSS a tokens es literalmente el trabajo de
+  `UI.5`, donde además ya no habrá vanilla compitiendo por las mismas clases.
+
+  **El puente de estado, tercera aparición del mismo patrón.** `syncNav()`/`syncHeader()`
+  escribían el DOM a mano (`classList.toggle('active')`, `badge.textContent = …`) — que es
+  exactamente lo que no se le puede hacer a un componente de React, que lo pisa en su siguiente
+  render. Ahora **empujan estado** a `lib/shell-store.ts` y el shell se suscribe. Con el store de
+  toasts y el puente de i18n, ya son tres: **estado fuera de React + `useSyncExternalStore` es LA
+  forma de cruzar la frontera en este proyecto**, no una solución puntual. El store ignora los
+  empujones que no cambian nada, así que el poll de 30s no repinta el riel al pedo ni le roba el
+  foco a un botón que alguien esté navegando por teclado.
+  El sentido inverso **no** pasa por el store: navegar, colapsar y togglear el modo avanzado
+  siguen decidiéndose y persistiéndose en `app.js`, porque coordinan cosas fuera del shell (salir
+  de una pantalla de operador al apagar el modo avanzado). React dibuja y avisa; el vanilla decide.
+  Duplicar esa lógica sería una segunda fuente de verdad de la navegación — justo lo que `UI.7`
+  tiene que reordenar.
+
+  **Los íconos NO se portaron.** `ICON` (`data.js`) tiene 36 SVG que las 11 pantallas vanilla
+  siguen usando; copiarlos a React crearía dos fuentes de verdad para el mismo dibujo, que es el
+  patrón que ya le costó al proyecto 11 días de commits sin chequear. React los lee por el
+  puente (`lib/icons.tsx`) hasta que `UI.5` borre el vanilla.
+
+  **SCOPE-LOCK respetado:** el botón de "modo avanzado" y el flag `localStorage['orchestos-mode']`
+  se migraron TAL CUAL, aunque `UI.7` los vaya a borrar. `UI.3` tiene prohibido tocar navegación.
+
+  **Lo que encontró el gate escrito por el otro lado — los tres hallazgos:**
+  1. **El contrato que Claude le pasó a Codex tenía un id equivocado** (`#rpToggleBtn`; el real es
+     `#rpToggle`). Codex **detectó la discrepancia y conservó a propósito el selector del
+     contrato para que fallara a la vista**, en vez de adaptarse en silencio al código — que es
+     justo lo que debe hacer un test escrito por alguien distinto del autor. Y el id importaba:
+     `#rpToggle { margin-left: auto }` (`styles.css:315`) es **el CSS que implementa la regla 1**,
+     así que renombrarlo habría roto la regla que el gate mide.
+  2. **El gate no era idempotente.** El estado del aside persiste en `localStorage`, así que una
+     corrida dejaba el panel abierto y la siguiente medía el ciclo al revés y fallaba sin que
+     nada estuviera roto. Ahora normaliza el estado antes de medir, en vez de asumirlo.
+  3. **Un defecto cosmético de 1px, preexistente y ajeno a React.** El toggle del aside queda a
+     7px del borde con el panel cerrado y a 8px con el panel abierto. Causa medida: con el aside
+     cerrado la fila tiene 45px útiles (46 menos el `border-left`) y el botón necesita 30 + 16 de
+     padding = 46, así que falta 1px y el padding derecho se come la diferencia. Es aritmética del
+     CSS vanilla (`--rightpanel-w-collapsed: 46px`), idéntica antes y después de migrar, y **no es
+     lo que la regla previene**: si el botón estuviera anclado al borde móvil, la diferencia sería
+     de ~314px, no de uno. El gate lo mide con tolerancia de 1px **explicada**, y verifica aparte
+     —sin tolerancia— el eje que la regla sí prohíbe: expandir el sidebar no mueve el botón
+     (8px → 8px, exacto). Queda anotado como deuda cosmética; tocarlo es cambiar
+     `--rightpanel-w-collapsed`, o sea el ancho del riel, y eso no es trabajo de `UI.3`.
+
+  **Una corrección al propio criterio de la regla 3:** la primera versión subía por los ancestros
+  hasta `<body>` y marcaba `.app` como recortador. `.app` es el contenedor de pantalla completa
+  (`height: 100vh; overflow: hidden`) y por definición no puede recortar algo que queda dentro
+  del viewport. Lo que la regla prohíbe es un `overflow` en el **aside** o en el **riel**, que sí
+  recortaría un tooltip que por diseño se sale de su contenedor. La búsqueda ahora corta en
+  `.app` y la comprobación geométrica del rectángulo cubre el resto.
+
+  **Fuera de alcance, dicho explícitamente:** el CONTENIDO del panel derecho
+  (Explorer / Terminal / Diff) sigue en vanilla. Es contenido de pantalla, no shell, y le toca en
+  `UI.4`; las 4 reglas viven en los toprow y el riel, no en el árbol del explorer.
 
 - [ ] **UI.4 — 🧠 Pantallas, en orden de valor.**
   `specs` y `skills` primero (las más chicas — validan el patrón de migración de pantalla completa),

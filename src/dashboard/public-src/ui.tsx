@@ -19,11 +19,26 @@ import { LangProbe } from './islands/LangProbe.tsx'
 import { ModelCombo } from './islands/ModelCombo.tsx'
 import { Toaster } from './islands/Toaster.tsx'
 import { UiKitProbe } from './islands/UiKitProbe.tsx'
+import { Sidebar } from './islands/shell/Sidebar.tsx'
+import { Header } from './islands/shell/Header.tsx'
+import { RightPanelToprow } from './islands/shell/RightPanelToprow.tsx'
+import { setShellState } from './lib/shell-store.ts'
 import { pushToast } from './lib/toast-store.ts'
 
 registerIsland('lang-probe', LangProbe)
 registerIsland('model-combo', ModelCombo)
 registerIsland('ui-kit-probe', UiKitProbe)
+registerIsland('shell-sidebar', Sidebar)
+registerIsland('shell-header', Header)
+registerIsland('shell-rp-toprow', RightPanelToprow)
+
+// A NIVEL DE MÓDULO, no dentro de `boot()`, y el orden importa: un `<script type="module">`
+// se ejecuta ANTES de `DOMContentLoaded`, o sea antes del `boot()` de `app.js` — que empuja
+// el primer estado del shell JUSTO ANTES de emitir `orchestos:ready`. Si el puente se
+// instalara en nuestro `boot()` (que corre AL recibir ese evento), ese primer empujón
+// caería en el vacío y el riel pintaría con los valores por defecto hasta el siguiente
+// poll: 30 segundos con la pantalla activa mal marcada.
+installShellBridge()
 
 type AppLike = { rerender: () => void }
 
@@ -62,6 +77,19 @@ function ensureProbeContainer(): void {
  * Si el bundle no cargara, `showToast` sigue siendo la implementación vanilla de siempre
  * y el dashboard degrada solo, sin avisos rotos.
  */
+/**
+ * Publica el empujón de estado del shell (UI.3). `app.js` lo llama a través de
+ * `pushShellState()`, que es un no-op si esto no está: el dashboard arranca igual aunque
+ * el bundle falte, con el shell vacío en vez de un error.
+ *
+ * Se instala ANTES de montar las islas, porque `boot()` empuja el primer estado justo
+ * antes de emitir `orchestos:ready` — y ese empujón tiene que llegar al store para que el
+ * riel pinte de una con los valores correctos, sin parpadeo.
+ */
+function installShellBridge(): void {
+  ;(window as unknown as { __orchestosPushShell?: typeof setShellState }).__orchestosPushShell = setShellState
+}
+
 function installToaster(): void {
   const host = document.createElement('div')
   host.id = 'orchestos-toaster'
