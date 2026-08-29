@@ -288,13 +288,33 @@ ni eso hace falta.
   mismos clicks. El pill modelo+esfuerzo del chat **no** usaba ese wiring (tiene el suyo con
   `data-modelfx-*` en `screens-core.js`) y se verificó en vivo que sigue funcionando.
 
-  **Lo que NO se verificó en vivo, dicho explícitamente:** 2 de los 5 call sites
-  (`diagnose-model`, que necesita un run fallido con diagnóstico, y `draft-model`, que necesita
-  un draft natural activo) no se pudieron poner en pantalla en esta corrida. Comparten
-  mecanismo de montaje con los 5 combos de Settings (dentro de `#main`, vía el bridge de
-  `rerender()`), que sí se verificó; el otro mecanismo posible —`innerHTML` fuera de
-  `rerender()`— se verificó con el modal. Los dos mecanismos están cubiertos; esos dos call
-  sites concretos, no.
+- [x] **UI.1b — 🔍 Cerrar la brecha de evidencia de UI.1: los 2 call sites que faltaban.**
+  (2026-08-29) Al cerrar UI.1 quedaron 2 de los 5 call sites sin poner en pantalla (`diagnose-model`, que necesita un run fallido con
+  diagnóstico, y `draft-model`, que necesita un draft natural activo).
+  **Gate en vivo:** navegador real (Playwright sobre Chromium), **9/9 PASS** —
+  `scripts/ui-gates/ui1b-remaining-callsites.mjs`. Los 5 call sites quedan verificados.
+  Método: sembrar el estado y repintar, que es la técnica que el propio repo ya usó para este
+  mismo componente (`screens-core.js:874`, Mes 22/F2.1). Límite dicho con la misma claridad
+  que el original: el estado está sembrado, así que **no** prueba que un run fallido real
+  produzca ese diagnóstico — prueba lo que UI.1 necesitaba, que el combo monta y respeta su
+  contrato en esos dos lugares.
+
+  **Y cerrar esa brecha encontró un BUG REAL, preexistente y ajeno a React** (por eso valía la
+  pena cerrarla en vez de darla por cubierta): elegir un modelo en el draft o en el panel de
+  diagnóstico **se revertía solo**. Es EL MISMO bug que se arregló para Settings el 2026-08-10
+  (`#37`, documentado en `screens-ops.js:1202`), pero aquel arreglo —el helper `pendingVal`—
+  **nunca se aplicó a `screens-core.js`**: quedó solo en `screens-ops.js`. En vanilla la
+  selección se perdía **al instante**, porque elegir disparaba `App.rerender()` y el render
+  volvía a leer `draft.executor_model`. Con el combo en React el síntoma se volvió más raro y
+  no menos grave: la elección aguantaba hasta el siguiente repintado (el poll de 30s o un
+  cambio de pantalla), así que el usuario elegía un modelo, se iba a otra cosa, y **la tarea se
+  creaba con otro**. Arreglado con el mismo patrón que ya existía para el caso hermano
+  (`pendingModelVal()`), aplicado a los dos call sites. Sin regresión: UI.1 27/27, UI.2 32/32,
+  UI.3 19/19, y `bun run test:coverage` verde (1174 pass / 0 fail).
+
+  **Aprendizaje de método, no del componente:** un arreglo que se aplica a *un* call site y no
+  se busca en los hermanos deja el bug vivo en los otros y encima lo vuelve más difícil de ver,
+  porque el caso arreglado "demuestra" que el problema está resuelto.
 
   **Nota de paridad:** en vanilla el fondo `--accent-soft` significaba a la vez "opción
   elegida" y "opción bajo el mouse". Con cmdk el fondo pasa a ser el ítem **resaltado** (el que

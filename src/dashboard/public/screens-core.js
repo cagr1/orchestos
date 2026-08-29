@@ -844,6 +844,28 @@ SCREENS.runner = {
 /* ============================================================
    2 · TASKS  (Table + compose bar)
    ============================================================ */
+/**
+ * Conserva una selección de modelo que todavía no se guardó, a través de un repintado.
+ *
+ * BUG PREEXISTENTE, encontrado el 2026-08-29 al cerrar la brecha de evidencia de UI.1.
+ * Es EL MISMO bug que se arregló para Settings el 2026-08-10 (ver el comentario largo en
+ * `screens-ops.js:1202`), pero aquel arreglo nunca se aplicó acá: `pendingVal` solo existía
+ * en `screens-ops.js`. En vanilla, elegir un modelo en el draft o en el panel de diagnóstico
+ * disparaba `App.rerender()`, que volvía a renderizar con `draft.executor_model` (o con el
+ * primer modelo del catálogo) — y la selección se perdía AL INSTANTE, en silencio. Con el
+ * combo en React la elección aguantaba hasta el siguiente repintado (el poll de 30s o un
+ * cambio de pantalla), así que el síntoma se volvió más raro, no menos grave: el usuario
+ * elegía un modelo, se iba a otra cosa, y la tarea se creaba con otro.
+ *
+ * El input oculto todavía vive en el DOM viejo en el momento en que este render corre
+ * (`main.innerHTML` se reemplaza DESPUÉS), así que preferirlo cuando existe conserva la
+ * elección sin agregar estado global. Mismo mecanismo, misma explicación que en Settings.
+ */
+function pendingModelVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : null;
+}
+
 SCREENS.tasks = {
   diagnoseDetail(d, st) {
     if (d.error) {
@@ -892,7 +914,7 @@ SCREENS.tasks = {
         <div class="diag-actions">
           <div class="diag-actions-model">
             <span>${t('modal.task.model.label')}</span>
-            ${buildModelSelect('diagnose-model', st.orModels?.length ? st.orModels[0]?.id : null, st.orModels, st.localModels)}
+            ${buildModelSelect('diagnose-model', pendingModelVal('diagnose-model') ?? (st.orModels?.length ? st.orModels[0]?.id : null), st.orModels, st.localModels)}
           </div>
           <div style="display:flex;gap:8px">
             <button class="btn primary sm" data-act="retry" data-task-id="${esc(d.taskId)}">${ICON.refresh} ${t('tasks.diagnose.retry')}</button>
@@ -931,7 +953,7 @@ SCREENS.tasks = {
               </div>
               <div class="draft-field">
                 <label>${t('modal.task.model.label')}</label>
-                ${buildModelSelect('draft-model', draft.executor_model || 'deepseek/deepseek-v4-flash', st.orModels)}
+                ${buildModelSelect('draft-model', pendingModelVal('draft-model') ?? (draft.executor_model || 'deepseek/deepseek-v4-flash'), st.orModels)}
               </div>
               <div class="draft-field">
                 <label>${t('tasks.draft.field.engine')}</label>
