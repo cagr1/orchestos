@@ -22,7 +22,9 @@ import { UiKitProbe } from './islands/UiKitProbe.tsx'
 import { Sidebar } from './islands/shell/Sidebar.tsx'
 import { Header } from './islands/shell/Header.tsx'
 import { RightPanelToprow } from './islands/shell/RightPanelToprow.tsx'
+import { SpecsScreen } from './islands/screens/SpecsScreen.tsx'
 import { setShellState } from './lib/shell-store.ts'
+import { bumpAppState } from './lib/app-state.ts'
 import { pushToast } from './lib/toast-store.ts'
 
 registerIsland('lang-probe', LangProbe)
@@ -31,6 +33,7 @@ registerIsland('ui-kit-probe', UiKitProbe)
 registerIsland('shell-sidebar', Sidebar)
 registerIsland('shell-header', Header)
 registerIsland('shell-rp-toprow', RightPanelToprow)
+registerIsland('screen-specs', SpecsScreen)
 
 // A NIVEL DE MÓDULO, no dentro de `boot()`, y el orden importa: un `<script type="module">`
 // se ejecuta ANTES de `DOMContentLoaded`, o sea antes del `boot()` de `app.js` — que empuja
@@ -87,7 +90,13 @@ function ensureProbeContainer(): void {
  * riel pinte de una con los valores correctos, sin parpadeo.
  */
 function installShellBridge(): void {
-  ;(window as unknown as { __orchestosPushShell?: typeof setShellState }).__orchestosPushShell = setShellState
+  const w = window as unknown as {
+    __orchestosPushShell?: typeof setShellState
+    __orchestosBumpState?: typeof bumpAppState
+  }
+  w.__orchestosPushShell = setShellState
+  // UI.4 — la señal de "el estado cambió" para las pantallas migradas.
+  w.__orchestosBumpState = bumpAppState
 }
 
 function installToaster(): void {

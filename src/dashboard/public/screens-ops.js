@@ -1967,167 +1967,24 @@ SCREENS.settings = {
 /* ============================================================
    7 · SPECS
    ============================================================ */
+/**
+ * SPECS — migrada a React en UI.4 (Mes 30). El componente vive en
+ * `public-src/islands/screens/SpecsScreen.tsx`.
+ *
+ * `react: true` le dice a `App.rerender()` que NO repinte el DOM de esta pantalla: escribe el
+ * contenedor una sola vez al entrar y despues solo avisa que el estado cambio (ver la nota
+ * larga en `rerender()`). Sin eso, la isla se remontaria en cada poll de 30s y perderia el
+ * scroll de la tabla y la fila abierta.
+ *
+ * `wire()` queda vacio a proposito: los handlers son del componente. No se borra porque
+ * `rerender()` lo llama para las pantallas no migradas y el contrato de SCREENS es uniforme.
+ */
 SCREENS.specs = {
-  lintBadge(s) {
-    return s.lintStatus === 'pass'
-      ? `<span class="badge green square">${ICON.check} PASS</span>`
-      : `<span class="badge red square">FAIL · ${s.lintFindings}</span>`;
+  react: true,
+  render() {
+    return '<div data-island="screen-specs"></div>';
   },
-  detail(s) {
-    const clarifyBadge = s.clarify !== 'none'
-      ? `<div class="stat-box ${s.clarify === 'pending' ? 'bad' : 'ok'}"><div class="n" style="font-size:15px;margin-top:5px">${esc(s.clarify)}</div><div class="l">${t('specs.clarify')}</div></div>`
-      : '';
-    // AA (IDEAS #6) — undefined = spec simple, ningún badge nuevo, cero cambio visual.
-    const designBadge = s.design
-      ? `<div class="stat-box ${s.design === 'pending' ? 'bad' : 'ok'}"><div class="n" style="font-size:15px;margin-top:5px">${esc(s.design)}</div><div class="l">${t('specs.design')}</div></div>`
-      : '';
-    const designPending = s.design === 'pending';
-    const canApprove = s.status === 'draft' && s.clarify !== 'pending' && !designPending;
-    const canArchive = s.status !== 'archived';
-    // I.8 (Mes 18) — borrado permanente solo para specs ya archivadas (soft
-    // delete primero, hard delete después — nunca sobre drafts/approved activos).
-    const canDelete = s.status === 'archived';
-    const actions = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      ${designPending ? `<button class="btn sm" data-spec-act="approve-design" data-spec-id="${esc(s.id)}">${ICON.check} ${t('specs.btn.approveDesign')}</button>` : ''}
-      ${canApprove ? `<button class="btn sm" data-spec-act="approve" data-spec-id="${esc(s.id)}">${ICON.check} ${t('specs.btn.approve')}</button>` : ''}
-      <button class="btn sm ghost" data-spec-act="lint" data-spec-id="${esc(s.id)}">${ICON.search} Lint</button>
-      ${canArchive ? `<button class="btn sm ghost" data-spec-act="archive" data-spec-id="${esc(s.id)}">${ICON.inbox} ${t('specs.btn.archive')}</button>` : ''}
-      ${canDelete ? `<button class="btn sm danger" data-spec-act="delete" data-spec-id="${esc(s.id)}">${ICON.trash} ${t('specs.btn.delete')}</button>` : ''}
-    </div>`;
-    return `<tr class="detail-row"><td colspan="5"><div class="spec-detail">
-      <div class="stat-box ${s.lintFindings > 0 ? 'bad' : 'ok'}"><div class="n">${s.lintFindings}</div><div class="l">${t('specs.stat.lintFindings')}</div></div>
-      <div class="stat-box ${s.deltaIssues > 0 ? 'bad' : 'ok'}"><div class="n">${s.deltaIssues}</div><div class="l">${t('specs.stat.deltaIssues')}</div></div>
-      <div class="stat-box"><div class="n" style="font-size:15px;margin-top:5px">${s.hasCapabilities ? `<span class="cap-yes">${ICON.check} ${t('specs.cap.defined')}</span>` : `<span class="cap-no">${ICON.x} ${t('specs.cap.missing')}</span>`}</div><div class="l">${t('specs.col.caps')}</div></div>
-      ${clarifyBadge}
-      ${designBadge}
-      ${actions}
-    </div></td></tr>`;
-  },
-  row(s, st, selectable) {
-    const open = st.openSpec === s.id;
-    const date = formatLocalDate(s.createdAt, { dateOnly: true });
-    // v0.12 Bloque A — el bulk-delete de specs solo borra ARCHIVADAS
-    // (deleteArchivedSpec nunca toca drafts/approved) — el checkbox solo se
-    // renderiza cuando `selectable` (tabla de archivadas), para no ofrecer
-    // una acción de borrado que en drafts/approved sería un no-op silencioso.
-    const checkboxCell = selectable
-      ? `<td style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-row="specs" data-bulk-id="${esc(s.id)}" ${bulkSet('specs').has(s.id) ? 'checked' : ''}></td>`
-      : '';
-    const main = `<tr class="row ${open ? 'open' : ''}" data-spec="${esc(s.id)}" tabindex="0">
-      ${checkboxCell}
-      <td class="mono" style="color:var(--text)">${esc(s.id)}</td>
-      <td><span class="badge ${STATUS_BADGE[s.status] || 'gray'} square">${esc(s.status)}</span></td>
-      <td>${this.lintBadge(s)}</td>
-      <td>${s.hasCapabilities ? `<span class="cap-yes mono" style="font-size:12px">${ICON.check} ${t('specs.cap.yes')}</span>` : `<span class="cap-no mono" style="font-size:12px">— ${t('specs.cap.no')}</span>`}</td>
-      <td class="mono faint" style="display:flex;align-items:center;justify-content:space-between;gap:10px">${date}</td>
-    </tr>`;
-    const detail = open ? this.detail(s) : '';
-    // colspan del detail sigue en 5 salvo cuando hay checkbox — reusar el
-    // mismo <td colspan> de detail() ajustando solo si selectable agrega columna.
-    return main + (selectable ? detail.replace('colspan="5"', 'colspan="6"') : detail);
-  },
-  render(st) {
-    // G1 — banner explicativo siempre visible
-    const whatIsSpec = `<div class="spec-explainer">
-      <span class="spec-explainer-icon">${ICON.specs}</span>
-      <div>
-        <strong>${t('specs.what.title')}</strong>
-        ${t('specs.what.body')}
-      </div>
-    </div>`;
-
-    const head = `<div class="screen-head">
-      <div class="lead"><h1>${t('specs.title')}</h1><p>${t('specs.subtitle')}</p></div>
-      <div class="tools">
-        <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
-        <button class="btn primary" data-act="new-spec">${ICON.plus} ${t('specs.btn.new')}</button>
-      </div>
-    </div>`;
-
-    if (st.specsStatus === 'loading')
-      return `<div class="screen">${head}${whatIsSpec}${loadingState(t('specs.loading'))}</div>`;
-    if (st.specsStatus === 'error')
-      return `<div class="screen">${head}${whatIsSpec}${errorState(t('specs.err.title'), t('specs.err.body'))}</div>`;
-
-    const specs = st.specs || [];
-    if (specs.length === 0)
-      return `<div class="screen">${head}${whatIsSpec}${emptyState(ICON.specs, t('specs.empty.title'), t('specs.empty.body'))}</div>`;
-
-    const active = specs.filter(s => s.status !== 'archived');
-    const archived = specs.filter(s => s.status === 'archived');
-
-    const table = (list, selectable) => {
-      const sel = bulkSet('specs');
-      const ids = list.map(s => s.id);
-      const allChecked = selectable && ids.length > 0 && ids.every(id => sel.has(id));
-      const checkboxHead = selectable
-        ? `<th style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-all="specs" ${allChecked ? 'checked' : ''}></th>`
-        : '';
-      return `<div class="card" style="overflow:hidden"><table class="tbl">
-        <thead><tr>${checkboxHead}<th>${t('specs.col.id')}</th><th style="width:110px">${t('specs.col.status')}</th><th style="width:130px">Lint</th><th style="width:110px">${t('specs.col.caps')}</th><th style="width:140px">${t('specs.col.date')}</th></tr></thead>
-        <tbody>${list.map(s => this.row(s, st, selectable)).join('')}</tbody></table></div>`;
-    };
-
-    const archSection = archived.length ? `
-      <div class="section-title collapsible ${st.archOpen ? '' : 'closed'}" data-arch>
-        <span class="chev">${ICON.chev}</span><span>${t('specs.archived')}</span><span class="ct">${archived.length}</span>
-      </div>
-      ${st.archOpen ? table(archived, true) : ''}` : '';
-
-    return `<div class="screen">${head}${whatIsSpec}${table(active, false)}${archSection}${renderBulkBar('specs', t('bulk.resource.specs'))}</div>`;
-  },
-  wire(root, st) {
-    wireBulkSelect(root, 'specs', '/api/specs/bulk-delete', () => App.fetchSpecs(), t('bulk.resource.specs'));
-    root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
-
-    // G2 — Nueva Spec button
-    root.querySelector('[data-act="new-spec"]')?.addEventListener('click', () => Modal.openSpecDraft(st));
-
-    root.querySelectorAll('[data-spec]').forEach(tr => {
-      tr.addEventListener('click', () => {
-        st.openSpec = st.openSpec === tr.dataset.spec ? null : tr.dataset.spec;
-        App.rerender();
-      });
-      tr.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
-      });
-    });
-    root.querySelector('[data-arch]')?.addEventListener('click', () => { st.archOpen = !st.archOpen; App.rerender(); });
-
-    root.querySelectorAll('[data-spec-act]').forEach(btn => {
-      btn.addEventListener('click', async e => {
-        e.stopPropagation();
-        const act = btn.dataset.specAct;
-        const id = btn.dataset.specId;
-        if (act === 'approve') {
-          fetch(`/api/specs/${encodeURIComponent(id)}/approve`, { method: 'POST' })
-            .then(r => r.json())
-            .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.approved', id)); } else showToast(d.error || t('specs.toast.approveErr'), 'error'); });
-        } else if (act === 'approve-design') {
-          fetch(`/api/specs/${encodeURIComponent(id)}/approve-design`, { method: 'POST' })
-            .then(r => r.json())
-            .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.designApproved', id)); } else showToast(d.error || t('specs.toast.approveDesignErr'), 'error'); });
-        } else if (act === 'lint') {
-          fetch(`/api/specs/${encodeURIComponent(id)}/lint`)
-            .then(r => r.json())
-            .then(d => {
-              if (d.findings && d.findings.length === 0) showToast(t('specs.toast.lintOk', d.structuredCount));
-              else showToast(t('specs.toast.lintFindings', d.findings.length, id), 'error');
-            });
-        } else if (act === 'archive') {
-          fetch(`/api/specs/${encodeURIComponent(id)}/archive`, { method: 'POST' })
-            .then(r => r.json())
-            .then(d => { if (d.ok) { App.fetchAll(); showToast(t('specs.toast.archived', id)); } else showToast(d.error || t('specs.toast.archiveErr'), 'error'); });
-        } else if (act === 'delete') {
-          const ok = await Modal.confirm(t('specs.delete.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
-          if (!ok) return;
-          fetch(`/api/specs/${encodeURIComponent(id)}`, { method: 'DELETE' })
-            .then(r => r.json())
-            .then(d => { if (d.ok) { st.openSpec = null; App.fetchAll(); showToast(t('specs.toast.deleted', id)); } else showToast(d.error || t('specs.toast.deleteErr'), 'error'); });
-        }
-      });
-    });
-  },
+  wire() {},
 };
 
 /* ============================================================

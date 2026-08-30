@@ -457,7 +457,53 @@ ni eso hace falta.
   (Explorer / Terminal / Diff) sigue en vanilla. Es contenido de pantalla, no shell, y le toca en
   `UI.4`; las 4 reglas viven en los toprow y el riel, no en el árbol del explorer.
 
-- [ ] **UI.4 — 🧠 Pantallas, en orden de valor.**
+- [ ] **UI.4 — 🧠 Pantallas, en orden de valor.** (EN CURSO — 1 de 11: `specs` ✅)
+
+  **Progreso**
+  - [x] **`specs`** (2026-08-30) — la primera. **Gate en vivo:** navegador real (Playwright),
+    **21/21 PASS** (`scripts/ui-gates/ui4-specs-screen.mjs`); `tsc` ✅; `test:coverage` ✅
+    (1174 pass / 0 fail); sin regresión en los 4 gates anteriores (27+32+19+9, todos verdes).
+  - [ ] `skills`, `chat`, `tasks`, `runs`, `graph`, `settings`, y las de Observabilidad.
+
+  **El mecanismo que hizo falta inventar acá, y que usan las 10 que faltan.** Una pantalla no
+  se puede migrar como se migró el combobox. `App.rerender()` hace `main.innerHTML = …`, así
+  que el registro de islas remontaría la pantalla entera **en cada poll de 30s**: se perderían
+  el scroll de la tabla, la fila abierta y cualquier input a medio escribir. En un combo no se
+  nota; en una pantalla la vuelve inusable. Solución: un flag `react: true` en el objeto de
+  `SCREENS`. Para esas pantallas `rerender()` cambia de significado — ya no es "repintá el
+  DOM" sino **"avisale a React que el estado cambió"**: el contenedor se escribe una sola vez
+  al entrar y después se deja quieto. El gate lo verifica marcando el nodo del DOM y
+  comprobando que la marca sobrevive al repintado.
+
+  **El estado NO se copia a React** (`lib/app-state.ts`). Una pantalla lee cualquier cosa de
+  `state` —`specs`, `specsStatus`, `openSpec`, `archOpen`, `bulkSelected`— y cada una un
+  subconjunto distinto: enumerarlos en un store tipado sería mantener once copias del estado
+  que ya existe. El componente lee `window.state` directamente, igual que hacía el `render(st)`
+  al que reemplaza, y `useAppVersion()` solo le avisa cuándo releer. El acoplamiento es
+  deliberado y temporal: mientras `app.js` sea el dueño de los fetch, duplicar los datos crea
+  dos fuentes de verdad. Se invierte en `UI.5`.
+
+  **Cómo se mide "no cambió el aspecto", ahora que no hay código viejo con qué comparar:** el
+  gate compara el estilo computado de la tabla de Specs (React) contra la de **Runs, que sigue
+  100% en vanilla** y usa las mismas clases. Padding, tipografía y borde dan idénticos. Cuando
+  Runs se migre habrá que mover esa referencia a otra pantalla que siga en vanilla.
+
+  **Dos hallazgos de la primera pasada:**
+  1. **Un crash real, preexistente, que la migración expuso.** El handler de `lint` hacía
+     `if (d.findings && d.findings.length === 0) … else d.findings.length` — o sea, una
+     respuesta SIN `findings` (un 404, un error del servidor) caía al `else` y explotaba con
+     *"Cannot read properties of undefined"*. Estaba igual en el vanilla. Se vio al correr el
+     gate contra una spec inexistente. Arreglado con una guarda: un error de la API sale como
+     aviso, no como crash. **No es rediseño** — un crash no es una funcionalidad que preservar.
+  2. **Dos fallos del gate, no del código** (mismo patrón que en UI.3, y conviene reconocerlo
+     rápido): la paridad visual comparaba contra **Skills, que no usa tabla** —su layout es de
+     cards—, así que no medía nada; y el chequeo de "las activas no llevan checkbox" usaba el
+     índice de card equivocado y medía justamente la tabla que sí debe llevarlo.
+
+  **Refactor sin cambio de comportamiento:** `bulkDelete()` estaba inline dentro del listener
+  de `wireBulkSelect()`; se extrajo tal cual para que las pantallas React lo invoquen sin
+  duplicar la lógica ni el copy de confirmación.
+
   `specs` y `skills` primero (las más chicas — validan el patrón de migración de pantalla completa),
   después `chat` (la home, mayor valor visual), `tasks`, `runs`, `graph`, y `settings` al final
   (la más grande, ~900 líneas).

@@ -431,6 +431,28 @@ const App = {
   rerender() {
     const main = document.getElementById('main');
     const sc = SCREENS[state.screen];
+    // UI.4 (Mes 30) — una pantalla ya migrada a React NO se repinta desde acá.
+    //
+    // El motivo es concreto: `main.innerHTML = ...` destruye el DOM, y el registro de islas
+    // la volveria a montar de cero en CADA rerender — o sea cada 30s por el poll, y en cada
+    // accion que llame a rerender(). Una isla remontada pierde su estado local: el scroll de
+    // una tabla larga, una fila abierta, un input a medio escribir. Eso no se nota en un
+    // combo (UI.1) pero arruina una pantalla entera.
+    //
+    // Para estas pantallas, `rerender()` cambia de significado: ya no es "repinta el DOM"
+    // sino "avisale a React que el estado cambio". El contenedor de la isla se escribe UNA
+    // sola vez y despues se deja quieto; React se encarga del resto y decide que repintar.
+    if (sc.react) {
+      if (main.getAttribute('data-screen') !== state.screen) {
+        main.innerHTML = sc.render(state);
+        main.setAttribute('data-screen', state.screen);
+      }
+      bumpAppState();
+      this.syncHeader();
+      this.syncNav();
+      return;
+    }
+    main.removeAttribute('data-screen');
     main.innerHTML = sc.render(state);
     sc.wire(main, state);
     this.syncHeader();
@@ -1782,34 +1804,43 @@ function wireBulkSelect(root, screen, endpoint, refetch, resourceLabel) {
     bulkToggleAll(screen, visibleIds());
   });
   root.querySelector(`[data-bulk-clear="${screen}"]`)?.addEventListener('click', () => bulkClear(screen));
-  root.querySelector(`[data-bulk-delete="${screen}"]`)?.addEventListener('click', async () => {
-    const selected = [...bulkSet(screen)];
-    if (selected.length === 0) return;
-    const ok = await Modal.confirm(
-      t('bulk.confirm.title', selected.length, resourceLabel),
-      t('bulk.confirm.body'),
-      t('bulk.confirm.btn', selected.length, resourceLabel),
-    );
-    if (!ok) return;
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selected }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        showToast(t('bulk.done', data.deleted ?? selected.length));
-        bulkClear(screen);
-        await refetch();
-        App.rerender();
-      } else {
-        showToast(data.error || t('bulk.err'), 'error');
-      }
-    } catch {
-      showToast(t('bulk.err'), 'error');
+  root.querySelector(`[data-bulk-delete="${screen}"]`)?.addEventListener(
+    'click', () => bulkDelete(screen, endpoint, refetch, resourceLabel));
+}
+
+/**
+ * Borrado en lote: confirmacion + POST + refetch. Estaba INLINE dentro del listener de
+ * `wireBulkSelect()`; se extrajo tal cual en UI.4 (Mes 30) para que las pantallas migradas a
+ * React puedan invocarlo sin duplicar la logica ni el copy de confirmacion. Sin cambios de
+ * comportamiento: `wireBulkSelect()` ahora solo lo llama.
+ */
+async function bulkDelete(screen, endpoint, refetch, resourceLabel) {
+  const selected = [...bulkSet(screen)];
+  if (selected.length === 0) return;
+  const ok = await Modal.confirm(
+    t('bulk.confirm.title', selected.length, resourceLabel),
+    t('bulk.confirm.body'),
+    t('bulk.confirm.btn', selected.length, resourceLabel),
+  );
+  if (!ok) return;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selected }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      showToast(t('bulk.done', data.deleted ?? selected.length));
+      bulkClear(screen);
+      await refetch();
+      App.rerender();
+    } else {
+      showToast(data.error || t('bulk.err'), 'error');
     }
-  });
+  } catch {
+    showToast(t('bulk.err'), 'error');
+  }
 }
 
 /* ============================================================
@@ -2335,6 +2366,14 @@ function pushShellState(patch) {
   if (typeof window.__orchestosPushShell === 'function') window.__orchestosPushShell(patch);
 }
 
+/**
+ * Avisa a las pantallas React que el estado cambio (UI.4). No-op si el bundle no cargo, igual
+ * que `pushShellState()`: el dashboard sigue arrancando sin el bundle.
+ */
+function bumpAppState() {
+  if (typeof window.__orchestosBumpState === 'function') window.__orchestosBumpState();
+}
+
 /* ============================================================
    Resize handles — sidebar (expandido) y panel derecho (2026-07-13,
    corrección de Carlos): ambos ajustables arrastrando, con un piso = el
@@ -2509,6 +2548,30 @@ function boot() {
     openCommandPalette: () => Modal.openCommandPalette(),
     toggleRightPanel,
     setRightPanelTab,
+    // UI.4 — superficie que necesitan las pantallas migradas. Igual que con el shell:
+    // React dibuja; los fetch, la persistencia y los modales siguen viviendo en app.js,
+    // porque son los duenos del estado y de la API. Cuando UI.5 borre el vanilla, esto
+    // se invierte.
+    state: () => state,
+    t: (key, ...args) => t(key, ...args),
+    // Se expone en vez de replicarse en React: tiene fallbacks propios (devuelve el ISO
+    // crudo si la fecha no parsea) y opciones de formato que hay que espejar EXACTO para
+    // que la migracion no cambie como se ve una fecha. Misma regla que con ICON.
+    formatDate: (iso, opts) => formatLocalDate(iso, opts),
+    fetchAll: () => App.fetchAll(),
+    fetchSpecs: () => App.fetchSpecs(),
+    fetchSkills: () => App.fetchSkills(),
+    showToast: (msg, type) => showToast(msg, type),
+    confirm: (title, body, label) => Modal.confirm(title, body, label),
+    openSpecDraft: () => Modal.openSpecDraft(state),
+    bulk: {
+      selected: screen => [...bulkSet(screen)],
+      toggle: (screen, id) => bulkToggle(screen, id),
+      toggleAll: (screen, ids) => bulkToggleAll(screen, ids),
+      clear: screen => bulkClear(screen),
+      remove: (screen, endpoint, refetch, resourceLabel) =>
+        bulkDelete(screen, endpoint, refetch, resourceLabel),
+    },
   };
 
   // Primer empujon de estado ANTES de avisar que el shell puede montar: sin esto, React
