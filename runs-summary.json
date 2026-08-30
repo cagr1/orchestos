@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-08-30T15:54:16.542Z",
+  "exported_at": "2026-08-30T18:15:41.878Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "28e26ff0-8791-440c-9837-cd443a8d3250",
+      "task_class": "chat",
+      "model": "codex (cli default model) via Codex CLI",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 24595,
+      "created_at": "2026-08-30T17:53:00.307Z"
+    },
     {
       "id": "c2bafe64-1363-4e37-9c0a-7b89919a81f5",
       "task_class": "chat",
@@ -286,21 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 7,
       "created_at": "2026-08-18T01:15:25.413Z"
-    },
-    {
-      "id": "59dd2a37-fe96-4d15-a110-d25d840f507b",
-      "task_class": "chat",
-      "model": "anthropic/claude-sonnet-5 via Claude Code CLI (effort: medium)",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 353,
-      "created_at": "2026-08-17T22:36:30.586Z"
     }
   ],
   "stats": {

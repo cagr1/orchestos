@@ -457,7 +457,59 @@ ni eso hace falta.
   (Explorer / Terminal / Diff) sigue en vanilla. Es contenido de pantalla, no shell, y le toca en
   `UI.4`; las 4 reglas viven en los toprow y el riel, no en el árbol del explorer.
 
-- [ ] **UI.4 — 🧠 Pantallas, en orden de valor.** (EN CURSO — 2 de 11: `specs` ✅ `skills` ✅)
+- [ ] **UI.3.5 — 🧠 Sistema visual: que se sienta herramienta, no panel de administración.**
+  (EN CURSO, abierto 2026-08-30 — decidido en sesión previa con Opus, retomado y confirmado
+  aquí). **Pausa `UI.4`**: las 9 pantallas que faltan no se migran con paridad al look viejo
+  para no tocarlas dos veces — nacen ya con el sistema nuevo cuando les toque.
+
+  **Motivo, con Carlos preguntando directo:** "cuando dije cambiar la apariencia no era solo
+  usar React sino que el dashboard se sienta como herramienta" — comparando con Claude Code,
+  Codex, Orca, Hermes. Medido en el CSS, no opinado: 15 tamaños de fuente + 86 `font-size`
+  inline (vs. 4–5 en una herramienta real), 10 radios de borde distintos, 253 `style="..."`
+  inline, 33 `.card` (cada cosa en su caja). Eso es lo que lee como "panel de administración":
+  no hay sistema, hay 253 excepciones.
+
+  **Decisión (confirmada por Carlos, dos preguntas cerradas):**
+  1. El sistema visual entra **ahora**, en una sola pasada — no se migran las 9 pantallas
+     restantes con el look viejo para reajustarlas después.
+  2. **UI.6** (capas de proyectos/carpetas, sidebar Chat|Code) se queda donde está en el
+     roadmap; no se adelanta.
+  3. El **carril de estado** (glifo + peso tipográfico en vez de badges de color) — confirmado
+     como la pieza más visible del cambio.
+
+  **Qué NO se toca:** los hex base y los 4 temas existentes. El problema medido no es la
+  paleta (`#0d1117` + acento azul ya es la familia correcta, tipo GitHub Dark/Zed) sino cómo
+  se usa — decorativa en vez de señal.
+
+  **Tokens nuevos:**
+  - Tipografía: de 15 tamaños a 5 (`11·12·13·15·19`, 13 = cuerpo, 19 = título de pantalla).
+    Regla de reparto explícita: mono para todo dato (id, modelo, costo, fecha, ruta), sans solo
+    para prosa y labels — hoy están mezclados sin criterio.
+  - Radios: de 10 a 2 (4px controles, 8px contenedores). `999px` sobrevive solo para el pill
+    de estado del header — único elemento que debe leerse como pill.
+  - Color = señal, nunca decoración: reservado a error, en-ejecución, y acción primaria. Todo
+    lo demás vive en la escala de grises.
+  - Densidad: altura de fila fija y compacta; muere `.card` como contenedor por defecto — la
+    jerarquía pasa a hacerse con línea de 1px + espaciado, no caja con borde+fondo+sombra.
+  - Acciones que no compiten: en cards, los botones aparecen en hover (o en menú `⋯` para la
+    acción destructiva), no los 5 siempre visibles que tiene `skills` hoy.
+  - **Carril de estado** en vez de badges de colores en filas de tabla/lista: un glifo (`●`
+    `✗` `○`) + peso tipográfico mono, separador de 1px sin caja. Ej.: `● spec-activa-1  draft
+    ok` en vez de `[draft][PASS] sí` con 4 badges de color.
+
+  **Alcance de esta pasada:** tokens en `ui.css`, componentes de `UI.2` reajustados, el shell
+  de `UI.3`, y `specs`+`skills` (ya son React — barato reajustarlos). Matar los `style=` inline
+  ya introducidos en ese React. **Fuera de alcance, explícito:** las 9 pantallas de `UI.4` que
+  faltan (nacen con el sistema nuevo al migrarse) y `UI.6`.
+
+  **Gate, invertido respecto del resto de la migración:** los gates existentes de
+  `specs`/`skills` miden *paridad* contra el vanilla — hay que reescribirlos para que midan que
+  el look **cambió** de forma consistente: 5 tamaños de fuente, 2 radios, cero `style=` inline
+  en el React tocado, carril de estado presente donde antes había badges.
+
+- [ ] **UI.4 — 🧠 Pantallas, en orden de valor.** (PAUSADO por `UI.3.5` — 2 de 11 migradas con
+  el look viejo: `specs` ✅ `skills` ✅. Al retomar, reciben el sistema nuevo de `UI.3.5`; las 9
+  que faltan nacen ya con él.)
 
   **Progreso**
   - [x] **`specs`** (2026-08-30) — la primera. **Gate en vivo:** navegador real (Playwright),
