@@ -2561,6 +2561,42 @@ function boot() {
     fetchAll: () => App.fetchAll(),
     fetchSpecs: () => App.fetchSpecs(),
     fetchSkills: () => App.fetchSkills(),
+    fetchProSkills: () => App.fetchProSkills(),
+    fetchRegistrySkills: () => App.fetchRegistrySkills(),
+    exportSkill: id => {
+      const a = document.createElement('a');
+      a.href = `/api/skills/${encodeURIComponent(id)}/export`;
+      a.download = `${id}.yaml`;
+      a.click();
+    },
+    copySkill: async id => {
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/export`);
+      if (!res.ok) return false;
+      await navigator.clipboard.writeText(await res.text());
+      return true;
+    },
+    buildSkill: async id => {
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/build`, { method: 'POST' });
+      return await res.json();
+    },
+    deleteSkill: async id => {
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: true }),
+      });
+      return await res.json();
+    },
+    importProSkill: async id => {
+      const res = await fetch(`/api/skills/pro/${encodeURIComponent(id)}/import`, { method: 'POST' });
+      return await res.json();
+    },
+    importRegistrySkill: async id => {
+      const res = await fetch(`/api/skills/registry/${encodeURIComponent(id)}/import`, { method: 'POST' });
+      return await res.json();
+    },
+    openNewSkill: () => Modal.openNewSkill(),
+    openImportSkill: () => Modal.openImportSkill(),
+    openSkillDetail: skill => Modal.openSkillDetail(skill),
+    openEditSkill: skill => Modal.openEditSkill(skill),
     showToast: (msg, type) => showToast(msg, type),
     confirm: (title, body, label) => Modal.confirm(title, body, label),
     openSpecDraft: () => Modal.openSpecDraft(state),

@@ -23,6 +23,7 @@ import { Sidebar } from './islands/shell/Sidebar.tsx'
 import { Header } from './islands/shell/Header.tsx'
 import { RightPanelToprow } from './islands/shell/RightPanelToprow.tsx'
 import { SpecsScreen } from './islands/screens/SpecsScreen.tsx'
+import { SkillsScreen } from './islands/screens/SkillsScreen.tsx'
 import { setShellState } from './lib/shell-store.ts'
 import { bumpAppState } from './lib/app-state.ts'
 import { pushToast } from './lib/toast-store.ts'
@@ -34,6 +35,7 @@ registerIsland('shell-sidebar', Sidebar)
 registerIsland('shell-header', Header)
 registerIsland('shell-rp-toprow', RightPanelToprow)
 registerIsland('screen-specs', SpecsScreen)
+registerIsland('screen-skills', SkillsScreen)
 
 // A NIVEL DE MÓDULO, no dentro de `boot()`, y el orden importa: un `<script type="module">`
 // se ejecuta ANTES de `DOMContentLoaded`, o sea antes del `boot()` de `app.js` — que empuja

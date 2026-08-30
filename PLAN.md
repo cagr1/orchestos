@@ -457,13 +457,33 @@ ni eso hace falta.
   (Explorer / Terminal / Diff) sigue en vanilla. Es contenido de pantalla, no shell, y le toca en
   `UI.4`; las 4 reglas viven en los toprow y el riel, no en el árbol del explorer.
 
-- [ ] **UI.4 — 🧠 Pantallas, en orden de valor.** (EN CURSO — 1 de 11: `specs` ✅)
+- [ ] **UI.4 — 🧠 Pantallas, en orden de valor.** (EN CURSO — 2 de 11: `specs` ✅ `skills` ✅)
 
   **Progreso**
   - [x] **`specs`** (2026-08-30) — la primera. **Gate en vivo:** navegador real (Playwright),
     **21/21 PASS** (`scripts/ui-gates/ui4-specs-screen.mjs`); `tsc` ✅; `test:coverage` ✅
     (1174 pass / 0 fail); sin regresión en los 4 gates anteriores (27+32+19+9, todos verdes).
-  - [ ] `skills`, `chat`, `tasks`, `runs`, `graph`, `settings`, y las de Observabilidad.
+  - [x] **`skills`** (2026-08-30) — **implementada por Codex, gate escrito por Claude en
+    paralelo y sin ver su código** (roles invertidos respecto de UI.3, donde fue al revés).
+    **Gate en vivo:** navegador real (Playwright), **22/22 PASS**
+    (`scripts/ui-gates/ui4-skills-screen.mjs`); `tsc` ✅; `test:coverage` ✅; los 6 gates del
+    mes en verde.
+    Ejercita lo que `specs` no tenía: layout de cards en vez de tabla, confirmación de borrado
+    **inline** dentro de la card (no un modal) y una segunda sección con las skills "pro"
+    importables. Codex resolvió bien el punto delicado por su cuenta: `useState` **solo** para
+    estado efímero de interacción (qué card pide confirmación, "copiado", botón ocupado) y los
+    datos siempre desde `window.state` — que es exactamente la frontera correcta.
+    **Lo que hubo que corregirle:** dejó las 260 líneas del render/wire viejos **comentadas**
+    en vez de borrarlas. Es el código muerto que `UI.5` tendría que limpiar, y peor: código
+    comentado que parece vigente y vuelve intocable el archivo. Se borraron; el historial de
+    git ya las conserva.
+    **Y tres fallos seguidos del gate, todos por lo mismo** — el elemento de referencia no era
+    equivalente: primero comparó badges contra Runs (que solo tiene `.badge` pill, 999px),
+    después contra Tasks (cuyo primer `.badge.square` lleva un `font-size` **inline** propio de
+    esa fila). Se resolvió con la técnica del gate de UI.2: **crear un elemento limpio con las
+    mismas clases** en vez de buscar uno existente. Es la forma robusta de medir paridad y
+    conviene usarla desde el principio en las 9 pantallas que faltan.
+  - [ ] `chat`, `tasks`, `runs`, `graph`, `settings`, y las de Observabilidad.
 
   **El mecanismo que hizo falta inventar acá, y que usan las 10 que faltan.** Una pantalla no
   se puede migrar como se migró el combobox. `App.rerender()` hace `main.innerHTML = …`, así
