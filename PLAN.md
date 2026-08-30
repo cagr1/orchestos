@@ -507,6 +507,31 @@ ni eso hace falta.
   el look **cambió** de forma consistente: 5 tamaños de fuente, 2 radios, cero `style=` inline
   en el React tocado, carril de estado presente donde antes había badges.
 
+  **Progreso (2026-08-30):**
+  - [x] Tokens en `ui.css`/`styles.css`: `--fs-1..5` (11/12/13/15/19), `--radius` 6→4,
+    `--radius-lg` 8, `--radius-pill` 999px (única sobreviviente del pill de estado del
+    header). Utilidades `.fs-1..5` para reemplazar `font-size` inline en React.
+  - [x] **Carril de estado** en `SpecsScreen.tsx`: fusiona las columnas Estado+Lint en una
+    (`● draft ok` / `✗ approved 3 findings` / `○ archived —`), clase `.status-rail` nueva en
+    `styles.css`. `.badge` no se toca: lo siguen usando las 9 pantallas sin migrar.
+    **Gate en vivo:** navegador real (Playwright) contra el dashboard corriendo en :4325 —
+    capturas confirman el carril sin la línea de `border-left` que traía por colisión de
+    nombre con `.detail` (el span interno se renombró a `.rail-detail` tras verlo en pantalla;
+    `.detail` ya era una clase global del panel expandible).
+  - [x] **Acciones que no compiten** en `SkillsScreen.tsx`: `.skill-card-actions` pasa a
+    `opacity:0` con reveal en `:hover`/`:focus-within` (sin cambiar alto, sin salto de layout).
+    **Gate en vivo:** navegador real (Playwright) — captura sin hover no muestra los 5 botones,
+    captura con hover sí.
+  - [x] `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1174 pass / 0 fail, ratchet sin
+    mover).
+  - [ ] Pendiente de esta pasada: barrido de `font-size`/`border-radius` en el resto de
+    `styles.css`/`screens.css` (vanilla compartido, ~80 sitios — se hará agrupado por pantalla
+    para poder verificar en vivo cada tanda, no en un sólo sed masivo); reajuste de
+    `Button`/`Input`/`Combobox`/`Dialog`/`Toast`/`Tabs` (`UI.2`) a los tokens nuevos; el shell
+    (`UI.3`); reescribir `ui4-specs-screen.mjs`/`ui4-skills-screen.mjs` para medir el look
+    nuevo en vez de paridad contra vanilla (quedaron en rojo en las 2 aserciones de paridad de
+    columnas/badges — esperado, hay que reemplazarlas, no arreglarlas).
+
 - [ ] **UI.4 — 🧠 Pantallas, en orden de valor.** (PAUSADO por `UI.3.5` — 2 de 11 migradas con
   el look viejo: `specs` ✅ `skills` ✅. Al retomar, reciben el sistema nuevo de `UI.3.5`; las 9
   que faltan nacen ya con él.)

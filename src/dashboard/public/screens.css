@@ -1144,6 +1144,13 @@
 .skill-card-actions {
   display: flex; gap: 4px; padding: 8px 12px;
   border-top: 1px solid var(--border); flex-wrap: wrap;
+  /* UI.3.5 — no compiten con el contenido: visibles solo en hover/foco,
+     no siempre. La altura no cambia (evita salto de layout), solo opacidad. */
+  opacity: 0; transition: opacity .12s;
+}
+.skill-card:hover .skill-card-actions,
+.skill-card:focus-within .skill-card-actions {
+  opacity: 1;
 }
 .skill-card-actions .btn { font-size: 11px; }
 .skill-card-confirm {

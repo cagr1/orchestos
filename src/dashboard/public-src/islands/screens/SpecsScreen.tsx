@@ -20,7 +20,7 @@
 import { useAppVersion, appState } from '../../lib/app-state.ts'
 import { useT } from '../../lib/i18n.ts'
 import { RawIcon, Icon } from '../../lib/icons.tsx'
-import { screenApi, STATUS_BADGE } from './screen-api.ts'
+import { screenApi } from './screen-api.ts'
 
 interface Spec {
   id: string
@@ -160,8 +160,7 @@ function SpecTable({ list, selectable, openSpec, selected }: {
               </th>
             )}
             <th>{t('specs.col.id')}</th>
-            <th style={{ width: '110px' }}>{t('specs.col.status')}</th>
-            <th style={{ width: '130px' }}>Lint</th>
+            <th style={{ width: '190px' }}>{t('specs.col.status')}</th>
             <th style={{ width: '110px' }}>{t('specs.col.caps')}</th>
             <th style={{ width: '140px' }}>{t('specs.col.date')}</th>
           </tr>
@@ -210,27 +209,54 @@ function SpecRow({ spec, selectable, open, checked }: {
           </td>
         )}
         <td className="mono" style={{ color: 'var(--text)' }}>{spec.id}</td>
-        <td><span className={`badge ${STATUS_BADGE[spec.status] || 'gray'} square`}>{spec.status}</span></td>
-        <td><LintBadge spec={spec} /></td>
+        <td><StatusRail spec={spec} /></td>
         <td>
           {spec.hasCapabilities
-            ? <span className="cap-yes mono" style={{ fontSize: '12px' }}><Icon name="check" /> {t('specs.cap.yes')}</span>
-            : <span className="cap-no mono" style={{ fontSize: '12px' }}>— {t('specs.cap.no')}</span>}
+            ? <span className="cap-yes mono fs-2"><Icon name="check" /> {t('specs.cap.yes')}</span>
+            : <span className="cap-no mono fs-2">— {t('specs.cap.no')}</span>}
         </td>
         <td className="mono faint" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
           {api?.formatDate(spec.createdAt, { dateOnly: true })}
         </td>
       </tr>
-      {open && <SpecDetail spec={spec} colSpan={selectable ? 6 : 5} />}
+      {open && <SpecDetail spec={spec} colSpan={selectable ? 5 : 4} />}
     </>
   )
 }
 
-function LintBadge({ spec }: { spec: Spec }) {
-  if (spec.lintStatus === 'pass') {
-    return <span className="badge green square"><Icon name="check" /> PASS</span>
+/**
+ * Carril de estado (UI.3.5): un glifo + mono en vez de dos badges de color
+ * apilados (estado + lint). El glifo resume la salud de la fila —
+ * archivada (neutral), con hallazgos de lint (mala), o al día (ok) — y el
+ * texto conserva el estado real (`draft`/`approved`/…) que antes vivía en
+ * el badge de color.
+ */
+function StatusRail({ spec }: { spec: Spec }) {
+  if (spec.status === 'archived') {
+    return (
+      <span className="status-rail neutral">
+        <span className="glyph">○</span>
+        <span className="label">{spec.status}</span>
+        <span className="rail-detail">—</span>
+      </span>
+    )
   }
-  return <span className="badge red square">FAIL · {spec.lintFindings}</span>
+  if (spec.lintStatus !== 'pass') {
+    return (
+      <span className="status-rail bad">
+        <span className="glyph">✗</span>
+        <span className="label">{spec.status}</span>
+        <span className="rail-detail">{spec.lintFindings} findings</span>
+      </span>
+    )
+  }
+  return (
+    <span className="status-rail ok">
+      <span className="glyph">●</span>
+      <span className="label">{spec.status}</span>
+      <span className="rail-detail">ok</span>
+    </span>
+  )
 }
 
 function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
@@ -291,7 +317,7 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
           <StatBox bad={spec.lintFindings > 0} n={spec.lintFindings} label={t('specs.stat.lintFindings')} />
           <StatBox bad={spec.deltaIssues > 0} n={spec.deltaIssues} label={t('specs.stat.deltaIssues')} />
           <div className="stat-box">
-            <div className="n" style={{ fontSize: '15px', marginTop: '5px' }}>
+            <div className="n n-text">
               {spec.hasCapabilities
                 ? <span className="cap-yes"><Icon name="check" /> {t('specs.cap.defined')}</span>
                 : <span className="cap-no"><Icon name="x" /> {t('specs.cap.missing')}</span>}
@@ -341,7 +367,7 @@ function StatBox({ bad, n, text, label }: { bad?: boolean; n?: number; text?: st
   return (
     <div className={`stat-box ${bad ? 'bad' : 'ok'}`}>
       {text !== undefined
-        ? <div className="n" style={{ fontSize: '15px', marginTop: '5px' }}>{text}</div>
+        ? <div className="n n-text">{text}</div>
         : <div className="n">{n}</div>}
       <div className="l">{label}</div>
     </div>

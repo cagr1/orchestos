@@ -40,8 +40,20 @@
   --term-green:    #3fb950;
 
   /* geometry */
-  --radius:        6px;
-  --radius-lg:     calc(var(--radius) + 2px);
+  --radius:        4px;
+  --radius-lg:     8px;
+  /* pill de estado del header — único elemento que debe leerse como pill,
+     UI.3.5: todo lo demás baja a --radius/--radius-lg */
+  --radius-pill:   999px;
+
+  /* type scale — UI.3.5: 5 tamaños, no 15+86 inline. 13 = cuerpo,
+     19 = título de pantalla. mono para todo dato (id, modelo, costo,
+     fecha, ruta); sans para prosa y labels. */
+  --fs-1: 11px;
+  --fs-2: 12px;
+  --fs-3: 13px;
+  --fs-4: 15px;
+  --fs-5: 19px;
 
   /* 2026-07-13 (corrección de Carlos) — --sidebar-w-exp y --rightpanel-w son
      además el PISO de su propio resize-handle (nunca se puede arrastrar más
@@ -508,9 +520,35 @@ button { font-family: inherit; }
 .badge.orange { color: #f0883e; border-color: color-mix(in oklab,#f0883e 18%, transparent); background: color-mix(in oklab,#f0883e 14%, transparent); }
 .badge.square { border-radius: 5px; }
 
+/* ============================================================
+   Carril de estado (UI.3.5) — glifo + mono en vez de badges de
+   color apilados. Convive con .badge (las 9 pantallas de UI.4 que
+   faltan migrar siguen usando .badge hasta que les toque).
+   ============================================================ */
+.status-rail {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  font-family: var(--mono); font-size: var(--fs-2);
+  white-space: nowrap;
+}
+.status-rail .glyph { font-size: var(--fs-2); line-height: 1; }
+.status-rail .label { color: var(--text); }
+.status-rail .rail-detail { color: var(--text-faint); }
+.status-rail.ok .glyph { color: var(--success); }
+.status-rail.bad .glyph { color: var(--error); }
+.status-rail.neutral .glyph { color: var(--text-muted); }
+
 .mono { font-family: var(--mono); font-size: 12px; }
 .muted { color: var(--text-muted); }
 .faint { color: var(--text-faint); }
+
+/* utilidades de escala tipográfica (UI.3.5) — reemplazan font-size inline
+   en el React de UI.4/UI.3.5 */
+.fs-1 { font-size: var(--fs-1); }
+.fs-2 { font-size: var(--fs-2); }
+.fs-3 { font-size: var(--fs-3); }
+.fs-4 { font-size: var(--fs-4); }
+.fs-5 { font-size: var(--fs-5); }
+.n-text { font-size: var(--fs-4); margin-top: 5px; }
 
 /* ============================================================
    Card
