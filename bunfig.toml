@@ -1,2 +1,5 @@
 [test]
 coverage = true
+# Corre las migraciones una sola vez antes del primer test, para que el esquema
+# no dependa de qué archivo llegue primero a la DB (ver scripts/test-preload.ts).
+preload = ["./scripts/test-preload.ts"]

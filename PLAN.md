@@ -457,6 +457,48 @@ ni eso hace falta.
   (Explorer / Terminal / Diff) sigue en vanilla. Es contenido de pantalla, no shell, y le toca en
   `UI.4`; las 4 reglas viven en los toprow y el riel, no en el árbol del explorer.
 
+- [x] **CI.1 — 🔍 Mutation Shards en rojo: no era mutación, era el esquema de la DB.**
+  (cerrado 2026-08-31)
+
+  **Síntoma:** los 4 shards (`runtime-boundaries`, `executors`, `orchestration`,
+  `context-routing`) fallaban en ~35s cada uno, todas las noches, desde el 2026-08-27. El
+  tablero decía "All jobs have failed", que se lee como si el mutation testing estuviera roto.
+
+  **Causa real:** `SQLiteError: no such table: runs`. Stryker aborta con *"One or more tests
+  failed in the initial test run"* cuando la suite normal falla — o sea que ninguna mutación
+  llegó a correr nunca. Confirma la nota de `CLAUDE.md`: *"Mutation Shards rojo casi nunca es un
+  problema de mutación"*.
+
+  **Por qué solo ahí, y por qué el Mac nunca lo vio.** `src/db/sqlite.ts` congela
+  `ORCHESTOS_HOME` en su primer import (es un `const` de módulo), y **nadie corría
+  `runMigrations()` en el camino de test**: solo lo hace `cli.ts` en top-level y un puñado de
+  archivos de test que lo llaman por su cuenta. Así que un test que usa la DB pasaba solo si
+  (a) la DB del host ya tenía las tablas, o (b) otro archivo que sí migra corría antes en el
+  mismo proceso. En el Mac de Carlos siempre valía (a) —usa el dashboard a diario—, así que el
+  fallo era **invisible en local por definición**. Y (b) depende del orden de archivos, que
+  depende del conjunto que se ejecuta:
+  · `bun run test:coverage` → `bun test` (repo entero, incluye `src/dashboard/__tests__`) ✅
+  · Stryker → `bun test src/__tests__` (subconjunto) ❌
+  Con el subconjunto, `engine-selection.test.ts` llegaba a la DB antes que cualquier archivo que
+  migra. **Por eso el workflow de Tests estaba verde y Mutation rojo al mismo tiempo**, sin que
+  fueran dos bugs distintos.
+
+  **Fix:** `scripts/test-preload.ts` (corre `runMigrations()`, que es idempotente) declarado como
+  `preload` en `bunfig.toml`. Se arregla en la infraestructura una vez, en vez de repartir
+  `runMigrations()` por cada archivo que toque la DB — eso volvería a depender de que alguien se
+  acuerde de agregarlo en el próximo test.
+
+  **Evidencia (reproducido primero, no supuesto):** con `ORCHESTOS_HOME` en un directorio
+  limpio, `bun test src/__tests__` daba **985 pass / 2 fail** (`no such table:
+  chat_task_bar_events` — misma clase de fallo, otra tabla, porque cambia el orden) y con el fix
+  da **986 pass / 0 fail**. Stryker local con home limpio ahora imprime *"Initial test run
+  succeeded"*, que es exactamente el punto donde CI abortaba. Sin regresión: `bun run
+  test:coverage` 1174 pass / 0 fail, ratchet sin mover.
+
+  **Corolario, mismo patrón que `reference-ci-host-environment-drift`:** el test no afirmaba
+  sobre su propio estado sino sobre el del host. Un CI que falla siempre deja de dar señal —
+  estos 4 shards llevaban 5 días en rojo y ya se leían como ruido de fondo.
+
 - [ ] **UI.3.5 — 🧠 Sistema visual: que se sienta herramienta, no panel de administración.**
   (EN CURSO, abierto 2026-08-30 — decidido en sesión previa con Opus, retomado y confirmado
   aquí). **Pausa `UI.4`**: las 9 pantallas que faltan no se migran con paridad al look viejo
