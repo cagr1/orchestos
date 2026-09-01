@@ -204,12 +204,23 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   de Biome, generado y con formato propio — hueco que quedó de H.2.1) · `bun run plan:status`
   regenera `.orchestos/feature-status.json` con los 24 ítems reales verificados a mano.
 
-- [ ] **H.3.2 — ⚡ `DONE.md` pesa 540 KB / 5969 líneas.** Ningún agente lo lee entero, y no
+- [x] **H.3.2 — ⚡ `DONE.md` pesa 540 KB / 5969 líneas.** (cerrado 2026-09-01) Ningún agente lo lee entero, y no
   tiene índice ni partición. Es el anti-patrón de "instrucciones monolíticas que se pudren"
   aplicado al historial. Partir por mes en `docs/done/mes-NN.md` dejando `DONE.md` como índice
   con enlaces, **preservando el contenido íntegro** (es historial, no se resume ni se recorta).
   Verificar que ningún script referencie `DONE.md` por ruta antes de partirlo.
   Gate: contenido total preservado (comparar conteo de líneas antes/después) + `bun test` verde.
+  **Evidencia:** ningún script lee o parsea `DONE.md` (solo dos comentarios de código citan el
+  índice como evidencia). Las 5964 líneas del cuerpo original se distribuyeron entre
+  `docs/done/mes-01.md`–`mes-29.md` y `ideas-implementadas.md`; sumadas a las 5 líneas de
+  encabezado conservadas en el índice representan las 5969 líneas originales completas. La
+  reconstrucción devuelve el mismo SHA-256 después de normalizar únicamente el prefijo `../../`
+  agregado a 214 enlaces relativos para que sigan resolviendo desde `docs/done/`. `DONE.md` queda
+  como índice de 43 líneas, con 30 enlaces verificados en disco. De 244 destinos relativos
+  auditados, 242 resuelven; las dos referencias a `src/run/middlewares/tool-policy.ts` ya estaban
+  rotas antes de partir el archivo y se preservan como historia, no se corrigen dentro de este
+  scope. `bunx tsc --noEmit` ✅ · `bun test` antes y después del cambio ✅ (1182 pass / 0 fail,
+  2871 expects, 122 archivos).
 
 ### H.4 — Alcance y cierre: lo narrativo que debería ser mecánico
 
@@ -918,7 +929,7 @@ Por eso UI.1 es un gate de abortar real, y por eso el orden es shell→pantallas
 
 ---
 
-## MES 29 — Que "OrchestOS" deje de quedarle grande al sistema (abierto 2026-08-16, cerrado 2026-08-21) → [DONE.md](DONE.md)
+## MES 29 — Que "OrchestOS" deje de quedarle grande al sistema (abierto 2026-08-16, cerrado 2026-08-21) → [Mes 29](docs/done/mes-29.md)
 
 Eje de Carlos: "para llamarlo orquestador debería poder abrir varios chats, cada uno con el CLI de
 mi gusto, para varios proyectos — hoy solo funciona para 1". Diagnóstico verificado en código, no
@@ -936,11 +947,11 @@ el 422 que bloqueaba chat con codex/opencode era una restricción de implementac
 abrió a los tres CLIs, con la frontera de lectura/escritura puesta por el flag real de cada
 binario, verificado en vivo incluso contra un prompt adversarial). **CC.0-D6** (evidencia de gates
 en vivo ya no se pierde con el tmpdir — `bun run gate:evidence` la copia a la DB real marcada
-`task_class=gate:*`). Detalle completo, evidencia y las 8 pasadas de CC.D2 → [DONE.md § Mes 29](DONE.md).
+`task_class=gate:*`). Detalle completo, evidencia y las 8 pasadas de CC.D2 → [Mes 29](docs/done/mes-29.md).
 
 ---
 
-## MES 28 — Backlog canónico, categoría Medio (abierto 2026-08-15, cerrado 2026-08-18) → [DONE.md](DONE.md)
+## MES 28 — Backlog canónico, categoría Medio (abierto 2026-08-15, cerrado 2026-08-18) → [Mes 28](docs/done/mes-28.md)
 
 Bloque BB (2026-08-16): un solo selector real de "cómo corre OrchestOS" (`executor_mode` unificado,
 5 motores, artefactos del host filtrados, comparación medida de los 3 CLIs). Bloque AA: IDEAS `#6`
@@ -948,7 +959,7 @@ graduada (`design.md` condicional vía OpenSpec, con gate CLI+dashboard). **11/1
 BB.6 (costo ficticio de `codex`) quedó abierto del 16 al 18 y se cerró con un guard antes del
 spawn, sin fabricar el número ni tocar schema. La categoría Medio de IDEAS.md NO se agotó a
 propósito (decisión de Carlos: idea por idea, no toda la categoría de una vez). Detalle completo,
-diagnóstico de BB.6 y evidencia de los 11 ítems → [DONE.md § Mes 28](DONE.md).
+diagnóstico de BB.6 y evidencia de los 11 ítems → [Mes 28](docs/done/mes-28.md).
 
 ---
 

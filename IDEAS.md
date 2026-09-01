@@ -116,7 +116,7 @@ entra por infraestructura ya probada. Independientes entre sí.
 
 Son el resto del delta identificado en [obra/superpowers](https://github.com/obra/superpowers)
 y [mattpocock/skills](https://github.com/mattpocock/skills); el curador + pack "pro"
-(8 skills) ya está shipeado (Mes 11, ver DONE.md § MES 11).
+(8 skills) ya está shipeado (Mes 11, ver [historial del Mes 11](docs/done/mes-11.md)).
 
 ## 🔨 Medio — capacidad nueva acotada
 
@@ -1074,10 +1074,10 @@ en el código (`>` → `>=`, invertir un `if`, borrar una llamada) y verifica si
 test sigue pasando con el código roto, ese test no sirve — "mutante sobreviviente". Mide **calidad
 del test**, no cantidad. Se puede tener 100% de coverage con tests que no aseveran nada.
 
-**Por qué encaja específicamente con este repo (no es consejo genérico)**: [DONE.md:795](DONE.md)
+**Por qué encaja específicamente con este repo (no es consejo genérico)**: [Mes 22, línea 790](docs/done/mes-22.md)
 registra la lección "los gates 🔍 deben correr contra el sistema real, no solo `bun test` — los 3
 bugs de Mes 13 solo aparecieron verificando en vivo; **los mocks de los tests ya tenían la forma
-correcta y los escondían**". El patrón se repite en Mes 13, 14 y 22 ([DONE.md:1064](DONE.md)).
+correcta y los escondían**". El patrón se repite en Mes 13, 14 y 22 ([Mes 22, línea 1059](docs/done/mes-22.md)).
 Mutation testing es exactamente la herramienta que detecta "tests que pasan sin importar lo que haga
 el código": si un módulo está mockeado de más, sus mutantes sobreviven y quedan listados. Convierte
 una lección que hoy se aprende a golpes en una métrica.

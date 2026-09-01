@@ -30,7 +30,7 @@ headless) que corre dentro del worktree del sandbox. La capa de verificación
 - `maxOutputTokensFor` / `calcCost` (`src/router/pricing.ts`) — catálogo de
   pricing existente; si el modelo no está en catálogo, el patrón ya establecido
   (F0.8) es reportar costo desconocido, nunca `$0` silencioso.
-- Baseline de comparación (G.5, `DONE.md` §MES 16): tarea real — agregar una
+- Baseline de comparación (G.5, [historial del Mes 16](done/mes-16.md)): tarea real — agregar una
   línea de JSDoc a `src/dashboard/handlers/skills.ts` (419 líneas), mismo
   modelo en los 3 engines. single-shot: $0.0032, perfecto. Agéntico (post-fix):
   `tsc` limpio, sin truncar. D.1 corre la misma tarea con el ejecutor externo.
