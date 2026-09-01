@@ -73,6 +73,49 @@ La sección fechada “Qué está listo para tomar ahora (2026-07-30)” fue ret
 había quedado obsoleta mientras `PLAN.md` ya estaba en Mes 29. Desde ahora el estado se deriva en
 cada preflight de los ítems abiertos de `PLAN.md`; nunca se duplica aquí un snapshot que pueda mentir.
 
+## Prioridad activa: Bloque H — huecos de harness (2026-09-01)
+
+`PLAN.md` abrió el **Bloque H**, que va **antes** de los ítems `UI.4`–`UI.7` del Mes 30 por
+decisión de Carlos. Los ⚡ de `H.1` (README desactualizado, `CONSTITUTION.md` vacío, script
+`test` faltante, artefactos trackeados) son los primeros tomables y son trabajo de
+documentación/configuración — exactamente el perfil ⚡. Leer el bloque completo en `PLAN.md`
+antes de agarrar uno: cada ítem trae su gate y sus condiciones de parada propias.
+
+Dos advertencias sobre ese bloque:
+
+1. **`H.1.2` puede escalar a 🧠.** Si `src/spec/constitution.ts` no alcanza como fuente para
+   redactar `CONSTITUTION.md`, PARAR y reportarlo en vez de inventar principios. Un archivo de
+   gobierno con contenido improvisado es peor que uno vacío.
+2. **`H.1.4` exige verificar antes de borrar.** Los artefactos (`demo/`, `runs/*.log`,
+   `test-project/`) pueden estar referenciados por un test o por `tasks.yaml`. Comprobarlo
+   primero; se sacan del índice de git, **no del disco**.
+
+## Marco de harness engineering (referencia, 2026-09-01)
+
+El repo se auditó contra los cinco subsistemas de un harness — **instrucciones, estado,
+verificación, alcance, ciclo de sesión** — usando fuentes primarias de Anthropic, OpenAI,
+Thoughtworks/Fowler y LangChain. Informe completo en el vault:
+`outputs/2026-09-01-harness-engineering-a-fondo.md`.
+
+Tres principios de ese marco que ya rigen acá y conviene nombrar:
+
+- **`Agente = Modelo + Harness`** (Fowler). Cuando un agente falla de forma repetida en este
+  repo, la causa más probable es el entorno, no el modelo. Auditar los cinco subsistemas antes
+  de proponer cambiar de motor o subir de modelo (`INS-2026-015`).
+- **Mover controles de inferencial a computacional siempre que se pueda.** Un linter que impide
+  escribir el error vale más que un agente de review que lo detecta después: es determinista,
+  barato y no consume contexto. Es la razón de ser de `H.2.1`.
+- **Un harness se poda, no se acumula.** Anthropic eliminó sus propios sprints obligatorios y
+  movió el evaluador a una sola pasada final cuando el modelo mejoró: *"cada componente de un
+  harness codifica una suposición sobre lo que el modelo no puede hacer solo, y esas
+  suposiciones vale la pena someterlas a prueba"*. Antes de agregar un gate nuevo, verificar
+  que la suposición que codifica siga siendo cierta.
+
+Anti-patrón relevante para el trabajo en equipo de este repo: **un agente que califica su
+propio trabajo tiende a elogiarlo con confianza aunque la calidad sea obviamente mediocre**
+(Anthropic). Por eso los 🔍 son de Claude aunque haya implementado Codex, y por eso la
+evidencia de un gate no puede ser la afirmación del mismo agente que lo implementó.
+
 ## Hooks
 
 Instalar o reparar ambos hooks con un único comando portable para repo principal y worktrees:

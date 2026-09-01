@@ -36,6 +36,148 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 ---
 
+## BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)
+
+> **Decisión de Carlos (2026-09-01):** este bloque va **primero**. Los ítems `UI.4`–`UI.7`
+> del Mes 30 siguen abiertos pero quedan detrás de H — el objetivo es cerrar los huecos que
+> impiden presentar el producto como ingeniería seria.
+
+### De dónde sale este bloque
+
+Auditoría del 2026-09-01 contra el marco de harness engineering (5 subsistemas:
+instrucciones, estado, verificación, alcance, ciclo de sesión), con fuentes primarias de
+Anthropic, OpenAI, Thoughtworks/Fowler y LangChain. Informe completo en el vault:
+`outputs/2026-09-01-harness-engineering-a-fondo.md` (repo `memories-vault`, commit `465368f`).
+
+**Verificado ejecutando, no leyendo** (2026-09-01):
+
+```
+bun test              → 1174 pass / 0 fail (120 archivos, 2852 expects, 29.2s)
+bun run test:coverage → verde: functions 73.96% (gate 69%), lines 62.91% (gate 57%)
+bun run typecheck     → exit 0
+gh run list           → CI y Secret Check verdes en los últimos 8 pushes
+```
+
+**Conclusión de la auditoría:** el harness de OrchestOS es sólido — preflight mecanizado,
+tres gates que impiden declarar "listo" sin evidencia (`check-live-gate`, `check-ledger-gate`,
+`run-evidence-gate`), mutation testing en 4 shards, divulgación progresiva real (raíz corta →
+25 docs), y cada regla con post-mortem fechada. **Los huecos no son de ingeniería: son de
+presentación, de una capa barata que falta, y de no poder medir mejoras.**
+
+> Nota sobre `audit-harness.sh` del curso walkinglabs: se corrió sobre este repo y da **9/70**.
+> Ese score es engañoso — busca nombres exactos (`PROGRESS.md`, `feature_list.json`,
+> `Makefile`) y no reconoce los equivalentes de este repo; marcó "falta lockfile" cuando
+> `bun.lock` (72 KB) está trackeado, porque no conoce Bun. Usarlo como lista de ideas, nunca
+> como calificación. No abrir ítems solo para subir ese número.
+
+### H.1 — Presentación: lo que descalifica al repo en 30 segundos
+
+- [ ] **H.1.1 — ⚡ README miente sobre el estado del proyecto.** Dice "369 tests · Mes 8
+  complete" cuando hay **1174 tests** y el plan va por **Mes 30**. Subvalúa el trabajo real 3×
+  y es lo primero que lee cualquiera. Actualizar conteo de tests, mes/fase actual y cualquier
+  otra cifra obsoleta, tomando los números de una corrida real (`bun test`), no de memoria.
+  Gate: `bun test` para obtener el número real + diff acotado a `README.md`.
+
+- [ ] **H.1.2 — ⚡ `CONSTITUTION.md` está vacío (0 bytes).** Existe `src/spec/constitution.ts`
+  implementado al lado. Un archivo raíz vacío es lo primero que abre un externo y sugiere
+  abandono donde no lo hay. Redactar el contenido derivándolo de lo que ya implementa
+  `src/spec/constitution.ts` — **leer el código como fuente**, no inventar principios nuevos.
+  Si el código no alcanza para llenarlo, decirlo y parar: es un 🧠, no un ⚡.
+  Gate: diff acotado + coherencia verificada contra `src/spec/constitution.ts`.
+
+- [ ] **H.1.3 — ⚡ No hay script `test` en `package.json`.** `bun test` funciona por convención
+  del runtime, pero quien clone y haga `npm test` / `bun run test` no encuentra nada. Agregar
+  `"test": "bun test"` sin tocar `test:coverage` (que es el comando exacto de CI y no se
+  reemplaza). Gate: `bun run test` corre la suite; `bun run test:coverage` sigue intacto.
+
+- [ ] **H.1.4 — ⚡ Artefactos de ejecución trackeados en git.** 24 archivos entre
+  `demo/crypto-page-v*/index.html`, `runs/*.log` y `test-project/`. Son salidas de corridas,
+  no fuente. Sacarlos del índice (`git rm --cached`) y agregarlos a `.gitignore`.
+  **No borrar del disco** — pueden ser evidencia de gates. Verificar antes si alguno está
+  referenciado por un test o por `tasks.yaml`; si lo está, parar y reportarlo.
+  Gate: `bun test` sigue verde tras el untrack + diff acotado.
+
+### H.2 — La capa barata que falta
+
+- [ ] **H.2.1 — 🧠 No hay linter ni formatter.** Ni eslint, ni biome, ni oxlint, ni prettier.
+  En la taxonomía de Fowler (guides/sensors × computacional/inferencial) esta es **la casilla
+  feedforward computacional vacía**: la capa más barata, determinista y que no consume
+  contexto del agente. Hoy el repo paga con mutation testing —la casilla más cara— parte del
+  trabajo que un linter haría gratis y antes de generar.
+  Requiere criterio: elegir herramienta (biome = lint+format en un binario, vs oxlint = más
+  rápido pero solo lint), definir el set de reglas inicial sin romper 531 archivos de golpe, y
+  decidir si entra al pre-commit o solo a CI al principio.
+  Gate: la herramienta corre limpia o con un baseline explícito de excepciones documentado;
+  `bun run typecheck` y `bun run test:coverage` siguen verdes.
+
+### H.3 — Estado: legible por humanos, ilegible por máquinas
+
+- [ ] **H.3.1 — 🧠 El estado del producto no es machine-readable.** `PLAN.md` (1003 líneas)
+  es la fuente real, pero ningún script lo parsea salvo `findOpenPlanItem()`. `tasks.yaml` sí
+  es estructurado pero contiene tareas de **demo** (`crypto-page-v1`), no el backlog del
+  producto. `.orchestos/specs/` está vacío.
+  Referencia: Anthropic usa JSON para su feature list **deliberadamente** — *"el modelo es
+  menos propenso a cambiar o sobrescribir inapropiadamente archivos JSON"* — con forma
+  `{category, description, steps, passes:false}` y la regla explícita *"es inaceptable
+  eliminar o editar tests"*.
+  Decisión de diseño requerida: si se adopta un `feature_list.json` derivado de `PLAN.md`,
+  cuál es la fuente y cuál el derivado — **no puede haber dos fuentes de verdad**. Esa es
+  exactamente la trampa que ya costó el bug de `orchestos context update` sobrescribiendo
+  `AGENTS.md`.
+
+- [ ] **H.3.2 — ⚡ `DONE.md` pesa 540 KB / 5969 líneas.** Ningún agente lo lee entero, y no
+  tiene índice ni partición. Es el anti-patrón de "instrucciones monolíticas que se pudren"
+  aplicado al historial. Partir por mes en `docs/done/mes-NN.md` dejando `DONE.md` como índice
+  con enlaces, **preservando el contenido íntegro** (es historial, no se resume ni se recorta).
+  Verificar que ningún script referencie `DONE.md` por ruta antes de partirlo.
+  Gate: contenido total preservado (comparar conteo de líneas antes/después) + `bun test` verde.
+
+### H.4 — Alcance y cierre: lo narrativo que debería ser mecánico
+
+- [ ] **H.4.1 — 🧠 El scope-lock es narrativo, no mecánico.** `agent:preflight` exige
+  `--item <ID>` y valida que esté abierto — eso sí es mecánico. Pero **nada compara el diff
+  final contra el scope declarado**: un agente puede tomar `UI.4` y tocar cinco módulos
+  ajenos sin que ningún gate lo note. El protocolo lo admite honestamente
+  (`docs/agent-work-protocol.md` § Principio, nivel "narrativo"), y ese es precisamente el
+  hueco. Diseñar un check de pre-commit que compare los paths tocados contra los declarados
+  por el ítem. Requiere decidir dónde se declaran esos paths y qué pasa con cambios
+  legítimamente transversales.
+
+- [ ] **H.4.2 — 🧠 Hay clock-in mecanizado pero no hay clock-out.** `grep -i
+  "handoff|cierre de sesión|checklist"` no devuelve nada en `AGENTS.md`, `CLAUDE.md` ni el
+  protocolo. El pre-commit/pre-push cubren parte, pero no existe un artefacto de handoff que
+  le diga a la próxima sesión dónde quedó todo. Además `.claude/scheduled_tasks.lock` está
+  **stale** (apunta a un pid del 19-ago) — evidencia de que nada limpia al cerrar.
+
+### H.5 — Lo estratégico: no se puede medir si el harness mejora
+
+- [ ] **H.5 — 🧠 OrchestOS no tiene evals propios.** Hoy no hay forma de afirmar con un
+  número que una versión del orquestador es mejor que la anterior. Referencia dura: LangChain
+  movió Terminal Bench 2.0 de **52.8% a 66.5%** (+13.7 pts, del puesto ~30 al top 5) **sin
+  cambiar el modelo, solo el harness** — pero eso solo se sabe porque midieron.
+  Agudizante para un orquestador multi-modelo: **el harness no es portable entre modelos**
+  (Opus 4.6 rindió 59.6% con un harness afinado para GPT-5.2-Codex). Sin evals no se puede
+  saber qué configuración conviene a cada motor de la cascada local→CLI→API.
+  Arranque realista: 20–50 tasks derivadas de fallos **reales ya documentados** en `DONE.md` y
+  `LEDGER.md` (ahí está el material), cada una con *reference solution* que pruebe que la task
+  es resoluble y los graders están bien. Métrica **`pass^k`, no `pass@k`**: con 75% por trial y
+  k=3, `pass^k ≈ 42%` — esa es la cifra honesta para algo que va a manos de un cliente.
+  Anti-patrones a evitar desde el diseño: verificar secuencias exactas de tool calls (los
+  agentes encuentran caminos válidos no anticipados), specs ambiguas (0% de pass@100 casi
+  siempre significa task rota, no agente incapaz), y estado compartido entre runs.
+
+### H.6 — Fuera de alcance de este bloque (anotado, no se toca)
+
+- `src/cli.ts` tiene **2439 líneas y 63 edges** — god file evidente. Es lo segundo que critica
+  un externo después del README, pero no es un hueco de harness. Va a `IDEAS.md` si Carlos lo
+  aprueba; **no se refactoriza dentro del Bloque H**.
+- Cobertura de líneas 62.91% y `src/skills/fetch.ts` en 0% de funciones. El trinquete ya sube
+  solo; no abrir ítem salvo decisión explícita.
+- Todo el gobierno del repo está en español con README en inglés. Decisión de producto, no
+  defecto — no tocar sin que Carlos lo pida.
+
+---
+
 ## MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)
 
 > **Mes 29 cerrado (2026-08-21)** — ver resumen y link a DONE.md más abajo. Este bloque queda
