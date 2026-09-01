@@ -17,7 +17,10 @@ terminado basándose solo en revisión visual del código, mocks o la afirmació
 
 ## Orden obligatorio
 
-1. Leer `AGENTS.md`, `CLAUDE.md`, este protocolo y la sección activa de `PLAN.md`.
+1. Leer `AGENTS.md`, `CLAUDE.md`, este protocolo y la sección activa de `PLAN.md`. Si existe
+   `.orchestos/handoff.md`, leerlo primero — es el clock-out de la sesión anterior (H.4.2, PLAN.md
+   § Bloque H): apunta a un ítem que quedó a medias y a cambios sin commitear, sin duplicar lo que
+   ya está en `PLAN.md`/`LEDGER.md`/commits.
 2. Ejecutar `bun run agent:preflight -- --item <ID> --agent <nombre>` antes de editar.
 3. Revisar `git status` y `git log`: los cambios existentes pertenecen a otra sesión hasta demostrar
    lo contrario. No modificarlos, revertirlos ni incluirlos en el commit.
@@ -36,6 +39,12 @@ terminado basándose solo en revisión visual del código, mocks o la afirmació
 8. Ejecutar los gates de la matriz siguiente.
 9. Añadir en `PLAN.md` evidencia concreta y comandos/resultados. Solo entonces marcar `[x]`.
 10. Commit por ítem sin `--no-verify`. Tras 2–3 commits locales, push normal autorizado.
+11. Si la sesión termina (por cualquier motivo) con un ítem sin cerrar o cambios sin commitear,
+    correr `bun run agent:handoff` antes de parar — escribe `.orchestos/handoff.md` para que la
+    próxima sesión, de cualquier CLI, sepa dónde retomar. No es un gate mecánico: no existe un
+    evento "fin de sesión" uniforme entre Claude/Codex/DeepSeek/OpenCode para bloquear sobre él
+    (investigado antes de diseñar, PLAN.md § H.4.2) — es responsabilidad narrativa de quien cierra
+    la sesión, igual que el resto de este paso 11 hasta que exista un trigger mecánico real.
 
 Cuando un gate en vivo ejecute el harness con `ORCHESTOS_HOME` temporal, el paso 8 debe usar
 `bun run gate:evidence -- --label <gate-id> -- <comando> [args...]`. El wrapper exporta los runs

@@ -276,11 +276,48 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   `scripts/pre-commit.sh` después del gate de H.3.1; `docs/agent-work-protocol.md` § paso 5
   documenta el `--scope` opcional.
 
-- [ ] **H.4.2 — 🧠 Hay clock-in mecanizado pero no hay clock-out.** `grep -i
-  "handoff|cierre de sesión|checklist"` no devuelve nada en `AGENTS.md`, `CLAUDE.md` ni el
-  protocolo. El pre-commit/pre-push cubren parte, pero no existe un artefacto de handoff que
-  le diga a la próxima sesión dónde quedó todo. Además `.claude/scheduled_tasks.lock` está
-  **stale** (apunta a un pid del 19-ago) — evidencia de que nada limpia al cerrar.
+- [x] **H.4.2 — 🧠 Hay clock-in mecanizado pero no hay clock-out.** (cerrado 2026-09-01)
+  `grep -i "handoff|cierre de sesión|checklist"` no devuelve nada en `AGENTS.md`,
+  `CLAUDE.md` ni el protocolo. El pre-commit/pre-push cubren parte, pero no existe un
+  artefacto de handoff que le diga a la próxima sesión dónde quedó todo. Además
+  `.claude/scheduled_tasks.lock` está **stale** (apunta a un pid del 19-ago) — evidencia de
+  que nada limpia al cerrar.
+  **`.claude/scheduled_tasks.lock` queda fuera de alcance, explícito:** verificado que el
+  PID (91448) ya no corre (`ps -p 91448` vacío) y que **ningún archivo de `src/`/`scripts/`
+  lo referencia** — es un artefacto propio del CLI de Claude Code (feature de scheduled
+  tasks), gitignored (`.claude/*`), no código de OrchestOS. No hay nada que este ítem pueda
+  arreglar ahí sin tocar herramienta externa; se documenta en vez de fingir un fix.
+  **Investigación de precedente antes de diseñar:** se revisó `obra/superpowers` — tiene
+  `finishing-a-development-branch`, pero es sobre decidir merge/PR/worktree al terminar una
+  rama; no aplica porque OrchestOS commitea directo a `master` (autorización permanente de
+  push, no hay flujo de PR). Se encontró la pieza correcta en `mattpocock/skills`:
+  `productivity/handoff` e `in-progress/claude-handoff` (verificado vía `gh api`, código
+  real). Cita textual robada, es el principio de diseño central: *"Do not duplicate content
+  already captured in other artifacts (specs, plans, ADRs, issues, commits, diffs).
+  Reference them by path or URL instead."*
+  **Adaptación deliberada (no copia ciega):** mattpocock guarda el handoff en el temp del
+  SO porque asume un solo usuario en Claude Code. OrchestOS admite Claude/Codex/DeepSeek/
+  OpenCode trabajando el mismo repo, a veces en paralelo
+  ([[feedback-codex-sesiones-paralelas-no-preguntar]]) — el handoff vive DENTRO del working
+  directory (`.orchestos/handoff.md`, gitignored) para que cualquier próxima sesión, de
+  cualquier CLI, lo encuentre sin configuración extra. Tampoco se mecaniza como gate
+  bloqueante (a diferencia de H.4.1/H.3.1): no existe un evento "fin de sesión" uniforme
+  entre los 4 CLIs para engancharlo a un hook — es un paso narrativo del protocolo (paso 11)
+  reforzado por un script que hace el trabajo pesado de recolección, no por un bloqueo.
+  **Contenido del handoff, siguiendo el principio robado:** NO repite lo que PLAN.md/
+  LEDGER.md/commits ya capturan de forma durable — solo el estado en vuelo: el ítem
+  declarado en `.orchestos/active-item.json` (scope-lock de H.4.1) si quedó sin cerrar,
+  `git status --porcelain` (cambios sin commitear), y los próximos ítems abiertos leídos de
+  `.orchestos/feature-status.json` (H.3.1) — las tres piezas de Bloque H encadenadas, cero
+  información nueva que mantener en paralelo. `docs/agent-work-protocol.md` § paso 1 ahora
+  lee `.orchestos/handoff.md` primero si existe (cierra el círculo clock-in↔clock-out).
+  **Evidencia:** `scripts/handoff.ts` (lógica pura: `gitBranch`, `uncommittedPaths`,
+  `renderHandoff`) con `scripts/handoff.test.ts` (8 tests, 100% funcs/líneas).
+  `scripts/agent-handoff.ts` (CLI wrapper, `bun run agent:handoff`). Corrido en vivo contra
+  este mismo repo: generó `.orchestos/handoff.md` real reflejando los 6 archivos sin
+  commitear de esta sesión y los 7 ítems abiertos reales (H.4.2, H.5, UI.3.5, UI.4, UI.5,
+  UI.6, UI.7) truncados a 5 con aviso de "+2 más". `bunx tsc --noEmit` ✅ · `bun test` ✅
+  (1199 pass / 0 fail, 2893 expects, 124 archivos) · `bun run lint` ✅ exit 0.
 
 ### H.5 — Lo estratégico: no se puede medir si el harness mejora
 

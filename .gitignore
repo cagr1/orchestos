@@ -71,3 +71,8 @@ dist/
 # H.4.1 — scope declarado por sesión (agent:preflight --scope). Estado
 # efímero de sesión, no fuente de verdad; se limpia solo al cerrar el ítem.
 .orchestos/active-item.json
+
+# H.4.2 — handoff de clock-out (agent:handoff). Estado en vuelo, se
+# sobrescribe cada corrida; nunca duplica lo que PLAN.md/LEDGER.md ya
+# capturan de forma durable.
+.orchestos/handoff.md
