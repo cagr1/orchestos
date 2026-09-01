@@ -4,7 +4,7 @@ A CLI that runs LLM-powered coding tasks inside a declared file contract.
 Each task specifies exactly which files it can write. Anything outside that list is blocked.
 Every run produces evidence in SQLite. A QA LLM validates the output before marking it done.
 
-369 tests · 0 fail · Mes 8 complete
+1174 tests · 0 failures · Month 30 active · Block H in progress
 
 ---
 
@@ -344,14 +344,15 @@ When a sub-agent writes to `memory_entries`, BM25 (SQLite FTS5) finds candidate 
 
 ## Middleware chain
 
-The enrichment phase before each LLM call runs 9 middlewares in canonical order:
+The implemented enrichment chain before each LLM call runs 5 middlewares in canonical order:
 
 ```
-spec-gate → sandbox-setup → classify-route → memory-fetch → skill-route →
-constitution-load → context-source → instinct-apply → prompt-build
+memory-fetch → skill-route → roadmap-context → context-inject → instinct-apply
 ```
 
-Each middleware mutates a shared `RunContext` and calls `next()`. The execution phase (LLM → contract → checks → QA → revert → insertRun) remains inline in the harness — it is a stateful error-flow, not independent enrichment steps.
+Each middleware mutates a shared `RunContext` and calls `next()`. Spec gating, sandbox setup,
+model routing, constitution loading, and prompt assembly remain explicit stages in the harness,
+as does the execution phase (LLM → contract → checks → QA → revert → insertRun).
 
 ---
 

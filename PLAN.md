@@ -72,11 +72,15 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
 ### H.1 — Presentación: lo que descalifica al repo en 30 segundos
 
-- [ ] **H.1.1 — ⚡ README miente sobre el estado del proyecto.** Dice "369 tests · Mes 8
+- [x] **H.1.1 — ⚡ README miente sobre el estado del proyecto.** (cerrado 2026-09-01) Dice "369 tests · Mes 8
   complete" cuando hay **1174 tests** y el plan va por **Mes 30**. Subvalúa el trabajo real 3×
   y es lo primero que lee cualquiera. Actualizar conteo de tests, mes/fase actual y cualquier
   otra cifra obsoleta, tomando los números de una corrida real (`bun test`), no de memoria.
   Gate: `bun test` para obtener el número real + diff acotado a `README.md`.
+  **Evidencia:** `bunx tsc --noEmit` ✅ · `bun test` ✅ (1174 pass / 0 fail, 2852 expects,
+  120 archivos). `README.md` actualizado a Mes 30 / Bloque H; el conteo obsoleto de 9
+  middlewares se corrigió a los 5 que encadena `src/run/harness.ts`. El conteo de 36 lenguajes
+  se verificó contra `SUPPORTED_LANGUAGES` y sigue vigente.
 
 - [ ] **H.1.2 — ⚡ `CONSTITUTION.md` está vacío (0 bytes).** Existe `src/spec/constitution.ts`
   implementado al lado. Un archivo raíz vacío es lo primero que abre un externo y sugiere
