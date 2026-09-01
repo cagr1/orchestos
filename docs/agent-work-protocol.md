@@ -24,7 +24,12 @@ terminado basándose solo en revisión visual del código, mocks o la afirmació
 4. Confirmar que el ítem está abierto, autorizado para el agente y sin prerequisitos abiertos. Un
    pedido explícito de Carlos puede cambiar la asignación, pero no elimina los gates.
 5. Si el cambio cruza módulos/capas o redefine comportamiento central, documentar alcance, pasos,
-   validación y exclusiones antes de editar (`INS-2026-005`).
+   validación y exclusiones antes de editar (`INS-2026-005`). Cuando el alcance se pueda anticipar
+   como un glob (no una lista exacta — la mayoría de ítems 🧠 no lo permite), declararlo con
+   `agent:preflight -- --item <ID> --scope "<globs separados por coma>"` (H.4.1, PLAN.md § Bloque
+   H): el pre-commit exige entonces una línea `**Fuera de scope declarado:**` en `PLAN.md` para
+   cualquier path staged fuera del glob — no bloquea trabajo transversal legítimo, exige que quede
+   documentado en el mismo commit. Es opt-in: sin declaración, el gate no aplica.
 6. Ejecutar baseline: `bunx tsc --noEmit` y la suite relevante. Si falla por trabajo ajeno, parar y
    reportar el archivo/error; no absorber el refactor sin autorización.
 7. Implementar solo el ítem elegido. Hallazgos adyacentes se documentan; no se corrigen en caliente.

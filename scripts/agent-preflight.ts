@@ -1,10 +1,12 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import { checkHooks, findOpenPlanItem, runCommand } from './agent-governance.ts'
+import { parseScopeArg } from './scope-lock.ts'
 
 interface Args {
   item?: string
   agent?: string
+  scope?: string
   hooksOnly: boolean
 }
 
@@ -13,9 +15,12 @@ function parseArgs(argv: string[]): Args {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--item') args.item = argv[++i]
     if (argv[i] === '--agent') args.agent = argv[++i]
+    if (argv[i] === '--scope') args.scope = argv[++i]
   }
   return args
 }
+
+const ACTIVE_ITEM_PATH = '.orchestos/active-item.json'
 
 export function main(argv = process.argv.slice(2), root = resolve('.')): number {
   const args = parseArgs(argv)
@@ -52,6 +57,24 @@ export function main(argv = process.argv.slice(2), root = resolve('.')): number 
   if (status.exitCode !== 0) {
     console.error(status.stderr.trim())
     return 1
+  }
+
+  if (args.scope) {
+    const scopePath = resolve(root, ACTIVE_ITEM_PATH)
+    mkdirSync(dirname(scopePath), { recursive: true })
+    writeFileSync(
+      scopePath,
+      JSON.stringify(
+        {
+          item: args.item,
+          scope: parseScopeArg(args.scope),
+          declaredAt: new Date().toISOString(),
+        },
+        null,
+        2,
+      ),
+    )
+    console.log(`🔒 Scope declarado (${ACTIVE_ITEM_PATH}): ${args.scope}`)
   }
 
   console.log(`✓ Preflight ${args.item}${args.agent ? ` · agente: ${args.agent}` : ''}`)

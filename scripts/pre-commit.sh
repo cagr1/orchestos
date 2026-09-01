@@ -47,6 +47,14 @@ echo "🗺️  Regenerando .orchestos/feature-status.json desde PLAN.md..."
 bun run plan:status
 git add .orchestos/feature-status.json
 
+# H.4.1 (PLAN.md § Bloque H) — mecaniza el scope-lock, hoy solo narrativo. Si
+# nadie declaró scope con `agent:preflight --scope`, es no-op (no fuerza
+# retrofits). Si hay scope declarado, exige justificación en PLAN.md para
+# cualquier path staged fuera del glob — no bloquea trabajo transversal
+# legítimo, exige que quede documentado en el mismo commit.
+echo "🔒 Verificando scope-lock declarado..."
+bun run scope:check
+
 # Mes 22/E.10 — un worktree (sandbox de una tarea) NUNCA debe commitear
 # runs-summary.json. Con la ruta ya corregida arriba, el export queda
 # aislado a la copia del worktree (ya no ensucia el repo principal) — pero

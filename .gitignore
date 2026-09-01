@@ -67,3 +67,7 @@ dist/
 # runtime state del sandbox: worktrees temporales + lockfile entre procesos (E.5)
 .orchestos/worktrees/
 .orchestos/git.lock
+
+# H.4.1 — scope declarado por sesión (agent:preflight --scope). Estado
+# efímero de sesión, no fuente de verdad; se limpia solo al cerrar el ítem.
+.orchestos/active-item.json

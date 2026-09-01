@@ -224,14 +224,57 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
 ### H.4 — Alcance y cierre: lo narrativo que debería ser mecánico
 
-- [ ] **H.4.1 — 🧠 El scope-lock es narrativo, no mecánico.** `agent:preflight` exige
-  `--item <ID>` y valida que esté abierto — eso sí es mecánico. Pero **nada compara el diff
-  final contra el scope declarado**: un agente puede tomar `UI.4` y tocar cinco módulos
-  ajenos sin que ningún gate lo note. El protocolo lo admite honestamente
-  (`docs/agent-work-protocol.md` § Principio, nivel "narrativo"), y ese es precisamente el
-  hueco. Diseñar un check de pre-commit que compare los paths tocados contra los declarados
-  por el ítem. Requiere decidir dónde se declaran esos paths y qué pasa con cambios
-  legítimamente transversales.
+- [x] **H.4.1 — 🧠 El scope-lock es narrativo, no mecánico.** (cerrado 2026-09-01)
+  `agent:preflight` exige `--item <ID>` y valida que esté abierto — eso sí es mecánico. Pero
+  **nada compara el diff final contra el scope declarado**: un agente puede tomar `UI.4` y
+  tocar cinco módulos ajenos sin que ningún gate lo note. El protocolo lo admite
+  honestamente (`docs/agent-work-protocol.md` § Principio, nivel "narrativo"), y ese es
+  precisamente el hueco. Diseñar un check de pre-commit que compare los paths tocados
+  contra los declarados por el ítem. Requiere decidir dónde se declaran esos paths y qué
+  pasa con cambios legítimamente transversales.
+  **La auditoría no prescribe el formato** — solo el resultado deseado (cita textual del
+  informe fuente): *"Un check de pre-commit que compare los paths tocados contra los
+  declarados en el ítem lo vuelve mecánico."* A diferencia de H.3.1 (donde sí había una cita
+  directa, el `feature_list.json` de Anthropic), acá no hay un precedente externo citado —
+  se investigó antes de diseñar, no se asumió.
+  **Investigación contra precedente externo (a pedido explícito de Carlos, antes de
+  diseñar):** se revisaron los 9 repos de [[reference-external-repos]] vía `gh api` (código
+  real, no README) buscando algo mejor que lo propio. Ninguno resuelve "comparar diff contra
+  scope declarado por tarea": ECC (`scripts/hooks/ecc-context-monitor.js`) tiene un "SCOPE
+  WARNING" pero es un contador crudo (`files_modified_count > 20` → mensaje informativo, sin
+  scope declarado, nunca bloquea) — más débil que lo que necesitamos. OpenSpec
+  (`schemas/spec-driven/schema.yaml`, `src/core/working-set.ts`) tiene "capabilities
+  contract"/"delta headers", pero son sobre qué archivos de **spec** (`specs/<capability-
+  path>/spec.md`) se crean — un problema de organización de documentación, no de diff de
+  código vs. scope. DeerFlow, Engram, gentle-ai, Hermes, Orca, fable-method y Graphify no
+  tienen nada análogo. Conclusión: no había un "formato correcto" externo que seguir — es
+  terreno donde el diseño queda a criterio de ingeniería propio, igual que la auditoría lo
+  dejó abierto.
+  **Diseño implementado:** declaración OPCIONAL de un glob amplio (no una lista exacta de
+  archivos — la mayoría de ítems 🧠 no permite predecir paths antes de investigar el código;
+  H.2.1 terminó tocando 328 archivos que nadie podía enumerar de antemano) vía
+  `agent:preflight -- --item <ID> --scope "<globs>"`, persistida en
+  `.orchestos/active-item.json` (gitignored, estado de sesión efímero — no fuente de
+  verdad). El gate de pre-commit (`scripts/check-scope-lock.ts`) es **no-op si nadie
+  declaró scope** (mecaniza la disciplina sin forzar retrofits en ítems viejos); si hay
+  declaración y el diff staged toca paths fuera del glob, **no bloquea trabajo
+  transversal legítimo**: exige una línea `**Fuera de scope declarado:** <por qué>` en el
+  mismo commit de `PLAN.md` — mismo patrón exacto que `Gate en vivo:` de H.4.1's hermano
+  (`hasLiveGateEvidence`). Al detectar que el ítem declarado se cierra (`[x]` en el diff de
+  `PLAN.md`), el gate borra `.orchestos/active-item.json` solo — no tiene sentido que el
+  estado sobreviva al ítem que lo declaró.
+  **Evidencia:** `scripts/scope-lock.ts` (lógica pura: `parseScopeArg`, `pathsOutsideScope`
+  vía `Bun.Glob` nativo — sin dependencia nueva —, `hasOutOfScopeJustification`,
+  `planClosesItem`) con `scripts/scope-lock.test.ts` (9 tests, 100% funcs/líneas).
+  `scripts/check-scope-lock.ts` (CLI wrapper, sin test dedicado — mismo criterio que
+  `check-live-gate.ts`, que tampoco lo tiene: la lógica pura ya está cubierta). Prueba
+  end-to-end manual contra un repo git temporal real: caso 1 (fuera de scope sin
+  justificación) → exit 1 con el path ofensor listado; caso 2 (con la línea de
+  justificación agregada) → exit 0; caso 3 (ítem cerrado) → exit 0 y
+  `.orchestos/active-item.json` eliminado. `bunx tsc --noEmit` ✅ · `bun test` ✅ (1191
+  pass / 0 fail, 2880 expects, 123 archivos) · `bun run lint` ✅ exit 0. Wireado en
+  `scripts/pre-commit.sh` después del gate de H.3.1; `docs/agent-work-protocol.md` § paso 5
+  documenta el `--scope` opcional.
 
 - [ ] **H.4.2 — 🧠 Hay clock-in mecanizado pero no hay clock-out.** `grep -i
   "handoff|cierre de sesión|checklist"` no devuelve nada en `AGENTS.md`, `CLAUDE.md` ni el
