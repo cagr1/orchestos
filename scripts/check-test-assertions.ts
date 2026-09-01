@@ -2,7 +2,8 @@ import { readFileSync } from 'fs'
 
 /** K.3 — textual, deliberately cheap assertion detection for generated tests. */
 export function countTestAssertions(content: string): number {
-  const assertionPattern = /\bexpect\s*\(|\bassert(?:\.\w+)?\s*\(|\.(?:toBe|toEqual|toStrictEqual|toContain|toThrow|toHaveLength|toMatch|toBeTruthy|toBeFalsy|toBeDefined|toBeUndefined|toBeNull|toBeGreaterThan|toBeLessThan|toHaveProperty)\s*\(/g
+  const assertionPattern =
+    /\bexpect\s*\(|\bassert(?:\.\w+)?\s*\(|\.(?:toBe|toEqual|toStrictEqual|toContain|toThrow|toHaveLength|toMatch|toBeTruthy|toBeFalsy|toBeDefined|toBeUndefined|toBeNull|toBeGreaterThan|toBeLessThan|toHaveProperty)\s*\(/g
   return content.match(assertionPattern)?.length ?? 0
 }
 

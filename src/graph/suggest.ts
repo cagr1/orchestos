@@ -29,23 +29,54 @@ import { cosine } from '../providers/embeddings.ts'
 
 // ── weights ──────────────────────────────────────────────────────────────────
 
-const TOKEN_WEIGHT    = 3    // keyword path: score per token hit
-const HOP_WEIGHT      = 1    // keyword path: bonus for 1-hop neighbor
-const DEFAULT_TOP     = 10
+const TOKEN_WEIGHT = 3 // keyword path: score per token hit
+const HOP_WEIGHT = 1 // keyword path: bonus for 1-hop neighbor
+const DEFAULT_TOP = 10
 
 // S24.4 embedding path weights (plan spec: embed × 0.6 + keyword × 0.4)
-const EMBED_WEIGHT    = 0.6
-const KEYWORD_WEIGHT  = 0.4
+const EMBED_WEIGHT = 0.6
+const KEYWORD_WEIGHT = 0.4
 /** Min cosine similarity to include a file found only via embedding (no keyword match). */
-const EMBED_THRESHOLD = 0.10
+const EMBED_THRESHOLD = 0.1
 
 // ── stop-words ───────────────────────────────────────────────────────────────
 
 const STOP_WORDS = new Set([
-  'the', 'and', 'for', 'with', 'this', 'that', 'from', 'into', 'using',
-  'add', 'use', 'get', 'set', 'new', 'all', 'its', 'has', 'are', 'not',
-  'can', 'will', 'should', 'must', 'make', 'create', 'update', 'delete',
-  'file', 'files', 'code', 'task', 'test', 'run', 'src', 'lib',
+  'the',
+  'and',
+  'for',
+  'with',
+  'this',
+  'that',
+  'from',
+  'into',
+  'using',
+  'add',
+  'use',
+  'get',
+  'set',
+  'new',
+  'all',
+  'its',
+  'has',
+  'are',
+  'not',
+  'can',
+  'will',
+  'should',
+  'must',
+  'make',
+  'create',
+  'update',
+  'delete',
+  'file',
+  'files',
+  'code',
+  'task',
+  'test',
+  'run',
+  'src',
+  'lib',
 ])
 
 // ── public interface ─────────────────────────────────────────────────────────
@@ -84,9 +115,9 @@ export function suggestContext(
   taskText: string,
   opts: SuggestOpts = {},
 ): SuggestResult[] {
-  const topN      = opts.topN   ?? DEFAULT_TOP
-  const expand    = opts.expand ?? true
-  const taskEmb   = opts.taskEmbedding
+  const topN = opts.topN ?? DEFAULT_TOP
+  const expand = opts.expand ?? true
+  const taskEmb = opts.taskEmbedding
 
   const tokens = tokenize(taskText)
 
@@ -109,9 +140,11 @@ function suggestWithEmbedding(
   expand: boolean,
 ): SuggestResult[] {
   // Load files with their stored embeddings (NULL if not yet indexed with --embed)
-  const allFiles = db.query<{ id: number; path: string; embedding: string | null }, string>(
-    'SELECT id, path, embedding FROM files WHERE project_id = ?'
-  ).all(projectId)
+  const allFiles = db
+    .query<{ id: number; path: string; embedding: string | null }, string>(
+      'SELECT id, path, embedding FROM files WHERE project_id = ?',
+    )
+    .all(projectId)
 
   if (allFiles.length === 0) return []
 
@@ -129,7 +162,10 @@ function suggestWithEmbedding(
   // ── embedding scores (cosine, per file) ───────────────────────────────────
   const embScores = new Map<number, number>()
   for (const file of allFiles) {
-    if (!file.embedding) { embScores.set(file.id, 0); continue }
+    if (!file.embedding) {
+      embScores.set(file.id, 0)
+      continue
+    }
     try {
       const fileEmb = JSON.parse(file.embedding) as number[]
       embScores.set(file.id, Math.max(0, cosine(taskEmb, fileEmb))) // clamp neg to 0
@@ -139,14 +175,17 @@ function suggestWithEmbedding(
   }
 
   // ── combine ───────────────────────────────────────────────────────────────
-  const scores = new Map<number, { path: string; score: number; embedScore: number; reason: 'direct' | 'embedding' }>()
+  const scores = new Map<
+    number,
+    { path: string; score: number; embedScore: number; reason: 'direct' | 'embedding' }
+  >()
 
   for (const file of allFiles) {
-    const kwNorm  = (rawKw.get(file.id) ?? 0) / maxKw
+    const kwNorm = (rawKw.get(file.id) ?? 0) / maxKw
     const embNorm = embScores.get(file.id) ?? 0
 
     const hasKeyword = kwNorm > 0
-    const hasEmbed   = embNorm > EMBED_THRESHOLD
+    const hasEmbed = embNorm > EMBED_THRESHOLD
 
     if (!hasKeyword && !hasEmbed) continue
 
@@ -161,10 +200,10 @@ function suggestWithEmbedding(
   }
 
   return Array.from(scores.values())
-    .map(v => ({
-      path:       v.path,
-      score:      v.score,
-      reason:     v.reason as SuggestResult['reason'],
+    .map((v) => ({
+      path: v.path,
+      score: v.score,
+      reason: v.reason as SuggestResult['reason'],
       embedScore: v.embedScore,
     }))
     .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path))
@@ -181,9 +220,9 @@ function suggestKeywordOnly(
 ): SuggestResult[] {
   const scores = new Map<number, { path: string; score: number; reason: 'direct' | 'neighbor' }>()
 
-  const allFiles = db.query<{ id: number; path: string }, string>(
-    'SELECT id, path FROM files WHERE project_id = ?'
-  ).all(projectId)
+  const allFiles = db
+    .query<{ id: number; path: string }, string>('SELECT id, path FROM files WHERE project_id = ?')
+    .all(projectId)
 
   for (const file of allFiles) {
     const norm = file.path.replace(/[\\/._-]/g, ' ').toLowerCase()
@@ -195,20 +234,24 @@ function suggestKeywordOnly(
   if (expand && scores.size > 0) {
     const seedIds = Array.from(scores.keys())
 
-    const outgoing = db.query<{ id: number; path: string }, string[]>(
-      `SELECT DISTINCT f.id, f.path
+    const outgoing = db
+      .query<{ id: number; path: string }, string[]>(
+        `SELECT DISTINCT f.id, f.path
        FROM code_edges e
        JOIN files f ON f.id = e.to_file_id
        WHERE e.from_file_id IN (${placeholders(seedIds.length)})
-         AND e.to_file_id IS NOT NULL`
-    ).all(...seedIds.map(String))
+         AND e.to_file_id IS NOT NULL`,
+      )
+      .all(...seedIds.map(String))
 
-    const incoming = db.query<{ id: number; path: string }, string[]>(
-      `SELECT DISTINCT f.id, f.path
+    const incoming = db
+      .query<{ id: number; path: string }, string[]>(
+        `SELECT DISTINCT f.id, f.path
        FROM code_edges e
        JOIN files f ON f.id = e.from_file_id
-       WHERE e.to_file_id IN (${placeholders(seedIds.length)})`
-    ).all(...seedIds.map(String))
+       WHERE e.to_file_id IN (${placeholders(seedIds.length)})`,
+      )
+      .all(...seedIds.map(String))
 
     for (const neighbor of [...outgoing, ...incoming]) {
       if (!scores.has(neighbor.id)) {
@@ -232,30 +275,42 @@ function suggestKeywordOnly(
  * minimum combined score (EMBED_WEIGHT × 0 + KEYWORD_WEIGHT × 0 + hop bonus).
  */
 function expandNeighbors(
-  scores: Map<number, { path: string; score: number; embedScore: number; reason: 'direct' | 'embedding' }>,
+  scores: Map<
+    number,
+    { path: string; score: number; embedScore: number; reason: 'direct' | 'embedding' }
+  >,
   _projectId: string,
 ): void {
   const seedIds = Array.from(scores.keys())
-  const HOP_BONUS = EMBED_THRESHOLD / 2  // small boost, below standalone EMBED_THRESHOLD
+  const HOP_BONUS = EMBED_THRESHOLD / 2 // small boost, below standalone EMBED_THRESHOLD
 
-  const outgoing = db.query<{ id: number; path: string }, string[]>(
-    `SELECT DISTINCT f.id, f.path
+  const outgoing = db
+    .query<{ id: number; path: string }, string[]>(
+      `SELECT DISTINCT f.id, f.path
      FROM code_edges e
      JOIN files f ON f.id = e.to_file_id
      WHERE e.from_file_id IN (${placeholders(seedIds.length)})
-       AND e.to_file_id IS NOT NULL`
-  ).all(...seedIds.map(String))
+       AND e.to_file_id IS NOT NULL`,
+    )
+    .all(...seedIds.map(String))
 
-  const incoming = db.query<{ id: number; path: string }, string[]>(
-    `SELECT DISTINCT f.id, f.path
+  const incoming = db
+    .query<{ id: number; path: string }, string[]>(
+      `SELECT DISTINCT f.id, f.path
      FROM code_edges e
      JOIN files f ON f.id = e.from_file_id
-     WHERE e.to_file_id IN (${placeholders(seedIds.length)})`
-  ).all(...seedIds.map(String))
+     WHERE e.to_file_id IN (${placeholders(seedIds.length)})`,
+    )
+    .all(...seedIds.map(String))
 
   for (const nb of [...outgoing, ...incoming]) {
     if (!scores.has(nb.id)) {
-      scores.set(nb.id, { path: nb.path, score: HOP_BONUS, embedScore: 0, reason: 'neighbor' as 'direct' })
+      scores.set(nb.id, {
+        path: nb.path,
+        score: HOP_BONUS,
+        embedScore: 0,
+        reason: 'neighbor' as 'direct',
+      })
     }
     // Already-scored seeds: don't modify — embedding score already captures relevance
   }
@@ -267,7 +322,7 @@ function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter(t => t.length >= 3 && !STOP_WORDS.has(t))
+    .filter((t) => t.length >= 3 && !STOP_WORDS.has(t))
     .filter((t, i, arr) => arr.indexOf(t) === i)
 }
 

@@ -10,7 +10,7 @@
  * dos fuentes de verdad mientras `app.js` siga siendo dueño de los fetch.
  */
 import { useState } from 'react'
-import { useAppVersion, appState } from '../../lib/app-state.ts'
+import { appState, useAppVersion } from '../../lib/app-state.ts'
 import { useT } from '../../lib/i18n.ts'
 import { Icon, RawIcon } from '../../lib/icons.tsx'
 import { screenApi } from './screen-api.ts'
@@ -60,9 +60,12 @@ export function SkillsScreen() {
   const copy = async (skill: Skill) => {
     setBusy(skill.id)
     try {
-      if (api && await api.copySkill(skill.id)) {
+      if (api && (await api.copySkill(skill.id))) {
         setCopied(skill.id)
-        window.setTimeout(() => setCopied((current) => current === skill.id ? null : current), 2000)
+        window.setTimeout(
+          () => setCopied((current) => (current === skill.id ? null : current)),
+          2000,
+        )
       }
     } catch {
       // El vanilla ignora un fallo de exportación/copiado: no se muestra un estado nuevo.
@@ -75,7 +78,13 @@ export function SkillsScreen() {
     setBusy(skill.id)
     try {
       const result = await api?.buildSkill(skill.id)
-      setMessage(skill.id, result?.ok ? t('skills.build.ok', result.paths?.join(', ') ?? '') : (result?.error || t('skills.build.err')), result?.ok ? 'var(--success)' : 'var(--error)')
+      setMessage(
+        skill.id,
+        result?.ok
+          ? t('skills.build.ok', result.paths?.join(', ') ?? '')
+          : result?.error || t('skills.build.err'),
+        result?.ok ? 'var(--success)' : 'var(--error)',
+      )
     } catch {
       setMessage(skill.id, t('common.conn.error'), 'var(--error)')
     } finally {
@@ -137,52 +146,349 @@ export function SkillsScreen() {
 
   const head = (
     <div className="screen-head">
-      <div className="lead"><h1>{t('skills.title')}</h1><p>{t('skills.subtitle')}</p></div>
+      <div className="lead">
+        <h1>{t('skills.title')}</h1>
+        <p>{t('skills.subtitle')}</p>
+      </div>
       <div className="tools">
-        <button className="btn" onClick={() => api?.fetchAll()}><Icon name="refresh" /> {t('btn.refresh')}</button>
-        <button className="btn primary" onClick={() => api?.openNewSkill()}><Icon name="plus" /> {t('skills.btn.new')}</button>
-        <button className="btn" onClick={() => api?.openImportSkill()}><Icon name="inbox" /> {t('skills.btn.import')}</button>
-        <button className="btn" disabled={busy === 'discover'} onClick={async () => { setBusy('discover'); await api?.fetchRegistrySkills(); setBusy(null) }}>
-          <Icon name={busy === 'discover' ? 'refresh' : 'search'} /> {busy === 'discover' ? t('common.loading') : t('skills.btn.discover')}
+        <button className="btn" onClick={() => api?.fetchAll()}>
+          <Icon name="refresh" /> {t('btn.refresh')}
+        </button>
+        <button className="btn primary" onClick={() => api?.openNewSkill()}>
+          <Icon name="plus" /> {t('skills.btn.new')}
+        </button>
+        <button className="btn" onClick={() => api?.openImportSkill()}>
+          <Icon name="inbox" /> {t('skills.btn.import')}
+        </button>
+        <button
+          className="btn"
+          disabled={busy === 'discover'}
+          onClick={async () => {
+            setBusy('discover')
+            await api?.fetchRegistrySkills()
+            setBusy(null)
+          }}
+        >
+          <Icon name={busy === 'discover' ? 'refresh' : 'search'} />{' '}
+          {busy === 'discover' ? t('common.loading') : t('skills.btn.discover')}
         </button>
       </div>
     </div>
   )
 
-  if (status === 'loading') return <div className="screen">{head}<Placeholder spinner title={t('skills.loading')} /></div>
-  if (status === 'error') return <div className="screen">{head}<Placeholder error icon="warn" title={t('skills.err.title')} body={t('skills.err.body')} /></div>
-  if (skills.length === 0) return <div className="screen">{head}<Placeholder icon="flask" title={t('skills.empty.title')} body={t('skills.empty.body')} /></div>
+  if (status === 'loading')
+    return (
+      <div className="screen">
+        {head}
+        <Placeholder spinner title={t('skills.loading')} />
+      </div>
+    )
+  if (status === 'error')
+    return (
+      <div className="screen">
+        {head}
+        <Placeholder error icon="warn" title={t('skills.err.title')} body={t('skills.err.body')} />
+      </div>
+    )
+  if (skills.length === 0)
+    return (
+      <div className="screen">
+        {head}
+        <Placeholder icon="flask" title={t('skills.empty.title')} body={t('skills.empty.body')} />
+      </div>
+    )
 
   return (
     <div className="screen">
       {head}
-      <div className="skills-grid">{skills.map((skill) => <SkillCard key={skill.id} skill={skill} confirming={confirming === skill.id} busy={busy === skill.id} copied={copied === skill.id} message={messages[skill.id]} onDetail={() => api?.openSkillDetail(skill)} onEdit={() => api?.openEditSkill(skill)} onExport={() => api?.exportSkill(skill.id)} onCopy={() => void copy(skill)} onBuild={() => void build(skill)} onDelete={() => setConfirming(skill.id)} onCancelDelete={() => setConfirming(null)} onConfirmDelete={() => void remove(skill)} />)}</div>
-      {proSkills.length > 0 && <section className="skills-pro-section"><div className="screen-head" style={{ marginTop: '24px' }}><div className="lead"><h2>{t('skills.pro.title')}</h2><p>{t('skills.pro.subtitle')}</p></div></div><div className="skills-grid">{proSkills.map((skill) => <CatalogCard key={skill.id} skill={skill} kind="pro" message={messages[`pro-${skill.id}`]} onImport={() => void importPro(skill)} busy={busy === skill.id} />)}</div></section>}
-      {registrySkills.length > 0 && <section className="skills-registry-section"><div className="screen-head" style={{ marginTop: '24px' }}><div className="lead"><h2>{t('skills.registry.title')}</h2><p>{t('skills.registry.subtitle')}</p></div><button className="btn ghost sm" onClick={() => api?.fetchRegistrySkills()}><Icon name="refresh" /></button></div><div className="skills-grid">{registrySkills.map((skill) => <CatalogCard key={skill.id} skill={skill} kind="registry" message={messages[`reg-${skill.id}`]} onImport={() => void importRegistry(skill)} busy={busy === skill.id} />)}</div></section>}
+      <div className="skills-grid">
+        {skills.map((skill) => (
+          <SkillCard
+            key={skill.id}
+            skill={skill}
+            confirming={confirming === skill.id}
+            busy={busy === skill.id}
+            copied={copied === skill.id}
+            message={messages[skill.id]}
+            onDetail={() => api?.openSkillDetail(skill)}
+            onEdit={() => api?.openEditSkill(skill)}
+            onExport={() => api?.exportSkill(skill.id)}
+            onCopy={() => void copy(skill)}
+            onBuild={() => void build(skill)}
+            onDelete={() => setConfirming(skill.id)}
+            onCancelDelete={() => setConfirming(null)}
+            onConfirmDelete={() => void remove(skill)}
+          />
+        ))}
+      </div>
+      {proSkills.length > 0 && (
+        <section className="skills-pro-section">
+          <div className="screen-head" style={{ marginTop: '24px' }}>
+            <div className="lead">
+              <h2>{t('skills.pro.title')}</h2>
+              <p>{t('skills.pro.subtitle')}</p>
+            </div>
+          </div>
+          <div className="skills-grid">
+            {proSkills.map((skill) => (
+              <CatalogCard
+                key={skill.id}
+                skill={skill}
+                kind="pro"
+                message={messages[`pro-${skill.id}`]}
+                onImport={() => void importPro(skill)}
+                busy={busy === skill.id}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+      {registrySkills.length > 0 && (
+        <section className="skills-registry-section">
+          <div className="screen-head" style={{ marginTop: '24px' }}>
+            <div className="lead">
+              <h2>{t('skills.registry.title')}</h2>
+              <p>{t('skills.registry.subtitle')}</p>
+            </div>
+            <button className="btn ghost sm" onClick={() => api?.fetchRegistrySkills()}>
+              <Icon name="refresh" />
+            </button>
+          </div>
+          <div className="skills-grid">
+            {registrySkills.map((skill) => (
+              <CatalogCard
+                key={skill.id}
+                skill={skill}
+                kind="registry"
+                message={messages[`reg-${skill.id}`]}
+                onImport={() => void importRegistry(skill)}
+                busy={busy === skill.id}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
 
-function SkillCard({ skill, confirming, busy, copied, message, onDetail, onEdit, onExport, onCopy, onBuild, onDelete, onCancelDelete, onConfirmDelete }: { skill: Skill; confirming: boolean; busy: boolean; copied: boolean; message?: SkillMessage; onDetail: () => void; onEdit: () => void; onExport: () => void; onCopy: () => void; onBuild: () => void; onDelete: () => void; onCancelDelete: () => void; onConfirmDelete: () => void }) {
+function SkillCard({
+  skill,
+  confirming,
+  busy,
+  copied,
+  message,
+  onDetail,
+  onEdit,
+  onExport,
+  onCopy,
+  onBuild,
+  onDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: {
+  skill: Skill
+  confirming: boolean
+  busy: boolean
+  copied: boolean
+  message?: SkillMessage
+  onDetail: () => void
+  onEdit: () => void
+  onExport: () => void
+  onCopy: () => void
+  onBuild: () => void
+  onDelete: () => void
+  onCancelDelete: () => void
+  onConfirmDelete: () => void
+}) {
   const t = useT()
-  return <div className="skill-card" data-skill={skill.id}>
-    <div className="skill-card-main" data-skill-detail={skill.id} onClick={onDetail}><div className="skill-card-name">{skill.name}</div><div className="skill-card-desc">{skill.description}</div><div className="skill-card-targets">{(skill.targets ?? []).map((target) => <span className="badge blue square" key={target}>{target}</span>)}</div></div>
-    {!confirming && <div className="skill-card-actions"><button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); onEdit() }}><Icon name="settings" /> {t('skills.btn.edit')}</button><button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); onExport() }}><Icon name="inbox" /> {t('skills.btn.export')}</button><button className="btn ghost sm" disabled={busy} onClick={(e) => { e.stopPropagation(); onCopy() }}><Icon name={copied ? 'check' : 'copy'} /> {copied ? t('skills.btn.copied') : t('skills.btn.copy')}</button><button className="btn ghost sm" disabled={busy} onClick={(e) => { e.stopPropagation(); onBuild() }}><Icon name="play" /> {t('skills.btn.build')}</button><button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); onDelete() }}><Icon name="trash" /> {t('skills.btn.delete')}</button></div>}
-    {confirming && <div className="skill-card-confirm"><span className="muted fs-2" style={{ flex: 1 }}>{t('skills.delete.confirm', skill.name)}</span><button className="btn danger sm" disabled={busy} onClick={(e) => { e.stopPropagation(); onConfirmDelete() }}>{t('skills.delete.btn')}</button><button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); onCancelDelete() }}>{t('btn.cancel')}</button></div>}
-    {message && <div className="skill-card-msg" style={{ color: message.color }}>{message.text}</div>}
-  </div>
+  return (
+    <div className="skill-card" data-skill={skill.id}>
+      <div className="skill-card-main" data-skill-detail={skill.id} onClick={onDetail}>
+        <div className="skill-card-name">{skill.name}</div>
+        <div className="skill-card-desc">{skill.description}</div>
+        <div className="skill-card-targets">
+          {(skill.targets ?? []).map((target) => (
+            <span className="badge blue square" key={target}>
+              {target}
+            </span>
+          ))}
+        </div>
+      </div>
+      {!confirming && (
+        <div className="skill-card-actions">
+          <button
+            className="btn ghost sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+          >
+            <Icon name="settings" /> {t('skills.btn.edit')}
+          </button>
+          <button
+            className="btn ghost sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onExport()
+            }}
+          >
+            <Icon name="inbox" /> {t('skills.btn.export')}
+          </button>
+          <button
+            className="btn ghost sm"
+            disabled={busy}
+            onClick={(e) => {
+              e.stopPropagation()
+              onCopy()
+            }}
+          >
+            <Icon name={copied ? 'check' : 'copy'} />{' '}
+            {copied ? t('skills.btn.copied') : t('skills.btn.copy')}
+          </button>
+          <button
+            className="btn ghost sm"
+            disabled={busy}
+            onClick={(e) => {
+              e.stopPropagation()
+              onBuild()
+            }}
+          >
+            <Icon name="play" /> {t('skills.btn.build')}
+          </button>
+          <button
+            className="btn ghost sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+          >
+            <Icon name="trash" /> {t('skills.btn.delete')}
+          </button>
+        </div>
+      )}
+      {confirming && (
+        <div className="skill-card-confirm">
+          <span className="muted fs-2" style={{ flex: 1 }}>
+            {t('skills.delete.confirm', skill.name)}
+          </span>
+          <button
+            className="btn danger sm"
+            disabled={busy}
+            onClick={(e) => {
+              e.stopPropagation()
+              onConfirmDelete()
+            }}
+          >
+            {t('skills.delete.btn')}
+          </button>
+          <button
+            className="btn ghost sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onCancelDelete()
+            }}
+          >
+            {t('btn.cancel')}
+          </button>
+        </div>
+      )}
+      {message && (
+        <div className="skill-card-msg" style={{ color: message.color }}>
+          {message.text}
+        </div>
+      )}
+    </div>
+  )
 }
 
-function CatalogCard({ skill, kind, message, onImport, busy }: { skill: Skill; kind: 'pro' | 'registry'; message?: SkillMessage; onImport: () => void; busy: boolean }) {
+function CatalogCard({
+  skill,
+  kind,
+  message,
+  onImport,
+  busy,
+}: {
+  skill: Skill
+  kind: 'pro' | 'registry'
+  message?: SkillMessage
+  onImport: () => void
+  busy: boolean
+}) {
   const t = useT()
   const imported = kind === 'pro' && skill.imported
-  const dataAttribute = kind === 'pro' ? { 'data-pro-skill': skill.id } : { 'data-reg-skill': skill.id }
-  return <div className="skill-card" {...dataAttribute}><div className="skill-card-main"><div className="skill-card-name">{skill.name} <span className="badge gray square">{kind}</span></div><div className="skill-card-desc">{kind === 'registry' ? (skill.description || skill.id) : skill.description}</div><div className="skill-card-targets">{kind === 'registry' ? <span className="badge blue square">{skill.source}</span> : (skill.targets ?? []).map((target) => <span className="badge blue square" key={target}>{target}</span>)}</div></div><div className="skill-card-actions">{imported ? <button className="btn ghost sm" disabled><Icon name="check" /> {t('skills.pro.imported')}</button> : <button className="btn primary sm" disabled={busy} onClick={onImport}><Icon name="inbox" /> {kind === 'pro' ? t('skills.pro.btn.import') : t('skills.registry.btn.import')}</button>}</div>{message && <div className="skill-card-msg" style={{ color: message.color }}>{message.text}</div>}</div>
+  const dataAttribute =
+    kind === 'pro' ? { 'data-pro-skill': skill.id } : { 'data-reg-skill': skill.id }
+  return (
+    <div className="skill-card" {...dataAttribute}>
+      <div className="skill-card-main">
+        <div className="skill-card-name">
+          {skill.name} <span className="badge gray square">{kind}</span>
+        </div>
+        <div className="skill-card-desc">
+          {kind === 'registry' ? skill.description || skill.id : skill.description}
+        </div>
+        <div className="skill-card-targets">
+          {kind === 'registry' ? (
+            <span className="badge blue square">{skill.source}</span>
+          ) : (
+            (skill.targets ?? []).map((target) => (
+              <span className="badge blue square" key={target}>
+                {target}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+      <div className="skill-card-actions">
+        {imported ? (
+          <button className="btn ghost sm" disabled>
+            <Icon name="check" /> {t('skills.pro.imported')}
+          </button>
+        ) : (
+          <button className="btn primary sm" disabled={busy} onClick={onImport}>
+            <Icon name="inbox" />{' '}
+            {kind === 'pro' ? t('skills.pro.btn.import') : t('skills.registry.btn.import')}
+          </button>
+        )}
+      </div>
+      {message && (
+        <div className="skill-card-msg" style={{ color: message.color }}>
+          {message.text}
+        </div>
+      )}
+    </div>
+  )
 }
 
-function Placeholder({ title, body, icon, spinner, error }: { title: string; body?: string; icon?: string; spinner?: boolean; error?: boolean }) {
+function Placeholder({
+  title,
+  body,
+  icon,
+  spinner,
+  error,
+}: {
+  title: string
+  body?: string
+  icon?: string
+  spinner?: boolean
+  error?: boolean
+}) {
   const icons = screenApi()?.icons ?? {}
-  return <div className="card"><div className={`placeholder ${error ? 'err' : ''}`}>{spinner && <div className="spinner" />}{icon && <div className="pic"><RawIcon svg={icons[icon] ?? ''} /></div>}<h3>{title}</h3>{body && <p>{body}</p>}</div></div>
+  return (
+    <div className="card">
+      <div className={`placeholder ${error ? 'err' : ''}`}>
+        {spinner && <div className="spinner" />}
+        {icon && (
+          <div className="pic">
+            <RawIcon svg={icons[icon] ?? ''} />
+          </div>
+        )}
+        <h3>{title}</h3>
+        {body && <p>{body}</p>}
+      </div>
+    </div>
+  )
 }
 
 function forceRerender(): void {

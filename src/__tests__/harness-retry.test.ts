@@ -1,7 +1,7 @@
-import { describe, it, expect, afterEach, afterAll } from 'bun:test'
+import { afterAll, afterEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { db } from '../db/sqlite.ts'
 
 // F1.3 (b): end-to-end wiring — el harness pasa el `retry_reason` de la tarea
@@ -39,11 +39,14 @@ function mockFetchReturningEmpty() {
   globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
     captured = JSON.parse(String(init?.body)) as CapturedBody
     // text vacío → parseLLMResponse va a tirar error, pero el body ya está capturado
-    return new Response(JSON.stringify({
-      choices: [{ message: { content: '' } }],
-      usage: { prompt_tokens: 1, completion_tokens: 0 },
-      model: captured.model,
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: '' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 0 },
+        model: captured.model,
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    )
   }) as unknown as typeof fetch
   return () => captured
 }
@@ -81,13 +84,15 @@ describe('runTask — F1.3 retry path forwards previous failure to provider', ()
       expect(body).not.toBeNull()
       // openrouter provider arma messages = [system, ...opts.messages] →
       // el userContent de buildPrompt queda en messages[1]
-      const userMessage = body!.messages.find(m => m.role === 'user')?.content ?? ''
+      const userMessage = body!.messages.find((m) => m.role === 'user')?.content ?? ''
       expect(userMessage).toContain('## PREVIOUS ATTEMPT FAILED')
       expect(userMessage).toContain('previous run failed: missing output out.txt')
-      expect(userMessage).toContain('Fix the cause described above. Do not repeat the same mistake.')
+      expect(userMessage).toContain(
+        'Fix the cause described above. Do not repeat the same mistake.',
+      )
 
       // El bloque NO debe filtrarse al system
-      const systemMessage = body!.messages.find(m => m.role === 'system')?.content ?? ''
+      const systemMessage = body!.messages.find((m) => m.role === 'system')?.content ?? ''
       expect(systemMessage).not.toContain('PREVIOUS ATTEMPT FAILED')
 
       // el resultado del run puede ser failed (parse error sobre text vacío) —
@@ -127,7 +132,7 @@ describe('runTask — F1.3 retry path forwards previous failure to provider', ()
 
       const body = getBody()
       expect(body).not.toBeNull()
-      const userMessage = body!.messages.find(m => m.role === 'user')?.content ?? ''
+      const userMessage = body!.messages.find((m) => m.role === 'user')?.content ?? ''
       expect(userMessage).not.toContain('PREVIOUS ATTEMPT FAILED')
     } finally {
       rmSync(dir, { recursive: true, force: true })

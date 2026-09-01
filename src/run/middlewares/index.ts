@@ -1,5 +1,5 @@
 export { contextInject } from './context-inject.ts'
-export { skillRoute } from './skill-route.ts'
-export { roadmapContext } from './roadmap-context.ts'
-export { memoryFetch } from './memory-fetch.ts'
 export { instinctApply } from './instinct-apply.ts'
+export { memoryFetch } from './memory-fetch.ts'
+export { roadmapContext } from './roadmap-context.ts'
+export { skillRoute } from './skill-route.ts'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 // CC.1-D1 — este archivo prueba el WIRING (agente → transporte correcto),
 // nunca el binario real (eso ya lo cubre el gate en vivo de CC.5). Sin esto,
@@ -12,7 +12,7 @@ import { tmpdir } from 'os'
 // el host, igual que ya pasa naturalmente en CI.
 const NO_CLI_PATH = (process.env.PATH ?? '')
   .split(':')
-  .filter(dir => !dir.includes('.local/bin') && !dir.includes('.opencode/bin'))
+  .filter((dir) => !dir.includes('.local/bin') && !dir.includes('.opencode/bin'))
   .join(':')
 
 async function runIsolated(body: string): Promise<Record<string, unknown>> {
@@ -20,7 +20,12 @@ async function runIsolated(body: string): Promise<Record<string, unknown>> {
   try {
     const proc = Bun.spawn(['bun', '-e', body], {
       cwd: process.cwd(),
-      env: { ...process.env, ORCHESTOS_HOME: home, OPENROUTER_API_KEY: 'test-key', PATH: NO_CLI_PATH },
+      env: {
+        ...process.env,
+        ORCHESTOS_HOME: home,
+        OPENROUTER_API_KEY: 'test-key',
+        PATH: NO_CLI_PATH,
+      },
       stdout: 'pipe',
       stderr: 'pipe',
     })
@@ -99,16 +104,28 @@ describe('CC.2 — chat sessions backend', () => {
     `)
 
     expect(result.createStatus).toBe(201)
-    expect(result.created).toMatchObject({ projectId: 'p1', agent: 'claude', mode: 'chat', title: 'Session one' })
+    expect(result.created).toMatchObject({
+      projectId: 'p1',
+      agent: 'claude',
+      mode: 'chat',
+      title: 'Session one',
+    })
     expect(result.routedListStatus).toBe(200)
-    expect(result.routedList).toEqual([expect.objectContaining({ id: expect.any(String), agent: 'claude' })])
+    expect(result.routedList).toEqual([
+      expect.objectContaining({ id: expect.any(String), agent: 'claude' }),
+    ])
     expect(result.immutableStatus).toBe(400)
     expect(result.updatedStatus).toBe(200)
     expect(result.updated).toMatchObject({ agent: 'claude', mode: 'code', title: 'Renamed' })
     expect(result.messagesStatus).toBe(200)
     expect(result.messages).toEqual([
       expect.objectContaining({ role: 'user', content: 'hola', ocrUsed: ['image.png'] }),
-      expect.objectContaining({ role: 'assistant', content: 'respuesta', model: 'test-model', ocrUsed: ['image.png'] }),
+      expect.objectContaining({
+        role: 'assistant',
+        content: 'respuesta',
+        model: 'test-model',
+        ocrUsed: ['image.png'],
+      }),
     ])
     expect(result.invalidProjectStatus).toBe(404)
     // CC.1-D1 — codex ya no es un 422 fijo: intenta el transporte real
@@ -178,10 +195,16 @@ describe('CC.2 — chat sessions backend', () => {
     `)
 
     expect(result.status).toBe(200)
-    expect(result.payload).toMatchObject({ autoTask: null, taskSuggestion: { reason: 'Pide modificar código' } })
+    expect(result.payload).toMatchObject({
+      autoTask: null,
+      taskSuggestion: { reason: 'Pide modificar código' },
+    })
     expect(result.messages).toEqual([
       expect.objectContaining({ role: 'user', content: 'modifica un archivo' }),
-      expect.objectContaining({ role: 'assistant', content: 'No inicié cambios porque esta sesión está en modo Chat.' }),
+      expect.objectContaining({
+        role: 'assistant',
+        content: 'No inicié cambios porque esta sesión está en modo Chat.',
+      }),
     ])
     expect(result.tasksFileCreated).toBe(false)
     expect(result.injectedHistoryForwarded).toBe(false)

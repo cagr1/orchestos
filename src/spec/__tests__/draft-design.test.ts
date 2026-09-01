@@ -5,10 +5,10 @@
  * que qa-core.test.ts/harness-adversarial-qa.test.ts — un solo call capturado,
  * sin red real.
  */
-import { describe, it, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { draftSpec } from '../draft.ts'
 
 const originalFetch = globalThis.fetch
@@ -24,16 +24,36 @@ function tmpDir(): string {
   return mkdtempSync(join(tmpdir(), 'orchestos-draft-design-'))
 }
 
-function installMockFetch(): { calls: Array<{ model: string; messages: Array<{ role: string; content: string }>; system?: string }> } {
-  const calls: Array<{ model: string; messages: Array<{ role: string; content: string }>; system?: string }> = []
+function installMockFetch(): {
+  calls: Array<{
+    model: string
+    messages: Array<{ role: string; content: string }>
+    system?: string
+  }>
+} {
+  const calls: Array<{
+    model: string
+    messages: Array<{ role: string; content: string }>
+    system?: string
+  }> = []
   globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body))
     calls.push(body)
-    return new Response(JSON.stringify({
-      choices: [{ message: { content: '## Contexto\nFoo\n\n## Descripción\nBar\n\n## Criterios de aceptación\n- [ ] WHEN X THEN Y\n\n## Notas\nNone' } }],
-      usage: { prompt_tokens: 1, completion_tokens: 1 },
-      model: 'mock/model',
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    return new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              content:
+                '## Contexto\nFoo\n\n## Descripción\nBar\n\n## Criterios de aceptación\n- [ ] WHEN X THEN Y\n\n## Notas\nNone',
+            },
+          },
+        ],
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+        model: 'mock/model',
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    )
   }) as unknown as typeof fetch
   return { calls }
 }

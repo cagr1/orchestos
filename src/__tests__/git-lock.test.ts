@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'bun:test'
-import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { describe, expect, it } from 'bun:test'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { withGitLock } from '../run/git-lock.ts'
 
 // Mes 22/E.5 — el lock existe para serializar procesos SEPARADOS (dashboard
@@ -31,7 +31,9 @@ describe('git-lock', () => {
     const resultsFile = join(dir, 'events.jsonl')
     const workerScript = join(dir, 'worker.ts')
     try {
-      writeFileSync(workerScript, `
+      writeFileSync(
+        workerScript,
+        `
         import { withGitLock } from ${JSON.stringify(join(import.meta.dir, '..', 'run', 'git-lock.ts'))}
         import { appendFileSync } from 'fs'
         const label = process.argv[2]
@@ -42,27 +44,34 @@ describe('git-lock', () => {
           Bun.sleepSync(150)
           appendFileSync(resultsFile, JSON.stringify({ label, kind: 'exit', t: Date.now() }) + '\\n')
         })
-      `)
-
-      const spawnWorker = (label: string) => Bun.spawn(
-        [process.execPath, 'run', workerScript, label, resultsFile, dir],
-        { stdout: 'pipe', stderr: 'pipe' },
+      `,
       )
+
+      const spawnWorker = (label: string) =>
+        Bun.spawn([process.execPath, 'run', workerScript, label, resultsFile, dir], {
+          stdout: 'pipe',
+          stderr: 'pipe',
+        })
 
       const procA = spawnWorker('A')
       const procB = spawnWorker('B')
       await Promise.all([procA.exited, procB.exited])
 
       const lines = require('fs').readFileSync(resultsFile, 'utf-8').trim().split('\n')
-      const events = lines.map((l: string) => JSON.parse(l)) as { label: string; kind: string; t: number }[]
+      const events = lines.map((l: string) => JSON.parse(l)) as {
+        label: string
+        kind: string
+        t: number
+      }[]
       expect(events.length).toBe(4) // A:enter, A:exit, B:enter, B:exit (en algún orden)
 
       const interval = (label: string) => {
-        const enter = events.find(e => e.label === label && e.kind === 'enter')!.t
-        const exit = events.find(e => e.label === label && e.kind === 'exit')!.t
+        const enter = events.find((e) => e.label === label && e.kind === 'enter')!.t
+        const exit = events.find((e) => e.label === label && e.kind === 'exit')!.t
         return { enter, exit }
       }
-      const a = interval('A'), b = interval('B')
+      const a = interval('A'),
+        b = interval('B')
       // Sin mutex, ambos entrarían casi al mismo tiempo (spawneados juntos) y
       // sus ventanas [enter,exit] de 150ms se solaparían. Con el lock, uno
       // termina completamente antes de que el otro empiece.

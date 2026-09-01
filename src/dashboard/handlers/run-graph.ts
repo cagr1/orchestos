@@ -17,17 +17,18 @@
  * updateTaskStatus() synchronously per task as it executes, so polling tasks.yaml
  * already gives accurate per-task state without needing a separate progress channel.
  */
-import { join } from 'path'
+
 import { existsSync } from 'fs'
-import { runGraph as realRunGraph } from '../../run/graph-runner.ts'
-import type { GraphRunResult, GraphRunOpts } from '../../run/graph-runner.ts'
-import { tasksExist as realTasksExist } from '../../tasks/loader.ts'
+import { join } from 'path'
+import { loadOrcheConfig as realLoadOrcheConfig } from '../../config/load.ts'
 import { loadContext as realLoadContext } from '../../context/load.ts'
 import { getProject as realGetProject } from '../../db/projects.ts'
-import { loadOrcheConfig as realLoadOrcheConfig } from '../../config/load.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
-import { loadTaskRows as realLoadTaskRows } from './tasks.ts'
+import type { GraphRunOpts, GraphRunResult } from '../../run/graph-runner.ts'
+import { runGraph as realRunGraph } from '../../run/graph-runner.ts'
+import { tasksExist as realTasksExist } from '../../tasks/loader.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
 import type { GraphRunStatusResponse } from '../types.ts'
+import { loadTaskRows as realLoadTaskRows } from './tasks.ts'
 
 type RunState =
   | { phase: 'idle' }
@@ -70,7 +71,11 @@ async function handleApiRunGraph(req: Request, root: string): Promise<Response> 
   }
 
   let body: { maxCost?: unknown; maxMinutes?: unknown } = {}
-  try { body = await req.json() as { maxCost?: unknown; maxMinutes?: unknown } } catch { /* no body — defaults apply */ }
+  try {
+    body = (await req.json()) as { maxCost?: unknown; maxMinutes?: unknown }
+  } catch {
+    /* no body — defaults apply */
+  }
   const maxCost = typeof body.maxCost === 'number' ? body.maxCost : undefined
   const maxMinutes = typeof body.maxMinutes === 'number' ? body.maxMinutes : undefined
 
@@ -90,11 +95,18 @@ async function handleApiRunGraph(req: Request, root: string): Promise<Response> 
     orcheConfigFound,
     maxCost,
     maxMinutes,
-  }).then(result => {
-    states.set(root, { phase: 'done', startedAt, finishedAt: Date.now(), result })
-  }).catch(e => {
-    states.set(root, { phase: 'error', startedAt, finishedAt: Date.now(), error: e instanceof Error ? e.message : String(e) })
   })
+    .then((result) => {
+      states.set(root, { phase: 'done', startedAt, finishedAt: Date.now(), result })
+    })
+    .catch((e) => {
+      states.set(root, {
+        phase: 'error',
+        startedAt,
+        finishedAt: Date.now(),
+        error: e instanceof Error ? e.message : String(e),
+      })
+    })
 
   return jsonResponse({ ok: true })
 }
@@ -106,10 +118,22 @@ function handleApiRunGraphStatus(root: string): Response {
     state.phase === 'idle'
       ? { phase: 'idle', tasks }
       : state.phase === 'running'
-      ? { phase: 'running', tasks, startedAt: state.startedAt }
-      : state.phase === 'done'
-      ? { phase: 'done', tasks, startedAt: state.startedAt, finishedAt: state.finishedAt, result: state.result }
-      : { phase: 'error', tasks, startedAt: state.startedAt, finishedAt: state.finishedAt, error: state.error }
+        ? { phase: 'running', tasks, startedAt: state.startedAt }
+        : state.phase === 'done'
+          ? {
+              phase: 'done',
+              tasks,
+              startedAt: state.startedAt,
+              finishedAt: state.finishedAt,
+              result: state.result,
+            }
+          : {
+              phase: 'error',
+              tasks,
+              startedAt: state.startedAt,
+              finishedAt: state.finishedAt,
+              error: state.error,
+            }
   return jsonResponse(body)
 }
 
@@ -145,7 +169,11 @@ function __resetDepsForTests(): void {
 }
 
 export {
-  handleApiRunGraph, handleApiRunGraphStatus, resetRunGraphState,
-  __setRunGraphForTests, __resetRunGraphForTests,
-  __setDepsForTests, __resetDepsForTests,
+  __resetDepsForTests,
+  __resetRunGraphForTests,
+  __setDepsForTests,
+  __setRunGraphForTests,
+  handleApiRunGraph,
+  handleApiRunGraphStatus,
+  resetRunGraphState,
 }

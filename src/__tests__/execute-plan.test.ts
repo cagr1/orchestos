@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
-import { mkdtempSync, writeFileSync, rmSync } from 'fs'
-import { join } from 'path'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import type { SubagentResult, SubTask } from '../agents/sub-agent.ts'
 import { git } from '../run/sandbox.ts'
 import type { SchedulerOpts } from '../run/scheduler.ts'
@@ -127,14 +127,14 @@ describe('executePlan — cascade on failure', () => {
       },
     )
 
-    const a = result.sub_tasks.find(l => l.id === 'a')!
+    const a = result.sub_tasks.find((l) => l.id === 'a')!
     expect(a.status).toBe('completed')
 
-    const b = result.sub_tasks.find(l => l.id === 'b')!
+    const b = result.sub_tasks.find((l) => l.id === 'b')!
     expect(b.status).toBe('failed')
     expect(b.error).toBe('intentional failure')
 
-    const c = result.sub_tasks.find(l => l.id === 'c')!
+    const c = result.sub_tasks.find((l) => l.id === 'c')!
     expect(c.status).toBe('skipped')
     expect(c.error).toContain('dependency failed')
     expect(c.error).toContain('b')
@@ -152,9 +152,9 @@ describe('executePlan — cascade on failure', () => {
       },
     )
 
-    expect(result.sub_tasks.find(l => l.id === 'a')!.status).toBe('completed')
-    expect(result.sub_tasks.find(l => l.id === 'b')!.status).toBe('failed')
-    expect(result.sub_tasks.find(l => l.id === 'c')!.status).toBe('skipped')
+    expect(result.sub_tasks.find((l) => l.id === 'a')!.status).toBe('completed')
+    expect(result.sub_tasks.find((l) => l.id === 'b')!.status).toBe('failed')
+    expect(result.sub_tasks.find((l) => l.id === 'c')!.status).toBe('skipped')
   })
 })
 
@@ -174,9 +174,9 @@ describe('executePlan — timeout handling', () => {
       },
     )
 
-    expect(result.sub_tasks.find(l => l.id === 'a')!.status).toBe('completed')
-    expect(result.sub_tasks.find(l => l.id === 'b')!.status).toBe('timed_out')
-    expect(result.sub_tasks.find(l => l.id === 'c')!.status).toBe('skipped')
+    expect(result.sub_tasks.find((l) => l.id === 'a')!.status).toBe('completed')
+    expect(result.sub_tasks.find((l) => l.id === 'b')!.status).toBe('timed_out')
+    expect(result.sub_tasks.find((l) => l.id === 'c')!.status).toBe('skipped')
     expect(result.all_passed).toBe(false)
 
     timedOutTasks.clear()
@@ -189,32 +189,32 @@ describe('executePlan — timeout handling', () => {
 
 describe('executePlan — aggregation', () => {
   it('aggregates cost, tokens, and elapsed_ms correctly across completed sub-tasks', async () => {
-    const result = await executePlan(
-      [sub('a'), sub('b', ['a'])],
-      opts(),
-      async (st) => {
-        if (st.id === 'a') {
-          return completedResult('a', { usd_cost: 0.10, tokens: { input: 200, output: 100 }, elapsed_ms: 500 })
-        }
-        return completedResult('b', { usd_cost: 0.20, tokens: { input: 300, output: 150 }, elapsed_ms: 700 })
-      },
-    )
+    const result = await executePlan([sub('a'), sub('b', ['a'])], opts(), async (st) => {
+      if (st.id === 'a') {
+        return completedResult('a', {
+          usd_cost: 0.1,
+          tokens: { input: 200, output: 100 },
+          elapsed_ms: 500,
+        })
+      }
+      return completedResult('b', {
+        usd_cost: 0.2,
+        tokens: { input: 300, output: 150 },
+        elapsed_ms: 700,
+      })
+    })
 
-    expect(result.aggregated_cost).toBeCloseTo(0.30)
+    expect(result.aggregated_cost).toBeCloseTo(0.3)
     expect(result.aggregated_tokens.input).toBe(500)
     expect(result.aggregated_tokens.output).toBe(250)
     expect(result.aggregated_ms).toBe(1200)
   })
 
   it('aggregates only cost from failed tasks (skipped add zero)', async () => {
-    const result = await executePlan(
-      [sub('a'), sub('b', ['a'])],
-      opts(),
-      async (st) => {
-        if (st.id === 'a') return failedResult('a')
-        return completedResult(st.id)
-      },
-    )
+    const result = await executePlan([sub('a'), sub('b', ['a'])], opts(), async (st) => {
+      if (st.id === 'a') return failedResult('a')
+      return completedResult(st.id)
+    })
 
     expect(result.aggregated_cost).toBeCloseTo(0.01)
     expect(result.aggregated_ms).toBe(100)
@@ -227,35 +227,25 @@ describe('executePlan — aggregation', () => {
 
 describe('executePlan — all_passed', () => {
   it('is true when all sub-tasks complete successfully', async () => {
-    const result = await executePlan(
-      [sub('a'), sub('b', ['a'])],
-      opts(),
-      async (st) => completedResult(st.id),
+    const result = await executePlan([sub('a'), sub('b', ['a'])], opts(), async (st) =>
+      completedResult(st.id),
     )
 
     expect(result.all_passed).toBe(true)
   })
 
   it('is false when any sub-task fails', async () => {
-    const result = await executePlan(
-      [sub('a'), sub('b', ['a'])],
-      opts(),
-      async (st) => {
-        if (st.id === 'b') return failedResult('b')
-        return completedResult(st.id)
-      },
-    )
+    const result = await executePlan([sub('a'), sub('b', ['a'])], opts(), async (st) => {
+      if (st.id === 'b') return failedResult('b')
+      return completedResult(st.id)
+    })
 
     expect(result.all_passed).toBe(false)
   })
 
   it('is false when any sub-task times out', async () => {
     timedOutTasks.add('a')
-    const result = await executePlan(
-      [sub('a')],
-      opts(),
-      async (st) => completedResult(st.id),
-    )
+    const result = await executePlan([sub('a')], opts(), async (st) => completedResult(st.id))
 
     expect(result.all_passed).toBe(false)
     timedOutTasks.clear()

@@ -25,11 +25,11 @@ export function validateSpec(spec: Spec): { valid: boolean; errors: string[] } {
   // Collect all bullet items in the section
   const bullets = sectionBody
     .split('\n')
-    .map(l => l.trim())
-    .filter(l => l.startsWith('- ') || l.startsWith('* '))
-    .map(l => l.slice(2).trim())
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('- ') || l.startsWith('* '))
+    .map((l) => l.slice(2).trim())
     // strip GFM task list prefix: "[ ] " or "[x] "
-    .map(b => b.replace(/^\[[ xX]\]\s*/, '').trim())
+    .map((b) => b.replace(/^\[[ xX]\]\s*/, '').trim())
     .filter(Boolean)
 
   if (bullets.length === 0) {
@@ -38,7 +38,7 @@ export function validateSpec(spec: Spec): { valid: boolean; errors: string[] } {
   }
 
   // Check that there is at least one non-placeholder criterion
-  const realCriteria = bullets.filter(b => b !== '<criterio 1>' && b !== '<criterio 2>')
+  const realCriteria = bullets.filter((b) => b !== '<criterio 1>' && b !== '<criterio 2>')
   if (realCriteria.length === 0) {
     errors.push('Acceptance criteria only contain placeholders — replace them with real criteria')
     return { valid: false, errors }

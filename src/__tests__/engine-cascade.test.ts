@@ -1,5 +1,9 @@
-import { describe, it, expect, afterEach } from 'bun:test'
-import { resolveCascadeTier, cascadeTaskFields, resolveAgentSelection } from '../router/engine-cascade.ts'
+import { afterEach, describe, expect, it } from 'bun:test'
+import {
+  cascadeTaskFields,
+  resolveAgentSelection,
+  resolveCascadeTier,
+} from '../router/engine-cascade.ts'
 
 // G.1 (Bloque G, PLAN.md) — resolveCascadeTier() decide el tier (local → cli → api)
 // para las tareas de build auto-creadas desde el chat. Mismo patrón que
@@ -26,7 +30,12 @@ afterEach(() => {
 
 describe('resolveCascadeTier()', () => {
   it('Ollama con modelos detectados → tier local, sin importar si claude tambien esta', async () => {
-    mockFetch((async () => new Response(JSON.stringify({ models: [{ name: 'llama3' }] }), { status: 200 })) as unknown as typeof fetch)
+    mockFetch(
+      (async () =>
+        new Response(JSON.stringify({ models: [{ name: 'llama3' }] }), {
+          status: 200,
+        })) as unknown as typeof fetch,
+    )
     mockWhich('/usr/local/bin/claude')
 
     const res = await resolveCascadeTier()
@@ -37,7 +46,10 @@ describe('resolveCascadeTier()', () => {
   })
 
   it('Ollama responde ok pero sin modelos → no cuenta como local, sigue a claude', async () => {
-    mockFetch((async () => new Response(JSON.stringify({ models: [] }), { status: 200 })) as unknown as typeof fetch)
+    mockFetch(
+      (async () =>
+        new Response(JSON.stringify({ models: [] }), { status: 200 })) as unknown as typeof fetch,
+    )
     mockWhich('/usr/local/bin/claude')
 
     const res = await resolveCascadeTier()
@@ -55,7 +67,9 @@ describe('resolveCascadeTier()', () => {
   })
 
   it('Ollama no responde (fetch rechaza) → no cuenta como local, no propaga el error', async () => {
-    mockFetch((async () => { throw new Error('ECONNREFUSED') }) as unknown as typeof fetch)
+    mockFetch((async () => {
+      throw new Error('ECONNREFUSED')
+    }) as unknown as typeof fetch)
     mockWhich('/usr/local/bin/claude')
 
     const res = await resolveCascadeTier()
@@ -92,7 +106,11 @@ describe('resolveCascadeTier()', () => {
 // handleApiChat con globalThis.fetch (ver nota en chat-effort.test.ts).
 describe('cascadeTaskFields()', () => {
   it("tier 'cli' → fija executor_model y engine desde la resolución", () => {
-    const fields = cascadeTaskFields({ tier: 'cli', engine: 'external', executorModel: 'anthropic/claude-sonnet-5' })
+    const fields = cascadeTaskFields({
+      tier: 'cli',
+      engine: 'external',
+      executorModel: 'anthropic/claude-sonnet-5',
+    })
     expect(fields).toEqual({ executor_model: 'anthropic/claude-sonnet-5', engine: 'external' })
   })
 
@@ -129,7 +147,10 @@ describe('resolveAgentSelection()', () => {
   })
 
   it("preferredAgent 'codex' → fija executor_model + engine codex (G.4.2b: ExecutorEngine real)", () => {
-    expect(resolveAgentSelection('codex', apiCascade)).toEqual({ executor_model: 'openai/gpt-5.4', engine: 'codex' })
+    expect(resolveAgentSelection('codex', apiCascade)).toEqual({
+      executor_model: 'openai/gpt-5.4',
+      engine: 'codex',
+    })
   })
 
   it("preferredAgent 'api' → no fija nada, gana orchestos.config.yaml", () => {
@@ -137,8 +158,15 @@ describe('resolveAgentSelection()', () => {
   })
 
   it('preferredAgent undefined → cae a la cascada de bootstrap (mismo comportamiento que cascadeTaskFields)', () => {
-    const cliCascade = { tier: 'cli' as const, engine: 'external' as const, executorModel: 'anthropic/claude-sonnet-5' }
-    expect(resolveAgentSelection(undefined, cliCascade)).toEqual({ executor_model: 'anthropic/claude-sonnet-5', engine: 'external' })
+    const cliCascade = {
+      tier: 'cli' as const,
+      engine: 'external' as const,
+      executorModel: 'anthropic/claude-sonnet-5',
+    }
+    expect(resolveAgentSelection(undefined, cliCascade)).toEqual({
+      executor_model: 'anthropic/claude-sonnet-5',
+      engine: 'external',
+    })
     expect(resolveAgentSelection(undefined, apiCascade)).toEqual({})
   })
 })

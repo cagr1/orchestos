@@ -7,7 +7,7 @@ export function generateContextJson(profile: StackProfile): object {
     name: manifest.name,
     runtime: manifest.runtime,
     framework: manifest.framework,
-    languages: languages.map(l => ({ lang: l.lang, pct: l.pct })),
+    languages: languages.map((l) => ({ lang: l.lang, pct: l.pct })),
     conventions: {
       prettier: !!conventions.prettier,
       eslint: !!conventions.eslint,

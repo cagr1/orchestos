@@ -15,11 +15,11 @@
  *   - No tokens + no embedding → returns []
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
-import { db } from '../db/sqlite.ts'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { runMigrations } from '../db/migrate.ts'
-import { suggestContext } from '../graph/suggest.ts'
 import { insertRun, listRuns } from '../db/runs.ts'
+import { db } from '../db/sqlite.ts'
+import { suggestContext } from '../graph/suggest.ts'
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -46,11 +46,7 @@ afterEach(() => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function insertFile(
-  id: number,
-  path: string,
-  embedding: number[] | null = null,
-): void {
+function insertFile(id: number, path: string, embedding: number[] | null = null): void {
   db.run(
     `INSERT OR REPLACE INTO files (id, project_id, path, language, sha1, size_bytes, indexed_at, embedding)
      VALUES (?, ?, ?, 'ts', 'abc', 100, datetime('now'), ?)`,
@@ -83,8 +79,8 @@ describe('suggestContext — keyword-only (legacy)', () => {
     insertFile(1, 'src/billing/processor.ts')
     insertFile(2, 'src/auth/login.ts')
     const r = suggestContext(pid, 'billing processor')
-    expect(r.map(x => x.path)).toContain('src/billing/processor.ts')
-    expect(r.map(x => x.path)).not.toContain('src/auth/login.ts')
+    expect(r.map((x) => x.path)).toContain('src/billing/processor.ts')
+    expect(r.map((x) => x.path)).not.toContain('src/auth/login.ts')
   })
 
   it('result reason is direct for keyword matches', () => {
@@ -95,8 +91,8 @@ describe('suggestContext — keyword-only (legacy)', () => {
   })
 
   it('higher keyword match scores rank first', () => {
-    insertFile(1, 'src/billing/processor.ts')   // 2 tokens → score 6
-    insertFile(2, 'src/billing/service.ts')      // 1 token  → score 3
+    insertFile(1, 'src/billing/processor.ts') // 2 tokens → score 6
+    insertFile(2, 'src/billing/service.ts') // 1 token  → score 3
     const r = suggestContext(pid, 'billing processor')
     expect(r[0]!.path).toBe('src/billing/processor.ts')
   })
@@ -117,20 +113,20 @@ describe('suggestContext — embedding path', () => {
 
     const r = suggestContext(pid, 'xyz', { taskEmbedding: taskEmb })
     // file-1 should appear (embed > threshold), file-2 should not
-    expect(r.some(x => x.path === 'src/unrelated/foo.ts')).toBe(true)
-    expect(r.some(x => x.path === 'src/unrelated/bar.ts')).toBe(false)
+    expect(r.some((x) => x.path === 'src/unrelated/foo.ts')).toBe(true)
+    expect(r.some((x) => x.path === 'src/unrelated/bar.ts')).toBe(false)
   })
 
   it('reason is "embedding" for files found only via cosine', () => {
     const taskEmb = unitVec(0)
-    insertFile(1, 'src/zzzz/zzzz.ts', unitVec(0))  // no keyword match
+    insertFile(1, 'src/zzzz/zzzz.ts', unitVec(0)) // no keyword match
     const r = suggestContext(pid, 'xyz', { taskEmbedding: taskEmb })
     expect(r[0]!.reason).toBe('embedding')
   })
 
   it('reason is "direct" for files with keyword match (even if they also have embedding)', () => {
     const taskEmb = unitVec(0)
-    insertFile(1, 'src/billing/stripe.ts', unitVec(0))  // both keyword + embed match
+    insertFile(1, 'src/billing/stripe.ts', unitVec(0)) // both keyword + embed match
     const r = suggestContext(pid, 'billing stripe', { taskEmbedding: taskEmb })
     expect(r[0]!.reason).toBe('direct')
   })
@@ -145,10 +141,10 @@ describe('suggestContext — embedding path', () => {
 
   it('file with NULL embedding gets embed_score=0, can still rank via keyword', () => {
     const taskEmb = unitVec(0)
-    insertFile(1, 'src/billing/stripe.ts', null)  // no embedding stored
+    insertFile(1, 'src/billing/stripe.ts', null) // no embedding stored
     const r = suggestContext(pid, 'billing stripe', { taskEmbedding: taskEmb })
     // Should still be found via keyword (keyword_score > 0)
-    expect(r.some(x => x.path === 'src/billing/stripe.ts')).toBe(true)
+    expect(r.some((x) => x.path === 'src/billing/stripe.ts')).toBe(true)
     expect(r[0]!.embedScore).toBe(0)
   })
 
@@ -158,7 +154,7 @@ describe('suggestContext — embedding path', () => {
     const nearOrthogonal = [0.05, 0.99, 0.0, 0.0]
     insertFile(1, 'src/zzzzz/nope.ts', nearOrthogonal)
     const r = suggestContext(pid, 'xyz', { taskEmbedding: taskEmb })
-    expect(r.some(x => x.path === 'src/zzzzz/nope.ts')).toBe(false)
+    expect(r.some((x) => x.path === 'src/zzzzz/nope.ts')).toBe(false)
   })
 
   it('combined score = embed×0.6 + keyword×0.4 ranks file with both higher than keyword-only', () => {
@@ -169,11 +165,11 @@ describe('suggestContext — embedding path', () => {
     insertFile(2, 'src/payment/service.ts', null)
 
     const r = suggestContext(pid, 'payment stripe', { taskEmbedding: taskEmb })
-    const posA = r.findIndex(x => x.path === 'src/payment/stripe.ts')
-    const posB = r.findIndex(x => x.path === 'src/payment/service.ts')
+    const posA = r.findIndex((x) => x.path === 'src/payment/stripe.ts')
+    const posB = r.findIndex((x) => x.path === 'src/payment/service.ts')
     expect(posA).toBeGreaterThanOrEqual(0)
     expect(posB).toBeGreaterThanOrEqual(0)
-    expect(posA).toBeLessThan(posB)  // A ranks before B
+    expect(posA).toBeLessThan(posB) // A ranks before B
   })
 
   it('high-embed file without keyword ranks above low-embed file with keyword', () => {
@@ -186,8 +182,8 @@ describe('suggestContext — embedding path', () => {
     // task text only matches 'billing service' → file-B gets keyword score
     // file-A has very high embed_score
     const r = suggestContext(pid, 'billing service', { taskEmbedding: taskEmb })
-    const posA = r.findIndex(x => x.path === 'src/zzz/core.ts')
-    const posB = r.findIndex(x => x.path === 'src/billing/service.ts')
+    const posA = r.findIndex((x) => x.path === 'src/zzz/core.ts')
+    const posB = r.findIndex((x) => x.path === 'src/billing/service.ts')
 
     expect(posA).toBeGreaterThanOrEqual(0)
     expect(posB).toBeGreaterThanOrEqual(0)
@@ -230,7 +226,7 @@ describe('suggestContext — embedding path', () => {
       result: 'ok',
     })
     const runs = listRuns(10)
-    const match = runs.find(r => r.project_id === pid)
+    const match = runs.find((r) => r.project_id === pid)
     expect(match).toBeDefined()
     expect(match!.embed_hits).toBe(3)
   })
@@ -249,8 +245,8 @@ describe('suggestContext — embedding path', () => {
     insertFile(2, 'src/unrelated/util.ts', unitVec(0))
 
     const r = suggestContext(pid, 'payment stripe', { taskEmbedding: taskEmb })
-    const stripeFile  = r.find(x => x.path === 'src/payment/stripe.ts')
-    const utilFile    = r.find(x => x.path === 'src/unrelated/util.ts')
+    const stripeFile = r.find((x) => x.path === 'src/payment/stripe.ts')
+    const utilFile = r.find((x) => x.path === 'src/unrelated/util.ts')
 
     expect(stripeFile).toBeDefined()
     expect(stripeFile!.reason).toBe('direct')
@@ -258,7 +254,7 @@ describe('suggestContext — embedding path', () => {
     expect(utilFile!.reason).toBe('embedding')
 
     // total embed_hits = count of 'embedding' reasons
-    const embedHits = r.filter(x => x.reason === 'embedding').length
+    const embedHits = r.filter((x) => x.reason === 'embedding').length
     expect(embedHits).toBeGreaterThanOrEqual(1)
   })
 })

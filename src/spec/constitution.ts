@@ -20,12 +20,12 @@
  * Each section is optional. Unrecognised headings are ignored.
  */
 
-import { join } from 'path'
 import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 
 export interface Constitution {
-  allowed:              string[]
-  forbidden:            string[]
+  allowed: string[]
+  forbidden: string[]
   require_confirmation: string[]
   /** Total rule count across all sections */
   ruleCount: number
@@ -50,12 +50,12 @@ export function loadConstitution(projectPath: string): Constitution | null {
  * Exported for testing.
  */
 export function parseConstitution(text: string): Constitution {
-  const allowed:              string[] = []
-  const forbidden:            string[] = []
+  const allowed: string[] = []
+  const forbidden: string[] = []
   const require_confirmation: string[] = []
 
   // Split into sections by ## headings
-  const lines        = text.split('\n')
+  const lines = text.split('\n')
 
   let currentSection: 'allowed' | 'forbidden' | 'require_confirmation' | null = null
 
@@ -63,10 +63,10 @@ export function parseConstitution(text: string): Constitution {
     const headingMatch = line.match(/^##\s+(.+)$/)
     if (headingMatch && headingMatch[1]) {
       const heading = headingMatch[1].trim().toUpperCase()
-      if (heading === 'ALLOWED')              currentSection = 'allowed'
-      else if (heading === 'FORBIDDEN')       currentSection = 'forbidden'
+      if (heading === 'ALLOWED') currentSection = 'allowed'
+      else if (heading === 'FORBIDDEN') currentSection = 'forbidden'
       else if (heading.includes('CONFIRMATION')) currentSection = 'require_confirmation'
-      else                                    currentSection = null
+      else currentSection = null
       continue
     }
 
@@ -77,8 +77,8 @@ export function parseConstitution(text: string): Constitution {
     if (bulletMatch && bulletMatch[1]) {
       const rule = bulletMatch[1].trim()
       if (rule) {
-        if (currentSection === 'allowed')              allowed.push(rule)
-        else if (currentSection === 'forbidden')       forbidden.push(rule)
+        if (currentSection === 'allowed') allowed.push(rule)
+        else if (currentSection === 'forbidden') forbidden.push(rule)
         else if (currentSection === 'require_confirmation') require_confirmation.push(rule)
       }
     }

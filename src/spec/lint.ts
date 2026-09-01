@@ -84,7 +84,8 @@ export function lintSpec(spec: Spec): LintResult {
     if (caps.modified.length > 0 && !bodyUpper.includes('## MODIFIED')) {
       findings.push({
         criterion: `Missing ## MODIFIED section (capabilities.modified: ${caps.modified.join(', ')})`,
-        suggestion: 'Add a ## MODIFIED section with the complete previous requirement for each modified capability',
+        suggestion:
+          'Add a ## MODIFIED section with the complete previous requirement for each modified capability',
       })
       deltaIssuesCount++
     }
@@ -105,13 +106,15 @@ export function lintSpec(spec: Spec): LintResult {
     if (content.length < 80) {
       findings.push({
         criterion: `## MODIFIED section content is too short (${content.length} chars) — likely a fragment`,
-        suggestion: 'Replace the fragment with the complete previous requirement (full spec body for each modified capability)',
+        suggestion:
+          'Replace the fragment with the complete previous requirement (full spec body for each modified capability)',
       })
       deltaIssuesCount++
     } else if (!content.includes('\n')) {
       findings.push({
         criterion: '## MODIFIED section is a single line — expected a complete requirement block',
-        suggestion: 'Expand the ## MODIFIED section with the full previous spec body for each modified capability',
+        suggestion:
+          'Expand the ## MODIFIED section with the full previous spec body for each modified capability',
       })
       deltaIssuesCount++
     }
@@ -131,10 +134,10 @@ export function lintSpec(spec: Spec): LintResult {
 function extractBullets(sectionBody: string): string[] {
   return sectionBody
     .split('\n')
-    .map(l => l.trim())
-    .filter(l => l.startsWith('- ') || l.startsWith('* '))
-    .map(l => l.slice(2).trim())
-    .map(b => b.replace(/^\[[ xX]\]\s*/, '').trim())
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('- ') || l.startsWith('* '))
+    .map((l) => l.slice(2).trim())
+    .map((b) => b.replace(/^\[[ xX]\]\s*/, '').trim())
     .filter(Boolean)
 }
 

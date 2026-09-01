@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
-import { db } from '../db/sqlite.ts'
+import { join } from 'path'
 import { DEFAULT_CONFIG } from '../config/schema.ts'
+import { db } from '../db/sqlite.ts'
 import type { Task } from '../tasks/schema.ts'
 
 // X.2 (IDEAS #33) — refuter barato, opt-in via orcheConfig.refuterQA. Corre SOLO cuando el
@@ -34,14 +34,20 @@ function tmpDir(): string {
 }
 
 function openRouterResponse(content: string, promptTokens = 1, completionTokens = 1) {
-  return new Response(JSON.stringify({
-    choices: [{ message: { content } }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-    model: 'mock/model',
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content } }],
+      usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+      model: 'mock/model',
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
-type FetchHandler = (body: { model: string; messages: Array<{ role: string; content: string }> }) => Response | Error | Promise<Response | Error>
+type FetchHandler = (body: {
+  model: string
+  messages: Array<{ role: string; content: string }>
+}) => Response | Error | Promise<Response | Error>
 
 function installMockFetch(handlers: FetchHandler[]) {
   const calls: Array<{ model: string; messages: Array<{ role: string; content: string }> }> = []
@@ -113,7 +119,10 @@ describe('X.2 — refuter second opinion on fail (opt-in)', () => {
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
       () => openRouterResponse('{"verdict":"fail","reason":"the judge misread the file"}'),
-      () => openRouterResponse('{"verdict":"REFUTED","reason":"the file clearly satisfies the criteria, the judge was wrong"}'),
+      () =>
+        openRouterResponse(
+          '{"verdict":"REFUTED","reason":"the file clearly satisfies the criteria, the judge was wrong"}',
+        ),
     ])
 
     const dir = tmpDir()
@@ -137,7 +146,10 @@ describe('X.2 — refuter second opinion on fail (opt-in)', () => {
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
       () => openRouterResponse('{"verdict":"fail","reason":"genuinely broken"}'),
-      () => openRouterResponse('{"verdict":"CONFIRMED","reason":"the judge was right, this is broken"}'),
+      () =>
+        openRouterResponse(
+          '{"verdict":"CONFIRMED","reason":"the judge was right, this is broken"}',
+        ),
     ])
 
     const dir = tmpDir()

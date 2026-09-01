@@ -11,13 +11,19 @@ import { cn } from '../../lib/utils.ts'
 export function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
     <CommandPrimitive
-      className={cn('flex w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground', className)}
+      className={cn(
+        'flex w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground',
+        className,
+      )}
       {...props}
     />
   )
 }
 
-export function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Input>) {
+export function CommandInput({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
     <CommandPrimitive.Input
       className={cn(
@@ -29,7 +35,10 @@ export function CommandInput({ className, ...props }: React.ComponentProps<typeo
   )
 }
 
-export function CommandList({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.List>) {
+export function CommandList({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.List>) {
   return (
     <CommandPrimitive.List
       className={cn('max-h-[240px] overflow-y-auto overflow-x-hidden p-1', className)}
@@ -47,7 +56,10 @@ export function CommandEmpty(props: React.ComponentProps<typeof CommandPrimitive
   )
 }
 
-export function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
+export function CommandGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Group>) {
   return (
     <CommandPrimitive.Group
       className={cn(
@@ -61,7 +73,10 @@ export function CommandGroup({ className, ...props }: React.ComponentProps<typeo
   )
 }
 
-export function CommandItem({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
+export function CommandItem({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Item>) {
   return (
     <CommandPrimitive.Item
       className={cn(

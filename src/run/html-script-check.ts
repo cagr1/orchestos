@@ -14,10 +14,10 @@
  * Sin dependencias — solo APIs nativas (Bun tiene `crypto`, `fs`, `os`, `path`).
  */
 
-import { writeFileSync, unlinkSync, mkdirSync } from 'fs'
-import { tmpdir } from 'os'
-import { join, basename, extname } from 'path'
 import { createHash } from 'crypto'
+import { mkdirSync, unlinkSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { basename, extname, join } from 'path'
 import type { Check } from '../tasks/schema.ts'
 
 export interface ExtractedScript {
@@ -105,7 +105,10 @@ function lineNumberAt(text: string, offset: number): number {
 /** Path absoluto al archivo temp de check para un source path dado (determinístico por source). */
 export function jsCheckTempPath(sourceAbsPath: string, tmpDir: string = tmpdir()): string {
   const hash = createHash('sha1').update(sourceAbsPath).digest('hex').slice(0, 10)
-  const stem = basename(sourceAbsPath, extname(sourceAbsPath)).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64) || 'script'
+  const stem =
+    basename(sourceAbsPath, extname(sourceAbsPath))
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .slice(0, 64) || 'script'
   return join(tmpDir, `orchestos-jscheck-${stem}-${hash}.js`)
 }
 
@@ -136,7 +139,7 @@ export function jsSyntaxCheckForHtmlFile(
   const scripts = extractInlineScripts(htmlContent)
   if (scripts.length === 0) return null
 
-  const code = scripts.map(s => s.code).join('\n\n')
+  const code = scripts.map((s) => s.code).join('\n\n')
   const tempDir = options.tmpDir ?? tmpdir()
   mkdirSync(tempDir, { recursive: true })
   const tempPath = jsCheckTempPath(htmlAbsPath, tempDir)

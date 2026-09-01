@@ -15,13 +15,27 @@ import type { Task } from '../tasks/schema.ts'
 
 /** Palabras que indican ambigüedad sin un target de archivo */
 const AMBIGUOUS_VERBS = [
-  'optimize', 'optimiza', 'optimizar',
-  'improve',  'mejora',   'mejorar',
-  'refactor', 'refactoriza', 'refactorizar',
-  'cleanup',  'clean up', 'limpia', 'limpiar',
-  'enhance',  'mejora',
-  'update',   'actualiza', 'actualizar',
-  'review',   'revisa', 'revisar',
+  'optimize',
+  'optimiza',
+  'optimizar',
+  'improve',
+  'mejora',
+  'mejorar',
+  'refactor',
+  'refactoriza',
+  'refactorizar',
+  'cleanup',
+  'clean up',
+  'limpia',
+  'limpiar',
+  'enhance',
+  'mejora',
+  'update',
+  'actualiza',
+  'actualizar',
+  'review',
+  'revisa',
+  'revisar',
 ]
 
 /**
@@ -33,7 +47,7 @@ export function needsClarify(task: Task): boolean {
   if (task.input.length > 0) return false
 
   const desc = task.description.toLowerCase()
-  return AMBIGUOUS_VERBS.some(verb => desc.includes(verb))
+  return AMBIGUOUS_VERBS.some((verb) => desc.includes(verb))
 }
 
 /**
@@ -41,6 +55,6 @@ export function needsClarify(task: Task): boolean {
  */
 export function clarifyReason(task: Task): string {
   const desc = task.description.toLowerCase()
-  const matched = AMBIGUOUS_VERBS.find(verb => desc.includes(verb)) ?? 'broad scope'
+  const matched = AMBIGUOUS_VERBS.find((verb) => desc.includes(verb)) ?? 'broad scope'
   return `Task uses "${matched}" without specifying which files to target in input[].`
 }

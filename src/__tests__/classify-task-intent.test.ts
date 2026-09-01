@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'bun:test'
-import { parseTaskIntentResponse, classifyTaskIntent } from '../chat/classify-task-intent.ts'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { classifyTaskIntent, parseTaskIntentResponse } from '../chat/classify-task-intent.ts'
 
 // J.1 (Mes 18) — B.1.b, clasificador semántico de intención de tarea en el
 // Chat. parseTaskIntentResponse es puro (mismo patrón que
@@ -12,7 +12,9 @@ describe('parseTaskIntentResponse', () => {
   })
 
   it('parses JSON wrapped in a markdown fence', () => {
-    const r = parseTaskIntentResponse('```json\n{"isTask": false, "reason": "Es una pregunta"}\n```')
+    const r = parseTaskIntentResponse(
+      '```json\n{"isTask": false, "reason": "Es una pregunta"}\n```',
+    )
     expect(r).toEqual({ isTask: false, reason: 'Es una pregunta' })
   })
 
@@ -55,10 +57,20 @@ describe('classifyTaskIntent', () => {
 
   it('returns the classifier result on a successful call', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
-    globalThis.fetch = (async () => new Response(JSON.stringify({
-      choices: [{ message: { content: '{"isTask": true, "reason": "Pide construir un sitio completo"}' } }],
-      usage: { prompt_tokens: 20, completion_tokens: 10 },
-    }), { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: '{"isTask": true, "reason": "Pide construir un sitio completo"}',
+              },
+            },
+          ],
+          usage: { prompt_tokens: 20, completion_tokens: 10 },
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
 
     const r = await classifyTaskIntent('hazme una página web de criptomonedas con gráficos 3D')
     expect(r.isTask).toBe(true)
@@ -67,7 +79,9 @@ describe('classifyTaskIntent', () => {
 
   it('fails safe (isTask:false) when the provider call throws', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
-    globalThis.fetch = (async () => { throw new Error('network down') }) as unknown as typeof fetch
+    globalThis.fetch = (async () => {
+      throw new Error('network down')
+    }) as unknown as typeof fetch
 
     const r = await classifyTaskIntent('cualquier mensaje')
     expect(r).toEqual({ isTask: false, reason: '' })
@@ -75,7 +89,8 @@ describe('classifyTaskIntent', () => {
 
   it('fails safe (isTask:false) when the provider returns a non-OK response', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
-    globalThis.fetch = (async () => new Response('server error', { status: 500 })) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response('server error', { status: 500 })) as unknown as typeof fetch
 
     const r = await classifyTaskIntent('cualquier mensaje')
     expect(r.isTask).toBe(false)

@@ -1,5 +1,5 @@
-import { join } from 'path'
 import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 import { loadSkill, resolveSkillPath } from '../skills/registry.ts'
 import { buildSections } from '../skills/targets/_shared.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -30,9 +30,11 @@ export function buildPrompt(
     `\n## OUTPUT CONTRACT`,
     `You may ONLY write to these files: ${task.output.join(', ')}`,
     `Output each file using EXACTLY this format — nothing else before the first delimiter or after the last:`,
-    ...task.output.map(p => `<<<FILE:${p}>>>\n(full file content)\n<<<ENDFILE>>>`),
+    ...task.output.map((p) => `<<<FILE:${p}>>>\n(full file content)\n<<<ENDFILE>>>`),
     `Replace the placeholder with the actual file content. No JSON, no markdown fences, no extra text.`,
-  ].filter(Boolean).join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   let userContent = `Task: ${task.description}\n`
   for (const file of task.input) {
@@ -45,7 +47,6 @@ export function buildPrompt(
   if (previousFailure) {
     const truncated = previousFailure.slice(0, 2000)
     userContent += `\n## PREVIOUS ATTEMPT FAILED\nThe last attempt at this task failed for this reason:\n${truncated}\nFix the cause described above. Do not repeat the same mistake.`
-
   }
 
   return { system, userContent }

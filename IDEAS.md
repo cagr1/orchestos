@@ -30,6 +30,7 @@ _(vacía — `#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a 
 `#5` a Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07; `#46`
 a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Mes 26 cierra)_
 2. `#59` Etiquetar `code_edges` con `EXTRACTED`/`INFERRED` en `graph/` propio.
+3. `#61` Baseline de warnings de Biome pendiente de limpiar.
 
 ### Bajo-medio
 
@@ -1381,6 +1382,25 @@ estado de esos bindings para Bun específicamente antes de estimar esto como "ba
 
 **Esfuerzo**: medio-alto — no es un resolver más (patrón de S/Bloque S), es una capa de parsing
 nueva. Empezar por UN lenguaje (TypeScript, el propio de OrchestOS) antes de generalizar.
+
+### 61. Baseline de warnings de Biome pendiente de limpiar
+
+**Origen**: H.2.1 (2026-09-01) — al adoptar Biome como linter/formatter, quedó un baseline
+documentado de 835 warnings + 467 infos que no bloquean CI pero son hallazgos reales, no ruido:
+
+- `lint/a11y/*` (~65 en total: `useButtonType`, `useValidAnchor`, `useSemanticElements`,
+  `noSvgWithoutTitle`, `useKeyWithClickEvents`, `noStaticElementInteractions`,
+  `noDuplicateAttributes`, `noDuplicateProperties`, `noUnknownProperty`) — todos en
+  `src/dashboard/public*/`, accesibilidad real del dashboard, degradado a `warn` en `biome.json`
+  para no bloquear la adopción inicial de la herramienta.
+- `lint/suspicious/noImplicitAnyLet` (15, en tests bajo `src/__tests__/`) — variables `let`
+  declaradas sin tipo ni inicializador; gap real de tipado, bajo riesgo por estar en tests.
+- El resto de reglas (`noExplicitAny`, `noNonNullAssertion`, `useNodejsImportProtocol`,
+  `useTemplate`, `useLiteralKeys`, `noUnusedVariables`, etc., ~1200 hallazgos) quedan en su
+  severidad `recommended` por defecto (warning/info) sin tocar código existente.
+
+**Esfuerzo**: bajo-medio — limpiar por categoría de regla, no de una sola pasada; empezar por
+a11y del dashboard (impacto de usuario real) antes que por estilo puro (`noExplicitAny` etc.).
 
 ---
 

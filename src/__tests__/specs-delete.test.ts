@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync, existsSync, readdirSync } from 'fs'
-import { join } from 'path'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { existsSync, mkdtempSync, readdirSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { saveSpec, loadSpec } from '../spec/store.ts'
+import { join } from 'path'
 import { archiveSpec, deleteArchivedSpec } from '../spec/archive.ts'
+import { loadSpec, saveSpec } from '../spec/store.ts'
 
 // I.8 (Mes 18) — Specs solo tenía archive (soft); deleteArchivedSpec agrega
 // el borrado permanente, a propósito restringido a specs ya archivadas.
@@ -20,7 +20,12 @@ afterEach(() => {
 
 function draftSpec(taskId: string) {
   saveSpec(root, {
-    frontmatter: { id: taskId, status: 'draft', createdAt: new Date().toISOString(), clarify: 'none' },
+    frontmatter: {
+      id: taskId,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      clarify: 'none',
+    },
     body: '## Notes\nplaceholder\n',
   })
 }
@@ -35,7 +40,7 @@ describe('deleteArchivedSpec', () => {
 
     const archiveDir = join(root, '.orchestos/specs/archive')
     const remaining = existsSync(archiveDir) ? readdirSync(archiveDir) : []
-    expect(remaining.some(f => f.endsWith('-i8-spec-a.md'))).toBe(false)
+    expect(remaining.some((f) => f.endsWith('-i8-spec-a.md'))).toBe(false)
   })
 
   it('returns false for a spec that was never archived', () => {

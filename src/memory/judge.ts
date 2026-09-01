@@ -8,8 +8,8 @@
  * NOT called inside upsertMemory — the caller determines when to judge.
  */
 
-import { chat } from '../providers/openrouter.ts'
 import { getProvider } from '../providers/index.ts'
+import { chat } from '../providers/openrouter.ts'
 
 export type ConflictRelation =
   | 'conflict_with'
@@ -58,7 +58,12 @@ Respond with ONLY a JSON object — no markdown fences, no prose, no explanation
 }
 
 const VALID_RELATIONS: ConflictRelation[] = [
-  'conflict_with', 'supersedes', 'compatible', 'scoped', 'related', 'not_conflict',
+  'conflict_with',
+  'supersedes',
+  'compatible',
+  'scoped',
+  'related',
+  'not_conflict',
 ]
 
 const VALID_CONFIDENCE = ['high', 'medium', 'low'] as const
@@ -76,17 +81,16 @@ function parseJudgment(text: string): ConflictJudgment {
   try {
     const obj = JSON.parse(jsonMatch[0])
     const relation = VALID_RELATIONS.includes(obj.relation)
-      ? obj.relation as ConflictRelation
+      ? (obj.relation as ConflictRelation)
       : 'not_conflict'
     const confidence = VALID_CONFIDENCE.includes(obj.confidence)
-      ? obj.confidence as 'high' | 'medium' | 'low'
+      ? (obj.confidence as 'high' | 'medium' | 'low')
       : 'low'
     return {
       relation,
       confidence,
-      explanation: typeof obj.explanation === 'string'
-        ? obj.explanation
-        : 'No explanation provided.',
+      explanation:
+        typeof obj.explanation === 'string' ? obj.explanation : 'No explanation provided.',
     }
   } catch {
     return {

@@ -2,16 +2,19 @@
  * S29.4 — Tests for spec archive and updated listSpecs.
  */
 
-import { describe, it, expect, beforeEach } from 'bun:test'
-import { mkdirSync, existsSync } from 'fs'
-import { join } from 'path'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { existsSync, mkdirSync } from 'fs'
 import { tmpdir } from 'os'
-import { saveSpec, listSpecs, specPath } from '../spec/store.ts'
+import { join } from 'path'
 import { archiveSpec } from '../spec/archive.ts'
 import type { Spec } from '../spec/store.ts'
+import { listSpecs, saveSpec, specPath } from '../spec/store.ts'
 
 function tmpRoot(): string {
-  const dir = join(tmpdir(), `orchestos-test-archive-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(
+    tmpdir(),
+    `orchestos-test-archive-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  )
   mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -97,7 +100,7 @@ describe('listSpecs with archived', () => {
     archiveSpec(root, 'done-task')
 
     const specs = listSpecs(root)
-    const ids = specs.map(s => s.frontmatter.id)
+    const ids = specs.map((s) => s.frontmatter.id)
     expect(ids).toContain('active-task')
     expect(ids).not.toContain('done-task')
   })
@@ -108,7 +111,7 @@ describe('listSpecs with archived', () => {
     archiveSpec(root, 'done-task')
 
     const specs = listSpecs(root, true)
-    const ids = specs.map(s => s.frontmatter.id)
+    const ids = specs.map((s) => s.frontmatter.id)
     expect(ids).toContain('active-task')
     expect(ids).toContain('done-task')
   })
@@ -118,7 +121,7 @@ describe('listSpecs with archived', () => {
     archiveSpec(root, 'completed')
 
     const specs = listSpecs(root, true)
-    const archived = specs.find(s => s.frontmatter.id === 'completed')
+    const archived = specs.find((s) => s.frontmatter.id === 'completed')
     expect(archived).toBeDefined()
     expect(archived!.frontmatter.status).toBe('archived')
     expect(archived!.frontmatter.archivedAt).toBeTruthy()

@@ -1,8 +1,8 @@
+import { execFileSync } from 'child_process'
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { execFileSync } from 'child_process'
 import { parse } from 'yaml'
-import { chat as openrouterChat, type ChatResponse } from '../src/providers/openrouter.ts'
+import { type ChatResponse, chat as openrouterChat } from '../src/providers/openrouter.ts'
 
 /**
  * Bloque P (PLAN.md, 2026-08-02) — vigilancia de deriva de las fuentes
@@ -47,13 +47,10 @@ export function computeDrift(
   entries: SourceEntry[],
   latestShas: Record<string, string | null>,
 ): DriftFinding[] {
-  return entries.map(e => {
+  return entries.map((e) => {
     const latest = latestShas[e.id] ?? null
-    const status: DriftStatus = latest === null
-      ? 'error'
-      : latest === e.last_synced_sha
-        ? 'clean'
-        : 'drift'
+    const status: DriftStatus =
+      latest === null ? 'error' : latest === e.last_synced_sha ? 'clean' : 'drift'
     const finding: DriftFinding = {
       id: e.id,
       status,
@@ -79,19 +76,33 @@ export function computeDrift(
 // gate que rige todo esto: "no promover sin propuesta, diff y confirmación
 // explícita"). `chatFn` inyectable para que el prompt sea testeable sin red.
 
-export function fetchDiffPatch(repo: string, base: string, head: string, path: string): string | null {
+export function fetchDiffPatch(
+  repo: string,
+  base: string,
+  head: string,
+  path: string,
+): string | null {
   try {
-    const out = execFileSync('gh', [
-      'api', `repos/${repo}/compare/${base}...${head}`,
-      '--jq', `.files[] | select(.filename == "${path}") | .patch // ""`,
-    ], { encoding: 'utf-8' }).trim()
+    const out = execFileSync(
+      'gh',
+      [
+        'api',
+        `repos/${repo}/compare/${base}...${head}`,
+        '--jq',
+        `.files[] | select(.filename == "${path}") | .patch // ""`,
+      ],
+      { encoding: 'utf-8' },
+    ).trim()
     return out.length > 0 ? out : null
   } catch {
     return null
   }
 }
 
-export function buildSummaryPrompt(entry: SourceEntry, patch: string): { system: string; user: string } {
+export function buildSummaryPrompt(
+  entry: SourceEntry,
+  patch: string,
+): { system: string; user: string } {
   const system = [
     'You are drafting a short review note for a human maintainer about an upstream source file that',
     'a local project previously borrowed content or design from.',
@@ -112,7 +123,11 @@ export function buildSummaryPrompt(entry: SourceEntry, patch: string): { system:
 export async function summarizeDrift(
   entry: SourceEntry,
   patch: string,
-  chatFn: (opts: { model: string; system: string; messages: { role: 'user'; content: string }[] }) => Promise<ChatResponse> = openrouterChat,
+  chatFn: (opts: {
+    model: string
+    system: string
+    messages: { role: 'user'; content: string }[]
+  }) => Promise<ChatResponse> = openrouterChat,
   model = 'anthropic/claude-haiku-4-5',
 ): Promise<string> {
   const { system, user } = buildSummaryPrompt(entry, patch)
@@ -120,10 +135,14 @@ export async function summarizeDrift(
   return resp.text.trim()
 }
 
-export function renderReport(findings: DriftFinding[], generatedAt: string, summaries?: Record<string, string>): string {
-  const drifted = findings.filter(f => f.status === 'drift')
-  const errored = findings.filter(f => f.status === 'error')
-  const clean = findings.filter(f => f.status === 'clean')
+export function renderReport(
+  findings: DriftFinding[],
+  generatedAt: string,
+  summaries?: Record<string, string>,
+): string {
+  const drifted = findings.filter((f) => f.status === 'drift')
+  const errored = findings.filter((f) => f.status === 'error')
+  const clean = findings.filter((f) => f.status === 'clean')
 
   const lines: string[] = [
     '# Sources drift report',
@@ -144,9 +163,11 @@ export function renderReport(findings: DriftFinding[], generatedAt: string, summ
       lines.push(`- SHA sincronizado: \`${f.last_synced_sha}\` → SHA actual: \`${f.latest_sha}\``)
       lines.push(`- Comparar: ${f.compare_url}`)
       const summary = summaries?.[f.id]
-      lines.push(summary
-        ? `- Propuesta (LLM, revisar — nunca aplicado solo): ${summary}`
-        : '- Estado: `pendiente` — no aplicado, decisión humana requerida.')
+      lines.push(
+        summary
+          ? `- Propuesta (LLM, revisar — nunca aplicado solo): ${summary}`
+          : '- Estado: `pendiente` — no aplicado, decisión humana requerida.',
+      )
       lines.push('')
     }
   }
@@ -174,9 +195,11 @@ export function renderReport(findings: DriftFinding[], generatedAt: string, summ
 
 function fetchLatestSha(repo: string, path: string): string | null {
   try {
-    const out = execFileSync('gh', [
-      'api', `repos/${repo}/commits?path=${path}&per_page=1`, '--jq', '.[0].sha',
-    ], { encoding: 'utf-8' }).trim()
+    const out = execFileSync(
+      'gh',
+      ['api', `repos/${repo}/commits?path=${path}&per_page=1`, '--jq', '.[0].sha'],
+      { encoding: 'utf-8' },
+    ).trim()
     return out.length > 0 ? out : null
   } catch {
     return null
@@ -203,8 +226,8 @@ async function main() {
   let summaries: Record<string, string> | undefined
   if (doSummarize) {
     summaries = {}
-    for (const f of findings.filter(f => f.status === 'drift')) {
-      const entry = entries.find(e => e.id === f.id)!
+    for (const f of findings.filter((f) => f.status === 'drift')) {
+      const entry = entries.find((e) => e.id === f.id)!
       const patch = fetchDiffPatch(entry.repo, entry.last_synced_sha, f.latest_sha!, entry.path)
       if (!patch) continue
       try {
@@ -218,9 +241,11 @@ async function main() {
   const report = renderReport(findings, new Date().toISOString().slice(0, 10), summaries)
   writeFileSync(join(root, 'SOURCES_DRIFT.md'), report, 'utf-8')
 
-  const drifted = findings.filter(f => f.status === 'drift').length
-  const errored = findings.filter(f => f.status === 'error').length
-  console.log(`sources-drift: ${findings.length} fuentes · ${drifted} con deriva · ${errored} con error → SOURCES_DRIFT.md${doSummarize ? ' (resumen LLM activado)' : ''}`)
+  const drifted = findings.filter((f) => f.status === 'drift').length
+  const errored = findings.filter((f) => f.status === 'error').length
+  console.log(
+    `sources-drift: ${findings.length} fuentes · ${drifted} con deriva · ${errored} con error → SOURCES_DRIFT.md${doSummarize ? ' (resumen LLM activado)' : ''}`,
+  )
 }
 
 if (import.meta.main) main()

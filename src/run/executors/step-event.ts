@@ -72,12 +72,14 @@ export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
   }
 
   if (evt.type === 'result') {
-    return [{
-      type: 'step_finish',
-      label: 'step_finish',
-      costUsd: evt.total_cost_usd,
-      tokens: { input: evt.usage?.input_tokens, output: evt.usage?.output_tokens },
-    }]
+    return [
+      {
+        type: 'step_finish',
+        label: 'step_finish',
+        costUsd: evt.total_cost_usd,
+        tokens: { input: evt.usage?.input_tokens, output: evt.usage?.output_tokens },
+      },
+    ]
   }
 
   return []
@@ -105,11 +107,13 @@ export function opencodeEventToStep(raw: unknown): ExecutorStepEvent[] {
   const part = evt.part
 
   if (evt.type === 'tool_use' && part) {
-    return [{
-      type: 'tool_use',
-      label: part.tool ?? 'tool',
-      detail: part.state?.title,
-    }]
+    return [
+      {
+        type: 'tool_use',
+        label: part.tool ?? 'tool',
+        detail: part.state?.title,
+      },
+    ]
   }
 
   if (evt.type === 'text' && part) {
@@ -117,12 +121,14 @@ export function opencodeEventToStep(raw: unknown): ExecutorStepEvent[] {
   }
 
   if (evt.type === 'step_finish' && part) {
-    return [{
-      type: 'step_finish',
-      label: 'step_finish',
-      costUsd: part.cost,
-      tokens: { input: part.tokens?.input, output: part.tokens?.output },
-    }]
+    return [
+      {
+        type: 'step_finish',
+        label: 'step_finish',
+        costUsd: part.cost,
+        tokens: { input: part.tokens?.input, output: part.tokens?.output },
+      },
+    ]
   }
 
   return []
@@ -161,20 +167,25 @@ export function codexEventToStep(raw: unknown): ExecutorStepEvent[] {
       return [{ type: 'tool_use', label: 'command', detail: item.command }]
     }
     if (item.type === 'file_change') {
-      const paths = (item.changes ?? []).map(c => c.path).filter(Boolean).join(', ')
+      const paths = (item.changes ?? [])
+        .map((c) => c.path)
+        .filter(Boolean)
+        .join(', ')
       return [{ type: 'tool_use', label: 'file_change', detail: paths || undefined }]
     }
     return []
   }
 
   if (evt.type === 'turn.completed') {
-    return [{
-      type: 'step_finish',
-      label: 'step_finish',
-      // Sin costo en el evento (a diferencia de claude/opencode) — se
-      // computa aparte en codex.ts vía calcCost(), no acá.
-      tokens: { input: evt.usage?.input_tokens, output: evt.usage?.output_tokens },
-    }]
+    return [
+      {
+        type: 'step_finish',
+        label: 'step_finish',
+        // Sin costo en el evento (a diferencia de claude/opencode) — se
+        // computa aparte en codex.ts vía calcCost(), no acá.
+        tokens: { input: evt.usage?.input_tokens, output: evt.usage?.output_tokens },
+      },
+    ]
   }
 
   return []

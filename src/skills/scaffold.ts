@@ -115,7 +115,10 @@ const LANG_PROFILES: Record<string, LangProfile> = {
     antiPatterns: ['Write-Host instead of Write-Output', 'positional parameters in functions'],
   },
   SQL: {
-    antiPatterns: ['SELECT * in production queries', 'string concatenation in queries (use params)'],
+    antiPatterns: [
+      'SELECT * in production queries',
+      'string concatenation in queries (use params)',
+    ],
   },
   Vue: {
     testCmd: 'npm run test:unit',
@@ -131,7 +134,7 @@ const LANG_PROFILES: Record<string, LangProfile> = {
 
 function yamlItem(s: string): string {
   // Quote strings that start with YAML special chars or contain quotes
-  if (/^[\[{\|>&*!,'"%@`]/.test(s) || s.includes('"') || s.includes("'")) {
+  if (/^[[{|>&*!,'"%@`]/.test(s) || s.includes('"') || s.includes("'")) {
     // Use double-quote wrapping, escaping any internal double quotes
     return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
   }
@@ -183,9 +186,9 @@ instructions: |
   4. Run the test suite. If tests fail, fix them — do not delete or skip.
   5. Only modify files declared in output[]. Nothing else.
 verifiers:
-${verifiers.map(v => `  - ${yamlItem(v)}`).join('\n')}
+${verifiers.map((v) => `  - ${yamlItem(v)}`).join('\n')}
 anti_patterns:
-${antiPatterns.map(a => `  - ${yamlItem(a)}`).join('\n')}
+${antiPatterns.map((a) => `  - ${yamlItem(a)}`).join('\n')}
 examples:
   - title: Basic feature implementation
     input: "Add a ${safeLang} function that validates email format"
@@ -193,9 +196,9 @@ examples:
 language_targets:
   ${language.toLowerCase().replace(/[^a-z0-9]/g, '')}:
     verifiers:
-${verifiers.map(v => `      - ${yamlItem(v)}`).join('\n')}
+${verifiers.map((v) => `      - ${yamlItem(v)}`).join('\n')}
     anti_patterns:
-${antiPatterns.map(a => `      - ${yamlItem(a)}`).join('\n')}
+${antiPatterns.map((a) => `      - ${yamlItem(a)}`).join('\n')}
   default:
     verifiers:
       - run your test suite
@@ -214,7 +217,9 @@ export function languageHasSkillCoverage(language: string, skillsDir: string): b
   if (!existsSync(skillsDir)) return false
   const { readdirSync, readFileSync } = require('fs')
   try {
-    const files = readdirSync(skillsDir).filter((f: string) => f.endsWith('.yaml') || f.endsWith('.yml'))
+    const files = readdirSync(skillsDir).filter(
+      (f: string) => f.endsWith('.yaml') || f.endsWith('.yml'),
+    )
     const langKey = language.toLowerCase().replace(/[^a-z0-9]/g, '')
     for (const file of files) {
       const content = readFileSync(join(skillsDir, file), 'utf-8')

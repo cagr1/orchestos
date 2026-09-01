@@ -30,11 +30,13 @@ export function printGraphSummary(
   const loadTasks_ = loadTasksFn ?? realLoadTasks
   // Re-read tasks.yaml to recover retry_count per task (the runner doesn't carry
   // it through to GraphTaskEntry; tasks.yaml is the canonical post-run source).
-  let retryById = new Map<string, number>()
+  const retryById = new Map<string, number>()
   try {
     const file = loadTasks_(root)
     for (const t of file.tasks) retryById.set(t.id, t.retry_count)
-  } catch { /* tasks.yaml gone — keep retry column as "?" */ }
+  } catch {
+    /* tasks.yaml gone — keep retry column as "?" */
+  }
 
   // ── Categorize ─────────────────────────────────────────────────────────────
   const completedAlone: typeof result.tasks = []
@@ -45,7 +47,8 @@ export function printGraphSummary(
   for (const e of result.tasks) {
     const rc = retryById.get(e.id)
     if (e.outcome === 'completed' && (rc ?? 0) === 0) completedAlone.push(e)
-    else if (e.outcome === 'completed' || e.outcome === 'rate_limited_then_completed') retriedAndResolved.push(e)
+    else if (e.outcome === 'completed' || e.outcome === 'rate_limited_then_completed')
+      retriedAndResolved.push(e)
     else if (e.outcome === 'failed_permanent' || e.outcome === 'blocked') branchBlocked.push(e)
     else unfinished.push(e)
   }
@@ -57,7 +60,9 @@ export function printGraphSummary(
   console.log('')
   console.log(`[run --graph] ── Summary ──`)
   console.log('')
-  console.log(`  ★ autonomy: ${autonomousCount}/${total} (${autonomyPct.toFixed(1)}%) — task(s) completed without human intervention`)
+  console.log(
+    `  ★ autonomy: ${autonomousCount}/${total} (${autonomyPct.toFixed(1)}%) — task(s) completed without human intervention`,
+  )
 
   // ── Per-bucket tables ──────────────────────────────────────────────────────
   const COL_ID = 30
@@ -67,14 +72,16 @@ export function printGraphSummary(
   const COL_TOK = 11
   const COL_MS = 7
   const header = `  ${'TASK'.padEnd(COL_ID)} ${'OUTCOME'.padEnd(COL_OUT)} ${'$COST'.padStart(COL_COST)} ${'RETRIES'.padStart(COL_RET)} ${'in/out'.padStart(COL_TOK)} ${'ms'.padStart(COL_MS)}`
-  const sep    = `  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_OUT)} ${'─'.repeat(COL_COST)} ${'─'.repeat(COL_RET)} ${'─'.repeat(COL_TOK)} ${'─'.repeat(COL_MS)}`
+  const sep = `  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_OUT)} ${'─'.repeat(COL_COST)} ${'─'.repeat(COL_RET)} ${'─'.repeat(COL_TOK)} ${'─'.repeat(COL_MS)}`
 
-  const row = (e: typeof result.tasks[number], indent = '') => {
+  const row = (e: (typeof result.tasks)[number], indent = '') => {
     const rcRaw = retryById.get(e.id)
     const rcStr =
-      rcRaw === undefined ? '?' :
-      e.outcome === 'rate_limited_then_completed' ? 'requeue' :
-      String(rcRaw)
+      rcRaw === undefined
+        ? '?'
+        : e.outcome === 'rate_limited_then_completed'
+          ? 'requeue'
+          : String(rcRaw)
     const tokStr = `${e.tokens.input}/${e.tokens.output}`
     const outLabel: Record<typeof e.outcome, string> = {
       completed: 'completed',
@@ -83,7 +90,9 @@ export function printGraphSummary(
       blocked: 'blocked',
       skipped_circuit_breaker: 'skipped',
     }
-    console.log(`  ${indent}${e.id.padEnd(COL_ID - indent.length)} ${outLabel[e.outcome].padEnd(COL_OUT)} ${('$' + e.usd_cost.toFixed(5)).padStart(COL_COST)} ${rcStr.padStart(COL_RET)} ${tokStr.padStart(COL_TOK)} ${String(e.elapsed_ms).padStart(COL_MS)}`)
+    console.log(
+      `  ${indent}${e.id.padEnd(COL_ID - indent.length)} ${outLabel[e.outcome].padEnd(COL_OUT)} ${('$' + e.usd_cost.toFixed(5)).padStart(COL_COST)} ${rcStr.padStart(COL_RET)} ${tokStr.padStart(COL_TOK)} ${String(e.elapsed_ms).padStart(COL_MS)}`,
+    )
     if (e.error) console.log(`  ${indent}${' '.repeat(COL_ID - indent.length)}   └─ ${e.error}`)
   }
 
@@ -98,7 +107,9 @@ export function printGraphSummary(
 
   if (retriedAndResolved.length > 0) {
     console.log('')
-    console.log(`  ↻ Retried and resolved (${retriedAndResolved.length}) — diagnose recovered the task`)
+    console.log(
+      `  ↻ Retried and resolved (${retriedAndResolved.length}) — diagnose recovered the task`,
+    )
     console.log(sep)
     console.log(header)
     console.log(sep)
@@ -107,9 +118,11 @@ export function printGraphSummary(
 
   if (branchBlocked.length > 0) {
     console.log('')
-    const blockedCount = branchBlocked.filter(e => e.outcome === 'blocked').length
-    const failedCount = branchBlocked.filter(e => e.outcome === 'failed_permanent').length
-    console.log(`  ⊘ Branch blocked (${branchBlocked.length}) — ${failedCount} failed, ${blockedCount} descendant(s) skipped`)
+    const blockedCount = branchBlocked.filter((e) => e.outcome === 'blocked').length
+    const failedCount = branchBlocked.filter((e) => e.outcome === 'failed_permanent').length
+    console.log(
+      `  ⊘ Branch blocked (${branchBlocked.length}) — ${failedCount} failed, ${blockedCount} descendant(s) skipped`,
+    )
     console.log(sep)
     console.log(header)
     console.log(sep)
@@ -118,7 +131,9 @@ export function printGraphSummary(
 
   if (unfinished.length > 0) {
     console.log('')
-    console.log(`  — Unfinished (${unfinished.length}) — circuit breaker tripped; tasks remain 'pending' for next run`)
+    console.log(
+      `  — Unfinished (${unfinished.length}) — circuit breaker tripped; tasks remain 'pending' for next run`,
+    )
     console.log(sep)
     console.log(header)
     console.log(sep)
@@ -128,7 +143,9 @@ export function printGraphSummary(
   // ── Totals + recap ─────────────────────────────────────────────────────────
   console.log('')
   console.log(sep)
-  console.log(`  total: ${result.tasks.length} task(s) · $${result.aggregated_cost.toFixed(5)} · ${result.aggregated_ms}ms`)
+  console.log(
+    `  total: ${result.tasks.length} task(s) · $${result.aggregated_cost.toFixed(5)} · ${result.aggregated_ms}ms`,
+  )
   console.log(`  ★ autonomy: ${autonomousCount}/${total} (${autonomyPct.toFixed(1)}%)`)
   if (result.circuit_break_reason) {
     console.log(`  ⏹ circuit break: ${result.circuit_break_reason}`)

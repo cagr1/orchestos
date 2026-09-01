@@ -1,5 +1,12 @@
-import { describe, it, expect } from 'bun:test'
-import { parseRegistry, computeDrift, renderReport, buildSummaryPrompt, summarizeDrift, type SourceEntry } from './check-sources-drift.ts'
+import { describe, expect, it } from 'bun:test'
+import {
+  buildSummaryPrompt,
+  computeDrift,
+  parseRegistry,
+  renderReport,
+  type SourceEntry,
+  summarizeDrift,
+} from './check-sources-drift.ts'
 
 const entry = (overrides: Partial<SourceEntry> = {}): SourceEntry => ({
   id: 'test-source',
@@ -64,16 +71,16 @@ describe('computeDrift', () => {
       [entry({ id: 'a', last_synced_sha: 'x' }), entry({ id: 'b', last_synced_sha: 'y' })],
       { a: 'x', b: 'z' },
     )
-    expect(findings.map(f => f.status)).toEqual(['clean', 'drift'])
+    expect(findings.map((f) => f.status)).toEqual(['clean', 'drift'])
   })
 })
 
 describe('renderReport', () => {
   it('summarizes counts and lists drifted sources first', () => {
-    const findings = computeDrift(
-      [entry({ id: 'drifted' }), entry({ id: 'clean-one' })],
-      { drifted: 'new-sha', 'clean-one': 'aaa111' },
-    )
+    const findings = computeDrift([entry({ id: 'drifted' }), entry({ id: 'clean-one' })], {
+      drifted: 'new-sha',
+      'clean-one': 'aaa111',
+    })
     const report = renderReport(findings, '2026-08-02')
     expect(report).toContain('1 con deriva')
     expect(report).toContain('1 sin cambios')
@@ -91,7 +98,9 @@ describe('renderReport', () => {
 
   it('P.4 — con summaries[], usa la propuesta del LLM en vez de "pendiente" para ese id', () => {
     const findings = computeDrift([entry({ id: 'drifted' })], { drifted: 'new-sha' })
-    const report = renderReport(findings, '2026-08-02', { drifted: 'El diff agrega una sección nueva sobre X.' })
+    const report = renderReport(findings, '2026-08-02', {
+      drifted: 'El diff agrega una sección nueva sobre X.',
+    })
     expect(report).toContain('Propuesta (LLM, revisar')
     expect(report).toContain('El diff agrega una sección nueva sobre X.')
     expect(report).not.toContain('pendiente')
@@ -127,9 +136,18 @@ describe('summarizeDrift (P.4)', () => {
   it('llama al chatFn inyectado con el prompt construido y devuelve el texto sin recortar', async () => {
     const e = entry()
     let capturedSystem = ''
-    const fakeChat = async (opts: { model: string; system: string; messages: { role: 'user'; content: string }[] }) => {
+    const fakeChat = async (opts: {
+      model: string
+      system: string
+      messages: { role: 'user'; content: string }[]
+    }) => {
       capturedSystem = opts.system
-      return { text: '  Propuesta de prueba.  ', inputTokens: 10, outputTokens: 5, model: opts.model }
+      return {
+        text: '  Propuesta de prueba.  ',
+        inputTokens: 10,
+        outputTokens: 5,
+        model: opts.model,
+      }
     }
     const summary = await summarizeDrift(e, 'diff de prueba', fakeChat)
     expect(summary).toBe('Propuesta de prueba.')
@@ -139,7 +157,11 @@ describe('summarizeDrift (P.4)', () => {
   it('usa el modelo barato por defecto (haiku), no el executor', async () => {
     const e = entry()
     let capturedModel = ''
-    const fakeChat = async (opts: { model: string; system: string; messages: { role: 'user'; content: string }[] }) => {
+    const fakeChat = async (opts: {
+      model: string
+      system: string
+      messages: { role: 'user'; content: string }[]
+    }) => {
       capturedModel = opts.model
       return { text: 'ok', inputTokens: 1, outputTokens: 1, model: opts.model }
     }

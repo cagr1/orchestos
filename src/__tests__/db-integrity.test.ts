@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
-async function spawnWriter(home: string, taskId: string, count: number): Promise<{ exitCode: number; stderr: string }> {
+async function spawnWriter(
+  home: string,
+  taskId: string,
+  count: number,
+): Promise<{ exitCode: number; stderr: string }> {
   const script = `
     const { runMigrations } = await import('./src/db/migrate.ts')
     const { insertRunStep } = await import('./src/db/run-steps.ts')
@@ -18,10 +22,7 @@ async function spawnWriter(home: string, taskId: string, count: number): Promise
     stdout: 'pipe',
     stderr: 'pipe',
   })
-  const [exitCode, stderr] = await Promise.all([
-    proc.exited,
-    new Response(proc.stderr).text(),
-  ])
+  const [exitCode, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()])
   return { exitCode, stderr }
 }
 
@@ -34,10 +35,10 @@ describe('database integrity boundaries', () => {
         const { upsertMemory, getMemory } = await import('./src/db/memory.ts')
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
-        const content = \"'); DROP TABLE memory_entries; --\"
+        const content = "'); DROP TABLE memory_entries; --"
         upsertMemory('integrity-project', 'injection', content)
         const row = getMemory('integrity-project', 'injection')
-        const table = db.query(\"SELECT name FROM sqlite_master WHERE type='table' AND name='memory_entries'\").get()
+        const table = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_entries'").get()
         process.stdout.write(JSON.stringify({ content: row?.content, table: Boolean(table) }))
         db.close()
       `

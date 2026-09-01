@@ -17,10 +17,10 @@
  * Mismo patrón que constitution-api.test.ts / specs-design-gate.test.ts: tmp
  * dir + chdir + route() real, sin mock.module().
  */
-import { describe, it, expect, afterAll } from 'bun:test'
+import { afterAll, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 const { route } = await import('../server.ts')
 
@@ -40,28 +40,34 @@ function req(method: string, path: string): Request {
 
 describe('GET /api/config — agent (CC.1b bugfix)', () => {
   it('devuelve agent cuando está fijado en orchestos.config.yaml (vía legacy executor_mode)', async () => {
-    writeFileSync(join(tmpDir, 'orchestos.config.yaml'), [
-      'config_version: 1',
-      'executor_mode: cli-claude',
-      'models:',
-      '  default: { provider: openrouter, model: deepseek/deepseek-v4-flash }',
-    ].join('\n'))
+    writeFileSync(
+      join(tmpDir, 'orchestos.config.yaml'),
+      [
+        'config_version: 1',
+        'executor_mode: cli-claude',
+        'models:',
+        '  default: { provider: openrouter, model: deepseek/deepseek-v4-flash }',
+      ].join('\n'),
+    )
 
     const res = await route(req('GET', '/api/config'), PORT)
     expect(res.status).toBe(200)
-    const data = await res.json() as { agent: string | null }
+    const data = (await res.json()) as { agent: string | null }
     expect(data.agent).toBe('claude')
   })
 
   it('devuelve null (no undefined ni ausente) cuando no está fijado — spec simple, cero regresión', async () => {
-    writeFileSync(join(tmpDir, 'orchestos.config.yaml'), [
-      'config_version: 1',
-      'models:',
-      '  default: { provider: openrouter, model: deepseek/deepseek-v4-flash }',
-    ].join('\n'))
+    writeFileSync(
+      join(tmpDir, 'orchestos.config.yaml'),
+      [
+        'config_version: 1',
+        'models:',
+        '  default: { provider: openrouter, model: deepseek/deepseek-v4-flash }',
+      ].join('\n'),
+    )
 
     const res = await route(req('GET', '/api/config'), PORT)
-    const data = await res.json() as { agent: string | null }
+    const data = (await res.json()) as { agent: string | null }
     expect(data.agent).toBeNull()
     expect('agent' in data).toBe(true)
   })

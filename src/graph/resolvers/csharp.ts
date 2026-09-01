@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import type { Resolver, RepoIndex } from '../resolver-registry.ts'
+import type { RepoIndex, Resolver } from '../resolver-registry.ts'
 
 // namespace → file paths, keyed by projectRoot
 const nsCache = new Map<string, Map<string, string[]>>()
@@ -21,7 +21,9 @@ function buildNsMap(repo: RepoIndex): Map<string, string[]> {
         list.push(f.path)
         map.set(ns, list)
       }
-    } catch { /* unreadable — skip */ }
+    } catch {
+      /* unreadable — skip */
+    }
   }
 
   nsCache.set(repo.projectRoot, map)
@@ -36,7 +38,10 @@ export const csharpResolver: Resolver = {
   language: 'cs',
   resolve(importStr: string, _fromFile: string, repo: RepoIndex): string | null {
     // Handle: "using X.Y.Z;" or bare "X.Y.Z"
-    const ns = importStr.replace(/^using\s+/, '').replace(/;$/, '').trim()
+    const ns = importStr
+      .replace(/^using\s+/, '')
+      .replace(/;$/, '')
+      .trim()
     // Skip: using static X, using Alias = X (contain spaces or =)
     if (!ns || /[\s=()]/.test(ns)) return null
 
@@ -48,7 +53,7 @@ export const csharpResolver: Resolver = {
     // Multiple files share the namespace — prefer the one whose basename matches
     // the last namespace segment (e.g. "Services" → Services.cs)
     const lastSeg = (ns.split('.').at(-1) ?? '').toLowerCase()
-    const best = files.find(f => {
+    const best = files.find((f) => {
       const base = (f.split(/[\\/]/).at(-1) ?? '').replace(/\.cs$/i, '').toLowerCase()
       return base === lastSeg
     })

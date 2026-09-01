@@ -1,10 +1,23 @@
-import { describe, expect, it, afterEach } from 'bun:test'
-import { existsSync, mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { afterEach, describe, expect, it } from 'bun:test'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'fs'
 import { tmpdir } from 'os'
-import { isSafeRelPath, resolveProjectCwd, resolveProjectPath, PathPolicyError } from '../run/path-policy.ts'
-import { enforceContract } from '../run/contract.ts'
+import { join } from 'path'
 import { runChecks } from '../run/checks.ts'
+import { enforceContract } from '../run/contract.ts'
+import {
+  isSafeRelPath,
+  PathPolicyError,
+  resolveProjectCwd,
+  resolveProjectPath,
+} from '../run/path-policy.ts'
 
 const roots: string[] = []
 afterEach(() => {
@@ -20,11 +33,15 @@ function makeRoot(): string {
 }
 
 describe('path policy — traversal matrix', () => {
-  it.each(['../outside', '/tmp/outside', 'src/../../outside', '%2e%2e/outside', '%252e%252e/outside'])(
-    'rejects traversal or absolute path %s', (path) => {
-      expect(isSafeRelPath(path)).toBe(false)
-    },
-  )
+  it.each([
+    '../outside',
+    '/tmp/outside',
+    'src/../../outside',
+    '%2e%2e/outside',
+    '%252e%252e/outside',
+  ])('rejects traversal or absolute path %s', (path) => {
+    expect(isSafeRelPath(path)).toBe(false)
+  })
 
   it('rejects a symlink whose target leaves the project', () => {
     const root = makeRoot()
@@ -33,8 +50,11 @@ describe('path policy — traversal matrix', () => {
     symlinkSync(outside, join(root, 'escape'))
 
     expect(() => resolveProjectPath(root, 'escape/payload', 'write')).toThrow(PathPolicyError)
-    expect(() => enforceContract(root, { files: [{ path: 'escape/payload', content: 'blocked' }] }, ['escape/payload']))
-      .toThrow(PathPolicyError)
+    expect(() =>
+      enforceContract(root, { files: [{ path: 'escape/payload', content: 'blocked' }] }, [
+        'escape/payload',
+      ]),
+    ).toThrow(PathPolicyError)
   })
 
   it('rejects writing through an in-project symlink too', () => {
@@ -45,7 +65,9 @@ describe('path policy — traversal matrix', () => {
 
   it('accepts a normal nested path and cwd only inside the project', () => {
     const root = makeRoot()
-    expect(resolveProjectPath(root, 'src/new.txt', 'write')).toBe(join(realpathSync(root), 'src', 'new.txt'))
+    expect(resolveProjectPath(root, 'src/new.txt', 'write')).toBe(
+      join(realpathSync(root), 'src', 'new.txt'),
+    )
     expect(resolveProjectCwd(root, 'src')).toBe(join(realpathSync(root), 'src'))
     expect(() => resolveProjectCwd(root, '../')).toThrow(PathPolicyError)
   })

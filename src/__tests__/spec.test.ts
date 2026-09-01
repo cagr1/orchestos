@@ -1,21 +1,28 @@
-import { describe, it, expect, afterAll } from 'bun:test'
+import { afterAll, describe, expect, it } from 'bun:test'
 import { mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
-import { loadSpec, saveSpec, listSpecs, type Spec } from '../spec/store.ts'
-import { validateSpec } from '../spec/validate.ts'
 import { db } from '../db/sqlite.ts'
+import { listSpecs, loadSpec, type Spec, saveSpec } from '../spec/store.ts'
+import { validateSpec } from '../spec/validate.ts'
 import type { TaskExecutor } from '../tasks/schema.ts'
 
 // IDEAS.md #20 (2026-07-05): los 4 `runTask()` de este archivo (spec-gate
 // tests) persisten en ~/.orchestos/db.sqlite, la misma DB del dashboard real.
 afterAll(() => {
-  db.run("DELETE FROM runs WHERE task_id IN ('no-spec-task', 'draft-task', 'approved-gate-task', 'no-gate-task')")
+  db.run(
+    "DELETE FROM runs WHERE task_id IN ('no-spec-task', 'draft-task', 'approved-gate-task', 'no-gate-task')",
+  )
 })
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function tmpDir(): string {
-  const dir = join(import.meta.dir, '..', '..', '.tmp-spec-test-' + Math.random().toString(36).slice(2))
+  const dir = join(
+    import.meta.dir,
+    '..',
+    '..',
+    '.tmp-spec-test-' + Math.random().toString(36).slice(2),
+  )
   mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -29,7 +36,9 @@ function makeSpec(overrides?: Partial<Spec['frontmatter']>, body?: string): Spec
       clarify: 'none',
       ...overrides,
     },
-    body: body ?? `## Contexto\nFoo\n\n## Descripción\nBar\n\n## Criterios de aceptación\n- [ ] Unit tests pass\n- [ ] Types check\n\n## Notas\nNone\n`,
+    body:
+      body ??
+      `## Contexto\nFoo\n\n## Descripción\nBar\n\n## Criterios de aceptación\n- [ ] Unit tests pass\n- [ ] Types check\n\n## Notas\nNone\n`,
   }
 }
 
@@ -136,7 +145,7 @@ describe('listSpecs', () => {
       saveSpec(dir, makeSpec({ id: 'spec-b' }))
       saveSpec(dir, makeSpec({ id: 'spec-c' }))
       const specs = listSpecs(dir)
-      const ids = specs.map(s => s.frontmatter.id).sort()
+      const ids = specs.map((s) => s.frontmatter.id).sort()
       expect(ids).toEqual(['spec-a', 'spec-b', 'spec-c'])
     } finally {
       rmSync(dir, { recursive: true, force: true })
@@ -158,14 +167,21 @@ describe('validateSpec', () => {
     const s = makeSpec({}, '## Contexto\nFoo\n\n## Criterios de aceptación\n\n## Notas\nNone\n')
     const result = validateSpec(s)
     expect(result.valid).toBe(false)
-    expect(result.errors.some(e => e.toLowerCase().includes('empty') || e.toLowerCase().includes('vac'))).toBe(true)
+    expect(
+      result.errors.some(
+        (e) => e.toLowerCase().includes('empty') || e.toLowerCase().includes('vac'),
+      ),
+    ).toBe(true)
   })
 
   it('fails if criteria only contain the placeholder <criterio 1>', () => {
-    const s = makeSpec({}, '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] <criterio 1>\n- [ ] <criterio 2>\n\n## Notas\nNone\n')
+    const s = makeSpec(
+      {},
+      '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] <criterio 1>\n- [ ] <criterio 2>\n\n## Notas\nNone\n',
+    )
     const result = validateSpec(s)
     expect(result.valid).toBe(false)
-    expect(result.errors.some(e => e.toLowerCase().includes('placeholder'))).toBe(true)
+    expect(result.errors.some((e) => e.toLowerCase().includes('placeholder'))).toBe(true)
   })
 
   it('passes if acceptance criteria has real criteria', () => {
@@ -176,7 +192,10 @@ describe('validateSpec', () => {
   })
 
   it('passes with accented section header (aceptación)', () => {
-    const s = makeSpec({}, '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] All unit tests pass\n\n## Notas\nNone\n')
+    const s = makeSpec(
+      {},
+      '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] All unit tests pass\n\n## Notas\nNone\n',
+    )
     const result = validateSpec(s)
     expect(result.valid).toBe(true)
   })
@@ -260,10 +279,10 @@ describe('harness spec gate', () => {
           config_version: 1,
           requireSpec: true,
           models: {
-            planner:        { provider: 'openrouter', model: 'x' },
+            planner: { provider: 'openrouter', model: 'x' },
             executor_heavy: { provider: 'openrouter', model: 'x' },
             executor_light: { provider: 'openrouter', model: 'x' },
-            default:        { provider: 'openrouter', model: 'x' },
+            default: { provider: 'openrouter', model: 'x' },
           },
         },
       })
@@ -273,7 +292,9 @@ describe('harness spec gate', () => {
       // donde un throw fuera del try dejaba la tarea atascada en 'running' para
       // siempre sin pasar por este catch-all).
       expect(result.status).toBe('failed')
-      expect(result.retryReason).toContain(`Task 'no-spec-task' requires an approved spec. Run: orchestos spec approve no-spec-task`)
+      expect(result.retryReason).toContain(
+        `Task 'no-spec-task' requires an approved spec. Run: orchestos spec approve no-spec-task`,
+      )
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -311,15 +332,17 @@ describe('harness spec gate', () => {
           config_version: 1,
           requireSpec: true,
           models: {
-            planner:        { provider: 'openrouter', model: 'x' },
+            planner: { provider: 'openrouter', model: 'x' },
             executor_heavy: { provider: 'openrouter', model: 'x' },
             executor_light: { provider: 'openrouter', model: 'x' },
-            default:        { provider: 'openrouter', model: 'x' },
+            default: { provider: 'openrouter', model: 'x' },
           },
         },
       })
       expect(result.status).toBe('failed')
-      expect(result.retryReason).toContain(`Task 'draft-task' requires an approved spec. Run: orchestos spec approve draft-task`)
+      expect(result.retryReason).toContain(
+        `Task 'draft-task' requires an approved spec. Run: orchestos spec approve draft-task`,
+      )
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -332,7 +355,11 @@ describe('harness spec gate', () => {
       const { RunLogger } = await import('../run/logger.ts')
 
       // Save an approved spec
-      const approvedSpec = makeSpec({ id: 'approved-gate-task', status: 'approved', approvedAt: new Date().toISOString() })
+      const approvedSpec = makeSpec({
+        id: 'approved-gate-task',
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+      })
       saveSpec(dir, approvedSpec)
 
       const fakeTask = {
@@ -359,10 +386,10 @@ describe('harness spec gate', () => {
           config_version: 1,
           requireSpec: true,
           models: {
-            planner:        { provider: 'openrouter', model: 'x' },
+            planner: { provider: 'openrouter', model: 'x' },
             executor_heavy: { provider: 'openrouter', model: 'x' },
             executor_light: { provider: 'openrouter', model: 'x' },
-            default:        { provider: 'openrouter', model: 'x' },
+            default: { provider: 'openrouter', model: 'x' },
           },
         },
       })
@@ -404,10 +431,10 @@ describe('harness spec gate', () => {
           config_version: 1,
           requireSpec: false,
           models: {
-            planner:        { provider: 'openrouter', model: 'x' },
+            planner: { provider: 'openrouter', model: 'x' },
             executor_heavy: { provider: 'openrouter', model: 'x' },
             executor_light: { provider: 'openrouter', model: 'x' },
-            default:        { provider: 'openrouter', model: 'x' },
+            default: { provider: 'openrouter', model: 'x' },
           },
         },
       })

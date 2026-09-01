@@ -23,10 +23,10 @@
 
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
+import type { MemoryEntry, MemoryScope } from '../db/memory.ts'
 import { listByScope, upsertMemory } from '../db/memory.ts'
 import { loadSpec } from '../spec/store.ts'
 import type { SubTask } from './sub-agent.ts'
-import type { MemoryEntry, MemoryScope } from '../db/memory.ts'
 
 // ---------------------------------------------------------------------------
 // Limits
@@ -80,9 +80,9 @@ export function buildIsolatedContext(
 ): IsolatedContext {
   // (a) Context slice ─────────────────────────────────────────────────────────
   const contextRaw = readContextFile(projectRoot)
-  const keywords   = extractKeywords(subTask)
+  const keywords = extractKeywords(subTask)
   const contextSlice = contextRaw
-    ? sliceContext(contextRaw, keywords, MAX_CONTEXT_CHARS * 0.6)  // 60% budget
+    ? sliceContext(contextRaw, keywords, MAX_CONTEXT_CHARS * 0.6) // 60% budget
     : ''
 
   // (b) Session memories ──────────────────────────────────────────────────────
@@ -98,10 +98,23 @@ export function buildIsolatedContext(
     // spec missing or malformed — proceed without it
   }
 
-  const rendered      = renderContext({ contextSlice, memories: others, priorTopicKeyEntry: prior, spec, subTask })
+  const rendered = renderContext({
+    contextSlice,
+    memories: others,
+    priorTopicKeyEntry: prior,
+    spec,
+    subTask,
+  })
   const tokenEstimate = Math.round(rendered.length / 4)
 
-  return { contextSlice, memories: others, priorTopicKeyEntry: prior, spec, rendered, tokenEstimate }
+  return {
+    contextSlice,
+    memories: others,
+    priorTopicKeyEntry: prior,
+    spec,
+    rendered,
+    tokenEstimate,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -127,10 +140,10 @@ export function sliceContext(text: string, keywords: string[], maxChars: number)
 
   // Always include preamble (index 0)
   const preamble = sections[0] ?? ''
-  const rest     = sections.slice(1)
+  const rest = sections.slice(1)
 
   // Score remaining sections by keyword overlap
-  const scored = rest.map(s => ({
+  const scored = rest.map((s) => ({
     text: s,
     score: scoreSection(s, keywords),
   }))
@@ -147,7 +160,7 @@ export function sliceContext(text: string, keywords: string[], maxChars: number)
 
   for (const s of sorted) {
     if (remaining <= 0) break
-    if (s.score === 0 && parts.length > 2) break  // skip zero-score sections once we have some content
+    if (s.score === 0 && parts.length > 2) break // skip zero-score sections once we have some content
     const chunk = s.text.slice(0, remaining)
     parts.push(chunk)
     remaining -= chunk.length
@@ -184,7 +197,7 @@ export function selectMemories(
   if (allSession.length === 0) return { others: [] }
 
   const skillPrefix = subTask.skill ?? null
-  const ownKey      = subTask.topic_key ?? null
+  const ownKey = subTask.topic_key ?? null
 
   // Resolve depends_on sub-task IDs → their topic_keys.
   // depIds contains sub-task IDs (e.g. "write-greeting"), not topic_keys
@@ -193,7 +206,7 @@ export function selectMemories(
   const depTopicKeys = new Set<string>()
   if (allSubTasks && subTask.depends_on.length > 0) {
     for (const depId of subTask.depends_on) {
-      const dep = allSubTasks.find(t => t.id === depId)
+      const dep = allSubTasks.find((t) => t.id === depId)
       if (dep?.topic_key) depTopicKeys.add(dep.topic_key)
     }
   }
@@ -219,12 +232,11 @@ export function selectMemories(
     }
   }
 
-  scored.sort((a, b) =>
-    b.priority - a.priority ||
-    b.entry.updated_at.localeCompare(a.entry.updated_at)
+  scored.sort(
+    (a, b) => b.priority - a.priority || b.entry.updated_at.localeCompare(a.entry.updated_at),
   )
 
-  return { prior, others: scored.slice(0, MAX_MEMORY_ENTRIES).map(s => s.entry) }
+  return { prior, others: scored.slice(0, MAX_MEMORY_ENTRIES).map((s) => s.entry) }
 }
 
 // ---------------------------------------------------------------------------
@@ -259,8 +271,12 @@ function renderContext(opts: RenderOpts): string {
   if (priorTopicKeyEntry) {
     parts.push(`## ⚠️ MERGE REQUIRED — topic_key: ${priorTopicKeyEntry.topic_key}`)
     parts.push('This sub-task was previously executed. A prior result exists in memory.')
-    parts.push('**You MUST incorporate and extend the prior result below — do NOT overwrite or discard it.**')
-    parts.push('Your output must represent the combined state of the prior result and your new work.')
+    parts.push(
+      '**You MUST incorporate and extend the prior result below — do NOT overwrite or discard it.**',
+    )
+    parts.push(
+      'Your output must represent the combined state of the prior result and your new work.',
+    )
     parts.push('')
     parts.push('### Prior result')
     parts.push(priorTopicKeyEntry.content.trim())
@@ -305,11 +321,51 @@ function renderContext(opts: RenderOpts): string {
 // ---------------------------------------------------------------------------
 
 const STOP_WORDS = new Set([
-  'the', 'and', 'for', 'with', 'this', 'that', 'from', 'into', 'using',
-  'add', 'use', 'get', 'set', 'new', 'all', 'its', 'has', 'are', 'not',
-  'can', 'will', 'should', 'must', 'make', 'create', 'update', 'delete',
-  'file', 'files', 'code', 'task', 'test', 'run', 'src', 'lib', 'each',
-  'sub', 'task', 'every', 'when', 'than', 'also', 'only', 'just', 'any',
+  'the',
+  'and',
+  'for',
+  'with',
+  'this',
+  'that',
+  'from',
+  'into',
+  'using',
+  'add',
+  'use',
+  'get',
+  'set',
+  'new',
+  'all',
+  'its',
+  'has',
+  'are',
+  'not',
+  'can',
+  'will',
+  'should',
+  'must',
+  'make',
+  'create',
+  'update',
+  'delete',
+  'file',
+  'files',
+  'code',
+  'task',
+  'test',
+  'run',
+  'src',
+  'lib',
+  'each',
+  'sub',
+  'task',
+  'every',
+  'when',
+  'than',
+  'also',
+  'only',
+  'just',
+  'any',
 ])
 
 /** Extracts unique lowercase keywords (≥3 chars) from the sub-task description and acceptance. */
@@ -324,7 +380,7 @@ export function extractKeywords(subTask: SubTask): string[] {
   return text
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter(t => t.length >= 3 && !STOP_WORDS.has(t))
+    .filter((t) => t.length >= 3 && !STOP_WORDS.has(t))
     .filter((t, i, arr) => arr.indexOf(t) === i)
 }
 
@@ -337,9 +393,9 @@ export function extractKeywords(subTask: SubTask): string[] {
  * First element is everything before the first heading (preamble).
  */
 function splitIntoSections(text: string): string[] {
-  const lines    = text.split('\n')
+  const lines = text.split('\n')
   const sections: string[] = []
-  let current:   string[] = []
+  let current: string[] = []
 
   for (const line of lines) {
     if (/^#{1,3} /.test(line) && current.length > 0) {

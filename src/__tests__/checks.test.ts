@@ -6,13 +6,13 @@
  * A.5 (Mes 22 / IDEAS #36) — gap análogo para JS embebido en `.html`/`.js` (bug real
  * en Mes 20/C.1 — `:` donde iba `+` en `<script>`).
  */
-import { describe, it, expect, afterEach } from 'bun:test'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, unlinkSync } from 'fs'
-import { join } from 'path'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { defaultChecksFor, runChecks } from '../run/checks.ts'
+import { cleanupJsCheckTemp, jsCheckTempPath } from '../run/html-script-check.ts'
 import { RunLogger } from '../run/logger.ts'
-import { jsCheckTempPath, cleanupJsCheckTemp } from '../run/html-script-check.ts'
 
 let tmpDirs: string[] = []
 let tempPathsToCleanup: string[] = []
@@ -34,7 +34,11 @@ function trackHtmlTemp(htmlAbsPath: string): void {
 afterEach(() => {
   for (const d of tmpDirs) rmSync(d, { recursive: true, force: true })
   for (const p of tempPathsToCleanup) {
-    try { unlinkSync(p) } catch { /* ya borrado */ }
+    try {
+      unlinkSync(p)
+    } catch {
+      /* ya borrado */
+    }
   }
   tmpDirs = []
   tempPathsToCleanup = []
@@ -50,13 +54,15 @@ describe('defaultChecksFor', () => {
   it('adds a tsc check for .tsx output too', () => {
     const root = makeRoot(true)
     const checks = defaultChecksFor(['src/Foo.tsx'], root)
-    expect(checks.some(c => c.cmd === 'bunx tsc --noEmit')).toBe(true)
+    expect(checks.some((c) => c.cmd === 'bunx tsc --noEmit')).toBe(true)
   })
 
   it('adds a bun test check per *.test.ts output file', () => {
     const root = makeRoot(true)
     const checks = defaultChecksFor(['src/foo.ts', 'src/__tests__/foo.test.ts'], root)
-    expect(checks).toContainEqual(expect.objectContaining({ cmd: 'bun test src/__tests__/foo.test.ts' }))
+    expect(checks).toContainEqual(
+      expect.objectContaining({ cmd: 'bun test src/__tests__/foo.test.ts' }),
+    )
   })
 
   it('K.3: empty test file gets an assertion check that fails', async () => {
@@ -64,7 +70,7 @@ describe('defaultChecksFor', () => {
     const testPath = join(root, 'empty.test.ts')
     writeFileSync(testPath, `import { it } from 'bun:test'\nit('x', () => {})\n`)
     const checks = defaultChecksFor(['empty.test.ts'], root)
-    const assertionCheck = checks.find(c => c.cmd.includes('check-test-assertions'))
+    const assertionCheck = checks.find((c) => c.cmd.includes('check-test-assertions'))
     expect(assertionCheck).toBeDefined()
 
     const results = await runChecks([assertionCheck!], root, new RunLogger(root, 'k3-empty'))
@@ -75,9 +81,12 @@ describe('defaultChecksFor', () => {
   it('K.3: test file with a real assertion passes the assertion check', async () => {
     const root = makeRoot(true)
     const testPath = join(root, 'real.test.ts')
-    writeFileSync(testPath, `import { expect, it } from 'bun:test'\nit('x', () => expect(1).toBe(1))\n`)
+    writeFileSync(
+      testPath,
+      `import { expect, it } from 'bun:test'\nit('x', () => expect(1).toBe(1))\n`,
+    )
     const checks = defaultChecksFor(['real.test.ts'], root)
-    const assertionCheck = checks.find(c => c.cmd.includes('check-test-assertions'))
+    const assertionCheck = checks.find((c) => c.cmd.includes('check-test-assertions'))
     expect(assertionCheck).toBeDefined()
 
     const results = await runChecks([assertionCheck!], root, new RunLogger(root, 'k3-real'))
@@ -99,13 +108,13 @@ describe('defaultChecksFor', () => {
   it('does not duplicate the tsc check when multiple .ts files are declared', () => {
     const root = makeRoot(true)
     const checks = defaultChecksFor(['src/a.ts', 'src/b.ts'], root)
-    expect(checks.filter(c => c.cmd === 'bunx tsc --noEmit')).toHaveLength(1)
+    expect(checks.filter((c) => c.cmd === 'bunx tsc --noEmit')).toHaveLength(1)
   })
 
   it('adds tsc for mixed TypeScript and non-code output when dependencies exist', () => {
     const root = makeRoot(true)
     const checks = defaultChecksFor(['src/a.ts', 'docs/README.md'], root)
-    expect(checks.some(c => c.cmd === 'bunx tsc --noEmit')).toBe(true)
+    expect(checks.some((c) => c.cmd === 'bunx tsc --noEmit')).toBe(true)
   })
 
   it('adds a bun test check for TSX test output', () => {
@@ -119,14 +128,14 @@ describe('defaultChecksFor', () => {
     mkdirSync(join(root, 'src'))
     writeFileSync(join(root, 'src/Foo.test.tsx'), 'it("x", () => {})')
     const checks = defaultChecksFor(['src/Foo.test.tsx'], root)
-    expect(checks.some(c => c.cmd.includes('check-test-assertions'))).toBe(true)
+    expect(checks.some((c) => c.cmd.includes('check-test-assertions'))).toBe(true)
   })
 
   it('does not add an assertion check for a non-test TypeScript file', () => {
     const root = makeRoot(false)
     writeFileSync(join(root, 'src.ts'), 'export const value = 1')
     const checks = defaultChecksFor(['src.ts'], root)
-    expect(checks.some(c => c.cmd.includes('check-test-assertions'))).toBe(false)
+    expect(checks.some((c) => c.cmd.includes('check-test-assertions'))).toBe(false)
   })
 
   // ── A.5 (Mes 22 / IDEAS #36): sintaxis JS embebido en HTML/.js ───────────────
@@ -136,7 +145,7 @@ describe('defaultChecksFor', () => {
     const jsPath = join(root, 'inline.js')
     writeFileSync(jsPath, 'const x = 1;')
     const checks = defaultChecksFor(['inline.js'], root)
-    const jsCheck = checks.find(c => c.cmd.startsWith('node --check '))
+    const jsCheck = checks.find((c) => c.cmd.startsWith('node --check '))
     expect(jsCheck).toBeDefined()
     expect(jsCheck!.cmd).toContain('inline.js')
     expect(jsCheck!.timeout_ms).toBeGreaterThan(0)
@@ -145,7 +154,7 @@ describe('defaultChecksFor', () => {
   it('does NOT emit a check for a .js file that does not exist on disk (el contrato lo cubre)', () => {
     const root = makeRoot(true)
     const checks = defaultChecksFor(['ghost.js'], root)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(false)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(false)
   })
 
   it('emits a node --check temp-file for an .html with inline JS', () => {
@@ -157,7 +166,7 @@ describe('defaultChecksFor', () => {
       `<!doctype html><html><body><script>const x = 1;</script></body></html>`,
     )
     const checks = defaultChecksFor(['page.html'], root)
-    const jsCheck = checks.find(c => c.cmd.startsWith('node --check '))
+    const jsCheck = checks.find((c) => c.cmd.startsWith('node --check '))
     expect(jsCheck).toBeDefined()
     expect(jsCheck!.cmd).not.toContain('page.html')
     expect(jsCheck!.cmd).toMatch(/orchestos-jscheck-/)
@@ -168,20 +177,20 @@ describe('defaultChecksFor', () => {
     const root = makeRoot(true)
     writeFileSync(join(root, 'static.html'), '<!doctype html><html><body></body></html>')
     const checks = defaultChecksFor(['static.html'], root)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(false)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(false)
   })
 
   it('does not treat script-like text in a non-HTML file as inline JavaScript', () => {
     const root = makeRoot(true)
     writeFileSync(join(root, 'notes.md'), '<script>const broken = :;</script>')
     const checks = defaultChecksFor(['notes.md'], root)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(false)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(false)
   })
 
   it('does NOT emit a JS check for an .html that does not exist on disk', () => {
     const root = makeRoot(true)
     const checks = defaultChecksFor(['missing.html'], root)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(false)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(false)
   })
 
   it('emits a JS check for an .html even when node_modules is missing (does not depend on node_modules)', () => {
@@ -193,7 +202,7 @@ describe('defaultChecksFor', () => {
       '<!doctype html><html><body><script>const x = 1;</script></body></html>',
     )
     const checks = defaultChecksFor(['page.html'], root)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(true)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(true)
   })
 
   it('keeps tsc/bun test gated on node_modules while emitting JS check (mixed output)', () => {
@@ -205,8 +214,8 @@ describe('defaultChecksFor', () => {
       '<!doctype html><html><body><script>const x = 1;</script></body></html>',
     )
     const checks = defaultChecksFor(['src/foo.ts', 'page.html'], root)
-    expect(checks.some(c => c.cmd === 'bunx tsc --noEmit')).toBe(false)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(true)
+    expect(checks.some((c) => c.cmd === 'bunx tsc --noEmit')).toBe(false)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(true)
   })
 
   // ── Gate causal (A.5): el bug de C.1 (`:` en vez de `+`) ahora se detecta ────
@@ -222,21 +231,21 @@ describe('defaultChecksFor', () => {
     writeFileSync(
       htmlPath,
       '<!doctype html><html><body>\n' +
-      '<script>\n' +
-      '  const label = "hi" : "world";\n' +
-      '  console.log(label);\n' +
-      '</script>\n' +
-      '</body></html>',
+        '<script>\n' +
+        '  const label = "hi" : "world";\n' +
+        '  console.log(label);\n' +
+        '</script>\n' +
+        '</body></html>',
     )
     const checks = defaultChecksFor(['broken.html'], root)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(true)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(true)
     const [{ runChecks }, { RunLogger }] = await Promise.all([
       import('../run/checks.ts'),
       import('../run/logger.ts'),
     ])
     const logger = new RunLogger(root, 'a5-integration')
     const results = await runChecks(checks, root, logger)
-    const jsResult = results.find(r => r.cmd.startsWith('node --check '))
+    const jsResult = results.find((r) => r.cmd.startsWith('node --check '))
     expect(jsResult).toBeDefined()
     expect(jsResult!.exitCode).not.toBe(0)
     expect(jsResult!.stderr).toContain("Unexpected token ':'")
@@ -249,21 +258,21 @@ describe('defaultChecksFor', () => {
     writeFileSync(
       htmlPath,
       '<!doctype html><html><body>\n' +
-      '<script>\n' +
-      '  const label = "hi" + "world";\n' +
-      '  console.log(label);\n' +
-      '</script>\n' +
-      '</body></html>',
+        '<script>\n' +
+        '  const label = "hi" + "world";\n' +
+        '  console.log(label);\n' +
+        '</script>\n' +
+        '</body></html>',
     )
     const checks = defaultChecksFor(['good.html'], root)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(true)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(true)
     const [{ runChecks }, { RunLogger }] = await Promise.all([
       import('../run/checks.ts'),
       import('../run/logger.ts'),
     ])
     const logger = new RunLogger(root, 'a5-positive')
     const results = await runChecks(checks, root, logger)
-    const jsResult = results.find(r => r.cmd.startsWith('node --check '))
+    const jsResult = results.find((r) => r.cmd.startsWith('node --check '))
     expect(jsResult).toBeDefined()
     expect(jsResult!.exitCode).toBe(0)
     expect(jsResult!.timedOut).toBe(false)
@@ -276,14 +285,14 @@ describe('defaultChecksFor', () => {
     trackHtmlTemp(jsPath) // reuso el tracking — el path se computa de forma estable
     writeFileSync(jsPath, 'const x = 1;\nconst y = "a" : "b";\n')
     const checks = defaultChecksFor(['broken-standalone.js'], root)
-    expect(checks.some(c => c.cmd.startsWith('node --check '))).toBe(true)
+    expect(checks.some((c) => c.cmd.startsWith('node --check '))).toBe(true)
     const [{ runChecks }, { RunLogger }] = await Promise.all([
       import('../run/checks.ts'),
       import('../run/logger.ts'),
     ])
     const logger = new RunLogger(root, 'a5-js-standalone')
     const results = await runChecks(checks, root, logger)
-    const jsResult = results.find(r => r.cmd.startsWith('node --check '))
+    const jsResult = results.find((r) => r.cmd.startsWith('node --check '))
     expect(jsResult).toBeDefined()
     expect(jsResult!.exitCode).not.toBe(0)
     expect(jsResult!.stderr).toContain("Unexpected token ':'")
@@ -294,7 +303,10 @@ describe('defaultChecksFor', () => {
     tempPathsToCleanup.push(path)
     writeFileSync(path, 'const x = 1;')
     expect(cleanupJsCheckTemp('/nonexistent/abc/def.html')).toBe(true)
-    try { unlinkSync(path); throw new Error('expected ENOENT') } catch (e: any) {
+    try {
+      unlinkSync(path)
+      throw new Error('expected ENOENT')
+    } catch (e: any) {
       expect(e.code).toBe('ENOENT')
     }
   })
@@ -338,11 +350,7 @@ describe('defaultChecksFor', () => {
 
   it('runChecks fails closed for an empty command', async () => {
     const root = makeRoot(false)
-    const [result] = await runChecks(
-      [{ cmd: '' }],
-      root,
-      new RunLogger(root, 'empty-command'),
-    )
+    const [result] = await runChecks([{ cmd: '' }], root, new RunLogger(root, 'empty-command'))
 
     expect(result).toMatchObject({ cmd: '', exitCode: 1, timedOut: false })
     expect(result?.stderr).toContain('empty command')

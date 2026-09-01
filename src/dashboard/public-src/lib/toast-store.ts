@@ -32,7 +32,9 @@ function emit(): void {
 
 export function subscribeToasts(listener: () => void): () => void {
   listeners.add(listener)
-  return () => { listeners.delete(listener) }
+  return () => {
+    listeners.delete(listener)
+  }
 }
 
 export function getToasts(): ToastItem[] {

@@ -1,5 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
-import { runToolLoop, FETCH_URL_TOOL, SEARCH_MEMORY_TOOL, createToolRouter } from '../providers/tool-call.ts'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import {
+  createToolRouter,
+  FETCH_URL_TOOL,
+  runToolLoop,
+  SEARCH_MEMORY_TOOL,
+} from '../providers/tool-call.ts'
 
 const originalFetch = globalThis.fetch
 
@@ -24,22 +29,26 @@ function mockFetch(responses: Array<{ status?: number; body: any }>) {
     const resp = responses[callIndex]
     if (!resp) throw new Error(`Unexpected fetch #${callIndex} to ${urlStr}`)
     callIndex++
-    return Promise.resolve(new Response(JSON.stringify(resp.body), {
-      status: resp.status ?? 200,
-      headers: { 'Content-Type': 'application/json' },
-    }))
+    return Promise.resolve(
+      new Response(JSON.stringify(resp.body), {
+        status: resp.status ?? 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
   }) as unknown as typeof globalThis.fetch
   return () => callIndex
 }
 
 describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
   it('returns text directly when no tool calls', async () => {
-    mockFetch([{
-      body: {
-        choices: [{ message: { content: 'Hello there!' } }],
-        usage: { prompt_tokens: 5, completion_tokens: 3 },
+    mockFetch([
+      {
+        body: {
+          choices: [{ message: { content: 'Hello there!' } }],
+          usage: { prompt_tokens: 5, completion_tokens: 3 },
+        },
       },
-    }])
+    ])
 
     const result = await runToolLoop('openrouter', 'openai/gpt-4o-mini', {
       system: 'Be concise',
@@ -58,10 +67,15 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
     let capturedBody: any = null
     globalThis.fetch = ((_url: string | URL, init?: RequestInit): Promise<Response> => {
       capturedBody = JSON.parse(String(init?.body))
-      return Promise.resolve(new Response(JSON.stringify({
-        choices: [{ message: { content: 'ok' } }],
-        usage: { prompt_tokens: 1, completion_tokens: 1 },
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            choices: [{ message: { content: 'ok' } }],
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
     }) as unknown as typeof globalThis.fetch
 
     await runToolLoop('openrouter', 'deepseek/deepseek-r1', {
@@ -79,10 +93,15 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
     let capturedBody: any = null
     globalThis.fetch = ((_url: string | URL, init?: RequestInit): Promise<Response> => {
       capturedBody = JSON.parse(String(init?.body))
-      return Promise.resolve(new Response(JSON.stringify({
-        choices: [{ message: { content: 'ok' } }],
-        usage: { prompt_tokens: 1, completion_tokens: 1 },
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            choices: [{ message: { content: 'ok' } }],
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
     }) as unknown as typeof globalThis.fetch
 
     await runToolLoop('openrouter', 'openai/gpt-4o-mini', {
@@ -99,14 +118,20 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
     mockFetch([
       {
         body: {
-          choices: [{
-            message: {
-              content: null,
-              tool_calls: [
-                { id: 'call_1', type: 'function', function: { name: 'fetch_url', arguments: '{"url":"https://example.com"}' } },
-              ],
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call_1',
+                    type: 'function',
+                    function: { name: 'fetch_url', arguments: '{"url":"https://example.com"}' },
+                  },
+                ],
+              },
             },
-          }],
+          ],
           usage: { prompt_tokens: 10, completion_tokens: 5 },
         },
       },
@@ -131,7 +156,10 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
 
     expect(result.text).toBe('Page content loaded.')
     expect(result.toolCallsExecuted).toHaveLength(1)
-    expect(result.toolCallsExecuted[0]).toEqual({ name: 'fetch_url', input: { url: 'https://example.com' } })
+    expect(result.toolCallsExecuted[0]).toEqual({
+      name: 'fetch_url',
+      input: { url: 'https://example.com' },
+    })
     expect(result.inputTokens).toBe(40)
     expect(result.outputTokens).toBe(15)
   })
@@ -140,15 +168,25 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
     mockFetch([
       {
         body: {
-          choices: [{
-            message: {
-              content: null,
-              tool_calls: [
-                { id: 'call_1', type: 'function', function: { name: 'fetch_url', arguments: '{"url":"https://a.com"}' } },
-                { id: 'call_2', type: 'function', function: { name: 'fetch_url', arguments: '{"url":"https://b.com"}' } },
-              ],
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call_1',
+                    type: 'function',
+                    function: { name: 'fetch_url', arguments: '{"url":"https://a.com"}' },
+                  },
+                  {
+                    id: 'call_2',
+                    type: 'function',
+                    function: { name: 'fetch_url', arguments: '{"url":"https://b.com"}' },
+                  },
+                ],
+              },
             },
-          }],
+          ],
           usage: { prompt_tokens: 20, completion_tokens: 10 },
         },
       },
@@ -180,23 +218,39 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
     mockFetch([
       {
         body: {
-          choices: [{
-            message: {
-              content: null,
-              tool_calls: [{ id: 'c1', type: 'function', function: { name: 'fetch_url', arguments: '{"url":"https://a.com"}' } }],
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'c1',
+                    type: 'function',
+                    function: { name: 'fetch_url', arguments: '{"url":"https://a.com"}' },
+                  },
+                ],
+              },
             },
-          }],
+          ],
           usage: { prompt_tokens: 10, completion_tokens: 5 },
         },
       },
       {
         body: {
-          choices: [{
-            message: {
-              content: null,
-              tool_calls: [{ id: 'c2', type: 'function', function: { name: 'fetch_url', arguments: '{"url":"https://b.com"}' } }],
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'c2',
+                    type: 'function',
+                    function: { name: 'fetch_url', arguments: '{"url":"https://b.com"}' },
+                  },
+                ],
+              },
             },
-          }],
+          ],
           usage: { prompt_tokens: 10, completion_tokens: 5 },
         },
       },
@@ -225,12 +279,20 @@ describe('runToolLoop — OpenAI-compatible (openrouter)', () => {
     mockFetch([
       {
         body: {
-          choices: [{
-            message: {
-              content: 'Let me check...',
-              tool_calls: [{ id: 'c1', type: 'function', function: { name: 'fetch_url', arguments: '{"url":"https://bad.com"}' } }],
+          choices: [
+            {
+              message: {
+                content: 'Let me check...',
+                tool_calls: [
+                  {
+                    id: 'c1',
+                    type: 'function',
+                    function: { name: 'fetch_url', arguments: '{"url":"https://bad.com"}' },
+                  },
+                ],
+              },
             },
-          }],
+          ],
           usage: { prompt_tokens: 10, completion_tokens: 5 },
         },
       },
@@ -267,22 +329,34 @@ describe('createToolRouter', () => {
 
   it('returns an error string for an unregistered tool name', async () => {
     const router = createToolRouter({ fetch_url: async () => 'ok' })
-    expect(await router('search_memory', { query: 'foo' })).toBe('[Error: unknown tool "search_memory"]')
+    expect(await router('search_memory', { query: 'foo' })).toBe(
+      '[Error: unknown tool "search_memory"]',
+    )
   })
 
   it('multi-tool loop routes each call to its own handler', async () => {
     mockFetch([
       {
         body: {
-          choices: [{
-            message: {
-              content: null,
-              tool_calls: [
-                { id: 'c1', type: 'function', function: { name: 'fetch_url', arguments: '{"url":"https://a.com"}' } },
-                { id: 'c2', type: 'function', function: { name: 'search_memory', arguments: '{"query":"foo"}' } },
-              ],
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'c1',
+                    type: 'function',
+                    function: { name: 'fetch_url', arguments: '{"url":"https://a.com"}' },
+                  },
+                  {
+                    id: 'c2',
+                    type: 'function',
+                    function: { name: 'search_memory', arguments: '{"query":"foo"}' },
+                  },
+                ],
+              },
             },
-          }],
+          ],
           usage: { prompt_tokens: 20, completion_tokens: 10 },
         },
       },
@@ -316,12 +390,14 @@ describe('createToolRouter', () => {
 
 describe('runToolLoop — Anthropic', () => {
   it('returns text directly when no tool calls', async () => {
-    mockFetch([{
-      body: {
-        content: [{ type: 'text', text: 'Hello from Claude!' }],
-        usage: { input_tokens: 8, output_tokens: 4 },
+    mockFetch([
+      {
+        body: {
+          content: [{ type: 'text', text: 'Hello from Claude!' }],
+          usage: { input_tokens: 8, output_tokens: 4 },
+        },
       },
-    }])
+    ])
 
     const result = await runToolLoop('anthropic', 'anthropic/claude-haiku-4-5', {
       system: 'Be concise',
@@ -342,7 +418,12 @@ describe('runToolLoop — Anthropic', () => {
         body: {
           content: [
             { type: 'text', text: 'Let me fetch that...' },
-            { type: 'tool_use', id: 'toolu_abc', name: 'fetch_url', input: { url: 'https://example.com' } },
+            {
+              type: 'tool_use',
+              id: 'toolu_abc',
+              name: 'fetch_url',
+              input: { url: 'https://example.com' },
+            },
           ],
           usage: { input_tokens: 15, output_tokens: 8 },
         },
@@ -368,7 +449,10 @@ describe('runToolLoop — Anthropic', () => {
 
     expect(result.text).toBe('Here is the content.')
     expect(result.toolCallsExecuted).toHaveLength(1)
-    expect(result.toolCallsExecuted[0]).toEqual({ name: 'fetch_url', input: { url: 'https://example.com' } })
+    expect(result.toolCallsExecuted[0]).toEqual({
+      name: 'fetch_url',
+      input: { url: 'https://example.com' },
+    })
     expect(result.inputTokens).toBe(55)
     expect(result.outputTokens).toBe(20)
   })

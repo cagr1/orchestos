@@ -1,7 +1,7 @@
 /* ============================================================
    OrchestOS — screens: Project, Instincts, Runs, Specs
    ============================================================ */
-window.SCREENS = window.SCREENS || {};
+window.SCREENS = window.SCREENS || {}
 
 /* ============================================================
    PROJECT — CONSTITUTION.md (editable) + CONTEXT.md (read-only)
@@ -9,8 +9,13 @@ window.SCREENS = window.SCREENS || {};
 // B.1 (Mes 18) — vista de solo lectura de chat_task_bar_events, para que
 // Carlos vea la evidencia del gate B.1.b sin depender de un query manual.
 function renderChatEvidence(st) {
-  const summary = st.chatTaskBarEventsSummary || { totalMessages: 0, barShownCount: 0, barHiddenCount: 0, clickCount: 0 };
-  const events = st.chatTaskBarEvents || [];
+  const summary = st.chatTaskBarEventsSummary || {
+    totalMessages: 0,
+    barShownCount: 0,
+    barHiddenCount: 0,
+    clickCount: 0,
+  }
+  const events = st.chatTaskBarEvents || []
 
   const summaryLine = `<div class="proj-helper">${t('project.chatEvidence.helper')}</div>
     <div class="chat-evidence-summary">
@@ -18,24 +23,28 @@ function renderChatEvidence(st) {
       <span><b>${summary.barHiddenCount}</b> ${t('project.chatEvidence.barHidden')}</span>
       <span><b>${summary.barShownCount}</b> ${t('project.chatEvidence.barShown')}</span>
       <span><b>${summary.clickCount}</b> ${t('project.chatEvidence.clicks')}</span>
-    </div>`;
+    </div>`
 
-  const rows = events.map(e => {
-    if (e.kind === 'click') {
-      return `<tr class="chat-evidence-click"><td colspan="3">${t('project.chatEvidence.clickRow')}</td><td>${esc(formatLocalDate(e.created_at))}</td></tr>`;
-    }
-    const barLabel = e.bar_shown === 1 ? t('project.chatEvidence.shown') : t('project.chatEvidence.hidden');
-    return `<tr>
+  const rows = events
+    .map((e) => {
+      if (e.kind === 'click') {
+        return `<tr class="chat-evidence-click"><td colspan="3">${t('project.chatEvidence.clickRow')}</td><td>${esc(formatLocalDate(e.created_at))}</td></tr>`
+      }
+      const barLabel =
+        e.bar_shown === 1 ? t('project.chatEvidence.shown') : t('project.chatEvidence.hidden')
+      return `<tr>
       <td>${esc(e.message || '')}</td>
       <td>${e.history_len ?? ''}</td>
       <td>${barLabel}</td>
       <td>${esc(formatLocalDate(e.created_at))}</td>
-    </tr>`;
-  }).join('');
+    </tr>`
+    })
+    .join('')
 
-  const table = events.length === 0
-    ? `<p class="muted">${t('project.chatEvidence.empty')}</p>`
-    : `<table class="tbl">
+  const table =
+    events.length === 0
+      ? `<p class="muted">${t('project.chatEvidence.empty')}</p>`
+      : `<table class="tbl">
         <thead><tr>
           <th>${t('project.chatEvidence.colMessage')}</th>
           <th>${t('project.chatEvidence.colHistoryLen')}</th>
@@ -43,16 +52,16 @@ function renderChatEvidence(st) {
           <th>${t('project.chatEvidence.colWhen')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
-      </table>`;
+      </table>`
 
-  return `<div class="proj-editor-wrap">${summaryLine}${table}</div>`;
+  return `<div class="proj-editor-wrap">${summaryLine}${table}</div>`
 }
 
 SCREENS.project = {
   _saveTimer: null,
 
   render(st) {
-    const tab = st.projectTab || 'constitution';
+    const tab = st.projectTab || 'constitution'
 
     const tabs = `<div class="proj-tabs">
       <button class="proj-tab ${tab === 'constitution' ? 'active' : ''}" data-tab="constitution">
@@ -64,15 +73,16 @@ SCREENS.project = {
       <button class="proj-tab ${tab === 'chat-evidence' ? 'active' : ''}" data-tab="chat-evidence">
         ${t('project.tab.chatEvidence')}
       </button>
-    </div>`;
+    </div>`
 
-    const saveIndicator = st.projectSaveState === 'saving'
-      ? `<span class="save-indicator saving">${t('project.saving')}</span>`
-      : st.projectSaveState === 'saved'
-        ? `<span class="save-indicator saved">${ICON.check} ${t('project.saved')}</span>`
-        : st.projectSaveState === 'error'
-          ? `<span class="save-indicator error">${t('project.save.err')}</span>`
-          : '';
+    const saveIndicator =
+      st.projectSaveState === 'saving'
+        ? `<span class="save-indicator saving">${t('project.saving')}</span>`
+        : st.projectSaveState === 'saved'
+          ? `<span class="save-indicator saved">${ICON.check} ${t('project.saved')}</span>`
+          : st.projectSaveState === 'error'
+            ? `<span class="save-indicator error">${t('project.save.err')}</span>`
+            : ''
 
     // v0.12 D.1.c — botón "Download PDF summary" en el header de Project
     // (visible en los 3 tabs). Equivalente de `orchestos summary [path]`,
@@ -82,16 +92,16 @@ SCREENS.project = {
     // a un tmp file que se borra al final, ver handler en project.ts).
     const summaryBtn = `<button class="btn ghost" data-act="download-summary" title="${t('project.summary.btn')}">
       ${ICON.download} <span class="summary-btn-label">${t('project.summary.btn')}</span>
-    </button>`;
+    </button>`
 
     const head = `<div class="screen-head">
       <div class="lead"><h1>${t('project.title')}</h1><p>${t('project.subtitle')}</p></div>
       <div class="tools" style="align-items:center;gap:8px">${saveIndicator}${summaryBtn}</div>
-    </div>`;
+    </div>`
 
     if (tab === 'constitution') {
-      const content = st.constitutionContent ?? '';
-      const isLoading = st.constitutionStatus === 'loading' || st.constitutionStatus === 'idle';
+      const content = st.constitutionContent ?? ''
+      const isLoading = st.constitutionStatus === 'loading' || st.constitutionStatus === 'idle'
       // v0.12 D.1.b — banner visible solo cuando CONSTITUTION.md NO existe en disco.
       // El editor ya viene pre-cargado con el scaffold (vía GET), así que un no-dev
       // nunca arranca con un textarea vacío. El banner deja explícito que el archivo
@@ -100,7 +110,7 @@ SCREENS.project = {
         ? `<div class="proj-preview-banner" role="status">
              <span>${t('project.constitution.previewBanner')}</span>
            </div>`
-        : '';
+        : ''
       // #40 (Mes 26, 2026-08-07) — Guardar/Limpiar explícitos en vez de auto-save por
       // tecla. `data-dirty` arranca en "false": recién cargado, el textarea coincide
       // con `st.constitutionContent` — no hay nada que guardar todavía.
@@ -117,21 +127,20 @@ SCREENS.project = {
                 <button class="btn primary" data-act="constitution-save" disabled>${ICON.check} ${t('project.constitution.save')}</button>
               </div>
             </div>
-          </div>`;
-      return `<div class="screen">${head}${tabs}${body}</div>`;
+          </div>`
+      return `<div class="screen">${head}${tabs}${body}</div>`
     }
 
     if (tab === 'chat-evidence') {
-      const isLoading = st.chatTaskBarEventsStatus === 'loading' || st.chatTaskBarEventsStatus === 'idle';
-      const body = isLoading
-        ? loadingState(t('project.loading'))
-        : renderChatEvidence(st);
-      return `<div class="screen">${head}${tabs}${body}</div>`;
+      const isLoading =
+        st.chatTaskBarEventsStatus === 'loading' || st.chatTaskBarEventsStatus === 'idle'
+      const body = isLoading ? loadingState(t('project.loading')) : renderChatEvidence(st)
+      return `<div class="screen">${head}${tabs}${body}</div>`
     }
 
     // context tab
-    const ctxContent = st.contextContent ?? '';
-    const ctxLoading = st.contextStatus === 'loading' || st.contextStatus === 'idle';
+    const ctxContent = st.contextContent ?? ''
+    const ctxLoading = st.contextStatus === 'loading' || st.contextStatus === 'idle'
     const body = ctxLoading
       ? loadingState(t('project.loading'))
       : `<div class="proj-editor-wrap">
@@ -145,116 +154,122 @@ SCREENS.project = {
               <button class="btn ghost" data-act="index">${ICON.refresh} ${t('project.index')}</button>
             </div>
           </div>
-        </div>`;
-    return `<div class="screen">${head}${tabs}${body}</div>`;
+        </div>`
+    return `<div class="screen">${head}${tabs}${body}</div>`
   },
 
   wire(root, st) {
     // Tab switching
-    root.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => {
-      st.projectTab = btn.dataset.tab;
-      // #40 (Mes 26, 2026-08-07) — salir del tab reconstruye el textarea desde
-      // st.constitutionContent en el próximo render (rama `else` de abajo), así
-      // que cualquier cambio sin guardar ya se pierde con esta navegación
-      // explícita — bajar el flag para que el guard de fetchAll() no siga
-      // bloqueando el poll de 30s en otras pantallas por un editor que ya no
-      // está en pantalla.
-      if (btn.dataset.tab !== 'constitution') st.constitutionDirty = false;
-      if (btn.dataset.tab === 'constitution' && st.constitutionStatus === 'idle') {
-        App.fetchConstitution().then(() => App.rerender());
-      } else if (btn.dataset.tab === 'context' && st.contextStatus === 'idle') {
-        App.fetchContext().then(() => App.rerender());
-      } else if (btn.dataset.tab === 'chat-evidence') {
-        // Siempre refresca (no solo idle) — a diferencia de constitution/context,
-        // este dato cambia en cada mensaje real que Carlos manda al chat.
-        st.chatTaskBarEventsStatus = 'idle';
-        App.rerender();
-        App.fetchChatTaskBarEvents().then(() => App.rerender());
-      } else {
-        App.rerender();
-      }
-    }));
+    root.querySelectorAll('[data-tab]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        st.projectTab = btn.dataset.tab
+        // #40 (Mes 26, 2026-08-07) — salir del tab reconstruye el textarea desde
+        // st.constitutionContent en el próximo render (rama `else` de abajo), así
+        // que cualquier cambio sin guardar ya se pierde con esta navegación
+        // explícita — bajar el flag para que el guard de fetchAll() no siga
+        // bloqueando el poll de 30s en otras pantallas por un editor que ya no
+        // está en pantalla.
+        if (btn.dataset.tab !== 'constitution') st.constitutionDirty = false
+        if (btn.dataset.tab === 'constitution' && st.constitutionStatus === 'idle') {
+          App.fetchConstitution().then(() => App.rerender())
+        } else if (btn.dataset.tab === 'context' && st.contextStatus === 'idle') {
+          App.fetchContext().then(() => App.rerender())
+        } else if (btn.dataset.tab === 'chat-evidence') {
+          // Siempre refresca (no solo idle) — a diferencia de constitution/context,
+          // este dato cambia en cada mensaje real que Carlos manda al chat.
+          st.chatTaskBarEventsStatus = 'idle'
+          App.rerender()
+          App.fetchChatTaskBarEvents().then(() => App.rerender())
+        } else {
+          App.rerender()
+        }
+      }),
+    )
 
     // Constitution editor — #40 (Mes 26, 2026-08-07): Guardar/Limpiar explícitos,
     // nunca autosave por tecla. Hallazgo real de Carlos (2026-07-13): escribió "hola"
     // para probar y se grabó a CONSTITUTION.md solo, sin pedirlo.
-    const editor = root.querySelector('#constitution-editor');
-    const dirtyIndicator = root.querySelector('#constitution-dirty');
-    const saveBtn = root.querySelector('[data-act="constitution-save"]');
+    const editor = root.querySelector('#constitution-editor')
+    const dirtyIndicator = root.querySelector('#constitution-dirty')
+    const saveBtn = root.querySelector('[data-act="constitution-save"]')
     if (editor) {
       // Sin App.rerender() acá a propósito: el render() reconstruye el <textarea>
       // desde st.constitutionContent en cada rerender — hacerlo en cada tecla
       // borraría lo que el usuario está escribiendo. Toggle directo del DOM.
       editor.addEventListener('input', () => {
-        const dirty = editor.value !== (st.constitutionContent ?? '');
-        if (dirtyIndicator) dirtyIndicator.style.display = dirty ? '' : 'none';
-        if (saveBtn) saveBtn.disabled = !dirty;
+        const dirty = editor.value !== (st.constitutionContent ?? '')
+        if (dirtyIndicator) dirtyIndicator.style.display = dirty ? '' : 'none'
+        if (saveBtn) saveBtn.disabled = !dirty
         // #40 — state.constitutionDirty (no solo el DOM) es lo que fetchAll()
         // consulta para no pisar un cambio sin guardar cuando el foco ya se
         // movió a un botón/modal (Guardar/Limpiar), fuera del textarea.
-        st.constitutionDirty = dirty;
-      });
+        st.constitutionDirty = dirty
+      })
     }
 
     saveBtn?.addEventListener('click', async () => {
-      const editorEl = root.querySelector('#constitution-editor');
-      if (!editorEl) return;
+      const editorEl = root.querySelector('#constitution-editor')
+      if (!editorEl) return
       // #40 — sin App.rerender() antes de que termine el fetch: un rerender
       // acá reconstruye el textarea desde st.constitutionContent, que todavía
       // tiene el valor VIEJO — el usuario vería su texto desaparecer mientras
       // guarda. Solo deshabilitar el botón (DOM directo) hasta que termine.
-      saveBtn.disabled = true;
+      saveBtn.disabled = true
       try {
         const res = await fetch('/api/project/constitution', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content: editorEl.value }),
-        });
-        st.constitutionContent = editorEl.value;
-        st.constitutionDirty = false;
+        })
+        st.constitutionContent = editorEl.value
+        st.constitutionDirty = false
         if (res.ok) {
-          st.projectSaveState = 'saved';
+          st.projectSaveState = 'saved'
           // v0.12 D.1.b — el primer PUT crea el archivo; el banner preview debe
           // desaparecer a partir de acá (en el próximo rerender).
-          st.constitutionExists = true;
+          st.constitutionExists = true
         } else {
-          st.projectSaveState = 'error';
+          st.projectSaveState = 'error'
         }
       } catch {
-        st.projectSaveState = 'error';
+        st.projectSaveState = 'error'
       }
-      App.rerender();
-    });
+      App.rerender()
+    })
 
     root.querySelector('[data-act="constitution-clear"]')?.addEventListener('click', async () => {
-      const ok = await Modal.confirm(t('project.constitution.clear.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
-      if (!ok) return;
-      const editorEl = root.querySelector('#constitution-editor');
-      if (!editorEl) return;
+      const ok = await Modal.confirm(
+        t('project.constitution.clear.confirm'),
+        t('bulk.confirm.body'),
+        t('btn.confirm'),
+      )
+      if (!ok) return
+      const editorEl = root.querySelector('#constitution-editor')
+      if (!editorEl) return
       // Solo local — nunca toca disco por sí solo. El archivo real solo cambia si
       // el usuario después hace click en Guardar, acción separada y explícita.
-      editorEl.value = '';
-      const dirty = editorEl.value !== (st.constitutionContent ?? '');
-      const dirtyEl = root.querySelector('#constitution-dirty');
-      if (dirtyEl) dirtyEl.style.display = dirty ? '' : 'none';
-      const saveBtnEl = root.querySelector('[data-act="constitution-save"]');
-      if (saveBtnEl) saveBtnEl.disabled = !dirty;
-      st.constitutionDirty = dirty; // #40 — mismo flag que consulta fetchAll()
-      editorEl.focus();
-    });
+      editorEl.value = ''
+      const dirty = editorEl.value !== (st.constitutionContent ?? '')
+      const dirtyEl = root.querySelector('#constitution-dirty')
+      if (dirtyEl) dirtyEl.style.display = dirty ? '' : 'none'
+      const saveBtnEl = root.querySelector('[data-act="constitution-save"]')
+      if (saveBtnEl) saveBtnEl.disabled = !dirty
+      st.constitutionDirty = dirty // #40 — mismo flag que consulta fetchAll()
+      editorEl.focus()
+    })
 
     // Regenerate CONTEXT.md
     root.querySelector('[data-act="regenerate"]')?.addEventListener('click', async () => {
-      const btn = root.querySelector('[data-act="regenerate"]');
-      btn.disabled = true;
-      btn.textContent = t('project.context.regenerating');
-      await fetch('/api/project/context/regenerate', { method: 'POST' });
+      const btn = root.querySelector('[data-act="regenerate"]')
+      btn.disabled = true
+      btn.textContent = t('project.context.regenerating')
+      await fetch('/api/project/context/regenerate', { method: 'POST' })
       // Wait 1.5 s for the CLI to write the file, then reload
       setTimeout(async () => {
-        await App.fetchContext();
-        App.rerender();
-      }, 1500);
-    });
+        await App.fetchContext()
+        App.rerender()
+      }, 1500)
+    })
 
     // E.8 (Mes 18) — orchestos detect [path]: regenera AGENTS.md + context.json.
     // Destructivo: sobreescribe AGENTS.md por completo con contenido auto-generado,
@@ -262,45 +277,53 @@ SCREENS.project = {
     // Mismo comportamiento que `orchestos detect` en CLI — se descubrió al verificar
     // este botón en vivo (2026-07-07): pisó el AGENTS.md real del propio repo.
     root.querySelector('[data-act="detect"]')?.addEventListener('click', async (e) => {
-      const ok = await Modal.confirm(t('project.detect.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
-      if (!ok) return;
-      const btn = e.currentTarget;
-      btn.disabled = true;
+      const ok = await Modal.confirm(
+        t('project.detect.confirm'),
+        t('bulk.confirm.body'),
+        t('btn.confirm'),
+      )
+      if (!ok) return
+      const btn = e.currentTarget
+      btn.disabled = true
       try {
-        const res = await fetch('/api/project/detect', { method: 'POST' });
-        const data = await res.json();
+        const res = await fetch('/api/project/detect', { method: 'POST' })
+        const data = await res.json()
         if (res.ok) {
-          showToast(`${t('project.detect.done')} — ${data.name} (${data.runtime}/${data.framework}, ${data.elapsedMs}ms)`);
-          await App.fetchContext();
-          App.rerender();
+          showToast(
+            `${t('project.detect.done')} — ${data.name} (${data.runtime}/${data.framework}, ${data.elapsedMs}ms)`,
+          )
+          await App.fetchContext()
+          App.rerender()
         } else {
-          showToast(data.error || t('project.detect.err'), 'error');
+          showToast(data.error || t('project.detect.err'), 'error')
         }
       } catch {
-        showToast(t('project.detect.err'), 'error');
+        showToast(t('project.detect.err'), 'error')
       } finally {
-        btn.disabled = false;
+        btn.disabled = false
       }
-    });
+    })
 
     // E.8 — orchestos index [path]: indexa el proyecto en el code graph (S21)
     root.querySelector('[data-act="index"]')?.addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      btn.disabled = true;
+      const btn = e.currentTarget
+      btn.disabled = true
       try {
-        const res = await fetch('/api/project/index', { method: 'POST' });
-        const data = await res.json();
+        const res = await fetch('/api/project/index', { method: 'POST' })
+        const data = await res.json()
         if (res.ok) {
-          showToast(`${t('project.index.done')} — ${data.files} files, ${data.edges} edges (${data.elapsedMs}ms)`);
+          showToast(
+            `${t('project.index.done')} — ${data.files} files, ${data.edges} edges (${data.elapsedMs}ms)`,
+          )
         } else {
-          showToast(data.error || t('project.index.err'), 'error');
+          showToast(data.error || t('project.index.err'), 'error')
         }
       } catch {
-        showToast(t('project.index.err'), 'error');
+        showToast(t('project.index.err'), 'error')
       } finally {
-        btn.disabled = false;
+        btn.disabled = false
       }
-    });
+    })
 
     // v0.12 D.1.c — Download PDF summary (equivalente de `orchestos summary`).
     // El endpoint devuelve application/pdf con Content-Disposition: attachment,
@@ -310,75 +333,75 @@ SCREENS.project = {
     // el blob falla y mostramos toast con el mensaje real. Sin esto, un
     // <a download> "silencioso" se traga el error del backend.
     root.querySelector('[data-act="download-summary"]')?.addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      const labelEl = btn.querySelector('.summary-btn-label');
-      const originalLabel = labelEl ? labelEl.textContent : '';
-      btn.disabled = true;
-      if (labelEl) labelEl.textContent = t('project.summary.generating');
+      const btn = e.currentTarget
+      const labelEl = btn.querySelector('.summary-btn-label')
+      const originalLabel = labelEl ? labelEl.textContent : ''
+      btn.disabled = true
+      if (labelEl) labelEl.textContent = t('project.summary.generating')
       try {
-        const res = await fetch('/api/project/summary');
+        const res = await fetch('/api/project/summary')
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: '' }));
-          showToast(err.error || t('project.summary.err'), 'error');
-          return;
+          const err = await res.json().catch(() => ({ error: '' }))
+          showToast(err.error || t('project.summary.err'), 'error')
+          return
         }
-        const blob = await res.blob();
+        const blob = await res.blob()
         // extraer filename del header Content-Disposition (mismo que el server
         // puso). Fallback defensivo por si el header no viene.
-        const disp = res.headers.get('Content-Disposition') || '';
-        const m = disp.match(/filename="?([^";]+)"?/);
-        const filename = m ? m[1] : 'project-summary.pdf';
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        const disp = res.headers.get('Content-Disposition') || ''
+        const m = disp.match(/filename="?([^";]+)"?/)
+        const filename = m ? m[1] : 'project-summary.pdf'
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
         // revoke diferido — el browser necesita el URL vivo al menos un tick
         // para que la descarga dispare antes de invalidarlo.
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast(t('project.summary.ok'));
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        showToast(t('project.summary.ok'))
       } catch (e) {
-        showToast(t('project.summary.err'), 'error');
+        showToast(t('project.summary.err'), 'error')
       } finally {
-        btn.disabled = false;
-        if (labelEl) labelEl.textContent = originalLabel;
+        btn.disabled = false
+        if (labelEl) labelEl.textContent = originalLabel
       }
-    });
+    })
   },
-};
+}
 
 /* ============================================================
    4 · HÁBITOS DEL AGENTE  (Instincts — E1)
    ============================================================ */
 SCREENS.instincts = {
   verdict(i) {
-    if (!i.verified) return { cls: 'amber', txt: t('instincts.state.proposal') };
-    if (i.confidence >= 0.8) return { cls: 'green', txt: t('instincts.state.active') };
-    return { cls: 'gray', txt: t('instincts.state.inactive') };
+    if (!i.verified) return { cls: 'amber', txt: t('instincts.state.proposal') }
+    if (i.confidence >= 0.8) return { cls: 'green', txt: t('instincts.state.active') }
+    return { cls: 'gray', txt: t('instincts.state.inactive') }
   },
   confLabel(c) {
-    if (c >= 0.8) return { cls: 'hi', txt: t('instincts.conf.high') };
-    if (c < 0.6)  return { cls: 'lo', txt: t('instincts.conf.low') };
-    return { cls: '',   txt: t('instincts.conf.med') };
+    if (c >= 0.8) return { cls: 'hi', txt: t('instincts.conf.high') }
+    if (c < 0.6) return { cls: 'lo', txt: t('instincts.conf.low') }
+    return { cls: '', txt: t('instincts.conf.med') }
   },
   confBar(c) {
-    const { cls, txt } = this.confLabel(c);
+    const { cls, txt } = this.confLabel(c)
     return `<div class="conf">
       <div class="track"><i class="${cls}" style="width:${Math.round(c * 100)}%"></i></div>
       <span class="pct">${t('instincts.conf.label')} <b>${txt}</b></span>
-    </div>`;
+    </div>`
   },
   row(i) {
-    const v = this.verdict(i);
+    const v = this.verdict(i)
     const confInput = i.verified
       ? `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">
            <input type="range" min="0" max="1" step="0.05" value="${i.confidence}"
              data-conf-id="${esc(i.id)}" style="width:90px;accent-color:var(--accent)">
            <span class="mono faint" style="font-size:11px" data-conf-val="${esc(i.id)}">${Math.round(i.confidence * 100)}%</span>
          </div>`
-      : '';
+      : ''
     // I.8 (Mes 18) — un instinct ya aprobado no tenía ninguna acción, solo
     // el badge de estado. Botón de borrar chico junto al badge.
     const actions = !i.verified
@@ -389,15 +412,15 @@ SCREENS.instincts = {
       : `<div class="inline-actions">
            <span class="badge ${v.cls} instinct-state"><span class="d"></span>${v.txt}</span>
            <button class="btn ghost sm" data-delete-instinct="${esc(i.id)}" title="${t('instincts.btn.delete')}" aria-label="${t('instincts.btn.delete')}">${ICON.trash}</button>
-         </div>`;
-    const sel = bulkSet('instincts');
+         </div>`
+    const sel = bulkSet('instincts')
     return `<tr class="${!i.verified ? 'proposal' : ''}">
       <td style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-row="instincts" data-bulk-id="${esc(i.id)}" ${sel.has(i.id) ? 'checked' : ''}></td>
       <td><span class="mono" style="color:var(--text)">${esc(i.trigger)}</span></td>
       <td class="muted">${esc(i.action)}</td>
       <td>${this.confBar(i.confidence)}${confInput}</td>
       <td style="text-align:right">${actions}</td>
-    </tr>`;
+    </tr>`
   },
   render(st) {
     const head = `<div class="screen-head">
@@ -410,45 +433,51 @@ SCREENS.instincts = {
         <button class="btn ghost" data-act="propose-instinct">${ICON.instinct} Proponer</button>
         <button class="btn primary" data-act="add-instinct">${ICON.plus} ${t('instincts.btn.add')}</button>
       </div>
-    </div>`;
+    </div>`
 
     if (st.instinctsStatus === 'loading')
-      return `<div class="screen">${head}${loadingState(t('instincts.loading'))}</div>`;
+      return `<div class="screen">${head}${loadingState(t('instincts.loading'))}</div>`
     if (st.instinctsStatus === 'error')
-      return `<div class="screen">${head}${errorState(t('instincts.err.title'), t('instincts.err.body'))}</div>`;
+      return `<div class="screen">${head}${errorState(t('instincts.err.title'), t('instincts.err.body'))}</div>`
 
-    const all = st.instincts || [];
+    const all = st.instincts || []
     if (all.length === 0)
-      return `<div class="screen">${head}${emptyState(ICON.instinct, t('instincts.empty.title'), t('instincts.empty.body'))}</div>`;
+      return `<div class="screen">${head}${emptyState(ICON.instinct, t('instincts.empty.title'), t('instincts.empty.body'))}</div>`
 
-    const proposals = all.filter(i => !i.verified);
-    const active    = all.filter(i =>  i.verified && i.confidence >= 0.8);
-    const inactive  = all.filter(i =>  i.verified && i.confidence < 0.8);
+    const proposals = all.filter((i) => !i.verified)
+    const active = all.filter((i) => i.verified && i.confidence >= 0.8)
+    const inactive = all.filter((i) => i.verified && i.confidence < 0.8)
 
-    const sel = bulkSet('instincts');
+    const sel = bulkSet('instincts')
     // v0.12 Bloque A — dos tablas independientes (active/inactive) comparten
     // el mismo screen "instincts" de selección; el checkbox "todo" de cada
     // <thead> solo afecta las filas de ESA tabla (data-bulk-section-all +
     // wiring propio más abajo, en vez del data-bulk-all genérico compartido
     // que asume una sola tabla por screen).
-    const makeSection = (titleKey, ct, items) => items.length === 0 ? '' : `
+    const makeSection = (titleKey, ct, items) =>
+      items.length === 0
+        ? ''
+        : `
       <div class="section-title"><span>${t(titleKey)}</span><span class="ct">${ct}</span></div>
       <div class="card" style="overflow:hidden;margin-bottom:16px">
         <table class="tbl">
           <thead><tr>
-            <th style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-section-all="instincts" ${items.length > 0 && items.every(i => sel.has(i.id)) ? 'checked' : ''}></th>
+            <th style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-section-all="instincts" ${items.length > 0 && items.every((i) => sel.has(i.id)) ? 'checked' : ''}></th>
             <th>${t('instincts.col.when')}</th>
             <th>${t('instincts.col.what')}</th>
             <th style="width:180px">${t('instincts.col.conf')}</th>
             <th style="width:200px;text-align:right">${t('instincts.col.state')}</th>
           </tr></thead>
-          <tbody>${items.map(i => this.row(i)).join('')}</tbody>
+          <tbody>${items.map((i) => this.row(i)).join('')}</tbody>
         </table>
-      </div>`;
+      </div>`
 
-    const proposalCards = proposals.length ? `
+    const proposalCards = proposals.length
+      ? `
       <div class="section-title"><span>${t('instincts.sec.proposals')}</span><span class="ct">${proposals.length}</span></div>
-      ${proposals.map(i => `
+      ${proposals
+        .map(
+          (i) => `
         <div class="proposal-card">
           <div class="pc-main">
             <div class="pc-trig">
@@ -465,77 +494,113 @@ SCREENS.instincts = {
             <button class="btn success sm" data-approve="${esc(i.id)}">${ICON.check} ${t('instincts.btn.approve')}</button>
             <button class="btn danger sm" data-reject="${esc(i.id)}">${ICON.x} ${t('instincts.btn.reject')}</button>
           </div>
-        </div>`).join('')}` : '';
+        </div>`,
+        )
+        .join('')}`
+      : ''
 
     return `<div class="screen">${head}
       ${proposalCards}
       ${makeSection('instincts.sec.active', active.length, active)}
       ${makeSection('instincts.sec.inactive', inactive.length, inactive)}
       ${renderBulkBar('instincts', t('bulk.resource.instincts'))}
-    </div>`;
+    </div>`
   },
   wire(root, st) {
-    wireBulkSelect(root, 'instincts', '/api/instincts/bulk-delete', () => App.fetchInstincts(), t('bulk.resource.instincts'));
-    root.querySelectorAll('[data-bulk-section-all]').forEach(cb => {
-      cb.addEventListener('click', e => e.stopPropagation());
+    wireBulkSelect(
+      root,
+      'instincts',
+      '/api/instincts/bulk-delete',
+      () => App.fetchInstincts(),
+      t('bulk.resource.instincts'),
+    )
+    root.querySelectorAll('[data-bulk-section-all]').forEach((cb) => {
+      cb.addEventListener('click', (e) => e.stopPropagation())
       cb.addEventListener('change', () => {
-        const table = cb.closest('table');
-        const ids = [...table.querySelectorAll('[data-bulk-row="instincts"]')].map(r => r.dataset.bulkId);
-        bulkToggleAll('instincts', ids);
-      });
-    });
-    root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
-    root.querySelector('[data-act="add-instinct"]')?.addEventListener('click', () => Modal.openInstinct(st));
-    root.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', async () => {
-      const id = b.dataset.approve;
-      b.disabled = true;
-      try {
-        const res = await fetch(`/api/instincts/${encodeURIComponent(id)}/approve`, { method: 'POST' });
-        if (res.ok) await App.fetchInstincts();
-      } finally { b.disabled = false; }
-    }));
-    root.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', async () => {
-      const id = b.dataset.reject;
-      b.disabled = true;
-      try {
-        const res = await fetch(`/api/instincts/${encodeURIComponent(id)}/reject`, { method: 'POST' });
-        if (res.ok) await App.fetchInstincts();
-      } finally { b.disabled = false; }
-    }));
+        const table = cb.closest('table')
+        const ids = [...table.querySelectorAll('[data-bulk-row="instincts"]')].map(
+          (r) => r.dataset.bulkId,
+        )
+        bulkToggleAll('instincts', ids)
+      })
+    })
+    root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll())
+    root
+      .querySelector('[data-act="add-instinct"]')
+      ?.addEventListener('click', () => Modal.openInstinct(st))
+    root.querySelectorAll('[data-approve]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const id = b.dataset.approve
+        b.disabled = true
+        try {
+          const res = await fetch(`/api/instincts/${encodeURIComponent(id)}/approve`, {
+            method: 'POST',
+          })
+          if (res.ok) await App.fetchInstincts()
+        } finally {
+          b.disabled = false
+        }
+      }),
+    )
+    root.querySelectorAll('[data-reject]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const id = b.dataset.reject
+        b.disabled = true
+        try {
+          const res = await fetch(`/api/instincts/${encodeURIComponent(id)}/reject`, {
+            method: 'POST',
+          })
+          if (res.ok) await App.fetchInstincts()
+        } finally {
+          b.disabled = false
+        }
+      }),
+    )
     // I.8 (Mes 18) — borrar un instinct ya aprobado/activo.
-    root.querySelectorAll('[data-delete-instinct]').forEach(b => b.addEventListener('click', async () => {
-      const ok = await Modal.confirm(t('instincts.delete.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
-      if (!ok) return;
-      const id = b.dataset.deleteInstinct;
-      b.disabled = true;
-      try {
-        const res = await fetch(`/api/instincts/${encodeURIComponent(id)}`, { method: 'DELETE' });
-        if (res.ok) await App.fetchInstincts();
-        else showToast(t('instincts.delete.err'), 'error');
-      } finally { b.disabled = false; }
-    }));
+    root.querySelectorAll('[data-delete-instinct]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const ok = await Modal.confirm(
+          t('instincts.delete.confirm'),
+          t('bulk.confirm.body'),
+          t('btn.confirm'),
+        )
+        if (!ok) return
+        const id = b.dataset.deleteInstinct
+        b.disabled = true
+        try {
+          const res = await fetch(`/api/instincts/${encodeURIComponent(id)}`, { method: 'DELETE' })
+          if (res.ok) await App.fetchInstincts()
+          else showToast(t('instincts.delete.err'), 'error')
+        } finally {
+          b.disabled = false
+        }
+      }),
+    )
 
-    root.querySelectorAll('[data-conf-id]').forEach(slider => {
-      const id = slider.dataset.confId;
-      const valEl = root.querySelector(`[data-conf-val="${id}"]`);
-      let debounce;
+    root.querySelectorAll('[data-conf-id]').forEach((slider) => {
+      const id = slider.dataset.confId
+      const valEl = root.querySelector(`[data-conf-val="${id}"]`)
+      let debounce
       slider.addEventListener('input', () => {
-        const v = parseFloat(slider.value);
-        if (valEl) valEl.textContent = Math.round(v * 100) + '%';
-        clearTimeout(debounce);
+        const v = parseFloat(slider.value)
+        if (valEl) valEl.textContent = Math.round(v * 100) + '%'
+        clearTimeout(debounce)
         debounce = setTimeout(async () => {
           await fetch(`/api/instincts/${encodeURIComponent(id)}/confidence`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ confidence: v }),
-          });
-          await App.fetchInstincts();
-        }, 600);
-      });
-    });
+          })
+          await App.fetchInstincts()
+        }, 600)
+      })
+    })
 
-    root.querySelector('[data-act="propose-instinct"]')?.addEventListener('click', () => Modal.openPropose());
+    root
+      .querySelector('[data-act="propose-instinct"]')
+      ?.addEventListener('click', () => Modal.openPropose())
   },
-};
+}
 
 /* ============================================================
    5 · RUNS
@@ -545,32 +610,34 @@ SCREENS.runs = {
   warnCell(n) {
     return n > 0
       ? `<span class="warn-dot">${ICON.warn} ${n}</span>`
-      : `<span class="warn-dot none">— 0</span>`;
+      : `<span class="warn-dot none">— 0</span>`
   },
   detail(r) {
     /* G.4 / B.2 — engine + iteraciones derivados server-side en RunRow desde costBreakdown[0].label.
        Label canónico: "single-shot" | "agentic (N rounds)" | "external (claude-code, N turn[s])".
        Para runs legacy sin breakdown persistido, ambos campos vienen como null y mostramos "unknown". */
     const engineLabel = r.engine
-      ? (r.engine === 'single-shot'
-          ? t('runs.detail.engine.single-shot')
-          : r.engine === 'agentic'
+      ? r.engine === 'single-shot'
+        ? t('runs.detail.engine.single-shot')
+        : r.engine === 'agentic'
           ? t('runs.detail.engine.agentic')
-          : t('runs.detail.engine.external'))
-      : '—';
-    const iterationsLabel = r.iterations != null
-      ? (r.engine === 'agentic'
+          : t('runs.detail.engine.external')
+      : '—'
+    const iterationsLabel =
+      r.iterations != null
+        ? r.engine === 'agentic'
           ? `${r.iterations} ${r.iterations === 1 ? 'round' : 'rounds'}`
           : r.engine === 'external'
-          ? `${r.iterations} ${r.iterations === 1 ? 'turn' : 'turns'}`
-          : String(r.iterations))
-      : '—';
-    const engineBadgeClass = r.engine === 'agentic' ? 'blue' : r.engine === 'external' ? 'purple' : 'gray';
+            ? `${r.iterations} ${r.iterations === 1 ? 'turn' : 'turns'}`
+            : String(r.iterations)
+        : '—'
+    const engineBadgeClass =
+      r.engine === 'agentic' ? 'blue' : r.engine === 'external' ? 'purple' : 'gray'
     const engine = `<div class="grp"><h4>${t('runs.detail.engine')}</h4>
        <div class="kv"><span class="k">${t('runs.detail.engine.type')}</span>
          <span class="v"><span class="badge ${engineBadgeClass}">${esc(engineLabel)}</span></span></div>
        <div class="kv"><span class="k">${t('runs.detail.iterations')}</span><span class="v">${esc(iterationsLabel)}</span></div>
-     </div>`;
+     </div>`
 
     /* C.1 — "info de proceso" del subproceso externo. Solo se muestra cuando
        engine === 'external' Y el primer cost entry trae binary+args (los runs
@@ -590,57 +657,72 @@ SCREENS.runs = {
     })()
 
     /* costBreakdown: {label, model, inputTokens, outputTokens, costUsd} */
-    const bd = r.costBreakdown && r.costBreakdown.length > 1
-      ? `<div class="grp"><h4>Cost Breakdown</h4><div class="breakdown">` +
-        r.costBreakdown.map(c => {
-          const pct = r.costUsd > 0 ? Math.round(c.costUsd / r.costUsd * 100) : 0;
-          return `<div class="row"><span class="muted">${esc(c.label)}</span>
+    const bd =
+      r.costBreakdown && r.costBreakdown.length > 1
+        ? `<div class="grp"><h4>Cost Breakdown</h4><div class="breakdown">` +
+          r.costBreakdown
+            .map((c) => {
+              const pct = r.costUsd > 0 ? Math.round((c.costUsd / r.costUsd) * 100) : 0
+              return `<div class="row"><span class="muted">${esc(c.label)}</span>
             <div class="bar"><i style="width:${pct}%"></i></div>
-            <span class="num">${usd(c.costUsd)}</span></div>`;
-        }).join('') + `</div></div>`
-      : `<div class="grp"><h4>${t('runs.detail.cost')}</h4><div class="muted" style="font-size:12.5px">${t('runs.detail.cost.single')} ${usd(r.costUsd)}.</div></div>`;
+            <span class="num">${usd(c.costUsd)}</span></div>`
+            })
+            .join('') +
+          `</div></div>`
+        : `<div class="grp"><h4>${t('runs.detail.cost')}</h4><div class="muted" style="font-size:12.5px">${t('runs.detail.cost.single')} ${usd(r.costUsd)}.</div></div>`
 
     /* contextWarnings: {code, severity: 'warning'|'critical'|'notice', message} */
-    const warns = r.contextWarnings && r.contextWarnings.length
-      ? `<div class="grp"><h4>${t('runs.detail.warnings')}</h4>` +
-        r.contextWarnings.map(w => {
-          const c = w.severity === 'critical' ? 'var(--error)' : w.severity === 'warning' ? 'var(--warning)' : 'var(--accent)';
-          return `<div class="warn-item"><span class="badge square" style="color:${c};border-color:${c};background:transparent">${esc(w.severity)}</span><span style="color:var(--text)">${esc(w.message)}</span></div>`;
-        }).join('') + `</div>`
-      : `<div class="grp"><h4>${t('runs.detail.warnings')}</h4><div class="muted" style="font-size:12.5px">${t('runs.detail.no.warn')}</div></div>`;
+    const warns =
+      r.contextWarnings && r.contextWarnings.length
+        ? `<div class="grp"><h4>${t('runs.detail.warnings')}</h4>` +
+          r.contextWarnings
+            .map((w) => {
+              const c =
+                w.severity === 'critical'
+                  ? 'var(--error)'
+                  : w.severity === 'warning'
+                    ? 'var(--warning)'
+                    : 'var(--accent)'
+              return `<div class="warn-item"><span class="badge square" style="color:${c};border-color:${c};background:transparent">${esc(w.severity)}</span><span style="color:var(--text)">${esc(w.message)}</span></div>`
+            })
+            .join('') +
+          `</div>`
+        : `<div class="grp"><h4>${t('runs.detail.warnings')}</h4><div class="muted" style="font-size:12.5px">${t('runs.detail.no.warn')}</div></div>`
 
     const qa = r.qaVerdict
       ? `<div class="grp"><h4>${t('runs.detail.qa')}</h4>
            <div class="kv"><span class="k">Verdict</span><span class="v"><span class="badge ${r.qaVerdict === 'pass' ? 'green' : 'red'}">${r.qaVerdict}</span></span></div>
          </div>`
-      : '';
+      : ''
 
     // v0.12/C.2 — visor de diff por run (docs/diff-review-design.md). Solo presente en
     // runs 'done' con al menos un archivo escrito. renderFileDiffEntry() (data.js) es
     // compartido con la pestaña Diff del panel derecho (v0.13 seed) — mismo motor.
-    const filesChanged = (r.fileDiffs && r.fileDiffs.length)
-      ? `<div class="grp"><h4>${t('runs.detail.files')}</h4>` +
-        r.fileDiffs.map(f => renderFileDiffEntry(r.id, f)).join('') + `</div>`
-      : '';
+    const filesChanged =
+      r.fileDiffs && r.fileDiffs.length
+        ? `<div class="grp"><h4>${t('runs.detail.files')}</h4>` +
+          r.fileDiffs.map((f) => renderFileDiffEntry(r.id, f)).join('') +
+          `</div>`
+        : ''
 
     const meta = `<div class="grp"><h4>${t('runs.detail.meta')}</h4>
       ${r.skillId ? `<div class="kv"><span class="k">${t('runs.detail.skill')}</span><span class="v">${esc(r.skillId)}</span></div>` : ''}
       ${r.provider ? `<div class="kv"><span class="k">${t('runs.detail.provider')}</span><span class="v">${esc(r.provider)}</span></div>` : ''}
       ${r.elapsedMs ? `<div class="kv"><span class="k">${t('runs.detail.elapsed')}</span><span class="v">${(r.elapsedMs / 1000).toFixed(1)}s</span></div>` : ''}
-    </div>`;
+    </div>`
 
     // I.8 (Mes 18) — Runs no tenía forma de borrar registros viejos.
     const deleteAction = `<div class="grp" style="margin-top:2px">
       <button class="btn danger sm" data-run-act="delete" data-run-id="${esc(r.id)}">${ICON.trash} ${t('runs.btn.delete')}</button>
-    </div>`;
+    </div>`
 
-    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${filesChanged}${bd}${warns}${qa}${meta}${deleteAction}</div></td></tr>`;
+    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${filesChanged}${bd}${warns}${qa}${meta}${deleteAction}</div></td></tr>`
   },
   render(st) {
-    const hasRunning = (st.runs || []).some(r => r.status === 'running');
+    const hasRunning = (st.runs || []).some((r) => r.status === 'running')
     const liveIndicator = hasRunning
       ? `<span class="live-indicator"><span class="live-dot"></span>${t('runs.live')}</span>`
-      : `<span class="live-indicator idle">${t('runs.idle')}</span>`;
+      : `<span class="live-indicator idle">${t('runs.idle')}</span>`
 
     const head = `<div class="screen-head">
       <div class="lead"><h1>${t('runs.title')}</h1><p>${t('runs.subtitle')}</p></div>
@@ -649,67 +731,83 @@ SCREENS.runs = {
         <button class="btn" data-act="runs-analyze" ${st.runsAnalyzeStatus === 'loading' ? 'disabled' : ''}>${ICON.bolt || ''} ${t('runs.analyze.btn')}</button>
         <button class="btn" data-act="refresh">${ICON.refresh} ${t('btn.refresh')}</button>
       </div>
-    </div>`;
+    </div>`
 
     const runsExplainer = `<div class="spec-explainer">
       <span class="spec-explainer-icon">${ICON.runs}</span>
       <div><strong>${t('runs.explainer.title')}</strong> ${t('runs.explainer.body')}</div>
-    </div>`;
+    </div>`
 
     // Bloque E (Mes 18, ex-IDEAS #9b) — equivalente a `orchestos runs --analyze`,
     // sin botón manual hasta hoy (solo se disparaba por hook automático).
     const analyzePanel = (() => {
-      if (st.runsAnalyzeStatus === 'loading') return `<div class="proj-helper">${t('runs.analyze.loading')}</div>`;
-      if (st.runsAnalyzeStatus === 'error') return `<div class="proj-helper" style="border-left-color:var(--error)">${t('runs.analyze.error')}</div>`;
-      const result = st.runsAnalyzeResult;
-      if (!result) return '';
-      if (result.message) return `<div class="proj-helper">${esc(result.message)}</div>`;
-      if (!result.suggestions || result.suggestions.length === 0) return `<div class="proj-helper">${t('runs.analyze.none')}</div>`;
-      const items = result.suggestions.map(s =>
-        `<div class="kv"><span class="k">[${esc(s.confidence)}] ${esc(s.pattern)} (${s.frequency}x)</span><span class="v">${esc(s.fix_hint)}</span></div>`
-      ).join('');
-      const proposalsNote = result.proposals && result.proposals.length > 0
-        ? `<div class="muted" style="font-size:12px;margin-top:6px">${t('runs.analyze.proposals', result.proposals.length)}</div>`
-        : '';
-      return `<div class="grp" style="margin-bottom:16px"><h4>${t('runs.analyze.title')}</h4>${items}${proposalsNote}</div>`;
-    })();
+      if (st.runsAnalyzeStatus === 'loading')
+        return `<div class="proj-helper">${t('runs.analyze.loading')}</div>`
+      if (st.runsAnalyzeStatus === 'error')
+        return `<div class="proj-helper" style="border-left-color:var(--error)">${t('runs.analyze.error')}</div>`
+      const result = st.runsAnalyzeResult
+      if (!result) return ''
+      if (result.message) return `<div class="proj-helper">${esc(result.message)}</div>`
+      if (!result.suggestions || result.suggestions.length === 0)
+        return `<div class="proj-helper">${t('runs.analyze.none')}</div>`
+      const items = result.suggestions
+        .map(
+          (s) =>
+            `<div class="kv"><span class="k">[${esc(s.confidence)}] ${esc(s.pattern)} (${s.frequency}x)</span><span class="v">${esc(s.fix_hint)}</span></div>`,
+        )
+        .join('')
+      const proposalsNote =
+        result.proposals && result.proposals.length > 0
+          ? `<div class="muted" style="font-size:12px;margin-top:6px">${t('runs.analyze.proposals', result.proposals.length)}</div>`
+          : ''
+      return `<div class="grp" style="margin-bottom:16px"><h4>${t('runs.analyze.title')}</h4>${items}${proposalsNote}</div>`
+    })()
 
     if (st.runsStatus === 'loading')
-      return `<div class="screen">${head}${runsExplainer}${loadingState(t('runs.loading'))}</div>`;
+      return `<div class="screen">${head}${runsExplainer}${loadingState(t('runs.loading'))}</div>`
     if (st.runsStatus === 'error')
-      return `<div class="screen">${head}${runsExplainer}${errorState(t('runs.err.title'), t('runs.err.body'))}</div>`;
+      return `<div class="screen">${head}${runsExplainer}${errorState(t('runs.err.title'), t('runs.err.body'))}</div>`
 
-    const allRuns = st.runs || [];
+    const allRuns = st.runs || []
     if (allRuns.length === 0)
-      return `<div class="screen">${head}${runsExplainer}${analyzePanel}${emptyState(ICON.runs, t('runs.empty.title'), t('runs.empty.body'))}</div>`;
+      return `<div class="screen">${head}${runsExplainer}${analyzePanel}${emptyState(ICON.runs, t('runs.empty.title'), t('runs.empty.body'))}</div>`
 
     // F2 — filter tabs
-    const counts = { all: allRuns.length, running: 0, done: 0, failed: 0 };
-    allRuns.forEach(r => {
-      const k = r.status === 'failed_permanent' ? 'failed' : r.status;
-      if (k in counts) counts[k]++;
-    });
+    const counts = { all: allRuns.length, running: 0, done: 0, failed: 0 }
+    allRuns.forEach((r) => {
+      const k = r.status === 'failed_permanent' ? 'failed' : r.status
+      if (k in counts) counts[k]++
+    })
     const tabLabels = {
-      all: t('runs.filter.all'), running: t('runs.filter.running'),
-      done: t('runs.filter.done'), failed: t('runs.filter.failed'),
-    };
-    const tabs = Object.entries(tabLabels).map(([k, label]) =>
-      `<button class="filter-tab ${st.runsFilter === k ? 'active' : ''}" data-runs-filter="${k}">
+      all: t('runs.filter.all'),
+      running: t('runs.filter.running'),
+      done: t('runs.filter.done'),
+      failed: t('runs.filter.failed'),
+    }
+    const tabs = Object.entries(tabLabels)
+      .map(
+        ([k, label]) =>
+          `<button class="filter-tab ${st.runsFilter === k ? 'active' : ''}" data-runs-filter="${k}">
         ${label} <span class="tab-ct">${counts[k] || 0}</span>
-      </button>`
-    ).join('');
+      </button>`,
+      )
+      .join('')
 
-    const runs = st.runsFilter === 'all'
-      ? allRuns
-      : allRuns.filter(r => (r.status === 'failed_permanent' ? 'failed' : r.status) === st.runsFilter);
+    const runs =
+      st.runsFilter === 'all'
+        ? allRuns
+        : allRuns.filter(
+            (r) => (r.status === 'failed_permanent' ? 'failed' : r.status) === st.runsFilter,
+          )
 
-    const sel = bulkSet('runs');
-    const runIds = runs.map(r => r.id);
-    const allChecked = runIds.length > 0 && runIds.every(id => sel.has(id));
-    const rows = runs.map(r => {
-      const open = st.openRun === r.id;
-      const warnCount = (r.contextWarnings || []).length;
-      const main = `<tr class="row ${open ? 'open' : ''}" data-run="${esc(r.id)}" tabindex="0">
+    const sel = bulkSet('runs')
+    const runIds = runs.map((r) => r.id)
+    const allChecked = runIds.length > 0 && runIds.every((id) => sel.has(id))
+    const rows = runs
+      .map((r) => {
+        const open = st.openRun === r.id
+        const warnCount = (r.contextWarnings || []).length
+        const main = `<tr class="row ${open ? 'open' : ''}" data-run="${esc(r.id)}" tabindex="0">
         <td style="width:32px"><input type="checkbox" class="bulk-checkbox" data-bulk-row="runs" data-bulk-id="${esc(r.id)}" ${sel.has(r.id) ? 'checked' : ''}></td>
         <td><span class="badge ${STATUS_BADGE[r.status] || 'gray'}"><span class="d"></span>${esc(r.status)}</span></td>
         <td class="mono">${r.taskId ? esc(r.taskId) : '<span class="faint">—</span>'}</td>
@@ -718,9 +816,10 @@ SCREENS.runs = {
         <td class="num">${usd(r.costUsd)}</td>
         <td>${this.warnCell(warnCount)}</td>
         <td class="mono faint">${esc(formatLocalDate(r.createdAt, { seconds: true }))}</td>
-      </tr>`;
-      return main + (open ? this.detail(r) : '');
-    }).join('');
+      </tr>`
+        return main + (open ? this.detail(r) : '')
+      })
+      .join('')
 
     return `<div class="screen">${head}${runsExplainer}${analyzePanel}
       <div class="filter-tabs" style="margin-bottom:12px">${tabs}</div>
@@ -731,74 +830,104 @@ SCREENS.runs = {
         </table>
       </div>
       ${renderBulkBar('runs', t('bulk.resource.runs'))}
-      </div>`;
+      </div>`
   },
   wire(root, st) {
-    wireBulkSelect(root, 'runs', '/api/runs/bulk-delete', () => App.fetchRuns(), t('bulk.resource.runs'));
-    root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll());
+    wireBulkSelect(
+      root,
+      'runs',
+      '/api/runs/bulk-delete',
+      () => App.fetchRuns(),
+      t('bulk.resource.runs'),
+    )
+    root.querySelector('[data-act="refresh"]')?.addEventListener('click', () => App.fetchAll())
     root.querySelector('[data-act="runs-analyze"]')?.addEventListener('click', async () => {
-      st.runsAnalyzeStatus = 'loading';
-      st.runsAnalyzeResult = null;
-      App.rerender();
+      st.runsAnalyzeStatus = 'loading'
+      st.runsAnalyzeResult = null
+      App.rerender()
       try {
-        const res = await fetch('/api/runs/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-        if (!res.ok) throw new Error(String(res.status));
-        st.runsAnalyzeResult = await res.json();
-        st.runsAnalyzeStatus = 'ok';
+        const res = await fetch('/api/runs/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        })
+        if (!res.ok) throw new Error(String(res.status))
+        st.runsAnalyzeResult = await res.json()
+        st.runsAnalyzeStatus = 'ok'
       } catch {
-        st.runsAnalyzeStatus = 'error';
+        st.runsAnalyzeStatus = 'error'
       }
-      App.rerender();
-    });
+      App.rerender()
+    })
 
     // F2 — filter tabs
-    root.querySelectorAll('[data-runs-filter]').forEach(btn => btn.addEventListener('click', () => {
-      st.runsFilter = btn.dataset.runsFilter;
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-runs-filter]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        st.runsFilter = btn.dataset.runsFilter
+        App.rerender()
+      }),
+    )
 
     // F1 — auto-refresh every 5s while on Runs screen
-    if (this._timer) clearInterval(this._timer);
+    if (this._timer) clearInterval(this._timer)
     this._timer = setInterval(async () => {
-      if (state.screen !== 'runs') { clearInterval(this._timer); this._timer = null; return; }
-      await App.fetchRuns();
-      App.rerender();
-    }, 5000);
+      if (state.screen !== 'runs') {
+        clearInterval(this._timer)
+        this._timer = null
+        return
+      }
+      await App.fetchRuns()
+      App.rerender()
+    }, 5000)
 
-    root.querySelectorAll('[data-run]').forEach(tr => {
+    root.querySelectorAll('[data-run]').forEach((tr) => {
       tr.addEventListener('click', () => {
-        st.openRun = st.openRun === tr.dataset.run ? null : tr.dataset.run;
-        App.rerender();
-      });
-      tr.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tr.click(); }
-      });
-    });
+        st.openRun = st.openRun === tr.dataset.run ? null : tr.dataset.run
+        App.rerender()
+      })
+      tr.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          tr.click()
+        }
+      })
+    })
 
     // v0.12/C.2 — expandir un diff colapsado (líneas ocultas por tamaño, ver Decisión 6).
-    root.querySelectorAll('[data-diff-expand]').forEach(btn => btn.addEventListener('click', e => {
-      e.stopPropagation();
-      state.diffExpanded.add(btn.dataset.diffExpand);
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-diff-expand]').forEach((btn) =>
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        state.diffExpanded.add(btn.dataset.diffExpand)
+        App.rerender()
+      }),
+    )
 
     // I.8 (Mes 18) — borrar un run viejo desde el detail expandido.
-    root.querySelectorAll('[data-run-act="delete"]').forEach(btn => btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      const ok = await Modal.confirm(t('runs.delete.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
-      if (!ok) return;
-      const id = btn.dataset.runId;
-      btn.disabled = true;
-      try {
-        const res = await fetch(`/api/runs/${encodeURIComponent(id)}`, { method: 'DELETE' });
-        if (res.ok) { st.openRun = null; await App.fetchRuns(); App.rerender(); }
-        else showToast(t('runs.delete.err'), 'error');
-      } finally {
-        btn.disabled = false;
-      }
-    }));
+    root.querySelectorAll('[data-run-act="delete"]').forEach((btn) =>
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation()
+        const ok = await Modal.confirm(
+          t('runs.delete.confirm'),
+          t('bulk.confirm.body'),
+          t('btn.confirm'),
+        )
+        if (!ok) return
+        const id = btn.dataset.runId
+        btn.disabled = true
+        try {
+          const res = await fetch(`/api/runs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+          if (res.ok) {
+            st.openRun = null
+            await App.fetchRuns()
+            App.rerender()
+          } else showToast(t('runs.delete.err'), 'error')
+        } finally {
+          btn.disabled = false
+        }
+      }),
+    )
   },
-};
+}
 
 /* ============================================================
    5b · GRAPH RUNNER (Mes 14 / C2)
@@ -809,29 +938,34 @@ const GRAPH_OUTCOME_COLOR = {
   failed_permanent: 'red',
   blocked: 'amber',
   skipped_circuit_breaker: 'gray',
-};
+}
 
 SCREENS.graph = {
   _timer: null,
 
   /* Mirrors src/run/graph-summary.ts: bucket entries by outcome + retryCount. */
   buckets(result, taskRows) {
-    const retryById = new Map((taskRows || []).map(t => [t.id, t.retryCount]));
-    const alone = [], retried = [], blocked = [], unfinished = [];
+    const retryById = new Map((taskRows || []).map((t) => [t.id, t.retryCount]))
+    const alone = [],
+      retried = [],
+      blocked = [],
+      unfinished = []
     for (const e of result.tasks) {
-      const rc = retryById.get(e.id) ?? 0;
-      if (e.outcome === 'completed' && rc === 0) alone.push(e);
-      else if (e.outcome === 'completed' || e.outcome === 'rate_limited_then_completed') retried.push(e);
-      else if (e.outcome === 'failed_permanent' || e.outcome === 'blocked') blocked.push(e);
-      else unfinished.push(e);
+      const rc = retryById.get(e.id) ?? 0
+      if (e.outcome === 'completed' && rc === 0) alone.push(e)
+      else if (e.outcome === 'completed' || e.outcome === 'rate_limited_then_completed')
+        retried.push(e)
+      else if (e.outcome === 'failed_permanent' || e.outcome === 'blocked') blocked.push(e)
+      else unfinished.push(e)
     }
-    return { alone, retried, blocked, unfinished };
+    return { alone, retried, blocked, unfinished }
   },
 
   resultRow(e) {
-    const retryBtn = e.outcome === 'failed_permanent' || e.outcome === 'blocked'
-      ? `<button class="btn ghost sm" data-act="graph-retry" data-task-id="${esc(e.id)}">${ICON.refresh} ${t('tasks.diagnose.retry')}</button>`
-      : '';
+    const retryBtn =
+      e.outcome === 'failed_permanent' || e.outcome === 'blocked'
+        ? `<button class="btn ghost sm" data-act="graph-retry" data-task-id="${esc(e.id)}">${ICON.refresh} ${t('tasks.diagnose.retry')}</button>`
+        : ''
     return `<tr>
       <td class="mono">${esc(e.id)}</td>
       <td><span class="badge ${GRAPH_OUTCOME_COLOR[e.outcome] || 'gray'} square">${esc(e.outcome)}</span></td>
@@ -840,31 +974,31 @@ SCREENS.graph = {
       <td class="num">${fmt(e.elapsed_ms)}</td>
       ${e.error ? `<td class="faint" style="max-width:320px">${esc(e.error)}</td>` : '<td></td>'}
       <td>${retryBtn}</td>
-    </tr>`;
+    </tr>`
   },
 
   resultBucket(title, entries) {
-    if (entries.length === 0) return '';
+    if (entries.length === 0) return ''
     return `<div class="grp"><h4>${title} (${entries.length})</h4>
-      <table class="tbl"><tbody>${entries.map(e => this.resultRow(e)).join('')}</tbody></table>
-    </div>`;
+      <table class="tbl"><tbody>${entries.map((e) => this.resultRow(e)).join('')}</tbody></table>
+    </div>`
   },
 
   resultPanel(run) {
     if (run.phase === 'error') {
       return `<div class="card" style="margin-top:16px"><div class="placeholder">
         <h3>${t('graph.err.run', esc(run.error))}</h3>
-      </div></div>`;
+      </div></div>`
     }
-    if (run.phase !== 'done' || !run.result) return '';
-    const r = run.result;
-    const b = this.buckets(r, run.tasks);
-    const total = r.tasks.length;
-    const autonomous = b.alone.length + b.retried.length;
-    const pct = total > 0 ? ((autonomous / total) * 100).toFixed(1) : '100.0';
+    if (run.phase !== 'done' || !run.result) return ''
+    const r = run.result
+    const b = this.buckets(r, run.tasks)
+    const total = r.tasks.length
+    const autonomous = b.alone.length + b.retried.length
+    const pct = total > 0 ? ((autonomous / total) * 100).toFixed(1) : '100.0'
     const breaker = r.circuit_break_reason
       ? `<div class="warn-item"><span class="badge amber square">⏹</span><span style="color:var(--text)">${t('graph.circuitBreak', esc(r.circuit_break_reason))}</span></div>`
-      : '';
+      : ''
     return `<div class="card" style="margin-top:16px">
       <div class="grp">
         <h4>${t('graph.result.title')}</h4>
@@ -876,23 +1010,23 @@ SCREENS.graph = {
       ${this.resultBucket(t('graph.bucket.retried'), b.retried)}
       ${this.resultBucket(t('graph.bucket.blocked'), b.blocked)}
       ${this.resultBucket(t('graph.bucket.unfinished'), b.unfinished)}
-    </div>`;
+    </div>`
   },
 
   render(st) {
-    const run = st.graphRun;
-    const isRunning = run?.phase === 'running';
+    const run = st.graphRun
+    const isRunning = run?.phase === 'running'
     const liveIndicator = isRunning
       ? `<span class="live-indicator"><span class="live-dot"></span>${t('graph.running')}</span>`
-      : `<span class="live-indicator idle">${t('graph.idle')}</span>`;
+      : `<span class="live-indicator idle">${t('graph.idle')}</span>`
 
     // I.7 (Mes 18) — "Run full plan" quedaba activo y sin explicación aunque
     // no hubiera ninguna tarea 'pending' (el único status que el graph
     // runner recoge, ver run/graph-runner.ts). Con todo en done/blocked el
     // botón no tenía ningún efecto útil.
-    const tasks = run?.tasks || [];
-    const pendingCount = tasks.filter(task => task.status === 'pending').length;
-    const allDone = tasks.length > 0 && pendingCount === 0;
+    const tasks = run?.tasks || []
+    const pendingCount = tasks.filter((task) => task.status === 'pending').length
+    const allDone = tasks.length > 0 && pendingCount === 0
 
     const head = `<div class="screen-head">
       <div class="lead"><h1>${t('graph.title')}</h1><p>${t('graph.subtitle')}</p></div>
@@ -906,41 +1040,45 @@ SCREENS.graph = {
         </label>
         <button class="btn primary" data-act="run-graph" ${isRunning || st.graphLaunching || allDone ? 'disabled' : ''}>${ICON.play} ${allDone ? t('graph.nothingToRun') : t('graph.runBtn')}</button>
       </div>
-    </div>`;
+    </div>`
 
     const explainer = `<div class="spec-explainer">
       <span class="spec-explainer-icon">${ICON.graph}</span>
       <div><strong>${t('graph.explainer.title')}</strong> ${t('graph.explainer.body')}</div>
-    </div>`;
+    </div>`
 
     if (st.graphStatus === 'loading')
-      return `<div class="screen">${head}${explainer}${loadingState()}</div>`;
+      return `<div class="screen">${head}${explainer}${loadingState()}</div>`
     if (st.graphStatus === 'error')
-      return `<div class="screen">${head}${explainer}${errorState(t('graph.err.title'), t('graph.err.body'))}</div>`;
+      return `<div class="screen">${head}${explainer}${errorState(t('graph.err.title'), t('graph.err.body'))}</div>`
 
     if (tasks.length === 0)
-      return `<div class="screen">${head}${explainer}${emptyState(ICON.graph, t('graph.empty.title'), t('graph.empty.body'))}</div>`;
+      return `<div class="screen">${head}${explainer}${emptyState(ICON.graph, t('graph.empty.title'), t('graph.empty.body'))}</div>`
 
-    const allDoneBanner = allDone ? `<div class="spec-explainer">
+    const allDoneBanner = allDone
+      ? `<div class="spec-explainer">
       <span class="spec-explainer-icon">${ICON.check}</span>
       <div>
         <strong>${t('graph.allDone.title')}</strong> ${t('graph.allDone.body', tasks.length)}
         <div style="margin-top:8px"><button class="btn sm" data-act="graph-add-task">${ICON.plus} ${t('graph.allDone.btn')}</button></div>
       </div>
-    </div>` : '';
+    </div>`
+      : ''
 
-    const rows = tasks.map(task => {
-      const splitBadge = task.hasSplitPlan
-        ? `<span class="badge amber square" style="margin-left:6px;cursor:pointer" data-approve-split="${esc(task.id)}" title="Split plan listo — click para ver y aprobar">⚡ Split</span>`
-        : '';
-      return `<tr data-task="${esc(task.id)}">
+    const rows = tasks
+      .map((task) => {
+        const splitBadge = task.hasSplitPlan
+          ? `<span class="badge amber square" style="margin-left:6px;cursor:pointer" data-approve-split="${esc(task.id)}" title="Split plan listo — click para ver y aprobar">⚡ Split</span>`
+          : ''
+        return `<tr data-task="${esc(task.id)}">
         <td><span class="badge ${STATUS_BADGE[task.status] || 'gray'}"><span class="d"></span>${esc(task.status)}</span>${splitBadge}</td>
         <td class="mono" style="white-space:nowrap">${esc(task.id)}</td>
         <td style="color:var(--text-muted)">${esc(task.description)}</td>
         <td class="mono faint">${esc(task.executor || '—')}</td>
         <td class="num">${task.retryCount}</td>
-      </tr>`;
-    }).join('');
+      </tr>`
+      })
+      .join('')
 
     return `<div class="screen">${head}${explainer}${allDoneBanner}
       <div class="card" style="overflow:hidden">
@@ -956,149 +1094,207 @@ SCREENS.graph = {
         </table>
       </div>
       ${this.resultPanel(run)}
-    </div>`;
+    </div>`
   },
 
   wire(root, st) {
-    root.querySelector('[data-act="graph-add-task"]')?.addEventListener('click', () => Modal.openTask());
+    root
+      .querySelector('[data-act="graph-add-task"]')
+      ?.addEventListener('click', () => Modal.openTask())
     root.querySelector('[data-act="run-graph"]')?.addEventListener('click', async () => {
-      const okGraph = await Modal.confirm(t('graph.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
-      if (!okGraph) return;
-      const maxCostEl = document.getElementById('graph-max-cost');
-      const maxMinutesEl = document.getElementById('graph-max-minutes');
-      const body = {};
-      if (maxCostEl && maxCostEl.value !== '') body.maxCost = Number(maxCostEl.value);
-      if (maxMinutesEl && maxMinutesEl.value !== '') body.maxMinutes = Number(maxMinutesEl.value);
-      st.graphLaunching = true;
-      App.rerender();
+      const okGraph = await Modal.confirm(
+        t('graph.confirm'),
+        t('bulk.confirm.body'),
+        t('btn.confirm'),
+      )
+      if (!okGraph) return
+      const maxCostEl = document.getElementById('graph-max-cost')
+      const maxMinutesEl = document.getElementById('graph-max-minutes')
+      const body = {}
+      if (maxCostEl && maxCostEl.value !== '') body.maxCost = Number(maxCostEl.value)
+      if (maxMinutesEl && maxMinutesEl.value !== '') body.maxMinutes = Number(maxMinutesEl.value)
+      st.graphLaunching = true
+      App.rerender()
       try {
-        const res = await fetch('/api/run/graph', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+        const res = await fetch('/api/run/graph', {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: { 'Content-Type': 'application/json' },
+        })
         if (res.status === 409) {
-          showToast(t('graph.alreadyRunning'), 'error');
+          showToast(t('graph.alreadyRunning'), 'error')
         } else if (!res.ok) {
-          showToast(t('graph.err.body'), 'error');
+          showToast(t('graph.err.body'), 'error')
         }
       } catch {
-        showToast(t('graph.err.body'), 'error');
+        showToast(t('graph.err.body'), 'error')
       } finally {
-        st.graphLaunching = false;
-        await App.fetchGraphStatus();
-        App.rerender();
+        st.graphLaunching = false
+        await App.fetchGraphStatus()
+        App.rerender()
       }
-    });
+    })
 
     // Mes 20 B.3 — approve split plan badge
-    root.querySelectorAll('[data-approve-split]').forEach(badge => badge.addEventListener('click', async e => {
-      e.stopPropagation();
-      const taskId = badge.dataset.approveSplit;
-      try {
-        const planRes = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/split-plan`);
-        if (!planRes.ok) { showToast('No se pudo leer el plan', 'error'); return; }
-        const plan = await planRes.json();
-        const subTaskLines = plan.subTasks.map((st, i) => {
-          const out = (st.output || [st.topic_key]).filter(Boolean).join(', ') || '—';
-          const deps = st.depends_on.length ? ` (deps: ${st.depends_on.join(', ')})` : '';
-          return `${i + 1}. ${st.id}${deps}\n   ${st.description}\n   → ${out}`;
-        }).join('\n\n');
-        const okSplit = await Modal.confirm(
-          `¿Aprobar el plan de "${taskId}"?`,
-          `${plan.subTasks.length} sub-tareas:\n\n${subTaskLines}`,
-          'Aprobar y ejecutar',
-        );
-        if (okSplit) {
-          const approveRes = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/approve-split`, { method: 'POST' });
-          if (approveRes.ok) {
-            showToast(`Split aprobado — ejecutando ${plan.subTasks.length} sub-tareas`);
-            await App.fetchGraphStatus();
-            App.rerender();
-          } else {
-            const err = await approveRes.json().catch(() => ({}));
-            showToast(err.error || 'Error al aprobar', 'error');
+    root.querySelectorAll('[data-approve-split]').forEach((badge) =>
+      badge.addEventListener('click', async (e) => {
+        e.stopPropagation()
+        const taskId = badge.dataset.approveSplit
+        try {
+          const planRes = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/split-plan`)
+          if (!planRes.ok) {
+            showToast('No se pudo leer el plan', 'error')
+            return
           }
+          const plan = await planRes.json()
+          const subTaskLines = plan.subTasks
+            .map((st, i) => {
+              const out = (st.output || [st.topic_key]).filter(Boolean).join(', ') || '—'
+              const deps = st.depends_on.length ? ` (deps: ${st.depends_on.join(', ')})` : ''
+              return `${i + 1}. ${st.id}${deps}\n   ${st.description}\n   → ${out}`
+            })
+            .join('\n\n')
+          const okSplit = await Modal.confirm(
+            `¿Aprobar el plan de "${taskId}"?`,
+            `${plan.subTasks.length} sub-tareas:\n\n${subTaskLines}`,
+            'Aprobar y ejecutar',
+          )
+          if (okSplit) {
+            const approveRes = await fetch(
+              `/api/tasks/${encodeURIComponent(taskId)}/approve-split`,
+              { method: 'POST' },
+            )
+            if (approveRes.ok) {
+              showToast(`Split aprobado — ejecutando ${plan.subTasks.length} sub-tareas`)
+              await App.fetchGraphStatus()
+              App.rerender()
+            } else {
+              const err = await approveRes.json().catch(() => ({}))
+              showToast(err.error || 'Error al aprobar', 'error')
+            }
+          }
+        } catch {
+          showToast('Error al cargar el plan', 'error')
         }
-      } catch {
-        showToast('Error al cargar el plan', 'error');
-      }
-    }));
+      }),
+    )
 
     // C2 — retry button per row (failed_permanent / blocked)
-    root.querySelectorAll('[data-act="graph-retry"]').forEach(btn => btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      const taskId = btn.dataset.taskId;
-      btn.disabled = true;
-      btn.textContent = t('tasks.diagnose.retrying');
-      try {
-        const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/run`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-        if (res.ok) {
-          showToast(t('tasks.diagnose.retry.ok'));
-          await App.fetchGraphStatus();
-          App.rerender();
-        } else {
-          showToast(t('tasks.diagnose.retry.err'), 'error');
+    root.querySelectorAll('[data-act="graph-retry"]').forEach((btn) =>
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation()
+        const taskId = btn.dataset.taskId
+        btn.disabled = true
+        btn.textContent = t('tasks.diagnose.retrying')
+        try {
+          const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+          })
+          if (res.ok) {
+            showToast(t('tasks.diagnose.retry.ok'))
+            await App.fetchGraphStatus()
+            App.rerender()
+          } else {
+            showToast(t('tasks.diagnose.retry.err'), 'error')
+          }
+        } catch {
+          showToast(t('tasks.diagnose.retry.err'), 'error')
         }
-      } catch {
-        showToast(t('tasks.diagnose.retry.err'), 'error');
-      }
-    }));
+      }),
+    )
 
     // C2 — poll while a run is in progress; stop once done/error or screen changes
-    if (this._timer) clearInterval(this._timer);
+    if (this._timer) clearInterval(this._timer)
     this._timer = setInterval(async () => {
-      if (state.screen !== 'graph') { clearInterval(this._timer); this._timer = null; return; }
-      if (state.graphRun?.phase !== 'running') return;
-      await App.fetchGraphStatus();
-      App.rerender();
-    }, 3000);
+      if (state.screen !== 'graph') {
+        clearInterval(this._timer)
+        this._timer = null
+        return
+      }
+      if (state.graphRun?.phase !== 'running') return
+      await App.fetchGraphStatus()
+      App.rerender()
+    }, 3000)
   },
-};
+}
 
 /* ============================================================
    6 · SETTINGS
    ============================================================ */
 const KEY_DEFS = [
-  { id: 'OPENROUTER_API_KEY', labelKey: 'settings.key.or.label',  descKey: 'settings.key.or.desc',  ph: 'sk-or-...' },
-  { id: 'ANTHROPIC_API_KEY',  labelKey: 'settings.key.ant.label', descKey: 'settings.key.ant.desc', ph: 'sk-ant-...' },
-  { id: 'OPENAI_API_KEY',     labelKey: 'settings.key.oai.label', descKey: 'settings.key.oai.desc', ph: 'sk-...' },
-  { id: 'OLLAMA_HOST', labelKey: 'settings.key.oll.label', descKey: 'settings.key.oll.desc', ph: 'http://localhost:11434', special: 'ollama' },
-];
+  {
+    id: 'OPENROUTER_API_KEY',
+    labelKey: 'settings.key.or.label',
+    descKey: 'settings.key.or.desc',
+    ph: 'sk-or-...',
+  },
+  {
+    id: 'ANTHROPIC_API_KEY',
+    labelKey: 'settings.key.ant.label',
+    descKey: 'settings.key.ant.desc',
+    ph: 'sk-ant-...',
+  },
+  {
+    id: 'OPENAI_API_KEY',
+    labelKey: 'settings.key.oai.label',
+    descKey: 'settings.key.oai.desc',
+    ph: 'sk-...',
+  },
+  {
+    id: 'OLLAMA_HOST',
+    labelKey: 'settings.key.oll.label',
+    descKey: 'settings.key.oll.desc',
+    ph: 'http://localhost:11434',
+    special: 'ollama',
+  },
+]
 
 SCREENS.settings = {
   _timer: null,
   itemBadge(item) {
-    if (item.ok) return `<span class="badge green square">${ICON.check} Ready</span>`;
-    if (item.critical) return `<span class="badge red square">${ICON.x} Required</span>`;
-    return `<span class="badge amber square">${ICON.warn} Optional</span>`;
+    if (item.ok) return `<span class="badge green square">${ICON.check} Ready</span>`
+    if (item.critical) return `<span class="badge red square">${ICON.x} Required</span>`
+    return `<span class="badge amber square">${ICON.warn} Optional</span>`
   },
   healthDot(status) {
-    const colors = { green: 'var(--success)', amber: 'var(--warning)', red: 'var(--error)', neutral: 'var(--text-faint)' };
-    const s = colors[status] || colors.neutral;
-    return `<span class="health-dot" style="background:${s};box-shadow:0 0 6px ${s}"></span>`;
+    const colors = {
+      green: 'var(--success)',
+      amber: 'var(--warning)',
+      red: 'var(--error)',
+      neutral: 'var(--text-faint)',
+    }
+    const s = colors[status] || colors.neutral
+    return `<span class="health-dot" style="background:${s};box-shadow:0 0 6px ${s}"></span>`
   },
   setupChecklist(st) {
-    const setup = st.setup;
+    const setup = st.setup
     if (st.setupStatus === 'loading' || st.setupStatus === 'idle') {
-      return `<div class="card settings-card setup-card">${loadingState(t('setup.loading'))}</div>`;
+      return `<div class="card settings-card setup-card">${loadingState(t('setup.loading'))}</div>`
     }
     if (st.setupStatus === 'error' || !setup) {
-      return `<div class="card settings-card setup-card">${errorState(t('setup.err.title'), t('setup.err.body'))}</div>`;
+      return `<div class="card settings-card setup-card">${errorState(t('setup.err.title'), t('setup.err.body'))}</div>`
     }
 
     const summary = setup.criticalMissing
       ? `<span class="badge red square">${ICON.warn} ${t('setup.summary.blocked')}</span>`
-      : `<span class="badge green square">${ICON.check} ${t('setup.summary.ready')}</span>`;
+      : `<span class="badge green square">${ICON.check} ${t('setup.summary.ready')}</span>`
 
-    const rows = (setup.items || []).map(item => {
-      const command = item.command
-        ? `<code class="setup-command">${esc(item.command)}</code>`
-        : '';
-      const action = item.action === 'copy-command' && item.command
-        ? `<button class="btn ghost sm" data-copy="${esc(item.command)}">${item.actionLabel || t('setup.copy')}</button>`
-        : item.action === 'open-wizard'
-          ? `<button class="btn ghost sm" data-open-wizard>${esc(item.actionLabel || t('setup.btn.configure'))}</button>`
-          : item.action === 'save-settings'
-            ? `<button class="btn ghost sm" data-focus-key>${item.actionLabel || t('settings.btn.save')}</button>`
-            : '';
-      return `<div class="setup-row ${item.ok ? 'ok' : item.critical ? 'critical' : 'optional'}">
+    const rows = (setup.items || [])
+      .map((item) => {
+        const command = item.command
+          ? `<code class="setup-command">${esc(item.command)}</code>`
+          : ''
+        const action =
+          item.action === 'copy-command' && item.command
+            ? `<button class="btn ghost sm" data-copy="${esc(item.command)}">${item.actionLabel || t('setup.copy')}</button>`
+            : item.action === 'open-wizard'
+              ? `<button class="btn ghost sm" data-open-wizard>${esc(item.actionLabel || t('setup.btn.configure'))}</button>`
+              : item.action === 'save-settings'
+                ? `<button class="btn ghost sm" data-focus-key>${item.actionLabel || t('settings.btn.save')}</button>`
+                : ''
+        return `<div class="setup-row ${item.ok ? 'ok' : item.critical ? 'critical' : 'optional'}">
         <div class="setup-icon">${item.ok ? ICON.check : item.critical ? ICON.x : ICON.warn}</div>
         <div class="setup-main">
           <div class="setup-title">${esc(item.label)}</div>
@@ -1106,8 +1302,9 @@ SCREENS.settings = {
           ${command}
         </div>
         <div class="setup-side">${this.itemBadge(item)}${action}</div>
-      </div>`;
-    }).join('');
+      </div>`
+      })
+      .join('')
 
     return `<div class="card settings-card setup-card">
       <div class="settings-header setup-header">
@@ -1118,68 +1315,84 @@ SCREENS.settings = {
         ${summary}
       </div>
       <div class="setup-list">${rows}</div>
-    </div>`;
+    </div>`
   },
   healthBlocks(st) {
-    const h = st.health;
-    if (!h) return '';
+    const h = st.health
+    if (!h) return ''
     const blocks = [
       {
-        id: 'system', label: t('health.system'),
+        id: 'system',
+        label: t('health.system'),
         status: h.system.ready ? 'green' : 'red',
         value: h.system.ready ? t('health.system.ok') : t('health.system.issues'),
       },
       {
-        id: 'blocked', label: t('health.blocked'),
+        id: 'blocked',
+        label: t('health.blocked'),
         status: h.blockedTasks.length > 0 ? 'red' : 'green',
         value: h.blockedTasks.length > 0 ? `${h.blockedTasks.length}` : t('health.blocked.ok'),
         link: h.blockedTasks.length > 0 ? 'tasks' : null,
         linkFilter: 'failed',
       },
       {
-        id: 'pending', label: t('health.pending'),
-        status: h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs > 0 ? 'amber' : 'green',
-        value: h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs > 0
-          ? `${h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs}`
-          : t('health.pending.ok'),
+        id: 'pending',
+        label: t('health.pending'),
+        status:
+          h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs > 0
+            ? 'amber'
+            : 'green',
+        value:
+          h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs > 0
+            ? `${h.pendingApproval.unverifiedInstincts + h.pendingApproval.draftSpecs}`
+            : t('health.pending.ok'),
       },
       {
-        id: 'cost', label: t('health.cost'),
+        id: 'cost',
+        label: t('health.cost'),
         status: 'neutral',
         value: `$${h.costLast7d.toFixed(4)}`,
       },
       {
-        id: 'learning', label: t('health.learning'),
+        id: 'learning',
+        label: t('health.learning'),
         status: h.recentLearnings.length > 0 ? 'green' : 'neutral',
-        value: h.recentLearnings.length > 0
-          ? h.recentLearnings.map(l => esc(l.trigger)).join(', ')
-          : t('health.no.learning'),
+        value:
+          h.recentLearnings.length > 0
+            ? h.recentLearnings.map((l) => esc(l.trigger)).join(', ')
+            : t('health.no.learning'),
       },
-    ];
-    const rows = blocks.map(b => `
+    ]
+    const rows = blocks
+      .map(
+        (b) => `
       <div class="health-row">
         <div class="health-dot-wrap">${this.healthDot(b.status)}</div>
         <div class="health-label">${esc(b.label)}</div>
         <div class="health-value">${esc(b.value)}</div>
-        <div class="health-action">${b.link
-          ? `<button class="btn ghost sm" data-nav="${esc(b.link)}" ${b.linkFilter ? `data-filter="${esc(b.linkFilter)}"` : ''}>${t('health.view')}</button>`
-          : ''}</div>
-      </div>`).join('');
+        <div class="health-action">${
+          b.link
+            ? `<button class="btn ghost sm" data-nav="${esc(b.link)}" ${b.linkFilter ? `data-filter="${esc(b.linkFilter)}"` : ''}>${t('health.view')}</button>`
+            : ''
+        }</div>
+      </div>`,
+      )
+      .join('')
     return `<div class="card settings-card health-card">
       <div class="settings-header">
         <h3>${t('health.title')}</h3>
       </div>
       <div class="health-list">${rows}</div>
-    </div>`;
+    </div>`
   },
   // E.9 (Mes 18) — equivalente de `orchestos config init/show`.
   routingPanel(st) {
-    const cfg = st.orcheConfig;
+    const cfg = st.orcheConfig
     if (st.orcheConfigStatus === 'loading' || st.orcheConfigStatus === 'idle') {
-      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
+      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`
     }
     if (st.orcheConfigStatus === 'error' || !cfg) {
-      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
+      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`
     }
 
     // H.6 — el dato ya era correcto, el problema era la presentación: un
@@ -1188,17 +1401,23 @@ SCREENS.settings = {
     // y la explicación van siempre visibles, no solo en hover.
     const sourceLine = cfg.configFound
       ? `<span class="badge green square">${ICON.check} ${t('settings.routing.customFound')}</span>`
-      : `<span class="badge gray square">${t('settings.routing.defaults')}</span>`;
+      : `<span class="badge gray square">${t('settings.routing.defaults')}</span>`
     const sourceHint = cfg.configFound
       ? esc(t('settings.routing.source.foundHint', cfg.source))
-      : esc(t('settings.routing.source.defaultsHint'));
+      : esc(t('settings.routing.source.defaultsHint'))
 
     // Fix real (2026-07-08): esto era de solo lectura — Carlos no tenía forma
     // de cambiar el modelo por rol, ni desde el CLI ni desde el dashboard.
     // Asume siempre provider 'openrouter' al guardar, igual que el resto de
     // los selectores de modelo de la app (chat, composer, diagnose).
-    const ROLE_LABELS = { planner: 'Planner', executor_heavy: 'Executor (heavy)', executor_light: 'Executor (light)', default: 'Default' };
-    const stripProvider = v => (v && v.startsWith('openrouter/')) ? v.slice('openrouter/'.length) : (v || '');
+    const ROLE_LABELS = {
+      planner: 'Planner',
+      executor_heavy: 'Executor (heavy)',
+      executor_light: 'Executor (light)',
+      default: 'Default',
+    }
+    const stripProvider = (v) =>
+      v && v.startsWith('openrouter/') ? v.slice('openrouter/'.length) : v || ''
     // Bug real encontrado al verificar #37 en vivo (2026-08-10): elegir un modelo en
     // cualquiera de estos combos disparaba rerenderCurrentContext() → App.rerender(),
     // que vuelve a llamar routingPanel(st) y recalculaba `val` desde cfg.roles[role]
@@ -1206,41 +1425,55 @@ SCREENS.settings = {
     // al instante, en silencio. El input oculto ya vive en el DOM viejo en el momento
     // en que este render corre (main.innerHTML se reemplaza DESPUÉS); preferirlo sobre
     // cfg solo cuando ya existe conserva la elección no guardada sin estado global nuevo.
-    const pendingVal = id => { const el = document.getElementById(id); return el ? el.value : null; };
-    const roleRows = `<div class="role-grid">` + Object.keys(ROLE_LABELS).map(role => {
-      const val = pendingVal(`role-${role}`) ?? stripProvider(cfg.roles[role]);
-      return `<div class="draft-field">
+    const pendingVal = (id) => {
+      const el = document.getElementById(id)
+      return el ? el.value : null
+    }
+    const roleRows =
+      `<div class="role-grid">` +
+      Object.keys(ROLE_LABELS)
+        .map((role) => {
+          const val = pendingVal(`role-${role}`) ?? stripProvider(cfg.roles[role])
+          return `<div class="draft-field">
         <label>${esc(ROLE_LABELS[role])}</label>
         ${buildModelSelect(`role-${role}`, val, st.orModels, st.localModels)}
-      </div>`;
-    }).join('') + `<div class="draft-field role-grid-full">
+      </div>`
+        })
+        .join('') +
+      `<div class="draft-field role-grid-full">
         <label>QA judge <span class="muted">(${t('settings.routing.qa.hint')})</span></label>
         ${buildModelSelect('role-qa', pendingVal('role-qa') ?? stripProvider(cfg.roles.qa), st.orModels, st.localModels, { allowEmpty: true, emptyLabel: t('settings.routing.qa.auto') })}
-      </div></div>`;
+      </div></div>`
 
     // H.4 — de card huérfana permanente (duplicaba Tasks) a preview inline
     // pegado al botón Guardar, colapsado por default. Título "simulación",
     // no "lista de tareas" — el propósito real es "qué modelo LE TOCARÍA a
     // cada tarea pending si guardo esto ahora", vía el mismo autoRoute() del
     // harness (config.ts), no un inventario de tareas.
-    const pending = cfg.pendingRouting || [];
-    const previewOpen = !!state.routingPreviewOpen;
-    const previewBody = pending.length === 0
-      ? `<p class="muted" style="margin:0;font-size:12.5px">${t('settings.routing.noPending')}</p>`
-      : `<table class="tbl"><thead><tr><th>${t('settings.routing.col.task')}</th><th>${t('settings.routing.col.model')}</th></tr></thead><tbody>
-          ${pending.map(r => `<tr><td class="mono">${esc(r.id)}</td><td class="mono" style="font-size:12px">${esc(r.model)}</td></tr>`).join('')}
-        </tbody></table>`;
-    const previewToggle = pending.length === 0 ? '' : `<button class="btn ghost sm" data-act="toggle-routing-preview">
+    const pending = cfg.pendingRouting || []
+    const previewOpen = !!state.routingPreviewOpen
+    const previewBody =
+      pending.length === 0
+        ? `<p class="muted" style="margin:0;font-size:12.5px">${t('settings.routing.noPending')}</p>`
+        : `<table class="tbl"><thead><tr><th>${t('settings.routing.col.task')}</th><th>${t('settings.routing.col.model')}</th></tr></thead><tbody>
+          ${pending.map((r) => `<tr><td class="mono">${esc(r.id)}</td><td class="mono" style="font-size:12px">${esc(r.model)}</td></tr>`).join('')}
+        </tbody></table>`
+    const previewToggle =
+      pending.length === 0
+        ? ''
+        : `<button class="btn ghost sm" data-act="toggle-routing-preview">
         ${esc(t('settings.routing.previewCount', pending.length))} — ${previewOpen ? t('settings.routing.previewHide') : t('settings.routing.previewShow')}
-      </button>`;
-    const previewInline = previewOpen ? `<div class="routing-preview-inline">
+      </button>`
+    const previewInline = previewOpen
+      ? `<div class="routing-preview-inline">
         <div class="settings-header" style="padding-top:14px"><h3 style="font-size:13px">${t('settings.routing.pending')}</h3></div>
         ${previewBody}
-      </div>` : '';
+      </div>`
+      : ''
 
     const initBtn = cfg.configFound
       ? ''
-      : `<button class="btn primary" data-act="config-init">${ICON.plus} ${t('settings.routing.initBtn')}</button>`;
+      : `<button class="btn primary" data-act="config-init">${ICON.plus} ${t('settings.routing.initBtn')}</button>`
 
     return `<div class="card settings-card">
         <div class="settings-header"><h3>${t('settings.routing.title')}</h3></div>
@@ -1259,7 +1492,7 @@ SCREENS.settings = {
           <button class="btn primary" data-act="save-routing">${ICON.check} ${t('settings.routing.save')}</button>
         </div>
         ${previewInline}
-      </div>`;
+      </div>`
   },
   // G.4.4 — selector de `agent` (CC.D1; preferencia de CÓMO corre el chat las
   // tareas de build que auto-crea, D.7/G.2, y ahora también el chat mismo,
@@ -1275,54 +1508,64 @@ SCREENS.settings = {
   // agregación por rango/heatmap se hace acá, cliente, para no fijar el
   // endpoint a un rango particular.
   usageHeatmapWeeks(byDayModel) {
-    const byDate = new Map();
-    for (const row of byDayModel) byDate.set(row.date, (byDate.get(row.date) || 0) + row.usd);
+    const byDate = new Map()
+    for (const row of byDayModel) byDate.set(row.date, (byDate.get(row.date) || 0) + row.usd)
 
-    const DAYS = 371; // 53 semanas — mismo horizonte que el heatmap de GitHub
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const start = new Date(today); start.setDate(start.getDate() - (DAYS - 1));
-    start.setDate(start.getDate() - start.getDay()); // retrocede al domingo
+    const DAYS = 371 // 53 semanas — mismo horizonte que el heatmap de GitHub
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const start = new Date(today)
+    start.setDate(start.getDate() - (DAYS - 1))
+    start.setDate(start.getDate() - start.getDay()) // retrocede al domingo
 
-    const cells = [];
-    const values = [];
+    const cells = []
+    const values = []
     for (const cur = new Date(start); cur <= today; cur.setDate(cur.getDate() + 1)) {
-      const key = cur.toISOString().slice(0, 10);
-      const v = byDate.get(key) || 0;
-      cells.push({ date: key, value: v });
-      if (v > 0) values.push(v);
+      const key = cur.toISOString().slice(0, 10)
+      const v = byDate.get(key) || 0
+      cells.push({ date: key, value: v })
+      if (v > 0) values.push(v)
     }
-    values.sort((a, b) => a - b);
-    const quantile = (p) => values.length ? values[Math.min(values.length - 1, Math.floor(p * values.length))] : 0;
-    const t1 = quantile(0.25), t2 = quantile(0.5), t3 = quantile(0.75);
-    const levelFor = (v) => v <= 0 ? 0 : v <= t1 ? 1 : v <= t2 ? 2 : v <= t3 ? 3 : 4;
+    values.sort((a, b) => a - b)
+    const quantile = (p) =>
+      values.length ? values[Math.min(values.length - 1, Math.floor(p * values.length))] : 0
+    const t1 = quantile(0.25),
+      t2 = quantile(0.5),
+      t3 = quantile(0.75)
+    const levelFor = (v) => (v <= 0 ? 0 : v <= t1 ? 1 : v <= t2 ? 2 : v <= t3 ? 3 : 4)
 
-    const weeks = [];
+    const weeks = []
     for (let i = 0; i < cells.length; i += 7) {
-      weeks.push(cells.slice(i, i + 7).map(c => ({ ...c, level: levelFor(c.value) })));
+      weeks.push(cells.slice(i, i + 7).map((c) => ({ ...c, level: levelFor(c.value) })))
     }
-    return weeks;
+    return weeks
   },
   buildUsageHeatmap(byDayModel) {
-    const weeks = this.usageHeatmapWeeks(byDayModel);
-    const MONTHS = getLang() === 'es'
-      ? ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    let lastMonth = -1;
-    const monthLabels = weeks.map(week => {
-      const firstOfMonth = week.find(d => d.date.endsWith('-01'));
-      if (!firstOfMonth) return '';
-      const m = parseInt(firstOfMonth.date.slice(5, 7), 10) - 1;
-      if (m === lastMonth) return '';
-      lastMonth = m;
-      return MONTHS[m];
-    });
+    const weeks = this.usageHeatmapWeeks(byDayModel)
+    const MONTHS =
+      getLang() === 'es'
+        ? ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    let lastMonth = -1
+    const monthLabels = weeks.map((week) => {
+      const firstOfMonth = week.find((d) => d.date.endsWith('-01'))
+      if (!firstOfMonth) return ''
+      const m = parseInt(firstOfMonth.date.slice(5, 7), 10) - 1
+      if (m === lastMonth) return ''
+      lastMonth = m
+      return MONTHS[m]
+    })
 
-    const cols = weeks.map(week => `<div class="usage-heatmap-week">
-      ${week.map(d => `<div class="usage-heatmap-cell" data-level="${d.level}" title="${esc(d.date)} — $${d.value.toFixed(4)}"></div>`).join('')}
-    </div>`).join('');
+    const cols = weeks
+      .map(
+        (week) => `<div class="usage-heatmap-week">
+      ${week.map((d) => `<div class="usage-heatmap-cell" data-level="${d.level}" title="${esc(d.date)} — $${d.value.toFixed(4)}"></div>`).join('')}
+    </div>`,
+      )
+      .join('')
 
     return `<div class="usage-heatmap-wrap">
-      <div class="usage-heatmap-months">${monthLabels.map(m => `<span>${esc(m)}</span>`).join('')}</div>
+      <div class="usage-heatmap-months">${monthLabels.map((m) => `<span>${esc(m)}</span>`).join('')}</div>
       <div class="usage-heatmap">${cols}</div>
       <div class="usage-heatmap-legend">
         <span>${t('settings.usage.heatmap.less')}</span>
@@ -1333,24 +1576,27 @@ SCREENS.settings = {
         <span class="usage-heatmap-cell" data-level="4"></span>
         <span>${t('settings.usage.heatmap.more')}</span>
       </div>
-    </div>`;
+    </div>`
   },
   buildUsageByModel(byDayModel, range) {
-    const CUTOFF_DAYS = { '7d': 7, '30d': 30, '90d': 90, all: Infinity };
-    const days = CUTOFF_DAYS[range] ?? 30;
+    const CUTOFF_DAYS = { '7d': 7, '30d': 30, '90d': 90, all: Infinity }
+    const days = CUTOFF_DAYS[range] ?? 30
     const cutoff = Number.isFinite(days)
       ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-      : null;
+      : null
 
-    const byModel = new Map();
+    const byModel = new Map()
     for (const row of byDayModel) {
-      if (cutoff && row.date < cutoff) continue;
-      const cur = byModel.get(row.model) || { usd: 0, runs: 0, tokens: 0 };
-      cur.usd += row.usd; cur.runs += row.runs; cur.tokens += row.inputTokens + row.outputTokens;
-      byModel.set(row.model, cur);
+      if (cutoff && row.date < cutoff) continue
+      const cur = byModel.get(row.model) || { usd: 0, runs: 0, tokens: 0 }
+      cur.usd += row.usd
+      cur.runs += row.runs
+      cur.tokens += row.inputTokens + row.outputTokens
+      byModel.set(row.model, cur)
     }
-    const sorted = [...byModel.entries()].sort((a, b) => b[1].usd - a[1].usd);
-    if (sorted.length === 0) return `<div class="muted" style="padding:16px 18px;font-size:12.5px">${t('settings.usage.empty')}</div>`;
+    const sorted = [...byModel.entries()].sort((a, b) => b[1].usd - a[1].usd)
+    if (sorted.length === 0)
+      return `<div class="muted" style="padding:16px 18px;font-size:12.5px">${t('settings.usage.empty')}</div>`
 
     return `<table class="usage-table">
       <thead><tr>
@@ -1359,25 +1605,29 @@ SCREENS.settings = {
         <th>${t('settings.usage.col.runs')}</th>
         <th>${t('settings.usage.col.tokens')}</th>
       </tr></thead>
-      <tbody>${sorted.map(([model, v]) => `<tr>
+      <tbody>${sorted
+        .map(
+          ([model, v]) => `<tr>
         <td class="mono">${esc(model)}</td>
         <td>$${v.usd.toFixed(4)}</td>
         <td>${v.runs}</td>
         <td>${v.tokens.toLocaleString()}</td>
-      </tr>`).join('')}</tbody>
-    </table>`;
+      </tr>`,
+        )
+        .join('')}</tbody>
+    </table>`
   },
   usagePanel(st) {
     if (st.usageDataStatus === 'loading' || st.usageDataStatus === 'idle') {
-      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
+      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`
     }
-    const data = st.usageData;
+    const data = st.usageData
     if (st.usageDataStatus === 'error' || !data) {
-      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
+      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`
     }
-    const avg = data.totalRuns > 0 ? data.totalUsd / data.totalRuns : 0;
-    const range = state.usageRange || '30d';
-    const RANGES = ['7d', '30d', '90d', 'all'];
+    const avg = data.totalRuns > 0 ? data.totalUsd / data.totalRuns : 0
+    const range = state.usageRange || '30d'
+    const RANGES = ['7d', '30d', '90d', 'all']
 
     return `<div class="card settings-card usage-stats">
       <div class="usage-stat"><div class="usage-stat-label">${t('settings.usage.totalSpend')}</div><div class="usage-stat-value">$${data.totalUsd.toFixed(4)}</div></div>
@@ -1391,10 +1641,10 @@ SCREENS.settings = {
     <div class="card settings-card">
       <div class="settings-header"><h3>${t('settings.usage.byModel.title')}</h3></div>
       <div class="usage-range-picker">
-        ${RANGES.map(r => `<button class="lang-opt${range === r ? ' active' : ''}" data-usage-range="${r}">${t('settings.usage.range.' + r)}</button>`).join('')}
+        ${RANGES.map((r) => `<button class="lang-opt${range === r ? ' active' : ''}" data-usage-range="${r}">${t('settings.usage.range.' + r)}</button>`).join('')}
       </div>
       ${this.buildUsageByModel(data.byDayModel, range)}
-    </div>`;
+    </div>`
   },
   // CC.D1 (Mes 29, 2026-08-17) — `executor_mode`/valores `cli-*` renombrados a
   // `agent` (`claude`/`opencode`/`codex`, sin el prefijo `cli-` redundante: ya
@@ -1403,41 +1653,44 @@ SCREENS.settings = {
   // afinación específica del agente `claude`, no de cómo se llama a la API.
   executorModePanel(st) {
     if (st.executorModesStatus === 'loading' || st.executorModesStatus === 'idle') {
-      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
+      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`
     }
-    const data = st.executorModes;
+    const data = st.executorModes
     if (st.executorModesStatus === 'error' || !data) {
-      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
+      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`
     }
-    const cfg = st.orcheConfig;
-    const pending = st.executorModePending;
-    const current = pending !== undefined ? pending : (data.selected || 'auto');
-    const byId = new Map((data.modes || []).map(m => [m.id, m]));
-    const OPTIONS = ['auto', 'local', 'claude', 'opencode', 'codex', 'api'];
+    const cfg = st.orcheConfig
+    const pending = st.executorModePending
+    const current = pending !== undefined ? pending : data.selected || 'auto'
+    const byId = new Map((data.modes || []).map((m) => [m.id, m]))
+    const OPTIONS = ['auto', 'local', 'claude', 'opencode', 'codex', 'api']
 
-    const opts = OPTIONS.map(id => {
-      const info = byId.get(id);
-      const dot = id === 'auto'
-        ? ''
-        : `<span class="exec-mode-dot ${info?.detected ? 'green' : 'gray'}" title="${info?.detected ? t('common.detected') : t('common.notDetected')}"></span>`;
+    const opts = OPTIONS.map((id) => {
+      const info = byId.get(id)
+      const dot =
+        id === 'auto'
+          ? ''
+          : `<span class="exec-mode-dot ${info?.detected ? 'green' : 'gray'}" title="${info?.detected ? t('common.detected') : t('common.notDetected')}"></span>`
       return `<button class="engine-opt${current === id ? ' active' : ''}" data-exec-mode-opt="${id}">
         ${dot}<span>${esc(t('settings.executorMode.opt.' + id))}</span>
         ${current === id ? `<span class="engine-opt-check">${ICON.check}</span>` : ''}
-      </button>`;
-    }).join('');
+      </button>`
+    }).join('')
 
-    const activeInfo = current === 'auto' ? null : byId.get(current);
-    const notDetectedNote = activeInfo && !activeInfo.detected
-      ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('settings.executorMode.notDetected')}</p>`
-      : '';
+    const activeInfo = current === 'auto' ? null : byId.get(current)
+    const notDetectedNote =
+      activeInfo && !activeInfo.detected
+        ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('settings.executorMode.notDetected')}</p>`
+        : ''
 
     // El timeout de Claude CLI (config.external.timeoutMs) solo aplica cuando
     // el agente elegido es 'claude' — trasplantado de executorPanel (ver arriba).
-    const claudeTimeoutRow = current === 'claude' && cfg
-      ? `<div class="engine-tune-row"><label>${t('settings.executor.timeoutMinutes')}</label>
+    const claudeTimeoutRow =
+      current === 'claude' && cfg
+        ? `<div class="engine-tune-row"><label>${t('settings.executor.timeoutMinutes')}</label>
           <input type="number" id="executor-timeout-minutes" min="1" step="1" value="${esc(String(cfg.externalTimeoutMinutes ?? 20))}"></div>
         <p class="engine-desc">${esc(t('settings.executor.timeoutMinutes.hint'))}</p>`
-      : '';
+        : ''
 
     return `<div class="card settings-card" data-exec-mode="${esc(current)}">
       <div class="settings-header"><h3>${t('settings.executorMode.title')}</h3>
@@ -1451,7 +1704,7 @@ SCREENS.settings = {
         <span style="flex:1"></span>
         <button class="btn primary" data-act="save-exec-mode">${ICON.check} ${t('settings.executorMode.save')}</button>
       </div>
-    </div>`;
+    </div>`
   },
   // Redisño 2026-07-17 — el modo de ejecución de la API propia (apiMode en
   // orchestos.config.yaml) solo vivía en YAML/CLI, sin superficie en el
@@ -1462,29 +1715,32 @@ SCREENS.settings = {
   // que mezclado con single-shot/agentic bajo el nombre viejo `executorEngine`.
   // apiMode solo tiene sentido cuando el agente es la API propia.
   executorPanel(st) {
-    const cfg = st.orcheConfig;
+    const cfg = st.orcheConfig
     if (st.orcheConfigStatus === 'loading' || st.orcheConfigStatus === 'idle') {
-      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`;
+      return `<div class="card settings-card">${loadingState(t('common.loading'))}</div>`
     }
     if (st.orcheConfigStatus === 'error' || !cfg) {
-      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`;
+      return `<div class="card settings-card">${errorState(t('settings.routing.err.title'), t('settings.routing.err.body'))}</div>`
     }
-    const mode = cfg.apiMode || 'single-shot';
+    const mode = cfg.apiMode || 'single-shot'
     const MODES = [
       { id: 'single-shot', icon: ICON.bolt },
-      { id: 'agentic',     icon: ICON.refresh },
-    ];
-    const opts = MODES.map(e => `
+      { id: 'agentic', icon: ICON.refresh },
+    ]
+    const opts = MODES.map(
+      (e) => `
       <button class="engine-opt${mode === e.id ? ' active' : ''}" data-api-mode-opt="${e.id}">
         ${e.icon}<span>${esc(t(`settings.executor.opt.${e.id}.label`))}</span>
         ${mode === e.id ? `<span class="engine-opt-check">${ICON.check}</span>` : ''}
-      </button>`).join('');
-    const activeDesc = t(`settings.executor.opt.${mode}.desc`);
+      </button>`,
+    ).join('')
+    const activeDesc = t(`settings.executor.opt.${mode}.desc`)
 
-    const tuneRow = mode === 'agentic'
-      ? `<div class="engine-tune-row"><label>${t('settings.executor.maxIterations')}</label>
+    const tuneRow =
+      mode === 'agentic'
+        ? `<div class="engine-tune-row"><label>${t('settings.executor.maxIterations')}</label>
           <input type="number" id="executor-max-iterations" min="1" step="1" value="${esc(String(cfg.agenticMaxIterations ?? 15))}"></div>`
-      : '';
+        : ''
 
     return `<div class="card settings-card" data-api-mode="${esc(mode)}">
       <div class="settings-header"><h3>${t('settings.executor.title')}</h3>
@@ -1498,47 +1754,54 @@ SCREENS.settings = {
         <span style="flex:1"></span>
         <button class="btn primary" data-act="save-executor">${ICON.check} ${t('settings.executor.save')}</button>
       </div>
-    </div>`;
+    </div>`
   },
 
   render(st) {
-    const keys = st.settings || {};
-    const lang = getLang();
-    const theme = getTheme();
-    const THEME_LABELS = { orchestos: 'settings.theme.orchestos', dark2026: 'settings.theme.dark2026', claude: 'settings.theme.claude', bright: 'settings.theme.bright' };
+    const keys = st.settings || {}
+    const lang = getLang()
+    const theme = getTheme()
+    const THEME_LABELS = {
+      orchestos: 'settings.theme.orchestos',
+      dark2026: 'settings.theme.dark2026',
+      claude: 'settings.theme.claude',
+      bright: 'settings.theme.bright',
+    }
     const themePicker = `<div class="card settings-card">
       <div class="settings-header"><h3>${t('settings.theme.title')}</h3></div>
       <div class="theme-picker">
-        ${THEMES.map(id => `<button class="theme-opt ${theme === id ? 'active' : ''}" data-theme-opt="${id}">
+        ${THEMES.map(
+          (id) => `<button class="theme-opt ${theme === id ? 'active' : ''}" data-theme-opt="${id}">
           <span class="theme-swatch" data-swatch="${id}"><span class="sw-side"></span><span class="sw-main"><span class="sw-dot"></span></span></span>
           <span class="theme-opt-label">${t(THEME_LABELS[id])}</span>
-        </button>`).join('')}
+        </button>`,
+        ).join('')}
       </div>
-    </div>`;
-    const setupTitle = st.setup?.criticalMissing ? t('setup.title') : t('settings.title');
-    const setupSubtitle = st.setup?.criticalMissing ? t('setup.subtitle') : t('settings.subtitle');
+    </div>`
+    const setupTitle = st.setup?.criticalMissing ? t('setup.title') : t('settings.title')
+    const setupSubtitle = st.setup?.criticalMissing ? t('setup.subtitle') : t('settings.subtitle')
     const head = `<div class="screen-head settings-screen-head">
       <div class="lead">
         <div class="settings-eyebrow">${ICON.sliders} ${t('settings.eyebrow')}</div>
         <h1>${setupTitle}</h1><p>${setupSubtitle}</p>
       </div>
       <div class="settings-head-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-    </div>`;
-    const sec = state.settingsSection || 'general';
+    </div>`
+    const sec = state.settingsSection || 'general'
     const navItem = (id, icon, label) =>
-      `<button class="settings-nav-item${sec === id ? ' active' : ''}" data-settings-sec="${id}">${icon}<span>${esc(label)}</span></button>`;
+      `<button class="settings-nav-item${sec === id ? ' active' : ''}" data-settings-sec="${id}">${icon}<span>${esc(label)}</span></button>`
 
-    const keyRows = KEY_DEFS.map(def => {
+    const keyRows = KEY_DEFS.map((def) => {
       // D0-ext-2 — Ollama row: show probe result instead of env var status
       if (def.special === 'ollama') {
-        const probe = keys['_ollama'] || { set: false, masked: '' };
-        const override = keys['OLLAMA_HOST'] || { set: false, masked: '' };
+        const probe = keys['_ollama'] || { set: false, masked: '' }
+        const override = keys['OLLAMA_HOST'] || { set: false, masked: '' }
         const badge = probe.set
           ? `<span class="badge green square" style="white-space:nowrap">${ICON.check} ${t('settings.key.oll.detected')}</span>`
-          : `<span class="badge gray square" style="white-space:nowrap">— ${t('settings.key.oll.none')}</span>`;
+          : `<span class="badge gray square" style="white-space:nowrap">— ${t('settings.key.oll.none')}</span>`
         const detected = probe.set
           ? `<code class="key-masked">${esc(probe.masked)}</code>`
-          : `<span class="faint" style="font-size:12px">${t('settings.key.oll.none')}</span>`;
+          : `<span class="faint" style="font-size:12px">${t('settings.key.oll.none')}</span>`
         return `<div class="key-row">
           <div class="key-meta">
             <div class="key-label">${t(def.labelKey)}</div>
@@ -1548,18 +1811,21 @@ SCREENS.settings = {
           <div class="key-input">
             <input type="text" id="k-${esc(def.id)}" placeholder="${t('settings.key.oll.override')}" value="${override.set ? esc(override.masked) : ''}" autocomplete="off">
           </div>
-        </div>`;
+        </div>`
       }
-      const info = keys[def.id] || { set: false, masked: '' };
+      const info = keys[def.id] || { set: false, masked: '' }
       const badge = info.set
         ? `<span class="badge green square" style="white-space:nowrap">${ICON.check} ${t('settings.status.set')}</span>`
-        : `<span class="badge gray square" style="white-space:nowrap">— ${t('settings.status.unset')}</span>`;
+        : `<span class="badge gray square" style="white-space:nowrap">— ${t('settings.status.unset')}</span>`
       const masked = info.set
         ? `<code class="key-masked">${esc(info.masked)}</code>`
-        : `<span class="faint" style="font-size:12px">${t('settings.status.unset')}</span>`;
-      const wizardBtn = def.id === 'OPENROUTER_API_KEY' || def.id === 'ANTHROPIC_API_KEY' || def.id === 'OPENAI_API_KEY'
-        ? `<button class="btn ghost sm" data-open-wizard style="white-space:nowrap">${t('settings.btn.change.key')}</button>`
-        : '';
+        : `<span class="faint" style="font-size:12px">${t('settings.status.unset')}</span>`
+      const wizardBtn =
+        def.id === 'OPENROUTER_API_KEY' ||
+        def.id === 'ANTHROPIC_API_KEY' ||
+        def.id === 'OPENAI_API_KEY'
+          ? `<button class="btn ghost sm" data-open-wizard style="white-space:nowrap">${t('settings.btn.change.key')}</button>`
+          : ''
       return `<div class="key-row">
         <div class="key-meta">
           <div class="key-label">${t(def.labelKey)}</div>
@@ -1570,10 +1836,10 @@ SCREENS.settings = {
           <input type="password" id="k-${esc(def.id)}" placeholder="${esc(def.ph)}" autocomplete="new-password" style="flex:1">
           ${wizardBtn}
         </div>
-      </div>`;
-    }).join('');
+      </div>`
+    }).join('')
 
-    const envF = keys['_envFile']?.masked || '~/.orchestos/.env';
+    const envF = keys['_envFile']?.masked || '~/.orchestos/.env'
 
     return `<div class="screen">${head}
       <div class="settings-shell">
@@ -1664,108 +1930,123 @@ SCREENS.settings = {
 
         </div>
       </div>
-    </div>`;
+    </div>`
   },
 
   wire(root, st) {
     // settings sub-nav — local toggle (no rerender) so unsaved key inputs survive
-    root.querySelectorAll('[data-settings-sec]').forEach(btn => btn.addEventListener('click', () => {
-      const sec = btn.dataset.settingsSec;
-      state.settingsSection = sec;
-      root.querySelectorAll('[data-settings-sec]').forEach(b => b.classList.toggle('active', b.dataset.settingsSec === sec));
-      root.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === sec));
-      if (sec === 'routing' || sec === 'executor') {
-        App.fetchOrcheConfig().then(() => App.rerender());
-        if (sec === 'routing' && state.orModels === null) loadOrModels().then(() => App.rerender());
-        if (sec === 'executor') App.fetchExecutorModes().then(() => App.rerender());
-      }
-      if (sec === 'usage' && !state.usageData) App.fetchUsage().then(() => App.rerender());
-    }));
+    root.querySelectorAll('[data-settings-sec]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const sec = btn.dataset.settingsSec
+        state.settingsSection = sec
+        root
+          .querySelectorAll('[data-settings-sec]')
+          .forEach((b) => b.classList.toggle('active', b.dataset.settingsSec === sec))
+        root
+          .querySelectorAll('[data-panel]')
+          .forEach((p) => p.classList.toggle('active', p.dataset.panel === sec))
+        if (sec === 'routing' || sec === 'executor') {
+          App.fetchOrcheConfig().then(() => App.rerender())
+          if (sec === 'routing' && state.orModels === null)
+            loadOrModels().then(() => App.rerender())
+          if (sec === 'executor') App.fetchExecutorModes().then(() => App.rerender())
+        }
+        if (sec === 'usage' && !state.usageData) App.fetchUsage().then(() => App.rerender())
+      }),
+    )
 
     // H.1 — range picker de la tabla por modelo: local, sin refetch (el
     // endpoint ya trae los 400 días, la agregación por rango es en cliente).
-    root.querySelectorAll('[data-usage-range]').forEach(btn => btn.addEventListener('click', () => {
-      state.usageRange = btn.dataset.usageRange;
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-usage-range]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.usageRange = btn.dataset.usageRange
+        App.rerender()
+      }),
+    )
 
     // CC.D1 (era G.4.4) — agent picker: clic cambia state.executorModePending
     // local (sin round-trip), el POST real ocurre recién al tocar "Guardar".
-    root.querySelectorAll('[data-exec-mode-opt]').forEach(btn => btn.addEventListener('click', () => {
-      state.executorModePending = btn.dataset.execModeOpt;
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-exec-mode-opt]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.executorModePending = btn.dataset.execModeOpt
+        App.rerender()
+      }),
+    )
 
     root.querySelector('[data-act="save-exec-mode"]')?.addEventListener('click', async () => {
-      const current = root.querySelector('[data-exec-mode]')?.dataset.execMode || 'auto';
-      const agent = current === 'auto' ? null : current;
-      const body = { agent };
+      const current = root.querySelector('[data-exec-mode]')?.dataset.execMode || 'auto'
+      const agent = current === 'auto' ? null : current
+      const body = { agent }
       // El timeout de Claude CLI vive en este panel cuando el agente es 'claude'
       // (ver executorModePanel) — se manda junto si el input está presente.
-      const timeoutEl = root.querySelector('#executor-timeout-minutes');
-      if (timeoutEl?.value) body.externalTimeoutMinutes = Number(timeoutEl.value);
-      const btn = root.querySelector('[data-act="save-exec-mode"]');
-      btn.disabled = true;
+      const timeoutEl = root.querySelector('#executor-timeout-minutes')
+      if (timeoutEl?.value) body.externalTimeoutMinutes = Number(timeoutEl.value)
+      const btn = root.querySelector('[data-act="save-exec-mode"]')
+      btn.disabled = true
       try {
         const res = await fetch('/api/config', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
-        });
+        })
         if (res.ok) {
-          showToast(t('settings.executorMode.saveDone'));
-          state.executorModePending = undefined;
-          await Promise.all([App.fetchExecutorModes(), App.fetchOrcheConfig()]);
-          App.rerender();
+          showToast(t('settings.executorMode.saveDone'))
+          state.executorModePending = undefined
+          await Promise.all([App.fetchExecutorModes(), App.fetchOrcheConfig()])
+          App.rerender()
         } else {
-          const data = await res.json();
-          showToast(data.error || t('settings.executorMode.saveErr'), 'error');
+          const data = await res.json()
+          showToast(data.error || t('settings.executorMode.saveErr'), 'error')
         }
       } catch {
-        showToast(t('settings.executorMode.saveErr'), 'error');
+        showToast(t('settings.executorMode.saveErr'), 'error')
       } finally {
-        btn.disabled = false;
+        btn.disabled = false
       }
-    });
+    })
 
     // API mode picker (single-shot/agentic) — clic en una card cambia
     // st.orcheConfig localmente (sin round-trip) y rerenderiza, igual que el
     // theme-picker; el POST real ocurre recién al tocar "Guardar" (save-executor).
     // CC.D1 — antes 'external' vivía acá como una 3ra opción (era el mismo
     // concepto que hoy es agent:'claude', ver arriba); ya no es una opción de apiMode.
-    root.querySelectorAll('[data-api-mode-opt]').forEach(btn => btn.addEventListener('click', () => {
-      if (state.orcheConfig) state.orcheConfig.apiMode = btn.dataset.apiModeOpt;
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-api-mode-opt]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        if (state.orcheConfig) state.orcheConfig.apiMode = btn.dataset.apiModeOpt
+        App.rerender()
+      }),
+    )
 
     root.querySelector('[data-act="save-executor"]')?.addEventListener('click', async () => {
-      const mode = root.querySelector('[data-api-mode]')?.dataset.apiMode
-        || state.orcheConfig?.apiMode || 'single-shot';
-      const body = { apiMode: mode };
-      const iterEl = root.querySelector('#executor-max-iterations');
-      if (iterEl?.value) body.agenticMaxIterations = Number(iterEl.value);
-      const btn = root.querySelector('[data-act="save-executor"]');
-      btn.disabled = true;
+      const mode =
+        root.querySelector('[data-api-mode]')?.dataset.apiMode ||
+        state.orcheConfig?.apiMode ||
+        'single-shot'
+      const body = { apiMode: mode }
+      const iterEl = root.querySelector('#executor-max-iterations')
+      if (iterEl?.value) body.agenticMaxIterations = Number(iterEl.value)
+      const btn = root.querySelector('[data-act="save-executor"]')
+      btn.disabled = true
       try {
         const res = await fetch('/api/config', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
-        });
+        })
         if (res.ok) {
-          showToast(t('settings.executor.saveDone'));
-          await App.fetchOrcheConfig();
-          App.rerender();
+          showToast(t('settings.executor.saveDone'))
+          await App.fetchOrcheConfig()
+          App.rerender()
         } else {
-          const data = await res.json();
-          showToast(data.error || t('settings.executor.saveErr'), 'error');
+          const data = await res.json()
+          showToast(data.error || t('settings.executor.saveErr'), 'error')
         }
       } catch {
-        showToast(t('settings.executor.saveErr'), 'error');
+        showToast(t('settings.executor.saveErr'), 'error')
       } finally {
-        btn.disabled = false;
+        btn.disabled = false
       }
-    });
+    })
 
     // (el combo de modelo se carga solo al abrirse — wiring genérico en boot(), app.js)
 
@@ -1775,194 +2056,227 @@ SCREENS.settings = {
     // catálogo de OpenRouter cambia) — filtra por sufijo `:free` (no por priceIn===0,
     // que los meta-routers sin pricing real también pisan) y toma el de mayor
     // contextK como default razonable para las 4 filas.
-    root.querySelector('[data-act="routing-free-preset"]')?.addEventListener('click', async e => {
-      const btn = e.currentTarget;
-      btn.disabled = true;
+    root.querySelector('[data-act="routing-free-preset"]')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget
+      btn.disabled = true
       try {
-        if (!Array.isArray(st.orModels) || st.orModels.length === 0) await loadOrModels();
-        const pool = Array.isArray(st.orModels) ? st.orModels : [];
-        const free = pool.filter(m => m.id.endsWith(':free')).sort((a, b) => (b.contextK || 0) - (a.contextK || 0));
+        if (!Array.isArray(st.orModels) || st.orModels.length === 0) await loadOrModels()
+        const pool = Array.isArray(st.orModels) ? st.orModels : []
+        const free = pool
+          .filter((m) => m.id.endsWith(':free'))
+          .sort((a, b) => (b.contextK || 0) - (a.contextK || 0))
         if (free.length === 0) {
-          showToast(t('settings.routing.freePresetErr'), 'error');
-          return;
+          showToast(t('settings.routing.freePresetErr'), 'error')
+          return
         }
-        const pick = free[0].id;
-        ['role-planner', 'role-executor_heavy', 'role-executor_light', 'role-default'].forEach(id => {
-          const el = root.querySelector(`#${id}`);
-          if (el) el.value = pick;
-        });
-        App.rerender();
-        showToast(t('settings.routing.freePresetDone'));
+        const pick = free[0].id
+        ;['role-planner', 'role-executor_heavy', 'role-executor_light', 'role-default'].forEach(
+          (id) => {
+            const el = root.querySelector(`#${id}`)
+            if (el) el.value = pick
+          },
+        )
+        App.rerender()
+        showToast(t('settings.routing.freePresetDone'))
       } finally {
-        btn.disabled = false;
+        btn.disabled = false
       }
-    });
+    })
 
     // H.4 — toggle local del preview de routing, sin refetch.
     root.querySelector('[data-act="toggle-routing-preview"]')?.addEventListener('click', () => {
-      state.routingPreviewOpen = !state.routingPreviewOpen;
-      App.rerender();
-    });
+      state.routingPreviewOpen = !state.routingPreviewOpen
+      App.rerender()
+    })
 
     root.querySelector('[data-act="save-routing"]')?.addEventListener('click', async () => {
-      const roles = {};
-      ['planner', 'executor_heavy', 'executor_light', 'default'].forEach(role => {
-        const el = root.querySelector(`#role-${role}`);
-        if (el?.value) roles[role] = el.value;
-      });
+      const roles = {}
+      ;['planner', 'executor_heavy', 'executor_light', 'default'].forEach((role) => {
+        const el = root.querySelector(`#role-${role}`)
+        if (el?.value) roles[role] = el.value
+      })
       // qa siempre se manda, incluso vacío ("(auto)") — es el único rol que
       // puede limpiarse explícitamente de vuelta a auto-resuelto.
-      const qaEl = root.querySelector('#role-qa');
-      if (qaEl) roles.qa = qaEl.value;
-      const btn = root.querySelector('[data-act="save-routing"]');
-      btn.disabled = true;
+      const qaEl = root.querySelector('#role-qa')
+      if (qaEl) roles.qa = qaEl.value
+      const btn = root.querySelector('[data-act="save-routing"]')
+      btn.disabled = true
       try {
         const res = await fetch('/api/config', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roles }),
-        });
+        })
         if (res.ok) {
-          showToast(t('settings.routing.saveDone'));
-          await App.fetchOrcheConfig();
-          App.rerender();
+          showToast(t('settings.routing.saveDone'))
+          await App.fetchOrcheConfig()
+          App.rerender()
         } else {
-          const data = await res.json();
-          showToast(data.error || t('settings.routing.saveErr'), 'error');
+          const data = await res.json()
+          showToast(data.error || t('settings.routing.saveErr'), 'error')
         }
       } catch {
-        showToast(t('settings.routing.saveErr'), 'error');
+        showToast(t('settings.routing.saveErr'), 'error')
       } finally {
-        btn.disabled = false;
+        btn.disabled = false
       }
-    });
+    })
 
     root.querySelector('[data-act="config-init"]')?.addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      btn.disabled = true;
+      const btn = e.currentTarget
+      btn.disabled = true
       try {
-        const res = await fetch('/api/config/init', { method: 'POST' });
+        const res = await fetch('/api/config/init', { method: 'POST' })
         if (res.ok) {
-          showToast(t('settings.routing.initDone'));
-          await App.fetchOrcheConfig();
-          App.rerender();
+          showToast(t('settings.routing.initDone'))
+          await App.fetchOrcheConfig()
+          App.rerender()
         } else {
-          const data = await res.json();
-          showToast(data.error || t('settings.routing.initErr'), 'error');
+          const data = await res.json()
+          showToast(data.error || t('settings.routing.initErr'), 'error')
         }
       } catch {
-        showToast(t('settings.routing.initErr'), 'error');
+        showToast(t('settings.routing.initErr'), 'error')
       } finally {
-        btn.disabled = false;
+        btn.disabled = false
       }
-    });
+    })
 
-    root.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(btn.dataset.copy || '');
-        const old = btn.textContent;
-        btn.textContent = t('setup.copied');
-        setTimeout(() => { btn.textContent = old; }, 1200);
-      } catch {
-        Modal.showCopyText(t('setup.copyManually'), btn.dataset.copy || '');
-      }
-    }));
-    root.querySelectorAll('[data-open-wizard]').forEach(btn => btn.addEventListener('click', () => Modal.openWizard()));
-    root.querySelectorAll('[data-focus-key]').forEach(btn => btn.addEventListener('click', () => {
-      const el = root.querySelector('#k-OPENROUTER_API_KEY') || root.querySelector('.key-input input');
-      if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-    }));
+    root.querySelectorAll('[data-copy]').forEach((btn) =>
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(btn.dataset.copy || '')
+          const old = btn.textContent
+          btn.textContent = t('setup.copied')
+          setTimeout(() => {
+            btn.textContent = old
+          }, 1200)
+        } catch {
+          Modal.showCopyText(t('setup.copyManually'), btn.dataset.copy || '')
+        }
+      }),
+    )
+    root
+      .querySelectorAll('[data-open-wizard]')
+      .forEach((btn) => btn.addEventListener('click', () => Modal.openWizard()))
+    root.querySelectorAll('[data-focus-key]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const el =
+          root.querySelector('#k-OPENROUTER_API_KEY') || root.querySelector('.key-input input')
+        if (el) {
+          el.focus()
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }),
+    )
 
     root.querySelector('[data-save-keys]')?.addEventListener('click', async () => {
-      const body = {};
-      KEY_DEFS.forEach(def => {
-        const el = root.querySelector('#k-' + def.id);
-        if (el?.value) body[def.id] = el.value;
-      });
-      const msg = root.querySelector('#settings-msg');
-      const btn = root.querySelector('[data-save-keys]');
-      btn.disabled = true;
+      const body = {}
+      KEY_DEFS.forEach((def) => {
+        const el = root.querySelector('#k-' + def.id)
+        if (el?.value) body[def.id] = el.value
+      })
+      const msg = root.querySelector('#settings-msg')
+      const btn = root.querySelector('[data-save-keys]')
+      btn.disabled = true
       try {
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
-        });
+        })
         if (res.ok) {
-          msg.textContent = t('settings.msg.saved');
-          msg.style.color = 'var(--success)';
-          msg.style.display = '';
-          KEY_DEFS.forEach(def => { const el = root.querySelector('#k-' + def.id); if (el) el.value = ''; });
-          await App.fetchSettings();
-          await App.fetchSetup();
-          App.rerender();
+          msg.textContent = t('settings.msg.saved')
+          msg.style.color = 'var(--success)'
+          msg.style.display = ''
+          KEY_DEFS.forEach((def) => {
+            const el = root.querySelector('#k-' + def.id)
+            if (el) el.value = ''
+          })
+          await App.fetchSettings()
+          await App.fetchSetup()
+          App.rerender()
         } else {
-          const e = await res.json();
-          msg.textContent = e.error || t('settings.msg.error');
-          msg.style.color = 'var(--error)';
-          msg.style.display = '';
+          const e = await res.json()
+          msg.textContent = e.error || t('settings.msg.error')
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
         }
       } catch {
-        msg.textContent = t('common.conn.error');
-        msg.style.color = 'var(--error)';
-        msg.style.display = '';
-      } finally { btn.disabled = false; }
-    });
+        msg.textContent = t('common.conn.error')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+      } finally {
+        btn.disabled = false
+      }
+    })
 
     root.querySelector('[data-act="system-reset"]')?.addEventListener('click', async () => {
-      const okReset = await Modal.confirm(t('settings.reset.confirm'), t('bulk.confirm.body'), t('btn.confirm'));
-      if (!okReset) return;
-      const btn = root.querySelector('[data-act="system-reset"]');
-      btn.disabled = true;
+      const okReset = await Modal.confirm(
+        t('settings.reset.confirm'),
+        t('bulk.confirm.body'),
+        t('btn.confirm'),
+      )
+      if (!okReset) return
+      const btn = root.querySelector('[data-act="system-reset"]')
+      btn.disabled = true
       try {
         const res = await fetch('/api/system/reset', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ confirm: true }),
-        });
+        })
         if (res.ok) {
-          const s = await res.json();
-          showToast(t('settings.reset.ok', s.runsDeleted, s.instinctsDeleted, s.tasksReset));
-          await App.fetchAll();
+          const s = await res.json()
+          showToast(t('settings.reset.ok', s.runsDeleted, s.instinctsDeleted, s.tasksReset))
+          await App.fetchAll()
         } else {
-          showToast(t('settings.reset.err'), 'error');
+          showToast(t('settings.reset.err'), 'error')
         }
       } catch {
-        showToast(t('settings.reset.err'), 'error');
-      } finally { btn.disabled = false; }
-    });
+        showToast(t('settings.reset.err'), 'error')
+      } finally {
+        btn.disabled = false
+      }
+    })
 
     // Language selector
-    root.querySelectorAll('[data-lang]').forEach(btn => btn.addEventListener('click', () => {
-      setLang(btn.dataset.lang);
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-lang]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        setLang(btn.dataset.lang)
+        App.rerender()
+      }),
+    )
 
     // Theme selector
-    root.querySelectorAll('[data-theme-opt]').forEach(btn => btn.addEventListener('click', () => {
-      setTheme(btn.dataset.themeOpt);
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-theme-opt]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        setTheme(btn.dataset.themeOpt)
+        App.rerender()
+      }),
+    )
 
     // C3 — health nav links
-    root.querySelectorAll('[data-nav]').forEach(btn => btn.addEventListener('click', () => {
-      const screen = btn.dataset.nav;
-      const filter = btn.dataset.filter;
-      if (screen === 'tasks' && filter) {
-        state.taskFilter = filter;
-      }
-      state.screen = screen;
-      App.rerender();
-    }));
+    root.querySelectorAll('[data-nav]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const screen = btn.dataset.nav
+        const filter = btn.dataset.filter
+        if (screen === 'tasks' && filter) {
+          state.taskFilter = filter
+        }
+        state.screen = screen
+        App.rerender()
+      }),
+    )
 
     // C3 — auto-refresh every 30s while the settings screen is visible
-    if (this._timer) clearInterval(this._timer);
+    if (this._timer) clearInterval(this._timer)
     this._timer = setInterval(async () => {
-      await Promise.all([App.fetchSetup(), App.fetchHealth()]);
-      App.rerender();
-    }, 30000);
+      await Promise.all([App.fetchSetup(), App.fetchHealth()])
+      App.rerender()
+    }, 30000)
   },
-};
+}
 
 /* ============================================================
    7 · SPECS
@@ -1982,10 +2296,10 @@ SCREENS.settings = {
 SCREENS.specs = {
   react: true,
   render() {
-    return '<div data-island="screen-specs"></div>';
+    return '<div data-island="screen-specs"></div>'
   },
   wire() {},
-};
+}
 
 /* ============================================================
    SKILLS
@@ -2010,7 +2324,7 @@ SCREENS.specs = {
 SCREENS.skills = {
   react: true,
   render() {
-    return '<div data-island="screen-skills"></div>';
+    return '<div data-island="screen-skills"></div>'
   },
   wire() {},
-};
+}

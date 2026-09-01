@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'bun:test'
-import { isPrivateIP, ipToUint32, checkSsrSafe } from '../dashboard/ssrf.ts'
+import { describe, expect, it } from 'bun:test'
+import { checkSsrSafe, ipToUint32, isPrivateIP } from '../dashboard/ssrf.ts'
 
 describe('ipToUint32', () => {
   it('converts 127.0.0.1 correctly', () => {
@@ -56,23 +56,37 @@ describe('isPrivateIP', () => {
     expect(isPrivateIP('invalid')).toBe(false)
   })
 
-  it.each(['::', '::1', 'fc00::1', 'fd12:3456::1', 'fe80::1', 'ff02::1', '::ffff:10.0.0.1'])('blocks private IPv6 %s', (ip) => {
-    expect(isPrivateIP(ip)).toBe(true)
-  })
+  it.each(['::', '::1', 'fc00::1', 'fd12:3456::1', 'fe80::1', 'ff02::1', '::ffff:10.0.0.1'])(
+    'blocks private IPv6 %s',
+    (ip) => {
+      expect(isPrivateIP(ip)).toBe(true)
+    },
+  )
 })
 
-const mockLookup: (hostname: string, _opts: any) => Promise<Array<{ address: string; family: number }>> =
-  async (hostname: string, _opts: unknown) => {
-    if (hostname === 'internal.server.com') return [{ address: '192.168.1.1', family: 4 }]
-    if (hostname === 'public.example.com') return [{ address: '93.184.216.34', family: 4 }]
-    if (hostname === 'multihome.example.com') return [{ address: '10.0.0.1', family: 4 }, { address: '93.184.216.34', family: 4 }]
-    if (hostname === 'internal6.example.com') return [{ address: '::ffff:10.0.0.1', family: 6 }]
-    throw new Error('ENOTFOUND ' + hostname)
-  }
+const mockLookup: (
+  hostname: string,
+  _opts: any,
+) => Promise<Array<{ address: string; family: number }>> = async (
+  hostname: string,
+  _opts: unknown,
+) => {
+  if (hostname === 'internal.server.com') return [{ address: '192.168.1.1', family: 4 }]
+  if (hostname === 'public.example.com') return [{ address: '93.184.216.34', family: 4 }]
+  if (hostname === 'multihome.example.com')
+    return [
+      { address: '10.0.0.1', family: 4 },
+      { address: '93.184.216.34', family: 4 },
+    ]
+  if (hostname === 'internal6.example.com') return [{ address: '::ffff:10.0.0.1', family: 6 }]
+  throw new Error('ENOTFOUND ' + hostname)
+}
 
 describe('checkSsrSafe — direct IP/localhost', () => {
   it('blocks localhost', async () => {
-    expect(await checkSsrSafe(new URL('http://localhost:8080/path'), mockLookup)).toMatch(/SSRF blocked.*localhost/)
+    expect(await checkSsrSafe(new URL('http://localhost:8080/path'), mockLookup)).toMatch(
+      /SSRF blocked.*localhost/,
+    )
   })
 
   it('blocks 127.0.0.1', async () => {
@@ -84,15 +98,21 @@ describe('checkSsrSafe — direct IP/localhost', () => {
   })
 
   it('blocks 10.x.x.x', async () => {
-    expect(await checkSsrSafe(new URL('http://10.0.0.5/'), mockLookup)).toMatch(/SSRF blocked.*private IP/)
+    expect(await checkSsrSafe(new URL('http://10.0.0.5/'), mockLookup)).toMatch(
+      /SSRF blocked.*private IP/,
+    )
   })
 
   it('blocks 172.16.x.x', async () => {
-    expect(await checkSsrSafe(new URL('http://172.16.0.50/'), mockLookup)).toMatch(/SSRF blocked.*private IP/)
+    expect(await checkSsrSafe(new URL('http://172.16.0.50/'), mockLookup)).toMatch(
+      /SSRF blocked.*private IP/,
+    )
   })
 
   it('blocks 172.31.x.x (still within 172.16.0.0/12)', async () => {
-    expect(await checkSsrSafe(new URL('http://172.31.0.1/'), mockLookup)).toMatch(/SSRF blocked.*private IP/)
+    expect(await checkSsrSafe(new URL('http://172.31.0.1/'), mockLookup)).toMatch(
+      /SSRF blocked.*private IP/,
+    )
   })
 
   it('allows 172.32.x.x (outside 172.16.0.0/12)', async () => {
@@ -100,11 +120,15 @@ describe('checkSsrSafe — direct IP/localhost', () => {
   })
 
   it('blocks 192.168.x.x', async () => {
-    expect(await checkSsrSafe(new URL('http://192.168.1.1/'), mockLookup)).toMatch(/SSRF blocked.*private IP/)
+    expect(await checkSsrSafe(new URL('http://192.168.1.1/'), mockLookup)).toMatch(
+      /SSRF blocked.*private IP/,
+    )
   })
 
   it('blocks 169.254.x.x (link-local)', async () => {
-    expect(await checkSsrSafe(new URL('http://169.254.0.1/'), mockLookup)).toMatch(/SSRF blocked.*private IP/)
+    expect(await checkSsrSafe(new URL('http://169.254.0.1/'), mockLookup)).toMatch(
+      /SSRF blocked.*private IP/,
+    )
   })
 
   it('allows public IP 8.8.8.8', async () => {
@@ -135,11 +159,15 @@ describe('checkSsrSafe — DNS resolution', () => {
 
 describe('checkSsrSafe — reserved domains', () => {
   it('blocks .local domain', async () => {
-    expect(await checkSsrSafe(new URL('http://server.local/'), mockLookup)).toMatch(/SSRF blocked.*local\/reserved/)
+    expect(await checkSsrSafe(new URL('http://server.local/'), mockLookup)).toMatch(
+      /SSRF blocked.*local\/reserved/,
+    )
   })
 
   it('blocks .localhost domain', async () => {
-    expect(await checkSsrSafe(new URL('http://myapp.localhost/'), mockLookup)).toMatch(/SSRF blocked.*local\/reserved/)
+    expect(await checkSsrSafe(new URL('http://myapp.localhost/'), mockLookup)).toMatch(
+      /SSRF blocked.*local\/reserved/,
+    )
   })
 
   it('blocks IPv6 loopback and private ranges', async () => {
@@ -148,11 +176,17 @@ describe('checkSsrSafe — reserved domains', () => {
   })
 
   it('rejects credentials and non-standard ports', async () => {
-    expect(await checkSsrSafe(new URL('https://user:pass@example.com/'), mockLookup)).toMatch(/credentials/)
-    expect(await checkSsrSafe(new URL('https://public.example.com:8443/'), mockLookup)).toMatch(/non-standard port/)
+    expect(await checkSsrSafe(new URL('https://user:pass@example.com/'), mockLookup)).toMatch(
+      /credentials/,
+    )
+    expect(await checkSsrSafe(new URL('https://public.example.com:8443/'), mockLookup)).toMatch(
+      /non-standard port/,
+    )
   })
 
   it('rejects unsupported schemes even when called directly', async () => {
-    expect(await checkSsrSafe(new URL('ftp://public.example.com/'), mockLookup)).toMatch(/unsupported URL scheme/)
+    expect(await checkSsrSafe(new URL('ftp://public.example.com/'), mockLookup)).toMatch(
+      /unsupported URL scheme/,
+    )
   })
 })

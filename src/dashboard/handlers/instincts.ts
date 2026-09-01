@@ -1,11 +1,17 @@
-import { listInstincts, approveInstinct, deleteInstinct, insertInstinct, updateConfidence } from '../../instincts/store.ts'
-import { MANUAL_DEFAULTS, AUTO_DEFAULTS } from '../../instincts/schema.ts'
+import { AUTO_DEFAULTS, MANUAL_DEFAULTS } from '../../instincts/schema.ts'
+import {
+  approveInstinct,
+  deleteInstinct,
+  insertInstinct,
+  listInstincts,
+  updateConfidence,
+} from '../../instincts/store.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
 import type { InstinctRow, MutationResult } from '../types.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
 
 function handleApiInstincts(): Response {
   const all = listInstincts()
-  const rows: InstinctRow[] = all.map(i => ({
+  const rows: InstinctRow[] = all.map((i) => ({
     id: i.id,
     trigger: i.trigger,
     action: i.action,
@@ -37,7 +43,11 @@ function handleApiInstinctsReject(url: URL): Response {
 
 async function handleApiInstinctsCreate(req: Request): Promise<Response> {
   let body: { trigger: string; action: string }
-  try { body = (await req.json()) as { trigger: string; action: string } } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as { trigger: string; action: string }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   if (!body.trigger?.trim() || !body.action?.trim()) {
     return errorResponse('trigger and action are required', 400)
   }
@@ -55,7 +65,11 @@ async function handleApiInstinctsCreate(req: Request): Promise<Response> {
 
 async function handleApiInstinctsPropose(req: Request): Promise<Response> {
   let body: { trigger: string; action: string }
-  try { body = (await req.json()) as { trigger: string; action: string } } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as { trigger: string; action: string }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   if (!body.trigger?.trim() || !body.action?.trim()) {
     return errorResponse('trigger and action are required', 400)
   }
@@ -75,9 +89,14 @@ async function handleApiInstinctsSetConfidence(req: Request, url: URL): Promise<
   const id = url.pathname.split('/')[3]
   if (!id) return errorResponse('Missing instinct id', 400)
   let body: { confidence: number }
-  try { body = (await req.json()) as { confidence: number } } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as { confidence: number }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   const val = Number(body.confidence)
-  if (isNaN(val) || val < 0 || val > 1) return errorResponse('confidence must be a number between 0 and 1', 400)
+  if (isNaN(val) || val < 0 || val > 1)
+    return errorResponse('confidence must be a number between 0 and 1', 400)
   const ok = updateConfidence(id, val)
   const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Instinct not found' }
   return jsonResponse(result, ok ? 200 : 404)
@@ -98,12 +117,26 @@ function handleApiInstinctsDelete(url: URL): Response {
 // v0.12 Bloque A — borrado en lote, reusa deleteInstinct() por id.
 async function handleApiInstinctsBulkDelete(req: Request): Promise<Response> {
   let body: { ids?: unknown }
-  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
-  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  try {
+    body = (await req.json()) as { ids?: unknown }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (!Array.isArray(body.ids) || body.ids.length === 0)
+    return errorResponse('ids must be a non-empty array', 400)
   const ids = body.ids.filter((id): id is string => typeof id === 'string')
   let deleted = 0
   for (const id of ids) if (deleteInstinct(id)) deleted++
   return jsonResponse({ ok: true, deleted })
 }
 
-export { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete, handleApiInstinctsBulkDelete }
+export {
+  handleApiInstincts,
+  handleApiInstinctsApprove,
+  handleApiInstinctsBulkDelete,
+  handleApiInstinctsCreate,
+  handleApiInstinctsDelete,
+  handleApiInstinctsPropose,
+  handleApiInstinctsReject,
+  handleApiInstinctsSetConfidence,
+}

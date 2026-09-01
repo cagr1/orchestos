@@ -65,12 +65,18 @@ export function checkHooks(root: string, run: RunCommand = runCommand): string[]
 }
 
 export function requiresLiveGate(paths: string[]): boolean {
-  return paths.some(path => LIVE_GATE_PATHS.some(prefix => path === prefix || path.startsWith(prefix)))
+  return paths.some((path) =>
+    LIVE_GATE_PATHS.some((prefix) => path === prefix || path.startsWith(prefix)),
+  )
 }
 
 export function hasLiveGateEvidence(planDiff: string): boolean {
-  const added = planDiff.split('\n').filter(line => line.startsWith('+') && !line.startsWith('+++'))
-  const closesItem = added.some(line => /^\+\s*- \[x\]/i.test(line))
-  const hasGate = added.some(line => /Gate en vivo:.*(?:navegador|browser|Playwright)/i.test(line))
+  const added = planDiff
+    .split('\n')
+    .filter((line) => line.startsWith('+') && !line.startsWith('+++'))
+  const closesItem = added.some((line) => /^\+\s*- \[x\]/i.test(line))
+  const hasGate = added.some((line) =>
+    /Gate en vivo:.*(?:navegador|browser|Playwright)/i.test(line),
+  )
   return closesItem && hasGate
 }

@@ -19,7 +19,7 @@
  *
  * Los props llegan por `data-props` (JSON) en el contenedor.
  */
-import { createElement, type ComponentType } from 'react'
+import { type ComponentType, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
 type IslandComponent = ComponentType<Record<string, unknown>>
@@ -167,7 +167,10 @@ export function startIslandObserver(): void {
       // Mutación interna de una isla ya montada = React haciendo su trabajo.
       let insideIsland = false
       for (const el of mounted.keys()) {
-        if (el === target || el.contains(target)) { insideIsland = true; break }
+        if (el === target || el.contains(target)) {
+          insideIsland = true
+          break
+        }
       }
       if (insideIsland) continue
 
@@ -176,7 +179,11 @@ export function startIslandObserver(): void {
         if (!(node instanceof Element)) return false
         return node.hasAttribute('data-island') || node.querySelector('[data-island]') !== null
       })
-      if (relevant) { queued = true; queueMicrotask(flush); return }
+      if (relevant) {
+        queued = true
+        queueMicrotask(flush)
+        return
+      }
     }
   })
 

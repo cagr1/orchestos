@@ -1,8 +1,13 @@
-import { listRuns, getRun, deleteRun, type RunRecord } from '../../db/runs.ts'
-import type { MutationResult } from '../types.ts'
-import { parseCostBreakdownJson, type CostBreakdownEntry } from '../../run/transcript-parser.ts'
-import type { ContextWarningEntry, FileDiffEntry, RunRow, SkillGateEntry } from '../types.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
+import { deleteRun, getRun, listRuns, type RunRecord } from '../../db/runs.ts'
+import { type CostBreakdownEntry, parseCostBreakdownJson } from '../../run/transcript-parser.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
+import type {
+  ContextWarningEntry,
+  FileDiffEntry,
+  MutationResult,
+  RunRow,
+  SkillGateEntry,
+} from '../types.ts'
 
 function parseContextWarnings(raw: string | null | undefined): ContextWarningEntry[] {
   if (!raw) return []
@@ -85,17 +90,26 @@ function runRecordToRow(r: RunRecord): RunRow {
 // llamado LLM real que la CLI (S30) — no es gratis, se dispara solo bajo pedido.
 async function handleApiRunsAnalyze(req: Request): Promise<Response> {
   let body: { last?: number } = {}
-  try { body = (await req.json()) as { last?: number } } catch { /* body opcional */ }
-  const n = typeof body.last === 'number' && Number.isFinite(body.last) && body.last > 0
-    ? Math.min(Math.floor(body.last), 200)
-    : 20
+  try {
+    body = (await req.json()) as { last?: number }
+  } catch {
+    /* body opcional */
+  }
+  const n =
+    typeof body.last === 'number' && Number.isFinite(body.last) && body.last > 0
+      ? Math.min(Math.floor(body.last), 200)
+      : 20
 
   const { groupRunsByOutcome, analyzeRunPatterns } = await import('../../analyze/patterns.ts')
   const { proposeInstinctsFromPatterns } = await import('../../analyze/propose.ts')
 
   const rows = listRuns(n)
   if (rows.length < 3) {
-    return jsonResponse({ suggestions: [], proposals: [], message: 'Not enough runs to analyze (need at least 3).' })
+    return jsonResponse({
+      suggestions: [],
+      proposals: [],
+      message: 'Not enough runs to analyze (need at least 3).',
+    })
   }
   const groups = groupRunsByOutcome(rows)
   try {
@@ -136,12 +150,17 @@ function handleApiRunsDelete(url: URL): Response {
 // que existían de verdad — un id ya borrado no cuenta como fallo.
 async function handleApiRunsBulkDelete(req: Request): Promise<Response> {
   let body: { ids?: unknown }
-  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
-  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  try {
+    body = (await req.json()) as { ids?: unknown }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (!Array.isArray(body.ids) || body.ids.length === 0)
+    return errorResponse('ids must be a non-empty array', 400)
   const ids = body.ids.filter((id): id is string => typeof id === 'string')
   let deleted = 0
   for (const id of ids) if (deleteRun(id)) deleted++
   return jsonResponse({ ok: true, deleted })
 }
 
-export { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete, handleApiRunsBulkDelete }
+export { handleApiRuns, handleApiRunsAnalyze, handleApiRunsBulkDelete, handleApiRunsDelete }

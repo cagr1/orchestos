@@ -3,18 +3,22 @@
  * No LLM calls — all pure functions.
  */
 
-import { describe, it, expect } from 'bun:test'
-import { groupRunsByOutcome, parsePatternSuggestions, type RunSummary } from '../analyze/patterns.ts'
+import { describe, expect, it } from 'bun:test'
+import {
+  groupRunsByOutcome,
+  parsePatternSuggestions,
+  type RunSummary,
+} from '../analyze/patterns.ts'
 
 function run(overrides: Partial<RunSummary> = {}): RunSummary {
   return {
-    status:     'done',
+    status: 'done',
     qa_verdict: 'pass',
-    qa_reason:  null,
-    model:      'test-model',
-    usd_cost:   0.001,
+    qa_reason: null,
+    model: 'test-model',
+    usd_cost: 0.001,
     elapsed_ms: 500,
-    result:     'ok',
+    result: 'ok',
     ...overrides,
   }
 }
@@ -36,10 +40,7 @@ describe('groupRunsByOutcome — empty', () => {
 
 describe('groupRunsByOutcome — pass / fail split', () => {
   it('counts QA passes', () => {
-    const g = groupRunsByOutcome([
-      run({ qa_verdict: 'pass' }),
-      run({ qa_verdict: 'pass' }),
-    ])
+    const g = groupRunsByOutcome([run({ qa_verdict: 'pass' }), run({ qa_verdict: 'pass' })])
     expect(g.qaPass).toBe(2)
     expect(g.qaFail).toBe(0)
   })
@@ -55,9 +56,7 @@ describe('groupRunsByOutcome — pass / fail split', () => {
   })
 
   it('counts blocked runs', () => {
-    const g = groupRunsByOutcome([
-      run({ status: 'blocked', qa_verdict: null }),
-    ])
+    const g = groupRunsByOutcome([run({ status: 'blocked', qa_verdict: null })])
     expect(g.blocked).toBe(1)
     expect(g.qaPass).toBe(0)
   })
@@ -84,18 +83,12 @@ describe('groupRunsByOutcome — model tracking', () => {
 
 describe('groupRunsByOutcome — cost and elapsed averages', () => {
   it('computes average cost', () => {
-    const g = groupRunsByOutcome([
-      run({ usd_cost: 0.01 }),
-      run({ usd_cost: 0.03 }),
-    ])
+    const g = groupRunsByOutcome([run({ usd_cost: 0.01 }), run({ usd_cost: 0.03 })])
     expect(g.avgCostUsd).toBeCloseTo(0.02)
   })
 
   it('computes average elapsed ms', () => {
-    const g = groupRunsByOutcome([
-      run({ elapsed_ms: 1000 }),
-      run({ elapsed_ms: 3000 }),
-    ])
+    const g = groupRunsByOutcome([run({ elapsed_ms: 1000 }), run({ elapsed_ms: 3000 })])
     expect(g.avgElapsedMs).toBeCloseTo(2000)
   })
 })
@@ -124,8 +117,18 @@ describe('groupRunsByOutcome — mixed', () => {
 describe('parsePatternSuggestions — valid JSON', () => {
   it('parses well-formed JSON array', () => {
     const raw = JSON.stringify([
-      { pattern: 'missing_error_handling', frequency: 3, fix_hint: 'Add try/catch blocks', confidence: 'high' },
-      { pattern: 'vague_acceptance_criteria', frequency: 2, fix_hint: 'Use WHEN/THEN format', confidence: 'medium' },
+      {
+        pattern: 'missing_error_handling',
+        frequency: 3,
+        fix_hint: 'Add try/catch blocks',
+        confidence: 'high',
+      },
+      {
+        pattern: 'vague_acceptance_criteria',
+        frequency: 2,
+        fix_hint: 'Use WHEN/THEN format',
+        confidence: 'medium',
+      },
     ])
     const suggestions = parsePatternSuggestions(raw)
     expect(suggestions).toHaveLength(2)
@@ -136,7 +139,8 @@ describe('parsePatternSuggestions — valid JSON', () => {
   })
 
   it('parses JSON wrapped in markdown code fences', () => {
-    const raw = '```json\n[{"pattern":"foo","frequency":1,"fix_hint":"bar","confidence":"low"}]\n```'
+    const raw =
+      '```json\n[{"pattern":"foo","frequency":1,"fix_hint":"bar","confidence":"low"}]\n```'
     const suggestions = parsePatternSuggestions(raw)
     expect(suggestions).toHaveLength(1)
     expect(suggestions[0]!.pattern).toBe('foo')
@@ -154,8 +158,8 @@ describe('parsePatternSuggestions — valid JSON', () => {
   it('skips items missing required fields', () => {
     const raw = JSON.stringify([
       { pattern: 'foo', frequency: 1, fix_hint: 'do something', confidence: 'high' },
-      { frequency: 2, fix_hint: 'missing pattern field' },           // no pattern
-      { pattern: 'bar', frequency: 3 },                               // no fix_hint
+      { frequency: 2, fix_hint: 'missing pattern field' }, // no pattern
+      { pattern: 'bar', frequency: 3 }, // no fix_hint
     ])
     const suggestions = parsePatternSuggestions(raw)
     expect(suggestions).toHaveLength(1)

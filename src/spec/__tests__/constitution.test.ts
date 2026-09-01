@@ -8,8 +8,8 @@
  * ambos caminos deben seguir cuadrados por test determinista, no por inspección
  * visual.
  */
-import { describe, it, expect } from 'bun:test'
-import { scaffoldConstitutionMd, parseConstitution } from '../constitution.ts'
+import { describe, expect, it } from 'bun:test'
+import { parseConstitution, scaffoldConstitutionMd } from '../constitution.ts'
 
 describe('scaffoldConstitutionMd (v0.12 D.1.b)', () => {
   const md = scaffoldConstitutionMd()

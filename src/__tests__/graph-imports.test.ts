@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 // We test the extractors directly by re-implementing the dispatch logic used in graph/index.ts
 // This avoids needing a live SQLite DB in unit tests.
@@ -81,13 +81,13 @@ describe('JS/TS import extraction', () => {
   it('extracts ES module imports', () => {
     const code = `import { useState } from 'react'\nimport type { FC } from 'react'`
     const edges = extractJsImports(code)
-    expect(edges.some(e => e.specifier === 'react')).toBe(true)
+    expect(edges.some((e) => e.specifier === 'react')).toBe(true)
   })
 
   it('extracts relative imports', () => {
     const code = `import { foo } from './utils/foo'\nimport bar from '../bar'`
     const edges = extractJsImports(code)
-    const specs = edges.map(e => e.specifier)
+    const specs = edges.map((e) => e.specifier)
     expect(specs).toContain('./utils/foo')
     expect(specs).toContain('../bar')
   })
@@ -95,8 +95,8 @@ describe('JS/TS import extraction', () => {
   it('extracts require()', () => {
     const code = `const fs = require('fs')\nconst path = require('path')`
     const edges = extractJsImports(code)
-    expect(edges.some(e => e.specifier === 'fs')).toBe(true)
-    expect(edges.some(e => e.specifier === 'path')).toBe(true)
+    expect(edges.some((e) => e.specifier === 'fs')).toBe(true)
+    expect(edges.some((e) => e.specifier === 'path')).toBe(true)
   })
 
   it('ignores lines without imports', () => {
@@ -111,7 +111,7 @@ describe('C# import extraction', () => {
   it('extracts using statements', () => {
     const code = `using System;\nusing System.Collections.Generic;\nusing Microsoft.EntityFrameworkCore;`
     const edges = extractCSharpImports(code)
-    const specs = edges.map(e => e.specifier)
+    const specs = edges.map((e) => e.specifier)
     expect(specs).toContain('System')
     expect(specs).toContain('System.Collections.Generic')
     expect(specs).toContain('Microsoft.EntityFrameworkCore')
@@ -135,14 +135,14 @@ describe('Rust import extraction', () => {
   it('extracts use statements', () => {
     const code = `use std::collections::HashMap;\nuse serde::{Deserialize, Serialize};`
     const edges = extractRustImports(code)
-    const specs = edges.map(e => e.specifier)
+    const specs = edges.map((e) => e.specifier)
     expect(specs).toContain('std::collections::HashMap')
   })
 
   it('extracts extern crate', () => {
     const code = `extern crate serde;`
     const edges = extractRustImports(code)
-    expect(edges.some(e => e.specifier === 'serde' && e.kind === 'import')).toBe(true)
+    expect(edges.some((e) => e.specifier === 'serde' && e.kind === 'import')).toBe(true)
   })
 
   it('ignores regular code', () => {
@@ -157,13 +157,13 @@ describe('Go import extraction', () => {
   it('extracts single-line import', () => {
     const code = `import "fmt"`
     const edges = extractGoImports(code)
-    expect(edges.some(e => e.specifier === 'fmt')).toBe(true)
+    expect(edges.some((e) => e.specifier === 'fmt')).toBe(true)
   })
 
   it('extracts block imports', () => {
     const code = `import (\n\t"fmt"\n\t"net/http"\n\t"github.com/gin-gonic/gin"\n)`
     const edges = extractGoImports(code)
-    const specs = edges.map(e => e.specifier)
+    const specs = edges.map((e) => e.specifier)
     expect(specs).toContain('fmt')
     expect(specs).toContain('net/http')
     expect(specs).toContain('github.com/gin-gonic/gin')
@@ -175,7 +175,7 @@ describe('JVM import extraction', () => {
   it('extracts Java imports', () => {
     const code = `import java.util.List;\nimport java.util.ArrayList;\nimport org.springframework.stereotype.Service;`
     const edges = extractJvmImports(code)
-    const specs = edges.map(e => e.specifier)
+    const specs = edges.map((e) => e.specifier)
     expect(specs).toContain('java.util.List')
     expect(specs).toContain('org.springframework.stereotype.Service')
   })
@@ -183,7 +183,7 @@ describe('JVM import extraction', () => {
   it('extracts wildcard imports', () => {
     const code = `import java.util.*;`
     const edges = extractJvmImports(code)
-    expect(edges.some(e => e.specifier === 'java.util.*')).toBe(true)
+    expect(edges.some((e) => e.specifier === 'java.util.*')).toBe(true)
   })
 })
 
@@ -192,7 +192,7 @@ describe('Ruby import extraction', () => {
   it('extracts require', () => {
     const code = `require 'json'\nrequire "net/http"`
     const edges = extractRubyImports(code)
-    const specs = edges.map(e => e.specifier)
+    const specs = edges.map((e) => e.specifier)
     expect(specs).toContain('json')
     expect(specs).toContain('net/http')
   })
@@ -200,7 +200,7 @@ describe('Ruby import extraction', () => {
   it('extracts require_relative', () => {
     const code = `require_relative '../models/user'`
     const edges = extractRubyImports(code)
-    expect(edges.some(e => e.specifier === '../models/user')).toBe(true)
+    expect(edges.some((e) => e.specifier === '../models/user')).toBe(true)
   })
 
   // S.2 (Mes 26, 2026-08-06) — require_relative sin `./` explícito se
@@ -216,7 +216,7 @@ describe('Ruby import extraction', () => {
     const code = `require_relative './helper'\nrequire 'json'`
     const edges = extractRubyImports(code)
     expect(edges).toHaveLength(2)
-    expect(edges.find(e => e.raw.startsWith('require_relative'))?.specifier).toBe('./helper')
-    expect(edges.find(e => e.raw === "require 'json'")?.specifier).toBe('json')
+    expect(edges.find((e) => e.raw.startsWith('require_relative'))?.specifier).toBe('./helper')
+    expect(edges.find((e) => e.raw === "require 'json'")?.specifier).toBe('json')
   })
 })

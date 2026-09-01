@@ -20,10 +20,11 @@
  * migran TAL CUAL, aunque UI.7 los vaya a borrar. UI.3 tiene prohibido tocar navegación
  * (regla explícita de PLAN.md); si aparece la tentación, se anota para UI.7 y se sigue.
  */
-import { useShell } from './use-shell.ts'
+
 import { useT } from '../../lib/i18n.ts'
-import { RawIcon, Icon } from '../../lib/icons.tsx'
-import { shellApi, type NavEntry } from './shell-api.ts'
+import { Icon, RawIcon } from '../../lib/icons.tsx'
+import { type NavEntry, shellApi } from './shell-api.ts'
+import { useShell } from './use-shell.ts'
 
 export function Sidebar() {
   const shell = useShell()
@@ -49,7 +50,9 @@ export function Sidebar() {
             markup cambiaría al pasar el mouse — el gate lo verifica comparando el
             outerHTML antes y después del hover. */}
         <img className="sidebar-toprow-logo" src={logoSrc} alt="OrchestOS" aria-hidden="true" />
-        <b className="sidebar-brand-text">Orchest<span>OS</span></b>
+        <b className="sidebar-brand-text">
+          Orchest<span>OS</span>
+        </b>
         <div className="sidebar-toprow-icons">
           <NavButton
             id="navSearchBtn"
@@ -73,8 +76,13 @@ export function Sidebar() {
       <div className="nav-sep" />
 
       {mainNav.map((entry) => (
-        <NavIcon key={entry.id} entry={entry} shellScreen={shell.screen}
-          advanced={shell.advanced} skillsCount={shell.skillsCount} />
+        <NavIcon
+          key={entry.id}
+          entry={entry}
+          shellScreen={shell.screen}
+          advanced={shell.advanced}
+          skillsCount={shell.skillsCount}
+        />
       ))}
 
       <div className="grow" />
@@ -85,20 +93,35 @@ export function Sidebar() {
         tip={t(modeTipKey)}
         onActivate={() => api?.toggleAdvanced()}
       >
-        <span className="nav-ic"><Icon name="sliders" /></span>
+        <span className="nav-ic">
+          <Icon name="sliders" />
+        </span>
         <span className="nav-label">{t(modeTipKey)}</span>
       </NavButton>
 
       {bottomNav.map((entry) => (
-        <NavIcon key={entry.id} entry={entry} shellScreen={shell.screen}
-          advanced={shell.advanced} skillsCount={shell.skillsCount} />
+        <NavIcon
+          key={entry.id}
+          entry={entry}
+          shellScreen={shell.screen}
+          advanced={shell.advanced}
+          skillsCount={shell.skillsCount}
+        />
       ))}
     </>
   )
 }
 
-function NavIcon({ entry, shellScreen, advanced, skillsCount }: {
-  entry: NavEntry; shellScreen: string; advanced: boolean; skillsCount: number
+function NavIcon({
+  entry,
+  shellScreen,
+  advanced,
+  skillsCount,
+}: {
+  entry: NavEntry
+  shellScreen: string
+  advanced: boolean
+  skillsCount: number
 }) {
   const t = useT()
   const api = shellApi()
@@ -115,12 +138,19 @@ function NavIcon({ entry, shellScreen, advanced, skillsCount }: {
       tabIndex={0}
       onClick={() => api?.go(entry.id)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); api?.go(entry.id) }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          api?.go(entry.id)
+        }
       }}
     >
       <span className="nav-ic">
         <RawIcon svg={entry.icon} />
-        {entry.badge && <span className="nav-count-badge" data-count={entry.id}>{skillsCount}</span>}
+        {entry.badge && (
+          <span className="nav-count-badge" data-count={entry.id}>
+            {skillsCount}
+          </span>
+        )}
       </span>
       <span className="nav-label">{t(entry.key)}</span>
     </div>
@@ -135,8 +165,18 @@ function NavIcon({ entry, shellScreen, advanced, skillsCount }: {
  * El comportamiento de teclado (Enter/Espacio), que el `<button>` daría gratis, se
  * implementa acá igual que lo hacía `buildNav()`.
  */
-function NavButton({ id, className, tip, onActivate, children }: {
-  id: string; className: string; tip: string; onActivate: () => void; children: React.ReactNode
+function NavButton({
+  id,
+  className,
+  tip,
+  onActivate,
+  children,
+}: {
+  id: string
+  className: string
+  tip: string
+  onActivate: () => void
+  children: React.ReactNode
 }) {
   return (
     <div
@@ -147,7 +187,10 @@ function NavButton({ id, className, tip, onActivate, children }: {
       tabIndex={0}
       onClick={onActivate}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate() }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onActivate()
+        }
       }}
     >
       {children}

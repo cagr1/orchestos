@@ -8,14 +8,18 @@
  * no un solo blob JSON — el costo/tokens se suman entre step_finish events.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
-import { git, createWorktree, type Worktree } from '../run/sandbox.ts'
-import { ExecutorOpencodeError, opencodeEngine, orchestosModelToOpencodeModel } from '../run/executors/opencode.ts'
-import type { Task } from '../tasks/schema.ts'
+import { join } from 'path'
+import {
+  ExecutorOpencodeError,
+  opencodeEngine,
+  orchestosModelToOpencodeModel,
+} from '../run/executors/opencode.ts'
 import type { RunContext } from '../run/middleware.ts'
+import { createWorktree, git, type Worktree } from '../run/sandbox.ts'
+import type { Task } from '../tasks/schema.ts'
 
 const originalWhich = Bun.which
 beforeEach(() => {
@@ -51,16 +55,24 @@ function makeMockProc(stdoutText: string, opts: { exitDelayMs?: number } = {}): 
       })
     },
   })
-  const stderrStream = new ReadableStream<Uint8Array>({ start(c) { c.close() } })
+  const stderrStream = new ReadableStream<Uint8Array>({
+    start(c) {
+      c.close()
+    },
+  })
   let resolveExit!: (n: number) => void
-  const exited = new Promise<number>((r) => { resolveExit = r })
+  const exited = new Promise<number>((r) => {
+    resolveExit = r
+  })
   if (opts.exitDelayMs) setTimeout(() => resolveExit(0), opts.exitDelayMs)
   else queueMicrotask(() => resolveExit(0))
   return {
     stdout: stdoutStream,
     stderr: stderrStream,
     exited,
-    kill(_signal) { /* no-op */ },
+    kill(_signal) {
+      /* no-op */
+    },
   }
 }
 
@@ -137,13 +149,21 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
 }
 
 afterEach(() => {
-  for (const wt of worktrees.splice(0)) { try { wt.cleanup() } catch {} }
-  for (const r of repos.splice(0)) { try { rmSync(r, { recursive: true, force: true }) } catch {} }
+  for (const wt of worktrees.splice(0)) {
+    try {
+      wt.cleanup()
+    } catch {}
+  }
+  for (const r of repos.splice(0)) {
+    try {
+      rmSync(r, { recursive: true, force: true })
+    } catch {}
+  }
 })
 
 // NDJSON real (probado en vivo el 2026-07-20 con `opencode run --format json --auto`).
 function ndjson(...events: object[]): string {
-  return events.map(e => JSON.stringify(e)).join('\n') + '\n'
+  return events.map((e) => JSON.stringify(e)).join('\n') + '\n'
 }
 
 const stepFinish = (cost: number, input: number, output: number) => ({
@@ -172,7 +192,11 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await opencodeEngine.run(ctx, { maxTokens: 8192, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await opencodeEngine.run(ctx, {
+      maxTokens: 8192,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(spawnCalls).toHaveLength(1)
     expect(spawnCalls[0]!.cwd).toBe(wt.path)
@@ -227,7 +251,9 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
       let caught: Error | null = null
       try {
         await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
-      } catch (e: any) { caught = e }
+      } catch (e: any) {
+        caught = e
+      }
 
       expect(caught).toBeInstanceOf(ExecutorOpencodeError)
       expect(caught!.message).toContain('"opencode"')
@@ -239,11 +265,19 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
   })
 
   it('sin worktree: rechaza correr contra el proyecto real sin sandbox', async () => {
-    const ctx = { ...buildCtx({ path: '/tmp/fake', projectRoot: '/tmp/fake', cleanup() {} } as Worktree, baseTask()), worktree: null }
+    const ctx = {
+      ...buildCtx(
+        { path: '/tmp/fake', projectRoot: '/tmp/fake', cleanup() {} } as Worktree,
+        baseTask(),
+      ),
+      worktree: null,
+    }
     let caught: Error | null = null
     try {
       await opencodeEngine.run(ctx as any, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
-    } catch (e: any) { caught = e }
+    } catch (e: any) {
+      caught = e
+    }
     expect(caught).toBeInstanceOf(ExecutorOpencodeError)
     expect(caught!.message).toContain('worktree sandbox mode')
   })
@@ -257,14 +291,18 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     const wt = createWorktree('g5-timeout', 'main', root)
     trackWorktree(wt)
 
-    const proc = installMockSpawn('not ndjson at all, opencode was killed before flushing', { exitDelayMs: 50 })
+    const proc = installMockSpawn('not ndjson at all, opencode was killed before flushing', {
+      exitDelayMs: 50,
+    })
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
     let caught: Error | null = null
     try {
       await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 1 })
-    } catch (e: any) { caught = e }
+    } catch (e: any) {
+      caught = e
+    }
     expect(caught).toBeInstanceOf(ExecutorOpencodeError)
     expect(caught!.message).toContain('timed out')
   })
@@ -281,7 +319,9 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     let caught: Error | null = null
     try {
       await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
-    } catch (e: any) { caught = e }
+    } catch (e: any) {
+      caught = e
+    }
     expect(caught).toBeInstanceOf(ExecutorOpencodeError)
     expect(caught!.message).toContain('step-finish')
   })
@@ -291,12 +331,19 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     const wt = createWorktree('g5-partial', 'main', root)
     trackWorktree(wt)
 
-    const stdout = ndjson(stepFinish(0.001, 10, 1)) + '{"type":"text","part":{"tex\n' + ndjson(stepFinish(0.002, 20, 2))
+    const stdout =
+      ndjson(stepFinish(0.001, 10, 1)) +
+      '{"type":"text","part":{"tex\n' +
+      ndjson(stepFinish(0.002, 20, 2))
     const proc = installMockSpawn(stdout)
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await opencodeEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(outcome.usd).toBeCloseTo(0.003, 6)
     expect(outcome.iterations).toBe(2)

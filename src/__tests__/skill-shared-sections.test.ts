@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { buildSections } from '../skills/targets/_shared.ts'
 import type { SkillDef } from '../skills/registry.ts'
+import { buildSections } from '../skills/targets/_shared.ts'
 
 function baseSkill(overrides: Partial<SkillDef> = {}): SkillDef {
   return {
@@ -16,11 +16,13 @@ function baseSkill(overrides: Partial<SkillDef> = {}): SkillDef {
 
 describe('buildSections — hardening fields (N.2)', () => {
   test('a skill without hardening fields compiles identically to before (no regression)', () => {
-    const sections = buildSections(baseSkill({
-      when_to_use: ['when testing'],
-      anti_patterns: ['do not skip tests'],
-      verifiers: ['bun test'],
-    }))
+    const sections = buildSections(
+      baseSkill({
+        when_to_use: ['when testing'],
+        anti_patterns: ['do not skip tests'],
+        verifiers: ['bun test'],
+      }),
+    )
     expect(sections).toEqual([
       'Do the thing.',
       '## When to use',
@@ -40,12 +42,16 @@ describe('buildSections — hardening fields (N.2)', () => {
   })
 
   test('common_rationalizations and red_flags render after anti_patterns', () => {
-    const sections = buildSections(baseSkill({
-      anti_patterns: ['do not skip tests'],
-      common_rationalizations: [{ excuse: 'It looks fine', refutation: 'Looking fine is not tested.' }],
-      red_flags: ['writing the test after the code'],
-      verifiers: ['bun test'],
-    }))
+    const sections = buildSections(
+      baseSkill({
+        anti_patterns: ['do not skip tests'],
+        common_rationalizations: [
+          { excuse: 'It looks fine', refutation: 'Looking fine is not tested.' },
+        ],
+        red_flags: ['writing the test after the code'],
+        verifiers: ['bun test'],
+      }),
+    )
     const antiIdx = sections.indexOf('## Anti-patterns')
     const rationalizationIdx = sections.indexOf('## Common rationalizations')
     const redFlagsIdx = sections.indexOf('## Red flags')

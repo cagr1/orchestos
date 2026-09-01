@@ -16,11 +16,16 @@
  */
 import { useState } from 'react'
 import { Button } from '../components/ui/button.tsx'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog.tsx'
 import { Input } from '../components/ui/input.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs.tsx'
-import {
-  Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '../components/ui/dialog.tsx'
 import { pushToast } from '../lib/toast-store.ts'
 
 const VARIANTS = ['default', 'secondary', 'ghost', 'destructive', 'success'] as const
@@ -49,8 +54,12 @@ export function UiKitProbe() {
                 {variant}
               </Button>
             ))}
-            <Button size="sm" variant="secondary" data-probe="btn-sm">small</Button>
-            <Button disabled data-probe="btn-disabled">disabled</Button>
+            <Button size="sm" variant="secondary" data-probe="btn-sm">
+              small
+            </Button>
+            <Button disabled data-probe="btn-disabled">
+              disabled
+            </Button>
           </div>
         </TabsContent>
 
@@ -68,13 +77,23 @@ export function UiKitProbe() {
 
         <TabsContent value="overlays">
           <div className="flex flex-wrap gap-2" data-probe="overlays">
-            <Button variant="secondary" onClick={() => pushToast('Toast de prueba')} data-probe="toast">
+            <Button
+              variant="secondary"
+              onClick={() => pushToast('Toast de prueba')}
+              data-probe="toast"
+            >
               Toast
             </Button>
-            <Button variant="secondary" onClick={() => pushToast('Algo falló', 'error')} data-probe="toast-error">
+            <Button
+              variant="secondary"
+              onClick={() => pushToast('Algo falló', 'error')}
+              data-probe="toast-error"
+            >
               Toast error
             </Button>
-            <Button onClick={() => setDialogOpen(true)} data-probe="open-dialog">Abrir dialog</Button>
+            <Button onClick={() => setDialogOpen(true)} data-probe="open-dialog">
+              Abrir dialog
+            </Button>
           </div>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -87,9 +106,13 @@ export function UiKitProbe() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button variant="ghost" data-probe="dialog-cancel">Cancelar</Button>
+                  <Button variant="ghost" data-probe="dialog-cancel">
+                    Cancelar
+                  </Button>
                 </DialogClose>
-                <Button data-probe="dialog-ok" onClick={() => setDialogOpen(false)}>Aceptar</Button>
+                <Button data-probe="dialog-ok" onClick={() => setDialogOpen(false)}>
+                  Aceptar
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

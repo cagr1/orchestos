@@ -10,7 +10,10 @@ export interface SandboxPolicyResult {
   branch: string | null
 }
 
-export function resolveSandboxMode(projectRoot: string, preferred?: SandboxMode): SandboxPolicyResult {
+export function resolveSandboxMode(
+  projectRoot: string,
+  preferred?: SandboxMode,
+): SandboxPolicyResult {
   const warnings: string[] = []
   const gitDir = join(projectRoot, '.git')
 
@@ -20,7 +23,9 @@ export function resolveSandboxMode(projectRoot: string, preferred?: SandboxMode)
   }
 
   if (preferred === 'cwd') {
-    warnings.push('Sandbox disabled by --sandbox=cwd — changes will be written directly to the repo')
+    warnings.push(
+      'Sandbox disabled by --sandbox=cwd — changes will be written directly to the repo',
+    )
     return { mode: 'cwd', warnings, branch: null }
   }
 
@@ -49,24 +54,26 @@ export function resolveSandboxMode(projectRoot: string, preferred?: SandboxMode)
   const status = git(['status', '--porcelain'], projectRoot)
   const relevantLines = status.stdout
     .split('\n')
-    .filter(l => l.trim().length > 0 && !/\bruns-summary\.json$/.test(l))
+    .filter((l) => l.trim().length > 0 && !/\bruns-summary\.json$/.test(l))
   if (status.exitCode === 0 && relevantLines.length > 0) {
-    const fileList = relevantLines.slice(0, 10).map(l => {
-      const [flag, ...rest] = l.trim().split(/\s+/)
-      return `  ${flag} ${rest.join(' ')}`
-    }).join('\n')
+    const fileList = relevantLines
+      .slice(0, 10)
+      .map((l) => {
+        const [flag, ...rest] = l.trim().split(/\s+/)
+        return `  ${flag} ${rest.join(' ')}`
+      })
+      .join('\n')
     const suffix = relevantLines.length > 10 ? '\n  ... and more' : ''
     throw new Error(
       `Uncommitted changes in ${projectRoot}. Worktree sandbox requires a clean working tree.\n` +
-      `Either commit or stash before running with sandbox:\n${fileList}${suffix}`
+        `Either commit or stash before running with sandbox:\n${fileList}${suffix}`,
     )
   }
 
   // determine current branch
   const branchResult = git(['rev-parse', '--abbrev-ref', 'HEAD'], projectRoot)
-  const branch = branchResult.exitCode === 0 && branchResult.stdout !== 'HEAD'
-    ? branchResult.stdout
-    : null
+  const branch =
+    branchResult.exitCode === 0 && branchResult.stdout !== 'HEAD' ? branchResult.stdout : null
 
   if (!branch) {
     warnings.push('Detached HEAD state — falling back to cwd')

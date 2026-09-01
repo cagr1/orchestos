@@ -16,7 +16,9 @@ describe('agent governance', () => {
   })
 
   test('exige cierre y evidencia de navegador en el diff de PLAN', () => {
-    expect(hasLiveGateEvidence('+ - [x] **A.1 — UI**\n+  Gate en vivo: Playwright confirmó el flujo.')).toBe(true)
+    expect(
+      hasLiveGateEvidence('+ - [x] **A.1 — UI**\n+  Gate en vivo: Playwright confirmó el flujo.'),
+    ).toBe(true)
     expect(hasLiveGateEvidence('+ - [x] **A.1 — UI**\n+  Tests unitarios verdes.')).toBe(false)
     expect(hasLiveGateEvidence('+ Gate en vivo: navegador real.')).toBe(false)
   })

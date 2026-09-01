@@ -9,8 +9,8 @@
  * Mismo patrón de mock que external-engine.test.ts (Bun.spawn/Bun.which
  * overrideados, sin depender del binario real ni de red).
  */
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
-import { runClaudeChat, ExecutorExternalError } from '../run/executors/external.ts'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { ExecutorExternalError, runClaudeChat } from '../run/executors/external.ts'
 
 const originalWhich = Bun.which
 beforeEach(() => {
@@ -41,9 +41,15 @@ function makeMockProc(stdoutText: string): MockProc {
       })
     },
   })
-  const stderrStream = new ReadableStream<Uint8Array>({ start(c) { c.close() } })
+  const stderrStream = new ReadableStream<Uint8Array>({
+    start(c) {
+      c.close()
+    },
+  })
   let resolveExit!: (n: number) => void
-  const exited = new Promise<number>((r) => { resolveExit = r })
+  const exited = new Promise<number>((r) => {
+    resolveExit = r
+  })
   queueMicrotask(() => resolveExit(0))
   return {
     stdin: { write(_s) {}, end() {} },
@@ -54,7 +60,10 @@ function makeMockProc(stdoutText: string): MockProc {
   }
 }
 
-interface MockSpawnCall { cmd: string[]; cwd: string }
+interface MockSpawnCall {
+  cmd: string[]
+  cwd: string
+}
 let spawnCalls: MockSpawnCall[] = []
 
 function overrideBunSpawn(proc: MockProc) {
@@ -66,7 +75,7 @@ function overrideBunSpawn(proc: MockProc) {
 }
 
 function streamOf(...events: object[]): string {
-  return events.map(e => JSON.stringify(e)).join('\n') + '\n'
+  return events.map((e) => JSON.stringify(e)).join('\n') + '\n'
 }
 
 const assistantText = (text: string) => ({

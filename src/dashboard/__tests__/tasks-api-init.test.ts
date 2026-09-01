@@ -22,10 +22,10 @@
  * contra el tmp (que en este test no tiene package.json → cae al scaffold
  * genérico con 't1-util' / 't2-doc').
  */
-import { describe, it, expect, afterAll, beforeEach } from 'bun:test'
-import { mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync } from 'fs'
-import { join } from 'path'
+import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { stringify as yamlStringify } from 'yaml'
 
 const { route } = await import('../server.ts')
@@ -42,7 +42,9 @@ afterAll(() => {
 
 beforeEach(() => {
   // Empezar CADA test sin tasks.yaml (estado inicial del no-dev).
-  try { rmSync(join(tmpDir, 'tasks.yaml')) } catch {}
+  try {
+    rmSync(join(tmpDir, 'tasks.yaml'))
+  } catch {}
 })
 
 function req(method: string, path: string, body?: unknown): Request {
@@ -72,7 +74,7 @@ describe('D.1.a — GET /api/tasks distingue 3 estados', () => {
   it('sin tasks.yaml: { exists: false, tasks: [] } (gap-no-dev visible)', async () => {
     const res = await route(req('GET', '/api/tasks'), PORT)
     expect(res.status).toBe(200)
-    const body = await res.json() as TasksListResponse
+    const body = (await res.json()) as TasksListResponse
     expect(body.exists).toBe(false)
     expect(body.tasks).toEqual([])
     expect(body.error).toBeUndefined()
@@ -81,15 +83,31 @@ describe('D.1.a — GET /api/tasks distingue 3 estados', () => {
   it('tasks.yaml existe con tareas: { exists: true, tasks: [...] }', async () => {
     writeFileSync(
       join(tmpDir, 'tasks.yaml'),
-      yamlStringify({ version: 1, project: 'g', tasks: [
-        { id: 'a', description: 'A', executor: 'openrouter', input: [], output: ['x'], depends_on: [], status: 'pending', retry_count: 0 },
-      ] }, { lineWidth: 120 }),
+      yamlStringify(
+        {
+          version: 1,
+          project: 'g',
+          tasks: [
+            {
+              id: 'a',
+              description: 'A',
+              executor: 'openrouter',
+              input: [],
+              output: ['x'],
+              depends_on: [],
+              status: 'pending',
+              retry_count: 0,
+            },
+          ],
+        },
+        { lineWidth: 120 },
+      ),
       'utf-8',
     )
 
     const res = await route(req('GET', '/api/tasks'), PORT)
     expect(res.status).toBe(200)
-    const body = await res.json() as TasksListResponse
+    const body = (await res.json()) as TasksListResponse
     expect(body.exists).toBe(true)
     expect(body.tasks).toHaveLength(1)
     expect(body.tasks[0]!.id).toBe('a')
@@ -101,7 +119,7 @@ describe('D.1.a — GET /api/tasks distingue 3 estados', () => {
 
     const res = await route(req('GET', '/api/tasks'), PORT)
     expect(res.status).toBe(200) // 200, no 5xx — el frontend debe poder mostrar el error
-    const body = await res.json() as TasksListResponse
+    const body = (await res.json()) as TasksListResponse
     expect(body.exists).toBe(true)
     expect(body.tasks).toEqual([])
     expect(body.error).toBeDefined()
@@ -115,7 +133,7 @@ describe('D.1.a — POST /api/tasks/init crea el primer tasks.yaml', () => {
 
     const res = await route(req('POST', '/api/tasks/init'), PORT)
     expect(res.status).toBe(200)
-    const body = await res.json() as InitResponse
+    const body = (await res.json()) as InitResponse
     expect(body.ok).toBe(true)
     expect(body.taskIds).toHaveLength(2)
     // macOS resuelve /tmp como /private/tmp (symlink); comparamos por endsWith
@@ -139,7 +157,7 @@ describe('D.1.a — POST /api/tasks/init crea el primer tasks.yaml', () => {
     // tmpDir no tiene package.json ni manifest → cae al scaffold genérico
     const res = await route(req('POST', '/api/tasks/init'), PORT)
     expect(res.status).toBe(200)
-    const body = await res.json() as InitResponse
+    const body = (await res.json()) as InitResponse
     expect(body.taskIds).toEqual(['t1-util', 't2-doc'])
   })
 
@@ -147,22 +165,38 @@ describe('D.1.a — POST /api/tasks/init crea el primer tasks.yaml', () => {
     await route(req('POST', '/api/tasks/init'), PORT)
 
     const listRes = await route(req('GET', '/api/tasks'), PORT)
-    const body = await listRes.json() as TasksListResponse
+    const body = (await listRes.json()) as TasksListResponse
     expect(body.exists).toBe(true)
     expect(body.tasks).toHaveLength(2)
-    expect(body.tasks.map(t => t.id).sort()).toEqual(['t1-util', 't2-doc'])
+    expect(body.tasks.map((t) => t.id).sort()).toEqual(['t1-util', 't2-doc'])
   })
 
   it('init con tasks.yaml existente: 409 con mensaje claro (NO sobrescribe)', async () => {
     // Crea un archivo "preciado" primero
-    const original = yamlStringify({ version: 1, project: 'precious', tasks: [
-      { id: 'keep-me', description: 'do not overwrite', executor: 'openrouter', input: [], output: ['x'], depends_on: [], status: 'pending', retry_count: 0 },
-    ] }, { lineWidth: 120 })
+    const original = yamlStringify(
+      {
+        version: 1,
+        project: 'precious',
+        tasks: [
+          {
+            id: 'keep-me',
+            description: 'do not overwrite',
+            executor: 'openrouter',
+            input: [],
+            output: ['x'],
+            depends_on: [],
+            status: 'pending',
+            retry_count: 0,
+          },
+        ],
+      },
+      { lineWidth: 120 },
+    )
     writeFileSync(join(tmpDir, 'tasks.yaml'), original, 'utf-8')
 
     const res = await route(req('POST', '/api/tasks/init'), PORT)
     expect(res.status).toBe(409)
-    const body = await res.json() as { error: string }
+    const body = (await res.json()) as { error: string }
     expect(body.error).toMatch(/already exists/i)
 
     // Contenido intacto
@@ -178,9 +212,14 @@ describe('D.1.a — el gap original está cerrado', () => {
     expect(existsSync(join(tmpDir, 'tasks.yaml'))).toBe(false)
 
     // El gap: POST /api/tasks SIN init previo fallaba con 404
-    const pre = await route(req('POST', '/api/tasks', {
-      id: 'first', description: 'first task', output: ['x.txt'],
-    }), PORT)
+    const pre = await route(
+      req('POST', '/api/tasks', {
+        id: 'first',
+        description: 'first task',
+        output: ['x.txt'],
+      }),
+      PORT,
+    )
     expect(pre.status).toBe(404) // confirma que el gap existía
 
     // Init lo cierra
@@ -188,17 +227,22 @@ describe('D.1.a — el gap original está cerrado', () => {
     expect(init.status).toBe(200)
 
     // Ahora POST /api/tasks funciona
-    const post = await route(req('POST', '/api/tasks', {
-      id: 'second', description: 'second task', output: ['y.txt'],
-    }), PORT)
+    const post = await route(
+      req('POST', '/api/tasks', {
+        id: 'second',
+        description: 'second task',
+        output: ['y.txt'],
+      }),
+      PORT,
+    )
     expect(post.status).toBe(200)
-    const postBody = await post.json() as { ok: boolean; id: string }
+    const postBody = (await post.json()) as { ok: boolean; id: string }
     expect(postBody.ok).toBe(true)
     expect(postBody.id).toBe('second')
 
     // tasks.yaml ahora tiene 3 tasks (2 starter + 1 nueva)
     const list = await route(req('GET', '/api/tasks'), PORT)
-    const body = await list.json() as TasksListResponse
+    const body = (await list.json()) as TasksListResponse
     expect(body.tasks).toHaveLength(3)
   })
 })

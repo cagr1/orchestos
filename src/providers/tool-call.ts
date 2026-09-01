@@ -15,11 +15,11 @@
  */
 
 import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
 import { homedir } from 'os'
-import { DEFAULT_MAX_OUTPUT_TOKENS, catalogSupportsTools } from '../router/model-catalog.ts'
-import { parseAffordableTokens } from './openrouter.ts'
+import { join } from 'path'
 import { estimateTokens } from '../context/compress.ts'
+import { catalogSupportsTools, DEFAULT_MAX_OUTPUT_TOKENS } from '../router/model-catalog.ts'
+import { parseAffordableTokens } from './openrouter.ts'
 
 /**
  * Mes 22 (2026-07-17): `opts.maxTokens` era un presupuesto FIJO calculado una
@@ -107,10 +107,12 @@ export async function anthropicCallWithTools(opts: {
   maxTokens?: number
 }): Promise<ToolCallResponse> {
   const apiKey = requireKey('ANTHROPIC_API_KEY', 'anthropic')
-  const model  = opts.model.startsWith('anthropic/') ? opts.model.slice('anthropic/'.length) : opts.model
+  const model = opts.model.startsWith('anthropic/')
+    ? opts.model.slice('anthropic/'.length)
+    : opts.model
 
-  const anthropicTools = opts.tools.map(t => ({
-    name:        t.name,
+  const anthropicTools = opts.tools.map((t) => ({
+    name: t.name,
     description: t.description,
     input_schema: t.input_schema,
   }))
@@ -118,16 +120,16 @@ export async function anthropicCallWithTools(opts: {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Content-Type':    'application/json',
-      'x-api-key':       apiKey,
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
       model,
       max_tokens: opts.maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
-      system:     opts.system,
-      tools:      anthropicTools,
-      messages:   [{ role: 'user', content: opts.userMessage }],
+      system: opts.system,
+      tools: anthropicTools,
+      messages: [{ role: 'user', content: opts.userMessage }],
     }),
   })
 
@@ -136,18 +138,18 @@ export async function anthropicCallWithTools(opts: {
     throw new Error(`Anthropic tool-call error ${res.status}: ${err}`)
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     content: Array<{ type: string; name?: string; input?: unknown }>
     usage?: { input_tokens?: number; output_tokens?: number }
   }
 
   const calls: ToolCallResult[] = data.content
-    .filter(c => c.type === 'tool_use' && typeof c.name === 'string')
-    .map(c => ({ toolName: c.name as string, input: c.input }))
+    .filter((c) => c.type === 'tool_use' && typeof c.name === 'string')
+    .map((c) => ({ toolName: c.name as string, input: c.input }))
 
   return {
     calls,
-    inputTokens:  data.usage?.input_tokens  ?? 0,
+    inputTokens: data.usage?.input_tokens ?? 0,
     outputTokens: data.usage?.output_tokens ?? 0,
   }
 }
@@ -166,33 +168,33 @@ export async function openaiCallWithTools(opts: {
   /** Real output budget for this call — caller should derive it from contextWindowFor(model), never hardcode. Falls back to DEFAULT_MAX_OUTPUT_TOKENS only when the caller has no computed budget. */
   maxTokens?: number
 }): Promise<ToolCallResponse> {
-  const key     = opts.apiKey ?? requireKey('OPENAI_API_KEY', 'openai')
+  const key = opts.apiKey ?? requireKey('OPENAI_API_KEY', 'openai')
   const baseUrl = opts.baseUrl ?? 'https://api.openai.com/v1'
-  const model   = opts.model.startsWith('openai/') ? opts.model.slice('openai/'.length) : opts.model
+  const model = opts.model.startsWith('openai/') ? opts.model.slice('openai/'.length) : opts.model
 
-  const openaiTools = opts.tools.map(t => ({
+  const openaiTools = opts.tools.map((t) => ({
     type: 'function' as const,
     function: {
-      name:        t.name,
+      name: t.name,
       description: t.description,
-      parameters:  t.input_schema,
+      parameters: t.input_schema,
     },
   }))
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
       model,
-      max_tokens:  opts.maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
+      max_tokens: opts.maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
       tool_choice: 'auto',
-      tools:       openaiTools,
+      tools: openaiTools,
       messages: [
-        { role: 'system',  content: opts.system },
-        { role: 'user',    content: opts.userMessage },
+        { role: 'system', content: opts.system },
+        { role: 'user', content: opts.userMessage },
       ],
     }),
   })
@@ -202,7 +204,7 @@ export async function openaiCallWithTools(opts: {
     throw new Error(`OpenAI tool-call error ${res.status}: ${err}`)
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     choices: Array<{
       message: {
         tool_calls?: Array<{ function: { name: string; arguments: string } }>
@@ -212,15 +214,15 @@ export async function openaiCallWithTools(opts: {
   }
 
   const rawCalls = data.choices[0]?.message?.tool_calls ?? []
-  const calls: ToolCallResult[] = rawCalls.map(tc => ({
+  const calls: ToolCallResult[] = rawCalls.map((tc) => ({
     toolName: tc.function.name,
-    input:    JSON.parse(tc.function.arguments),
+    input: JSON.parse(tc.function.arguments),
   }))
 
   return {
     calls,
-    inputTokens:  data.usage?.prompt_tokens       ?? 0,
-    outputTokens: data.usage?.completion_tokens   ?? 0,
+    inputTokens: data.usage?.prompt_tokens ?? 0,
+    outputTokens: data.usage?.completion_tokens ?? 0,
   }
 }
 
@@ -243,18 +245,17 @@ export async function openaiCallWithTools(opts: {
  */
 export function supportsToolCalling(provider: string, model: string): boolean {
   switch (provider) {
-    case 'anthropic': return true
-    case 'openai':    return true
+    case 'anthropic':
+      return true
+    case 'openai':
+      return true
     case 'openrouter': {
       if (catalogSupportsTools(model)) return true
       const m = model.toLowerCase()
-      return (
-        m.startsWith('anthropic/')  ||
-        m.startsWith('openai/')     ||
-        m.startsWith('google/gemini')
-      )
+      return m.startsWith('anthropic/') || m.startsWith('openai/') || m.startsWith('google/gemini')
     }
-    default: return false   // codex and unknown providers
+    default:
+      return false // codex and unknown providers
   }
 }
 
@@ -285,14 +286,14 @@ export async function callWithTools(
     return openaiCallWithTools({
       model,
       baseUrl: 'https://openrouter.ai/api/v1',
-      apiKey:  key,
+      apiKey: key,
       ...opts,
     })
   }
 
   throw new Error(
     `Provider '${provider}' does not support tool calling. ` +
-    `Use YAML fallback or switch to anthropic / openai / openrouter.`
+      `Use YAML fallback or switch to anthropic / openai / openrouter.`,
   )
 }
 
@@ -300,9 +301,7 @@ export async function callWithTools(
 // Multi-turn tool loop (Mes 13, Bloque A)
 // ---------------------------------------------------------------------------
 
-export interface ToolExecutor {
-  (toolName: string, input: unknown): Promise<string>
-}
+export type ToolExecutor = (toolName: string, input: unknown) => Promise<string>
 
 export interface ToolLoopResult {
   text: string
@@ -348,7 +347,7 @@ export const SEARCH_MEMORY_TOOL: ToolDef = {
 export const READ_PLAN_TOOL: ToolDef = {
   name: 'read_plan',
   description:
-    'Reads PLAN.md, this project\'s execution plan (active blocks, status, done-month history ' +
+    "Reads PLAN.md, this project's execution plan (active blocks, status, done-month history " +
     'reference). Use when the user references a plan, a block by name (e.g. "A1", "Bloque B"), ' +
     'or asks what is next for this project.',
   input_schema: { type: 'object', properties: {} },
@@ -381,7 +380,10 @@ export const READ_FILE_TOOL: ToolDef = {
     type: 'object',
     required: ['path'],
     properties: {
-      path: { type: 'string', description: 'File path relative to the project root, e.g. "src/cli.ts"' },
+      path: {
+        type: 'string',
+        description: 'File path relative to the project root, e.g. "src/cli.ts"',
+      },
     },
   },
 }
@@ -434,7 +436,11 @@ async function anthropicRound(
       model: m,
       max_tokens: maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
       system,
-      tools: tools.map(t => ({ name: t.name, description: t.description, input_schema: t.input_schema })),
+      tools: tools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        input_schema: t.input_schema,
+      })),
       messages: history,
     }),
   })
@@ -444,15 +450,18 @@ async function anthropicRound(
     throw new Error(`Anthropic tool-call error ${res.status}: ${err}`)
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     content: Array<{ type: string; text?: string; id?: string; name?: string; input?: unknown }>
     usage?: { input_tokens?: number; output_tokens?: number }
   }
 
-  const text = data.content.filter(c => c.type === 'text').map(c => c.text).join('')
+  const text = data.content
+    .filter((c) => c.type === 'text')
+    .map((c) => c.text)
+    .join('')
   const toolUses: RawToolUse[] = data.content
-    .filter(c => c.type === 'tool_use' && c.id && c.name)
-    .map(c => ({ id: c.id as string, name: c.name as string, input: c.input }))
+    .filter((c) => c.type === 'tool_use' && c.id && c.name)
+    .map((c) => ({ id: c.id as string, name: c.name as string, input: c.input }))
 
   return {
     text,
@@ -494,7 +503,7 @@ async function openaiRound(
 
   const m = model.startsWith('openai/') ? model.slice('openai/'.length) : model
 
-  const openaiTools = tools.map(t => ({
+  const openaiTools = tools.map((t) => ({
     type: 'function' as const,
     function: { name: t.name, description: t.description, parameters: t.input_schema },
   }))
@@ -504,21 +513,20 @@ async function openaiRound(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      ...(baseUrl.includes('openrouter') ? {
-        'HTTP-Referer': 'https://github.com/cagr1/orchestos',
-        'X-Title': 'orchestos',
-      } : {}),
+      Authorization: `Bearer ${apiKey}`,
+      ...(baseUrl.includes('openrouter')
+        ? {
+            'HTTP-Referer': 'https://github.com/cagr1/orchestos',
+            'X-Title': 'orchestos',
+          }
+        : {}),
     },
     body: JSON.stringify({
       model: m,
       max_tokens: requestedMaxTokens,
       tool_choice: 'auto',
       tools: openaiTools,
-      messages: [
-        { role: 'system', content: system },
-        ...history,
-      ],
+      messages: [{ role: 'system', content: system }, ...history],
       ...(effort && baseUrl.includes('openrouter') ? { reasoning: { effort } } : {}),
     }),
   })
@@ -540,11 +548,15 @@ async function openaiRound(
     throw new Error(`OpenAI tool-call error ${res.status}: ${err}`)
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     choices: Array<{
       message: {
         content?: string | null
-        tool_calls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }>
+        tool_calls?: Array<{
+          id: string
+          type: string
+          function: { name: string; arguments: string }
+        }>
       }
     }>
     usage?: { prompt_tokens?: number; completion_tokens?: number }
@@ -553,7 +565,7 @@ async function openaiRound(
   const message = data.choices[0]?.message
   const text = message?.content ?? ''
   const rawCalls = message?.tool_calls ?? []
-  const toolUses: RawToolUse[] = rawCalls.map(tc => ({
+  const toolUses: RawToolUse[] = rawCalls.map((tc) => ({
     id: tc.id,
     name: tc.function.name,
     input: JSON.parse(tc.function.arguments),
@@ -564,7 +576,11 @@ async function openaiRound(
     toolUses,
     inputTokens: data.usage?.prompt_tokens ?? 0,
     outputTokens: data.usage?.completion_tokens ?? 0,
-    assistantMessage: { role: 'assistant', content: text, tool_calls: rawCalls.length > 0 ? rawCalls : undefined },
+    assistantMessage: {
+      role: 'assistant',
+      content: text,
+      tool_calls: rawCalls.length > 0 ? rawCalls : undefined,
+    },
   }
 }
 
@@ -597,10 +613,15 @@ export async function runToolLoop(
   let totalInputTokens = 0
   let totalOutputTokens = 0
 
-  const history: unknown[] = opts.messages.map(m => ({ ...m }))
+  const history: unknown[] = opts.messages.map((m) => ({ ...m }))
   const baselinePromptTokens = estimateTokens(opts.system) + estimateTokens(JSON.stringify(history))
   const growthSince = (currentHistory: unknown[]) =>
-    Math.max(0, estimateTokens(opts.system) + estimateTokens(JSON.stringify(currentHistory)) - baselinePromptTokens)
+    Math.max(
+      0,
+      estimateTokens(opts.system) +
+        estimateTokens(JSON.stringify(currentHistory)) -
+        baselinePromptTokens,
+    )
 
   for (let turn = 0; turn < maxTurns; turn++) {
     let result: {
@@ -616,7 +637,15 @@ export async function runToolLoop(
     if (provider === 'anthropic') {
       result = await anthropicRound(model, opts.system, history, opts.tools, turnMaxTokens)
     } else {
-      result = await openaiRound(model, opts.system, history, opts.tools, provider, opts.effort, turnMaxTokens)
+      result = await openaiRound(
+        model,
+        opts.system,
+        history,
+        opts.tools,
+        provider,
+        opts.effort,
+        turnMaxTokens,
+      )
     }
 
     totalInputTokens += result.inputTokens
@@ -669,13 +698,23 @@ export async function runToolLoop(
   // tools es lo que efectivamente lo detiene.
   const closingMessage = {
     role: 'user',
-    content: 'Tools are no longer available. Answer the original question directly, in plain text, using only what you already found above.',
+    content:
+      'Tools are no longer available. Answer the original question directly, in plain text, using only what you already found above.',
   }
   const finalHistory = [...history, closingMessage]
   const finalMaxTokens = shrinkForGrowth(opts.maxTokens, growthSince(finalHistory))
-  const finalRound = provider === 'anthropic'
-    ? await anthropicRound(model, opts.system, finalHistory, [], finalMaxTokens)
-    : await openaiRound(model, opts.system, finalHistory, [], provider, opts.effort, finalMaxTokens)
+  const finalRound =
+    provider === 'anthropic'
+      ? await anthropicRound(model, opts.system, finalHistory, [], finalMaxTokens)
+      : await openaiRound(
+          model,
+          opts.system,
+          finalHistory,
+          [],
+          provider,
+          opts.effort,
+          finalMaxTokens,
+        )
 
   return {
     text: finalRound.text,

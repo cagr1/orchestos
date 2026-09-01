@@ -16,11 +16,13 @@
  */
 import { useSyncExternalStore } from 'react'
 import {
-  Toast, ToastClose, ToastProvider, ToastTitle, ToastViewport,
+  Toast,
+  ToastClose,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
 } from '../components/ui/toast.tsx'
-import {
-  dismissToast, getToasts, subscribeToasts, TOAST_DURATION_MS,
-} from '../lib/toast-store.ts'
+import { dismissToast, getToasts, subscribeToasts, TOAST_DURATION_MS } from '../lib/toast-store.ts'
 
 export function Toaster() {
   const toasts = useSyncExternalStore(subscribeToasts, getToasts, getToasts)
@@ -35,15 +37,24 @@ export function Toaster() {
           // Radix avisa acá tanto por el timeout como por swipe/Esc/click en cerrar:
           // un solo camino de salida, en vez de los dos `setTimeout` encadenados que
           // tenía el toast vanilla.
-          onOpenChange={(open) => { if (!open) dismissToast(item.id) }}
+          onOpenChange={(open) => {
+            if (!open) dismissToast(item.id)
+          }}
         >
           <ToastTitle className="font-normal">{item.message}</ToastTitle>
           <ToastClose
             aria-label="Close"
             className="shrink-0 opacity-50 transition-opacity hover:opacity-100"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" aria-hidden="true">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </ToastClose>

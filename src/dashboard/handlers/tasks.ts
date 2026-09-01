@@ -1,24 +1,24 @@
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
-import { existsSync, readFileSync } from 'fs'
 import { diagnoseTask } from '../../agents/diagnose.ts'
-import { loadTasks, saveTasks } from '../../tasks/loader.ts'
-import { scaffoldTasksYaml } from '../../tasks/init.ts'
-import type { TaskRow, DiagnoseRow, SplitPlanResponse } from '../types.ts'
-import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
-import { isKnownSkillId } from '../../skills/catalog.ts'
-import { classifyTask } from '../../router/classify.ts'
-import { autoRoute } from '../../router/auto-route.ts'
+import { parsePlan } from '../../agents/planner.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { AgentChoice } from '../../config/schema.ts'
-import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
-import { loadConstitution } from '../../spec/constitution.ts'
 import { getProject } from '../../db/projects.ts'
-import { suggestContext } from '../../graph/suggest.ts'
-import { parsePlan } from '../../agents/planner.ts'
-import { git } from '../../run/sandbox.ts'
-import { withGitLock } from '../../run/git-lock.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
+import { suggestContext } from '../../graph/suggest.ts'
+import { autoRoute } from '../../router/auto-route.ts'
+import { classifyTask } from '../../router/classify.ts'
+import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
+import { withGitLock } from '../../run/git-lock.ts'
+import { git } from '../../run/sandbox.ts'
+import { isKnownSkillId } from '../../skills/catalog.ts'
+import { loadConstitution } from '../../spec/constitution.ts'
+import { scaffoldTasksYaml } from '../../tasks/init.ts'
+import { loadTasks, saveTasks } from '../../tasks/loader.ts'
+import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
+import type { DiagnoseRow, SplitPlanResponse, TaskRow } from '../types.ts'
 
 async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Response> {
   let localDetected = false
@@ -33,12 +33,27 @@ async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Respo
   // CC.D1 (2026-08-17) — `executor_mode`/valores `cli-*` renombrados a `agent`
   // (`claude`/`opencode`/`codex`, sin el prefijo `cli-` redundante).
   const detectedClis = detectInstalledClis()
-  const cliById = new Map(detectedClis.map(cli => [cli.id, cli]))
+  const cliById = new Map(detectedClis.map((cli) => [cli.id, cli]))
   const modes: { id: AgentChoice; label: string; detected: boolean; path: string | null }[] = [
     { id: 'local', label: 'Local (Ollama)', detected: localDetected, path: null },
-    { id: 'claude', label: cliById.get('claude')?.label ?? 'Claude Code', detected: cliById.get('claude')?.installed ?? false, path: cliById.get('claude')?.path ?? null },
-    { id: 'opencode', label: cliById.get('opencode')?.label ?? 'opencode', detected: cliById.get('opencode')?.installed ?? false, path: cliById.get('opencode')?.path ?? null },
-    { id: 'codex', label: cliById.get('codex')?.label ?? 'Codex', detected: cliById.get('codex')?.installed ?? false, path: cliById.get('codex')?.path ?? null },
+    {
+      id: 'claude',
+      label: cliById.get('claude')?.label ?? 'Claude Code',
+      detected: cliById.get('claude')?.installed ?? false,
+      path: cliById.get('claude')?.path ?? null,
+    },
+    {
+      id: 'opencode',
+      label: cliById.get('opencode')?.label ?? 'opencode',
+      detected: cliById.get('opencode')?.installed ?? false,
+      path: cliById.get('opencode')?.path ?? null,
+    },
+    {
+      id: 'codex',
+      label: cliById.get('codex')?.label ?? 'Codex',
+      detected: cliById.get('codex')?.installed ?? false,
+      path: cliById.get('codex')?.path ?? null,
+    },
     { id: 'api', label: 'OpenRouter API', detected: true, path: null },
   ]
 
@@ -50,7 +65,7 @@ function loadTaskRows(root: string): TaskRow[] {
   if (!existsSync(join(root, 'tasks.yaml'))) return []
   try {
     const file = loadTasks(root)
-    return file.tasks.map(t => ({
+    return file.tasks.map((t) => ({
       id: t.id,
       description: t.description,
       status: t.status,
@@ -91,7 +106,7 @@ function handleApiTasks(root: string): Response {
   }
   try {
     const file = loadTasks(root)
-    const rows: TaskRow[] = file.tasks.map(t => ({
+    const rows: TaskRow[] = file.tasks.map((t) => ({
       id: t.id,
       description: t.description,
       status: t.status,
@@ -137,9 +152,16 @@ async function handleApiTasksInit(root: string): Promise<Response> {
 }
 
 function descToTaskId(desc: string): string {
-  return desc.trim().toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .trim().split(/\s+/).slice(0, 5).join('-') || 'task'
+  return (
+    desc
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .trim()
+      .split(/\s+/)
+      .slice(0, 5)
+      .join('-') || 'task'
+  )
 }
 
 function inferExecutorFromModel(modelId: string | undefined): string {
@@ -167,7 +189,10 @@ export interface CreateTaskParams {
 // D.7 (Mes 22) — extraído de handleApiTasksCreate para que el auto-flow del
 // chat (creates tasks sin pasar por una Request HTTP) reuse exactamente la
 // misma lógica (dedupe de id, commit del sandbox, etc.) en vez de duplicarla.
-function createTaskRecord(root: string, params: CreateTaskParams): { id: string } | { error: string; status: number } {
+function createTaskRecord(
+  root: string,
+  params: CreateTaskParams,
+): { id: string } | { error: string; status: number } {
   if (!params.description?.trim()) return { error: 'description is required', status: 400 }
   const description = params.description.trim()
   const id = params.id?.trim() || descToTaskId(description)
@@ -176,14 +201,31 @@ function createTaskRecord(root: string, params: CreateTaskParams): { id: string 
   const executor = params.executor || inferExecutorFromModel(executorModel)
   const engineRaw = params.engine?.trim()
   let engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | undefined
-  if (engineRaw === 'single-shot' || engineRaw === 'agentic' || engineRaw === 'external' || engineRaw === 'opencode' || engineRaw === 'codex') engine = engineRaw
-  else if (engineRaw && engineRaw.length > 0) return { error: `unknown engine '${engineRaw}' — allowed: single-shot, agentic, external, opencode, codex`, status: 400 }
+  if (
+    engineRaw === 'single-shot' ||
+    engineRaw === 'agentic' ||
+    engineRaw === 'external' ||
+    engineRaw === 'opencode' ||
+    engineRaw === 'codex'
+  )
+    engine = engineRaw
+  else if (engineRaw && engineRaw.length > 0)
+    return {
+      error: `unknown engine '${engineRaw}' — allowed: single-shot, agentic, external, opencode, codex`,
+      status: 400,
+    }
   const cliEffortRaw = params.cli_effort?.trim()
   const CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
-  let cliEffort: typeof CLI_EFFORTS[number] | undefined
-  if (cliEffortRaw && (CLI_EFFORTS as readonly string[]).includes(cliEffortRaw)) cliEffort = cliEffortRaw as typeof CLI_EFFORTS[number]
-  else if (cliEffortRaw) return { error: `unknown cli_effort '${cliEffortRaw}' — allowed: ${CLI_EFFORTS.join(', ')}`, status: 400 }
-  if (!existsSync(join(root, 'tasks.yaml'))) return { error: 'tasks.yaml not found — run: orchestos task init', status: 404 }
+  let cliEffort: (typeof CLI_EFFORTS)[number] | undefined
+  if (cliEffortRaw && (CLI_EFFORTS as readonly string[]).includes(cliEffortRaw))
+    cliEffort = cliEffortRaw as (typeof CLI_EFFORTS)[number]
+  else if (cliEffortRaw)
+    return {
+      error: `unknown cli_effort '${cliEffortRaw}' — allowed: ${CLI_EFFORTS.join(', ')}`,
+      status: 400,
+    }
+  if (!existsSync(join(root, 'tasks.yaml')))
+    return { error: 'tasks.yaml not found — run: orchestos task init', status: 404 }
   try {
     const file = loadTasks(root)
     let finalId = id
@@ -254,7 +296,11 @@ function spawnTaskRun(root: string, id: string, model?: string): void {
 
 async function handleApiTasksCreate(req: Request, root: string): Promise<Response> {
   let body: CreateTaskParams
-  try { body = (await req.json()) as CreateTaskParams } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as CreateTaskParams
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   const result = createTaskRecord(root, body)
   if ('error' in result) return errorResponse(result.error, result.status)
   return jsonResponse({ ok: true, id: result.id })
@@ -265,7 +311,11 @@ async function handleApiTasksRun(req: Request, url: URL, root: string): Promise<
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
   let body: { model?: string; clarification?: string } = {}
-  try { body = (await req.json()) as { model?: string; clarification?: string } } catch { /* body opcional */ }
+  try {
+    body = (await req.json()) as { model?: string; clarification?: string }
+  } catch {
+    /* body opcional */
+  }
   const model = body.model?.trim() || undefined
   const clarification = body.clarification?.trim() || undefined
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
@@ -319,8 +369,13 @@ function handleApiTasksDelete(url: URL, root: string): Response {
 // llamadas a saveTasks() (N reescrituras completas del YAML).
 async function handleApiTasksBulkDelete(req: Request, root: string): Promise<Response> {
   let body: { ids?: unknown }
-  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
-  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  try {
+    body = (await req.json()) as { ids?: unknown }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (!Array.isArray(body.ids) || body.ids.length === 0)
+    return errorResponse('ids must be a non-empty array', 400)
   const ids = new Set(body.ids.filter((id): id is string => typeof id === 'string'))
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   try {
@@ -350,12 +405,15 @@ function handleApiTasksExplain(url: URL, root: string): Response {
   const route = autoRoute(task, cfg, cfgFound)
   const model = route?.model ?? taskClass
   const providerName = route?.provider ?? task.executor
-  const modelDisplay = route ? `${providerName}/${model} [${route.role}]` : `${model} (${taskClass})`
+  const modelDisplay = route
+    ? `${providerName}/${model} [${route.role}]`
+    : `${model} (${taskClass})`
 
   const project = getProject(root)
   const suggestions = project ? suggestContext(project.id, task.description, { topN: 5 }) : []
   const implicitInput = task.input.length === 0 ? suggestions.map((s: any) => s.path) : []
-  const inputSource = task.input.length > 0 ? 'explicit' : implicitInput.length > 0 ? 'graph' : 'none'
+  const inputSource =
+    task.input.length > 0 ? 'explicit' : implicitInput.length > 0 ? 'graph' : 'none'
 
   const cst = loadConstitution(root)
 
@@ -371,7 +429,14 @@ function handleApiTasksExplain(url: URL, root: string): Response {
     graphSuggestions: suggestions.map((s: any) => ({ path: s.path, score: s.score })),
     checks: task.checks ?? [],
     acceptanceCriteria: task.acceptance_criteria ?? [],
-    constitution: cst ? { ruleCount: cst.ruleCount, forbidden: cst.forbidden.length, requireConfirmation: cst.require_confirmation.length, allowed: cst.allowed.length } : null,
+    constitution: cst
+      ? {
+          ruleCount: cst.ruleCount,
+          forbidden: cst.forbidden.length,
+          requireConfirmation: cst.require_confirmation.length,
+          allowed: cst.allowed.length,
+        }
+      : null,
   })
 }
 
@@ -405,21 +470,29 @@ function handleApiTasksSplitPlan(url: URL, root: string): Response {
   if (!existsSync(planPath)) return errorResponse('No split plan found for this task', 404)
 
   let yaml: string
-  try { yaml = readFileSync(planPath, 'utf-8') } catch { return errorResponse('Cannot read plan file', 500) }
+  try {
+    yaml = readFileSync(planPath, 'utf-8')
+  } catch {
+    return errorResponse('Cannot read plan file', 500)
+  }
 
   let plan: ReturnType<typeof parsePlan>
-  try { plan = parsePlan(yaml) } catch (e: any) { return errorResponse(`Invalid plan YAML: ${e.message}`, 422) }
+  try {
+    plan = parsePlan(yaml)
+  } catch (e: any) {
+    return errorResponse(`Invalid plan YAML: ${e.message}`, 422)
+  }
 
   const resp: SplitPlanResponse = {
     parentTaskId: id,
     planYamlPath: planPath,
-    subTasks: plan.sub_tasks.map(st => ({
-      id:            st.id,
-      description:   st.description,
-      acceptance:    st.acceptance,
-      depends_on:    st.depends_on,
+    subTasks: plan.sub_tasks.map((st) => ({
+      id: st.id,
+      description: st.description,
+      acceptance: st.acceptance,
+      depends_on: st.depends_on,
       allowed_tools: st.allowed_tools,
-      ...(st.output    ? { output:    st.output }    : {}),
+      ...(st.output ? { output: st.output } : {}),
       ...(st.topic_key ? { topic_key: st.topic_key } : {}),
     })),
   }
@@ -433,7 +506,8 @@ function handleApiTasksApproveSplit(url: URL, root: string): Response {
   if (!id) return errorResponse('Missing or invalid task id', 400)
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   const planPath = join(root, `${id}.plan.yaml`)
-  if (!existsSync(planPath)) return errorResponse('No split plan found — run the task first to generate a plan', 404)
+  if (!existsSync(planPath))
+    return errorResponse('No split plan found — run the task first to generate a plan', 404)
 
   // Reset task to pending so the CLI doesn't skip it
   const file = loadTasks(root)
@@ -447,7 +521,28 @@ function handleApiTasksApproveSplit(url: URL, root: string): Response {
   const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--expand', id]
   Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
 
-  return jsonResponse({ ok: true, id, message: `Split plan for "${id}" approved — executing ${planPath}` })
+  return jsonResponse({
+    ok: true,
+    id,
+    message: `Split plan for "${id}" approved — executing ${planPath}`,
+  })
 }
 
-export { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, handleApiTasksSteps, handleApiSystemExecutorModes, loadTaskRows, isKnownSkillId, createTaskRecord, spawnTaskRun }
+export {
+  createTaskRecord,
+  handleApiSystemExecutorModes,
+  handleApiTasks,
+  handleApiTasksApproveSplit,
+  handleApiTasksBulkDelete,
+  handleApiTasksCreate,
+  handleApiTasksDelete,
+  handleApiTasksDiagnose,
+  handleApiTasksExplain,
+  handleApiTasksInit,
+  handleApiTasksRun,
+  handleApiTasksSplitPlan,
+  handleApiTasksSteps,
+  isKnownSkillId,
+  loadTaskRows,
+  spawnTaskRun,
+}

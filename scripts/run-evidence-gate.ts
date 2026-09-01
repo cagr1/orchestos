@@ -32,8 +32,10 @@ function quoteIdentifier(value: string): string {
 }
 
 function tableColumns(database: Database, table: string): string[] {
-  return database.query<{ name: string }, []>(`PRAGMA table_info(${quoteIdentifier(table)})`).all()
-    .map(row => row.name)
+  return database
+    .query<{ name: string }, []>(`PRAGMA table_info(${quoteIdentifier(table)})`)
+    .all()
+    .map((row) => row.name)
 }
 
 export function normalizeEvidenceLabel(raw: string): string {
@@ -53,7 +55,11 @@ export function databasePathForHome(home: string): string {
  * schemas. project_id becomes NULL because a disposable project registry must
  * never leak into the durable DB. The original run id makes retries idempotent.
  */
-export function exportRunEvidence(sourcePath: string, targetPath: string, rawLabel: string): ExportResult {
+export function exportRunEvidence(
+  sourcePath: string,
+  targetPath: string,
+  rawLabel: string,
+): ExportResult {
   const label = normalizeEvidenceLabel(rawLabel)
   if (!existsSync(sourcePath)) return { discovered: 0, exported: 0, duplicates: 0 }
   if (resolve(sourcePath) === resolve(targetPath)) {
@@ -72,21 +78,23 @@ export function exportRunEvidence(sourcePath: string, targetPath: string, rawLab
         throw new Error(`runs schema is missing required column: ${required}`)
       }
     }
-    const columns = sourceColumns.filter(column => targetColumnSet.has(column))
+    const columns = sourceColumns.filter((column) => targetColumnSet.has(column))
     const quotedColumns = columns.map(quoteIdentifier).join(', ')
-    const rows = source.query<Record<string, unknown>, []>(
-      `SELECT ${quotedColumns} FROM runs
+    const rows = source
+      .query<Record<string, unknown>, []>(
+        `SELECT ${quotedColumns} FROM runs
        WHERE task_class != 'chat' AND task_class NOT LIKE 'gate:%'
-       ORDER BY created_at, id`
-    ).all()
+       ORDER BY created_at, id`,
+      )
+      .all()
     const placeholders = columns.map(() => '?').join(', ')
     const insert = target.query(
-      `INSERT INTO runs (${quotedColumns}) VALUES (${placeholders}) ON CONFLICT(id) DO NOTHING`
+      `INSERT INTO runs (${quotedColumns}) VALUES (${placeholders}) ON CONFLICT(id) DO NOTHING`,
     )
     let exported = 0
     const copy = target.transaction(() => {
       for (const row of rows) {
-        const values = columns.map(column => {
+        const values = columns.map((column) => {
           if (column === 'project_id') return null
           if (column === 'task_class') return `gate:${label}:${String(row.task_class)}`
           return row[column] ?? null
@@ -121,7 +129,10 @@ export function runEvidenceGate(options: GateOptions): number {
   if (options.command.length === 0) throw new Error('a command is required after --')
   const cwd = resolve(options.cwd ?? process.cwd())
   const evidenceHome = resolve(
-    options.evidenceHome ?? process.env.ORCHESTOS_EVIDENCE_HOME ?? process.env.ORCHESTOS_HOME ?? homedir(),
+    options.evidenceHome ??
+      process.env.ORCHESTOS_EVIDENCE_HOME ??
+      process.env.ORCHESTOS_HOME ??
+      homedir(),
   )
   const tempHome = mkdtempSync(join(tmpdir(), `orchestos-evidence-${label}-`))
   let safeToDelete = false
@@ -145,7 +156,9 @@ export function runEvidenceGate(options: GateOptions): number {
       result = exportRunEvidence(sourcePath, databasePathForHome(evidenceHome), label)
     }
     safeToDelete = true
-    console.log(`[gate:evidence] evidence: ${result.exported} exported, ${result.duplicates} duplicate(s)`)
+    console.log(
+      `[gate:evidence] evidence: ${result.exported} exported, ${result.duplicates} duplicate(s)`,
+    )
     return child.exitCode
   } catch (error) {
     console.error(`[gate:evidence] export failed; evidence preserved at ${tempHome}`)

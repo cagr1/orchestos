@@ -5,10 +5,10 @@
  * SIEMPRE restaurado en finally, para no tocar el tasks.yaml/config real
  * del repo durante la suite.
  */
-import { describe, it, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { handleApiConfigGet } from '../dashboard/handlers/config.ts'
 
 const originalCwd = process.cwd()
@@ -19,7 +19,9 @@ describe('handleApiConfigGet — resiliencia ante tasks.yaml malformado', () => 
     const dir = mkdtempSync(join(tmpdir(), 'orchestos-h4-cfggetres-'))
     try {
       process.chdir(dir)
-      writeFileSync(join(dir, 'tasks.yaml'), `
+      writeFileSync(
+        join(dir, 'tasks.yaml'),
+        `
 project: test
 tasks:
   - id: broken-task
@@ -28,11 +30,13 @@ tasks:
     executor: anthropic
     status: pending
     retry_count: 0
-`, 'utf-8')
+`,
+        'utf-8',
+      )
 
       const res = await handleApiConfigGet()
       expect(res.status).toBe(200)
-      const data = await res.json() as { pendingRouting: unknown[] }
+      const data = (await res.json()) as { pendingRouting: unknown[] }
       expect(data.pendingRouting).toEqual([])
     } finally {
       process.chdir(originalCwd)
@@ -44,7 +48,9 @@ tasks:
     const dir = mkdtempSync(join(tmpdir(), 'orchestos-h4-cfggetres-ok-'))
     try {
       process.chdir(dir)
-      writeFileSync(join(dir, 'tasks.yaml'), `
+      writeFileSync(
+        join(dir, 'tasks.yaml'),
+        `
 project: test
 tasks:
   - id: valid-task
@@ -53,12 +59,14 @@ tasks:
     executor: openrouter
     status: pending
     retry_count: 0
-`, 'utf-8')
+`,
+        'utf-8',
+      )
 
       const res = await handleApiConfigGet()
       expect(res.status).toBe(200)
-      const data = await res.json() as { pendingRouting: Array<{ id: string }> }
-      expect(data.pendingRouting.map(r => r.id)).toEqual(['valid-task'])
+      const data = (await res.json()) as { pendingRouting: Array<{ id: string }> }
+      expect(data.pendingRouting.map((r) => r.id)).toEqual(['valid-task'])
     } finally {
       process.chdir(originalCwd)
       rmSync(dir, { recursive: true, force: true })

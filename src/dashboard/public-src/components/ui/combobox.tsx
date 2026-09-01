@@ -14,11 +14,16 @@
  * nombre), sin reordenar por score — quien mira la lista espera el orden del catálogo.
  */
 import type { ReactNode } from 'react'
+import { cn } from '../../lib/utils.ts'
 import {
-  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
 } from './command.tsx'
 import { Popover, PopoverContent, PopoverTrigger } from './popover.tsx'
-import { cn } from '../../lib/utils.ts'
 
 export interface ComboboxOption {
   /** Valor real que se reporta al elegir. */
@@ -50,9 +55,17 @@ export interface ComboboxProps {
 }
 
 export function Combobox({
-  value, onValueChange, options, triggerLabel,
-  searchPlaceholder, emptyText = 'No results', disabled, className, contentClassName,
-  open, onOpenChange,
+  value,
+  onValueChange,
+  options,
+  triggerLabel,
+  searchPlaceholder,
+  emptyText = 'No results',
+  disabled,
+  className,
+  contentClassName,
+  open,
+  onOpenChange,
 }: ComboboxProps) {
   // Se preserva el orden de llegada de los grupos: `Map` itera por inserción, así que
   // el catálogo manda y no hace falta un orden alfabético que nadie pidió.
@@ -85,8 +98,11 @@ export function Combobox({
       </PopoverTrigger>
 
       <PopoverContent className={cn('p-0', contentClassName)}>
-        <Command filter={(itemValue, search) =>
-          itemValue.toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0}>
+        <Command
+          filter={(itemValue, search) =>
+            itemValue.toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0
+          }
+        >
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
@@ -119,8 +135,16 @@ export function Combobox({
 
 function ChevronDown() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      className="shrink-0 text-[var(--text-faint)]" aria-hidden="true">
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="shrink-0 text-[var(--text-faint)]"
+      aria-hidden="true"
+    >
       <path d="m6 9 6 6 6-6" />
     </svg>
   )
@@ -128,8 +152,16 @@ function ChevronDown() {
 
 function Check() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-      className="shrink-0 text-primary" aria-hidden="true">
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      className="shrink-0 text-primary"
+      aria-hidden="true"
+    >
       <path d="M20 6 9 17l-5-5" />
     </svg>
   )

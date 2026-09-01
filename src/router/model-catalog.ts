@@ -19,9 +19,9 @@
  * porque OrchestOS también corre modelos Ollama locales que no están en OpenRouter.
  */
 
-import { join, dirname } from 'path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { dirname, join } from 'path'
 import { getModelContextWindow } from '../hooks/context-monitor.ts'
 import { tryLoadApiKey } from '../providers/openrouter.ts'
 
@@ -83,7 +83,12 @@ function loadDiskCache(): DiskCache | null {
     const path = cacheFilePath()
     if (!existsSync(path)) return null
     const raw = JSON.parse(readFileSync(path, 'utf-8')) as DiskCache
-    if (typeof raw?.fetchedAt !== 'number' || typeof raw?.models !== 'object' || raw.models === null) return null
+    if (
+      typeof raw?.fetchedAt !== 'number' ||
+      typeof raw?.models !== 'object' ||
+      raw.models === null
+    )
+      return null
     return raw
   } catch {
     return null
@@ -143,15 +148,23 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
     // un valor "free" o malformado) — NaN se serializa como null en el cache de
     // disco, contaminando el catálogo para cualquier consumidor futuro de precio.
     const rawPriceIn = m.pricing?.prompt !== undefined ? Number(m.pricing.prompt) * 1_000_000 : 0
-    const rawPriceOut = m.pricing?.completion !== undefined ? Number(m.pricing.completion) * 1_000_000 : 0
+    const rawPriceOut =
+      m.pricing?.completion !== undefined ? Number(m.pricing.completion) * 1_000_000 : 0
     models[m.id] = {
       contextLength: typeof m.context_length === 'number' ? m.context_length : 0,
       priceIn: Number.isFinite(rawPriceIn) ? rawPriceIn : 0,
       priceOut: Number.isFinite(rawPriceOut) ? rawPriceOut : 0,
-      supportsReasoning: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
-      supportsTools: Array.isArray(m.supported_parameters) && m.supported_parameters.includes('tools'),
-      maxOutputTokens: typeof m.top_provider?.max_completion_tokens === 'number' ? m.top_provider.max_completion_tokens : 0,
-      supportsVision: Array.isArray(m.architecture?.input_modalities) && m.architecture!.input_modalities!.includes('image'),
+      supportsReasoning:
+        Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
+      supportsTools:
+        Array.isArray(m.supported_parameters) && m.supported_parameters.includes('tools'),
+      maxOutputTokens:
+        typeof m.top_provider?.max_completion_tokens === 'number'
+          ? m.top_provider.max_completion_tokens
+          : 0,
+      supportsVision:
+        Array.isArray(m.architecture?.input_modalities) &&
+        m.architecture!.input_modalities!.includes('image'),
     }
   }
   return models
@@ -167,7 +180,9 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
  * barata: noop si la memoria ya está fresca, y a lo sumo un fetch de red por
  * proceso cuando el cache de disco está vencido o ausente. Nunca lanza.
  */
-export async function ensureCatalogLoaded(opts: { force?: boolean; apiKey?: string } = {}): Promise<void> {
+export async function ensureCatalogLoaded(
+  opts: { force?: boolean; apiKey?: string } = {},
+): Promise<void> {
   if (!opts.force && memoryCatalog && isFresh(memoryFetchedAt)) return
 
   const disk = loadDiskCache()

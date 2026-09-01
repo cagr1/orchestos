@@ -8,9 +8,9 @@
  * corriendo en paralelo.
  */
 
-import { db } from './sqlite.ts'
 import type { ExecutorStepEvent } from '../run/executors/step-event.ts'
 import { redactSensitive } from '../security/secrets.ts'
+import { db } from './sqlite.ts'
 
 export interface RunStepRecord {
   id: number
@@ -30,31 +30,44 @@ export function insertRunStep(taskId: string, event: ExecutorStepEvent): void {
   // dos procesos CLI/dashboard calculen el mismo seq al mismo tiempo.
   db.exec('BEGIN IMMEDIATE')
   try {
-    const row = db.query<{ next: number }, string>(
-      'SELECT COALESCE(MAX(seq), 0) + 1 AS next FROM run_steps WHERE task_id = ?'
-    ).get(taskId)
+    const row = db
+      .query<{ next: number }, string>(
+        'SELECT COALESCE(MAX(seq), 0) + 1 AS next FROM run_steps WHERE task_id = ?',
+      )
+      .get(taskId)
     const seq = row?.next ?? 1
     db.run(
       `INSERT INTO run_steps (task_id, seq, type, label, detail, cost_usd, tokens_json, created_at)
        VALUES (?,?,?,?,?,?,?,?)`,
       [
-        taskId, seq, event.type, redactSensitive(event.label), event.detail ? redactSensitive(event.detail) : null,
-        event.costUsd ?? null, event.tokens ? JSON.stringify(event.tokens) : null,
+        taskId,
+        seq,
+        event.type,
+        redactSensitive(event.label),
+        event.detail ? redactSensitive(event.detail) : null,
+        event.costUsd ?? null,
+        event.tokens ? JSON.stringify(event.tokens) : null,
         new Date().toISOString(),
-      ]
+      ],
     )
     db.exec('COMMIT')
   } catch (error) {
-    try { db.exec('ROLLBACK') } catch { /* preserve original error */ }
+    try {
+      db.exec('ROLLBACK')
+    } catch {
+      /* preserve original error */
+    }
     throw error
   }
 }
 
 /** Pasos de un task con `seq` > `sinceSeq` — polling incremental del dashboard. */
 export function getRunSteps(taskId: string, sinceSeq = 0): RunStepRecord[] {
-  return db.query<RunStepRecord, [string, number]>(
-    'SELECT * FROM run_steps WHERE task_id = ? AND seq > ? ORDER BY seq ASC'
-  ).all(taskId, sinceSeq)
+  return db
+    .query<RunStepRecord, [string, number]>(
+      'SELECT * FROM run_steps WHERE task_id = ? AND seq > ? ORDER BY seq ASC',
+    )
+    .all(taskId, sinceSeq)
 }
 
 /** Limpia pasos de una corrida anterior del mismo task_id antes de arrancar una nueva. */

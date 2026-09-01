@@ -22,16 +22,19 @@
  *   - cost_notice del context-monitor integrado como warning informativo + umbral de parada
  */
 
-import { loadTasks as loadTasksReal, updateTaskStatus as updateTaskStatusReal } from '../tasks/loader.ts'
-import { runTask } from './harness.ts'
-import { diagnoseTask } from '../agents/diagnose.ts'
 import type { FailurePattern } from '../agents/diagnose.ts'
-import { MAX_RETRIES } from './qa.ts'
-import { RunLogger } from './logger.ts'
-import type { Task } from '../tasks/schema.ts'
+import { diagnoseTask } from '../agents/diagnose.ts'
 import type { OrcheConfig } from '../config/schema.ts'
-import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
+import {
+  loadTasks as loadTasksReal,
+  updateTaskStatus as updateTaskStatusReal,
+} from '../tasks/loader.ts'
+import type { Task } from '../tasks/schema.ts'
+import { runTask } from './harness.ts'
+import { RunLogger } from './logger.ts'
+import { MAX_RETRIES } from './qa.ts'
 import { git } from './sandbox.ts'
+import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -122,14 +125,21 @@ export interface GraphRunOpts {
 // Main entry
 // ---------------------------------------------------------------------------
 
-export async function runGraph(
-  opts: GraphRunOpts,
-): Promise<GraphRunResult> {
+export async function runGraph(opts: GraphRunOpts): Promise<GraphRunResult> {
   const {
-    projectRoot, contextText, projectId, orcheConfig, orcheConfigFound,
-    maxCost, maxMinutes, sandboxMode, keepWorktree,
-    runTaskFn = runTask, diagnoseFn = diagnoseTask,
-    loadTasksFn = loadTasksReal, updateTaskStatusFn = updateTaskStatusReal,
+    projectRoot,
+    contextText,
+    projectId,
+    orcheConfig,
+    orcheConfigFound,
+    maxCost,
+    maxMinutes,
+    sandboxMode,
+    keepWorktree,
+    runTaskFn = runTask,
+    diagnoseFn = diagnoseTask,
+    loadTasksFn = loadTasksReal,
+    updateTaskStatusFn = updateTaskStatusReal,
     commitTasksYamlFn = commitTasksYamlReal,
   } = opts
 
@@ -165,17 +175,18 @@ export async function runGraph(
     const tasks = file.tasks
 
     // Find ready tasks: pending, all deps done, not already a blocked ancestor
-    const ready = tasks.filter(t =>
-      t.status === 'pending' &&
-      !blockedAncestors.has(t.id) &&
-      t.depends_on.every(dep => {
-        const depTask = tasks.find(x => x.id === dep)
-        return depTask?.status === 'done'
-      })
+    const ready = tasks.filter(
+      (t) =>
+        t.status === 'pending' &&
+        !blockedAncestors.has(t.id) &&
+        t.depends_on.every((dep) => {
+          const depTask = tasks.find((x) => x.id === dep)
+          return depTask?.status === 'done'
+        }),
     )
 
-    const anyPendingNotBlocked = tasks.some(t =>
-      t.status === 'pending' && !blockedAncestors.has(t.id)
+    const anyPendingNotBlocked = tasks.some(
+      (t) => t.status === 'pending' && !blockedAncestors.has(t.id),
     )
 
     // AR.1 — el runner es secuencial: nada fuera de este loop cambia
@@ -185,11 +196,15 @@ export async function runGraph(
     // igual que --all (cli.ts:1070-1073), en vez de un busy-wait silencioso.
     if (ready.length === 0) {
       if (anyPendingNotBlocked) {
-        const stuck = tasks.filter(t => t.status === 'pending' && !blockedAncestors.has(t.id))
-        const detail = stuck.map(t => {
-          const unmet = t.depends_on.filter(dep => tasks.find(x => x.id === dep)?.status !== 'done')
-          return `${t.id} (waiting on: ${unmet.join(', ') || 'unknown'})`
-        }).join('; ')
+        const stuck = tasks.filter((t) => t.status === 'pending' && !blockedAncestors.has(t.id))
+        const detail = stuck
+          .map((t) => {
+            const unmet = t.depends_on.filter(
+              (dep) => tasks.find((x) => x.id === dep)?.status !== 'done',
+            )
+            return `${t.id} (waiting on: ${unmet.join(', ') || 'unknown'})`
+          })
+          .join('; ')
         circuitBreakReason = `no executable tasks — stuck: ${detail}`
         console.error(`\n[graph] ⏹ Stalled — ${circuitBreakReason}`)
       }
@@ -203,7 +218,20 @@ export async function runGraph(
       const t0 = performance.now()
       const entry = await executeSingleTask(
         task,
-        { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree, runTaskFn, diagnoseFn, loadTasksFn, updateTaskStatusFn, commitTasksYamlFn },
+        {
+          projectRoot,
+          contextText,
+          projectId,
+          orcheConfig,
+          orcheConfigFound,
+          sandboxMode,
+          keepWorktree,
+          runTaskFn,
+          diagnoseFn,
+          loadTasksFn,
+          updateTaskStatusFn,
+          commitTasksYamlFn,
+        },
         requeuedForRateLimit,
         blockedAncestors,
       )
@@ -233,7 +261,9 @@ export async function runGraph(
       // tokens de tareas independientes contra una ventana única no significaría
       // nada — sería una métrica de costo disfrazada de salud de contexto.
       if (totalCost > COST_NOTICE_THRESHOLD_USD) {
-        console.error(`[graph] notice: costo acumulado $${totalCost.toFixed(2)} supera $${COST_NOTICE_THRESHOLD_USD.toFixed(2)}`)
+        console.error(
+          `[graph] notice: costo acumulado $${totalCost.toFixed(2)} supera $${COST_NOTICE_THRESHOLD_USD.toFixed(2)}`,
+        )
       }
 
       // ── A4 — Post-task circuit breaker ─────────────────────────────────
@@ -258,7 +288,7 @@ export async function runGraph(
   // status pasa a 'blocked' directo, sin pasar por executeSingleTask, así que
   // tampoco tenían entry). Sin esto, B2 (reporte de cierre) no puede distinguir
   // "no se llegó a ejecutar" de "no existía".
-  const reportedIds = new Set(entries.map(e => e.id))
+  const reportedIds = new Set(entries.map((e) => e.id))
   for (const t of loadTasksFn(projectRoot).tasks) {
     if (reportedIds.has(t.id) || t.status === 'done') continue
     entries.push({
@@ -271,8 +301,8 @@ export async function runGraph(
     })
   }
 
-  const completedCount = entries.filter(e =>
-    e.outcome === 'completed' || e.outcome === 'rate_limited_then_completed'
+  const completedCount = entries.filter(
+    (e) => e.outcome === 'completed' || e.outcome === 'rate_limited_then_completed',
   ).length
   const autonomyMetric = entries.length > 0 ? completedCount / entries.length : 1
 
@@ -319,7 +349,20 @@ async function executeSingleTask(
   requeuedForRateLimit: Set<string>,
   blockedAncestors: Set<string>,
 ): Promise<GraphTaskEntry> {
-  const { projectRoot, contextText, projectId, orcheConfig, orcheConfigFound, sandboxMode, keepWorktree, runTaskFn, diagnoseFn, loadTasksFn, updateTaskStatusFn, commitTasksYamlFn } = ctx
+  const {
+    projectRoot,
+    contextText,
+    projectId,
+    orcheConfig,
+    orcheConfigFound,
+    sandboxMode,
+    keepWorktree,
+    runTaskFn,
+    diagnoseFn,
+    loadTasksFn,
+    updateTaskStatusFn,
+    commitTasksYamlFn,
+  } = ctx
   const taskId = task.id
   const persist = (id: string, patch: Parameters<typeof updateTaskStatusFn>[2]): void => {
     updateTaskStatusFn(projectRoot, id, patch)
@@ -340,23 +383,29 @@ async function executeSingleTask(
   // (edición externa concurrente del archivo). Devolver un outcome explícito
   // en vez de lanzar — el grafo no se detiene por una tarea que ya no existe.
   const initialFile = loadTasksFn(projectRoot)
-  const t = initialFile.tasks.find(x => x.id === taskId)
+  const t = initialFile.tasks.find((x) => x.id === taskId)
   if (!t) {
     return {
-      id: taskId, outcome: 'failed_permanent',
+      id: taskId,
+      outcome: 'failed_permanent',
       error: 'task no longer exists in tasks.yaml',
-      usd_cost: 0, tokens: { input: 0, output: 0 }, elapsed_ms: 0,
+      usd_cost: 0,
+      tokens: { input: 0, output: 0 },
+      elapsed_ms: 0,
     }
   }
   if (t.status === 'done') {
     return {
-      id: taskId, outcome: 'completed',
-      usd_cost: 0, tokens: { input: 0, output: 0 }, elapsed_ms: 0,
+      id: taskId,
+      outcome: 'completed',
+      usd_cost: 0,
+      tokens: { input: 0, output: 0 },
+      elapsed_ms: 0,
     }
   }
 
   for (const dep of t.depends_on) {
-    const depTask = initialFile.tasks.find(x => x.id === dep)
+    const depTask = initialFile.tasks.find((x) => x.id === dep)
     if (!depTask || depTask.status !== 'done') {
       new RunLogger(projectRoot, taskId).blocked(dep)
       persist(taskId, {
@@ -364,9 +413,12 @@ async function executeSingleTask(
         retry_reason: `dependency not done: ${dep}`,
       })
       return {
-        id: taskId, outcome: 'blocked',
+        id: taskId,
+        outcome: 'blocked',
         error: `blocked by: ${dep} (${depTask?.status ?? 'not found'})`,
-        usd_cost: 0, tokens: { input: 0, output: 0 }, elapsed_ms: 0,
+        usd_cost: 0,
+        tokens: { input: 0, output: 0 },
+        elapsed_ms: 0,
       }
     }
   }
@@ -379,27 +431,36 @@ async function executeSingleTask(
   // (design.md §2 — at most one requeue per task).
   for (let attempt = 0; attempt < MAX_RETRIES * 2 + 1; attempt++) {
     const currentFile = loadTasksFn(projectRoot)
-    const currentTask = currentFile.tasks.find(x => x.id === taskId)
+    const currentTask = currentFile.tasks.find((x) => x.id === taskId)
     if (!currentTask) {
       return {
-        id: taskId, outcome: 'failed_permanent',
+        id: taskId,
+        outcome: 'failed_permanent',
         error: 'task no longer exists in tasks.yaml',
-        usd_cost: accCost, tokens: { input: accInput, output: accOutput }, elapsed_ms: 0,
+        usd_cost: accCost,
+        tokens: { input: accInput, output: accOutput },
+        elapsed_ms: 0,
       }
     }
     if (currentTask.status === 'done') {
       return {
-        id: taskId, outcome: 'completed',
-        usd_cost: 0, tokens: { input: 0, output: 0 }, elapsed_ms: 0,
+        id: taskId,
+        outcome: 'completed',
+        usd_cost: 0,
+        tokens: { input: 0, output: 0 },
+        elapsed_ms: 0,
       }
     }
 
     if (currentTask.status === 'failed_permanent') {
       // Was set externally or from a previous attempt — treat as terminal
       return {
-        id: taskId, outcome: 'failed_permanent',
+        id: taskId,
+        outcome: 'failed_permanent',
         error: currentTask.retry_reason,
-        usd_cost: 0, tokens: { input: 0, output: 0 }, elapsed_ms: 0,
+        usd_cost: 0,
+        tokens: { input: 0, output: 0 },
+        elapsed_ms: 0,
       }
     }
 
@@ -419,9 +480,12 @@ async function executeSingleTask(
       new RunLogger(projectRoot, taskId).error(message)
       persist(taskId, { status: 'failed', retry_reason: message })
       return {
-        id: taskId, outcome: 'failed_permanent',
+        id: taskId,
+        outcome: 'failed_permanent',
         error: message,
-        usd_cost: accCost, tokens: { input: accInput, output: accOutput }, elapsed_ms: 0,
+        usd_cost: accCost,
+        tokens: { input: accInput, output: accOutput },
+        elapsed_ms: 0,
       }
     }
 
@@ -431,11 +495,16 @@ async function executeSingleTask(
     console.error(`  → ${taskId} attempt ${attempt + 1}`)
 
     const harnessResult = await runTaskFn({
-      projectRoot, contextText,
+      projectRoot,
+      contextText,
       task: currentTask,
-      projectId, logger: log,
-      orcheConfig, orcheConfigFound,
-      sandboxMode: policy.mode, sandboxBranch: policy.branch, keepWorktree,
+      projectId,
+      logger: log,
+      orcheConfig,
+      orcheConfigFound,
+      sandboxMode: policy.mode,
+      sandboxBranch: policy.branch,
+      keepWorktree,
     })
 
     const cost = harnessResult.cost
@@ -551,7 +620,8 @@ async function executeSingleTask(
     }
 
     return {
-      id: taskId, outcome: 'failed_permanent',
+      id: taskId,
+      outcome: 'failed_permanent',
       error: harnessResult.retryReason,
       usd_cost: accCost,
       tokens: { input: accInput, output: accOutput },
@@ -561,9 +631,12 @@ async function executeSingleTask(
 
   // Safety net: should not reach here
   return {
-    id: taskId, outcome: 'failed_permanent',
+    id: taskId,
+    outcome: 'failed_permanent',
     error: 'exceeded max retry attempts in graph runner',
-    usd_cost: accCost, tokens: { input: accInput, output: accOutput }, elapsed_ms: 0,
+    usd_cost: accCost,
+    tokens: { input: accInput, output: accOutput },
+    elapsed_ms: 0,
   }
 }
 
@@ -587,5 +660,5 @@ function findAllDescendants(taskId: string, tasks: Task[]): string[] {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

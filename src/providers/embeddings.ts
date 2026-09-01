@@ -16,8 +16,8 @@
  */
 
 import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
 import { homedir } from 'os'
+import { join } from 'path'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -53,9 +53,7 @@ function loadOpenAiKey(): string {
       if (m?.[1]) return m[1].trim()
     }
   }
-  throw new Error(
-    'EmbeddingProvider "openai" requires OPENAI_API_KEY in env or ~/.orchestos/.env'
-  )
+  throw new Error('EmbeddingProvider "openai" requires OPENAI_API_KEY in env or ~/.orchestos/.env')
 }
 
 // ---------------------------------------------------------------------------
@@ -63,17 +61,17 @@ function loadOpenAiKey(): string {
 // ---------------------------------------------------------------------------
 
 const OPENAI_EMBED_MODEL = 'text-embedding-3-small'
-const OPENAI_EMBED_URL   = 'https://api.openai.com/v1/embeddings'
+const OPENAI_EMBED_URL = 'https://api.openai.com/v1/embeddings'
 
 export async function embedOpenAI(texts: string[]): Promise<EmbedResponse> {
   if (texts.length === 0) return { embeddings: [], inputTokens: 0 }
   const apiKey = loadOpenAiKey()
 
   const res = await fetch(OPENAI_EMBED_URL, {
-    method:  'POST',
+    method: 'POST',
     headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({ model: OPENAI_EMBED_MODEL, input: texts }),
   })
@@ -83,15 +81,15 @@ export async function embedOpenAI(texts: string[]): Promise<EmbedResponse> {
     throw new Error(`OpenAI embeddings error ${res.status}: ${body}`)
   }
 
-  const data = await res.json() as {
-    data:  Array<{ embedding: number[]; index: number }>
+  const data = (await res.json()) as {
+    data: Array<{ embedding: number[]; index: number }>
     usage: { prompt_tokens: number }
   }
 
   // API returns embeddings in the order of the input array
   const sorted = [...data.data].sort((a, b) => a.index - b.index)
   return {
-    embeddings: sorted.map(d => d.embedding),
+    embeddings: sorted.map((d) => d.embedding),
     inputTokens: data.usage.prompt_tokens,
   }
 }
@@ -112,9 +110,9 @@ export async function embedOllama(texts: string[]): Promise<EmbedResponse> {
   const url = `${ollamaBaseUrl()}/api/embed`
 
   const res = await fetch(url, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ model: OLLAMA_EMBED_MODEL, input: texts }),
+    body: JSON.stringify({ model: OLLAMA_EMBED_MODEL, input: texts }),
   })
 
   if (!res.ok) {
@@ -122,7 +120,7 @@ export async function embedOllama(texts: string[]): Promise<EmbedResponse> {
     throw new Error(`Ollama embeddings error ${res.status}: ${body}`)
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     embeddings: number[][]
     prompt_eval_count?: number
   }
@@ -132,7 +130,7 @@ export async function embedOllama(texts: string[]): Promise<EmbedResponse> {
   }
 
   return {
-    embeddings:  data.embeddings,
+    embeddings: data.embeddings,
     inputTokens: data.prompt_eval_count ?? 0,
   }
 }
@@ -154,9 +152,7 @@ export function getEmbeddingProvider(name: string): EmbeddingProvider {
     case 'ollama':
       return { name: 'ollama', embed: embedOllama }
     default:
-      throw new Error(
-        `unknown embedding provider '${name}' — allowed: openai, ollama`
-      )
+      throw new Error(`unknown embedding provider '${name}' — allowed: openai, ollama`)
   }
 }
 
@@ -189,9 +185,11 @@ export function cosine(a: number[], b: number[]): number {
   if (a.length !== b.length) {
     throw new Error(`cosine: vector length mismatch (${a.length} vs ${b.length})`)
   }
-  let dot = 0, magA = 0, magB = 0
+  let dot = 0,
+    magA = 0,
+    magB = 0
   for (let i = 0; i < a.length; i++) {
-    dot  += (a[i] ?? 0) * (b[i] ?? 0)
+    dot += (a[i] ?? 0) * (b[i] ?? 0)
     magA += (a[i] ?? 0) * (a[i] ?? 0)
     magB += (b[i] ?? 0) * (b[i] ?? 0)
   }

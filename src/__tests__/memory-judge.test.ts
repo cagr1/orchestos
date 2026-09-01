@@ -1,7 +1,7 @@
 /**
  * S26.2 — Tests for LLM memory conflict judge
  */
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import { judgeConflict } from '../memory/judge.ts'
 
 // chat() de openrouter.ts lee globalThis.fetch en cada llamada — mockear fetch en vez de
@@ -12,20 +12,26 @@ const originalFetch = globalThis.fetch
 const prevOpenrouterKey = process.env.OPENROUTER_API_KEY
 
 function mockChatFetch(content: string) {
-  globalThis.fetch = (async () => new Response(JSON.stringify({
-    choices: [{ message: { content } }],
-    usage: { prompt_tokens: 80, completion_tokens: 40 },
-    model: 'anthropic/claude-3-haiku',
-  }), { status: 200 })) as unknown as typeof fetch
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({
+        choices: [{ message: { content } }],
+        usage: { prompt_tokens: 80, completion_tokens: 40 },
+        model: 'anthropic/claude-3-haiku',
+      }),
+      { status: 200 },
+    )) as unknown as typeof fetch
 }
 
 beforeAll(() => {
   process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
-  mockChatFetch(JSON.stringify({
-    relation: 'conflict_with',
-    confidence: 'high',
-    explanation: 'Entry A says use port 3000, Entry B says use port 4000.',
-  }))
+  mockChatFetch(
+    JSON.stringify({
+      relation: 'conflict_with',
+      confidence: 'high',
+      explanation: 'Entry A says use port 3000, Entry B says use port 4000.',
+    }),
+  )
 })
 
 afterAll(() => {
@@ -57,8 +63,12 @@ describe('judgeConflict', () => {
 
   it('all 6 relation values are valid', async () => {
     const relations = [
-      'conflict_with', 'supersedes', 'compatible',
-      'scoped', 'related', 'not_conflict',
+      'conflict_with',
+      'supersedes',
+      'compatible',
+      'scoped',
+      'related',
+      'not_conflict',
     ] as const
     for (const r of relations) {
       expect(r).toMatch(/^(conflict_with|supersedes|compatible|scoped|related|not_conflict)$/)
@@ -91,11 +101,13 @@ describe('judgeConflict — fallback on bad JSON', () => {
   })
 
   it('returns not_conflict/low when LLM returns valid JSON with invalid relation', async () => {
-    mockChatFetch(JSON.stringify({
-      relation: 'invalid_relation_value',
-      confidence: 'high',
-      explanation: 'test',
-    }))
+    mockChatFetch(
+      JSON.stringify({
+        relation: 'invalid_relation_value',
+        confidence: 'high',
+        explanation: 'test',
+      }),
+    )
 
     const result = await judgeConflict(
       { topicKey: 'a', content: 'X' },

@@ -12,7 +12,7 @@ import type { MiddlewareFn, RunContext } from '../middleware.ts'
 export const instinctApply: MiddlewareFn<RunContext> = async (ctx, next) => {
   const applicable = listApplicable()
   if (applicable.length > 0) {
-    ctx.instinctBlock = '\n## INSTINCTS\n' + applicable.map(i => `- ${i.action}`).join('\n')
+    ctx.instinctBlock = '\n## INSTINCTS\n' + applicable.map((i) => `- ${i.action}`).join('\n')
   }
   await next()
 }

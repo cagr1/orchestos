@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'bun:test'
-import { classifyTask, type TaskClass } from '../router/classify.ts'
-import { autoRoute } from '../router/auto-route.ts'
+import { describe, expect, it } from 'bun:test'
 import type { OrcheConfig } from '../config/schema.ts'
+import { autoRoute } from '../router/auto-route.ts'
+import { classifyTask, type TaskClass } from '../router/classify.ts'
 import type { Task } from '../tasks/schema.ts'
 
 // ── classifyTask ──────────────────────────────────────────────────────────────
@@ -53,10 +53,10 @@ describe('classifyTask', () => {
 const baseConfig: OrcheConfig = {
   config_version: 1,
   models: {
-    planner:        { provider: 'anthropic', model: 'claude-opus-4-7' },
+    planner: { provider: 'anthropic', model: 'claude-opus-4-7' },
     executor_heavy: { provider: 'openrouter', model: 'deepseek/deepseek-r1' },
     executor_light: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
-    default:        { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
+    default: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
   },
 }
 

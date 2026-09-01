@@ -1,8 +1,12 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
-import { resolve } from 'path'
-import { executeReadPlan, executeReadTasks, executeReadIdeas, executeReadFile } from '../dashboard/handlers/chat.ts'
+import { join, resolve } from 'path'
+import {
+  executeReadFile,
+  executeReadIdeas,
+  executeReadPlan,
+  executeReadTasks,
+} from '../dashboard/handlers/chat.ts'
 
 // B.2 (Mes 18): tools de solo lectura sobre PLAN.md/tasks.yaml/IDEAS.md, mismo shape
 // de ToolExecutor que executeFetchUrl/executeSearchMemory — (toolName, input).

@@ -12,7 +12,12 @@ export interface BulkApi {
   toggle: (screen: string, id: string) => void
   toggleAll: (screen: string, ids: string[]) => void
   clear: (screen: string) => void
-  remove: (screen: string, endpoint: string, refetch: () => Promise<unknown>, resourceLabel: string) => void
+  remove: (
+    screen: string,
+    endpoint: string,
+    refetch: () => Promise<unknown>,
+    resourceLabel: string,
+  ) => void
 }
 
 export interface ScreenApi {
@@ -52,7 +57,15 @@ export function screenApi(): ScreenApi | null {
  * aplicando es la misma en los dos casos: duplicar solo lo que no puede desincronizarse.
  */
 export const STATUS_BADGE: Record<string, string> = {
-  done: 'green', running: 'blue', pending: 'gray', failed: 'red', blocked: 'amber',
+  done: 'green',
+  running: 'blue',
+  pending: 'gray',
+  failed: 'red',
+  blocked: 'amber',
   failed_permanent: 'red',
-  pass: 'green', fail: 'red', approved: 'green', draft: 'amber', archived: 'gray',
+  pass: 'green',
+  fail: 'red',
+  approved: 'green',
+  draft: 'amber',
+  archived: 'gray',
 }

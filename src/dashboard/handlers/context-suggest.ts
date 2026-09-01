@@ -1,7 +1,7 @@
 import { getProject } from '../../db/projects.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { inferEmbeddingProvider } from '../../providers/embeddings.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
 
 // E.10 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos context suggest <task>`
 // (S24). Igual que la CLI: intenta un embedding real, y si no hay proveedor

@@ -1,10 +1,31 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { countFailedChecks } from './export-runs-summary.ts'
 
 // Forma real de un CheckResult almacenado (src/run/checks.ts): NO tiene campo `pass`.
-const passed = { cmd: 'node --check x.js', exitCode: 0, stdout: '', stderr: '', elapsedMs: 25, timedOut: false }
-const failedExit = { cmd: 'tsc', exitCode: 2, stdout: '', stderr: 'error', elapsedMs: 40, timedOut: false }
-const timedOut = { cmd: 'sleep 999', exitCode: -1, stdout: '', stderr: '', elapsedMs: 5000, timedOut: true }
+const passed = {
+  cmd: 'node --check x.js',
+  exitCode: 0,
+  stdout: '',
+  stderr: '',
+  elapsedMs: 25,
+  timedOut: false,
+}
+const failedExit = {
+  cmd: 'tsc',
+  exitCode: 2,
+  stdout: '',
+  stderr: 'error',
+  elapsedMs: 40,
+  timedOut: false,
+}
+const timedOut = {
+  cmd: 'sleep 999',
+  exitCode: -1,
+  stdout: '',
+  stderr: '',
+  elapsedMs: 5000,
+  timedOut: true,
+}
 
 describe('countFailedChecks', () => {
   it('null/undefined/empty → 0', () => {

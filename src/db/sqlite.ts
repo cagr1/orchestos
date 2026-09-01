@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite'
-import { mkdirSync, existsSync } from 'fs'
-import { join } from 'path'
+import { existsSync, mkdirSync } from 'fs'
 import { homedir } from 'os'
+import { join } from 'path'
 
 // ORCHESTOS_HOME permite aislar la persistencia en tests y entornos controlados.
 // En uso normal conserva ~/.orchestos como ubicación estable del usuario.
@@ -24,4 +24,8 @@ db.exec('PRAGMA busy_timeout = 5000;')
 // WAL mode: better concurrent read performance. A second process opening the
 // same DB while SQLite is recovering may not be able to change the pragma;
 // keep the already-established mode instead of failing startup.
-try { db.exec('PRAGMA journal_mode = WAL;') } catch { /* another writer is recovering */ }
+try {
+  db.exec('PRAGMA journal_mode = WAL;')
+} catch {
+  /* another writer is recovering */
+}

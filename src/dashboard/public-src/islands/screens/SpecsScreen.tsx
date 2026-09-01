@@ -17,9 +17,9 @@
  * mientras `app.js` sigue siendo el dueño de los fetch crearía dos fuentes de verdad. Ver la
  * explicación larga en `lib/app-state.ts`.
  */
-import { useAppVersion, appState } from '../../lib/app-state.ts'
+import { appState, useAppVersion } from '../../lib/app-state.ts'
 import { useT } from '../../lib/i18n.ts'
-import { RawIcon, Icon } from '../../lib/icons.tsx'
+import { Icon, RawIcon } from '../../lib/icons.tsx'
 import { screenApi } from './screen-api.ts'
 
 interface Spec {
@@ -71,27 +71,38 @@ export function SpecsScreen() {
   // pantalla que ve alguien que no sabe qué es una spec.
   const explainer = (
     <div className="spec-explainer">
-      <span className="spec-explainer-icon"><Icon name="specs" /></span>
+      <span className="spec-explainer-icon">
+        <Icon name="specs" />
+      </span>
       <div>
-        <strong>{t('specs.what.title')}</strong>
-        {' '}{t('specs.what.body')}
+        <strong>{t('specs.what.title')}</strong> {t('specs.what.body')}
       </div>
     </div>
   )
 
   if (status === 'loading') {
-    return <div className="screen">{head}{explainer}<Placeholder title={t('specs.loading')} spinner /></div>
+    return (
+      <div className="screen">
+        {head}
+        {explainer}
+        <Placeholder title={t('specs.loading')} spinner />
+      </div>
+    )
   }
   if (status === 'error') {
     return (
-      <div className="screen">{head}{explainer}
+      <div className="screen">
+        {head}
+        {explainer}
         <Placeholder error icon="warn" title={t('specs.err.title')} body={t('specs.err.body')} />
       </div>
     )
   }
   if (specs.length === 0) {
     return (
-      <div className="screen">{head}{explainer}
+      <div className="screen">
+        {head}
+        {explainer}
         <Placeholder icon="specs" title={t('specs.empty.title')} body={t('specs.empty.body')} />
       </div>
     )
@@ -109,9 +120,14 @@ export function SpecsScreen() {
         <>
           <div
             className={`section-title collapsible ${archOpen ? '' : 'closed'}`}
-            onClick={() => { st['archOpen'] = !archOpen; forceRerender() }}
+            onClick={() => {
+              st['archOpen'] = !archOpen
+              forceRerender()
+            }}
           >
-            <span className="chev"><Icon name="chev" /></span>
+            <span className="chev">
+              <Icon name="chev" />
+            </span>
             <span>{t('specs.archived')}</span>
             <span className="ct">{archived.length}</span>
           </div>
@@ -138,8 +154,16 @@ function forceRerender(): void {
   ;(window as unknown as { App?: { rerender: () => void } }).App?.rerender()
 }
 
-function SpecTable({ list, selectable, openSpec, selected }: {
-  list: Spec[]; selectable: boolean; openSpec: string | null; selected: Set<string>
+function SpecTable({
+  list,
+  selectable,
+  openSpec,
+  selected,
+}: {
+  list: Spec[]
+  selectable: boolean
+  openSpec: string | null
+  selected: Set<string>
 }) {
   const t = useT()
   const api = screenApi()
@@ -154,7 +178,9 @@ function SpecTable({ list, selectable, openSpec, selected }: {
             {selectable && (
               <th style={{ width: '32px' }}>
                 <input
-                  type="checkbox" className="bulk-checkbox" checked={allChecked}
+                  type="checkbox"
+                  className="bulk-checkbox"
+                  checked={allChecked}
                   onChange={() => api?.bulk.toggleAll(BULK_SCREEN, ids)}
                 />
               </th>
@@ -167,8 +193,13 @@ function SpecTable({ list, selectable, openSpec, selected }: {
         </thead>
         <tbody>
           {list.map((s) => (
-            <SpecRow key={s.id} spec={s} selectable={selectable}
-              open={openSpec === s.id} checked={selected.has(s.id)} />
+            <SpecRow
+              key={s.id}
+              spec={s}
+              selectable={selectable}
+              open={openSpec === s.id}
+              checked={selected.has(s.id)}
+            />
           ))}
         </tbody>
       </table>
@@ -176,8 +207,16 @@ function SpecTable({ list, selectable, openSpec, selected }: {
   )
 }
 
-function SpecRow({ spec, selectable, open, checked }: {
-  spec: Spec; selectable: boolean; open: boolean; checked: boolean
+function SpecRow({
+  spec,
+  selectable,
+  open,
+  checked,
+}: {
+  spec: Spec
+  selectable: boolean
+  open: boolean
+  checked: boolean
 }) {
   const t = useT()
   const api = screenApi()
@@ -194,7 +233,12 @@ function SpecRow({ spec, selectable, open, checked }: {
         className={`row ${open ? 'open' : ''}`}
         tabIndex={0}
         onClick={toggleOpen}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleOpen() } }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            toggleOpen()
+          }
+        }}
       >
         {/* El checkbox SOLO se renderiza en la tabla de archivadas: el borrado permanente
             (I.8, Mes 18) nunca toca drafts ni approved, así que ofrecerlo ahí sería una
@@ -202,20 +246,41 @@ function SpecRow({ spec, selectable, open, checked }: {
         {selectable && (
           <td style={{ width: '32px' }}>
             <input
-              type="checkbox" className="bulk-checkbox" checked={checked}
+              type="checkbox"
+              className="bulk-checkbox"
+              checked={checked}
               onClick={(e) => e.stopPropagation()}
-              onChange={(e) => { e.stopPropagation(); api?.bulk.toggle(BULK_SCREEN, spec.id) }}
+              onChange={(e) => {
+                e.stopPropagation()
+                api?.bulk.toggle(BULK_SCREEN, spec.id)
+              }}
             />
           </td>
         )}
-        <td className="mono" style={{ color: 'var(--text)' }}>{spec.id}</td>
-        <td><StatusRail spec={spec} /></td>
-        <td>
-          {spec.hasCapabilities
-            ? <span className="cap-yes mono fs-2"><Icon name="check" /> {t('specs.cap.yes')}</span>
-            : <span className="cap-no mono fs-2">— {t('specs.cap.no')}</span>}
+        <td className="mono" style={{ color: 'var(--text)' }}>
+          {spec.id}
         </td>
-        <td className="mono faint" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+        <td>
+          <StatusRail spec={spec} />
+        </td>
+        <td>
+          {spec.hasCapabilities ? (
+            <span className="cap-yes mono fs-2">
+              <Icon name="check" /> {t('specs.cap.yes')}
+            </span>
+          ) : (
+            <span className="cap-no mono fs-2">— {t('specs.cap.no')}</span>
+          )}
+        </td>
+        <td
+          className="mono faint"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+          }}
+        >
           {api?.formatDate(spec.createdAt, { dateOnly: true })}
         </td>
       </tr>
@@ -275,8 +340,11 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
     fetch(`/api/specs/${encodeURIComponent(spec.id)}${path}`, { method: 'POST' })
       .then((r) => r.json())
       .then((d) => {
-        if (d.ok) { after?.(); api?.fetchAll(); api?.showToast(t(okKey, spec.id)) }
-        else api?.showToast(d.error || t(errKey), 'error')
+        if (d.ok) {
+          after?.()
+          api?.fetchAll()
+          api?.showToast(t(okKey, spec.id))
+        } else api?.showToast(d.error || t(errKey), 'error')
       })
   }
 
@@ -300,13 +368,20 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
   }
 
   const remove = async () => {
-    const ok = await api?.confirm(t('specs.delete.confirm'), t('bulk.confirm.body'), t('btn.confirm'))
+    const ok = await api?.confirm(
+      t('specs.delete.confirm'),
+      t('bulk.confirm.body'),
+      t('btn.confirm'),
+    )
     if (!ok) return
     fetch(`/api/specs/${encodeURIComponent(spec.id)}`, { method: 'DELETE' })
       .then((r) => r.json())
       .then((d) => {
-        if (d.ok) { st['openSpec'] = null; api?.fetchAll(); api?.showToast(t('specs.toast.deleted', spec.id)) }
-        else api?.showToast(d.error || t('specs.toast.deleteErr'), 'error')
+        if (d.ok) {
+          st['openSpec'] = null
+          api?.fetchAll()
+          api?.showToast(t('specs.toast.deleted', spec.id))
+        } else api?.showToast(d.error || t('specs.toast.deleteErr'), 'error')
       })
   }
 
@@ -314,18 +389,36 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
     <tr className="detail-row">
       <td colSpan={colSpan}>
         <div className="spec-detail">
-          <StatBox bad={spec.lintFindings > 0} n={spec.lintFindings} label={t('specs.stat.lintFindings')} />
-          <StatBox bad={spec.deltaIssues > 0} n={spec.deltaIssues} label={t('specs.stat.deltaIssues')} />
+          <StatBox
+            bad={spec.lintFindings > 0}
+            n={spec.lintFindings}
+            label={t('specs.stat.lintFindings')}
+          />
+          <StatBox
+            bad={spec.deltaIssues > 0}
+            n={spec.deltaIssues}
+            label={t('specs.stat.deltaIssues')}
+          />
           <div className="stat-box">
             <div className="n n-text">
-              {spec.hasCapabilities
-                ? <span className="cap-yes"><Icon name="check" /> {t('specs.cap.defined')}</span>
-                : <span className="cap-no"><Icon name="x" /> {t('specs.cap.missing')}</span>}
+              {spec.hasCapabilities ? (
+                <span className="cap-yes">
+                  <Icon name="check" /> {t('specs.cap.defined')}
+                </span>
+              ) : (
+                <span className="cap-no">
+                  <Icon name="x" /> {t('specs.cap.missing')}
+                </span>
+              )}
             </div>
             <div className="l">{t('specs.col.caps')}</div>
           </div>
           {spec.clarify !== 'none' && (
-            <StatBox bad={spec.clarify === 'pending'} text={spec.clarify} label={t('specs.clarify')} />
+            <StatBox
+              bad={spec.clarify === 'pending'}
+              text={spec.clarify}
+              label={t('specs.clarify')}
+            />
           )}
           {/* `design` undefined = spec simple: ningún badge, cero cambio visual (AA, IDEAS #6). */}
           {spec.design && (
@@ -334,25 +427,59 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
             {designPending && (
-              <button className="btn sm" onClick={(e) => { e.stopPropagation(); post('/approve-design', 'specs.toast.designApproved', 'specs.toast.approveDesignErr') }}>
+              <button
+                className="btn sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  post(
+                    '/approve-design',
+                    'specs.toast.designApproved',
+                    'specs.toast.approveDesignErr',
+                  )
+                }}
+              >
                 <Icon name="check" /> {t('specs.btn.approveDesign')}
               </button>
             )}
             {canApprove && (
-              <button className="btn sm" onClick={(e) => { e.stopPropagation(); post('/approve', 'specs.toast.approved', 'specs.toast.approveErr') }}>
+              <button
+                className="btn sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  post('/approve', 'specs.toast.approved', 'specs.toast.approveErr')
+                }}
+              >
                 <Icon name="check" /> {t('specs.btn.approve')}
               </button>
             )}
-            <button className="btn sm ghost" onClick={(e) => { e.stopPropagation(); lint() }}>
+            <button
+              className="btn sm ghost"
+              onClick={(e) => {
+                e.stopPropagation()
+                lint()
+              }}
+            >
               <Icon name="search" /> Lint
             </button>
             {canArchive && (
-              <button className="btn sm ghost" onClick={(e) => { e.stopPropagation(); post('/archive', 'specs.toast.archived', 'specs.toast.archiveErr') }}>
+              <button
+                className="btn sm ghost"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  post('/archive', 'specs.toast.archived', 'specs.toast.archiveErr')
+                }}
+              >
                 <Icon name="inbox" /> {t('specs.btn.archive')}
               </button>
             )}
             {canDelete && (
-              <button className="btn sm danger" onClick={(e) => { e.stopPropagation(); void remove() }}>
+              <button
+                className="btn sm danger"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  void remove()
+                }}
+              >
                 <Icon name="trash" /> {t('specs.btn.delete')}
               </button>
             )}
@@ -363,12 +490,20 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
   )
 }
 
-function StatBox({ bad, n, text, label }: { bad?: boolean; n?: number; text?: string; label: string }) {
+function StatBox({
+  bad,
+  n,
+  text,
+  label,
+}: {
+  bad?: boolean
+  n?: number
+  text?: string
+  label: string
+}) {
   return (
     <div className={`stat-box ${bad ? 'bad' : 'ok'}`}>
-      {text !== undefined
-        ? <div className="n n-text">{text}</div>
-        : <div className="n">{n}</div>}
+      {text !== undefined ? <div className="n n-text">{text}</div> : <div className="n">{n}</div>}
       <div className="l">{label}</div>
     </div>
   )
@@ -385,11 +520,19 @@ function BulkBar() {
     <div className="bulk-bar">
       <span className="bulk-count">{t('bulk.selected', selected.length)}</span>
       <span className="bulk-spacer" />
-      <button className="btn ghost sm" onClick={() => api?.bulk.clear(BULK_SCREEN)}>{t('bulk.clear')}</button>
+      <button className="btn ghost sm" onClick={() => api?.bulk.clear(BULK_SCREEN)}>
+        {t('bulk.clear')}
+      </button>
       <button
         className="btn danger sm"
-        onClick={() => api?.bulk.remove(BULK_SCREEN, '/api/specs/bulk-delete',
-          () => Promise.resolve(api.fetchSpecs()), t('bulk.resource.specs'))}
+        onClick={() =>
+          api?.bulk.remove(
+            BULK_SCREEN,
+            '/api/specs/bulk-delete',
+            () => Promise.resolve(api.fetchSpecs()),
+            t('bulk.resource.specs'),
+          )
+        }
       >
         <Icon name="trash" /> {t('bulk.delete', t('bulk.resource.specs'))}
       </button>
@@ -397,15 +540,29 @@ function BulkBar() {
   )
 }
 
-function Placeholder({ title, body, icon, spinner, error }: {
-  title: string; body?: string; icon?: string; spinner?: boolean; error?: boolean
+function Placeholder({
+  title,
+  body,
+  icon,
+  spinner,
+  error,
+}: {
+  title: string
+  body?: string
+  icon?: string
+  spinner?: boolean
+  error?: boolean
 }) {
   const icons = screenApi()?.icons ?? {}
   return (
     <div className="card">
       <div className={`placeholder ${error ? 'err' : ''}`}>
         {spinner && <div className="spinner" />}
-        {icon && <div className="pic"><RawIcon svg={icons[icon] ?? ''} /></div>}
+        {icon && (
+          <div className="pic">
+            <RawIcon svg={icons[icon] ?? ''} />
+          </div>
+        )}
         <h3>{title}</h3>
         {body && <p>{body}</p>}
       </div>

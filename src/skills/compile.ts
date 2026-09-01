@@ -19,7 +19,11 @@ const COMPILERS: Record<SkillTarget, (s: SkillDef, detectedLanguage?: string) =>
   openai: compileOpenAI,
 }
 
-export function compileSkill(skill: SkillDef, targets?: SkillTarget[], detectedLanguage?: string): string[] {
+export function compileSkill(
+  skill: SkillDef,
+  targets?: SkillTarget[],
+  detectedLanguage?: string,
+): string[] {
   const toCompile = targets ?? skill.targets
   const written: string[] = []
 

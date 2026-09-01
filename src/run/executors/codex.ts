@@ -32,12 +32,12 @@
  *     no se puede tarifar contra un default que OrchestOS no controla.
  */
 
+import { getCatalog } from '../../router/model-catalog.ts'
+import { calcCost } from '../../router/pricing.ts'
+import { safeChildEnv } from '../path-policy.ts'
+import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
-import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
-import { calcCost } from '../../router/pricing.ts'
-import { getCatalog } from '../../router/model-catalog.ts'
-import { safeChildEnv } from '../path-policy.ts'
 
 export class ExecutorCodexError extends Error {}
 
@@ -100,7 +100,9 @@ function buildCodexPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
     `You may ONLY create or edit these files: ${ctx.task.output.join(', ')}.`,
     `Do not touch any other file in this repository. When you are done, stop — do not run git commands yourself.`,
     ctx.prompt.userContent,
-  ].filter(Boolean).join('\n\n')
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 function buildCodexArgs(prompt: string, model?: string): string[] {
@@ -123,10 +125,19 @@ async function runCodex(
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean }> {
-  const proc = Bun.spawn([CODEX_BINARY, ...args], { cwd, env: safeChildEnv(), stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
+  const proc = Bun.spawn([CODEX_BINARY, ...args], {
+    cwd,
+    env: safeChildEnv(),
+    stdin: 'ignore',
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
 
   let timedOut = false
-  const timer = setTimeout(() => { timedOut = true; proc.kill('SIGTERM') }, timeoutMs)
+  const timer = setTimeout(() => {
+    timedOut = true
+    proc.kill('SIGTERM')
+  }, timeoutMs)
 
   const reader = proc.stdout.getReader()
   const decoder = new TextDecoder()
@@ -177,14 +188,17 @@ function parseCodexStream(stdout: string): { inputTokens: number; outputTokens: 
     try {
       const evt = JSON.parse(trimmed)
       if (evt?.type === 'turn.completed') last = evt
-    } catch {
-      continue // línea de log no-JSON (warnings de rmcp vistos en el probe real) — se ignora
-    }
+    } catch {}
   }
   if (!last) {
-    throw new ExecutorCodexError('codex produced no turn.completed event — cost unknown, not reported as $0')
+    throw new ExecutorCodexError(
+      'codex produced no turn.completed event — cost unknown, not reported as $0',
+    )
   }
-  return { inputTokens: last.usage?.input_tokens ?? 0, outputTokens: last.usage?.output_tokens ?? 0 }
+  return {
+    inputTokens: last.usage?.input_tokens ?? 0,
+    outputTokens: last.usage?.output_tokens ?? 0,
+  }
 }
 
 // -- chat (CC.1-D1, 2026-08-19) -----------------------------------------------
@@ -234,7 +248,12 @@ export async function runCodexChat(
   let stdout: string
   let timedOut: boolean
   try {
-    ;({ stdout, timedOut } = await runCodex(cwd, buildCodexChatArgs(prompt, codexModel), timeoutMs, onStep))
+    ;({ stdout, timedOut } = await runCodex(
+      cwd,
+      buildCodexChatArgs(prompt, codexModel),
+      timeoutMs,
+      onStep,
+    ))
   } catch (e: any) {
     throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
   }
@@ -257,7 +276,8 @@ export async function runCodexChat(
   // esperando una respuesta; codex corre con su propio default y el costo
   // queda en 0 con el modelo etiquetado como "cli default", igual que
   // `runClaudeChat` hace cuando el modelo pedido no es de Anthropic.
-  const usd = model && getCatalog()?.has(model) ? calcCost(model, parsed.inputTokens, parsed.outputTokens) : 0
+  const usd =
+    model && getCatalog()?.has(model) ? calcCost(model, parsed.inputTokens, parsed.outputTokens) : 0
 
   return {
     text,
@@ -297,7 +317,12 @@ export const codexEngine: ExecutorEngine = {
     let stdout: string
     let timedOut: boolean
     try {
-      ({ stdout, timedOut } = await runCodex(ctx.effectiveRoot, buildCodexArgs(prompt, codexModel), timeoutMs, opts.onStep))
+      ;({ stdout, timedOut } = await runCodex(
+        ctx.effectiveRoot,
+        buildCodexArgs(prompt, codexModel),
+        timeoutMs,
+        opts.onStep,
+      ))
     } catch (e: any) {
       throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
     }
@@ -331,16 +356,20 @@ export const codexEngine: ExecutorEngine = {
       outputTokens: parsed.outputTokens,
       usd,
       iterations: 1, // codex exec no expone conteo de turnos internos en --json
-      costByIteration: [{
-        label: 'codex (exec)',
-        model: ctx.model,
-        inputTokens: parsed.inputTokens,
-        outputTokens: parsed.outputTokens,
-        costUsd: usd,
-        binary: CODEX_BINARY,
-        args: buildCodexArgsDisplay(codexModel),
-      }],
-      log: [`codex: ${files.length} file(s) changed in worktree${timedOut ? ' (killed by timeout, partial output parsed)' : ''}`],
+      costByIteration: [
+        {
+          label: 'codex (exec)',
+          model: ctx.model,
+          inputTokens: parsed.inputTokens,
+          outputTokens: parsed.outputTokens,
+          costUsd: usd,
+          binary: CODEX_BINARY,
+          args: buildCodexArgsDisplay(codexModel),
+        },
+      ],
+      log: [
+        `codex: ${files.length} file(s) changed in worktree${timedOut ? ' (killed by timeout, partial output parsed)' : ''}`,
+      ],
     }
 
     return outcome

@@ -1,6 +1,6 @@
-import { join } from 'path'
-import { homedir } from 'os'
 import { existsSync, readFileSync } from 'fs'
+import { homedir } from 'os'
+import { join } from 'path'
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -36,8 +36,8 @@ function loadApiKey(): string {
   if (key) return key
   throw new Error(
     'OPENROUTER_API_KEY not found.\n' +
-    'Set it in ~/.orchestos/.env:\n' +
-    '  OPENROUTER_API_KEY=sk-or-...'
+      'Set it in ~/.orchestos/.env:\n' +
+      '  OPENROUTER_API_KEY=sk-or-...',
   )
 }
 
@@ -64,7 +64,7 @@ export function parseAffordableTokens(errorBody: string): number | null {
 // OpenRouter uses the OpenAI chat completions format —
 // same endpoint works for Claude, GPT, Gemini, Mistral, local models, etc.
 export async function chat(opts: {
-  model: string       // e.g. "anthropic/claude-haiku-4-5" or any OpenRouter model ID
+  model: string // e.g. "anthropic/claude-haiku-4-5" or any OpenRouter model ID
   system: string
   messages: ChatMessage[]
   /** Reasoning effort, solo aplicado si el caller ya confirmó que el modelo lo soporta (ver BACK.1/BACK.3). */
@@ -80,10 +80,7 @@ export async function chat(opts: {
   const body: Record<string, unknown> = {
     model: opts.model,
     max_tokens: requestedMaxTokens,
-    messages: [
-      { role: 'system', content: opts.system },
-      ...opts.messages,
-    ],
+    messages: [{ role: 'system', content: opts.system }, ...opts.messages],
   }
   if (opts.effort) body.reasoning = { effort: opts.effort }
 
@@ -91,7 +88,7 @@ export async function chat(opts: {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'HTTP-Referer': 'https://github.com/cagr1/orchestos',
       'X-Title': 'orchestos',
     },
@@ -113,7 +110,7 @@ export async function chat(opts: {
     throw new Error(`OpenRouter error ${res.status}: ${err}`)
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     choices: Array<{ message: { content: string } }>
     usage: { prompt_tokens: number; completion_tokens: number }
     model: string

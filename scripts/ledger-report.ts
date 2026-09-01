@@ -3,7 +3,7 @@
 // Gobernanza de este repo, no feature de OrchestOS-el-producto — corre cuando Carlos
 // quiere ver la tabla, nunca en vivo dentro del dashboard (mismo criterio que F.1/F.2).
 
-import { readFileSync, existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
 
 export interface LedgerEntry {
@@ -12,7 +12,12 @@ export interface LedgerEntry {
   classification: string
 }
 
-const CLASSIFICATIONS = ['RESPETÓ', 'DESVIÓ-CON-RAZÓN', 'OVERRIDE-PEDIDO-POR-CARLOS', 'REGRESIÓN'] as const
+const CLASSIFICATIONS = [
+  'RESPETÓ',
+  'DESVIÓ-CON-RAZÓN',
+  'OVERRIDE-PEDIDO-POR-CARLOS',
+  'REGRESIÓN',
+] as const
 
 /** Cada entrada real: `## <fecha/hora> — <modelo>` seguido de `**Clasificación**: X`.
  * Ignora silenciosamente bloques sin encabezado o sin clasificación (ej. el header
@@ -24,7 +29,11 @@ export function parseLedgerEntries(content: string): LedgerEntry[] {
     const heading = block.match(/^## (.+?) — (.+)$/m)
     const classification = block.match(/\*\*Clasificaci[oó]n\*\*:\s*(\S+)/)
     if (!heading?.[1] || !heading[2] || !classification?.[1]) continue
-    entries.push({ when: heading[1].trim(), model: heading[2].trim(), classification: classification[1].trim() })
+    entries.push({
+      when: heading[1].trim(),
+      model: heading[2].trim(),
+      classification: classification[1].trim(),
+    })
   }
   return entries
 }
@@ -47,13 +56,15 @@ function printReport(entries: LedgerEntry[]): void {
   }
   const table = aggregateByModel(entries)
   console.log(`${entries.length} entrada(s) en LEDGER.md, por modelo:\n`)
-  const modelWidth = Math.max(...Object.keys(table).map(m => m.length), 5)
-  const header = ['MODEL'.padEnd(modelWidth), ...CLASSIFICATIONS.map(c => c.padEnd(12))].join('  ')
+  const modelWidth = Math.max(...Object.keys(table).map((m) => m.length), 5)
+  const header = ['MODEL'.padEnd(modelWidth), ...CLASSIFICATIONS.map((c) => c.padEnd(12))].join(
+    '  ',
+  )
   console.log(header)
   for (const [model, counts] of Object.entries(table)) {
     const row = [
       model.padEnd(modelWidth),
-      ...CLASSIFICATIONS.map(c => String(counts[c] ?? 0).padEnd(12)),
+      ...CLASSIFICATIONS.map((c) => String(counts[c] ?? 0).padEnd(12)),
     ].join('  ')
     console.log(row)
   }

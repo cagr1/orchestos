@@ -12,17 +12,20 @@
  * overridden via __setDepsForTests to avoid depending on the developer's real
  * ~/.orchestos/db.sqlite or ~/.orchestos/config.yaml.
  */
-import { describe, it, expect, beforeEach, afterAll } from 'bun:test'
-import { mkdtempSync, writeFileSync, rmSync } from 'fs'
-import { join } from 'path'
+import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { stringify as yamlStringify } from 'yaml'
-import type { GraphRunResult, GraphRunOpts } from '../../run/graph-runner.ts'
+import type { GraphRunOpts, GraphRunResult } from '../../run/graph-runner.ts'
 
 const { route } = await import('../server.ts')
 const {
-  resetRunGraphState, __setRunGraphForTests, __resetRunGraphForTests,
-  __setDepsForTests, __resetDepsForTests,
+  resetRunGraphState,
+  __setRunGraphForTests,
+  __resetRunGraphForTests,
+  __setDepsForTests,
+  __resetDepsForTests,
 } = await import('../handlers/run-graph.ts')
 
 const PORT = 4242
@@ -31,8 +34,14 @@ const tmpDir = mkdtempSync(join(tmpdir(), 'run-graph-api-'))
 process.chdir(tmpDir)
 
 const TASK_T1 = {
-  id: 't1', description: 'do thing', executor: 'openrouter' as const,
-  input: [], output: ['out/x.txt'], depends_on: [], status: 'pending' as const, retry_count: 0,
+  id: 't1',
+  description: 'do thing',
+  executor: 'openrouter' as const,
+  input: [],
+  output: ['out/x.txt'],
+  depends_on: [],
+  status: 'pending' as const,
+  retry_count: 0,
 }
 
 function writeTasksYaml(tasks: Record<string, unknown>[]): void {
@@ -60,7 +69,15 @@ function req(method: string, path: string, body?: unknown): Request {
 
 function makeResult(): GraphRunResult {
   return {
-    tasks: [{ id: 't1', outcome: 'completed', usd_cost: 0.001, tokens: { input: 10, output: 20 }, elapsed_ms: 100 }],
+    tasks: [
+      {
+        id: 't1',
+        outcome: 'completed',
+        usd_cost: 0.001,
+        tokens: { input: 10, output: 20 },
+        elapsed_ms: 100,
+      },
+    ],
     aggregated_cost: 0.001,
     aggregated_tokens: { input: 10, output: 20 },
     aggregated_ms: 100,
@@ -68,10 +85,17 @@ function makeResult(): GraphRunResult {
   }
 }
 
-function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void; reject: (e: unknown) => void } {
+function deferred<T>(): {
+  promise: Promise<T>
+  resolve: (v: T) => void
+  reject: (e: unknown) => void
+} {
   let resolve!: (v: T) => void
   let reject!: (e: unknown) => void
-  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
   return { promise, resolve, reject }
 }
 
@@ -84,7 +108,10 @@ beforeEach(() => {
   writeTasksYaml([TASK_T1])
   runGraphImpl = async () => makeResult()
   lastCallOpts = undefined
-  __setRunGraphForTests(opts => { lastCallOpts = opts; return runGraphImpl(opts) })
+  __setRunGraphForTests((opts) => {
+    lastCallOpts = opts
+    return runGraphImpl(opts)
+  })
   __setDepsForTests({
     loadContext: () => '',
     getProject: () => ({ id: 'p1' }) as any,
@@ -103,13 +130,13 @@ describe('POST /api/run/graph', () => {
     const d = deferred<GraphRunResult>()
     runGraphImpl = () => d.promise
     const res = await route(req('POST', '/api/run/graph'), PORT)
-    const body = await res.json() as { ok: boolean }
+    const body = (await res.json()) as { ok: boolean }
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
 
     // Status must already reflect 'running' even though runGraph() hasn't resolved.
     const statusRes = await route(req('GET', '/api/run/graph/status'), PORT)
-    const status = await statusRes.json() as { phase: string }
+    const status = (await statusRes.json()) as { phase: string }
     expect(status.phase).toBe('running')
 
     d.resolve(makeResult())
@@ -129,21 +156,35 @@ describe('POST /api/run/graph', () => {
   it('mantiene ejecuciones simultáneas aisladas por proyecto', async () => {
     const alpha = deferred<GraphRunResult>()
     const beta = deferred<GraphRunResult>()
-    runGraphImpl = opts => opts.projectRoot.endsWith('alpha') ? alpha.promise : beta.promise
+    runGraphImpl = (opts) => (opts.projectRoot.endsWith('alpha') ? alpha.promise : beta.promise)
     __setDepsForTests({
       tasksExist: () => true,
       loadTaskRows: () => [],
       loadContext: () => '',
-      getProject: root => ({ id: root.endsWith('alpha') ? 'alpha' : 'beta' }) as any,
+      getProject: (root) => ({ id: root.endsWith('alpha') ? 'alpha' : 'beta' }) as any,
       loadOrcheConfig: () => undefined as any,
     })
 
     const alphaRoot = join(tmpDir, 'alpha')
     const betaRoot = join(tmpDir, 'beta')
-    const alphaResponse = await (await import('../handlers/run-graph.ts')).handleApiRunGraph(req('POST', '/api/run/graph'), alphaRoot)
-    const betaResponse = await (await import('../handlers/run-graph.ts')).handleApiRunGraph(req('POST', '/api/run/graph'), betaRoot)
-    const alphaStatus = await (await import('../handlers/run-graph.ts')).handleApiRunGraphStatus(alphaRoot).json() as { phase: string }
-    const betaStatus = await (await import('../handlers/run-graph.ts')).handleApiRunGraphStatus(betaRoot).json() as { phase: string }
+    const alphaResponse = await (await import('../handlers/run-graph.ts')).handleApiRunGraph(
+      req('POST', '/api/run/graph'),
+      alphaRoot,
+    )
+    const betaResponse = await (await import('../handlers/run-graph.ts')).handleApiRunGraph(
+      req('POST', '/api/run/graph'),
+      betaRoot,
+    )
+    const alphaStatus = (await (
+      await import('../handlers/run-graph.ts')
+    )
+      .handleApiRunGraphStatus(alphaRoot)
+      .json()) as { phase: string }
+    const betaStatus = (await (
+      await import('../handlers/run-graph.ts')
+    )
+      .handleApiRunGraphStatus(betaRoot)
+      .json()) as { phase: string }
 
     expect(alphaResponse.status).toBe(200)
     expect(betaResponse.status).toBe(200)
@@ -163,7 +204,7 @@ describe('POST /api/run/graph', () => {
 describe('GET /api/run/graph/status', () => {
   it('phase=idle with live task rows when nothing has run yet', async () => {
     const res = await route(req('GET', '/api/run/graph/status'), PORT)
-    const body = await res.json() as { phase: string; tasks: unknown[] }
+    const body = (await res.json()) as { phase: string; tasks: unknown[] }
     expect(body.phase).toBe('idle')
     expect(body.tasks).toHaveLength(1)
   })
@@ -174,10 +215,10 @@ describe('GET /api/run/graph/status', () => {
     await route(req('POST', '/api/run/graph'), PORT)
     d.resolve(makeResult())
     // Let the unawaited .then() in the handler flush.
-    await new Promise(r => setTimeout(r, 0))
+    await new Promise((r) => setTimeout(r, 0))
 
     const res = await route(req('GET', '/api/run/graph/status'), PORT)
-    const body = await res.json() as { phase: string; result: GraphRunResult }
+    const body = (await res.json()) as { phase: string; result: GraphRunResult }
     expect(body.phase).toBe('done')
     expect(body.result.autonomy_metric).toBe(1)
   })
@@ -187,10 +228,10 @@ describe('GET /api/run/graph/status', () => {
     runGraphImpl = () => d.promise
     await route(req('POST', '/api/run/graph'), PORT)
     d.reject(new Error('boom'))
-    await new Promise(r => setTimeout(r, 0))
+    await new Promise((r) => setTimeout(r, 0))
 
     const res = await route(req('GET', '/api/run/graph/status'), PORT)
-    const body = await res.json() as { phase: string; error: string }
+    const body = (await res.json()) as { phase: string; error: string }
     expect(body.phase).toBe('error')
     expect(body.error).toBe('boom')
   })

@@ -1,12 +1,12 @@
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
-import { join } from 'path'
 import { createPatch } from 'diff'
-import { chat } from '../providers/openrouter.ts'
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
+import { join } from 'path'
 import type { ProviderClient } from '../providers/index.ts'
-import type { FileChange } from './contract.ts'
-import type { CheckResult } from './checks.ts'
+import { chat } from '../providers/openrouter.ts'
 import type { SkillDef } from '../skills/registry.ts'
 import { buildSections } from '../skills/targets/_shared.ts'
+import type { CheckResult } from './checks.ts'
+import type { FileChange } from './contract.ts'
 
 export interface QAEvidence {
   file: string
@@ -63,11 +63,11 @@ export function restoreContents(root: string, snap: ContentSnapshot): void {
 export interface FileDiffEntry {
   path: string
   status: 'added' | 'modified'
-  diff: string   // unified diff completo (formato `diff`/git) — nunca recortado
+  diff: string // unified diff completo (formato `diff`/git) — nunca recortado
 }
 
 export function computeFileDiffs(before: ContentSnapshot, written: FileChange[]): FileDiffEntry[] {
-  return written.map(file => {
+  return written.map((file) => {
     const prior = before[file.path]
     const status: FileDiffEntry['status'] = prior?.existed ? 'modified' : 'added'
     const diff = createPatch(file.path, prior?.content ?? '', file.content)
@@ -93,36 +93,42 @@ export async function runQA(opts: {
    */
   gateSkills?: SkillDef[]
 }): Promise<QAVerdict> {
-  const filesBlock = opts.written.map(f =>
-    `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``
-  ).join('\n\n')
+  const filesBlock = opts.written
+    .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
+    .join('\n\n')
 
   const hasCriteria = opts.acceptance_criteria && opts.acceptance_criteria.length > 0
 
   const gateBlock = (opts.gateSkills ?? [])
-    .filter(s => s.id !== 'qa-structured')
-    .map(s => `\n## GATE: ${s.name}\nThis gate is mandatory — it was NOT chosen by you, it activated because the task matched its trigger conditions. Apply it in addition to everything else below; do not skip it because the rest of the review already looks fine.\n${buildSections(s).join('\n\n')}`)
+    .filter((s) => s.id !== 'qa-structured')
+    .map(
+      (s) =>
+        `\n## GATE: ${s.name}\nThis gate is mandatory — it was NOT chosen by you, it activated because the task matched its trigger conditions. Apply it in addition to everything else below; do not skip it because the rest of the review already looks fine.\n${buildSections(s).join('\n\n')}`,
+    )
     .join('\n')
 
-  const system = (hasCriteria ? [
-    'You are a QA reviewer. You receive a task description, specific acceptance criteria, and the files an LLM wrote.',
-    'Evaluate EACH criterion independently. A single failing criterion makes the whole verdict "fail".',
-    'For criteria in WHEN/THEN format: verify that the implementation handles the WHEN condition and produces the THEN result.',
-    'Respond with ONLY a JSON object — no markdown fences, no prose:',
-    '{ "verdict": "pass" | "fail", "reason": "one short sentence summarizing result", "criteria": [ { "text": "...", "pass": true | false, "evidence": { "file": "path/to/file", "excerpt": "literal excerpt from that file" } } ] }',
-    'The "criteria" array must have one entry per criterion, in the same order as given.',
-    'For every criterion with pass: true, evidence is REQUIRED: cite a literal excerpt from one of the written files using its relative path.',
-    'If no written file contains evidence that satisfies a criterion, mark that criterion pass: false.',
-    'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
-  ].join('\n') : [
-    'You are a QA reviewer. You receive a task description and the files an LLM wrote to fulfill it.',
-    'Your job: decide if the output addresses the task.',
-    'Respond with ONLY a JSON object — no markdown fences, no prose:',
-    '{ "verdict": "pass" | "fail", "reason": "one short sentence" }',
-    'Verdict "fail" if: files are empty, contain placeholders/TODOs, do not address the task, or are obviously broken.',
-    'Verdict "pass" if: files are non-trivial, on-topic, and a reasonable attempt at the task.',
-    'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
-  ].join('\n')) + gateBlock
+  const system =
+    (hasCriteria
+      ? [
+          'You are a QA reviewer. You receive a task description, specific acceptance criteria, and the files an LLM wrote.',
+          'Evaluate EACH criterion independently. A single failing criterion makes the whole verdict "fail".',
+          'For criteria in WHEN/THEN format: verify that the implementation handles the WHEN condition and produces the THEN result.',
+          'Respond with ONLY a JSON object — no markdown fences, no prose:',
+          '{ "verdict": "pass" | "fail", "reason": "one short sentence summarizing result", "criteria": [ { "text": "...", "pass": true | false, "evidence": { "file": "path/to/file", "excerpt": "literal excerpt from that file" } } ] }',
+          'The "criteria" array must have one entry per criterion, in the same order as given.',
+          'For every criterion with pass: true, evidence is REQUIRED: cite a literal excerpt from one of the written files using its relative path.',
+          'If no written file contains evidence that satisfies a criterion, mark that criterion pass: false.',
+          'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
+        ].join('\n')
+      : [
+          'You are a QA reviewer. You receive a task description and the files an LLM wrote to fulfill it.',
+          'Your job: decide if the output addresses the task.',
+          'Respond with ONLY a JSON object — no markdown fences, no prose:',
+          '{ "verdict": "pass" | "fail", "reason": "one short sentence" }',
+          'Verdict "fail" if: files are empty, contain placeholders/TODOs, do not address the task, or are obviously broken.',
+          'Verdict "pass" if: files are non-trivial, on-topic, and a reasonable attempt at the task.',
+          'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
+        ].join('\n')) + gateBlock
 
   const criteriaBlock = hasCriteria
     ? `\n## Acceptance criteria (evaluate each)\n${opts.acceptance_criteria!.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`
@@ -132,9 +138,11 @@ export async function runQA(opts: {
     `## Task description\n${opts.description}\n` +
     criteriaBlock +
     `\n## Declared output files\n${opts.output.join(', ')}\n\n` +
-    `## Checks executed\n${opts.checksResults.length > 0
-      ? opts.checksResults.map(c => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
-      : 'NINGUNA verificación mecánica corrió.'}\n\n` +
+    `## Checks executed\n${
+      opts.checksResults.length > 0
+        ? opts.checksResults.map((c) => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
+        : 'NINGUNA verificación mecánica corrió.'
+    }\n\n` +
     `## Files written\n${filesBlock}\n\n` +
     `Return your JSON verdict now.`
 
@@ -158,7 +166,7 @@ export async function runQA(opts: {
 function parseVerdict(
   raw: string,
   expectedCriteriaCount: number,
-  written: FileChange[]
+  written: FileChange[],
 ): { verdict: 'pass' | 'fail'; reason: string; criteria?: QACriterionResult[] } {
   const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
   const jsonStr = jsonMatch?.[1] ?? raw.trim()
@@ -189,24 +197,32 @@ function parseVerdict(
   // archivo (evidencia fabricada). K.1 solo exigía evidencia no vacía; esto
   // verifica que sea una cita LITERAL del contenido real escrito, sin costo de
   // un segundo LLM.
-  const byPath = new Map(written.map(f => [f.path, f.content]))
+  const byPath = new Map(written.map((f) => [f.path, f.content]))
 
-  const criteria: QACriterionResult[] = (o.criteria as unknown[]).map(c => {
+  const criteria: QACriterionResult[] = (o.criteria as unknown[]).map((c) => {
     const cr = c as Record<string, unknown>
     const rawEvidence = cr.evidence as Record<string, unknown> | undefined
-    const evidence = rawEvidence && typeof rawEvidence === 'object' &&
-      typeof rawEvidence.file === 'string' && rawEvidence.file.trim() &&
-      typeof rawEvidence.excerpt === 'string' && rawEvidence.excerpt.trim()
-      ? { file: rawEvidence.file, excerpt: rawEvidence.excerpt }
-      : undefined
-    const evidenceIsReal = evidence !== undefined &&
-      (byPath.get(evidence.file) ?? '').includes(evidence.excerpt)
+    const evidence =
+      rawEvidence &&
+      typeof rawEvidence === 'object' &&
+      typeof rawEvidence.file === 'string' &&
+      rawEvidence.file.trim() &&
+      typeof rawEvidence.excerpt === 'string' &&
+      rawEvidence.excerpt.trim()
+        ? { file: rawEvidence.file, excerpt: rawEvidence.excerpt }
+        : undefined
+    const evidenceIsReal =
+      evidence !== undefined && (byPath.get(evidence.file) ?? '').includes(evidence.excerpt)
     const pass = cr.pass === true && evidenceIsReal
-    return { text: typeof cr.text === 'string' ? cr.text : '?', pass, ...(evidence ? { evidence } : {}) }
+    return {
+      text: typeof cr.text === 'string' ? cr.text : '?',
+      pass,
+      ...(evidence ? { evidence } : {}),
+    }
   })
 
   // If any criterion failed, force verdict to fail regardless of what LLM said
-  const anyFailed = criteria.some(c => !c.pass)
+  const anyFailed = criteria.some((c) => !c.pass)
   return { verdict: anyFailed ? 'fail' : v, reason, criteria }
 }
 
@@ -238,9 +254,9 @@ export async function runAdversarialQA(opts: {
   checksResults: CheckResult[]
   provider?: ProviderClient
 }): Promise<AdversarialVerdict> {
-  const filesBlock = opts.written.map(f =>
-    `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``
-  ).join('\n\n')
+  const filesBlock = opts.written
+    .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
+    .join('\n\n')
 
   const hasCriteria = opts.acceptance_criteria && opts.acceptance_criteria.length > 0
   const criteriaBlock = hasCriteria
@@ -269,9 +285,11 @@ export async function runAdversarialQA(opts: {
     `## Task description\n${opts.description}\n` +
     criteriaBlock +
     `\n## Declared output files\n${opts.output.join(', ')}\n\n` +
-    `## Checks executed\n${opts.checksResults.length > 0
-      ? opts.checksResults.map(c => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
-      : 'NINGUNA verificación mecánica corrió.'}\n\n` +
+    `## Checks executed\n${
+      opts.checksResults.length > 0
+        ? opts.checksResults.map((c) => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
+        : 'NINGUNA verificación mecánica corrió.'
+    }\n\n` +
     `## Files written\n${filesBlock}\n\n` +
     `Return your JSON verdict now.`
 
@@ -289,7 +307,10 @@ export async function runAdversarialQA(opts: {
   }
 }
 
-function parseAdversarialVerdict(raw: string): { verdict: AdversarialVerdict['verdict']; reason: string } {
+function parseAdversarialVerdict(raw: string): {
+  verdict: AdversarialVerdict['verdict']
+  reason: string
+} {
   const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
   const jsonStr = jsonMatch?.[1] ?? raw.trim()
   let obj: unknown
@@ -297,14 +318,19 @@ function parseAdversarialVerdict(raw: string): { verdict: AdversarialVerdict['ve
     obj = JSON.parse(jsonStr)
   } catch {
     // fail-safe: una respuesta no parseable no puede sostener un pase silencioso
-    return { verdict: 'REFUTED', reason: `adversarial QA response not parseable: ${raw.slice(0, 200)}` }
+    return {
+      verdict: 'REFUTED',
+      reason: `adversarial QA response not parseable: ${raw.slice(0, 200)}`,
+    }
   }
   if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
     return { verdict: 'REFUTED', reason: 'adversarial QA response must be a JSON object' }
   }
   const o = obj as Record<string, unknown>
   const verdict: AdversarialVerdict['verdict'] =
-    o.verdict === 'VERIFIED' || o.verdict === 'CAVEATS' || o.verdict === 'REFUTED' ? o.verdict : 'REFUTED'
+    o.verdict === 'VERIFIED' || o.verdict === 'CAVEATS' || o.verdict === 'REFUTED'
+      ? o.verdict
+      : 'REFUTED'
   const reason = typeof o.reason === 'string' ? o.reason : '(no reason)'
   return { verdict, reason }
 }
@@ -335,9 +361,9 @@ export async function runRefuter(opts: {
   qaVerdictReason: string
   provider?: ProviderClient
 }): Promise<RefuterVerdict> {
-  const filesBlock = opts.written.map(f =>
-    `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``
-  ).join('\n\n')
+  const filesBlock = opts.written
+    .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
+    .join('\n\n')
 
   const hasCriteria = opts.acceptance_criteria && opts.acceptance_criteria.length > 0
   const criteriaBlock = hasCriteria
@@ -363,9 +389,11 @@ export async function runRefuter(opts: {
     criteriaBlock +
     `\n## Declared output files\n${opts.output.join(', ')}\n\n` +
     `## Original QA verdict: fail\n${opts.qaVerdictReason}\n\n` +
-    `## Checks executed\n${opts.checksResults.length > 0
-      ? opts.checksResults.map(c => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
-      : 'NINGUNA verificación mecánica corrió.'}\n\n` +
+    `## Checks executed\n${
+      opts.checksResults.length > 0
+        ? opts.checksResults.map((c) => `- ${c.cmd} — exitCode: ${c.exitCode}`).join('\n')
+        : 'NINGUNA verificación mecánica corrió.'
+    }\n\n` +
     `## Files written\n${filesBlock}\n\n` +
     `Return your JSON verdict now.`
 

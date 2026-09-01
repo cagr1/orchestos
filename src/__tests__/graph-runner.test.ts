@@ -1,7 +1,7 @@
-import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test'
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'fs'
-import { join } from 'path'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 import { runGraph } from '../run/graph-runner.ts'
 
@@ -76,7 +76,7 @@ function highCostResult(taskId: string): ReturnType<typeof runTaskMock> {
     retryReason: undefined,
     filesWritten: [`${taskId}.txt`],
     filesBlocked: [],
-    cost: { inputTokens: 20, outputTokens: 10, usd: 0.10 },
+    cost: { inputTokens: 20, outputTokens: 10, usd: 0.1 },
     elapsedMs: 10,
     contextWarnings: [],
   }
@@ -154,7 +154,11 @@ describe('runGraph (D1)', () => {
 
   afterEach(() => {
     if (tmpDir) {
-      try { rmSync(tmpDir, { recursive: true, force: true }) } catch { /* ok */ }
+      try {
+        rmSync(tmpDir, { recursive: true, force: true })
+      } catch {
+        /* ok */
+      }
     }
   })
 
@@ -167,7 +171,7 @@ describe('runGraph (D1)', () => {
     const result = await runGraph(makeOpts(tmpDir))
 
     expect(result.tasks).toHaveLength(3)
-    expect(result.tasks.every(t => t.outcome === 'completed')).toBe(true)
+    expect(result.tasks.every((t) => t.outcome === 'completed')).toBe(true)
     expect(result.autonomy_metric).toBe(1)
     expect(result.circuit_break_reason).toBeUndefined()
     expect(result.aggregated_cost).toBeCloseTo(0.15, 5)
@@ -180,7 +184,7 @@ describe('runGraph (D1)', () => {
     const result = await runGraph(makeOpts(tmpDir))
 
     expect(result.tasks).toHaveLength(3)
-    expect(result.tasks.every(t => t.outcome === 'completed')).toBe(true)
+    expect(result.tasks.every((t) => t.outcome === 'completed')).toBe(true)
     expect(result.autonomy_metric).toBe(1)
   })
 
@@ -198,12 +202,7 @@ describe('runGraph (D1)', () => {
   // ── Branch isolation ──────────────────────────────────────────────────────
 
   it('branch isolation: A fails permanently → B blocked, C→D complete independently', async () => {
-    writeTasks(tmpDir, [
-      makeTask('a'),
-      makeTask('b', ['a']),
-      makeTask('c'),
-      makeTask('d', ['c']),
-    ])
+    writeTasks(tmpDir, [makeTask('a'), makeTask('b', ['a']), makeTask('c'), makeTask('d', ['c'])])
 
     diagnoseTaskMock.mockResolvedValue({
       taskId: 'a',
@@ -225,11 +224,13 @@ describe('runGraph (D1)', () => {
 
     const result = await runGraph(makeOpts(tmpDir))
 
-    expect(result.tasks.find(t => t.id === 'a')!.outcome).toBe('failed_permanent')
-    expect(result.tasks.find(t => t.id === 'b')!.outcome).toBe('blocked')
-    expect(result.tasks.find(t => t.id === 'b')!.error).toContain('blocked by failed_permanent ancestor: a')
-    expect(result.tasks.find(t => t.id === 'c')!.outcome).toBe('completed')
-    expect(result.tasks.find(t => t.id === 'd')!.outcome).toBe('completed')
+    expect(result.tasks.find((t) => t.id === 'a')!.outcome).toBe('failed_permanent')
+    expect(result.tasks.find((t) => t.id === 'b')!.outcome).toBe('blocked')
+    expect(result.tasks.find((t) => t.id === 'b')!.error).toContain(
+      'blocked by failed_permanent ancestor: a',
+    )
+    expect(result.tasks.find((t) => t.id === 'c')!.outcome).toBe('completed')
+    expect(result.tasks.find((t) => t.id === 'd')!.outcome).toBe('completed')
     // 2/4 autonomous (C, D)
     expect(result.autonomy_metric).toBeCloseTo(0.5, 2)
     expect(result.circuit_break_reason).toBeUndefined()
@@ -239,8 +240,12 @@ describe('runGraph (D1)', () => {
     writeTasks(tmpDir, [makeTask('a'), makeTask('b', ['a']), makeTask('c', ['b'])])
 
     diagnoseTaskMock.mockResolvedValue({
-      taskId: 'a', pattern: 'unknown', confidence: 'low',
-      suggestion: '', details: '', usdCost: 0.005,
+      taskId: 'a',
+      pattern: 'unknown',
+      confidence: 'low',
+      suggestion: '',
+      details: '',
+      usdCost: 0.005,
     })
 
     runTaskMock.mockImplementation(async (opts: any) => {
@@ -250,9 +255,9 @@ describe('runGraph (D1)', () => {
 
     const result = await runGraph(makeOpts(tmpDir))
 
-    expect(result.tasks.find(t => t.id === 'a')!.outcome).toBe('failed_permanent')
-    expect(result.tasks.find(t => t.id === 'b')!.outcome).toBe('blocked')
-    expect(result.tasks.find(t => t.id === 'c')!.outcome).toBe('blocked')
+    expect(result.tasks.find((t) => t.id === 'a')!.outcome).toBe('failed_permanent')
+    expect(result.tasks.find((t) => t.id === 'b')!.outcome).toBe('blocked')
+    expect(result.tasks.find((t) => t.id === 'c')!.outcome).toBe('blocked')
     expect(result.autonomy_metric).toBe(0)
   })
 
@@ -265,9 +270,9 @@ describe('runGraph (D1)', () => {
     // Each task costs 0.10. A + B = 0.20 ≥ 0.15 → break after B.
     const result = await runGraph(makeOpts(tmpDir, { maxCost: 0.15 }))
 
-    const a = result.tasks.find(t => t.id === 'a')!
-    const b = result.tasks.find(t => t.id === 'b')!
-    const c = result.tasks.find(t => t.id === 'c')!
+    const a = result.tasks.find((t) => t.id === 'a')!
+    const b = result.tasks.find((t) => t.id === 'b')!
+    const c = result.tasks.find((t) => t.id === 'c')!
     expect(a.outcome).toBe('completed')
     expect(b.outcome).toBe('completed')
     expect(c.outcome).toBe('skipped_circuit_breaker')
@@ -280,7 +285,7 @@ describe('runGraph (D1)', () => {
 
     const result = await runGraph(makeOpts(tmpDir, { maxCost: 0 }))
 
-    expect(result.tasks.every(t => t.outcome === 'skipped_circuit_breaker')).toBe(true)
+    expect(result.tasks.every((t) => t.outcome === 'skipped_circuit_breaker')).toBe(true)
     expect(result.circuit_break_reason).toContain('cost limit')
     expect(result.aggregated_cost).toBe(0)
   })
@@ -301,31 +306,35 @@ describe('runGraph (D1)', () => {
     let calls = 0
     runTaskMock.mockImplementation(async (opts: any) => {
       calls++
-      await new Promise(resolve => setTimeout(resolve, 5))
+      await new Promise((resolve) => setTimeout(resolve, 5))
       return doneResult(opts.task.id)
     })
 
     const result = await runGraph(makeOpts(tmpDir, { maxMinutes: 0.1 }))
 
     expect(calls).toBe(2)
-    expect(result.tasks.find(t => t.id === 'a')?.outcome).toBe('completed')
-    expect(result.tasks.find(t => t.id === 'b')?.outcome).toBe('completed')
+    expect(result.tasks.find((t) => t.id === 'a')?.outcome).toBe('completed')
+    expect(result.tasks.find((t) => t.id === 'b')?.outcome).toBe('completed')
     expect(result.circuit_break_reason).toBeUndefined()
   })
 
   it('stops at the maximum graph iterations and reports remaining tasks as skipped', async () => {
-    const state = Array.from({ length: 202 }, (_, i) => makeTask(`chain-${i}`, i === 0 ? [] : [`chain-${i - 1}`]))
+    const state = Array.from({ length: 202 }, (_, i) =>
+      makeTask(`chain-${i}`, i === 0 ? [] : [`chain-${i - 1}`]),
+    )
     const loadTasks = () => ({ version: 1 as const, project: 'test-project', tasks: state })
     const updateTaskStatus = (_root: string, taskId: string, patch: Record<string, unknown>) => {
-      const task = state.find(t => t.id === taskId)!
+      const task = state.find((t) => t.id === taskId)!
       Object.assign(task, patch)
     }
     runTaskMock.mockImplementation(async (opts: any) => doneResult(opts.task.id))
 
-    const result = await runGraph(makeOpts(tmpDir, { loadTasksFn: loadTasks, updateTaskStatusFn: updateTaskStatus }))
+    const result = await runGraph(
+      makeOpts(tmpDir, { loadTasksFn: loadTasks, updateTaskStatusFn: updateTaskStatus }),
+    )
 
-    expect(result.tasks.filter(t => t.outcome === 'completed')).toHaveLength(200)
-    expect(result.tasks.filter(t => t.outcome === 'skipped_circuit_breaker')).toHaveLength(2)
+    expect(result.tasks.filter((t) => t.outcome === 'completed')).toHaveLength(200)
+    expect(result.tasks.filter((t) => t.outcome === 'skipped_circuit_breaker')).toHaveLength(2)
   })
 
   it('stops a graph with an unmet dependency and reports the stuck task', async () => {
@@ -344,7 +353,11 @@ describe('runGraph (D1)', () => {
 
     const result = await runGraph(makeOpts(tmpDir))
 
-    expect(result.tasks[0]).toMatchObject({ id: 'a', outcome: 'blocked', error: 'context insufficient' })
+    expect(result.tasks[0]).toMatchObject({
+      id: 'a',
+      outcome: 'blocked',
+      error: 'context insufficient',
+    })
     expect(fakeLoadTasks(tmpDir).tasks[0]?.status).toBe('blocked')
   })
 
@@ -368,11 +381,13 @@ describe('runGraph (D1)', () => {
     expect(result.tasks[0]?.usd_cost).toBeCloseTo(0.07, 5)
     expect(result.tasks[0]?.tokens).toEqual({ input: 17, output: 8 })
     expect(result.aggregated_tokens).toEqual({ input: 17, output: 8 })
-    expect(updates).toEqual(expect.arrayContaining([
-      expect.objectContaining({ status: 'running' }),
-      expect.objectContaining({ status: 'pending', retry_count: 1 }),
-      expect.objectContaining({ status: 'done' }),
-    ]))
+    expect(updates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: 'running' }),
+        expect.objectContaining({ status: 'pending', retry_count: 1 }),
+        expect.objectContaining({ status: 'done' }),
+      ]),
+    )
   })
 
   it('reports a task that disappears before execution instead of crashing the graph', async () => {
@@ -380,7 +395,9 @@ describe('runGraph (D1)', () => {
     let loads = 0
     const loadTasks = (root: string) => {
       loads++
-      return loads === 1 ? fakeLoadTasks(root) : { version: 1 as const, project: 'test-project', tasks: [] }
+      return loads === 1
+        ? fakeLoadTasks(root)
+        : { version: 1 as const, project: 'test-project', tasks: [] }
     }
 
     const result = await runGraph(makeOpts(tmpDir, { loadTasksFn: loadTasks }))
@@ -403,7 +420,9 @@ describe('runGraph (D1)', () => {
       return file
     }
 
-    runTaskMock.mockImplementation(async () => { throw new Error('must not run') })
+    runTaskMock.mockImplementation(async () => {
+      throw new Error('must not run')
+    })
     const result = await runGraph(makeOpts(tmpDir, { loadTasksFn: loadTasks }))
 
     expect(result.tasks[0]).toMatchObject({ id: 'already-done', outcome: 'completed' })
@@ -413,8 +432,12 @@ describe('runGraph (D1)', () => {
     writeTasks(tmpDir, [makeTask('rate-limited')])
     runTaskMock.mockImplementation(async (opts: any) => failedResult(opts.task.id))
     diagnoseTaskMock.mockResolvedValue({
-      taskId: 'rate-limited', pattern: 'rate_limit', confidence: 'high',
-      suggestion: 'wait and retry', details: '', usdCost: 0.005,
+      taskId: 'rate-limited',
+      pattern: 'rate_limit',
+      confidence: 'high',
+      suggestion: 'wait and retry',
+      details: '',
+      usdCost: 0.005,
     })
 
     const realSetTimeout = globalThis.setTimeout
@@ -436,8 +459,8 @@ describe('runGraph (D1)', () => {
 
     const result = await runGraph(makeOpts(tmpDir))
 
-    expect(result.tasks.find(t => t.id === 'a')?.outcome).toBe('failed_permanent')
-    expect(result.tasks.find(t => t.id === 'b')?.outcome).toBe('blocked')
+    expect(result.tasks.find((t) => t.id === 'a')?.outcome).toBe('failed_permanent')
+    expect(result.tasks.find((t) => t.id === 'b')?.outcome).toBe('blocked')
   })
 
   // ── Diagnose-guided retry ─────────────────────────────────────────────────
@@ -473,7 +496,7 @@ describe('runGraph (D1)', () => {
     try {
       const result = await runGraph(makeOpts(tmpDir))
 
-      const a = result.tasks.find(t => t.id === 'a')!
+      const a = result.tasks.find((t) => t.id === 'a')!
       expect(a.outcome).toBe('rate_limited_then_completed')
       // Cost should include failed attempts + diagnose + successful attempt
       expect(a.usd_cost).toBeGreaterThan(0)
@@ -504,8 +527,8 @@ describe('runGraph (D1)', () => {
     const result = await runGraph(makeOpts(tmpDir))
 
     // A failed permanently (no rate_limit requeue)
-    expect(result.tasks.find(t => t.id === 'a')!.outcome).toBe('failed_permanent')
-    expect(result.tasks.find(t => t.id === 'b')!.outcome).toBe('blocked')
+    expect(result.tasks.find((t) => t.id === 'a')!.outcome).toBe('failed_permanent')
+    expect(result.tasks.find((t) => t.id === 'b')!.outcome).toBe('blocked')
     expect(result.circuit_break_reason).toBeUndefined()
   })
 

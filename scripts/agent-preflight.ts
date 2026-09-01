@@ -55,7 +55,9 @@ export function main(argv = process.argv.slice(2), root = resolve('.')): number 
   }
 
   console.log(`✓ Preflight ${args.item}${args.agent ? ` · agente: ${args.agent}` : ''}`)
-  console.log('Reglas leídas requeridas: AGENTS.md · CLAUDE.md · docs/agent-work-protocol.md · PLAN.md')
+  console.log(
+    'Reglas leídas requeridas: AGENTS.md · CLAUDE.md · docs/agent-work-protocol.md · PLAN.md',
+  )
   console.log('Estado actual (cambios existentes se consideran ajenos hasta verificarlo):')
   console.log(status.stdout.trim() || '(limpio)')
   console.log('Siguiente gate: bunx tsc --noEmit + suite relevante antes de editar')

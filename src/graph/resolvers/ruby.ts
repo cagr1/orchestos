@@ -1,6 +1,6 @@
 import { existsSync } from 'fs'
 import { dirname, join, normalize } from 'path'
-import type { Resolver, RepoIndex } from '../resolver-registry.ts'
+import type { RepoIndex, Resolver } from '../resolver-registry.ts'
 
 function toPosix(path: string): string {
   return path.replace(/\\/g, '/')

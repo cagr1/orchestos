@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import * as anthropic from '../providers/anthropic.ts'
 import * as openai from '../providers/openai.ts'
 
@@ -24,11 +24,14 @@ describe('providers/anthropic.ts — max_tokens wiring (F0.6/F0.9)', () => {
     let capturedBody: any
     globalThis.fetch = (async (_url: string, init: RequestInit) => {
       capturedBody = JSON.parse(init.body as string)
-      return new Response(JSON.stringify({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-        model: 'claude-haiku-4-5',
-      }), { status: 200 })
+      return new Response(
+        JSON.stringify({
+          content: [{ type: 'text', text: 'ok' }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+          model: 'claude-haiku-4-5',
+        }),
+        { status: 200 },
+      )
     }) as unknown as typeof fetch
 
     await anthropic.chat({
@@ -47,14 +50,21 @@ describe('providers/anthropic.ts — max_tokens wiring (F0.6/F0.9)', () => {
     let capturedBody: any
     globalThis.fetch = (async (_url: string, init: RequestInit) => {
       capturedBody = JSON.parse(init.body as string)
-      return new Response(JSON.stringify({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-        model: 'claude-haiku-4-5',
-      }), { status: 200 })
+      return new Response(
+        JSON.stringify({
+          content: [{ type: 'text', text: 'ok' }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+          model: 'claude-haiku-4-5',
+        }),
+        { status: 200 },
+      )
     }) as unknown as typeof fetch
 
-    await anthropic.chat({ model: 'anthropic/claude-haiku-4-5', system: 'sys', messages: [{ role: 'user', content: 'hi' }] })
+    await anthropic.chat({
+      model: 'anthropic/claude-haiku-4-5',
+      system: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+    })
 
     expect(capturedBody.max_tokens).toBe(8192)
   })
@@ -75,11 +85,14 @@ describe('providers/openai.ts — max_tokens wiring (F0.6/F0.9)', () => {
     let capturedBody: any
     globalThis.fetch = (async (_url: string, init: RequestInit) => {
       capturedBody = JSON.parse(init.body as string)
-      return new Response(JSON.stringify({
-        choices: [{ message: { content: 'ok' } }],
-        usage: { prompt_tokens: 10, completion_tokens: 5 },
-        model: 'gpt-4o-mini',
-      }), { status: 200 })
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+          model: 'gpt-4o-mini',
+        }),
+        { status: 200 },
+      )
     }) as unknown as typeof fetch
 
     await openai.chat({

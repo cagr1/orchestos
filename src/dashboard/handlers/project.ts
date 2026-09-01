@@ -1,19 +1,19 @@
-import { join } from 'path'
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { chat as openrouterChat } from '../../providers/openrouter.ts'
+import { join } from 'path'
 import { loadContext } from '../../context/load.ts'
-import { loadTasks } from '../../tasks/loader.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
-import { listAllSkillCandidates, renderSkillCatalog } from '../../skills/catalog.ts'
+import { getProject, upsertProject } from '../../db/projects.ts'
+import { listRuns } from '../../db/runs.ts'
 import { buildProfile } from '../../detect/profile.ts'
 import { generateAgentsMd } from '../../generators/agents-md.ts'
 import { generateContextJson } from '../../generators/context-json.ts'
-import { getProject, upsertProject } from '../../db/projects.ts'
-import { indexProject } from '../../graph/index.ts'
-import { scaffoldConstitutionMd } from '../../spec/constitution.ts'
 import { generateSummaryPdf } from '../../generators/summary-pdf.ts'
-import { listRuns } from '../../db/runs.ts'
+import { indexProject } from '../../graph/index.ts'
+import { chat as openrouterChat } from '../../providers/openrouter.ts'
+import { listAllSkillCandidates, renderSkillCatalog } from '../../skills/catalog.ts'
+import { scaffoldConstitutionMd } from '../../spec/constitution.ts'
+import { loadTasks } from '../../tasks/loader.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
 
 // v0.12 D.1.b — equivalente de `orchestos constitution init` para el dashboard.
 // Si CONSTITUTION.md NO existe en disco, devolvemos el scaffold ALLOWED/FORBIDDEN/
@@ -30,7 +30,11 @@ function handleApiProjectConstitutionGet(root: string): Response {
 
 async function handleApiProjectConstitutionPut(req: Request, root: string): Promise<Response> {
   let body: { content: string }
-  try { body = (await req.json()) as { content: string } } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as { content: string }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   if (typeof body.content !== 'string') return errorResponse('content must be a string', 400)
   writeFileSync(join(root, 'CONSTITUTION.md'), body.content, 'utf-8')
   return jsonResponse({ ok: true })
@@ -45,7 +49,9 @@ function handleApiProjectContextGet(root: string): Response {
 
 function handleApiProjectContextRegenerate(root: string): Response {
   Bun.spawn([process.execPath, 'run', join(root, 'src/cli.ts'), 'context', 'compress'], {
-    cwd: root, stdout: 'inherit', stderr: 'inherit',
+    cwd: root,
+    stdout: 'inherit',
+    stderr: 'inherit',
   })
   return jsonResponse({ ok: true })
 }
@@ -91,7 +97,13 @@ async function handleApiProjectIndex(root: string): Promise<Response> {
   const t0 = performance.now()
   const result = await indexProject(root, project.id)
   const elapsedMs = Math.round(performance.now() - t0)
-  return jsonResponse({ ok: true, files: result.files, edges: result.edges, embeddings: result.embeddings, elapsedMs })
+  return jsonResponse({
+    ok: true,
+    files: result.files,
+    edges: result.edges,
+    embeddings: result.embeddings,
+    elapsedMs,
+  })
 }
 
 export interface NaturalDraft {
@@ -111,7 +123,8 @@ async function buildNaturalDraft(input: string, root = process.cwd()): Promise<N
   let tasksSummary = ''
   try {
     const file = loadTasks(root)
-    tasksSummary = (file.tasks as any[]).slice(0, 15)
+    tasksSummary = (file.tasks as any[])
+      .slice(0, 15)
       .map((t: any) => `- ${t.id}: ${t.description}`)
       .join('\n')
   } catch {}
@@ -139,20 +152,38 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
     system: systemPrompt,
     messages: [{ role: 'user', content: input }],
   })
-  const raw = resp.text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-  const draft = JSON.parse(raw) as { id: string; description: string; output: string[]; executor: string; skill_candidates?: unknown }
-  draft.id = (draft.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || 'nueva-tarea'
+  const raw = resp.text
+    .replace(/^```(?:json)?\n?/, '')
+    .replace(/\n?```$/, '')
+    .trim()
+  const draft = JSON.parse(raw) as {
+    id: string
+    description: string
+    output: string[]
+    executor: string
+    skill_candidates?: unknown
+  }
+  draft.id =
+    (draft.id || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 64) || 'nueva-tarea'
   if (!Array.isArray(draft.output)) draft.output = []
   if (!['openrouter', 'anthropic', 'openai'].includes(draft.executor)) draft.executor = 'openrouter'
 
   // Fail-safe: solo se aceptan ids que existen de verdad — un id inventado
   // por el LLM se descarta como si no hubiera dicho nada (mismo espíritu
   // que needsClarify/el clasificador de intención del Mes 18).
-  const validIds = new Set(skillCandidateInfos.map(s => s.id))
+  const validIds = new Set(skillCandidateInfos.map((s) => s.id))
   const rawCandidates = Array.isArray(draft.skill_candidates) ? draft.skill_candidates : []
-  const skillCandidates = rawCandidates.filter((id): id is string => typeof id === 'string' && validIds.has(id))
-  const skillOptions = skillCandidateInfos.filter(s => skillCandidates.includes(s.id))
-    .map(s => ({ id: s.id, name: s.name, description: s.description }))
+  const skillCandidates = rawCandidates.filter(
+    (id): id is string => typeof id === 'string' && validIds.has(id),
+  )
+  const skillOptions = skillCandidateInfos
+    .filter((s) => skillCandidates.includes(s.id))
+    .map((s) => ({ id: s.id, name: s.name, description: s.description }))
 
   return {
     id: draft.id,
@@ -166,7 +197,11 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
 
 async function handleApiNatural(req: Request, root = process.cwd()): Promise<Response> {
   let body: { input: string }
-  try { body = (await req.json()) as { input: string } } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as { input: string }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   const input = body.input?.trim()
   if (!input) return errorResponse('input is required', 400)
   try {
@@ -215,8 +250,23 @@ async function handleApiProjectSummary(root: string): Promise<Response> {
     return errorResponse(`Failed to generate summary: ${e.message}`, 500)
   } finally {
     // cleanup siempre — incluso si el response falló, no queremos leaks en /tmp
-    try { unlinkSync(tmpPath) } catch { /* tmp file puede no existir si write falló */ }
+    try {
+      unlinkSync(tmpPath)
+    } catch {
+      /* tmp file puede no existir si write falló */
+    }
   }
 }
 
-export { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiProjectSummary, handleApiNatural, listAllSkillCandidates, buildNaturalDraft }
+export {
+  buildNaturalDraft,
+  handleApiNatural,
+  handleApiProjectConstitutionGet,
+  handleApiProjectConstitutionPut,
+  handleApiProjectContextGet,
+  handleApiProjectContextRegenerate,
+  handleApiProjectDetect,
+  handleApiProjectIndex,
+  handleApiProjectSummary,
+  listAllSkillCandidates,
+}

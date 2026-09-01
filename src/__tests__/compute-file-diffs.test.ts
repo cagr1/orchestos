@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'bun:test'
-import { computeFileDiffs, type ContentSnapshot } from '../run/qa.ts'
+import { describe, expect, it } from 'bun:test'
 import type { FileChange } from '../run/contract.ts'
+import { type ContentSnapshot, computeFileDiffs } from '../run/qa.ts'
 
 // v0.12/C.2 — visor de diff por run (docs/diff-review-design.md).
 describe('computeFileDiffs', () => {
@@ -16,7 +16,9 @@ describe('computeFileDiffs', () => {
   })
 
   it('marks a file as "modified" when it existed before with different content', () => {
-    const before: ContentSnapshot = { 'existing.ts': { existed: true, content: 'export const x = 1\n' } }
+    const before: ContentSnapshot = {
+      'existing.ts': { existed: true, content: 'export const x = 1\n' },
+    }
     const written: FileChange[] = [{ path: 'existing.ts', content: 'export const x = 2\n' }]
 
     const [entry] = computeFileDiffs(before, written)

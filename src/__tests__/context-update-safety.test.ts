@@ -5,10 +5,10 @@
  * código de salida y el flujo de escritura; ORCHESTOS_HOME temporal evita
  * contaminar la DB del usuario durante el caso explícito de --force.
  */
-import { describe, it, expect } from 'bun:test'
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync } from 'fs'
-import { join } from 'path'
+import { describe, expect, it } from 'bun:test'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 const repoRoot = process.cwd()
 const cliPath = join(repoRoot, 'src', 'cli.ts')

@@ -6,19 +6,25 @@
  *   - hook (proposeInstinctsFromPatterns) does not block when no proposals
  */
 
-import { describe, it, expect, afterEach } from 'bun:test'
-import { proposeInstinctsFromPatterns, PATTERN_FREQUENCY_THRESHOLD } from '../analyze/propose.ts'
-import { approveInstinct, deleteInstinct, getInstinct, listUnverified, insertInstinct } from '../instincts/store.ts'
-import { AUTO_DEFAULTS, APPLY_THRESHOLD } from '../instincts/schema.ts'
+import { afterEach, describe, expect, it } from 'bun:test'
 import type { PatternSuggestion } from '../analyze/patterns.ts'
+import { PATTERN_FREQUENCY_THRESHOLD, proposeInstinctsFromPatterns } from '../analyze/propose.ts'
+import { APPLY_THRESHOLD, AUTO_DEFAULTS } from '../instincts/schema.ts'
+import {
+  approveInstinct,
+  deleteInstinct,
+  getInstinct,
+  insertInstinct,
+  listUnverified,
+} from '../instincts/store.ts'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function makeSuggestion(overrides: Partial<PatternSuggestion> = {}): PatternSuggestion {
   return {
-    pattern:    'missing_error_handling',
-    frequency:  PATTERN_FREQUENCY_THRESHOLD,
-    fix_hint:   'Add try/catch around all async calls',
+    pattern: 'missing_error_handling',
+    frequency: PATTERN_FREQUENCY_THRESHOLD,
+    fix_hint: 'Add try/catch around all async calls',
     confidence: 'high',
     ...overrides,
   }
@@ -28,7 +34,11 @@ const createdIds: string[] = []
 
 afterEach(() => {
   for (const id of createdIds.splice(0)) {
-    try { deleteInstinct(id) } catch { /* ignore */ }
+    try {
+      deleteInstinct(id)
+    } catch {
+      /* ignore */
+    }
   }
 })
 
@@ -36,7 +46,9 @@ afterEach(() => {
 
 describe('proposeInstinctsFromPatterns — threshold', () => {
   it('creates instinct when frequency equals PATTERN_FREQUENCY_THRESHOLD', () => {
-    const proposals = proposeInstinctsFromPatterns([makeSuggestion({ frequency: PATTERN_FREQUENCY_THRESHOLD })])
+    const proposals = proposeInstinctsFromPatterns([
+      makeSuggestion({ frequency: PATTERN_FREQUENCY_THRESHOLD }),
+    ])
     expect(proposals).toHaveLength(1)
     createdIds.push(proposals[0]!.id)
 
@@ -50,13 +62,17 @@ describe('proposeInstinctsFromPatterns — threshold', () => {
   })
 
   it('creates instinct when frequency exceeds threshold', () => {
-    const proposals = proposeInstinctsFromPatterns([makeSuggestion({ frequency: PATTERN_FREQUENCY_THRESHOLD + 5 })])
+    const proposals = proposeInstinctsFromPatterns([
+      makeSuggestion({ frequency: PATTERN_FREQUENCY_THRESHOLD + 5 }),
+    ])
     expect(proposals).toHaveLength(1)
     createdIds.push(proposals[0]!.id)
   })
 
   it('does NOT create instinct when frequency is below threshold', () => {
-    const proposals = proposeInstinctsFromPatterns([makeSuggestion({ frequency: PATTERN_FREQUENCY_THRESHOLD - 1 })])
+    const proposals = proposeInstinctsFromPatterns([
+      makeSuggestion({ frequency: PATTERN_FREQUENCY_THRESHOLD - 1 }),
+    ])
     expect(proposals).toHaveLength(0)
   })
 
@@ -71,12 +87,12 @@ describe('proposeInstinctsFromPatterns — threshold', () => {
   it('proposes only patterns above threshold in a mixed list', () => {
     const proposals = proposeInstinctsFromPatterns([
       makeSuggestion({ pattern: 'high-freq-A', frequency: 5, fix_hint: 'Fix A' }),
-      makeSuggestion({ pattern: 'low-freq-B',  frequency: 1, fix_hint: 'Fix B' }),
+      makeSuggestion({ pattern: 'low-freq-B', frequency: 1, fix_hint: 'Fix B' }),
       makeSuggestion({ pattern: 'high-freq-C', frequency: 3, fix_hint: 'Fix C' }),
     ])
     expect(proposals).toHaveLength(2)
     for (const p of proposals) createdIds.push(p.id)
-    const triggers = proposals.map(p => p.trigger)
+    const triggers = proposals.map((p) => p.trigger)
     expect(triggers).toContain('high-freq-A')
     expect(triggers).toContain('high-freq-C')
     expect(triggers).not.toContain('low-freq-B')
@@ -123,7 +139,13 @@ describe('approveInstinct', () => {
   })
 
   it('approved instinct with confidence >= APPLY_THRESHOLD is auto-applicable', () => {
-    const inst = insertInstinct({ trigger: 'high-conf-approve', action: 'do it', confidence: 0.95, source: 'auto', verified: false })
+    const inst = insertInstinct({
+      trigger: 'high-conf-approve',
+      action: 'do it',
+      confidence: 0.95,
+      source: 'auto',
+      verified: false,
+    })
     createdIds.push(inst.id)
     approveInstinct(inst.id)
 
@@ -133,7 +155,13 @@ describe('approveInstinct', () => {
   })
 
   it('caps confidence at 1.0 on approve', () => {
-    const inst = insertInstinct({ trigger: 'cap-approve', action: 'do it', confidence: 0.95, source: 'auto', verified: false })
+    const inst = insertInstinct({
+      trigger: 'cap-approve',
+      action: 'do it',
+      confidence: 0.95,
+      source: 'auto',
+      verified: false,
+    })
     createdIds.push(inst.id)
     approveInstinct(inst.id)
 
@@ -182,6 +210,6 @@ describe('proposeInstinctsFromPatterns — hook safety (no blocking)', () => {
     createdIds.push(inst.id)
 
     const unverified = listUnverified()
-    expect(unverified.some(i => i.id === inst.id)).toBe(true)
+    expect(unverified.some((i) => i.id === inst.id)).toBe(true)
   })
 })

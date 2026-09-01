@@ -9,10 +9,10 @@
  * el runId retornado por runTask(), consultar getRun() para inspeccionar la fila
  * persistida. No mockeamos módulos.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { db } from '../db/sqlite.ts'
 import { _resetCatalog } from '../router/model-catalog.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -24,12 +24,21 @@ import type { Task } from '../tasks/schema.ts'
 function seedCatalog(): string {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-test-cat-'))
   mkdirSync(join(home, '.orchestos', 'cache'), { recursive: true })
-  writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({
-    fetchedAt: Date.now(),
-    models: {
-      'anthropic/claude-haiku-4-5': { contextLength: 200000, priceIn: 0.8, priceOut: 4, supportsReasoning: false, maxOutputTokens: 8192 },
-    },
-  }))
+  writeFileSync(
+    join(home, '.orchestos', 'cache', 'models.json'),
+    JSON.stringify({
+      fetchedAt: Date.now(),
+      models: {
+        'anthropic/claude-haiku-4-5': {
+          contextLength: 200000,
+          priceIn: 0.8,
+          priceOut: 4,
+          supportsReasoning: false,
+          maxOutputTokens: 8192,
+        },
+      },
+    }),
+  )
   return home
 }
 
@@ -72,27 +81,36 @@ function tmpDir(): string {
 }
 
 function openRouterResponse(content: string, promptTokens = 5, completionTokens = 3) {
-  return new Response(JSON.stringify({
-    choices: [{ message: { content } }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-    model: 'mock/model',
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content } }],
+      usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+      model: 'mock/model',
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 function toolCallResponse(calls: Array<{ name: string; args: unknown }>) {
-  return new Response(JSON.stringify({
-    choices: [{
-      message: {
-        content: null,
-        tool_calls: calls.map((c, i) => ({
-          id: `call_${i}`, type: 'function',
-          function: { name: c.name, arguments: JSON.stringify(c.args) },
-        })),
-      },
-    }],
-    usage: { prompt_tokens: 10, completion_tokens: 5 },
-    model: 'mock/model',
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: null,
+            tool_calls: calls.map((c, i) => ({
+              id: `call_${i}`,
+              type: 'function',
+              function: { name: c.name, arguments: JSON.stringify(c.args) },
+            })),
+          },
+        },
+      ],
+      usage: { prompt_tokens: 10, completion_tokens: 5 },
+      model: 'mock/model',
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 function installMockFetch(handlers: Array<() => Response>) {
@@ -118,7 +136,11 @@ function baseTask(overrides: Partial<Task> = {}): Task {
   }
 }
 
-async function callRunTask(task: ReturnType<typeof baseTask>, dir: string, engine: 'single-shot' | 'agentic' = 'single-shot') {
+async function callRunTask(
+  task: ReturnType<typeof baseTask>,
+  dir: string,
+  engine: 'single-shot' | 'agentic' = 'single-shot',
+) {
   const { runTask } = await import('../run/harness.ts')
   const { RunLogger } = await import('../run/logger.ts')
   const log = new RunLogger(dir, task.id)
@@ -134,7 +156,15 @@ async function callRunTask(task: ReturnType<typeof baseTask>, dir: string, engin
   })
 }
 
-async function rowBreakdownFor(runId: string): Promise<Array<{ label: string; model: string; inputTokens: number; outputTokens: number; costUsd: number }>> {
+async function rowBreakdownFor(runId: string): Promise<
+  Array<{
+    label: string
+    model: string
+    inputTokens: number
+    outputTokens: number
+    costUsd: number
+  }>
+> {
   const { getRun } = await import('../db/runs.ts')
   const row = getRun(runId)
   expect(row).not.toBeNull()
@@ -173,7 +203,10 @@ describe('G.4 — cost_breakdown_json persistido en cada insertRun (gap de G.3)'
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     // 2 rondas de tool-calling antes del summary final + QA = 3 fetches totales
     installMockFetch([
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'agentic hi' } }]),
+      () =>
+        toolCallResponse([
+          { name: 'write_file', args: { path: 'out.txt', content: 'agentic hi' } },
+        ]),
       () => openRouterResponse('Done — wrote out.txt', 5, 3),
       () => openRouterResponse('{"verdict":"pass","reason":"ok"}', 2, 1),
     ])

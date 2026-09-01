@@ -1,11 +1,8 @@
-import { resolve, join } from 'path'
 import { existsSync, readFileSync } from 'fs'
+import { join, resolve } from 'path'
 import type { Check } from '../tasks/schema.ts'
+import { jsSyntaxCheckForHtmlFile, jsSyntaxCheckForJsFile } from './html-script-check.ts'
 import type { RunLogger } from './logger.ts'
-import {
-  jsSyntaxCheckForJsFile,
-  jsSyntaxCheckForHtmlFile,
-} from './html-script-check.ts'
 import { PathPolicyError, resolveProjectCwd, safeChildEnv } from './path-policy.ts'
 
 const DEFAULT_TIMEOUT_MS = 60_000
@@ -27,10 +24,18 @@ function commandAvailable(command: string, args: string[]): boolean {
  * ausencia se reporta antes como missing/blocked por roadmap-context.ts. */
 export function roadmapChecksFor(output: string[], effectiveRoot: string): Check[] {
   const checks: Check[] = []
-  if (output.some(p => p.endsWith('.rs')) && existsSync(join(effectiveRoot, 'Cargo.toml')) && commandAvailable('cargo', ['--version'])) {
+  if (
+    output.some((p) => p.endsWith('.rs')) &&
+    existsSync(join(effectiveRoot, 'Cargo.toml')) &&
+    commandAvailable('cargo', ['--version'])
+  ) {
     checks.push({ cmd: 'cargo test', timeout_ms: DEFAULT_TIMEOUT_MS })
   }
-  if (output.some(p => p.endsWith('.go')) && existsSync(join(effectiveRoot, 'go.mod')) && commandAvailable('go', ['version'])) {
+  if (
+    output.some((p) => p.endsWith('.go')) &&
+    existsSync(join(effectiveRoot, 'go.mod')) &&
+    commandAvailable('go', ['version'])
+  ) {
     checks.push({ cmd: 'go test ./...', timeout_ms: DEFAULT_TIMEOUT_MS })
   }
   return checks
@@ -66,7 +71,7 @@ export function defaultChecksFor(output: string[], effectiveRoot: string): Check
   const hasNodeModules = existsSync(join(effectiveRoot, 'node_modules'))
 
   if (hasNodeModules) {
-    if (output.some(p => p.endsWith('.ts') || p.endsWith('.tsx'))) {
+    if (output.some((p) => p.endsWith('.ts') || p.endsWith('.tsx'))) {
       checks.push({ cmd: 'bunx tsc --noEmit', timeout_ms: TSC_TIMEOUT_MS })
     }
     for (const p of output) {
@@ -80,7 +85,10 @@ export function defaultChecksFor(output: string[], effectiveRoot: string): Check
   // static check is independent of node_modules and therefore also runs in a
   // fresh worktree. Missing files are left to the output contract check.
   for (const p of output) {
-    if ((p.endsWith('.test.ts') || p.endsWith('.test.tsx')) && existsSync(resolve(effectiveRoot, p))) {
+    if (
+      (p.endsWith('.test.ts') || p.endsWith('.test.tsx')) &&
+      existsSync(resolve(effectiveRoot, p))
+    ) {
       checks.push(testAssertionCheckFor(p))
     }
   }
@@ -128,7 +136,7 @@ export interface CheckResult {
 export async function runChecks(
   checks: Check[],
   projectRoot: string,
-  logger: RunLogger
+  logger: RunLogger,
 ): Promise<CheckResult[]> {
   const results: CheckResult[] = []
   for (const check of checks) {
@@ -214,7 +222,12 @@ function tail(text: string): string {
   return text.length > OUTPUT_LIMIT ? text.slice(-OUTPUT_LIMIT) : text
 }
 
-function failureResult(cmd: string, message: string, started: number, timedOut: boolean): CheckResult {
+function failureResult(
+  cmd: string,
+  message: string,
+  started: number,
+  timedOut: boolean,
+): CheckResult {
   return {
     cmd,
     exitCode: 1,

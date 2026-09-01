@@ -16,7 +16,9 @@
  * markup que el vanilla ya inyecta con `innerHTML` en cada repintado.
  */
 
-interface IconCatalog { [name: string]: string | undefined }
+interface IconCatalog {
+  [name: string]: string | undefined
+}
 
 function catalog(): IconCatalog {
   return (window as unknown as { OrchestOS?: { icons?: IconCatalog } }).OrchestOS?.icons ?? {}

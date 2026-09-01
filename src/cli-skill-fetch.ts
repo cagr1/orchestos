@@ -1,6 +1,6 @@
-import { Command } from 'commander'
+import type { Command } from 'commander'
 import { DASHBOARD_URL } from './cli-skill-curate.ts'
-import type { RegistryListResponse, RegistryImportResponse } from './dashboard/types.ts'
+import type { RegistryImportResponse, RegistryListResponse } from './dashboard/types.ts'
 
 async function callDashboardGet(path: string): Promise<Response> {
   const resp = await fetch(`${DASHBOARD_URL}${path}`, { method: 'GET' })
@@ -29,7 +29,7 @@ export function registerSkillFetchCommands(skill: Command): void {
           console.error(`  Or set ORCHESTOS_API_URL to your dashboard URL`)
           process.exit(1)
         }
-        const data = await resp.json() as RegistryListResponse
+        const data = (await resp.json()) as RegistryListResponse
         if (!data.ok) {
           console.error(`[skill fetch] Error: registry unavailable`)
           process.exit(1)
@@ -54,7 +54,7 @@ export function registerSkillFetchCommands(skill: Command): void {
           console.error(`  Or set ORCHESTOS_API_URL to your dashboard URL`)
           process.exit(1)
         }
-        const data = await resp.json() as RegistryImportResponse
+        const data = (await resp.json()) as RegistryImportResponse
         if (data.ok) {
           const label = data.normalized ? ' (normalized by AI)' : ''
           console.log(`[skill fetch] Imported "${id}" → skills/${id}.yaml${label}`)

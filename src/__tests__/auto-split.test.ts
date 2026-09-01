@@ -4,8 +4,8 @@
  * Verifica la función pura sin llamar al LLM ni gastar dinero.
  * Constantes: SPLIT_AVG_TOKENS_PER_FILE=2048, SPLIT_THRESHOLD=0.7
  */
-import { describe, it, expect } from 'bun:test'
-import { shouldSplit, SPLIT_AVG_TOKENS_PER_FILE, SPLIT_THRESHOLD } from '../run/harness.ts'
+import { describe, expect, it } from 'bun:test'
+import { SPLIT_AVG_TOKENS_PER_FILE, SPLIT_THRESHOLD, shouldSplit } from '../run/harness.ts'
 import type { Task } from '../tasks/schema.ts'
 
 function makeTask(overrides: Partial<Task> = {}): Task {

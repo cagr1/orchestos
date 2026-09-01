@@ -35,7 +35,10 @@ export function sumCosts(entries: CostBreakdownEntry[]): number {
   return entries.reduce((s, e) => s + e.costUsd, 0)
 }
 
-export function sumTokens(entries: CostBreakdownEntry[]): { inputTokens: number; outputTokens: number } {
+export function sumTokens(entries: CostBreakdownEntry[]): {
+  inputTokens: number
+  outputTokens: number
+} {
   return {
     inputTokens: entries.reduce((s, e) => s + e.inputTokens, 0),
     outputTokens: entries.reduce((s, e) => s + e.outputTokens, 0),

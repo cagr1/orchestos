@@ -59,7 +59,9 @@ const listeners = new Set<() => void>()
 
 export function subscribeShell(listener: () => void): () => void {
   listeners.add(listener)
-  return () => { listeners.delete(listener) }
+  return () => {
+    listeners.delete(listener)
+  }
 }
 
 export function getShellState(): ShellState {
@@ -75,7 +77,10 @@ export function getShellState(): ShellState {
 export function setShellState(patch: Partial<ShellState>): void {
   let changed = false
   for (const key of Object.keys(patch) as (keyof ShellState)[]) {
-    if (patch[key] !== undefined && patch[key] !== state[key]) { changed = true; break }
+    if (patch[key] !== undefined && patch[key] !== state[key]) {
+      changed = true
+      break
+    }
   }
   if (!changed) return
   state = { ...state, ...patch }

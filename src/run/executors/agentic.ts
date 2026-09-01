@@ -18,22 +18,25 @@
  * dinero (decisión Carlos 2026-07-02, ver docs/executor-engine-design.md §3).
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
-import { calcCost } from '../../router/pricing.ts'
-import { isSafeRelPath, normalizeRelPath, resolveProjectPath } from '../path-policy.ts'
-import { runChecks } from '../checks.ts'
-import { capToolOutput, capCheckOutput } from '../tool-output-cap.ts'
+import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
 import {
-  runToolLoop, createToolRouter,
-  type ToolDef, type ToolExecutor,
+  createToolRouter,
+  runToolLoop,
+  type ToolDef,
+  type ToolExecutor,
 } from '../../providers/tool-call.ts'
+import { calcCost } from '../../router/pricing.ts'
+import { runChecks } from '../checks.ts'
+import { isSafeRelPath, normalizeRelPath, resolveProjectPath } from '../path-policy.ts'
+import { capCheckOutput, capToolOutput } from '../tool-output-cap.ts'
 import type { ExecutorEngine } from './types.ts'
 
 // -- tool definitions -----------------------------------------------------------
 
 const READ_FILE_TOOL: ToolDef = {
   name: 'read_file',
-  description: 'Reads the full text content of a file relative to the project root. Use to inspect existing code before editing it.',
+  description:
+    'Reads the full text content of a file relative to the project root. Use to inspect existing code before editing it.',
   input_schema: {
     type: 'object',
     required: ['path'],
@@ -45,12 +48,16 @@ const READ_FILE_TOOL: ToolDef = {
 
 const WRITE_FILE_TOOL: ToolDef = {
   name: 'write_file',
-  description: 'Writes (replaces) the full content of a file. Only paths declared in the task output contract are allowed — if you write elsewhere the tool returns an error, fix the path and retry.',
+  description:
+    'Writes (replaces) the full content of a file. Only paths declared in the task output contract are allowed — if you write elsewhere the tool returns an error, fix the path and retry.',
   input_schema: {
     type: 'object',
     required: ['path', 'content'],
     properties: {
-      path: { type: 'string', description: 'Path relative to the project root — must be one of the declared output files' },
+      path: {
+        type: 'string',
+        description: 'Path relative to the project root — must be one of the declared output files',
+      },
       content: { type: 'string', description: 'Full file content — this replaces the entire file' },
     },
   },
@@ -62,14 +69,19 @@ const LIST_DIR_TOOL: ToolDef = {
   input_schema: {
     type: 'object',
     properties: {
-      path: { type: 'string', description: 'Directory path relative to the project root — omit or use "." for the project root' },
+      path: {
+        type: 'string',
+        description:
+          'Directory path relative to the project root — omit or use "." for the project root',
+      },
     },
   },
 }
 
 const RUN_CHECK_TOOL: ToolDef = {
   name: 'run_check',
-  description: 'Runs one of the deterministic checks already declared for this task and reports its exit code and output. Only checks declared in the task are allowed.',
+  description:
+    'Runs one of the deterministic checks already declared for this task and reports its exit code and output. Only checks declared in the task are allowed.',
   input_schema: {
     type: 'object',
     required: ['cmd'],
@@ -85,9 +97,8 @@ export const agenticEngine: ExecutorEngine = {
   async run(ctx, opts) {
     const effectiveRoot = ctx.effectiveRoot
     const declaredOutputs = new Set(ctx.task.output.map(normalizeRelPath))
-    const declaredInputs = ctx.task.input.length > 0
-      ? new Set(ctx.task.input.map(normalizeRelPath))
-      : null // null → no restriction, any file in the repo
+    const declaredInputs =
+      ctx.task.input.length > 0 ? new Set(ctx.task.input.map(normalizeRelPath)) : null // null → no restriction, any file in the repo
     const declaredChecks = ctx.task.checks ?? []
 
     // In-memory write buffer — enforceContract() in the harness does the real
@@ -104,7 +115,12 @@ export const agenticEngine: ExecutorEngine = {
       }
       if (buffer.has(normalized)) return buffer.get(normalized)!
       let full: string
-      try { full = normalized === '.' ? effectiveRoot : resolveProjectPath(effectiveRoot, normalized, 'read') } catch { return `[Error: path '${relPath}' is outside the project]` }
+      try {
+        full =
+          normalized === '.' ? effectiveRoot : resolveProjectPath(effectiveRoot, normalized, 'read')
+      } catch {
+        return `[Error: path '${relPath}' is outside the project]`
+      }
       if (!existsSync(full)) return `[Error: file not found: ${normalized}]`
       let raw: string
       try {
@@ -127,7 +143,9 @@ export const agenticEngine: ExecutorEngine = {
       buffer.set(normalized, content)
       log.push(`write_file: ${normalized} (${content.length} chars)`)
       // El OK es corto, pero cap por defensa en profundidad y consistencia.
-      return capToolOutput(`OK: buffered ${normalized} (${content.length} chars) — will be written after all tool calls complete`)
+      return capToolOutput(
+        `OK: buffered ${normalized} (${content.length} chars) — will be written after all tool calls complete`,
+      )
     }
 
     function listDir(relPath: string): string {
@@ -135,14 +153,21 @@ export const agenticEngine: ExecutorEngine = {
       if (p !== '.' && !isSafeRelPath(p)) return `[Error: path '${p}' escapes the project root]`
       const normalized = p === '.' ? '.' : normalizeRelPath(p)
       let full: string
-      try { full = normalized === '.' ? effectiveRoot : resolveProjectPath(effectiveRoot, normalized, 'read') } catch { return `[Error: path '${relPath}' is outside the project]` }
+      try {
+        full =
+          normalized === '.' ? effectiveRoot : resolveProjectPath(effectiveRoot, normalized, 'read')
+      } catch {
+        return `[Error: path '${relPath}' is outside the project]`
+      }
       if (!existsSync(full) || !statSync(full).isDirectory()) {
         return `[Error: not a directory: ${normalized}]`
       }
       let raw: string
       try {
         const entries = readdirSync(full, { withFileTypes: true })
-        raw = entries.map(e => e.isDirectory() ? `${e.name}/` : e.name).join('\n') || '(empty directory)'
+        raw =
+          entries.map((e) => (e.isDirectory() ? `${e.name}/` : e.name)).join('\n') ||
+          '(empty directory)'
       } catch (e: any) {
         return `[Error listing ${normalized}: ${e.message}]`
       }
@@ -150,9 +175,9 @@ export const agenticEngine: ExecutorEngine = {
     }
 
     async function runCheck(cmd: string): Promise<string> {
-      const check = declaredChecks.find(c => c.cmd === cmd)
+      const check = declaredChecks.find((c) => c.cmd === cmd)
       if (!check) {
-        return `[Error: '${cmd}' is not a declared check for this task. Allowed: ${declaredChecks.map(c => c.cmd).join(', ') || '(none declared)'}]`
+        return `[Error: '${cmd}' is not a declared check for this task. Allowed: ${declaredChecks.map((c) => c.cmd).join(', ') || '(none declared)'}]`
       }
       const results = await runChecks([check], effectiveRoot, ctx.opts.logger)
       const r = results[0]
@@ -160,14 +185,19 @@ export const agenticEngine: ExecutorEngine = {
       log.push(`run_check: ${cmd} → exit ${r.exitCode}${r.timedOut ? ' (timed out)' : ''}`)
       // A.3: capCheckOutput (cabeza+cola) en vez de head-only — los errores
       // viven al final del stderr y un truncado de cabeza los perdería.
-      return capCheckOutput(`exit ${r.exitCode}${r.timedOut ? ' (TIMED OUT)' : ''}\nstdout:\n${r.stdout}\nstderr:\n${r.stderr}`)
+      return capCheckOutput(
+        `exit ${r.exitCode}${r.timedOut ? ' (TIMED OUT)' : ''}\nstdout:\n${r.stdout}\nstderr:\n${r.stderr}`,
+      )
     }
 
     const executeTool: ToolExecutor = createToolRouter({
-      read_file:  async (_name, input) => readFile((input as { path: string }).path),
-      write_file: async (_name, input) => { const i = input as { path: string; content: string }; return writeFile(i.path, i.content) },
-      list_dir:   async (_name, input) => listDir((input as { path?: string }).path ?? '.'),
-      run_check:  async (_name, input) => runCheck((input as { cmd: string }).cmd),
+      read_file: async (_name, input) => readFile((input as { path: string }).path),
+      write_file: async (_name, input) => {
+        const i = input as { path: string; content: string }
+        return writeFile(i.path, i.content)
+      },
+      list_dir: async (_name, input) => listDir((input as { path?: string }).path ?? '.'),
+      run_check: async (_name, input) => runCheck((input as { cmd: string }).cmd),
     })
 
     const toolInstructions = [
@@ -184,13 +214,20 @@ export const agenticEngine: ExecutorEngine = {
       // disciplina es transversal a toda corrida agéntica, así que vive acá y no
       // en una skill que tendría que ganar un slot de selección.
       declaredChecks.length > 0
-        ? `Declared checks for this task: ${declaredChecks.map(c => c.cmd).join(', ')}. Run them with run_check before you stop — do not judge your work correct by inspection alone.`
+        ? `Declared checks for this task: ${declaredChecks.map((c) => c.cmd).join(', ')}. Run them with run_check before you stop — do not judge your work correct by inspection alone.`
         : `No deterministic checks are declared for this task. Read back what you wrote with read_file before you stop — that is your only available evidence.`,
       `Stop calling tools only when every declared output file is written AND you hold evidence it is correct: a check you ran, or file content you read back. Then reply with a short summary of what you did and what evidence you have.`,
     ].join('\n')
 
-    const system = [ctx.effectiveContext, ctx.constitutionBlock, ctx.skillInstructions, ctx.instinctBlock, toolInstructions]
-      .filter(Boolean).join('\n\n')
+    const system = [
+      ctx.effectiveContext,
+      ctx.constitutionBlock,
+      ctx.skillInstructions,
+      ctx.instinctBlock,
+      toolInstructions,
+    ]
+      .filter(Boolean)
+      .join('\n\n')
 
     const loopResult = await runToolLoop(ctx.providerName, ctx.model, {
       system,
@@ -207,7 +244,9 @@ export const agenticEngine: ExecutorEngine = {
     })
 
     if (loopResult.rounds >= opts.maxIterations && buffer.size < declaredOutputs.size) {
-      log.push(`maxIterations reached (${opts.maxIterations}) with ${declaredOutputs.size - buffer.size} declared output(s) still unwritten`)
+      log.push(
+        `maxIterations reached (${opts.maxIterations}) with ${declaredOutputs.size - buffer.size} declared output(s) still unwritten`,
+      )
     }
 
     const usd = calcCost(ctx.model, loopResult.inputTokens, loopResult.outputTokens)
@@ -222,13 +261,15 @@ export const agenticEngine: ExecutorEngine = {
       // runToolLoop agrega tokens en un total único, no expone desglose por
       // ronda individual — reusarlo "tal cual" (decisión de G.1) implica esta
       // limitación honesta: una sola entrada agregada, no N entradas falsas.
-      costByIteration: [{
-        label: `agentic (${loopResult.rounds} round${loopResult.rounds === 1 ? '' : 's'})`,
-        model: ctx.model,
-        inputTokens: loopResult.inputTokens,
-        outputTokens: loopResult.outputTokens,
-        costUsd: usd,
-      }],
+      costByIteration: [
+        {
+          label: `agentic (${loopResult.rounds} round${loopResult.rounds === 1 ? '' : 's'})`,
+          model: ctx.model,
+          inputTokens: loopResult.inputTokens,
+          outputTokens: loopResult.outputTokens,
+          costUsd: usd,
+        },
+      ],
       log,
     }
   },

@@ -32,7 +32,9 @@ export function bumpAppState(): void {
 
 function subscribe(listener: () => void): () => void {
   listeners.add(listener)
-  return () => { listeners.delete(listener) }
+  return () => {
+    listeners.delete(listener)
+  }
 }
 
 /**
@@ -42,7 +44,11 @@ function subscribe(listener: () => void): () => void {
  * componente usa esto como disparador y lee `appState()` para los datos.
  */
 export function useAppVersion(): number {
-  return useSyncExternalStore(subscribe, () => version, () => version)
+  return useSyncExternalStore(
+    subscribe,
+    () => version,
+    () => version,
+  )
 }
 
 /** El `state` de `app.js`. Tipado como índice: cada pantalla sabe qué campos usa. */

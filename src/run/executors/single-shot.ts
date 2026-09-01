@@ -51,7 +51,12 @@ export const singleShotEngine: ExecutorEngine = {
     try {
       parsed = parseLLMResponse(llmResponse.text)
     } catch (e: any) {
-      throw new ExecutorParseError(e.message, llmResponse.inputTokens, llmResponse.outputTokens, usd)
+      throw new ExecutorParseError(
+        e.message,
+        llmResponse.inputTokens,
+        llmResponse.outputTokens,
+        usd,
+      )
     }
 
     return {
@@ -60,13 +65,15 @@ export const singleShotEngine: ExecutorEngine = {
       outputTokens: llmResponse.outputTokens,
       usd,
       iterations: 1,
-      costByIteration: [{
-        label: 'single-shot',
-        model: ctx.model,
-        inputTokens: llmResponse.inputTokens,
-        outputTokens: llmResponse.outputTokens,
-        costUsd: usd,
-      }],
+      costByIteration: [
+        {
+          label: 'single-shot',
+          model: ctx.model,
+          inputTokens: llmResponse.inputTokens,
+          outputTokens: llmResponse.outputTokens,
+          costUsd: usd,
+        },
+      ],
       log: [],
     }
   },

@@ -17,7 +17,7 @@
  * de sidebar/header/rightpanel, y perdería estado. Por eso el hook es el mecanismo real
  * y el remount solo la red de seguridad.
  */
-import { useSyncExternalStore, useCallback } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
 export const LANG_CHANGE_EVENT = 'orchestos:langchange'
 

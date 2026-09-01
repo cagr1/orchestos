@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
 import { homedir } from 'os'
+import { join } from 'path'
 import type { ChatMessage, ChatResponse } from './openrouter.ts'
 
 function loadApiKey(): string {
@@ -28,15 +28,12 @@ export async function chat(opts: {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
       max_tokens: opts.maxTokens ?? 8192,
-      messages: [
-        { role: 'system', content: opts.system },
-        ...opts.messages,
-      ],
+      messages: [{ role: 'system', content: opts.system }, ...opts.messages],
     }),
   })
 
@@ -45,7 +42,7 @@ export async function chat(opts: {
     throw new Error(`OpenAI error ${res.status}: ${err}`)
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     choices: Array<{ message: { content: string } }>
     usage?: { prompt_tokens?: number; completion_tokens?: number }
     model?: string

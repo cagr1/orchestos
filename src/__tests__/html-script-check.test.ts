@@ -7,7 +7,7 @@
  *   - Soporta `=>` y otros `>` legítimos dentro del cuerpo sin romper el regex.
  *   - Devuelve números de línea trazables.
  */
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { extractInlineScripts } from '../run/html-script-check.ts'
 
 describe('extractInlineScripts', () => {

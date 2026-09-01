@@ -1,6 +1,6 @@
-import { readFileSync, existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import type { Resolver, RepoIndex } from '../resolver-registry.ts'
+import type { RepoIndex, Resolver } from '../resolver-registry.ts'
 
 // module path cache keyed by projectRoot (empty string = no go.mod found)
 const modCache = new Map<string, string>()
@@ -10,7 +10,10 @@ function readModulePath(projectRoot: string): string {
   if (hit !== undefined) return hit
 
   const goMod = join(projectRoot, 'go.mod')
-  if (!existsSync(goMod)) { modCache.set(projectRoot, ''); return '' }
+  if (!existsSync(goMod)) {
+    modCache.set(projectRoot, '')
+    return ''
+  }
 
   try {
     const src = readFileSync(goMod, 'utf-8')
@@ -38,9 +41,7 @@ export const goResolver: Resolver = {
     if (!localPkg) return null
 
     // Find any indexed .go file whose path starts with that package directory
-    const match = repo.files.find(
-      f => f.language === 'go' && f.path.startsWith(localPkg + '/'),
-    )
+    const match = repo.files.find((f) => f.language === 'go' && f.path.startsWith(localPkg + '/'))
     return match?.path ?? null
   },
 }

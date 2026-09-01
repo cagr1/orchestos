@@ -49,19 +49,77 @@ export async function scaffoldTasksYaml(root: string): Promise<ScaffoldResult> {
   const { manifest } = profile
 
   // Mismo set de scaffolds que el CLI original (cli.ts:818-830)
-  const isNext   = manifest.framework === 'Next.js'
-  const isPython = manifest.runtime   === 'Python'
+  const isNext = manifest.framework === 'Next.js'
+  const isPython = manifest.runtime === 'Python'
 
-  const tasks = isNext ? [
-    { id: 't1-component', description: 'Create a reusable Button component', skill: 'implement', input: [], output: ['src/components/Button.tsx'], depends_on: [], status: 'pending', retry_count: 0 },
-    { id: 't2-styles',    description: 'Add CSS module styles for Button', skill: 'implement', input: ['src/components/Button.tsx'], output: ['src/components/Button.module.css'], depends_on: ['t1-component'], status: 'pending', retry_count: 0 },
-  ] : isPython ? [
-    { id: 't1-util', description: 'Create a utility function for string normalization', skill: 'implement', input: [], output: ['utils/normalize.py'], depends_on: [], status: 'pending', retry_count: 0 },
-    { id: 't2-test', description: 'Write unit tests for the normalize utility', skill: 'implement', input: ['utils/normalize.py'], output: ['tests/test_normalize.py'], depends_on: ['t1-util'], status: 'pending', retry_count: 0 },
-  ] : [
-    { id: 't1-util', description: 'Create a utility helper function', skill: 'implement', input: [], output: ['src/utils/helper.js'], depends_on: [], status: 'pending', retry_count: 0 },
-    { id: 't2-doc',  description: 'Add JSDoc comments to the helper', skill: 'doc', input: ['src/utils/helper.js'], output: ['src/utils/helper.js'], depends_on: ['t1-util'], status: 'pending', retry_count: 0 },
-  ]
+  const tasks = isNext
+    ? [
+        {
+          id: 't1-component',
+          description: 'Create a reusable Button component',
+          skill: 'implement',
+          input: [],
+          output: ['src/components/Button.tsx'],
+          depends_on: [],
+          status: 'pending',
+          retry_count: 0,
+        },
+        {
+          id: 't2-styles',
+          description: 'Add CSS module styles for Button',
+          skill: 'implement',
+          input: ['src/components/Button.tsx'],
+          output: ['src/components/Button.module.css'],
+          depends_on: ['t1-component'],
+          status: 'pending',
+          retry_count: 0,
+        },
+      ]
+    : isPython
+      ? [
+          {
+            id: 't1-util',
+            description: 'Create a utility function for string normalization',
+            skill: 'implement',
+            input: [],
+            output: ['utils/normalize.py'],
+            depends_on: [],
+            status: 'pending',
+            retry_count: 0,
+          },
+          {
+            id: 't2-test',
+            description: 'Write unit tests for the normalize utility',
+            skill: 'implement',
+            input: ['utils/normalize.py'],
+            output: ['tests/test_normalize.py'],
+            depends_on: ['t1-util'],
+            status: 'pending',
+            retry_count: 0,
+          },
+        ]
+      : [
+          {
+            id: 't1-util',
+            description: 'Create a utility helper function',
+            skill: 'implement',
+            input: [],
+            output: ['src/utils/helper.js'],
+            depends_on: [],
+            status: 'pending',
+            retry_count: 0,
+          },
+          {
+            id: 't2-doc',
+            description: 'Add JSDoc comments to the helper',
+            skill: 'doc',
+            input: ['src/utils/helper.js'],
+            output: ['src/utils/helper.js'],
+            depends_on: ['t1-util'],
+            status: 'pending',
+            retry_count: 0,
+          },
+        ]
 
   const content = yamlStringify({ version: 1, project: manifest.name, tasks }, { lineWidth: 120 })
   const path = tasksPath(root)

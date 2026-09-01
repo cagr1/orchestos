@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 interface GateCommand {
   label: string
@@ -26,12 +26,25 @@ const isolatedEnv = { ORCHESTOS_HOME: tempHome, NODE_ENV: 'test' }
 
 try {
   run({ label: 'typecheck', args: ['bun', 'run', 'typecheck'] })
-  run({ label: 'initialize isolated database', args: ['bun', 'run', 'db:migrate'], env: isolatedEnv })
+  run({
+    label: 'initialize isolated database',
+    args: ['bun', 'run', 'db:migrate'],
+    env: isolatedEnv,
+  })
   run({
     label: 'full test matrix with coverage',
     args: [
-      'bun', 'test', '--coverage', '--timeout', '30000', '--isolate', '--parallel=1',
-      '--reporter', 'dots', '--coverage-dir', 'coverage/security-gate',
+      'bun',
+      'test',
+      '--coverage',
+      '--timeout',
+      '30000',
+      '--isolate',
+      '--parallel=1',
+      '--reporter',
+      'dots',
+      '--coverage-dir',
+      'coverage/security-gate',
     ],
     env: isolatedEnv,
   })

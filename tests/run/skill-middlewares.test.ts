@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { createRunContext, createChain } from '../../src/run/middleware.ts'
-import { RunLogger } from '../../src/run/logger.ts'
-import type { Task } from '../../src/tasks/schema.ts'
 import type { HarnessOpts } from '../../src/run/harness.ts'
+import { RunLogger } from '../../src/run/logger.ts'
+import { createChain, createRunContext } from '../../src/run/middleware.ts'
+import type { Task } from '../../src/tasks/schema.ts'
 
 let testDir: string
 let originalCwd: string
@@ -19,7 +19,9 @@ beforeAll(() => {
 
 afterAll(() => {
   process.chdir(originalCwd)
-  try { rmSync(testDir, { recursive: true, force: true }) } catch {}
+  try {
+    rmSync(testDir, { recursive: true, force: true })
+  } catch {}
 })
 
 function makeOpts(root: string, skill?: string): HarnessOpts {
@@ -42,9 +44,14 @@ function makeOpts(root: string, skill?: string): HarnessOpts {
   }
 }
 
-function makeSkillFile(id: string, name: string, instructions: string, allowedTools?: string[]): void {
+function makeSkillFile(
+  id: string,
+  name: string,
+  instructions: string,
+  allowedTools?: string[],
+): void {
   const toolsYaml = allowedTools
-    ? `\nallowed_tools:\n${allowedTools.map(t => `  - ${t}`).join('\n')}`
+    ? `\nallowed_tools:\n${allowedTools.map((t) => `  - ${t}`).join('\n')}`
     : ''
   writeFileSync(
     join(testDir, 'skills', `${id}.yaml`),
@@ -128,4 +135,3 @@ describe('skillRoute middleware', () => {
     expect(afterMiddleware).toBe(true)
   })
 })
-

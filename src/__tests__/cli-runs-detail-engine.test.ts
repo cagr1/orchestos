@@ -10,7 +10,7 @@
  * que el harness) pero no ejecuta ningún comando hasta que un usuario
  * invoca `program.parse()`.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
 import type { RunRecord } from '../db/runs.ts'
 import { db } from '../db/sqlite.ts'
 
@@ -82,7 +82,9 @@ function makeRow(overrides: Partial<RunRecord> = {}): RunRecord {
 function capturePrintDetail(row: RunRecord): string {
   const lines: string[] = []
   const originalLog = console.log
-  console.log = (...args: unknown[]) => { lines.push(args.map(a => String(a)).join(' ')) }
+  console.log = (...args: unknown[]) => {
+    lines.push(args.map((a) => String(a)).join(' '))
+  }
   try {
     printRunDetail(row)
   } finally {
@@ -94,13 +96,15 @@ function capturePrintDetail(row: RunRecord): string {
 describe('G.4 — `runs --detail` imprime `## Engine` con type + iterations', () => {
   it('single-shot: imprime "type: single-shot   iterations: 1"', () => {
     const row = makeRow({
-      cost_breakdown_json: JSON.stringify([{
-        label: 'single-shot',
-        model: 'mock/model',
-        inputTokens: 5,
-        outputTokens: 3,
-        costUsd: 0.0001,
-      }]),
+      cost_breakdown_json: JSON.stringify([
+        {
+          label: 'single-shot',
+          model: 'mock/model',
+          inputTokens: 5,
+          outputTokens: 3,
+          costUsd: 0.0001,
+        },
+      ]),
     })
     const out = capturePrintDetail(row)
     expect(out).toContain('## Engine')
@@ -109,13 +113,15 @@ describe('G.4 — `runs --detail` imprime `## Engine` con type + iterations', ()
 
   it('agentic 3 rounds: imprime "type: agentic   iterations: 3 rounds"', () => {
     const row = makeRow({
-      cost_breakdown_json: JSON.stringify([{
-        label: 'agentic (3 rounds)',
-        model: 'mock/model',
-        inputTokens: 10,
-        outputTokens: 8,
-        costUsd: 0.0005,
-      }]),
+      cost_breakdown_json: JSON.stringify([
+        {
+          label: 'agentic (3 rounds)',
+          model: 'mock/model',
+          inputTokens: 10,
+          outputTokens: 8,
+          costUsd: 0.0005,
+        },
+      ]),
     })
     const out = capturePrintDetail(row)
     expect(out).toContain('## Engine')
@@ -124,13 +130,15 @@ describe('G.4 — `runs --detail` imprime `## Engine` con type + iterations', ()
 
   it('agentic 1 round (singular): imprime "iterations: 1 round" (sin la s)', () => {
     const row = makeRow({
-      cost_breakdown_json: JSON.stringify([{
-        label: 'agentic (1 round)',
-        model: 'mock/model',
-        inputTokens: 2,
-        outputTokens: 1,
-        costUsd: 0.0001,
-      }]),
+      cost_breakdown_json: JSON.stringify([
+        {
+          label: 'agentic (1 round)',
+          model: 'mock/model',
+          inputTokens: 2,
+          outputTokens: 1,
+          costUsd: 0.0001,
+        },
+      ]),
     })
     const out = capturePrintDetail(row)
     expect(out).toMatch(/iterations: 1 round\b/)
@@ -147,13 +155,15 @@ describe('G.4 — `runs --detail` imprime `## Engine` con type + iterations', ()
 
   it('cost_breakdown_json con label inesperado: cae a unknown (defensivo, no throw)', () => {
     const row = makeRow({
-      cost_breakdown_json: JSON.stringify([{
-        label: 'turbo-mode-42',
-        model: 'mock/model',
-        inputTokens: 1,
-        outputTokens: 1,
-        costUsd: 0,
-      }]),
+      cost_breakdown_json: JSON.stringify([
+        {
+          label: 'turbo-mode-42',
+          model: 'mock/model',
+          inputTokens: 1,
+          outputTokens: 1,
+          costUsd: 0,
+        },
+      ]),
     })
     const out = capturePrintDetail(row)
     expect(out).toContain('## Engine')
@@ -162,11 +172,15 @@ describe('G.4 — `runs --detail` imprime `## Engine` con type + iterations', ()
 
   it('el bloque ## Engine aparece DESPUÉS de ## Provider (orden semántico — engine es pariente del provider)', () => {
     const row = makeRow({
-      cost_breakdown_json: JSON.stringify([{
-        label: 'agentic (2 rounds)',
-        model: 'mock/model',
-        inputTokens: 1, outputTokens: 1, costUsd: 0,
-      }]),
+      cost_breakdown_json: JSON.stringify([
+        {
+          label: 'agentic (2 rounds)',
+          model: 'mock/model',
+          inputTokens: 1,
+          outputTokens: 1,
+          costUsd: 0,
+        },
+      ]),
     })
     const out = capturePrintDetail(row)
     const idxEngine = out.indexOf('## Engine')
@@ -180,15 +194,19 @@ describe('G.4 — `runs --detail` imprime `## Engine` con type + iterations', ()
   })
 
   it('insertRun + getRun end-to-end: el bloque ## Engine refleja lo que el harness persistió (single-shot)', async () => {
-    const id = insertRun(makeRow({
-      cost_breakdown_json: JSON.stringify([{
-        label: 'single-shot',
-        model: 'mock/model',
-        inputTokens: 7,
-        outputTokens: 4,
-        costUsd: 0.0002,
-      }]),
-    }))
+    const id = insertRun(
+      makeRow({
+        cost_breakdown_json: JSON.stringify([
+          {
+            label: 'single-shot',
+            model: 'mock/model',
+            inputTokens: 7,
+            outputTokens: 4,
+            costUsd: 0.0002,
+          },
+        ]),
+      }),
+    )
     expect(id).toBeTruthy()
     const { getRun } = await import('../db/runs.ts')
     const row = getRun(id)!

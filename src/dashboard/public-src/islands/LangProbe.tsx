@@ -16,7 +16,7 @@
  * navegar, el registro de islas está leakeando.
  */
 import { useState } from 'react'
-import { useT, useLang } from '../lib/i18n.ts'
+import { useLang, useT } from '../lib/i18n.ts'
 import { mountedIslandCount } from '../lib/islands.ts'
 
 export function LangProbe() {
@@ -43,9 +43,7 @@ export function LangProbe() {
         >
           local state: {count}
         </button>
-        <span className="text-muted-foreground">
-          mounted islands: {mountedIslandCount()}
-        </span>
+        <span className="text-muted-foreground">mounted islands: {mountedIslandCount()}</span>
       </div>
     </div>
   )

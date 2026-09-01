@@ -1,6 +1,6 @@
-import { Command } from 'commander'
+import type { Command } from 'commander'
 import { stringify as yamlStringify } from 'yaml'
-import type { SkillCurateResponse, SkillImportResponse, MutationResult } from './dashboard/types.ts'
+import type { MutationResult, SkillCurateResponse, SkillImportResponse } from './dashboard/types.ts'
 
 export const DASHBOARD_URL = process.env.ORCHESTOS_API_URL || 'http://localhost:4242'
 
@@ -23,7 +23,7 @@ export async function handleCurate(description: string, save?: boolean): Promise
     console.error(`  Or set ORCHESTOS_API_URL to your dashboard URL`)
     process.exit(1)
   }
-  const data = await resp.json() as SkillCurateResponse
+  const data = (await resp.json()) as SkillCurateResponse
   if (!data.ok || !data.skill) {
     console.error(`[skill curate] Error: ${data.error ?? 'unknown'}`)
     process.exit(1)
@@ -39,7 +39,7 @@ export async function handleCurate(description: string, save?: boolean): Promise
       console.error(`[skill curate] Cannot connect to dashboard at ${DASHBOARD_URL}`)
       process.exit(1)
     }
-    const saveData = await saveResp.json() as MutationResult
+    const saveData = (await saveResp.json()) as MutationResult
     if (!saveData.ok) {
       console.error(`[skill curate] Save error: ${saveData.error ?? 'unknown'}`)
       process.exit(1)
@@ -58,7 +58,7 @@ export async function handleImport(url: string): Promise<void> {
     console.error(`  Or set ORCHESTOS_API_URL to your dashboard URL`)
     process.exit(1)
   }
-  const data = await resp.json() as SkillImportResponse
+  const data = (await resp.json()) as SkillImportResponse
   if (!data.ok || !data.skill) {
     console.error(`[skill import] Error: ${data.error ?? 'unknown'}`)
     process.exit(1)
@@ -74,7 +74,7 @@ export async function handleImport(url: string): Promise<void> {
     console.error(`[skill import] Cannot connect to dashboard at ${DASHBOARD_URL}`)
     process.exit(1)
   }
-  const saveData = await saveResp.json() as MutationResult
+  const saveData = (await saveResp.json()) as MutationResult
   if (!saveData.ok) {
     console.error(`[skill import] Save error: ${saveData.error ?? 'unknown'}`)
     process.exit(1)

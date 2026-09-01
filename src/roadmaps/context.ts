@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { buildRoadmapProfile, type RoadmapProfile, type RoadmapProfileOptions } from '../detect/roadmap-profile.ts'
+import {
+  buildRoadmapProfile,
+  type RoadmapProfile,
+  type RoadmapProfileOptions,
+} from '../detect/roadmap-profile.ts'
 
 const MAX_PROFILE_CHARS = 4_000
 const MAX_DOC_CHARS = 4_000
@@ -24,14 +28,21 @@ export interface RoadmapContext {
   blockReason?: string
 }
 
-function readBounded(root: string, relativePath: string, max: number, fallbackRoot?: string): string {
+function readBounded(
+  root: string,
+  relativePath: string,
+  max: number,
+  fallbackRoot?: string,
+): string {
   let path = join(root, relativePath)
   if (!existsSync(path) && fallbackRoot) {
     path = join(fallbackRoot, relativePath)
   }
   if (!existsSync(path)) return ''
   const content = readFileSync(path, 'utf-8')
-  return content.length <= max ? content : `${content.slice(0, max)}\n\n[roadmap truncado por presupuesto de contexto]`
+  return content.length <= max
+    ? content
+    : `${content.slice(0, max)}\n\n[roadmap truncado por presupuesto de contexto]`
 }
 
 export async function loadRoadmapContext(
@@ -42,8 +53,11 @@ export async function loadRoadmapContext(
   const profile = await buildRoadmapProfile(root, options)
   const selected: string[] = []
   const missing: string[] = []
-  const sections: string[] = ['## ROADMAP GUIDANCE', 'Usa estas guías como restricciones y contexto de trabajo.',
-    'Los estados `known`/`detected` no son evidencia de que el proyecto cumpla la práctica.']
+  const sections: string[] = [
+    '## ROADMAP GUIDANCE',
+    'Usa estas guías como restricciones y contexto de trabajo.',
+    'Los estados `known`/`detected` no son evidencia de que el proyecto cumpla la práctica.',
+  ]
 
   const profilePath = 'docs/roadmaps/project-profile.md'
   const profileText = readBounded(root, profilePath, MAX_PROFILE_CHARS)
@@ -52,8 +66,8 @@ export async function loadRoadmapContext(
   }
 
   const docs = [
-    ...profile.disciplines.filter(d => d.state === 'detected'),
-    ...profile.languageProfiles.filter(l => l.state === 'known'),
+    ...profile.disciplines.filter((d) => d.state === 'detected'),
+    ...profile.languageProfiles.filter((l) => l.state === 'known'),
   ]
   let used = sections.join('\n').length
   for (const item of docs) {
@@ -66,7 +80,8 @@ export async function loadRoadmapContext(
       missing.push('language' in item ? item.language : item.discipline)
       continue
     }
-    const label = 'language' in item ? `Lenguaje: ${item.language}` : `Disciplina: ${item.discipline}`
+    const label =
+      'language' in item ? `Lenguaje: ${item.language}` : `Disciplina: ${item.discipline}`
     const section = `\n### ${label} (${item.state})\n${content}`
     if (used + section.length > MAX_TOTAL_CHARS) {
       missing.push(`${label} — omitido por presupuesto de contexto`)
@@ -78,23 +93,40 @@ export async function loadRoadmapContext(
   }
 
   const missingStates = [
-    ...profile.disciplines.filter(d => d.state === 'missing').map(d => `disciplina ${d.discipline}`),
-    ...profile.languageProfiles.filter(l => l.state === 'missing').map(l => `lenguaje ${l.language}`),
+    ...profile.disciplines
+      .filter((d) => d.state === 'missing')
+      .map((d) => `disciplina ${d.discipline}`),
+    ...profile.languageProfiles
+      .filter((l) => l.state === 'missing')
+      .map((l) => `lenguaje ${l.language}`),
   ]
-  const toolchain = new Set(profile.toolchain.map(t => t.name))
+  const toolchain = new Set(profile.toolchain.map((t) => t.name))
   const missingTooling = profile.languageProfiles
-    .filter(l => (l.language === 'Rust' && !toolchain.has('cargo')) || (l.language === 'Go' && !toolchain.has('go')))
-    .map(l => `toolchain ${l.language}`)
+    .filter(
+      (l) =>
+        (l.language === 'Rust' && !toolchain.has('cargo')) ||
+        (l.language === 'Go' && !toolchain.has('go')),
+    )
+    .map((l) => `toolchain ${l.language}`)
   const missingChecks = [...missingStates, ...missingTooling]
   if (missingChecks.length > 0) {
-    sections.push(`\n### Checks de roadmap ausentes\n${missingChecks.map(s => `- ${s}: missing/blocked; no convertir en pass`).join('\n')}`)
+    sections.push(
+      `\n### Checks de roadmap ausentes\n${missingChecks.map((s) => `- ${s}: missing/blocked; no convertir en pass`).join('\n')}`,
+    )
   }
-  const outputNeedsRust = output.some(p => p.endsWith('.rs'))
-  const outputNeedsGo = output.some(p => p.endsWith('.go'))
-  const blockedLanguage = outputNeedsRust && missingTooling.includes('toolchain Rust')
-    ? 'Rust: cargo no está disponible; check obligatorio missing/blocked'
-    : outputNeedsGo && missingTooling.includes('toolchain Go')
-    ? 'Go: go no está disponible; check obligatorio missing/blocked'
-    : undefined
-  return { profile, markdown: sections.join('\n'), selected, missing: [...missing, ...missingChecks], blockReason: blockedLanguage }
+  const outputNeedsRust = output.some((p) => p.endsWith('.rs'))
+  const outputNeedsGo = output.some((p) => p.endsWith('.go'))
+  const blockedLanguage =
+    outputNeedsRust && missingTooling.includes('toolchain Rust')
+      ? 'Rust: cargo no está disponible; check obligatorio missing/blocked'
+      : outputNeedsGo && missingTooling.includes('toolchain Go')
+        ? 'Go: go no está disponible; check obligatorio missing/blocked'
+        : undefined
+  return {
+    profile,
+    markdown: sections.join('\n'),
+    selected,
+    missing: [...missing, ...missingChecks],
+    blockReason: blockedLanguage,
+  }
 }

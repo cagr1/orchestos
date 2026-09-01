@@ -8,13 +8,19 @@ export interface LangStat {
 
 const EXT_MAP: Record<string, string> = {
   // Web — JS ecosystem
-  ts: 'TypeScript', tsx: 'TypeScript',
-  js: 'JavaScript', jsx: 'JavaScript', mjs: 'JavaScript', cjs: 'JavaScript',
+  ts: 'TypeScript',
+  tsx: 'TypeScript',
+  js: 'JavaScript',
+  jsx: 'JavaScript',
+  mjs: 'JavaScript',
+  cjs: 'JavaScript',
   vue: 'Vue',
   svelte: 'Svelte',
-  html: 'HTML', htm: 'HTML',
+  html: 'HTML',
+  htm: 'HTML',
   css: 'CSS',
-  scss: 'SCSS', sass: 'SCSS',
+  scss: 'SCSS',
+  sass: 'SCSS',
   // Backend — general purpose
   py: 'Python',
   rb: 'Ruby',
@@ -26,35 +32,64 @@ const EXT_MAP: Record<string, string> = {
   groovy: 'Groovy',
   // .NET ecosystem
   cs: 'C#',
-  vb: 'Visual Basic', vbs: 'Visual Basic',
-  fs: 'F#', fsi: 'F#', fsx: 'F#',
+  vb: 'Visual Basic',
+  vbs: 'Visual Basic',
+  fs: 'F#',
+  fsi: 'F#',
+  fsx: 'F#',
   // Systems
   rs: 'Rust',
-  cpp: 'C++', cc: 'C++', cxx: 'C++', hpp: 'C++',
-  c: 'C', h: 'C',
+  cpp: 'C++',
+  cc: 'C++',
+  cxx: 'C++',
+  hpp: 'C++',
+  c: 'C',
+  h: 'C',
   swift: 'Swift',
   // Mobile
   dart: 'Dart',
   // Data / Science / Analytics
-  r: 'R', rmd: 'R',
+  r: 'R',
+  rmd: 'R',
   jl: 'Julia',
-  sql: 'SQL', psql: 'SQL', mysql: 'SQL',
+  sql: 'SQL',
+  psql: 'SQL',
+  mysql: 'SQL',
   // Functional
-  hs: 'Haskell', lhs: 'Haskell',
-  ex: 'Elixir', exs: 'Elixir',
-  clj: 'Clojure', cljs: 'ClojureScript', cljc: 'Clojure',
-  erl: 'Erlang', hrl: 'Erlang',
-  ml: 'OCaml', mli: 'OCaml',
+  hs: 'Haskell',
+  lhs: 'Haskell',
+  ex: 'Elixir',
+  exs: 'Elixir',
+  clj: 'Clojure',
+  cljs: 'ClojureScript',
+  cljc: 'Clojure',
+  erl: 'Erlang',
+  hrl: 'Erlang',
+  ml: 'OCaml',
+  mli: 'OCaml',
   // Scripting / Shell
-  sh: 'Shell', bash: 'Shell', zsh: 'Shell',
-  ps1: 'PowerShell', psm1: 'PowerShell', psd1: 'PowerShell',
+  sh: 'Shell',
+  bash: 'Shell',
+  zsh: 'Shell',
+  ps1: 'PowerShell',
+  psm1: 'PowerShell',
+  psd1: 'PowerShell',
   lua: 'Lua',
-  pl: 'Perl', pm: 'Perl',
+  pl: 'Perl',
+  pm: 'Perl',
 }
 
 const IGNORE = [
-  'node_modules/**', '.git/**', 'dist/**', 'build/**',
-  'target/**', '.next/**', 'out/**', 'coverage/**', 'bin/**', 'obj/**',
+  'node_modules/**',
+  '.git/**',
+  'dist/**',
+  'build/**',
+  'target/**',
+  '.next/**',
+  'out/**',
+  'coverage/**',
+  'bin/**',
+  'obj/**',
 ]
 
 export async function detectLanguages(root: string): Promise<LangStat[]> {
@@ -85,6 +120,6 @@ export async function detectPrimaryLanguage(root: string): Promise<string | null
   return stats.length > 0 ? (stats[0]?.lang ?? null) : null
 }
 
-export const SUPPORTED_LANGUAGES = Object.values(EXT_MAP).filter(
-  (v, i, a) => a.indexOf(v) === i
-).sort()
+export const SUPPORTED_LANGUAGES = Object.values(EXT_MAP)
+  .filter((v, i, a) => a.indexOf(v) === i)
+  .sort()

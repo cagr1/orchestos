@@ -18,20 +18,27 @@
  *         Transparent to the caller.
  */
 
-import { parse } from 'yaml'
 import { readFileSync } from 'fs'
-import { validateSubTask, validateSubTaskPlan, topoSort, VALID_TOOLS } from './sub-task-schema.ts'
-import { createSubTask } from './sub-agent.ts'
-import { callWithTools, supportsToolCalling, type ToolDef } from '../providers/tool-call.ts'
-import { getProvider } from '../providers/index.ts'
-import { ensureCatalogLoaded, contextWindowFor, DEFAULT_MAX_OUTPUT_TOKENS } from '../router/model-catalog.ts'
+import { parse } from 'yaml'
 import { estimateTokens } from '../context/compress.ts'
-import { renderSkillCatalog, isKnownSkillId } from '../skills/catalog.ts'
+import { getProvider } from '../providers/index.ts'
+import { callWithTools, supportsToolCalling, type ToolDef } from '../providers/tool-call.ts'
+import {
+  contextWindowFor,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+  ensureCatalogLoaded,
+} from '../router/model-catalog.ts'
+import { isKnownSkillId, renderSkillCatalog } from '../skills/catalog.ts'
 import type { SubTask } from './sub-agent.ts'
+import { createSubTask } from './sub-agent.ts'
 import type { SubTaskDef, SubTaskPlan } from './sub-task-schema.ts'
+import { topoSort, VALID_TOOLS, validateSubTask, validateSubTaskPlan } from './sub-task-schema.ts'
 
 export class PlanParseError extends Error {
-  constructor(message: string, public readonly raw?: string) {
+  constructor(
+    message: string,
+    public readonly raw?: string,
+  ) {
     super(message)
     this.name = 'PlanParseError'
   }
@@ -71,7 +78,7 @@ export function parsePlan(yamlText: string): SubTaskPlan {
 export function createPlan(yamlText: string): SubTask[] {
   const plan = parsePlan(yamlText)
   const sorted = topoSort(plan.sub_tasks)
-  return dropUnknownSkills(sorted.map(def => createSubTask(def)))
+  return dropUnknownSkills(sorted.map((def) => createSubTask(def)))
 }
 
 /**
@@ -92,7 +99,7 @@ export function parsePlanFromFile(filePath: string): SubTask[] {
 // ---------------------------------------------------------------------------
 
 export const CREATE_SUBTASK_TOOL: ToolDef = {
-  name:        'create_subtask',
+  name: 'create_subtask',
   description:
     'Define one sub-task in the decomposition plan. ' +
     'Call this tool once for each sub-task you want to create. ' +
@@ -102,47 +109,50 @@ export const CREATE_SUBTASK_TOOL: ToolDef = {
     required: ['id', 'description', 'acceptance', 'depends_on', 'allowed_tools'],
     properties: {
       id: {
-        type:        'string',
+        type: 'string',
         description: 'Unique kebab-case identifier within the plan (e.g. "write-schema").',
-        pattern:     '^[a-z0-9]+(-[a-z0-9]+)*$',
+        pattern: '^[a-z0-9]+(-[a-z0-9]+)*$',
       },
       description: {
-        type:        'string',
+        type: 'string',
         description: 'One-sentence statement of what this sub-task must accomplish.',
       },
       acceptance: {
-        type:        'array',
+        type: 'array',
         description: 'Verifiable acceptance criteria. At least one required.',
-        items:       { type: 'string' },
-        minItems:    1,
+        items: { type: 'string' },
+        minItems: 1,
       },
       depends_on: {
-        type:        'array',
+        type: 'array',
         description: 'IDs of sub-tasks that must complete before this one starts. Use [] if none.',
-        items:       { type: 'string' },
+        items: { type: 'string' },
       },
       allowed_tools: {
-        type:        'array',
+        type: 'array',
         description: 'Tools this sub-task is permitted to use.',
-        items:       { type: 'string', enum: [...VALID_TOOLS] },
+        items: { type: 'string', enum: [...VALID_TOOLS] },
       },
       topic_key: {
-        type:        'string',
-        description: 'Key for persisting the result in memory_entries. Required if output is absent.',
+        type: 'string',
+        description:
+          'Key for persisting the result in memory_entries. Required if output is absent.',
       },
       output: {
-        type:        'array',
-        description: 'File paths (relative to project root) the LLM may write. Required if topic_key is absent.',
-        items:       { type: 'string' },
+        type: 'array',
+        description:
+          'File paths (relative to project root) the LLM may write. Required if topic_key is absent.',
+        items: { type: 'string' },
       },
       input: {
-        type:        'array',
+        type: 'array',
         description: 'File paths the LLM may read.',
-        items:       { type: 'string' },
+        items: { type: 'string' },
       },
       skill: {
-        type:        'string',
-        description: 'Optional id of an installed skill that should guide this sub-task. Must be one of the ids listed in the system prompt — never invent one. Omit if none applies.',
+        type: 'string',
+        description:
+          'Optional id of an installed skill that should guide this sub-task. Must be one of the ids listed in the system prompt — never invent one. Omit if none applies.',
       },
     },
   },
@@ -213,7 +223,7 @@ function withSkillCatalog(base: string): string {
  * LLM devuelva un id real.
  */
 function dropUnknownSkills(subTasks: SubTask[]): SubTask[] {
-  return subTasks.map(st => {
+  return subTasks.map((st) => {
     if (st.skill && !isKnownSkillId(st.skill)) {
       const { skill, ...rest } = st
       return rest as SubTask
@@ -260,16 +270,16 @@ export async function planWithFunctionCalling(
   let response: Awaited<ReturnType<typeof callWithTools>>
   try {
     response = await caller(opts.provider, opts.model, {
-      system:      systemPrompt,
+      system: systemPrompt,
       userMessage,
-      tools:       [CREATE_SUBTASK_TOOL],
+      tools: [CREATE_SUBTASK_TOOL],
       maxTokens,
     })
   } catch (e: any) {
     throw new PlanParseError(`function-calling planner failed: ${e.message}`)
   }
 
-  const subtaskCalls = response.calls.filter(c => c.toolName === 'create_subtask')
+  const subtaskCalls = response.calls.filter((c) => c.toolName === 'create_subtask')
   if (subtaskCalls.length === 0) {
     throw new PlanParseError('planner returned no create_subtask calls — cannot build plan')
   }
@@ -283,23 +293,21 @@ export async function planWithFunctionCalling(
   })
 
   // Cross-validate: depends_on must reference known IDs
-  const idSet = new Set(defs.map(d => d.id))
-  const dupes = defs.map(d => d.id).filter((id, i, arr) => arr.indexOf(id) !== i)
+  const idSet = new Set(defs.map((d) => d.id))
+  const dupes = defs.map((d) => d.id).filter((id, i, arr) => arr.indexOf(id) !== i)
   if (dupes.length > 0) {
     throw new PlanParseError(`duplicate sub-task ids from function calling: ${dupes.join(', ')}`)
   }
   for (const def of defs) {
     for (const dep of def.depends_on) {
       if (!idSet.has(dep)) {
-        throw new PlanParseError(
-          `[sub-task:${def.id}] depends_on references unknown id "${dep}"`
-        )
+        throw new PlanParseError(`[sub-task:${def.id}] depends_on references unknown id "${dep}"`)
       }
     }
   }
 
   const sorted = topoSort(defs)
-  return dropUnknownSkills(sorted.map(def => createSubTask(def)))
+  return dropUnknownSkills(sorted.map((def) => createSubTask(def)))
 }
 
 // ---------------------------------------------------------------------------
@@ -333,8 +341,8 @@ export async function generatePlan(
   let text: string
   try {
     const resp = await provider.chat({
-      model:    opts.model,
-      system:   withSkillCatalog(YAML_FALLBACK_SYSTEM),
+      model: opts.model,
+      system: withSkillCatalog(YAML_FALLBACK_SYSTEM),
       messages: [{ role: 'user', content: `parent_task_id: ${parentTaskId}\n\n${description}` }],
     })
     text = resp.text
@@ -343,6 +351,9 @@ export async function generatePlan(
   }
 
   // Strip possible markdown fences the model may have added despite instructions
-  const cleaned = text.replace(/^```(?:yaml)?\n?/m, '').replace(/\n?```$/m, '').trim()
+  const cleaned = text
+    .replace(/^```(?:yaml)?\n?/m, '')
+    .replace(/\n?```$/m, '')
+    .trim()
   return createPlan(cleaned)
 }

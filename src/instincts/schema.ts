@@ -79,10 +79,12 @@ export function validateInstinct(raw: unknown): InstinctDef {
   if (!id) throw new InstinctValidationError('id is required and must be a non-empty string')
 
   const trigger = String(obj.trigger ?? '')
-  if (!trigger) throw new InstinctValidationError('trigger is required and must be a non-empty string')
+  if (!trigger)
+    throw new InstinctValidationError('trigger is required and must be a non-empty string')
 
   const action = String(obj.action ?? '')
-  if (!action) throw new InstinctValidationError('action is required and must be a non-empty string')
+  if (!action)
+    throw new InstinctValidationError('action is required and must be a non-empty string')
 
   const confidence = Number(obj.confidence)
   if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
@@ -97,7 +99,8 @@ export function validateInstinct(raw: unknown): InstinctDef {
   const verified = Boolean(obj.verified)
 
   const created_at = String(obj.created_at ?? '')
-  if (!created_at) throw new InstinctValidationError('created_at is required and must be a non-empty string')
+  if (!created_at)
+    throw new InstinctValidationError('created_at is required and must be a non-empty string')
 
   return { id, trigger, action, confidence, source: source as InstinctSource, verified, created_at }
 }
@@ -113,10 +116,12 @@ export function validateInsert(raw: unknown): InsertInstinctDef {
   const obj = raw as Record<string, unknown>
 
   const trigger = String(obj.trigger ?? '')
-  if (!trigger) throw new InstinctValidationError('trigger is required and must be a non-empty string')
+  if (!trigger)
+    throw new InstinctValidationError('trigger is required and must be a non-empty string')
 
   const action = String(obj.action ?? '')
-  if (!action) throw new InstinctValidationError('action is required and must be a non-empty string')
+  if (!action)
+    throw new InstinctValidationError('action is required and must be a non-empty string')
 
   const confidence = Number(obj.confidence)
   if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {

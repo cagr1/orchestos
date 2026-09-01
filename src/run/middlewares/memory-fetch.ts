@@ -22,11 +22,11 @@ export const memoryFetch: MiddlewareFn<RunContext> = async (ctx, next) => {
   }
 
   const results = suggestContext(projectId, task.description, { topN: 5, taskEmbedding })
-  const suggested = results.map(r => r.path)
+  const suggested = results.map((r) => r.path)
 
   if (suggested.length > 0) {
     ctx.task = { ...task, input: suggested }
-    ctx.embedHits = results.filter(r => r.reason === 'embedding').length
+    ctx.embedHits = results.filter((r) => r.reason === 'embedding').length
     ctx.opts.logger.inputAutoSuggested(suggested)
   }
 

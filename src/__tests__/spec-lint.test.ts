@@ -3,12 +3,12 @@
  * S32.5 — Tests for capabilities delta header validation.
  */
 
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { lintSpec } from '../spec/lint.ts'
 import type { Spec } from '../spec/store.ts'
 
 function makeSpec(criteriaLines: string[]): Spec {
-  const criteria = criteriaLines.map(l => `- [ ] ${l}`).join('\n')
+  const criteria = criteriaLines.map((l) => `- [ ] ${l}`).join('\n')
   return {
     frontmatter: {
       id: 'test-task',
@@ -120,7 +120,7 @@ describe('lintSpec — edge cases', () => {
   })
 
   it('strips GFM task list prefix before checking', () => {
-    const spec = makeSpec(['WHEN x THEN y'])  // makeSpec adds "- [ ] " prefix
+    const spec = makeSpec(['WHEN x THEN y']) // makeSpec adds "- [ ] " prefix
     const result = lintSpec(spec)
     expect(result.structuredCount).toBe(1)
   })
@@ -139,9 +139,9 @@ function makeSpecWithCaps(
       createdAt: new Date().toISOString(),
       clarify: 'none',
       capabilities: {
-        added:    caps.added    ?? [],
+        added: caps.added ?? [],
         modified: caps.modified ?? [],
-        removed:  caps.removed  ?? [],
+        removed: caps.removed ?? [],
       },
     },
     body: `## Criterios de aceptación\n- [ ] WHEN x THEN y\n\n${extraBody}`,
@@ -155,21 +155,21 @@ describe('lintSpec — S32.3: missing delta headers', () => {
     const spec = makeSpecWithCaps({ added: ['new-feature'] })
     const result = lintSpec(spec)
     expect(result.deltaIssuesCount).toBe(1)
-    expect(result.findings.some(f => f.criterion.includes('## ADDED'))).toBe(true)
+    expect(result.findings.some((f) => f.criterion.includes('## ADDED'))).toBe(true)
   })
 
   it('flags missing ## MODIFIED when capabilities.modified is non-empty', () => {
     const spec = makeSpecWithCaps({ modified: ['old-spec'] })
     const result = lintSpec(spec)
     expect(result.deltaIssuesCount).toBe(1)
-    expect(result.findings.some(f => f.criterion.includes('## MODIFIED'))).toBe(true)
+    expect(result.findings.some((f) => f.criterion.includes('## MODIFIED'))).toBe(true)
   })
 
   it('flags missing ## REMOVED when capabilities.removed is non-empty', () => {
     const spec = makeSpecWithCaps({ removed: ['legacy-feature'] })
     const result = lintSpec(spec)
     expect(result.deltaIssuesCount).toBe(1)
-    expect(result.findings.some(f => f.criterion.includes('## REMOVED'))).toBe(true)
+    expect(result.findings.some((f) => f.criterion.includes('## REMOVED'))).toBe(true)
   })
 
   it('flags all three missing headers when all capabilities are set', () => {
@@ -202,7 +202,7 @@ describe('lintSpec — S32.3: delta headers present (valid)', () => {
       '## ADDED\n\nAdds a new authentication middleware.\n',
     )
     const result = lintSpec(spec)
-    expect(result.findings.some(f => f.criterion.includes('## ADDED'))).toBe(false)
+    expect(result.findings.some((f) => f.criterion.includes('## ADDED'))).toBe(false)
   })
 
   it('no issue for modified with complete ## MODIFIED section', () => {
@@ -217,36 +217,32 @@ describe('lintSpec — S32.3: delta headers present (valid)', () => {
       '## REMOVED\n\nThe legacy XML export capability has been removed in favor of JSON.\n',
     )
     const result = lintSpec(spec)
-    expect(result.findings.some(f => f.criterion.includes('## REMOVED'))).toBe(false)
+    expect(result.findings.some((f) => f.criterion.includes('## REMOVED'))).toBe(false)
   })
 })
 
 describe('lintSpec — S32.4: MODIFIED completeness', () => {
   it('flags ## MODIFIED with content shorter than 80 chars', () => {
-    const spec = makeSpecWithCaps(
-      { modified: ['old-spec'] },
-      '## MODIFIED\n\nShort fragment.\n',
-    )
+    const spec = makeSpecWithCaps({ modified: ['old-spec'] }, '## MODIFIED\n\nShort fragment.\n')
     const result = lintSpec(spec)
     expect(result.deltaIssuesCount).toBeGreaterThanOrEqual(1)
-    expect(result.findings.some(f => f.criterion.includes('too short'))).toBe(true)
+    expect(result.findings.some((f) => f.criterion.includes('too short'))).toBe(true)
   })
 
   it('flags ## MODIFIED with single-line content (even if > 80 chars)', () => {
     const longSingleLine = 'A'.repeat(90)
-    const spec = makeSpecWithCaps(
-      { modified: ['old-spec'] },
-      `## MODIFIED\n\n${longSingleLine}\n`,
-    )
+    const spec = makeSpecWithCaps({ modified: ['old-spec'] }, `## MODIFIED\n\n${longSingleLine}\n`)
     const result = lintSpec(spec)
-    expect(result.findings.some(f => f.criterion.includes('single line'))).toBe(true)
+    expect(result.findings.some((f) => f.criterion.includes('single line'))).toBe(true)
   })
 
   it('accepts ## MODIFIED with multi-line content > 80 chars', () => {
     const spec = makeSpecWithCaps({ modified: ['old-spec'] }, COMPLETE_MODIFIED_BLOCK)
     const result = lintSpec(spec)
-    expect(result.findings.some(f => f.criterion.includes('## MODIFIED section content is too short'))).toBe(false)
-    expect(result.findings.some(f => f.criterion.includes('single line'))).toBe(false)
+    expect(
+      result.findings.some((f) => f.criterion.includes('## MODIFIED section content is too short')),
+    ).toBe(false)
+    expect(result.findings.some((f) => f.criterion.includes('single line'))).toBe(false)
   })
 })
 

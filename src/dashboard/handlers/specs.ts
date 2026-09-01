@@ -1,23 +1,37 @@
 import { join } from 'path'
-import { listSpecs, loadSpec, saveSpec } from '../../spec/store.ts'
-import { lintSpec } from '../../spec/lint.ts'
-import { validateSpec } from '../../spec/validate.ts'
 import { archiveSpec, deleteArchivedSpec } from '../../spec/archive.ts'
-import type { SpecRow, SpecLintStatus } from '../types.ts'
-import { jsonResponse, errorResponse, validateTaskId } from '../http.ts'
+import { lintSpec } from '../../spec/lint.ts'
+import { listSpecs, loadSpec, saveSpec } from '../../spec/store.ts'
+import { validateSpec } from '../../spec/validate.ts'
+import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
+import type { SpecLintStatus, SpecRow } from '../types.ts'
 
 async function handleApiSpecsDraft(req: Request, root: string): Promise<Response> {
   let body: { taskId: string; description: string; design?: boolean }
-  try { body = (await req.json()) as { taskId: string; description: string; design?: boolean } } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as { taskId: string; description: string; design?: boolean }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   const taskId = validateTaskId(body.taskId ?? '')
   if (!taskId || !body.description?.trim()) {
-    return errorResponse('taskId (alphanumeric/hyphen/dot, max 64) and description are required', 400)
+    return errorResponse(
+      'taskId (alphanumeric/hyphen/dot, max 64) and description are required',
+      400,
+    )
   }
   // AA (IDEAS #6) — el modal "Nueva Spec" del dashboard no pasa por `spec create`
   // (ver comentario en cli.ts): el flag va acá para que ESTE sea el único punto
   // donde marcar la tarea como compleja desde ese flujo de un solo paso.
-  const args = [process.execPath, 'run', join(root, 'src/cli.ts'), 'spec', 'draft',
-    '--description', body.description.trim()]
+  const args = [
+    process.execPath,
+    'run',
+    join(root, 'src/cli.ts'),
+    'spec',
+    'draft',
+    '--description',
+    body.description.trim(),
+  ]
   if (body.design === true) args.push('--design')
   args.push('--', taskId)
   Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
@@ -27,7 +41,7 @@ async function handleApiSpecsDraft(req: Request, root: string): Promise<Response
 function handleApiSpecs(root: string): Response {
   try {
     const specs = listSpecs(root, true)
-    const rows: SpecRow[] = specs.map(s => {
+    const rows: SpecRow[] = specs.map((s) => {
       const caps = s.frontmatter.capabilities
       const lint = lintSpec(s)
       const lintStatus: SpecLintStatus = lint.findings.length === 0 ? 'pass' : 'fail'
@@ -38,7 +52,8 @@ function handleApiSpecs(root: string): Response {
         lintStatus,
         lintFindings: lint.freeFormCount,
         deltaIssues: lint.deltaIssuesCount,
-        hasCapabilities: !!caps && (caps.added.length > 0 || caps.modified.length > 0 || caps.removed.length > 0),
+        hasCapabilities:
+          !!caps && (caps.added.length > 0 || caps.modified.length > 0 || caps.removed.length > 0),
         createdAt: s.frontmatter.createdAt,
         ...(s.frontmatter.design ? { design: s.frontmatter.design } : {}),
       }
@@ -61,7 +76,9 @@ async function handleApiSpecsCreate(req: Request, root: string): Promise<Respons
   try {
     const body = (await req.json()) as { design?: boolean }
     design = body?.design === true
-  } catch { /* sin body o JSON inválido — spec simple, no es un error */ }
+  } catch {
+    /* sin body o JSON inválido — spec simple, no es un error */
+  }
   const designSection = design ? `## Design\n<placeholder>\n\n` : ''
   saveSpec(root, {
     frontmatter: {
@@ -152,8 +169,13 @@ function handleApiSpecsDelete(req: Request, root: string): Response {
 // handleApiSpecsDelete — deleteArchivedSpec nunca toca drafts/approved activos).
 async function handleApiSpecsBulkDelete(req: Request, root: string): Promise<Response> {
   let body: { ids?: unknown }
-  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
-  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  try {
+    body = (await req.json()) as { ids?: unknown }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (!Array.isArray(body.ids) || body.ids.length === 0)
+    return errorResponse('ids must be a non-empty array', 400)
   const ids = body.ids.filter((id): id is string => typeof id === 'string')
   let deleted = 0
   for (const id of ids) {
@@ -163,4 +185,14 @@ async function handleApiSpecsBulkDelete(req: Request, root: string): Promise<Res
   return jsonResponse({ ok: true, deleted })
 }
 
-export { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsApproveDesign, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete }
+export {
+  handleApiSpecs,
+  handleApiSpecsApprove,
+  handleApiSpecsApproveDesign,
+  handleApiSpecsArchive,
+  handleApiSpecsBulkDelete,
+  handleApiSpecsCreate,
+  handleApiSpecsDelete,
+  handleApiSpecsDraft,
+  handleApiSpecsLint,
+}

@@ -1,17 +1,17 @@
 /**
  * S23.3 — Tests for S23.1 (function-calling planner) + S23.2 (YAML fallback)
  */
-import { describe, it, expect, beforeEach } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
-  planWithFunctionCalling,
-  generatePlan,
-  createPlan,
-  parsePlan,
   CREATE_SUBTASK_TOOL,
+  createPlan,
+  generatePlan,
   PlanParseError,
+  parsePlan,
+  planWithFunctionCalling,
 } from '../agents/planner.ts'
-import { supportsToolCalling } from '../providers/tool-call.ts'
 import type { ToolCallResponse } from '../providers/tool-call.ts'
+import { supportsToolCalling } from '../providers/tool-call.ts'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
 
 // ---------------------------------------------------------------------------
@@ -28,19 +28,19 @@ function makeToolCall(input: Record<string, unknown>): ToolCallResponse {
 
 function makeMultiToolCall(inputs: Record<string, unknown>[]): ToolCallResponse {
   return {
-    calls: inputs.map(input => ({ toolName: 'create_subtask', input })),
+    calls: inputs.map((input) => ({ toolName: 'create_subtask', input })),
     inputTokens: 20,
     outputTokens: 40,
   }
 }
 
 const VALID_SUBTASK = {
-  id:            'write-greeting',
-  description:   'Write a greeting file',
-  acceptance:    ['greeting.txt exists and contains Hello'],
-  depends_on:    [],
+  id: 'write-greeting',
+  description: 'Write a greeting file',
+  acceptance: ['greeting.txt exists and contains Hello'],
+  depends_on: [],
   allowed_tools: ['write'],
-  output:        ['greeting.txt'],
+  output: ['greeting.txt'],
 }
 
 // ---------------------------------------------------------------------------
@@ -67,7 +67,10 @@ describe('CREATE_SUBTASK_TOOL', () => {
   })
 
   it('allowed_tools items include all VALID_TOOLS', () => {
-    const toolsProp = CREATE_SUBTASK_TOOL.input_schema.properties['allowed_tools'] as Record<string, unknown>
+    const toolsProp = CREATE_SUBTASK_TOOL.input_schema.properties['allowed_tools'] as Record<
+      string,
+      unknown
+    >
     const items = toolsProp.items as Record<string, unknown>
     const enumValues = items.enum as string[]
     expect(enumValues).toContain('read')
@@ -117,14 +120,20 @@ describe('supportsToolCalling', () => {
 
   it('returns true for openrouter with deepseek model when the catalog says supported_parameters includes tools (real bug fixed 2026-07-08)', async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async () => new Response(
-      JSON.stringify({
-        data: [
-          { id: 'deepseek/deepseek-v4-flash', context_length: 1_000_000, pricing: { prompt: '0.00000009' }, supported_parameters: ['tools'] },
-        ],
-      }),
-      { status: 200 },
-    )) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: 'deepseek/deepseek-v4-flash',
+              context_length: 1_000_000,
+              pricing: { prompt: '0.00000009' },
+              supported_parameters: ['tools'],
+            },
+          ],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
 
     try {
       await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
@@ -149,20 +158,33 @@ describe('supportsToolCalling', () => {
 
 describe('planWithFunctionCalling — happy path', () => {
   it('3-subtask linear plan produces SubTask[] in topo order', async () => {
-    const callWithToolsMock = async () => makeMultiToolCall([
-      {
-        id: 'task-a', description: 'First', acceptance: ['a done'],
-        depends_on: [], allowed_tools: ['write'], output: ['a.txt'],
-      },
-      {
-        id: 'task-b', description: 'Second', acceptance: ['b done'],
-        depends_on: ['task-a'], allowed_tools: ['write'], output: ['b.txt'],
-      },
-      {
-        id: 'task-c', description: 'Third', acceptance: ['c done'],
-        depends_on: ['task-b'], allowed_tools: ['read', 'write'], output: ['c.txt'],
-      },
-    ])
+    const callWithToolsMock = async () =>
+      makeMultiToolCall([
+        {
+          id: 'task-a',
+          description: 'First',
+          acceptance: ['a done'],
+          depends_on: [],
+          allowed_tools: ['write'],
+          output: ['a.txt'],
+        },
+        {
+          id: 'task-b',
+          description: 'Second',
+          acceptance: ['b done'],
+          depends_on: ['task-a'],
+          allowed_tools: ['write'],
+          output: ['b.txt'],
+        },
+        {
+          id: 'task-c',
+          description: 'Third',
+          acceptance: ['c done'],
+          depends_on: ['task-b'],
+          allowed_tools: ['read', 'write'],
+          output: ['c.txt'],
+        },
+      ])
 
     const plan = await planWithFunctionCalling(
       'Do A then B then C',
@@ -171,15 +193,20 @@ describe('planWithFunctionCalling — happy path', () => {
       { callWithTools: callWithToolsMock },
     )
 
-    expect(plan.map(t => t.id)).toEqual(['task-a', 'task-b', 'task-c'])
+    expect(plan.map((t) => t.id)).toEqual(['task-a', 'task-b', 'task-c'])
     expect(plan[0]?.status).toBe('pending')
   })
 
   it('single sub-task with topic_key (no output) is valid', async () => {
-    const callWithToolsMock = async () => makeToolCall({
-      id: 'write-mem', description: 'Write memory', acceptance: ['memory written'],
-      depends_on: [], allowed_tools: ['write'], topic_key: 'my-key',
-    })
+    const callWithToolsMock = async () =>
+      makeToolCall({
+        id: 'write-mem',
+        description: 'Write memory',
+        acceptance: ['memory written'],
+        depends_on: [],
+        allowed_tools: ['write'],
+        topic_key: 'my-key',
+      })
 
     const plan = await planWithFunctionCalling(
       'Remember something',
@@ -193,73 +220,136 @@ describe('planWithFunctionCalling — happy path', () => {
   })
 
   it('non-linear DAG (A→B, A→C) sorts A first', async () => {
-    const callWithToolsMock = async () => makeMultiToolCall([
-      {
-        id: 'task-b', description: 'B', acceptance: ['b'],
-        depends_on: ['task-a'], allowed_tools: ['write'], output: ['b.txt'],
-      },
-      {
-        id: 'task-a', description: 'A', acceptance: ['a'],
-        depends_on: [], allowed_tools: ['write'], output: ['a.txt'],
-      },
-      {
-        id: 'task-c', description: 'C', acceptance: ['c'],
-        depends_on: ['task-a'], allowed_tools: ['write'], output: ['c.txt'],
-      },
-    ])
+    const callWithToolsMock = async () =>
+      makeMultiToolCall([
+        {
+          id: 'task-b',
+          description: 'B',
+          acceptance: ['b'],
+          depends_on: ['task-a'],
+          allowed_tools: ['write'],
+          output: ['b.txt'],
+        },
+        {
+          id: 'task-a',
+          description: 'A',
+          acceptance: ['a'],
+          depends_on: [],
+          allowed_tools: ['write'],
+          output: ['a.txt'],
+        },
+        {
+          id: 'task-c',
+          description: 'C',
+          acceptance: ['c'],
+          depends_on: ['task-a'],
+          allowed_tools: ['write'],
+          output: ['c.txt'],
+        },
+      ])
 
-    const plan = await planWithFunctionCalling('A then B and C', 'p', { provider: 'anthropic', model: 'claude-3-haiku' }, { callWithTools: callWithToolsMock })
+    const plan = await planWithFunctionCalling(
+      'A then B and C',
+      'p',
+      { provider: 'anthropic', model: 'claude-3-haiku' },
+      { callWithTools: callWithToolsMock },
+    )
     expect(plan[0]?.id).toBe('task-a')
-    expect(plan.map(t => t.id)).toContain('task-b')
-    expect(plan.map(t => t.id)).toContain('task-c')
+    expect(plan.map((t) => t.id)).toContain('task-b')
+    expect(plan.map((t) => t.id)).toContain('task-c')
   })
 })
 
 describe('planWithFunctionCalling — error cases', () => {
   it('throws PlanParseError when planner returns no create_subtask calls', async () => {
     const callWithToolsMock = async (): Promise<ToolCallResponse> => ({
-      calls: [], inputTokens: 0, outputTokens: 0,
+      calls: [],
+      inputTokens: 0,
+      outputTokens: 0,
     })
     await expect(
-      planWithFunctionCalling('task', 'p', { provider: 'anthropic', model: 'x' }, { callWithTools: callWithToolsMock })
+      planWithFunctionCalling(
+        'task',
+        'p',
+        { provider: 'anthropic', model: 'x' },
+        { callWithTools: callWithToolsMock },
+      ),
     ).rejects.toBeInstanceOf(PlanParseError)
   })
 
   it('throws PlanParseError with field info when schema validation fails', async () => {
-    const callWithToolsMock = async () => makeToolCall({
-      id: 'INVALID ID',          // uppercase — fails kebab validation
-      description: 'test',
-      acceptance: ['x'],
-      depends_on: [],
-      allowed_tools: ['write'],
-      output: ['a.txt'],
-    })
+    const callWithToolsMock = async () =>
+      makeToolCall({
+        id: 'INVALID ID', // uppercase — fails kebab validation
+        description: 'test',
+        acceptance: ['x'],
+        depends_on: [],
+        allowed_tools: ['write'],
+        output: ['a.txt'],
+      })
     let err: Error | null = null
     try {
-      await planWithFunctionCalling('task', 'p', { provider: 'anthropic', model: 'x' }, { callWithTools: callWithToolsMock })
-    } catch (e) { err = e as Error }
+      await planWithFunctionCalling(
+        'task',
+        'p',
+        { provider: 'anthropic', model: 'x' },
+        { callWithTools: callWithToolsMock },
+      )
+    } catch (e) {
+      err = e as Error
+    }
 
     expect(err).toBeInstanceOf(PlanParseError)
     expect(err!.message).toMatch(/id/)
   })
 
   it('throws PlanParseError when depends_on references unknown id', async () => {
-    const callWithToolsMock = async () => makeToolCall({
-      id: 'task-a', description: 'test', acceptance: ['x'],
-      depends_on: ['non-existent'], allowed_tools: ['write'], output: ['a.txt'],
-    })
+    const callWithToolsMock = async () =>
+      makeToolCall({
+        id: 'task-a',
+        description: 'test',
+        acceptance: ['x'],
+        depends_on: ['non-existent'],
+        allowed_tools: ['write'],
+        output: ['a.txt'],
+      })
     await expect(
-      planWithFunctionCalling('task', 'p', { provider: 'anthropic', model: 'x' }, { callWithTools: callWithToolsMock })
+      planWithFunctionCalling(
+        'task',
+        'p',
+        { provider: 'anthropic', model: 'x' },
+        { callWithTools: callWithToolsMock },
+      ),
     ).rejects.toBeInstanceOf(PlanParseError)
   })
 
   it('throws PlanParseError on duplicate ids', async () => {
-    const callWithToolsMock = async () => makeMultiToolCall([
-      { id: 'dup', description: 'A', acceptance: ['a'], depends_on: [], allowed_tools: ['write'], output: ['a.txt'] },
-      { id: 'dup', description: 'B', acceptance: ['b'], depends_on: [], allowed_tools: ['write'], output: ['b.txt'] },
-    ])
+    const callWithToolsMock = async () =>
+      makeMultiToolCall([
+        {
+          id: 'dup',
+          description: 'A',
+          acceptance: ['a'],
+          depends_on: [],
+          allowed_tools: ['write'],
+          output: ['a.txt'],
+        },
+        {
+          id: 'dup',
+          description: 'B',
+          acceptance: ['b'],
+          depends_on: [],
+          allowed_tools: ['write'],
+          output: ['b.txt'],
+        },
+      ])
     await expect(
-      planWithFunctionCalling('task', 'p', { provider: 'anthropic', model: 'x' }, { callWithTools: callWithToolsMock })
+      planWithFunctionCalling(
+        'task',
+        'p',
+        { provider: 'anthropic', model: 'x' },
+        { callWithTools: callWithToolsMock },
+      ),
     ).rejects.toBeInstanceOf(PlanParseError)
   })
 
@@ -268,7 +358,12 @@ describe('planWithFunctionCalling — error cases', () => {
       throw new Error('network timeout')
     }
     await expect(
-      planWithFunctionCalling('task', 'p', { provider: 'anthropic', model: 'x' }, { callWithTools: callWithToolsMock })
+      planWithFunctionCalling(
+        'task',
+        'p',
+        { provider: 'anthropic', model: 'x' },
+        { callWithTools: callWithToolsMock },
+      ),
     ).rejects.toBeInstanceOf(PlanParseError)
   })
 })
@@ -284,7 +379,12 @@ describe('generatePlan — function calling path', () => {
       wasCalled = true
       return makeToolCall({ ...VALID_SUBTASK })
     }
-    await generatePlan('Write a greeting', 'p', { provider: 'anthropic', model: 'claude-3-haiku' }, { callWithTools: callWithToolsMock })
+    await generatePlan(
+      'Write a greeting',
+      'p',
+      { provider: 'anthropic', model: 'claude-3-haiku' },
+      { callWithTools: callWithToolsMock },
+    )
     expect(wasCalled).toBe(true)
   })
 })

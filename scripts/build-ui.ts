@@ -1,4 +1,6 @@
 #!/usr/bin/env bun
+import { rm } from 'node:fs/promises'
+import { join } from 'node:path'
 /**
  * Build del bundle de UI (UI.0, Mes 30).
  *
@@ -18,8 +20,6 @@
  * Uso: `bun run build:ui` · `bun run build:ui -- --watch`
  */
 import tailwind from 'bun-plugin-tailwind'
-import { rm } from 'node:fs/promises'
-import { join } from 'node:path'
 
 const ROOT = join(import.meta.dir, '..')
 const ENTRY = join(ROOT, 'src/dashboard/public-src/ui.tsx')
@@ -62,6 +62,11 @@ console.log('… watch activo sobre src/dashboard/public-src/')
 const watcher = (await import('node:fs')).watch(
   join(ROOT, 'src/dashboard/public-src'),
   { recursive: true },
-  () => { void build() },
+  () => {
+    void build()
+  },
 )
-process.on('SIGINT', () => { watcher.close(); process.exit(0) })
+process.on('SIGINT', () => {
+  watcher.close()
+  process.exit(0)
+})

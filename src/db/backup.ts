@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite'
+import { randomUUID } from 'crypto'
 import { chmodSync, copyFileSync, existsSync, mkdirSync, renameSync, statSync } from 'fs'
 import { dirname } from 'path'
-import { randomUUID } from 'crypto'
 import { db } from './sqlite.ts'
 
 export interface DatabaseBackup {
@@ -26,7 +26,11 @@ export function createDatabaseBackup(destination: string): DatabaseBackup {
   chmodSync(tempPath, 0o600)
   renameSync(tempPath, destination)
   chmodSync(destination, 0o600)
-  return { path: destination, bytes: statSync(destination).size, createdAt: new Date().toISOString() }
+  return {
+    path: destination,
+    bytes: statSync(destination).size,
+    createdAt: new Date().toISOString(),
+  }
 }
 
 /** Opens a backup read-only and runs SQLite's built-in integrity check. */
@@ -36,7 +40,7 @@ export function verifyDatabaseBackup(path: string): { ok: boolean; detail: strin
     // First prove the artifact opens in read-only mode.
     readonlyBackup.query('SELECT name FROM sqlite_master LIMIT 1').get()
     const row = readonlyBackup.query<Record<string, string>, []>('PRAGMA integrity_check').get()
-    const detail = row ? Object.values(row)[0] ?? 'no integrity result' : 'no integrity result'
+    const detail = row ? (Object.values(row)[0] ?? 'no integrity result') : 'no integrity result'
     readonlyBackup.close()
     return { ok: detail === 'ok', detail }
   } catch (error) {
@@ -51,7 +55,8 @@ export function verifyDatabaseBackup(path: string): { ok: boolean; detail: strin
 export function restoreDatabaseBackup(backupPath: string, destination: string): DatabaseBackup {
   const verified = verifyDatabaseBackup(backupPath)
   if (!verified.ok) throw new Error(`refusing corrupt backup: ${verified.detail}`)
-  if (existsSync(destination)) throw new Error(`refusing to overwrite existing database: ${destination}`)
+  if (existsSync(destination))
+    throw new Error(`refusing to overwrite existing database: ${destination}`)
   mkdirSync(dirname(destination), { recursive: true })
   const tempPath = `${destination}.tmp-${randomUUID()}`
   copyFileSync(backupPath, tempPath)
@@ -60,5 +65,9 @@ export function restoreDatabaseBackup(backupPath: string, destination: string): 
   chmodSync(destination, 0o600)
   const restored = verifyDatabaseBackup(destination)
   if (!restored.ok) throw new Error(`restored database failed integrity check: ${restored.detail}`)
-  return { path: destination, bytes: statSync(destination).size, createdAt: new Date().toISOString() }
+  return {
+    path: destination,
+    bytes: statSync(destination).size,
+    createdAt: new Date().toISOString(),
+  }
 }

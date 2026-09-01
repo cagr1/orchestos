@@ -24,16 +24,18 @@
  * chdir, sin mock.module(). El fallback legacy de contexto se ata al cwd del
  * test, así que el repo real del orchestos no aparece en este test.
  */
-import { describe, it, expect, afterAll, beforeAll, beforeEach } from 'bun:test'
-import { mkdtempSync, rmSync, readdirSync, realpathSync } from 'fs'
-import { join } from 'path'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdtempSync, readdirSync, realpathSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 const { route } = await import('../server.ts')
 const { db } = await import('../../db/sqlite.ts')
+
 // `hashPath` no está exportado de db/projects.ts (es interno). Lo replicamos
 // acá para el cleanup: `createHash('sha1').update(path).digest('hex').slice(0, 16)`.
 import { createHash } from 'crypto'
+
 function hashPath(p: string): string {
   return createHash('sha1').update(p).digest('hex').slice(0, 16)
 }
@@ -65,8 +67,10 @@ function req(method: string, path: string): Request {
  * para verificar que el handler hace cleanup del tmp file que crea. */
 function countOrcTmpFiles(): number {
   try {
-    return readdirSync(tmpdir()).filter(f => f.startsWith('orchestos-summary-')).length
-  } catch { return -1 }
+    return readdirSync(tmpdir()).filter((f) => f.startsWith('orchestos-summary-')).length
+  } catch {
+    return -1
+  }
 }
 
 afterAll(() => {
@@ -78,14 +82,18 @@ afterAll(() => {
   try {
     const id = hashPath(tmpDirReal)
     db.run('DELETE FROM projects WHERE id = ?', [id])
-  } catch { /* no-op si la tabla no existe todavía */ }
+  } catch {
+    /* no-op si la tabla no existe todavía */
+  }
   process.chdir(originalCwd)
   rmSync(tmpDir, { recursive: true, force: true })
 })
 
 beforeEach(() => {
   // Defensa en profundidad: cada test arranca en cwd sin tasks.yaml
-  try { rmSync(join(tmpDir, 'tasks.yaml')) } catch {}
+  try {
+    rmSync(join(tmpDir, 'tasks.yaml'))
+  } catch {}
 })
 
 describe('GET /api/project/summary (v0.12 D.1.c)', () => {

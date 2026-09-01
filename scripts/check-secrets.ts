@@ -26,16 +26,23 @@ function scanDiff(diff: string): Array<{ line: string; kind: string }> {
 }
 
 const args = process.argv.slice(2)
-const paths = args.includes('--tracked') ? trackedPaths() : args.filter(arg => !arg.startsWith('--'))
+const paths = args.includes('--tracked')
+  ? trackedPaths()
+  : args.filter((arg) => !arg.startsWith('--'))
 const diff = args.includes('--staged') ? runGitDiff(true) : ''
 const findings = [
   ...scanDiff(diff),
-  ...paths.flatMap(path => findSecrets(readFileSync(path, 'utf-8')).map(finding => ({ line: path, kind: finding.kind }))),
+  ...paths.flatMap((path) =>
+    findSecrets(readFileSync(path, 'utf-8')).map((finding) => ({ line: path, kind: finding.kind })),
+  ),
 ]
 
 if (findings.length > 0) {
   console.error(`secret check failed: ${findings.length} possible secret(s) found`)
-  for (const finding of findings) console.error(`  ${finding.kind} in ${finding.line.startsWith('+') ? 'added diff line' : finding.line}`)
+  for (const finding of findings)
+    console.error(
+      `  ${finding.kind} in ${finding.line.startsWith('+') ? 'added diff line' : finding.line}`,
+    )
   process.exit(1)
 }
 

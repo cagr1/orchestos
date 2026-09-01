@@ -11,8 +11,8 @@
  */
 
 import type { FileChange } from '../contract.ts'
-import type { CostBreakdownEntry } from '../transcript-parser.ts'
 import type { RunContext } from '../middleware.ts'
+import type { CostBreakdownEntry } from '../transcript-parser.ts'
 import type { ExecutorStepEvent } from './step-event.ts'
 
 export interface ExecutorOutcome {

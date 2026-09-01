@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
 import { homedir } from 'os'
+import { join } from 'path'
 import type { ChatMessage, ChatResponse } from './openrouter.ts'
 
 export type { ChatMessage, ChatResponse } from './openrouter.ts'
@@ -38,8 +38,8 @@ export async function chat(opts: {
       max_tokens: opts.maxTokens ?? 8192,
       system: opts.system,
       messages: opts.messages
-        .filter(m => m.role !== 'system')
-        .map(m => ({ role: m.role, content: m.content })),
+        .filter((m) => m.role !== 'system')
+        .map((m) => ({ role: m.role, content: m.content })),
     }),
   })
 
@@ -48,14 +48,14 @@ export async function chat(opts: {
     throw new Error(`Anthropic error ${res.status}: ${err}`)
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     content: Array<{ type: string; text?: string }>
     usage?: { input_tokens?: number; output_tokens?: number }
     model?: string
   }
 
   return {
-    text: data.content.map(part => part.text ?? '').join(''),
+    text: data.content.map((part) => part.text ?? '').join(''),
     inputTokens: data.usage?.input_tokens ?? 0,
     outputTokens: data.usage?.output_tokens ?? 0,
     model: data.model ?? model,

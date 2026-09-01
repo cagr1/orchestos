@@ -8,12 +8,12 @@
  * sí escriben usan `process.chdir()` a un directorio temporal, con
  * try/finally que SIEMPRE restaura el cwd — incluso si el assert falla.
  */
-import { describe, it, expect, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { handleApiConfigSet } from '../dashboard/handlers/config.ts'
+import { join } from 'path'
 import { loadOrcheConfig } from '../config/load.ts'
+import { handleApiConfigSet } from '../dashboard/handlers/config.ts'
 
 function req(body: unknown): Request {
   return new Request('http://localhost/api/config', {
@@ -87,15 +87,19 @@ describe('handleApiConfigSet — agent', () => {
     const dir = mkdtempSync(join(tmpdir(), 'orchestos-ccd1c-legacy-preserve-'))
     try {
       process.chdir(dir)
-      writeFileSync(join(dir, 'orchestos.config.yaml'), [
-        '# fixture legacy: no debe migrarse por un PUT ajeno',
-        'config_version: 1',
-        'executor_mode: cli-claude',
-        'executorEngine: external',
-        'customField: preserve-me',
-        'models:',
-        '  default: { provider: openrouter, model: old-model }',
-      ].join('\n') + '\n', 'utf8')
+      writeFileSync(
+        join(dir, 'orchestos.config.yaml'),
+        [
+          '# fixture legacy: no debe migrarse por un PUT ajeno',
+          'config_version: 1',
+          'executor_mode: cli-claude',
+          'executorEngine: external',
+          'customField: preserve-me',
+          'models:',
+          '  default: { provider: openrouter, model: old-model }',
+        ].join('\n') + '\n',
+        'utf8',
+      )
 
       const res = await handleApiConfigSet(req({ apiMode: 'agentic' }))
       expect(res.status).toBe(200)
@@ -117,13 +121,17 @@ describe('handleApiConfigSet — agent', () => {
     const dir = mkdtempSync(join(tmpdir(), 'orchestos-ccd1c-legacy-migrate-'))
     try {
       process.chdir(dir)
-      writeFileSync(join(dir, 'orchestos.config.yaml'), [
-        'config_version: 1',
-        'executor_mode: cli-claude',
-        'executorEngine: external',
-        'models:',
-        '  default: { provider: openrouter, model: old-model }',
-      ].join('\n') + '\n', 'utf8')
+      writeFileSync(
+        join(dir, 'orchestos.config.yaml'),
+        [
+          'config_version: 1',
+          'executor_mode: cli-claude',
+          'executorEngine: external',
+          'models:',
+          '  default: { provider: openrouter, model: old-model }',
+        ].join('\n') + '\n',
+        'utf8',
+      )
 
       const res = await handleApiConfigSet(req({ agent: 'api' }))
       expect(res.status).toBe(200)

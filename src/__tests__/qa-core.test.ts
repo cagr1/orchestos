@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'bun:test'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
-import { computeFileDiffs, restoreContents, runAdversarialQA, runQA, runRefuter, snapshotContents } from '../run/qa.ts'
+import { join } from 'path'
 import type { ProviderClient } from '../providers/index.ts'
+import {
+  computeFileDiffs,
+  restoreContents,
+  runAdversarialQA,
+  runQA,
+  runRefuter,
+  snapshotContents,
+} from '../run/qa.ts'
 
 function freshRoot() {
   return mkdtempSync(join(tmpdir(), 'orchestos-qa-core-'))
@@ -12,7 +19,7 @@ function freshRoot() {
 function providerReply(text: string, onMessage?: (content: string) => void): ProviderClient {
   return {
     name: 'test',
-    chat: async opts => {
+    chat: async (opts) => {
       onMessage?.(opts.messages[0]?.content ?? '')
       return { text, inputTokens: 1, outputTokens: 1, model: 'test-model' }
     },
@@ -81,10 +88,9 @@ describe('computeFileDiffs', () => {
   })
 
   it('marks a file with a prior snapshot as modified', () => {
-    const result = computeFileDiffs(
-      { 'changed.txt': { existed: true, content: 'before' } },
-      [{ path: 'changed.txt', content: 'after' }],
-    )
+    const result = computeFileDiffs({ 'changed.txt': { existed: true, content: 'before' } }, [
+      { path: 'changed.txt', content: 'after' },
+    ])
 
     expect(result[0]).toMatchObject({ path: 'changed.txt', status: 'modified' })
     expect(result[0]!.diff).toContain('-before')
@@ -92,10 +98,9 @@ describe('computeFileDiffs', () => {
   })
 
   it('produces a stable diff for unchanged content', () => {
-    const result = computeFileDiffs(
-      { 'same.txt': { existed: true, content: 'unchanged' } },
-      [{ path: 'same.txt', content: 'unchanged' }],
-    )
+    const result = computeFileDiffs({ 'same.txt': { existed: true, content: 'unchanged' } }, [
+      { path: 'same.txt', content: 'unchanged' },
+    ])
 
     expect(result[0]).toMatchObject({ path: 'same.txt', status: 'modified' })
     expect(result[0]!.diff).toContain('same.txt')
@@ -128,7 +133,9 @@ describe('runQA and parseVerdict', () => {
       ],
       model: 'test-model',
       checksResults: [],
-      provider: providerReply('{"verdict":"pass","reason":"looks good"}', content => { userContent = content }),
+      provider: providerReply('{"verdict":"pass","reason":"looks good"}', (content) => {
+        userContent = content
+      }),
     })
 
     expect(result).toMatchObject({ verdict: 'pass', reason: 'looks good' })
@@ -191,7 +198,9 @@ describe('runQA and parseVerdict', () => {
       model: 'test-model',
       acceptance_criteria: ['The module exports greeting'],
       checksResults: [],
-      provider: providerReply('```json\n{"verdict":"pass","reason":"verified","criteria":[{"text":"The module exports greeting","pass":true,"evidence":{"file":"src/greeting.ts","excerpt":"export const greeting = \\\"hello\\\""}}]}\n```'),
+      provider: providerReply(
+        '```json\n{"verdict":"pass","reason":"verified","criteria":[{"text":"The module exports greeting","pass":true,"evidence":{"file":"src/greeting.ts","excerpt":"export const greeting = \\"hello\\""}}]}\n```',
+      ),
     })
 
     expect(result.verdict).toBe('pass')
@@ -210,18 +219,31 @@ describe('runQA and parseVerdict', () => {
       model: 'test-model',
       acceptance_criteria: ['one exists', 'two exists'],
       checksResults: [],
-      provider: providerReply(JSON.stringify({
-        verdict: 'pass',
-        reason: 'both appear present',
-        criteria: [
-          { text: 'one exists', pass: true, evidence: { file: 'src/one.ts', excerpt: 'export const one = 1' } },
-          { text: 'two exists', pass: true, evidence: { file: 'src/missing.ts', excerpt: 'export const two = 2' } },
-        ],
-      }), content => { userContent = content }),
+      provider: providerReply(
+        JSON.stringify({
+          verdict: 'pass',
+          reason: 'both appear present',
+          criteria: [
+            {
+              text: 'one exists',
+              pass: true,
+              evidence: { file: 'src/one.ts', excerpt: 'export const one = 1' },
+            },
+            {
+              text: 'two exists',
+              pass: true,
+              evidence: { file: 'src/missing.ts', excerpt: 'export const two = 2' },
+            },
+          ],
+        }),
+        (content) => {
+          userContent = content
+        },
+      ),
     })
 
     expect(result.verdict).toBe('fail')
-    expect(result.criteria?.map(c => c.pass)).toEqual([true, false])
+    expect(result.criteria?.map((c) => c.pass)).toEqual([true, false])
     expect(userContent).toContain('1. one exists')
     expect(userContent).toContain('2. two exists')
   })
@@ -245,11 +267,19 @@ describe('runQA and parseVerdict', () => {
     })
     const truncated = await runQA({
       ...options,
-      provider: providerReply(JSON.stringify({
-        verdict: 'pass',
-        reason: 'only one result',
-        criteria: [{ text: 'one exists', pass: true, evidence: { file: 'src/one.ts', excerpt: 'export const one = 1' } }],
-      })),
+      provider: providerReply(
+        JSON.stringify({
+          verdict: 'pass',
+          reason: 'only one result',
+          criteria: [
+            {
+              text: 'one exists',
+              pass: true,
+              evidence: { file: 'src/one.ts', excerpt: 'export const one = 1' },
+            },
+          ],
+        }),
+      ),
     })
 
     expect(omitted.verdict).toBe('fail')
@@ -267,7 +297,9 @@ describe('runQA and parseVerdict', () => {
         acceptance_criteria: [],
         checksResults: [],
       },
-      provider: providerReply('{"verdict":"pass","reason":"no criteria"}', content => { userContent = content }),
+      provider: providerReply('{"verdict":"pass","reason":"no criteria"}', (content) => {
+        userContent = content
+      }),
     })
 
     expect(result.verdict).toBe('pass')
@@ -283,15 +315,19 @@ describe('runQA and parseVerdict', () => {
       model: 'test-model',
       acceptance_criteria: ['The module exports greeting'],
       checksResults: [],
-      provider: providerReply(JSON.stringify({
-        verdict: 'pass',
-        reason: 'the model rejected it',
-        criteria: [{
-          text: 'The module exports greeting',
-          pass: false,
-          evidence: { file: 'src/greeting.ts', excerpt: 'export const greeting = "hello"' },
-        }],
-      })),
+      provider: providerReply(
+        JSON.stringify({
+          verdict: 'pass',
+          reason: 'the model rejected it',
+          criteria: [
+            {
+              text: 'The module exports greeting',
+              pass: false,
+              evidence: { file: 'src/greeting.ts', excerpt: 'export const greeting = "hello"' },
+            },
+          ],
+        }),
+      ),
     })
 
     expect(result.verdict).toBe('fail')
@@ -312,7 +348,9 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
   it('returns VERIFIED when the adversarial review confirms the work', async () => {
     const result = await runAdversarialQA({
       ...baseOptions,
-      provider: providerReply('{"verdict":"VERIFIED","reason":"The behavior is reachable and correct."}'),
+      provider: providerReply(
+        '{"verdict":"VERIFIED","reason":"The behavior is reachable and correct."}',
+      ),
     })
 
     expect(result.verdict).toBe('VERIFIED')
@@ -322,7 +360,9 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
   it('returns CAVEATS from fenced JSON without collapsing it to REFUTED', async () => {
     const result = await runAdversarialQA({
       ...baseOptions,
-      provider: providerReply('```json\n{"verdict":"CAVEATS","reason":"One edge case needs review."}\n```'),
+      provider: providerReply(
+        '```json\n{"verdict":"CAVEATS","reason":"One edge case needs review."}\n```',
+      ),
     })
 
     expect(result.verdict).toBe('CAVEATS')
@@ -332,7 +372,9 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
   it('returns REFUTED when the review finds concrete contradictory behavior', async () => {
     const result = await runAdversarialQA({
       ...baseOptions,
-      provider: providerReply('{"verdict":"REFUTED","reason":"The implementation is unreachable."}'),
+      provider: providerReply(
+        '{"verdict":"REFUTED","reason":"The implementation is unreachable."}',
+      ),
     })
 
     expect(result.verdict).toBe('REFUTED')
@@ -354,7 +396,9 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
     await runAdversarialQA({
       ...baseOptions,
       acceptance_criteria: [],
-      provider: providerReply('{"verdict":"VERIFIED","reason":"no criteria"}', content => { userContent = content }),
+      provider: providerReply('{"verdict":"VERIFIED","reason":"no criteria"}', (content) => {
+        userContent = content
+      }),
     })
 
     expect(userContent).not.toContain('## Acceptance criteria')
@@ -394,8 +438,19 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
         { path: 'src/example.ts', content: 'export const answer = 42' },
         { path: 'src/other.ts', content: 'export const other = true' },
       ],
-      checksResults: [{ cmd: 'bun test --timeout 30000', exitCode: 0, stdout: '', stderr: '', elapsedMs: 10, timedOut: false }],
-      provider: providerReply('{"verdict":"VERIFIED","reason":"context received"}', content => { userContent = content }),
+      checksResults: [
+        {
+          cmd: 'bun test --timeout 30000',
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          elapsedMs: 10,
+          timedOut: false,
+        },
+      ],
+      provider: providerReply('{"verdict":"VERIFIED","reason":"context received"}', (content) => {
+        userContent = content
+      }),
     })
 
     expect(userContent).toContain('### src/example.ts')
@@ -410,7 +465,9 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
     await runAdversarialQA({
       ...baseOptions,
       checksResults: [],
-      provider: providerReply('{"verdict":"VERIFIED","reason":"no checks needed"}', content => { userContent = content }),
+      provider: providerReply('{"verdict":"VERIFIED","reason":"no checks needed"}', (content) => {
+        userContent = content
+      }),
     })
 
     expect(userContent).toContain('NINGUNA verificación mecánica corrió.')
@@ -431,7 +488,9 @@ describe('runRefuter and parseRefuterVerdict (X.1, IDEAS #33)', () => {
   it('returns CONFIRMED when the refuter agrees the fail is correct', async () => {
     const result = await runRefuter({
       ...baseOptions,
-      provider: providerReply('{"verdict":"CONFIRMED","reason":"The judge was right, answer is not exported."}'),
+      provider: providerReply(
+        '{"verdict":"CONFIRMED","reason":"The judge was right, answer is not exported."}',
+      ),
     })
 
     expect(result.verdict).toBe('CONFIRMED')
@@ -441,7 +500,9 @@ describe('runRefuter and parseRefuterVerdict (X.1, IDEAS #33)', () => {
   it('returns REFUTED from fenced JSON when the refuter finds the fail was wrong', async () => {
     const result = await runRefuter({
       ...baseOptions,
-      provider: providerReply('```json\n{"verdict":"REFUTED","reason":"answer is clearly exported, the judge misread the file."}\n```'),
+      provider: providerReply(
+        '```json\n{"verdict":"REFUTED","reason":"answer is clearly exported, the judge misread the file."}\n```',
+      ),
     })
 
     expect(result.verdict).toBe('REFUTED')
@@ -481,8 +542,19 @@ describe('runRefuter and parseRefuterVerdict (X.1, IDEAS #33)', () => {
     let userContent = ''
     await runRefuter({
       ...baseOptions,
-      checksResults: [{ cmd: 'bun test --timeout 30000', exitCode: 0, stdout: '', stderr: '', elapsedMs: 10, timedOut: false }],
-      provider: providerReply('{"verdict":"CONFIRMED","reason":"context received"}', content => { userContent = content }),
+      checksResults: [
+        {
+          cmd: 'bun test --timeout 30000',
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          elapsedMs: 10,
+          timedOut: false,
+        },
+      ],
+      provider: providerReply('{"verdict":"CONFIRMED","reason":"context received"}', (content) => {
+        userContent = content
+      }),
     })
 
     expect(userContent).toContain('### src/example.ts')
@@ -496,7 +568,9 @@ describe('runRefuter and parseRefuterVerdict (X.1, IDEAS #33)', () => {
     await runRefuter({
       ...baseOptions,
       checksResults: [],
-      provider: providerReply('{"verdict":"CONFIRMED","reason":"no checks needed"}', content => { userContent = content }),
+      provider: providerReply('{"verdict":"CONFIRMED","reason":"no checks needed"}', (content) => {
+        userContent = content
+      }),
     })
 
     expect(userContent).toContain('NINGUNA verificación mecánica corrió.')

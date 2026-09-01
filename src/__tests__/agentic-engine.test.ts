@@ -1,7 +1,7 @@
-import { describe, it, expect, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import type { Task } from '../tasks/schema.ts'
 
 // G.3 — unit tests for the agentic executor engine, isolated from the
@@ -23,27 +23,39 @@ function tmpDir(): string {
   return dir
 }
 
-function toolCallResponse(calls: Array<{ name: string; args: unknown }>, promptTokens = 10, completionTokens = 5) {
-  return new Response(JSON.stringify({
-    choices: [{
-      message: {
-        content: null,
-        tool_calls: calls.map((c, i) => ({
-          id: `call_${i}`,
-          type: 'function',
-          function: { name: c.name, arguments: JSON.stringify(c.args) },
-        })),
-      },
-    }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+function toolCallResponse(
+  calls: Array<{ name: string; args: unknown }>,
+  promptTokens = 10,
+  completionTokens = 5,
+) {
+  return new Response(
+    JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: null,
+            tool_calls: calls.map((c, i) => ({
+              id: `call_${i}`,
+              type: 'function',
+              function: { name: c.name, arguments: JSON.stringify(c.args) },
+            })),
+          },
+        },
+      ],
+      usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 function textResponse(text: string, promptTokens = 10, completionTokens = 5) {
-  return new Response(JSON.stringify({
-    choices: [{ message: { content: text } }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content: text } }],
+      usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 function installMockFetch(handlers: Array<() => Response>) {
@@ -93,7 +105,10 @@ describe('G.3 — agenticEngine', () => {
   it('write_file to a declared output path buffers it and is returned in ExecutorOutcome.files', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'hello agentic' } }]),
+      () =>
+        toolCallResponse([
+          { name: 'write_file', args: { path: 'out.txt', content: 'hello agentic' } },
+        ]),
       () => textResponse('Done — wrote out.txt'),
     ])
 
@@ -115,8 +130,10 @@ describe('G.3 — agenticEngine', () => {
   it('write_file to a path outside the output contract returns an error string to the model, not an exception — model can self-correct', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'rogue.txt', content: 'sneaky' } }]),
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'corrected' } }]),
+      () =>
+        toolCallResponse([{ name: 'write_file', args: { path: 'rogue.txt', content: 'sneaky' } }]),
+      () =>
+        toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'corrected' } }]),
       () => textResponse('Done'),
     ])
 
@@ -128,7 +145,7 @@ describe('G.3 — agenticEngine', () => {
 
       // rogue.txt never makes it into the buffer/outcome — the tool refused it
       expect(outcome.files).toEqual([{ path: 'out.txt', content: 'corrected' }])
-      expect(outcome.files.some(f => f.path === 'rogue.txt')).toBe(false)
+      expect(outcome.files.some((f) => f.path === 'rogue.txt')).toBe(false)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -138,7 +155,10 @@ describe('G.3 — agenticEngine', () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => toolCallResponse([{ name: 'read_file', args: { path: 'secret.txt' } }]),
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'saw the error' } }]),
+      () =>
+        toolCallResponse([
+          { name: 'write_file', args: { path: 'out.txt', content: 'saw the error' } },
+        ]),
       () => textResponse('Done'),
     ])
 
@@ -160,7 +180,8 @@ describe('G.3 — agenticEngine', () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => toolCallResponse([{ name: 'list_dir', args: { path: '.' } }]),
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'listed' } }]),
+      () =>
+        toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'listed' } }]),
       () => textResponse('Done'),
     ])
 
@@ -182,7 +203,10 @@ describe('G.3 — agenticEngine', () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => toolCallResponse([{ name: 'run_check', args: { cmd: 'rm -rf /' } }]),
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'refused arbitrary cmd' } }]),
+      () =>
+        toolCallResponse([
+          { name: 'write_file', args: { path: 'out.txt', content: 'refused arbitrary cmd' } },
+        ]),
       () => textResponse('Done'),
     ])
 
@@ -218,7 +242,7 @@ describe('G.3 — agenticEngine', () => {
 
       expect(outcome.iterations).toBe(4)
       expect(outcome.files).toEqual([])
-      expect(outcome.log.some(l => l.includes('maxIterations reached'))).toBe(true)
+      expect(outcome.log.some((l) => l.includes('maxIterations reached'))).toBe(true)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -249,10 +273,7 @@ describe('Q.2 — el prompt agéntico exige evidencia, no autoevaluación', () =
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     const dir = tmpDir()
     try {
-      const prompt = await captureSystemPrompt(
-        baseTask({ checks: [{ cmd: 'bun test' }] }),
-        dir,
-      )
+      const prompt = await captureSystemPrompt(baseTask({ checks: [{ cmd: 'bun test' }] }), dir)
       expect(prompt).toContain('Run them with run_check before you stop')
       // Regresión: la redacción permisiva vieja no debe volver.
       expect(prompt).not.toContain('checks you can run')

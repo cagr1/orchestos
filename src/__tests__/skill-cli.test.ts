@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test'
-import { handleCurate, handleImport, DASHBOARD_URL } from '../cli-skill-curate.ts'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { DASHBOARD_URL, handleCurate, handleImport } from '../cli-skill-curate.ts'
 
 const MOCK_SKILL = {
   id: 'test-skill',
@@ -50,9 +50,15 @@ beforeEach(() => {
   errors = []
   mock.restore()
 
-  console.log = (...args: string[]) => { logs.push(args.join(' ')) }
-  console.warn = (...args: string[]) => { warns.push(args.join(' ')) }
-  console.error = (...args: string[]) => { errors.push(args.join(' ')) }
+  console.log = (...args: string[]) => {
+    logs.push(args.join(' '))
+  }
+  console.warn = (...args: string[]) => {
+    warns.push(args.join(' '))
+  }
+  console.error = (...args: string[]) => {
+    errors.push(args.join(' '))
+  }
 })
 
 afterEach(() => {
@@ -71,7 +77,7 @@ describe('DASHBOARD_URL', () => {
 describe('handleCurate', () => {
   it('calls curator API and prints YAML', async () => {
     globalThis.fetch = mock(() =>
-      Promise.resolve(new Response(JSON.stringify(CURATE_RESPONSE)))
+      Promise.resolve(new Response(JSON.stringify(CURATE_RESPONSE))),
     ) as unknown as typeof globalThis.fetch
 
     await handleCurate('create a code review skill')
@@ -107,13 +113,21 @@ describe('handleCurate', () => {
 
   it('exits on API error', async () => {
     globalThis.fetch = mock(() =>
-      Promise.resolve(new Response(JSON.stringify(FAIL_RESPONSE)))
+      Promise.resolve(new Response(JSON.stringify(FAIL_RESPONSE))),
     ) as unknown as typeof globalThis.fetch
 
-    const exitCode = await new Promise<number>(resolve => {
+    const exitCode = await new Promise<number>((resolve) => {
       const origExit = process.exit
-      process.exit = ((code?: number) => { resolve(code ?? 1); return undefined as never }) as typeof process.exit
-      handleCurate('bad').then(() => { process.exit = origExit; resolve(0) }).catch(() => {})
+      process.exit = ((code?: number) => {
+        resolve(code ?? 1)
+        return undefined as never
+      }) as typeof process.exit
+      handleCurate('bad')
+        .then(() => {
+          process.exit = origExit
+          resolve(0)
+        })
+        .catch(() => {})
     })
 
     expect(exitCode).toBe(1)
@@ -125,10 +139,18 @@ describe('handleCurate', () => {
       throw new Error('ECONNREFUSED')
     }) as unknown as typeof globalThis.fetch
 
-    const exitCode = await new Promise<number>(resolve => {
+    const exitCode = await new Promise<number>((resolve) => {
       const origExit = process.exit
-      process.exit = ((code?: number) => { resolve(code ?? 1); return undefined as never }) as typeof process.exit
-      handleCurate('test').then(() => { process.exit = origExit; resolve(0) }).catch(() => {})
+      process.exit = ((code?: number) => {
+        resolve(code ?? 1)
+        return undefined as never
+      }) as typeof process.exit
+      handleCurate('test')
+        .then(() => {
+          process.exit = origExit
+          resolve(0)
+        })
+        .catch(() => {})
     })
 
     expect(exitCode).toBe(1)
@@ -184,13 +206,21 @@ describe('handleImport', () => {
 
   it('exits on API error', async () => {
     globalThis.fetch = mock(() =>
-      Promise.resolve(new Response(JSON.stringify(FAIL_RESPONSE)))
+      Promise.resolve(new Response(JSON.stringify(FAIL_RESPONSE))),
     ) as unknown as typeof globalThis.fetch
 
-    const exitCode = await new Promise<number>(resolve => {
+    const exitCode = await new Promise<number>((resolve) => {
       const origExit = process.exit
-      process.exit = ((code?: number) => { resolve(code ?? 1); return undefined as never }) as typeof process.exit
-      handleImport('https://example.com/skill.yaml').then(() => { process.exit = origExit; resolve(0) }).catch(() => {})
+      process.exit = ((code?: number) => {
+        resolve(code ?? 1)
+        return undefined as never
+      }) as typeof process.exit
+      handleImport('https://example.com/skill.yaml')
+        .then(() => {
+          process.exit = origExit
+          resolve(0)
+        })
+        .catch(() => {})
     })
 
     expect(exitCode).toBe(1)
@@ -202,10 +232,18 @@ describe('handleImport', () => {
       throw new Error('ECONNREFUSED')
     }) as unknown as typeof globalThis.fetch
 
-    const exitCode = await new Promise<number>(resolve => {
+    const exitCode = await new Promise<number>((resolve) => {
       const origExit = process.exit
-      process.exit = ((code?: number) => { resolve(code ?? 1); return undefined as never }) as typeof process.exit
-      handleImport('https://example.com/skill.yaml').then(() => { process.exit = origExit; resolve(0) }).catch(() => {})
+      process.exit = ((code?: number) => {
+        resolve(code ?? 1)
+        return undefined as never
+      }) as typeof process.exit
+      handleImport('https://example.com/skill.yaml')
+        .then(() => {
+          process.exit = origExit
+          resolve(0)
+        })
+        .catch(() => {})
     })
 
     expect(exitCode).toBe(1)

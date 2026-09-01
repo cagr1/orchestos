@@ -28,6 +28,6 @@ export function capCheckOutput(text: string, maxChars: number = DEFAULT_MAX_CHAR
   const halfBudget = Math.floor(maxChars / 2)
   const head = text.slice(0, halfBudget)
   const tail = text.slice(text.length - halfBudget)
-  const omitted = text.length - (2 * halfBudget)
+  const omitted = text.length - 2 * halfBudget
   return `${head}\n[...truncado: ${omitted} chars omitidos de ${text.length}]\n${tail}`
 }

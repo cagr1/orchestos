@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
-import { db } from '../db/sqlite.ts'
+import { join } from 'path'
 import { DEFAULT_CONFIG } from '../config/schema.ts'
+import { db } from '../db/sqlite.ts'
 import type { Task } from '../tasks/schema.ts'
 
 // K.4b — segundo juez adversarial, opt-in via orcheConfig.adversarialQA. Corre
@@ -34,14 +34,20 @@ function tmpDir(): string {
 }
 
 function openRouterResponse(content: string, promptTokens = 1, completionTokens = 1) {
-  return new Response(JSON.stringify({
-    choices: [{ message: { content } }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-    model: 'mock/model',
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content } }],
+      usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+      model: 'mock/model',
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
-type FetchHandler = (body: { model: string; messages: Array<{ role: string; content: string }> }) => Response | Error | Promise<Response | Error>
+type FetchHandler = (body: {
+  model: string
+  messages: Array<{ role: string; content: string }>
+}) => Response | Error | Promise<Response | Error>
 
 function installMockFetch(handlers: FetchHandler[]) {
   const calls: Array<{ model: string; messages: Array<{ role: string; content: string }> }> = []
@@ -113,7 +119,10 @@ describe('K.4b — adversarial second opinion (opt-in)', () => {
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
       () => openRouterResponse('{"verdict":"pass","reason":"looks fine"}'),
-      () => openRouterResponse('{"verdict":"REFUTED","reason":"the excerpt is dead code, never executed"}'),
+      () =>
+        openRouterResponse(
+          '{"verdict":"REFUTED","reason":"the excerpt is dead code, never executed"}',
+        ),
     ])
 
     const dir = tmpDir()

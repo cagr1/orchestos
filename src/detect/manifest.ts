@@ -1,6 +1,6 @@
-import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
+import { existsSync, readFileSync } from 'fs'
 import { glob } from 'glob'
+import { join } from 'path'
 
 export interface Manifest {
   name: string
@@ -19,7 +19,11 @@ export function readManifest(root: string): Manifest {
       const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
       result.name = pkg.name ?? 'unknown'
       result.runtime = 'Node.js'
-      const allDeps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies })
+      const allDeps = Object.keys({
+        ...pkg.dependencies,
+        ...pkg.devDependencies,
+        ...pkg.peerDependencies,
+      })
       result.deps = allDeps
 
       if (allDeps.includes('next')) result.framework = 'Next.js'
@@ -33,12 +37,15 @@ export function readManifest(root: string): Manifest {
       else if (allDeps.includes('@angular/core')) result.framework = 'Angular'
       else result.framework = 'none'
 
-      if (allDeps.includes('prisma') || allDeps.includes('@prisma/client')) result.deps.push('Prisma')
+      if (allDeps.includes('prisma') || allDeps.includes('@prisma/client'))
+        result.deps.push('Prisma')
       if (allDeps.includes('drizzle-orm')) result.deps.push('Drizzle')
       if (allDeps.includes('typeorm')) result.deps.push('TypeORM')
 
       return result
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
   }
 
   // Cargo.toml — Rust
@@ -52,7 +59,9 @@ export function readManifest(root: string): Manifest {
       if (nameMatch?.[1]) result.name = nameMatch[1]
       if (cargo.includes('actix-web')) result.framework = 'Actix'
       else if (cargo.includes('axum')) result.framework = 'Axum'
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
     return result
   }
 
@@ -71,12 +80,18 @@ export function readManifest(root: string): Manifest {
       if (content.includes('fastapi')) result.framework = 'FastAPI'
       else if (content.includes('django')) result.framework = 'Django'
       else if (content.includes('flask')) result.framework = 'Flask'
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
     return result
   }
 
   // *.csproj — .NET
-  const csprojFiles = glob.sync('**/*.csproj', { cwd: root, maxDepth: 2, ignore: ['node_modules/**'] })
+  const csprojFiles = glob.sync('**/*.csproj', {
+    cwd: root,
+    maxDepth: 2,
+    ignore: ['node_modules/**'],
+  })
   if (csprojFiles.length > 0) {
     result.runtime = '.NET'
     result.framework = 'ASP.NET'
@@ -95,7 +110,9 @@ export function readManifest(root: string): Manifest {
       if (moduleMatch?.[1]) result.name = moduleMatch[1].split('/').pop() ?? 'unknown'
       if (gomod.includes('gin-gonic/gin')) result.framework = 'Gin'
       else if (gomod.includes('gofiber/fiber')) result.framework = 'Fiber'
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
     return result
   }
 

@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'bun:test'
-import { mkdtempSync, mkdirSync, rmSync } from 'fs'
-import { join } from 'path'
+import { describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 interface ChildResult {
   tables?: string[]
@@ -15,7 +15,12 @@ interface ChildResult {
   probeCount?: number
   failedTableCount?: number
   failedVersionCount?: number
-  runDefaults?: { input_tokens: number; output_tokens: number; usd_cost: number; elapsed_ms: number }
+  runDefaults?: {
+    input_tokens: number
+    output_tokens: number
+    usd_cost: number
+    elapsed_ms: number
+  }
   statusNotNull?: number
   duplicatePathRejected?: boolean
   uniqueFilesIndex?: boolean
@@ -58,7 +63,9 @@ describe('SQLite migrations', () => {
   it('creates the complete schema from an empty database', async () => {
     const home = tempHome()
     try {
-      const result = await runMigrationProcess(home, `
+      const result = await runMigrationProcess(
+        home,
+        `
         const { runMigrations, rebuildMemoryFts } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
         const memoryCountBefore = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'memory_entries'").get().count
@@ -87,23 +94,49 @@ describe('SQLite migrations', () => {
         const ftsRebuiltWithIncompatibility = rebuildMemoryFts()
         process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns, schemaVersions, runDefaults, statusNotNull, duplicatePathRejected, uniqueFilesIndex, foreignKeys, requiredIndexes, memoryCountBefore, memoryCountAfter, ftsMatchCount, ftsRebuiltAfterCorruption, ftsRebuiltWithIncompatibility }))
         db.close()
-      `)
+      `,
+      )
 
-      expect(result.tables).toEqual(expect.arrayContaining([
-        'projects', 'context_chunks', 'runs', 'files', 'code_edges',
-        'memory_entries', 'memory_conflicts', 'memory_fts', 'chat_task_bar_events',
-        'chat_sessions', 'chat_messages', 'instincts', 'run_steps', 'schema_migrations',
-      ]))
+      expect(result.tables).toEqual(
+        expect.arrayContaining([
+          'projects',
+          'context_chunks',
+          'runs',
+          'files',
+          'code_edges',
+          'memory_entries',
+          'memory_conflicts',
+          'memory_fts',
+          'chat_task_bar_events',
+          'chat_sessions',
+          'chat_messages',
+          'instincts',
+          'run_steps',
+          'schema_migrations',
+        ]),
+      )
       expect(result.schemaVersions).toEqual([
         { version: 1, name: 'baseline-current-schema' },
         { version: 2, name: 'chat-sessions' },
       ])
-      expect(result.runsColumns).toEqual(expect.arrayContaining([
-        'task_id', 'qa_verdict', 'checks_json', 'context_warnings_json',
-        'cost_breakdown_json', 'file_diffs', 'adversarial_verdict',
-      ]))
+      expect(result.runsColumns).toEqual(
+        expect.arrayContaining([
+          'task_id',
+          'qa_verdict',
+          'checks_json',
+          'context_warnings_json',
+          'cost_breakdown_json',
+          'file_diffs',
+          'adversarial_verdict',
+        ]),
+      )
       expect(result.filesColumns).toContain('embedding')
-      expect(result.runDefaults).toEqual({ input_tokens: 0, output_tokens: 0, usd_cost: 0, elapsed_ms: 0 })
+      expect(result.runDefaults).toEqual({
+        input_tokens: 0,
+        output_tokens: 0,
+        usd_cost: 0,
+        elapsed_ms: 0,
+      })
       expect(result.statusNotNull).toBe(1)
       expect(result.duplicatePathRejected).toBe(true)
       expect(result.uniqueFilesIndex).toBe(true)
@@ -123,7 +156,9 @@ describe('SQLite migrations', () => {
     const home = tempHome()
     try {
       mkdirSync(join(home, '.orchestos'), { recursive: true })
-      const result = await runMigrationProcess(home, `
+      const result = await runMigrationProcess(
+        home,
+        `
         import { Database } from 'bun:sqlite'
         const legacy = new Database(process.env.ORCHESTOS_HOME + '/.orchestos/db.sqlite')
         legacy.exec('CREATE TABLE runs (id TEXT PRIMARY KEY, prompt TEXT NOT NULL, task_class TEXT NOT NULL, model TEXT NOT NULL, provider TEXT NOT NULL, status TEXT NOT NULL, input_tokens INTEGER DEFAULT 0, output_tokens INTEGER DEFAULT 0, usd_cost REAL DEFAULT 0, elapsed_ms INTEGER DEFAULT 0, result TEXT, created_at TEXT NOT NULL)')
@@ -138,7 +173,8 @@ describe('SQLite migrations', () => {
         const legacyTaskIdDefault = db.query('PRAGMA table_info(runs)').all().find(row => row.name === 'task_id').dflt_value
         process.stdout.write(JSON.stringify({ runCount: row ? 1 : 0, runsColumns, schemaVersions, legacyTaskIdDefault }))
         db.close()
-      `)
+      `,
+      )
 
       expect(result.runCount).toBe(1)
       expect(result.runsColumns).toContain('adversarial_reason')
@@ -156,7 +192,9 @@ describe('SQLite migrations', () => {
   it('is idempotent when run repeatedly', async () => {
     const home = tempHome()
     try {
-      const result = await runMigrationProcess(home, `
+      const result = await runMigrationProcess(
+        home,
+        `
         const { runMigrations } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
@@ -166,7 +204,8 @@ describe('SQLite migrations', () => {
         const schemaCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations').get().count
         process.stdout.write(JSON.stringify({ runCount, ftsTriggers, schemaCount }))
         db.close()
-      `)
+      `,
+      )
 
       expect(result.runCount).toBe(1)
       expect(result.ftsTriggers).toBe(3)
@@ -179,7 +218,9 @@ describe('SQLite migrations', () => {
   it('applies numbered steps once and records their evidence', async () => {
     const home = tempHome()
     try {
-      const result = await runMigrationProcess(home, `
+      const result = await runMigrationProcess(
+        home,
+        `
         const { runMigrations, applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
@@ -206,7 +247,8 @@ describe('SQLite migrations', () => {
         const probeCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_probe'").get().count
         process.stdout.write(JSON.stringify({ evidence, probeCount }))
         db.close()
-      `)
+      `,
+      )
 
       expect(result.evidence).toHaveLength(3)
       expect(result.evidence?.[2]).toMatchObject({ version: 3, name: 'migration-test-probe' })
@@ -220,7 +262,9 @@ describe('SQLite migrations', () => {
   it('rolls back a failed step after reopening the database', async () => {
     const home = tempHome()
     try {
-      const result = await runMigrationProcess(home, `
+      const result = await runMigrationProcess(
+        home,
+        `
         import { Database } from 'bun:sqlite'
         const { runMigrations, applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
@@ -244,7 +288,8 @@ describe('SQLite migrations', () => {
         const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 3').get().count
         process.stdout.write(JSON.stringify({ failedTableCount, failedVersionCount }))
         reopened.close()
-      `)
+      `,
+      )
 
       expect(result.failedTableCount).toBe(0)
       expect(result.failedVersionCount).toBe(0)
@@ -256,7 +301,9 @@ describe('SQLite migrations', () => {
   it('rolls back precondition and postcondition failures before recovery', async () => {
     const home = tempHome()
     try {
-      const result = await runMigrationProcess(home, `
+      const result = await runMigrationProcess(
+        home,
+        `
         const { runMigrations, applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
@@ -294,7 +341,8 @@ describe('SQLite migrations', () => {
         const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 3').get().count
         process.stdout.write(JSON.stringify({ preconditionTableCount, postconditionTableCount, recoveryCount, recoveryVersionCount }))
         db.close()
-      `)
+      `,
+      )
 
       expect(result.preconditionTableCount).toBe(0)
       expect(result.postconditionTableCount).toBe(0)

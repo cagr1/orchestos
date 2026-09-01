@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { createPlan } from '../agents/planner.ts'
-import { renderSkillCatalog, isKnownSkillId, listAllSkillCandidates } from '../skills/catalog.ts'
 import { pickAutoSkill } from '../dashboard/handlers/chat.ts'
+import { isKnownSkillId, listAllSkillCandidates, renderSkillCatalog } from '../skills/catalog.ts'
 
 // O.2 (Bloque O, 2026-08-03) — el planner ve el catálogo y asigna skill por
 // sub-tarea, y la ambigüedad del camino automático se resuelve por
@@ -11,7 +11,7 @@ describe('catálogo compartido (skills/catalog.ts)', () => {
   test('lista las skills reales con su metadata de disparo', () => {
     const all = listAllSkillCandidates()
     expect(all.length).toBeGreaterThan(0)
-    const sec = all.find(s => s.id === 'security-review')
+    const sec = all.find((s) => s.id === 'security-review')
     expect(sec?.whenToUse.length).toBeGreaterThan(0)
     expect(sec?.mode).toBe('automatic')
   })
@@ -53,7 +53,7 @@ sub_tasks:
   test('descarta un skill inventado en vez de romper el plan', () => {
     const [st] = createPlan(planYaml('skill-que-no-existe'))
     expect(st!.skill).toBeUndefined()
-    expect(st!.id).toBe('build-ui')   // el resto del plan sobrevive intacto
+    expect(st!.id).toBe('build-ui') // el resto del plan sobrevive intacto
   })
 
   test('sub-tareas distintas pueden llevar skills distintas', () => {
@@ -76,7 +76,7 @@ sub_tasks:
     output: [ui.test.tsx]
     skill: test-writer
 `)
-    expect(plan.map(s => s.skill)).toEqual(['frontend-design', 'test-writer'])
+    expect(plan.map((s) => s.skill)).toEqual(['frontend-design', 'test-writer'])
   })
 })
 
@@ -89,11 +89,15 @@ describe('pickAutoSkill — la ambigüedad ya no descarta todo', () => {
   })
 
   test('una automatic gana incluso sobre frontend-design', () => {
-    expect(pickAutoSkill([{ id: 'frontend-design' }, { id: 'qa-structured' }])).toBe('qa-structured')
+    expect(pickAutoSkill([{ id: 'frontend-design' }, { id: 'qa-structured' }])).toBe(
+      'qa-structured',
+    )
   })
 
   test('sin ninguna automatic, se conserva el desempate histórico de frontend-design', () => {
-    expect(pickAutoSkill([{ id: 'frontend-design' }, { id: 'test-writer' }])).toBe('frontend-design')
+    expect(pickAutoSkill([{ id: 'frontend-design' }, { id: 'test-writer' }])).toBe(
+      'frontend-design',
+    )
   })
 
   test('candidata única se sigue usando', () => {

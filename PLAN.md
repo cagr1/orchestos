@@ -118,16 +118,48 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
 ### H.2 — La capa barata que falta
 
-- [ ] **H.2.1 — 🧠 No hay linter ni formatter.** Ni eslint, ni biome, ni oxlint, ni prettier.
-  En la taxonomía de Fowler (guides/sensors × computacional/inferencial) esta es **la casilla
-  feedforward computacional vacía**: la capa más barata, determinista y que no consume
-  contexto del agente. Hoy el repo paga con mutation testing —la casilla más cara— parte del
-  trabajo que un linter haría gratis y antes de generar.
+- [x] **H.2.1 — 🧠 No hay linter ni formatter.** (cerrado 2026-09-01) Ni eslint, ni biome, ni
+  oxlint, ni prettier. En la taxonomía de Fowler (guides/sensors × computacional/inferencial)
+  esta es **la casilla feedforward computacional vacía**: la capa más barata, determinista y
+  que no consume contexto del agente. Hoy el repo paga con mutation testing —la casilla más
+  cara— parte del trabajo que un linter haría gratis y antes de generar.
   Requiere criterio: elegir herramienta (biome = lint+format en un binario, vs oxlint = más
   rápido pero solo lint), definir el set de reglas inicial sin romper 531 archivos de golpe, y
   decidir si entra al pre-commit o solo a CI al principio.
   Gate: la herramienta corre limpia o con un baseline explícito de excepciones documentado;
   `bun run typecheck` y `bun run test:coverage` siguen verdes.
+  **Decisión de herramienta:** Biome (lint + format en un binario, tal como enmarca la
+  auditoría) sobre oxlint — evita sumar Prettier como segunda pieza. `biome.json` respeta el
+  estilo ya existente en el repo (2 espacios, comillas simples, **sin punto y coma** —
+  confirmado con grep antes de configurar, no asumido) y `lineWidth: 100` (el default de 80
+  generaba wraps artificiales en imports típicos del repo).
+  **Baseline de excepciones documentado** (no "limpio de cero", explícito por diseño):
+  `noAssignInExpressions` y `useIterableCallbackReturn` off (idioms legítimos: loop de
+  `regex.exec()` y `forEach(x => console.log(...))` en scripts CLI), `noControlCharactersInRegex`
+  off (regex de saneamiento de texto en `chat.ts` necesita esos rangos a propósito),
+  `noGlobalEval` off solo en `scripts/ui-gates/**` (uso de `eval` dentro de
+  `page.evaluate()` de Playwright, no del runtime de la app), `noDangerouslySetInnerHtml` off
+  solo en `icons.tsx` (renderiza el catálogo interno de SVG, no input de usuario). `a11y` y
+  `noImplicitAnyLet` bajados a `warn` — son hallazgos reales (accesibilidad del dashboard,
+  gaps de tipado en tests) documentados como IDEAS.md `#61` para limpieza incremental, no
+  fixeados en este ítem para no convertir "agregar el linter" en "arreglar 500 archivos".
+  CSS (`**/*.css`) y el vendor bundle `marked.umd.js` quedan excluidos — Tailwind-in-CSS no
+  lo parsea el CSS parser de Biome, y un bundle minificado de terceros no es código propio.
+  **Pre-commit vs CI:** solo CI por ahora (`bun run lint` agregado a `.github/workflows/ci.yml`
+  después de `typecheck`) — no se suma al pre-commit todavía, decisión explícita para no
+  imponer 800+ warnings visibles en cada commit local antes de que el baseline se limpie.
+  **Evidencia:** `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1174 pass / 0 fail, 2852
+  expects, 120 archivos; functions 73.96% ≥ 69%, lines 62.49% ≥ 57%) · `bun run lint` ✅ exit 0
+  (0 errores, 835 warnings + 467 infos documentados como baseline). `bunx biome check --write .`
+  aplicó fixes de formato/imports en 324 archivos sin cambiar semántica (verificado con la
+  suite completa antes/después). `package.json`: agregados `lint` y `lint:fix`.
+  **Gate en vivo: verificado con Playwright** (Chromium) contra el dashboard real — el
+  reformateo tocó `src/dashboard/**` (incluye el fix de estilo real en `theme.js`, `var v`
+  sacado del `try`). `getTheme()`/`setTheme()`/persistencia en `localStorage` siguen
+  funcionando después del cambio (`initial: "orchestos" → setTheme("dark2026") → persisted →
+  afterReload: "dark2026"`, sin excepciones de página). El único 400 detectado
+  (`/api/chat/models`) es preexistente — reproduce igual en un `ORCHESTOS_HOME` limpio sin
+  API key configurada, no relacionado con este cambio.
 
 ### H.3 — Estado: legible por humanos, ilegible por máquinas
 

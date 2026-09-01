@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 async function runIsolated(body: string): Promise<Record<string, unknown>> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-multi-project-'))
@@ -74,8 +74,15 @@ describe('CC.3 — contexto multi-proyecto explícito', () => {
     `)
 
     expect(result.projects).toMatchObject({ status: 200 })
-    expect((result.projects as any).body.map((p: any) => p.id).sort()).toEqual(['alpha', 'beta', 'gone'])
-    expect(result.alphaTasks).toMatchObject({ status: 200, body: { tasks: [{ id: 'alpha-task' }] } })
+    expect((result.projects as any).body.map((p: any) => p.id).sort()).toEqual([
+      'alpha',
+      'beta',
+      'gone',
+    ])
+    expect(result.alphaTasks).toMatchObject({
+      status: 200,
+      body: { tasks: [{ id: 'alpha-task' }] },
+    })
     expect(result.betaTasks).toMatchObject({ status: 200, body: { tasks: [{ id: 'beta-task' }] } })
     expect(result.alphaContext).toMatchObject({ status: 200, body: { content: 'CONTEXT-ALPHA' } })
     expect(result.betaContext).toMatchObject({ status: 200, body: { content: 'CONTEXT-BETA' } })

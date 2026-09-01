@@ -41,7 +41,7 @@ export interface CliDetectionResult {
 }
 
 export function detectInstalledClis(): CliDetectionResult[] {
-  return KNOWN_CLIS.map(def => {
+  return KNOWN_CLIS.map((def) => {
     const path = Bun.which(def.binary)
     return { id: def.id, label: def.label, binary: def.binary, installed: !!path, path }
   })

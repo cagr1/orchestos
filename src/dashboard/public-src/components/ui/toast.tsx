@@ -18,7 +18,10 @@ import { cn } from '../../lib/utils.ts'
 
 export const ToastProvider = ToastPrimitive.Provider
 
-export function ToastViewport({ className, ...props }: React.ComponentProps<typeof ToastPrimitive.Viewport>) {
+export function ToastViewport({
+  className,
+  ...props
+}: React.ComponentProps<typeof ToastPrimitive.Viewport>) {
   return (
     <ToastPrimitive.Viewport
       className={cn(
@@ -32,8 +35,11 @@ export function ToastViewport({ className, ...props }: React.ComponentProps<type
   )
 }
 
-export function Toast({ className, variant = 'default', ...props }:
-  React.ComponentProps<typeof ToastPrimitive.Root> & { variant?: 'default' | 'error' }) {
+export function Toast({
+  className,
+  variant = 'default',
+  ...props
+}: React.ComponentProps<typeof ToastPrimitive.Root> & { variant?: 'default' | 'error' }) {
   return (
     <ToastPrimitive.Root
       className={cn(

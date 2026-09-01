@@ -1,13 +1,13 @@
-import PDFDocument from 'pdfkit'
 import { createWriteStream } from 'fs'
-import type { StackProfile } from './agents-md.ts'
+import PDFDocument from 'pdfkit'
 import type { RunRecord } from '../db/runs.ts'
+import type { StackProfile } from './agents-md.ts'
 
 export function generateSummaryPdf(
   profile: StackProfile,
   agentsMd: string,
   outputPath: string,
-  recentRuns: RunRecord[] = []
+  recentRuns: RunRecord[] = [],
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' })
@@ -15,44 +15,58 @@ export function generateSummaryPdf(
     doc.pipe(stream)
 
     const { manifest, languages, conventions, commands } = profile
-    const W = doc.page.width - 100  // content width
+    const W = doc.page.width - 100 // content width
 
     // ── Header ────────────────────────────────────────────────────────────────
     doc.rect(0, 0, doc.page.width, 80).fill('#1a1a2e')
-    doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold')
-       .text('OrchestOS', 50, 25)
-    doc.fontSize(11).font('Helvetica')
-       .text('Project Summary', 50, 52)
+    doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold').text('OrchestOS', 50, 25)
+    doc.fontSize(11).font('Helvetica').text('Project Summary', 50, 52)
     doc.fillColor('#000000').moveDown(3)
 
     // ── Project name ──────────────────────────────────────────────────────────
-    doc.fontSize(20).font('Helvetica-Bold').fillColor('#1a1a2e')
-       .text(manifest.name, 50, 100)
-    doc.fontSize(10).font('Helvetica').fillColor('#666666')
-       .text(new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }), 50, 125)
+    doc.fontSize(20).font('Helvetica-Bold').fillColor('#1a1a2e').text(manifest.name, 50, 100)
+    doc
+      .fontSize(10)
+      .font('Helvetica')
+      .fillColor('#666666')
+      .text(
+        new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }),
+        50,
+        125,
+      )
 
-    doc.moveTo(50, 145).lineTo(50 + W, 145).strokeColor('#e0e0e0').stroke()
+    doc
+      .moveTo(50, 145)
+      .lineTo(50 + W, 145)
+      .strokeColor('#e0e0e0')
+      .stroke()
     doc.moveDown(2)
 
     // ── Stack ─────────────────────────────────────────────────────────────────
     sectionTitle(doc, 'Stack')
-    row(doc, 'Runtime',   manifest.runtime)
+    row(doc, 'Runtime', manifest.runtime)
     row(doc, 'Framework', manifest.framework)
-    row(doc, 'Languages', languages.map(l => `${l.lang} (${l.pct}%)`).join('  ·  ') || '—')
+    row(doc, 'Languages', languages.map((l) => `${l.lang} (${l.pct}%)`).join('  ·  ') || '—')
     doc.moveDown(0.5)
 
     // ── Conventions ───────────────────────────────────────────────────────────
     sectionTitle(doc, 'Conventions')
-    row(doc, 'Prettier',     conventions.prettier     ? '✓ configured' : '—')
-    row(doc, 'ESLint',       conventions.eslint       ? '✓ configured' : '—')
+    row(doc, 'Prettier', conventions.prettier ? '✓ configured' : '—')
+    row(doc, 'ESLint', conventions.eslint ? '✓ configured' : '—')
     row(doc, 'EditorConfig', conventions.editorconfig ? '✓ configured' : '—')
     if (conventions.tsconfig) {
       const ts = conventions.tsconfig
-      row(doc, 'TypeScript', [
-        ts.target && `target: ${ts.target}`,
-        ts.module && `module: ${ts.module}`,
-        ts.strict  ? 'strict: true' : null,
-      ].filter(Boolean).join('  ·  ') || '—')
+      row(
+        doc,
+        'TypeScript',
+        [
+          ts.target && `target: ${ts.target}`,
+          ts.module && `module: ${ts.module}`,
+          ts.strict ? 'strict: true' : null,
+        ]
+          .filter(Boolean)
+          .join('  ·  ') || '—',
+      )
     }
     doc.moveDown(0.5)
 
@@ -60,20 +74,19 @@ export function generateSummaryPdf(
     if (commands.length > 0) {
       sectionTitle(doc, 'Useful Commands')
       for (const cmd of commands) {
-        doc.fontSize(10).font('Courier').fillColor('#333333')
-           .text(`  ${cmd}`, { indent: 10 })
+        doc.fontSize(10).font('Courier').fillColor('#333333').text(`  ${cmd}`, { indent: 10 })
       }
       doc.moveDown(0.5)
     }
 
     // ── Notes for agents ──────────────────────────────────────────────────────
     sectionTitle(doc, 'Notes for AI Agents')
-    const notes = agentsMd.split('\n')
-      .filter(l => l.startsWith('- '))
-      .map(l => l.slice(2))
+    const notes = agentsMd
+      .split('\n')
+      .filter((l) => l.startsWith('- '))
+      .map((l) => l.slice(2))
     for (const note of notes) {
-      doc.fontSize(10).font('Helvetica').fillColor('#333333')
-         .text(`• ${note}`, { indent: 10 })
+      doc.fontSize(10).font('Helvetica').fillColor('#333333').text(`• ${note}`, { indent: 10 })
     }
     doc.moveDown(0.5)
 
@@ -81,33 +94,50 @@ export function generateSummaryPdf(
     if (recentRuns.length > 0) {
       sectionTitle(doc, 'Recent Runs')
       const totalCost = recentRuns.reduce((s, r) => s + (r.usd_cost ?? 0), 0)
-      const doneCount = recentRuns.filter(r => r.status === 'done').length
+      const doneCount = recentRuns.filter((r) => r.status === 'done').length
       const checks = summarizeChecks(recentRuns)
-      row(doc, 'Total runs',  String(recentRuns.length))
-      row(doc, 'Done / all',  `${doneCount} / ${recentRuns.length}`)
-      row(doc, 'Checks',      `${checks.failed} failed / ${checks.passed} passed`)
-      row(doc, 'Total cost',  `$${totalCost.toFixed(5)}`)
+      row(doc, 'Total runs', String(recentRuns.length))
+      row(doc, 'Done / all', `${doneCount} / ${recentRuns.length}`)
+      row(doc, 'Checks', `${checks.failed} failed / ${checks.passed} passed`)
+      row(doc, 'Total cost', `$${totalCost.toFixed(5)}`)
       doc.moveDown(0.3)
-      doc.fontSize(8).font('Courier').fillColor('#666666')
-         .text(`  st date             executor     task             cost      qa`, { indent: 10 })
+      doc
+        .fontSize(8)
+        .font('Courier')
+        .fillColor('#666666')
+        .text(`  st date             executor     task             cost      qa`, { indent: 10 })
       for (const r of recentRuns.slice(0, 8)) {
         const icon = r.status === 'done' ? '✓' : '✗'
-        const qa   = r.qa_verdict ? ` [qa:${r.qa_verdict}]` : ''
+        const qa = r.qa_verdict ? ` [qa:${r.qa_verdict}]` : ''
         const date = r.created_at.slice(0, 16).replace('T', ' ')
         const executor = (r.provider ?? '-').slice(0, 12).padEnd(12)
         const task = (r.task_id ?? r.task_class).slice(0, 16).padEnd(16)
-        doc.fontSize(9).font('Courier').fillColor('#444444')
-           .text(`  ${icon}  ${date} ${executor} ${task} $${r.usd_cost.toFixed(5)}${qa}`, { indent: 10 })
+        doc
+          .fontSize(9)
+          .font('Courier')
+          .fillColor('#444444')
+          .text(`  ${icon}  ${date} ${executor} ${task} $${r.usd_cost.toFixed(5)}${qa}`, {
+            indent: 10,
+          })
       }
       doc.moveDown(0.5)
     }
 
     // ── Footer ────────────────────────────────────────────────────────────────
     const pageBottom = doc.page.height - 40
-    doc.moveTo(50, pageBottom - 10).lineTo(50 + W, pageBottom - 10)
-       .strokeColor('#e0e0e0').stroke()
-    doc.fontSize(8).fillColor('#999999').font('Helvetica')
-       .text('Generated by OrchestOS · github.com/cagr1/orchestos', 50, pageBottom, { align: 'center', width: W })
+    doc
+      .moveTo(50, pageBottom - 10)
+      .lineTo(50 + W, pageBottom - 10)
+      .strokeColor('#e0e0e0')
+      .stroke()
+    doc
+      .fontSize(8)
+      .fillColor('#999999')
+      .font('Helvetica')
+      .text('Generated by OrchestOS · github.com/cagr1/orchestos', 50, pageBottom, {
+        align: 'center',
+        width: W,
+      })
 
     doc.end()
     stream.on('finish', resolve)
@@ -151,7 +181,13 @@ function parseChecks(value: string | null): PdfStoredCheck[] {
 }
 
 function row(doc: PDFKit.PDFDocument, label: string, value: string) {
-  doc.fontSize(10).font('Helvetica-Bold').fillColor('#555555')
-     .text(label.padEnd(14), { continued: true })
-  doc.font('Helvetica').fillColor('#000000').text(value || '—')
+  doc
+    .fontSize(10)
+    .font('Helvetica-Bold')
+    .fillColor('#555555')
+    .text(label.padEnd(14), { continued: true })
+  doc
+    .font('Helvetica')
+    .fillColor('#000000')
+    .text(value || '—')
 }

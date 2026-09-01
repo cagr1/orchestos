@@ -4,9 +4,9 @@
  * sqlite.ts) — mismo patrón que harness-engine-persistence.test.ts: task_id
  * propio del test + cleanup explícito en afterAll.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import { clearRunSteps, getRunSteps, insertRunStep } from '../db/run-steps.ts'
 import { db } from '../db/sqlite.ts'
-import { insertRunStep, getRunSteps, clearRunSteps } from '../db/run-steps.ts'
 
 const TASK_ID = 'g33-run-steps-test'
 
@@ -16,7 +16,7 @@ beforeAll(async () => {
 })
 
 afterAll(() => {
-  db.run("DELETE FROM run_steps WHERE task_id = ?", [TASK_ID])
+  db.run('DELETE FROM run_steps WHERE task_id = ?', [TASK_ID])
 })
 
 describe('run-steps', () => {
@@ -43,7 +43,12 @@ describe('run-steps', () => {
 
   it('costUsd/tokens se persisten y se leen de vuelta', () => {
     clearRunSteps(TASK_ID)
-    insertRunStep(TASK_ID, { type: 'step_finish', label: 'step_finish', costUsd: 0.0041, tokens: { input: 100, output: 20 } })
+    insertRunStep(TASK_ID, {
+      type: 'step_finish',
+      label: 'step_finish',
+      costUsd: 0.0041,
+      tokens: { input: 100, output: 20 },
+    })
     const [step] = getRunSteps(TASK_ID)
     expect(step!.cost_usd).toBe(0.0041)
     expect(JSON.parse(step!.tokens_json!)).toEqual({ input: 100, output: 20 })
@@ -62,6 +67,6 @@ describe('run-steps', () => {
     insertRunStep(TASK_ID + '-other', { type: 'text', label: 'y' })
     expect(getRunSteps(TASK_ID)).toHaveLength(1)
     expect(getRunSteps(TASK_ID + '-other')).toHaveLength(1)
-    db.run("DELETE FROM run_steps WHERE task_id = ?", [TASK_ID + '-other'])
+    db.run('DELETE FROM run_steps WHERE task_id = ?', [TASK_ID + '-other'])
   })
 })

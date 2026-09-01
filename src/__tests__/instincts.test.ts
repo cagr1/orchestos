@@ -2,11 +2,29 @@
  * S33.8 — Tests for instinct schema, CRUD store, and filtering.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
-import { validateInstinct, validateInsert, InstinctValidationError, shouldApply, recalculateVerified, REVIEW_THRESHOLD, APPLY_THRESHOLD } from '../instincts/schema.ts'
-import { insertInstinct, getInstinct, listInstincts, updateConfidence, deleteInstinct, listApplicable, listUnverified, approveInstinct, updateInstinct } from '../instincts/store.ts'
-import { proposeInstinctsFromPatterns, PATTERN_FREQUENCY_THRESHOLD } from '../analyze/propose.ts'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import type { PatternSuggestion } from '../analyze/patterns.ts'
+import { PATTERN_FREQUENCY_THRESHOLD, proposeInstinctsFromPatterns } from '../analyze/propose.ts'
+import {
+  APPLY_THRESHOLD,
+  InstinctValidationError,
+  REVIEW_THRESHOLD,
+  recalculateVerified,
+  shouldApply,
+  validateInsert,
+  validateInstinct,
+} from '../instincts/schema.ts'
+import {
+  approveInstinct,
+  deleteInstinct,
+  getInstinct,
+  insertInstinct,
+  listApplicable,
+  listInstincts,
+  listUnverified,
+  updateConfidence,
+  updateInstinct,
+} from '../instincts/store.ts'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -199,10 +217,42 @@ describe('store — list', () => {
 
   beforeAll(() => {
     // Insert a few instincts for listing tests
-    ids.push(insertInstinct({ trigger: 'ListTest A', action: 'Action A', confidence: 0.9, source: 'manual', verified: true }).id)
-    ids.push(insertInstinct({ trigger: 'ListTest B', action: 'Action B', confidence: 0.7, source: 'manual', verified: true }).id)
-    ids.push(insertInstinct({ trigger: 'ListTest C', action: 'Action C', confidence: 0.5, source: 'auto', verified: false }).id)
-    ids.push(insertInstinct({ trigger: 'ListTest D', action: 'Action D', confidence: 0.95, source: 'auto', verified: false }).id)
+    ids.push(
+      insertInstinct({
+        trigger: 'ListTest A',
+        action: 'Action A',
+        confidence: 0.9,
+        source: 'manual',
+        verified: true,
+      }).id,
+    )
+    ids.push(
+      insertInstinct({
+        trigger: 'ListTest B',
+        action: 'Action B',
+        confidence: 0.7,
+        source: 'manual',
+        verified: true,
+      }).id,
+    )
+    ids.push(
+      insertInstinct({
+        trigger: 'ListTest C',
+        action: 'Action C',
+        confidence: 0.5,
+        source: 'auto',
+        verified: false,
+      }).id,
+    )
+    ids.push(
+      insertInstinct({
+        trigger: 'ListTest D',
+        action: 'Action D',
+        confidence: 0.95,
+        source: 'auto',
+        verified: false,
+      }).id,
+    )
   })
 
   afterAll(() => {
@@ -211,38 +261,38 @@ describe('store — list', () => {
 
   it('list all returns inserted instincts', () => {
     const all = listInstincts()
-    const ours = all.filter(s => s.trigger.startsWith('ListTest'))
+    const ours = all.filter((s) => s.trigger.startsWith('ListTest'))
     expect(ours.length).toBe(4)
   })
 
   it('list filtered by source', () => {
     const manuals = listInstincts({ source: 'manual' })
-    const ours = manuals.filter(s => s.trigger.startsWith('ListTest'))
+    const ours = manuals.filter((s) => s.trigger.startsWith('ListTest'))
     expect(ours.length).toBe(2)
   })
 
   it('list filtered by verified', () => {
     const verified = listInstincts({ verified: true })
-    const ours = verified.filter(s => s.trigger.startsWith('ListTest'))
+    const ours = verified.filter((s) => s.trigger.startsWith('ListTest'))
     expect(ours.length).toBe(2)
   })
 
   it('list filtered by minConfidence', () => {
     const high = listInstincts({ minConfidence: 0.8 })
-    const ours = high.filter(s => s.trigger.startsWith('ListTest'))
+    const ours = high.filter((s) => s.trigger.startsWith('ListTest'))
     expect(ours.length).toBe(2) // A (0.9) and D (0.95)
   })
 
   it('listApplicable returns only verified with confidence >= APPLY_THRESHOLD', () => {
     const applicable = listApplicable()
-    const ours = applicable.filter(s => s.trigger.startsWith('ListTest'))
+    const ours = applicable.filter((s) => s.trigger.startsWith('ListTest'))
     expect(ours.length).toBe(1) // only A (0.9, verified: true)
     expect(ours[0]!.trigger).toBe('ListTest A')
   })
 
   it('listUnverified returns only unverified instincts', () => {
     const unverified = listUnverified()
-    const ours = unverified.filter(s => s.trigger.startsWith('ListTest'))
+    const ours = unverified.filter((s) => s.trigger.startsWith('ListTest'))
     expect(ours.length).toBe(2) // C and D
   })
 })

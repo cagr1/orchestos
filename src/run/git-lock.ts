@@ -16,7 +16,7 @@
  * era `git merge ... failed after rebase` reproducido en vivo 3+ veces.
  */
 
-import { mkdirSync, openSync, closeSync, unlinkSync, statSync } from 'fs'
+import { closeSync, mkdirSync, openSync, statSync, unlinkSync } from 'fs'
 import { join } from 'path'
 
 const LOCK_WAIT_TIMEOUT_MS = 30_000
@@ -48,12 +48,20 @@ export function withGitLock<T>(projectRoot: string, fn: () => T): T {
       try {
         const age = Date.now() - statSync(path).mtimeMs
         if (age > STALE_LOCK_MS) {
-          try { unlinkSync(path) } catch { /* otro proceso ya lo robó primero */ }
+          try {
+            unlinkSync(path)
+          } catch {
+            /* otro proceso ya lo robó primero */
+          }
           continue
         }
-      } catch { /* el lock desapareció entre el catch y el stat — reintentar arriba */ }
+      } catch {
+        /* el lock desapareció entre el catch y el stat — reintentar arriba */
+      }
       if (Date.now() - start > LOCK_WAIT_TIMEOUT_MS) {
-        throw new Error(`git-lock: timeout esperando ${path} — otro proceso OrchestOS lo tiene tomado`)
+        throw new Error(
+          `git-lock: timeout esperando ${path} — otro proceso OrchestOS lo tiene tomado`,
+        )
       }
       Bun.sleepSync(POLL_INTERVAL_MS)
     }
@@ -62,6 +70,10 @@ export function withGitLock<T>(projectRoot: string, fn: () => T): T {
   try {
     return fn()
   } finally {
-    try { unlinkSync(path) } catch { /* ya liberado o robado por stale-lock */ }
+    try {
+      unlinkSync(path)
+    } catch {
+      /* ya liberado o robado por stale-lock */
+    }
   }
 }

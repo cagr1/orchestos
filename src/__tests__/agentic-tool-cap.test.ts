@@ -9,13 +9,13 @@
  * cap está cableado, ese tool-result contiene el marcador. Sin cap, sería el
  * contenido crudo (decenas de miles de chars).
  */
-import { describe, it, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
-import type { Task } from '../tasks/schema.ts'
+import { join } from 'path'
 import { estimateTokens } from '../context/compress.ts'
 import { contextWindowFor } from '../router/model-catalog.ts'
+import type { Task } from '../tasks/schema.ts'
 
 const originalFetch = globalThis.fetch
 const originalKey = process.env.OPENROUTER_API_KEY
@@ -30,27 +30,39 @@ function tmpDir(): string {
   return mkdtempSync(join(tmpdir(), 'orchestos-a3-cap-'))
 }
 
-function toolCallResponse(calls: Array<{ name: string; args: unknown }>, promptTokens = 10, completionTokens = 5): Response {
-  return new Response(JSON.stringify({
-    choices: [{
-      message: {
-        content: null,
-        tool_calls: calls.map((c, i) => ({
-          id: `call_${i}`,
-          type: 'function',
-          function: { name: c.name, arguments: JSON.stringify(c.args) },
-        })),
-      },
-    }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+function toolCallResponse(
+  calls: Array<{ name: string; args: unknown }>,
+  promptTokens = 10,
+  completionTokens = 5,
+): Response {
+  return new Response(
+    JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: null,
+            tool_calls: calls.map((c, i) => ({
+              id: `call_${i}`,
+              type: 'function',
+              function: { name: c.name, arguments: JSON.stringify(c.args) },
+            })),
+          },
+        },
+      ],
+      usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 function textResponse(text: string, promptTokens = 10, completionTokens = 5): Response {
-  return new Response(JSON.stringify({
-    choices: [{ message: { content: text } }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content: text } }],
+      usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 function installCapturingMockFetch(handlers: Array<() => Response>): { bodies: string[] } {
@@ -122,7 +134,9 @@ describe('A.3 — cap wiring in agenticEngine tools', () => {
       const secondBody = JSON.parse(bodies[1]!)
       const messages = secondBody.messages
       expect(messages.length).toBeGreaterThanOrEqual(3)
-      const assistant = messages.find((m: any) => m.role === 'assistant' && Array.isArray(m.tool_calls))
+      const assistant = messages.find(
+        (m: any) => m.role === 'assistant' && Array.isArray(m.tool_calls),
+      )
       const toolCallId = assistant.tool_calls[0].id
       const toolMsg = findToolResult(messages, toolCallId)
       expect(toolMsg).toBeDefined()
@@ -147,7 +161,9 @@ describe('A.3 — cap wiring in agenticEngine tools', () => {
       await agenticEngine.run(ctx, { maxTokens: 4096, maxIterations: 5 })
 
       const secondBody = JSON.parse(bodies[1]!)
-      const assistant = secondBody.messages.find((m: any) => m.role === 'assistant' && Array.isArray(m.tool_calls))
+      const assistant = secondBody.messages.find(
+        (m: any) => m.role === 'assistant' && Array.isArray(m.tool_calls),
+      )
       const toolMsg = findToolResult(secondBody.messages, assistant.tool_calls[0].id)
       expect(toolMsg).toBeDefined()
       expect(toolMsg.content).not.toContain('[...truncado:')
@@ -178,7 +194,9 @@ describe('A.3 — cap wiring in agenticEngine tools', () => {
       await agenticEngine.run(ctx, { maxTokens: 4096, maxIterations: 5 })
 
       const secondBody = JSON.parse(bodies[1]!)
-      const assistant = secondBody.messages.find((m: any) => m.role === 'assistant' && Array.isArray(m.tool_calls))
+      const assistant = secondBody.messages.find(
+        (m: any) => m.role === 'assistant' && Array.isArray(m.tool_calls),
+      )
       const toolMsg = findToolResult(secondBody.messages, assistant.tool_calls[0].id)
       expect(toolMsg).toBeDefined()
       expect(toolMsg.content).toContain('hi')
@@ -197,7 +215,8 @@ describe('A.3 — cap wiring in agenticEngine tools', () => {
       // Cada entry pesa ~16 chars (entry_000XXX.txt\n) → 1800 entries ≈ 28800 chars
       // (>25K default). RunLogger también crea runs/ → +5 chars. Suficiente.
       const N = 1800
-      for (let i = 0; i < N; i++) writeFileSync(join(dir, `entry_${String(i).padStart(6, '0')}.txt`), 'x')
+      for (let i = 0; i < N; i++)
+        writeFileSync(join(dir, `entry_${String(i).padStart(6, '0')}.txt`), 'x')
       const { bodies } = installCapturingMockFetch([
         () => toolCallResponse([{ name: 'list_dir', args: { path: '.' } }]),
         () => textResponse('done'),
@@ -207,7 +226,9 @@ describe('A.3 — cap wiring in agenticEngine tools', () => {
       await agenticEngine.run(ctx, { maxTokens: 4096, maxIterations: 5 })
 
       const secondBody = JSON.parse(bodies[1]!)
-      const assistant = secondBody.messages.find((m: any) => m.role === 'assistant' && Array.isArray(m.tool_calls))
+      const assistant = secondBody.messages.find(
+        (m: any) => m.role === 'assistant' && Array.isArray(m.tool_calls),
+      )
       const toolMsg = findToolResult(secondBody.messages, assistant.tool_calls[0].id)
       expect(toolMsg).toBeDefined()
       expect(toolMsg.content).toContain('[...truncado:')

@@ -5,9 +5,9 @@
  * Frontmatter is YAML, body is the markdown after the closing --- delimiter.
  */
 
-import { parse as parseYaml, stringify as yamlStringify } from 'yaml'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs'
+import { parse as parseYaml, stringify as yamlStringify } from 'yaml'
 
 export interface CapabilitiesContract {
   added: string[]
@@ -73,7 +73,7 @@ export function listSpecs(root: string, includeArchived = false): Spec[] {
   const specs: Spec[] = []
 
   // Active specs in the root specs dir
-  const files = readdirSync(dir).filter(f => f.endsWith('.md'))
+  const files = readdirSync(dir).filter((f) => f.endsWith('.md'))
   for (const file of files) {
     try {
       const text = readFileSync(join(dir, file), 'utf-8')
@@ -83,12 +83,12 @@ export function listSpecs(root: string, includeArchived = false): Spec[] {
     }
   }
 
-  if (!includeArchived) return specs.filter(s => s.frontmatter.status !== 'archived')
+  if (!includeArchived) return specs.filter((s) => s.frontmatter.status !== 'archived')
 
   // Also load archived specs from archive subdirectory
   const archiveDir = join(dir, 'archive')
   if (existsSync(archiveDir)) {
-    for (const file of readdirSync(archiveDir).filter(f => f.endsWith('.md'))) {
+    for (const file of readdirSync(archiveDir).filter((f) => f.endsWith('.md'))) {
       try {
         const text = readFileSync(join(archiveDir, file), 'utf-8')
         specs.push(parseSpec(text))
@@ -110,18 +110,20 @@ function parseSpec(text: string): Spec {
   if (closingIndex === -1) throw new Error('Spec file missing closing --- delimiter')
 
   const yamlText = text.slice(4, closingIndex)
-  const body     = text.slice(closingIndex + 5) // skip '\n---\n'
+  const body = text.slice(closingIndex + 5) // skip '\n---\n'
 
   const raw = parseYaml(yamlText) as Record<string, unknown>
 
   const rawStatus = raw.status as string
   const frontmatter: SpecFrontmatter = {
-    id:         String(raw.id ?? ''),
-    status:     (['approved', 'archived'].includes(rawStatus) ? rawStatus as 'approved' | 'archived' : 'draft'),
-    createdAt:  String(raw.createdAt ?? new Date().toISOString()),
-    clarify:    (['pending', 'resolved', 'none'].includes(raw.clarify as string)
-                  ? raw.clarify as 'pending' | 'resolved' | 'none'
-                  : 'none'),
+    id: String(raw.id ?? ''),
+    status: ['approved', 'archived'].includes(rawStatus)
+      ? (rawStatus as 'approved' | 'archived')
+      : 'draft',
+    createdAt: String(raw.createdAt ?? new Date().toISOString()),
+    clarify: ['pending', 'resolved', 'none'].includes(raw.clarify as string)
+      ? (raw.clarify as 'pending' | 'resolved' | 'none')
+      : 'none',
   }
   if (raw.approvedAt) frontmatter.approvedAt = String(raw.approvedAt)
   if (raw.archivedAt) frontmatter.archivedAt = String(raw.archivedAt)
@@ -132,9 +134,9 @@ function parseSpec(text: string): Spec {
   if (caps !== undefined && caps !== null && typeof caps === 'object' && !Array.isArray(caps)) {
     const c = caps as Record<string, unknown>
     frontmatter.capabilities = {
-      added:    toStringArray(c.added),
+      added: toStringArray(c.added),
       modified: toStringArray(c.modified),
-      removed:  toStringArray(c.removed),
+      removed: toStringArray(c.removed),
     }
   }
 
@@ -143,10 +145,10 @@ function parseSpec(text: string): Spec {
 
 function serializeSpec(spec: Spec): string {
   const fm: Record<string, unknown> = {
-    id:        spec.frontmatter.id,
-    status:    spec.frontmatter.status,
+    id: spec.frontmatter.id,
+    status: spec.frontmatter.status,
     createdAt: spec.frontmatter.createdAt,
-    clarify:   spec.frontmatter.clarify,
+    clarify: spec.frontmatter.clarify,
   }
   if (spec.frontmatter.approvedAt) fm.approvedAt = spec.frontmatter.approvedAt
   if (spec.frontmatter.archivedAt) fm.archivedAt = spec.frontmatter.archivedAt
@@ -156,9 +158,9 @@ function serializeSpec(spec: Spec): string {
   const caps = spec.frontmatter.capabilities
   if (caps && (caps.added.length > 0 || caps.modified.length > 0 || caps.removed.length > 0)) {
     fm.capabilities = {
-      ...(caps.added.length    > 0 && { added:    caps.added }),
+      ...(caps.added.length > 0 && { added: caps.added }),
       ...(caps.modified.length > 0 && { modified: caps.modified }),
-      ...(caps.removed.length  > 0 && { removed:  caps.removed }),
+      ...(caps.removed.length > 0 && { removed: caps.removed }),
     }
   }
 
@@ -168,5 +170,5 @@ function serializeSpec(spec: Spec): string {
 
 function toStringArray(val: unknown): string[] {
   if (!Array.isArray(val)) return []
-  return val.filter(v => typeof v === 'string') as string[]
+  return val.filter((v) => typeof v === 'string') as string[]
 }

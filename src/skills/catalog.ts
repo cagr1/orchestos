@@ -1,6 +1,6 @@
-import { listSkillFiles, listProSkillFiles, loadSkill } from './registry.ts'
-import type { SkillActivationMode, SkillDef } from './registry.ts'
 import type { TaskClass } from '../router/classify.ts'
+import type { SkillActivationMode, SkillDef } from './registry.ts'
+import { listProSkillFiles, listSkillFiles, loadSkill } from './registry.ts'
 
 /**
  * O.2 (Bloque O, 2026-08-03) — catálogo de skills compartido.
@@ -47,7 +47,7 @@ export function listAllSkillCandidates(): SkillCandidateInfo[] {
  * en silencio en vez de romper la creación de la tarea; solo importa que exista.
  */
 export function isKnownSkillId(id: string): boolean {
-  return listAllSkillCandidates().some(s => s.id === id)
+  return listAllSkillCandidates().some((s) => s.id === id)
 }
 
 /**
@@ -62,7 +62,10 @@ export function renderSkillCatalog(candidates?: SkillCandidateInfo[]): string {
   const list = candidates ?? listAllSkillCandidates()
   if (list.length === 0) return ''
   return list
-    .map(s => `- ${s.id}: ${s.description}${s.whenToUse.length ? ' — Use when: ' + s.whenToUse.join('; ') : ''}`)
+    .map(
+      (s) =>
+        `- ${s.id}: ${s.description}${s.whenToUse.length ? ' — Use when: ' + s.whenToUse.join('; ') : ''}`,
+    )
     .join('\n')
 }
 
@@ -107,17 +110,32 @@ export function resolveGates(taskText: string, phase: TaskClass): GateEvaluation
 
     const triggers = activation.triggers
     if (!triggers || triggers.length === 0) {
-      out.push({ skill, candidate: true, applied: true, reason: 'sin triggers declarados — aplica siempre en esta fase' })
+      out.push({
+        skill,
+        candidate: true,
+        applied: true,
+        reason: 'sin triggers declarados — aplica siempre en esta fase',
+      })
       continue
     }
-    const matched = triggers.filter(t => {
+    const matched = triggers.filter((t) => {
       const needle = t.toLowerCase()
       return haystack.includes(needle) || haystack.includes(needle.replace(/_/g, ' '))
     })
     if (matched.length > 0) {
-      out.push({ skill, candidate: true, applied: true, reason: `trigger match: ${matched.join(', ')}` })
+      out.push({
+        skill,
+        candidate: true,
+        applied: true,
+        reason: `trigger match: ${matched.join(', ')}`,
+      })
     } else {
-      out.push({ skill, candidate: true, applied: false, reason: 'ningún trigger coincidió con la descripción de la tarea' })
+      out.push({
+        skill,
+        candidate: true,
+        applied: false,
+        reason: 'ningún trigger coincidió con la descripción de la tarea',
+      })
     }
   }
   return out

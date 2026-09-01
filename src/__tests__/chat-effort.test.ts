@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { handleApiChat, handleApiChatModels } from '../dashboard/handlers/chat.ts'
 
 // BACK.3: handleApiChat valida `effort` antes de tocar cualquier estado async
@@ -21,7 +21,7 @@ describe('handleApiChat — BACK.3 reasoning effort', () => {
   it('rejects an invalid effort value with 400, before touching catalog/fetch/db', async () => {
     const res = await handleApiChat(chatRequest({ message: 'hi', history: [], effort: 'turbo' }))
     expect(res.status).toBe(400)
-    const data = await res.json() as any
+    const data = (await res.json()) as any
     expect(data.error).toMatch(/effort must be one of/)
   })
 
@@ -29,7 +29,7 @@ describe('handleApiChat — BACK.3 reasoning effort', () => {
     for (const effort of ['low', 'medium', 'high']) {
       const res = await handleApiChat(chatRequest({ message: '', history: [], effort }))
       // message vacío → 400 por "message is required", NUNCA por effort inválido.
-      const data = await res.json() as any
+      const data = (await res.json()) as any
       expect(data.error).not.toMatch(/effort/)
     }
   })
@@ -50,19 +50,40 @@ describe('handleApiChatModels — BACK.4 supportsReasoning field', () => {
 
   it('marks each model with supportsReasoning from supported_parameters', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
-    globalThis.fetch = (async () => new Response(JSON.stringify({
-      data: [
-        { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1', context_length: 64_000, pricing: { prompt: '0.0000005' }, supported_parameters: ['reasoning'] },
-        { id: 'openai/gpt-4o-mini', name: 'GPT-4o mini', context_length: 128_000, pricing: { prompt: '0.0000001' }, supported_parameters: ['temperature'] },
-        { id: 'no/params-field', name: 'No params', context_length: 32_000, pricing: { prompt: '0.0000001' } },
-      ],
-    }), { status: 200 })) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: 'deepseek/deepseek-r1',
+              name: 'DeepSeek R1',
+              context_length: 64_000,
+              pricing: { prompt: '0.0000005' },
+              supported_parameters: ['reasoning'],
+            },
+            {
+              id: 'openai/gpt-4o-mini',
+              name: 'GPT-4o mini',
+              context_length: 128_000,
+              pricing: { prompt: '0.0000001' },
+              supported_parameters: ['temperature'],
+            },
+            {
+              id: 'no/params-field',
+              name: 'No params',
+              context_length: 32_000,
+              pricing: { prompt: '0.0000001' },
+            },
+          ],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
 
     const res = await handleApiChatModels()
-    const models = await res.json() as Array<{ id: string; supportsReasoning: boolean }>
+    const models = (await res.json()) as Array<{ id: string; supportsReasoning: boolean }>
 
-    expect(models.find(m => m.id === 'deepseek/deepseek-r1')?.supportsReasoning).toBe(true)
-    expect(models.find(m => m.id === 'openai/gpt-4o-mini')?.supportsReasoning).toBe(false)
-    expect(models.find(m => m.id === 'no/params-field')?.supportsReasoning).toBe(false)
+    expect(models.find((m) => m.id === 'deepseek/deepseek-r1')?.supportsReasoning).toBe(true)
+    expect(models.find((m) => m.id === 'openai/gpt-4o-mini')?.supportsReasoning).toBe(false)
+    expect(models.find((m) => m.id === 'no/params-field')?.supportsReasoning).toBe(false)
   })
 })

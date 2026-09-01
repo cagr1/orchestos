@@ -10,13 +10,13 @@
  *   - embedOllama: happy path, empty input, missing embeddings, error response
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
   cosine,
+  embedOllama,
+  embedOpenAI,
   getEmbeddingProvider,
   inferEmbeddingProvider,
-  embedOpenAI,
-  embedOllama,
 } from '../providers/embeddings.ts'
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,9 @@ type FetchMock = (url: string, opts?: RequestInit) => Promise<Response>
 function mockFetch(impl: FetchMock) {
   const original = globalThis.fetch
   globalThis.fetch = impl as typeof fetch
-  return () => { globalThis.fetch = original }
+  return () => {
+    globalThis.fetch = original
+  }
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -42,7 +44,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 function fakeOpenAIResponse(n: number, dims = 4): object {
   return {
     data: Array.from({ length: n }, (_, i) => ({
-      index:     i,
+      index: i,
       embedding: Array.from({ length: dims }, (_, d) => (i + 1) * (d + 1) * 0.1),
     })),
     usage: { prompt_tokens: n * 10 },
@@ -53,7 +55,7 @@ function fakeOpenAIResponse(n: number, dims = 4): object {
 function fakeOllamaResponse(n: number, dims = 4): object {
   return {
     embeddings: Array.from({ length: n }, (_, i) =>
-      Array.from({ length: dims }, (_, d) => (i + 1) * (d + 1) * 0.1)
+      Array.from({ length: dims }, (_, d) => (i + 1) * (d + 1) * 0.1),
     ),
     prompt_eval_count: n * 8,
   }
@@ -162,26 +164,35 @@ describe('embedOpenAI', () => {
       expect(resp.embeddings).toHaveLength(2)
       expect(resp.embeddings[0]).toHaveLength(4)
       expect(resp.inputTokens).toBe(20)
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 
   it('returns empty for empty input (no fetch)', async () => {
     let called = false
-    const restore = mockFetch(async () => { called = true; return jsonResponse({}) })
+    const restore = mockFetch(async () => {
+      called = true
+      return jsonResponse({})
+    })
     try {
       const resp = await embedOpenAI([])
       expect(resp.embeddings).toHaveLength(0)
       expect(called).toBe(false)
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 
   it('throws on non-200 response', async () => {
-    const restore = mockFetch(async () =>
-      new Response('{"error":"invalid_api_key"}', { status: 401 })
+    const restore = mockFetch(
+      async () => new Response('{"error":"invalid_api_key"}', { status: 401 }),
     )
     try {
       await expect(embedOpenAI(['test'])).rejects.toThrow(/401/)
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 
   it('sends Authorization header with api key', async () => {
@@ -193,22 +204,28 @@ describe('embedOpenAI', () => {
     try {
       await embedOpenAI(['hello'])
       expect(capturedHeader).toBe('Bearer test-key-openai')
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 
   it('sorts embeddings by index (API may return out of order)', async () => {
-    const restore = mockFetch(async () => jsonResponse({
-      data: [
-        { index: 1, embedding: [0.2, 0.2] },
-        { index: 0, embedding: [0.1, 0.1] },
-      ],
-      usage: { prompt_tokens: 5 },
-    }))
+    const restore = mockFetch(async () =>
+      jsonResponse({
+        data: [
+          { index: 1, embedding: [0.2, 0.2] },
+          { index: 0, embedding: [0.1, 0.1] },
+        ],
+        usage: { prompt_tokens: 5 },
+      }),
+    )
     try {
       const resp = await embedOpenAI(['first', 'second'])
       expect(resp.embeddings[0]).toEqual([0.1, 0.1])
       expect(resp.embeddings[1]).toEqual([0.2, 0.2])
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 })
 
@@ -235,33 +252,42 @@ describe('embedOllama', () => {
       expect(resp.embeddings).toHaveLength(3)
       expect(resp.embeddings[0]).toHaveLength(4)
       expect(resp.inputTokens).toBe(24)
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 
   it('returns empty for empty input (no fetch)', async () => {
     let called = false
-    const restore = mockFetch(async () => { called = true; return jsonResponse({}) })
+    const restore = mockFetch(async () => {
+      called = true
+      return jsonResponse({})
+    })
     try {
       const resp = await embedOllama([])
       expect(resp.embeddings).toHaveLength(0)
       expect(called).toBe(false)
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 
   it('throws on non-200 response', async () => {
-    const restore = mockFetch(async () =>
-      new Response('model not found', { status: 404 })
-    )
+    const restore = mockFetch(async () => new Response('model not found', { status: 404 }))
     try {
       await expect(embedOllama(['test'])).rejects.toThrow(/404/)
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 
   it('throws with helpful message when embeddings field missing', async () => {
     const restore = mockFetch(async () => jsonResponse({ error: 'model not pulled' }))
     try {
       await expect(embedOllama(['test'])).rejects.toThrow(/embeddings/)
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 
   it('uses OLLAMA_BASE_URL env var for request URL', async () => {
@@ -274,6 +300,8 @@ describe('embedOllama', () => {
     try {
       await embedOllama(['test'])
       expect(capturedUrl).toContain('custom-host:9999')
-    } finally { restore() }
+    } finally {
+      restore()
+    }
   })
 })

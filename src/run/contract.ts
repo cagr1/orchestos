@@ -1,10 +1,10 @@
 import { createHash } from 'crypto'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { normalizeRelPath, resolveProjectPath } from './path-policy.ts'
 
 export interface FileChange {
-  path: string   // relative to project root
+  path: string // relative to project root
   content: string
 }
 
@@ -55,7 +55,7 @@ export function parseLLMResponse(raw: string): LLMFileResponse {
   if (files.length === 0) {
     throw new Error(
       `No <<<FILE:...>>>...<<<ENDFILE>>> blocks found in LLM response.\n` +
-      `Got:\n${raw.slice(0, 400)}`
+        `Got:\n${raw.slice(0, 400)}`,
     )
   }
 
@@ -69,7 +69,7 @@ export { normalizeRelPath } from './path-policy.ts'
 export function enforceContract(
   root: string,
   response: LLMFileResponse,
-  allowedPaths: string[]
+  allowedPaths: string[],
 ): ContractResult {
   mkdirSync(root, { recursive: true })
   const normalizedAllowed = allowedPaths.map(normalizeRelPath)
@@ -90,8 +90,8 @@ export function enforceContract(
   if (blocked.length > 0) {
     throw new Error(
       `CONTRACT VIOLATION — LLM attempted to write files outside declared outputs:\n` +
-      blocked.map(p => `  ✗ ${p}`).join('\n') +
-      `\nAllowed: ${normalizedAllowed.join(', ')}`
+        blocked.map((p) => `  ✗ ${p}`).join('\n') +
+        `\nAllowed: ${normalizedAllowed.join(', ')}`,
     )
   }
 

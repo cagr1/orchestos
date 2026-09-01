@@ -17,10 +17,10 @@
  * lógica de revert nueva acá.
  */
 
-import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
-import { readWorktreeDiff } from './worktree-diff.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
+import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
+import { readWorktreeDiff } from './worktree-diff.ts'
 
 export class ExecutorExternalError extends Error {}
 
@@ -80,7 +80,9 @@ function buildSystemPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
     `## OUTPUT CONTRACT`,
     `You may ONLY create or edit these files: ${ctx.task.output.join(', ')}.`,
     `Do not touch any other file in this repository. When you are done, stop — do not run git commands yourself.`,
-  ].filter(Boolean).join('\n\n')
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 // -- subprocess ------------------------------------------------------------------
@@ -128,11 +130,14 @@ export function orchestosModelToCliModel(model: string | undefined): string | un
 function buildClaudeArgs(systemPrompt: string, model?: string, effort?: string): string[] {
   const args = [
     '-p',
-    '--output-format', 'stream-json',
+    '--output-format',
+    'stream-json',
     '--include-partial-messages',
     '--verbose',
-    '--append-system-prompt', systemPrompt,
-    '--allowedTools', 'Edit,Write,Read,Glob,Grep',
+    '--append-system-prompt',
+    systemPrompt,
+    '--allowedTools',
+    'Edit,Write,Read,Glob,Grep',
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
@@ -143,11 +148,14 @@ function buildClaudeArgs(systemPrompt: string, model?: string, effort?: string):
 function buildClaudeArgsDisplay(model?: string, effort?: string): string[] {
   const args = [
     '-p',
-    '--output-format', 'stream-json',
+    '--output-format',
+    'stream-json',
     '--include-partial-messages',
     '--verbose',
-    '--append-system-prompt', '<contract>',
-    '--allowedTools', 'Edit,Write,Read,Glob,Grep',
+    '--append-system-prompt',
+    '<contract>',
+    '--allowedTools',
+    'Edit,Write,Read,Glob,Grep',
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
@@ -174,15 +182,21 @@ async function runClaudeCode(
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean; resultLine?: string }> {
-  const proc = Bun.spawn(
-    [CLAUDE_BINARY, ...args],
-    { cwd, env: safeChildEnv(), stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' },
-  )
+  const proc = Bun.spawn([CLAUDE_BINARY, ...args], {
+    cwd,
+    env: safeChildEnv(),
+    stdin: 'pipe',
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
   proc.stdin.write(userPrompt)
   proc.stdin.end()
 
   let timedOut = false
-  const timer = setTimeout(() => { timedOut = true; proc.kill('SIGTERM') }, timeoutMs)
+  const timer = setTimeout(() => {
+    timedOut = true
+    proc.kill('SIGTERM')
+  }, timeoutMs)
 
   const reader = proc.stdout.getReader()
   const decoder = new TextDecoder()
@@ -245,16 +259,19 @@ async function runClaudeCode(
 // de esfuerzo (`low, medium, high, xhigh, max`) — el selector de 3 niveles del
 // chat (pensado para el `reasoning` de OpenRouter) le queda chico a este CLI.
 export const CLAUDE_CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
-export type ClaudeCliEffort = typeof CLAUDE_CLI_EFFORTS[number]
+export type ClaudeCliEffort = (typeof CLAUDE_CLI_EFFORTS)[number]
 
 function buildClaudeChatArgs(systemPrompt: string, model?: string, effort?: string): string[] {
   const args = [
     '-p',
-    '--output-format', 'stream-json',
+    '--output-format',
+    'stream-json',
     '--include-partial-messages',
     '--verbose',
-    '--append-system-prompt', systemPrompt,
-    '--allowedTools', 'Read,Glob,Grep',
+    '--append-system-prompt',
+    systemPrompt,
+    '--allowedTools',
+    'Read,Glob,Grep',
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
@@ -298,7 +315,13 @@ export async function runClaudeChat(
   let timedOut: boolean
   let resultLine: string | undefined
   try {
-    ;({ timedOut, resultLine } = await runClaudeCode(cwd, buildClaudeChatArgs(systemPrompt, model, effort), userMessage, timeoutMs, onStep))
+    ;({ timedOut, resultLine } = await runClaudeCode(
+      cwd,
+      buildClaudeChatArgs(systemPrompt, model, effort),
+      userMessage,
+      timeoutMs,
+      onStep,
+    ))
   } catch (e: any) {
     throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
   }
@@ -327,7 +350,9 @@ export async function runClaudeChat(
     // canónico que el propio CLI reporta en `modelUsage` (ej. "claude-sonnet-5")
     // — si por lo que sea el evento no lo trae, cae al valor pedido, nunca a
     // un string inventado.
-    model: resolvedCliModel(parsed) ?? (orchestosModelToCliModel(model) ? model! : 'claude (cli default model)'),
+    model:
+      resolvedCliModel(parsed) ??
+      (orchestosModelToCliModel(model) ? model! : 'claude (cli default model)'),
     effort,
   }
 }
@@ -363,7 +388,13 @@ export const externalEngine: ExecutorEngine = {
     let timedOut: boolean
     let resultLine: string | undefined
     try {
-      ({ timedOut, resultLine } = await runClaudeCode(ctx.effectiveRoot, buildClaudeArgs(systemPrompt, ctx.model, ctx.task.cli_effort), ctx.prompt.userContent, timeoutMs, opts.onStep))
+      ;({ timedOut, resultLine } = await runClaudeCode(
+        ctx.effectiveRoot,
+        buildClaudeArgs(systemPrompt, ctx.model, ctx.task.cli_effort),
+        ctx.prompt.userContent,
+        timeoutMs,
+        opts.onStep,
+      ))
     } catch (e: any) {
       throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
     }
@@ -384,11 +415,15 @@ export const externalEngine: ExecutorEngine = {
     try {
       parsed = JSON.parse(resultLine)
     } catch {
-      throw new ExecutorExternalError('claude code result event was not valid JSON — cost unknown, not reported as $0')
+      throw new ExecutorExternalError(
+        'claude code result event was not valid JSON — cost unknown, not reported as $0',
+      )
     }
 
     if (typeof parsed.total_cost_usd !== 'number') {
-      throw new ExecutorExternalError('claude code JSON output is missing total_cost_usd — refusing to report cost as $0')
+      throw new ExecutorExternalError(
+        'claude code JSON output is missing total_cost_usd — refusing to report cost as $0',
+      )
     }
 
     const inputTokens = parsed.usage?.input_tokens ?? 0
@@ -407,20 +442,24 @@ export const externalEngine: ExecutorEngine = {
       // Una sola entrada agregada — Claude Code headless no expone costo por
       // turno individual en --output-format json (mismo argumento honesto
       // que agentic.ts: N entradas falsas es peor que 1 entrada real).
-      costByIteration: [{
-        label: `external (claude-code, ${iterations} turn${iterations === 1 ? '' : 's'})`,
-        model: ctx.model,
-        inputTokens,
-        outputTokens,
-        costUsd: usd,
-        // C.1 — "info de proceso" para el detalle del run. Se persiste el binario
-        // y los args SIN el system prompt completo (placeholder `<contract>`)
-        // para no inflar la DB. La UI muestra la línea de comandos reconstruida
-        // a partir de estos campos — ver screens-ops.js detail().
-        binary: CLAUDE_BINARY,
-        args: buildClaudeArgsDisplay(ctx.model, ctx.task.cli_effort),
-      }],
-      log: [`claude code: ${files.length} file(s) changed in worktree${timedOut ? ' (killed by timeout, partial output parsed)' : ''}`],
+      costByIteration: [
+        {
+          label: `external (claude-code, ${iterations} turn${iterations === 1 ? '' : 's'})`,
+          model: ctx.model,
+          inputTokens,
+          outputTokens,
+          costUsd: usd,
+          // C.1 — "info de proceso" para el detalle del run. Se persiste el binario
+          // y los args SIN el system prompt completo (placeholder `<contract>`)
+          // para no inflar la DB. La UI muestra la línea de comandos reconstruida
+          // a partir de estos campos — ver screens-ops.js detail().
+          binary: CLAUDE_BINARY,
+          args: buildClaudeArgsDisplay(ctx.model, ctx.task.cli_effort),
+        },
+      ],
+      log: [
+        `claude code: ${files.length} file(s) changed in worktree${timedOut ? ' (killed by timeout, partial output parsed)' : ''}`,
+      ],
     }
 
     return outcome

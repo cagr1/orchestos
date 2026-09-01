@@ -1,8 +1,8 @@
 import { join } from 'path'
-import { readManifest } from './manifest.ts'
-import { detectLanguages } from './languages.ts'
-import { readConventions } from './conventions.ts'
 import type { StackProfile } from '../generators/agents-md.ts'
+import { readConventions } from './conventions.ts'
+import { detectLanguages } from './languages.ts'
+import { readManifest } from './manifest.ts'
 
 export async function buildProfile(root: string): Promise<StackProfile> {
   const manifest = readManifest(root)
@@ -17,6 +17,8 @@ export async function buildProfile(root: string): Promise<StackProfile> {
     for (const key of interesting) {
       if (scripts[key]) commands.push(`${pm} run ${key}`)
     }
-  } catch { /* no package.json */ }
+  } catch {
+    /* no package.json */
+  }
   return { manifest, languages, conventions, commands }
 }

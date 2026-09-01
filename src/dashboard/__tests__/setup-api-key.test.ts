@@ -1,7 +1,7 @@
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { handleApiSetupApiKey } from '../handlers/setup.ts'
 import { envFilePath } from '../settings-store.ts'
 
@@ -55,24 +55,28 @@ describe('handleApiSetupApiKey — no persiste una key sin validar (L62-002)', (
   })
 
   test('timeout / error de red NO persiste la key', async () => {
-    globalThis.fetch = (async () => { throw Object.assign(new Error('aborted'), { name: 'AbortError' }) }) as unknown as typeof fetch
+    globalThis.fetch = (async () => {
+      throw Object.assign(new Error('aborted'), { name: 'AbortError' })
+    }) as unknown as typeof fetch
     const res = await handleApiSetupApiKey(keyRequest())
-    const body = await res.json() as { valid: boolean }
+    const body = (await res.json()) as { valid: boolean }
     expect(body.valid).toBe(false)
     expect(persistedEnv()).not.toContain('sk-or-v1-testkeyvalue0000000000')
   })
 
   test('401 NO persiste la key', async () => {
-    globalThis.fetch = (async () => new Response('unauthorized', { status: 401 })) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response('unauthorized', { status: 401 })) as unknown as typeof fetch
     const res = await handleApiSetupApiKey(keyRequest())
-    expect((await res.json() as { valid: boolean }).valid).toBe(false)
+    expect(((await res.json()) as { valid: boolean }).valid).toBe(false)
     expect(persistedEnv()).not.toContain('sk-or-v1-testkeyvalue0000000000')
   })
 
   test('500 del proveedor NO persiste la key (el caso que el fix agrega)', async () => {
-    globalThis.fetch = (async () => new Response('server error', { status: 500 })) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response('server error', { status: 500 })) as unknown as typeof fetch
     const res = await handleApiSetupApiKey(keyRequest())
-    expect((await res.json() as { valid: boolean }).valid).toBe(false)
+    expect(((await res.json()) as { valid: boolean }).valid).toBe(false)
     expect(persistedEnv()).not.toContain('sk-or-v1-testkeyvalue0000000000')
   })
 
@@ -80,7 +84,8 @@ describe('handleApiSetupApiKey — no persiste una key sin validar (L62-002)', (
     mkdirSync(join(tmpHome, '.orchestos'), { recursive: true })
     writeFileSync(envFilePath(), 'ANTHROPIC_API_KEY=sk-ant-existing-value\n', 'utf-8')
 
-    globalThis.fetch = (async () => new Response('server error', { status: 500 })) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response('server error', { status: 500 })) as unknown as typeof fetch
     await handleApiSetupApiKey(keyRequest())
 
     expect(persistedEnv()).toContain('sk-ant-existing-value')

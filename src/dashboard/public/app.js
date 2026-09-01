@@ -55,7 +55,13 @@ const state = {
   // ya tiene borrado individual (runs/tasks/instincts/memory/specs). Un Set
   // vive en memoria del navegador, no persiste entre reloads (mismo criterio
   // que taskFilter/runsFilter — estado de UI transitorio, no dato real).
-  bulkSelected: { tasks: new Set(), runs: new Set(), instincts: new Set(), memory: new Set(), specs: new Set() },
+  bulkSelected: {
+    tasks: new Set(),
+    runs: new Set(),
+    instincts: new Set(),
+    memory: new Set(),
+    specs: new Set(),
+  },
   // v0.12 Bloque C — visor de diff por run: qué archivos están expandidos (mostrando
   // el diff completo en vez de colapsado a las primeras líneas). Clave: `${runId}:${path}`.
   diffExpanded: new Set(),
@@ -75,7 +81,7 @@ const state = {
   contextContent: null,
   constitutionStatus: 'idle',
   contextStatus: 'idle',
-  projectSaveState: 'idle',  // 'idle' | 'saving' | 'saved' | 'error'
+  projectSaveState: 'idle', // 'idle' | 'saving' | 'saved' | 'error'
 
   chatHistory: [],
   chatPending: false,
@@ -101,30 +107,30 @@ const state = {
   // Settings→Model routing, modal de crear tarea). Antes cada uno era un
   // <select> nativo con cientos de <option> sin filtro — Carlos lo reportó
   // como falta de intuición de diseño real. Un solo combo abierto a la vez.
-  orModels: null,   // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
+  orModels: null, // null = not fetched, [] = loading, [...] = loaded (shared: chat + tasks)
   orModelsAttempted: false, // true once a fetch (success or failure) has completed — prevents retry-loop on every rerender
   orModelsLastFetch: 0, // timestamp of last successful fetch (ms), for TTL
   localModels: null, // null = not checked, [] = none available, [...] = Ollama models
   executorModes: null,
   executorModesStatus: 'idle',
 
-  graphStatus: 'idle',  // 'idle' | 'loading' | 'ok' | 'error'
-  graphRun: null,       // GraphRunStatusResponse from GET /api/run/graph/status
+  graphStatus: 'idle', // 'idle' | 'loading' | 'ok' | 'error'
+  graphRun: null, // GraphRunStatusResponse from GET /api/run/graph/status
   graphLaunching: false,
-};
+}
 
 const NAV = [
-  { id: 'chat',      icon: ICON.chat,     key: 'nav.chat' },
-  { id: 'project',   icon: ICON.project,  key: 'nav.project' },
+  { id: 'chat', icon: ICON.chat, key: 'nav.chat' },
+  { id: 'project', icon: ICON.project, key: 'nav.project' },
   { id: 'instincts', icon: ICON.instinct, key: 'nav.instincts' },
-  { id: 'skills',    icon: ICON.flask,    key: 'nav.skills',   badge: true },
-  { id: 'tasks',     icon: ICON.tasks,    key: 'nav.tasks',    operator: true },
-  { id: 'runs',      icon: ICON.runs,     key: 'nav.runs',     operator: true },
-  { id: 'graph',     icon: ICON.graph,    key: 'nav.graph',    operator: true },
-  { id: 'memory',    icon: ICON.memory,   key: 'nav.memory',   operator: true },
-  { id: 'specs',     icon: ICON.specs,    key: 'nav.specs',    operator: true },
-  { id: 'settings',  icon: ICON.settings, key: 'nav.settings' },
-];
+  { id: 'skills', icon: ICON.flask, key: 'nav.skills', badge: true },
+  { id: 'tasks', icon: ICON.tasks, key: 'nav.tasks', operator: true },
+  { id: 'runs', icon: ICON.runs, key: 'nav.runs', operator: true },
+  { id: 'graph', icon: ICON.graph, key: 'nav.graph', operator: true },
+  { id: 'memory', icon: ICON.memory, key: 'nav.memory', operator: true },
+  { id: 'specs', icon: ICON.specs, key: 'nav.specs', operator: true },
+  { id: 'settings', icon: ICON.settings, key: 'nav.settings' },
+]
 
 /* ============================================================
    API fetching
@@ -132,22 +138,22 @@ const NAV = [
 const App = {
   async fetchRuns() {
     try {
-      const res = await fetch('/api/runs');
-      if (!res.ok) throw new Error(res.status);
-      state.runs = await res.json();
-      state.runsStatus = 'ok';
+      const res = await fetch('/api/runs')
+      if (!res.ok) throw new Error(res.status)
+      state.runs = await res.json()
+      state.runsStatus = 'ok'
     } catch {
-      state.runsStatus = 'error';
+      state.runsStatus = 'error'
     }
   },
   async fetchInstincts() {
     try {
-      const res = await fetch('/api/instincts');
-      if (!res.ok) throw new Error(res.status);
-      state.instincts = await res.json();
-      state.instinctsStatus = 'ok';
+      const res = await fetch('/api/instincts')
+      if (!res.ok) throw new Error(res.status)
+      state.instincts = await res.json()
+      state.instinctsStatus = 'ok'
     } catch {
-      state.instinctsStatus = 'error';
+      state.instinctsStatus = 'error'
     }
     // Bug fix (2026-06-29): this used to call this.rerender() unconditionally —
     // fetchAll() polls every 30s regardless of which screen is active, and
@@ -156,171 +162,171 @@ const App = {
     // round-tripped through state) the user happened to be typing in at that
     // moment. No nav badge depends on instincts data, so only rerender when
     // the user is actually looking at the Instincts screen.
-    if (state.screen === 'instincts') this.rerender();
+    if (state.screen === 'instincts') this.rerender()
   },
   async fetchSpecs() {
     try {
-      const res = await fetch('/api/specs');
-      if (!res.ok) throw new Error(res.status);
-      state.specs = await res.json();
-      state.specsStatus = 'ok';
+      const res = await fetch('/api/specs')
+      if (!res.ok) throw new Error(res.status)
+      state.specs = await res.json()
+      state.specsStatus = 'ok'
     } catch {
-      state.specsStatus = 'error';
+      state.specsStatus = 'error'
     }
   },
   async fetchSkills() {
     try {
-      const res = await fetch('/api/skills');
-      if (!res.ok) throw new Error(res.status);
-      state.skills = await res.json();
-      state.skillsStatus = 'ok';
+      const res = await fetch('/api/skills')
+      if (!res.ok) throw new Error(res.status)
+      state.skills = await res.json()
+      state.skillsStatus = 'ok'
     } catch {
-      state.skillsStatus = 'error';
+      state.skillsStatus = 'error'
     }
   },
   async fetchProSkills() {
     try {
-      const res = await fetch('/api/skills/pro');
-      if (!res.ok) throw new Error(res.status);
-      state.proSkills = await res.json();
-      state.proSkillsStatus = 'ok';
+      const res = await fetch('/api/skills/pro')
+      if (!res.ok) throw new Error(res.status)
+      state.proSkills = await res.json()
+      state.proSkillsStatus = 'ok'
     } catch {
-      state.proSkillsStatus = 'error';
+      state.proSkillsStatus = 'error'
     }
   },
   async fetchRegistrySkills() {
     try {
-      const res = await fetch('/api/skills/registry');
-      if (!res.ok) throw new Error(res.status);
-      const data = await res.json();
-      state.registrySkills = data.skills || [];
-      state.registrySkillsStatus = 'ok';
+      const res = await fetch('/api/skills/registry')
+      if (!res.ok) throw new Error(res.status)
+      const data = await res.json()
+      state.registrySkills = data.skills || []
+      state.registrySkillsStatus = 'ok'
     } catch {
-      state.registrySkillsStatus = 'error';
+      state.registrySkillsStatus = 'error'
     }
-    this.rerender();
+    this.rerender()
   },
   async fetchMemory(q) {
     try {
-      const url = q ? `/api/memory?q=${encodeURIComponent(q)}` : '/api/memory';
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(res.status);
-      state.memory = await res.json();
-      state.memoryStatus = 'ok';
+      const url = q ? `/api/memory?q=${encodeURIComponent(q)}` : '/api/memory'
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(res.status)
+      state.memory = await res.json()
+      state.memoryStatus = 'ok'
     } catch {
-      state.memoryStatus = 'error';
+      state.memoryStatus = 'error'
     }
   },
   async fetchSettings() {
     try {
-      const res = await fetch('/api/settings');
-      if (!res.ok) throw new Error(res.status);
-      state.settings = await res.json();
-      state.settingsStatus = 'ok';
+      const res = await fetch('/api/settings')
+      if (!res.ok) throw new Error(res.status)
+      state.settings = await res.json()
+      state.settingsStatus = 'ok'
     } catch {
-      state.settingsStatus = 'error';
+      state.settingsStatus = 'error'
     }
   },
   async fetchSetup() {
     try {
-      const res = await fetch('/api/setup');
-      if (!res.ok) throw new Error(res.status);
-      state.setup = await res.json();
-      state.setupStatus = 'ok';
+      const res = await fetch('/api/setup')
+      if (!res.ok) throw new Error(res.status)
+      state.setup = await res.json()
+      state.setupStatus = 'ok'
     } catch {
-      state.setupStatus = 'error';
+      state.setupStatus = 'error'
     }
   },
   async fetchHealth() {
     try {
-      const res = await fetch('/api/health');
-      if (!res.ok) throw new Error(res.status);
-      state.health = await res.json();
-      state.healthStatus = 'ok';
+      const res = await fetch('/api/health')
+      if (!res.ok) throw new Error(res.status)
+      state.health = await res.json()
+      state.healthStatus = 'ok'
     } catch {
-      state.healthStatus = 'error';
+      state.healthStatus = 'error'
     }
   },
   async fetchConstitution() {
-    state.constitutionStatus = 'loading';
+    state.constitutionStatus = 'loading'
     try {
-      const res = await fetch('/api/project/constitution');
-      if (!res.ok) throw new Error(res.status);
-      const data = await res.json();
-      state.constitutionContent = data.content;
-      state.constitutionExists = data.exists === true;
-      state.constitutionStatus = 'ok';
+      const res = await fetch('/api/project/constitution')
+      if (!res.ok) throw new Error(res.status)
+      const data = await res.json()
+      state.constitutionContent = data.content
+      state.constitutionExists = data.exists === true
+      state.constitutionStatus = 'ok'
     } catch {
-      state.constitutionStatus = 'error';
+      state.constitutionStatus = 'error'
     }
   },
   async fetchContext() {
-    state.contextStatus = 'loading';
+    state.contextStatus = 'loading'
     try {
-      const res = await fetch('/api/project/context');
-      if (!res.ok) throw new Error(res.status);
-      const data = await res.json();
-      state.contextContent = data.content;
-      state.contextStatus = 'ok';
+      const res = await fetch('/api/project/context')
+      if (!res.ok) throw new Error(res.status)
+      const data = await res.json()
+      state.contextContent = data.content
+      state.contextStatus = 'ok'
     } catch {
-      state.contextStatus = 'error';
+      state.contextStatus = 'error'
     }
   },
   async fetchMemoryConflicts() {
     try {
-      const res = await fetch('/api/memory/conflicts');
-      state.memoryConflicts = res.ok ? await res.json() : [];
+      const res = await fetch('/api/memory/conflicts')
+      state.memoryConflicts = res.ok ? await res.json() : []
     } catch {
-      state.memoryConflicts = [];
+      state.memoryConflicts = []
     }
   },
   async fetchOrcheConfig() {
-    state.orcheConfigStatus = 'loading';
+    state.orcheConfigStatus = 'loading'
     try {
-      const res = await fetch('/api/config');
-      if (!res.ok) throw new Error(res.status);
-      state.orcheConfig = await res.json();
-      state.orcheConfigStatus = 'ok';
+      const res = await fetch('/api/config')
+      if (!res.ok) throw new Error(res.status)
+      state.orcheConfig = await res.json()
+      state.orcheConfigStatus = 'ok'
     } catch {
-      state.orcheConfigStatus = 'error';
+      state.orcheConfigStatus = 'error'
     }
   },
   // G.4.4 — detección (qué CLI/tier hay disponible) + selección (agente
   // guardado, CC.D1) para el selector segmentado de Settings.
   async fetchExecutorModes() {
-    state.executorModesStatus = 'loading';
+    state.executorModesStatus = 'loading'
     try {
-      const res = await fetch('/api/system/executor-modes');
-      if (!res.ok) throw new Error(res.status);
-      state.executorModes = await res.json();
-      state.executorModesStatus = 'ok';
+      const res = await fetch('/api/system/executor-modes')
+      if (!res.ok) throw new Error(res.status)
+      state.executorModes = await res.json()
+      state.executorModesStatus = 'ok'
     } catch {
-      state.executorModesStatus = 'error';
+      state.executorModesStatus = 'error'
     }
   },
   // H.1 — agregación de gasto/actividad por día+modelo, para el tab de Usage.
   async fetchUsage() {
-    state.usageDataStatus = 'loading';
+    state.usageDataStatus = 'loading'
     try {
-      const res = await fetch('/api/usage');
-      if (!res.ok) throw new Error(res.status);
-      state.usageData = await res.json();
-      state.usageDataStatus = 'ok';
+      const res = await fetch('/api/usage')
+      if (!res.ok) throw new Error(res.status)
+      state.usageData = await res.json()
+      state.usageDataStatus = 'ok'
     } catch {
-      state.usageDataStatus = 'error';
+      state.usageDataStatus = 'error'
     }
   },
   async fetchChatTaskBarEvents() {
-    state.chatTaskBarEventsStatus = 'loading';
+    state.chatTaskBarEventsStatus = 'loading'
     try {
-      const res = await fetch('/api/chat/task-bar-events');
-      if (!res.ok) throw new Error(res.status);
-      const data = await res.json();
-      state.chatTaskBarEventsSummary = data.summary;
-      state.chatTaskBarEvents = data.events;
-      state.chatTaskBarEventsStatus = 'ok';
+      const res = await fetch('/api/chat/task-bar-events')
+      if (!res.ok) throw new Error(res.status)
+      const data = await res.json()
+      state.chatTaskBarEventsSummary = data.summary
+      state.chatTaskBarEvents = data.events
+      state.chatTaskBarEventsStatus = 'ok'
     } catch {
-      state.chatTaskBarEventsStatus = 'error';
+      state.chatTaskBarEventsStatus = 'error'
     }
   },
   async fetchAll() {
@@ -343,10 +349,10 @@ const App = {
       // real de agregarlo al boot.
       this.fetchOrcheConfig(),
       this.fetchExecutorModes(),
-    ]);
+    ])
     if (!state.setupRedirectDone && state.setup?.criticalMissing) {
-      state.screen = 'settings';
-      state.setupRedirectDone = true;
+      state.screen = 'settings'
+      state.setupRedirectDone = true
     }
     // Home SIEMPRE es Chat, sin excepciones (decisión explícita de Carlos, reafirmada
     // 2026-07-07). El redirect a Settings por "urgent attention" ya se había eliminado;
@@ -354,7 +360,7 @@ const App = {
     // fue explícito: "el home siempre debe ser el chat principal SIEMPRE", sin excepción
     // de modo. Solo el setup wizard (criticalMissing, arriba) sigue redirigiendo — sin
     // eso el chat ni siquiera funciona.
-    state.attentionRedirectDone = true;
+    state.attentionRedirectDone = true
     // Bug fix (2026-06-29, ampliado 2026-07-08): fetchAll() runs every 30s via
     // setInterval (boot()), regardless of which screen is open. This used to
     // call this.rerender() unconditionally — rerender() replaces #main's
@@ -377,60 +383,61 @@ const App = {
     // el cambio sin guardar en silencio, exactamente el bug que este guard
     // existe para prevenir. `state.constitutionDirty` cubre la ventana que el
     // chequeo de foco solo no cubre.
-    const typingInMain = (document.activeElement
-      && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)
-      && document.getElementById('main')?.contains(document.activeElement))
-      || state.constitutionDirty;
+    const typingInMain =
+      (document.activeElement &&
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) &&
+        document.getElementById('main')?.contains(document.activeElement)) ||
+      state.constitutionDirty
     if (typingInMain) {
-      this.syncNav();
+      this.syncNav()
     } else {
-      this.rerender();
+      this.rerender()
     }
     // v0.13 seed — solo refresca la pestaña activa del panel derecho si está
     // abierto; Explorer no depende de state.runs, se refresca a sí mismo.
-    if (state.rightPanelOpen && state.rightPanelTab !== 'explorer') RightPanel.render();
+    if (state.rightPanelOpen && state.rightPanelTab !== 'explorer') RightPanel.render()
   },
   async fetchTasks() {
     try {
-      const res = await fetch('/api/tasks');
-      if (!res.ok) throw new Error(res.status);
+      const res = await fetch('/api/tasks')
+      if (!res.ok) throw new Error(res.status)
       // v0.12 / Bloque D.1.a — shape wrapper { exists, tasks, error? }.
       // Antes era un array pelado; ahora distinguimos "no existe el archivo"
       // (UI muestra CTA de init) de "existe pero vacío" (UI muestra composer
       // normal) de "existe pero malformado" (UI muestra error de parseo).
-      const body = await res.json();
-      state.tasks = Array.isArray(body) ? body : (body.tasks || []);
-      state.tasksYamlExists = Array.isArray(body) ? true : !!body.exists;
-      state.tasksYamlError = Array.isArray(body) ? null : (body.error || null);
-      state.tasksStatus = 'ok';
+      const body = await res.json()
+      state.tasks = Array.isArray(body) ? body : body.tasks || []
+      state.tasksYamlExists = Array.isArray(body) ? true : !!body.exists
+      state.tasksYamlError = Array.isArray(body) ? null : body.error || null
+      state.tasksStatus = 'ok'
     } catch {
-      state.tasksStatus = 'error';
+      state.tasksStatus = 'error'
     }
   },
   /** v0.12 / Bloque D.1.a — llama POST /api/tasks/init y refresca el estado.
    * Devuelve `{ ok, project, framework, runtime, taskIds }` o lanza Error
    * con el mensaje del backend (e.g. "tasks.yaml already exists"). */
   async initTasksYaml() {
-    const res = await fetch('/api/tasks/init', { method: 'POST' });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error || `init failed (${res.status})`);
-    await this.fetchTasks();
-    return body;
+    const res = await fetch('/api/tasks/init', { method: 'POST' })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(body.error || `init failed (${res.status})`)
+    await this.fetchTasks()
+    return body
   },
   async fetchGraphStatus() {
     try {
-      const res = await fetch('/api/run/graph/status');
-      if (!res.ok) throw new Error(res.status);
-      state.graphRun = await res.json();
-      state.graphStatus = 'ok';
+      const res = await fetch('/api/run/graph/status')
+      if (!res.ok) throw new Error(res.status)
+      state.graphRun = await res.json()
+      state.graphStatus = 'ok'
     } catch {
-      state.graphStatus = 'error';
+      state.graphStatus = 'error'
     }
   },
 
   rerender() {
-    const main = document.getElementById('main');
-    const sc = SCREENS[state.screen];
+    const main = document.getElementById('main')
+    const sc = SCREENS[state.screen]
     // UI.4 (Mes 30) — una pantalla ya migrada a React NO se repinta desde acá.
     //
     // El motivo es concreto: `main.innerHTML = ...` destruye el DOM, y el registro de islas
@@ -444,42 +451,53 @@ const App = {
     // sola vez y despues se deja quieto; React se encarga del resto y decide que repintar.
     if (sc.react) {
       if (main.getAttribute('data-screen') !== state.screen) {
-        main.innerHTML = sc.render(state);
-        main.setAttribute('data-screen', state.screen);
+        main.innerHTML = sc.render(state)
+        main.setAttribute('data-screen', state.screen)
       }
-      bumpAppState();
-      this.syncHeader();
-      this.syncNav();
-      return;
+      bumpAppState()
+      this.syncHeader()
+      this.syncNav()
+      return
     }
-    main.removeAttribute('data-screen');
-    main.innerHTML = sc.render(state);
-    sc.wire(main, state);
-    this.syncHeader();
-    this.syncNav();
+    main.removeAttribute('data-screen')
+    main.innerHTML = sc.render(state)
+    sc.wire(main, state)
+    this.syncHeader()
+    this.syncNav()
   },
   go(id) {
     // stop auto-refresh when leaving Runs, Settings or the Graph runner
-    if (SCREENS.runs._timer) { clearInterval(SCREENS.runs._timer); SCREENS.runs._timer = null; }
-    if (SCREENS.settings._timer) { clearInterval(SCREENS.settings._timer); SCREENS.settings._timer = null; }
-    if (SCREENS.graph._timer) { clearInterval(SCREENS.graph._timer); SCREENS.graph._timer = null; }
-    state.screen = id;
-    state.openRun = null; state.openSpec = null; state.openSkill = null;
+    if (SCREENS.runs._timer) {
+      clearInterval(SCREENS.runs._timer)
+      SCREENS.runs._timer = null
+    }
+    if (SCREENS.settings._timer) {
+      clearInterval(SCREENS.settings._timer)
+      SCREENS.settings._timer = null
+    }
+    if (SCREENS.graph._timer) {
+      clearInterval(SCREENS.graph._timer)
+      SCREENS.graph._timer = null
+    }
+    state.screen = id
+    state.openRun = null
+    state.openSpec = null
+    state.openSkill = null
     // lazy-load project content on first visit
     if (id === 'project') {
-      const tab = state.projectTab || 'constitution';
+      const tab = state.projectTab || 'constitution'
       if (tab === 'constitution' && state.constitutionStatus === 'idle') {
-        this.fetchConstitution().then(() => this.rerender());
+        this.fetchConstitution().then(() => this.rerender())
       } else if (tab === 'context' && state.contextStatus === 'idle') {
-        this.fetchContext().then(() => this.rerender());
+        this.fetchContext().then(() => this.rerender())
       }
     }
     // lazy-load graph runner status on first visit
     if (id === 'graph' && state.graphStatus === 'idle') {
-      state.graphStatus = 'loading';
-      this.fetchGraphStatus().then(() => this.rerender());
+      state.graphStatus = 'loading'
+      this.fetchGraphStatus().then(() => this.rerender())
     }
-    this.rerender();
+    this.rerender()
   },
   // UI.3 (Mes 30) — estos dos ya no escriben el DOM: EMPUJAN ESTADO al shell React.
   // Antes hacian `classList.toggle('active')` y `badge.textContent = ...` a mano, que es
@@ -493,82 +511,91 @@ const App = {
       skillsCount: (state.skills || []).length,
       advanced: (localStorage.getItem('orchestos-mode') || 'normal') === 'advanced',
       sidebarExpanded: document.querySelector('.app').dataset.sidebar === 'expanded',
-    });
+    })
   },
   syncHeader() {
     // 2026-07-13 (corrección de Carlos, ronda 3) — se quitó el contador
     // "N active" del header: le quitaba espacio al pill de IDLE/RUNNING.
-    pushShellState({ running: (state.tasks || []).some(t => t.status === 'running') });
+    pushShellState({ running: (state.tasks || []).some((t) => t.status === 'running') })
   },
-};
+}
 
 /* ============================================================
    Terminal (right panel tab) — shows recent runs
    ============================================================ */
 const Term = {
   render() {
-    const body = document.getElementById('termBody');
-    if (!body) return;
-    const runs = state.runs || [];
+    const body = document.getElementById('termBody')
+    if (!body) return
+    const runs = state.runs || []
     if (runs.length === 0) {
-      body.innerHTML = `<div class="ln dim">  no runs yet — use the CLI to execute tasks</div>`;
-      return;
+      body.innerHTML = `<div class="ln dim">  no runs yet — use the CLI to execute tasks</div>`
+      return
     }
-    body.innerHTML = runs.slice(0, 10).map(r => {
-      const cls = r.status === 'failed' ? 'err' : r.status === 'done' ? '' : 'info';
-      const sym = r.status === 'done' ? '✓' : r.status === 'failed' ? '✗' : '›';
-      const qa  = r.qaVerdict ? `  qa:${esc(r.qaVerdict)}` : '';
-      const cost = `  $${Number(r.costUsd).toFixed(4)}`;
-      const task = r.taskId ? `  ${esc(r.taskId)}` : '';
-      const ts = formatLocalDate(r.createdAt, { seconds: true });
-      return `<div class="ln ${cls}">${sym}  ${esc(r.id)}${task}  ${esc(r.model)}${qa}${cost}  <span class="dim">${esc(ts)}</span></div>`;
-    }).join('');
+    body.innerHTML = runs
+      .slice(0, 10)
+      .map((r) => {
+        const cls = r.status === 'failed' ? 'err' : r.status === 'done' ? '' : 'info'
+        const sym = r.status === 'done' ? '✓' : r.status === 'failed' ? '✗' : '›'
+        const qa = r.qaVerdict ? `  qa:${esc(r.qaVerdict)}` : ''
+        const cost = `  $${Number(r.costUsd).toFixed(4)}`
+        const task = r.taskId ? `  ${esc(r.taskId)}` : ''
+        const ts = formatLocalDate(r.createdAt, { seconds: true })
+        return `<div class="ln ${cls}">${sym}  ${esc(r.id)}${task}  ${esc(r.model)}${qa}${cost}  <span class="dim">${esc(ts)}</span></div>`
+      })
+      .join('')
   },
-};
+}
 
 /* ============================================================
    Right panel — explorer / terminal / diff (v0.13 seed, header redesign)
    ============================================================ */
 const RightPanel = {
   render() {
-    const body = document.getElementById('rightpanelBody');
-    if (!body) return;
-    if (state.rightPanelTab === 'explorer') { Explorer.render(); return; }
-    if (state.rightPanelTab === 'diff') { this.renderDiff(); return; }
-    this.renderTerminal();
+    const body = document.getElementById('rightpanelBody')
+    if (!body) return
+    if (state.rightPanelTab === 'explorer') {
+      Explorer.render()
+      return
+    }
+    if (state.rightPanelTab === 'diff') {
+      this.renderDiff()
+      return
+    }
+    this.renderTerminal()
   },
   renderTerminal() {
-    const body = document.getElementById('rightpanelBody');
+    const body = document.getElementById('rightpanelBody')
     body.innerHTML = `<div class="rp-terminal">
       <div class="rp-terminal-head">
         <span class="rp-terminal-label">${ICON.term} ${t('rp.terminal.title')}</span>
         <span class="live">● live</span>
       </div>
       <div class="rp-terminal-body" id="termBody"></div>
-    </div>`;
-    Term.render();
+    </div>`
+    Term.render()
   },
   // Diff tab — reusa fileDiffs de la corrida más reciente que produjo alguno
   // (v0.12 Bloque C). No repite el motor: mismo `renderFileDiffGroup()` que
   // usa el detalle de Runs.
   renderDiff() {
-    const body = document.getElementById('rightpanelBody');
-    const runs = state.runs || [];
-    const withDiff = runs.find(r => r.fileDiffs && r.fileDiffs.length);
+    const body = document.getElementById('rightpanelBody')
+    const runs = state.runs || []
+    const withDiff = runs.find((r) => r.fileDiffs && r.fileDiffs.length)
     if (!withDiff) {
-      body.innerHTML = `<div class="rp-explorer-empty">${t('rp.diff.empty')}</div>`;
-      return;
+      body.innerHTML = `<div class="rp-explorer-empty">${t('rp.diff.empty')}</div>`
+      return
     }
-    const ts = formatLocalDate(withDiff.createdAt, { seconds: true });
+    const ts = formatLocalDate(withDiff.createdAt, { seconds: true })
     body.innerHTML = `<div class="rp-diff">
       <div class="rp-diff-meta">
         <span class="mono">${esc(withDiff.taskId || withDiff.id)}</span>
         <span>·</span><span>${esc(ts)}</span>
       </div>
-      ${withDiff.fileDiffs.map(f => renderFileDiffEntry(withDiff.id, f)).join('')}
-    </div>`;
+      ${withDiff.fileDiffs.map((f) => renderFileDiffEntry(withDiff.id, f)).join('')}
+    </div>`
   },
-};
+}
 
 /* ============================================================
    Explorer (right panel tab) — árbol read-only del proyecto, un nivel
@@ -580,108 +607,118 @@ const RightPanel = {
 const Explorer = {
   cache: {},
   async fetchDir(path) {
-    if (this.cache[path]) return this.cache[path];
+    if (this.cache[path]) return this.cache[path]
     try {
-      const res = await fetch(`/api/explorer/tree?path=${encodeURIComponent(path)}`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      this.cache[path] = data.entries;
-      return data.entries;
-    } catch { return []; }
-  },
-  entryRow(e, depth) {
-    const typeIc = e.type === 'dir'
-      ? `<span class="exp-ic">${ICON.chevR}</span>`
-      : `<span class="exp-ic"></span>`;
-    const fileIc = `<span class="exp-type-ic">${e.type === 'dir' ? ICON.folder : ICON.file}</span>`;
-    return `<div class="exp-row" data-exp-path="${esc(e.path)}" data-exp-type="${e.type}" data-exp-depth="${depth}" style="padding-left:${depth * 14 + 6}px" role="button" tabindex="0">${typeIc}${fileIc}<span class="exp-name">${esc(e.name)}</span></div>`;
-  },
-  async render() {
-    const body = document.getElementById('rightpanelBody');
-    if (!body) return;
-    if (state.explorerOpenFile) { this.renderFile(state.explorerOpenFile); return; }
-    const entries = await this.fetchDir('');
-    body.innerHTML = entries.length
-      ? `<div class="rp-explorer" id="explorerTree">${entries.map(e => this.entryRow(e, 0)).join('')}</div>`
-      : `<div class="rp-explorer-empty">${t('rp.explorer.empty')}</div>`;
-    this.wire();
-  },
-  wire() {
-    const tree = document.getElementById('explorerTree');
-    if (!tree) return;
-    tree.querySelectorAll('.exp-row').forEach(row => {
-      row.addEventListener('click', async () => {
-        if (row.dataset.expType === 'file') {
-          state.explorerOpenFile = row.dataset.expPath;
-          this.render();
-          return;
-        }
-        const depth = Number(row.dataset.expDepth);
-        const next = row.nextElementSibling;
-        if (next && next.classList.contains('exp-children')) {
-          next.remove();
-          row.classList.remove('open');
-          return;
-        }
-        row.classList.add('open');
-        const children = await this.fetchDir(row.dataset.expPath);
-        const wrap = document.createElement('div');
-        wrap.className = 'exp-children';
-        wrap.innerHTML = children.map(c => this.entryRow(c, depth + 1)).join('');
-        row.after(wrap);
-        this.wire();
-      });
-      row.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.click(); }
-      });
-    });
-  },
-  async renderFile(path) {
-    const body = document.getElementById('rightpanelBody');
-    body.innerHTML = `<div class="rp-file-preview"><div class="rp-file-preview-head"><button class="rp-file-back" id="expBack">${ICON.chevR} ${t('rp.explorer.back')}</button><span class="rp-file-path mono">${esc(path)}</span></div><div class="rp-file-note">${t('rp.explorer.loading')}</div></div>`;
-    document.getElementById('expBack').addEventListener('click', () => {
-      state.explorerOpenFile = null;
-      this.render();
-    });
-    try {
-      const res = await fetch(`/api/explorer/file?path=${encodeURIComponent(path)}`);
-      const data = await res.json();
-      const note = document.querySelector('.rp-file-preview .rp-file-note, .rp-file-preview pre');
-      if (!note) return; // el usuario ya volvió al árbol antes de que respondiera
-      if (data.binary) {
-        note.outerHTML = `<div class="rp-file-note">${t('rp.explorer.binary')}</div>`;
-      } else if (data.tooLarge) {
-        note.outerHTML = `<div class="rp-file-note">${t('rp.explorer.toolarge')}</div>`;
-      } else {
-        note.outerHTML = `<pre>${esc(data.content)}</pre>`;
-      }
+      const res = await fetch(`/api/explorer/tree?path=${encodeURIComponent(path)}`)
+      if (!res.ok) return []
+      const data = await res.json()
+      this.cache[path] = data.entries
+      return data.entries
     } catch {
-      const note = document.querySelector('.rp-file-preview .rp-file-note');
-      if (note) note.textContent = t('rp.explorer.error');
+      return []
     }
   },
-};
+  entryRow(e, depth) {
+    const typeIc =
+      e.type === 'dir'
+        ? `<span class="exp-ic">${ICON.chevR}</span>`
+        : `<span class="exp-ic"></span>`
+    const fileIc = `<span class="exp-type-ic">${e.type === 'dir' ? ICON.folder : ICON.file}</span>`
+    return `<div class="exp-row" data-exp-path="${esc(e.path)}" data-exp-type="${e.type}" data-exp-depth="${depth}" style="padding-left:${depth * 14 + 6}px" role="button" tabindex="0">${typeIc}${fileIc}<span class="exp-name">${esc(e.name)}</span></div>`
+  },
+  async render() {
+    const body = document.getElementById('rightpanelBody')
+    if (!body) return
+    if (state.explorerOpenFile) {
+      this.renderFile(state.explorerOpenFile)
+      return
+    }
+    const entries = await this.fetchDir('')
+    body.innerHTML = entries.length
+      ? `<div class="rp-explorer" id="explorerTree">${entries.map((e) => this.entryRow(e, 0)).join('')}</div>`
+      : `<div class="rp-explorer-empty">${t('rp.explorer.empty')}</div>`
+    this.wire()
+  },
+  wire() {
+    const tree = document.getElementById('explorerTree')
+    if (!tree) return
+    tree.querySelectorAll('.exp-row').forEach((row) => {
+      row.addEventListener('click', async () => {
+        if (row.dataset.expType === 'file') {
+          state.explorerOpenFile = row.dataset.expPath
+          this.render()
+          return
+        }
+        const depth = Number(row.dataset.expDepth)
+        const next = row.nextElementSibling
+        if (next && next.classList.contains('exp-children')) {
+          next.remove()
+          row.classList.remove('open')
+          return
+        }
+        row.classList.add('open')
+        const children = await this.fetchDir(row.dataset.expPath)
+        const wrap = document.createElement('div')
+        wrap.className = 'exp-children'
+        wrap.innerHTML = children.map((c) => this.entryRow(c, depth + 1)).join('')
+        row.after(wrap)
+        this.wire()
+      })
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          row.click()
+        }
+      })
+    })
+  },
+  async renderFile(path) {
+    const body = document.getElementById('rightpanelBody')
+    body.innerHTML = `<div class="rp-file-preview"><div class="rp-file-preview-head"><button class="rp-file-back" id="expBack">${ICON.chevR} ${t('rp.explorer.back')}</button><span class="rp-file-path mono">${esc(path)}</span></div><div class="rp-file-note">${t('rp.explorer.loading')}</div></div>`
+    document.getElementById('expBack').addEventListener('click', () => {
+      state.explorerOpenFile = null
+      this.render()
+    })
+    try {
+      const res = await fetch(`/api/explorer/file?path=${encodeURIComponent(path)}`)
+      const data = await res.json()
+      const note = document.querySelector('.rp-file-preview .rp-file-note, .rp-file-preview pre')
+      if (!note) return // el usuario ya volvió al árbol antes de que respondiera
+      if (data.binary) {
+        note.outerHTML = `<div class="rp-file-note">${t('rp.explorer.binary')}</div>`
+      } else if (data.tooLarge) {
+        note.outerHTML = `<div class="rp-file-note">${t('rp.explorer.toolarge')}</div>`
+      } else {
+        note.outerHTML = `<pre>${esc(data.content)}</pre>`
+      }
+    } catch {
+      const note = document.querySelector('.rp-file-preview .rp-file-note')
+      if (note) note.textContent = t('rp.explorer.error')
+    }
+  },
+}
 
 /* ============================================================
    Side panel (task details)
    ============================================================ */
 const SidePanel = {
-  el: null, backdrop: null,
+  el: null,
+  backdrop: null,
   init() {
-    this.backdrop = document.createElement('div');
-    this.backdrop.className = 'backdrop';
-    this.backdrop.addEventListener('click', () => this.close());
-    this.el = document.createElement('div');
-    this.el.className = 'side-panel';
+    this.backdrop = document.createElement('div')
+    this.backdrop.className = 'backdrop'
+    this.backdrop.addEventListener('click', () => this.close())
+    this.el = document.createElement('div')
+    this.el.className = 'side-panel'
     // Append to body so rerender() on #main doesn't destroy the panel
-    document.body.append(this.backdrop, this.el);
+    document.body.append(this.backdrop, this.el)
   },
   openTask(t) {
-    const t2 = window.t;  // alias to avoid shadowing the task param
-    const v = STATUS_BADGE[t.status] || 'gray';
+    const t2 = window.t // alias to avoid shadowing the task param
+    const v = STATUS_BADGE[t.status] || 'gray'
     const outputList = (t.output || []).length
-      ? `<div class="sp-section"><div class="label">${t2('panel.output')}</div><div class="val mono" style="font-size:12px">${(t.output || []).map(f => esc(f)).join('<br>')}</div></div>`
-      : '';
+      ? `<div class="sp-section"><div class="label">${t2('panel.output')}</div><div class="val mono" style="font-size:12px">${(t.output || []).map((f) => esc(f)).join('<br>')}</div></div>`
+      : ''
     this.el.innerHTML = `
       <div class="sp-head">
         <span class="badge ${v}"><span class="d"></span>${esc(t.status)}</span>
@@ -709,54 +746,89 @@ const SidePanel = {
         <button class="btn ghost sm sp-explain">${ICON.search} Explain</button>
         <span style="flex:1"></span>
         <button class="btn danger sm sp-delete">${ICON.trash}</button>
-      </div>`;
-    this.el.querySelector('.sp-close').addEventListener('click', () => this.close());
+      </div>`
+    this.el.querySelector('.sp-close').addEventListener('click', () => this.close())
     this.el.querySelector('.sp-delete').addEventListener('click', async () => {
-      const ok = await Modal.confirm(`Delete task "${t.id}"?`, t('bulk.confirm.body'), t('btn.confirm'));
-      if (!ok) return;
+      const ok = await Modal.confirm(
+        `Delete task "${t.id}"?`,
+        t('bulk.confirm.body'),
+        t('btn.confirm'),
+      )
+      if (!ok) return
       try {
-        const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}`, { method: 'DELETE' });
-        if (res.ok) { this.close(); await App.fetchTasks(); App.rerender(); }
-        else { const e = await res.json(); showToast(e.error || 'Delete failed', 'error'); }
-      } catch { showToast('Connection error', 'error'); }
-    });
+        const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}`, { method: 'DELETE' })
+        if (res.ok) {
+          this.close()
+          await App.fetchTasks()
+          App.rerender()
+        } else {
+          const e = await res.json()
+          showToast(e.error || 'Delete failed', 'error')
+        }
+      } catch {
+        showToast('Connection error', 'error')
+      }
+    })
     this.el.querySelector('.sp-explain')?.addEventListener('click', async () => {
-      const out = this.el.querySelector('#sp-explain-out');
-      out.style.display = 'block';
-      out.innerHTML = '<span class="muted" style="font-size:12px">Cargando…</span>';
+      const out = this.el.querySelector('#sp-explain-out')
+      out.style.display = 'block'
+      out.innerHTML = '<span class="muted" style="font-size:12px">Cargando…</span>'
       try {
-        const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}/explain`);
-        const d = await res.json();
-        if (!res.ok) { out.innerHTML = `<span style="color:var(--error);font-size:12px">${esc(d.error || 'Error')}</span>`; return; }
+        const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}/explain`)
+        const d = await res.json()
+        if (!res.ok) {
+          out.innerHTML = `<span style="color:var(--error);font-size:12px">${esc(d.error || 'Error')}</span>`
+          return
+        }
         out.innerHTML = `<div class="sp-explain-card">
           <div class="sp-explain-row"><span class="sp-explain-k">Model</span><span class="sp-explain-v">${esc(d.model)}</span></div>
           <div class="sp-explain-row"><span class="sp-explain-k">Executor</span><span class="sp-explain-v">${esc(d.executor)}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Input (${esc(d.inputSource)})</span><span class="sp-explain-v">${d.inputFiles.length ? d.inputFiles.map(f => esc(f)).join(', ') : '—'}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Outputs</span><span class="sp-explain-v">${d.outputs.length ? d.outputs.map(f => esc(f)).join(', ') : '—'}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Checks</span><span class="sp-explain-v">${d.checks.length ? d.checks.map(c => esc(c.cmd)).join(', ') : '(none)'}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Input (${esc(d.inputSource)})</span><span class="sp-explain-v">${d.inputFiles.length ? d.inputFiles.map((f) => esc(f)).join(', ') : '—'}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Outputs</span><span class="sp-explain-v">${d.outputs.length ? d.outputs.map((f) => esc(f)).join(', ') : '—'}</span></div>
+          <div class="sp-explain-row"><span class="sp-explain-k">Checks</span><span class="sp-explain-v">${d.checks.length ? d.checks.map((c) => esc(c.cmd)).join(', ') : '(none)'}</span></div>
           <div class="sp-explain-row"><span class="sp-explain-k">Criteria</span><span class="sp-explain-v">${d.acceptanceCriteria.length ? d.acceptanceCriteria.length + ' items' : '(none)'}</span></div>
           <div class="sp-explain-row"><span class="sp-explain-k">Constitution</span><span class="sp-explain-v">${d.constitution ? d.constitution.ruleCount + ' rules' : '(none)'}</span></div>
-        </div>`;
-      } catch { out.innerHTML = '<span style="color:var(--error);font-size:12px">Connection error</span>'; }
-    });
+        </div>`
+      } catch {
+        out.innerHTML = '<span style="color:var(--error);font-size:12px">Connection error</span>'
+      }
+    })
     this.el.querySelector('.sp-run-clarify')?.addEventListener('click', async () => {
-      const clarification = this.el.querySelector('#sp-clarify')?.value?.trim();
-      const btn = this.el.querySelector('.sp-run-clarify');
-      btn.disabled = true;
+      const clarification = this.el.querySelector('#sp-clarify')?.value?.trim()
+      const btn = this.el.querySelector('.sp-run-clarify')
+      btn.disabled = true
       try {
-        const body = clarification ? { clarification } : {};
+        const body = clarification ? { clarification } : {}
         const res = await fetch(`/api/tasks/${encodeURIComponent(t.id)}/run`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-        });
-        if (res.ok) { this.close(); await App.fetchTasks(); App.rerender(); showToast('Tarea en cola ✓'); }
-        else { const e = await res.json(); showToast(e.error || 'Error al ejecutar', 'error'); }
-      } catch { showToast('Connection error', 'error'); }
-      finally { btn.disabled = false; }
-    });
-    requestAnimationFrame(() => { this.el.classList.add('open'); this.backdrop.classList.add('show'); });
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        if (res.ok) {
+          this.close()
+          await App.fetchTasks()
+          App.rerender()
+          showToast('Tarea en cola ✓')
+        } else {
+          const e = await res.json()
+          showToast(e.error || 'Error al ejecutar', 'error')
+        }
+      } catch {
+        showToast('Connection error', 'error')
+      } finally {
+        btn.disabled = false
+      }
+    })
+    requestAnimationFrame(() => {
+      this.el.classList.add('open')
+      this.backdrop.classList.add('show')
+    })
   },
-  close() { this.el.classList.remove('open'); this.backdrop.classList.remove('show'); },
-};
+  close() {
+    this.el.classList.remove('open')
+    this.backdrop.classList.remove('show')
+  },
+}
 
 /* ============================================================
    Modal (add instinct)
@@ -764,10 +836,12 @@ const SidePanel = {
 const Modal = {
   el: null,
   init() {
-    this.el = document.createElement('div');
-    this.el.className = 'modal-scrim';
-    document.body.appendChild(this.el);
-    this.el.addEventListener('click', e => { if (e.target === this.el) this.close(); });
+    this.el = document.createElement('div')
+    this.el.className = 'modal-scrim'
+    document.body.appendChild(this.el)
+    this.el.addEventListener('click', (e) => {
+      if (e.target === this.el) this.close()
+    })
   },
 
   // v0.12 Bloque A (ex-IDEAS #18) — modal de confirmación genérico, reemplaza
@@ -776,18 +850,23 @@ const Modal = {
   // el resultado antes de proceder, mismo contrato que confirm() nativo pero
   // sin bloquear el hilo ni verse como un diálogo del OS.
   confirm(title, body, confirmLabel) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.el.innerHTML = `<div class="modal" style="max-width:480px">
         <div class="m-head"><h3>${esc(title)}</h3><button class="btn ghost sm" data-x>${ICON.x}</button></div>
         <div class="m-body"><p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.5;white-space:pre-wrap;max-height:50vh;overflow-y:auto">${esc(body)}</p></div>
         <div class="m-foot"><button class="btn" data-cancel>${t('btn.cancel')}</button>
           <button class="btn danger" data-confirm>${esc(confirmLabel ?? t('btn.confirm'))}</button></div>
-      </div>`;
-      const settle = val => { this.close(); resolve(val); };
-      this.el.querySelectorAll('[data-x],[data-cancel]').forEach(b => b.addEventListener('click', () => settle(false)));
-      this.el.querySelector('[data-confirm]').addEventListener('click', () => settle(true));
-      requestAnimationFrame(() => this.el.classList.add('show'));
-    });
+      </div>`
+      const settle = (val) => {
+        this.close()
+        resolve(val)
+      }
+      this.el
+        .querySelectorAll('[data-x],[data-cancel]')
+        .forEach((b) => b.addEventListener('click', () => settle(false)))
+      this.el.querySelector('[data-confirm]').addEventListener('click', () => settle(true))
+      requestAnimationFrame(() => this.el.classList.add('show'))
+    })
   },
 
   // v0.12 Bloque A — reemplaza el alert(text) usado como fallback cuando
@@ -799,13 +878,16 @@ const Modal = {
       <div class="m-head"><h3>${esc(title)}</h3><button class="btn ghost sm" data-x>${ICON.x}</button></div>
       <div class="m-body"><textarea readonly style="width:100%;min-height:80px;font-family:var(--mono);font-size:12.5px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;color:var(--text)">${esc(text)}</textarea></div>
       <div class="m-foot"><button class="btn primary" data-x>${t('btn.confirm')}</button></div>
-    </div>`;
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    </div>`
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
     requestAnimationFrame(() => {
-      this.el.classList.add('show');
-      const ta = this.el.querySelector('textarea');
-      ta?.focus(); ta?.select();
-    });
+      this.el.classList.add('show')
+      const ta = this.el.querySelector('textarea')
+      ta?.focus()
+      ta?.select()
+    })
   },
   openInstinct() {
     this.el.innerHTML = `<div class="modal">
@@ -827,37 +909,46 @@ const Modal = {
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
         <button class="btn primary" data-add>${ICON.plus} ${t('modal.inst.btn.add')}</button></div>
-    </div>`;
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    </div>`
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
     this.el.querySelector('[data-add]').addEventListener('click', async () => {
-      const trig = this.el.querySelector('#i-trig').value.trim();
-      const act  = this.el.querySelector('#i-act').value.trim();
-      const msg  = this.el.querySelector('#i-msg');
-      if (!trig || !act) { msg.textContent = t('modal.inst.err.req'); msg.style.color = 'var(--error)'; msg.style.display = ''; return; }
-      const btn = this.el.querySelector('[data-add]');
-      btn.disabled = true;
+      const trig = this.el.querySelector('#i-trig').value.trim()
+      const act = this.el.querySelector('#i-act').value.trim()
+      const msg = this.el.querySelector('#i-msg')
+      if (!trig || !act) {
+        msg.textContent = t('modal.inst.err.req')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        return
+      }
+      const btn = this.el.querySelector('[data-add]')
+      btn.disabled = true
       try {
         const res = await fetch('/api/instincts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ trigger: trig, action: act }),
-        });
+        })
         if (res.ok) {
-          this.close();
-          await App.fetchInstincts();
+          this.close()
+          await App.fetchInstincts()
         } else {
-          const e = await res.json();
-          msg.textContent = e.error || 'Failed to add instinct.';
-          msg.style.color = 'var(--error)';
-          msg.style.display = '';
+          const e = await res.json()
+          msg.textContent = e.error || 'Failed to add instinct.'
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
         }
       } catch {
-        msg.textContent = 'Connection error.';
-        msg.style.color = 'var(--error)';
-        msg.style.display = '';
-      } finally { btn.disabled = false; }
-    });
-    requestAnimationFrame(() => this.el.classList.add('show'));
+        msg.textContent = 'Connection error.'
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+      } finally {
+        btn.disabled = false
+      }
+    })
+    requestAnimationFrame(() => this.el.classList.add('show'))
   },
 
   openPropose() {
@@ -880,31 +971,52 @@ const Modal = {
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
         <button class="btn primary" data-propose>${ICON.instinct} Proponer</button></div>
-    </div>`;
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    </div>`
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
     this.el.querySelector('[data-propose]').addEventListener('click', async () => {
-      const trig = this.el.querySelector('#p-trig').value.trim();
-      const act  = this.el.querySelector('#p-act').value.trim();
-      const msg  = this.el.querySelector('#p-msg');
-      if (!trig || !act) { msg.textContent = 'Trigger y action son requeridos.'; msg.style.color = 'var(--error)'; msg.style.display = ''; return; }
-      const btn = this.el.querySelector('[data-propose]');
-      btn.disabled = true;
+      const trig = this.el.querySelector('#p-trig').value.trim()
+      const act = this.el.querySelector('#p-act').value.trim()
+      const msg = this.el.querySelector('#p-msg')
+      if (!trig || !act) {
+        msg.textContent = 'Trigger y action son requeridos.'
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        return
+      }
+      const btn = this.el.querySelector('[data-propose]')
+      btn.disabled = true
       try {
         const res = await fetch('/api/instincts/propose', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ trigger: trig, action: act }),
-        });
-        if (res.ok) { this.close(); await App.fetchInstincts(); showToast('Instinct propuesto — pendiente de aprobación'); }
-        else { const e = await res.json(); msg.textContent = e.error || 'Error al proponer.'; msg.style.color = 'var(--error)'; msg.style.display = ''; }
-      } catch { msg.textContent = 'Connection error.'; msg.style.color = 'var(--error)'; msg.style.display = ''; }
-      finally { btn.disabled = false; }
-    });
-    requestAnimationFrame(() => this.el.classList.add('show'));
+        })
+        if (res.ok) {
+          this.close()
+          await App.fetchInstincts()
+          showToast('Instinct propuesto — pendiente de aprobación')
+        } else {
+          const e = await res.json()
+          msg.textContent = e.error || 'Error al proponer.'
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
+        }
+      } catch {
+        msg.textContent = 'Connection error.'
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+      } finally {
+        btn.disabled = false
+      }
+    })
+    requestAnimationFrame(() => this.el.classList.add('show'))
   },
 
   openTask() {
-    const models = state.orModels;
-    const modelOptions = buildModelSelect('t-model', null, models);
+    const models = state.orModels
+    const modelOptions = buildModelSelect('t-model', null, models)
     this.el.innerHTML = `<div class="modal">
       <div class="m-head"><span style="color:var(--accent)">${ICON.tasks}</span><h3>${t('modal.task.title')}</h3>
         <button class="btn ghost sm" data-x>${ICON.x}</button></div>
@@ -923,63 +1035,102 @@ const Modal = {
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
         <button class="btn primary" data-add>${ICON.plus} ${t('modal.task.btn.create')}</button></div>
-    </div>`;
-    const descEl = this.el.querySelector('#t-desc');
-    const previewEl = this.el.querySelector('#t-id-preview');
+    </div>`
+    const descEl = this.el.querySelector('#t-desc')
+    const previewEl = this.el.querySelector('#t-id-preview')
     descEl.addEventListener('input', () => {
-      previewEl.textContent = descToId(descEl.value) || '—';
-    });
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+      previewEl.textContent = descToId(descEl.value) || '—'
+    })
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
     // (el combo de modelo se carga solo al abrirse — wiring genérico en boot())
 
     // Auto-load if not yet fetched (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)
     if (state.orModels === null && !state.orModelsAttempted) {
-      loadOrModels().then(() => this.openTask());
+      loadOrModels().then(() => this.openTask())
     }
     this.el.querySelector('[data-add]').addEventListener('click', async () => {
-      const desc = this.el.querySelector('#t-desc').value.trim();
-      const id   = descToId(desc);
-      const outRaw = this.el.querySelector('#t-out').value.trim();
-      const modelId = this.el.querySelector('#t-model')?.value?.trim() || 'deepseek/deepseek-v4-flash';
-      const executor = inferExecutor(modelId);
-      const msg = this.el.querySelector('#t-msg');
-      const output = outRaw.split('\n').map(s => s.trim()).filter(Boolean);
+      const desc = this.el.querySelector('#t-desc').value.trim()
+      const id = descToId(desc)
+      const outRaw = this.el.querySelector('#t-out').value.trim()
+      const modelId =
+        this.el.querySelector('#t-model')?.value?.trim() || 'deepseek/deepseek-v4-flash'
+      const executor = inferExecutor(modelId)
+      const msg = this.el.querySelector('#t-msg')
+      const output = outRaw
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
       if (!desc) {
-        msg.textContent = t('modal.task.err.required');
-        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+        msg.textContent = t('modal.task.err.required')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        return
       }
-      const btn = this.el.querySelector('[data-add]');
-      btn.disabled = true;
+      const btn = this.el.querySelector('[data-add]')
+      btn.disabled = true
       try {
         const res = await fetch('/api/tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, description: desc, output, executor, executor_model: modelId }),
-        });
+          body: JSON.stringify({
+            id,
+            description: desc,
+            output,
+            executor,
+            executor_model: modelId,
+          }),
+        })
         if (res.ok) {
-          this.close();
-          await App.fetchTasks();
-          App.rerender();
+          this.close()
+          await App.fetchTasks()
+          App.rerender()
         } else {
-          const e = await res.json();
-          msg.textContent = e.error || 'Failed to create task.';
-          msg.style.color = 'var(--error)'; msg.style.display = '';
+          const e = await res.json()
+          msg.textContent = e.error || 'Failed to create task.'
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
         }
       } catch {
-        msg.textContent = 'Connection error.';
-        msg.style.color = 'var(--error)'; msg.style.display = '';
-      } finally { btn.disabled = false; }
-    });
-    requestAnimationFrame(() => this.el.classList.add('show'));
+        msg.textContent = 'Connection error.'
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+      } finally {
+        btn.disabled = false
+      }
+    })
+    requestAnimationFrame(() => this.el.classList.add('show'))
   },
 
   openSkillDetail(skill) {
-    const field = (label, val) => val ? `<div class="m-field"><label>${label}</label><div class="val mono" style="font-size:13px;line-height:1.5;white-space:pre-wrap">${esc(val)}</div></div>` : '';
-    const listField = (label, items) => items && items.length ? `<div class="m-field"><label>${label}</label><div class="val" style="font-size:13px">${items.map(i => `<span class="badge blue square" style="margin:2px">${esc(i)}</span>`).join(' ')}</div></div>` : '';
-    const rationalizationsField = skill.common_rationalizations && skill.common_rationalizations.length ? `<div class="m-field"><label>${t('skills.detail.common_rationalizations')}</label><div style="font-size:13px">${skill.common_rationalizations.map(r => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px"><div><span class="muted">${t('skills.detail.excuse')}:</span> ${esc(r.excuse)}</div><div style="margin-top:4px"><span class="muted">${t('skills.detail.refutation')}:</span> ${esc(r.refutation)}</div></div>`).join('')}</div></div>` : '';
-    const examplesField = skill.examples && skill.examples.length ? `<div class="m-field"><label>${t('skills.detail.examples')}</label><div style="font-size:12px">${skill.examples.map(ex => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px"><b>${esc(ex.title)}</b><div class="muted" style="margin-top:4px">${esc(ex.input)}</div><div class="muted" style="margin-top:2px;color:var(--text)">→ ${esc(ex.output)}</div></div>`).join('')}</div></div>` : '';
-    const langTargets = skill.language_targets ? Object.entries(skill.language_targets).map(([lang, cfg]) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:4px"><b>${esc(lang)}</b>${cfg.verifiers ? `<div class="muted" style="margin-top:4px">${t('skills.detail.verifiers')}: ${cfg.verifiers.map(v => esc(v)).join(', ')}</div>` : ''}${cfg.anti_patterns ? `<div class="muted">${t('skills.detail.anti_patterns')}: ${cfg.anti_patterns.map(a => esc(a)).join(', ')}</div>` : ''}</div>`).join('') : '';
-    const langSection = langTargets ? `<div class="m-field"><label>${t('skills.detail.language_targets')}</label>${langTargets}</div>` : '';
+    const field = (label, val) =>
+      val
+        ? `<div class="m-field"><label>${label}</label><div class="val mono" style="font-size:13px;line-height:1.5;white-space:pre-wrap">${esc(val)}</div></div>`
+        : ''
+    const listField = (label, items) =>
+      items && items.length
+        ? `<div class="m-field"><label>${label}</label><div class="val" style="font-size:13px">${items.map((i) => `<span class="badge blue square" style="margin:2px">${esc(i)}</span>`).join(' ')}</div></div>`
+        : ''
+    const rationalizationsField =
+      skill.common_rationalizations && skill.common_rationalizations.length
+        ? `<div class="m-field"><label>${t('skills.detail.common_rationalizations')}</label><div style="font-size:13px">${skill.common_rationalizations.map((r) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px"><div><span class="muted">${t('skills.detail.excuse')}:</span> ${esc(r.excuse)}</div><div style="margin-top:4px"><span class="muted">${t('skills.detail.refutation')}:</span> ${esc(r.refutation)}</div></div>`).join('')}</div></div>`
+        : ''
+    const examplesField =
+      skill.examples && skill.examples.length
+        ? `<div class="m-field"><label>${t('skills.detail.examples')}</label><div style="font-size:12px">${skill.examples.map((ex) => `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px"><b>${esc(ex.title)}</b><div class="muted" style="margin-top:4px">${esc(ex.input)}</div><div class="muted" style="margin-top:2px;color:var(--text)">→ ${esc(ex.output)}</div></div>`).join('')}</div></div>`
+        : ''
+    const langTargets = skill.language_targets
+      ? Object.entries(skill.language_targets)
+          .map(
+            ([lang, cfg]) =>
+              `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:4px"><b>${esc(lang)}</b>${cfg.verifiers ? `<div class="muted" style="margin-top:4px">${t('skills.detail.verifiers')}: ${cfg.verifiers.map((v) => esc(v)).join(', ')}</div>` : ''}${cfg.anti_patterns ? `<div class="muted">${t('skills.detail.anti_patterns')}: ${cfg.anti_patterns.map((a) => esc(a)).join(', ')}</div>` : ''}</div>`,
+          )
+          .join('')
+      : ''
+    const langSection = langTargets
+      ? `<div class="m-field"><label>${t('skills.detail.language_targets')}</label>${langTargets}</div>`
+      : ''
 
     this.el.innerHTML = `<div class="modal" style="width:520px;max-width:calc(100vw - 40px)">
       <div class="m-head"><span style="color:var(--accent)">${ICON.flask}</span><h3>${esc(skill.name)} <span class="muted" style="font-weight:400;font-size:12px">v${esc(skill.version)}</span></h3>
@@ -1001,17 +1152,19 @@ const Modal = {
         ${langSection}
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('skills.detail.close')}</button></div>
-    </div>`;
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
-    requestAnimationFrame(() => this.el.classList.add('show'));
+    </div>`
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
+    requestAnimationFrame(() => this.el.classList.add('show'))
   },
 
   // ── Bloque D: New Skill modal (textarea + curate + form + preview) ──────
   openNewSkill() {
-    this._curatedSkill = null;
-    this._editingSkillId = null;
-    this._renderNewSkillInput();
-    requestAnimationFrame(() => this.el.classList.add('show'));
+    this._curatedSkill = null
+    this._editingSkillId = null
+    this._renderNewSkillInput()
+    requestAnimationFrame(() => this.el.classList.add('show'))
   },
 
   // ── Edit existing skill: reuses the New Skill form, prefilled, PUT on save ──
@@ -1020,23 +1173,23 @@ const Modal = {
   // otherwise PUT fails validation with a field that looks populated in the list
   // but is empty in the real SkillDef.
   async openEditSkill(skillSummary) {
-    this._curatedSkill = null;
-    this._editingSkillId = skillSummary.id;
+    this._curatedSkill = null
+    this._editingSkillId = skillSummary.id
     this.el.innerHTML = `<div class="modal" style="width:400px">
       <div class="m-body" style="display:flex;align-items:center;gap:10px;padding:24px">
         <span class="spinner" style="width:16px;height:16px;border-width:2px"></span>
         <span>${t('skills.detail.loading')}</span>
       </div>
-    </div>`;
-    requestAnimationFrame(() => this.el.classList.add('show'));
+    </div>`
+    requestAnimationFrame(() => this.el.classList.add('show'))
     try {
-      const res = await fetch(`/api/skills/${encodeURIComponent(skillSummary.id)}`);
-      const full = await res.json();
-      if (!res.ok) throw new Error(full.error || 'Failed to load skill');
-      this._curatedSkill = full;
-      this._renderNewSkillForm();
+      const res = await fetch(`/api/skills/${encodeURIComponent(skillSummary.id)}`)
+      const full = await res.json()
+      if (!res.ok) throw new Error(full.error || 'Failed to load skill')
+      this._curatedSkill = full
+      this._renderNewSkillForm()
     } catch {
-      this.close();
+      this.close()
     }
   },
 
@@ -1054,50 +1207,62 @@ const Modal = {
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
         <button class="btn primary" data-curate>${ICON.spark} ${t('modal.skill.btn.curate')}</button></div>
-    </div>`;
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    </div>`
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
     this.el.querySelector('[data-curate]').addEventListener('click', async () => {
-      const desc = this.el.querySelector('#ns-desc-input').value.trim();
-      const msg  = this.el.querySelector('#ns-msg');
-      if (!desc) { msg.textContent = t('modal.skill.err.empty'); msg.style.color = 'var(--error)'; msg.style.display = ''; return; }
-      const btn = this.el.querySelector('[data-curate]');
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${t('modal.skill.curating')}`;
-      msg.style.display = 'none';
+      const desc = this.el.querySelector('#ns-desc-input').value.trim()
+      const msg = this.el.querySelector('#ns-msg')
+      if (!desc) {
+        msg.textContent = t('modal.skill.err.empty')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        return
+      }
+      const btn = this.el.querySelector('[data-curate]')
+      btn.disabled = true
+      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${t('modal.skill.curating')}`
+      msg.style.display = 'none'
       try {
         const res = await fetch('/api/skills/curate', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: desc }),
-        });
-        const data = await res.json();
+        })
+        const data = await res.json()
         if (data.ok && data.skill) {
-          this._curatedSkill = data.skill;
-          this._renderNewSkillForm();
+          this._curatedSkill = data.skill
+          this._renderNewSkillForm()
         } else {
-          msg.textContent = data.error || t('modal.skill.err.curate');
-          msg.style.color = 'var(--error)'; msg.style.display = '';
-          btn.disabled = false;
-          btn.innerHTML = `${ICON.spark} ${t('modal.skill.btn.curate')}`;
+          msg.textContent = data.error || t('modal.skill.err.curate')
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
+          btn.disabled = false
+          btn.innerHTML = `${ICON.spark} ${t('modal.skill.btn.curate')}`
         }
       } catch {
-        msg.textContent = t('common.conn.error');
-        msg.style.color = 'var(--error)'; msg.style.display = '';
-        btn.disabled = false;
-        btn.innerHTML = `${ICON.spark} ${t('modal.skill.btn.curate')}`;
+        msg.textContent = t('common.conn.error')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        btn.disabled = false
+        btn.innerHTML = `${ICON.spark} ${t('modal.skill.btn.curate')}`
       }
-    });
+    })
   },
 
   _renderNewSkillForm() {
-    const s = this._curatedSkill || {};
-    const isEdit = !!this._editingSkillId;
-    const targets = s.targets || [];
-    const tClaude = targets.includes('claude') ? 'checked' : '';
-    const tCursor = targets.includes('cursor') ? 'checked' : '';
-    const tOpenai = targets.includes('openai') ? 'checked' : '';
-    const listVal = (key) => esc((s[key] || []).join('\n'));
-    const rationalizationsVal = (s.common_rationalizations || []).map(r => `${r.excuse} :: ${r.refutation}`).join('\n');
-    const preview = this._yamlFromForm(s);
+    const s = this._curatedSkill || {}
+    const isEdit = !!this._editingSkillId
+    const targets = s.targets || []
+    const tClaude = targets.includes('claude') ? 'checked' : ''
+    const tCursor = targets.includes('cursor') ? 'checked' : ''
+    const tOpenai = targets.includes('openai') ? 'checked' : ''
+    const listVal = (key) => esc((s[key] || []).join('\n'))
+    const rationalizationsVal = (s.common_rationalizations || [])
+      .map((r) => `${r.excuse} :: ${r.refutation}`)
+      .join('\n')
+    const preview = this._yamlFromForm(s)
     this.el.innerHTML = `<div class="modal" style="width:640px">
       <div class="m-head"><span style="color:var(--accent)">${ICON.flask}</span><h3>${isEdit ? t('modal.skill.title.edit') : t('modal.skill.title')}</h3>
         <button class="btn ghost sm" data-x>${ICON.x}</button></div>
@@ -1146,90 +1311,156 @@ const Modal = {
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
         <button class="btn primary" data-save>${ICON.flask} ${isEdit ? t('modal.skill.btn.save.edit') : t('modal.skill.btn.save')}</button></div>
-    </div>`;
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    </div>`
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
     const updatePreview = () => {
-      const pre = this.el.querySelector('#ns-preview');
-      if (pre) pre.textContent = this._yamlFromForm();
-    };
-    this.el.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', updatePreview));
+      const pre = this.el.querySelector('#ns-preview')
+      if (pre) pre.textContent = this._yamlFromForm()
+    }
+    this.el
+      .querySelectorAll('input, textarea')
+      .forEach((el) => el.addEventListener('input', updatePreview))
     this.el.querySelector('[data-save]').addEventListener('click', async () => {
-      const skill = this._gatherFormData();
-      const msg   = this.el.querySelector('#ns-msg');
+      const skill = this._gatherFormData()
+      const msg = this.el.querySelector('#ns-msg')
       if (!skill.id || !skill.name || !skill.description) {
-        msg.textContent = 'ID, Name and Description are required.';
-        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+        msg.textContent = 'ID, Name and Description are required.'
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        return
       }
-      const btn = this.el.querySelector('[data-save]');
-      btn.disabled = true;
+      const btn = this.el.querySelector('[data-save]')
+      btn.disabled = true
       try {
-        const url    = isEdit ? `/api/skills/${encodeURIComponent(this._editingSkillId)}` : '/api/skills';
-        const method = isEdit ? 'PUT' : 'POST';
+        const url = isEdit
+          ? `/api/skills/${encodeURIComponent(this._editingSkillId)}`
+          : '/api/skills'
+        const method = isEdit ? 'PUT' : 'POST'
         const res = await fetch(url, {
-          method, headers: { 'Content-Type': 'application/json' },
+          method,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(skill),
-        });
-        if (res.ok) { this.close(); await App.fetchSkills(); App.rerender(); }
-        else { const e = await res.json(); msg.textContent = e.error || (isEdit ? t('modal.skill.err.update') : t('modal.skill.err.save')); msg.style.color = 'var(--error)'; msg.style.display = ''; btn.disabled = false; }
-      } catch { msg.textContent = t('common.conn.error'); msg.style.color = 'var(--error)'; msg.style.display = ''; btn.disabled = false; }
-    });
+        })
+        if (res.ok) {
+          this.close()
+          await App.fetchSkills()
+          App.rerender()
+        } else {
+          const e = await res.json()
+          msg.textContent =
+            e.error || (isEdit ? t('modal.skill.err.update') : t('modal.skill.err.save'))
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
+          btn.disabled = false
+        }
+      } catch {
+        msg.textContent = t('common.conn.error')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        btn.disabled = false
+      }
+    })
   },
 
   _gatherFormData() {
-    const g = (id) => (this.el.querySelector(id)?.value || '').trim();
-    const gl = (id) => g(id).split('\n').map(s => s.trim()).filter(Boolean);
-    const rationalizations = gl('#ns-rationalizations').map(line => {
-      const separator = line.indexOf(' :: ');
-      return { excuse: separator === -1 ? line : line.slice(0, separator).trim(), refutation: separator === -1 ? '' : line.slice(separator + 4).trim() };
-    });
-    const targets = [];
-    if (this.el.querySelector('#ns-t-claude')?.checked) targets.push('claude');
-    if (this.el.querySelector('#ns-t-cursor')?.checked) targets.push('cursor');
-    if (this.el.querySelector('#ns-t-openai')?.checked) targets.push('openai');
+    const g = (id) => (this.el.querySelector(id)?.value || '').trim()
+    const gl = (id) =>
+      g(id)
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    const rationalizations = gl('#ns-rationalizations').map((line) => {
+      const separator = line.indexOf(' :: ')
+      return {
+        excuse: separator === -1 ? line : line.slice(0, separator).trim(),
+        refutation: separator === -1 ? '' : line.slice(separator + 4).trim(),
+      }
+    })
+    const targets = []
+    if (this.el.querySelector('#ns-t-claude')?.checked) targets.push('claude')
+    if (this.el.querySelector('#ns-t-cursor')?.checked) targets.push('cursor')
+    if (this.el.querySelector('#ns-t-openai')?.checked) targets.push('openai')
     return {
-      id: g('#ns-id'), version: g('#ns-version') || '1.0.0', name: g('#ns-name'),
-      description: g('#ns-desc'), targets, instructions: g('#ns-instructions'),
+      id: g('#ns-id'),
+      version: g('#ns-version') || '1.0.0',
+      name: g('#ns-name'),
+      description: g('#ns-desc'),
+      targets,
+      instructions: g('#ns-instructions'),
       iron_law: g('#ns-iron-law') || undefined,
-      when_to_use: gl('#ns-when'), anti_patterns: gl('#ns-anti'),
+      when_to_use: gl('#ns-when'),
+      anti_patterns: gl('#ns-anti'),
       common_rationalizations: rationalizations.length ? rationalizations : undefined,
       red_flags: gl('#ns-red-flags'),
-      verifiers: gl('#ns-verifiers'), inputs_required: gl('#ns-inputs'),
+      verifiers: gl('#ns-verifiers'),
+      inputs_required: gl('#ns-inputs'),
       allowed_tools: gl('#ns-tools'),
-    };
+    }
   },
 
   _yamlFromForm(seed) {
-    const d = seed || this._gatherFormData();
-    if (!d) return '';
-    const lines = [];
-    const pushArr = (k, arr) => { if (arr && arr.length) { lines.push(k + ':'); arr.forEach(v => lines.push('  - ' + v)); } };
-    const pushPairs = (k, pairs) => { if (pairs && pairs.length) { lines.push(k + ':'); pairs.forEach(r => { lines.push('  - excuse: ' + JSON.stringify(r.excuse)); lines.push('    refutation: ' + JSON.stringify(r.refutation)); }); } };
-    const pushStr = (k, v) => { if (v) { if (v.includes('\n')) { lines.push(k + ': |'); v.split('\n').forEach(l => lines.push('  ' + l)); } else { lines.push(k + ': ' + v); } } };
-    pushStr('id', d.id); pushStr('version', d.version);
-    pushStr('name', d.name); pushStr('description', d.description);
-    pushArr('targets', d.targets); pushStr('iron_law', d.iron_law); pushStr('instructions', d.instructions);
-    pushArr('when_to_use', d.when_to_use); pushArr('anti_patterns', d.anti_patterns);
-    pushPairs('common_rationalizations', d.common_rationalizations); pushArr('red_flags', d.red_flags);
-    pushArr('verifiers', d.verifiers); pushArr('inputs_required', d.inputs_required);
-    pushArr('allowed_tools', d.allowed_tools);
-    return lines.join('\n');
+    const d = seed || this._gatherFormData()
+    if (!d) return ''
+    const lines = []
+    const pushArr = (k, arr) => {
+      if (arr && arr.length) {
+        lines.push(k + ':')
+        arr.forEach((v) => lines.push('  - ' + v))
+      }
+    }
+    const pushPairs = (k, pairs) => {
+      if (pairs && pairs.length) {
+        lines.push(k + ':')
+        pairs.forEach((r) => {
+          lines.push('  - excuse: ' + JSON.stringify(r.excuse))
+          lines.push('    refutation: ' + JSON.stringify(r.refutation))
+        })
+      }
+    }
+    const pushStr = (k, v) => {
+      if (v) {
+        if (v.includes('\n')) {
+          lines.push(k + ': |')
+          v.split('\n').forEach((l) => lines.push('  ' + l))
+        } else {
+          lines.push(k + ': ' + v)
+        }
+      }
+    }
+    pushStr('id', d.id)
+    pushStr('version', d.version)
+    pushStr('name', d.name)
+    pushStr('description', d.description)
+    pushArr('targets', d.targets)
+    pushStr('iron_law', d.iron_law)
+    pushStr('instructions', d.instructions)
+    pushArr('when_to_use', d.when_to_use)
+    pushArr('anti_patterns', d.anti_patterns)
+    pushPairs('common_rationalizations', d.common_rationalizations)
+    pushArr('red_flags', d.red_flags)
+    pushArr('verifiers', d.verifiers)
+    pushArr('inputs_required', d.inputs_required)
+    pushArr('allowed_tools', d.allowed_tools)
+    return lines.join('\n')
   },
 
   // ── Bloque E: Import Skill modal (URL + YAML paste + preview + conflict) ──
   openImportSkill() {
-    this._importSkill = null;
-    this._importTab = 'url';
-    this._importWarnings = [];
-    this._importConflict = false;
-    this._renderImportInput();
-    requestAnimationFrame(() => this.el.classList.add('show'));
+    this._importSkill = null
+    this._importTab = 'url'
+    this._importWarnings = []
+    this._importConflict = false
+    this._renderImportInput()
+    requestAnimationFrame(() => this.el.classList.add('show'))
   },
 
   _renderImportInput() {
-    const tabUrl = this._importTab === 'url';
-    const tabYaml = this._importTab === 'yaml';
-    const urlContent = tabUrl ? (this._importUrl || '') : '';
-    const yamlContent = tabYaml ? (this._importYaml || '') : '';
+    const tabUrl = this._importTab === 'url'
+    const tabYaml = this._importTab === 'yaml'
+    const urlContent = tabUrl ? this._importUrl || '' : ''
+    const yamlContent = tabYaml ? this._importYaml || '' : ''
     this.el.innerHTML = `<div class="modal" style="width:560px">
       <div class="m-head"><span style="color:var(--accent)">${ICON.inbox}</span><h3>${t('modal.import.title')}</h3>
         <button class="btn ghost sm" data-x>${ICON.x}</button></div>
@@ -1254,57 +1485,69 @@ const Modal = {
       </div>
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
         <button class="btn primary" data-validate>${ICON.search} ${tabUrl ? t('modal.import.btn.fetch') : t('modal.import.btn.validate')}</button></div>
-    </div>`;
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
-    this.el.querySelectorAll('[data-tab]').forEach(b => {
+    </div>`
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
+    this.el.querySelectorAll('[data-tab]').forEach((b) => {
       b.addEventListener('click', () => {
-        this._importTab = b.dataset.tab;
-        this._renderImportInput();
-      });
-    });
+        this._importTab = b.dataset.tab
+        this._renderImportInput()
+      })
+    })
     this.el.querySelector('[data-validate]').addEventListener('click', async () => {
-      const msg = this.el.querySelector('#imp-msg');
-      const url = this.el.querySelector('#imp-url')?.value?.trim();
-      const yaml = this.el.querySelector('#imp-yaml')?.value?.trim();
-      const isUrl = this._importTab === 'url';
-      if (isUrl) { this._importUrl = url; this._importYaml = ''; }
-      else { this._importYaml = yaml; this._importUrl = ''; }
-      if (!url && !yaml) {
-        msg.textContent = t('modal.import.err.required');
-        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+      const msg = this.el.querySelector('#imp-msg')
+      const url = this.el.querySelector('#imp-url')?.value?.trim()
+      const yaml = this.el.querySelector('#imp-yaml')?.value?.trim()
+      const isUrl = this._importTab === 'url'
+      if (isUrl) {
+        this._importUrl = url
+        this._importYaml = ''
+      } else {
+        this._importYaml = yaml
+        this._importUrl = ''
       }
-      const btn = this.el.querySelector('[data-validate]');
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${t('common.loading')}`;
-      msg.style.display = 'none';
+      if (!url && !yaml) {
+        msg.textContent = t('modal.import.err.required')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        return
+      }
+      const btn = this.el.querySelector('[data-validate]')
+      btn.disabled = true
+      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${t('common.loading')}`
+      msg.style.display = 'none'
       try {
         const res = await fetch('/api/skills/import', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(isUrl ? { type: 'url', url } : { type: 'yaml', yaml }),
-        });
-        const data = await res.json();
+        })
+        const data = await res.json()
         if (data.ok && data.skill) {
-          this._importSkill = data.skill;
-          this._importWarnings = data.warnings || [];
-          this._renderImportPreview();
+          this._importSkill = data.skill
+          this._importWarnings = data.warnings || []
+          this._renderImportPreview()
         } else {
-          msg.textContent = data.error || t('modal.import.err.parse');
-          msg.style.color = 'var(--error)'; msg.style.display = '';
-          btn.disabled = false;
-          btn.innerHTML = `${ICON.search} ${isUrl ? t('modal.import.btn.fetch') : t('modal.import.btn.validate')}`;
+          msg.textContent = data.error || t('modal.import.err.parse')
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
+          btn.disabled = false
+          btn.innerHTML = `${ICON.search} ${isUrl ? t('modal.import.btn.fetch') : t('modal.import.btn.validate')}`
         }
       } catch {
-        msg.textContent = t('common.conn.error');
-        msg.style.color = 'var(--error)'; msg.style.display = '';
-        btn.disabled = false;
-        btn.innerHTML = `${ICON.search} ${isUrl ? t('modal.import.btn.fetch') : t('modal.import.btn.validate')}`;
+        msg.textContent = t('common.conn.error')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        btn.disabled = false
+        btn.innerHTML = `${ICON.search} ${isUrl ? t('modal.import.btn.fetch') : t('modal.import.btn.validate')}`
       }
-    });
+    })
   },
 
   _renderImportPreview() {
-    const s = this._importSkill || {};
-    const warnings = this._importWarnings || [];
+    const s = this._importSkill || {}
+    const warnings = this._importWarnings || []
     const fields = [
       { label: 'ID', val: s.id },
       { label: t('modal.skill.form.version'), val: s.version },
@@ -1315,21 +1558,26 @@ const Modal = {
       { label: t('modal.skill.form.instructions'), val: s.instructions },
       { label: t('modal.skill.form.when_to_use'), val: (s.when_to_use || []).join('\n') },
       { label: t('modal.skill.form.anti_patterns'), val: (s.anti_patterns || []).join('\n') },
-      { label: t('modal.skill.form.common_rationalizations'), val: (s.common_rationalizations || []).map(r => `${r.excuse} :: ${r.refutation}`).join('\n') },
+      {
+        label: t('modal.skill.form.common_rationalizations'),
+        val: (s.common_rationalizations || [])
+          .map((r) => `${r.excuse} :: ${r.refutation}`)
+          .join('\n'),
+      },
       { label: t('modal.skill.form.red_flags'), val: (s.red_flags || []).join('\n') },
       { label: t('modal.skill.form.verifiers'), val: (s.verifiers || []).join('\n') },
       { label: t('modal.skill.form.inputs_required'), val: (s.inputs_required || []).join('\n') },
       { label: t('modal.skill.form.allowed_tools'), val: (s.allowed_tools || []).join('\n') },
-    ].filter(f => f.val);
-    const conflictId = this._importConflict ? this._importConflictId : '';
+    ].filter((f) => f.val)
+    const conflictId = this._importConflict ? this._importConflictId : ''
     this.el.innerHTML = `<div class="modal" style="width:580px">
       <div class="m-head"><span style="color:var(--accent)">${ICON.inbox}</span><h3>${t('modal.import.title')}</h3>
         <button class="btn ghost sm" data-x>${ICON.x}</button></div>
       <div class="m-body" style="max-height:65vh;overflow-y:auto">
-        ${warnings.map(w => `<div style="font-size:12px;color:var(--warning);padding:6px 10px;background:var(--warning-dim);border-radius:var(--radius);margin-bottom:6px">${esc(w)}</div>`).join('')}
+        ${warnings.map((w) => `<div style="font-size:12px;color:var(--warning);padding:6px 10px;background:var(--warning-dim);border-radius:var(--radius);margin-bottom:6px">${esc(w)}</div>`).join('')}
         <div style="font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px">${t('modal.import.preview')}</div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:12.5px;line-height:1.6">
-          ${fields.map(f => `<div style="margin-bottom:4px"><span class="muted">${esc(f.label)}:</span> <span style="white-space:pre-wrap;word-break:break-word">${esc(f.val)}</span></div>`).join('')}
+          ${fields.map((f) => `<div style="margin-bottom:4px"><span class="muted">${esc(f.label)}:</span> <span style="white-space:pre-wrap;word-break:break-word">${esc(f.val)}</span></div>`).join('')}
         </div>
         <div id="imp-conflict" style="display:${this._importConflict ? '' : 'none'};margin-top:10px;padding:10px;background:var(--warning-dim);border:1px solid var(--warning);border-radius:var(--radius)">
           <div style="font-size:12px;color:var(--warning);margin-bottom:6px">${t('modal.import.conflict.title', esc(conflictId))}</div>
@@ -1343,93 +1591,124 @@ const Modal = {
       <div class="m-foot"><button class="btn" data-x>${t('btn.cancel')}</button>
         <button class="btn" data-back>${ICON.chevR} ${t('wizard.btn.back')}</button>
         <button class="btn primary" data-import>${ICON.flask} ${t('modal.import.btn.import')}</button></div>
-    </div>`;
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    </div>`
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
     this.el.querySelector('[data-back]').addEventListener('click', () => {
-      this._renderImportInput();
-    });
+      this._renderImportInput()
+    })
     this.el.querySelector('[data-import]').addEventListener('click', async () => {
-      const skill = { ...this._importSkill };
+      const skill = { ...this._importSkill }
       if (this._importConflict) {
-        const renamed = this.el.querySelector('#imp-rename')?.value?.trim();
-        if (renamed) skill.id = renamed;
+        const renamed = this.el.querySelector('#imp-rename')?.value?.trim()
+        if (renamed) skill.id = renamed
       }
-      const msg = this.el.querySelector('#imp-msg');
-      const btn = this.el.querySelector('[data-import]');
-      btn.disabled = true;
-      msg.style.display = 'none';
+      const msg = this.el.querySelector('#imp-msg')
+      const btn = this.el.querySelector('[data-import]')
+      btn.disabled = true
+      msg.style.display = 'none'
       try {
         const res = await fetch('/api/skills', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(skill),
-        });
+        })
         if (res.ok) {
-          this.close();
-          await App.fetchSkills();
-          App.rerender();
+          this.close()
+          await App.fetchSkills()
+          App.rerender()
         } else if (res.status === 409) {
-          this._importConflict = true;
-          this._importConflictId = skill.id;
-          this._renderImportPreview();
+          this._importConflict = true
+          this._importConflictId = skill.id
+          this._renderImportPreview()
         } else {
-          const e = await res.json();
-          msg.textContent = e.error || t('modal.import.err.import');
-          msg.style.color = 'var(--error)'; msg.style.display = '';
-          btn.disabled = false;
+          const e = await res.json()
+          msg.textContent = e.error || t('modal.import.err.import')
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
+          btn.disabled = false
         }
       } catch {
-        msg.textContent = t('common.conn.error');
-        msg.style.color = 'var(--error)'; msg.style.display = '';
-        btn.disabled = false;
+        msg.textContent = t('common.conn.error')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        btn.disabled = false
       }
-    });
+    })
   },
 
   // ── E3: API key wizard ────────────────────────────────────────────────────
   openWizard() {
-    this._wizStep = 1;
-    this._wizProvider = 'openrouter';
-    this._renderWizard();
-    requestAnimationFrame(() => this.el.classList.add('show'));
+    this._wizStep = 1
+    this._wizProvider = 'openrouter'
+    this._renderWizard()
+    requestAnimationFrame(() => this.el.classList.add('show'))
   },
 
   _renderWizard() {
-    const step = this._wizStep;
-    const provider = this._wizProvider;
+    const step = this._wizStep
+    const provider = this._wizProvider
 
     // Step indicator dots
-    const stepTitles = [t('wizard.step1.title'), t('wizard.step2.title'), t('wizard.step3.title')];
-    const dots = stepTitles.map((s, i) => {
-      const n = i + 1;
-      const cls = n === step ? 'active' : n < step ? 'done' : '';
-      const label = n < step ? '✓' : n;
-      return (i > 0 ? '<span class="wiz-dot-sep">—</span>' : '') +
-        `<span class="wiz-dot ${cls}" title="${esc(s)}">${label}</span>`;
-    }).join('');
+    const stepTitles = [t('wizard.step1.title'), t('wizard.step2.title'), t('wizard.step3.title')]
+    const dots = stepTitles
+      .map((s, i) => {
+        const n = i + 1
+        const cls = n === step ? 'active' : n < step ? 'done' : ''
+        const label = n < step ? '✓' : n
+        return (
+          (i > 0 ? '<span class="wiz-dot-sep">—</span>' : '') +
+          `<span class="wiz-dot ${cls}" title="${esc(s)}">${label}</span>`
+        )
+      })
+      .join('')
 
     // Provider dropdown
-    const providerOpts = ['openrouter', 'anthropic', 'openai'].map(p =>
-      `<option value="${p}" ${p === provider ? 'selected' : ''}>${esc(t('wizard.provider.' + p))}</option>`
-    ).join('');
+    const providerOpts = ['openrouter', 'anthropic', 'openai']
+      .map(
+        (p) =>
+          `<option value="${p}" ${p === provider ? 'selected' : ''}>${esc(t('wizard.provider.' + p))}</option>`,
+      )
+      .join('')
 
     // Per-provider instructions (static content — URL links, not user input)
     // All step strings are plain text — no HTML. Rendered via esc() into <li> elements.
     const PROVIDER_INFO = {
       openrouter: {
         url: 'https://openrouter.ai/keys',
-        steps: ['Go to openrouter.ai', 'Sign up or log in', 'Click "API Keys" in the menu', 'Click "Create Key"', 'Copy the key that appears'],
+        steps: [
+          'Go to openrouter.ai',
+          'Sign up or log in',
+          'Click "API Keys" in the menu',
+          'Click "Create Key"',
+          'Copy the key that appears',
+        ],
       },
       anthropic: {
         url: 'https://console.anthropic.com/settings/keys',
-        steps: ['Go to console.anthropic.com', 'Sign up or log in', 'Go to Settings → API Keys', 'Click "Create Key"', 'Copy the key'],
+        steps: [
+          'Go to console.anthropic.com',
+          'Sign up or log in',
+          'Go to Settings → API Keys',
+          'Click "Create Key"',
+          'Copy the key',
+        ],
       },
       openai: {
         url: 'https://platform.openai.com/api-keys',
-        steps: ['Go to platform.openai.com', 'Sign up or log in', 'Click "API keys" in the left menu', 'Click "Create new secret key"', 'Copy the key before closing the dialog'],
+        steps: [
+          'Go to platform.openai.com',
+          'Sign up or log in',
+          'Click "API keys" in the left menu',
+          'Click "Create new secret key"',
+          'Copy the key before closing the dialog',
+        ],
       },
-    };
+    }
 
-    let body = '', foot = '';
+    let body = '',
+      foot = ''
 
     if (step === 1) {
       body = `<p style="font-size:13.5px;line-height:1.6;color:var(--text-muted)">${esc(t('wizard.step1.body'))}</p>
@@ -1437,20 +1716,18 @@ const Modal = {
           <label>${esc(t('wizard.step1.provider.label'))}</label>
           <select id="wiz-provider">${providerOpts}</select>
           <div class="m-hint">${esc(t('wizard.step1.provider.hint'))}</div>
-        </div>`;
+        </div>`
       foot = `<button class="btn" data-x>${esc(t('btn.cancel'))}</button>
-        <button class="btn primary" data-wiz-next>${esc(t('wizard.btn.next'))} →</button>`;
-
+        <button class="btn primary" data-wiz-next>${esc(t('wizard.btn.next'))} →</button>`
     } else if (step === 2) {
-      const info = PROVIDER_INFO[provider] || PROVIDER_INFO.openrouter;
-      const listItems = info.steps.map(s => `<li>${esc(s)}</li>`).join('');
+      const info = PROVIDER_INFO[provider] || PROVIDER_INFO.openrouter
+      const listItems = info.steps.map((s) => `<li>${esc(s)}</li>`).join('')
       body = `<p class="muted" style="font-size:13px">${esc(t('wizard.step2.intro'))}</p>
         <ol class="wiz-steps-list">${listItems}</ol>
         <a href="${esc(info.url)}" target="_blank" rel="noopener" class="btn ghost sm wiz-link"
-           style="margin-top:4px;width:fit-content">${esc(t('wizard.step2.open'))} ↗</a>`;
+           style="margin-top:4px;width:fit-content">${esc(t('wizard.step2.open'))} ↗</a>`
       foot = `<button class="btn" data-wiz-back>← ${esc(t('wizard.btn.back'))}</button>
-        <button class="btn primary" data-wiz-next>${esc(t('wizard.btn.next'))} →</button>`;
-
+        <button class="btn primary" data-wiz-next>${esc(t('wizard.btn.next'))} →</button>`
     } else {
       body = `<p class="muted" style="font-size:13px">${esc(t('wizard.step3.intro'))}</p>
         <div class="m-field">
@@ -1460,9 +1737,9 @@ const Modal = {
             <button class="btn ghost sm" id="wiz-toggle" type="button">${esc(t('wizard.step3.key.show'))}</button>
           </div>
         </div>
-        <div id="wiz-msg" style="font-size:12px;display:none"></div>`;
+        <div id="wiz-msg" style="font-size:12px;display:none"></div>`
       foot = `<button class="btn" data-wiz-back>← ${esc(t('wizard.btn.back'))}</button>
-        <button class="btn primary" id="wiz-save">${esc(t('wizard.step3.btn.save'))}</button>`;
+        <button class="btn primary" id="wiz-save">${esc(t('wizard.step3.btn.save'))}</button>`
     }
 
     this.el.innerHTML = `<div class="modal wiz-modal">
@@ -1474,73 +1751,85 @@ const Modal = {
       <div class="wiz-indicator">${dots}</div>
       <div class="m-body">${body}</div>
       <div class="m-foot">${foot}</div>
-    </div>`;
+    </div>`
 
     // Wire close
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
 
     // Wire back / next
     this.el.querySelector('[data-wiz-back]')?.addEventListener('click', () => {
-      this._wizStep--;
-      this._renderWizard();
-    });
+      this._wizStep--
+      this._renderWizard()
+    })
     this.el.querySelector('[data-wiz-next]')?.addEventListener('click', () => {
-      if (step === 1) this._wizProvider = this.el.querySelector('#wiz-provider').value;
-      this._wizStep++;
-      this._renderWizard();
-    });
+      if (step === 1) this._wizProvider = this.el.querySelector('#wiz-provider').value
+      this._wizStep++
+      this._renderWizard()
+    })
 
     // Step 3: show/hide toggle
     this.el.querySelector('#wiz-toggle')?.addEventListener('click', () => {
-      const inp = this.el.querySelector('#wiz-key');
-      const btn = this.el.querySelector('#wiz-toggle');
-      inp.type = inp.type === 'password' ? 'text' : 'password';
-      btn.textContent = inp.type === 'password' ? t('wizard.step3.key.show') : t('wizard.step3.key.hide');
-    });
+      const inp = this.el.querySelector('#wiz-key')
+      const btn = this.el.querySelector('#wiz-toggle')
+      inp.type = inp.type === 'password' ? 'text' : 'password'
+      btn.textContent =
+        inp.type === 'password' ? t('wizard.step3.key.show') : t('wizard.step3.key.hide')
+    })
 
     // Step 3: verify and save
     this.el.querySelector('#wiz-save')?.addEventListener('click', async () => {
-      const key = this.el.querySelector('#wiz-key')?.value.trim();
-      const msg = this.el.querySelector('#wiz-msg');
-      const btn = this.el.querySelector('#wiz-save');
+      const key = this.el.querySelector('#wiz-key')?.value.trim()
+      const msg = this.el.querySelector('#wiz-msg')
+      const btn = this.el.querySelector('#wiz-save')
       if (!key) {
-        msg.textContent = t('wizard.step3.err.empty');
-        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+        msg.textContent = t('wizard.step3.err.empty')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        return
       }
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${esc(t('wizard.step3.btn.verifying'))}`;
-      msg.style.display = 'none';
+      btn.disabled = true
+      btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${esc(t('wizard.step3.btn.verifying'))}`
+      msg.style.display = 'none'
       try {
         const res = await fetch('/api/setup/api-key', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ provider: this._wizProvider, key }),
-        });
-        const data = await res.json();
+        })
+        const data = await res.json()
         if (data.valid) {
-          this.close();
-          await App.fetchAll();
-          showToast(t('wizard.success'));
+          this.close()
+          await App.fetchAll()
+          showToast(t('wizard.success'))
         } else {
-          msg.textContent = data.error || t('wizard.step3.err.conn');
-          msg.style.color = 'var(--error)'; msg.style.display = '';
-          btn.disabled = false;
-          btn.textContent = t('wizard.step3.btn.save');
+          msg.textContent = data.error || t('wizard.step3.err.conn')
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
+          btn.disabled = false
+          btn.textContent = t('wizard.step3.btn.save')
         }
       } catch {
-        msg.textContent = t('wizard.step3.err.conn');
-        msg.style.color = 'var(--error)'; msg.style.display = '';
-        btn.disabled = false;
-        btn.textContent = t('wizard.step3.btn.save');
+        msg.textContent = t('wizard.step3.err.conn')
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        btn.disabled = false
+        btn.textContent = t('wizard.step3.btn.save')
       }
-    });
+    })
   },
 
   openSpecDraft(st) {
-    const tasks = (st.tasks || []).filter(t => t.status !== 'done');
+    const tasks = (st.tasks || []).filter((t) => t.status !== 'done')
     const options = tasks.length
-      ? tasks.map(t => `<option value="${esc(t.id)}" data-desc="${esc(t.description)}">${esc(t.id)} — ${esc(t.description.slice(0, 50))}</option>`).join('')
-      : `<option value="" disabled>No hay tareas pendientes</option>`;
+      ? tasks
+          .map(
+            (t) =>
+              `<option value="${esc(t.id)}" data-desc="${esc(t.description)}">${esc(t.id)} — ${esc(t.description.slice(0, 50))}</option>`,
+          )
+          .join('')
+      : `<option value="" disabled>No hay tareas pendientes</option>`
     this.el.innerHTML = `<div class="modal">
       <div class="m-head"><span style="color:var(--accent)">${ICON.specs}</span><h3>Nueva Spec</h3>
         <button class="btn ghost sm" data-x>${ICON.x}</button></div>
@@ -1563,122 +1852,168 @@ const Modal = {
       </div>
       <div class="m-foot"><button class="btn" data-x>Cancelar</button>
         <button class="btn primary" data-draft>${ICON.specs} Generar borrador</button></div>
-    </div>`;
+    </div>`
     // auto-fill description when task changes
-    const sel = this.el.querySelector('#sd-task');
-    const descEl = this.el.querySelector('#sd-desc');
+    const sel = this.el.querySelector('#sd-task')
+    const descEl = this.el.querySelector('#sd-desc')
     const fillDesc = () => {
-      const opt = sel.options[sel.selectedIndex];
-      if (opt?.dataset.desc) descEl.value = opt.dataset.desc;
-    };
-    if (sel) { fillDesc(); sel.addEventListener('change', fillDesc); }
-    this.el.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => this.close()));
+      const opt = sel.options[sel.selectedIndex]
+      if (opt?.dataset.desc) descEl.value = opt.dataset.desc
+    }
+    if (sel) {
+      fillDesc()
+      sel.addEventListener('change', fillDesc)
+    }
+    this.el
+      .querySelectorAll('[data-x]')
+      .forEach((b) => b.addEventListener('click', () => this.close()))
     this.el.querySelector('[data-draft]').addEventListener('click', async () => {
-      const taskId = sel?.value.trim();
-      const description = descEl?.value.trim();
-      const design = this.el.querySelector('#sd-design')?.checked === true;
-      const msg = this.el.querySelector('#sd-msg');
+      const taskId = sel?.value.trim()
+      const description = descEl?.value.trim()
+      const design = this.el.querySelector('#sd-design')?.checked === true
+      const msg = this.el.querySelector('#sd-msg')
       if (!taskId || !description) {
-        msg.textContent = 'Elige una tarea y asegúrate de que tenga descripción.';
-        msg.style.color = 'var(--error)'; msg.style.display = ''; return;
+        msg.textContent = 'Elige una tarea y asegúrate de que tenga descripción.'
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+        return
       }
-      const btn = this.el.querySelector('[data-draft]');
-      btn.disabled = true;
-      msg.textContent = 'Generando borrador con IA…';
-      msg.style.color = 'var(--accent)'; msg.style.display = '';
+      const btn = this.el.querySelector('[data-draft]')
+      btn.disabled = true
+      msg.textContent = 'Generando borrador con IA…'
+      msg.style.color = 'var(--accent)'
+      msg.style.display = ''
       try {
         const res = await fetch('/api/specs/draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ taskId, description, design }),
-        });
+        })
         if (res.ok) {
-          this.close();
-          await App.fetchSpecs();
-          App.rerender();
+          this.close()
+          await App.fetchSpecs()
+          App.rerender()
         } else {
-          const e = await res.json();
-          msg.textContent = e.error || 'Error al generar el borrador.';
-          msg.style.color = 'var(--error)'; msg.style.display = '';
+          const e = await res.json()
+          msg.textContent = e.error || 'Error al generar el borrador.'
+          msg.style.color = 'var(--error)'
+          msg.style.display = ''
         }
       } catch {
-        msg.textContent = 'Error de conexión.';
-        msg.style.color = 'var(--error)'; msg.style.display = '';
-      } finally { btn.disabled = false; }
-    });
-    requestAnimationFrame(() => this.el.classList.add('show'));
+        msg.textContent = 'Error de conexión.'
+        msg.style.color = 'var(--error)'
+        msg.style.display = ''
+      } finally {
+        btn.disabled = false
+      }
+    })
+    requestAnimationFrame(() => this.el.classList.add('show'))
   },
 
-  close() { this.el.classList.remove('show'); },
+  close() {
+    this.el.classList.remove('show')
+  },
 
   // 2026-07-12 — el palette busca todo, no solo pantallas: tareas, skills,
   // runs, instincts y memoria, todo ya vive en `state` (poll de 30s), así que
   // la búsqueda es 100% cliente, sin ida y vuelta al backend por tecla.
   // Cierra el gap con el buscador tipo Claude/Raycast que pedía Carlos.
   openCommandPalette() {
-    const isAdv = (localStorage.getItem('orchestos-mode') || 'normal') === 'advanced';
-    const screenItems = NAV.filter(n => !n.operator || isAdv).map(n => ({
-      type: 'screen', icon: n.icon, label: t(n.key), sub: '',
+    const isAdv = (localStorage.getItem('orchestos-mode') || 'normal') === 'advanced'
+    const screenItems = NAV.filter((n) => !n.operator || isAdv).map((n) => ({
+      type: 'screen',
+      icon: n.icon,
+      label: t(n.key),
+      sub: '',
       go: () => App.go(n.id),
-    }));
+    }))
 
-    const entityItems = [];
+    const entityItems = []
     for (const tk of state.tasks || []) {
       entityItems.push({
-        type: 'task', icon: ICON.tasks, label: tk.description, sub: tk.id,
-        go: () => { App.go('tasks'); SidePanel.openTask(tk); },
-      });
+        type: 'task',
+        icon: ICON.tasks,
+        label: tk.description,
+        sub: tk.id,
+        go: () => {
+          App.go('tasks')
+          SidePanel.openTask(tk)
+        },
+      })
     }
     for (const sk of [...(state.skills || []), ...(state.proSkills || [])]) {
       entityItems.push({
-        type: 'skill', icon: ICON.flask, label: sk.name, sub: sk.description,
-        go: () => { App.go('skills'); this.openSkillDetail(sk); },
-      });
+        type: 'skill',
+        icon: ICON.flask,
+        label: sk.name,
+        sub: sk.description,
+        go: () => {
+          App.go('skills')
+          this.openSkillDetail(sk)
+        },
+      })
     }
     for (const r of state.runs || []) {
       entityItems.push({
-        type: 'run', icon: ICON.runs, label: r.taskId || r.id, sub: [r.model, r.status].filter(Boolean).join(' · '),
-        go: () => { App.go('runs'); state.openRun = r.id; App.rerender(); },
-      });
+        type: 'run',
+        icon: ICON.runs,
+        label: r.taskId || r.id,
+        sub: [r.model, r.status].filter(Boolean).join(' · '),
+        go: () => {
+          App.go('runs')
+          state.openRun = r.id
+          App.rerender()
+        },
+      })
     }
     for (const ins of state.instincts || []) {
       entityItems.push({
-        type: 'instinct', icon: ICON.instinct, label: ins.trigger, sub: ins.action,
+        type: 'instinct',
+        icon: ICON.instinct,
+        label: ins.trigger,
+        sub: ins.action,
         go: () => App.go('instincts'),
-      });
+      })
     }
     for (const m of state.memory || []) {
       entityItems.push({
-        type: 'memory', icon: ICON.memory, label: (m.content || '').replace(/\s+/g, ' ').trim().slice(0, 90), sub: m.topic_key || m.scope || '',
+        type: 'memory',
+        icon: ICON.memory,
+        label: (m.content || '').replace(/\s+/g, ' ').trim().slice(0, 90),
+        sub: m.topic_key || m.scope || '',
         go: () => App.go('memory'),
-      });
+      })
     }
 
     const TYPE_LABEL = {
-      task: t('cmdk.type.task'), skill: t('cmdk.type.skill'), run: t('cmdk.type.run'),
-      instinct: t('cmdk.type.instinct'), memory: t('cmdk.type.memory'),
-    };
+      task: t('cmdk.type.task'),
+      skill: t('cmdk.type.skill'),
+      run: t('cmdk.type.run'),
+      instinct: t('cmdk.type.instinct'),
+      memory: t('cmdk.type.memory'),
+    }
 
-    let selected = 0;
-    let filtered = screenItems;
+    let selected = 0
+    let filtered = screenItems
 
-    const matches = (it, q) => (it.label || '').toLowerCase().includes(q) || (it.sub || '').toLowerCase().includes(q);
+    const matches = (it, q) =>
+      (it.label || '').toLowerCase().includes(q) || (it.sub || '').toLowerCase().includes(q)
 
     // Screens primero (navegación pura), luego resultados de datos — con un
     // tope por tipo para que una query corta y frecuente (ej. "a") no ahogue
     // la lista con 200 memorias y nada más.
-    const search = q => {
-      if (!q) return screenItems;
-      const hits = [];
-      const counts = {};
+    const search = (q) => {
+      if (!q) return screenItems
+      const hits = []
+      const counts = {}
       for (const it of [...screenItems, ...entityItems]) {
-        if (!matches(it, q)) continue;
-        counts[it.type] = (counts[it.type] || 0) + 1;
-        if (it.type !== 'screen' && counts[it.type] > 8) continue;
-        hits.push(it);
+        if (!matches(it, q)) continue
+        counts[it.type] = (counts[it.type] || 0) + 1
+        if (it.type !== 'screen' && counts[it.type] > 8) continue
+        hits.push(it)
       }
-      return hits;
-    };
+      return hits
+    }
 
     // updateActive() solo togglea la clase — NO toca innerHTML. renderList()
     // reconstruye el DOM y solo se llama cuando `filtered` cambia de verdad
@@ -1689,14 +2024,18 @@ const Modal = {
     // clicks). Con el DOM estable, mousedown/mouseup ocurren sobre el MISMO
     // nodo y el click llega.
     const updateActive = () => {
-      this.el.querySelectorAll('.cmdk-item').forEach((el, i) => el.classList.toggle('active', i === selected));
-    };
+      this.el
+        .querySelectorAll('.cmdk-item')
+        .forEach((el, i) => el.classList.toggle('active', i === selected))
+    }
 
     const renderList = () => {
-      const list = this.el.querySelector('#cmdk-list');
-      if (!list) return;
+      const list = this.el.querySelector('#cmdk-list')
+      if (!list) return
       list.innerHTML = filtered.length
-        ? filtered.map((it, i) => `
+        ? filtered
+            .map(
+              (it, i) => `
           <div class="cmdk-item" data-i="${i}">
             <span class="cmdk-item-ic">${it.icon}</span>
             <span class="cmdk-item-body">
@@ -1704,14 +2043,22 @@ const Modal = {
               ${it.sub ? `<span class="cmdk-item-sub">${esc(it.sub)}</span>` : ''}
             </span>
             ${it.type !== 'screen' ? `<span class="cmdk-item-type">${TYPE_LABEL[it.type]}</span>` : ''}
-          </div>`).join('')
-        : `<div class="cmdk-empty">${t('cmdk.empty')}</div>`;
-      updateActive();
-      list.querySelectorAll('.cmdk-item').forEach(el => {
-        el.addEventListener('click', () => { filtered[Number(el.dataset.i)]?.go(); this.close(); });
-        el.addEventListener('mouseenter', () => { selected = Number(el.dataset.i); updateActive(); });
-      });
-    };
+          </div>`,
+            )
+            .join('')
+        : `<div class="cmdk-empty">${t('cmdk.empty')}</div>`
+      updateActive()
+      list.querySelectorAll('.cmdk-item').forEach((el) => {
+        el.addEventListener('click', () => {
+          filtered[Number(el.dataset.i)]?.go()
+          this.close()
+        })
+        el.addEventListener('mouseenter', () => {
+          selected = Number(el.dataset.i)
+          updateActive()
+        })
+      })
+    }
 
     this.el.innerHTML = `<div class="modal cmdk">
       <div class="cmdk-input-row">
@@ -1720,24 +2067,39 @@ const Modal = {
       </div>
       <div id="cmdk-list" class="cmdk-list"></div>
       <div class="cmdk-hint">${t('cmdk.hint')}</div>
-    </div>`;
+    </div>`
 
-    renderList();
-    const input = this.el.querySelector('#cmdk-input');
+    renderList()
+    const input = this.el.querySelector('#cmdk-input')
     input.addEventListener('input', () => {
-      filtered = search(input.value.toLowerCase().trim());
-      selected = 0;
-      renderList();
-    });
-    input.addEventListener('keydown', e => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, filtered.length - 1); updateActive(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); updateActive(); }
-      else if (e.key === 'Enter') { e.preventDefault(); filtered[selected]?.go(); this.close(); }
-      else if (e.key === 'Escape') { e.preventDefault(); this.close(); }
-    });
-    requestAnimationFrame(() => { this.el.classList.add('show'); input.focus(); });
+      filtered = search(input.value.toLowerCase().trim())
+      selected = 0
+      renderList()
+    })
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        selected = Math.min(selected + 1, filtered.length - 1)
+        updateActive()
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        selected = Math.max(selected - 1, 0)
+        updateActive()
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        filtered[selected]?.go()
+        this.close()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        this.close()
+      }
+    })
+    requestAnimationFrame(() => {
+      this.el.classList.add('show')
+      input.focus()
+    })
   },
-};
+}
 
 /* ============================================================
    v0.12 Bloque A — selección múltiple + borrado en lote (reusable)
@@ -1746,37 +2108,39 @@ const Modal = {
    flotante + modal de confirmación) es idéntica en las 5 pantallas.
    ============================================================ */
 
-function bulkSet(screen) { return state.bulkSelected[screen]; }
+function bulkSet(screen) {
+  return state.bulkSelected[screen]
+}
 
 function bulkToggle(screen, id) {
-  const s = bulkSet(screen);
-  s.has(id) ? s.delete(id) : s.add(id);
-  App.rerender();
+  const s = bulkSet(screen)
+  s.has(id) ? s.delete(id) : s.add(id)
+  App.rerender()
 }
 
 function bulkToggleAll(screen, ids) {
-  const s = bulkSet(screen);
-  const allSelected = ids.length > 0 && ids.every(id => s.has(id));
-  if (allSelected) ids.forEach(id => s.delete(id));
-  else ids.forEach(id => s.add(id));
-  App.rerender();
+  const s = bulkSet(screen)
+  const allSelected = ids.length > 0 && ids.every((id) => s.has(id))
+  if (allSelected) ids.forEach((id) => s.delete(id))
+  else ids.forEach((id) => s.add(id))
+  App.rerender()
 }
 
 function bulkClear(screen) {
-  bulkSet(screen).clear();
-  App.rerender();
+  bulkSet(screen).clear()
+  App.rerender()
 }
 
 /** Barra flotante — solo se renderiza si hay selección activa en ese screen. */
 function renderBulkBar(screen, resourceLabel) {
-  const n = bulkSet(screen).size;
-  if (n === 0) return '';
+  const n = bulkSet(screen).size
+  if (n === 0) return ''
   return `<div class="bulk-bar" data-bulk-screen="${screen}">
     <span class="bulk-count">${t('bulk.selected', n)}</span>
     <span class="bulk-spacer"></span>
     <button class="btn ghost sm" data-bulk-clear="${screen}">${t('bulk.clear')}</button>
     <button class="btn danger sm" data-bulk-delete="${screen}">${ICON.trash || ''} ${t('bulk.delete', resourceLabel)}</button>
-  </div>`;
+  </div>`
 }
 
 /**
@@ -1790,22 +2154,28 @@ function renderBulkBar(screen, resourceLabel) {
  * lógica de filtrado acá.
  */
 function wireBulkSelect(root, screen, endpoint, refetch, resourceLabel) {
-  const visibleIds = () => [...root.querySelectorAll(`[data-bulk-row="${screen}"]`)].map(cb => cb.dataset.bulkId);
-  root.querySelectorAll(`[data-bulk-row="${screen}"]`).forEach(cb => {
-    cb.addEventListener('click', e => e.stopPropagation());
-    cb.addEventListener('change', e => {
-      e.stopPropagation();
-      bulkToggle(screen, cb.dataset.bulkId);
-    });
-  });
-  root.querySelector(`[data-bulk-all="${screen}"]`)?.addEventListener('click', e => e.stopPropagation());
-  root.querySelector(`[data-bulk-all="${screen}"]`)?.addEventListener('change', e => {
-    e.stopPropagation();
-    bulkToggleAll(screen, visibleIds());
-  });
-  root.querySelector(`[data-bulk-clear="${screen}"]`)?.addEventListener('click', () => bulkClear(screen));
-  root.querySelector(`[data-bulk-delete="${screen}"]`)?.addEventListener(
-    'click', () => bulkDelete(screen, endpoint, refetch, resourceLabel));
+  const visibleIds = () =>
+    [...root.querySelectorAll(`[data-bulk-row="${screen}"]`)].map((cb) => cb.dataset.bulkId)
+  root.querySelectorAll(`[data-bulk-row="${screen}"]`).forEach((cb) => {
+    cb.addEventListener('click', (e) => e.stopPropagation())
+    cb.addEventListener('change', (e) => {
+      e.stopPropagation()
+      bulkToggle(screen, cb.dataset.bulkId)
+    })
+  })
+  root
+    .querySelector(`[data-bulk-all="${screen}"]`)
+    ?.addEventListener('click', (e) => e.stopPropagation())
+  root.querySelector(`[data-bulk-all="${screen}"]`)?.addEventListener('change', (e) => {
+    e.stopPropagation()
+    bulkToggleAll(screen, visibleIds())
+  })
+  root
+    .querySelector(`[data-bulk-clear="${screen}"]`)
+    ?.addEventListener('click', () => bulkClear(screen))
+  root
+    .querySelector(`[data-bulk-delete="${screen}"]`)
+    ?.addEventListener('click', () => bulkDelete(screen, endpoint, refetch, resourceLabel))
 }
 
 /**
@@ -1815,31 +2185,31 @@ function wireBulkSelect(root, screen, endpoint, refetch, resourceLabel) {
  * comportamiento: `wireBulkSelect()` ahora solo lo llama.
  */
 async function bulkDelete(screen, endpoint, refetch, resourceLabel) {
-  const selected = [...bulkSet(screen)];
-  if (selected.length === 0) return;
+  const selected = [...bulkSet(screen)]
+  if (selected.length === 0) return
   const ok = await Modal.confirm(
     t('bulk.confirm.title', selected.length, resourceLabel),
     t('bulk.confirm.body'),
     t('bulk.confirm.btn', selected.length, resourceLabel),
-  );
-  if (!ok) return;
+  )
+  if (!ok) return
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: selected }),
-    });
-    const data = await res.json().catch(() => ({}));
+    })
+    const data = await res.json().catch(() => ({}))
     if (res.ok) {
-      showToast(t('bulk.done', data.deleted ?? selected.length));
-      bulkClear(screen);
-      await refetch();
-      App.rerender();
+      showToast(t('bulk.done', data.deleted ?? selected.length))
+      bulkClear(screen)
+      await refetch()
+      App.rerender()
     } else {
-      showToast(data.error || t('bulk.err'), 'error');
+      showToast(data.error || t('bulk.err'), 'error')
     }
   } catch {
-    showToast(t('bulk.err'), 'error');
+    showToast(t('bulk.err'), 'error')
   }
 }
 
@@ -1850,25 +2220,31 @@ async function bulkDelete(screen, endpoint, refetch, resourceLabel) {
 /* Builds <optgroup> / <option> HTML for the model selector.
    Locals always first, then cloud. Optionally filtered by query string. */
 function buildModelOpts(locals, cloudModels, val, query) {
-  const q = (query || '').toLowerCase().trim();
-  const matchLocal = locals.filter(m => !q || m.id.toLowerCase().includes(q));
-  const matchCloud = cloudModels.filter(m =>
-    !q || m.id.toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q)
-  );
-  let html = '';
+  const q = (query || '').toLowerCase().trim()
+  const matchLocal = locals.filter((m) => !q || m.id.toLowerCase().includes(q))
+  const matchCloud = cloudModels.filter(
+    (m) => !q || m.id.toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q),
+  )
+  let html = ''
   if (matchLocal.length > 0) {
-    html += `<optgroup label="${esc(t('chat.local.group'))}">${matchLocal.map(m =>
-      `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.id.replace('ollama/', ''))} — ${t('chat.local.free')}</option>`
-    ).join('')}</optgroup>`;
+    html += `<optgroup label="${esc(t('chat.local.group'))}">${matchLocal
+      .map(
+        (m) =>
+          `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.id.replace('ollama/', ''))} — ${t('chat.local.free')}</option>`,
+      )
+      .join('')}</optgroup>`
   }
   if (matchCloud.length > 0) {
-    const grpLabel = matchLocal.length > 0 ? ` label="${esc(t('chat.cloud.group'))}"` : '';
-    html += `<optgroup${grpLabel}>${matchCloud.map(m =>
-      `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.name || m.id)} — $${m.priceIn.toFixed(2)}/M</option>`
-    ).join('')}</optgroup>`;
+    const grpLabel = matchLocal.length > 0 ? ` label="${esc(t('chat.cloud.group'))}"` : ''
+    html += `<optgroup${grpLabel}>${matchCloud
+      .map(
+        (m) =>
+          `<option value="${esc(m.id)}" ${m.id === val ? 'selected' : ''}>${esc(m.name || m.id)} — $${m.priceIn.toFixed(2)}/M</option>`,
+      )
+      .join('')}</optgroup>`
   }
-  if (!html) html = `<option disabled>${esc(q ? 'No results' : t('common.loading'))}</option>`;
-  return html;
+  if (!html) html = `<option disabled>${esc(q ? 'No results' : t('common.loading'))}</option>`
+  return html
 }
 
 /* HISTORIA (el comportamiento vigente esta en el bloque de abajo, UI.1):
@@ -1903,25 +2279,25 @@ function buildModelOpts(locals, cloudModels, val, query) {
  * sites, y porque `models === []` sigue siendo la senal de "cargando".
  */
 function buildModelSelect(inputId, currentVal, models, localModels, opts) {
-  const allowEmpty = !!(opts && opts.allowEmpty);
-  const val = currentVal || (allowEmpty ? '' : 'deepseek/deepseek-v4-flash');
+  const allowEmpty = !!(opts && opts.allowEmpty)
+  const val = currentVal || (allowEmpty ? '' : 'deepseek/deepseek-v4-flash')
   const props = {
     inputId,
     value: val,
     allowEmpty,
     emptyLabel: (opts && opts.emptyLabel) || '',
-  };
-  return `<div data-island="model-combo" data-props="${esc(JSON.stringify(props))}"></div>`;
+  }
+  return `<div data-island="model-combo" data-props="${esc(JSON.stringify(props))}"></div>`
 }
 
 /* FRONT.6 — display label for a model id: locals (Ollama) first, then the
    loaded cloud list if present, falling back to the curated KNOWN_MODELS list,
    and finally the raw id itself if nowhere found. */
 function modelLabelFor(val, cloudPool) {
-  if (val.startsWith('ollama/')) return `${val.replace('ollama/', '')} — ${t('chat.local.free')}`;
-  const pool = Array.isArray(cloudPool) && cloudPool.length > 0 ? cloudPool : KNOWN_MODELS;
-  const hit = pool.find(m => m.id === val);
-  return hit ? (hit.name || hit.id) : val;
+  if (val.startsWith('ollama/')) return `${val.replace('ollama/', '')} — ${t('chat.local.free')}`
+  const pool = Array.isArray(cloudPool) && cloudPool.length > 0 ? cloudPool : KNOWN_MODELS
+  const hit = pool.find((m) => m.id === val)
+  return hit ? hit.name || hit.id : val
 }
 
 /* FRONT.6 — option list HTML for the chat model combobox panel (locals + cloud
@@ -1929,37 +2305,44 @@ function modelLabelFor(val, cloudPool) {
    rendered as plain divs instead of <option> so it can live inside a custom
    dropdown panel instead of a native <select>. */
 function buildComboOptions(locals, cloudModels, val, query) {
-  const q = (query || '').toLowerCase().trim();
-  const matchLocal = locals.filter(m => !q || m.id.toLowerCase().includes(q));
-  const matchCloud = cloudModels.filter(m =>
-    !q || m.id.toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q)
-  );
-  let html = '';
+  const q = (query || '').toLowerCase().trim()
+  const matchLocal = locals.filter((m) => !q || m.id.toLowerCase().includes(q))
+  const matchCloud = cloudModels.filter(
+    (m) => !q || m.id.toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q),
+  )
+  let html = ''
   if (matchLocal.length > 0) {
-    html += `<div class="model-combo-group-label">${esc(t('chat.local.group'))}</div>` +
-      matchLocal.map(m => {
-        const fullName = m.id.replace('ollama/', '');
-        return `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
+    html +=
+      `<div class="model-combo-group-label">${esc(t('chat.local.group'))}</div>` +
+      matchLocal
+        .map((m) => {
+          const fullName = m.id.replace('ollama/', '')
+          return `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
         <span class="model-combo-opt-name">${esc(fullName)}</span>
         <span class="model-combo-price">${esc(t('chat.local.free'))}</span>
-      </div>`;
-      }).join('');
+      </div>`
+        })
+        .join('')
   }
   if (matchCloud.length > 0) {
-    if (matchLocal.length > 0) html += `<div class="model-combo-group-label">${esc(t('chat.cloud.group'))}</div>`;
+    if (matchLocal.length > 0)
+      html += `<div class="model-combo-group-label">${esc(t('chat.cloud.group'))}</div>`
     // #37 — badge por id (":free"), no por priceIn===0: algunos meta-routers sin
     // pricing real (openrouter/auto*) también caen en 0/negativo y NO son gratis.
-    html += matchCloud.map(m => {
-      const isFree = m.id.endsWith(':free');
-      const fullName = m.name || m.id;
-      return `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
+    html += matchCloud
+      .map((m) => {
+        const isFree = m.id.endsWith(':free')
+        const fullName = m.name || m.id
+        return `<div class="model-combo-option${m.id === val ? ' active' : ''}" data-combo-option data-value="${esc(m.id)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
       <span class="model-combo-opt-name">${esc(fullName)}</span>
       <span class="model-combo-price${isFree ? ' free' : ''}">${isFree ? esc(t('chat.models.free')) : `$${m.priceIn.toFixed(2)}/M`}</span>
-    </div>`;
-    }).join('');
+    </div>`
+      })
+      .join('')
   }
-  if (!html) html = `<div class="model-combo-empty">${esc(q ? 'No results' : t('common.loading'))}</div>`;
-  return html;
+  if (!html)
+    html = `<div class="model-combo-empty">${esc(q ? 'No results' : t('common.loading'))}</div>`
+  return html
 }
 
 /* 2026-07-13 (corrección de Carlos) — pill único modelo+esfuerzo en el
@@ -1974,13 +2357,13 @@ function buildComboOptions(locals, cloudModels, val, query) {
      Claude Code/Codex que trajo Carlos como referencia)
    `st.chatFxView` (null|'root'|'model'|'effort') controla cuál se muestra. */
 function shortModelLabel(val, cloudPool) {
-  const full = modelLabelFor(val, cloudPool);
+  const full = modelLabelFor(val, cloudPool)
   // OpenRouter nombra los modelos "Vendor: Model Name" — el prefijo del vendor
   // es redundante en el pill compacto del composer (ya se sabe por el ícono/
   // contexto), y sin recortarlo "DeepSeek: DeepSeek V4 Flash" se comía casi
   // todo el ancho disponible antes de llegar al esfuerzo.
-  const withoutVendor = full.includes(': ') ? full.slice(full.indexOf(': ') + 2) : full;
-  return withoutVendor.length > 18 ? withoutVendor.slice(0, 16) + '…' : withoutVendor;
+  const withoutVendor = full.includes(': ') ? full.slice(full.indexOf(': ') + 2) : full
+  return withoutVendor.length > 18 ? withoutVendor.slice(0, 16) + '…' : withoutVendor
 }
 
 // Hallazgo real de Carlos (2026-08-17): un alias de Claude ("sonnet") no dice
@@ -1989,17 +2372,23 @@ function shortModelLabel(val, cloudPool) {
 // real (ver `rememberResolvedClaudeModel()` en screens-core.js, que llama acá
 // tras cada mensaje). Se persiste en localStorage por alias, así el selector
 // muestra "la última vez resolvió a X" — nunca inventado, nunca prospectivo.
-const CLAUDE_RESOLVED_KEY_PREFIX = 'orchestos-claude-resolved-';
+const CLAUDE_RESOLVED_KEY_PREFIX = 'orchestos-claude-resolved-'
 function rememberResolvedClaudeModel(isClaudeCli, aliasId, resultLabel) {
-  if (!isClaudeCli || !aliasId || typeof resultLabel !== 'string') return;
+  if (!isClaudeCli || !aliasId || typeof resultLabel !== 'string') return
   // resultLabel = "<canonical> via Claude Code CLI (effort: ...)" — nos quedamos
   // solo con el nombre canónico, antes del primer " via ".
-  const canonical = resultLabel.split(' via ')[0].trim();
-  if (!canonical || canonical === 'claude (cli default model)') return;
-  try { localStorage.setItem(CLAUDE_RESOLVED_KEY_PREFIX + aliasId, canonical); } catch {}
+  const canonical = resultLabel.split(' via ')[0].trim()
+  if (!canonical || canonical === 'claude (cli default model)') return
+  try {
+    localStorage.setItem(CLAUDE_RESOLVED_KEY_PREFIX + aliasId, canonical)
+  } catch {}
 }
 function getResolvedClaudeModel(aliasId) {
-  try { return localStorage.getItem(CLAUDE_RESOLVED_KEY_PREFIX + aliasId) || null; } catch { return null; }
+  try {
+    return localStorage.getItem(CLAUDE_RESOLVED_KEY_PREFIX + aliasId) || null
+  } catch {
+    return null
+  }
 }
 // Hallazgo real de Carlos (2026-08-17, segunda vuelta): mostrar "resolvió a
 // X" no alcanza — quiere poder ELEGIR esa versión concreta, no solo el alias
@@ -2028,14 +2417,14 @@ const CLAUDE_SEED_RESOLVED_2026_08_17 = {
   // Claude Code en el contexto de esta sesión ("Model IDs — Fable 5:
   // 'claude-fable-5'") — fuente autoritativa, no una adivinanza.
   'anthropic/fable': 'claude-fable-5',
-};
+}
 function getKnownClaudePinnedModels() {
-  const seen = new Set();
+  const seen = new Set()
   for (const a of ['anthropic/opus', 'anthropic/sonnet', 'anthropic/haiku', 'anthropic/fable']) {
-    const resolved = getResolvedClaudeModel(a) || CLAUDE_SEED_RESOLVED_2026_08_17[a];
-    if (resolved) seen.add(resolved);
+    const resolved = getResolvedClaudeModel(a) || CLAUDE_SEED_RESOLVED_2026_08_17[a]
+    if (resolved) seen.add(resolved)
   }
-  return Array.from(seen).sort();
+  return Array.from(seen).sort()
 }
 // Hallazgo real de Carlos (2026-08-17, tercera vuelta): mostrar el id crudo
 // del binario ("claude-haiku-4-5-20251001") es ilegible para un usuario —
@@ -2043,30 +2432,37 @@ function getKnownClaudePinnedModels() {
 // descartando el sufijo de fecha (8 dígitos, YYYYMMDD) que el binario agrega
 // a algunos snapshots pero que no aporta nada a la UI.
 function claudeHumanModelLabel(canonical) {
-  const parts = canonical.replace(/^claude-/, '').split('-');
-  const family = parts[0] ? parts[0][0].toUpperCase() + parts[0].slice(1) : canonical;
-  const versionParts = [];
+  const parts = canonical.replace(/^claude-/, '').split('-')
+  const family = parts[0] ? parts[0][0].toUpperCase() + parts[0].slice(1) : canonical
+  const versionParts = []
   for (let i = 1; i < parts.length; i++) {
-    if (/^\d{8}$/.test(parts[i])) break; // fecha de snapshot, no versión
-    if (/^\d+$/.test(parts[i])) versionParts.push(parts[i]); else break;
+    if (/^\d{8}$/.test(parts[i])) break // fecha de snapshot, no versión
+    if (/^\d+$/.test(parts[i])) versionParts.push(parts[i])
+    else break
   }
-  return versionParts.length ? `${family} ${versionParts.join('.')}` : family;
+  return versionParts.length ? `${family} ${versionParts.join('.')}` : family
 }
 
 function buildChatModelFx(st) {
-  const val = st.chatModel || 'deepseek/deepseek-v4-flash';
-  const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : [];
-  const isLoading = Array.isArray(st.orModels) && st.orModels.length === 0;
-  const cloudSource = st.orModels === null ? KNOWN_MODELS.map(m => ({ ...m })) : (Array.isArray(st.orModels) ? st.orModels : []);
-  const allCloud = (st.orModels === null || cloudSource.some(m => m.id === val))
-    ? cloudSource
-    : [{ id: val, name: val, priceIn: 0 }, ...cloudSource];
-  const agent = st.orcheConfig?.agent || 'api';
-  const agentInfo = st.executorModes?.modes?.find(m => m.id === agent);
-  const agentLabel = t('chat.modelfx.agentLabel.' + agent);
-  const modelHiddenAgent = agent === 'codex' || agent === 'opencode';
-  const showsClaudeModelPicker = agent === 'claude';
-  const isLocalAgent = agent === 'local';
+  const val = st.chatModel || 'deepseek/deepseek-v4-flash'
+  const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : []
+  const isLoading = Array.isArray(st.orModels) && st.orModels.length === 0
+  const cloudSource =
+    st.orModels === null
+      ? KNOWN_MODELS.map((m) => ({ ...m }))
+      : Array.isArray(st.orModels)
+        ? st.orModels
+        : []
+  const allCloud =
+    st.orModels === null || cloudSource.some((m) => m.id === val)
+      ? cloudSource
+      : [{ id: val, name: val, priceIn: 0 }, ...cloudSource]
+  const agent = st.orcheConfig?.agent || 'api'
+  const agentInfo = st.executorModes?.modes?.find((m) => m.id === agent)
+  const agentLabel = t('chat.modelfx.agentLabel.' + agent)
+  const modelHiddenAgent = agent === 'codex' || agent === 'opencode'
+  const showsClaudeModelPicker = agent === 'claude'
+  const isLocalAgent = agent === 'local'
   // Hallazgo real de Carlos (2026-08-17): la primera versión de este picker
   // ofrecía TODO el catálogo `anthropic/*` de OpenRouter bajo el agente Claude
   // — pero el binario real `claude` no acepta esos ids: rechaza el punto de
@@ -2086,63 +2482,77 @@ function buildChatModelFx(st) {
     { id: 'anthropic/sonnet', label: 'Sonnet' },
     { id: 'anthropic/haiku', label: 'Haiku' },
     { id: 'anthropic/fable', label: 'Fable' },
-  ];
-  const claudeAliasMatch = CLAUDE_CLI_ALIASES.find(m => m.id === val);
-  const claudeResolvedRaw = showsClaudeModelPicker && claudeAliasMatch
-    ? (getResolvedClaudeModel(val) || CLAUDE_SEED_RESOLVED_2026_08_17[val])
-    : null;
-  const claudeResolved = claudeResolvedRaw ? claudeHumanModelLabel(claudeResolvedRaw) : null;
+  ]
+  const claudeAliasMatch = CLAUDE_CLI_ALIASES.find((m) => m.id === val)
+  const claudeResolvedRaw =
+    showsClaudeModelPicker && claudeAliasMatch
+      ? getResolvedClaudeModel(val) || CLAUDE_SEED_RESOLVED_2026_08_17[val]
+      : null
+  const claudeResolved = claudeResolvedRaw ? claudeHumanModelLabel(claudeResolvedRaw) : null
   // `val` bajo Claude puede ser un alias (los 4 de arriba, "sigue la última")
   // o una versión FIJA que el usuario ya eligió a propósito (`anthropic/<canonical>`,
   // ej. "anthropic/claude-sonnet-5") — ese id no matchea CLAUDE_CLI_ALIASES.
   // Se muestra formateado ("Sonnet 5"), nunca el id crudo del binario.
-  const claudePinnedLabel = showsClaudeModelPicker && !claudeAliasMatch && val.startsWith('anthropic/')
-    ? claudeHumanModelLabel(val.slice('anthropic/'.length))
-    : null;
+  const claudePinnedLabel =
+    showsClaudeModelPicker && !claudeAliasMatch && val.startsWith('anthropic/')
+      ? claudeHumanModelLabel(val.slice('anthropic/'.length))
+      : null
   const fullModelLabel = showsClaudeModelPicker
-    ? (claudeAliasMatch
-        ? claudeAliasMatch.label + (claudeResolved ? ` (${claudeResolved})` : '')
-        : (claudePinnedLabel || t('chat.modelfx.modelAuto')))
-    : (isLoading ? t('common.loading') : modelLabelFor(val, allCloud));
-  const modelLabel = showsClaudeModelPicker ? fullModelLabel : shortModelLabel(val, allCloud);
+    ? claudeAliasMatch
+      ? claudeAliasMatch.label + (claudeResolved ? ` (${claudeResolved})` : '')
+      : claudePinnedLabel || t('chat.modelfx.modelAuto')
+    : isLoading
+      ? t('common.loading')
+      : modelLabelFor(val, allCloud)
+  const modelLabel = showsClaudeModelPicker ? fullModelLabel : shortModelLabel(val, allCloud)
   // CC.1b (2026-08-16) — hallazgo real de Carlos: el chat corriendo vía Claude
   // Code CLI (agent: claude, CC.D1) mostraba el selector de 3 niveles
   // pensado para el `reasoning` de OpenRouter, cuando el CLI real acepta 5
   // (`claude --help`: low/medium/high/xhigh/max). El agente es una preferencia
   // de PROYECTO (Settings), no depende del modelo elegido en este combo — a
   // diferencia de `modelSupportsReasoning`, que sí es por-modelo.
-  const useClaudeCli = agent === 'claude';
-  const effortLevels = useClaudeCli ? CLAUDE_CLI_EFFORT_LEVELS : ['low', 'medium', 'high'];
-  const effortAvailable = !isLocalAgent && (useClaudeCli || modelSupportsReasoning(val, st.orModels));
-  const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null;
-  const triggerBase = modelHiddenAgent ? agentLabel : modelLabel;
-  const triggerLabel = effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase;
-  const triggerTitle = effortLabel ? `${fullModelLabel} · ${effortLabel}` : fullModelLabel;
+  const useClaudeCli = agent === 'claude'
+  const effortLevels = useClaudeCli ? CLAUDE_CLI_EFFORT_LEVELS : ['low', 'medium', 'high']
+  const effortAvailable =
+    !isLocalAgent && (useClaudeCli || modelSupportsReasoning(val, st.orModels))
+  const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null
+  const triggerBase = modelHiddenAgent ? agentLabel : modelLabel
+  const triggerLabel = effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase
+  const triggerTitle = effortLabel ? `${fullModelLabel} · ${effortLabel}` : fullModelLabel
 
-  const view = st.chatFxView; // null | 'root' | 'model' | 'effort' | 'agent'
-  let panel = '';
+  const view = st.chatFxView // null | 'root' | 'model' | 'effort' | 'agent'
+  let panel = ''
   if (view === 'root') {
     // Aviso visible sin abrir el submenu si el agente activo del PROYECTO
     // (elegido en Settings, o quedado de antes de este fix) es Codex/OpenCode
     // — el chat cae a OpenRouter en silencio para esos dos (ver nota en la
     // vista 'agent' más abajo). No se auto-corrige el config acá, solo se
     // avisa — cambiar el agente del proyecto sigue siendo decisión del usuario.
-    const chatAgentUnsupportedWarning = (agent === 'codex' || agent === 'opencode')
-      ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('chat.modelfx.agentChatUnsupported')}</p>`
-      : '';
+    const chatAgentUnsupportedWarning =
+      agent === 'codex' || agent === 'opencode'
+        ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('chat.modelfx.agentChatUnsupported')}</p>`
+        : ''
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       ${chatAgentUnsupportedWarning}
-      ${modelHiddenAgent ? `<div class="chat-modelfx-item">
+      ${
+        modelHiddenAgent
+          ? `<div class="chat-modelfx-item">
         <span class="k">${t('chat.modelfx.model')}</span>
         <span class="v">${esc(t('chat.modelfx.modelDecidedBy', agentLabel))}</span>
-      </div>` : `<button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
+      </div>`
+          : `<button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
         <span class="k">${t('chat.modelfx.model')}</span>
         <span class="v" title="${esc(fullModelLabel)}">${esc(modelLabel)}</span>${ICON.chevR}
-      </button>`}
-      ${effortAvailable ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="effort">
+      </button>`
+      }
+      ${
+        effortAvailable
+          ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="effort">
         <span class="k">${t('chat.effort.label')}</span>
         <span class="v">${esc(effortLabel)}</span>${ICON.chevR}
-      </button>` : ''}
+      </button>`
+          : ''
+      }
       <button type="button" class="chat-modelfx-item" data-modelfx-nav="agent">
         <span class="k">${t('chat.modelfx.agent')}</span>
         <span class="v">${esc(agentLabel)}</span>${ICON.chevR}
@@ -2151,7 +2561,7 @@ function buildChatModelFx(st) {
       <button type="button" class="chat-modelfx-item chat-modelfx-reset" data-modelfx-reset>
         ${ICON.refresh}<span>${t('chat.modelfx.reset')}</span>
       </button>
-    </div>`;
+    </div>`
   } else if (view === 'model' && showsClaudeModelPicker) {
     // Solo 4 opciones, siempre las mismas — sin buscador (sería ruido para
     // 4 ítems) y sin buildComboOptions() (ese combo asume forma de OpenRouter
@@ -2160,46 +2570,55 @@ function buildChatModelFx(st) {
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
       <div class="chat-modelfx-group-label muted">${t('chat.modelfx.claudeAuto')}</div>
-      ${CLAUDE_CLI_ALIASES.map(m => {
-        const resolved = getResolvedClaudeModel(m.id) || CLAUDE_SEED_RESOLVED_2026_08_17[m.id];
-        const humanResolved = resolved ? claudeHumanModelLabel(resolved) : null;
-        const fullName = humanResolved ? `${m.label} (${humanResolved})` : m.label;
+      ${CLAUDE_CLI_ALIASES.map((m) => {
+        const resolved = getResolvedClaudeModel(m.id) || CLAUDE_SEED_RESOLVED_2026_08_17[m.id]
+        const humanResolved = resolved ? claudeHumanModelLabel(resolved) : null
+        const fullName = humanResolved ? `${m.label} (${humanResolved})` : m.label
         return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === m.id ? ' active' : ''}" data-modelfx-claude-alias="${esc(m.id)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
         <span>${esc(m.label)}${humanResolved ? ` <span class="muted">(${esc(humanResolved)})</span>` : ''}</span>${val === m.id ? ICON.check : ''}
-      </button>`;
+      </button>`
       }).join('')}
       ${(() => {
-        const pinned = getKnownClaudePinnedModels();
-        if (pinned.length === 0) return '';
+        const pinned = getKnownClaudePinnedModels()
+        if (pinned.length === 0) return ''
         return `<div class="chat-modelfx-sep"></div>
         <div class="chat-modelfx-group-label muted">${t('chat.modelfx.claudePinned')}</div>
-        ${pinned.map(canonical => {
-          const pinnedId = 'anthropic/' + canonical;
-          const fullName = claudeHumanModelLabel(canonical);
-          return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === pinnedId ? ' active' : ''}" data-modelfx-claude-alias="${esc(pinnedId)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
+        ${pinned
+          .map((canonical) => {
+            const pinnedId = 'anthropic/' + canonical
+            const fullName = claudeHumanModelLabel(canonical)
+            return `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${val === pinnedId ? ' active' : ''}" data-modelfx-claude-alias="${esc(pinnedId)}" title="${esc(fullName)}" aria-label="${esc(fullName)}">
           <span>${esc(fullName)}</span>${val === pinnedId ? ICON.check : ''}
-        </button>`;
-        }).join('')}`;
+        </button>`
+          })
+          .join('')}`
       })()}
-    </div>`;
+    </div>`
   } else if (view === 'model') {
     panel = `<div class="chat-modelfx-panel chat-modelfx-panel-wide" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
       <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
       <div class="model-combo-list" data-combo-list>${buildComboOptions(isLocalAgent ? [] : locals, isLocalAgent ? [] : allCloud, val, '')}</div>
-    </div>`;
+    </div>`
   } else if (view === 'effort') {
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
-      ${effortLevels.map(v => `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${st.chatEffort === v ? ' active' : ''}" data-modelfx-effort="${v}">
+      ${effortLevels
+        .map(
+          (
+            v,
+          ) => `<button type="button" class="chat-modelfx-item chat-modelfx-effort-opt${st.chatEffort === v ? ' active' : ''}" data-modelfx-effort="${v}">
         <span>${t('chat.effort.' + v)}</span>${st.chatEffort === v ? ICON.check : ''}
-      </button>`).join('')}
-    </div>`;
+      </button>`,
+        )
+        .join('')}
+    </div>`
   } else if (view === 'agent') {
-    const modes = Array.isArray(st.executorModes?.modes) ? st.executorModes.modes : [];
-    const notDetectedNote = agentInfo && !agentInfo.detected
-      ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('settings.executorMode.notDetected')}</p>`
-      : '';
+    const modes = Array.isArray(st.executorModes?.modes) ? st.executorModes.modes : []
+    const notDetectedNote =
+      agentInfo && !agentInfo.detected
+        ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('settings.executorMode.notDetected')}</p>`
+        : ''
     // Hallazgo real de Carlos (2026-08-17): elegir "Codex" acá lo dejaba
     // fijado como agente del proyecto, pero `handlers/chat.ts` solo tiene
     // rama especial para `agent === 'claude'` (CC.1, alcance decidido a
@@ -2210,72 +2629,74 @@ function buildChatModelFx(st) {
     // corrió), pero el SELECTOR prometía algo que el chat no puede cumplir
     // todavía. Deshabilitados acá — siguen siendo agentes válidos para
     // tareas en Settings, esto es solo el picker del chat.
-    const CHAT_UNSUPPORTED_AGENTS = new Set(['codex', 'opencode']);
+    const CHAT_UNSUPPORTED_AGENTS = new Set(['codex', 'opencode'])
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
-      ${modes.map(info => {
-        const unsupported = CHAT_UNSUPPORTED_AGENTS.has(info.id);
-        return unsupported
-          ? `<div class="chat-modelfx-item chat-modelfx-agent-opt disabled" title="${esc(t('chat.modelfx.agentChatUnsupported'))}">
+      ${modes
+        .map((info) => {
+          const unsupported = CHAT_UNSUPPORTED_AGENTS.has(info.id)
+          return unsupported
+            ? `<div class="chat-modelfx-item chat-modelfx-agent-opt disabled" title="${esc(t('chat.modelfx.agentChatUnsupported'))}">
             <span class="muted">${esc(t('chat.modelfx.agentLabel.' + info.id))} — ${esc(t('chat.modelfx.agentChatUnsupported'))}</span>
           </div>`
-          : `<button type="button" class="chat-modelfx-item chat-modelfx-agent-opt${agent === info.id ? ' active' : ''}" data-modelfx-agent="${esc(info.id)}">
+            : `<button type="button" class="chat-modelfx-item chat-modelfx-agent-opt${agent === info.id ? ' active' : ''}" data-modelfx-agent="${esc(info.id)}">
             <span>${esc(t('chat.modelfx.agentLabel.' + info.id))}</span>${agent === info.id ? ICON.check : ''}
-          </button>`;
-      }).join('')}
+          </button>`
+        })
+        .join('')}
       ${notDetectedNote}
-    </div>`;
+    </div>`
   }
 
   return `<div class="chat-modelfx${view ? ' open' : ''}" data-modelfx>
-    <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger title="${esc(triggerTitle)}" aria-label="${esc(triggerTitle)}" ${(!modelHiddenAgent && !showsClaudeModelPicker && isLoading) ? 'disabled' : ''}>
+    <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger title="${esc(triggerTitle)}" aria-label="${esc(triggerTitle)}" ${!modelHiddenAgent && !showsClaudeModelPicker && isLoading ? 'disabled' : ''}>
       <span class="chat-modelfx-label">${esc(triggerLabel)}</span>${ICON.chev}
     </button>
     ${panel}
-  </div>`;
+  </div>`
 }
 
 /* FRONT.1 — true solo si `models` (state.orModels, datos reales de OpenRouter)
    tiene una entrada para modelId con supportsReasoning:true. Nunca asume
    soporte sin dato real (fallback KNOWN_MODELS/locals no lo declaran). */
 function modelSupportsReasoning(modelId, models) {
-  if (!Array.isArray(models)) return false;
-  return !!models.find(m => m.id === modelId)?.supportsReasoning;
+  if (!Array.isArray(models)) return false
+  return !!models.find((m) => m.id === modelId)?.supportsReasoning
 }
 
 async function loadOrModels(force = false) {
-  const now = Date.now();
+  const now = Date.now()
   if (!force && state.orModels && state.orModels.length > 0) {
-    if (state.orModelsLastFetch && (now - state.orModelsLastFetch) < 3600000) return;
+    if (state.orModelsLastFetch && now - state.orModelsLastFetch < 3600000) return
   }
-  state.orModels = [];
+  state.orModels = []
   try {
-    const res = await fetch('/api/chat/models');
+    const res = await fetch('/api/chat/models')
     if (res.ok) {
-      state.orModels = await res.json();
-      state.orModelsLastFetch = Date.now();
+      state.orModels = await res.json()
+      state.orModelsLastFetch = Date.now()
     } else {
-      state.orModels = null;
+      state.orModels = null
     }
   } catch {
-    state.orModels = null;
+    state.orModels = null
   } finally {
-    state.orModelsAttempted = true;
+    state.orModelsAttempted = true
   }
 }
 
 async function loadLocalModels() {
-  if (state.localModels !== null) return;
+  if (state.localModels !== null) return
   try {
-    const res = await fetch('/api/providers/local');
+    const res = await fetch('/api/providers/local')
     if (res.ok) {
-      const data = await res.json();
-      state.localModels = data.available ? data.models : [];
+      const data = await res.json()
+      state.localModels = data.available ? data.models : []
     } else {
-      state.localModels = [];
+      state.localModels = []
     }
   } catch {
-    state.localModels = [];
+    state.localModels = []
   }
 }
 
@@ -2283,9 +2704,9 @@ async function loadLocalModels() {
    Nav builder — called on boot and on mode toggle
    ============================================================ */
 function applySidebarMode() {
-  const expanded = localStorage.getItem('orchestos-sidebar') === 'expanded';
-  document.querySelector('.app').dataset.sidebar = expanded ? 'expanded' : 'collapsed';
-  return expanded;
+  const expanded = localStorage.getItem('orchestos-sidebar') === 'expanded'
+  document.querySelector('.app').dataset.sidebar = expanded ? 'expanded' : 'collapsed'
+  return expanded
 }
 
 /**
@@ -2301,22 +2722,22 @@ function applySidebarMode() {
  * primero lo hace cada componente, el segundo SIEMPRE fue CSS puro y sigue igual.
  */
 function toggleSidebarMode() {
-  const appEl = document.querySelector('.app');
-  const next = appEl.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded';
-  appEl.dataset.sidebar = next;
-  localStorage.setItem('orchestos-sidebar', next);
-  App.syncNav();
+  const appEl = document.querySelector('.app')
+  const next = appEl.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded'
+  appEl.dataset.sidebar = next
+  localStorage.setItem('orchestos-sidebar', next)
+  App.syncNav()
 }
 
 function toggleAdvancedMode() {
-  const cur = localStorage.getItem('orchestos-mode') || 'normal';
-  const next = cur === 'advanced' ? 'normal' : 'advanced';
-  localStorage.setItem('orchestos-mode', next);
+  const cur = localStorage.getItem('orchestos-mode') || 'normal'
+  const next = cur === 'advanced' ? 'normal' : 'advanced'
+  localStorage.setItem('orchestos-mode', next)
   if (next === 'normal') {
-    const opIds = NAV.filter(n => n.operator).map(n => n.id);
-    if (opIds.includes(state.screen)) App.go('chat');
+    const opIds = NAV.filter((n) => n.operator).map((n) => n.id)
+    if (opIds.includes(state.screen)) App.go('chat')
   }
-  App.syncNav();
+  App.syncNav()
 }
 
 // `headerIconBtn()` se borro en UI.3 (Mes 30): su unico consumidor era
@@ -2339,22 +2760,24 @@ function toggleAdvancedMode() {
  * a proposito: es contenido de pantalla, no shell, y le toca en UI.4.
  */
 function toggleRightPanel() {
-  state.rightPanelOpen = !state.rightPanelOpen;
-  localStorage.setItem('orchestos-rightpanel', state.rightPanelOpen ? 'expanded' : 'collapsed');
-  syncRightPanel();
+  state.rightPanelOpen = !state.rightPanelOpen
+  localStorage.setItem('orchestos-rightpanel', state.rightPanelOpen ? 'expanded' : 'collapsed')
+  syncRightPanel()
 }
 
 function setRightPanelTab(tabName) {
-  state.rightPanelTab = tabName;
-  localStorage.setItem('orchestos-rightpanel-tab', tabName);
-  syncRightPanel();
+  state.rightPanelTab = tabName
+  localStorage.setItem('orchestos-rightpanel-tab', tabName)
+  syncRightPanel()
 }
 
 /** Aplica el estado abierto/cerrado + tab activa del panel derecho al DOM. */
 function syncRightPanel() {
-  document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
-  pushShellState({ rightPanelOpen: state.rightPanelOpen, rightPanelTab: state.rightPanelTab });
-  if (state.rightPanelOpen) RightPanel.render();
+  document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen
+    ? 'expanded'
+    : 'collapsed'
+  pushShellState({ rightPanelOpen: state.rightPanelOpen, rightPanelTab: state.rightPanelTab })
+  if (state.rightPanelOpen) RightPanel.render()
 }
 
 /**
@@ -2363,7 +2786,7 @@ function syncRightPanel() {
  * error. El bundle publica esta funcion en `window` al montar (ver `ui.tsx`).
  */
 function pushShellState(patch) {
-  if (typeof window.__orchestosPushShell === 'function') window.__orchestosPushShell(patch);
+  if (typeof window.__orchestosPushShell === 'function') window.__orchestosPushShell(patch)
 }
 
 /**
@@ -2371,7 +2794,7 @@ function pushShellState(patch) {
  * que `pushShellState()`: el dashboard sigue arrancando sin el bundle.
  */
 function bumpAppState() {
-  if (typeof window.__orchestosBumpState === 'function') window.__orchestosBumpState();
+  if (typeof window.__orchestosBumpState === 'function') window.__orchestosBumpState()
 }
 
 /* ============================================================
@@ -2384,48 +2807,51 @@ function bumpAppState() {
 function wireResizeHandle(handle, opts) {
   // opts: { min, max, sign (1 arrastra-derecha-agranda, -1 arrastra-izquierda-agranda),
   //         cssVar, target, storageKey }
-  if (!handle) return;
-  let dragging = false, startX = 0, startW = 0;
+  if (!handle) return
+  let dragging = false,
+    startX = 0,
+    startW = 0
 
-  const onMove = e => {
-    if (!dragging) return;
-    const delta = (e.clientX - startX) * opts.sign;
-    const w = Math.max(opts.min, Math.min(opts.max, Math.round(startW + delta)));
-    opts.target.style.setProperty(opts.cssVar, w + 'px');
-  };
+  const onMove = (e) => {
+    if (!dragging) return
+    const delta = (e.clientX - startX) * opts.sign
+    const w = Math.max(opts.min, Math.min(opts.max, Math.round(startW + delta)))
+    opts.target.style.setProperty(opts.cssVar, w + 'px')
+  }
   const onUp = () => {
-    if (!dragging) return;
-    dragging = false;
-    handle.classList.remove('dragging');
-    document.body.classList.remove('resizing-ew');
-    const current = getComputedStyle(opts.target).getPropertyValue(opts.cssVar).trim();
-    if (current) localStorage.setItem(opts.storageKey, current.replace('px', ''));
-    window.removeEventListener('mousemove', onMove);
-    window.removeEventListener('mouseup', onUp);
-  };
+    if (!dragging) return
+    dragging = false
+    handle.classList.remove('dragging')
+    document.body.classList.remove('resizing-ew')
+    const current = getComputedStyle(opts.target).getPropertyValue(opts.cssVar).trim()
+    if (current) localStorage.setItem(opts.storageKey, current.replace('px', ''))
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
   // mousedown/mousemove/mouseup en vez de Pointer Events — más compatible
   // con automatización de browser (CDP no siempre dispara pointer events) y
   // funciona igual para mouse/trackpad real.
-  handle.addEventListener('mousedown', e => {
-    dragging = true;
-    startX = e.clientX;
-    startW = parseInt(getComputedStyle(opts.target).getPropertyValue(opts.cssVar), 10) || opts.min;
-    handle.classList.add('dragging');
-    document.body.classList.add('resizing-ew');
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    e.preventDefault();
-  });
+  handle.addEventListener('mousedown', (e) => {
+    dragging = true
+    startX = e.clientX
+    startW = parseInt(getComputedStyle(opts.target).getPropertyValue(opts.cssVar), 10) || opts.min
+    handle.classList.add('dragging')
+    document.body.classList.add('resizing-ew')
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    e.preventDefault()
+  })
 }
 
 /** Restaura los anchos guardados (localStorage) ANTES del primer paint del grid. */
 function applyResizedWidths() {
-  const appEl = document.querySelector('.app');
-  const SIDEBAR_MIN = 200, RIGHTPANEL_MIN = 220;
-  const sw = parseInt(localStorage.getItem('orchestos-sidebar-width'), 10);
-  if (sw >= SIDEBAR_MIN) appEl.style.setProperty('--sidebar-w-exp', sw + 'px');
-  const rw = parseInt(localStorage.getItem('orchestos-rightpanel-width'), 10);
-  if (rw >= RIGHTPANEL_MIN) appEl.style.setProperty('--rightpanel-w', rw + 'px');
+  const appEl = document.querySelector('.app')
+  const SIDEBAR_MIN = 200,
+    RIGHTPANEL_MIN = 220
+  const sw = parseInt(localStorage.getItem('orchestos-sidebar-width'), 10)
+  if (sw >= SIDEBAR_MIN) appEl.style.setProperty('--sidebar-w-exp', sw + 'px')
+  const rw = parseInt(localStorage.getItem('orchestos-rightpanel-width'), 10)
+  if (rw >= RIGHTPANEL_MIN) appEl.style.setProperty('--rightpanel-w', rw + 'px')
 }
 
 /* ============================================================
@@ -2433,53 +2859,61 @@ function applyResizedWidths() {
    ============================================================ */
 function boot() {
   // Sidebar collapsed/expanded mode (persisted)
-  applySidebarMode();
-  applyResizedWidths();
+  applySidebarMode()
+  applyResizedWidths()
 
   // El riel y la fila del aside derecho los pinta React (UI.3): aca solo se aplica el
   // estado persistido al contenedor. El toggle del aside vive unicamente en #rpToprow,
   // nunca en el header (ronda 4).
-  document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen ? 'expanded' : 'collapsed';
-  if (state.rightPanelOpen) RightPanel.render();
+  document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen
+    ? 'expanded'
+    : 'collapsed'
+  if (state.rightPanelOpen) RightPanel.render()
 
   // Resize handles — piso = ancho por defecto de cada uno, techo distinto
   // (el derecho puede crecer más: ahí se lee diff/código).
   wireResizeHandle(document.getElementById('sidebarResizeHandle'), {
-    min: 200, max: 320, sign: 1,
-    cssVar: '--sidebar-w-exp', target: document.querySelector('.app'),
+    min: 200,
+    max: 320,
+    sign: 1,
+    cssVar: '--sidebar-w-exp',
+    target: document.querySelector('.app'),
     storageKey: 'orchestos-sidebar-width',
-  });
+  })
   wireResizeHandle(document.getElementById('rightpanelResizeHandle'), {
-    min: 220, max: 720, sign: -1,
-    cssVar: '--rightpanel-w', target: document.querySelector('.app'),
+    min: 220,
+    max: 720,
+    sign: -1,
+    cssVar: '--rightpanel-w',
+    target: document.querySelector('.app'),
     storageKey: 'orchestos-rightpanel-width',
-  });
+  })
 
   // Panels
-  SidePanel.init();
-  Modal.init();
+  SidePanel.init()
+  Modal.init()
 
   // Command palette (Cmd/Ctrl+K)
-  document.addEventListener('keydown', e => {
+  document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      Modal.openCommandPalette();
+      e.preventDefault()
+      Modal.openCommandPalette()
     }
-  });
+  })
 
   // FRONT.9 / 2026-07-13 — close the chat modelfx pill / attach menu on outside
   // click. Registered once here (not inside SCREENS.chat.wire(), which
   // reruns on every rerender) so it never stacks duplicate listeners.
-  document.addEventListener('click', e => {
+  document.addEventListener('click', (e) => {
     if (state.chatFxView && !e.target.closest('[data-modelfx]')) {
-      state.chatFxView = null;
-      App.rerender();
+      state.chatFxView = null
+      App.rerender()
     }
     if (state.chatAttachMenuOpen && !e.target.closest('[data-attach-menu]')) {
-      state.chatAttachMenuOpen = false;
-      App.rerender();
+      state.chatAttachMenuOpen = false
+      App.rerender()
     }
-  });
+  })
 
   // 2026-07-08 — el wiring delegado de buildModelSelect() (abrir/cerrar panel,
   // elegir opcion, filtrar, cerrar al click afuera) vivia aca, junto con
@@ -2497,20 +2931,20 @@ function boot() {
   // teclado — Enter/Espacio no hacía nada pese a poder enfocarlas con Tab.
   // Mismo patrón que el sidebar (`[role="button"]` + keydown), delegado una
   // sola vez acá para cubrir las 3 tablas sin wiring por pantalla.
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const row = e.target.closest('tr[data-task], tr[data-run], tr[data-spec]');
-    if (!row) return;
-    e.preventDefault();
-    row.click();
-  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    const row = e.target.closest('tr[data-task], tr[data-run], tr[data-spec]')
+    if (!row) return
+    e.preventDefault()
+    row.click()
+  })
 
   // First render with loading state, then fetch
-  App.rerender();
-  App.fetchAll();
+  App.rerender()
+  App.fetchAll()
 
   // Auto-refresh every 30s
-  setInterval(() => App.fetchAll(), 30_000);
+  setInterval(() => App.fetchAll(), 30_000)
 
   // Puente para el bundle de islas React (UI.0, Mes 30).
   // Dos motivos, los dos reales y verificados en vivo el 2026-08-25:
@@ -2520,7 +2954,7 @@ function boot() {
   //  2. Un <script type="module"> se ejecuta ANTES de que dispare DOMContentLoaded,
   //     o sea antes de este boot(): el bundle no puede envolver App.rerender() al
   //     cargarse porque todavia no existe. Este evento le avisa cuando ya puede.
-  window.App = App;
+  window.App = App
 
   // Puente de datos vanilla -> islas React (UI.1, Mes 30). Superficie ESTRECHA a
   // proposito: React no alcanza `state` ni ninguna funcion interna, solo lo que se
@@ -2530,10 +2964,10 @@ function boot() {
   // `Modal` es otro `const` de top level (no crea propiedad global). Se expone porque
   // redibuja con `innerHTML` por fuera de App.rerender() y el gate en vivo de UI.1
   // necesita abrirlo/cerrarlo para verificar que la isla monta y se limpia ahi tambien.
-  window.Modal = Modal;
+  window.Modal = Modal
   // Idem `state`: el gate en vivo necesita poder pararse en una pestaña concreta de
   // Settings sin depender de encontrar y clickear el tab correcto por CSS.
-  window.state = state;
+  window.state = state
 
   window.OrchestOS = {
     getModels: () => ({ cloud: state.orModels, local: state.localModels, known: KNOWN_MODELS }),
@@ -2542,7 +2976,7 @@ function boot() {
     // UI.3 — superficie del shell. React dibuja; estas acciones deciden y persisten.
     nav: NAV,
     icons: ICON,
-    go: id => App.go(id),
+    go: (id) => App.go(id),
     toggleSidebar: toggleSidebarMode,
     toggleAdvanced: toggleAdvancedMode,
     openCommandPalette: () => Modal.openCommandPalette(),
@@ -2563,74 +2997,82 @@ function boot() {
     fetchSkills: () => App.fetchSkills(),
     fetchProSkills: () => App.fetchProSkills(),
     fetchRegistrySkills: () => App.fetchRegistrySkills(),
-    exportSkill: id => {
-      const a = document.createElement('a');
-      a.href = `/api/skills/${encodeURIComponent(id)}/export`;
-      a.download = `${id}.yaml`;
-      a.click();
+    exportSkill: (id) => {
+      const a = document.createElement('a')
+      a.href = `/api/skills/${encodeURIComponent(id)}/export`
+      a.download = `${id}.yaml`
+      a.click()
     },
-    copySkill: async id => {
-      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/export`);
-      if (!res.ok) return false;
-      await navigator.clipboard.writeText(await res.text());
-      return true;
+    copySkill: async (id) => {
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/export`)
+      if (!res.ok) return false
+      await navigator.clipboard.writeText(await res.text())
+      return true
     },
-    buildSkill: async id => {
-      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/build`, { method: 'POST' });
-      return await res.json();
+    buildSkill: async (id) => {
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/build`, { method: 'POST' })
+      return await res.json()
     },
-    deleteSkill: async id => {
+    deleteSkill: async (id) => {
       const res = await fetch(`/api/skills/${encodeURIComponent(id)}`, {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: true }),
-      });
-      return await res.json();
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: true }),
+      })
+      return await res.json()
     },
-    importProSkill: async id => {
-      const res = await fetch(`/api/skills/pro/${encodeURIComponent(id)}/import`, { method: 'POST' });
-      return await res.json();
+    importProSkill: async (id) => {
+      const res = await fetch(`/api/skills/pro/${encodeURIComponent(id)}/import`, {
+        method: 'POST',
+      })
+      return await res.json()
     },
-    importRegistrySkill: async id => {
-      const res = await fetch(`/api/skills/registry/${encodeURIComponent(id)}/import`, { method: 'POST' });
-      return await res.json();
+    importRegistrySkill: async (id) => {
+      const res = await fetch(`/api/skills/registry/${encodeURIComponent(id)}/import`, {
+        method: 'POST',
+      })
+      return await res.json()
     },
     openNewSkill: () => Modal.openNewSkill(),
     openImportSkill: () => Modal.openImportSkill(),
-    openSkillDetail: skill => Modal.openSkillDetail(skill),
-    openEditSkill: skill => Modal.openEditSkill(skill),
+    openSkillDetail: (skill) => Modal.openSkillDetail(skill),
+    openEditSkill: (skill) => Modal.openEditSkill(skill),
     showToast: (msg, type) => showToast(msg, type),
     confirm: (title, body, label) => Modal.confirm(title, body, label),
     openSpecDraft: () => Modal.openSpecDraft(state),
     bulk: {
-      selected: screen => [...bulkSet(screen)],
+      selected: (screen) => [...bulkSet(screen)],
       toggle: (screen, id) => bulkToggle(screen, id),
       toggleAll: (screen, ids) => bulkToggleAll(screen, ids),
-      clear: screen => bulkClear(screen),
+      clear: (screen) => bulkClear(screen),
       remove: (screen, endpoint, refetch, resourceLabel) =>
         bulkDelete(screen, endpoint, refetch, resourceLabel),
     },
-  };
+  }
 
   // Primer empujon de estado ANTES de avisar que el shell puede montar: sin esto, React
   // pinta una vez con los valores por defecto del store y recien despues corrige — un
   // parpadeo visible en el riel, que esta siempre en pantalla.
-  App.syncNav();
-  App.syncHeader();
-  pushShellState({ rightPanelOpen: state.rightPanelOpen, rightPanelTab: state.rightPanelTab });
+  App.syncNav()
+  App.syncHeader()
+  pushShellState({ rightPanelOpen: state.rightPanelOpen, rightPanelTab: state.rightPanelTab })
 
-  window.dispatchEvent(new CustomEvent('orchestos:ready'));
+  window.dispatchEvent(new CustomEvent('orchestos:ready'))
 }
 
 /** Simple toast notification — auto-dismisses after 3s */
 function showToast(msg, type) {
-  const el = document.createElement('div');
-  el.className = 'toast' + (type === 'error' ? ' toast-error' : '');
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => { el.classList.add('show'); }, 10);
+  const el = document.createElement('div')
+  el.className = 'toast' + (type === 'error' ? ' toast-error' : '')
+  el.textContent = msg
+  document.body.appendChild(el)
   setTimeout(() => {
-    el.classList.remove('show');
-    setTimeout(() => el.remove(), 300);
-  }, 3000);
+    el.classList.add('show')
+  }, 10)
+  setTimeout(() => {
+    el.classList.remove('show')
+    setTimeout(() => el.remove(), 300)
+  }, 3000)
 }
 
-document.addEventListener('DOMContentLoaded', boot);
+document.addEventListener('DOMContentLoaded', boot)

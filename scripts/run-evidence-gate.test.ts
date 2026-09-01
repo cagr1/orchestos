@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from 'bun:test'
 import { Database } from 'bun:sqlite'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -50,12 +50,29 @@ function insertFixture(database: Database, id: string, taskClass: string): void 
     `INSERT INTO runs (id, project_id, prompt, task_class, model, provider, qa_verdict, status,
        input_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, 'temporary-project', `prompt-${id}`, taskClass, 'test/model', 'test', 'pass', 'done', 10, 5, 0.25, 100, `result-${id}`, '2026-08-20T00:00:00.000Z'],
+    [
+      id,
+      'temporary-project',
+      `prompt-${id}`,
+      taskClass,
+      'test/model',
+      'test',
+      'pass',
+      'done',
+      10,
+      5,
+      0.25,
+      100,
+      `result-${id}`,
+      '2026-08-20T00:00:00.000Z',
+    ],
   )
 }
 
 function evidenceTempNames(label: string): Set<string> {
-  return new Set(readdirSync(tmpdir()).filter(name => name.startsWith(`orchestos-evidence-${label}-`)))
+  return new Set(
+    readdirSync(tmpdir()).filter((name) => name.startsWith(`orchestos-evidence-${label}-`)),
+  )
 }
 
 describe('CC.0-D6 — exportRunEvidence', () => {
@@ -77,14 +94,16 @@ describe('CC.0-D6 — exportRunEvidence', () => {
     verify.close()
 
     expect(result).toEqual({ discovered: 1, exported: 1, duplicates: 0 })
-    expect(rows).toEqual([expect.objectContaining({
-      id: 'task-1',
-      project_id: null,
-      task_class: 'gate:bb.4:implement',
-      prompt: 'prompt-task-1',
-      qa_verdict: 'pass',
-      usd_cost: 0.25,
-    })])
+    expect(rows).toEqual([
+      expect.objectContaining({
+        id: 'task-1',
+        project_id: null,
+        task_class: 'gate:bb.4:implement',
+        prompt: 'prompt-task-1',
+        qa_verdict: 'pass',
+        usd_cost: 0.25,
+      }),
+    ])
   })
 
   it('es idempotente por run id y no duplica evidencia al reintentar', () => {
@@ -98,7 +117,11 @@ describe('CC.0-D6 — exportRunEvidence', () => {
     target.close()
 
     expect(exportRunEvidence(sourcePath, targetPath, 'live').exported).toBe(1)
-    expect(exportRunEvidence(sourcePath, targetPath, 'live')).toEqual({ discovered: 1, exported: 0, duplicates: 1 })
+    expect(exportRunEvidence(sourcePath, targetPath, 'live')).toEqual({
+      discovered: 1,
+      exported: 0,
+      duplicates: 1,
+    })
   })
 
   it('rechaza labels ambiguos y nunca permite source=target', () => {
@@ -131,11 +154,16 @@ describe('CC.0-D6 — gate:evidence lifecycle', () => {
     })
     const after = evidenceTempNames('failed-gate')
     const durable = new Database(databasePathForHome(evidenceHome), { readonly: true })
-    const row = durable.query<{ task_class: string; result: string }, []>('SELECT task_class, result FROM runs').get()
+    const row = durable
+      .query<{ task_class: string; result: string }, []>('SELECT task_class, result FROM runs')
+      .get()
     durable.close()
 
     expect(exitCode).toBe(7)
-    expect(row).toEqual({ task_class: 'gate:failed-gate:implement', result: 'gate failed after run' })
+    expect(row).toEqual({
+      task_class: 'gate:failed-gate:implement',
+      result: 'gate failed after run',
+    })
     expect(after).toEqual(before)
   })
 
@@ -148,8 +176,12 @@ describe('CC.0-D6 — gate:evidence lifecycle', () => {
       const { db } = await import('./src/db/sqlite.ts')
       runMigrations(); db.close()
     `
-    const exitCode = runEvidenceGate({ label: 'preserve', command: ['bun', '-e', script], evidenceHome: invalidHome })
-    const created = [...evidenceTempNames('preserve')].filter(name => !before.has(name))
+    const exitCode = runEvidenceGate({
+      label: 'preserve',
+      command: ['bun', '-e', script],
+      evidenceHome: invalidHome,
+    })
+    const created = [...evidenceTempNames('preserve')].filter((name) => !before.has(name))
 
     expect(exitCode).toBe(1)
     expect(created).toHaveLength(1)

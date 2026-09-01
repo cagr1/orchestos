@@ -20,12 +20,12 @@
  * completo, no mocks del resolver — es el pipeline end-to-end que faltaba.
  */
 
-import { describe, it, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
-import { db } from '../db/sqlite.ts'
+import { join } from 'path'
 import { runMigrations } from '../db/migrate.ts'
+import { db } from '../db/sqlite.ts'
 import { indexProject } from '../graph/index.ts'
 
 runMigrations()
@@ -49,11 +49,13 @@ function newPid(): string {
 
 async function resolvedEdges(root: string, id: string) {
   await indexProject(root, id, { noEmbed: true })
-  return db.query<{ raw: string; to_path: string; to_file_id: number | null }, string>(
-    `SELECT e.raw, e.to_path, e.to_file_id
+  return db
+    .query<{ raw: string; to_path: string; to_file_id: number | null }, string>(
+      `SELECT e.raw, e.to_path, e.to_file_id
      FROM code_edges e JOIN files f ON f.id = e.from_file_id
-     WHERE f.project_id = ?`
-  ).all(id)
+     WHERE f.project_id = ?`,
+    )
+    .all(id)
 }
 
 const FIXTURES = join(import.meta.dir, '..', '..', 'tests', 'fixtures', 'graph')
@@ -63,35 +65,35 @@ describe('resoluciones cross-file end-to-end contra los fixtures reales', () => 
     const id = newPid()
     const edges = await resolvedEdges(join(FIXTURES, 'rust'), id)
     expect(edges.length).toBeGreaterThan(0)
-    expect(edges.every(e => e.to_file_id !== null)).toBe(true)
+    expect(edges.every((e) => e.to_file_id !== null)).toBe(true)
   })
 
   it('C#: using Namespace resuelve al archivo real', async () => {
     const id = newPid()
     const edges = await resolvedEdges(join(FIXTURES, 'csharp'), id)
     expect(edges.length).toBeGreaterThan(0)
-    expect(edges.every(e => e.to_file_id !== null)).toBe(true)
+    expect(edges.every((e) => e.to_file_id !== null)).toBe(true)
   })
 
   it('Go: import "module/pkg" resuelve al archivo real', async () => {
     const id = newPid()
     const edges = await resolvedEdges(join(FIXTURES, 'go'), id)
     expect(edges.length).toBeGreaterThan(0)
-    expect(edges.every(e => e.to_file_id !== null)).toBe(true)
+    expect(edges.every((e) => e.to_file_id !== null)).toBe(true)
   })
 
   it('Java: import paquete.Clase resuelve al archivo real', async () => {
     const id = newPid()
     const edges = await resolvedEdges(join(FIXTURES, 'java'), id)
     expect(edges.length).toBeGreaterThan(0)
-    expect(edges.every(e => e.to_file_id !== null)).toBe(true)
+    expect(edges.every((e) => e.to_file_id !== null)).toBe(true)
   })
 
   // S.2 (Mes 26, 2026-08-06) — rubyResolver nuevo, sobre la base que S.1 arregló.
   it('Ruby: require_relative (con y sin ./) resuelve, require de gema externa no inventa un match', async () => {
     const id = newPid()
     const edges = await resolvedEdges(join(FIXTURES, 'ruby'), id)
-    const byRaw = Object.fromEntries(edges.map(e => [e.raw, e.to_file_id]))
+    const byRaw = Object.fromEntries(edges.map((e) => [e.raw, e.to_file_id]))
 
     expect(byRaw["require_relative './helper'"]).not.toBeNull()
     // require_relative sin `./` explícito sigue siendo relativo por semántica
@@ -121,7 +123,7 @@ describe('regresión del bug de orden — independiente de qué archivo llegue p
 
       const id = newPid()
       const edges = await resolvedEdges(dir, id)
-      const edge = edges.find(e => e.to_path === 'z-second.ts')
+      const edge = edges.find((e) => e.to_path === 'z-second.ts')
       expect(edge).toBeDefined()
       expect(edge!.to_file_id).not.toBeNull()
     } finally {
@@ -138,7 +140,7 @@ describe('regresión del bug de orden — independiente de qué archivo llegue p
       const id = newPid()
       await resolvedEdges(dir, id)
       const second = await resolvedEdges(dir, id)
-      const edge = second.find(e => e.to_path === 'z-second.ts')
+      const edge = second.find((e) => e.to_path === 'z-second.ts')
       expect(edge!.to_file_id).not.toBeNull()
     } finally {
       rmSync(dir, { recursive: true, force: true })

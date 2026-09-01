@@ -1,11 +1,11 @@
-import { mkdirSync, appendFileSync } from 'fs'
+import { appendFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { redactSensitive } from '../security/secrets.ts'
 
 /** Writes structured run events to runs/YYYY-MM-DD-HH-mm.log in the project root. */
 export class RunLogger {
   private readonly logPath: string
-  private readonly prefix: string   // e.g. "[t1-normal]"
+  private readonly prefix: string // e.g. "[t1-normal]"
 
   constructor(root: string, taskId: string) {
     const now = new Date()
@@ -13,24 +13,40 @@ export class RunLogger {
     const logsDir = join(root, 'runs')
     mkdirSync(logsDir, { recursive: true })
     this.logPath = join(logsDir, `${stamp}.log`)
-    this.prefix  = `[${taskId}]`
+    this.prefix = `[${taskId}]`
     this.write('START')
   }
 
-  done()                             { this.write('DONE') }
-  qaPass(reason: string)             { this.write(`QA:pass  ${reason}`) }
+  done() {
+    this.write('DONE')
+  }
+  qaPass(reason: string) {
+    this.write(`QA:pass  ${reason}`)
+  }
   qaFail(reason: string, retry: number, max: number) {
     this.write(`QA:fail  retry=${retry}/${max}  ${reason}`)
   }
-  failedPermanent(reason: string)    { this.write(`FAILED_PERMANENT  ${reason}`) }
-  blocked(dep: string)               { this.write(`BLOCKED  dep="${dep}"`) }
-  contractViolation(paths: string[]) { this.write(`CONTRACT_VIOLATION  ${paths.join(', ')}`) }
-  inputAutoSuggested(paths: string[]) { this.write(`INPUT:auto-suggested ${paths.join(', ')}`) }
-  error(msg: string)                 { this.write(`ERROR  ${msg}`) }
-  info(msg: string)                  { this.write(`INFO   ${msg}`) }
+  failedPermanent(reason: string) {
+    this.write(`FAILED_PERMANENT  ${reason}`)
+  }
+  blocked(dep: string) {
+    this.write(`BLOCKED  dep="${dep}"`)
+  }
+  contractViolation(paths: string[]) {
+    this.write(`CONTRACT_VIOLATION  ${paths.join(', ')}`)
+  }
+  inputAutoSuggested(paths: string[]) {
+    this.write(`INPUT:auto-suggested ${paths.join(', ')}`)
+  }
+  error(msg: string) {
+    this.write(`ERROR  ${msg}`)
+  }
+  info(msg: string) {
+    this.write(`INFO   ${msg}`)
+  }
 
   private write(event: string) {
-    const ts = new Date().toISOString().slice(11, 23)   // HH:mm:ss.mmm
+    const ts = new Date().toISOString().slice(11, 23) // HH:mm:ss.mmm
     appendFileSync(this.logPath, `${ts}  ${this.prefix}  ${redactSensitive(event)}\n`, 'utf-8')
   }
 }

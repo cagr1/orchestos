@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { buildPrompt } from '../run/prompt.ts'
 import type { Task } from '../tasks/schema.ts'
 
@@ -28,7 +28,15 @@ describe('buildPrompt — F1.1 retry feedback', () => {
 
   it('appends the PREVIOUS ATTEMPT FAILED block to userContent (not system) when given a reason', () => {
     const task = makeTask()
-    const { system, userContent } = buildPrompt(task, '# context', '/tmp', undefined, undefined, undefined, 'spec_violation: missing output foo.txt')
+    const { system, userContent } = buildPrompt(
+      task,
+      '# context',
+      '/tmp',
+      undefined,
+      undefined,
+      undefined,
+      'spec_violation: missing output foo.txt',
+    )
 
     expect(userContent).toContain('## PREVIOUS ATTEMPT FAILED')
     expect(userContent).toContain('The last attempt at this task failed for this reason:')
@@ -40,7 +48,15 @@ describe('buildPrompt — F1.1 retry feedback', () => {
 
   it('truncates a previousFailure longer than 2000 chars to exactly 2000 in the block', () => {
     const long = 'X'.repeat(5000)
-    const { userContent } = buildPrompt(makeTask(), '# context', '/tmp', undefined, undefined, undefined, long)
+    const { userContent } = buildPrompt(
+      makeTask(),
+      '# context',
+      '/tmp',
+      undefined,
+      undefined,
+      undefined,
+      long,
+    )
 
     const marker = 'failed for this reason:\n'
     const idx = userContent.indexOf(marker)
@@ -53,8 +69,18 @@ describe('buildPrompt — F1.1 retry feedback', () => {
 
   it('preserves a previousFailure shorter than 2000 chars verbatim', () => {
     const reason = 'short reason'
-    const { userContent } = buildPrompt(makeTask(), '# context', '/tmp', undefined, undefined, undefined, reason)
-    expect(userContent).toContain(`failed for this reason:\n${reason}\nFix the cause described above.`)
+    const { userContent } = buildPrompt(
+      makeTask(),
+      '# context',
+      '/tmp',
+      undefined,
+      undefined,
+      undefined,
+      reason,
+    )
+    expect(userContent).toContain(
+      `failed for this reason:\n${reason}\nFix the cause described above.`,
+    )
   })
 
   it('appends the block at the end of userContent (after task description and inputs)', () => {
@@ -62,7 +88,9 @@ describe('buildPrompt — F1.1 retry feedback', () => {
       makeTask({ description: 'MY-TASK-DESC' }),
       '# context',
       '/tmp',
-      undefined, undefined, undefined,
+      undefined,
+      undefined,
+      undefined,
       'last fail',
     )
     const descIdx = userContent.indexOf('MY-TASK-DESC')

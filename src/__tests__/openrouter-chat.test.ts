@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 
 const originalFetch = globalThis.fetch
 
@@ -26,11 +26,16 @@ function mockFetchCapture() {
   let capturedBody: any = null
   globalThis.fetch = ((_url: string | URL, init?: RequestInit): Promise<Response> => {
     capturedBody = JSON.parse(String(init?.body))
-    return Promise.resolve(new Response(JSON.stringify({
-      choices: [{ message: { content: 'ok' } }],
-      usage: { prompt_tokens: 1, completion_tokens: 1 },
-      model: 'deepseek/deepseek-r1',
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+          model: 'deepseek/deepseek-r1',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
   }) as unknown as typeof globalThis.fetch
   return () => capturedBody
 }

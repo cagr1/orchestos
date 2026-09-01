@@ -8,9 +8,9 @@
 
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { getProvider } from '../providers/index.ts'
 import { loadOrcheConfig } from '../config/load.ts'
-import { listSpecs, type CapabilitiesContract } from './store.ts'
+import { getProvider } from '../providers/index.ts'
+import { type CapabilitiesContract, listSpecs } from './store.ts'
 
 // AA.3 (IDEAS #6) — fragmento insertado SOLO cuando la tarea se marcó compleja
 // (`spec create --design`). Contenido deliberadamente DISTINTO de "Descripción"/"Criterios de
@@ -55,7 +55,7 @@ export interface DraftResult {
 function buildExistingSpecsSummary(root: string): string {
   const specs = listSpecs(root)
   if (specs.length === 0) return ''
-  const lines = specs.map(s => {
+  const lines = specs.map((s) => {
     const caps = s.frontmatter.capabilities
     const capStr = caps
       ? `added=${caps.added.length} modified=${caps.modified.length} removed=${caps.removed.length}`
@@ -108,7 +108,12 @@ function extractCapabilities(text: string): { body: string; capabilities?: Capab
  * Draft a spec body for the given task using the LLM.
  * Returns the body string and optional capabilities contract.
  */
-export async function draftSpec(root: string, taskId: string, taskDescription: string, opts: { design?: boolean } = {}): Promise<DraftResult> {
+export async function draftSpec(
+  root: string,
+  taskId: string,
+  taskDescription: string,
+  opts: { design?: boolean } = {},
+): Promise<DraftResult> {
   const design = opts.design ?? false
   const contextParts: string[] = []
 
@@ -118,7 +123,7 @@ export async function draftSpec(root: string, taskId: string, taskDescription: s
   }
 
   const contextMdPath = join(root, 'CONTEXT.md')
-  const agentsMdPath  = join(root, 'AGENTS.md')
+  const agentsMdPath = join(root, 'AGENTS.md')
   if (existsSync(contextMdPath)) {
     contextParts.push(`## CONTEXT.md\n${readFileSync(contextMdPath, 'utf-8')}`)
   } else if (existsSync(agentsMdPath)) {
@@ -142,7 +147,13 @@ export async function draftSpec(root: string, taskId: string, taskDescription: s
     '## Descripción',
     '<explain what must be done>',
     '',
-    ...(design ? ['## Design', '<key decisions, alternatives considered, trade-offs — NOT a repeat of Descripción>', ''] : []),
+    ...(design
+      ? [
+          '## Design',
+          '<key decisions, alternatives considered, trade-offs — NOT a repeat of Descripción>',
+          '',
+        ]
+      : []),
     '## Criterios de aceptación',
     '- [ ] WHEN <trigger/condition> THEN <observable result>',
     '',
@@ -152,7 +163,9 @@ export async function draftSpec(root: string, taskId: string, taskDescription: s
     'After the body, add a ---capabilities block. Investigate the existing specs above',
     'to determine which existing specs (by their ID) are modified or removed.',
     'Use the *spec IDs* from "Existing specs" for modified/removed entries.',
-  ].filter(l => l !== null && l !== undefined).join('\n')
+  ]
+    .filter((l) => l !== null && l !== undefined)
+    .join('\n')
 
   const orcheConfig = loadOrcheConfig(root)
   const defaultRole = orcheConfig?.models?.default

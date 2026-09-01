@@ -21,10 +21,15 @@ const LIMIT = 20
 export function countFailedChecks(checksJson: string | null | undefined): number {
   if (!checksJson) return 0
   let parsed: unknown
-  try { parsed = JSON.parse(checksJson) } catch { return 0 }
+  try {
+    parsed = JSON.parse(checksJson)
+  } catch {
+    return 0
+  }
   if (!Array.isArray(parsed)) return 0
-  return parsed.filter((c: { exitCode?: number; timedOut?: boolean }) =>
-    c.timedOut === true || (typeof c.exitCode === 'number' && c.exitCode !== 0)
+  return parsed.filter(
+    (c: { exitCode?: number; timedOut?: boolean }) =>
+      c.timedOut === true || (typeof c.exitCode === 'number' && c.exitCode !== 0),
   ).length
 }
 
@@ -32,22 +37,26 @@ export function countFailedChecks(checksJson: string | null | undefined): number
 // countFailedChecks) NO debe correr la query ni reescribir runs-summary.json.
 if (import.meta.main) {
   const { db } = await import('../src/db/sqlite.ts')
-  const runs = db.query<{
-    id: string
-    task_class: string
-    model: string
-    provider: string
-    status: string
-    qa_verdict: string | null
-    qa_reason: string | null
-    files_blocked: string | null
-    checks_json: string | null
-    usd_cost: number
-    elapsed_ms: number
-    input_tokens: number
-    output_tokens: number
-    created_at: string
-  }, []>(`
+  const runs = db
+    .query<
+      {
+        id: string
+        task_class: string
+        model: string
+        provider: string
+        status: string
+        qa_verdict: string | null
+        qa_reason: string | null
+        files_blocked: string | null
+        checks_json: string | null
+        usd_cost: number
+        elapsed_ms: number
+        input_tokens: number
+        output_tokens: number
+        created_at: string
+      },
+      []
+    >(`
     SELECT
       id, task_class, model, provider, status,
       qa_verdict, qa_reason, files_blocked, checks_json,
@@ -55,12 +64,13 @@ if (import.meta.main) {
     FROM runs
     ORDER BY created_at DESC
     LIMIT ${LIMIT}
-  `).all()
+  `)
+    .all()
 
   const summary = {
     exported_at: new Date().toISOString(),
     total_runs: runs.length,
-    runs: runs.map(r => ({
+    runs: runs.map((r) => ({
       id: r.id,
       task_class: r.task_class,
       model: r.model,
@@ -76,16 +86,18 @@ if (import.meta.main) {
       created_at: r.created_at,
     })),
     stats: {
-      failed: runs.filter(r => r.status === 'failed').length,
-      blocked: runs.filter(r => r.status === 'blocked').length,
-      done: runs.filter(r => r.status === 'done').length,
-      qa_failed: runs.filter(r => r.qa_verdict === 'fail').length,
+      failed: runs.filter((r) => r.status === 'failed').length,
+      blocked: runs.filter((r) => r.status === 'blocked').length,
+      done: runs.filter((r) => r.status === 'done').length,
+      qa_failed: runs.filter((r) => r.qa_verdict === 'fail').length,
       total_cost_usd: runs.reduce((s, r) => s + r.usd_cost, 0).toFixed(4),
-    }
+    },
   }
 
   const outPath = join(import.meta.dir, '..', 'runs-summary.json')
   writeFileSync(outPath, JSON.stringify(summary, null, 2))
   console.log(`✓ ${runs.length} runs exportados → runs-summary.json`)
-  console.log(`  failed: ${summary.stats.failed} | blocked: ${summary.stats.blocked} | qa_failed: ${summary.stats.qa_failed}`)
+  console.log(
+    `  failed: ${summary.stats.failed} | blocked: ${summary.stats.blocked} | qa_failed: ${summary.stats.qa_failed}`,
+  )
 }

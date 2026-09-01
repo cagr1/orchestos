@@ -1,8 +1,8 @@
 /**
  * IDEAS.md #32 / PLAN.md Mes 22 Bloque A.1+A.2 — capToolOutput()/capCheckOutput().
  */
-import { describe, it, expect } from 'bun:test'
-import { capToolOutput, capCheckOutput } from '../run/tool-output-cap.ts'
+import { describe, expect, it } from 'bun:test'
+import { capCheckOutput, capToolOutput } from '../run/tool-output-cap.ts'
 
 describe('capToolOutput', () => {
   it('returns text unchanged when under the cap', () => {

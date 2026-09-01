@@ -1,14 +1,22 @@
-import { join } from 'path'
 import { existsSync } from 'fs'
 import { homedir } from 'os'
+import { join } from 'path'
 import { getProject } from '../../db/projects.ts'
 import { db } from '../../db/sqlite.ts'
 import { listInstincts } from '../../instincts/store.ts'
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
-import type { SetupItem, SetupResponse, LocalProviderResponse, ApiKeyValidationResponse, HealthResponse, HealthBlockedTask, HealthRecentLearning } from '../types.ts'
-import { envFilePath, SETTINGS_KEYS, readEnv, writeEnv, maskKey } from '../settings-store.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
+import { envFilePath, maskKey, readEnv, SETTINGS_KEYS, writeEnv } from '../settings-store.ts'
+import type {
+  ApiKeyValidationResponse,
+  HealthBlockedTask,
+  HealthRecentLearning,
+  HealthResponse,
+  LocalProviderResponse,
+  SetupItem,
+  SetupResponse,
+} from '../types.ts'
 
 async function handleApiSettingsGet(root: string): Promise<Response> {
   const parsed = readEnv()
@@ -26,9 +34,12 @@ async function handleApiSettingsGet(root: string): Promise<Response> {
     const res = await fetch('http://localhost:11434/api/tags', { signal: controller.signal })
     clearTimeout(timer)
     if (res.ok) {
-      const data = await res.json() as { models?: { name: string }[] }
+      const data = (await res.json()) as { models?: { name: string }[] }
       const count = (data.models || []).length
-      result['_ollama'] = { set: true, masked: `localhost:11434 — ${count} model${count !== 1 ? 's' : ''} detected` }
+      result['_ollama'] = {
+        set: true,
+        masked: `localhost:11434 — ${count} model${count !== 1 ? 's' : ''} detected`,
+      }
     } else {
       result['_ollama'] = { set: false, masked: '' }
     }
@@ -61,12 +72,19 @@ function handleApiSetup(root: string): Response {
   const hasMods = existsSync(join(root, 'node_modules'))
   items.push({
     id: 'dependencies',
-    label: hasLock && hasMods ? 'Dependencies installed' : hasLock ? 'node_modules missing' : 'bun.lock missing',
+    label:
+      hasLock && hasMods
+        ? 'Dependencies installed'
+        : hasLock
+          ? 'node_modules missing'
+          : 'bun.lock missing',
     ok: hasLock && hasMods,
     critical: false,
     kind: 'dependency',
     hint: hasLock
-      ? (hasMods ? 'Project dependencies are installed.' : 'Run bun install in the project directory.')
+      ? hasMods
+        ? 'Project dependencies are installed.'
+        : 'Run bun install in the project directory.'
       : `Current directory may be wrong: ${root}`,
     action: hasLock && hasMods ? undefined : 'copy-command',
     actionLabel: hasLock && hasMods ? undefined : 'Copy command',
@@ -80,7 +98,9 @@ function handleApiSetup(root: string): Response {
     ok: !!openRouter,
     critical: true,
     kind: 'credential',
-    hint: openRouter ? 'The primary LLM gateway is ready.' : 'Add an OpenRouter key to start using the agent.',
+    hint: openRouter
+      ? 'The primary LLM gateway is ready.'
+      : 'Add an OpenRouter key to start using the agent.',
     action: openRouter ? undefined : 'open-wizard',
     actionLabel: openRouter ? undefined : 'Configure now',
   })
@@ -92,7 +112,9 @@ function handleApiSetup(root: string): Response {
     ok: !!anthropic,
     critical: false,
     kind: 'credential',
-    hint: anthropic ? 'Direct Claude executor is available.' : 'Optional. Add it if you want direct Anthropic executor support.',
+    hint: anthropic
+      ? 'Direct Claude executor is available.'
+      : 'Optional. Add it if you want direct Anthropic executor support.',
     action: anthropic ? undefined : 'save-settings',
     actionLabel: anthropic ? undefined : 'Add optional key',
   })
@@ -104,7 +126,9 @@ function handleApiSetup(root: string): Response {
     ok: !!openai,
     critical: false,
     kind: 'credential',
-    hint: openai ? 'OpenAI embeddings are available.' : 'Optional. Add it if you want OpenAI embeddings.',
+    hint: openai
+      ? 'OpenAI embeddings are available.'
+      : 'Optional. Add it if you want OpenAI embeddings.',
     action: openai ? undefined : 'save-settings',
     actionLabel: openai ? undefined : 'Add optional key',
   })
@@ -116,7 +140,9 @@ function handleApiSetup(root: string): Response {
     ok: hasTasks,
     critical: true,
     kind: 'project',
-    hint: hasTasks ? 'The project task file is ready.' : 'Create the task file in this project directory.',
+    hint: hasTasks
+      ? 'The project task file is ready.'
+      : 'Create the task file in this project directory.',
     action: hasTasks ? undefined : 'copy-command',
     actionLabel: hasTasks ? undefined : 'Copy command',
     command: hasTasks ? undefined : 'orchestos task init',
@@ -129,24 +155,30 @@ function handleApiSetup(root: string): Response {
     ok: hasDb,
     critical: false,
     kind: 'database',
-    hint: hasDb ? 'Local persistence is available.' : 'It is created automatically when OrchestOS runs.',
+    hint: hasDb
+      ? 'Local persistence is available.'
+      : 'It is created automatically when OrchestOS runs.',
   })
 
   let indexed = false
-  try { indexed = !!getProject(root) } catch {}
+  try {
+    indexed = !!getProject(root)
+  } catch {}
   items.push({
     id: 'code-graph',
     label: indexed ? 'Project indexed in code graph' : 'Project not indexed',
     ok: indexed,
     critical: false,
     kind: 'index',
-    hint: indexed ? 'Context suggestions can use the code graph.' : 'Index the project for better context suggestions.',
+    hint: indexed
+      ? 'Context suggestions can use the code graph.'
+      : 'Index the project for better context suggestions.',
     action: indexed ? undefined : 'copy-command',
     actionLabel: indexed ? undefined : 'Copy command',
     command: indexed ? undefined : `orchestos index "${root}"`,
   })
 
-  const criticalMissing = items.some(i => i.critical && !i.ok)
+  const criticalMissing = items.some((i) => i.critical && !i.ok)
   const result: SetupResponse = {
     ready: !criticalMissing,
     criticalMissing,
@@ -159,7 +191,11 @@ function handleApiSetup(root: string): Response {
 
 async function handleApiSettingsPost(req: Request): Promise<Response> {
   let body: Record<string, string>
-  try { body = (await req.json()) as Record<string, string> } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as Record<string, string>
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   const current = readEnv()
   for (const k of SETTINGS_KEYS) {
     const v = body[k]
@@ -178,23 +214,57 @@ async function handleApiSettingsPost(req: Request): Promise<Response> {
 }
 
 function handleApiHealth(root: string): Response {
-
   const system = (() => {
     const dbPath = join(homedir(), '.orchestos', 'db.sqlite')
     const env = readEnv()
     const items: SetupItem[] = []
     const bunVersion = (globalThis as any).Bun?.version ?? ''
-    items.push({ id: 'bun', label: bunVersion ? `Bun ${bunVersion}` : 'Bun not found', ok: !!bunVersion, critical: true, kind: 'runtime', hint: bunVersion ? 'Runtime is available.' : 'Install Bun.' })
+    items.push({
+      id: 'bun',
+      label: bunVersion ? `Bun ${bunVersion}` : 'Bun not found',
+      ok: !!bunVersion,
+      critical: true,
+      kind: 'runtime',
+      hint: bunVersion ? 'Runtime is available.' : 'Install Bun.',
+    })
     const hasLock = existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
     const hasMods = existsSync(join(root, 'node_modules'))
-    items.push({ id: 'dependencies', label: hasLock && hasMods ? 'Dependencies installed' : 'Dependencies missing', ok: hasLock && hasMods, critical: false, kind: 'dependency', hint: hasLock && hasMods ? 'OK' : 'Run bun install.' })
+    items.push({
+      id: 'dependencies',
+      label: hasLock && hasMods ? 'Dependencies installed' : 'Dependencies missing',
+      ok: hasLock && hasMods,
+      critical: false,
+      kind: 'dependency',
+      hint: hasLock && hasMods ? 'OK' : 'Run bun install.',
+    })
     const openRouter = env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || ''
-    items.push({ id: 'openrouter-key', label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY missing', ok: !!openRouter, critical: true, kind: 'credential', hint: openRouter ? 'OK' : 'Add an API key in Settings.' })
+    items.push({
+      id: 'openrouter-key',
+      label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY missing',
+      ok: !!openRouter,
+      critical: true,
+      kind: 'credential',
+      hint: openRouter ? 'OK' : 'Add an API key in Settings.',
+    })
     const hasTasks = existsSync(join(root, 'tasks.yaml'))
-    items.push({ id: 'tasks-yaml', label: hasTasks ? 'tasks.yaml found' : 'tasks.yaml missing', ok: hasTasks, critical: true, kind: 'project', hint: hasTasks ? 'OK' : 'Run: orchestos task init' })
+    items.push({
+      id: 'tasks-yaml',
+      label: hasTasks ? 'tasks.yaml found' : 'tasks.yaml missing',
+      ok: hasTasks,
+      critical: true,
+      kind: 'project',
+      hint: hasTasks ? 'OK' : 'Run: orchestos task init',
+    })
     const hasDb = existsSync(dbPath)
-    items.push({ id: 'db', label: hasDb ? 'SQLite initialized' : 'SQLite not initialized', ok: hasDb, critical: false, kind: 'database', hint: hasDb ? 'OK' : 'Created automatically on first run.' })
-    const criticalMissing = items.some(i => i.critical && !i.ok)
+    items.push({
+      id: 'db',
+      label: hasDb ? 'SQLite initialized' : 'SQLite not initialized',
+      ok: hasDb,
+      critical: false,
+      kind: 'database',
+      hint: hasDb ? 'OK' : 'Created automatically on first run.',
+    })
+    const criticalMissing = items.some((i) => i.critical && !i.ok)
     return { ready: !criticalMissing, criticalMissing, envFile: envFilePath(), cwd: root, items }
   })()
 
@@ -204,7 +274,11 @@ function handleApiHealth(root: string): Response {
       const file = loadTasks(root)
       for (const t of file.tasks as any[]) {
         if (t.status === 'failed_permanent') {
-          blockedTasks.push({ id: t.id, description: t.description, retryCount: t.retry_count ?? 0 })
+          blockedTasks.push({
+            id: t.id,
+            description: t.description,
+            retryCount: t.retry_count ?? 0,
+          })
         }
       }
     }
@@ -213,21 +287,23 @@ function handleApiHealth(root: string): Response {
   const unverifiedInstincts = listInstincts({ verified: false }).length
   let draftSpecs = 0
   try {
-    draftSpecs = listSpecs(root, false).filter(s => s.frontmatter.status === 'draft').length
+    draftSpecs = listSpecs(root, false).filter((s) => s.frontmatter.status === 'draft').length
   } catch {}
 
   let costLast7d = 0
   try {
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    const row = db.query<{ total: number }, string>(
-      "SELECT COALESCE(SUM(usd_cost), 0) AS total FROM runs WHERE created_at >= ?"
-    ).get(cutoff)
+    const row = db
+      .query<{ total: number }, string>(
+        'SELECT COALESCE(SUM(usd_cost), 0) AS total FROM runs WHERE created_at >= ?',
+      )
+      .get(cutoff)
     costLast7d = row?.total ?? 0
   } catch {}
 
   const recentLearnings: HealthRecentLearning[] = listInstincts({ source: 'auto', verified: true })
     .slice(0, 3)
-    .map(i => ({ id: i.id, trigger: i.trigger, action: i.action, createdAt: i.created_at }))
+    .map((i) => ({ id: i.id, trigger: i.trigger, action: i.action, createdAt: i.created_at }))
 
   const attentionCount = blockedTasks.length + unverifiedInstincts + draftSpecs
 
@@ -242,22 +318,29 @@ function handleApiHealth(root: string): Response {
   return jsonResponse(body)
 }
 
-const PROVIDER_CONFIGS: Record<string, {
-  envKey: string
-  testUrl: string
-  headers: (key: string) => Record<string, string>
-  body: string
-}> = {
+const PROVIDER_CONFIGS: Record<
+  string,
+  {
+    envKey: string
+    testUrl: string
+    headers: (key: string) => Record<string, string>
+    body: string
+  }
+> = {
   openrouter: {
     envKey: 'OPENROUTER_API_KEY',
     testUrl: 'https://openrouter.ai/api/v1/chat/completions',
     headers: (key) => ({
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${key}`,
+      Authorization: `Bearer ${key}`,
       'HTTP-Referer': 'https://github.com/cagr1/orchestos',
       'X-Title': 'orchestos',
     }),
-    body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+    body: JSON.stringify({
+      model: 'deepseek/deepseek-v4-flash',
+      messages: [{ role: 'user', content: 'ping' }],
+      max_tokens: 1,
+    }),
   },
   anthropic: {
     envKey: 'ANTHROPIC_API_KEY',
@@ -267,16 +350,24 @@ const PROVIDER_CONFIGS: Record<string, {
       'x-api-key': key,
       'anthropic-version': '2023-06-01',
     }),
-    body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1,
+      messages: [{ role: 'user', content: 'ping' }],
+    }),
   },
   openai: {
     envKey: 'OPENAI_API_KEY',
     testUrl: 'https://api.openai.com/v1/chat/completions',
     headers: (key) => ({
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${key}`,
+      Authorization: `Bearer ${key}`,
     }),
-    body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: 'ping' }],
+      max_tokens: 1,
+    }),
   },
 }
 
@@ -290,7 +381,9 @@ function humanizeKeyError(status: number, body: string): string {
 
 async function handleApiSetupApiKey(req: Request): Promise<Response> {
   let body: { provider?: string; key?: string }
-  try { body = (await req.json()) as { provider?: string; key?: string } } catch {
+  try {
+    body = (await req.json()) as { provider?: string; key?: string }
+  } catch {
     return errorResponse('Invalid JSON', 400)
   }
 
@@ -353,8 +446,8 @@ async function handleApiProvidersLocal(): Promise<Response> {
     if (!res.ok) {
       return jsonResponse({ available: false, models: [] } satisfies LocalProviderResponse)
     }
-    const data = await res.json() as { models?: { name: string; size?: number }[] }
-    const models = (data.models || []).map(m => ({
+    const data = (await res.json()) as { models?: { name: string; size?: number }[] }
+    const models = (data.models || []).map((m) => ({
       id: `ollama/${m.name}`,
       size: m.size != null ? formatSize(m.size) : 'unknown',
     }))
@@ -369,4 +462,11 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`
 }
 
-export { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal }
+export {
+  handleApiHealth,
+  handleApiProvidersLocal,
+  handleApiSettingsGet,
+  handleApiSettingsPost,
+  handleApiSetup,
+  handleApiSetupApiKey,
+}

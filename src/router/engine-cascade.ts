@@ -23,8 +23,8 @@
  * que fingir soporte.
  */
 
-import { findClaudeBinary } from '../run/executors/external.ts'
 import type { AgentChoice } from '../config/schema.ts'
+import { findClaudeBinary } from '../run/executors/external.ts'
 
 export type CascadeTier = 'local' | 'cli' | 'api'
 
@@ -50,7 +50,7 @@ async function hasLocalOllamaModels(): Promise<boolean> {
     const res = await fetch('http://localhost:11434/api/tags', { signal: controller.signal })
     clearTimeout(timer)
     if (!res.ok) return false
-    const data = await res.json() as { models?: unknown[] }
+    const data = (await res.json()) as { models?: unknown[] }
     return Array.isArray(data.models) && data.models.length > 0
   } catch {
     return false
@@ -59,7 +59,8 @@ async function hasLocalOllamaModels(): Promise<boolean> {
 
 export async function resolveCascadeTier(): Promise<CascadeResolution> {
   if (await hasLocalOllamaModels()) return { tier: 'local' }
-  if (findClaudeBinary()) return { tier: 'cli', engine: 'external', executorModel: 'anthropic/claude-sonnet-5' }
+  if (findClaudeBinary())
+    return { tier: 'cli', engine: 'external', executorModel: 'anthropic/claude-sonnet-5' }
   return { tier: 'api' }
 }
 
@@ -74,7 +75,10 @@ export async function resolveCascadeTier(): Promise<CascadeResolution> {
  * él en la suite completa (ver nota en chat-effort.test.ts, BACK.3/BACK.4) —
  * la lógica que sí importa verificar vive acá, fuera de esa ventana.
  */
-export function cascadeTaskFields(cascade: CascadeResolution): { executor_model?: string; engine?: string } {
+export function cascadeTaskFields(cascade: CascadeResolution): {
+  executor_model?: string
+  engine?: string
+} {
   if (cascade.tier !== 'cli') return {}
   return { executor_model: cascade.executorModel, engine: cascade.engine }
 }

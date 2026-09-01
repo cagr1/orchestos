@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'bun:test'
-import { needsClarify, clarifyReason } from '../spec/clarify.ts'
+import { describe, expect, it } from 'bun:test'
+import { clarifyReason, needsClarify } from '../spec/clarify.ts'
 import type { Task } from '../tasks/schema.ts'
 
 function task(description: string, input: string[] = []): Task {

@@ -46,7 +46,7 @@
   <tbody id="tasks-body"></tbody>
 </table>
 <script>
-function esc(s) { return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+function esc(s) { return String(s).replace(/[&<>"]/g, (c)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 async function load() {
   try {
     const res = await fetch('/api/tasks')

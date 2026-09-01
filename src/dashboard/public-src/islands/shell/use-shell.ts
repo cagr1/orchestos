@@ -6,7 +6,7 @@
  * cruzar la frontera vanilla -> React en este proyecto.
  */
 import { useSyncExternalStore } from 'react'
-import { getShellState, subscribeShell, type ShellState } from '../../lib/shell-store.ts'
+import { getShellState, type ShellState, subscribeShell } from '../../lib/shell-store.ts'
 
 export function useShell(): ShellState {
   return useSyncExternalStore(subscribeShell, getShellState, getShellState)

@@ -61,7 +61,7 @@
 </table>
 <div id="toast" class="toast" style="display:none"></div>
 <script>
-function esc(s) { return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+function esc(s) { return String(s).replace(/[&<>"]/g, (c)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function showToast(msg, type) {
   const el = document.getElementById('toast')
   el.textContent = msg

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { db } from '../db/sqlite.ts'
 import type { Task } from '../tasks/schema.ts'
 
@@ -48,14 +48,20 @@ function tmpDir(): string {
 }
 
 function openRouterResponse(content: string, promptTokens = 1, completionTokens = 1) {
-  return new Response(JSON.stringify({
-    choices: [{ message: { content } }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-    model: 'mock/model',
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content } }],
+      usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+      model: 'mock/model',
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
-type FetchHandler = (body: { model: string; messages: Array<{ role: string; content: string }> }) => Response | Error | Promise<Response | Error>
+type FetchHandler = (body: {
+  model: string
+  messages: Array<{ role: string; content: string }>
+}) => Response | Error | Promise<Response | Error>
 
 function installMockFetch(handlers: FetchHandler[]) {
   const calls: Array<{ model: string; messages: Array<{ role: string; content: string }> }> = []
@@ -99,7 +105,11 @@ async function callRunTask(task: ReturnType<typeof baseTask>, dir: string) {
   })
 }
 
-async function assertRowForFailure(task: ReturnType<typeof baseTask>, result: Awaited<ReturnType<typeof callRunTask>>, expectedSubstring: string) {
+async function assertRowForFailure(
+  task: ReturnType<typeof baseTask>,
+  result: Awaited<ReturnType<typeof callRunTask>>,
+  expectedSubstring: string,
+) {
   expect(result.runId).not.toBe('')
   expect(result.runId.length).toBeGreaterThan(0)
   const { getRun } = await import('../db/runs.ts')

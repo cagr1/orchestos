@@ -1,16 +1,16 @@
-import { extname, join, sep } from 'path'
 import { existsSync, readFileSync, realpathSync } from 'fs'
-import { STATIC_DIR } from './types.ts'
+import { extname, join, sep } from 'path'
 import { redactSensitive } from '../security/secrets.ts'
+import { STATIC_DIR } from './types.ts'
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
-  '.js':   'text/javascript; charset=utf-8',
-  '.css':  'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
   '.json': 'application/json',
-  '.png':  'image/png',
-  '.svg':  'image/svg+xml',
-  '.ico':  'image/x-icon',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
 }
 
 function mimeType(path: string): string {
@@ -18,7 +18,11 @@ function mimeType(path: string): string {
 }
 
 let STATIC_BASE_REAL: string
-try { STATIC_BASE_REAL = realpathSync(STATIC_DIR) } catch { STATIC_BASE_REAL = STATIC_DIR }
+try {
+  STATIC_BASE_REAL = realpathSync(STATIC_DIR)
+} catch {
+  STATIC_BASE_REAL = STATIC_DIR
+}
 
 function serveStatic(url: string): Response {
   const rel = url === '/' ? 'index.html' : url.replace(/^\//, '')
@@ -32,7 +36,9 @@ function serveStatic(url: string): Response {
   }
 
   let real: string
-  try { real = realpathSync(candidate) } catch {
+  try {
+    real = realpathSync(candidate)
+  } catch {
     return new Response('Not found', { status: 404 })
   }
   if (real !== STATIC_BASE_REAL && !real.startsWith(STATIC_BASE_REAL + sep)) {
@@ -82,4 +88,4 @@ function validateTaskId(id: string): string | null {
   return t
 }
 
-export { serveStatic, jsonResponse, errorResponse, isSameOrigin, validateTaskId }
+export { errorResponse, isSameOrigin, jsonResponse, serveStatic, validateTaskId }

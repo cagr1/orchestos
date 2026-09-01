@@ -9,14 +9,16 @@
  * S25.2 — Output estructurado: patrón + sugerencia concreta.
  */
 
-import { loadTasks as realLoadTasks } from '../tasks/loader.ts'
-import { listRunsByTaskId as realListRunsByTaskId, type RunRecord } from '../db/runs.ts'
-import { chat } from '../providers/openrouter.ts'
+import { type RunRecord, listRunsByTaskId as realListRunsByTaskId } from '../db/runs.ts'
 import { getProvider } from '../providers/index.ts'
+import { chat } from '../providers/openrouter.ts'
 import { calcCost } from '../router/pricing.ts'
 import { redactSensitive } from '../security/secrets.ts'
+import { loadTasks as realLoadTasks } from '../tasks/loader.ts'
 
-type LoadTasksFn = (root: string) => { tasks: Array<{ id: string; description: string; retry_reason?: string }> }
+type LoadTasksFn = (root: string) => {
+  tasks: Array<{ id: string; description: string; retry_reason?: string }>
+}
 type ListRunsByTaskIdFn = (taskId: string) => RunRecord[]
 
 export type FailurePattern =
@@ -49,15 +51,22 @@ const PATTERNS_DESCRIPTION = `
 `
 
 function buildDiagnosePrompt(taskId: string, description: string, runs: RunRecord[]): string {
-  const runsBlock = runs.map((r, i) => {
-    const checks = parseJson<Array<{ cmd: string; exitCode: number; elapsedMs: number; timedOut?: boolean }>>(r.checks_json, [])
-    const checksStr = checks.length > 0
-      ? checks.map(c =>
-          `  - cmd: ${redactSensitive(c.cmd)}  exit: ${c.exitCode}  elapsed: ${c.elapsedMs}ms${c.timedOut ? ' TIMED_OUT' : ''}`
-        ).join('\n')
-      : '  (none)'
+  const runsBlock = runs
+    .map((r, i) => {
+      const checks = parseJson<
+        Array<{ cmd: string; exitCode: number; elapsedMs: number; timedOut?: boolean }>
+      >(r.checks_json, [])
+      const checksStr =
+        checks.length > 0
+          ? checks
+              .map(
+                (c) =>
+                  `  - cmd: ${redactSensitive(c.cmd)}  exit: ${c.exitCode}  elapsed: ${c.elapsedMs}ms${c.timedOut ? ' TIMED_OUT' : ''}`,
+              )
+              .join('\n')
+          : '  (none)'
 
-    return `### Run ${i + 1} (${r.created_at})
+      return `### Run ${i + 1} (${r.created_at})
 status:     ${redactSensitive(r.status)}
 model:      ${redactSensitive(r.model)}
 provider:   ${redactSensitive(r.provider)}
@@ -72,7 +81,8 @@ files_blocked:   ${redactSensitive(r.files_blocked ?? 'N/A')}
 checks:
 ${checksStr}
 `
-  }).join('\n')
+    })
+    .join('\n')
 
   return `You are a failure diagnosis assistant. Analyze the following task and its last 3 runs to identify WHY the task failed permanently.
 
@@ -98,7 +108,11 @@ Respond with ONLY a JSON object — no markdown fences, no prose, no explanation
 
 function parseJson<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback
-  try { return JSON.parse(raw) as T } catch { return fallback }
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
 }
 
 /**
@@ -135,7 +149,8 @@ export async function diagnoseTask(
         taskId,
         pattern: 'unknown',
         confidence: 'high',
-        suggestion: 'Failure happened after QA passed (worktree merge-back), not during generation — no LLM run was recorded. See the exact error and manual-fix commands below.',
+        suggestion:
+          'Failure happened after QA passed (worktree merge-back), not during generation — no LLM run was recorded. See the exact error and manual-fix commands below.',
         details: task.retry_reason,
         usdCost: 0,
         lastErrorResult: task.retry_reason,
@@ -144,8 +159,8 @@ export async function diagnoseTask(
     throw new Error(`No runs found for task "${taskId}"`)
   }
 
-const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'blocked')?.result
-    ? redactSensitive(runs.find(r => r.status === 'failed' || r.status === 'blocked')!.result!)
+  const lastErrorResult = runs.find((r) => r.status === 'failed' || r.status === 'blocked')?.result
+    ? redactSensitive(runs.find((r) => r.status === 'failed' || r.status === 'blocked')!.result!)
     : undefined
 
   const model = modelOverride ?? 'anthropic/claude-haiku-4-5'
@@ -174,7 +189,8 @@ const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'bl
       taskId,
       pattern: 'unknown',
       confidence: 'low',
-      suggestion: 'Could not parse LLM diagnostic response. Read the run details manually with: orchestos runs --detail <run-id>',
+      suggestion:
+        'Could not parse LLM diagnostic response. Read the run details manually with: orchestos runs --detail <run-id>',
       details: `LLM returned unparseable response: ${resp.text.slice(0, 200)}`,
       usdCost,
       lastErrorResult,
@@ -184,11 +200,18 @@ const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'bl
   try {
     const obj = JSON.parse(jsonMatch[0])
     const validPatterns: FailurePattern[] = [
-      'deterministic_check', 'qa_specific_criterion', 'parse_error', 'rate_limit', 'scope_creep', 'unknown',
+      'deterministic_check',
+      'qa_specific_criterion',
+      'parse_error',
+      'rate_limit',
+      'scope_creep',
+      'unknown',
     ]
-    const pattern = validPatterns.includes(obj.pattern) ? obj.pattern as FailurePattern : 'unknown'
+    const pattern = validPatterns.includes(obj.pattern)
+      ? (obj.pattern as FailurePattern)
+      : 'unknown'
     const confidence = ['high', 'medium', 'low'].includes(obj.confidence)
-      ? obj.confidence as 'high' | 'medium' | 'low'
+      ? (obj.confidence as 'high' | 'medium' | 'low')
       : 'low'
     return {
       taskId,
@@ -204,7 +227,8 @@ const lastErrorResult = runs.find(r => r.status === 'failed' || r.status === 'bl
       taskId,
       pattern: 'unknown',
       confidence: 'low',
-      suggestion: 'Could not parse LLM diagnostic response. Read the run details manually with: orchestos runs --detail <run-id>',
+      suggestion:
+        'Could not parse LLM diagnostic response. Read the run details manually with: orchestos runs --detail <run-id>',
       details: `JSON parse error on: ${jsonMatch[0].slice(0, 200)}`,
       usdCost,
       lastErrorResult,

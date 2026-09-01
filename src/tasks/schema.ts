@@ -20,9 +20,9 @@ export interface Check {
 }
 
 export interface Task {
-  id: string              // kebab-case, unique within file
+  id: string // kebab-case, unique within file
   description: string
-  skill?: string          // skill id from skills/
+  skill?: string // skill id from skills/
   executor: TaskExecutor
   /** Per-task model override — wins over orchestos.config.yaml executor_heavy/light role */
   executor_model?: string
@@ -32,16 +32,16 @@ export interface Task {
   engine?: TaskEngine
   /** Only meaningful when engine='external' — maps to `claude --effort <level>`. Ignored by single-shot/agentic. */
   cli_effort?: ClaudeCliEffort
-  input: string[]         // files the LLM can read (relative to project root)
-  output: string[]        // files the LLM is allowed to write — REQUIRED, must be non-empty
+  input: string[] // files the LLM can read (relative to project root)
+  output: string[] // files the LLM is allowed to write — REQUIRED, must be non-empty
   acceptance_criteria?: string[]
   checks?: Check[]
-  depends_on: string[]    // task ids that must be done first
+  depends_on: string[] // task ids that must be done first
   status: TaskStatus
   retry_count: number
-  retry_reason?: string   // last QA fail reason
+  retry_reason?: string // last QA fail reason
   qa_verdict?: 'pass' | 'fail'
-  run_id?: string         // last SQLite run id
+  run_id?: string // last SQLite run id
 }
 
 export interface TasksFile {
@@ -51,35 +51,39 @@ export interface TasksFile {
 }
 
 export function validateTask(t: unknown, index: number): Task {
-  const err = (msg: string) => { throw new Error(`tasks.yaml[${index}]: ${msg}`) }
+  const err = (msg: string) => {
+    throw new Error(`tasks.yaml[${index}]: ${msg}`)
+  }
   const task = t as Record<string, unknown>
 
   if (!task.id || typeof task.id !== 'string') err('missing "id"')
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(task.id as string)) err(`id must be kebab-case, got: ${task.id}`)
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(task.id as string))
+    err(`id must be kebab-case, got: ${task.id}`)
   if (!task.description || typeof task.description !== 'string') err('missing "description"')
-  if (!Array.isArray(task.output) || (task.output as unknown[]).length === 0) err('"output" must be a non-empty array — this is the contract')
+  if (!Array.isArray(task.output) || (task.output as unknown[]).length === 0)
+    err('"output" must be a non-empty array — this is the contract')
 
   const executor = validateExecutor(task.executor, err)
 
   return {
-    id:           task.id as string,
-    description:  task.description as string,
-    skill:        typeof task.skill === 'string' ? task.skill : undefined,
+    id: task.id as string,
+    description: task.description as string,
+    skill: typeof task.skill === 'string' ? task.skill : undefined,
     executor,
     executor_model: typeof task.executor_model === 'string' ? task.executor_model : undefined,
-    planner_model:  typeof task.planner_model  === 'string' ? task.planner_model  : undefined,
-    engine:       validateEngine(task.engine, err),
-    cli_effort:   validateCliEffort(task.cli_effort, err),
-    input:        Array.isArray(task.input) ? task.input as string[] : [],
-    output:       task.output as string[],
+    planner_model: typeof task.planner_model === 'string' ? task.planner_model : undefined,
+    engine: validateEngine(task.engine, err),
+    cli_effort: validateCliEffort(task.cli_effort, err),
+    input: Array.isArray(task.input) ? (task.input as string[]) : [],
+    output: task.output as string[],
     acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),
-    checks:       validateChecks(task.checks, err),
-    depends_on:   Array.isArray(task.depends_on) ? task.depends_on as string[] : [],
-    status:       (task.status as TaskStatus) ?? 'pending',
-    retry_count:  typeof task.retry_count === 'number' ? task.retry_count : 0,
+    checks: validateChecks(task.checks, err),
+    depends_on: Array.isArray(task.depends_on) ? (task.depends_on as string[]) : [],
+    status: (task.status as TaskStatus) ?? 'pending',
+    retry_count: typeof task.retry_count === 'number' ? task.retry_count : 0,
     retry_reason: typeof task.retry_reason === 'string' ? task.retry_reason : undefined,
-    qa_verdict:   task.qa_verdict as 'pass' | 'fail' | undefined,
-    run_id:       typeof task.run_id === 'string' ? task.run_id : undefined,
+    qa_verdict: task.qa_verdict as 'pass' | 'fail' | undefined,
+    run_id: typeof task.run_id === 'string' ? task.run_id : undefined,
   }
 }
 
@@ -96,13 +100,24 @@ function validateExecutor(value: unknown, err: (msg: string) => never): TaskExec
 
 function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine | undefined {
   if (value === undefined) return undefined
-  if (value !== 'single-shot' && value !== 'agentic' && value !== 'external' && value !== 'opencode' && value !== 'codex') {
-    err(`unknown engine '${String(value)}' — allowed: single-shot, agentic, external, opencode, codex`)
+  if (
+    value !== 'single-shot' &&
+    value !== 'agentic' &&
+    value !== 'external' &&
+    value !== 'opencode' &&
+    value !== 'codex'
+  ) {
+    err(
+      `unknown engine '${String(value)}' — allowed: single-shot, agentic, external, opencode, codex`,
+    )
   }
   return value as TaskEngine
 }
 
-function validateCliEffort(value: unknown, err: (msg: string) => never): ClaudeCliEffort | undefined {
+function validateCliEffort(
+  value: unknown,
+  err: (msg: string) => never,
+): ClaudeCliEffort | undefined {
   if (value === undefined) return undefined
   if (typeof value !== 'string' || !CLI_EFFORTS.includes(value as ClaudeCliEffort)) {
     err(`unknown cli_effort '${String(value)}' — allowed: ${CLI_EFFORTS.join(', ')}`)
@@ -113,7 +128,7 @@ function validateCliEffort(value: unknown, err: (msg: string) => never): ClaudeC
 function validateStringArray(
   value: unknown,
   field: string,
-  err: (msg: string) => never
+  err: (msg: string) => never,
 ): string[] | undefined {
   if (value === undefined) return undefined
   if (!Array.isArray(value)) err(`"${field}" must be an array of strings`)
@@ -131,7 +146,7 @@ function validateChecks(value: unknown, err: (msg: string) => never): Check[] | 
   if (!Array.isArray(value)) err('"checks" must be an array')
 
   return (value as unknown[]).map((item, i) => {
-    const check = typeof item === 'string' ? { cmd: item } : item as Record<string, unknown>
+    const check = typeof item === 'string' ? { cmd: item } : (item as Record<string, unknown>)
     if (typeof check !== 'object' || check === null || Array.isArray(check)) {
       err(`"checks[${i}]" must be a string command or an object`)
     }
@@ -161,7 +176,9 @@ function validateCheckCommand(cmd: string, field: string, err: (msg: string) => 
   const blocked = ['&&', '||', ';', '`', '$(']
   for (const token of blocked) {
     if (cmd.includes(token)) {
-      err(`"${field}" cannot contain shell metacharacter "${token}" — declare separate checks instead`)
+      err(
+        `"${field}" cannot contain shell metacharacter "${token}" — declare separate checks instead`,
+      )
     }
   }
 }
@@ -174,7 +191,7 @@ export function validateTasksFile(raw: unknown): TasksFile {
   const tasks = (f.tasks as unknown[]).map((t, i) => validateTask(t, i))
 
   // check duplicate ids
-  const ids = tasks.map(t => t.id)
+  const ids = tasks.map((t) => t.id)
   const dupes = ids.filter((id, i) => ids.indexOf(id) !== i)
   if (dupes.length > 0) throw new Error(`tasks.yaml: duplicate task ids: ${dupes.join(', ')}`)
 

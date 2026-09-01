@@ -14,16 +14,16 @@
  * pollutes the OrchestOS repo itself.
  */
 
-import { mkdtempSync, writeFileSync, existsSync, readFileSync, rmSync } from 'fs'
-import { join } from 'path'
-import { tmpdir } from 'os'
 import { execSync } from 'child_process'
-import { createPlan } from '../agents/planner.ts'
-import { executePlan } from './scheduler.ts'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { executeSubTask } from '../agents/executor.ts'
+import { createPlan } from '../agents/planner.ts'
 import { getMemory } from '../db/memory.ts'
 import { runMigrations } from '../db/migrate.ts'
-import { upsertProject, getProject } from '../db/projects.ts'
+import { getProject, upsertProject } from '../db/projects.ts'
+import { executePlan } from './scheduler.ts'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -107,12 +107,15 @@ async function main() {
     git('config user.name "Smoke"', repoDir)
 
     // Write minimal AGENTS.md so harness has context
-    writeFileSync(join(repoDir, 'AGENTS.md'), [
-      '# smoke-agents test project',
-      '',
-      'Disposable project used by the sub-agent smoke test.',
-      'Two sub-tasks: write-greeting → write-response.',
-    ].join('\n'))
+    writeFileSync(
+      join(repoDir, 'AGENTS.md'),
+      [
+        '# smoke-agents test project',
+        '',
+        'Disposable project used by the sub-agent smoke test.',
+        'Two sub-tasks: write-greeting → write-response.',
+      ].join('\n'),
+    )
 
     git('add .', repoDir)
     git('commit -m "initial commit"', repoDir)
@@ -135,22 +138,23 @@ async function main() {
 
     // 4. Parse plan
     const subTasks = createPlan(PLAN_YAML)
-    console.log(`[smoke-agents] plan: ${subTasks.map(t => t.id).join(' → ')}\n`)
+    console.log(`[smoke-agents] plan: ${subTasks.map((t) => t.id).join(' → ')}\n`)
 
     // 5. Execute plan
     const schedulerResult = await executePlan(
       subTasks,
       {
         parentTaskId: 'smoke-plan',
-        projectRoot:  repoDir,
+        projectRoot: repoDir,
         baseBranch,
         projectId,
       },
-      (st, worktree) => executeSubTask(st, worktree, {
-        projectId,
-        parentExecutor: 'openrouter',
-        allSubTasks: subTasks,
-      }),
+      (st, worktree) =>
+        executeSubTask(st, worktree, {
+          projectId,
+          parentExecutor: 'openrouter',
+          allSubTasks: subTasks,
+        }),
     )
 
     // 6. Print per-task summary
@@ -158,7 +162,7 @@ async function main() {
     for (const log of schedulerResult.sub_tasks) {
       const icon = log.status === 'completed' ? '✓' : '✗'
       const cost = `$${log.usd_cost.toFixed(5)}`
-      const tok  = `${log.tokens.input}in/${log.tokens.output}out`
+      const tok = `${log.tokens.input}in/${log.tokens.output}out`
       console.log(`  ${icon} ${log.id.padEnd(20)} ${log.status.padEnd(12)} ${cost}  ${tok}`)
       if (log.error) console.log(`    error: ${log.error}`)
     }
@@ -167,7 +171,10 @@ async function main() {
     console.log(`  aggregated time: ${schedulerResult.aggregated_ms}ms`)
 
     if (!schedulerResult.all_passed) {
-      fail('scheduler reported all_passed=false', JSON.stringify(schedulerResult.sub_tasks, null, 2))
+      fail(
+        'scheduler reported all_passed=false',
+        JSON.stringify(schedulerResult.sub_tasks, null, 2),
+      )
     }
 
     // 7. Verify files exist on base branch
@@ -203,20 +210,23 @@ async function main() {
 
     console.log('\n[smoke-agents] PASS — sub-agent pipeline complete ✓')
     process.exit(0)
-
   } finally {
     // Cleanup temp repo
     try {
       // Remove worktrees first to avoid git errors
       execSync('git worktree prune', { cwd: repoDir, stdio: 'pipe' })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     try {
       rmSync(repoDir, { recursive: true, force: true })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('[smoke-agents] Unexpected error:', e)
   process.exit(1)
 })

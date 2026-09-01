@@ -16,10 +16,11 @@
  * El CONTENIDO del panel (Explorer, Term, Diff) sigue en vanilla a propósito: es contenido
  * de pantalla, no shell, y le toca en UI.4.
  */
-import { useShell } from './use-shell.ts'
+
 import { useT } from '../../lib/i18n.ts'
 import { Icon } from '../../lib/icons.tsx'
 import { shellApi } from './shell-api.ts'
+import { useShell } from './use-shell.ts'
 
 export function RightPanelToprow() {
   const shell = useShell()
@@ -31,23 +32,53 @@ export function RightPanelToprow() {
     <>
       {open && (
         <>
-          <IconBtn id="rpTabExplorer" icon="folder" tip={t('rp.tab.explorer')}
-            active={shell.rightPanelTab === 'explorer'} onActivate={() => api?.setRightPanelTab('explorer')} />
-          <IconBtn id="rpTabTerminal" icon="term" tip={t('rp.tab.terminal')}
-            active={shell.rightPanelTab === 'terminal'} onActivate={() => api?.setRightPanelTab('terminal')} />
-          <IconBtn id="rpTabDiff" icon="diff" tip={t('rp.tab.diff')}
-            active={shell.rightPanelTab === 'diff'} onActivate={() => api?.setRightPanelTab('diff')} />
+          <IconBtn
+            id="rpTabExplorer"
+            icon="folder"
+            tip={t('rp.tab.explorer')}
+            active={shell.rightPanelTab === 'explorer'}
+            onActivate={() => api?.setRightPanelTab('explorer')}
+          />
+          <IconBtn
+            id="rpTabTerminal"
+            icon="term"
+            tip={t('rp.tab.terminal')}
+            active={shell.rightPanelTab === 'terminal'}
+            onActivate={() => api?.setRightPanelTab('terminal')}
+          />
+          <IconBtn
+            id="rpTabDiff"
+            icon="diff"
+            tip={t('rp.tab.diff')}
+            active={shell.rightPanelTab === 'diff'}
+            onActivate={() => api?.setRightPanelTab('diff')}
+          />
         </>
       )}
       {/* SIEMPRE el último: ver la nota de anclaje arriba. */}
-      <IconBtn id="rpToggle" icon="panelRight" tip={t(open ? 'rp.toggle.close' : 'rp.toggle.open')}
-        active={open} onActivate={() => api?.toggleRightPanel()} />
+      <IconBtn
+        id="rpToggle"
+        icon="panelRight"
+        tip={t(open ? 'rp.toggle.close' : 'rp.toggle.open')}
+        active={open}
+        onActivate={() => api?.toggleRightPanel()}
+      />
     </>
   )
 }
 
-function IconBtn({ id, icon, tip, active, onActivate }: {
-  id: string; icon: string; tip: string; active: boolean; onActivate: () => void
+function IconBtn({
+  id,
+  icon,
+  tip,
+  active,
+  onActivate,
+}: {
+  id: string
+  icon: string
+  tip: string
+  active: boolean
+  onActivate: () => void
 }) {
   return (
     <div
@@ -57,7 +88,12 @@ function IconBtn({ id, icon, tip, active, onActivate }: {
       role="button"
       tabIndex={0}
       onClick={onActivate}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate() } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onActivate()
+        }
+      }}
     >
       <Icon name={icon} />
     </div>

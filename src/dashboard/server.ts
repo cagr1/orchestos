@@ -1,23 +1,115 @@
-import { serveStatic, errorResponse, isSameOrigin } from './http.ts'
-import { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete, handleApiMemoryBulkDelete } from './handlers/memory.ts'
-import { handleApiRuns, handleApiRunsAnalyze, handleApiRunsDelete, handleApiRunsBulkDelete } from './handlers/runs.ts'
-import { handleApiUsage } from './handlers/usage.ts'
-import { handleApiInstincts, handleApiInstinctsApprove, handleApiInstinctsReject, handleApiInstinctsCreate, handleApiInstinctsPropose, handleApiInstinctsSetConfidence, handleApiInstinctsDelete, handleApiInstinctsBulkDelete } from './handlers/instincts.ts'
-import { handleApiSpecsDraft, handleApiSpecs, handleApiSpecsCreate, handleApiSpecsApprove, handleApiSpecsApproveDesign, handleApiSpecsLint, handleApiSpecsArchive, handleApiSpecsDelete, handleApiSpecsBulkDelete } from './handlers/specs.ts'
-import { handleApiTasks, handleApiTasksInit, handleApiTasksCreate, handleApiTasksRun, handleApiTasksDelete, handleApiTasksBulkDelete, handleApiTasksDiagnose, handleApiTasksExplain, handleApiTasksSplitPlan, handleApiTasksApproveSplit, handleApiTasksSteps, handleApiSystemExecutorModes } from './handlers/tasks.ts'
-import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
-import { handleApiProjectConstitutionGet, handleApiProjectConstitutionPut, handleApiProjectContextGet, handleApiProjectContextRegenerate, handleApiProjectDetect, handleApiProjectIndex, handleApiProjectSummary, handleApiNatural } from './handlers/project.ts'
-import { handleApiSettingsGet, handleApiSetup, handleApiSettingsPost, handleApiHealth, handleApiSetupApiKey, handleApiProvidersLocal } from './handlers/setup.ts'
-import { handleApiChatUpload, handleApiChatModels, handleApiChat, handleApiChatTaskBarClick, handleApiChatTaskBarEvents } from './handlers/chat.ts'
-import { handleApiChatSessionsList, handleApiChatSessionsCreate, handleApiChatSessionMessages, handleApiChatSessionPatch, handleApiChatSessionDelete } from './handlers/chat-sessions.ts'
-import { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport } from './handlers/skills.ts'
-import { handleApiSystemReset, handleApiSystemEnginesExternalAvailability } from './handlers/system.ts'
+import {
+  handleApiChat,
+  handleApiChatModels,
+  handleApiChatTaskBarClick,
+  handleApiChatTaskBarEvents,
+  handleApiChatUpload,
+} from './handlers/chat.ts'
+import {
+  handleApiChatSessionDelete,
+  handleApiChatSessionMessages,
+  handleApiChatSessionPatch,
+  handleApiChatSessionsCreate,
+  handleApiChatSessionsList,
+} from './handlers/chat-sessions.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import { handleApiContextSuggest } from './handlers/context-suggest.ts'
-import { handleApiExplorerTree, handleApiExplorerFile } from './handlers/explorer.ts'
-import { DEFAULT_PORT } from './types.ts'
-import { DashboardProjectError, resolveDashboardProject, type DashboardProjectContext } from './project-context.ts'
+import { handleApiExplorerFile, handleApiExplorerTree } from './handlers/explorer.ts'
+import {
+  handleApiInstincts,
+  handleApiInstinctsApprove,
+  handleApiInstinctsBulkDelete,
+  handleApiInstinctsCreate,
+  handleApiInstinctsDelete,
+  handleApiInstinctsPropose,
+  handleApiInstinctsReject,
+  handleApiInstinctsSetConfidence,
+} from './handlers/instincts.ts'
+import {
+  handleApiMemory,
+  handleApiMemoryBulkDelete,
+  handleApiMemoryConflictResolve,
+  handleApiMemoryConflicts,
+  handleApiMemoryDelete,
+} from './handlers/memory.ts'
+import {
+  handleApiNatural,
+  handleApiProjectConstitutionGet,
+  handleApiProjectConstitutionPut,
+  handleApiProjectContextGet,
+  handleApiProjectContextRegenerate,
+  handleApiProjectDetect,
+  handleApiProjectIndex,
+  handleApiProjectSummary,
+} from './handlers/project.ts'
 import { handleApiProjects } from './handlers/projects.ts'
+import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
+import {
+  handleApiRuns,
+  handleApiRunsAnalyze,
+  handleApiRunsBulkDelete,
+  handleApiRunsDelete,
+} from './handlers/runs.ts'
+import {
+  handleApiHealth,
+  handleApiProvidersLocal,
+  handleApiSettingsGet,
+  handleApiSettingsPost,
+  handleApiSetup,
+  handleApiSetupApiKey,
+} from './handlers/setup.ts'
+import {
+  handleApiSkillsBuild,
+  handleApiSkillsCreate,
+  handleApiSkillsCurate,
+  handleApiSkillsDelete,
+  handleApiSkillsExport,
+  handleApiSkillsGet,
+  handleApiSkillsImport,
+  handleApiSkillsList,
+  handleApiSkillsProImport,
+  handleApiSkillsProList,
+  handleApiSkillsRegistryImport,
+  handleApiSkillsRegistryList,
+  handleApiSkillsUpdate,
+} from './handlers/skills.ts'
+import {
+  handleApiSpecs,
+  handleApiSpecsApprove,
+  handleApiSpecsApproveDesign,
+  handleApiSpecsArchive,
+  handleApiSpecsBulkDelete,
+  handleApiSpecsCreate,
+  handleApiSpecsDelete,
+  handleApiSpecsDraft,
+  handleApiSpecsLint,
+} from './handlers/specs.ts'
+import {
+  handleApiSystemEnginesExternalAvailability,
+  handleApiSystemReset,
+} from './handlers/system.ts'
+import {
+  handleApiSystemExecutorModes,
+  handleApiTasks,
+  handleApiTasksApproveSplit,
+  handleApiTasksBulkDelete,
+  handleApiTasksCreate,
+  handleApiTasksDelete,
+  handleApiTasksDiagnose,
+  handleApiTasksExplain,
+  handleApiTasksInit,
+  handleApiTasksRun,
+  handleApiTasksSplitPlan,
+  handleApiTasksSteps,
+} from './handlers/tasks.ts'
+import { handleApiUsage } from './handlers/usage.ts'
+import { errorResponse, isSameOrigin, serveStatic } from './http.ts'
+import {
+  type DashboardProjectContext,
+  DashboardProjectError,
+  resolveDashboardProject,
+} from './project-context.ts'
+import { DEFAULT_PORT } from './types.ts'
 
 async function withDashboardProject(
   req: Request,
@@ -35,7 +127,10 @@ export async function route(req: Request, port: number): Promise<Response> {
   const url = new URL(req.url)
   const method = req.method
 
-  if ((method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') && !isSameOrigin(req, port)) {
+  if (
+    (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') &&
+    !isSameOrigin(req, port)
+  ) {
     return errorResponse('Forbidden', 403)
   }
 
@@ -55,45 +150,45 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiRunsBulkDelete(req)
   }
   if (method === 'GET' && url.pathname === '/api/tasks') {
-    return withDashboardProject(req, project => handleApiTasks(project.root))
+    return withDashboardProject(req, (project) => handleApiTasks(project.root))
   }
   // v0.12 / Bloque D.1.a — ruta literal DEBE ir antes de los regex `/api/tasks/[^/]+/...`
   // para que `init` no sea interpretado como un task id.
   if (method === 'POST' && url.pathname === '/api/tasks/init') {
-    return withDashboardProject(req, project => handleApiTasksInit(project.root))
+    return withDashboardProject(req, (project) => handleApiTasksInit(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/tasks') {
-    return withDashboardProject(req, project => handleApiTasksCreate(req, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksCreate(req, project.root))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/run$/)) {
-    return withDashboardProject(req, project => handleApiTasksRun(req, url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksRun(req, url, project.root))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
-    return withDashboardProject(req, project => handleApiTasksDelete(url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksDelete(url, project.root))
   }
   if (method === 'POST' && url.pathname === '/api/tasks/bulk-delete') {
-    return withDashboardProject(req, project => handleApiTasksBulkDelete(req, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksBulkDelete(req, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/diagnose$/)) {
-    return withDashboardProject(req, project => handleApiTasksDiagnose(url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksDiagnose(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/explain$/)) {
-    return withDashboardProject(req, project => handleApiTasksExplain(url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksExplain(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/split-plan$/)) {
-    return withDashboardProject(req, project => handleApiTasksSplitPlan(url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksSplitPlan(url, project.root))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/approve-split$/)) {
-    return withDashboardProject(req, project => handleApiTasksApproveSplit(url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksApproveSplit(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/steps$/)) {
     return handleApiTasksSteps(url)
   }
   if (method === 'POST' && url.pathname === '/api/run/graph') {
-    return withDashboardProject(req, project => handleApiRunGraph(req, project.root))
+    return withDashboardProject(req, (project) => handleApiRunGraph(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/run/graph/status') {
-    return withDashboardProject(req, project => handleApiRunGraphStatus(project.root))
+    return withDashboardProject(req, (project) => handleApiRunGraphStatus(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/instincts') {
     return handleApiInstincts()
@@ -164,30 +259,32 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiProjects()
   }
   if (method === 'GET' && url.pathname === '/api/project/constitution') {
-    return withDashboardProject(req, project => handleApiProjectConstitutionGet(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectConstitutionGet(project.root))
   }
   if (method === 'PUT' && url.pathname === '/api/project/constitution') {
-    return withDashboardProject(req, project => handleApiProjectConstitutionPut(req, project.root))
+    return withDashboardProject(req, (project) =>
+      handleApiProjectConstitutionPut(req, project.root),
+    )
   }
   if (method === 'GET' && url.pathname === '/api/project/context') {
-    return withDashboardProject(req, project => handleApiProjectContextGet(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectContextGet(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/context/regenerate') {
-    return withDashboardProject(req, project => handleApiProjectContextRegenerate(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectContextRegenerate(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/detect') {
-    return withDashboardProject(req, project => handleApiProjectDetect(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectDetect(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/index') {
-    return withDashboardProject(req, project => handleApiProjectIndex(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectIndex(project.root))
   }
   // v0.12 D.1.c — ruta literal DEBE ir antes del catch-all GET→serveStatic
   // de abajo (sirve un PDF binario, no HTML estático).
   if (method === 'GET' && url.pathname === '/api/project/summary') {
-    return withDashboardProject(req, project => handleApiProjectSummary(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectSummary(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/natural') {
-    return withDashboardProject(req, project => handleApiNatural(req, project.root))
+    return withDashboardProject(req, (project) => handleApiNatural(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/chat/models') {
     return handleApiChatModels()
@@ -220,35 +317,35 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiChatTaskBarEvents()
   }
   if (method === 'GET' && url.pathname === '/api/specs') {
-    return withDashboardProject(req, project => handleApiSpecs(project.root))
+    return withDashboardProject(req, (project) => handleApiSpecs(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/specs/draft') {
-    return withDashboardProject(req, project => handleApiSpecsDraft(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsDraft(req, project.root))
   }
   // v0.12 Bloque A — DEBE ir antes del /^\/api\/specs\/[^/]+$/ genérico de abajo
   // (handleApiSpecsCreate): sin id con slash, ese regex también matchea
   // "/api/specs/bulk-delete" y se comería esta ruta.
   if (method === 'POST' && url.pathname === '/api/specs/bulk-delete') {
-    return withDashboardProject(req, project => handleApiSpecsBulkDelete(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsBulkDelete(req, project.root))
   }
   if (method === 'POST' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
-    return withDashboardProject(req, project => handleApiSpecsCreate(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsCreate(req, project.root))
   }
   // AA.4 (IDEAS #6) — ruta propia junto al resto de approve/lint/archive.
   if (method === 'POST' && url.pathname.endsWith('/approve-design')) {
-    return withDashboardProject(req, project => handleApiSpecsApproveDesign(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsApproveDesign(req, project.root))
   }
   if (method === 'POST' && url.pathname.endsWith('/approve')) {
-    return withDashboardProject(req, project => handleApiSpecsApprove(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsApprove(req, project.root))
   }
   if (method === 'GET' && url.pathname.endsWith('/lint')) {
-    return withDashboardProject(req, project => handleApiSpecsLint(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsLint(req, project.root))
   }
   if (method === 'POST' && url.pathname.endsWith('/archive')) {
-    return withDashboardProject(req, project => handleApiSpecsArchive(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsArchive(req, project.root))
   }
   if (method === 'DELETE' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
-    return withDashboardProject(req, project => handleApiSpecsDelete(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsDelete(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/memory/conflicts') {
     return handleApiMemoryConflicts(url)
@@ -266,13 +363,13 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiMemoryBulkDelete(req)
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
-    return withDashboardProject(req, project => handleApiSettingsGet(project.root))
+    return withDashboardProject(req, (project) => handleApiSettingsGet(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/setup') {
-    return withDashboardProject(req, project => handleApiSetup(project.root))
+    return withDashboardProject(req, (project) => handleApiSetup(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/health') {
-    return withDashboardProject(req, project => handleApiHealth(project.root))
+    return withDashboardProject(req, (project) => handleApiHealth(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/providers/local') {
     return handleApiProvidersLocal()
@@ -284,31 +381,31 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiSettingsPost(req)
   }
   if (method === 'POST' && url.pathname === '/api/system/reset') {
-    return withDashboardProject(req, project => handleApiSystemReset(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSystemReset(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/system/engines/external/availability') {
     return handleApiSystemEnginesExternalAvailability()
   }
   if (method === 'GET' && url.pathname === '/api/system/executor-modes') {
-    return withDashboardProject(req, project => handleApiSystemExecutorModes(project.root))
+    return withDashboardProject(req, (project) => handleApiSystemExecutorModes(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/config') {
-    return withDashboardProject(req, project => handleApiConfigGet(project.root))
+    return withDashboardProject(req, (project) => handleApiConfigGet(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/config/init') {
-    return withDashboardProject(req, project => handleApiConfigInit(project.root))
+    return withDashboardProject(req, (project) => handleApiConfigInit(project.root))
   }
   if (method === 'PUT' && url.pathname === '/api/config') {
-    return withDashboardProject(req, project => handleApiConfigSet(req, project.root))
+    return withDashboardProject(req, (project) => handleApiConfigSet(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/context/suggest') {
-    return withDashboardProject(req, project => handleApiContextSuggest(url, project.root))
+    return withDashboardProject(req, (project) => handleApiContextSuggest(url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/explorer/tree') {
-    return withDashboardProject(req, project => handleApiExplorerTree(url, project.root))
+    return withDashboardProject(req, (project) => handleApiExplorerTree(url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/explorer/file') {
-    return withDashboardProject(req, project => handleApiExplorerFile(url, project.root))
+    return withDashboardProject(req, (project) => handleApiExplorerFile(url, project.root))
   }
 
   if (method === 'GET') {

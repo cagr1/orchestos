@@ -8,8 +8,8 @@
  * `spec list` hides archived specs by default; `--all` shows them.
  */
 
+import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { existsSync, mkdirSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
 import { loadSpec, specPath } from './store.ts'
 
 const SPECS_DIR = '.orchestos/specs'
@@ -30,15 +30,15 @@ export function archiveSpec(root: string, taskId: string): ArchiveResult {
   const spec = loadSpec(root, taskId)
   if (!spec) throw new Error(`No spec found for task "${taskId}"`)
 
-  const archivedAt  = new Date().toISOString()
-  const datePrefix  = archivedAt.slice(0, 10) // YYYY-MM-DD
-  const archiveDir  = join(root, ARCHIVE_DIR)
+  const archivedAt = new Date().toISOString()
+  const datePrefix = archivedAt.slice(0, 10) // YYYY-MM-DD
+  const archiveDir = join(root, ARCHIVE_DIR)
   const archiveFile = join(archiveDir, `${datePrefix}-${taskId}.md`)
 
   if (!existsSync(archiveDir)) mkdirSync(archiveDir, { recursive: true })
 
   // Update frontmatter
-  spec.frontmatter.status     = 'archived'
+  spec.frontmatter.status = 'archived'
   spec.frontmatter.archivedAt = archivedAt
 
   // Write to archive location using saveSpec-compatible serialization
@@ -63,7 +63,7 @@ export function archiveSpec(root: string, taskId: string): ArchiveResult {
 export function deleteArchivedSpec(root: string, taskId: string): boolean {
   const archiveDir = join(root, ARCHIVE_DIR)
   if (!existsSync(archiveDir)) return false
-  const match = readdirSync(archiveDir).find(f => f.endsWith(`-${taskId}.md`))
+  const match = readdirSync(archiveDir).find((f) => f.endsWith(`-${taskId}.md`))
   if (!match) return false
   unlinkSync(join(archiveDir, match))
   return true
@@ -76,10 +76,10 @@ import type { Spec } from './store.ts'
 export const _internals = {
   serializeSpecRaw(spec: Spec): string {
     const fm: Record<string, unknown> = {
-      id:        spec.frontmatter.id,
-      status:    spec.frontmatter.status,
+      id: spec.frontmatter.id,
+      status: spec.frontmatter.status,
       createdAt: spec.frontmatter.createdAt,
-      clarify:   spec.frontmatter.clarify,
+      clarify: spec.frontmatter.clarify,
     }
     if (spec.frontmatter.approvedAt) fm.approvedAt = spec.frontmatter.approvedAt
     if (spec.frontmatter.archivedAt) fm.archivedAt = spec.frontmatter.archivedAt

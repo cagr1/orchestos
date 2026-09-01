@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'bun:test'
-import { runToolLoop, callWithTools, FETCH_URL_TOOL } from '../providers/tool-call.ts'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { callWithTools, FETCH_URL_TOOL, runToolLoop } from '../providers/tool-call.ts'
 
 // Fix del bug real de G.5 (2026-07-02): las rondas de tool-calling y el
 // dispatcher single-turn tenían max_tokens=4096 hardcodeado, sin forma de
@@ -25,10 +25,13 @@ function captureBodyFetch() {
   let capturedBody: any = null
   globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
     capturedBody = JSON.parse(String(init?.body))
-    return new Response(JSON.stringify({
-      choices: [{ message: { content: 'ok' } }],
-      usage: { prompt_tokens: 1, completion_tokens: 1 },
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: 'ok' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    )
   }) as unknown as typeof fetch
   return () => capturedBody
 }
@@ -91,16 +94,34 @@ describe('G.5 fix — maxTokens threaded through tool-calling, never hardcoded',
       call++
       if (call === 1) {
         // first round: model asks to call the tool
-        return new Response(JSON.stringify({
-          choices: [{ message: { tool_calls: [{ id: 't1', type: 'function', function: { name: FETCH_URL_TOOL.name, arguments: '{}' } }] } }],
-          usage: { prompt_tokens: 1, completion_tokens: 1 },
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  tool_calls: [
+                    {
+                      id: 't1',
+                      type: 'function',
+                      function: { name: FETCH_URL_TOOL.name, arguments: '{}' },
+                    },
+                  ],
+                },
+              },
+            ],
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
       }
       // second round (closing round): plain text answer
-      return new Response(JSON.stringify({
-        choices: [{ message: { content: 'ok' } }],
-        usage: { prompt_tokens: 1, completion_tokens: 1 },
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
     }) as unknown as typeof fetch
 
     const largeToolResult = 'x'.repeat(40000) // ~10k tokens by the chars/4 estimate
@@ -123,10 +144,13 @@ describe('G.5 fix — maxTokens threaded through tool-calling, never hardcoded',
     let capturedBody: any = null
     globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
       capturedBody = JSON.parse(String(init?.body))
-      return new Response(JSON.stringify({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 1, output_tokens: 1 },
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      return new Response(
+        JSON.stringify({
+          content: [{ type: 'text', text: 'ok' }],
+          usage: { input_tokens: 1, output_tokens: 1 },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
     }) as unknown as typeof fetch
 
     await callWithTools('anthropic', 'anthropic/claude-haiku-4-5', {

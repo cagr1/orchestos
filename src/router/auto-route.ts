@@ -10,9 +10,9 @@
  *   3. null               → harness falls back to resolveModel + task.executor
  */
 
-import { classifyTask, type TaskClass } from './classify.ts'
-import type { OrcheConfig, ModelRoleConfig } from '../config/schema.ts'
+import type { ModelRoleConfig, OrcheConfig } from '../config/schema.ts'
 import type { Task } from '../tasks/schema.ts'
+import { classifyTask, type TaskClass } from './classify.ts'
 
 export interface RouteResult {
   provider: string
@@ -22,19 +22,26 @@ export interface RouteResult {
 }
 
 /** Maps classifyTask output → config role */
-const CLASS_TO_ROLE: Record<TaskClass, 'planner' | 'executor_heavy' | 'executor_light' | 'default'> = {
-  plan:      'planner',
-  fix:       'executor_heavy',
+const CLASS_TO_ROLE: Record<
+  TaskClass,
+  'planner' | 'executor_heavy' | 'executor_light' | 'default'
+> = {
+  plan: 'planner',
+  fix: 'executor_heavy',
   implement: 'executor_heavy',
-  review:    'executor_light',
-  doc:       'executor_light',
+  review: 'executor_light',
+  doc: 'executor_light',
 }
 
 /**
  * Resolve the route for a task given the loaded config.
  * Returns null if config is the default (no user file found) — signals harness to use legacy path.
  */
-export function autoRoute(task: Task, config: OrcheConfig, configFound: boolean): RouteResult | null {
+export function autoRoute(
+  task: Task,
+  config: OrcheConfig,
+  configFound: boolean,
+): RouteResult | null {
   // Per-task executor_model always wins — but we still need a provider
   // The provider comes from the role lookup; model is overridden by the task field.
   // If no config file was found AND no per-task override → return null (legacy path)
@@ -51,7 +58,7 @@ export function autoRoute(task: Task, config: OrcheConfig, configFound: boolean)
   const roleCfg: ModelRoleConfig = config.models[role]
 
   const provider = roleCfg.provider
-  const model    = task.executor_model ?? (roleCfg.model || roleCfg.provider)
+  const model = task.executor_model ?? (roleCfg.model || roleCfg.provider)
 
   return { provider, model, role }
 }

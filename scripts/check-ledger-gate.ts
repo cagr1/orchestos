@@ -5,7 +5,7 @@
 // Gobernanza de este repo, no código de OrchestOS-el-producto — nunca importado
 // desde src/.
 
-import { readFileSync, existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
 
 type ProtectedRule = { pattern: string; rule: string; note: string }

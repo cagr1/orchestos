@@ -30,9 +30,9 @@ export type WarningCode =
 export type WarningSeverity = 'warning' | 'critical' | 'notice'
 
 export interface ContextWarning {
-  code:     WarningCode
+  code: WarningCode
   severity: WarningSeverity
-  message:  string
+  message: string
 }
 
 export interface RunState {
@@ -58,15 +58,15 @@ export interface RunState {
 
 const CONTEXT_WINDOWS: Array<[string, number]> = [
   // Anthropic — 200K
-  ['claude',   200_000],
+  ['claude', 200_000],
   // Google — 1M
-  ['gemini',   1_000_000],
+  ['gemini', 1_000_000],
   // OpenAI
-  ['gpt-4o',   128_000],
-  ['gpt-4',      8_192],
-  ['gpt-3.5',   16_385],
+  ['gpt-4o', 128_000],
+  ['gpt-4', 8_192],
+  ['gpt-3.5', 16_385],
   // Mistral
-  ['mistral',   32_000],
+  ['mistral', 32_000],
   // DeepSeek
   ['deepseek', 128_000],
 ]
@@ -89,41 +89,41 @@ export function checkContextHealth(state: RunState): ContextWarning[] {
   const warnings: ContextWarning[] = []
 
   // Context remaining
-  const usedRatio      = state.promptTokens / state.modelContextWindow
+  const usedRatio = state.promptTokens / state.modelContextWindow
   const remainingRatio = 1 - usedRatio
   if (remainingRatio < 0.25) {
     warnings.push({
-      code:     'context_critical',
+      code: 'context_critical',
       severity: 'critical',
-      message:  `Context critically low: ${Math.round(remainingRatio * 100)}% remaining (${state.promptTokens}/${state.modelContextWindow} tokens)`,
+      message: `Context critically low: ${Math.round(remainingRatio * 100)}% remaining (${state.promptTokens}/${state.modelContextWindow} tokens)`,
     })
   } else if (remainingRatio < 0.35) {
     warnings.push({
-      code:     'context_warning',
+      code: 'context_warning',
       severity: 'warning',
-      message:  `Context low: ${Math.round(remainingRatio * 100)}% remaining (${state.promptTokens}/${state.modelContextWindow} tokens)`,
+      message: `Context low: ${Math.round(remainingRatio * 100)}% remaining (${state.promptTokens}/${state.modelContextWindow} tokens)`,
     })
   }
 
   // Cost
   if (state.cumulativeCostUsd > 5) {
     warnings.push({
-      code:     'cost_notice',
+      code: 'cost_notice',
       severity: 'notice',
-      message:  `Cumulative cost $${state.cumulativeCostUsd.toFixed(2)} exceeds $5.00`,
+      message: `Cumulative cost $${state.cumulativeCostUsd.toFixed(2)} exceeds $5.00`,
     })
   }
 
   // Loop detection: same tool ≥ 3 times in a row
   const seq = state.recentToolCalls
   if (seq.length >= 3) {
-    const last   = seq[seq.length - 1]
-    const streak = seq.slice(-3).every(t => t === last)
+    const last = seq[seq.length - 1]
+    const streak = seq.slice(-3).every((t) => t === last)
     if (streak) {
       warnings.push({
-        code:     'loop_detected',
+        code: 'loop_detected',
         severity: 'warning',
-        message:  `Possible loop: '${last}' called 3+ times consecutively`,
+        message: `Possible loop: '${last}' called 3+ times consecutively`,
       })
     }
   }
@@ -131,9 +131,9 @@ export function checkContextHealth(state: RunState): ContextWarning[] {
   // Scope creep
   if (state.filesModified > 20) {
     warnings.push({
-      code:     'scope_creep',
+      code: 'scope_creep',
       severity: 'warning',
-      message:  `Scope creep: ${state.filesModified} files modified (threshold: 20)`,
+      message: `Scope creep: ${state.filesModified} files modified (threshold: 20)`,
     })
   }
 

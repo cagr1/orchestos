@@ -5,10 +5,10 @@
  * exista en disco fuera del fixture) y un caso de dogfooding contra el propio
  * repo de OrchestOS para probar que las señales reales se detectan bien.
  */
-import { describe, it, expect, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { buildRoadmapProfile, renderProjectProfileMarkdown } from '../detect/roadmap-profile.ts'
 
 const dirs: string[] = []
@@ -30,7 +30,7 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     const root = tmpDir()
     writePkg(root)
     const profile = await buildRoadmapProfile(root)
-    const byDiscipline = Object.fromEntries(profile.disciplines.map(d => [d.discipline, d.state]))
+    const byDiscipline = Object.fromEntries(profile.disciplines.map((d) => [d.discipline, d.state]))
     expect(byDiscipline.backend).toBe('not-applicable')
     expect(byDiscipline.frontend).toBe('not-applicable')
     expect(byDiscipline['qa-seguridad']).toBe('missing')
@@ -41,7 +41,7 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     const root = tmpDir()
     writePkg(root, { dependencies: { express: '^4.0.0' } })
     const profile = await buildRoadmapProfile(root)
-    const backend = profile.disciplines.find(d => d.discipline === 'backend')!
+    const backend = profile.disciplines.find((d) => d.discipline === 'backend')!
     expect(backend.state).toBe('detected')
     expect(backend.evidence).toContain('Express')
   })
@@ -50,9 +50,12 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     const root = tmpDir()
     writePkg(root)
     mkdirSync(join(root, 'src'), { recursive: true })
-    writeFileSync(join(root, 'src', 'server.ts'), 'export function start() { Bun.serve({ fetch: () => new Response("ok") }) }')
+    writeFileSync(
+      join(root, 'src', 'server.ts'),
+      'export function start() { Bun.serve({ fetch: () => new Response("ok") }) }',
+    )
     const profile = await buildRoadmapProfile(root)
-    const backend = profile.disciplines.find(d => d.discipline === 'backend')!
+    const backend = profile.disciplines.find((d) => d.discipline === 'backend')!
     expect(backend.state).toBe('detected')
     expect(backend.evidence).toContain('src/server.ts')
   })
@@ -62,7 +65,7 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     writePkg(root)
     writeFileSync(join(root, 'index.html'), '<html></html>')
     const profile = await buildRoadmapProfile(root)
-    expect(profile.disciplines.find(d => d.discipline === 'frontend')!.state).toBe('detected')
+    expect(profile.disciplines.find((d) => d.discipline === 'frontend')!.state).toBe('detected')
   })
 
   it('detecta qa-seguridad contando archivos *.test.ts reales', async () => {
@@ -71,7 +74,7 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     mkdirSync(join(root, 'src'), { recursive: true })
     writeFileSync(join(root, 'src', 'foo.test.ts'), 'test("x", () => {})')
     const profile = await buildRoadmapProfile(root)
-    const qa = profile.disciplines.find(d => d.discipline === 'qa-seguridad')!
+    const qa = profile.disciplines.find((d) => d.discipline === 'qa-seguridad')!
     expect(qa.state).toBe('detected')
     expect(qa.evidence).toContain('1 archivos')
   })
@@ -84,7 +87,7 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     writeFileSync(join(root, 'pkg', 'greet.go'), 'package pkg')
     writeFileSync(join(root, 'pkg', 'greet_test.go'), 'package pkg')
     const profile = await buildRoadmapProfile(root)
-    expect(profile.disciplines.find(d => d.discipline === 'qa-seguridad')!.state).toBe('detected')
+    expect(profile.disciplines.find((d) => d.discipline === 'qa-seguridad')!.state).toBe('detected')
   })
 
   it('M.5: detecta qa-seguridad con módulo inline #[cfg(test)] de Rust, sin archivo *.test.rs', async () => {
@@ -94,7 +97,7 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     writeFileSync(join(root, 'Cargo.toml'), '[package]\nname = "fixture"\n')
     writeFileSync(join(root, 'src', 'main.rs'), 'fn main() {}\n\n#[cfg(test)]\nmod tests {}\n')
     const profile = await buildRoadmapProfile(root)
-    expect(profile.disciplines.find(d => d.discipline === 'qa-seguridad')!.state).toBe('detected')
+    expect(profile.disciplines.find((d) => d.discipline === 'qa-seguridad')!.state).toBe('detected')
   })
 
   it('detecta devops por workflows de CI', async () => {
@@ -103,7 +106,7 @@ describe('M.3 — buildRoadmapProfile: disciplinas', () => {
     mkdirSync(join(root, '.github', 'workflows'), { recursive: true })
     writeFileSync(join(root, '.github', 'workflows', 'ci.yml'), 'name: ci')
     const profile = await buildRoadmapProfile(root)
-    expect(profile.disciplines.find(d => d.discipline === 'devops')!.state).toBe('detected')
+    expect(profile.disciplines.find((d) => d.discipline === 'devops')!.state).toBe('detected')
     expect(profile.ci.state).toBe('detected')
     expect(profile.ci.evidence).toContain('ci.yml')
   })
@@ -162,7 +165,7 @@ describe('M.3 — buildRoadmapProfile: infraestructura', () => {
 })
 
 describe('M.3 — perfiles de lenguaje (eje secundario, contra docs/roadmaps/languages/)', () => {
-  it("known cuando existe el doc del lenguaje, incluso con sufijo distinto (typescript-bun.md)", async () => {
+  it('known cuando existe el doc del lenguaje, incluso con sufijo distinto (typescript-bun.md)', async () => {
     const root = tmpDir()
     writePkg(root)
     mkdirSync(join(root, 'src'), { recursive: true })
@@ -170,7 +173,7 @@ describe('M.3 — perfiles de lenguaje (eje secundario, contra docs/roadmaps/lan
     mkdirSync(join(root, 'docs', 'roadmaps', 'languages'), { recursive: true })
     writeFileSync(join(root, 'docs', 'roadmaps', 'languages', 'typescript-bun.md'), '# TS/Bun')
     const profile = await buildRoadmapProfile(root)
-    const ts = profile.languageProfiles.find(l => l.language === 'TypeScript')!
+    const ts = profile.languageProfiles.find((l) => l.language === 'TypeScript')!
     expect(ts.state).toBe('known')
     expect(ts.docPath).toBe(join('docs', 'roadmaps', 'languages', 'typescript-bun.md'))
   })
@@ -184,7 +187,7 @@ describe('M.3 — perfiles de lenguaje (eje secundario, contra docs/roadmaps/lan
     mkdirSync(join(root, 'src'), { recursive: true })
     writeFileSync(join(root, 'src', 'a.cs'), 'class Program { static void Main() {} }')
     const profile = await buildRoadmapProfile(root)
-    const cs = profile.languageProfiles.find(l => l.language === 'C#')!
+    const cs = profile.languageProfiles.find((l) => l.language === 'C#')!
     expect(cs.state).toBe('missing')
     expect(cs.docPath).toBeUndefined()
   })
@@ -195,7 +198,7 @@ describe('M.3 — perfiles de lenguaje (eje secundario, contra docs/roadmaps/lan
     mkdirSync(join(root, 'src'), { recursive: true })
     writeFileSync(join(root, 'src', 'a.ts'), 'export const x = 1')
     const profile = await buildRoadmapProfile(root)
-    const ts = profile.languageProfiles.find(l => l.language === 'TypeScript')!
+    const ts = profile.languageProfiles.find((l) => l.language === 'TypeScript')!
     expect(ts.state).toBe('known')
     expect(ts.docPath).toBe(join('docs', 'roadmaps', 'languages', 'typescript-bun.md'))
   })
@@ -208,7 +211,7 @@ describe('M.3 — perfiles de lenguaje (eje secundario, contra docs/roadmaps/lan
     writeFileSync(join(root, 'src', 'b.go'), 'package main')
     writeFileSync(join(root, 'src', 'c.rs'), 'fn main() {}')
     const profile = await buildRoadmapProfile(root)
-    const langs = profile.languageProfiles.map(l => l.language).sort()
+    const langs = profile.languageProfiles.map((l) => l.language).sort()
     expect(langs).toEqual(['Go', 'Rust', 'TypeScript'])
   })
 })
@@ -218,7 +221,7 @@ describe('M.3 — toolchain: verified requiere comando real, no memoria', () => 
     const root = tmpDir()
     writePkg(root)
     const profile = await buildRoadmapProfile(root)
-    const bun = profile.toolchain.find(t => t.name === 'bun')!
+    const bun = profile.toolchain.find((t) => t.name === 'bun')!
     expect(bun.version).toBe(Bun.version)
   })
 })
@@ -226,7 +229,7 @@ describe('M.3 — toolchain: verified requiere comando real, no memoria', () => 
 describe('M.3 — dogfooding contra el propio repo de OrchestOS', () => {
   it('detecta backend/frontend/qa-seguridad/devops reales de este repo', async () => {
     const profile = await buildRoadmapProfile(process.cwd())
-    const byDiscipline = Object.fromEntries(profile.disciplines.map(d => [d.discipline, d.state]))
+    const byDiscipline = Object.fromEntries(profile.disciplines.map((d) => [d.discipline, d.state]))
     expect(byDiscipline.backend).toBe('detected')
     expect(byDiscipline.frontend).toBe('detected')
     expect(byDiscipline['qa-seguridad']).toBe('detected')
@@ -235,7 +238,7 @@ describe('M.3 — dogfooding contra el propio repo de OrchestOS', () => {
 
   it('TypeScript queda known porque docs/roadmaps/languages/ ya tiene su perfil', async () => {
     const profile = await buildRoadmapProfile(process.cwd())
-    const ts = profile.languageProfiles.find(l => l.language === 'TypeScript')!
+    const ts = profile.languageProfiles.find((l) => l.language === 'TypeScript')!
     expect(ts.state).toBe('known')
   })
 })

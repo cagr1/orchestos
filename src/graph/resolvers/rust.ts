@@ -1,6 +1,6 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
-import type { Resolver, RepoIndex } from '../resolver-registry.ts'
+import type { RepoIndex, Resolver } from '../resolver-registry.ts'
 
 export const rustResolver: Resolver = {
   // S (Mes 26, 2026-08-06) — debe ser 'rs', el valor real que produce
@@ -20,7 +20,10 @@ export const rustResolver: Resolver = {
     // para ningún input, desde que se escribió (verificado con los fixtures
     // reales: 0/2 edges antes de este fix).
     if (importStr.startsWith('crate::')) {
-      crateRelative = importStr.replace(/^crate::/, '').replace(/;$/, '').trim()
+      crateRelative = importStr
+        .replace(/^crate::/, '')
+        .replace(/;$/, '')
+        .trim()
     } else {
       // `mod foo;` no tiene equivalente hoy en `extractRustImports()` (solo
       // extrae `use` y `extern crate`) — no hay ningún specifier con esa forma
@@ -29,7 +32,10 @@ export const rustResolver: Resolver = {
     }
 
     // Strip alias ("foo::Bar as Alias") and brace groups ("foo::{A, B}")
-    crateRelative = crateRelative.replace(/\s+as\s+\w+/, '').replace(/\{[^}]*\}/, '').trim()
+    crateRelative = crateRelative
+      .replace(/\s+as\s+\w+/, '')
+      .replace(/\{[^}]*\}/, '')
+      .trim()
 
     const segments = crateRelative.split('::').filter(Boolean)
     if (segments.length === 0) return null

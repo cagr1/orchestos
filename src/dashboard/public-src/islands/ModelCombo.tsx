@@ -32,8 +32,8 @@
  * catálogo, cómo se arma el label, el badge de precio y el contrato del hidden input.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { useT } from '../lib/i18n.ts'
 import { Combobox, type ComboboxOption } from '../components/ui/combobox.tsx'
+import { useT } from '../lib/i18n.ts'
 
 export interface ModelInfo {
   id: string
@@ -68,7 +68,12 @@ export interface ModelComboProps {
 }
 
 export function ModelCombo(props: Record<string, unknown>) {
-  const { inputId, value: initialValue, allowEmpty, emptyLabel } = props as unknown as ModelComboProps
+  const {
+    inputId,
+    value: initialValue,
+    allowEmpty,
+    emptyLabel,
+  } = props as unknown as ModelComboProps
   const t = useT()
   const api = bridge()
 
@@ -83,8 +88,12 @@ export function ModelCombo(props: Record<string, unknown>) {
   useEffect(() => {
     if (!open || !api) return
     let alive = true
-    void api.loadModels().then(() => { if (alive) setTick((n) => n + 1) })
-    return () => { alive = false }
+    void api.loadModels().then(() => {
+      if (alive) setTick((n) => n + 1)
+    })
+    return () => {
+      alive = false
+    }
   }, [open, api])
 
   const locals = useMemo(() => (Array.isArray(local) ? local : []), [local])
@@ -95,7 +104,7 @@ export function ModelCombo(props: Record<string, unknown>) {
    */
   const isLoading = Array.isArray(cloud) && cloud.length === 0
   const cloudModels = useMemo<ModelInfo[]>(() => {
-    const source = cloud === null ? known.map((m) => ({ ...m })) : (Array.isArray(cloud) ? cloud : [])
+    const source = cloud === null ? known.map((m) => ({ ...m })) : Array.isArray(cloud) ? cloud : []
     // Un valor guardado que ya no está en el catálogo se antepone, o el combo mostraría
     // como elegido algo que no puede volver a seleccionarse.
     if (!value || cloud === null || source.some((m) => m.id === value)) return source
@@ -106,7 +115,7 @@ export function ModelCombo(props: Record<string, unknown>) {
   const label = isLoading
     ? t('common.loading')
     : isEmptyVal
-      ? (emptyLabel || '—')
+      ? emptyLabel || '—'
       : (api?.modelLabelFor(value, cloudModels) ?? value)
 
   const options = useMemo<ComboboxOption[]>(() => {
@@ -134,7 +143,9 @@ export function ModelCombo(props: Record<string, unknown>) {
         // El encabezado "Cloud" solo aparece si hay locales arriba con los que contrastar.
         group: locals.length > 0 ? t('chat.cloud.group') : undefined,
         hint: (
-          <span className={isFree ? 'font-semibold text-[var(--success)]' : 'text-muted-foreground'}>
+          <span
+            className={isFree ? 'font-semibold text-[var(--success)]' : 'text-muted-foreground'}
+          >
             {isFree ? t('chat.models.free') : `$${(m.priceIn ?? 0).toFixed(2)}/M`}
           </span>
         ),
@@ -151,7 +162,10 @@ export function ModelCombo(props: Record<string, unknown>) {
         open={open}
         onOpenChange={setOpen}
         value={isEmptyVal ? EMPTY : value}
-        onValueChange={(next) => { setValue(next === EMPTY ? '' : next); setOpen(false) }}
+        onValueChange={(next) => {
+          setValue(next === EMPTY ? '' : next)
+          setOpen(false)
+        }}
         options={options}
         triggerLabel={label}
         searchPlaceholder={t('chat.models.search')}

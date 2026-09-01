@@ -1,4 +1,4 @@
-import type { Resolver, RepoIndex } from '../resolver-registry.ts'
+import type { RepoIndex, Resolver } from '../resolver-registry.ts'
 
 const JVM_LANGS = new Set(['java', 'kotlin', 'scala', 'groovy'])
 const JVM_EXTS = ['.java', '.kt', '.scala', '.groovy']
@@ -22,13 +22,15 @@ export const javaResolver: Resolver = {
     if (isWildcard) {
       // Any file inside that package directory
       const prefix = slashPath + '/'
-      return repo.files.find(f => JVM_LANGS.has(f.language) && f.path.includes(prefix))?.path ?? null
+      return (
+        repo.files.find((f) => JVM_LANGS.has(f.language) && f.path.includes(prefix))?.path ?? null
+      )
     }
 
     // Specific class — try each JVM extension, match file ending with slashPath + ext
     for (const ext of JVM_EXTS) {
       const suffix = slashPath + ext
-      const found = repo.files.find(f => f.path === suffix || f.path.endsWith('/' + suffix))
+      const found = repo.files.find((f) => f.path === suffix || f.path.endsWith('/' + suffix))
       if (found) return found.path
     }
 

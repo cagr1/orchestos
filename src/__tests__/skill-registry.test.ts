@@ -28,34 +28,56 @@ describe('validateSkill — hardening fields (N.1)', () => {
   })
 
   test('rejects an iron_law longer than 300 chars', () => {
-    expect(() => validateSkill(baseSkill({ iron_law: 'x'.repeat(301) }), 'test.yaml')).toThrow(/iron_law/)
+    expect(() => validateSkill(baseSkill({ iron_law: 'x'.repeat(301) }), 'test.yaml')).toThrow(
+      /iron_law/,
+    )
   })
 
   test('accepts valid common_rationalizations', () => {
-    const skill = validateSkill(baseSkill({
-      common_rationalizations: [{ excuse: 'It looks fine', refutation: 'Looking fine is not tested.' }],
-    }), 'test.yaml')
+    const skill = validateSkill(
+      baseSkill({
+        common_rationalizations: [
+          { excuse: 'It looks fine', refutation: 'Looking fine is not tested.' },
+        ],
+      }),
+      'test.yaml',
+    )
     expect(skill.common_rationalizations).toHaveLength(1)
   })
 
   test('rejects an empty common_rationalizations array', () => {
-    expect(() => validateSkill(baseSkill({ common_rationalizations: [] }), 'test.yaml')).toThrow(/common_rationalizations/)
+    expect(() => validateSkill(baseSkill({ common_rationalizations: [] }), 'test.yaml')).toThrow(
+      /common_rationalizations/,
+    )
   })
 
   test('rejects a common_rationalizations entry missing refutation', () => {
-    expect(() => validateSkill(baseSkill({
-      common_rationalizations: [{ excuse: 'It looks fine' }],
-    }), 'test.yaml')).toThrow(/refutation/)
+    expect(() =>
+      validateSkill(
+        baseSkill({
+          common_rationalizations: [{ excuse: 'It looks fine' }],
+        }),
+        'test.yaml',
+      ),
+    ).toThrow(/refutation/)
   })
 
   test('rejects a common_rationalizations entry missing excuse', () => {
-    expect(() => validateSkill(baseSkill({
-      common_rationalizations: [{ refutation: 'No.' }],
-    }), 'test.yaml')).toThrow(/excuse/)
+    expect(() =>
+      validateSkill(
+        baseSkill({
+          common_rationalizations: [{ refutation: 'No.' }],
+        }),
+        'test.yaml',
+      ),
+    ).toThrow(/excuse/)
   })
 
   test('accepts valid red_flags', () => {
-    const skill = validateSkill(baseSkill({ red_flags: ['writing the test after the code'] }), 'test.yaml')
+    const skill = validateSkill(
+      baseSkill({ red_flags: ['writing the test after the code'] }),
+      'test.yaml',
+    )
     expect(skill.red_flags).toHaveLength(1)
   })
 
@@ -79,48 +101,78 @@ describe('validateSkill — activation contract (O.0)', () => {
   })
 
   test('rejects an invalid mode', () => {
-    expect(() => validateSkill(baseSkill({ activation: { mode: 'always' } }), 'test.yaml')).toThrow(/activation\.mode/)
+    expect(() => validateSkill(baseSkill({ activation: { mode: 'always' } }), 'test.yaml')).toThrow(
+      /activation\.mode/,
+    )
   })
 
   test('rejects activation missing mode', () => {
-    expect(() => validateSkill(baseSkill({ activation: {} }), 'test.yaml')).toThrow(/activation\.mode/)
+    expect(() => validateSkill(baseSkill({ activation: {} }), 'test.yaml')).toThrow(
+      /activation\.mode/,
+    )
   })
 
   test('accepts valid triggers', () => {
-    const skill = validateSkill(baseSkill({
-      activation: { mode: 'automatic', triggers: ['auth', 'secrets'] },
-    }), 'test.yaml')
+    const skill = validateSkill(
+      baseSkill({
+        activation: { mode: 'automatic', triggers: ['auth', 'secrets'] },
+      }),
+      'test.yaml',
+    )
     expect(skill.activation?.triggers).toEqual(['auth', 'secrets'])
   })
 
   test('rejects an empty triggers array', () => {
-    expect(() => validateSkill(baseSkill({
-      activation: { mode: 'automatic', triggers: [] },
-    }), 'test.yaml')).toThrow(/activation\.triggers/)
+    expect(() =>
+      validateSkill(
+        baseSkill({
+          activation: { mode: 'automatic', triggers: [] },
+        }),
+        'test.yaml',
+      ),
+    ).toThrow(/activation\.triggers/)
   })
 
   test('rejects triggers entries that are not strings', () => {
-    expect(() => validateSkill(baseSkill({
-      activation: { mode: 'automatic', triggers: [42] },
-    }), 'test.yaml')).toThrow(/activation\.triggers/)
+    expect(() =>
+      validateSkill(
+        baseSkill({
+          activation: { mode: 'automatic', triggers: [42] },
+        }),
+        'test.yaml',
+      ),
+    ).toThrow(/activation\.triggers/)
   })
 
   test('accepts valid phases reusing TaskClass values', () => {
-    const skill = validateSkill(baseSkill({
-      activation: { mode: 'automatic', phases: ['review', 'implement'] },
-    }), 'test.yaml')
+    const skill = validateSkill(
+      baseSkill({
+        activation: { mode: 'automatic', phases: ['review', 'implement'] },
+      }),
+      'test.yaml',
+    )
     expect(skill.activation?.phases).toEqual(['review', 'implement'])
   })
 
   test('rejects a phases entry outside TaskClass', () => {
-    expect(() => validateSkill(baseSkill({
-      activation: { mode: 'automatic', phases: ['deployment'] },
-    }), 'test.yaml')).toThrow(/activation\.phases/)
+    expect(() =>
+      validateSkill(
+        baseSkill({
+          activation: { mode: 'automatic', phases: ['deployment'] },
+        }),
+        'test.yaml',
+      ),
+    ).toThrow(/activation\.phases/)
   })
 
   test('rejects an empty phases array', () => {
-    expect(() => validateSkill(baseSkill({
-      activation: { mode: 'automatic', phases: [] },
-    }), 'test.yaml')).toThrow(/activation\.phases/)
+    expect(() =>
+      validateSkill(
+        baseSkill({
+          activation: { mode: 'automatic', phases: [] },
+        }),
+        'test.yaml',
+      ),
+    ).toThrow(/activation\.phases/)
   })
 })

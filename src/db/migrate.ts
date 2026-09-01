@@ -1,5 +1,5 @@
-import { db } from './sqlite.ts'
 import type { Database } from 'bun:sqlite'
+import { db } from './sqlite.ts'
 
 export const CURRENT_SCHEMA_VERSION = 1
 const BASELINE_NAME = 'baseline-current-schema'
@@ -19,13 +19,16 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
   {
     version: 2,
     name: 'chat-sessions',
-    precondition: database => {
-      const projects = database.query<{ count: number }, []>(
-        "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'projects'",
-      ).get()?.count ?? 0
+    precondition: (database) => {
+      const projects =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'projects'",
+          )
+          .get()?.count ?? 0
       if (projects !== 1) throw new Error('Migration 2 requires projects table')
     },
-    apply: database => {
+    apply: (database) => {
       database.exec(`
         CREATE TABLE chat_sessions (
           id         TEXT PRIMARY KEY,
@@ -53,10 +56,13 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
           ON chat_messages(session_id, id);
       `)
     },
-    postcondition: database => {
-      const tables = database.query<{ name: string }, []>(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('chat_sessions', 'chat_messages') ORDER BY name",
-      ).all().map(row => row.name)
+    postcondition: (database) => {
+      const tables = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('chat_sessions', 'chat_messages') ORDER BY name",
+        )
+        .all()
+        .map((row) => row.name)
       if (tables.join(',') !== 'chat_messages,chat_sessions') {
         throw new Error('Migration 2 did not create chat session tables')
       }
@@ -66,9 +72,10 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
 
 function appliedVersions(database: Database): Set<number> {
   return new Set(
-    database.query<{ version: number }, []>(
-      'SELECT version FROM schema_migrations ORDER BY version'
-    ).all().map(row => row.version),
+    database
+      .query<{ version: number }, []>('SELECT version FROM schema_migrations ORDER BY version')
+      .all()
+      .map((row) => row.version),
   )
 }
 
@@ -94,10 +101,11 @@ export function applyMigrationSteps(
       step.precondition(database)
       step.apply(database)
       step.postcondition(database)
-      database.run(
-        'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
-        [step.version, step.name, new Date().toISOString()],
-      )
+      database.run('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)', [
+        step.version,
+        step.name,
+        new Date().toISOString(),
+      ])
     })
     applyStep()
     applied.add(step.version)
@@ -204,39 +212,40 @@ export function runMigrations(): void {
 
   // ALTER TABLE guards — add missing columns to existing DBs without dropping data
   const safeAddColumn = (table: string, column: string, def: string) => {
-    const cols = db.query<{ name: string }, string>(
-      `PRAGMA table_info(${table})`
-    ).all(table).map(r => r.name)
+    const cols = db
+      .query<{ name: string }, string>(`PRAGMA table_info(${table})`)
+      .all(table)
+      .map((r) => r.name)
     if (!cols.includes(column)) {
       db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`)
     }
   }
-  safeAddColumn('runs', 'skill_id',         'TEXT')
-  safeAddColumn('runs', 'allowed_outputs',  'TEXT')
-  safeAddColumn('runs', 'files_attempted',  'TEXT')
+  safeAddColumn('runs', 'skill_id', 'TEXT')
+  safeAddColumn('runs', 'allowed_outputs', 'TEXT')
+  safeAddColumn('runs', 'files_attempted', 'TEXT')
   safeAddColumn('runs', 'files_authorized', 'TEXT')
-  safeAddColumn('runs', 'files_blocked',    'TEXT')
-  safeAddColumn('runs', 'status',           "TEXT NOT NULL DEFAULT 'done'")
-  safeAddColumn('runs', 'task_id',          'TEXT')
-  safeAddColumn('runs', 'snapshot_before',  'TEXT')   // JSON {path: sha1}
-  safeAddColumn('runs', 'snapshot_after',   'TEXT')   // JSON {path: sha1}
-  safeAddColumn('runs', 'qa_verdict',       'TEXT')   // 'pass' | 'fail'
-  safeAddColumn('runs', 'qa_reason',        'TEXT')
-  safeAddColumn('runs', 'checks_json',        'TEXT')
-  safeAddColumn('runs', 'constitution_rules', 'INTEGER')  // S17: number of rules loaded, null if no CONSTITUTION.md
-  safeAddColumn('runs', 'context_source',     'TEXT')     // S18: 'CONTEXT.md' | 'AGENTS.md'
-  safeAddColumn('runs', 'context_tokens',     'INTEGER')  // S18: estimated token count of context used
-  safeAddColumn('files', 'embedding',         'TEXT')     // S24.1: JSON array of float[] for semantic search
-  safeAddColumn('runs', 'embed_hits',             'INTEGER')  // S24.5: count of embedding-suggested files used in this run
-  safeAddColumn('runs', 'context_warnings_json', 'TEXT')     // S27.4: JSON array of ContextWarning[] fired during this run
-  safeAddColumn('runs', 'cost_breakdown_json',   'TEXT')     // S35.3: JSON array of CostBreakdownEntry[]
-  safeAddColumn('runs', 'qa_model',              'TEXT')     // F2.5: judge model resolved by resolveQAJudge(), distinct from executor `model` column
-  safeAddColumn('runs', 'file_diffs',            'TEXT')     // v0.12/C: JSON array of FileDiffEntry[] (docs/diff-review-design.md) — NULL para runs previos a este cambio, sin backfill
-  safeAddColumn('runs', 'adversarial_verdict',   'TEXT')     // K.4b: 'VERIFIED' | 'CAVEATS' | 'REFUTED' | NULL (opt-in, NULL si adversarialQA no está activado)
-  safeAddColumn('runs', 'adversarial_reason',    'TEXT')     // K.4b: razón del segundo juez adversarial
-  safeAddColumn('runs', 'refuter_verdict',       'TEXT')     // X.2 (IDEAS #33): 'CONFIRMED' | 'REFUTED' | NULL (opt-in, NULL si refuterQA no está activado)
-  safeAddColumn('runs', 'refuter_reason',        'TEXT')     // X.2 (IDEAS #33): razón del refuter
-  safeAddColumn('runs', 'skill_gates_json',      'TEXT')     // O.3: JSON [{id, candidate, applied, reason}] de resolveGates() — NULL si el run nunca llegó al stage de QA (distinto de "ninguna gate aplicaba", que es un array con applied:false)
+  safeAddColumn('runs', 'files_blocked', 'TEXT')
+  safeAddColumn('runs', 'status', "TEXT NOT NULL DEFAULT 'done'")
+  safeAddColumn('runs', 'task_id', 'TEXT')
+  safeAddColumn('runs', 'snapshot_before', 'TEXT') // JSON {path: sha1}
+  safeAddColumn('runs', 'snapshot_after', 'TEXT') // JSON {path: sha1}
+  safeAddColumn('runs', 'qa_verdict', 'TEXT') // 'pass' | 'fail'
+  safeAddColumn('runs', 'qa_reason', 'TEXT')
+  safeAddColumn('runs', 'checks_json', 'TEXT')
+  safeAddColumn('runs', 'constitution_rules', 'INTEGER') // S17: number of rules loaded, null if no CONSTITUTION.md
+  safeAddColumn('runs', 'context_source', 'TEXT') // S18: 'CONTEXT.md' | 'AGENTS.md'
+  safeAddColumn('runs', 'context_tokens', 'INTEGER') // S18: estimated token count of context used
+  safeAddColumn('files', 'embedding', 'TEXT') // S24.1: JSON array of float[] for semantic search
+  safeAddColumn('runs', 'embed_hits', 'INTEGER') // S24.5: count of embedding-suggested files used in this run
+  safeAddColumn('runs', 'context_warnings_json', 'TEXT') // S27.4: JSON array of ContextWarning[] fired during this run
+  safeAddColumn('runs', 'cost_breakdown_json', 'TEXT') // S35.3: JSON array of CostBreakdownEntry[]
+  safeAddColumn('runs', 'qa_model', 'TEXT') // F2.5: judge model resolved by resolveQAJudge(), distinct from executor `model` column
+  safeAddColumn('runs', 'file_diffs', 'TEXT') // v0.12/C: JSON array of FileDiffEntry[] (docs/diff-review-design.md) — NULL para runs previos a este cambio, sin backfill
+  safeAddColumn('runs', 'adversarial_verdict', 'TEXT') // K.4b: 'VERIFIED' | 'CAVEATS' | 'REFUTED' | NULL (opt-in, NULL si adversarialQA no está activado)
+  safeAddColumn('runs', 'adversarial_reason', 'TEXT') // K.4b: razón del segundo juez adversarial
+  safeAddColumn('runs', 'refuter_verdict', 'TEXT') // X.2 (IDEAS #33): 'CONFIRMED' | 'REFUTED' | NULL (opt-in, NULL si refuterQA no está activado)
+  safeAddColumn('runs', 'refuter_reason', 'TEXT') // X.2 (IDEAS #33): razón del refuter
+  safeAddColumn('runs', 'skill_gates_json', 'TEXT') // O.3: JSON [{id, candidate, applied, reason}] de resolveGates() — NULL si el run nunca llegó al stage de QA (distinto de "ninguna gate aplicaba", que es un array con applied:false)
 
   // S26.3 — memory conflict detection records
   db.exec(`
@@ -349,14 +358,15 @@ export function runMigrations(): void {
   // honest baseline only after the current schema has completed successfully;
   // future numbered migrations will extend this ledger instead of pretending
   // that CREATE IF NOT EXISTS is a historical migration system.
-  const applied = db.query<{ count: number }, []>(
-    'SELECT COUNT(*) AS count FROM schema_migrations'
-  ).get()?.count ?? 0
+  const applied =
+    db.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM schema_migrations').get()
+      ?.count ?? 0
   if (applied === 0) {
-    db.run(
-      'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
-      [CURRENT_SCHEMA_VERSION, BASELINE_NAME, new Date().toISOString()],
-    )
+    db.run('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)', [
+      CURRENT_SCHEMA_VERSION,
+      BASELINE_NAME,
+      new Date().toISOString(),
+    ])
   }
 
   applyMigrationSteps()

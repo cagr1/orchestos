@@ -9,11 +9,11 @@
  * Returns a fully resolved OrcheConfig — callers never deal with missing fields.
  */
 
-import { parse } from 'yaml'
-import { join } from 'path'
-import { homedir } from 'os'
 import { existsSync, readFileSync } from 'fs'
-import { DEFAULT_CONFIG, parseRoleValue, type OrcheConfig, type AgentChoice } from './schema.ts'
+import { homedir } from 'os'
+import { join } from 'path'
+import { parse } from 'yaml'
+import { type AgentChoice, DEFAULT_CONFIG, type OrcheConfig, parseRoleValue } from './schema.ts'
 
 export const AGENT_CHOICES: AgentChoice[] = ['local', 'claude', 'opencode', 'codex', 'api']
 
@@ -48,10 +48,10 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
   return {
     config_version: typeof raw.config_version === 'number' ? raw.config_version : 1,
     models: {
-      planner:        parseRoleValue(models.planner,        d.planner),
+      planner: parseRoleValue(models.planner, d.planner),
       executor_heavy: parseRoleValue(models.executor_heavy, d.executor_heavy),
       executor_light: parseRoleValue(models.executor_light, d.executor_light),
-      default:        parseRoleValue(models.default,        d.default),
+      default: parseRoleValue(models.default, d.default),
       // qa has no default fallback — absence means "not configured", resolved at call time (harness.ts F2.2)
       qa: models.qa !== undefined ? parseRoleValue(models.qa, d.default) : undefined,
     },
@@ -77,7 +77,7 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
 function warnIgnored(field: string, value: unknown, allowed: readonly string[]): void {
   console.error(
     `[config] ignorando ${field}: '${String(value)}' no es un valor válido — ` +
-    `se usará el default. Valores permitidos: ${allowed.join(', ')}.`
+      `se usará el default. Valores permitidos: ${allowed.join(', ')}.`,
   )
 }
 
@@ -107,7 +107,10 @@ function resolveAgent(raw: Record<string, unknown>): AgentChoice | undefined {
   if (typeof raw.executor_mode === 'string' && raw.executor_mode in LEGACY_EXECUTOR_MODE_TO_AGENT) {
     return LEGACY_EXECUTOR_MODE_TO_AGENT[raw.executor_mode]
   }
-  if (typeof raw.executorEngine === 'string' && raw.executorEngine in LEGACY_EXECUTOR_ENGINE_TO_AGENT) {
+  if (
+    typeof raw.executorEngine === 'string' &&
+    raw.executorEngine in LEGACY_EXECUTOR_ENGINE_TO_AGENT
+  ) {
     return LEGACY_EXECUTOR_ENGINE_TO_AGENT[raw.executorEngine]
   }
   return undefined
@@ -117,7 +120,8 @@ function resolveApiMode(raw: Record<string, unknown>): 'single-shot' | 'agentic'
   if (raw.apiMode === 'single-shot' || raw.apiMode === 'agentic') return raw.apiMode
   // Legacy: executorEngine solo migra a apiMode cuando tenía uno de estos 2 valores —
   // los valores CLI (external/opencode/codex) ya se migraron a `agent` arriba.
-  if (raw.executorEngine === 'single-shot' || raw.executorEngine === 'agentic') return raw.executorEngine
+  if (raw.executorEngine === 'single-shot' || raw.executorEngine === 'agentic')
+    return raw.executorEngine
   return undefined
 }
 

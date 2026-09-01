@@ -10,7 +10,7 @@
  *      de esta pasada: antes solo comparaba hostname, dejando pasar cualquier
  *      app en localhost:<otro-puerto> como si fuera el propio dashboard).
  */
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { startServer } from '../server.ts'
 
 const { route } = await import('../server.ts')
@@ -57,11 +57,14 @@ describe('L.2 — isSameOrigin rechaza CSRF entre apps locales de distinto puert
   })
 
   it('PATCH también queda protegido por same-origin', async () => {
-    const response = await route(new Request('http://localhost:50852/api/chat/sessions/example', {
-      method: 'PATCH',
-      headers: { Origin: 'http://localhost:3000' },
-      body: JSON.stringify({ title: 'blocked' }),
-    }), 50852)
+    const response = await route(
+      new Request('http://localhost:50852/api/chat/sessions/example', {
+        method: 'PATCH',
+        headers: { Origin: 'http://localhost:3000' },
+        body: JSON.stringify({ title: 'blocked' }),
+      }),
+      50852,
+    )
     expect(response.status).toBe(403)
   })
 
@@ -76,7 +79,7 @@ describe('L.2 — isSameOrigin rechaza CSRF entre apps locales de distinto puert
         method: 'GET',
         headers: { origin: 'https://attacker.example' },
       }),
-      PORT
+      PORT,
     )
     expect(res.status).not.toBe(403)
   })

@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import { runMigrations } from '../db/migrate.ts'
 import { db } from '../db/sqlite.ts'
 
-const { upsertMemory, insertConflict, listConflicts, resolveConflict } = await import('../db/memory.ts')
+const { upsertMemory, insertConflict, listConflicts, resolveConflict } = await import(
+  '../db/memory.ts'
+)
+
 import type { ConflictRecord } from '../db/memory.ts'
 
 const TEST_PROJECT = 's26-3-test'
@@ -27,7 +30,11 @@ afterAll(() => {
     `DELETE FROM memory_conflicts WHERE entry_a_id IN (SELECT id FROM memory_entries WHERE project_id IN (?, ?, ?)) OR entry_b_id IN (SELECT id FROM memory_entries WHERE project_id IN (?, ?, ?))`,
     [TEST_PROJECT, OTHER_PROJECT, EMPTY_PROJECT, TEST_PROJECT, OTHER_PROJECT, EMPTY_PROJECT],
   )
-  db.run('DELETE FROM memory_entries WHERE project_id IN (?, ?, ?)', [TEST_PROJECT, OTHER_PROJECT, EMPTY_PROJECT])
+  db.run('DELETE FROM memory_entries WHERE project_id IN (?, ?, ?)', [
+    TEST_PROJECT,
+    OTHER_PROJECT,
+    EMPTY_PROJECT,
+  ])
 })
 
 describe('insertConflict', () => {
@@ -46,9 +53,9 @@ describe('insertConflict', () => {
 
     const id = insertConflict(a.id, b.id, 'conflict_with', 'high')
 
-    const row = db.query<ConflictRecord, [string]>(
-      'SELECT * FROM memory_conflicts WHERE id = ?'
-    ).get(id)
+    const row = db
+      .query<ConflictRecord, [string]>('SELECT * FROM memory_conflicts WHERE id = ?')
+      .get(id)
     expect(row).not.toBeNull()
     expect(row!.entry_a_id).toBe(a.id)
     expect(row!.entry_b_id).toBe(b.id)
@@ -71,13 +78,11 @@ describe('listConflicts', () => {
     const resolvedId = insertConflict(c.id, d.id, 'compatible', 'medium')
     resolveConflict(resolvedId)
 
-    const all = db.query<ConflictRecord, []>(
-      'SELECT * FROM memory_conflicts'
-    ).all()
+    const all = db.query<ConflictRecord, []>('SELECT * FROM memory_conflicts').all()
     const unresolved = listConflicts()
 
     expect(unresolved.length).toBeLessThan(all.length)
-    expect(unresolved.every(r => r.resolved_at === null)).toBeTrue()
+    expect(unresolved.every((r) => r.resolved_at === null)).toBeTrue()
   })
 
   it('filters by project when projectId is provided', () => {
@@ -93,10 +98,10 @@ describe('listConflicts', () => {
     const projectConflicts = listConflicts(TEST_PROJECT)
     const otherConflicts = listConflicts(otherProject)
 
-    expect(projectConflicts.some(r => r.id === idA)).toBeTrue()
-    expect(projectConflicts.some(r => r.id === idB)).toBeFalse()
-    expect(otherConflicts.some(r => r.id === idB)).toBeTrue()
-    expect(otherConflicts.some(r => r.id === idA)).toBeFalse()
+    expect(projectConflicts.some((r) => r.id === idA)).toBeTrue()
+    expect(projectConflicts.some((r) => r.id === idB)).toBeFalse()
+    expect(otherConflicts.some((r) => r.id === idB)).toBeTrue()
+    expect(otherConflicts.some((r) => r.id === idA)).toBeFalse()
   })
 
   it('returns empty array when no conflicts', () => {
@@ -113,9 +118,9 @@ describe('resolveConflict', () => {
 
     resolveConflict(id)
 
-    const row = db.query<ConflictRecord, [string]>(
-      'SELECT * FROM memory_conflicts WHERE id = ?'
-    ).get(id)
+    const row = db
+      .query<ConflictRecord, [string]>('SELECT * FROM memory_conflicts WHERE id = ?')
+      .get(id)
     expect(row!.resolved_at).not.toBeNull()
     expect(row!.resolved_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
   })
@@ -128,9 +133,9 @@ describe('resolveConflict', () => {
     resolveConflict(id)
     resolveConflict(id)
 
-    const row = db.query<ConflictRecord, [string]>(
-      'SELECT * FROM memory_conflicts WHERE id = ?'
-    ).get(id)
+    const row = db
+      .query<ConflictRecord, [string]>('SELECT * FROM memory_conflicts WHERE id = ?')
+      .get(id)
     expect(row!.resolved_at).not.toBeNull()
   })
 })

@@ -24,17 +24,21 @@ import type { SubTaskDef } from './sub-task-schema.ts'
 // ---------------------------------------------------------------------------
 
 export type SubTaskStatus =
-  | 'pending'     // waiting for depends_on to complete (initial state)
-  | 'running'     // harness is actively executing this sub-task
-  | 'completed'   // QA passed; topic_key written to memory_entries if applicable
-  | 'failed'      // QA failed or execution error — retriable up to MAX_SUB_RETRIES
-  | 'timed_out'   // exceeded timeout_ms OR 20 tool-call limit (S22.8 delegation rule)
-  | 'cancelled'   // parent task was cancelled before this sub-task ran
-  | 'skipped'     // a depends_on predecessor failed/timed_out — never executed (S22.5)
+  | 'pending' // waiting for depends_on to complete (initial state)
+  | 'running' // harness is actively executing this sub-task
+  | 'completed' // QA passed; topic_key written to memory_entries if applicable
+  | 'failed' // QA failed or execution error — retriable up to MAX_SUB_RETRIES
+  | 'timed_out' // exceeded timeout_ms OR 20 tool-call limit (S22.8 delegation rule)
+  | 'cancelled' // parent task was cancelled before this sub-task ran
+  | 'skipped' // a depends_on predecessor failed/timed_out — never executed (S22.5)
 
 /** Terminal states — once reached, the sub-task will not be re-queued. */
 export const TERMINAL_STATUSES = new Set<SubTaskStatus>([
-  'completed', 'failed', 'timed_out', 'cancelled', 'skipped',
+  'completed',
+  'failed',
+  'timed_out',
+  'cancelled',
+  'skipped',
 ])
 
 /** Maximum retries per sub-task before promoting to permanent failure. */
@@ -174,7 +178,7 @@ export function isRetriable(st: SubTask): boolean {
  * Called by S22.5 cascade QA after any predecessor reaches a terminal failure state.
  */
 export function shouldSkip(st: SubTask, failedIds: ReadonlySet<string>): boolean {
-  return st.status === 'pending' && st.depends_on.some(dep => failedIds.has(dep))
+  return st.status === 'pending' && st.depends_on.some((dep) => failedIds.has(dep))
 }
 
 /**

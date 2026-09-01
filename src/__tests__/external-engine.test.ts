@@ -29,14 +29,14 @@
  * diseño — no ejecutamos un proceso no controlado contra el repo real).
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
-import { git, createWorktree, type Worktree } from '../run/sandbox.ts'
+import { join } from 'path'
 import { ExecutorExternalError, externalEngine } from '../run/executors/external.ts'
-import type { Task } from '../tasks/schema.ts'
 import type { RunContext } from '../run/middleware.ts'
+import { createWorktree, git, type Worktree } from '../run/sandbox.ts'
+import type { Task } from '../tasks/schema.ts'
 
 // IDEAS.md #22 — el CI de GitHub Actions no tiene el binario `claude` real
 // instalado (a diferencia de las máquinas de desarrollo), así que el guard
@@ -72,7 +72,10 @@ interface MockSpawnCall {
   stdinText: string
 }
 
-function makeMockProc(stdoutText: string, opts: { hang?: boolean; exitDelayMs?: number } = {}): MockProc {
+function makeMockProc(
+  stdoutText: string,
+  opts: { hang?: boolean; exitDelayMs?: number } = {},
+): MockProc {
   const encoder = new TextEncoder()
   const stdoutStream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -87,10 +90,14 @@ function makeMockProc(stdoutText: string, opts: { hang?: boolean; exitDelayMs?: 
     },
   })
   const stderrStream = new ReadableStream<Uint8Array>({
-    start(c) { c.close() },
+    start(c) {
+      c.close()
+    },
   })
   let resolveExit!: (n: number) => void
-  const exited = new Promise<number>((r) => { resolveExit = r })
+  const exited = new Promise<number>((r) => {
+    resolveExit = r
+  })
   if (!opts.hang) {
     queueMicrotask(() => {
       if (opts.exitDelayMs) setTimeout(() => resolveExit(0), opts.exitDelayMs)
@@ -98,11 +105,20 @@ function makeMockProc(stdoutText: string, opts: { hang?: boolean; exitDelayMs?: 
     })
   }
   return {
-    stdin: { write(_s) { /* discard */ }, end() { /* discard */ } },
+    stdin: {
+      write(_s) {
+        /* discard */
+      },
+      end() {
+        /* discard */
+      },
+    },
     stdout: stdoutStream,
     stderr: stderrStream,
     exited,
-    kill(_signal) { /* no-op for mocks */ },
+    kill(_signal) {
+      /* no-op for mocks */
+    },
   }
 }
 
@@ -115,7 +131,10 @@ function mockResultLine(fields: Record<string, unknown>): string {
 }
 
 const spawnCalls: MockSpawnCall[] = []
-function installMockSpawn(stdout: string, opts: { hang?: boolean; exitDelayMs?: number } = {}): MockProc {
+function installMockSpawn(
+  stdout: string,
+  opts: { hang?: boolean; exitDelayMs?: number } = {},
+): MockProc {
   const proc = makeMockProc(stdout, opts)
   // Wrap original spawn swap is done by the test; we record via the override below.
   // The actual override is set on Bun.spawn; this helper exists for clarity.
@@ -132,7 +151,10 @@ afterEach(() => {
 // Override a single call to Bun.spawn to return `proc`; subsequent calls return
 // a default "no output" mock (in case the engine retries).
 function overrideBunSpawn(proc: MockProc) {
-  Bun.spawn = ((cmd: string[], opts?: { cwd?: string; stdin?: unknown; stdout?: unknown; stderr?: unknown }) => {
+  Bun.spawn = ((
+    cmd: string[],
+    opts?: { cwd?: string; stdin?: unknown; stdout?: unknown; stderr?: unknown },
+  ) => {
     spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '', stdinText: '' })
     return proc as unknown as ReturnType<typeof Bun.spawn>
   }) as typeof Bun.spawn
@@ -195,10 +217,14 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
 
 afterEach(() => {
   for (const wt of worktrees.splice(0)) {
-    try { wt.cleanup() } catch {}
+    try {
+      wt.cleanup()
+    } catch {}
   }
   for (const r of repos.splice(0)) {
-    try { rmSync(r, { recursive: true, force: true }) } catch {}
+    try {
+      rmSync(r, { recursive: true, force: true })
+    } catch {}
   }
 })
 
@@ -222,7 +248,11 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 8192, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 8192,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     // El engine corrió contra el worktree (no contra el project root)
     expect(spawnCalls).toHaveLength(1)
@@ -256,9 +286,15 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // real fue reemplazado por `<contract>` en el engine para no inflar la DB.
     expect(outcome.costByIteration[0]!.binary).toBe('claude')
     expect(outcome.costByIteration[0]!.args).toEqual([
-      '-p', '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
-      '--append-system-prompt', '<contract>',
-      '--allowedTools', 'Edit,Write,Read,Glob,Grep',
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--include-partial-messages',
+      '--verbose',
+      '--append-system-prompt',
+      '<contract>',
+      '--allowedTools',
+      'Edit,Write,Read,Glob,Grep',
     ])
     // Log con conteo de archivos
     expect(outcome.log).toHaveLength(1)
@@ -299,7 +335,11 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     overrideBunSpawn(installMockSpawn(mockStdout))
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 8192, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 8192,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(outcome.files).toEqual([{ path: 'out.txt', content: 'modified by claude code\n' }])
   })
@@ -319,21 +359,29 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     writeFileSync(join(wt.path, 'out.txt'), 'in contract\n')
     writeFileSync(join(wt.path, 'rogue.txt'), 'should be reported, not filtered\n')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 100, output_tokens: 50 },
-      total_cost_usd: 0.001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 100, output_tokens: 50 },
+        total_cost_usd: 0.001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask({ output: ['out.txt'] }))
-    const outcome = await externalEngine.run(ctx, { maxTokens: 4096, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 4096,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
-    const paths = outcome.files.map(f => f.path).sort()
+    const paths = outcome.files.map((f) => f.path).sort()
     // Ambos archivos presentes — la frontera de seguridad es enforceContract en harness.ts
     expect(paths).toEqual(['out.txt', 'rogue.txt'])
-    expect(outcome.files.find(f => f.path === 'out.txt')!.content).toBe('in contract\n')
-    expect(outcome.files.find(f => f.path === 'rogue.txt')!.content).toBe('should be reported, not filtered\n')
+    expect(outcome.files.find((f) => f.path === 'out.txt')!.content).toBe('in contract\n')
+    expect(outcome.files.find((f) => f.path === 'rogue.txt')!.content).toBe(
+      'should be reported, not filtered\n',
+    )
   })
 
   it('parseGitStatusPorcelain handles rename format "XY old -> new" — el path final es el que se reporta', async () => {
@@ -347,19 +395,25 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     git(['mv', 'README.md', 'README2.md'], wt.path)
     // El "diff" efectivo: README2.md existe, README.md ya no.
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     // Solo el path final del rename aparece (el viejo se descarta implicitamente:
     // ya no existe en disco, readFileSync falla y se salta — linea 55 de external.ts).
-    expect(outcome.files.map(f => f.path)).toEqual(['README2.md'])
+    expect(outcome.files.map((f) => f.path)).toEqual(['README2.md'])
     expect(outcome.files[0]!.content).toBe('init')
   })
 
@@ -376,7 +430,9 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // (resolveExit se llama), pero DESPUÉS del timeout y sin stdout parseable.
     // Eso es exactamente la condición de "killed by timeout, partial output parsed"
     // que el engine maneja: lanza con mensaje de timeout porque JSON.parse falla.
-    const proc = makeMockProc('not json at all because claude was killed before flushing', { exitDelayMs: 50 })
+    const proc = makeMockProc('not json at all because claude was killed before flushing', {
+      exitDelayMs: 50,
+    })
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
@@ -384,8 +440,9 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // proc.stdin.end() cierra el stdin, el await de exited resuelve a los 50ms, el
     // clearTimeout del engine ya pasó (timedOut quedó en true), el JSON.parse del
     // stdout (que tiene 'not json at all...') falla → throw con mensaje timeout.
-    await expect(externalEngine.run(ctx, { maxTokens: 4096, maxIterations: 1, timeoutMs: 1 }))
-      .rejects.toThrow(ExecutorExternalError)
+    await expect(
+      externalEngine.run(ctx, { maxTokens: 4096, maxIterations: 1, timeoutMs: 1 }),
+    ).rejects.toThrow(ExecutorExternalError)
 
     // Reset: re-ejecutamos con la asserción específica del mensaje.
     // (El test anterior verificó el TIPO; este verifica el mensaje exacto, que es la
@@ -436,11 +493,13 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
 
     // JSON valido pero el campo crítico falta. Decisión b: "if not a number,
     // refusing to report cost as $0" (línea 141-143 de external.ts).
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 100, output_tokens: 50 },
-      num_turns: 1,
-      // total_cost_usd ausente
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 100, output_tokens: 50 },
+        num_turns: 1,
+        // total_cost_usd ausente
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
@@ -466,15 +525,21 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'partial usage')
 
-    const proc = installMockSpawn(mockResultLine({
-      // usage ausente
-      total_cost_usd: 0.005,
-      num_turns: 2,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        // usage ausente
+        total_cost_usd: 0.005,
+        num_turns: 2,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 4096, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 4096,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(outcome.usd).toBe(0.005)
     expect(outcome.inputTokens).toBe(0)
@@ -488,15 +553,21 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'x')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      // num_turns ausente
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        // num_turns ausente
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(outcome.iterations).toBe(1)
     // Pluralización correcta: "1 turn" sin 's' cuando iterations === 1
@@ -532,8 +603,9 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
 
     // Si Bun.spawn fuera llamado, esto fallaria (no lo configuramos), confirmando
     // que el throw es ANTES del spawn.
-    await expect(externalEngine.run(ctx, { maxTokens: 4096, maxIterations: 1, timeoutMs: 5000 }))
-      .rejects.toThrow(ExecutorExternalError)
+    await expect(
+      externalEngine.run(ctx, { maxTokens: 4096, maxIterations: 1, timeoutMs: 5000 }),
+    ).rejects.toThrow(ExecutorExternalError)
     expect(spawnCalls).toHaveLength(0)
   })
 
@@ -546,15 +618,21 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     const wt = createWorktree('b3-noop', 'main', root)
     trackWorktree(wt)
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 10, output_tokens: 5 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 10, output_tokens: 5 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(outcome.files).toEqual([])
     expect(outcome.usd).toBe(0.0001)
@@ -572,17 +650,23 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'normalized path test')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
-    const paths = outcome.files.map(f => f.path)
+    const paths = outcome.files.map((f) => f.path)
     expect(paths).toContain('out.txt')
     for (const p of paths) {
       expect(p.startsWith('./')).toBe(false)
@@ -608,19 +692,25 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // no afecta a archivos hermanos.
     writeFileSync(join(wt.path, 'out.txt'), 'sibling of empty dir\n')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     // El archivo hermano se reporta normal; el directorio vacío NO aparece
     // (es lo correcto — un dir vacío no es un FileChange).
-    const paths = outcome.files.map(f => f.path).sort()
+    const paths = outcome.files.map((f) => f.path).sort()
     expect(paths).toEqual(['out.txt'])
     expect(outcome.files[0]!.content).toBe('sibling of empty dir\n')
   })
@@ -639,22 +729,28 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     mkdirSync(join(wt.path, 'sub'), { recursive: true })
     writeFileSync(join(wt.path, 'sub', 'inner.txt'), 'nested file\n')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     // Al menos `sub/inner.txt` aparece; el directorio `sub/` puede o no
     // aparecer en el porcelain (depende de git), pero si aparece, el fix
     // lo descarta via isFile() sin crashear.
-    const paths = outcome.files.map(f => f.path).sort()
+    const paths = outcome.files.map((f) => f.path).sort()
     expect(paths).toContain('sub/inner.txt')
-    expect(outcome.files.find(f => f.path === 'sub/inner.txt')!.content).toBe('nested file\n')
+    expect(outcome.files.find((f) => f.path === 'sub/inner.txt')!.content).toBe('nested file\n')
     // Aseguramos que ningun path del outcome es un directorio
     for (const f of outcome.files) {
       expect(f.path.endsWith('/')).toBe(false)
@@ -672,15 +768,21 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'ok')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     // Lo que Bun.spawn recibio:
     const spawned = spawnCalls[0]!.cmd
@@ -719,11 +821,13 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'ok')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     // effectiveContext lo arma buildCtx como '' y el engine construye el
@@ -757,11 +861,13 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       // o un setup), el engine debe fallar antes de tocar nada.
       writeFileSync(join(wt.path, 'out.txt'), 'would be reported if binary existed')
 
-      const proc = installMockSpawn(mockResultLine({
-        usage: { input_tokens: 1, output_tokens: 1 },
-        total_cost_usd: 0.0001,
-        num_turns: 1,
-      }))
+      const proc = installMockSpawn(
+        mockResultLine({
+          usage: { input_tokens: 1, output_tokens: 1 },
+          total_cost_usd: 0.0001,
+          num_turns: 1,
+        }),
+      )
       overrideBunSpawn(proc)
 
       const ctx = buildCtx(wt, baseTask())
@@ -821,15 +927,21 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       trackWorktree(wt)
       writeFileSync(join(wt.path, 'out.txt'), 'all good')
 
-      const proc = installMockSpawn(mockResultLine({
-        usage: { input_tokens: 1, output_tokens: 1 },
-        total_cost_usd: 0.0001,
-        num_turns: 1,
-      }))
+      const proc = installMockSpawn(
+        mockResultLine({
+          usage: { input_tokens: 1, output_tokens: 1 },
+          total_cost_usd: 0.0001,
+          num_turns: 1,
+        }),
+      )
       overrideBunSpawn(proc)
 
       const ctx = buildCtx(wt, baseTask())
-      const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+      const outcome = await externalEngine.run(ctx, {
+        maxTokens: 1024,
+        maxIterations: 1,
+        timeoutMs: 5000,
+      })
       expect(outcome.files).toEqual([{ path: 'out.txt', content: 'all good' }])
       expect(spawnCalls).toHaveLength(1)
     } finally {
@@ -845,16 +957,22 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'ok')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask({ cli_effort: 'xhigh' }))
     ctx.model = 'anthropic/claude-sonnet-5'
-    const outcome = await externalEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await externalEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(spawnCalls[0]!.cmd).toContain('--model')
     expect(spawnCalls[0]!.cmd[spawnCalls[0]!.cmd.indexOf('--model') + 1]).toBe('claude-sonnet-5')
@@ -871,11 +989,13 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     trackWorktree(wt)
     writeFileSync(join(wt.path, 'out.txt'), 'ok')
 
-    const proc = installMockSpawn(mockResultLine({
-      usage: { input_tokens: 1, output_tokens: 1 },
-      total_cost_usd: 0.0001,
-      num_turns: 1,
-    }))
+    const proc = installMockSpawn(
+      mockResultLine({
+        usage: { input_tokens: 1, output_tokens: 1 },
+        total_cost_usd: 0.0001,
+        num_turns: 1,
+      }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())

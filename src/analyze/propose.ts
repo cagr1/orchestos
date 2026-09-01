@@ -17,10 +17,10 @@
  * This module only creates; approval/rejection is handled by the instinct CLI.
  */
 
-import type { PatternSuggestion } from './patterns.ts'
-import { listInstincts, insertInstinct } from '../instincts/store.ts'
-import { AUTO_DEFAULTS } from '../instincts/schema.ts'
 import type { InstinctDef } from '../instincts/schema.ts'
+import { AUTO_DEFAULTS } from '../instincts/schema.ts'
+import { insertInstinct, listInstincts } from '../instincts/store.ts'
+import type { PatternSuggestion } from './patterns.ts'
 
 /** Minimum pattern frequency to trigger an instinct proposal. */
 export const PATTERN_FREQUENCY_THRESHOLD = 3
@@ -33,19 +33,17 @@ export const PATTERN_FREQUENCY_THRESHOLD = 3
  */
 export function proposeInstinctsFromPatterns(patterns: PatternSuggestion[]): InstinctDef[] {
   if (!Array.isArray(patterns) || patterns.length === 0) return []
-  const eligible = patterns.filter(p => p.frequency >= PATTERN_FREQUENCY_THRESHOLD)
+  const eligible = patterns.filter((p) => p.frequency >= PATTERN_FREQUENCY_THRESHOLD)
   if (eligible.length === 0) return []
 
   // Load existing triggers once for dedup check (normalized to lowercase)
-  const existing = new Set(
-    listInstincts().map(i => i.trigger.toLowerCase().trim()),
-  )
+  const existing = new Set(listInstincts().map((i) => i.trigger.toLowerCase().trim()))
 
   const created: InstinctDef[] = []
 
   for (const pattern of eligible) {
     const trigger = pattern.pattern.trim()
-    const action  = pattern.fix_hint.trim()
+    const action = pattern.fix_hint.trim()
 
     if (!trigger || !action) continue
     if (existing.has(trigger.toLowerCase())) continue

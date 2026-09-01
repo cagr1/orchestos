@@ -1,11 +1,11 @@
-import { db } from './sqlite.ts'
-import type { StackProfile } from '../generators/agents-md.ts'
 import { createHash } from 'crypto'
+import type { StackProfile } from '../generators/agents-md.ts'
+import { db } from './sqlite.ts'
 
 export interface ProjectRow {
   id: string
   path: string
-  stack_profile: string   // JSON string
+  stack_profile: string // JSON string
   agents_md: string
   last_updated: string
 }
@@ -24,20 +24,16 @@ export function upsertProject(path: string, profile: StackProfile, agentsMd: str
        stack_profile = excluded.stack_profile,
        agents_md     = excluded.agents_md,
        last_updated  = excluded.last_updated`,
-    [id, path, JSON.stringify(profile), agentsMd, now]
+    [id, path, JSON.stringify(profile), agentsMd, now],
   )
 }
 
 export function getProject(path: string): ProjectRow | null {
-  return db.query<ProjectRow, string>(
-    'SELECT * FROM projects WHERE path = ?'
-  ).get(path) ?? null
+  return db.query<ProjectRow, string>('SELECT * FROM projects WHERE path = ?').get(path) ?? null
 }
 
 export function getProjectById(id: string): ProjectRow | null {
-  return db.query<ProjectRow, string>(
-    'SELECT * FROM projects WHERE id = ?'
-  ).get(id) ?? null
+  return db.query<ProjectRow, string>('SELECT * FROM projects WHERE id = ?').get(id) ?? null
 }
 
 export function listProjects(): ProjectRow[] {

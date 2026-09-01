@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 describe('database backup and privacy', () => {
   it('creates a private, integrity-checkable snapshot', async () => {
@@ -32,7 +32,11 @@ describe('database backup and privacy', () => {
         new Response(proc.stderr).text(),
       ])
       expect(exitCode, stderr).toBe(0)
-      const result = JSON.parse(stdout) as { result: { bytes: number }; verified: { ok: boolean; detail: string }; restored: { bytes: number } }
+      const result = JSON.parse(stdout) as {
+        result: { bytes: number }
+        verified: { ok: boolean; detail: string }
+        restored: { bytes: number }
+      }
       expect(result.result.bytes).toBeGreaterThan(0)
       expect(result.verified).toEqual({ ok: true, detail: 'ok' })
       expect(result.restored.bytes).toBe(result.result.bytes)

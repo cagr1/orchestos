@@ -24,13 +24,16 @@ const buttonVariants = cva(
         default:
           'border-transparent bg-primary font-semibold text-primary-foreground hover:bg-primary/88',
         // El `.btn` neutro del dashboard: fondo --surface-2, hover --surface-hi.
-        secondary: 'border-border bg-muted text-foreground hover:bg-secondary hover:border-[#444c56]',
+        secondary:
+          'border-border bg-muted text-foreground hover:bg-secondary hover:border-[#444c56]',
         ghost: 'border-border bg-transparent text-foreground hover:bg-muted',
         // Espeja `.btn.danger`: los tokens --error-dim/--success-dim ya son un color-mix
         // sobre el color semántico, así que se usan tal cual en vez de re-derivarlos.
-        destructive: 'border-[var(--error-dim)] bg-[var(--error-dim)] text-destructive hover:bg-[color-mix(in_oklab,var(--error)_24%,transparent)]',
+        destructive:
+          'border-[var(--error-dim)] bg-[var(--error-dim)] text-destructive hover:bg-[color-mix(in_oklab,var(--error)_24%,transparent)]',
         // `.btn.success` existe en el CSS vanilla y faltaba acá.
-        success: 'border-[var(--success-dim)] bg-[var(--success-dim)] text-[var(--success)] hover:bg-[color-mix(in_oklab,var(--success)_26%,transparent)]',
+        success:
+          'border-[var(--success-dim)] bg-[var(--success-dim)] text-[var(--success)] hover:bg-[color-mix(in_oklab,var(--success)_26%,transparent)]',
         // NO hay variante `outline`, y es a propósito: en shadcn `ghost` se distingue de
         // `outline` por no tener borde, pero el `.btn.ghost` de OrchestOS SÍ lo tiene
         // (lo hereda de `.btn` y solo pisa el fondo). Con esta paleta las dos variantes

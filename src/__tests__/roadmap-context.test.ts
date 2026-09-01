@@ -1,9 +1,9 @@
-import { describe, expect, it, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
-import { loadRoadmapContext } from '../roadmaps/context.ts'
+import { join } from 'path'
 import type { ToolchainProbe } from '../detect/roadmap-profile.ts'
+import { loadRoadmapContext } from '../roadmaps/context.ts'
 
 /**
  * Toolchain simulado. Sin esto el resultado depende de qué binarios tenga la máquina
@@ -22,10 +22,15 @@ function fixture(): string {
   mkdirSync(join(root, 'docs', 'roadmaps', 'languages'), { recursive: true })
   return root
 }
-afterEach(() => { for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }) })
+afterEach(() => {
+  for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true })
+})
 
 function packageJson(root: string): void {
-  writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'fixture', scripts: { test: 'bun test' } }))
+  writeFileSync(
+    join(root, 'package.json'),
+    JSON.stringify({ name: 'fixture', scripts: { test: 'bun test' } }),
+  )
 }
 
 describe('M.4 roadmap context selection', () => {
@@ -37,7 +42,10 @@ describe('M.4 roadmap context selection', () => {
     writeFileSync(join(root, 'src', 'a.ts'), 'export const a = 1')
     writeFileSync(join(root, 'docs', 'roadmaps', 'project-profile.md'), '# profile')
     writeFileSync(join(root, 'docs', 'roadmaps', 'disciplines', 'backend.md'), '# backend guidance')
-    writeFileSync(join(root, 'docs', 'roadmaps', 'languages', 'typescript-bun.md'), '# typescript guidance')
+    writeFileSync(
+      join(root, 'docs', 'roadmaps', 'languages', 'typescript-bun.md'),
+      '# typescript guidance',
+    )
     const context = await loadRoadmapContext(root, [], { probe: noToolchain })
     expect(context.selected).toContain('Disciplina: backend')
     expect(context.selected).toContain('Lenguaje: TypeScript')
@@ -49,9 +57,15 @@ describe('M.4 roadmap context selection', () => {
   it('project override wins over heuristic default', async () => {
     const root = fixture()
     packageJson(root)
-    writeFileSync(join(root, 'docs', 'roadmaps', 'disciplines', 'architecture.md'), '# architecture guidance')
+    writeFileSync(
+      join(root, 'docs', 'roadmaps', 'disciplines', 'architecture.md'),
+      '# architecture guidance',
+    )
     writeFileSync(join(root, 'docs', 'roadmaps', 'disciplines', 'backend.md'), '# backend guidance')
-    writeFileSync(join(root, 'docs', 'roadmaps', 'project-overrides.yaml'), `roadmap_overrides:\n  disciplines:\n    include: [architecture]\n    exclude: [backend]\n`)
+    writeFileSync(
+      join(root, 'docs', 'roadmaps', 'project-overrides.yaml'),
+      `roadmap_overrides:\n  disciplines:\n    include: [architecture]\n    exclude: [backend]\n`,
+    )
     const context = await loadRoadmapContext(root, [], { probe: noToolchain })
     expect(context.selected).toContain('Disciplina: architecture')
     expect(context.selected).not.toContain('Disciplina: backend')
@@ -69,7 +83,7 @@ describe('M.4 roadmap context selection', () => {
     mkdirSync(join(root, 'src'), { recursive: true })
     writeFileSync(join(root, 'src', 'main.cs'), 'class Program { static void Main() {} }')
     const context = await loadRoadmapContext(root, [], { probe: noToolchain })
-    expect(context.profile.languageProfiles.find(l => l.language === 'C#')?.state).toBe('missing')
+    expect(context.profile.languageProfiles.find((l) => l.language === 'C#')?.state).toBe('missing')
     expect(context.markdown).toContain('missing/blocked')
     expect(context.markdown).not.toContain(': pass')
     expect(context.missing).toContain('lenguaje C#')
@@ -81,7 +95,7 @@ describe('M.4 roadmap context selection', () => {
     mkdirSync(join(root, 'src'), { recursive: true })
     writeFileSync(join(root, 'src', 'main.rs'), 'fn main() {}')
     const context = await loadRoadmapContext(root, ['src/main.rs'], { probe: noToolchain })
-    expect(context.profile.languageProfiles.find(l => l.language === 'Rust')?.state).toBe('known')
+    expect(context.profile.languageProfiles.find((l) => l.language === 'Rust')?.state).toBe('known')
     expect(context.missing).toContain('toolchain Rust')
     expect(context.blockReason).toContain('cargo no está disponible')
   })

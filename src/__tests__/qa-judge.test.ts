@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'bun:test'
-import { mkdtempSync, rmSync, readdirSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { describe, expect, it } from 'bun:test'
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { resolveQAJudge, QA_JUDGE_DEFAULTS } from '../run/harness.ts'
-import { runQA } from '../run/qa.ts'
-import { RunLogger } from '../run/logger.ts'
+import { join } from 'path'
 import type { OrcheConfig } from '../config/schema.ts'
+import { QA_JUDGE_DEFAULTS, resolveQAJudge } from '../run/harness.ts'
+import { RunLogger } from '../run/logger.ts'
+import { runQA } from '../run/qa.ts'
 
 function freshLogger() {
   const dir = mkdtempSync(join(tmpdir(), 'orchestos-qa-judge-'))
@@ -16,10 +16,10 @@ function makeConfig(qa?: { provider: string; model: string }): OrcheConfig {
   return {
     config_version: 1,
     models: {
-      planner:        { provider: 'openrouter', model: 'm' },
+      planner: { provider: 'openrouter', model: 'm' },
       executor_heavy: { provider: 'openrouter', model: 'm' },
       executor_light: { provider: 'openrouter', model: 'm' },
-      default:        { provider: 'openrouter', model: 'm' },
+      default: { provider: 'openrouter', model: 'm' },
       qa,
     },
   }
@@ -140,9 +140,7 @@ describe('runQA — K.1 criterion evidence', () => {
     })
 
     expect(result.verdict).toBe('fail')
-    expect(result.criteria).toEqual([
-      { text: 'The module exports greeting', pass: false },
-    ])
+    expect(result.criteria).toEqual([{ text: 'The module exports greeting', pass: false }])
   })
 
   it('preserves literal evidence for a passing criterion', async () => {
@@ -159,11 +157,13 @@ describe('runQA — K.1 criterion evidence', () => {
           text: JSON.stringify({
             verdict: 'pass',
             reason: 'Evidence found',
-            criteria: [{
-              text: 'The module exports greeting',
-              pass: true,
-              evidence: { file: 'src/greeting.ts', excerpt: 'export const greeting = "hello"' },
-            }],
+            criteria: [
+              {
+                text: 'The module exports greeting',
+                pass: true,
+                evidence: { file: 'src/greeting.ts', excerpt: 'export const greeting = "hello"' },
+              },
+            ],
           }),
           inputTokens: 1,
           outputTokens: 1,
@@ -193,11 +193,16 @@ describe('runQA — K.1 criterion evidence', () => {
           text: JSON.stringify({
             verdict: 'pass',
             reason: 'Evidence found',
-            criteria: [{
-              text: 'The module exports greeting',
-              pass: true,
-              evidence: { file: 'src/greeting.ts', excerpt: 'export function greeting() { return "hello" }' },
-            }],
+            criteria: [
+              {
+                text: 'The module exports greeting',
+                pass: true,
+                evidence: {
+                  file: 'src/greeting.ts',
+                  excerpt: 'export function greeting() { return "hello" }',
+                },
+              },
+            ],
           }),
           inputTokens: 1,
           outputTokens: 1,
@@ -211,10 +216,12 @@ describe('runQA — K.1 criterion evidence', () => {
   })
 
   it('K.4a limitation — accepts literal evidence from the wrong context', async () => {
-    const written = [{
-      path: 'src/math.ts',
-      content: '// TODO: implement sum(a, b)\nexport const label = "unrelated module"',
-    }]
+    const written = [
+      {
+        path: 'src/math.ts',
+        content: '// TODO: implement sum(a, b)\nexport const label = "unrelated module"',
+      },
+    ]
     const result = await runQA({
       description: 'Implement a function sum that adds two numbers',
       output: ['src/math.ts'],
@@ -228,11 +235,13 @@ describe('runQA — K.1 criterion evidence', () => {
           text: JSON.stringify({
             verdict: 'pass',
             reason: 'The excerpt mentions sum',
-            criteria: [{
-              text: 'The module exports a function sum that adds two numbers',
-              pass: true,
-              evidence: { file: 'src/math.ts', excerpt: '// TODO: implement sum(a, b)' },
-            }],
+            criteria: [
+              {
+                text: 'The module exports a function sum that adds two numbers',
+                pass: true,
+                evidence: { file: 'src/math.ts', excerpt: '// TODO: implement sum(a, b)' },
+              },
+            ],
           }),
           inputTokens: 1,
           outputTokens: 1,
@@ -247,10 +256,12 @@ describe('runQA — K.1 criterion evidence', () => {
   })
 
   it('K.4a limitation — accepts literal evidence for unreachable code', async () => {
-    const written = [{
-      path: 'src/math.ts',
-      content: 'if (false) {\n  export function sum(a, b) { return a + b }\n}\n',
-    }]
+    const written = [
+      {
+        path: 'src/math.ts',
+        content: 'if (false) {\n  export function sum(a, b) { return a + b }\n}\n',
+      },
+    ]
     const result = await runQA({
       description: 'Implement a function sum that adds two numbers',
       output: ['src/math.ts'],
@@ -264,11 +275,16 @@ describe('runQA — K.1 criterion evidence', () => {
           text: JSON.stringify({
             verdict: 'pass',
             reason: 'The sum implementation is present',
-            criteria: [{
-              text: 'The module provides a callable sum function that adds two numbers',
-              pass: true,
-              evidence: { file: 'src/math.ts', excerpt: 'export function sum(a, b) { return a + b }' },
-            }],
+            criteria: [
+              {
+                text: 'The module provides a callable sum function that adds two numbers',
+                pass: true,
+                evidence: {
+                  file: 'src/math.ts',
+                  excerpt: 'export function sum(a, b) { return a + b }',
+                },
+              },
+            ],
           }),
           inputTokens: 1,
           outputTokens: 1,
@@ -283,10 +299,13 @@ describe('runQA — K.1 criterion evidence', () => {
   })
 
   it('K.4a limitation — accepts literal evidence that contradicts the criterion', async () => {
-    const written = [{
-      path: 'src/validate.ts',
-      content: 'export function validate(input) {\n  if (isInvalid(input)) return null\n  return input\n}\n',
-    }]
+    const written = [
+      {
+        path: 'src/validate.ts',
+        content:
+          'export function validate(input) {\n  if (isInvalid(input)) return null\n  return input\n}\n',
+      },
+    ]
     const result = await runQA({
       description: 'Reject invalid input by throwing an error',
       output: ['src/validate.ts'],
@@ -300,11 +319,13 @@ describe('runQA — K.1 criterion evidence', () => {
           text: JSON.stringify({
             verdict: 'pass',
             reason: 'The invalid-input branch is handled',
-            criteria: [{
-              text: 'The function throws an error when the input is invalid',
-              pass: true,
-              evidence: { file: 'src/validate.ts', excerpt: 'if (isInvalid(input)) return null' },
-            }],
+            criteria: [
+              {
+                text: 'The function throws an error when the input is invalid',
+                pass: true,
+                evidence: { file: 'src/validate.ts', excerpt: 'if (isInvalid(input)) return null' },
+              },
+            ],
           }),
           inputTokens: 1,
           outputTokens: 1,
@@ -327,12 +348,26 @@ describe('runQA — K.2 checks context', () => {
       output: ['src/greeting.ts'],
       written: [{ path: 'src/greeting.ts', content: 'export const greeting = "hello"' }],
       model: 'test-model',
-      checksResults: [{ cmd: 'bunx tsc --noEmit', exitCode: 0, stdout: '', stderr: '', elapsedMs: 12, timedOut: false }],
+      checksResults: [
+        {
+          cmd: 'bunx tsc --noEmit',
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          elapsedMs: 12,
+          timedOut: false,
+        },
+      ],
       provider: {
         name: 'test',
-        chat: async opts => {
+        chat: async (opts) => {
           userContent = opts.messages[0]?.content ?? ''
-          return { text: '{"verdict":"pass","reason":"ok"}', inputTokens: 1, outputTokens: 1, model: 'test-model' }
+          return {
+            text: '{"verdict":"pass","reason":"ok"}',
+            inputTokens: 1,
+            outputTokens: 1,
+            model: 'test-model',
+          }
         },
       },
     })
@@ -352,9 +387,14 @@ describe('runQA — K.2 checks context', () => {
       checksResults: [],
       provider: {
         name: 'test',
-        chat: async opts => {
+        chat: async (opts) => {
           userContent = opts.messages[0]?.content ?? ''
-          return { text: '{"verdict":"pass","reason":"ok"}', inputTokens: 1, outputTokens: 1, model: 'test-model' }
+          return {
+            text: '{"verdict":"pass","reason":"ok"}',
+            inputTokens: 1,
+            outputTokens: 1,
+            model: 'test-model',
+          }
         },
       },
     })

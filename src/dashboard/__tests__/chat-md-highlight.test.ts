@@ -19,7 +19,7 @@
  * contrato: si los originales divergen, este test va a fallar y avisa.
  */
 
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 
 // ── Copia sincronizada de las funciones puras ────────────────────────────────
 // Si screens-core.js cambia, este test falla y obliga a sincronizar.
@@ -38,12 +38,12 @@ function buildHighlightIndex(st: any): Map<string, { type: string; id: string; n
   for (const t of (st && st.tasks) || []) {
     if (t && t.id) add(t.id, { type: 'task', id: t.id })
   }
-  for (const m of ((st && st.orModels) || [])) {
+  for (const m of (st && st.orModels) || []) {
     if (m && m.id) add(m.id, { type: 'model', id: m.id, name: m.name || m.id })
     if (m && m.name && m.name !== m.id) add(m.name, { type: 'model', id: m.id, name: m.name })
   }
-  for (const m of ((st && st.localModels) || [])) {
-    const id = typeof m === 'string' ? m : (m && m.id)
+  for (const m of (st && st.localModels) || []) {
+    const id = typeof m === 'string' ? m : m && m.id
     if (id) add(id, { type: 'model', id, name: id })
   }
   return idx
@@ -51,15 +51,22 @@ function buildHighlightIndex(st: any): Map<string, { type: string; id: string; n
 
 // Mismo algoritmo que processTextNode, pero devuelve matches en vez de
 // tocar el DOM — así podemos asertar sobre ellos.
-function findMatches(text: string, idx: Map<string, { type: string; id: string; name?: string }>): Array<{ start: number; end: number; meta: { type: string; id: string; name?: string } }> {
+function findMatches(
+  text: string,
+  idx: Map<string, { type: string; id: string; name?: string }>,
+): Array<{ start: number; end: number; meta: { type: string; id: string; name?: string } }> {
   if (idx.size === 0) return []
   const needles = [...idx.keys()].sort((a, b) => b.length - a.length)
   const re = new RegExp(needles.map(escapeRegExp).join('|'), 'g')
-  const out: Array<{ start: number; end: number; meta: { type: string; id: string; name?: string } }> = []
+  const out: Array<{
+    start: number
+    end: number
+    meta: { type: string; id: string; name?: string }
+  }> = []
   let m: RegExpExecArray | null
   while ((m = re.exec(text)) !== null) {
-    const before = m.index > 0 ? text[m.index - 1] ?? '' : ''
-    const after = m.index + m[0].length < text.length ? text[m.index + m[0].length] ?? '' : ''
+    const before = m.index > 0 ? (text[m.index - 1] ?? '') : ''
+    const after = m.index + m[0].length < text.length ? (text[m.index + m[0].length] ?? '') : ''
     if (isWordChar(before) || isWordChar(after)) continue
     const meta = idx.get(m[0])
     if (!meta) continue
@@ -96,10 +103,10 @@ describe('B.2 highlight index — pure logic', () => {
     // Caso específico: el "." SÍ es metachar — sin escape, "a.b" como regex
     // matchearía "aXb". Con escape, NO. (Esto es el bug que la función
     // tiene que cerrar; si la implementación la rompe, este test falla.)
-    const reUnescaped = new RegExp('a.b')
-    expect(reUnescaped.test('aXb')).toBe(true)  // sanity: confirma el riesgo
+    const reUnescaped = /a.b/
+    expect(reUnescaped.test('aXb')).toBe(true) // sanity: confirma el riesgo
     const reEscaped = new RegExp(escapeRegExp('a.b'))
-    expect(reEscaped.test('aXb')).toBe(false)   // el fix
+    expect(reEscaped.test('aXb')).toBe(false) // el fix
   })
 
   it('isWordChar cubre ASCII alfanumérico + underscore, no / ni -', () => {
@@ -278,14 +285,14 @@ describe('B.2 sanitización (defensa contra inyección)', () => {
     const text = 'Run task.with.dots and task(with)parens plus task[brackets] now.'
     const matches = findMatches(text, idx)
     expect(matches.length).toBe(3)
-    expect(matches.map(m => m.meta.id).sort()).toEqual([
+    expect(matches.map((m) => m.meta.id).sort()).toEqual([
       'task(with)parens',
       'task.with.dots',
       'task[brackets]',
     ])
     // El sort() muta matches; los ids siguen siendo los mismos.
     // Verifico que el id está presente (defensivo contra el orden).
-    const ids = new Set(matches.map(m => m.meta.id))
+    const ids = new Set(matches.map((m) => m.meta.id))
     expect(ids.has('task.with.dots')).toBe(true)
     expect(ids.has('task(with)parens')).toBe(true)
     expect(ids.has('task[brackets]')).toBe(true)

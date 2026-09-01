@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, readFileSync, readdirSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
+import { loadOrcheConfig } from '../config/load.ts'
+import type { OrcheConfig } from '../config/schema.ts'
 import { db } from '../db/sqlite.ts'
 import { _resetCatalog } from '../router/model-catalog.ts'
-import { validateTask, type Task } from '../tasks/schema.ts'
-import type { OrcheConfig } from '../config/schema.ts'
-import { loadOrcheConfig } from '../config/load.ts'
+import { type Task, validateTask } from '../tasks/schema.ts'
 
 // G.3 — engine resolution end-to-end through runTask(): task.engine wins over
 // orcheConfig.executorEngine, default is 'single-shot' (zero behavior change
@@ -21,13 +21,28 @@ import { loadOrcheConfig } from '../config/load.ts'
 function seedCatalog(): string {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-test-cat-'))
   mkdirSync(join(home, '.orchestos', 'cache'), { recursive: true })
-  writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({
-    fetchedAt: Date.now(),
-    models: {
-      'anthropic/claude-haiku-4-5': { contextLength: 200000, priceIn: 0.8, priceOut: 4, supportsReasoning: false, maxOutputTokens: 8192 },
-      'deepseek/deepseek-v4-flash': { contextLength: 128000, priceIn: 0.15, priceOut: 0.6, supportsReasoning: false, maxOutputTokens: 8192 },
-    },
-  }))
+  writeFileSync(
+    join(home, '.orchestos', 'cache', 'models.json'),
+    JSON.stringify({
+      fetchedAt: Date.now(),
+      models: {
+        'anthropic/claude-haiku-4-5': {
+          contextLength: 200000,
+          priceIn: 0.8,
+          priceOut: 4,
+          supportsReasoning: false,
+          maxOutputTokens: 8192,
+        },
+        'deepseek/deepseek-v4-flash': {
+          contextLength: 128000,
+          priceIn: 0.15,
+          priceOut: 0.6,
+          supportsReasoning: false,
+          maxOutputTokens: 8192,
+        },
+      },
+    }),
+  )
   return home
 }
 
@@ -72,25 +87,34 @@ function tmpDir(): string {
 }
 
 function toolCallResponse(calls: Array<{ name: string; args: unknown }>) {
-  return new Response(JSON.stringify({
-    choices: [{
-      message: {
-        content: null,
-        tool_calls: calls.map((c, i) => ({
-          id: `call_${i}`, type: 'function',
-          function: { name: c.name, arguments: JSON.stringify(c.args) },
-        })),
-      },
-    }],
-    usage: { prompt_tokens: 10, completion_tokens: 5 },
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: null,
+            tool_calls: calls.map((c, i) => ({
+              id: `call_${i}`,
+              type: 'function',
+              function: { name: c.name, arguments: JSON.stringify(c.args) },
+            })),
+          },
+        },
+      ],
+      usage: { prompt_tokens: 10, completion_tokens: 5 },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 function plainResponse(content: string) {
-  return new Response(JSON.stringify({
-    choices: [{ message: { content } }],
-    usage: { prompt_tokens: 5, completion_tokens: 3 },
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content } }],
+      usage: { prompt_tokens: 5, completion_tokens: 3 },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 function installMockFetch(handlers: Array<() => Response>) {
@@ -118,12 +142,16 @@ function baseTask(overrides: Partial<Task> = {}): Task {
 
 function latestLogContent(dir: string): string {
   const logsDir = join(dir, 'runs')
-  const files = readdirSync(logsDir).filter(f => f.endsWith('.log'))
+  const files = readdirSync(logsDir).filter((f) => f.endsWith('.log'))
   const latest = files.sort().at(-1)!
   return readFileSync(join(logsDir, latest), 'utf-8')
 }
 
-async function callRunTask(task: Task, dir: string, opts: { orcheConfig?: OrcheConfig; modelOverride?: string } = {}) {
+async function callRunTask(
+  task: Task,
+  dir: string,
+  opts: { orcheConfig?: OrcheConfig; modelOverride?: string } = {},
+) {
   const { runTask } = await import('../run/harness.ts')
   const { RunLogger } = await import('../run/logger.ts')
   const log = new RunLogger(dir, task.id)
@@ -142,7 +170,10 @@ describe('G.3 — executor engine selection', () => {
   it('task.engine=agentic with a tool-calling-capable model runs the agentic engine and writes files via the contract', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'agentic wrote this' } }]),
+      () =>
+        toolCallResponse([
+          { name: 'write_file', args: { path: 'out.txt', content: 'agentic wrote this' } },
+        ]),
       () => plainResponse('Done — wrote out.txt'),
       () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
     ])
@@ -199,7 +230,10 @@ describe('G.3 — executor engine selection', () => {
   it('orcheConfig.apiMode=agentic applies as project-level default when the task does not declare its own engine', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'project default agentic' } }]),
+      () =>
+        toolCallResponse([
+          { name: 'write_file', args: { path: 'out.txt', content: 'project default agentic' } },
+        ]),
       () => plainResponse('Done'),
       () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
     ])
@@ -227,31 +261,42 @@ describe('G.3 — executor engine selection', () => {
 // 'cwd' deliberadamente para mantener este test determinista sin tocar git).
 describe('B.2 — executor engine: external', () => {
   it('validateTask acepta engine: "external"', () => {
-    const t = validateTask({
-      id: 'b2-ext-1',
-      description: 'external engine task',
-      executor: 'openrouter',
-      output: ['out.txt'],
-      engine: 'external',
-    }, 0)
+    const t = validateTask(
+      {
+        id: 'b2-ext-1',
+        description: 'external engine task',
+        executor: 'openrouter',
+        output: ['out.txt'],
+        engine: 'external',
+      },
+      0,
+    )
     expect(t.engine).toBe('external')
   })
 
   it('validateTask rechaza engine: "bogus2" con mensaje que incluye "external"', () => {
-    expect(() => validateTask({
-      id: 'b2-ext-2',
-      description: 'bad engine',
-      executor: 'openrouter',
-      output: ['out.txt'],
-      engine: 'bogus2',
-    }, 0)).toThrow(/unknown engine 'bogus2'.*external/)
+    expect(() =>
+      validateTask(
+        {
+          id: 'b2-ext-2',
+          description: 'bad engine',
+          executor: 'openrouter',
+          output: ['out.txt'],
+          engine: 'bogus2',
+        },
+        0,
+      ),
+    ).toThrow(/unknown engine 'bogus2'.*external/)
   })
 
   it('loadOrcheConfig migra executorEngine="external" (legacy) a agent="claude" (CC.D1)', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-b2-ext-cfg-'))
     try {
-      writeFileSync(join(home, 'orchestos.config.yaml'),
-        'config_version: 1\nexecutorEngine: external\nmodels: {}\n', 'utf-8')
+      writeFileSync(
+        join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexecutorEngine: external\nmodels: {}\n',
+        'utf-8',
+      )
       const cfg = loadOrcheConfig(home)
       expect(cfg.agent).toBe('claude')
     } finally {
@@ -262,8 +307,11 @@ describe('B.2 — executor engine: external', () => {
   it('loadOrcheConfig parsea external.timeoutMs', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-b2-ext-cfg-'))
     try {
-      writeFileSync(join(home, 'orchestos.config.yaml'),
-        'config_version: 1\nexternal:\n  timeoutMs: 60000\nmodels: {}\n', 'utf-8')
+      writeFileSync(
+        join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexternal:\n  timeoutMs: 60000\nmodels: {}\n',
+        'utf-8',
+      )
       const cfg = loadOrcheConfig(home)
       expect(cfg.external?.timeoutMs).toBe(60000)
     } finally {
@@ -274,8 +322,11 @@ describe('B.2 — executor engine: external', () => {
   it('loadOrcheConfig ignora external con tipo incorrecto (no rompe, default interno)', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-b2-ext-cfg-'))
     try {
-      writeFileSync(join(home, 'orchestos.config.yaml'),
-        'config_version: 1\nexternal: "not-an-object"\nmodels: {}\n', 'utf-8')
+      writeFileSync(
+        join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexternal: "not-an-object"\nmodels: {}\n',
+        'utf-8',
+      )
       const cfg = loadOrcheConfig(home)
       expect(cfg.external).toBeUndefined()
     } finally {
@@ -287,8 +338,11 @@ describe('B.2 — executor engine: external', () => {
   it('loadOrcheConfig migra executor_mode="cli-opencode" (legacy) a agent="opencode"', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-g41-mode-'))
     try {
-      writeFileSync(join(home, 'orchestos.config.yaml'),
-        'config_version: 1\nexecutor_mode: cli-opencode\nmodels: {}\n', 'utf-8')
+      writeFileSync(
+        join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexecutor_mode: cli-opencode\nmodels: {}\n',
+        'utf-8',
+      )
       const cfg = loadOrcheConfig(home)
       expect(cfg.agent).toBe('opencode')
     } finally {
@@ -299,8 +353,11 @@ describe('B.2 — executor engine: external', () => {
   it('loadOrcheConfig ignora executor_mode legacy con valor desconocido (no rompe, agent undefined)', () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-g41-mode-bad-'))
     try {
-      writeFileSync(join(home, 'orchestos.config.yaml'),
-        'config_version: 1\nexecutor_mode: not-a-real-mode\nmodels: {}\n', 'utf-8')
+      writeFileSync(
+        join(home, 'orchestos.config.yaml'),
+        'config_version: 1\nexecutor_mode: not-a-real-mode\nmodels: {}\n',
+        'utf-8',
+      )
       const cfg = loadOrcheConfig(home)
       expect(cfg.agent).toBeUndefined()
     } finally {
@@ -365,7 +422,10 @@ describe('BB.1 — agent decide el engine de tareas manuales', () => {
     const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, agent: 'claude' }
     const dir = tmpDir()
     try {
-      const result = await callRunTask(baseTask(), dir, { orcheConfig, modelOverride: 'anthropic/claude-haiku-4-5' })
+      const result = await callRunTask(baseTask(), dir, {
+        orcheConfig,
+        modelOverride: 'anthropic/claude-haiku-4-5',
+      })
       expect(result.status).toBe('failed')
       expect(result.retryReason).toMatch(/external engine requires worktree sandbox mode/)
     } finally {
@@ -388,7 +448,10 @@ describe('BB.1 — agent decide el engine de tareas manuales', () => {
     const dir = tmpDir()
     try {
       const task = baseTask({ engine: 'single-shot' })
-      const result = await callRunTask(task, dir, { orcheConfig, modelOverride: 'anthropic/claude-haiku-4-5' })
+      const result = await callRunTask(task, dir, {
+        orcheConfig,
+        modelOverride: 'anthropic/claude-haiku-4-5',
+      })
       expect(result.status).toBe('done')
       expect(readFileSync(join(dir, 'out.txt'), 'utf-8')).toBe('task.engine wins\n')
     } finally {
@@ -401,7 +464,10 @@ describe('BB.1 — agent decide el engine de tareas manuales', () => {
     // Con apiMode 'agentic' y un modelo con tool-calling, corre agentic.
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
-      () => toolCallResponse([{ name: 'write_file', args: { path: 'out.txt', content: 'agentic via api mode' } }]),
+      () =>
+        toolCallResponse([
+          { name: 'write_file', args: { path: 'out.txt', content: 'agentic via api mode' } },
+        ]),
       () => plainResponse('Done'),
       () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
     ])
@@ -409,7 +475,10 @@ describe('BB.1 — agent decide el engine de tareas manuales', () => {
     const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, agent: 'api', apiMode: 'agentic' }
     const dir = tmpDir()
     try {
-      const result = await callRunTask(baseTask(), dir, { orcheConfig, modelOverride: 'anthropic/claude-haiku-4-5' })
+      const result = await callRunTask(baseTask(), dir, {
+        orcheConfig,
+        modelOverride: 'anthropic/claude-haiku-4-5',
+      })
       expect(result.status).toBe('done')
       expect(readFileSync(join(dir, 'out.txt'), 'utf-8')).toBe('agentic via api mode')
     } finally {

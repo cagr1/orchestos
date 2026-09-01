@@ -1,8 +1,8 @@
-import { describe, it, expect, afterEach } from 'bun:test'
-import { mkdtempSync, writeFileSync, existsSync, rmSync } from 'fs'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { createWorktree, mergeWorktreeBack, git } from '../../src/run/sandbox.ts'
+import { createWorktree, git, mergeWorktreeBack } from '../../src/run/sandbox.ts'
 
 function makeGitRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), 'orchestos-sandbox-test-'))
@@ -19,7 +19,9 @@ function makeGitRepo(): string {
 const repos: string[] = []
 afterEach(() => {
   for (const r of repos.splice(0)) {
-    try { rmSync(r, { recursive: true, force: true }) } catch {}
+    try {
+      rmSync(r, { recursive: true, force: true })
+    } catch {}
   }
 })
 

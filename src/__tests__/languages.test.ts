@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'bun:test'
-import { detectLanguages, detectPrimaryLanguage, SUPPORTED_LANGUAGES } from '../detect/languages.ts'
+import { describe, expect, it } from 'bun:test'
 import { join } from 'path'
+import { detectLanguages, detectPrimaryLanguage, SUPPORTED_LANGUAGES } from '../detect/languages.ts'
 
 const FIXTURES = join(import.meta.dir, 'fixtures', 'languages')
 
@@ -63,7 +63,18 @@ describe('SUPPORTED_LANGUAGES', () => {
   })
 
   it('contains key languages', () => {
-    const must = ['TypeScript', 'Python', 'C#', 'Rust', 'Go', 'Java', 'R', 'Visual Basic', 'SQL', 'Shell']
+    const must = [
+      'TypeScript',
+      'Python',
+      'C#',
+      'Rust',
+      'Go',
+      'Java',
+      'R',
+      'Visual Basic',
+      'SQL',
+      'Shell',
+    ]
     for (const lang of must) {
       expect(SUPPORTED_LANGUAGES).toContain(lang)
     }

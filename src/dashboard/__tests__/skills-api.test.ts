@@ -2,21 +2,25 @@
  * Mes 11 / I1-I2 — Curator unit tests + integration tests for skills endpoints
  * (A1-A6, F3, /api/skills/curate, G pro pack).
  */
-import { describe, it, expect, afterEach, afterAll, mock } from 'bun:test'
-import { existsSync, unlinkSync, rmSync } from 'fs'
-import { getSkillPath, getProSkillPath } from '../../skills/registry.ts'
-import { __setChatForTests, __resetChatForTests } from '../handlers/skills.ts'
+import { afterAll, afterEach, describe, expect, it, mock } from 'bun:test'
+import { existsSync, rmSync, unlinkSync } from 'fs'
 import type { ChatResponse } from '../../providers/openrouter.ts'
+import { getProSkillPath, getSkillPath } from '../../skills/registry.ts'
+import { __resetChatForTests, __setChatForTests } from '../handlers/skills.ts'
 
-const mockChat = mock(async (): Promise<ChatResponse> => ({
-  text: '',
-  inputTokens: 0,
-  outputTokens: 0,
-  model: 'mock',
-}))
+const mockChat = mock(
+  async (): Promise<ChatResponse> => ({
+    text: '',
+    inputTokens: 0,
+    outputTokens: 0,
+    model: 'mock',
+  }),
+)
 
 __setChatForTests(mockChat as any)
-afterAll(() => { __resetChatForTests() })
+afterAll(() => {
+  __resetChatForTests()
+})
 
 const { route } = await import('../server.ts')
 
@@ -55,8 +59,11 @@ describe('POST /api/skills/curate', () => {
       model: 'mock',
     }))
 
-    const res = await route(req('POST', '/api/skills/curate', { text: 'a skill that does the test thing' }), PORT)
-    const body = await res.json() as { ok: boolean; skill: any; iterations: number }
+    const res = await route(
+      req('POST', '/api/skills/curate', { text: 'a skill that does the test thing' }),
+      PORT,
+    )
+    const body = (await res.json()) as { ok: boolean; skill: any; iterations: number }
 
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
@@ -73,7 +80,7 @@ describe('POST /api/skills/curate', () => {
     }))
 
     const res = await route(req('POST', '/api/skills/curate', { text: 'broken skill' }), PORT)
-    const body = await res.json() as { ok: boolean; error: string; iterations: number }
+    const body = (await res.json()) as { ok: boolean; error: string; iterations: number }
 
     expect(res.status).toBe(422)
     expect(body.ok).toBe(false)
@@ -81,7 +88,12 @@ describe('POST /api/skills/curate', () => {
     expect(body.error).toContain('not valid JSON')
 
     mockChat.mockReset()
-    mockChat.mockImplementation(async () => ({ text: '', inputTokens: 0, outputTokens: 0, model: 'mock' }))
+    mockChat.mockImplementation(async () => ({
+      text: '',
+      inputTokens: 0,
+      outputTokens: 0,
+      model: 'mock',
+    }))
   })
 
   it('recovers on retry: invalid skill first, valid skill second', async () => {
@@ -91,14 +103,16 @@ describe('POST /api/skills/curate', () => {
       if (call === 1) {
         return {
           text: JSON.stringify({ id: 'Not Kebab Case!!', name: 'x' }),
-          inputTokens: 5, outputTokens: 5, model: 'mock',
+          inputTokens: 5,
+          outputTokens: 5,
+          model: 'mock',
         }
       }
       return { text: JSON.stringify(VALID_SKILL), inputTokens: 5, outputTokens: 5, model: 'mock' }
     })
 
     const res = await route(req('POST', '/api/skills/curate', { text: 'retry skill' }), PORT)
-    const body = await res.json() as { ok: boolean; skill: any; iterations: number }
+    const body = (await res.json()) as { ok: boolean; skill: any; iterations: number }
 
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
@@ -106,7 +120,12 @@ describe('POST /api/skills/curate', () => {
     expect(body.skill.id).toBe('curated-test-skill')
 
     mockChat.mockReset()
-    mockChat.mockImplementation(async () => ({ text: '', inputTokens: 0, outputTokens: 0, model: 'mock' }))
+    mockChat.mockImplementation(async () => ({
+      text: '',
+      inputTokens: 0,
+      outputTokens: 0,
+      model: 'mock',
+    }))
   })
 
   it('502 when the LLM call fails (timeout/network error)', async () => {
@@ -115,7 +134,7 @@ describe('POST /api/skills/curate', () => {
     })
 
     const res = await route(req('POST', '/api/skills/curate', { text: 'times out' }), PORT)
-    const body = await res.json() as { error: string }
+    const body = (await res.json()) as { error: string }
 
     expect(res.status).toBe(502)
     expect(body.error).toContain('fetch timed out')
@@ -127,18 +146,18 @@ describe('POST /api/skills/curate', () => {
 describe('GET /api/skills (A1)', () => {
   it('returns the list of installed skills', async () => {
     const res = await route(req('GET', '/api/skills'), PORT)
-    const body = await res.json() as Array<{ id: string }>
+    const body = (await res.json()) as Array<{ id: string }>
 
     expect(res.status).toBe(200)
     expect(Array.isArray(body)).toBe(true)
-    expect(body.find(s => s.id === 'tdd-enforcer')).toBeTruthy()
+    expect(body.find((s) => s.id === 'tdd-enforcer')).toBeTruthy()
   })
 })
 
 describe('GET /api/skills/:id (A2)', () => {
   it('returns a single skill by id', async () => {
     const res = await route(req('GET', '/api/skills/tdd-enforcer'), PORT)
-    const body = await res.json() as { id: string; instructions: string }
+    const body = (await res.json()) as { id: string; instructions: string }
 
     expect(res.status).toBe(200)
     expect(body.id).toBe('tdd-enforcer')
@@ -198,7 +217,7 @@ describe('POST /api/skills (A3)', () => {
 
   it('creates a new skill file', async () => {
     const res = await route(req('POST', '/api/skills', TEMP_SKILL), PORT)
-    const body = await res.json() as { ok: boolean; id: string }
+    const body = (await res.json()) as { ok: boolean; id: string }
 
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
@@ -226,12 +245,12 @@ describe('PUT /api/skills/:id (A4)', () => {
 
     const updated = { ...TEMP_SKILL, description: 'Updated description for I2 test.' }
     const res = await route(req('PUT', `/api/skills/${TEMP_ID}`, updated), PORT)
-    const body = await res.json() as { ok: boolean }
+    const body = (await res.json()) as { ok: boolean }
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
 
     const getRes = await route(req('GET', `/api/skills/${TEMP_ID}`), PORT)
-    const getBody = await getRes.json() as { description: string }
+    const getBody = (await getRes.json()) as { description: string }
     expect(getBody.description).toBe('Updated description for I2 test.')
   })
 })
@@ -243,7 +262,7 @@ describe('POST /api/skills/:id/build (A6)', () => {
     await route(req('POST', '/api/skills', TEMP_SKILL), PORT)
 
     const res = await route(req('POST', `/api/skills/${TEMP_ID}/build`), PORT)
-    const body = await res.json() as { ok: boolean; paths: string[]; skillId: string }
+    const body = (await res.json()) as { ok: boolean; paths: string[]; skillId: string }
 
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
@@ -270,7 +289,7 @@ describe('DELETE /api/skills/:id (A5)', () => {
   it('deletes the skill with confirm:true', async () => {
     await route(req('POST', '/api/skills', TEMP_SKILL), PORT)
     const res = await route(req('DELETE', `/api/skills/${TEMP_ID}`, { confirm: true }), PORT)
-    const body = await res.json() as { ok: boolean }
+    const body = (await res.json()) as { ok: boolean }
 
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
@@ -288,11 +307,11 @@ describe('DELETE /api/skills/:id (A5)', () => {
 describe('GET /api/skills/pro', () => {
   it('lists the pro pack with imported flags', async () => {
     const res = await route(req('GET', '/api/skills/pro'), PORT)
-    const body = await res.json() as Array<{ id: string; imported: boolean }>
+    const body = (await res.json()) as Array<{ id: string; imported: boolean }>
 
     expect(res.status).toBe(200)
     expect(body.length).toBeGreaterThanOrEqual(8)
-    expect(body.find(s => s.id === 'code-review')).toBeTruthy()
+    expect(body.find((s) => s.id === 'code-review')).toBeTruthy()
     for (const s of body) expect(typeof s.imported).toBe('boolean')
   })
 })
@@ -307,7 +326,7 @@ describe('POST /api/skills/pro/:id/import', () => {
 
   it('imports a pro skill into skills/', async () => {
     const res = await route(req('POST', `/api/skills/pro/${PRO_ID}/import`), PORT)
-    const body = await res.json() as { ok: boolean; id: string }
+    const body = (await res.json()) as { ok: boolean; id: string }
 
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)

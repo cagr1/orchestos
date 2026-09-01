@@ -6,7 +6,10 @@ export function main(root = process.cwd()): number {
     console.error(names.stderr.trim())
     return 1
   }
-  const paths = names.stdout.split('\n').map(value => value.trim()).filter(Boolean)
+  const paths = names.stdout
+    .split('\n')
+    .map((value) => value.trim())
+    .filter(Boolean)
   if (!requiresLiveGate(paths)) {
     console.log('✓ Gate en vivo: no aplica al diff staged')
     return 0
@@ -19,7 +22,9 @@ export function main(root = process.cwd()): number {
   }
   if (!hasLiveGateEvidence(planDiff.stdout)) {
     console.error('✗ Cambio de dashboard/config sin cierre y evidencia en PLAN.md.')
-    console.error('  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o Playwright.')
+    console.error(
+      '  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o Playwright.',
+    )
     return 1
   }
   console.log('✓ Gate en vivo documentado para dashboard/config')

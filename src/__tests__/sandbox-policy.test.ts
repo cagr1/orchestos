@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync, appendFileSync } from 'fs'
-import { join } from 'path'
+import { describe, expect, it } from 'bun:test'
+import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { git } from '../run/sandbox.ts'
 import { resolveSandboxMode } from '../run/sandbox-policy.ts'
 
@@ -16,7 +16,10 @@ function initRepo(): string {
   git(['init', '-b', 'master'], dir)
   git(['config', 'user.email', 'test@test.com'], dir)
   git(['config', 'user.name', 'test'], dir)
-  writeFileSync(join(dir, 'runs-summary.json'), JSON.stringify({ exported_at: '2026-01-01T00:00:00Z', total_runs: 0 }))
+  writeFileSync(
+    join(dir, 'runs-summary.json'),
+    JSON.stringify({ exported_at: '2026-01-01T00:00:00Z', total_runs: 0 }),
+  )
   writeFileSync(join(dir, 'tasks.yaml'), 'version: 1\n')
   git(['add', '-A'], dir)
   git(['commit', '-m', 'initial'], dir)
@@ -68,7 +71,10 @@ describe('resolveSandboxMode — runs-summary.json (E.1/E.9)', () => {
     try {
       // Simula el drift real: el hook pre-commit regenera este archivo con
       // un timestamp nuevo en CADA commit, incluso los que no lo tocan.
-      writeFileSync(join(dir, 'runs-summary.json'), JSON.stringify({ exported_at: '2026-07-16T20:00:00Z', total_runs: 3 }))
+      writeFileSync(
+        join(dir, 'runs-summary.json'),
+        JSON.stringify({ exported_at: '2026-07-16T20:00:00Z', total_runs: 3 }),
+      )
       expect(git(['status', '--porcelain'], dir).stdout).toContain('runs-summary.json')
 
       const result = resolveSandboxMode(dir)
@@ -88,7 +94,10 @@ describe('resolveSandboxMode — runs-summary.json (E.1/E.9)', () => {
     const dir = initRepo()
     try {
       appendFileSync(join(dir, 'tasks.yaml'), '  - id: rogue\n')
-      writeFileSync(join(dir, 'runs-summary.json'), JSON.stringify({ exported_at: '2026-07-16T20:00:00Z' }))
+      writeFileSync(
+        join(dir, 'runs-summary.json'),
+        JSON.stringify({ exported_at: '2026-07-16T20:00:00Z' }),
+      )
 
       expect(() => resolveSandboxMode(dir)).toThrow(/Uncommitted changes/)
       // El archivo real sucio (tasks.yaml) debe seguir reportado.

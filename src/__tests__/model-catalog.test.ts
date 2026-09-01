@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import {
-  ensureCatalogLoaded,
-  contextWindowFor,
-  hasRealContextWindow,
-  supportsReasoningEffort,
-  catalogSupportsTools,
-  supportsVisionInput,
-  maxOutputTokensFor,
-  knownMaxOutputTokensFor,
-  DEFAULT_MAX_OUTPUT_TOKENS,
   _resetCatalog,
+  catalogSupportsTools,
+  contextWindowFor,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+  ensureCatalogLoaded,
+  hasRealContextWindow,
+  knownMaxOutputTokensFor,
+  maxOutputTokensFor,
+  supportsReasoningEffort,
+  supportsVisionInput,
 } from '../router/model-catalog.ts'
 
 // Aísla el cache en disco vía ORCHESTOS_HOME para no tocar ~/.orchestos real.
@@ -20,7 +20,13 @@ let home: string
 const prevHome = process.env.ORCHESTOS_HOME
 const prevKey = process.env.OPENROUTER_API_KEY
 
-function seedDiskCache(models: Record<string, { contextLength: number; priceIn: number; priceOut?: number; maxOutputTokens?: number }>, fetchedAt: number) {
+function seedDiskCache(
+  models: Record<
+    string,
+    { contextLength: number; priceIn: number; priceOut?: number; maxOutputTokens?: number }
+  >,
+  fetchedAt: number,
+) {
   const dir = join(home, '.orchestos', 'cache')
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'models.json'), JSON.stringify({ fetchedAt, models }), 'utf-8')
@@ -40,7 +46,11 @@ afterEach(() => {
   else process.env.ORCHESTOS_HOME = prevHome
   if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY
   else process.env.OPENROUTER_API_KEY = prevKey
-  try { rmSync(home, { recursive: true, force: true }) } catch { /* noop */ }
+  try {
+    rmSync(home, { recursive: true, force: true })
+  } catch {
+    /* noop */
+  }
 })
 
 describe('model-catalog', () => {
@@ -64,10 +74,7 @@ describe('model-catalog', () => {
   })
 
   it('un modelo de ventana chica reporta su valor real, evitando el falso 128K', async () => {
-    seedDiskCache(
-      { 'tiny/model-4k': { contextLength: 4_096, priceIn: 0.1 } },
-      Date.now(),
-    )
+    seedDiskCache({ 'tiny/model-4k': { contextLength: 4_096, priceIn: 0.1 } }, Date.now())
     await ensureCatalogLoaded()
     // Sin catálogo habría caído al default de 128K — peligro de alucinación.
     expect(contextWindowFor('tiny/model-4k')).toBe(4_096)
@@ -75,19 +82,13 @@ describe('model-catalog', () => {
 
   it('usa el cache vencido si no hay red/API key (mejor que la tabla a secas)', async () => {
     const stale = Date.now() - 48 * 60 * 60 * 1000 // 48h: vencido (TTL 24h)
-    seedDiskCache(
-      { 'some/cached-model': { contextLength: 64_000, priceIn: 0.2 } },
-      stale,
-    )
+    seedDiskCache({ 'some/cached-model': { contextLength: 64_000, priceIn: 0.2 } }, stale)
     await ensureCatalogLoaded({ apiKey: '' }) // offline forzado → no refetch → usa el disco vencido
     expect(contextWindowFor('some/cached-model')).toBe(64_000)
   })
 
   it('ignora entradas con contextLength 0 y cae al fallback', async () => {
-    seedDiskCache(
-      { 'broken/no-context': { contextLength: 0, priceIn: 0 } },
-      Date.now(),
-    )
+    seedDiskCache({ 'broken/no-context': { contextLength: 0, priceIn: 0 } }, Date.now())
     await ensureCatalogLoaded()
     // contextLength 0 no es confiable → fallback por familia (default 128K).
     expect(contextWindowFor('broken/no-context')).toBe(128_000)
@@ -102,7 +103,13 @@ describe('model-catalog', () => {
   it('E.1: knownMaxOutputTokensFor devuelve 0 cuando el catálogo no publica el tope (no 8192)', async () => {
     seedDiskCache(
       // maxOutputTokens ausente = el caso real de deepseek-v4-flash
-      { 'deepseek/deepseek-v4-flash': { contextLength: 1_048_576, priceIn: 0.098, maxOutputTokens: 0 } },
+      {
+        'deepseek/deepseek-v4-flash': {
+          contextLength: 1_048_576,
+          priceIn: 0.098,
+          maxOutputTokens: 0,
+        },
+      },
       Date.now(),
     )
     await ensureCatalogLoaded()
@@ -130,10 +137,7 @@ describe('model-catalog', () => {
 
   it('AR.2: con key presente + cache vencido + red caída, solo intenta el fetch una vez por proceso', async () => {
     const stale = Date.now() - 48 * 60 * 60 * 1000
-    seedDiskCache(
-      { 'some/cached-model': { contextLength: 64_000, priceIn: 0.2 } },
-      stale,
-    )
+    seedDiskCache({ 'some/cached-model': { contextLength: 64_000, priceIn: 0.2 } }, stale)
     const originalFetch = globalThis.fetch
     let fetchCalls = 0
     globalThis.fetch = (async () => {
@@ -159,16 +163,27 @@ describe('model-catalog', () => {
 
   it('BACK.1: supportsReasoningEffort lee supported_parameters del catálogo real', async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async () => new Response(
-      JSON.stringify({
-        data: [
-          { id: 'deepseek/deepseek-r1', context_length: 64_000, pricing: { prompt: '0.0000005' }, supported_parameters: ['reasoning', 'temperature'] },
-          { id: 'openai/gpt-4o-mini', context_length: 128_000, pricing: { prompt: '0.0000001' }, supported_parameters: ['temperature'] },
-          { id: 'no/params-field', context_length: 32_000, pricing: { prompt: '0.0000001' } },
-        ],
-      }),
-      { status: 200 },
-    )) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: 'deepseek/deepseek-r1',
+              context_length: 64_000,
+              pricing: { prompt: '0.0000005' },
+              supported_parameters: ['reasoning', 'temperature'],
+            },
+            {
+              id: 'openai/gpt-4o-mini',
+              context_length: 128_000,
+              pricing: { prompt: '0.0000001' },
+              supported_parameters: ['temperature'],
+            },
+            { id: 'no/params-field', context_length: 32_000, pricing: { prompt: '0.0000001' } },
+          ],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
 
     try {
       await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
@@ -184,16 +199,27 @@ describe('model-catalog', () => {
 
   it('catalogSupportsTools lee supported_parameters del catálogo real — reemplaza la lista fija de prefijos que excluía modelos con tool calling real (deepseek, etc.)', async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async () => new Response(
-      JSON.stringify({
-        data: [
-          { id: 'deepseek/deepseek-v4-flash', context_length: 1_000_000, pricing: { prompt: '0.00000009' }, supported_parameters: ['tools', 'temperature'] },
-          { id: 'mistralai/no-tools-model', context_length: 32_000, pricing: { prompt: '0.0000001' }, supported_parameters: ['temperature'] },
-          { id: 'no/params-field', context_length: 32_000, pricing: { prompt: '0.0000001' } },
-        ],
-      }),
-      { status: 200 },
-    )) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: 'deepseek/deepseek-v4-flash',
+              context_length: 1_000_000,
+              pricing: { prompt: '0.00000009' },
+              supported_parameters: ['tools', 'temperature'],
+            },
+            {
+              id: 'mistralai/no-tools-model',
+              context_length: 32_000,
+              pricing: { prompt: '0.0000001' },
+              supported_parameters: ['temperature'],
+            },
+            { id: 'no/params-field', context_length: 32_000, pricing: { prompt: '0.0000001' } },
+          ],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
 
     try {
       await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
@@ -211,16 +237,31 @@ describe('model-catalog', () => {
   // modelo elegido las soporta. supportsVisionInput lee architecture.input_modalities.
   it('supportsVisionInput lee architecture.input_modalities del catálogo real', async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async () => new Response(
-      JSON.stringify({
-        data: [
-          { id: 'openai/gpt-4o', context_length: 128_000, pricing: { prompt: '0.0000025' }, architecture: { input_modalities: ['text', 'image'] } },
-          { id: 'deepseek/deepseek-v4-flash', context_length: 1_000_000, pricing: { prompt: '0.00000009' }, architecture: { input_modalities: ['text'] } },
-          { id: 'no/architecture-field', context_length: 32_000, pricing: { prompt: '0.0000001' } },
-        ],
-      }),
-      { status: 200 },
-    )) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: 'openai/gpt-4o',
+              context_length: 128_000,
+              pricing: { prompt: '0.0000025' },
+              architecture: { input_modalities: ['text', 'image'] },
+            },
+            {
+              id: 'deepseek/deepseek-v4-flash',
+              context_length: 1_000_000,
+              pricing: { prompt: '0.00000009' },
+              architecture: { input_modalities: ['text'] },
+            },
+            {
+              id: 'no/architecture-field',
+              context_length: 32_000,
+              pricing: { prompt: '0.0000001' },
+            },
+          ],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
 
     try {
       await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
@@ -238,14 +279,21 @@ describe('model-catalog', () => {
 
   it('AR.7: un pricing.prompt no numérico no contamina el cache con NaN/null', async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async () => new Response(
-      JSON.stringify({ data: [{ id: 'weird/model', context_length: 32_000, pricing: { prompt: 'not-a-number' } }] }),
-      { status: 200 },
-    )) as unknown as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: 'weird/model', context_length: 32_000, pricing: { prompt: 'not-a-number' } },
+          ],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
 
     try {
       await ensureCatalogLoaded({ apiKey: 'fake-key', force: true })
-      const cache = JSON.parse(readFileSync(join(home, '.orchestos', 'cache', 'models.json'), 'utf-8'))
+      const cache = JSON.parse(
+        readFileSync(join(home, '.orchestos', 'cache', 'models.json'), 'utf-8'),
+      )
       // Antes del fix: Number('not-a-number') * 1e6 = NaN → JSON.stringify lo serializa como null.
       expect(cache.models['weird/model'].priceIn).toBe(0)
       expect(contextWindowFor('weird/model')).toBe(32_000) // contextLength no afectado

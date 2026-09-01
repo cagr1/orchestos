@@ -1,12 +1,12 @@
-import { join } from 'path'
 import { existsSync, writeFileSync } from 'fs'
+import { join } from 'path'
 import { parseDocument, stringify as yamlStringify } from 'yaml'
-import { loadOrcheConfig, scaffoldConfigYaml, AGENT_CHOICES } from '../../config/load.ts'
-import type { OrcheConfig, AgentChoice } from '../../config/schema.ts'
-import { loadTasks, tasksExist } from '../../tasks/loader.ts'
+import { AGENT_CHOICES, loadOrcheConfig, scaffoldConfigYaml } from '../../config/load.ts'
+import type { AgentChoice, OrcheConfig } from '../../config/schema.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
+import { loadTasks, tasksExist } from '../../tasks/loader.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
 
 // CC.D1 (2026-08-17) — `apiMode` solo tiene sentido cuando `agent` es 'api' (o
 // ausente): un CLI no expone la distinción single-shot/agentic, la decide el
@@ -42,8 +42,8 @@ export async function handleApiConfigGet(root = process.cwd()): Promise<Response
   if (tasksExist(root)) {
     try {
       const tasksFile = loadTasks(root)
-      const pending = tasksFile.tasks.filter(t => t.status === 'pending')
-      pendingRouting = pending.map(t => {
+      const pending = tasksFile.tasks.filter((t) => t.status === 'pending')
+      pendingRouting = pending.map((t) => {
         const route = autoRoute(t, cfg, configFound)
         const modelStr = route ? formatRoute(route) : `${t.executor} (legacy)`
         return { id: t.id, model: modelStr, executor: t.executor }
@@ -108,12 +108,23 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
      * [[feedback-deteccion-no-decision-automatica]]). */
     agent?: AgentChoice | null
   }
-  try { body = (await req.json()) as typeof body } catch { return errorResponse('Invalid JSON', 400) }
-  if (body.roles !== undefined && typeof body.roles !== 'object') return errorResponse('roles must be an object', 400)
+  try {
+    body = (await req.json()) as typeof body
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (body.roles !== undefined && typeof body.roles !== 'object')
+    return errorResponse('roles must be an object', 400)
   if (body.agent !== undefined && body.agent !== null && !AGENT_CHOICES.includes(body.agent)) {
     return errorResponse(`agent must be one of: ${AGENT_CHOICES.join(', ')}`, 400)
   }
-  if (!body.roles && body.apiMode === undefined && body.agenticMaxIterations === undefined && body.externalTimeoutMinutes === undefined && body.agent === undefined) {
+  if (
+    !body.roles &&
+    body.apiMode === undefined &&
+    body.agenticMaxIterations === undefined &&
+    body.externalTimeoutMinutes === undefined &&
+    body.agent === undefined
+  ) {
     return errorResponse('nothing to save', 400)
   }
 
@@ -140,10 +151,18 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
   if (typeof body.apiMode === 'string' && (API_MODES as readonly string[]).includes(body.apiMode)) {
     newConfig.apiMode = body.apiMode as OrcheConfig['apiMode']
   }
-  if (typeof body.agenticMaxIterations === 'number' && Number.isFinite(body.agenticMaxIterations) && body.agenticMaxIterations > 0) {
+  if (
+    typeof body.agenticMaxIterations === 'number' &&
+    Number.isFinite(body.agenticMaxIterations) &&
+    body.agenticMaxIterations > 0
+  ) {
     newConfig.agentic = { maxIterations: Math.round(body.agenticMaxIterations) }
   }
-  if (typeof body.externalTimeoutMinutes === 'number' && Number.isFinite(body.externalTimeoutMinutes) && body.externalTimeoutMinutes > 0) {
+  if (
+    typeof body.externalTimeoutMinutes === 'number' &&
+    Number.isFinite(body.externalTimeoutMinutes) &&
+    body.externalTimeoutMinutes > 0
+  ) {
     newConfig.external = { timeoutMs: Math.round(body.externalTimeoutMinutes * 60000) }
   }
   if (body.agent === null) {
@@ -173,18 +192,30 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
           document.setIn(['models', key], { provider: 'openrouter', model: raw.trim() })
         }
 
-        if (typeof body.apiMode === 'string' && (API_MODES as readonly string[]).includes(body.apiMode)) {
+        if (
+          typeof body.apiMode === 'string' &&
+          (API_MODES as readonly string[]).includes(body.apiMode)
+        ) {
           document.set('apiMode', body.apiMode)
           // `executorEngine` used these values before apiMode existed. Remove
           // only that legacy field when the user explicitly edits apiMode;
           // CLI values there belong to the separate agent migration.
           const legacyEngine = document.get('executorEngine')
-          if (legacyEngine === 'single-shot' || legacyEngine === 'agentic') document.delete('executorEngine')
+          if (legacyEngine === 'single-shot' || legacyEngine === 'agentic')
+            document.delete('executorEngine')
         }
-        if (typeof body.agenticMaxIterations === 'number' && Number.isFinite(body.agenticMaxIterations) && body.agenticMaxIterations > 0) {
+        if (
+          typeof body.agenticMaxIterations === 'number' &&
+          Number.isFinite(body.agenticMaxIterations) &&
+          body.agenticMaxIterations > 0
+        ) {
           document.setIn(['agentic', 'maxIterations'], Math.round(body.agenticMaxIterations))
         }
-        if (typeof body.externalTimeoutMinutes === 'number' && Number.isFinite(body.externalTimeoutMinutes) && body.externalTimeoutMinutes > 0) {
+        if (
+          typeof body.externalTimeoutMinutes === 'number' &&
+          Number.isFinite(body.externalTimeoutMinutes) &&
+          body.externalTimeoutMinutes > 0
+        ) {
           document.setIn(['external', 'timeoutMs'], Math.round(body.externalTimeoutMinutes * 60000))
         }
         if (body.agent === null || body.agent !== undefined) {

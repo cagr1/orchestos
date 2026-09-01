@@ -1,7 +1,7 @@
-import { describe, it, expect, afterEach } from 'bun:test'
-import { existsSync, rmSync, readFileSync } from 'fs'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { existsSync, readFileSync, rmSync } from 'fs'
 import { join } from 'path'
-import { parseLLMResponse, enforceContract } from '../run/contract.ts'
+import { enforceContract, parseLLMResponse } from '../run/contract.ts'
 
 const TMP_ROOT = join(import.meta.dir, '..', '..', 'tmp', 'contract-a1')
 
@@ -46,15 +46,13 @@ describe('parseLLMResponse', () => {
 
   it('throws when no FILE blocks are found', () => {
     expect(() => parseLLMResponse('just some random text without delimiters')).toThrow(
-      'No <<<FILE:...>>>...<<<ENDFILE>>> blocks found'
+      'No <<<FILE:...>>>...<<<ENDFILE>>> blocks found',
     )
   })
 
   it('throws when FILE delimiter has an empty path (regex treats it as no match)', () => {
     const raw = '<<<FILE:>>>\nsome content\n<<<ENDFILE>>>'
-    expect(() => parseLLMResponse(raw)).toThrow(
-      'No <<<FILE:...>>>...<<<ENDFILE>>> blocks found'
-    )
+    expect(() => parseLLMResponse(raw)).toThrow('No <<<FILE:...>>>...<<<ENDFILE>>> blocks found')
   })
 })
 
@@ -90,7 +88,9 @@ describe('enforceContract', () => {
   it('throws CONTRACT VIOLATION and writes nothing when path is outside allowedPaths', () => {
     const response = { files: [{ path: 'unauthorized/payload', content: 'evil' }] }
 
-    expect(() => enforceContract(TMP_ROOT, response, ['allowed/file.txt'])).toThrow('CONTRACT VIOLATION')
+    expect(() => enforceContract(TMP_ROOT, response, ['allowed/file.txt'])).toThrow(
+      'CONTRACT VIOLATION',
+    )
 
     expect(existsSync(join(TMP_ROOT, 'unauthorized/payload'))).toBe(false)
   })
@@ -98,7 +98,9 @@ describe('enforceContract', () => {
   it('blocks path with ../ traversal not in allowedPaths', () => {
     const response = { files: [{ path: '../outside-project.txt', content: 'leak' }] }
 
-    expect(() => enforceContract(TMP_ROOT, response, ['inside/ok.txt'])).toThrow('CONTRACT VIOLATION')
+    expect(() => enforceContract(TMP_ROOT, response, ['inside/ok.txt'])).toThrow(
+      'CONTRACT VIOLATION',
+    )
 
     expect(existsSync(join(TMP_ROOT, '../outside-project.txt'))).toBe(false)
   })

@@ -167,7 +167,10 @@ export interface SubTaskPlan {
 // ---------------------------------------------------------------------------
 
 export class SubTaskValidationError extends Error {
-  constructor(public readonly path: string, message: string) {
+  constructor(
+    public readonly path: string,
+    message: string,
+  ) {
     super(`[sub-task:${path}] ${message}`)
     this.name = 'SubTaskValidationError'
   }
@@ -205,8 +208,7 @@ export function validateSubTask(raw: Record<string, unknown>, index: number): Su
   }
 
   // allowed_tools — required
-  if (!Array.isArray(raw.allowed_tools))
-    err('"allowed_tools" is required and must be an array')
+  if (!Array.isArray(raw.allowed_tools)) err('"allowed_tools" is required and must be an array')
   const allowedTools = raw.allowed_tools as string[]
   for (const [i, tool] of allowedTools.entries()) {
     if (!VALID_TOOLS.includes(tool as SubTaskTool))
@@ -239,19 +241,19 @@ export function validateSubTask(raw: Record<string, unknown>, index: number): Su
     err('"timeout_ms" must be a positive number')
 
   return {
-    id:            raw.id as string,
-    description:   raw.description as string,
-    acceptance:    raw.acceptance as string[],
-    depends_on:    dependsOn,
+    id: raw.id as string,
+    description: raw.description as string,
+    acceptance: raw.acceptance as string[],
+    depends_on: dependsOn,
     allowed_tools: allowedTools as SubTaskTool[],
-    topic_key:     hasTopicKey ? (raw.topic_key as string) : undefined,
-    skill:         typeof raw.skill === 'string' ? raw.skill : undefined,
-    executor:      typeof raw.executor === 'string' ? raw.executor as TaskExecutor : undefined,
+    topic_key: hasTopicKey ? (raw.topic_key as string) : undefined,
+    skill: typeof raw.skill === 'string' ? raw.skill : undefined,
+    executor: typeof raw.executor === 'string' ? (raw.executor as TaskExecutor) : undefined,
     executor_model: typeof raw.executor_model === 'string' ? raw.executor_model : undefined,
-    input:         Array.isArray(raw.input) ? raw.input as string[] : undefined,
-    output:        hasOutput ? raw.output as string[] : undefined,
-    checks:        validateChecks(raw.checks, index),
-    timeout_ms:    typeof raw.timeout_ms === 'number' ? raw.timeout_ms : undefined,
+    input: Array.isArray(raw.input) ? (raw.input as string[]) : undefined,
+    output: hasOutput ? (raw.output as string[]) : undefined,
+    checks: validateChecks(raw.checks, index),
+    timeout_ms: typeof raw.timeout_ms === 'number' ? raw.timeout_ms : undefined,
   }
 }
 
@@ -262,17 +264,16 @@ export function validateSubTaskPlan(raw: unknown): SubTaskPlan {
   }
 
   if (f.version !== 1) err('"version" must be 1')
-  if (!f.parent_task_id || typeof f.parent_task_id !== 'string')
-    err('missing "parent_task_id"')
+  if (!f.parent_task_id || typeof f.parent_task_id !== 'string') err('missing "parent_task_id"')
   if (!Array.isArray(f.sub_tasks) || (f.sub_tasks as unknown[]).length === 0)
     err('"sub_tasks" must be a non-empty array')
 
   const subTasks = (f.sub_tasks as unknown[]).map((t, i) =>
-    validateSubTask(t as Record<string, unknown>, i)
+    validateSubTask(t as Record<string, unknown>, i),
   )
 
   // duplicate ids
-  const ids = subTasks.map(t => t.id)
+  const ids = subTasks.map((t) => t.id)
   const dupes = ids.filter((id, i) => ids.indexOf(id) !== i)
   if (dupes.length > 0) err(`duplicate sub-task ids: ${dupes.join(', ')}`)
 
@@ -281,7 +282,10 @@ export function validateSubTaskPlan(raw: unknown): SubTaskPlan {
   for (const st of subTasks) {
     for (const dep of st.depends_on) {
       if (!idSet.has(dep))
-        throw new SubTaskValidationError(`sub_tasks[${st.id}]`, `depends_on references unknown id "${dep}"`)
+        throw new SubTaskValidationError(
+          `sub_tasks[${st.id}]`,
+          `depends_on references unknown id "${dep}"`,
+        )
     }
   }
 
@@ -314,9 +318,9 @@ export function topoSort(subTasks: SubTaskDef[]): SubTaskDef[] {
     }
   }
 
-  const queue = subTasks.filter(st => inDegree.get(st.id) === 0).map(st => st.id)
+  const queue = subTasks.filter((st) => inDegree.get(st.id) === 0).map((st) => st.id)
   const result: SubTaskDef[] = []
-  const byId = new Map(subTasks.map(st => [st.id, st]))
+  const byId = new Map(subTasks.map((st) => [st.id, st]))
 
   while (queue.length > 0) {
     const id = queue.shift()!
@@ -348,15 +352,18 @@ function validateChecks(value: unknown, taskIndex: number): Check[] | undefined 
     throw new SubTaskValidationError(`sub_tasks[${taskIndex}]`, '"checks" must be an array')
   }
   return (value as unknown[]).map((item, i) => {
-    const check = typeof item === 'string' ? { cmd: item } : item as Record<string, unknown>
+    const check = typeof item === 'string' ? { cmd: item } : (item as Record<string, unknown>)
     const err = (msg: string): never => {
       throw new SubTaskValidationError(`sub_tasks[${taskIndex}].checks[${i}]`, msg)
     }
     if (typeof check !== 'object' || check === null) err('must be a string or object')
-    if (typeof check.cmd !== 'string' || (check.cmd as string).trim() === '') err('"cmd" is required')
+    if (typeof check.cmd !== 'string' || (check.cmd as string).trim() === '')
+      err('"cmd" is required')
     if (check.cwd !== undefined && typeof check.cwd !== 'string') err('"cwd" must be a string')
-    if (check.timeout_ms !== undefined && typeof check.timeout_ms !== 'number') err('"timeout_ms" must be a number')
-    if (check.expect_exit !== undefined && typeof check.expect_exit !== 'number') err('"expect_exit" must be a number')
+    if (check.timeout_ms !== undefined && typeof check.timeout_ms !== 'number')
+      err('"timeout_ms" must be a number')
+    if (check.expect_exit !== undefined && typeof check.expect_exit !== 'number')
+      err('"expect_exit" must be a number')
     return {
       cmd: (check.cmd as string).trim(),
       cwd: typeof check.cwd === 'string' ? check.cwd : undefined,

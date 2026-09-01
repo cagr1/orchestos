@@ -230,3 +230,22 @@ panel "Executor engine" reducido a 2 opciones (`single-shot`/`agentic`, sin `ext
 sigue mostrando los 5 niveles reales de esfuerzo de Claude CLI (Low/Medium/High/Extra
 high/Max) — sin regresión de CC.1/CC.1b/CC.1c. 1154 tests (eran 1152 antes del fix del último
 archivo de test, 0 fail) · `tsc --noEmit` limpio en todo el repo.
+
+---
+
+## 2026-09-01 — claude-sonnet-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] — `harness.ts` y `model-catalog.ts` están
+protegidos por tocar la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ
+**Por qué**: H.2.1 adopta Biome como linter/formatter y corrió `biome check --write .` sobre todo
+el repo (324 archivos). En ambos archivos el diff es exclusivamente reordenar imports
+(`organizeImports`) y reformatear expresiones largas a multilínea (comillas, wraps de línea a
+100 cols) — cero líneas de lógica tocadas. Verificado línea por línea: `maxTokens = providerRealCap
+> 0 ? Math.min(availableForOutput, providerRealCap) : availableForOutput` en `harness.ts` es
+textualmente la misma expresión, solo con salto de línea; `maxOutputTokens: ... ? ... : 0` en
+`model-catalog.ts` (el fallback a 0/desconocido que exige la regla) tampoco cambió.
+**Reversibilidad/evidencia**: commit de H.2.1 (`feat(harness): adoptar Biome como
+linter+formatter`) — revertible con `git revert`; sin cambios de esquema ni de datos. `bunx tsc
+--noEmit` ✅ · `bun run test:coverage` ✅ (1174 pass / 0 fail, 2852 expects, 120 archivos;
+functions 73.96% ≥ 69%, lines 62.49% ≥ 57%) tras el reformateo, sin regresión.

@@ -1,6 +1,6 @@
 import { mkdtempSync, readFileSync, rmSync } from 'fs'
-import { join } from 'path'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 export interface CoverageSummary {
   functionsFound: number
@@ -69,7 +69,12 @@ function runCoverageGate(): void {
 
   try {
     const result = Bun.spawnSync([
-      'bun', 'test', '--coverage', '--coverage-reporter=lcov', '--coverage-dir', coverageDir,
+      'bun',
+      'test',
+      '--coverage',
+      '--coverage-reporter=lcov',
+      '--coverage-dir',
+      coverageDir,
     ])
     process.stdout.write(result.stdout)
     process.stderr.write(result.stderr)
@@ -83,8 +88,12 @@ function runCoverageGate(): void {
     const functionsOk = summary.functionsPercent / 100 >= THRESHOLDS.functions
     const linesOk = summary.linesPercent / 100 >= THRESHOLDS.lines
 
-    console.log(`coverage gate: functions ${summary.functionsPercent.toFixed(2)}% (required ${(THRESHOLDS.functions * 100).toFixed(2)}%)`)
-    console.log(`coverage gate: lines ${summary.linesPercent.toFixed(2)}% (required ${(THRESHOLDS.lines * 100).toFixed(2)}%)`)
+    console.log(
+      `coverage gate: functions ${summary.functionsPercent.toFixed(2)}% (required ${(THRESHOLDS.functions * 100).toFixed(2)}%)`,
+    )
+    console.log(
+      `coverage gate: lines ${summary.linesPercent.toFixed(2)}% (required ${(THRESHOLDS.lines * 100).toFixed(2)}%)`,
+    )
 
     if (!functionsOk || !linesOk) {
       console.error('coverage gate failed: aggregate coverage is below the ratchet')

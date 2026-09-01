@@ -1,8 +1,13 @@
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test'
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, realpathSync } from 'fs'
-import { join, basename } from 'path'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { listSkillFiles, listProSkillFiles, resolveSkillPath, getSkillPath } from '../skills/registry.ts'
+import { basename, join } from 'path'
+import {
+  getSkillPath,
+  listProSkillFiles,
+  listSkillFiles,
+  resolveSkillPath,
+} from '../skills/registry.ts'
 
 // O.1 (Bloque O, 2026-08-03) — las skills se resuelven desde la INSTALACIÓN de
 // OrchestOS, no solo desde `cwd`. Antes `getSkillsDir()` era
@@ -27,7 +32,7 @@ afterEach(() => {
   rmSync(fakeProject, { recursive: true, force: true })
 })
 
-const ids = (paths: string[]) => paths.map(p => basename(p, '.yaml')).sort()
+const ids = (paths: string[]) => paths.map((p) => basename(p, '.yaml')).sort()
 
 describe('O.1 — proyecto ajeno SIN skills/ propia', () => {
   test('listSkillFiles() ya no devuelve [] — cae a la instalación', () => {
@@ -59,14 +64,18 @@ describe('O.1 — proyecto ajeno SIN skills/ propia', () => {
 describe('O.1 — proyecto CON skills/ propia', () => {
   function seedOwnSkill(id: string, name: string) {
     mkdirSync(join(fakeProject, 'skills'), { recursive: true })
-    writeFileSync(join(fakeProject, 'skills', `${id}.yaml`), `
+    writeFileSync(
+      join(fakeProject, 'skills', `${id}.yaml`),
+      `
 id: ${id}
 version: 1.0.0
 name: ${name}
 description: Local override for O.1 test
 instructions: Local instructions.
 targets: [claude]
-`.trimStart(), 'utf-8')
+`.trimStart(),
+      'utf-8',
+    )
   }
 
   test('la skill del proyecto GANA sobre la central con el mismo id', () => {
@@ -76,7 +85,7 @@ targets: [claude]
     const resolved = resolveSkillPath('security-review')
     expect(resolved.startsWith(fakeProject)).toBe(true)
 
-    const own = listSkillFiles().filter(f => basename(f) === 'security-review.yaml')
+    const own = listSkillFiles().filter((f) => basename(f) === 'security-review.yaml')
     expect(own).toHaveLength(1)
     expect(own[0]!.startsWith(fakeProject)).toBe(true)
   })

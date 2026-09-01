@@ -19,13 +19,21 @@
  * del working dir y del historial de git después de la llamada.
  */
 
-import { describe, it, expect } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, lstatSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { describe, expect, it } from 'bun:test'
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'fs'
 import { tmpdir } from 'os'
-import { git, createWorktree, mergeWorktreeBack } from '../run/sandbox.ts'
-import { readWorktreeDiff } from '../run/executors/worktree-diff.ts'
+import { join } from 'path'
 import { defaultChecksFor } from '../run/checks.ts'
+import { readWorktreeDiff } from '../run/executors/worktree-diff.ts'
+import { createWorktree, git, mergeWorktreeBack } from '../run/sandbox.ts'
 
 function initRepoWithNodeModules(): string {
   const dir = mkdtempSync(join(tmpdir(), 'orchestos-sandbox-nm-'))
@@ -83,7 +91,7 @@ describe('createWorktree — symlink de node_modules (#19)', () => {
       wt = createWorktree('t19-checks-gap', 'main', dir)
       writeFileSync(join(wt.path, 'out.ts'), 'const x: number = 1\n')
       const checks = defaultChecksFor(['out.ts'], wt.path)
-      expect(checks.some(c => c.cmd === 'bunx tsc --noEmit')).toBe(true)
+      expect(checks.some((c) => c.cmd === 'bunx tsc --noEmit')).toBe(true)
     } finally {
       wt?.cleanup()
       rmSync(dir, { recursive: true, force: true })
@@ -99,7 +107,7 @@ describe('readWorktreeDiff — el symlink de node_modules no contamina el diff (
       wt = createWorktree('t19-diff', 'main', dir)
       writeFileSync(join(wt.path, 'real-output.txt'), 'hola')
       const diff = readWorktreeDiff(wt.path)
-      expect(diff.map(f => f.path)).toEqual(['real-output.txt'])
+      expect(diff.map((f) => f.path)).toEqual(['real-output.txt'])
     } finally {
       wt?.cleanup()
       rmSync(dir, { recursive: true, force: true })
@@ -165,7 +173,7 @@ describe('readWorktreeDiff — el ruido del tooling del host no rompe la tarea (
       writeFileSync(join(wt.path, 'src', 'slugify.ts'), 'export const x = 1')
 
       const diff = readWorktreeDiff(wt.path, ['src/slugify.ts'])
-      expect(diff.map(f => f.path)).toEqual(['src/slugify.ts'])
+      expect(diff.map((f) => f.path)).toEqual(['src/slugify.ts'])
     } finally {
       wt?.cleanup()
       rmSync(dir, { recursive: true, force: true })
@@ -180,8 +188,12 @@ describe('readWorktreeDiff — el ruido del tooling del host no rompe la tarea (
       mkdirSync(join(wt.path, '.claude'), { recursive: true })
       writeFileSync(join(wt.path, '.claude', 'settings.json'), '{"a":1}')
 
-      expect(readWorktreeDiff(wt.path, []).map(f => f.path)).not.toContain('.claude/settings.json')
-      expect(readWorktreeDiff(wt.path, ['.claude/settings.json']).map(f => f.path)).toContain('.claude/settings.json')
+      expect(readWorktreeDiff(wt.path, []).map((f) => f.path)).not.toContain(
+        '.claude/settings.json',
+      )
+      expect(readWorktreeDiff(wt.path, ['.claude/settings.json']).map((f) => f.path)).toContain(
+        '.claude/settings.json',
+      )
     } finally {
       wt?.cleanup()
       rmSync(dir, { recursive: true, force: true })

@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import {
+  type CostBreakdownEntry,
   calcEntryCost,
-  sumCosts,
-  sumTokens,
   costBreakdownToJson,
   parseCostBreakdownJson,
-  type CostBreakdownEntry,
+  sumCosts,
+  sumTokens,
 } from '../run/transcript-parser.ts'
 
 describe('calcEntryCost', () => {
@@ -32,7 +32,7 @@ describe('calcEntryCost', () => {
   it('handles fractional token amounts', () => {
     const entry = calcEntryCost('small', 'openai/gpt-4o-mini', 100, 50)
     // gpt-4o-mini: $0.15/1M in, $0.60/1M out
-    expect(entry.costUsd).toBeCloseTo((100 / 1_000_000) * 0.15 + (50 / 1_000_000) * 0.60, 10)
+    expect(entry.costUsd).toBeCloseTo((100 / 1_000_000) * 0.15 + (50 / 1_000_000) * 0.6, 10)
   })
 
   it('adds missing models from S35.2', () => {
@@ -78,7 +78,13 @@ describe('costBreakdownToJson / parseCostBreakdownJson', () => {
   it('round-trips entries through JSON', () => {
     const entries: CostBreakdownEntry[] = [
       { label: 'parent', model: 'gpt-4o', inputTokens: 500, outputTokens: 200, costUsd: 0.00325 },
-      { label: 'sub-1', model: 'claude-haiku', inputTokens: 300, outputTokens: 150, costUsd: 0.00084 },
+      {
+        label: 'sub-1',
+        model: 'claude-haiku',
+        inputTokens: 300,
+        outputTokens: 150,
+        costUsd: 0.00084,
+      },
     ]
     const json = costBreakdownToJson(entries)
     const parsed = parseCostBreakdownJson(json)

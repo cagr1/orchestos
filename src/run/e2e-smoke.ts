@@ -8,10 +8,10 @@
  * Exit 1 = any failure (prints reason).
  */
 
-import { resolve, join } from 'path'
 import { existsSync, readFileSync, rmSync } from 'fs'
-import { runTask } from './harness.ts'
+import { join, resolve } from 'path'
 import { loadTasks } from '../tasks/loader.ts'
+import { runTask } from './harness.ts'
 import { RunLogger } from './logger.ts'
 
 const ROOT = resolve(import.meta.dir, '../../examples/e2e')
@@ -31,7 +31,7 @@ async function main() {
 
   // load task
   const file = loadTasks(ROOT)
-  const task = file.tasks.find(t => t.id === 'hello-world')
+  const task = file.tasks.find((t) => t.id === 'hello-world')
   if (!task) fail('hello-world task not found in examples/e2e/tasks.yaml')
 
   // reset status so harness doesn't skip it
@@ -68,7 +68,7 @@ async function main() {
   process.exit(0)
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('[e2e:smoke] Unexpected error:', e)
   process.exit(1)
 })

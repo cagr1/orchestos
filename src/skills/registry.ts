@@ -1,6 +1,6 @@
-import { parse } from 'yaml'
-import { readFileSync, readdirSync, existsSync } from 'fs'
+import { existsSync, readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { parse } from 'yaml'
 import type { TaskClass } from '../router/classify.ts'
 
 export type SkillTarget = 'claude' | 'cursor' | 'openai'
@@ -113,7 +113,8 @@ export function resolveSkillPath(id: string): string {
  */
 function mergeSkillDirs(ownDir: string, installDir: string): string[] {
   const byName = new Map<string, string>()
-  for (const dir of [installDir, ownDir]) {   // ownDir segundo: pisa al central
+  for (const dir of [installDir, ownDir]) {
+    // ownDir segundo: pisa al central
     if (!existsSync(dir)) continue
     for (const f of readdirSync(dir)) {
       if (!f.endsWith('.yaml') && !f.endsWith('.yml')) continue
@@ -124,31 +125,40 @@ function mergeSkillDirs(ownDir: string, installDir: string): string[] {
 }
 
 export function validateSkill(raw: Record<string, unknown>, filePath: string): SkillDef {
-  const err = (msg: string) => { throw new Error(`[skill:${filePath}] ${msg}`) }
+  const err = (msg: string) => {
+    throw new Error(`[skill:${filePath}] ${msg}`)
+  }
 
-  if (!raw.id || typeof raw.id !== 'string') err('missing or invalid "id" (must be kebab-case string)')
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(raw.id as string)) err(`"id" must be kebab-case, got: ${raw.id}`)
+  if (!raw.id || typeof raw.id !== 'string')
+    err('missing or invalid "id" (must be kebab-case string)')
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(raw.id as string))
+    err(`"id" must be kebab-case, got: ${raw.id}`)
   if (!raw.version || typeof raw.version !== 'string') err('missing "version" (e.g. 1.0.0)')
   if (!raw.name || typeof raw.name !== 'string') err('missing "name"')
   if (!raw.description || typeof raw.description !== 'string') err('missing "description"')
   if ((raw.description as string).length > 200) err('"description" exceeds 200 chars')
   if (!raw.instructions || typeof raw.instructions !== 'string') err('missing "instructions"')
   if ((raw.instructions as string).length > 4000) err('"instructions" exceeds 4000 chars')
-  if (!Array.isArray(raw.targets) || raw.targets.length === 0) err('"targets" must be a non-empty array')
+  if (!Array.isArray(raw.targets) || raw.targets.length === 0)
+    err('"targets" must be a non-empty array')
   for (const t of raw.targets as string[]) {
-    if (!VALID_TARGETS.includes(t as SkillTarget)) err(`invalid target "${t}" — valid: ${VALID_TARGETS.join(', ')}`)
+    if (!VALID_TARGETS.includes(t as SkillTarget))
+      err(`invalid target "${t}" — valid: ${VALID_TARGETS.join(', ')}`)
   }
 
   if (raw.allowed_tools !== undefined) {
     if (!Array.isArray(raw.allowed_tools)) err('"allowed_tools" must be an array of strings')
     for (const tool of raw.allowed_tools as string[]) {
-      if (typeof tool !== 'string') err(`"allowed_tools" entries must be strings, got ${typeof tool}`)
+      if (typeof tool !== 'string')
+        err(`"allowed_tools" entries must be strings, got ${typeof tool}`)
     }
   }
 
   if (raw.iron_law !== undefined) {
-    if (typeof raw.iron_law !== 'string' || raw.iron_law.length === 0) err('"iron_law" must be a non-empty string')
-    if ((raw.iron_law as string).length > IRON_LAW_MAX_LENGTH) err(`"iron_law" exceeds ${IRON_LAW_MAX_LENGTH} chars — it's a rule, not a paragraph`)
+    if (typeof raw.iron_law !== 'string' || raw.iron_law.length === 0)
+      err('"iron_law" must be a non-empty string')
+    if ((raw.iron_law as string).length > IRON_LAW_MAX_LENGTH)
+      err(`"iron_law" exceeds ${IRON_LAW_MAX_LENGTH} chars — it's a rule, not a paragraph`)
   }
 
   if (raw.common_rationalizations !== undefined) {
@@ -156,14 +166,18 @@ export function validateSkill(raw: Record<string, unknown>, filePath: string): S
       err('"common_rationalizations" must be a non-empty array')
     }
     for (const r of raw.common_rationalizations as Record<string, unknown>[]) {
-      if (typeof r !== 'object' || r === null) err('"common_rationalizations" entries must be objects with "excuse" and "refutation"')
-      if (!r.excuse || typeof r.excuse !== 'string') err('"common_rationalizations" entry missing string "excuse"')
-      if (!r.refutation || typeof r.refutation !== 'string') err('"common_rationalizations" entry missing string "refutation"')
+      if (typeof r !== 'object' || r === null)
+        err('"common_rationalizations" entries must be objects with "excuse" and "refutation"')
+      if (!r.excuse || typeof r.excuse !== 'string')
+        err('"common_rationalizations" entry missing string "excuse"')
+      if (!r.refutation || typeof r.refutation !== 'string')
+        err('"common_rationalizations" entry missing string "refutation"')
     }
   }
 
   if (raw.red_flags !== undefined) {
-    if (!Array.isArray(raw.red_flags) || raw.red_flags.length === 0) err('"red_flags" must be a non-empty array')
+    if (!Array.isArray(raw.red_flags) || raw.red_flags.length === 0)
+      err('"red_flags" must be a non-empty array')
     for (const f of raw.red_flags as string[]) {
       if (typeof f !== 'string') err(`"red_flags" entries must be strings, got ${typeof f}`)
     }
@@ -173,14 +187,17 @@ export function validateSkill(raw: Record<string, unknown>, filePath: string): S
     const activation = raw.activation as Record<string, unknown>
     if (typeof activation !== 'object' || activation === null) err('"activation" must be an object')
     if (!VALID_ACTIVATION_MODES.includes(activation.mode as SkillActivationMode)) {
-      err(`"activation.mode" must be one of: ${VALID_ACTIVATION_MODES.join(', ')} — got: ${activation.mode}`)
+      err(
+        `"activation.mode" must be one of: ${VALID_ACTIVATION_MODES.join(', ')} — got: ${activation.mode}`,
+      )
     }
     if (activation.triggers !== undefined) {
       if (!Array.isArray(activation.triggers) || activation.triggers.length === 0) {
         err('"activation.triggers" must be a non-empty array')
       }
       for (const t of activation.triggers as string[]) {
-        if (typeof t !== 'string') err(`"activation.triggers" entries must be strings, got ${typeof t}`)
+        if (typeof t !== 'string')
+          err(`"activation.triggers" entries must be strings, got ${typeof t}`)
       }
     }
     if (activation.phases !== undefined) {

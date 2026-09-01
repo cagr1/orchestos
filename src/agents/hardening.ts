@@ -20,8 +20,8 @@
  * Pattern: gentle-ai delegation rules
  */
 
-import { createWorktree } from '../run/sandbox.ts'
 import type { Worktree } from '../run/sandbox.ts'
+import { createWorktree } from '../run/sandbox.ts'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -54,14 +54,20 @@ export const RATE_LIMIT_INITIAL_BACKOFF_MS = 2_000
 // ---------------------------------------------------------------------------
 
 export class TimeoutError extends Error {
-  constructor(public readonly taskId: string, public readonly timeoutMs: number) {
+  constructor(
+    public readonly taskId: string,
+    public readonly timeoutMs: number,
+  ) {
     super(`sub-task "${taskId}" timed out after ${timeoutMs}ms`)
     this.name = 'TimeoutError'
   }
 }
 
 export class ToolCallLimitError extends Error {
-  constructor(public readonly count: number, public readonly limit: number) {
+  constructor(
+    public readonly count: number,
+    public readonly limit: number,
+  ) {
     super(`tool-call limit exceeded: ${count} calls > limit of ${limit}`)
     this.name = 'ToolCallLimitError'
   }
@@ -96,10 +102,7 @@ export async function withSubTaskTimeout<T>(
   let timerId: ReturnType<typeof setTimeout> | undefined
 
   const timeoutPromise = new Promise<never>((_, reject) => {
-    timerId = setTimeout(
-      () => reject(new TimeoutError(taskId, timeoutMs)),
-      timeoutMs,
-    )
+    timerId = setTimeout(() => reject(new TimeoutError(taskId, timeoutMs)), timeoutMs)
   })
 
   try {
@@ -177,7 +180,7 @@ export async function createWorktreeWithRetry(
   projectRoot: string,
   opts: WorktreeRetryOpts = {},
 ): Promise<Worktree> {
-  const maxRetries   = opts.maxRetries      ?? WORKTREE_MAX_RETRIES
+  const maxRetries = opts.maxRetries ?? WORKTREE_MAX_RETRIES
   const initialDelay = opts.initialBackoffMs ?? WORKTREE_INITIAL_BACKOFF_MS
 
   let lastError: Error | undefined
@@ -194,7 +197,7 @@ export async function createWorktreeWithRetry(
 
       if (!isCollision || attempt === maxRetries) break
 
-      const delay = initialDelay * Math.pow(2, attempt)
+      const delay = initialDelay * 2 ** attempt
       await sleep(delay)
     }
   }
@@ -224,7 +227,7 @@ export async function withRateLimitRetry<T>(
   fn: () => Promise<T>,
   opts: RateLimitRetryOpts = {},
 ): Promise<T> {
-  const maxRetries   = opts.maxRetries      ?? RATE_LIMIT_MAX_RETRIES
+  const maxRetries = opts.maxRetries ?? RATE_LIMIT_MAX_RETRIES
   const initialDelay = opts.initialBackoffMs ?? RATE_LIMIT_INITIAL_BACKOFF_MS
 
   let lastError: Error | undefined
@@ -236,8 +239,10 @@ export async function withRateLimitRetry<T>(
       lastError = e as Error
       if (!isRateLimitError(e) || attempt === maxRetries) throw e
 
-      const delay = initialDelay * Math.pow(2, attempt)
-      console.warn(`[hardening] rate limit hit — waiting ${delay}ms before retry ${attempt + 1}/${maxRetries}`)
+      const delay = initialDelay * 2 ** attempt
+      console.warn(
+        `[hardening] rate limit hit — waiting ${delay}ms before retry ${attempt + 1}/${maxRetries}`,
+      )
       await sleep(delay)
     }
   }
@@ -273,5 +278,5 @@ export function isRateLimitError(e: unknown): boolean {
 // ---------------------------------------------------------------------------
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

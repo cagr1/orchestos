@@ -1,8 +1,8 @@
-import * as openrouter from './openrouter.ts'
 import * as anthropic from './anthropic.ts'
-import * as openai from './openai.ts'
 import * as codex from './codex.ts'
+import * as openai from './openai.ts'
 import type { ChatMessage, ChatResponse } from './openrouter.ts'
+import * as openrouter from './openrouter.ts'
 
 export interface ChatOpts {
   model: string

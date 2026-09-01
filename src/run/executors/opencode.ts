@@ -29,11 +29,11 @@
  *     `--model` en vez de fingir soporte.
  */
 
+import { getOpencodeCatalog } from '../../router/opencode-catalog.ts'
+import { safeChildEnv } from '../path-policy.ts'
+import { type ExecutorStepEvent, opencodeEventToStep } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
-import { safeChildEnv } from '../path-policy.ts'
-import { opencodeEventToStep, type ExecutorStepEvent } from './step-event.ts'
-import { getOpencodeCatalog } from '../../router/opencode-catalog.ts'
 
 export class ExecutorOpencodeError extends Error {}
 
@@ -70,7 +70,9 @@ function buildOpencodePrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string 
     `You may ONLY create or edit these files: ${ctx.task.output.join(', ')}.`,
     `Do not touch any other file in this repository. When you are done, stop — do not run git commands yourself.`,
     ctx.prompt.userContent,
-  ].filter(Boolean).join('\n\n')
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 function buildOpencodeArgs(prompt: string, model?: string, variant?: string): string[] {
@@ -102,7 +104,12 @@ interface OpencodeEvent {
   part?: { type?: string } & Partial<OpencodeStepFinishPart>
 }
 
-function parseOpencodeStream(stdout: string): { usd: number; inputTokens: number; outputTokens: number; steps: number } {
+function parseOpencodeStream(stdout: string): {
+  usd: number
+  inputTokens: number
+  outputTokens: number
+  steps: number
+} {
   let usd = 0
   let inputTokens = 0
   let outputTokens = 0
@@ -126,7 +133,9 @@ function parseOpencodeStream(stdout: string): { usd: number; inputTokens: number
     }
   }
   if (!sawStepFinish) {
-    throw new ExecutorOpencodeError('opencode produced no step-finish event — cost unknown, not reported as $0')
+    throw new ExecutorOpencodeError(
+      'opencode produced no step-finish event — cost unknown, not reported as $0',
+    )
   }
   return { usd, inputTokens, outputTokens, steps }
 }
@@ -148,10 +157,18 @@ async function runOpencode(
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean }> {
-  const proc = Bun.spawn([OPENCODE_BINARY, ...args], { cwd, env: safeChildEnv(), stdout: 'pipe', stderr: 'pipe' })
+  const proc = Bun.spawn([OPENCODE_BINARY, ...args], {
+    cwd,
+    env: safeChildEnv(),
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
 
   let timedOut = false
-  const timer = setTimeout(() => { timedOut = true; proc.kill('SIGTERM') }, timeoutMs)
+  const timer = setTimeout(() => {
+    timedOut = true
+    proc.kill('SIGTERM')
+  }, timeoutMs)
 
   const reader = proc.stdout.getReader()
   const decoder = new TextDecoder()
@@ -233,7 +250,12 @@ export async function runOpencodeChat(
   let stdout: string
   let timedOut: boolean
   try {
-    ;({ stdout, timedOut } = await runOpencode(cwd, buildOpencodeChatArgs(message, opencodeModel), timeoutMs, onStep))
+    ;({ stdout, timedOut } = await runOpencode(
+      cwd,
+      buildOpencodeChatArgs(message, opencodeModel),
+      timeoutMs,
+      onStep,
+    ))
   } catch (e: any) {
     throw new ExecutorOpencodeError(`failed to spawn opencode: ${e.message}`)
   }
@@ -280,7 +302,12 @@ export const opencodeEngine: ExecutorEngine = {
     let stdout: string
     let timedOut: boolean
     try {
-      ({ stdout, timedOut } = await runOpencode(ctx.effectiveRoot, buildOpencodeArgs(prompt, model, variant), timeoutMs, opts.onStep))
+      ;({ stdout, timedOut } = await runOpencode(
+        ctx.effectiveRoot,
+        buildOpencodeArgs(prompt, model, variant),
+        timeoutMs,
+        opts.onStep,
+      ))
     } catch (e: any) {
       throw new ExecutorOpencodeError(`failed to spawn opencode: ${e.message}`)
     }
@@ -304,16 +331,20 @@ export const opencodeEngine: ExecutorEngine = {
       outputTokens: parsed.outputTokens,
       usd: parsed.usd,
       iterations: parsed.steps,
-      costByIteration: [{
-        label: `opencode (${parsed.steps} step${parsed.steps === 1 ? '' : 's'})`,
-        model: ctx.model,
-        inputTokens: parsed.inputTokens,
-        outputTokens: parsed.outputTokens,
-        costUsd: parsed.usd,
-        binary: OPENCODE_BINARY,
-        args: buildOpencodeArgsDisplay(model, variant),
-      }],
-      log: [`opencode: ${files.length} file(s) changed in worktree${timedOut ? ' (killed by timeout, partial output parsed)' : ''}`],
+      costByIteration: [
+        {
+          label: `opencode (${parsed.steps} step${parsed.steps === 1 ? '' : 's'})`,
+          model: ctx.model,
+          inputTokens: parsed.inputTokens,
+          outputTokens: parsed.outputTokens,
+          costUsd: parsed.usd,
+          binary: OPENCODE_BINARY,
+          args: buildOpencodeArgsDisplay(model, variant),
+        },
+      ],
+      log: [
+        `opencode: ${files.length} file(s) changed in worktree${timedOut ? ' (killed by timeout, partial output parsed)' : ''}`,
+      ],
     }
 
     return outcome

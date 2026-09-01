@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { loadSkill, resolveSkillPath, listSkillFiles } from '../skills/registry.ts'
 import type { SkillDef } from '../skills/registry.ts'
+import { listSkillFiles, loadSkill, resolveSkillPath } from '../skills/registry.ts'
 import { compileClaude } from '../skills/targets/claude.ts'
 import { compileCursor } from '../skills/targets/cursor.ts'
 import { compileOpenAI } from '../skills/targets/openai.ts'
@@ -54,7 +54,9 @@ function pickUnhardenedSkill(): SkillDef {
     } catch {}
   }
   return {
-    id: 'synthetic-unhardened', version: '1.0.0', name: 'Synthetic Unhardened',
+    id: 'synthetic-unhardened',
+    version: '1.0.0',
+    name: 'Synthetic Unhardened',
     description: 'Fallback fixture when every real skill has been hardened',
     instructions: 'Do the thing without any hardening fields present.',
     targets: ['claude', 'cursor', 'openai'],

@@ -4,10 +4,10 @@
  * mock.module() — el request sin selector usa el fallback legacy, así que el cwd del test ES
  * el root seleccionado).
  */
-import { describe, it, expect, afterAll, beforeEach } from 'bun:test'
-import { mkdtempSync, rmSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 const { route } = await import('../server.ts')
 const { loadSpec, saveSpec } = await import('../../spec/store.ts')
@@ -56,12 +56,18 @@ describe('POST /api/specs/<id>/approve — gate de design (AA.2/AA.4)', () => {
   it('bloquea con 422 cuando design está pending, incluso con clarify:none y criterios reales', async () => {
     mkdirSync(join(tmpDir, '.orchestos', 'specs'), { recursive: true })
     saveSpec(tmpDir, {
-      frontmatter: { id: 'blocked-task', status: 'draft', createdAt: new Date().toISOString(), clarify: 'none', design: 'pending' },
+      frontmatter: {
+        id: 'blocked-task',
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        clarify: 'none',
+        design: 'pending',
+      },
       body: '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] WHEN X THEN Y\n\n## Notas\nNone\n',
     })
     const res = await route(req('POST', '/api/specs/blocked-task/approve'), PORT)
     expect(res.status).toBe(422)
-    const data = await res.json() as { error: string }
+    const data = (await res.json()) as { error: string }
     expect(data.error).toContain('design')
     const s = loadSpec(tmpDir, 'blocked-task')!
     expect(s.frontmatter.status).toBe('draft')
@@ -70,7 +76,12 @@ describe('POST /api/specs/<id>/approve — gate de design (AA.2/AA.4)', () => {
   it('no bloquea cuando design está ausente (spec simple, cero regresión)', async () => {
     mkdirSync(join(tmpDir, '.orchestos', 'specs'), { recursive: true })
     saveSpec(tmpDir, {
-      frontmatter: { id: 'simple-approvable', status: 'draft', createdAt: new Date().toISOString(), clarify: 'none' },
+      frontmatter: {
+        id: 'simple-approvable',
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        clarify: 'none',
+      },
       body: '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] WHEN X THEN Y\n\n## Notas\nNone\n',
     })
     const res = await route(req('POST', '/api/specs/simple-approvable/approve'), PORT)
@@ -82,7 +93,14 @@ describe('POST /api/specs/<id>/approve — gate de design (AA.2/AA.4)', () => {
   it('no bloquea cuando design ya está approved', async () => {
     mkdirSync(join(tmpDir, '.orchestos', 'specs'), { recursive: true })
     saveSpec(tmpDir, {
-      frontmatter: { id: 'design-done', status: 'draft', createdAt: new Date().toISOString(), clarify: 'none', design: 'approved', designApprovedAt: new Date().toISOString() },
+      frontmatter: {
+        id: 'design-done',
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        clarify: 'none',
+        design: 'approved',
+        designApprovedAt: new Date().toISOString(),
+      },
       body: '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] WHEN X THEN Y\n\n## Notas\nNone\n',
     })
     const res = await route(req('POST', '/api/specs/design-done/approve'), PORT)
@@ -96,7 +114,13 @@ describe('POST /api/specs/<id>/approve-design (AA.2/AA.4)', () => {
   it('aprueba un design pending y setea designApprovedAt', async () => {
     mkdirSync(join(tmpDir, '.orchestos', 'specs'), { recursive: true })
     saveSpec(tmpDir, {
-      frontmatter: { id: 'to-approve', status: 'draft', createdAt: new Date().toISOString(), clarify: 'none', design: 'pending' },
+      frontmatter: {
+        id: 'to-approve',
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        clarify: 'none',
+        design: 'pending',
+      },
       body: '## Contexto\nFoo\n\n## Design\n<placeholder>\n\n## Criterios de aceptación\n- [ ] <criterio 1>\n\n## Notas\nNone\n',
     })
     const res = await route(req('POST', '/api/specs/to-approve/approve-design'), PORT)
@@ -109,7 +133,12 @@ describe('POST /api/specs/<id>/approve-design (AA.2/AA.4)', () => {
   it('422 cuando la tarea nunca fue marcada compleja (design ausente)', async () => {
     mkdirSync(join(tmpDir, '.orchestos', 'specs'), { recursive: true })
     saveSpec(tmpDir, {
-      frontmatter: { id: 'never-complex', status: 'draft', createdAt: new Date().toISOString(), clarify: 'none' },
+      frontmatter: {
+        id: 'never-complex',
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        clarify: 'none',
+      },
       body: '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] WHEN X THEN Y\n\n## Notas\nNone\n',
     })
     const res = await route(req('POST', '/api/specs/never-complex/approve-design'), PORT)
@@ -119,7 +148,14 @@ describe('POST /api/specs/<id>/approve-design (AA.2/AA.4)', () => {
   it('422 cuando el design ya fue aprobado (no re-aprueba en silencio)', async () => {
     mkdirSync(join(tmpDir, '.orchestos', 'specs'), { recursive: true })
     saveSpec(tmpDir, {
-      frontmatter: { id: 'already-approved', status: 'draft', createdAt: new Date().toISOString(), clarify: 'none', design: 'approved', designApprovedAt: '2026-01-01T00:00:00.000Z' },
+      frontmatter: {
+        id: 'already-approved',
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        clarify: 'none',
+        design: 'approved',
+        designApprovedAt: '2026-01-01T00:00:00.000Z',
+      },
       body: '## Contexto\nFoo\n\n## Criterios de aceptación\n- [ ] WHEN X THEN Y\n\n## Notas\nNone\n',
     })
     const res = await route(req('POST', '/api/specs/already-approved/approve-design'), PORT)

@@ -15,10 +15,10 @@
  * legacy al cwd — crítico que el CONSTITUTION.md
  * del repo REAL nunca aparezca en este test (de ahí el tmp dir).
  */
-import { describe, it, expect, afterAll, beforeEach } from 'bun:test'
-import { mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync } from 'fs'
-import { join } from 'path'
+import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 
 const { route } = await import('../server.ts')
 const { scaffoldConstitutionMd } = await import('../../spec/constitution.ts')
@@ -53,7 +53,7 @@ describe('GET /api/project/constitution (v0.12 D.1.b)', () => {
   it('returns scaffold content with exists:false when CONSTITUTION.md is missing', async () => {
     const res = await route(req('GET', '/api/project/constitution'), PORT)
     expect(res.status).toBe(200)
-    const data = await res.json() as { content: string; exists: boolean }
+    const data = (await res.json()) as { content: string; exists: boolean }
     expect(data.exists).toBe(false)
     expect(data.content).toBe(scaffoldConstitutionMd())
     // Cierra el riesgo: el scaffold pre-cargado coincide 1:1 con el del CLI
@@ -68,7 +68,7 @@ describe('GET /api/project/constitution (v0.12 D.1.b)', () => {
     writeFileSync(join(tmpDir, 'CONSTITUTION.md'), custom, 'utf-8')
     const res = await route(req('GET', '/api/project/constitution'), PORT)
     expect(res.status).toBe(200)
-    const data = await res.json() as { content: string; exists: boolean }
+    const data = (await res.json()) as { content: string; exists: boolean }
     expect(data.exists).toBe(true)
     expect(data.content).toBe(custom)
   })
@@ -79,7 +79,7 @@ describe('PUT /api/project/constitution (v0.12 D.1.b)', () => {
     const scaffold = scaffoldConstitutionMd()
     const res = await route(req('PUT', '/api/project/constitution', { content: scaffold }), PORT)
     expect(res.status).toBe(200)
-    const data = await res.json() as { ok: boolean }
+    const data = (await res.json()) as { ok: boolean }
     expect(data.ok).toBe(true)
     // Verificación de disco — el autosave del dashboard debe materializar el
     // archivo, no solo pretender que lo guardó.

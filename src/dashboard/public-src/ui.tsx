@@ -12,20 +12,25 @@
  * UI.0 — el dashboard tiene que quedar idéntico.
  */
 import './styles/ui.css'
-import { createRoot } from 'react-dom/client'
 import { createElement } from 'react'
-import { registerIsland, mountIslands, installIslandBridge, startIslandObserver } from './lib/islands.ts'
+import { createRoot } from 'react-dom/client'
 import { LangProbe } from './islands/LangProbe.tsx'
 import { ModelCombo } from './islands/ModelCombo.tsx'
-import { Toaster } from './islands/Toaster.tsx'
-import { UiKitProbe } from './islands/UiKitProbe.tsx'
-import { Sidebar } from './islands/shell/Sidebar.tsx'
+import { SkillsScreen } from './islands/screens/SkillsScreen.tsx'
+import { SpecsScreen } from './islands/screens/SpecsScreen.tsx'
 import { Header } from './islands/shell/Header.tsx'
 import { RightPanelToprow } from './islands/shell/RightPanelToprow.tsx'
-import { SpecsScreen } from './islands/screens/SpecsScreen.tsx'
-import { SkillsScreen } from './islands/screens/SkillsScreen.tsx'
-import { setShellState } from './lib/shell-store.ts'
+import { Sidebar } from './islands/shell/Sidebar.tsx'
+import { Toaster } from './islands/Toaster.tsx'
+import { UiKitProbe } from './islands/UiKitProbe.tsx'
 import { bumpAppState } from './lib/app-state.ts'
+import {
+  installIslandBridge,
+  mountIslands,
+  registerIsland,
+  startIslandObserver,
+} from './lib/islands.ts'
+import { setShellState } from './lib/shell-store.ts'
 import { pushToast } from './lib/toast-store.ts'
 
 registerIsland('lang-probe', LangProbe)
@@ -56,7 +61,10 @@ function ensureProbeContainer(): void {
   const params = new URLSearchParams(location.search)
   const main = document.getElementById('main')
   if (!main) return
-  for (const [flag, island] of [['island-probe', 'lang-probe'], ['ui-probe', 'ui-kit-probe']] as const) {
+  for (const [flag, island] of [
+    ['island-probe', 'lang-probe'],
+    ['ui-probe', 'ui-kit-probe'],
+  ] as const) {
     if (!params.has(flag)) continue
     if (main.querySelector(`[data-island="${island}"]`)) continue
     const host = document.createElement('div')

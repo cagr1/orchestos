@@ -12,7 +12,10 @@ export interface Worktree {
 
 export type MergeStrategy = 'commit' | 'squash' | 'discard'
 
-export function git(args: string[], cwd: string): { exitCode: number; stdout: string; stderr: string } {
+export function git(
+  args: string[],
+  cwd: string,
+): { exitCode: number; stdout: string; stderr: string } {
   const proc = Bun.spawnSync(['git', ...args], { cwd })
   return {
     exitCode: proc.exitCode,
@@ -25,7 +28,12 @@ export function createWorktree(taskId: string, baseBranch: string, projectRoot: 
   const timestamp = Date.now()
   const sanitizedTaskId = taskId.replace(/[^a-z0-9-]/gi, '_').toLowerCase()
   const branch = `orchestos/${sanitizedTaskId}/${timestamp}`
-  const worktreeDir = join(projectRoot, '.orchestos', 'worktrees', `${sanitizedTaskId}-${timestamp}`)
+  const worktreeDir = join(
+    projectRoot,
+    '.orchestos',
+    'worktrees',
+    `${sanitizedTaskId}-${timestamp}`,
+  )
 
   if (!existsSync(join(projectRoot, '.git'))) {
     throw new Error(`Not a git repository: ${projectRoot}`)
@@ -34,7 +42,9 @@ export function createWorktree(taskId: string, baseBranch: string, projectRoot: 
   // ensure baseBranch exists locally
   const branchCheck = git(['rev-parse', '--verify', baseBranch], projectRoot)
   if (branchCheck.exitCode !== 0) {
-    throw new Error(`Base branch "${baseBranch}" does not exist locally. Available branches:\n${git(['branch'], projectRoot).stdout}`)
+    throw new Error(
+      `Base branch "${baseBranch}" does not exist locally. Available branches:\n${git(['branch'], projectRoot).stdout}`,
+    )
   }
 
   // create branch from baseBranch
@@ -102,11 +112,19 @@ export function createWorktree(taskId: string, baseBranch: string, projectRoot: 
 // worktree remove, branch -D) — el mismo repo/working-dir que los auto-commits
 // de tasks.yaml (D.5/D.7) y que OTRO merge-back concurrente. `withGitLock`
 // serializa contra ambos (ver git-lock.ts para la causa raíz que esto cierra).
-export function mergeWorktreeBack(worktree: Worktree, strategy: MergeStrategy, message?: string): void {
+export function mergeWorktreeBack(
+  worktree: Worktree,
+  strategy: MergeStrategy,
+  message?: string,
+): void {
   withGitLock(worktree.projectRoot, () => mergeWorktreeBackLocked(worktree, strategy, message))
 }
 
-function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, message?: string): void {
+function mergeWorktreeBackLocked(
+  worktree: Worktree,
+  strategy: MergeStrategy,
+  message?: string,
+): void {
   if (strategy === 'discard') {
     worktree.cleanup()
     return
@@ -117,7 +135,8 @@ function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, me
   // sale como `??` en el status pese al `.gitignore` (el patrón con slash no
   // matchea un symlink), y el `git add -A` de abajo lo commitearía al branch
   // real — un side effect serio, no cosmético.
-  const hasChanges = git(['status', '--porcelain', '--', '.', ':!node_modules'], worktree.path).stdout.length > 0
+  const hasChanges =
+    git(['status', '--porcelain', '--', '.', ':!node_modules'], worktree.path).stdout.length > 0
 
   if (hasChanges) {
     const add = git(['add', '-A', '--', '.', ':!node_modules'], worktree.path)
@@ -145,7 +164,8 @@ function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, me
 
   // switch to baseBranch in the main repo and merge
   const checkout = git(['checkout', worktree.baseBranch], worktree.projectRoot)
-  if (checkout.exitCode !== 0) throw new Error(`git checkout ${worktree.baseBranch} failed: ${checkout.stderr}`)
+  if (checkout.exitCode !== 0)
+    throw new Error(`git checkout ${worktree.baseBranch} failed: ${checkout.stderr}`)
 
   if (strategy === 'commit') {
     const merge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
@@ -155,7 +175,10 @@ function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, me
       const rebase = git(['rebase', worktree.baseBranch], worktree.path)
       if (rebase.exitCode === 0) {
         const retry = git(['checkout', worktree.baseBranch], worktree.projectRoot)
-        if (retry.exitCode !== 0) throw new Error(`git checkout ${worktree.baseBranch} failed after rebase: ${retry.stderr}`)
+        if (retry.exitCode !== 0)
+          throw new Error(
+            `git checkout ${worktree.baseBranch} failed after rebase: ${retry.stderr}`,
+          )
         const retryMerge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
         if (retryMerge.exitCode !== 0) {
           // Mes 22/E.7 — antes esto descartaba retryMerge.stderr por completo:
@@ -164,40 +187,42 @@ function mergeWorktreeBackLocked(worktree: Worktree, strategy: MergeStrategy, me
           // real de contenido). Ahora el mensaje real de git queda en el error.
           throw new Error(
             `git merge ${worktree.branch} failed after rebase — retry ff-only said: ${retryMerge.stderr || '(sin stderr)'}\n` +
-            `(primer intento ff-only: ${merge.stderr || '(sin stderr)'})\n` +
-            `Fix manually:\n` +
-            `  cd ${worktree.path}\n` +
-            `  git rebase --abort  # if needed\n` +
-            `  git checkout ${worktree.baseBranch}\n` +
-            `  git merge ${worktree.branch}\n` +
-            `  git branch -D ${worktree.branch}\n` +
-            `  git worktree remove --force ${worktree.path}`
+              `(primer intento ff-only: ${merge.stderr || '(sin stderr)'})\n` +
+              `Fix manually:\n` +
+              `  cd ${worktree.path}\n` +
+              `  git rebase --abort  # if needed\n` +
+              `  git checkout ${worktree.baseBranch}\n` +
+              `  git merge ${worktree.branch}\n` +
+              `  git branch -D ${worktree.branch}\n` +
+              `  git worktree remove --force ${worktree.path}`,
           )
         }
       } else {
         // rebase failed — give clear manual instructions
         throw new Error(
           `git merge --ff-only and rebase both failed for branch ${worktree.branch}. ` +
-          `Fix manually:\n` +
-          `  cd ${worktree.path}\n` +
-          `  git rebase --abort  # if in-progress\n` +
-          `  # resolve conflicts manually, then:\n` +
-          `  git checkout ${worktree.baseBranch}\n` +
-          `  git merge ${worktree.branch}\n` +
-          `  git branch -D ${worktree.branch}\n` +
-          `  git worktree remove --force ${worktree.path}\n` +
-          `Rebase error: ${rebase.stderr}`
+            `Fix manually:\n` +
+            `  cd ${worktree.path}\n` +
+            `  git rebase --abort  # if in-progress\n` +
+            `  # resolve conflicts manually, then:\n` +
+            `  git checkout ${worktree.baseBranch}\n` +
+            `  git merge ${worktree.branch}\n` +
+            `  git branch -D ${worktree.branch}\n` +
+            `  git worktree remove --force ${worktree.path}\n` +
+            `Rebase error: ${rebase.stderr}`,
         )
       }
     }
   } else if (strategy === 'squash') {
     const merge = git(['merge', '--squash', worktree.branch], worktree.projectRoot)
-    if (merge.exitCode !== 0) throw new Error(`git merge --squash ${worktree.branch} failed: ${merge.stderr}`)
+    if (merge.exitCode !== 0)
+      throw new Error(`git merge --squash ${worktree.branch} failed: ${merge.stderr}`)
 
     if (hasChanges) {
       const commitMsg = message ?? `orchestos: squashed changes from ${worktree.branch}`
       const commitSquash = git(['commit', '-m', commitMsg], worktree.projectRoot)
-      if (commitSquash.exitCode !== 0) throw new Error(`git commit (squash) failed: ${commitSquash.stderr}`)
+      if (commitSquash.exitCode !== 0)
+        throw new Error(`git commit (squash) failed: ${commitSquash.stderr}`)
     }
   }
 

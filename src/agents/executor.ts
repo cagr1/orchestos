@@ -14,14 +14,14 @@
  * withRateLimitRetry wraps the runTask call for transient 429 errors (S22.8).
  */
 
-import { buildIsolatedContext } from './context-isolation.ts'
-import { withRateLimitRetry } from './hardening.ts'
+import type { TaskResult } from '../run/harness.ts'
 import { runTask } from '../run/harness.ts'
 import { RunLogger } from '../run/logger.ts'
 import type { Worktree } from '../run/sandbox.ts'
-import type { SubTask, SubagentResult } from './sub-agent.ts'
 import type { Task, TaskExecutor } from '../tasks/schema.ts'
-import type { TaskResult } from '../run/harness.ts'
+import { buildIsolatedContext } from './context-isolation.ts'
+import { withRateLimitRetry } from './hardening.ts'
+import type { SubagentResult, SubTask } from './sub-agent.ts'
 
 // ---------------------------------------------------------------------------
 // Options
@@ -78,7 +78,7 @@ export async function executeSubTask(
         logger,
         sandboxMode: 'cwd',
         projectId: opts.projectId,
-      })
+      }),
     )
   } catch (e: any) {
     const elapsed = Math.round(performance.now() - t0)
@@ -134,19 +134,19 @@ export async function executeSubTask(
 
 function subTaskToTask(st: SubTask, opts: ExecutorOpts): Task {
   return {
-    id:               st.id,
-    description:      st.description,
-    skill:            st.skill,
-    executor:         st.executor ?? opts.parentExecutor ?? 'openrouter',
-    executor_model:   st.executor_model ?? opts.parentModel,
-    input:            st.input ?? [],
-    output:           st.output ?? [],
+    id: st.id,
+    description: st.description,
+    skill: st.skill,
+    executor: st.executor ?? opts.parentExecutor ?? 'openrouter',
+    executor_model: st.executor_model ?? opts.parentModel,
+    input: st.input ?? [],
+    output: st.output ?? [],
     acceptance_criteria: st.acceptance,
-    checks:           st.checks,
-    depends_on:       [],           // DAG already handled by scheduler
-    status:           'pending',
-    retry_count:      st.retry_count,
-    retry_reason:     st.retry_reason,
+    checks: st.checks,
+    depends_on: [], // DAG already handled by scheduler
+    status: 'pending',
+    retry_count: st.retry_count,
+    retry_reason: st.retry_reason,
   }
 }
 
@@ -157,12 +157,12 @@ function subTaskToTask(st: SubTask, opts: ExecutorOpts): Task {
 function mapResult(st: SubTask, r: TaskResult, elapsedMs: number, model?: string): SubagentResult {
   const base = {
     sub_task_id: st.id,
-    model:       model ?? st.executor_model,
-    usd_cost:    r.cost.usd,
-    tokens:      { input: r.cost.inputTokens, output: r.cost.outputTokens },
-    elapsed_ms:  elapsedMs,
+    model: model ?? st.executor_model,
+    usd_cost: r.cost.usd,
+    tokens: { input: r.cost.inputTokens, output: r.cost.outputTokens },
+    elapsed_ms: elapsedMs,
     files_written: r.filesWritten,
-    qa_verdict:  r.qaVerdict as SubagentResult['qa_verdict'],
+    qa_verdict: r.qaVerdict as SubagentResult['qa_verdict'],
   }
 
   if (r.status === 'done') {

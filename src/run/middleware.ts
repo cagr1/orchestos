@@ -14,13 +14,13 @@
  * cortocircuitar (patrón: spec-gate lanza, sandbox-setup en dry-run salta).
  */
 
-import type { Task } from '../tasks/schema.ts'
-import type { TaskClass } from '../router/classify.ts'
-import type { ProviderClient } from '../providers/index.ts'
-import type { Worktree } from './sandbox.ts'
 import type { ContextWarning } from '../hooks/context-monitor.ts'
-import type { BuiltPrompt } from './prompt.ts'
+import type { ProviderClient } from '../providers/index.ts'
+import type { TaskClass } from '../router/classify.ts'
+import type { Task } from '../tasks/schema.ts'
 import type { HarnessOpts } from './harness.ts'
+import type { BuiltPrompt } from './prompt.ts'
+import type { Worktree } from './sandbox.ts'
 
 // -- core types ----------------------------------------------------------------
 
@@ -34,8 +34,13 @@ export interface MiddlewareChain<TCtx> {
 export function createChain<TCtx>(): MiddlewareChain<TCtx> {
   const fns: MiddlewareFn<TCtx>[] = []
   return {
-    use(fn) { fns.push(fn); return this },
-    run(ctx)  { return compose(fns, ctx, 0) },
+    use(fn) {
+      fns.push(fn)
+      return this
+    },
+    run(ctx) {
+      return compose(fns, ctx, 0)
+    },
   }
 }
 
@@ -146,24 +151,24 @@ export type EnrichmentMiddlewareName = (typeof ENRICHMENT_MIDDLEWARE_ORDER)[numb
 export function createRunContext(opts: HarnessOpts): RunContext {
   return {
     opts,
-    taskClass:        'implement' as TaskClass,
-    model:            '',
-    providerName:     '',
-    provider:         null as unknown as ProviderClient,
-    task:             opts.task,
-    embedHits:        0,
-    skillInstructions:'',
-    roadmapInstructions:'',
+    taskClass: 'implement' as TaskClass,
+    model: '',
+    providerName: '',
+    provider: null as unknown as ProviderClient,
+    task: opts.task,
+    embedHits: 0,
+    skillInstructions: '',
+    roadmapInstructions: '',
     roadmapBlockReason: null,
-    constitutionBlock:'',
-    constitutionRules:null,
+    constitutionBlock: '',
+    constitutionRules: null,
     effectiveContext: opts.contextText,
-    contextSource:    'AGENTS.md',
-    contextTokens:    Math.round(opts.contextText.length / 4),
-    effectiveRoot:    opts.projectRoot,
-    worktree:         null,
-    instinctBlock:    '',
-    prompt:           { system: '', userContent: '' },
-    contextWarnings:  [],
+    contextSource: 'AGENTS.md',
+    contextTokens: Math.round(opts.contextText.length / 4),
+    effectiveRoot: opts.projectRoot,
+    worktree: null,
+    instinctBlock: '',
+    prompt: { system: '', userContent: '' },
+    contextWarnings: [],
   }
 }

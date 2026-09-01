@@ -5,10 +5,9 @@ export async function chat(opts: {
   system: string
   messages: ChatMessage[]
 }): Promise<ChatResponse> {
-  const prompt = [
-    opts.system,
-    ...opts.messages.map(m => `## ${m.role}\n${m.content}`),
-  ].join('\n\n')
+  const prompt = [opts.system, ...opts.messages.map((m) => `## ${m.role}\n${m.content}`)].join(
+    '\n\n',
+  )
 
   const proc = Bun.spawn(['codex', 'exec', '--json', prompt], {
     stdout: 'pipe',

@@ -1,7 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
-import { topoSort, validateSubTaskPlan, type SubTaskPlan } from '../../src/agents/sub-task-schema.ts'
-import { createSubTask } from '../../src/agents/sub-agent.ts'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import { createPlan } from '../../src/agents/planner.ts'
+import { createSubTask } from '../../src/agents/sub-agent.ts'
+import {
+  type SubTaskPlan,
+  topoSort,
+  validateSubTaskPlan,
+} from '../../src/agents/sub-task-schema.ts'
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -11,9 +16,30 @@ function validPlan(overrides?: Partial<SubTaskPlan>): SubTaskPlan {
     version: 1,
     parent_task_id: 'test-plan',
     sub_tasks: [
-      { id: 'step-a', description: 'Step A', acceptance: ['A works'], depends_on: [], allowed_tools: ['read', 'write', 'edit'], output: ['a.txt'] },
-      { id: 'step-b', description: 'Step B', acceptance: ['B works'], depends_on: ['step-a'], allowed_tools: ['read', 'write', 'edit'], output: ['b.txt'] },
-      { id: 'step-c', description: 'Step C', acceptance: ['C works'], depends_on: ['step-b'], allowed_tools: ['read', 'write', 'edit'], output: ['c.txt'] },
+      {
+        id: 'step-a',
+        description: 'Step A',
+        acceptance: ['A works'],
+        depends_on: [],
+        allowed_tools: ['read', 'write', 'edit'],
+        output: ['a.txt'],
+      },
+      {
+        id: 'step-b',
+        description: 'Step B',
+        acceptance: ['B works'],
+        depends_on: ['step-a'],
+        allowed_tools: ['read', 'write', 'edit'],
+        output: ['b.txt'],
+      },
+      {
+        id: 'step-c',
+        description: 'Step C',
+        acceptance: ['C works'],
+        depends_on: ['step-b'],
+        allowed_tools: ['read', 'write', 'edit'],
+        output: ['c.txt'],
+      },
     ],
     ...overrides,
   }
@@ -44,50 +70,54 @@ describe('S22.7 (a) — cascade on linear failure', () => {
     const plan = validPlan()
     const planResult = validateSubTaskPlan(plan)
     const sorted = topoSort(planResult.sub_tasks)
-    const subTasks = sorted.map(def => createSubTask(def))
+    const subTasks = sorted.map((def) => createSubTask(def))
 
-    const result = await executePlan(subTasks, {
-      parentTaskId: 'test-plan',
-      projectRoot: root,
-      baseBranch: 'main',
-    }, async (st, _wt) => {
-      // step-b fails
-      if (st.id === 'step-b') {
+    const result = await executePlan(
+      subTasks,
+      {
+        parentTaskId: 'test-plan',
+        projectRoot: root,
+        baseBranch: 'main',
+      },
+      async (st, _wt) => {
+        // step-b fails
+        if (st.id === 'step-b') {
+          return {
+            sub_task_id: st.id,
+            status: 'failed' as const,
+            error: 'intentional failure',
+            usd_cost: 0.01,
+            tokens: { input: 100, output: 50 },
+            elapsed_ms: 100,
+            files_written: [],
+            qa_verdict: 'fail',
+          }
+        }
+        // others succeed
         return {
           sub_task_id: st.id,
-          status: 'failed' as const,
-          error: 'intentional failure',
+          status: 'completed' as const,
+          result: 'ok',
           usd_cost: 0.01,
           tokens: { input: 100, output: 50 },
           elapsed_ms: 100,
-          files_written: [],
-          qa_verdict: 'fail',
+          files_written: [`${st.id}.txt`],
+          qa_verdict: 'pass',
         }
-      }
-      // others succeed
-      return {
-        sub_task_id: st.id,
-        status: 'completed' as const,
-        result: 'ok',
-        usd_cost: 0.01,
-        tokens: { input: 100, output: 50 },
-        elapsed_ms: 100,
-        files_written: [`${st.id}.txt`],
-        qa_verdict: 'pass',
-      }
-    })
+      },
+    )
 
     // step-a passes
-    const a = result.sub_tasks.find(l => l.id === 'step-a')
+    const a = result.sub_tasks.find((l) => l.id === 'step-a')
     expect(a?.status).toBe('completed')
 
     // step-b fails
-    const b = result.sub_tasks.find(l => l.id === 'step-b')
+    const b = result.sub_tasks.find((l) => l.id === 'step-b')
     expect(b?.status).toBe('failed')
     expect(b?.error).toBe('intentional failure')
 
     // step-c is skipped due to cascade
-    const c = result.sub_tasks.find(l => l.id === 'step-c')
+    const c = result.sub_tasks.find((l) => l.id === 'step-c')
     expect(c?.status).toBe('skipped')
     expect(c?.error).toContain('dependency failed')
 
@@ -108,9 +138,30 @@ describe('S22.7 (b) — non-linear DAG topological order', () => {
       version: 1,
       parent_task_id: 'test-dag',
       sub_tasks: [
-        { id: 'step-c', description: 'C', acceptance: ['C works'], depends_on: ['step-a'], allowed_tools: ['read'], output: ['c.txt'] },
-        { id: 'step-a', description: 'A', acceptance: ['A works'], depends_on: [], allowed_tools: ['read'], output: ['a.txt'] },
-        { id: 'step-b', description: 'B', acceptance: ['B works'], depends_on: ['step-a'], allowed_tools: ['read'], output: ['b.txt'] },
+        {
+          id: 'step-c',
+          description: 'C',
+          acceptance: ['C works'],
+          depends_on: ['step-a'],
+          allowed_tools: ['read'],
+          output: ['c.txt'],
+        },
+        {
+          id: 'step-a',
+          description: 'A',
+          acceptance: ['A works'],
+          depends_on: [],
+          allowed_tools: ['read'],
+          output: ['a.txt'],
+        },
+        {
+          id: 'step-b',
+          description: 'B',
+          acceptance: ['B works'],
+          depends_on: ['step-a'],
+          allowed_tools: ['read'],
+          output: ['b.txt'],
+        },
       ],
     }
 
@@ -121,9 +172,9 @@ describe('S22.7 (b) — non-linear DAG topological order', () => {
     expect(sorted[0]?.id).toBe('step-a')
 
     // B and C come after A, order between them is undefined but both valid
-    const aIdx = sorted.findIndex(s => s.id === 'step-a')
-    const bIdx = sorted.findIndex(s => s.id === 'step-b')
-    const cIdx = sorted.findIndex(s => s.id === 'step-c')
+    const aIdx = sorted.findIndex((s) => s.id === 'step-a')
+    const bIdx = sorted.findIndex((s) => s.id === 'step-b')
+    const cIdx = sorted.findIndex((s) => s.id === 'step-c')
     expect(aIdx).toBeLessThan(bIdx)
     expect(aIdx).toBeLessThan(cIdx)
   })
@@ -133,8 +184,22 @@ describe('S22.7 (b) — non-linear DAG topological order', () => {
       version: 1,
       parent_task_id: 'test-cycle',
       sub_tasks: [
-        { id: 'a', description: 'A', acceptance: ['A'], depends_on: ['b'], allowed_tools: ['read'], output: ['a.txt'] },
-        { id: 'b', description: 'B', acceptance: ['B'], depends_on: ['a'], allowed_tools: ['read'], output: ['b.txt'] },
+        {
+          id: 'a',
+          description: 'A',
+          acceptance: ['A'],
+          depends_on: ['b'],
+          allowed_tools: ['read'],
+          output: ['a.txt'],
+        },
+        {
+          id: 'b',
+          description: 'B',
+          acceptance: ['B'],
+          depends_on: ['a'],
+          allowed_tools: ['read'],
+          output: ['b.txt'],
+        },
       ],
     }
     expect(() => validateSubTaskPlan(plan)).toThrow('cycle')
@@ -188,7 +253,7 @@ describe('S22.7 (c) — topic_key merge on re-execution', () => {
 
     const session = listByScope('p1', 'session')
     expect(session.length).toBeGreaterThanOrEqual(1)
-    expect(session.find(e => e.topic_key === 'topic-a')).toBeTruthy()
+    expect(session.find((e) => e.topic_key === 'topic-a')).toBeTruthy()
   })
 })
 
@@ -202,7 +267,14 @@ describe('S22.7 (d) — allowed_tools enforcement', () => {
       version: 1,
       parent_task_id: 'test-tools',
       sub_tasks: [
-        { id: 'bad-tools', description: 'bad', acceptance: ['x'], depends_on: [], allowed_tools: ['read', 'invalid-tool'], output: ['x.txt'] },
+        {
+          id: 'bad-tools',
+          description: 'bad',
+          acceptance: ['x'],
+          depends_on: [],
+          allowed_tools: ['read', 'invalid-tool'],
+          output: ['x.txt'],
+        },
       ],
     }
     expect(() => validateSubTaskPlan(plan)).toThrow('invalid tool')
@@ -213,7 +285,14 @@ describe('S22.7 (d) — allowed_tools enforcement', () => {
       version: 1,
       parent_task_id: 'test-tools',
       sub_tasks: [
-        { id: 'no-tools', description: 'no tools', acceptance: ['x'], depends_on: [], allowed_tools: [], output: ['x.txt'] },
+        {
+          id: 'no-tools',
+          description: 'no tools',
+          acceptance: ['x'],
+          depends_on: [],
+          allowed_tools: [],
+          output: ['x.txt'],
+        },
       ],
     }
     // Should validate successfully

@@ -1,15 +1,15 @@
-import type { SubTask, SubagentResult } from '../agents/sub-agent.ts'
-import { TERMINAL_STATUSES } from '../agents/sub-agent.ts'
 import { commitTopicKey } from '../agents/context-isolation.ts'
 import {
   createWorktreeWithRetry,
-  withSubTaskTimeout,
-  ToolCallLimitError,
   DEFAULT_SUB_TASK_TIMEOUT_MS,
+  ToolCallLimitError,
+  withSubTaskTimeout,
 } from '../agents/hardening.ts'
+import type { SubagentResult, SubTask } from '../agents/sub-agent.ts'
+import { TERMINAL_STATUSES } from '../agents/sub-agent.ts'
 import type { TaskExecutor } from '../tasks/schema.ts'
-import { mergeWorktreeBack } from './sandbox.ts'
 import type { Worktree } from './sandbox.ts'
+import { mergeWorktreeBack } from './sandbox.ts'
 
 // ---------------------------------------------------------------------------
 // Scheduler result
@@ -91,9 +91,9 @@ export async function executePlan(
 
   for (const st of subTasks) {
     // S22.5 — cascade: skip if a dependency failed
-    if (st.depends_on.some(dep => failedIds.has(dep))) {
+    if (st.depends_on.some((dep) => failedIds.has(dep))) {
       st.status = 'skipped'
-      const depNames = st.depends_on.filter(d => failedIds.has(d)).join(', ')
+      const depNames = st.depends_on.filter((d) => failedIds.has(d)).join(', ')
       const reason = `dependency failed: ${depNames}`
       logs.push({
         id: st.id,

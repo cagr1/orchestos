@@ -29,13 +29,18 @@ import { chromium } from 'playwright'
 
 const BASE = process.env.BASE || 'http://localhost:4324'
 const out = []
-const log = (ok, msg) => { out.push(`${ok ? 'PASS' : 'FAIL'} — ${msg}`); if (!ok) process.exitCode = 1 }
+const log = (ok, msg) => {
+  out.push(`${ok ? 'PASS' : 'FAIL'} — ${msg}`)
+  if (!ok) process.exitCode = 1
+}
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
 const errors = []
-page.on('console', m => { if (m.type() === 'error') errors.push(m.text()) })
-page.on('pageerror', e => errors.push(String(e)))
+page.on('console', (m) => {
+  if (m.type() === 'error') errors.push(m.text())
+})
+page.on('pageerror', (e) => errors.push(String(e)))
 
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.waitForTimeout(1500)
@@ -46,13 +51,22 @@ await page.waitForTimeout(1500)
 // entrada en `diagnoseCache`, más `openDiagnose` para que la fila salga desplegada.
 await page.evaluate(() => {
   const taskId = 'gate-ui1b-diagnose'
-  window.state.tasks = [{
-    id: taskId, description: 'tarea sembrada por el gate UI.1b', status: 'failed',
-    retryCount: 1, model: 'deepseek/deepseek-v4-flash', qaVerdict: null,
-  }]
+  window.state.tasks = [
+    {
+      id: taskId,
+      description: 'tarea sembrada por el gate UI.1b',
+      status: 'failed',
+      retryCount: 1,
+      model: 'deepseek/deepseek-v4-flash',
+      qaVerdict: null,
+    },
+  ]
   window.state.diagnoseCache[taskId] = {
-    taskId, pattern: 'deterministic_check', confidence: 'high',
-    suggestion: 'sembrado por el gate', details: 'sembrado por el gate',
+    taskId,
+    pattern: 'deterministic_check',
+    confidence: 'high',
+    suggestion: 'sembrado por el gate',
+    details: 'sembrado por el gate',
     lastErrorResult: 'error sembrado',
   }
   window.state.openDiagnose = taskId
@@ -63,14 +77,19 @@ await page.waitForTimeout(900)
 const diagIsland = page.locator('.diag-actions [data-island="model-combo"]')
 await diagIsland.waitFor({ state: 'visible', timeout: 8000 })
 log(true, 'call site 4/5 `diagnose-model`: la isla React monta dentro del panel de diagnóstico')
-log(await page.evaluate(() => document.getElementById('diagnose-model') instanceof HTMLInputElement),
-  'diagnose-model: el hidden input existe con su id — el contrato que lee `screens-core.js:1454`')
+log(
+  await page.evaluate(() => document.getElementById('diagnose-model') instanceof HTMLInputElement),
+  'diagnose-model: el hidden input existe con su id — el contrato que lee `screens-core.js:1454`',
+)
 
 // Se elige de verdad, con el panel real, y se comprueba que el valor queda donde el
 // consumidor lo busca (`btn.closest('.diag-actions').querySelector('#diagnose-model')`).
 await diagIsland.locator('button').first().click()
 await page.locator('[cmdk-root]').waitFor({ state: 'visible', timeout: 5000 })
-log(await page.locator('[cmdk-input]').isVisible(), 'diagnose-model: abre el panel buscable, no un <select> nativo')
+log(
+  await page.locator('[cmdk-input]').isVisible(),
+  'diagnose-model: abre el panel buscable, no un <select> nativo',
+)
 await page.locator('[cmdk-item]').nth(1).click()
 await page.waitForTimeout(400)
 const diagValue = await page.evaluate(() => {
@@ -78,7 +97,10 @@ const diagValue = await page.evaluate(() => {
   const btn = document.querySelector('.diag-actions [data-act="retry"]')
   return btn?.closest('.diag-actions')?.querySelector('#diagnose-model')?.value ?? null
 })
-log(!!diagValue, `diagnose-model: elegir escribe el valor donde el handler de reintento lo busca ("${diagValue}")`)
+log(
+  !!diagValue,
+  `diagnose-model: elegir escribe el valor donde el handler de reintento lo busca ("${diagValue}")`,
+)
 
 // ── CALL SITE 5/5 — `draft-model`, en el composer de draft de Tasks ─────────
 // Vive dentro del <details> "Ajustes avanzados" del preview de draft natural, en la
@@ -86,8 +108,11 @@ log(!!diagValue, `diagnose-model: elegir escribe el valor donde el handler de re
 // draft y se abre el details con `draftAdvancedOpen`, que es el flag que el render lee.
 await page.evaluate(() => {
   window.state.naturalDraft = {
-    id: 'gate-ui1b-draft', description: 'draft sembrado por el gate UI.1b',
-    output: [], executor: 'openrouter', executor_model: 'deepseek/deepseek-v4-flash',
+    id: 'gate-ui1b-draft',
+    description: 'draft sembrado por el gate UI.1b',
+    output: [],
+    executor: 'openrouter',
+    executor_model: 'deepseek/deepseek-v4-flash',
   }
   window.state.draftAdvancedOpen = true
   window.state.openDiagnose = null
@@ -95,16 +120,24 @@ await page.evaluate(() => {
 })
 await page.waitForTimeout(900)
 
-const draftIsland = page.locator('[data-island="model-combo"]').filter({ has: page.locator('#draft-model') })
+const draftIsland = page
+  .locator('[data-island="model-combo"]')
+  .filter({ has: page.locator('#draft-model') })
 await draftIsland.first().waitFor({ state: 'attached', timeout: 8000 })
 log(true, 'call site 5/5 `draft-model`: la isla React monta dentro del composer de draft')
-const draftInitial = await page.evaluate(() => document.getElementById('draft-model')?.value ?? null)
-log(draftInitial === 'deepseek/deepseek-v4-flash',
-  `draft-model: arranca con el modelo del draft, no con un default fijo ("${draftInitial}")`)
+const draftInitial = await page.evaluate(
+  () => document.getElementById('draft-model')?.value ?? null,
+)
+log(
+  draftInitial === 'deepseek/deepseek-v4-flash',
+  `draft-model: arranca con el modelo del draft, no con un default fijo ("${draftInitial}")`,
+)
 
 // El combo puede estar dentro de un <details> colapsado ("Ajustes avanzados"): se abre.
 await page.evaluate(() => {
-  document.querySelectorAll('details').forEach(d => { d.open = true })
+  document.querySelectorAll('details').forEach((d) => {
+    d.open = true
+  })
 })
 await page.waitForTimeout(400)
 await draftIsland.locator('button').first().click()
@@ -112,17 +145,24 @@ await page.locator('[cmdk-root]').waitFor({ state: 'visible', timeout: 5000 })
 await page.locator('[cmdk-item]').nth(2).click()
 await page.waitForTimeout(400)
 const draftValue = await page.evaluate(() => document.getElementById('draft-model')?.value ?? null)
-log(!!draftValue && draftValue !== draftInitial,
-  `draft-model: elegir cambia el valor que leen las dos rutas de creación ("${draftInitial}" → "${draftValue}")`)
+log(
+  !!draftValue && draftValue !== draftInitial,
+  `draft-model: elegir cambia el valor que leen las dos rutas de creación ("${draftInitial}" → "${draftValue}")`,
+)
 
 // La selección tiene que sobrevivir al poll de 30s, igual que en Settings.
 await page.evaluate(() => window.App.rerender())
 await page.waitForTimeout(600)
 const draftAfter = await page.evaluate(() => document.getElementById('draft-model')?.value ?? null)
-log(draftAfter === draftValue,
-  `draft-model: la selección sobrevive a App.rerender() ("${draftValue}" → "${draftAfter}")`)
+log(
+  draftAfter === draftValue,
+  `draft-model: la selección sobrevive a App.rerender() ("${draftValue}" → "${draftAfter}")`,
+)
 
-log(errors.length === 0, `sin errores de consola en toda la corrida (${errors.join(' | ') || 'ninguno'})`)
+log(
+  errors.length === 0,
+  `sin errores de consola en toda la corrida (${errors.join(' | ') || 'ninguno'})`,
+)
 
 await page.screenshot({ path: 'ui1b-callsites.png' })
 await browser.close()

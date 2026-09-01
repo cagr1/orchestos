@@ -49,7 +49,7 @@ function parseOcrUsed(value: string | null): string[] {
   if (!value) return []
   try {
     const parsed: unknown = JSON.parse(value)
-    return Array.isArray(parsed) && parsed.every(item => typeof item === 'string') ? parsed : []
+    return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string') ? parsed : []
   } catch {
     return []
   }
@@ -79,15 +79,17 @@ export function createChatSession(input: CreateChatSessionInput): ChatSessionRec
 }
 
 export function listChatSessions(): ChatSessionRecord[] {
-  return db.query<ChatSessionRecord, []>(
-    'SELECT * FROM chat_sessions ORDER BY updated_at DESC, created_at DESC',
-  ).all()
+  return db
+    .query<ChatSessionRecord, []>(
+      'SELECT * FROM chat_sessions ORDER BY updated_at DESC, created_at DESC',
+    )
+    .all()
 }
 
 export function getChatSession(id: string): ChatSessionRecord | null {
-  return db.query<ChatSessionRecord, string>(
-    'SELECT * FROM chat_sessions WHERE id = ?',
-  ).get(id) ?? null
+  return (
+    db.query<ChatSessionRecord, string>('SELECT * FROM chat_sessions WHERE id = ?').get(id) ?? null
+  )
 }
 
 export function updateChatSession(
@@ -97,10 +99,12 @@ export function updateChatSession(
   const current = getChatSession(id)
   if (!current) return null
   const updatedAt = new Date().toISOString()
-  db.run(
-    'UPDATE chat_sessions SET mode = ?, title = ?, updated_at = ? WHERE id = ?',
-    [patch.mode ?? current.mode, patch.title?.trim() ?? current.title, updatedAt, id],
-  )
+  db.run('UPDATE chat_sessions SET mode = ?, title = ?, updated_at = ? WHERE id = ?', [
+    patch.mode ?? current.mode,
+    patch.title?.trim() ?? current.title,
+    updatedAt,
+    id,
+  ])
   return getChatSession(id)
 }
 
@@ -109,9 +113,12 @@ export function deleteChatSession(id: string): boolean {
 }
 
 export function listChatMessages(sessionId: string): ChatMessageRecord[] {
-  return db.query<StoredChatMessage, string>(
-    'SELECT * FROM chat_messages WHERE session_id = ? ORDER BY id ASC',
-  ).all(sessionId).map(mapMessage)
+  return db
+    .query<StoredChatMessage, string>(
+      'SELECT * FROM chat_messages WHERE session_id = ? ORDER BY id ASC',
+    )
+    .all(sessionId)
+    .map(mapMessage)
 }
 
 export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageRecord[] {
@@ -126,7 +133,14 @@ export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageR
     db.run(
       `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, created_at)
        VALUES (?, 'assistant', ?, ?, ?, ?, ?)`,
-      [input.sessionId, input.assistantContent, input.model ?? null, input.taskId ?? null, JSON.stringify(input.ocrUsed ?? []), now],
+      [
+        input.sessionId,
+        input.assistantContent,
+        input.model ?? null,
+        input.taskId ?? null,
+        JSON.stringify(input.ocrUsed ?? []),
+        now,
+      ],
     )
     db.run('UPDATE chat_sessions SET updated_at = ? WHERE id = ?', [now, input.sessionId])
   })

@@ -12,32 +12,36 @@ export function buildSections(skill: SkillDef, detectedLanguage?: string): strin
 
   if (skill.when_to_use?.length) {
     sections.push('## When to use')
-    sections.push(...skill.when_to_use.map(w => `- ${w}`))
+    sections.push(...skill.when_to_use.map((w) => `- ${w}`))
   }
 
   if (skill.inputs_required?.length) {
     sections.push('## Inputs required')
-    sections.push(...skill.inputs_required.map(i => `- ${i}`))
+    sections.push(...skill.inputs_required.map((i) => `- ${i}`))
   }
 
   if (skill.anti_patterns?.length) {
     sections.push('## Anti-patterns')
-    sections.push(...skill.anti_patterns.map(a => `- ${a}`))
+    sections.push(...skill.anti_patterns.map((a) => `- ${a}`))
   }
 
   if (skill.common_rationalizations?.length) {
     sections.push('## Common rationalizations')
-    sections.push(...skill.common_rationalizations.map(r => `- Excuse: ${r.excuse} → Refutation: ${r.refutation}`))
+    sections.push(
+      ...skill.common_rationalizations.map(
+        (r) => `- Excuse: ${r.excuse} → Refutation: ${r.refutation}`,
+      ),
+    )
   }
 
   if (skill.red_flags?.length) {
     sections.push('## Red flags')
-    sections.push(...skill.red_flags.map(f => `- ${f}`))
+    sections.push(...skill.red_flags.map((f) => `- ${f}`))
   }
 
   if (skill.verifiers?.length) {
     sections.push('## Verifiers')
-    sections.push(...skill.verifiers.map(v => `Run after applying: \`${v}\``))
+    sections.push(...skill.verifiers.map((v) => `Run after applying: \`${v}\``))
   }
 
   if (skill.examples?.length) {
@@ -55,11 +59,11 @@ export function buildSections(skill: SkillDef, detectedLanguage?: string): strin
       sections.push('## Language-specific guidance')
       if (langTarget.verifiers?.length) {
         sections.push('### Verifiers')
-        sections.push(...langTarget.verifiers.map(v => `Run after applying: \`${v}\``))
+        sections.push(...langTarget.verifiers.map((v) => `Run after applying: \`${v}\``))
       }
       if (langTarget.anti_patterns?.length) {
         sections.push('### Anti-patterns')
-        sections.push(...langTarget.anti_patterns.map(a => `- ${a}`))
+        sections.push(...langTarget.anti_patterns.map((a) => `- ${a}`))
       }
     }
   }

@@ -1,13 +1,14 @@
+import { mkdirSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
-import { mkdirSync, writeFileSync } from 'fs'
 
 const DEFAULT_CACHE_DIR = join(homedir(), '.orchestos', 'cache', 'skills')
 
 // ── autoskills registry (skills.sh curated index via midudev/autoskills) ──────
 
 const REGISTRY_INDEX_URL = 'https://cdn.jsdelivr.net/npm/autoskills/skills-registry/index.json'
-const REGISTRY_RAW_BASE = 'https://raw.githubusercontent.com/midudev/autoskills/main/packages/autoskills/skills-registry'
+const REGISTRY_RAW_BASE =
+  'https://raw.githubusercontent.com/midudev/autoskills/main/packages/autoskills/skills-registry'
 
 interface AutoskillsIndex {
   version: number
@@ -49,7 +50,7 @@ export async function fetchRegistryIndex(): Promise<Record<string, AutoskillsSki
   if (!response.ok) {
     throw new Error(`Failed to fetch registry index: HTTP ${response.status}`)
   }
-  const data = await response.json() as AutoskillsIndex
+  const data = (await response.json()) as AutoskillsIndex
   return data.skills
 }
 
@@ -67,7 +68,7 @@ export async function fetchRegistryList(): Promise<RegistrySkillItem[]> {
     // Derive a human-readable name from the id (kebab-case → Title Case)
     const name = id
       .split('-')
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ')
 
     items.push({
@@ -94,9 +95,7 @@ export async function fetchRegistrySkillContent(id: string): Promise<string> {
   const response = await fetch(url)
 
   if (!response.ok) {
-    throw new Error(
-      `Failed to fetch skill "${id}" from registry: HTTP ${response.status}`
-    )
+    throw new Error(`Failed to fetch skill "${id}" from registry: HTTP ${response.status}`)
   }
 
   return await response.text()
@@ -120,7 +119,7 @@ export async function fetchSkill(language: string, name: string): Promise<string
     const statusText = response.statusText
     throw new Error(
       `Failed to fetch skill "${name}" for language "${language}": ` +
-      `HTTP ${status} ${statusText}`
+        `HTTP ${status} ${statusText}`,
     )
   }
 
@@ -152,22 +151,25 @@ export async function listRemoteSkills(language: string): Promise<string[]> {
     const status = response.status
     const statusText = response.statusText
     throw new Error(
-      `Failed to list skills for language "${language}": ` +
-      `HTTP ${status} ${statusText}`
+      `Failed to list skills for language "${language}": ` + `HTTP ${status} ${statusText}`,
     )
   }
 
-  const data = await response.json() as Array<{ name: string }>
+  const data = (await response.json()) as Array<{ name: string }>
 
   // Filter only .yaml files and strip extension
   return data
-    .filter(item => item.name.endsWith('.yaml'))
-    .map(item => item.name.replace(/\.yaml$/, ''))
+    .filter((item) => item.name.endsWith('.yaml'))
+    .map((item) => item.name.replace(/\.yaml$/, ''))
 }
 
 /**
  * Returns the absolute path where a skill would be cached.
  */
-export function getCachedSkillPath(language: string, name: string, cacheDir: string = DEFAULT_CACHE_DIR): string {
+export function getCachedSkillPath(
+  language: string,
+  name: string,
+  cacheDir: string = DEFAULT_CACHE_DIR,
+): string {
   return join(cacheDir, language, `${name}.yaml`)
 }

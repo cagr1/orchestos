@@ -15,7 +15,7 @@
  * sin levantar el server. Bun.which se override por test para forzar los
  * dos casos sin depender de si la maquina CI tiene `claude` instalado.
  */
-import { describe, it, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 
 const { route } = await import('../server.ts')
 const PORT = 4250
@@ -41,7 +41,7 @@ describe('C.2 — GET /api/system/engines/external/availability', () => {
     ;(Bun as any).which = (_bin: string) => '/usr/local/bin/claude'
     const res = await route(req('GET', '/api/system/engines/external/availability'), PORT)
     expect(res.status).toBe(200)
-    const body = await res.json() as AvailabilityResponse
+    const body = (await res.json()) as AvailabilityResponse
     expect(body.engine).toBe('external')
     expect(body.available).toBe(true)
     expect(body.path).toBe('/usr/local/bin/claude')
@@ -53,7 +53,7 @@ describe('C.2 — GET /api/system/engines/external/availability', () => {
     ;(Bun as any).which = (_bin: string) => null
     const res = await route(req('GET', '/api/system/engines/external/availability'), PORT)
     expect(res.status).toBe(200)
-    const body = await res.json() as AvailabilityResponse
+    const body = (await res.json()) as AvailabilityResponse
     expect(body.engine).toBe('external')
     expect(body.available).toBe(false)
     expect(body.path).toBeNull()
@@ -71,8 +71,8 @@ describe('C.2 — GET /api/system/engines/external/availability', () => {
     ;(Bun as any).which = (_bin: string) => '/opt/homebrew/bin/claude'
     const r1 = await route(req('GET', '/api/system/engines/external/availability'), PORT)
     const r2 = await route(req('GET', '/api/system/engines/external/availability'), PORT)
-    const b1 = await r1.json() as AvailabilityResponse
-    const b2 = await r2.json() as AvailabilityResponse
+    const b1 = (await r1.json()) as AvailabilityResponse
+    const b2 = (await r2.json()) as AvailabilityResponse
     expect(b1).toEqual(b2)
   })
 })

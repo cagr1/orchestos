@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'bun:test'
-import { parseLedgerEntries, aggregateByModel } from './ledger-report.ts'
+import { describe, expect, it } from 'bun:test'
+import { aggregateByModel, parseLedgerEntries } from './ledger-report.ts'
 
 const HEADER = `# LEDGER.md — Responsabilidad de LLMs sobre este repo
 
@@ -14,7 +14,9 @@ describe('parseLedgerEntries', () => {
   })
 
   it('parsea una entrada real completa', () => {
-    const content = HEADER + `
+    const content =
+      HEADER +
+      `
 ## 2026-07-18 14:32 America/Guayaquil — claude-sonnet-5
 
 **Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E)
@@ -26,12 +28,18 @@ describe('parseLedgerEntries', () => {
 `
     const entries = parseLedgerEntries(content)
     expect(entries).toEqual([
-      { when: '2026-07-18 14:32 America/Guayaquil', model: 'claude-sonnet-5', classification: 'REGRESIÓN' },
+      {
+        when: '2026-07-18 14:32 America/Guayaquil',
+        model: 'claude-sonnet-5',
+        classification: 'REGRESIÓN',
+      },
     ])
   })
 
   it('parsea varias entradas de distintos modelos', () => {
-    const content = HEADER + `
+    const content =
+      HEADER +
+      `
 ## 2026-07-18 10:00 America/Guayaquil — claude-sonnet-5
 
 **Regla tocada**: [[feedback-modelo-decision-final-carlos]]
@@ -54,13 +62,17 @@ describe('parseLedgerEntries', () => {
 `
     const entries = parseLedgerEntries(content)
     expect(entries).toHaveLength(3)
-    expect(entries.map(e => e.model)).toEqual([
-      'claude-sonnet-5', 'deepseek/deepseek-v4-flash', 'claude-sonnet-5',
+    expect(entries.map((e) => e.model)).toEqual([
+      'claude-sonnet-5',
+      'deepseek/deepseek-v4-flash',
+      'claude-sonnet-5',
     ])
   })
 
   it('ignora bloques sin clasificación (encabezado suelto, sin entrada real)', () => {
-    const content = HEADER + `
+    const content =
+      HEADER +
+      `
 ## Esto no es una entrada real — es un título de otra sección
 
 Texto sin campo Clasificación.
@@ -80,7 +92,7 @@ describe('aggregateByModel', () => {
       { when: 'd', model: 'deepseek/deepseek-v4-flash', classification: 'DESVIÓ-CON-RAZÓN' },
     ]
     expect(aggregateByModel(entries)).toEqual({
-      'claude-sonnet-5': { 'RESPETÓ': 2, 'REGRESIÓN': 1 },
+      'claude-sonnet-5': { RESPETÓ: 2, REGRESIÓN: 1 },
       'deepseek/deepseek-v4-flash': { 'DESVIÓ-CON-RAZÓN': 1 },
     })
   })

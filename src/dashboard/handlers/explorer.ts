@@ -1,6 +1,6 @@
-import { resolve, join, relative, sep } from 'path'
-import { readdirSync, statSync, readFileSync } from 'fs'
-import { jsonResponse, errorResponse } from '../http.ts'
+import { readdirSync, readFileSync, statSync } from 'fs'
+import { join, relative, resolve, sep } from 'path'
+import { errorResponse, jsonResponse } from '../http.ts'
 
 // v0.13 seed — panel derecho (header redesign, Mes 21 tardío). Explorador
 // read-only del proyecto: un nivel por request (patrón VS Code, evita leer
@@ -34,11 +34,11 @@ function handleApiExplorerTree(url: URL, root: string): Response {
   }
 
   const entries: ExplorerEntry[] = dirents
-    .filter(e => !IGNORE_DIRS.has(e.name))
-    .map(e => ({
+    .filter((e) => !IGNORE_DIRS.has(e.name))
+    .map((e) => ({
       name: e.name,
       path: relative(root, join(target, e.name)).split(sep).join('/'),
-      type: e.isDirectory() ? 'dir' as const : 'file' as const,
+      type: e.isDirectory() ? ('dir' as const) : ('file' as const),
     }))
     .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1))
 
@@ -59,7 +59,13 @@ function handleApiExplorerFile(url: URL, root: string): Response {
   }
   if (!stat.isFile()) return errorResponse('Not a file', 400)
   if (stat.size > MAX_FILE_BYTES) {
-    return jsonResponse({ path: rel, content: '', tooLarge: true, binary: false, sizeBytes: stat.size })
+    return jsonResponse({
+      path: rel,
+      content: '',
+      tooLarge: true,
+      binary: false,
+      sizeBytes: stat.size,
+    })
   }
 
   const buf = readFileSync(target)
@@ -71,4 +77,4 @@ function handleApiExplorerFile(url: URL, root: string): Response {
   return jsonResponse({ path: rel, content: buf.toString('utf-8'), tooLarge: false, binary: false })
 }
 
-export { handleApiExplorerTree, handleApiExplorerFile }
+export { handleApiExplorerFile, handleApiExplorerTree }

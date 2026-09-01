@@ -109,7 +109,7 @@ export interface RunRow {
   outputTokens: number
   costUsd: number
   elapsedMs: number
-  costBreakdown: CostBreakdownEntry[]   // parsed from cost_breakdown_json
+  costBreakdown: CostBreakdownEntry[] // parsed from cost_breakdown_json
   contextWarnings: ContextWarningEntry[] // parsed from context_warnings_json
   /** G.4 / B.2 — derived from costBreakdown[0].label. 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null (no breakdown persisted). */
   engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null
@@ -154,12 +154,12 @@ export interface DiagnoseRow {
 export interface TaskRow {
   id: string
   description: string
-  status: string           // 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
+  status: string // 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
   skill: string | null
   executor: string
   retryCount: number
   qaVerdict: 'pass' | 'fail' | null
-  runId: string | null     // link to latest run in /api/runs
+  runId: string | null // link to latest run in /api/runs
   /** G.4 / B.2 — 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null (undefined → inherit from orchestos.config.yaml, default 'single-shot') */
   engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null
   /** Mes 20 B.3 — true si existe un <task_id>.plan.yaml pendiente de aprobación */
@@ -191,7 +191,13 @@ import type { GraphRunResult } from '../run/graph-runner.ts'
 export type GraphRunStatusResponse =
   | { phase: 'idle'; tasks: TaskRow[] }
   | { phase: 'running'; tasks: TaskRow[]; startedAt: number }
-  | { phase: 'done'; tasks: TaskRow[]; startedAt: number; finishedAt: number; result: GraphRunResult }
+  | {
+      phase: 'done'
+      tasks: TaskRow[]
+      startedAt: number
+      finishedAt: number
+      result: GraphRunResult
+    }
   | { phase: 'error'; tasks: TaskRow[]; startedAt: number; finishedAt: number; error: string }
 
 // ── /api/instincts ────────────────────────────────────────────────────────────
@@ -214,10 +220,10 @@ export interface SpecRow {
   id: string
   status: 'draft' | 'approved' | 'archived'
   clarify: 'pending' | 'resolved' | 'none'
-  lintStatus: SpecLintStatus    // 'fail' if any findings; 'pass' if 0; 'unknown' if lint errors
-  lintFindings: number          // count of lint findings (0 = pass)
-  deltaIssues: number           // S32 delta header issues
-  hasCapabilities: boolean      // true if capabilities field is set
+  lintStatus: SpecLintStatus // 'fail' if any findings; 'pass' if 0; 'unknown' if lint errors
+  lintFindings: number // count of lint findings (0 = pass)
+  deltaIssues: number // S32 delta header issues
+  hasCapabilities: boolean // true if capabilities field is set
   createdAt: string
   /** AA (IDEAS #6) — undefined = spec simple, cero cambio de comportamiento. */
   design?: 'pending' | 'approved'
@@ -280,9 +286,9 @@ export interface LocalProviderResponse {
 export type ChatFileType = 'image' | 'text'
 
 export interface ChatUploadResponse {
-  fileId: string       // UUID, valid until server restart or 30-min TTL
+  fileId: string // UUID, valid until server restart or 30-min TTL
   type: ChatFileType
-  preview: string      // first 200 chars of text, or 'image/png' mime label for images
+  preview: string // first 200 chars of text, or 'image/png' mime label for images
   filename: string
 }
 
@@ -296,8 +302,8 @@ export interface HealthBlockedTask {
 }
 
 export interface HealthPendingApproval {
-  unverifiedInstincts: number  // instincts where verified=false
-  draftSpecs: number           // specs where status='draft'
+  unverifiedInstincts: number // instincts where verified=false
+  draftSpecs: number // specs where status='draft'
 }
 
 export interface HealthRecentLearning {
@@ -331,7 +337,7 @@ export type ApiKeyProvider = 'openrouter' | 'anthropic' | 'openai'
 
 export interface ApiKeyValidationResponse {
   valid: boolean
-  error?: string  // human-readable, shown directly in the wizard UI
+  error?: string // human-readable, shown directly in the wizard UI
 }
 
 // ── /api/skills ────────────────────────────────────────────────────────────────
@@ -358,27 +364,27 @@ export interface SkillProRow {
   name: string
   description: string
   targets: string[]
-  imported: boolean  // true if already present in skills/
+  imported: boolean // true if already present in skills/
 }
 
 // ── /api/skills/curate ────────────────────────────────────────────────────────
 
 export interface SkillCurateResponse {
   ok: boolean
-  skill?: Record<string, unknown>  // partial SkillDef — not yet saved
+  skill?: Record<string, unknown> // partial SkillDef — not yet saved
   error?: string
-  iterations: number               // how many LLM calls were needed (1-3)
+  iterations: number // how many LLM calls were needed (1-3)
 }
 
 // ── /api/skills/import ────────────────────────────────────────────────────────
 
 export interface SkillImportResponse {
   ok: boolean
-  skill?: Record<string, unknown>  // validated/normalized SkillDef
+  skill?: Record<string, unknown> // validated/normalized SkillDef
   error?: string
-  normalized: boolean              // true if AI curator fixed issues
-  warnings: string[]               // normalization warnings
-  iterations: number               // LLM calls needed (0 if no normalization)
+  normalized: boolean // true if AI curator fixed issues
+  warnings: string[] // normalization warnings
+  iterations: number // LLM calls needed (0 if no normalization)
 }
 
 // ── /api/skills/registry ─────────────────────────────────────────────────────

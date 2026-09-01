@@ -1,19 +1,23 @@
-import type { AgentChoice } from '../../config/schema.ts'
 import { AGENT_CHOICES, loadOrcheConfig } from '../../config/load.ts'
+import type { AgentChoice } from '../../config/schema.ts'
 import {
+  type ChatMessageRecord,
+  type ChatSessionMode,
+  type ChatSessionRecord,
   createChatSession,
   deleteChatSession,
   getChatSession,
   listChatMessages,
   listChatSessions,
   updateChatSession,
-  type ChatMessageRecord,
-  type ChatSessionMode,
-  type ChatSessionRecord,
 } from '../../db/chat-sessions.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
+import {
+  type DashboardProjectContext,
+  dashboardProjectFromId,
+  resolveDashboardProject,
+} from '../project-context.ts'
 import type { ChatMessageRow, ChatSessionRow } from '../types.ts'
-import { dashboardProjectFromId, resolveDashboardProject, type DashboardProjectContext } from '../project-context.ts'
 
 const MODES = new Set<ChatSessionMode>(['chat', 'code'])
 const AGENTS = new Set<AgentChoice>(AGENT_CHOICES)
@@ -56,14 +60,19 @@ function sessionIdFromUrl(url: URL): string | null {
 }
 
 function validTitle(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= TITLE_MAX_LENGTH
+  return (
+    typeof value === 'string' && value.trim().length > 0 && value.trim().length <= TITLE_MAX_LENGTH
+  )
 }
 
 export function handleApiChatSessionsList(): Response {
   return jsonResponse(listChatSessions().map(toSessionRow))
 }
 
-export async function handleApiChatSessionsCreate(req: Request, fallbackProject?: DashboardProjectContext): Promise<Response> {
+export async function handleApiChatSessionsCreate(
+  req: Request,
+  fallbackProject?: DashboardProjectContext,
+): Promise<Response> {
   let parsed: unknown
   try {
     parsed = await req.json()
@@ -75,7 +84,11 @@ export async function handleApiChatSessionsCreate(req: Request, fallbackProject?
   }
   const body = parsed as { projectId?: unknown; agent?: unknown; mode?: unknown; title?: unknown }
 
-  if (body.projectId !== undefined && body.projectId !== null && typeof body.projectId !== 'string') {
+  if (
+    body.projectId !== undefined &&
+    body.projectId !== null &&
+    typeof body.projectId !== 'string'
+  ) {
     return errorResponse('projectId must be a string or null', 400)
   }
   let selectedProject = fallbackProject
@@ -87,9 +100,8 @@ export async function handleApiChatSessionsCreate(req: Request, fallbackProject?
       return errorResponse(error instanceof Error ? error.message : String(error), status)
     }
   }
-  const projectId = body.projectId === undefined
-    ? selectedProject?.id ?? null
-    : body.projectId as string | null
+  const projectId =
+    body.projectId === undefined ? (selectedProject?.id ?? null) : (body.projectId as string | null)
   let configRoot = selectedProject?.root
   if (projectId) {
     try {
@@ -151,10 +163,13 @@ export async function handleApiChatSessionPatch(req: Request, url: URL): Promise
   }
   const body = parsed as Record<string, unknown>
   const keys = Object.keys(body)
-  if (keys.length === 0 || keys.some(key => key !== 'mode' && key !== 'title')) {
+  if (keys.length === 0 || keys.some((key) => key !== 'mode' && key !== 'title')) {
     return errorResponse('Only mode and title can be changed; agent is immutable', 400)
   }
-  if (body.mode !== undefined && (typeof body.mode !== 'string' || !MODES.has(body.mode as ChatSessionMode))) {
+  if (
+    body.mode !== undefined &&
+    (typeof body.mode !== 'string' || !MODES.has(body.mode as ChatSessionMode))
+  ) {
     return errorResponse('Invalid mode', 400)
   }
   if (body.title !== undefined && !validTitle(body.title)) {
@@ -165,7 +180,9 @@ export async function handleApiChatSessionPatch(req: Request, url: URL): Promise
     mode: body.mode as ChatSessionMode | undefined,
     title: body.title as string | undefined,
   })
-  return updated ? jsonResponse(toSessionRow(updated)) : errorResponse('Chat session not found', 404)
+  return updated
+    ? jsonResponse(toSessionRow(updated))
+    : errorResponse('Chat session not found', 404)
 }
 
 export function handleApiChatSessionDelete(url: URL): Response {

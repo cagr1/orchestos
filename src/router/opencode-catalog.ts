@@ -7,9 +7,9 @@
  * síncrona y fail-safe.
  */
 
-import { join, dirname } from 'path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { dirname, join } from 'path'
 
 interface DiskCache {
   fetchedAt: number
@@ -40,7 +40,8 @@ function loadDiskCache(): DiskCache | null {
       typeof raw?.fetchedAt !== 'number' ||
       !Array.isArray(raw?.models) ||
       !raw.models.every((model) => typeof model === 'string')
-    ) return null
+    )
+      return null
     return raw
   } catch {
     return null
@@ -48,7 +49,7 @@ function loadDiskCache(): DiskCache | null {
 }
 
 function saveDiskCache(cache: DiskCache): void {
-  if (process.env.NODE_ENV === "test" && !process.env.ORCHESTOS_HOME) return
+  if (process.env.NODE_ENV === 'test' && !process.env.ORCHESTOS_HOME) return
   try {
     const path = cacheFilePath()
     mkdirSync(dirname(path), { recursive: true })

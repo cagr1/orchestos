@@ -1,25 +1,24 @@
-import { describe, it, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { createRunContext, createChain } from '../../src/run/middleware.ts'
-import { memoryFetch } from '../../src/run/middlewares/memory-fetch.ts'
-import { RunLogger } from '../../src/run/logger.ts'
-import type { Task } from '../../src/tasks/schema.ts'
 import type { HarnessOpts } from '../../src/run/harness.ts'
+import { RunLogger } from '../../src/run/logger.ts'
+import { createChain, createRunContext } from '../../src/run/middleware.ts'
+import { memoryFetch } from '../../src/run/middlewares/memory-fetch.ts'
+import type { Task } from '../../src/tasks/schema.ts'
 
 const tmpRoots: string[] = []
 
 afterEach(() => {
   for (const d of tmpRoots.splice(0)) {
-    try { rmSync(d, { recursive: true, force: true }) } catch {}
+    try {
+      rmSync(d, { recursive: true, force: true })
+    } catch {}
   }
 })
 
-function makeOpts(
-  root: string,
-  overrides?: { projectId?: string; input?: string[] },
-): HarnessOpts {
+function makeOpts(root: string, overrides?: { projectId?: string; input?: string[] }): HarnessOpts {
   const task: Task = {
     id: 'test-task',
     description: 'implement the foo feature',

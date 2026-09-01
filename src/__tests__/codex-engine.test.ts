@@ -10,15 +10,19 @@
  * un precio real en vez de lanzar "not in the pricing catalog".
  */
 
-import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'bun:test'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { git, createWorktree, type Worktree } from '../run/sandbox.ts'
-import { ExecutorCodexError, codexEngine, orchestosModelToCodexModel } from '../run/executors/codex.ts'
+import { join } from 'path'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
-import type { Task } from '../tasks/schema.ts'
+import {
+  codexEngine,
+  ExecutorCodexError,
+  orchestosModelToCodexModel,
+} from '../run/executors/codex.ts'
 import type { RunContext } from '../run/middleware.ts'
+import { createWorktree, git, type Worktree } from '../run/sandbox.ts'
+import type { Task } from '../tasks/schema.ts'
 
 // Seedea el catálogo en un ORCHESTOS_HOME temporal — mismo gotcha documentado
 // en harness-engine-persistence.test.ts: cacheFilePath() resuelve a
@@ -26,12 +30,21 @@ import type { RunContext } from '../run/middleware.ts'
 function seedCatalog(): string {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-g42b-cat-'))
   mkdirSync(join(home, '.orchestos', 'cache'), { recursive: true })
-  writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({
-    fetchedAt: Date.now(),
-    models: {
-      'openai/gpt-5.4': { contextLength: 400000, priceIn: 2, priceOut: 10, supportsReasoning: true, maxOutputTokens: 128000 },
-    },
-  }))
+  writeFileSync(
+    join(home, '.orchestos', 'cache', 'models.json'),
+    JSON.stringify({
+      fetchedAt: Date.now(),
+      models: {
+        'openai/gpt-5.4': {
+          contextLength: 400000,
+          priceIn: 2,
+          priceOut: 10,
+          supportsReasoning: true,
+          maxOutputTokens: 128000,
+        },
+      },
+    }),
+  )
   return home
 }
 
@@ -90,16 +103,24 @@ function makeMockProc(stdoutText: string, opts: { exitDelayMs?: number } = {}): 
       })
     },
   })
-  const stderrStream = new ReadableStream<Uint8Array>({ start(c) { c.close() } })
+  const stderrStream = new ReadableStream<Uint8Array>({
+    start(c) {
+      c.close()
+    },
+  })
   let resolveExit!: (n: number) => void
-  const exited = new Promise<number>((r) => { resolveExit = r })
+  const exited = new Promise<number>((r) => {
+    resolveExit = r
+  })
   if (opts.exitDelayMs) setTimeout(() => resolveExit(0), opts.exitDelayMs)
   else queueMicrotask(() => resolveExit(0))
   return {
     stdout: stdoutStream,
     stderr: stderrStream,
     exited,
-    kill(_signal) { /* no-op */ },
+    kill(_signal) {
+      /* no-op */
+    },
   }
 }
 
@@ -176,18 +197,32 @@ function buildCtx(worktree: Worktree, task: Task, model = 'openai/gpt-5.4'): Run
 }
 
 afterEach(() => {
-  for (const wt of worktrees.splice(0)) { try { wt.cleanup() } catch {} }
-  for (const r of repos.splice(0)) { try { rmSync(r, { recursive: true, force: true }) } catch {} }
+  for (const wt of worktrees.splice(0)) {
+    try {
+      wt.cleanup()
+    } catch {}
+  }
+  for (const r of repos.splice(0)) {
+    try {
+      rmSync(r, { recursive: true, force: true })
+    } catch {}
+  }
 })
 
 // JSONL real (probado en vivo el 2026-07-27 con `codex exec --json` contra un git repo temporal).
 function jsonl(...events: object[]): string {
-  return events.map(e => JSON.stringify(e)).join('\n') + '\n'
+  return events.map((e) => JSON.stringify(e)).join('\n') + '\n'
 }
 
 const turnCompleted = (input: number, output: number) => ({
   type: 'turn.completed',
-  usage: { input_tokens: input, output_tokens: output, cached_input_tokens: 0, cache_write_input_tokens: 0, reasoning_output_tokens: 0 },
+  usage: {
+    input_tokens: input,
+    output_tokens: output,
+    cached_input_tokens: 0,
+    cache_write_input_tokens: 0,
+    reasoning_output_tokens: 0,
+  },
 })
 
 // -- tests ---------------------------------------------------------------------
@@ -203,15 +238,25 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     const stdout = jsonl(
       { type: 'thread.started', thread_id: 'abc' },
       { type: 'turn.started' },
-      { type: 'item.completed', item: { id: 'item_0', type: 'agent_message', text: 'voy a escribir el archivo' } },
-      { type: 'item.completed', item: { id: 'item_1', type: 'file_change', changes: [{ path: 'out.txt', kind: 'add' }] } },
+      {
+        type: 'item.completed',
+        item: { id: 'item_0', type: 'agent_message', text: 'voy a escribir el archivo' },
+      },
+      {
+        type: 'item.completed',
+        item: { id: 'item_1', type: 'file_change', changes: [{ path: 'out.txt', kind: 'add' }] },
+      },
       turnCompleted(1000, 200),
     )
     const proc = installMockSpawn(stdout)
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await codexEngine.run(ctx, { maxTokens: 8192, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await codexEngine.run(ctx, {
+      maxTokens: 8192,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(spawnCalls).toHaveLength(1)
     expect(spawnCalls[0]!.cwd).toBe(wt.path)
@@ -251,7 +296,9 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     let caught: Error | null = null
     try {
       await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
-    } catch (e: any) { caught = e }
+    } catch (e: any) {
+      caught = e
+    }
 
     // No se gastó un solo token: el guard corre antes de lanzar el proceso.
     expect(spawnCalls.length).toBe(0)
@@ -277,7 +324,9 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     let caught: Error | null = null
     try {
       await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
-    } catch (e: any) { caught = e }
+    } catch (e: any) {
+      caught = e
+    }
 
     expect(spawnCalls[0]!.cmd).toContain('-m')
     expect(spawnCalls[0]!.cmd).toContain('gpt-not-in-catalog')
@@ -300,7 +349,9 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
       let caught: Error | null = null
       try {
         await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
-      } catch (e: any) { caught = e }
+      } catch (e: any) {
+        caught = e
+      }
 
       expect(caught).toBeInstanceOf(ExecutorCodexError)
       expect(caught!.message).toContain('"codex"')
@@ -312,11 +363,19 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
   })
 
   it('sin worktree: rechaza correr contra el proyecto real sin sandbox', async () => {
-    const ctx = { ...buildCtx({ path: '/tmp/fake', projectRoot: '/tmp/fake', cleanup() {} } as Worktree, baseTask()), worktree: null }
+    const ctx = {
+      ...buildCtx(
+        { path: '/tmp/fake', projectRoot: '/tmp/fake', cleanup() {} } as Worktree,
+        baseTask(),
+      ),
+      worktree: null,
+    }
     let caught: Error | null = null
     try {
       await codexEngine.run(ctx as any, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
-    } catch (e: any) { caught = e }
+    } catch (e: any) {
+      caught = e
+    }
     expect(caught).toBeInstanceOf(ExecutorCodexError)
     expect(caught!.message).toContain('worktree sandbox mode')
   })
@@ -326,14 +385,18 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     const wt = createWorktree('g42b-timeout', 'main', root)
     trackWorktree(wt)
 
-    const proc = installMockSpawn('not jsonl at all, codex was killed before flushing', { exitDelayMs: 50 })
+    const proc = installMockSpawn('not jsonl at all, codex was killed before flushing', {
+      exitDelayMs: 50,
+    })
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
     let caught: Error | null = null
     try {
       await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 1 })
-    } catch (e: any) { caught = e }
+    } catch (e: any) {
+      caught = e
+    }
     expect(caught).toBeInstanceOf(ExecutorCodexError)
     expect(caught!.message).toContain('timed out')
   })
@@ -343,14 +406,18 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     const wt = createWorktree('g42b-no-cost', 'main', root)
     trackWorktree(wt)
 
-    const proc = installMockSpawn(jsonl({ type: 'thread.started', thread_id: 'x' }, { type: 'turn.started' }))
+    const proc = installMockSpawn(
+      jsonl({ type: 'thread.started', thread_id: 'x' }, { type: 'turn.started' }),
+    )
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
     let caught: Error | null = null
     try {
       await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
-    } catch (e: any) { caught = e }
+    } catch (e: any) {
+      caught = e
+    }
     expect(caught).toBeInstanceOf(ExecutorCodexError)
     expect(caught!.message).toContain('turn.completed')
   })
@@ -360,14 +427,19 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     const wt = createWorktree('g42b-partial', 'main', root)
     trackWorktree(wt)
 
-    const stdout = 'Reading additional input from stdin...\n'
-      + '2026-07-27T16:36:14Z ERROR rmcp::transport::worker: worker quit with fatal\n'
-      + jsonl(turnCompleted(50, 5))
+    const stdout =
+      'Reading additional input from stdin...\n' +
+      '2026-07-27T16:36:14Z ERROR rmcp::transport::worker: worker quit with fatal\n' +
+      jsonl(turnCompleted(50, 5))
     const proc = installMockSpawn(stdout)
     overrideBunSpawn(proc)
 
     const ctx = buildCtx(wt, baseTask())
-    const outcome = await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    const outcome = await codexEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
 
     expect(outcome.inputTokens).toBe(50)
     expect(outcome.outputTokens).toBe(5)

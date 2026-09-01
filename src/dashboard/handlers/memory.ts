@@ -1,25 +1,29 @@
-import { db } from '../../db/sqlite.ts'
-import { listConflicts, resolveConflict, deleteMemoryEntry } from '../../db/memory.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
+import { deleteMemoryEntry, listConflicts, resolveConflict } from '../../db/memory.ts'
+import { db } from '../../db/sqlite.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
 import type { MemoryRow, MutationResult } from '../types.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
 
 function handleApiMemory(url?: URL): Response {
   const q = url?.searchParams.get('q')?.trim().slice(0, 256)
   try {
     const rows = q
-      ? db.query<MemoryEntry, [string]>(
-          `SELECT e.id, e.project_id, e.topic_key, e.scope, e.content, e.created_at, e.updated_at
+      ? db
+          .query<MemoryEntry, [string]>(
+            `SELECT e.id, e.project_id, e.topic_key, e.scope, e.content, e.created_at, e.updated_at
            FROM memory_entries e
            JOIN memory_fts ON memory_fts.rowid = e.rowid
            WHERE memory_fts MATCH ?
            ORDER BY bm25(memory_fts)
-           LIMIT 200`
-        ).all(`"${q.replace(/"/g, '""')}"*`)
-      : db.query<MemoryEntry, []>(
-          'SELECT id, project_id, topic_key, scope, content, created_at, updated_at FROM memory_entries ORDER BY updated_at DESC LIMIT 200'
-        ).all()
-    const result: MemoryRow[] = rows.map(m => ({
+           LIMIT 200`,
+          )
+          .all(`"${q.replace(/"/g, '""')}"*`)
+      : db
+          .query<MemoryEntry, []>(
+            'SELECT id, project_id, topic_key, scope, content, created_at, updated_at FROM memory_entries ORDER BY updated_at DESC LIMIT 200',
+          )
+          .all()
+    const result: MemoryRow[] = rows.map((m) => ({
       id: m.id,
       projectId: m.project_id,
       topicKey: m.topic_key,
@@ -67,12 +71,23 @@ function handleApiMemoryDelete(url: URL): Response {
 // v0.12 Bloque A — borrado en lote, reusa deleteMemoryEntry() por id.
 async function handleApiMemoryBulkDelete(req: Request): Promise<Response> {
   let body: { ids?: unknown }
-  try { body = (await req.json()) as { ids?: unknown } } catch { return errorResponse('Invalid JSON', 400) }
-  if (!Array.isArray(body.ids) || body.ids.length === 0) return errorResponse('ids must be a non-empty array', 400)
+  try {
+    body = (await req.json()) as { ids?: unknown }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (!Array.isArray(body.ids) || body.ids.length === 0)
+    return errorResponse('ids must be a non-empty array', 400)
   const ids = body.ids.filter((id): id is string => typeof id === 'string')
   let deleted = 0
   for (const id of ids) if (deleteMemoryEntry(id)) deleted++
   return jsonResponse({ ok: true, deleted })
 }
 
-export { handleApiMemory, handleApiMemoryConflicts, handleApiMemoryConflictResolve, handleApiMemoryDelete, handleApiMemoryBulkDelete }
+export {
+  handleApiMemory,
+  handleApiMemoryBulkDelete,
+  handleApiMemoryConflictResolve,
+  handleApiMemoryConflicts,
+  handleApiMemoryDelete,
+}

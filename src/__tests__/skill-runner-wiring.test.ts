@@ -1,9 +1,9 @@
-import { describe, expect, test, afterEach } from 'bun:test'
-import { writeFileSync, rmSync, existsSync } from 'fs'
+import { afterEach, describe, expect, test } from 'bun:test'
+import { existsSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import type { RunContext } from '../run/middleware.ts'
 import { skillRoute } from '../run/middlewares/skill-route.ts'
 import { buildPrompt } from '../run/prompt.ts'
-import type { RunContext } from '../run/middleware.ts'
 import type { Task } from '../tasks/schema.ts'
 
 // N.4.5 (Mes 25, 2026-07-31) — el runner propio de OrchestOS (skill-route.ts
@@ -18,7 +18,9 @@ const TEST_SKILL_ID = 'n45-wiring-test-skill'
 const TEST_SKILL_PATH = join(process.cwd(), 'skills', `${TEST_SKILL_ID}.yaml`)
 
 function writeTestSkill() {
-  writeFileSync(TEST_SKILL_PATH, `
+  writeFileSync(
+    TEST_SKILL_PATH,
+    `
 id: ${TEST_SKILL_ID}
 version: 1.0.0
 name: N45 Wiring Test Skill
@@ -26,7 +28,9 @@ description: Test skill for N.4.5 runner wiring
 instructions: Do the thing carefully.
 targets: [claude]
 iron_law: Never skip the test.
-`.trimStart(), 'utf-8')
+`.trimStart(),
+    'utf-8',
+  )
 }
 
 afterEach(() => {

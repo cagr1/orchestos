@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'bun:test'
-import { scaffoldSkillYaml } from '../skills/scaffold.ts'
+import { describe, expect, it } from 'bun:test'
 import { parse as parseYaml } from 'yaml'
+import { scaffoldSkillYaml } from '../skills/scaffold.ts'
 
 describe('scaffoldSkillYaml', () => {
   it('generates valid YAML for TypeScript', () => {

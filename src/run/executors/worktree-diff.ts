@@ -17,12 +17,16 @@ function parseGitStatusPorcelain(stdout: string): string[] {
   // stdout SIN trim global (ver gitStatusRawStdout) — cada línea conserva su
   // ancho de columna fijo "XY path", donde X/Y pueden ser un espacio literal
   // (ej. " M path" = modificado sin stage).
-  return stdout.replace(/\n+$/, '').split('\n').filter(Boolean).map(line => {
-    // formato: "XY path" o "XY old -> new" para renames — nos quedamos con el path final
-    const rest = line.slice(3)
-    const arrow = rest.indexOf(' -> ')
-    return arrow >= 0 ? rest.slice(arrow + 4) : rest
-  })
+  return stdout
+    .replace(/\n+$/, '')
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => {
+      // formato: "XY path" o "XY old -> new" para renames — nos quedamos con el path final
+      const rest = line.slice(3)
+      const arrow = rest.indexOf(' -> ')
+      return arrow >= 0 ? rest.slice(arrow + 4) : rest
+    })
 }
 
 /**
@@ -48,7 +52,10 @@ function gitStatusRawStdout(cwd: string): string {
   // intentaría leerlo como si fuera output del engine. Verificado en vivo con
   // un fixture real: sin el pathspec, `node_modules` sale en el status pese
   // al `.gitignore`; con él, desaparece del todo.
-  const proc = Bun.spawnSync(['git', 'status', '--porcelain', '-uall', '--', '.', ':!node_modules'], { cwd })
+  const proc = Bun.spawnSync(
+    ['git', 'status', '--porcelain', '-uall', '--', '.', ':!node_modules'],
+    { cwd },
+  )
   return proc.stdout.toString()
 }
 
@@ -81,7 +88,7 @@ const HOST_TOOLING_PREFIXES = [
 function isHostToolingArtifact(relPath: string, declaredOutputs: readonly string[]): boolean {
   if (declaredOutputs.includes(relPath)) return false // la tarea lo pidió explícitamente
   if (relPath === '.DS_Store' || relPath.endsWith('/.DS_Store')) return true
-  return HOST_TOOLING_PREFIXES.some(prefix => relPath.startsWith(prefix))
+  return HOST_TOOLING_PREFIXES.some((prefix) => relPath.startsWith(prefix))
 }
 
 export function readWorktreeDiff(
@@ -102,7 +109,11 @@ export function readWorktreeDiff(
     // que no llegue nunca al contrato como "archivo escrito no autorizado".
     if (isHostToolingArtifact(normalized, declaredOutputs)) continue
     let full: string
-    try { full = resolveProjectPath(effectiveRoot, normalized, 'read') } catch { continue }
+    try {
+      full = resolveProjectPath(effectiveRoot, normalized, 'read')
+    } catch {
+      continue
+    }
     if (!existsSync(full)) continue // archivo borrado por el proceso externo — nada que reportar como FileChange
     // B.4 — git reporta el directorio untracked (con -uall) como una entrada mas;
     // readFileSync sobre un directorio tira EISDIR. isFile() lo descarta. Si en el

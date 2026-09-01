@@ -11,7 +11,10 @@ export interface DashboardProjectContext {
 }
 
 export class DashboardProjectError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
     super(message)
     this.name = 'DashboardProjectError'
   }
@@ -25,7 +28,8 @@ function checkedProjectRoot(path: string): string {
   } catch {
     throw new DashboardProjectError('Project path cannot be resolved', 410)
   }
-  if (!statSync(root).isDirectory()) throw new DashboardProjectError('Project path is not a directory', 410)
+  if (!statSync(root).isDirectory())
+    throw new DashboardProjectError('Project path is not a directory', 410)
   return root
 }
 
@@ -44,8 +48,8 @@ export function dashboardProjectFromId(id: string): DashboardProjectContext {
  */
 export function resolveDashboardProject(req: Request): DashboardProjectContext {
   const url = new URL(req.url)
-  const selected = req.headers.get(PROJECT_ID_HEADER)?.trim()
-    || url.searchParams.get('project')?.trim()
+  const selected =
+    req.headers.get(PROJECT_ID_HEADER)?.trim() || url.searchParams.get('project')?.trim()
   if (selected) return dashboardProjectFromId(selected)
 
   const root = realpathSync(resolve('.'))

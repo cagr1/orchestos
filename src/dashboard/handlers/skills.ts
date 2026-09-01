@@ -1,20 +1,42 @@
-import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
-import { getSkillPath, resolveSkillPath, resolveProSkillPath, loadSkill, listSkillFiles, listProSkillFiles, validateSkill } from '../../skills/registry.ts'
-import { compileSkill } from '../../skills/compile.ts'
+import type { ChatMessage, ChatResponse } from '../../providers/openrouter.ts'
 import { chat as realOpenrouterChat } from '../../providers/openrouter.ts'
-import type { ChatResponse, ChatMessage } from '../../providers/openrouter.ts'
+import { compileSkill } from '../../skills/compile.ts'
+import {
+  getSkillPath,
+  listProSkillFiles,
+  listSkillFiles,
+  loadSkill,
+  resolveProSkillPath,
+  resolveSkillPath,
+  validateSkill,
+} from '../../skills/registry.ts'
 
 // Mutable reference for test injection — same pattern as run-graph.ts __setRunGraphForTests.
 // Bun's mock.module() on a shared provider module would leak across test files; this
 // keeps the fake scoped to the single test file that calls __setChatForTests.
-let chatImpl: (opts: { model: string; system: string; messages: ChatMessage[] }) => Promise<ChatResponse> = realOpenrouterChat
+let chatImpl: (opts: {
+  model: string
+  system: string
+  messages: ChatMessage[]
+}) => Promise<ChatResponse> = realOpenrouterChat
+
 import { parse, stringify } from 'yaml'
 import { fetchRegistryList, fetchRegistrySkillContent } from '../../skills/fetch.ts'
-import type { SkillRow, SkillBuildResponse, SkillProRow, SkillCurateResponse, SkillImportResponse, MutationResult, RegistryListResponse, RegistryImportResponse } from '../types.ts'
-import { jsonResponse, errorResponse } from '../http.ts'
-import { checkSsrSafe } from '../ssrf.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
 import { CURATOR_SYSTEM, IMPORT_SYSTEM } from '../prompts/curator.ts'
+import { checkSsrSafe } from '../ssrf.ts'
+import type {
+  MutationResult,
+  RegistryImportResponse,
+  RegistryListResponse,
+  SkillBuildResponse,
+  SkillCurateResponse,
+  SkillImportResponse,
+  SkillProRow,
+  SkillRow,
+} from '../types.ts'
 
 function handleApiSkillsList(): Response {
   try {
@@ -29,9 +51,8 @@ function handleApiSkillsList(): Response {
           description: s.description,
           version: s.version,
           targets: [...s.targets],
-          instructionSummary: s.instructions.length > 100
-            ? s.instructions.slice(0, 100) + '...'
-            : s.instructions,
+          instructionSummary:
+            s.instructions.length > 100 ? s.instructions.slice(0, 100) + '...' : s.instructions,
         })
       } catch {}
     }
@@ -77,7 +98,11 @@ function handleApiSkillsExport(url: URL): Response {
 
 async function handleApiSkillsCreate(req: Request): Promise<Response> {
   let body: Record<string, unknown>
-  try { body = await req.json() as Record<string, unknown> } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as Record<string, unknown>
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
 
   const id = body.id as string
   if (!id || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) {
@@ -108,7 +133,11 @@ async function handleApiSkillsUpdate(req: Request, url: URL): Promise<Response> 
   const path = getSkillPath(id)
 
   let body: Record<string, unknown>
-  try { body = await req.json() as Record<string, unknown> } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as Record<string, unknown>
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
 
   try {
     const validated = validateSkill(body, `api:${id}`)
@@ -132,14 +161,22 @@ async function handleApiSkillsDelete(req: Request, url: URL): Promise<Response> 
   const path = getSkillPath(id)
   if (!existsSync(path)) {
     if (existsSync(resolveSkillPath(id))) {
-      return errorResponse(`"${id}" is a centrally installed skill — it can't be deleted from this project`, 409)
+      return errorResponse(
+        `"${id}" is a centrally installed skill — it can't be deleted from this project`,
+        409,
+      )
     }
     return errorResponse('Skill not found', 404)
   }
 
   let body: { confirm?: boolean }
-  try { body = await req.json() as { confirm?: boolean } } catch { return errorResponse('Invalid JSON', 400) }
-  if (body.confirm !== true) return errorResponse('Confirmation required — send { confirm: true }', 400)
+  try {
+    body = (await req.json()) as { confirm?: boolean }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (body.confirm !== true)
+    return errorResponse('Confirmation required — send { confirm: true }', 400)
 
   try {
     unlinkSync(path)
@@ -161,7 +198,12 @@ function handleApiSkillsBuild(url: URL): Response {
     const paths = compileSkill(skill)
     return jsonResponse({ ok: true, paths, skillId: id } satisfies SkillBuildResponse)
   } catch (e: any) {
-    return jsonResponse({ ok: false, paths: [], skillId: id, error: e.message } as SkillBuildResponse & { error: string }, 500)
+    return jsonResponse(
+      { ok: false, paths: [], skillId: id, error: e.message } as SkillBuildResponse & {
+        error: string
+      },
+      500,
+    )
   }
 }
 
@@ -210,7 +252,11 @@ function handleApiSkillsProImport(url: URL): Response {
 
 async function handleApiSkillsImport(req: Request): Promise<Response> {
   let body: { type?: string; url?: string; yaml?: string }
-  try { body = await req.json() as { type?: string; url?: string; yaml?: string } } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as { type?: string; url?: string; yaml?: string }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
 
   let rawYaml: string
   let sourceDesc: string
@@ -225,7 +271,8 @@ async function handleApiSkillsImport(req: Request): Promise<Response> {
       const resp = await fetch(body.url, { redirect: 'error', signal: AbortSignal.timeout(15000) })
       if (!resp.ok) return errorResponse(`HTTP ${resp.status} fetching URL`, 400)
       const contentLength = Number(resp.headers.get('content-length') ?? 0)
-      if (contentLength > 256 * 1024) return errorResponse('Fetched skill exceeds the 256 KB limit', 413)
+      if (contentLength > 256 * 1024)
+        return errorResponse('Fetched skill exceeds the 256 KB limit', 413)
       rawYaml = (await resp.text()).slice(0, 256 * 1024)
     } catch (e: any) {
       return errorResponse(`Failed to fetch URL: ${e.message}`, 400)
@@ -246,25 +293,40 @@ async function handleApiSkillsImport(req: Request): Promise<Response> {
   }
 
   if (typeof parsed.id === 'string') {
-    parsed.id = parsed.id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    parsed.id = parsed.id
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
   }
 
   try {
     validateSkill(parsed, 'import')
-    return jsonResponse({ ok: true, skill: parsed, normalized: false, warnings: [], iterations: 0 } satisfies SkillImportResponse)
+    return jsonResponse({
+      ok: true,
+      skill: parsed,
+      normalized: false,
+      warnings: [],
+      iterations: 0,
+    } satisfies SkillImportResponse)
   } catch (e: any) {
     return normalizeImport(rawYaml, e.message, sourceDesc)
   }
 }
 
-async function normalizeImport(rawYaml: string, error: string, sourceDesc: string): Promise<Response> {
+async function normalizeImport(
+  rawYaml: string,
+  error: string,
+  sourceDesc: string,
+): Promise<Response> {
   const MAX_RETRIES = 2
   let lastError = error
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const userMessage = attempt === 0
-      ? `Fix this invalid skill definition:\n\n${rawYaml}\n\nValidation error: ${lastError}`
-      : `Previous fix failed. Error: ${lastError}\n\nOriginal content:\n${rawYaml}\n\nPlease return a corrected JSON.`
+    const userMessage =
+      attempt === 0
+        ? `Fix this invalid skill definition:\n\n${rawYaml}\n\nValidation error: ${lastError}`
+        : `Previous fix failed. Error: ${lastError}\n\nOriginal content:\n${rawYaml}\n\nPlease return a corrected JSON.`
 
     let raw: string
     try {
@@ -273,7 +335,10 @@ async function normalizeImport(rawYaml: string, error: string, sourceDesc: strin
         system: IMPORT_SYSTEM,
         messages: [{ role: 'user', content: userMessage }],
       })
-      raw = resp.text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+      raw = resp.text
+        .replace(/^```(?:json)?\n?/, '')
+        .replace(/\n?```$/, '')
+        .trim()
     } catch (e: any) {
       return errorResponse(`LLM normalization failed: ${e.message}`, 502)
     }
@@ -287,36 +352,55 @@ async function normalizeImport(rawYaml: string, error: string, sourceDesc: strin
     }
 
     if (typeof draft.id === 'string') {
-      draft.id = draft.id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      draft.id = draft.id
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
     }
 
     try {
       validateSkill(draft, 'import')
-      return jsonResponse({ ok: true, skill: draft, normalized: true, warnings: [`Original ${sourceDesc} had issues: ${error}. Fixed by AI curator.`], iterations: attempt + 1 } satisfies SkillImportResponse)
+      return jsonResponse({
+        ok: true,
+        skill: draft,
+        normalized: true,
+        warnings: [`Original ${sourceDesc} had issues: ${error}. Fixed by AI curator.`],
+        iterations: attempt + 1,
+      } satisfies SkillImportResponse)
     } catch (e: any) {
       lastError = e.message
     }
   }
 
   return jsonResponse(
-    { ok: false, error: `Could not normalize after ${MAX_RETRIES + 1} attempts: ${lastError}`, normalized: false, warnings: [], iterations: MAX_RETRIES + 1 } satisfies SkillImportResponse,
-    422
+    {
+      ok: false,
+      error: `Could not normalize after ${MAX_RETRIES + 1} attempts: ${lastError}`,
+      normalized: false,
+      warnings: [],
+      iterations: MAX_RETRIES + 1,
+    } satisfies SkillImportResponse,
+    422,
   )
 }
 
 async function handleApiSkillsRegistryList(): Promise<Response> {
   try {
     const items = await fetchRegistryList()
-    const skills = items.map(item => ({
+    const skills = items.map((item) => ({
       id: item.id,
       name: item.name,
       description: item.description,
       source: item.source,
       fileCount: item.fileCount,
       bundleHash: item.bundleHash,
-      reviewStatus: (item.reviewStatus === 'approved' || item.reviewStatus === 'pending' || item.reviewStatus === 'rejected')
-        ? item.reviewStatus as 'approved' | 'pending' | 'rejected'
-        : 'pending' as const,
+      reviewStatus:
+        item.reviewStatus === 'approved' ||
+        item.reviewStatus === 'pending' ||
+        item.reviewStatus === 'rejected'
+          ? (item.reviewStatus as 'approved' | 'pending' | 'rejected')
+          : ('pending' as const),
     }))
     return jsonResponse({
       ok: true,
@@ -349,13 +433,22 @@ async function handleApiSkillsRegistryImport(_req: Request, url: URL): Promise<R
   try {
     parsed = parse(rawContent) as Record<string, unknown>
     if (typeof parsed.id === 'string') {
-      parsed.id = parsed.id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      parsed.id = parsed.id
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
     }
     validateSkill(parsed, `registry:${id}`)
     // Valid as-is — save directly
     const yaml = stringify(parsed, { lineWidth: 120 })
     writeFileSync(targetPath, yaml, 'utf-8')
-    return jsonResponse({ ok: true, id, normalized: false, warnings: [] } satisfies RegistryImportResponse)
+    return jsonResponse({
+      ok: true,
+      id,
+      normalized: false,
+      warnings: [],
+    } satisfies RegistryImportResponse)
   } catch {
     // Needs AI normalization
   }
@@ -363,21 +456,45 @@ async function handleApiSkillsRegistryImport(_req: Request, url: URL): Promise<R
   return normalizeImport(
     rawContent,
     'SKILL.md format — needs SkillDef conversion',
-    `Registry: ${id}`
+    `Registry: ${id}`,
   ).then(async (resp) => {
-    const data = await resp.json() as { ok: boolean; skill?: Record<string, unknown>; error?: string; normalized: boolean; warnings: string[]; iterations: number }
+    const data = (await resp.json()) as {
+      ok: boolean
+      skill?: Record<string, unknown>
+      error?: string
+      normalized: boolean
+      warnings: string[]
+      iterations: number
+    }
     if (data.ok && data.skill) {
       const yaml = stringify(data.skill, { lineWidth: 120 })
       writeFileSync(targetPath, yaml, 'utf-8')
-      return jsonResponse({ ok: true, id, normalized: data.normalized, warnings: data.warnings || [] } satisfies RegistryImportResponse)
+      return jsonResponse({
+        ok: true,
+        id,
+        normalized: data.normalized,
+        warnings: data.warnings || [],
+      } satisfies RegistryImportResponse)
     }
-    return jsonResponse({ ok: false, error: data.error || 'Normalization failed', normalized: false, warnings: [] } satisfies RegistryImportResponse, 422)
+    return jsonResponse(
+      {
+        ok: false,
+        error: data.error || 'Normalization failed',
+        normalized: false,
+        warnings: [],
+      } satisfies RegistryImportResponse,
+      422,
+    )
   })
 }
 
 async function handleApiSkillsCurate(req: Request): Promise<Response> {
   let body: { text?: string }
-  try { body = await req.json() as { text?: string } } catch { return errorResponse('Invalid JSON', 400) }
+  try {
+    body = (await req.json()) as { text?: string }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
   const text = body.text?.trim()
   if (!text) return errorResponse('text is required', 400)
 
@@ -385,9 +502,10 @@ async function handleApiSkillsCurate(req: Request): Promise<Response> {
   let lastError = ''
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const userMessage = attempt === 0
-      ? text
-      : `${text}\n\nPrevious attempt failed validation with this error: ${lastError}\nPlease fix the issue and return a corrected JSON.`
+    const userMessage =
+      attempt === 0
+        ? text
+        : `${text}\n\nPrevious attempt failed validation with this error: ${lastError}\nPlease fix the issue and return a corrected JSON.`
 
     let raw: string
     try {
@@ -396,7 +514,10 @@ async function handleApiSkillsCurate(req: Request): Promise<Response> {
         system: CURATOR_SYSTEM,
         messages: [{ role: 'user', content: userMessage }],
       })
-      raw = resp.text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+      raw = resp.text
+        .replace(/^```(?:json)?\n?/, '')
+        .replace(/\n?```$/, '')
+        .trim()
     } catch (e: any) {
       return errorResponse(`LLM call failed: ${e.message}`, 502)
     }
@@ -410,25 +531,39 @@ async function handleApiSkillsCurate(req: Request): Promise<Response> {
     }
 
     if (typeof draft.id === 'string') {
-      draft.id = draft.id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      draft.id = draft.id
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
     }
 
     try {
       validateSkill(draft, 'curate')
-      return jsonResponse({ ok: true, skill: draft, iterations: attempt + 1 } satisfies SkillCurateResponse)
+      return jsonResponse({
+        ok: true,
+        skill: draft,
+        iterations: attempt + 1,
+      } satisfies SkillCurateResponse)
     } catch (e: any) {
       lastError = e.message
     }
   }
 
   return jsonResponse(
-    { ok: false, error: `Curator failed after ${MAX_RETRIES + 1} attempts: ${lastError}`, iterations: MAX_RETRIES + 1 } satisfies SkillCurateResponse,
-    422
+    {
+      ok: false,
+      error: `Curator failed after ${MAX_RETRIES + 1} attempts: ${lastError}`,
+      iterations: MAX_RETRIES + 1,
+    } satisfies SkillCurateResponse,
+    422,
   )
 }
 
 /** Test-only: swap chat implementation without touching the shared module graph. */
-function __setChatForTests(fn: (opts: { model: string; system: string; messages: ChatMessage[] }) => Promise<ChatResponse>): void {
+function __setChatForTests(
+  fn: (opts: { model: string; system: string; messages: ChatMessage[] }) => Promise<ChatResponse>,
+): void {
   chatImpl = fn
 }
 /** Test-only: restore the real chat implementation. */
@@ -436,4 +571,20 @@ function __resetChatForTests(): void {
   chatImpl = realOpenrouterChat
 }
 
-export { handleApiSkillsList, handleApiSkillsGet, handleApiSkillsExport, handleApiSkillsCreate, handleApiSkillsUpdate, handleApiSkillsDelete, handleApiSkillsBuild, handleApiSkillsProList, handleApiSkillsProImport, handleApiSkillsImport, handleApiSkillsCurate, handleApiSkillsRegistryList, handleApiSkillsRegistryImport, __setChatForTests, __resetChatForTests }
+export {
+  __resetChatForTests,
+  __setChatForTests,
+  handleApiSkillsBuild,
+  handleApiSkillsCreate,
+  handleApiSkillsCurate,
+  handleApiSkillsDelete,
+  handleApiSkillsExport,
+  handleApiSkillsGet,
+  handleApiSkillsImport,
+  handleApiSkillsList,
+  handleApiSkillsProImport,
+  handleApiSkillsProList,
+  handleApiSkillsRegistryImport,
+  handleApiSkillsRegistryList,
+  handleApiSkillsUpdate,
+}

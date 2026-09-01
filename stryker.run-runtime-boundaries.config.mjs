@@ -18,4 +18,4 @@ export default {
   reporters: ['clear-text', 'json'],
   concurrency: 1,
   timeoutMS: 120000,
-};
+}

@@ -8,10 +8,10 @@
  * tasks.yaml real, chdir al tmp, sin mock.module(). __resetRunGraphForTests no
  * se necesita acá — no tocamos el graph runner.
  */
-import { describe, it, expect, afterAll, beforeEach } from 'bun:test'
-import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { join } from 'path'
 import { stringify as yamlStringify } from 'yaml'
 
 const { route } = await import('../server.ts')
@@ -61,22 +61,25 @@ interface TasksListResponse {
 }
 async function getTasks(): Promise<TaskRow[]> {
   const res = await route(req('GET', '/api/tasks'), PORT)
-  const body = await res.json() as TasksListResponse
+  const body = (await res.json()) as TasksListResponse
   return body.tasks
 }
 
 describe('G.4 — POST /api/tasks acepta engine', () => {
   it('engine="agentic" persiste el campo en tasks.yaml y aparece en GET /api/tasks', async () => {
-    const res = await route(req('POST', '/api/tasks', {
-      id: 'agentic-task',
-      description: 'agentic task for G.4',
-      output: ['out.txt'],
-      executor: 'openrouter',
-      executor_model: 'anthropic/claude-haiku-4-5',
-      engine: 'agentic',
-    }), PORT)
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'agentic-task',
+        description: 'agentic task for G.4',
+        output: ['out.txt'],
+        executor: 'openrouter',
+        executor_model: 'anthropic/claude-haiku-4-5',
+        engine: 'agentic',
+      }),
+      PORT,
+    )
     expect(res.status).toBe(200)
-    const body = await res.json() as { ok: boolean; id: string }
+    const body = (await res.json()) as { ok: boolean; id: string }
     expect(body.ok).toBe(true)
 
     // Persistido en disco
@@ -91,12 +94,15 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
   })
 
   it('engine="single-shot" persiste el campo', async () => {
-    const res = await route(req('POST', '/api/tasks', {
-      id: 'single-task',
-      description: 'single task',
-      output: ['out.txt'],
-      engine: 'single-shot',
-    }), PORT)
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'single-task',
+        description: 'single task',
+        output: ['out.txt'],
+        engine: 'single-shot',
+      }),
+      PORT,
+    )
     expect(res.status).toBe(200)
 
     const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
@@ -107,11 +113,14 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
   })
 
   it('engine ausente: no se persiste y TaskRow.engine es null', async () => {
-    const res = await route(req('POST', '/api/tasks', {
-      id: 'no-engine',
-      description: 'inherits config',
-      output: ['out.txt'],
-    }), PORT)
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'no-engine',
+        description: 'inherits config',
+        output: ['out.txt'],
+      }),
+      PORT,
+    )
     expect(res.status).toBe(200)
 
     const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
@@ -122,26 +131,32 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
   })
 
   it('engine="bogus" devuelve 400 con mensaje claro', async () => {
-    const res = await route(req('POST', '/api/tasks', {
-      id: 'bad-engine',
-      description: 'invalid engine value',
-      output: ['out.txt'],
-      engine: 'bogus',
-    }), PORT)
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'bad-engine',
+        description: 'invalid engine value',
+        output: ['out.txt'],
+        engine: 'bogus',
+      }),
+      PORT,
+    )
     expect(res.status).toBe(400)
-    const body = await res.json() as { error: string }
+    const body = (await res.json()) as { error: string }
     expect(body.error).toContain("unknown engine 'bogus'")
     expect(body.error).toContain('single-shot')
     expect(body.error).toContain('agentic')
   })
 
   it('engine="" (string vacío): se trata como ausente, no persiste', async () => {
-    const res = await route(req('POST', '/api/tasks', {
-      id: 'empty-engine',
-      description: 'empty string engine',
-      output: ['out.txt'],
-      engine: '',
-    }), PORT)
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'empty-engine',
+        description: 'empty string engine',
+        output: ['out.txt'],
+        engine: '',
+      }),
+      PORT,
+    )
     expect(res.status).toBe(200)
 
     const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
@@ -152,8 +167,24 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
   })
 
   it('múltiples tasks con engines distintos: GET devuelve cada uno con su engine', async () => {
-    await route(req('POST', '/api/tasks', { id: 'a', description: 'A', output: ['o.txt'], engine: 'agentic' }), PORT)
-    await route(req('POST', '/api/tasks', { id: 'b', description: 'B', output: ['o.txt'], engine: 'single-shot' }), PORT)
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'a',
+        description: 'A',
+        output: ['o.txt'],
+        engine: 'agentic',
+      }),
+      PORT,
+    )
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'b',
+        description: 'B',
+        output: ['o.txt'],
+        engine: 'single-shot',
+      }),
+      PORT,
+    )
     await route(req('POST', '/api/tasks', { id: 'c', description: 'C', output: ['o.txt'] }), PORT)
 
     const rows = (await getTasks()).sort((x, y) => x.id.localeCompare(y.id))
@@ -165,12 +196,15 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
 
   // B.2 — engine='external' es la tercera opción; mismo flujo de validación y persistencia.
   it('engine="external" persiste el campo y aparece como "external" en GET /api/tasks', async () => {
-    const res = await route(req('POST', '/api/tasks', {
-      id: 'external-task',
-      description: 'external engine task',
-      output: ['out.txt'],
-      engine: 'external',
-    }), PORT)
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'external-task',
+        description: 'external engine task',
+        output: ['out.txt'],
+        engine: 'external',
+      }),
+      PORT,
+    )
     expect(res.status).toBe(200)
 
     const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
@@ -182,14 +216,17 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
   })
 
   it('engine="bogus2" devuelve 400 con mensaje que incluye "external"', async () => {
-    const res = await route(req('POST', '/api/tasks', {
-      id: 'bad-engine-2',
-      description: 'invalid engine value',
-      output: ['o.txt'],
-      engine: 'bogus2',
-    }), PORT)
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'bad-engine-2',
+        description: 'invalid engine value',
+        output: ['o.txt'],
+        engine: 'bogus2',
+      }),
+      PORT,
+    )
     expect(res.status).toBe(400)
-    const body = await res.json() as { error: string }
+    const body = (await res.json()) as { error: string }
     expect(body.error).toContain("unknown engine 'bogus2'")
     expect(body.error).toContain('single-shot')
     expect(body.error).toContain('agentic')
@@ -197,9 +234,33 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
   })
 
   it('múltiples tasks: agentic + single-shot + external + inherit', async () => {
-    await route(req('POST', '/api/tasks', { id: 'a', description: 'A', output: ['o.txt'], engine: 'agentic' }), PORT)
-    await route(req('POST', '/api/tasks', { id: 'b', description: 'B', output: ['o.txt'], engine: 'single-shot' }), PORT)
-    await route(req('POST', '/api/tasks', { id: 'e', description: 'E', output: ['o.txt'], engine: 'external' }), PORT)
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'a',
+        description: 'A',
+        output: ['o.txt'],
+        engine: 'agentic',
+      }),
+      PORT,
+    )
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'b',
+        description: 'B',
+        output: ['o.txt'],
+        engine: 'single-shot',
+      }),
+      PORT,
+    )
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'e',
+        description: 'E',
+        output: ['o.txt'],
+        engine: 'external',
+      }),
+      PORT,
+    )
     await route(req('POST', '/api/tasks', { id: 'n', description: 'N', output: ['o.txt'] }), PORT)
 
     const rows = (await getTasks()).sort((x, y) => x.id.localeCompare(y.id))

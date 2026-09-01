@@ -62,7 +62,7 @@ export function groupRunsByOutcome(runs: RunSummary[]): RunOutcomeGroups {
   let totalElapsed = 0
 
   for (const r of runs) {
-    totalCost    += r.usd_cost ?? 0
+    totalCost += r.usd_cost ?? 0
     totalElapsed += r.elapsed_ms ?? 0
 
     const model = r.model ?? 'unknown'
@@ -106,9 +106,13 @@ Output ONLY a JSON array of PatternSuggestion objects — no prose, no markdown 
 Return an empty array [] if fewer than 3 runs or no clear patterns exist.`
 
 function buildAnalyzePrompt(groups: RunOutcomeGroups): string {
-  const failBlock = groups.failReasons.length > 0
-    ? `QA failure reasons (sample):\n${groups.failReasons.slice(0, 5).map(r => `  - ${r}`).join('\n')}`
-    : 'QA failure reasons: (none)'
+  const failBlock =
+    groups.failReasons.length > 0
+      ? `QA failure reasons (sample):\n${groups.failReasons
+          .slice(0, 5)
+          .map((r) => `  - ${r}`)
+          .join('\n')}`
+      : 'QA failure reasons: (none)'
 
   const modelBlock = Object.entries(groups.topModels)
     .sort((a, b) => b[1] - a[1])
@@ -174,11 +178,11 @@ export function parsePatternSuggestions(raw: string): PatternSuggestion[] {
     const i = item as Record<string, unknown>
     if (typeof i.pattern !== 'string' || typeof i.fix_hint !== 'string') continue
     results.push({
-      pattern:    i.pattern,
-      frequency:  typeof i.frequency === 'number' ? i.frequency : 0,
-      fix_hint:   i.fix_hint,
+      pattern: i.pattern,
+      frequency: typeof i.frequency === 'number' ? i.frequency : 0,
+      fix_hint: i.fix_hint,
       confidence: ['high', 'medium', 'low'].includes(i.confidence as string)
-        ? i.confidence as 'high' | 'medium' | 'low'
+        ? (i.confidence as 'high' | 'medium' | 'low')
         : 'low',
     })
   }

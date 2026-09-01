@@ -8,8 +8,8 @@
  */
 
 export interface ModelRoleConfig {
-  provider: string   // e.g. 'openrouter', 'anthropic', 'openai', 'codex'
-  model: string      // e.g. 'claude-opus-4-7', 'deepseek/deepseek-v3' (empty for codex)
+  provider: string // e.g. 'openrouter', 'anthropic', 'openai', 'codex'
+  model: string // e.g. 'claude-opus-4-7', 'deepseek/deepseek-v3' (empty for codex)
 }
 
 /**
@@ -33,12 +33,12 @@ export type AgentChoice = 'local' | 'claude' | 'opencode' | 'codex' | 'api'
 export interface OrcheConfig {
   config_version: number
   models: {
-    planner:        ModelRoleConfig
+    planner: ModelRoleConfig
     executor_heavy: ModelRoleConfig
     executor_light: ModelRoleConfig
-    default:        ModelRoleConfig
+    default: ModelRoleConfig
     /** Optional QA judge model — absence triggers the resolution logic in harness.ts (never same model as executor) */
-    qa?:            ModelRoleConfig
+    qa?: ModelRoleConfig
   }
   /** CC.D1 — ver AgentChoice arriba. Ausente = sin preferencia guardada todavía. */
   agent?: AgentChoice
@@ -77,10 +77,10 @@ export interface OrcheConfig {
 export const DEFAULT_CONFIG: OrcheConfig = {
   config_version: 1,
   models: {
-    planner:        { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
+    planner: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
     executor_heavy: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
     executor_light: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
-    default:        { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
+    default: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
   },
 }
 
@@ -106,7 +106,7 @@ export function parseRoleValue(value: unknown, fallback: ModelRoleConfig): Model
     const obj = value as Record<string, unknown>
     return {
       provider: typeof obj.provider === 'string' ? obj.provider : fallback.provider,
-      model:    typeof obj.model    === 'string' ? obj.model    : fallback.model,
+      model: typeof obj.model === 'string' ? obj.model : fallback.model,
     }
   }
 
