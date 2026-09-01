@@ -6,7 +6,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/dist", "!src/dashboard/public/marked.umd.js", "!**/*.css"]
+    "includes": [
+      "**",
+      "!!**/dist",
+      "!src/dashboard/public/marked.umd.js",
+      "!**/*.css",
+      "!runs-summary.json"
+    ]
   },
   "formatter": {
     "enabled": true,

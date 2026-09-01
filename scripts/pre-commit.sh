@@ -37,6 +37,16 @@ bun run ledger:gate
 echo "🖥️ Verificando evidencia en vivo para dashboard/config..."
 bun run agent:live-gate
 
+# H.3.1 (PLAN.md § Bloque H) — PLAN.md sigue siendo la única fuente de verdad;
+# .orchestos/feature-status.json es DERIVADO y se regenera siempre, nunca se
+# edita a mano. A diferencia de runs-summary.json esto es una función pura de
+# PLAN.md (mismo input → mismo output), así que correrlo también en worktrees
+# es seguro: no introduce el conflicto de timestamps que forzó la excepción
+# de abajo.
+echo "🗺️  Regenerando .orchestos/feature-status.json desde PLAN.md..."
+bun run plan:status
+git add .orchestos/feature-status.json
+
 # Mes 22/E.10 — un worktree (sandbox de una tarea) NUNCA debe commitear
 # runs-summary.json. Con la ruta ya corregida arriba, el export queda
 # aislado a la copia del worktree (ya no ensucia el repo principal) — pero

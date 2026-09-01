@@ -163,10 +163,10 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
 ### H.3 — Estado: legible por humanos, ilegible por máquinas
 
-- [ ] **H.3.1 — 🧠 El estado del producto no es machine-readable.** `PLAN.md` (1003 líneas)
-  es la fuente real, pero ningún script lo parsea salvo `findOpenPlanItem()`. `tasks.yaml` sí
-  es estructurado pero contiene tareas de **demo** (`crypto-page-v1`), no el backlog del
-  producto. `.orchestos/specs/` está vacío.
+- [x] **H.3.1 — 🧠 El estado del producto no es machine-readable.** (cerrado 2026-09-01)
+  `PLAN.md` (1003 líneas) es la fuente real, pero ningún script lo parsea salvo
+  `findOpenPlanItem()`. `tasks.yaml` sí es estructurado pero contiene tareas de **demo**
+  (`crypto-page-v1`), no el backlog del producto. `.orchestos/specs/` está vacío.
   Referencia: Anthropic usa JSON para su feature list **deliberadamente** — *"el modelo es
   menos propenso a cambiar o sobrescribir inapropiadamente archivos JSON"* — con forma
   `{category, description, steps, passes:false}` y la regla explícita *"es inaceptable
@@ -175,6 +175,34 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   cuál es la fuente y cuál el derivado — **no puede haber dos fuentes de verdad**. Esa es
   exactamente la trampa que ya costó el bug de `orchestos context update` sobrescribiendo
   `AGENTS.md`.
+  **Decisión (confirmada por Carlos antes de codear):** `PLAN.md` sigue siendo la ÚNICA
+  fuente de verdad — su prosa, evidencia y links a memoria no se tocan ni se reemplazan.
+  `.orchestos/feature-status.json` es **derivado**, regenerado siempre desde `PLAN.md` por
+  `scripts/generate-feature-status.ts` (parser en `scripts/plan-status.ts`), nunca editado a
+  mano — mismo contrato que `runs-summary.json`. `tasks.yaml` no se toca: la auditoría ya
+  documentó que es fixtures de demo/harness, no backlog (Bloque H.6), y esto no cambia esa
+  lectura. `.orchestos/specs/` queda fuera de alcance — es para specs por tarea (spec-kit),
+  un problema distinto al de rastrear el estado de PLAN.md.
+  Discriminador del parser: un ítem de trabajo real es `- [ ] **<ID> — <🧠|⚡|🔍> <título>**`;
+  los veredictos de cierre de mes (`**SÍ — Mes 27 cerrado...**`) no llevan el emoji de
+  delegación justo tras el guión largo, así que el regex los excluye sin necesitar una lista
+  negra — verificado contra el `PLAN.md` real: captura los 24 ítems de trabajo reales de los
+  45 checkboxes en negrita, y ninguno de los 21 veredictos de mes.
+  **Gate: pre-commit, no CI.** A diferencia de Biome (H.2.1), acá el costo es ~0 (regex +
+  escritura de archivo, sin red ni LLM) y el problema central del ítem es justo que nada se
+  mantiene sincronizado solo — un gate en pre-commit lo hace imposible de olvidar. En vez de
+  un checker que falla y pide re-correr a mano, `scripts/pre-commit.sh` regenera el JSON y lo
+  agrega al commit automáticamente (`bun run plan:status` + `git add`), igual que
+  `runs-summary.json` — a diferencia de ese archivo, esto SÍ es seguro en worktrees porque es
+  una función pura de `PLAN.md` (mismo input → mismo output), sin el problema de timestamps
+  que forzó la excepción de `runs-summary.json`.
+  **Evidencia:** `scripts/plan-status.test.ts` (7 tests) + `scripts/generate-feature-status.test.ts`
+  (1 test) cubren extracción de ítems, asignación de month/block por header más cercano,
+  status/closedDate, delegación, exclusión de veredictos de cierre de mes, y escritura del
+  JSON. `bunx tsc --noEmit` ✅ · `bun test` ✅ (1182 pass / 0 fail, 2871 expects, 122
+  archivos) · `bun run lint` ✅ exit 0 (se aprovechó para excluir también `runs-summary.json`
+  de Biome, generado y con formato propio — hueco que quedó de H.2.1) · `bun run plan:status`
+  regenera `.orchestos/feature-status.json` con los 24 ítems reales verificados a mano.
 
 - [ ] **H.3.2 — ⚡ `DONE.md` pesa 540 KB / 5969 líneas.** Ningún agente lo lee entero, y no
   tiene índice ni partición. Es el anti-patrón de "instrucciones monolíticas que se pudren"

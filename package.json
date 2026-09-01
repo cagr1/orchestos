@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
+    "plan:status": "bun run scripts/generate-feature-status.ts",
     "build:ui": "bun run scripts/build-ui.ts",
     "test": "bun test",
     "test:coverage": "bun run scripts/check-coverage.ts",

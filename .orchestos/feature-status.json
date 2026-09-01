@@ -1,0 +1,223 @@
+{
+  "generatedFrom": "PLAN.md",
+  "generatedBy": "scripts/generate-feature-status.ts",
+  "note": "Derivado, no editar a mano — bun run plan:status regenera.",
+  "items": [
+    {
+      "id": "H.1.1",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
+      "delegation": "⚡",
+      "title": "README miente sobre el estado del proyecto",
+      "status": "done",
+      "closedDate": "2026-09-01"
+    },
+    {
+      "id": "H.1.2",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
+      "delegation": "⚡",
+      "title": "`CONSTITUTION.md` está vacío (0 bytes)",
+      "status": "done",
+      "closedDate": "2026-09-01"
+    },
+    {
+      "id": "H.1.3",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
+      "delegation": "⚡",
+      "title": "No hay script `test` en `package.json`",
+      "status": "done",
+      "closedDate": "2026-09-01"
+    },
+    {
+      "id": "H.1.4",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
+      "delegation": "⚡",
+      "title": "Artefactos de ejecución trackeados en git",
+      "status": "done",
+      "closedDate": "2026-09-01"
+    },
+    {
+      "id": "H.2.1",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.2 — La capa barata que falta",
+      "delegation": "🧠",
+      "title": "No hay linter ni formatter",
+      "status": "done",
+      "closedDate": "2026-09-01"
+    },
+    {
+      "id": "H.3.1",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.3 — Estado: legible por humanos, ilegible por máquinas",
+      "delegation": "🧠",
+      "title": "El estado del producto no es machine-readable",
+      "status": "done",
+      "closedDate": "2026-09-01"
+    },
+    {
+      "id": "H.3.2",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.3 — Estado: legible por humanos, ilegible por máquinas",
+      "delegation": "⚡",
+      "title": "`DONE.md` pesa 540 KB / 5969 líneas",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.4.1",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.4 — Alcance y cierre: lo narrativo que debería ser mecánico",
+      "delegation": "🧠",
+      "title": "El scope-lock es narrativo, no mecánico",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.4.2",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.4 — Alcance y cierre: lo narrativo que debería ser mecánico",
+      "delegation": "🧠",
+      "title": "Hay clock-in mecanizado pero no hay clock-out",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.5",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.5 — Lo estratégico: no se puede medir si el harness mejora",
+      "delegation": "🧠",
+      "title": "OrchestOS no tiene evals propios",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.0",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🧠",
+      "title": "Andamiaje (ninguna pantalla migrada)",
+      "status": "done",
+      "closedDate": "2026-08-25"
+    },
+    {
+      "id": "UI.1",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🔍",
+      "title": "GATE DE ABORTAR: el combobox de modelo",
+      "status": "done",
+      "closedDate": "2026-08-28"
+    },
+    {
+      "id": "UI.1b",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🔍",
+      "title": "Cerrar la brecha de evidencia de UI.1: los 2 call sites que faltaban",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.2",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🧠",
+      "title": "Design system: los 6 componentes que se repiten",
+      "status": "done",
+      "closedDate": "2026-08-28"
+    },
+    {
+      "id": "UI.3",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🧠",
+      "title": "Shell: sidebar + header + rightpanel + search",
+      "status": "done",
+      "closedDate": "2026-08-28"
+    },
+    {
+      "id": "CI.1",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🔍",
+      "title": "Mutation Shards en rojo: no era mutación, era el esquema de la DB",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.3.5",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🧠",
+      "title": "Sistema visual: que se sienta herramienta, no panel de administración",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.4",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🧠",
+      "title": "Pantallas, en orden de valor",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.5",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🧠",
+      "title": "Limpieza",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.6",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🧠",
+      "title": "La UI de sesiones y proyectos (backend ya listo por CC.2/CC.3)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.7",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "Ítems",
+      "delegation": "🧠",
+      "title": "Navegación nueva: muere \"modo avanzado\", nace \"Observabilidad\"",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "GOV.1",
+      "month": "Knowledge promotions",
+      "block": "Planificar antes de cambios multi-módulo",
+      "delegation": "🧠",
+      "title": "Protocolo universal y verificable para cualquier LLM",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "GOV.2",
+      "month": "Knowledge promotions",
+      "block": "Planificar antes de cambios multi-módulo",
+      "delegation": "🔍",
+      "title": "Resolver audit de dependencias high sin actualización ciega",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "GOV.3",
+      "month": "Knowledge promotions",
+      "block": "Planificar antes de cambios multi-módulo",
+      "delegation": "🔍",
+      "title": "Evaluar advisory moderate de `qs` sin mezclar alcance",
+      "status": "done",
+      "closedDate": null
+    }
+  ]
+}
