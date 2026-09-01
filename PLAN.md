@@ -82,12 +82,16 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   middlewares se corrigió a los 5 que encadena `src/run/harness.ts`. El conteo de 36 lenguajes
   se verificó contra `SUPPORTED_LANGUAGES` y sigue vigente.
 
-- [ ] **H.1.2 — ⚡ `CONSTITUTION.md` está vacío (0 bytes).** Existe `src/spec/constitution.ts`
+- [x] **H.1.2 — ⚡ `CONSTITUTION.md` está vacío (0 bytes).** (cerrado 2026-09-01) Existe `src/spec/constitution.ts`
   implementado al lado. Un archivo raíz vacío es lo primero que abre un externo y sugiere
   abandono donde no lo hay. Redactar el contenido derivándolo de lo que ya implementa
   `src/spec/constitution.ts` — **leer el código como fuente**, no inventar principios nuevos.
   Si el código no alcanza para llenarlo, decirlo y parar: es un 🧠, no un ⚡.
   Gate: diff acotado + coherencia verificada contra `src/spec/constitution.ts`.
+  **Evidencia:** se materializó sin alteraciones el contenido de `scaffoldConstitutionMd()`:
+  `parseConstitution()` carga 3 reglas `allowed`, 4 `forbidden` y 3
+  `require_confirmation` (10 en total). `bunx tsc --noEmit` ✅ · tests relevantes ✅
+  (10 pass / 0 fail, 24 expects).
 
 - [ ] **H.1.3 — ⚡ No hay script `test` en `package.json`.** `bun test` funciona por convención
   del runtime, pero quien clone y haga `npm test` / `bun run test` no encuentra nada. Agregar
