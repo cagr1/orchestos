@@ -11,6 +11,7 @@
       "!!**/dist",
       "!src/dashboard/public/marked.umd.js",
       "!**/*.css",
+      "!evals/**/project",
       "!runs-summary.json"
     ]
   },

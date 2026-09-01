@@ -14,6 +14,7 @@
     "plan:status": "bun run scripts/generate-feature-status.ts",
     "scope:check": "bun run scripts/check-scope-lock.ts",
     "agent:handoff": "bun run scripts/agent-handoff.ts",
+    "eval:verify": "bun run scripts/eval-verify-task.ts",
     "build:ui": "bun run scripts/build-ui.ts",
     "test": "bun test",
     "test:coverage": "bun run scripts/check-coverage.ts",

@@ -90,7 +90,7 @@
       "block": "H.5 — Lo estratégico: no se puede medir si el harness mejora",
       "delegation": "⚡",
       "title": "Andamiaje de evals: schema + verificador de tasks (cero costo de LLM)",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

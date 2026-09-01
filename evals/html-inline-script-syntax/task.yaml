@@ -1,0 +1,26 @@
+id: html-inline-script-syntax
+description: Fix the inline JavaScript syntax error so the price message can be parsed and rendered.
+executor: openrouter
+input:
+  - public/index.html
+output:
+  - public/index.html
+depends_on: []
+status: pending
+retry_count: 0
+checks:
+  - cmd: bun run verify-html.ts
+origin: docs/done/mes-20.md
+reference_solution:
+  public/index.html: |
+    <!doctype html>
+    <html lang="en">
+      <body>
+        <output id="price"></output>
+        <script>
+          const price = 42
+          const message = 'Price: ' + price
+          document.querySelector('#price').textContent = message
+        </script>
+      </body>
+    </html>

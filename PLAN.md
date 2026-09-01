@@ -339,7 +339,8 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 > 59.6% con un harness afinado para GPT-5.2-Codex) — sin evals no se puede saber qué
 > configuración conviene a cada motor de la cascada local→CLI→API.
 
-- [ ] **H.5.1 — ⚡ Andamiaje de evals: schema + verificador de tasks (cero costo de LLM).**
+- [x] **H.5.1 — ⚡ Andamiaje de evals: schema + verificador de tasks (cero costo de LLM).**
+  (cerrado 2026-09-01)
   Es la mitad mecánica y **no ejecuta ni un solo trial contra un modelo** — por diseño, para
   que se pueda construir sin gastar. Alcance exacto:
   1. **Directorio `evals/`** en la raíz, nuevo. **NO usar `tasks.yaml`**: ese archivo son
@@ -365,6 +366,17 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   comparar configuraciones. Nada de eso se toca acá.
   Gate: `bun run eval:verify` en verde para las 2–3 sembradas + `bunx tsc --noEmit` +
   `bun run test:coverage` + tests propios del validador de `EvalTask`.
+  **Evidencia:** `src/evals/schema.ts` extiende `Task` sin duplicarlo y falla cerrado ante
+  `checks` ausentes/vacíos, `origin` vacío, solución vacía, paths inseguros o paths fuera de
+  `output` (aplicación directa de `INS-2026-011`: un grader ausente nunca puede producir verde).
+  `scripts/eval-verify-task.ts` copia cada proyecto base a un temporal, aplica la solución de
+  referencia y reutiliza `runChecks`; `bun run eval:verify` ✅ para 3 fallos reales / 4 checks:
+  sintaxis JS inline (Mes 20), test vacuo sin assertions y conteo invertido de checks fallidos
+  (Mes 22). Los controles negativos fallan antes de aplicar la referencia; el test vacuo además
+  demuestra que `bun test` solo sí daba un falso verde. Los tests negativos usan `.case.ts` y
+  ruta explícita para que el banco no contamine el discovery de la suite principal. Cero trials,
+  llamadas LLM, persistencia o comparación de configs. `bunx tsc --noEmit` ✅ · validador 7 pass /
+  0 fail ✅ · `bun run test:coverage` ✅ (1206 pass / 0 fail; funciones 74.31%, líneas 62.82%).
 
 - [ ] **H.5.2 — 🧠 El runner de evals: la configuración como eje + baseline comparable.**
   Depende de H.5.1 cerrado. Acá vive el criterio real, y es lo que evita construir un

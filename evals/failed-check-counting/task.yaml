@@ -1,0 +1,24 @@
+id: failed-check-counting
+description: Count only timed-out or non-zero check results as failed.
+executor: openrouter
+input:
+  - src/count-failed-checks.ts
+  - src/count-failed-checks.case.ts
+output:
+  - src/count-failed-checks.ts
+depends_on: []
+status: pending
+retry_count: 0
+checks:
+  - cmd: bun test ./src/count-failed-checks.case.ts
+origin: docs/done/mes-22.md
+reference_solution:
+  src/count-failed-checks.ts: |
+    export interface CheckSummary {
+      exitCode: number
+      timedOut: boolean
+    }
+
+    export function countFailedChecks(checks: CheckSummary[]): number {
+      return checks.filter((check) => check.timedOut || check.exitCode !== 0).length
+    }

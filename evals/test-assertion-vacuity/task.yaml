@@ -1,0 +1,27 @@
+id: test-assertion-vacuity
+description: Replace the vacuous test with tests that assert the real behavior of sum().
+executor: openrouter
+input:
+  - src/sum.ts
+  - src/sum.case.ts
+output:
+  - src/sum.case.ts
+depends_on: []
+status: pending
+retry_count: 0
+checks:
+  - cmd: bun run verify-assertions.ts
+  - cmd: bun test ./src/sum.case.ts
+origin: docs/done/mes-22.md
+reference_solution:
+  src/sum.case.ts: |
+    import { expect, test } from 'bun:test'
+    import { sum } from './sum.ts'
+
+    test('adds positive numbers', () => {
+      expect(sum(2, 3)).toBe(5)
+    })
+
+    test('adds negative numbers', () => {
+      expect(sum(-2, -3)).toBe(-5)
+    })
