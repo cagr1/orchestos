@@ -10,6 +10,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build:ui": "bun run scripts/build-ui.ts",
+    "test": "bun test",
     "test:coverage": "bun run scripts/check-coverage.ts",
     "check": "tsc --noEmit",
     "db:migrate": "bun run scripts/migrate-db.ts",

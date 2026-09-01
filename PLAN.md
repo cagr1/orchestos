@@ -93,10 +93,14 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   `require_confirmation` (10 en total). `bunx tsc --noEmit` ✅ · tests relevantes ✅
   (10 pass / 0 fail, 24 expects).
 
-- [ ] **H.1.3 — ⚡ No hay script `test` en `package.json`.** `bun test` funciona por convención
+- [x] **H.1.3 — ⚡ No hay script `test` en `package.json`.** (cerrado 2026-09-01) `bun test` funciona por convención
   del runtime, pero quien clone y haga `npm test` / `bun run test` no encuentra nada. Agregar
   `"test": "bun test"` sin tocar `test:coverage` (que es el comando exacto de CI y no se
   reemplaza). Gate: `bun run test` corre la suite; `bun run test:coverage` sigue intacto.
+  **Evidencia:** antes del cambio, `bun run test` devolvía `a package.json script "test" was
+  not found`; después, `bun run test` ✅ (1174 pass / 0 fail, 2852 expects, 120 archivos).
+  `bun run test:coverage` permanece como `bun run scripts/check-coverage.ts` y pasa ✅
+  (functions 73.96% ≥ 69%; lines 62.91% ≥ 57%). `bunx tsc --noEmit` ✅.
 
 - [ ] **H.1.4 — ⚡ Artefactos de ejecución trackeados en git.** 24 archivos entre
   `demo/crypto-page-v*/index.html`, `runs/*.log` y `test-project/`. Son salidas de corridas,
