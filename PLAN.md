@@ -102,12 +102,19 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   `bun run test:coverage` permanece como `bun run scripts/check-coverage.ts` y pasa ✅
   (functions 73.96% ≥ 69%; lines 62.91% ≥ 57%). `bunx tsc --noEmit` ✅.
 
-- [ ] **H.1.4 — ⚡ Artefactos de ejecución trackeados en git.** 24 archivos entre
+- [x] **H.1.4 — ⚡ Artefactos de ejecución trackeados en git.** (cerrado 2026-09-01) 24 archivos entre
   `demo/crypto-page-v*/index.html`, `runs/*.log` y `test-project/`. Son salidas de corridas,
   no fuente. Sacarlos del índice (`git rm --cached`) y agregarlos a `.gitignore`.
   **No borrar del disco** — pueden ser evidencia de gates. Verificar antes si alguno está
   referenciado por un test o por `tasks.yaml`; si lo está, parar y reportarlo.
   Gate: `bun test` sigue verde tras el untrack + diff acotado.
+  **Evidencia:** la primera verificación paró correctamente: los 6 HTML de `demo/` estaban
+  declarados como outputs en el `tasks.yaml` raíz y dos checks consumían
+  `demo/crypto-page/index.html`. Carlos confirmó que eran evidencia exploratoria y autorizó
+  continuar el untrack conservando `tasks.yaml` como registro. Los 24 archivos salieron del
+  índice, siguen físicamente en disco y `git check-ignore` confirma `demo/`, `runs/*.log` y
+  `test-project/`. `bunx tsc --noEmit` ✅ · `bun test` tras el cambio ✅ (1174 pass / 0 fail,
+  2852 expects, 120 archivos).
 
 ### H.2 — La capa barata que falta
 
