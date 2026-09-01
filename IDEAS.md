@@ -31,6 +31,7 @@ _(vacía — `#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a 
 a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Mes 26 cierra)_
 2. `#59` Etiquetar `code_edges` con `EXTRACTED`/`INFERRED` en `graph/` propio.
 3. `#61` Baseline de warnings de Biome pendiente de limpiar.
+4. `#62` Falso negativo silencioso del parser de `PLAN.md` (título en 2 líneas).
 
 ### Bajo-medio
 
@@ -1401,6 +1402,29 @@ documentado de 835 warnings + 467 infos que no bloquean CI pero son hallazgos re
 
 **Esfuerzo**: bajo-medio — limpiar por categoría de regla, no de una sola pasada; empezar por
 a11y del dashboard (impacto de usuario real) antes que por estilo puro (`noExplicitAny` etc.).
+
+### 62. Falso negativo silencioso del parser de `PLAN.md` (título partido en 2 líneas)
+
+**Origen**: encontrado en vivo el 2026-09-01 al planificar H.5.1–H.5.3. El ítem `H.5.3` no
+apareció en `.orchestos/feature-status.json` — no por un error, sino **en silencio**: el regex
+`ITEM_LINE_RE` de `scripts/plan-status.ts` (H.3.1) exige que el `**<ID> — <emoji> <título>**`
+abra y cierre en la **misma línea**, y ese ítem tenía el título envuelto a 2 líneas por el ancho
+de columna. Se detectó solo porque se verificó el JSON generado a mano tras editar el plan.
+
+**Por qué importa más de lo que parece**: es exactamente el modo de fallo que Bloque H vino a
+cerrar — un control que parece existir pero no se cumple, sin error visible (mismo patrón que el
+hook `pre-commit` desincronizado 11 días, ver regla cero de `CLAUDE.md`). Un ítem que desaparece
+del estado machine-readable es peor que no tener el archivo: da falsa confianza. Hoy el daño está
+acotado porque el JSON es derivado y nada bloquea sobre él, pero H.4.2 (`agent:handoff`) ya lo
+consume para decirle a la próxima sesión qué queda abierto.
+
+**Qué haría falta**: o bien el parser acepta títulos multilínea (unir la línea de continuación
+antes de matchear), o bien un chequeo de consistencia que compare la cuenta de `- [ ] **` en
+`PLAN.md` contra la cuenta de ítems parseados y avise de la diferencia. La segunda opción es más
+barata y ataca la clase entera de fallo, no solo este caso.
+
+**Esfuerzo**: bajo — un cambio acotado en `scripts/plan-status.ts` + un test de regresión con el
+caso real de `H.5.3`.
 
 ---
 

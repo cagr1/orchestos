@@ -321,20 +321,74 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
 ### H.5 — Lo estratégico: no se puede medir si el harness mejora
 
-- [ ] **H.5 — 🧠 OrchestOS no tiene evals propios.** Hoy no hay forma de afirmar con un
-  número que una versión del orquestador es mejor que la anterior. Referencia dura: LangChain
-  movió Terminal Bench 2.0 de **52.8% a 66.5%** (+13.7 pts, del puesto ~30 al top 5) **sin
-  cambiar el modelo, solo el harness** — pero eso solo se sabe porque midieron.
-  Agudizante para un orquestador multi-modelo: **el harness no es portable entre modelos**
-  (Opus 4.6 rindió 59.6% con un harness afinado para GPT-5.2-Codex). Sin evals no se puede
-  saber qué configuración conviene a cada motor de la cascada local→CLI→API.
-  Arranque realista: 20–50 tasks derivadas de fallos **reales ya documentados** en `DONE.md` y
-  `LEDGER.md` (ahí está el material), cada una con *reference solution* que pruebe que la task
-  es resoluble y los graders están bien. Métrica **`pass^k`, no `pass@k`**: con 75% por trial y
-  k=3, `pass^k ≈ 42%` — esa es la cifra honesta para algo que va a manos de un cliente.
-  Anti-patrones a evitar desde el diseño: verificar secuencias exactas de tool calls (los
-  agentes encuentran caminos válidos no anticipados), specs ambiguas (0% de pass@100 casi
-  siempre significa task rota, no agente incapaz), y estado compartido entre runs.
+> **El ítem original de la auditoría (`H.5`) se partió en 3 el 2026-09-01** tras revisar la
+> propuesta de arranque. Motivo y hueco encontrado, que ninguna de las 3 sub-partes puede
+> perder de vista: **si el grader son los `checks` de la Task, el eval mide lo mismo que ya
+> mide el harness en producción** — eso dice si los checks pasan, NO si el harness mejoró. El
+> valor de un eval está en medir **variación entre configuraciones** (modelo A vs B,
+> `single-shot` vs `agentic`, con skill vs sin skill) contra un **baseline registrado**. Un
+> `pass^k` suelto, sin un "antes" comparable, es un número sin significado: LangChain solo
+> pudo afirmar 52.8 → 66.5 porque tenía el antes. La configuración es el eje, no la task.
+>
+> Contexto de la auditoría que sigue vigente para las 3: métrica **`pass^k`, no `pass@k`**
+> (con 75% por trial y k=3, `pass^k ≈ 42%` — esa es la cifra honesta para algo que va a manos
+> de un cliente). Anti-patrones a evitar desde el diseño: verificar secuencias exactas de tool
+> calls (los agentes encuentran caminos válidos no anticipados), specs ambiguas (0% de
+> pass@100 casi siempre significa task rota, no agente incapaz), y estado compartido entre
+> runs. Agudizante multi-modelo: **el harness no es portable entre modelos** (Opus 4.6 rindió
+> 59.6% con un harness afinado para GPT-5.2-Codex) — sin evals no se puede saber qué
+> configuración conviene a cada motor de la cascada local→CLI→API.
+
+- [ ] **H.5.1 — ⚡ Andamiaje de evals: schema + verificador de tasks (cero costo de LLM).**
+  Es la mitad mecánica y **no ejecuta ni un solo trial contra un modelo** — por diseño, para
+  que se pueda construir sin gastar. Alcance exacto:
+  1. **Directorio `evals/`** en la raíz, nuevo. **NO usar `tasks.yaml`**: ese archivo son
+     fixtures de demo del harness (ya declarado en H.6), no el banco de evals.
+  2. **`EvalTask`** (archivo nuevo `src/evals/schema.ts`): reusa `Task` de
+     `src/tasks/schema.ts` — no duplicar campos — y agrega:
+     `reference_solution: Record<string, string>` (path relativo → contenido exacto del
+     archivo que resuelve la task) y `origin: string` (de qué fallo real sale, con la ruta
+     `docs/done/mes-NN.md` o `LEDGER.md` de donde se derivó). Validador al estilo de
+     `validateSkill`/`src/tasks/schema.ts`: `reference_solution` no vacío, sus paths ⊆
+     `output`, y `checks` no vacío (una eval sin grader no es una eval).
+  3. **`scripts/eval-verify-task.ts`**: para cada eval de `evals/`, copia el proyecto base a
+     un directorio temporal, **escribe la `reference_solution`** y corre sus `checks` con
+     `runChecks(checks, projectRoot, logger)` de `src/run/checks.ts` (ya existe, firma
+     verificada). Verde = la task es resoluble y el grader está bien calibrado. Rojo = la
+     task o el grader están rotos y **no se debe gastar LLM en ella**. Este script es
+     precisamente la defensa contra el anti-patrón "0% de pass@100 = task rota".
+  4. **2–3 evals sembradas** derivadas de fallos **reales ya documentados** (hay material de
+     sobra: 15 de los `docs/done/mes-*.md` mencionan regresiones/bugs reales). Elegir las que
+     tengan un check determinista obvio; si una no se puede graduar con un comando de exit
+     code, descartarla y elegir otra — no inventar un grader difuso.
+  Fuera de alcance de H.5.1, explícito: correr trials, `pass^k`, persistencia de resultados,
+  comparar configuraciones. Nada de eso se toca acá.
+  Gate: `bun run eval:verify` en verde para las 2–3 sembradas + `bunx tsc --noEmit` +
+  `bun run test:coverage` + tests propios del validador de `EvalTask`.
+
+- [ ] **H.5.2 — 🧠 El runner de evals: la configuración como eje + baseline comparable.**
+  Depende de H.5.1 cerrado. Acá vive el criterio real, y es lo que evita construir un
+  medidor que no mide nada (ver el recuadro de arriba). `scripts/eval-run.ts` corre una eval
+  k veces vía el harness real y reporta `pass^k` (**todos** los k trials verdes) junto a
+  `pass@k`, pero el registro **se indexa por configuración** — modelo, `engine`, skill,
+  `cli_effort` —, no solo por task: dos corridas de la misma task con distinta config son dos
+  mediciones distintas y comparables entre sí, esa comparación es el producto. Decisiones de
+  diseño a resolver en el ítem: dónde vive el baseline (archivo por corrida en `evals/results/`
+  vs. tabla SQLite — la DB ya existe pero mezclar evals con `runs` reales de producción
+  contamina las métricas de costo del dashboard), y aislamiento entre trials (el anti-patrón
+  de "estado compartido entre runs" es real acá: los worktrees de `src/run/` ya resuelven
+  esto, verificar antes de reimplementar).
+  Fuera de alcance: ejecutar la corrida pagada. El script queda armado y probado en seco.
+
+- [ ] **H.5.3 — 🔍 Primera corrida medida real (GATED por Carlos).**
+  Requiere que Carlos indique modelo y presupuesto; no se abre por iniciativa de ningún LLM.
+  Cuesta dinero real: 3 tasks × k=3 = 9
+  llamadas completas al modelo, y el modelo lo decide Carlos en el momento
+  ([[feedback-modelo-decision-final-carlos]], NO NEGOCIABLE — el incidente de $5.00 quemados
+  del 2026-07-13 salió exactamente de un LLM eligiendo modelo por su cuenta). Produce el
+  **primer baseline** del proyecto: el "antes" contra el que se medirá cualquier cambio
+  futuro de harness. Hasta que exista este número, no se puede afirmar que ninguna versión
+  del orquestador es mejor que otra — que es, textual, el hueco que abrió H.5.
 
 ### H.6 — Fuera de alcance de este bloque (anotado, no se toca)
 
