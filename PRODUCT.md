@@ -1,20 +1,30 @@
 # Product
 
-## Register
-
-product
-
 ## Users
 
-Carlos Gallardo — dueño y único usuario habitual del dashboard. Lo usa en dos modos: como humano (chat, tareas simples, sin código) y como operador (Tasks/Runs/Graph Runner/Memory/Specs, modo avanzado). El contexto de uso es sesiones de trabajo concentradas, frecuentemente en paralelo con la terminal de Claude Code — el dashboard es la superficie visual de un sistema de agentes autónomos (orquestación de tareas LLM, runner de grafo, memoria persistente).
+Dos audiencias sobre el mismo sistema, no dos productos separados:
+
+- **Usuario de Chat**: entra con una intención en lenguaje natural y espera conversar, delegar,
+  aprobar acciones importantes y recibir resultados sin aprender la arquitectura de agentes.
+- **Operador de Workspace**: trabaja deliberadamente sobre proyectos; necesita ver agentes,
+  sesiones, tareas, runs, evidencia, costos y configuración para gobernar trabajo serio.
+
+Carlos representa hoy ambos perfiles. El contexto típico combina sesiones de trabajo concentradas
+con agentes CLI en paralelo, pero la superficie Chat debe poder servir a usuarios no técnicos.
 
 ## Product Purpose
 
-OrchestOS Dashboard es la interfaz de control de un sistema de orquestación de agentes de IA: permite lanzar, monitorear y diagnosticar tareas y grafos de tareas ejecutados por LLMs, sin tener que leer logs de CLI o tocar la base de datos directamente. Éxito = poder confiar en el dashboard como fuente de verdad del estado del sistema (qué corrió, qué falló, por qué, cuánto costó) y poder operar el sistema completo (incluyendo el runner de grafo autónomo) sin salir del navegador.
+OrchestOS es una aplicación de orquestación de agentes con una progresión de profundidad:
+Chat permite expresar una intención y seguir su resultado; Workspace revela el mismo trabajo
+como proyecto, agentes, sesiones, tareas, runs y evidencia. Éxito = que el usuario común complete
+su trabajo sin aprender términos internos y que el operador pueda explicar qué corrió, qué falló,
+por qué y cuánto costó sin salir del navegador.
 
 ## Brand Personality
 
-Fácil e intuitivo, con el mismo feeling de Hermes / Claude Desktop: denso en información pero nunca abrumador, con detalles cuidados (profundidad sutil, microinteracciones intencionales) que comunican calidad sin saturar. No es una herramienta "fría" de operador puro — tiene pulido, pero el pulido sirve a la claridad, nunca la compite.
+Una aplicación local, moderna y deliberada: tranquila en Chat, densa pero gobernable en Workspace.
+El pulido comunica calidad mediante composición, jerarquía, profundidad sutil y microinteracciones
+intencionales; nunca mediante decoración que compita con el trabajo.
 
 ## Anti-references
 
@@ -22,10 +32,19 @@ No hay un anti-referente nombrado explícitamente más allá de los bans estánd
 
 ## Design Principles
 
-- **Densidad sin agobio**: mucha información en pantalla (tablas, badges, métricas) pero con jerarquía clara que evite la sensación de saturación.
+- **Profundidad progresiva**: Chat → trabajo contextual → Workspace. Ninguna persona debe
+  navegar por conceptos de implementación para completar una tarea sencilla.
+- **Proyecto como contenedor visual**: en Workspace, los agentes, sesiones y evidencia
+  pertenecen a un proyecto; no se presentan como pantallas globales inconexas.
+- **Densidad sin agobio**: información rica sólo en el contexto que la requiere; el detalle
+  aparece en inspector o superficie seleccionada, nunca como pared de métricas.
 - **El pulido sirve a la claridad**: profundidad, motion y detalle son medios para que el estado del sistema se entienda más rápido, no decoración.
+- **Una realidad, dos vistas**: Chat y Workspace representan las mismas conversaciones, proyectos,
+  tareas y runs. Nunca duplican ni migran datos entre productos.
 - **Verificar en vivo, no solo en código**: ningún cambio visual se considera terminado sin verificación real en el navegador (captura + interacción), porque varios bugs reales ya se escaparon de la sola lectura de CSS/HTML.
-- **Vanilla, sin frameworks nuevos**: CSS plano sobre las variables ya definidas en `:root` de `styles.css` — no Tailwind, no librería de componentes.
+- **Sistema existente, no otra reescritura de stack**: el rediseño evoluciona los tokens CSS y
+  las islas React/componentes ya introducidos; no agrega una librería visual o una segunda fuente
+  de estado para perseguir la apariencia.
 - **Dark-only por decisión, no por default**: el tema oscuro es la elección deliberada (no "porque las herramientas se ven cool en dark") — no se pide light mode.
 
 ## Accessibility & Inclusion

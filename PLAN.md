@@ -1373,23 +1373,35 @@ ni eso hace falta.
   Borrar el `render()`/`wire()` muerto; `screens.css`/`styles.css` reducidos a tokens;
   `index.html` con un solo `<script>`.
 
-- [ ] **UI.6 — 🧠 La UI de sesiones y proyectos (backend ya listo por CC.2/CC.3).**
+- [ ] **UI.6 — 🧠 Dos profundidades, una sola realidad: Chat | Workspace (backend ya listo por CC.2/CC.3).**
   Absorbida desde el Mes 29 el 2026-08-18: CC.2 y CC.3 entregan schema + endpoints + tests, y toda
   su superficie visual se construye acá, en React, **nunca en vanilla**.
-  Sidebar izquierdo: **toggle Chat | Code** arriba (shadcn `Tabs`), y debajo el árbol de proyectos
-  como carpetas colapsables (shadcn `Collapsible`/`Sidebar`) con sus sesiones. En `Code` se ven los
-  proyectos con sus agentes; en `Chat` se ven las conversaciones — incluidas las "generales"
-  (`project_id NULL`). Cada sesión muestra su agente (inmutable) y su modo (mutable).
+  Sidebar izquierdo: **Chat | Workspace** arriba (shadcn `Tabs`), y debajo el árbol de proyectos
+  como carpetas colapsables (shadcn `Collapsible`/`Sidebar`) con sus sesiones. En `Workspace` se
+  ven los proyectos con sus agentes; en `Chat` se ven las conversaciones — incluidas las
+  "generales" (`project_id NULL`). Se reemplaza el nombre previo `Code`: OrchestOS no se limita a
+  proyectos de software. Cada sesión muestra su agente (inmutable) y su modo (mutable).
   El picker de agente de CC.D2 se reconstruye acá apuntando a `PATCH /api/chat/sessions/:id`,
   ya no a `PUT /api/config`.
 
-- [ ] **UI.7 — 🧠 Navegación nueva: muere "modo avanzado", nace "Observabilidad".**
+  **Dirección confirmada por Carlos (2026-09-02):** Chat es la entrada por defecto para usuario
+  normal; Workspace es la profundidad operativa para trabajo serio. Ambos representan los mismos
+  chats, proyectos, tareas y runs — nunca se duplican ni se migran entre dos productos. Cuando
+  una conversación genera trabajo persistente, `Ver espacio de trabajo` abre el proyecto, agente
+  y ejecución de origen. La fuente completa de investigación, reglas de componentes, seguridad y
+  criterios de aceptación es `docs/dashboard-experience-direction.md`.
+  **Fuera de scope declarado:** `.orchestos/feature-status.json` se regenera automáticamente desde
+  `PLAN.md` por el pre-commit; no es una edición manual ni un cambio de producto adicional.
+
+- [ ] **UI.7 — 🧠 Navegación progresiva: muere "modo avanzado".**
   Absorbe el ex-CC.4 y el ex-BB.3. Elimina `navModeBtn` y el flag
-  `localStorage['orchestos-mode']` (`app.js:1593`, `2263`, `2286-2337`) — el eje deja de ser
-  normal/avanzado y pasa a ser Chat/Code.
-  En el lugar exacto que ocupaba "modo avanzado" (abajo de todo, justo arriba de Settings) va el
-  grupo colapsable **Observabilidad**: Tasks · Runs · Graph · Specs · Skills.
-  Memory · Instincts · Project van dentro de Settings (veredicto de CC.0).
+  `localStorage['orchestos-mode']` (`app.js:1593`, `2263`, `2286-2337`) — el eje deja de ser un
+  modo etiquetado y pasa a ser profundidad contextual: Chat | Workspace.
+  Observabilidad no compite como navegación primaria: Tasks, Runs, Graph, Specs, Skills, Memory e
+  Instincts aparecen dentro del proyecto, agente o ejecución pertinente. `Activity` queda como la
+  única vista transversal explícita para cruzar proyectos. Settings conserva sólo configuración
+  global; Project/Memory/Instincts no se esconden allí si pertenecen a una entidad seleccionada.
+  El inspector derecho pasa de riel siempre presente a detalle condicional de la entidad elegida.
   `SCREENS.runner` se borra (deuda CC.0-D5).
   **Gate 🔍 en vivo**: es el equivalente visual de CC.5 — dos proyectos, una sesión por proyecto,
   cada una con un CLI distinto, verificado con navegador real.
