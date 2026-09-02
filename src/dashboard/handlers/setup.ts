@@ -295,7 +295,10 @@ function handleApiHealth(root: string): Response {
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     const row = db
       .query<{ total: number }, string>(
-        'SELECT COALESCE(SUM(usd_cost), 0) AS total FROM runs WHERE created_at >= ?',
+        `SELECT COALESCE(SUM(runs.usd_cost), 0) AS total
+         FROM runs
+         LEFT JOIN eval_trials ON eval_trials.run_id = runs.id
+         WHERE runs.created_at >= ? AND eval_trials.run_id IS NULL`,
       )
       .get(cutoff)
     costLast7d = row?.total ?? 0

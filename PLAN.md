@@ -378,7 +378,8 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   llamadas LLM, persistencia o comparación de configs. `bunx tsc --noEmit` ✅ · validador 7 pass /
   0 fail ✅ · `bun run test:coverage` ✅ (1206 pass / 0 fail; funciones 74.31%, líneas 62.82%).
 
-- [ ] **H.5.2 — ⚡ El runner de evals: la configuración como eje + baseline comparable.**
+- [x] **H.5.2 — ⚡ El runner de evals: la configuración como eje + baseline comparable.**
+  (cerrado 2026-09-02)
   Depende de H.5.1 (cerrado). **Era 🧠; pasó a ⚡ el 2026-09-02** porque la decisión de diseño
   —la única parte que requería criterio— ya está tomada y escrita abajo. Lo que queda es
   implementación mecánica: delegable a un modelo más barato (Sonnet/Codex), decisión de Carlos
@@ -442,6 +443,20 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   Gate: `bunx tsc --noEmit` + `bun run test:coverage` + tests propios del cálculo de `pass^k`
   (función pura, sin DB) + `bun run db:migrate` sobre una DB existente sin pérdida de datos +
   **gate en vivo con navegador** para el cambio de las 2 queries del dashboard.
+  **Evidencia:** migración numerada v3 crea `eval_trials` + FK a `runs.id` + índice
+  `(eval_task_id, batch_id)`; ejecutada con `bun run db:migrate` sobre una DB preexistente y
+  conservó el registro centinela `preserved`. `scripts/eval-run.ts` acepta `--task`, `--trials`,
+  `--model`, `--engine`, `--skill`, `--cli-effort` y `--dry-run`; cada trial prepara una copia Git
+  temporal y delega el aislamiento al worktree de `runTask()`. Gate seco real: 2 trials, 2 runs
+  distintos con costo/tokens cero, 2 filas FK y configuración exacta; `pass^k=false`,
+  `pass@k=false`, 0/2 sobre el fixture roto, sin llamada LLM. Los batches históricos se listan por
+  configuración para comparación directa. Tests relevantes 17 pass / 0 fail; suite completa y
+  cobertura: 1213 pass / 0 fail, funciones 74.15%, líneas 63.28%; `bunx tsc --noEmit` y lint ✅.
+  **Gate en vivo:** navegador Chrome contra dashboard real + DB aislada con un run normal de $1.25
+  y un eval de $99: Usage mostró $1.2500 / 1 run / solo `live-control-model`; Health mostró
+  `Cost (7 days) $1.2500`; `/api/usage` confirmó `hasEvalModel=false`. Temporal eliminado.
+  **Fuera de scope declarado:** ninguno. No se ejecutó ninguna corrida pagada; H.5.3 sigue gated
+  por modelo y presupuesto elegidos por Carlos.
 
 - [ ] **H.5.3 — 🔍 Primera corrida medida real (GATED por Carlos).**
   Requiere que Carlos indique modelo y presupuesto; no se abre por iniciativa de ningún LLM.

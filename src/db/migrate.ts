@@ -68,6 +68,50 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 3,
+    name: 'eval-trials',
+    precondition: (database) => {
+      const runs =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'runs'",
+          )
+          .get()?.count ?? 0
+      if (runs !== 1) throw new Error('Migration 3 requires runs table')
+    },
+    apply: (database) => {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS eval_trials (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          run_id       TEXT NOT NULL REFERENCES runs(id),
+          eval_task_id TEXT NOT NULL,
+          trial_index  INTEGER NOT NULL,
+          batch_id     TEXT NOT NULL,
+          config_json  TEXT NOT NULL,
+          passed       INTEGER NOT NULL CHECK(passed IN (0, 1)),
+          created_at   TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_eval_trials_task_batch
+          ON eval_trials(eval_task_id, batch_id);
+      `)
+    },
+    postcondition: (database) => {
+      const table = database
+        .query<{ count: number }, []>(
+          "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'eval_trials'",
+        )
+        .get()?.count
+      const index = database
+        .query<{ count: number }, []>(
+          "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'index' AND name = 'idx_eval_trials_task_batch'",
+        )
+        .get()?.count
+      if (table !== 1 || index !== 1) {
+        throw new Error('Migration 3 did not create eval_trials and its index')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

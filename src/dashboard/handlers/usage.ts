@@ -14,9 +14,11 @@ export async function handleApiUsage(): Promise<Response> {
   try {
     const rows = db
       .query<UsageRow, []>(
-        `SELECT strftime('%Y-%m-%d', created_at) AS date, model, SUM(usd_cost) AS usd, COUNT(*) AS runs, SUM(input_tokens) AS inputTokens, SUM(output_tokens) AS outputTokens
+        `SELECT strftime('%Y-%m-%d', runs.created_at) AS date, runs.model, SUM(runs.usd_cost) AS usd, COUNT(*) AS runs, SUM(runs.input_tokens) AS inputTokens, SUM(runs.output_tokens) AS outputTokens
        FROM runs
-       WHERE created_at >= datetime('now', '-400 days')
+       LEFT JOIN eval_trials ON eval_trials.run_id = runs.id
+       WHERE runs.created_at >= datetime('now', '-400 days')
+         AND eval_trials.run_id IS NULL
        GROUP BY date, model
        ORDER BY date ASC`,
       )
