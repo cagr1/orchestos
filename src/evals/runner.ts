@@ -203,7 +203,20 @@ async function runOneTrial(input: {
 }
 
 function initializeGitRepository(projectRoot: string): string {
-  for (const args of [['init'], ['add', '-A'], ['commit', '-m', 'eval base fixture']]) {
+  const commands = [
+    ['init'],
+    ['add', '-A'],
+    [
+      '-c',
+      'user.name=OrchestOS eval fixture',
+      '-c',
+      'user.email=eval-fixture@invalid',
+      'commit',
+      '-m',
+      'eval base fixture',
+    ],
+  ]
+  for (const args of commands) {
     const result = git(args, projectRoot)
     if (result.exitCode !== 0) throw new Error(`git ${args[0]} failed: ${result.stderr}`)
   }

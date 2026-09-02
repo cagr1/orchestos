@@ -28,7 +28,14 @@ describe('eval runner dry-run', () => {
           ],
           {
             cwd: process.cwd(),
-            env: { ...process.env, ORCHESTOS_HOME: home },
+            // Reproduce GitHub Actions: ningún config global/sistema puede ocultar
+            // la falta de identidad del repo temporal que crea el eval.
+            env: {
+              ...process.env,
+              ORCHESTOS_HOME: home,
+              GIT_CONFIG_NOSYSTEM: '1',
+              GIT_CONFIG_GLOBAL: join(home, 'missing-global-gitconfig'),
+            },
             stdout: 'pipe',
             stderr: 'pipe',
           },

@@ -659,6 +659,13 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   catálogo. Prueba end-to-end de ruta normal con transcript real: `claude-sonnet-5` → ventana
   publicada 1,000,000, 17.6%, silencioso, 110 ms. Falta una sesión real ≥60% para verificar el
   aviso visible y el `mtime`; no se suplanta con fixture.
+  **Observaciones corregidas (2026-09-02, pedido explícito de Carlos):** el fixture de eval
+  crea su commit base con identidad efímera pasada como `git -c`, sin escribir configuración local
+  ni global; su test anula configuración global/sistema para reproducir GitHub Actions. El
+  pre-push mantiene el comando exacto de CI, pero guarda la salida completa en un log temporal y
+  muestra solo las 6 líneas finales al pasar (80 líneas al fallar). Corrida real ✅: 1219 pass /
+  0 fail, funciones 74.20%, líneas 63.32%; el output visible quedó acotado y el log conserva el
+  diagnóstico completo.
   **Fuera de scope declarado:** ninguno.
 
 - [ ] **H.7.4 — ⚡ `SessionStart`: reanudar sin volver a explicar.**

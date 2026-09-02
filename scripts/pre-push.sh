@@ -17,11 +17,18 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 echo "🧪 pre-push: corriendo la suite + trinquete de cobertura (lo mismo que CI)..."
-if ! bun run test:coverage; then
+log_dir="$(mktemp -d "${TMPDIR:-/tmp}/orchestos-pre-push.XXXXXX")"
+log_file="$log_dir/coverage.log"
+
+if ! bun run test:coverage >"$log_file" 2>&1; then
   echo ""
   echo "❌ pre-push: esto mismo va a fallar en CI. Push abortado."
+  echo "   Últimas 80 líneas:"
+  tail -n 80 "$log_file"
+  echo "   Log completo: $log_file"
   echo "   Si el push es urgente y aceptás dejar CI rojo: git push --no-verify"
   exit 1
 fi
 
-echo "✅ pre-push: verde. CI debería coincidir."
+tail -n 6 "$log_file"
+echo "✅ pre-push: verde. CI debería coincidir. Log completo: $log_file"
