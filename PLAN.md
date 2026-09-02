@@ -1297,6 +1297,11 @@ ni eso hace falta.
 - [ ] **UI.4 — 🧠 Pantallas, en orden de valor.** (PAUSADO por `UI.3.5` — 2 de 11 migradas con
   el look viejo: `specs` ✅ `skills` ✅. Al retomar, reciben el sistema nuevo de `UI.3.5`; las 9
   que faltan nacen ya con él.)
+  **Recolocado 2026-09-02 (UI.8):** las 9 pantallas restantes **no se migran hasta que exista el
+  gate de `UI.8.1` y esté hecho `UI.8.3`**. Motivo medido: sin el gate, cada pantalla nueva
+  reproduce el problema de UI.3.5 (tokens definidos, 4.5% de adopción); y migrarlas antes de
+  `UI.8.3` las hace nacer dentro de la navegación que el documento de dirección declara
+  anti-patrón.
 
   **Progreso**
   - [x] **`specs`** (2026-08-30) — la primera. **Gate en vivo:** navegador real (Playwright),
@@ -1405,6 +1410,133 @@ ni eso hace falta.
   `SCREENS.runner` se borra (deuda CC.0-D5).
   **Gate 🔍 en vivo**: es el equivalente visual de CC.5 — dos proyectos, una sesión por proyecto,
   cada una con un CLI distinto, verificado con navegador real.
+
+### UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)
+
+> **Origen: auditoría crítica pedida por Carlos el 2026-09-02**, con su veredicto textual:
+> *"el cambio que está en UI no hay cambio real, OrchestOS sigue viéndose igual"* y *"si le
+> estamos haciendo ya meses a esto, no solo que trabaje bien, también que se vea excelente"*.
+>
+> **Por qué UI.3.5 no produjo cambio visible — medido, no opinado (2026-09-02):**
+>
+> | UI.3.5 declaró | Medido hoy en `styles.css` + `screens.css` + los 3 `.js` |
+> | --- | --- |
+> | "de 15 tamaños de fuente a 5" | **8** usos de `var(--fs-*)` vs **~168** `font-size` hardcodeados → **4.5% de adopción**; siguen vivos `12.5px`, `11.5px`, `13.5px`, `10.5px`, `14.5px`, `0.84em` |
+> | "de 10 radios a 2" | **15** valores distintos de `border-radius` (45 usos de token vs 52 crudos) |
+> | "253 `style=` inline" como diagnóstico | **270** hoy (app.js 119 · screens-ops.js 80 · screens-core.js 54) — **subió 17** |
+> | "muere `.card` como contenedor" | **33** usos, el mismo número del diagnóstico original |
+>
+> **Causa raíz, y no es de diseño:** UI.3.5 exigía textualmente un *gate invertido* que midiera
+> que el look **cambió**. Nunca se escribió — `scripts/ui-gates/` va de `ui0` a `ui4`, no existe
+> `ui35-*`. Es la Regla Cero de `CLAUDE.md` en su forma más pura: *una regla escrita que nadie
+> hace cumplir mecánicamente deja de existir en la práctica*. Agregar más dirección visual sin
+> ese gate reproduce el mismo resultado con más páginas de documento.
+>
+> **Segundo hallazgo, que convierte UI.6/UI.7 en trabajo de backend antes que de interfaz.** El
+> documento de dirección afirma *"el chat, la tarea, el run y el proyecto son los mismos
+> objetos"*. El schema no lo sostiene:
+> - `runs.project_id TEXT` **sin FOREIGN KEY** (`src/db/migrate.ts:197-217`), mientras
+>   `context_chunks` sí la tiene (línea 194). Un run puede apuntar a un proyecto inexistente.
+> - `projects.id` es `TEXT PRIMARY KEY` (181) pero `files.project_id` (221) y
+>   `code_edges.project_id` (233) son `INTEGER NOT NULL`, sin FK. Y
+>   `src/graph/index.ts:172,180` (`upsertFile(projectId: string, …)`) **inserta un string en esa
+>   columna INTEGER**: funciona sólo por la tipificación laxa de SQLite; el schema declarado
+>   miente sobre lo que guarda. UI.7 exige "Graph dentro del proyecto" — ese join no está
+>   garantizado.
+> - **No existe entidad `agents`.** El groupbox de agente que la dirección pide no tiene de dónde
+>   leer estado propio.
+>
+> **Carlos autorizó explícitamente el trabajo de backend (2026-09-02):** *"si por hacer esto toca
+> agregar código en el back, pues que así sea"*.
+>
+> **Conflicto de decisiones resuelto.** `index.html:35-42` documenta el panel derecho como
+> *"SIEMPRE presente… el toggle nunca cambia de posición"* — corrección de Carlos del 2026-07-13,
+> ronda 4. La dirección del 2026-09-02 lo prohíbe (*"inspector condicional… no existe como riel
+> vacío permanente"*). Carlos zanjó el 2026-09-02: *"el rumbo que quiero llevar es el mencionado,
+> no el anterior"*. **Gana el inspector condicional; la decisión del 2026-07-13 queda revertida**
+> — se conserva escrita, no se borra (memoria evolutiva).
+>
+> **Anatomía concreta: `docs/ui-reference-patterns.md`** (nuevo, 2026-09-02). Extraída de las
+> capturas que Carlos tomó de Orca y Lightdash (`~/Documents/screens/`, fuera del repo por peso) y
+> del README de `pi-agent-dashboard`. Ningún ítem de abajo se diseña por intuición: la anatomía ya
+> está escrita ahí y se cita por sección.
+
+- [ ] **UI.8.1 — ⚡ El gate visual, y Playwright como dependencia real.**
+  Va **primero**: sin esto, todo lo demás se evapora igual que UI.3.5.
+  `scripts/ui-gates/ui35-visual-system.mjs`, contra el dashboard real, falla si:
+  - hay más de **5** valores distintos de `font-size` computado en la pantalla auditada;
+  - hay más de **2** valores distintos de `border-radius` (más el pill del header);
+  - queda un `<select>` nativo donde corresponde `Combobox` o chips;
+  - el conteo de `style=` inline **subió** respecto del commit anterior — **trinquete, sólo baja**,
+    mismo mecanismo que `scripts/check-coverage.ts`.
+  Además: instalar Playwright como dependencia real de gates. Hoy los 7 gates existentes dicen
+  *"Playwright no está en devDependencies, es un gate manual: cd \<dir con playwright\>"* — y no
+  está instalado en esta máquina, así que **ninguno corre solo**. Ése es el mecanismo que faltó.
+  Gate 🔍: correr el gate nuevo contra el dashboard real y verlo **fallar** con el CSS de hoy
+  (si pasa a la primera, el gate está mal escrito). Bajar el servidor al terminar.
+
+- [ ] **UI.8.2 — 🧠 Integridad de datos: una sola fuente de verdad, de verdad.**
+  Backend, autorizado explícitamente. Habilita todo lo visual que viene después.
+  - `FOREIGN KEY` de `runs.project_id` → `projects(id)`.
+  - Unificar `project_id` a `TEXT` en `files` y `code_edges`, con FK real (hoy `INTEGER` sin FK,
+    recibiendo strings).
+  - Decidir y ejecutar: **`agents` como tabla propia** o proyección derivada de sesiones/tareas.
+    Sin esta decisión el groupbox de A.2 no tiene fuente.
+  Gate: `bun run db:migrate` sobre una DB preexistente **sin pérdida de datos** (mismo patrón de
+  evidencia que H.5.2, con registro centinela) + `bun run test:coverage`.
+
+- [ ] **UI.8.3 — 🧠 Matar la navegación vieja (absorbe UI.7, sube antes de UI.4).**
+  Se adelanta a propósito: con el orden anterior, las 9 pantallas de UI.4 se migrarían **dentro**
+  de la navegación que el propio documento de dirección declara anti-patrón.
+  - Rail de 3 zonas según `ui-reference-patterns.md` §A.1: `Chat` · `Activity` arriba, árbol de
+    proyectos en el medio, `Settings` abajo. Las 7 capacidades restantes
+    (`tasks`, `runs`, `graph`, `memory`, `specs`, `skills`, `instincts`) pasan a tabs de la
+    entidad seleccionada.
+  - Borrar el modo avanzado en `app.js:512, 1922, 2733-2735` **y también en
+    `Sidebar.tsx:43, 92`** — la migración a React copió el toggle que la dirección prohíbe, y hoy
+    cada pantalla nueva lo hereda.
+  - `SCREENS.runner` se borra (deuda CC.0-D5).
+  Gate 🔍 en vivo: dos proyectos, una sesión por proyecto con CLIs distintos, navegador real.
+
+- [ ] **UI.8.4 — 🧠 Shell Chat | Workspace (absorbe UI.6).**
+  Inspector **condicional** (0px cerrado, no riel), con ancho persistido y una sola fuente de
+  selección en el estado del shell. Árbol de proyectos con agentes como filas colapsables
+  (§A.2), selección como único contenedor con borde (§A.3), anomalías inline (§A.4).
+  **Contrato de la transición Chat → Workspace**, que hoy no está definido:
+  1. Si la conversación **no** generó trabajo persistente, la acción **no aparece** (no aparece
+     deshabilitada — un botón que a veces no lleva a ningún lado es el "botón que no hace nada"
+     de la Regla Cero).
+  2. Si lo generó: abre **proyecto + entidad de origen ya seleccionada**, misma pestaña, con el
+     chat conservado y accesible en un gesto de vuelta.
+  Gate 🔍 en vivo con los dos casos de (1) y (2).
+
+- [ ] **UI.8.5 — 🧠 Composición visual: barra de estado, Settings y controles.**
+  Recién acá entra "que se vea excelente", y con la anatomía ya escrita:
+  - **Barra de estado inferior permanente** (§A.5): `% de contexto + tiempo de sesión` a la
+    izquierda, avisos al centro, recursos a la derecha. **Es la superficie que `H.7.5` necesita**
+    — el % de contexto no va en una card del home. Resuelve también dónde vive el costo en Chat.
+  - **Settings agrupado por alcance** (§B.1): `Global` · `Proyecto` · `Agente`, con la anatomía de
+    fila de §A.9 (label + descripción de una línea + control a la derecha, sin divisores).
+    Corrige el reclamo textual de Carlos: *"Settings no parece usable, hay cosas que hay que
+    desaparecer o darles sentido"*.
+  - **Selector de agente como chips con icono** (§A.10), no `<select>`; `Combobox` se reserva para
+    listas largas (`reference-model-combo-pattern`).
+  - **Barra de uso de contexto** en la fila de sesión (§C.2).
+  Gate 🔍: el de UI.8.1 en verde sobre estas pantallas, más navegador real.
+
+- [ ] **UI.8.6 — 🧠 Permisos visibles (`INS-2026-014`).**
+  Hoy **no existe** mecanismo de aprobación en el chat: el harness invoca los CLIs en modo no
+  interactivo por diseño (`codex exec --sandbox workspace-write` en `src/run/executors/codex.ts`,
+  equivalente en `external.ts`). El documento de dirección lo exige y sin este ítem queda como
+  prosa incumplible — el mismo patrón que dejó a UI.3.5 sin efecto.
+  Modelo tomado de Orca (§A.6, §A.11): tira permanente de una línea sobre el compositor
+  declarando el estado real, más un segmented control honesto `Yolo | Manual` en Settings del
+  agente. No un modal que se acepta una vez y se olvida.
+
+**Decisiones pendientes de Carlos dentro de UI.8** (no las toma ningún LLM):
+1. `agents` como tabla propia o proyección derivada (UI.8.2).
+2. Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no.
+3. Si UI.8.6 entra en este bloque o sale como bloque propio con backend separado.
 
 ### Fuera de alcance del Mes 30 (explícito)
 

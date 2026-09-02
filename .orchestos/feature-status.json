@@ -283,6 +283,60 @@
       "closedDate": null
     },
     {
+      "id": "UI.8.1",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "El gate visual, y Playwright como dependencia real",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.8.2",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
+      "delegation": "🧠",
+      "title": "Integridad de datos: una sola fuente de verdad, de verdad",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.8.3",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
+      "delegation": "🧠",
+      "title": "Matar la navegación vieja (absorbe UI.7, sube antes de UI.4)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.8.4",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
+      "delegation": "🧠",
+      "title": "Shell Chat | Workspace (absorbe UI.6)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.8.5",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
+      "delegation": "🧠",
+      "title": "Composición visual: barra de estado, Settings y controles",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.8.6",
+      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
+      "delegation": "🧠",
+      "title": "Permisos visibles (`INS-2026-014`)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "GOV.1",
       "month": "Knowledge promotions",
       "block": "Planificar antes de cambios multi-módulo",
