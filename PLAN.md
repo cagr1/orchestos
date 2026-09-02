@@ -378,19 +378,70 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   llamadas LLM, persistencia o comparación de configs. `bunx tsc --noEmit` ✅ · validador 7 pass /
   0 fail ✅ · `bun run test:coverage` ✅ (1206 pass / 0 fail; funciones 74.31%, líneas 62.82%).
 
-- [ ] **H.5.2 — 🧠 El runner de evals: la configuración como eje + baseline comparable.**
-  Depende de H.5.1 cerrado. Acá vive el criterio real, y es lo que evita construir un
-  medidor que no mide nada (ver el recuadro de arriba). `scripts/eval-run.ts` corre una eval
-  k veces vía el harness real y reporta `pass^k` (**todos** los k trials verdes) junto a
-  `pass@k`, pero el registro **se indexa por configuración** — modelo, `engine`, skill,
-  `cli_effort` —, no solo por task: dos corridas de la misma task con distinta config son dos
-  mediciones distintas y comparables entre sí, esa comparación es el producto. Decisiones de
-  diseño a resolver en el ítem: dónde vive el baseline (archivo por corrida en `evals/results/`
-  vs. tabla SQLite — la DB ya existe pero mezclar evals con `runs` reales de producción
-  contamina las métricas de costo del dashboard), y aislamiento entre trials (el anti-patrón
-  de "estado compartido entre runs" es real acá: los worktrees de `src/run/` ya resuelven
-  esto, verificar antes de reimplementar).
-  Fuera de alcance: ejecutar la corrida pagada. El script queda armado y probado en seco.
+- [ ] **H.5.2 — ⚡ El runner de evals: la configuración como eje + baseline comparable.**
+  Depende de H.5.1 (cerrado). **Era 🧠; pasó a ⚡ el 2026-09-02** porque la decisión de diseño
+  —la única parte que requería criterio— ya está tomada y escrita abajo. Lo que queda es
+  implementación mecánica: delegable a un modelo más barato (Sonnet/Codex), decisión de Carlos
+  para cuidar cupo ([[feedback-cuidar-cupo-claude-delegar-codex]]).
+
+  **DECISIÓN TOMADA — dónde vive el registro (NO re-litigar).** Tabla satélite `eval_trials`
+  en SQLite con FK a `runs.id`. Se evaluaron tres caminos y se descartaron dos:
+  - **Descartado — insertar el run y después borrar la fila de `runs`:** destruye evidencia de
+    gasto **real** (los trials cuestan dinero; borrar hace imposible responder después "¿cuánto
+    costó medir?"), y es frágil justo donde importa — si el proceso muere entre el insert y el
+    delete (Ctrl-C a mitad de k trials es el caso normal, no el raro) queda basura en la tabla
+    de producción. Contradice de frente la cultura del repo: `LEDGER.md`, `gate:evidence` y
+    `run-evidence-gate.ts` existen todos para NO perder evidencia.
+  - **Descartado — columna `is_eval` en `runs`:** obliga a guardar la semántica propia del eval
+    (task, índice de trial, configuración medida, veredicto del grader) en archivos sueltos,
+    partiendo la data entre SQLite y el filesystem, y contamina el schema de producción con
+    columnas NULL en el 99.9% de las filas.
+  - **Elegido — `eval_trials` con FK:** el run se inserta **normal** (cero cambios en
+    `harness.ts`; costo, `file_diffs` y `qa_reason` quedan disponibles para investigar por qué
+    falló un trial) y la semántica de eval vive aparte. Argumento decisivo: el producto de este
+    ítem es **comparar configuraciones**, y eso es una consulta agregada — "pass^k de config X
+    vs config Y sobre la task T" es una línea de SQL sobre una tabla, y un script que parsea
+    directorios si fueran archivos JSON. Elegir archivos acá reintroduciría en la capa de
+    medición exactamente el defecto que H.3.1 acaba de cerrar en la capa de estado.
+    Precedente en el repo: `run_steps` ya es una tabla satélite de `runs` con el mismo patrón.
+
+  **Alcance exacto:**
+  1. **Migración** en `src/db/migrate.ts`, siguiendo el estilo ya presente ahí (`CREATE TABLE IF
+     NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`, y el bloque de *ALTER TABLE guards* de la
+     línea ~213 si hiciera falta evolucionarla después). Tabla `eval_trials`:
+     `id` (PK autoincrement), `run_id TEXT NOT NULL REFERENCES runs(id)`, `eval_task_id TEXT NOT
+     NULL`, `trial_index INTEGER NOT NULL`, `batch_id TEXT NOT NULL` (agrupa los k trials de una
+     misma corrida), `config_json TEXT NOT NULL` (la configuración **exacta** bajo medición:
+     modelo, `engine`, `skill`, `cli_effort`), `passed INTEGER NOT NULL` (veredicto del grader
+     —los `checks` de la eval—, **distinto** de `qa_verdict`), `created_at TEXT NOT NULL`.
+     Índice por `(eval_task_id, batch_id)`.
+  2. **Excluir evals del dashboard de costos** en las 2 queries que hoy agregan sobre `runs` sin
+     filtro — son exactamente estas, no hay más:
+     `src/dashboard/handlers/usage.ts` (~línea 17, el `SELECT ... SUM(usd_cost) ... FROM runs
+     WHERE created_at >= datetime('now','-400 days')`) y `src/dashboard/handlers/setup.ts`
+     (~línea 298, `SELECT COALESCE(SUM(usd_cost),0) AS total FROM runs WHERE created_at >= ?`).
+     Excluir con `LEFT JOIN eval_trials ON eval_trials.run_id = runs.id WHERE
+     eval_trials.run_id IS NULL` (o `NOT EXISTS`). **Gate en vivo obligatorio** para estos dos
+     archivos: son superficie de dashboard, el pre-commit lo exige (`agent:live-gate`).
+  3. **`scripts/eval-run.ts`** — corre una eval k veces vía `runTask()` real y registra cada
+     trial en `eval_trials`. Reporta **`pass^k`** (todos los k trials verdes, la cifra honesta)
+     junto a `pass@k` (al menos uno), como pide la auditoría. El registro **se indexa por
+     configuración**, no solo por task: dos corridas de la misma task con distinta config son
+     dos mediciones comparables entre sí — esa comparación es el producto del ítem.
+     Flags: `--task <id> --trials <k>` y overrides de configuración.
+  4. **Aislamiento entre trials** — el anti-patrón "estado compartido entre runs" es real acá.
+     `src/run/sandbox.ts` ya crea worktrees aislados por tarea: **verificar que aplica y
+     reusarlo**, no reimplementar aislamiento.
+  5. **Modo seco obligatorio** (`--dry-run`): `runTask()` ya soporta `dryRun` (construye el
+     prompt y no llama al LLM, `harness.ts` ~línea 326). Es lo que permite probar todo el
+     cableado —migración, inserción en `eval_trials`, cálculo de `pass^k`, exclusión del
+     dashboard— **sin gastar un centavo**.
+
+  **Fuera de alcance, explícito:** ejecutar la corrida pagada (eso es H.5.3, gated por Carlos).
+  El script queda armado y probado **en seco**.
+  Gate: `bunx tsc --noEmit` + `bun run test:coverage` + tests propios del cálculo de `pass^k`
+  (función pura, sin DB) + `bun run db:migrate` sobre una DB existente sin pérdida de datos +
+  **gate en vivo con navegador** para el cambio de las 2 queries del dashboard.
 
 - [ ] **H.5.3 — 🔍 Primera corrida medida real (GATED por Carlos).**
   Requiere que Carlos indique modelo y presupuesto; no se abre por iniciativa de ningún LLM.
