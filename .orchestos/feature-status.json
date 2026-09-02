@@ -117,7 +117,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "`scripts/context-budget.ts`: medir el llenado de la ventana",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

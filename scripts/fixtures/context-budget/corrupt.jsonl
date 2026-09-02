@@ -1,0 +1,3 @@
+{"type":"assistant","message":{"model":"first-model","usage":{"input_tokens":1}}}
+{"type":"assistant","message":
+{"type":"assistant","message":{"model":"final-model","usage":{"input_tokens":3,"cache_creation_input_tokens":4,"cache_read_input_tokens":5}}}

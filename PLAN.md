@@ -518,7 +518,8 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 > - El umbral es un **porcentaje**, y la ventana se **deriva del modelo del turno** — no un
 >   número fijo de tokens. Modelos distintos, ventanas distintas.
 
-- [ ] **H.7.1 — ⚡ `scripts/context-budget.ts`: medir el llenado de la ventana.**
+- [x] **H.7.1 — ⚡ `scripts/context-budget.ts`: medir el llenado de la ventana.**
+  (cerrado 2026-09-02)
   Módulo puro + CLI, sin efectos. Alcance exacto:
   1. `readTranscriptUsage(path)`: lee el JSONL, toma el **último** objeto con
      `message.usage`, devuelve `{ used, model }` con
@@ -538,6 +539,18 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   **Prohibido** en este ítem: tocar hooks, escribir en `.orchestos/`, o llamar a un LLM.
   Gate: `bunx tsc --noEmit` + `bun run test:coverage` (el comando **exacto** de CI, ver
   `CLAUDE.md` § "Verificar contra CI") + tests propios.
+  **Evidencia:** `scripts/context-budget.ts` lee exclusivamente el último `message.usage`
+  válido de JSONL y suma `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`;
+  las líneas corruptas se ignoran. Aplica `INS-2026-016`: la ventana se toma solo del catálogo
+  real en `${ORCHESTOS_HOME}/.orchestos/cache/models.json`; un modelo sin entrada conocida
+  devuelve `window/pct/level: null`, sin fallback por familia ni red. `budgetStatus()` clasifica
+  60% warn y 75% critical con thresholds configurables. `bun run context:budget -- --transcript
+  scripts/fixtures/context-budget/usage.jsonl` ✅ emitió JSON con 84,360 tokens y modelo
+  `claude-opus-5`; como no estaba en el catálogo local, devolvió null de forma abierta.
+  Tests propios: 5 pass / 0 fail (última línea, corrupción, sin usage, catálogo conocido/desconocido,
+  thresholds). `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1218 pass / 0 fail;
+  funciones 74.22%, líneas 63.29%) · lint ✅. No se tocaron hooks, `.orchestos` ni proveedores LLM.
+  **Fuera de scope declarado:** ninguno.
 
 - [ ] **H.7.2 — ⚡ Handoff con la intención, no solo con el estado.**
   Depende de H.7.1. Extiende `renderHandoff()` de `scripts/handoff.ts` (no lo reescribe) con
