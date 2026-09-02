@@ -1,4 +1,4 @@
-# DREAMING.md — 2026-09-01
+# DREAMING.md — 2026-09-02
 
 ## Runs analizados
 - Total: 20 runs
@@ -7,38 +7,30 @@
 
 ## Patrones detectados
 
-### 1. task_class "doc" falla 100% — mismo archivo declarado y nunca creado
-- Evidencia: 3/3 runs de `task_class: doc`, todos con `model: deepseek/deepseek-v4-flash`,
-  provider `openrouter`. Runs: `696cc3ca`, `01f9b0e6`, `516bcb21` (2026-08-19, en una ventana
-  de ~35 segundos entre sí — parece la misma tarea reintentada 3 veces).
-- Frecuencia: 3/3 runs de esa task_class (100%), y 3/7 runs de deepseek-v4-flash (43%).
-- qa_reason recurrente (idéntico en los 3): `"missing declared output(s): src/utils/helper.js"`.
-- Nota: task_class "doc" y el fallo de deepseek con ese qa_reason son el MISMO conjunto de
-  3 runs, no dos patrones independientes — todo apunta a una sola tarea que se reintentó y
-  falló igual las 3 veces.
-- Contraste: hay un run posterior de deepseek (`792ebc9f`, sin fecha de creación clara en el
-  export pero con qa_verdict pass) que sí generó `src/utils/helper.js` con éxito — o sea el
-  modelo puede hacerlo, pero falló consistentemente en esos 3 intentos concretos.
+### 1. task_class "doc" falla 100% con deepseek/deepseek-v4-flash
+- Evidencia: 3/3 runs de `task_class: doc` fallaron, los 3 con `model: deepseek/deepseek-v4-flash` (provider openrouter), `qa_reason` idéntico en los 3: "missing declared output(s): src/utils/helper.js". IDs: 696cc3ca, 01f9b0e6, 516bcb21 — todos creados en la misma ventana (2026-08-19T20:30:14–48Z), sugiriendo reintentos consecutivos del mismo task sin cambiar de estrategia.
+- Frecuencia: 3/20 runs totales, 3/3 de la clase "doc"
+- qa_reason recurrente: "missing declared output(s): src/utils/helper.js"
+
+### 2. "missing declared output(s)" también aparece en implement con gpt-5.4
+- Evidencia: run d064d1b9 (`task_class: implement`, `model: openai/gpt-5.4`) falló con "missing declared output(s): hello-b.txt" pese a costar $0.169 y usar 65,857 tokens — el modelo consumió presupuesto real sin producir el archivo declarado.
+- Frecuencia: 1/6 runs de implement (17%), pero mismo tipo de fallo que el patrón 1 → posible causa raíz compartida en cómo se resuelve/valida la ruta de output declarada, no solo un problema de deepseek.
+- qa_reason recurrente: "missing declared output(s): <archivo>"
+
+### 3. task_class "chat" es 100% estable
+- Evidencia: 11/11 runs de chat con status "done", sin qa_verdict fail. No requiere intervención.
 
 ## Propuestas
 
-### Propuesta 1 — investigar por qué el reintento no cambió el resultado
-- Qué cambiar: nada en código todavía — falta contexto que `runs-summary.json` no tiene
-  (el prompt/tarea original que generó esos 3 runs, y si el sistema reintentó automáticamente
-  o si fue Carlos manualmente).
-- Por qué: 3 intentos idénticos con el mismo qa_reason en 35 segundos sugiere que el reintento
-  no varió el prompt ni el contexto — si el orquestador reintenta tareas fallidas de forma
-  automática sin ajustar nada, va a repetir el mismo fallo indefinidamente sin converger.
-- Riesgo: bajo (es solo investigación, no cambio de comportamiento).
+### Propuesta 1 — evitar deepseek-v4-flash para task_class "doc" hasta investigar
+- Qué cambiar: en la configuración de selección de modelo/routing (`orchestos.config.yaml` o el módulo de cascada de motor), excluir o des-priorizar `deepseek/deepseek-v4-flash` para tareas clasificadas como "doc" hasta confirmar la causa del fallo de output declarado.
+- Por qué: 3/3 fallos idénticos en la misma ventana de 34 segundos, mismo archivo faltante — patrón consistente, no ruido aleatorio.
+- Riesgo: bajo (es una exclusión de modelo para una clase de tarea específica, reversible).
 
-### Propuesta 2 — quizás agregar un check declarativo de "archivo esperado existe" antes del QA
-- Qué cambiar: si el pipeline de tareas `doc`/`implement` declara `files_expected` o similar,
-  validar su existencia como check mecánico (rápido, barato) antes de invocar el QA verdict
-  completo (más caro, como se ve en el `usd_cost` de estos runs: ~$0.09–0.14 cada uno).
-- Por qué: los 3 runs gastaron QA completo solo para reportar "falta el archivo declarado" —
-  eso es una verificación de existencia de archivo, no algo que necesite juicio de un LLM.
-- Riesgo: medio (depende de si `files_expected` ya existe en el schema de tareas — no verificado
-  en este análisis; requiere revisar `tasks.yaml` y el código de QA antes de decidir).
+### Propuesta 2 — validar que el path de output declarado se resuelva correctamente antes de reportar éxito
+- Qué cambiar: revisar el componente que compara "output declarado" vs. "archivos creados" (probablemente en el runner de tasks o en el gate de QA) — los 4 fallos con "missing declared output(s)" ocurren en dos modelos distintos (deepseek-v4-flash, gpt-5.4) y dos task_class distintos (doc, implement), lo que sugiere que el problema puede estar en cómo OrchestOS registra o normaliza la ruta esperada, no solo en el modelo.
+- Por qué: mismo mensaje de qa_reason cruzando modelo y task_class es más consistente con un bug de wiring/path-resolution que con una falla puntual de LLM.
+- Riesgo: medio (toca el gate de verificación, requiere pruebas antes de aplicar).
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
