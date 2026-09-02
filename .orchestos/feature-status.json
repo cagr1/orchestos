@@ -112,6 +112,51 @@
       "closedDate": null
     },
     {
+      "id": "H.7.1",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "`scripts/context-budget.ts`: medir el llenado de la ventana",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.7.2",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Handoff con la intención, no solo con el estado",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.7.3",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "El hook: avisar al 60% y volcar el handoff una sola vez",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.7.4",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "`SessionStart`: reanudar sin volver a explicar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.7.5",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Superficie en el dashboard",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.0",
       "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",

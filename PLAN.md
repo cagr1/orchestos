@@ -468,6 +468,129 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   futuro de harness. Hasta que exista este número, no se puede afirmar que ninguna versión
   del orquestador es mejor que otra — que es, textual, el hueco que abrió H.5.
 
+### H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)
+
+> **Origen: dogfooding real, sesión del 2026-09-02.** Carlos pasó de 9% a 25% de contexto
+> cambiando de Sonnet a Opus, y de 25% a 50% en un chat "prácticamente nuevo". El sistema
+> nunca avisó. El síntoma se atribuye normalmente a "el modelo es verboso"; la medición dice
+> otra cosa (ver abajo). Es el mismo patrón de fondo que la Regla Cero de `CLAUDE.md`: una
+> regla escrita ("cortar a sesión nueva al 70%", [[feedback-limite-contexto-70]]) que ningún
+> mecanismo hace cumplir, deja de existir en la práctica.
+>
+> **Mediciones de esta sesión (evidencia, no estimación).** Del transcript real
+> `~/.claude/projects/<slug>/<session-id>.jsonl`, último mensaje `assistant`:
+>
+> ```
+> used = input_tokens(2) + cache_creation_input_tokens(1465) + cache_read_input_tokens(82893)
+>      = 84,360 tokens        model = claude-opus-5 (viene en la propia línea del JSONL)
+> ```
+>
+> **Los dos ejes que la UI no separa, y que este ítem sí debe separar:**
+> 1. **Ventana de contexto** — se llena dentro del tab, se resetea al abrir uno nuevo.
+> 2. **Cupo/costo facturado** — NO se resetea al abrir tab; el tab nuevo re-lee archivos.
+>
+> **Por qué cambiar de modelo dispara el consumo (mecanismo, no anécdota):** cambiar de modelo
+> **invalida el prompt cache**. Todo el historial se re-procesa como `cache_creation` (precio
+> completo) en vez de `cache_read` (~10% del precio). En la medición de arriba, 82,893 de los
+> 84,360 tokens fueron `cache_read` **porque no hubo cambio de modelo en la sesión**. Regla
+> operativa que sale de esto y que vale para cualquier proyecto: **cambiar de modelo al abrir
+> un tab, nunca a mitad de una sesión larga.**
+>
+> **Lo que ya existe y NO se rehace:** `scripts/handoff.ts` + `scripts/agent-handoff.ts`
+> (H.4.2, commit `c1c6edc`) ya escriben `.orchestos/handoff.md`. Su propio comentario de
+> cabecera declara el hueco: *"no es un gate: no existe un evento 'fin de sesión' universal
+> entre Claude/Codex/DeepSeek/OpenCode para engancharlo mecánicamente"*. **El umbral de
+> contexto ES ese evento.** H.7 es el disparador que a H.4.2 le faltaba, no un sistema nuevo.
+>
+> **Viabilidad verificada antes de escribir el ítem** (contra el binario 2.1.234, para que
+> nadie la re-investigue): `strings claude.exe` confirma `transcript_path` (11 ocurrencias),
+> `SessionStart` (117), `hookSpecificOutput` (124) y `additionalContext` (186). El payload
+> que necesita el hook existe.
+>
+> **Restricciones duras del diseño, no negociables por quien implemente:**
+> - **Nada de compactación automática** ([[feedback-no-compactar-contexto]]): se avisa y se le
+>   pide a Carlos cerrar el tab. Nunca se comprime la conversación por cuenta propia.
+> - **Nada de cambio automático de modelo** ([[feedback-modelo-decision-final-carlos]]).
+> - **Costo cero por debajo del umbral**: el hook no imprime nada. Un aviso por turno sería
+>   exactamente el mal que este ítem intenta curar.
+> - **El handoff lo escribe un script determinista, no un LLM.** Carlos lo planteó explícito:
+>   "guardar a cada momento también me consumiría tokens".
+> - El umbral es un **porcentaje**, y la ventana se **deriva del modelo del turno** — no un
+>   número fijo de tokens. Modelos distintos, ventanas distintas.
+
+- [ ] **H.7.1 — ⚡ `scripts/context-budget.ts`: medir el llenado de la ventana.**
+  Módulo puro + CLI, sin efectos. Alcance exacto:
+  1. `readTranscriptUsage(path)`: lee el JSONL, toma el **último** objeto con
+     `message.usage`, devuelve `{ used, model }` con
+     `used = input_tokens + cache_creation_input_tokens + cache_read_input_tokens`.
+     Tolerar líneas corruptas (try/catch por línea) — un JSONL a medio escribir es normal.
+  2. `contextWindowFor(model)`: resuelve la ventana vía `src/router/model-catalog.ts` (ya
+     existe, `contextWindow` se usa en `src/providers/tool-call.ts` y `src/agents/planner.ts`).
+     **Ojo con el gotcha ya documentado** ([[reference-model-catalog-cache-path-gotcha]]): el
+     loader resuelve a `${ORCHESTOS_HOME}/.orchestos/cache/models.json`, no a
+     `${ORCHESTOS_HOME}/cache/models.json`. Si el catálogo no conoce el modelo, devolver
+     `null` y que el llamador falle **abierto y en silencio** (sin avisar), nunca inventar una
+     ventana por defecto.
+  3. `budgetStatus({used, window, thresholds})` → `{ pct, level: 'ok'|'warn'|'critical' }`
+     con `warn` a 60% y `critical` a 75%, configurables.
+  4. CLI `bun run context:budget -- --transcript <path>` que imprime JSON.
+  Tests con fixtures de JSONL (líneas buenas, corruptas, sin `usage`, modelo desconocido).
+  **Prohibido** en este ítem: tocar hooks, escribir en `.orchestos/`, o llamar a un LLM.
+  Gate: `bunx tsc --noEmit` + `bun run test:coverage` (el comando **exacto** de CI, ver
+  `CLAUDE.md` § "Verificar contra CI") + tests propios.
+
+- [ ] **H.7.2 — ⚡ Handoff con la intención, no solo con el estado.**
+  Depende de H.7.1. Extiende `renderHandoff()` de `scripts/handoff.ts` (no lo reescribe) con
+  una sección nueva **"De qué veníamos hablando"**: los últimos N (N=5) mensajes **del
+  usuario** del transcript — no los del asistente: la intención vive en los prompts de Carlos,
+  las respuestas del asistente son justamente lo que no queremos re-cargar. Truncar cada uno a
+  ~400 caracteres. Respetar el principio ya citado en la cabecera del archivo (robado de
+  `mattpocock/skills`): *no duplicar lo que ya está en PLAN.md/LEDGER.md/commits, referenciar
+  por path*. El transcript no está en ningún otro artefacto, por eso sí entra.
+  Gate: tests de `renderHandoff` con transcript fixture + `bun run test:coverage`.
+
+- [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
+  Depende de H.7.1 y H.7.2. `.claude/hooks/context-budget.js`, registrado como
+  `UserPromptSubmit` en el `settings.json` **del proyecto** (no el global — el global es
+  portable entre máquinas, ver `~/.claude/CLAUDE.md`). Comportamiento:
+  - Lee `transcript_path` del JSON de stdin. Si falta o el archivo no existe: **salir 0 sin
+    imprimir nada**. Fallar abierto: un hook que rompe el turno es peor que un hook que no
+    avisa.
+  - `level === 'ok'` → **no imprime nada**. Cero tokens.
+  - `level === 'warn'` (≥60%) → dispara `bun run agent:handoff` **una sola vez por sesión**
+    (flag `{ sessionId, firedAt }` en `.orchestos/context-budget.json`, gitignored) e imprime
+    un aviso de ≤4 líneas: % actual, modelo, ventana, y la instrucción de cerrar el tab.
+  - `level === 'critical'` (≥75%) → aviso corto en cada turno.
+  - Presupuesto de tiempo: el hook debe terminar en <500ms; `timeout` de 5000 en la config.
+  Gate 🔍 (no se cierra sin esto): correr una sesión real hasta cruzar el 60% y **ver el aviso
+  en vivo**, con `.orchestos/handoff.md` escrito y su timestamp posterior al cruce. No vale un
+  test que mockee el hook — es exactamente el fallo de "interfaz que no aporta" de la Regla
+  Cero, y la razón de [[feedback-verificar-gates-en-vivo]].
+
+- [ ] **H.7.4 — ⚡ `SessionStart`: reanudar sin volver a explicar.**
+  Depende de H.7.3. Hook `SessionStart` que, si `.orchestos/handoff.md` existe y su `mtime`
+  es de menos de 24h, lo inyecta vía `hookSpecificOutput.additionalContext`. Una sola vez por
+  sesión, por definición del evento. Si el archivo es más viejo que 24h: no inyectar (estado
+  rancio confunde más de lo que ayuda) pero sí imprimir una línea diciendo que existe.
+  Este es el ítem que cumple el pedido textual de Carlos: *"si cierro el tab, continuar donde
+  me quedé sin que tenga que explicar qué estaba haciendo"*.
+  Gate 🔍: abrir un tab nuevo y verificar que el asistente arranca sabiendo el ítem activo sin
+  que Carlos escriba contexto.
+
+- [ ] **H.7.5 — ⚡ Superficie en el dashboard.**
+  Depende de H.7.1. Indicador del % de contexto de la sesión activa en el dashboard, no solo
+  en el CLI ([[feedback-dashboard-no-solo-cli]]): comando + endpoint + pantalla, las tres
+  piezas o no cuenta. Reusar los componentes React del design system del Mes 30 — no
+  inventar un componente nuevo ([[reference-design-system-orchestos]]).
+  Gate 🔍: dashboard real corriendo, con el número cambiando entre dos turnos. Y **bajar el
+  servidor al terminar** ([[feedback-siempre-cerrar-servidor]]).
+
+**Nota para quien ejecute H.7 (Codex o modelo económico).** Los 5 ítems son ⚡: el criterio de
+diseño ya está tomado y escrito arriba. Lo que NO se debe hacer: re-litigar el umbral,
+proponer compactación, agregar un LLM al circuito, o "mejorar" el handoff generándolo con un
+modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambiarlo en caliente
+(scope-lock, `bun run agent:preflight -- --item H.7.N --agent <cli>` antes de tocar código).
+
 ### H.6 — Fuera de alcance de este bloque (anotado, no se toca)
 
 - `src/cli.ts` tiene **2439 líneas y 63 edges** — god file evidente. Es lo segundo que critica
