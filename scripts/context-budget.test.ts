@@ -44,6 +44,33 @@ describe('context budget', () => {
               maxOutputTokens: 0,
               supportsVision: false,
             },
+            'anthropic/claude-opus-5': {
+              contextLength: 1_000_000,
+              priceIn: 0,
+              priceOut: 0,
+              supportsReasoning: false,
+              supportsTools: false,
+              maxOutputTokens: 0,
+              supportsVision: false,
+            },
+            'provider-a/same-model': {
+              contextLength: 32_000,
+              priceIn: 0,
+              priceOut: 0,
+              supportsReasoning: false,
+              supportsTools: false,
+              maxOutputTokens: 0,
+              supportsVision: false,
+            },
+            'provider-b/same-model': {
+              contextLength: 64_000,
+              priceIn: 0,
+              priceOut: 0,
+              supportsReasoning: false,
+              supportsTools: false,
+              maxOutputTokens: 0,
+              supportsVision: false,
+            },
           },
         }),
       )
@@ -54,7 +81,12 @@ describe('context budget', () => {
           `
         process.env.ORCHESTOS_HOME = ${JSON.stringify(home)}
         const { contextWindowFor } = await import('./scripts/context-budget.ts')
-        console.log(JSON.stringify({ known: await contextWindowFor('known/model'), unknown: await contextWindowFor('unknown/model') }))
+        console.log(JSON.stringify({
+          known: await contextWindowFor('known/model'),
+          providerless: await contextWindowFor('claude-opus-5'),
+          ambiguous: await contextWindowFor('same-model'),
+          unknown: await contextWindowFor('unknown/model'),
+        }))
       `,
         ],
         { cwd: process.cwd(), stdout: 'pipe', stderr: 'pipe' },
@@ -65,7 +97,12 @@ describe('context budget', () => {
         new Response(proc.stderr).text(),
       ])
       expect(exitCode, stderr).toBe(0)
-      expect(JSON.parse(stdout)).toEqual({ known: 32_000, unknown: null })
+      expect(JSON.parse(stdout)).toEqual({
+        known: 32_000,
+        providerless: 1_000_000,
+        ambiguous: null,
+        unknown: null,
+      })
     } finally {
       rmSync(home, { recursive: true, force: true })
     }

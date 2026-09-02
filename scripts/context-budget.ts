@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import {
   contextWindowFor as catalogContextWindowFor,
   ensureCatalogLoaded,
+  getCatalog,
   hasRealContextWindow,
 } from '../src/router/model-catalog.ts'
 
@@ -59,10 +60,36 @@ export function readTranscriptUsage(transcriptPath: string): TranscriptUsage | n
  * porque un aviso con una ventana inventada es peor que el silencio.
  */
 export async function contextWindowFor(model: string | null): Promise<number | null> {
+  const catalogModel = await catalogModelIdFor(model)
+  return catalogModel ? catalogContextWindowFor(catalogModel) : null
+}
+
+/**
+ * Une el identificador que un CLI deja en su transcript con el catálogo sin
+ * codificar proveedores. Un match exacto gana; si falta el provider, solo se
+ * acepta el slug normalizado cuando el catálogo publicado da una única opción.
+ * Cero o varias opciones sigue siendo desconocido: nunca se adivina ventana.
+ */
+export async function catalogModelIdFor(model: string | null): Promise<string | null> {
   if (!model) return null
   // apiKey vacío: carga exclusivamente memoria/disco y nunca hace red ni escribe cache.
   await ensureCatalogLoaded({ apiKey: '' })
-  return hasRealContextWindow(model) ? catalogContextWindowFor(model) : null
+  if (hasRealContextWindow(model)) return model
+  // Un ID ya calificado que no existe no se "arregla" por su segmento final:
+  // `unknown/model` no puede heredar la ventana de `known/model`.
+  if (model.includes('/')) return null
+
+  const slug = normalizedModelSlug(model)
+  if (!slug) return null
+  const matches = [...(getCatalog()?.entries() ?? [])]
+    .filter(([id, info]) => info.contextLength > 0 && normalizedModelSlug(id) === slug)
+    .map(([id]) => id)
+  return matches.length === 1 ? (matches[0] ?? null) : null
+}
+
+function normalizedModelSlug(model: string): string {
+  const slug = model.trim().toLowerCase().split('/').at(-1)
+  return slug ? slug.replace(/[._-]+/g, '-') : ''
 }
 
 export function budgetStatus(input: {

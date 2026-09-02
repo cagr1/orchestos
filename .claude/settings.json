@@ -16,5 +16,18 @@
       "Edit(DREAMING.md)"
     ]
   },
-  "description": "Allowlist mínimo para que la rutina programada orchestos-dreaming (scripts/dreaming) corra sin prompts de permiso en el sandbox cloud, donde el repo se clona fresco y .claude/settings.local.json (gitignored) no está disponible."
+  "description": "Allowlist mínimo para que la rutina programada orchestos-dreaming (scripts/dreaming) corra sin prompts de permiso en el sandbox cloud, donde el repo se clona fresco y .claude/settings.local.json (gitignored) no está disponible.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/context-budget.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }

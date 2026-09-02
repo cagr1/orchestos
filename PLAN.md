@@ -551,6 +551,12 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   thresholds). `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1218 pass / 0 fail;
   funciones 74.22%, líneas 63.29%) · lint ✅. No se tocaron hooks, `.orchestos` ni proveedores LLM.
   **Fuera de scope declarado:** ninguno.
+  **Ajuste H.7.3 (2026-09-02):** un transcript puede guardar el slug sin provider (p.ej.
+  `claude-opus-5`) mientras el catálogo publicado usa `anthropic/claude-opus-5`. La resolución
+  ahora admite ese slug solo si normalizado (`.`, `_`, `-`) coincide con **una única** entrada
+  real del catálogo; match exacto gana, un ID ya calificado sigue exigiendo match exacto y cero o
+  varias coincidencias devuelven `null`. Es general para cualquier CLI/proveedor, sin prefijos ni
+  ventanas hardcodeadas.
 
 - [x] **H.7.2 — ⚡ Handoff con la intención, no solo con el estado.**
   Depende de H.7.1. Extiende `renderHandoff()` de `scripts/handoff.ts` (no lo reescribe) con
@@ -645,6 +651,15 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   en vivo**, con `.orchestos/handoff.md` escrito y su timestamp posterior al cruce. No vale un
   test que mockee el hook — es exactamente el fallo de "interfaz que no aporta" de la Regla
   Cero, y la razón de [[feedback-verificar-gates-en-vivo]].
+  **Implementación lista; gate 🔍 pendiente:** hook de comando registrado en el `settings.json`
+  del proyecto con timeout real de 5 segundos (=5000 ms). Lee stdin, falla abierto ante ausencia,
+  corrupción, timeout, modelo no publicado o fallo de handoff; `warn`/`critical` genera el
+  handoff solo si el `{sessionId, firedAt}` no coincide y `critical` avisa en cada turno. El aviso
+  ocupa 3 líneas. La resolución proveedor-neutral de H.7.1 usa solo una coincidencia única del
+  catálogo. Prueba end-to-end de ruta normal con transcript real: `claude-sonnet-5` → ventana
+  publicada 1,000,000, 17.6%, silencioso, 110 ms. Falta una sesión real ≥60% para verificar el
+  aviso visible y el `mtime`; no se suplanta con fixture.
+  **Fuera de scope declarado:** ninguno.
 
 - [ ] **H.7.4 — ⚡ `SessionStart`: reanudar sin volver a explicar.**
   Depende de H.7.3. Hook `SessionStart` que, si `.orchestos/handoff.md` existe y su `mtime`
