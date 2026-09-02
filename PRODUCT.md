@@ -49,4 +49,4 @@ No hay un anti-referente nombrado explícitamente más allá de los bans estánd
 
 ## Accessibility & Inclusion
 
-WCAG AA como estándar (contraste ≥4.5:1 texto body, ≥3:1 texto grande) y soporte de `prefers-reduced-motion` en toda animación nueva. Sin requisitos adicionales más allá de eso — es una herramienta de un solo usuario interno, pero se mantiene el estándar igual.
+WCAG AA como estándar (contraste ≥4.5:1 texto body, ≥3:1 texto grande) y soporte de `prefers-reduced-motion` en toda animación nueva. Aunque el primer uso sea local y personal, la superficie Chat se diseña para usuarios no técnicos y debe conservar ese estándar desde el inicio.
