@@ -574,6 +574,45 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   **Fuera de scope declarado:** `runs-summary.json`, regenerado automáticamente por el hook
   pre-commit como reporte derivado; no cambia la lógica de H.7.2.
 
+> **BLOQUEADOR encontrado implementando H.7.3, sin resolver (2026-09-02, Codex).** No
+> implementar H.7.3 hasta que esto se cierre — es 🧠, no delegable sin la decisión de abajo.
+>
+> **El hecho verificado:** Claude Code escribe `message.model: "claude-opus-5"` en el
+> transcript (sin proveedor). `model-catalog.ts` es un `Map<string, ModelInfo>` con **match
+> exacto** contra IDs de OpenRouter, que publica `anthropic/claude-opus-5` (con prefijo).
+> `contextWindowFor("claude-opus-5")` → `null` siempre. H.7.1 cerró con evidencia de esto
+> mismo (`bun run context:budget` sobre el fixture real dio `null` por modelo no encontrado)
+> pero se aceptó como "modelo desconocido" genérico — en la práctica **es el caso normal**, no
+> el raro: pasa con el modelo real de Claude Code en el 100% de las sesiones. H.7.3 nunca
+> avisaría ni con un transcript real al 73-77% (medido dos veces esta sesión).
+>
+> **Rechazado explícitamente por Carlos:** un parche `claude-* → anthropic/claude-*`
+> hardcodeado. Motivo textual: *"que pasa si es otro LLM, no quiero enfocarme solo en OpenAI
+> o Anthropic, debe ser una solución general"*. Codex propuso en su lugar, y Carlos no lo
+> aprobó todavía (queda para la próxima sesión):
+> 1. Match exacto del ID del transcript contra el catálogo (caso feliz, ya existe).
+> 2. Si no hay match: comparar el nombre **sin proveedor**, normalizado, contra el **último
+>    segmento** de cada ID publicado (`anthropic/claude-opus-5` → `claude-opus-5`).
+> 3. Aceptar solo si hay **exactamente una** coincidencia; cero o más de una → `null`, mismo
+>    fail-open ya establecido en H.7.1. Nunca una tabla de alias por marca — el catálogo de
+>    OpenRouter (~300+ modelos de todos los proveedores) sigue siendo la única fuente.
+>
+> **Precedente que Carlos recordó y se investigó — no aplica, se descarta explícitamente.**
+> Memoria `reference-model-combo-pattern.md` (`buildModelSelect()` en `app.js`): resuelve un
+> problema de **UI** (combobox buscable de modelos en el dashboard/chat), no de **resolución
+> de IDs entre lo que un CLI reporta y lo que un catálogo externo publica**. Sin código
+> reusable de ahí para esto.
+>
+> **Por qué queda 🧠 y no se implementa ya:** falta decidir el caso ambiguo real — si el
+> catálogo publica el mismo nombre de modelo bajo dos proveedores a la vez (ej.
+> `openai/gpt-5.6-sol` y `otro-proveedor/gpt-5.6-sol`), la regla de match único da `null` para
+> **ambos**, siempre, en cualquier sesión que use ese nombre — no es un edge case raro, es
+> estructural. Decidir si ese fail-open es aceptable (probablemente sí, coherente con el resto
+> de H.7) o si hace falta una señal de desempate, antes de que Codex/DeepSeek lo codeen.
+>
+> Gate cuando se cierre: fixture de catálogo con `claude-opus-5` bajo un solo proveedor (match
+> único, resuelve) + fixture con el mismo nombre bajo dos proveedores (match ambiguo, `null`).
+
 - [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
   Depende de H.7.1 y H.7.2. `.claude/hooks/context-budget.js`, registrado como
   `UserPromptSubmit` en el `settings.json` **del proyecto** (no el global — el global es
