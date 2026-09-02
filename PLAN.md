@@ -692,6 +692,58 @@ proponer compactación, agregar un LLM al circuito, o "mejorar" el handoff gener
 modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambiarlo en caliente
 (scope-lock, `bun run agent:preflight -- --item H.7.N --agent <cli>` antes de tocar código).
 
+### H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)
+
+> **Origen:** Carlos preguntó por `stablyai/orca` (orquestador que corre "any CLI agent" en
+> paralelo — precedente de industria para la arquitectura CLI-first ya presente en
+> `engine-cascade.ts`) y notó que el efecto/"esfuerzo" del CLI no debería estar atado a un
+> modelo/CLI en particular, sino resolverse de forma genérica para cualquier CLI que lo
+> soporte. Investigado y confirmado, no supuesto:
+> - **Claude Code**: flag dedicado `--effort {low,medium,high,xhigh,max}` (ya cableado hoy en
+>   `external.ts`/`tasks/schema.ts`).
+> - **Codex CLI**: sin flag dedicado — se fija vía `-c model_reasoning_effort=<valor>` (config
+>   TOML override). Valores válidos confirmados contra la doc oficial de OpenAI
+>   (`developers.openai.com/codex/config-reference`): `minimal | low | medium | high | xhigh`
+>   (`xhigh` model-dependent). Set **distinto** al de Claude (Codex tiene `minimal`, no tiene
+>   `max`).
+> - **`--dangerously-bypass-approvals-and-sandbox`** verificado en `codex exec --help` de esta
+>   máquina — equivalente exacto al `--dangerously-skip-permissions`/YOLO de Claude Code, ya
+>   asumido implícitamente por el harness (corre sin confirmación interactiva por diseño).
+>
+> **GO explícito de Carlos (2026-09-02):** "realiza lo que más profesional sea" sobre el plan
+> de abajo, presentado y no objetado.
+
+- [ ] **H.8.1 — ⚡ Registro de `cli_effort` por engine, no una lista única.**
+  `src/tasks/schema.ts`: reemplazar `ClaudeCliEffort` (5 niveles fijos, implícitamente solo
+  Claude) por un registro `CLI_EFFORT_LEVELS: Partial<Record<TaskEngine, string[]>>` =
+  `{ external: ['low','medium','high','xhigh','max'], codex: ['minimal','low','medium','high','xhigh'] }`.
+  La validación de `task.cli_effort` depende de `task.engine`, no de una lista global.
+  `opencode` queda **fuera de scope, explícito** — sin contrato de effort verificado para ese
+  CLI, mismo criterio que el resto del repo ([[feedback-deteccion-generica-no-por-cli]]: no
+  fingir soporte).
+
+- [ ] **H.8.2 — ⚡ Aplicar el effort en el executor de Codex.**
+  Depende de H.8.1. `src/run/executors/codex.ts`: si `ctx.task.cli_effort` viene seteado,
+  agregar `-c model_reasoning_effort=<valor>` al spawn (mismo patrón que `-m` ya usa hoy).
+  `external.ts` no cambia (ya hace `--effort`).
+
+- [ ] **H.8.3 — ⚡ `scripts/eval-run.ts` y dashboard, effort genérico.**
+  Depende de H.8.1/H.8.2. `--cli-effort` deja de documentarse como "Claude CLI effort
+  override"; valida contra el registro según el `--engine` recibido. En
+  `screens-core.js` (~línea 1115), el `<select>` de effort dentro del draft de tarea deja de
+  tener los 5 valores de Claude hardcodeados — sus opciones se derivan de `CLI_EFFORT_LEVELS`
+  según el `engine` elegido en el draft (hoy el campo entero se oculta si `engine !== 'external'`
+  — pasa a mostrarse también para `engine === 'codex'` con sus propios niveles).
+  Gate 🔍 (dashboard real, no mock): crear un draft con `engine=codex`, confirmar que el select
+  de effort aparece con `minimal/low/medium/high/xhigh` (sin `max`), y con `engine=external`
+  sigue mostrando los 5 de Claude. Bajar el servidor al terminar
+  ([[feedback-siempre-cerrar-servidor]]).
+
+**Fuera de scope declarado de H.8:** `opencode`; el switch de Settings para
+local/CLI/API que Carlos mencionó de paso (tema aparte, pospuesto explícitamente por él); el
+tier API/OpenRouter (`supportsReasoningEffort()` en `model-catalog.ts` ya es genérico vía el
+catálogo real, no se toca).
+
 ### H.6 — Fuera de alcance de este bloque (anotado, no se toca)
 
 - `src/cli.ts` tiene **2439 líneas y 63 edges** — god file evidente. Es lo segundo que critica

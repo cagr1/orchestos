@@ -157,6 +157,33 @@
       "closedDate": null
     },
     {
+      "id": "H.8.1",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)",
+      "delegation": "⚡",
+      "title": "Registro de `cli_effort` por engine, no una lista única",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.8.2",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)",
+      "delegation": "⚡",
+      "title": "Aplicar el effort en el executor de Codex",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.8.3",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)",
+      "delegation": "⚡",
+      "title": "`scripts/eval-run.ts` y dashboard, effort genérico",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.0",
       "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
