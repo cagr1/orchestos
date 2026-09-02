@@ -18,6 +18,7 @@
  * de cualquier CLI, lo encuentre sin configuración extra.
  */
 
+import { readFileSync } from 'node:fs'
 import type { CommandResult, RunCommand } from './agent-governance.ts'
 import type { FeatureStatusItem } from './plan-status.ts'
 import type { ActiveItemState } from './scope-lock.ts'
@@ -27,7 +28,61 @@ export interface HandoffInput {
   uncommitted: string[]
   activeItem: ActiveItemState | null
   openItems: FeatureStatusItem[]
+  recentUserMessages?: string[]
   now: Date
+}
+
+const RECENT_USER_MESSAGES = 5
+const MAX_USER_MESSAGE_CHARS = 400
+
+/**
+ * Recupera intención que no vive en ningún artefacto durable. Solo conserva
+ * prompts del usuario: respuestas del asistente volverían a cargar justo el
+ * contexto que el handoff busca evitar.
+ */
+export function readRecentUserMessages(transcriptPath: string): string[] {
+  try {
+    const messages: string[] = []
+    for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
+      if (line.trim() === '') continue
+      try {
+        const message = transcriptUserMessage(JSON.parse(line) as unknown)
+        if (message) messages.push(message)
+      } catch {
+        // Claude puede dejar el último JSON truncado mientras escribe el transcript.
+      }
+    }
+    return messages.slice(-RECENT_USER_MESSAGES)
+  } catch {
+    return []
+  }
+}
+
+function transcriptUserMessage(value: unknown): string | null {
+  if (!isRecord(value) || value.type !== 'user' || !isRecord(value.message)) return null
+  if (value.message.role !== 'user') return null
+
+  const content = value.message.content
+  const text =
+    typeof content === 'string'
+      ? content
+      : Array.isArray(content)
+        ? content
+            .filter(isRecord)
+            .filter((block) => block.type === 'text' && typeof block.text === 'string')
+            .map((block) => block.text as string)
+            .join(' ')
+        : ''
+
+  const normalized = text.replace(/\s+/g, ' ').trim()
+  if (normalized === '') return null
+  return normalized.length <= MAX_USER_MESSAGE_CHARS
+    ? normalized
+    : `${normalized.slice(0, MAX_USER_MESSAGE_CHARS - 1)}…`
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export function gitBranch(runCommand: RunCommand, root: string): string {
@@ -72,6 +127,14 @@ export function renderHandoff(input: HandoffInput): string {
     for (const line of input.uncommitted) lines.push(`- \`${line}\``)
   } else {
     lines.push('_(working tree limpio)_')
+  }
+  lines.push('')
+
+  lines.push('## De qué veníamos hablando')
+  if (input.recentUserMessages && input.recentUserMessages.length > 0) {
+    for (const message of input.recentUserMessages) lines.push(`- ${message}`)
+  } else {
+    lines.push('_(sin transcript de usuario disponible)_')
   }
   lines.push('')
 

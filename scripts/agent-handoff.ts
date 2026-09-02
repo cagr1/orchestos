@@ -12,7 +12,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { runCommand } from './agent-governance.ts'
-import { gitBranch, renderHandoff, uncommittedPaths } from './handoff.ts'
+import { gitBranch, readRecentUserMessages, renderHandoff, uncommittedPaths } from './handoff.ts'
 import type { FeatureStatusItem } from './plan-status.ts'
 import type { ActiveItemState } from './scope-lock.ts'
 
@@ -20,7 +20,7 @@ const ACTIVE_ITEM_PATH = '.orchestos/active-item.json'
 const FEATURE_STATUS_PATH = '.orchestos/feature-status.json'
 const HANDOFF_PATH = '.orchestos/handoff.md'
 
-export function main(root = process.cwd()): number {
+export function main(root = process.cwd(), transcriptPath?: string): number {
   const activeItemPath = resolve(root, ACTIVE_ITEM_PATH)
   const activeItem: ActiveItemState | null = existsSync(activeItemPath)
     ? (JSON.parse(readFileSync(activeItemPath, 'utf8')) as ActiveItemState)
@@ -38,6 +38,7 @@ export function main(root = process.cwd()): number {
     uncommitted: uncommittedPaths(runCommand, root),
     activeItem,
     openItems,
+    recentUserMessages: transcriptPath ? readRecentUserMessages(transcriptPath) : [],
     now: new Date(),
   })
 
@@ -48,7 +49,9 @@ export function main(root = process.cwd()): number {
 }
 
 if (import.meta.main) {
-  const code = main()
+  const transcriptFlag = process.argv.indexOf('--transcript')
+  const transcriptPath = transcriptFlag >= 0 ? process.argv[transcriptFlag + 1] : undefined
+  const code = main(process.cwd(), transcriptPath)
   if (code === 0) console.log(`✓ ${HANDOFF_PATH} generado`)
   process.exit(code)
 }

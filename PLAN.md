@@ -552,7 +552,7 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   funciones 74.22%, líneas 63.29%) · lint ✅. No se tocaron hooks, `.orchestos` ni proveedores LLM.
   **Fuera de scope declarado:** ninguno.
 
-- [ ] **H.7.2 — ⚡ Handoff con la intención, no solo con el estado.**
+- [x] **H.7.2 — ⚡ Handoff con la intención, no solo con el estado.**
   Depende de H.7.1. Extiende `renderHandoff()` de `scripts/handoff.ts` (no lo reescribe) con
   una sección nueva **"De qué veníamos hablando"**: los últimos N (N=5) mensajes **del
   usuario** del transcript — no los del asistente: la intención vive en los prompts de Carlos,
@@ -561,6 +561,18 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   `mattpocock/skills`): *no duplicar lo que ya está en PLAN.md/LEDGER.md/commits, referenciar
   por path*. El transcript no está en ningún otro artefacto, por eso sí entra.
   Gate: tests de `renderHandoff` con transcript fixture + `bun run test:coverage`.
+  **Evidencia:** `readRecentUserMessages()` lee JSONL de forma tolerante a líneas truncadas,
+  acepta texto y bloques `text`, filtra estrictamente `type/message.role = user`, normaliza
+  whitespace, conserva los últimos 5 en orden y limita cada uno a 400 caracteres. `renderHandoff()`
+  los muestra bajo **"De qué veníamos hablando"**; sin ruta o transcript, muestra el estado
+  explícito sin inventar contenido. `agent:handoff -- --transcript <path>` cablea esa única
+  fuente para el hook H.7.3. Fixture cubre mensaje excluido por antigüedad, respuesta de asistente,
+  JSON inválido, bloques de texto y truncamiento. `bun test scripts/handoff.test.ts` ✅ (9 pass /
+  0 fail) · `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1219 pass / 0 fail) ·
+  `bun run agent:handoff -- --transcript
+  scripts/fixtures/handoff/transcript.jsonl` ✅ (handoff con los cinco prompts esperados).
+  **Fuera de scope declarado:** `runs-summary.json`, regenerado automáticamente por el hook
+  pre-commit como reporte derivado; no cambia la lógica de H.7.2.
 
 - [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
   Depende de H.7.1 y H.7.2. `.claude/hooks/context-budget.js`, registrado como

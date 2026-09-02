@@ -1,0 +1,8 @@
+{"type":"user","message":{"role":"user","content":"Primer prompt que ya quedó fuera de los últimos cinco."}}
+{"type":"assistant","message":{"role":"assistant","content":"Respuesta del asistente que no debe entrar."}}
+{"type":"user","message":{"role":"user","content":"Segundo prompt que debe conservarse."}}
+{"type":"user","message":{"role":"user","content":"Tercer prompt con\n saltos de línea normalizados."}}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Cuarto prompt desde"},{"type":"text","text":"bloques de texto."}]}}
+not-json
+{"type":"user","message":{"role":"user","content":"Quinto prompt que conserva el orden cronológico."}}
+{"type":"user","message":{"role":"user","content":"Este sexto prompt es deliberadamente largo para probar el límite de caracteres y no debe conservar más texto del permitido por el handoff. Este sexto prompt es deliberadamente largo para probar el límite de caracteres y no debe conservar más texto del permitido por el handoff. Este sexto prompt es deliberadamente largo para probar el límite de caracteres y no debe conservar más texto del permitido por el handoff. Este sexto prompt es deliberadamente largo para probar el límite de caracteres y no debe conservar más texto del permitido por el handoff."}}

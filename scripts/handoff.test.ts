@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
+import { resolve } from 'node:path'
 import type { CommandResult, RunCommand } from './agent-governance.ts'
-import { gitBranch, renderHandoff, uncommittedPaths } from './handoff.ts'
+import { gitBranch, readRecentUserMessages, renderHandoff, uncommittedPaths } from './handoff.ts'
 import type { FeatureStatusItem } from './plan-status.ts'
 
 function fakeRun(stdout: string, exitCode = 0): RunCommand {
@@ -35,6 +36,7 @@ describe('uncommittedPaths', () => {
 })
 
 describe('renderHandoff', () => {
+  const transcriptFixture = resolve(import.meta.dir, 'fixtures/handoff/transcript.jsonl')
   const openItems: FeatureStatusItem[] = [
     {
       id: 'H.5',
@@ -92,5 +94,25 @@ describe('renderHandoff', () => {
       now: new Date('2026-09-01T00:00:00.000Z'),
     })
     expect(out).toContain('(+2 más — ver PLAN.md)')
+  })
+
+  test('incluye los últimos cinco prompts de usuario del transcript, no respuestas del asistente', () => {
+    const recentUserMessages = readRecentUserMessages(transcriptFixture)
+    const out = renderHandoff({
+      branch: 'master',
+      uncommitted: [],
+      activeItem: null,
+      openItems: [],
+      recentUserMessages,
+      now: new Date('2026-09-01T00:00:00.000Z'),
+    })
+
+    expect(recentUserMessages).toHaveLength(5)
+    expect(recentUserMessages[0]).toBe('Segundo prompt que debe conservarse.')
+    expect(recentUserMessages[4]).toHaveLength(400)
+    expect(out).toContain('## De qué veníamos hablando')
+    expect(out).toContain('Segundo prompt que debe conservarse.')
+    expect(out).not.toContain('Respuesta del asistente que no debe entrar')
+    expect(out).not.toContain('Primer prompt que ya quedó fuera de los últimos cinco.')
   })
 })
