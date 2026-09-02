@@ -613,6 +613,21 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 > Gate cuando se cierre: fixture de catálogo con `claude-opus-5` bajo un solo proveedor (match
 > único, resuelve) + fixture con el mismo nombre bajo dos proveedores (match ambiguo, `null`).
 
+> **RESUELTO 2026-09-02 (GO de Carlos).** Se investigó si `models.dev` (agregador de 212
+> providers) resolvía el caso ambiguo mejor que OpenRouter. Verificado contra el JSON real de
+> ambos catálogos (no contra resúmenes de WebFetch, que se contradijeron entre sí):
+> - OpenRouter real (421 modelos, el catálogo que ya usa `model-catalog.ts`): **0 colisiones**
+>   de "mismo slug sin proveedor bajo dos autores". `claude-opus-5` solo existe como
+>   `anthropic/claude-opus-5` (+ `:batch`). El caso ambiguo es teórico hoy, no real.
+> - `models.dev` (212 providers agregados): **543 colisiones** de ese tipo — agregar más
+>   routers multiplica la ambigüedad, no la resuelve. Sin campo de desambiguación canónico
+>   verificable en el JSON crudo. Descartado: no aporta nada y es un cambio de fuente de
+>   verdad no pedido.
+> **Decisión final:** implementar la propuesta de Codex tal cual — (1) match exacto, (2) si
+> no hay match, comparar nombre sin proveedor contra el último segmento de cada ID publicado,
+> (3) aceptar solo si hay exactamente una coincidencia; cero o más de una → `null` (mismo
+> fail-open de H.7.1). Sin tabla de alias por marca. H.7.3 queda desbloqueado.
+
 - [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
   Depende de H.7.1 y H.7.2. `.claude/hooks/context-budget.js`, registrado como
   `UserPromptSubmit` en el `settings.json` **del proyecto** (no el global — el global es
