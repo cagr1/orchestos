@@ -4,13 +4,18 @@ export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
 // Lanza el subproceso `claude -p` dentro del worktree; el harness aplica enforceContract post-hoc
 // igual que con single-shot/agentic. Opt-in por tarea o por config de proyecto.
 export type TaskEngine = 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex'
-// Niveles reales del CLI de Claude Code (`claude --effort`) — solo tiene sentido
-// para engine 'external'. Distinto del `effort` de 3 niveles del chat (OpenRouter
-// reasoning param), que es un mecanismo separado para modelos servidos vía API.
-export type ClaudeCliEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
 const EXECUTORS: TaskExecutor[] = ['openrouter', 'anthropic', 'openai', 'codex']
-const CLI_EFFORTS: ClaudeCliEffort[] = ['low', 'medium', 'high', 'xhigh', 'max']
+
+// Los niveles pertenecen al engine que los interpreta. `external` usa el contrato
+// de Claude Code; `codex` usa los valores de `model_reasoning_effort`. Los engines
+// sin contrato verificado, incluido opencode, quedan deliberadamente fuera.
+export const CLI_EFFORT_LEVELS = {
+  external: ['low', 'medium', 'high', 'xhigh', 'max'],
+  codex: ['minimal', 'low', 'medium', 'high', 'xhigh'],
+} as const satisfies Partial<Record<TaskEngine, readonly string[]>>
+
+export type CliEffort = (typeof CLI_EFFORT_LEVELS)[keyof typeof CLI_EFFORT_LEVELS][number]
 
 export interface Check {
   cmd: string
@@ -30,8 +35,8 @@ export interface Task {
   planner_model?: string
   /** Which ExecutorEngine runs this task — undefined resolves via orchestos.config.yaml, default 'single-shot' (G.3) */
   engine?: TaskEngine
-  /** Only meaningful when engine='external' — maps to `claude --effort <level>`. Ignored by single-shot/agentic. */
-  cli_effort?: ClaudeCliEffort
+  /** Validated against CLI_EFFORT_LEVELS[engine]. */
+  cli_effort?: CliEffort
   input: string[] // files the LLM can read (relative to project root)
   output: string[] // files the LLM is allowed to write — REQUIRED, must be non-empty
   acceptance_criteria?: string[]
@@ -73,7 +78,7 @@ export function validateTask(t: unknown, index: number): Task {
     executor_model: typeof task.executor_model === 'string' ? task.executor_model : undefined,
     planner_model: typeof task.planner_model === 'string' ? task.planner_model : undefined,
     engine: validateEngine(task.engine, err),
-    cli_effort: validateCliEffort(task.cli_effort, err),
+    cli_effort: validateCliEffort(task.cli_effort, task.engine, err),
     input: Array.isArray(task.input) ? (task.input as string[]) : [],
     output: task.output as string[],
     acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),
@@ -116,13 +121,22 @@ function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine
 
 function validateCliEffort(
   value: unknown,
+  engine: unknown,
   err: (msg: string) => never,
-): ClaudeCliEffort | undefined {
+): CliEffort | undefined {
   if (value === undefined) return undefined
-  if (typeof value !== 'string' || !CLI_EFFORTS.includes(value as ClaudeCliEffort)) {
-    err(`unknown cli_effort '${String(value)}' — allowed: ${CLI_EFFORTS.join(', ')}`)
+  const levels = typeof engine === 'string'
+    ? CLI_EFFORT_LEVELS[engine as keyof typeof CLI_EFFORT_LEVELS]
+    : undefined
+  if (!levels) {
+    err(
+      `cli_effort requires an engine with declared levels — allowed engines: ${Object.keys(CLI_EFFORT_LEVELS).join(', ')}`,
+    )
   }
-  return value as ClaudeCliEffort
+  if (typeof value !== 'string' || !(levels as readonly string[]).includes(value)) {
+    err(`unknown cli_effort '${String(value)}' for engine '${String(engine)}' — allowed: ${levels.join(', ')}`)
+  }
+  return value as CliEffort
 }
 
 function validateStringArray(

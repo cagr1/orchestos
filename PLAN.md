@@ -1133,7 +1133,7 @@ modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambi
 > **GO explícito de Carlos (2026-09-02):** "realiza lo que más profesional sea" sobre el plan
 > de abajo, presentado y no objetado.
 
-- [ ] **H.8.1 — ⚡ Registro de `cli_effort` por engine, no una lista única.**
+- [x] **H.8.1 — ⚡ Registro de `cli_effort` por engine, no una lista única.**
   `src/tasks/schema.ts`: reemplazar `ClaudeCliEffort` (5 niveles fijos, implícitamente solo
   Claude) por un registro `CLI_EFFORT_LEVELS: Partial<Record<TaskEngine, string[]>>` =
   `{ external: ['low','medium','high','xhigh','max'], codex: ['minimal','low','medium','high','xhigh'] }`.
@@ -1141,6 +1141,21 @@ modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambi
   `opencode` queda **fuera de scope, explícito** — sin contrato de effort verificado para ese
   CLI, mismo criterio que el resto del repo ([[feedback-deteccion-generica-no-por-cli]]: no
   fingir soporte).
+
+  **Evidencia de cierre (2026-09-03):** `CLI_EFFORT_LEVELS` quedó tipado en
+  `src/tasks/schema.ts` con `external: low|medium|high|xhigh|max` y
+  `codex: minimal|low|medium|high|xhigh`; `validateTask` valida según `task.engine` y rechaza
+  engines sin contrato declarado. `scripts/eval-run.ts` y `src/evals/runner.ts` consumen el
+  tipo genérico `CliEffort`. Tests agregados en `src/__tests__/engine-selection.test.ts` cubren
+  ambos contratos, cruce inválido y `opencode` fuera de scope.
+  **Comandos:** `bun run agent:preflight -- --item H.8.1 --agent codex --scope
+  "src/tasks/schema.ts,src/evals/runner.ts,src/__tests__/engine-selection.test.ts,scripts/eval-run.ts,PLAN.md"` ✅;
+  `bunx tsc --noEmit` ✅; `bun test src/__tests__/engine-selection.test.ts` → 20 pass / 0 fail ✅;
+  `bun run test:coverage` → 1254 pass / 0 fail, funciones 74.74% (mínimo 69%), líneas 63.60%
+  (mínimo 57%) ✅; `git diff --check` ✅.
+  **Fuera de scope declarado:** `.orchestos/feature-status.json` es un artefacto derivado que el
+  pre-commit regenera obligatoriamente desde `PLAN.md`; se incluye únicamente para mantener el
+  estado indexado sincronizado.
 
 - [ ] **H.8.2 — ⚡ Aplicar el effort en el executor de Codex.**
   Depende de H.8.1. `src/run/executors/codex.ts`: si `ctx.task.cli_effort` viene seteado,

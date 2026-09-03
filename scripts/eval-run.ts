@@ -2,10 +2,11 @@
 import { resolve } from 'node:path'
 import { Command, InvalidArgumentError } from 'commander'
 import { formatEvalBatch, runEvalBatch } from '../src/evals/runner.ts'
-import type { ClaudeCliEffort, TaskEngine } from '../src/tasks/schema.ts'
+import { CLI_EFFORT_LEVELS } from '../src/tasks/schema.ts'
+import type { CliEffort, TaskEngine } from '../src/tasks/schema.ts'
 
 const ENGINES: TaskEngine[] = ['single-shot', 'agentic', 'external', 'opencode', 'codex']
-const CLI_EFFORTS: ClaudeCliEffort[] = ['low', 'medium', 'high', 'xhigh', 'max']
+const CLI_EFFORTS = CLI_EFFORT_LEVELS.external
 
 function positiveInteger(value: string): number {
   const parsed = Number(value)
@@ -45,7 +46,7 @@ if (import.meta.main) {
     model?: string
     engine?: TaskEngine
     skill?: string
-    cliEffort?: ClaudeCliEffort
+    cliEffort?: CliEffort
     dryRun?: boolean
   }>()
 

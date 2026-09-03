@@ -403,6 +403,77 @@ describe('B.2 — executor engine: external', () => {
   })
 })
 
+describe('H.8.1 — cli_effort por engine', () => {
+  it('acepta los niveles de external', () => {
+    const task = validateTask(
+      {
+        id: 'h81-external-effort',
+        description: 'external effort',
+        executor: 'openrouter',
+        engine: 'external',
+        cli_effort: 'max',
+        output: ['out.txt'],
+      },
+      0,
+    )
+    expect(task.cli_effort).toBe('max')
+  })
+
+  it('acepta los niveles propios de codex', () => {
+    const previous = process.env.OS_ENABLE_EXEC_CODEX
+    process.env.OS_ENABLE_EXEC_CODEX = '1'
+    try {
+      const task = validateTask(
+        {
+          id: 'h81-codex-effort',
+          description: 'codex effort',
+          executor: 'codex',
+          engine: 'codex',
+          cli_effort: 'minimal',
+          output: ['out.txt'],
+        },
+        0,
+      )
+      expect(task.cli_effort).toBe('minimal')
+    } finally {
+      if (previous === undefined) delete process.env.OS_ENABLE_EXEC_CODEX
+      else process.env.OS_ENABLE_EXEC_CODEX = previous
+    }
+  })
+
+  it('rechaza un nivel de external usado con codex', () => {
+    expect(() =>
+      validateTask(
+        {
+          id: 'h81-wrong-effort',
+          description: 'wrong effort',
+          executor: 'openrouter',
+          engine: 'codex',
+          cli_effort: 'max',
+          output: ['out.txt'],
+        },
+        0,
+      ),
+    ).toThrow(/unknown cli_effort 'max' for engine 'codex'.*minimal.*xhigh/)
+  })
+
+  it('rechaza effort cuando el engine no tiene contrato declarado', () => {
+    expect(() =>
+      validateTask(
+        {
+          id: 'h81-unsupported-effort',
+          description: 'unsupported effort',
+          executor: 'openrouter',
+          engine: 'opencode',
+          cli_effort: 'high',
+          output: ['out.txt'],
+        },
+        0,
+      ),
+    ).toThrow(/requires an engine with declared levels.*external.*codex/)
+  })
+})
+
 // ── BB.1 (2026-08-16), renombrado a `agent` en CC.D1 — aplica a TODA tarea ────
 //
 // Antes de BB.1, `executor_mode` (hoy `agent`) se leía en UN SOLO punto del

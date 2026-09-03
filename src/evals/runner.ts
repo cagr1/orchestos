@@ -20,7 +20,7 @@ import { type CheckResult, runChecks } from '../run/checks.ts'
 import { runTask, type TaskResult } from '../run/harness.ts'
 import { RunLogger } from '../run/logger.ts'
 import { git } from '../run/sandbox.ts'
-import type { ClaudeCliEffort, TaskEngine } from '../tasks/schema.ts'
+import type { CliEffort, TaskEngine } from '../tasks/schema.ts'
 import { calculateEvalMetrics, type EvalMetrics } from './metrics.ts'
 import { type EvalTask, loadEvalTask } from './schema.ts'
 
@@ -28,7 +28,7 @@ export interface EvalRunOverrides {
   model?: string
   engine?: TaskEngine
   skill?: string | null
-  cliEffort?: ClaudeCliEffort
+  cliEffort?: CliEffort
 }
 
 export interface EvalTrialReport {
