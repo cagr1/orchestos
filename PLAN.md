@@ -974,6 +974,31 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   **Fuera de scope declarado:** `.orchestos/feature-status.json`, regenerado y staged
   automáticamente por el pre-commit al cerrar H.7.5 en `PLAN.md`; no contiene lógica manual.
 
+- [ ] **H.7.5a — 🧠 Corrección multi-CLI y paridad de métricas.** (GO explícito de Carlos,
+  2026-09-03; solo registrado, implementación pendiente)
+  H.7.5 quedó funcional pero tiene dos defectos comprobados. `readActiveSessionStatus()` devuelve
+  el primer transcript válido ordenado por mtime, por lo que oculta los demás CLIs: en esta máquina
+  había sesiones reales recientes de Codex (58,95% de contexto usado) y Claude (14,24%). Además,
+  el transcript de Codex mostraba snapshots de cupo 79%/43% usados, mientras una lectura viva del
+  mismo app-server (`account/rateLimits/read`) devolvió 86%/44% usados. La interfaz oficial de
+  Codex presenta el complemento —14%/56% restantes—, no `usedPercent` crudo. La fuente primaria y
+  el detalle de esta asimetría están en el [app-server oficial](https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md)
+  y el [status line oficial](https://github.com/openai/codex/blob/main/codex-rs/tui/src/bottom_pane/status_line_setup.rs).
+
+  **Alcance decidido:** devolver una colección, un elemento por CLI instalado conocido, reutilizando
+  `KNOWN_CLIS`; cada elemento muestra icono + barra + porcentaje restante, y un popover Radix al
+  hacer clic con contexto, tokens, modelo, cupos, resets, fuente y antigüedad. Un CLI instalado sin
+  adaptador verificable aparece como no disponible, nunca con un número inventado. Codex debe leer
+  cupos en vivo mediante `account/rateLimits/read`, con cache breve, proceso fijo sin shell,
+  argumentos no controlables por el usuario, timeout y salida acotada; esto aplica el límite de
+  herramientas de `INS-2026-014`. El rail conserva sus 32 px y tokens actuales. Xirp/Orca, git
+  status, graph, worktrees y conversaciones de agentes quedan fuera: son superficies posteriores
+  de UI.8, no dependencias privadas de esta métrica.
+
+  **Gate pendiente:** tests de contrato y seguridad, typecheck, y dashboard real en navegador con
+  Codex + Claude visibles, popover accionable, números restantes coincidentes con la lectura viva,
+  responsive sin overflow y servidor detenido al terminar.
+
 #### Investigación de precedente — H.7 no es original, y eso cambia dos decisiones (2026-09-03)
 
 Pedido explícito de Carlos antes de seguir: *"¿alguien ya resolvió esto o qué implica para un

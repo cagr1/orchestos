@@ -166,6 +166,15 @@
       "closedDate": null
     },
     {
+      "id": "H.7.5a",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🧠",
+      "title": "Corrección multi-CLI y paridad de métricas",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "H.8.1",
       "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
       "block": "H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)",
