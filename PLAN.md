@@ -850,6 +850,17 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
   **Fuera de scope declarado:** ninguno.
 
+  **Aclaración 2026-09-03 (evitar falsa alarma repetida): Orca no mide esto.** Carlos vio 84%
+  en el indicador de Orca y preguntó por qué el hook no avisaba. Verificado con evidencia:
+  Orca muestra el `rate_limits` nativo de la statusLine de Claude Code (`used_percentage` de
+  las ventanas de 5h/7 días — cupo de cuenta, ver `~/.claude/cache/changelog.md:3181`),
+  reenviado sin cálculo propio por `~/.orca/agent-hooks/claude-statusline.sh` (filtra por
+  `"rate_limits"` en el payload). Es el eje **cupo/costo**, no el eje **ventana de contexto**
+  que mide H.7.3 (`~/.claude/CLAUDE.md` § Costo de contexto, punto 3). Corrida real en paralelo
+  esa misma sesión: hook contra el transcript real dio `pct: 10.66%, level: ok` — correcto para
+  esa sesión, el hook no debía avisar. Si esto se repite, **no es un bug del hook**: pedir el
+  número que muestra el propio indicador, no asumir que es contexto.
+
 - [x] **H.7.4 — ⚡ `SessionStart`: reanudar sin volver a explicar.** (cerrado 2026-09-03)
   Depende de H.7.3. Hook `SessionStart` que, si `.orchestos/handoff.md` existe y su `mtime`
   es de menos de 24h, lo inyecta vía `hookSpecificOutput.additionalContext`. Una sola vez por
