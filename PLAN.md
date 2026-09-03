@@ -838,6 +838,46 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   Gate 🔍: abrir un tab nuevo y verificar que el asistente arranca sabiendo el ítem activo sin
   que Carlos escriba contexto.
 
+  **Implementación cerrada 2026-09-03; gate 🔍 pendiente de un tab nuevo.**
+  `.claude/hooks/session-resume.js` (Node, sin dependencias), registrado en el `settings.json`
+  del proyecto con `matcher: "startup|resume|clear|compact"` y timeout 5. Contrato **verificado
+  contra la doc oficial**, no supuesto: la salida es
+  `{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"…"}}`. Dato que el
+  spec no contemplaba y la doc sí: `SessionStart` acepta además un matcher `fork` (queda fuera a
+  propósito — una sesión forkeada ya hereda el contexto) y es uno de los pocos eventos donde el
+  **stdout en texto plano también entra como contexto**, así que todo lo que el hook imprima
+  cuesta tokens; por eso el camino silencioso es el default.
+
+  Cuatro caminos verificados en vivo: handoff fresco → JSON válido con `additionalContext` de
+  1.667 chars; handoff de 30 h → **una línea** de texto, sin inyectar; handoff ausente →
+  silencio y exit 0; handoff degenerado de 20.000 chars → truncado a 8.193 con marca explícita
+  (`MAX_CONTEXT_CHARS = 8.000`, ~2.000 tokens: un handoff que crece sin control sería un
+  impuesto fijo sobre cada sesión nueva).
+
+  **HALLAZGO — `active-item.json` podía mentirle al handoff (arreglado acá).** `--item` y
+  `--scope` de `agent:preflight` eran independientes: sin `--scope`, el preflight validaba un
+  ítem y dejaba **otro** declarado en `.orchestos/active-item.json`, en silencio. Era cosmético
+  hasta hoy; con H.7.4 deja de serlo, porque ese archivo alimenta el handoff que el hook inyecta
+  en **cada sesión nueva** — el asistente arrancaría afirmando un ítem activo equivocado, que es
+  peor que no inyectar nada. Caso real y concreto: el preflight de H.7.4 corrió con `H.7.3`
+  declarado del día anterior, y el handoff decía *"H.7.3 — retomar desde acá"*.
+  Fix mínimo en `scripts/agent-preflight.ts`: si el ítem declarado no coincide con `--item`,
+  **avisa** (no corrige solo — declarar scope es un acto deliberado del agente, no un efecto
+  secundario). Fuera del scope literal de H.7.4, incluido porque sin esto la feature entrega
+  información falsa, que es exactamente la "interfaz que no aporta" de la Regla Cero.
+
+  **Delegación:** test por **Codex** — `scripts/session-resume-hook.test.ts`, 7 casos sobre el
+  proceso real con copia aislada del hook en un tmpdir (no toca el handoff del repo): fresco,
+  rancio, ausente, vacío, truncamiento y JSON estricto con `\n` escapados.
+
+  **Corrección al reporte de Codex, verificada (2ª vez en el bloque).** Reportó `tsc` roto en
+  `scripts/agent-preflight.ts:87` y `1120 pass / 126 fail`. Ambos son artefactos de haber corrido
+  su gate **mientras Claude editaba esos mismos archivos en paralelo**. Corrida limpia posterior:
+  `bunx tsc --noEmit` limpio y **1242 pass / 0 fail** (funciones 74,37%, líneas 63,47%).
+  **Regla operativa que sale de acá:** no lanzar a Codex a correr `test:coverage` sobre archivos
+  que Claude está editando en el mismo momento — su reporte de fallos no es utilizable. O se
+  serializa, o se le acota el gate a los archivos que él creó.
+
 - [ ] **H.7.5 — ⚡ Superficie en el dashboard.**
   Depende de **H.7.2b** (no de H.7.1 a secas: la pantalla debe mostrar el `source` del
   adaptador, para que se vea de qué CLI viene el número y no se lea como "el % de Claude").

@@ -47,6 +47,16 @@ export function main(argv = process.argv.slice(2), root = resolve('.')): number 
     return 1
   }
 
+  function readActiveItem(dir: string): { item: string } | null {
+    try {
+      const parsed = JSON.parse(readFileSync(resolve(dir, ACTIVE_ITEM_PATH), 'utf8')) as unknown
+      const item = (parsed as { item?: unknown })?.item
+      return typeof item === 'string' ? { item } : null
+    } catch {
+      return null
+    }
+  }
+
   const plan = readFileSync(resolve(root, 'PLAN.md'), 'utf8')
   if (!findOpenPlanItem(plan, args.item)) {
     console.error(`✗ El ítem ${args.item} no existe o no está abierto en PLAN.md`)
@@ -75,6 +85,24 @@ export function main(argv = process.argv.slice(2), root = resolve('.')): number 
       ),
     )
     console.log(`🔒 Scope declarado (${ACTIVE_ITEM_PATH}): ${args.scope}`)
+  } else {
+    // H.7.4 (2026-09-03) — `--item` y `--scope` eran independientes: sin `--scope`
+    // el preflight validaba un ítem y dejaba OTRO declarado en active-item.json,
+    // en silencio. Eso no era cosmético desde H.7.4: ese archivo alimenta el
+    // handoff que el hook SessionStart inyecta en cada sesión nueva, así que el
+    // asistente arrancaba afirmando un ítem activo equivocado — peor que no
+    // inyectar nada. Caso real: preflight de H.7.4 con H.7.3 declarado del día
+    // anterior. Se avisa, no se corrige solo: declarar scope es un acto
+    // deliberado del agente, no un efecto secundario.
+    const declared = readActiveItem(root)
+    if (declared && declared.item !== args.item) {
+      console.warn(
+        `⚠ ${ACTIVE_ITEM_PATH} sigue declarando ${declared.item}, pero este preflight es de ${args.item}.`,
+      )
+      console.warn(
+        `  El handoff y el scope-lock leen ese archivo: volvé a correr con --scope para actualizarlo.`,
+      )
+    }
   }
 
   console.log(`✓ Preflight ${args.item}${args.agent ? ` · agente: ${args.agent}` : ''}`)
