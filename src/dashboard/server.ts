@@ -50,6 +50,7 @@ import {
   handleApiRunsBulkDelete,
   handleApiRunsDelete,
 } from './handlers/runs.ts'
+import { handleApiSessionStatus } from './handlers/session-status.ts'
 import {
   handleApiHealth,
   handleApiProvidersLocal,
@@ -142,6 +143,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/usage') {
     return handleApiUsage()
+  }
+  if (method === 'GET' && url.pathname === '/api/session/status') {
+    return withDashboardProject(req, (project) => handleApiSessionStatus(project.root))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
     return handleApiRunsDelete(url)

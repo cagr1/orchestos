@@ -921,7 +921,7 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   que Claude está editando en el mismo momento — su reporte de fallos no es utilizable. O se
   serializa, o se le acota el gate a los archivos que él creó.
 
-- [ ] **H.7.5 — ⚡ Superficie en el dashboard.**
+- [x] **H.7.5 — ⚡ Superficie en el dashboard.**
   Depende de **H.7.2b** (no de H.7.1 a secas: la pantalla debe mostrar el `source` del
   adaptador, para que se vea de qué CLI viene el número y no se lea como "el % de Claude").
   Indicador del % de contexto de la sesión activa en el dashboard, no solo
@@ -940,17 +940,39 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   confundió con contexto — ver aclaración arriba en H.7.3). Carlos fue textual en que el pedido
   anterior era sobre lo primero y esto es una ampliación explícita, no una corrección de rumbo.
 
-  **Tensión de diseño sin resolver, dejar para quien retome (🧠, no ⚡ mecánico):** el punto 6 de
-  la "Investigación de precedente" de abajo **ya rechazó** el puente statusline como fuente
-  única del eje contexto por ser exclusivo de Claude Code. Ese mismo puente es hoy la única
-  fuente vista para el eje **cupo/rate-limit** de Claude
-  (`rate_limits.five_hour/seven_day.used_percentage`, línea ~973). Pero el patrón sigue siendo
-  generalizable, no exclusivo de un CLI: Codex expone su propio cupo en su payload de sesión
-  (`payload.rate_limits.primary.used_percent`, ventana de 10.080 min — línea ~639), con nombre y
-  forma distintos, igual que ya pasó con la ventana de contexto en H.7.2b. La solución correcta
-  es previsiblemente **un segundo campo en el registro de adaptadores por CLI de H.7.2b**
-  (`context-adapters.ts`), no un mecanismo nuevo — pero falta decidir el contrato exacto antes
-  de codear. No implementar sin ese diseño explícito.
+  **Decisión de arquitectura cerrada (2026-09-03).** `ContextAdapter` puede exponer, además del
+  contexto, cero o más ventanas normalizadas de rate-limit mediante
+  `readRateLimits(): RateLimitWindow[]`, con contrato `{ id, usedPct, windowMinutes, resetsAt }`.
+  `SessionMetrics` mantiene los ejes separados (`context` y `rateLimits`): ausencia es `null`,
+  nunca `0` ni una estimación. Codex obtiene ambos del transcript; Claude conserva contexto desde
+  transcript y reporta cupo no disponible porque hoy ese dato solo llega por el statusline global
+  que ya consume Orca. OrchestOS no modifica Orca ni se acopla a su endpoint privado. Esta decisión
+  aplica el insight `INS-2026-016` del vault: ventana de contexto y cupo de cuenta son variables
+  distintas y no deben presentarse como si una pudiera inferirse de la otra.
+
+  La sesión se descubre por proyecto entre transcripts de Claude y Codex, validando el `cwd` de
+  Codex; `ORCHESTOS_SESSION_TRANSCRIPT`/`--transcript` permite una fuente explícita para gates. Ni
+  el endpoint ni la pantalla exponen la ruta o contenido del transcript. El comando
+  `bun run context:status -- --project .`, `GET /api/session/status` y la barra React permanente
+  de 32 px comparten el mismo resultado normalizado. La barra reutiliza tokens y tipografía del
+  design system existente, muestra contexto, todas las ventanas de cupo, fuente y hora observada,
+  y refresca cada 5 s; solo el contexto usa color semántico por umbral.
+
+  **Evidencia automatizada:** 17/17 tests relevantes (`context-adapters`, `session-status` y
+  handler HTTP), `bunx tsc --noEmit` y `bun run build:ui` limpios. `bun run security:gate`:
+  **1250 pass / 0 fail**, funciones 77,59%, líneas 76,71% y audit high+ sin vulnerabilidades.
+  El gate destapó que el override previo `fast-uri@3.1.5` acababa de entrar en cuatro advisories;
+  se elevó al parche `3.1.6` en `package.json`/`bun.lock`, sin otros cambios de resolución.
+
+  **Gate en vivo:** dashboard real abierto en el navegador Chrome con DevTools en
+  `localhost:4742`; dos turnos de observación mostraron `Context 79%` → `80,4%` → `80,8%`, con
+  cupos Codex `5h 55→57%` y `7d 39%`.
+  Todos los polls a `/api/session/status` respondieron 200, consola sin errores/avisos, barra al
+  borde inferior con 32 px exactos y viewport móvil sin overflow horizontal. Se cerró la pestaña,
+  se bajó el servidor y `curl` confirmó que el puerto 4742 dejó de responder.
+
+  **Fuera de scope declarado:** `.orchestos/feature-status.json`, regenerado y staged
+  automáticamente por el pre-commit al cerrar H.7.5 en `PLAN.md`; no contiene lógica manual.
 
 #### Investigación de precedente — H.7 no es original, y eso cambia dos decisiones (2026-09-03)
 

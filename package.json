@@ -17,6 +17,7 @@
     "eval:verify": "bun run scripts/eval-verify-task.ts",
     "eval:run": "bun run scripts/eval-run.ts",
     "context:budget": "bun run scripts/context-budget.ts",
+    "context:status": "bun run scripts/session-status.ts",
     "build:ui": "bun run scripts/build-ui.ts",
     "test": "bun test",
     "test:coverage": "bun run scripts/check-coverage.ts",
@@ -81,7 +82,7 @@
   },
   "overrides": {
     "brace-expansion": "5.0.9",
-    "fast-uri": "3.1.5",
+    "fast-uri": "3.1.6",
     "qs": "6.15.3"
   }
 }

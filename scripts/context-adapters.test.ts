@@ -5,6 +5,7 @@ import {
   claudeAdapter,
   codexAdapter,
   readContextBudget,
+  readSessionMetrics,
 } from './context-adapters.ts'
 
 const fixtures = join(import.meta.dir, 'fixtures', 'context-adapters')
@@ -27,7 +28,9 @@ describe('context adapters', () => {
   })
 
   test('los adaptadores rechazan el transcript del otro CLI por contenido', async () => {
-    expect(await codexAdapter.read(join(import.meta.dir, 'fixtures', 'context-budget', 'usage.jsonl'))).toBeNull()
+    expect(
+      await codexAdapter.read(join(import.meta.dir, 'fixtures', 'context-budget', 'usage.jsonl')),
+    ).toBeNull()
     expect(await claudeAdapter.read(fixture('codex.jsonl'))).toBeNull()
   })
 
@@ -51,6 +54,39 @@ describe('context adapters', () => {
       used: 158_198,
       window: 258_400,
       level: 'warn',
+    })
+  })
+
+  test('separa las ventanas de cupo del contexto en un contrato normalizado', async () => {
+    expect(await readSessionMetrics(fixture('codex.jsonl'))).toEqual({
+      context: {
+        source: 'codex',
+        used: 158_198,
+        window: 258_400,
+        model: 'gpt-5.6-codex',
+        pct: (158_198 / 258_400) * 100,
+        level: 'warn',
+      },
+      rateLimits: {
+        source: 'codex',
+        windows: [
+          { id: 'primary', usedPct: 45, windowMinutes: 300, resetsAt: 1_788_460_888 },
+          { id: 'secondary', usedPct: 34, windowMinutes: 10_080, resetsAt: 1_788_749_893 },
+        ],
+      },
+    })
+  })
+
+  test('un adaptador sin cupo devuelve null y no finge 0%', async () => {
+    const fake: ContextAdapter = {
+      id: 'future-cli',
+      thresholds: { warn: 60, critical: 65 },
+      read: async () => ({ used: 10, window: 100, model: null }),
+    }
+
+    expect(await readSessionMetrics(fixture('codex.jsonl'), [fake])).toMatchObject({
+      context: { source: 'future-cli', pct: 10 },
+      rateLimits: null,
     })
   })
 

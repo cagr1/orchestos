@@ -20,6 +20,7 @@ import { SkillsScreen } from './islands/screens/SkillsScreen.tsx'
 import { SpecsScreen } from './islands/screens/SpecsScreen.tsx'
 import { Header } from './islands/shell/Header.tsx'
 import { RightPanelToprow } from './islands/shell/RightPanelToprow.tsx'
+import { SessionStatusBar } from './islands/shell/SessionStatusBar.tsx'
 import { Sidebar } from './islands/shell/Sidebar.tsx'
 import { Toaster } from './islands/Toaster.tsx'
 import { UiKitProbe } from './islands/UiKitProbe.tsx'
@@ -39,6 +40,7 @@ registerIsland('ui-kit-probe', UiKitProbe)
 registerIsland('shell-sidebar', Sidebar)
 registerIsland('shell-header', Header)
 registerIsland('shell-rp-toprow', RightPanelToprow)
+registerIsland('shell-session-status', SessionStatusBar)
 registerIsland('screen-specs', SpecsScreen)
 registerIsland('screen-skills', SkillsScreen)
 

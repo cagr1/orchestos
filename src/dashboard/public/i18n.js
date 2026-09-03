@@ -18,6 +18,13 @@ const I18N = {
     'nav.settings': 'Settings',
     'nav.chat': 'Chat',
     'nav.graph': 'Graph Runner',
+    'session.status.label': 'Active session usage',
+    'session.status.context': 'Context',
+    'session.status.quota': 'Quota',
+    'session.status.resets': 'Resets',
+    'session.status.none': 'No active session',
+    'session.status.offline': 'Telemetry unavailable',
+    'session.status.unavailable': 'Not available',
 
     /* ── Command palette ────────────────────── */
     'cmdk.placeholder': 'Search anything…',
@@ -865,6 +872,13 @@ const I18N = {
     'nav.settings': 'Ajustes',
     'nav.chat': 'Chat',
     'nav.graph': 'Runner de grafo',
+    'session.status.label': 'Uso de la sesión activa',
+    'session.status.context': 'Contexto',
+    'session.status.quota': 'Cupo',
+    'session.status.resets': 'Se reinicia',
+    'session.status.none': 'Sin sesión activa',
+    'session.status.offline': 'Telemetría no disponible',
+    'session.status.unavailable': 'No disponible',
 
     /* ── Command palette ────────────────────── */
     'cmdk.placeholder': 'Buscar cualquier cosa…',

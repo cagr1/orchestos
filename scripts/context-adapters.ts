@@ -27,9 +27,9 @@
 import { readFileSync } from 'node:fs'
 import {
   type BudgetThresholds,
-  DEFAULT_BUDGET_THRESHOLDS,
   budgetStatus,
   contextWindowFor,
+  DEFAULT_BUDGET_THRESHOLDS,
   readTranscriptUsage,
 } from './context-budget.ts'
 
@@ -42,6 +42,18 @@ export interface ContextReading {
   model: string | null
 }
 
+/** Una ventana de cupo publicada por el CLI. `usedPct` nunca significa contexto. */
+export interface RateLimitWindow {
+  /** Identificador estable dentro del adaptador (`primary`, `secondary`, etc.). */
+  id: string
+  /** Porcentaje consumido de esta ventana, entre 0 y 100. */
+  usedPct: number
+  /** Duración publicada por el CLI; `null` cuando no la informa. */
+  windowMinutes: number | null
+  /** Epoch Unix en segundos; `null` cuando el CLI no publica el reset. */
+  resetsAt: number | null
+}
+
 export interface ContextAdapter {
   /** Identificador del CLI; viaja al resultado como `source`. */
   id: string
@@ -52,6 +64,11 @@ export interface ContextAdapter {
   thresholds: BudgetThresholds
   /** `null` cuando el transcript no tiene la forma que escribe este CLI. */
   read(transcriptPath: string): Promise<ContextReading | null>
+  /**
+   * Ventanas de cupo de la cuenta. Es opcional porque algunos CLIs solo publican
+   * contexto. Ausencia no equivale a 0%: los consumidores deben mostrar "no disponible".
+   */
+  readRateLimits?(transcriptPath: string): Promise<RateLimitWindow[]>
 }
 
 export interface ContextBudget extends ContextReading {
@@ -59,6 +76,12 @@ export interface ContextBudget extends ContextReading {
   level: 'ok' | 'warn' | 'critical'
   /** `id` del adaptador que produjo el número. */
   source: string
+}
+
+export interface SessionMetrics {
+  context: ContextBudget
+  /** `null` si el adaptador no publica cupo; nunca se inventa un cero. */
+  rateLimits: { source: string; windows: RateLimitWindow[] } | null
 }
 
 /**
@@ -120,12 +143,42 @@ export const codexAdapter: ContextAdapter = {
         continue
       }
       const payload = objectAt(parsed, 'payload')
-      if (!payload || payload.type !== 'token_count') continue
+      if (payload?.type !== 'token_count') continue
       const info = objectAt(payload, 'info')
       const used = positiveNumber(objectAt(info, 'last_token_usage')?.total_tokens)
       const window = positiveNumber(info?.model_context_window)
       if (used === null || window === null) continue
       latest = { used, window, model: stringAt(payload, 'model') }
+    }
+    return latest
+  },
+  async readRateLimits(transcriptPath) {
+    let latest: RateLimitWindow[] = []
+    for (const line of readFileSync(transcriptPath, 'utf-8').split('\n')) {
+      if (line.trim() === '') continue
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(line)
+      } catch {
+        continue
+      }
+      const payload = objectAt(parsed, 'payload')
+      if (payload?.type !== 'token_count') continue
+      const limits = objectAt(payload, 'rate_limits')
+      if (!limits) continue
+      latest = ['primary', 'secondary'].flatMap((id) => {
+        const window = objectAt(limits, id)
+        const usedPct = percentage(window?.used_percent)
+        if (!window || usedPct === null) return []
+        return [
+          {
+            id,
+            usedPct,
+            windowMinutes: positiveNumber(window.window_minutes),
+            resetsAt: positiveNumber(window.resets_at),
+          },
+        ]
+      })
     }
     return latest
   },
@@ -143,6 +196,17 @@ export async function readContextBudget(
   transcriptPath: string,
   adapters: ContextAdapter[] = DEFAULT_ADAPTERS,
 ): Promise<ContextBudget | null> {
+  return (await readSessionMetrics(transcriptPath, adapters))?.context ?? null
+}
+
+/**
+ * Contrato H.7.5: contexto de sesión y cupo de cuenta viajan separados aunque
+ * provengan del mismo adaptador. Agregar un CLI no cambia endpoint ni UI.
+ */
+export async function readSessionMetrics(
+  transcriptPath: string,
+  adapters: ContextAdapter[] = DEFAULT_ADAPTERS,
+): Promise<SessionMetrics | null> {
   for (const adapter of adapters) {
     let reading: ContextReading | null
     try {
@@ -156,7 +220,16 @@ export async function readContextBudget(
       window: reading.window,
       thresholds: adapter.thresholds ?? DEFAULT_BUDGET_THRESHOLDS,
     })
-    return { ...reading, pct: status.pct, level: status.level, source: adapter.id }
+    let windows: RateLimitWindow[] = []
+    try {
+      windows = (await adapter.readRateLimits?.(transcriptPath)) ?? []
+    } catch {
+      // Un cupo ilegible no invalida una lectura de contexto correcta.
+    }
+    return {
+      context: { ...reading, pct: status.pct, level: status.level, source: adapter.id },
+      rateLimits: windows.length > 0 ? { source: adapter.id, windows } : null,
+    }
   }
   return null
 }
@@ -175,4 +248,10 @@ function stringAt(value: Record<string, unknown> | null, key: string): string | 
 
 function positiveNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null
+}
+
+function percentage(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
+    ? value
+    : null
 }

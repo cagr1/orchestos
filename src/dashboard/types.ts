@@ -17,6 +17,7 @@
  *   POST /api/run/graph            → MutationResult (launches in background, 409 if already running)
  *   GET  /api/run/graph/status     → GraphRunStatusResponse
  *   GET  /api/health               → HealthResponse
+ *   GET  /api/session/status       → SessionStatusResponse
  *   GET  /api/providers/local      → LocalProviderResponse
  *   POST /api/chat/upload          → ChatUploadResponse
  *   GET  /api/chat/sessions        → ChatSessionRow[]
@@ -87,6 +88,30 @@ export interface ContextWarningEntry {
   code: string
   severity: 'warning' | 'critical' | 'notice'
   message: string
+}
+
+export interface SessionRateLimitWindow {
+  id: string
+  usedPct: number
+  windowMinutes: number | null
+  resetsAt: number | null
+}
+
+export interface SessionStatusResponse {
+  available: boolean
+  observedAt: string | null
+  context: {
+    used: number
+    window: number
+    model: string | null
+    pct: number
+    level: 'ok' | 'warn' | 'critical'
+    source: string
+  } | null
+  rateLimits: {
+    source: string
+    windows: SessionRateLimitWindow[]
+  } | null
 }
 
 // v0.12/C — visor de diff por run (docs/diff-review-design.md). Solo presente en runs
