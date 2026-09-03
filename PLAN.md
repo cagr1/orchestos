@@ -580,6 +580,17 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   **Fuera de scope declarado:** `runs-summary.json`, regenerado automáticamente por el hook
   pre-commit como reporte derivado; no cambia la lógica de H.7.2.
 
+  **BUG-H.7.2-a (hallado 2026-09-03, ABIERTO — primer ítem de la próxima sesión).**
+  `readRecentUserMessages()` filtra por `type/message.role = 'user'`, y eso **no distingue un
+  prompt de Carlos de una inyección automática del sistema**. Evidencia concreta: en el handoff
+  generado hoy, 1 de los 5 "últimos mensajes del usuario" era un bloque
+  `<task-notification>…Background command completed…</task-notification>`. Doble daño: mete ruido
+  en la única sección del handoff cuyo valor es la **intención humana**, y **desplaza** un mensaje
+  real de Carlos fuera de la ventana de 5. Fix: descartar las líneas cuyo contenido empiece por
+  `<task-notification`, `<system-reminder`, `<local-command-` o `<knowledge-radar` antes de
+  quedarse con los últimos 5 — con test de fixture que incluya una notificación entre prompts
+  reales y verifique que sobreviven los 5 humanos.
+
 - [x] **H.7.2b — 🧠 Reabrir la fuente del número: registro de adaptadores por CLI.**
   (cerrado 2026-09-03)
   **Reapertura autorizada por Carlos el 2026-09-03** tras la investigación de precedente (ver
