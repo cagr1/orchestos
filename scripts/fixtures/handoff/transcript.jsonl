@@ -1,6 +1,7 @@
 {"type":"user","message":{"role":"user","content":"Primer prompt que ya quedó fuera de los últimos cinco."}}
 {"type":"assistant","message":{"role":"assistant","content":"Respuesta del asistente que no debe entrar."}}
 {"type":"user","message":{"role":"user","content":"Segundo prompt que debe conservarse."}}
+{"type":"user","message":{"role":"user","content":"<task-notification> <task-id>abc123</task-id> <status>completed</status> </task-notification>"}}
 {"type":"user","message":{"role":"user","content":"Tercer prompt con\n saltos de línea normalizados."}}
 {"type":"user","message":{"role":"user","content":[{"type":"text","text":"Cuarto prompt desde"},{"type":"text","text":"bloques de texto."}]}}
 not-json

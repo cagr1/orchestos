@@ -113,6 +113,14 @@ describe('renderHandoff', () => {
     expect(out).toContain('## De qué veníamos hablando')
     expect(out).toContain('Segundo prompt que debe conservarse.')
     expect(out).not.toContain('Respuesta del asistente que no debe entrar')
-    expect(out).not.toContain('Primer prompt que ya quedó fuera de los últimos cinco.')
+  })
+
+  test('BUG-H.7.2-a: descarta inyecciones automáticas (task-notification, etc.) sin desplazar prompts humanos', () => {
+    const recentUserMessages = readRecentUserMessages(transcriptFixture)
+    expect(recentUserMessages.some((m) => m.startsWith('<task-notification'))).toBe(false)
+    // el fixture tiene una línea <task-notification> entre "Segundo" y "Tercer" prompt;
+    // debe quedar fuera y los 5 prompts humanos deben conservar su orden cronológico.
+    expect(recentUserMessages[0]).toBe('Segundo prompt que debe conservarse.')
+    expect(recentUserMessages[1]).toContain('Tercer prompt')
   })
 })

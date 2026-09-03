@@ -34,6 +34,12 @@ export interface HandoffInput {
 
 const RECENT_USER_MESSAGES = 5
 const MAX_USER_MESSAGE_CHARS = 400
+const INJECTED_MESSAGE_PREFIXES = [
+  '<task-notification',
+  '<system-reminder',
+  '<local-command-',
+  '<knowledge-radar',
+]
 
 /**
  * Recupera intención que no vive en ningún artefacto durable. Solo conserva
@@ -76,6 +82,11 @@ function transcriptUserMessage(value: unknown): string | null {
 
   const normalized = text.replace(/\s+/g, ' ').trim()
   if (normalized === '') return null
+  // BUG-H.7.2-a: type/role 'user' no distingue un prompt de Carlos de una
+  // inyección automática del sistema (task-notification, system-reminder,
+  // local-command-*, knowledge-radar). Sin este filtro, esos bloques
+  // desplazan mensajes humanos reales fuera de la ventana de los últimos 5.
+  if (INJECTED_MESSAGE_PREFIXES.some((prefix) => normalized.startsWith(prefix))) return null
   return normalized.length <= MAX_USER_MESSAGE_CHARS
     ? normalized
     : `${normalized.slice(0, MAX_USER_MESSAGE_CHARS - 1)}…`

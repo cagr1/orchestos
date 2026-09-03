@@ -580,16 +580,21 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   **Fuera de scope declarado:** `runs-summary.json`, regenerado automáticamente por el hook
   pre-commit como reporte derivado; no cambia la lógica de H.7.2.
 
-  **BUG-H.7.2-a (hallado 2026-09-03, ABIERTO — primer ítem de la próxima sesión).**
+  **BUG-H.7.2-a (hallado 2026-09-03, CERRADO 2026-09-03).**
   `readRecentUserMessages()` filtra por `type/message.role = 'user'`, y eso **no distingue un
   prompt de Carlos de una inyección automática del sistema**. Evidencia concreta: en el handoff
   generado hoy, 1 de los 5 "últimos mensajes del usuario" era un bloque
   `<task-notification>…Background command completed…</task-notification>`. Doble daño: mete ruido
   en la única sección del handoff cuyo valor es la **intención humana**, y **desplaza** un mensaje
-  real de Carlos fuera de la ventana de 5. Fix: descartar las líneas cuyo contenido empiece por
-  `<task-notification`, `<system-reminder`, `<local-command-` o `<knowledge-radar` antes de
-  quedarse con los últimos 5 — con test de fixture que incluya una notificación entre prompts
-  reales y verifique que sobreviven los 5 humanos.
+  real de Carlos fuera de la ventana de 5.
+  Fix en `scripts/handoff.ts` (`transcriptUserMessage`): descarta el mensaje normalizado si
+  empieza por `<task-notification`, `<system-reminder`, `<local-command-` o `<knowledge-radar`,
+  **antes** del `slice(-5)` — así una inyección nunca desplaza un prompt humano fuera de la
+  ventana, sin importar dónde caiga en el transcript. Test de fixture
+  (`scripts/handoff.test.ts`, `scripts/fixtures/handoff/transcript.jsonl`): se insertó una línea
+  `<task-notification>` entre dos prompts humanos reales y se verificó que (1) no aparece en el
+  resultado y (2) los 5 prompts humanos conservan su orden cronológico intacto. 10/10 tests
+  pasan, `tsc --noEmit` limpio.
 
 - [x] **H.7.2b — 🧠 Reabrir la fuente del número: registro de adaptadores por CLI.**
   (cerrado 2026-09-03)
@@ -792,7 +797,13 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   0 fail, funciones 74.20%, líneas 63.32%; el output visible quedó acotado y el log conserva el
   diagnóstico completo.
 
-  **Gate 🔍 corrido por Claude el 2026-09-03 — NO PASA. Bug abierto, el ítem sigue `[ ]`.**
+  **Gate 🔍 corrido por Claude el 2026-09-03 — primera pasada, NO PASÓ (bugs abajo). Ambos
+  bugs se arreglaron después, dentro del trabajo de H.7.2b (commit `8a6ea80`) — ver
+  "BUG-H.7.3-a arreglado y verificado en vivo" / "BUG-H.7.3-b cerrado" más arriba en este
+  bloque. Se deja la tabla y el diagnóstico original como evidencia de por qué se reabrió
+  H.7.2b. Lo que sigue sin cerrar el ítem: el gate estricto pide una sesión en vivo cruzando
+  el 60% dentro de un turno; lo verificado hasta ahora es contra transcripts reales pero
+  históricos — falta esa corrida en caliente.**
   Método: se invocó el hook real (`node .claude/hooks/context-budget.js`) con el JSON de stdin
   que le pasa Claude Code, contra **transcripts reales de Carlos** de
   `~/.claude/projects/<slug>/` que ya habían cruzado el umbral — no fixtures sintéticos.
@@ -839,7 +850,7 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
   **Fuera de scope declarado:** ninguno.
 
-- [ ] **H.7.4 — ⚡ `SessionStart`: reanudar sin volver a explicar.**
+- [x] **H.7.4 — ⚡ `SessionStart`: reanudar sin volver a explicar.** (cerrado 2026-09-03)
   Depende de H.7.3. Hook `SessionStart` que, si `.orchestos/handoff.md` existe y su `mtime`
   es de menos de 24h, lo inyecta vía `hookSpecificOutput.additionalContext`. Una sola vez por
   sesión, por definición del evento. Si el archivo es más viejo que 24h: no inyectar (estado
@@ -849,7 +860,17 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   Gate 🔍: abrir un tab nuevo y verificar que el asistente arranca sabiendo el ítem activo sin
   que Carlos escriba contexto.
 
-  **Implementación cerrada 2026-09-03; gate 🔍 pendiente de un tab nuevo.**
+  **Fuera de scope declarado:** este commit también cierra BUG-H.7.2-a
+  (`scripts/handoff.ts`, `scripts/handoff.test.ts`, `scripts/fixtures/handoff/transcript.jsonl`)
+  y regenera `.orchestos/feature-status.json` — el scope-lock original solo cubría el hook de
+  H.7.4. Se agrupó en el mismo commit por ser el primer ítem abierto de la sesión y tocar el
+  mismo archivo `handoff.ts` que ya estaba en juego; no hay riesgo de mezclar trabajo de otro
+  agente.
+
+  **Gate 🔍 cerrado 2026-09-03 — tab nuevo real.** Esta misma sesión: al abrirla, el hook
+  `SessionStart` inyectó el handoff completo (ítem activo `H.7.4`, working tree, próximos
+  ítems) sin que Carlos escribiera contexto — el turno arrancó ya sabiendo por dónde retomar.
+  Evidencia es la propia sesión, no un mock.
   `.claude/hooks/session-resume.js` (Node, sin dependencias), registrado en el `settings.json`
   del proyecto con `matcher: "startup|resume|clear|compact"` y timeout 5. Contrato **verificado
   contra la doc oficial**, no supuesto: la salida es

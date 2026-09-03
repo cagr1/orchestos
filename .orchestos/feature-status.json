@@ -153,8 +153,8 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "`SessionStart`: reanudar sin volver a explicar",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-09-03"
     },
     {
       "id": "H.7.5",
