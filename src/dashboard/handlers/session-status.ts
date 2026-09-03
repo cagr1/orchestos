@@ -1,4 +1,4 @@
-import { readActiveSessionStatus } from '../../../scripts/session-status.ts'
+import { readActiveSessionStatuses } from '../../../scripts/session-status.ts'
 import { jsonResponse } from '../http.ts'
 
 /**
@@ -6,8 +6,8 @@ import { jsonResponse } from '../http.ts'
  * Solo devuelve el contrato normalizado: nunca rutas ni contenido del transcript.
  */
 export async function handleApiSessionStatus(root: string): Promise<Response> {
-  const status = await readActiveSessionStatus({ projectRoot: root })
+  const clis = await readActiveSessionStatuses({ projectRoot: root })
   return jsonResponse(
-    status ?? { available: false, observedAt: null, context: null, rateLimits: null },
+    { available: clis.some((cli) => cli.available), clis },
   )
 }

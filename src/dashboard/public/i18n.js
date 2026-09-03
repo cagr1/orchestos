@@ -25,6 +25,7 @@ const I18N = {
     'session.status.none': 'No active session',
     'session.status.offline': 'Telemetry unavailable',
     'session.status.unavailable': 'Not available',
+    'session.status.remaining': 'remaining',
 
     /* ── Command palette ────────────────────── */
     'cmdk.placeholder': 'Search anything…',
@@ -879,6 +880,7 @@ const I18N = {
     'session.status.none': 'Sin sesión activa',
     'session.status.offline': 'Telemetría no disponible',
     'session.status.unavailable': 'No disponible',
+    'session.status.remaining': 'restante',
 
     /* ── Command palette ────────────────────── */
     'cmdk.placeholder': 'Buscar cualquier cosa…',

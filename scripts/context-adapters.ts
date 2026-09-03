@@ -52,6 +52,8 @@ export interface RateLimitWindow {
   windowMinutes: number | null
   /** Epoch Unix en segundos; `null` cuando el CLI no publica el reset. */
   resetsAt: number | null
+  /** Complemento de usedPct, como lo presenta la UI oficial del CLI. */
+  remainingPct?: number
 }
 
 export interface ContextAdapter {
@@ -176,12 +178,76 @@ export const codexAdapter: ContextAdapter = {
             usedPct,
             windowMinutes: positiveNumber(window.window_minutes),
             resetsAt: positiveNumber(window.resets_at),
+            remainingPct: 100 - usedPct,
           },
         ]
       })
     }
     return latest
   },
+}
+
+/**
+ * Lee los cupos actuales del app-server oficial de Codex.
+ *
+ * El proceso y sus argumentos son constantes: nunca se interpola entrada del
+ * usuario. La salida se limita a la primera respuesta válida y el timeout mata
+ * el proceso para que el dashboard no quede esperando a un daemon persistente.
+ */
+export async function readCodexRateLimitsLive(options: {
+  binary?: string
+  timeoutMs?: number
+} = {}): Promise<RateLimitWindow[]> {
+  const binary = options.binary ?? 'codex'
+  const timeoutMs = options.timeoutMs ?? 1_500
+  let processHandle: ReturnType<typeof Bun.spawn> | null = null
+  try {
+    processHandle = Bun.spawn([binary, 'app-server', '--stdio'], {
+      stdin: 'pipe',
+      stdout: 'pipe',
+      stderr: 'ignore',
+    })
+    const request = (id: number, method: string, params?: Record<string, unknown>) =>
+      JSON.stringify({ jsonrpc: '2.0', id, method, ...(params ? { params } : {}) }) + '\n'
+    const stdin = processHandle.stdin as Bun.FileSink
+    const stdout = processHandle.stdout as ReadableStream<Uint8Array>
+    await stdin.write(request(1, 'initialize', {
+      clientInfo: { name: 'orchestos-dashboard', title: 'OrchestOS', version: '0.12.0' },
+      capabilities: {},
+    }))
+    await stdin.write(request(2, 'account/rateLimits/read'))
+    stdin.end()
+
+    const output = await Promise.race([
+      new Response(stdout).text(),
+      new Promise<string>((_, reject) => setTimeout(() => reject(new Error('codex timeout')), timeoutMs)),
+    ])
+    for (const line of output.split('\n')) {
+      let parsed: unknown
+      try { parsed = JSON.parse(line) } catch { continue }
+      const result = objectAt(parsed, 'result')
+      const limits = objectAt(result, 'rateLimits') ?? objectAt(result, 'rate_limits')
+      if (!limits) continue
+      const windows = ['primary', 'secondary'].flatMap((id) => {
+        const window = objectAt(limits, id)
+        const usedPct = percentage(window?.usedPercent ?? window?.used_percent)
+        if (!window || usedPct === null) return []
+        return [{
+          id,
+          usedPct,
+          remainingPct: 100 - usedPct,
+          windowMinutes: positiveNumber(window.windowDurationMins ?? window.window_minutes),
+          resetsAt: positiveNumber(window.resetsAt ?? window.resets_at),
+        }]
+      })
+      if (windows.length > 0) return windows
+    }
+  } catch {
+    return []
+  } finally {
+    try { processHandle?.kill() } catch { /* proceso ya terminado */ }
+  }
+  return []
 }
 
 /** Agregar un CLI nuevo es agregar una entrada acá, no escribir un camino nuevo. */

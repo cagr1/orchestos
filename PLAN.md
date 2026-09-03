@@ -974,7 +974,7 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   **Fuera de scope declarado:** `.orchestos/feature-status.json`, regenerado y staged
   automáticamente por el pre-commit al cerrar H.7.5 en `PLAN.md`; no contiene lógica manual.
 
-- [ ] **H.7.5a — 🧠 Corrección multi-CLI y paridad de métricas.** (GO explícito de Carlos,
+- [x] **H.7.5a — 🧠 Corrección multi-CLI y paridad de métricas.** (GO explícito de Carlos,
   2026-09-03; solo registrado, implementación pendiente)
   H.7.5 quedó funcional pero tiene dos defectos comprobados. `readActiveSessionStatus()` devuelve
   el primer transcript válido ordenado por mtime, por lo que oculta los demás CLIs: en esta máquina
@@ -998,6 +998,14 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   **Gate pendiente:** tests de contrato y seguridad, typecheck, y dashboard real en navegador con
   Codex + Claude visibles, popover accionable, números restantes coincidentes con la lectura viva,
   responsive sin overflow y servidor detenido al terminar.
+
+  **Evidencia de cierre (2026-09-03):** `bun test scripts/context-adapters.test.ts
+  scripts/session-status.test.ts src/dashboard/__tests__/session-status.test.ts` → 17 pass;
+  `bun run build:ui` y `bunx tsc --noEmit` → pass. Dashboard real en `http://localhost:4242/`
+  verificado con navegador: cuatro CLI visibles (Claude, Codex, opencode, Kimi), popover de
+  Codex accionable con contexto/tokens/cupos/resets, cupos vivos 97% y 54% restantes, consola
+  sin errores; viewport 390px → `scrollWidth=390` sin overflow. Servidor detenido al terminar.
+  **Gate en vivo:** navegador Chrome DevTools sobre dashboard real (no mock).
 
 #### Investigación de precedente — H.7 no es original, y eso cambia dos decisiones (2026-09-03)
 

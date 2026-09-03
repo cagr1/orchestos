@@ -93,25 +93,30 @@ export interface ContextWarningEntry {
 export interface SessionRateLimitWindow {
   id: string
   usedPct: number
+  remainingPct?: number
   windowMinutes: number | null
   resetsAt: number | null
 }
 
 export interface SessionStatusResponse {
   available: boolean
-  observedAt: string | null
-  context: {
-    used: number
-    window: number
-    model: string | null
-    pct: number
-    level: 'ok' | 'warn' | 'critical'
-    source: string
-  } | null
-  rateLimits: {
-    source: string
-    windows: SessionRateLimitWindow[]
-  } | null
+  clis: Array<{
+    id: 'claude' | 'codex' | 'opencode' | 'kimi'
+    label: string
+    binary: string
+    installed: boolean
+    available: boolean
+    observedAt: string | null
+    context: {
+      used: number
+      window: number
+      model: string | null
+      pct: number
+      level: 'ok' | 'warn' | 'critical'
+      source: string
+    } | null
+    rateLimits: { source: string; windows: SessionRateLimitWindow[] } | null
+  }>
 }
 
 // v0.12/C — visor de diff por run (docs/diff-review-design.md). Solo presente en runs

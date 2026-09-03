@@ -28,14 +28,9 @@ describe('H.7.5 — GET /api/session/status', () => {
     const response = await route(new Request(`http://localhost:${PORT}/api/session/status`), PORT)
     expect(response.status).toBe(200)
     const body = (await response.json()) as Record<string, unknown>
-    expect(body).toMatchObject({
-      available: true,
-      context: { source: 'codex', pct: 60, level: 'warn' },
-      rateLimits: {
-        source: 'codex',
-        windows: [{ id: 'primary', usedPct: 44, windowMinutes: 300 }],
-      },
-    })
+    expect(body.available).toBe(true)
+    const codex = (body.clis as Array<Record<string, unknown>>).find((cli) => cli.id === 'codex')
+    expect(codex).toMatchObject({ id: 'codex', available: true, context: { source: 'codex', pct: 60, level: 'warn' }, rateLimits: { source: 'codex', windows: [{ id: 'primary', usedPct: 44, windowMinutes: 300 }] } })
     expect(JSON.stringify(body)).not.toContain(transcript)
   })
 
@@ -46,11 +41,9 @@ describe('H.7.5 — GET /api/session/status', () => {
 
     const response = await route(new Request(`http://localhost:${PORT}/api/session/status`), PORT)
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({
-      available: false,
-      observedAt: null,
-      context: null,
-      rateLimits: null,
-    })
+    const body = await response.json() as { available: boolean; clis: Array<{ available: boolean; context: unknown; rateLimits: unknown }> }
+    expect(body.available).toBe(false)
+    expect(body.clis.length).toBeGreaterThan(0)
+    expect(body.clis.every((cli) => !cli.available && cli.context === null && cli.rateLimits === null)).toBe(true)
   })
 })

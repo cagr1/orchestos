@@ -15,12 +15,25 @@ import {
   DEFAULT_ADAPTERS,
   readSessionMetrics,
   type SessionMetrics,
+  readCodexRateLimitsLive,
 } from './context-adapters.ts'
+import { detectInstalledClis, type CliDetectionResult } from '../src/run/executors/cli-registry.ts'
 
-export interface SessionStatus extends SessionMetrics {
-  available: true
+export interface SessionStatus {
+  id: CliDetectionResult['id']
+  label: string
+  binary: string
+  installed: boolean
+  available: boolean
   /** Momento de la última escritura del transcript, no la hora del request. */
-  observedAt: string
+  observedAt: string | null
+  context: SessionMetrics['context'] | null
+  rateLimits: SessionMetrics['rateLimits']
+}
+
+export interface SessionStatusResponse {
+  available: boolean
+  clis: SessionStatus[]
 }
 
 interface SessionStatusOptions {
@@ -34,24 +47,56 @@ interface SessionStatusOptions {
 export async function readActiveSessionStatus(
   options: SessionStatusOptions = {},
 ): Promise<SessionStatus | null> {
+  const statuses = await readActiveSessionStatuses(options)
+  return statuses.find((status) => status.available) ?? null
+}
+
+/** Devuelve una tarjeta por CLI conocido, incluso cuando no hay telemetría disponible. */
+export async function readActiveSessionStatuses(
+  options: SessionStatusOptions = {},
+): Promise<SessionStatus[]> {
   const projectRoot = realProjectRoot(options.projectRoot ?? process.cwd())
   const explicit = options.transcriptPath ?? process.env.ORCHESTOS_SESSION_TRANSCRIPT
   const paths = explicit
-    ? existsSync(explicit)
-      ? [realpathSync(explicit)]
-      : []
+    ? existsSync(explicit) ? [realpathSync(explicit)] : []
     : discoverSessionTranscripts(projectRoot, options.agentHome)
+  const adapters = options.adapters ?? DEFAULT_ADAPTERS
+  const detections = detectInstalledClis()
+  const result: SessionStatus[] = []
 
-  for (const transcriptPath of paths) {
-    const metrics = await readSessionMetrics(transcriptPath, options.adapters ?? DEFAULT_ADAPTERS)
-    if (!metrics) continue
-    return {
-      available: true,
-      observedAt: statSync(transcriptPath).mtime.toISOString(),
-      ...metrics,
+  for (const cli of detections) {
+    let found: SessionStatus | null = null
+    for (const transcriptPath of paths) {
+      const metrics = await readSessionMetrics(transcriptPath, adapters)
+      if (!metrics || metrics.context.source !== cli.id) continue
+      let normalized = metrics
+      if (!explicit && cli.id === 'codex') {
+        const liveWindows = await readCodexRateLimitsLive({ binary: cli.binary })
+        if (liveWindows.length > 0) normalized = { ...metrics, rateLimits: { source: 'codex', windows: liveWindows } }
+      }
+      found = {
+        id: cli.id,
+        label: cli.label,
+        binary: cli.binary,
+        installed: cli.installed,
+        available: true,
+        observedAt: statSync(transcriptPath).mtime.toISOString(),
+        ...normalized,
+      }
+      break
     }
+    result.push(found ?? {
+      id: cli.id,
+      label: cli.label,
+      binary: cli.binary,
+      installed: cli.installed,
+      available: false,
+      observedAt: null,
+  context: null,
+      rateLimits: null,
+    })
   }
-  return null
+  return result
 }
 
 /**

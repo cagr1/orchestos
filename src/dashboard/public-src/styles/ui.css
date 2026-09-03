@@ -92,12 +92,12 @@
   z-index: 300 !important; /* Radix escribe z-index inline en el wrapper */
 }
 
-/* H.7.5 — franja operativa persistente, deliberadamente no-card. */
+/* H.7.5a — rail compacto: identidad primero, detalle bajo demanda. */
 .session-statusbar-inner {
   height: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   min-width: 0;
   padding: 0 12px;
   color: var(--text-muted);
@@ -105,31 +105,83 @@
   font-size: var(--fs-1);
 }
 
-.session-statusbar-metric {
-  --metric-color: var(--accent);
-  display: grid;
-  grid-template-columns: max-content 64px 34px;
+.session-statusbar-clis {
+  display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.session-statusbar-clis::-webkit-scrollbar { display: none; }
+.session-statusbar-cli {
+  --metric-color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  transition: background .16s ease, border-color .16s ease;
+}
+.session-statusbar-cli:hover,
+.session-statusbar-cli:focus-visible { background: var(--surface-hi); border-color: var(--border); outline: none; }
+.session-statusbar-cli[data-tone='warn'] { --metric-color: var(--warning); }
+.session-statusbar-cli[data-tone='critical'] { --metric-color: var(--error); }
+.session-statusbar-cli[data-tone='idle'] { --metric-color: var(--text-faint); }
+.session-statusbar-cli[data-available='false'] { opacity: .45; }
+.session-statusbar-cli-icon,
+.session-statusbar-popover-icon {
+  width: 17px; height: 17px; display: inline-grid; place-items: center;
+  color: var(--metric-color); font-family: var(--mono); font-size: 10px; font-weight: 700;
+}
+.session-statusbar-cli-icon svg,
+.session-statusbar-popover-icon svg { width: 15px; height: 15px; }
+.session-statusbar-cli-monogram { display: inline; }
+.session-statusbar-cli-icon:has(svg) .session-statusbar-cli-monogram,
+.session-statusbar-popover-icon:has(svg) .session-statusbar-cli-monogram { display: none; }
+.session-statusbar-cli-track {
+  width: 44px; height: 3px; overflow: hidden; background: var(--surface-hi); border-radius: var(--radius-pill);
+}
+.session-statusbar-cli-fill { display: block; height: 100%; background: var(--metric-color); border-radius: inherit; transition: width .18s ease; }
+.session-statusbar-cli-value { color: var(--text); font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+.session-statusbar-live {
+  width: 5px; height: 5px; flex: 0 0 auto; border-radius: 50%; background: var(--success);
+}
+.session-statusbar-live.offline { background: var(--error); }
+.session-statusbar-empty { color: var(--text-faint); white-space: nowrap; }
+.session-statusbar-popover { padding: 12px; }
+.session-statusbar-popover-heading { display: flex; align-items: center; gap: 9px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.session-statusbar-popover-heading > div { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.session-statusbar-popover-heading strong { color: var(--text); font-size: 12px; }
+.session-statusbar-popover-heading small, .session-statusbar-observed { color: var(--text-faint); font-size: 10px; }
+.session-statusbar-popover-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.session-statusbar-popover-dot.offline { background: var(--text-faint); }
+.session-statusbar-detail { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding-top: 9px; font-size: 11px; }
+.session-statusbar-detail span { color: var(--text-muted); }
+.session-statusbar-detail strong { color: var(--text); font-family: var(--mono); font-size: 11px; text-align: right; }
+.session-statusbar-detail small { grid-column: 1 / -1; color: var(--text-faint); font-size: 10px; text-align: right; }
+.session-statusbar-observed { display: block; margin-top: 10px; text-align: right; }
+.session-statusbar-unavailable { color: var(--text-muted); font-size: 11px; line-height: 1.4; }
 
+/* Compatibilidad visual durante el bundle incremental. */
 .session-statusbar-metric[data-tone='warn'] {
   --metric-color: var(--warning);
 }
-
 .session-statusbar-metric[data-tone='critical'] {
   --metric-color: var(--error);
 }
-
 .session-statusbar-metric[data-tone='idle'] {
   --metric-color: var(--text-faint);
 }
-
 .session-statusbar-label {
   white-space: nowrap;
 }
-
 .session-statusbar-track {
   width: 64px;
   height: 3px;
@@ -137,7 +189,6 @@
   background: var(--surface-hi);
   border-radius: var(--radius-pill);
 }
-
 .session-statusbar-fill {
   display: block;
   height: 100%;
@@ -145,31 +196,26 @@
   border-radius: inherit;
   transition: width 0.18s ease;
 }
-
 .session-statusbar-value {
   color: var(--text);
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-
 .session-statusbar-divider {
   width: 1px;
   height: 13px;
   background: var(--border);
   flex: 0 0 auto;
 }
-
 .session-statusbar-spacer {
   flex: 1;
 }
-
 .session-statusbar-source,
 .session-statusbar-time {
   white-space: nowrap;
   color: var(--text-faint);
 }
-
 .session-statusbar-source {
   display: inline-flex;
   align-items: center;
@@ -177,44 +223,17 @@
   font-family: var(--mono);
 }
 
-.session-statusbar-live {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--success);
-}
-
-.session-statusbar-live.offline {
-  background: var(--error);
-}
-
 @media (max-width: 760px) {
-  .session-statusbar-inner {
-    gap: 9px;
-    padding-inline: 9px;
-  }
-
-  .session-statusbar-metric {
-    grid-template-columns: max-content 30px;
-    gap: 5px;
-  }
-
-  .session-statusbar-track,
-  .session-statusbar-time {
-    display: none;
-  }
+  .session-statusbar-inner { gap: 6px; padding-inline: 9px; }
+  .session-statusbar-cli-track { display: none; }
 }
 
 @media (max-width: 480px) {
-  .session-statusbar-source {
-    max-width: 72px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .session-statusbar-cli { padding-inline: 5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .session-statusbar-fill {
+  .session-statusbar-fill, .session-statusbar-cli-fill {
     transition: none;
   }
 }

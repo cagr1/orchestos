@@ -70,8 +70,8 @@ describe('context adapters', () => {
       rateLimits: {
         source: 'codex',
         windows: [
-          { id: 'primary', usedPct: 45, windowMinutes: 300, resetsAt: 1_788_460_888 },
-          { id: 'secondary', usedPct: 34, windowMinutes: 10_080, resetsAt: 1_788_749_893 },
+          { id: 'primary', usedPct: 45, remainingPct: 55, windowMinutes: 300, resetsAt: 1_788_460_888 },
+          { id: 'secondary', usedPct: 34, remainingPct: 66, windowMinutes: 10_080, resetsAt: 1_788_749_893 },
         ],
       },
     })
