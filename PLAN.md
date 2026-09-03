@@ -931,6 +931,27 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   Gate 🔍: dashboard real corriendo, con el número cambiando entre dos turnos. Y **bajar el
   servidor al terminar** ([[feedback-siempre-cerrar-servidor]]).
 
+  **Ampliación pedida por Carlos (2026-09-03, tras la aclaración de Orca arriba).** No basta con
+  el % de contexto: quiere una **barra permanente en la parte inferior del UI**, siempre visible
+  (no una card del home — ya está resuelta esa decisión en `UI.8.5` §A.5/§C.2, tomado del layout
+  real de Orca — capturas de referencia en `~/Documents/screens/Orca_stats.png` y
+  `Orca_general.png`), mostrando **los dos ejes a la vez**: % de ventana de contexto de la sesión
+  (H.7.1/H.7.2b) **y** % de cupo/rate-limit de la cuenta (el número que realmente vio en Orca y
+  confundió con contexto — ver aclaración arriba en H.7.3). Carlos fue textual en que el pedido
+  anterior era sobre lo primero y esto es una ampliación explícita, no una corrección de rumbo.
+
+  **Tensión de diseño sin resolver, dejar para quien retome (🧠, no ⚡ mecánico):** el punto 6 de
+  la "Investigación de precedente" de abajo **ya rechazó** el puente statusline como fuente
+  única del eje contexto por ser exclusivo de Claude Code. Ese mismo puente es hoy la única
+  fuente vista para el eje **cupo/rate-limit** de Claude
+  (`rate_limits.five_hour/seven_day.used_percentage`, línea ~973). Pero el patrón sigue siendo
+  generalizable, no exclusivo de un CLI: Codex expone su propio cupo en su payload de sesión
+  (`payload.rate_limits.primary.used_percent`, ventana de 10.080 min — línea ~639), con nombre y
+  forma distintos, igual que ya pasó con la ventana de contexto en H.7.2b. La solución correcta
+  es previsiblemente **un segundo campo en el registro de adaptadores por CLI de H.7.2b**
+  (`context-adapters.ts`), no un mecanismo nuevo — pero falta decidir el contrato exacto antes
+  de codear. No implementar sin ese diseño explícito.
+
 #### Investigación de precedente — H.7 no es original, y eso cambia dos decisiones (2026-09-03)
 
 Pedido explícito de Carlos antes de seguir: *"¿alguien ya resolvió esto o qué implica para un
