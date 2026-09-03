@@ -580,6 +580,112 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   **Fuera de scope declarado:** `runs-summary.json`, regenerado automáticamente por el hook
   pre-commit como reporte derivado; no cambia la lógica de H.7.2.
 
+- [x] **H.7.2b — 🧠 Reabrir la fuente del número: registro de adaptadores por CLI.**
+  (cerrado 2026-09-03)
+  **Reapertura autorizada por Carlos el 2026-09-03** tras la investigación de precedente (ver
+  § "Investigación de precedente" al final de este bloque, puntos 3 y 6): *"no importa si se
+  reabre, desde el inicio debemos hacer las cosas bien hechas"*. No invalida H.7.1/H.7.2 — su
+  código se conserva y se degrada a **un adaptador entre otros**.
+
+  **El defecto que corrige.** H.7.1 calcula el % de una sola manera —parsear el JSONL de Claude
+  Code y sumar `input + cache_creation + cache_read` sobre la ventana del catálogo— y esa forma
+  quedó implícitamente atada a un proveedor. Viola [[feedback-deteccion-generica-no-por-cli]]
+  ampliada: *las soluciones se hacen para los LLMs que vengan, no una por modelo*.
+
+  **Alcance:**
+  1. **Registro extensible** `{ id, detect, read }[]` con una función genérica que devuelve
+     siempre `{ used, window, pct, level, source }` normalizado. Agregar un CLI nuevo = **una
+     entrada de datos**, no código nuevo. Mismo patrón que el registro de detección de binarios
+     de G.4.2 y que `CLI_EFFORT_LEVELS` de H.8.1 — no inventar uno distinto.
+  2. **Adaptador `claude`**: parseo del transcript JSONL — el código que ya escribió H.7.1,
+     movido detrás de la interfaz del registro. `message.usage.{input,cache_creation,cache_read}`
+     sumados, ventana resuelta por catálogo (el transcript de Claude **no** la trae).
+
+     **PUENTE STATUSLINE — DESCARTADO el 2026-09-03, decisión de Claude, con evidencia.** Lo
+     propuse yo en el punto 3 de la investigación y lo retiro tras verificar la máquina:
+     el slot `statusLine` de `~/.claude/settings.json:171` **ya está ocupado por Orca**
+     (`~/.orca/agent-hooks/claude-statusline.sh`, instalado el 27-jul-2026, software de
+     terceros que consume stdin completo y postea a un endpoint local). Tres razones para
+     descartarlo, en orden de peso: (a) sustituirlo rompe una herramienta que Carlos usa, y
+     encadenarlo obliga a envolver un script ajeno y re-alimentarle stdin —frágil y fuera del
+     control del repo—; (b) el statusline **solo existe en Claude Code**: es exactamente la
+     clase de atajo por-proveedor que la regla de este bloque prohíbe; (c) la ganancia
+     (237 ms → ~2 ms por turno) es real pero no compensa (a)+(b). Si algún día el slot queda
+     libre, entra como una fuente más dentro de este adaptador, sin tocar el registro.
+  3. **Adaptador `codex` — contrato VERIFICADO EN VIVO el 2026-09-03**, no tomado del issue.
+     Sobre `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (128 sesiones en esta máquina), el
+     evento `payload.type === 'token_count'` trae:
+     `payload.info.last_token_usage.total_tokens` (= 158.198 en la sesión medida) y
+     `payload.info.model_context_window` (= 258.400) → 61,2%. **Ojo:** el campo correcto es
+     `last_token_usage`, **no** `total_token_usage` — ese último es el acumulado de la sesión
+     entera (5.847.113 tokens, 22× la ventana) y usarlo daría un porcentaje absurdo. El issue
+     #17618 hablaba de `token_count`: ese es el **nombre del evento**, no del campo. Bonus del
+     mismo payload: `payload.rate_limits.primary.used_percent` (45%, ventana de 10.080 min = el
+     cupo semanal de Codex que Carlos hoy vigila a mano).
+
+     **Esta asimetría es la prueba de que el registro hace falta:** Claude arma el `used` sumando
+     tres campos y resuelve la ventana por catálogo; Codex lo trae ya sumado y publica su propia
+     ventana. Dos cálculos distintos, un `{used, window, pct, level, source}` idéntico.
+  4. **Umbrales como dato del registro, no constantes**: `warn` 60% / `critical` **65%**
+     (decisión de Carlos, ver punto 6 de la investigación). Un CLI con otra ventana o otro
+     comportamiento de compactación puede traer los suyos.
+  5. **`opencode` fuera de scope explícito**: sin contrato de contexto verificado.
+
+  Gate 🔍: el mismo hook, sin cambios en su interfaz, produce el número correcto con **dos**
+  adaptadores distintos — y el test lo demuestra con un tercero falso inyectado (el registro es
+  extensible de verdad, no dos `if`). Más `bunx tsc --noEmit` + `bun run test:coverage`.
+
+  **Evidencia (2026-09-03).** `scripts/context-adapters.ts` nuevo: interfaz `ContextAdapter
+  { id, thresholds, read }`, `DEFAULT_ADAPTERS = [claudeAdapter, codexAdapter]` y
+  `readContextBudget(path, adapters?)` → `{used, window, model, pct, level, source}`. La
+  detección es por contenido (`read()` devuelve `null` si el transcript no es suyo), nunca por
+  ruta. `scripts/context-budget.ts` conserva `budgetStatus`/`contextWindowFor` y su `main` ya no
+  sabe qué CLI escribió el transcript: delega en el registro.
+
+  **Gate 🔍 corrido en vivo, con transcripts reales de las dos máquinas de trabajo — el mismo
+  binario del hook, sin recompilar ni reconfigurar nada entre corridas:**
+
+  | Transcript real | `source` | used / window | pct | level |
+  |---|---|---|---|---|
+  | Claude Code (`b1bb946b…`) | `claude` | 719.355 / 1.000.000 (catálogo) | 71,9% | critical |
+  | Codex CLI (`rollout-2026-08-24…`) | `codex` | 158.198 / 258.400 (del transcript) | 61,2% | warn |
+
+  Salida literal del hook con el transcript de Codex: `Contexto alto: 61,2% (codex). / Ventana:
+  258.400 tokens.` — **la asimetría es el punto**: Claude resuelve la ventana por catálogo porque
+  su transcript no la publica; Codex la trae en el propio archivo. Dos cálculos distintos, una
+  salida idéntica.
+
+  **BUG-H.7.3-a arreglado y verificado en vivo:** `warn` turno 1 → avisa; turno 2 misma sesión →
+  **silencio**; `critical` → avisa en los dos turnos. El guard de `sessionId` ahora cubre también
+  `printWarning`, no solo la escritura del handoff.
+
+  **BUG-H.7.3-b cerrado:** el hook ya tiene test propio (`scripts/context-budget-hook.test.ts`,
+  6 casos, invoca el proceso real por stdin con `.orchestos/` redirigido a un temporal).
+
+  **Delegación:** los tests fueron escritos por **Codex** (⚡, mecánico y especificado) mientras
+  Claude hizo el diseño del registro y los adaptadores — 19 tests nuevos entre
+  `context-adapters.test.ts` (13, incluido el tercer adaptador falso inyectado que exige el gate,
+  el que lanza, y los bordes exactos 59,9/60/65) y `context-budget-hook.test.ts` (6).
+
+  **Corrección al reporte de Codex, verificada:** Codex reportó `1234 pass / 1 fail` y atribuyó
+  el fallo a un "bug de producción en `startServer(0)`" de
+  `src/dashboard/__tests__/csrf-origin.test.ts`. **Es falso.** Ese test aislado da 8 pass / 0
+  fail, y el comando exacto de CI da **1235 pass / 0 fail** (funciones 74,37% ≥ 69%, líneas
+  63,47% ≥ 57%). La causa real era su entorno: quedaron dos dashboards escuchando (`bun run
+  src/cli.ts dashboard --port 4739` y `--port 4740`). No se tocó `server.ts`. Sirve de recordatorio
+  de [[feedback-verificar-progreso-delegado]]: un diagnóstico de un agente delegado se comprueba
+  antes de anotarlo como hallazgo del repo.
+
+  **Hueco declarado, no disimulado:** ningún test nuevo ejercita el **camino feliz** de
+  `claudeAdapter.read()` — requiere sembrar el catálogo de modelos en un `ORCHESTOS_HOME`
+  temporal. Sus dos piezas (`readTranscriptUsage` y `contextWindowFor`) sí están cubiertas por
+  `scripts/context-budget.test.ts` de H.7.1, y el camino completo se verificó en vivo (fila
+  `claude` de la tabla de arriba), pero no hay test automatizado de la composición.
+
+  **Fuera de scope declarado:** el puente statusline (descartado con razón, alcance 2);
+  `opencode`; el eje B (contexto de las corridas del harness, que ya tiene sus tokens en la tabla
+  `runs`).
+
 > **BLOQUEADOR encontrado implementando H.7.3, sin resolver (2026-09-02, Codex).** No
 > implementar H.7.3 hasta que esto se cierre — es 🧠, no delegable sin la decisión de abajo.
 >
@@ -635,7 +741,10 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 > fail-open de H.7.1). Sin tabla de alias por marca. H.7.3 queda desbloqueado.
 
 - [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
-  Depende de H.7.1 y H.7.2. `.claude/hooks/context-budget.js`, registrado como
+  Depende de H.7.1, H.7.2 y **H.7.2b** (la fuente del número se rehizo como registro de
+  adaptadores — no re-cerrar H.7.3 leyendo el JSONL directo). El hook debe consumir
+  `readContextBudget()` del registro, sin saber qué CLI está corriendo.
+  `.claude/hooks/context-budget.js`, registrado como
   `UserPromptSubmit` en el `settings.json` **del proyecto** (no el global — el global es
   portable entre máquinas, ver `~/.claude/CLAUDE.md`). Comportamiento:
   - Lee `transcript_path` del JSON de stdin. Si falta o el archivo no existe: **salir 0 sin
@@ -645,7 +754,12 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   - `level === 'warn'` (≥60%) → dispara `bun run agent:handoff` **una sola vez por sesión**
     (flag `{ sessionId, firedAt }` en `.orchestos/context-budget.json`, gitignored) e imprime
     un aviso de ≤4 líneas: % actual, modelo, ventana, y la instrucción de cerrar el tab.
-  - `level === 'critical'` (≥75%) → aviso corto en cada turno.
+  - `level === 'critical'` (**≥65%**, bajado desde 75% por decisión de Carlos el 2026-09-03 —
+    ver punto 6 de la investigación: el autocompact dispara a ~78% y no se puede desactivar de
+    forma fiable, así que el margen debe absorber un turno pesado entero) → aviso corto en cada
+    turno. **Este es el único nivel que avisa en cada turno**; en `warn` el aviso es una sola vez
+    por sesión (ver BUG-H.7.3-a abajo — hoy el código no cumple esto). Los dos umbrales son
+    **dato del registro de H.7.2b**, no constantes en el hook.
   - Presupuesto de tiempo: el hook debe terminar en <500ms; `timeout` de 5000 en la config.
   Gate 🔍 (no se cierra sin esto): correr una sesión real hasta cruzar el 60% y **ver el aviso
   en vivo**, con `.orchestos/handoff.md` escrito y su timestamp posterior al cruce. No vale un
@@ -666,6 +780,52 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   muestra solo las 6 líneas finales al pasar (80 líneas al fallar). Corrida real ✅: 1219 pass /
   0 fail, funciones 74.20%, líneas 63.32%; el output visible quedó acotado y el log conserva el
   diagnóstico completo.
+
+  **Gate 🔍 corrido por Claude el 2026-09-03 — NO PASA. Bug abierto, el ítem sigue `[ ]`.**
+  Método: se invocó el hook real (`node .claude/hooks/context-budget.js`) con el JSON de stdin
+  que le pasa Claude Code, contra **transcripts reales de Carlos** de
+  `~/.claude/projects/<slug>/` que ya habían cruzado el umbral — no fixtures sintéticos.
+  Medición previa con `bun run context:budget --` sobre 8 transcripts: 3 en `warn`
+  (61.5% / 64.2% / 71.9%) y 1 en `critical` (78.0%).
+
+  | Prueba | Transcript | Resultado |
+  |---|---|---|
+  | `ok` | sesión actual, 17.6% | silencio, exit 0, **103 ms** |
+  | `warn` | `b1bb946b…` 71.9% | aviso 3 líneas + handoff regenerado, 237 ms ✅ |
+  | `warn`, 2º turno misma sesión | `b1bb946b…` | handoff **no** se regenera ✅ / aviso **se repite** ❌ |
+  | `critical` | `7c87bf0a…` 78.0% | "Contexto crítico", exit 0 ✅ |
+  | transcript inexistente | — | silencio, exit 0 ✅ |
+  | stdin no-JSON | — | silencio, exit 0 ✅ |
+
+  **BUG-H.7.3-a — el aviso de `warn` se imprime en cada turno, no una sola vez.**
+  En `.claude/hooks/context-budget.js:18-19` el guard de `sessionId` protege **solo** la
+  escritura del handoff; `printWarning(budget)` queda fuera del `if` y corre siempre:
+
+      if (readState()?.sessionId !== sessionId && !writeHandoff(...)) return
+      printWarning(budget)   // ← sin guard
+
+  Rompe tres cosas a la vez: (1) el spec de arriba, donde la **única** diferencia declarada
+  entre `warn` y `critical` es la frecuencia del aviso — con este bug `critical` no tiene
+  comportamiento propio; (2) la propia nota de evidencia de Codex ("`critical` avisa en cada
+  turno", que implica que `warn` no); (3) la regla global de `~/.claude/CLAUDE.md` § Costo de
+  contexto, punto 4, textual: *"un aviso por turno es el mismo mal que intenta curar"* — 3
+  líneas por turno desde el 60% hasta cerrar el tab, en el mecanismo cuyo propósito es
+  **ahorrar** contexto. Fix: mover `printWarning` dentro del guard para `warn`, dejando el
+  camino de cada turno solo para `critical`.
+
+  **BUG-H.7.3-b — el hook `.js` no tiene test propio.** `scripts/context-budget.test.ts` cubre
+  el script `.ts` de H.7.1, no `.claude/hooks/context-budget.js`; grep de `context-budget` en
+  los tests no devuelve ninguna referencia al hook. Sin test, BUG-a podía existir con la suite
+  en verde — y de hecho existió. Mismo patrón que el hook `pre-commit` desincronizado de la
+  Regla Cero de `CLAUDE.md`.
+
+  **Límites declarados de esta verificación** (no se presentan como cubiertos): los transcripts
+  usados son reales pero **históricos** — no es una sesión en vivo cruzando el 60% dentro de un
+  turno, que es la letra del gate. Y no se pudo distinguir si el hook estaba cargado en la
+  sesión activa, porque en `level === 'ok'` su comportamiento correcto es indistinguible de no
+  estar registrado ([[reference-settings-json-requires-restart]]). Estado restaurado al terminar:
+  `.orchestos/handoff.md` con su contenido original y `.orchestos/context-budget.json` borrado.
+
   **Fuera de scope declarado:** ninguno.
 
 - [ ] **H.7.4 — ⚡ `SessionStart`: reanudar sin volver a explicar.**
@@ -679,15 +839,116 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   que Carlos escriba contexto.
 
 - [ ] **H.7.5 — ⚡ Superficie en el dashboard.**
-  Depende de H.7.1. Indicador del % de contexto de la sesión activa en el dashboard, no solo
+  Depende de **H.7.2b** (no de H.7.1 a secas: la pantalla debe mostrar el `source` del
+  adaptador, para que se vea de qué CLI viene el número y no se lea como "el % de Claude").
+  Indicador del % de contexto de la sesión activa en el dashboard, no solo
   en el CLI ([[feedback-dashboard-no-solo-cli]]): comando + endpoint + pantalla, las tres
   piezas o no cuenta. Reusar los componentes React del design system del Mes 30 — no
   inventar un componente nuevo ([[reference-design-system-orchestos]]).
   Gate 🔍: dashboard real corriendo, con el número cambiando entre dos turnos. Y **bajar el
   servidor al terminar** ([[feedback-siempre-cerrar-servidor]]).
 
-**Nota para quien ejecute H.7 (Codex o modelo económico).** Los 5 ítems son ⚡: el criterio de
-diseño ya está tomado y escrito arriba. Lo que NO se debe hacer: re-litigar el umbral,
+#### Investigación de precedente — H.7 no es original, y eso cambia dos decisiones (2026-09-03)
+
+Pedido explícito de Carlos antes de seguir: *"¿alguien ya resolvió esto o qué implica para un
+sistema así?"* ([[feedback-investigar-antes-de-refutar]]). Buscado en la doc oficial, el issue
+tracker de `anthropics/claude-code` y GitHub. **Conclusión: el problema es real y está bien
+identificado, pero la fuente del número que usa H.7.1 es la equivocada.**
+
+**1. El problema es real y masivamente reportado.** Al menos 4 issues abiertos en
+`anthropics/claude-code` piden exactamente esto — #27969 ("Expose context window usage
+percentage to hooks", **cerrada como duplicada**, sin implementación ni fecha), #25689
+("Context usage threshold hook event"), #16988, #32062 — y ≥5 proyectos de terceros lo
+implementan por fuera (`who96/claude-code-context-handoff`, `Sonovore/claude-code-handoff`,
+`REMvisual/claude-handoff`, `u-ichi/compact-plus`, `thepushkarp/handoff`). H.7 no es
+sobreingeniería: es un hueco conocido de la plataforma.
+
+**2. Diferencia deliberada con el precedente: casi todos se enganchan a `PreCompact`** — es
+decir, *aceptan* la compactación y la sobreviven. El diseño de Carlos la **rechaza** y corta a
+tab nuevo ([[feedback-no-compactar-contexto]]). Es minoría, pero es una postura coherente, no un
+descuido: la compactación conserva objetivos y rutas y pierde los snippets exactos, las cadenas
+de razonamiento y los mensajes de error concretos.
+
+**3. HALLAZGO QUE INVALIDA LA FUENTE DE H.7.1 — el número ya existe, oficial y gratis.**
+Claude Code **ya publica** el uso de contexto, pero **solo al statusline**, no a los hooks
+(doc oficial `code.claude.com/docs/en/statusline`, tabla de campos de stdin):
+`context_window.used_percentage`, `context_window.remaining_percentage`,
+`context_window.context_window_size`, `context_window.total_input_tokens`,
+`exceeds_200k_tokens`. `UserPromptSubmit` recibe solo `session_id`, `prompt_id`,
+`transcript_path`, `cwd`, `permission_mode` — **sin tokens** (por eso existe #27969).
+
+H.7.1 resolvió esa falta **recalculando** el porcentaje a mano desde el JSONL
+(`input + cache_creation + cache_read` ÷ ventana del catálogo). La solución que usa el
+precedente es un **puente statusline → archivo → hook**: el statusline (que sí recibe el
+número) escribe un `context-{session_id}.json` de ~100 bytes y el `UserPromptSubmit` lo lee.
+Tres ventajas concretas y medibles sobre lo que hay hoy:
+- Es el número **oficial**, el mismo con el que Claude Code decide compactar. El de OrchestOS es
+  un número propio que **puede no coincidir** — y si subestima, el aviso llega tarde.
+- **Costo por turno**: el hook actual tarda **237 ms** medidos (spawnea `bun` y parsea un JSONL
+  que en este repo llega a **15 MB**). Leer un JSON de 100 bytes son ~2 ms.
+- Vienen gratis, en el mismo payload, tres cosas que hoy OrchestOS no tiene y le importan:
+  `cost.total_cost_usd`, `rate_limits.five_hour/seven_day.used_percentage` (el cupo semanal que
+  Carlos vigila a mano, [[feedback-cuidar-cupo-claude-delegar-codex]]) y `prompt_cache.warm` —
+  evidencia directa y en vivo de `INS-2026-016`, el cache que se invalida al cambiar de modelo.
+
+**4. HALLAZGO QUE INVALIDA EL UMBRAL `critical` DE 75%.** El autocompact de Claude Code dispara
+a **~78%** y el override no lo sube (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` topa en ~83%);
+`autoCompact: false` además es **ignorado** en la práctica (issue #18264). O sea: `critical` en
+75% deja **3 puntos porcentuales** de margen. Un solo turno que lea un archivo grande salta de
+"todavía no avisó" a "ya compactó" sin que Carlos llegue a ver el aviso — el escenario exacto
+que H.7 existe para evitar. El `warn` de 60% **sí** está bien calibrado (coincide con el
+precedente de la industria). Propuesta: bajar `critical` a ~70%.
+
+**5. Límite honesto que ningún hook resuelve, y que conviene no prometer.** El aviso es texto
+inyectado: el modelo puede ignorarlo, y el autor del precedente más cercano lo admite por
+escrito ("no hay garantía de que Claude siga estas instrucciones"). Lo único **mecánico** de
+todo H.7 es el handoff escrito por script (H.7.2) — esa es la pieza que de verdad vale, y es la
+que ya está cerrada.
+
+**6. CORRECCIÓN DE MI PROPIA PROPUESTA — decisión de Carlos, 2026-09-03.** Lo que propuse en el
+punto 3 ("usar el puente statusline") estaba **mal como arquitectura**: el statusline es una
+feature **exclusiva de Claude Code**. Carlos lo cortó, textual: *"esto no solo debe aplicar a
+Claude sino a cualquier modelo; las soluciones que hacemos no las hacemos una por modelo sino
+para los LLMs que vengan"* — es la misma regla de [[feedback-deteccion-generica-no-por-cli]],
+ampliada de la detección de binarios a **todo el sistema**. Y: *"no importa si se reabre, desde
+el inicio debemos hacer las cosas bien hechas"* → **GO explícito para reabrir H.7.1.**
+
+Verificado que la generalización es real y no una analogía: **Codex CLI también escribe su
+contabilidad en su propio session JSONL** — `token_count` y `model_context_window`, confirmado
+en `openai/codex` issue #17618 (el indicador "XX% left" dejó de renderizarse en el TUI *aunque
+los campos siguen presentes en el JSONL*). Codex además tiene `/status` para la sesión actual.
+El patrón "cada CLI lleva su propia contabilidad de contexto en su transcript, con nombres
+distintos" es un hecho de los dos CLIs que OrchestOS ya soporta, no una suposición.
+
+**Forma correcta: registro de adaptadores, no un camino por CLI.** Una función genérica
+`readContextBudget(cli)` sobre un registro `{ id, detect, read }[]` que devuelve siempre
+`{ used, window, pct, level, source }` normalizado. Agregar un CLI nuevo (Kimi, opencode, el que
+venga) debe ser **una entrada de datos**, no código nuevo. Dentro del adaptador de Claude Code,
+el puente statusline pasa a ser una **fuente preferida** (más barata y oficial) con el parseo de
+JSONL de H.7.1 como *fallback* — el trabajo de H.7.1 no se tira, se degrada a un adaptador entre
+otros. Los CLIs sin contrato verificado **no se fingen soportados**: quedan fuera del registro
+hasta comprobarlos, mismo criterio que `opencode` en H.8.1.
+
+**Dos ejes distintos que este bloque NO debe confundir:**
+- **Eje A — la sesión interactiva de Carlos** con un CLI agente (hoy Claude Code, mañana otro).
+  Es lo que H.7 mide y avisa. Es donde aplica el registro de adaptadores.
+- **Eje B — las corridas del harness** (`runTask()` → `external`/`codex`/`opencode`). Ahí
+  OrchestOS **ya** conoce los tokens: los registra en la tabla `runs`. No necesita adaptadores;
+  necesita, si acaso, usar ese dato. Fuera de alcance de H.7 salvo que Carlos lo pida.
+
+**Umbrales, decisión de Carlos (2026-09-03): `warn` 60%, `critical` 65%.** El 65% reemplaza al
+75% original y a mi propuesta de 70%. Razón: el autocompact dispara a ~78% y no se puede
+desactivar de forma fiable (#18264), así que el margen debe absorber al menos un turno pesado
+completo. Estos números pasan a ser **datos del registro**, no constantes de Claude: un CLI con
+ventana o comportamiento de compactación distinto puede traer los suyos.
+
+**Nota para quien ejecute H.7 (Codex o modelo económico).** H.7.2b es 🧠 (decisión de
+arquitectura, ya tomada y escrita arriba — implementarla, no re-diseñarla); el resto son ⚡.
+**Regla dura que atraviesa todo el bloque, dicha por Carlos el 2026-09-03:** ninguna pieza de
+H.7 puede quedar atada a Claude Code. Si al implementar aparece un camino más corto que solo
+sirve para un CLI, ese camino está mal — va detrás del registro de adaptadores de H.7.2b, como
+una entrada más ([[feedback-deteccion-generica-no-por-cli]]).
+Lo que NO se debe hacer: re-litigar el umbral,
 proponer compactación, agregar un LLM al circuito, o "mejorar" el handoff generándolo con un
 modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambiarlo en caliente
 (scope-lock, `bun run agent:preflight -- --item H.7.N --agent <cli>` antes de tocar código).
@@ -734,6 +995,20 @@ modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambi
   tener los 5 valores de Claude hardcodeados — sus opciones se derivan de `CLI_EFFORT_LEVELS`
   según el `engine` elegido en el draft (hoy el campo entero se oculta si `engine !== 'external'`
   — pasa a mostrarse también para `engine === 'codex'` con sus propios niveles).
+
+  **Corrección de alcance (hallazgo 2026-09-03, verificado en código):** este ítem, tal como se
+  escribió el 2026-09-02, era **inejecutable** — asumía que `engine === 'codex'` ya se podía
+  elegir en el draft, y no se puede. El `<select>` de engine (`screens-core.js:1107-1112`) solo
+  ofrece `single-shot | agentic | external`; `codex` nunca se agregó como opción, aunque el
+  engine existe en el schema (`src/tasks/schema.ts:6`), tiene executor propio
+  (`src/run/executors/codex.ts`) y es seleccionable como agente **global** en Settings
+  (`screens-ops.js:1666`). Es el mismo patrón que la Regla Cero de `CLAUDE.md`: una capacidad
+  real del backend que no existe en la práctica porque ninguna superficie la expone
+  ([[feedback-dashboard-no-solo-cli]]). Por eso **el primer paso de H.8.3 es agregar la opción
+  `codex` a ese `<select>`**, antes de tocar el de effort; sin eso su propio gate 🔍 no se puede
+  correr. `opencode` sigue fuera de scope (sin contrato de effort verificado, § "Fuera de scope"
+  abajo).
+
   Gate 🔍 (dashboard real, no mock): crear un draft con `engine=codex`, confirmar que el select
   de effort aparece con `minimal/low/medium/high/xhigh` (sin `max`), y con `engine=external`
   sigue mostrando los 5 de Claude. Bajar el servidor al terminar

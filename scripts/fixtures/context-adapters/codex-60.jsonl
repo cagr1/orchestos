@@ -1,0 +1,1 @@
+{"payload":{"type":"token_count","model":"gpt-5.6-codex","info":{"last_token_usage":{"total_tokens":600},"model_context_window":1000}}}

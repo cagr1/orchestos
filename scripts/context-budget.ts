@@ -22,9 +22,16 @@ export interface BudgetStatus {
   level: 'ok' | 'warn' | 'critical'
 }
 
+/**
+ * H.7.2b (2026-09-03): `critical` bajó de 75 a 65 por decisión de Carlos. El
+ * autocompact de Claude Code dispara a ~78% y `autoCompact: false` es ignorado
+ * (anthropics/claude-code#18264), así que 75 dejaba 3 puntos de margen — un
+ * solo turno pesado saltaba de "todavía no avisó" a "ya compactó".
+ * Los umbrales por CLI viven en `context-adapters.ts`; esto es el piso común.
+ */
 export const DEFAULT_BUDGET_THRESHOLDS: BudgetThresholds = {
   warn: 60,
-  critical: 75,
+  critical: 65,
 }
 
 /** Lee el último uso real del transcript; líneas parcialmente escritas se ignoran. */
@@ -147,21 +154,14 @@ if (import.meta.main) {
   }
 
   try {
-    const usage = readTranscriptUsage(transcriptPath)
-    if (!usage) {
-      console.log(JSON.stringify({ used: null, model: null, window: null, pct: null, level: null }))
-      process.exit(0)
-    }
-    const window = await contextWindowFor(usage.model)
-    const status = window ? budgetStatus({ used: usage.used, window }) : null
+    // H.7.2b — el punto de entrada ya no sabe qué CLI escribió el transcript:
+    // pregunta al registro de adaptadores y publica el `source` que respondió.
+    const { readContextBudget } = await import('./context-adapters.ts')
+    const budget = await readContextBudget(transcriptPath)
     console.log(
-      JSON.stringify({
-        used: usage.used,
-        model: usage.model,
-        window,
-        pct: status?.pct ?? null,
-        level: status?.level ?? null,
-      }),
+      JSON.stringify(
+        budget ?? { used: null, model: null, window: null, pct: null, level: null, source: null },
+      ),
     )
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))

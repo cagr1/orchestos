@@ -130,6 +130,15 @@
       "closedDate": null
     },
     {
+      "id": "H.7.2b",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🧠",
+      "title": "Reabrir la fuente del número: registro de adaptadores por CLI",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "H.7.3",
       "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

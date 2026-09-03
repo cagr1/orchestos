@@ -17,8 +17,15 @@ function main(inputText) {
   const budget = runBudget(transcriptPath)
   if (!budget || (budget.level !== 'warn' && budget.level !== 'critical')) return
 
-  if (readState()?.sessionId !== sessionId && !writeHandoff(transcriptPath, sessionId)) return
-  printWarning(budget)
+  // BUG-H.7.3-a (hallado por el gate 🔍 del 2026-09-03): `printWarning` estaba
+  // fuera de este guard y por eso avisaba en CADA turno desde el 60%, dejando a
+  // `critical` sin comportamiento propio y gastando contexto por turno — el mal
+  // exacto que este hook existe para evitar (~/.claude/CLAUDE.md § Costo de
+  // contexto, punto 4). `warn` avisa una sola vez por sesión; solo `critical`
+  // repite en cada turno.
+  const firstTimeThisSession = readState()?.sessionId !== sessionId
+  if (firstTimeThisSession && !writeHandoff(transcriptPath, sessionId)) return
+  if (firstTimeThisSession || budget.level === 'critical') printWarning(budget)
 }
 
 function parseJson(value) {
@@ -40,7 +47,10 @@ function isBudget(value) {
     typeof value.used === 'number' &&
     typeof value.window === 'number' &&
     typeof value.pct === 'number' &&
-    typeof value.model === 'string' &&
+    // `model` es opcional: no todo CLI lo publica en su transcript. `source`
+    // (el id del adaptador de H.7.2b) sí es obligatorio.
+    (typeof value.model === 'string' || value.model === null) &&
+    typeof value.source === 'string' &&
     (value.level === 'warn' || value.level === 'critical')
   )
 }
@@ -88,7 +98,10 @@ function runBunJson(args) {
 
 function printWarning(budget) {
   const pct = `${Math.round(budget.pct * 10) / 10}%`
-  const model = budget.model.replace(/\s+/g, ' ').trim()
+  // H.7.2b — el modelo puede no venir (un CLI que no lo publica en su
+  // transcript); el `source` del adaptador siempre viene, y es lo que dice de
+  // qué CLI habla el número.
+  const model = (budget.model || budget.source || 'desconocido').replace(/\s+/g, ' ').trim()
   const handoff = existsSync(resolve(ROOT, '.orchestos/handoff.md')) ? ' Handoff actualizado.' : ''
   console.log(`Contexto ${budget.level === 'critical' ? 'crítico' : 'alto'}: ${pct} (${model}).`)
   console.log(`Ventana: ${budget.window.toLocaleString('en-US')} tokens.${handoff}`)
