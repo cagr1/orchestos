@@ -1157,10 +1157,23 @@ modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambi
   pre-commit regenera obligatoriamente desde `PLAN.md`; se incluye únicamente para mantener el
   estado indexado sincronizado.
 
-- [ ] **H.8.2 — ⚡ Aplicar el effort en el executor de Codex.**
+- [x] **H.8.2 — ⚡ Aplicar el effort en el executor de Codex.**
   Depende de H.8.1. `src/run/executors/codex.ts`: si `ctx.task.cli_effort` viene seteado,
   agregar `-c model_reasoning_effort=<valor>` al spawn (mismo patrón que `-m` ya usa hoy).
   `external.ts` no cambia (ya hace `--effort`).
+
+  **Evidencia de cierre (2026-09-03):** `buildCodexArgs` y `buildCodexArgsDisplay` agregan
+  `-c model_reasoning_effort=<valor>` cuando `ctx.task.cli_effort` está presente. El test happy
+  path verifica tanto el comando entregado a `Bun.spawn` como los argumentos persistidos en
+  `costByIteration`, manteniendo una sola fuente de verdad para la evidencia del run.
+  **Comandos:** `bun run agent:preflight -- --item H.8.2 --agent codex --scope
+  "src/run/executors/codex.ts,src/__tests__/*codex*.test.ts,PLAN.md"` ✅;
+  `bunx tsc --noEmit` ✅; `bun test src/__tests__/codex-engine.test.ts` → 9 pass / 0 fail ✅;
+  `bun run test:coverage` → 1254 pass / 0 fail, funciones 74.74% (mínimo 69%), líneas 63.60%
+  (mínimo 57%) ✅; `git diff --check` ✅.
+  **Fuera de scope declarado:** `.orchestos/feature-status.json` es un artefacto derivado que el
+  pre-commit regenera obligatoriamente desde `PLAN.md`; se incluye únicamente para mantener el
+  estado indexado sincronizado.
 
 - [ ] **H.8.3 — ⚡ `scripts/eval-run.ts` y dashboard, effort genérico.**
   Depende de H.8.1/H.8.2. `--cli-effort` deja de documentarse como "Claude CLI effort

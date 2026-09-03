@@ -105,15 +105,17 @@ function buildCodexPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
     .join('\n\n')
 }
 
-function buildCodexArgs(prompt: string, model?: string): string[] {
+function buildCodexArgs(prompt: string, model?: string, cliEffort?: string): string[] {
   const args = ['exec', prompt, '--json', '--sandbox', 'workspace-write', '--color', 'never']
   if (model) args.push('-m', model)
+  if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
   return args
 }
 
-function buildCodexArgsDisplay(model?: string): string[] {
+function buildCodexArgsDisplay(model?: string, cliEffort?: string): string[] {
   const args = ['exec', '<contract>', '--json', '--sandbox', 'workspace-write', '--color', 'never']
   if (model) args.push('-m', model)
+  if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
   return args
 }
 
@@ -319,7 +321,7 @@ export const codexEngine: ExecutorEngine = {
     try {
       ;({ stdout, timedOut } = await runCodex(
         ctx.effectiveRoot,
-        buildCodexArgs(prompt, codexModel),
+        buildCodexArgs(prompt, codexModel, ctx.task.cli_effort),
         timeoutMs,
         opts.onStep,
       ))
@@ -364,7 +366,7 @@ export const codexEngine: ExecutorEngine = {
           outputTokens: parsed.outputTokens,
           costUsd: usd,
           binary: CODEX_BINARY,
-          args: buildCodexArgsDisplay(codexModel),
+          args: buildCodexArgsDisplay(codexModel, ctx.task.cli_effort),
         },
       ],
       log: [
