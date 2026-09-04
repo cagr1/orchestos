@@ -1573,6 +1573,13 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
 > para H.5.3 (por eso se queda al final, después de I) — lo que cambió es que H.9.x **no** cuenta
 > como esa superficie temporal: son huecos de spawn/backend que no compiten por archivo con el
 > Bloque I y no se vuelven a tocar cuando I lo reescriba.
+>
+> **Cuarta corrección de orden (2026-09-04, misma sesión, decisión explícita de Carlos):** Codex
+> intentó H.9.4 y reportó, honestamente, que no puede cerrarse: el gate necesita evidencia real de
+> "qué archivos leyó el CLI", y esa persistencia se absorbió en I.4 (arriba) — no existe en ningún
+> otro lado todavía. Es una dependencia cruzada que el orden de arriba no contempló. Decisión de
+> Carlos: **H.9.4 queda pendiente/bloqueado, se avanza a I.1 ahora, y H.9.4 se resuelve cuando se
+> llegue a I.4** (no antes, no en paralelo). No se reabre esta secuencia otra vez sin razón nueva.
 
 - [ ] **I.1 — 🧠 Matar la puerta manual: el chat es la única entrada.**
   Quitar de la pantalla principal la barra "Crear tarea" (`chat.createTask` /
