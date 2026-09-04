@@ -426,19 +426,11 @@ SCREENS.chat = {
             .join('')}</div>`
         : ''
 
-    // D4 — "Create task" bar (visible after 3+ mensajes, red de respaldo).
-    // J.1 (Mes 18) — B.1.b: si el clasificador semántico marcó el ÚLTIMO
-    // mensaje como tarea, la barra aparece ya (sin esperar al conteo),
-    // citando su `reason` en vez del hint genérico.
-    const showByCount = history.length >= 3
-    const suggestion = !showByCount ? st.chatTaskSuggestion : null
-    const createTaskBar =
-      showByCount || suggestion
-        ? `<div class="chat-create-task-bar">
-          <span class="chat-create-task-hint">${suggestion ? esc(suggestion.reason) : t('chat.createTaskHint')}</span>
-          <button class="btn primary sm" data-act="chat-create-task">${ICON.tasks} ${t('chat.createTask')}</button>
-        </div>`
-        : ''
+    // I.1 (Mes 30) — la puerta manual se mata: el chat ya no ofrece un botón
+    // para crear tarea a mano. La creación es automática (D.7) o no existe;
+    // st.chatTaskSuggestion (clasificador B.1.b) queda para que I.2 defina el
+    // punto de confirmación real que reemplaza esta fricción — no se borra el
+    // dato, solo la barra que lo consumía.
 
     return `<div class="screen chat-screen">
       <div class="screen-head">
@@ -447,7 +439,6 @@ SCREENS.chat = {
       </div>
       ${localWarnBanner}
       <div class="chat-area" id="chat-area">${msgs}</div>
-      ${createTaskBar}
       <div class="chat-input-bar">
         ${attachChips}
         <div class="chat-composer">
@@ -881,23 +872,6 @@ SCREENS.chat = {
     root.querySelector('[data-act="local-warn-dismiss"]')?.addEventListener('click', () => {
       sessionStorage.setItem('ollama-warn-shown', '1')
       App.rerender()
-    })
-
-    // D4 — create task from conversation
-    root.querySelector('[data-act="chat-create-task"]')?.addEventListener('click', () => {
-      // B.1 (Mes 18) — gate de evidencia: registra que el usuario sí usó la barra.
-      fetch('/api/chat/task-bar-click', { method: 'POST' }).catch(() => {})
-      // D4 — seed the task composer with the last 3 user messages (concise, actionable).
-      // The AI draft handler will turn this into a structured task — no need to dump the full conversation.
-      const history = st.chatHistory || []
-      const seed = history
-        .filter((m) => m.role === 'user')
-        .slice(-3)
-        .map((m) => m.content.trim())
-        .filter(Boolean)
-        .join('\n')
-      st.composeDraft = seed || ''
-      App.go('tasks')
     })
 
     // Auto-load models on first visit (only once — orModelsAttempted prevents a retry-loop when the fetch keeps failing)

@@ -143,9 +143,6 @@ const I18N = {
     'chat.modelfx.agentChatUnsupported': 'Not wired for chat yet — falls back to OpenRouter',
     'chat.modelfx.back': 'Back',
     'chat.modelfx.reset': 'Reset to default',
-    'chat.createTask': 'Create task from this conversation',
-    'chat.createTaskHint':
-      'Turn this chat into a task — pre-fills the task composer with the conversation context.',
     'chat.attachMenu.image': 'Image',
     'chat.attachMenu.doc': 'Document',
     'chat.attachMenu.url': 'URL',
@@ -1003,9 +1000,6 @@ const I18N = {
     'chat.modelfx.agentChatUnsupported': 'Sin cablear para el chat todavía — cae a OpenRouter',
     'chat.modelfx.back': 'Volver',
     'chat.modelfx.reset': 'Restablecer a lo predeterminado',
-    'chat.createTask': 'Crear tarea desde esta conversación',
-    'chat.createTaskHint':
-      'Convierte este chat en una tarea — pre-rellena el compositor con el contexto de la conversación.',
     'chat.attachMenu.image': 'Imagen',
     'chat.attachMenu.doc': 'Documento',
     'chat.attachMenu.url': 'URL',

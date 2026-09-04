@@ -124,7 +124,9 @@ const NAV = [
   { id: 'project', icon: ICON.project, key: 'nav.project' },
   { id: 'instincts', icon: ICON.instinct, key: 'nav.instincts' },
   { id: 'skills', icon: ICON.flask, key: 'nav.skills', badge: true },
-  { id: 'tasks', icon: ICON.tasks, key: 'nav.tasks', operator: true },
+  // I.1 (Mes 30) — Tasks queda anclado como en Orca: ya no es una barra manual
+  // desde el chat, es la vista de tareas que el usuario final también necesita ver.
+  { id: 'tasks', icon: ICON.tasks, key: 'nav.tasks' },
   { id: 'runs', icon: ICON.runs, key: 'nav.runs', operator: true },
   { id: 'graph', icon: ICON.graph, key: 'nav.graph', operator: true },
   { id: 'memory', icon: ICON.memory, key: 'nav.memory', operator: true },

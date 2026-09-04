@@ -2983,25 +2983,6 @@
   word-break: break-word;
 }
 
-/* D4 — create task from conversation */
-.chat-create-task-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  margin: 8px 0 4px;
-  border-radius: var(--radius);
-  border: 1px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
-}
-.chat-create-task-hint {
-  flex: 1;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
 /* B.2 (Mes 19) — envoltorio para N chips en vez de uno solo */
 .chat-attach-chips {
   display: flex;

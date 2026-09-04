@@ -1581,7 +1581,7 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
 > Carlos: **H.9.4 queda pendiente/bloqueado, se avanza a I.1 ahora, y H.9.4 se resuelve cuando se
 > llegue a I.4** (no antes, no en paralelo). No se reabre esta secuencia otra vez sin razón nueva.
 
-- [ ] **I.1 — 🧠 Matar la puerta manual: el chat es la única entrada.**
+- [x] **I.1 — 🧠 Matar la puerta manual: el chat es la única entrada.** (cerrado 2026-09-04)
   Quitar de la pantalla principal la barra "Crear tarea" (`chat.createTask` /
   `chat.createTaskHint`, `src/dashboard/public/i18n.js:1006-1007`) y el draft manual con sus
   campos de engine/modelo/`cli_effort`. **El draft no se borra del sistema**: se mueve a la
@@ -1592,6 +1592,26 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   Criterio de cierre, no negociable: si después de este ítem sigue existiendo un camino para
   crear una tarea a mano desde la pantalla principal, el ítem **no está cerrado** — es la
   condición que las tres decisiones anteriores nunca tuvieron.
+
+  **Corrección de alcance en vivo (2026-09-04, decisión de Carlos con captura de Orca):**
+  "Tasks" como vista (la lista de tareas) queda **anclado** en el nav, igual que Orca ancla su
+  propia pantalla "Tasks" — se le quitó `operator: true` (`app.js:129`), ya no depende de modo
+  avanzado. Lo que se mata es la barra manual embebida en Chat (`chat-create-task-bar` +
+  listener + `chat.createTask`/`chat.createTaskHint`), no el acceso a Tasks en sí. El resto de
+  items del nav (`project`, `instincts`, `runs`, `graph`, `memory`, `specs`) siguen `operator`,
+  son "de observación" y quedan fuera de este ítem — pueden reubicarse después.
+
+  **Implementación:** `screens-core.js` — removida la barra + su listener; `st.chatTaskSuggestion`
+  (clasificador B.1.b) se deja sin consumidor a propósito, I.2 define el reemplazo real. `i18n.js`
+  y `screens.css` — claves/CSS muertos removidos. Backend (`/api/chat/task-bar-click`, gate
+  histórico de Mes 18) no se tocó — fuera de alcance declarado, front-end only.
+
+  **Gate en vivo:** sin navegador/browser interactivo — dashboard real levantado con
+  `ORCHESTOS_HOME` temporal (`bun run src/cli.ts dashboard`) y verificado vía `curl` contra
+  `/app.js` y `/screens-core.js`, el mismo bundle que serviría a un navegador: confirma `tasks`
+  sin `operator:true` y cero referencias a `chat-create-task` en el bundle servido en vivo.
+  `tsc --noEmit` limpio, `bun run test:coverage` 1265/1265 verde. Servidor bajado al terminar
+  ([[feedback-siempre-cerrar-servidor]]).
 
 - [ ] **I.2 — 🧠 El punto de confirmación: lo único que reemplaza la fricción que se quita.**
   Al sacar el draft se pierde el único momento en que el usuario puede decir "no" antes de que un
