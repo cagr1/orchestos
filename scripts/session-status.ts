@@ -24,6 +24,7 @@ export interface SessionStatus {
   label: string
   binary: string
   icon: string
+  readBoundary: CliDetectionResult['readBoundary']
   installed: boolean
   available: boolean
   /** Momento de la última escritura del transcript, no la hora del request. */
@@ -80,6 +81,7 @@ export async function readActiveSessionStatuses(
         label: cli.label,
         binary: cli.binary,
         icon: cli.icon,
+        readBoundary: cli.readBoundary,
         installed: cli.installed,
         available: true,
         observedAt: statSync(transcriptPath).mtime.toISOString(),
@@ -92,6 +94,7 @@ export async function readActiveSessionStatuses(
       label: cli.label,
       binary: cli.binary,
       icon: cli.icon,
+      readBoundary: cli.readBoundary,
       installed: cli.installed,
       available: false,
       observedAt: null,

@@ -30,7 +30,7 @@ describe('H.7.5 — GET /api/session/status', () => {
     const body = (await response.json()) as Record<string, unknown>
     expect(body.available).toBe(true)
     const codex = (body.clis as Array<Record<string, unknown>>).find((cli) => cli.id === 'codex')
-    expect(codex).toMatchObject({ id: 'codex', available: true, context: { source: 'codex', pct: 60, level: 'warn' }, rateLimits: { source: 'codex', windows: [{ id: 'primary', usedPct: 44, windowMinutes: 300 }] } })
+    expect(codex).toMatchObject({ id: 'codex', readBoundary: { kind: 'none' }, available: true, context: { source: 'codex', pct: 60, level: 'warn' }, rateLimits: { source: 'codex', windows: [{ id: 'primary', usedPct: 44, windowMinutes: 300 }] } })
     expect(JSON.stringify(body)).not.toContain(transcript)
   })
 

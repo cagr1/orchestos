@@ -198,8 +198,8 @@
       "block": "H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)",
       "delegation": "🧠",
       "title": "La frontera de lectura es una capability declarada por CLI, verificada, no un prompt",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-09-04"
     },
     {
       "id": "H.9.3",

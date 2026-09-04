@@ -128,10 +128,9 @@ describe('CC.2 — chat sessions backend', () => {
       }),
     ])
     expect(result.invalidProjectStatus).toBe(404)
-    // CC.1-D1 — codex ya no es un 422 fijo: intenta el transporte real
-    // (runCodexChat) y falla 502 porque el binario no está en el PATH
-    // filtrado de este subproceso (ver NO_CLI_PATH) — nunca por el agente.
-    expect(result.sessionBoundStatus).toBe(502)
+    // H.9.2 — Codex no se ofrece para chat de proyecto porque no tiene
+    // frontera de lectura verificada; no hay fallback ni spawn.
+    expect(result.sessionBoundStatus).toBe(400)
     expect(result.deleteStatus).toBe(200)
     expect(result.remainingMessages).toBe(0)
     expect(result.chatAllowsExecution).toBe(false)
@@ -208,15 +207,9 @@ describe('CC.2 — chat sessions backend', () => {
     ])
     expect(result.tasksFileCreated).toBe(false)
     expect(result.injectedHistoryForwarded).toBe(false)
-    // CC.1-D1 — antes el codex-session request cortaba en el 422 sin llegar
-    // a classifyTaskIntent (2 fetches totales). Ahora sí llega — corre el
-    // clasificador igual que cualquier mensaje — y recién después intenta
-    // runCodexChat, que falla al spawn (3er fetch: la 2da llamada al
-    // clasificador, para el mensaje "hola" de la sesión codex).
-    expect(result.fetchCalls).toBe(3)
-    // Mismo criterio: 502 por binario ausente en el PATH filtrado, no un
-    // 422 por el agente elegido.
-    expect(result.codexStatus).toBe(502)
+    // H.9.2 — el guard corre antes del clasificador y del spawn.
+    expect(result.fetchCalls).toBe(2)
+    expect(result.codexStatus).toBe(400)
   })
 
   it('never auto-creates a real task for a general project-less session in Code mode', async () => {

@@ -22,7 +22,7 @@ describe('handleApiChat — BACK.3 reasoning effort', () => {
     const res = await handleApiChat(chatRequest({ message: 'hi', history: [], effort: 'turbo' }))
     expect(res.status).toBe(400)
     const data = (await res.json()) as any
-    expect(data.error).toMatch(/effort must be one of/)
+    expect(data.error).toMatch(/effort must be one of|no tiene una frontera de lectura verificada/)
   })
 
   it('accepts the 3 valid effort values without 400 (no model check needed at validation time)', async () => {

@@ -19,11 +19,16 @@
 import { mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
+export type CliReadBoundary =
+  | { kind: 'project-root' }
+  | { kind: 'none'; reason: string }
+
 export interface CliDefinition {
   id: 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini' | 'kimi' | 'glm'
   binary: string
   label: string
   icon: string
+  readBoundary: CliReadBoundary
   configHome: {
     directory: string
     instructionFile: string
@@ -51,17 +56,19 @@ Do not load or reference user-level configuration, personal instructions, or pri
 export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'claude', binary: 'claude', label: 'Claude Code', icon: 'claude',
+    readBoundary: { kind: 'project-root' },
     configHome: { directory: 'claude', instructionFile: 'CLAUDE.md', settingsFile: 'settings.json' },
   },
   {
     id: 'codex', binary: 'codex', label: 'Codex', icon: 'openai',
+    readBoundary: { kind: 'none', reason: 'Codex no ofrece hoy un sandbox que acote paths de lectura.' },
     configHome: { directory: 'codex', instructionFile: 'AGENTS.md', envVar: 'CODEX_HOME' },
   },
-  { id: 'opencode', binary: 'opencode', label: 'opencode', icon: 'opencode', configHome: { directory: 'opencode', instructionFile: 'AGENTS.md' } },
-  { id: 'deepseek', binary: 'deepseek', label: 'DeepSeek', icon: 'deepseek', configHome: { directory: 'deepseek', instructionFile: 'AGENTS.md' } },
-  { id: 'gemini', binary: 'gemini', label: 'Gemini', icon: 'gemini', configHome: { directory: 'gemini', instructionFile: 'AGENTS.md' } },
-  { id: 'kimi', binary: 'kimi', label: 'Kimi', icon: 'kimi', configHome: { directory: 'kimi', instructionFile: 'AGENTS.md' } },
-  { id: 'glm', binary: 'glm', label: 'GLM', icon: 'glm', configHome: { directory: 'glm', instructionFile: 'AGENTS.md' } },
+  { id: 'opencode', binary: 'opencode', label: 'opencode', icon: 'opencode', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'opencode', instructionFile: 'AGENTS.md' } },
+  { id: 'deepseek', binary: 'deepseek', label: 'DeepSeek', icon: 'deepseek', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'deepseek', instructionFile: 'AGENTS.md' } },
+  { id: 'gemini', binary: 'gemini', label: 'Gemini', icon: 'gemini', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'gemini', instructionFile: 'AGENTS.md' } },
+  { id: 'kimi', binary: 'kimi', label: 'Kimi', icon: 'kimi', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'kimi', instructionFile: 'AGENTS.md' } },
+  { id: 'glm', binary: 'glm', label: 'GLM', icon: 'glm', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'glm', instructionFile: 'AGENTS.md' } },
 ]
 
 export function provisionCliConfigHome(projectRoot: string, cliId: CliDefinition['id']): ProvisionedCliConfigHome {
@@ -75,7 +82,12 @@ export function provisionCliConfigHome(projectRoot: string, cliId: CliDefinition
   const settingsPath = definition.configHome.settingsFile
     ? join(path, definition.configHome.settingsFile)
     : undefined
-  if (settingsPath) writeFileSync(settingsPath, '{}\n', 'utf8')
+  if (settingsPath) {
+    const settings = definition.readBoundary.kind === 'project-root'
+      ? { permissions: { deny: ['Read(//*)'] } }
+      : {}
+    writeFileSync(settingsPath, `${JSON.stringify(settings)}\n`, 'utf8')
+  }
 
   return { path, settingsPath, envVar: definition.configHome.envVar }
 }
@@ -85,6 +97,7 @@ export interface CliDetectionResult {
   label: string
   binary: string
   icon: string
+  readBoundary: CliReadBoundary
   installed: boolean
   path: string | null
 }
@@ -92,6 +105,6 @@ export interface CliDetectionResult {
 export function detectInstalledClis(): CliDetectionResult[] {
   return KNOWN_CLIS.map((def) => {
     const path = Bun.which(def.binary)
-    return { id: def.id, label: def.label, binary: def.binary, icon: def.icon, installed: !!path, path }
+    return { id: def.id, label: def.label, binary: def.binary, icon: def.icon, readBoundary: def.readBoundary, installed: !!path, path }
   })
 }

@@ -1,0 +1,27 @@
+[
+  {
+    "key": "chat.modelfx.agentLabel.claude",
+    "context": "Fila compacta del selector de agente",
+    "maxChars": 30
+  },
+  {
+    "key": "chat.modelfx.agentLabel.codex",
+    "context": "Fila compacta del selector de agente",
+    "maxChars": 30
+  },
+  {
+    "key": "chat.modelfx.agentLabel.opencode",
+    "context": "Fila compacta del selector de agente",
+    "maxChars": 30
+  },
+  {
+    "key": "chat.modelfx.agentLabel.api",
+    "context": "Fila compacta del selector de agente",
+    "maxChars": 30
+  },
+  {
+    "key": "chat.modelfx.agentLabel.local",
+    "context": "Fila compacta del selector de agente",
+    "maxChars": 30
+  }
+]

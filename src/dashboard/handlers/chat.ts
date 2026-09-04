@@ -38,6 +38,7 @@ import {
 } from '../../router/model-catalog.ts'
 import { calcCost } from '../../router/pricing.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
+import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { PathPolicyError, resolveProjectPath } from '../../run/path-policy.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
 import { untrustedContent } from '../../security/untrusted-content.ts'
@@ -63,6 +64,12 @@ type ReasoningEffort = (typeof VALID_EFFORTS)[number]
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS = 30 * 60 * 1000
+
+export function projectChatReadBoundaryError(agent: string | undefined): string | null {
+  const cli = KNOWN_CLIS.find((definition) => definition.id === agent)
+  if (!cli || cli.readBoundary.kind === 'project-root') return null
+  return `CLI "${cli.label}" no está disponible para chat de proyecto: no tiene una frontera de lectura verificada.`
+}
 
 interface FileEntry {
   type: ChatFileType
@@ -591,18 +598,14 @@ async function handleApiChat(
   }
   const root = project.root
 
-  // CC.1-D1 (2026-08-19) — el 422 que bloqueaba codex/opencode en el chat
-  // entero era una decisión de implementación de CC.1, no un límite pedido:
-  // en ese momento nadie había verificado que esos binarios tuvieran un
-  // control de solo-lectura real. Sí lo tienen (`codex exec --sandbox
-  // read-only`, `opencode run --agent plan` con `edit: deny`) — ver
-  // `runCodexChat`/`runOpencodeChat`. El usuario elige libremente con qué
-  // agente hablar; la frontera de lectura/escritura la sigue poniendo el
-  // flag real de cada CLI, nunca una lista de agentes permitidos.
+  // H.9.2 — el agente elegido debe declarar en el registro una frontera real
+  // de lectura para chat de proyecto; un prompt no es un control equivalente.
   const chatAgent = session?.agent ?? loadOrcheConfig(root).agent
   const useClaudeCli = chatAgent === 'claude'
   const useCodexCli = chatAgent === 'codex'
   const useOpencodeCli = chatAgent === 'opencode'
+  const readBoundaryError = projectChatReadBoundaryError(chatAgent)
+  if (readBoundaryError) return errorResponse(readBoundaryError, 400)
   const allowedEfforts: readonly string[] = useClaudeCli ? CLAUDE_CLI_EFFORTS : VALID_EFFORTS
   if (body.effort !== undefined && !allowedEfforts.includes(body.effort)) {
     return errorResponse(`effort must be one of: ${allowedEfforts.join(', ')}`, 400)

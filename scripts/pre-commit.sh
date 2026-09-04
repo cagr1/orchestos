@@ -37,6 +37,9 @@ bun run ledger:gate
 echo "🖥️ Verificando evidencia en vivo para dashboard/config..."
 bun run agent:live-gate
 
+echo "📝 Verificando presupuesto de copy compacto de UI..."
+bun run scripts/check-ui-copy.ts
+
 # H.3.1 (PLAN.md § Bloque H) — PLAN.md sigue siendo la única fuente de verdad;
 # .orchestos/feature-status.json es DERIVADO y se regenera siempre, nunca se
 # edita a mano. A diferencia de runs-summary.json esto es una función pura de

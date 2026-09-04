@@ -91,6 +91,8 @@ describe('runClaudeChat (CC.1)', () => {
     const idx = args.indexOf('--settings')
     expect(idx).toBeGreaterThan(-1)
     expect(args[idx + 1]).toBe('/repo/.orchestos/agent-home/claude/settings.json')
+    const addDir = args.indexOf('--add-dir')
+    expect(args[addDir + 1]).toBe(process.cwd())
   })
 
   it('nunca pide permisos de escritura — --allowedTools es solo lectura', async () => {
@@ -121,6 +123,8 @@ describe('runClaudeChat (CC.1)', () => {
     await runClaudeChat('/tmp/real-project-root', 'sys', 'msg', 5000)
 
     expect(spawnCalls[0]!.cwd).toBe('/tmp/real-project-root')
+    const addDir = spawnCalls[0]!.cmd.indexOf('--add-dir')
+    expect(spawnCalls[0]!.cmd[addDir + 1]).toBe('/tmp/real-project-root')
   })
 
   it('acumula el texto de los bloques assistant/text en orden', async () => {

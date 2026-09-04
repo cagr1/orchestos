@@ -15,6 +15,11 @@ export const LIVE_GATE_PATHS = [
   'src/config/',
 ] as const
 
+export const UI_COPY_BUDGET_PATHS = [
+  'src/dashboard/public/i18n.js',
+  'src/dashboard/ui-copy-budget.json',
+] as const
+
 export interface CommandResult {
   exitCode: number
   stdout: string
@@ -68,6 +73,10 @@ export function requiresLiveGate(paths: string[]): boolean {
   return paths.some((path) =>
     LIVE_GATE_PATHS.some((prefix) => path === prefix || path.startsWith(prefix)),
   )
+}
+
+export function requiresUiCopyBudget(paths: string[]): boolean {
+  return paths.some((path) => UI_COPY_BUDGET_PATHS.includes(path as (typeof UI_COPY_BUDGET_PATHS)[number]))
 }
 
 export function hasLiveGateEvidence(planDiff: string): boolean {

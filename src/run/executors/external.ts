@@ -267,6 +267,7 @@ export function buildClaudeChatArgs(
   model?: string,
   effort?: string,
   settingsPath = '<settings>',
+  projectRoot = process.cwd(),
 ): string[] {
   const args = [
     '-p',
@@ -280,6 +281,8 @@ export function buildClaudeChatArgs(
     'Read,Glob,Grep',
     '--settings',
     settingsPath,
+    '--add-dir',
+    projectRoot,
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
@@ -326,7 +329,7 @@ export async function runClaudeChat(
   try {
     ;({ timedOut, resultLine } = await runClaudeCode(
       cwd,
-      buildClaudeChatArgs(systemPrompt, model, effort, configHome.settingsPath!),
+      buildClaudeChatArgs(systemPrompt, model, effort, configHome.settingsPath!, cwd),
       userMessage,
       timeoutMs,
       onStep,

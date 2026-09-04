@@ -10,7 +10,7 @@ import { getRunSteps } from '../../db/run-steps.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute } from '../../router/auto-route.ts'
 import { classifyTask } from '../../router/classify.ts'
-import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
+import { detectInstalledClis, KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { withGitLock } from '../../run/git-lock.ts'
 import { git } from '../../run/sandbox.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
@@ -35,25 +35,28 @@ async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Respo
   // (`claude`/`opencode`/`codex`, sin el prefijo `cli-` redundante).
   const detectedClis = detectInstalledClis()
   const cliById = new Map(detectedClis.map((cli) => [cli.id, cli]))
-  const modes: { id: AgentChoice; label: string; detected: boolean; path: string | null }[] = [
+  const modes: { id: AgentChoice; label: string; detected: boolean; path: string | null; readBoundary?: string }[] = [
     { id: 'local', label: 'Local (Ollama)', detected: localDetected, path: null },
     {
       id: 'claude',
       label: cliById.get('claude')?.label ?? 'Claude Code',
       detected: cliById.get('claude')?.installed ?? false,
       path: cliById.get('claude')?.path ?? null,
+      readBoundary: KNOWN_CLIS.find((cli) => cli.id === 'claude')?.readBoundary.kind,
     },
     {
       id: 'opencode',
       label: cliById.get('opencode')?.label ?? 'opencode',
       detected: cliById.get('opencode')?.installed ?? false,
       path: cliById.get('opencode')?.path ?? null,
+      readBoundary: KNOWN_CLIS.find((cli) => cli.id === 'opencode')?.readBoundary.kind,
     },
     {
       id: 'codex',
       label: cliById.get('codex')?.label ?? 'Codex',
       detected: cliById.get('codex')?.installed ?? false,
       path: cliById.get('codex')?.path ?? null,
+      readBoundary: KNOWN_CLIS.find((cli) => cli.id === 'codex')?.readBoundary.kind,
     },
     { id: 'api', label: 'OpenRouter API', detected: true, path: null },
   ]

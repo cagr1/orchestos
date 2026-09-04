@@ -66,6 +66,13 @@ describe('detectInstalledClis()', () => {
     expect(home.settingsPath).toBe(join(home.path, 'settings.json'))
     expect(existsSync(join(home.path, 'CLAUDE.md'))).toBe(true)
     expect(readFileSync(join(home.path, 'CLAUDE.md'), 'utf8')).not.toContain('MemoriesMD')
-    expect(readFileSync(home.settingsPath!, 'utf8')).toBe('{}\n')
+    expect(JSON.parse(readFileSync(home.settingsPath!, 'utf8'))).toEqual({
+      permissions: { deny: ['Read(//*)'] },
+    })
+  })
+
+  it('declara frontera de lectura solo para Claude; los demás CLIs quedan en none', () => {
+    expect(KNOWN_CLIS.find((cli) => cli.id === 'claude')?.readBoundary).toEqual({ kind: 'project-root' })
+    expect(KNOWN_CLIS.filter((cli) => cli.id !== 'claude').every((cli) => cli.readBoundary.kind === 'none')).toBe(true)
   })
 })

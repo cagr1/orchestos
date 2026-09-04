@@ -1352,7 +1352,7 @@ catálogo real, no se toca).
   tiene `result` no vacío y la lista de archivos leídos. Bajar el servidor al terminar
   ([[feedback-siempre-cerrar-servidor]]).
 
-- [ ] **H.9.2 — 🧠 La frontera de lectura es una capability declarada por CLI, verificada, no un prompt.**
+- [x] **H.9.2 — 🧠 La frontera de lectura es una capability declarada por CLI, verificada, no un prompt.** (cerrado 2026-09-04, backend)
   No una lista de agentes permitidos — eso ya se descartó con evidencia
   ([[feedback-no-restriccion-por-identidad-agente]]), y tampoco una `findXBinary()` por CLI
   ([[feedback-deteccion-generica-no-por-cli]]). Cada entrada de `src/run/executors/cli-registry.ts`
@@ -1368,6 +1368,63 @@ catálogo real, no se toca).
   Esto es 🧠 y no ⚡ porque la decisión de qué hacer con un CLI sin frontera (bloquear el chat vs.
   permitirlo con aviso visible) es de producto, y hay que resolverla con Carlos dentro del ítem,
   no elegirla por conveniencia.
+
+  **Decisión de Carlos (2026-09-04): bloquear.** Un CLI sin frontera declarada (hoy `codex`) no se
+  ofrece como agente de **chat de proyecto** — sigue disponible para tareas normales (worktree),
+  que es otro eje y no depende de esta frontera. Lectura estricta de INS-2026-014: sin control
+  real, no hay chat. Se descartó la alternativa de permitirlo con aviso visible — dejaría usable
+  hoy la superficie que H.9 identificó como riesgo de exfiltración.
+
+  **Implementación H.9.2 (2026-09-04, pendiente de gate visual):** `CliDefinition.readBoundary`
+  declara `project-root` para Claude y `none` para los demás CLIs. El home de settings Claude
+  provisionado por H.9.3 ahora contiene `permissions.deny` y `buildClaudeChatArgs` agrega
+  `--add-dir <cwd>`. El endpoint rechaza Codex/OpenCode (y cualquier CLI registrado sin contrato)
+  con HTTP 400, sin fallback; `/api/system/executor-modes` y `/api/session/status` exponen el
+  descriptor para la UI, cuyo selector deshabilita opciones según el registro.
+  Tests relevantes: 23 pass / 0 fail. `bun run security:gate`: PASS.
+  Gate live backend contra dashboard real: `/api/chat` con agente Codex respondió 400 con el
+  motivo correcto y `/api/system/executor-modes` expuso Claude=`project-root`, Codex/OpenCode=`none`.
+
+  **Decisión de scope (2026-09-04, misma sesión, explícita de Carlos): el front NO se toca acá.**
+  Carlos: *"este dashboard tiene que evolucionar o desaparecer... arreglar solo esto ahora solo me
+  quita tiempo... hagamos todo lo back y una vez terminado avancemos al front"*. Una primera pasada
+  sí había generalizado el selector del chat (`app.js`) para leer `readBoundary` del registro en vez
+  del `Set` hardcodeado `CHAT_UNSUPPORTED_AGENTS`, y corrigió un defecto real de copy duplicado que
+  Carlos encontró en vivo (el texto de motivo aparecía dos veces: en el `title` y repetido inline en
+  la fila y el banner). **Se revirtió esa parte** (`git checkout -- src/dashboard/public/app.js
+  src/dashboard/public/i18n.js`) porque: (a) el `Set` hardcodeado que ya existía desde CC.1b
+  (2026-08-17) sigue bloqueando `codex`/`opencode` en el selector — no hay regresión funcional, y
+  (b) invertir en pulir un componente que el Bloque I va a reemplazar entero es el mismo desperdicio
+  que ya motivó congelar el gate visual de H.8.3'. La seguridad real de H.9.2 no depende de esto: el
+  backend rechaza con 400 sin importar qué muestre el selector viejo. **Pendiente explícito para
+  I.5:** cablear el selector nuevo (React) directo contra `readBoundary`, sin el `Set` duplicado.
+
+  **El control mecánico de copy SÍ se conserva** (lo que Carlos pidió: "control estricto... de ahora
+  en adelante", no un parche puntual) — pero reubicado para no depender de tocar UI hoy:
+  `src/dashboard/ui-copy-budget.json` (movido fuera de `public/` a propósito: es una herramienta de
+  gobierno, no UI en sí, así que no dispara el gate de evidencia en vivo) declara el registro
+  extensible de textos compactos por contexto, y `check-ui-copy.ts` valida `en`/`es` contra
+  `i18n.js`, con filtro por diff staged en `agent-governance.ts`/`scripts/pre-commit.sh`. Sembrado
+  con las claves `chat.modelfx.agentLabel.*` (ya cortas, ya existentes). Cuando I.5 escriba copy
+  nueva, cualquier string que se declare "de contexto compacto" y exceda su presupuesto bloquea el
+  commit — la regla queda viva antes de que exista la superficie que la va a necesitar más.
+  Tests del control: 6 pass / 0 fail. `bunx tsc --noEmit`: PASS. `bun run scripts/check-ui-copy.ts
+  --all`: `✓ UI copy budget: en/es dentro del máximo declarado`.
+
+  **Referencia de diseño para I.5 (2026-09-04, aportada por Carlos):**
+  `pro.reactbits.dev/docs/app-ui/ai-chat` — catálogo de 9 componentes de chat de IA. Los que mapean
+  directo al diseño ya escrito en I.5: `ai-chat-4` (selector de modelo + medidor de contexto/cupo +
+  popover de configuración — la píldora compacta ya especificada), `ai-chat-5` (aprobaciones inline
+  que bloquean acciones destructivas — exactamente el punto de confirmación de I.2), `ai-chat-6`
+  (multi-agente con identidad por agente y un rail de actividad en vivo — el rediseño de la barra de
+  usage e I.6/Actividad). No se implementa nada de esto ahora; queda como insumo verificado (no solo
+  el nombre de la página, sino qué componente resuelve qué parte ya planificada) para cuando arranque
+  el Bloque I.
+
+  Verificación obligatoria final de este ítem (backend + gate de copy, sin tocar `dashboard/public`):
+  `bun run test:coverage` → **1265 pass / 0 fail / 3055 expects; functions 75.02%; lines 63.75%**
+  (mínimos 69%/57%). Sin cambios en `src/dashboard/public/` en este commit → no aplica gate en vivo
+  de navegador ([[feedback-verificar-gates-en-vivo]] sigue vigente para cuando I.5 sí lo toque).
 
 - [x] **H.9.3 — ⚡ Aislamiento de config-home como defensa en profundidad (tercera capa, no primera).** (cerrado 2026-09-04)
   **Corrección de dependencia (2026-09-03):** la redacción original decía "Depende de H.9.2" y

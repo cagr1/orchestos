@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { findOpenPlanItem, hasLiveGateEvidence, requiresLiveGate } from './agent-governance.ts'
+import { findOpenPlanItem, hasLiveGateEvidence, requiresLiveGate, requiresUiCopyBudget } from './agent-governance.ts'
 
 describe('agent governance', () => {
   test('solo acepta un item abierto exacto', () => {
@@ -13,6 +13,11 @@ describe('agent governance', () => {
     expect(requiresLiveGate(['src/dashboard/public/app.js'])).toBe(true)
     expect(requiresLiveGate(['src/dashboard/handlers/config.ts'])).toBe(true)
     expect(requiresLiveGate(['src/run/harness.ts'])).toBe(false)
+  })
+
+  test('detecta cambios que requieren el presupuesto de copy compacto', () => {
+    expect(requiresUiCopyBudget(['src/dashboard/public/i18n.js'])).toBe(true)
+    expect(requiresUiCopyBudget(['src/dashboard/public/app.js'])).toBe(false)
   })
 
   test('exige cierre y evidencia de navegador en el diff de PLAN', () => {
