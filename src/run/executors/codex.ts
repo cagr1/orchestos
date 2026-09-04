@@ -35,6 +35,7 @@
 import { getCatalog } from '../../router/model-catalog.ts'
 import { calcCost } from '../../router/pricing.ts'
 import { safeChildEnv } from '../path-policy.ts'
+import { provisionCliConfigHome } from './cli-registry.ts'
 import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
@@ -126,10 +127,11 @@ async function runCodex(
   args: string[],
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
+  env: Record<string, string> = safeChildEnv(),
 ): Promise<{ stdout: string; timedOut: boolean }> {
   const proc = Bun.spawn([CODEX_BINARY, ...args], {
     cwd,
-    env: safeChildEnv(),
+    env,
     stdin: 'ignore',
     stdout: 'pipe',
     stderr: 'pipe',
@@ -222,10 +224,14 @@ export interface CodexChatResult {
   model: string
 }
 
-function buildCodexChatArgs(prompt: string, model?: string): string[] {
-  const args = ['exec', prompt, '--json', '--sandbox', 'read-only', '--color', 'never']
+export function buildCodexChatArgs(prompt: string, model?: string): string[] {
+  const args = ['exec', prompt, '--json', '--sandbox', 'read-only', '--color', 'never', '--ignore-user-config']
   if (model) args.push('-m', model)
   return args
+}
+
+export function buildCodexChatEnv(configHomePath: string): Record<string, string> {
+  return { ...safeChildEnv(), CODEX_HOME: configHomePath }
 }
 
 export async function runCodexChat(
@@ -241,6 +247,7 @@ export async function runCodexChat(
 
   const codexModel = orchestosModelToCodexModel(model)
   const prompt = [systemPrompt, userMessage].filter(Boolean).join('\n\n')
+  const configHome = provisionCliConfigHome(cwd, 'codex')
 
   let text = ''
   const onStep = (step: ExecutorStepEvent) => {
@@ -255,6 +262,7 @@ export async function runCodexChat(
       buildCodexChatArgs(prompt, codexModel),
       timeoutMs,
       onStep,
+      buildCodexChatEnv(configHome.path),
     ))
   } catch (e: any) {
     throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)

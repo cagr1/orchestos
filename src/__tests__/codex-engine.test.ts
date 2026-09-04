@@ -16,6 +16,8 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
 import {
+  buildCodexChatArgs,
+  buildCodexChatEnv,
   codexEngine,
   ExecutorCodexError,
   orchestosModelToCodexModel,
@@ -228,6 +230,14 @@ const turnCompleted = (input: number, output: number) => ({
 // -- tests ---------------------------------------------------------------------
 
 describe('G.4.2b — codexEngine (codex subprocess)', () => {
+  it('construye el flag de aislamiento y CODEX_HOME dentro del repo', () => {
+    const args = buildCodexChatArgs('prompt')
+    expect(args).toContain('--ignore-user-config')
+    expect(buildCodexChatEnv('/repo/.orchestos/agent-home/codex').CODEX_HOME).toBe(
+      '/repo/.orchestos/agent-home/codex',
+    )
+  })
+
   it('happy path: JSONL con turn.completed → outcome con costo computado vía calcCost()', async () => {
     const root = makeGitRepo()
     const wt = createWorktree('g42b-happy', 'main', root)

@@ -10,7 +10,7 @@
  * overrideados, sin depender del binario real ni de red).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { ExecutorExternalError, runClaudeChat } from '../run/executors/external.ts'
+import { buildClaudeChatArgs, ExecutorExternalError, runClaudeChat } from '../run/executors/external.ts'
 
 const originalWhich = Bun.which
 beforeEach(() => {
@@ -86,6 +86,13 @@ const assistantText = (text: string) => ({
 const resultEvent = (fields: Record<string, unknown>) => ({ type: 'result', ...fields })
 
 describe('runClaudeChat (CC.1)', () => {
+  it('construye --settings apuntando al archivo aislado del proyecto', () => {
+    const args = buildClaudeChatArgs('system', undefined, undefined, '/repo/.orchestos/agent-home/claude/settings.json')
+    const idx = args.indexOf('--settings')
+    expect(idx).toBeGreaterThan(-1)
+    expect(args[idx + 1]).toBe('/repo/.orchestos/agent-home/claude/settings.json')
+  })
+
   it('nunca pide permisos de escritura — --allowedTools es solo lectura', async () => {
     const stdout = streamOf(
       assistantText('hola'),

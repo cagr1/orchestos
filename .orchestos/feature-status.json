@@ -207,8 +207,8 @@
       "block": "H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)",
       "delegation": "⚡",
       "title": "Aislamiento de config-home como defensa en profundidad (tercera capa, no primera)",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-09-04"
     },
     {
       "id": "H.9.4",

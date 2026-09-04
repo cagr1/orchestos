@@ -1369,7 +1369,7 @@ catálogo real, no se toca).
   permitirlo con aviso visible) es de producto, y hay que resolverla con Carlos dentro del ítem,
   no elegirla por conveniencia.
 
-- [ ] **H.9.3 — ⚡ Aislamiento de config-home como defensa en profundidad (tercera capa, no primera).**
+- [x] **H.9.3 — ⚡ Aislamiento de config-home como defensa en profundidad (tercera capa, no primera).** (cerrado 2026-09-04)
   **Corrección de dependencia (2026-09-03):** la redacción original decía "Depende de H.9.2" y
   contradecía el orden de `I.0`, donde H.9.3 va **primero** por pedido explícito de Carlos (que el
   bug no viaje es su única prioridad declarada). No hay dependencia real: H.9.3 solo necesita **un
@@ -1382,6 +1382,16 @@ catálogo real, no se toca).
   Objetivo declarado: que el chat del producto se comporte **igual en cualquier máquina**, que es
   el riesgo 2 de arriba. No se toca `~/.codex` ni `~/.claude` del usuario
   ([[feedback-avisar-antes-de-crear-estado]] — el home nuevo vive dentro del repo, gitignored).
+  **Implementación y evidencia:** `CliDefinition` declara un descriptor extensible de `configHome`;
+  `provisionCliConfigHome()` genera en runtime `.orchestos/agent-home/<cli>/` el archivo mínimo
+  `AGENTS.md`/`CLAUDE.md` y, para Claude, `settings.json` propio. El chat de Codex pasa
+  `--ignore-user-config` y `CODEX_HOME`; el chat de Claude pasa `--settings <settings.json>`.
+  `.orchestos/agent-home/` quedó en `.gitignore`. Tests por builders/helpers (sin `mock.module()`)
+  verifican flags, env y contenido/path del home: `bunx tsc --noEmit` ✅; suite relevante **27
+  pass / 0 fail**. Gate obligatorio exacto `bun run test:coverage` ✅: **1258 pass / 0 fail / 3042
+  expects / 134 archivos; functions 74.88% (gate 69%); lines 63.70% (gate 57%)**.
+  **Fuera de scope declarado:** `src/dashboard/public*`, `.tsx`, H.9.2/H.9.4, `opencode` y
+  cualquier archivo bajo `~/.claude`, `~/.codex` o `~/Documents/MemoriesMD`.
 
 - [ ] **H.9.4 — 🔍 El gate que lo vuelve real: el chat intenta leer el vault y no puede.**
   Sin este test, alguien cambia un flag en dos semanas y nadie se entera — literalmente lo que
@@ -1488,37 +1498,24 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
 > `sessionId` sobre un front que se va a reescribir es hacer el trabajo dos veces. Por eso H.9.1
 > se **absorbe** en este bloque como I.4 y deja de ser un ítem suelto de H.9.
 >
-> **Segunda corrección de orden (2026-09-04, decisión explícita de Carlos):** la primera versión
-> de este orden ponía H.9.3/H.9.2 antes del Bloque I ("que el bug no viaje" como prioridad
-> inmediata). Carlos lo revisó y decidió lo contrario: **H.9.3/H.9.2 se posponen y se atacan más
-> adelante, según se avance** — no bloquean el arranque del Bloque I. Motivo que dio, y que
-> conecta directo con por qué H.5.3 nunca se corrió: la superficie que hoy distorsiona cualquier
-> medición no es la inyección de config (eso es real pero acotado a un chat puntual), es que
-> **todavía se trabaja sobre la pestaña/flujo de Task manual** — el draft, sus selects de
-> engine/modelo/effort — que es justo lo que el Bloque I retira. Medir o endurecer seguridad sobre
-> una superficie que se sabe que va a desaparecer es el mismo desperdicio que motivó congelar el
-> gate visual de H.8.3'. Orden ejecutable resultante:
+> **Tercera corrección de orden (2026-09-04, misma sesión, decisión final explícita de Carlos):**
+> hubo una vuelta más. Primero se puso H.9.3/H.9.2 antes del Bloque I. Después, ante la pregunta de
+> por qué H.5.3 nunca se corrió, se propuso posponerlos ("se atacan después, según se avance").
+> Carlos revisó esa segunda versión y la revirtió: **H.9.x se cierran primero, el Bloque I espera.**
+> Queda como el orden vigente; las dos versiones anteriores se conservan arriba solo como historial
+> de por qué se llegó acá — no reabrir esta secuencia sin una razón nueva. Orden ejecutable:
 >
->     1. H.8.3'  recortado a backend  ✅ cerrado 2026-09-04
->     2. BLOQUE I (este)  ← el front se toca UNA sola vez, con I.4 adentro
->     3. H.9.3   aislamiento de config-home   ┐  se atacan después del Bloque I,
->     4. H.9.2   frontera de lectura por CLI  ┘  según se avance (decisión de Carlos)
->     5. H.9.4   gate de privacidad ejecutable  ← ya puede afirmar contra el flujo final
+>     1. H.8.3'  recortado a backend         ✅ cerrado 2026-09-04
+>     2. H.9.3   aislamiento de config-home  ← que el bug no viaje; siguiente paso
+>     3. H.9.2   frontera de lectura por CLI
+>     4. H.9.4   gate de privacidad ejecutable
+>     5. BLOQUE I (este)  ← el front se toca UNA sola vez, con I.4 adentro
 >     6. H.5.3   primera corrida medida real
 >
-> Razón de cada precedencia, no orden por gusto:
-> - **I antes de H.9.3/H.9.2**: son huecos de spawn/backend, no compiten por archivo con el Bloque
->   I, pero endurecerlos ahora sería invertir en la superficie de comportamiento que I.1–I.3 va a
->   cambiar de raíz (qué CLI corre, cómo se elige, qué ve el usuario). Se atacan cuando el flujo
->   final ya esté definido.
-> - **I antes que H.9.4**: el gate debe afirmar contra el flujo definitivo, no contra el que se va
->   a borrar.
-> - **H.5.3 al final, y esta es la respuesta a por qué nunca se corrió hasta hoy**: medir mientras
->   la pestaña de Task manual seguía viva y el chat todavía podía inyectar vault (el del
->   2026-09-03 gastó **26.656 `input_tokens`** de ruido) produce un número que no representa nada
->   estable — se mide dos veces si se mide antes del Bloque I. Es la misma causa raíz que el
->   congelamiento del gate visual de H.8.3': no verificar/medir una superficie que se sabe
->   temporal.
+> El argumento de "medir/rediseñar sobre superficie temporal es desperdicio" sigue siendo válido
+> para H.5.3 (por eso se queda al final, después de I) — lo que cambió es que H.9.x **no** cuenta
+> como esa superficie temporal: son huecos de spawn/backend que no compiten por archivo con el
+> Bloque I y no se vuelven a tocar cuando I lo reescriba.
 
 - [ ] **I.1 — 🧠 Matar la puerta manual: el chat es la única entrada.**
   Quitar de la pantalla principal la barra "Crear tarea" (`chat.createTask` /

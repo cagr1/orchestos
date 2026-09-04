@@ -18,6 +18,7 @@
  */
 
 import { safeChildEnv } from '../path-policy.ts'
+import { provisionCliConfigHome } from './cli-registry.ts'
 import { claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
@@ -261,7 +262,12 @@ async function runClaudeCode(
 export const CLAUDE_CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 export type ClaudeCliEffort = (typeof CLAUDE_CLI_EFFORTS)[number]
 
-function buildClaudeChatArgs(systemPrompt: string, model?: string, effort?: string): string[] {
+export function buildClaudeChatArgs(
+  systemPrompt: string,
+  model?: string,
+  effort?: string,
+  settingsPath = '<settings>',
+): string[] {
   const args = [
     '-p',
     '--output-format',
@@ -272,6 +278,8 @@ function buildClaudeChatArgs(systemPrompt: string, model?: string, effort?: stri
     systemPrompt,
     '--allowedTools',
     'Read,Glob,Grep',
+    '--settings',
+    settingsPath,
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
@@ -314,10 +322,11 @@ export async function runClaudeChat(
 
   let timedOut: boolean
   let resultLine: string | undefined
+  const configHome = provisionCliConfigHome(cwd, 'claude')
   try {
     ;({ timedOut, resultLine } = await runClaudeCode(
       cwd,
-      buildClaudeChatArgs(systemPrompt, model, effort),
+      buildClaudeChatArgs(systemPrompt, model, effort, configHome.settingsPath!),
       userMessage,
       timeoutMs,
       onStep,

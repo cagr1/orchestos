@@ -4,7 +4,14 @@
  * [[reference-bun-mock-module-gotcha]]).
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-import { detectInstalledClis, KNOWN_CLIS } from '../run/executors/cli-registry.ts'
+import { existsSync, mkdtempSync, readFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import {
+  detectInstalledClis,
+  KNOWN_CLIS,
+  provisionCliConfigHome,
+} from '../run/executors/cli-registry.ts'
 
 const originalWhich = Bun.which
 
@@ -49,5 +56,16 @@ describe('detectInstalledClis()', () => {
 
   it('kimi está en el registro aunque no tenga binario real hoy (sigue detectable cuando exista)', () => {
     expect(KNOWN_CLIS.some((d) => d.id === 'kimi')).toBe(true)
+  })
+
+  it('provisiona un home runtime dentro del proyecto, con instrucciones mínimas y settings propios', () => {
+    const project = mkdtempSync(join(tmpdir(), 'orchestos-cli-home-'))
+    const home = provisionCliConfigHome(project, 'claude')
+
+    expect(home.path).toBe(join(project, '.orchestos', 'agent-home', 'claude'))
+    expect(home.settingsPath).toBe(join(home.path, 'settings.json'))
+    expect(existsSync(join(home.path, 'CLAUDE.md'))).toBe(true)
+    expect(readFileSync(join(home.path, 'CLAUDE.md'), 'utf8')).not.toContain('MemoriesMD')
+    expect(readFileSync(home.settingsPath!, 'utf8')).toBe('{}\n')
   })
 })
