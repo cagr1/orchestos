@@ -101,9 +101,10 @@ export interface SessionRateLimitWindow {
 export interface SessionStatusResponse {
   available: boolean
   clis: Array<{
-    id: 'claude' | 'codex' | 'opencode' | 'kimi'
+    id: 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini' | 'kimi' | 'glm'
     label: string
     binary: string
+    icon: string
     installed: boolean
     available: boolean
     observedAt: string | null

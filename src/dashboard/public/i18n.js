@@ -252,6 +252,7 @@ const I18N = {
     'tasks.draft.engine.single-shot': 'single-shot',
     'tasks.draft.engine.agentic': 'agentic',
     'tasks.draft.engine.external': 'external (claude-code)',
+    'tasks.draft.engine.codex': 'codex',
     /* C.2 — aviso inline cuando `external` está seleccionado pero el binario no está */
     'tasks.draft.engine.external.unavailable':
       'Claude Code binary `claude` not found in PATH. Install from {0} or choose a different engine.',
@@ -1112,6 +1113,7 @@ const I18N = {
     'tasks.draft.engine.single-shot': 'single-shot',
     'tasks.draft.engine.agentic': 'agentic',
     'tasks.draft.engine.external': 'external (claude-code)',
+    'tasks.draft.engine.codex': 'codex',
     /* C.2 — aviso inline cuando `external` está seleccionado pero el binario no está */
     'tasks.draft.engine.external.unavailable':
       'Binario `claude` de Claude Code no encontrado en PATH. Instálalo desde {0} o elegí otro motor.',

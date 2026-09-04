@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-09-03T21:30:06.933Z",
+  "exported_at": "2026-09-04T13:42:48.222Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "db0af51f-4db9-4fc5-b310-1321aa41036f",
+      "task_class": "chat",
+      "model": "codex (cli default model) via Codex CLI",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 26868,
+      "created_at": "2026-09-03T21:39:22.453Z"
+    },
+    {
+      "id": "c10c459f-32a7-49c2-851a-4ed92e685389",
+      "task_class": "chat",
+      "model": "codex (cli default model) via Codex CLI",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 27168,
+      "created_at": "2026-09-03T21:37:32.310Z"
+    },
+    {
+      "id": "d88e4106-6919-4c73-8cbb-20858ccaf0c0",
+      "task_class": "review",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 1,
+      "usd_cost": 0,
+      "elapsed_ms": 101,
+      "tokens": 0,
+      "created_at": "2026-09-03T21:35:17.615Z"
+    },
     {
       "id": "28e26ff0-8791-440c-9837-cd443a8d3250",
       "task_class": "chat",
@@ -256,51 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 588,
       "created_at": "2026-08-18T17:42:31.415Z"
-    },
-    {
-      "id": "cf88fdf5-984a-44f1-99c9-98392082f1eb",
-      "task_class": "chat",
-      "model": "anthropic/claude-3-haiku",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0008900000000000001,
-      "elapsed_ms": 0,
-      "tokens": 3460,
-      "created_at": "2026-08-18T01:47:44.864Z"
-    },
-    {
-      "id": "15ecbe32-e058-4e5d-9175-557e95c3c648",
-      "task_class": "chat",
-      "model": "claude-sonnet-5 via Claude Code CLI (effort: medium)",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 159,
-      "created_at": "2026-08-18T01:25:20.073Z"
-    },
-    {
-      "id": "a00a1baf-425f-403a-ac8e-7a826b8f3c35",
-      "task_class": "chat",
-      "model": "claude-sonnet-5 via Claude Code CLI",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 7,
-      "created_at": "2026-08-18T01:15:25.413Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 15,
     "qa_failed": 4,
-    "total_cost_usd": "1.0708"
+    "total_cost_usd": "1.0699"
   }
 }

@@ -2975,7 +2975,7 @@ function boot() {
     modelLabelFor,
     // UI.3 — superficie del shell. React dibuja; estas acciones deciden y persisten.
     nav: NAV,
-    icons: ICON,
+    icons: { ...ICON, ...AGENT_ICONS },
     go: (id) => App.go(id),
     toggleSidebar: toggleSidebarMode,
     toggleAdvanced: toggleAdvancedMode,

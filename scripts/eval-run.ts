@@ -6,7 +6,6 @@ import { CLI_EFFORT_LEVELS } from '../src/tasks/schema.ts'
 import type { CliEffort, TaskEngine } from '../src/tasks/schema.ts'
 
 const ENGINES: TaskEngine[] = ['single-shot', 'agentic', 'external', 'opencode', 'codex']
-const CLI_EFFORTS = CLI_EFFORT_LEVELS.external
 
 function positiveInteger(value: string): number {
   const parsed = Number(value)
@@ -25,6 +24,20 @@ function allowed<T extends string>(values: readonly T[]): (value: string) => T {
   }
 }
 
+function parseCliEffort(value: string | undefined, engine?: TaskEngine): CliEffort | undefined {
+  if (value === undefined) return undefined
+  const levels = engine
+    ? CLI_EFFORT_LEVELS[engine as keyof typeof CLI_EFFORT_LEVELS]
+    : CLI_EFFORT_LEVELS.external
+  if (!levels || !levels.includes(value as never)) {
+    const engineLabel = engine ?? 'external (default for backwards compatibility)'
+    throw new InvalidArgumentError(
+      `cli-effort must be one of: ${levels?.join(', ') ?? 'no declared levels'} for engine ${engineLabel}`,
+    )
+  }
+  return value as CliEffort
+}
+
 if (import.meta.main) {
   const program = new Command()
     .name('eval-run')
@@ -33,7 +46,7 @@ if (import.meta.main) {
     .option('--model <id>', 'model override')
     .option('--engine <engine>', 'engine override', allowed(ENGINES))
     .option('--skill <id>', 'skill override; use "none" to disable the task skill')
-    .option('--cli-effort <level>', 'Claude CLI effort override', allowed(CLI_EFFORTS))
+    .option('--cli-effort <level>', 'CLI effort override; levels depend on --engine')
     .option(
       '--dry-run',
       'build prompts and persist zero-cost trial evidence without calling an LLM',
@@ -46,11 +59,12 @@ if (import.meta.main) {
     model?: string
     engine?: TaskEngine
     skill?: string
-    cliEffort?: CliEffort
+    cliEffort?: string
     dryRun?: boolean
   }>()
 
   try {
+    const cliEffort = parseCliEffort(options.cliEffort, options.engine)
     if (!options.dryRun) {
       console.warn('[eval] paid execution enabled: every trial may call the configured model')
     }
@@ -63,7 +77,7 @@ if (import.meta.main) {
         model: options.model,
         engine: options.engine,
         skill: options.skill === 'none' ? null : options.skill,
-        cliEffort: options.cliEffort,
+        cliEffort,
       },
     })
     console.log(formatEvalBatch(report))

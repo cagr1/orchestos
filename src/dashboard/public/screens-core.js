@@ -1109,18 +1109,15 @@ SCREENS.tasks = {
                   <option value="single-shot">${t('tasks.draft.engine.single-shot')}</option>
                   <option value="agentic">${t('tasks.draft.engine.agentic')}</option>
                   <option value="external">${t('tasks.draft.engine.external')}</option>
+                  <option value="codex">${t('tasks.draft.engine.codex')}</option>
                 </select>
                 <div id="draft-engine-warning" class="draft-engine-warning" style="display:none"></div>
               </div>
-              <div class="draft-field" id="draft-cli-effort-field" style="display:${draft.engine === 'external' ? '' : 'none'}">
+              <div class="draft-field" id="draft-cli-effort-field" style="display:${CLI_EFFORT_LEVELS[draft.engine]?.length ? '' : 'none'}">
                 <label>${t('tasks.draft.field.cliEffort')}</label>
                 <select id="draft-cli-effort" class="draft-input" data-act="draft-cli-effort">
                   <option value="">${t('tasks.draft.cliEffort.inherit')}</option>
-                  <option value="low" ${draft.cli_effort === 'low' ? 'selected' : ''}>low</option>
-                  <option value="medium" ${draft.cli_effort === 'medium' ? 'selected' : ''}>medium</option>
-                  <option value="high" ${draft.cli_effort === 'high' ? 'selected' : ''}>high</option>
-                  <option value="xhigh" ${draft.cli_effort === 'xhigh' ? 'selected' : ''}>xhigh</option>
-                  <option value="max" ${draft.cli_effort === 'max' ? 'selected' : ''}>max</option>
+                  ${(CLI_EFFORT_LEVELS[draft.engine] || []).map((level) => `<option value="${level}" ${draft.cli_effort === level ? 'selected' : ''}>${level}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -1510,13 +1507,19 @@ SCREENS.tasks = {
       refreshEngineWarning()
     }
 
-    // E.15 — cli_effort (claude --effort) solo tiene sentido con engine=external;
-    // se oculta con las demás opciones para no confundir con el effort de 3
-    // niveles del chat (mecanismo distinto, reasoning param de OpenRouter).
+    // H.8.3 — cli_effort depende del engine. Solo external y codex tienen un
+    // contrato declarado; los demás engines no muestran un control vacío.
     const cliEffortField = root.querySelector('#draft-cli-effort-field')
     if (engineSel && cliEffortField) {
       const toggleCliEffort = () => {
-        cliEffortField.style.display = engineSel.value === 'external' ? '' : 'none'
+        const levels = CLI_EFFORT_LEVELS[engineSel.value] || []
+        const cliEffortSelect = root.querySelector('#draft-cli-effort')
+        const current = cliEffortSelect?.value || ''
+        cliEffortField.style.display = levels.length ? '' : 'none'
+        if (cliEffortSelect) {
+          cliEffortSelect.innerHTML = `<option value="">${t('tasks.draft.cliEffort.inherit')}</option>${levels.map((level) => `<option value="${level}">${level}</option>`).join('')}`
+          if (levels.includes(current)) cliEffortSelect.value = current
+        }
       }
       engineSel.addEventListener('change', toggleCliEffort)
       toggleCliEffort()
@@ -1593,9 +1596,9 @@ SCREENS.tasks = {
       btn.disabled = true
       try {
         const createBody = { id, description: desc, output, executor, executor_model: modelId }
-        if (engine === 'single-shot' || engine === 'agentic' || engine === 'external')
+        if (engine === 'single-shot' || engine === 'agentic' || engine === 'external' || engine === 'codex')
           createBody.engine = engine
-        if (engine === 'external' && cliEffort) createBody.cli_effort = cliEffort
+        if ((engine === 'external' || engine === 'codex') && cliEffort) createBody.cli_effort = cliEffort
         if (skill) createBody.skill = skill
         const createRes = await fetch('/api/tasks', {
           method: 'POST',

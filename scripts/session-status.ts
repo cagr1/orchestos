@@ -23,6 +23,7 @@ export interface SessionStatus {
   id: CliDetectionResult['id']
   label: string
   binary: string
+  icon: string
   installed: boolean
   available: boolean
   /** Momento de la última escritura del transcript, no la hora del request. */
@@ -78,6 +79,7 @@ export async function readActiveSessionStatuses(
         id: cli.id,
         label: cli.label,
         binary: cli.binary,
+        icon: cli.icon,
         installed: cli.installed,
         available: true,
         observedAt: statSync(transcriptPath).mtime.toISOString(),
@@ -89,6 +91,7 @@ export async function readActiveSessionStatuses(
       id: cli.id,
       label: cli.label,
       binary: cli.binary,
+      icon: cli.icon,
       installed: cli.installed,
       available: false,
       observedAt: null,

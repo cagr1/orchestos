@@ -17,6 +17,7 @@ import { isKnownSkillId } from '../../skills/catalog.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
 import { scaffoldTasksYaml } from '../../tasks/init.ts'
 import { loadTasks, saveTasks } from '../../tasks/loader.ts'
+import { CLI_EFFORT_LEVELS } from '../../tasks/schema.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
 import type { DiagnoseRow, SplitPlanResponse, TaskRow } from '../types.ts'
 
@@ -215,15 +216,17 @@ function createTaskRecord(
       status: 400,
     }
   const cliEffortRaw = params.cli_effort?.trim()
-  const CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
-  let cliEffort: (typeof CLI_EFFORTS)[number] | undefined
-  if (cliEffortRaw && (CLI_EFFORTS as readonly string[]).includes(cliEffortRaw))
-    cliEffort = cliEffortRaw as (typeof CLI_EFFORTS)[number]
-  else if (cliEffortRaw)
+  const effortLevels = engine
+    ? CLI_EFFORT_LEVELS[engine as keyof typeof CLI_EFFORT_LEVELS]
+    : undefined
+  if (cliEffortRaw && (!effortLevels || !(effortLevels as readonly string[]).includes(cliEffortRaw)))
     return {
-      error: `unknown cli_effort '${cliEffortRaw}' — allowed: ${CLI_EFFORTS.join(', ')}`,
+      error: effortLevels
+        ? `unknown cli_effort '${cliEffortRaw}' for engine '${engine}' — allowed: ${effortLevels.join(', ')}`
+        : `cli_effort requires an engine with declared levels — allowed engines: ${Object.keys(CLI_EFFORT_LEVELS).join(', ')}`,
       status: 400,
     }
+  const cliEffort = cliEffortRaw || undefined
   if (!existsSync(join(root, 'tasks.yaml')))
     return { error: 'tasks.yaml not found — run: orchestos task init', status: 404 }
   try {

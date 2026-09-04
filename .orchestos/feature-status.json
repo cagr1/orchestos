@@ -193,11 +193,92 @@
       "closedDate": null
     },
     {
-      "id": "H.8.3",
+      "id": "H.9.2",
       "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
-      "block": "H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)",
+      "block": "H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)",
+      "delegation": "🧠",
+      "title": "La frontera de lectura es una capability declarada por CLI, verificada, no un prompt",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.9.3",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)",
       "delegation": "⚡",
-      "title": "`scripts/eval-run.ts` y dashboard, effort genérico",
+      "title": "Aislamiento de config-home como defensa en profundidad (tercera capa, no primera)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "H.9.4",
+      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "block": "H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)",
+      "delegation": "🔍",
+      "title": "El gate que lo vuelve real: el chat intenta leer el vault y no puede",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "I.1",
+      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
+      "delegation": "🧠",
+      "title": "Matar la puerta manual: el chat es la única entrada",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "I.2",
+      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
+      "delegation": "🧠",
+      "title": "El punto de confirmación: lo único que reemplaza la fricción que se quita",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "I.3",
+      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
+      "delegation": "🧠",
+      "title": "Task inteligente: saber DÓNDE corre, por tarea y no global",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "I.4",
+      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
+      "delegation": "⚡",
+      "title": "El chat se guarda entero (absorbe H.9.1, mismo archivo)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "I.5",
+      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
+      "delegation": "🧠",
+      "title": "Rediseño del chat: sacar la implementación de la cara del usuario",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "I.6",
+      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
+      "delegation": "⚡",
+      "title": "\"Actividad\", no \"Tasks\": la vista secundaria",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "I.7",
+      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
+      "delegation": "🔍",
+      "title": "Gate: la puerta manual no existe y el flujo automático se ve",
       "status": "open",
       "closedDate": null
     },

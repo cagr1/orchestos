@@ -1175,7 +1175,7 @@ modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambi
   pre-commit regenera obligatoriamente desde `PLAN.md`; se incluye únicamente para mantener el
   estado indexado sincronizado.
 
-- [ ] **H.8.3 — ⚡ `scripts/eval-run.ts` y dashboard, effort genérico.**
+- [x] **H.8.3' — ⚡ CERRADO-RECORTADO (2026-09-04): backend de effort genérico; draft visual congelado.**
   Depende de H.8.1/H.8.2. `--cli-effort` deja de documentarse como "Claude CLI effort
   override"; valida contra el registro según el `--engine` recibido. En
   `screens-core.js` (~línea 1115), el `<select>` de effort dentro del draft de tarea deja de
@@ -1196,15 +1196,215 @@ modelo. Si algo del diseño parece equivocado, anotarlo y preguntar — no cambi
   correr. `opencode` sigue fuera de scope (sin contrato de effort verificado, § "Fuera de scope"
   abajo).
 
-  Gate 🔍 (dashboard real, no mock): crear un draft con `engine=codex`, confirmar que el select
-  de effort aparece con `minimal/low/medium/high/xhigh` (sin `max`), y con `engine=external`
-  sigue mostrando los 5 de Claude. Bajar el servidor al terminar
-  ([[feedback-siempre-cerrar-servidor]]).
+  **Qué se conserva y queda cerrado (ya está hecho y verificado; no se toca):**
+  `CLI_EFFORT_LEVELS`, la validación de `--cli-effort` según `--engine` en
+  `scripts/eval-run.ts`, y el consumo del registro del schema en `/api/tasks` (persiste
+  `codex + minimal` y rechaza `codex + max`). Esto es reproducibilidad de runs y lo consume
+  I.3.
+
+  **Qué se congela:** el gate visual 🔍 del draft manual en el dashboard. Motivo doble: (a) estaba
+  bloqueado igual porque CUA reportó `browsers: []`, y (b) verificar en vivo una pantalla que el
+  Bloque I va a borrar es trabajo que se haría dos veces. No se agrega más superficie de UI al
+  draft en este ítem.
+
+  **El congelamiento no es abandono:** I.3 hereda el backend conservado y I.7 lo verifica en el
+  flujo final, después de que el Bloque I retire el draft de la pantalla principal.
+
+  **Implementación backend lista; gate visual congelado (2026-09-03):** `scripts/eval-run.ts` ahora usa
+  `CLI_EFFORT_LEVELS` y valida `--cli-effort` según `--engine`; el draft agrega `codex`, deriva
+  dinámicamente sus opciones y envía `cli_effort` tanto para `external` como para `codex`.
+  `/api/tasks` también consume el registro del schema y persiste `codex + minimal`, rechazando
+  `codex + max`. `bun run build:ui` ✅; suite relevante → 19 pass / 0 fail ✅; CLI real en
+  `--dry-run`: `codex + minimal` ✅ y `codex + max` rechazado con los niveles correctos ✅;
+  `git diff --check` ✅. Dashboard real verificado en `localhost:4242` y
+  `/api/tasks` respondió, pero el gate visual del draft NO se cierra en esta pasada: CUA reportó
+  `browsers: []`, por lo que no fue posible observar el draft en un navegador automatizado — y de
+  todos modos queda congelado por el recorte de producto de arriba (el Bloque I retira el draft de
+  la pantalla principal, así que verificarlo en vivo ahí sería trabajo tirado).
+
+  **Corrección de una corrida previa contaminada (2026-09-04):** una ejecución anterior de
+  `bun run test:coverage` reportó 1133 pass / 126 fail con `SQLITE_READONLY` y puerto `4242`
+  ocupado. Investigado y descartado como falso negativo: los fallos venían de un `--sandbox
+  workspace-write` mal elegido para ese proceso (los tests escriben en `~/.orchestos/db.sqlite`,
+  fuera del repo → read-only) combinado con una sesión de Codex corriendo en paralelo sobre el
+  mismo working tree ([[feedback-codex-no-en-paralelo-con-claude]]). Ninguno de los dos motivos es
+  un defecto del código.
+
+  **Gate obligatorio, corrida limpia (2026-09-04):** `bun run test:coverage` → **1255 pass / 0
+  fail**, 3033 `expect()`, funciones 74.74% (mínimo 69%), líneas 63.63% (mínimo 57%) ✅.
+
+  **Gate en vivo:** Carlos verificó en su propio navegador, contra el dashboard real corriendo
+  (`localhost:4242`), la barra de agentes con los iconos reales por marca y el filtrado a solo
+  CLIs instalados entregados en este ítem — confirmó que se ve. De esa misma revisión salieron 5
+  defectos visuales reales (color de icono no es el de marca, texto duplicado en el popover,
+  punto verde sin aporte, popover pegado al borde, refresh sin trigger por evento), registrados y
+  agendados dentro de `I.5` para no tocar `SessionStatusBar.tsx` dos veces — no bloquean el cierre
+  de este ítem porque son de pulido visual, no de la funcionalidad que H.8.3' entrega.
+
+  H.9.3 (aislamiento de config-home) queda deliberadamente **fuera de esta secuencia**: Carlos
+  decidió (2026-09-04) atacarlo más adelante, después de avanzar con el Bloque I — no es parte del
+  cierre de H.8.3'.
+
+  **Fuera de scope declarado:** `.orchestos/feature-status.json` es un artefacto derivado que el
+  pre-commit regenera desde `PLAN.md`.
 
 **Fuera de scope declarado de H.8:** `opencode`; el switch de Settings para
 local/CLI/API que Carlos mencionó de paso (tema aparte, pospuesto explícitamente por él); el
 tier API/OpenRouter (`supportsReasoningEffort()` en `model-catalog.ts` ya es genérico vía el
 catálogo real, no se toca).
+
+### H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)
+
+> **Origen — incidente real, no hipótesis (2026-09-03):** Carlos notó que el chat del dashboard
+> le respondió citando su vault privado (`~/Documents/MemoriesMD`). Le pidió a Codex que buscara
+> esa conversación guardada y Codex reportó que no había nada — lo que abrió la segunda pregunta:
+> *"¿entonces qué está guardando el SQLite?"*. Ambas cosas resultaron ser síntomas de dos huecos
+> distintos, verificados contra la DB real y el código, no supuestos.
+>
+> **Hueco 1 — el chat del producto no persiste.** `chat_sessions`/`chat_messages` y sus handlers
+> existen completos desde CC.2, pero el front **nunca manda `sessionId`**
+> (`src/dashboard/public/screens-core.js:592-613` arma el body con `history` desde
+> `st.chatHistory`, memoria del navegador). Y `src/dashboard/handlers/chat.ts:899` abre con
+> `if (!session) return`. Resultado medido en `~/.orchestos/db.sqlite`: `chat_messages` tiene 12
+> filas, **todas del 2026-08-19**, sembradas por curl en el gate CC.1/CC.5. Los dos chats reales
+> del 2026-09-03 quedaron solo en `runs` (`task_class='chat'`) y con **`result` vacío** — se
+> guarda el prompt del usuario, nunca la respuesta. Es el patrón que la regla cero de
+> `CLAUDE.md` prohíbe: backend construido, superficie nunca cableada
+> ([[feedback-dashboard-no-solo-cli]]).
+>
+> **Hueco 2 — el spawn no aísla la config personal.** `src/run/executors/codex.ts:226` lanza
+> `codex exec --sandbox read-only` y `src/run/executors/external.ts:264` lanza
+> `claude -p --allowedTools Read,Glob,Grep`, ambos en el `cwd` del proyecto y **sin flags de
+> aislamiento**. Cada CLI carga entonces la config del usuario que corre OrchestOS:
+> `~/.codex/AGENTS.md:58` ("Activación del vault de conocimiento… `~/Documents/MemoriesMD`") en
+> el caso de Codex; `~/.claude/CLAUDE.md` **más** el hook `UserPromptSubmit` →
+> `~/.claude/hooks/detect-project.js:57` → `knowledge_radar.py` en el de Claude. El chat del
+> 2026-09-03 gastó **26.656 `input_tokens`** por esa inyección que nadie pidió.
+>
+> **Por qué NO se limpia antes de entregar** (Carlos preguntó explícitamente). El acoplamiento no
+> vive en el repo — `git grep carlosgallardo -- src/ scripts/` da **cero** rutas absolutas del
+> home, y las menciones a `MemoriesMD` en `docs/` e `IDEAS.md` son procedencia documental, texto
+> sin efecto. Vive en el **runtime del spawn**. Cuando otra persona clone OrchestOS no hereda el
+> vault de Carlos: hereda **su propio** `~/.codex/AGENTS.md`, sus hooks y sus MCPs. El bug es
+> idéntico y encima indebuggeable desde acá. Separar los dos planos: el tooling con el que se
+> desarrolla (mi `~/.claude`, fuera del repo, no se entrega) es plano A; el producto spawneando
+> CLIs es plano B y **se entrega tal cual**. El chat del incidente fue plano B — la fila de `runs`
+> lleva el `project_id` de orchestos y `model = codex (cli default model) via Codex CLI`.
+>
+> **Cuál es el riesgo real, sin inflarlo.** Que un CLI lea el vault de su propio dueño en su
+> propia máquina no es una brecha. Los riesgos reales son otros tres:
+> 1. **Exfiltración** — lo que el CLI lee del vault sale de la máquina hacia OpenRouter/OpenAI.
+> 2. **Reproducibilidad** — el producto se comporta distinto según los dotfiles de quien lo
+>    instaló, o sea **no tiene comportamiento definido**. Este es el que decide la arquitectura.
+> 3. **Costo y contexto** contaminados por inyección no solicitada.
+>
+> **Refutación de la primera propuesta (queda registrada para no repetirla).** La salida obvia
+> era `CODEX_HOME`/`CLAUDE_CONFIG_DIR` y listo. Es insuficiente: aísla lo que el modelo *sabe*,
+> no lo que *puede leer*. Con la config aislada, un `leé ~/Documents/MemoriesMD/...` escrito a
+> mano sigue funcionando, porque `--sandbox read-only` y `Read,Glob,Grep` son read-only del
+> **filesystem entero**. Y si un vendor renombra la env var, el aislamiento desaparece en
+> silencio — el patrón exacto del `pre-commit` desincronizado 11 días. El aislamiento de config
+> es defensa en profundidad, nunca la frontera.
+>
+> **Flags verificados en los binarios de esta máquina (2026-09-03), no leídos de la doc:**
+> - `claude --help` → `--settings <file-or-json>` ✅, `--add-dir <directories...>` ✅. Con
+>   `--settings` se puede pasar un `permissions.deny` propio: **Claude sí puede demostrar una
+>   frontera de lectura por path.**
+> - `codex exec --help` → `--sandbox` acepta solo `read-only | workspace-write |
+>   danger-full-access` ✅ — **ninguno acota los paths de lectura**. Sí existen
+>   `--ignore-user-config` ("Do not load `$CODEX_HOME/config.toml`; auth still uses `CODEX_HOME`")
+>   ✅, `-C/--cd <DIR>` ✅ y la env var `CODEX_HOME` ✅. Conclusión honesta: **Codex NO puede
+>   demostrar frontera de lectura hoy**; a lo sumo se le quita la config. Esa asimetría es
+>   justamente lo que el diseño de abajo tiene que representar en vez de esconder.
+>
+> **Ubicación en la cola.** No se adelanta a H.8.2/H.8.3 (Codex está trabajando ahí). Pero va
+> **antes de H.5.3**: medir la primera corrida real con el chat inyectando vault y con los
+> `input_tokens` contaminados produce un número que no significa nada. Cola resultante:
+> `H.8.2 → H.8.3 → H.9 → H.5.3`.
+>
+> **GO explícito de Carlos (2026-09-03):** "dale, arma el plan", después de pedir "lo profesional,
+> no lo más fácil" y de recibir la refutación de la propuesta fácil.
+
+- [~] **H.9.1 — ⚡ Trazabilidad primero: el chat se guarda entero o no se guarda.**
+  **MOVIDO a `Bloque I` § I.4 (2026-09-03) — no se ejecuta acá.** Motivo técnico, no
+  administrativo: este ítem y el rediseño del chat tocan el mismo archivo y el mismo flujo
+  (`screens-core.js:592-613` + `handlers/chat.ts`). Cablear `sessionId` sobre un front que el
+  Bloque I va a reescribir es hacer el trabajo dos veces. El alcance no cambió; cambió dónde se
+  ejecuta. H.9.4 sigue dependiendo de él, por eso el Bloque I va antes que H.9.4.
+  Alcance original, conservado como referencia:
+  Es el instrumento de medición, no el arreglo — sin esto no se puede auditar qué leyó el agente
+  ni verificar que H.9.2/H.9.3 funcionan. Un sandbox sin log de auditoría es media solución.
+  Tres cosas, todas en el camino que hoy ya existe:
+  1. El front manda `sessionId` en `/api/chat` (`screens-core.js:592-613`), creando la sesión al
+     vuelo si no hay ninguna. `st.chatHistory` deja de ser la fuente de verdad — el backend ya
+     ignora el `history` del cliente por diseño (CC.2), así que hoy la historia del navegador y
+     la de la DB pueden divergir sin que nadie lo note.
+  2. `runs.result` deja de guardarse vacío para `task_class='chat'`: la respuesta se persiste
+     junto al prompt.
+  3. **Qué archivos leyó el CLI.** Los eventos de tool ya vienen en el stream JSON que
+     `runClaudeCode` (`external.ts:201-226`) parsea y descarta; `runCodex` tiene su equivalente.
+     Se persisten como parte del run del chat. Sin este campo el gate de H.9.4 no tiene contra
+     qué afirmar.
+
+  Gate: reiniciar el dashboard ([[feedback-reiniciar-dashboard-tras-cambio]]), mandar un mensaje,
+  recargar la página y confirmar que la conversación sigue ahí; verificar en
+  `~/.orchestos/db.sqlite` que hay fila en `chat_messages` **y** que el `run` correspondiente
+  tiene `result` no vacío y la lista de archivos leídos. Bajar el servidor al terminar
+  ([[feedback-siempre-cerrar-servidor]]).
+
+- [ ] **H.9.2 — 🧠 La frontera de lectura es una capability declarada por CLI, verificada, no un prompt.**
+  No una lista de agentes permitidos — eso ya se descartó con evidencia
+  ([[feedback-no-restriccion-por-identidad-agente]]), y tampoco una `findXBinary()` por CLI
+  ([[feedback-deteccion-generica-no-por-cli]]). Cada entrada de `src/run/executors/cli-registry.ts`
+  declara **cómo demuestra** su frontera de lectura, y el spawn del chat la aplica:
+  - `claude` → settings propio vía `--settings` con `permissions.deny` de los paths fuera del
+    root del proyecto, más `--add-dir` acotado. Frontera real.
+  - `codex` → **no puede declarar frontera de lectura** (verificado arriba: `--sandbox` no acota
+    paths). Declara `none` y el sistema lo trata como tal, en vez de fingir que está aislado.
+  - Un CLI que no declara frontera no obtiene el chat de proyecto en silencio: el hueco se dice
+    en la UI. La ausencia de control es un "no" explícito, no un "confiemos en el prompt"
+    (INS-2026-014: el límite de un tool no puede ser el prompt).
+
+  Esto es 🧠 y no ⚡ porque la decisión de qué hacer con un CLI sin frontera (bloquear el chat vs.
+  permitirlo con aviso visible) es de producto, y hay que resolverla con Carlos dentro del ítem,
+  no elegirla por conveniencia.
+
+- [ ] **H.9.3 — ⚡ Aislamiento de config-home como defensa en profundidad (tercera capa, no primera).**
+  **Corrección de dependencia (2026-09-03):** la redacción original decía "Depende de H.9.2" y
+  contradecía el orden de `I.0`, donde H.9.3 va **primero** por pedido explícito de Carlos (que el
+  bug no viaje es su única prioridad declarada). No hay dependencia real: H.9.3 solo necesita **un
+  campo nuevo** en `cli-registry.ts` (qué home de config usa cada CLI), no la capability de
+  frontera de lectura completa que define H.9.2. Se implementa standalone; H.9.2 después agrega la
+  frontera sobre el mismo registro. OrchestOS escribe
+  un home propio bajo `.orchestos/agent-home/<cli>/` con un `AGENTS.md`/`CLAUDE.md` **mínimo
+  generado por OrchestOS** (reglas del proyecto, cero vault) y lo pasa con los flags ya
+  verificados: `--ignore-user-config` + `CODEX_HOME` para Codex, `--settings` para Claude.
+  Objetivo declarado: que el chat del producto se comporte **igual en cualquier máquina**, que es
+  el riesgo 2 de arriba. No se toca `~/.codex` ni `~/.claude` del usuario
+  ([[feedback-avisar-antes-de-crear-estado]] — el home nuevo vive dentro del repo, gitignored).
+
+- [ ] **H.9.4 — 🔍 El gate que lo vuelve real: el chat intenta leer el vault y no puede.**
+  Sin este test, alguien cambia un flag en dos semanas y nadie se entera — literalmente lo que
+  pasó con el `pre-commit`. Un gate ejecutable, con el dashboard real corriendo
+  ([[feedback-verificar-gates-en-vivo]]), que para cada CLI con frontera declarada:
+  1. Pide al chat leer un archivo fuera del root del proyecto (un fixture temporal, **nunca el
+     vault real** — el test no debe depender de datos personales de nadie ni de que el vault
+     exista).
+  2. Afirma que la lectura no ocurrió, cruzando contra la lista de archivos leídos que persiste
+     H.9.1 — no contra lo que el modelo *dice* que hizo.
+  3. Para `codex` (frontera `none`), afirma lo contrario: que el sistema **reporta** el hueco en
+     vez de prometer aislamiento. Un test que documenta la limitación real vale más que uno que
+     la esconde.
+
+  Escrito por Codex mientras Claude implementa H.9.2/H.9.3, que es el reparto que mejor ha
+  funcionado ([[feedback-codex-escribe-el-gate]]); acotado a los archivos que él crea para no
+  cruzarse con la edición en curso ([[feedback-codex-no-en-paralelo-con-claude]]).
+
+**Fuera de scope declarado de H.9:** `opencode` (mismo criterio que H.8 — sin contrato
+verificado); el sandbox de **escritura** de las tareas (worktrees ya lo cubren, es otro eje); la
+frontera de red/SSRF (`src/dashboard/ssrf.ts` ya existe y no se toca); y cualquier cambio al
+vault o a `~/.claude`/`~/.codex` de Carlos — el vault sigue alimentando el trabajo de desarrollo
+igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
 
 ### H.6 — Fuera de alcance de este bloque (anotado, no se toca)
 
@@ -1215,6 +1415,252 @@ catálogo real, no se toca).
   solo; no abrir ítem salvo decisión explícita.
 - Todo el gobierno del repo está en español con README en inglés. Decisión de producto, no
   defecto — no tocar sin que Carlos lo pida.
+
+---
+
+## BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)
+
+> **Por qué existe este bloque y por qué es la cuarta vez.** Carlos ya decidió esto **tres veces**
+> ([[feedback-tasks-solo-por-chat]], registrado literalmente como *"dicho 3 veces"*). Nunca se
+> ejecutó porque **nunca se convirtió en ítem de `PLAN.md` con gate** — se quedó en memoria y en
+> conversación. Es el patrón exacto de la regla cero de `CLAUDE.md`: el `pre-commit`
+> desincronizado 11 días, el botón que no hace nada. *Una regla que nadie hace cumplir
+> mecánicamente deja de existir en la práctica.* Mientras la interfaz manual siga en pantalla, la
+> decisión no está tomada, por más veces que se diga. Palabras de Carlos el 2026-09-03:
+> *"esto pasa porque AÚN SE CONSERVAN ESAS INTERFACES QUE LAS QUIERO DESAPARECER DE AHÍ"*.
+> **Este bloque no se cierra hasta que la superficie manual no esté en la pantalla principal.**
+>
+> **Evidencia empírica, medida en `~/.orchestos/db.sqlite`, no intuición de UX.** La tabla
+> `chat_task_bar_events` — el instrumento que el propio proyecto construyó en J.1/B.1.b para
+> decidir esto con datos — dice:
+>
+>     74 eventos, todos kind='message'
+>     bar_shown=1 → 55        bar_shown=0 → 19
+>     kind='click'  →  0
+>
+> **La barra "Crear tarea" se mostró 55 veces y jamás fue clickeada.** El flujo manual no es
+> "poco usado": está muerto. 55/0 es un veredicto, y cierra la discusión sobre si conviene
+> quitarlo.
+>
+> **Qué NO es este bloque.** No es "eliminar Task". Carlos fue explícito: *"no eliminar task sino
+> hacerlo inteligente"*. El modelo de datos de Task es lo más valioso del sistema y se conserva
+> entero — `output[]` (el contrato que hace posible `files_blocked`), `depends_on` (el DAG, sin el
+> cual no existe el dogfooding de carlosgallardo.dev), `checks[]` (INS-2026-011: sin verificador
+> no se reporta éxito, se declara `blocked`), y `engine`/`model`/`cli_effort` (reproducibilidad,
+> que es lo que H.5.3 va a medir). Lo que muere es **el formulario**, no la entidad. Ninguno de
+> esos campos debe aparecer nunca en una pantalla de creación; todos deben persistirse.
+>
+> **Requisito nuevo declarado por Carlos (2026-09-03), que cambia la arquitectura:** *"al ser este
+> un producto que va a tener varios proyectos con varios CLI o agentes, Task debe también saber
+> dónde se va a correr"*. Hoy eso **no existe**: el agente se elige **global y uno a la vez** en
+> Settings (`src/dashboard/public/screens-ops.js:1666`). El schema de tarea ya soporta un engine y
+> un modelo por tarea (`src/tasks/schema.ts:22-45`) — el hueco está en que nada los asigna por
+> tarea. Es exactamente el bloqueo que ya se documentó para el dogfooding de carlosgallardo.dev
+> ([[project-dogfooding-clonar-carlosgallardo-dev]]), y es lo que convierte "Task inteligente" en
+> un requisito real y no en una mejora cosmética.
+>
+> **Contradicción resuelta con Carlos antes de escribir esto.** Su paso 4 original decía
+> *"selecciona agente, modelo y esfuerzo automáticamente"*, lo que choca de frente con
+> [[feedback-modelo-decision-final-carlos]] (marcada NO NEGOCIABLE) y con el incidente del
+> 2026-07-13 donde se quemaron **$5.00** por un modelo elegido de memoria. La línea queda escrita
+> aquí para que nadie la cruce:
+>
+> > **"Automático" = el código lee una preferencia persistente (config/reglas de proyecto).
+> > "Automático" ≠ un LLM infiere qué modelo conviene.**
+>
+> La cascada de E.16 ya funciona así por diseño ([[feedback-deteccion-no-decision-automatica]]:
+> la detección detecta disponibilidad; la selección es preferencia del usuario, nunca cambiada en
+> silencio). Cualquier implementación que ponga un LLM a elegir modelo viola una regla no
+> negociable y quema cupo.
+>
+> **Fuera de alcance explícito, declarado por Carlos:** dónde viven la DB, `runs`, `specs` y demás
+> vistas de datos (*"pueden vivir en otro lado, son solo datos para mostrar; de esa parte ya lo
+> vamos a arreglar"*). Se anota, no se toca en este bloque.
+
+### I.0 — El orden, que Carlos marcó como MUY IMPORTANTE
+
+> *"no se puede hacer una cosa por que otra está dañada, por eso el orden es MUY IMPORTANTE"*.
+> De acuerdo, y por eso el orden cambia respecto de lo que se propuso el mismo día. **Corrección
+> honesta de una recomendación previa:** primero se dijo "H.9 entero antes del rediseño". Es
+> incorrecto en un punto concreto, y el argumento en contra es técnico, no una concesión:
+> **H.9.1 (persistir el chat) y el rediseño del chat tocan el mismo archivo y el mismo flujo**
+> (`src/dashboard/public/screens-core.js:592-613` + `src/dashboard/handlers/chat.ts`). Cablear
+> `sessionId` sobre un front que se va a reescribir es hacer el trabajo dos veces. Por eso H.9.1
+> se **absorbe** en este bloque como I.4 y deja de ser un ítem suelto de H.9.
+>
+> **Segunda corrección de orden (2026-09-04, decisión explícita de Carlos):** la primera versión
+> de este orden ponía H.9.3/H.9.2 antes del Bloque I ("que el bug no viaje" como prioridad
+> inmediata). Carlos lo revisó y decidió lo contrario: **H.9.3/H.9.2 se posponen y se atacan más
+> adelante, según se avance** — no bloquean el arranque del Bloque I. Motivo que dio, y que
+> conecta directo con por qué H.5.3 nunca se corrió: la superficie que hoy distorsiona cualquier
+> medición no es la inyección de config (eso es real pero acotado a un chat puntual), es que
+> **todavía se trabaja sobre la pestaña/flujo de Task manual** — el draft, sus selects de
+> engine/modelo/effort — que es justo lo que el Bloque I retira. Medir o endurecer seguridad sobre
+> una superficie que se sabe que va a desaparecer es el mismo desperdicio que motivó congelar el
+> gate visual de H.8.3'. Orden ejecutable resultante:
+>
+>     1. H.8.3'  recortado a backend  ✅ cerrado 2026-09-04
+>     2. BLOQUE I (este)  ← el front se toca UNA sola vez, con I.4 adentro
+>     3. H.9.3   aislamiento de config-home   ┐  se atacan después del Bloque I,
+>     4. H.9.2   frontera de lectura por CLI  ┘  según se avance (decisión de Carlos)
+>     5. H.9.4   gate de privacidad ejecutable  ← ya puede afirmar contra el flujo final
+>     6. H.5.3   primera corrida medida real
+>
+> Razón de cada precedencia, no orden por gusto:
+> - **I antes de H.9.3/H.9.2**: son huecos de spawn/backend, no compiten por archivo con el Bloque
+>   I, pero endurecerlos ahora sería invertir en la superficie de comportamiento que I.1–I.3 va a
+>   cambiar de raíz (qué CLI corre, cómo se elige, qué ve el usuario). Se atacan cuando el flujo
+>   final ya esté definido.
+> - **I antes que H.9.4**: el gate debe afirmar contra el flujo definitivo, no contra el que se va
+>   a borrar.
+> - **H.5.3 al final, y esta es la respuesta a por qué nunca se corrió hasta hoy**: medir mientras
+>   la pestaña de Task manual seguía viva y el chat todavía podía inyectar vault (el del
+>   2026-09-03 gastó **26.656 `input_tokens`** de ruido) produce un número que no representa nada
+>   estable — se mide dos veces si se mide antes del Bloque I. Es la misma causa raíz que el
+>   congelamiento del gate visual de H.8.3': no verificar/medir una superficie que se sabe
+>   temporal.
+
+- [ ] **I.1 — 🧠 Matar la puerta manual: el chat es la única entrada.**
+  Quitar de la pantalla principal la barra "Crear tarea" (`chat.createTask` /
+  `chat.createTaskHint`, `src/dashboard/public/i18n.js:1006-1007`) y el draft manual con sus
+  campos de engine/modelo/`cli_effort`. **El draft no se borra del sistema**: se mueve a la
+  superficie de inspección técnica (I.6), donde tiene un usuario legítimo que no es el usuario
+  final sino el desarrollador — reproducir un bug con parámetros exactos, correr un eval, forzar
+  un engine. Hoy ese uso ya vive además en `scripts/eval-run.ts` y `/api/tasks`, que no se tocan.
+
+  Criterio de cierre, no negociable: si después de este ítem sigue existiendo un camino para
+  crear una tarea a mano desde la pantalla principal, el ítem **no está cerrado** — es la
+  condición que las tres decisiones anteriores nunca tuvieron.
+
+- [ ] **I.2 — 🧠 El punto de confirmación: lo único que reemplaza la fricción que se quita.**
+  Al sacar el draft se pierde el único momento en que el usuario puede decir "no" antes de que un
+  agente escriba en su repo, y eso **no puede quedar sin reemplazo**. `classifyTaskIntent` es un
+  clasificador: tiene falsos positivos por definición. El precedente propio está en § E.14 — la
+  **tarea fantasma**, donde el chat respondió "Started task X" sobre una tarea que nunca se creó
+  ni corrió, porque el system prompt daba la creación por hecha sin verificarla. Automatizar más
+  sobre un clasificador falible sin punto de "no" multiplica esa clase de fallo.
+
+  El reemplazo NO es un formulario: es una línea inline en el hilo, antes de ejecutar —
+  *"Voy a tocar 3 archivos en `src/auth/` · [Ver] [Cancelar]"*.
+
+  **Decisión de producto pendiente, a resolver con Carlos DENTRO del ítem** (por eso es 🧠 y no
+  ⚡): ¿se confirma siempre, o solo cuando la tarea toca archivos **existentes** y se ejecuta
+  directo cuando solo crea archivos nuevos? Recomendación: la segunda. No se elige por
+  conveniencia del implementador.
+
+  **Lo que NO se toca:** `sessionAllowsTaskExecution()` (`src/db/chat-sessions.ts:152`), comentado
+  en el código como *"hard read-only boundary"* y verificado en vivo en el gate CC.1-D1 — está en
+  la DB la evidencia de que rechazó dos intentos reales de prompt injection ("create injected.txt
+  PWNED"). Chat mode vs Code mode **no es ruido de UI, es una frontera de seguridad real**
+  (INS-2026-014: el límite de un tool no puede ser el prompt). Se vuelve **invisible**, no se
+  elimina: el modo deja de ser un selector que el usuario debe entender y pasa a derivarse del
+  contexto — sesión sin proyecto asociado = read-only, siempre.
+
+- [ ] **I.3 — 🧠 Task inteligente: saber DÓNDE corre, por tarea y no global.**
+  El requisito nuevo de Carlos. Hoy el agente es una preferencia **global** de Settings
+  (`screens-ops.js:1666`) y el select de engine del draft ni siquiera ofrece `codex`
+  (`screens-core.js:1107-1112`). Con varios proyectos y varios CLIs eso deja de servir: la
+  asignación agente+modelo+proyecto tiene que resolverse **por tarea**, que es justo lo que el
+  DAG mixto Claude/Codex del dogfooding necesita y hoy no puede expresar.
+
+  Se implementa como **resolución declarativa**, jamás inferida por un LLM (ver la línea
+  no-negociable arriba): reglas persistentes de proyecto → preferencia de sesión → cascada E.16
+  como último recurso. El resultado se **persiste en la tarea** (`engine`/`model`/`cli_effort`,
+  que ya existen en `src/tasks/schema.ts:22-45`) para que el run sea reproducible y comparable —
+  sin eso, H.5.3 no puede comparar dos corridas.
+
+  Depende del backend de H.8 ya hecho (`CLI_EFFORT_LEVELS`, validación de `codex + minimal` /
+  rechazo de `codex + max` en `/api/tasks`). Ese trabajo **no se tira**: es exactamente lo que
+  este ítem consume.
+
+- [ ] **I.4 — ⚡ El chat se guarda entero (absorbe H.9.1, mismo archivo).**
+  Idéntico alcance al que tenía H.9.1, ejecutado aquí para no tocar el front dos veces:
+  1. El front manda `sessionId` en `/api/chat` (`screens-core.js:592-613`), creando la sesión al
+     vuelo si no hay ninguna. `st.chatHistory` deja de ser la fuente de verdad.
+  2. `runs.result` deja de guardarse vacío para `task_class='chat'` — hoy se persiste el prompt
+     del usuario y **nunca la respuesta** (medido: los dos chats reales del 2026-09-03 tienen
+     `result` vacío).
+  3. **Qué archivos leyó el CLI** — los eventos de tool ya vienen en el stream JSON que
+     `runClaudeCode` (`external.ts:201-226`) parsea y descarta. Sin este campo, el gate de H.9.4
+     no tiene contra qué afirmar: se le estaría preguntando al modelo si respetó la regla, en vez
+     de cruzarlo contra lo que realmente leyó (INS-2026-001 — artefacto verificable en el punto de
+     decisión, no prosa).
+
+  Contexto de por qué esto estaba roto: `chat_sessions`/`chat_messages` existen completos desde
+  CC.2 y el front nunca los usó — `chat_messages` tiene 12 filas, **todas del 2026-08-19**,
+  sembradas por curl en un gate. Backend construido, superficie nunca cableada
+  ([[feedback-dashboard-no-solo-cli]]).
+
+- [ ] **I.5 — 🧠 Rediseño del chat: sacar la implementación de la cara del usuario.**
+  Carlos comparó contra Orca, Xirp, Hermes, ChatGPT y Claude: *"hay mucho texto, una interfaz poco
+  amigable y moderna"*. Los textos ofensores están verificados en `src/dashboard/public/i18n.js`:
+  - `:1003` — `"Sin cablear para el chat todavía — cae a OpenRouter"` ← una **nota de
+    implementación** en la cara del usuario.
+  - `:994-996` — `"Claude · tu suscripción"`, `"Codex · tu suscripción"`, `"OpenCode · tu
+    suscripción"`.
+  - `:984` — `"Esfuerzo de razonamiento"`; `:1005` — `"Restablecer a lo predeterminado"`.
+
+  Objetivo: **una sola píldora compacta**, con todo lo demás dentro de un popover.
+
+      ┌──────────────────────────────────────────────┐
+      │  ¿Qué querés construir?                      │
+      │                                              │
+      │  [◈ Codex] GPT-5.4 · Medio        [↑ Enviar] │
+      └──────────────────────────────────────────────┘
+
+  Y el trabajo se reporta **inline en el hilo** — sin navegación, sin modal:
+
+      ⏺ Voy a tocar 3 archivos en src/auth/          [Ver] [Cancelar]
+      ⏵ Ejecutando · 1 de 3 · src/auth/login.ts             [Detener]
+      ✓ Listo · 3 archivos · 47s                    [Ver cambios]
+
+  Se hace en React sobre el design system existente ([[feedback-no-reinventar-ui-usar-libreria]] —
+  decisión cerrada, no re-litigar) y con el estándar de acabado permanente
+  ([[feedback-acabados-elegantes-siempre]]). Barra de usage por agente
+  (`[icono] Claude 61%  [icono] Codex 34%`): **iterar sobre lo que H.7.5 ya entregó, verificando
+  primero qué muestra hoy** — y sin confundir los dos ejes, porque ese % es **cupo de cuenta**, no
+  ventana de contexto ([[reference-orca-rate-limit-no-contexto]], INS-2026-016).
+
+  **5 defectos concretos ya reportados por Carlos en vivo (2026-09-04), verificados en el código,
+  a corregir dentro de este mismo ítem — no antes, para no tocar `SessionStatusBar.tsx` dos veces
+  (decisión explícita de Carlos: "esperar al Bloque I"):**
+  1. Los íconos de marca (Claude/OpenAI/DeepSeek/...) se ven todos azules — `ui.css:141`
+     (`.session-statusbar-cli-icon { color: var(--metric-color) }`) pensado para un glifo
+     monocromo de estado, y los SVG nuevos heredan ese `currentColor` en vez de su color real de
+     marca. Hay que separar "color de marca" de "color de estado" (el tono warn/critical/idle).
+  2. El popover repite el nombre del agente dos veces — `SessionStatusBar.tsx:40`:
+     `<strong>{cli.label}</strong>` + `<small>{cli.binary}</small>`, y para casi todos los CLIs
+     `label` y `binary` son la misma palabra ("Codex" / "codex").
+  3. El punto verde del popover (`ui.css:163`, `.session-statusbar-popover-dot`) no aporta —
+     redundante con el color que ya comunica el ícono/barra.
+  4. El popover queda pegado al borde izquierdo de la pantalla — falta separación
+     (`sideOffset`/`alignOffset` o padding del contenedor, hoy `align="end"` sin margen).
+  5. El refresh es `setInterval` fijo cada 5s (`SessionStatusBar.tsx:24`) sin disparo por evento.
+     Debe refrescar también al montar el dashboard (ya lo hace) y **tras cada respuesta del
+     chat** — hoy no hay ningún trigger ligado al flujo de chat.
+
+- [ ] **I.6 — ⚡ "Actividad", no "Tasks": la vista secundaria.**
+  El nombre importa y es parte del arreglo: *"Tasks"* invita a crear una, *"Actividad"* invita a
+  mirar. Lista cronológica con estado; el detalle técnico (engine, modelo, effort, diff, checks,
+  **archivos leídos**) solo al abrir un ítem. Es donde aterriza el draft manual que I.1 saca de la
+  pantalla principal, y donde viven historial, pendientes, errores, reintentos y recuperación
+  manual cuando algo falla.
+
+- [ ] **I.7 — 🔍 Gate: la puerta manual no existe y el flujo automático se ve.**
+  Contra el dashboard real corriendo, nunca mocks ([[feedback-verificar-gates-en-vivo]]):
+  1. En la pantalla principal **no hay ningún camino** para crear una tarea a mano — es el
+     criterio de cierre de I.1 y lo que faltó las tres veces anteriores.
+  2. Un mensaje que es tarea → confirma (I.2) → ejecuta → reporta inline, y queda persistido en
+     `chat_messages` **y** en `runs` con `result` no vacío (I.4).
+  3. Un mensaje que **no** es tarea no dispara nada.
+  4. Dos tareas del mismo DAG con agentes distintos (Claude/Codex) resuelven y **persisten**
+     engine y modelo distintos (I.3).
+  5. Ningún texto de implementación visible (I.5).
+
+  Bajar el servidor al terminar ([[feedback-siempre-cerrar-servidor]]).
+
+**Fuera de scope declarado del Bloque I:** dónde viven DB/`runs`/`specs` (Carlos lo pospuso
+explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni Actividad.
 
 ---
 

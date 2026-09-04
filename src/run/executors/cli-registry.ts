@@ -17,25 +17,30 @@
  */
 
 export interface CliDefinition {
-  id: 'claude' | 'codex' | 'opencode' | 'kimi'
+  id: 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini' | 'kimi' | 'glm'
   binary: string
   label: string
+  icon: string
 }
 
 /** Agregar un CLI nuevo = una entrada acá. `kimi` queda sin binario real
  * todavía (solo `Kimi.app`, GUI) — se detecta igual, `installed` da false
  * hasta que exista un binario alcanzable por PATH. */
 export const KNOWN_CLIS: CliDefinition[] = [
-  { id: 'claude', binary: 'claude', label: 'Claude Code' },
-  { id: 'codex', binary: 'codex', label: 'Codex' },
-  { id: 'opencode', binary: 'opencode', label: 'opencode' },
-  { id: 'kimi', binary: 'kimi', label: 'Kimi' },
+  { id: 'claude', binary: 'claude', label: 'Claude Code', icon: 'claude' },
+  { id: 'codex', binary: 'codex', label: 'Codex', icon: 'openai' },
+  { id: 'opencode', binary: 'opencode', label: 'opencode', icon: 'opencode' },
+  { id: 'deepseek', binary: 'deepseek', label: 'DeepSeek', icon: 'deepseek' },
+  { id: 'gemini', binary: 'gemini', label: 'Gemini', icon: 'gemini' },
+  { id: 'kimi', binary: 'kimi', label: 'Kimi', icon: 'kimi' },
+  { id: 'glm', binary: 'glm', label: 'GLM', icon: 'glm' },
 ]
 
 export interface CliDetectionResult {
   id: CliDefinition['id']
   label: string
   binary: string
+  icon: string
   installed: boolean
   path: string | null
 }
@@ -43,6 +48,6 @@ export interface CliDetectionResult {
 export function detectInstalledClis(): CliDetectionResult[] {
   return KNOWN_CLIS.map((def) => {
     const path = Bun.which(def.binary)
-    return { id: def.id, label: def.label, binary: def.binary, installed: !!path, path }
+    return { id: def.id, label: def.label, binary: def.binary, icon: def.icon, installed: !!path, path }
   })
 }

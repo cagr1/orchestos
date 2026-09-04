@@ -215,6 +215,39 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     expect(rows[0]!.engine).toBe('external')
   })
 
+  it('engine="codex" persiste effort propio y rechaza niveles de external', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'codex-task',
+        description: 'codex engine task',
+        output: ['out.txt'],
+        engine: 'codex',
+        cli_effort: 'minimal',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(200)
+
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).toContain('engine: codex')
+    expect(yaml).toContain('cli_effort: minimal')
+
+    const invalid = await route(
+      req('POST', '/api/tasks', {
+        id: 'codex-invalid-task',
+        description: 'codex invalid effort',
+        output: ['out.txt'],
+        engine: 'codex',
+        cli_effort: 'max',
+      }),
+      PORT,
+    )
+    expect(invalid.status).toBe(400)
+    const body = (await invalid.json()) as { error: string }
+    expect(body.error).toContain("unknown cli_effort 'max' for engine 'codex'")
+    expect(body.error).toContain('minimal')
+  })
+
   it('engine="bogus2" devuelve 400 con mensaje que incluye "external"', async () => {
     const res = await route(
       req('POST', '/api/tasks', {
