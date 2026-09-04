@@ -2983,6 +2983,30 @@
   word-break: break-word;
 }
 
+/* I.2 (Mes 30) — línea inline de confirmación (tarea retenida, toca archivos existentes) */
+.chat-confirm-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.chat-confirm-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.chat-confirm-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* B.2 (Mes 19) — envoltorio para N chips en vez de uno solo */
 .chat-attach-chips {
   display: flex;

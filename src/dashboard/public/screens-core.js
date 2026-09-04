@@ -326,6 +326,37 @@ function renderStepsCard(st, taskId) {
   </div>`
 }
 
+// I.2 (Mes 30) — mejor esfuerzo para mostrar UN directorio representativo en
+// vez de listar N rutas completas en la línea inline; sin común, cae a "N
+// archivos" (ver i18n chat.confirm.touch, arg {1} queda vacío en ese caso).
+function commonDir(files) {
+  if (!files || files.length === 0) return ''
+  if (files.length === 1) return files[0]
+  const parts = files.map((f) => f.split('/').slice(0, -1))
+  const first = parts[0]
+  const common = []
+  for (let i = 0; i < first.length; i++) {
+    if (parts.every((p) => p[i] === first[i])) common.push(first[i])
+    else break
+  }
+  return common.length ? `${common.join('/')}/` : ''
+}
+
+function renderConfirmCard(pt) {
+  if (!pt || pt.resolved) return ''
+  const dir = commonDir(pt.existingFiles)
+  const hint = dir
+    ? t('chat.confirm.touch', String(pt.existingFiles.length), dir)
+    : t('chat.confirm.touchPlain', String(pt.existingFiles.length))
+  return `<div class="chat-confirm-card" data-confirm-task="${esc(pt.id)}">
+    <span class="chat-confirm-text">${esc(hint)}</span>
+    <div class="chat-confirm-actions">
+      <button type="button" class="btn ghost sm" data-act="confirm-view" data-task-id="${esc(pt.id)}">${t('chat.confirm.view')}</button>
+      <button type="button" class="btn ghost sm" data-act="confirm-cancel" data-task-id="${esc(pt.id)}">${t('chat.confirm.cancel')}</button>
+    </div>
+  </div>`
+}
+
 SCREENS.chat = {
   render(st) {
     const history = st.chatHistory || []
@@ -371,6 +402,10 @@ SCREENS.chat = {
               // solo para el mensaje que auto-creó la tarea.
               const stepsCard =
                 m.role === 'assistant' && m.taskId ? renderStepsCard(st, m.taskId) : ''
+              // I.2 — línea inline de confirmación para tareas retenidas
+              // (tocan archivos existentes); ver renderConfirmCard arriba.
+              const confirmCard =
+                m.role === 'assistant' && m.pendingTask ? renderConfirmCard(m.pendingTask) : ''
               // #51 — acciones por mensaje (hover, esquina inferior). Solo "copiar" +
               // timestamp por ahora: "rebobinar" queda explícitamente fuera de este
               // Bloque (IDEAS.md #51 lo liga a #50 — sesiones persistentes en SQLite;
@@ -386,7 +421,7 @@ SCREENS.chat = {
               ${timeLabel ? `<span class="chat-msg-time">${esc(timeLabel)}</span>` : ''}
               <button type="button" class="chat-msg-copy-btn" data-chat-copy="${i}" title="${esc(t('btn.copy'))}">${ICON.copy}</button>
             </div>`
-              return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-msg-col"><div class="chat-bubble">${text}${ocrTag}${modelTag}${stepsCard}</div>${actionsRow}</div></div>`
+              return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-msg-col"><div class="chat-bubble">${text}${ocrTag}${modelTag}${stepsCard}${confirmCard}</div>${actionsRow}</div></div>`
             })
             .join('') + thinkingBubble
 
@@ -545,6 +580,34 @@ SCREENS.chat = {
         }
       })
     })
+    // I.2 (Mes 30) — [Ver]/[Cancelar] de la tarjeta de confirmación inline.
+    // "Ver" reusa el mismo camino que el chip de tarea (Tasks + side panel);
+    // "Cancelar" borra la tarea retenida (nunca se llegó a correr) y oculta
+    // la tarjeta en memoria — no hay endpoint de "descartar sin borrar" hoy.
+    root.querySelectorAll('[data-act="confirm-view"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.taskId
+        const task = (st.tasks || []).find((x) => x.id === id)
+        App.go('tasks')
+        if (task) SidePanel.openTask(task)
+      })
+    })
+    root.querySelectorAll('[data-act="confirm-cancel"]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.taskId
+        btn.disabled = true
+        try {
+          const res = await fetch(`/api/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' })
+          if (res.ok) {
+            const msg = (st.chatHistory || []).find((m) => m.pendingTask && m.pendingTask.id === id)
+            if (msg) msg.pendingTask.resolved = true
+            App.fetchTasks().then(() => App.rerender())
+          }
+        } finally {
+          App.rerender()
+        }
+      })
+    })
     root.querySelectorAll('.md-chip-model').forEach((chip) => {
       const activate = (e) => {
         e.stopPropagation()
@@ -604,13 +667,20 @@ SCREENS.chat = {
         })
         if (res.ok) {
           const data = await res.json()
-          const taskId = data.autoTask && data.autoTask.id
+          // I.2 (Mes 30) — una tarea "held" se creó pero no se corrió: no es
+          // la tarea "en vuelo" que renderStepsCard asume, es la que necesita
+          // confirmación inline ([Ver]/[Cancelar]) antes de arrancar.
+          const held = data.autoTask && data.autoTask.held
+          const taskId = data.autoTask && !held && data.autoTask.id
           st.chatHistory.push({
             role: 'assistant',
             content: data.text,
             model: data.model,
             ocrUsed: data.ocrUsed,
             taskId: taskId || undefined,
+            pendingTask: held
+              ? { id: data.autoTask.id, existingFiles: data.autoTask.existingFiles || [] }
+              : undefined,
             ts: Date.now(),
           })
           // Hallazgo real de Carlos (2026-08-17): con un alias de Claude
@@ -631,6 +701,11 @@ SCREENS.chat = {
             st.chatTaskSuggestion = null
             App.fetchTasks().then(() => App.rerender())
             startStepPolling(st, taskId) // G.3.3 — cards en vivo
+          } else if (held) {
+            // I.2 — la tarea ya existe en tasks.yaml (pending, sin correr);
+            // refrescar st.tasks para que [Ver] pueda encontrarla de inmediato.
+            st.chatTaskSuggestion = null
+            App.fetchTasks().then(() => App.rerender())
           } else {
             // J.1 (Mes 18) — B.1.b: si el clasificador marcó el mensaje como
             // tarea, la barra aparece ya (sin esperar a 3+ mensajes) citando su reason.

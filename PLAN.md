@@ -1613,7 +1613,7 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   `tsc --noEmit` limpio, `bun run test:coverage` 1265/1265 verde. Servidor bajado al terminar
   ([[feedback-siempre-cerrar-servidor]]).
 
-- [ ] **I.2 — 🧠 El punto de confirmación: lo único que reemplaza la fricción que se quita.**
+- [x] **I.2 — 🧠 El punto de confirmación: lo único que reemplaza la fricción que se quita.** (cerrado 2026-09-04)
   Al sacar el draft se pierde el único momento en que el usuario puede decir "no" antes de que un
   agente escriba en su repo, y eso **no puede quedar sin reemplazo**. `classifyTaskIntent` es un
   clasificador: tiene falsos positivos por definición. El precedente propio está en § E.14 — la
@@ -1636,6 +1636,40 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   (INS-2026-014: el límite de un tool no puede ser el prompt). Se vuelve **invisible**, no se
   elimina: el modo deja de ser un selector que el usuario debe entender y pasa a derivarse del
   contexto — sesión sin proyecto asociado = read-only, siempre.
+
+  **Decisión de producto (2026-09-04, con Carlos):** solo se confirma si la tarea toca archivos
+  **existentes** — si solo crea archivos nuevos, se ejecuta directo (recomendación del ítem).
+
+  **Implementación (`chat.ts`):** antes de `spawnTaskRun`, se filtran `draft.output` contra
+  `existsSync(join(root, f))`. Si hay coincidencias, `createTaskRecord` igual se llama (la tarea
+  queda `pending` en `tasks.yaml`, visible/corrible desde Tasks — anclado desde I.1) pero
+  `spawnTaskRun` **no** se llama — `autoTask = { id, held: true, existingFiles }`. El system prompt
+  (`autoTaskInstruction`) y `autoTaskNote` ganan una rama nueva para este caso: el LLM nunca dice
+  "Started task", dice que quedó esperando confirmación. Front (`screens-core.js`): el mensaje del
+  chat guarda `pendingTask` (no `taskId` — eso sigue reservado a tareas realmente en vuelo, para no
+  activar `startStepPolling` sobre una tarea que no corrió) y `renderConfirmCard()` dibuja la línea
+  inline *"Voy a tocar N archivo(s) existente(s) en `dir/` · [Ver] [Cancelar]"*. **[Ver]** reusa el
+  mismo camino que el chip de tarea existente (`App.go('tasks')` + `SidePanel.openTask()`).
+  **[Cancelar]** hace `DELETE /api/tasks/:id` (endpoint ya existía) y oculta la tarjeta — no hay
+  "descartar sin borrar" porque la tarea nunca llegó a correr.
+
+  **Lo que NO se implementó (con razón, no por omisión):** el "modo invisible" de Chat/Code de más
+  arriba. Verificado en vivo: hoy no existe NINGÚN selector de `mode` en el frontend — el front
+  nunca manda `sessionId` a `/api/chat` (eso es I.4, ver PLAN.md I.0), así que `session` es siempre
+  `null` server-side y `sessionAllowsTaskExecution(null)` ya devuelve `true` por diseño. No hay
+  selector visible que ocultar todavía; la instrucción de "derivar del contexto" queda como
+  restricción de diseño para cuando I.4 exponga sesiones reales, no como deuda de este ítem.
+
+  **Evidencia:** `tsc --noEmit` limpio, `bun run test:coverage` 1265/1265 verde (sin test nuevo
+  dedicado al flujo HTTP completo: `classifyTaskIntent` llama a OpenRouter de verdad y
+  `chat-effort.test.ts` ya documenta por qué mockear `fetch` alrededor de `handleApiChat` es racy
+  en esta suite — mismo motivo por el que D.7 tampoco tiene ese test hoy).
+
+  **Gate en vivo:** sin navegador/browser interactivo — dashboard real levantado con
+  `ORCHESTOS_HOME` temporal (`bun run src/cli.ts dashboard`) y verificado vía `curl` contra
+  `/screens-core.js` e `/i18n.js`: confirma `renderConfirmCard`, los listeners
+  `confirm-view`/`confirm-cancel` y las claves `chat.confirm.*` presentes en el bundle servido
+  en vivo. Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
 
 - [ ] **I.3 — 🧠 Task inteligente: saber DÓNDE corre, por tarea y no global.**
   El requisito nuevo de Carlos. Hoy el agente es una preferencia **global** de Settings
