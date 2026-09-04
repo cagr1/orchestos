@@ -30,6 +30,34 @@ export interface ModelRoleConfig {
  */
 export type AgentChoice = 'local' | 'claude' | 'opencode' | 'codex' | 'api'
 
+/**
+ * I.3 (Mes 30, 2026-09-04) — el requisito nuevo de Carlos: con varios proyectos
+ * y varios CLIs, la asignación agente+modelo tiene que resolverse POR TAREA, no
+ * solo por proyecto entero (`agent` de arriba). Esto es lo que el DAG mixto
+ * Claude/Codex del dogfooding necesita ("la tarea 3 corre con Codex, la 7 con
+ * Claude") — no reemplaza `agent` (que sigue siendo el último recurso antes de
+ * la cascada E.16), lo precede. Reglas declarativas, nunca inferidas por un LLM
+ * (misma línea no-negociable que ya cubre `agent`): se editan a mano en
+ * orchestos.config.yaml, igual que `models.*` — sin UI de edición todavía,
+ * deliberado (ver PLAN.md I.3).
+ *
+ * Matching: `output` (glob contra `Task.output`, vía Bun.Glob) tiene prioridad
+ * sobre `skill` (id exacto) si una tarea matchea ambos tipos de regla — más
+ * específico gana. La primera regla que matchea, en orden de declaración, se
+ * usa; no hay merge de varias reglas parciales.
+ */
+export interface TaskAgentRule {
+  match: {
+    /** Glob(s) contra algún path de `Task.output` — ej. "apps/api/**". */
+    output?: string[]
+    /** Id exacto de skill asignada a la tarea. */
+    skill?: string
+  }
+  agent: AgentChoice
+  /** Opcional — si la regla no lo fija, resolveAgentSelection() decide el default del agente. */
+  cli_effort?: string
+}
+
 export interface OrcheConfig {
   config_version: number
   models: {
@@ -42,6 +70,8 @@ export interface OrcheConfig {
   }
   /** CC.D1 — ver AgentChoice arriba. Ausente = sin preferencia guardada todavía. */
   agent?: AgentChoice
+  /** I.3 — ver TaskAgentRule arriba. Ausente/vacío = sin reglas, se salta este paso. */
+  taskAgentRules?: TaskAgentRule[]
   /** If true, every task must have an approved spec before it can run */
   requireSpec?: boolean
   /**

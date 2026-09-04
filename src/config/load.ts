@@ -13,7 +13,13 @@ import { existsSync, readFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import { parse } from 'yaml'
-import { type AgentChoice, DEFAULT_CONFIG, type OrcheConfig, parseRoleValue } from './schema.ts'
+import {
+  type AgentChoice,
+  DEFAULT_CONFIG,
+  type OrcheConfig,
+  type TaskAgentRule,
+  parseRoleValue,
+} from './schema.ts'
 
 export const AGENT_CHOICES: AgentChoice[] = ['local', 'claude', 'opencode', 'codex', 'api']
 
@@ -61,6 +67,7 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     // sin reescribir el archivo — la próxima vez que Settings guarde, se persiste con el
     // nombre nuevo y el viejo queda huérfano en el YAML (inofensivo, ya no se lee).
     agent: resolveAgent(raw),
+    taskAgentRules: parseTaskAgentRules(raw.taskAgentRules),
     apiMode: resolveApiMode(raw),
     agentic: parseAgenticConfig(raw.agentic),
     external: parseExternalConfig(raw.external),
@@ -114,6 +121,45 @@ function resolveAgent(raw: Record<string, unknown>): AgentChoice | undefined {
     return LEGACY_EXECUTOR_ENGINE_TO_AGENT[raw.executorEngine]
   }
   return undefined
+}
+
+// I.3 — igual criterio defensivo que el resto de este archivo: una entrada mal
+// formada se descarta con aviso (nunca rompe la carga del config entero), y
+// nunca infiere un `agent` inválido a partir de basura en el YAML.
+function parseTaskAgentRules(v: unknown): TaskAgentRule[] | undefined {
+  if (!Array.isArray(v) || v.length === 0) return undefined
+  const rules: TaskAgentRule[] = []
+  for (const entry of v) {
+    if (typeof entry !== 'object' || entry === null) {
+      warnIgnored('taskAgentRules[]', entry, ['{ match, agent }'])
+      continue
+    }
+    const obj = entry as Record<string, unknown>
+    if (!AGENT_CHOICES.includes(obj.agent as AgentChoice)) {
+      warnIgnored('taskAgentRules[].agent', obj.agent, AGENT_CHOICES)
+      continue
+    }
+    const matchRaw = obj.match
+    if (typeof matchRaw !== 'object' || matchRaw === null) {
+      warnIgnored('taskAgentRules[].match', matchRaw, ['{ output?, skill? }'])
+      continue
+    }
+    const matchObj = matchRaw as Record<string, unknown>
+    const output = Array.isArray(matchObj.output)
+      ? matchObj.output.filter((x): x is string => typeof x === 'string')
+      : undefined
+    const skill = typeof matchObj.skill === 'string' ? matchObj.skill : undefined
+    if (!output?.length && !skill) {
+      warnIgnored('taskAgentRules[].match', matchRaw, ['{ output: string[] }', '{ skill: string }'])
+      continue
+    }
+    rules.push({
+      match: { output, skill },
+      agent: obj.agent as AgentChoice,
+      cli_effort: typeof obj.cli_effort === 'string' ? obj.cli_effort : undefined,
+    })
+  }
+  return rules.length ? rules : undefined
 }
 
 function resolveApiMode(raw: Record<string, unknown>): 'single-shot' | 'agentic' | undefined {
@@ -180,6 +226,16 @@ models:
 # Optional: K.4b — segundo juez adversarial después de que el QA normal pase
 # (VERIFIED/CAVEATS/REFUTED). Dobla el costo de QA por tarea que pasa — opt-in.
 # adversarialQA: true
+
+# Optional: I.3 — qué agente/CLI corre cada tarea, por proyecto (no por chat).
+# Precedencia: taskAgentRules > agent (arriba) > cascada automática. Primera
+# regla que matchea gana; output (glob) tiene prioridad sobre skill.
+# taskAgentRules:
+#   - match: { output: ["apps/api/**"] }
+#     agent: codex
+#   - match: { skill: "frontend-design" }
+#     agent: claude
+#     cli_effort: high
 
 # Examples:
 #   planner:        "anthropic/claude-opus-4-7"

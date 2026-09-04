@@ -27,7 +27,11 @@ import {
   SEARCH_MEMORY_TOOL,
   supportsToolCalling,
 } from '../../providers/tool-call.ts'
-import { resolveAgentSelection, resolveCascadeTier } from '../../router/engine-cascade.ts'
+import {
+  resolveAgentSelection,
+  resolveCascadeTier,
+  resolveProjectAgentRule,
+} from '../../router/engine-cascade.ts'
 import {
   contextWindowFor,
   DEFAULT_MAX_OUTPUT_TOKENS,
@@ -687,7 +691,14 @@ async function handleApiChat(
     try {
       const draft = await buildNaturalDraft(message, root)
       const skill = pickAutoSkill(draft.skillOptions)
-      const preferredAgent = session?.agent ?? loadOrcheConfig(root).agent
+      const orcheConfig = loadOrcheConfig(root)
+      // I.3 — reglas de proyecto ganan sobre la preferencia de sesión/config;
+      // ambas ganan sobre la cascada E.16 (ver resolveAgentSelection abajo).
+      const projectRule = resolveProjectAgentRule(orcheConfig.taskAgentRules, {
+        output: draft.output,
+        skill,
+      })
+      const preferredAgent = projectRule?.agent ?? session?.agent ?? orcheConfig.agent
       // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
       // evita el probe de Ollama + Bun.which en cada mensaje de chat normal.
       // Sigue calculándose aunque haya preferredAgent: resolveAgentSelection
@@ -700,6 +711,7 @@ async function handleApiChat(
         output: draft.output,
         executor: draft.executor,
         ...resolveAgentSelection(preferredAgent, cascade),
+        ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
         skill,
       })
       if ('error' in created) {

@@ -10,6 +10,11 @@ import { getRunSteps } from '../../db/run-steps.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute } from '../../router/auto-route.ts'
 import { classifyTask } from '../../router/classify.ts'
+import {
+  resolveAgentSelection,
+  resolveCascadeTier,
+  resolveProjectAgentRule,
+} from '../../router/engine-cascade.ts'
 import { detectInstalledClis, KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { withGitLock } from '../../run/git-lock.ts'
 import { git } from '../../run/sandbox.ts'
@@ -307,7 +312,36 @@ async function handleApiTasksCreate(req: Request, root: string): Promise<Respons
   } catch {
     return errorResponse('Invalid JSON', 400)
   }
-  const result = createTaskRecord(root, body)
+  // I.3 (Mes 30) — mismo principio que D.7 en el chat (chat.ts): si quien crea
+  // la tarea no fijó NI engine NI executor_model, se resuelve declarativamente
+  // (reglas de proyecto → agent de config → cascada E.16) en vez de caer en
+  // silencio al default interno del harness ('single-shot', tasks/schema.ts).
+  // Acotado a "ninguno de los dos vino explícito" a propósito: el draft de
+  // Tasks (screens-core.js) SIEMPRE manda un executor_model (el que muestra el
+  // selector, aunque el usuario no lo haya tocado) — pisarlo con un engine
+  // resuelto distinto dejaría engine y executor_model contradiciéndose. Ese
+  // caso (pre-llenar el selector del draft con la regla) queda documentado
+  // como gap explícito en PLAN.md, no resuelto acá.
+  let params: CreateTaskParams = body
+  if (!body.engine && !body.executor_model) {
+    const cfg = loadOrcheConfig(root)
+    const rule = resolveProjectAgentRule(cfg.taskAgentRules, {
+      output: body.output ?? [],
+      skill: body.skill,
+    })
+    const preferredAgent = rule?.agent ?? cfg.agent
+    if (preferredAgent) {
+      const cascade = await resolveCascadeTier()
+      const resolved = resolveAgentSelection(preferredAgent, cascade)
+      params = {
+        ...body,
+        executor_model: resolved.executor_model,
+        engine: resolved.engine,
+        cli_effort: body.cli_effort ?? rule?.cli_effort,
+      }
+    }
+  }
+  const result = createTaskRecord(root, params)
   if ('error' in result) return errorResponse(result.error, result.status)
   return jsonResponse({ ok: true, id: result.id })
 }

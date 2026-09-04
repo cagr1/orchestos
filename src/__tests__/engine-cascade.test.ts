@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it } from 'bun:test'
+import type { TaskAgentRule } from '../config/schema.ts'
 import {
   cascadeTaskFields,
   resolveAgentSelection,
   resolveCascadeTier,
+  resolveProjectAgentRule,
 } from '../router/engine-cascade.ts'
 
 // G.1 (Bloque G, PLAN.md) — resolveCascadeTier() decide el tier (local → cli → api)
@@ -168,5 +170,46 @@ describe('resolveAgentSelection()', () => {
       engine: 'external',
     })
     expect(resolveAgentSelection(undefined, apiCascade)).toEqual({})
+  })
+})
+
+// I.3 (Mes 30, 2026-09-04) — resolveProjectAgentRule() precede a preferredAgent
+// en la cadena: reglas de proyecto → sesión/config → cascada. Cubre las 2
+// claves de match (output por glob, skill por id exacto), la prioridad de
+// output sobre skill, "primera regla gana" y los casos sin match.
+describe('resolveProjectAgentRule()', () => {
+  const rules: TaskAgentRule[] = [
+    { match: { output: ['apps/api/**'] }, agent: 'codex' },
+    { match: { output: ['apps/web/**'] }, agent: 'claude' },
+    { match: { skill: 'frontend-design' }, agent: 'claude', cli_effort: 'high' },
+  ]
+
+  it('sin reglas configuradas → undefined', () => {
+    expect(resolveProjectAgentRule(undefined, { output: ['apps/api/x.ts'] })).toBeUndefined()
+    expect(resolveProjectAgentRule([], { output: ['apps/api/x.ts'] })).toBeUndefined()
+  })
+
+  it('matchea por glob de output, primera regla que matchea gana', () => {
+    expect(resolveProjectAgentRule(rules, { output: ['apps/api/src/x.ts'] })).toEqual(rules[0])
+    expect(resolveProjectAgentRule(rules, { output: ['apps/web/src/x.tsx'] })).toEqual(rules[1])
+  })
+
+  it('sin match de output, cae a match por skill exacto', () => {
+    expect(
+      resolveProjectAgentRule(rules, { output: ['demo/x.ts'], skill: 'frontend-design' }),
+    ).toEqual(rules[2])
+  })
+
+  it('output gana sobre skill si una tarea matchea ambos tipos de regla', () => {
+    expect(
+      resolveProjectAgentRule(rules, { output: ['apps/api/x.ts'], skill: 'frontend-design' }),
+    ).toEqual(rules[0])
+  })
+
+  it('sin match de ningún tipo → undefined (deja pasar a la preferencia de sesión/config)', () => {
+    expect(resolveProjectAgentRule(rules, { output: ['demo/x.ts'] })).toBeUndefined()
+    expect(
+      resolveProjectAgentRule(rules, { output: ['demo/x.ts'], skill: 'backend' }),
+    ).toBeUndefined()
   })
 })

@@ -1671,7 +1671,7 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   `confirm-view`/`confirm-cancel` y las claves `chat.confirm.*` presentes en el bundle servido
   en vivo. Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
 
-- [ ] **I.3 — 🧠 Task inteligente: saber DÓNDE corre, por tarea y no global.**
+- [x] **I.3 — 🧠 Task inteligente: saber DÓNDE corre, por tarea y no global.** (cerrado 2026-09-04)
   El requisito nuevo de Carlos. Hoy el agente es una preferencia **global** de Settings
   (`screens-ops.js:1666`) y el select de engine del draft ni siquiera ofrece `codex`
   (`screens-core.js:1107-1112`). Con varios proyectos y varios CLIs eso deja de servir: la
@@ -1687,6 +1687,57 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   Depende del backend de H.8 ya hecho (`CLI_EFFORT_LEVELS`, validación de `codex + minimal` /
   rechazo de `codex + max` en `/api/tasks`). Ese trabajo **no se tira**: es exactamente lo que
   este ítem consume.
+
+  **Marco acordado con Carlos antes de codear (2026-09-04):** este ítem NO es "el chat cambia de
+  CLI a mitad de conversación" — eso no lo hace ninguna herramienta seria (Cursor, Continue,
+  Aider, Copilot, el propio Claude Code/Codex CLI: se elige el agente al abrir el hilo y se queda
+  fijo). Es un eje distinto: cada TAREA del DAG (`tasks.yaml`) es una unidad de trabajo con inicio
+  y fin, más parecida a un job de CI que a un turno de chat — puede resolver su propio agente sin
+  que eso implique que el chat "cambie de identidad". Los roles (planner/executor_heavy/
+  executor_light/qa de `OrcheConfig.models`) no cambian.
+
+  **Diseño (decisión de implementación, no de producto — mecánica y reversible vía config):**
+  `TaskAgentRule` nuevo en `config/schema.ts`: `{ match: { output?: string[], skill?: string },
+  agent, cli_effort? }`. `output` matchea por glob contra `Task.output` (`Bun.Glob`, sin
+  dependencia nueva); `skill` por id exacto. Si una tarea matchea ambos tipos, gana `output` por
+  ser más específico; primera regla en orden de declaración que matchea, sin merge parcial.
+  Se editan a mano en `orchestos.config.yaml` (`taskAgentRules:`, documentado en
+  `scaffoldConfigYaml()`) — sin UI de edición todavía, deliberado, mismo criterio que `models.*`
+  hoy (tampoco tienen UI de alta).
+
+  **Implementación:**
+  - `config/schema.ts` — `TaskAgentRule`, `OrcheConfig.taskAgentRules?`.
+  - `config/load.ts` — `parseTaskAgentRules()`: descarta entradas mal formadas con aviso
+    (`agent` inválido, `match` vacío), nunca rompe la carga del resto del config.
+  - `router/engine-cascade.ts` — `resolveProjectAgentRule(rules, {output, skill})`, función pura.
+  - `dashboard/handlers/chat.ts` (D.7) — `preferredAgent = projectRule?.agent ?? session?.agent
+    ?? config.agent`, precediendo a `resolveAgentSelection`.
+  - `dashboard/handlers/tasks.ts` (`handleApiTasksCreate`) — mismo principio, acotado a "ni
+    `engine` NI `executor_model` vinieron explícitos" (el draft de Tasks SIEMPRE manda un
+    `executor_model`, aunque el usuario no lo haya tocado — pisarlo dejaría `engine` y
+    `executor_model` contradiciéndose).
+
+  **Gap conocido, no resuelto acá (documentado, no escondido):** el draft de `SCREENS.tasks` no
+  pre-llena su selector de engine/modelo con lo que una regla resolvería — sigue mostrando
+  "inherit" + el modelo por defecto. Arreglarlo requiere que el front distinga "el usuario no
+  tocó el selector" de "el usuario eligió el default explícitamente", cambio de UI separado, no
+  de este ítem (el backend ya resuelve correctamente cuando el caller no manda nada, que es el
+  caso real de D.7 y de cualquier creación programática/API).
+
+  **Evidencia:** `tsc --noEmit` limpio. Tests nuevos: `src/__tests__/task-agent-rules-config.test.ts`
+  (parseo defensivo, 5 casos) y `describe('resolveProjectAgentRule()')` en
+  `src/__tests__/engine-cascade.test.ts` (match por output, por skill, prioridad output>skill,
+  sin match). `bun run test:coverage` 1275/1275 verde.
+
+  **Gate en vivo:** sin navegador/browser interactivo — dashboard real levantado (`bun run
+  src/cli.ts dashboard`, cwd = proyecto temporal con `orchestos.config.yaml` real conteniendo
+  `taskAgentRules`) y ejercitado con `curl -X POST /api/tasks` (mutación real contra la API viva,
+  no un mock): `output: ["apps/api/foo.ts"]` sin engine/executor_model → tasks.yaml quedó con
+  `engine: codex, executor_model: openai/gpt-5.4` (matchea la regla); `output: ["demo/x.ts"]` sin
+  match → cayó a `agent: claude` del config (`engine: external, executor_model:
+  anthropic/claude-sonnet-5`); `engine: "single-shot"` explícito → se respetó tal cual, sin
+  inyectar executor_model. Los 3 casos de la cadena de precedencia verificados end-to-end.
+  Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
 
 - [ ] **I.4 — ⚡ El chat se guarda entero (absorbe H.9.1, mismo archivo).**
   Idéntico alcance al que tenía H.9.1, ejecutado aquí para no tocar el front dos veces:
