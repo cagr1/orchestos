@@ -19,7 +19,7 @@
 
 import { safeChildEnv } from '../path-policy.ts'
 import { provisionCliConfigHome } from './cli-registry.ts'
-import { claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
+import { claudeEventToReadPaths, claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
 
@@ -182,7 +182,7 @@ async function runClaudeCode(
   userPrompt: string,
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
-): Promise<{ stdout: string; timedOut: boolean; resultLine?: string }> {
+): Promise<{ stdout: string; timedOut: boolean; resultLine?: string; filesRead: string[] }> {
   const proc = Bun.spawn([CLAUDE_BINARY, ...args], {
     cwd,
     env: safeChildEnv(),
@@ -204,6 +204,7 @@ async function runClaudeCode(
   let stdout = ''
   let lineBuffer = ''
   let resultLine: string | undefined
+  const filesRead = new Set<string>()
   try {
     while (true) {
       const { done, value } = await reader.read()
@@ -219,6 +220,7 @@ async function runClaudeCode(
         try {
           const evt = JSON.parse(line)
           if (evt?.type === 'result') resultLine = line
+          for (const path of claudeEventToReadPaths(evt)) filesRead.add(path)
           if (onStep) for (const step of claudeEventToStep(evt)) onStep(step)
         } catch {
           // línea parcial/corrupta — no aborta el resto del stream
@@ -232,7 +234,7 @@ async function runClaudeCode(
   await proc.exited
   clearTimeout(timer)
 
-  return { stdout, timedOut, resultLine }
+  return { stdout, timedOut, resultLine, filesRead: [...filesRead] }
 }
 
 // -- chat (CC.1, Mes 29) ----------------------------------------------------------
@@ -299,6 +301,7 @@ export interface ClaudeChatResult {
   model: string
   /** Esfuerzo real pasado al CLI, o `undefined` si no se fijó (el binario usa su propio default). */
   effort?: string
+  filesRead: string[]
 }
 
 /**
@@ -325,9 +328,10 @@ export async function runClaudeChat(
 
   let timedOut: boolean
   let resultLine: string | undefined
+  let filesRead: string[] = []
   const configHome = provisionCliConfigHome(cwd, 'claude')
   try {
-    ;({ timedOut, resultLine } = await runClaudeCode(
+    ;({ timedOut, resultLine, filesRead } = await runClaudeCode(
       cwd,
       buildClaudeChatArgs(systemPrompt, model, effort, configHome.settingsPath!, cwd),
       userMessage,
@@ -366,6 +370,7 @@ export async function runClaudeChat(
       resolvedCliModel(parsed) ??
       (orchestosModelToCliModel(model) ? model! : 'claude (cli default model)'),
     effort,
+    filesRead,
   }
 }
 

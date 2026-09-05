@@ -2088,6 +2088,88 @@
   padding-bottom: 0;
   min-height: calc(100vh - var(--header-h) - 36px);
 }
+
+/* I.4 (Mes 30, 2026-09-05) — aside de conversaciones. Funcional, sin pulido
+   visual a propósito (Carlos: "el UI va a evolucionar, no le prestes mucha
+   atención" — el rediseño completo del chat es I.5). */
+.chat-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+}
+.chat-sessions-aside {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid var(--border-soft);
+  padding-right: 12px;
+  overflow-y: auto;
+}
+.chat-sessions-new {
+  justify-content: flex-start;
+  gap: 6px;
+}
+.chat-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-sessions-empty {
+  padding: 8px 4px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.chat-session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.chat-session-item:hover {
+  background: var(--surface-hover, color-mix(in srgb, var(--text) 6%, transparent));
+}
+.chat-session-item.active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text);
+}
+.chat-session-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.chat-session-delete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  visibility: hidden;
+}
+.chat-session-item:hover .chat-session-delete {
+  visibility: visible;
+}
+.chat-session-delete:hover {
+  color: var(--error);
+}
+.chat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
 .chat-area {
   flex: 1;
   display: flex;

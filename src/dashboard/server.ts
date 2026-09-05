@@ -294,7 +294,7 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiChatModels()
   }
   if (method === 'GET' && url.pathname === '/api/chat/sessions') {
-    return handleApiChatSessionsList()
+    return handleApiChatSessionsList(req)
   }
   if (method === 'POST' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsCreate(req)

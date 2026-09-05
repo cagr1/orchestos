@@ -44,6 +44,21 @@ interface ClaudeAssistantEvent {
   message?: { content?: ClaudeContentBlock[] }
 }
 
+/** Paths reported by Claude's actual Read tool calls, not inferred from text. */
+export function claudeEventToReadPaths(raw: unknown): string[] {
+  const evt = raw as ClaudeAssistantEvent
+  if (!evt || typeof evt !== 'object' || evt.type !== 'assistant') return []
+  const paths: string[] = []
+  for (const block of evt.message?.content ?? []) {
+    if (block.type !== 'tool_use' || block.name !== 'Read') continue
+    const input = block.input
+    if (input && typeof input === 'object' && typeof (input as { file_path?: unknown }).file_path === 'string') {
+      paths.push((input as { file_path: string }).file_path)
+    }
+  }
+  return paths
+}
+
 interface ClaudeResultEvent {
   type?: string
   total_cost_usd?: number

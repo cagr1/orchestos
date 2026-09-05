@@ -11,6 +11,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { buildClaudeChatArgs, ExecutorExternalError, runClaudeChat } from '../run/executors/external.ts'
+import { claudeEventToReadPaths } from '../run/executors/step-event.ts'
 
 const originalWhich = Bun.which
 beforeEach(() => {
@@ -141,6 +142,28 @@ describe('runClaudeChat (CC.1)', () => {
     expect(result.inputTokens).toBe(20)
     expect(result.outputTokens).toBe(8)
     expect(result.usd).toBe(0.002)
+  })
+
+  it('persiste las rutas de los Read tool calls reales del stream', async () => {
+    const readEvent = {
+      type: 'assistant',
+      message: {
+        content: [
+          { type: 'tool_use', name: 'Read', input: { file_path: '/tmp/project/README.md' } },
+          { type: 'tool_use', name: 'Read', input: { file_path: '/tmp/project/README.md' } },
+          { type: 'tool_use', name: 'Grep', input: { pattern: 'vault' } },
+        ],
+      },
+    }
+    expect(claudeEventToReadPaths(readEvent)).toEqual(['/tmp/project/README.md', '/tmp/project/README.md'])
+
+    overrideBunSpawn(
+      makeMockProc(
+        streamOf(readEvent, assistantText('ok'), resultEvent({ total_cost_usd: 0, usage: {} })),
+      ),
+    )
+    const result = await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)
+    expect(result.filesRead).toEqual(['/tmp/project/README.md'])
   })
 
   it('lanza ExecutorExternalError cuando el binario no está instalado', async () => {

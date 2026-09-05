@@ -15,6 +15,8 @@ export interface RunRecord {
   files_attempted: string | null
   files_authorized: string | null
   files_blocked: string | null
+  /** JSON array of paths the executor actually reported reading. */
+  files_read?: string | null
   snapshot_before: string | null
   snapshot_after: string | null
   qa_verdict: string | null
@@ -48,6 +50,7 @@ type InsertRunRecord = Omit<
   RunRecord,
   | 'id'
   | 'created_at'
+  | 'files_read'
   | 'qa_model'
   | 'checks_json'
   | 'constitution_rules'
@@ -63,6 +66,7 @@ type InsertRunRecord = Omit<
   | 'refuter_reason'
   | 'skill_gates_json'
 > & {
+  files_read?: string | null
   qa_model?: string | null
   checks_json?: string | null
   constitution_rules?: number | null
@@ -88,11 +92,12 @@ export function insertRun(r: InsertRunRecord): string {
     `INSERT INTO runs (
       id, project_id, prompt, task_class, model, provider, skill_id, task_id,
       allowed_outputs, files_attempted, files_authorized, files_blocked,
+      files_read,
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
       cost_breakdown_json, file_diffs, adversarial_verdict, adversarial_reason, refuter_verdict, refuter_reason, skill_gates_json,
       status, input_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       scrub(r.project_id),
@@ -106,6 +111,7 @@ export function insertRun(r: InsertRunRecord): string {
       scrub(r.files_attempted),
       scrub(r.files_authorized),
       scrub(r.files_blocked),
+      scrub(r.files_read),
       scrub(r.snapshot_before),
       scrub(r.snapshot_after),
       scrub(r.qa_verdict),

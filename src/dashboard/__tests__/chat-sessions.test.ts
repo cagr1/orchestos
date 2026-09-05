@@ -60,7 +60,13 @@ describe('CC.2 — chat sessions backend', () => {
         method: 'POST', headers: { 'X-Orchestos-Project-Id': 'stale-project' }, body: JSON.stringify({ projectId: 'p1', agent: 'claude', mode: 'chat', title: 'Session one' })
       }))
       const created = await createdResponse.json()
-      const routedListResponse = await route(new Request('http://localhost:50852/api/chat/sessions'), 50852)
+      // I.4 (Mes 30) — el listado ahora filtra por proyecto activo (evita
+      // mezclar chats de proyectos distintos); sin header/query cae a null
+      // (sesiones "generales"), donde esta sesión (project_id='p1') no
+      // aparecería — se pasa el header para listar el proyecto correcto.
+      const routedListResponse = await route(new Request('http://localhost:50852/api/chat/sessions', {
+        headers: { 'X-Orchestos-Project-Id': 'p1' },
+      }), 50852)
       const routedList = await routedListResponse.json()
       const immutableResponse = await handlers.handleApiChatSessionPatch(new Request('http://localhost/api/chat/sessions/' + created.id, {
         method: 'PATCH', body: JSON.stringify({ agent: 'api' })
@@ -135,6 +141,59 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.remainingMessages).toBe(0)
     expect(result.chatAllowsExecution).toBe(false)
     expect(result.codeAllowsExecution).toBe(true)
+  })
+
+  // I.4 (Mes 30, 2026-09-05) — el aside de conversaciones necesita que el
+  // listado no mezcle proyectos, y que cada fila tenga un título usable (no
+  // "New conversation" para las N sesiones de siempre).
+  it('listChatSessions() filtra por proyecto, y appendChatExchange() pone el título del primer mensaje', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      runMigrations()
+      // FK real (project_id REFERENCES projects(id), foreign_keys=ON en sqlite.ts) —
+      // sin estas filas, createChatSession con projectId 'p1'/'p2' explota.
+      for (const id of ['p1', 'p2']) {
+        db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', [id, '/tmp/' + id, '{}', '', new Date().toISOString()])
+      }
+
+      const a1 = sessions.createChatSession({ projectId: 'p1', agent: 'claude', mode: 'chat' })
+      const a2 = sessions.createChatSession({ projectId: 'p1', agent: 'claude', mode: 'chat' })
+      const b1 = sessions.createChatSession({ projectId: 'p2', agent: 'claude', mode: 'chat' })
+      const general = sessions.createChatSession({ projectId: null, agent: 'api', mode: 'chat' })
+
+      const p1List = sessions.listChatSessions('p1').map((s) => s.id).sort()
+      const p2List = sessions.listChatSessions('p2').map((s) => s.id)
+      const generalList = sessions.listChatSessions(null).map((s) => s.id)
+      const allList = sessions.listChatSessions().length
+
+      sessions.appendChatExchange({ sessionId: a1.id, userContent: '  hola   como estas  ', assistantContent: 'bien' })
+      const titleAfterFirst = sessions.getChatSession(a1.id).title
+      sessions.appendChatExchange({ sessionId: a1.id, userContent: 'segundo mensaje', assistantContent: 'ok' })
+      const titleAfterSecond = sessions.getChatSession(a1.id).title
+      const longMsg = 'x'.repeat(200)
+      sessions.appendChatExchange({ sessionId: a2.id, userContent: longMsg, assistantContent: 'ok' })
+      const longTitle = sessions.getChatSession(a2.id).title
+
+      process.stdout.write(JSON.stringify({
+        p1List, p2List, generalList, allList,
+        a1Id: a1.id, a2Id: a2.id, b1Id: b1.id, generalId: general.id,
+        titleAfterFirst, titleAfterSecond, longTitle,
+      }))
+      db.close()
+    `)
+
+    expect(result.p1List).toEqual([result.a1Id, result.a2Id].sort())
+    expect(result.p2List).toEqual([result.b1Id])
+    expect(result.generalList).toEqual([result.generalId])
+    expect(result.allList).toBe(4)
+    // espacios colapsados, sin saltos, sin comillas de más
+    expect(result.titleAfterFirst).toBe('hola como estas')
+    // el segundo intercambio NO pisa el título ya puesto por el primero
+    expect(result.titleAfterSecond).toBe('hola como estas')
+    expect(result.longTitle).toBe(`${'x'.repeat(59)}…`)
+    expect((result.longTitle as string).length).toBe(60)
   })
 
   it('POST /api/chat uses persisted history and never writes from Chat mode', async () => {

@@ -388,6 +388,9 @@ function logChatRun(
   inputTokens: number,
   outputTokens: number,
   projectId: string | null,
+  result: string,
+  filesRead: string[] = [],
+  provider = 'openrouter',
 ): void {
   try {
     insertRun({
@@ -395,13 +398,14 @@ function logChatRun(
       prompt: message.slice(0, 2000),
       task_class: 'chat',
       model,
-      provider: 'openrouter',
+      provider,
       skill_id: null,
       task_id: null,
       allowed_outputs: null,
       files_attempted: null,
       files_authorized: null,
       files_blocked: null,
+      files_read: JSON.stringify(filesRead),
       snapshot_before: null,
       snapshot_after: null,
       qa_verdict: null,
@@ -411,7 +415,7 @@ function logChatRun(
       output_tokens: outputTokens,
       usd_cost: calcCost(model, inputTokens, outputTokens),
       elapsed_ms: 0,
-      result: null,
+      result,
     })
   } catch {
     /* best-effort — nunca debe romper la respuesta de chat */
@@ -984,14 +988,17 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           cliEffort,
         )
         const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
+        const responseText = result.text + autoTaskNote
         logChatRun(
           message,
           resultLabel,
           result.inputTokens,
           result.outputTokens,
           session?.project_id ?? project.id,
+          responseText,
+          result.filesRead,
+          'claude',
         )
-        const responseText = result.text + autoTaskNote
         persistResponse(responseText, resultLabel)
         return jsonResponse({
           text: responseText,
@@ -1022,14 +1029,17 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           model,
         )
         const resultLabel = `${result.model} via Codex CLI`
+        const responseText = result.text + autoTaskNote
         logChatRun(
           message,
           resultLabel,
           result.inputTokens,
           result.outputTokens,
           session?.project_id ?? project.id,
+          responseText,
+          [],
+          'codex',
         )
-        const responseText = result.text + autoTaskNote
         persistResponse(responseText, resultLabel)
         return jsonResponse({
           text: responseText,
@@ -1057,14 +1067,17 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           model,
         )
         const resultLabel = `${result.model} via OpenCode CLI`
+        const responseText = result.text + autoTaskNote
         logChatRun(
           message,
           resultLabel,
           result.inputTokens,
           result.outputTokens,
           session?.project_id ?? project.id,
+          responseText,
+          [],
+          'opencode',
         )
-        const responseText = result.text + autoTaskNote
         persistResponse(responseText, resultLabel)
         return jsonResponse({
           text: responseText,
@@ -1168,14 +1181,19 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         effort,
         maxTokens: chatMaxTokens,
       })
+      const responseText = result.text + autoTaskNote
       logChatRun(
         message,
         model,
         result.inputTokens,
         result.outputTokens,
         session?.project_id ?? project.id,
+        responseText,
+        result.toolCallsExecuted
+          .filter((call) => call.name === 'read_file')
+          .map((call) => (call.input as { path?: unknown })?.path)
+          .filter((path): path is string => typeof path === 'string'),
       )
-      const responseText = result.text + autoTaskNote
       persistResponse(responseText, model)
       return jsonResponse({
         text: responseText,
@@ -1194,14 +1212,15 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       messages,
       maxTokens: chatMaxTokens,
     })
+    const responseText = resp.text + autoTaskNote
     logChatRun(
       message,
       resp.model,
       resp.inputTokens,
       resp.outputTokens,
       session?.project_id ?? project.id,
+      responseText,
     )
-    const responseText = resp.text + autoTaskNote
     persistResponse(responseText, resp.model)
     return jsonResponse({
       text: responseText,

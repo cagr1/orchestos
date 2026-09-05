@@ -65,8 +65,17 @@ function validTitle(value: unknown): value is string {
   )
 }
 
-export function handleApiChatSessionsList(): Response {
-  return jsonResponse(listChatSessions().map(toSessionRow))
+// I.4 (Mes 30) — el aside de conversaciones filtra por proyecto activo. Sin
+// proyecto (sesión general), lista las sesiones con project_id null — nunca
+// TODAS, mezclar chats de proyectos distintos no tiene sentido con >1 proyecto.
+export function handleApiChatSessionsList(req: Request): Response {
+  let projectId: string | null
+  try {
+    projectId = resolveDashboardProject(req).id
+  } catch {
+    projectId = null
+  }
+  return jsonResponse(listChatSessions(projectId).map(toSessionRow))
 }
 
 export async function handleApiChatSessionsCreate(

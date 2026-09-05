@@ -84,6 +84,8 @@ const state = {
   projectSaveState: 'idle', // 'idle' | 'saving' | 'saved' | 'error'
 
   chatHistory: [],
+  chatSessionId: localStorage.getItem('orchestos-chat-session-id') || null,
+  chatSessions: [],
   chatPending: false,
   chatModel: 'deepseek/deepseek-v4-flash',
   chatEffort: localStorage.getItem('orchestos-chat-effort') || 'medium', // FRONT.1 — solo aplicado cuando el modelo elegido tiene supportsReasoning:true (BACK.4) · FRONT.2 — persistido en localStorage
@@ -293,6 +295,110 @@ const App = {
       state.orcheConfigStatus = 'error'
     }
   },
+  async fetchChatSession() {
+    if (!state.chatSessionId) return
+    try {
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(state.chatSessionId)}/messages`)
+      if (res.status === 404) {
+        localStorage.removeItem('orchestos-chat-session-id')
+        state.chatSessionId = null
+        return
+      }
+      if (!res.ok) throw new Error(res.status)
+      const messages = await res.json()
+      state.chatHistory = messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+        model: message.model || undefined,
+        taskId: message.taskId || undefined,
+        ts: Date.parse(message.createdAt) || Date.now(),
+      }))
+    } catch {
+      // Keep the in-memory history if the optional restore request fails.
+    }
+  },
+  // I.4 (Mes 30, 2026-09-05) — aside de conversaciones: mismo patrón que
+  // Claude Desktop/Codex/Orca/ChatGPT — se listan y se borran desde acá, NO
+  // desde un botón "Clear" dentro del hilo activo (ese patrón asumía un chat
+  // efímero; con persistencia real, "Clear" mentiría sobre lo que pasó — la
+  // conversación seguiría completa en la DB, solo oculta). Filtrado por
+  // proyecto en el server (chat-sessions.ts) — acá solo se pinta la lista.
+  async fetchChatSessions() {
+    try {
+      const res = await fetch('/api/chat/sessions')
+      if (!res.ok) throw new Error(res.status)
+      state.chatSessions = await res.json()
+    } catch {
+      // Deja la lista anterior (o vacía) — no es crítico para poder chatear.
+    }
+  },
+  async switchChatSession(sessionId) {
+    if (sessionId === state.chatSessionId) return
+    state.chatSessionId = sessionId
+    localStorage.setItem('orchestos-chat-session-id', sessionId)
+    state.chatHistory = []
+    state.chatTaskSuggestion = null
+    state.chatLiveSteps = {}
+    App.rerender()
+    await App.fetchChatSession()
+    App.rerender()
+  },
+  async startNewChatSession() {
+    try {
+      const res = await fetch('/api/chat/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api', mode: 'chat' }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok || typeof body.id !== 'string') throw new Error(body.error || 'Could not create chat session')
+      state.chatSessionId = body.id
+      localStorage.setItem('orchestos-chat-session-id', body.id)
+      state.chatHistory = []
+      state.chatTaskSuggestion = null
+      state.chatLiveSteps = {}
+      await App.fetchChatSessions()
+      App.rerender()
+    } catch {
+      // Sin conexión — se mantiene la sesión actual, el próximo mensaje reintenta via ensureChatSession.
+    }
+  },
+  async deleteChatSession(sessionId) {
+    const ok = await Modal.confirm(
+      t('chat.sessions.delete.title'),
+      t('chat.sessions.delete.body'),
+      t('chat.sessions.delete.btn'),
+    )
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error(res.status)
+      state.chatSessions = (state.chatSessions || []).filter((s) => s.id !== sessionId)
+      if (state.chatSessionId === sessionId) {
+        localStorage.removeItem('orchestos-chat-session-id')
+        state.chatSessionId = null
+        state.chatHistory = []
+      }
+      App.rerender()
+    } catch {
+      // Best-effort — la fila sigue en la lista, el usuario puede reintentar.
+    }
+  },
+  async ensureChatSession() {
+    if (state.chatSessionId) return state.chatSessionId
+    const res = await fetch('/api/chat/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api', mode: 'chat' }),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok || typeof body.id !== 'string') throw new Error(body.error || 'Could not create chat session')
+    state.chatSessionId = body.id
+    localStorage.setItem('orchestos-chat-session-id', body.id)
+    return body.id
+  },
   // G.4.4 — detección (qué CLI/tier hay disponible) + selección (agente
   // guardado, CC.D1) para el selector segmentado de Settings.
   async fetchExecutorModes() {
@@ -351,6 +457,8 @@ const App = {
       // real de agregarlo al boot.
       this.fetchOrcheConfig(),
       this.fetchExecutorModes(),
+      this.fetchChatSession(),
+      this.fetchChatSessions(),
     ])
     if (!state.setupRedirectDone && state.setup?.criticalMissing) {
       state.screen = 'settings'

@@ -1739,7 +1739,7 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   inyectar executor_model. Los 3 casos de la cadena de precedencia verificados end-to-end.
   Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
 
-- [ ] **I.4 — ⚡ El chat se guarda entero (absorbe H.9.1, mismo archivo).**
+- [x] **I.4 — ⚡ El chat se guarda entero (absorbe H.9.1, mismo archivo).** (cerrado 2026-09-05)
   Idéntico alcance al que tenía H.9.1, ejecutado aquí para no tocar el front dos veces:
   1. El front manda `sessionId` en `/api/chat` (`screens-core.js:592-613`), creando la sesión al
      vuelo si no hay ninguna. `st.chatHistory` deja de ser la fuente de verdad.
@@ -1756,6 +1756,52 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   CC.2 y el front nunca los usó — `chat_messages` tiene 12 filas, **todas del 2026-08-19**,
   sembradas por curl en un gate. Backend construido, superficie nunca cableada
   ([[feedback-dashboard-no-solo-cli]]).
+
+  **Puntos 1-3 (sesión sin commitear de 2026-09-04, retomada y verificada 2026-09-05):** una
+  sesión anterior quedó cortada a mitad de este ítem (scope-lock declarado en
+  `.orchestos/handoff.md`, cambios sin commitear). Se revisó completo antes de continuar
+  (`tsc`/suite en verde con esos cambios aplicados) — trabajo real, no descartado:
+  - `app.js`/`screens-core.js` — `ensureChatSession()` crea la sesión al vuelo, `send()` manda
+    `sessionId` y `history: []`; `chat.ts:634-639` ya prioriza `listChatMessages(session.id)` sobre
+    `body.history` cuando hay sesión.
+  - `chat.ts` (`logChatRun`) — `runs.result` ahora guarda `responseText` real, no `null`.
+  - `db/migrate.ts`/`db/runs.ts` — columna `files_read` nueva; `external.ts`/`step-event.ts` —
+    `claudeEventToReadPaths()` extrae los `Read` reales del stream de Claude Code CLI (con test).
+    Codex/OpenCode mandan `[]` a propósito — esos executors no reportan lecturas todavía.
+
+  **Hallazgo en vivo de Carlos (2026-09-05), corregido dentro de este mismo ítem:** con la
+  conversación ya persistida de verdad, el botón "Clear" (borraba solo el array en memoria, sin
+  tocar la sesión en DB) pasó de inofensivo a **engañoso** — recargar la página traía de vuelta la
+  conversación "borrada". El patrón correcto, señalado por Carlos y confirmado contra Claude
+  Desktop/Codex/Orca/Hermes/ChatGPT: lista de conversaciones en un **aside**, cada una borrable
+  desde ahí, "nueva conversación" como acción separada — nunca un botón que vacía el hilo activo.
+  Decisión explícita de Carlos: resolverlo bien ahora (no parche temporal), sin invertir en pulido
+  visual todavía (`"el UI tiene que evolucionar, no lo veo como herramienta premium aún"` — eso es
+  I.5). Implementado:
+  - `db/chat-sessions.ts` — `listChatSessions(projectId?)` filtra por proyecto activo (`p1`/`p2`/
+    `null` para sesiones generales; sin argumento, todo — compat hacia atrás). `appendChatExchange`
+    pone el título de la sesión desde el primer mensaje del usuario (una sola vez, trunca a 60
+    con `…`) — antes quedaba "New conversation" para siempre, inútil en una lista de N.
+  - `dashboard/handlers/chat-sessions.ts` + `server.ts` — `GET /api/chat/sessions` filtra por el
+    proyecto resuelto de la request.
+  - `app.js` — `fetchChatSessions()`, `switchChatSession()`, `startNewChatSession()`,
+    `deleteChatSession()` (con `Modal.confirm()`, nunca `confirm()` nativo).
+  - `screens-core.js`/`screens.css` — aside `.chat-sessions-aside` a la izquierda del chat
+    (`.chat-layout` envuelve aside + `.chat-main`), botón "Nueva conversación" arriba, borrar por
+    ítem con hover. Botón "Clear" y sus i18n (`chat.clear`) eliminados por completo.
+
+  **Evidencia:** `tsc --noEmit` limpio. `src/dashboard/__tests__/chat-sessions.test.ts` — fix al
+  test existente (el listado ahora exige contexto de proyecto, se pasó el header) + test nuevo
+  (`listChatSessions()` filtra p1/p2/general, título del primer mensaje, no se pisa en el segundo
+  intercambio, truncado a 60 con `…`). `bun run test:coverage` 1277/1277 verde.
+
+  **Gate en vivo:** sin navegador/browser interactivo — dashboard real levantado (`bun run
+  src/cli.ts dashboard`, proyecto temporal) y ejercitado con `curl` contra la API viva: `GET
+  /api/chat/sessions` arrancó `[]`; 2× `POST` crearon sesiones reales (`projectId: null`, sesión
+  general — no estaba registrado como proyecto conectado); el listado las mostró a ambas; `DELETE`
+  de una la sacó del listado real. `curl` a `/screens-core.js` y `/app.js` confirmó el aside, los
+  3 handlers nuevos y cero referencias a `chat-clear` en el bundle servido. Servidor bajado al
+  terminar ([[feedback-siempre-cerrar-servidor]]).
 
 - [ ] **I.5 — 🧠 Rediseño del chat: sacar la implementación de la cara del usuario.**
   Carlos comparó contra Orca, Xirp, Hermes, ChatGPT y Claude: *"hay mucho texto, una interfaz poco

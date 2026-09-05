@@ -272,7 +272,7 @@ function pollTaskSteps(st, taskId, tries = 0) {
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
       const entry = st.chatLiveSteps[taskId]
-      if (!entry) return // chat-clear pudo haber borrado el estado
+      if (!entry) return // cambiar/borrar de sesión (I.4) pudo haber limpiado el estado
       if (data && data.steps && data.steps.length) {
         entry.steps = entry.steps.concat(data.steps)
         entry.sinceSeq = data.steps[data.steps.length - 1].seq
@@ -439,10 +439,30 @@ SCREENS.chat = {
         ? `<div class="local-model-warn" data-act="local-warn-dismiss">${t('chat.local.warn')} <button class="btn ghost sm" style="margin-left:8px;padding:1px 8px" data-act="local-warn-dismiss">×</button></div>`
         : ''
 
-    const clearBtn =
-      history.length > 0
-        ? `<button class="btn ghost sm" data-act="chat-clear">${t('chat.clear')}</button>`
-        : ''
+    // I.4 (Mes 30, 2026-09-05) — aside de conversaciones: reemplaza al botón
+    // "Clear" (borraba sin dejar rastro, mentía una vez que el chat persiste
+    // de verdad). Mismo patrón que Claude Desktop/Codex/Orca/ChatGPT: lista a
+    // la izquierda, "Nueva conversación" arriba, borrar por ítem con confirm.
+    const sessions = st.chatSessions || []
+    const sessionsAside = `<aside class="chat-sessions-aside">
+      <button type="button" class="btn ghost sm chat-sessions-new" data-act="chat-new-session">
+        ${ICON.plus} ${t('chat.sessions.new')}
+      </button>
+      <div class="chat-sessions-list">
+        ${
+          sessions.length === 0
+            ? `<div class="chat-sessions-empty">${t('chat.sessions.empty')}</div>`
+            : sessions
+                .map(
+                  (s) => `<div class="chat-session-item${s.id === st.chatSessionId ? ' active' : ''}" data-act="chat-session-open" data-session-id="${esc(s.id)}">
+                <span class="chat-session-title">${esc(s.title || t('chat.sessions.untitled'))}</span>
+                <button type="button" class="chat-session-delete" data-act="chat-session-delete" data-session-id="${esc(s.id)}" title="${esc(t('chat.sessions.delete.btn'))}" aria-label="${esc(t('chat.sessions.delete.btn'))}">×</button>
+              </div>`,
+                )
+                .join('')
+        }
+      </div>
+    </aside>`
 
     // D3/B.2 (Mes 19) — chips de adjuntos, ahora N en vez de uno solo.
     const chatFiles = st.chatFiles || []
@@ -470,33 +490,37 @@ SCREENS.chat = {
     return `<div class="screen chat-screen">
       <div class="screen-head">
         <div class="lead"><h1>${t('chat.title')}</h1><p>${t('chat.subtitle')}</p></div>
-        <div class="tools" style="align-items:center;gap:8px">${clearBtn}</div>
       </div>
-      ${localWarnBanner}
-      <div class="chat-area" id="chat-area">${msgs}</div>
-      <div class="chat-input-bar">
-        ${attachChips}
-        <div class="chat-composer">
-          <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}>${esc(st.chatDraft || '')}</textarea>
-          <div class="chat-composer-row">
-            <div class="attach-menu-wrap" data-attach-menu>
-              <button class="chat-icon-btn chat-attach-btn" data-act="chat-attach" title="${t('chat.btn.attach')}" aria-label="${t('chat.btn.attach')}">${ICON.plus}</button>
-              ${
-                st.chatAttachMenuOpen
-                  ? `<div class="attach-menu">
-                <button class="attach-menu-item" data-attach-kind="image">${ICON.image}<span>${t('chat.attachMenu.image')}</span></button>
-                <button class="attach-menu-item" data-attach-kind="doc">${ICON.specs}<span>${t('chat.attachMenu.doc')}</span></button>
-                <button class="attach-menu-item" data-attach-kind="url">${ICON.globe}<span>${t('chat.attachMenu.url')}</span></button>
-              </div>`
-                  : ''
-              }
+      <div class="chat-layout">
+        ${sessionsAside}
+        <div class="chat-main">
+          ${localWarnBanner}
+          <div class="chat-area" id="chat-area">${msgs}</div>
+          <div class="chat-input-bar">
+            ${attachChips}
+            <div class="chat-composer">
+              <textarea id="chat-input" rows="2" placeholder="${t('chat.placeholder')}" ${st.chatPending ? 'disabled' : ''}>${esc(st.chatDraft || '')}</textarea>
+              <div class="chat-composer-row">
+                <div class="attach-menu-wrap" data-attach-menu>
+                  <button class="chat-icon-btn chat-attach-btn" data-act="chat-attach" title="${t('chat.btn.attach')}" aria-label="${t('chat.btn.attach')}">${ICON.plus}</button>
+                  ${
+                    st.chatAttachMenuOpen
+                      ? `<div class="attach-menu">
+                    <button class="attach-menu-item" data-attach-kind="image">${ICON.image}<span>${t('chat.attachMenu.image')}</span></button>
+                    <button class="attach-menu-item" data-attach-kind="doc">${ICON.specs}<span>${t('chat.attachMenu.doc')}</span></button>
+                    <button class="attach-menu-item" data-attach-kind="url">${ICON.globe}<span>${t('chat.attachMenu.url')}</span></button>
+                  </div>`
+                      : ''
+                  }
+                </div>
+                <span class="chat-composer-spacer"></span>
+                ${modelFx}
+                <button class="chat-icon-btn chat-send-btn" data-act="chat-send" title="${t('chat.btn.send')}" aria-label="${t('chat.btn.send')}" ${st.chatPending ? 'disabled' : ''}>${ICON.send}</button>
+              </div>
             </div>
-            <span class="chat-composer-spacer"></span>
-            ${modelFx}
-            <button class="chat-icon-btn chat-send-btn" data-act="chat-send" title="${t('chat.btn.send')}" aria-label="${t('chat.btn.send')}" ${st.chatPending ? 'disabled' : ''}>${ICON.send}</button>
+            <input type="file" id="chat-file-input" accept="image/*,.pdf,.txt,.md" style="display:none">
           </div>
         </div>
-        <input type="file" id="chat-file-input" accept="image/*,.pdf,.txt,.md" style="display:none">
       </div>
     </div>`
   },
@@ -647,8 +671,10 @@ SCREENS.chat = {
       App.rerender()
       scrollBottom()
       try {
+        const sessionId = await App.ensureChatSession()
         const body = {
-          history: st.chatHistory.slice(0, -1),
+          sessionId,
+          history: [],
           message: msg,
           model: st.chatModel || 'deepseek/deepseek-v4-flash',
         }
@@ -741,13 +767,24 @@ SCREENS.chat = {
       }
     })
     root.querySelector('[data-act="chat-send"]')?.addEventListener('click', send)
-    root.querySelector('[data-act="chat-clear"]')?.addEventListener('click', () => {
-      st.chatHistory = []
-      st.chatPending = false
-      st.chatFiles = []
-      st.chatTaskSuggestion = null
-      st.chatLiveSteps = {} // G.3.3 — corta el polling en vuelo (pollTaskSteps chequea `entry` sigue vivo)
-      App.rerender()
+
+    // I.4 (Mes 30) — aside de conversaciones: nueva / abrir / borrar. Ya no
+    // hay "Clear" — borrar vive acá, igual que en Claude Desktop/Codex/Orca.
+    root.querySelector('[data-act="chat-new-session"]')?.addEventListener('click', () => {
+      App.startNewChatSession()
+    })
+    root.querySelectorAll('[data-act="chat-session-open"]').forEach((row) => {
+      row.addEventListener('click', () => {
+        const id = row.dataset.sessionId
+        if (id) App.switchChatSession(id)
+      })
+    })
+    root.querySelectorAll('[data-act="chat-session-delete"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation() // no abrir la sesión al borrarla (el ítem padre también tiene click)
+        const id = btn.dataset.sessionId
+        if (id) App.deleteChatSession(id)
+      })
     })
 
     // G.3.3 — expandir/colapsar la card de pasos en vivo.

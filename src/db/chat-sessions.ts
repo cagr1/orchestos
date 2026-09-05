@@ -78,12 +78,34 @@ export function createChatSession(input: CreateChatSessionInput): ChatSessionRec
   return row
 }
 
-export function listChatSessions(): ChatSessionRecord[] {
+/**
+ * I.4 (Mes 30, 2026-09-05) — `projectId` filtra la lista al proyecto activo
+ * (o a las sesiones generales, `project_id IS NULL`, con `projectId: null`).
+ * Sin filtro (`undefined`) devuelve todo — comportamiento previo, para no
+ * romper callers que todavía no pasan proyecto. El aside de conversaciones
+ * (screens-core.js) SIEMPRE filtra: mezclar chats de proyectos distintos en
+ * una sola lista no tiene sentido una vez que hay más de un proyecto.
+ */
+export function listChatSessions(projectId?: string | null): ChatSessionRecord[] {
+  if (projectId === undefined) {
+    return db
+      .query<ChatSessionRecord, []>(
+        'SELECT * FROM chat_sessions ORDER BY updated_at DESC, created_at DESC',
+      )
+      .all()
+  }
+  if (projectId === null) {
+    return db
+      .query<ChatSessionRecord, []>(
+        'SELECT * FROM chat_sessions WHERE project_id IS NULL ORDER BY updated_at DESC, created_at DESC',
+      )
+      .all()
+  }
   return db
-    .query<ChatSessionRecord, []>(
-      'SELECT * FROM chat_sessions ORDER BY updated_at DESC, created_at DESC',
+    .query<ChatSessionRecord, string>(
+      'SELECT * FROM chat_sessions WHERE project_id = ? ORDER BY updated_at DESC, created_at DESC',
     )
-    .all()
+    .all(projectId)
 }
 
 export function getChatSession(id: string): ChatSessionRecord | null {
@@ -121,10 +143,33 @@ export function listChatMessages(sessionId: string): ChatMessageRecord[] {
     .map(mapMessage)
 }
 
+// I.4 (Mes 30) — mismo largo/criterio de truncado que descToTaskId() usa para
+// IDs legibles (tasks/init.ts), acá aplicado a texto libre para el título del
+// aside: una línea, sin saltos, corta.
+const AUTO_TITLE_MAX_LENGTH = 60
+
+function autoTitleFrom(userContent: string): string {
+  const oneLine = userContent.replace(/\s+/g, ' ').trim()
+  if (oneLine.length <= AUTO_TITLE_MAX_LENGTH) return oneLine || 'New conversation'
+  return `${oneLine.slice(0, AUTO_TITLE_MAX_LENGTH - 1)}…`
+}
+
 export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageRecord[] {
   const insert = db.transaction(() => {
-    if (!getChatSession(input.sessionId)) throw new Error('Chat session not found')
+    const session = getChatSession(input.sessionId)
+    if (!session) throw new Error('Chat session not found')
     const now = new Date().toISOString()
+    // I.4 — el título por defecto ('New conversation') es inútil en una lista
+    // de N conversaciones; se reemplaza por el primer mensaje del usuario la
+    // única vez que corre, para no pisar un título que el usuario ya haya
+    // puesto a mano después (PATCH /api/chat/sessions/:id, ya existía).
+    const isFirstExchange = listChatMessages(input.sessionId).length === 0
+    if (isFirstExchange && session.title === 'New conversation') {
+      db.run('UPDATE chat_sessions SET title = ? WHERE id = ?', [
+        autoTitleFrom(input.userContent),
+        input.sessionId,
+      ])
+    }
     db.run(
       `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, created_at)
        VALUES (?, 'user', ?, NULL, NULL, ?, ?)`,
