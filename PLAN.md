@@ -36,6 +36,167 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
 
 ---
 
+## Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)
+
+Carlos autorizó registrar estos hallazgos para atacarlos. Procedencia: revisión del código en
+`c5eefae`, typecheck limpio y sondas en memoria del parser QA, parser de lecturas y cálculo de
+costo; no fue una auditoría exhaustiva ni una ejecución de la suite completa. No es una promoción
+de insights del vault. Esta pasada es documental: no implementa las correcciones.
+
+**Objetivo de producto:** una persona puede pedir trabajo en un proyecto, entender qué va a
+ejecutarse, obtener un resultado verificado y recuperar después conversación y evidencia. La
+valoración conversacional (6/10 producto, 7,5/10 base técnica) fue provisional, no un benchmark ni
+un techo: se reevalúa con recorridos reales, fiabilidad repetida y utilidad observada por usuarios.
+Los meses invertidos se preservan aprovechando los contratos, executors y checks existentes;
+este bloque no autoriza una reescritura general.
+
+**Orden de ataque propuesto:** R.1 → R.2 → R.3 → R.4 → R.5 → R.6 → R.7 → R.8.
+R.2 y R.5 son prerrequisitos de evidencia para H.9.4; su cierre exige el gate H.9.4 existente,
+no uno duplicado. R.4 debe coordinarse con I.5 si hay edición concurrente de la misma superficie.
+R.8 es requisito antes de presentar el recorrido como fiable para usuarios externos. Este orden
+organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gates del protocolo.
+
+- [ ] **R.1 — ⚡ Recuperar creación de tareas desde sesiones de proyecto.** Prioridad alta.
+  Confirmado por código: `app.js:346/389` crea sesiones con `mode: 'chat'`, mientras
+  `sessionAllowsTaskExecution()` solo habilita `code` o el camino legacy sin sesión. No hay
+  transición de modo cableada en ese frontend. Aplicar la decisión ya tomada en I.2: derivar
+  autoridad del contexto del proyecto y conservar sesiones generales sin autoridad de ejecución.
+  No habilitar ejecución global ni relajar `sessionAllowsTaskExecution()` para hacer pasar el test.
+  **Gate:** navegador real, sesión nueva vinculada a proyecto → petición de tarea → tarea real
+  y ejecución conforme a I.2; archivos existentes requieren confirmación, archivos nuevos siguen
+  la política acordada. Sesión sin proyecto no crea tareas ni spawnea procesos. Probar también
+  recarga y sesiones preexistentes sin elevar silenciosamente su autoridad.
+  **Avance 2026-09-06 (Codex, sin cierre):** implementación lista: el servidor asigna `code`
+  únicamente al crear una sesión nueva con `projectId`, conserva `chat` para sesiones generales y
+  el frontend deja de imponer `mode: chat`; no se migraron sesiones existentes. Tests de sesión
+  cubren ambos defaults y la frontera general sin proyecto; `bunx tsc --noEmit` y
+  `bun run test:coverage` verdes (1277 pass). El gate de navegador real sigue pendiente:
+  esta sesión no expone navegador ni `agent-browser`, por lo que R.1 permanece abierto y sin
+  commit hasta verificar recarga y el recorrido completo.
+
+- [ ] **R.2 — 🧠 Auditoría que distingue lectura solicitada, ejecutada, rechazada y desconocida.**
+  Prioridad alta. Reproducido: `claudeEventToReadPaths()` (`step-event.ts:48`) añade el path de
+  `tool_use/Read`; un `tool_result` de rechazo no lo corrige. `Grep` no se registra. El camino
+  OpenRouter (`chat.ts:1192`) extrae argumentos de `read_file` sin comprobar resultado y omite
+  `read_plan/tasks/ideas`. Codex/OpenCode escriben `[]` sin tener instrumentación equivalente.
+  Diseñar correlación por llamada/resultado, estado de completitud y procedencia; desconocido
+  no equivale a cero lecturas. Registrar evidencia suficiente sin copiar contenido privado
+  innecesario. Definir qué canales cubre cada adaptador y verificar sus eventos en el CLI real.
+  **Gate:** fixtures dentro/fuera del proyecto, lectura exitosa, rechazo, herramienta de búsqueda,
+  stream incompleto y transporte no instrumentado; ninguna solicitud rechazada cuenta como
+  lectura exitosa y ningún canal no observado produce una garantía de ausencia de lectura.
+  Tests deterministas + security:gate + evidencia real con fixtures, nunca el vault personal.
+
+- [ ] **R.2-bis — 🔍 Hallazgo bloqueante de R.2: la frontera de lectura no existe (evidencia).**
+  Descubierto 2026-09-06 al ejecutar el gate de R.2, que exige un caso de **lectura exitosa**: no
+  existe. Detiene R.2 y **reabre H.9.2** (ver arriba). El diseño de instrumentación de R.2 sigue
+  siendo válido; lo que faltaba era una frontera real sobre la cual instrumentar.
+
+  **9 sondas contra el binario real** (`claude -p --output-format stream-json`), fixture "dentro
+  del proyecto" + fixture secreto "fuera del proyecto". Ninguna conclusión inferida de la doc:
+
+  | # | Configuración | dentro | afuera |
+  |---|---|---|---|
+  | 1 | `deny:["Read(//*)"]` ← **la que escribe el código hoy** | ❌ bloquea | ❌ bloquea |
+  | 2 | `{}` (sin frontera) | ✅ | ⚠️ **leyó** — vía `Bash`, esquivando `--allowedTools` |
+  | 3 | `--tools Read,Glob,Grep` + `{}` | ✅ | ⚠️ **leyó** — Read directo; el cwd no es frontera |
+  | 4 | `deny:["Read(//**)"]` + `allow:[<root>/**]` | ❌ | ❌ — **deny gana sobre allow, siempre** |
+  | 5 | hook `PreToolUse` propio (deny fuera) | ✅ | ✅ bloquea |
+  | 6 | **idem 5, con el script del hook ausente** | — | ⚠️ **leyó** — **fail-open** |
+  | 7 | `deny` global + hook con `permissionDecision:"allow"` | ❌ | ❌ — el allow del hook no gana |
+  | 8-9 | **`--restricted --strict-mcp-config` + `--tools`** (2.1.263) | ✅ lee | ✅ **bloquea** |
+
+  La 8-9 pasó además los 3 fixtures adversariales que exigió la revisión de Astra: **symlink desde
+  dentro apuntando afuera**, **directorio con prefijo similar** (`…/r2-probe-evil` vs `…/r2-probe`)
+  y **Grep recursivo hacia afuera** — los tres bloqueados, sin filtrar el fixture secreto.
+
+  **Objeciones de la revisión de Astra, todas correctas y todas incorporadas:** (a) el hook falla
+  abierto → sonda 6 lo confirma, por eso se descarta el hook propio; (b) `PreToolUse` **no** cierra
+  R.2 "de raíz" (mi afirmación fue de más): ve intención y autorización, no resultado — R.2 exige
+  correlación por `tool_use_id` con el resultado y **`desconocido` cuando falta**; (c) `--tools`
+  no cubre MCP y `--settings` **añade** config en vez de reemplazarla (confirmado en el `--help`:
+  *"load additional settings from"*) → de ahí `--strict-mcp-config`, y `--restricted` que además
+  ignora los settings de user/project/local; (d) validar paths exige symlinks/prefijos/recursivo →
+  cubiertos arriba; (e) auditoría con log por run y estado explícito ante truncamiento → queda
+  dentro de R.2. La versión también la acertó: `--restricted` **no existe** en 2.1.234.
+
+  **Hallazgo de entorno (corregido 2026-09-06):** había **dos** instalaciones de Claude Code —
+  `~/.local/bin/claude` → 2.1.234 (sin `--restricted`) sombreando a la de npm → 2.1.263. El
+  symlink se repuntó a 2.1.263; el binario viejo queda en disco (`claude.2.1.234.bak`), no se
+  borró. Consecuencia de diseño: la capability **no puede asumirse por versión instalada** —
+  `readBoundary` debe verificarse contra el binario que realmente se va a spawnear.
+
+- [ ] **R.3 — ⚡ QA exige correspondencia uno a uno con los criterios originales.** Prioridad alta.
+  Reproducido ejecutando el parser existente: dos copias aprobadas de «criterio A», con evidencia
+  literal y cantidad esperada 2, producen `pass`. `qa.ts:166` recibe únicamente cardinalidad,
+  por lo que no puede validar identidad ni detectar que falta B. Pasar las identidades originales
+  y exigir un resultado por criterio, sin duplicados, extras ni sustituciones; conservar la
+  comprobación de evidencia literal. Validar cada elemento antes de acceder a sus propiedades.
+  **Gate:** A+A frente a A+B falla; faltante, extra, desconocido, null y estructura malformada
+  fallan de forma segura; A+B válido pasa. Typecheck, tests relevantes y mutation QA acotado
+  según el protocolo. No usar coincidencia semántica de otro LLM para validar identidades.
+
+- [ ] **R.4 — ⚡ Aislar respuestas y restauración por conversación.** Prioridad alta.
+  Carrera identificada por código, pendiente de reproducción: `app.js:298/335` reemplaza el
+  historial global tras un fetch; `screens-core.js:701` agrega respuestas al mismo historial
+  aunque el usuario haya cambiado de sesión. El polling también restaura mensajes durante envíos.
+  Capturar la sesión de cada operación y aplicar resultados solo al destino correspondiente;
+  manejar respuestas obsoletas, carga, cambio/borrado de sesión y mensajes en vuelo. Conservar
+  metadatos de tareas retenidas al restaurar, sin convertirlas en tareas ejecutándose.
+  **Gate:** respuestas demoradas deliberadamente, enviar en A y abrir B, abrir A/B rápidamente,
+  polling durante envío, recargar y borrar sesión durante petición. Nunca aparece respuesta de A
+  en B ni se pierden mensajes pendientes por un fetch viejo. Test de carrera + navegador real.
+
+- [ ] **R.5 — 🧠 Persistencia coherente de turno, run y fallos de chat.** Prioridad alta.
+  Confirmado por código: `logChatRun()` silencia errores, mientras `appendChatExchange()` usa una
+  transacción separada; Ollama persiste mensajes pero omite el run (`chat.ts:1096`). No existe
+  garantía conjunta de conversación y evidencia. Definir identidad de turno/run y comportamiento
+  ante fallo/reintento; persistir evidencia de fallos y estados incompletos sin inventar respuestas.
+  La transacción debe cubrir escrituras locales relacionadas, nunca mantener un lock durante
+  la llamada al proveedor. Cubrir todos los transportes soportados y preservar datos existentes.
+  **Gate:** inyección de fallo entre escrituras, respuesta fallida, reintento duplicado, reinicio,
+  sesión general y proyecto; asociación inequívoca turno/run, ausencia de éxito silencioso sin
+  evidencia y tratamiento explícito de fallos. Tests + dashboard/navegador real y consulta SQLite.
+
+- [ ] **R.6 — ⚡ Costo del chat separado de la etiqueta visual del modelo.** Prioridad media.
+  Reproducido: `calcCost('claude-sonnet-5 via Claude Code CLI', ...)` devuelve cero. El caller
+  pasa `resultLabel` a `logChatRun()` y descarta `result.usd` disponible en el executor.
+  Persistir identificador canónico y costo reportado cuando exista, conservando el label como
+  presentación; distinguir costo reportado/estimado/desconocido y cero real. Evitar que etiquetas
+  no reconocidas produzcan importes con apariencia de medición válida. Coordinar con R.5.
+  **Gate:** costo CLI reportado se conserva; label/effort no alteran el cálculo; modelo desconocido
+  no se presenta como gratuito. Verificar DB y consumidor de costos, sin rediseñar toda la UI.
+
+- [ ] **R.7 — 🧠 Escritura atómica y coordinación entre procesos para tasks.yaml.** Prioridad alta.
+  Riesgo identificado, pendiente de reproducir: `loader.ts:25` comprueba un hash opcional y luego
+  sobrescribe el archivo directamente; `tasks.ts:260` guarda antes del lock Git. Dos procesos
+  pueden perder actualizaciones y una interrupción puede dejar un YAML incompleto. Diseñar
+  exclusión/read-modify-write y reemplazo atómico con recuperación, cubriendo todos los writers;
+  mantener tasks.yaml como fuente de verdad. No migrar la cola a SQLite dentro de este ítem.
+  **Gate:** dos procesos actualizan tareas distintas sin pérdida; conflicto sobre una misma tarea
+  se resuelve o rechaza explícitamente; interrupción en escritura conserva un documento válido;
+  recuperación de lock y compatibilidad portable verificadas. Tests con procesos reales aislados.
+
+- [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
+  Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
+  tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;
+  incluir continuidad del historial hacia CLI, no solo su presencia en la pantalla. Repetir sobre
+  un proyecto externo de prueba, declarar transporte/configuración y registrar resultados por
+  intento. La utilidad debe contrastarse además con una tarea real de Carlos: resultado utilizado,
+  intervención necesaria y bloqueos, no solo número de tests.
+  **Corrección documental necesaria:** I.4 conserva abajo su cierre histórico del 2026-09-05,
+  pero su evidencia declara «sin navegador/browser interactivo». No acredita el gate visual
+  exigido por el protocolo. Su aceptación integral queda pendiente de este bloque; el `[x]`
+  histórico no desbloquea por sí solo H.9.4. Adjuntar aquí evidencia nueva sin borrar el historial.
+  **Gate:** navegador real y backend/persistencia observados; suite exacta de CI verde; pruebas
+  negativas de privacidad y QA; informe de límites restantes. Cuando use home temporal con runs
+  reales, ejecutar el wrapper gate:evidence y verificar conservación de la evidencia pertinente.
+
+**Mantenibilidad (observación transversal):** en la revisión, cli.ts tenía 2923 líneas,
+harness.ts 1203 y chat.ts 1237. La concentración de responsabilidades merece atención, pero
+el tamaño no demuestra un bug. Extraer únicamente responsabilidades necesarias para los ítems
+anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conteo de líneas.
+
 ## BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)
 
 > **Decisión de Carlos (2026-09-01):** este bloque va **primero**. Los ítems `UI.4`–`UI.7`
@@ -1352,7 +1513,85 @@ catálogo real, no se toca).
   tiene `result` no vacío y la lista de archivos leídos. Bajar el servidor al terminar
   ([[feedback-siempre-cerrar-servidor]]).
 
-- [x] **H.9.2 — 🧠 La frontera de lectura es una capability declarada por CLI, verificada, no un prompt.** (cerrado 2026-09-04, backend)
+- [x] **H.9.2 — 🧠 La frontera de lectura es una capability declarada por CLI, verificada, no un prompt.** (reabierto y cerrado de nuevo 2026-09-06)
+  **REABIERTO 2026-09-06.** Se cerró el 2026-09-04 declarando una frontera que **no funciona en
+  ninguna de sus dos direcciones**. Verificado con 9 sondas contra el binario real (no asumido, no
+  inferido de la doc), a raíz de la auditoría del Bloque R (R.2). Ver `## Bloque R` §R.2-bis abajo
+  para la tabla completa. Resumen del fallo:
+  - `permissions.deny: ["Read(//*)"]` —lo que escribe hoy `provisionCliConfigHome()`— **bloquea
+    todo, incluido el propio proyecto**: un `Read` de un archivo bajo `--add-dir` devuelve *"File
+    is in a directory that is denied by your permission settings"*. El chat de proyecto con Claude
+    no puede leer **ni un solo archivo**. La feature nunca funcionó.
+  - Sin ese deny, **no hay frontera**: el modelo esquiva `--allowedTools 'Read,Glob,Grep'` usando
+    `Bash` (`cat`) y lee cualquier path del filesystem con `is_error:false`. `--allowedTools` es
+    una lista de *auto-aprobación*, no una lista blanca excluyente.
+  - `deny` global + `allow` del proyecto **no** sirve: deny gana sobre allow, siempre.
+  - Un hook `PreToolUse` propio **falla abierto**: con el script ausente, la lectura externa pasó
+    y devolvió el contenido. Un control que se desactiva solo no es una frontera (INS-2026-014
+    llevado a su lectura estricta: tampoco puede ser un hook fail-open).
+
+  Causa raíz del cierre indebido: el gate verificó que el archivo de settings **se escribiera**,
+  nunca que la frontera **funcionara** — y su gate visual quedó explícitamente congelado. Es
+  exactamente el patrón de la regla cero de `CLAUDE.md` (config entregada sin verificar en vivo
+  que hace lo que dice). El `[x]` original y su evidencia se conservan abajo como historial.
+
+  **Mecanismo correcto, verificado 2026-09-06: `--restricted` (requiere Claude Code ≥ 2.1.248).**
+  Confina las file tools a los working dirs (`--add-dir` incluido), quita Bash/PowerShell/REPL/
+  WebFetch salvo que `--tools` los nombre, **ignora los settings de user/project/local** y rechaza
+  `bypassPermissions`. Pasó los 5 fixtures adversariales (dentro ✅ lee; afuera, symlink→afuera,
+  directorio con prefijo similar y Grep recursivo ✅ bloqueados, sin filtrar el fixture secreto).
+  No tiene modo fail-open porque no hay script externo que pueda faltar: el modo de fallo pasa a
+  ser *"¿se pasó el flag?"*, que es código propio y se fija con un test determinista.
+
+  **Alcance del reabierto:** (1) `buildClaudeChatArgs()` agrega `--restricted --strict-mcp-config`
+  y cambia `--allowedTools` → `--tools`; (2) `provisionCliConfigHome()` deja de escribir el deny
+  que bloqueaba el proyecto; (3) `readBoundary` pasa a ser una capability **verificada contra el
+  binario** (soporta `--restricted` o no) y el chat de proyecto se **rechaza** si no la soporta —
+  fail-closed, nunca correr sin frontera; (4) gate en vivo con los 5 fixtures + el caso "binario
+  viejo → rechaza".
+
+  **Implementación (2026-09-06):**
+  - `external.ts` — `CLAUDE_CHAT_BOUNDARY_FLAGS = ['--restricted','--strict-mcp-config']`
+    exportado y aplicado en `buildClaudeChatArgs()`; `--allowedTools` → `--tools`. El comentario
+    del bloque documenta las 3 configuraciones descartadas **con su evidencia**, para que nadie
+    reintroduzca el `deny` por costumbre.
+  - `cli-registry.ts` — `CliReadBoundary.project-root` ahora declara `mechanism`, y
+    `readBoundaryFor()` devuelve la frontera **efectiva**: degrada a `none` si el binario no
+    sostiene el mecanismo. Sonda inyectable (`CliCapabilityProbe`), mismo patrón que
+    `ToolchainProbe` — ningún test spawnea el binario del host.
+  - `handlers/chat.ts` — `projectChatReadBoundaryError()` consulta la frontera efectiva, no la
+    declarada, y cita el motivo concreto del CLI.
+
+  **Bug propio encontrado por el gate en vivo y corregido en el mismo turno:** el cache de
+  capability ignoraba la sonda inyectada, así que simular un binario viejo devolvía
+  `project-root` (la degradación fail-closed quedaba desactivada en silencio). Ahora solo se
+  cachea el resultado de la sonda real. Test dedicado que lo fija.
+
+  **Tests actualizados, no "arreglados para que pasen"** — dos codificaban el comportamiento roto:
+  `cli-registry.test.ts` exigía `permissions.deny:['Read(//*)']` (comprobaba que el archivo se
+  ESCRIBIERA, nunca que la frontera FUNCIONARA — así se cerró roto el ítem) y
+  `chat-read-boundary.test.ts` llamaba sin sonda, lo que ahora spawnearía el binario del host
+  (el mismo defecto de [[reference-ci-host-environment-drift]]). Suite: **1285 pass / 0 fail**,
+  functions 75.04% / lines 63.68% (mínimos 69/57).
+
+  **Gate en vivo (2026-09-06):** ejecutado con `runClaudeChat()` **del repo** —no flags escritos a
+  mano— contra el binario real, sobre un proyecto temporal con 5 fixtures adversariales:
+  ```
+  capability efectiva: {"kind":"project-root","mechanism":"restricted-flag"}
+  ¿la respuesta filtró algún secreto de afuera? ✅ NO
+  respuesta: "Solo pude leer dentro.ts (dentro del working directory); las otras 4
+             operaciones fueron bloqueadas por la restricción --restricted"
+  ```
+  Bloqueados: archivo externo, **symlink desde dentro apuntando afuera**, **directorio con prefijo
+  similar** (`…/r2-probe-evil` vs `…/r2-probe`) y **Grep recursivo hacia afuera**. Ninguno filtró
+  contenido. Caso "binario viejo" verificado por sonda simulada → `none` con motivo accionable.
+
+  **Hueco que este gate dejó a la vista, y que NO se tapa acá:** `filesRead` reportó **4 rutas**
+  cuando solo **1** se leyó de verdad — las otras 3 fueron bloqueadas. Es R.2 confirmado en vivo:
+  `claudeEventToReadPaths()` registra la *solicitud*, no el *resultado*. **H.9.4 no puede afirmar
+  aislamiento con este campo tal como está**; se resuelve en R.2 (correlación por `tool_use_id`).
+
+  <details><summary>Cierre original del 2026-09-04 (historial — su evidencia no acreditaba la frontera)</summary>
   No una lista de agentes permitidos — eso ya se descartó con evidencia
   ([[feedback-no-restriccion-por-identidad-agente]]), y tampoco una `findXBinary()` por CLI
   ([[feedback-deteccion-generica-no-por-cli]]). Cada entrada de `src/run/executors/cli-registry.ts`
@@ -1425,6 +1664,7 @@ catálogo real, no se toca).
   `bun run test:coverage` → **1265 pass / 0 fail / 3055 expects; functions 75.02%; lines 63.75%**
   (mínimos 69%/57%). Sin cambios en `src/dashboard/public/` en este commit → no aplica gate en vivo
   de navegador ([[feedback-verificar-gates-en-vivo]] sigue vigente para cuando I.5 sí lo toque).
+  </details>
 
 - [x] **H.9.3 — ⚡ Aislamiento de config-home como defensa en profundidad (tercera capa, no primera).** (cerrado 2026-09-04)
   **Corrección de dependencia (2026-09-03):** la redacción original decía "Depende de H.9.2" y
@@ -1451,6 +1691,9 @@ catálogo real, no se toca).
   cualquier archivo bajo `~/.claude`, `~/.codex` o `~/Documents/MemoriesMD`.
 
 - [ ] **H.9.4 — 🔍 El gate que lo vuelve real: el chat intenta leer el vault y no puede.**
+  **Dependencias actualizadas (auditoría 2026-09-06): R.2 y R.5.** El campo `files_read`
+  entregado por I.4 registra solicitudes sin confirmar resultados; todavía no es prueba de
+  lecturas efectivas. Ver Bloque R para corrección y evidencia requerida.
   Sin este test, alguien cambia un flag en dos semanas y nadie se entera — literalmente lo que
   pasó con el `pre-commit`. Un gate ejecutable, con el dashboard real corriendo
   ([[feedback-verificar-gates-en-vivo]]), que para cada CLI con frontera declarada:

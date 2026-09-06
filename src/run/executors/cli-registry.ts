@@ -20,7 +20,12 @@ import { mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
 export type CliReadBoundary =
-  | { kind: 'project-root' }
+  // H.9.2 (reabierto 2026-09-06) — `project-root` ya no es una promesa del
+  // registro: declara QUÉ mecanismo la sostiene y ese mecanismo se verifica
+  // contra el binario instalado antes de spawnear (`readBoundaryFor()` abajo).
+  // El cierre anterior daba por buena la frontera por estar escrita acá; las
+  // sondas de PLAN.md § R.2-bis mostraron que no existía en ninguna dirección.
+  | { kind: 'project-root'; mechanism: 'restricted-flag' }
   | { kind: 'none'; reason: string }
 
 export interface CliDefinition {
@@ -56,7 +61,7 @@ Do not load or reference user-level configuration, personal instructions, or pri
 export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'claude', binary: 'claude', label: 'Claude Code', icon: 'claude',
-    readBoundary: { kind: 'project-root' },
+    readBoundary: { kind: 'project-root', mechanism: 'restricted-flag' },
     configHome: { directory: 'claude', instructionFile: 'CLAUDE.md', settingsFile: 'settings.json' },
   },
   {
@@ -83,13 +88,94 @@ export function provisionCliConfigHome(projectRoot: string, cliId: CliDefinition
     ? join(path, definition.configHome.settingsFile)
     : undefined
   if (settingsPath) {
-    const settings = definition.readBoundary.kind === 'project-root'
-      ? { permissions: { deny: ['Read(//*)'] } }
-      : {}
-    writeFileSync(settingsPath, `${JSON.stringify(settings)}\n`, 'utf8')
+    // H.9.2 (reabierto 2026-09-06) — acá vivía `permissions.deny: ['Read(//*)']`,
+    // que NO acotaba la lectura al proyecto: bloqueaba TODO, incluido el propio
+    // root (sonda 1, PLAN.md § R.2-bis) — el chat de proyecto no podía leer ni un
+    // archivo. La frontera real la da `--restricted` en el spawn
+    // (`CLAUDE_CHAT_BOUNDARY_FLAGS`, external.ts), no un patrón de permisos: no
+    // existe un `deny` que exprese "todo salvo X" (deny gana sobre allow siempre).
+    // Este settings queda deliberadamente vacío — su función es aislar el config
+    // home (H.9.3), no fijar permisos.
+    writeFileSync(settingsPath, `${JSON.stringify({})}\n`, 'utf8')
   }
 
   return { path, settingsPath, envVar: definition.configHome.envVar }
+}
+
+/**
+ * H.9.2 (reabierto 2026-09-06) — la frontera declarada en KNOWN_CLIS es una
+ * INTENCIÓN; esto verifica si el binario instalado la sostiene de verdad.
+ *
+ * Motivo concreto, medido en la máquina de Carlos: convivían dos instalaciones
+ * de Claude Code (2.1.234 en `~/.local/bin` sombreando a 2.1.263 de npm) y solo
+ * una soporta `--restricted`. Asumir la capability por "el CLI se llama claude"
+ * habría corrido el chat de proyecto SIN frontera y sin decirlo — exactamente el
+ * fallo que reabrió este ítem.
+ *
+ * Sonda inyectable, nunca un spawn directo dentro del test: es la misma regla que
+ * `ToolchainProbe` (`detect/roadmap-profile.ts`), impuesta tras el incidente de
+ * CI del 2026-08-01 (un test que afirmaba sobre el PATH del host).
+ */
+export type CliCapabilityProbe = (binary: string, args: string[]) => string | null
+
+export const spawnCliCapabilityProbe: CliCapabilityProbe = (binary, args) => {
+  try {
+    const proc = Bun.spawnSync([binary, ...args])
+    return proc.exitCode === 0 ? proc.stdout.toString() : null
+  } catch {
+    return null /* binario ausente o no ejecutable — se trata como "sin capability" */
+  }
+}
+
+/** Cache por binario: `--help` es barato pero está en el camino caliente del chat. */
+const capabilityCache = new Map<string, boolean>()
+
+/** Solo para tests — evita que una entrada cacheada filtre entre casos. */
+export function _resetCliCapabilityCache(): void {
+  capabilityCache.clear()
+}
+
+export function supportsRestrictedMode(
+  binary: string,
+  probe: CliCapabilityProbe = spawnCliCapabilityProbe,
+): boolean {
+  // Solo se cachea el resultado de la sonda REAL. Cachear también las inyectadas
+  // hacía que una sonda distinta devolviera el valor de la anterior — detectado
+  // en el gate en vivo del 2026-09-06, donde simular un binario viejo devolvió
+  // `project-root` porque la llamada anterior ya había cacheado `true`. Un cache
+  // que ignora su entrada es peor que no tener cache: miente en silencio.
+  const useCache = probe === spawnCliCapabilityProbe
+  if (useCache) {
+    const cached = capabilityCache.get(binary)
+    if (cached !== undefined) return cached
+  }
+  const help = probe(binary, ['--help'])
+  // Se busca el flag en su forma declarada, no una subcadena suelta: `--restricted`
+  // aparece en la línea de opciones seguida de espacios y su descripción.
+  const supported = help !== null && /^\s*--restricted(\s|$)/m.test(help)
+  if (useCache) capabilityCache.set(binary, supported)
+  return supported
+}
+
+/**
+ * Frontera EFECTIVA de un CLI: la declarada, degradada a `none` si el binario
+ * instalado no sostiene su mecanismo. Fail-closed por diseño — quien consuma
+ * esto y reciba `none` debe rechazar el chat de proyecto, nunca correrlo igual.
+ */
+export function readBoundaryFor(
+  definition: CliDefinition,
+  probe: CliCapabilityProbe = spawnCliCapabilityProbe,
+): CliReadBoundary {
+  if (definition.readBoundary.kind !== 'project-root') return definition.readBoundary
+  if (definition.readBoundary.mechanism === 'restricted-flag') {
+    if (!supportsRestrictedMode(definition.binary, probe)) {
+      return {
+        kind: 'none',
+        reason: `El binario \`${definition.binary}\` instalado no soporta \`--restricted\` (requiere Claude Code 2.1.248 o superior), que es lo que sostiene su frontera de lectura. Actualizá el CLI para habilitar el chat de proyecto.`,
+      }
+    }
+  }
+  return definition.readBoundary
 }
 
 export interface CliDetectionResult {
@@ -102,9 +188,15 @@ export interface CliDetectionResult {
   path: string | null
 }
 
-export function detectInstalledClis(): CliDetectionResult[] {
+export function detectInstalledClis(
+  probe: CliCapabilityProbe = spawnCliCapabilityProbe,
+): CliDetectionResult[] {
   return KNOWN_CLIS.map((def) => {
     const path = Bun.which(def.binary)
-    return { id: def.id, label: def.label, binary: def.binary, icon: def.icon, readBoundary: def.readBoundary, installed: !!path, path }
+    // H.9.2 — se expone la frontera EFECTIVA (verificada contra el binario), no la
+    // declarada: si la UI mostrara `project-root` sobre un binario que no la
+    // sostiene, estaría prometiendo un aislamiento inexistente.
+    const readBoundary = path ? readBoundaryFor(def, probe) : def.readBoundary
+    return { id: def.id, label: def.label, binary: def.binary, icon: def.icon, readBoundary, installed: !!path, path }
   })
 }

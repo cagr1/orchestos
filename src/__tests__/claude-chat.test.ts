@@ -10,7 +10,12 @@
  * overrideados, sin depender del binario real ni de red).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { buildClaudeChatArgs, ExecutorExternalError, runClaudeChat } from '../run/executors/external.ts'
+import {
+  buildClaudeChatArgs,
+  CLAUDE_CHAT_BOUNDARY_FLAGS,
+  ExecutorExternalError,
+  runClaudeChat,
+} from '../run/executors/external.ts'
 import { claudeEventToReadPaths } from '../run/executors/step-event.ts'
 
 const originalWhich = Bun.which
@@ -96,7 +101,7 @@ describe('runClaudeChat (CC.1)', () => {
     expect(args[addDir + 1]).toBe(process.cwd())
   })
 
-  it('nunca pide permisos de escritura — --allowedTools es solo lectura', async () => {
+  it('nunca pide permisos de escritura — --tools es solo lectura', async () => {
     const stdout = streamOf(
       assistantText('hola'),
       resultEvent({ total_cost_usd: 0.01, usage: { input_tokens: 10, output_tokens: 5 } }),
@@ -106,12 +111,37 @@ describe('runClaudeChat (CC.1)', () => {
     await runClaudeChat('/tmp/some-project', 'system prompt', 'hola', 5000)
 
     expect(spawnCalls).toHaveLength(1)
-    const idx = spawnCalls[0]!.cmd.indexOf('--allowedTools')
+    // H.9.2 (reabierto 2026-09-06) — antes se afirmaba sobre `--allowedTools`,
+    // que NO limita las herramientas disponibles sino las auto-aprobadas: con
+    // ese flag el modelo igual usó `Bash` (`cat`) y leyó un archivo externo
+    // (sonda 2, PLAN.md § R.2-bis). El flag que sí limita es `--tools`.
+    const idx = spawnCalls[0]!.cmd.indexOf('--tools')
     expect(idx).toBeGreaterThan(-1)
+    expect(spawnCalls[0]!.cmd).not.toContain('--allowedTools')
     const tools = spawnCalls[0]!.cmd[idx + 1]
     expect(tools).toBe('Read,Glob,Grep')
     expect(tools).not.toContain('Edit')
     expect(tools).not.toContain('Write')
+    expect(tools).not.toContain('Bash')
+  })
+
+  // H.9.2 — la frontera de lectura ES este par de flags. Si alguien los quita
+  // "porque no parecen hacer nada", el chat de proyecto vuelve a leer cualquier
+  // archivo del filesystem en silencio — que es exactamente cómo se cerró este
+  // ítem roto la primera vez. Este test existe para que ese cambio no compile
+  // limpio: la regla se hace cumplir mecánicamente, no por prosa en un comentario.
+  it('el spawn del chat SIEMPRE lleva los flags que constituyen la frontera', async () => {
+    overrideBunSpawn(
+      makeMockProc(streamOf(assistantText('ok'), resultEvent({ total_cost_usd: 0, usage: {} }))),
+    )
+    await runClaudeChat('/tmp/some-project', 'system prompt', 'hola', 5000)
+
+    for (const flag of CLAUDE_CHAT_BOUNDARY_FLAGS) {
+      expect(spawnCalls[0]!.cmd).toContain(flag)
+    }
+    // Y no debe quedar ningún `permissions.deny` implícito reintroducido por
+    // costumbre: la frontera es el flag, no un patrón de permisos (sondas 1/4/7).
+    expect(spawnCalls[0]!.cmd.join(' ')).not.toContain('Read(//')
   })
 
   it('corre en el proyecto real (cwd), sin exigir worktree', async () => {

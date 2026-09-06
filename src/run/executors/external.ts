@@ -264,6 +264,29 @@ async function runClaudeCode(
 export const CLAUDE_CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 export type ClaudeCliEffort = (typeof CLAUDE_CLI_EFFORTS)[number]
 
+/**
+ * H.9.2 (reabierto 2026-09-06) — flags que CONSTITUYEN la frontera de lectura.
+ * No son preferencias: sin ellos el chat de proyecto lee cualquier archivo del
+ * filesystem. Verificado con 9 sondas contra el binario real (PLAN.md § R.2-bis):
+ *
+ *  - `--restricted` (Claude Code ≥ 2.1.248) confina las file tools a los working
+ *    dirs (cwd + `--add-dir`), quita Bash/PowerShell/REPL/WebFetch salvo que
+ *    `--tools` los nombre, IGNORA los settings de user/project/local y rechaza
+ *    `bypassPermissions`. Es el único mecanismo que resistió los 5 fixtures
+ *    adversariales (afuera, symlink→afuera, prefijo similar, Grep recursivo).
+ *  - `--tools` (NO `--allowedTools`) limita las herramientas DISPONIBLES.
+ *    `--allowedTools` es solo una lista de auto-aprobación: con ella el modelo
+ *    igual usó `Bash` (`cat`) y leyó un archivo externo con `is_error:false`.
+ *  - `--strict-mcp-config` — `--tools` solo cubre built-ins; sin esto un servidor
+ *    MCP heredado podría reintroducir capacidad de lectura.
+ *
+ * Lo que NO se puede usar, con evidencia (no reintroducir sin releer PLAN.md):
+ *  - `permissions.deny:["Read(//*)"]` bloquea TODO, incluido el propio proyecto.
+ *  - `deny` global + `allow` del root: deny gana sobre allow, siempre.
+ *  - un hook `PreToolUse` propio: falla ABIERTO si el script no existe.
+ */
+export const CLAUDE_CHAT_BOUNDARY_FLAGS = ['--restricted', '--strict-mcp-config'] as const
+
 export function buildClaudeChatArgs(
   systemPrompt: string,
   model?: string,
@@ -279,7 +302,8 @@ export function buildClaudeChatArgs(
     '--verbose',
     '--append-system-prompt',
     systemPrompt,
-    '--allowedTools',
+    ...CLAUDE_CHAT_BOUNDARY_FLAGS,
+    '--tools',
     'Read,Glob,Grep',
     '--settings',
     settingsPath,

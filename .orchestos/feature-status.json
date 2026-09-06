@@ -4,6 +4,78 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "R.1",
+      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Recuperar creación de tareas desde sesiones de proyecto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "R.2",
+      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Auditoría que distingue lectura solicitada, ejecutada, rechazada y desconocida",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "R.3",
+      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "QA exige correspondencia uno a uno con los criterios originales",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "R.4",
+      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Aislar respuestas y restauración por conversación",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "R.5",
+      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Persistencia coherente de turno, run y fallos de chat",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "R.6",
+      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Costo del chat separado de la etiqueta visual del modelo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "R.7",
+      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Escritura atómica y coordinación entre procesos para tasks.yaml",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "R.8",
+      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Validación independiente del recorrido útil y corrección de evidencia de cierre",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "H.1.1",
       "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
       "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
@@ -199,7 +271,7 @@
       "delegation": "🧠",
       "title": "La frontera de lectura es una capability declarada por CLI, verificada, no un prompt",
       "status": "done",
-      "closedDate": "2026-09-04"
+      "closedDate": null
     },
     {
       "id": "H.9.3",

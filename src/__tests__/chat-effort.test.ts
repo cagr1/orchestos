@@ -22,7 +22,10 @@ describe('handleApiChat — BACK.3 reasoning effort', () => {
     const res = await handleApiChat(chatRequest({ message: 'hi', history: [], effort: 'turbo' }))
     expect(res.status).toBe(400)
     const data = (await res.json()) as any
-    expect(data.error).toMatch(/effort must be one of|no tiene una frontera de lectura verificada/)
+    // H.9.2 (reabierto 2026-09-06) — el mensaje de frontera ahora cita el motivo
+    // concreto del CLI en vez de un genérico ("...: <reason>"), así que se
+    // afirma sobre la parte estable del texto.
+    expect(data.error).toMatch(/effort must be one of|no está disponible para chat de proyecto/)
   })
 
   it('accepts the 3 valid effort values without 400 (no model check needed at validation time)', async () => {

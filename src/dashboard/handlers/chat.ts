@@ -42,7 +42,11 @@ import {
 } from '../../router/model-catalog.ts'
 import { calcCost } from '../../router/pricing.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
-import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
+import {
+  type CliCapabilityProbe,
+  KNOWN_CLIS,
+  readBoundaryFor,
+} from '../../run/executors/cli-registry.ts'
 import { PathPolicyError, resolveProjectPath } from '../../run/path-policy.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
 import { untrustedContent } from '../../security/untrusted-content.ts'
@@ -69,10 +73,23 @@ type ReasoningEffort = (typeof VALID_EFFORTS)[number]
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS = 30 * 60 * 1000
 
-export function projectChatReadBoundaryError(agent: string | undefined): string | null {
+/**
+ * H.9.2 (reabierto 2026-09-06) — antes leía `cli.readBoundary` DECLARADO, así que
+ * bastaba con que el registro dijera `project-root` para dejar pasar el chat. Con
+ * dos instalaciones de Claude Code conviviendo (2.1.234 sin `--restricted` y
+ * 2.1.263 con él), eso habría corrido el chat de proyecto sin frontera y en
+ * silencio. Ahora consulta la frontera EFECTIVA, verificada contra el binario.
+ * Fail-closed: cualquier resultado que no sea `project-root` bloquea.
+ */
+export function projectChatReadBoundaryError(
+  agent: string | undefined,
+  probe?: CliCapabilityProbe,
+): string | null {
   const cli = KNOWN_CLIS.find((definition) => definition.id === agent)
-  if (!cli || cli.readBoundary.kind === 'project-root') return null
-  return `CLI "${cli.label}" no está disponible para chat de proyecto: no tiene una frontera de lectura verificada.`
+  if (!cli) return null
+  const effective = readBoundaryFor(cli, probe)
+  if (effective.kind === 'project-root') return null
+  return `CLI "${cli.label}" no está disponible para chat de proyecto: ${effective.reason}`
 }
 
 interface FileEntry {
