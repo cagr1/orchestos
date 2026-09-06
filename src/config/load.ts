@@ -17,8 +17,8 @@ import {
   type AgentChoice,
   DEFAULT_CONFIG,
   type OrcheConfig,
-  type TaskAgentRule,
   parseRoleValue,
+  type TaskAgentRule,
 } from './schema.ts'
 
 export const AGENT_CHOICES: AgentChoice[] = ['local', 'claude', 'opencode', 'codex', 'api']

@@ -11,6 +11,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { _resetCliCapabilityCache } from '../../run/executors/cli-registry.ts'
 import { projectChatReadBoundaryError } from '../handlers/chat.ts'
+import { handleApiSystemExecutorModes } from '../handlers/tasks.ts'
 
 // Fragmentos textuales del `--help` real (2.1.263 lo trae, 2.1.234 no).
 const helpConRestricted = '  --restricted     Restricted mode: removes the built-in tools\n'
@@ -19,6 +20,27 @@ const helpSinRestricted = '  --settings <file-or-json>   Path to a settings JSON
 beforeEach(() => _resetCliCapabilityCache())
 
 describe('H.9.2 — frontera de lectura del chat', () => {
+  test('executor-modes publica none si el binario instalado no sostiene la frontera', async () => {
+    const which = Bun.which
+    const spawnSync = Bun.spawnSync
+    const fetch = globalThis.fetch
+    try {
+      ;(Bun as any).which = (name: string) =>
+        name === 'claude' || name === process.execPath ? process.execPath : null
+      ;(Bun as any).spawnSync = () => ({ exitCode: 0, stdout: Buffer.from('  --settings') })
+      globalThis.fetch = (async () =>
+        new Response('{}', { status: 503 })) as unknown as typeof fetch
+      const payload = await (await handleApiSystemExecutorModes()).json()
+      expect(payload.modes.find((mode: { id: string }) => mode.id === 'claude')).toMatchObject({
+        detected: true,
+        readBoundary: 'none',
+      })
+    } finally {
+      Bun.which = which
+      Bun.spawnSync = spawnSync
+      globalThis.fetch = fetch
+    }
+  })
   test('permite Claude cuando el binario instalado sostiene la frontera', () => {
     expect(projectChatReadBoundaryError('claude', () => helpConRestricted)).toBeNull()
   })

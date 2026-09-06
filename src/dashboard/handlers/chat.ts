@@ -41,12 +41,12 @@ import {
   supportsVisionInput,
 } from '../../router/model-catalog.ts'
 import { calcCost } from '../../router/pricing.ts'
-import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
 import {
   type CliCapabilityProbe,
   KNOWN_CLIS,
   readBoundaryFor,
 } from '../../run/executors/cli-registry.ts'
+import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
 import { PathPolicyError, resolveProjectPath } from '../../run/path-policy.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
 import { untrustedContent } from '../../security/untrusted-content.ts'
@@ -702,8 +702,11 @@ async function handleApiChat(
   // se ejecuta directo (igual que D.7 siempre hizo). Si toca archivos que YA
   // EXISTEN en el repo, se crea pero se retiene sin correr — el frontend
   // muestra una línea inline con [Ver]/[Cancelar] en vez de auto-ejecutar.
-  let autoTask: { id: string } | { id: string; held: true; existingFiles: string[] } | { error: string } | null =
-    null
+  let autoTask:
+    | { id: string }
+    | { id: string; held: true; existingFiles: string[] }
+    | { error: string }
+    | null = null
   if (
     taskSuggestion?.isTask &&
     hasProjectContext &&

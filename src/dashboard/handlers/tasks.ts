@@ -15,7 +15,7 @@ import {
   resolveCascadeTier,
   resolveProjectAgentRule,
 } from '../../router/engine-cascade.ts'
-import { detectInstalledClis, KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
+import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { withGitLock } from '../../run/git-lock.ts'
 import { git } from '../../run/sandbox.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
@@ -40,28 +40,34 @@ async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Respo
   // (`claude`/`opencode`/`codex`, sin el prefijo `cli-` redundante).
   const detectedClis = detectInstalledClis()
   const cliById = new Map(detectedClis.map((cli) => [cli.id, cli]))
-  const modes: { id: AgentChoice; label: string; detected: boolean; path: string | null; readBoundary?: string }[] = [
+  const modes: {
+    id: AgentChoice
+    label: string
+    detected: boolean
+    path: string | null
+    readBoundary?: string
+  }[] = [
     { id: 'local', label: 'Local (Ollama)', detected: localDetected, path: null },
     {
       id: 'claude',
       label: cliById.get('claude')?.label ?? 'Claude Code',
       detected: cliById.get('claude')?.installed ?? false,
       path: cliById.get('claude')?.path ?? null,
-      readBoundary: KNOWN_CLIS.find((cli) => cli.id === 'claude')?.readBoundary.kind,
+      readBoundary: cliById.get('claude')?.readBoundary.kind,
     },
     {
       id: 'opencode',
       label: cliById.get('opencode')?.label ?? 'opencode',
       detected: cliById.get('opencode')?.installed ?? false,
       path: cliById.get('opencode')?.path ?? null,
-      readBoundary: KNOWN_CLIS.find((cli) => cli.id === 'opencode')?.readBoundary.kind,
+      readBoundary: cliById.get('opencode')?.readBoundary.kind,
     },
     {
       id: 'codex',
       label: cliById.get('codex')?.label ?? 'Codex',
       detected: cliById.get('codex')?.installed ?? false,
       path: cliById.get('codex')?.path ?? null,
-      readBoundary: KNOWN_CLIS.find((cli) => cli.id === 'codex')?.readBoundary.kind,
+      readBoundary: cliById.get('codex')?.readBoundary.kind,
     },
     { id: 'api', label: 'OpenRouter API', detected: true, path: null },
   ]
@@ -227,7 +233,10 @@ function createTaskRecord(
   const effortLevels = engine
     ? CLI_EFFORT_LEVELS[engine as keyof typeof CLI_EFFORT_LEVELS]
     : undefined
-  if (cliEffortRaw && (!effortLevels || !(effortLevels as readonly string[]).includes(cliEffortRaw)))
+  if (
+    cliEffortRaw &&
+    (!effortLevels || !(effortLevels as readonly string[]).includes(cliEffortRaw))
+  )
     return {
       error: effortLevels
         ? `unknown cli_effort '${cliEffortRaw}' for engine '${engine}' — allowed: ${effortLevels.join(', ')}`

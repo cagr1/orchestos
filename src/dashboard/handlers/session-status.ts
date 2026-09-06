@@ -7,7 +7,5 @@ import { jsonResponse } from '../http.ts'
  */
 export async function handleApiSessionStatus(root: string): Promise<Response> {
   const clis = await readActiveSessionStatuses({ projectRoot: root })
-  return jsonResponse(
-    { available: clis.some((cli) => cli.available), clis },
-  )
+  return jsonResponse({ available: clis.some((cli) => cli.available), clis })
 }

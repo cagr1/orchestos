@@ -109,7 +109,11 @@ describe('context-budget hook', () => {
       stderr: 'pipe',
     })
 
-    expect({ exitCode: result.exitCode, stdout: result.stdout.toString(), stderr: result.stderr.toString() }).toEqual({
+    expect({
+      exitCode: result.exitCode,
+      stdout: result.stdout.toString(),
+      stderr: result.stderr.toString(),
+    }).toEqual({
       exitCode: 0,
       stdout: '',
       stderr: '',

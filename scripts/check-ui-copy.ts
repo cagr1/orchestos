@@ -14,7 +14,8 @@ export interface UiCopyCheckDependencies {
 
 function findLocaleObject(source: string, locale: string): string {
   const match = new RegExp(`\\b${locale}\\s*:\\s*\\{`).exec(source)
-  if (!match || match.index === undefined) throw new Error(`no se encontró el locale ${locale} en i18n.js`)
+  if (!match || match.index === undefined)
+    throw new Error(`no se encontró el locale ${locale} en i18n.js`)
   const start = match.index + match[0].length - 1
   let depth = 0
   let quote = ''
@@ -86,7 +87,10 @@ export function main(
     console.error(names.stderr.trim())
     return 1
   }
-  const paths = names.stdout.split('\n').map((value) => value.trim()).filter(Boolean)
+  const paths = names.stdout
+    .split('\n')
+    .map((value) => value.trim())
+    .filter(Boolean)
   if (!force && !requiresUiCopyBudget(paths)) {
     console.log('✓ UI copy budget: no aplica al diff staged')
     return 0

@@ -194,10 +194,9 @@ export const codexAdapter: ContextAdapter = {
  * usuario. La salida se limita a la primera respuesta válida y el timeout mata
  * el proceso para que el dashboard no quede esperando a un daemon persistente.
  */
-export async function readCodexRateLimitsLive(options: {
-  binary?: string
-  timeoutMs?: number
-} = {}): Promise<RateLimitWindow[]> {
+export async function readCodexRateLimitsLive(
+  options: { binary?: string; timeoutMs?: number } = {},
+): Promise<RateLimitWindow[]> {
   const binary = options.binary ?? 'codex'
   const timeoutMs = options.timeoutMs ?? 1_500
   let processHandle: ReturnType<typeof Bun.spawn> | null = null
@@ -211,20 +210,28 @@ export async function readCodexRateLimitsLive(options: {
       JSON.stringify({ jsonrpc: '2.0', id, method, ...(params ? { params } : {}) }) + '\n'
     const stdin = processHandle.stdin as Bun.FileSink
     const stdout = processHandle.stdout as ReadableStream<Uint8Array>
-    await stdin.write(request(1, 'initialize', {
-      clientInfo: { name: 'orchestos-dashboard', title: 'OrchestOS', version: '0.12.0' },
-      capabilities: {},
-    }))
+    await stdin.write(
+      request(1, 'initialize', {
+        clientInfo: { name: 'orchestos-dashboard', title: 'OrchestOS', version: '0.12.0' },
+        capabilities: {},
+      }),
+    )
     await stdin.write(request(2, 'account/rateLimits/read'))
     stdin.end()
 
     const output = await Promise.race([
       new Response(stdout).text(),
-      new Promise<string>((_, reject) => setTimeout(() => reject(new Error('codex timeout')), timeoutMs)),
+      new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error('codex timeout')), timeoutMs),
+      ),
     ])
     for (const line of output.split('\n')) {
       let parsed: unknown
-      try { parsed = JSON.parse(line) } catch { continue }
+      try {
+        parsed = JSON.parse(line)
+      } catch {
+        continue
+      }
       const result = objectAt(parsed, 'result')
       const limits = objectAt(result, 'rateLimits') ?? objectAt(result, 'rate_limits')
       if (!limits) continue
@@ -232,20 +239,26 @@ export async function readCodexRateLimitsLive(options: {
         const window = objectAt(limits, id)
         const usedPct = percentage(window?.usedPercent ?? window?.used_percent)
         if (!window || usedPct === null) return []
-        return [{
-          id,
-          usedPct,
-          remainingPct: 100 - usedPct,
-          windowMinutes: positiveNumber(window.windowDurationMins ?? window.window_minutes),
-          resetsAt: positiveNumber(window.resetsAt ?? window.resets_at),
-        }]
+        return [
+          {
+            id,
+            usedPct,
+            remainingPct: 100 - usedPct,
+            windowMinutes: positiveNumber(window.windowDurationMins ?? window.window_minutes),
+            resetsAt: positiveNumber(window.resetsAt ?? window.resets_at),
+          },
+        ]
       })
       if (windows.length > 0) return windows
     }
   } catch {
     return []
   } finally {
-    try { processHandle?.kill() } catch { /* proceso ya terminado */ }
+    try {
+      processHandle?.kill()
+    } catch {
+      /* proceso ya terminado */
+    }
   }
   return []
 }

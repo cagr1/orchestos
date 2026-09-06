@@ -44,8 +44,16 @@ taskAgentRules:
 `)
     const cfg = loadOrcheConfig(dir)
     expect(cfg.taskAgentRules).toEqual([
-      { match: { output: ['apps/api/**'], skill: undefined }, agent: 'codex', cli_effort: undefined },
-      { match: { output: undefined, skill: 'frontend-design' }, agent: 'claude', cli_effort: 'high' },
+      {
+        match: { output: ['apps/api/**'], skill: undefined },
+        agent: 'codex',
+        cli_effort: undefined,
+      },
+      {
+        match: { output: undefined, skill: 'frontend-design' },
+        agent: 'claude',
+        cli_effort: 'high',
+      },
     ])
   })
 
@@ -59,7 +67,13 @@ taskAgentRules:
     agent: claude
 `)
     const cfg = loadOrcheConfig(dir)
-    expect(cfg.taskAgentRules).toEqual([{ match: { output: undefined, skill: 'frontend-design' }, agent: 'claude', cli_effort: undefined }])
+    expect(cfg.taskAgentRules).toEqual([
+      {
+        match: { output: undefined, skill: 'frontend-design' },
+        agent: 'claude',
+        cli_effort: undefined,
+      },
+    ])
   })
 
   it('match vacío (ni output ni skill) → la regla se descarta', () => {

@@ -120,7 +120,9 @@ export function resolveProjectAgentRule(
   const byOutput = rules.find(
     (r) =>
       r.match.output?.length &&
-      task.output.some((path) => r.match.output!.some((pattern) => new Bun.Glob(pattern).match(path))),
+      task.output.some((path) =>
+        r.match.output!.some((pattern) => new Bun.Glob(pattern).match(path)),
+      ),
   )
   if (byOutput) return byOutput
   if (!task.skill) return undefined

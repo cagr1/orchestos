@@ -4,7 +4,7 @@
  * [[reference-bun-mock-module-gotcha]]).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { existsSync, mkdtempSync, readFileSync } from 'fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
@@ -13,6 +13,7 @@ import {
   KNOWN_CLIS,
   provisionCliConfigHome,
   readBoundaryFor,
+  supportsRestrictedMode,
 } from '../run/executors/cli-registry.ts'
 
 const originalWhich = Bun.which
@@ -82,7 +83,11 @@ describe('detectInstalledClis()', () => {
       kind: 'project-root',
       mechanism: 'restricted-flag',
     })
-    expect(KNOWN_CLIS.filter((cli) => cli.id !== 'claude').every((cli) => cli.readBoundary.kind === 'none')).toBe(true)
+    expect(
+      KNOWN_CLIS.filter((cli) => cli.id !== 'claude').every(
+        (cli) => cli.readBoundary.kind === 'none',
+      ),
+    ).toBe(true)
   })
 })
 
@@ -91,6 +96,34 @@ describe('detectInstalledClis()', () => {
 // real dentro del test (misma regla que ToolchainProbe tras el incidente de CI
 // del 2026-08-01: un test no debe afirmar sobre el PATH del host).
 describe('H.9.2 — capability de frontera verificada contra el binario', () => {
+  it('invalida la capability real al reemplazar el ejecutable en la misma ruta', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-capability-'))
+    const binary = join(root, 'claude')
+    const originalSpawnSync = Bun.spawnSync
+    let calls = 0
+    try {
+      writeFileSync(binary, 'new')
+      ;(Bun as any).which = () => binary
+      ;(Bun as any).spawnSync = (args: string[]) => {
+        calls++
+        return {
+          exitCode: 0,
+          stdout: Buffer.from(
+            readFileSync(args[0]!, 'utf8') === 'new' ? '  --restricted  mode' : '  --settings',
+          ),
+        }
+      }
+      expect(supportsRestrictedMode('claude')).toBe(true)
+      expect(supportsRestrictedMode('claude')).toBe(true)
+      expect(calls).toBe(1)
+      writeFileSync(binary, 'old-version')
+      expect(supportsRestrictedMode('claude')).toBe(false)
+      expect(calls).toBe(2)
+    } finally {
+      Bun.spawnSync = originalSpawnSync
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   const claude = KNOWN_CLIS.find((c) => c.id === 'claude')!
   // Fragmento textual del `--help` real de Claude Code 2.1.263.
   const helpNuevo = `  --replay-user-messages   Re-emit user messages

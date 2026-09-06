@@ -4,13 +4,15 @@ import { checkUiCopyBudget } from './check-ui-copy.ts'
 const manifest = JSON.stringify([{ key: 'chat.short', context: 'fila compacta', maxChars: 10 }])
 
 function deps(i18n: string) {
-  return { readFile: (path: string) => path.endsWith('manifest.json') ? manifest : i18n }
+  return { readFile: (path: string) => (path.endsWith('manifest.json') ? manifest : i18n) }
 }
 
 describe('check-ui-copy', () => {
   test('detecta una clave que supera el presupuesto en cualquier locale', () => {
     const errors = checkUiCopyBudget(
-      deps("const I18N = { en: { 'chat.short': 'This text is too long' }, es: { 'chat.short': 'Corto' } }"),
+      deps(
+        "const I18N = { en: { 'chat.short': 'This text is too long' }, es: { 'chat.short': 'Corto' } }",
+      ),
       'i18n.js',
       'manifest.json',
     )

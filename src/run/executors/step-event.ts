@@ -52,7 +52,11 @@ export function claudeEventToReadPaths(raw: unknown): string[] {
   for (const block of evt.message?.content ?? []) {
     if (block.type !== 'tool_use' || block.name !== 'Read') continue
     const input = block.input
-    if (input && typeof input === 'object' && typeof (input as { file_path?: unknown }).file_path === 'string') {
+    if (
+      input &&
+      typeof input === 'object' &&
+      typeof (input as { file_path?: unknown }).file_path === 'string'
+    ) {
       paths.push((input as { file_path: string }).file_path)
     }
   }

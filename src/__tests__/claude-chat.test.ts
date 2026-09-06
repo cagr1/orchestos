@@ -10,6 +10,8 @@
  * overrideados, sin depender del binario real ni de red).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { realpathSync } from 'node:fs'
+import { _resetCliCapabilityCache } from '../run/executors/cli-registry.ts'
 import {
   buildClaudeChatArgs,
   CLAUDE_CHAT_BOUNDARY_FLAGS,
@@ -19,12 +21,16 @@ import {
 import { claudeEventToReadPaths } from '../run/executors/step-event.ts'
 
 const originalWhich = Bun.which
+const originalSpawnSync = Bun.spawnSync
 beforeEach(() => {
-  ;(Bun as any).which = (_bin: string) => '/usr/local/bin/claude'
+  _resetCliCapabilityCache()
+  ;(Bun as any).which = (_bin: string) => process.execPath
+  ;(Bun as any).spawnSync = () => ({ exitCode: 0, stdout: Buffer.from('  --restricted  mode') })
 })
 afterEach(() => {
   Bun.which = originalWhich
   Bun.spawn = originalSpawn
+  Bun.spawnSync = originalSpawnSync
 })
 
 const originalSpawn = Bun.spawn
@@ -92,8 +98,32 @@ const assistantText = (text: string) => ({
 const resultEvent = (fields: Record<string, unknown>) => ({ type: 'result', ...fields })
 
 describe('runClaudeChat (CC.1)', () => {
+  it('rechaza el binario viejo antes del spawn de conversación', async () => {
+    ;(Bun as any).spawnSync = () => ({ exitCode: 0, stdout: Buffer.from('  --settings') })
+    overrideBunSpawn(makeMockProc(''))
+    await expect(runClaudeChat('/tmp/p', 'sys', 'msg', 5000)).rejects.toThrow('--restricted')
+    expect(spawnCalls).toHaveLength(0)
+  })
+
+  it('ejecuta la ruta canónica comprobada aunque PATH cambie durante la sonda', async () => {
+    let checked = ''
+    ;(Bun as any).spawnSync = (cmd: string[]) => {
+      checked = cmd[0]!
+      ;(Bun as any).which = () => '/otro/claude'
+      return { exitCode: 0, stdout: Buffer.from('  --restricted  mode') }
+    }
+    overrideBunSpawn(makeMockProc(streamOf(resultEvent({}))))
+    await runClaudeChat('/tmp/p', 'sys', 'msg', 5000)
+    expect(checked).toBe(realpathSync(process.execPath))
+    expect(spawnCalls[0]!.cmd[0]).toBe(checked)
+  })
   it('construye --settings apuntando al archivo aislado del proyecto', () => {
-    const args = buildClaudeChatArgs('system', undefined, undefined, '/repo/.orchestos/agent-home/claude/settings.json')
+    const args = buildClaudeChatArgs(
+      'system',
+      undefined,
+      undefined,
+      '/repo/.orchestos/agent-home/claude/settings.json',
+    )
     const idx = args.indexOf('--settings')
     expect(idx).toBeGreaterThan(-1)
     expect(args[idx + 1]).toBe('/repo/.orchestos/agent-home/claude/settings.json')
@@ -185,7 +215,10 @@ describe('runClaudeChat (CC.1)', () => {
         ],
       },
     }
-    expect(claudeEventToReadPaths(readEvent)).toEqual(['/tmp/project/README.md', '/tmp/project/README.md'])
+    expect(claudeEventToReadPaths(readEvent)).toEqual([
+      '/tmp/project/README.md',
+      '/tmp/project/README.md',
+    ])
 
     overrideBunSpawn(
       makeMockProc(

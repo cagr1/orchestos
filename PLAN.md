@@ -87,7 +87,39 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   lectura exitosa y ningún canal no observado produce una garantía de ausencia de lectura.
   Tests deterministas + security:gate + evidencia real con fixtures, nunca el vault personal.
 
-- [ ] **R.2-bis — 🔍 Hallazgo bloqueante de R.2: la frontera de lectura no existe (evidencia).**
+- [x] **R.2-bis — 🔍 Hallazgo bloqueante de R.2: la frontera de lectura no existe (evidencia).** (revisión independiente y correcciones, 2026-09-06)
+  **Revisión Codex de b0ee431, autorizada por Carlos:** la elección de `--restricted` es válida
+  para los casos medidos en Claude Code 2.1.263. Se corrigieron tres huecos de integración:
+  (1) cache por ruta canónica e identidad del archivo, con sonda limitada a 2 s y env del spawn;
+  (2) el executor verifica y ejecuta esa misma ruta, incluso si cambia PATH; (3) executor-modes
+  publica la capability efectiva, no la intención del registro. El binario 2.1.234 real devuelve
+  HTTP 400 antes de clasificar/spawnear una conversación. Tests cubren reemplazo del binario,
+  cambio de PATH y respuesta del endpoint con capability ausente.
+  **Gate en vivo:** navegador real Playwright → dashboard :50919 → `/api/chat` → CLI 2.1.263.
+  Ocho llamadas correlacionadas por `tool_use_id` con un resultado cada una: Read/Grep/Glob
+  dentro permitidos; Read externo, symlink externo, prefijo similar, Grep/Glob hacia afuera
+  rechazados. Tools efectivas `[Glob,Grep,Read]`; MCP `[]`. Contenido permitido visible tras
+  recarga y dos mensajes persistidos en SQLite. Evidencia portable en
+  `scripts/fixtures/restricted-review-2026-09-06.json`; captura con `scripts/live-read-boundary.ts`
+  bajo `gate:evidence`, verificada mediante `scripts/verify-read-boundary.ts`. La captura cruda
+  local está en `/tmp/orchestos-boundary-evidence-0906`; el reporte no incluye paths personales.
+  El gate de navegador descubrió `CLAUDE_CLI_EFFORT_LEVELS` inexistente en `app.js`: corregido y
+  probado enviando el mensaje desde el composer de Claude. El catálogo OpenRouter del fixture
+  sin key devuelve 400; no impidió el transporte Claude, ni se declara ese catálogo verificado.
+  **CI 34045777216:** cobertura y typecheck pasaron; `biome check .` falló con 29 errores de
+  formato/imports (varios preexistentes). El ENOTDIR de la anotación es el caso negativo exitoso
+  de exportación de evidencia, no la causa del job rojo. Corrección mecánica de formato/imports
+  en los archivos señalados, sin desactivar reglas ni rebajar umbrales.
+  **Verificación local final:** `bun run test:coverage`: 1289 pass / 0 fail;
+  `bunx tsc --noEmit` y `bun run lint`: exit 0. `security:gate`: PASS (repetido tras
+  las correcciones). Los warnings informativos de Biome preexistentes siguen visibles.
+  **Límites:** esta revisión acredita las ocho operaciones, no ausencia universal de escapes ni
+  aislamiento de todas las lecturas automáticas. R.2 y H.9.4 siguen abiertos: SQLite aún guarda
+  cuatro solicitudes Read como `files_read`, aunque tres fueron rechazadas. El wrapper excluye
+  runs de chat de la exportación durable; por eso se conserva además el reporte versionado.
+  R.1 conserva sus tres archivos en vuelo; esta revisión no los incorpora ni cierra su gate.
+
+  **Historia del hallazgo (se conserva):**
   Descubierto 2026-09-06 al ejecutar el gate de R.2, que exige un caso de **lectura exitosa**: no
   existe. Detiene R.2 y **reabre H.9.2** (ver arriba). El diseño de instrumentación de R.2 sigue
   siendo válido; lo que faltaba era una frontera real sobre la cual instrumentar.

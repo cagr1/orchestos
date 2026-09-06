@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { findOpenPlanItem, hasLiveGateEvidence, requiresLiveGate, requiresUiCopyBudget } from './agent-governance.ts'
+import {
+  findOpenPlanItem,
+  hasLiveGateEvidence,
+  requiresLiveGate,
+  requiresUiCopyBudget,
+} from './agent-governance.ts'
 
 describe('agent governance', () => {
   test('solo acepta un item abierto exacto', () => {

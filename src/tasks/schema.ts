@@ -125,16 +125,19 @@ function validateCliEffort(
   err: (msg: string) => never,
 ): CliEffort | undefined {
   if (value === undefined) return undefined
-  const levels = typeof engine === 'string'
-    ? CLI_EFFORT_LEVELS[engine as keyof typeof CLI_EFFORT_LEVELS]
-    : undefined
+  const levels =
+    typeof engine === 'string'
+      ? CLI_EFFORT_LEVELS[engine as keyof typeof CLI_EFFORT_LEVELS]
+      : undefined
   if (!levels) {
     err(
       `cli_effort requires an engine with declared levels — allowed engines: ${Object.keys(CLI_EFFORT_LEVELS).join(', ')}`,
     )
   }
   if (typeof value !== 'string' || !(levels as readonly string[]).includes(value)) {
-    err(`unknown cli_effort '${String(value)}' for engine '${String(engine)}' — allowed: ${levels.join(', ')}`)
+    err(
+      `unknown cli_effort '${String(value)}' for engine '${String(engine)}' — allowed: ${levels.join(', ')}`,
+    )
   }
   return value as CliEffort
 }

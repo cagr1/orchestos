@@ -76,7 +76,9 @@ export function requiresLiveGate(paths: string[]): boolean {
 }
 
 export function requiresUiCopyBudget(paths: string[]): boolean {
-  return paths.some((path) => UI_COPY_BUDGET_PATHS.includes(path as (typeof UI_COPY_BUDGET_PATHS)[number]))
+  return paths.some((path) =>
+    UI_COPY_BUDGET_PATHS.includes(path as (typeof UI_COPY_BUDGET_PATHS)[number]),
+  )
 }
 
 export function hasLiveGateEvidence(planDiff: string): boolean {

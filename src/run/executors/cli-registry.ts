@@ -16,8 +16,9 @@
  * (G.4.3/G.4.4), no el guard interno de cada executor.
  */
 
-import { mkdirSync, writeFileSync } from 'fs'
+import { mkdirSync, realpathSync, statSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { safeChildEnv } from '../path-policy.ts'
 
 export type CliReadBoundary =
   // H.9.2 (reabierto 2026-09-06) — `project-root` ya no es una promesa del
@@ -25,8 +26,7 @@ export type CliReadBoundary =
   // contra el binario instalado antes de spawnear (`readBoundaryFor()` abajo).
   // El cierre anterior daba por buena la frontera por estar escrita acá; las
   // sondas de PLAN.md § R.2-bis mostraron que no existía en ninguna dirección.
-  | { kind: 'project-root'; mechanism: 'restricted-flag' }
-  | { kind: 'none'; reason: string }
+  { kind: 'project-root'; mechanism: 'restricted-flag' } | { kind: 'none'; reason: string }
 
 export interface CliDefinition {
   id: 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini' | 'kimi' | 'glm'
@@ -60,23 +60,89 @@ Do not load or reference user-level configuration, personal instructions, or pri
  * hasta que exista un binario alcanzable por PATH. */
 export const KNOWN_CLIS: CliDefinition[] = [
   {
-    id: 'claude', binary: 'claude', label: 'Claude Code', icon: 'claude',
+    id: 'claude',
+    binary: 'claude',
+    label: 'Claude Code',
+    icon: 'claude',
     readBoundary: { kind: 'project-root', mechanism: 'restricted-flag' },
-    configHome: { directory: 'claude', instructionFile: 'CLAUDE.md', settingsFile: 'settings.json' },
+    configHome: {
+      directory: 'claude',
+      instructionFile: 'CLAUDE.md',
+      settingsFile: 'settings.json',
+    },
   },
   {
-    id: 'codex', binary: 'codex', label: 'Codex', icon: 'openai',
-    readBoundary: { kind: 'none', reason: 'Codex no ofrece hoy un sandbox que acote paths de lectura.' },
+    id: 'codex',
+    binary: 'codex',
+    label: 'Codex',
+    icon: 'openai',
+    readBoundary: {
+      kind: 'none',
+      reason: 'Codex no ofrece hoy un sandbox que acote paths de lectura.',
+    },
     configHome: { directory: 'codex', instructionFile: 'AGENTS.md', envVar: 'CODEX_HOME' },
   },
-  { id: 'opencode', binary: 'opencode', label: 'opencode', icon: 'opencode', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'opencode', instructionFile: 'AGENTS.md' } },
-  { id: 'deepseek', binary: 'deepseek', label: 'DeepSeek', icon: 'deepseek', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'deepseek', instructionFile: 'AGENTS.md' } },
-  { id: 'gemini', binary: 'gemini', label: 'Gemini', icon: 'gemini', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'gemini', instructionFile: 'AGENTS.md' } },
-  { id: 'kimi', binary: 'kimi', label: 'Kimi', icon: 'kimi', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'kimi', instructionFile: 'AGENTS.md' } },
-  { id: 'glm', binary: 'glm', label: 'GLM', icon: 'glm', readBoundary: { kind: 'none', reason: 'No hay un contrato verificado de frontera de lectura para este CLI.' }, configHome: { directory: 'glm', instructionFile: 'AGENTS.md' } },
+  {
+    id: 'opencode',
+    binary: 'opencode',
+    label: 'opencode',
+    icon: 'opencode',
+    readBoundary: {
+      kind: 'none',
+      reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
+    },
+    configHome: { directory: 'opencode', instructionFile: 'AGENTS.md' },
+  },
+  {
+    id: 'deepseek',
+    binary: 'deepseek',
+    label: 'DeepSeek',
+    icon: 'deepseek',
+    readBoundary: {
+      kind: 'none',
+      reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
+    },
+    configHome: { directory: 'deepseek', instructionFile: 'AGENTS.md' },
+  },
+  {
+    id: 'gemini',
+    binary: 'gemini',
+    label: 'Gemini',
+    icon: 'gemini',
+    readBoundary: {
+      kind: 'none',
+      reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
+    },
+    configHome: { directory: 'gemini', instructionFile: 'AGENTS.md' },
+  },
+  {
+    id: 'kimi',
+    binary: 'kimi',
+    label: 'Kimi',
+    icon: 'kimi',
+    readBoundary: {
+      kind: 'none',
+      reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
+    },
+    configHome: { directory: 'kimi', instructionFile: 'AGENTS.md' },
+  },
+  {
+    id: 'glm',
+    binary: 'glm',
+    label: 'GLM',
+    icon: 'glm',
+    readBoundary: {
+      kind: 'none',
+      reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
+    },
+    configHome: { directory: 'glm', instructionFile: 'AGENTS.md' },
+  },
 ]
 
-export function provisionCliConfigHome(projectRoot: string, cliId: CliDefinition['id']): ProvisionedCliConfigHome {
+export function provisionCliConfigHome(
+  projectRoot: string,
+  cliId: CliDefinition['id'],
+): ProvisionedCliConfigHome {
   const definition = KNOWN_CLIS.find((cli) => cli.id === cliId)
   if (!definition) throw new Error(`Unknown CLI: ${cliId}`)
 
@@ -94,8 +160,8 @@ export function provisionCliConfigHome(projectRoot: string, cliId: CliDefinition
     // archivo. La frontera real la da `--restricted` en el spawn
     // (`CLAUDE_CHAT_BOUNDARY_FLAGS`, external.ts), no un patrón de permisos: no
     // existe un `deny` que exprese "todo salvo X" (deny gana sobre allow siempre).
-    // Este settings queda deliberadamente vacío — su función es aislar el config
-    // home (H.9.3), no fijar permisos.
+    // El settings vacío no aísla por sí solo: --restricted ignora las fuentes
+    // user/project/local; --strict-mcp-config elimina los MCP heredados.
     writeFileSync(settingsPath, `${JSON.stringify({})}\n`, 'utf8')
   }
 
@@ -120,7 +186,7 @@ export type CliCapabilityProbe = (binary: string, args: string[]) => string | nu
 
 export const spawnCliCapabilityProbe: CliCapabilityProbe = (binary, args) => {
   try {
-    const proc = Bun.spawnSync([binary, ...args])
+    const proc = Bun.spawnSync([binary, ...args], { env: safeChildEnv(), timeout: 2_000 })
     return proc.exitCode === 0 ? proc.stdout.toString() : null
   } catch {
     return null /* binario ausente o no ejecutable — se trata como "sin capability" */
@@ -145,15 +211,28 @@ export function supportsRestrictedMode(
   // `project-root` porque la llamada anterior ya había cacheado `true`. Un cache
   // que ignora su entrada es peor que no tener cache: miente en silencio.
   const useCache = probe === spawnCliCapabilityProbe
+  let cacheKey = binary
   if (useCache) {
-    const cached = capabilityCache.get(binary)
+    try {
+      const resolved = Bun.which(binary)
+      if (!resolved) return false
+      binary = realpathSync(resolved)
+      const stat = statSync(binary)
+      cacheKey = `${binary}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`
+    } catch {
+      return false
+    }
+    const cached = capabilityCache.get(cacheKey)
     if (cached !== undefined) return cached
   }
   const help = probe(binary, ['--help'])
   // Se busca el flag en su forma declarada, no una subcadena suelta: `--restricted`
   // aparece en la línea de opciones seguida de espacios y su descripción.
   const supported = help !== null && /^\s*--restricted(\s|$)/m.test(help)
-  if (useCache) capabilityCache.set(binary, supported)
+  if (useCache) {
+    if (capabilityCache.size >= 32) capabilityCache.clear()
+    capabilityCache.set(cacheKey, supported)
+  }
   return supported
 }
 
@@ -196,7 +275,17 @@ export function detectInstalledClis(
     // H.9.2 — se expone la frontera EFECTIVA (verificada contra el binario), no la
     // declarada: si la UI mostrara `project-root` sobre un binario que no la
     // sostiene, estaría prometiendo un aislamiento inexistente.
-    const readBoundary = path ? readBoundaryFor(def, probe) : def.readBoundary
-    return { id: def.id, label: def.label, binary: def.binary, icon: def.icon, readBoundary, installed: !!path, path }
+    const readBoundary: CliReadBoundary = path
+      ? readBoundaryFor({ ...def, binary: path }, probe)
+      : { kind: 'none', reason: `El binario ${def.binary} no está instalado.` }
+    return {
+      id: def.id,
+      label: def.label,
+      binary: def.binary,
+      icon: def.icon,
+      readBoundary,
+      installed: !!path,
+      path,
+    }
   })
 }

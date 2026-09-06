@@ -225,7 +225,16 @@ export interface CodexChatResult {
 }
 
 export function buildCodexChatArgs(prompt: string, model?: string): string[] {
-  const args = ['exec', prompt, '--json', '--sandbox', 'read-only', '--color', 'never', '--ignore-user-config']
+  const args = [
+    'exec',
+    prompt,
+    '--json',
+    '--sandbox',
+    'read-only',
+    '--color',
+    'never',
+    '--ignore-user-config',
+  ]
   if (model) args.push('-m', model)
   return args
 }

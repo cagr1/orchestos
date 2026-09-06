@@ -298,7 +298,9 @@ const App = {
   async fetchChatSession() {
     if (!state.chatSessionId) return
     try {
-      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(state.chatSessionId)}/messages`)
+      const res = await fetch(
+        `/api/chat/sessions/${encodeURIComponent(state.chatSessionId)}/messages`,
+      )
       if (res.status === 404) {
         localStorage.removeItem('orchestos-chat-session-id')
         state.chatSessionId = null
@@ -351,7 +353,8 @@ const App = {
         body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api', mode: 'chat' }),
       })
       const body = await res.json().catch(() => ({}))
-      if (!res.ok || typeof body.id !== 'string') throw new Error(body.error || 'Could not create chat session')
+      if (!res.ok || typeof body.id !== 'string')
+        throw new Error(body.error || 'Could not create chat session')
       state.chatSessionId = body.id
       localStorage.setItem('orchestos-chat-session-id', body.id)
       state.chatHistory = []
@@ -394,7 +397,8 @@ const App = {
       body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api', mode: 'chat' }),
     })
     const body = await res.json().catch(() => ({}))
-    if (!res.ok || typeof body.id !== 'string') throw new Error(body.error || 'Could not create chat session')
+    if (!res.ok || typeof body.id !== 'string')
+      throw new Error(body.error || 'Could not create chat session')
     state.chatSessionId = body.id
     localStorage.setItem('orchestos-chat-session-id', body.id)
     return body.id
@@ -2622,7 +2626,9 @@ function buildChatModelFx(st) {
   // de PROYECTO (Settings), no depende del modelo elegido en este combo — a
   // diferencia de `modelSupportsReasoning`, que sí es por-modelo.
   const useClaudeCli = agent === 'claude'
-  const effortLevels = useClaudeCli ? CLAUDE_CLI_EFFORT_LEVELS : ['low', 'medium', 'high']
+  const effortLevels = useClaudeCli
+    ? ['low', 'medium', 'high', 'xhigh', 'max']
+    : ['low', 'medium', 'high']
   const effortAvailable =
     !isLocalAgent && (useClaudeCli || modelSupportsReasoning(val, st.orModels))
   const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null

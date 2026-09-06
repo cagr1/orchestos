@@ -454,7 +454,9 @@ SCREENS.chat = {
             ? `<div class="chat-sessions-empty">${t('chat.sessions.empty')}</div>`
             : sessions
                 .map(
-                  (s) => `<div class="chat-session-item${s.id === st.chatSessionId ? ' active' : ''}" data-act="chat-session-open" data-session-id="${esc(s.id)}">
+                  (
+                    s,
+                  ) => `<div class="chat-session-item${s.id === st.chatSessionId ? ' active' : ''}" data-act="chat-session-open" data-session-id="${esc(s.id)}">
                 <span class="chat-session-title">${esc(s.title || t('chat.sessions.untitled'))}</span>
                 <button type="button" class="chat-session-delete" data-act="chat-session-delete" data-session-id="${esc(s.id)}" title="${esc(t('chat.sessions.delete.btn'))}" aria-label="${esc(t('chat.sessions.delete.btn'))}">×</button>
               </div>`,
@@ -1682,9 +1684,15 @@ SCREENS.tasks = {
       btn.disabled = true
       try {
         const createBody = { id, description: desc, output, executor, executor_model: modelId }
-        if (engine === 'single-shot' || engine === 'agentic' || engine === 'external' || engine === 'codex')
+        if (
+          engine === 'single-shot' ||
+          engine === 'agentic' ||
+          engine === 'external' ||
+          engine === 'codex'
+        )
           createBody.engine = engine
-        if ((engine === 'external' || engine === 'codex') && cliEffort) createBody.cli_effort = cliEffort
+        if ((engine === 'external' || engine === 'codex') && cliEffort)
+          createBody.cli_effort = cliEffort
         if (skill) createBody.skill = skill
         const createRes = await fetch('/api/tasks', {
           method: 'POST',

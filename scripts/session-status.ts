@@ -10,14 +10,14 @@ import { closeSync, existsSync, openSync, readSync, realpathSync, statSync } fro
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { globSync } from 'glob'
+import { type CliDetectionResult, detectInstalledClis } from '../src/run/executors/cli-registry.ts'
 import {
   type ContextAdapter,
   DEFAULT_ADAPTERS,
+  readCodexRateLimitsLive,
   readSessionMetrics,
   type SessionMetrics,
-  readCodexRateLimitsLive,
 } from './context-adapters.ts'
-import { detectInstalledClis, type CliDetectionResult } from '../src/run/executors/cli-registry.ts'
 
 export interface SessionStatus {
   id: CliDetectionResult['id']
@@ -60,7 +60,9 @@ export async function readActiveSessionStatuses(
   const projectRoot = realProjectRoot(options.projectRoot ?? process.cwd())
   const explicit = options.transcriptPath ?? process.env.ORCHESTOS_SESSION_TRANSCRIPT
   const paths = explicit
-    ? existsSync(explicit) ? [realpathSync(explicit)] : []
+    ? existsSync(explicit)
+      ? [realpathSync(explicit)]
+      : []
     : discoverSessionTranscripts(projectRoot, options.agentHome)
   const adapters = options.adapters ?? DEFAULT_ADAPTERS
   const detections = detectInstalledClis()
@@ -74,7 +76,8 @@ export async function readActiveSessionStatuses(
       let normalized = metrics
       if (!explicit && cli.id === 'codex') {
         const liveWindows = await readCodexRateLimitsLive({ binary: cli.binary })
-        if (liveWindows.length > 0) normalized = { ...metrics, rateLimits: { source: 'codex', windows: liveWindows } }
+        if (liveWindows.length > 0)
+          normalized = { ...metrics, rateLimits: { source: 'codex', windows: liveWindows } }
       }
       found = {
         id: cli.id,
@@ -89,18 +92,20 @@ export async function readActiveSessionStatuses(
       }
       break
     }
-    result.push(found ?? {
-      id: cli.id,
-      label: cli.label,
-      binary: cli.binary,
-      icon: cli.icon,
-      readBoundary: cli.readBoundary,
-      installed: cli.installed,
-      available: false,
-      observedAt: null,
-  context: null,
-      rateLimits: null,
-    })
+    result.push(
+      found ?? {
+        id: cli.id,
+        label: cli.label,
+        binary: cli.binary,
+        icon: cli.icon,
+        readBoundary: cli.readBoundary,
+        installed: cli.installed,
+        available: false,
+        observedAt: null,
+        context: null,
+        rateLimits: null,
+      },
+    )
   }
   return result
 }

@@ -2,8 +2,8 @@
 import { resolve } from 'node:path'
 import { Command, InvalidArgumentError } from 'commander'
 import { formatEvalBatch, runEvalBatch } from '../src/evals/runner.ts'
-import { CLI_EFFORT_LEVELS } from '../src/tasks/schema.ts'
 import type { CliEffort, TaskEngine } from '../src/tasks/schema.ts'
+import { CLI_EFFORT_LEVELS } from '../src/tasks/schema.ts'
 
 const ENGINES: TaskEngine[] = ['single-shot', 'agentic', 'external', 'opencode', 'codex']
 

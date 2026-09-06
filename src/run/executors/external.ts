@@ -17,8 +17,9 @@
  * lógica de revert nueva acá.
  */
 
+import { realpathSync } from 'node:fs'
 import { safeChildEnv } from '../path-policy.ts'
-import { provisionCliConfigHome } from './cli-registry.ts'
+import { provisionCliConfigHome, supportsRestrictedMode } from './cli-registry.ts'
 import { claudeEventToReadPaths, claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
@@ -182,8 +183,9 @@ async function runClaudeCode(
   userPrompt: string,
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
+  binary = CLAUDE_BINARY,
 ): Promise<{ stdout: string; timedOut: boolean; resultLine?: string; filesRead: string[] }> {
-  const proc = Bun.spawn([CLAUDE_BINARY, ...args], {
+  const proc = Bun.spawn([binary, ...args], {
     cwd,
     env: safeChildEnv(),
     stdin: 'pipe',
@@ -252,8 +254,8 @@ async function runClaudeCode(
 // contrato de output[], es una conversación. El guard de seguridad de
 // `externalEngine` ("nunca un proceso no controlado edita el repo real sin
 // worktree desechable") se cumple acá por el lado de los permisos en vez del
-// aislamiento de filesystem — sin Edit/Write en `--allowedTools`, el binario
-// no puede escribir nada aunque corra contra el proyecto real.
+// aislamiento de filesystem. Corrección R.2-bis: --allowedTools solo aprueba
+// herramientas; la frontera usa --restricted y la lista excluyente --tools.
 //
 // Hallazgo real de Carlos (2026-08-16, mismo día): la primera versión de esto
 // no pasaba `model` ni `effort` al binario — corría siempre con el default del
@@ -330,8 +332,8 @@ export interface ClaudeChatResult {
 
 /**
  * CC.1 — respuesta conversacional vía Claude Code CLI, para `agent: claude`.
- * `cwd` es el proyecto REAL (no un worktree): con `--allowedTools` limitado a
- * lectura, no hay nada que un proceso descontrolado pueda dañar.
+ * `cwd` es el proyecto REAL (no un worktree): --restricted confina las file tools
+ * y --tools habilita solo Read/Glob/Grep. El binario forma parte de la confianza.
  */
 export async function runClaudeChat(
   cwd: string,
@@ -341,8 +343,14 @@ export async function runClaudeChat(
   model?: string,
   effort?: string,
 ): Promise<ClaudeChatResult> {
-  if (!findClaudeBinary()) {
+  const found = findClaudeBinary()
+  if (!found) {
     throw new ExecutorExternalError(claudeUnavailableMessage(process.env.PATH))
+  }
+  // Pin the checked executable, including symlink resolution, across async work.
+  const binary = realpathSync(found)
+  if (!supportsRestrictedMode(binary)) {
+    throw new ExecutorExternalError('Claude Code no soporta --restricted; chat bloqueado.')
   }
 
   let text = ''
@@ -361,6 +369,7 @@ export async function runClaudeChat(
       userMessage,
       timeoutMs,
       onStep,
+      binary,
     ))
   } catch (e: any) {
     throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)

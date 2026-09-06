@@ -1,0 +1,67 @@
+{
+  "verifiedAt": "2026-09-06T20:14:57.137Z",
+  "transport": "dashboard browser -> /api/chat -> Claude Code",
+  "cliVersion": "2.1.263",
+  "tools": ["Glob", "Grep", "Read"],
+  "mcpServers": [],
+  "results": [
+    {
+      "toolUseId": "toolu_01T5Ht8g9kA7iJEHg3jxor7Z",
+      "tool": "Read",
+      "path": "project/inside.txt",
+      "rejected": false,
+      "content": "1\tINSIDE_REVIEW_74219"
+    },
+    {
+      "toolUseId": "toolu_01Vb3bfiYBfWqiXhx8oo4PJF",
+      "tool": "Read",
+      "path": "outside.txt",
+      "rejected": true,
+      "content": "<fixture>/outside.txt is outside <fixture>/project; --restricted confines the file tools to the working directory."
+    },
+    {
+      "toolUseId": "toolu_018LUd3EcmD8SfGVxiEFQPJ3",
+      "tool": "Read",
+      "path": "project/link.txt",
+      "rejected": true,
+      "content": "<fixture>/project/link.txt is outside <fixture>/project; --restricted confines the file tools to the working directory."
+    },
+    {
+      "toolUseId": "toolu_01E59XxyG8TxwdDTuyYYG1vV",
+      "tool": "Read",
+      "path": "project-evil/secret.txt",
+      "rejected": true,
+      "content": "<fixture>/project-evil/secret.txt is outside <fixture>/project; --restricted confines the file tools to the working directory."
+    },
+    {
+      "toolUseId": "toolu_014cTSVroqLMoxj3yva6Wj5r",
+      "tool": "Grep",
+      "path": "",
+      "rejected": true,
+      "content": "<fixture> is outside <fixture>/project; --restricted confines the file tools to the working directory."
+    },
+    {
+      "toolUseId": "toolu_01CXTmHedv8DJrg3qr4mCML7",
+      "tool": "Glob",
+      "path": "",
+      "rejected": true,
+      "content": "<fixture> is outside <fixture>/project; --restricted confines the file tools to the working directory."
+    },
+    {
+      "toolUseId": "toolu_016JbUQ4Eticr8wXFPC3bBJ5",
+      "tool": "Grep",
+      "path": "project",
+      "rejected": false,
+      "content": "Found 1 file\ninside.txt"
+    },
+    {
+      "toolUseId": "toolu_01DZvd9UQVm9uouujXZkzdMo",
+      "tool": "Glob",
+      "path": "project",
+      "rejected": false,
+      "content": "inside.txt"
+    }
+  ],
+  "verdict": "pass",
+  "scope": "Eight synthetic tool operations; not a full filesystem sandbox audit"
+}
