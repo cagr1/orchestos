@@ -662,18 +662,20 @@ SCREENS.chat = {
       const textarea = root.querySelector('#chat-input')
       const msg = textarea?.value.trim()
       if (!msg || st.chatPending) return
+      // Capture the target before any await: user may open B while A is in flight.
+      const sessionId = await App.ensureChatSession()
+      if (st.chatPendingBySession[sessionId]) return
       textarea.value = ''
       st.chatDraft = '' // mensaje enviado — el borrador ya cumplió su función
       textarea.style.height = '' // FRONT.9 — vuelve a la altura base de 2 filas
-      st.chatHistory = st.chatHistory || []
-      st.chatHistory.push({ role: 'user', content: msg, ts: Date.now() })
-      st.chatPending = true
+      App.appendChatMessage(sessionId, { role: 'user', content: msg, ts: Date.now() })
+      st.chatPendingBySession[sessionId] = true
+      st.chatPending = st.chatSessionId === sessionId
       const sentFileIds = (st.chatFiles || []).map((f) => f.fileId)
       st.chatFiles = []
       App.rerender()
       scrollBottom()
       try {
-        const sessionId = await App.ensureChatSession()
         const body = {
           sessionId,
           history: [],
@@ -700,7 +702,7 @@ SCREENS.chat = {
           // confirmación inline ([Ver]/[Cancelar]) antes de arrancar.
           const held = data.autoTask && data.autoTask.held
           const taskId = data.autoTask && !held && data.autoTask.id
-          st.chatHistory.push({
+          App.appendChatMessage(sessionId, {
             role: 'assistant',
             content: data.text,
             model: data.model,
@@ -725,16 +727,16 @@ SCREENS.chat = {
           // — se omite. Refrescamos st.tasks para que el chip `task_id` que
           // aparece en el texto de la respuesta (autoTaskNote) sea clicable
           // de inmediato (highlightRefs necesita conocer el id).
-          if (taskId) {
+          if (st.chatSessionId === sessionId && taskId) {
             st.chatTaskSuggestion = null
             App.fetchTasks().then(() => App.rerender())
             startStepPolling(st, taskId) // G.3.3 — cards en vivo
-          } else if (held) {
+          } else if (st.chatSessionId === sessionId && held) {
             // I.2 — la tarea ya existe en tasks.yaml (pending, sin correr);
             // refrescar st.tasks para que [Ver] pueda encontrarla de inmediato.
             st.chatTaskSuggestion = null
             App.fetchTasks().then(() => App.rerender())
-          } else {
+          } else if (st.chatSessionId === sessionId) {
             // J.1 (Mes 18) — B.1.b: si el clasificador marcó el mensaje como
             // tarea, la barra aparece ya (sin esperar a 3+ mensajes) citando su reason.
             st.chatTaskSuggestion = data.taskSuggestion || null
@@ -747,18 +749,25 @@ SCREENS.chat = {
           try {
             data = await res.json()
           } catch {}
-          st.chatHistory.push({
+          App.appendChatMessage(sessionId, {
             role: 'assistant',
             content: (data && data.error) || t('chat.err.general'),
             ts: Date.now(),
           })
         }
       } catch {
-        st.chatHistory.push({ role: 'assistant', content: t('chat.err.conn'), ts: Date.now() })
+        App.appendChatMessage(sessionId, {
+          role: 'assistant',
+          content: t('chat.err.conn'),
+          ts: Date.now(),
+        })
       } finally {
-        st.chatPending = false
-        App.rerender()
-        scrollBottom()
+        delete st.chatPendingBySession[sessionId]
+        if (st.chatSessionId === sessionId) {
+          st.chatPending = false
+          App.rerender()
+          scrollBottom()
+        }
       }
     }
 

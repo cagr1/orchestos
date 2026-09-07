@@ -268,7 +268,7 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   lint sin errores. Se intentó mutación sobre los tres parsers; el entorno terminó el proceso
   tras el dry run con señal 143. No es gate de R.3-bis y no se usa como evidencia de cierre.
 
-- [ ] **R.4 — ⚡ Aislar respuestas y restauración por conversación.** Prioridad alta.
+- [x] **R.4 — ⚡ Aislar respuestas y restauración por conversación.** (2026-09-07, Codex)
   Carrera identificada por código, pendiente de reproducción: `app.js:298/335` reemplaza el
   historial global tras un fetch; `screens-core.js:701` agrega respuestas al mismo historial
   aunque el usuario haya cambiado de sesión. El polling también restaura mensajes durante envíos.
@@ -278,6 +278,16 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   **Gate:** respuestas demoradas deliberadamente, enviar en A y abrir B, abrir A/B rápidamente,
   polling durante envío, recargar y borrar sesión durante petición. Nunca aparece respuesta de A
   en B ni se pierden mensajes pendientes por un fetch viejo. Test de carrera + navegador real.
+  **Implementación y gate:** `chatHistories` y `chatPendingBySession` separan el estado por id de
+  conversación; cada envío captura su `sessionId` antes de esperar y aplica su respuesta solo a
+  ese cache. Los restores llevan un epoch por sesión y se descartan mientras hay un mensaje
+  optimista pendiente; borrar una sesión invalida su cache y bloquea que una respuesta tardía lo
+  recree. La restauración conserva `taskId` de cada mensaje sin iniciar tareas.
+  **Gate en vivo:** Playwright contra el dashboard real en `:50921` demoró restore y respuesta de A, abrió B durante
+  el envío y confirmó que B no mostraba ni `MENSAJE_A` ni `RESPUESTA_A`; al volver a A estaban los
+  dos mensajes y ya no quedaba `Thinking…`. Un segundo caso borró la sesión durante la petición:
+  id actual `null`, cache vacío y ningún mensaje tardío visible. `tsc`, 9 tests de chat, lint sin
+  errores y `test:coverage` 1324 pass / 0 fail.
 
 - [ ] **R.5 — 🧠 Persistencia coherente de turno, run y fallos de chat.** Prioridad alta.
   Confirmado por código: `logChatRun()` silencia errores, mientras `appendChatExchange()` usa una

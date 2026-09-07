@@ -84,9 +84,19 @@ const state = {
   projectSaveState: 'idle', // 'idle' | 'saving' | 'saved' | 'error'
 
   chatHistory: [],
+  // R.4 — cache por conversación. `chatHistory` sigue siendo el alias de la
+  // sesión visible para no obligar a cada renderer a conocer el mapa.
+  chatHistories: {},
   chatSessionId: localStorage.getItem('orchestos-chat-session-id') || null,
   chatSessions: [],
   chatPending: false,
+  chatPendingBySession: {},
+  // A DELETE may race an in-flight reply. Never recreate that conversation in
+  // the client cache when its old request eventually settles.
+  chatDeletedSessionIds: {},
+  // Monotonic per-session restore generation. A late poll must not replace a
+  // newer restore of the same conversation.
+  chatFetchEpochs: {},
   chatModel: 'deepseek/deepseek-v4-flash',
   chatEffort: localStorage.getItem('orchestos-chat-effort') || 'medium', // FRONT.1 — solo aplicado cuando el modelo elegido tiene supportsReasoning:true (BACK.4) · FRONT.2 — persistido en localStorage
   chatFiles: [], // Mes 19 Bloque B — array de { fileId, filename, type, preview }, antes chatFileId/chatFileMeta singular
@@ -295,26 +305,55 @@ const App = {
       state.orcheConfigStatus = 'error'
     }
   },
-  async fetchChatSession() {
-    if (!state.chatSessionId) return
+  chatHistoryFor(sessionId) {
+    return state.chatHistories[sessionId] || []
+  },
+  setChatHistory(sessionId, history) {
+    if (state.chatDeletedSessionIds[sessionId]) return
+    state.chatHistories[sessionId] = history
+    if (state.chatSessionId === sessionId) state.chatHistory = history
+  },
+  appendChatMessage(sessionId, message) {
+    const history = this.chatHistoryFor(sessionId).slice()
+    history.push(message)
+    this.setChatHistory(sessionId, history)
+  },
+  async fetchChatSession(sessionId = state.chatSessionId) {
+    if (!sessionId || state.chatDeletedSessionIds[sessionId]) return
+    const epoch = (state.chatFetchEpochs[sessionId] || 0) + 1
+    state.chatFetchEpochs[sessionId] = epoch
     try {
-      const res = await fetch(
-        `/api/chat/sessions/${encodeURIComponent(state.chatSessionId)}/messages`,
-      )
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}/messages`)
       if (res.status === 404) {
-        localStorage.removeItem('orchestos-chat-session-id')
-        state.chatSessionId = null
+        if (state.chatFetchEpochs[sessionId] !== epoch) return
+        delete state.chatHistories[sessionId]
+        delete state.chatPendingBySession[sessionId]
+        delete state.chatFetchEpochs[sessionId]
+        if (state.chatSessionId === sessionId) {
+          localStorage.removeItem('orchestos-chat-session-id')
+          state.chatSessionId = null
+          state.chatHistory = []
+          state.chatPending = false
+        }
         return
       }
       if (!res.ok) throw new Error(res.status)
       const messages = await res.json()
-      state.chatHistory = messages.map((message) => ({
+      if (state.chatDeletedSessionIds[sessionId]) return
+      if (state.chatFetchEpochs[sessionId] !== epoch) return
+      // A poll can finish after the optimistic user message was added but
+      // before its reply arrives. Keeping the local pair is safer than
+      // replacing it with that old server snapshot.
+      if (state.chatPendingBySession[sessionId]) return
+      const history = messages.map((message) => ({
         role: message.role,
         content: message.content,
         model: message.model || undefined,
         taskId: message.taskId || undefined,
         ts: Date.parse(message.createdAt) || Date.now(),
       }))
+      // A slow restore for A must never replace B after a switch.
+      this.setChatHistory(sessionId, history)
     } catch {
       // Keep the in-memory history if the optional restore request fails.
     }
@@ -338,11 +377,12 @@ const App = {
     if (sessionId === state.chatSessionId) return
     state.chatSessionId = sessionId
     localStorage.setItem('orchestos-chat-session-id', sessionId)
-    state.chatHistory = []
+    state.chatHistory = this.chatHistoryFor(sessionId)
+    state.chatPending = Boolean(state.chatPendingBySession[sessionId])
     state.chatTaskSuggestion = null
     state.chatLiveSteps = {}
     App.rerender()
-    await App.fetchChatSession()
+    await App.fetchChatSession(sessionId)
     App.rerender()
   },
   async startNewChatSession() {
@@ -356,8 +396,11 @@ const App = {
       if (!res.ok || typeof body.id !== 'string')
         throw new Error(body.error || 'Could not create chat session')
       state.chatSessionId = body.id
+      delete state.chatDeletedSessionIds[body.id]
       localStorage.setItem('orchestos-chat-session-id', body.id)
+      state.chatHistories[body.id] = []
       state.chatHistory = []
+      state.chatPending = false
       state.chatTaskSuggestion = null
       state.chatLiveSteps = {}
       await App.fetchChatSessions()
@@ -379,6 +422,10 @@ const App = {
       })
       if (!res.ok) throw new Error(res.status)
       state.chatSessions = (state.chatSessions || []).filter((s) => s.id !== sessionId)
+      state.chatDeletedSessionIds[sessionId] = true
+      delete state.chatHistories[sessionId]
+      delete state.chatPendingBySession[sessionId]
+      delete state.chatFetchEpochs[sessionId]
       if (state.chatSessionId === sessionId) {
         localStorage.removeItem('orchestos-chat-session-id')
         state.chatSessionId = null
@@ -400,6 +447,8 @@ const App = {
     if (!res.ok || typeof body.id !== 'string')
       throw new Error(body.error || 'Could not create chat session')
     state.chatSessionId = body.id
+    delete state.chatDeletedSessionIds[body.id]
+    state.chatHistories[body.id] = []
     localStorage.setItem('orchestos-chat-session-id', body.id)
     return body.id
   },
