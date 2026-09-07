@@ -129,6 +129,7 @@ export interface FileDiffEntry {
 }
 
 export interface RunRow {
+  readAudit?: import('../run/read-audit.ts').ReadAudit
   id: string
   taskId: string | null
   status: 'done' | 'blocked' | 'failed'

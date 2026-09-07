@@ -204,14 +204,24 @@ describe('runClaudeChat (CC.1)', () => {
     expect(result.usd).toBe(0.002)
   })
 
-  it('persiste las rutas de los Read tool calls reales del stream', async () => {
+  it('solo proyecta lecturas exitosas correlacionadas; una solicitud no basta', async () => {
     const readEvent = {
       type: 'assistant',
       message: {
         content: [
-          { type: 'tool_use', name: 'Read', input: { file_path: '/tmp/project/README.md' } },
-          { type: 'tool_use', name: 'Read', input: { file_path: '/tmp/project/README.md' } },
-          { type: 'tool_use', name: 'Grep', input: { pattern: 'vault' } },
+          {
+            type: 'tool_use',
+            id: 'a',
+            name: 'Read',
+            input: { file_path: '/tmp/project/README.md' },
+          },
+          {
+            type: 'tool_use',
+            id: 'b',
+            name: 'Read',
+            input: { file_path: '/tmp/project/README.md' },
+          },
+          { type: 'tool_use', id: 'c', name: 'Grep', input: { pattern: 'vault' } },
         ],
       },
     }
@@ -222,11 +232,69 @@ describe('runClaudeChat (CC.1)', () => {
 
     overrideBunSpawn(
       makeMockProc(
-        streamOf(readEvent, assistantText('ok'), resultEvent({ total_cost_usd: 0, usage: {} })),
+        streamOf(
+          readEvent,
+          {
+            type: 'user',
+            message: {
+              content: [
+                { type: 'tool_result', tool_use_id: 'c', content: 'Found 1 file' },
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'b',
+                  is_error: true,
+                  content: 'File not found',
+                },
+                { type: 'tool_result', tool_use_id: 'a', content: 'fixture' },
+              ],
+            },
+          },
+          assistantText('ok'),
+          resultEvent({ total_cost_usd: 0, usage: {} }),
+        ),
       ),
     )
     const result = await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)
     expect(result.filesRead).toEqual(['/tmp/project/README.md'])
+    expect(result.readAudit.operations.map((op) => op.outcome)).toEqual([
+      'succeeded',
+      'failed',
+      'succeeded',
+    ])
+  })
+
+  it('procesa el último evento sin newline y conserva corrupción como incompletitud', async () => {
+    overrideBunSpawn(makeMockProc(JSON.stringify(resultEvent({ usage: {} }))))
+    expect((await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)).readAudit.completeness).toBe(
+      'complete',
+    )
+    overrideBunSpawn(makeMockProc('broken\n' + JSON.stringify(resultEvent({ usage: {} }))))
+    const partial = await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)
+    expect(partial.filesRead).toBeNull()
+    expect(partial.readAudit.issues).toContain('malformed-json')
+  })
+
+  it('adjunta la auditoría incompleta al error sin evento terminal', async () => {
+    overrideBunSpawn(
+      makeMockProc(
+        streamOf({
+          type: 'assistant',
+          message: {
+            content: [
+              { type: 'tool_use', id: 'pending', name: 'Read', input: { file_path: 'inside.txt' } },
+            ],
+          },
+        }),
+      ),
+    )
+    let caught: ExecutorExternalError | undefined
+    try {
+      await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)
+    } catch (error) {
+      caught = error as ExecutorExternalError
+    }
+    expect(caught?.readAudit?.completeness).toBe('incomplete')
+    expect(caught?.readAudit?.operations[0]?.outcome).toBe('unknown')
   })
 
   it('lanza ExecutorExternalError cuando el binario no está instalado', async () => {

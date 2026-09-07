@@ -270,6 +270,7 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'files_authorized', 'TEXT')
   safeAddColumn('runs', 'files_blocked', 'TEXT')
   safeAddColumn('runs', 'files_read', 'TEXT')
+  safeAddColumn('runs', 'read_audit_json', 'TEXT')
   safeAddColumn('runs', 'status', "TEXT NOT NULL DEFAULT 'done'")
   safeAddColumn('runs', 'task_id', 'TEXT')
   safeAddColumn('runs', 'snapshot_before', 'TEXT') // JSON {path: sha1}

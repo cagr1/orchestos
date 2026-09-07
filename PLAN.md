@@ -74,7 +74,7 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   esta sesión no expone navegador ni `agent-browser`, por lo que R.1 permanece abierto y sin
   commit hasta verificar recarga y el recorrido completo.
 
-- [ ] **R.2 — 🧠 Auditoría que distingue lectura solicitada, ejecutada, rechazada y desconocida.**
+- [x] **R.2 — 🧠 Auditoría que distingue lectura solicitada, ejecutada, rechazada y desconocida.** (2026-09-07, Codex; alcance aprobado por Carlos)
   Prioridad alta. Reproducido: `claudeEventToReadPaths()` (`step-event.ts:48`) añade el path de
   `tool_use/Read`; un `tool_result` de rechazo no lo corrige. `Grep` no se registra. El camino
   OpenRouter (`chat.ts:1192`) extrae argumentos de `read_file` sin comprobar resultado y omite
@@ -86,6 +86,41 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   stream incompleto y transporte no instrumentado; ninguna solicitud rechazada cuenta como
   lectura exitosa y ningún canal no observado produce una garantía de ausencia de lectura.
   Tests deterministas + security:gate + evidencia real con fixtures, nunca el vault personal.
+  **Alcance confirmado por Carlos (2026-09-07, Codex):** contrato versionado por ejecución;
+  correlación solicitud/resultado Claude, observación directa de los cuatro lectores OpenRouter,
+  cobertura y completitud explícitas, migración aditiva y pruebas adversariales. Sin contenido
+  privado en el nuevo registro. Fuera: R.1, instrumentar Codex/OpenCode sin contrato verificado,
+  garantías de lecturas implícitas y rediseño transaccional de R.5. Primero adaptadores y tests,
+  luego persistencia/API, finalmente cobertura, seguridad y gate real antes de marcar cierre.
+  **Implementación:** contrato v1 en `runs.read_audit_json`; Claude correlaciona por
+  `tool_use_id`, OpenRouter observa I/O de sus cuatro lectores con el ID del proveedor.
+  Error ordinario no se presume rechazo. Eventos faltantes/corruptos/duplicados/huérfanos,
+  formas no verificadas, timeout y truncamiento visible del registro impiden completitud.
+  Última línea sin newline procesada. Colectores por invocación y snapshots independientes.
+  Codex/OpenCode/legacy son desconocidos; `files_read=NULL` sin evidencia completa. Grep/Glob
+  registran búsqueda/listado, nunca inventan todos los archivos leídos. Contrato y exclusiones
+  en `docs/read-audit.md`; Runs API y detalle UI exponen estados y límites en inglés/español.
+  **Gate en vivo:** Playwright/navegador → composer del dashboard :50919 → Claude 2.1.263 →
+  SQLite → detalle Runs → recarga. Ocho operaciones verificadas por resultados reales:
+  Read/Grep/Glob dentro exitosos, cinco rechazos fuera (incluidos symlink y prefijo similar).
+  `files_read` ahora contiene **solo inside.txt**, no las cuatro solicitudes Read. Auditoría
+  persistida contiene ocho outcomes y ningún contenido de los fixtures. Dos mensajes
+  persistidos y evidencia visible después de recargar. Captura bajo `gate:evidence`;
+  `verify-read-boundary.ts` valida frontera y `verify-read-audit.ts` cruza DB contra stream,
+  además de reproducir exactamente la captura con el parser final. Reporte portable:
+  `scripts/fixtures/read-audit-review-2026-09-07.json`; crudo local `/tmp/orchestos-r2-evidence-0907`.
+  El wrapper exportó cero runs porque excluye chat: la evidencia durable es el reporte versionado.
+  **Gates finales:** typecheck limpio; `test:coverage` 1300 pass / 0 fail, funciones 75.80%,
+  líneas 64.34%; `security:gate` PASS; UI copy y ledger gates PASS. Lint PASS sobre snapshot
+  limpio del índice R.2; el workspace completo conserva un error de formato preexistente en
+  `chat-sessions.test.ts` (R.1, no incorporado ni modificado).
+  **Observaciones del gate:** `/api/chat/models` devuelve 400 por falta de key OpenRouter en
+  el fixture, sin impedir Claude. El clasificador intentó auto-crear una tarea pese al pedido
+  de solo lectura; faltaba tasks.yaml y no se creó/ejecutó ninguna. No acredita el gate R.1.
+  La expansión Runs se comprobó mediante evento DOM del navegador; el click de Playwright
+  por puntero agotó su espera de estabilidad durante rerenders. No se corrigió ese comportamiento
+  previo ni se declara ergonomía completa del dashboard. R.5 conserva atomicidad/durabilidad
+  ante caída abrupta; R.2-ter conserva la frontera de lectores fijos. H.9.4 sigue abierto.
 
 - [x] **R.2-bis — 🔍 Hallazgo bloqueante de R.2: la frontera de lectura no existe (evidencia).** (revisión independiente y correcciones, 2026-09-06)
   **Revisión Codex de b0ee431, autorizada por Carlos:** la elección de `--restricted` es válida
@@ -157,6 +192,12 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   symlink se repuntó a 2.1.263; el binario viejo queda en disco (`claude.2.1.234.bak`), no se
   borró. Consecuencia de diseño: la capability **no puede asumirse por versión instalada** —
   `readBoundary` debe verificarse contra el binario que realmente se va a spawnear.
+
+- [ ] **R.2-ter — 🧠 Unificar frontera de los lectores fijos OpenRouter.** Hallazgo por código
+  durante R.2 (2026-09-07): `read_plan/tasks/ideas` usan `readProjectTextFile()` con `join`
+  y `readFileSync`, sin `resolveProjectPath`; un nombre fijo no elimina el riesgo de symlinks.
+  Fuera del alcance de instrumentación R.2: no se corrigió ni se afirma aislamiento de estos
+  lectores. Aplicar política canónica común y probar fixtures symlink externo, interno y faltante.
 
 - [ ] **R.3 — ⚡ QA exige correspondencia uno a uno con los criterios originales.** Prioridad alta.
   Reproducido ejecutando el parser existente: dos copias aprobadas de «criterio A», con evidencia
@@ -1724,8 +1765,9 @@ catálogo real, no se toca).
 
 - [ ] **H.9.4 — 🔍 El gate que lo vuelve real: el chat intenta leer el vault y no puede.**
   **Dependencias actualizadas (auditoría 2026-09-06): R.2 y R.5.** El campo `files_read`
-  entregado por I.4 registra solicitudes sin confirmar resultados; todavía no es prueba de
-  lecturas efectivas. Ver Bloque R para corrección y evidencia requerida.
+  entregado originalmente por I.4 registraba solicitudes sin confirmar resultados. R.2 lo
+  corrigió el 2026-09-07 y añadió `read_audit_json` con evidencia real; R.5 sigue pendiente.
+  Ver Bloque R para resultados, cobertura y límites; este gate no se cierra automáticamente.
   Sin este test, alguien cambia un flag en dos semanas y nadie se entera — literalmente lo que
   pasó con el `pre-commit`. Un gate ejecutable, con el dashboard real corriendo
   ([[feedback-verificar-gates-en-vivo]]), que para cada CLI con frontera declarada:

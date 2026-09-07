@@ -19,12 +19,15 @@
 
 import { realpathSync } from 'node:fs'
 import { safeChildEnv } from '../path-policy.ts'
+import { ClaudeReadAudit, type ReadAudit, successfulReadPaths } from '../read-audit.ts'
 import { provisionCliConfigHome, supportsRestrictedMode } from './cli-registry.ts'
-import { claudeEventToReadPaths, claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
+import { claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
 
-export class ExecutorExternalError extends Error {}
+export class ExecutorExternalError extends Error {
+  readAudit?: ReadAudit
+}
 
 const DEFAULT_TIMEOUT_MS = 20 * 60 * 1000 // 20min — mismo default documentado en §4 del diseño
 const CLAUDE_BINARY = 'claude'
@@ -184,7 +187,8 @@ async function runClaudeCode(
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
   binary = CLAUDE_BINARY,
-): Promise<{ stdout: string; timedOut: boolean; resultLine?: string; filesRead: string[] }> {
+  audit = new ClaudeReadAudit(),
+): Promise<{ stdout: string; timedOut: boolean; resultLine?: string; readAudit: ReadAudit }> {
   const proc = Bun.spawn([binary, ...args], {
     cwd,
     env: safeChildEnv(),
@@ -206,7 +210,17 @@ async function runClaudeCode(
   let stdout = ''
   let lineBuffer = ''
   let resultLine: string | undefined
-  const filesRead = new Set<string>()
+  const consumeLine = (line: string) => {
+    if (!line.trim()) return
+    audit.line(line)
+    try {
+      const evt = JSON.parse(line)
+      if (evt?.type === 'result') resultLine = line
+      if (onStep) for (const step of claudeEventToStep(evt)) onStep(step)
+    } catch {
+      // Audit preserves malformed input; rendering must not abort the stream.
+    }
+  }
   try {
     while (true) {
       const { done, value } = await reader.read()
@@ -218,25 +232,22 @@ async function runClaudeCode(
       while ((nl = lineBuffer.indexOf('\n')) !== -1) {
         const line = lineBuffer.slice(0, nl).trim()
         lineBuffer = lineBuffer.slice(nl + 1)
-        if (!line) continue
-        try {
-          const evt = JSON.parse(line)
-          if (evt?.type === 'result') resultLine = line
-          for (const path of claudeEventToReadPaths(evt)) filesRead.add(path)
-          if (onStep) for (const step of claudeEventToStep(evt)) onStep(step)
-        } catch {
-          // línea parcial/corrupta — no aborta el resto del stream
-        }
+        consumeLine(line)
       }
     }
+    consumeLine(lineBuffer + decoder.decode())
+    const exitCode = await proc.exited
+    if (exitCode !== 0) audit.issue('process-nonzero-exit')
+    if (timedOut) audit.issue('timeout')
+  } catch (error) {
+    audit.issue('stream-interrupted')
+    proc.kill('SIGTERM')
+    throw error
   } finally {
     reader.releaseLock()
+    clearTimeout(timer)
   }
-
-  await proc.exited
-  clearTimeout(timer)
-
-  return { stdout, timedOut, resultLine, filesRead: [...filesRead] }
+  return { stdout, timedOut, resultLine, readAudit: audit.finish() }
 }
 
 // -- chat (CC.1, Mes 29) ----------------------------------------------------------
@@ -327,7 +338,8 @@ export interface ClaudeChatResult {
   model: string
   /** Esfuerzo real pasado al CLI, o `undefined` si no se fijó (el binario usa su propio default). */
   effort?: string
-  filesRead: string[]
+  filesRead: string[] | null
+  readAudit: ReadAudit
 }
 
 /**
@@ -360,27 +372,32 @@ export async function runClaudeChat(
 
   let timedOut: boolean
   let resultLine: string | undefined
-  let filesRead: string[] = []
+  const audit = new ClaudeReadAudit()
   const configHome = provisionCliConfigHome(cwd, 'claude')
   try {
-    ;({ timedOut, resultLine, filesRead } = await runClaudeCode(
+    ;({ timedOut, resultLine } = await runClaudeCode(
       cwd,
       buildClaudeChatArgs(systemPrompt, model, effort, configHome.settingsPath!, cwd),
       userMessage,
       timeoutMs,
       onStep,
       binary,
+      audit,
     ))
   } catch (e: any) {
-    throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
+    const error = new ExecutorExternalError(`failed to run claude code: ${e.message}`)
+    error.readAudit = audit.finish()
+    throw error
   }
 
   if (!resultLine) {
-    throw new ExecutorExternalError(
+    const error = new ExecutorExternalError(
       timedOut
         ? `claude code timed out after ${timeoutMs}ms with no result event`
         : `claude code produced no result event`,
     )
+    error.readAudit = audit.finish()
+    throw error
   }
   let parsed: ClaudeCodeJson
   try {
@@ -403,7 +420,8 @@ export async function runClaudeChat(
       resolvedCliModel(parsed) ??
       (orchestosModelToCliModel(model) ? model! : 'claude (cli default model)'),
     effort,
-    filesRead,
+    filesRead: successfulReadPaths(audit.finish()),
+    readAudit: audit.finish(),
   }
 }
 

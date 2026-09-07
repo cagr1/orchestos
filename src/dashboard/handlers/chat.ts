@@ -26,6 +26,7 @@ import {
   runToolLoop,
   SEARCH_MEMORY_TOOL,
   supportsToolCalling,
+  type ToolExecutor,
 } from '../../providers/tool-call.ts'
 import {
   resolveAgentSelection,
@@ -48,6 +49,14 @@ import {
 } from '../../run/executors/cli-registry.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
 import { PathPolicyError, resolveProjectPath } from '../../run/path-policy.ts'
+import {
+  type AuditedReadTool,
+  type ReadAudit,
+  ReadAuditCollector,
+  type ReadOutcome,
+  successfulReadPaths,
+  uninstrumentedReadAudit,
+} from '../../run/read-audit.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
 import { untrustedContent } from '../../security/untrusted-content.ts'
 import { listAllSkillCandidates } from '../../skills/catalog.ts'
@@ -358,36 +367,53 @@ export async function executeSearchMemory(
   }
 }
 
-function readProjectTextFile(name: string, root: string): string {
+function readProjectTextFile(
+  name: string,
+  root: string,
+  observed?: (result: ReadOutcome) => void,
+): string {
   const path = join(root, name)
-  if (!existsSync(path)) return `[${name} not found in this project]`
+  if (!existsSync(path)) {
+    observed?.('failed')
+    return `[${name} not found in this project]`
+  }
   // slice(256K) = guard de memoria; capToolOutput() = guard de contexto (A.3).
   // Aplica a los 4 callers (read_plan/tasks/ideas/file) — un solo punto.
-  return capToolOutput(readFileSync(path, 'utf-8').slice(0, 256 * 1024))
+  try {
+    const content = readFileSync(path, 'utf-8')
+    observed?.('succeeded')
+    return capToolOutput(content.slice(0, 256 * 1024))
+  } catch (error) {
+    observed?.('failed')
+    throw error
+  }
 }
 
 export async function executeReadPlan(
   _toolName: string,
   _input: unknown,
   root = process.cwd(),
+  observed?: (result: ReadOutcome) => void,
 ): Promise<string> {
-  return readProjectTextFile('PLAN.md', root)
+  return readProjectTextFile('PLAN.md', root, observed)
 }
 
 export async function executeReadTasks(
   _toolName: string,
   _input: unknown,
   root = process.cwd(),
+  observed?: (result: ReadOutcome) => void,
 ): Promise<string> {
-  return readProjectTextFile('tasks.yaml', root)
+  return readProjectTextFile('tasks.yaml', root, observed)
 }
 
 export async function executeReadIdeas(
   _toolName: string,
   _input: unknown,
   root = process.cwd(),
+  observed?: (result: ReadOutcome) => void,
 ): Promise<string> {
-  return readProjectTextFile('IDEAS.md', root)
+  return readProjectTextFile('IDEAS.md', root, observed)
 }
 
 // Verificación en vivo (2026-07-08): el chat no tenía forma de leer un archivo arbitrario
@@ -406,8 +432,9 @@ function logChatRun(
   outputTokens: number,
   projectId: string | null,
   result: string,
-  filesRead: string[] = [],
+  readAudit: ReadAudit = uninstrumentedReadAudit(),
   provider = 'openrouter',
+  status: 'done' | 'failed' = 'done',
 ): void {
   try {
     insertRun({
@@ -422,12 +449,16 @@ function logChatRun(
       files_attempted: null,
       files_authorized: null,
       files_blocked: null,
-      files_read: JSON.stringify(filesRead),
+      files_read:
+        successfulReadPaths(readAudit) === null
+          ? null
+          : JSON.stringify(successfulReadPaths(readAudit)),
+      read_audit_json: JSON.stringify(readAudit),
       snapshot_before: null,
       snapshot_after: null,
       qa_verdict: null,
       qa_reason: null,
-      status: 'done',
+      status,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       usd_cost: calcCost(model, inputTokens, outputTokens),
@@ -443,20 +474,54 @@ export async function executeReadFile(
   _toolName: string,
   input: unknown,
   root = process.cwd(),
+  observed?: (result: ReadOutcome) => void,
 ): Promise<string> {
   const rawPath =
     typeof input === 'object' && input !== null ? (input as { path?: unknown }).path : undefined
-  if (typeof rawPath !== 'string' || !rawPath.trim()) return '[read_file: "path" is required]'
+  if (typeof rawPath !== 'string' || !rawPath.trim()) {
+    observed?.('rejected')
+    return '[read_file: "path" is required]'
+  }
   let target: string
   try {
     target = resolveProjectPath(root, rawPath, 'read')
   } catch (e) {
+    observed?.(e instanceof PathPolicyError ? 'rejected' : 'failed')
     return `[read_file: ${e instanceof PathPolicyError ? e.message : 'path refused'}]`
   }
   return untrustedContent(
     `project-file:${relative(root, target)}`,
-    readProjectTextFile(relative(root, target), root),
+    readProjectTextFile(relative(root, target), root, observed),
   )
+}
+
+/** Observe the actual I/O branch, never classify a file's content as an error. */
+export function createAuditedProjectReader(root: string, audit: ReadAuditCollector): ToolExecutor {
+  const readers = {
+    read_plan: executeReadPlan,
+    read_tasks: executeReadTasks,
+    read_ideas: executeReadIdeas,
+    read_file: executeReadFile,
+  }
+  const fixedPaths = { read_plan: 'PLAN.md', read_tasks: 'tasks.yaml', read_ideas: 'IDEAS.md' }
+  return async (name, input, callId) => {
+    if (!Object.hasOwn(readers, name)) throw new Error('Unsupported audited reader')
+    const path =
+      name === 'read_file'
+        ? (input as { path?: unknown } | null)?.path
+        : fixedPaths[name as keyof typeof fixedPaths]
+    audit.request(callId ?? '', name as AuditedReadTool, path)
+    let observed = false
+    try {
+      return await readers[name as keyof typeof readers](name, input, root, (outcome) => {
+        observed = true
+        audit.result(callId ?? '', outcome)
+      })
+    } catch (error) {
+      if (!observed) audit.result(callId ?? '', 'failed')
+      throw error
+    }
+  }
 }
 
 // B.1 (Mes 18) — gate de evidencia: un evento por mensaje enviado (para saber si
@@ -1016,18 +1081,32 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           result.outputTokens,
           session?.project_id ?? project.id,
           responseText,
-          result.filesRead,
+          result.readAudit,
           'claude',
         )
         persistResponse(responseText, resultLabel)
         return jsonResponse({
           text: responseText,
           model: resultLabel,
+          readAudit: result.readAudit,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
           taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
           autoTask,
         })
       } catch (e: any) {
+        if (e.readAudit) {
+          logChatRun(
+            message,
+            model,
+            0,
+            0,
+            session?.project_id ?? project.id,
+            'Claude stream failed; read evidence incomplete',
+            e.readAudit,
+            'claude',
+            'failed',
+          )
+        }
         return errorResponse(`Claude Code CLI: ${e.message}`, 502)
       } finally {
         if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
@@ -1057,7 +1136,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           result.outputTokens,
           session?.project_id ?? project.id,
           responseText,
-          [],
+          uninstrumentedReadAudit(),
           'codex',
         )
         persistResponse(responseText, resultLabel)
@@ -1095,7 +1174,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           result.outputTokens,
           session?.project_id ?? project.id,
           responseText,
-          [],
+          uninstrumentedReadAudit(),
           'opencode',
         )
         persistResponse(responseText, resultLabel)
@@ -1179,6 +1258,8 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     const chatMaxTokens = clamped > 0 ? clamped : DEFAULT_MAX_OUTPUT_TOKENS
 
     if (hasProjectContext && supportsToolCalling('openrouter', model)) {
+      const readCollector = new ReadAuditCollector('openrouter-local-tools')
+      const auditedReader = createAuditedProjectReader(root, readCollector)
       const result = await runToolLoop('openrouter', model, {
         system: systemPrompt,
         messages,
@@ -1191,16 +1272,30 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           READ_FILE_TOOL,
         ],
         executeTool: createToolRouter({
-          fetch_url: executeFetchUrl,
+          fetch_url: (name, input) => executeFetchUrl(name, input),
           search_memory: (name, input) => executeSearchMemory(name, input, project.id),
-          read_plan: (name, input) => executeReadPlan(name, input, root),
-          read_tasks: (name, input) => executeReadTasks(name, input, root),
-          read_ideas: (name, input) => executeReadIdeas(name, input, root),
-          read_file: (name, input) => executeReadFile(name, input, root),
+          read_plan: auditedReader,
+          read_tasks: auditedReader,
+          read_ideas: auditedReader,
+          read_file: auditedReader,
         }),
         effort,
         maxTokens: chatMaxTokens,
+      }).catch((error) => {
+        logChatRun(
+          message,
+          model,
+          0,
+          0,
+          session?.project_id ?? project.id,
+          'Tool loop failed; read evidence incomplete',
+          readCollector.snapshot(false),
+          'openrouter',
+          'failed',
+        )
+        throw error
       })
+      const readAudit = readCollector.snapshot(true)
       const responseText = result.text + autoTaskNote
       logChatRun(
         message,
@@ -1209,16 +1304,14 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         result.outputTokens,
         session?.project_id ?? project.id,
         responseText,
-        result.toolCallsExecuted
-          .filter((call) => call.name === 'read_file')
-          .map((call) => (call.input as { path?: unknown })?.path)
-          .filter((path): path is string => typeof path === 'string'),
+        readAudit,
       )
       persistResponse(responseText, model)
       return jsonResponse({
         text: responseText,
         model,
         toolCalls: result.toolCallsExecuted,
+        readAudit,
         ocrUsed: ocrUsed.length ? ocrUsed : undefined,
         taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
         autoTask,

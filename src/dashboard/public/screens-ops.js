@@ -705,6 +705,15 @@ SCREENS.runs = {
           `</div>`
         : ''
 
+    const audit = r.readAudit
+    const readEvidence = `<div class="grp"><h4>${t('runs.readAudit.title')}</h4>
+      <div class="muted">${t('runs.readAudit.scope')}</div>
+      <div class="kv"><span class="k">${t('runs.readAudit.coverage')}</span><span class="v">${esc(audit?.source || 'uninstrumented')} · ${esc(t('runs.readAudit.' + (audit?.completeness || 'unknown')))}</span></div>
+      ${(audit?.operations || []).map((op) => `<div class="kv"><span class="k">${esc(op.tool)} · ${esc(op.requestedPath || '?')}</span><span class="v">${esc(t('runs.readAudit.' + op.outcome))}</span></div>`).join('')}
+      ${!audit?.operations?.length ? `<div class="muted">${t('runs.readAudit.empty')}</div>` : ''}
+      ${audit?.issues?.length ? `<div class="muted">${esc(audit.issues.join(', '))}</div>` : ''}
+    </div>`
+
     const meta = `<div class="grp"><h4>${t('runs.detail.meta')}</h4>
       ${r.skillId ? `<div class="kv"><span class="k">${t('runs.detail.skill')}</span><span class="v">${esc(r.skillId)}</span></div>` : ''}
       ${r.provider ? `<div class="kv"><span class="k">${t('runs.detail.provider')}</span><span class="v">${esc(r.provider)}</span></div>` : ''}
@@ -716,7 +725,7 @@ SCREENS.runs = {
       <button class="btn danger sm" data-run-act="delete" data-run-id="${esc(r.id)}">${ICON.trash} ${t('runs.btn.delete')}</button>
     </div>`
 
-    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${filesChanged}${bd}${warns}${qa}${meta}${deleteAction}</div></td></tr>`
+    return `<tr class="detail-row"><td colspan="7"><div class="detail">${engine}${processGroup}${readEvidence}${filesChanged}${bd}${warns}${qa}${meta}${deleteAction}</div></td></tr>`
   },
   render(st) {
     const hasRunning = (st.runs || []).some((r) => r.status === 'running')

@@ -301,7 +301,7 @@ export async function callWithTools(
 // Multi-turn tool loop (Mes 13, Bloque A)
 // ---------------------------------------------------------------------------
 
-export type ToolExecutor = (toolName: string, input: unknown) => Promise<string>
+export type ToolExecutor = (toolName: string, input: unknown, callId?: string) => Promise<string>
 
 export interface ToolLoopResult {
   text: string
@@ -396,10 +396,10 @@ export const READ_FILE_TOOL: ToolDef = {
  * ToolDef at once without each handler needing its own name-matching logic.
  */
 export function createToolRouter(handlers: Record<string, ToolExecutor>): ToolExecutor {
-  return async (toolName, input) => {
+  return async (toolName, input, callId) => {
     const handler = handlers[toolName]
     if (!handler) return `[Error: unknown tool "${toolName}"]`
-    return handler(toolName, input)
+    return handler(toolName, input, callId)
   }
 }
 
@@ -664,7 +664,7 @@ export async function runToolLoop(
     history.push(provider === 'anthropic' ? result.assistantContent : result.assistantMessage)
 
     for (const tu of result.toolUses) {
-      const toolResult = await opts.executeTool(tu.name, tu.input)
+      const toolResult = await opts.executeTool(tu.name, tu.input, tu.id)
       executed.push({ name: tu.name, input: tu.input })
 
       if (provider === 'anthropic') {

@@ -1,0 +1,83 @@
+{
+  "verifiedAt": "2026-09-07T02:50:22.827Z",
+  "runId": "07b07f08-9ad5-4a52-b1de-05df233e2d1c",
+  "verdict": "pass",
+  "transport": "browser -> dashboard chat -> Claude -> SQLite -> Runs API",
+  "persistedAudit": {
+    "version": 1,
+    "source": "claude-stream",
+    "coverage": "explicit-tools-only",
+    "completeness": "complete",
+    "tools": ["Read", "Grep", "Glob"],
+    "limitations": ["implicit-reads-not-observed", "search-file-set-not-observed"],
+    "issues": [],
+    "operations": [
+      {
+        "callId": "toolu_01NnJbAnxhL9yELKQcHPzTi9",
+        "tool": "Read",
+        "kind": "read",
+        "requestedPath": "<fixture>/project/inside.txt",
+        "outcome": "succeeded",
+        "resultObserved": true
+      },
+      {
+        "callId": "toolu_015o5ZjsGAK4dV8Jyz9AezCe",
+        "tool": "Read",
+        "kind": "read",
+        "requestedPath": "<fixture>/outside.txt",
+        "outcome": "rejected",
+        "resultObserved": true
+      },
+      {
+        "callId": "toolu_01HpjyKiXtg8vGZF5ffima6Z",
+        "tool": "Read",
+        "kind": "read",
+        "requestedPath": "<fixture>/project/link.txt",
+        "outcome": "rejected",
+        "resultObserved": true
+      },
+      {
+        "callId": "toolu_011bk8WbT7yw2JQew6yx3w9z",
+        "tool": "Read",
+        "kind": "read",
+        "requestedPath": "<fixture>/project-evil/secret.txt",
+        "outcome": "rejected",
+        "resultObserved": true
+      },
+      {
+        "callId": "toolu_01WqqQyWSj8pqSih98b4rnHD",
+        "tool": "Grep",
+        "kind": "search",
+        "requestedPath": "<fixture>",
+        "outcome": "rejected",
+        "resultObserved": true
+      },
+      {
+        "callId": "toolu_018jDUkyNqcHykZJSXavRA49",
+        "tool": "Glob",
+        "kind": "list",
+        "requestedPath": "<fixture>",
+        "outcome": "rejected",
+        "resultObserved": true
+      },
+      {
+        "callId": "toolu_01E9ixWxyrghSHkEy5jDEcyr",
+        "tool": "Grep",
+        "kind": "search",
+        "requestedPath": "<fixture>/project",
+        "outcome": "succeeded",
+        "resultObserved": true
+      },
+      {
+        "callId": "toolu_0131i8GDcAJzm2rehNmf3qZY",
+        "tool": "Glob",
+        "kind": "list",
+        "requestedPath": "<fixture>/project",
+        "outcome": "succeeded",
+        "resultObserved": true
+      }
+    ]
+  },
+  "directReads": ["<fixture>/project/inside.txt"],
+  "limits": "Eight synthetic operations; implicit reads and crash durability not verified"
+}

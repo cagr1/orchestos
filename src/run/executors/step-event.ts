@@ -44,7 +44,7 @@ interface ClaudeAssistantEvent {
   message?: { content?: ClaudeContentBlock[] }
 }
 
-/** Paths reported by Claude's actual Read tool calls, not inferred from text. */
+/** Requested paths ONLY. Never use as evidence of success; use ClaudeReadAudit. */
 export function claudeEventToReadPaths(raw: unknown): string[] {
   const evt = raw as ClaudeAssistantEvent
   if (!evt || typeof evt !== 'object' || evt.type !== 'assistant') return []

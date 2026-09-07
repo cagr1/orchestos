@@ -1,4 +1,5 @@
 import { deleteRun, getRun, listRuns, type RunRecord } from '../../db/runs.ts'
+import { parseReadAudit } from '../../run/read-audit.ts'
 import { type CostBreakdownEntry, parseCostBreakdownJson } from '../../run/transcript-parser.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type {
@@ -70,6 +71,7 @@ function runRecordToRow(r: RunRecord): RunRow {
     qaVerdict: r.qa_verdict as 'pass' | 'fail' | null,
     model: r.model,
     provider: r.provider,
+    readAudit: parseReadAudit(r.read_audit_json),
     skillId: r.skill_id,
     inputTokens: r.input_tokens,
     outputTokens: r.output_tokens,
