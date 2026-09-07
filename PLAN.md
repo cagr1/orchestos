@@ -252,13 +252,21 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   `bun run lint` quedó sin errores; los warnings/información preexistentes de Biome no se
   presentan como fallos. R.3 se commitea junto con ese único ajuste de formato.
 
-- [ ] **R.3-bis — ⚡ Validar el envelope completo de QA adversarial/refutador.** Hallazgo
+- [x] **R.3-bis — ⚡ Validar el envelope completo de QA adversarial/refutador.** (2026-09-07, Codex)
   reproducido con proveedores sintéticos (2026-09-07): un array JSON con un objeto interno
   produce `VERIFIED` en `runAdversarialQA` y `REFUTED` en `runRefuter`; ambos extraen las
   llaves antes de validar la forma exterior. No corregido dentro de R.3. Aplicar parseo del
   payload completo y conservar sus fallbacks opuestos (adversarial: REFUTED; refutador:
   CONFIRMED). Gate: arrays con objeto, strings JSON, truncados, múltiples objetos y fences
   válidos; nunca invertir un fallo por extraer un objeto desde una respuesta malformada.
+  **Implementación y gate:** `parseCompleteJson()` centraliza un único payload JSON completo,
+  con fence opcional exacto, para QA normal, adversarial y refutador. Arrays, strings JSON,
+  truncados, múltiples objetos, prose adicional y fence con sufijo se rechazan. Los fallbacks
+  se preservan: adversarial → `REFUTED`; refutador → `CONFIRMED`. Tests sintéticos cubren las
+  siete formas malformadas para ambas rutas y el fence válido preexistente. `tsc`, 68 tests QA,
+  `test:coverage` 1324 pass / 0 fail (funciones 75.84%, líneas 64.42%), `security:gate` PASS y
+  lint sin errores. Se intentó mutación sobre los tres parsers; el entorno terminó el proceso
+  tras el dry run con señal 143. No es gate de R.3-bis y no se usa como evidencia de cierre.
 
 - [ ] **R.4 — ⚡ Aislar respuestas y restauración por conversación.** Prioridad alta.
   Carrera identificada por código, pendiente de reproducción: `app.js:298/335` reemplaza el

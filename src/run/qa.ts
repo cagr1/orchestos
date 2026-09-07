@@ -164,21 +164,27 @@ export async function runQA(opts: {
   }
 }
 
+/** One complete JSON value, optionally surrounded by exactly one markdown fence.
+ * Never recover a convenient object from a malformed outer response. */
+function parseCompleteJson(raw: string): { value?: unknown; parseError?: true } {
+  const fenced = raw.trim().match(/^```(?:json)?\s*([\s\S]*?)```$/)
+  try {
+    return { value: JSON.parse(fenced?.[1] ?? raw.trim()) }
+  } catch {
+    return { parseError: true }
+  }
+}
+
 function parseVerdict(
   raw: string,
   expectedCriteria: string[],
   written: FileChange[],
 ): { verdict: 'pass' | 'fail'; reason: string; criteria?: QACriterionResult[] } {
-  // Accept one complete JSON payload (optionally fenced), never a convenient
-  // inner object from an array, a truncated envelope, or surrounding prose.
-  const jsonMatch = raw.trim().match(/^```(?:json)?\s*([\s\S]*?)```$/)
-  const jsonStr = jsonMatch?.[1] ?? raw.trim()
-  let obj: unknown
-  try {
-    obj = JSON.parse(jsonStr)
-  } catch {
+  const parsed = parseCompleteJson(raw)
+  if (parsed.parseError) {
     return { verdict: 'fail', reason: `QA response not parseable: ${raw.slice(0, 200)}` }
   }
+  const obj = parsed.value
   if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
     return { verdict: 'fail', reason: 'QA response must be a JSON object' }
   }
@@ -340,18 +346,15 @@ function parseAdversarialVerdict(raw: string): {
   verdict: AdversarialVerdict['verdict']
   reason: string
 } {
-  const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
-  const jsonStr = jsonMatch?.[1] ?? raw.trim()
-  let obj: unknown
-  try {
-    obj = JSON.parse(jsonStr)
-  } catch {
+  const parsed = parseCompleteJson(raw)
+  if (parsed.parseError) {
     // fail-safe: una respuesta no parseable no puede sostener un pase silencioso
     return {
       verdict: 'REFUTED',
       reason: `adversarial QA response not parseable: ${raw.slice(0, 200)}`,
     }
   }
+  const obj = parsed.value
   if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
     return { verdict: 'REFUTED', reason: 'adversarial QA response must be a JSON object' }
   }
@@ -441,15 +444,12 @@ export async function runRefuter(opts: {
 }
 
 function parseRefuterVerdict(raw: string): { verdict: RefuterVerdict['verdict']; reason: string } {
-  const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
-  const jsonStr = jsonMatch?.[1] ?? raw.trim()
-  let obj: unknown
-  try {
-    obj = JSON.parse(jsonStr)
-  } catch {
+  const parsed = parseCompleteJson(raw)
+  if (parsed.parseError) {
     // fail-safe OPUESTO a parseAdversarialVerdict: acá no-parseable sostiene el fail original
     return { verdict: 'CONFIRMED', reason: `refuter response not parseable: ${raw.slice(0, 200)}` }
   }
+  const obj = parsed.value
   if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
     return { verdict: 'CONFIRMED', reason: 'refuter response must be a JSON object' }
   }

@@ -539,6 +539,22 @@ describe('runAdversarialQA and parseAdversarialVerdict', () => {
     expect(nullResult.reason).toContain('JSON object')
   })
 
+  it('R.3-bis rejects malformed envelopes rather than extracting an inner VERIFIED object', async () => {
+    const valid = JSON.stringify({ verdict: 'VERIFIED', reason: 'inner object must not count' })
+    for (const raw of [
+      JSON.stringify([JSON.parse(valid)]),
+      JSON.stringify(valid),
+      `[${valid}`,
+      `${valid},`,
+      `prose ${valid}`,
+      `${valid}\n${valid}`,
+      `\`\`\`json\n${valid}\n\`\`\` trailing`,
+    ]) {
+      const result = await runAdversarialQA({ ...baseOptions, provider: providerReply(raw) })
+      expect(result.verdict).toBe('REFUTED')
+    }
+  })
+
   it('includes multiple files and executed checks in the adversarial prompt', async () => {
     let userContent = ''
     await runAdversarialQA({
@@ -617,6 +633,22 @@ describe('runRefuter and parseRefuterVerdict (X.1, IDEAS #33)', () => {
 
     expect(result.verdict).toBe('REFUTED')
     expect(result.reason).toBe('answer is clearly exported, the judge misread the file.')
+  })
+
+  it('R.3-bis rejects malformed envelopes rather than extracting an inner REFUTED object', async () => {
+    const valid = JSON.stringify({ verdict: 'REFUTED', reason: 'inner object must not count' })
+    for (const raw of [
+      JSON.stringify([JSON.parse(valid)]),
+      JSON.stringify(valid),
+      `[${valid}`,
+      `${valid},`,
+      `prose ${valid}`,
+      `${valid}\n${valid}`,
+      `\`\`\`json\n${valid}\n\`\`\` trailing`,
+    ]) {
+      const result = await runRefuter({ ...baseOptions, provider: providerReply(raw) })
+      expect(result.verdict).toBe('CONFIRMED')
+    }
   })
 
   it('fails safe to CONFIRMED (opposite of adversarial QA) when the response is not parseable', async () => {
