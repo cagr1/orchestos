@@ -222,7 +222,7 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   de R.2 que este cambio casi rompía — detectados por la suite completa, no por el archivo nuevo
   solo). No aplica gate de navegador: `chat.ts` no está en `LIVE_GATE_PATHS`.
 
-- [ ] **R.3 — ⚡ QA exige correspondencia uno a uno con los criterios originales.** Prioridad alta.
+- [x] **R.3 — ⚡ QA exige correspondencia uno a uno con los criterios originales.** (2026-09-07, Codex)
   Reproducido ejecutando el parser existente: dos copias aprobadas de «criterio A», con evidencia
   literal y cantidad esperada 2, producen `pass`. `qa.ts:166` recibe únicamente cardinalidad,
   por lo que no puede validar identidad ni detectar que falta B. Pasar las identidades originales
@@ -231,6 +231,34 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   **Gate:** A+A frente a A+B falla; faltante, extra, desconocido, null y estructura malformada
   fallan de forma segura; A+B válido pasa. Typecheck, tests relevantes y mutation QA acotado
   según el protocolo. No usar coincidencia semántica de otro LLM para validar identidades.
+  **Alcance de implementación 2026-09-07 (Codex):** `runQA` pasa textos originales al
+  parser; comparación literal en el orden ya exigido por el prompt, originales únicos y no
+  vacíos. Validación de cada elemento y evidencia literal preservada. Un único JSON completo
+  (opcionalmente fenced), sin extraer objetos de wrappers malformados. No cambia harness,
+  política de reintentos, ni parsers adversarial/refutador. El vault no devolvió insights nuevos.
+  **Cierre verificado (2026-09-07):** implementación en `qa.ts` y regresiones
+  en `qa-core.test.ts`. Typecheck limpio; 66 tests QA y `test:coverage` 1322 pass / 0 fail
+  (funciones 75.82%, líneas 64.42%); `security:gate` PASS. Mutación final:
+  `bun run mutation:qa --mutate 'src/run/qa.ts:156-257' --tempDirName <tmp-vacío-propio> --concurrency 2`:
+  156 mutantes, 71 killed, 16 survived, 69 CompileError; score 81.61%, cero timeouts.
+  Los mutantes que fuerzan a true/false la comparación de identidad o la condición de evidencia
+  son killed; no se reclama 100%: sobreviven variantes de fences, diagnósticos, guards redundantes
+  y casos no cubiertos (incluido cambiar el fallback de archivo ausente por texto no vacío).
+  Reporte local `reports/mutation/mutation.json`; log `/tmp/orchestos-r3-final-mutation.log`.
+  Stryker avisa sobre el HTML inválido intencional de `evals/html-inline-script-syntax`, fuera
+  del rango mutado; el dry run y la mutación terminan con exit 0. No se alteraron sus reglas.
+  El formato heredado de `src/dashboard/__tests__/chat-sessions.test.ts` del commit R.1 `27768e9`
+  fue corregido de forma mecánica, con autorización de Carlos, sin cambiar comportamiento.
+  `bun run lint` quedó sin errores; los warnings/información preexistentes de Biome no se
+  presentan como fallos. R.3 se commitea junto con ese único ajuste de formato.
+
+- [ ] **R.3-bis — ⚡ Validar el envelope completo de QA adversarial/refutador.** Hallazgo
+  reproducido con proveedores sintéticos (2026-09-07): un array JSON con un objeto interno
+  produce `VERIFIED` en `runAdversarialQA` y `REFUTED` en `runRefuter`; ambos extraen las
+  llaves antes de validar la forma exterior. No corregido dentro de R.3. Aplicar parseo del
+  payload completo y conservar sus fallbacks opuestos (adversarial: REFUTED; refutador:
+  CONFIRMED). Gate: arrays con objeto, strings JSON, truncados, múltiples objetos y fences
+  válidos; nunca invertir un fallo por extraer un objeto desde una respuesta malformada.
 
 - [ ] **R.4 — ⚡ Aislar respuestas y restauración por conversación.** Prioridad alta.
   Carrera identificada por código, pendiente de reproducción: `app.js:298/335` reemplaza el

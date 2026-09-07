@@ -135,10 +135,12 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.generalDefaultStatus).toBe(201)
     expect(result.generalDefault).toMatchObject({ projectId: null, mode: 'chat' })
     expect(result.routedListStatus).toBe(200)
-    expect(result.routedList).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: expect.any(String), agent: 'claude' }),
-      expect.objectContaining({ id: expect.any(String), agent: 'api', mode: 'code' }),
-    ]))
+    expect(result.routedList).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: expect.any(String), agent: 'claude' }),
+        expect.objectContaining({ id: expect.any(String), agent: 'api', mode: 'code' }),
+      ]),
+    )
     expect(result.immutableStatus).toBe(400)
     expect(result.updatedStatus).toBe(200)
     expect(result.updated).toMatchObject({ agent: 'claude', mode: 'code', title: 'Renamed' })

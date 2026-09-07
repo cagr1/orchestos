@@ -116,6 +116,7 @@ export async function runQA(opts: {
           'Respond with ONLY a JSON object — no markdown fences, no prose:',
           '{ "verdict": "pass" | "fail", "reason": "one short sentence summarizing result", "criteria": [ { "text": "...", "pass": true | false, "evidence": { "file": "path/to/file", "excerpt": "literal excerpt from that file" } } ] }',
           'The "criteria" array must have one entry per criterion, in the same order as given.',
+          'Copy each criterion into "text" EXACTLY as given, without the numbering. Do not paraphrase, duplicate, replace, or omit criteria.',
           'For every criterion with pass: true, evidence is REQUIRED: cite a literal excerpt from one of the written files using its relative path.',
           'If no written file contains evidence that satisfies a criterion, mark that criterion pass: false.',
           'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
@@ -152,7 +153,7 @@ export async function runQA(opts: {
     messages: [{ role: 'user', content: userContent }],
   })
 
-  const parsed = parseVerdict(resp.text, opts.acceptance_criteria?.length ?? 0, opts.written)
+  const parsed = parseVerdict(resp.text, opts.acceptance_criteria ?? [], opts.written)
   return {
     verdict: parsed.verdict,
     reason: parsed.reason,
@@ -165,10 +166,12 @@ export async function runQA(opts: {
 
 function parseVerdict(
   raw: string,
-  expectedCriteriaCount: number,
+  expectedCriteria: string[],
   written: FileChange[],
 ): { verdict: 'pass' | 'fail'; reason: string; criteria?: QACriterionResult[] } {
-  const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/)
+  // Accept one complete JSON payload (optionally fenced), never a convenient
+  // inner object from an array, a truncated envelope, or surrounding prose.
+  const jsonMatch = raw.trim().match(/^```(?:json)?\s*([\s\S]*?)```$/)
   const jsonStr = jsonMatch?.[1] ?? raw.trim()
   let obj: unknown
   try {
@@ -183,7 +186,19 @@ function parseVerdict(
   const v = o.verdict === 'pass' ? 'pass' : 'fail'
   const reason = typeof o.reason === 'string' ? o.reason : '(no reason)'
 
+  const expectedCriteriaCount = expectedCriteria.length
   if (expectedCriteriaCount === 0) return { verdict: v, reason }
+
+  if (
+    new Set(expectedCriteria).size !== expectedCriteriaCount ||
+    expectedCriteria.some((text) => !text.trim())
+  ) {
+    return {
+      verdict: 'fail',
+      reason: 'Original QA criteria must be non-empty and unique',
+      criteria: [],
+    }
+  }
 
   if (!Array.isArray(o.criteria) || o.criteria.length !== expectedCriteriaCount) {
     return {
@@ -199,12 +214,20 @@ function parseVerdict(
   // un segundo LLM.
   const byPath = new Map(written.map((f) => [f.path, f.content]))
 
-  const criteria: QACriterionResult[] = (o.criteria as unknown[]).map((c) => {
+  let identityMismatch = false
+  const criteria: QACriterionResult[] = (o.criteria as unknown[]).map((c, index) => {
+    if (c === null || typeof c !== 'object' || Array.isArray(c)) {
+      identityMismatch = true
+      return { text: expectedCriteria[index]!, pass: false }
+    }
     const cr = c as Record<string, unknown>
+    const matchesOriginal = cr.text === expectedCriteria[index]
+    if (!matchesOriginal) identityMismatch = true
     const rawEvidence = cr.evidence as Record<string, unknown> | undefined
     const evidence =
       rawEvidence &&
       typeof rawEvidence === 'object' &&
+      !Array.isArray(rawEvidence) &&
       typeof rawEvidence.file === 'string' &&
       rawEvidence.file.trim() &&
       typeof rawEvidence.excerpt === 'string' &&
@@ -213,7 +236,7 @@ function parseVerdict(
         : undefined
     const evidenceIsReal =
       evidence !== undefined && (byPath.get(evidence.file) ?? '').includes(evidence.excerpt)
-    const pass = cr.pass === true && evidenceIsReal
+    const pass = matchesOriginal && cr.pass === true && evidenceIsReal
     return {
       text: typeof cr.text === 'string' ? cr.text : '?',
       pass,
@@ -223,7 +246,13 @@ function parseVerdict(
 
   // If any criterion failed, force verdict to fail regardless of what LLM said
   const anyFailed = criteria.some((c) => !c.pass)
-  return { verdict: anyFailed ? 'fail' : v, reason, criteria }
+  return {
+    verdict: anyFailed ? 'fail' : v,
+    reason: identityMismatch
+      ? 'QA criterion results must match the original text and order exactly'
+      : reason,
+    criteria,
+  }
 }
 
 export const MAX_RETRIES = 3

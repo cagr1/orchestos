@@ -122,6 +122,116 @@ describe('computeFileDiffs', () => {
 })
 
 describe('runQA and parseVerdict', () => {
+  const criterion = (text: string) => ({
+    text,
+    pass: true,
+    evidence: { file: 'fixture.ts', excerpt: 'export const answer = 42' },
+  })
+  const checkCriteria = (criteria: unknown, originals = ['A', 'B']) =>
+    runQA({
+      description: 'Verify identities',
+      output: ['fixture.ts'],
+      written: [{ path: 'fixture.ts', content: 'export const answer = 42' }],
+      model: 'test-model',
+      checksResults: [],
+      acceptance_criteria: originals,
+      provider: providerReply(
+        JSON.stringify({ verdict: 'pass', reason: 'model claims success', criteria }),
+      ),
+    })
+
+  it('R.3 accepts exactly A+B with literal evidence and preserves their identities', async () => {
+    const result = await checkCriteria([criterion('A'), criterion('B')])
+    expect(result.verdict).toBe('pass')
+    expect(result.criteria).toEqual([criterion('A'), criterion('B')])
+    expect(result.reason).toBe('model claims success')
+  })
+
+  it('R.3 explains identity mismatch instead of repeating the provider success claim', async () => {
+    const result = await checkCriteria([criterion('A'), criterion('A')])
+    expect(result.reason).toBe(
+      'QA criterion results must match the original text and order exactly',
+    )
+    expect(result.criteria?.[1]?.pass).toBe(false)
+  })
+
+  for (const [label, rows] of [
+    ['duplicate A+A', [criterion('A'), criterion('A')]],
+    ['missing B', [criterion('A')]],
+    ['extra C', [criterion('A'), criterion('B'), criterion('C')]],
+    ['unknown C', [criterion('A'), criterion('C')]],
+    ['reordered B+A', [criterion('B'), criterion('A')]],
+    ['paraphrased text', [criterion('A'), criterion(' B ')]],
+    ['missing text', [criterion('A'), { pass: true, evidence: criterion('B').evidence }]],
+    ['null entry', [criterion('A'), null]],
+    ['array entry', [criterion('A'), []]],
+    ['primitive entry', [criterion('A'), true]],
+    ['non-boolean pass', [criterion('A'), { ...criterion('B'), pass: 'true' }]],
+    ['malformed evidence', [criterion('A'), { ...criterion('B'), evidence: [] }]],
+    ['non-array criteria', { A: criterion('A'), B: criterion('B') }],
+  ] as const) {
+    it(`R.3 fails closed for ${label}`, async () => {
+      expect((await checkCriteria(rows)).verdict).toBe('fail')
+    })
+  }
+
+  it('R.3 rejects ambiguous duplicate or blank original identities', async () => {
+    expect((await checkCriteria([criterion('A'), criterion('A')], ['A', 'A'])).verdict).toBe('fail')
+    expect((await checkCriteria([criterion('')], [''])).verdict).toBe('fail')
+    expect((await checkCriteria([criterion('A'), criterion(' ')], ['A', ' '])).verdict).toBe('fail')
+  })
+
+  it('R.3 whitespace-only evidence cannot satisfy a criterion even if literally present', async () => {
+    const result = await checkCriteria([
+      criterion('A'),
+      { ...criterion('B'), evidence: { file: 'fixture.ts', excerpt: ' ' } },
+    ])
+    expect(result.verdict).toBe('fail')
+    expect(result.criteria?.[1]?.evidence).toBeUndefined()
+  })
+
+  it('R.3 never unwraps a valid JSON array or JSON string into a passing object', async () => {
+    const object = { verdict: 'pass', criteria: [criterion('A')] }
+    for (const raw of [
+      JSON.stringify([object]),
+      JSON.stringify(JSON.stringify(object)),
+      '```json\n' + JSON.stringify([object]) + '\n```',
+    ]) {
+      const result = await runQA({
+        description: 'Validate response shape',
+        output: [],
+        written: [],
+        model: 'test-model',
+        checksResults: [],
+        provider: providerReply(raw),
+      })
+      expect(result.verdict).toBe('fail')
+      expect(result.reason).toContain('JSON object')
+    }
+  })
+
+  it('R.3 rejects truncated wrappers and extra payloads instead of extracting inner JSON', async () => {
+    const valid = JSON.stringify({ verdict: 'pass', reason: 'looks good' })
+    for (const raw of [
+      '[' + valid,
+      valid + ',',
+      'explanation ' + valid,
+      '```json\n' + valid + '\n``` trailing',
+      valid + '\n' + valid,
+    ]) {
+      const result = await runQA({
+        description: 'Validate whole response',
+        output: [],
+        written: [],
+        model: 'test-model',
+        checksResults: [],
+        provider: providerReply(raw),
+      })
+      expect(result.verdict).toBe('fail')
+      expect(result.reason).toContain('not parseable')
+    }
+  })
+
   it('handles a pass without criteria and includes every written file', async () => {
     let userContent = ''
     const result = await runQA({
