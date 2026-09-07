@@ -384,6 +384,56 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   ni a los contratos de prompt hacia CLIs (systemPrompt/combinedText vs `messages` de API, sin
   verificar primero sus executors). Lo hallado sobre R.4 durante este diagnóstico queda en R.4-bis.
 
+  **Avance 2026-09-07 (Claude + Codex `gpt-5.6-terra`, GO explícito de Carlos, alcance acordado:
+  decisiones 1-9, sin DELETE ni frontend — R.5 sigue abierta):**
+  - Migración v5 (`chat_turns`: request_key/input_fingerprint UNIQUE por sesión, status,
+    owner/owner_expires_at, run_id, response_envelope_json) y servicio `db/chat-turns.ts`
+    (`beginTurn`/`commitTurnSuccess`/`commitTurnFailure`/`getTurn`/`getTurnByRequestKey`/
+    `parseTurnEnvelope`) — implementados por Codex sobre un contrato de firmas cerrado antes de
+    delegar (decisiones 1-3). Revisado por Claude antes de integrar: `beginTurn` usa
+    `INSERT OR IGNORE` bajo el UNIQUE index como fuente real de atomicidad (no
+    select-then-insert), reconcilia leases vencidos acotado a la sesión, distingue
+    claimed/duplicate-pending/duplicate-result/conflict. `commitTurnSuccess`/`commitTurnFailure`
+    envuelven insertRun+appendChatExchange+update del turno en una sola `db.transaction()`
+    (decisión 4) — probado con rollback real (JSON.stringify de un BigInt fuerza el fallo:
+    cero run, cero mensajes, turno sigue `pending`).
+  - Codex reportó honestamente que su propio `test:coverage` dio 126 fallos `SQLITE_READONLY`
+    y no declaró el gate verde sin evidencia — reproducido por Claude en entorno limpio: **no
+    se confirmó, era del sandbox de esa sesión de Codex** (1330 pass / 0 fail, gate de cobertura
+    verde). Diff revisado línea por línea antes de aceptar el trabajo, no solo el resultado del
+    test.
+  - Cableados los 6 transportes (`handlers/chat.ts`: Claude CLI, Codex CLI, OpenCode CLI, Ollama,
+    OpenRouter tool-loop, OpenRouter plano) al servicio: `logChatRun()`+`persistResponse()` (dos
+    escrituras separadas, el hallazgo central de R.5) reemplazados por `finishTurnSuccess()`/
+    `finishTurnFailure()` — atómicos vía `commitTurnSuccess`/`commitTurnFailure` cuando hay turno
+    reclamado (sesión con `sessionId`); camino legacy sin sesión conserva el comportamiento previo
+    exacto (decisión 12, sigue pendiente para fase 2). Hallazgo #6 cerrado: Codex CLI, OpenCode
+    CLI y el plano de OpenRouter ahora sí dejan evidencia en sus catches — antes solo Claude CLI
+    lo hacía. Hallazgo #5: Ollama declara input/output tokens en 0 (dato desconocido real, no
+    inventado) en vez de omitir el run por completo.
+  - `beginTurn` corre justo tras validar `fileIds`, antes de cualquier `return` posible —
+    `finishTurnFailure` se definió en ese mismo punto (no más abajo, donde antes vivía
+    `persistResponse`) para que ningún `return errorResponse` temprano (mismatch
+    sesión-local/modelo-ollama, fallo de OCR, contexto insuficiente) deje un turno `pending`
+    huérfano sin resolver.
+  - `requestKey`: el frontend todavía NO la persiste ni reenvía (eso es la Fase 2/decisión 11,
+    fuera de este alcance) — si no viene en el body, se genera una nueva por request. Esto
+    **ya cierra el hallazgo central** (run+mensajes+turno atómicos, nunca uno sin el otro) pero
+    **no cierra la protección de reintento de red** — un POST reenviado tras timeout hoy genera
+    un turno nuevo, no hace replay. Documentado, no resuelto: requiere tocar `app.js`.
+  - `bunx tsc --noEmit` limpio; `bun run test:coverage`: 1330 pass / 0 fail, gate de cobertura
+    verde (funciones 74.98%, líneas 63.40%, ambos por encima del umbral).
+
+  **Pendiente explícito para cerrar R.5** (no se afirma cerrado): decisión 10 (política de
+  DELETE), decisiones 11-12 (frontend: persistir/reenviar `requestKey`, estados
+  pendiente/fallido/interrumpido separados de mensajes), reserva/reconciliación de tareas
+  (decisión 8, hallazgo #7 — `buildNaturalDraft→createTaskRecord→spawnTaskRun` sigue ocurriendo
+  antes de la persistencia atómica, sin cambios en esta pasada), y el **gate en vivo real**
+  (dashboard + navegador + consulta SQLite, dos procesos concurrentes, reinicio) — no tiene
+  sentido verificarlo a medias sin DELETE ni frontend. Sin commit de gasto real contra un
+  proveedor pago en esta pasada — los 5 tests de `chat-turns.test.ts` cubren claim/duplicate/
+  conflict/rollback con fixtures deterministas, no sustituyen ese gate.
+
 - [x] **R.4-bis — 🧠 Seguimiento de R.4: restore no invalida epoch en todos los casos.** Cerrado
   2026-09-07 (Claude). Hallazgo por código durante el diagnóstico de R.5 (2026-09-07, Codex) — no
   reproducido en vivo en su momento, R.4 seguía cerrada; esto fue seguimiento, no reapertura.

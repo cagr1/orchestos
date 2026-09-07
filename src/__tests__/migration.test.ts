@@ -8,6 +8,7 @@ interface ChildResult {
   runsColumns?: string[]
   filesColumns?: string[]
   evalTrialColumns?: string[]
+  chatTurnColumns?: string[]
   schemaVersions?: Array<{ version: number; name: string }>
   runCount?: number
   ftsTriggers?: number
@@ -77,6 +78,7 @@ describe('SQLite migrations', () => {
         const filesColumns = db.query('PRAGMA table_info(files)').all().map(row => row.name)
         const evalTrialColumns = db.query('PRAGMA table_info(eval_trials)').all().map(row => row.name)
         const schemaVersions = db.query('SELECT version, name FROM schema_migrations ORDER BY version').all()
+        const chatTurnColumns = db.query('PRAGMA table_info(chat_turns)').all().map(row => row.name)
         db.run('INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', ['fixture-run', 'fixture', 'test', 'model', 'provider', 'done', '2026-07-29T00:00:00.000Z'])
         const runDefaults = db.query('SELECT input_tokens, output_tokens, usd_cost, elapsed_ms FROM runs WHERE id = ?').get('fixture-run')
         const statusNotNull = db.query('PRAGMA table_info(runs)').all().find(row => row.name === 'status').notnull
@@ -87,7 +89,7 @@ describe('SQLite migrations', () => {
         } catch { duplicatePathRejected = true }
         const uniqueFilesIndex = db.query('PRAGMA index_list(files)').all().some(row => row.unique === 1)
         const foreignKeys = db.query('PRAGMA foreign_keys').get().foreign_keys
-        const requiredIndexes = ['idx_files_project', 'idx_edges_from', 'idx_edges_to', 'idx_memory_project_scope', 'idx_eval_trials_task_batch'].every(name => db.query("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?").get(name) !== null)
+        const requiredIndexes = ['idx_files_project', 'idx_edges_from', 'idx_edges_to', 'idx_memory_project_scope', 'idx_eval_trials_task_batch', 'idx_chat_turns_session_request_key', 'idx_chat_turns_session_status'].every(name => db.query("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?").get(name) !== null)
         let invalidEvalFkRejected = false
         try {
           db.run('INSERT INTO eval_trials (run_id, eval_task_id, trial_index, batch_id, config_json, passed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', ['missing-run', 'fixture-eval', 1, 'fixture-batch', '{}', 1, '2026-07-29T00:00:00.000Z'])
@@ -99,7 +101,7 @@ describe('SQLite migrations', () => {
         const ftsRebuiltAfterCorruption = rebuildMemoryFts()
         db.exec('DROP TABLE memory_fts')
         const ftsRebuiltWithIncompatibility = rebuildMemoryFts()
-        process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns, evalTrialColumns, schemaVersions, runDefaults, statusNotNull, duplicatePathRejected, uniqueFilesIndex, foreignKeys, requiredIndexes, invalidEvalFkRejected, memoryCountBefore, memoryCountAfter, ftsMatchCount, ftsRebuiltAfterCorruption, ftsRebuiltWithIncompatibility }))
+        process.stdout.write(JSON.stringify({ tables, runsColumns, filesColumns, evalTrialColumns, chatTurnColumns, schemaVersions, runDefaults, statusNotNull, duplicatePathRejected, uniqueFilesIndex, foreignKeys, requiredIndexes, invalidEvalFkRejected, memoryCountBefore, memoryCountAfter, ftsMatchCount, ftsRebuiltAfterCorruption, ftsRebuiltWithIncompatibility }))
         db.close()
       `,
       )
@@ -120,6 +122,7 @@ describe('SQLite migrations', () => {
           'instincts',
           'run_steps',
           'eval_trials',
+          'chat_turns',
           'schema_migrations',
         ]),
       )
@@ -128,6 +131,7 @@ describe('SQLite migrations', () => {
         { version: 2, name: 'chat-sessions' },
         { version: 3, name: 'eval-trials' },
         { version: 4, name: 'chat-messages-held-task' },
+        { version: 5, name: 'chat-turns' },
       ])
       expect(result.runsColumns).toEqual(
         expect.arrayContaining([
@@ -151,6 +155,9 @@ describe('SQLite migrations', () => {
           'passed',
           'created_at',
         ]),
+      )
+      expect(result.chatTurnColumns).toEqual(
+        expect.arrayContaining(['id', 'session_id', 'request_key', 'input_fingerprint', 'status']),
       )
       expect(result.runDefaults).toEqual({
         input_tokens: 0,
@@ -206,6 +213,7 @@ describe('SQLite migrations', () => {
         { version: 2, name: 'chat-sessions' },
         { version: 3, name: 'eval-trials' },
         { version: 4, name: 'chat-messages-held-task' },
+        { version: 5, name: 'chat-turns' },
       ])
       expect(result.legacyTaskIdDefault).toBeNull()
     } finally {
@@ -233,7 +241,7 @@ describe('SQLite migrations', () => {
 
       expect(result.runCount).toBe(1)
       expect(result.ftsTriggers).toBe(3)
-      expect(result.schemaCount).toBe(4)
+      expect(result.schemaCount).toBe(5)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -249,7 +257,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const step = {
-          version: 5,
+          version: 6,
           name: 'migration-test-probe',
           precondition(database) {
             if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'runs'").get() === null) {
@@ -274,9 +282,9 @@ describe('SQLite migrations', () => {
       `,
       )
 
-      expect(result.evidence).toHaveLength(5)
-      expect(result.evidence?.[4]).toMatchObject({ version: 5, name: 'migration-test-probe' })
-      expect(result.evidence?.[4]?.applied_at).toEqual(expect.any(String))
+      expect(result.evidence).toHaveLength(6)
+      expect(result.evidence?.[5]).toMatchObject({ version: 6, name: 'migration-test-probe' })
+      expect(result.evidence?.[5]?.applied_at).toEqual(expect.any(String))
       expect(result.probeCount).toBe(1)
     } finally {
       rmSync(home, { recursive: true, force: true })
@@ -294,7 +302,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const failedStep = {
-          version: 5,
+          version: 6,
           name: 'migration-test-failure',
           precondition() {},
           apply(database) {
@@ -309,7 +317,7 @@ describe('SQLite migrations', () => {
         db.close()
         const reopened = new Database(process.env.ORCHESTOS_HOME + '/.orchestos/db.sqlite')
         const failedTableCount = reopened.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_partial'").get().count
-        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 5').get().count
+        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 6').get().count
         process.stdout.write(JSON.stringify({ failedTableCount, failedVersionCount }))
         reopened.close()
       `,
@@ -332,7 +340,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const preconditionFailure = {
-          version: 5,
+          version: 6,
           name: 'migration-test-precondition-failure',
           precondition() { throw new Error('injected precondition failure') },
           apply(database) { database.exec('CREATE TABLE migration_precondition_partial (id INTEGER PRIMARY KEY)') },
@@ -342,7 +350,7 @@ describe('SQLite migrations', () => {
         const preconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_precondition_partial'").get().count
 
         const postconditionFailure = {
-          version: 5,
+          version: 6,
           name: 'migration-test-postcondition-failure',
           precondition() {},
           apply(database) { database.exec('CREATE TABLE migration_postcondition_partial (id INTEGER PRIMARY KEY)') },
@@ -352,7 +360,7 @@ describe('SQLite migrations', () => {
         const postconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_postcondition_partial'").get().count
 
         const recoveryStep = {
-          version: 5,
+          version: 6,
           name: 'migration-test-recovery',
           precondition() {},
           apply(database) { database.exec('CREATE TABLE migration_recovery (id INTEGER PRIMARY KEY)') },
@@ -362,7 +370,7 @@ describe('SQLite migrations', () => {
         }
         applyMigrationSteps([...FUTURE_MIGRATIONS, recoveryStep])
         const recoveryCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_recovery'").get().count
-        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 5').get().count
+        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 6').get().count
         process.stdout.write(JSON.stringify({ preconditionTableCount, postconditionTableCount, recoveryCount, recoveryVersionCount }))
         db.close()
       `,

@@ -145,6 +145,57 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    // R.5 — a chat response, its evidence run and its persisted exchange are
+    // one outcome. This ledger lets the handler claim that outcome before it
+    // calls a provider, so a retried HTTP request cannot silently bill twice.
+    version: 5,
+    name: 'chat-turns',
+    precondition: (database) => {
+      const tables =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name IN ('chat_sessions', 'runs')",
+          )
+          .get()?.count ?? 0
+      if (tables !== 2) throw new Error('Migration 5 requires chat_sessions and runs tables')
+    },
+    apply: (database) => {
+      database.exec(`
+        CREATE TABLE chat_turns (
+          id                     TEXT PRIMARY KEY,
+          session_id             TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+          project_id             TEXT,
+          request_key            TEXT NOT NULL,
+          input_fingerprint      TEXT NOT NULL,
+          status                 TEXT NOT NULL CHECK(status IN ('pending','completed','failed','interrupted')),
+          owner                  TEXT,
+          owner_expires_at       TEXT,
+          run_id                 TEXT REFERENCES runs(id),
+          response_envelope_json TEXT,
+          error                  TEXT,
+          created_at             TEXT NOT NULL,
+          updated_at             TEXT NOT NULL
+        );
+        CREATE UNIQUE INDEX idx_chat_turns_session_request_key ON chat_turns(session_id, request_key);
+        CREATE INDEX idx_chat_turns_session_status ON chat_turns(session_id, status);
+      `)
+    },
+    postcondition: (database) => {
+      const objects = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE name IN ('chat_turns', 'idx_chat_turns_session_request_key', 'idx_chat_turns_session_status') ORDER BY name",
+        )
+        .all()
+        .map((row) => row.name)
+      if (
+        objects.join(',') !==
+        'chat_turns,idx_chat_turns_session_request_key,idx_chat_turns_session_status'
+      ) {
+        throw new Error('Migration 5 did not create chat_turns and its indexes')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

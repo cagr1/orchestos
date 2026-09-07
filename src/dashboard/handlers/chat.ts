@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from 'crypto'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, relative } from 'path'
@@ -6,12 +7,13 @@ import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { estimateTokens } from '../../context/compress.ts'
 import { loadContext } from '../../context/load.ts'
+import { getChatSession, listChatMessages, sessionAllowsTaskExecution } from '../../db/chat-sessions.ts'
 import {
-  appendChatExchange,
-  getChatSession,
-  listChatMessages,
-  sessionAllowsTaskExecution,
-} from '../../db/chat-sessions.ts'
+  beginTurn,
+  commitTurnFailure,
+  commitTurnSuccess,
+  parseTurnEnvelope,
+} from '../../db/chat-turns.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
 import { insertRun, listRuns, listRunsByProjectId } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
@@ -78,6 +80,11 @@ import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = (typeof VALID_EFFORTS)[number]
+
+// R.5 — identidad del proceso para el lease de chat_turns: cada boot del
+// dashboard obtiene un owner distinto, así un proceso que murió a mitad de un
+// turno nunca puede confundirse con el que lo reclama después de expirar.
+const CHAT_TURN_OWNER = randomUUID()
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS = 30 * 60 * 1000
@@ -665,6 +672,11 @@ async function handleApiChat(
     model?: string
     effort?: string
     sessionId?: string
+    // R.5 — el frontend todavía no la persiste ni reenvía (Fase 2, fuera de
+    // este ítem); si no viene, se genera una nueva por request, así que cada
+    // POST se trata como turno propio — sin protección de reintento real
+    // hasta que el cliente la sostenga entre reintentos de la misma petición.
+    requestKey?: string
   }
   const message = body.message?.trim()
   if (!message) return errorResponse('message is required', 400)
@@ -722,6 +734,114 @@ async function handleApiChat(
     (!Array.isArray(body.fileIds) || body.fileIds.length > MAX_CHAT_ATTACHMENTS)
   ) {
     return errorResponse(`fileIds must be an array of at most ${MAX_CHAT_ATTACHMENTS} items`, 400)
+  }
+
+  // R.5 — un turno por (sessionId, requestKey) es la identidad durable de esta
+  // petición: mientras esté "claimed", el commit final (run + mensajes +
+  // estado del turno) ocurre en una sola transacción — nunca puede quedar un
+  // run sin sus mensajes o viceversa. Camino legacy sin sesión (sessionId
+  // ausente): sigue sin turno, mismo comportamiento que antes de R.5 — la
+  // decisión de darle turno también es la Fase 2 (ver PLAN.md R.5, punto 12).
+  let activeTurnId: string | null = null
+  if (session) {
+    const requestKey =
+      typeof body.requestKey === 'string' && body.requestKey.trim()
+        ? body.requestKey.trim()
+        : randomUUID()
+    const inputFingerprint = createHash('sha256')
+      .update(
+        JSON.stringify({
+          message,
+          fileIds: body.fileIds ?? [],
+          model: body.model ?? null,
+          effort: body.effort ?? null,
+        }),
+      )
+      .digest('hex')
+    const claim = beginTurn({
+      sessionId: session.id,
+      projectId: session.project_id,
+      requestKey,
+      inputFingerprint,
+      owner: CHAT_TURN_OWNER,
+    })
+    if (claim.kind === 'conflict') {
+      return errorResponse('requestKey was already used with different message content', 409)
+    }
+    if (claim.kind === 'duplicate-pending') {
+      return errorResponse('A response for this request is already being generated', 409)
+    }
+    if (claim.kind === 'duplicate-result') {
+      // Reintento de una petición ya resuelta: replay del envelope guardado,
+      // nunca una segunda llamada al proveedor (eso duplicaría costo/efectos).
+      const envelope = parseTurnEnvelope(claim.turn) as Record<string, unknown> | null
+      if (envelope) return jsonResponse(envelope)
+      return errorResponse('Stored response for this request could not be replayed', 500)
+    }
+    activeTurnId = claim.turn.id
+  }
+
+  // R.5 — equivalente de fallo: si hay turno reclamado, el registro de la
+  // evidencia parcial y el estado 'failed' del turno son una sola operación
+  // (antes: solo el camino Claude CLI registraba algo en su catch; Codex,
+  // OpenCode, Ollama y el plano de OpenRouter no dejaban ningún rastro).
+  // Definida acá (antes de los primeros `return errorResponse` posibles, como
+  // el mismatch sesión-local/modelo-ollama) para que ningún camino de salida
+  // temprana pueda dejar un turno 'pending' huérfano sin resolver jamás.
+  const finishTurnFailure = (params: {
+    error: string
+    model?: string
+    readAudit?: ReadAudit
+    provider?: string
+  }): void => {
+    const provider = params.provider ?? 'openrouter'
+    const projectId = session?.project_id ?? project.id
+    const runInput = params.readAudit
+      ? {
+          project_id: projectId,
+          prompt: message.slice(0, 2000),
+          task_class: 'chat',
+          model: params.model ?? 'unknown',
+          provider,
+          skill_id: null,
+          task_id: null,
+          allowed_outputs: null,
+          files_attempted: null,
+          files_authorized: null,
+          files_blocked: null,
+          files_read: null,
+          read_audit_json: JSON.stringify(params.readAudit),
+          snapshot_before: null,
+          snapshot_after: null,
+          qa_verdict: null,
+          qa_reason: null,
+          status: 'failed' as const,
+          input_tokens: 0,
+          output_tokens: 0,
+          usd_cost: 0,
+          elapsed_ms: 0,
+          result: params.error,
+        }
+      : undefined
+    if (activeTurnId) {
+      try {
+        commitTurnFailure({ turnId: activeTurnId, error: params.error, run: runInput })
+      } catch {
+        /* best-effort — nunca debe romper la respuesta de error ya decidida */
+      }
+    } else if (runInput) {
+      logChatRun(
+        message,
+        runInput.model,
+        0,
+        0,
+        projectId,
+        params.error,
+        params.readAudit,
+        provider,
+        'failed',
+      )
+    }
   }
 
   // CC.2 — una sesión es la fuente de verdad de su historia. Ignorar el array
@@ -915,9 +1035,11 @@ async function handleApiChat(
   const model = body.model?.trim() || 'deepseek/deepseek-v4-flash'
   const isOllama = /^ollama\//.test(model)
   if (session?.agent === 'local' && !isOllama) {
+    finishTurnFailure({ error: 'A local session requires an ollama/* model', model })
     return errorResponse('A local session requires an ollama/* model', 400)
   }
   if (session?.agent === 'api' && isOllama) {
+    finishTurnFailure({ error: 'An api session cannot use an ollama/* model', model })
     return errorResponse('An api session cannot use an ollama/* model', 400)
   }
   // CC.1 (Mes 29, 2026-08-16) — reporte real de Carlos: elegir "Claude" como
@@ -1020,30 +1142,87 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       )
       ocrUsed.push(f.filename)
     } catch {
-      return errorResponse(
-        `The model "${model}" does not support image input, and OCR could not read "${f.filename}". Choose a vision-capable model (e.g. a Claude, GPT-4o, or Gemini model), or remove the image and continue with text only.`,
-        422,
-      )
+      const ocrError = `The model "${model}" does not support image input, and OCR could not read "${f.filename}". Choose a vision-capable model (e.g. a Claude, GPT-4o, or Gemini model), or remove the image and continue with text only.`
+      finishTurnFailure({ error: ocrError, model })
+      return errorResponse(ocrError, 422)
     }
   }
   const combinedText = textBlocks.join('') + message
 
-  const persistResponse = (text: string, responseModel: string): void => {
-    if (!session) return
+  // R.5 — reemplaza el par logChatRun()+persistResponse() (dos escrituras
+  // separadas, sin garantía conjunta — el hallazgo central de R.5) por una
+  // única llamada atómica cuando hay un turno reclamado: insertRun +
+  // appendChatExchange + estado del turno ocurren en la MISMA transacción
+  // (commitTurnSuccess, db/chat-turns.ts) — nunca puede quedar uno sin el
+  // otro. Camino legacy sin sesión (activeTurnId null): mismo comportamiento
+  // que antes de R.5, solo el run (no hay mensajes de sesión que guardar).
+  const finishTurnSuccess = (params: {
+    responseText: string
+    resultLabel: string
+    inputTokens: number
+    outputTokens: number
+    readAudit?: ReadAudit
+    provider?: string
+  }): void => {
+    const { responseText, resultLabel, inputTokens, outputTokens, provider = 'openrouter' } = params
+    const readAudit = params.readAudit ?? uninstrumentedReadAudit()
+    const projectId = session?.project_id ?? project.id
     const held = Boolean(autoTask && 'held' in autoTask && autoTask.held)
-    appendChatExchange({
-      sessionId: session.id,
-      userContent: message,
-      assistantContent: text,
-      model: responseModel,
-      taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
-      ocrUsed,
-      // R.4-bis — persistir lo que esta respuesta ya sabe sobre autoTask.held,
-      // para que un restore pueda reconstruir el control [Ver]/[Cancelar].
-      taskHeld: held,
-      existingFiles:
-        autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
-    })
+    const runInput = {
+      project_id: projectId,
+      prompt: message.slice(0, 2000),
+      task_class: 'chat',
+      model: resultLabel,
+      provider,
+      skill_id: null,
+      task_id: null,
+      allowed_outputs: null,
+      files_attempted: null,
+      files_authorized: null,
+      files_blocked: null,
+      files_read:
+        successfulReadPaths(readAudit) === null
+          ? null
+          : JSON.stringify(successfulReadPaths(readAudit)),
+      read_audit_json: JSON.stringify(readAudit),
+      snapshot_before: null,
+      snapshot_after: null,
+      qa_verdict: null,
+      qa_reason: null,
+      status: 'done' as const,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      usd_cost: calcCost(resultLabel, inputTokens, outputTokens),
+      elapsed_ms: 0,
+      result: responseText,
+    }
+    if (activeTurnId && session) {
+      try {
+        commitTurnSuccess({
+          turnId: activeTurnId,
+          run: runInput,
+          userContent: message,
+          assistantContent: responseText,
+          model: resultLabel,
+          taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
+          ocrUsed,
+          taskHeld: held,
+          existingFiles: autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
+          envelope: {
+            text: responseText,
+            model: resultLabel,
+            ocrUsed: ocrUsed.length ? ocrUsed : undefined,
+            taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+            autoTask,
+            readAudit: params.readAudit,
+          },
+        })
+      } catch {
+        /* best-effort — nunca debe romper la respuesta ya calculada */
+      }
+    } else {
+      logChatRun(message, resultLabel, inputTokens, outputTokens, projectId, responseText, readAudit, provider)
+    }
   }
 
   // D.7 — nota corta y neutral (no depende del idioma de la respuesta del
@@ -1093,17 +1272,14 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         )
         const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
         const responseText = result.text + autoTaskNote
-        logChatRun(
-          message,
-          resultLabel,
-          result.inputTokens,
-          result.outputTokens,
-          session?.project_id ?? project.id,
+        finishTurnSuccess({
           responseText,
-          result.readAudit,
-          'claude',
-        )
-        persistResponse(responseText, resultLabel)
+          resultLabel,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          readAudit: result.readAudit,
+          provider: 'claude',
+        })
         return jsonResponse({
           text: responseText,
           model: resultLabel,
@@ -1114,17 +1290,12 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         })
       } catch (e: any) {
         if (e.readAudit) {
-          logChatRun(
-            message,
+          finishTurnFailure({
+            error: 'Claude stream failed; read evidence incomplete',
             model,
-            0,
-            0,
-            session?.project_id ?? project.id,
-            'Claude stream failed; read evidence incomplete',
-            e.readAudit,
-            'claude',
-            'failed',
-          )
+            readAudit: e.readAudit,
+            provider: 'claude',
+          })
         }
         return errorResponse(`Claude Code CLI: ${e.message}`, 502)
       } finally {
@@ -1148,17 +1319,14 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         )
         const resultLabel = `${result.model} via Codex CLI`
         const responseText = result.text + autoTaskNote
-        logChatRun(
-          message,
-          resultLabel,
-          result.inputTokens,
-          result.outputTokens,
-          session?.project_id ?? project.id,
+        finishTurnSuccess({
           responseText,
-          uninstrumentedReadAudit(),
-          'codex',
-        )
-        persistResponse(responseText, resultLabel)
+          resultLabel,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          readAudit: uninstrumentedReadAudit(),
+          provider: 'codex',
+        })
         return jsonResponse({
           text: responseText,
           model: resultLabel,
@@ -1167,6 +1335,14 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           autoTask,
         })
       } catch (e: any) {
+        // R.5 (hallazgo #6) — antes este catch no dejaba ningún rastro: un
+        // fallo del CLI Codex era invisible para el turno y para "Recent Runs".
+        finishTurnFailure({
+          error: `Codex CLI failed: ${e.message}`,
+          model,
+          readAudit: uninstrumentedReadAudit(),
+          provider: 'codex',
+        })
         return errorResponse(`Codex CLI: ${e.message}`, 502)
       } finally {
         if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
@@ -1186,17 +1362,14 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         )
         const resultLabel = `${result.model} via OpenCode CLI`
         const responseText = result.text + autoTaskNote
-        logChatRun(
-          message,
-          resultLabel,
-          result.inputTokens,
-          result.outputTokens,
-          session?.project_id ?? project.id,
+        finishTurnSuccess({
           responseText,
-          uninstrumentedReadAudit(),
-          'opencode',
-        )
-        persistResponse(responseText, resultLabel)
+          resultLabel,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          readAudit: uninstrumentedReadAudit(),
+          provider: 'opencode',
+        })
         return jsonResponse({
           text: responseText,
           model: resultLabel,
@@ -1205,6 +1378,14 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           autoTask,
         })
       } catch (e: any) {
+        // R.5 (hallazgo #6) — mismo hueco que Codex CLI: sin esto, un fallo
+        // de OpenCode no dejaba rastro ni en el turno ni en "Recent Runs".
+        finishTurnFailure({
+          error: `OpenCode CLI failed: ${e.message}`,
+          model,
+          readAudit: uninstrumentedReadAudit(),
+          provider: 'opencode',
+        })
         return errorResponse(`OpenCode CLI: ${e.message}`, 502)
       } finally {
         if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
@@ -1215,7 +1396,15 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       const bareModel = model.replace('ollama/', '')
       const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages })
       const responseText = resp.text + autoTaskNote
-      persistResponse(responseText, resp.model)
+      // R.5 (hallazgo #5) — Ollama no reporta uso; 0/0 declara el dato como
+      // desconocido en vez de inventar tokens/costo (R.6 calcula costo real).
+      finishTurnSuccess({
+        responseText,
+        resultLabel: resp.model,
+        inputTokens: 0,
+        outputTokens: 0,
+        provider: 'ollama',
+      })
       return jsonResponse({
         text: responseText,
         model: resp.model,
@@ -1263,10 +1452,11 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     // avisamos claro ANTES de gastar la llamada.
     const CHAT_MIN_OUTPUT_BUDGET = 512
     if (available < CHAT_MIN_OUTPUT_BUDGET) {
-      return errorResponse(
-        `This conversation plus the project context (~${promptTokens} tokens) leaves no room to reply within "${model}"'s context window (${contextWindowFor(model)} tokens). Try a model with a bigger context window, or start a new/shorter conversation.`,
-        422,
-      )
+      const contextError = `This conversation plus the project context (~${promptTokens} tokens) leaves no room to reply within "${model}"'s context window (${contextWindowFor(model)} tokens). Try a model with a bigger context window, or start a new/shorter conversation.`
+      // R.5 — return directo (no throw): sin esto el catch general nunca lo
+      // ve y el turno queda 'pending' huérfano, nadie lo resuelve jamás.
+      finishTurnFailure({ error: contextError, model })
+      return errorResponse(contextError, 422)
     }
     // Mes 22/E.1 — mismo fix que harness.ts: `knownMaxOutputTokensFor` (0 =
     // desconocido) en vez de `maxOutputTokensFor` (que colapsa 0→8192 y topaba
@@ -1301,31 +1491,23 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         effort,
         maxTokens: chatMaxTokens,
       }).catch((error) => {
-        logChatRun(
-          message,
+        finishTurnFailure({
+          error: 'Tool loop failed; read evidence incomplete',
           model,
-          0,
-          0,
-          session?.project_id ?? project.id,
-          'Tool loop failed; read evidence incomplete',
-          readCollector.snapshot(false),
-          'openrouter',
-          'failed',
-        )
+          readAudit: readCollector.snapshot(false),
+          provider: 'openrouter',
+        })
         throw error
       })
       const readAudit = readCollector.snapshot(true)
       const responseText = result.text + autoTaskNote
-      logChatRun(
-        message,
-        model,
-        result.inputTokens,
-        result.outputTokens,
-        session?.project_id ?? project.id,
+      finishTurnSuccess({
         responseText,
+        resultLabel: model,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
         readAudit,
-      )
-      persistResponse(responseText, model)
+      })
       return jsonResponse({
         text: responseText,
         model,
@@ -1345,15 +1527,12 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       maxTokens: chatMaxTokens,
     })
     const responseText = resp.text + autoTaskNote
-    logChatRun(
-      message,
-      resp.model,
-      resp.inputTokens,
-      resp.outputTokens,
-      session?.project_id ?? project.id,
+    finishTurnSuccess({
       responseText,
-    )
-    persistResponse(responseText, resp.model)
+      resultLabel: resp.model,
+      inputTokens: resp.inputTokens,
+      outputTokens: resp.outputTokens,
+    })
     return jsonResponse({
       text: responseText,
       model: resp.model,
@@ -1362,6 +1541,11 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       autoTask,
     })
   } catch (e: any) {
+    // R.5 (hallazgo #6) — red de seguridad final: cualquier camino que no
+    // haya registrado su propio fallo específico arriba (ej. el plano de
+    // OpenRouter, que no tenía try/catch propio) deja evidencia igual, en
+    // vez de un turno 'pending' huérfano que ningún proceso vuelve a tocar.
+    finishTurnFailure({ error: `Chat failed: ${e.message}` })
     return errorResponse(`Chat failed: ${e.message}`, 502)
   }
 }
