@@ -41,7 +41,11 @@ function isWithin(root: string, candidate: string): boolean {
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
 }
 
-function realRoot(root: string): string {
+/** Exported so callers that need to compute a path relative to root (e.g. after
+ * resolveProjectPath) use the same resolved root — root itself can differ from
+ * its realpath on hosts where tmpdir() sits behind a symlink (macOS /var), which
+ * otherwise produces a bogus `..`-laden relative path. */
+export function realRoot(root: string): string {
   return realpathSync.native(resolve(root))
 }
 

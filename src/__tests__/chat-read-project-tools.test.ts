@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
-import { rmSync, writeFileSync } from 'fs'
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
 import { join, resolve } from 'path'
 import {
   executeReadFile,
@@ -56,5 +57,56 @@ describe('read-project tools', () => {
     } finally {
       rmSync(inProject, { force: true })
     }
+  })
+
+  // R.2-ter — read_plan/tasks/ideas usaban join()+readFileSync crudos, sin pasar
+  // por resolveProjectPath(): un nombre fijo (PLAN.md) no impedía que el propio
+  // archivo, si fuera un symlink, escapara del root. Ahora comparten el mismo
+  // boundary que read_file. Tres fixtures: symlink externo, interno, faltante.
+  describe('R.2-ter — frontera unificada de symlinks para lectores fijos', () => {
+    it('PLAN.md como symlink externo es rechazado, no seguido', async () => {
+      const outside = mkdtempSync(join(tmpdir(), 'orchestos-outside-'))
+      const secret = join(outside, 'secret.md')
+      writeFileSync(secret, 'contenido fuera del proyecto')
+      const root = mkdtempSync(join(tmpdir(), 'orchestos-root-'))
+      symlinkSync(secret, join(root, 'PLAN.md'))
+      try {
+        const outcomes: string[] = []
+        const result = await executeReadPlan('read_plan', {}, root, (o) => outcomes.push(o))
+        expect(result).toBe('[PLAN.md not found in this project]')
+        expect(result).not.toContain('fuera del proyecto')
+        expect(outcomes).toEqual(['rejected'])
+      } finally {
+        rmSync(root, { recursive: true, force: true })
+        rmSync(outside, { recursive: true, force: true })
+      }
+    })
+
+    it('tasks.yaml como symlink interno (dentro del mismo root) se lee normal', async () => {
+      const root = mkdtempSync(join(tmpdir(), 'orchestos-root-'))
+      const real = join(root, 'real-tasks.yaml')
+      writeFileSync(real, 'tasks: []')
+      symlinkSync(real, join(root, 'tasks.yaml'))
+      try {
+        const outcomes: string[] = []
+        const result = await executeReadTasks('read_tasks', {}, root, (o) => outcomes.push(o))
+        expect(result).toContain('tasks: []')
+        expect(outcomes).toEqual(['succeeded'])
+      } finally {
+        rmSync(root, { recursive: true, force: true })
+      }
+    })
+
+    it('IDEAS.md ausente devuelve el sentinel, no un error', async () => {
+      const root = mkdtempSync(join(tmpdir(), 'orchestos-root-'))
+      try {
+        const outcomes: string[] = []
+        const result = await executeReadIdeas('read_ideas', {}, root, (o) => outcomes.push(o))
+        expect(result).toBe('[IDEAS.md not found in this project]')
+        expect(outcomes).toEqual(['failed'])
+      } finally {
+        rmSync(root, { recursive: true, force: true })
+      }
+    })
   })
 })

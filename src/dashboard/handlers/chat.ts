@@ -48,7 +48,7 @@ import {
   readBoundaryFor,
 } from '../../run/executors/cli-registry.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
-import { PathPolicyError, resolveProjectPath } from '../../run/path-policy.ts'
+import { PathPolicyError, realRoot, resolveProjectPath } from '../../run/path-policy.ts'
 import {
   type AuditedReadTool,
   type ReadAudit,
@@ -372,13 +372,24 @@ function readProjectTextFile(
   root: string,
   observed?: (result: ReadOutcome) => void,
 ): string {
-  const path = join(root, name)
+  // R.2-ter — mismo boundary que executeReadFile: un nombre fijo (PLAN.md,
+  // tasks.yaml, IDEAS.md) no elimina el riesgo de symlink — si el archivo en
+  // el root fuera en sí mismo un symlink hacia afuera, `join()+readFileSync`
+  // crudos lo seguían sin objetar. resolveProjectPath() resuelve el realpath
+  // y rechaza cualquier tramo (incluido el archivo final) que escape del root.
+  // Aplica a los 4 callers (read_plan/tasks/ideas/file) — ahora sí, un solo punto.
+  let path: string
+  try {
+    path = resolveProjectPath(root, name, 'read')
+  } catch (e) {
+    observed?.(e instanceof PathPolicyError ? 'rejected' : 'failed')
+    return `[${name} not found in this project]`
+  }
   if (!existsSync(path)) {
     observed?.('failed')
     return `[${name} not found in this project]`
   }
   // slice(256K) = guard de memoria; capToolOutput() = guard de contexto (A.3).
-  // Aplica a los 4 callers (read_plan/tasks/ideas/file) — un solo punto.
   try {
     const content = readFileSync(path, 'utf-8')
     observed?.('succeeded')
@@ -489,10 +500,12 @@ export async function executeReadFile(
     observed?.(e instanceof PathPolicyError ? 'rejected' : 'failed')
     return `[read_file: ${e instanceof PathPolicyError ? e.message : 'path refused'}]`
   }
-  return untrustedContent(
-    `project-file:${relative(root, target)}`,
-    readProjectTextFile(relative(root, target), root, observed),
-  )
+  // R.2-ter — relative a realRoot(root), no a root crudo: readProjectTextFile
+  // vuelve a pasar por resolveProjectPath, y root puede diferir de su realpath
+  // (tmpdir() detrás de un symlink en macOS) — con root crudo el nombre relativo
+  // sale con `..` espurios y el segundo resolve lo rechaza como path inseguro.
+  const relName = relative(realRoot(root), target)
+  return untrustedContent(`project-file:${relName}`, readProjectTextFile(relName, root, observed))
 }
 
 /** Observe the actual I/O branch, never classify a file's content as an error. */

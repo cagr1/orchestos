@@ -203,11 +203,24 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   borró. Consecuencia de diseño: la capability **no puede asumirse por versión instalada** —
   `readBoundary` debe verificarse contra el binario que realmente se va a spawnear.
 
-- [ ] **R.2-ter — 🧠 Unificar frontera de los lectores fijos OpenRouter.** Hallazgo por código
-  durante R.2 (2026-09-07): `read_plan/tasks/ideas` usan `readProjectTextFile()` con `join`
-  y `readFileSync`, sin `resolveProjectPath`; un nombre fijo no elimina el riesgo de symlinks.
-  Fuera del alcance de instrumentación R.2: no se corrigió ni se afirma aislamiento de estos
-  lectores. Aplicar política canónica común y probar fixtures symlink externo, interno y faltante.
+- [x] **R.2-ter — 🧠 Unificar frontera de los lectores fijos OpenRouter.** Cerrado 2026-09-07.
+  Hallazgo por código durante R.2 (2026-09-07): `read_plan/tasks/ideas` usan `readProjectTextFile()`
+  con `join` y `readFileSync`, sin `resolveProjectPath`; un nombre fijo no elimina el riesgo de
+  symlinks. Fuera del alcance de instrumentación R.2: no se corrigió ni se afirma aislamiento de
+  estos lectores. Aplicar política canónica común y probar fixtures symlink externo, interno y
+  faltante.
+  **Fix:** `readProjectTextFile()` ahora resuelve con `resolveProjectPath(root, name, 'read')` en
+  vez de `join()+readFileSync` crudos — mismo boundary que `read_file`, un solo punto real (el
+  comentario ya lo afirmaba; ahora es cierto). Efecto lateral encontrado al correr la suite
+  completa (no solo el archivo tocado): `executeReadFile` calculaba `relative(root, target)` con
+  el `root` crudo, no su realpath; en hosts donde `tmpdir()` cuelga de un symlink (`/var` en
+  macOS) eso produce un relativo con `..` espurios que el segundo `resolveProjectPath` rechaza
+  como inseguro. Corregido exportando `realRoot()` de `path-policy.ts` y usándolo para el relative.
+  Fixtures: symlink externo → `[PLAN.md not found in this project]`, `rejected`, contenido nunca
+  visible; symlink interno → se lee normal, `succeeded`; archivo ausente → sentinel, `failed`.
+  `bunx tsc --noEmit` limpio; `bun run test:coverage`: 1303 pass / 0 fail (incluye los dos tests
+  de R.2 que este cambio casi rompía — detectados por la suite completa, no por el archivo nuevo
+  solo). No aplica gate de navegador: `chat.ts` no está en `LIVE_GATE_PATHS`.
 
 - [ ] **R.3 — ⚡ QA exige correspondencia uno a uno con los criterios originales.** Prioridad alta.
   Reproducido ejecutando el parser existente: dos copias aprobadas de «criterio A», con evidencia
