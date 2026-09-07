@@ -290,21 +290,110 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   errores y `test:coverage` 1324 pass / 0 fail.
 
 - [ ] **R.5 — 🧠 Persistencia coherente de turno, run y fallos de chat.** Prioridad alta.
-  **Traspaso 2026-09-07 (Codex, GO explícito de Carlos):** diagnóstico y propuesta en
-  [docs/r5-persistence-handoff.md](docs/r5-persistence-handoff.md). La creación/spawn de tareas
-  precede la persistencia; atomicidad mensajes/run sola no evita duplicados al reintentar.
-  Por tamaño se deja implementación para sesión dedicada, conforme al pedido de Carlos.
-  Sin cambios de runtime; preflight, typecheck y 9 tests baseline pasan. R.5 sigue abierta.
-  La nota distingue hallazgos por código de gates pendientes e incluye observaciones de R.4.
-  Confirmado por código: `logChatRun()` silencia errores, mientras `appendChatExchange()` usa una
-  transacción separada; Ollama persiste mensajes pero omite el run (`chat.ts:1096`). No existe
-  garantía conjunta de conversación y evidencia. Definir identidad de turno/run y comportamiento
-  ante fallo/reintento; persistir evidencia de fallos y estados incompletos sin inventar respuestas.
-  La transacción debe cubrir escrituras locales relacionadas, nunca mantener un lock durante
-  la llamada al proveedor. Cubrir todos los transportes soportados y preservar datos existentes.
+  **Traspaso 2026-09-07 (Codex, GO explícito de Carlos):** diagnóstico completo en
+  [docs/r5-persistence-handoff.md](docs/r5-persistence-handoff.md), base `8ad2d46`. Sin cambios
+  de runtime — preflight, typecheck y 9 tests baseline pasan (no prueban atomicidad/reintentos).
+  Knowledge radar: sin insights aplicables al momento del traspaso. Hallazgos por revisión de
+  código, no sondas de fallo en producción — no se ejecutaron proveedores/tareas/migraciones
+  reales ni el gate H.9.4.
+
+  **Qué está roto (12 hallazgos):**
+  1. `chat.ts:442` `logChatRun()` traga errores de `insertRun()` sin comunicarlos; puede llegar
+     a HTTP 200 con mensajes persistidos y evidencia perdida.
+  2. `chat.ts:1031` `persistResponse()` llama aparte a `appendChatExchange()`: un run `done`
+     puede quedar sin sus mensajes si falla ese segundo paso.
+  3. `db/chat-sessions.ts:157`: la transacción cubre solo 2 mensajes/título/fecha, no hay turno
+     durable antes de llamar al proveedor; sin respuesta no queda ni el mensaje del usuario.
+  4. `db/runs.ts:88` `insertRun()`: solo estados done/blocked/failed — no ampliar sin revisar
+     todos los consumidores.
+  5. Rama Ollama (`chat.ts:~1234`) persiste mensajes pero omite el run; no inventar tokens/costo
+     medidos al incorporarlo (el cálculo canónico es R.6).
+  6. Registro de fallo desigual entre transportes: Claude solo si trae readAudit, API tool-loop
+     con snapshot incompleto; Codex/OpenCode/Ollama/API plana sin registro equivalente.
+  7. `chat.ts:780-829`: `buildNaturalDraft→createTaskRecord→spawnTaskRun` ocurre ANTES del
+     proveedor y de persistir — una respuesta fallida puede coexistir con una tarea ya corriendo.
+     `handlers/tasks.ts:251` renombra un id repetido con `Date.now()`: reenviar no es idempotente.
+  8. No hay request/turn id durable; `chatPendingBySession` es memoria de una pestaña, no
+     coordina procesos ni sobrevive a recarga.
+  9. `session?.project_id ?? project.id` puede reemplazar un null explícito de sesión general
+     por el proyecto fallback — distinguir sesión general/existente de request legacy.
+  10. DELETE en cascada sin vínculo a runs; el handler captura `session` antes de un await —
+      borrar a mitad de request puede insertar el run y fallar después en `appendChatExchange`.
+  11. `screens-core.js:749-772`: errores HTTP/red se agregan como mensajes assistant locales y
+      desaparecen al restaurar — deben ser estado/error del turno, no una respuesta atribuida.
+  12. `chat.ts:113/836`: adjuntos en un Map con expiración; un id ausente se filtra sin avisar —
+      no reintentar en silencio con adjuntos perdidos.
+
+  **Diseño propuesto (sin implementar; decisiones a cerrar en código, no ya entregadas):**
+  1. Migración nueva vía `FUTURE_MIGRATIONS` (`db/migrate.ts`); conservar legacy sin inferir
+     asociación por timestamp/texto/modelo.
+  2. Tabla `chat_turns`: identidad durable, session/project, clave de petición única, fingerprint
+     de entrada, estado (pending/completed/failed/interrupted), owner/lease, enlace al run. La
+     identidad de petición existe antes del primer POST; un reintento no resetea evidencia previa.
+  3. Servicio único `db/chat-turns.ts` (nuevo): begin/claim/complete/fail/get/recover. Misma
+     clave+misma entrada → resultado durable o pending; misma clave+otra entrada → 409.
+  4. Transacción final única: insertRun + enlace al turno + mensajes + estado completed —
+     nunca envolver un await de red/proceso en `db.transaction()`.
+  5. Guardar la entrada al aceptar el turno; ante caída entre proveedor y commit, dejar
+     desconocido/interrumpido — nunca reejecutar automáticamente.
+  6. Los 6 transportes (Claude/Codex/OpenCode/Ollama/OpenRouter tool-loop/OpenRouter plano)
+     terminan en el mismo servicio, sin tocar semántica unknown/uninstrumented de readAudit.
+  7. Envelope de replay: texto/modelo/OCR/taskSuggestion/autoTask (held/existingFiles)/readAudit/
+     turnId/runId — el replay reproduce lo guardado, sin re-ejecutar efectos.
+  8. Tareas: reservar id/intención antes de crear; creación y dispatch como fases recuperables.
+     SQLite+YAML+git+spawn no son una transacción — ante interrupción, reconciliar y reportar
+     desconocido, sin spawn automático. No absorber la escritura atómica global de R.7.
+  9. Definir dueño/lease con expiración condicional — evita que un proceso marque `interrupted`
+     sobre el turno de otro proceso vivo; el vencimiento solo habilita reconciliar, no reintentar.
+  10. DELETE: elegir una política (rechazar con 409 si hay turno activo, o tombstone con
+      evidencia desvinculada) y probarla end-to-end — no tocar el CASCADE a ciegas.
+  11. Cliente: persistir identidad de petición por conversación; tras recarga/error de red,
+      consultar el turno antes de reenviar; mostrar pendiente/fallido/interrumpido aparte.
+  12. Legacy sin sessionId: turno con session nullable o migración explícita, con compatibilidad
+      probada — no ignorar requests legacy que aún ejecutan tareas.
+
+  **Secuencia sugerida:** releer preflight/git status (este documento es evidencia en `8ad2d46`,
+  no snapshot eterno) → concretar decisiones de claim/lease/delete/retry/reserva de tarea →
+  migración+servicio con tests de transacción/restricciones/datos históricos → cablear los 6
+  transportes y efectos de tarea, contratos API y frontend de recuperación → gates reproducibles
+  y en vivo, solo entonces marcar cierre. Archivos esperados: `migrate.ts`, `db/chat-turns.ts`
+  (nuevo), `db/chat-sessions.ts`, `db/runs.ts` si aplica, `handlers/chat.ts`,
+  `handlers/chat-sessions.ts`, `dashboard/types.ts`, `server.ts` si se añade endpoint,
+  `llm/clients.ts`, `public/app.js`, `public/screens-core.js`, copy i18n; posibles helpers en
+  `handlers/tasks.ts` manteniendo R.7 separado. No introducir un framework de orquestación.
+
+  **Pruebas necesarias para cerrar** (detalle completo en el doc): migración aplicada dos veces
+  + recuperación tras fallo, mensajes antiguos intactos; trigger que aborte entre insertRun y
+  mensajes → rollback total, cero HTTP 200; dos procesos con la misma clave → una sola invocación
+  de proveedor; claves distintas simultáneas en una sesión → orden/rechazo consistente; mismo
+  request con payload distinto → conflicto sin proveedor/tarea adicional; interrupción entre
+  claim/proveedor/commit → interrupted/unknown sin duplicar; caída tras creación YAML y tras
+  spawn → ninguna segunda tarea/ejecución automática; borrado en vuelo + owner concurrente;
+  held/existingFiles y OCR sobreviven recarga; adjuntos expirados no se omiten en reintentos;
+  unitarios en procesos aislados o inyección de dependencias (evitar `mock.module` global).
+  Cierre exige `tsc`, suites relevantes, `test:coverage`, lint, `security:gate` si toca
+  frontera/redacción, y **gate en vivo** (dashboard + navegador + consulta SQLite real, las
+  demoras/mocks sirven para la carrera determinista pero no sustituyen esto) — H.9.4 sigue
+  siendo gate independiente del bloque R.
+
   **Gate:** inyección de fallo entre escrituras, respuesta fallida, reintento duplicado, reinicio,
   sesión general y proyecto; asociación inequívoca turno/run, ausencia de éxito silencioso sin
   evidencia y tratamiento explícito de fallos. Tests + dashboard/navegador real y consulta SQLite.
+
+  **No ampliar esta pasada a:** R.6 (costo canónico), R.7 (escritura atómica de `tasks.yaml`),
+  ni a los contratos de prompt hacia CLIs (systemPrompt/combinedText vs `messages` de API, sin
+  verificar primero sus executors). Lo hallado sobre R.4 durante este diagnóstico queda en R.4-bis.
+
+- [ ] **R.4-bis — 🧠 Seguimiento de R.4: restore no invalida epoch en todos los casos.** Hallazgo
+  por código durante el diagnóstico de R.5 (2026-09-07, Codex) — no reproducido en vivo, R.4 sigue
+  cerrada; esto es seguimiento, no reapertura.
+  Un restore iniciado antes de un envío y resuelto después de terminarlo puede superar el guard
+  `pending` sin invalidar su epoch al agregar mensajes. Borrar la sesión activa no limpia
+  `chatPending`. La restauración convierte el `task_id` persistido de una tarea `held` en
+  `taskId` normal, perdiendo `pendingTask`/OCR. El gate documentado de R.4 usa fetch simulado en
+  navegador — no prueba la persistencia real de estos tres casos.
+  **Gate:** reproducir los tres casos con fetch real (no simulado) contra el dashboard real,
+  navegador real, sesión con tarea held y con OCR pendiente.
 
 - [ ] **R.6 — ⚡ Costo del chat separado de la etiqueta visual del modelo.** Prioridad media.
   Reproducido: `calcCost('claude-sonnet-5 via Claude Code CLI', ...)` devuelve cero. El caller
