@@ -404,8 +404,21 @@ SCREENS.chat = {
                 m.role === 'assistant' && m.taskId ? renderStepsCard(st, m.taskId) : ''
               // I.2 — línea inline de confirmación para tareas retenidas
               // (tocan archivos existentes); ver renderConfirmCard arriba.
+              // R.4-bis — pendingTask reconstruido desde un restore refleja el
+              // momento en que se creó el mensaje, no el estado actual: si la
+              // tarea ya se canceló (borrada de tasks.yaml) o ya se confirmó y
+              // corrió (status dejó de ser 'pending'), no resucitar la tarjeta.
+              // st.tasks vacío es ambiguo (aún no cargó vs. realmente sin
+              // tareas) — si hay un pendingTask, "sin tareas" es imposible, así
+              // que se trata como "todavía no cargó" y no se oculta de más
+              // (evita parpadeo justo al crear la tarea en vivo).
+              const taskStillHeld =
+                m.pendingTask &&
+                !m.pendingTask.resolved &&
+                ((st.tasks || []).length === 0 ||
+                  (st.tasks || []).some((tk) => tk.id === m.pendingTask.id && tk.status === 'pending'))
               const confirmCard =
-                m.role === 'assistant' && m.pendingTask ? renderConfirmCard(m.pendingTask) : ''
+                m.role === 'assistant' && taskStillHeld ? renderConfirmCard(m.pendingTask) : ''
               // #51 — acciones por mensaje (hover, esquina inferior). Solo "copiar" +
               // timestamp por ahora: "rebobinar" queda explícitamente fuera de este
               // Bloque (IDEAS.md #51 lo liga a #50 — sesiones persistentes en SQLite;
@@ -669,6 +682,11 @@ SCREENS.chat = {
       st.chatDraft = '' // mensaje enviado — el borrador ya cumplió su función
       textarea.style.height = '' // FRONT.9 — vuelve a la altura base de 2 filas
       App.appendChatMessage(sessionId, { role: 'user', content: msg, ts: Date.now() })
+      // R.4-bis — invalida un restore en vuelo lanzado ANTES de este envío:
+      // sin esto, si ese restore responde después de que este POST ya
+      // terminó (chatPendingBySession ya en false), su snapshot vieja del
+      // servidor sobrescribe el mensaje recién enviado y su respuesta.
+      st.chatFetchEpochs[sessionId] = (st.chatFetchEpochs[sessionId] || 0) + 1
       st.chatPendingBySession[sessionId] = true
       st.chatPending = st.chatSessionId === sessionId
       const sentFileIds = (st.chatFiles || []).map((f) => f.fileId)

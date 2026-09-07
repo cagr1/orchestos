@@ -362,4 +362,46 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.leakedTask).toBe(false)
     expect(result.openRouterCalls).toBe(2)
   })
+
+  // R.4-bis — taskHeld/existingFiles deben sobrevivir un restore (recarga),
+  // que es exactamente lo que se perdía: el mensaje solo guardaba task_id
+  // plano, indistinguible de una tarea normal ya en ejecución.
+  it('appendChatExchange persists taskHeld/existingFiles and the messages endpoint returns them', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      runMigrations()
+      const session = sessions.createChatSession({ agent: 'api', mode: 'chat' })
+
+      sessions.appendChatExchange({
+        sessionId: session.id,
+        userContent: 'toca archivos existentes',
+        assistantContent: 'tarea creada, retenida',
+        taskId: 'held-task-1',
+        taskHeld: true,
+        existingFiles: ['src/a.ts', 'src/b.ts'],
+      })
+      sessions.appendChatExchange({
+        sessionId: session.id,
+        userContent: 'segundo turno, tarea normal',
+        assistantContent: 'corriendo',
+        taskId: 'normal-task-1',
+      })
+
+      const messagesResponse = handlers.handleApiChatSessionMessages(
+        new URL('http://localhost/api/chat/sessions/' + session.id + '/messages'),
+      )
+      const messages = await messagesResponse.json()
+      process.stdout.write(JSON.stringify({ messages }))
+      db.close()
+    `)
+
+    const messages = result.messages as Array<Record<string, unknown>>
+    const held = messages.find((m) => m.taskId === 'held-task-1')
+    const normal = messages.find((m) => m.taskId === 'normal-task-1')
+    expect(held).toMatchObject({ taskHeld: true, existingFiles: ['src/a.ts', 'src/b.ts'] })
+    expect(normal).toMatchObject({ taskHeld: false, existingFiles: [] })
+  })
 })

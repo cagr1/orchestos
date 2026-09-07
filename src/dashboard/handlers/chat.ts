@@ -1030,6 +1030,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
 
   const persistResponse = (text: string, responseModel: string): void => {
     if (!session) return
+    const held = Boolean(autoTask && 'held' in autoTask && autoTask.held)
     appendChatExchange({
       sessionId: session.id,
       userContent: message,
@@ -1037,6 +1038,11 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       model: responseModel,
       taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
       ocrUsed,
+      // R.4-bis — persistir lo que esta respuesta ya sabe sobre autoTask.held,
+      // para que un restore pueda reconstruir el control [Ver]/[Cancelar].
+      taskHeld: held,
+      existingFiles:
+        autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
     })
   }
 

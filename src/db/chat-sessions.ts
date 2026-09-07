@@ -22,11 +22,19 @@ interface StoredChatMessage {
   model: string | null
   task_id: string | null
   ocr_used: string | null
+  // R.4-bis — lo que la respuesta en vivo ya sabía sobre autoTask.held, para
+  // que un restore (recarga) pueda distinguir "tarea held" de "tarea normal
+  // ya en ejecución" en vez de perder esa distinción al persistir solo task_id.
+  task_held: number | null
+  existing_files: string | null
   created_at: string
 }
 
-export interface ChatMessageRecord extends Omit<StoredChatMessage, 'ocr_used'> {
+export interface ChatMessageRecord
+  extends Omit<StoredChatMessage, 'ocr_used' | 'task_held' | 'existing_files'> {
   ocr_used: string[]
+  task_held: boolean
+  existing_files: string[]
 }
 
 export interface CreateChatSessionInput {
@@ -43,9 +51,11 @@ export interface AppendChatExchangeInput {
   model?: string | null
   taskId?: string | null
   ocrUsed?: string[]
+  taskHeld?: boolean
+  existingFiles?: string[]
 }
 
-function parseOcrUsed(value: string | null): string[] {
+function parseStringArray(value: string | null): string[] {
   if (!value) return []
   try {
     const parsed: unknown = JSON.parse(value)
@@ -56,7 +66,12 @@ function parseOcrUsed(value: string | null): string[] {
 }
 
 function mapMessage(row: StoredChatMessage): ChatMessageRecord {
-  return { ...row, ocr_used: parseOcrUsed(row.ocr_used) }
+  return {
+    ...row,
+    ocr_used: parseStringArray(row.ocr_used),
+    task_held: row.task_held === 1,
+    existing_files: parseStringArray(row.existing_files),
+  }
 }
 
 export function createChatSession(input: CreateChatSessionInput): ChatSessionRecord {
@@ -171,19 +186,21 @@ export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageR
       ])
     }
     db.run(
-      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, created_at)
-       VALUES (?, 'user', ?, NULL, NULL, ?, ?)`,
+      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, created_at)
+       VALUES (?, 'user', ?, NULL, NULL, ?, NULL, NULL, ?)`,
       [input.sessionId, input.userContent, JSON.stringify(input.ocrUsed ?? []), now],
     )
     db.run(
-      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, created_at)
-       VALUES (?, 'assistant', ?, ?, ?, ?, ?)`,
+      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, created_at)
+       VALUES (?, 'assistant', ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.sessionId,
         input.assistantContent,
         input.model ?? null,
         input.taskId ?? null,
         JSON.stringify(input.ocrUsed ?? []),
+        input.taskHeld ? 1 : null,
+        input.taskHeld ? JSON.stringify(input.existingFiles ?? []) : null,
         now,
       ],
     )

@@ -384,16 +384,48 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   ni a los contratos de prompt hacia CLIs (systemPrompt/combinedText vs `messages` de API, sin
   verificar primero sus executors). Lo hallado sobre R.4 durante este diagnóstico queda en R.4-bis.
 
-- [ ] **R.4-bis — 🧠 Seguimiento de R.4: restore no invalida epoch en todos los casos.** Hallazgo
-  por código durante el diagnóstico de R.5 (2026-09-07, Codex) — no reproducido en vivo, R.4 sigue
-  cerrada; esto es seguimiento, no reapertura.
-  Un restore iniciado antes de un envío y resuelto después de terminarlo puede superar el guard
-  `pending` sin invalidar su epoch al agregar mensajes. Borrar la sesión activa no limpia
-  `chatPending`. La restauración convierte el `task_id` persistido de una tarea `held` en
-  `taskId` normal, perdiendo `pendingTask`/OCR. El gate documentado de R.4 usa fetch simulado en
-  navegador — no prueba la persistencia real de estos tres casos.
-  **Gate:** reproducir los tres casos con fetch real (no simulado) contra el dashboard real,
-  navegador real, sesión con tarea held y con OCR pendiente.
+- [x] **R.4-bis — 🧠 Seguimiento de R.4: restore no invalida epoch en todos los casos.** Cerrado
+  2026-09-07 (Claude). Hallazgo por código durante el diagnóstico de R.5 (2026-09-07, Codex) — no
+  reproducido en vivo en su momento, R.4 seguía cerrada; esto fue seguimiento, no reapertura.
+  Un restore iniciado antes de un envío y resuelto después de terminarlo podía superar el guard
+  `pending` sin invalidar su epoch al agregar mensajes. Borrar la sesión activa no limpiaba
+  `chatPending`. La restauración convertía el `task_id` persistido de una tarea `held` en
+  `taskId` normal, perdiendo `pendingTask`/OCR. El gate documentado de R.4 usaba fetch simulado en
+  navegador — no probaba la persistencia real de estos tres casos.
+
+  **Fix 1 (epoch):** `send()` (screens-core.js) incrementa `chatFetchEpochs[sessionId]` al agregar
+  el mensaje optimista del usuario — invalida cualquier restore en vuelo lanzado antes de ese envío,
+  para que una respuesta tardía del GET `/messages` no sobrescriba el turno recién enviado.
+
+  **Fix 2 (chatPending):** `deleteChatSession()` (app.js) pone `state.chatPending = false` cuando
+  la sesión borrada es la activa — antes solo limpiaba el mapa por-sesión, dejando el booleano
+  global (el que deshabilita el composer) bloqueado para siempre si se borraba a mitad de un envío.
+
+  **Fix 3 (taskHeld/existingFiles sobreviven recarga):** migración v4 (`chat_messages` +
+  `task_held`, `existing_files`); `appendChatExchange`/`persistResponse` los persisten;
+  `fetchChatSession` los reconstruye como `pendingTask`, manteniendo la exclusión mutua con
+  `taskId` que ya regía en vivo (una tarea held nunca dispara `renderStepsCard`). El render
+  filtra `pendingTask` contra el estado real de la tarea (`st.tasks`, status `pending`) para no
+  resucitar el control [Ver]/[Cancelar] de una tarea ya cancelada o ya corrida — `st.tasks` vacío
+  se trata como "aún no cargó" para no parpadear justo al crear la tarea en vivo.
+
+  **Verificación:** `bunx tsc --noEmit` limpio; `bun run test:coverage`: 1325 pass / 0 fail
+  (incluye round-trip de persistencia `taskHeld`/`existingFiles` y la actualización de
+  `migration.test.ts` a la nueva versión v4 del ledger).
+
+  **Gate en vivo:** navegador real (Chromium vía playwright-core), servidor real, DB migrada
+  limpia, fixtures de datos vía los mismos servicios de dominio (`createChatSession`,
+  `appendChatExchange`) en vez de un LLM real — sin mocks del wiring HTTP/DOM. Los tres casos:
+  (1) `page.route()` demora 4s el GET `/messages` de un restore ya en vuelo; se envía un mensaje
+  real que completa antes; al llegar el restore tardío, el mensaje enviado sigue visible —
+  confirmado `true`. (2) `page.route()` demora 3s el POST `/api/chat`; a mitad de esa espera se
+  invoca `App.deleteChatSession()` real (con su modal de confirmación real); el composer queda
+  habilitado de inmediato y sigue habilitado cuando la respuesta demorada por fin llega —
+  confirmado `true`. (3) sesión y tarea held creadas vía los servicios reales (tarea real con
+  `status: pending`, apuntando a `PLAN.md` como archivo existente); recarga completa de la
+  página; la tarjeta `[data-confirm-task]` aparece en el DOM — confirmado `true`.
+  Estado de prueba (DB temporal, entrada temporal en `tasks.yaml` real sin commit) limpiado al
+  cerrar; servidor bajado.
 
 - [ ] **R.6 — ⚡ Costo del chat separado de la etiqueta visual del modelo.** Prioridad media.
   Reproducido: `calcCost('claude-sonnet-5 via Claude Code CLI', ...)` devuelve cero. El caller

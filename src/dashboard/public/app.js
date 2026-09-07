@@ -345,11 +345,23 @@ const App = {
       // before its reply arrives. Keeping the local pair is safer than
       // replacing it with that old server snapshot.
       if (state.chatPendingBySession[sessionId]) return
+      // R.4-bis — taskHeld/existingFiles y ocrUsed sobreviven la recarga; el
+      // filtro contra el estado real de la tarea (¿sigue 'pending'?) vive en
+      // el render (screens-core.js), no acá — una tarea ya cancelada o ya
+      // corrida no debe resucitar su tarjeta de confirmación solo porque el
+      // mensaje persistido diga que nació held.
       const history = messages.map((message) => ({
         role: message.role,
         content: message.content,
         model: message.model || undefined,
-        taskId: message.taskId || undefined,
+        // taskId y pendingTask son mutuamente excluyentes en vivo (screens-core.js
+        // send(): taskId solo si !held) — el restore debe conservar esa exclusión,
+        // o una tarea held dispara además renderStepsCard como si ya corriera.
+        taskId: !message.taskHeld && message.taskId ? message.taskId : undefined,
+        ocrUsed: message.ocrUsed && message.ocrUsed.length ? message.ocrUsed : undefined,
+        pendingTask: message.taskHeld
+          ? { id: message.taskId, existingFiles: message.existingFiles || [] }
+          : undefined,
         ts: Date.parse(message.createdAt) || Date.now(),
       }))
       // A slow restore for A must never replace B after a switch.
@@ -430,6 +442,11 @@ const App = {
         localStorage.removeItem('orchestos-chat-session-id')
         state.chatSessionId = null
         state.chatHistory = []
+        // R.4-bis — chatPendingBySession[sessionId] ya se borró arriba, pero
+        // el booleano global (usado por el composer para deshabilitar envío)
+        // no se reseteaba: si se borraba la sesión activa a mitad de un envío,
+        // el chat quedaba bloqueado en "pending" para siempre.
+        state.chatPending = false
       }
       App.rerender()
     } catch {

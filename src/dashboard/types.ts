@@ -64,6 +64,10 @@ export interface ChatMessageRow {
   model: string | null
   taskId: string | null
   ocrUsed: string[]
+  // R.4-bis — sobrevive recarga: distingue una tarea "held" (creada, sin
+  // correr, esperando confirmación inline) de una tarea normal ya en curso.
+  taskHeld: boolean
+  existingFiles: string[]
   createdAt: string
 }
 

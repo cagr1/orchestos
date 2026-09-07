@@ -112,6 +112,39 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    // R.4-bis (2026-09-07) — un mensaje assistant que creó una tarea "held"
+    // (existingFiles, sin correr) solo guardaba su task_id plano; al recargar,
+    // el cliente no podía distinguirla de una tarea normal ya en ejecución y
+    // perdía el control inline [Ver]/[Cancelar]. Estas dos columnas persisten
+    // lo que la respuesta en vivo ya conocía (chat.ts: autoTask.held/existingFiles).
+    version: 4,
+    name: 'chat-messages-held-task',
+    precondition: (database) => {
+      const messages =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'chat_messages'",
+          )
+          .get()?.count ?? 0
+      if (messages !== 1) throw new Error('Migration 4 requires chat_messages table')
+    },
+    apply: (database) => {
+      database.exec(`
+        ALTER TABLE chat_messages ADD COLUMN task_held INTEGER;
+        ALTER TABLE chat_messages ADD COLUMN existing_files TEXT;
+      `)
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_messages)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('task_held') || !columns.includes('existing_files')) {
+        throw new Error('Migration 4 did not add task_held/existing_files to chat_messages')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

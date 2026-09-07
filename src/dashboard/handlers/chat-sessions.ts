@@ -44,6 +44,8 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
     model: row.model,
     taskId: row.task_id,
     ocrUsed: row.ocr_used,
+    taskHeld: row.task_held,
+    existingFiles: row.existing_files,
     createdAt: row.created_at,
   }
 }
