@@ -290,6 +290,12 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   errores y `test:coverage` 1324 pass / 0 fail.
 
 - [ ] **R.5 — 🧠 Persistencia coherente de turno, run y fallos de chat.** Prioridad alta.
+  **Traspaso 2026-09-07 (Codex, GO explícito de Carlos):** diagnóstico y propuesta en
+  [docs/r5-persistence-handoff.md](docs/r5-persistence-handoff.md). La creación/spawn de tareas
+  precede la persistencia; atomicidad mensajes/run sola no evita duplicados al reintentar.
+  Por tamaño se deja implementación para sesión dedicada, conforme al pedido de Carlos.
+  Sin cambios de runtime; preflight, typecheck y 9 tests baseline pasan. R.5 sigue abierta.
+  La nota distingue hallazgos por código de gates pendientes e incluye observaciones de R.4.
   Confirmado por código: `logChatRun()` silencia errores, mientras `appendChatExchange()` usa una
   transacción separada; Ollama persiste mensajes pero omite el run (`chat.ts:1096`). No existe
   garantía conjunta de conversación y evidencia. Definir identidad de turno/run y comportamiento
