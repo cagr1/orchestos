@@ -60,6 +60,14 @@ describe('CC.2 — chat sessions backend', () => {
         method: 'POST', headers: { 'X-Orchestos-Project-Id': 'stale-project' }, body: JSON.stringify({ projectId: 'p1', agent: 'claude', mode: 'chat', title: 'Session one' })
       }))
       const created = await createdResponse.json()
+      const projectDefaultResponse = await handlers.handleApiChatSessionsCreate(new Request('http://localhost/api/chat/sessions', {
+        method: 'POST', body: JSON.stringify({ projectId: 'p1', agent: 'api' })
+      }))
+      const projectDefault = await projectDefaultResponse.json()
+      const generalDefaultResponse = await handlers.handleApiChatSessionsCreate(new Request('http://localhost/api/chat/sessions', {
+        method: 'POST', body: JSON.stringify({ projectId: null, agent: 'api' })
+      }))
+      const generalDefault = await generalDefaultResponse.json()
       // I.4 (Mes 30) — el listado ahora filtra por proyecto activo (evita
       // mezclar chats de proyectos distintos); sin header/query cae a null
       // (sesiones "generales"), donde esta sesión (project_id='p1') no
@@ -92,6 +100,10 @@ describe('CC.2 — chat sessions backend', () => {
       process.stdout.write(JSON.stringify({
         createStatus: createdResponse.status,
         created,
+        projectDefaultStatus: projectDefaultResponse.status,
+        projectDefault,
+        generalDefaultStatus: generalDefaultResponse.status,
+        generalDefault,
         routedListStatus: routedListResponse.status,
         routedList,
         immutableStatus: immutableResponse.status,
@@ -116,10 +128,17 @@ describe('CC.2 — chat sessions backend', () => {
       mode: 'chat',
       title: 'Session one',
     })
+    // R.1 — la creación nueva deriva la autoridad del proyecto asociado;
+    // el cliente no manda mode y una sesión general jamás recibe ejecución.
+    expect(result.projectDefaultStatus).toBe(201)
+    expect(result.projectDefault).toMatchObject({ projectId: 'p1', mode: 'code' })
+    expect(result.generalDefaultStatus).toBe(201)
+    expect(result.generalDefault).toMatchObject({ projectId: null, mode: 'chat' })
     expect(result.routedListStatus).toBe(200)
-    expect(result.routedList).toEqual([
+    expect(result.routedList).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: expect.any(String), agent: 'claude' }),
-    ])
+      expect.objectContaining({ id: expect.any(String), agent: 'api', mode: 'code' }),
+    ]))
     expect(result.immutableStatus).toBe(400)
     expect(result.updatedStatus).toBe(200)
     expect(result.updated).toMatchObject({ agent: 'claude', mode: 'code', title: 'Renamed' })

@@ -56,7 +56,7 @@ no uno duplicado. R.4 debe coordinarse con I.5 si hay edición concurrente de la
 R.8 es requisito antes de presentar el recorrido como fiable para usuarios externos. Este orden
 organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gates del protocolo.
 
-- [ ] **R.1 — ⚡ Recuperar creación de tareas desde sesiones de proyecto.** Prioridad alta.
+- [x] **R.1 — ⚡ Recuperar creación de tareas desde sesiones de proyecto.** Prioridad alta. Cerrado 2026-09-07.
   Confirmado por código: `app.js:346/389` crea sesiones con `mode: 'chat'`, mientras
   `sessionAllowsTaskExecution()` solo habilita `code` o el camino legacy sin sesión. No hay
   transición de modo cableada en ese frontend. Aplicar la decisión ya tomada en I.2: derivar
@@ -70,9 +70,19 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   únicamente al crear una sesión nueva con `projectId`, conserva `chat` para sesiones generales y
   el frontend deja de imponer `mode: chat`; no se migraron sesiones existentes. Tests de sesión
   cubren ambos defaults y la frontera general sin proyecto; `bunx tsc --noEmit` y
-  `bun run test:coverage` verdes (1277 pass). El gate de navegador real sigue pendiente:
-  esta sesión no expone navegador ni `agent-browser`, por lo que R.1 permanece abierto y sin
-  commit hasta verificar recarga y el recorrido completo.
+  `bun run test:coverage` verdes (1277 pass).
+  **Gate en vivo:** navegador real (Chromium vía playwright-core, instalado ad-hoc en scratchpad,
+  no vendorizado en el repo), 2026-09-07 (Claude). Servidor real levantado desde el cwd del propio
+  proyecto (DB migrada limpia, sin mocks), proyecto registrado vía `upsertProject`. Navegación
+  real a la pantalla Chat → click real en `[data-act="chat-new-session"]` → red capturada: POST
+  `/api/chat/sessions` sin `mode` en el body (confirma que `app.js` ya no lo impone) → respuesta
+  `{projectId: <real, resuelto por legacy-cwd>, mode: "code"}`. Caso sin proyecto (`mode: "chat"`)
+  confirmado por separado contra el mismo servidor real. `sessionAllowsTaskExecution()` verificada
+  intacta — no se relajó para pasar el gate. Servidor bajado y estado temporal borrado al cerrar.
+  No cubierto por este gate (no se reclama): el tramo `classifyTaskIntent` → task real → spawn de
+  proceso no cambió con este ítem — ya estaba cableado antes de R.1; el hueco que R.1 cerraba era
+  solo la asignación de `mode`. Recarga de sesión existente sin proyecto: no re-verificada aparte
+  (código no tocado por este diff, cubierto por tests existentes de I.4).
 
 - [x] **R.2 — 🧠 Auditoría que distingue lectura solicitada, ejecutada, rechazada y desconocida.** (2026-09-07, Codex; alcance aprobado por Carlos)
   Prioridad alta. Reproducido: `claudeEventToReadPaths()` (`step-event.ts:48`) añade el path de

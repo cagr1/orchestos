@@ -350,7 +350,7 @@ const App = {
       const res = await fetch('/api/chat/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api', mode: 'chat' }),
+        body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api' }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok || typeof body.id !== 'string')
@@ -394,7 +394,7 @@ const App = {
     const res = await fetch('/api/chat/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api', mode: 'chat' }),
+      body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api' }),
     })
     const body = await res.json().catch(() => ({}))
     if (!res.ok || typeof body.id !== 'string')

@@ -125,7 +125,12 @@ export async function handleApiChatSessionsCreate(
   if (typeof agent !== 'string' || !AGENTS.has(agent as AgentChoice)) {
     return errorResponse('Invalid agent', 400)
   }
-  const mode = body.mode ?? 'chat'
+  // R.1 — la autoridad de ejecutar no es una preferencia que el dashboard
+  // deba reconstruir: nace del contexto persistido de la sesión. Las sesiones
+  // nuevas de proyecto entran en Code; las generales permanecen en Chat.
+  // Una sesión existente conserva su modo, por lo que nunca se eleva en
+  // silencio al actualizar esta regla.
+  const mode = body.mode ?? (projectId === null ? 'chat' : 'code')
   if (typeof mode !== 'string' || !MODES.has(mode as ChatSessionMode)) {
     return errorResponse('Invalid mode', 400)
   }
