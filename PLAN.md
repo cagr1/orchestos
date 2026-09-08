@@ -2349,6 +2349,17 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   (`launchctl list` → `dev.cagr1.orchestos.review`) **antes** de que estos dos bugs se
   descubrieran; con el fix ya aplicado el revisor funciona, pero su primera corrida nocturna real
   todavía no ocurrió — hasta que ocurra, el recorrido en condiciones de cron sigue sin evidencia.
+  **Portabilidad CI en curso (Codex, 2026-09-08):** Ubuntu no tiene `sandbox-exec`; por ello las
+  dos integraciones que ejercitan el sandbox real se saltan únicamente si la sonda inyectable
+  declara que no hay sandbox macOS. La sonda cubre de forma determinista Darwin+binario,
+  Darwin+ausente y Linux+aun-con-ruta simulada; en Linux el camino productivo conserva
+  `infrastructure-error` y `survived:false`, nunca ejecuta evidencia sin aislamiento. En macOS,
+  ambas integraciones corrieron: `bun test scripts/adversarial-review.test.ts
+  scripts/agent-governance.test.ts` → 21 pass / 0 fail / 87 expects; `bunx tsc --noEmit` y Biome
+  de los dos archivos tocaron limpio. Límite explícito: CI acredita la selección portable y el
+  fallo cerrado; la frontera real de sandbox se acredita solo en macOS. `test:coverage` y
+  `security:gate` se iniciaron localmente pero esta terminal corta su proceso antes de resultado;
+  queda pendiente observar el run remoto antes de afirmar CI verde.
   **Fuera de scope declarado:** `scripts/h10-gate-evidence.json` (el artefacto de evidencia del
   propio gate, exigido por H.10.1 — no estaba en el scope-lock que declaró la corrección) y
   `.orchestos/feature-status.json` (regenerado por el pre-commit desde este mismo PLAN.md).

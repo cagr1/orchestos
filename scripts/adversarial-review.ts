@@ -326,6 +326,23 @@ export function classifyFindingFailure(result: {
  * test podría copiar un secreto al `.result.json` local, así que las rutas de
  * credenciales conocidas se deniegan explícitamente igual.
  */
+/**
+ * Sonda del entorno, exportada a propósito: `CLAUDE.md` exige que todo lo que
+ * dependa de un binario del sistema viva detrás de una sonda inyectable y no
+ * de un chequeo suelto dentro de un test — la regla nació de un test que
+ * afirmaba sobre el PATH del host y solo fallaba fuera del Mac. `sandbox-exec`
+ * es exclusivo de macOS: en CI (ubuntu) no existe, y sin él la ejecución de
+ * evidencia falla cerrada (ningún hallazgo se confirma) en vez de correr sin
+ * aislamiento. Los tests que necesitan un sandbox real se saltan con esta
+ * misma sonda, nunca duplicando la condición.
+ */
+export function sandboxAvailable(
+  platform: string = process.platform,
+  pathExists: (path: string) => boolean = existsSync,
+): boolean {
+  return platform === 'darwin' && pathExists('/usr/bin/sandbox-exec')
+}
+
 export function sandboxProfile(sandboxRoot: string): string {
   const quote = (path: string) => `"${path.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
   const home = process.env.HOME ?? ''
@@ -354,7 +371,7 @@ async function runSandboxedFindingTest(
   root: string,
   evidencePath: string,
 ): Promise<{ exitCode: number; stdout: string; stderr: string; timedOut: boolean }> {
-  if (process.platform !== 'darwin' || !existsSync('/usr/bin/sandbox-exec')) {
+  if (!sandboxAvailable()) {
     return {
       exitCode: 1,
       stdout: '',

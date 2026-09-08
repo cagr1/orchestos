@@ -30,6 +30,7 @@ import {
   resolveEvidencePath,
   runFindingTest,
   STATE_PATH,
+  sandboxAvailable,
   saveState,
   verifyModelUsed,
 } from './adversarial-review.ts'
@@ -173,6 +174,13 @@ describe('adversarial review — streams y rollouts', () => {
 })
 
 describe('adversarial review — hallazgos y REVIEW.md', () => {
+  test('declara sandbox-exec disponible solo en macOS cuando la sonda lo encuentra', () => {
+    const present = (path: string) => path === '/usr/bin/sandbox-exec'
+    expect(sandboxAvailable('darwin', present)).toBe(true)
+    expect(sandboxAvailable('darwin', () => false)).toBe(false)
+    expect(sandboxAvailable('linux', present)).toBe(false)
+  })
+
   test('parsea solo arrays íntegros y rechaza elementos malformados', () => {
     const valid = JSON.stringify(finding)
     const incomplete = JSON.stringify({ ...finding, test_code: undefined })
@@ -232,25 +240,31 @@ describe('adversarial review — hallazgos y REVIEW.md', () => {
   // existentes solo verificaban que NADA escapara del sandbox — ninguno
   // verificaba que algo FUNCIONARA dentro. Un hallazgo legítimo tiene que
   // sobrevivir, o el revisor entero es un botón que no hace nada.
-  test('un hallazgo legítimo sobrevive: la aserción corre de verdad y falla', async () => {
-    const root = temp('orchestos-adversarial-legit-')
-    mkdirSync(join(root, 'src'), { recursive: true })
-    writeFileSync(join(root, 'src', 'counter.ts'), 'export function bump(): number { return 2 }\n')
-    const result = await runFindingTest(root, {
-      ...finding,
-      test_path: 'bump-should-return-one',
-      test_code: [
-        "import { expect, test } from 'bun:test'",
-        "import { bump } from '../src/counter.ts'",
-        "test('bump devuelve 1', () => { expect(bump()).toBe(1) })",
-      ].join('\n'),
-    })
-    expect(result.reason).toBe('assertion-failed')
-    expect(result.survived).toBe(true)
-    // Prueba de que la aserción se EJECUTÓ, no solo de que el proceso murió:
-    // sin esto, un binario que no arranca daría exit≠0 y pasaría por hallazgo.
-    expect(`${result.stdout}${result.stderr}`).toContain('expect() calls')
-  })
+  test.skipIf(!sandboxAvailable())(
+    'un hallazgo legítimo sobrevive: la aserción corre de verdad y falla',
+    async () => {
+      const root = temp('orchestos-adversarial-legit-')
+      mkdirSync(join(root, 'src'), { recursive: true })
+      writeFileSync(
+        join(root, 'src', 'counter.ts'),
+        'export function bump(): number { return 2 }\n',
+      )
+      const result = await runFindingTest(root, {
+        ...finding,
+        test_path: 'bump-should-return-one',
+        test_code: [
+          "import { expect, test } from 'bun:test'",
+          "import { bump } from '../src/counter.ts'",
+          "test('bump devuelve 1', () => { expect(bump()).toBe(1) })",
+        ].join('\n'),
+      })
+      expect(result.reason).toBe('assertion-failed')
+      expect(result.survived).toBe(true)
+      // Prueba de que la aserción se EJECUTÓ, no solo de que el proceso murió:
+      // sin esto, un binario que no arranca daría exit≠0 y pasaría por hallazgo.
+      expect(`${result.stdout}${result.stderr}`).toContain('expect() calls')
+    },
+  )
 
   // H.10.2-bis — este test verifica la frontera REAL que el perfil promete, que
   // no es la que se escribió primero. La lectura amplia se permite a propósito
@@ -259,38 +273,41 @@ describe('adversarial review — hallazgos y REVIEW.md', () => {
   // su temporal, no pueda salir por RED, y no pueda leer CREDENCIALES conocidas.
   // Sin red, leer no permite exfiltrar. Las tres aserciones de abajo PASAN
   // dentro del sandbox, por eso el veredicto correcto es 'test-passed'.
-  test('el sandbox bloquea de verdad escritura externa, red y credenciales', async () => {
-    const root = temp('orchestos-adversarial-sandbox-root-')
-    const credential = join(process.env.HOME ?? '', '.ssh', 'h10-sandbox-probe')
-    mkdirSync(join(process.env.HOME ?? '', '.ssh'), { recursive: true })
-    writeFileSync(credential, 'no debe leerse')
-    const escapeTarget = join(temp('orchestos-adversarial-escape-'), 'escaped.txt')
-    const server = Bun.serve({ port: 0, fetch: () => new Response('network escaped') })
-    try {
-      const result = await runFindingTest(root, {
-        ...finding,
-        test_path: 'sandbox-boundary',
-        test_code: [
-          "import { expect, test } from 'bun:test'",
-          "import { readFileSync, writeFileSync } from 'node:fs'",
-          `test('escritura externa bloqueada', () => { expect(() => writeFileSync(${JSON.stringify(escapeTarget)}, 'x')).toThrow() })`,
-          `test('credencial bloqueada', () => { expect(() => readFileSync(${JSON.stringify(credential)}, 'utf8')).toThrow() })`,
-          `test('red bloqueada', async () => { await expect(fetch(${JSON.stringify(server.url.toString())})).rejects.toThrow() })`,
-        ].join('\n'),
-      })
-      // Las 3 fronteras se sostuvieron -> el test pasa -> no demuestra ningún bug.
-      expect(result.reason).toBe('test-passed')
-      expect(result.survived).toBe(false)
-      // Prueba de que las aserciones CORRIERON, no de que el proceso murió.
-      expect(`${result.stdout}${result.stderr}`).toContain('3 pass')
-      expect(result.outcomePath).not.toBeNull()
-      expect(existsSync(join(root, result.outcomePath as string))).toBe(true)
-      expect(existsSync(escapeTarget)).toBe(false)
-    } finally {
-      rmSync(credential, { force: true })
-      server.stop(true)
-    }
-  })
+  test.skipIf(!sandboxAvailable())(
+    'el sandbox bloquea de verdad escritura externa, red y credenciales',
+    async () => {
+      const root = temp('orchestos-adversarial-sandbox-root-')
+      const credential = join(process.env.HOME ?? '', '.ssh', 'h10-sandbox-probe')
+      mkdirSync(join(process.env.HOME ?? '', '.ssh'), { recursive: true })
+      writeFileSync(credential, 'no debe leerse')
+      const escapeTarget = join(temp('orchestos-adversarial-escape-'), 'escaped.txt')
+      const server = Bun.serve({ port: 0, fetch: () => new Response('network escaped') })
+      try {
+        const result = await runFindingTest(root, {
+          ...finding,
+          test_path: 'sandbox-boundary',
+          test_code: [
+            "import { expect, test } from 'bun:test'",
+            "import { readFileSync, writeFileSync } from 'node:fs'",
+            `test('escritura externa bloqueada', () => { expect(() => writeFileSync(${JSON.stringify(escapeTarget)}, 'x')).toThrow() })`,
+            `test('credencial bloqueada', () => { expect(() => readFileSync(${JSON.stringify(credential)}, 'utf8')).toThrow() })`,
+            `test('red bloqueada', async () => { await expect(fetch(${JSON.stringify(server.url.toString())})).rejects.toThrow() })`,
+          ].join('\n'),
+        })
+        // Las 3 fronteras se sostuvieron -> el test pasa -> no demuestra ningún bug.
+        expect(result.reason).toBe('test-passed')
+        expect(result.survived).toBe(false)
+        // Prueba de que las aserciones CORRIERON, no de que el proceso murió.
+        expect(`${result.stdout}${result.stderr}`).toContain('3 pass')
+        expect(result.outcomePath).not.toBeNull()
+        expect(existsSync(join(root, result.outcomePath as string))).toBe(true)
+        expect(existsSync(escapeTarget)).toBe(false)
+      } finally {
+        rmSync(credential, { force: true })
+        server.stop(true)
+      }
+    },
+  )
 
   test('formatea categoría, ubicación, evidencia y modelo sin reimplementar el formato', () => {
     const entry = formatReviewEntry(
