@@ -2216,33 +2216,57 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   **Fuera de scope declarado:** `.orchestos/feature-status.json` — regenerado automáticamente
   por el pre-commit desde este mismo PLAN.md, no se anticipó al declarar el scope-lock.
 
-- [ ] **H.10.2 — 🧠 Revisor adversarial nocturno, de un modelo distinto al que implementó.**
-  Corre solo, en silencio, sin aplicar nada — mismo principio que Dreaming
-  ([[project-dreaming-setup]]), nunca lo mismo (Dreaming lee `runs-summary.json`; esto revisa
-  el diff del día contra el código).
-  1. `scripts/adversarial-review.ts`: toma `git diff` del día/último commit (alcance acotado,
-     decidido con Carlos — no barrido completo del repo).
-  2. Corre `codex exec --model gpt-5.6-sol --json`. El stream `--json` **no reporta el modelo
-     usado** (verificado en vivo, [[reference-codex-modelo-real-rollout]]) — el script captura
-     `thread_id` del stream, lee `~/.codex/sessions/.../rollout-*-<thread_id>.jsonl`, extrae el
-     `model` real y **aborta sin escribir nada si no coincide** con `gpt-5.6-sol`. El modelo de
-     una corrida real no es una afirmación del LLM ([[feedback-modelo-decision-final-carlos]]).
-  3. Prompt adversarial por los 4 dominios reales del incidente: concurrencia/ownership,
-     frontera de seguridad, evidencia declarada vs. producida, contradicción comentario-vs-código.
-  4. **Regla dura anti-ruido:** cada hallazgo debe venir con un test que el propio script
-     ejecuta contra el código actual. Si el test no falla, el hallazgo se descarta en silencio —
-     nunca entra a `REVIEW.md` una opinión sin prueba que la sostenga.
+- [x] **H.10.2 — 🧠 Revisor adversarial nocturno, de un modelo distinto al que implementó.**
+  Cerrado 2026-09-08 (Claude implementó + Codex `gpt-5.6-terra` escribió los tests unitarios
+  sobre el contrato ya cerrado, delegación explícita de Carlos).
+  1. `scripts/adversarial-review.ts` (funciones puras exportadas, `main()` orquesta): toma
+     `git diff` desde el último sha revisado (`.orchestos/adversarial-review-state.json`) hasta
+     `HEAD` — si ese sha ya no existe (rebase/force-push), cae a `HEAD~1..HEAD` en vez de asumir
+     cuánto cubrir. Alcance acotado al diff, no barrido completo del repo (decisión de Carlos).
+  2. Corre `codex exec -m gpt-5.6-sol --json --sandbox read-only --ignore-user-config`. El
+     stream `--json` **no reporta el modelo usado** (verificado en vivo,
+     [[reference-codex-modelo-real-rollout]]) — el script captura `thread_id` del stream
+     (`extractThreadId`), busca `~/.codex/sessions/**/rollout-*-<thread_id>.jsonl`
+     (`findRolloutPath`), lee el `model` real de la línea `type:"turn_context"`
+     (`extractModelFromRollout` — path exacto verificado en el rollout real, no en memoria) y
+     **aborta sin escribir nada** si no coincide con `gpt-5.6-sol` (`verifyModelUsed` +
+     `main()`). El modelo de una corrida real no es una afirmación del LLM
+     ([[feedback-modelo-decision-final-carlos]]).
+  3. Prompt adversarial (`scripts/adversarial-review-prompt.md`) por los 4 dominios reales del
+     incidente: concurrencia/ownership, frontera de seguridad, evidencia declarada vs.
+     producida, contradicción comentario-vs-código. Contrato de salida: un único bloque
+     ` ```json ` con un array (vacío si no hay nada real — explícitamente autorizado a no
+     inventar).
+  4. **Regla dura anti-ruido:** `runFindingTest()` escribe el `test_code` de cada hallazgo bajo
+     `review-evidence/*.check.ts` (extensión deliberada, fuera del glob de descubrimiento de
+     `bun test` — un hallazgo real no puede romper el CI del propio repo) y lo corre con
+     `bun test <ruta explícita>`. Sobrevive solo si el proceso termina con código distinto de 0
+     — si el test no falla, se descarta y el archivo se borra en el mismo `main()`, antes de
+     tocar `REVIEW.md`.
   5. Hallazgos sobrevivientes → `REVIEW.md` (nuevo, en la raíz, mismo principio que `DREAMING.md`
-     — nunca aplica cambios, Carlos decide qué promover a `PLAN.md`/`IDEAS.md`).
-  6. `~/Library/LaunchAgents/dev.cagr1.orchestos.review.plist` — mismo patrón que
+     — nunca aplica cambios, Carlos decide qué promover a `PLAN.md`/`IDEAS.md`; entradas más
+     recientes primero, sin duplicar el header entre corridas — `appendToReviewMd`). El script
+     **nunca commitea** — deja el working tree con cambios locales para que Carlos los revise.
+  6. `~/Library/LaunchAgents/dev.cagr1.orchestos.review.plist` (creado, **sin cargar todavía en
+     launchd** — pendiente de que Carlos confirme activarlo) — mismo patrón que
      `dev.cagr1.memoriesmd.sync.plist` (ya en la máquina): `StartCalendarInterval` 3am, sin
-     `pmset wake` (si la Mac está dormida/apagada, corre al despertar/arrancar — decisión
-     explícita de Carlos: no vale el costo de forzar el despertar de la máquina por esto). Usa
-     la suscripción de Codex ya pagada, no API key aparte — por eso no es GitHub Actions.
-  **Gate:** correr manualmente una vez con un diff sintético que contenga un bug plantado tipo
-  "los 4 del incidente R.5", confirmar que aparece en `REVIEW.md` con su test adjunto, y confirmar
-  con un diff limpio que no genera ruido. Verificar el chequeo de modelo real con un valor de
-  `--model` deliberadamente distinto al declarado y confirmar que aborta sin escribir nada.
+     `pmset wake` (decisión explícita de Carlos: no vale el costo de forzar el despertar de la
+     máquina por esto). `bun run review:nightly` (`package.json`) usa la suscripción de Codex ya
+     pagada, no API key aparte — por eso no es GitHub Actions.
+  **Gate:** `bun test scripts/adversarial-review.test.ts` — 10 pass / 0 fail / 35 expects
+  (funciones puras: estado/rango, parseo de stream JSONL, verificación de modelo contra rollout,
+  parseo de hallazgos, formato de `REVIEW.md`). Además, **corrida real contra `codex exec`**
+  (no simulada) en dos repos git temporales — evidencia completa en
+  `scripts/h10-gate-evidence.json`:
+  (1) diff con un bug plantado de la misma forma que R.5 (comentario promete verificar el owner
+  del lease, el código no lo hace) → el modelo lo encontró, escribió un test, ese test falló
+  contra el código real, y la entrada quedó en `REVIEW.md` — texto y test verificados a mano;
+  (2) diff limpio (trim de un string, sin nada en los 4 dominios) → cero hallazgos, cero ruido,
+  no se crea ni `REVIEW.md` ni `review-evidence/`;
+  (3) `expectedModel` deliberadamente distinto al real (`gpt-5.6-sol` corrió de verdad, se pidió
+  verificar contra `"modelo-incorrecto-a-proposito"`) → abortó con exit code 1, no escribió
+  nada, y **no actualizó el estado** (el sha revisado no avanza, así que la próxima corrida real
+  vuelve a intentar ese mismo diff en vez de darlo por hecho).
 
 ### H.6 — Fuera de alcance de este bloque (anotado, no se toca)
 

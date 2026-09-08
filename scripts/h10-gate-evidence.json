@@ -1,0 +1,40 @@
+{
+  "item": "H.10.2",
+  "date": "2026-09-08",
+  "tool": "scripts/adversarial-review.ts, invocado directo (bun -e import + main())",
+  "scenarios": [
+    {
+      "name": "bug plantado — comentario promete verificar owner, el código no lo hace",
+      "fixtureShape": "mismo patrón que el incidente real de R.5 (commit sin verificar lease vigente)",
+      "codexModelReal": "gpt-5.6-sol",
+      "exitCode": 0,
+      "findingSurvived": true,
+      "findingSummary": "commit() ignora el owner vigente y permite que un propietario con lease vencido confirme después de que otro propietario reclamó el recurso.",
+      "evidenceTestOutcome": "el test escrito por el propio modelo (review-evidence/stale-owner-cannot-commit.check.ts) falló contra el código real antes de aceptarse el hallazgo",
+      "reviewMdWritten": true
+    },
+    {
+      "name": "diff limpio, sin defecto real",
+      "fixtureShape": "cambio trivial (trim de un string) sin nada en los 4 dominios adversariales",
+      "exitCode": 0,
+      "findingSurvived": false,
+      "reviewMdWritten": false,
+      "note": "sin REVIEW.md ni review-evidence/ creados — cero ruido"
+    },
+    {
+      "name": "mismatch de modelo deliberado (gate de verificación anti-promesa)",
+      "expectedModelPassed": "modelo-incorrecto-a-proposito",
+      "codexModelReal": "gpt-5.6-sol",
+      "exitCode": 1,
+      "aborted": true,
+      "reviewMdWritten": false,
+      "stateUpdated": false,
+      "logLine": "[adversarial-review] abortado: no se pudo confirmar que corrió con gpt-5.6-sol (real: gpt-5.6-sol, motivo: mismatch) — no se escribe ningún hallazgo"
+    }
+  ],
+  "unitTests": {
+    "file": "scripts/adversarial-review.test.ts",
+    "author": "Codex gpt-5.6-terra (delegado, mecánico sobre contrato ya cerrado)",
+    "result": "10 pass / 0 fail / 35 expect() calls"
+  }
+}
