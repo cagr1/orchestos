@@ -4,7 +4,7 @@ A CLI that runs LLM-powered coding tasks inside a declared file contract.
 Each task specifies exactly which files it can write. Anything outside that list is blocked.
 Every run produces evidence in SQLite. A QA LLM validates the output before marking it done.
 
-1174 tests · 0 failures · Month 30 active · Block H in progress
+1342 tests · 0 failures · Month 30 active · Reliability and UI blocks in progress
 
 ---
 

@@ -3,13 +3,25 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-29-abierto--orquestador-real--cc0-auditoria-en-curso
+status: mes-30-abierto--fiabilidad-del-recorrido-y-shell-chat-workspace
 ---
 
 # OrchestOS — Plan activo
 
 Historial completado → ver [DONE.md](DONE.md).
 Ideas pendientes → ver [IDEAS.md](IDEAS.md).
+
+## Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)
+
+- [x] **DOC.1 — ⚡ Reconciliar documentación viva con el estado verificable del plan.** (cerrado 2026-09-08)
+  Actualizar el estado operativo de `README.md`, `VISION.md`, `PRODUCT.md`, `CONTEXT.md`,
+  `AGENTS.md`, este encabezado y los resúmenes vivos de `MemoriesMD/wiki/projects/orchestos.md`
+  y `MemoriesMD/projects/orchestos/estado.md`. Mantener `docs/done/` como historial inmutable y
+  no presentar R.6–R.8, H.10.2 ni UI.8.1–UI.8.6 como cerrados. Gate: diff acotado, coherencia
+  contra los ítems abiertos/cerrados del plan y `bunx tsc --noEmit` (la documentación no cambia
+  comportamiento). **Evidencia:** `bun test` ✅ (1342 pass / 0 fail, 3321 expects, 142 archivos),
+  `bunx tsc --noEmit` ✅; se actualizaron las fuentes vivas del repo y los dos resúmenes vivos del
+  vault. `docs/done/` quedó intacto como historial.
 
 **Regla**: marcar `[x]` con fecha al cerrar. Si una validación falla, no abrir el siguiente bloque.
 

@@ -73,13 +73,14 @@ La sección fechada “Qué está listo para tomar ahora (2026-07-30)” fue ret
 había quedado obsoleta mientras `PLAN.md` ya estaba en Mes 29. Desde ahora el estado se deriva en
 cada preflight de los ítems abiertos de `PLAN.md`; nunca se duplica aquí un snapshot que pueda mentir.
 
-## Prioridad activa: Bloque H — huecos de harness (2026-09-01)
+## Estado activo: Bloques R, H y UI (2026-09-08)
 
-`PLAN.md` abrió el **Bloque H**, que va **antes** de los ítems `UI.4`–`UI.7` del Mes 30 por
-decisión de Carlos. Los ⚡ de `H.1` (README desactualizado, `CONSTITUTION.md` vacío, script
-`test` faltante, artefactos trackeados) son los primeros tomables y son trabajo de
-documentación/configuración — exactamente el perfil ⚡. Leer el bloque completo en `PLAN.md`
-antes de agarrar uno: cada ítem trae su gate y sus condiciones de parada propias.
+`PLAN.md` está en Mes 30. El Bloque R mantiene abiertos R.6–R.8; H mantiene H.10.2 abierto; y la
+dirección visual activa está en UI.8.1–UI.8.6. Leer el bloque completo en `PLAN.md` antes de
+agarrar un ítem: cada uno trae su gate y sus condiciones de parada propias.
+
+Los huecos H.1 de documentación/configuración ya están cerrados. Sus advertencias históricas se
+conservan en `PLAN.md`, pero no describen trabajo disponible actualmente.
 
 Dos advertencias sobre ese bloque:
 

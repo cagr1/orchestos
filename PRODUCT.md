@@ -20,6 +20,14 @@ como proyecto, agentes, sesiones, tareas, runs y evidencia. Éxito = que el usua
 su trabajo sin aprender términos internos y que el operador pueda explicar qué corrió, qué falló,
 por qué y cuánto costó sin salir del navegador.
 
+## Estado actual
+
+El plan activo está en Mes 30. El núcleo de ejecución, contratos, checks, QA, memoria, costos y
+persistencia de Chat ya existe y se verifica con la suite y gates reales. Siguen abiertos los
+huecos de fiabilidad del recorrido completo (R.6–R.8) y la consolidación visual/operativa de
+Chat | Workspace (UI.8.1–UI.8.6). Por eso este documento describe la dirección del producto, no
+un estado de disponibilidad comercial completa.
+
 ## Brand Personality
 
 Una aplicación local, moderna y deliberada: tranquila en Chat, densa pero gobernable en Workspace.

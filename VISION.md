@@ -3,7 +3,8 @@ type: product-vision
 project: orchestos
 created: 2026-06-04
 owner: Carlos Gallardo
-status: borrador-v1
+status: borrador-v1-vigente
+updated: 2026-09-08
 ---
 
 # VISION.md — OrchestOS
@@ -22,6 +23,13 @@ feature no sirve a esto, no entra.
 _(Borrador v1 — refinar con uso real. El test es: si alguien pregunta "¿qué es OrchestOS?",
 esta frase basta. Aún suena un poco a dos ideas pegadas; la versión final debería elegir
 cuál pesa más.)_
+
+## Estado de implementación
+
+La brújula sigue vigente, pero el producto todavía está en desarrollo activo. El plan actual es
+Mes 30: la fiabilidad del recorrido completo sigue abierta en R.6–R.8 y la convergencia de la
+experiencia Chat | Workspace sigue abierta en UI.8.1–UI.8.6. Esta visión no implica que el
+producto esté listo para presentarse como solución externa terminada.
 
 **Alternativas en juego:**
 - Ángulo acceso: *"Dirigir agentes que programan, sin saber programar."*
@@ -102,7 +110,7 @@ frente a un no-dev. La traducción ya empezó (E1: instincts → "hábitos"; C5:
 
 ### 2. Una herramienta, dos superficies (humano vs operador)
 
-El aporte estructural más importante para Mes 10+. Hoy el sidebar expone Runs · Specs ·
+El aporte estructural más importante de la evolución de la interfaz. El sidebar expone Runs · Specs ·
 Instincts · Memory como hermanos — todas abstracciones internas.
 
 **Principio (no negociable):** NO se construyen dos UIs paralelas. Eso duplica
@@ -134,7 +142,7 @@ dentro del producto. Una puerta bonita a un muro sigue siendo un muro.
 
 ## Principios ganados (decisiones que ya probamos)
 
-- **CLI-first fue la fundación correcta.** El dashboard (Mes 8-9) no reemplazó el CLI — lo
+- **CLI-first fue la fundación correcta.** El dashboard de las primeras fases no reemplazó el CLI — lo
   envuelve. Cada botón es un comando que ya existía y estaba probado. Construir la UI antes
   del CLI sólido habría sido construir sobre arena.
 - **El dashboard llegó cuando el CLI estaba estable**, no antes. La regla "UI después de

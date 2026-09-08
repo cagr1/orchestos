@@ -4,6 +4,15 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "DOC.1",
+      "month": "Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Reconciliar documentación viva con el estado verificable del plan",
+      "status": "done",
+      "closedDate": "2026-09-08"
+    },
+    {
       "id": "R.1",
       "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
