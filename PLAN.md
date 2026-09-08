@@ -1267,6 +1267,27 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 > (3) aceptar solo si hay exactamente una coincidencia; cero o más de una → `null` (mismo
 > fail-open de H.7.1). Sin tabla de alias por marca. H.7.3 queda desbloqueado.
 
+- [ ] **H.7.2c — ⚡ Registro de adaptadores: falta OpenCode.** Hallazgo por código
+  (2026-09-08, Claude, verificando el hook H.7.3 a pedido de Carlos — "verifica que esto se
+  cumpla para cualquier modelo"). `DEFAULT_ADAPTERS` en `scripts/context-adapters.ts:267` solo
+  trae `[claudeAdapter, codexAdapter]`. El diseño del registro sí es genérico por modelo dentro
+  de cada CLI (`readTranscriptUsage()` lee el `model` real de la última línea del transcript en
+  cada disparo, nunca uno fijo) — pero por CLI es una lista cerrada de 2. Carlos usa OpenCode en
+  este mismo proyecto ([[codex-delegation-workflow]] / uso real observado en sesión); con ese
+  CLI activo, `readContextBudget()` no encuentra adaptador y el fail-open documentado en
+  `context-adapters.ts:117` ("un hook que rompe el turno es peor que un hook que no avisa")
+  hace que el aviso de 60%/65% **no aparezca en absoluto, en silencio** — no es un bug, es la
+  consecuencia no señalada de una decisión de diseño correcta.
+  Aplicar la misma regla ya escrita para este registro (`context-adapters.ts:10`, cita de
+  Carlos): "las soluciones no las hacemos una por modelo sino para los LLMs que vengan" —
+  agregar `opencodeAdapter` como entrada de datos en `DEFAULT_ADAPTERS`, no un `if` nuevo.
+  Antes de escribirlo: verificar contra un transcript real de OpenCode dónde publica
+  modelo/tokens/ventana (mismo método que H.7.2b usó para Codex — contrato verificado en vivo,
+  no asumido de la documentación). Si OpenCode no publica la ventana en su transcript, resolver
+  por catálogo igual que hace `claudeAdapter`, no inventar un fallback por familia.
+  **Gate:** sesión real con OpenCode como agente activo, cruzar el 60%, ver el aviso en vivo —
+  mismo criterio que el gate 🔍 de H.7.3, no un test que mockee el adaptador.
+
 - [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
   Depende de H.7.1, H.7.2 y **H.7.2b** (la fuente del número se rehizo como registro de
   adaptadores — no re-cerrar H.7.3 leyendo el JSONL directo). El hook debe consumir
