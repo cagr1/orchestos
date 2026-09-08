@@ -2,15 +2,23 @@
   "item": "H.10.2",
   "date": "2026-09-08",
   "tool": "scripts/adversarial-review.ts, invocado directo (bun -e import + main())",
+  "note": "La corrida del 2026-09-08 (primera pasada) quedó INVALIDADA: el gate reportó éxito sin que ninguna aserción se ejecutara. Ver invalidatedFirstPass abajo. Esta evidencia corresponde a la pasada corregida (H.10.2-bis).",
+  "invalidatedFirstPass": {
+    "claim": "bug plantado detectado, hallazgo confirmado en REVIEW.md",
+    "whyInvalid": "`bun test <ruta>` sin `./` trata la ruta como FILTRO de nombre; como la evidencia usa `.check.ts`, no matcheaba ningún test y no ejecutaba NADA, devolviendo exit≠0 igual. La regla original ('sobrevive si exit≠0') lo contaba como hallazgo confirmado. Verificado a mano: sin `./` → `0 expect() calls`; con `./` → `1 fail, 1 expect() calls`.",
+    "secondBugFoundSameDay": "El perfil `(deny default)` del sandbox impedía que CUALQUIER binario arrancara (hasta `/bin/echo` → SIGABRT/exit 134, stdout y stderr vacíos). Faltaban las clases `mach*`, `sysctl*`, `signal`, `ipc*`, `system*` que macOS 26 exige para ejecutar un proceso. Consecuencia: todo hallazgo caía en `non-assertion-failure` y se descartaba — el revisor habría reportado cero hallazgos para siempre, en silencio.",
+    "whyTestsMissedIt": "Los tests del sandbox verificaban que NADA escapara, ninguno verificaba que algo FUNCIONARA dentro. Los dos bugs se anulaban entre sí en la observación."
+  },
   "scenarios": [
     {
-      "name": "bug plantado — comentario promete verificar owner, el código no lo hace",
-      "fixtureShape": "mismo patrón que el incidente real de R.5 (commit sin verificar lease vigente)",
+      "name": "bug plantado — el comentario promete verificar el owner del lease, el código no lo hace",
+      "fixtureShape": "misma forma que el incidente real de R.5 (commit sin verificar lease vigente)",
       "codexModelReal": "gpt-5.6-sol",
       "exitCode": 0,
       "findingSurvived": true,
-      "findingSummary": "commit() ignora el owner vigente y permite que un propietario con lease vencido confirme después de que otro propietario reclamó el recurso.",
-      "evidenceTestOutcome": "el test escrito por el propio modelo (review-evidence/stale-owner-cannot-commit.check.ts) falló contra el código real antes de aceptarse el hallazgo",
+      "findingSummary": "commit ignora owner y permite que el dueño de un lease vencido confirme después de que otro dueño adquirió y confirmó el lease vigente.",
+      "evidenceReason": "assertion-failed",
+      "evidenceProofOfExecution": "1 fail / 3 expect() calls — la aserción CORRIÓ, no es solo un exit code distinto de 0",
       "reviewMdWritten": true
     },
     {
@@ -32,9 +40,21 @@
       "logLine": "[adversarial-review] abortado: no se pudo confirmar que corrió con gpt-5.6-sol (real: gpt-5.6-sol, motivo: mismatch) — no se escribe ningún hallazgo"
     }
   ],
+  "sandboxBoundaryVerifiedLive": {
+    "writeOutsideTemp": "bloqueado (el archivo objetivo no existe después de la corrida)",
+    "network": "bloqueado (fetch a un Bun.serve local rechaza)",
+    "knownCredentials": "bloqueado (~/.ssh y afines denegados explícitamente)",
+    "broadRead": "PERMITIDO a propósito — acotarlo impedía que ningún binario arrancara. Sin red no hay exfiltración; residuo aceptado: un test podría copiar contenido leído al .result.json local.",
+    "proofOfExecution": "3 pass / 3 expect() calls dentro del sandbox"
+  },
   "unitTests": {
-    "file": "scripts/adversarial-review.test.ts",
-    "author": "Codex gpt-5.6-terra (delegado, mecánico sobre contrato ya cerrado)",
-    "result": "10 pass / 0 fail / 35 expect() calls"
+    "files": ["scripts/adversarial-review.test.ts", "scripts/agent-governance.test.ts"],
+    "authors": "Codex gpt-5.6-terra (primera pasada) + Codex (endurecimiento) + Claude (regresión del hallazgo legítimo)",
+    "result": "20 pass / 0 fail / 84 expect() calls"
+  },
+  "lint": {
+    "command": "bun run lint",
+    "before": "exit 1 — 7 errores de formato/organizeImports (CI en rojo)",
+    "after": "exit 0"
   }
 }

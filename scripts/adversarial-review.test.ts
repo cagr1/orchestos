@@ -1,23 +1,37 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   appendToReviewMd,
+  type CodexRunner,
+  classifyFindingFailure,
   extractAgentMessage,
   extractModelFromRollout,
   extractThreadId,
+  type Finding,
   findRolloutPath,
   formatReviewEntry,
   loadState,
+  main,
   parseFindings,
-  resolveDiffRange,
   REVIEW_MD,
-  saveState,
-  STATE_PATH,
-  verifyModelUsed,
-  type Finding,
   type RunCommand,
+  resolveDiffRange,
+  resolveEvidencePath,
+  runFindingTest,
+  STATE_PATH,
+  saveState,
+  verifyModelUsed,
 } from './adversarial-review.ts'
 
 const cleanupPaths: string[] = []
@@ -65,7 +79,10 @@ describe('adversarial review — estado y rango', () => {
       return { exitCode: 0, stdout: '', stderr: '' }
     }
 
-    expect(resolveDiffRange(null, 'head-sha', run, root)).toEqual({ from: 'HEAD~1', to: 'head-sha' })
+    expect(resolveDiffRange(null, 'head-sha', run, root)).toEqual({
+      from: 'HEAD~1',
+      to: 'head-sha',
+    })
     expect(resolveDiffRange({ lastReviewedSha: 'head-sha' }, 'head-sha', run, root)).toBeNull()
     expect(resolveDiffRange({ lastReviewedSha: 'previous-sha' }, 'head-sha', run, root)).toEqual({
       from: 'previous-sha',
@@ -101,7 +118,9 @@ describe('adversarial review — streams y rollouts', () => {
   })
 
   test('extrae el modelo real del rollout o null si no fue declarado', () => {
-    const rollout = ['basura', '{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}'].join('\n')
+    const rollout = ['basura', '{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}'].join(
+      '\n',
+    )
     expect(extractModelFromRollout(rollout)).toBe('gpt-5.6-sol')
     expect(extractModelFromRollout('{"type":"turn_context","payload":{}}')).toBeNull()
   })
@@ -154,13 +173,123 @@ describe('adversarial review — streams y rollouts', () => {
 })
 
 describe('adversarial review — hallazgos y REVIEW.md', () => {
-  test('parsea hallazgos fenced, filtra elementos incompletos y acepta el fallback JSON', () => {
+  test('parsea solo arrays íntegros y rechaza elementos malformados', () => {
     const valid = JSON.stringify(finding)
     const incomplete = JSON.stringify({ ...finding, test_code: undefined })
-    expect(parseFindings(`respuesta\n\`\`\`json\n[${valid},${incomplete}]\n\`\`\``)).toEqual([finding])
+    expect(parseFindings(`respuesta\n\`\`\`json\n[${valid},${incomplete}]\n\`\`\``)).toBeNull()
     expect(parseFindings(`[${valid}]`)).toEqual([finding])
     expect(parseFindings('no es JSON')).toBeNull()
     expect(parseFindings('[]')).toEqual([])
+  })
+
+  test('rechaza rutas absolutas, traversal, symlinks externos y destinos existentes', () => {
+    const root = temp('orchestos-adversarial-path-')
+    const evidence = join(root, 'review-evidence')
+    mkdirSync(evidence, { recursive: true })
+    expect(resolveEvidencePath(root, '/tmp/escape')).toBeNull()
+    expect(resolveEvidencePath(root, '../escape')).toBeNull()
+    expect(resolveEvidencePath(root, 'nested/../../escape')).toBeNull()
+    expect(resolveEvidencePath(root, 'nested/proof')).toEqual({
+      evidencePath: 'review-evidence/nested/proof.check.ts',
+      fullPath: join(realpathSync(evidence), 'nested', 'proof.check.ts'),
+    })
+    const external = temp('orchestos-adversarial-external-')
+    symlinkSync(external, join(evidence, 'linked-outside'))
+    expect(resolveEvidencePath(root, 'linked-outside/proof')).toBeNull()
+    writeFileSync(join(evidence, 'existing.check.ts'), 'old evidence')
+    expect(resolveEvidencePath(root, 'existing')).toBeNull()
+  })
+
+  test('clasifica timeout, sintaxis, importación, infraestructura y solo acepta aserciones', () => {
+    expect(classifyFindingFailure({ exitCode: 1, stdout: '', stderr: '', timedOut: true })).toBe(
+      'timeout',
+    )
+    expect(
+      classifyFindingFailure({ exitCode: 1, stdout: '', stderr: 'SyntaxError: unexpected token' }),
+    ).toBe('syntax-error')
+    expect(
+      classifyFindingFailure({ exitCode: 1, stdout: '', stderr: 'Cannot find module x' }),
+    ).toBe('import-error')
+    expect(
+      classifyFindingFailure({ exitCode: 1, stdout: '', stderr: 'sandbox denied permission' }),
+    ).toBe('infrastructure-error')
+    expect(
+      classifyFindingFailure({
+        exitCode: 1,
+        stdout: 'error: expect(received).toBe(expected)\nExpected: 2\nReceived: 1',
+        stderr: '',
+      }),
+    ).toBe('assertion-failed')
+    expect(
+      classifyFindingFailure({ exitCode: 1, stdout: '', stderr: 'Error: arbitrary failure' }),
+    ).toBe('non-assertion-failure')
+  })
+
+  // H.10.2-bis — el test que faltaba, y su ausencia dejó pasar DOS bugs que se
+  // anulaban entre sí en la observación: (1) el perfil de sandbox impedía que
+  // cualquier binario arrancara (SIGABRT, salida vacía) y (2) `bun test <ruta>`
+  // sin `./` trataba la ruta como filtro y no ejecutaba nada. Los tests
+  // existentes solo verificaban que NADA escapara del sandbox — ninguno
+  // verificaba que algo FUNCIONARA dentro. Un hallazgo legítimo tiene que
+  // sobrevivir, o el revisor entero es un botón que no hace nada.
+  test('un hallazgo legítimo sobrevive: la aserción corre de verdad y falla', async () => {
+    const root = temp('orchestos-adversarial-legit-')
+    mkdirSync(join(root, 'src'), { recursive: true })
+    writeFileSync(join(root, 'src', 'counter.ts'), 'export function bump(): number { return 2 }\n')
+    const result = await runFindingTest(root, {
+      ...finding,
+      test_path: 'bump-should-return-one',
+      test_code: [
+        "import { expect, test } from 'bun:test'",
+        "import { bump } from '../src/counter.ts'",
+        "test('bump devuelve 1', () => { expect(bump()).toBe(1) })",
+      ].join('\n'),
+    })
+    expect(result.reason).toBe('assertion-failed')
+    expect(result.survived).toBe(true)
+    // Prueba de que la aserción se EJECUTÓ, no solo de que el proceso murió:
+    // sin esto, un binario que no arranca daría exit≠0 y pasaría por hallazgo.
+    expect(`${result.stdout}${result.stderr}`).toContain('expect() calls')
+  })
+
+  // H.10.2-bis — este test verifica la frontera REAL que el perfil promete, que
+  // no es la que se escribió primero. La lectura amplia se permite a propósito
+  // (acotarla impedía que ningún binario arrancara — ver sandboxProfile): lo que
+  // se garantiza es que el código escrito por el LLM no pueda ESCRIBIR fuera de
+  // su temporal, no pueda salir por RED, y no pueda leer CREDENCIALES conocidas.
+  // Sin red, leer no permite exfiltrar. Las tres aserciones de abajo PASAN
+  // dentro del sandbox, por eso el veredicto correcto es 'test-passed'.
+  test('el sandbox bloquea de verdad escritura externa, red y credenciales', async () => {
+    const root = temp('orchestos-adversarial-sandbox-root-')
+    const credential = join(process.env.HOME ?? '', '.ssh', 'h10-sandbox-probe')
+    mkdirSync(join(process.env.HOME ?? '', '.ssh'), { recursive: true })
+    writeFileSync(credential, 'no debe leerse')
+    const escapeTarget = join(temp('orchestos-adversarial-escape-'), 'escaped.txt')
+    const server = Bun.serve({ port: 0, fetch: () => new Response('network escaped') })
+    try {
+      const result = await runFindingTest(root, {
+        ...finding,
+        test_path: 'sandbox-boundary',
+        test_code: [
+          "import { expect, test } from 'bun:test'",
+          "import { readFileSync, writeFileSync } from 'node:fs'",
+          `test('escritura externa bloqueada', () => { expect(() => writeFileSync(${JSON.stringify(escapeTarget)}, 'x')).toThrow() })`,
+          `test('credencial bloqueada', () => { expect(() => readFileSync(${JSON.stringify(credential)}, 'utf8')).toThrow() })`,
+          `test('red bloqueada', async () => { await expect(fetch(${JSON.stringify(server.url.toString())})).rejects.toThrow() })`,
+        ].join('\n'),
+      })
+      // Las 3 fronteras se sostuvieron -> el test pasa -> no demuestra ningún bug.
+      expect(result.reason).toBe('test-passed')
+      expect(result.survived).toBe(false)
+      // Prueba de que las aserciones CORRIERON, no de que el proceso murió.
+      expect(`${result.stdout}${result.stderr}`).toContain('3 pass')
+      expect(result.outcomePath).not.toBeNull()
+      expect(existsSync(join(root, result.outcomePath as string))).toBe(true)
+      expect(existsSync(escapeTarget)).toBe(false)
+    } finally {
+      rmSync(credential, { force: true })
+      server.stop(true)
+    }
   })
 
   test('formatea categoría, ubicación, evidencia y modelo sin reimplementar el formato', () => {
@@ -191,5 +320,53 @@ describe('adversarial review — hallazgos y REVIEW.md', () => {
     expect(content).toContain('entrada vieja')
     expect(content).toContain('entrada nueva')
     expect(content.indexOf('entrada nueva')).toBeLessThan(content.indexOf('entrada vieja'))
+  })
+})
+
+describe('adversarial review — fail closed', () => {
+  test('no avanza lastReviewedSha si Codex falla, no responde o entrega JSON malformado', async () => {
+    const root = temp('orchestos-adversarial-fail-closed-')
+    mkdirSync(join(root, 'scripts'), { recursive: true })
+    writeFileSync(join(root, 'scripts', 'adversarial-review-prompt.md'), '{{DIFF}}')
+    const sessions = join(root, 'sessions')
+    mkdirSync(sessions, { recursive: true })
+    writeFileSync(
+      join(sessions, 'rollout-any-thread.jsonl'),
+      '{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}\n',
+    )
+    const run: RunCommand = (args) => {
+      if (args[0] === 'git' && args[1] === 'rev-parse')
+        return { exitCode: 0, stdout: 'head-sha\n', stderr: '' }
+      if (args[0] === 'git' && args[1] === 'diff')
+        return { exitCode: 0, stdout: 'diff', stderr: '' }
+      return { exitCode: 0, stdout: '', stderr: '' }
+    }
+    const cases: CodexRunner[] = [
+      async () => ({ exitCode: 1, timedOut: false, stdout: '', stderr: 'failed' }),
+      async () => ({
+        exitCode: 0,
+        timedOut: false,
+        stdout: '{"type":"thread.started","thread_id":"any-thread"}\n',
+        stderr: '',
+      }),
+      async () => ({
+        exitCode: 0,
+        timedOut: false,
+        stdout:
+          '{"type":"thread.started","thread_id":"any-thread"}\n{"type":"item.completed","item":{"type":"agent_message","text":"not json"}}',
+        stderr: '',
+      }),
+      async () => ({
+        exitCode: 0,
+        timedOut: false,
+        stdout:
+          '{"type":"thread.started","thread_id":"any-thread"}\n{"type":"item.completed","item":{"type":"agent_message","text":"[{\\"file\\":\\"x\\"}]"}}',
+        stderr: '',
+      }),
+    ]
+    for (const runner of cases) {
+      expect(await main(root, run, sessions, 'gpt-5.6-sol', runner)).toBe(1)
+      expect(existsSync(join(root, STATE_PATH))).toBe(false)
+    }
   })
 })

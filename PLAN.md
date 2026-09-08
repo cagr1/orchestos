@@ -2216,8 +2216,21 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   **Fuera de scope declarado:** `.orchestos/feature-status.json` — regenerado automáticamente
   por el pre-commit desde este mismo PLAN.md, no se anticipó al declarar el scope-lock.
 
-- [x] **H.10.2 — 🧠 Revisor adversarial nocturno, de un modelo distinto al que implementó.**
-  Cerrado 2026-09-08 (Claude implementó + Codex `gpt-5.6-terra` escribió los tests unitarios
+- [ ] **H.10.2 — 🧠 Revisor adversarial nocturno, de un modelo distinto al que implementó.**
+  Reabierto 2026-09-08 por Carlos: corregir exclusivamente cinco fallos de H.10.1/H.10.2 antes de
+  volver a declararlo cerrado: aislamiento efectivo (filesystem, credenciales, red y timeout) de
+  tests generados; `test_path` canónico dentro de `review-evidence` sin traversal, absolutos,
+  symlinks externos ni sobreescritura; clasificación de fallos que separa aserción de sintaxis,
+  imports, infraestructura y timeout; fail-closed del estado `lastReviewedSha`; y evidencia del
+  gate ligada al ítem que se cierra y presente en el contenido staged. Añadir regresiones
+  adversariales, ejecutar los gates requeridos y documentar resultados/límites. No activar el
+  LaunchAgent, no cambiar `gpt-5.6-sol` y dejar la revisión independiente pendiente: los tests de
+  quien implementa no la sustituyen. **Scope declarado:** `scripts/adversarial-review.ts`,
+  `scripts/adversarial-review.test.ts`, `scripts/agent-governance.ts`,
+  `scripts/agent-governance.test.ts`, `scripts/check-live-gate.ts`, `PLAN.md` y, solo si hace
+  falta para el sandbox verificable, el script mínimo versionado que aquel invoque. **Fuera de
+  scope declarado:** LaunchAgent/launchd, `package.json`, prompt/modelo configurado, `REVIEW.md`,
+  automatización nocturna y cualquier hallazgo ajeno. Estado previo: cerrado 2026-09-08 (Claude implementó + Codex `gpt-5.6-terra` escribió los tests unitarios
   sobre el contrato ya cerrado, delegación explícita de Carlos).
   1. `scripts/adversarial-review.ts` (funciones puras exportadas, `main()` orquesta): toma
      `git diff` desde el último sha revisado (`.orchestos/adversarial-review-state.json`) hasta
@@ -2267,6 +2280,78 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   verificar contra `"modelo-incorrecto-a-proposito"`) → abortó con exit code 1, no escribió
   nada, y **no actualizó el estado** (el sha revisado no avanza, así que la próxima corrida real
   vuelve a intentar ese mismo diff en vez de darlo por hecho).
+  **Corrección en curso 2026-09-08 (Codex, no cerrar hasta gates pendientes):** los cinco
+  hallazgos se corrigieron en el revisor y sus gates: las pruebas generadas corren bajo
+  `sandbox-exec` de macOS con root temporal de escritura, repo solo lectura, `HOME`/
+  `ORCHESTOS_HOME` limpios, red denegada y timeout de 30 s; si no existe ese sandbox, se rechaza
+  la prueba sin fallback. `test_path` rechaza absolutos/traversal, comprueba ancestros canónicos
+  (incluidos symlinks) y no pisa un destino existente. Solo una salida reconocible de aserción
+  puede confirmar un hallazgo; sintaxis, import, infraestructura y timeout se registran en
+  `*.result.json` con stdout/stderr y se descartan como prueba. El SHA queda inmóvil para spawn/
+  timeout de Codex, respuesta ausente, JSON o hallazgos malformados. H.10.1 ahora exige que el
+  artefacto sea un blob staged citado en la propia línea `Gate en vivo:` del mismo ítem cerrado.
+  **Verificado:** `bunx tsc --noEmit`; `bun test scripts/adversarial-review.test.ts
+  scripts/agent-governance.test.ts` — 19 pass / 0 fail / 80 expects; sandbox real adversarial
+  comprobó lectura externa, escritura fuera del temporal, credencial inyectada y red local
+  denegadas. `bunx biome check` sobre los cinco scripts tocados pasó. **Pendiente, no se
+  reclama:** `security:gate`/`test:coverage` completos no terminaron antes del límite de 30 s del
+  runner de esta sesión; revisión independiente sigue pendiente y estos tests propios no la
+  reemplazan. No se activó el LaunchAgent ni se cambió modelo, prompt o `package.json`.
+
+  **H.10.2-bis — revisión independiente (Claude, 2026-09-08): dos bugs bloqueantes que se
+  anulaban entre sí y hacían que el revisor NO pudiera confirmar ningún hallazgo jamás.**
+  Encontrados corriendo el recorrido completo, no leyendo el diff.
+  1. **El sandbox impedía ejecutar cualquier cosa.** El perfil `(deny default)` solo permitía
+     `process*` y unas rutas de lectura; macOS 26 exige además las clases `mach*`, `sysctl*`,
+     `signal`, `ipc*` y `system*` para que un binario arranque. Verificado a mano: hasta
+     `/bin/echo` moría con SIGABRT (exit 134) y stdout/stderr **vacíos**. Como
+     `classifyFindingFailure` clasifica por patrones en la salida, una salida vacía caía en
+     `non-assertion-failure` → **todo hallazgo se descartaba, siempre, en silencio**. El revisor
+     nocturno habría corrido cada noche reportando cero hallazgos, y eso se habría leído como
+     "no hay bugs". Es exactamente el botón que no hace nada de la regla cero de `CLAUDE.md`.
+  2. **`bun test <ruta>` sin `./` no ejecuta nada.** Bun trata el argumento como *filtro de
+     nombre*; como la evidencia usa `.check.ts` (deliberado, para no entrar al glob de la suite
+     del repo), no matcheaba ningún test y no corría ninguna aserción — devolviendo exit≠0
+     igual. Con la regla original ("sobrevive si exit≠0"), **cualquier** hallazgo quedaba
+     "confirmado" sin haberse probado nada. Verificado: sin `./` → `0 expect() calls`; con `./`
+     → `1 fail, 1 expect() calls`. **Esto invalida retroactivamente el gate declarado en la
+     primera pasada de H.10.2**: aquel "bug plantado detectado" fue un falso positivo — el test
+     nunca corrió. Queda registrado en `scripts/h10-gate-evidence.json` § `invalidatedFirstPass`
+     en vez de borrarse.
+  **Por qué ningún test los atrapó:** los tests del sandbox verificaban que nada ESCAPARA, pero
+  ninguno verificaba que algo FUNCIONARA dentro. Tercera repetición del mismo patrón en el día
+  ([[feedback-revisor-adversarial-cruzado]]): un test escrito contra el propio contrato del autor
+  hereda su punto ciego. Se agregó la regresión que faltaba — un hallazgo legítimo debe sobrevivir
+  con `reason: 'assertion-failed'` **y** con prueba de ejecución (`expect() calls` en la salida),
+  no solo con un exit code distinto de 0.
+  **Decisión de seguridad, explícita:** se permite `file-read*` amplio (acotarlo volvía a impedir
+  el arranque: el dyld cache de macOS 26 vive detrás de firmlinks). La frontera que sí se
+  sostiene y se verificó en vivo es **escritura solo al temporal + red denegada + credenciales
+  conocidas (`~/.ssh`, `~/.aws`, `~/.codex`, `~/.claude`, `~/.gnupg`, `~/.config/gh`) denegadas**.
+  Sin red, leer no permite exfiltrar; residuo aceptado: un test podría copiar lo leído al
+  `.result.json` local. `classifyFindingFailure` además distingue ahora `test-passed` (exit 0)
+  de un fallo raro, para que el `.result.json` sea legible.
+  **Gate (recorrido real, con Codex real, después del fix):** ver
+  `scripts/h10-gate-evidence.json`. (1) bug plantado con la forma de R.5 → hallazgo confirmado,
+  `reason: assertion-failed`, `1 fail / 3 expect() calls` — la aserción **corrió**; (2) diff
+  limpio → cero hallazgos, sin `REVIEW.md` ni `review-evidence/`; (3) mismatch de modelo → aborta
+  sin escribir y sin avanzar el SHA. Fronteras del sandbox probadas en vivo con un test que
+  intenta violarlas: escritura externa, red y credencial → las tres bloqueadas, `3 pass /
+  3 expect() calls` (probando que corrió). `bunx tsc --noEmit` limpio; `bun test` de los dos
+  archivos: 20 pass / 0 fail / 84 expects.
+  **Además — CI estaba rojo por `lint`, no por los tests.** `bun run lint` (Biome) fallaba con 7
+  errores de formato/`organizeImports`; el job venía en rojo desde antes de este bloque (19 de
+  los últimos 25 runs). Corregido con `bun run lint:fix` → `bun run lint` exit 0. Causa raíz de
+  por qué nadie lo veía: **`lint` no está en `pre-commit` ni en `pre-push`**, así que el único
+  lugar donde aparece es CI, y un CI siempre rojo deja de dar señal (mismo corolario ya escrito
+  en `CLAUDE.md`). Sumarlo al `pre-push` queda propuesto a Carlos, no hecho.
+  **Sigue pendiente, no se reclama:** el LaunchAgent quedó cargado en la pasada anterior
+  (`launchctl list` → `dev.cagr1.orchestos.review`) **antes** de que estos dos bugs se
+  descubrieran; con el fix ya aplicado el revisor funciona, pero su primera corrida nocturna real
+  todavía no ocurrió — hasta que ocurra, el recorrido en condiciones de cron sigue sin evidencia.
+  **Fuera de scope declarado:** `scripts/h10-gate-evidence.json` (el artefacto de evidencia del
+  propio gate, exigido por H.10.1 — no estaba en el scope-lock que declaró la corrección) y
+  `.orchestos/feature-status.json` (regenerado por el pre-commit desde este mismo PLAN.md).
 
 ### H.6 — Fuera de alcance de este bloque (anotado, no se toca)
 

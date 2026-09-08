@@ -101,6 +101,32 @@ export function citedEvidenceFiles(planDiff: string): string[] {
   return cited
 }
 
+/** Cada cierre debe traer su propia línea Gate en vivo y su propio artefacto. */
+export function liveGateEvidenceByClosedItem(planDiff: string): string[][] {
+  const added = planDiff
+    .split('\n')
+    .filter((line) => line.startsWith('+') && !line.startsWith('+++'))
+  const groups: string[][] = []
+  let current: string[] | null = null
+  for (const line of added) {
+    if (/^\+\s*- \[x\]/i.test(line)) {
+      current = [line]
+      groups.push(current)
+    } else if (current) {
+      current.push(line)
+    }
+  }
+  return groups
+    .map((group) =>
+      citedEvidenceFiles(
+        group
+          .filter((line) => /Gate en vivo:.*(?:navegador|browser|Playwright)/i.test(line))
+          .join('\n'),
+      ),
+    )
+    .filter((cited) => cited.length > 0)
+}
+
 /**
  * H.10.1 (2026-09-08) — incidente R.5: un commit declaró "Gate en vivo: navegador
  * real..." con la frase exigida por el regex de abajo, pero el hecho (dos procesos
@@ -111,17 +137,14 @@ export function citedEvidenceFiles(planDiff: string): string[] {
  * archivo tiene que estar presente en el mismo commit (stagedPaths), no solo
  * mencionado. Sin ambas cosas, el gate falla igual que hoy falla sin la frase.
  */
-export function hasLiveGateEvidence(planDiff: string, stagedPaths: string[] = []): boolean {
-  const added = planDiff
-    .split('\n')
-    .filter((line) => line.startsWith('+') && !line.startsWith('+++'))
-  const closesItem = added.some((line) => /^\+\s*- \[x\]/i.test(line))
-  const hasGate = added.some((line) =>
-    /Gate en vivo:.*(?:navegador|browser|Playwright)/i.test(line),
-  )
-  if (!closesItem || !hasGate) return false
-  const cited = citedEvidenceFiles(planDiff)
-  if (cited.length === 0) return false
+export function hasLiveGateEvidence(
+  planDiff: string,
+  stagedPaths: string[] = [],
+  stagedBlobPaths: string[] = stagedPaths,
+): boolean {
   const staged = new Set(stagedPaths)
-  return cited.some((path) => staged.has(path))
+  const blobs = new Set(stagedBlobPaths)
+  return liveGateEvidenceByClosedItem(planDiff).some((cited) =>
+    cited.some((path) => staged.has(path) && blobs.has(path)),
+  )
 }

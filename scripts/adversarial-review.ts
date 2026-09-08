@@ -16,14 +16,25 @@
  * que lo demuestra y ese test FALLA contra el código actual. Si no falla, se
  * descarta en silencio — nunca entra a REVIEW.md una opinión sin prueba.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
 export const REVIEWER_MODEL = 'gpt-5.6-sol'
 export const STATE_PATH = '.orchestos/adversarial-review-state.json'
 export const REVIEW_MD = 'REVIEW.md'
 export const EVIDENCE_DIR = 'review-evidence'
 const CODEX_TIMEOUT_MS = 20 * 60 * 1000
+export const FINDING_TEST_TIMEOUT_MS = 30_000
 
 export interface CommandResult {
   exitCode: number
@@ -84,7 +95,11 @@ export function resolveDiffRange(
   return { from: 'HEAD~1', to: headSha }
 }
 
-export function getDiff(range: { from: string; to: string }, run: RunCommand, root: string): string {
+export function getDiff(
+  range: { from: string; to: string },
+  run: RunCommand,
+  root: string,
+): string {
   const result = run(['git', 'diff', `${range.from}..${range.to}`, '--unified=6'], root)
   if (result.exitCode !== 0) throw new Error(result.stderr.trim() || 'git diff failed')
   return result.stdout
@@ -174,7 +189,8 @@ export function verifyModelUsed(
   const rolloutPath = findRolloutPath(threadId, sessionsRoot)
   if (!rolloutPath) return { ok: false, actualModel: null, reason: 'rollout no encontrado' }
   const actualModel = extractModelFromRollout(readFileSync(rolloutPath, 'utf8'))
-  if (!actualModel) return { ok: false, actualModel: null, reason: 'rollout sin turn_context.model' }
+  if (!actualModel)
+    return { ok: false, actualModel: null, reason: 'rollout sin turn_context.model' }
   return { ok: actualModel === expectedModel, actualModel }
 }
 
@@ -190,6 +206,24 @@ export interface Finding {
   test_code: string
 }
 
+export interface FindingTestResult {
+  survived: boolean
+  evidencePath: string | null
+  outcomePath: string | null
+  reason:
+    | 'assertion-failed'
+    | 'test-passed'
+    | 'syntax-error'
+    | 'import-error'
+    | 'infrastructure-error'
+    | 'timeout'
+    | 'non-assertion-failure'
+    | 'invalid-path'
+    | 'already-exists'
+  stdout: string
+  stderr: string
+}
+
 /** Tolerante a texto alrededor de la cerca ```json — nunca lanza, devuelve null si no hay array parseable. */
 export function parseFindings(agentMessage: string): Finding[] | null {
   const fenced = agentMessage.match(/```json\s*([\s\S]*?)```/i)
@@ -197,16 +231,21 @@ export function parseFindings(agentMessage: string): Finding[] | null {
   try {
     const parsed = JSON.parse(raw.trim())
     if (!Array.isArray(parsed)) return null
-    return parsed.filter(
-      (f): f is Finding =>
-        f &&
-        typeof f.file === 'string' &&
-        typeof f.category === 'string' &&
-        typeof f.summary === 'string' &&
-        typeof f.failure_scenario === 'string' &&
-        typeof f.test_path === 'string' &&
-        typeof f.test_code === 'string',
+    if (
+      !parsed.every(
+        (f) =>
+          f &&
+          typeof f.file === 'string' &&
+          (typeof f.line === 'number' || f.line === null) &&
+          typeof f.category === 'string' &&
+          typeof f.summary === 'string' &&
+          typeof f.failure_scenario === 'string' &&
+          typeof f.test_path === 'string' &&
+          typeof f.test_code === 'string',
+      )
     )
+      return null
+    return parsed as Finding[]
   } catch {
     return null
   }
@@ -214,23 +253,193 @@ export function parseFindings(agentMessage: string): Finding[] | null {
 
 /**
  * Escribe test_code bajo review-evidence/ y lo corre con `bun test <path>`
- * explícito (bypassa el glob de descubrimiento — ver nota de extensión
- * .check.ts en package.json/docs). Sobrevive SOLO si el proceso termina con
- * código distinto de 0 (el test falló contra el código real, hoy). Un
- * hallazgo cuyo test pasa se descarta: no demuestra nada.
+ * explícito dentro de un sandbox macOS fail-closed (sin red, credenciales ni
+ * escritura fuera de su temporal). Sobrevive SOLO si el error es una aserción;
+ * sintaxis, imports, infraestructura y timeout se conservan como resultado
+ * pero no demuestran el diagnóstico.
  */
-export function runFindingTest(
+/** Rechaza escapes léxicos y canónicos; nunca crea ni pisa una evidencia existente. */
+export function resolveEvidencePath(
   root: string,
-  finding: Finding,
-  run: RunCommand,
-): { survived: boolean; evidencePath: string } {
-  const safeName = finding.test_path.replace(/[^a-zA-Z0-9_.\/-]/g, '_')
-  const evidencePath = join(EVIDENCE_DIR, safeName.endsWith('.check.ts') ? safeName : `${safeName}.check.ts`)
-  const fullPath = join(root, evidencePath)
+  testPath: string,
+): { evidencePath: string; fullPath: string } | null {
+  if (!testPath || isAbsolute(testPath) || testPath.split(/[\\/]+/).some((part) => part === '..'))
+    return null
+  const evidenceRoot = resolve(realpathSync(root), EVIDENCE_DIR)
+  const name = testPath.endsWith('.check.ts') ? testPath : `${testPath}.check.ts`
+  const fullPath = resolve(evidenceRoot, name)
+  if (relative(evidenceRoot, fullPath).startsWith('..') || relative(evidenceRoot, fullPath) === '')
+    return null
+  let ancestor = dirname(fullPath)
+  while (ancestor.startsWith(evidenceRoot)) {
+    if (existsSync(ancestor)) {
+      const realAncestor = realpathSync(ancestor)
+      if (realAncestor !== evidenceRoot && !realAncestor.startsWith(`${evidenceRoot}/`)) return null
+    }
+    if (ancestor === evidenceRoot) break
+    ancestor = dirname(ancestor)
+  }
+  if (existsSync(fullPath)) return null
+  return { evidencePath: join(EVIDENCE_DIR, name), fullPath }
+}
+
+export function classifyFindingFailure(result: {
+  exitCode: number
+  stdout: string
+  stderr: string
+  timedOut?: boolean
+}): FindingTestResult['reason'] {
+  if (result.timedOut) return 'timeout'
+  // H.10.2-bis — un test que TERMINA BIEN no demuestra nada: el hallazgo
+  // afirmaba que el código actual está roto y la prueba dice que no lo está.
+  // Antes caía en 'non-assertion-failure' por descarte, lo que hacía ilegible
+  // el `.result.json` (mismo veredicto para "pasó limpio" y para "explotó de
+  // una forma rara").
+  if (result.exitCode === 0) return 'test-passed'
+  const output = `${result.stdout}\n${result.stderr}`
+  if (/syntaxerror|parse error|unexpected token|expected .+ but found/i.test(output))
+    return 'syntax-error'
+  if (/cannot find module|module not found|failed to resolve|import .* not found/i.test(output))
+    return 'import-error'
+  if (/eacces|enotdir|enoent|sandbox|spawn |failed to start|permission denied/i.test(output))
+    return 'infrastructure-error'
+  if (/expect\(received\)|assertionerror|expected:\s|received:\s/i.test(output))
+    return 'assertion-failed'
+  return 'non-assertion-failure'
+}
+
+/**
+ * H.10.2-bis (2026-09-08) — el perfil anterior era `(deny default)` con solo
+ * `process*`, `network*` y unas rutas de lectura. **Ningún binario arrancaba**:
+ * verificado a mano, hasta `/bin/echo` moría con SIGABRT (exit 134) y stdout/
+ * stderr vacíos, así que TODO hallazgo caía en `non-assertion-failure` y se
+ * descartaba — el revisor habría reportado cero hallazgos para siempre, en
+ * silencio. Faltaban clases enteras de operación que macOS 26 exige para
+ * ejecutar cualquier proceso: `mach*`, `sysctl*`, `signal`, `ipc*`, `system*`.
+ *
+ * Trade-off consciente en la lectura: se permite `file-read*` global en vez de
+ * una allowlist de rutas, porque acotarla volvía a impedir el arranque (el
+ * dyld shared cache de macOS 26 vive detrás de firmlinks que no se resuelven
+ * como uno espera). La frontera efectiva que sí importa se mantiene dura y es
+ * la que evita daño real: **escritura solo dentro del temporal** y **red
+ * denegada** — sin red, leer no permite exfiltrar. Como residuo queda que un
+ * test podría copiar un secreto al `.result.json` local, así que las rutas de
+ * credenciales conocidas se deniegan explícitamente igual.
+ */
+export function sandboxProfile(sandboxRoot: string): string {
+  const quote = (path: string) => `"${path.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
+  const home = process.env.HOME ?? ''
+  const secrets = ['.ssh', '.aws', '.codex', '.claude', '.gnupg', '.config/gh']
+    .map((dir) => `(subpath ${quote(join(home, dir))})`)
+    .join(' ')
+  return [
+    '(version 1)',
+    '(deny default)',
+    '(allow process*)',
+    '(allow mach*)',
+    '(allow sysctl*)',
+    '(allow signal)',
+    '(allow ipc*)',
+    '(allow system*)',
+    '(deny network*)',
+    '(allow file-read*)',
+    home ? `(deny file-read* ${secrets})` : '',
+    `(allow file-write* (subpath ${quote(sandboxRoot)}) (literal "/dev/null"))`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+async function runSandboxedFindingTest(
+  root: string,
+  evidencePath: string,
+): Promise<{ exitCode: number; stdout: string; stderr: string; timedOut: boolean }> {
+  if (process.platform !== 'darwin' || !existsSync('/usr/bin/sandbox-exec')) {
+    return {
+      exitCode: 1,
+      stdout: '',
+      stderr: 'sandbox efectivo no disponible en esta plataforma',
+      timedOut: false,
+    }
+  }
+  const sandboxRoot = mkdtempSync(join(tmpdir(), 'orchestos-review-sandbox-'))
+  mkdirSync(join(sandboxRoot, 'home'), { recursive: true })
+  try {
+    const proc = Bun.spawn(
+      [
+        '/usr/bin/sandbox-exec',
+        '-p',
+        sandboxProfile(sandboxRoot),
+        process.execPath,
+        'test',
+        // El `./` NO es cosmético: sin él, `bun test <ruta>` trata el argumento
+        // como un FILTRO de nombre, y como la evidencia usa `.check.ts` (para
+        // quedar fuera del glob de la suite del repo) no matchea ningún test y
+        // no ejecuta NADA — devolviendo exit≠0 igual. Con la regla original
+        // ("sobrevive si exit≠0") eso convertía cualquier hallazgo en
+        // "confirmado" sin haber corrido una sola aserción. Verificado a mano:
+        // sin `./` → `0 expect() calls`; con `./` → `1 fail, 1 expect() calls`.
+        `./${evidencePath}`,
+      ],
+      {
+        cwd: root,
+        env: {
+          HOME: join(sandboxRoot, 'home'),
+          ORCHESTOS_HOME: join(sandboxRoot, 'home'),
+          TMPDIR: sandboxRoot,
+          PATH: dirname(process.execPath),
+        },
+        stdin: 'ignore',
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
+    )
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      proc.kill('SIGTERM')
+    }, FINDING_TEST_TIMEOUT_MS)
+    const [stdout, stderr] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ])
+    const exitCode = await proc.exited
+    clearTimeout(timer)
+    return { exitCode, stdout, stderr, timedOut }
+  } finally {
+    rmSync(sandboxRoot, { recursive: true, force: true })
+  }
+}
+
+export async function runFindingTest(root: string, finding: Finding): Promise<FindingTestResult> {
+  const target = resolveEvidencePath(root, finding.test_path)
+  if (!target)
+    return {
+      survived: false,
+      evidencePath: null,
+      outcomePath: null,
+      reason: 'invalid-path',
+      stdout: '',
+      stderr: '',
+    }
+  const { evidencePath, fullPath } = target
   mkdirSync(dirname(fullPath), { recursive: true })
   writeFileSync(fullPath, finding.test_code)
-  const result = run(['bun', 'test', evidencePath], root)
-  return { survived: result.exitCode !== 0, evidencePath }
+  const result = await runSandboxedFindingTest(root, evidencePath)
+  const reason = classifyFindingFailure(result)
+  const outcomePath = `${evidencePath}.result.json`
+  writeFileSync(
+    join(root, outcomePath),
+    `${JSON.stringify({ reason, timedOut: result.timedOut, exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr }, null, 2)}\n`,
+  )
+  return {
+    survived: reason === 'assertion-failed',
+    evidencePath,
+    outcomePath,
+    reason,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  }
 }
 
 // -- REVIEW.md -----------------------------------------------------------------
@@ -304,13 +513,31 @@ export function buildCodexArgs(prompt: string, model: string): string[] {
   ]
 }
 
-async function runCodexStreaming(cwd: string, args: string[], timeoutMs: number): Promise<string> {
-  const proc = Bun.spawn(['codex', ...args], { cwd, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
-  const timer = setTimeout(() => proc.kill('SIGTERM'), timeoutMs)
-  const stdout = await new Response(proc.stdout).text()
-  await proc.exited
+export type CodexRunner = (
+  cwd: string,
+  args: string[],
+  timeoutMs: number,
+) => Promise<{ stdout: string; stderr: string; exitCode: number; timedOut: boolean }>
+
+export const runCodexStreaming: CodexRunner = async (cwd, args, timeoutMs) => {
+  const proc = Bun.spawn(['codex', ...args], {
+    cwd,
+    stdin: 'ignore',
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    proc.kill('SIGTERM')
+  }, timeoutMs)
+  const [stdout, stderr] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ])
+  const exitCode = await proc.exited
   clearTimeout(timer)
-  return stdout
+  return { stdout, stderr, exitCode, timedOut }
 }
 
 // -- orquestación ----------------------------------------------------------------
@@ -329,6 +556,7 @@ export async function main(
   // contra otro id a propósito, para probar que el abort-sin-escribir funciona
   // sin gastar una segunda corrida real de codex con un modelo distinto.
   expectedModel = REVIEWER_MODEL,
+  codexRunner: CodexRunner = runCodexStreaming,
 ): Promise<number> {
   const head = run(['git', 'rev-parse', 'HEAD'], root)
   if (head.exitCode !== 0) {
@@ -343,7 +571,15 @@ export async function main(
     return 0
   }
 
-  const diff = getDiff(range, run, root)
+  let diff: string
+  try {
+    diff = getDiff(range, run, root)
+  } catch (error) {
+    log(
+      `abortado: no se pudo obtener el diff — ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return 1
+  }
   if (!diff.trim()) {
     log(`diff vacío en ${range.from}..${range.to} — nada que revisar`)
     saveState(root, { lastReviewedSha: headSha })
@@ -355,9 +591,23 @@ export async function main(
   const prompt = buildReviewPrompt(diff, promptTemplate)
 
   const args = buildCodexArgs(prompt, REVIEWER_MODEL)
-  const stdout = await runCodexStreaming(root, args, CODEX_TIMEOUT_MS)
+  let execution: { stdout: string; stderr: string; exitCode: number; timedOut: boolean }
+  try {
+    execution = await codexRunner(root, args, CODEX_TIMEOUT_MS)
+  } catch (error) {
+    log(
+      `abortado: codex no pudo iniciar — ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return 1
+  }
+  if (execution.timedOut || execution.exitCode !== 0) {
+    log(
+      `abortado: codex terminó ${execution.timedOut ? 'por timeout' : `con exit ${execution.exitCode}`} — el SHA no avanza`,
+    )
+    return 1
+  }
 
-  const threadId = extractThreadId(stdout)
+  const threadId = extractThreadId(execution.stdout)
   const verification = verifyModelUsed(threadId, sessionsRoot, expectedModel)
   if (!verification.ok) {
     log(
@@ -368,30 +618,39 @@ export async function main(
     return 1
   }
 
-  const agentMessage = extractAgentMessage(stdout)
+  const agentMessage = extractAgentMessage(execution.stdout)
   if (!agentMessage) {
-    log('codex no devolvió un agent_message — sin hallazgos que evaluar')
-    saveState(root, { lastReviewedSha: headSha })
-    return 0
+    log('abortado: codex no devolvió un agent_message — el SHA no avanza')
+    return 1
   }
 
   const findings = parseFindings(agentMessage)
-  if (!findings || findings.length === 0) {
-    log('sin hallazgos declarados por el modelo (o formato no parseable) — REVIEW.md no cambia')
+  if (!findings) {
+    log('abortado: hallazgos con JSON inválido o elementos malformados — el SHA no avanza')
+    return 1
+  }
+  if (findings.length === 0) {
+    log('sin hallazgos declarados por el modelo — REVIEW.md no cambia')
     saveState(root, { lastReviewedSha: headSha })
     return 0
   }
 
   const entries: string[] = []
   for (const finding of findings) {
-    const { survived, evidencePath } = runFindingTest(root, finding, run)
-    if (!survived) {
-      log(`descartado (el test no falló): ${finding.summary}`)
-      rmSync(join(root, evidencePath), { force: true })
+    const result = await runFindingTest(root, finding)
+    if (!result.survived || !result.evidencePath) {
+      log(`descartado (${result.reason}): ${finding.summary}`)
       continue
     }
     log(`hallazgo confirmado: ${finding.summary}`)
-    entries.push(formatReviewEntry(finding, evidencePath, range, verification.actualModel ?? REVIEWER_MODEL))
+    entries.push(
+      formatReviewEntry(
+        finding,
+        result.evidencePath,
+        range,
+        verification.actualModel ?? REVIEWER_MODEL,
+      ),
+    )
   }
 
   appendToReviewMd(root, entries)
