@@ -81,7 +81,37 @@ export function requiresUiCopyBudget(paths: string[]): boolean {
   )
 }
 
-export function hasLiveGateEvidence(planDiff: string): boolean {
+const EVIDENCE_FILE_PATTERN = /`([^`\s]+\.(?:ts|js|mjs|json|ndjson|log))`/g
+
+/**
+ * H.10.1 — rutas citadas entre backticks en las líneas AGREGADAS de PLAN.md.
+ * No basta con la frase "Gate en vivo:": tiene que citar un archivo real,
+ * y ese archivo debe estar en el propio commit (ver hasLiveGateEvidence).
+ */
+export function citedEvidenceFiles(planDiff: string): string[] {
+  const added = planDiff
+    .split('\n')
+    .filter((line) => line.startsWith('+') && !line.startsWith('+++'))
+  const cited: string[] = []
+  for (const line of added) {
+    for (const match of line.matchAll(EVIDENCE_FILE_PATTERN)) {
+      if (match[1]) cited.push(match[1])
+    }
+  }
+  return cited
+}
+
+/**
+ * H.10.1 (2026-09-08) — incidente R.5: un commit declaró "Gate en vivo: navegador
+ * real..." con la frase exigida por el regex de abajo, pero el hecho (dos procesos
+ * concurrentes) nunca ocurrió — nadie lo detectó hasta una revisión de otro modelo,
+ * horas después. La frase sola dejó de ser evidencia suficiente: ahora la línea
+ * "Gate en vivo:" debe además citar (entre backticks) un archivo de evidencia
+ * versionado — script reproducible + JSON/log con datos reales, no prosa — y ese
+ * archivo tiene que estar presente en el mismo commit (stagedPaths), no solo
+ * mencionado. Sin ambas cosas, el gate falla igual que hoy falla sin la frase.
+ */
+export function hasLiveGateEvidence(planDiff: string, stagedPaths: string[] = []): boolean {
   const added = planDiff
     .split('\n')
     .filter((line) => line.startsWith('+') && !line.startsWith('+++'))
@@ -89,5 +119,9 @@ export function hasLiveGateEvidence(planDiff: string): boolean {
   const hasGate = added.some((line) =>
     /Gate en vivo:.*(?:navegador|browser|Playwright)/i.test(line),
   )
-  return closesItem && hasGate
+  if (!closesItem || !hasGate) return false
+  const cited = citedEvidenceFiles(planDiff)
+  if (cited.length === 0) return false
+  const staged = new Set(stagedPaths)
+  return cited.some((path) => staged.has(path))
 }

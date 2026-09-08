@@ -2174,6 +2174,64 @@ frontera de red/SSRF (`src/dashboard/ssrf.ts` ya existe y no se toca); y cualqui
 vault o a `~/.claude`/`~/.codex` de Carlos — el vault sigue alimentando el trabajo de desarrollo
 igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
 
+### H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)
+
+> Por qué existe: incidente R.5 del 2026-09-08 ([[feedback-verificar-gates-en-vivo]],
+> [[feedback-revisor-adversarial-cruzado]]). Claude cerró R.5 declarando "Gate en vivo: navegador
+> real..." en PLAN.md con `check-live-gate.ts` en verde — pero el gate solo verifica que esa
+> *frase* exista (regex sobre `Gate en vivo:.*(navegador|browser|Playwright)`), nunca que el
+> hecho (dos procesos concurrentes, exigido por el propio texto del ítem) haya ocurrido de
+> verdad. No ocurrió. Lo encontró Astra (GPT, revisión independiente) horas después, junto con 4
+> bugs reales de concurrencia/ownership que 1335 tests en verde no habían tocado — el mismo día,
+> mismo ítem.
+
+- [x] **H.10.1 — 🧠 El gate de evidencia exige un artefacto versionado, no una frase.** Cerrado
+  2026-09-08 (Claude).
+  `scripts/agent-governance.ts` — `hasLiveGateEvidence(planDiff, stagedPaths)` ahora exige,
+  además de la línea "Gate en vivo:" con navegador/browser/Playwright, que esa misma línea cite
+  entre backticks un archivo de evidencia (`` `ruta.ts` ``/`.json`/`.log`/`.ndjson`/`.js`/`.mjs`,
+  vía `citedEvidenceFiles()`) **y** que ese archivo esté presente en `stagedPaths` — el listado
+  real de archivos del commit (`git diff --cached --name-only`), no solo mencionado en prosa.
+  `scripts/check-live-gate.ts` pasa `paths` (ya calculado para `requiresLiveGate`) al llamado.
+  Sin ambas condiciones, falla igual que antes fallaba la frase ausente.
+  **Gate:** `bun test scripts/agent-governance.test.ts` — 5 pass / 0 fail, cubre 3 casos
+  sintéticos: (1) frase + archivo citado + archivo en `stagedPaths` → true; (2) regresión
+  EXACTA del incidente R.5 — cierre + frase con "navegador", sin ningún archivo citado, la
+  forma que el gate viejo aceptaba → ahora false; (3) archivo citado pero ausente de
+  `stagedPaths` (citar no es aportar) → false. No requiere navegador: es lógica pura
+  determinística sobre texto de diff, no una superficie de dashboard/UI (`scripts/` no está en
+  `LIVE_GATE_PATHS`) — el propio ítem no dispara su propio gate.
+  **Fuera de scope declarado:** `.orchestos/feature-status.json` — regenerado automáticamente
+  por el pre-commit desde este mismo PLAN.md, no se anticipó al declarar el scope-lock.
+
+- [ ] **H.10.2 — 🧠 Revisor adversarial nocturno, de un modelo distinto al que implementó.**
+  Corre solo, en silencio, sin aplicar nada — mismo principio que Dreaming
+  ([[project-dreaming-setup]]), nunca lo mismo (Dreaming lee `runs-summary.json`; esto revisa
+  el diff del día contra el código).
+  1. `scripts/adversarial-review.ts`: toma `git diff` del día/último commit (alcance acotado,
+     decidido con Carlos — no barrido completo del repo).
+  2. Corre `codex exec --model gpt-5.6-sol --json`. El stream `--json` **no reporta el modelo
+     usado** (verificado en vivo, [[reference-codex-modelo-real-rollout]]) — el script captura
+     `thread_id` del stream, lee `~/.codex/sessions/.../rollout-*-<thread_id>.jsonl`, extrae el
+     `model` real y **aborta sin escribir nada si no coincide** con `gpt-5.6-sol`. El modelo de
+     una corrida real no es una afirmación del LLM ([[feedback-modelo-decision-final-carlos]]).
+  3. Prompt adversarial por los 4 dominios reales del incidente: concurrencia/ownership,
+     frontera de seguridad, evidencia declarada vs. producida, contradicción comentario-vs-código.
+  4. **Regla dura anti-ruido:** cada hallazgo debe venir con un test que el propio script
+     ejecuta contra el código actual. Si el test no falla, el hallazgo se descarta en silencio —
+     nunca entra a `REVIEW.md` una opinión sin prueba que la sostenga.
+  5. Hallazgos sobrevivientes → `REVIEW.md` (nuevo, en la raíz, mismo principio que `DREAMING.md`
+     — nunca aplica cambios, Carlos decide qué promover a `PLAN.md`/`IDEAS.md`).
+  6. `~/Library/LaunchAgents/dev.cagr1.orchestos.review.plist` — mismo patrón que
+     `dev.cagr1.memoriesmd.sync.plist` (ya en la máquina): `StartCalendarInterval` 3am, sin
+     `pmset wake` (si la Mac está dormida/apagada, corre al despertar/arrancar — decisión
+     explícita de Carlos: no vale el costo de forzar el despertar de la máquina por esto). Usa
+     la suscripción de Codex ya pagada, no API key aparte — por eso no es GitHub Actions.
+  **Gate:** correr manualmente una vez con un diff sintético que contenga un bug plantado tipo
+  "los 4 del incidente R.5", confirmar que aparece en `REVIEW.md` con su test adjunto, y confirmar
+  con un diff limpio que no genera ruido. Verificar el chequeo de modelo real con un valor de
+  `--model` deliberadamente distinto al declarado y confirmar que aborta sin escribir nada.
+
 ### H.6 — Fuera de alcance de este bloque (anotado, no se toca)
 
 - `src/cli.ts` tiene **2439 líneas y 63 edges** — god file evidente. Es lo segundo que critica

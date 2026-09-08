@@ -20,11 +20,15 @@ export function main(root = process.cwd()): number {
     console.error(planDiff.stderr.trim())
     return 1
   }
-  if (!hasLiveGateEvidence(planDiff.stdout)) {
+  if (!hasLiveGateEvidence(planDiff.stdout, paths)) {
     console.error('✗ Cambio de dashboard/config sin cierre y evidencia en PLAN.md.')
     console.error(
-      '  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o Playwright.',
+      '  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o',
     )
+    console.error(
+      '  Playwright, Y citar entre backticks un archivo de evidencia (`ruta.ts`/`.json`/`.log`)',
+    )
+    console.error('  que esté presente en este mismo commit — no basta con la frase (H.10.1).')
     return 1
   }
   console.log('✓ Gate en vivo documentado para dashboard/config')
