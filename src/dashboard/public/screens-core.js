@@ -694,12 +694,14 @@ SCREENS.chat = {
       App.rerender()
       scrollBottom()
       try {
+        const requestKey = crypto.randomUUID()
         const body = {
           sessionId,
           history: [],
           message: msg,
           model: st.chatModel || 'deepseek/deepseek-v4-flash',
         }
+        body.requestKey = requestKey
         if (sentFileIds.length) body.fileIds = sentFileIds
         // FRONT.1 — solo se manda si el control está visible (modelo con supportsReasoning:true).
         // CC.1b (2026-08-16) — con agent: claude (CC.D1), el control SÍ está visible

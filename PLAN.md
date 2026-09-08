@@ -416,23 +416,54 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
     `persistResponse`) para que ningún `return errorResponse` temprano (mismatch
     sesión-local/modelo-ollama, fallo de OCR, contexto insuficiente) deje un turno `pending`
     huérfano sin resolver.
-  - `requestKey`: el frontend todavía NO la persiste ni reenvía (eso es la Fase 2/decisión 11,
-    fuera de este alcance) — si no viene en el body, se genera una nueva por request. Esto
-    **ya cierra el hallazgo central** (run+mensajes+turno atómicos, nunca uno sin el otro) pero
-    **no cierra la protección de reintento de red** — un POST reenviado tras timeout hoy genera
-    un turno nuevo, no hace replay. Documentado, no resuelto: requiere tocar `app.js`.
-  - `bunx tsc --noEmit` limpio; `bun run test:coverage`: 1330 pass / 0 fail, gate de cobertura
-    verde (funciones 74.98%, líneas 63.40%, ambos por encima del umbral).
+  - `requestKey`: `screens-core.js` (`send()`, delegado a Codex `gpt-5.6-luna`, diff mínimo
+    verificado) ahora genera `crypto.randomUUID()` por envío y lo manda en el body. Cierra la
+    protección contra un reintento de red inmediato con el mismo mensaje; no implementa un botón
+    de "reintentar" explícito ni recuperación tras recargar con un turno en curso — eso sigue
+    siendo la Fase 2 (decisión 11 completa).
+  **Gate en vivo:** navegador real (Chromium vía playwright-core), servidor real, DB migrada
+  limpia. Click real en `[data-act="chat-new-session"]` → escribir y enviar un mensaje real →
+  red interceptada del POST real a `/api/chat`: body trae `requestKey` con forma de UUID
+  (`b3c630d7-1f85-45f7-ad5c-b75681f5c3b1`) — confirmado que el campo sale desde el navegador,
+  no solo que el servidor lo acepta. Servidor bajado y estado temporal limpiado al cerrar.
 
-  **Pendiente explícito para cerrar R.5** (no se afirma cerrado): decisión 10 (política de
-  DELETE), decisiones 11-12 (frontend: persistir/reenviar `requestKey`, estados
-  pendiente/fallido/interrumpido separados de mensajes), reserva/reconciliación de tareas
-  (decisión 8, hallazgo #7 — `buildNaturalDraft→createTaskRecord→spawnTaskRun` sigue ocurriendo
-  antes de la persistencia atómica, sin cambios en esta pasada), y el **gate en vivo real**
-  (dashboard + navegador + consulta SQLite, dos procesos concurrentes, reinicio) — no tiene
-  sentido verificarlo a medias sin DELETE ni frontend. Sin commit de gasto real contra un
-  proveedor pago en esta pasada — los 5 tests de `chat-turns.test.ts` cubren claim/duplicate/
-  conflict/rollback con fixtures deterministas, no sustituyen ese gate.
+  **Pendiente explícito para cerrar R.5** (no se afirma cerrado): decisiones 11-12 completas
+  (recuperación de un turno en curso tras recargar, estados pendiente/fallido/interrumpido
+  separados de mensajes en el render — hoy un fallo sigue apareciendo como mensaje assistant),
+  y el **gate en vivo real** (dashboard + navegador + consulta SQLite, dos procesos concurrentes,
+  reinicio real del servidor) — no tiene sentido verificarlo a medias. Ver R.5-bis para lo que
+  ya se cerró de este mismo diagnóstico (decisiones 8 y 10).
+
+- [x] **R.5-bis — 🧠 R.5: política de DELETE y reserva de tareas (decisiones 8 y 10).** Cerrado
+  2026-09-08 (Claude + Codex `gpt-5.6-luna`, mismo alcance de R.5, GO explícito de Carlos:
+  "avancemos con lo siguiente... no dudes de la capacidad de Codex").
+  - **Decisión 10 (DELETE):** `hasActiveTurn(sessionId)` (`db/chat-turns.ts`) — un turno
+    `pending` con lease vigente es trabajo en vuelo; `handleApiChatSessionDelete` devuelve 409
+    en vez de dejar que el CASCADE se lleve `chat_turns`/`chat_messages` sin que nadie lo viera.
+    Sin tombstone: un turno terminal o con lease ya vencido no bloquea el borrado.
+  - **Decisión 8 / hallazgo #7 (reserva de tareas):** migración v6 agrega `chat_turns.task_id`.
+    `reserveTurnTask(turnId, taskId)` graba la tarea apenas `createTaskRecord()` tiene éxito,
+    ANTES de `spawnTaskRun()` — si el proceso muere entre crear y correr, un reclamo posterior
+    del MISMO turno (lease vencido, mismo `request_key`+fingerprint) ve `activeTurn.task_id` ya
+    seteado y reporta esa tarea en vez de crear una segunda. SQLite+YAML+git+spawn siguen sin
+    ser una transacción — esto no lo cambia, pero cierra el caso concreto de duplicación que el
+    hallazgo señalaba. No reconstruye held/existingFiles del intento anterior (se reporta solo
+    el id; el estado real se consulta contra `tasks.yaml`, no se asume).
+  - **`requestKey` en frontend** (parte de la decisión 11): `screens-core.js` (`send()`,
+    delegado a Codex `gpt-5.6-luna`, diff mínimo verificado) genera `crypto.randomUUID()` por
+    envío y lo manda en el body. Cierra la protección contra un reintento de red inmediato con
+    el mismo mensaje; no implementa un botón de "reintentar" explícito ni recuperación tras
+    recargar con un turno en curso — eso sigue siendo la decisión 11 completa, en R.5.
+  - `bunx tsc --noEmit` limpio; `bun run test:coverage`: 1332 pass / 0 fail (incluye el test de
+    reclamo-tras-expirar-lease-conserva-la-reserva y el de DELETE bloqueado/permitido).
+    `migration.test.ts` actualizado a v6 (mismo ajuste mecánico que R.4-bis con v4).
+  **Gate en vivo:** navegador real (Chromium vía playwright-core), servidor real, DB migrada
+  limpia. Click real en `[data-act="chat-new-session"]` → escribir y enviar un mensaje real →
+  red interceptada del POST real a `/api/chat`: body trae `requestKey` con forma de UUID
+  (`b3c630d7-1f85-45f7-ad5c-b75681f5c3b1`) — confirmado que el campo sale desde el navegador,
+  no solo que el servidor lo acepta. Servidor bajado y estado temporal limpiado al cerrar.
+  DELETE/reserva de tareas cubiertos por los tests de servicio (fixtures deterministas de
+  lease/reclamo), no requieren navegador — el hallazgo que motivaban no era de UI.
 
 - [x] **R.4-bis — 🧠 Seguimiento de R.4: restore no invalida epoch en todos los casos.** Cerrado
   2026-09-07 (Claude). Hallazgo por código durante el diagnóstico de R.5 (2026-09-07, Codex) — no

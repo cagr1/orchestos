@@ -196,6 +196,39 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    // R.5 (decisión 8, hallazgo #7) — un turno reclamado dos veces (el mismo
+    // request_key con el lease vencido, reclamado de nuevo tras un reinicio o
+    // una caída) volvía a ejecutar el bloque completo de creación de tarea:
+    // SQLite+YAML+git+spawn no son una transacción, así que un segundo claim
+    // creaba una SEGUNDA tarea para el mismo mensaje. Esta columna es la
+    // reserva: se graba el task_id apenas createTaskRecord() tiene éxito,
+    // ANTES de spawnTaskRun() — así incluso si el proceso muere entre crear
+    // y correr, el próximo claim del mismo turno ve la reserva y no repite.
+    version: 6,
+    name: 'chat-turns-task-reservation',
+    precondition: (database) => {
+      const tables =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'chat_turns'",
+          )
+          .get()?.count ?? 0
+      if (tables !== 1) throw new Error('Migration 6 requires chat_turns table')
+    },
+    apply: (database) => {
+      database.exec('ALTER TABLE chat_turns ADD COLUMN task_id TEXT;')
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_turns)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('task_id')) {
+        throw new Error('Migration 6 did not add task_id to chat_turns')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

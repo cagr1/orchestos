@@ -11,6 +11,7 @@ import {
   listChatSessions,
   updateChatSession,
 } from '../../db/chat-sessions.ts'
+import { hasActiveTurn } from '../../db/chat-turns.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import {
   type DashboardProjectContext,
@@ -204,6 +205,11 @@ export async function handleApiChatSessionPatch(req: Request, url: URL): Promise
 export function handleApiChatSessionDelete(url: URL): Response {
   const id = sessionIdFromUrl(url)
   if (!id) return errorResponse('Invalid session id', 400)
+  // R.5 (decisión 10) — un turno pending con lease vigente es trabajo en
+  // vuelo; el CASCADE de chat_sessions se lo llevaría sin que nadie lo viera.
+  if (hasActiveTurn(id)) {
+    return errorResponse('Cannot delete a conversation with a response in progress', 409)
+  }
   return deleteChatSession(id)
     ? jsonResponse({ ok: true })
     : errorResponse('Chat session not found', 404)

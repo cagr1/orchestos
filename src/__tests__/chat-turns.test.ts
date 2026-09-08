@@ -151,4 +151,30 @@ describe('R.5 — durable chat turns', () => {
     expect(result.messages).toEqual([])
     expect(result.turn).toMatchObject({ status: 'pending', run_id: null })
   })
+
+  // R.5 (decisión 8, hallazgo #7) — un turno reclamado dos veces (lease
+  // vencido, mismo request_key) debe ver la tarea reservada en el primer
+  // intento; el caller (chat.ts) usa esto para no crear una segunda tarea.
+  it('a reclaimed turn carries its task reservation across lease expiry', async () => {
+    const result = await runIsolated(`
+      const { randomUUID } = await import('crypto')
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { beginTurn, reserveTurnTask } = await import('./src/db/chat-turns.ts')
+      runMigrations()
+      const session = createChatSession({ agent: 'api' })
+      const started = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'request-reserve', inputFingerprint: 'fingerprint-reserve', owner: 'worker-a' })
+      reserveTurnTask(started.turn.id, 'task-created-once')
+      // Simula que el proceso murió antes de terminar: vence el lease a mano.
+      db.run('UPDATE chat_turns SET owner_expires_at = ? WHERE id = ?', [new Date(Date.now() - 1000).toISOString(), started.turn.id])
+      const reclaimed = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'request-reserve', inputFingerprint: 'fingerprint-reserve', owner: 'worker-b' })
+      process.stdout.write(JSON.stringify({ reclaimed }))
+    `)
+
+    expect(result.reclaimed).toMatchObject({
+      kind: 'claimed',
+      turn: { id: expect.any(String), task_id: 'task-created-once', owner: 'worker-b' },
+    })
+  })
 })

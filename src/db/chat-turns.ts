@@ -17,6 +17,11 @@ export interface ChatTurnRecord {
   run_id: string | null
   response_envelope_json: string | null
   error: string | null
+  // R.5 (decisión 8) — reserva del task_id creado durante ESTE turno, grabada
+  // antes de spawnTaskRun(); sobrevive aunque el turno termine failed/
+  // interrupted. Un reclamo posterior del mismo turno la usa para no crear
+  // una segunda tarea para el mismo mensaje.
+  task_id: string | null
   created_at: string
   updated_at: string
 }
@@ -194,8 +199,42 @@ export function commitTurnFailure(input: CommitTurnFailureInput): void {
   commit()
 }
 
+/**
+ * R.5 (decisión 8) — llamar ANTES de spawnTaskRun(), justo después de que
+ * createTaskRecord() tenga éxito. No usa db.transaction(): es intencionalmente
+ * su propia escritura, comprometida de inmediato — si el proceso muere entre
+ * esto y terminar de responder, la reserva ya quedó grabada y un reclamo
+ * posterior del mismo turno la ve.
+ */
+export function reserveTurnTask(turnId: string, taskId: string): void {
+  db.run('UPDATE chat_turns SET task_id = ?, updated_at = ? WHERE id = ?', [
+    taskId,
+    new Date().toISOString(),
+    turnId,
+  ])
+}
+
 export function getTurn(turnId: string): ChatTurnRecord | null {
   return getTurnRecord(turnId)
+}
+
+/**
+ * R.5 (decisión 10) — un turno 'pending' con lease vigente significa que un
+ * proceso está generando una respuesta AHORA MISMO. Borrar la sesión bajo eso
+ * (el CASCADE se lleva chat_turns/chat_messages) descartaría trabajo en vuelo
+ * sin que nadie lo vea. 'completed'/'failed'/'interrupted', o un 'pending' con
+ * lease ya vencido (reconciliable, nadie lo está trabajando de verdad), no
+ * bloquean — no hace falta un tombstone para esto.
+ */
+export function hasActiveTurn(sessionId: string): boolean {
+  const now = new Date().toISOString()
+  const row = db
+    .query<{ count: number }, [string, string]>(
+      `SELECT COUNT(*) AS count FROM chat_turns
+       WHERE session_id = ? AND status = 'pending' AND owner_expires_at >= ?`,
+    )
+    .get(sessionId, now)
+  return (row?.count ?? 0) > 0
 }
 
 export function getTurnByRequestKey(sessionId: string, requestKey: string): ChatTurnRecord | null {

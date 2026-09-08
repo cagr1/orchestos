@@ -404,4 +404,39 @@ describe('CC.2 — chat sessions backend', () => {
     expect(held).toMatchObject({ taskHeld: true, existingFiles: ['src/a.ts', 'src/b.ts'] })
     expect(normal).toMatchObject({ taskHeld: false, existingFiles: [] })
   })
+
+  // R.5 (decisión 10) — un turno pending con lease vigente es trabajo en
+  // vuelo; borrar la sesión bajo eso descartaría evidencia sin que nadie
+  // la viera (el CASCADE se lleva chat_turns/chat_messages).
+  it('DELETE rejects a session with an in-flight turn, allows it once terminal', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      const turns = await import('./src/db/chat-turns.ts')
+      runMigrations()
+      const session = sessions.createChatSession({ agent: 'api' })
+      const started = turns.beginTurn({
+        sessionId: session.id, projectId: null, requestKey: 'request-1',
+        inputFingerprint: 'fingerprint-1', owner: 'worker-a',
+      })
+      const blockedResponse = handlers.handleApiChatSessionDelete(
+        new URL('http://localhost/api/chat/sessions/' + session.id),
+      )
+      const blocked = await blockedResponse.json()
+      turns.commitTurnFailure({ turnId: started.turn.id, error: 'done for this test' })
+      const allowedResponse = handlers.handleApiChatSessionDelete(
+        new URL('http://localhost/api/chat/sessions/' + session.id),
+      )
+      const remaining = db.query('SELECT COUNT(*) AS count FROM chat_sessions WHERE id = ?').get(session.id).count
+      process.stdout.write(JSON.stringify({ blockedStatus: blockedResponse.status, blocked, allowedStatus: allowedResponse.status, remaining }))
+      db.close()
+    `)
+
+    expect(result.blockedStatus).toBe(409)
+    expect(result.blocked).toMatchObject({ error: expect.stringContaining('progress') })
+    expect(result.allowedStatus).toBe(200)
+    expect(result.remaining).toBe(0)
+  })
 })

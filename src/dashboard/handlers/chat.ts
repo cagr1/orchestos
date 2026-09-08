@@ -12,7 +12,9 @@ import {
   beginTurn,
   commitTurnFailure,
   commitTurnSuccess,
+  type ChatTurnRecord,
   parseTurnEnvelope,
+  reserveTurnTask,
 } from '../../db/chat-turns.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
 import { insertRun, listRuns, listRunsByProjectId } from '../../db/runs.ts'
@@ -743,6 +745,10 @@ async function handleApiChat(
   // ausente): sigue sin turno, mismo comportamiento que antes de R.5 — la
   // decisión de darle turno también es la Fase 2 (ver PLAN.md R.5, punto 12).
   let activeTurnId: string | null = null
+  // R.5 (decisión 8) — el turno reclamado en sí, para leer su task_id
+  // reservado (si un reclamo previo del MISMO turno ya creó una tarea antes
+  // de caerse) antes de decidir si crear una tarea nueva más abajo.
+  let activeTurn: ChatTurnRecord | null = null
   if (session) {
     const requestKey =
       typeof body.requestKey === 'string' && body.requestKey.trim()
@@ -779,6 +785,7 @@ async function handleApiChat(
       return errorResponse('Stored response for this request could not be replayed', 500)
     }
     activeTurnId = claim.turn.id
+    activeTurn = claim.turn
   }
 
   // R.5 — equivalente de fallo: si hay turno reclamado, el registro de la
@@ -910,6 +917,15 @@ async function handleApiChat(
     hasProjectContext &&
     sessionAllowsTaskExecution(session?.mode ?? null)
   ) {
+    // R.5 (decisión 8, hallazgo #7) — este turno ya reservó una tarea en un
+    // reclamo anterior (el proceso murió entre crearla y terminar de
+    // responder; el turno se reclamó de nuevo tras expirar el lease). No
+    // crear una segunda: reportar el id reservado, sin spawn — SQLite+YAML+
+    // git+spawn no son una transacción, y no hay forma honesta de saber
+    // desde acá si ya corrió o sigue pendiente sin consultar tasks.yaml.
+    if (activeTurn?.task_id) {
+      autoTask = { id: activeTurn.task_id }
+    } else
     try {
       const draft = await buildNaturalDraft(message, root)
       const skill = pickAutoSkill(draft.skillOptions)
@@ -938,13 +954,20 @@ async function handleApiChat(
       })
       if ('error' in created) {
         autoTask = { error: created.error }
-      } else if (existingFiles.length > 0) {
-        // Retenida: queda `pending` en tasks.yaml (visible/corrible desde la
-        // pantalla Tasks, anclada desde I.1) hasta que el usuario confirme.
-        autoTask = { id: created.id, held: true, existingFiles }
       } else {
-        spawnTaskRun(root, created.id)
-        autoTask = { id: created.id }
+        // Reserva ANTES de decidir held/spawn: createTaskRecord() ya
+        // comprometió la tarea (SQLite + tasks.yaml + git) — grabar esto
+        // primero es lo que hace que un reclamo posterior del mismo turno
+        // (arriba) la encuentre, en vez de crear una segunda.
+        if (activeTurnId) reserveTurnTask(activeTurnId, created.id)
+        if (existingFiles.length > 0) {
+          // Retenida: queda `pending` en tasks.yaml (visible/corrible desde
+          // la pantalla Tasks, anclada desde I.1) hasta que el usuario confirme.
+          autoTask = { id: created.id, held: true, existingFiles }
+        } else {
+          spawnTaskRun(root, created.id)
+          autoTask = { id: created.id }
+        }
       }
     } catch (e: any) {
       autoTask = { error: e.message }
