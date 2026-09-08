@@ -11,6 +11,7 @@ import {
   handleApiChatSessionPatch,
   handleApiChatSessionsCreate,
   handleApiChatSessionsList,
+  handleApiChatSessionTurnStatus,
 } from './handlers/chat-sessions.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import { handleApiContextSuggest } from './handlers/context-suggest.ts'
@@ -301,6 +302,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/messages$/)) {
     return handleApiChatSessionMessages(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/turn-status$/)) {
+    return handleApiChatSessionTurnStatus(url)
   }
   if (method === 'PATCH' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+$/)) {
     return handleApiChatSessionPatch(req, url)

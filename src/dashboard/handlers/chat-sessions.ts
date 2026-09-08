@@ -11,7 +11,7 @@ import {
   listChatSessions,
   updateChatSession,
 } from '../../db/chat-sessions.ts'
-import { hasActiveTurn } from '../../db/chat-turns.ts'
+import { getLastTurn, hasActiveTurn } from '../../db/chat-turns.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import {
   type DashboardProjectContext,
@@ -52,7 +52,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
 }
 
 function sessionIdFromUrl(url: URL): string | null {
-  const match = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)(?:\/messages)?$/)
+  const match = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/turn-status)?$/)
   if (!match?.[1]) return null
   try {
     const id = decodeURIComponent(match[1]).trim()
@@ -163,6 +163,43 @@ export function handleApiChatSessionMessages(url: URL): Response {
   if (!id) return errorResponse('Invalid session id', 400)
   if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
   return jsonResponse(listChatMessages(id).map(toMessageRow))
+}
+
+export type ChatTurnStatusRow =
+  | { kind: 'none' }
+  | { kind: 'pending'; turnId: string; requestKey: string }
+  | { kind: 'failed'; error: string | null }
+  | { kind: 'interrupted' }
+
+// R.5 (decisión 11) — al montar/recargar una sesión, el cliente pregunta acá
+// si hay un turno en curso o si el último terminó failed/interrupted sin
+// que nadie lo haya visto. 'completed' no aplica: ya está en chat_messages,
+// que es lo que fetchChatSession() ya trae. No reconstruye el texto original
+// del usuario (decisión 5 solo guarda el fingerprint, no el mensaje) — el
+// cliente muestra un estado genérico, nunca contenido inventado.
+export function handleApiChatSessionTurnStatus(url: URL): Response {
+  const id = sessionIdFromUrl(url)
+  if (!id) return errorResponse('Invalid session id', 400)
+  if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
+  const turn = getLastTurn(id)
+  if (!turn) return jsonResponse({ kind: 'none' } satisfies ChatTurnStatusRow)
+  if (turn.status === 'completed') return jsonResponse({ kind: 'none' } satisfies ChatTurnStatusRow)
+  if (turn.status === 'failed') {
+    return jsonResponse({ kind: 'failed', error: turn.error } satisfies ChatTurnStatusRow)
+  }
+  if (turn.status === 'interrupted') {
+    return jsonResponse({ kind: 'interrupted' } satisfies ChatTurnStatusRow)
+  }
+  // status === 'pending': lease vencido y nadie lo reclamó todavía es, para
+  // el cliente, indistinguible de interrupted — beginTurn() lo reconciliará
+  // recién cuando alguien mande el próximo mensaje, no antes.
+  const leaseExpired = !turn.owner_expires_at || turn.owner_expires_at < new Date().toISOString()
+  if (leaseExpired) return jsonResponse({ kind: 'interrupted' } satisfies ChatTurnStatusRow)
+  return jsonResponse({
+    kind: 'pending',
+    turnId: turn.id,
+    requestKey: turn.request_key,
+  } satisfies ChatTurnStatusRow)
 }
 
 export async function handleApiChatSessionPatch(req: Request, url: URL): Promise<Response> {

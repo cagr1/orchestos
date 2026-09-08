@@ -289,7 +289,50 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   id actual `null`, cache vacío y ningún mensaje tardío visible. `tsc`, 9 tests de chat, lint sin
   errores y `test:coverage` 1324 pass / 0 fail.
 
-- [ ] **R.5 — 🧠 Persistencia coherente de turno, run y fallos de chat.** Prioridad alta.
+- [x] **R.5 — 🧠 Persistencia coherente de turno, run y fallos de chat.** Cerrado 2026-09-08
+  (Claude + Codex `gpt-5.6-terra`, GO explícito de Carlos, decisiones 11-12 + render + gate en
+  vivo — decisiones 1-10 y R.5-bis ya estaban cerradas antes de esta pasada).
+  - **Decisión 11 (recuperación tras recargar):** `getLastTurn(sessionId)` (`db/chat-turns.ts`)
+    + `GET /api/chat/sessions/:id/turn-status` (`chat-sessions.ts`, cableado en `server.ts`) —
+    `{kind:'none'|'pending'|'failed'|'interrupted'}`. `pending` con lease vencida se reporta
+    como `interrupted` (nadie lo reclamó; `beginTurn()` lo reconcilia recién en el próximo
+    envío, no antes). No reconstruye el texto original del usuario — la decisión 5 solo guarda
+    el fingerprint, no el mensaje; el cliente muestra un estado genérico, nunca contenido
+    inventado. Frontend: `app.js` (`fetchChatTurnStatus`, cableado en `fetchAll()` cada 30s y en
+    `switchChatSession()`) + `st.chatTurnStatus` por sesión.
+  - **Estados separados de mensajes (hallazgo #11 original):** `screens-core.js` — banner
+    `.chat-turn-banner` (pending/failed/interrupted) ya NO es un `.chat-msg`/`.chat-bubble`, no
+    puede confundirse con una respuesta assistant real. Los dos paths de error locales del
+    `send()` (fallo HTTP del servidor, catch de red) dejaron de hacer `appendChatMessage(role:
+    'assistant', ...)` — ahora setean `st.chatTurnStatus[sessionId]`, mismo banner que la
+    recuperación tras recargar. Un nuevo envío limpia el banner previo (`kind:'none'`) antes de
+    mandar el mensaje.
+  - **Decisión 12 (legacy sin `sessionId`):** ya estaba cerrada en el código (comentario
+    explícito en `chat.ts:741`, `activeTurnId` queda `null` sin sesión) — esta pasada la fijó
+    con un test de regresión real (mock de `fetch`, sin sessionId, `SELECT COUNT(*) FROM
+    chat_turns` = 0) para que no se rompa en silencio.
+  - **Gate en vivo:** navegador real (Chromium vía `playwright-core`), servidor real,
+    `ORCHESTOS_HOME` temporal migrado, sin mocks de test.
+    turno `pending` reclamado directo en SQLite con lease de 120s → `GET turn-status` responde
+    `pending` → navegador real (Chromium vía `playwright-core`) confirma el banner
+    `.chat-turn-pending` en el DOM. Turno con lease de 4s dejado vencer → `interrupted` en vivo,
+    confirmado también en el navegador (banner `.chat-turn-interrupted`). **Reinicio real del
+    servidor** (`kill -9` + relanzar el proceso) con el turno `pending` de 120s todavía en
+    vuelo → `GET turn-status` tras el restart sigue devolviendo `pending` con el mismo `turnId`,
+    confirmado además por consulta SQLite directa (`chat_turns.status`) — la persistencia
+    sobrevive al proceso, no vive en memoria. POST `/api/chat` real sin `sessionId` contra el
+    servidor vivo confirmó `chat_turns` en 0 filas antes/después (decisión 12 en vivo, no solo
+    en test). Servidor bajado al cerrar.
+  - Codex (`gpt-5.6-terra`, delegado por acuerdo explícito de Carlos) escribió los tests de
+    regresión sobre el contrato ya cerrado por Claude (`getLastTurn`, los 7 casos de
+    `turn-status`, decisión 12) — diff revisado línea por línea antes de aceptar, sin tocar
+    producción ni `PLAN.md`. `bunx tsc --noEmit` limpio; `bun run test:coverage`: 1335 pass / 0
+    fail, gates de cobertura verdes (funciones 74.59%/lines 63.20%, ambos sobre el mínimo).
+  **Fuera de scope declarado:** `src/dashboard/server.ts` (una línea de ruteo para el endpoint
+  nuevo), `src/dashboard/public/i18n.js`/`screens.css` (textos y estilos del banner nuevo) y
+  `.orchestos/feature-status.json` (regenerado automáticamente por el pre-commit desde este
+  mismo PLAN.md) no estaban en el scope-lock original — necesarios para cablear la ruta y
+  pintar el banner de la decisión 11, no se anticiparon al declarar el scope.
   **Traspaso 2026-09-07 (Codex, GO explícito de Carlos):** diagnóstico completo en
   [docs/r5-persistence-handoff.md](docs/r5-persistence-handoff.md), base `8ad2d46`. Sin cambios
   de runtime — preflight, typecheck y 9 tests baseline pasan (no prueban atomicidad/reintentos).

@@ -2282,6 +2282,27 @@
   color: var(--text-muted);
   font-style: italic;
 }
+/* R.5 (decisión 11) — banner de estado de turno pendiente/fallido/
+   interrumpido: deliberadamente NO usa .chat-msg/.chat-bubble, para que
+   nunca se confunda con una respuesta assistant real (hallazgo #11). */
+.chat-turn-banner {
+  display: flex;
+  align-items: center;
+  margin: 4px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.chat-turn-pending {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.chat-turn-failed,
+.chat-turn-interrupted {
+  color: var(--warning);
+  background: var(--warning-dim);
+}
 .chat-input-bar {
   position: sticky;
   bottom: 0;

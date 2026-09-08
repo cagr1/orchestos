@@ -405,6 +405,111 @@ describe('CC.2 — chat sessions backend', () => {
     expect(normal).toMatchObject({ taskHeld: false, existingFiles: [] })
   })
 
+  it('reports the latest durable turn status for session recovery', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      const { beginTurn, commitTurnFailure, commitTurnSuccess } = await import('./src/db/chat-turns.ts')
+      runMigrations()
+      const noTurns = sessions.createChatSession({ agent: 'api' })
+      const pending = sessions.createChatSession({ agent: 'api' })
+      const expired = sessions.createChatSession({ agent: 'api' })
+      const failed = sessions.createChatSession({ agent: 'api' })
+      const completed = sessions.createChatSession({ agent: 'api' })
+      const start = (sessionId, requestKey, leaseMs) => beginTurn({
+        sessionId, projectId: null, requestKey, inputFingerprint: requestKey + '-input', owner: 'worker-a', leaseMs,
+      })
+      const pendingTurn = start(pending.id, 'pending-key', 60_000)
+      start(expired.id, 'expired-key', -1_000)
+      const failedTurn = start(failed.id, 'failed-key', 60_000)
+      commitTurnFailure({ turnId: failedTurn.turn.id, error: 'provider unavailable exactly' })
+      const completedTurn = start(completed.id, 'completed-key', 60_000)
+      commitTurnSuccess({
+        turnId: completedTurn.turn.id,
+        run: {
+          project_id: null, prompt: 'hola', task_class: 'chat', model: 'test-model', provider: 'test',
+          skill_id: null, task_id: null, allowed_outputs: null, files_attempted: null, files_authorized: null,
+          files_blocked: null, snapshot_before: null, snapshot_after: null, qa_verdict: null, qa_reason: null,
+          status: 'done', input_tokens: 0, output_tokens: 0, usd_cost: 0, elapsed_ms: 0, result: 'respuesta',
+        },
+        userContent: 'hola', assistantContent: 'respuesta', envelope: { text: 'respuesta' },
+      })
+      const turnStatus = async (id) => {
+        const response = handlers.handleApiChatSessionTurnStatus(new URL('http://localhost/api/chat/sessions/' + id + '/turn-status'))
+        return { status: response.status, body: await response.json() }
+      }
+      const missing = await turnStatus('does-not-exist')
+      const invalidResponse = handlers.handleApiChatSessionTurnStatus(new URL('http://localhost/api/chat/sessions//turn-status'))
+      const invalid = { status: invalidResponse.status, body: await invalidResponse.json() }
+      process.stdout.write(JSON.stringify({
+        missing, invalid, noTurns: await turnStatus(noTurns.id), pending: await turnStatus(pending.id),
+        pendingTurnId: pendingTurn.turn.id, expired: await turnStatus(expired.id),
+        failed: await turnStatus(failed.id), completed: await turnStatus(completed.id),
+      }))
+      db.close()
+    `)
+
+    expect(result.missing).toMatchObject({ status: 404, body: { error: 'Chat session not found' } })
+    expect(result.invalid).toMatchObject({ status: 400, body: { error: 'Invalid session id' } })
+    expect(result.noTurns).toEqual({ status: 200, body: { kind: 'none' } })
+    expect(result.pending).toEqual({
+      status: 200,
+      body: { kind: 'pending', turnId: result.pendingTurnId, requestKey: 'pending-key' },
+    })
+    expect(result.expired).toEqual({ status: 200, body: { kind: 'interrupted' } })
+    expect(result.failed).toEqual({
+      status: 200,
+      body: { kind: 'failed', error: 'provider unavailable exactly' },
+    })
+    expect(result.completed).toEqual({ status: 200, body: { kind: 'none' } })
+  })
+
+  it('keeps the legacy chat request without sessionId out of chat_turns', async () => {
+    const result = await runIsolated(`
+      const { mkdirSync, writeFileSync } = await import('fs')
+      const { join } = await import('path')
+      const home = process.env.ORCHESTOS_HOME
+      const cacheDir = join(home, '.orchestos', 'cache')
+      mkdirSync(cacheDir, { recursive: true })
+      writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({
+        fetchedAt: Date.now(),
+        models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } },
+      }))
+      const projectDir = join(home, 'legacy-chat-project')
+      mkdirSync(projectDir, { recursive: true })
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      runMigrations()
+      process.chdir(projectDir)
+      let calls = 0
+      globalThis.fetch = async (_url, init) => {
+        calls += 1
+        const request = JSON.parse(String(init.body))
+        const content = String(request.messages?.[0]?.content).includes('convierte instrucciones en lenguaje natural')
+          ? JSON.stringify({ isTask: false, reason: 'conversational request' })
+          : 'respuesta legacy'
+        return new Response(JSON.stringify({
+          choices: [{ message: { content } }], usage: { prompt_tokens: 1, completion_tokens: 1 }, model: 'deepseek/deepseek-v4-flash',
+        }), { status: 200 })
+      }
+      const response = await handleApiChat(new Request('http://localhost/api/chat', {
+        method: 'POST', body: JSON.stringify({ message: 'hola sin sesión', history: [] }),
+      }))
+      const payload = await response.json()
+      const turns = db.query('SELECT COUNT(*) AS count FROM chat_turns').get().count
+      process.stdout.write(JSON.stringify({ status: response.status, payload, turns, calls }))
+      db.close()
+    `)
+
+    expect(result.status).toBe(200)
+    expect(result.payload).toMatchObject({ text: 'respuesta legacy' })
+    expect(result.turns).toBe(0)
+    expect(result.calls).toBe(2)
+  })
+
   // R.5 (decisión 10) — un turno pending con lease vigente es trabajo en
   // vuelo; borrar la sesión bajo eso descartaría evidencia sin que nadie
   // la viera (el CASCADE se lleva chat_turns/chat_messages).

@@ -98,6 +98,29 @@ describe('R.5 — durable chat turns', () => {
     expect(result).toMatchObject({ status: 'failed', run_id: null, error: 'provider unavailable' })
   })
 
+  it('returns null for a session without turns and otherwise returns its newest turn', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { beginTurn, getLastTurn } = await import('./src/db/chat-turns.ts')
+      runMigrations()
+      const empty = createChatSession({ agent: 'api' })
+      const session = createChatSession({ agent: 'api' })
+      const first = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'first-request', inputFingerprint: 'first-input', owner: 'worker-a' })
+      const second = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'second-request', inputFingerprint: 'second-input', owner: 'worker-a' })
+      // No depender de que dos INSERT consecutivos caigan en el mismo milisegundo:
+      // getLastTurn() ordena por created_at y este fixture hace visible ese contrato.
+      db.run('UPDATE chat_turns SET created_at = ? WHERE id = ?', ['2026-01-01T00:00:00.000Z', first.turn.id])
+      db.run('UPDATE chat_turns SET created_at = ? WHERE id = ?', ['2026-01-01T00:00:01.000Z', second.turn.id])
+      process.stdout.write(JSON.stringify({ empty: getLastTurn(empty.id), last: getLastTurn(session.id), secondId: second.turn.id }))
+      db.close()
+    `)
+
+    expect(result.empty).toBeNull()
+    expect(result.last).toMatchObject({ id: result.secondId, request_key: 'second-request' })
+  })
+
   it('reconciles and reclaims only expired work in the requested session', async () => {
     const result = await runIsolated(`
       const { randomUUID } = await import('crypto')

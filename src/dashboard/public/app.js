@@ -97,6 +97,10 @@ const state = {
   // Monotonic per-session restore generation. A late poll must not replace a
   // newer restore of the same conversation.
   chatFetchEpochs: {},
+  // R.5 (decisión 11) — { kind: 'none'|'pending'|'failed'|'interrupted', ... }
+  // por sesión, reflejo de GET /turn-status. Distinto de chatHistory: nunca
+  // se pinta como un mensaje assistant más, es un banner aparte.
+  chatTurnStatus: {},
   chatModel: 'deepseek/deepseek-v4-flash',
   chatEffort: localStorage.getItem('orchestos-chat-effort') || 'medium', // FRONT.1 — solo aplicado cuando el modelo elegido tiene supportsReasoning:true (BACK.4) · FRONT.2 — persistido en localStorage
   chatFiles: [], // Mes 19 Bloque B — array de { fileId, filename, type, preview }, antes chatFileId/chatFileMeta singular
@@ -376,6 +380,25 @@ const App = {
   // efímero; con persistencia real, "Clear" mentiría sobre lo que pasó — la
   // conversación seguiría completa en la DB, solo oculta). Filtrado por
   // proyecto en el server (chat-sessions.ts) — acá solo se pinta la lista.
+  // R.5 (decisión 11) — recuperación tras recargar/reconectar: ¿hay un turno
+  // en curso en otro proceso, o el último terminó failed/interrupted sin que
+  // esta pestaña lo haya visto? Se llama junto a fetchChatSession() (boot,
+  // fetchAll cada 30s, y al cambiar de sesión) — sin loop de poll propio,
+  // reusa la cadencia ya existente en vez de sumar un setInterval más.
+  async fetchChatTurnStatus(sessionId = state.chatSessionId) {
+    if (!sessionId || state.chatDeletedSessionIds[sessionId]) return
+    try {
+      const res = await fetch(
+        `/api/chat/sessions/${encodeURIComponent(sessionId)}/turn-status`,
+      )
+      if (!res.ok) return
+      const data = await res.json()
+      if (state.chatDeletedSessionIds[sessionId]) return
+      state.chatTurnStatus[sessionId] = data
+    } catch {
+      // Best-effort — no se pisa el estado previo por un fallo de red puntual.
+    }
+  },
   async fetchChatSessions() {
     try {
       const res = await fetch('/api/chat/sessions')
@@ -394,7 +417,7 @@ const App = {
     state.chatTaskSuggestion = null
     state.chatLiveSteps = {}
     App.rerender()
-    await App.fetchChatSession(sessionId)
+    await Promise.all([App.fetchChatSession(sessionId), App.fetchChatTurnStatus(sessionId)])
     App.rerender()
   },
   async startNewChatSession() {
@@ -438,6 +461,7 @@ const App = {
       delete state.chatHistories[sessionId]
       delete state.chatPendingBySession[sessionId]
       delete state.chatFetchEpochs[sessionId]
+      delete state.chatTurnStatus[sessionId]
       if (state.chatSessionId === sessionId) {
         localStorage.removeItem('orchestos-chat-session-id')
         state.chatSessionId = null
@@ -528,6 +552,7 @@ const App = {
       this.fetchOrcheConfig(),
       this.fetchExecutorModes(),
       this.fetchChatSession(),
+      this.fetchChatTurnStatus(),
       this.fetchChatSessions(),
     ])
     if (!state.setupRedirectDone && state.setup?.criticalMissing) {

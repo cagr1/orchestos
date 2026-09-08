@@ -364,6 +364,22 @@ SCREENS.chat = {
       ? `<div class="chat-msg assistant"><div class="chat-bubble chat-thinking"><span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:6px"></span>${t('chat.thinking')}</div></div>`
       : ''
 
+    // R.5 (decisión 11) — estados pendiente/fallido/interrumpido de un turno,
+    // separados de los mensajes reales: nunca se pintan como una respuesta
+    // assistant más (ver PLAN.md, hallazgo #11 original). 'pending' solo
+    // aparece acá si ESTA pestaña no es la que está esperando (chatPending ya
+    // cubre ese caso con thinkingBubble) — es la señal de que otro proceso
+    // sigue trabajando, o de una recarga a mitad de turno.
+    const turnStatus = st.chatTurnStatus && st.chatTurnStatus[st.chatSessionId]
+    const turnBanner =
+      turnStatus && turnStatus.kind !== 'none' && !st.chatPending
+        ? turnStatus.kind === 'pending'
+          ? `<div class="chat-turn-banner chat-turn-pending"><span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:6px"></span>${t('chat.turn.pending')}</div>`
+          : turnStatus.kind === 'failed'
+            ? `<div class="chat-turn-banner chat-turn-failed">${esc(turnStatus.error || t('chat.err.general'))}</div>`
+            : `<div class="chat-turn-banner chat-turn-interrupted">${turnStatus.error ? esc(turnStatus.error) : t('chat.turn.interrupted')}</div>`
+        : ''
+
     // El SVG anima vía SMIL (<animate>/<animateTransform>), no CSS — cargado
     // como <img> queda aislado del documento, así que la regla catch-all de
     // prefers-reduced-motion (styles.css) no puede alcanzarlo. Se resuelve acá:
@@ -381,7 +397,7 @@ SCREENS.chat = {
 
     const msgs =
       history.length === 0
-        ? `<div class="chat-empty"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"></div>`
+        ? `<div class="chat-empty"><img class="chat-empty-mark" src="${emptyMarkSrc}" alt="" aria-hidden="true"></div>${turnBanner}`
         : history
             .map((m, i) => {
               const text =
@@ -436,7 +452,7 @@ SCREENS.chat = {
             </div>`
               return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-msg-col"><div class="chat-bubble">${text}${ocrTag}${modelTag}${stepsCard}${confirmCard}</div>${actionsRow}</div></div>`
             })
-            .join('') + thinkingBubble
+            .join('') + thinkingBubble + turnBanner
 
     // 2026-07-13 (corrección de Carlos) — modelo+esfuerzo ahora es un solo pill
     // dentro del composer (ver chat-modelfx-row más abajo), no dos controles
@@ -682,6 +698,10 @@ SCREENS.chat = {
       st.chatDraft = '' // mensaje enviado — el borrador ya cumplió su función
       textarea.style.height = '' // FRONT.9 — vuelve a la altura base de 2 filas
       App.appendChatMessage(sessionId, { role: 'user', content: msg, ts: Date.now() })
+      // R.5 (decisión 11) — un banner failed/interrupted de un turno previo
+      // queda obsoleto en cuanto se manda uno nuevo; no debe seguir colgado
+      // debajo del nuevo intercambio.
+      if (st.chatTurnStatus) st.chatTurnStatus[sessionId] = { kind: 'none' }
       // R.4-bis — invalida un restore en vuelo lanzado ANTES de este envío:
       // sin esto, si ese restore responde después de que este POST ya
       // terminó (chatPendingBySession ya en false), su snapshot vieja del
@@ -769,18 +789,18 @@ SCREENS.chat = {
           try {
             data = await res.json()
           } catch {}
-          App.appendChatMessage(sessionId, {
-            role: 'assistant',
-            content: (data && data.error) || t('chat.err.general'),
-            ts: Date.now(),
-          })
+          // R.5 (decisión 11) — un error de servidor ya NO se pinta como una
+          // respuesta assistant falsa: es el mismo banner failed/interrupted
+          // que se ve tras recargar a mitad de turno (hallazgo #11 original).
+          if (st.chatTurnStatus)
+            st.chatTurnStatus[sessionId] = {
+              kind: 'failed',
+              error: (data && data.error) || t('chat.err.general'),
+            }
         }
       } catch {
-        App.appendChatMessage(sessionId, {
-          role: 'assistant',
-          content: t('chat.err.conn'),
-          ts: Date.now(),
-        })
+        if (st.chatTurnStatus)
+          st.chatTurnStatus[sessionId] = { kind: 'interrupted', error: t('chat.err.conn') }
       } finally {
         delete st.chatPendingBySession[sessionId]
         if (st.chatSessionId === sessionId) {

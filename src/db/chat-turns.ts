@@ -241,6 +241,23 @@ export function getTurnByRequestKey(sessionId: string, requestKey: string): Chat
   return getTurnForRequest(sessionId, requestKey)
 }
 
+/**
+ * R.5 (decisión 11) — el turno más reciente de la sesión, para que el
+ * cliente pueda recuperarse tras un recargar/reconectar: ¿hay una respuesta
+ * en curso ahora mismo, o la última terminó en failed/interrupted sin que
+ * nadie lo haya visto todavía? 'completed' no se distingue acá — ya vive en
+ * chat_messages, que es la fuente que el cliente ya lee.
+ */
+export function getLastTurn(sessionId: string): ChatTurnRecord | null {
+  return (
+    db
+      .query<ChatTurnRecord, string>(
+        'SELECT * FROM chat_turns WHERE session_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+      )
+      .get(sessionId) ?? null
+  )
+}
+
 // A corrupt historical envelope must not make recovery itself fail. Callers
 // can show a normal error/retry state rather than treating invalid JSON as a
 // second provider request.
