@@ -2358,8 +2358,12 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   scripts/agent-governance.test.ts` → 21 pass / 0 fail / 87 expects; `bunx tsc --noEmit` y Biome
   de los dos archivos tocaron limpio. Límite explícito: CI acredita la selección portable y el
   fallo cerrado; la frontera real de sandbox se acredita solo en macOS. `test:coverage` y
-  `security:gate` se iniciaron localmente pero esta terminal corta su proceso antes de resultado;
-  queda pendiente observar el run remoto antes de afirmar CI verde.
+  `security:gate` se iniciaron localmente pero esta terminal corta su proceso antes de resultado.
+  **Evidencia remota:** commit `04e75bd` — CI
+  [34285739231](https://github.com/cagr1/orchestos/actions/runs/34285739231) ✅: cobertura,
+  typecheck y lint; Secret Check
+  [34285739176](https://github.com/cagr1/orchestos/actions/runs/34285739176) ✅: typecheck y
+  secretos tracked. No acredita el sandbox macOS, que quedó cubierto por la integración local.
   **Fuera de scope declarado:** `scripts/h10-gate-evidence.json` (el artefacto de evidencia del
   propio gate, exigido por H.10.1 — no estaba en el scope-lock que declaró la corrección) y
   `.orchestos/feature-status.json` (regenerado por el pre-commit desde este mismo PLAN.md).
