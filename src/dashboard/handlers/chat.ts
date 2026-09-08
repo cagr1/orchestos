@@ -7,13 +7,17 @@ import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { estimateTokens } from '../../context/compress.ts'
 import { loadContext } from '../../context/load.ts'
-import { getChatSession, listChatMessages, sessionAllowsTaskExecution } from '../../db/chat-sessions.ts'
+import {
+  getChatSession,
+  listChatMessages,
+  sessionAllowsTaskExecution,
+} from '../../db/chat-sessions.ts'
 import {
   beginTurn,
   commitTurnFailure,
   commitTurnSuccess,
-  type ChatTurnRecord,
   parseTurnEnvelope,
+  requireTurnOwner,
   reserveTurnTask,
 } from '../../db/chat-turns.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
@@ -745,10 +749,6 @@ async function handleApiChat(
   // ausente): sigue sin turno, mismo comportamiento que antes de R.5 — la
   // decisión de darle turno también es la Fase 2 (ver PLAN.md R.5, punto 12).
   let activeTurnId: string | null = null
-  // R.5 (decisión 8) — el turno reclamado en sí, para leer su task_id
-  // reservado (si un reclamo previo del MISMO turno ya creó una tarea antes
-  // de caerse) antes de decidir si crear una tarea nueva más abajo.
-  let activeTurn: ChatTurnRecord | null = null
   if (session) {
     const requestKey =
       typeof body.requestKey === 'string' && body.requestKey.trim()
@@ -774,6 +774,15 @@ async function handleApiChat(
     if (claim.kind === 'conflict') {
       return errorResponse('requestKey was already used with different message content', 409)
     }
+    if (claim.kind === 'session-busy') {
+      return errorResponse('A response for this conversation is already being generated', 409)
+    }
+    if (claim.kind === 'interrupted') {
+      return errorResponse(
+        'This request was interrupted; its provider or task outcome is unknown. It was not repeated.',
+        409,
+      )
+    }
     if (claim.kind === 'duplicate-pending') {
       return errorResponse('A response for this request is already being generated', 409)
     }
@@ -785,7 +794,6 @@ async function handleApiChat(
       return errorResponse('Stored response for this request could not be replayed', 500)
     }
     activeTurnId = claim.turn.id
-    activeTurn = claim.turn
   }
 
   // R.5 — equivalente de fallo: si hay turno reclamado, el registro de la
@@ -832,7 +840,12 @@ async function handleApiChat(
       : undefined
     if (activeTurnId) {
       try {
-        commitTurnFailure({ turnId: activeTurnId, error: params.error, run: runInput })
+        commitTurnFailure({
+          turnId: activeTurnId,
+          owner: CHAT_TURN_OWNER,
+          error: params.error,
+          run: runInput,
+        })
       } catch {
         /* best-effort — nunca debe romper la respuesta de error ya decidida */
       }
@@ -917,15 +930,6 @@ async function handleApiChat(
     hasProjectContext &&
     sessionAllowsTaskExecution(session?.mode ?? null)
   ) {
-    // R.5 (decisión 8, hallazgo #7) — este turno ya reservó una tarea en un
-    // reclamo anterior (el proceso murió entre crearla y terminar de
-    // responder; el turno se reclamó de nuevo tras expirar el lease). No
-    // crear una segunda: reportar el id reservado, sin spawn — SQLite+YAML+
-    // git+spawn no son una transacción, y no hay forma honesta de saber
-    // desde acá si ya corrió o sigue pendiente sin consultar tasks.yaml.
-    if (activeTurn?.task_id) {
-      autoTask = { id: activeTurn.task_id }
-    } else
     try {
       const draft = await buildNaturalDraft(message, root)
       const skill = pickAutoSkill(draft.skillOptions)
@@ -943,28 +947,31 @@ async function handleApiChat(
       // la usa como fallback si preferredAgent es undefined.
       const cascade = await resolveCascadeTier()
       const existingFiles = (draft.output || []).filter((f: string) => existsSync(join(root, f)))
-      const created = createTaskRecord(root, {
-        id: draft.id,
-        description: draft.description,
-        output: draft.output,
-        executor: draft.executor,
-        ...resolveAgentSelection(preferredAgent, cascade),
-        ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
-        skill,
-      })
+      // Durable identity BEFORE creating YAML/git state. A crash at any point
+      // leaves this reservation on an interrupted turn; retries never dispatch it.
+      const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
+      const created = createTaskRecord(
+        root,
+        {
+          id: reservedId ?? draft.id,
+          description: draft.description,
+          output: draft.output,
+          executor: draft.executor,
+          ...resolveAgentSelection(preferredAgent, cascade),
+          ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
+          skill,
+        },
+        { reservedId: reservedId !== null },
+      )
       if ('error' in created) {
         autoTask = { error: created.error }
       } else {
-        // Reserva ANTES de decidir held/spawn: createTaskRecord() ya
-        // comprometió la tarea (SQLite + tasks.yaml + git) — grabar esto
-        // primero es lo que hace que un reclamo posterior del mismo turno
-        // (arriba) la encuentre, en vez de crear una segunda.
-        if (activeTurnId) reserveTurnTask(activeTurnId, created.id)
         if (existingFiles.length > 0) {
           // Retenida: queda `pending` en tasks.yaml (visible/corrible desde
           // la pantalla Tasks, anclada desde I.1) hasta que el usuario confirme.
           autoTask = { id: created.id, held: true, existingFiles }
         } else {
+          if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
           spawnTaskRun(root, created.id)
           autoTask = { id: created.id }
         }
@@ -1220,31 +1227,37 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       result: responseText,
     }
     if (activeTurnId && session) {
-      try {
-        commitTurnSuccess({
-          turnId: activeTurnId,
-          run: runInput,
-          userContent: message,
-          assistantContent: responseText,
+      commitTurnSuccess({
+        turnId: activeTurnId,
+        owner: CHAT_TURN_OWNER,
+        run: runInput,
+        userContent: message,
+        assistantContent: responseText,
+        model: resultLabel,
+        taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
+        ocrUsed,
+        taskHeld: held,
+        existingFiles: autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
+        envelope: {
+          text: responseText,
           model: resultLabel,
-          taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
-          ocrUsed,
-          taskHeld: held,
-          existingFiles: autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
-          envelope: {
-            text: responseText,
-            model: resultLabel,
-            ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-            taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
-            autoTask,
-            readAudit: params.readAudit,
-          },
-        })
-      } catch {
-        /* best-effort — nunca debe romper la respuesta ya calculada */
-      }
+          ocrUsed: ocrUsed.length ? ocrUsed : undefined,
+          taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+          autoTask,
+          readAudit: params.readAudit,
+        },
+      })
     } else {
-      logChatRun(message, resultLabel, inputTokens, outputTokens, projectId, responseText, readAudit, provider)
+      logChatRun(
+        message,
+        resultLabel,
+        inputTokens,
+        outputTokens,
+        projectId,
+        responseText,
+        readAudit,
+        provider,
+      )
     }
   }
 

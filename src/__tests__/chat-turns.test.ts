@@ -25,6 +25,64 @@ async function runIsolated(body: string): Promise<Record<string, unknown>> {
 }
 
 describe('R.5 — durable chat turns', () => {
+  it('serializes different request keys across independent processes', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      runMigrations()
+      const session = createChatSession({ agent: 'api' })
+      const children = Array.from({ length: 4 }, (_, i) => {
+        const input = { sessionId: session.id, projectId: null, requestKey: 'key-' + i, inputFingerprint: 'input', owner: 'worker-' + i }
+        return Bun.spawn([process.execPath, '-e',
+          'const { beginTurn } = await import("./src/db/chat-turns.ts"); console.log(JSON.stringify(beginTurn(' + JSON.stringify(input) + ')))'
+        ], { env: process.env, stdout: 'pipe', stderr: 'pipe' })
+      })
+      const results = await Promise.all(children.map(async child => {
+        const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
+        if (code) throw new Error(err)
+        return JSON.parse(out).kind
+      }))
+      console.log(JSON.stringify({ results, count: db.query("SELECT COUNT(*) AS n FROM chat_turns WHERE status = 'pending'").get().n }))
+    `)
+    expect((result.results as string[]).filter((x) => x === 'claimed')).toHaveLength(1)
+    expect((result.results as string[]).filter((x) => x === 'session-busy')).toHaveLength(3)
+    expect(result.count).toBe(1)
+  })
+
+  it('rejects stale, expired and finalized owners before any write', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { beginTurn, commitTurnSuccess, commitTurnFailure, reserveTurnTask } = await import('./src/db/chat-turns.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      runMigrations()
+      const s = createChatSession({ agent: 'api' })
+      const started = beginTurn({ sessionId: s.id, projectId: null, requestKey: 'key', inputFingerprint: 'input', owner: 'old' })
+      const id = started.turn.id
+      const run = { project_id: null, prompt: 'q', task_class: 'chat', model: 'test', provider: 'test', status: 'done', input_tokens: 0, output_tokens: 0, usd_cost: 0, elapsed_ms: 0, result: 'a' }
+      const errors = []
+      const attempt = owner => {
+        for (const fn of [
+          () => commitTurnSuccess({ turnId: id, owner, run, userContent: 'q', assistantContent: 'a', envelope: { text: 'a' } }),
+          () => commitTurnFailure({ turnId: id, owner, error: 'stale', run }),
+          () => reserveTurnTask(id, owner)
+        ]) { try { fn(); errors.push(false) } catch { errors.push(true) } }
+      }
+      db.run('UPDATE chat_turns SET owner = ? WHERE id = ?', ['new', id])
+      attempt('old')
+      db.run('UPDATE chat_turns SET owner_expires_at = ? WHERE id = ?', ['2000-01-01', id])
+      attempt('new')
+      db.run("UPDATE chat_turns SET status = 'completed', owner_expires_at = ? WHERE id = ?", ['2999-01-01', id])
+      attempt('new')
+      console.log(JSON.stringify({ errors, runs: db.query('SELECT COUNT(*) AS n FROM runs').get().n, messages: db.query('SELECT COUNT(*) AS n FROM chat_messages').get().n, task: db.query('SELECT task_id FROM chat_turns WHERE id = ?').get(id).task_id }))
+    `)
+    expect(result.errors).toEqual(Array(9).fill(true))
+    expect(result.runs).toBe(0)
+    expect(result.messages).toBe(0)
+    expect(result.task).toBeNull()
+  })
+
   it('claims once, detects pending duplicates, and rejects a changed request', async () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')
@@ -63,7 +121,7 @@ describe('R.5 — durable chat turns', () => {
         files_blocked: null, snapshot_before: null, snapshot_after: null, qa_verdict: null, qa_reason: null,
         status: 'done', input_tokens: 1, output_tokens: 2, usd_cost: 0, elapsed_ms: 3, result: 'respuesta',
       }
-      const committed = commitTurnSuccess({ turnId: started.turn.id, run, userContent: 'hola', assistantContent: 'respuesta', model: 'test-model', envelope: { content: 'respuesta' } })
+      const committed = commitTurnSuccess({ turnId: started.turn.id, owner: 'worker-a', run, userContent: 'hola', assistantContent: 'respuesta', model: 'test-model', envelope: { content: 'respuesta' } })
       const turn = getTurn(started.turn.id)
       const replay = beginTurn(input)
       const runCount = db.query('SELECT COUNT(*) AS count FROM runs WHERE id = ?').get(committed.runId).count
@@ -91,7 +149,7 @@ describe('R.5 — durable chat turns', () => {
       runMigrations()
       const session = createChatSession({ agent: 'api' })
       const started = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'request-failure', inputFingerprint: 'fingerprint-failure', owner: 'worker-a' })
-      commitTurnFailure({ turnId: started.turn.id, error: 'provider unavailable' })
+      commitTurnFailure({ turnId: started.turn.id, owner: 'worker-a', error: 'provider unavailable' })
       process.stdout.write(JSON.stringify(getTurn(started.turn.id)))
     `)
 
@@ -103,11 +161,12 @@ describe('R.5 — durable chat turns', () => {
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { createChatSession } = await import('./src/db/chat-sessions.ts')
-      const { beginTurn, getLastTurn } = await import('./src/db/chat-turns.ts')
+      const { beginTurn, getLastTurn, commitTurnFailure } = await import('./src/db/chat-turns.ts')
       runMigrations()
       const empty = createChatSession({ agent: 'api' })
       const session = createChatSession({ agent: 'api' })
       const first = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'first-request', inputFingerprint: 'first-input', owner: 'worker-a' })
+      commitTurnFailure({ turnId: first.turn.id, owner: 'worker-a', error: 'first ended' })
       const second = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'second-request', inputFingerprint: 'second-input', owner: 'worker-a' })
       // No depender de que dos INSERT consecutivos caigan en el mismo milisegundo:
       // getLastTurn() ordena por created_at y este fixture hace visible ese contrato.
@@ -121,7 +180,7 @@ describe('R.5 — durable chat turns', () => {
     expect(result.last).toMatchObject({ id: result.secondId, request_key: 'second-request' })
   })
 
-  it('reconciles and reclaims only expired work in the requested session', async () => {
+  it('interrupts only expired work in the requested session without reclaiming it', async () => {
     const result = await runIsolated(`
       const { randomUUID } = await import('crypto')
       const { runMigrations } = await import('./src/db/migrate.ts')
@@ -142,8 +201,8 @@ describe('R.5 — durable chat turns', () => {
     `)
 
     expect(result.claimed).toMatchObject({
-      kind: 'claimed',
-      turn: { status: 'pending', owner: 'new-worker' },
+      kind: 'interrupted',
+      turn: { status: 'interrupted', owner: 'dead-worker' },
     })
     expect(result.otherTurn).toMatchObject({ status: 'pending', owner: 'dead-worker' })
   })
@@ -164,7 +223,7 @@ describe('R.5 — durable chat turns', () => {
         status: 'done', input_tokens: 0, output_tokens: 0, usd_cost: 0, elapsed_ms: 0, result: 'respuesta',
       }
       let error = ''
-      try { commitTurnSuccess({ turnId: started.turn.id, run, userContent: 'hola', assistantContent: 'respuesta', envelope: { impossible: 1n } }) } catch (cause) { error = String(cause) }
+      try { commitTurnSuccess({ turnId: started.turn.id, owner: 'worker-a', run, userContent: 'hola', assistantContent: 'respuesta', envelope: { impossible: 1n } }) } catch (cause) { error = String(cause) }
       const runCount = db.query('SELECT COUNT(*) AS count FROM runs').get().count
       process.stdout.write(JSON.stringify({ error, runCount, messages: listChatMessages(session.id), turn: getTurn(started.turn.id) }))
     `)
@@ -175,10 +234,7 @@ describe('R.5 — durable chat turns', () => {
     expect(result.turn).toMatchObject({ status: 'pending', run_id: null })
   })
 
-  // R.5 (decisión 8, hallazgo #7) — un turno reclamado dos veces (lease
-  // vencido, mismo request_key) debe ver la tarea reservada en el primer
-  // intento; el caller (chat.ts) usa esto para no crear una segunda tarea.
-  it('a reclaimed turn carries its task reservation across lease expiry', async () => {
+  it('preserves the reservation on interrupted work without reclaiming or dispatching', async () => {
     const result = await runIsolated(`
       const { randomUUID } = await import('crypto')
       const { runMigrations } = await import('./src/db/migrate.ts')
@@ -188,16 +244,16 @@ describe('R.5 — durable chat turns', () => {
       runMigrations()
       const session = createChatSession({ agent: 'api' })
       const started = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'request-reserve', inputFingerprint: 'fingerprint-reserve', owner: 'worker-a' })
-      reserveTurnTask(started.turn.id, 'task-created-once')
+      reserveTurnTask(started.turn.id, 'worker-a')
       // Simula que el proceso murió antes de terminar: vence el lease a mano.
       db.run('UPDATE chat_turns SET owner_expires_at = ? WHERE id = ?', [new Date(Date.now() - 1000).toISOString(), started.turn.id])
       const reclaimed = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'request-reserve', inputFingerprint: 'fingerprint-reserve', owner: 'worker-b' })
-      process.stdout.write(JSON.stringify({ reclaimed }))
+      process.stdout.write(JSON.stringify({ reclaimed, taskId: 'chat-' + started.turn.id }))
     `)
 
     expect(result.reclaimed).toMatchObject({
-      kind: 'claimed',
-      turn: { id: expect.any(String), task_id: 'task-created-once', owner: 'worker-b' },
+      kind: 'interrupted',
+      turn: { id: expect.any(String), task_id: result.taskId, owner: 'worker-a' },
     })
   })
 })

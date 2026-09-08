@@ -357,6 +357,13 @@ function renderConfirmCard(pt) {
   </div>`
 }
 
+function shouldShowTaskConfirmation(st, pendingTask) {
+  if (!pendingTask || pendingTask.resolved) return false
+  // A successful empty response is authoritative; a failed fetch is unknown.
+  if (st.tasksStatus !== 'ok' || st.tasksYamlError) return true
+  return (st.tasks || []).some((task) => task.id === pendingTask.id && task.status === 'pending')
+}
+
 SCREENS.chat = {
   render(st) {
     const history = st.chatHistory || []
@@ -424,15 +431,9 @@ SCREENS.chat = {
               // momento en que se creó el mensaje, no el estado actual: si la
               // tarea ya se canceló (borrada de tasks.yaml) o ya se confirmó y
               // corrió (status dejó de ser 'pending'), no resucitar la tarjeta.
-              // st.tasks vacío es ambiguo (aún no cargó vs. realmente sin
-              // tareas) — si hay un pendingTask, "sin tareas" es imposible, así
-              // que se trata como "todavía no cargó" y no se oculta de más
-              // (evita parpadeo justo al crear la tarea en vivo).
-              const taskStillHeld =
-                m.pendingTask &&
-                !m.pendingTask.resolved &&
-                ((st.tasks || []).length === 0 ||
-                  (st.tasks || []).some((tk) => tk.id === m.pendingTask.id && tk.status === 'pending'))
+              // Solo el estado de carga distingue "vacío" de "desconocido".
+              // Una respuesta correcta vacía confirma que la tarea ya no existe.
+              const taskStillHeld = shouldShowTaskConfirmation(st, m.pendingTask)
               const confirmCard =
                 m.role === 'assistant' && taskStillHeld ? renderConfirmCard(m.pendingTask) : ''
               // #51 — acciones por mensaje (hover, esquina inferior). Solo "copiar" +
@@ -452,7 +453,9 @@ SCREENS.chat = {
             </div>`
               return `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}"><div class="chat-msg-col"><div class="chat-bubble">${text}${ocrTag}${modelTag}${stepsCard}${confirmCard}</div>${actionsRow}</div></div>`
             })
-            .join('') + thinkingBubble + turnBanner
+            .join('') +
+          thinkingBubble +
+          turnBanner
 
     // 2026-07-13 (corrección de Carlos) — modelo+esfuerzo ahora es un solo pill
     // dentro del composer (ver chat-modelfx-row más abajo), no dos controles
@@ -775,6 +778,7 @@ SCREENS.chat = {
             // I.2 — la tarea ya existe en tasks.yaml (pending, sin correr);
             // refrescar st.tasks para que [Ver] pueda encontrarla de inmediato.
             st.chatTaskSuggestion = null
+            st.tasksStatus = 'loading'
             App.fetchTasks().then(() => App.rerender())
           } else if (st.chatSessionId === sessionId) {
             // J.1 (Mes 18) — B.1.b: si el clasificador marcó el mensaje como

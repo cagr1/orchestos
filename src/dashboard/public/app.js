@@ -388,9 +388,7 @@ const App = {
   async fetchChatTurnStatus(sessionId = state.chatSessionId) {
     if (!sessionId || state.chatDeletedSessionIds[sessionId]) return
     try {
-      const res = await fetch(
-        `/api/chat/sessions/${encodeURIComponent(sessionId)}/turn-status`,
-      )
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}/turn-status`)
       if (!res.ok) return
       const data = await res.json()
       if (state.chatDeletedSessionIds[sessionId]) return

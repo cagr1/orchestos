@@ -32,6 +32,18 @@ y no debe ser la fuente de nada permanente.
 - No existe UI de sesiones en vanilla. La superficie visual está reservada para Mes 30 (`UI.6`/
   `UI.7`) por decisión explícita de Carlos.
 
+### Corrección de turnos R.5-ter (2026-09-08)
+
+El servicio de turnos serializa claims por sesión bajo una transacción SQLite inmediata.
+Un turno vencido queda `interrupted`: la misma clave nunca vuelve a invocar al proveedor ni
+a crear/ejecutar tareas. Commits y reservas exigen dueño, estado pending y lease vigente;
+una escritura rechazada no puede convertirse en HTTP 200. El ID `chat-<turn-id>` se reserva
+antes de tocar tasks.yaml y no se renombra ante colisión. La reserva identifica un resultado
+potencialmente desconocido, no demuestra que la tarea se haya creado o ejecutado.
+El lease sigue siendo de 150 segundos sin heartbeat; un resultado tardío se rechaza.
+Las confirmaciones restauradas distinguen carga fallida/pendiente de una lista vacía verificada.
+Legacy sin sesión y reenvíos del usuario con una clave nueva conservan sus límites anteriores.
+
 ### Estado estable — contexto multi-proyecto CC.3 (2026-08-18)
 
 - El proyecto del dashboard es request-scoped: clientes envían `X-Orchestos-Project-Id` o

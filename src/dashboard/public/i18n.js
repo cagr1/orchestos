@@ -106,7 +106,8 @@ const I18N = {
     'chat.err.general': '⚠ Could not get a response.',
     'chat.err.conn': '⚠ Connection error.',
     'chat.turn.pending': 'Waiting for a response in progress…',
-    'chat.turn.interrupted': '⚠ Interrupted before a response was returned. Try sending again.',
+    'chat.turn.interrupted':
+      '⚠ Interrupted; the result is unknown. Check the conversation and tasks before sending again.',
     'chat.copyErr': 'Could not copy to clipboard.',
     'chat.models.load': 'Select model',
     'chat.local.group': 'Local (Ollama)',
@@ -984,7 +985,8 @@ const I18N = {
     'chat.err.general': '⚠ No se pudo obtener respuesta.',
     'chat.err.conn': '⚠ Error de conexión.',
     'chat.turn.pending': 'Esperando una respuesta en curso…',
-    'chat.turn.interrupted': '⚠ Se interrumpió antes de devolver una respuesta. Probá enviar de nuevo.',
+    'chat.turn.interrupted':
+      '⚠ Se interrumpió; el resultado es desconocido. Revisá la conversación y las tareas antes de reenviar.',
     'chat.copyErr': 'No se pudo copiar al portapapeles.',
     'chat.models.load': 'Elegir modelo',
     'chat.local.group': 'Local (Ollama)',

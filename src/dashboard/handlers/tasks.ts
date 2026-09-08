@@ -207,6 +207,7 @@ export interface CreateTaskParams {
 function createTaskRecord(
   root: string,
   params: CreateTaskParams,
+  options: { reservedId?: boolean } = {},
 ): { id: string } | { error: string; status: number } {
   if (!params.description?.trim()) return { error: 'description is required', status: 400 }
   const description = params.description.trim()
@@ -250,6 +251,8 @@ function createTaskRecord(
     const file = loadTasks(root)
     let finalId = id
     if (file.tasks.find((t: any) => t.id === finalId)) {
+      if (options.reservedId)
+        return { error: 'Reserved task id already exists; execution was not repeated', status: 409 }
       finalId = `${finalId}-${Date.now().toString(36)}`
     }
     const newTask: Record<string, unknown> = {

@@ -289,6 +289,49 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   id actual `null`, cache vacío y ningún mensaje tardío visible. `tsc`, 9 tests de chat, lint sin
   errores y `test:coverage` 1324 pass / 0 fail.
 
+- [x] **R.5-ter — 🧠 Corregir concurrencia, reserva previa y confirmaciones restauradas.** (2026-09-08, Codex)
+  GO explícito de Carlos (2026-09-08) tras revisión independiente de R.5/R.4-bis.
+  Hallazgos reproducidos: claves distintas admiten dos pending en una sesión; un dueño anterior
+  puede sobrescribir el turno de otro. Por código: reserva posterior a createTaskRecord deja una
+  ventana de duplicación; una lista de tareas vacía resucita confirmaciones canceladas al recargar.
+  **Alcance:** serializar claims por sesión; turnos vencidos quedan interrupted sin reejecución;
+  commits/reservas requieren dueño y lease vigente; reservar un ID fijo antes de crear la tarea
+  y rechazar colisiones sin renombrarlo; distinguir tareas cargadas vacías de carga pendiente.
+  Propagar fallos de commit al HTTP es necesario para que el fencing no devuelva éxito ficticio.
+  **Gates:** typecheck, tests aislados de concurrencia multiproceso/owner/rollback/reserva,
+  regresión de restore y dashboard+navegador real+SQLite, cobertura y lint.
+  **Fuera:** R.6/R.7/R.8, rediseño de legacy/adjuntos y cierre global H.9.4. Los cierres históricos
+  siguientes se conservan; este seguimiento corrige su alcance sin afirmar fiabilidad completa.
+  **Fuera de scope declarado:** `src/dashboard/public/i18n.js`: el aviso de interrupción debe
+  declarar resultado desconocido en vez de recomendar reenviar a ciegas. Normalización mínima
+  de formato heredado en este archivo y `app.js`, requerida por lint, sin cambios adicionales.
+  **Implementación:** claims serializados con `transaction.immediate()`; una clave nueva en
+  sesión ocupada devuelve 409 y una clave vencida queda interrupted sin retomar proveedor/tarea.
+  Success/failure/reserva validan owner+pending+lease antes de escribir; el dispatch también
+  comprueba dueño vigente. `finishTurnSuccess` propaga el fallo de commit (antes lo ocultaba).
+  Reserva `chat-<turn-id>` anterior a createTaskRecord, colisiones 409 sin renombrar. El render
+  distingue `tasksStatus`/error de YAML de una lista vacía confirmada; el aviso de interrupción
+  ya no invita a repetir sin revisar. SQLite conserva schema v6: no hizo falta otra migración.
+  **Pruebas:** cuatro procesos independientes → un claim y tres session-busy; nueve escrituras
+  de dueños incorrectos/vencidos/finalizados rechazadas sin runs/mensajes; HTTP concurrente y
+  replay sin más llamadas; trigger entre run/mensajes → rollback y HTTP 5xx; trigger de reserva
+  → tasks.yaml intacto; colisión y reintento vencido no crean otra tarea. Test de renderer carga
+  el JS real (no copia su algoritmo). `bunx tsc --noEmit`, lint y `security:gate` PASS;
+  `bun run test:coverage`: **1341 pass / 0 fail**, funciones 74.53%, líneas 63.09%.
+  **Gate en vivo:** dashboard :50923 + navegador Chromium via agent-browser, bajo gate:evidence.
+  Composer/Send real → Claude haiku-4-5 → HTTP 200, texto R5_VERIFICADO; peticiones simultáneas
+  misma/otra clave → 409/409. Replay 200 conserva texto/modelo; SQLite verifica un turno
+  completed, un run enlazado y dos mensajes, visibles tras recargar. Cancelar la última tarea
+  held mediante click → /api/tasks vacío → recarga sin tarjeta, mensajes/OCR preservados.
+  Reserva sintética vencida → retry 409, interrupted durable y banner separado en navegador.
+  Reporte portable: `scripts/r5-review-evidence.json`; capturas/DB/HTTP locales en
+  `/tmp/orchestos-r5-evidence.AqRW1z`. El wrapper exportó cero runs porque excluye chat; el
+  reporte conserva evidencia antes del cleanup. Servidor y navegador cerrados.
+  **Límites:** las pestañas de sesión requirieron click DOM por una superposición previa de
+  chat-area; Send/Cancel sí se probaron por puntero. No se afirma kill/restart ni dispatch real
+  de tareas en este gate. Lease fijo de 150s sin heartbeat: resultados tardíos se rechazan.
+  Reenvíos deliberados con otra clave, legacy y H.9.4/R.8 siguen fuera del cierre de este ítem.
+
 - [x] **R.5 — 🧠 Persistencia coherente de turno, run y fallos de chat.** Cerrado 2026-09-08
   (Claude + Codex `gpt-5.6-terra`, GO explícito de Carlos, decisiones 11-12 + render + gate en
   vivo — decisiones 1-10 y R.5-bis ya estaban cerradas antes de esta pasada).

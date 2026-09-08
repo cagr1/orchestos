@@ -17,10 +17,8 @@ export interface ChatTurnRecord {
   run_id: string | null
   response_envelope_json: string | null
   error: string | null
-  // R.5 (decisión 8) — reserva del task_id creado durante ESTE turno, grabada
-  // antes de spawnTaskRun(); sobrevive aunque el turno termine failed/
-  // interrupted. Un reclamo posterior del mismo turno la usa para no crear
-  // una segunda tarea para el mismo mensaje.
+  // Reserved BEFORE task creation. Survives failure/interruption so an
+  // ambiguous outcome remains identifiable without automatically retrying it.
   task_id: string | null
   created_at: string
   updated_at: string
@@ -32,8 +30,7 @@ export interface BeginTurnInput {
   requestKey: string
   inputFingerprint: string
   owner: string
-  // This outlives the chat provider timeout (120 seconds), avoiding a second
-  // claimant while the first process is still allowed to finish its request.
+  // Bounded ownership; expiry fences writes and never authorizes a retry.
   leaseMs?: number
 }
 
@@ -41,6 +38,8 @@ export type BeginTurnResult =
   | { kind: 'claimed'; turn: ChatTurnRecord }
   | { kind: 'duplicate-result'; turn: ChatTurnRecord }
   | { kind: 'duplicate-pending'; turn: ChatTurnRecord }
+  | { kind: 'interrupted'; turn: ChatTurnRecord }
+  | { kind: 'session-busy' }
   | { kind: 'conflict' }
 
 const DEFAULT_LEASE_MS = 150_000
@@ -77,9 +76,22 @@ export function beginTurn(input: BeginTurnInput): BeginTurnResult {
     db.run(
       `UPDATE chat_turns
        SET status = 'interrupted', updated_at = ?
-       WHERE session_id = ? AND status = 'pending' AND owner_expires_at < ?`,
+       WHERE session_id = ? AND status = 'pending' AND (owner_expires_at IS NULL OR owner_expires_at <= ?)`,
       [nowIso, input.sessionId, nowIso],
     )
+
+    const existing = getTurnForRequest(input.sessionId, input.requestKey)
+    if (existing) {
+      if (existing.input_fingerprint !== input.inputFingerprint) return { kind: 'conflict' }
+      if (existing.status === 'completed' || existing.status === 'failed') {
+        return { kind: 'duplicate-result', turn: existing }
+      }
+      // A vanished process may already have billed the provider or dispatched a
+      // task. Expiry is evidence of uncertainty, never permission to repeat it.
+      if (existing.status === 'interrupted') return { kind: 'interrupted', turn: existing }
+      return { kind: 'duplicate-pending', turn: existing }
+    }
+    if (hasActiveTurn(input.sessionId)) return { kind: 'session-busy' }
 
     const id = randomUUID()
     const inserted = db.run(
@@ -105,35 +117,16 @@ export function beginTurn(input: BeginTurnInput): BeginTurnResult {
       return { kind: 'claimed', turn }
     }
 
-    const existing = getTurnForRequest(input.sessionId, input.requestKey)
-    if (!existing) throw new Error('Existing chat turn was not found')
-    if (existing.input_fingerprint !== input.inputFingerprint) return { kind: 'conflict' }
-    if (existing.status === 'completed' || existing.status === 'failed') {
-      return { kind: 'duplicate-result', turn: existing }
-    }
-
-    const leaseExpired = !existing.owner_expires_at || existing.owner_expires_at < nowIso
-    if (existing.status === 'pending' && !leaseExpired) {
-      return { kind: 'duplicate-pending', turn: existing }
-    }
-    if ((existing.status === 'pending' || existing.status === 'interrupted') && leaseExpired) {
-      db.run(
-        `UPDATE chat_turns
-         SET status = 'pending', owner = ?, owner_expires_at = ?, updated_at = ?
-         WHERE id = ?`,
-        [input.owner, expiresAt, nowIso, existing.id],
-      )
-      const turn = getTurnRecord(existing.id)
-      if (!turn) throw new Error('Reclaimed chat turn was not found')
-      return { kind: 'claimed', turn }
-    }
-    return { kind: 'duplicate-pending', turn: existing }
+    throw new Error('Chat turn could not be claimed')
   })
-  return claim()
+  // Obtain the writer lock before checking the session. Two dashboard
+  // processes cannot both observe an idle session and claim different keys.
+  return claim.immediate()
 }
 
 export interface CommitTurnSuccessInput {
   turnId: string
+  owner: string
   run: Parameters<typeof import('./runs.ts').insertRun>[0]
   userContent: string
   assistantContent: string
@@ -152,8 +145,7 @@ export interface CommitTurnSuccessInput {
  */
 export function commitTurnSuccess(input: CommitTurnSuccessInput): { runId: string } {
   const commit = db.transaction(() => {
-    const turn = getTurnRecord(input.turnId)
-    if (!turn) throw new Error('Chat turn not found while committing success')
+    const turn = requireTurnOwner(input.turnId, input.owner)
     const runId = insertRun(input.run)
     appendChatExchange({
       sessionId: turn.session_id,
@@ -176,17 +168,19 @@ export function commitTurnSuccess(input: CommitTurnSuccessInput): { runId: strin
     if (changes !== 1) throw new Error('Chat turn not found while committing success')
     return { runId }
   })
-  return commit()
+  return commit.immediate()
 }
 
 export interface CommitTurnFailureInput {
   turnId: string
+  owner: string
   error: string
   run?: Parameters<typeof import('./runs.ts').insertRun>[0]
 }
 
 export function commitTurnFailure(input: CommitTurnFailureInput): void {
   const commit = db.transaction(() => {
+    requireTurnOwner(input.turnId, input.owner)
     const runId = input.run ? insertRun(input.run) : null
     const changes = db.run(
       `UPDATE chat_turns
@@ -196,22 +190,38 @@ export function commitTurnFailure(input: CommitTurnFailureInput): void {
     ).changes
     if (changes !== 1) throw new Error('Chat turn not found while committing failure')
   })
-  commit()
+  commit.immediate()
 }
 
-/**
- * R.5 (decisión 8) — llamar ANTES de spawnTaskRun(), justo después de que
- * createTaskRecord() tenga éxito. No usa db.transaction(): es intencionalmente
- * su propia escritura, comprometida de inmediato — si el proceso muere entre
- * esto y terminar de responder, la reserva ya quedó grabada y un reclamo
- * posterior del mismo turno la ve.
- */
-export function reserveTurnTask(turnId: string, taskId: string): void {
-  db.run('UPDATE chat_turns SET task_id = ?, updated_at = ? WHERE id = ?', [
-    taskId,
-    new Date().toISOString(),
-    turnId,
-  ])
+export function requireTurnOwner(turnId: string, owner: string): ChatTurnRecord {
+  const turn = getTurnRecord(turnId)
+  if (
+    turn?.status !== 'pending' ||
+    turn.owner !== owner ||
+    !turn.owner_expires_at ||
+    turn.owner_expires_at <= new Date().toISOString()
+  ) {
+    throw new Error('Chat turn ownership expired or result already finalized')
+  }
+  return turn
+}
+
+/** Reserve once BEFORE any YAML/git/spawn side effect. Never rename or reuse. */
+export function reserveTurnTask(turnId: string, owner: string): string {
+  return db
+    .transaction(() => {
+      const turn = requireTurnOwner(turnId, owner)
+      if (turn.task_id)
+        throw new Error('Chat turn already reserved a task; execution is not repeated')
+      const taskId = `chat-${turnId}`
+      db.run('UPDATE chat_turns SET task_id = ?, updated_at = ? WHERE id = ?', [
+        taskId,
+        new Date().toISOString(),
+        turnId,
+      ])
+      return taskId
+    })
+    .immediate()
 }
 
 export function getTurn(turnId: string): ChatTurnRecord | null {

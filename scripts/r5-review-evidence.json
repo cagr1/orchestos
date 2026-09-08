@@ -1,0 +1,39 @@
+{
+  "item": "R.5-ter",
+  "date": "2026-09-08",
+  "base": "87b8119",
+  "browser": "Chromium via agent-browser 0.37.0",
+  "fixture": "scripts/live-r5-review.ts under gate:evidence",
+  "chat": {
+    "interaction": "composer fill and Send click",
+    "provider": "claude-haiku-4-5-20251001 via Claude Code CLI (effort: medium)",
+    "response": "R5_VERIFICADO",
+    "status": 200,
+    "concurrentSameKeyStatus": 409,
+    "concurrentDifferentKeyStatus": 409,
+    "replayStatus": 200,
+    "replaySameTextAndModel": true,
+    "runId": "ac5359af-dc56-4f40-bd54-09c348a3a045",
+    "linkedRuns": 1,
+    "persistedMessages": 2,
+    "visibleAfterReload": true
+  },
+  "heldTask": {
+    "interaction": "Cancel click on last held task, reload, open Chat",
+    "loadedTasks": [],
+    "confirmationCardsAfterReload": 0,
+    "messagesAndOcrPreserved": true
+  },
+  "interruptedReservation": {
+    "fixtureLeaseExpired": true,
+    "retryStatus": 409,
+    "retryError": "This request was interrupted; its provider or task outcome is unknown. It was not repeated."
+  },
+  "limits": [
+    "Session tabs were activated through DOM click because pointer clicks were covered by chat-area; Send and Cancel used pointer clicks.",
+    "Synthetic expired reservation; this live gate does not claim kill/restart or real task dispatch coverage.",
+    "Multiprocess arbitration, stale owner, rollback and reservation failure injection are covered by automated tests.",
+    "H.9.4 and R.8 are not closed by this evidence.",
+    "gate:evidence excludes chat runs; this report preserves the portable record."
+  ]
+}

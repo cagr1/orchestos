@@ -424,10 +424,11 @@ describe('CC.2 — chat sessions backend', () => {
       const pendingTurn = start(pending.id, 'pending-key', 60_000)
       start(expired.id, 'expired-key', -1_000)
       const failedTurn = start(failed.id, 'failed-key', 60_000)
-      commitTurnFailure({ turnId: failedTurn.turn.id, error: 'provider unavailable exactly' })
+      commitTurnFailure({ turnId: failedTurn.turn.id, owner: 'worker-a', error: 'provider unavailable exactly' })
       const completedTurn = start(completed.id, 'completed-key', 60_000)
       commitTurnSuccess({
         turnId: completedTurn.turn.id,
+        owner: 'worker-a',
         run: {
           project_id: null, prompt: 'hola', task_class: 'chat', model: 'test-model', provider: 'test',
           skill_id: null, task_id: null, allowed_outputs: null, files_attempted: null, files_authorized: null,
@@ -530,7 +531,7 @@ describe('CC.2 — chat sessions backend', () => {
         new URL('http://localhost/api/chat/sessions/' + session.id),
       )
       const blocked = await blockedResponse.json()
-      turns.commitTurnFailure({ turnId: started.turn.id, error: 'done for this test' })
+      turns.commitTurnFailure({ turnId: started.turn.id, owner: 'worker-a', error: 'done for this test' })
       const allowedResponse = handlers.handleApiChatSessionDelete(
         new URL('http://localhost/api/chat/sessions/' + session.id),
       )
