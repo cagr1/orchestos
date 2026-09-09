@@ -116,6 +116,15 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   los archivos de S.3 no agregan ninguno. Biome sale 0 con warnings — el criterio es el exit code,
   no el conteo. Por eso el ítem estuvo implementado pero sin commitear hasta esta verificación.
   PLAN.md sigue siendo la fuente hasta que S.4 esté verde: esto **añade** la tabla, no la entroniza.
+  **Dos bugs del test que Codex escribió, encontrados al pushear (commits `8fd2e3f`, `5c45ed0`):**
+  (1) `plan-import.test.ts` importaba el **PLAN.md vivo** y asserteaba contra su texto literal, así
+  que se rompió con el propio commit que cerró S.3 — ahora corre contra un repo-fixture en tmpdir.
+  (2) Ese fixture hacía `git commit` sin identidad: verde en el Mac, rojo en `ubuntu-latest` con
+  `actions/checkout`, que no tiene `user.email` — resuelto con `GIT_AUTHOR_*`/`GIT_COMMITTER_*` y
+  `-c commit.gpgsign=false -c core.hooksPath=/dev/null` en el spawn, sin tocar `git config`.
+  Verificado simulando CI: `GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null` → 1 pass.
+  Misma familia que `reference-ci-host-environment-drift`: un test que asserta sobre el estado
+  del host o sobre un archivo vivo del repo no prueba el código, prueba la máquina.
   Tabla en la SQLite que ya existe (`src/db/migrate.ts`):
   `id · sprint · title · delegation · status · depends_on[] · scope[] · commit_sha · closed_at`.
   Se siembra una sola vez con `scripts/plan-status.ts`, que ya sabe parsear PLAN.md.
