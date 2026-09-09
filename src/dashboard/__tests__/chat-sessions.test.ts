@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { resolveChatCost } from '../handlers/chat.ts'
 
 // CC.1-D1 — este archivo prueba el WIRING (agente → transporte correcto),
 // nunca el binario real (eso ya lo cubre el gate en vivo de CC.5). Sin esto,
@@ -15,7 +16,10 @@ const NO_CLI_PATH = (process.env.PATH ?? '')
   .filter((dir) => !dir.includes('.local/bin') && !dir.includes('.opencode/bin'))
   .join(':')
 
-async function runIsolated(body: string): Promise<Record<string, unknown>> {
+async function runIsolated(
+  body: string,
+  extraEnv: Record<string, string> = {},
+): Promise<Record<string, unknown>> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-chat-sessions-'))
   try {
     const proc = Bun.spawn(['bun', '-e', body], {
@@ -25,6 +29,7 @@ async function runIsolated(body: string): Promise<Record<string, unknown>> {
         ORCHESTOS_HOME: home,
         OPENROUTER_API_KEY: 'test-key',
         PATH: NO_CLI_PATH,
+        ...extraEnv,
       },
       stdout: 'pipe',
       stderr: 'pipe',
@@ -42,6 +47,82 @@ async function runIsolated(body: string): Promise<Record<string, unknown>> {
 }
 
 describe('CC.2 — chat sessions backend', () => {
+  it('R.6 mantiene explícito el origen del costo: reportado, estimado o desconocido', () => {
+    expect(resolveChatCost('claude-sonnet-5 via Claude Code CLI', 0.12)).toEqual({
+      usd: 0.12,
+      source: 'reported',
+    })
+    expect(resolveChatCost('openai/gpt-4o')).toEqual({ usd: 0, source: 'estimated' })
+    expect(resolveChatCost('unrecognized CLI label')).toEqual({ usd: 0, source: 'unknown' })
+  })
+
+  it('R.6 persiste el costo canónico del CLI en sesión y legacy, con procedencia real', async () => {
+    const result = await runIsolated(
+      `
+      const { mkdirSync, writeFileSync } = await import('fs')
+      const { join } = await import('path')
+      const home = process.env.ORCHESTOS_HOME
+      const root = join(home, 'r6-chat-project')
+      mkdirSync(root, { recursive: true })
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'agent: claude\\n')
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      const { route } = await import('./src/dashboard/server.ts')
+      runMigrations(); process.chdir(root)
+      globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"isTask":false,"reason":"chat"}' } }] }), { status: 200 })
+      const session = createChatSession({ agent: 'claude', mode: 'chat' })
+      const post = (body) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify(body) }))
+      const sessionResponse = await post({ sessionId: session.id, requestKey: 'reported', message: 'R6 reported cost fixture', model: 'anthropic/claude-sonnet-5', effort: 'max' })
+      const zeroResponse = await post({ message: 'R6 zero cost fixture', model: 'anthropic/claude-sonnet-5', effort: 'low' })
+      const estimatedResponse = await post({ message: 'R6 estimated cost fixture', model: 'anthropic/claude-sonnet-5', effort: 'medium' })
+      const unknownResponse = await post({ message: 'R6 unknown model fixture', model: 'anthropic/claude-sonnet-5', effort: 'high' })
+      const rows = db.query('SELECT model, usd_cost, cost_breakdown_json FROM runs WHERE task_class = "chat" ORDER BY created_at').all()
+      const api = await (await route(new Request('http://localhost:50852/api/runs?limit=10'), 50852)).json()
+      process.stdout.write(JSON.stringify({ statuses: [sessionResponse.status, zeroResponse.status, estimatedResponse.status, unknownResponse.status], rows, api }))
+      db.close()
+    `,
+      { PATH: process.cwd() + '/scripts/fixtures:' + NO_CLI_PATH },
+    )
+
+    expect(result.statuses).toEqual([200, 200, 200, 200])
+    const rows = result.rows as Array<{
+      model: string
+      usd_cost: number
+      cost_breakdown_json: string
+    }>
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ model: 'claude-sonnet-5', usd_cost: 0.0123 }),
+        expect.objectContaining({ model: 'claude-sonnet-5', usd_cost: 0 }),
+        expect.objectContaining({ model: 'openai/gpt-4o', usd_cost: 0.0225 }),
+        expect.objectContaining({ model: 'unknown-cli-model', usd_cost: 0 }),
+      ]),
+    )
+    expect(rows.every((row) => !row.model.includes('via Claude Code CLI'))).toBe(true)
+    const api = result.api as Array<{ model: string; costUsd: number | null; costSource: string }>
+    expect(api).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          model: 'claude-sonnet-5',
+          costUsd: 0.0123,
+          costSource: 'reported',
+        }),
+        expect.objectContaining({ model: 'claude-sonnet-5', costUsd: 0, costSource: 'reported' }),
+        expect.objectContaining({
+          model: 'openai/gpt-4o',
+          costUsd: 0.0225,
+          costSource: 'estimated',
+        }),
+        expect.objectContaining({
+          model: 'unknown-cli-model',
+          costUsd: null,
+          costSource: 'unknown',
+        }),
+      ]),
+    )
+  })
   it('implements CRUD, immutable agent, persistence and cascade delete', async () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')

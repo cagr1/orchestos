@@ -669,7 +669,7 @@ SCREENS.runs = {
             })
             .join('') +
           `</div></div>`
-        : `<div class="grp"><h4>${t('runs.detail.cost')}</h4><div class="muted" style="font-size:12.5px">${t('runs.detail.cost.single')} ${usd(r.costUsd)}.</div></div>`
+        : `<div class="grp"><h4>${t('runs.detail.cost')}</h4><div class="muted" style="font-size:12.5px">${r.costSource === 'unknown' ? 'Cost unknown (not reported or estimable).' : `${t('runs.detail.cost.single')} ${usd(r.costUsd)}.`}</div></div>`
 
     /* contextWarnings: {code, severity: 'warning'|'critical'|'notice', message} */
     const warns =
@@ -822,7 +822,7 @@ SCREENS.runs = {
         <td class="mono">${r.taskId ? esc(r.taskId) : '<span class="faint">—</span>'}</td>
         <td class="mono">${esc(r.model)}</td>
         <td class="num">${fmt(r.inputTokens)} <span class="faint">/</span> ${fmt(r.outputTokens)}</td>
-        <td class="num">${usd(r.costUsd)}</td>
+        <td class="num">${r.costSource === 'unknown' ? 'unknown' : usd(r.costUsd)}</td>
         <td>${this.warnCell(warnCount)}</td>
         <td class="mono faint">${esc(formatLocalDate(r.createdAt, { seconds: true }))}</td>
       </tr>`

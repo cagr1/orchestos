@@ -16,7 +16,8 @@ const PRICING: Record<string, { input: number; output: number }> = {
   'deepseek/deepseek-r1': { input: 0.55, output: 2.19 },
 }
 
-export function calcCost(model: string, inputTokens: number, outputTokens: number): number {
+/** Returns null when there is no price for the canonical model; zero is a real free price. */
+export function knownCost(model: string, inputTokens: number, outputTokens: number): number | null {
   // Try the live catalog first (provides real pricing from OpenRouter API)
   const cat = getCatalog()
   if (cat) {
@@ -28,6 +29,13 @@ export function calcCost(model: string, inputTokens: number, outputTokens: numbe
     }
   }
   // Fallback to static table
-  const p = PRICING[model] ?? { input: 0, output: 0 }
+  const p = PRICING[model]
+  if (!p) return null
   return (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output
+}
+
+// Compatibility for task paths predating explicit cost provenance. New chat
+// writes must use knownCost() so an unknown model is never presented as free.
+export function calcCost(model: string, inputTokens: number, outputTokens: number): number {
+  return knownCost(model, inputTokens, outputTokens) ?? 0
 }

@@ -63,6 +63,7 @@ function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
 
 function runRecordToRow(r: RunRecord): RunRow {
   const breakdown = parseCostBreakdownJson(r.cost_breakdown_json)
+  const costSource = breakdown[0]?.source ?? 'estimated'
   const { engine, iterations } = deriveEngineFromBreakdown(breakdown)
   return {
     id: r.id,
@@ -75,7 +76,8 @@ function runRecordToRow(r: RunRecord): RunRow {
     skillId: r.skill_id,
     inputTokens: r.input_tokens,
     outputTokens: r.output_tokens,
-    costUsd: r.usd_cost,
+    costUsd: costSource === 'unknown' ? null : r.usd_cost,
+    costSource,
     costBreakdown: breakdown,
     contextWarnings: parseContextWarnings(r.context_warnings_json),
     engine,

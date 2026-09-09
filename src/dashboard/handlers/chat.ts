@@ -49,7 +49,7 @@ import {
   supportsReasoningEffort,
   supportsVisionInput,
 } from '../../router/model-catalog.ts'
-import { calcCost } from '../../router/pricing.ts'
+import { knownCost } from '../../router/pricing.ts'
 import {
   type CliCapabilityProbe,
   KNOWN_CLIS,
@@ -449,6 +449,35 @@ export async function executeReadIdeas(
 // se facturaba en OpenRouter. `runs` solo reflejaba `task run`, no conversaciones — el
 // motivo real por el que el gasto en OpenRouter no coincidía con lo que mostraba OrchestOS.
 // Best-effort: un fallo al loguear no debe romper la respuesta de chat en sí.
+type ChatCostSource = 'reported' | 'estimated' | 'unknown'
+interface ChatCost {
+  usd: number
+  source: ChatCostSource
+}
+
+export function resolveChatCost(model: string, reportedUsd?: number | null): ChatCost {
+  if (typeof reportedUsd === 'number' && Number.isFinite(reportedUsd) && reportedUsd >= 0) {
+    return { usd: reportedUsd, source: 'reported' }
+  }
+  const estimated = knownCost(model, 0, 0)
+  // Recompute below with the real token counts; this branch only establishes provenance.
+  return estimated === null ? { usd: 0, source: 'unknown' } : { usd: 0, source: 'estimated' }
+}
+
+function chatCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  reportedUsd?: number | null,
+): ChatCost {
+  if (typeof reportedUsd === 'number' && Number.isFinite(reportedUsd) && reportedUsd >= 0)
+    return { usd: reportedUsd, source: 'reported' }
+  const estimated = knownCost(model, inputTokens, outputTokens)
+  return estimated === null
+    ? { usd: 0, source: 'unknown' }
+    : { usd: estimated, source: 'estimated' }
+}
+
 function logChatRun(
   message: string,
   model: string,
@@ -459,8 +488,10 @@ function logChatRun(
   readAudit: ReadAudit = uninstrumentedReadAudit(),
   provider = 'openrouter',
   status: 'done' | 'failed' = 'done',
+  reportedUsd?: number | null,
 ): void {
   try {
+    const cost = chatCost(model, inputTokens, outputTokens, reportedUsd)
     insertRun({
       project_id: projectId,
       prompt: message.slice(0, 2000),
@@ -485,7 +516,10 @@ function logChatRun(
       status,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
-      usd_cost: calcCost(model, inputTokens, outputTokens),
+      usd_cost: cost.usd,
+      cost_breakdown_json: JSON.stringify([
+        { label: 'chat', model, inputTokens, outputTokens, costUsd: cost.usd, source: cost.source },
+      ]),
       elapsed_ms: 0,
       result,
     })
@@ -1193,8 +1227,12 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     outputTokens: number
     readAudit?: ReadAudit
     provider?: string
+    canonicalModel?: string
+    reportedUsd?: number | null
   }): void => {
     const { responseText, resultLabel, inputTokens, outputTokens, provider = 'openrouter' } = params
+    const canonicalModel = params.canonicalModel ?? resultLabel
+    const cost = chatCost(canonicalModel, inputTokens, outputTokens, params.reportedUsd)
     const readAudit = params.readAudit ?? uninstrumentedReadAudit()
     const projectId = session?.project_id ?? project.id
     const held = Boolean(autoTask && 'held' in autoTask && autoTask.held)
@@ -1202,7 +1240,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       project_id: projectId,
       prompt: message.slice(0, 2000),
       task_class: 'chat',
-      model: resultLabel,
+      model: canonicalModel,
       provider,
       skill_id: null,
       task_id: null,
@@ -1222,7 +1260,17 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       status: 'done' as const,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
-      usd_cost: calcCost(resultLabel, inputTokens, outputTokens),
+      usd_cost: cost.usd,
+      cost_breakdown_json: JSON.stringify([
+        {
+          label: 'chat',
+          model: canonicalModel,
+          inputTokens,
+          outputTokens,
+          costUsd: cost.usd,
+          source: cost.source,
+        },
+      ]),
       elapsed_ms: 0,
       result: responseText,
     }
@@ -1250,13 +1298,15 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     } else {
       logChatRun(
         message,
-        resultLabel,
+        canonicalModel,
         inputTokens,
         outputTokens,
         projectId,
         responseText,
         readAudit,
         provider,
+        'done',
+        params.reportedUsd,
       )
     }
   }
@@ -1315,6 +1365,8 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           outputTokens: result.outputTokens,
           readAudit: result.readAudit,
           provider: 'claude',
+          canonicalModel: result.model,
+          reportedUsd: result.usd,
         })
         return jsonResponse({
           text: responseText,

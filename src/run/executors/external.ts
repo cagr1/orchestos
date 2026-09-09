@@ -333,7 +333,8 @@ export interface ClaudeChatResult {
   text: string
   inputTokens: number
   outputTokens: number
-  usd: number
+  /** Claude Code reports this directly; null means it omitted the field. */
+  usd: number | null
   /** Modelo real que corrió — el que se resolvió al CLI, o el default del binario si no se fijó ninguno. */
   model: string
   /** Esfuerzo real pasado al CLI, o `undefined` si no se fijó (el binario usa su propio default). */
@@ -410,7 +411,7 @@ export async function runClaudeChat(
     text,
     inputTokens: parsed.usage?.input_tokens ?? 0,
     outputTokens: parsed.usage?.output_tokens ?? 0,
-    usd: typeof parsed.total_cost_usd === 'number' ? parsed.total_cost_usd : 0,
+    usd: typeof parsed.total_cost_usd === 'number' ? parsed.total_cost_usd : null,
     // Hallazgo real de Carlos: con un alias (`--model sonnet`) el pedido nunca
     // dice la versión real que corrió. `resolvedCliModel()` lee el nombre
     // canónico que el propio CLI reporta en `modelUsage` (ej. "claude-sonnet-5")

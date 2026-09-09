@@ -274,6 +274,13 @@ describe('runClaudeChat (CC.1)', () => {
     expect(partial.readAudit.issues).toContain('malformed-json')
   })
 
+  it('preserva costo desconocido como null y conserva cero reportado como cero real', async () => {
+    overrideBunSpawn(makeMockProc(streamOf(resultEvent({ usage: {} }))))
+    expect((await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)).usd).toBeNull()
+    overrideBunSpawn(makeMockProc(streamOf(resultEvent({ total_cost_usd: 0, usage: {} }))))
+    expect((await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)).usd).toBe(0)
+  })
+
   it('adjunta la auditoría incompleta al error sin evento terminal', async () => {
     overrideBunSpawn(
       makeMockProc(

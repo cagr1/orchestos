@@ -6,6 +6,8 @@ export interface CostBreakdownEntry {
   inputTokens: number
   outputTokens: number
   costUsd: number
+  /** Provenance is explicit for chat entries; absent is a legacy/task entry. */
+  source?: 'reported' | 'estimated' | 'unknown'
   /**
    * C.1 — process info del ejecutor externo (`external` engine). Opcionales
    * porque single-shot/agentic no spawnean subproceso: el JSON.parse los

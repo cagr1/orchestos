@@ -606,7 +606,7 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   Estado de prueba (DB temporal, entrada temporal en `tasks.yaml` real sin commit) limpiado al
   cerrar; servidor bajado.
 
-- [ ] **R.6 — ⚡ Costo del chat separado de la etiqueta visual del modelo.** Prioridad media.
+- [x] **R.6 — ⚡ Costo del chat separado de la etiqueta visual del modelo.** Cerrado 2026-09-09.
   Reproducido: `calcCost('claude-sonnet-5 via Claude Code CLI', ...)` devuelve cero. El caller
   pasa `resultLabel` a `logChatRun()` y descarta `result.usd` disponible en el executor.
   Persistir identificador canónico y costo reportado cuando exista, conservando el label como
@@ -614,6 +614,47 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   no reconocidas produzcan importes con apariencia de medición válida. Coordinar con R.5.
   **Gate:** costo CLI reportado se conserva; label/effort no alteran el cálculo; modelo desconocido
   no se presenta como gratuito. Verificar DB y consumidor de costos, sin rediseñar toda la UI.
+  **Estado en vuelo (2026-09-08, Codex):** implementación y pruebas dirigidas completadas: `bunx tsc --noEmit` y
+  `bun test src/__tests__/claude-chat.test.ts src/dashboard/__tests__/chat-sessions.test.ts src/dashboard/__tests__/chat-r5-reliability.test.ts`
+  pasaron (30/30). El modelo canónico y `cost_breakdown_json.source` separan `reported`/`estimated`/`unknown`;
+  el consumidor de runs muestra `unknown`, no `$0`. No cerrar: `bun run lint` falla fuera del scope con 2 errores
+  globales (más advertencias existentes) y `bun run test:coverage` no completó en esta sesión; falta gate de
+  dashboard real/navegador y los gates completos antes de commit.
+  **Evidencia parcial 2026-09-09:** `bun run test:coverage` ✅ (1360 pass / 0 fail). Bajo
+  `gate:evidence`, el dashboard aislado recorrió fixture CLI local → SQLite → Runs API: el stream con
+  `total_cost_usd: 0.0123` guardó `claude-sonnet-5`, `source: reported` y `$0.0123`; un modelo sin precio
+  expuso `costSource: unknown` y `costUsd: null`. Reporte reproducible:
+  `scripts/r6-live-cost-evidence.json`; el wrapper exportó cero filas como corresponde porque excluye chat.
+  **No es cierre:** CUA no pudo iniciar navegador y Playwright no está disponible en este workspace; falta
+  observar esas dos filas en la pantalla Runs mediante navegador real. `bun run lint` continúa bloqueado por
+  diagnósticos preexistentes fuera del scope.
+  **Gate visual completado, cierre aún bloqueado:** se agregó `playwright` como devDependency y Chromium local para que el gate no dependa de un
+  scratchpad. **Gate en vivo:** `scripts/r6-live-cost-evidence.json` registra la corrida aislada con
+  `PATH="$PWD/scripts/fixtures:$PATH" bun run gate:evidence -- --label r6-cost -- bun run scripts/live-r6-cost.ts`:
+  fixture Claude sin red → dashboard real → SQLite → Runs API → navegador Playwright MCP. El stream reportó
+  `$0.0123` para `claude-sonnet-5`, conservado con `source: reported`; una fila de precio no conocido devolvió
+  `costSource: unknown`/`costUsd: null`. En la pantalla Runs el navegador mostró exactamente `$0.0123` y
+  `unknown`, respectivamente. `bunx tsc --noEmit`, tests dirigidos (30 pass / 0 fail) y cobertura completa
+  (1360 pass / 0 fail) pasaron. `bun run lint` continúa rojo por diagnósticos preexistentes: el chequeo
+  acotado también reporta 45 warnings y 16 infos en líneas no modificadas de estos archivos, además de los
+  diagnósticos globales fuera del scope. No se rebajó ni corrigió ese trabajo ajeno en este ítem. El 400 de
+  `/api/chat/models` corresponde al fixture sin key OpenRouter, no al flujo Claude validado.
+  **Corrección del diagnóstico y cierre 2026-09-09:** la afirmación histórica de que lint bloqueaba R.6 era
+  incorrecta: tras formatear los dos archivos de esta entrega, `bun run lint` terminó con exit 0 (879 warnings,
+  493 infos del baseline; sin errores). Se completó la rama legacy sin `sessionId`: ahora pasa el modelo
+  canónico a `logChatRun()`, como ya hacía el camino de sesión, y ambos persisten `cost_breakdown_json.source`.
+  La prueba de handler real cubre sesión y legacy con fixture CLI fijado antes del spawn: costo reportado
+  positivo ($0.0123), cero reportado real, costo estimado ($0.0225 con tokens no nulos) y modelo desconocido;
+  SQLite y `/api/runs` preservan modelo canónico y procedencia, y ninguna etiqueta con effort llega al modelo
+  guardado. El gate aislado `PATH="$PWD/scripts/fixtures:$PATH" bun run gate:evidence -- --label r6-cost -- bun
+  run scripts/live-r6-cost.ts` confirmó los cuatro registros; el artefacto portable es
+  `scripts/r6-live-cost-evidence.json`. La pantalla Runs real, recargada, mostró `$0.0123` y `unknown` para los
+  dos estados que no se pueden inferir por formato; captura `r6-runs-browser.png`. El wrapper exportó cero runs
+  por diseño porque excluye `task_class=chat`; el artefacto versionado conserva la evidencia. Gates finales:
+  `bunx tsc --noEmit` ✅; tests dirigidos + R.5 ✅ (31 pass); `bun run test:coverage` ✅; `bun run lint` ✅;
+  `git diff --check` ✅. No se tomó R.7/R.8 ni la limpieza global de warnings.
+  **Gate en vivo:** navegador Playwright sobre Runs, con recarga y detalle; evidencia staged `scripts/r6-live-cost-evidence.json` (captura `r6-runs-browser.png`).
+  **Fuera de scope declarado:** `.orchestos/feature-status.json` es el derivado regenerado por el hook al cerrar R.6; `r6-runs-browser.png` es la captura binaria del gate en vivo.
 
 - [ ] **R.7 — 🧠 Escritura atómica y coordinación entre procesos para tasks.yaml.** Prioridad alta.
   Riesgo identificado, pendiente de reproducir: `loader.ts:25` comprueba un hash opcional y luego

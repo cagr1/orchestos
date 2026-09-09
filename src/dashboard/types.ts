@@ -86,6 +86,7 @@ export interface CostBreakdownEntry {
   inputTokens: number
   outputTokens: number
   costUsd: number
+  source?: 'reported' | 'estimated' | 'unknown'
 }
 
 export interface ContextWarningEntry {
@@ -143,7 +144,8 @@ export interface RunRow {
   skillId: string | null
   inputTokens: number
   outputTokens: number
-  costUsd: number
+  costUsd: number | null
+  costSource: 'reported' | 'estimated' | 'unknown'
   elapsedMs: number
   costBreakdown: CostBreakdownEntry[] // parsed from cost_breakdown_json
   contextWarnings: ContextWarningEntry[] // parsed from context_warnings_json

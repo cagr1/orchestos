@@ -1,0 +1,66 @@
+{
+  "item": "R.6",
+  "date": "2026-09-09",
+  "transport": "isolated dashboard -> local Claude stream fixture -> SQLite -> Runs API",
+  "command": "PATH=\"$PWD/scripts/fixtures:$PATH\" bun run gate:evidence -- --label r6-cost -- bun run scripts/live-r6-cost.ts",
+  "fixture": {
+    "network": "none",
+    "provider": "not invoked",
+    "cli": "scripts/fixtures/claude"
+  },
+  "sqlite": [
+    {
+      "model": "claude-sonnet-5",
+      "usd_cost": 0.0123,
+      "source": "reported",
+      "inputTokens": 120,
+      "outputTokens": 45
+    },
+    {
+      "model": "unknown-cli-model",
+      "usd_cost": 0,
+      "source": "unknown"
+    },
+    {
+      "model": "claude-sonnet-5",
+      "usd_cost": 0,
+      "source": "reported",
+      "inputTokens": 20,
+      "outputTokens": 5
+    },
+    {
+      "model": "openai/gpt-4o",
+      "usd_cost": 0.0225,
+      "source": "estimated",
+      "inputTokens": 1000,
+      "outputTokens": 2000
+    }
+  ],
+  "runsApi": [
+    {
+      "model": "claude-sonnet-5",
+      "costUsd": 0.0123,
+      "costSource": "reported"
+    },
+    {
+      "model": "unknown-cli-model",
+      "costUsd": null,
+      "costSource": "unknown"
+    },
+    {
+      "model": "claude-sonnet-5",
+      "costUsd": 0,
+      "costSource": "reported"
+    },
+    {
+      "model": "openai/gpt-4o",
+      "costUsd": 0.0225,
+      "costSource": "estimated"
+    }
+  ],
+  "limits": {
+    "browser": "Playwright MCP, http://127.0.0.1:50924, advanced mode -> Runs: the table visibly rendered unknown-cli-model with Cost=unknown and claude-sonnet-5 with Cost=$0.0123; full-page screenshot r6-runs-browser.png captured by the browser session",
+    "console": "one pre-existing fixture limitation: GET /api/chat/models returned 400 because no OpenRouter key was configured; it did not affect the Claude fixture, SQLite rows, or Runs rendering",
+    "durableExport": "0 runs exported by gate:evidence as expected: it deliberately excludes task_class=chat"
+  }
+}
