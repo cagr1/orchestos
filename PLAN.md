@@ -155,9 +155,44 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
 > prueba nada. Regla que queda: una verificación de fidelidad debe contrastar contra la **fuente**
 > (PLAN.md), nunca contra otro derivado.
 
-- [ ] **S.4a — ⚡ Recuperar al índice los 7 ítems invisibles y dar vía de reconciliación.**
+- [x] **S.4a — ⚡ Recuperar al índice los 7 ítems invisibles y dar vía de reconciliación.** (cerrado 2026-09-09)
   Prerequisito duro de S.4b: sin esto, renderizar desde la DB borra historia.
   Ejecutado por: gpt-5.6-luna · Spec: docs/specs/S4a.md
+  **Commit de implementación:** `219ea8a`. Primer ítem del roster nuevo: el cerebro (Opus 5) pensó,
+  escribió el spec y verificó; no tecleó código.
+  **Verificación independiente del cerebro — invariantes de datos, no el reporte del ejecutor:**
+  - `PLAN.md` 77 ítems · `plan_items` 77 filas · `feature-status.json` 77 ítems.
+  - Conjunto de ids **idéntico en ambas direcciones** (`en DB no en MD: ninguno`,
+    `en MD no en DB: ninguno`) y **0 status divergentes**. Contrastado contra la **fuente**
+    (`PLAN.md`), no contra otro derivado — que es exactamente el error que dejó pasar esto en S.3.
+  - Los 7 recuperados tienen cuerpo real extraído por su ancla de `docs/done/`, no un stub:
+    `R.2-bis` 5833B · `R.2-ter` 1653B · `R.3-bis` 1417B · `R.4-bis` 3351B · `R.5-bis` 2743B ·
+    `R.5-ter` 3948B · `H.8.3'` 5603B. Siete `commit_sha` **distintos**, y los muestreados
+    (`e90b83c`, `6d5653a`, `ec668c2`) tocan `PLAN.md` en su `--stat`.
+  - **0 ítems `done` con el sha de HEAD** y 0 sin sha: nadie cayó al fallback de `commitShaFor()`.
+  - `S.3` → `done`, `4d019b68edd25c8c…`.
+  - `plan_item_deps` sigue en **0 filas**: la reconciliación no la tocó.
+  - Guard one-shot intacto: `bun run plan:import` sin flag sigue abortando con
+    `plan_items is already seeded; plan import runs once`.
+  - `bunx tsc --noEmit` exit 0 (corrido por el cerebro). Gates del ejecutor:
+    `bun run test:coverage` exit 0 con 1363 tests / 0 fallos · `bun run lint` exit 0 ·
+    `git diff --check` limpio · pre-commit completo en verde.
+  **Tres defectos encontrados en esta pasada, y de quién eran:**
+  1. El spec decía `76`; el número real era **77** (`ccf3a79` partió `S.4` en dos). **Error del
+     cerebro.** Luna detectó la contradicción, **paró sin decidir** y dejó los cambios sin
+     commitear para no ocultarla — el comportamiento que el spec pedía. Se corrigió el spec.
+  2. El spec fijaba `d866f92` como sha de `S.3`; el correcto es **`4d019b6`**, el commit que marcó
+     `[x]`, no el que trajo el código. **Error del cerebro**; `commitShaFor()` ya hacía lo bueno.
+  3. `--reconcile` hacía upsert pero **no borraba**: `plan_items` quedó con 78 filas para 77 ítems,
+     sobrando la fila `S.4` cuyo ítem ya no existe. **Defecto del código**, encontrado por la
+     verificación del cerebro y no por la suite del ejecutor, porque ningún test lo miraba. Sin
+     esto, `plan:render` (S.4b) habría resucitado un `S.4` fantasma y el gate lo habría declarado
+     sincronizado. Corregido: el borrado va en la **misma transacción** y aborta si una FK de
+     `plan_item_deps` lo impide, en vez de cascadear. Salida real: `1 orphan plan items deleted: S.4`.
+  **Lección transversal (extiende `reference-ci-host-environment-drift`):** los tres defectos son
+  la misma familia — un índice derivado validado contra sí mismo o contra otro derivado. La regla
+  que queda: **una verificación de fidelidad se contrasta siempre contra la fuente**, y un `upsert`
+  no es una reconciliación mientras no borre lo que la fuente ya no tiene.
   **Alcance (tres cambios, ninguno de diseño):**
   1. `scripts/plan-status.ts:37` — el grupo del ID admite `-` y `'` además de `.`. `H.8.3'` lleva
      el apóstrofe al final, así que no basta tratarlos como separadores internos. El resto del
