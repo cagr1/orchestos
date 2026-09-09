@@ -15,6 +15,7 @@ interface PlanItem {
   dependsOn: string[]
   blockedBy: string[]
   ready: boolean
+  commitPending: boolean
 }
 
 interface PlanMutation {
@@ -271,6 +272,11 @@ function PlanColumn({
             <strong>{item.title}</strong>
             {item.block && <small>{item.block}</small>}
             <DependencyEdges item={item} byId={byId} />
+            {item.status === 'done' && item.commitPending && (
+              <p className="plan-commit-pending" data-plan-commit-pending={item.id} role="status">
+                {t('plan.commitPending')}
+              </p>
+            )}
             {item.status === 'open' && (
               <div className="plan-card-actions">
                 <button

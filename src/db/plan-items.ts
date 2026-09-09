@@ -1,6 +1,7 @@
 import type { Database } from 'bun:sqlite'
 import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
+import { parsePlanFeatureStatus } from '../../scripts/plan-status.ts'
 import { renderPlan } from './plan-doc.ts'
 import { db } from './sqlite.ts'
 
@@ -51,6 +52,10 @@ export interface PlanItemWithDeps {
   dependsOn: string[]
   blockedBy: string[]
   ready: boolean
+}
+
+export interface PlanItemWithCommitStatus extends PlanItemWithDeps {
+  commitPending: boolean
 }
 
 export interface PreparePlanCloseOptions {
@@ -163,6 +168,121 @@ export function listPlanItemsWithDeps(database: Database = db): PlanItemWithDeps
       blockedBy,
       ready: item.status === 'open' && blockedBy.length === 0,
     }
+  })
+}
+
+const FULL_COMMIT_SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i
+
+function git(root: string, args: string[]): { exitCode: number; stdout: string } {
+  const result = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
+  return { exitCode: result.exitCode, stdout: new TextDecoder().decode(result.stdout).trim() }
+}
+
+function itemStatusAtCommit(root: string, commit: string, id: string): PlanItemStatus | null {
+  const document = git(root, ['show', `${commit}:PLAN.md`])
+  if (document.exitCode !== 0) return null
+  return parsePlanFeatureStatus(document.stdout).find((item) => item.id === id)?.status ?? null
+}
+
+/** A close SHA is trustworthy only when that commit itself flips the item's status. */
+export function isConfirmedPlanCloseCommit(root: string, id: string, sha: string): boolean {
+  if (!FULL_COMMIT_SHA.test(sha)) return false
+  if (git(root, ['rev-parse', '--verify', `${sha}^{commit}`]).exitCode !== 0) return false
+  if (git(root, ['merge-base', '--is-ancestor', sha, 'HEAD']).exitCode !== 0) return false
+  if (itemStatusAtCommit(root, sha, id) !== 'done') return false
+  const parent = git(root, ['rev-parse', '--verify', `${sha}^`])
+  if (parent.exitCode !== 0) {
+    // A root commit transitions from an empty document.
+    return true
+  }
+  return itemStatusAtCommit(root, parent.stdout, id) !== 'done'
+}
+
+/**
+ * Finds the real transition commit for every item in one pass over PLAN.md's history,
+ * instead of re-walking the whole history once per item. `plan-import.ts`'s reconcile closes
+ * dozens of items at a time; calling `findPlanCloseCommit` per item was O(items × history) git
+ * subprocess spawns — on this repo's ~440 PLAN.md-touching commits that took minutes and could
+ * hang. `--first-parent` keeps each entry's parent equal to the next (older) entry parsed here,
+ * so every commit's PLAN.md is read exactly once. Reopen-then-reclose resolves to the most
+ * recent closing transition, since the walk goes newest-first and the first match wins.
+ */
+export function findAllPlanCloseCommits(root: string): Map<string, string> {
+  const result = new Map<string, string>()
+  const history = git(root, ['log', '--first-parent', '--format=%H', '--', 'PLAN.md'])
+  if (history.exitCode !== 0) return result
+  const shas = history.stdout.split('\n').filter(Boolean)
+  const parsed = shas.map((sha) => {
+    const document = git(root, ['show', `${sha}:PLAN.md`])
+    return document.exitCode === 0
+      ? new Map(parsePlanFeatureStatus(document.stdout).map((item) => [item.id, item.status]))
+      : new Map<string, PlanItemStatus>()
+  })
+  for (const [index, sha] of shas.entries()) {
+    const after = parsed[index]
+    const before = parsed[index + 1] ?? new Map<string, PlanItemStatus>()
+    if (!after) continue
+    for (const [id, status] of after) {
+      if (status === 'done' && before.get(id) !== 'done' && !result.has(id)) result.set(id, sha)
+    }
+  }
+  return result
+}
+
+/** Finds the real transition commit for a single item; callers must abort rather than
+ * inventing HEAD. Prefer `findAllPlanCloseCommits` when resolving more than one id. */
+export function findPlanCloseCommit(root: string, id: string): string | null {
+  return findAllPlanCloseCommits(root).get(id) ?? null
+}
+
+/**
+ * Resolves each SHA once per request. Any git error, missing object, shallow
+ * history, or unrelated commit stays visibly pending.
+ */
+export function listPlanItemsWithCommitStatus(
+  root: string,
+  database: Database = db,
+): PlanItemWithCommitStatus[] {
+  const states = new Map<
+    string,
+    { after: Map<string, PlanItemStatus>; before: Map<string, PlanItemStatus> } | null
+  >()
+  const stateFor = (sha: string) => {
+    if (states.has(sha)) return states.get(sha)
+    if (!FULL_COMMIT_SHA.test(sha)) {
+      states.set(sha, null)
+      return null
+    }
+    if (git(root, ['rev-parse', '--verify', `${sha}^{commit}`]).exitCode !== 0) {
+      states.set(sha, null)
+      return null
+    }
+    if (git(root, ['merge-base', '--is-ancestor', sha, 'HEAD']).exitCode !== 0) {
+      states.set(sha, null)
+      return null
+    }
+    const after = git(root, ['show', `${sha}:PLAN.md`])
+    const parent = git(root, ['rev-parse', '--verify', `${sha}^`])
+    const before = parent.exitCode === 0 ? git(root, ['show', `${parent.stdout}:PLAN.md`]) : null
+    if (after.exitCode !== 0 || (before && before.exitCode !== 0)) {
+      states.set(sha, null)
+      return null
+    }
+    const value = {
+      after: new Map(parsePlanFeatureStatus(after.stdout).map((item) => [item.id, item.status])),
+      before: new Map(
+        (before ? parsePlanFeatureStatus(before.stdout) : []).map((item) => [item.id, item.status]),
+      ),
+    }
+    states.set(sha, value)
+    return value
+  }
+  return listPlanItemsWithDeps(database).map((item) => {
+    const sha = item.commitSha
+    if (!sha) return { ...item, commitPending: false }
+    const state = stateFor(sha)
+    const confirmed = state?.after.get(item.id) === 'done' && state.before.get(item.id) !== 'done'
+    return { ...item, commitPending: item.status === 'done' && !confirmed }
   })
 }
 

@@ -76,13 +76,14 @@ describe('preparePlanItemClose', () => {
     const database = fixtureDb()
     const root = mkdtempSync(join(tmpdir(), 'plan-close-'))
     roots.push(root)
-    const plan = '# Fixture\n- [ ] **A — ⚡ A.**\n- [ ] **B — ⚡ B.**\n'
+    const plan =
+      '## Sprint fixture\n- [ ] **A — ⚡ A.**\n- [ ] **B — ⚡ B.**\n- [ ] **C — ⚡ C.**\n'
     writeFileSync(join(root, 'PLAN.md'), plan, 'utf-8')
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
       'PLAN.md',
       0,
       'prose',
-      '# Fixture\n',
+      '## Sprint fixture\n',
       null,
     ])
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
@@ -99,6 +100,13 @@ describe('preparePlanItemClose', () => {
       '- [ ] **B — ⚡ B.**\n',
       'B',
     ])
+    database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
+      'PLAN.md',
+      3,
+      'item',
+      '- [ ] **C — ⚡ C.**\n',
+      'C',
+    ])
 
     const closed = preparePlanItemClose({
       id: 'A',
@@ -109,7 +117,7 @@ describe('preparePlanItemClose', () => {
     })
     expect(closed.status).toBe('done')
     expect(readFileSync(join(root, 'PLAN.md'), 'utf-8')).toBe(
-      '# Fixture\n- [x] **A — ⚡ A.**\n- [ ] **B — ⚡ B.**\n',
+      '## Sprint fixture\n- [x] **A — ⚡ A.**\n- [ ] **B — ⚡ B.**\n- [ ] **C — ⚡ C.**\n',
     )
     expect(listPlanItemsWithDeps(database).find((item) => item.id === 'B')?.status).toBe('open')
     database.close()
@@ -119,14 +127,36 @@ describe('preparePlanItemClose', () => {
     const database = fixtureDb()
     const root = mkdtempSync(join(tmpdir(), 'plan-close-fail-'))
     roots.push(root)
-    const plan = '- [ ] **A — ⚡ A.**\n'
+    const plan =
+      '## Sprint fixture\n- [ ] **A — ⚡ A.**\n- [ ] **B — ⚡ B.**\n- [ ] **C — ⚡ C.**\n'
     writeFileSync(join(root, 'PLAN.md'), plan, 'utf-8')
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
       'PLAN.md',
       0,
+      'prose',
+      '## Sprint fixture\n',
+      null,
+    ])
+    database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
+      'PLAN.md',
+      1,
       'item',
       '- [ ] **A — ⚡ A.**\n',
       'A',
+    ])
+    database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
+      'PLAN.md',
+      2,
+      'item',
+      '- [ ] **B — ⚡ B.**\n',
+      'B',
+    ])
+    database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
+      'PLAN.md',
+      3,
+      'item',
+      '- [ ] **C — ⚡ C.**\n',
+      'C',
     ])
 
     expect(() =>

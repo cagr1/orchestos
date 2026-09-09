@@ -60,6 +60,8 @@ export interface PlanItemRow {
   dependsOn: string[]
   blockedBy: string[]
   ready: boolean
+  /** A done row remains pending until its stored SHA proves this item's transition in Git. */
+  commitPending: boolean
 }
 
 export interface PlanListResponse {

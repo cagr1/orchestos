@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { renderPlan } from '../../db/plan-doc.ts'
 import {
   getPlanItem,
+  listPlanItemsWithCommitStatus,
   listPlanItemsWithDeps,
   preparePlanItemClose,
   setDeps,
@@ -31,17 +32,21 @@ function itemIdFromPath(req: Request, suffix: string): string | null {
   const pathname = new URL(req.url).pathname
   const prefix = '/api/plan/items/'
   if (!pathname.startsWith(prefix) || !pathname.endsWith(suffix)) return null
-  return decodeURIComponent(pathname.slice(prefix.length, -suffix.length))
+  try {
+    return decodeURIComponent(pathname.slice(prefix.length, -suffix.length))
+  } catch {
+    return null
+  }
 }
 
-function planResponse(): PlanListResponse {
-  return { items: listPlanItemsWithDeps(db) as PlanItemRow[] }
+function planResponse(root: string): PlanListResponse {
+  return { items: listPlanItemsWithCommitStatus(root, db) as PlanItemRow[] }
 }
 
 export function handleApiPlan(root: string): Response {
   const consistent = currentPlan(root)
   if (consistent instanceof Response) return consistent
-  return jsonResponse(planResponse())
+  return jsonResponse(planResponse(root))
 }
 
 export async function handleApiPlanDependencies(req: Request, root: string): Promise<Response> {
@@ -51,15 +56,24 @@ export async function handleApiPlanDependencies(req: Request, root: string): Pro
   const id = rawId ? validateTaskId(rawId) : null
   if (!id) return errorResponse('Invalid plan item id', 400)
 
-  let body: { dependsOn?: unknown }
+  let body: unknown
   try {
-    body = (await req.json()) as { dependsOn?: unknown }
+    body = await req.json()
   } catch {
     return errorResponse('Invalid JSON', 400)
   }
-  if (!Array.isArray(body.dependsOn) || !body.dependsOn.every((dep) => typeof dep === 'string'))
+  const parsedBody = body as { dependsOn?: unknown }
+  if (
+    !body ||
+    typeof body !== 'object' ||
+    Array.isArray(body) ||
+    Object.keys(body).length !== 1 ||
+    !Object.hasOwn(body, 'dependsOn') ||
+    !Array.isArray(parsedBody.dependsOn) ||
+    !parsedBody.dependsOn.every((dep) => typeof dep === 'string')
+  )
     return errorResponse('dependsOn must be an array of ids', 400)
-  const dependsOn = body.dependsOn.map((dep) => dep.trim())
+  const dependsOn = (parsedBody.dependsOn as string[]).map((dep) => dep.trim())
   if (new Set(dependsOn).size !== dependsOn.length)
     return errorResponse('dependsOn must contain unique ids', 400)
   if (dependsOn.some((dep) => !validateTaskId(dep)))
@@ -77,7 +91,7 @@ export async function handleApiPlanDependencies(req: Request, root: string): Pro
   setDeps(id, dependsOn, db)
   const updated = listPlanItemsWithDeps(db).find((candidate) => candidate.id === id)
   if (!updated) return errorResponse(`Plan item not found: ${id}`, 404)
-  return jsonResponse(updated satisfies PlanItemRow)
+  return jsonResponse({ ...updated, commitPending: false } satisfies PlanItemRow)
 }
 
 function gitHead(root: string): string | null {
@@ -111,7 +125,10 @@ export function handleApiPlanPrepareClose(req: Request, root: string): Response 
       now: new Date().toISOString(),
       database: db,
     })
-    const response: PreparePlanCloseResponse = { item: closed, commitPending: true }
+    const response: PreparePlanCloseResponse = {
+      item: { ...closed, commitPending: true },
+      commitPending: true,
+    }
     return jsonResponse(response)
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : String(error), 500)

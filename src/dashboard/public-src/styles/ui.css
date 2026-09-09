@@ -254,6 +254,7 @@
 .plan-card code, .plan-edge { font-family: var(--mono); font-size: 11px; }
 .plan-card > strong { font-size: 12px; line-height: 1.35; color: var(--text); }
 .plan-card > small, .plan-no-deps { margin: 0; color: var(--text-faint); font-size: 10px; }
+.plan-commit-pending { margin: 0; color: var(--warning); font-size: 10px; line-height: 1.35; }
 .plan-edges { display: flex; flex-wrap: wrap; gap: 5px; }
 .plan-edge { padding: 3px 5px; border-radius: 4px; background: var(--surface); }
 .plan-edge.open { color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }

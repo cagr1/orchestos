@@ -1,0 +1,53 @@
+{
+  "dom": {
+    "initial": {
+      "sprints": 2,
+      "ids": ["A", "B", "C"]
+    },
+    "persistedEdge": "A → B",
+    "afterClose": {
+      "aDone": true,
+      "bReady": true,
+      "pending": true
+    },
+    "pendingAfterReload": true,
+    "pendingClearedAfterCommit": true
+  },
+  "api": {
+    "afterDependencies": {
+      "id": "B",
+      "sprint": "Sprint Alpha",
+      "block": "Block Alpha",
+      "delegation": "⚡",
+      "title": "Second item",
+      "status": "open",
+      "position": 1,
+      "commitSha": null,
+      "closedAt": null,
+      "dependsOn": ["A"],
+      "blockedBy": ["A"],
+      "ready": false,
+      "commitPending": false
+    },
+    "negative": {
+      "cycle": 409,
+      "blockedClose": 409
+    },
+    "commitPendingAfterReload": true,
+    "commitPendingAfterUnrelatedMutation": true,
+    "commitPendingAfterRealCommit": false
+  },
+  "database": {
+    "a": {
+      "status": "done",
+      "commit_sha": "90f8ce8a07c36c79e0680400aeefc15c7408843a"
+    }
+  },
+  "sha": "90f8ce8a07c36c79e0680400aeefc15c7408843a",
+  "byteExact": true,
+  "consoleErrors": [],
+  "failedResponses": [
+    "409 http://localhost:58560/api/plan/items/A/dependencies",
+    "409 http://localhost:58560/api/plan/items/B/prepare-close"
+  ]
+}

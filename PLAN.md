@@ -375,6 +375,97 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   `wouldCreateDependencyCycle()` en el handler hace fallar la suite con `transitive cycle must be
   409` — el test muerde, no solo pasa.
 
+- [x] **S.6a — ⚡ Remate verificable del Bloque S antes de archivarlo.**
+  Ejecutado por: claude-sonnet-5 · Spec: docs/specs/S.6a.md
+  Autorizado por Carlos: convertir la revisión de S.6 en un encargo delegable, sin implementar.
+  Depende de S.6 (cerrado).
+  **Alcance:** integridad entre campos de plan_items y segmentos; procedencia desde evidencia
+  staged en docs/done/; cierre pendiente verificable tras recarga; validación del body HTTP.
+  **Fuera:** inferir/cargar dependencias reales, ejecutar tareas desde el board, rediseñar UI,
+  migraciones SQLite y archivar el bloque completo antes de la revisión independiente.
+  Cierre inline (sin `evidenceHref`), igual que S.5/S.6: `docs/done/bloque-S.md` no existe
+  todavía — el spec difiere el archivado completo de S.1–S.6 a una operación separada.
+  **A — integridad DB/documento:** `validatePlanDocumentIntegrity()` (`src/db/plan-doc.ts`),
+  llamada desde `renderPlan()`, compara el documento parseado contra `plan_items` (conjunto de
+  IDs, duplicados, item_id vs texto del segmento, y status/title/delegation/sprint/block/position)
+  y rechaza en vez de renderizar una sincronización falsa.
+  **B — procedencia con evidencia archivada:** `checkProvenance()` (`scripts/plan-gate.ts`) ahora
+  resuelve `→ [evidencia](docs/done/x.md#ancla)` desde el índice Git (nunca el disco), exige que
+  `Ejecutado por: ... · Spec: docs/specs/<ID>.md` se AÑADA en ese commit (compara contra la
+  sección en `HEAD`) y rechaza ruta fuera de `docs/done/`, ancla ausente/duplicada, blob no
+  staged y symlinks. El camino inline histórico (sin `evidenceHref`) sigue intacto.
+  `scripts/check-live-gate.ts` gana la misma resolución (`hasArchivedLiveGateEvidence`,
+  reutilizando `closedPlanItemIds`/`evidenceSectionFromIndex` exportados de `plan-gate.ts`): un
+  cierre que deja la evidencia en `docs/done/` con solo un enlace en PLAN.md ya no da falso
+  negativo en el gate de dashboard/config.
+  **C — cierre pendiente durable por Git:** `findPlanCloseCommit()`/`isConfirmedPlanCloseCommit()`
+  (`src/db/plan-items.ts`) prueban que un SHA es ancestro de HEAD y que ESE commit (no uno
+  posterior) flip'ea el ítem a `done` respecto de su padre. `commitShaFor()` (`plan-import.ts`)
+  usa esto y ya no cae a `HEAD` en silencio: si no hay prueba, `importAll` aborta la transacción
+  completa. `GET /api/plan` expone `commitPending` vía `listPlanItemsWithCommitStatus()`; la
+  tarjeta `done` muestra el aviso de forma durable (server-derived, no memoria de
+  `planMutation`) hasta que un commit real lo confirme.
+  **D — contrato HTTP estricto:** `PUT .../dependencies` exige objeto no nulo, no array, con
+  exactamente `dependsOn`; JSON malformado, `null`, array, primitivo o propiedad extra → 400 sin
+  mutar. `itemIdFromPath()` atrapa `decodeURIComponent` inválido → 400 en vez de 500.
+  Cambio de superficie compartida no pedido por el spec pero necesario (de S.6, revisado ahí):
+  `TASK_ID_RE` acepta `'` por el ítem real `H.8.3'`.
+  **Gate:** `bun run gate:evidence -- --label S.6a -- bun run scripts/ui-gates/s6a-sprint-board.mjs`
+  → `✓ S.6a sprint board gate passed`, corrido dos veces seguidas sin ensuciar el formato del
+  JSON. Extiende el fixture de S.6 (sin tocar su evidencia): prepara el cierre de A, recarga y
+  confirma el aviso + `commitPending:true` por DOM y API, muta B (servidor real) y confirma que
+  el aviso persiste, crea el commit real + `plan:reconcile`, recarga y confirma `false` y
+  ausencia del aviso — más los negativos de ciclo/cierre bloqueado ya existentes.
+  **Gate en vivo: verificado con Playwright** (Chromium real) — evidencia en
+  `scripts/s6a-live-evidence.json`, producida por `scripts/ui-gates/s6a-sprint-board.mjs`, más
+  `scripts/s6a-sprint-board.png`.
+  Tests nuevos con fixtures Git reales (no mocks): `scripts/plan-gate.test.ts` (9 casos de la
+  parte B), `scripts/check-live-gate.test.ts` (5 casos, inline + archivado), extensión de
+  `src/dashboard/__tests__/plan-api.test.ts` (parte C/D: 6 negativos de body + percent-encoding
+  inválido, persistencia de `commitPending` tras recarga/mutación ajena/commit real), y
+  `scripts/plan-render.test.ts` (integridad A).
+  Verificado por el cerebro: `bunx tsc --noEmit` exit 0; `bun run test:coverage` 1388 pass / 0
+  fail (functions 74.39% ≥ 69, lines 63.22% ≥ 57); `bunx biome check .` exit 0 con los 879
+  warnings heredados; `bun run build:ui` reproducible (mismo MD5 de `ui.js`/`ui.css` antes y
+  después de rebuildear con el código nuevo); `git diff --check` limpio. Prueba de mutación:
+  forzar `confirmed = true` en `listPlanItemsWithCommitStatus()` hace fallar el test de
+  `plan-api.test.ts` que exige `commitPending` tras recarga; forzar `archived = false` en
+  `check-live-gate.ts` hace fallar el test del camino archivado — ambos tests muerden, no solo
+  pasan.
+  **Dos hallazgos reales descubiertos AL VERIFICAR, no previstos por el spec ni por el ejecutor
+  (Terra nunca llegó al gate en vivo real, solo a fixtures diminutos):**
+  1. `findPlanCloseCommit()` original recorría el historial COMPLETO de `PLAN.md` (438 commits)
+     por cada ítem `done` en cada reconcile — O(ítems × historial). Contra la DB real (77 ítems)
+     colgó varios minutos y tuvo que matarse. Reemplazado por `findAllPlanCloseCommits()`
+     (`src/db/plan-items.ts`): una sola pasada `--first-parent` sobre el historial, parseando el
+     `PLAN.md` de cada commit UNA vez, resolviendo todos los IDs a la vez. `plan:reconcile` pasó
+     de colgarse a ~8s reales.
+  2. La regla "abortar si no hay prueba" del spec (parte C) es incompatible con el flujo real de
+     cierre manual: el pre-commit hook exige `plan:render --check` contra `PLAN.md` STAGED, o sea
+     `plan:reconcile` debe correr ANTES del commit de cierre — pero a esa altura el commit que
+     probaría la transición todavía no existe. `commitShaFor()` ahora distingue: un ítem que
+     recién pasa a `done` EN ESTA pasada de reconcile (y solo con `--reconcile`, nunca en el
+     import inicial) recibe el mismo SHA provisional (`git rev-parse HEAD`) que ya usa
+     `preparePlanItemClose()` para el board — corregido por el reconcile siguiente, ya con el
+     commit real. Un ítem que YA estaba `done` en la DB sigue sin excepción: si no prueba su
+     commit, todo el reconcile aborta. Ese es el filo real del fix — nunca inventar HEAD para un
+     cierre histórico, sí tolerarlo como provisional para uno en curso. Regresión cubierta en
+     `scripts/plan-import.test.ts` (SHA provisional aceptado; segundo reconcile sin commit real
+     falla porque el ítem ya es `done`; commit real reemplaza el provisional).
+  **Fuera de scope declarado:** el scope-lock de S.6a omitía `PLAN.md`/`.orchestos/feature-status.json`
+  (mismo defecto de protocolo ya anotado al cerrar S.6: todo cierre los toca por definición) y
+  `scripts/check-live-gate.test.ts` (el glob declarado cubre `scripts/check-live-gate.ts` pero no
+  su test, un descuido puntual al declarar el scope). Ningún archivo de producto quedó fuera.
+  Incidente durante la depuración del hallazgo 2: corrí `scripts/ui-gates/s6a-sprint-board.mjs`
+  directo (sin `bun run gate:evidence --`) para diagnosticar un timeout, sin `ORCHESTOS_HOME`
+  aislado — el fixture de 3 ítems se escribió sobre la DB real (`~/.orchestos`) porque
+  `src/db/sqlite.ts` resuelve su home global al importar el módulo, no por argumento. Recuperado
+  reconciliando contra el `PLAN.md` real (con el ítem S.6a temporalmente revertido a abierto vía
+  `git stash` para no chocar con el hallazgo 2 mismo) y limpiando a mano las filas huérfanas de
+  `plan_item_deps` que un `DELETE` con `FOREIGN KEY` bloqueaba. Cero pérdida: `PLAN.md` en disco
+  nunca se tocó, solo la proyección derivada. Recordatorio para cualquier LLM: un gate UI nunca
+  se corre suelto contra este repo — siempre `bun run gate:evidence -- --label <id> --`.
+
 **Consecuencia de producto, no solo de repo:** hoy el plan y la ejecución son dos grafos que no se
 hablan — un ítem de PLAN.md hay que traducirlo a mano a una tarea. Con `plan_items` en la misma DB
 que `tasks.yaml`, un ítem ejecutable se convierte en run sin traducción, y el `commit_sha` que

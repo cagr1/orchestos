@@ -116,3 +116,122 @@ Evidencia controlada del ítem cerrado.
     rmSync(fixture, { recursive: true, force: true })
   }
 })
+
+/**
+ * S.6a part C regression — discovered while closing S.6a itself, not in the original spec.
+ * The pre-commit hook's `plan:render --check` requires `plan_doc_segments` to already match
+ * the STAGED (not yet committed) PLAN.md, which means reconcile must run before the closing
+ * commit exists. A closing commit therefore cannot be proven yet for the item this very call
+ * is transitioning to `done` — that item gets the same provisional `git rev-parse HEAD` the
+ * dashboard's `preparePlanItemClose()` already uses, confirmed later by a post-commit reconcile.
+ * An item that was ALREADY `done` before this call gets no such leniency: it must always prove
+ * its own commit, or the whole reconcile aborts — this is the guarantee the fix is actually for.
+ */
+test('reconcile accepts a provisional HEAD for a newly-closing item, but never for an already-closed one', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-provisional-'))
+  const fixture = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-provisional-fixture-'))
+  const gitEnv = {
+    ...process.env,
+    GIT_AUTHOR_NAME: 'OrchestOS test fixture',
+    GIT_AUTHOR_EMAIL: 'fixture@orchestos.test',
+    GIT_COMMITTER_NAME: 'OrchestOS test fixture',
+    GIT_COMMITTER_EMAIL: 'fixture@orchestos.test',
+  }
+  const git = (args: string[]) => {
+    const result = Bun.spawnSync(
+      ['git', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args],
+      { cwd: fixture, env: gitEnv, stdout: 'pipe', stderr: 'pipe' },
+    )
+    expect(result.exitCode, new TextDecoder().decode(result.stderr)).toBe(0)
+  }
+  try {
+    writeFileSync(
+      join(fixture, 'PLAN.md'),
+      '## Sprint fixture\n- [ ] **F.1 — ⚡ Open item.**\n  Body for F.1.\n',
+    )
+    git(['init'])
+    git(['add', 'PLAN.md'])
+    git(['commit', '-m', 'F.1 open'])
+
+    const run = async (script: string) => {
+      const proc = Bun.spawn(['bun', '-e', script], {
+        cwd: process.cwd(),
+        env: { ...process.env, ORCHESTOS_HOME: home, PLAN_IMPORT_FIXTURE_ROOT: fixture },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      const [exitCode, stdout, stderr] = await Promise.all([
+        proc.exited,
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ])
+      return { exitCode, stdout, stderr }
+    }
+
+    const seed = await run(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { importPlan } = await import('./scripts/plan-import.ts')
+      runMigrations()
+      importPlan(process.env.PLAN_IMPORT_FIXTURE_ROOT)
+    `)
+    expect(seed.exitCode, seed.stderr).toBe(0)
+
+    // Close F.1 in the working tree WITHOUT committing yet — the exact pre-commit sequence.
+    writeFileSync(
+      join(fixture, 'PLAN.md'),
+      '## Sprint fixture\n- [x] **F.1 — ⚡ Open item.**\n  Body for F.1.\n',
+    )
+    const headBeforeCommit = Bun.spawnSync(['git', 'rev-parse', 'HEAD'], {
+      cwd: fixture,
+      stdout: 'pipe',
+    })
+      .stdout.toString()
+      .trim()
+
+    const preCommitReconcile = await run(`
+      const { importPlan } = await import('./scripts/plan-import.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      importPlan(process.env.PLAN_IMPORT_FIXTURE_ROOT, true)
+      const row = db.query('SELECT status, commit_sha FROM plan_items WHERE id = ?').get('F.1')
+      process.stdout.write(JSON.stringify(row))
+    `)
+    expect(preCommitReconcile.exitCode, preCommitReconcile.stderr).toBe(0)
+    const provisionalRow = JSON.parse(preCommitReconcile.stdout)
+    expect(provisionalRow).toEqual({ status: 'done', commit_sha: headBeforeCommit })
+
+    // A second reconcile with STILL no real commit must now fail: F.1 is already `done` in the
+    // DB, so its provisional SHA no longer gets a free pass — it must prove a real transition.
+    const secondReconcileWithoutCommit = await run(`
+      const { importPlan } = await import('./scripts/plan-import.ts')
+      importPlan(process.env.PLAN_IMPORT_FIXTURE_ROOT, true)
+    `)
+    expect(secondReconcileWithoutCommit.exitCode).not.toBe(0)
+    expect(secondReconcileWithoutCommit.stderr).toContain(
+      'Could not prove a closing commit SHA for F.1',
+    )
+
+    // Now make the real closing commit and reconcile again: the provisional SHA must be
+    // replaced by the real one, proven by history — never left standing unverified.
+    git(['add', 'PLAN.md'])
+    git(['commit', '-m', 'close F.1'])
+    const realSha = Bun.spawnSync(['git', 'rev-parse', 'HEAD'], { cwd: fixture, stdout: 'pipe' })
+      .stdout.toString()
+      .trim()
+    const postCommitReconcile = await run(`
+      const { importPlan } = await import('./scripts/plan-import.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      importPlan(process.env.PLAN_IMPORT_FIXTURE_ROOT, true)
+      const row = db.query('SELECT status, commit_sha FROM plan_items WHERE id = ?').get('F.1')
+      process.stdout.write(JSON.stringify(row))
+    `)
+    expect(postCommitReconcile.exitCode, postCommitReconcile.stderr).toBe(0)
+    expect(JSON.parse(postCommitReconcile.stdout)).toEqual({
+      status: 'done',
+      commit_sha: realSha,
+    })
+    expect(realSha).not.toBe(headBeforeCommit)
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+    rmSync(fixture, { recursive: true, force: true })
+  }
+})

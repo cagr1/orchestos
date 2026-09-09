@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { runMigrations } from '../src/db/migrate.ts'
-import { upsertPlanItem } from '../src/db/plan-items.ts'
+import { findAllPlanCloseCommits, getPlanItem, upsertPlanItem } from '../src/db/plan-items.ts'
 import { db } from '../src/db/sqlite.ts'
 import {
   type PlanItemSource,
@@ -23,27 +23,39 @@ function bodyFromEvidence(root: string, href: string): string {
   return text.slice(start, next === -1 ? text.length : next).trim()
 }
 
-function commitShaFor(item: PlanItemSource, root: string): string {
-  const search = Bun.spawnSync(
-    ['git', 'log', '--format=%H', '-S', `- [x] **${item.id} —`, '--', 'PLAN.md'],
-    {
-      cwd: root,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
-  )
-  const sha = new TextDecoder().decode(search.stdout).trim().split('\n')[0]
-  if (search.exitCode === 0 && sha) return sha
+function gitHead(root: string): string | null {
+  const result = Bun.spawnSync(['git', 'rev-parse', 'HEAD'], { cwd: root, stdout: 'pipe' })
+  const sha = new TextDecoder().decode(result.stdout).trim()
+  return result.exitCode === 0 && sha ? sha : null
+}
 
-  const head = Bun.spawnSync(['git', 'rev-parse', 'HEAD'], {
-    cwd: root,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  })
-  const fallback = new TextDecoder().decode(head.stdout).trim()
-  if (head.exitCode !== 0 || !fallback)
-    throw new Error(`Could not determine fallback commit SHA for ${item.id}`)
-  return fallback
+/**
+ * S.6a part C found this the hard way: the pre-commit hook's `plan:render --check` expects
+ * `plan_doc_segments` to already reflect the staged PLAN.md, which means reconcile has to run
+ * BEFORE the closing commit exists — but a proof of that commit cannot exist yet either. The
+ * fix distinguishes two cases instead of one blanket rule:
+ *   - an item transitioning open→done in THIS very call has no history to prove — it gets the
+ *     same provisional `git rev-parse HEAD` that `preparePlanItemClose()` already writes for the
+ *     dashboard's own prepare-close flow, and `listPlanItemsWithCommitStatus()` correctly shows
+ *     it as `commitPending` until a later reconcile (after the real commit) confirms it;
+ *   - an item that was ALREADY `done` before this call must still prove its stored SHA — this is
+ *     the guarantee the fix was for or actually about: no more inventing a fresh HEAD for a
+ *     historical close whose commit doesn't say so, which is what let a false claim through
+ *     undetected before (see PLAN.md's Bloque S evidence for S.6a).
+ */
+function commitShaFor(
+  item: PlanItemSource,
+  closeCommits: Map<string, string>,
+  allowProvisional: boolean,
+  root: string,
+): string {
+  const sha = closeCommits.get(item.id)
+  if (sha) return sha
+  if (allowProvisional) {
+    const provisional = gitHead(root)
+    if (provisional) return provisional
+  }
+  throw new Error(`Could not prove a closing commit SHA for ${item.id}`)
 }
 
 interface ImportResult {
@@ -57,12 +69,19 @@ function importSources(sources: PlanItemSource[], root: string, reconcile: boole
   const roundTrip = segments.map((segment) => segment.text).join('')
   if (roundTrip !== plan) throw new Error('PLAN.md segment round-trip is not byte-exact')
 
+  // Resolved once for every item instead of once per item — see findAllPlanCloseCommits.
+  const closeCommits = findAllPlanCloseCommits(root)
   const importAll = db.transaction(() => {
     for (const item of sources) {
       const body = item.evidenceHref ? bodyFromEvidence(root, item.evidenceHref) : item.body
       if (item.status === 'done' && !body.trim()) {
         throw new Error(`Closed plan item ${item.id} has an empty body`)
       }
+      // Provisional-HEAD is only for the reconcile-before-commit workflow, and only for an
+      // item this very call is newly closing — never for the one-time seed import, and never
+      // for an item that was already `done` (that must always prove its stored commit).
+      const wasAlreadyDone = getPlanItem(item.id, db)?.status === 'done'
+      const allowProvisional = reconcile && !wasAlreadyDone
       upsertPlanItem(
         {
           id: item.id,
@@ -72,7 +91,10 @@ function importSources(sources: PlanItemSource[], root: string, reconcile: boole
           title: item.title,
           body,
           status: item.status,
-          commitSha: item.status === 'done' ? commitShaFor(item, root) : null,
+          commitSha:
+            item.status === 'done'
+              ? commitShaFor(item, closeCommits, allowProvisional, root)
+              : null,
           closedAt: item.closedDate,
           position: item.position,
         },
