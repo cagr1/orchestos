@@ -220,7 +220,8 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
     por **exit code**, no por el conteo de warnings heredados —
     `reference-biome-warnings-no-son-rojo`) · `git diff --check`.
 
-- [ ] **S.4b — 🧠 `plan:render` híbrido + gate de desincronización y de procedencia en pre-commit.**
+- [x] **S.4b — 🧠 `plan:render` híbrido + gate de desincronización y de procedencia en pre-commit.**
+  Ejecutado por: gpt-5.6-luna · Spec: docs/specs/S.4b.md
   Depende de S.4a (cerrado). El pre-commit compara `PLAN.md` contra `render(DB)` y **aborta el
   commit si difieren** — idéntico al self-check que se agregó cuando el hook estuvo 11 días
   desincronizado en silencio. Si un LLM edita el markdown a mano, no pasa. Sin este gate, S.3 es
@@ -271,7 +272,39 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   días es el precedente. Se acepta el límite conocido: el hook comprueba **presencia**, no
   veracidad, igual que el gate en vivo.
 
-  Ejecutado por: gpt-5.6-luna · Spec: docs/specs/S4b.md
+  **Commit de implementación:** `5e20e0e` (migración v8 `plan_doc_segments`, `plan:render`,
+  `scripts/plan-gate.ts`, gates en `pre-commit.sh`).
+  **Verificación independiente del cerebro — los gates se probaron mordiendo, no en verde:**
+  - **Round-trip byte a byte sobre el `PLAN.md` real:** `diff <(bun run plan:render) PLAN.md` sin
+    salida, 148 580 bytes idénticos; `plan:render --check` exit 0. Segmentos: **155 filas =
+    77 `item` + 78 `prose`**, con los 77 `item_id` coincidiendo con `plan_items` en ambas
+    direcciones (0 huérfanos, 0 faltantes).
+  - **Prueba negativa 1 — desincronización:** edité `# OrchestOS — Plan activo` a mano, stageé sin
+    reconciliar e intenté commitear. El hook **abortó** e imprimió el primer punto de divergencia
+    (`render(DB)` vs `disk`) y el remedio exacto. `HEAD` no se movió.
+  - **Prueba negativa 2 — procedencia:** marqué `[x]` un ítem sin borrar su spec.
+    El hook **abortó**: `✗ plan gate: Procedencia S.5: commit must delete docs/specs/S.5.md
+    (or use Sin delegación: <motivo>)`. `HEAD` no se movió. La válvula de escape aparece en el
+    propio mensaje, como excepción nombrada y no como opción cómoda.
+  - Hook instalado **sincronizado** con `scripts/pre-commit.sh` (el self-check de la Regla cero).
+  - `bunx tsc --noEmit` exit 0 · `bun run test:coverage` exit 0, **1365 pass / 0 fail**,
+    functions 74.55 % (gate 69 %), lines 63.22 % (gate 57 %) · `bun run lint` **exit 0** ·
+    `git diff --check` limpio.
+  **Falso rojo del ejecutor, por segunda vez:** luna reportó que «`lint` y `test:coverage` siguen
+  afectados por fallos heredados de infraestructura/sandbox». **Es falso**: ambos dan exit 0, y los
+  879 warnings de Biome son los mismos que ya tiene master. Es el mismo error que cometió en S.3
+  (`reference-biome-warnings-no-son-rojo`), esta vez **pese a que el spec decía explícitamente
+  "juzga por el exit code, no por el conteo"**. Conclusión de proceso: escribirlo en el spec no
+  basta; el veredicto de gates de un ejecutor se re-ejecuta siempre, porque el modo de fallo es
+  recurrente y sesga hacia el falso negativo.
+  **Defecto de convención encontrado al cerrar:** `scripts/plan-gate.ts:64` deriva la ruta del spec
+  del ID (`docs/specs/${id}.md` → `docs/specs/S.4b.md`), pero el cerebro había nombrado los
+  archivos `S4a.md`/`S4b.md`, sin el punto. El gate estaba bien y el nombre mal:
+  `AGENTS.md:74` dice `docs/specs/<ID>.md` literal. Renombrado a `docs/specs/S.4b.md`; la
+  convención queda fijada por el gate, que es lo que la vuelve real.
+  **Este cierre es la primera prueba en producción del gate de procedencia:** el commit que marca
+  este `[x]` es el que borra `docs/specs/S.4b.md`. Si el gate estuviera mal escrito, no dejaría
+  cerrarse a sí mismo.
 
 - [ ] **S.5 — ⚡ `bun run next` y arranque de sesión barato.**
   Consulta: ítems `open` cuyas dependencias están todas `done`. Salida ~15 líneas.
