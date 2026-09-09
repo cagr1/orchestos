@@ -278,6 +278,47 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 8,
+    name: 'plan-doc-segments',
+    precondition: (database) => {
+      const planItems =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'plan_items'",
+          )
+          .get()?.count ?? 0
+      if (planItems !== 1) throw new Error('Migration 8 requires plan_items table')
+    },
+    apply: (database) => {
+      database.exec(`
+        CREATE TABLE plan_doc_segments (
+          doc       TEXT NOT NULL,
+          position  INTEGER NOT NULL,
+          kind      TEXT NOT NULL CHECK(kind IN ('prose', 'item')),
+          text      TEXT,
+          item_id   TEXT,
+          PRIMARY KEY (doc, position),
+          CHECK (
+            (kind = 'prose' AND text IS NOT NULL AND item_id IS NULL)
+            OR
+            (kind = 'item' AND text IS NOT NULL AND item_id IS NOT NULL)
+          )
+        );
+        CREATE INDEX idx_plan_doc_segments_doc_position
+          ON plan_doc_segments(doc, position);
+      `)
+    },
+    postcondition: (database) => {
+      const table =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'plan_doc_segments'",
+          )
+          .get()?.count ?? 0
+      if (table !== 1) throw new Error('Migration 8 did not create plan_doc_segments')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

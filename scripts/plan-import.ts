@@ -3,7 +3,11 @@ import { join } from 'node:path'
 import { runMigrations } from '../src/db/migrate.ts'
 import { upsertPlanItem } from '../src/db/plan-items.ts'
 import { db } from '../src/db/sqlite.ts'
-import { type PlanItemSource, parsePlanItemSources } from './plan-status.ts'
+import {
+  type PlanItemSource,
+  parsePlanDocumentSegments,
+  parsePlanItemSources,
+} from './plan-status.ts'
 
 function bodyFromEvidence(root: string, href: string): string {
   const [relativePath, anchor] = href.split('#', 2)
@@ -48,6 +52,11 @@ interface ImportResult {
 }
 
 function importSources(sources: PlanItemSource[], root: string, reconcile: boolean): ImportResult {
+  const plan = readFileSync(join(root, 'PLAN.md'), 'utf-8')
+  const segments = parsePlanDocumentSegments(plan)
+  const roundTrip = segments.map((segment) => segment.text).join('')
+  if (roundTrip !== plan) throw new Error('PLAN.md segment round-trip is not byte-exact')
+
   const importAll = db.transaction(() => {
     for (const item of sources) {
       const body = item.evidenceHref ? bodyFromEvidence(root, item.evidenceHref) : item.body
@@ -72,6 +81,15 @@ function importSources(sources: PlanItemSource[], root: string, reconcile: boole
     }
 
     if (!reconcile) return []
+
+    db.run("DELETE FROM plan_doc_segments WHERE doc = 'PLAN.md'")
+    for (const segment of segments) {
+      db.run(
+        `INSERT INTO plan_doc_segments (doc, position, kind, text, item_id)
+         VALUES (?, ?, ?, ?, ?)`,
+        [segment.doc, segment.position, segment.kind, segment.text, segment.itemId],
+      )
+    }
 
     const sourceIds = new Set(sources.map((item) => item.id))
     const orphanIds = db

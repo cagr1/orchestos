@@ -33,6 +33,14 @@ export interface PlanItemSource extends FeatureStatusItem {
   evidenceHref: string | null
 }
 
+export interface PlanDocumentSegment {
+  doc: 'PLAN.md'
+  position: number
+  kind: 'prose' | 'item'
+  text: string
+  itemId: string | null
+}
+
 const ITEM_LINE_RE =
   /^- \[( |x)\] \*\*([A-Za-z0-9][A-Za-z0-9.'-]*) — (🧠|⚡|🔍) (.+?)\.?\*\*(?:\s*\(cerrado (\d{4}-\d{2}-\d{2})[^)]*\))?/
 
@@ -104,6 +112,53 @@ export function parsePlanItemSources(plan: string): PlanItemSource[] {
     sources.push({ ...item, body, position: sources.length, evidenceHref })
   }
   return sources
+}
+
+export function parsePlanDocumentSegments(plan: string): PlanDocumentSegment[] {
+  const items = parsePlanFeatureStatus(plan)
+  const itemById = new Map(items.map((item) => [item.id, item]))
+  const lines = plan.match(/[^\n]*\n|[^\n]+/g) ?? []
+  const segments: PlanDocumentSegment[] = []
+  let prose = ''
+
+  const flushProse = () => {
+    if (!prose) return
+    segments.push({
+      doc: 'PLAN.md',
+      position: segments.length,
+      kind: 'prose',
+      text: prose,
+      itemId: null,
+    })
+    prose = ''
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
+    if (line == null) continue
+    const match = line.match(/^- \[( |x)\] \*\*([A-Za-z0-9][A-Za-z0-9.'-]*) — /)
+    const item = match?.[2] ? itemById.get(match[2]) : undefined
+    if (!match || !item || (match[1] === 'x') !== (item.status === 'done')) {
+      prose += line
+      continue
+    }
+
+    flushProse()
+    let text = line
+    while (index + 1 < lines.length && /^\s+\S/.test(lines[index + 1] ?? '')) {
+      index += 1
+      text += lines[index]
+    }
+    segments.push({
+      doc: 'PLAN.md',
+      position: segments.length,
+      kind: 'item',
+      text,
+      itemId: item.id,
+    })
+  }
+  flushProse()
+  return segments
 }
 
 export function serializeFeatureStatus(items: FeatureStatusItem[]): string {

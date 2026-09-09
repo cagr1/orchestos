@@ -28,6 +28,20 @@ bun run typecheck
 echo "🔐 Verificando secretos en cambios staged..."
 bun run security:secrets
 
+if git diff --cached --name-only --diff-filter=ACMRTUXB | grep -Fxq 'PLAN.md'; then
+  staged_plan="$(mktemp)"
+  trap 'rm -f "$staged_plan"' EXIT
+  git show :PLAN.md > "$staged_plan"
+  echo "🧩 Verificando PLAN.md staged contra la DB..."
+  if ! PLAN_RENDER_SOURCE="$staged_plan" bun run plan:render --check; then
+    echo "✗ PLAN.md staged no coincide con render(DB); ejecuta: bun run plan:reconcile" >&2
+    exit 1
+  fi
+  bun run scripts/plan-gate.ts
+  rm -f "$staged_plan"
+  trap - EXIT
+fi
+
 # Mes 22/F.2 — gate del ledger de responsabilidad de LLMs: si el commit toca un
 # archivo listado en .claude/protected-rules.json, exige una entrada nueva en
 # LEDGER.md en el mismo commit. Gobernanza de este repo, no feature del producto.

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -64,9 +64,13 @@ Evidencia controlada del ítem cerrado.
           const count = importPlan(root)
           let secondImportRejected = false
           try { importPlan(root) } catch { secondImportRejected = true }
+          importPlan(root, true)
           const items = db.query('SELECT id, status, body, block FROM plan_items ORDER BY position').all()
+          const segments = db
+            .query('SELECT kind, text, item_id FROM plan_doc_segments ORDER BY position')
+            .all()
           const deps = db.query('SELECT COUNT(*) AS count FROM plan_item_deps').get().count
-          process.stdout.write(JSON.stringify({ count, items, deps, secondImportRejected }))
+          process.stdout.write(JSON.stringify({ count, items, deps, segments, secondImportRejected }))
           db.close()
         `,
       ],
@@ -88,9 +92,14 @@ Evidencia controlada del ítem cerrado.
       deps: number
       secondImportRejected: boolean
       items: Array<{ id: string; status: string; body: string; block: string | null }>
+      segments: Array<{ kind: string; text: string; item_id: string | null }>
     }
     expect(result.count).toBe(result.items.length)
     expect(result.deps).toBe(0)
+    expect(result.segments.filter((segment) => segment.kind === 'item')).toHaveLength(2)
+    expect(result.segments.map((segment) => segment.text).join('')).toBe(
+      readFileSync(join(fixture, 'PLAN.md'), 'utf-8'),
+    )
     expect(result.secondImportRejected).toBe(true)
     expect(result.items.find((item) => item.id === 'F.1')?.body).toContain(
       'Cuerpo controlado del ítem abierto',

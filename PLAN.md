@@ -271,6 +271,8 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   días es el precedente. Se acepta el límite conocido: el hook comprueba **presencia**, no
   veracidad, igual que el gate en vivo.
 
+  Ejecutado por: gpt-5.6-luna · Spec: docs/specs/S4b.md
+
 - [ ] **S.5 — ⚡ `bun run next` y arranque de sesión barato.**
   Consulta: ítems `open` cuyas dependencias están todas `done`. Salida ~15 líneas.
   El hook `SessionStart` pasa a inyectar esto en vez de `.orchestos/handoff.md`. Es el ítem que
