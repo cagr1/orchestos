@@ -4,6 +4,60 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "S.1",
+      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Renombrar \"Mes N\" a \"Sprint N\" en documentación y en el contrato de plan-status",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "S.2",
+      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Purgar de PLAN.md la evidencia de los ítems ya cerrados",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "S.3",
+      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Esquema `plan_items` y migración desde el parser existente",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "S.4",
+      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "`plan:render` + gate de desincronización en pre-commit",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "S.5",
+      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "`bun run next` y arranque de sesión barato",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "S.6",
+      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Pantalla Sprint Board en el dashboard",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "DOC.1",
       "month": "Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)",
       "block": null,

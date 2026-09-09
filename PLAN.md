@@ -11,6 +11,92 @@ status: mes-30-abierto--fiabilidad-del-recorrido-y-shell-chat-workspace
 Historial completado → ver [DONE.md](DONE.md).
 Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
+## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
+
+**Problema medido, no estimado.** `PLAN.md` pesa 309 KB / 3854 líneas. Para que un agente
+sepa "qué sigue" hoy hay que reparsear el archivo entero, porque la fuente de verdad es prosa.
+`.orchestos/feature-status.json` existe pero es *derivado*: no evita leer la fuente, la refleja.
+Consecuencia: cada tab nuevo paga ~309 KB de contexto para averiguar un dato de 15 líneas.
+
+**El segundo problema es de confianza, no de tamaño.** Un `.md` acepta cualquier afirmación sin
+validarla: el `- [x]` es la opinión de un LLM, no un hecho. Ya costó dos veces — el pre-commit
+desincronizado 11 días en silencio (CLAUDE.md § Regla cero) y la afirmación falsa de "lint rojo"
+escrita en la sección R.6 de este mismo archivo, corregida el 2026-09-09. Una tabla con
+constraints y un FK a un commit sha no admite eso; un párrafo sí.
+
+**Decisión (Carlos, 2026-09-09): invertir la dirección de derivación.** La DB pasa a ser fuente
+y el markdown pasa a ser vista generada. Requisito explícito de Carlos: **seguir "viéndolo"** —
+`PLAN.md` y `DONE.md` se siguen leyendo igual que siempre, versionados en git y con diff por
+commit; lo que cambia es que se imprimen, no se escriben a mano. Es el contrato que ya rige
+`runs-summary.json` y `.orchestos/feature-status.json`, aplicado al plan.
+
+**Precedente de la industria consultado:** Beads (`bd`), tracker git-native de issues para agentes
+— grafo de dependencias consultable en vez de plan en prosa, dependencias como ciudadanos de
+primera clase, consulta dirigida en vez de cargar el plan entero. **Se roba el diseño, no el
+software:** Beads es Go + Dolt, y OrchestOS *ya es* un orquestador con DAG (`tasks.yaml`,
+graph-runner) — adoptar un tracker externo competiría con su propio motor. Mismo criterio que se
+aplicó con OmniRoute. Descartado en la misma pasada: `microsoft/tgrep` (índice de trigramas,
+hasta 52x sobre ripgrep) — resuelve latencia de regex en monorepos de 100k+ archivos; este repo
+tiene 624 y el problema no es buscar texto, es consultar un grafo.
+
+**Cierre del bloque:** abrir un tab nuevo y saber qué sigue cuesta ~1 KB en vez de 309 KB, y
+ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
+
+- [ ] **S.1 — ⚡ Renombrar "Mes N" a "Sprint N" en documentación y en el contrato de plan-status.**
+  Los "Mes N" nunca fueron meses calendario, son bloques de trabajo (ver memoria
+  `project-real-timeline`). Se renombran conservando EXACTAMENTE la numeración (Mes 22 = Sprint 22).
+  **Alcance:** todos los `.md` versionados; `git mv docs/done/mes-NN.md docs/done/sprint-NN.md`
+  (29 archivos) y sus enlaces entrantes; el campo `month` → `sprint` en `scripts/plan-status.ts`,
+  `scripts/generate-feature-status.ts`, `scripts/handoff.ts`, `scripts/agent-handoff.ts` y sus tests;
+  regenerar `.orchestos/feature-status.json`; nota de equivalencia al inicio de DONE.md.
+  **Fuera (decisión de Carlos, opción A):** las ~281 ocurrencias `// Mes 22/F.3` en `.ts/.js/.json/.yaml`
+  son comentarios de procedencia que referencian cierres ocurridos con ese nombre; tocarlas son 110
+  archivos de código sin cambio funcional, ruido en `git blame` y riesgo sobre un CI recién estabilizado.
+  **Gate:** `bunx tsc --noEmit`, `bun run test:coverage` (comando exacto de CI), `bun run lint`,
+  `git diff --check`.
+
+- [ ] **S.2 — ⚡ Purgar de PLAN.md la evidencia de los ítems ya cerrados.**
+  Medido: de las líneas 14–3619 (bloques abiertos), **52 ítems ya están `[x]`** con toda su
+  evidencia dentro — la sección R.6 sola ocupa 52 líneas. Mover esa evidencia a `docs/done/`
+  dejando en PLAN.md una línea por ítem con enlace. Las líneas 3620+ ya son solo punteros y no se
+  tocan. **Regla nueva a escribir en AGENTS.md:** la evidencia de un ítem va a DONE.md en el mismo
+  turno en que se cierra, no al cerrar el bloque — es la causa mecánica del crecimiento.
+  **Fuera:** IDEAS.md no se toca (es el backlog de lo que falta, su tamaño es legítimo).
+  **Gate:** ningún ítem pierde su evidencia — diff verificado ítem por ítem antes del commit.
+
+- [ ] **S.3 — 🧠 Esquema `plan_items` y migración desde el parser existente.**
+  Tabla en la SQLite que ya existe (`src/db/migrate.ts`):
+  `id · sprint · title · delegation · status · depends_on[] · scope[] · commit_sha · closed_at`.
+  Se siembra una sola vez con `scripts/plan-status.ts`, que ya sabe parsear PLAN.md.
+  Lo que hoy no existe en ninguna parte es `depends_on`: "Orden de ataque propuesto: R.1 → R.2 → …"
+  (PLAN.md § Bloque R) es texto que nadie hace cumplir — el mismo patrón del botón que no hace nada.
+  **Constraint que da la garantía:** `status='done'` exige `commit_sha NOT NULL`. Un LLM no puede
+  cerrar un ítem escribiendo prosa; tiene que existir el commit. Es `ledger:gate` aplicado al plan.
+
+- [ ] **S.4 — 🧠 `plan:render` + gate de desincronización en pre-commit.**
+  `bun run plan:render` regenera `PLAN.md` y `DONE.md` desde la DB. El pre-commit compara
+  `PLAN.md` contra `render(DB)` y **aborta el commit si difieren** — idéntico al self-check que se
+  agregó cuando el hook estuvo 11 días desincronizado en silencio. Si un LLM edita el markdown a
+  mano, no pasa. Sin este gate, S.3 es decoración.
+
+- [ ] **S.5 — ⚡ `bun run next` y arranque de sesión barato.**
+  Consulta: ítems `open` cuyas dependencias están todas `done`. Salida ~15 líneas.
+  El hook `SessionStart` pasa a inyectar esto en vez de `.orchestos/handoff.md`. Es el ítem que
+  elimina el "vamos al siguiente en PLAN.md" y el reparseo de 309 KB por tab.
+
+- [ ] **S.6 — 🔍 Pantalla Sprint Board en el dashboard.**
+  Requisito de Carlos: poder *ver* el plan aunque viva en la DB. Board por sprint con el grafo de
+  dependencias, sobre la misma tabla. Aplica `feedback-dashboard-no-solo-cli`: una feature que
+  solo vive en el CLI no está hecha. **Gate 🔍: verificación en vivo contra el dashboard real
+  corriendo, no mocks** — se abre el board, se cierra un ítem y se comprueba que `plan:render`
+  produce el PLAN.md esperado.
+
+**Consecuencia de producto, no solo de repo:** hoy el plan y la ejecución son dos grafos que no se
+hablan — un ítem de PLAN.md hay que traducirlo a mano a una tarea. Con `plan_items` en la misma DB
+que `tasks.yaml`, un ítem ejecutable se convierte en run sin traducción, y el `commit_sha` que
+cierra el ítem es el que produjo el run. El plan deja de ser documentación *sobre* el sistema y
+pasa a ser entrada *del* sistema.
+
 ## Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)
 
 - [x] **DOC.1 — ⚡ Reconciliar documentación viva con el estado verificable del plan.** (cerrado 2026-09-08)
