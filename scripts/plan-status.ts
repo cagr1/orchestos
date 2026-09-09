@@ -27,6 +27,12 @@ export interface FeatureStatusItem {
   closedDate: string | null
 }
 
+export interface PlanItemSource extends FeatureStatusItem {
+  body: string
+  position: number
+  evidenceHref: string | null
+}
+
 const ITEM_LINE_RE =
   /^- \[( |x)\] \*\*([A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*) — (🧠|⚡|🔍) (.+?)\.?\*\*(?:\s*\(cerrado (\d{4}-\d{2}-\d{2})[^)]*\))?/
 
@@ -62,6 +68,42 @@ export function parsePlanFeatureStatus(plan: string): FeatureStatusItem[] {
     })
   }
   return items
+}
+
+/**
+ * Reuses the canonical status parser above, adding only the source text that
+ * is not represented in feature-status.json: indented item body and order.
+ */
+export function parsePlanItemSources(plan: string): PlanItemSource[] {
+  const items = parsePlanFeatureStatus(plan)
+  const lines = plan.split('\n')
+  const sources: PlanItemSource[] = []
+  let searchFrom = 0
+
+  for (const item of items) {
+    const itemPrefix = `- [${item.status === 'done' ? 'x' : ' '}] **${item.id} — `
+    const lineIndex = lines.findIndex(
+      (line, index) => index >= searchFrom && line.startsWith(itemPrefix),
+    )
+    if (lineIndex === -1) throw new Error(`Could not locate source line for plan item ${item.id}`)
+    searchFrom = lineIndex + 1
+
+    let end = lines.length
+    for (let index = lineIndex + 1; index < lines.length; index += 1) {
+      if (lines[index]?.startsWith('## ') || /^- \[[ x]\] \*\*/.test(lines[index] ?? '')) {
+        end = index
+        break
+      }
+    }
+    const body = lines
+      .slice(lineIndex + 1, end)
+      .filter((line) => /^\s+/.test(line))
+      .join('\n')
+      .trim()
+    const evidenceHref = lines[lineIndex]?.match(/→ \[evidencia\]\(([^)]+)\)/)?.[1] ?? null
+    sources.push({ ...item, body, position: sources.length, evidenceHref })
+  }
+  return sources
 }
 
 export function serializeFeatureStatus(items: FeatureStatusItem[]): string {

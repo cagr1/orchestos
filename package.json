@@ -12,6 +12,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "plan:status": "bun run scripts/generate-feature-status.ts",
+    "plan:import": "bun run scripts/plan-import.ts",
     "scope:check": "bun run scripts/check-scope-lock.ts",
     "agent:handoff": "bun run scripts/agent-handoff.ts",
     "eval:verify": "bun run scripts/eval-verify-task.ts",

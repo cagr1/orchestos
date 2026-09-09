@@ -229,6 +229,55 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 7,
+    name: 'plan-items',
+    precondition: (database) => {
+      const schemaMigrations =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+          )
+          .get()?.count ?? 0
+      if (schemaMigrations !== 1) throw new Error('Migration 7 requires schema_migrations table')
+    },
+    apply: (database) => {
+      database.exec(`
+        CREATE TABLE plan_items (
+          id          TEXT PRIMARY KEY,
+          sprint      TEXT NOT NULL,
+          block       TEXT,
+          delegation  TEXT NOT NULL CHECK(delegation IN ('🧠','⚡','🔍')),
+          title       TEXT NOT NULL,
+          body        TEXT NOT NULL DEFAULT '',
+          status      TEXT NOT NULL CHECK(status IN ('open','done')),
+          commit_sha  TEXT,
+          closed_at   TEXT,
+          position    INTEGER NOT NULL,
+          CHECK (status = 'open' OR commit_sha IS NOT NULL)
+        );
+        CREATE INDEX idx_plan_items_status ON plan_items(status, sprint);
+
+        CREATE TABLE plan_item_deps (
+          item_id    TEXT NOT NULL REFERENCES plan_items(id) ON DELETE CASCADE,
+          depends_on TEXT NOT NULL REFERENCES plan_items(id) ON DELETE RESTRICT,
+          PRIMARY KEY (item_id, depends_on),
+          CHECK (item_id <> depends_on)
+        );
+      `)
+    },
+    postcondition: (database) => {
+      const objects = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE name IN ('plan_items', 'plan_item_deps', 'idx_plan_items_status') ORDER BY name",
+        )
+        .all()
+        .map((row) => row.name)
+      if (objects.join(',') !== 'idx_plan_items_status,plan_item_deps,plan_items') {
+        throw new Error('Migration 7 did not create plan item tables and index')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
