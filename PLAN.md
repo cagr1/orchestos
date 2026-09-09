@@ -306,10 +306,20 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   este `[x]` es el que borra `docs/specs/S.4b.md`. Si el gate estuviera mal escrito, no dejaría
   cerrarse a sí mismo.
 
-- [ ] **S.5 — ⚡ `bun run next` y arranque de sesión barato.**
+- [x] **S.5 — ⚡ `bun run next` y arranque de sesión barato.**
+  Sin delegación: Carlos autorizó ejecución directa con “go con S.5”; no existió spec entregado a
+  otro ejecutor.
   Consulta: ítems `open` cuyas dependencias están todas `done`. Salida ~15 líneas.
   El hook `SessionStart` pasa a inyectar esto en vez de `.orchestos/handoff.md`. Es el ítem que
   elimina el "vamos al siguiente en PLAN.md" y el reparseo de 309 KB por tab.
+  Implementado en `scripts/next.ts`: consulta `readyItems()` y muestra como máximo 12 ítems más
+  el contador de restantes. `.claude/hooks/session-resume.js` ejecuta `bun run --silent next` y
+  falla abierto si no obtiene contexto.
+  Verificado: `bun test scripts/next.test.ts scripts/session-resume-hook.test.ts` (7 pass),
+  `bun run next` contra la DB real (23 ítems, 14 líneas de salida) y `node
+  .claude/hooks/session-resume.js` (JSON `SessionStart` con el mismo contexto); `bunx tsc
+  --noEmit`, `bun run test:coverage` y `bun run lint` exit 0. Lint conserva los 879 warnings
+  heredados, sin errores nuevos.
 
 - [ ] **S.6 — 🔍 Pantalla Sprint Board en el dashboard.**
   Requisito de Carlos: poder *ver* el plan aunque viva en la DB. Board por sprint con el grafo de
