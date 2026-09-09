@@ -278,7 +278,7 @@ Un `[x]` de una corrida delegada no es evidencia ([[feedback-verificar-progreso-
 así que se verificó antes de usarla:
 
 - **No tocó ningún YAML de skills** — el commit `4b09004` toca solo `PLAN.md`,
-  `docs/skills-provenance-audit.md` y `runs-summary.json`. ✅
+  `docs/done/design/skills-provenance-audit.md` y `runs-summary.json`. ✅
 - **No inventó candidatos** — "sin candidato" aparece 14 veces. ✅
 - **Literal, no parafraseado** — spot-check de `E8` contra el upstream real vía
   `gh api`: byte-idéntico. Desviación menor: pegó 13 líneas donde el pedido decía

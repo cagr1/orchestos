@@ -389,7 +389,7 @@ organiza los hallazgos; no autoriza adelantar otros ítems ni sustituye los gate
   mismo PLAN.md) no estaban en el scope-lock original — necesarios para cablear la ruta y
   pintar el banner de la decisión 11, no se anticiparon al declarar el scope.
   **Traspaso 2026-09-07 (Codex, GO explícito de Carlos):** diagnóstico completo en
-  [docs/r5-persistence-handoff.md](docs/r5-persistence-handoff.md), base `8ad2d46`. Sin cambios
+  [docs/done/design/r5-persistence-handoff.md](docs/done/design/r5-persistence-handoff.md), base `8ad2d46`. Sin cambios
   de runtime — preflight, typecheck y 9 tests baseline pasan (no prueban atomicidad/reintentos).
   Knowledge radar: sin insights aplicables al momento del traspaso. Hallazgos por revisión de
   código, no sondas de fallo en producción — no se ejecutaron proveedores/tareas/migraciones

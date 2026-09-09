@@ -563,7 +563,7 @@ procedencia. El molde multi-proveedor (ex-#31) fue absorbido por PLAN.md § Mes 
 | `topic_key` upsert (no duplicar) | Engram | ✅ S22.0.3 |
 | DAG con contratos Read/Write | gentle-ai | ✅ S22.0.2 |
 | apply-progress continuity | gentle-ai | ✅ S22.5a |
-| Reglas de delegación con umbrales | gentle-ai | ✅ docs/AGENTS.md |
+| Reglas de delegación con umbrales | gentle-ai | ✅ docs/sub-agents-flow.md |
 | Refuter en QA loop (v2.0.0) | gentle-ai | ✅ Bloque X (2026-08-10) |
 | WHEN/THEN en acceptance_criteria | OpenSpec | ✅ S28 |
 | Capabilities contract | OpenSpec | ✅ S32 |

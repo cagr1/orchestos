@@ -18,7 +18,7 @@ Origen: auditoría de seguridad/testing/backend/frontend (2026-06-19) — califi
 - C2 (🔍) Gate con payload real: skill creado vía `POST /api/skills` con `name`/`description` conteniendo `<img src=x onerror=alert(1)>` y `<script>alert()</script>` — verificado en vivo con Chrome DevTools MCP en la pantalla Skills: cero `alert()` disparado, cero nodos `<script>`/`<img>` inyectados en el DOM, texto visible escapado literalmente. Skill de prueba borrado tras verificar — 2026-06-19
 
 **BLOQUE D — Split del god-file `server.ts`**
-- D1 (🧠) Diseño documentado en `docs/dashboard-server-split.md` — mapa símbolo→archivo, grafo de dependencias sin ciclos, orden de extracción por riesgo. `route()` se mantiene como única export que consume `skills-api.test.ts` — 2026-06-19
+- D1 (🧠) Diseño documentado en `docs/done/design/dashboard-server-split.md` — mapa símbolo→archivo, grafo de dependencias sin ciclos, orden de extracción por riesgo. `route()` se mantiene como única export que consume `skills-api.test.ts` — 2026-06-19
 - D2 (⚡) Extracción ejecutada siguiendo D1 — 13 módulos nuevos (`http.ts`, `settings-store.ts`, `llm/clients.ts`, `prompts/curator.ts`, 9 handlers de dominio en `handlers/`), comportamiento idéntico — 2026-06-19
 - D3 (🔍) Gate re-verificado de forma independiente (sin confiar en el self-check de DeepSeek): `tsc --noEmit` limpio, 421 pass · 0 fail, lectura línea por línea de los 13 archivos contra el original — CSRF same-origin check, containment de `serveStatic`, `confirm:true` obligatorio en delete, rollback de API key en 401 y masking de keys, todos idénticos. `server.ts` quedó en 159 líneas (vs. 1727 original) — 2026-06-19
 

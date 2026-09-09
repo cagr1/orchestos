@@ -239,7 +239,7 @@ usar"*.
   de las **24** skills (16 en `skills/` + 8 en `skills/pro/`), buscar en `obra/superpowers`
   (`skills/*/SKILL.md`) y `mattpocock/skills` (`skills/engineering/*`, y las otras categorías) si
   existe un archivo con nombre igual o parecido, vía `gh api`. Producir **una tabla de evidencia**
-  en `docs/skills-provenance-audit.md` con, por fila: `skill local` · `candidato upstream (repo +
+  en `docs/done/design/skills-provenance-audit.md` con, por fila: `skill local` · `candidato upstream (repo +
   path)` · `tamaño` · `primeras ~15 líneas del upstream` · `parecido del nombre (exacto / parcial /
   ninguno)`.
   Verificado contra los árboles completos de ambas repos en los commits consignados en el documento;
@@ -265,7 +265,7 @@ usar"*.
   Al revisar lo que devuelva N.7a: **un `[x]` de una corrida delegada no es evidencia** — grepear lo
   concreto antes de confiar ([[feedback-verificar-progreso-delegado]]).
 
-  **Resultado (evidencia completa en [docs/skills-provenance-audit.md](../../docs/skills-provenance-audit.md) § N.7b):**
+  **Resultado (evidencia completa en [docs/done/design/skills-provenance-audit.md](../../docs/done/design/skills-provenance-audit.md) § N.7b):**
   - **Verificada la entrega de Codex antes de usarla**: no tocó ningún YAML (commit `4b09004` toca
     solo 3 archivos, ninguno de `skills/`), usó "sin candidato" 14 veces (no inventó), y el
     spot-check de un fragmento contra el upstream real dio **byte-idéntico** (no parafraseó). 24/24
@@ -338,7 +338,7 @@ usar"*.
 
   **Conclusión:** de 8 skills de `skills/pro/`, 7 son nativas y 1 (`code-review`) recibió un porteo
   real y acotado (un catálogo de smells, no una reescritura). Documentado en
-  [docs/skills-provenance-audit.md § N.7c](../../docs/skills-provenance-audit.md). Cierra Bloque N por
+  [docs/done/design/skills-provenance-audit.md § N.7c](../../docs/done/design/skills-provenance-audit.md). Cierra Bloque N por
   completo (N.1–N.7c).
 
 ### Bloque O — 🧠 Skills que se activan solas (decisión Carlos 2026-07-31)
