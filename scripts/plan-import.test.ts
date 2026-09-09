@@ -1,11 +1,41 @@
 import { expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 test('imports every parsed plan item into an isolated database with literal bodies', async () => {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-'))
+  const fixture = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-fixture-'))
   try {
+    mkdirSync(join(fixture, 'docs', 'done'), { recursive: true })
+    writeFileSync(
+      join(fixture, 'PLAN.md'),
+      `## Sprint fixture
+
+- [ ] **F.1 — ⚡ Ítem abierto.**
+  Cuerpo controlado del ítem abierto.
+
+### Sub-bloque fixture
+
+- [x] **F.2 — 🧠 Ítem cerrado con evidencia.** (cerrado 2026-09-09) → [evidencia](docs/done/fixture.md#f2)
+  Este cuerpo del plan no debe importarse para el ítem cerrado.
+`,
+    )
+    writeFileSync(
+      join(fixture, 'docs', 'done', 'fixture.md'),
+      `<a id="f2"></a>
+Evidencia controlada del ítem cerrado.
+`,
+    )
+    for (const args of [
+      ['init'],
+      ['add', 'PLAN.md', 'docs/done/fixture.md'],
+      ['commit', '-m', 'fixture plan import'],
+    ]) {
+      const git = Bun.spawnSync(['git', ...args], { cwd: fixture, stdout: 'pipe', stderr: 'pipe' })
+      expect(git.exitCode, new TextDecoder().decode(git.stderr)).toBe(0)
+    }
+
     const proc = Bun.spawn(
       [
         'bun',
@@ -15,9 +45,11 @@ test('imports every parsed plan item into an isolated database with literal bodi
           const { importPlan } = await import('./scripts/plan-import.ts')
           const { db } = await import('./src/db/sqlite.ts')
           runMigrations()
-          const count = importPlan(process.cwd())
+          const root = process.env.PLAN_IMPORT_FIXTURE_ROOT
+          if (!root) throw new Error('PLAN_IMPORT_FIXTURE_ROOT is required')
+          const count = importPlan(root)
           let secondImportRejected = false
-          try { importPlan(process.cwd()) } catch { secondImportRejected = true }
+          try { importPlan(root) } catch { secondImportRejected = true }
           const items = db.query('SELECT id, status, body, block FROM plan_items ORDER BY position').all()
           const deps = db.query('SELECT COUNT(*) AS count FROM plan_item_deps').get().count
           process.stdout.write(JSON.stringify({ count, items, deps, secondImportRejected }))
@@ -26,7 +58,7 @@ test('imports every parsed plan item into an isolated database with literal bodi
       ],
       {
         cwd: process.cwd(),
-        env: { ...process.env, ORCHESTOS_HOME: home },
+        env: { ...process.env, ORCHESTOS_HOME: home, PLAN_IMPORT_FIXTURE_ROOT: fixture },
         stdout: 'pipe',
         stderr: 'pipe',
       },
@@ -46,13 +78,18 @@ test('imports every parsed plan item into an isolated database with literal bodi
     expect(result.count).toBe(result.items.length)
     expect(result.deps).toBe(0)
     expect(result.secondImportRejected).toBe(true)
-    expect(result.items.find((item) => item.id === 'S.3')?.body).toContain('Spec ejecutable')
-    expect(result.items.find((item) => item.id === 'R.5')?.body).toContain('Persistencia')
-    expect(result.items.find((item) => item.id === 'H.1.1')).toMatchObject({
+    expect(result.items.find((item) => item.id === 'F.1')?.body).toContain(
+      'Cuerpo controlado del ítem abierto',
+    )
+    expect(result.items.find((item) => item.id === 'F.2')).toMatchObject({
       status: 'done',
-      block: 'H.1 — Presentación: lo que descalifica al repo en 30 segundos',
+      block: 'Sub-bloque fixture',
     })
+    expect(result.items.find((item) => item.id === 'F.2')?.body).toContain(
+      'Evidencia controlada del ítem cerrado',
+    )
   } finally {
     rmSync(home, { recursive: true, force: true })
+    rmSync(fixture, { recursive: true, force: true })
   }
 })
