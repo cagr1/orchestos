@@ -71,6 +71,36 @@ La ejecución mecánica ⚡ va a Codex (`codex exec -m <modelo> --approve-for-me
 Los ítems 🧠 los **diseña** el cerebro y los **ejecuta** un delegado siguiendo el spec.
 Los gates 🔍 se verifican en vivo, contra el sistema real corriendo, nunca contra mocks.
 
+### Roster de modelos (Carlos, 2026-09-09 — regla de hecho, no sugerencia)
+
+| Rol | Modelos | Qué puede hacer |
+|---|---|---|
+| **Cerebro** | Opus 5 · Fable 5.1 · `gpt-5.6-sol` · `gpt-6-astra` | pensar, abrir el ítem en PLAN.md, escribir el spec, verificar con comandos. **Nunca escribe código de producto** |
+| **Ejecutor por defecto** | `gpt-5.6-luna` (`codex exec`) | ⚡ y 🧠 ya especificados |
+| **Ejecutor con criterio** | `gpt-5.6-terra` | 🧠 cuyo spec no logró eliminar todas las decisiones |
+| **Excepción** | Sonnet, vía Claude CLI | solo si terra no alcanza |
+| **Fuera por ahora** | opencode / DeepSeek | — |
+
+**La regla no admite excepción por complejidad.** Un ítem 🧠 difícil no habilita al cerebro a
+teclear: el cerebro deja la ruta anotada en el spec y **la dificultad cambia el ejecutor**
+(luna → terra → Sonnet), nunca quién escribe. Si el ejecutor tiene que decidir algo, el defecto
+está en el spec, no en el ejecutor — se reescribe el spec, no se toma el teclado.
+
+Sí es trabajo de cerebro, y no cuenta como escribir código: editar `PLAN.md`, `AGENTS.md`,
+`CLAUDE.md`, `CONTEXT.md`, `docs/specs/*` y `docs/*.md` de análisis; y ejecutar comandos de
+lectura, consultas a la DB, gates y scripts ya existentes para verificar.
+
+Transporte: los tres CLI (`claude` · `codex` · `opencode`), no la API.
+El modelo de cada corrida real lo fija Carlos y ningún LLM lo hereda de memoria
+(`feedback-modelo-decision-final-carlos`, NO NEGOCIABLE — incidente de $5.00 del 2026-07-13).
+Nota de deuda separada: `orchestos.config.yaml` todavía declara `deepseek/deepseek-v4-flash` y
+proveedor `openrouter`; ese archivo gobierna a OrchestOS-como-producto (qué modelo usa el harness
+al correr una tarea de `tasks.yaml`), **no** al desarrollo de este repo, y se migra a los tres CLI
+en su propio ítem.
+
+Hoy este roster es **narrativo**. Su diente mecánico llega con el gate de procedencia de S.4b
+(spec borrado en el commit que cierra + línea `Ejecutado por:` en la evidencia).
+
 **Ciclo de vida del spec:** `docs/specs/<ID>.md` nace al delegar y **se borra en el commit que
 cierra el ítem** — para entonces su contenido vive en el código y su evidencia en `docs/done/`.
 Un spec de un ítem cerrado es basura acumulada; es el patrón que S.2 vino a eliminar.

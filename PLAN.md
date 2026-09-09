@@ -133,11 +133,70 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   **Constraint que da la garantía:** `status='done'` exige `commit_sha NOT NULL`. Un LLM no puede
   cerrar un ítem escribiendo prosa; tiene que existir el commit. Es `ledger:gate` aplicado al plan.
 
-- [ ] **S.4 — 🧠 `plan:render` + gate de desincronización en pre-commit.**
-  `bun run plan:render` regenera `PLAN.md` y `DONE.md` desde la DB. El pre-commit compara
-  `PLAN.md` contra `render(DB)` y **aborta el commit si difieren** — idéntico al self-check que se
-  agregó cuando el hook estuvo 11 días desincronizado en silencio. Si un LLM edita el markdown a
-  mano, no pasa. Sin este gate, S.3 es decoración.
+> **S.4 se partió en dos el 2026-09-09** (mismo movimiento que H.5 → H.5.1/2/3), por un hallazgo
+> del cerebro al preparar su spec: **el índice está incompleto y S.4 tal como estaba escrito lo
+> habría certificado así.** `plan-status.ts:37` captura el ID con
+> `([A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)`, que **no admite `-` ni `'`**, así que 7 ítems cerrados son
+> invisibles para el parser: `R.2-bis`, `R.2-ter`, `R.3-bis`, `R.4-bis`, `R.5-bis`, `R.5-ter` y
+> `H.8.3'`. Consecuencias medidas: `plan_items` tiene 69 filas donde PLAN.md tiene 76 ítems;
+> `.orchestos/feature-status.json` arrastra el mismo hueco y alimenta el handoff y el hook de
+> `SessionStart`, así que el arranque de sesión viene mostrando un plan incompleto.
+>
+> **Ningún dato se perdió** — verificado, no supuesto: los 7 conservan su evidencia íntegra y con
+> ancla en `docs/done/bloque-R.md` (614 líneas) y `docs/done/bloque-H.md` (1204), enlazada desde
+> PLAN.md y versionada en git. Falta índice, no historia. Pero si `plan:render` generase PLAN.md
+> desde una DB a la que le faltan esos 7, **los borraría del plan y el gate declararía sincronizado
+> el resultado mutilado**: el gate certificaría la pérdida.
+>
+> **Por qué la verificación de S.3 no lo vio:** comparó `plan_items` contra
+> `feature-status.json` y dio `{missing:[], extra:[], diff:[]}`. Ambos derivan **del mismo parser
+> roto**, así que coincidían perfectamente. Misma familia que
+> `reference-ci-host-environment-drift`: contrastar contra algo que hereda tu propio defecto no
+> prueba nada. Regla que queda: una verificación de fidelidad debe contrastar contra la **fuente**
+> (PLAN.md), nunca contra otro derivado.
+
+- [ ] **S.4a — ⚡ Recuperar al índice los 7 ítems invisibles y dar vía de reconciliación.**
+  Prerequisito duro de S.4b: sin esto, renderizar desde la DB borra historia.
+  **Alcance (tres cambios, ninguno de diseño):**
+  1. `scripts/plan-status.ts:37` — el grupo del ID admite `-` y `'` además de `.`. `H.8.3'` lleva
+     el apóstrofe al final, así que no basta tratarlos como separadores internos. El resto del
+     regex **no se toca**: el discriminador de "esto es un ítem" sigue siendo el emoji de
+     delegación tras el guión largo, que es lo que excluye solas las líneas de cierre de sprint.
+  2. `scripts/plan-import.ts:49-50` — hoy aborta con `plan_items is already seeded; plan import
+     runs once`, así que no existe vía de resincronización. Añadir un modo de reconciliación que
+     haga `upsertPlanItem` de todos los ítems sin ese guard. **No tocar `plan_item_deps`**: está
+     vacía a propósito (S.3) y las dependencias las carga Carlos en S.6.
+  3. Regenerar `.orchestos/feature-status.json` y reconciliar `plan_items`.
+  **Fuera de alcance:** `plan:render`, el gate de pre-commit, `plan_item_deps`, y cualquier otro
+  ítem del Bloque S. No editar la evidencia de `docs/done/`.
+  **Gate — números exactos, no "pasa":**
+  - Test de regresión **contra un fixture en tmpdir, nunca contra el PLAN.md vivo** (lección de
+    S.3, commit `8fd2e3f`): un PLAN.md sintético con `R.2-bis`, `H.8.3'` y un ID normal parsea 3
+    ítems. Hoy parsea 1 — el test debe **fallar** contra el código actual antes del fix.
+  - `plan_items` = 76 filas · `feature-status.json` = 76 ítems · los 7 recuperados presentes.
+  - `S.3` queda `status='done'` con su `commit_sha` real (`d866f92`), no el de fallback.
+  - **`commitShaFor()` cae a `git rev-parse HEAD` cuando su `git log -S` no encuentra nada
+    (`plan-import.ts:33-42`).** Ningún ítem `done` puede quedar con el sha de HEAD: para cada uno,
+    `git show --stat <sha>` debe mencionar `PLAN.md`. Si alguno cae al fallback, se **reporta y se
+    para** — un sha inventado hace que el índice mienta con el `CHECK` satisfecho, que es peor que
+    la fila ausente.
+  - `bunx tsc --noEmit` · `bun run test:coverage` (comando exacto de CI) · `bun run lint` (juzgar
+    por **exit code**, no por el conteo de warnings heredados —
+    `reference-biome-warnings-no-son-rojo`) · `git diff --check`.
+
+- [ ] **S.4b — 🧠 `plan:render` + gate de desincronización y de procedencia en pre-commit.**
+  Depende de S.4a. `bun run plan:render` regenera `PLAN.md` y `DONE.md` desde la DB. El pre-commit
+  compara `PLAN.md` contra `render(DB)` y **aborta el commit si difieren** — idéntico al self-check
+  que se agregó cuando el hook estuvo 11 días desincronizado en silencio. Si un LLM edita el
+  markdown a mano, no pasa. Sin este gate, S.3 es decoración.
+  **Ampliación aprobada por Carlos (2026-09-09) — gate de procedencia.** El mismo hook exige, en el
+  commit que marca `[x]` un ítem: (a) que ese commit **borre** `docs/specs/<ID>.md`, cuyo ciclo de
+  vida ya está definido en `AGENTS.md:74-76` — sin spec borrado no hubo delegación; y (b) una línea
+  `Ejecutado por: <modelo> · Spec: docs/specs/<ID>.md` en la evidencia. Motivo: el roster de modelos
+  (`AGENTS.md` § Protocolo de delegación permanente) es hoy una regla narrativa, y la Regla Cero de
+  `CLAUDE.md` dice que una regla que nadie hace cumplir deja de existir — el hook desincronizado 11
+  días es el precedente. Se acepta el límite conocido: el hook comprueba **presencia**, no
+  veracidad, igual que el gate en vivo.
 
 - [ ] **S.5 — ⚡ `bun run next` y arranque de sesión barato.**
   Consulta: ítems `open` cuyas dependencias están todas `done`. Salida ~15 líneas.
