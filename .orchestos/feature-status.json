@@ -44,7 +44,7 @@
       "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
       "delegation": "🧠",
-      "title": "`plan:render` + gate de desincronización y de procedencia en pre-commit",
+      "title": "`plan:render` híbrido + gate de desincronización y de procedencia en pre-commit",
       "status": "open",
       "closedDate": null
     },

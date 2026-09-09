@@ -220,11 +220,48 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
     por **exit code**, no por el conteo de warnings heredados —
     `reference-biome-warnings-no-son-rojo`) · `git diff --check`.
 
-- [ ] **S.4b — 🧠 `plan:render` + gate de desincronización y de procedencia en pre-commit.**
-  Depende de S.4a. `bun run plan:render` regenera `PLAN.md` y `DONE.md` desde la DB. El pre-commit
-  compara `PLAN.md` contra `render(DB)` y **aborta el commit si difieren** — idéntico al self-check
-  que se agregó cuando el hook estuvo 11 días desincronizado en silencio. Si un LLM edita el
-  markdown a mano, no pasa. Sin este gate, S.3 es decoración.
+- [ ] **S.4b — 🧠 `plan:render` híbrido + gate de desincronización y de procedencia en pre-commit.**
+  Depende de S.4a (cerrado). El pre-commit compara `PLAN.md` contra `render(DB)` y **aborta el
+  commit si difieren** — idéntico al self-check que se agregó cuando el hook estuvo 11 días
+  desincronizado en silencio. Si un LLM edita el markdown a mano, no pasa. Sin este gate, S.3 es
+  decoración.
+
+  **Decisión de Carlos (2026-09-09): modelo híbrido, tras evaluar las tres opciones.**
+  La DB es fuente de los campos **estructurados** (id, estado, orden, dependencias, delegación,
+  `commit_sha`, título, `body` del ítem). El markdown se sigue leyendo y versionando igual que
+  siempre. `plan:render` regenera **las líneas de ítem y la tabla de estado**; no reescribe la
+  prosa. El gate valida **solo esos campos**.
+  *Por qué no la opción "regenerar todo desde la DB":* verificado en `plan-status.ts` —
+  `parsePlanItemSources` construye el `body` filtrando `/^\s+/`, o sea **solo las líneas indentadas
+  bajo un ítem**. Los párrafos de bloque (preámbulos, notas de auditoría, las citas `>` con
+  decisiones de Carlos) hoy no están en `plan_items`: un render total los borraría. Es el fantasma
+  de S.4a a mayor escala.
+  *Por qué no la opción "solo validar":* no escala. Cuando N proyectos crezcan, saber qué se está
+  haciendo no puede depender de releer prosa.
+
+  **Requisito explícito de Carlos: el markdown debe ser reconstruible al 100% desde la DB**
+  ("si quiero después puedo borrar los `.md` sabiendo que todo quedó guardado"). Eso obliga a
+  persistir también la **narrativa de bloque**, que hoy no vive en ninguna tabla. Sin esa pieza el
+  híbrido no cumple lo prometido y borrar un `.md` perdería los preámbulos.
+
+  **Alcance:**
+  1. Persistir la prosa de bloque (encabezado de sprint/bloque + párrafos no indentados + citas,
+     con su posición) de modo que `render(DB)` reproduzca `PLAN.md` **byte a byte**.
+  2. `bun run plan:render` — imprime el markdown desde la DB; con `--check`, sale ≠0 si difiere.
+  3. Gate en `scripts/pre-commit.sh`: aborta si `PLAN.md` staged ≠ `render(DB)`.
+  4. **Gate de procedencia** (aprobado por Carlos): en el commit que marca `[x]` un ítem, exigir
+     (a) que ese commit **borre** `docs/specs/<ID>.md` — ciclo de vida ya definido en
+     `AGENTS.md:74-76`, sin spec borrado no hubo delegación; y (b) la línea
+     `Ejecutado por: <modelo> · Spec: docs/specs/<ID>.md` en la evidencia. Es el diente mecánico
+     del roster de modelos, que hoy es narrativo: la Regla Cero de `CLAUDE.md` dice que una regla
+     que nadie hace cumplir deja de existir, y el hook desincronizado 11 días es el precedente.
+     Límite aceptado: el hook comprueba **presencia**, no veracidad, igual que el gate en vivo.
+  **Fuera:** `plan_item_deps` (S.6), el board (S.6), `DONE.md` y `docs/done/` (esta pasada no los
+  regenera; su render se decide después de que el de `PLAN.md` sea byte-exacto).
+  **Gate:** ida y vuelta byte a byte sobre el `PLAN.md` real (77 ítems, todos los bloques, las
+  citas `>` y el frontmatter); un ítem editado a mano en el markdown hace fallar el pre-commit;
+  un commit que cierra un ítem sin borrar su spec falla; `bunx tsc --noEmit`, `bun run
+  test:coverage`, `bun run lint` por exit code, `git diff --check`.
   **Ampliación aprobada por Carlos (2026-09-09) — gate de procedencia.** El mismo hook exige, en el
   commit que marca `[x]` un ítem: (a) que ese commit **borre** `docs/specs/<ID>.md`, cuyo ciclo de
   vida ya está definido en `AGENTS.md:74-76` — sin spec borrado no hubo delegación; y (b) una línea
@@ -1127,6 +1164,16 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
 
 > **Sprint 29 cerrado (2026-08-21)** — ver resumen y link a DONE.md más abajo. Este bloque queda
 > abierto: puede arrancar `UI.0`.
+
+> **DECISIÓN DE ORDEN (Carlos, 2026-09-09): la UI va ÚLTIMA. Primero se arregla el backend.**
+> *"debemos primero arreglar bien abajo (back) para después sí enfocarse en el front (que
+> paradójicamente resulta más difícil de explicar, a veces ni con capturas)"*.
+> Este sprint no se retoma hasta cerrar S → los rezagos de H → R. La razón medida: de los 24 ítems
+> abiertos del plan, **11 son de UI** y este bloque lleva sin un cierre desde el **2026-08-28**,
+> mientras S, R, H e I sí avanzan. Un frente parado que concentra el 46% del trabajo abierto es la
+> definición del rezago que Carlos quiere evitar, y verificar UI cuesta más por ítem: exige
+> navegador real y un gate visual que hoy no está mecanizado (`UI.8.1`, Playwright).
+> No arrancar `UI.*` antes que los bloques de backend, aunque parezca un ítem pequeño.
 
 ### Decisión y por qué (2026-08-18, NO RE-LITIGAR)
 
