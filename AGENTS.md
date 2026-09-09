@@ -35,6 +35,7 @@ Si necesitas saber el email activo, usa `git config user.email` (solo lectura).
 - No uses `--no-verify` en commits salvo que el usuario lo pida.
 - No hagas `git push --force` salvo instrucción explícita.
 - No crees ni borres ramas remotas sin confirmación del usuario.
+- Al cerrar un ítem, su evidencia va al archivo de docs/done/ del bloque en el MISMO turno, y en PLAN.md queda solo la línea del ítem con el enlace. No acumular evidencia en PLAN.md hasta el cierre del bloque: esa es la causa mecánica de que el plan crezca sin techo (S.2).
 - **Memoria evolutiva obligatoria:** toda mejora de proceso, hallazgo, decisión técnica o regla
   transversal descubierta durante el trabajo debe persistirse en el mismo turno. Usa `PLAN.md` para
   cadenas activas y evidencia de ejecución, `AGENTS.md`/`CLAUDE.md` para reglas que deben obedecer los

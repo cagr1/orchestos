@@ -73,7 +73,7 @@
       "delegation": "⚡",
       "title": "Recuperar creación de tareas desde sesiones de proyecto",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-07"
     },
     {
       "id": "R.2",
@@ -82,7 +82,7 @@
       "delegation": "🧠",
       "title": "Auditoría que distingue lectura solicitada, ejecutada, rechazada y desconocida",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-07"
     },
     {
       "id": "R.3",
@@ -91,7 +91,7 @@
       "delegation": "⚡",
       "title": "QA exige correspondencia uno a uno con los criterios originales",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-07"
     },
     {
       "id": "R.4",
@@ -100,7 +100,7 @@
       "delegation": "⚡",
       "title": "Aislar respuestas y restauración por conversación",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-07"
     },
     {
       "id": "R.5",
@@ -109,7 +109,7 @@
       "delegation": "🧠",
       "title": "Persistencia coherente de turno, run y fallos de chat",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-08"
     },
     {
       "id": "R.6",
@@ -118,7 +118,7 @@
       "delegation": "⚡",
       "title": "Costo del chat separado de la etiqueta visual del modelo",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-09"
     },
     {
       "id": "R.7",
@@ -343,7 +343,7 @@
       "delegation": "🧠",
       "title": "La frontera de lectura es una capability declarada por CLI, verificada, no un prompt",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-06"
     },
     {
       "id": "H.9.3",
