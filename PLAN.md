@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: mes-30-abierto--fiabilidad-del-recorrido-y-shell-chat-workspace
+status: sprint-30-abierto--fiabilidad-del-recorrido-y-shell-chat-workspace
 ---
 
 # OrchestOS — Plan activo
@@ -43,10 +43,11 @@ tiene 624 y el problema no es buscar texto, es consultar un grafo.
 ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
 
 - [x] **S.1 — ⚡ Renombrar la etiqueta histórica a "Sprint N" en documentación y en el contrato de plan-status.**
-  Los "Sprint N" nunca fueron meses calendario, son bloques de trabajo (ver memoria
-  `project-real-timeline`). Se conserva EXACTAMENTE la numeración.
-  **Alcance:** todos los `.md` versionados; los 29 archivos `docs/done/sprint-NN.md`
-  (29 archivos) y sus enlaces entrantes; el campo `month` → `sprint` en `scripts/plan-status.ts`,
+  Los antiguos "Mes N" nunca fueron meses calendario, son bloques de trabajo (ver memoria
+  `project-real-timeline`). Se renombran a "Sprint N" conservando EXACTAMENTE la numeración
+  (Mes 22 = Sprint 22).
+  **Alcance:** todos los `.md` versionados; `git mv` de los 29 archivos de `docs/done/` a
+  `sprint-NN.md` y sus enlaces entrantes; el campo `month` → `sprint` en `scripts/plan-status.ts`,
   `scripts/generate-feature-status.ts`, `scripts/handoff.ts`, `scripts/agent-handoff.ts` y sus tests;
   regenerar `.orchestos/feature-status.json`; nota de equivalencia al inicio de DONE.md.
   **Fuera (decisión de Carlos, opción A):** las ~281 ocurrencias de procedencia histórica en `.ts/.js/.json/.yaml`
@@ -54,8 +55,22 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   archivos de código sin cambio funcional, ruido en `git blame` y riesgo sobre un CI recién estabilizado.
   **Gate:** `bunx tsc --noEmit`, `bun run test:coverage` (comando exacto de CI), `bun run lint`,
   `git diff --check`.
-  **Evidencia 2026-09-09:** 450 sustituciones textuales, 29 archivos renombrados, enlaces entrantes actualizados,
-  `.orchestos/feature-status.json` regenerado; gates: tsc=0, coverage=0, lint=0, diff-check=0.
+  **Evidencia 2026-09-09 (Codex `gpt-5.6-luna`, commit `63072ba`):** 450 sustituciones textuales,
+  29 archivos renombrados, enlaces entrantes actualizados, `.orchestos/feature-status.json`
+  regenerado; gates reportados: tsc=0, coverage=0, lint=0, diff-check=0.
+  **Verificación independiente (Claude) — 4 defectos encontrados y corregidos aparte:** el `sed` del
+  rename pasó sobre los textos que describían el propio rename y los dejó sin sentido.
+  (1) La nota de equivalencia de DONE.md decía «los antiguos «Sprint N» se renombraron a «Sprint N»»
+  y colgaba bajo `## Apéndice` en vez del inicio. (2) Este mismo ítem S.1 afirmaba «los "Sprint N"
+  nunca fueron meses calendario». (3) El frontmatter `status: mes-30-abierto` de PLAN.md quedó sin
+  renombrar. (4) «particionado por mes» en DONE.md.
+  **Comprobado por separado:** 0 enlaces rotos a `docs/done/`; 0 residuos de `month` en `scripts/`
+  y `src/`; 269 comentarios de procedencia en código intactos como se declaró. Los 12 cambios
+  restantes en `evals/*.yaml` y `src/evals/schema.test.ts` eran punteros `origin:` a archivos
+  renombrados que habrían quedado rotos — ampliación correcta del scope por parte de Codex.
+  **Lección de proceso:** un rename global de una etiqueta corrompe en silencio los textos que
+  hablan de esa etiqueta. Revisar siempre la documentación *del propio cambio* después de un `sed`
+  masivo — el gate verde (tsc/coverage/lint) no ve nada de esto.
 
 - [ ] **S.2 — ⚡ Purgar de PLAN.md la evidencia de los ítems ya cerrados.**
   Medido: de las líneas 14–3619 (bloques abiertos), **52 ítems ya están `[x]`** con toda su

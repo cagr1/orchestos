@@ -1,9 +1,13 @@
 # DONE.md — OrchestOS — Registro de trabajo completado
 
+> **Nota de equivalencia (2026-09-09):** los antiguos «Mes N» se renombraron a «Sprint N»
+> con la misma numeración (Mes 22 = Sprint 22). Nunca fueron meses calendario: son bloques
+> de trabajo. Ver PLAN.md § Bloque S, ítem S.1.
+
 Este archivo es de solo lectura — no se edita a mano.
 Se llena moviendo items `[x]` desde PLAN.md e ideas `✅` desde IDEAS.md.
 
-El historial íntegro está particionado por mes para que agentes y personas puedan abrir solo el
+El historial íntegro está particionado por sprint para que agentes y personas puedan abrir solo el
 tramo necesario. La sección transversal de ideas implementadas se conserva como apéndice separado.
 
 ## Historial por mes
@@ -41,5 +45,3 @@ tramo necesario. La sección transversal de ideas implementadas se conserva como
 ## Apéndice
 
 - [Ideas implementadas provenientes de IDEAS.md](docs/done/ideas-implementadas.md)
-Los antiguos «Sprint N» se renombraron a «Sprint N» el 2026-09-09 con la misma numeración
-(Mes 22 = Sprint 22). Nunca fueron meses calendario: son bloques de trabajo.
