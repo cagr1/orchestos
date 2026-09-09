@@ -157,6 +157,7 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
 
 - [ ] **S.4a — ⚡ Recuperar al índice los 7 ítems invisibles y dar vía de reconciliación.**
   Prerequisito duro de S.4b: sin esto, renderizar desde la DB borra historia.
+  Ejecutado por: gpt-5.6-luna · Spec: docs/specs/S4a.md
   **Alcance (tres cambios, ninguno de diseño):**
   1. `scripts/plan-status.ts:37` — el grupo del ID admite `-` y `'` además de `.`. `H.8.3'` lleva
      el apóstrofe al final, así que no basta tratarlos como separadores internos. El resto del

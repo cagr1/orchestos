@@ -82,6 +82,24 @@ Añade un modo de reconciliación:
 - Sin `--reconcile`, el comportamiento actual no cambia (sigue siendo one-shot y sigue lanzando el
   mismo error con el mismo texto).
 
+**Corrección del 2026-09-09 — reconciliar también BORRA (decisión del cerebro, no la tomes tú).**
+`upsertPlanItem` inserta y actualiza, pero **no elimina**. Verificado tras tu primera pasada:
+`plan_items` quedó con **78** filas para **77** ítems de PLAN.md; la que sobra es `S.4`, cuyo ítem
+fue reemplazado por `S.4a`/`S.4b` en el commit `ccf3a79`. Una fila huérfana no es inocua: cuando
+S.4b genere `PLAN.md` desde la DB, **resucitaría un `S.4` que ya no existe** y el gate lo
+declararía sincronizado — el mismo fantasma que este ítem vino a eliminar, entrando por la puerta
+de atrás.
+
+Dentro de la **misma transacción** del modo `--reconcile`, elimina de `plan_items` toda fila cuyo
+`id` no esté entre los ids parseados de `PLAN.md`.
+
+- **Si un `DELETE` falla por la foreign key de `plan_item_deps` (`ON DELETE RESTRICT`): aborta la
+  transacción entera y reporta.** Nunca borres en cascada ni toques `plan_item_deps` para
+  destrabarlo: esas dependencias las carga Carlos a mano y perderlas en silencio es peor que la
+  fila huérfana. Hoy la tabla está vacía, así que el caso no debería dispararse — el requisito
+  existe para cuando deje de estarlo.
+- Imprime cuántas filas se borraron y con qué ids.
+
 **Prohibido en este ítem:** tocar la tabla `plan_item_deps`. Está vacía a propósito (decisión de
 S.3: las dependencias las carga Carlos en S.6, no se infieren de la prosa). `upsertPlanItem` no la
 toca; no le agregues nada que sí lo haga.
@@ -129,9 +147,19 @@ Aserciones:
 Reporta cada uno con su salida real:
 
 1. El test nuevo falla antes del fix y pasa después (pega ambas salidas).
-2. `plan_items` = **76** filas. `.orchestos/feature-status.json` = **76** ítems.
+2. `plan_items` = **77** filas. `.orchestos/feature-status.json` = **77** ítems. Ninguna fila
+   huérfana: el conjunto de ids de `plan_items` es **idéntico** al de `PLAN.md`, en ambas
+   direcciones.
+   > Corrección del 2026-09-09: el spec decía 76. Estaba mal — el cerebro contó antes de que
+   > `ccf3a79` partiera `S.4` en `S.4a`/`S.4b`, que suma un ítem. **Hiciste bien en parar**: la
+   > contradicción era del spec, no de tu trabajo. Verificado por el cerebro de forma
+   > independiente, incluido que el PLAN.md de `ccf3a79` ya parseaba 77 con el regex nuevo.
 3. Los 7 ids recuperados están presentes en ambos.
-4. `S.3` queda `status='done'` con `commit_sha = d866f92…` (el commit real que lo cerró).
+4. `S.3` queda `status='done'` con `commit_sha = 4d019b6…`.
+   > Corrección del 2026-09-09: el spec decía `d866f92`. También estaba mal.
+   > `git log -S '- [x] **S.3 —' -- PLAN.md` devuelve `4d019b6`, que es el commit que marcó `[x]`;
+   > `d866f92` solo trajo el código. El sha correcto es el del **cierre**, no el de la
+   > implementación. `commitShaFor()` ya hace lo correcto; el número escrito a mano era el erróneo.
 5. **Ningún ítem `done` puede quedar con el sha de fallback.** `commitShaFor()`
    (`plan-import.ts:22-42`) busca con `git log -S "- [x] **<id> —" -- PLAN.md` y, si no encuentra
    nada, **cae a `git rev-parse HEAD`**. Un sha de HEAD satisface el `CHECK` de la tabla y deja el

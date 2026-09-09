@@ -34,7 +34,7 @@ export interface PlanItemSource extends FeatureStatusItem {
 }
 
 const ITEM_LINE_RE =
-  /^- \[( |x)\] \*\*([A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*) — (🧠|⚡|🔍) (.+?)\.?\*\*(?:\s*\(cerrado (\d{4}-\d{2}-\d{2})[^)]*\))?/
+  /^- \[( |x)\] \*\*([A-Za-z0-9][A-Za-z0-9.'-]*) — (🧠|⚡|🔍) (.+?)\.?\*\*(?:\s*\(cerrado (\d{4}-\d{2}-\d{2})[^)]*\))?/
 
 export function parsePlanFeatureStatus(plan: string): FeatureStatusItem[] {
   const items: FeatureStatusItem[] = []

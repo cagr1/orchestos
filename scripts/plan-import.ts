@@ -42,13 +42,12 @@ function commitShaFor(item: PlanItemSource, root: string): string {
   return fallback
 }
 
-export function importPlan(root: string = process.cwd()): number {
-  const plan = readFileSync(join(root, 'PLAN.md'), 'utf-8')
-  const sources = parsePlanItemSources(plan)
-  const existing =
-    db.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM plan_items').get()?.count ?? 0
-  if (existing !== 0) throw new Error('plan_items is already seeded; plan import runs once')
+interface ImportResult {
+  count: number
+  deletedIds: string[]
+}
 
+function importSources(sources: PlanItemSource[], root: string, reconcile: boolean): ImportResult {
   const importAll = db.transaction(() => {
     for (const item of sources) {
       const body = item.evidenceHref ? bodyFromEvidence(root, item.evidenceHref) : item.body
@@ -71,13 +70,44 @@ export function importPlan(root: string = process.cwd()): number {
         db,
       )
     }
+
+    if (!reconcile) return []
+
+    const sourceIds = new Set(sources.map((item) => item.id))
+    const orphanIds = db
+      .query<{ id: string }, []>('SELECT id FROM plan_items')
+      .all()
+      .map((item) => item.id)
+      .filter((id) => !sourceIds.has(id))
+    for (const id of orphanIds) db.run('DELETE FROM plan_items WHERE id = ?', [id])
+    return orphanIds
   })
-  importAll()
-  return sources.length
+  return { count: sources.length, deletedIds: importAll() }
+}
+
+function importPlanWithResult(root: string, reconcile: boolean): ImportResult {
+  const plan = readFileSync(join(root, 'PLAN.md'), 'utf-8')
+  const sources = parsePlanItemSources(plan)
+  const existing =
+    db.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM plan_items').get()?.count ?? 0
+  if (!reconcile && existing !== 0)
+    throw new Error('plan_items is already seeded; plan import runs once')
+
+  return importSources(sources, root, reconcile)
+}
+
+export function importPlan(root: string = process.cwd(), reconcile = false): number {
+  return importPlanWithResult(root, reconcile).count
 }
 
 if (import.meta.main) {
   runMigrations()
-  const count = importPlan()
-  console.log(`✓ ${count} plan items imported from PLAN.md`)
+  const reconcile = Bun.argv.includes('--reconcile')
+  const result = importPlanWithResult(process.cwd(), reconcile)
+  console.log(`✓ ${result.count} plan items ${reconcile ? 'reconciled' : 'imported'} from PLAN.md`)
+  if (reconcile) {
+    console.log(
+      `✓ ${result.deletedIds.length} orphan plan items deleted: ${result.deletedIds.join(', ') || '(none)'}`,
+    )
+  }
 }

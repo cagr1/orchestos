@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { parsePlanFeatureStatus, serializeFeatureStatus } from './plan-status.ts'
 
 const SAMPLE = `
@@ -20,6 +23,29 @@ const SAMPLE = `
 `
 
 describe('parsePlanFeatureStatus', () => {
+  test('parsea IDs con guion y apóstrofe desde un fixture temporal', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-s4a-'))
+    try {
+      const fixturePath = join(root, 'PLAN.md')
+      writeFileSync(
+        fixturePath,
+        [
+          '- [x] **R.2-bis — 🔍 Título de prueba.** (cerrado 2026-09-06)',
+          "- [x] **H.8.3' — ⚡ Otro título.** (cerrado 2026-09-04)",
+          '- [ ] **S.9 — 🧠 Ítem normal abierto.**',
+          '- [x] **SÍ — Sprint 27 cerrado.**',
+        ].join('\n'),
+      )
+
+      const items = parsePlanFeatureStatus(readFileSync(fixturePath, 'utf-8'))
+      expect(items).toHaveLength(3)
+      expect(items.map((item) => item.id)).toEqual(['R.2-bis', "H.8.3'", 'S.9'])
+      expect(parsePlanFeatureStatus('- [x] **SÍ — Sprint 27 cerrado.**')).toHaveLength(0)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   test('extrae ítems de trabajo reales, ignorando veredictos de cierre de mes', () => {
     const items = parsePlanFeatureStatus(SAMPLE)
     expect(items).toHaveLength(2)

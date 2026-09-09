@@ -94,11 +94,38 @@
       "closedDate": "2026-09-07"
     },
     {
+      "id": "R.2-bis",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Hallazgo bloqueante de R.2: la frontera de lectura no existe (evidencia)",
+      "status": "done",
+      "closedDate": "2026-09-06"
+    },
+    {
+      "id": "R.2-ter",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Unificar frontera de los lectores fijos OpenRouter",
+      "status": "done",
+      "closedDate": "2026-09-07"
+    },
+    {
       "id": "R.3",
       "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "⚡",
       "title": "QA exige correspondencia uno a uno con los criterios originales",
+      "status": "done",
+      "closedDate": "2026-09-07"
+    },
+    {
+      "id": "R.3-bis",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Validar el envelope completo de QA adversarial/refutador",
       "status": "done",
       "closedDate": "2026-09-07"
     },
@@ -112,6 +139,15 @@
       "closedDate": "2026-09-07"
     },
     {
+      "id": "R.5-ter",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Corregir concurrencia, reserva previa y confirmaciones restauradas",
+      "status": "done",
+      "closedDate": "2026-09-08"
+    },
+    {
       "id": "R.5",
       "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
@@ -119,6 +155,24 @@
       "title": "Persistencia coherente de turno, run y fallos de chat",
       "status": "done",
       "closedDate": "2026-09-08"
+    },
+    {
+      "id": "R.5-bis",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "R.5: política de DELETE y reserva de tareas (decisiones 8 y 10)",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "R.4-bis",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Seguimiento de R.4: restore no invalida epoch en todos los casos",
+      "status": "done",
+      "closedDate": null
     },
     {
       "id": "R.6",
@@ -344,6 +398,15 @@
       "title": "Aplicar el effort en el executor de Codex",
       "status": "done",
       "closedDate": null
+    },
+    {
+      "id": "H.8.3'",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
+      "block": "H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)",
+      "delegation": "⚡",
+      "title": "CERRADO-RECORTADO (2026-09-04): backend de effort genérico; draft visual congelado",
+      "status": "done",
+      "closedDate": "2026-09-04"
     },
     {
       "id": "H.9.2",
