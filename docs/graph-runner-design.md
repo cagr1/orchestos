@@ -1,4 +1,4 @@
-# Graph Runner — diseño (Mes 14, Bloque A1)
+# Graph Runner — diseño (Sprint 14, Bloque A1)
 
 Diseño de la política de decisión ante fallo para `orchestos run --graph`. Hallazgos de
 pre-flight (PLAN.md § BLOQUE 0) que fundamentan este diseño:

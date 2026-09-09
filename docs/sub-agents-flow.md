@@ -159,5 +159,5 @@ Si `implement-auth-service` falla, `write-auth-docs` se salta (`skipped`) con ra
 
 - **Tool policy**: `allowed_tools` se valida en el scheduler, no es sugerencia
 - **Memoria**: sub-tasks con `topic_key` persisten en `memory_entries` y se recuperan en ejecuciones posteriores con instrucción MERGE
-- **Paralelismo**: prohibido en Mes 5 — scheduler estrictamente secuencial
+- **Paralelismo**: prohibido en Sprint 5 — scheduler estrictamente secuencial
 - **Cascada**: si `A → B → C` y B falla, C queda `skipped` sin ejecutarse

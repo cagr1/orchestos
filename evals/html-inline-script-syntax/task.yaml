@@ -10,7 +10,7 @@ status: pending
 retry_count: 0
 checks:
   - cmd: bun run verify-html.ts
-origin: docs/done/mes-20.md
+origin: docs/done/sprint-20.md
 reference_solution:
   public/index.html: |
     <!doctype html>

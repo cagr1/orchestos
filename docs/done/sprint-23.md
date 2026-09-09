@@ -1,4 +1,4 @@
-## MES 23 — L: línea base profesional de seguridad (nuevo, 2026-07-28)
+## SPRINT 23 — L: línea base profesional de seguridad (nuevo, 2026-07-28)
 
 **Tabla de estado de bloques al cierre (2026-07-29)**
 

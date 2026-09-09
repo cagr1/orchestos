@@ -1,4 +1,4 @@
-# Auto-split design — Mes 20 / Bloque A
+# Auto-split design — Sprint 20 / Bloque A
 
 **Estado:** borrador para revisión (A.1) — no tocar código hasta que Carlos apruebe (A.2).  
 **Contexto completo:** [PLAN.md — Bloque A](../PLAN.md)
@@ -140,7 +140,7 @@ No construir nada nuevo. El generador ya maneja su propio presupuesto de tokens
 
 ### Principio
 
-Mismo contrato que el chat (Mes 18 B.1.b): nunca auto-run silencioso.
+Mismo contrato que el chat (Sprint 18 B.1.b): nunca auto-run silencioso.
 El usuario ve exactamente qué va a correr, cuánto cuesta estimado, y aprueba.
 
 ### Persistencia del plan — opción elegida: archivo `.plan.yaml`

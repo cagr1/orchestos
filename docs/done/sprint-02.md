@@ -1,4 +1,4 @@
-### MES 2 — Contract-first workflow con evidencia
+### SPRINT 2 — Contract-first workflow con evidencia
 
 **SEMANA 5 — `tasks.yaml` como fuente de verdad**
 - S5.1 Schema tasks.yaml: id, description, skill, input[], output[], depends_on[], status, retry — 2026-05-26

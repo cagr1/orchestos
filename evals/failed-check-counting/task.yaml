@@ -11,7 +11,7 @@ status: pending
 retry_count: 0
 checks:
   - cmd: bun test ./src/count-failed-checks.case.ts
-origin: docs/done/mes-22.md
+origin: docs/done/sprint-22.md
 reference_solution:
   src/count-failed-checks.ts: |
     export interface CheckSummary {

@@ -16,7 +16,7 @@ describe('generateFeatureStatus', () => {
     dir = mkdtempSync(join(tmpdir(), 'plan-status-'))
     writeFileSync(
       join(dir, 'PLAN.md'),
-      '## MES X\n\n### Bloque A\n\n- [ ] **A.1 — 🧠 Título de prueba.** cuerpo\n',
+      '## SPRINT X\n\n### Bloque A\n\n- [ ] **A.1 — 🧠 Título de prueba.** cuerpo\n',
     )
 
     const outPath = generateFeatureStatus(dir)

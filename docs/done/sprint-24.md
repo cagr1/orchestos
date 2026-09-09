@@ -1,11 +1,11 @@
-## MES 24 — M: guías reproducibles por lenguaje y ecosistema (nuevo, 2026-07-29)
+## SPRINT 24 — M: guías reproducibles por lenguaje y ecosistema (nuevo, 2026-07-29)
 
 **Tabla de estado de bloques al cierre (2026-07-29)**
 
 | Bloque | Estado |
 | --- | --- |
 | M.0–M.5 | ✅ Cerrados con evidencia en este registro |
-| Límites de roadmap | ⏳ Decisión pendiente de Carlos, heredada en Mes 25 |
+| Límites de roadmap | ⏳ Decisión pendiente de Carlos, heredada en Sprint 25 |
 
 **Motivo:** detectar que un repositorio contiene Rust, Go, Python o TypeScript no significa saber
 cómo trabajarlo correctamente. El conocimiento actual de OrchestOS está repartido entre detección de
@@ -37,7 +37,7 @@ nuevo mientras K/L/M sigan con ítems sin cerrar.
 en blanco. Antes de escribir `docs/roadmaps/README.md`, grep/leer qué de esto ya existe para no crear
 una segunda fuente de verdad — mismo principio que evitó trabajo redundante en K.4a ("la premisa ya
 estaba resuelta, reconstruir hubiera sido puro gasto"): qué cubre ya `description` en `skills/*.yaml`
-como condición de disparo, qué detecta ya `defaultChecksFor()`/los resolvers multi-lenguaje (Mes 5),
+como condición de disparo, qué detecta ya `defaultChecksFor()`/los resolvers multi-lenguaje (Sprint 5),
 y qué vive ya en `AGENTS.md`/`CONTEXT.md`. El roadmap solo debe cubrir el hueco real: **el orden**
 entre esas piezas, que hoy no existe en ningún lado.
 
@@ -53,7 +53,7 @@ verificado en este repo), nunca `verified`.
 
 - [x] **M.0 — 🧠 (2026-07-29)** Auditoría previa completada contra el código real (no asumida):
   `skills/*.yaml` solo cubre instrucciones operativas por tarea (`description`/`when_to_use`), los
-  resolvers de lenguaje (`src/graph/resolvers/{rust,go,java,csharp}.ts`, Mes 5/S21) solo resuelven
+  resolvers de lenguaje (`src/graph/resolvers/{rust,go,java,csharp}.ts`, Sprint 5/S21) solo resuelven
   imports para el grafo de dependencias, `defaultChecksFor()` ([checks.ts](../../src/run/checks.ts)) hoy
   **no genera ningún check para Rust/Go/Python** (solo `.ts/.tsx/.js/.html`), y `AGENTS.md`/
   `CONTEXT.md` son reglas de colaboración y snapshot de arquitectura de este repo, no una guía
@@ -226,7 +226,7 @@ un proyecto concreto lo necesita, crear el perfil de lenguaje angosto correspond
   OrchestOS mismo — se recorta con `missing` visible (nunca en silencio), pero el recorte es real.
   Ambos anotados en [CONTEXT.md § Invariante roadmap](../../CONTEXT.md).
 
-  Resumen copiado a [DONE.md § Mes 24](../../DONE.md). Verificación: `bun run typecheck` limpio, suite
+  Resumen copiado a [DONE.md § Sprint 24](../../DONE.md). Verificación: `bun run typecheck` limpio, suite
   completa `1010 pass`, `0 fail`, `2303 expect() calls` en `98` archivos.
 
 **Regla de evolución:** cuando aparezca un nuevo lenguaje o framework, primero se crea/actualiza su

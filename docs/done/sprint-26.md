@@ -1,6 +1,6 @@
-## MES 26 — Backlog canónico, categoría **Bajo** (abierto 2026-08-06)
+## SPRINT 26 — Backlog canónico, categoría **Bajo** (abierto 2026-08-06)
 
-Mes 25 cerró los tres bloques que graduaron de la categoría **Mínimo** (vacía desde entonces).
+Sprint 25 cerró los tres bloques que graduaron de la categoría **Mínimo** (vacía desde entonces).
 Este Mes ejecuta la categoría **Bajo** del backlog canónico de [IDEAS.md](../../IDEAS.md), en el orden
 del índice — que es el **único** orden de ejecución (regla desde 2026-07-30). Al graduar cada
 idea se elimina de IDEAS.md en el mismo commit.
@@ -106,7 +106,7 @@ un hallazgo real que la idea no conocía.
   `iron_law` presente en los 3, **antes** de `instructions`, con las 8 rationalizations. No es el
   YAML: es lo que se le entrega a la herramienta.
 
-  **(b) Gate causal con dinero real, con control** — mismo patrón que A.4 (Mes 22). Proyecto
+  **(b) Gate causal con dinero real, con control** — mismo patrón que A.4 (Sprint 22). Proyecto
   scratch fuera del repo, tarea con output `.md` (`defaultChecksFor()` no genera **ningún** check
   — el caso exacto donde el harness no puede atrapar una afirmación falsa), `gpt-4o-mini`, y el
   `fetch` instrumentado para capturar los `tool_calls` reales:
@@ -148,7 +148,7 @@ asumido:
   tampoco — son catálogo importable, no automático).
 - **Ubicación**: `skills/pro/`, no `skills/` — son import puro del pack de superpowers, sin skill
   nativa preexistente a la que fusionarse (a diferencia de `tdd-enforcer`/N.5.1). Mismo criterio
-  documentado en DONE.md § Mes 11 para las 8 pro existentes.
+  documentado en DONE.md § Sprint 11 para las 8 pro existentes.
 - **Nota, no acción**: `N.7c` ya portó el Red Flag de `requesting-code-review` ("no saltar review
   por simple") como `anti_pattern` en `skills/pro/code-review.yaml`. Esa skill sigue siendo el
   **dador** de una revisión; estas dos son el **solicitante** y el **receptor** — actores
@@ -268,7 +268,7 @@ decidió (pregunta explícita, 2026-08-06) arreglar la raíz primero, Ruby despu
 
 ### Bloque T — 🧠 IDEAS #19: `engine: external` sin `checks:` pierde su única red determinista
 
-**Origen**: gate D.1 (Mes 17). `defaultChecksFor()` gatea `tsc --noEmit`/`bun test` en
+**Origen**: gate D.1 (Sprint 17). `defaultChecksFor()` gatea `tsc --noEmit`/`bun test` en
 `existsSync(node_modules)`, y `git worktree add` (que `engine: external` exige sin excepción,
 §5 de `docs/external-executor-design.md`) nunca trae `node_modules` — está siempre gitignored. Una
 tarea `engine: external` **sin** `checks:` explícitos quedaba con el juez de QA-LLM como única red
@@ -452,7 +452,7 @@ del planner cubre el enforcement real. Decisión de Carlos (pregunta explícita,
   que cada test verifica de verdad. 1111 tests (eran 1117, -6 del middleware borrado) · 0 fail ·
   `tsc --noEmit` limpio · `bun run test:coverage` verde.
 
-**Bloque W cerrado (W.1). Mes 26 cierra completo (Q–W) — el backlog canónico de categoría Bajo
+**Bloque W cerrado (W.1). Sprint 26 cierra completo (Q–W) — el backlog canónico de categoría Bajo
 queda en cero.**
 
 ---

@@ -1,4 +1,4 @@
-# Decisión de arquitectura — registry de skills (Mes 13, Bloque B1)
+# Decisión de arquitectura — registry de skills (Sprint 13, Bloque B1)
 
 ## La pregunta
 
@@ -37,7 +37,7 @@ origen desconocido"), lo manda a un LLM curador con instrucciones de producir un
 válido, y reintenta hasta 2 veces si la validación falla. No le importa si el texto de entrada
 es YAML mal formado o un `SKILL.md` con frontmatter + Markdown — el curador ya hace esa
 traducción de formato. **No hay que escribir un parser de `SKILL.md`.** Esto es exactamente el
-patrón "no reconstruir infraestructura que ya existe" del eje de Mes 13.
+patrón "no reconstruir infraestructura que ya existe" del eje de Sprint 13.
 
 Esto evita:
 - Mantener un catálogo propio (curación, actualización, moderación — trabajo continuo sin fin).
@@ -60,7 +60,7 @@ Esto evita:
   existente en `normalizeImport`, no hay que reimplementarlo (gate B4 lo confirma).
 - B3 (superficie en el dashboard) reusa el mismo endpoint nuevo (`GET /api/skills/registry` o
   similar) que B2 expone vía CLI — un solo backend, dos fachadas (CLI + dashboard), igual patrón
-  que el resto de "puertas" del proyecto (escribir/importar/exportar en Mes 11).
+  que el resto de "puertas" del proyecto (escribir/importar/exportar en Sprint 11).
 
 ## Qué NO se construye
 

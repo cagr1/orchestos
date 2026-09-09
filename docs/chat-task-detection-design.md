@@ -1,9 +1,9 @@
-# Diseño — detección de intención de tarea en el Chat (Mes 18, Bloque A.1)
+# Diseño — detección de intención de tarea en el Chat (Sprint 18, Bloque A.1)
 
 ## Punto de partida
 
 `chat-create-task-bar` ([screens-core.js:60](../src/dashboard/public/screens-core.js#L60)) ya
-existe desde el Mes 10: aparece cuando `history.length >= 3` y ofrece un botón que pre-llena el
+existe desde el Sprint 10: aparece cuando `history.length >= 3` y ofrece un botón que pre-llena el
 composer de Tasks con el contexto de la conversación. Es una heurística ciega — no mira el
 contenido de los mensajes, solo cuenta cuántos hubo. El chat hoy no tiene ninguna tool de lectura
 de proyecto (`PLAN.md`/`tasks.yaml`/`IDEAS.md`); solo `FETCH_URL_TOOL` y `SEARCH_MEMORY_TOOL`

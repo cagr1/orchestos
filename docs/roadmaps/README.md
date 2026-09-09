@@ -1,6 +1,6 @@
 # Sistema de roadmaps de OrchestOS
 
-Bloque M.0 (Mes 24, PLAN.md), 2026-07-29. **Revisado en M.0-R1 (2026-07-29)** — ver §9.
+Bloque M.0 (Sprint 24, PLAN.md), 2026-07-29. **Revisado en M.0-R1 (2026-07-29)** — ver §9.
 Diseño del sistema — no un roadmap en sí.
 
 **Origen**: Carlos notó que, como desarrollador, también olvida protocolos/configuraciones previas
@@ -26,7 +26,7 @@ Antes de crear nada, se verificó qué de esto ya está resuelto en el repo:
 | Pieza existente | Qué cubre realmente | Qué NO cubre |
 |---|---|---|
 | `skills/*.yaml` (`description`, `when_to_use`) | Instrucciones operativas puntuales — "cuándo disparar esta skill durante UNA tarea" | Ningún orden de etapas de ingeniería; no sabe qué falta antes o qué sigue después de la tarea actual |
-| `src/graph/resolvers/{rust,go,java,csharp}.ts` + `resolver-registry.ts` | Resolución de imports para el grafo de dependencias del código (Mes 5, S21) | Toolchain, tests, build, seguridad, deploy — es *solo* resolución de paths de import, nada de flujo de trabajo |
+| `src/graph/resolvers/{rust,go,java,csharp}.ts` + `resolver-registry.ts` | Resolución de imports para el grafo de dependencias del código (Sprint 5, S21) | Toolchain, tests, build, seguridad, deploy — es *solo* resolución de paths de import, nada de flujo de trabajo |
 | `defaultChecksFor()` ([checks.ts](../../src/run/checks.ts)) | Detecta `.ts/.tsx` → `tsc`+`bun test`; `.js/.html` → `node --check`; assertion-gate | **Cero soporte para Rust/Go/Python** — no genera ningún check para esos lenguajes hoy |
 | `language_targets` en `tasks.yaml`/skills | Filtra qué skills aplican a una tarea según lenguaje declarado | No verifica que el lenguaje declarado tenga tooling instalado, ni en qué orden trabajarlo |
 | `AGENTS.md` | Reglas de colaboración entre LLMs (git, scope-lock, commits) | Nada específico de lenguaje ni de orden de etapas técnicas |

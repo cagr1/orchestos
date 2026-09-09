@@ -1,4 +1,4 @@
-## MES 27 — Backlog canónico, categoría Bajo-medio (abierto 2026-08-10, cerrado 2026-08-13)
+## SPRINT 27 — Backlog canónico, categoría Bajo-medio (abierto 2026-08-10, cerrado 2026-08-13)
 
 Este Mes ejecutó la categoría **Bajo-medio** de IDEAS.md: `#4`, `#30`, `#33`, `#37`, `#51`. Mismo
 orden de índice = único orden de ejecución (regla desde 2026-07-30).
@@ -23,7 +23,7 @@ hallazgo es real (`CONFIRMED`, consume el retry) o un error del juez (`REFUTED`,
 gastar un retry completo (executor + QA de nuevo). Mirror asimétrico de K.4b (que hace lo mismo
 para el lado `pass`, opt-in, catch de falsos-positivos); esto ataca falsos-negativos.
 
-**Evidencia verificada, no asumida**: `DONE.md` (gate D.1, Mes 17, dinero real) — *"El QA-LLM dio un
+**Evidencia verificada, no asumida**: `DONE.md` (gate D.1, Sprint 17, dinero real) — *"El QA-LLM dio un
 falso negativo sobre un diff objetivamente correcto"*. Incidente real, no hipotético. Verificado
 también que `qa.verdict === 'fail'` solo se consume en **un** punto de `harness.ts` (línea 639) —
 la nota original de la idea decía "2 puntos", desactualizada.
@@ -90,7 +90,7 @@ OrchestOS ya consume (`priceIn`/`priceOut` en `model-catalog.ts`).
   (Settings → Model routing) — filtra `st.orModels` por `:free`, ordena por `contextK`
   descendente, aplica el mejor a los 4 roles (`planner`/`executor_heavy`/`executor_light`/
   `default`). **No auto-guarda** — mismo patrón de Guardar explícito que el resto del panel
-  (consistente con el fix de U.1 de Mes 26: mover foco sin persistir es la clase de bug que
+  (consistente con el fix de U.1 de Sprint 26: mover foco sin persistir es la clase de bug que
   ese Bloque ya cerró). Sin id de modelo hardcodeado — el catálogo `:free` de OpenRouter cambia
   con el tiempo.
 - [x] **Y.4 — 🔍** (2026-08-10) Verificado en vivo contra el dashboard real (puerto 4242,
@@ -124,7 +124,7 @@ como parcial hasta que `#50` desbloquee el resto.
   `:hover`/`:focus-within` — mismo patrón que `.modal-scrim`/`.local-model-warn` ya usan en
   `screens.css`). Copiar por índice contra `st.chatHistory[i].content` (no por atributo HTML) para
   no depender de re-escapar mensajes largos en un `data-*`. Reusa `ICON.copy`/`ICON.check` de
-  `data.js`, mismo patrón visual que el `data-copy` de E.8 (panel de diagnosis, Mes 22) pero con su
+  `data.js`, mismo patrón visual que el `data-copy` de E.8 (panel de diagnosis, Sprint 22) pero con su
   propio handler — ese vive en `SCREENS.tasks.wire()`, otro screen. 2 claves i18n nuevas
   (`chat.copyErr`, en/es).
 - [x] **Z.2 — parked.** `#51` dejó fuera "rebobinar" — no fue un ítem de este Bloque, ver nota de
@@ -144,9 +144,9 @@ como parcial hasta que `#50` desbloquee el resto.
   cambio — mismo criterio que Y: JS de dashboard sin harness de test unitario, la verificación
   real es la corrida en vivo).
 
-**Mes 27 cierra parcial: `#33` y `#37` completos, `#51` parcial (rebobinar bloqueado por `#50`,
+**Sprint 27 cierra parcial: `#33` y `#37` completos, `#51` parcial (rebobinar bloqueado por `#50`,
 sin implementar), `#4` y `#30` siguen parqueados en IDEAS.md sin evidencia. La categoría
-Bajo-medio del backlog canónico NO queda en cero — a diferencia del cierre de Bajo (Mes 26), acá
+Bajo-medio del backlog canónico NO queda en cero — a diferencia del cierre de Bajo (Sprint 26), acá
 quedan 3 remanentes explícitos y documentados, no deuda oculta.**
 
 ---

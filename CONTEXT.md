@@ -29,7 +29,7 @@ y no debe ser la fuente de nada permanente.
 - Codex/OpenCode se almacenan como agentes válidos, pero el transporte de chat responde 422 hasta
   que exista una vía read-only verificada; nunca degradar silenciosamente a API. CC.3 sigue siendo
   responsable de resolver el proyecto activo sin `resolve('.')`; no adelantar esa deuda aquí.
-- No existe UI de sesiones en vanilla. La superficie visual está reservada para Mes 30 (`UI.6`/
+- No existe UI de sesiones en vanilla. La superficie visual está reservada para Sprint 30 (`UI.6`/
   `UI.7`) por decisión explícita de Carlos.
 
 ### Corrección de turnos R.5-ter (2026-09-08)
@@ -56,7 +56,7 @@ Legacy sin sesión y reenvíos del usuario con una clave nueva conservan sus lí
 - Una sesión persistida manda sobre el selector request-scoped: su `project_id` inmutable no puede
   cambiar por un header obsoleto o manipulado. Sesiones generales (`project_id:null`) conservan la
   frontera sin contexto de repo definida en CC.2.
-- La selección visual y el envío automático del header pertenecen a UI.6 (Mes 30); no agregar una
+- La selección visual y el envío automático del header pertenecen a UI.6 (Sprint 30); no agregar una
   UI vanilla provisional.
 
 ### Estado estable — evidencia durable de gates CC.0-D6 (2026-08-20)

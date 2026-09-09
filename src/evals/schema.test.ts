@@ -12,7 +12,7 @@ function validEval(): Record<string, unknown> {
     status: 'pending',
     retry_count: 0,
     checks: [{ cmd: 'bun test' }],
-    origin: 'docs/done/mes-22.md',
+    origin: 'docs/done/sprint-22.md',
     reference_solution: { 'src/result.ts': 'export const fixed = true\n' },
   }
 }
@@ -26,7 +26,7 @@ describe('validateEvalTask', () => {
     expect(task.reference_solution).toEqual({
       'src/result.ts': 'export const fixed = true\n',
     })
-    expect(task.origin).toBe('docs/done/mes-22.md')
+    expect(task.origin).toBe('docs/done/sprint-22.md')
   })
 
   test('rejects a missing or empty reference solution', () => {

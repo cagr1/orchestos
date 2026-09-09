@@ -1,6 +1,6 @@
 ## Sección 1 — Plan ejecutado (S1–S18)
 
-### MES 1 — CLI base + detección de stack
+### SPRINT 1 — CLI base + detección de stack
 
 **SEMANA 1 — `orchestos detect` → AGENTS.md**
 - S1.1 Bootstrap (bun init, dependencias, IDEAS.md) — 2026-05-26

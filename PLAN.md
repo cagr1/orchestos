@@ -42,18 +42,20 @@ tiene 624 y el problema no es buscar texto, es consultar un grafo.
 **Cierre del bloque:** abrir un tab nuevo y saber qué sigue cuesta ~1 KB en vez de 309 KB, y
 ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
 
-- [ ] **S.1 — ⚡ Renombrar "Mes N" a "Sprint N" en documentación y en el contrato de plan-status.**
-  Los "Mes N" nunca fueron meses calendario, son bloques de trabajo (ver memoria
-  `project-real-timeline`). Se renombran conservando EXACTAMENTE la numeración (Mes 22 = Sprint 22).
-  **Alcance:** todos los `.md` versionados; `git mv docs/done/mes-NN.md docs/done/sprint-NN.md`
+- [x] **S.1 — ⚡ Renombrar la etiqueta histórica a "Sprint N" en documentación y en el contrato de plan-status.**
+  Los "Sprint N" nunca fueron meses calendario, son bloques de trabajo (ver memoria
+  `project-real-timeline`). Se conserva EXACTAMENTE la numeración.
+  **Alcance:** todos los `.md` versionados; los 29 archivos `docs/done/sprint-NN.md`
   (29 archivos) y sus enlaces entrantes; el campo `month` → `sprint` en `scripts/plan-status.ts`,
   `scripts/generate-feature-status.ts`, `scripts/handoff.ts`, `scripts/agent-handoff.ts` y sus tests;
   regenerar `.orchestos/feature-status.json`; nota de equivalencia al inicio de DONE.md.
-  **Fuera (decisión de Carlos, opción A):** las ~281 ocurrencias `// Mes 22/F.3` en `.ts/.js/.json/.yaml`
-  son comentarios de procedencia que referencian cierres ocurridos con ese nombre; tocarlas son 110
+  **Fuera (decisión de Carlos, opción A):** las ~281 ocurrencias de procedencia histórica en `.ts/.js/.json/.yaml`
+  referencian cierres ocurridos con el nombre anterior; tocarlas son 110
   archivos de código sin cambio funcional, ruido en `git blame` y riesgo sobre un CI recién estabilizado.
   **Gate:** `bunx tsc --noEmit`, `bun run test:coverage` (comando exacto de CI), `bun run lint`,
   `git diff --check`.
+  **Evidencia 2026-09-09:** 450 sustituciones textuales, 29 archivos renombrados, enlaces entrantes actualizados,
+  `.orchestos/feature-status.json` regenerado; gates: tsc=0, coverage=0, lint=0, diff-check=0.
 
 - [ ] **S.2 — ⚡ Purgar de PLAN.md la evidencia de los ítems ya cerrados.**
   Medido: de las líneas 14–3619 (bloques abiertos), **52 ítems ya están `[x]`** con toda su
@@ -772,10 +774,10 @@ harness.ts 1203 y chat.ts 1237. La concentración de responsabilidades merece at
 el tamaño no demuestra un bug. Extraer únicamente responsabilidades necesarias para los ítems
 anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conteo de líneas.
 
-## BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)
+## BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)
 
 > **Decisión de Carlos (2026-09-01):** este bloque va **primero**. Los ítems `UI.4`–`UI.7`
-> del Mes 30 siguen abiertos pero quedan detrás de H — el objetivo es cerrar los huecos que
+> del Sprint 30 siguen abiertos pero quedan detrás de H — el objetivo es cerrar los huecos que
 > impiden presentar el producto como ingeniería seria.
 
 ### De dónde sale este bloque
@@ -808,13 +810,13 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
 ### H.1 — Presentación: lo que descalifica al repo en 30 segundos
 
-- [x] **H.1.1 — ⚡ README miente sobre el estado del proyecto.** (cerrado 2026-09-01) Dice "369 tests · Mes 8
-  complete" cuando hay **1174 tests** y el plan va por **Mes 30**. Subvalúa el trabajo real 3×
+- [x] **H.1.1 — ⚡ README miente sobre el estado del proyecto.** (cerrado 2026-09-01) Dice "369 tests · Sprint 8
+  complete" cuando hay **1174 tests** y el plan va por **Sprint 30**. Subvalúa el trabajo real 3×
   y es lo primero que lee cualquiera. Actualizar conteo de tests, mes/fase actual y cualquier
   otra cifra obsoleta, tomando los números de una corrida real (`bun test`), no de memoria.
   Gate: `bun test` para obtener el número real + diff acotado a `README.md`.
   **Evidencia:** `bunx tsc --noEmit` ✅ · `bun test` ✅ (1174 pass / 0 fail, 2852 expects,
-  120 archivos). `README.md` actualizado a Mes 30 / Bloque H; el conteo obsoleto de 9
+  120 archivos). `README.md` actualizado a Sprint 30 / Bloque H; el conteo obsoleto de 9
   middlewares se corrigió a los 5 que encadena `src/run/harness.ts`. El conteo de 36 lenguajes
   se verificó contra `SUPPORTED_LANGUAGES` y sigue vigente.
 
@@ -920,7 +922,7 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   lectura. `.orchestos/specs/` queda fuera de alcance — es para specs por tarea (spec-kit),
   un problema distinto al de rastrear el estado de PLAN.md.
   Discriminador del parser: un ítem de trabajo real es `- [ ] **<ID> — <🧠|⚡|🔍> <título>**`;
-  los veredictos de cierre de mes (`**SÍ — Mes 27 cerrado...**`) no llevan el emoji de
+  los veredictos de cierre de mes (`**SÍ — Sprint 27 cerrado...**`) no llevan el emoji de
   delegación justo tras el guión largo, así que el regex los excluye sin necesitar una lista
   negra — verificado contra el `PLAN.md` real: captura los 24 ítems de trabajo reales de los
   45 checkboxes en negrita, y ninguno de los 21 veredictos de mes.
@@ -942,13 +944,13 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
 
 - [x] **H.3.2 — ⚡ `DONE.md` pesa 540 KB / 5969 líneas.** (cerrado 2026-09-01) Ningún agente lo lee entero, y no
   tiene índice ni partición. Es el anti-patrón de "instrucciones monolíticas que se pudren"
-  aplicado al historial. Partir por mes en `docs/done/mes-NN.md` dejando `DONE.md` como índice
+  aplicado al historial. Partir por mes en `docs/done/sprint-NN.md` dejando `DONE.md` como índice
   con enlaces, **preservando el contenido íntegro** (es historial, no se resume ni se recorta).
   Verificar que ningún script referencie `DONE.md` por ruta antes de partirlo.
   Gate: contenido total preservado (comparar conteo de líneas antes/después) + `bun test` verde.
   **Evidencia:** ningún script lee o parsea `DONE.md` (solo dos comentarios de código citan el
   índice como evidencia). Las 5964 líneas del cuerpo original se distribuyeron entre
-  `docs/done/mes-01.md`–`mes-29.md` y `ideas-implementadas.md`; sumadas a las 5 líneas de
+  `docs/done/sprint-01.md`–`sprint-29.md` y `ideas-implementadas.md`; sumadas a las 5 líneas de
   encabezado conservadas en el índice representan las 5969 líneas originales completas. La
   reconstrucción devuelve el mismo SHA-256 después de normalizar únicamente el prefijo `../../`
   agregado a 214 enlaces relativos para que sigan resolviendo desde `docs/done/`. `DONE.md` queda
@@ -1085,7 +1087,7 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
      `src/tasks/schema.ts` — no duplicar campos — y agrega:
      `reference_solution: Record<string, string>` (path relativo → contenido exacto del
      archivo que resuelve la task) y `origin: string` (de qué fallo real sale, con la ruta
-     `docs/done/mes-NN.md` o `LEDGER.md` de donde se derivó). Validador al estilo de
+     `docs/done/sprint-NN.md` o `LEDGER.md` de donde se derivó). Validador al estilo de
      `validateSkill`/`src/tasks/schema.ts`: `reference_solution` no vacío, sus paths ⊆
      `output`, y `checks` no vacío (una eval sin grader no es una eval).
   3. **`scripts/eval-verify-task.ts`**: para cada eval de `evals/`, copia el proyecto base a
@@ -1107,8 +1109,8 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   `output` (aplicación directa de `INS-2026-011`: un grader ausente nunca puede producir verde).
   `scripts/eval-verify-task.ts` copia cada proyecto base a un temporal, aplica la solución de
   referencia y reutiliza `runChecks`; `bun run eval:verify` ✅ para 3 fallos reales / 4 checks:
-  sintaxis JS inline (Mes 20), test vacuo sin assertions y conteo invertido de checks fallidos
-  (Mes 22). Los controles negativos fallan antes de aplicar la referencia; el test vacuo además
+  sintaxis JS inline (Sprint 20), test vacuo sin assertions y conteo invertido de checks fallidos
+  (Sprint 22). Los controles negativos fallan antes de aplicar la referencia; el test vacuo además
   demuestra que `bun test` solo sí daba un falso verde. Los tests negativos usan `.case.ts` y
   ruta explícita para que el banco no contamine el discovery de la suite principal. Cero trials,
   llamadas LLM, persistencia o comparación de configs. `bunx tsc --noEmit` ✅ · validador 7 pass /
@@ -1683,7 +1685,7 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
   adaptador, para que se vea de qué CLI viene el número y no se lea como "el % de Claude").
   Indicador del % de contexto de la sesión activa en el dashboard, no solo
   en el CLI ([[feedback-dashboard-no-solo-cli]]): comando + endpoint + pantalla, las tres
-  piezas o no cuenta. Reusar los componentes React del design system del Mes 30 — no
+  piezas o no cuenta. Reusar los componentes React del design system del Sprint 30 — no
   inventar un componente nuevo ([[reference-design-system-orchestos]]).
   Gate 🔍: dashboard real corriendo, con el número cambiando entre dos turnos. Y **bajar el
   servidor al terminar** ([[feedback-siempre-cerrar-servidor]]).
@@ -2626,7 +2628,7 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   **Implementación:** `screens-core.js` — removida la barra + su listener; `st.chatTaskSuggestion`
   (clasificador B.1.b) se deja sin consumidor a propósito, I.2 define el reemplazo real. `i18n.js`
   y `screens.css` — claves/CSS muertos removidos. Backend (`/api/chat/task-bar-click`, gate
-  histórico de Mes 18) no se tocó — fuera de alcance declarado, front-end only.
+  histórico de Sprint 18) no se tocó — fuera de alcance declarado, front-end only.
 
   **Gate en vivo:** sin navegador/browser interactivo — dashboard real levantado con
   `ORCHESTOS_HOME` temporal (`bun run src/cli.ts dashboard`) y verificado vía `curl` contra
@@ -2898,9 +2900,9 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
 
 ---
 
-## MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)
+## SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)
 
-> **Mes 29 cerrado (2026-08-21)** — ver resumen y link a DONE.md más abajo. Este bloque queda
+> **Sprint 29 cerrado (2026-08-21)** — ver resumen y link a DONE.md más abajo. Este bloque queda
 > abierto: puede arrancar `UI.0`.
 
 ### Decisión y por qué (2026-08-18, NO RE-LITIGAR)
@@ -2912,10 +2914,10 @@ técnico concreto en la *ejecución*, lo dice; la *dirección* no se re-abre.
 
 **La evidencia que motivó la decisión sale de este mismo archivo:**
 
-- v0.12 (Mes 21) tuvo que **inventar 4 reglas de diseño propias desde cero** (anclaje de elementos
+- v0.12 (Sprint 21) tuvo que **inventar 4 reglas de diseño propias desde cero** (anclaje de elementos
   fijos, altura de toprow, overflow en el nivel correcto, hover-swap CSS) — ver línea del cierre de
   v0.12 más abajo. Son problemas que Radix UI resuelve de fábrica hace años.
-- Mes 21 registró **13 ajustes "premium dashboard"** con causa raíz individual cada uno.
+- Sprint 21 registró **13 ajustes "premium dashboard"** con causa raíz individual cada uno.
 - El patrón `render()` → `innerHTML` → `wire()` (62 `innerHTML` + 186 `addEventListener`) **es** un
   mini-framework escrito a mano. La pregunta nunca fue "¿meto un framework?" sino "¿mantengo el mío
   o uso el que ya resolvió esto?".
@@ -2965,7 +2967,7 @@ Tailwind v4 entra por `bun-plugin-tailwind` dentro del mismo `Bun.build()`.
    include/exclude y `bunfig.toml` solo declara `coverage = true`: Bun instrumenta **solo lo que
    los tests importan**. Verificado empíricamente — los ~8.500 líneas de `.js` en `public/` **no
    aparecen** en el reporte de cobertura hoy. Los `.tsx` tampoco lo harán mientras ningún test los
-   importe. **Decisión de Carlos (2026-08-22): el Mes 30 NO introduce tests de frontend** — se
+   importe. **Decisión de Carlos (2026-08-22): el Sprint 30 NO introduce tests de frontend** — se
    mantiene el estándar actual de verificación en vivo con navegador real
    (`feedback-verificar-gates-en-vivo`). Por lo tanto el ratchet **no se toca y no se recalibra**.
    Si algún Mes futuro agrega tests de componentes, ahí —y solo ahí— reaparece la decisión de
@@ -2973,7 +2975,7 @@ Tailwind v4 entra por `bun-plugin-tailwind` dentro del mismo `Bun.build()`.
    en CLAUDE.md y `reference-ci-host-environment-drift`).
 3. **i18n NO se migra, pero SÍ hay que puentearlo.** 223 llamadas a `t()` solo en `app.js`,
    sistema propio con `window.t`. React sigue llamando `window.t()`. Migrar i18n está **fuera de
-   alcance de todo el Mes 30**. **Lo que el plan daba por trivial y no lo es** (verificado
+   alcance de todo el Sprint 30**. **Lo que el plan daba por trivial y no lo es** (verificado
    2026-08-22): `setLang()` solo escribe en `localStorage` y el llamador hace `App.rerender()`
    (`screens-ops.js:1937-1938`), que repinta el DOM vanilla — **React no se entera**, y sus islas
    se quedan con el idioma viejo hasta desmontarse. `t()` lee el idioma en cada llamada, no hay
@@ -3065,7 +3067,7 @@ ni eso hace falta.
   mismo patrón que el auto-`bun install` que ya estaba ahí — verificado en vivo borrando
   `dist/` y arrancando.
 
-- [x] **UI.1 — 🔍 GATE DE ABORTAR: el combobox de modelo.** (cerrado 2026-08-28 — **APROBADO, el Mes 30 sigue**)
+- [x] **UI.1 — 🔍 GATE DE ABORTAR: el combobox de modelo.** (cerrado 2026-08-28 — **APROBADO, el Sprint 30 sigue**)
   Una sola isla React dentro del dashboard vanilla actual: reemplazar `buildModelSelect()` por
   shadcn `Command` + `Popover` (patrón combobox buscable — que es literalmente lo que exige
   `reference-model-combo-pattern`, resuelto de fábrica).
@@ -3087,7 +3089,7 @@ ni eso hace falta.
      `overflow` — la regresión real que ya ocurrió antes y que solo se ve en el navegador.
   5. Cambio de idioma en vivo repinta el combobox (valida el puente de i18n de `UI.0`).
 
-  **VEREDICTO (2026-08-28): APROBADO. La tesis quedó probada — el Mes 30 continúa.**
+  **VEREDICTO (2026-08-28): APROBADO. La tesis quedó probada — el Sprint 30 continúa.**
   Costó **un día**, que era exactamente el presupuesto del gate.
 
   **Gate en vivo:** navegador real (Playwright sobre Chromium) contra el dashboard
@@ -3156,7 +3158,7 @@ ni eso hace falta.
   **Gate en vivo:** navegador real (Playwright sobre Chromium), **9/9 PASS** —
   `scripts/ui-gates/ui1b-remaining-callsites.mjs`. Los 5 call sites quedan verificados.
   Método: sembrar el estado y repintar, que es la técnica que el propio repo ya usó para este
-  mismo componente (`screens-core.js:874`, Mes 22/F2.1). Límite dicho con la misma claridad
+  mismo componente (`screens-core.js:874`, Sprint 22/F2.1). Límite dicho con la misma claridad
   que el original: el estado está sembrado, así que **no** prueba que un run fallido real
   produzca ese diagnóstico — prueba lo que UI.1 necesitaba, que el combo monta y respeta su
   contrato en esos dos lugares.
@@ -3228,7 +3230,7 @@ ni eso hace falta.
   **Y dos correcciones de criterio propias, del mismo tipo:**
   - `Tabs` venía con el segmented control por defecto de shadcn. El dashboard **ya tiene** su
     patrón de pestañas (`.filter-tab`: pills de radio 20px, activa en `--accent` sólido) y el
-    default se veía como un injerto. Alineado al patrón existente — el objetivo del Mes 30 es
+    default se veía como un injerto. Alineado al patrón existente — el objetivo del Sprint 30 es
     cambiar la tecnología sin cambiar el aspecto, no sumar un segundo lenguaje visual.
   - **No hay variante `outline`.** En shadcn se distingue de `ghost` por no tener borde, pero
     el `.btn.ghost` de OrchestOS **sí lo tiene** (lo hereda de `.btn`): con esta paleta las dos
@@ -3521,7 +3523,7 @@ ni eso hace falta.
   `index.html` con un solo `<script>`.
 
 - [ ] **UI.6 — 🧠 Dos profundidades, una sola realidad: Chat | Workspace (backend ya listo por CC.2/CC.3).**
-  Absorbida desde el Mes 29 el 2026-08-18: CC.2 y CC.3 entregan schema + endpoints + tests, y toda
+  Absorbida desde el Sprint 29 el 2026-08-18: CC.2 y CC.3 entregan schema + endpoints + tests, y toda
   su superficie visual se construye acá, en React, **nunca en vanilla**.
   Sidebar izquierdo: **Chat | Workspace** arriba (shadcn `Tabs`), y debajo el árbol de proyectos
   como carpetas colapsables (shadcn `Collapsible`/`Sidebar`) con sus sesiones. En `Workspace` se
@@ -3680,7 +3682,7 @@ ni eso hace falta.
 2. Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no.
 3. Si UI.8.6 entra en este bloque o sale como bloque propio con backend separado.
 
-### Fuera de alcance del Mes 30 (explícito)
+### Fuera de alcance del Sprint 30 (explícito)
 
 - Migrar i18n a una librería (el **puente** de `UI.0` sí entra; la librería no).
 - Tocar handlers, endpoints o cualquier cosa de `src/dashboard/*.ts` — verificado el 2026-08-22:
@@ -3703,7 +3705,7 @@ Por eso UI.1 es un gate de abortar real, y por eso el orden es shell→pantallas
 
 ---
 
-## MES 29 — Que "OrchestOS" deje de quedarle grande al sistema (abierto 2026-08-16, cerrado 2026-08-21) → [Mes 29](docs/done/mes-29.md)
+## SPRINT 29 — Que "OrchestOS" deje de quedarle grande al sistema (abierto 2026-08-16, cerrado 2026-08-21) → [Sprint 29](docs/done/sprint-29.md)
 
 Eje de Carlos: "para llamarlo orquestador debería poder abrir varios chats, cada uno con el CLI de
 mi gusto, para varios proyectos — hoy solo funciona para 1". Diagnóstico verificado en código, no
@@ -3721,11 +3723,11 @@ el 422 que bloqueaba chat con codex/opencode era una restricción de implementac
 abrió a los tres CLIs, con la frontera de lectura/escritura puesta por el flag real de cada
 binario, verificado en vivo incluso contra un prompt adversarial). **CC.0-D6** (evidencia de gates
 en vivo ya no se pierde con el tmpdir — `bun run gate:evidence` la copia a la DB real marcada
-`task_class=gate:*`). Detalle completo, evidencia y las 8 pasadas de CC.D2 → [Mes 29](docs/done/mes-29.md).
+`task_class=gate:*`). Detalle completo, evidencia y las 8 pasadas de CC.D2 → [Sprint 29](docs/done/sprint-29.md).
 
 ---
 
-## MES 28 — Backlog canónico, categoría Medio (abierto 2026-08-15, cerrado 2026-08-18) → [Mes 28](docs/done/mes-28.md)
+## SPRINT 28 — Backlog canónico, categoría Medio (abierto 2026-08-15, cerrado 2026-08-18) → [Sprint 28](docs/done/sprint-28.md)
 
 Bloque BB (2026-08-16): un solo selector real de "cómo corre OrchestOS" (`executor_mode` unificado,
 5 motores, artefactos del host filtrados, comparación medida de los 3 CLIs). Bloque AA: IDEAS `#6`
@@ -3733,13 +3735,13 @@ graduada (`design.md` condicional vía OpenSpec, con gate CLI+dashboard). **11/1
 BB.6 (costo ficticio de `codex`) quedó abierto del 16 al 18 y se cerró con un guard antes del
 spawn, sin fabricar el número ni tocar schema. La categoría Medio de IDEAS.md NO se agotó a
 propósito (decisión de Carlos: idea por idea, no toda la categoría de una vez). Detalle completo,
-diagnóstico de BB.6 y evidencia de los 11 ítems → [Mes 28](docs/done/mes-28.md).
+diagnóstico de BB.6 y evidencia de los 11 ítems → [Sprint 28](docs/done/sprint-28.md).
 
 ---
 
-## MES 27 — Backlog canónico, categoría Bajo-medio (X–Z)
+## SPRINT 27 — Backlog canónico, categoría Bajo-medio (X–Z)
 
-- [x] **SÍ — Mes 27 cerrado (2026-08-13), parcial por diseño**
+- [x] **SÍ — Sprint 27 cerrado (2026-08-13), parcial por diseño**
   Categoría **Bajo-medio** del backlog canónico: `#33` (Bloque X, refuter en el QA loop —
   segunda opinión barata que revierte falsos-negativos del juez antes de quemar un retry, mirror
   asimétrico de K.4b) y `#37` (Bloque Y, badge "Free" + preset "empezar gratis" para modelos
@@ -3756,23 +3758,23 @@ diagnóstico de BB.6 y evidencia de los 11 ítems → [Mes 28](docs/done/mes-28.
 
 ---
 
-## MES 26 — Backlog canónico, categoría Bajo (Q–W)
+## SPRINT 26 — Backlog canónico, categoría Bajo (Q–W)
 
-- [x] **SÍ — Mes 26 cerrado (2026-08-08)**
+- [x] **SÍ — Sprint 26 cerrado (2026-08-08)**
   Categoría **Bajo** completa del backlog canónico de IDEAS.md, 7 ideas (Q `#2` verification-before-completion, R `#3` requesting/receiving-code-review, S `#5` Ruby resolver, T `#19` symlink de node_modules en worktrees, U `#40` Guardar/Limpiar en Constitution, V `#46` spike de Graphify, W `#58` tool-policy.ts dead code). Tres de los siete destaparon bugs reales no pedidos al verificar antes de escribir contenido: **S** — `indexProject()` perdía todo edge cross-file en un pase único (universal, no solo Rust/C#, desde S21) más 2 bugs de resolver, arreglado antes de agregar Ruby (0% → 100% de resolución en los 5 lenguajes); **T** — el symlink de `node_modules` en worktrees se colaba al commit real sin un pathspec de exclusión (`.gitignore` con slash no matchea un symlink); **U** — quitar el autosave de Constitution expuso una pérdida de datos silenciosa contra el poll de 30s del dashboard (guard por foco no cubría el nuevo flujo de botones). **V** fue spike puro: Graphify instalado, comparado, revertido byte a byte — no se adopta el binario (dependencia de runtime de una startup en pivot a SaaS), se roban 2 patrones como IDEAS #59/#60. **W** decidido por Carlos explícitamente: borrar en vez de cablear. 1111 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde en cada cierre.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 25 — Pendientes heredados de los cierres 22–24 + backlog canónico (N, O, P)
+## SPRINT 25 — Pendientes heredados de los cierres 22–24 + backlog canónico (N, O, P)
 
-- [x] **SÍ — Mes 25 cerrado (2026-08-06)**
-  Cerró los pendientes heredados de Mes 22-24 (K.6.2-R7, L.5.7, L.6.2, M ×2) y abrió la ejecución del backlog canónico por esfuerzo de IDEAS.md (regla desde 2026-07-30: el orden de IDEAS.md es el único orden de ejecución). Tres bloques completos: **N** — endurecimiento de skills (Iron Law/Common Rationalizations/Red Flags) portado a `buildSections()`/al ejecutor propio (N.4.5, hallazgo real: el endurecimiento llegaba a Claude Code/Cursor pero nunca al runner de OrchestOS) y auditado contra las fuentes reales (`obra/superpowers`, `mattpocock/skills`) skill por skill, no por nombre — match nominal ≠ match semántico fue el hallazgo de método (N.7b/N.7c). **O** — las skills se activan solas: contrato de activación (`activation.mode/phases/triggers`, O.0), skills resueltas desde la instalación no desde `cwd` (O.1), el planner ve el catálogo y asigna skill por sub-tarea (O.2), gates transversales (`security-review`/`qa-structured`) que el mismo LLM ejecutor no puede descartar (O.3) — verificado en vivo con dinero real contra un proyecto scratch: código con SQL concatenada + credenciales hardcodeadas fue rechazado por el QA judge citando OWASP explícitamente, el checklist inyectado llegó al juez real (O.4). **P** — vigilancia de deriva de fuentes externas (`sources-drift`): registro por path exacto (no repo completo), detección mecánica vía `gh api`, y un paso opcional de resumen vía LLM que lee el diff real y redacta una propuesta para revisión humana (P.4), nunca aplica nada solo. Hallazgo real de hygiene durante O.3: `ctx.allowedTools` en `tool-policy.ts` es dead code (ningún ejecutor lo lee) — documentado y registrado como IDEAS.md #58 en vez de cablearlo sin plan. 1099 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` (comando exacto de CI) verde.
+- [x] **SÍ — Sprint 25 cerrado (2026-08-06)**
+  Cerró los pendientes heredados de Sprint 22-24 (K.6.2-R7, L.5.7, L.6.2, M ×2) y abrió la ejecución del backlog canónico por esfuerzo de IDEAS.md (regla desde 2026-07-30: el orden de IDEAS.md es el único orden de ejecución). Tres bloques completos: **N** — endurecimiento de skills (Iron Law/Common Rationalizations/Red Flags) portado a `buildSections()`/al ejecutor propio (N.4.5, hallazgo real: el endurecimiento llegaba a Claude Code/Cursor pero nunca al runner de OrchestOS) y auditado contra las fuentes reales (`obra/superpowers`, `mattpocock/skills`) skill por skill, no por nombre — match nominal ≠ match semántico fue el hallazgo de método (N.7b/N.7c). **O** — las skills se activan solas: contrato de activación (`activation.mode/phases/triggers`, O.0), skills resueltas desde la instalación no desde `cwd` (O.1), el planner ve el catálogo y asigna skill por sub-tarea (O.2), gates transversales (`security-review`/`qa-structured`) que el mismo LLM ejecutor no puede descartar (O.3) — verificado en vivo con dinero real contra un proyecto scratch: código con SQL concatenada + credenciales hardcodeadas fue rechazado por el QA judge citando OWASP explícitamente, el checklist inyectado llegó al juez real (O.4). **P** — vigilancia de deriva de fuentes externas (`sources-drift`): registro por path exacto (no repo completo), detección mecánica vía `gh api`, y un paso opcional de resumen vía LLM que lee el diff real y redacta una propuesta para revisión humana (P.4), nunca aplica nada solo. Hallazgo real de hygiene durante O.3: `ctx.allowedTools` en `tool-policy.ts` es dead code (ningún ejecutor lo lee) — documentado y registrado como IDEAS.md #58 en vez de cablearlo sin plan. 1099 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` (comando exacto de CI) verde.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## v0.12 (MES 21) — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
+## v0.12 (SPRINT 21) — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
 
 - [x] **SÍ — v0.12 cerrado (2026-07-14)**
   Higiene de datos (borrado masivo en 5 tablas + cero diálogos nativos, absorbe IDEAS #18), Chat con Markdown/sanitizador propio + chips de task/modelo clicables, visor de diff por run calculado por contenido (no `git diff` post-hoc), y auditoría real de paridad CLI↔dashboard con 3 gaps no-dev cerrados (`task init`, `constitution init`, `summary` PDF) y verificados independientemente contra código real ([[feedback-verificar-progreso-delegado]]). Nacen 4 reglas de diseño fijas para toda pantalla nueva (anclaje de elementos fijos, altura de toprow, overflow en el nivel correcto, hover-swap CSS). Cero features nuevas en el motor, disciplina del milestone respetada de punta a punta. 711 tests · 0 fail · `tsc --noEmit` limpio. Primer tag formal del proyecto: `v0.12`.
@@ -3780,17 +3782,17 @@ diagnóstico de BB.6 y evidencia de los 11 ítems → [Mes 28](docs/done/mes-28.
 
 ---
 
-## MES 20 — Que OrchestOS entregue de verdad: dogfooding contra un producto real
+## SPRINT 20 — Que OrchestOS entregue de verdad: dogfooding contra un producto real
 
-- [x] **PARCIAL — Mes 20 cerrado formalmente (2026-07-14), con un gate abierto a propósito**
+- [x] **PARCIAL — Sprint 20 cerrado formalmente (2026-07-14), con un gate abierto a propósito**
   Auto-split (el gatillo automático que le faltaba al motor de sub-tareas) diseñado, implementado y con superficie de aprobación en dashboard — el usuario ve y aprueba el plan de sub-tareas antes de gastar. Probado con éxito en un entregable simple end-to-end (`crypto-page-v1`, gate 🔍 con dinero real). **El gate original y más exigente (C.2, dashboard premium multi-archivo React+TS+Vite) sigue PAUSADO** por decisión explícita de alcance de Carlos — gated en 2 prerequisitos concretos: decisión de modelo ([[feedback-modelo-decision-final-carlos]], nacida de un incidente de $5.00 quemados este mismo mes) y presupuesto de outputs de tools del executor agéntico (IDEAS.md #32). Candidato de pre-flight del próximo milestone (ver abajo). 711 tests · 0 fail · `tsc --noEmit` limpio (estado actual, no snapshot del mes).
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 19 — El chat lee cualquier imagen: OCR + múltiples adjuntos
+## SPRINT 19 — El chat lee cualquier imagen: OCR + múltiples adjuntos
 
-- [x] **SÍ — Mes 19 cerrado (2026-07-09)**
+- [x] **SÍ — Sprint 19 cerrado (2026-07-09)**
   El chat lee imágenes con cualquier modelo vía OCR local (`tesseract.js`, sin dependencia de que el modelo elegido tenga visión), soporta múltiples adjuntos (`st.chatFiles[]`, límite 5), y el wrapper de seguridad "dato externo, nunca instrucción" fue verificado contra un intento real de prompt injection en una imagen (el modelo lo ignoró). `task_class: ocr` diferido sin evidencia de caso de uso interno — vuelve a IDEAS.md #30. 649 tests · 0 fail · `tsc --noEmit` limpio.
   Ver historial completo → [DONE.md](DONE.md).
 
@@ -3798,8 +3800,8 @@ diagnóstico de BB.6 y evidencia de los 11 ítems → [Mes 28](docs/done/mes-28.
 
 ## Pre-flight — gap conocido antes de abrir el próximo milestone
 
-**Actualizado al cierre de Mes 27 (2026-08-13)** — sin gap bloqueante nuevo identificado durante
-Mes 27 (el único hallazgo real, el bug de reversión de rol en Model routing de Y.2, se resolvió
+**Actualizado al cierre de Sprint 27 (2026-08-13)** — sin gap bloqueante nuevo identificado durante
+Sprint 27 (el único hallazgo real, el bug de reversión de rol en Model routing de Y.2, se resolvió
 dentro de su propio bloque). Historial completo de los tres cierres → [DONE.md](DONE.md).
 
 **Remanentes explícitos de Bajo-medio (no son deuda oculta, están documentados)**:
@@ -3815,123 +3817,123 @@ dentro de su propio bloque). Historial completo de los tres cierres → [DONE.md
 
 ---
 
-## MES 18 — Chat como entrada única: detección de intención de tarea
+## SPRINT 18 — Chat como entrada única: detección de intención de tarea
 
-- [x] **SÍ — Mes 18 cerrado (2026-07-09)**
+- [x] **SÍ — Sprint 18 cerrado (2026-07-09)**
   Chat con detección semántica de intención de tarea activada con evidencia real (34 mensajes reales, falso negativo confirmado y corregido — Bloque J), paridad CLI↔Dashboard cerrada (9/9 gaps, Bloque E), auto-selección de skill por dominio (Bloque D), auditoría visual + 13 ajustes "premium dashboard" con causa raíz real en cada uno (Bloques G/I), y 2 bugs reales de producción encontrados y corregidos por dogfooding directo de Carlos (imágenes sin gating de visión, guard de contexto no conectado al chat). 649 tests · 0 fail · `tsc --noEmit` limpio.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 17 — La capa de confianza: ejecutores externos detrás de la verificación
+## SPRINT 17 — La capa de confianza: ejecutores externos detrás de la verificación
 
-- [x] **SÍ — Mes 17 cerrado (2026-07-05)**
-  Tercer `ExecutorEngine` (ejecutor externo, Claude Code headless) diseñado (`docs/external-executor-design.md`), implementado (`executors/external.ts`, worktree obligatorio, diff completo sin filtrar), expuesto en dashboard+CLI (selector, bloque "Process", detección honesta de binario ausente), y verificado en vivo con dinero real (Bloque D) contra la misma tarea brownfield que motivó el mes anterior (G.5) — encontró y corrigió un bug real de parseo de `git status --porcelain` en el camino (mismo patrón de gates 🔍 con dinero real de G.5/Mes 14/Mes 13). Confirma la tesis: `enforceContract`/checks/QA funcionan idénticos sobre un motor que OrchestOS no controla, a costa de 25-70× el costo de single-shot. 617 tests · 0 fail · `tsc --noEmit` limpio.
+- [x] **SÍ — Sprint 17 cerrado (2026-07-05)**
+  Tercer `ExecutorEngine` (ejecutor externo, Claude Code headless) diseñado (`docs/external-executor-design.md`), implementado (`executors/external.ts`, worktree obligatorio, diff completo sin filtrar), expuesto en dashboard+CLI (selector, bloque "Process", detección honesta de binario ausente), y verificado en vivo con dinero real (Bloque D) contra la misma tarea brownfield que motivó el mes anterior (G.5) — encontró y corrigió un bug real de parseo de `git status --porcelain` en el camino (mismo patrón de gates 🔍 con dinero real de G.5/Sprint 14/Sprint 13). Confirma la tesis: `enforceContract`/checks/QA funcionan idénticos sobre un motor que OrchestOS no controla, a costa de 25-70× el costo de single-shot. 617 tests · 0 fail · `tsc --noEmit` limpio.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 15.F0 — Integridad: los instrumentos de medición deben decir la verdad antes de tocar el motor
+## SPRINT 15.F0 — Integridad: los instrumentos de medición deben decir la verdad antes de tocar el motor
 
 - [x] **SÍ — F0 cerrado (2026-07-02)**
-  Auditoría completa (arquitecto + debugger + QA + dev) antes de tocar el motor: suite determinista (0 `mock.module()`, inyección de dependencias en su lugar), `tasks.yaml` reconciliado (6 tareas non-done resueltas con decisión explícita), `maxTokens` ignorado en providers directos conectado, modelo retirado (`claude-3-haiku`) reemplazado, pricing con fallback $0 silencioso migrado al catálogo real. 524 tests · 0 fail al cerrar. Desbloqueó el Mes 16.
+  Auditoría completa (arquitecto + debugger + QA + dev) antes de tocar el motor: suite determinista (0 `mock.module()`, inyección de dependencias en su lugar), `tasks.yaml` reconciliado (6 tareas non-done resueltas con decisión explícita), `maxTokens` ignorado en providers directos conectado, modelo retirado (`claude-3-haiku`) reemplazado, pricing con fallback $0 silencioso migrado al catálogo real. 524 tests · 0 fail al cerrar. Desbloqueó el Sprint 16.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 16 — El giro del timón: motor honesto + ejecutor agéntico
+## SPRINT 16 — El giro del timón: motor honesto + ejecutor agéntico
 
-- [x] **SÍ — Mes 16 cerrado (2026-07-02)**
+- [x] **SÍ — Sprint 16 cerrado (2026-07-02)**
   Origen: revisión estratégica externa (Fable 5, 2026-07-01) — 6 hallazgos reales del corazón del producto. F1-F4 corrigieron las fallas puntuales del ejecutor (retry ciego, QA autocalificado, evidencia incompleta, contrato sin normalizar paths), todos verificados en vivo. Bloque G ejecutó la decisión de arquitectura: capa de verificación desacoplada del ejecutor (`ExecutorEngine`), single-shot extraído sin cambio de comportamiento (G.2), ejecutor agéntico nuevo reusando `runToolLoop()` (G.3), superficie completa en dashboard+CLI (G.4), y un gate comparativo con dinero real (G.5) que encontró y corrigió 2 bugs reales de `maxTokens` hardcodeado en `tool-call.ts`/`harness.ts` — reverificado en vivo sin truncar. 585 tests · 0 fail · `tsc --noEmit` limpio.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 14 — Autonomía interna: el runner que conduce el grafo solo
+## SPRINT 14 — Autonomía interna: el runner que conduce el grafo solo
 
-- [x] **SÍ — Mes 14 cerrado (2026-06-29)**
+- [x] **SÍ — Sprint 14 cerrado (2026-06-29)**
   `orchestos run --graph` recorre el DAG completo de `tasks.yaml` sin intervención humana en el happy path (Bloques 0/A/B); ante un fallo, bloquea solo la rama afectada y la decisión retry/bloqueo la toma `diagnoseTask()`, no el humano (A.R hardening). Superficie completa en CLI + dashboard (Bloque C). Verificado en vivo en el dashboard real y en un smoke e2e contra el `tasks.yaml` real de producción del propio proyecto — 2 bugs reales destapados y corregidos en el camino (falso positivo de QA sin checks deterministas, retry sin tope en fallos de check) (Bloque D). En paralelo: control de reasoning effort por modelo end-to-end (BLOQUE BACK/FRONT) y pulido visual del dashboard vía auditoría `impeccable` (10 fixes, incluido un loop de rerender que borraba inputs activos). 518 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 13 — OrchestOS conectado: del aislamiento al conocimiento externo
+## SPRINT 13 — OrchestOS conectado: del aislamiento al conocimiento externo
 
-- [x] **SÍ — Mes 13 cerrado (2026-06-23)**
+- [x] **SÍ — Sprint 13 cerrado (2026-06-23)**
   Pre-flight de UI (edición de skills real, ícono YAML, TTL+refresh de modelos). Web fetch real en el chat (`runToolLoop()` multi-turno + guard SSRF) — 2 bugs reales corregidos solo al verificar en vivo (falso positivo SSRF por `dns.resolve4()`, arity de `executeFetchUrl`). Registro de skills de la comunidad (217 reales, `idleTimeout` corregido) + prompt del curador ajustado para que `description` sea condición de disparo, no resumen. 468 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 12 — Endurecimiento: red de seguridad antes de la autonomía
+## SPRINT 12 — Endurecimiento: red de seguridad antes de la autonomía
 
-- [x] **SÍ — Mes 12 cerrado (2026-06-19)**
+- [x] **SÍ — Sprint 12 cerrado (2026-06-19)**
   Tests del motor crítico (`contract.ts`, `scheduler.ts`) con gate de mutación confirmado contra regresión real. CI en GitHub Actions bloqueando PRs rotos (verificado en vivo, PR #2) + pre-commit hook + `noUnusedLocals`. XSS cerrado con payload real probado en el dashboard corriendo. `server.ts` partido de 1727 a 159 líneas en 13 módulos, re-verificado línea por línea sin cambios de comportamiento. 421 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 11 — OrchestOS como experto: autoría de skills con curador
+## SPRINT 11 — OrchestOS como experto: autoría de skills con curador
 
-- [x] **SÍ — Mes 11 cerrado (2026-06-10)**
+- [x] **SÍ — Sprint 11 cerrado (2026-06-10)**
   Curador LLM (`/api/skills/curate`, retry hasta 2 veces) + pantalla Skills con tres puertas (escribir · importar · exportar) + pack "pro" de 8 skills de ingeniería en `skills/pro/` importables con un click + paridad CLI (`skill curate`/`skill import`). 402 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 4 — Routing inteligente + skills que se adaptan al proyecto
+## SPRINT 4 — Routing inteligente + skills que se adaptan al proyecto
 
-- [x] **SÍ — Mes 4 cerrado (2026-05-27)**
+- [x] **SÍ — Sprint 4 cerrado (2026-05-27)**
   Routing activo (`config show`), 11 skills, language_targets, CONSTITUTION.md en system prompt, `context compress` genera CONTEXT.md, `runs --detail` reporta tokens.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 5 — Confiabilidad para uso diario: e2e real + sandbox + spec-driven
+## SPRINT 5 — Confiabilidad para uso diario: e2e real + sandbox + spec-driven
 
-- [x] **SÍ — Mes 5 cerrado (2026-05-28)**
+- [x] **SÍ — Sprint 5 cerrado (2026-05-28)**
   Sandbox por git worktree (S19), Spec-Driven con gate en harness (S20), resolvers multi-lenguaje + autoskills fetch (S21), sub-agentes con context isolation + memoria persistente + tool policy (S22). 110 tests · 0 fail. Smoke real sub-agentes: write-greeting→write-response (44s, memory_entries escritas). selectMemories bug corregido (depIds ID→topic_key resolution).
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 6 — IA con ROI demostrable + observabilidad de sub-agentes
+## SPRINT 6 — IA con ROI demostrable + observabilidad de sub-agentes
 
-- [x] **SÍ — Mes 6 cerrado (2026-05-28)**
+- [x] **SÍ — Sprint 6 cerrado (2026-05-28)**
   S23 function calling planner (elimina errores YAML estructuralmente), S24 embeddings semánticos (`embed_hits` en runs), S25 diagnóstico de fallos auto-trigger en `failed_permanent`, S26 BM25 conflict detection en memoria.
   `embed_hits > 0` en 12 runs reales · 212 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 7 — Observabilidad activa + calidad del pipeline
+## SPRINT 7 — Observabilidad activa + calidad del pipeline
 
-- [x] **SÍ — Mes 7 cerrado (2026-06-02)**
+- [x] **SÍ — Sprint 7 cerrado (2026-06-02)**
   S27 context-monitor wired (warnings persistidos en DB + visibles en `runs --detail`), S28 WHEN/THEN acceptance criteria (`spec lint` + draft prompt + QA prompt), S29 spec archive (`spec archive` + `spec list --all`), S30 aprendizaje continuo v1 (`runs --analyze` + hook post-completion en `task run`). 256 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 8 — Pipeline robusto + aprendizaje activo
+## SPRINT 8 — Pipeline robusto + aprendizaje activo
 
-- [x] **SÍ — Mes 8 cerrado (2026-06-02)**
+- [x] **SÍ — Sprint 8 cerrado (2026-06-02)**
   S31 middleware chain (10 middlewares de enrichment, harness refactorizado), S32 capabilities contract + delta headers en specs, S33 instincts con confidence scoring, S34 continuous learning v2 (runs→instincts loop cerrado), S35 cost tracker por sub-agente, S36 dashboard local Bun + vanilla JS (4 vistas desde SQLite).
   369 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 9 — Dashboard usable: de observador a orquestador
+## SPRINT 9 — Dashboard usable: de observador a orquestador
 
-- [x] **SÍ — Mes 9 cerrado (2026-06-04)**
+- [x] **SÍ — Sprint 9 cerrado (2026-06-04)**
   Dashboard convertido en interfaz principal: 10 bloques (A–J), input natural con preview IA, i18n en/es, instalador de un solo archivo, chat panel + model selector shipeados fuera de plan. 369 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
 ---
 
-## MES 10 — El producto que alguien que nunca programó puede usar
+## SPRINT 10 — El producto que alguien que nunca programó puede usar
 
-- [x] **SÍ — Mes 10 cerrado (2026-06-04)**
+- [x] **SÍ — Sprint 10 cerrado (2026-06-04)**
   Wizard API key (3 proveedores, validación real, rollback en 401) · toggle humano/operador navegable con persistencia · diagnóstico de fallos en Tasks · archivos en Chat · Control Center con 5 bloques de salud · Ollama auto-detectado · 369 tests · 0 fail.
   Ver historial completo → [DONE.md](DONE.md).
 
@@ -3944,7 +3946,7 @@ dentro de su propio bloque). Historial completo de los tres cierres → [DONE.md
 
 - Insight: `INS-2026-005` (adopted/high)
 - Razón: El incidente del hook desincronizado y las entregas de UI/configuración sin wiring demuestran que las reglas narrativas no bastan; se necesita un protocolo universal con gates mecánicos y evidencia en vivo para cualquier LLM.
-- Acción propuesta: Agregar al Mes 29 un bloque de gobernanza cross-LLM: orden obligatorio de preflight, verificación de scope y trabajo paralelo, doctor de hooks, gates de seguridad/typecheck/tests y prohibición de cerrar UI/configuración sin prueba real de navegador y backend.
+- Acción propuesta: Agregar al Sprint 29 un bloque de gobernanza cross-LLM: orden obligatorio de preflight, verificación de scope y trabajo paralelo, doctor de hooks, gates de seguridad/typecheck/tests y prohibición de cerrar UI/configuración sin prueba real de navegador y backend.
 - Regla: Si una modificación cambia arquitectura o atraviesa varias capas, presentar alcance, pasos, validación y exclusiones antes de editar.
 - Evidencia en vault: projects/orchestos/decisions, projects/orchestos/aprendizajes
 <!-- /knowledge-promotion:KP-20260817-102752-93e4d5 -->

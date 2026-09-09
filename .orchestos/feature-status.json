@@ -5,16 +5,16 @@
   "items": [
     {
       "id": "S.1",
-      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
       "delegation": "⚡",
-      "title": "Renombrar \"Mes N\" a \"Sprint N\" en documentación y en el contrato de plan-status",
-      "status": "open",
+      "title": "Renombrar la etiqueta histórica a \"Sprint N\" en documentación y en el contrato de plan-status",
+      "status": "done",
       "closedDate": null
     },
     {
       "id": "S.2",
-      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
       "delegation": "⚡",
       "title": "Purgar de PLAN.md la evidencia de los ítems ya cerrados",
@@ -23,7 +23,7 @@
     },
     {
       "id": "S.3",
-      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
       "delegation": "🧠",
       "title": "Esquema `plan_items` y migración desde el parser existente",
@@ -32,7 +32,7 @@
     },
     {
       "id": "S.4",
-      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
       "delegation": "🧠",
       "title": "`plan:render` + gate de desincronización en pre-commit",
@@ -41,7 +41,7 @@
     },
     {
       "id": "S.5",
-      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
       "delegation": "⚡",
       "title": "`bun run next` y arranque de sesión barato",
@@ -50,7 +50,7 @@
     },
     {
       "id": "S.6",
-      "month": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
       "delegation": "🔍",
       "title": "Pantalla Sprint Board en el dashboard",
@@ -59,7 +59,7 @@
     },
     {
       "id": "DOC.1",
-      "month": "Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)",
+      "sprint": "Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)",
       "block": null,
       "delegation": "⚡",
       "title": "Reconciliar documentación viva con el estado verificable del plan",
@@ -68,7 +68,7 @@
     },
     {
       "id": "R.1",
-      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "⚡",
       "title": "Recuperar creación de tareas desde sesiones de proyecto",
@@ -77,7 +77,7 @@
     },
     {
       "id": "R.2",
-      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "🧠",
       "title": "Auditoría que distingue lectura solicitada, ejecutada, rechazada y desconocida",
@@ -86,7 +86,7 @@
     },
     {
       "id": "R.3",
-      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "⚡",
       "title": "QA exige correspondencia uno a uno con los criterios originales",
@@ -95,7 +95,7 @@
     },
     {
       "id": "R.4",
-      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "⚡",
       "title": "Aislar respuestas y restauración por conversación",
@@ -104,7 +104,7 @@
     },
     {
       "id": "R.5",
-      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "🧠",
       "title": "Persistencia coherente de turno, run y fallos de chat",
@@ -113,7 +113,7 @@
     },
     {
       "id": "R.6",
-      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "⚡",
       "title": "Costo del chat separado de la etiqueta visual del modelo",
@@ -122,7 +122,7 @@
     },
     {
       "id": "R.7",
-      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "🧠",
       "title": "Escritura atómica y coordinación entre procesos para tasks.yaml",
@@ -131,7 +131,7 @@
     },
     {
       "id": "R.8",
-      "month": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
+      "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
       "delegation": "🔍",
       "title": "Validación independiente del recorrido útil y corrección de evidencia de cierre",
@@ -140,7 +140,7 @@
     },
     {
       "id": "H.1.1",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
       "delegation": "⚡",
       "title": "README miente sobre el estado del proyecto",
@@ -149,7 +149,7 @@
     },
     {
       "id": "H.1.2",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
       "delegation": "⚡",
       "title": "`CONSTITUTION.md` está vacío (0 bytes)",
@@ -158,7 +158,7 @@
     },
     {
       "id": "H.1.3",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
       "delegation": "⚡",
       "title": "No hay script `test` en `package.json`",
@@ -167,7 +167,7 @@
     },
     {
       "id": "H.1.4",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.1 — Presentación: lo que descalifica al repo en 30 segundos",
       "delegation": "⚡",
       "title": "Artefactos de ejecución trackeados en git",
@@ -176,7 +176,7 @@
     },
     {
       "id": "H.2.1",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.2 — La capa barata que falta",
       "delegation": "🧠",
       "title": "No hay linter ni formatter",
@@ -185,7 +185,7 @@
     },
     {
       "id": "H.3.1",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.3 — Estado: legible por humanos, ilegible por máquinas",
       "delegation": "🧠",
       "title": "El estado del producto no es machine-readable",
@@ -194,7 +194,7 @@
     },
     {
       "id": "H.3.2",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.3 — Estado: legible por humanos, ilegible por máquinas",
       "delegation": "⚡",
       "title": "`DONE.md` pesa 540 KB / 5969 líneas",
@@ -203,7 +203,7 @@
     },
     {
       "id": "H.4.1",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.4 — Alcance y cierre: lo narrativo que debería ser mecánico",
       "delegation": "🧠",
       "title": "El scope-lock es narrativo, no mecánico",
@@ -212,7 +212,7 @@
     },
     {
       "id": "H.4.2",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.4 — Alcance y cierre: lo narrativo que debería ser mecánico",
       "delegation": "🧠",
       "title": "Hay clock-in mecanizado pero no hay clock-out",
@@ -221,7 +221,7 @@
     },
     {
       "id": "H.5.1",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.5 — Lo estratégico: no se puede medir si el harness mejora",
       "delegation": "⚡",
       "title": "Andamiaje de evals: schema + verificador de tasks (cero costo de LLM)",
@@ -230,7 +230,7 @@
     },
     {
       "id": "H.5.2",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.5 — Lo estratégico: no se puede medir si el harness mejora",
       "delegation": "⚡",
       "title": "El runner de evals: la configuración como eje + baseline comparable",
@@ -239,7 +239,7 @@
     },
     {
       "id": "H.5.3",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.5 — Lo estratégico: no se puede medir si el harness mejora",
       "delegation": "🔍",
       "title": "Primera corrida medida real (GATED por Carlos)",
@@ -248,7 +248,7 @@
     },
     {
       "id": "H.7.1",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "`scripts/context-budget.ts`: medir el llenado de la ventana",
@@ -257,7 +257,7 @@
     },
     {
       "id": "H.7.2",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "Handoff con la intención, no solo con el estado",
@@ -266,7 +266,7 @@
     },
     {
       "id": "H.7.2b",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🧠",
       "title": "Reabrir la fuente del número: registro de adaptadores por CLI",
@@ -275,7 +275,7 @@
     },
     {
       "id": "H.7.2c",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "Registro de adaptadores: falta OpenCode",
@@ -284,7 +284,7 @@
     },
     {
       "id": "H.7.3",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "El hook: avisar al 60% y volcar el handoff una sola vez",
@@ -293,7 +293,7 @@
     },
     {
       "id": "H.7.4",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "`SessionStart`: reanudar sin volver a explicar",
@@ -302,7 +302,7 @@
     },
     {
       "id": "H.7.5",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "Superficie en el dashboard",
@@ -311,7 +311,7 @@
     },
     {
       "id": "H.7.5a",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🧠",
       "title": "Corrección multi-CLI y paridad de métricas",
@@ -320,7 +320,7 @@
     },
     {
       "id": "H.8.1",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)",
       "delegation": "⚡",
       "title": "Registro de `cli_effort` por engine, no una lista única",
@@ -329,7 +329,7 @@
     },
     {
       "id": "H.8.2",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.8 — `cli_effort` genérico por CLI, no solo Claude (ABIERTO 2026-09-02, GO de Carlos)",
       "delegation": "⚡",
       "title": "Aplicar el effort en el executor de Codex",
@@ -338,7 +338,7 @@
     },
     {
       "id": "H.9.2",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)",
       "delegation": "🧠",
       "title": "La frontera de lectura es una capability declarada por CLI, verificada, no un prompt",
@@ -347,7 +347,7 @@
     },
     {
       "id": "H.9.3",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)",
       "delegation": "⚡",
       "title": "Aislamiento de config-home como defensa en profundidad (tercera capa, no primera)",
@@ -356,7 +356,7 @@
     },
     {
       "id": "H.9.4",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.9 — El chat del producto hereda la config personal de quien lo corre (ABIERTO 2026-09-03, GO de Carlos)",
       "delegation": "🔍",
       "title": "El gate que lo vuelve real: el chat intenta leer el vault y no puede",
@@ -365,7 +365,7 @@
     },
     {
       "id": "H.10.1",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)",
       "delegation": "🧠",
       "title": "El gate de evidencia exige un artefacto versionado, no una frase",
@@ -374,7 +374,7 @@
     },
     {
       "id": "H.10.2",
-      "month": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)",
+      "sprint": "BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)",
       "block": "H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)",
       "delegation": "🧠",
       "title": "Revisor adversarial nocturno, de un modelo distinto al que implementó",
@@ -383,7 +383,7 @@
     },
     {
       "id": "I.1",
-      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "sprint": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
       "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
       "delegation": "🧠",
       "title": "Matar la puerta manual: el chat es la única entrada",
@@ -392,7 +392,7 @@
     },
     {
       "id": "I.2",
-      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "sprint": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
       "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
       "delegation": "🧠",
       "title": "El punto de confirmación: lo único que reemplaza la fricción que se quita",
@@ -401,7 +401,7 @@
     },
     {
       "id": "I.3",
-      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "sprint": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
       "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
       "delegation": "🧠",
       "title": "Task inteligente: saber DÓNDE corre, por tarea y no global",
@@ -410,7 +410,7 @@
     },
     {
       "id": "I.4",
-      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "sprint": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
       "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
       "delegation": "⚡",
       "title": "El chat se guarda entero (absorbe H.9.1, mismo archivo)",
@@ -419,7 +419,7 @@
     },
     {
       "id": "I.5",
-      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "sprint": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
       "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
       "delegation": "🧠",
       "title": "Rediseño del chat: sacar la implementación de la cara del usuario",
@@ -428,7 +428,7 @@
     },
     {
       "id": "I.6",
-      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "sprint": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
       "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
       "delegation": "⚡",
       "title": "\"Actividad\", no \"Tasks\": la vista secundaria",
@@ -437,7 +437,7 @@
     },
     {
       "id": "I.7",
-      "month": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
+      "sprint": "BLOQUE I — El chat es la única entrada; Task deja de ser una pantalla (ABIERTO 2026-09-03, GO de Carlos)",
       "block": "I.0 — El orden, que Carlos marcó como MUY IMPORTANTE",
       "delegation": "🔍",
       "title": "Gate: la puerta manual no existe y el flujo automático se ve",
@@ -446,7 +446,7 @@
     },
     {
       "id": "UI.0",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🧠",
       "title": "Andamiaje (ninguna pantalla migrada)",
@@ -455,7 +455,7 @@
     },
     {
       "id": "UI.1",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🔍",
       "title": "GATE DE ABORTAR: el combobox de modelo",
@@ -464,7 +464,7 @@
     },
     {
       "id": "UI.1b",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🔍",
       "title": "Cerrar la brecha de evidencia de UI.1: los 2 call sites que faltaban",
@@ -473,7 +473,7 @@
     },
     {
       "id": "UI.2",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🧠",
       "title": "Design system: los 6 componentes que se repiten",
@@ -482,7 +482,7 @@
     },
     {
       "id": "UI.3",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🧠",
       "title": "Shell: sidebar + header + rightpanel + search",
@@ -491,7 +491,7 @@
     },
     {
       "id": "CI.1",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🔍",
       "title": "Mutation Shards en rojo: no era mutación, era el esquema de la DB",
@@ -500,7 +500,7 @@
     },
     {
       "id": "UI.3.5",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🧠",
       "title": "Sistema visual: que se sienta herramienta, no panel de administración",
@@ -509,7 +509,7 @@
     },
     {
       "id": "UI.4",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🧠",
       "title": "Pantallas, en orden de valor",
@@ -518,7 +518,7 @@
     },
     {
       "id": "UI.5",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🧠",
       "title": "Limpieza",
@@ -527,7 +527,7 @@
     },
     {
       "id": "UI.6",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🧠",
       "title": "Dos profundidades, una sola realidad: Chat | Workspace (backend ya listo por CC.2/CC.3)",
@@ -536,7 +536,7 @@
     },
     {
       "id": "UI.7",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "🧠",
       "title": "Navegación progresiva: muere \"modo avanzado\"",
@@ -545,7 +545,7 @@
     },
     {
       "id": "UI.8.1",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "El gate visual, y Playwright como dependencia real",
@@ -554,7 +554,7 @@
     },
     {
       "id": "UI.8.2",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
       "delegation": "🧠",
       "title": "Integridad de datos: una sola fuente de verdad, de verdad",
@@ -563,7 +563,7 @@
     },
     {
       "id": "UI.8.3",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
       "delegation": "🧠",
       "title": "Matar la navegación vieja (absorbe UI.7, sube antes de UI.4)",
@@ -572,7 +572,7 @@
     },
     {
       "id": "UI.8.4",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
       "delegation": "🧠",
       "title": "Shell Chat | Workspace (absorbe UI.6)",
@@ -581,7 +581,7 @@
     },
     {
       "id": "UI.8.5",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
       "delegation": "🧠",
       "title": "Composición visual: barra de estado, Settings y controles",
@@ -590,7 +590,7 @@
     },
     {
       "id": "UI.8.6",
-      "month": "MES 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
       "delegation": "🧠",
       "title": "Permisos visibles (`INS-2026-014`)",
@@ -599,7 +599,7 @@
     },
     {
       "id": "GOV.1",
-      "month": "Knowledge promotions",
+      "sprint": "Knowledge promotions",
       "block": "Planificar antes de cambios multi-módulo",
       "delegation": "🧠",
       "title": "Protocolo universal y verificable para cualquier LLM",
@@ -608,7 +608,7 @@
     },
     {
       "id": "GOV.2",
-      "month": "Knowledge promotions",
+      "sprint": "Knowledge promotions",
       "block": "Planificar antes de cambios multi-módulo",
       "delegation": "🔍",
       "title": "Resolver audit de dependencias high sin actualización ciega",
@@ -617,7 +617,7 @@
     },
     {
       "id": "GOV.3",
-      "month": "Knowledge promotions",
+      "sprint": "Knowledge promotions",
       "block": "Planificar antes de cambios multi-módulo",
       "delegation": "🔍",
       "title": "Evaluar advisory moderate de `qs` sin mezclar alcance",

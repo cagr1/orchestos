@@ -1,6 +1,6 @@
-### MES 14 — Autonomía interna: el runner que conduce el grafo solo
+### SPRINT 14 — Autonomía interna: el runner que conduce el grafo solo
 
-Origen: candidato directo anotado en DONE.md § MES 12 y § MES 13 (IDEAS.md #9). Eje: del aislamiento (Mes 13) a la autonomía — el conductor recorre el DAG completo de `tasks.yaml` de principio a fin, decide solo retry-vs-bloqueo ante un fallo vía `diagnoseTask()`, y no se detiene globalmente porque una rama caiga. Norte: intervención humana = 0 en el happy path.
+Origen: candidato directo anotado en DONE.md § SPRINT 12 y § SPRINT 13 (IDEAS.md #9). Eje: del aislamiento (Sprint 13) a la autonomía — el conductor recorre el DAG completo de `tasks.yaml` de principio a fin, decide solo retry-vs-bloqueo ante un fallo vía `diagnoseTask()`, y no se detiene globalmente porque una rama caiga. Norte: intervención humana = 0 en el happy path.
 
 **Tabla de estado de bloques**
 
@@ -71,28 +71,28 @@ Origen: candidato directo anotado en DONE.md § MES 12 y § MES 13 (IDEAS.md #9)
   ```
   Como `PRODUCT.md` ya queda commiteado en el repo, una vez instalados los plugins ahí `/impeccable audit/critique/polish` arrancan directo, sin pedir el init de nuevo.
 
-**Decisiones de diseño Mes 14**
-- A2 (graph-runner) no fue un motor nuevo — es `executePlan()` adaptado de `SubTask[]` a `Task[]` de `tasks.yaml`, reduciendo el riesgo porque el patrón cascada-y-continúa ya estaba en producción desde Mes 5.
+**Decisiones de diseño Sprint 14**
+- A2 (graph-runner) no fue un motor nuevo — es `executePlan()` adaptado de `SubTask[]` a `Task[]` de `tasks.yaml`, reduciendo el riesgo porque el patrón cascada-y-continúa ya estaba en producción desde Sprint 5.
 - `run --graph` es aditivo, no reemplaza `--all` — evita un cambio de comportamiento silencioso sobre consumidores existentes.
 - Los gates 🔍 deben correr contra el dashboard/CLI real con dinero real cuando aplica — D2/D3/BACK.5/FRONT.4 encontraron bugs reales (falso positivo de QA, check sin tope de retry, loop de rerender) que ningún mock había mostrado.
 - `mock.module()` sin scope por archivo es un riesgo estructural de la suite — D1 lo resolvió con inyección de dependencias real en vez de depender de orden de archivos; ver [[reference-bun-mock-module-gotcha]] (riesgo similar detectado y corregido post-cierre en `diagnose.test.ts`/`memory-judge.test.ts` mockeando `fetch` en vez del módulo).
-- El trabajo EXTRA (reasoning effort, pulido visual) corrió en paralelo sin bloquear el cierre del eje central del mes — mismo patrón que permitió cerrar Mes 14 sin deuda acumulada.
+- El trabajo EXTRA (reasoning effort, pulido visual) corrió en paralelo sin bloquear el cierre del eje central del mes — mismo patrón que permitió cerrar Sprint 14 sin deuda acumulada.
 
-**Lista prohibida Mes 14** _(lo que NO se hizo — referencia histórica)_
+**Lista prohibida Sprint 14** _(lo que NO se hizo — referencia histórica)_
 - Cliente MCP (Vercel, GitHub, etc.) — eje propio posterior, con acciones de efectos reales (deploy, borrado). Ver IDEAS.md § Largo plazo.
-- `description` vacía en `GET /api/skills/registry` — sigue sin resolver desde Mes 13, no generó fricción real todavía.
+- `description` vacía en `GET /api/skills/registry` — sigue sin resolver desde Sprint 13, no generó fricción real todavía.
 - OCR para imágenes adjuntas + adjuntar varios archivos a la vez ("Folder") — el estado del chat solo soporta un archivo a la vez; soportar varios es un cambio de modelo de datos, no un ajuste de menú (anotado en IDEAS.md #13).
-- `brainstorming`/planning socrático, `verification-before-completion`, par `requesting/receiving-code-review`, endurecimiento Iron Law/Common Rationalizations/Red Flags — siguen en backlog desde Mes 11.
+- `brainstorming`/planning socrático, `verification-before-completion`, par `requesting/receiving-code-review`, endurecimiento Iron Law/Common Rationalizations/Red Flags — siguen en backlog desde Sprint 11.
 - Micrófono/dictado en Chat, imports relativos en Graph (no-JS), clasificador semántico para `clarify`, Design.md condicional, KuzuDB.
 
-**Métrica Mes 14 — SÍ (2026-06-29)**
+**Métrica Sprint 14 — SÍ (2026-06-29)**
 `orchestos run --graph` recorre un `tasks.yaml` real completo sin intervención humana en el happy path; ante un fallo, bloquea solo la rama afectada (las independientes completan) y la decisión retry/bloqueo la toma diagnose, no el humano. Verificado en vivo en el dashboard (D2) y en el CLI real contra el `tasks.yaml` de producción del propio proyecto (D3), no solo en tests. 518 tests · 0 fail · `tsc --noEmit` limpio.
 
 ---
 
-### Fixes post-cierre Mes 14, pre-Mes 15 (2026-06-29) — dogfooding real del flujo chat→tarea
+### Fixes post-cierre Sprint 14, pre-Sprint 15 (2026-06-29) — dogfooding real del flujo chat→tarea
 
-Origen: Carlos probó en vivo el flujo "pedir algo por el chat → se crea una tarea → correrla" usando como caso real un pedido de prototipos de rediseño visual del dashboard (ver IDEAS.md, pendiente de tema oficial para Mes 15). Cada bug de abajo se encontró usando el sistema real, no leyendo código en frío — mismo principio que [[feedback-verificar-gates-en-vivo]].
+Origen: Carlos probó en vivo el flujo "pedir algo por el chat → se crea una tarea → correrla" usando como caso real un pedido de prototipos de rediseño visual del dashboard (ver IDEAS.md, pendiente de tema oficial para Sprint 15). Cada bug de abajo se encontró usando el sistema real, no leyendo código en frío — mismo principio que [[feedback-verificar-gates-en-vivo]].
 
 **Bug 1 — prompt/parser desincronizados en el one-shot `run --task --output` (cli.ts)**
 El system prompt de este path le decía al modelo que respondiera en JSON (`{"files":[...]}`), pero `parseLLMResponse` (`contract.ts`) solo entiende el formato de delimitadores `<<<FILE:path>>>...<<<ENDFILE>>>` — el mismo que ya usaba correctamente el path de `tasks.yaml`/`--graph` (`run/prompt.ts`). Rompía **cualquier** tarea one-shot, no solo el caso de prueba. Fix: alineado el prompt de `cli.ts` al formato de delimitadores real.
@@ -108,7 +108,7 @@ Provider/harness genérico (`run/harness.ts`, usado por `tasks.yaml`/`--graph` v
 `screens-core.js`: la flecha ▲/▼ que reemplaza al link "Diagnose" una vez cacheado el resultado se renderizaba **sin** el atributo `data-diag` (solo el link inicial lo tenía) — el handler de toggle ya existía y funcionaba bien, pero nunca se conectaba a la flecha. El click caía al handler de la fila (abría el side-panel) en vez de colapsar el detalle inline. Fix: la flecha ahora también lleva `data-diag`. Verificado en vivo con Playwright contra el dashboard real: 1er click abre (`detail-row` visible), 2do click colapsa (`detail-row` desaparece) — confirmado vía `classList`, no solo visualmente.
 
 **Bug 5 — el refresh del dashboard siempre caía en Settings, nunca en Chat**
-`app.js` redirigía a Settings ("Control Center") cada vez que `attentionCount > 0` — pero ese contador (`setup.ts`) suma `unverifiedInstincts + draftSpecs`, backlogs pasivos de revisión que casi siempre son > 0 en uso normal (99 instincts sin revisar en este caso). Esto pisaba silenciosamente la decisión ya tomada en Mes 14 EXTRA ("Chat convertido en pantalla principal") en cada recarga. Fix: el redirect urgente ahora solo dispara con `blockedTasks.length > 0` (trabajo real atascado) o el umbral de costo semanal — instincts/specs pendientes ya tienen su propio badge en el nav, no necesitan secuestrar la pantalla de inicio. Verificado en vivo con Playwright: con `blockedTasks: []` real, el refresh ahora aterriza en Chat (`heading "Chat"` + composer visibles).
+`app.js` redirigía a Settings ("Control Center") cada vez que `attentionCount > 0` — pero ese contador (`setup.ts`) suma `unverifiedInstincts + draftSpecs`, backlogs pasivos de revisión que casi siempre son > 0 en uso normal (99 instincts sin revisar en este caso). Esto pisaba silenciosamente la decisión ya tomada en Sprint 14 EXTRA ("Chat convertido en pantalla principal") en cada recarga. Fix: el redirect urgente ahora solo dispara con `blockedTasks.length > 0` (trabajo real atascado) o el umbral de costo semanal — instincts/specs pendientes ya tienen su propio badge en el nav, no necesitan secuestrar la pantalla de inicio. Verificado en vivo con Playwright: con `blockedTasks: []` real, el refresh ahora aterriza en Chat (`heading "Chat"` + composer visibles).
 
 **Decisión de diseño**: ningún fix de este bloque consumió generación de contenido por LLM para probarse — los 5 son debugging real sobre estado ya producido (logs, DB, tasks.yaml, dashboard en vivo), siguiendo la regla explícita de Carlos de esta sesión: tareas de generación-y-prueba-iterativa las corre él mismo por CLI para no quemar cuota de Claude; debugging de bugs reales sí lo hace Claude.
 

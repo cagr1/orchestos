@@ -17,8 +17,8 @@ exacta del motor que elige por él — o le ofrece elegir, cuando hay ambigüeda
 - No hay ranking numérico ni scoring por similitud de embeddings — eso es sobre-ingeniería para
   el volumen de skills que hay hoy (16). Un LLM call barato con la lista completa de
   `when_to_use` alcanza.
-- No se mezcla con B.1.b (clasificador de intención de tarea del Mes 18) en el código — son
-  primitivos hermanos, no el mismo call (ver sección "Relación con Mes 18").
+- No se mezcla con B.1.b (clasificador de intención de tarea del Sprint 18) en el código — son
+  primitivos hermanos, no el mismo call (ver sección "Relación con Sprint 18").
 
 ## (a) Forma del call
 
@@ -29,7 +29,7 @@ entrada que genere un draft — chat, CLI). Mismo espíritu que IDEAS #4 (clasif
 sola pregunta, salida JSON parseada a la defensiva.
 
 - **Modelo**: el más barato con tool-calling disponible (mismo criterio que el clasificador de
-  Mes 18) — nunca el modelo que el usuario eligió para *ejecutar* la tarea. Es un call de
+  Sprint 18) — nunca el modelo que el usuario eligió para *ejecutar* la tarea. Es un call de
   servicio, no de razonamiento pesado.
 - **Input**: la `description` del draft (no el `output[]`, no el historial de chat completo) +
   la lista de `{ id, description, when_to_use }` de **todas** las skills instaladas
@@ -38,9 +38,9 @@ sola pregunta, salida JSON parseada a la defensiva.
 - **Salida**: `{ candidates: string[] }` — cero, uno, o varios ids de skill, nunca un id
   inventado (validar contra la lista real antes de usarlo; si el LLM devuelve un id que no
   existe, se descarta como si no hubiera dicho nada — fail-safe a "sin skill", igual que
-  `needsClarify`/el clasificador de Mes 18).
+  `needsClarify`/el clasificador de Sprint 18).
 - **Costo**: un call por tarea creada, no por mensaje de chat — mucho más barato en volumen que
-  el clasificador de intención de Mes 18 (ese es por mensaje).
+  el clasificador de intención de Sprint 18 (ese es por mensaje).
 
 ## (b) El matiz de Carlos — un candidato vs. varios (2026-07-06)
 
@@ -53,7 +53,7 @@ Esta es la decisión de arquitectura central de este documento, así que se expl
 - **`candidates.length > 1`** (ambigüedad real — típicamente varias skills de diseño compitiendo
   por la misma tarea) → **NO se elige a ciegas**. El composer muestra las opciones con su
   `description` para que el usuario final decida cuál (o ninguna). Mismo principio ya vigente en
-  el Mes 18 ("sugerir, nunca auto-ejecutar sin que el humano confirme") y en C.2 del composer
+  el Sprint 18 ("sugerir, nunca auto-ejecutar sin que el humano confirme") y en C.2 del composer
   (aviso inline cuando `engine: external` no tiene el binario disponible) — este documento no
   inventa un patrón de UI nuevo, reusa el que ya existe.
 - **`candidates.length === 0`** → no se muestra nada, el campo skill queda vacío, exactamente el
@@ -88,7 +88,7 @@ Sugerencia de skill: [ ] frontend-design — Production-grade visual craft for l
 Ningún tool call nuevo dispara ejecución — el draft sigue esperando confirmación manual del
 usuario antes de crear la tarea, exactamente como el flujo `/api/natural` actual.
 
-## (d) Relación con Mes 18 y con IDEAS #4 — primitivo compartido, no el mismo call
+## (d) Relación con Sprint 18 y con IDEAS #4 — primitivo compartido, no el mismo call
 
 Los tres (clasificador de `clarify`, detección de intención de tarea del chat, y este selector
 de skill) son la misma forma: *mirar lenguaje natural, devolver una decisión discreta validada

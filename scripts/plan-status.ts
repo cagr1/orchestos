@@ -9,7 +9,7 @@
  *
  * Discriminador de "esto es un ítem de trabajo": la línea debe tener la forma
  * `**<ID> — <emoji-de-delegación> <título>**`. Las líneas de cierre de mes
- * (`**SÍ — Mes 27 cerrado...**`, `**PARCIAL — ...**`) no llevan emoji de
+ * (`**SÍ — Sprint 27 cerrado...**`, `**PARCIAL — ...**`) no llevan emoji de
  * delegación justo tras el guión largo, así que el regex las excluye solas
  * — no hace falta una lista negra de patrones a mano.
  */
@@ -19,7 +19,7 @@ export type Delegation = (typeof DELEGATION_EMOJI)[number]
 
 export interface FeatureStatusItem {
   id: string
-  month: string | null
+  sprint: string | null
   block: string | null
   delegation: Delegation
   title: string
@@ -32,13 +32,13 @@ const ITEM_LINE_RE =
 
 export function parsePlanFeatureStatus(plan: string): FeatureStatusItem[] {
   const items: FeatureStatusItem[] = []
-  let month: string | null = null
+  let sprint: string | null = null
   let block: string | null = null
 
   for (const line of plan.split('\n')) {
-    const monthMatch = line.match(/^## (.+)$/)
-    if (monthMatch?.[1]) {
-      month = monthMatch[1].trim()
+    const sprintMatch = line.match(/^## (.+)$/)
+    if (sprintMatch?.[1]) {
+      sprint = sprintMatch[1].trim()
       block = null
       continue
     }
@@ -53,7 +53,7 @@ export function parsePlanFeatureStatus(plan: string): FeatureStatusItem[] {
     if (!checked || !id || !emoji || !title) continue
     items.push({
       id,
-      month,
+      sprint,
       block,
       delegation: emoji as Delegation,
       title: title.trim(),

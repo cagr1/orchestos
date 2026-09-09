@@ -1,4 +1,4 @@
-### MES 9 — Dashboard usable: de observador a orquestador
+### SPRINT 9 — Dashboard usable: de observador a orquestador
 
 **BLOQUE A — Navegación y estructura**
 - A1 (🧠) Reordenar nav: Tasks primero, Runner eliminado, pantalla por defecto = Tasks. Nav final: Tasks → Runs → Memory → Instincts → Specs → Settings — 2026-06-03
@@ -44,7 +44,7 @@
 - Ops screen con assets de branding (logo, mark, favicon SVG) — 2026-06-03 (757a4f2)
 - Fix: system prompt del chat refleja el modelo real seleccionado, no el hardcoded — 2026-06-03 (d77847f)
 
-**Decisiones de diseño Mes 9**
+**Decisiones de diseño Sprint 9**
 - Compose bar de dos fases (escribe → borrador IA → confirma) no interrumpe el flujo si la IA falla — fallback a slug simple. El error de IA nunca bloquea la creación de tareas.
 - Slug auto desde descripción: kebab-case de primeras 4–5 palabras. Elimina fricción sin perder trazabilidad (el ID sigue siendo legible).
 - i18n como ciudadano de primera clase desde el inicio del dashboard — `t()` global en lugar de strings hardcodeados en cada pantalla. Coste de adopción: cero si se hace antes de escalar pantallas.
@@ -52,16 +52,16 @@
 - Chat panel shipeado fuera de plan porque el modelo base ya existía (`/api/natural`) — reutilizar sin añadir dependencias nuevas.
 - Instincts con lenguaje humano: los nombres internos (`confidence`, `verified`, `source`) nunca aparecen en la UI de no-devs. La abstracción es "hábito" con tres estados comprensibles.
 
-**Lista prohibida Mes 9** _(lo que NO se hizo — referencia histórica)_
+**Lista prohibida Sprint 9** _(lo que NO se hizo — referencia histórica)_
 - Micrófono / dictado — análisis hecho, gap es `STTProvider` abstraction, pospuesto.
 - Files como input en Chat — entrada conversacional bien definida, pospuesto.
-- Arquitectura humano/operador (toggle "modo avanzado") — Mes 10+, necesita dashboard estable primero.
+- Arquitectura humano/operador (toggle "modo avanzado") — Sprint 10+, necesita dashboard estable primero.
 - VISION.md — brújula del producto, pospuesto.
 - Control Center (salud continua) — delta sobre I2 Setup, pospuesto.
 - Landing page — precisa VISION.md primero.
 - KuzuDB — sin evidencia de escala.
 
-**Métrica Mes 9 — SÍ (2026-06-04)**
+**Métrica Sprint 9 — SÍ (2026-06-04)**
 Dashboard convertido en interfaz principal de trabajo: 10 bloques cerrados (A–J), 16 items `[x]`. Input de lenguaje natural operativo con preview de IA. i18n en/es completo. Instalador de un solo archivo para Windows y Mac/Linux. Chat panel + modelo selector shipeado fuera de plan. 369 tests · 0 fail mantenidos.
 
 ---

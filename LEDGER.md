@@ -10,8 +10,8 @@ obediencia ciega (aceptable), desviación razonada con argumento sólido (el má
 desviación silenciosa / regresión (el que rompe reglas sin avisar). No es para castigar, es para
 que Carlos tenga su propia base de conocimiento de cómo actúa cada LLM en este proyecto.
 
-Diseño completo, campos y ejemplo → [PLAN.md § Mes 22 Bloque F, F.1](PLAN.md).
-Cuándo es obligatorio agregar una entrada → [PLAN.md § Mes 22 Bloque F, F.2](PLAN.md) — el gate de
+Diseño completo, campos y ejemplo → [PLAN.md § Sprint 22 Bloque F, F.1](PLAN.md).
+Cuándo es obligatorio agregar una entrada → [PLAN.md § Sprint 22 Bloque F, F.2](PLAN.md) — el gate de
 `scripts/pre-commit.sh` lo exige automáticamente cuando el commit toca un archivo listado en
 `.claude/protected-rules.json`.
 Reporte agregado (tabla por modelo) → `bun run ledger:report` ([PLAN.md § F.3](PLAN.md), pendiente
@@ -22,7 +22,7 @@ de implementar).
 
 ## 2026-07-20 16:53 America/Guayaquil — claude-sonnet-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: el cambio (Bloque G/G.5) no toca la derivación de `max_tokens`/contextWindow — solo
@@ -38,7 +38,7 @@ limpio antes del commit.
 
 ## 2026-07-27 10:19 America/Guayaquil — claude-sonnet-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: el cambio (Bloque G/G.3.3) no toca `max_tokens`/contextWindow — agrega
@@ -54,7 +54,7 @@ verificado además en vivo contra el dashboard real (ver PLAN.md § G.3.3).
 
 ## 2026-07-27 11:44 America/Guayaquil — claude-sonnet-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: el cambio (Bloque G/G.4.2b, nuevo executor `codex.ts`) toca dos puntos de
@@ -72,7 +72,7 @@ real contra un git repo temporal (2026-07-27) antes de codear el parser — no a
 
 ## 2026-07-28 09:51 America/Guayaquil — codex-gpt-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: el cambio K.2 solo pasa el `checksResults` que el harness ya calculaba a `runQA()`;
@@ -87,7 +87,7 @@ con `git revert`, sin side-effects adicionales en datos. Suite completa: 875 tes
 
 ## 2026-07-28 10:41 America/Guayaquil — claude-sonnet-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: el cambio K.4b agrega el segundo juez adversarial (`runAdversarialQA()`) entre
@@ -108,7 +108,7 @@ probando que K.4a deja pasar evidencia literal-pero-engañosa), no por decisión
 
 ## 2026-07-29 16:20 America/Guayaquil — codex-gpt-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: M4 agrega el middleware de roadmaps, el bloqueo explícito de toolchains ausentes y la
@@ -122,7 +122,7 @@ con `git revert`, sin cambios de datos. `bunx tsc --noEmit` limpio; tests espec�
 
 ## 2026-08-05 16:57 America/Guayaquil — claude-sonnet-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: O.3 agrega la resolución de gates transversales (`resolveGates()`) justo antes de
@@ -140,7 +140,7 @@ commit.
 
 ## 2026-08-08 09:42 America/Guayaquil — claude-sonnet-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: W.1 borra el middleware `tool-policy.ts` (dead code, decisión de Carlos) y quita su
@@ -157,7 +157,7 @@ presupuesto de salida del executor.
 
 ## 2026-08-10 — claude-sonnet-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: X.2 (IDEAS #33) agrega el refuter opt-in (`orcheConfig.refuterQA`) entre
@@ -179,7 +179,7 @@ pagado real, mismo nivel de rigor que el propio gate de K.4b (ver entrada 2026-0
 
 ## 2026-08-16 — claude-opus-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: BB.1 cambia SOLO la selección de motor (`requestedEngine`): agrega `executor_mode`
@@ -202,7 +202,7 @@ verificado en vivo (acepta `codex`, y un typo ahora avisa por stderr en vez de d
 
 ## 2026-08-17 — claude-sonnet-5
 
-**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E) — `harness.ts` está
+**Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E) — `harness.ts` está
 protegido por tocar la derivación de `max_tokens`.
 **Clasificación**: RESPETÓ
 **Por qué**: CC.D1 renombra `resolveExecutorSelection()` → `resolveAgentSelection()` (mismo import,

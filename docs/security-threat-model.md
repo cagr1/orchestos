@@ -1,6 +1,6 @@
 # OrchestOS — Threat model y límites de confianza
 
-Bloque L.0 (Mes 23, PLAN.md), 2026-07-29. Verificado leyendo el código real, no asumido.
+Bloque L.0 (Sprint 23, PLAN.md), 2026-07-29. Verificado leyendo el código real, no asumido.
 
 **Alcance declarado**: OrchestOS tal como se usa hoy — herramienta local de desarrollo, un solo
 usuario, dashboard en `127.0.0.1`, sin autenticación multiusuario. Si el dashboard se expone fuera
@@ -32,7 +32,7 @@ reabrirse una revisión específica (ya anotado como límite explícito en L, PL
 | Proceso local comprometido (malware, otra app) | **No** — pero fuera de alcance | Cualquier proceso con el mismo UID puede leer `~/.orchestos/.env` en texto plano; es un riesgo del modelo "un solo usuario, una sola máquina", no algo que OrchestOS pueda mitigar por software sin cifrado en reposo (decisión pendiente, ver L.1) |
 | Tarea/skill importada (`tasks.yaml`, `/api/skills/import`) | **No** | Puede declarar `output`/`checks` arbitrarios; `enforceContract` es la única barrera real |
 | Contenido web (`fetch` en el chat, `executeFetchUrl`) | **No** | Mitigado por `ssrf.ts` (bloquea loopback/privado/`.local`, resuelve DNS antes de confiar) — dato, no instrucción, solo por convención de prompt hoy (ver gap §5) |
-| Imagen/OCR (`tesseract.js`, [ocr.ts](../src/chat/ocr.ts)) | **No** | Texto extraído de una imagen entra al chat como contenido de usuario; ya hay un caso probado en Mes 19 donde un intento de prompt injection en una imagen fue ignorado por el modelo, pero eso depende del modelo, no de un guard estructural |
+| Imagen/OCR (`tesseract.js`, [ocr.ts](../src/chat/ocr.ts)) | **No** | Texto extraído de una imagen entra al chat como contenido de usuario; ya hay un caso probado en Sprint 19 donde un intento de prompt injection en una imagen fue ignorado por el modelo, pero eso depende del modelo, no de un guard estructural |
 | Salida de un LLM (executor, QA, curador de skills, chat) | **No** | Es la entrada más frecuente y menos confiable: `parseLLMResponse`/`enforceContract` existen exactamente porque un LLM puede intentar escribir fuera de `output[]` |
 | CLI externo (Codex, opencode, Claude Code headless) | Parcialmente | Corren como subprocess con `cwd` fijado al worktree/root; su salida (diff, JSON) se trata como no confiable y pasa por el mismo contrato que el executor interno |
 | Petición HTTP al dashboard | Solo si es same-origin | `isSameOrigin()` bloquea POST/PUT/DELETE cross-origin; no hay autenticación — cualquier proceso en la misma máquina que pueda alcanzar `127.0.0.1:4242` puede mutar sin credencial |
@@ -58,7 +58,7 @@ reabrirse una revisión específica (ya anotado como límite explícito en L, PL
 Todos los puntos de spawn usan **arrays de argumentos**, nunca interpolación de shell — se listaron los 8 sitios reales: `checks.ts:135`, `sandbox.ts:16` (git), `executors/external.ts:163`, `executors/opencode.ts:150`, `executors/worktree-diff.ts:44` (git), `executors/codex.ts:91`, `providers/codex.ts:13`, `dashboard/handlers/{project,tasks,specs}.ts`. Eso cierra la clase de bug más común (command injection vía concatenación de strings). Pendiente de auditar en L.3: timeouts consistentes, límites de stdout/stderr uniformes y entorno heredado vs. mínimo — hoy varía por sitio y no está unificado.
 
 ### 3.5 Proveedores externos (LLM APIs, fetch)
-- `checkSsrSafe()` ([ssrf.ts](../src/dashboard/ssrf.ts)) bloquea localhost, IPv6 link-local, rangos privados IPv4, dominios `.local`/`.localhost`, y resuelve DNS antes de fiarse del hostname (mismo resolver que `fetch()`, ya corregido un falso positivo real con `dns.resolve4()` en Mes 13). No verificado todavía: redirecciones (una URL pública que redirige a una privada), DNS rebinding entre el check y el fetch real, IPv6 público. Anotado para L.4.
+- `checkSsrSafe()` ([ssrf.ts](../src/dashboard/ssrf.ts)) bloquea localhost, IPv6 link-local, rangos privados IPv4, dominios `.local`/`.localhost`, y resuelve DNS antes de fiarse del hostname (mismo resolver que `fetch()`, ya corregido un falso positivo real con `dns.resolve4()` en Sprint 13). No verificado todavía: redirecciones (una URL pública que redirige a una privada), DNS rebinding entre el check y el fetch real, IPv6 público. Anotado para L.4.
 
 ### 3.6 Worktrees
 - `resolveSandboxMode()` ([sandbox-policy.ts](../src/run/sandbox-policy.ts)) exige working tree limpio antes de usar worktree, cae a `cwd` (sin aislamiento) si no hay git o está en detached HEAD — con warning explícito, no en silencio. `git-lock.ts` serializa auto-commits vs. merge-back entre procesos concurrentes (mutex de archivo).

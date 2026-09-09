@@ -1,4 +1,4 @@
-### MES 10 — El producto que alguien que nunca programó puede usar
+### SPRINT 10 — El producto que alguien que nunca programó puede usar
 
 **BLOQUE A — Diagnóstico de fallos en el dashboard**
 - A1 (🧠) Diseño: endpoint `GET /api/tasks/:id/diagnose` → `DiagnoseResult`, on-demand con botón "Ver diagnóstico" — no auto-call en background — 2026-06-04
@@ -54,7 +54,7 @@
 - F5 (⚡) Pantalla de inicio: `advanced` sin atención → runs; normal sin atención → tasks. Fusionado con C4 en `fetchAll()` — 2026-06-04
 - F6 (🔍) Gate: modo normal ✓ · avanzado con Runs/Memory/Specs y badge `adv` ✓ · persistencia tras reload ✓ · redirect a Tasks al desactivar desde Runs ✓ — 2026-06-04
 
-**Decisiones de diseño Mes 10**
+**Decisiones de diseño Sprint 10**
 - Diagnóstico on-demand — LLM call solo cuando el usuario lo pide; no en background al cargar Tasks.
 - `PUT /api/project/constitution` escribe al mismo path que usa el harness — una sola fuente de verdad, sin sincronización.
 - Control Center extiende I2, no es pantalla nueva — reutiliza checklist + infraestructura existente.
@@ -64,8 +64,8 @@
 - `buildNav()` re-renderiza el DOM en cada toggle — simplicidad sobre complejidad. Fade-in vía `requestAnimationFrame`.
 - Stacking context del sidebar: `z-index:1` para que los tooltips escapen el CSS Grid.
 
-**Lista prohibida Mes 10** _(lo que NO se hizo — referencia histórica)_
-- Autoría de skills con curador (normalizador de intención) — prerequisitos listos, scope grande para Mes 11.
+**Lista prohibida Sprint 10** _(lo que NO se hizo — referencia histórica)_
+- Autoría de skills con curador (normalizador de intención) — prerequisitos listos, scope grande para Sprint 11.
 - Pack curado de skills de ingeniería "pro" — espera al curador.
 - Micrófono / dictado en Chat — falta `STTProvider` abstraction.
 - Resolver imports relativos en Graph (lenguajes no-JS).
@@ -74,7 +74,7 @@
 - KuzuDB — sin evidencia de escala.
 - autoskills registry — decisión de formato pendiente.
 
-**Métrica Mes 10 — SÍ (2026-06-04)**
+**Métrica Sprint 10 — SÍ (2026-06-04)**
 Wizard API key completo: 3 proveedores, validación real, rollback en 401, i18n 24 claves. Toggle humano/operador navegable con persistencia y redirect automático. Diagnóstico en Tasks con "Reintentar" + "Convertir en hábito". Archivos (imagen/PDF) en Chat + "Crear tarea desde conversación". Control Center con 5 bloques + semáforo + auto-refresh 30s. Ollama auto-detectado. 369 tests · 0 fail.
 
 ---

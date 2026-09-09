@@ -40,7 +40,7 @@ describe('renderHandoff', () => {
   const openItems: FeatureStatusItem[] = [
     {
       id: 'H.5',
-      month: 'BLOQUE H',
+      sprint: 'BLOQUE H',
       block: 'H.5',
       delegation: '🧠',
       title: 'Evals propios',
@@ -79,7 +79,7 @@ describe('renderHandoff', () => {
   test('trunca la lista de ítems abiertos a 5 y avisa el resto', () => {
     const many: FeatureStatusItem[] = Array.from({ length: 7 }, (_, i) => ({
       id: `X.${i}`,
-      month: null,
+      sprint: null,
       block: null,
       delegation: '⚡' as const,
       title: `item ${i}`,

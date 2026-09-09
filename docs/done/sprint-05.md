@@ -1,4 +1,4 @@
-### MES 5 — Confiabilidad para uso diario
+### SPRINT 5 — Confiabilidad para uso diario
 
 **SEMANA 19 — Sandbox por worktree + e2e real**
 - S19.1 `createWorktree()` en sandbox.ts con cleanup garantizado — 2026-05-27
@@ -57,12 +57,12 @@
 - S22.8 `src/agents/hardening.ts` — `withSubTaskTimeout` (5 min), `ToolCallCounter` (20 calls → `timed_out`), `createWorktreeWithRetry` (exp. backoff), `withRateLimitRetry` — 2026-05-28
 - S22.9 `docs/sub-agents-flow.md` — flujo completo + diagrama DAG de una tarea plan — 2026-05-28
 - S22.10 Smoke real: write-greeting (428in/269out, 16s) → write-response (430in/152out, 28s) · `memory_entries` escritas · 44s total — 2026-05-28
-- S22.11 README + CHANGELOG — resumen Mes 5 con sub-agentes, context isolation, memoria persistente, tool policy — 2026-05-28
+- S22.11 README + CHANGELOG — resumen Sprint 5 con sub-agentes, context isolation, memoria persistente, tool policy — 2026-05-28
 - S22.12 Validación: 110 tests · 0 fail · 8 archivos + smoke S22 verde — 2026-05-28
 - S22.13 Commit `cd8526e feat(smoke): S22.10 smoke real sub-agentes + cierre S22` — 2026-05-28
 - Bug fix: `selectMemories` resuelve `depends_on` IDs → `topic_keys` via `allSubTasks` — 2026-05-28
 
-**Decisiones de diseño Mes 5 (S19–S22)**
+**Decisiones de diseño Sprint 5 (S19–S22)**
 - Worktrees reemplazan snapshot/restore — `restoreContents()` eliminado.
 - Spec es opcional por defecto, obligatorio si `requireSpec: true` en config — adopción gradual.
 - autoskills = HTTP fetch al raw de GitHub — sin npx, sin runtime externo.
@@ -72,7 +72,7 @@
 - Tool policy es verificación dura en harness, no sugerencia al modelo.
 - Dogfooding: 5 tareas reales ejecutadas durante el mes (bitácora en `docs/E2E.md`).
 
-**Métrica Mes 5 — SÍ (2026-05-28)**
+**Métrica Sprint 5 — SÍ (2026-05-28)**
 Sub-agentes con context isolation + memoria persistente + tool policy funcionando.
 5 ejecuciones reales registradas en `docs/E2E.md` (hello-world × 2, bun test suite, smoke-greeting, smoke-response).
 

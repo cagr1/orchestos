@@ -22,13 +22,13 @@ la nueva categoría y conserva su historial.
 
 ### Mínimo
 
-_(vacía — `#1` graduado a PLAN.md § Mes 25 / Bloque N el 2026-07-30)_
+_(vacía — `#1` graduado a PLAN.md § Sprint 25 / Bloque N el 2026-07-30)_
 
 ### Bajo
 
-_(vacía — `#2` graduado a PLAN.md § Mes 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06;
+_(vacía — `#2` graduado a PLAN.md § Sprint 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06;
 `#5` a Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07; `#46`
-a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Mes 26 cierra)_
+a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Sprint 26 cierra)_
 2. `#59` Etiquetar `code_edges` con `EXTRACTED`/`INFERRED` en `graph/` propio.
 3. `#61` Baseline de warnings de Biome pendiente de limpiar.
 4. `#62` Falso negativo silencioso del parser de `PLAN.md` (título en 2 líneas).
@@ -38,10 +38,10 @@ a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo com
 1. `#4` Clasificador semántico para `clarify`.
 2. `#30` `task_class: ocr`.
 3. `#51` Acciones por mensaje: **rebobinar** (copiar + timestamp ya implementados, Bloque Z,
-   2026-08-12 — bloqueado por las sesiones persistentes, hoy en PLAN.md § Mes 29 / CC.2).
+   2026-08-12 — bloqueado por las sesiones persistentes, hoy en PLAN.md § Sprint 29 / CC.2).
 
 _(`#33` graduó a Bloque X el 2026-08-10; `#37` graduó a Bloque Y el 2026-08-10 — categoría
-Bajo-medio en curso, Mes 27)_
+Bajo-medio en curso, Sprint 27)_
 
 ### Medio
 
@@ -55,7 +55,7 @@ Bajo-medio en curso, Mes 27)_
 8. `#47` Auto-split por tamaño estimado.
 9. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
 
-_(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Mes 29
+_(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Sprint 29
 (orquestador real) el 2026-08-16 — eran partes de un mismo eje estructural, no ideas sueltas.)_
 
 ### Medio-alto
@@ -111,13 +111,13 @@ semilla de v0.13 — no tocado en este tramo.
 
 ## ⚡ Rápido — autoría sobre puertas que ya existen (casi sin código nuevo)
 
-Estos items se entregan por la **puerta "importar" del curador** (Mes 11, ✅) o como
+Estos items se entregan por la **puerta "importar" del curador** (Sprint 11, ✅) o como
 upgrade de skills existentes. No requieren motor nuevo — son contenido endurecido que
 entra por infraestructura ya probada. Independientes entre sí.
 
 Son el resto del delta identificado en [obra/superpowers](https://github.com/obra/superpowers)
 y [mattpocock/skills](https://github.com/mattpocock/skills); el curador + pack "pro"
-(8 skills) ya está shipeado (Mes 11, ver [historial del Mes 11](docs/done/mes-11.md)).
+(8 skills) ya está shipeado (Sprint 11, ver [historial del Sprint 11](docs/done/sprint-11.md)).
 
 ## 🔨 Medio — capacidad nueva acotada
 
@@ -198,23 +198,23 @@ visión: el chat —o un task executor— puede pedir un deploy a Vercel, leer i
 GitHub, consultar logs, sin que se escriba un integrador a medida por cada servicio. El
 MCP server lo provee el tercero; OrchestOS solo necesita ser **cliente**.
 
-**Qué ya existe (no reconstruir)**: misma base que el web fetch (Mes 13, ✅ shipeado) —
+**Qué ya existe (no reconstruir)**: misma base que el web fetch (Sprint 13, ✅ shipeado) —
 `callWithTools()` ([src/providers/tool-call.ts:233](src/providers/tool-call.ts:233), S23)
 ya traduce un `ToolDef` a la API de Anthropic/OpenAI/OpenRouter, y `runToolLoop()`
-(`tool-call.ts`, Mes 13) ya resuelve el loop multi-turno LLM↔tool↔resultado que un cliente
+(`tool-call.ts`, Sprint 13) ya resuelve el loop multi-turno LLM↔tool↔resultado que un cliente
 MCP también necesita. Un cliente MCP es, conceptualmente, descubrir las tools que expone un
 MCP server y registrarlas como `ToolDef[]` en ese mismo loop — el motor ya existe y está
 probado en producción (web fetch real en el chat).
 
 **La distinción crítica — leer vs. actuar**:
-- **Web fetch** (Mes 13, ✅) = solo lee. Read-only, bajo riesgo.
+- **Web fetch** (Sprint 13, ✅) = solo lee. Read-only, bajo riesgo.
 - **MCP de Vercel/GitHub** = *actúa* — deploy, set env vars, borrar proyectos, mergear PRs.
   Cruza al territorio de **acciones con efectos reales e irreversibles**.
 
 Por eso MCP no se mezcló con el web fetch ni entró en el mismo mes. Va como eje propio,
 heredando el patrón de "tool externa segura" ya probado y verificado en vivo con el web fetch
 (incluido el hallazgo de que los gates 🔍 deben correr contra el sistema real, no solo tests
-con mocks — ver DONE.md § MES 13).
+con mocks — ver DONE.md § SPRINT 13).
 
 **Reglas de seguridad innegociables (heredan el CLAUDE.md del proyecto)**:
 1. **Confirmación humana antes de toda acción destructiva u outward-facing** — deploy,
@@ -228,7 +228,7 @@ con mocks — ver DONE.md § MES 13).
    el web fetch (prompt injection vía respuesta de tool) — ya verificado que el modelo lo
    respeta en producción.
 
-**Prerequisito**: `callWithTools()` ✅ + `runToolLoop()` ✅ (ambos S23/Mes 13) — el motor de
+**Prerequisito**: `callWithTools()` ✅ + `runToolLoop()` ✅ (ambos S23/Sprint 13) — el motor de
 loop multi-turno con tools ya existe y está probado. Decisión pendiente: ¿qué transporte MCP
 soportar primero (stdio vs. HTTP/SSE) y qué servers de arranque (Vercel, GitHub)?
 
@@ -255,12 +255,12 @@ usuario cambia de pestaña/app mientras corre un Graph Runner o una tarea larga,
 que terminó hasta que vuelve a mirar.
 
 **Candidatos de disparo (eventos que ya existen, solo falta enganchar la notificación)**:
-- Fin de una corrida del Graph Runner (`POST /api/run/graph`, Mes 14) — hoy se ve el resultado
+- Fin de una corrida del Graph Runner (`POST /api/run/graph`, Sprint 14) — hoy se ve el resultado
   solo si el usuario sigue en la pantalla "Graph Runner" con el auto-refresh de 3s activo.
 - `task run` individual que termina en `done`/`failed_permanent` mientras el usuario navegó a
   otra pantalla.
 - Setup/health: cuando una key recién agregada falla la validación (ya hay rollback en 401,
-  Mes 10) — útil avisar aunque el usuario ya se fue a otra pantalla del wizard.
+  Sprint 10) — útil avisar aunque el usuario ya se fue a otra pantalla del wizard.
 
 **Cómo implementarlo (Web Notification API, sin librería nueva)**:
 1. Pedir permiso (`Notification.requestPermission()`) una sola vez, con gesto explícito del
@@ -286,7 +286,7 @@ usuario que las priorice todavía (probado solo en <50 archivos):
    por relevancia (el grafo + embeddings ya existen para esto, S21/S24).
 2. **DB sin poda** — `runs` crece sin TTL ni archivado (LIMITATIONS lo admite). Falta: `orchestos
    runs --prune --older-than 90d` o archivado automático.
-3. **`cli.ts` 2127 líneas** — mismo patrón que el split de `server.ts` del Mes 12 (1727→159 en 13
+3. **`cli.ts` 2127 líneas** — mismo patrón que el split de `server.ts` del Sprint 12 (1727→159 en 13
    módulos, re-verificado línea a línea). Aplicar el mismo tratamiento cuando el archivo vuelva a
    doler.
 
@@ -327,17 +327,17 @@ proyecto real (propio o de usuario externo) golpee el límite concreto.
 
 **Origen**: sesión 2026-07-08. Carlos notó que el panel inferior del dashboard muestra un log de solo lectura de las últimas corridas ("Recent Runs") — propone que sea más útil un terminal real embebido ahí, donde se pueda ejecutar comandos directamente (`orchestos task run`, `git status`, etc.) en vez de solo ver qué ya se corrió.
 
-**Qué implica**: no es un cambio cosmético — es exponer un shell real desde el navegador al proceso del dashboard (mismo host, mismo usuario del sistema). Esto es una superficie de ejecución de comandos arbitrarios expuesta por HTTP — necesita el mismo criterio de seguridad que ya se aplicó a otras decisiones "leer vs actuar" del proyecto (Mes 18, chat tools): como mínimo, mismo-origen estricto (ya existe para POST/PUT/DELETE, `isSameOrigin()` en `server.ts`), y decidir si corre con los mismos permisos del proceso dashboard o en un sandbox acotado.
+**Qué implica**: no es un cambio cosmético — es exponer un shell real desde el navegador al proceso del dashboard (mismo host, mismo usuario del sistema). Esto es una superficie de ejecución de comandos arbitrarios expuesta por HTTP — necesita el mismo criterio de seguridad que ya se aplicó a otras decisiones "leer vs actuar" del proyecto (Sprint 18, chat tools): como mínimo, mismo-origen estricto (ya existe para POST/PUT/DELETE, `isSameOrigin()` en `server.ts`), y decidir si corre con los mismos permisos del proceso dashboard o en un sandbox acotado.
 
-**Qué ya existe (parcial)**: el patrón de "correr algo real y ver el resultado inline" ya está probado — `POST /api/runs/analyze` (Mes 18 E.4) y el botón "Explain" (E.7) devuelven resultados reales inline sin `alert()`. Un terminal es un salto de superficie distinto (ejecución arbitraria vs. una acción predefinida con parámetros validados), no una extensión trivial de esos patrones.
+**Qué ya existe (parcial)**: el patrón de "correr algo real y ver el resultado inline" ya está probado — `POST /api/runs/analyze` (Sprint 18 E.4) y el botón "Explain" (E.7) devuelven resultados reales inline sin `alert()`. Un terminal es un salto de superficie distinto (ejecución arbitraria vs. una acción predefinida con parámetros validados), no una extensión trivial de esos patrones.
 
-**Esfuerzo**: medio-alto — no es solo UI (xterm.js + WebSocket/SSE al backend), es una decisión de seguridad real sobre qué comandos se permiten y con qué privilegios. Candidato a diseño previo (`docs/`) antes de tocar código, mismo patrón que Bloque A del Mes 18 (guardrails antes de implementar).
+**Esfuerzo**: medio-alto — no es solo UI (xterm.js + WebSocket/SSE al backend), es una decisión de seguridad real sobre qué comandos se permiten y con qué privilegios. Candidato a diseño previo (`docs/`) antes de tocar código, mismo patrón que Bloque A del Sprint 18 (guardrails antes de implementar).
 
 ---
 
 ### 29. `commitTopicKey` (memoria de sub-tasks) — el wiring está bien conectado, pero casi nunca se dispara en la práctica
 
-**Origen**: investigación de seguimiento a I.6 (Mes 18) — la memoria del audit "premium dashboard" mencionaba `persistSubTaskMemory()` como posible código muerto; ese nombre no existe en el código (nunca existió con ese nombre), la función real es `commitTopicKey()` en `src/agents/context-isolation.ts:383`.
+**Origen**: investigación de seguimiento a I.6 (Sprint 18) — la memoria del audit "premium dashboard" mencionaba `persistSubTaskMemory()` como posible código muerto; ese nombre no existe en el código (nunca existió con ese nombre), la función real es `commitTopicKey()` en `src/agents/context-isolation.ts:383`.
 
 **Lo que se verificó**: la cadena de llamadas SÍ está conectada de punta a punta —
 `src/run/scheduler.ts:173` llama `commitTopicKey(st, opts.projectId, result.result)` cuando un sub-task termina `completed`, y esto sí escribe en `memory_entries` vía `upsertMemory()`. No es código muerto en el sentido de "nunca se ejecuta", pero el condicional que lo dispara casi nunca se cumple en el uso real de OrchestOS:
@@ -360,7 +360,7 @@ Además, la decomposición en sub-tasks (`createPlan()` en `cli.ts:1095`) **no e
 
 ### 30. `task_class: ocr` como primera clase del pipeline de tareas formales
 
-**Origen**: evaluado en Mes 19 Bloque A/D (diseño en `docs/ocr-chat-design.md`) junto con el OCR
+**Origen**: evaluado en Sprint 19 Bloque A/D (diseño en `docs/ocr-chat-design.md`) junto con el OCR
 del chat, y diferido explícitamente por Carlos (2026-07-09) por falta de caso de uso real dentro
 de OrchestOS mismo.
 
@@ -369,7 +369,7 @@ chat) que recibe una imagen/PDF como input y el output del OCR entra al pipeline
 (texto → QA → SQLite), igual que cualquier otra tarea.
 
 **Motor recomendado si se implementa**: `tesseract.js` (Apache-2.0, sin GPU, sin cuenta externa —
-mismo elegido para el OCR del chat en Mes 19, ver `docs/ocr-chat-design.md`), no
+mismo elegido para el OCR del chat en Sprint 19, ver `docs/ocr-chat-design.md`), no
 `baidu/Unlimited-OCR` (requiere GPU propia o su Baidu Cloud API, descartada por fricción de
 registro).
 
@@ -389,7 +389,7 @@ como subprocesos, no vía API) — "se me abrieron los ojos", si alguien ya paga
 Claude/Codex, correrla vía su propio CLI es potencialmente más barata que quemar saldo de
 OpenRouter sin vuelta atrás.
 
-**Verificado — OrchestOS YA hace esto, parcialmente, desde Mes 17**: `engine: external`
+**Verificado — OrchestOS YA hace esto, parcialmente, desde Sprint 17**: `engine: external`
 (`src/run/executors/external.ts`) lanza `claude -p` como subproceso dentro del worktree, con
 detección honesta vía `findClaudeBinary()` (`Bun.which('claude')`, expuesto también en
 `GET /api/system/engines/external/availability`). El patrón de detección de Orca **ya existe en
@@ -543,16 +543,16 @@ papercut. Candidato v0.13+.
 
 ## 📚 Referencia — inspiración externa (NO es backlog)
 
-Repos analizados durante Mes 5-8, más adiciones puntuales cuando aparece un repo real relevante
-(ej. Hermes Agent, Mes 19). La mayoría de patrones ya están shipeados; esto queda como mapa de
-procedencia. El molde multi-proveedor (ex-#31) fue absorbido por PLAN.md § Mes 29 / CC.1.
+Repos analizados durante Sprint 5-8, más adiciones puntuales cuando aparece un repo real relevante
+(ej. Hermes Agent, Sprint 19). La mayoría de patrones ya están shipeados; esto queda como mapa de
+procedencia. El molde multi-proveedor (ex-#31) fue absorbido por PLAN.md § Sprint 29 / CC.1.
 
 ### Patrones extraídos → estado
 
 | Patrón | Repo | Estado |
 |--------|------|--------|
 | Middleware chain ordenado | DeerFlow | ✅ S31 |
-| Skills con tool policy (`allowed_tools`) | DeerFlow | ✅ S22.0.1 (sub-tareas del planner, `SubTask.allowed_tools`) — el camino paralelo de tareas simples (`tool-policy.ts`) resultó dead code y se borró en PLAN.md § Mes 26 / Bloque W (2026-08-08) |
+| Skills con tool policy (`allowed_tools`) | DeerFlow | ✅ S22.0.1 (sub-tareas del planner, `SubTask.allowed_tools`) — el camino paralelo de tareas simples (`tool-policy.ts`) resultó dead code y se borró en PLAN.md § Sprint 26 / Bloque W (2026-08-08) |
 | Memoria estructurada en capas | DeerFlow | ✅ parcial — S22.0.3 |
 | Subagent executor con status tracking | DeerFlow | ✅ S22 |
 | Instincts con confidence scoring | ECC | ✅ S33 |
@@ -601,7 +601,7 @@ procedencia. El molde multi-proveedor (ex-#31) fue absorbido por PLAN.md § Mes 
   condicional (Bloque AA). NO aplica: carpetas por feature, slash commands `/opsx:*`.
 - **Hermes Agent** (NousResearch, ~212K⭐) — https://github.com/NousResearch/hermes-agent ·
   agente conversacional Python, analizado 2026-07-09 (traído por Carlos, evaluando el OCR del
-  Chat de Mes 19). Aportó: el patrón de "helper tasks" — modelo dedicado opcional por función
+  Chat de Sprint 19). Aportó: el patrón de "helper tasks" — modelo dedicado opcional por función
   transversal (Vision/Web extract/Compression/Skills hub/Approval/MCP/Title gen/Curator, cada
   uno "auto · use main model" por defecto) — ver #31, mismo principio que ya usan los roles de
   `orchestos.config.yaml`, aplicado con más granularidad; y el molde genérico
@@ -713,7 +713,7 @@ header) — se agrupan acá porque llegaron en el mismo pedido, no porque compar
 
 **Qué ya existe (no reconstruir):** el explorer read-only (`GET /api/explorer/tree`+`/file`, un
 nivel por request, shipeado en el tramo "Nota de diseño — primer tramo cerrado" de arriba) y el
-visor de diff por run (Mes 21/Bloque C, `PLAN.md`) — ya calculan y sirven diffs reales
+visor de diff por run (Sprint 21/Bloque C, `PLAN.md`) — ya calculan y sirven diffs reales
 (`computeFileDiffs`, `parseUnifiedDiff()`), y el explorer ya lista archivos. Lo que falta es (a)
 separar modificados/untracked ahí (hoy el árbol no distingue estado git), (b) el tab strip nuevo
 en `main` (hoy es una sola pantalla por ruta, sin concepto de "tabs abiertos"), y (c) el visor de
@@ -725,7 +725,7 @@ por ruta" a "tab strip con estado de tabs abiertos"), más un motor de resaltado
 (librería, o extender lo que `marked`/highlight ya trae para el chat) y diferenciar
 modificado/untracked en el explorer (necesita `git status --porcelain` real, no solo el árbol de
 archivos). Candidato a diseño formal (`docs/`) antes de tocar código — mismo patrón que Bloque A
-del Mes 18 o Bloque C del Mes 21 (diseño primero, revisado con Carlos, luego implementación).
+del Sprint 18 o Bloque C del Sprint 21 (diseño primero, revisado con Carlos, luego implementación).
 
 ### 44. Cascada de selección Local → CLI → API — el CLI corre contra la cuenta ya pagada del usuario, no gasta saldo
 
@@ -741,7 +741,7 @@ cascada los conecta:**
 - **Local**: Ollama ya está soportado, pero únicamente como *proveedor de modelo* dentro del flujo
   API-style (`router/model-catalog.ts`, `dashboard/llm/clients.ts`) — se elige explícitamente un
   `model: "ollama/..."`, no se autodetecta como tramo preferente de una cascada.
-- **CLI**: `engine: external` (`src/run/executors/external.ts`, Mes 17) ya ejecuta un CLI de agente
+- **CLI**: `engine: external` (`src/run/executors/external.ts`, Sprint 17) ya ejecuta un CLI de agente
   como subproceso contra la cuenta del usuario — pero está **hardcodeado a un único binario**
   (`claude`, vía `findClaudeBinary()`) y la selección de engine es **siempre manual**
   (`--engine external` / composer del dashboard), nunca automática. Generalizar a más binarios
@@ -784,7 +784,7 @@ con la regla de decisión-explícita-siempre, es más diseño que código.
 ### 45. Visibilidad de gasto real — cuánto se gastó, si vino de API o CLI, cuota de LLM restante
 
 **Origen**: Carlos (2026-07-16), al confirmar que el chat puede crear+correr tareas solo sin pedir
-confirmación (Bloque D.7 de PLAN.md/Mes 22) — aclaró explícitamente: **no quiere un límite/tope de
+confirmación (Bloque D.7 de PLAN.md/Sprint 22) — aclaró explícitamente: **no quiere un límite/tope de
 gasto** (eso no se implementa), lo que sí necesita siempre es **saber cuánto se gastó**, distinguir
 si el gasto vino de **consumo de API medido en USD** o de una corrida por **CLI contra una cuenta
 ya pagada** (sin costo marginal medible, pero con cuota/tiempo de uso que si se agota bloquea), y
@@ -941,7 +941,7 @@ como eventos internos del harness, solo hace falta exponerlas.
 de raíz porque acopla los agentes como **sesiones de terminal pty reales** (el usuario ve la salida
 en vivo, puede escribirle) en vez de un subproceso headless que solo reporta al final — es un modelo
 de acople distinto, no solo una feature de UI encima de lo que ya existe. Relevante para el diseño
-de PLAN.md § Mes 22 Bloque G/G.3 ("chat conversacional en vivo vía CLI"): la decisión de diseño
+de PLAN.md § Sprint 22 Bloque G/G.3 ("chat conversacional en vivo vía CLI"): la decisión de diseño
 pendiente ahí es si conviene imitar el modelo pty-vivo de Orca o quedarse con el headless-batch más
 simple que ya usa `external.ts`.
 
@@ -951,7 +951,7 @@ simple que ya usa `external.ts`.
 chat (ChatGPT/Claude/etc.): cada burbuja de mensaje (usuario Y asistente) tiene un set de acciones
 que solo aparece con hover, en la esquina inferior derecha del mensaje.
 
-**Copiar y timestamp — implementados (Bloque Z, 2026-08-12)**: ver PLAN.md § Mes 27 Bloque Z.
+**Copiar y timestamp — implementados (Bloque Z, 2026-08-12)**: ver PLAN.md § Sprint 27 Bloque Z.
 `screens-core.js`/`screens.css` — botón copiar (por índice contra `chatHistory`, no por atributo
 HTML) + timestamp por mensaje, hover-reveal vía `:hover`/`:focus-within`, ambos lados (usuario y
 asistente).
@@ -1017,15 +1017,15 @@ posible nuevo artefacto por proyecto (`design.md`), un loop de iteración que ho
 QA con visión que hoy tampoco existe. Candidato de milestone propio, no un ítem suelto.
 
 **Orden invertido (decisión de Carlos, 2026-07-18) — corrige el punto (c) original de esta
-entrada**: la versión anterior de esta idea asumía que el veredicto de C.2 (Mes 20/22, "¿entrega
+entrada**: la versión anterior de esta idea asumía que el veredicto de C.2 (Sprint 20/22, "¿entrega
 premium?") debía cerrarse primero, y que el `design.md` sería el "siguiente escalón" solo si hacía
 falta. Carlos revirtió esa relación: esperar un veredicto premium **sin** que exista primero la
 configuración (`design.md` por niveles) fue un error — el motor no puede dar un resultado bueno o
 premium si no existe antes la config que define qué es cada nivel. Palanca **2** (arriba) pasa a
 ser **prerequisito**, no opción entre cuatro: Carlos va a construir él mismo un `design.md` con
 niveles explícitos — **normal / bueno / muy bueno / premium** — antes de que valga la pena volver
-a intentar el veredicto. **Bloque C** (Mes 20/22 — dashboard premium multi-archivo, C.1 corrida
-real + C.2 veredicto) se sacó de PLAN.md § Mes 22 y queda **gated en esta idea**: no se reabre
+a intentar el veredicto. **Bloque C** (Sprint 20/22 — dashboard premium multi-archivo, C.1 corrida
+real + C.2 veredicto) se sacó de PLAN.md § Sprint 22 y queda **gated en esta idea**: no se reabre
 hasta que el `design.md` por niveles exista. Las palancas 1/3/4 (referencia visual por tarea,
 iteración real, QA con visión) siguen sin decidir — el `design.md` es el primer paso, no todo el
 alcance de esta idea.
@@ -1075,10 +1075,10 @@ en el código (`>` → `>=`, invertir un `if`, borrar una llamada) y verifica si
 test sigue pasando con el código roto, ese test no sirve — "mutante sobreviviente". Mide **calidad
 del test**, no cantidad. Se puede tener 100% de coverage con tests que no aseveran nada.
 
-**Por qué encaja específicamente con este repo (no es consejo genérico)**: [Mes 22, línea 790](docs/done/mes-22.md)
+**Por qué encaja específicamente con este repo (no es consejo genérico)**: [Sprint 22, línea 790](docs/done/sprint-22.md)
 registra la lección "los gates 🔍 deben correr contra el sistema real, no solo `bun test` — los 3
-bugs de Mes 13 solo aparecieron verificando en vivo; **los mocks de los tests ya tenían la forma
-correcta y los escondían**". El patrón se repite en Mes 13, 14 y 22 ([Mes 22, línea 1059](docs/done/mes-22.md)).
+bugs de Sprint 13 solo aparecieron verificando en vivo; **los mocks de los tests ya tenían la forma
+correcta y los escondían**". El patrón se repite en Sprint 13, 14 y 22 ([Sprint 22, línea 1059](docs/done/sprint-22.md)).
 Mutation testing es exactamente la herramienta que detecta "tests que pasan sin importar lo que haga
 el código": si un módulo está mockeado de más, sus mutantes sobreviven y quedan listados. Convierte
 una lección que hoy se aprende a golpes en una métrica.

@@ -27,7 +27,7 @@ cuál pesa más.)_
 ## Estado de implementación
 
 La brújula sigue vigente, pero el producto todavía está en desarrollo activo. El plan actual es
-Mes 30: la fiabilidad del recorrido completo sigue abierta en R.6–R.8 y la convergencia de la
+Sprint 30: la fiabilidad del recorrido completo sigue abierta en R.6–R.8 y la convergencia de la
 experiencia Chat | Workspace sigue abierta en UI.8.1–UI.8.6. Esta visión no implica que el
 producto esté listo para presentarse como solución externa terminada.
 

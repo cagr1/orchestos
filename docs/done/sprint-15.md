@@ -1,4 +1,4 @@
-### MES 15 — Dashboard usable en pruebas reales: reset, diagnóstico, grafo accionable, memoria buscable
+### SPRINT 15 — Dashboard usable en pruebas reales: reset, diagnóstico, grafo accionable, memoria buscable
 
 Origen: dogfooding real (2026-07-01) tratando de correr `crear-web-local-comercial` desde cero. 2 bugs bloqueantes arreglados en el camino (fuera de plan): (1) `sandbox-policy.ts` — el check de "uncommitted changes" se disparaba antes de mirar `--sandbox=cwd`; (2) `harness.ts` — `maxTokens = contextWindow - promptTokens` sin margen causaba overflow real contra OpenRouter (fix: `SAFETY_MARGIN = 1024`). Además, 4 problemas de producto donde el motor ya soportaba lo necesario pero no estaba expuesto en dashboard/CLI.
 
@@ -24,13 +24,13 @@ Origen: dogfooding real (2026-07-01) tratando de correr `crear-web-local-comerci
 - **D0 — Diagnóstico de memoria**: el expand/collapse de las cards funcionaba correctamente (verificado en vivo con entry de 4 líneas). El "bug" percibido era que las 20 entries reales eran fixtures de test de una línea — nunca había nada que expandir. Cero fix de UI necesario; el problema real era la búsqueda (D).
 - **D — Memoria buscable**: `GET /api/memory?q=` con `JOIN memory_fts ... MATCH ? ORDER BY bm25(memory_fts)`, query sanitizado (`"${q.replace(/"/g,'""')}"*` — FTS5 rompe con `-`/`"` sin escapar). Buscador del dashboard conectado al endpoint (`App.fetchMemory(q)` con debounce). Chat: `SEARCH_MEMORY_TOOL` + `createToolRouter()` (router multi-tool por nombre — `ToolExecutor` era un único callback) en `tool-call.ts`, `executeSearchMemory` en `chat.ts` (mismo patrón/sanitización). Verificado end-to-end en vivo: entry sintética con `updated_at: 2020` (fuera del preview de 20 recientes) y marcador único — el chat real con `openai/gpt-4o-mini` disparó `search_memory` (visible en `toolCallsExecuted`) y devolvió el contenido exacto. Nota: el modelo default (deepseek) NO dispara tools — `supportsToolCalling` solo admite prefijos `anthropic/`/`openai/`/`google/gemini`; cae a chat plano (esperado, no bug).
 
-**Decisiones de diseño Mes 15**
+**Decisiones de diseño Sprint 15**
 - Regla de reuso cumplida: el Retry del Graph Runner (C) llama literalmente al endpoint de B2 — cero duplicación de lógica de retry.
-- `harness.ts`/`sandbox-policy.ts` intocados durante todo el mes (arreglados pre-plan, regla explícita) — la regla queda levantada al abrir Mes 16 (F1–F4 y G viven exactamente ahí).
-- Patrón de verificación con tarea desechable consolidado (B2.6/C.3): backup de `tasks.yaml`, check `exit 1` determinístico, diff vacío al final — reusable para F1.4 del Mes 16.
+- `harness.ts`/`sandbox-policy.ts` intocados durante todo el mes (arreglados pre-plan, regla explícita) — la regla queda levantada al abrir Sprint 16 (F1–F4 y G viven exactamente ahí).
+- Patrón de verificación con tarea desechable consolidado (B2.6/C.3): backup de `tasks.yaml`, check `exit 1` determinístico, diff vacío al final — reusable para F1.4 del Sprint 16.
 - Delegación con verificación reforzada: D.2 delegado a DeepSeek produjo un primer intento inválido (ruta con typo `Agentes/` + página HTML standalone en vez de conectar el buscador existente) — rechazado y re-especificado; D.4 llegó marcado `[x]` sin nota técnica y se verificó por grep antes de aceptar (el código sí existía). Ver [[feedback-verificar-progreso-delegado]].
 
-**Métrica Mes 15 — SÍ (2026-07-01)**
+**Métrica Sprint 15 — SÍ (2026-07-01)**
 Las 4 fricciones del dogfooding cerradas con superficie completa en dashboard + CLI: reset de datos en un click, motivo real del fallo visible en diagnose, retry con modelo alternativo desde el panel, graph runner con límites editables y retry por fila, memoria buscable por FTS en dashboard y chat. Todos los gates 🔍 verificados en vivo contra el dashboard real (no mocks). 521 tests · 0 fail · `tsc --noEmit` limpio.
 
 ---

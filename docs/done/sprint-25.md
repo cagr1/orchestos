@@ -1,4 +1,4 @@
-## MES 25 — Pendientes heredados de los cierres 22–24
+## SPRINT 25 — Pendientes heredados de los cierres 22–24
 
 Este mes conserva pendientes reales que no se cierran por arrastre documental (cada uno mantiene su procedencia y evidencia completa en [DONE.md](../../DONE.md)) **y, desde 2026-07-30, abre la ejecución del backlog canónico por esfuerzo de [IDEAS.md](../../IDEAS.md)** — el orden ahí es el único orden de ejecución, y al graduar una idea se elimina de IDEAS.md en el mismo commit (regla de flujo IDEAS→PLAN→DONE).
 
@@ -6,12 +6,12 @@ Este mes conserva pendientes reales que no se cierran por arrastre documental (c
 
 | Mes | Bloques | Estado |
 | --- | --- | --- |
-| Mes 22 / v0.13 | A–K | ✅ Cerrado formalmente, sin pendientes |
-| Mes 23 | L | ✅ Cerrado — L.5.7 (2026-07-30) y **L.6.2 (2026-08-02)**, sin pendientes |
-| Mes 24 | M | ✅ Cerrado formalmente, sin pendientes (resueltos 2026-07-30) |
-| Mes 25 | Pendientes heredados + N, O, P | ⏳ Todos los bloques cerrados (N, O, P — P.4 el 2026-08-06); falta la ceremonia formal de cierre de mes ([[feedback-orden-desarrollo]]) |
+| Sprint 22 / v0.13 | A–K | ✅ Cerrado formalmente, sin pendientes |
+| Sprint 23 | L | ✅ Cerrado — L.5.7 (2026-07-30) y **L.6.2 (2026-08-02)**, sin pendientes |
+| Sprint 24 | M | ✅ Cerrado formalmente, sin pendientes (resueltos 2026-07-30) |
+| Sprint 25 | Pendientes heredados + N, O, P | ⏳ Todos los bloques cerrados (N, O, P — P.4 el 2026-08-06); falta la ceremonia formal de cierre de mes ([[feedback-orden-desarrollo]]) |
 
-**Desglose del Mes 25 (2026-08-02)** — se agrega porque la tabla anterior enterraba una semana
+**Desglose del Sprint 25 (2026-08-02)** — se agrega porque la tabla anterior enterraba una semana
 entera de trabajo dentro de "Pendientes heredados" sin decir qué había adentro; Carlos reportó
 desorientación real por esto en la revisión del 2026-08-02.
 
@@ -28,9 +28,9 @@ hasta 2026-08-01 14:01; verde desde 2026-08-01 14:03, 6 pushes seguidos. El hook
 
 ### Pendientes explícitos
 
-- [x] **K.6.2-R7 — Endurecimiento de comportamientos críticos (cerrado 2026-07-30).** Carlos aceptó `51.76%` como baseline funcional de `qa.ts`, re-verificado por Claude corriendo `mutation:qa` en limpio: confirma que ningún sobreviviente altera lógica de veredicto. Historial completo: [DONE.md § Mes 22](../../DONE.md).
-- [x] **L.5.7 — Linaje versionado y rollback de migraciones (cerrado 2026-07-30).** L.5.7.1–L.5.7.7 estaban documentados y verificados; solo faltaba marcar el ítem contenedor. Historial completo: [DONE.md § Mes 23](../../DONE.md).
-- [x] **L.6.2 — Gate manual de seguridad (cerrado 2026-08-02).** Procedía de Mes 23 y llevaba 4 días abierto. **El bloqueo era del entorno de la sesión del 2026-07-29, no del producto**: aquella sesión no tenía navegador controlable y el dashboard daba `EADDRINUSE` en los puertos probados. En esta sesión levantó sin problema (`PORT=4311`) y hubo navegador real (Playwright).
+- [x] **K.6.2-R7 — Endurecimiento de comportamientos críticos (cerrado 2026-07-30).** Carlos aceptó `51.76%` como baseline funcional de `qa.ts`, re-verificado por Claude corriendo `mutation:qa` en limpio: confirma que ningún sobreviviente altera lógica de veredicto. Historial completo: [DONE.md § Sprint 22](../../DONE.md).
+- [x] **L.5.7 — Linaje versionado y rollback de migraciones (cerrado 2026-07-30).** L.5.7.1–L.5.7.7 estaban documentados y verificados; solo faltaba marcar el ítem contenedor. Historial completo: [DONE.md § Sprint 23](../../DONE.md).
+- [x] **L.6.2 — Gate manual de seguridad (cerrado 2026-08-02).** Procedía de Sprint 23 y llevaba 4 días abierto. **El bloqueo era del entorno de la sesión del 2026-07-29, no del producto**: aquella sesión no tenía navegador controlable y el dashboard daba `EADDRINUSE` en los puertos probados. En esta sesión levantó sin problema (`PORT=4311`) y hubo navegador real (Playwright).
   - **Revisión visual en navegador real** (no `route()`/`Request` simulados): home = Chat sin auto-redirect ([[feedback-home-siempre-chat]]), Project con sus 3 pestañas, Runs (45 runs / 41 done / 4 failed, filtros y detalle expandible con ENGINE+PROCESS), Graph Runner con el DAG real, advanced mode. Sin errores de consola ni fallos de render. Servidor bajado al terminar ([[feedback-siempre-cerrar-servidor]]).
   - **Exportar**: `GET /api/project/summary` real → HTTP 200, PDF válido de 2 páginas, `strings` sobre el binario no encuentra `sk-or-*`/`sk-ant-*`/`*_API_KEY`.
   - **Diagnosticar**: la propiedad de seguridad (redacción, añadida 2026-07-30) verificada por test — prueba el prompt exacto que sale al proveedor, más riguroso que una llamada en vivo.
@@ -48,7 +48,7 @@ hasta 2026-08-01 14:01; verde desde 2026-08-01 14:03, 6 pushes seguidos. El hook
 Primer ítem del backlog canónico de IDEAS.md (categoría **Mínimo**, graduado 2026-07-30). Origen:
 delta pendiente de [obra/superpowers](https://github.com/obra/superpowers) y
 [mattpocock/skills](https://github.com/mattpocock/skills) — el curador + pack "pro" ya está
-shipeado (Mes 11). El objetivo real no es "más contenido": es que una skill **se respete bajo
+shipeado (Sprint 11). El objetivo real no es "más contenido": es que una skill **se respete bajo
 presión** en vez de ignorarse cuando el agente encuentra una excusa para saltársela.
 
 **Corrección de alcance sobre IDEAS #1 (verificada en código, 2026-07-30):** la idea afirmaba
@@ -592,7 +592,7 @@ una — ya existe, es el DAG) y **enforcement** (cuáles no son negociables).
   `<select>` con "Ninguna" preseleccionada — el usuario elige o rechaza, nunca se resuelve el
   empate a ciegas ([[feedback-skill-autoselect-tiebreak]]). Cubre "sugerencia ambigua muestra
   opciones" y "usuario puede rechazar" sin tocar código, ya estaba correcto desde el Bloque D
-  (Mes 18).
+  (Sprint 18).
 
   **Prueba capstone — E2E real con vulnerabilidad de verdad, no simulada**: tarea
   `login-endpoint` ("SQL concatenada, credenciales hardcodeadas, sin input sanitizado") corrida de

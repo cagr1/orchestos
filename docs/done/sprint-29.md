@@ -1,4 +1,4 @@
-## MES 29 — Que "OrchestOS" deje de quedarle grande al sistema (abierto 2026-08-16)
+## SPRINT 29 — Que "OrchestOS" deje de quedarle grande al sistema (abierto 2026-08-16)
 
 **Eje, en palabras de Carlos**: *"para realmente poderlo llamar así debería poder abrir varios
 chats y elegir el CLI de mi gusto, así como lo estamos haciendo para este propio trabajo… al día
@@ -590,12 +590,12 @@ velocidad real hoy; fabricar el botón sin mecanismo atrás sería la misma clas
   de modelo; consola posterior a la recarga: 0 errores.
 ### CC.2 — Sesiones de chat reales: diseño cerrado (2026-08-18)
 
-**Regla de frontend para todo el resto del Mes 29 (decisión de Carlos, 2026-08-18):**
+**Regla de frontend para todo el resto del Sprint 29 (decisión de Carlos, 2026-08-18):**
 **NO se escribe UI nueva en JS vanilla.** Ni "mínima", ni "provisional", ni "para el gate".
-Toda superficie visual nueva se construye en el Mes 30 con React+shadcn. Textual de Carlos:
+Toda superficie visual nueva se construye en el Sprint 30 con React+shadcn. Textual de Carlos:
 *"YA NO RECOMENDAR vanilla, eso lo vamos a cambiar; insistir en lo mismo es caer en un loop"*.
 Consecuencia directa: **CC.2 y CC.3 son backend puro** (schema + endpoints + tests), y todo lo
-visual de sesiones/navegación son ítems del Mes 30 (`UI.6`, `UI.7`). Ver
+visual de sesiones/navegación son ítems del Sprint 30 (`UI.6`, `UI.7`). Ver
 [[feedback-no-reinventar-ui-usar-libreria]].
 
 **Verificación externa (2026-08-18, fuentes primarias)** — se investigó en vez de opinar, a pedido
@@ -620,7 +620,7 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
    prompt).
 3. **`project_id` NULLABLE.** *"No necesariamente trabajar en algo significa un proyecto de
    desarrollo, puede ser algo sencillo"* — ese es el chat "general". El schema lo soporta desde el
-   día uno para no rediseñarlo después. Qué más significa "general" se decide en el Mes 30.
+   día uno para no rediseñarlo después. Qué más significa "general" se decide en el Sprint 30.
 4. **Desaparece el botón "modo avanzado"** (`navModeBtn`, `app.js:2286-2337`, flag
    `localStorage['orchestos-mode']`). Lo reemplaza el toggle **Chat | Code**.
 5. **Grupo "Observabilidad"** en el sidebar, **en el lugar exacto donde estaba "modo avanzado"**:
@@ -690,7 +690,7 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
 
 - [x] **CC.3 — 🧠 Multi-proyecto real (BACKEND PURO).** Matar los 10 `resolve('.')` del dashboard;
   el proyecto activo es una selección del usuario, no el cwd donde se lanzó el server.
-  Absorbe `#35` y la deuda CC.0-D2. La UI de selección va en `UI.6` (Mes 30).
+  Absorbe `#35` y la deuda CC.0-D2. La UI de selección va en `UI.6` (Sprint 30).
   **Implementado (2026-08-18):** `GET /api/projects` expone el registro de proyectos y
   `src/dashboard/project-context.ts` resuelve una selección request-scoped mediante
   `X-Orchestos-Project-Id` (o `?project=`), acepta únicamente ids registrados y valida que el
@@ -713,7 +713,7 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
   registrado devolvió 404. La verificación usó endpoints reales, no mocks, y el fixture temporal
   fue enviado a la papelera al terminar.
 
-- [ ] **CC.4 — ABSORBIDO por el Mes 30 (2026-08-18).** "Colapsar la navegación" era un rediseño
+- [ ] **CC.4 — ABSORBIDO por el Sprint 30 (2026-08-18).** "Colapsar la navegación" era un rediseño
   de navegación en vanilla; ahora la navegación entera se reconstruye en React (`UI.3` + `UI.7`).
   El ex-BB.3 (unificar los dos selectores de Settings) viaja con él.
 
@@ -753,7 +753,7 @@ de Carlos (*"como lo están resolviendo aquí herramientas similares"*):
     `hello-a.txt`/`hello-b.txt` cada uno solo en su propio repo; `projects` con roots distintos.
   - `bunx tsc --noEmit` ✅; `bun test src/__tests__/graph-runner.test.ts` (21 pass) ✅;
     `bun test src/dashboard/__tests__/run-graph-api.test.ts` (8 pass) ✅.
-  El gate visual equivalente es `UI.7` en el Mes 30.
+  El gate visual equivalente es `UI.7` en el Sprint 30.
 
 - [x] **CC.1-D1 — 🧠 El chat abre codex/opencode, la frontera sigue siendo un flag real.**
   (2026-08-19) Carlos cuestionó el 422 de CC.1 durante el cierre de CC.5: no era un límite que
@@ -817,7 +817,7 @@ verificado: existe una sola DB en el sistema (`~/.orchestos/db.sqlite`), y los s
 **Hallazgo real, que vale más que la observación original:** *no existe una serie de tiempo del
 uso del harness.* Ni Carlos ni un LLM pueden responder "¿cuánto se ha ejercitado de verdad?" con
 datos, porque la instrumentación mide el chat y descarta justamente las corridas que importan.
-Es el mismo patrón que motivó el **Mes 15.F0** ("los instrumentos de medición deben decir la
+Es el mismo patrón que motivó el **Sprint 15.F0** ("los instrumentos de medición deben decir la
 verdad antes de tocar el motor"), reaparecido en otra capa. **No se corrige acá** (regla del Mes:
 la auditoría clasifica, no repara) — queda como deuda `CC.0-D6`.
 
@@ -835,7 +835,7 @@ habría medido un producto que no estaba.
 2. **El diferencial de OrchestOS es el harness de verificación, y sigue intacto.** Orca es un
    cockpit de terminales paralelas (agentes lado a lado + diff, **cero verificación**); Claude Code
    tiene permission modes, que no son un contrato de `output[]` + checks + QA. `enforceContract`,
-   `checks`, QA, ledger y spec-driven no existen en ninguna de las dos. Mes 17 ya demostró que
+   `checks`, QA, ledger y spec-driven no existen en ninguna de las dos. Sprint 17 ya demostró que
    funcionan sobre un motor que OrchestOS no controla.
 3. **La vara se movió a favor, no en contra.** Que los CLI agénticos hayan resuelto *ejecutar* mata
    a OrchestOS-como-ejecutor, pero hace más valioso a OrchestOS-como-harness: hay más agentes que
@@ -844,7 +844,7 @@ habría medido un producto que no estaba.
 4. **"Usable por personas comunes" no cambió, y los datos lo confirman.** 53 de 64 runs son chat
    (83%). Un no-dev no va a abrir `tasks.yaml` ni leer un `qa_verdict`. La forma que el propio uso
    está dictando es: **el chat es la puerta, el harness corre detrás sin que se vea.** Coherente con
-   todo lo decidido en CC.2 y en el Mes 30.
+   todo lo decidido en CC.2 y en el Sprint 30.
 
 - [x] **CC.0-D6 — ⚡ El uso real del harness no es medible.** Las corridas de verificación
   (BB.4, gates en vivo) usan `ORCHESTOS_HOME` temporal y no dejan filas en la DB principal, así que

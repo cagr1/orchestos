@@ -1,11 +1,11 @@
-# Ejecutor externo — diseño (Mes 17, Bloque A.1)
+# Ejecutor externo — diseño (Sprint 17, Bloque A.1)
 
 Tercera implementación de `ExecutorEngine` (`src/run/executors/types.ts`, G.1/G.2):
 en vez de generar archivos vía LLM directo (single-shot) o vía tool-loop propio
 (agéntico), delega la edición completa a un proceso externo (Claude Code
 headless) que corre dentro del worktree del sandbox. La capa de verificación
 (contrato + checks + evidencia + QA) no cambia una línea — es la tesis del mes
-(ver PLAN.md § MES 17).
+(ver PLAN.md § SPRINT 17).
 
 **No se toca código en este ítem.** B implementa sobre esta interface.
 
@@ -30,7 +30,7 @@ headless) que corre dentro del worktree del sandbox. La capa de verificación
 - `maxOutputTokensFor` / `calcCost` (`src/router/pricing.ts`) — catálogo de
   pricing existente; si el modelo no está en catálogo, el patrón ya establecido
   (F0.8) es reportar costo desconocido, nunca `$0` silencioso.
-- Baseline de comparación (G.5, [historial del Mes 16](done/mes-16.md)): tarea real — agregar una
+- Baseline de comparación (G.5, [historial del Sprint 16](done/sprint-16.md)): tarea real — agregar una
   línea de JSDoc a `src/dashboard/handlers/skills.ts` (419 líneas), mismo
   modelo en los 3 engines. single-shot: $0.0032, perfecto. Agéntico (post-fix):
   `tsc` limpio, sin truncar. D.1 corre la misma tarea con el ejecutor externo.

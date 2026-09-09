@@ -1,4 +1,4 @@
-# Executor Engine — diseño (Mes 16, Bloque G.1)
+# Executor Engine — diseño (Sprint 16, Bloque G.1)
 
 Diseño de la interface que desacopla la capa de verificación (contrato + checks +
 QA + evidencia) del ejecutor que genera los archivos. Hoy ambas cosas viven
@@ -11,7 +11,7 @@ ejecutor agéntico sobre esta interface.
 
 ## 0. Qué ya existe y se reusa (no se reinventa)
 
-- `runToolLoop()` / `callWithTools()` (`src/providers/tool-call.ts`, Mes 13) — loop
+- `runToolLoop()` / `callWithTools()` (`src/providers/tool-call.ts`, Sprint 13) — loop
   multi-turno de tool-calling probado en producción en el chat (`fetch_url`,
   `search_memory`). El ejecutor agéntico reusa esta función tal cual, no una
   reimplementación.

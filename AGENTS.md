@@ -70,12 +70,12 @@ SIEMPRE es `PLAN.md`. Antes de tocar código:
 ## Estado tomable
 
 La sección fechada “Qué está listo para tomar ahora (2026-07-30)” fue retirada el 2026-08-17 porque
-había quedado obsoleta mientras `PLAN.md` ya estaba en Mes 29. Desde ahora el estado se deriva en
+había quedado obsoleta mientras `PLAN.md` ya estaba en Sprint 29. Desde ahora el estado se deriva en
 cada preflight de los ítems abiertos de `PLAN.md`; nunca se duplica aquí un snapshot que pueda mentir.
 
 ## Estado activo: Bloques R, H y UI (2026-09-08)
 
-`PLAN.md` está en Mes 30. El Bloque R mantiene abiertos R.6–R.8; H mantiene H.10.2 abierto; y la
+`PLAN.md` está en Sprint 30. El Bloque R mantiene abiertos R.6–R.8; H mantiene H.10.2 abierto; y la
 dirección visual activa está en UI.8.1–UI.8.6. Leer el bloque completo en `PLAN.md` antes de
 agarrar un ítem: cada uno trae su gate y sus condiciones de parada propias.
 
@@ -165,7 +165,7 @@ malformada o con cardinalidad incorrecta debe fallar de forma segura; una respue
 sea un objeto también debe fallar de forma segura. No relajar esta regla para mejorar el mutation
 score.
 
-**Invariante roadmap** (Bloque M, Mes 24): `docs/roadmaps/` (universal → disciplina → lenguaje →
+**Invariante roadmap** (Bloque M, Sprint 24): `docs/roadmaps/` (universal → disciplina → lenguaje →
 project-profile) nunca marca `verified` sin un comando real ejecutado y su salida citada; sin
 evidencia, el estado correcto es `known` (conocimiento general) o `missing` (se buscó y no está)
 — nunca un `pass` implícito. `orchestos roadmap check` es determinista y evidence-based: cero

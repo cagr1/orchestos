@@ -1,4 +1,4 @@
-### MES 8 — Pipeline robusto + aprendizaje activo
+### SPRINT 8 — Pipeline robusto + aprendizaje activo
 
 **SEMANA 31 — Middleware chain (DeerFlow)**
 - S31.1 (🧠 Claude) `src/run/middleware.ts`: `MiddlewareFn<TCtx>`, `RunContext`, `MiddlewareChain`, `createChain()`, `createRunContext()`, `ENRICHMENT_MIDDLEWARE_ORDER` (10 slots). Scope: enrichment-only — la fase de ejecución (LLM → contract → QA → revert) permanece orquestada por harness — 2026-06-02
@@ -45,14 +45,14 @@
 - S36.7–S36.8 (⚡ DeepSeek) CLI `orchestos dashboard [--port 4242]`; HTML/JS estático en `src/dashboard/public/` — vanilla JS, sin bundler, sin dependencias externas — 2026-06-02
 - Validación: 4 vistas navegadas con datos reales · approve/reject instinct desde UI funciona · 369 tests · 0 fail — 2026-06-02
 
-**Decisiones de diseño Mes 8**
+**Decisiones de diseño Sprint 8**
 - Middleware chain scope: enrichment-only. La fase de ejecución (LLM → contract → checks → QA → revert → insertRun) es una máquina de estados con flujo de error complejo — moverla a middlewares oscurece sin beneficio. Los middlewares son los pasos de preparación que son independientes entre sí.
 - Instincts conviven con skills, no las reemplazan. Skills = comportamiento declarativo por dominio. Instincts = comportamientos atómicos granulares aprendidos. Ambos alimentan el system prompt.
 - Continuous learning: proposals nunca se auto-aplican. Confidence 0.6 + verified:false es el estado inicial. El humano decide siempre antes de que un instinct auto llegue al harness.
 - Dashboard: vanilla JS + Bun.serve, cero dependencias externas. Lee SQLite directamente — no hay capa de API adicional. `--port` configurable, sin auth (tool local).
 - Delegación Claude/DeepSeek documentada en PLAN.md: 🧠 para diseño de contratos y arquitectura, ⚡ para implementación especificada, 🔍 para gates de validación obligatorios.
 
-**Lista prohibida Mes 8** _(lo que NO se hizo — referencia histórica)_
+**Lista prohibida Sprint 8** _(lo que NO se hizo — referencia histórica)_
 - Onboarding adaptativo (wizard primera vez).
 - KuzuDB — sin evidencia de escala todavía.
 - Clasificador semántico para `needsClarify`.
@@ -60,7 +60,7 @@
 - autoskills registry.
 - Memoria en capas (DeerFlow) — SQLite + topic_key actual es suficiente.
 
-**Métrica Mes 8 — SÍ (2026-06-02)**
+**Métrica Sprint 8 — SÍ (2026-06-02)**
 369 tests · 0 fail. Harness refactorizado con middleware chain. Instincts con confidence activos en runs. Continuous learning cierra loop runs→instincts. Cost breakdown por sub-agente en `runs --detail`. Dashboard local sirve 4 vistas desde SQLite real.
 
 ---

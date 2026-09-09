@@ -1,4 +1,4 @@
-### MES 12 — Endurecimiento: red de seguridad antes de la autonomía
+### SPRINT 12 — Endurecimiento: red de seguridad antes de la autonomía
 
 Origen: auditoría de seguridad/testing/backend/frontend (2026-06-19) — calificación de entrada Seguridad B · Testing B+ · Backend A- · Frontend C+/B-. Eje: convertir la disciplina manual en garantías automáticas, hardening previo al runner de grafo autónomo (ver IDEAS.md § Largo plazo).
 
@@ -22,15 +22,15 @@ Origen: auditoría de seguridad/testing/backend/frontend (2026-06-19) — califi
 - D2 (⚡) Extracción ejecutada siguiendo D1 — 13 módulos nuevos (`http.ts`, `settings-store.ts`, `llm/clients.ts`, `prompts/curator.ts`, 9 handlers de dominio en `handlers/`), comportamiento idéntico — 2026-06-19
 - D3 (🔍) Gate re-verificado de forma independiente (sin confiar en el self-check de DeepSeek): `tsc --noEmit` limpio, 421 pass · 0 fail, lectura línea por línea de los 13 archivos contra el original — CSRF same-origin check, containment de `serveStatic`, `confirm:true` obligatorio en delete, rollback de API key en 401 y masking de keys, todos idénticos. `server.ts` quedó en 159 líneas (vs. 1727 original) — 2026-06-19
 
-**Decisiones de diseño Mes 12**
+**Decisiones de diseño Sprint 12**
 - El hardening (Bloques A-C) precede a cualquier autonomía — no se construye un runner que se conduce solo encima de un motor sin red de tests.
 - Los gates de seguridad (A3, C2) verifican que el test detecta la regresión real, no solo que "pasa" — mutación deliberada del guard, payload XSS real en vivo.
 - D1 es la única pieza con criterio arquitectural del mes (Claude); D2/D3 son ejecución mecánica y verificación, delegables.
 - `route()` se preserva como single entry point del routing tras el split — ningún test de integración necesitó reescritura.
 
-**Lista prohibida Mes 12** _(lo que NO se hizo — referencia histórica)_
-- Runner de grafo autónomo (el loop que se conduce solo) — deliberadamente fuera de alcance hasta que A-D cerraran. Candidato directo para Mes 13 (ver IDEAS.md § Largo plazo).
-- `brainstorming`/planning socrático, `verification-before-completion`, par `requesting/receiving-code-review`, endurecimiento Iron Law/Common Rationalizations/Red Flags — siguen en backlog desde Mes 11.
+**Lista prohibida Sprint 12** _(lo que NO se hizo — referencia histórica)_
+- Runner de grafo autónomo (el loop que se conduce solo) — deliberadamente fuera de alcance hasta que A-D cerraran. Candidato directo para Sprint 13 (ver IDEAS.md § Largo plazo).
+- `brainstorming`/planning socrático, `verification-before-completion`, par `requesting/receiving-code-review`, endurecimiento Iron Law/Common Rationalizations/Red Flags — siguen en backlog desde Sprint 11.
 - Micrófono / dictado en Chat — falta `STTProvider` abstraction.
 - Resolver imports relativos en Graph (lenguajes no-JS).
 - Clasificador semántico para `clarify`.
@@ -38,7 +38,7 @@ Origen: auditoría de seguridad/testing/backend/frontend (2026-06-19) — califi
 - KuzuDB — sin evidencia de escala.
 - autoskills registry — decisión de formato pendiente.
 
-**Métrica Mes 12 — SÍ (2026-06-19)**
+**Métrica Sprint 12 — SÍ (2026-06-19)**
 Motor crítico (`contract.ts` + `scheduler.ts`) con tests y gate de mutación confirmado contra regresión real. CI en GitHub Actions bloqueando PRs rotos (verificado en vivo, PR #2). Pre-commit hook con `tsc --noEmit`. XSS cerrado con payload real probado en el dashboard corriendo. `server.ts` partido de 1727 a 159 líneas en 13 módulos, re-verificado línea por línea sin cambios de comportamiento. 421 tests · 0 fail · tsc sin errores.
 
 ---

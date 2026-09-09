@@ -1,6 +1,6 @@
-### MES 21 / v0.12 — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
+### SPRINT 21 / v0.12 — Producto estable: cerrar papercuts, higiene y paridad antes de features grandes
 
-Origen: eje decidido por Carlos (2026-07-13). Con el motor probado end-to-end (Mes 20/C.1), el norte cambió de "¿puede el motor?" a "¿se siente terminado y confiable?". Regla dura del milestone: cero features nuevas en el motor — solo pulir lo que ya existe.
+Origen: eje decidido por Carlos (2026-07-13). Con el motor probado end-to-end (Sprint 20/C.1), el norte cambió de "¿puede el motor?" a "¿se siente terminado y confiable?". Regla dura del milestone: cero features nuevas en el motor — solo pulir lo que ya existe.
 
 | Bloque | Contenido | Estado |
 |---|---|---|
@@ -15,7 +15,7 @@ Origen: eje decidido por Carlos (2026-07-13). Con el motor probado end-to-end (M
 Componente reusable (`state.bulkSelected`, `wireBulkSelect()`, `renderBulkBar()`, `Modal.confirm()`) sobre `POST /api/<recurso>/bulk-delete` en las 5 tablas (runs/tasks/instincts/memory/specs). De paso, cerrado IDEAS #18 completo: los 9 `confirm()`/`alert()` nativos que quedaban en `public/` reemplazados por modales propios — cero diálogos nativos en el dashboard, verificado por grep. Verificado en vivo contra el dashboard real (borrado de tarea confirmado en disco, no solo en memoria).
 
 **Bloque B — Markdown en el Chat**
-`marked` v18.0.6 (MIT, UMD, sin build step) + sanitizador DOM propio inline (allow-list de tags, strip de `on*`/`javascript:`). Solo mensajes del asistente — el usuario sigue en texto plano. Chips clicables de `task_id` y modelo dentro de la respuesta (índice construido desde `state.tasks`/catálogo de modelos, longest-first, sin superficie de inyección — `data-*` vienen del state controlado, no del LLM). Hallazgo fuera de scope corregido en el camino (B.3): `state.chatDraft` sobrevive un re-render forzado (mismo patrón que `composeDraft`, Mes 20/C).
+`marked` v18.0.6 (MIT, UMD, sin build step) + sanitizador DOM propio inline (allow-list de tags, strip de `on*`/`javascript:`). Solo mensajes del asistente — el usuario sigue en texto plano. Chips clicables de `task_id` y modelo dentro de la respuesta (índice construido desde `state.tasks`/catálogo de modelos, longest-first, sin superficie de inyección — `data-*` vienen del state controlado, no del LLM). Hallazgo fuera de scope corregido en el camino (B.3): `state.chatDraft` sobrevive un re-render forzado (mismo patrón que `composeDraft`, Sprint 20/C).
 
 **Bloque C — Visor de diff por run**
 Diseño decidido: diff calculado por CONTENIDO (`beforeContent`+`contractResult.written` que el harness ya captura), no por `git diff` post-hoc — el worktree se destruye siempre al terminar un run del dashboard. Librería `diff` (jsdiff, MIT). `computeFileDiffs()` en `qa.ts`, columna `file_diffs` persistida, `parseUnifiedDiff()` en frontend con colapso a 15 líneas (nunca trunca datos). Verificado en vivo con una tarea disposable corrida de punta a punta vía CLI real, no seed manual.
@@ -32,7 +32,7 @@ Auditoría real (no asumida) de ~40 subcomandos de `cli.ts` contra `server.ts`/`
 
 **Hallazgos documentados, no resueltos en este milestone (backlog)**
 - IDEAS.md #40 — editor de Constitution sigue con auto-save silencioso por tecla (el scaffold de D.1.b resolvió el *contenido* inicial, no el auto-save en sí); Carlos pidió además revisar cuáles tabs del panel Project vale la pena conservar antes de invertir más ahí.
-- Mes 20/C.2 sigue pausado (dashboard premium multi-archivo) — candidato de pre-flight del próximo milestone.
+- Sprint 20/C.2 sigue pausado (dashboard premium multi-archivo) — candidato de pre-flight del próximo milestone.
 
 **Métrica v0.12 — SÍ (2026-07-14)**
 Higiene de datos (borrado masivo, cero diálogos nativos), Markdown+chips en el Chat, visor de diff por run, y paridad CLI↔dashboard auditada con 3 gaps no-dev reales cerrados y verificados independientemente. Cero features nuevas en el motor, disciplina del milestone respetada de punta a punta. 711 tests · 0 fail · `tsc --noEmit` limpio. Primer tag formal del proyecto: `v0.12`.

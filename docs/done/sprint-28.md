@@ -1,4 +1,4 @@
-## MES 28 — Backlog canónico, categoría Medio (abierto 2026-08-15, cerrado 2026-08-18)
+## SPRINT 28 — Backlog canónico, categoría Medio (abierto 2026-08-15, cerrado 2026-08-18)
 
 > **Backlog canónico PAUSADO desde 2026-08-16** (decisión de Carlos). Motivo medido, no opinión:
 > 487 commits construyendo el sistema vs. **46 runs reales** en toda su historia ($1.58 total), y
@@ -76,12 +76,12 @@ general:
   de tooling del host (`.impeccable/`, `.claude/`, `.codex/`, `.opencode/`, `.cursor/`,
   `.aider/`, `.DS_Store`) — **salvo que la tarea los declare explícitamente**, en cuyo caso se
   respetan. No es un filtro ciego: una tarea que de verdad quiera editar `.claude/settings.json`
-  sigue pudiendo. Mismo criterio que el pathspec `':!node_modules'` de T (Mes 26): no es output
+  sigue pudiendo. Mismo criterio que el pathspec `':!node_modules'` de T (Sprint 26): no es output
   del engine, es ruido del entorno. Aplicado a los 3 engines CLI (comparten el módulo).
   **Gate en vivo**: la MISMA corrida que fallaba con `contract violation:
   .impeccable/hook.cache.json` ahora da ✅ QA pass, en un repo **sin** el workaround de
   `.gitignore` (18.6s). 2 tests nuevos (8 pass en `sandbox-node-modules.test.ts`).
-- [x] **BB.3 — ABSORBIDO en Mes 29 (2026-08-16).** Unificar los dos selectores de Settings no
+- [x] **BB.3 — ABSORBIDO en Sprint 29 (2026-08-16).** Unificar los dos selectores de Settings no
   tiene sentido aislado si la navegación completa se rediseña — pasa a ser parte de CC.4.
   Decisión de Carlos: *"si nos ponemos a arreglar uno a uno ahora no vamos a aterrizar"*.
 - [x] **BB.6 — 🧠 (re-clasificado desde ⚡) El costo de `codex` es ficticio.** (2026-08-18)
@@ -174,7 +174,7 @@ por-tarea — no sirve como mecanismo de "esta tarea en particular es compleja".
 **2 decisiones de diseño resueltas con Carlos (2026-08-15), no asumidas**:
 1. **Disparador de "compleja"**: manual, flag `--design` en `spec create` — no un clasificador
    heurístico. Mismo criterio que ya aplicó el saltar `#4` (clasificador semántico para `clarify`)
-   este Mes 27: sin evidencia de que un heurístico automático acierte, la decisión explícita del
+   este Sprint 27: sin evidencia de que un heurístico automático acierte, la decisión explícita del
    humano es lo único honesto.
 2. **Gate de aprobación**: paso separado `spec approve-design <id>`, mismo patrón de dos momentos
    de revisión que el gate de `clarify: pending` — `spec approve` falla si `design: pending`.
@@ -230,13 +230,13 @@ ausente = comportamiento actual).
   de confirmación real, checkbox del modal "Nueva Spec" presente y correctamente etiquetado.
   Servidor bajado al terminar. `bun run test:coverage`: 1138 pass · 0 fail.
 
-**Mes 28 cierra 11/11 ítems del bloque BB+AA.** El eje "categoría Medio completa" NO se cumplió a
+**Sprint 28 cierra 11/11 ítems del bloque BB+AA.** El eje "categoría Medio completa" NO se cumplió a
 propósito — decisión explícita de Carlos de ir idea por idea, no todas las de una categoría a la
 vez; el resto de Medio sigue vivo en IDEAS.md. Deuda real que sí quedó abierta y se resolvió
 dentro del propio Mes: BB.6 (costo ficticio de `codex`), diagnosticada el 2026-08-16 y cerrada el
 2026-08-18 tras verificar contra el binario real que la opción de leer el modelo del stream era
 inviable. Ver también la nota de estado ["¿se está perdiendo la esencia?"](../../PLAN.md) escrita el
-mismo día en PLAN.md § Mes 29, con los números reales de uso del harness (515 commits / 64 runs /
+mismo día en PLAN.md § Sprint 29, con los números reales de uso del harness (515 commits / 64 runs /
 53 de ellos chat) — quedó como deuda `CC.0-D6` (el uso real del harness no es medible: los gates
 en vivo usan `ORCHESTOS_HOME` temporal y no dejan evidencia en la DB principal).
 

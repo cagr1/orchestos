@@ -1,4 +1,4 @@
-### MES 11 — OrchestOS como experto: autoría de skills con curador
+### SPRINT 11 — OrchestOS como experto: autoría de skills con curador
 
 **BLOQUE A — API backend de skills**
 - A1 (⚡) `GET /api/skills` — lee `skills/*.yaml`, valida con `validateSkill()`, devuelve lista — 2026-06-09
@@ -56,16 +56,16 @@
 - I3 (⚡) 402 tests · 0 fail — incluye fix de mock incompleto en `diagnose.test.ts` que rompía `saveTasks` al cargar `server.ts` — 2026-06-10
 - I4 (🔍) Gate final: dashboard up (`/` 200), `GET /api/skills/pro` 200 (8 skills), export 200 con `Content-Disposition: attachment`, `skill curate` contra dashboard real produjo YAML válido sin `--save`, servidor detenido sin artefactos sueltos, tsc sin errores — 2026-06-10
 
-**Decisiones de diseño Mes 11**
+**Decisiones de diseño Sprint 11**
 - `SkillDef` YAML propio sigue siendo la fuente de verdad — agentskills.io es puerto de entrada/salida en el borde, nunca formato central.
 - Curador único con tres puertas (escribir/importar/exportar) — un solo pipeline de normalización a `SkillDef`, no tres distintos.
 - Pack "pro" vive en `skills/pro/` (no `skills/`) para no colisionar con las skills del usuario; `listSkillFiles()` no recorre subdirectorios.
 - `description`/`when_to_use` como condiciones de disparo ("Use when…"), nunca workflow — disciplina heredada de superpowers/mattpocock.
 - Curador con hasta 2 reintentos antes de fallar — balance entre robustez y costo de LLM calls.
 
-**Lista prohibida Mes 11** _(lo que NO se hizo — referencia histórica)_
+**Lista prohibida Sprint 11** _(lo que NO se hizo — referencia histórica)_
 - Endurecimiento "Iron Law / Common Rationalizations / Red Flags" en skills existentes — espera evidencia de uso del pack pro.
-- `brainstorming`/planning socrático (superpowers `writing-plans` + mattpocock `grill-me`) — candidato fuerte para Mes 12.
+- `brainstorming`/planning socrático (superpowers `writing-plans` + mattpocock `grill-me`) — candidato fuerte para Sprint 12.
 - `verification-before-completion` y par `requesting/receiving-code-review` — quedan en backlog.
 - Micrófono / dictado en Chat — falta `STTProvider` abstraction.
 - Resolver imports relativos en Graph (lenguajes no-JS).
@@ -74,7 +74,7 @@
 - KuzuDB — sin evidencia de escala.
 - autoskills registry — decisión de formato pendiente.
 
-**Métrica Mes 11 — SÍ (2026-06-10)**
+**Métrica Sprint 11 — SÍ (2026-06-10)**
 Pantalla Skills completa en el dashboard (galería + crear + importar + exportar). Curador LLM (`/api/skills/curate`) normaliza lenguaje natural a `SkillDef` válido con retry — 5/5 descripciones de prueba útiles sin editar. Tres puertas operativas: escribir (curador + preview), importar (URL/YAML + normalización + warnings), exportar (download/copiar con `Content-Disposition`). Pack "pro" de 8 skills de ingeniería en `skills/pro/`, importables con un click, 8/8 validados y probados. CLI `skill curate`/`skill import` con paridad del dashboard. 402 tests · 0 fail · tsc sin errores.
 
 ---

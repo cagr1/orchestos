@@ -1,4 +1,4 @@
-# Diseño — split de `src/dashboard/server.ts` (Mes 12, Bloque D)
+# Diseño — split de `src/dashboard/server.ts` (Sprint 12, Bloque D)
 
 `server.ts` son 1727 líneas: routing + handlers de 10 dominios de API + helpers de infraestructura
 + prompts del curador, todo en un solo archivo. Este documento define el mapa de módulos **antes**

@@ -1,15 +1,15 @@
-## MES 22 (v0.13) — Que OrchestOS entregue de verdad un producto premium: corregir primero
+## SPRINT 22 (v0.13) — Que OrchestOS entregue de verdad un producto premium: corregir primero
 
 **Tabla de estado del proyecto al cierre (2026-07-29)**
 
 | Mes | Alcance | Estado |
 | --- | --- | --- |
-| Mes 22 / v0.13 | Bloques A–K | ✅ Cerrado formalmente, sin pendientes |
-| Mes 23 | Bloque L | ✅ Cerrado formalmente; L.5.7 y L.6.2 heredados en Mes 25 |
-| Mes 24 | Bloque M | ✅ Cerrado formalmente; dos límites de roadmap pendientes de decisión en Mes 25 |
+| Sprint 22 / v0.13 | Bloques A–K | ✅ Cerrado formalmente, sin pendientes |
+| Sprint 23 | Bloque L | ✅ Cerrado formalmente; L.5.7 y L.6.2 heredados en Sprint 25 |
+| Sprint 24 | Bloque M | ✅ Cerrado formalmente; dos límites de roadmap pendientes de decisión en Sprint 25 |
 
 **Eje corregido por Carlos (2026-07-18, reemplaza el eje original de 2026-07-15):** esperar un
-veredicto premium (Bloque C / Mes 20 C.2) fue prematuro — para que el motor entregue algo bueno o
+veredicto premium (Bloque C / Sprint 20 C.2) fue prematuro — para que el motor entregue algo bueno o
 premium tiene que existir primero **la configuración** (`design.md` por niveles: normal/bueno/muy
 bueno/premium, trabajo que Carlos hace él mismo, fuera de PLAN.md). Sin eso, correr la corrida cara
 solo mediría lo que ya se sabe (E.11: el "AI slop" es falta de contexto de diseño, no bug del
@@ -60,7 +60,7 @@ el mismo modo de fallo que pausó C.2.
 - [x] **A.5 — ⚡ (excepción: Claude implementa por orden explícita de Carlos, 2026-07-16)**
   #36: `defaultChecksFor` ahora valida sintaxis de JS embebido en `.html` y standalone `.js`
   vía `node --check` sobre el código extraído. Cierra el gap real que dejó pasar el bug de
-  Mes 20/C.1 (`:` en vez de `+` en `sortIcon()` dentro de un `<script>` inline). Detalle y
+  Sprint 20/C.1 (`:` en vez de `+` en `sortIcon()` dentro de un `<script>` inline). Detalle y
   evidencia en [DONE.md § A.5](../../DONE.md).
   Módulo nuevo: [src/run/html-script-check.ts](../../src/run/html-script-check.ts) — extractor de
   `<script>` (whitelist de `type=` JS para evitar falsos positivos sobre JSON/templates), wires
@@ -160,8 +160,8 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   (D.5/D.7) mueve la rama base mientras el worktree intenta hacer `--ff-only` merge de vuelta —
   condición de carrera real entre nuestro propio auto-commit y el merge-back del sandbox. El fix de
   hoy hace el fallo DIAGNOSTICABLE (y no gastó dinero de más), pero no evita que vuelva a pasar.
-  750 tests · 0 fail (incluye ajuste de `chat-read-project-tools.test.ts`: verificaba "MES 18" en
-  `read_plan`, quedó fuera del cap de 25k al crecer PLAN.md hoy — ahora verifica "MES 22", la
+  750 tests · 0 fail (incluye ajuste de `chat-read-project-tools.test.ts`: verificaba "SPRINT 18" en
+  `read_plan`, quedó fuera del cap de 25k al crecer PLAN.md hoy — ahora verifica "SPRINT 22", la
   sección vigente). `tsc` limpio.
 
 - [x] **E.4 — 🧠 (2026-07-16)** Caso límite real de E.1, NO una regresión: al reintentar el chat
@@ -359,7 +359,7 @@ grande en varias llamadas) es un ítem aparte → IDEAS #47.
   pasó. Dos bugs apilados en `src/dashboard/handlers/chat.ts`:
   1. `classifyTaskIntent()` (la señal semántica de la que depende D.7 para auto-crear la tarea)
      se saltaba por completo una vez `rawHistory.length + 1 >= 3` — ese atajo era correcto para
-     decidir si mostrar la barra sugerida (su propósito original, J.1/Mes 18), pero D.7 (agregado
+     decidir si mostrar la barra sugerida (su propósito original, J.1/Sprint 18), pero D.7 (agregado
      después) reusó la misma variable para decidir si auto-ejecutar. En una conversación larga
      (la de Carlos ya llevaba varios mensajes), `taskSuggestion` quedaba `null` PARA SIEMPRE →
      `autoTask` nunca se intentaba.
@@ -497,7 +497,7 @@ le conviene trabajar —
   ```markdown
   ## 2026-07-18 14:32 America/Guayaquil — claude-sonnet-5
 
-  **Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Mes 22 Bloque E)
+  **Regla tocada**: [[feedback-context-no-max-tokens]] (PLAN.md § Sprint 22 Bloque E)
   **Clasificación**: REGRESIÓN
   **Por qué**: harness.ts volvió a clampear max_tokens al catálogo (8192 fijo) en vez de
   derivar de contextWindow−prompt. No fue una decisión consciente — se reintrodujo el patrón
@@ -1542,9 +1542,9 @@ tiene 3 decisiones de diseño sin resolver; si sale mal diseñado, sale mal el C
 
 ---
 
-### MES 22 / v0.13 — Que OrchestOS entregue de verdad un producto premium: cerrar C.2 (parcial)
+### SPRINT 22 / v0.13 — Que OrchestOS entregue de verdad un producto premium: cerrar C.2 (parcial)
 
-Origen: Carlos (2026-07-15) reabrió la pregunta original de Mes 20 — *"¿puede OrchestOS entregar un producto premium?"* — y puso el eje en **entregar primero**, las modificaciones de UI (P1: #43/#40/#36/#27/#14) explícitamente pospuestas hasta después de C.2. Prerequisitos duros para la corrida C.2 (Bloque C): #32 resuelto + decisión de modelo de Carlos.
+Origen: Carlos (2026-07-15) reabrió la pregunta original de Sprint 20 — *"¿puede OrchestOS entregar un producto premium?"* — y puso el eje en **entregar primero**, las modificaciones de UI (P1: #43/#40/#36/#27/#14) explícitamente pospuestas hasta después de C.2. Prerequisitos duros para la corrida C.2 (Bloque C): #32 resuelto + decisión de modelo de Carlos.
 
 | Bloque | Contenido | Estado |
 |---|---|---|
@@ -1560,7 +1560,7 @@ Origen: Carlos (2026-07-15) reabrió la pregunta original de Mes 20 — *"¿pued
 **Bloque A.5 — `defaultChecksFor` valida sintaxis JS embebida (2026-07-16)**
 IDEAS #36, etiquetado ⚡ en PLAN.md (DeepSeek-implementa). Implementado por **Claude por orden explícita de Carlos en el turno de A.4** — quedó registrado como excepción en el commit del propio ítem y al cierre de este mes, **no escala como precedente**. Sin la excepción, A.5 se habría delegado a DeepSeek (regla de scope-lock del PLAN.md § "Regla de alcance").
 
-Bug original que cierra (Mes 20/C.1, 2026-07-13): el archivo `.html` generado tenía un error de sintaxis JS real (`:` suelto donde iba `+` en una concatenación dentro de `sortIcon()`) que rompía el script entero. Ni `tsc` (no cubre `.html`/`.js`) ni el juez QA-LLM lo detectaron — solo abriendo la página de verdad en el navegador.
+Bug original que cierra (Sprint 20/C.1, 2026-07-13): el archivo `.html` generado tenía un error de sintaxis JS real (`:` suelto donde iba `+` en una concatenación dentro de `sortIcon()`) que rompía el script entero. Ni `tsc` (no cubre `.html`/`.js`) ni el juez QA-LLM lo detectaron — solo abriendo la página de verdad en el navegador.
 
 **Diseño**: 
 - **Módulo nativo nuevo** [`src/run/html-script-check.ts`](../../src/run/html-script-check.ts) (sin deps) con tres building blocks: `extractInlineScripts(html)` devuelve `{code, startLine, endLine}[]` filtrando por whitelist de `type=` JS ejecutable (excluye `application/json`/`text/template` para evitar falsos positivos de `node --check`), `jsCheckTempPath(sourceAbsPath)` genera path determinístico en `os.tmpdir()` (sha1 del abs-path), `jsSyntaxCheckForJsFile` y `jsSyntaxCheckForHtmlFile` construyen los `Check` con `node --check <path>`.

@@ -12,7 +12,7 @@ retry_count: 0
 checks:
   - cmd: bun run verify-assertions.ts
   - cmd: bun test ./src/sum.case.ts
-origin: docs/done/mes-22.md
+origin: docs/done/sprint-22.md
 reference_solution:
   src/sum.case.ts: |
     import { expect, test } from 'bun:test'

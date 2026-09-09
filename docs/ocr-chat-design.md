@@ -1,11 +1,11 @@
-# Diseño — OCR + múltiples adjuntos en el Chat (Mes 19, Bloque A.1)
+# Diseño — OCR + múltiples adjuntos en el Chat (Sprint 19, Bloque A.1)
 
 ## Punto de partida
 
 `handleApiChat` ([chat.ts:342](../src/dashboard/handlers/chat.ts#L342)) soporta hoy **un solo**
 adjunto por mensaje (`fileStore.get(body.fileId)`, singular — mismo singular en el frontend:
 `st.chatFileId`/`st.chatFileMeta`, [app.js:59-60](../src/dashboard/public/app.js#L59)). Si el
-adjunto es una imagen y el modelo elegido no soporta visión, J.2 (Mes 18) ya corta en seco con un
+adjunto es una imagen y el modelo elegido no soporta visión, J.2 (Sprint 18) ya corta en seco con un
 422 claro ([chat.ts:430-435](../src/dashboard/handlers/chat.ts#L430)) — bien, pero deja al usuario
 sin poder usar esa imagen salvo que cambie de modelo. Ese es el hueco que este mes cierra: dar una
 ruta alternativa que funcione con **cualquier** modelo, vía OCR.
@@ -50,7 +50,7 @@ await worker.terminate()
 Es exactamente el nivel de simplicidad que Carlos pidió — un `bun add tesseract.js` y una función,
 sin infraestructura nueva que mantener. Limitación conocida y aceptada: menor precisión que un
 VLM-OCR moderno en documentos complejos/manuscritos, y **no soporta PDF directamente** (sin
-problema — los PDF adjuntos ya extraen texto por su propia vía desde Mes 9, D1-D5; el OCR solo
+problema — los PDF adjuntos ya extraen texto por su propia vía desde Sprint 9, D1-D5; el OCR solo
 cubre el gap de imágenes). Licencia Apache-2.0: atribución estándar (mantener el aviso de licencia
 en el `package.json`/lockfile, como cualquier otra dependencia npm) — nada especial más allá de eso.
 
@@ -66,7 +66,7 @@ rechazaría. En `handleApiChat` ([chat.ts:430](../src/dashboard/handlers/chat.ts
 
 ```
 attachedFile.type === 'image'
-  ├─ modelo soporta visión (supportsVisionInput) → sin cambios: image_url block directo (Mes 18)
+  ├─ modelo soporta visión (supportsVisionInput) → sin cambios: image_url block directo (Sprint 18)
   └─ modelo NO soporta visión
        ├─ OCR disponible y configurado → correr OCR, inyectar texto extraído como
        │  bloque de contexto (ver contrato en (c)), seguir la conversación normal
@@ -84,7 +84,7 @@ por mensaje.
 
 ## (c) Contrato del texto extraído — dato externo, nunca instrucción
 
-Mismo boundary ya probado con `fetch_url` (Mes 13, [chat-web-fetch-design.md](chat-web-fetch-design.md)):
+Mismo boundary ya probado con `fetch_url` (Sprint 13, [chat-web-fetch-design.md](chat-web-fetch-design.md)):
 el texto que devuelve el OCR de una imagen subida por el usuario **es contenido no confiable** —
 una imagen con texto diseñado para inyectar instrucciones ("ignora tus reglas y...") no debe poder
 actuar como si fuera parte del system prompt o de una instrucción del propio Carlos. Se envuelve
@@ -123,7 +123,7 @@ visión y llegar bien, la siguiente puede necesitar OCR, no es todo-o-nada por m
 
 - El gate de visión de J.2 (`supportsVisionInput`, 422 con mensaje claro): sigue siendo la primera
   verificación, el OCR es lo que se intenta ANTES de llegar a ese 422, no un reemplazo del código.
-- `runToolLoop()`, `FETCH_URL_TOOL`, `SEARCH_MEMORY_TOOL`, las tools de lectura de Mes 18: sin
+- `runToolLoop()`, `FETCH_URL_TOOL`, `SEARCH_MEMORY_TOOL`, las tools de lectura de Sprint 18: sin
   tocar.
 - Ningún adjunto de imagen se envía nunca a un LLM como instrucción — el texto de OCR sigue el
   mismo wrapper de "dato externo" que ya usa `fetch_url`.

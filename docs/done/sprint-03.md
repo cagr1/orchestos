@@ -1,4 +1,4 @@
-### MES 3 — Reliability + Spec QA
+### SPRINT 3 — Reliability + Spec QA
 
 **SEMANA 9 — Extracción de harness**
 - S9.1-S9.2 `src/run/harness.ts`: HarnessOpts, TaskResult, runTask() — cli.ts solo orquesta — 2026-05-27
@@ -44,7 +44,7 @@
 - S13.4 summary-pdf.ts: columna executor + contador checks — 2026-05-27
 - S13.5 README: sección ## Reliability features, ejemplo add-payment-service, ## tasks.yaml full reference — 2026-05-27
 - S13.6 Validación: --explain correcto (0 tokens), check-fail path verificado, auto-suggest confirmado — 2026-05-27
-- S13.7 Commit final Mes 3 — 2026-05-27
+- S13.7 Commit final Sprint 3 — 2026-05-27
 
 **SEMANA 14 — Skills con estructura real**
 - S14.1 Schema YAML extendido: SkillExample + campos opcionales (when_to_use, inputs_required, verifiers, anti_patterns, examples) — 2026-05-27
@@ -54,23 +54,23 @@
 - S14.9 Validación: skill list (8), skill build (24 archivos), retrocompatibilidad, typecheck — 2026-05-27
 - S14.10 Commit `efb95d5` — 2026-05-27
 
-**Decisiones de diseño Mes 3**
+**Decisiones de diseño Sprint 3**
 - Checks ANTES del QA — si TS no compila, no tiene sentido el LLM de QA.
 - Checks usan exit code, no parseo de stdout — wrapper script si necesitas stdout.
-- Graph v0 con regex, no tree-sitter — schema ya soporta más kinds para Mes 4.
+- Graph v0 con regex, no tree-sitter — schema ya soporta más kinds para Sprint 4.
 - Harness nunca lanza — toda excepción → `TaskResult{status:'failed'}`.
 - Codex executor detrás de flag `OS_ENABLE_EXEC_CODEX=1` hasta evidencia real.
 - legacy `orchestos run` no migrado al harness — flujo distinto, se depreca si nadie lo usa.
-- Two-tier LLM como convención (⚡/🧠), no en tasks.yaml — hasta Mes 4 con evidencia.
+- Two-tier LLM como convención (⚡/🧠), no en tasks.yaml — hasta Sprint 4 con evidencia.
 
-**Lista prohibida Mes 3** _(lo que NO se hizo — referencia histórica)_
+**Lista prohibida Sprint 3** _(lo que NO se hizo — referencia histórica)_
 - Symbols/calls en el graph — solo imports.
 - Paralelismo entre tareas — scheduler sigue secuencial.
 - `qa_executor` separado del `executor`.
 - Worktrees reales (`git worktree add`).
 - Reescribir el scheduler a archivo separado.
 - `executor` como string libre — enum cerrado.
-- ~~`planner_model` / `executor_model` en tasks.yaml~~ → **implementado en S15 (Mes 4)**.
+- ~~`planner_model` / `executor_model` en tasks.yaml~~ → **implementado en S15 (Sprint 4)**.
 - Más de 5 skills en S14 — calidad sobre cantidad.
 
 ---

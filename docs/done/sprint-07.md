@@ -1,4 +1,4 @@
-### MES 7 — Observabilidad activa + calidad del pipeline
+### SPRINT 7 — Observabilidad activa + calidad del pipeline
 
 **SEMANA 27 — Context monitor wired en executor**
 - S27.1–S27.3 `context_warnings_json TEXT` en tabla `runs` vía `safeAddColumn`. `InsertRunRecord` y `RunRecord` actualizados. Harness colecciona `contextWarnings[]` localmente y los persiste en todos los paths de `insertRun` — 2026-06-02
@@ -31,21 +31,21 @@
 - S30.5 `src/__tests__/patterns.test.ts`: 16 tests (groupRunsByOutcome: empty, pass/fail/blocked/parse_error, model tracking, cost/elapsed averages, mixed; parsePatternSuggestions: valid JSON, markdown fences, empty, skip invalid items, default confidence, non-array) — 2026-06-02
 - Validación: typecheck limpio · 256 tests · 0 fail — 2026-06-02
 
-**Decisiones de diseño Mes 7**
+**Decisiones de diseño Sprint 7**
 - Context monitor: advisorio puro — nunca bloquea, solo persiste. Valor en observabilidad post-hoc.
 - WHEN/THEN: lint no bloquea `spec approve` — opcional, informativo. Pressure sin enforcement duro.
 - Archive: mueve archivo (no marca en DB) — specs activos/archivados son carpetas distintas.
 - `runs analyze`: hook es best-effort con catch silencioso — nunca puede romper `task run`.
 - Pattern analysis solo si `qaFail > 1` — no molesta en proyectos sin historial de fallos.
 
-**Lista prohibida Mes 7** _(lo que NO se hizo — referencia histórica)_
+**Lista prohibida Sprint 7** _(lo que NO se hizo — referencia histórica)_
 - Dashboard web, UI gráfica de ningún tipo.
 - Middleware chain ordenado (DeerFlow) — complejidad no justificada aún.
-- Instincts / confidence scoring (ECC) — Mes 8+.
+- Instincts / confidence scoring (ECC) — Sprint 8+.
 - Continuous learning v2 (hooks → instincts) — necesita más historial real primero.
 - KuzuDB — sin evidencia de escala.
 
-**Métrica Mes 7 — SÍ (2026-06-02)**
+**Métrica Sprint 7 — SÍ (2026-06-02)**
 256 tests · 0 fail. `orchestos spec lint` detecta criterios sin WHEN/THEN en proyectos reales. `runs --analyze` pide Haiku y devuelve sugerencias estructuradas. Context monitor visible en `runs --detail`.
 
 ---

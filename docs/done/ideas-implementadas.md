@@ -1,7 +1,7 @@
 ## Sección 2 — Ideas implementadas (provenientes de IDEAS.md)
 
 ### planner_model / executor_model por tarea — S15 (2026-05-27)
-Graduado de "lista prohibida Mes 3" a implementado.
+Graduado de "lista prohibida Sprint 3" a implementado.
 `Task.planner_model?` y `Task.executor_model?` como override por tarea en tasks.yaml.
 Gana sobre `orchestos.config.yaml`. Harness los respeta vía `autoRoute`.
 
@@ -76,7 +76,7 @@ Primera suite de tests automatizados del proyecto.
 `clarify.test.ts`: needsClarify, clarifyReason heurística v0.
 Bug encontrado + corregido: JVM wildcard regex (`java.util.*`), YAML quoting para `[Ignore]`.
 
-### Two-tier LLM convention — Mes 3 (2026-05-27)
+### Two-tier LLM convention — Sprint 3 (2026-05-27)
 Convención `⚡` / `🧠` activa en PLAN.md para delegar entre modelos.
 `executor` field en tasks.yaml es el primer eslabón concreto.
 `planner_model` / `executor_model` en tasks.yaml → implementado en S15.
@@ -101,7 +101,7 @@ Proveniente de patrón Engram (topic_key upsert) en IDEAS.md sección "Inspiraci
 Scope: `session | project | global`. Índice por `(project_id, scope)`.
 
 ### selectMemories: resolución ID→topic_key — S22 (2026-05-28)
-Bug corregido antes de Mes 6: `depends_on` contiene IDs de sub-tasks (e.g. "write-greeting"),
+Bug corregido antes de Sprint 6: `depends_on` contiene IDs de sub-tasks (e.g. "write-greeting"),
 no topic_keys (e.g. "smoke-greeting"). Fix: mapear via `allSubTasks.find(t => t.id === depId)?.topic_key`.
 Sin el fix, los sub-tasks que dependen de un predecessor nunca recibían su memory en contexto.
 
@@ -207,10 +207,10 @@ Curador LLM (Haiku) normaliza texto libre a `SkillDef` validado, con hasta 2 rei
 El chat puede ahora traer contenido real y actual de una URL en vez de responder de memoria. `runToolLoop()` añade conversación multi-turno (LLM → `fetch_url` → resultado → respuesta final) sobre la capa de tool-calling existente (S23), sin tocar el planner. Guard SSRF resuelve DNS antes de fetch (mismo resolver que usa `fetch()`, no consulta DNS directa) y bloquea localhost/rangos privados. Contenido externo siempre se envuelve como dato, nunca instrucción — verificado en vivo con un payload de prompt injection real que el modelo no obedeció. Transparente: la respuesta del chat incluye qué URLs se fetchearon.
 
 ### autoskills — registry de skills de la comunidad (2026-06-23)
-`orchestos skill fetch --list/--name <id>` y sección "Discover skills" en el dashboard — 217 skills reales del índice `cdn.jsdelivr.net/npm/autoskills`, importables con un click. Cada skill pasa por el mismo `normalizeImport()` del curador (Mes 11), sin parser de frontmatter propio. Resuelve la decisión pendiente de "¿registry propio o wrappear autoskills?" — se consume directo el índice + contenido raw de GitHub, sin intermediario propio que mantener.
+`orchestos skill fetch --list/--name <id>` y sección "Discover skills" en el dashboard — 217 skills reales del índice `cdn.jsdelivr.net/npm/autoskills`, importables con un click. Cada skill pasa por el mismo `normalizeImport()` del curador (Sprint 11), sin parser de frontmatter propio. Resuelve la decisión pendiente de "¿registry propio o wrappear autoskills?" — se consume directo el índice + contenido raw de GitHub, sin intermediario propio que mantener.
 
 ### Higiene de tests — fugas a la `runs` real (2026-07-05)
-8 archivos de test (`harness-evidence.test.ts`, `engine-selection.test.ts`, `cli-runs-detail-engine.test.ts`, `harness-engine-persistence.test.ts`, `harness-retry.test.ts`, `spec.test.ts`, `context-monitor-db.test.ts`, `suggest.test.ts`) escribían en `~/.orchestos/db.sqlite` — la misma DB que lee el dashboard real — sin limpiar en `afterAll`/`afterEach`. Detectado por Carlos viendo filas raras ("Recent Runs" repitiendo el mismo timestamp). Corregido con cleanup por `task_id`/`prompt`+`provider`/`project_id` según cada caso; purgadas 1800 filas sucias acumuladas de meses de `bun test` local. Recurrió parcialmente en Mes 18 (I.6, memory_entries) — ver [[reference-test-fixtures-leak-into-real-db]].
+8 archivos de test (`harness-evidence.test.ts`, `engine-selection.test.ts`, `cli-runs-detail-engine.test.ts`, `harness-engine-persistence.test.ts`, `harness-retry.test.ts`, `spec.test.ts`, `context-monitor-db.test.ts`, `suggest.test.ts`) escribían en `~/.orchestos/db.sqlite` — la misma DB que lee el dashboard real — sin limpiar en `afterAll`/`afterEach`. Detectado por Carlos viendo filas raras ("Recent Runs" repitiendo el mismo timestamp). Corregido con cleanup por `task_id`/`prompt`+`provider`/`project_id` según cada caso; purgadas 1800 filas sucias acumuladas de meses de `bun test` local. Recurrió parcialmente en Sprint 18 (I.6, memory_entries) — ver [[reference-test-fixtures-leak-into-real-db]].
 
-### CI en rojo desde Mes 17 C.2 — 4 causas encontradas y corregidas (2026-07-06)
-Todo commit desde el fix de detección honesta de Claude Code (Mes 17 C.2) fallaba en CI. Causa 1: ~17 tests de `external-engine.test.ts`/`engine-selection.test.ts` dependían sin querer de que la máquina real tuviera el binario `claude` en PATH — solo 3 mockeaban `Bun.which`; mock global agregado. Causa 2: 2 tests nuevos de `skill-auto-selection.test.ts` (Mes 18 Bloque D) pasaban en local solo porque la máquina de Carlos tiene `OPENROUTER_API_KEY` real — CI no la tiene (correctamente); fix con `sk-test-or-key` explícito por test, mismo patrón que `harness-evidence.test.ts`. Causa 3: `chat-read-project-tools.test.ts` comparaba por substring `"not found"` contra un sentinel, y la prosa real de IDEAS.md documentando la Causa 2 contenía esa misma frase — coincidencia, no bug; fix con comparación exacta contra el sentinel real. Verificado en verde en GitHub Actions (run 28808032085).
+### CI en rojo desde Sprint 17 C.2 — 4 causas encontradas y corregidas (2026-07-06)
+Todo commit desde el fix de detección honesta de Claude Code (Sprint 17 C.2) fallaba en CI. Causa 1: ~17 tests de `external-engine.test.ts`/`engine-selection.test.ts` dependían sin querer de que la máquina real tuviera el binario `claude` en PATH — solo 3 mockeaban `Bun.which`; mock global agregado. Causa 2: 2 tests nuevos de `skill-auto-selection.test.ts` (Sprint 18 Bloque D) pasaban en local solo porque la máquina de Carlos tiene `OPENROUTER_API_KEY` real — CI no la tiene (correctamente); fix con `sk-test-or-key` explícito por test, mismo patrón que `harness-evidence.test.ts`. Causa 3: `chat-read-project-tools.test.ts` comparaba por substring `"not found"` contra un sentinel, y la prosa real de IDEAS.md documentando la Causa 2 contenía esa misma frase — coincidencia, no bug; fix con comparación exacta contra el sentinel real. Verificado en verde en GitHub Actions (run 28808032085).

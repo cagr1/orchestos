@@ -1,6 +1,6 @@
-### MES 6 — IA con ROI demostrable
+### SPRINT 6 — IA con ROI demostrable
 
-**SEMANA 23 — Pre-flight Mes 6 + Function calling para el planner**
+**SEMANA 23 — Pre-flight Sprint 6 + Function calling para el planner**
 - S23.0.1 `mergeWorktreeBack`: `--ff-only` falla → intenta `git rebase <base>` + retry; si rebase falla → mensaje claro con instrucción manual. Sin el fix, worktrees quedaban colgados entre sesiones — 2026-05-28
 - S23.0.2 `src/hooks/context-monitor.ts`: `checkContextHealth()` retorna warnings estructurados (context_warning <35%, context_critical <25%, cost_notice >$5, loop_detected ≥3 herramienta seguida, scope_creep >20 archivos). `shouldCheck()` con debounce de 5 calls. Integrado en harness post-enforce — 2026-05-28
 - S23.1 `CREATE_SUBTASK_TOOL` en `src/agents/planner.ts`: schema estricto con `id`, `description`, `acceptance[]`, `depends_on[]`, `allowed_tools[]`, `topic_key?`, `output?`, `input?`. Validación por SDK antes de llegar al código — 2026-05-28
@@ -32,7 +32,7 @@
 - S26.4 CLI: `orchestos memory conflicts [--project]` — tabla formateada ID/relation/confidence/created_at — 2026-05-28
 - S26.5 13 tests nuevos (S26.2 judge + S26.3 CRUD). 212 tests · 0 fail. Commits `2caf365` + `b9d968d` + `88e0ab4` — 2026-05-28
 
-**Decisiones de diseño Mes 6**
+**Decisiones de diseño Sprint 6**
 - BM25 en SQLite FTS5 — sin dependencia nueva, nativo en SQLite.
 - LLM judge solo si hay candidato > threshold — no corre en cada upsert.
 - Context monitor no bloquea — warnings estructurados con debounce de 5 calls.
@@ -40,7 +40,7 @@
 - Function calling con fallback YAML — providers sin tool support siguen funcionando.
 - Diagnóstico nunca ejecuta — solo sugiere. El usuario aplica.
 
-**Lista prohibida Mes 6** _(lo que NO se hizo — referencia histórica)_
+**Lista prohibida Sprint 6** _(lo que NO se hizo — referencia histórica)_
 - Dashboard web, UI gráfica, TUI interactiva.
 - Nuevos providers de LLM — se mantuvieron los 4.
 - Reescritura del scheduler.
@@ -48,7 +48,7 @@
 - Paralelismo entre tareas — sigue secuencial.
 - KuzuDB — sin evidencia de escala real (10K+ nodos).
 
-**Métrica Mes 6 — SÍ (2026-05-28)**
+**Métrica Sprint 6 — SÍ (2026-05-28)**
 `embed_hits > 0` en 12 runs reales (todos `status: done`, `embed_hits: 3`). Planner sin errores YAML en 100% de los planes del mes (function calling elimina el problema estructuralmente). 212 tests · 0 fail.
 
 ---

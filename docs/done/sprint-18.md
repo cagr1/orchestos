@@ -1,6 +1,6 @@
-### MES 18 — Chat como entrada única: detección de intención de tarea
+### SPRINT 18 — Chat como entrada única: detección de intención de tarea
 
-Origen: IDEAS.md #12, decisión de Carlos (2026-07-02) tras el cierre de Mes 17 — que el chat sea el medio de comunicación principal de OrchestOS (como Open WebUI/Hermes/Claude Desktop), con Tasks pasando a ser un visor y no el lugar donde se crea el trabajo. Pregunta que lo disparó: si el usuario describe trabajo ejecutable sin decir "tarea", ¿el sistema lo detecta y ofrece convertirlo?
+Origen: IDEAS.md #12, decisión de Carlos (2026-07-02) tras el cierre de Sprint 17 — que el chat sea el medio de comunicación principal de OrchestOS (como Open WebUI/Hermes/Claude Desktop), con Tasks pasando a ser un visor y no el lugar donde se crea el trabajo. Pregunta que lo disparó: si el usuario describe trabajo ejecutable sin decir "tarea", ¿el sistema lo detecta y ofrece convertirlo?
 
 | Bloque | Contenido | Estado |
 |---|---|---|
@@ -17,7 +17,7 @@ Origen: IDEAS.md #12, decisión de Carlos (2026-07-02) tras el cierre de Mes 17 
 | H.1 | Cierre formal del mes | ✅ SÍ (este registro) |
 
 **Bloque A/B/C — Detección de intención de tarea**
-Diseño (A.1, aprobado por Carlos "GO" 2026-07-05) fijó el orden: primero instrumentar la barra existente para generar evidencia real, el LLM clasificador solo se implementa si aparecen falsos negativos concretos — nunca "porque se puede". Tools de solo lectura `read_plan`/`read_tasks`/`read_ideas` registradas en `runToolLoop()` (mismo patrón que `FETCH_URL_TOOL`), verificadas en vivo con `claude-haiku-4-5` citando contenido real de PLAN.md. Bug real encontrado al verificar (B.2.1): `handleApiChat` calculaba `chatMaxTokens` sin clamp al tope real de salida del proveedor — mismo bug que el harness ya había corregido en G.5 (Mes 17), corregido con `Math.min(available, maxOutputTokensFor(model))`. Instrumentación (B.1.a): tabla `chat_task_bar_events` + tab de solo lectura "Chat evidence" en Project para que Carlos revise la evidencia sin depender de un query de Claude. El clasificador (B.1.b) quedó **en espera de evidencia real** (criterio: ~30-40 mensajes reales con variedad, sin fecha fija) hasta que el dogfooding del Bloque J la produjo.
+Diseño (A.1, aprobado por Carlos "GO" 2026-07-05) fijó el orden: primero instrumentar la barra existente para generar evidencia real, el LLM clasificador solo se implementa si aparecen falsos negativos concretos — nunca "porque se puede". Tools de solo lectura `read_plan`/`read_tasks`/`read_ideas` registradas en `runToolLoop()` (mismo patrón que `FETCH_URL_TOOL`), verificadas en vivo con `claude-haiku-4-5` citando contenido real de PLAN.md. Bug real encontrado al verificar (B.2.1): `handleApiChat` calculaba `chatMaxTokens` sin clamp al tope real de salida del proveedor — mismo bug que el harness ya había corregido en G.5 (Sprint 17), corregido con `Math.min(available, maxOutputTokensFor(model))`. Instrumentación (B.1.a): tabla `chat_task_bar_events` + tab de solo lectura "Chat evidence" en Project para que Carlos revise la evidencia sin depender de un query de Claude. El clasificador (B.1.b) quedó **en espera de evidencia real** (criterio: ~30-40 mensajes reales con variedad, sin fecha fija) hasta que el dogfooding del Bloque J la produjo.
 
 **Bloque D — Auto-selección semántica de skill**
 Origen: prueba real de Carlos con una landing usando "skills de diseño" no dio el resultado esperado — ninguna skill se auto-aplicaba (`skill-route.ts` solo leía `task.skill` explícito). Se escribieron 4 skills de diseño nativas (`frontend-design`, `ux-guidelines`, `design-brief-inference`, `design-tokens`) y un motor de clasificación (`listAllSkillCandidates()`) que agrega candidatos al mismo call de `/api/natural` que ya generaba el draft (sin call adicional). Selector en el composer: 1 candidato preseleccionado, 2+ con "None" preseleccionada, 0 sin campo. Gate en vivo: draft de landing → 4 candidatos de diseño; draft de bugfix de auth → sugirió `diagnose`/`bug-hypothesis`/`code-review` (skills de ingeniería que ya existían y nunca se auto-aplicaban) — confirma que el motor discrimina por dominio real, no un sí/no de diseño.
@@ -37,18 +37,18 @@ Carlos pidió el estándar Hermes/Claude Desktop/Codex tras el Bloque G. 13 ajus
 **Bloque J — Dogfooding real del Chat**
 Carlos usando el Chat real para pedir trabajo real (landing de cripto, tienda de ropa) confirmó en vivo el falso negativo exacto que B.1.b pedía como evidencia — 34 mensajes reales acumulados desde 2026-07-05, decisión explícita de Carlos de activar el clasificador ya (J.1): `classifyTaskIntent()` llama al mismo modelo barato default con un prompt binario, fail-safe a `isTask:false`; la barra aparece de inmediato citando el `reason`, sin auto-run. De la misma sesión, 2 bugs reales adicionales: imágenes al chat sin gating de visión — corregido con `supportsVision` en `ModelInfo` y rechazo 422 con mensaje claro antes de mandar el `image_url` block (J.2); el guard de presupuesto de contexto existía en `harness.ts` pero no en el chat — corregido con `CHAT_MIN_OUTPUT_BUDGET` (J.3). Gate en vivo con dinero real (J.4) confirmó los 3 fixes contra el servidor real.
 
-**Decisiones de diseño Mes 18**
+**Decisiones de diseño Sprint 18**
 - Nunca auto-run silencioso — el chat sugiere y pre-llena, el usuario siempre confirma antes de gastar dinero real en un executor.
 - El clasificador semántico no se implementa "porque se puede" — se gatea en evidencia real de falsos negativos (mismo principio que ya rigió instincts/patterns en meses anteriores).
 - Un hallazgo de "datos sin sentido" en el dashboard (I.6) volvió a ser fixtures de test filtrándose a la DB real — segunda vez que aparece este patrón (IDEAS #20 lo había "resuelto" una vez) — sospechar de esto primero ante cualquier hallazgo similar futuro.
 - El estándar de "premium" no es solo funcional — 4 de los 13 ajustes de Bloque I fueron bugs de contraste/sombra que solo aparecen en un tema no probado antes (Bright), no regresiones de los 3 temas existentes.
 
 **Hallazgos documentados, no resueltos en este mes (backlog)**
-- IDEAS.md #19 — tareas `engine: external` sin `checks:` explícitos pierden su única red determinista (heredado de Mes 17, sigue sin corregir).
+- IDEAS.md #19 — tareas `engine: external` sin `checks:` explícitos pierden su única red determinista (heredado de Sprint 17, sigue sin corregir).
 - `upsertMemory()`/`persistSubTaskMemory()` (sub-tasks con memoria) nunca se disparó para el proyecto real OrchestOS — o el flujo nunca corrió en producción, o la vía está efectivamente muerta en la práctica (hallazgo de I.6, fuera de alcance del audit "premium dashboard").
 - IDEAS.md #13/#24 — OCR para imágenes del chat (elimina la dependencia de que el modelo elegido tenga visión, complementa el gating de J.2) y adjuntar varios archivos a la vez — evaluados como candidatos para el próximo Mes, repo de referencia (`baidu/Unlimited-OCR`) aún sin leer.
 
-**Métrica Mes 18 — SÍ (2026-07-09)**
+**Métrica Sprint 18 — SÍ (2026-07-09)**
 El chat detecta intención de tarea con evidencia real (34 mensajes reales, falso negativo confirmado y corregido), paridad CLI↔Dashboard cerrada (9/9 gaps), auditoría visual + "premium dashboard" resueltos con causa raíz en cada uno (nunca parches cosméticos), y el dogfooding real de Carlos encontró y corrigió 2 bugs reales de producción (visión sin gating, guard de contexto no conectado al chat) antes de que afectaran a un uso real. 649 tests · 0 fail · `tsc --noEmit` limpio.
 
 ---

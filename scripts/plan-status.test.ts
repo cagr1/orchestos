@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { parsePlanFeatureStatus, serializeFeatureStatus } from './plan-status.ts'
 
 const SAMPLE = `
-## BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)
+## BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)
 
 ### H.1 — Presentación
 
@@ -14,9 +14,9 @@ const SAMPLE = `
 - [ ] **H.3.1 — 🧠 El estado del producto no es machine-readable.** \`PLAN.md\` (1003 líneas)
   es la fuente real.
 
-## MES 27 — Backlog canónico
+## SPRINT 27 — Backlog canónico
 
-- [x] **SÍ — Mes 27 cerrado (2026-08-13), parcial por diseño**
+- [x] **SÍ — Sprint 27 cerrado (2026-08-13), parcial por diseño**
 `
 
 describe('parsePlanFeatureStatus', () => {
@@ -26,10 +26,10 @@ describe('parsePlanFeatureStatus', () => {
     expect(items.map((i) => i.id)).toEqual(['H.1.1', 'H.3.1'])
   })
 
-  test('asigna block y month de los headers más cercanos', () => {
+  test('asigna block y sprint de los headers más cercanos', () => {
     const [first, second] = parsePlanFeatureStatus(SAMPLE)
-    expect(first!.month).toBe(
-      'BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE MES 30)',
+    expect(first!.sprint).toBe(
+      'BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)',
     )
     expect(first!.block).toBe('H.1 — Presentación')
     expect(second!.block).toBe('H.3 — Estado')

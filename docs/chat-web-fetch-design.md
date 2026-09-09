@@ -1,4 +1,4 @@
-# Diseño — web fetch real en el Chat (Mes 13, Bloque A1)
+# Diseño — web fetch real en el Chat (Sprint 13, Bloque A1)
 
 ## El hallazgo que cambia el alcance
 
@@ -152,6 +152,6 @@ OpenRouter; documentarlo en el hint de la UI es trabajo de A4 (gate), no de A2.
    el loop multi-turno de forma aislada con mocks.
 2. A3 añade el guard SSRF + límites sobre `executeFetchUrl`. Es deliberadamente un paso
    separado de A2 para poder testear el guard con casos de mutación (igual que el gate A3
-   de Mes 12 con `enforceContract`).
+   de Sprint 12 con `enforceContract`).
 3. A4 es el gate end-to-end: URL real trae contenido actual, `localhost` se bloquea, payload
    de prompt injection se trata como dato.

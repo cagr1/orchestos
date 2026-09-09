@@ -35,7 +35,7 @@ Honest list of what orchestos does not do and has no plans to do soon.
 
 ## Code Graph
 
-- **Imports only.** `context suggest` knows which files import which other files. It does not know which function calls which function, which class extends which class, or what symbols are exported. For tasks like "rename function X", the graph cannot identify callers — Mes 4+ with tree-sitter symbol indexing.
+- **Imports only.** `context suggest` knows which files import which other files. It does not know which function calls which function, which class extends which class, or what symbols are exported. For tasks like "rename function X", the graph cannot identify callers — Sprint 4+ with tree-sitter symbol indexing.
 - **Regex-based extraction.** Import extraction uses regular expressions, not an AST parser. Unusual syntax (dynamic imports with template literals, barrel re-exports via `export * from`), may be missed.
 - **No watch mode.** The index is a snapshot. Run `orchestos index` manually after significant code changes. The index auto-runs on `orchestos init` but not on file saves.
 

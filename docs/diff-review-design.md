@@ -1,7 +1,7 @@
 # Visor de diff por run — design doc (v0.12 / Bloque C)
 
 **Estado:** borrador para revisión (C.1) — no tocar código hasta aprobación, mismo protocolo
-que `auto-split-design.md` (Mes 20/A.1).
+que `auto-split-design.md` (Sprint 20/A.1).
 **Contexto completo:** [PLAN.md — v0.12 Bloque C](../PLAN.md)
 **Alcance de este documento:** solo **C.1** (diseño). C.2 (implementación) y C.3 (verificación
 en vivo) son bloques separados, posteriores a la aprobación de este doc.
@@ -20,7 +20,7 @@ OrchestOS calcula un cambio de archivos en cada run pero nunca se lo enseña al 
 Es la pieza de confianza (ver qué cambió antes de confiar en el resultado) que Claude Desktop/
 Cursor/Orca tienen y OrchestOS no. Alcance de este bloque: **read-only** — mostrar el diff, no
 aprobar/rechazar (esa es una superficie de acción nueva, se evalúa después con la misma
-disciplina "leer vs actuar" del Mes 13).
+disciplina "leer vs actuar" del Sprint 13).
 
 ---
 
@@ -181,7 +181,7 @@ del alcance read-only de este bloque.
 
 ## Verificación propuesta para C.3
 
-Reusar `crypto-page-v1` (Mes 20/C.1) — un run real ya verificado con archivos generados reales.
+Reusar `crypto-page-v1` (Sprint 20/C.1) — un run real ya verificado con archivos generados reales.
 Confirmar en vivo: el diff mostrado en el dashboard coincide con el contenido real de los
 archivos en el proyecto, para al menos un archivo `added` (primera corrida) y, si hay una
 segunda corrida sobre el mismo path, un caso `modified`.
