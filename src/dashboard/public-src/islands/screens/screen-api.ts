@@ -26,6 +26,11 @@ export interface ScreenApi {
   formatDate: (iso: string, opts?: { dateOnly?: boolean; seconds?: boolean }) => string
   icons: Record<string, string>
   fetchAll: () => void
+  fetchPlan: () => Promise<unknown>
+  setPlanDependencies: (id: string, dependsOn: string[]) => Promise<{ ok: boolean; error?: string }>
+  preparePlanItemClose: (
+    id: string,
+  ) => Promise<{ ok: boolean; error?: string; commitPending?: boolean }>
   fetchSpecs: () => Promise<unknown>
   fetchSkills: () => Promise<unknown>
   fetchProSkills: () => Promise<unknown>

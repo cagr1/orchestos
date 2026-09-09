@@ -16,6 +16,7 @@ import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { LangProbe } from './islands/LangProbe.tsx'
 import { ModelCombo } from './islands/ModelCombo.tsx'
+import { PlanBoardScreen } from './islands/screens/PlanBoardScreen.tsx'
 import { SkillsScreen } from './islands/screens/SkillsScreen.tsx'
 import { SpecsScreen } from './islands/screens/SpecsScreen.tsx'
 import { Header } from './islands/shell/Header.tsx'
@@ -43,6 +44,7 @@ registerIsland('shell-rp-toprow', RightPanelToprow)
 registerIsland('shell-session-status', SessionStatusBar)
 registerIsland('screen-specs', SpecsScreen)
 registerIsland('screen-skills', SkillsScreen)
+registerIsland('screen-plan', PlanBoardScreen)
 
 // A NIVEL DE MÓDULO, no dentro de `boot()`, y el orden importa: un `<script type="module">`
 // se ejecuta ANTES de `DOMContentLoaded`, o sea antes del `boot()` de `app.js` — que empuja

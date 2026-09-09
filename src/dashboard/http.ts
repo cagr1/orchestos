@@ -80,7 +80,9 @@ function isSameOrigin(req: Request, port: number): boolean {
   }
 }
 
-const TASK_ID_RE = /^[A-Za-z0-9_.-]{1,64}$/
+// PLAN.md historically includes IDs such as H.8.3'. Keep the shared validator aligned with
+// the plan parser so dashboard plan routes can address every persisted plan_item.
+const TASK_ID_RE = /^[A-Za-z0-9_.\-']{1,64}$/
 
 function validateTaskId(id: string): string | null {
   const t = id.trim()

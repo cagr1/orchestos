@@ -321,12 +321,59 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   --noEmit`, `bun run test:coverage` y `bun run lint` exit 0. Lint conserva los 879 warnings
   heredados, sin errores nuevos.
 
-- [ ] **S.6 — 🔍 Pantalla Sprint Board en el dashboard.**
+- [x] **S.6 — 🔍 Pantalla Sprint Board en el dashboard.**
+  Ejecutado por: gpt-5.6-terra · Spec: docs/specs/S.6.md
   Requisito de Carlos: poder *ver* el plan aunque viva en la DB. Board por sprint con el grafo de
   dependencias, sobre la misma tabla. Aplica `feedback-dashboard-no-solo-cli`: una feature que
   solo vive en el CLI no está hecha. **Gate 🔍: verificación en vivo contra el dashboard real
   corriendo, no mocks** — se abre el board, se cierra un ítem y se comprueba que `plan:render`
   produce el PLAN.md esperado.
+  Pantalla `Plan` como isla React (`PlanBoardScreen.tsx`) sobre el shell vanilla; tres columnas por
+  sprint (listos / bloqueados / cerrados) y las aristas como chips `DEP → ITEM`, ámbar si la
+  dependencia sigue abierta. Sin canvas ni librería de grafos. Rutas nuevas en
+  `src/dashboard/handlers/plan.ts`: `GET /api/plan`, `PUT /api/plan/items/:id/dependencies`,
+  `POST /api/plan/items/:id/prepare-close`. Los tres responden 409 si el `PLAN.md` del proyecto no
+  coincide byte a byte con `renderPlan(db)` — nunca se muta una DB que podría ser de otro checkout.
+  `preparePlanItemClose()` es la transición recuperable: transacción + escritura por temporal y
+  `rename`, y restauración del markdown original si la transacción falla. Usa `git rev-parse HEAD`
+  solo como SHA provisional (el `CHECK` de SQLite exige uno y el commit de cierre todavía no
+  existe); la UI dice “cierre preparado, falta el commit y `plan:reconcile`”, nunca “cerrado”.
+  El endpoint no ejecuta `git add`, `commit`, hooks ni borra specs.
+  Cambio en superficie compartida, no pedido por el spec pero necesario y revisado: `TASK_ID_RE`
+  (`src/dashboard/http.ts`) pasó a aceptar `'` porque existe el ítem real `H.8.3'` en `plan_items`
+  y sin eso el board no podía direccionarlo. El mismo validador lo usan `specs.ts` y `tasks.ts`;
+  el `'` no habilita traversal (`/` sigue fuera del charset) y el único consumidor que llega a un
+  proceso externo es `Bun.spawn` con argv en array, sin shell, con el id tras `--`.
+  **Gate en vivo: verificado con Playwright** (Chromium real) — evidencia en `scripts/s6-live-evidence.json`, producida por `scripts/ui-gates/s6-sprint-board.mjs`.
+  Comando: `bun run gate:evidence -- --label s.6 -- bun run scripts/ui-gates/s6-sprint-board.mjs`
+  → `✓ S.6 sprint board gate passed`. Corre contra el dashboard real en un repo-fixture con
+  `ORCHESTOS_HOME` aislado: se abre Plan desde el sidebar, se crea la arista `A → B`, se recarga y
+  persiste desde SQLite, se prepara el cierre de A, B pasa a listo sin recarga, se crea el commit
+  del fixture y `plan:reconcile` reemplaza el SHA provisional por el real. Blobs staged de la
+  evidencia: `scripts/ui-gates/s6-sprint-board.mjs` = `1b8b3d5c5acc9e2c1083148685b03ce262a6c444`,
+  `scripts/s6-live-evidence.json` = `5721738a216ed194d4676f5d42ff14ef5dc024ed` (`byteExact: true`,
+  `consoleErrors: []`, negativos `cycle: 409` y `blockedClose: 409`),
+  `scripts/s6-sprint-board.png` = `8e0dec0f0b5ef30622e3e6e4871246073a1d2798`.
+  Remate del cerebro tras revisar el diff: faltaba cobertura de la capa API y `bunx biome check .`
+  salía 1 por el formato del JSON de evidencia. Delegado a gpt-5.6-terra con addendum
+  (`.orchestos/specs/S.6-remate.md`, borrado al cerrar): `src/dashboard/__tests__/plan-api.test.ts`
+  ejercita `route()` en subproceso con `ORCHESTOS_HOME` temporal — el singleton `db` resuelve su
+  ruta al importar el módulo, así que un test in-process escribiría en la DB real (mismo patrón que
+  `chat-r5-reliability.test.ts`) — y cubre 400 de JSON/array/duplicados/id inválido, 404 de ítem y
+  de dependencia, 409 de autorreferencia, ciclo transitivo, ítem `done`, cierre bloqueado y
+  `PLAN.md` desincronizado, más la comprobación de que el cierre cambia exactamente una línea del
+  markdown. El gate ahora formatea su propio JSON con Biome, así que es idempotente.
+  **Fuera de scope declarado:** el scope-lock de S.6 se declaró antes de empezar y omitió `PLAN.md`
+  y sus derivados (`.orchestos/feature-status.json`, `runs-summary.json`), que todo cierre toca por
+  definición. No se pudo ampliar con `agent:preflight --scope` porque ese comando exige que el ítem
+  siga abierto y el cierre ya está escrito. Ningún archivo de producto quedó fuera del scope.
+  Verificado por el cerebro, no por el reporte del ejecutor: `bunx tsc --noEmit` exit 0;
+  `bun run test:coverage` 1370 pass / 0 fail (functions 74.36% ≥ 69, lines 63.28% ≥ 57);
+  `bunx biome check .` exit 0 con los 879 warnings heredados; `bun run build:ui` reproducible
+  (mismo MD5 de `ui.js`/`ui.css` antes y después); `git diff --check` limpio; gate en vivo corrido
+  dos veces seguidas sin ensuciar el formato. Prueba de mutación del test nuevo: neutralizar
+  `wouldCreateDependencyCycle()` en el handler hace fallar la suite con `transitive cycle must be
+  409` — el test muerde, no solo pasa.
 
 **Consecuencia de producto, no solo de repo:** hoy el plan y la ejecución son dos grafos que no se
 hablan — un ítem de PLAN.md hay que traducirlo a mano a una tarea. Con `plan_items` en la misma DB

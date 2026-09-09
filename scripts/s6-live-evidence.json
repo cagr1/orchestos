@@ -1,0 +1,47 @@
+{
+  "dom": {
+    "initial": {
+      "sprints": 2,
+      "ids": ["A", "B", "C"]
+    },
+    "persistedEdge": "A → B",
+    "afterClose": {
+      "aDone": true,
+      "bReady": true,
+      "pending": true
+    }
+  },
+  "api": {
+    "afterDependencies": {
+      "id": "B",
+      "sprint": "Sprint Alpha",
+      "block": "Block Alpha",
+      "delegation": "⚡",
+      "title": "Second item",
+      "status": "open",
+      "position": 1,
+      "commitSha": null,
+      "closedAt": null,
+      "dependsOn": ["A"],
+      "blockedBy": ["A"],
+      "ready": false
+    },
+    "negative": {
+      "cycle": 409,
+      "blockedClose": 409
+    }
+  },
+  "database": {
+    "a": {
+      "status": "done",
+      "commit_sha": "50c5c59bfc33d4618333e02427f9067a3be7f33c"
+    }
+  },
+  "sha": "50c5c59bfc33d4618333e02427f9067a3be7f33c",
+  "byteExact": true,
+  "consoleErrors": [],
+  "failedResponses": [
+    "409 http://localhost:55755/api/plan/items/A/dependencies",
+    "409 http://localhost:55755/api/plan/items/B/prepare-close"
+  ]
+}

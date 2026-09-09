@@ -34,6 +34,11 @@ import {
   handleApiMemoryDelete,
 } from './handlers/memory.ts'
 import {
+  handleApiPlan,
+  handleApiPlanDependencies,
+  handleApiPlanPrepareClose,
+} from './handlers/plan.ts'
+import {
   handleApiNatural,
   handleApiProjectConstitutionGet,
   handleApiProjectConstitutionPut,
@@ -147,6 +152,15 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/session/status') {
     return withDashboardProject(req, (project) => handleApiSessionStatus(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/plan') {
+    return withDashboardProject(req, (project) => handleApiPlan(project.root))
+  }
+  if (method === 'PUT' && /^\/api\/plan\/items\/[^/]+\/dependencies$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) => handleApiPlanDependencies(req, project.root))
+  }
+  if (method === 'POST' && /^\/api\/plan\/items\/[^/]+\/prepare-close$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) => handleApiPlanPrepareClose(req, project.root))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
     return handleApiRunsDelete(url)

@@ -2337,3 +2337,11 @@ SCREENS.skills = {
   },
   wire() {},
 }
+
+SCREENS.plan = {
+  react: true,
+  render() {
+    return '<div data-island="screen-plan"></div>'
+  },
+  wire() {},
+}

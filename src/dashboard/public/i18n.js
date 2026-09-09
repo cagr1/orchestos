@@ -18,6 +18,7 @@ const I18N = {
     'nav.settings': 'Settings',
     'nav.chat': 'Chat',
     'nav.graph': 'Graph Runner',
+    'nav.plan': 'Plan',
     'session.status.label': 'Active session usage',
     'session.status.context': 'Context',
     'session.status.quota': 'Quota',
@@ -842,6 +843,25 @@ const I18N = {
     'health.view': 'View',
 
     /* ── Graph runner (Mes 14 / C2) ─────────────── */
+    /* ── Plan board (S.6) ───────────────────────── */
+    'plan.title': 'Sprint Board',
+    'plan.subtitle': 'Dependencies and closing readiness for every plan item.',
+    'plan.loading': 'Loading plan…',
+    'plan.error': 'Could not load the plan. Check that PLAN.md matches the database.',
+    'plan.empty': 'No plan items found.',
+    'plan.ready': 'Ready',
+    'plan.blocked': 'Blocked',
+    'plan.done': 'Done',
+    'plan.noDeps': 'No dependencies',
+    'plan.editDeps': 'Edit dependencies',
+    'plan.selectDeps': 'Select the items this item depends on.',
+    'plan.save': 'Save',
+    'plan.saving': 'Saving…',
+    'plan.prepareClose': 'Prepare close',
+    'plan.confirmClose': 'Prepare close for {0} — {1}?',
+    'plan.closing': 'Preparing…',
+    'plan.commitPending':
+      'Close prepared; commit and run `bun run plan:reconcile` are still required.',
     'graph.title': 'Graph Runner',
     'graph.subtitle':
       'Runs the full tasks.yaml DAG autonomously — no human intervention on the happy path.',
@@ -894,6 +914,7 @@ const I18N = {
     'nav.settings': 'Ajustes',
     'nav.chat': 'Chat',
     'nav.graph': 'Runner de grafo',
+    'nav.plan': 'Plan',
     'session.status.label': 'Uso de la sesión activa',
     'session.status.context': 'Contexto',
     'session.status.quota': 'Cupo',
@@ -1722,6 +1743,24 @@ const I18N = {
     'health.view': 'Ver',
 
     /* ── Runner de grafo (Mes 14 / C2) ───────────── */
+    /* ── Tablero del plan (S.6) ──────────────────── */
+    'plan.title': 'Tablero del sprint',
+    'plan.subtitle': 'Dependencias y preparación de cierre de cada ítem del plan.',
+    'plan.loading': 'Cargando plan…',
+    'plan.error': 'No se pudo cargar el plan. Verificá que PLAN.md coincida con la base de datos.',
+    'plan.empty': 'No hay ítems del plan.',
+    'plan.ready': 'Listos',
+    'plan.blocked': 'Bloqueados',
+    'plan.done': 'Cerrados',
+    'plan.noDeps': 'Sin dependencias',
+    'plan.editDeps': 'Editar dependencias',
+    'plan.selectDeps': 'Elegí los ítems de los que depende este ítem.',
+    'plan.save': 'Guardar',
+    'plan.saving': 'Guardando…',
+    'plan.prepareClose': 'Preparar cierre',
+    'plan.confirmClose': '¿Preparar cierre de {0} — {1}?',
+    'plan.closing': 'Preparando…',
+    'plan.commitPending': 'Cierre preparado; falta el commit y `bun run plan:reconcile`.',
     'graph.title': 'Runner de grafo',
     'graph.subtitle':
       'Recorre todo el DAG de tasks.yaml de forma autónoma — sin intervención humana en el happy path.',

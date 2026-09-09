@@ -237,3 +237,33 @@
     transition: none;
   }
 }
+
+/* S.6 — board de sprints. El grafo se expresa con aristas de texto navegables, no canvas. */
+.plan-sprint { margin-top: 28px; }
+.plan-sprint > h2 { margin: 0 0 10px; font-size: 14px; color: var(--text); }
+.plan-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.plan-column { min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.plan-column h3 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 9px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.plan-column h3 span { font-family: var(--mono); color: var(--text-faint); }
+.plan-cards { display: grid; gap: 8px; min-height: 24px; }
+.plan-card { display: grid; gap: 7px; padding: 10px; border: 1px solid var(--border); border-left-width: 3px; border-radius: 7px; background: var(--surface-hi); }
+.plan-card.ready { border-left-color: var(--success); }
+.plan-card.blocked { border-left-color: var(--warning); }
+.plan-card.done { border-left-color: var(--text-faint); opacity: .78; }
+.plan-card-title { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 12px; }
+.plan-card code, .plan-edge { font-family: var(--mono); font-size: 11px; }
+.plan-card > strong { font-size: 12px; line-height: 1.35; color: var(--text); }
+.plan-card > small, .plan-no-deps { margin: 0; color: var(--text-faint); font-size: 10px; }
+.plan-edges { display: flex; flex-wrap: wrap; gap: 5px; }
+.plan-edge { padding: 3px 5px; border-radius: 4px; background: var(--surface); }
+.plan-edge.open { color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
+.plan-edge.done { color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 35%, transparent); }
+.plan-card-actions, .plan-dependency-editor > div, .plan-close-confirm { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.plan-dependency-editor, .plan-close-confirm { display: grid; gap: 7px; padding-top: 8px; border-top: 1px solid var(--border); }
+.plan-dependency-editor p, .plan-close-confirm p { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.4; }
+.plan-dependency-editor label { display: flex; gap: 6px; align-items: baseline; color: var(--text-muted); font-size: 11px; }
+.plan-message, .plan-placeholder { margin-top: 12px; padding: 10px; color: var(--text-muted); }
+.plan-message { border-radius: 7px; border: 1px solid var(--border); }
+.plan-message.error, .plan-placeholder.error { color: var(--error); border-color: var(--error); }
+.plan-message.success { color: var(--success); border-color: var(--success); }
+@media (max-width: 900px) { .plan-columns { grid-template-columns: 1fr; } }

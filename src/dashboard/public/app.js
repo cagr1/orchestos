@@ -25,6 +25,7 @@ const state = {
   skills: [],
   proSkills: [],
   registrySkills: [],
+  planItems: [],
   memory: [],
   settings: null,
   setup: null,
@@ -38,6 +39,8 @@ const state = {
   skillsStatus: 'loading',
   proSkillsStatus: 'loading',
   registrySkillsStatus: 'idle',
+  planStatus: 'loading',
+  planMutation: { status: 'idle', error: null },
   memoryStatus: 'loading',
   settingsStatus: 'idle',
   setupStatus: 'idle',
@@ -147,6 +150,7 @@ const NAV = [
   { id: 'graph', icon: ICON.graph, key: 'nav.graph', operator: true },
   { id: 'memory', icon: ICON.memory, key: 'nav.memory', operator: true },
   { id: 'specs', icon: ICON.specs, key: 'nav.specs', operator: true },
+  { id: 'plan', icon: ICON.graph, key: 'nav.plan', operator: true },
   { id: 'settings', icon: ICON.settings, key: 'nav.settings' },
 ]
 
@@ -190,6 +194,63 @@ const App = {
       state.specsStatus = 'ok'
     } catch {
       state.specsStatus = 'error'
+    }
+  },
+  async fetchPlan() {
+    try {
+      const res = await fetch('/api/plan')
+      if (!res.ok) throw new Error(res.status)
+      const data = await res.json()
+      state.planItems = data.items || []
+      state.planStatus = 'ok'
+    } catch {
+      state.planStatus = 'error'
+    }
+  },
+  async setPlanDependencies(id, dependsOn) {
+    state.planMutation = { status: 'saving', error: null }
+    this.rerender()
+    try {
+      const res = await fetch(`/api/plan/items/${encodeURIComponent(id)}/dependencies`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dependsOn }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      state.planMutation = { status: 'idle', error: null }
+      await this.fetchPlan()
+      this.rerender()
+      return { ok: true, item: data }
+    } catch (error) {
+      state.planMutation = {
+        status: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      }
+      this.rerender()
+      return { ok: false, error: state.planMutation.error }
+    }
+  },
+  async preparePlanItemClose(id) {
+    state.planMutation = { status: 'closing', error: null }
+    this.rerender()
+    try {
+      const res = await fetch(`/api/plan/items/${encodeURIComponent(id)}/prepare-close`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      state.planMutation = { status: 'pending-commit', error: null }
+      await this.fetchPlan()
+      this.rerender()
+      return { ok: true, item: data.item, commitPending: data.commitPending }
+    } catch (error) {
+      state.planMutation = {
+        status: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      }
+      this.rerender()
+      return { ok: false, error: state.planMutation.error }
     }
   },
   async fetchSkills() {
@@ -535,6 +596,7 @@ const App = {
       this.fetchTasks(),
       this.fetchInstincts(),
       this.fetchSpecs(),
+      this.fetchPlan(),
       this.fetchSkills(),
       this.fetchProSkills(),
       this.fetchMemory(),
@@ -3198,6 +3260,9 @@ function boot() {
     // que la migracion no cambie como se ve una fecha. Misma regla que con ICON.
     formatDate: (iso, opts) => formatLocalDate(iso, opts),
     fetchAll: () => App.fetchAll(),
+    fetchPlan: () => App.fetchPlan(),
+    setPlanDependencies: (id, dependsOn) => App.setPlanDependencies(id, dependsOn),
+    preparePlanItemClose: (id) => App.preparePlanItemClose(id),
     fetchSpecs: () => App.fetchSpecs(),
     fetchSkills: () => App.fetchSkills(),
     fetchProSkills: () => App.fetchProSkills(),
