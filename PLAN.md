@@ -72,7 +72,7 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   hablan de esa etiqueta. Revisar siempre la documentación *del propio cambio* después de un `sed`
   masivo — el gate verde (tsc/coverage/lint) no ve nada de esto.
 
-- [ ] **S.2 — ⚡ Purgar de PLAN.md la evidencia de los ítems ya cerrados.**
+- [x] **S.2 — ⚡ Purgar de PLAN.md la evidencia de los ítems ya cerrados.**
   Medido: de las líneas 14–3619 (bloques abiertos), **52 ítems ya están `[x]`** con toda su
   evidencia dentro — la sección R.6 sola ocupa 52 líneas. Mover esa evidencia a `docs/done/`
   dejando en PLAN.md una línea por ítem con enlace. Las líneas 3620+ ya son solo punteros y no se
@@ -80,8 +80,23 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   turno en que se cierra, no al cerrar el bloque — es la causa mecánica del crecimiento.
   **Fuera:** IDEAS.md no se toca (es el backlog de lo que falta, su tamaño es legítimo).
   **Gate:** ningún ítem pierde su evidencia — diff verificado ítem por ítem antes del commit.
+  **Cerrado 2026-09-09 (Codex `gpt-5.6-luna`, commit `e021269`).** PLAN.md 4026 → 1741 líneas.
+  46 ítems movidos (DOC 1, R 12, H 23, I 4, Sprint 30 6) a `docs/done/bloque-{DOC,R,H,I}.md` y
+  `docs/done/sprint-30.md` (2468 líneas; delta +183 por encabezados y anclas). Regla añadida a
+  AGENTS.md:38.
+  **Verificación independiente (Claude), sin defectos:** los 69 IDs y sus 69 estados son idénticos
+  antes/después (`feature-status.json` de `4d6d102` vs actual: 0 faltantes, 0 nuevos, 0 estados
+  cambiados). R.6 — el ítem más largo — mide 50 líneas en origen y 50 en destino, con su texto
+  clave íntegro. **El md5 del conjunto de ítems abiertos no cambió** (`cd48e9e4…`): la purga no
+  tocó una coma de trabajo pendiente. 0 enlaces rotos a `docs/done/` (`sprint-NN.md` es un
+  placeholder textual de S.1, no un enlace). Las anclas son `<a id>` explícitas, no derivadas del
+  encabezado, así que no se rompen si se edita un título.
+  **Efecto medido:** el objetivo del bloque era el costo de contexto por tab. PLAN.md pasó de
+  309 KB a ~140 KB con esta pasada sola; el resto lo elimina S.5, cuando dejar de leerlo sea lo normal.
 
 - [ ] **S.3 — 🧠 Esquema `plan_items` y migración desde el parser existente.**
+  **Spec ejecutable: [`docs/specs/S3.md`](docs/specs/S3.md)** — diseño cerrado, ejecutable por
+  cualquier LLM sin decisiones adicionales. Se borra en el commit que cierre el ítem.
   Tabla en la SQLite que ya existe (`src/db/migrate.ts`):
   `id · sprint · title · delegation · status · depends_on[] · scope[] · commit_sha · closed_at`.
   Se siembra una sola vez con `scripts/plan-status.ts`, que ya sabe parsear PLAN.md.

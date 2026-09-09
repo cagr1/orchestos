@@ -47,6 +47,34 @@ Si necesitas saber el email activo, usa `git config user.email` (solo lectura).
   No acumules más commits sin subir; el push normal está autorizado. `--force` sigue prohibido
   salvo instrucción explícita.
 
+## Protocolo de delegación permanente (2026-09-09, decisión de Carlos)
+
+Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje en este repo.
+
+**El cerebro piensa, planifica y delega. No teclea trabajo mecánico.**
+
+El modelo caro (hoy Claude) hace exactamente cuatro cosas, en este orden:
+
+1. **Pensar** — decidir la arquitectura, el trade-off y el criterio de aceptación. Esto no se
+   delega nunca: es donde se decide si el sistema puede mentir.
+2. **Planificar** — abrir el ítem en PLAN.md con alcance, lo que queda fuera y el gate.
+   Sin ítem abierto no hay delegación posible: `agent:preflight` la bloquea.
+3. **Escribir el spec** — `docs/specs/<ID>.md`, redactado para que otro LLM lo ejecute **sin
+   tomar ni una decisión de diseño**. Si el ejecutor tiene que elegir algo, el spec está
+   incompleto. El spec dice explícitamente qué NO tomar (los ítems vecinos).
+4. **Verificar** — de forma independiente, con comandos propios. El reporte del ejecutor no es
+   evidencia; ver `feedback-verificar-progreso-delegado` y
+   `reference-codex-exec-exit-0-con-error` (un `exit 0` de Codex puede significar que no hizo
+   nada). Recién entonces se marca `[x]` con la evidencia pegada.
+
+La ejecución mecánica ⚡ va a Codex (`codex exec -m <modelo> --approve-for-me "<prompt>" < /dev/null`).
+Los ítems 🧠 los **diseña** el cerebro y los **ejecuta** un delegado siguiendo el spec.
+Los gates 🔍 se verifican en vivo, contra el sistema real corriendo, nunca contra mocks.
+
+**Ciclo de vida del spec:** `docs/specs/<ID>.md` nace al delegar y **se borra en el commit que
+cierra el ítem** — para entonces su contenido vive en el código y su evidencia en `docs/done/`.
+Un spec de un ítem cerrado es basura acumulada; es el patrón que S.2 vino a eliminar.
+
 ## Trabajo en equipo (Claude + Codex, en paralelo)
 
 Carlos trabaja este repo con Claude y Codex a la vez, cada uno en su propia sesión (posiblemente
