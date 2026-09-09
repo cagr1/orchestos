@@ -32,7 +32,21 @@ Evidencia controlada del ítem cerrado.
       ['add', 'PLAN.md', 'docs/done/fixture.md'],
       ['commit', '-m', 'fixture plan import'],
     ]) {
-      const git = Bun.spawnSync(['git', ...args], { cwd: fixture, stdout: 'pipe', stderr: 'pipe' })
+      const git = Bun.spawnSync(
+        ['git', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args],
+        {
+          cwd: fixture,
+          env: {
+            ...process.env,
+            GIT_AUTHOR_NAME: 'OrchestOS test fixture',
+            GIT_AUTHOR_EMAIL: 'fixture@orchestos.test',
+            GIT_COMMITTER_NAME: 'OrchestOS test fixture',
+            GIT_COMMITTER_EMAIL: 'fixture@orchestos.test',
+          },
+          stdout: 'pipe',
+          stderr: 'pipe',
+        },
+      )
       expect(git.exitCode, new TextDecoder().decode(git.stderr)).toBe(0)
     }
 
