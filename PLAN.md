@@ -94,9 +94,28 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
   **Efecto medido:** el objetivo del bloque era el costo de contexto por tab. PLAN.md pasó de
   309 KB a ~140 KB con esta pasada sola; el resto lo elimina S.5, cuando dejar de leerlo sea lo normal.
 
-- [ ] **S.3 — 🧠 Esquema `plan_items` y migración desde el parser existente.**
-  **Spec ejecutable: [`docs/specs/S3.md`](docs/specs/S3.md)** — diseño cerrado, ejecutable por
-  cualquier LLM sin decisiones adicionales. Se borra en el commit que cierre el ítem.
+- [x] **S.3 — 🧠 Esquema `plan_items` y migración desde el parser existente.** (2026-09-09)
+  Implementado por Codex (`codex exec`, spec `docs/specs/S3.md`, ya borrado) — commit `d866f92`.
+  **Verificación independiente (Claude, no re-implementación):**
+  - Migración v7 en `src/db/migrate.ts:232` con el `CHECK (status='open' OR commit_sha IS NOT NULL)`
+    tal cual el spec; se aplica de verdad porque `runMigrations()` termina en `applyMigrationSteps()`
+    con `FUTURE_MIGRATIONS` por defecto (`src/db/migrate.ts:584`). `PRAGMA foreign_keys = ON` ya
+    estaba en `src/db/sqlite.ts:19`, así que el `ON DELETE RESTRICT` de `plan_item_deps` no es adorno.
+  - Fidelidad, corrida por mí en `ORCHESTOS_HOME` temporal (no la DB real): import → 69 ítems
+    (44 `done` / 25 `open`); contra `.orchestos/feature-status.json` (69 ítems):
+    `{missing:[], extra:[], diff:[]}` — cero diferencias de ID y de status.
+  - Ningún ítem `done` quedó con `body` vacío ni `commit_sha` NULL (query directa: `[]`).
+  - El `CHECK` bloquea de verdad: `INSERT` de un `done` sin `commit_sha` →
+    `CHECK constraint failed: status = 'open' OR commit_sha IS NOT NULL`.
+  - `plan_item_deps` queda vacía a propósito (el spec lo exige): las dependencias las carga Carlos
+    en el board de S.6, no se infieren de frases como "Orden de ataque propuesto".
+  - Gates: `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1362 pass / 0 fail) ·
+    `git diff --check` ✅ · `bun run lint` ✅ **exit 0**.
+  **Falso rojo que reportó Codex:** dio `lint` por fallado leyendo "Found 879 warnings" como error.
+  Comprobado con `git stash -u`: master sin estos cambios da los **mismos** 879 warnings y **exit 0**;
+  los archivos de S.3 no agregan ninguno. Biome sale 0 con warnings — el criterio es el exit code,
+  no el conteo. Por eso el ítem estuvo implementado pero sin commitear hasta esta verificación.
+  PLAN.md sigue siendo la fuente hasta que S.4 esté verde: esto **añade** la tabla, no la entroniza.
   Tabla en la SQLite que ya existe (`src/db/migrate.ts`):
   `id · sprint · title · delegation · status · depends_on[] · scope[] · commit_sha · closed_at`.
   Se siembra una sola vez con `scripts/plan-status.ts`, que ya sabe parsear PLAN.md.
