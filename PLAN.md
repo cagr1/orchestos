@@ -472,6 +472,44 @@ que `tasks.yaml`, un ítem ejecutable se convierte en run sin traducción, y el 
 cierra el ítem es el que produjo el run. El plan deja de ser documentación *sobre* el sistema y
 pasa a ser entrada *del* sistema.
 
+**S.7 — auditoría independiente del mecanismo de cierre (2026-09-10).** Carlos pidió una revisión
+independiente del Bloque S ya cerrado (S.1–S.6a). El resultado, `bunx tsc --noEmit` y los tests
+en verde no incluidos, encontró tres defectos reales de comportamiento en la lógica de
+procedencia y estado de cierre — documentados en
+`docs/audits/2026-09-10-block-s-review.md`. Ninguno tenía ítem abierto; se abren acá como S.7a–c,
+cada uno con spec propio en `docs/specs/`, sin implementación todavía.
+
+- [ ] **S.7a — ⚡ Escape de regex roto en el gate de procedencia de specs.** Spec:
+  `docs/specs/S.7a.md`. `scripts/plan-gate.ts:138` construye el `RegExp` de comparación
+  interpolando el ID sin escapar sus metacaracteres — el patrón de escape
+  `/[.*+?^${}()|[\\]\\\\]/g` es un no-op sobre IDs reales (`F.1`, `S.7a`...), así que el `.` de un
+  ID queda actuando como wildcard de regex. Consecuencia verificada en la auditoría: con item
+  `F.1`, un spec declarado `docs/specs/Fx1.md` pasa `checkProvenance()` sin error. Corrección:
+  escapar de verdad los metacaracteres del ID antes de interpolarlo. Test obligatorio que debe
+  fallar antes del fix: caso `F.1` + `docs/specs/Fx1.md` debe ser rechazado, agregado a
+  `scripts/plan-gate.test.ts` (el existente en línea ~129 usa `OTHER.md` y no detecta esto — no
+  se borra).
+
+- [ ] **S.7b — ⚡ SHA de un cierre anterior aceptado tras reabrir un ítem.** Spec:
+  `docs/specs/S.7b.md`. `scripts/plan-import.ts:52`, función `commitShaFor`: el `if (sha) return
+  sha` corre antes de considerar si hubo una reapertura posterior a ese cierre, así que un ítem
+  cerrado → reabierto → cerrado de nuevo SIN commit hereda el SHA del cierre viejo (vía
+  `findAllPlanCloseCommits`, `src/db/plan-items.ts:210-230`) y sale con `commitPending: false`.
+  Corrección: un cierre posterior a una reapertura no puede reutilizar un SHA anterior a esa
+  reapertura. Test obligatorio que debe fallar antes del fix: fixture git real
+  `open → close A (commit) → reopen (commit) → reclose (sin commit)` debe dar
+  `commitPending: true`, y una reconciliación posterior no debe revivir el SHA de `A`.
+
+- [ ] **S.7c — ⚡ Historial shallow hace pasar un commit de prosa como commit de cierre.** Spec:
+  `docs/specs/S.7c.md`. `src/db/plan-items.ts:238-282`, `listPlanItemsWithCommitStatus`: en un
+  clon `git clone --depth=1`, `git rev-parse --verify <sha>^` falla porque el padre no existe
+  localmente → `before = null` → se trata como mapa vacío → `confirmed = true` por defecto.
+  Corrección: distinguir "el padre no existe porque el historial está truncado" de "el padre no
+  tiene el ítem"; ante historia shallow no probable, el estado correcto es no confirmado (o un
+  estado explícito de indeterminado), nunca confirmado por defecto. Test obligatorio que debe
+  fallar antes del fix: clon shallow real donde el último commit disponible es solo de prosa
+  (no toca el ítem) debe dar `commitPending: true`.
+
 ## Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)
 
 - [x] **DOC.1 — ⚡ Reconciliar documentación viva con el estado verificable del plan.** (cerrado 2026-09-08) → [evidencia](docs/done/bloque-DOC.md#bloque-doc-doc-1)

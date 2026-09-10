@@ -76,6 +76,33 @@
       "closedDate": null
     },
     {
+      "id": "S.7a",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Escape de regex roto en el gate de procedencia de specs",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "S.7b",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "SHA de un cierre anterior aceptado tras reabrir un ítem",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "S.7c",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Historial shallow hace pasar un commit de prosa como commit de cierre",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "DOC.1",
       "sprint": "Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)",
       "block": null,
