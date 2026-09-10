@@ -59,9 +59,15 @@ Fixture Git real con `ORCHESTOS_HOME` temporal (mismo patrón de `scripts/plan-i
 Un cierre **posterior a una reapertura** no puede reutilizar un SHA anterior a esa reapertura.
 Concretamente: `commitShaFor` (o la función que le da su entrada) debe verificar, usando el
 historial disponible, si existe una transición done→open para ese ID **después** del SHA
-candidato. Si la hay, ese SHA queda invalidado como prueba del cierre vigente y el ítem debe
-resolver a `allowProvisional` (si aplica, mismo camino que un cierre nuevo en curso) o lanzar el
-error de "no se pudo probar" — nunca al SHA viejo.
+candidato. Si la hay, ese SHA queda invalidado como prueba del cierre vigente.
+
+**Decisión de diseño ya tomada por el cerebro (2026-09-10) — el ejecutor NO elige aquí.** Cuando
+el SHA queda invalidado, el fix consiste en **descartarlo y caer al camino que ya existe abajo**,
+sin ninguna rama nueva: es decir, comportarse exactamente como si `closeCommits.get(item.id)`
+hubiera devuelto `undefined`. Ese camino ya decide solo — `allowProvisional` true → `gitHead()`,
+`allowProvisional` false → el `throw`. No añadir un tercer comportamiento ni tocar la semántica
+de `allowProvisional`; el único cambio de control de flujo permitido es que el `if (sha) return
+sha` deje de disparar cuando ese `sha` está detrás de una reapertura.
 
 Decidí la forma concreta de detectar la reapertura posterior mirando cómo ya camina el historial
 `findAllPlanCloseCommits` (`src/db/plan-items.ts:210-230`): se necesita el mismo tipo de

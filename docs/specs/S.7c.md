@@ -68,33 +68,42 @@ posterior al cierre real, que en un clon completo no sería ni siquiera candidat
 
 Distinguir explícitamente "el padre no existe porque el historial está truncado" de "el padre
 existe y no tiene el ítem". Cuando `git rev-parse --verify <sha>^` falla, **no** se puede asumir
-que el commit es la raíz real del repo ni que es válido tratar `before` como vacío. El estado
-correcto ante historia shallow es **no confirmado** (o un estado explícito de indeterminado que
-en la capa de arriba se trate igual que "no confirmado" para efectos de `commitPending`) —
-nunca confirmado por defecto.
+que el commit es la raíz real del repo ni que es válido tratar `before` como vacío.
 
-Una forma válida de resolverlo: distinguir la raíz real del repo (verificable con
-`git rev-list --max-parents=0 <sha>` o comparando contra el resultado de un
-`rev-parse --verify <sha>` seguido de comprobar que no es una raíz shallow — inspeccionar
-`git rev-parse --is-shallow-repository` y/o el archivo `.git/shallow`) de un padre simplemente
-ausente por truncamiento. Si el repo es shallow y no se puede probar de forma fiable que `sha`
-es realmente la raíz del historial completo, tratar ese commit como **no confirmable** en vez de
-como raíz.
+**Decisión de diseño ya tomada por el cerebro (2026-09-10) — el ejecutor NO elige aquí.** No se
+introduce ningún estado nuevo: shallow no probado como raíz resuelve a `commitPending: true`, el
+booleano que ya existe. Motivo: `commitPending` lo consumen `bun run next`, el Sprint Board y el
+gate del ledger; un tercer estado obligaría a tocar tipos, UI y posiblemente el esquema SQLite,
+todo prohibido por §6. Y semánticamente `commitPending: true` ya significa exactamente "no puedo
+probar el cierre vigente", que es el caso.
 
-No es aceptable "arreglar" esto asumiendo `before = null → confirmed = false` de forma
-incondicional sin distinguir el caso, porque una raíz real (repo completo, primer commit del
-historial, ítem creado ya cerrado en el commit inicial) es un escenario legítimo y distinto —
-documentar en el código y/o el test cuál decisión se tomó y por qué, si el spec resulta
-insuficiente para cubrir ambos casos sin ambigüedad, **pararse y reportarlo** en vez de
-inventar el criterio.
+El árbol de decisión a implementar, sin variantes:
+
+1. `git rev-parse --verify <sha>^` **exitCode 0** → comportamiento actual sin cambios (se compara
+   `before` real contra `after`).
+2. `rev-parse --verify <sha>^` **falla** → consultar `git rev-parse --is-shallow-repository`:
+   - devuelve `false` → `sha` es la raíz real de un historial completo. Escenario legítimo (ítem
+     creado ya cerrado en el commit inicial): se conserva el comportamiento actual, `before`
+     vacío y `confirmed` puede salir `true`. **No romper este caso.**
+   - devuelve `true` → el padre existe en el remoto pero no localmente: el commit **no es
+     confirmable**. `confirmed = false` → `commitPending: true`.
+3. Si `is-shallow-repository` falla o devuelve algo que no sea `true`/`false` parseable, tratar
+   como no confirmable (`commitPending: true`) — nunca confirmado por defecto.
+
+Prohibido asumir `before = null → confirmed = false` de forma incondicional: eso rompe el caso
+1/2a (raíz real de un repo completo), que es legítimo. Si al tocar el código este árbol resulta
+imposible o falso, **parar y reportarlo**, no inventar otro criterio.
 
 ## 4. Test obligatorio que debe fallar ANTES del fix
 
 Un clon shallow real (`git clone --depth=1`, no simulado) donde el último commit disponible
 localmente es solo de prosa (no toca el ítem que se está evaluando) debe producir
-`commitPending: true` (o el estado indeterminado explícito que se decida, tratado como no
-confirmado) para ese ítem. Confirmar que el test falla contra el código actual (hoy sale
-`false`) y pasa después del fix.
+`commitPending: true` para ese ítem. Confirmar que el test falla contra el código actual (hoy
+sale `false`) y pasa después del fix.
+
+**Segundo test obligatorio, no negociable:** un repo con historia completa donde el ítem nace ya
+cerrado en el commit inicial (caso 2a del árbol de §3) debe seguir dando `commitPending: false`.
+Sin este test, el fix del caso shallow puede romper la raíz legítima sin que nadie lo note.
 
 ## 5. Gates
 
