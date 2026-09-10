@@ -73,7 +73,7 @@
       "delegation": "⚡",
       "title": "Remate verificable del Bloque S antes de archivarlo",
       "status": "done",
-      "closedDate": "2026-09-09"
+      "closedDate": "2026-09-10"
     },
     {
       "id": "S.7a",
@@ -108,8 +108,8 @@
       "block": null,
       "delegation": "⚡",
       "title": "Archivar la evidencia del Bloque S y dejar el índice en PLAN.md",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-09-10"
     },
     {
       "id": "DOC.1",

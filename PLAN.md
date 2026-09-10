@@ -56,7 +56,7 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
 
 - [x] **S.6 — 🔍 Pantalla Sprint Board en el dashboard.** (cerrado 2026-09-09) → [evidencia](docs/done/bloque-S.md#bloque-s-s-6)
 
-- [x] **S.6a — ⚡ Remate verificable del Bloque S antes de archivarlo.** (cerrado 2026-09-09) → [evidencia](docs/done/bloque-S.md#bloque-s-s-6a)
+- [x] **S.6a — ⚡ Remate verificable del Bloque S antes de archivarlo.** (cerrado 2026-09-10) → [evidencia](docs/done/bloque-S.md#bloque-s-s-6a)
 
 - [x] **S.7a — ⚡ Escape de regex roto en el gate de procedencia de specs.** (cerrado 2026-09-10) → [evidencia](docs/done/bloque-S.md#bloque-s-s-7a)
 
@@ -64,19 +64,36 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
 
 - [x] **S.7c — ⚡ Historial shallow hace pasar un commit de prosa como commit de cierre.** (cerrado 2026-09-10) → [evidencia](docs/done/bloque-S.md#bloque-s-s-7c)
 
-- [ ] **S.8 — ⚡ Archivar la evidencia del Bloque S y dejar el índice en PLAN.md.** Spec:
-  `docs/specs/S.8.md`. Los 11 ítems del bloque (S.1–S.7c) están `[x]` y su evidencia sigue
-  íntegra dentro de `PLAN.md`, líneas 14–578 (~565 de 2213 líneas del archivo, ~25%). Es
-  exactamente lo que la regla de `AGENTS.md:38` prohíbe acumular, y la causa mecánica del
-  crecimiento que S.2 midió. Mover esa evidencia **literalmente** a `docs/done/bloque-S.md`
-  (archivo nuevo, con anclas `<a id>` explícitas como los demás `docs/done/bloque-*.md`) y dejar
-  en PLAN.md una línea por ítem con `→ [evidencia](docs/done/bloque-S.md#...)`, igual que DOC.1.
-  **Fuera:** no se toca ningún otro bloque, ni IDEAS.md, ni el texto de ningún ítem abierto, ni
-  el encabezado narrativo del bloque S. Este ítem S.8 **no se archiva a sí mismo**: queda en
-  PLAN.md con su evidencia inline.
-  **Gate:** los 81 IDs y sus 81 estados idénticos antes/después (`.orchestos/feature-status.json`),
-  0 enlaces rotos, `bun run plan:reconcile` + `bun run plan:render -- --check` verdes, y ninguna
-  línea de evidencia perdida (verificación por conteo y por muestreo del ítem más largo).
+- [x] **S.8 — ⚡ Archivar la evidencia del Bloque S y dejar el índice en PLAN.md.** (cerrado 2026-09-10)
+  Ejecutado por: gpt-5.6-luna · Spec: docs/specs/S.8.md
+  Cierre inline: este ítem es el que archiva el bloque, así que no se archiva a sí mismo.
+  Implementado en `c32b636`. Los 11 ítems S.1–S.7c pasaron de evidencia embebida a una línea con
+  enlace; la evidencia vive literal en `docs/done/bloque-S.md` (558 líneas, 11 anclas `<a id>`).
+  **Efecto medido:** `PLAN.md` 2227 → 1715 líneas (−512, −23%). Es el costo de contexto que
+  `AGENTS.md:38` busca evitar y que S.2 ya había medido una vez.
+  **Verificación independiente (2026-09-10, cerebro ≠ ejecutor):** no se confió en el reporte.
+  1) **Nada se perdió:** de las 554 líneas no vacías del Bloque S en `HEAD~1:PLAN.md`, 553 están
+  literales en `docs/done/bloque-S.md` o en el índice; la única distinta es la línea-título de S.3,
+  que cambió `(2026-09-09)` → `(cerrado 2026-09-09)` por el propio formato que pide el spec.
+  2) **Ningún ID ni estado cambió:** `[{id,status}]` de `feature-status.json` idéntico entre
+  `HEAD~1` y `HEAD`. El único delta del JSON son 7 `closedDate` que pasaron de `null` a fecha,
+  porque ahora la fecha está en la línea del ítem y no enterrada en la prosa — mejora, no deriva.
+  3) **0 enlaces rotos:** los 11 anclas de PLAN.md existen como `<a id>` en el archivo.
+  4) `bun run plan:render -- --check` verde; alcance del commit limitado a `PLAN.md`,
+  `docs/done/bloque-S.md` y los dos derivados que regenera el hook.
+  **Defecto encontrado en la ejecución y corregido por el verificador:** luna puso
+  `(cerrado 2026-09-09)` en S.6a, cuyo texto solo menciona 2026-09-10 — el spec manda tomar la
+  fecha de la propia evidencia. Corregido a mano en PLAN.md.
+  **Defecto del spec, no del ejecutor (primera pasada):** luna **paró sin decidir**, correctamente,
+  porque S.5 y S.6 no tenían fecha en ninguna parte y el spec le prohibía inventarla sin darle
+  salida. Se reescribió el spec con ambas fechas resueltas por el cerebro desde el commit de
+  transición (`a6355f1`, `3ce7c42`, ambos 2026-09-09) — se reescribe el spec, no se toma el teclado.
+  **Segundo bloqueo, de entorno:** el sandbox `workspace-write` de `codex exec` no alcanza a
+  `~/.orchestos`, así que `bun run plan:reconcile` moría con `SQLiteError: attempt to write a
+  readonly database`. Resuelto acotando el permiso a esa sola ruta con
+  `-c 'sandbox_workspace_write.writable_roots=["~/.orchestos"]'`, no con `danger-full-access`.
+  Regla operativa nueva: **cualquier ítem delegado a Codex que toque la DB del plan necesita ese
+  flag**, o el ejecutor se bloquea en el `plan:reconcile` obligatorio.
 
 ## Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)
 
