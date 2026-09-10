@@ -506,15 +506,40 @@ cada uno con spec propio en `docs/specs/`, sin implementación todavía.
   líneas 63.22% ≥ 57%) · `bun run lint` exit 0 (warnings heredados, no errores) ·
   `git diff --check` limpio.
 
-- [ ] **S.7b — ⚡ SHA de un cierre anterior aceptado tras reabrir un ítem.** Spec:
-  `docs/specs/S.7b.md`. `scripts/plan-import.ts:52`, función `commitShaFor`: el `if (sha) return
-  sha` corre antes de considerar si hubo una reapertura posterior a ese cierre, así que un ítem
-  cerrado → reabierto → cerrado de nuevo SIN commit hereda el SHA del cierre viejo (vía
-  `findAllPlanCloseCommits`, `src/db/plan-items.ts:210-230`) y sale con `commitPending: false`.
-  Corrección: un cierre posterior a una reapertura no puede reutilizar un SHA anterior a esa
-  reapertura. Test obligatorio que debe fallar antes del fix: fixture git real
-  `open → close A (commit) → reopen (commit) → reclose (sin commit)` debe dar
-  `commitPending: true`, y una reconciliación posterior no debe revivir el SHA de `A`.
+- [x] **S.7b — ⚡ SHA de un cierre anterior aceptado tras reabrir un ítem.** (cerrado 2026-09-10)
+  Ejecutado por: gpt-5.6-terra · Spec: docs/specs/S.7b.md
+  Cierre inline (sin `evidenceHref`), igual que S.5/S.6/S.6a/S.7a: `docs/done/bloque-S.md` sigue
+  sin existir. Implementado en `766227b` por Codex-terra bajo spec; el cierre lo hace la
+  verificación independiente, no el ejecutor.
+  **Defecto:** `commitShaFor` (`scripts/plan-import.ts`) devolvía el SHA de `closeCommits` antes
+  de considerar si hubo una reapertura posterior a ese cierre, así que un ítem
+  `open → done (commit A) → open (commit B) → done (sin commit)` heredaba `A` y salía con
+  `commitPending: false` sin prueba del cierre vigente.
+  **Corrección:** `findAllPlanCloseCommits` se generalizó a `findAllPlanTransitionCommits`
+  (`src/db/plan-items.ts`), que en la misma pasada `--first-parent` devuelve `closeCommits`,
+  `reopenCommits` y el set `reopenedAfterLatestClose` (comparando la posición de ambos SHAs en el
+  walk newest-first). `commitShaFor` ahora es `if (sha && !reopenedAfterLatestClose.has(id))
+  return sha`: el SHA inválido se descarta y cae al camino que ya existía — `allowProvisional` →
+  `gitHead()`, o el `throw`. No se agregó ninguna rama nueva ni se tocó la semántica de
+  `allowProvisional`. `findAllPlanCloseCommits` se conserva como wrapper para sus otros llamadores.
+  No se tocó `listPlanItemsWithCommitStatus` (es S.7c).
+  **Test de regresión:** `scripts/plan-import.test.ts`, `reconcile keeps a reclosed item pending
+  instead of reviving its pre-reopen close SHA` — fixture git real con `ORCHESTOS_HOME` temporal,
+  recorre `open → close A → reopen → reclose sin commit` y además cubre el segundo requisito del
+  spec: una reconciliación repetida falla con `Could not prove a closing commit SHA for F.1` y el
+  `commitSha` resultante nunca vuelve a ser `A`.
+  **Verificación independiente (2026-09-10, cerebro ≠ ejecutor):** no se confió en el reporte de
+  Codex. Se revirtieron `src/db/plan-items.ts` y `scripts/plan-import.ts` a `1ac8494` dejando el
+  test nuevo en su lugar, y el test **falla** contra el código pre-fix
+  (`plan-import.test.ts:320`, el `commitPending: true` del recierre); restaurado el árbol, pasa.
+  **Efecto en vivo sobre el repo real, no solo en fixture:** `findAllPlanTransitionCommits`
+  detecta que **H.10.2** tiene una reapertura posterior a su último cierre en la historia real de
+  este repo — hoy está `open`, así que no llega a `commitShaFor` y `bun run plan:reconcile` pasa
+  limpio (81 ítems, 58 `done`, ninguno con `commitPending` espurio, S.7a conserva `f2c37c2`).
+  Era el ítem que habría heredado un SHA falso al recerrarse: el defecto era real acá, no teórico.
+  **Gates:** `bunx tsc --noEmit` ✅ · `bun run test:coverage` ✅ (1390 pass / 0 fail, 3503 expects;
+  funciones 74.34% ≥ 69%, líneas 63.18% ≥ 57%) · `bun run lint` exit 0 (warnings heredados) ·
+  `git diff --check` limpio · `bun run plan:render -- --check` y `scripts/plan-gate.ts` verdes.
 
 - [ ] **S.7c — ⚡ Historial shallow hace pasar un commit de prosa como commit de cierre.** Spec:
   `docs/specs/S.7c.md`. `src/db/plan-items.ts:238-282`, `listPlanItemsWithCommitStatus`: en un
