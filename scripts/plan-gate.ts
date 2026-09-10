@@ -135,7 +135,7 @@ export function checkProvenance(): void {
       const { path, section } = evidenceSectionFromIndex(source.evidenceHref)
       const anchor = source.evidenceHref.slice(hrefSplit + 1)
       const expected = new RegExp(
-        `^Ejecutado por: .+ · Spec: docs/specs/${id.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\.md$`,
+        `^Ejecutado por: .+ · Spec: docs/specs/${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.md$`,
         'm',
       )
       if (!expected.test(section))

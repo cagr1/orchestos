@@ -139,6 +139,19 @@ it('rejects evidence whose section belongs to a different item', async () => {
   expect(JSON.parse(out).threw).toMatch(/must declare its executor and exact spec/)
 })
 
+it("rejects an evidence spec where a wildcard char stands in for the id's literal dot", async () => {
+  const { out } = await runScenario(
+    scenarioScript(`
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('docs/done/bloque-F.md', '<a id="bloque-f-f-1"></a>\\nEjecutado por: gpt-5.6-terra · Spec: docs/specs/Fx1.md\\n')
+      git(['add', '-A'])
+      git(['rm', '--cached', 'docs/specs/F.1.md'])
+      unlinkSync(join(root, 'docs/specs/F.1.md'))
+    `),
+  )
+  expect(JSON.parse(out).threw).toMatch(/must declare its executor and exact spec/)
+})
+
 it('rejects a symlinked evidence path', async () => {
   const { out } = await runScenario(
     scenarioScript(`
