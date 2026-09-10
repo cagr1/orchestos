@@ -479,16 +479,32 @@ procedencia y estado de cierre — documentados en
 `docs/audits/2026-09-10-block-s-review.md`. Ninguno tenía ítem abierto; se abren acá como S.7a–c,
 cada uno con spec propio en `docs/specs/`, sin implementación todavía.
 
-- [ ] **S.7a — ⚡ Escape de regex roto en el gate de procedencia de specs.** Spec:
-  `docs/specs/S.7a.md`. `scripts/plan-gate.ts:138` construye el `RegExp` de comparación
-  interpolando el ID sin escapar sus metacaracteres — el patrón de escape
-  `/[.*+?^${}()|[\\]\\\\]/g` es un no-op sobre IDs reales (`F.1`, `S.7a`...), así que el `.` de un
-  ID queda actuando como wildcard de regex. Consecuencia verificada en la auditoría: con item
-  `F.1`, un spec declarado `docs/specs/Fx1.md` pasa `checkProvenance()` sin error. Corrección:
-  escapar de verdad los metacaracteres del ID antes de interpolarlo. Test obligatorio que debe
-  fallar antes del fix: caso `F.1` + `docs/specs/Fx1.md` debe ser rechazado, agregado a
-  `scripts/plan-gate.test.ts` (el existente en línea ~129 usa `OTHER.md` y no detecta esto — no
-  se borra).
+- [x] **S.7a — ⚡ Escape de regex roto en el gate de procedencia de specs.** (cerrado 2026-09-10)
+  Ejecutado por: claude-opus-5 · Spec: docs/specs/S.7a.md
+  Cierre inline (sin `evidenceHref`), igual que S.5/S.6/S.6a: `docs/done/bloque-S.md` sigue sin
+  existir. Implementado en `bd7425a`; el cierre lo hace una verificación independiente distinta
+  del ejecutor, como exige el spec §6-7 — el propio commit se negó a marcar `[x]`.
+  **Defecto:** `scripts/plan-gate.ts:138` construía el `RegExp` de comparación interpolando el ID
+  sin escapar sus metacaracteres — el patrón `/[.*+?^${}()|[\\]\\\\]/g` cerraba la clase de
+  caracteres en `[\\]` y dejaba `\\\\]` como literales fuera de ella, por lo que nunca matcheaba
+  nada y `id.replace()` era un no-op sobre IDs reales (`F.1`, `S.7a`...). El `.` del ID quedaba
+  actuando como wildcard.
+  **Corrección:** `id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')` — clase de caracteres estándar y
+  correcta. No se relajó la comprobación: sigue siendo match exacto de línea completa, y no se
+  tocó `evidenceSectionFromIndex`, `sectionAtHead`, la ruta inline ni `Sin delegación:`.
+  **Test de regresión:** `scripts/plan-gate.test.ts`, caso `rejects an evidence spec where a
+  wildcard char stands in for the id's literal dot` — fixture git real con item `F.1`, evidencia
+  declarando `docs/specs/Fx1.md` y `git rm --cached docs/specs/F.1.md`; espera el throw `must
+  declare its executor and exact spec`. El test existente con `OTHER.md` (~línea 129) sigue ahí.
+  **Verificación independiente (2026-09-10, sesión distinta a la del ejecutor):** el diferencial
+  del patrón se reprodujo de forma aislada, sin confiar en el reporte del ejecutor — patrón viejo
+  compila a `docs\/specs\/F.1\.md` (punto sin escapar) y acepta el exploit `Fx1.md` (`true`);
+  patrón nuevo compila a `docs\/specs\/F\.1\.md`, rechaza `Fx1.md` (`false`) y sigue aceptando el
+  legítimo `F.1.md` (`true`).
+  **Gates:** `bunx tsc --noEmit` ✅ · `bun test ./scripts/plan-gate.test.ts` ✅ (10 pass / 0 fail) ·
+  `bun run test:coverage` ✅ (1389 pass / 0 fail, 3484 expects, 150 archivos; funciones 74.39% ≥ 69%,
+  líneas 63.22% ≥ 57%) · `bun run lint` exit 0 (warnings heredados, no errores) ·
+  `git diff --check` limpio.
 
 - [ ] **S.7b — ⚡ SHA de un cierre anterior aceptado tras reabrir un ítem.** Spec:
   `docs/specs/S.7b.md`. `scripts/plan-import.ts:52`, función `commitShaFor`: el `if (sha) return
