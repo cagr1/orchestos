@@ -43,9 +43,14 @@ Cada uno de los 11 ítems pasa a ser exactamente una línea, con este formato (e
 
 - El **título** es el que ya trae la línea del ítem en PLAN.md; no lo reescribas.
 - La **fecha**: si la línea del ítem ya trae `(cerrado YYYY-MM-DD)` o `(YYYY-MM-DD)`, se conserva
-  esa. Si el ítem no trae fecha en su primera línea (es el caso de S.1, S.2, S.5, S.6, S.6a),
-  búscala en su propia evidencia (`Cerrado 2026-09-09…`, `(2026-09-09)`, etc.) y úsala. Si de
-  verdad no hay ninguna fecha en la evidencia de ese ítem, **para y repórtalo**; no inventes una.
+  esa. Si el ítem no la trae en su primera línea, búscala en su propia evidencia
+  (`Cerrado 2026-09-09…`, `(2026-09-09)`, etc.) y úsala.
+  **Ítems sin fecha en ninguna parte — ya resueltos por el cerebro (2026-09-10), no los busques ni
+  los decidas:** `S.5` y `S.6` no tienen fecha ni en su línea ni en su evidencia; el cerebro la
+  obtuvo del commit que hizo la transición (`a6355f1` y `3ce7c42`, ambos `2026-09-09`). Usa
+  **`(cerrado 2026-09-09)`** para ambos, literal. Los otros nueve ítems sí tienen fecha en el
+  archivo. Si aun así encuentras un ítem sin fecha que no sea S.5 ni S.6, **para y repórtalo**;
+  no inventes una.
 - Toda línea del ítem que hoy está en PLAN.md y no cabe en esa única línea se va literal a
   `docs/done/bloque-S.md`. Nada se borra.
 
