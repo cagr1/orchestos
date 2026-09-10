@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { runMigrations } from '../src/db/migrate.ts'
-import { findAllPlanCloseCommits, getPlanItem, upsertPlanItem } from '../src/db/plan-items.ts'
+import { findAllPlanTransitionCommits, getPlanItem, upsertPlanItem } from '../src/db/plan-items.ts'
 import { db } from '../src/db/sqlite.ts'
 import {
   type PlanItemSource,
@@ -46,11 +46,12 @@ function gitHead(root: string): string | null {
 function commitShaFor(
   item: PlanItemSource,
   closeCommits: Map<string, string>,
+  reopenedAfterLatestClose: Set<string>,
   allowProvisional: boolean,
   root: string,
 ): string {
   const sha = closeCommits.get(item.id)
-  if (sha) return sha
+  if (sha && !reopenedAfterLatestClose.has(item.id)) return sha
   if (allowProvisional) {
     const provisional = gitHead(root)
     if (provisional) return provisional
@@ -69,8 +70,8 @@ function importSources(sources: PlanItemSource[], root: string, reconcile: boole
   const roundTrip = segments.map((segment) => segment.text).join('')
   if (roundTrip !== plan) throw new Error('PLAN.md segment round-trip is not byte-exact')
 
-  // Resolved once for every item instead of once per item — see findAllPlanCloseCommits.
-  const closeCommits = findAllPlanCloseCommits(root)
+  // Resolved once for every item instead of once per item — see findAllPlanTransitionCommits.
+  const { closeCommits, reopenedAfterLatestClose } = findAllPlanTransitionCommits(root)
   const importAll = db.transaction(() => {
     for (const item of sources) {
       const body = item.evidenceHref ? bodyFromEvidence(root, item.evidenceHref) : item.body
@@ -93,7 +94,7 @@ function importSources(sources: PlanItemSource[], root: string, reconcile: boole
           status: item.status,
           commitSha:
             item.status === 'done'
-              ? commitShaFor(item, closeCommits, allowProvisional, root)
+              ? commitShaFor(item, closeCommits, reopenedAfterLatestClose, allowProvisional, root)
               : null,
           closedAt: item.closedDate,
           position: item.position,

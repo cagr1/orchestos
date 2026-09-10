@@ -198,19 +198,24 @@ export function isConfirmedPlanCloseCommit(root: string, id: string, sha: string
   return itemStatusAtCommit(root, parent.stdout, id) !== 'done'
 }
 
+export interface PlanTransitionCommits {
+  closeCommits: Map<string, string>
+  reopenCommits: Map<string, string>
+  reopenedAfterLatestClose: Set<string>
+}
+
 /**
- * Finds the real transition commit for every item in one pass over PLAN.md's history,
- * instead of re-walking the whole history once per item. `plan-import.ts`'s reconcile closes
- * dozens of items at a time; calling `findPlanCloseCommit` per item was O(items × history) git
- * subprocess spawns — on this repo's ~440 PLAN.md-touching commits that took minutes and could
- * hang. `--first-parent` keeps each entry's parent equal to the next (older) entry parsed here,
- * so every commit's PLAN.md is read exactly once. Reopen-then-reclose resolves to the most
- * recent closing transition, since the walk goes newest-first and the first match wins.
+ * Finds each item's latest close and reopen transitions in one pass over PLAN.md history.
+ * `--first-parent` keeps each entry's parent equal to the next (older) entry parsed here, so
+ * every commit's PLAN.md is read exactly once. A reopen that appears before a close in this
+ * newest-first walk invalidates that close as proof of the current working-tree closure.
  */
-export function findAllPlanCloseCommits(root: string): Map<string, string> {
-  const result = new Map<string, string>()
+export function findAllPlanTransitionCommits(root: string): PlanTransitionCommits {
+  const closeCommits = new Map<string, string>()
+  const reopenCommits = new Map<string, string>()
   const history = git(root, ['log', '--first-parent', '--format=%H', '--', 'PLAN.md'])
-  if (history.exitCode !== 0) return result
+  if (history.exitCode !== 0)
+    return { closeCommits, reopenCommits, reopenedAfterLatestClose: new Set() }
   const shas = history.stdout.split('\n').filter(Boolean)
   const parsed = shas.map((sha) => {
     const document = git(root, ['show', `${sha}:PLAN.md`])
@@ -223,10 +228,30 @@ export function findAllPlanCloseCommits(root: string): Map<string, string> {
     const before = parsed[index + 1] ?? new Map<string, PlanItemStatus>()
     if (!after) continue
     for (const [id, status] of after) {
-      if (status === 'done' && before.get(id) !== 'done' && !result.has(id)) result.set(id, sha)
+      if (status === 'done' && before.get(id) !== 'done' && !closeCommits.has(id))
+        closeCommits.set(id, sha)
+      if (status === 'open' && before.get(id) === 'done' && !reopenCommits.has(id))
+        reopenCommits.set(id, sha)
     }
   }
-  return result
+  const reopenedAfterLatestClose = new Set<string>()
+  for (const [id, reopenSha] of reopenCommits) {
+    const closeSha = closeCommits.get(id)
+    if (!closeSha || shas.indexOf(reopenSha) < shas.indexOf(closeSha))
+      reopenedAfterLatestClose.add(id)
+  }
+  return { closeCommits, reopenCommits, reopenedAfterLatestClose }
+}
+
+/**
+ * Finds the real transition commit for every item in one pass over PLAN.md's history,
+ * instead of re-walking the whole history once per item. `plan-import.ts`'s reconcile closes
+ * dozens of items at a time; calling `findPlanCloseCommit` per item was O(items × history) git
+ * subprocess spawns — on this repo's ~440 PLAN.md-touching commits that took minutes and could
+ * hang. Reopen-then-reclose resolves to the most recent closing transition.
+ */
+export function findAllPlanCloseCommits(root: string): Map<string, string> {
+  return findAllPlanTransitionCommits(root).closeCommits
 }
 
 /** Finds the real transition commit for a single item; callers must abort rather than
