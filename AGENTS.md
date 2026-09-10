@@ -68,6 +68,17 @@ El modelo caro (hoy Claude) hace exactamente cuatro cosas, en este orden:
    nada). Recién entonces se marca `[x]` con la evidencia pegada.
 
 La ejecución mecánica ⚡ va a Codex (`codex exec -m <modelo> --approve-for-me "<prompt>" < /dev/null`).
+
+**Sandbox de Codex y la DB del plan (2026-09-10, medido en S.8):** el sandbox `workspace-write`
+solo deja escribir dentro del repo, y la DB de OrchestOS vive en `~/.orchestos`. Cualquier ítem
+delegado a Codex que toque el plan se bloquea en el `bun run plan:reconcile` obligatorio con
+`SQLiteError: attempt to write a readonly database`. Se resuelve acotando el permiso a esa sola
+ruta — nunca con `danger-full-access`:
+
+    codex exec -m <modelo> -s workspace-write \
+      -c 'sandbox_workspace_write.writable_roots=["/Users/<user>/.orchestos"]' "<prompt>" < /dev/null
+
+`--approve-for-me` y `-s` son mutuamente excluyentes: al usar `-s` se cae el primero.
 Los ítems 🧠 los **diseña** el cerebro y los **ejecuta** un delegado siguiendo el spec.
 Los gates 🔍 se verifican en vivo, contra el sistema real corriendo, nunca contra mocks.
 
