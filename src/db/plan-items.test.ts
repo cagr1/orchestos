@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
+  listPlanItemsWithCommitStatus,
   listPlanItemsWithDeps,
   preparePlanItemClose,
   setDeps,
@@ -173,6 +174,121 @@ describe('preparePlanItemClose', () => {
     ).toThrow('disk full')
     expect(listPlanItemsWithDeps(database).find((item) => item.id === 'A')?.status).toBe('open')
     expect(readFileSync(join(root, 'PLAN.md'), 'utf-8')).toBe(plan)
+    database.close()
+  })
+})
+
+const gitEnv = {
+  ...process.env,
+  GIT_AUTHOR_NAME: 'OrchestOS test fixture',
+  GIT_AUTHOR_EMAIL: 'fixture@orchestos.test',
+  GIT_COMMITTER_NAME: 'OrchestOS test fixture',
+  GIT_COMMITTER_EMAIL: 'fixture@orchestos.test',
+}
+
+function gitRun(root: string, args: string[]): void {
+  const result = Bun.spawnSync(
+    ['git', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args],
+    { cwd: root, env: gitEnv, stdout: 'pipe', stderr: 'pipe' },
+  )
+  expect(result.exitCode, new TextDecoder().decode(result.stderr)).toBe(0)
+}
+
+function gitHead(root: string): string {
+  return Bun.spawnSync(['git', 'rev-parse', 'HEAD'], { cwd: root, stdout: 'pipe' })
+    .stdout.toString()
+    .trim()
+}
+
+describe('listPlanItemsWithCommitStatus — shallow history (S.7c)', () => {
+  test('a shallow clone whose local root is a prose-only commit stays commitPending', () => {
+    const origin = mkdtempSync(join(tmpdir(), 'plan-shallow-origin-'))
+    const clone = mkdtempSync(join(tmpdir(), 'plan-shallow-clone-'))
+    roots.push(origin, clone)
+
+    // Commit 1: X open.
+    writeFileSync(join(origin, 'PLAN.md'), '## Sprint fixture\n- [ ] **X — ⚡ X item.**\n')
+    gitRun(origin, ['init'])
+    gitRun(origin, ['add', 'PLAN.md'])
+    gitRun(origin, ['commit', '-m', 'X open'])
+
+    // Commit 2: real close of X.
+    writeFileSync(join(origin, 'PLAN.md'), '## Sprint fixture\n- [x] **X — ⚡ X item.**\n')
+    gitRun(origin, ['add', 'PLAN.md'])
+    gitRun(origin, ['commit', '-m', 'close X'])
+
+    // Commit 3: prose-only change, does not touch X's line.
+    writeFileSync(
+      join(origin, 'PLAN.md'),
+      '## Sprint fixture (renamed)\n- [x] **X — ⚡ X item.**\n',
+    )
+    gitRun(origin, ['add', 'PLAN.md'])
+    gitRun(origin, ['commit', '-m', 'prose only'])
+    const proseSha = gitHead(origin)
+
+    gitRun(process.cwd(), ['clone', '--depth=1', `file://${origin}`, clone])
+    const shallowCheck = Bun.spawnSync(['git', 'rev-parse', '--is-shallow-repository'], {
+      cwd: clone,
+      stdout: 'pipe',
+    })
+      .stdout.toString()
+      .trim()
+    expect(shallowCheck).toBe('true')
+    expect(gitHead(clone)).toBe(proseSha)
+
+    const database = fixtureDb()
+    upsertPlanItem(
+      {
+        id: 'X',
+        sprint: 'Sprint fixture',
+        delegation: '⚡',
+        title: 'X item',
+        status: 'done',
+        commitSha: proseSha,
+        position: 3,
+      },
+      database,
+    )
+
+    const status = listPlanItemsWithCommitStatus(clone, database).find((item) => item.id === 'X')
+    expect(status?.commitPending).toBe(true)
+    database.close()
+  })
+
+  test('a full-history repo where the item is born already closed at the root stays confirmed', () => {
+    const root = mkdtempSync(join(tmpdir(), 'plan-root-close-'))
+    roots.push(root)
+
+    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [x] **X — ⚡ X item.**\n')
+    gitRun(root, ['init'])
+    gitRun(root, ['add', 'PLAN.md'])
+    gitRun(root, ['commit', '-m', 'X born closed'])
+    const rootSha = gitHead(root)
+
+    const shallowCheck = Bun.spawnSync(['git', 'rev-parse', '--is-shallow-repository'], {
+      cwd: root,
+      stdout: 'pipe',
+    })
+      .stdout.toString()
+      .trim()
+    expect(shallowCheck).toBe('false')
+
+    const database = fixtureDb()
+    upsertPlanItem(
+      {
+        id: 'X',
+        sprint: 'Sprint fixture',
+        delegation: '⚡',
+        title: 'X item',
+        status: 'done',
+        commitSha: rootSha,
+        position: 3,
+      },
+      database,
+    )
+
+    const status = listPlanItemsWithCommitStatus(root, database).find((item) => item.id === 'X')
+    expect(status?.commitPending).toBe(false)
     database.close()
   })
 })

@@ -287,17 +287,37 @@ export function listPlanItemsWithCommitStatus(
       return null
     }
     const after = git(root, ['show', `${sha}:PLAN.md`])
-    const parent = git(root, ['rev-parse', '--verify', `${sha}^`])
-    const before = parent.exitCode === 0 ? git(root, ['show', `${parent.stdout}:PLAN.md`]) : null
-    if (after.exitCode !== 0 || (before && before.exitCode !== 0)) {
+    if (after.exitCode !== 0) {
       states.set(sha, null)
       return null
     }
+    const parent = git(root, ['rev-parse', '--verify', `${sha}^`])
+    let beforeStatuses: Map<string, PlanItemStatus>
+    if (parent.exitCode === 0) {
+      const before = git(root, ['show', `${parent.stdout}:PLAN.md`])
+      if (before.exitCode !== 0) {
+        states.set(sha, null)
+        return null
+      }
+      beforeStatuses = new Map(
+        parsePlanFeatureStatus(before.stdout).map((item) => [item.id, item.status]),
+      )
+    } else {
+      // The parent doesn't resolve locally. In a repo with full history that means `sha` is a
+      // genuine root commit — the item can legitimately be born already `done`. In a truncated
+      // history (`git clone --depth=1`) the parent exists upstream but was never fetched, so
+      // this commit cannot prove any transition and must NOT be treated as a root.
+      const shallow = git(root, ['rev-parse', '--is-shallow-repository'])
+      if (shallow.exitCode === 0 && shallow.stdout === 'false') {
+        beforeStatuses = new Map()
+      } else {
+        states.set(sha, null)
+        return null
+      }
+    }
     const value = {
       after: new Map(parsePlanFeatureStatus(after.stdout).map((item) => [item.id, item.status])),
-      before: new Map(
-        (before ? parsePlanFeatureStatus(before.stdout) : []).map((item) => [item.id, item.status]),
-      ),
+      before: beforeStatuses,
     }
     states.set(sha, value)
     return value
