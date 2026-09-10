@@ -576,6 +576,20 @@ cada uno con spec propio en `docs/specs/`, sin implementación todavía.
   69%, líneas 63.35% ≥ 57%) · `bun run lint` exit 0 (warnings heredados) · `git diff --check`
   limpio.
 
+- [ ] **S.8 — ⚡ Archivar la evidencia del Bloque S y dejar el índice en PLAN.md.** Spec:
+  `docs/specs/S.8.md`. Los 11 ítems del bloque (S.1–S.7c) están `[x]` y su evidencia sigue
+  íntegra dentro de `PLAN.md`, líneas 14–578 (~565 de 2213 líneas del archivo, ~25%). Es
+  exactamente lo que la regla de `AGENTS.md:38` prohíbe acumular, y la causa mecánica del
+  crecimiento que S.2 midió. Mover esa evidencia **literalmente** a `docs/done/bloque-S.md`
+  (archivo nuevo, con anclas `<a id>` explícitas como los demás `docs/done/bloque-*.md`) y dejar
+  en PLAN.md una línea por ítem con `→ [evidencia](docs/done/bloque-S.md#...)`, igual que DOC.1.
+  **Fuera:** no se toca ningún otro bloque, ni IDEAS.md, ni el texto de ningún ítem abierto, ni
+  el encabezado narrativo del bloque S. Este ítem S.8 **no se archiva a sí mismo**: queda en
+  PLAN.md con su evidencia inline.
+  **Gate:** los 81 IDs y sus 81 estados idénticos antes/después (`.orchestos/feature-status.json`),
+  0 enlaces rotos, `bun run plan:reconcile` + `bun run plan:render -- --check` verdes, y ninguna
+  línea de evidencia perdida (verificación por conteo y por muestreo del ítem más largo).
+
 ## Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)
 
 - [x] **DOC.1 — ⚡ Reconciliar documentación viva con el estado verificable del plan.** (cerrado 2026-09-08) → [evidencia](docs/done/bloque-DOC.md#bloque-doc-doc-1)

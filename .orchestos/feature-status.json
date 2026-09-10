@@ -103,6 +103,15 @@
       "closedDate": "2026-09-10"
     },
     {
+      "id": "S.8",
+      "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Archivar la evidencia del Bloque S y dejar el índice en PLAN.md",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "DOC.1",
       "sprint": "Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)",
       "block": null,
