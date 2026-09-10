@@ -541,15 +541,40 @@ cada uno con spec propio en `docs/specs/`, sin implementación todavía.
   funciones 74.34% ≥ 69%, líneas 63.18% ≥ 57%) · `bun run lint` exit 0 (warnings heredados) ·
   `git diff --check` limpio · `bun run plan:render -- --check` y `scripts/plan-gate.ts` verdes.
 
-- [ ] **S.7c — ⚡ Historial shallow hace pasar un commit de prosa como commit de cierre.** Spec:
-  `docs/specs/S.7c.md`. `src/db/plan-items.ts:238-282`, `listPlanItemsWithCommitStatus`: en un
-  clon `git clone --depth=1`, `git rev-parse --verify <sha>^` falla porque el padre no existe
-  localmente → `before = null` → se trata como mapa vacío → `confirmed = true` por defecto.
-  Corrección: distinguir "el padre no existe porque el historial está truncado" de "el padre no
-  tiene el ítem"; ante historia shallow no probable, el estado correcto es no confirmado (o un
-  estado explícito de indeterminado), nunca confirmado por defecto. Test obligatorio que debe
-  fallar antes del fix: clon shallow real donde el último commit disponible es solo de prosa
-  (no toca el ítem) debe dar `commitPending: true`.
+- [x] **S.7c — ⚡ Historial shallow hace pasar un commit de prosa como commit de cierre.** (cerrado 2026-09-10)
+  Ejecutado por: sonnet · Spec: docs/specs/S.7c.md
+  Cierre inline (sin `evidenceHref`), igual que S.5/S.6/S.6a/S.7a/S.7b. Implementado en `e6ac009`
+  por el ejecutor bajo spec cerrado; el cierre lo hace la verificación independiente.
+  **Defecto:** `listPlanItemsWithCommitStatus` (`src/db/plan-items.ts`) trataba el fallo de
+  `git rev-parse --verify <sha>^` como `before = mapa vacío`, sin distinguir la raíz real de un
+  historial completo (legítimo) de la raíz local de un clon `--depth=1` (el padre existe en el
+  remoto, no localmente). Con `before` vacío, `state.before.get(id) !== 'done'` es siempre `true`,
+  así que cualquier commit que ya trajera el ítem `done` — incluido uno de solo prosa — salía
+  `commitPending: false`.
+  **Corrección:** cuando el padre no resuelve se consulta `git rev-parse --is-shallow-repository`:
+  `false` → raíz real, se conserva el comportamiento previo (`before` vacío, cierre confirmable);
+  `true` o salida no parseable → `states.set(sha, null)`, con lo que `confirmed` es `false` y el
+  ítem queda `commitPending: true`. No se introdujo ningún estado nuevo (decisión del spec §3): el
+  booleano existente ya significa "no puedo probar el cierre vigente", y un tercer estado habría
+  obligado a tocar tipos, UI y esquema. No se tocó `findAllPlanCloseCommits`,
+  `findAllPlanTransitionCommits`, `scripts/plan-gate.ts` ni `scripts/plan-import.ts`.
+  **Tests de regresión** (`src/db/plan-items.test.ts`, describe `— shallow history (S.7c)`):
+  (1) clon shallow **real** — `git clone --depth=1 file://<origin>`, con aserción previa de que
+  `is-shallow-repository` es `true` y de que HEAD es el commit de prosa — cuyo ítem registrado con
+  ese SHA debe dar `commitPending: true`; (2) guardia del caso legítimo: repo de historia completa
+  con el ítem nacido ya cerrado en el commit raíz sigue dando `commitPending: false`.
+  Nota del ejecutor que evitó un falso positivo: `git clone --depth=1` sobre una ruta local es
+  ignorado en silencio ("--depth is ignored in local clones"); el fixture usa `file://` para que
+  el clon sea shallow de verdad.
+  **Verificación independiente (2026-09-10, cerebro ≠ ejecutor):** no se confió en el reporte. Se
+  revirtió `src/db/plan-items.ts` a `HEAD~1` dejando los tests nuevos en su lugar: el test shallow
+  **falla** (`plan-items.test.ts:254`, `Expected: true / Received: false`) y el de raíz legítima
+  **pasa** — o sea, es guardia real de regresión, no un test que pase por construcción. Árbol
+  restaurado con `git checkout HEAD --`, working tree limpio.
+  **Gates (corridos por el verificador, no copiados del ejecutor):** `bunx tsc --noEmit` ✅ ·
+  `bun run test:coverage` ✅ (1392 pass / 0 fail, 3519 expects, 150 archivos; funciones 74.48% ≥
+  69%, líneas 63.35% ≥ 57%) · `bun run lint` exit 0 (warnings heredados) · `git diff --check`
+  limpio.
 
 ## Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)
 
