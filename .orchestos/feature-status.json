@@ -10,7 +10,7 @@
       "delegation": "⚡",
       "title": "Renombrar la etiqueta histórica a \"Sprint N\" en documentación y en el contrato de plan-status",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-09"
     },
     {
       "id": "S.2",
@@ -19,7 +19,7 @@
       "delegation": "⚡",
       "title": "Purgar de PLAN.md la evidencia de los ítems ya cerrados",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-09"
     },
     {
       "id": "S.3",
@@ -28,7 +28,7 @@
       "delegation": "🧠",
       "title": "Esquema `plan_items` y migración desde el parser existente",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-09"
     },
     {
       "id": "S.4a",
@@ -46,7 +46,7 @@
       "delegation": "🧠",
       "title": "`plan:render` híbrido + gate de desincronización y de procedencia en pre-commit",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-09"
     },
     {
       "id": "S.5",
@@ -55,7 +55,7 @@
       "delegation": "⚡",
       "title": "`bun run next` y arranque de sesión barato",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-09"
     },
     {
       "id": "S.6",
@@ -64,7 +64,7 @@
       "delegation": "🔍",
       "title": "Pantalla Sprint Board en el dashboard",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-09"
     },
     {
       "id": "S.6a",
@@ -73,7 +73,7 @@
       "delegation": "⚡",
       "title": "Remate verificable del Bloque S antes de archivarlo",
       "status": "done",
-      "closedDate": null
+      "closedDate": "2026-09-09"
     },
     {
       "id": "S.7a",
