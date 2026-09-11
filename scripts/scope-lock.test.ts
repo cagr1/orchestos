@@ -4,6 +4,7 @@ import {
   parseScopeArg,
   pathsOutsideScope,
   planClosesItem,
+  planHasItem,
 } from './scope-lock.ts'
 
 describe('parseScopeArg', () => {
@@ -56,5 +57,32 @@ describe('planClosesItem', () => {
   test('no confunde con otro ítem parecido', () => {
     const diff = '+- [x] **H.4.2 — 🧠 Título.** (cerrado 2026-09-01)\n'
     expect(planClosesItem(diff, 'H.4.1')).toBe(false)
+  })
+})
+
+describe('planHasItem', () => {
+  const plan = [
+    '- [x] **S.1 — ⚡ Renombrar la etiqueta histórica.** (cerrado 2026-09-09)',
+    '- [ ] **H.7.3** — ⚡ El hook: avisar al 60%',
+  ].join('\n')
+
+  test('encuentra un ítem abierto', () => {
+    expect(planHasItem(plan, 'H.7.3')).toBe(true)
+  })
+
+  test('encuentra un ítem cerrado', () => {
+    expect(planHasItem(plan, 'S.1')).toBe(true)
+  })
+
+  test('un ítem borrado de PLAN.md no existe (caso zombi AG.1b, 2026-09-11)', () => {
+    expect(planHasItem(plan, 'AG.1b')).toBe(false)
+  })
+
+  test('no confunde un ítem con otro que lo tiene como prefijo', () => {
+    expect(planHasItem(plan, 'S')).toBe(false)
+  })
+
+  test('PLAN.md vacío no tiene ningún ítem', () => {
+    expect(planHasItem('', 'H.7.3')).toBe(false)
   })
 })

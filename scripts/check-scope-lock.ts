@@ -14,7 +14,12 @@ import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { runCommand } from './agent-governance.ts'
 import type { ActiveItemState } from './scope-lock.ts'
-import { hasOutOfScopeJustification, pathsOutsideScope, planClosesItem } from './scope-lock.ts'
+import {
+  hasOutOfScopeJustification,
+  pathsOutsideScope,
+  planClosesItem,
+  planHasItem,
+} from './scope-lock.ts'
 
 const ACTIVE_ITEM_PATH = '.orchestos/active-item.json'
 
@@ -26,6 +31,19 @@ export function main(root = process.cwd()): number {
   }
 
   const state = JSON.parse(readFileSync(statePath, 'utf8')) as ActiveItemState
+
+  // Estado zombi: el ítem declarado ya no está en PLAN.md (borrado, renombrado
+  // o vivía en otra rama). Nunca va a llegar su `[x]`, así que el estado
+  // sobreviviría para siempre bloqueando commits ajenos. Se limpia y no aplica.
+  const planPath = resolve(root, 'PLAN.md')
+  const planContent = existsSync(planPath) ? readFileSync(planPath, 'utf8') : ''
+  if (!planHasItem(planContent, state.item)) {
+    rmSync(statePath)
+    console.log(
+      `✓ Scope-lock: ${state.item} ya no existe en PLAN.md — estado huérfano limpiado, no aplica`,
+    )
+    return 0
+  }
 
   const names = runCommand(['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR'], root)
   if (names.exitCode !== 0) {

@@ -44,6 +44,20 @@ export function hasOutOfScopeJustification(planDiff: string): boolean {
     .some((line) => line.startsWith('+') && /Fuera de scope declarado:/i.test(line))
 }
 
+/**
+ * Un ítem declarado puede desaparecer de PLAN.md sin cerrarse nunca: se borra
+ * porque era configuración interna, se renombra, o vivía en otra rama. En ese
+ * caso `planClosesItem` nunca ve el `[x]` y el estado de sesión sobrevive sin
+ * dueño, bloqueando en silencio todo commit fuera de su glob. Incidente real
+ * 2026-09-11: `AG.1b` quedó declarado tras borrarse el ítem, y frenó un commit
+ * de docs sin relación. Mismo patrón que la Regla cero de CLAUDE.md — un diente
+ * mecánico desincronizado de su fuente deja de proteger y empieza a estorbar.
+ */
+export function planHasItem(planContent: string, itemId: string): boolean {
+  const escaped = itemId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`^- \\[[ x]\\] \\*\\*${escaped}(?:\\s|—|\\*)`, 'm').test(planContent)
+}
+
 export function planClosesItem(planDiff: string, itemId: string): boolean {
   const escaped = itemId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const re = new RegExp(`^\\+- \\[x\\] \\*\\*${escaped}(?:\\s|—)`, 'm')
