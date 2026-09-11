@@ -1,4 +1,4 @@
-# DREAMING.md — 2026-09-07
+# DREAMING.md — 2026-09-11
 
 ## Runs analizados
 - Total: 20 runs
@@ -7,28 +7,28 @@
 
 ## Patrones detectados
 
-### 1. task_class "doc" con deepseek/deepseek-v4-flash: 100% de fallo
-- Evidencia: runs `696cc3ca`, `01f9b0e6`, `516bcb21` — los 3 únicos runs de `task_class: doc`, los 3 con `model: deepseek/deepseek-v4-flash`
-- Frecuencia: 3/3 runs (100%, umbral >50%)
-- qa_reason recurrente (idéntico en los 3): `"missing declared output(s): src/utils/helper.js"`
-- Nota: mismo output declarado (`src/utils/helper.js`) en los 3 — podría ser el mismo caso de prueba repetido en vez de 3 escenarios distintos; no se puede descartar con este dataset.
+### deepseek/deepseek-v4-flash falla 100% en task_class "doc"
+- Evidencia: runs `696cc3ca`, `01f9b0e6`, `516bcb21` — mismo modelo, mismo task_class, mismo output declarado (`src/utils/helper.js`)
+- Frecuencia: 3/3 runs de esa combinación (3/20 del total)
+- qa_reason recurrente: "missing declared output(s): src/utils/helper.js"
 
-### 2. qa_reason "missing declared output(s)" cruza task_class
-- Evidencia: `696cc3ca`, `01f9b0e6`, `516bcb21` (doc, deepseek) + `d064d1b9` (implement, openai/gpt-5.4, output `hello-b.txt`)
-- Frecuencia: 4/20 runs (20% del total, 4/9 runs con qa_verdict no-null = 44%)
-- Patrón: el modelo reporta la tarea como completa pero el archivo declarado como output nunca se crea — mismo modo de fallo en 2 modelos distintos (deepseek y gpt-5.4), sugiere problema de verificación/instrucción más que de un modelo puntual
+### "missing declared output(s)" es todo el qa_failed, cruza modelos
+- Evidencia: los 4 qa_failed del periodo comparten exactamente esta causa — 3 con deepseek/deepseek-v4-flash (task_class doc) + 1 con openai/gpt-5.4 (`d064d1b9`, task_class implement, output `hello-b.txt`)
+- Frecuencia: 4/4 de los qa_failed, 4/20 del total
+- qa_reason recurrente: "missing declared output(s): <archivo>"
+- Nota: el mismo archivo `hello-b.txt` se completó bien en otros dos runs (`091d9132` con gpt-5.4, `09a013c7` con deepseek) — la falla no es consistente por modelo ni por archivo, sugiere un problema intermitente en cómo se verifica/escribe el output declarado, no en la capacidad del modelo.
 
 ## Propuestas
 
-### Propuesta 1 — verificación de output declarado antes de marcar QA pass
-- Qué cambiar: en el paso de QA/verificación (`ledger:gate` o equivalente), chequear con `fs.existsSync` que cada archivo en `outputs:` declarado por la tarea existe en disco ANTES de invocar el LLM juez, en vez de depender de que el juez lo detecte por texto
-- Por qué: patrón 2 — 4/20 runs fallaron por este motivo exacto, en 2 modelos distintos; es un check determinístico barato que no necesita LLM
+### Propuesta 1 — investigar por qué deepseek-v4-flash no escribe `src/utils/helper.js` en task_class "doc"
+- Qué cambiar: revisar el prompt/plantilla de task_class "doc" y el parser de "declared output(s)" para esa ruta específica
+- Por qué: 3/3 de fallo exacto con el mismo archivo y el mismo mensaje de qa_reason, tasa de fallo 100% (> umbral 50%)
 - Riesgo: bajo
 
-### Propuesta 2 — revisar el dataset de prueba de task_class=doc
-- Qué cambiar: confirmar si los 3 runs de `doc` son 3 intentos del mismo caso de prueba (`src/utils/helper.js`) reintentado, o 3 tareas reales distintas
-- Por qué: patrón 1 — 100% de fallo con un solo output declarado en los 3 casos es sospechoso de ser el mismo test repetido, no evidencia de que deepseek falle sistemáticamente en `doc`
-- Riesgo: bajo (solo investigación, no cambia código)
+### Propuesta 2 — auditar el mecanismo de verificación de "declared output(s)"
+- Qué cambiar: el código que compara output declarado vs. archivos realmente escritos (probablemente en el runner de tasks/gate de QA)
+- Por qué: la misma causa de fallo aparece con dos modelos distintos y el mismo archivo (`hello-b.txt`) pasa y falla en corridas distintas — indicio de condición de carrera o de timing en la verificación, no de capacidad del modelo
+- Riesgo: medio
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
