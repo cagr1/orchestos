@@ -138,10 +138,11 @@ tocar el área. Los marcados con diente ya fallan solos si alguien los viola.
 
 **36 entradas.**
 
-RIESGO ACEPTADO, declarado: `reference-test-fixtures-leak-into-real-db` no tiene diente y el
-propio texto dice que es un patrón **recurrente** (volvió en I.6 tras IDEAS #20). Sacarlo del
-arranque sube la probabilidad de que vuelva una tercera vez. Alternativa honesta: dejarlo en D
-hasta que exista DB de test aislada. **Decide Carlos.**
+RIESGO CERRADO el mismo día (commit `f827631`), a pedido de Carlos: en vez de devolver
+`reference-test-fixtures-leak-into-real-db` al índice, se le dio el diente que nunca tuvo.
+`scripts/test-preload.ts` aísla la DB de la suite en un home temporal y
+`scripts/db-isolation.test.ts` pone CI en rojo si alguien rompe el aislamiento. Queda vigente
+que los **gates en vivo** sí escriben en la DB real: eso es por diseño y no lo cubre el fix.
 
 ---
 
