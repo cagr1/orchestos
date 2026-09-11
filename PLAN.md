@@ -99,8 +99,6 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
 
 - [x] **DOC.1 — ⚡ Reconciliar documentación viva con el estado verificable del plan.** (cerrado 2026-09-08) → [evidencia](docs/done/bloque-DOC.md#bloque-doc-doc-1)
 
-- [x] **DOC.2 — 🧠 El roster reconoce a Opus, Fable, Sol y Astra como cerebros.** (cerrado 2026-09-11) → [evidencia](docs/done/bloque-DOC.md#bloque-doc-doc-2)
-
 ## Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)
 
 Carlos autorizó registrar estos hallazgos para atacarlos. Procedencia: revisión del código en

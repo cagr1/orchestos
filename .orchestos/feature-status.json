@@ -121,15 +121,6 @@
       "closedDate": "2026-09-08"
     },
     {
-      "id": "DOC.2",
-      "sprint": "Bloque DOC — Fuentes vivas sincronizadas (2026-09-08)",
-      "block": null,
-      "delegation": "🧠",
-      "title": "El roster reconoce a Opus, Fable, Sol y Astra como cerebros",
-      "status": "done",
-      "closedDate": "2026-09-11"
-    },
-    {
       "id": "R.1",
       "sprint": "Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)",
       "block": null,
