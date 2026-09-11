@@ -37,9 +37,27 @@
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-resume.js\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/startup-guard.js\"",
+            "timeout": 5
           }
         ]
       }
     ]
+  },
+  "disabledMcpServers": [
+    "claude.ai Figma",
+    "claude.ai Vercel",
+    "claude.ai Supabase",
+    "claude.ai Mintlify",
+    "claude.ai Gmail",
+    "claude.ai Google Drive",
+    "claude.ai Google Calendar"
+  ],
+  "env": {
+    "CLAUDE_CODE_DISABLE_BUNDLED_SKILLS": "1",
+    "CLAUDE_CODE_DISABLE_ARTIFACT": "1"
   }
 }

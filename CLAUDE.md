@@ -110,3 +110,37 @@ Corolario que costó semanas: un CI que falla siempre deja de dar señal. Si CI 
 rojo, arreglarlo es prioridad — no ruido de fondo. Y `Mutation Shards` rojo casi nunca
 es un problema de mutación: Stryker aborta con "failed tests in the initial test run"
 cuando la suite normal falla.
+
+## Higiene de contexto — config declarada, arranque avisado (2026-09-11)
+
+Medición cruda 2026-09-11: tab nuevo y limpio en OrchestOS = **57,035 tokens** antes del
+primer tool call (~46,000 de system prompt + skills bundled del binario, 3,999 de
+`MEMORY.md` del proyecto, 2,600 de `~/.claude/CLAUDE.md`, 1,677 de este archivo, ~2,000 de
+MCP, ~580 de hooks). Detalle completo en `docs/specs/CTX-GUARD.md`.
+
+Dos canales de carga que `enabledPlugins`/`mcpServers` del proyecto **no** cubren, porque no
+pasan por ahí:
+
+1. **Conectores de cuenta `claude.ai *`** (Figma, Vercel, Supabase, Mintlify, Gmail, Drive,
+   Calendar). Los sirve la cuenta de claude.ai, no el repo — `claude mcp remove "claude.ai
+   Figma"` responde literalmente `No MCP server named "claude.ai Figma"` mientras el conector
+   sigue conectado. La única llave real es `disabledMcpServers` en `.claude/settings.json`.
+2. **~30 skills bundled del binario**, que cargan su descripción en toda sesión sin pasar por
+   `enabledPlugins`. Llave: env `CLAUDE_CODE_DISABLE_BUNDLED_SKILLS=1`. `knowledge-radar` y
+   `knowledge-promote` no son skills bundled (son commands en `~/.claude/commands/*.md`) y
+   sobreviven a ese flag.
+
+**La config vive en `.claude/settings.json` versionado, no en la cuenta ni en la memoria de
+nadie.** Ese archivo ya trae `disabledMcpServers` con los 7 conectores y `env` con
+`CLAUDE_CODE_DISABLE_BUNDLED_SKILLS=1`, así que viaja con el repo a cualquier terminal y
+cualquier máquina sin que nadie tenga que reconfigurar nada a mano.
+
+Regla de aviso, pedida textualmente por Carlos: si una sesión arranca pesada, el cerebro lo
+dice **antes** de leer archivos o de trabajar — no después, y una sola vez, solo cuando hay
+algo que avisar. El diente mecánico que hace esto real, en el mismo espíritu que la "Regla
+cero" de arriba con el pre-commit desincronizado 11 días en silencio, es
+`.claude/hooks/startup-guard.js` (spec en `docs/specs/CTX-GUARD.md`): corre en
+`SessionStart`, detecta conectores no declarados, env de
+skills bundled ausente, plugins fuera de la allowlist y peso de arranque sobre 9,000 tokens
+estimados; si no hay ningún hallazgo no imprime nada — un aviso que aparece en cada sesión es
+el mismo mal que este guard cura.

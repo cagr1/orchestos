@@ -256,3 +256,34 @@ excepción. Si la skill se crea o importa por el dashboard, el contrato descrito
 (`src/dashboard/prompts/curator.ts`) debe incluirlo o toda skill importada nace sin ese campo. El
 orden de las secciones dentro de `buildSections()` es parte del contrato — es el orden en que el
 modelo lee la skill.
+
+## Roster de modelos y alias de Codex (2026-09-11)
+
+Regla para CUALQUIER LLM que trabaje en este repo (Claude, Codex, DeepSeek, OpenCode) — no se
+vuelve a preguntar por sesión ni por tab.
+
+**Alias de Codex.** Cuando Carlos dice "Luna", "Terra", "Sol" o "Astra" se refiere a modelos de
+Codex, no a agentes ni a personas. IDs confirmados el 2026-09-11 leyendo los rollouts de
+`~/.codex/sessions`:
+
+- Luna = `gpt-5.6-luna`
+- Terra = `gpt-5.6-terra`
+- Sol = `gpt-5.6-sol`
+- Astra = `gpt-6-astra`
+
+Se invocan con `codex exec -m <id>`.
+
+**Roster fijo de OrchestOS** (aplicación de `~/.claude/CLAUDE.md` § Reparto de modelos,
+`INS-2026-019`): el **cerebro** es Claude Opus 5 vía Claude Code — piensa, decide trade-offs,
+abre el ítem de `PLAN.md`, escribe el spec en `docs/specs/<ID>.md` y verifica con comandos
+propios. **Nunca teclea código de producto.** Los **ejecutores** son los cuatro modelos de
+Codex de arriba y los subagentes de Claude Code: aplican un spec que ya no contiene ninguna
+decisión de diseño pendiente.
+
+Motivo real: el cupo de un CLI de suscripción no se agota por trabajar mucho, sino por gastar
+el modelo caro en tokens que uno barato produce igual de bien. Si el ejecutor tiene que decidir
+algo, el defecto está en el spec — se reescribe el spec, nunca se toma el teclado. Una tarea
+difícil cambia el ejecutor (Luna → Terra → excepción con Sonnet), nunca quién escribe el spec.
+Sí es trabajo de cerebro y no cuenta como escribir código: editar `PLAN.md`, `AGENTS.md`,
+`CLAUDE.md`, `CONTEXT.md`, `docs/specs/*` y docs de análisis; correr comandos de lectura,
+consultas a la DB, gates y scripts existentes para verificar.
