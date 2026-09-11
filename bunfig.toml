@@ -1,5 +1,7 @@
 [test]
 coverage = true
-# Corre las migraciones una sola vez antes del primer test, para que el esquema
-# no dependa de qué archivo llegue primero a la DB (ver scripts/test-preload.ts).
+# Aísla la DB de la suite en un home temporal y corre las migraciones una sola vez,
+# para que ni los datos ni el esquema dependan del host (ver scripts/test-preload.ts).
+# Quitar esta línea hace que los tests escriban en la ~/.orchestos real del usuario:
+# scripts/db-isolation.test.ts lo detecta y pone CI en rojo.
 preload = ["./scripts/test-preload.ts"]

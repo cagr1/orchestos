@@ -7,7 +7,9 @@ import { join } from 'path'
 // En uso normal conserva ~/.orchestos como ubicación estable del usuario.
 const DB_HOME = process.env.ORCHESTOS_HOME || homedir()
 const DB_DIR = join(DB_HOME, '.orchestos')
-const DB_PATH = join(DB_DIR, 'db.sqlite')
+// Exportado para que un test pueda afirmar contra qué DB corre la suite; ver
+// `scripts/db-isolation.test.ts`. Congelado en el primer import, a propósito.
+export const DB_PATH = join(DB_DIR, 'db.sqlite')
 
 if (!existsSync(DB_DIR)) {
   mkdirSync(DB_DIR, { recursive: true })
