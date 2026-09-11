@@ -13,6 +13,19 @@ Evidencia movida literalmente desde PLAN.md en S.2; PLAN.md conserva el índice.
   `bunx tsc --noEmit` ✅; se actualizaron las fuentes vivas del repo y los dos resúmenes vivos del
   vault. `docs/done/` quedó intacto como historial.
 
+<a id="bloque-doc-doc-2"></a>
+### DOC.2 — 🧠 El roster reconoce a Opus, Fable, Sol y Astra como cerebros.
+ (cerrado 2026-09-11)
+Ejecutado por: gpt-5.6-sol · Spec: docs/specs/DOC.2.md
+  Se eliminó la contradicción interna de `AGENTS.md`: el roster activo declara como cerebros a
+  Opus 5, Fable 5.1, `gpt-5.6-sol` y `gpt-6-astra`; que Sol y Astra usen Codex CLI no cambia su
+  rol. Los ejecutores quedan separados: Luna por defecto, Terra si el spec conserva criterio y
+  Sonnet como excepción si Terra no alcanza. Carlos sigue fijando el modelo de cada corrida
+  delegada. **Evidencia:** `bun run agent:preflight -- --item DOC.2 --agent sol --scope ...` ✅;
+  `bunx tsc --noEmit` ✅; `git diff --check` ✅; `bun run plan:render -- --check` ✅ antes del
+  cierre; búsqueda en las fuentes vivas sin la regla contradictoria «el cerebro es Claude» ni
+  «los ejecutores son los cuatro modelos de Codex» ✅.
+
 **Regla**: marcar `[x]` con fecha al cerrar. Si una validación falla, no abrir el siguiente bloque.
 
 **Delegación — NO es una leyenda, son muros dirigidos a ti, el que ejecuta (endurecido 2026-07-15):**

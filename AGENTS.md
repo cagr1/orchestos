@@ -273,12 +273,17 @@ Codex, no a agentes ni a personas. IDs confirmados el 2026-09-11 leyendo los rol
 
 Se invocan con `codex exec -m <id>`.
 
-**Roster fijo de OrchestOS** (aplicación de `~/.claude/CLAUDE.md` § Reparto de modelos,
-`INS-2026-019`): el **cerebro** es Claude Opus 5 vía Claude Code — piensa, decide trade-offs,
-abre el ítem de `PLAN.md`, escribe el spec en `docs/specs/<ID>.md` y verifica con comandos
-propios. **Nunca teclea código de producto.** Los **ejecutores** son los cuatro modelos de
-Codex de arriba y los subagentes de Claude Code: aplican un spec que ya no contiene ninguna
-decisión de diseño pendiente.
+**Roster fijo de OrchestOS** (decisión de Carlos; aplicación de `~/.claude/CLAUDE.md` § Reparto
+de modelos e `INS-2026-019`): los **cerebros** son **Opus 5, Fable 5.1, `gpt-5.6-sol` y
+`gpt-6-astra`**. Cualquiera de ellos, cuando ocupa ese rol, piensa, decide trade-offs, abre el
+ítem de `PLAN.md`, escribe el spec en `docs/specs/<ID>.md` y verifica con comandos propios.
+**Nunca teclea código de producto.** Que Sol y Astra se ejecuten mediante Codex CLI no los
+convierte en ejecutores mecánicos: el rol lo fija este roster.
+
+Los **ejecutores** son `gpt-5.6-luna` por defecto, `gpt-5.6-terra` cuando el spec no logró
+eliminar todo el criterio de implementación y Sonnet vía Claude CLI solo si Terra no alcanza.
+Aplican un spec que ya no contiene ninguna decisión de diseño pendiente. Carlos fija el modelo
+de cada corrida delegada; ningún LLM lo elige o lo hereda de memoria.
 
 Motivo real: el cupo de un CLI de suscripción no se agota por trabajar mucho, sino por gastar
 el modelo caro en tokens que uno barato produce igual de bien. Si el ejecutor tiene que decidir

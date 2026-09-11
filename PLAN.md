@@ -99,12 +99,7 @@ ningún LLM puede cerrar un ítem sin que exista el commit que lo respalda.
 
 - [x] **DOC.1 — ⚡ Reconciliar documentación viva con el estado verificable del plan.** (cerrado 2026-09-08) → [evidencia](docs/done/bloque-DOC.md#bloque-doc-doc-1)
 
-- [ ] **DOC.2 — 🧠 El roster reconoce a Opus, Fable, Sol y Astra como cerebros.** Corregir la
-  contradicción interna de `AGENTS.md`: los cuatro piensan, planifican, escriben specs y verifican;
-  Luna/Terra ejecutan el trabajo mecánico según el spec. Mantener explícito que Carlos fija el
-  modelo de cada corrida delegada y que ningún cerebro escribe código de producto.
-  **Gate:** preflight, diff acotado y búsqueda global sin una regla posterior que reduzca el
-  cerebro a Opus únicamente.
+- [x] **DOC.2 — 🧠 El roster reconoce a Opus, Fable, Sol y Astra como cerebros.** (cerrado 2026-09-11) → [evidencia](docs/done/bloque-DOC.md#bloque-doc-doc-2)
 
 ## Bloque R — Fiabilidad del recorrido completo (auditoría 2026-09-06)
 
