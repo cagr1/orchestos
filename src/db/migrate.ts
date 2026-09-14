@@ -319,6 +319,44 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       if (table !== 1) throw new Error('Migration 8 did not create plan_doc_segments')
     },
   },
+  {
+    // AT.7 (2026-09-14) — algunas instalaciones registraron v4 con el cambio
+    // ajeno `run-files-read`; el ledger impide reejecutar v4, pero el chat
+    // actual necesita estas columnas para persistir cada intercambio. Esta
+    // reparación es aditiva y deliberadamente conserva ese historial.
+    version: 9,
+    name: 'chat-messages-held-task-recovery',
+    precondition: (database) => {
+      const messages =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'chat_messages'",
+          )
+          .get()?.count ?? 0
+      if (messages !== 1) throw new Error('Migration 9 requires chat_messages table')
+    },
+    apply: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_messages)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('task_held')) {
+        database.exec('ALTER TABLE chat_messages ADD COLUMN task_held INTEGER')
+      }
+      if (!columns.includes('existing_files')) {
+        database.exec('ALTER TABLE chat_messages ADD COLUMN existing_files TEXT')
+      }
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_messages)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('task_held') || !columns.includes('existing_files')) {
+        throw new Error('Migration 9 did not add task_held/existing_files to chat_messages')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -88,7 +88,9 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   previo; no era evidencia). `bunx tsc --noEmit` limpio, 14 tests verdes en los dos
   archivos de test tocados.
 
-- [ ] **AT.7 — 🧠 Recuperar migración histórica de chat retenido.** La versión 4 puede figurar
+- [x] **AT.7 — 🧠 Recuperar migración histórica de chat retenido.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.7.md
+  Sin delegación: el spec era un artefacto no versionado y fue eliminado al cerrar el ítem.
   aplicada con el cambio ajeno `run-files-read`, dejando `chat_messages` sin `task_held` ni
   `existing_files` y rompiendo todo POST de chat. Añadir una migración 9 compensatoria, sin
   reescribir el ledger histórico ni la versión 4; cubrir instalación nueva, ledger legado y
@@ -96,9 +98,9 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   `PRAGMA table_info(chat_messages)` y POST/GET/recarga reales con respuesta exacta.
   **Estado 2026-09-14:** backup `~/.orchestos/backups/at7-pre-migration-2026-09-14.sqlite`
   verificado, v9 aplicada, `PRAGMA integrity_check` = `ok`, POST real = `ORCHESTOS_CHAT_OK` y GET
-  tras reinicio recuperó ambos mensajes. El fixture de AT.7.1 ya elimina el fallo de
-  `absoluteLevel: null`; el cierre global sigue bloqueado porque `bun run test:coverage` da
-  1417 pass / 3 fail en pruebas ajenas (revisión adversarial y bind loopback L.2).
+  tras reinicio recuperó ambos mensajes. El fixture de AT.7.1 elimina el fallo de
+  `absoluteLevel: null`; `bun run test:coverage` pasa 1420/1420 y el gate de migración queda
+  cerrado.
 
 - [x] **AT.7.1 — ⚡ Desbloquear el gate de cobertura de AT.7.** (cerrado 2026-09-14)
   Ejecutado por: luna · Spec: docs/specs/AT.7.1.md

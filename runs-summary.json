@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-09-14T17:15:19.329Z",
+  "exported_at": "2026-09-14T17:17:33.258Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "41a6d954-eab6-43fc-8268-6c55288bdca2",
+      "task_class": "chat",
+      "model": "claude (cli default model)",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-09-14T17:16:46.352Z"
+    },
     {
       "id": "5da02d80-5d00-4b4a-b666-9f0ca7db6970",
       "task_class": "chat",
@@ -286,21 +301,6 @@
       "elapsed_ms": 179,
       "tokens": 0,
       "created_at": "2026-08-19T18:16:53.745Z"
-    },
-    {
-      "id": "09a013c7-0599-4d38-88f3-b86bdee4bd7b",
-      "task_class": "implement",
-      "model": "deepseek/deepseek-v4-flash",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "File hello-b.txt created with correct content 'Hello from project B'",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.1014993,
-      "elapsed_ms": 13856,
-      "tokens": 491,
-      "created_at": "2026-08-19T18:15:44.551Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 15,
     "qa_failed": 4,
-    "total_cost_usd": "0.9689"
+    "total_cost_usd": "0.8674"
   }
 }
