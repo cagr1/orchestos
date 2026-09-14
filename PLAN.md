@@ -64,6 +64,11 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   temporizadores manuales para confirmar cuál de los 7 CLIs cuesta, y decidir si el poll de
   5 s necesita cachearse o si el cómputo por-CLI necesita moverse fuera del hot path.
 
+- [ ] **AT.6 — ⚡ Lint en rojo: 3 archivos sin formatear/ordenar.** `bun run lint` exit 1,
+  5 errores mecánicos (formato + orden de imports) en `.claude/hooks/startup-guard.js`,
+  `tests/hooks/brain-no-code.test.ts`, `tests/hooks/startup-guard.test.ts`. Spec:
+  docs/specs/AT.6.md.
+
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 
 **Problema medido, no estimado.** `PLAN.md` pesa 309 KB / 3854 líneas. Para que un agente

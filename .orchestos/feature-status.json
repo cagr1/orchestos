@@ -40,6 +40,15 @@
       "closedDate": null
     },
     {
+      "id": "AT.6",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Lint en rojo: 3 archivos sin formatear/ordenar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "S.1",
       "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
