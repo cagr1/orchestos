@@ -64,6 +64,13 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   temporizadores manuales para confirmar cuál de los 7 CLIs cuesta, y decidir si el poll de
   5 s necesita cachearse o si el cómputo por-CLI necesita moverse fuera del hot path.
 
+- [ ] **AT.5 — 🧠 Freno mecánico de costo de sesión: umbral absoluto + bloqueo real.**
+  `context-budget.js` avisa por % de ventana; con ventana de 1M, 18% ya son 180k tokens
+  reales. Medido 2026-09-14: 8.8M tokens releídos en 67 llamadas sin aviso. Agrega
+  `ABSOLUTE_BUDGET_THRESHOLDS` (warn 60k, block 90k tokens absolutos) sin tocar el umbral
+  por-% existente (calibrado contra el autocompact), y un bloqueo real (`exit 2`) que se
+  repite en cada prompt mientras dure. Spec: docs/specs/AT.5.md.
+
 - [x] **AT.6 — ⚡ Lint en rojo: 3 archivos sin formatear/ordenar.** (cerrado 2026-09-14)
   Ejecutado por: luna · Spec: docs/specs/AT.6.md
   `bunx biome check --write` sobre los 3 archivos declarados; solo formato + orden de

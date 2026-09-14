@@ -40,6 +40,15 @@
       "closedDate": null
     },
     {
+      "id": "AT.5",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Freno mecánico de costo de sesión: umbral absoluto + bloqueo real",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.6",
       "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
       "block": null,
