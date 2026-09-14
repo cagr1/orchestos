@@ -137,6 +137,13 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   (cierre del ítem) — el spec solo declaraba `.claude/hooks/**` y `tests/hooks/**`, pero el hook no
   entra en vigor sin el wiring en `settings.json` ni el `.gitignore` de su estado.
 
+- [ ] **AT.9 — 🧠 Cualquier CLI en el chat, sin bloqueo por frontera de lectura.** Decisión de
+  Carlos 2026-09-14: el CLI elegido se usa aunque no pueda demostrar una frontera de lectura; el
+  sistema muestra un aviso no bloqueante y deja visible cualquier error real del CLI. Implementar
+  `docs/specs/AT.9.md` con Luna. **Gate:** tests relevantes, `tsc`, cobertura y dashboard real con
+  Playwright: chat de proyecto Codex responde con aviso visible una sola vez por sesión, chat
+  general Codex responde y una sesión nueva de proyecto con Codex se crea.
+
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 
 **Problema medido, no estimado.** `PLAN.md` pesa 309 KB / 3854 líneas. Para que un agente
