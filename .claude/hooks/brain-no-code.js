@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const ROOT = process.env.BRAIN_GUARD_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const ROOT =
+  process.env.BRAIN_GUARD_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CODE_PREFIXES = ['src/', 'tests/', 'scripts/', '.claude/hooks/']
 const MESSAGE_PREFIX =
   'Cerebro no escribe código (AGENTS.md § Protocolo de delegación): escribe el spec en docs/specs/<ID>.md y delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor. Ruta:'
@@ -28,7 +29,11 @@ function relativePath(filePath) {
 
 function isCodePath(filePath) {
   const result = relativePath(filePath)
-  return result !== null && !result.startsWith('..') && CODE_PREFIXES.some((prefix) => result.startsWith(prefix))
+  return (
+    result !== null &&
+    !result.startsWith('..') &&
+    CODE_PREFIXES.some((prefix) => result.startsWith(prefix))
+  )
 }
 
 function cleanToken(token) {
