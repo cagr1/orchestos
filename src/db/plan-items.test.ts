@@ -201,6 +201,49 @@ function gitHead(root: string): string {
 }
 
 describe('listPlanItemsWithCommitStatus — shallow history (S.7c)', () => {
+  test('recomputes reachability when HEAD moves away from a confirmed close', () => {
+    const root = mkdtempSync(join(tmpdir(), 'plan-reachability-'))
+    roots.push(root)
+
+    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [ ] **X — ⚡ X item.**\n')
+    gitRun(root, ['init'])
+    gitRun(root, ['add', 'PLAN.md'])
+    gitRun(root, ['commit', '-m', 'X open'])
+    const parentSha = gitHead(root)
+
+    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [x] **X — ⚡ X item.**\n')
+    gitRun(root, ['add', 'PLAN.md'])
+    gitRun(root, ['commit', '-m', 'close X'])
+    const closeSha = gitHead(root)
+
+    const database = fixtureDb()
+    upsertPlanItem(
+      {
+        id: 'X',
+        sprint: 'Sprint fixture',
+        delegation: '⚡',
+        title: 'X item',
+        status: 'done',
+        commitSha: closeSha,
+        position: 3,
+      },
+      database,
+    )
+
+    expect(
+      listPlanItemsWithCommitStatus(root, database).find((item) => item.id === 'X')?.commitPending,
+    ).toBe(false)
+    expect(
+      listPlanItemsWithCommitStatus(root, database).find((item) => item.id === 'X')?.commitPending,
+    ).toBe(false)
+
+    gitRun(root, ['reset', '--hard', parentSha])
+    expect(
+      listPlanItemsWithCommitStatus(root, database).find((item) => item.id === 'X')?.commitPending,
+    ).toBe(true)
+    database.close()
+  })
+
   test('a shallow clone whose local root is a prose-only commit stays commitPending', () => {
     const origin = mkdtempSync(join(tmpdir(), 'plan-shallow-origin-'))
     const clone = mkdtempSync(join(tmpdir(), 'plan-shallow-clone-'))

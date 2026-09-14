@@ -25,9 +25,16 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   `echo >> src/__brain_guard_probe_bash.ts` → denegados con el mensaje del hook, sin crear archivos;
   `Write docs/specs/__probe.md` → permitido (borrado después).
 
-- [ ] **AT.2 — ⚡ El Sprint Board deja de congelar el dashboard.** `listPlanItemsWithCommitStatus`
-  tarda 5.7 s síncronos con 61 SHAs y `fetchAll` lo pide cada 30 s. **Gate:** con el dashboard
-  real, la segunda llamada a `/api/plan` baja de 300 ms; tests de plan-items y plan-import verdes.
+- [x] **AT.2 — ⚡ El Sprint Board deja de congelar el dashboard.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.2.md
+  `src/db/plan-items.ts`: alcanzabilidad por `git rev-list HEAD` cacheada por HEAD y contenido por
+  SHA cacheado si no es nulo; test nuevo en `src/db/plan-items.test.ts` (10 pass con plan-import,
+  `tsc` limpio, diff revisado contra el spec). Medido en proceso: 3514 ms → 18 ms en la segunda
+  llamada, mismo resultado. Dashboard real reiniciado: `/api/plan` 3.85 s → 316 ms → 25 ms; en una
+  segunda ronda con el servidor ocupado, 257 ms y 21 ms. La primera llamada tras arrancar sigue
+  costando ~3.5 s una vez. Hallazgo aparte, no de este ítem: el primer ciclo de `fetchAll` tras
+  arrancar dejó `/api/chat/sessions` en 7–14 s y `/api/chat/models` en 9 s, con un handler de
+  sesiones trivial — otro endpoint bloquea el event loop.
 
 - [ ] **AT.3 — ⚡ El chat no crea conversaciones que nacen muertas.** `send()` crea la sesión
   (`screens-core.js:698`) antes de que `/api/chat` rechace al agente sin frontera

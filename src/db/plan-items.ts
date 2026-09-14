@@ -173,6 +173,12 @@ export function listPlanItemsWithDeps(database: Database = db): PlanItemWithDeps
 
 const FULL_COMMIT_SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i
 
+const reachableCommits = new Map<string, { head: string; reachable: Set<string> }>()
+const commitContent = new Map<
+  string,
+  { after: Map<string, PlanItemStatus>; before: Map<string, PlanItemStatus> }
+>()
+
 function git(root: string, args: string[]): { exitCode: number; stdout: string } {
   const result = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
   return { exitCode: result.exitCode, stdout: new TextDecoder().decode(result.stdout).trim() }
@@ -268,6 +274,20 @@ export function listPlanItemsWithCommitStatus(
   root: string,
   database: Database = db,
 ): PlanItemWithCommitStatus[] {
+  const head = git(root, ['rev-parse', 'HEAD'])
+  let reachable = new Set<string>()
+  if (head.exitCode === 0) {
+    const cached = reachableCommits.get(root)
+    if (cached?.head === head.stdout) {
+      reachable = cached.reachable
+    } else {
+      const history = git(root, ['rev-list', 'HEAD'])
+      if (history.exitCode === 0) {
+        reachable = new Set(history.stdout.split('\n').filter(Boolean))
+        reachableCommits.set(root, { head: head.stdout, reachable })
+      }
+    }
+  }
   const states = new Map<
     string,
     { after: Map<string, PlanItemStatus>; before: Map<string, PlanItemStatus> } | null
@@ -278,13 +298,15 @@ export function listPlanItemsWithCommitStatus(
       states.set(sha, null)
       return null
     }
-    if (git(root, ['rev-parse', '--verify', `${sha}^{commit}`]).exitCode !== 0) {
+    if (!reachable.has(sha)) {
       states.set(sha, null)
       return null
     }
-    if (git(root, ['merge-base', '--is-ancestor', sha, 'HEAD']).exitCode !== 0) {
-      states.set(sha, null)
-      return null
+    const contentKey = `${root}\0${sha}`
+    const cachedContent = commitContent.get(contentKey)
+    if (cachedContent) {
+      states.set(sha, cachedContent)
+      return cachedContent
     }
     const after = git(root, ['show', `${sha}:PLAN.md`])
     if (after.exitCode !== 0) {
@@ -320,6 +342,7 @@ export function listPlanItemsWithCommitStatus(
       before: beforeStatuses,
     }
     states.set(sha, value)
+    commitContent.set(contentKey, value)
     return value
   }
   return listPlanItemsWithDeps(database).map((item) => {
