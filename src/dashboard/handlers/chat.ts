@@ -53,6 +53,7 @@ import { knownCost } from '../../router/pricing.ts'
 import {
   type CliCapabilityProbe,
   KNOWN_CLIS,
+  projectChatUnavailableMessage,
   readBoundaryFor,
 } from '../../run/executors/cli-registry.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
@@ -111,7 +112,7 @@ export function projectChatReadBoundaryError(
   if (!cli) return null
   const effective = readBoundaryFor(cli, probe)
   if (effective.kind === 'project-root') return null
-  return `CLI "${cli.label}" no está disponible para chat de proyecto: ${effective.reason}`
+  return projectChatUnavailableMessage(cli.label, effective.reason)
 }
 
 interface FileEntry {

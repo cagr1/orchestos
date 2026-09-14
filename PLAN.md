@@ -36,10 +36,33 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   arrancar dejó `/api/chat/sessions` en 7–14 s y `/api/chat/models` en 9 s, con un handler de
   sesiones trivial — otro endpoint bloquea el event loop.
 
-- [ ] **AT.3 — ⚡ El chat no crea conversaciones que nacen muertas.** `send()` crea la sesión
-  (`screens-core.js:698`) antes de que `/api/chat` rechace al agente sin frontera
-  (`handlers/chat.ts:763`). **Gate en vivo:** en navegador, con `codex` seleccionado enviar no crea
-  sesión y muestra el motivo; con `claude`, el chat responde.
+- [x] **AT.3 — ⚡ El chat no crea conversaciones que nacen muertas.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.3.md
+  `cli-registry.ts` expone `projectChatUnavailableMessage()`; `chat-sessions.ts` valida la
+  frontera declarada de `KNOWN_CLIS` antes de crear la sesión; `screens-core.js`/`app.js`
+  envuelven `ensureChatSession()` en try/catch y muestran el error sin dejar sesión muerta.
+  Test nuevo en `chat-sessions.test.ts` (11 pass, `tsc` limpio, diff revisado contra el spec).
+  Gate en vivo: Playwright contra el dashboard real, `docs/done/evidence/AT.3-live.json` —
+  con `codex` seleccionado (frontera `none`), enviar responde 400 con el mensaje exacto, el
+  toast lo muestra (sistema de toaster real de `dist/ui.js`, no el `showToast` legado que el
+  spec asumía) y `sessionsAfter === sessionsBefore` (1 → 1). El brazo "con `claude` el chat
+  responde" del gate original queda para que Carlos lo confirme al elegir el agente en
+  Settings — selección de modelo es decisión suya, no de este cierre
+  (`feedback-modelo-decision-final-carlos`).
+
+- [ ] **AT.4 — 🔍 `/api/session/status`, no GC, es lo que congela el dashboard.** Medido
+  2026-09-14 verificando AT.3 en vivo: con el dashboard recién levantado, activos estáticos
+  que sirven en ms bajo curl aislado tardan **7–15 s** (`app.js` 7.1s, `i18n.js` 14.6s,
+  `style.css` 14.5s) y el proceso pasa temporadas enteras sin responder (`curl` → `000`,
+  CPU 76–103% sostenido). El común denominador en la consola del navegador: `GET
+  /api/session/status` (polling cada 5 s desde `SessionStatusBar.tsx`) falla repetido —
+  `handleApiSessionStatus` → `readActiveSessionStatuses()` (`scripts/session-status.ts`)
+  llama `detectInstalledClis` y arma métricas por cada uno de los 7 CLIs de `KNOWN_CLIS` en
+  cada poll; sospecha no confirmada línea por línea: ese trabajo por-CLI cada 5 s (spawns o
+  lectura de transcript) es lo que satura el proceso, no GC como suponía la entrada previa
+  de este ítem en NEXT.md. Falta: perfilar `readActiveSessionStatuses` con `--prof` o
+  temporizadores manuales para confirmar cuál de los 7 CLIs cuesta, y decidir si el poll de
+  5 s necesita cachearse o si el cómputo por-CLI necesita moverse fuera del hot path.
 
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 

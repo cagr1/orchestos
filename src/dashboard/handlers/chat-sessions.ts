@@ -12,6 +12,7 @@ import {
   updateChatSession,
 } from '../../db/chat-sessions.ts'
 import { getLastTurn, hasActiveTurn } from '../../db/chat-turns.ts'
+import { KNOWN_CLIS, projectChatUnavailableMessage } from '../../run/executors/cli-registry.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import {
   type DashboardProjectContext,
@@ -127,6 +128,15 @@ export async function handleApiChatSessionsCreate(
   const agent = body.agent ?? defaultAgent
   if (typeof agent !== 'string' || !AGENTS.has(agent as AgentChoice)) {
     return errorResponse('Invalid agent', 400)
+  }
+  if (projectId !== null) {
+    const definition = KNOWN_CLIS.find((cli) => cli.id === agent)
+    if (definition && definition.readBoundary.kind !== 'project-root') {
+      return errorResponse(
+        projectChatUnavailableMessage(definition.label, definition.readBoundary.reason),
+        400,
+      )
+    }
   }
   // R.1 — la autoridad de ejecutar no es una preferencia que el dashboard
   // deba reconstruir: nace del contexto persistido de la sesión. Las sesiones

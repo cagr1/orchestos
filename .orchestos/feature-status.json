@@ -27,6 +27,15 @@
       "block": null,
       "delegation": "⚡",
       "title": "El chat no crea conversaciones que nacen muertas",
+      "status": "done",
+      "closedDate": "2026-09-14"
+    },
+    {
+      "id": "AT.4",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "🔍",
+      "title": "`/api/session/status`, no GC, es lo que congela el dashboard",
       "status": "open",
       "closedDate": null
     },

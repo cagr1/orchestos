@@ -48,6 +48,10 @@ export interface ProvisionedCliConfigHome {
   envVar?: 'CODEX_HOME'
 }
 
+export function projectChatUnavailableMessage(label: string, reason: string): string {
+  return `CLI "${label}" no está disponible para chat de proyecto: ${reason}`
+}
+
 const GENERATED_INSTRUCTIONS = `# OrchestOS isolated agent home
 
 This file is generated at runtime by OrchestOS for this project.

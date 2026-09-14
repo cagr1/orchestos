@@ -245,6 +245,51 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.codeAllowsExecution).toBe(true)
   })
 
+  it('rejects project sessions without a declared read boundary before persistence', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { mkdirSync } = await import('fs')
+      const { join } = await import('path')
+      const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
+      runMigrations()
+      const projectPath = join(process.env.ORCHESTOS_HOME, 'p1')
+      mkdirSync(projectPath, { recursive: true })
+      db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['p1', projectPath, '{}', '', new Date().toISOString()])
+
+      const projectResponse = await handlers.handleApiChatSessionsCreate(new Request('http://localhost/api/chat/sessions', {
+        method: 'POST', body: JSON.stringify({ projectId: 'p1', agent: 'codex' }),
+      }))
+      const projectBody = await projectResponse.json()
+      const projectRows = db.query('SELECT * FROM chat_sessions WHERE project_id = ?').all('p1')
+
+      const generalResponse = await handlers.handleApiChatSessionsCreate(new Request('http://localhost/api/chat/sessions', {
+        method: 'POST', body: JSON.stringify({ projectId: null, agent: 'codex' }),
+      }))
+      const generalBody = await generalResponse.json()
+      const generalRows = db.query('SELECT * FROM chat_sessions WHERE project_id IS NULL').all()
+
+      process.stdout.write(JSON.stringify({
+        projectStatus: projectResponse.status,
+        projectBody,
+        projectRows,
+        generalStatus: generalResponse.status,
+        generalBody,
+        generalRows,
+      }))
+      db.close()
+    `)
+
+    expect(result.projectStatus).toBe(400)
+    expect((result.projectBody as { error: string }).error).toContain(
+      'no está disponible para chat de proyecto',
+    )
+    expect(result.projectRows).toEqual([])
+    expect(result.generalStatus).toBe(201)
+    expect(result.generalBody).toMatchObject({ projectId: null, agent: 'codex' })
+    expect(result.generalRows).toHaveLength(1)
+  })
+
   // I.4 (Mes 30, 2026-09-05) — el aside de conversaciones necesita que el
   // listado no mezcle proyectos, y que cada fila tenga un título usable (no
   // "New conversation" para las N sesiones de siempre).

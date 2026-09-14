@@ -695,7 +695,13 @@ SCREENS.chat = {
       const msg = textarea?.value.trim()
       if (!msg || st.chatPending) return
       // Capture the target before any await: user may open B while A is in flight.
-      const sessionId = await App.ensureChatSession()
+      let sessionId
+      try {
+        sessionId = await App.ensureChatSession()
+      } catch (error) {
+        showToast(error.message || t('chat.err.general'), 'error')
+        return
+      }
       if (st.chatPendingBySession[sessionId]) return
       textarea.value = ''
       st.chatDraft = '' // mensaje enviado — el borrador ya cumplió su función

@@ -1,0 +1,16 @@
+{
+  "item": "AT.3",
+  "at": "2026-09-14T15:27:48.859Z",
+  "browser": "chromium (Playwright)",
+  "steps": [
+    {
+      "action": "send with project session and non-bounded agent (codex)",
+      "sessionsBefore": 1,
+      "sessionsAfter": 1,
+      "toast": "CLI \"Codex\" no está disponible para chat de proyecto: Codex no ofrece hoy un sandbox que acote paths de lectura.",
+      "textareaKept": "AT.3 gate probe"
+    }
+  ],
+  "agent": "codex",
+  "consoleErrors": []
+}

@@ -499,8 +499,8 @@ const App = {
       state.chatLiveSteps = {}
       await App.fetchChatSessions()
       App.rerender()
-    } catch {
-      // Sin conexión — se mantiene la sesión actual, el próximo mensaje reintenta via ensureChatSession.
+    } catch (error) {
+      showToast(error.message || t('chat.err.conn'), 'error')
     }
   },
   async deleteChatSession(sessionId) {
