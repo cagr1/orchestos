@@ -88,6 +88,37 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   previo; no era evidencia). `bunx tsc --noEmit` limpio, 14 tests verdes en los dos
   archivos de test tocados.
 
+- [ ] **AT.7 — 🧠 Recuperar migración histórica de chat retenido.** La versión 4 puede figurar
+  aplicada con el cambio ajeno `run-files-read`, dejando `chat_messages` sin `task_held` ni
+  `existing_files` y rompiendo todo POST de chat. Añadir una migración 9 compensatoria, sin
+  reescribir el ledger histórico ni la versión 4; cubrir instalación nueva, ledger legado y
+  segunda ejecución. **Gate:** backup verificado de `~/.orchestos/db.sqlite`, migración oficial,
+  `PRAGMA table_info(chat_messages)` y POST/GET/recarga reales con respuesta exacta.
+  **Estado 2026-09-14:** backup `~/.orchestos/backups/at7-pre-migration-2026-09-14.sqlite`
+  verificado, v9 aplicada, `PRAGMA integrity_check` = `ok`, POST real = `ORCHESTOS_CHAT_OK` y GET
+  tras reinicio recuperó ambos mensajes. El fixture de AT.7.1 ya elimina el fallo de
+  `absoluteLevel: null`; el cierre global sigue bloqueado porque `bun run test:coverage` da
+  1417 pass / 3 fail en pruebas ajenas (revisión adversarial y bind loopback L.2).
+
+- [x] **AT.7.1 — ⚡ Desbloquear el gate de cobertura de AT.7.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.7.1.md
+  `docs/specs/AT.7.1.md` con Luna antes de cerrar AT.7. El cambio queda limitado al fixture del
+  test de contexto: debe proveer un catálogo mínimo aislado al proceso hijo bajo el runtime de
+  cobertura, sin tocar la lógica de producción ni los umbrales. **Gate:** la prueba pasa con
+  `bunx bun@latest` y `bun run test:coverage` deja de fallar por `absoluteLevel: null`. **Estado
+  2026-09-14:** cambio aplicado por Luna en `tests/hooks/context-budget.test.ts`; test específico
+  2/2, `tsc` y cobertura completa 1420/1420 pasan.
+  **Fuera de scope declarado:** `PLAN.md` registra el cierre y `.orchestos/feature-status.json`
+  es el índice derivado exigido por `plan:reconcile`.
+
+- [ ] **AT.8 — ⚡ Presupuesto de subagentes: máximo dos, Luna y contexto mínimo.** Ejecutar
+  `docs/specs/AT.8.md` con Luna después de cerrar AT.7. Añadir enforcement mecánico para Claude
+  Code mediante hooks `PreToolUse:Agent` + `SubagentStart`/`SubagentStop`; en Codex conservar la
+  limitación honesta de que el repo solo puede imponer la regla narrativamente. Reparar también el
+  fixture de AT.5 que depende en silencio del catálogo durable y deja rojo `test:coverage` con Bun
+  1.4.x. **Gate:** tercera delegación denegada, una plaza liberada al terminar, estado aislado por
+  sesión, `bunx bun@latest test` relevante, `tsc` y `bun run test:coverage` verdes.
+
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 
 **Problema medido, no estimado.** `PLAN.md` pesa 309 KB / 3854 líneas. Para que un agente

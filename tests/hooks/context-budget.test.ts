@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -10,6 +10,25 @@ function runBudget(used: number) {
   const tempDir = mkdtempSync(join(tmpdir(), 'context-budget-'))
   const transcriptPath = join(tempDir, 'transcript.jsonl')
   try {
+    const cacheDir = join(tempDir, '.orchestos', 'cache')
+    mkdirSync(cacheDir, { recursive: true })
+    writeFileSync(
+      join(cacheDir, 'models.json'),
+      JSON.stringify({
+        fetchedAt: Date.now(),
+        models: {
+          'anthropic/claude-opus-5': {
+            contextLength: 1_000_000,
+            priceIn: 0,
+            priceOut: 0,
+            supportsReasoning: false,
+            supportsTools: false,
+            maxOutputTokens: 0,
+            supportsVision: false,
+          },
+        },
+      }),
+    )
     writeFileSync(
       transcriptPath,
       `${JSON.stringify({
@@ -26,6 +45,7 @@ function runBudget(used: number) {
       {
         cwd: ROOT,
         encoding: 'utf8',
+        env: { ...process.env, ORCHESTOS_HOME: tempDir },
       },
     )
   } finally {

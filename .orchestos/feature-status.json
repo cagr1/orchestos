@@ -58,6 +58,33 @@
       "closedDate": "2026-09-14"
     },
     {
+      "id": "AT.7",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Recuperar migración histórica de chat retenido",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AT.7.1",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Desbloquear el gate de cobertura de AT.7",
+      "status": "done",
+      "closedDate": "2026-09-14"
+    },
+    {
+      "id": "AT.8",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Presupuesto de subagentes: máximo dos, Luna y contexto mínimo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "S.1",
       "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,
