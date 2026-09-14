@@ -1,34 +1,33 @@
-# DREAMING.md — 2026-09-11
+# DREAMING.md — 2026-09-14
 
 ## Runs analizados
 - Total: 20 runs
-- Periodo: 2026-08-18T17:42:31.415Z → 2026-09-03T21:39:22.453Z
+- Periodo: 2026-08-19T18:16:53.745Z → 2026-09-14T20:13:47.057Z
 - failed: 5 | blocked: 0 | done: 15 | qa_failed: 4
 
 ## Patrones detectados
 
-### deepseek/deepseek-v4-flash falla 100% en task_class "doc"
-- Evidencia: runs `696cc3ca`, `01f9b0e6`, `516bcb21` — mismo modelo, mismo task_class, mismo output declarado (`src/utils/helper.js`)
-- Frecuencia: 3/3 runs de esa combinación (3/20 del total)
-- qa_reason recurrente: "missing declared output(s): src/utils/helper.js"
+### task_class "doc" falla 100% de las veces
+- Evidencia: 3/3 runs de `task_class: doc` (696cc3ca, 01f9b0e6, 516bcb21), todos `model: deepseek/deepseek-v4-flash`, `status: failed`, `qa_verdict: fail`.
+- Frecuencia: 3/3 runs (100%)
+- qa_reason recurrente: "missing declared output(s): src/utils/helper.js" — texto **idéntico** en los 3 runs, mismo path de archivo. No es variación de contenido, es el mismo archivo declarado y nunca producido.
 
-### "missing declared output(s)" es todo el qa_failed, cruza modelos
-- Evidencia: los 4 qa_failed del periodo comparten exactamente esta causa — 3 con deepseek/deepseek-v4-flash (task_class doc) + 1 con openai/gpt-5.4 (`d064d1b9`, task_class implement, output `hello-b.txt`)
-- Frecuencia: 4/4 de los qa_failed, 4/20 del total
-- qa_reason recurrente: "missing declared output(s): <archivo>"
-- Nota: el mismo archivo `hello-b.txt` se completó bien en otros dos runs (`091d9132` con gpt-5.4, `09a013c7` con deepseek) — la falla no es consistente por modelo ni por archivo, sugiere un problema intermitente en cómo se verifica/escribe el output declarado, no en la capacidad del modelo.
+### Costo hundido sin output en tarea "doc"
+- Evidencia: los 3 runs fallidos de "doc" sumaron $0.1432167 + $0.1311552 + $0.0893121 = $0.3636840 (42% del `total_cost_usd` de la sesión: $0.8674) sin producir el archivo declarado.
+- Frecuencia: 3/3 runs de esa clase
+- qa_reason recurrente: igual al patrón anterior.
 
 ## Propuestas
 
-### Propuesta 1 — investigar por qué deepseek-v4-flash no escribe `src/utils/helper.js` en task_class "doc"
-- Qué cambiar: revisar el prompt/plantilla de task_class "doc" y el parser de "declared output(s)" para esa ruta específica
-- Por qué: 3/3 de fallo exacto con el mismo archivo y el mismo mensaje de qa_reason, tasa de fallo 100% (> umbral 50%)
-- Riesgo: bajo
+### Propuesta 1 — revisar por qué `src/utils/helper.js` se declara pero nunca se escribe en task_class "doc"
+- Qué cambiar: el prompt/template de la tarea "doc" (buscar dónde se declara `src/utils/helper.js` como output esperado) o el paso de escritura del adaptador deepseek/openrouter para esa clase de tarea.
+- Por qué: 3/3 fallos idénticos, mismo path, mismo modelo, mismo qa_reason exacto — indica bug determinístico de configuración/prompt, no variabilidad del modelo.
+- Riesgo: bajo (investigación + fix puntual de config/prompt, no toca código central)
 
-### Propuesta 2 — auditar el mecanismo de verificación de "declared output(s)"
-- Qué cambiar: el código que compara output declarado vs. archivos realmente escritos (probablemente en el runner de tasks/gate de QA)
-- Por qué: la misma causa de fallo aparece con dos modelos distintos y el mismo archivo (`hello-b.txt`) pasa y falla en corridas distintas — indicio de condición de carrera o de timing en la verificación, no de capacidad del modelo
-- Riesgo: medio
+### Propuesta 2 — gate de costo por reintento en task_class "doc" antes de reintentar con el mismo modelo
+- Qué cambiar: si `task_class: doc` con `model: deepseek/deepseek-v4-flash` falla por "missing declared output" una vez, no reintentar automáticamente con el mismo modelo sin cambiar el prompt — cortar y avisar.
+- Por qué: los 3 fallos ocurrieron en la misma franja horaria (20:30:14 → 20:30:48, ~34s entre runs) gastando $0.36 sin producir nada; sugiere reintento ciego del mismo patrón fallido.
+- Riesgo: medio (toca lógica de reintento/orquestación, no solo config)
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
