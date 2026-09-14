@@ -71,5 +71,6 @@
   "env": {
     "CLAUDE_CODE_DISABLE_BUNDLED_SKILLS": "1",
     "CLAUDE_CODE_DISABLE_ARTIFACT": "1"
-  }
+  },
+  "bashOutputMaxChars": 8000
 }

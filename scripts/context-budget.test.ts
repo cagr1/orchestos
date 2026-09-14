@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { budgetStatus, readTranscriptUsage } from './context-budget.ts'
+import { absoluteBudgetLevel, budgetStatus, readTranscriptUsage } from './context-budget.ts'
 
 const fixtures = join(import.meta.dir, 'fixtures', 'context-budget')
 
@@ -115,5 +115,12 @@ describe('context budget', () => {
     expect(budgetStatus({ used: 50, window: 100, thresholds: { warn: 50, critical: 80 } })).toEqual(
       { pct: 50, level: 'warn' },
     )
+  })
+
+  test('classifies absolute session budget thresholds', () => {
+    expect(absoluteBudgetLevel(59_999)).toBe('ok')
+    expect(absoluteBudgetLevel(60_000)).toBe('warn')
+    expect(absoluteBudgetLevel(89_999)).toBe('warn')
+    expect(absoluteBudgetLevel(90_000)).toBe('block')
   })
 })

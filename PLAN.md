@@ -64,12 +64,21 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   temporizadores manuales para confirmar cuál de los 7 CLIs cuesta, y decidir si el poll de
   5 s necesita cachearse o si el cómputo por-CLI necesita moverse fuera del hot path.
 
-- [ ] **AT.5 — 🧠 Freno mecánico de costo de sesión: umbral absoluto + bloqueo real.**
-  `context-budget.js` avisa por % de ventana; con ventana de 1M, 18% ya son 180k tokens
-  reales. Medido 2026-09-14: 8.8M tokens releídos en 67 llamadas sin aviso. Agrega
-  `ABSOLUTE_BUDGET_THRESHOLDS` (warn 60k, block 90k tokens absolutos) sin tocar el umbral
-  por-% existente (calibrado contra el autocompact), y un bloqueo real (`exit 2`) que se
-  repite en cada prompt mientras dure. Spec: docs/specs/AT.5.md.
+- [x] **AT.5 — 🧠 Freno mecánico de costo de sesión: umbral absoluto + bloqueo real.**
+  (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.5.md
+  `ABSOLUTE_BUDGET_THRESHOLDS` (warn 60k, block 90k tokens absolutos de la llamada actual,
+  independiente de la ventana del modelo) en `scripts/context-budget.ts`, sin tocar el
+  umbral por-% existente. `.claude/hooks/context-budget.js`: `exit 2` + mensaje en stderr
+  cuando `absoluteLevel === 'block'`, se repite en cada prompt (no es aviso de una sola
+  vez); `isBudget()` ampliado para aceptar `level: 'ok'` (necesario para no descartar un
+  budget con ventana grande y `absoluteLevel` alto). `.claude/settings.json`:
+  `bashOutputMaxChars: 8000` (clave real verificada contra la documentación de hooks/
+  settings — `BASH_MAX_OUTPUT_LENGTH` de NEXT.md no existe). 8 tests nuevos verdes
+  (`scripts/context-budget.test.ts` + `tests/hooks/context-budget.test.ts`, integración
+  real contra `bun run context:budget`), `tsc` limpio, `bun run lint` exit 0 (verificado por
+  el cerebro — el reporte de Luna decía "falla", eran warnings preexistentes, no errores).
+  Diff acotado a los 5 archivos declarados.
 
 - [x] **AT.6 — ⚡ Lint en rojo: 3 archivos sin formatear/ordenar.** (cerrado 2026-09-14)
   Ejecutado por: luna · Spec: docs/specs/AT.6.md

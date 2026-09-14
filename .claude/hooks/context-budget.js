@@ -15,7 +15,19 @@ function main(inputText) {
   if (!transcriptPath || !sessionId || !existsSync(transcriptPath)) return
 
   const budget = runBudget(transcriptPath)
-  if (!budget || (budget.level !== 'warn' && budget.level !== 'critical')) return
+  if (!budget) return
+
+  if (budget.absoluteLevel === 'block') {
+    const used = budget.used.toLocaleString('en-US')
+    process.stderr.write(
+      `Contexto: ${used} tokens en esta sesión (tope absoluto 90.000, independiente de la ` +
+        `ventana del modelo). Escribe NEXT.md y abre sesión nueva.\n`,
+    )
+    process.exit(2)
+  }
+
+  if (budget.level !== 'warn' && budget.level !== 'critical' && budget.absoluteLevel !== 'warn')
+    return
 
   // BUG-H.7.3-a (hallado por el gate 🔍 del 2026-09-03): `printWarning` estaba
   // fuera de este guard y por eso avisaba en CADA turno desde el 60%, dejando a
@@ -51,7 +63,10 @@ function isBudget(value) {
     // (el id del adaptador de H.7.2b) sí es obligatorio.
     (typeof value.model === 'string' || value.model === null) &&
     typeof value.source === 'string' &&
-    (value.level === 'warn' || value.level === 'critical')
+    (value.level === 'ok' || value.level === 'warn' || value.level === 'critical') &&
+    (value.absoluteLevel === 'ok' ||
+      value.absoluteLevel === 'warn' ||
+      value.absoluteLevel === 'block')
   )
 }
 

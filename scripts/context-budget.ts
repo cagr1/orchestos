@@ -34,6 +34,25 @@ export const DEFAULT_BUDGET_THRESHOLDS: BudgetThresholds = {
   critical: 65,
 }
 
+/**
+ * AT.5 (2026-09-14): a diferencia de `DEFAULT_BUDGET_THRESHOLDS` (% de la
+ * ventana, calibrado contra el autocompact), este es un tope en tokens
+ * absolutos de la llamada actual — protege contra el costo real de una
+ * sesión larga en un modelo de ventana grande, donde un 18% ya son 180k
+ * tokens. Medido 2026-09-14: 8.8M tokens releídos en 67 llamadas sin que el
+ * % de ventana avisara. `warn` imprime una vez; `block` corta la sesión.
+ */
+export const ABSOLUTE_BUDGET_THRESHOLDS = { warn: 60_000, block: 90_000 }
+
+export function absoluteBudgetLevel(
+  used: number,
+  thresholds: { warn: number; block: number } = ABSOLUTE_BUDGET_THRESHOLDS,
+): 'ok' | 'warn' | 'block' {
+  if (used >= thresholds.block) return 'block'
+  if (used >= thresholds.warn) return 'warn'
+  return 'ok'
+}
+
 /** Lee el último uso real del transcript; líneas parcialmente escritas se ignoran. */
 export function readTranscriptUsage(transcriptPath: string): TranscriptUsage | null {
   let latest: TranscriptUsage | null = null
@@ -158,9 +177,20 @@ if (import.meta.main) {
     // pregunta al registro de adaptadores y publica el `source` que respondió.
     const { readContextBudget } = await import('./context-adapters.ts')
     const budget = await readContextBudget(transcriptPath)
+    const absoluteLevel = typeof budget?.used === 'number' ? absoluteBudgetLevel(budget.used) : null
     console.log(
       JSON.stringify(
-        budget ?? { used: null, model: null, window: null, pct: null, level: null, source: null },
+        budget
+          ? { ...budget, absoluteLevel }
+          : {
+              used: null,
+              model: null,
+              window: null,
+              pct: null,
+              level: null,
+              source: null,
+              absoluteLevel: null,
+            },
       ),
     )
   } catch (error) {
