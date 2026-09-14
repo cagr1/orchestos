@@ -234,6 +234,7 @@ export function buildCodexChatArgs(prompt: string, model?: string): string[] {
     '--color',
     'never',
     '--ignore-user-config',
+    '--skip-git-repo-check',
   ]
   if (model) args.push('-m', model)
   return args

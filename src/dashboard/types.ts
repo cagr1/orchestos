@@ -81,6 +81,7 @@ export interface ChatSessionRow {
   title: string
   createdAt: string
   updatedAt: string
+  readBoundaryWarning?: string
 }
 
 export interface ChatMessageRow {

@@ -137,12 +137,12 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   (cierre del ítem) — el spec solo declaraba `.claude/hooks/**` y `tests/hooks/**`, pero el hook no
   entra en vigor sin el wiring en `settings.json` ni el `.gitignore` de su estado.
 
-- [ ] **AT.9 — 🧠 Cualquier CLI en el chat, sin bloqueo por frontera de lectura.** Decisión de
-  Carlos 2026-09-14: el CLI elegido se usa aunque no pueda demostrar una frontera de lectura; el
-  sistema muestra un aviso no bloqueante y deja visible cualquier error real del CLI. Implementar
-  `docs/specs/AT.9.md` con Luna. **Gate:** tests relevantes, `tsc`, cobertura y dashboard real con
-  Playwright: chat de proyecto Codex responde con aviso visible una sola vez por sesión, chat
-  general Codex responde y una sesión nueva de proyecto con Codex se crea.
+- [x] **AT.9 — 🧠 Cualquier CLI en el chat, sin bloqueo por frontera de lectura.** (cerrado 2026-09-14) → [evidencia](docs/done/bloque-AT.md#bloque-at-at-9)
+
+- [ ] **AT.9.1 — ⚡ Reponer el lint global tras AT.7.** Hallazgo al cerrar AT.9: `bun run lint`
+  tiene un único error de formato en `src/__tests__/migration.test.ts:322`, archivo ya versionado y
+  ajeno al diff de AT.9. Aplicar solo `bunx biome format --write src/__tests__/migration.test.ts` y
+  verificar `bun run lint`; no mezclarlo con el cierre funcional de AT.9.
 
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 
@@ -731,9 +731,9 @@ presentación, de una capa barata que falta, y de no poder medir mejoras.**
      exista).
   2. Afirma que la lectura no ocurrió, cruzando contra la lista de archivos leídos que persiste
      H.9.1 — no contra lo que el modelo *dice* que hizo.
-  3. Para `codex` (frontera `none`), afirma lo contrario: que el sistema **reporta** el hueco en
-     vez de prometer aislamiento. Un test que documenta la limitación real vale más que uno que
-     la esconde.
+  3. Para cualquier CLI con frontera `none` (incluido `codex`), afirma lo contrario: que el sistema
+     **reporta** el hueco sin bloquear el chat, en vez de prometer aislamiento. Un test que
+     documenta la limitación real vale más que uno que la esconde.
 
   Escrito por Codex mientras Claude implementa H.9.2/H.9.3, que es el reparto que mejor ha
   funcionado ([[feedback-codex-escribe-el-gate]]); acotado a los archivos que él crea para no

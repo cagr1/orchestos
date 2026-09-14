@@ -16,7 +16,16 @@
  * (G.4.3/G.4.4), no el guard interno de cada executor.
  */
 
-import { mkdirSync, realpathSync, statSync, writeFileSync } from 'fs'
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  realpathSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'fs'
+import { homedir } from 'os'
 import { join } from 'path'
 import { safeChildEnv } from '../path-policy.ts'
 
@@ -46,10 +55,6 @@ export interface ProvisionedCliConfigHome {
   path: string
   settingsPath?: string
   envVar?: 'CODEX_HOME'
-}
-
-export function projectChatUnavailableMessage(label: string, reason: string): string {
-  return `CLI "${label}" no está disponible para chat de proyecto: ${reason}`
 }
 
 const GENERATED_INSTRUCTIONS = `# OrchestOS isolated agent home
@@ -82,7 +87,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
     icon: 'openai',
     readBoundary: {
       kind: 'none',
-      reason: 'Codex no ofrece hoy un sandbox que acote paths de lectura.',
+      reason: 'Codex no limita la lectura a este proyecto',
     },
     configHome: { directory: 'codex', instructionFile: 'AGENTS.md', envVar: 'CODEX_HOME' },
   },
@@ -146,6 +151,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
 export function provisionCliConfigHome(
   projectRoot: string,
   cliId: CliDefinition['id'],
+  userHome = homedir(),
 ): ProvisionedCliConfigHome {
   const definition = KNOWN_CLIS.find((cli) => cli.id === cliId)
   if (!definition) throw new Error(`Unknown CLI: ${cliId}`)
@@ -167,6 +173,16 @@ export function provisionCliConfigHome(
     // El settings vacío no aísla por sí solo: --restricted ignora las fuentes
     // user/project/local; --strict-mcp-config elimina los MCP heredados.
     writeFileSync(settingsPath, `${JSON.stringify({})}\n`, 'utf8')
+  }
+
+  if (cliId === 'codex' && existsSync(join(userHome, '.codex', 'auth.json'))) {
+    const authTarget = join(path, 'auth.json')
+    let targetExists = false
+    try {
+      lstatSync(authTarget)
+      targetExists = true
+    } catch {}
+    if (!targetExists) symlinkSync(join(userHome, '.codex', 'auth.json'), authTarget)
   }
 
   return { path, settingsPath, envVar: definition.configHome.envVar }

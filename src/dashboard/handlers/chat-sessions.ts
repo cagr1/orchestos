@@ -12,7 +12,7 @@ import {
   updateChatSession,
 } from '../../db/chat-sessions.ts'
 import { getLastTurn, hasActiveTurn } from '../../db/chat-turns.ts'
-import { KNOWN_CLIS, projectChatUnavailableMessage } from '../../run/executors/cli-registry.ts'
+import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import {
   type DashboardProjectContext,
@@ -129,15 +129,11 @@ export async function handleApiChatSessionsCreate(
   if (typeof agent !== 'string' || !AGENTS.has(agent as AgentChoice)) {
     return errorResponse('Invalid agent', 400)
   }
-  if (projectId !== null) {
-    const definition = KNOWN_CLIS.find((cli) => cli.id === agent)
-    if (definition && definition.readBoundary.kind !== 'project-root') {
-      return errorResponse(
-        projectChatUnavailableMessage(definition.label, definition.readBoundary.reason),
-        400,
-      )
-    }
-  }
+  const definition = projectId !== null ? KNOWN_CLIS.find((cli) => cli.id === agent) : undefined
+  const readBoundaryWarning =
+    definition && definition.readBoundary.kind === 'none'
+      ? definition.readBoundary.reason
+      : undefined
   // R.1 — la autoridad de ejecutar no es una preferencia que el dashboard
   // deba reconstruir: nace del contexto persistido de la sesión. Las sesiones
   // nuevas de proyecto entran en Code; las generales permanecen en Chat.
@@ -158,7 +154,7 @@ export async function handleApiChatSessionsCreate(
       mode: mode as ChatSessionMode,
       title: body.title as string | undefined,
     })
-    return jsonResponse(toSessionRow(session), 201)
+    return jsonResponse({ ...toSessionRow(session), readBoundaryWarning }, 201)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     if (message.includes('FOREIGN KEY constraint failed')) {

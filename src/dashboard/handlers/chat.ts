@@ -53,7 +53,6 @@ import { knownCost } from '../../router/pricing.ts'
 import {
   type CliCapabilityProbe,
   KNOWN_CLIS,
-  projectChatUnavailableMessage,
   readBoundaryFor,
 } from '../../run/executors/cli-registry.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
@@ -102,9 +101,9 @@ const FILE_TTL_MS = 30 * 60 * 1000
  * dos instalaciones de Claude Code conviviendo (2.1.234 sin `--restricted` y
  * 2.1.263 con él), eso habría corrido el chat de proyecto sin frontera y en
  * silencio. Ahora consulta la frontera EFECTIVA, verificada contra el binario.
- * Fail-closed: cualquier resultado que no sea `project-root` bloquea.
+ * Un resultado que no sea `project-root` se comunica como aviso no bloqueante.
  */
-export function projectChatReadBoundaryError(
+export function projectChatReadBoundaryWarning(
   agent: string | undefined,
   probe?: CliCapabilityProbe,
 ): string | null {
@@ -112,7 +111,7 @@ export function projectChatReadBoundaryError(
   if (!cli) return null
   const effective = readBoundaryFor(cli, probe)
   if (effective.kind === 'project-root') return null
-  return projectChatUnavailableMessage(cli.label, effective.reason)
+  return effective.reason
 }
 
 interface FileEntry {
@@ -754,14 +753,13 @@ async function handleApiChat(
   }
   const root = project.root
 
-  // H.9.2 — el agente elegido debe declarar en el registro una frontera real
-  // de lectura para chat de proyecto; un prompt no es un control equivalente.
+  // H.9.2 — el agente elegido puede no tener una frontera real de lectura;
+  // en ese caso el chat de proyecto continúa y comunica un aviso.
   const chatAgent = session?.agent ?? loadOrcheConfig(root).agent
   const useClaudeCli = chatAgent === 'claude'
   const useCodexCli = chatAgent === 'codex'
   const useOpencodeCli = chatAgent === 'opencode'
-  const readBoundaryError = projectChatReadBoundaryError(chatAgent)
-  if (readBoundaryError) return errorResponse(readBoundaryError, 400)
+  const readBoundaryWarning = hasProjectContext ? projectChatReadBoundaryWarning(chatAgent) : null
   const allowedEfforts: readonly string[] = useClaudeCli ? CLAUDE_CLI_EFFORTS : VALID_EFFORTS
   if (body.effort !== undefined && !allowedEfforts.includes(body.effort)) {
     return errorResponse(`effort must be one of: ${allowedEfforts.join(', ')}`, 400)
@@ -1227,6 +1225,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     inputTokens: number
     outputTokens: number
     readAudit?: ReadAudit
+    readBoundaryWarning?: string | null
     provider?: string
     canonicalModel?: string
     reportedUsd?: number | null
@@ -1294,6 +1293,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
           autoTask,
           readAudit: params.readAudit,
+          readBoundaryWarning: params.readBoundaryWarning ?? undefined,
         },
       })
     } else {
@@ -1365,6 +1365,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
           readAudit: result.readAudit,
+          readBoundaryWarning,
           provider: 'claude',
           canonicalModel: result.model,
           reportedUsd: result.usd,
@@ -1376,6 +1377,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
           taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
           autoTask,
+          readBoundaryWarning: readBoundaryWarning ?? undefined,
         })
       } catch (e: any) {
         if (e.readAudit) {
@@ -1414,6 +1416,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
           readAudit: uninstrumentedReadAudit(),
+          readBoundaryWarning,
           provider: 'codex',
         })
         return jsonResponse({
@@ -1422,6 +1425,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
           taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
           autoTask,
+          readBoundaryWarning: readBoundaryWarning ?? undefined,
         })
       } catch (e: any) {
         // R.5 (hallazgo #6) — antes este catch no dejaba ningún rastro: un
@@ -1457,6 +1461,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
           readAudit: uninstrumentedReadAudit(),
+          readBoundaryWarning,
           provider: 'opencode',
         })
         return jsonResponse({
@@ -1465,6 +1470,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
           taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
           autoTask,
+          readBoundaryWarning: readBoundaryWarning ?? undefined,
         })
       } catch (e: any) {
         // R.5 (hallazgo #6) — mismo hueco que Codex CLI: sin esto, un fallo

@@ -233,6 +233,7 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
   it('construye el flag de aislamiento y CODEX_HOME dentro del repo', () => {
     const args = buildCodexChatArgs('prompt')
     expect(args).toContain('--ignore-user-config')
+    expect(args).toContain('--skip-git-repo-check')
     expect(buildCodexChatEnv('/repo/.orchestos/agent-home/codex').CODEX_HOME).toBe(
       '/repo/.orchestos/agent-home/codex',
     )

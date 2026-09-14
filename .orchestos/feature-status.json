@@ -90,6 +90,15 @@
       "block": null,
       "delegation": "🧠",
       "title": "Cualquier CLI en el chat, sin bloqueo por frontera de lectura",
+      "status": "done",
+      "closedDate": "2026-09-14"
+    },
+    {
+      "id": "AT.9.1",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Reponer el lint global tras AT.7",
       "status": "open",
       "closedDate": null
     },

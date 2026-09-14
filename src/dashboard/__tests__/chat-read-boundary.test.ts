@@ -10,7 +10,7 @@
  */
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { _resetCliCapabilityCache } from '../../run/executors/cli-registry.ts'
-import { projectChatReadBoundaryError } from '../handlers/chat.ts'
+import { projectChatReadBoundaryWarning } from '../handlers/chat.ts'
 import { handleApiSystemExecutorModes } from '../handlers/tasks.ts'
 
 // Fragmentos textuales del `--help` real (2.1.263 lo trae, 2.1.234 no).
@@ -42,26 +42,26 @@ describe('H.9.2 — frontera de lectura del chat', () => {
     }
   })
   test('permite Claude cuando el binario instalado sostiene la frontera', () => {
-    expect(projectChatReadBoundaryError('claude', () => helpConRestricted)).toBeNull()
+    expect(projectChatReadBoundaryWarning('claude', () => helpConRestricted)).toBeNull()
   })
 
-  test('bloquea Claude si el binario NO soporta --restricted (fail-closed)', () => {
-    // El caso que motivó reabrir el ítem: con 2.1.234 el chat corría SIN
-    // frontera y sin decirlo. Ahora se rechaza y el motivo dice qué hacer.
-    const err = projectChatReadBoundaryError('claude', () => helpSinRestricted)
+  test('avisa si Claude no soporta --restricted y conserva la capability efectiva', () => {
+    // El binario sin --restricted se puede usar, pero el chat debe exponer
+    // el motivo real de que no exista una frontera efectiva.
+    const err = projectChatReadBoundaryWarning('claude', () => helpSinRestricted)
     expect(err).toContain('2.1.248')
     expect(err).toContain('chat de proyecto')
   })
 
-  test('bloquea Codex citando su motivo real, no un texto genérico', () => {
-    const err = projectChatReadBoundaryError('codex', () => helpConRestricted)
-    expect(err).toContain('chat de proyecto')
-    expect(err).toContain('sandbox')
+  test('avisa para Codex con el texto exacto del registro', () => {
+    expect(projectChatReadBoundaryWarning('codex', () => helpConRestricted)).toBe(
+      'Codex no limita la lectura a este proyecto',
+    )
   })
 
-  test('bloquea cualquier CLI registrado sin contrato verificado', () => {
-    expect(projectChatReadBoundaryError('opencode', () => helpConRestricted)).toContain(
-      'chat de proyecto',
+  test('avisa para cualquier CLI registrado sin contrato verificado', () => {
+    expect(projectChatReadBoundaryWarning('opencode', () => helpConRestricted)).toContain(
+      'contrato verificado',
     )
   })
 })

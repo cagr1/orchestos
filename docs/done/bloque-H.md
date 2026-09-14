@@ -1052,6 +1052,12 @@ catálogo real, no se toca).
   - `handlers/chat.ts` — `projectChatReadBoundaryError()` consulta la frontera efectiva, no la
     declarada, y cita el motivo concreto del CLI.
 
+  **Decisión posterior AT.9 (2026-09-14, historial preservado):** Carlos reemplazó el bloqueo
+  HTTP 400 por ejecución con aviso visible y no bloqueante para cualquier CLI con frontera
+  efectiva `none`. La capability y la sonda siguen diciendo la verdad; lo que cambió fue la
+  decisión de producto ante su ausencia. Evidencia actual en
+  `docs/done/bloque-AT.md#bloque-at-at-9`.
+
   **Bug propio encontrado por el gate en vivo y corregido en el mismo turno:** el cache de
   capability ignoraba la sonda inyectada, así que simular un binario viejo devolvía
   `project-root` (la degradación fail-closed quedaba desactivada en silencio). Ahora solo se

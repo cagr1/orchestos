@@ -746,6 +746,7 @@ SCREENS.chat = {
         })
         if (res.ok) {
           const data = await res.json()
+          App.showChatReadBoundaryWarning(sessionId, data.readBoundaryWarning)
           // I.2 (Mes 30) — una tarea "held" se creó pero no se corrió: no es
           // la tarea "en vuelo" que renderStepsCard asume, es la que necesita
           // confirmación inline ([Ver]/[Cancelar]) antes de arrancar.

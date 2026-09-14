@@ -1,0 +1,31 @@
+{
+  "gate": "AT.9",
+  "startedAt": "2026-09-14T21:39:07.761Z",
+  "completedAt": "2026-09-14T21:39:42.655Z",
+  "browser": "Chromium via Playwright",
+  "project": {
+    "sessionId": "c63a9468-79bb-453f-a7a5-18f09e731c26",
+    "sessionsBefore": 8,
+    "sessionCreated": true,
+    "assistantReply": "AT9_PROJECT_OK",
+    "persistedRoles": ["user", "assistant"],
+    "warning": "Codex no limita la lectura a este proyecto",
+    "warningCount": 1,
+    "warningToastVisible": true,
+    "warningVisibleOnce": true
+  },
+  "general": {
+    "createStatus": 201,
+    "sessionId": "7f1910a6-f03e-456a-9b8f-febdb34cb7a5",
+    "responseWarning": null,
+    "assistantReply": "AT9_GENERAL_OK",
+    "persistedRoles": ["user", "assistant"]
+  },
+  "observedWarningDisplays": [
+    {
+      "sessionId": "c63a9468-79bb-453f-a7a5-18f09e731c26",
+      "warning": "Codex no limita la lectura a este proyecto"
+    }
+  ],
+  "pass": true
+}

@@ -4,7 +4,15 @@
  * [[reference-bun-mock-module-gotcha]]).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
@@ -76,6 +84,34 @@ describe('detectInstalledClis()', () => {
     // no que la frontera FUNCIONARA — por eso el ítem se cerró roto. La frontera
     // real vive en los flags del spawn (external.ts); este settings queda vacío.
     expect(JSON.parse(readFileSync(home.settingsPath!, 'utf8'))).toEqual({})
+  })
+
+  it('enlaza auth.json de Codex sin copiarlo y la provisión es idempotente', () => {
+    const project = mkdtempSync(join(tmpdir(), 'orchestos-codex-project-'))
+    const userHome = mkdtempSync(join(tmpdir(), 'orchestos-codex-user-'))
+    const authSource = join(userHome, '.codex', 'auth.json')
+    mkdirSync(join(userHome, '.codex'), { recursive: true })
+    writeFileSync(authSource, '{"secret":"test"}')
+
+    const first = provisionCliConfigHome(project, 'codex', userHome)
+    const authTarget = join(first.path, 'auth.json')
+    expect(lstatSync(authTarget).isSymbolicLink()).toBe(true)
+    expect(readFileSync(authTarget, 'utf8')).toBe('{"secret":"test"}')
+    const second = provisionCliConfigHome(project, 'codex', userHome)
+    expect(second.path).toBe(first.path)
+    expect(lstatSync(authTarget).isSymbolicLink()).toBe(true)
+
+    const regularProject = mkdtempSync(join(tmpdir(), 'orchestos-codex-regular-'))
+    const regularAuthTarget = join(regularProject, '.orchestos', 'agent-home', 'codex', 'auth.json')
+    mkdirSync(join(regularProject, '.orchestos', 'agent-home', 'codex'), { recursive: true })
+    writeFileSync(regularAuthTarget, '{"local":"keep-me"}')
+    provisionCliConfigHome(regularProject, 'codex', userHome)
+    expect(lstatSync(regularAuthTarget).isSymbolicLink()).toBe(false)
+    expect(readFileSync(regularAuthTarget, 'utf8')).toBe('{"local":"keep-me"}')
+
+    const missingProject = mkdtempSync(join(tmpdir(), 'orchestos-codex-missing-'))
+    const missing = provisionCliConfigHome(missingProject, 'codex', join(tmpdir(), 'no-auth-home'))
+    expect(existsSync(join(missing.path, 'auth.json'))).toBe(false)
   })
 
   it('declara frontera de lectura solo para Claude; los demás CLIs quedan en none', () => {

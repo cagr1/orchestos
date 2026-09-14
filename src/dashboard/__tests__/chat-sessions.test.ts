@@ -236,16 +236,16 @@ describe('CC.2 — chat sessions backend', () => {
       }),
     ])
     expect(result.invalidProjectStatus).toBe(404)
-    // H.9.2 — Codex no se ofrece para chat de proyecto porque no tiene
-    // frontera de lectura verificada; no hay fallback ni spawn.
-    expect(result.sessionBoundStatus).toBe(400)
+    // H.9.2 — la sesión se crea, pero el binario ausente devuelve su error real
+    // cuando se intenta ejecutar el turno.
+    expect(result.sessionBoundStatus).toBe(502)
     expect(result.deleteStatus).toBe(200)
     expect(result.remainingMessages).toBe(0)
     expect(result.chatAllowsExecution).toBe(false)
     expect(result.codeAllowsExecution).toBe(true)
   })
 
-  it('rejects project sessions without a declared read boundary before persistence', async () => {
+  it('creates project sessions without a declared read boundary and returns a warning', async () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
@@ -280,13 +280,18 @@ describe('CC.2 — chat sessions backend', () => {
       db.close()
     `)
 
-    expect(result.projectStatus).toBe(400)
-    expect((result.projectBody as { error: string }).error).toContain(
-      'no está disponible para chat de proyecto',
-    )
-    expect(result.projectRows).toEqual([])
+    expect(result.projectStatus).toBe(201)
+    expect(result.projectBody).toMatchObject({
+      projectId: 'p1',
+      agent: 'codex',
+      readBoundaryWarning: 'Codex no limita la lectura a este proyecto',
+    })
+    expect(result.projectRows).toHaveLength(1)
     expect(result.generalStatus).toBe(201)
     expect(result.generalBody).toMatchObject({ projectId: null, agent: 'codex' })
+    expect(
+      (result.generalBody as { readBoundaryWarning?: string }).readBoundaryWarning,
+    ).toBeUndefined()
     expect(result.generalRows).toHaveLength(1)
   })
 
@@ -413,9 +418,9 @@ describe('CC.2 — chat sessions backend', () => {
     ])
     expect(result.tasksFileCreated).toBe(false)
     expect(result.injectedHistoryForwarded).toBe(false)
-    // H.9.2 — el guard corre antes del clasificador y del spawn.
-    expect(result.fetchCalls).toBe(2)
-    expect(result.codexStatus).toBe(400)
+    // H.9.2 — la advertencia no evita que el flujo llegue al CLI.
+    expect(result.fetchCalls).toBe(3)
+    expect(result.codexStatus).toBe(502)
   })
 
   it('never auto-creates a real task for a general project-less session in Code mode', async () => {

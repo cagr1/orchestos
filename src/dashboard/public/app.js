@@ -104,6 +104,7 @@ const state = {
   // por sesión, reflejo de GET /turn-status. Distinto de chatHistory: nunca
   // se pinta como un mensaje assistant más, es un banner aparte.
   chatTurnStatus: {},
+  chatReadBoundaryWarningsShown: {},
   chatModel: 'deepseek/deepseek-v4-flash',
   chatEffort: localStorage.getItem('orchestos-chat-effort') || 'medium', // FRONT.1 — solo aplicado cuando el modelo elegido tiene supportsReasoning:true (BACK.4) · FRONT.2 — persistido en localStorage
   chatFiles: [], // Mes 19 Bloque B — array de { fileId, filename, type, preview }, antes chatFileId/chatFileMeta singular
@@ -497,6 +498,7 @@ const App = {
       state.chatPending = false
       state.chatTaskSuggestion = null
       state.chatLiveSteps = {}
+      this.showChatReadBoundaryWarning(body.id, body.readBoundaryWarning)
       await App.fetchChatSessions()
       App.rerender()
     } catch (error) {
@@ -521,6 +523,7 @@ const App = {
       delete state.chatPendingBySession[sessionId]
       delete state.chatFetchEpochs[sessionId]
       delete state.chatTurnStatus[sessionId]
+      delete state.chatReadBoundaryWarningsShown[sessionId]
       if (state.chatSessionId === sessionId) {
         localStorage.removeItem('orchestos-chat-session-id')
         state.chatSessionId = null
@@ -550,7 +553,13 @@ const App = {
     delete state.chatDeletedSessionIds[body.id]
     state.chatHistories[body.id] = []
     localStorage.setItem('orchestos-chat-session-id', body.id)
+    this.showChatReadBoundaryWarning(body.id, body.readBoundaryWarning)
     return body.id
+  },
+  showChatReadBoundaryWarning(sessionId, warning) {
+    if (!sessionId || !warning || state.chatReadBoundaryWarningsShown[sessionId]) return
+    state.chatReadBoundaryWarningsShown[sessionId] = true
+    showToast(warning)
   },
   // G.4.4 — detección (qué CLI/tier hay disponible) + selección (agente
   // guardado, CC.D1) para el selector segmentado de Settings.
