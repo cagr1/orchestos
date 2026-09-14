@@ -47,27 +47,36 @@ Si necesitas saber el email activo, usa `git config user.email` (solo lectura).
   No acumules más commits sin subir; el push normal está autorizado. `--force` sigue prohibido
   salvo instrucción explícita.
 
-## Protocolo de delegación permanente (2026-09-09, decisión de Carlos)
+## Protocolo de delegación permanente (2026-09-09; flujo liviano 2026-09-14, decisiones de Carlos)
 
 Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje en este repo.
 
-**El cerebro piensa, planifica y delega. No teclea trabajo mecánico.**
+**El modelo fuerte planifica y verifica. El chico ejecuta.** Diagrama de Carlos (2026-09-14):
 
-El modelo caro (hoy Claude) hace exactamente cuatro cosas, en este orden:
+    cerebro (Opus 5 / Astra, esfuerzo medio) ── planifica y delega bajo demanda
+        └─ ejecutor (Luna): código + debugging, según el spec
+    cerebro (esfuerzo medio) ── integra y verifica
+        └─ solo si hace falta: cerebro en esfuerzo alto ── arquitectura + revisión final
 
-1. **Pensar** — decidir la arquitectura, el trade-off y el criterio de aceptación. Esto no se
-   delega nunca: es donde se decide si el sistema puede mentir.
-2. **Planificar** — abrir el ítem en PLAN.md con alcance, lo que queda fuera y el gate.
-   Sin ítem abierto no hay delegación posible: `agent:preflight` la bloquea.
-3. **Escribir el spec** — `docs/specs/<ID>.md`, redactado para que otro LLM lo ejecute **sin
-   tomar ni una decisión de diseño**. Si el ejecutor tiene que elegir algo, el spec está
-   incompleto. El spec dice explícitamente qué NO tomar (los ítems vecinos).
-4. **Verificar** — de forma independiente, con comandos propios. El reporte del ejecutor no es
-   evidencia; ver `feedback-verificar-progreso-delegado` y
-   `reference-codex-exec-exit-0-con-error` (un `exit 0` de Codex puede significar que no hizo
-   nada). Recién entonces se marca `[x]` con la evidencia pegada.
+**Flujo por ítem — cuatro pasos, sin más ceremonia:**
 
-La ejecución mecánica ⚡ va a Codex (`codex exec -m <modelo> --approve-for-me "<prompt>" < /dev/null`).
+1. **Plan (cerebro).** Abre el ítem en `PLAN.md` (qué y gate, pocas líneas) y escribe
+   `docs/specs/<ID>.md` corto: qué cambiar, dónde (`archivo:línea`), qué no tocar, cómo se
+   verifica. Sin decisiones de diseño pendientes. `bun run plan:reconcile` y un commit.
+2. **Ejecución (Luna).** `codex exec -m gpt-5.6-luna --approve-for-me "Ejecuta docs/specs/<ID>.md" < /dev/null`.
+   Implementa, corre sus tests y `tsc`. **No commitea ni toca `PLAN.md`.**
+3. **Integrar y verificar (cerebro).** Lee el diff, corre los gates con comandos propios y prueba
+   en vivo cuando aplica. El reporte del ejecutor y su `exit 0` no son evidencia
+   (`reference-codex-exec-exit-0-con-error`). Si falla, corrige el spec y re-delega — o sube a
+   Terra —; nunca teclea el arreglo.
+4. **Cierre (cerebro), un solo commit:** código del ejecutor + `[x]` + evidencia con
+   `Ejecutado por: … · Spec: docs/specs/<ID>.md` como primera línea indentada + `Gate en vivo:`
+   si toca dashboard/config + borrado del spec. Es lo que ya exigen `scripts/plan-gate.ts` y
+   `scripts/check-live-gate.ts`; por eso el ejecutor no commitea solo.
+
+Historial: la versión del 2026-09-09 exigía commits del ejecutor, specs con árbol de decisiones
+y verificación por checkout aun en fixes chicos; ese peso empujaba al cerebro a teclear
+(evaluación 2026-09-14). Texto anterior en `git log -p AGENTS.md`.
 
 **Sandbox de Codex y la DB del plan (2026-09-10, medido en S.8):** el sandbox `workspace-write`
 solo deja escribir dentro del repo, y la DB de OrchestOS vive en `~/.orchestos`. Cualquier ítem
@@ -109,8 +118,12 @@ proveedor `openrouter`; ese archivo gobierna a OrchestOS-como-producto (qué mod
 al correr una tarea de `tasks.yaml`), **no** al desarrollo de este repo, y se migra a los tres CLI
 en su propio ítem.
 
-Hoy este roster es **narrativo**. Su diente mecánico llega con el gate de procedencia de S.4b
-(spec borrado en el commit que cierra + línea `Ejecutado por:` en la evidencia).
+**Diente mecánico (AT.1, 2026-09-14):** `.claude/hooks/brain-no-code.js` (`PreToolUse`) bloquea
+en sesiones de Claude Code las ediciones sobre `src/`, `tests/`, `scripts/` y `.claude/hooks/`,
+incluidas las escrituras por redirect/`tee`/`sed -i`. El Sonnet de excepción se lanza con
+`ORCHESTOS_ROLE=executor`. Límites declarados: no aplica a sesiones de Codex (Astra como cerebro
+se rige por este texto) ni a escrituras desde intérpretes (`python -c`, `bun -e`). Al cierre, el
+gate de procedencia de S.4b sigue exigiendo `Ejecutado por:` y el borrado del spec.
 
 **Ciclo de vida del spec:** `docs/specs/<ID>.md` nace al delegar y **se borra en el commit que
 cierra el ítem** — para entonces su contenido vive en el código y su evidencia en `docs/done/`.
@@ -131,6 +144,8 @@ SIEMPRE es `PLAN.md`. Antes de tocar código:
    arreglarse, anotalo, no lo toques en la misma pasada.
 3. **Commit por ítem cerrado**, marcando `[x]` en `PLAN.md` en el mismo commit — así el otro agente
    (o Carlos) ve en `git log`/`PLAN.md` qué ya está tomado, sin necesitar coordinación en vivo.
+   Excepción: si ejecutas un `docs/specs/<ID>.md` escrito por el cerebro, no commiteas; el cierre
+   es suyo (§ Protocolo de delegación, paso 4).
 4. **No pises lo que no es tuyo**: si un ítem `⚡` ya tiene evidencia de que otro agente lo está
    trabajando (branch activo, commit reciente sin mergear), no lo dupliques — avisá.
 5. Antes de escribir código nuevo, correr `bunx tsc --noEmit` y la suite de tests relevante — igual
@@ -273,17 +288,7 @@ Codex, no a agentes ni a personas. IDs confirmados el 2026-09-11 leyendo los rol
 
 Se invocan con `codex exec -m <id>`.
 
-**Roster fijo de OrchestOS** (aplicación de `~/.claude/CLAUDE.md` § Reparto de modelos,
-`INS-2026-019`): el **cerebro** es Claude Opus 5 vía Claude Code — piensa, decide trade-offs,
-abre el ítem de `PLAN.md`, escribe el spec en `docs/specs/<ID>.md` y verifica con comandos
-propios. **Nunca teclea código de producto.** Los **ejecutores** son los cuatro modelos de
-Codex de arriba y los subagentes de Claude Code: aplican un spec que ya no contiene ninguna
-decisión de diseño pendiente.
-
-Motivo real: el cupo de un CLI de suscripción no se agota por trabajar mucho, sino por gastar
-el modelo caro en tokens que uno barato produce igual de bien. Si el ejecutor tiene que decidir
-algo, el defecto está en el spec — se reescribe el spec, nunca se toma el teclado. Una tarea
-difícil cambia el ejecutor (Luna → Terra → excepción con Sonnet), nunca quién escribe el spec.
-Sí es trabajo de cerebro y no cuenta como escribir código: editar `PLAN.md`, `AGENTS.md`,
-`CLAUDE.md`, `CONTEXT.md`, `docs/specs/*` y docs de análisis; correr comandos de lectura,
-consultas a la DB, gates y scripts existentes para verificar.
+**Roles y flujo:** una sola fuente, § "Protocolo de delegación permanente" arriba (unificado el
+2026-09-14; esta sección repetía el roster con otra redacción). Motivo que se conserva: el cupo
+de un CLI de suscripción se agota por gastar el modelo caro en tokens que uno barato produce
+igual de bien.

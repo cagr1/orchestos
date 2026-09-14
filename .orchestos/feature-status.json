@@ -4,6 +4,33 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "AT.1",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Fuerte planifica, chico ejecuta, con diente mecánico",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AT.2",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "El Sprint Board deja de congelar el dashboard",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AT.3",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "⚡",
+      "title": "El chat no crea conversaciones que nacen muertas",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "S.1",
       "sprint": "Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)",
       "block": null,

@@ -11,6 +11,26 @@ status: sprint-30-abierto--fiabilidad-del-recorrido-y-shell-chat-workspace
 Historial completado → ver [DONE.md](DONE.md).
 Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
+## Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)
+
+Origen: evaluación honesta del 2026-09-14. La última corrida `implement` real fue el 2026-08-19;
+hoy el chat de proyecto rechaza al agente guardado, deja conversaciones muertas y el dashboard
+tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre carlosgallardo.dev.
+
+- [ ] **AT.1 — 🧠 Fuerte planifica, chico ejecuta, con diente mecánico.** `AGENTS.md` unificado
+  al flujo liviano (cerebro) y hook `PreToolUse` que impide a Claude editar código (Luna, spec
+  `docs/specs/AT.1.md`). **Gate:** test del hook verde; en vivo, un Edit de Claude sobre `src/`
+  queda bloqueado y uno sobre `docs/` pasa.
+
+- [ ] **AT.2 — ⚡ El Sprint Board deja de congelar el dashboard.** `listPlanItemsWithCommitStatus`
+  tarda 5.7 s síncronos con 61 SHAs y `fetchAll` lo pide cada 30 s. **Gate:** con el dashboard
+  real, la segunda llamada a `/api/plan` baja de 300 ms; tests de plan-items y plan-import verdes.
+
+- [ ] **AT.3 — ⚡ El chat no crea conversaciones que nacen muertas.** `send()` crea la sesión
+  (`screens-core.js:698`) antes de que `/api/chat` rechace al agente sin frontera
+  (`handlers/chat.ts:763`). **Gate en vivo:** en navegador, con `codex` seleccionado enviar no crea
+  sesión y muestra el motivo; con `claude`, el chat responde.
+
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 
 **Problema medido, no estimado.** `PLAN.md` pesa 309 KB / 3854 líneas. Para que un agente
