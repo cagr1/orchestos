@@ -74,6 +74,17 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
    si toca dashboard/config + borrado del spec. Es lo que ya exigen `scripts/plan-gate.ts` y
    `scripts/check-live-gate.ts`; por eso el ejecutor no commitea solo.
 
+**Presupuesto de delegación (2026-09-14, incidente medido):** una sesión de Codex pasó de 54% a
+71% de su ventana de 5 h mientras tres subagentes fuertes heredaban el historial completo. Desde
+ahora hay un máximo de **dos subagentes activos simultáneos por sesión raíz**, sin contar al agente
+raíz. Antes de delegar, consultar los agentes activos; no abrir un tercero hasta que uno termine.
+En Codex, usar `gpt-5.6-luna` por defecto y `fork_turns: "none"` o el menor entero positivo que
+alcance: `fork_turns: "all"` queda reservado para una necesidad explícita y documentada. Si el
+cupo de 5 h ya está en 70% o más, no abrir subagentes salvo pedido explícito de Carlos; hacer la
+lectura local directamente y dejar la ejecución para Luna después del reset. Esto es enforcement
+narrativo en Codex porque el repo no puede interceptar la herramienta `spawn_agent` del host; el
+ítem AT.8 agrega el diente mecánico equivalente donde Claude Code sí expone hooks de subagentes.
+
 Historial: la versión del 2026-09-09 exigía commits del ejecutor, specs con árbol de decisiones
 y verificación por checkout aun en fixes chicos; ese peso empujaba al cerebro a teclear
 (evaluación 2026-09-14). Texto anterior en `git log -p AGENTS.md`.

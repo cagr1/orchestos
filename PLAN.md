@@ -113,13 +113,29 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   **Fuera de scope declarado:** `PLAN.md` registra el cierre y `.orchestos/feature-status.json`
   es el índice derivado exigido por `plan:reconcile`.
 
-- [ ] **AT.8 — ⚡ Presupuesto de subagentes: máximo dos, Luna y contexto mínimo.** Ejecutar
-  `docs/specs/AT.8.md` con Luna después de cerrar AT.7. Añadir enforcement mecánico para Claude
-  Code mediante hooks `PreToolUse:Agent` + `SubagentStart`/`SubagentStop`; en Codex conservar la
-  limitación honesta de que el repo solo puede imponer la regla narrativamente. Reparar también el
-  fixture de AT.5 que depende en silencio del catálogo durable y deja rojo `test:coverage` con Bun
-  1.4.x. **Gate:** tercera delegación denegada, una plaza liberada al terminar, estado aislado por
-  sesión, `bunx bun@latest test` relevante, `tsc` y `bun run test:coverage` verdes.
+- [x] **AT.8 — ⚡ Presupuesto de subagentes: máximo dos, Luna y contexto mínimo.** (cerrado 2026-09-14)
+  Sin delegación: código y tests ya existían sin commitear al abrir la sesión
+  (`subagent-budget.js` + `subagent-budget.test.ts`, spec `docs/specs/AT.8.md` nunca commiteado);
+  se verificó línea por línea contra el spec en vez de reejecutar con Luna, para no duplicar
+  trabajo ya hecho.
+  `.claude/hooks/subagent-budget.js` implementa `PreToolUse:Agent` + `SubagentStart`/`SubagentStop`
+  + `SessionStart`, lock `open(...,'wx')` con TTL, reservas expirables a 60s, estado aislado por
+  `session_id` (hash sha256) bajo `.orchestos/subagent-budget/` (gitignored). En Codex la
+  limitación queda narrativa (`AGENTS.md`), documentada honestamente: el repo no puede interceptar
+  `spawn_agent` del host. El fixture de AT.5/context-budget ya había quedado reparado por AT.7.1.
+  **Gate en vivo 2026-09-14:** 2 subagentes admitidos, 3ro denegado con el mensaje exacto del spec,
+  ambos terminan, 4to admitido sin bloqueo — corrido en esta misma sesión con agentes reales
+  (no simulado). `bun test tests/hooks/subagent-budget.test.ts` 7/7, `bunx bun@latest test
+  tests/hooks/context-budget.test.ts tests/hooks/subagent-budget.test.ts` verde, `tsc --noEmit`
+  limpio, `bun run test:coverage` 1427/1427 con gates de cobertura en verde.
+  **Hallazgo fuera de scope, no tocado:** `bun run lint` sale con 1 error preexistente y no
+  relacionado (formato en `src/__tests__/migration.test.ts`), ya listado en `NEXT.md` como
+  pendiente aparte.
+  **Fuera de scope declarado:** `.claude/settings.json` (registrar los 5 hooks del punto 1 del
+  spec), `.gitignore` (ignorar `.orchestos/subagent-budget/`), `AGENTS.md` (nota narrativa de
+  presupuesto de delegación que referencia este ítem) y `PLAN.md`/`.orchestos/feature-status.json`
+  (cierre del ítem) — el spec solo declaraba `.claude/hooks/**` y `tests/hooks/**`, pero el hook no
+  entra en vigor sin el wiring en `settings.json` ni el `.gitignore` de su estado.
 
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 

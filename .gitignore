@@ -83,3 +83,6 @@ dist/
 # H.7.3 — evita regenerar el handoff más de una vez por sesión Claude.
 .orchestos/context-budget.json
 .orchestos/adversarial-review.log
+
+# AT.8 — estado del presupuesto de subagentes, aislado por session_id.
+.orchestos/subagent-budget/
