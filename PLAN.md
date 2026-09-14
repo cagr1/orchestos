@@ -17,10 +17,13 @@ Origen: evaluación honesta del 2026-09-14. La última corrida `implement` real 
 hoy el chat de proyecto rechaza al agente guardado, deja conversaciones muertas y el dashboard
 tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre carlosgallardo.dev.
 
-- [ ] **AT.1 — 🧠 Fuerte planifica, chico ejecuta, con diente mecánico.** `AGENTS.md` unificado
-  al flujo liviano (cerebro) y hook `PreToolUse` que impide a Claude editar código (Luna, spec
-  `docs/specs/AT.1.md`). **Gate:** test del hook verde; en vivo, un Edit de Claude sobre `src/`
-  queda bloqueado y uno sobre `docs/` pasa.
+- [x] **AT.1 — 🧠 Fuerte planifica, chico ejecuta, con diente mecánico.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.1.md
+  `.claude/hooks/brain-no-code.js` + registro `PreToolUse` en `.claude/settings.json` +
+  `tests/hooks/brain-no-code.test.ts` (9 pass, 0 fail; `tsc` limpio), protocolo unificado en
+  `aa51d7a`. Gate en vivo en la sesión del cerebro (Opus 5): `Write src/__brain_guard_probe.ts` y
+  `echo >> src/__brain_guard_probe_bash.ts` → denegados con el mensaje del hook, sin crear archivos;
+  `Write docs/specs/__probe.md` → permitido (borrado después).
 
 - [ ] **AT.2 — ⚡ El Sprint Board deja de congelar el dashboard.** `listPlanItemsWithCommitStatus`
   tarda 5.7 s síncronos con 61 SHAs y `fetchAll` lo pide cada 30 s. **Gate:** con el dashboard
