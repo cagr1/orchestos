@@ -1,12 +1,16 @@
-import { spawnSync } from 'child_process'
 import { describe, expect, it } from 'bun:test'
+import { spawnSync } from 'child_process'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, resolve } from 'path'
 
 const HOOK_PATH = resolve(import.meta.dir, '../../.claude/hooks/brain-no-code.js')
 
-function runHook(input: unknown, root = mkdtempSync(join(tmpdir(), 'brain-guard-root-')), role?: string) {
+function runHook(
+  input: unknown,
+  root = mkdtempSync(join(tmpdir(), 'brain-guard-root-')),
+  role?: string,
+) {
   const result = spawnSync('node', [HOOK_PATH], {
     encoding: 'utf8',
     input: JSON.stringify(input),
@@ -49,7 +53,11 @@ describe('brain-no-code hook', () => {
 
   it('allow non-code and outside-root paths', () => {
     const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
-    for (const input of [tool('Edit', { file_path: join(root, 'PLAN.md') }), tool('Write', { file_path: join(root, 'docs/specs/AT.9.md') }), tool('Edit', { file_path: '/tmp/outside.ts' })]) {
+    for (const input of [
+      tool('Edit', { file_path: join(root, 'PLAN.md') }),
+      tool('Write', { file_path: join(root, 'docs/specs/AT.9.md') }),
+      tool('Edit', { file_path: '/tmp/outside.ts' }),
+    ]) {
       expect(runHook(input, root).stdout.trim()).toBe('')
     }
   })
@@ -81,7 +89,9 @@ describe('brain-no-code hook', () => {
 
   it('allow executor edits to code', () => {
     const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
-    expect(runHook(tool('Edit', { file_path: join(root, 'src/a.ts') }), root, 'executor').stdout.trim()).toBe('')
+    expect(
+      runHook(tool('Edit', { file_path: join(root, 'src/a.ts') }), root, 'executor').stdout.trim(),
+    ).toBe('')
   })
 
   it('allow invalid stdin', () => {

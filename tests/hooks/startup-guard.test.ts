@@ -1,5 +1,5 @@
-import { spawnSync } from 'child_process'
 import { afterEach, describe, expect, it } from 'bun:test'
+import { spawnSync } from 'child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, resolve } from 'path'
@@ -111,6 +111,8 @@ describe('startup-guard hook', () => {
     })
     const result = runHook(home, root)
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain('plugin fuera de allowlist: frontend-design@claude-plugins-official')
+    expect(result.stdout).toContain(
+      'plugin fuera de allowlist: frontend-design@claude-plugins-official',
+    )
   })
 })

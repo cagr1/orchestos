@@ -64,10 +64,13 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   temporizadores manuales para confirmar cuál de los 7 CLIs cuesta, y decidir si el poll de
   5 s necesita cachearse o si el cómputo por-CLI necesita moverse fuera del hot path.
 
-- [ ] **AT.6 — ⚡ Lint en rojo: 3 archivos sin formatear/ordenar.** `bun run lint` exit 1,
-  5 errores mecánicos (formato + orden de imports) en `.claude/hooks/startup-guard.js`,
-  `tests/hooks/brain-no-code.test.ts`, `tests/hooks/startup-guard.test.ts`. Spec:
-  docs/specs/AT.6.md.
+- [x] **AT.6 — ⚡ Lint en rojo: 3 archivos sin formatear/ordenar.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.6.md
+  `bunx biome check --write` sobre los 3 archivos declarados; solo formato + orden de
+  imports, sin cambio de comportamiento (diff revisado). `bun run lint` exit 0 (verificado
+  por el cerebro — el reporte de Luna decía "sigue fallando", pero corría contra un estado
+  previo; no era evidencia). `bunx tsc --noEmit` limpio, 14 tests verdes en los dos
+  archivos de test tocados.
 
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 

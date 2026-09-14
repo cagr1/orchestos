@@ -16,7 +16,8 @@ import { fileURLToPath } from 'node:url'
 // `STARTUP_GUARD_ROOT`/`STARTUP_GUARD_HOME` solo existen para que el test pueda
 // apuntar a fixtures en tmpdir sin tocar el repo real ni `~/.claude.json`. Sin
 // esas variables el comportamiento en producción es el de siempre (rutas reales).
-const ROOT = process.env.STARTUP_GUARD_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const ROOT =
+  process.env.STARTUP_GUARD_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const HOME = process.env.STARTUP_GUARD_HOME || homedir()
 
 const PLUGIN_ALLOWLIST = new Set(['security-guidance@claude-plugins-official'])
