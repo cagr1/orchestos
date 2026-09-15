@@ -3,6 +3,38 @@
    ============================================================ */
 window.SCREENS = window.SCREENS || {}
 
+SCREENS.workspace = {
+  render(st) {
+    const tabs = ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts']
+    const tab = tabs.includes(st.workspaceTab) ? st.workspaceTab : 'tasks'
+    if (tab === 'graph' && st.graphStatus === 'idle') {
+      st.graphStatus = 'loading'
+      App.fetchGraphStatus().then(() => App.rerender())
+    }
+    const body = SCREENS[tab]?.render
+      ? SCREENS[tab].render(st)
+      : '<div class="screen"><p>Loading workspace…</p></div>'
+    const tabBar = `<div class="workspace-tabs">${tabs.map((id) => `<button class="proj-tab${id === tab ? ' active' : ''}" data-workspace-tab="${id}">${id[0].toUpperCase() + id.slice(1)}</button>`).join('')}<button class="proj-tab" data-workspace-tab="project">Project settings</button></div>`
+    return `<div class="workspace" data-workspace-project="${esc(st.workspaceProjectId || '')}">${tabBar}${body}</div>`
+  },
+  wire(root, st) {
+    root.querySelectorAll('[data-workspace-tab]').forEach((button) =>
+      button.addEventListener('click', () => {
+        const next = button.dataset.workspaceTab
+        if (next === 'project') return App.go('project')
+        st.workspaceTab = next
+        if (next === 'graph' && st.graphStatus === 'idle') {
+          st.graphStatus = 'loading'
+          App.fetchGraphStatus().then(() => App.rerender())
+        }
+        App.rerender()
+      }),
+    )
+    const tab = st.workspaceTab || 'tasks'
+    SCREENS[tab]?.wire?.(root, st)
+  },
+}
+
 /* ============================================================
    PROJECT — CONSTITUTION.md (editable) + CONTEXT.md (read-only)
    ============================================================ */
@@ -2344,4 +2376,13 @@ SCREENS.plan = {
     return '<div data-island="screen-plan"></div>'
   },
   wire() {},
+}
+
+SCREENS.activity = {
+  render(st) {
+    return SCREENS.runs.render(st)
+  },
+  wire(root, st) {
+    return SCREENS.runs.wire(root, st)
+  },
 }

@@ -1736,18 +1736,28 @@ ni eso hace falta.
   `projects` — corregido insertando/limpiando una fila real de proyecto por test, sin relajar la
   FK. `bunx tsc --noEmit` y `bun run test:coverage` (1430 pass) verdes.
 
-- [ ] **UI.8.3 — 🧠 Matar la navegación vieja (absorbe UI.7, sube antes de UI.4).**
-  Se adelanta a propósito: con el orden anterior, las 9 pantallas de UI.4 se migrarían **dentro**
-  de la navegación que el propio documento de dirección declara anti-patrón.
-  - Rail de 3 zonas según `ui-reference-patterns.md` §A.1: `Chat` · `Activity` arriba, árbol de
-    proyectos en el medio, `Settings` abajo. Las 7 capacidades restantes
-    (`tasks`, `runs`, `graph`, `memory`, `specs`, `skills`, `instincts`) pasan a tabs de la
-    entidad seleccionada.
-  - Borrar el modo avanzado en `app.js:512, 1922, 2733-2735` **y también en
-    `Sidebar.tsx:43, 92`** — la migración a React copió el toggle que la dirección prohíbe, y hoy
-    cada pantalla nueva lo hereda.
-  - `SCREENS.runner` se borra (deuda CC.0-D5).
-  Gate 🔍 en vivo: dos proyectos, una sesión por proyecto con CLIs distintos, navegador real.
+- [x] **UI.8.3 — 🧠 Matar la navegación vieja (absorbe UI.7, sube antes de UI.4).** (cerrado 2026-09-15)
+  Ejecutado por: luna · Spec: docs/specs/UI.8.3.md
+  Rail de 3 zonas real: `Chat`/`Activity` arriba (`Activity` reusa `SCREENS.runs`), árbol de
+  proyectos (`GET /api/projects`) en el medio, `Settings` abajo (`Sidebar.tsx`). Las 7
+  capacidades pasan a un nuevo `SCREENS.workspace` con tabs que reusan el `render()`/`wire()` de
+  cada pantalla existente tal cual (sin reescribirlas). Modo avanzado borrado por completo:
+  `toggleAdvancedMode`, `localStorage['orchestos-mode']`, prop `advanced` en `shell-store.ts`/
+  `Sidebar.tsx`/`shell-api.ts`, filtro en `openCommandPalette`. `SCREENS.runner` eliminado
+  (deuda CC.0-D5). Multi-proyecto real con header `x-orchestos-project-id` por-request queda
+  para ERP.2 a propósito (backend ya lo soporta, frontend aún no lo envía).
+  **Hallazgos del cerebro al verificar en vivo, corregidos antes de cerrar:** (1) el primer
+  intento nunca corrió `bun run build:ui` — el navegador servía el bundle React viejo, el árbol
+  de proyectos no existía en pantalla pese a que el código fuente ya lo tenía; (2) la pestaña
+  `graph` del workspace nunca disparaba su fetch inicial (antes solo lo hacía `App.go('graph')`,
+  camino que el nuevo tab-switch no usa) — agregado el mismo lazy-load en
+  `SCREENS.workspace.wire()`.
+  Gate en vivo: navegador real (Playwright), evidencia en `docs/done/evidence/UI.8.3-live.json` — dos proyectos reales registrados
+  (uno temporal, borrado después), rail de 3 zonas, 8 tabs de workspace, `graph` dispara su
+  fetch al cambiar de tab, cambiar de proyecto actualiza el workspace sin mezclar datos, mini-menú
+  de CLI de ERP.1 sigue funcionando tras la reescritura de nav. `bunx tsc --noEmit`,
+  `bunx biome check` (0 errores en los archivos tocados) y `bun run test:coverage` (1430 pass)
+  verdes. Dashboards de prueba bajados al cierre.
 
 - [ ] **UI.8.4 — 🧠 Shell Chat | Workspace (absorbe UI.6).**
   Inspector **condicional** (0px cerrado, no riel), con ancho persistido y una sola fuente de

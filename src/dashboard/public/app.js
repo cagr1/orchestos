@@ -142,17 +142,9 @@ const state = {
 
 const NAV = [
   { id: 'chat', icon: ICON.chat, key: 'nav.chat' },
-  { id: 'project', icon: ICON.project, key: 'nav.project' },
-  { id: 'instincts', icon: ICON.instinct, key: 'nav.instincts' },
-  { id: 'skills', icon: ICON.flask, key: 'nav.skills', badge: true },
+  { id: 'activity', icon: ICON.runs, key: 'nav.runs' },
   // I.1 (Mes 30) — Tasks queda anclado como en Orca: ya no es una barra manual
   // desde el chat, es la vista de tareas que el usuario final también necesita ver.
-  { id: 'tasks', icon: ICON.tasks, key: 'nav.tasks' },
-  { id: 'runs', icon: ICON.runs, key: 'nav.runs', operator: true },
-  { id: 'graph', icon: ICON.graph, key: 'nav.graph', operator: true },
-  { id: 'memory', icon: ICON.memory, key: 'nav.memory', operator: true },
-  { id: 'specs', icon: ICON.specs, key: 'nav.specs', operator: true },
-  { id: 'plan', icon: ICON.graph, key: 'nav.plan', operator: true },
   { id: 'settings', icon: ICON.settings, key: 'nav.settings' },
 ]
 
@@ -785,7 +777,7 @@ const App = {
     pushShellState({
       screen: state.screen,
       skillsCount: (state.skills || []).length,
-      advanced: (localStorage.getItem('orchestos-mode') || 'normal') === 'advanced',
+      workspaceProjectId: state.workspaceProjectId || null,
       sidebarExpanded: document.querySelector('.app').dataset.sidebar === 'expanded',
     })
   },
@@ -2195,8 +2187,7 @@ const Modal = {
   // la búsqueda es 100% cliente, sin ida y vuelta al backend por tecla.
   // Cierra el gap con el buscador tipo Claude/Raycast que pedía Carlos.
   openCommandPalette() {
-    const isAdv = (localStorage.getItem('orchestos-mode') || 'normal') === 'advanced'
-    const screenItems = NAV.filter((n) => !n.operator || isAdv).map((n) => ({
+    const screenItems = NAV.map((n) => ({
       type: 'screen',
       icon: n.icon,
       label: t(n.key),
@@ -2969,17 +2960,6 @@ function toggleSidebarMode() {
   App.syncNav()
 }
 
-function toggleAdvancedMode() {
-  const cur = localStorage.getItem('orchestos-mode') || 'normal'
-  const next = cur === 'advanced' ? 'normal' : 'advanced'
-  localStorage.setItem('orchestos-mode', next)
-  if (next === 'normal') {
-    const opIds = NAV.filter((n) => n.operator).map((n) => n.id)
-    if (opIds.includes(state.screen)) App.go('chat')
-  }
-  App.syncNav()
-}
-
 // `headerIconBtn()` se borro en UI.3 (Mes 30): su unico consumidor era
 // buildRightPanelToprow(), que ahora es un componente React. La clase `.header-icon-btn`
 // sigue viva en el CSS y la usa ese componente.
@@ -3228,7 +3208,12 @@ function boot() {
     icons: { ...ICON, ...AGENT_ICONS },
     go: (id) => App.go(id),
     toggleSidebar: toggleSidebarMode,
-    toggleAdvanced: toggleAdvancedMode,
+    selectWorkspaceProject: (id) => {
+      state.workspaceProjectId = id
+      state.screen = 'workspace'
+      state.workspaceTab = state.workspaceTab || 'tasks'
+      App.rerender()
+    },
     openCommandPalette: () => Modal.openCommandPalette(),
     toggleRightPanel,
     setRightPanelTab,

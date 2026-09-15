@@ -1,0 +1,36 @@
+{
+  "item": "UI.8.3",
+  "at": "2026-09-15",
+  "dashboard": "http://127.0.0.1:4242",
+  "method": "Playwright, dos proyectos reales registrados",
+  "rail": {
+    "topNavIds": ["chat", "activity", "settings"],
+    "advancedModeButtonPresent": false,
+    "advancedModeLocalStorage": null
+  },
+  "projectTree": {
+    "projectCount": 2,
+    "projectIds": ["557140659ae885cb (temp, borrado tras el gate)", "73903c93c6bd19e0"]
+  },
+  "workspace": {
+    "tabsRendered": ["tasks", "runs", "graph", "memory", "specs", "skills", "instincts", "project"],
+    "runsTabRendersRealContent": true,
+    "graphTabFiresStatusRequestOnTabSwitch": true,
+    "switchingProjectUpdatesWorkspaceProjectAttr": true
+  },
+  "chat": {
+    "startsOnChat": true,
+    "erp1MiniMenuStillWorksAfterNavRewrite": true,
+    "sessionCreatedWithChosenAgent": "claude"
+  },
+  "known_limits_deferred": {
+    "ERP.2": "el árbol de proyectos no filtra aún tasks/runs/graph/memory por project_id vía header x-orchestos-project-id — el backend ya lo soporta, el frontend todavía no lo envía. Documentado a propósito, no es un bug de este ítem.",
+    "UI.8.4": "inspector condicional y contrato completo Chat→Workspace quedan para ese ítem."
+  },
+  "verification": {
+    "tsc": "pass",
+    "biome_check_touched_files": "0 errors (47 warnings preexistentes)",
+    "test_coverage": "1430 pass, 0 fail",
+    "build_ui": "pass (bundle reconstruido antes del gate — el primer intento sirvió el bundle viejo, detectado y corregido)"
+  }
+}

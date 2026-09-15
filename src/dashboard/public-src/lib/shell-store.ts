@@ -37,11 +37,9 @@ export interface ShellState {
   /** Pestaña activa del aside derecho. */
   rightPanelTab: string
   /**
-   * Modo avanzado (`localStorage['orchestos-mode']`). SIGUE EXISTIENDO a propósito:
-   * UI.7 es el único ítem autorizado a eliminarlo, y UI.3 tiene prohibido cambiar
-   * navegación. Se migra el modo tal como está, aunque sea código con fecha de muerte.
+   * Proyecto activo del workspace.
    */
-  advanced: boolean
+  workspaceProjectId: string | null
 }
 
 const initial: ShellState = {
@@ -51,7 +49,7 @@ const initial: ShellState = {
   sidebarExpanded: false,
   rightPanelOpen: false,
   rightPanelTab: 'terminal',
-  advanced: false,
+  workspaceProjectId: null,
 }
 
 let state: ShellState = initial

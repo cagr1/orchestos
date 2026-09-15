@@ -16,11 +16,10 @@
  * UI.5 ("`screens.css`/`styles.css` reducidos a tokens"), donde además ya no habrá vanilla
  * compitiendo por las mismas clases.
  *
- * SCOPE-LOCK: el botón de "modo avanzado" y el flag `localStorage['orchestos-mode']` se
- * migran TAL CUAL, aunque UI.7 los vaya a borrar. UI.3 tiene prohibido tocar navegación
- * (regla explícita de PLAN.md); si aparece la tentación, se anota para UI.7 y se sigue.
+ * UI.8.3 reorganiza el riel en Chat, Activity, proyectos y Settings.
  */
 
+import { useEffect, useState } from 'react'
 import { useT } from '../../lib/i18n.ts'
 import { Icon, RawIcon } from '../../lib/icons.tsx'
 import { type NavEntry, shellApi } from './shell-api.ts'
@@ -32,15 +31,20 @@ export function Sidebar() {
   const api = shellApi()
   const nav: NavEntry[] = api?.nav ?? []
 
-  const mainNav = nav.filter((n) => n.id !== 'settings')
-  const bottomNav = nav.filter((n) => n.id === 'settings')
+  const mainNav = nav.filter((n) => n.id === 'chat' || n.id === 'activity')
+  const settings = nav.find((n) => n.id === 'settings')
+  const [projects, setProjects] = useState<Array<{ id: string; path: string }>>([])
+  useEffect(() => {
+    fetch('/api/projects')
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setProjects)
+      .catch(() => setProjects([]))
+  }, [])
 
   // El atajo se muestra según la plataforma, igual que en vanilla.
   const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K'
   const isBright = document.documentElement.getAttribute('data-theme') === 'bright'
   const logoSrc = `assets/${isBright ? 'logo_black' : 'logo_white'}.png`
-
-  const modeTipKey = shell.advanced ? 'nav.mode.disable' : 'nav.mode.enable'
 
   return (
     <>
@@ -80,34 +84,40 @@ export function Sidebar() {
           key={entry.id}
           entry={entry}
           shellScreen={shell.screen}
-          advanced={shell.advanced}
           skillsCount={shell.skillsCount}
         />
       ))}
+
+      <div className="sidebar-projects">
+        <div className="sidebar-section-label">Projects</div>
+        {projects.map((project) => (
+          <div
+            key={project.id}
+            className={`nav-icon${shell.workspaceProjectId === project.id ? ' active' : ''}`}
+            data-project-id={project.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => api?.selectWorkspaceProject(project.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                api?.selectWorkspaceProject(project.id)
+              }
+            }}
+          >
+            <span className="nav-ic">
+              <Icon name="project" />
+            </span>
+            <span className="nav-label">{project.path.split('/').pop() || project.path}</span>
+          </div>
+        ))}
+      </div>
 
       <div className="grow" />
 
-      <NavButton
-        id="navModeBtn"
-        className={`nav-icon nav-mode-btn${shell.advanced ? ' active' : ''}`}
-        tip={t(modeTipKey)}
-        onActivate={() => api?.toggleAdvanced()}
-      >
-        <span className="nav-ic">
-          <Icon name="sliders" />
-        </span>
-        <span className="nav-label">{t(modeTipKey)}</span>
-      </NavButton>
-
-      {bottomNav.map((entry) => (
-        <NavIcon
-          key={entry.id}
-          entry={entry}
-          shellScreen={shell.screen}
-          advanced={shell.advanced}
-          skillsCount={shell.skillsCount}
-        />
-      ))}
+      {settings && (
+        <NavIcon entry={settings} shellScreen={shell.screen} skillsCount={shell.skillsCount} />
+      )}
     </>
   )
 }
@@ -115,20 +125,16 @@ export function Sidebar() {
 function NavIcon({
   entry,
   shellScreen,
-  advanced,
   skillsCount,
 }: {
   entry: NavEntry
   shellScreen: string
-  advanced: boolean
   skillsCount: number
 }) {
   const t = useT()
   const api = shellApi()
   // Los ítems de operador solo existen en modo avanzado: en vanilla `navItem()` devolvía
   // string vacío. No llevan badge "adv" — se quitó en Mes 22/F2 por redundante.
-  if (entry.operator && !advanced) return null
-
   return (
     <div
       className={`nav-icon${entry.operator ? ' operator visible' : ''}${shellScreen === entry.id ? ' active' : ''}`}

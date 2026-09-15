@@ -24,7 +24,7 @@ export interface ShellApi {
   icons: Record<string, string>
   go: (id: string) => void
   toggleSidebar: () => void
-  toggleAdvanced: () => void
+  selectWorkspaceProject: (projectId: string) => void
   openCommandPalette: () => void
   toggleRightPanel: () => void
   setRightPanelTab: (tab: string) => void
