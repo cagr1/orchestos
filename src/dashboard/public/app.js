@@ -121,6 +121,7 @@ const state = {
   // null | 'root' | 'model' | 'effort'. Reemplaza al viejo chatModelComboOpen
   // (combobox de modelo separado del <select> de esfuerzo).
   chatFxView: null,
+  chatCliMenuOpen: false,
   chatAttachMenuOpen: false, // FRONT.9 — menú de tipo de adjunto (Imagen/Documento/URL)
   // 2026-07-08 — mismo patrón (antes chatModelComboOpen) pero genérico para todos
   // los demás selectores de modelo (draft composer, diagnose, roles de
@@ -480,12 +481,13 @@ const App = {
     await Promise.all([App.fetchChatSession(sessionId), App.fetchChatTurnStatus(sessionId)])
     App.rerender()
   },
-  async startNewChatSession() {
+  async startNewChatSession(agent) {
+    if (!agent) return
     try {
       const res = await fetch('/api/chat/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api' }),
+        body: JSON.stringify({ agent }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok || typeof body.id !== 'string')
@@ -2796,7 +2798,7 @@ function buildChatModelFx(st) {
   const triggerLabel = effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase
   const triggerTitle = effortLabel ? `${fullModelLabel} · ${effortLabel}` : fullModelLabel
 
-  const view = st.chatFxView // null | 'root' | 'model' | 'effort' | 'agent'
+  const view = st.chatFxView // null | 'root' | 'model' | 'effort'
   let panel = ''
   if (view === 'root') {
     // Aviso visible sin abrir el submenu si el agente activo del PROYECTO
@@ -2804,12 +2806,7 @@ function buildChatModelFx(st) {
     // — el chat cae a OpenRouter en silencio para esos dos (ver nota en la
     // vista 'agent' más abajo). No se auto-corrige el config acá, solo se
     // avisa — cambiar el agente del proyecto sigue siendo decisión del usuario.
-    const chatAgentUnsupportedWarning =
-      agent === 'codex' || agent === 'opencode'
-        ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('chat.modelfx.agentChatUnsupported')}</p>`
-        : ''
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
-      ${chatAgentUnsupportedWarning}
       ${
         modelHiddenAgent
           ? `<div class="chat-modelfx-item">
@@ -2829,10 +2826,10 @@ function buildChatModelFx(st) {
       </button>`
           : ''
       }
-      <button type="button" class="chat-modelfx-item" data-modelfx-nav="agent">
+      <div class="chat-modelfx-item">
         <span class="k">${t('chat.modelfx.agent')}</span>
-        <span class="v">${esc(agentLabel)}</span>${ICON.chevR}
-      </button>
+        <span class="v">${esc(agentLabel)}</span>
+      </div>
       <div class="chat-modelfx-sep"></div>
       <button type="button" class="chat-modelfx-item chat-modelfx-reset" data-modelfx-reset>
         ${ICON.refresh}<span>${t('chat.modelfx.reset')}</span>
@@ -2888,39 +2885,6 @@ function buildChatModelFx(st) {
       </button>`,
         )
         .join('')}
-    </div>`
-  } else if (view === 'agent') {
-    const modes = Array.isArray(st.executorModes?.modes) ? st.executorModes.modes : []
-    const notDetectedNote =
-      agentInfo && !agentInfo.detected
-        ? `<p class="engine-desc" style="color:var(--warning)">${ICON.warn} ${t('settings.executorMode.notDetected')}</p>`
-        : ''
-    // Hallazgo real de Carlos (2026-08-17): elegir "Codex" acá lo dejaba
-    // fijado como agente del proyecto, pero `handlers/chat.ts` solo tiene
-    // rama especial para `agent === 'claude'` (CC.1, alcance decidido a
-    // propósito: Codex/OpenCode no tienen un flag de solo-lectura confirmado
-    // — pendiente explícito, nunca silencioso, desde esa misma pasada). El
-    // chat entonces caía en silencio al camino de OpenRouter — el label de
-    // la respuesta SÍ decía la verdad ("via OpenRouter", no mentía sobre qué
-    // corrió), pero el SELECTOR prometía algo que el chat no puede cumplir
-    // todavía. Deshabilitados acá — siguen siendo agentes válidos para
-    // tareas en Settings, esto es solo el picker del chat.
-    const CHAT_UNSUPPORTED_AGENTS = new Set(['codex', 'opencode'])
-    panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
-      <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
-      ${modes
-        .map((info) => {
-          const unsupported = CHAT_UNSUPPORTED_AGENTS.has(info.id)
-          return unsupported
-            ? `<div class="chat-modelfx-item chat-modelfx-agent-opt disabled" title="${esc(t('chat.modelfx.agentChatUnsupported'))}">
-            <span class="muted">${esc(t('chat.modelfx.agentLabel.' + info.id))} — ${esc(t('chat.modelfx.agentChatUnsupported'))}</span>
-          </div>`
-            : `<button type="button" class="chat-modelfx-item chat-modelfx-agent-opt${agent === info.id ? ' active' : ''}" data-modelfx-agent="${esc(info.id)}">
-            <span>${esc(t('chat.modelfx.agentLabel.' + info.id))}</span>${agent === info.id ? ICON.check : ''}
-          </button>`
-        })
-        .join('')}
-      ${notDetectedNote}
     </div>`
   }
 
@@ -3187,6 +3151,16 @@ function boot() {
     }
     if (state.chatAttachMenuOpen && !e.target.closest('[data-attach-menu]')) {
       state.chatAttachMenuOpen = false
+      App.rerender()
+    }
+    if (state.chatCliMenuOpen && !e.target.closest('[data-chat-cli-menu]')) {
+      state.chatCliMenuOpen = false
+      App.rerender()
+    }
+  })
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.chatCliMenuOpen) {
+      state.chatCliMenuOpen = false
       App.rerender()
     }
   })

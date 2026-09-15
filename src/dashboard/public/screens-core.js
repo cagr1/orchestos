@@ -476,10 +476,25 @@ SCREENS.chat = {
     // de verdad). Mismo patrón que Claude Desktop/Codex/Orca/ChatGPT: lista a
     // la izquierda, "Nueva conversación" arriba, borrar por ítem con confirm.
     const sessions = st.chatSessions || []
+    const cliIcon = { local: ICON.cpu || ICON.bolt, claude: ICON.spark, codex: ICON.bolt, opencode: ICON.term, api: ICON.globe }
+    const cliModes = Array.isArray(st.executorModes?.modes) ? st.executorModes.modes : []
+    const cliMenu = st.chatCliMenuOpen
+      ? `<div class="chat-cli-menu" data-chat-cli-menu role="menu">${cliModes.map((info) => {
+          const available = info.detected !== false
+          const reason = info.path ? t('settings.executorMode.notDetected') : t('common.notDetected')
+          const label = t('chat.modelfx.agentLabel.' + info.id)
+          return available
+            ? `<button type="button" class="chat-cli-item" data-chat-cli-agent="${esc(info.id)}" role="menuitem">${cliIcon[info.id] || ICON.bolt}<span>${esc(label)}</span></button>`
+            : `<div class="chat-cli-item disabled" title="${esc(reason)}" aria-disabled="true">${cliIcon[info.id] || ICON.bolt}<span>${esc(label)}<small>${esc(reason)}</small></span></div>`
+        }).join('')}</div>`
+      : ''
     const sessionsAside = `<aside class="chat-sessions-aside">
-      <button type="button" class="btn ghost sm chat-sessions-new" data-act="chat-new-session">
-        ${ICON.plus} ${t('chat.sessions.new')}
-      </button>
+      <div class="chat-new-menu-wrap" data-chat-cli-menu>
+        <button type="button" class="btn ghost sm chat-sessions-new" data-act="chat-new-session" aria-expanded="${st.chatCliMenuOpen ? 'true' : 'false'}">
+          ${ICON.plus} ${t('chat.sessions.new')}
+        </button>
+        ${cliMenu}
+      </div>
       <div class="chat-sessions-list">
         ${
           sessions.length === 0
@@ -833,7 +848,14 @@ SCREENS.chat = {
     // I.4 (Mes 30) — aside de conversaciones: nueva / abrir / borrar. Ya no
     // hay "Clear" — borrar vive acá, igual que en Claude Desktop/Codex/Orca.
     root.querySelector('[data-act="chat-new-session"]')?.addEventListener('click', () => {
-      App.startNewChatSession()
+      st.chatCliMenuOpen = !st.chatCliMenuOpen
+      App.rerender()
+    })
+    root.querySelectorAll('[data-chat-cli-agent]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        st.chatCliMenuOpen = false
+        App.startNewChatSession(btn.dataset.chatCliAgent)
+      })
     })
     root.querySelectorAll('[data-act="chat-session-open"]').forEach((row) => {
       row.addEventListener('click', () => {
@@ -977,29 +999,6 @@ SCREENS.chat = {
         localStorage.setItem('orchestos-chat-effort', st.chatEffort)
         st.chatFxView = null
         App.rerender()
-        return
-      }
-      const agentOpt = e.target.closest('[data-modelfx-agent]')
-      if (agentOpt) {
-        const agent = agentOpt.dataset.modelfxAgent
-        try {
-          const res = await fetch('/api/config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ agent }),
-          })
-          if (res.ok) {
-            if (st.orcheConfig) st.orcheConfig.agent = agent
-            if (st.executorModes) st.executorModes.selected = agent
-            st.chatFxView = null
-            App.rerender()
-          } else {
-            const data = await res.json()
-            showToast(data.error || t('settings.executorMode.saveErr'), 'error')
-          }
-        } catch {
-          showToast(t('settings.executorMode.saveErr'), 'error')
-        }
         return
       }
       const modelOpt = e.target.closest('[data-combo-option]')

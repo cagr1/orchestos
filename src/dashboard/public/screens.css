@@ -2112,6 +2112,22 @@
   justify-content: flex-start;
   gap: 6px;
 }
+.chat-new-menu-wrap { position: relative; }
+.chat-cli-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; min-width: 230px; z-index: 40;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0,0,0,.45); padding: 4px;
+}
+.chat-cli-item {
+  display: flex; align-items: center; gap: 9px; width: 100%; box-sizing: border-box;
+  padding: 9px; border: 0; border-radius: 6px; background: none; color: var(--text);
+  font: 13px var(--sans); text-align: left; cursor: pointer;
+}
+.chat-cli-item:hover { background: var(--accent-soft); }
+.chat-cli-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-faint); }
+.chat-cli-item.disabled { color: var(--text-faint); cursor: not-allowed; }
+.chat-cli-item.disabled:hover { background: none; }
+.chat-cli-item small { display: block; margin-top: 2px; color: var(--warning); font-size: 11px; }
 .chat-sessions-list {
   display: flex;
   flex-direction: column;

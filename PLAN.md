@@ -60,7 +60,17 @@ no esperar migrar las nueve pantallas restantes. UI.8.1 acompaña esa entrega co
 no se omite la prueba en navegador. UI.8.2 se aplica donde el recorrido requiera integridad,
 sin hacer de una entidad nueva `agents` un prerrequisito de listar chats existentes.
 
-- [ ] **ERP.1 — 🧠 Un CLI por chat; modelo y esfuerzo propios de la sesión.**
+- [x] **ERP.1 — 🧠 Un CLI por chat; modelo y esfuerzo propios de la sesión.** (cerrado 2026-09-15)
+  Ejecutado por: luna · Spec: docs/specs/ERP.1.md
+  Mini-menú en "+ / Nuevo chat" (`screens-core.js`) gateado por `st.executorModes.modes[].detected`;
+  elegir CLI crea sesión con `agent` explícito (`app.js: startNewChatSession(agent)`, sin fallback a
+  config global); cancelar (click afuera/Escape) no crea sesión ni fetch. Composer perdió el nav
+  "agent" — solo modelo/esfuerzo, el CLI queda como etiqueta fija (`buildChatModelFx`). Se borró el
+  handler `data-modelfx-agent`/`PUT /api/config` desde el chat (el agente de sesión sigue inmutable
+  por `chat-sessions.ts:227`). Gate en vivo: navegador real (Playwright), evidencia en `docs/done/evidence/ERP.1-live.json`
+  — 5 CLIs listados, cancelar no cambia el conteo de sesiones,
+  elegir crea+activa, Codex y OpenCode coexisten sin pisarse, recargar conserva el CLI. `bunx tsc
+  --noEmit` y `bun run test:coverage` (1430 pass) verdes. Dashboard bajado al cierre.
   Complementa AT.10: su exclusión de modelo interno describe solo el arreglo inicial, no el mínimo
   de este piloto. El selector de CLI de AT.10 se ubica en **Nuevo chat**, no como cambio de agente
   dentro del composer. Usar sesiones existentes como fuente de filas, sin nueva tabla `agents`.

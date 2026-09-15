@@ -1,0 +1,20 @@
+{
+  "item": "ERP.1",
+  "at": "2026-09-15",
+  "dashboard": "http://127.0.0.1:4242",
+  "method": "Playwright, dos corridas",
+  "run1": {
+    "sessionsBefore": 4,
+    "menuItemsVisible": 5,
+    "cancelWithEscape": { "sessionsAfterCancel": 4, "verdict": "PASS — no crea sesión ni dispara fetch" },
+    "chooseCli": { "enabledCliCount": 4, "chosenAgent": "claude", "sessionsAfterChoose": 5 },
+    "composerAgentNavRemoved": true
+  },
+  "run2": {
+    "codexSessionCreated": true,
+    "opencodeSessionCreated": true,
+    "codexSessionUnchangedAfterCreatingOpencode": true,
+    "persistsAfterReload": true
+  },
+  "conclusion": "ERP.1 cierra: mini-menú en Nuevo chat gateado por detección real, cancelar no crea sesión ni proceso, elegir CLI crea y activa la sesión con ese agente, otra sesión no cambia, el composer perdió el nav 'agent' (solo modelo/esfuerzo), y recargar conserva el CLI elegido."
+}
