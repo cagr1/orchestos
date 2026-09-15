@@ -3,7 +3,7 @@
 <a id="bloque-at-at-12"></a>
 ### AT.12 — El tope absoluto de contexto deja de cortar la sesión
 
-Ejecutado por: luna · Spec: docs/specs/AT.12.md
+Ejecutado por: terra (luna a capacidad) · Spec: docs/specs/AT.12.md
 
   `.claude/hooks/context-budget.js` ya no llama `process.exit(2)` cuando
   `absoluteLevel === 'block'`. Conserva ese nivel como dato y lo incorpora al aviso recurrente:
