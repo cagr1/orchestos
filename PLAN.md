@@ -1771,7 +1771,8 @@ ni eso hace falta.
      chat conservado y accesible en un gesto de vuelta.
   Gate 🔍 en vivo con los dos casos de (1) y (2).
 
-  **Progreso — piezas, sigue abierto hasta que las dos cierren:**
+  **Progreso — 3 piezas (árbol de agentes, contrato Chat→Workspace, inspector condicional),
+  sigue abierto hasta que las tres cierren:**
   - [x] **UI.8.4a — agentes como filas colapsables** (cerrada 2026-09-15)
     Ejecutado por: luna · Spec: docs/specs/UI.8.4-agents.md
     Header `N agents ⌄` por proyecto en `Sidebar.tsx`, filas = sesiones de `chat_sessions`
@@ -1781,9 +1782,9 @@ ni eso hace falta.
     proyecto. Gate en vivo: navegador real (Playwright), evidencia en `docs/done/evidence/UI.8.4-agents-live.json` — dos proyectos reales, sesiones no se mezclan.
     Límite menor conocido: el contador muestra `0 agents` hasta el primer expand (carga
     perezosa a propósito, no dato falso).
-  - [ ] **Pieza 2/2 — contrato Chat→Workspace** (pendiente, no tocada en esta pasada)
-  Falta también el **inspector condicional** (0px cerrado, ancho persistido) — ninguno de los
-  dos se tocó en esta pasada.
+  - [ ] **UI.8.4b — contrato Chat→Workspace** (en curso, spec en `docs/specs/UI.8.4-workspace.md`)
+  - [ ] **UI.8.4c — inspector condicional** (0px cerrado, ancho persistido, pendiente, sin spec
+    todavía)
 
   **Anotado por Carlos (2026-09-15), pendiente de planificar, no implementado todavía:** donde
   hoy dice "Projects" en el riel debería tener un ícono `+`/carpeta-con-agregar para dar de alta
