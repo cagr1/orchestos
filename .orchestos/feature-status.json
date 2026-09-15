@@ -72,7 +72,7 @@
       "block": null,
       "delegation": "🔍",
       "title": "`/api/session/status`, no GC, es lo que congela el dashboard",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
