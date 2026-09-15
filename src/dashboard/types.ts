@@ -81,6 +81,8 @@ export interface ChatSessionRow {
   title: string
   createdAt: string
   updatedAt: string
+  hasPersistentWork: boolean
+  lastPersistentTaskId: string | null
   readBoundaryWarning?: string
 }
 

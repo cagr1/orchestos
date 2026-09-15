@@ -1,0 +1,27 @@
+{
+  "item": "UI.8.4b (contrato Chat→Workspace)",
+  "at": "2026-09-15",
+  "dashboard": "http://127.0.0.1:4242",
+  "method": "Playwright + inserción real en chat_turns (task_id de una tarea real existente)",
+  "case1_no_persistent_work": {
+    "buttonPresentInDom": false,
+    "verdict": "PASS — sin trabajo persistente, el botón no existe en el DOM (no oculto, no deshabilitado)"
+  },
+  "case2_has_persistent_work": {
+    "buttonPresentInDom": true,
+    "clickOpens": {
+      "screen": "workspace",
+      "workspaceTabActive": "tasks",
+      "sidePanelOpen": true,
+      "sidePanelTaskId": "crypto-page-v1"
+    },
+    "backToChatPreservesSession": true,
+    "verdict": "PASS — proyecto+tab tasks+entidad de origen (SidePanel con la tarea real) ya seleccionados, volver a Chat conserva la sesión"
+  },
+  "verification": {
+    "tsc": "pass",
+    "biome_check": "0 errores en archivos tocados",
+    "build_ui": "pass",
+    "test_coverage": "1431 pass, 0 fail"
+  }
+}

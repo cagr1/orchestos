@@ -476,6 +476,11 @@ SCREENS.chat = {
     // de verdad). Mismo patrón que Claude Desktop/Codex/Orca/ChatGPT: lista a
     // la izquierda, "Nueva conversación" arriba, borrar por ítem con confirm.
     const sessions = st.chatSessions || []
+    const activeSession = sessions.find((s) => s.id === st.chatSessionId)
+    const openWorkspaceButton =
+      activeSession?.hasPersistentWork && activeSession.projectId
+        ? `<button type="button" class="btn ghost sm chat-open-workspace" data-act="chat-open-workspace">${t('chat.openWorkspace')}</button>`
+        : ''
     const cliIcon = {
       local: ICON.cpu || ICON.bolt,
       claude: ICON.spark,
@@ -549,6 +554,7 @@ SCREENS.chat = {
     return `<div class="screen chat-screen">
       <div class="screen-head">
         <div class="lead"><h1>${t('chat.title')}</h1><p>${t('chat.subtitle')}</p></div>
+        ${openWorkspaceButton}
       </div>
       <div class="chat-layout">
         ${sessionsAside}
@@ -854,6 +860,21 @@ SCREENS.chat = {
       }
     })
     root.querySelector('[data-act="chat-send"]')?.addEventListener('click', send)
+
+    root.querySelector('[data-act="chat-open-workspace"]')?.addEventListener('click', async () => {
+      const session = (st.chatSessions || []).find((s) => s.id === st.chatSessionId)
+      if (!session?.hasPersistentWork || !session.projectId) return
+      st.workspaceProjectId = session.projectId
+      st.screen = 'workspace'
+      st.workspaceTab = 'tasks'
+      App.rerender()
+      App.syncNav()
+      const taskId = session.lastPersistentTaskId
+      if (!taskId) return
+      await App.fetchTasks()
+      const task = (st.tasks || []).find((item) => item.id === taskId)
+      if (task) SidePanel.openTask(task)
+    })
 
     // I.4 (Mes 30) — aside de conversaciones: nueva / abrir / borrar. Ya no
     // hay "Clear" — borrar vive acá, igual que en Claude Desktop/Codex/Orca.

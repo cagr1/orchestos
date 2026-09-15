@@ -11,7 +11,12 @@ import {
   listChatSessions,
   updateChatSession,
 } from '../../db/chat-sessions.ts'
-import { getLastTurn, hasActiveTurn } from '../../db/chat-turns.ts'
+import {
+  getLastPersistentTaskId,
+  getLastTurn,
+  hasActiveTurn,
+  sessionHasPersistentWork,
+} from '../../db/chat-turns.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import {
@@ -34,6 +39,8 @@ function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
     title: row.title,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    hasPersistentWork: sessionHasPersistentWork(row.id),
+    lastPersistentTaskId: getLastPersistentTaskId(row.id),
   }
 }
 

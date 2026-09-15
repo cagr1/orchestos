@@ -268,6 +268,26 @@ export function getLastTurn(sessionId: string): ChatTurnRecord | null {
   )
 }
 
+export function sessionHasPersistentWork(sessionId: string): boolean {
+  return Boolean(
+    db
+      .query<{ found: number }, string>(
+        'SELECT 1 AS found FROM chat_turns WHERE session_id = ? AND task_id IS NOT NULL LIMIT 1',
+      )
+      .get(sessionId),
+  )
+}
+
+export function getLastPersistentTaskId(sessionId: string): string | null {
+  return (
+    db
+      .query<{ task_id: string }, string>(
+        'SELECT task_id FROM chat_turns WHERE session_id = ? AND task_id IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 1',
+      )
+      .get(sessionId)?.task_id ?? null
+  )
+}
+
 // A corrupt historical envelope must not make recovery itself fail. Callers
 // can show a normal error/retry state rather than treating invalid JSON as a
 // second provider request.

@@ -256,4 +256,29 @@ describe('R.5 — durable chat turns', () => {
       turn: { id: expect.any(String), task_id: result.taskId, owner: 'worker-a' },
     })
   })
+
+  it('finds persistent work and its most recent task for a session', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { sessionHasPersistentWork, getLastPersistentTaskId } = await import('./src/db/chat-turns.ts')
+      runMigrations()
+      const empty = createChatSession({ agent: 'api' })
+      const worked = createChatSession({ agent: 'api' })
+      const now = new Date().toISOString()
+      const insert = (id, taskId, createdAt) => db.run(
+        'INSERT INTO chat_turns (id, session_id, project_id, request_key, input_fingerprint, status, task_id, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)',
+        [id, worked.id, id, id, 'completed', taskId, createdAt, createdAt],
+      )
+      insert('older', 'task-older', now)
+      insert('newer', 'task-newer', new Date(Date.now() + 1).toISOString())
+      process.stdout.write(JSON.stringify({
+        empty: sessionHasPersistentWork(empty.id),
+        worked: sessionHasPersistentWork(worked.id),
+        last: getLastPersistentTaskId(worked.id),
+      }))
+    `)
+    expect(result).toEqual({ empty: false, worked: true, last: 'task-newer' })
+  })
 })

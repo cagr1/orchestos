@@ -94,6 +94,7 @@ const I18N = {
 
     /* ── Chat ────────────────────────────────── */
     'chat.title': 'Chat',
+    'chat.openWorkspace': 'Open in Workspace',
     'chat.subtitle': 'Ask questions or get a quick answer — no task required.',
     'chat.placeholder': 'Ask anything… (Enter to send, Shift+Enter for newline)',
     'chat.btn.send': 'Send',
@@ -991,6 +992,7 @@ const I18N = {
 
     /* ── Chat ────────────────────────────────── */
     'chat.title': 'Chat',
+    'chat.openWorkspace': 'Abrir en Workspace',
     'chat.subtitle':
       'Haz preguntas o consulta el estado del proyecto — sin necesidad de crear una tarea.',
     'chat.placeholder':

@@ -1782,7 +1782,19 @@ ni eso hace falta.
     proyecto. Gate en vivo: navegador real (Playwright), evidencia en `docs/done/evidence/UI.8.4-agents-live.json` — dos proyectos reales, sesiones no se mezclan.
     Límite menor conocido: el contador muestra `0 agents` hasta el primer expand (carga
     perezosa a propósito, no dato falso).
-  - [ ] **UI.8.4b — contrato Chat→Workspace** (en curso, spec en `docs/specs/UI.8.4-workspace.md`)
+  - [x] **UI.8.4b — contrato Chat→Workspace** (cerrada 2026-09-15)
+    Ejecutado por: luna · Spec: docs/specs/UI.8.4-workspace.md
+    `sessionHasPersistentWork`/`getLastPersistentTaskId` (`src/db/chat-turns.ts`) leen
+    `chat_turns.task_id`; `toSessionRow` expone `hasPersistentWork`/`lastPersistentTaskId`.
+    Botón "Open in Workspace" en `SCREENS.chat` solo existe en el DOM si la sesión activa
+    generó una tarea — nunca deshabilitado. Click navega a `workspace` con el proyecto de la
+    sesión, tab `tasks` activo, y abre `SidePanel.openTask` con la tarea real. Volver a `Chat`
+    desde el riel conserva la sesión sin tocar nada nuevo.
+    Gate en vivo: navegador real (Playwright), evidencia en `docs/done/evidence/UI.8.4b-live.json`
+    — caso 1 (sin trabajo persistente) confirma el botón ausente del DOM; caso 2, con un turno
+    real apuntando a una tarea real (`crypto-page-v1`), confirma workspace+tab+SidePanel
+    correctos y la sesión preservada al volver. `bunx tsc --noEmit`, `bunx biome check` (0
+    errores) y `bun run test:coverage` (1431 pass) verdes.
   - [ ] **UI.8.4c — inspector condicional** (0px cerrado, ancho persistido, pendiente, sin spec
     todavía)
 
