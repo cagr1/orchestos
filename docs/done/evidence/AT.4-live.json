@@ -1,0 +1,13 @@
+{
+  "item": "AT.4",
+  "at": "2026-09-15",
+  "dashboard": "http://127.0.0.1:4243",
+  "method": "concurrent Bun fetch probes",
+  "results": [
+    { "path": "/api/session/status", "status": 200, "ms": 2010.9 },
+    { "path": "/app.js", "status": 200, "ms": 612.9 },
+    { "path": "/i18n.js", "status": 200, "ms": 612.9 },
+    { "path": "/style.css", "status": 404, "ms": 612.9 }
+  ],
+  "note": "Static assets remained responsive in milliseconds while session status was in flight; style.css is not served by this route and returned the pre-existing 404."
+}

@@ -2,7 +2,11 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { discoverSessionTranscripts, readActiveSessionStatus } from './session-status.ts'
+import {
+  discoverSessionTranscripts,
+  readActiveSessionStatus,
+  readActiveSessionStatuses,
+} from './session-status.ts'
 
 const roots: string[] = []
 const temp = (prefix: string) => {
@@ -69,5 +73,32 @@ describe('session status', () => {
         transcriptPath: join(project, 'missing.jsonl'),
       }),
     ).toBeNull()
+  })
+
+  test('lee cada transcript como máximo una vez aunque no encuentre un CLI', async () => {
+    const agentHome = temp('orchestos-at4-home-')
+    const project = realpathSync(temp('orchestos-at4-project-'))
+    const claudeDir = join(agentHome, '.claude', 'projects', project.replace(/[\\/]/g, '-'))
+    mkdirSync(claudeDir, { recursive: true })
+    const paths = ['one.jsonl', 'two.jsonl', 'three.jsonl'].map((name) => join(claudeDir, name))
+    for (const path of paths) writeFileSync(path, '{}\n')
+
+    let reads = 0
+    await readActiveSessionStatuses({
+      projectRoot: project,
+      agentHome,
+      adapters: [
+        {
+          id: 'never-matches',
+          thresholds: { warn: 60, critical: 65 },
+          async read() {
+            reads += 1
+            return null
+          },
+        },
+      ],
+    })
+
+    expect(reads).toBe(paths.length)
   })
 })

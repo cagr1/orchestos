@@ -66,34 +66,38 @@ export async function readActiveSessionStatuses(
     : discoverSessionTranscripts(projectRoot, options.agentHome)
   const adapters = options.adapters ?? DEFAULT_ADAPTERS
   const detections = detectInstalledClis()
-  const result: SessionStatus[] = []
+  const found = new Map<CliDetectionResult['id'], SessionStatus>()
 
-  for (const cli of detections) {
-    let found: SessionStatus | null = null
-    for (const transcriptPath of paths) {
-      const metrics = await readSessionMetrics(transcriptPath, adapters)
-      if (!metrics || metrics.context.source !== cli.id) continue
-      let normalized = metrics
-      if (!explicit && cli.id === 'codex') {
-        const liveWindows = await readCodexRateLimitsLive({ binary: cli.binary })
-        if (liveWindows.length > 0)
-          normalized = { ...metrics, rateLimits: { source: 'codex', windows: liveWindows } }
-      }
-      found = {
-        id: cli.id,
-        label: cli.label,
-        binary: cli.binary,
-        icon: cli.icon,
-        readBoundary: cli.readBoundary,
-        installed: cli.installed,
-        available: true,
-        observedAt: statSync(transcriptPath).mtime.toISOString(),
-        ...normalized,
-      }
-      break
+  for (const transcriptPath of paths) {
+    const metrics = await readSessionMetrics(transcriptPath, adapters)
+    if (!metrics) continue
+    const cli = detections.find(
+      (detection) => detection.id === metrics.context.source && !found.has(detection.id),
+    )
+    if (!cli) continue
+    let normalized = metrics
+    if (!explicit && cli.id === 'codex') {
+      const liveWindows = await readCodexRateLimitsLive({ binary: cli.binary })
+      if (liveWindows.length > 0)
+        normalized = { ...metrics, rateLimits: { source: 'codex', windows: liveWindows } }
     }
-    result.push(
-      found ?? {
+    found.set(cli.id, {
+      id: cli.id,
+      label: cli.label,
+      binary: cli.binary,
+      icon: cli.icon,
+      readBoundary: cli.readBoundary,
+      installed: cli.installed,
+      available: true,
+      observedAt: statSync(transcriptPath).mtime.toISOString(),
+      ...normalized,
+    })
+    if (found.size === detections.length) break
+  }
+
+  return detections.map(
+    (cli) =>
+      found.get(cli.id) ?? {
         id: cli.id,
         label: cli.label,
         binary: cli.binary,
@@ -105,9 +109,7 @@ export async function readActiveSessionStatuses(
         context: null,
         rateLimits: null,
       },
-    )
-  }
-  return result
+  )
 }
 
 /**

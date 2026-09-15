@@ -11,6 +11,125 @@ status: sprint-30-abierto--fiabilidad-del-recorrido-y-shell-chat-workspace
 Historial completado → ver [DONE.md](DONE.md).
 Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
+## Ruta mínima al piloto ERP — decisión de Carlos (2026-09-15)
+
+**Objetivo de aceptación:** desarrollar y utilizar un módulo completo de ERP en un proyecto
+real, conservando plan, decisiones, tareas, conversación y evidencia al reabrirlo. Una landing
+page o una respuesta marcador no acreditan este objetivo. Este orden pasa delante del backlog
+general; no exige terminar todos los bloques H/S/UI antes de empezar el piloto.
+
+**Estado contrastado con código, no probado en vivo en esta revisión:** IDEAS #56 ya pide
+proyecto como unidad de contexto; UI.8.3–UI.8.5 ya describen navegación y Settings. Siguen abiertos.
+`Sidebar.tsx:35-36,75-96` (`src/dashboard/public-src/islands/shell/`) aún renderiza la navegación
+plana y el modo avanzado. `src/dashboard/handlers/memory.ts:7-24` lista/busca memoria global sin
+filtro de proyecto, aunque `src/db/memory.ts:122-137` ya ofrece consultas por proyecto. Esto
+confirma mezcla en la superficie, no demuestra por sí solo contaminación de todos los prompts.
+`app.js:2908` aún bloquea Codex/OpenCode; `screens-core.js:982-1004` cambia config global desde
+el selector. AT.8 es un hook de desarrollo del repo, no el switch del producto solicitado.
+
+**Contrato vigente (aclara y prevalece sobre los textos anteriores; se conserva su historia):**
+- Proyecto → Chats, Plan/Tareas, Runs/Resultados, Memoria, Skills, Specs y Graph. El proyecto
+  activo gobierna consultas, acciones y contexto enviado al agente; no basta ocultar filas.
+- Nuevo chat elige **un CLI**, persistido desde su creación. Ese transporte permanece fijo;
+  para usar otro se crea otro chat. El selector dentro del chat cambia **modelo y esfuerzo**
+  compatibles con ese CLI, persistidos por sesión, sin modificar otros chats ni config global.
+- Settings global: cuentas/CLIs, apariencia e integraciones. Settings del proyecto: preferencias,
+  skills habilitadas y orquestación. Las bibliotecas compartidas se distinguen explícitamente
+  de lo activado en el proyecto; memoria de proyecto no se comparte implícitamente.
+- Subagentes **apagados por defecto**, con habilitación explícita y límites efectivos. Abrir
+  varios chats manualmente no habilita delegación automática. El consumo de suscripción no se
+  puede inferir de dólares API ni del porcentaje de contexto.
+- Referencias existentes: `docs/ui-reference-patterns.md` y
+  `docs/dashboard-experience-direction.md`; capturas identificadas en el primer documento.
+  La primera entrega visual debe cambiar navegación, jerarquía y Settings de forma observable.
+
+**Orden y estimación inicial** (jornadas efectivas de implementación + verificación, un ejecutor
+Luna y cerebro integrando; incertidumbre alta hasta los primeros gates, no fecha comprometida):
+
+| Entrega | Ítems y alcance mínimo | Estimación |
+| --- | --- | --- |
+| 1. Chat utilizable | AT.4 + AT.10 + ERP.1: respuesta sin congelamiento, CLI fijo, modelo/esfuerzo | 2–3 días |
+| 2. Proyecto visible y aislado | UI.8.3 + porción necesaria de UI.8.4/UI.8.5 + ERP.2; capturas antes/después | 3–5 días |
+| 3. Consumo controlable | ERP.3: OFF efectivo, límites y llamadas auxiliares visibles | 1–2 días |
+| 4. Entrada segura al piloto | R.7 + H.9.4 + recorrido inicial R.8; gates del flujo elegido | 2–3 días |
+| 5. Módulo ERP real | ERP.4 y evidencia de utilidad de R.8, mientras se corrigen bloqueos observados | según módulo |
+
+**Estimado para empezar el módulo: 8–13 jornadas efectivas**, más margen si aparecen defectos de
+adaptadores/aislamiento. No incluye construir el ERP. Primer cambio visible previsto en entrega 2;
+no esperar migrar las nueve pantallas restantes. UI.8.1 acompaña esa entrega con sus gates existentes;
+no se omite la prueba en navegador. UI.8.2 se aplica donde el recorrido requiera integridad,
+sin hacer de una entidad nueva `agents` un prerrequisito de listar chats existentes.
+
+- [ ] **ERP.1 — 🧠 Un CLI por chat; modelo y esfuerzo propios de la sesión.**
+  Complementa AT.10: su exclusión de modelo interno describe solo el arreglo inicial, no el mínimo
+  de este piloto. El selector de CLI de AT.10 se ubica en **Nuevo chat**, no como cambio de agente
+  dentro del composer. Usar sesiones existentes como fuente de filas, sin nueva tabla `agents`.
+  **Aclaración explícita de Carlos (2026-09-15, referencia visual inspeccionada):** al pulsar
+  `+ / Nuevo chat`, abrir primero un **mini menú de CLIs**, antes de crear la sesión o mostrar
+  su compositor. Cada opción presenta icono y nombre del CLI; elegirla crea y abre el chat en
+  el proyecto activo con ese CLI fijado. Cerrar/cancelar el menú no crea una conversación vacía
+  ni lanza un proceso. Mostrar disponibilidad real; un CLI sin adaptador o no detectado no
+  puede iniciar una sesión. Dentro del chat solo se seleccionan **modelo y esfuerzo** compatibles;
+  el CLI se identifica como etiqueta, no como opción intercambiable del selector.
+  Referencia: `/Users/carlosgallardo/Desktop/Screenshot 2026-09-15 at 9.20.19 AM.png`, menú de
+  nueva pestaña de Orca con filas de agentes. Se adopta ese paso previo para **chats** de OrchestOS;
+  la captura no amplía el alcance a terminal, navegador, emulador, Hermes ni Agent Teams.
+  Dónde: `src/dashboard/public/app.js:2908`, `screens-core.js:965-1012`,
+  `src/dashboard/handlers/chat-sessions.ts`, `chat.ts:1098`, adaptadores `src/run/executors/`.
+  Gate: dos chats con CLIs distintos, cambiar modelo/esfuerzo en uno, enviar y recargar; comprobar
+  argumentos efectivos, transporte, persistencia y que el otro no cambia. Opciones no soportadas
+  se explican; cero fallback API silencioso. Gate AT.10 conserva sus dos CLIs requeridos.
+  Añadir al gate en navegador: `Nuevo chat → menú → elegir CLI → chat`, cancelación sin sesión
+  ni proceso nuevos, opción no disponible sin creación, y selector posterior limitado a modelo
+  y esfuerzo. Recargar conserva el CLI elegido desde ese menú.
+
+- [ ] **ERP.2 — 🧠 Alcance de proyecto real en navegación, memoria y capacidades.**
+  Completa UI.8.3–UI.8.5, no crea una segunda migración visual. Dónde: Sidebar citado arriba,
+  estado del shell y `src/dashboard/handlers/memory.ts:7-24,58-90`; revisar los consumidores
+  equivalentes de tasks/skills/specs/runs/graph y la selección de memoria para prompts.
+  Implementar filtros y validación del proyecto también en lectura, búsqueda y mutaciones;
+  datos históricos sin dueño quedan identificados, nunca reasignados o borrados por inferencia.
+  Gate: proyectos A/B con centinelas, navegar/buscar/editar y reabrir; A no muestra ni utiliza datos
+  de B, tampoco con ID ajeno enviado al endpoint. Biblioteca global y activación local distinguibles.
+  Navegador real: proyecto → chat → tarea → resultado → memoria, con Settings separados y
+  capturas antes/después contrastadas con las referencias. No cerrar con solo tokens CSS cambiados.
+
+- [ ] **ERP.3 — 🧠 Orquestación opcional con freno efectivo de consumo.**
+  Hueco nuevo: `src/config/schema.ts:72-103` tiene opciones de ejecutor y QA opt-in, pero no el
+  contrato unificado OFF/límite solicitado. Dónde: schema/loader, handler de config, Settings,
+  `src/agents/sub-agent.ts`, `src/run/scheduler.ts` y entradas de expansión desde CLI/dashboard.
+  Config por proyecto: `enabled=false` si ausente; al activar, límites explícitos de simultáneos
+  y total por ejecución (incluye descendientes y relanzamientos; solo limitar concurrencia no
+  limita consumo acumulado). Validar antes de lanzar cada hijo, también al reanudar.
+  OFF impide delegación/autoexpansión de OrchestOS y permite trabajo con un ejecutor. Inventariar
+  además planner/QA/retries/dreaming: mostrar qué llamadas adicionales siguen activas y no
+  confundirlas con subagentes. Conservar checks/QA requeridos, sin prometer costo cero.
+  Verificar por CLI si puede impedirse su delegación interna: si no, mostrar límite no garantizado
+  y no ofrecer ese adaptador como modo de cero subagentes. No basta una instrucción en el prompt.
+  Gate: configuración ausente y OFF → cero hijos; ON → admite N y rechaza N+1 antes del spawn;
+  recarga/reinicio mantienen política; intentos concurrentes no la saltan. Estado visible de
+  activos/total y consumo observado; cuota no disponible se rotula desconocida.
+
+- [ ] **ERP.4 — 🔍 Piloto de módulo ERP y decisión de utilidad.**
+  Entrada: entregas 1–4 anteriores verificadas para el recorrido real. Elegir con Carlos módulo,
+  repo, stack, criterios funcionales, CLI/modelos y presupuesto antes de corridas que consuman uso.
+  No asumir que conversar con un CLI demuestra que planificar/ejecutar/QA usan el mismo transporte:
+  el gate previo debe registrar cada etapa y no usar proveedores/cuentas no elegidos.
+  Recorrido mínimo del módulo: modelo de datos + migración, reglas de negocio y validaciones,
+  permisos aplicables, API + UI, tests de aceptación y resultado utilizado por Carlos.
+  Interrumpir/reabrir al menos una vez; recuperar siguiente tarea, decisiones, error aprendido y
+  evidencia sin reconstruirlos a mano. Medir intervenciones, bloqueos, tiempo y uso disponible;
+  verificar que una corrección guardada se recupera en el siguiente trabajo del mismo proyecto.
+  Reutilizar R.8 para la revisión independiente; no afirmar aprendizaje por solo guardar memoria.
+
+**Después de iniciar:** AT.11 (registro extensible completo), migración visual de pantallas
+secundarias, resume/fork avanzado, orquestación de flotas y mejoras de aprendizaje nocturno.
+H.10.2 sigue abierto; no es condición de entrada si el piloto no usa ese proceso. UI.8.6 completo
+puede entregarse después, pero el piloto debe mostrar permisos reales y los límites de H.9.4.
+La corrida sobre carlosgallardo.dev citada en AT queda como smoke opcional, no criterio de éxito.
+Revisión documental de esta ruta: preflight AT.10 válido; verificación por lectura, sin corrida
+ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reales.
+
 ## Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)
 
 Origen: evaluación honesta del 2026-09-14. La última corrida `implement` real fue el 2026-08-19;
@@ -50,19 +169,19 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   Settings — selección de modelo es decisión suya, no de este cierre
   (`feedback-modelo-decision-final-carlos`).
 
-- [ ] **AT.4 — 🔍 `/api/session/status`, no GC, es lo que congela el dashboard.** Medido
-  2026-09-14 verificando AT.3 en vivo: con el dashboard recién levantado, activos estáticos
-  que sirven en ms bajo curl aislado tardan **7–15 s** (`app.js` 7.1s, `i18n.js` 14.6s,
-  `style.css` 14.5s) y el proceso pasa temporadas enteras sin responder (`curl` → `000`,
-  CPU 76–103% sostenido). El común denominador en la consola del navegador: `GET
-  /api/session/status` (polling cada 5 s desde `SessionStatusBar.tsx`) falla repetido —
-  `handleApiSessionStatus` → `readActiveSessionStatuses()` (`scripts/session-status.ts`)
-  llama `detectInstalledClis` y arma métricas por cada uno de los 7 CLIs de `KNOWN_CLIS` en
-  cada poll; sospecha no confirmada línea por línea: ese trabajo por-CLI cada 5 s (spawns o
-  lectura de transcript) es lo que satura el proceso, no GC como suponía la entrada previa
-  de este ítem en NEXT.md. Falta: perfilar `readActiveSessionStatuses` con `--prof` o
-  temporizadores manuales para confirmar cuál de los 7 CLIs cuesta, y decidir si el poll de
-  5 s necesita cachearse o si el cómputo por-CLI necesita moverse fuera del hot path.
+- [x] **AT.4 — 🔍 `/api/session/status`, no GC, es lo que congela el dashboard.** (cerrado 2026-09-15)
+  Ejecutado por: luna · Spec: docs/specs/AT.4.md
+  Causa raíz confirmada, medida: `readActiveSessionStatuses` (`scripts/session-status.ts`)
+  parseaba los 371 transcripts completos por cada uno de los 5 CLIs (de 7) sin sesión
+  activa, sin cortar — ~1.4s por pasada × 5 ≈ 7s, coincide con los 7–15s reportados.
+  `detectInstalledClis` (cacheado, 45–160ms) y `readCodexRateLimitsLive` (68–73ms) se
+  descartan como causa, medidos por separado. Fix: una sola pasada sobre los transcripts,
+  `readSessionMetrics` una vez por archivo (no por CLI×archivo), corte temprano cuando
+  todos los CLIs detectados ya tienen match. Medido antes/después: 7.0–9.2s → 1.5–1.7s.
+  Gate en vivo: `docs/done/evidence/AT.4-live.json` — estáticos concurrentes con
+  `/api/session/status` en curso bajaron de 7–15s a ~613ms. `bunx tsc --noEmit` y
+  `bun test scripts/session-status.test.ts` (incluye test nuevo: lee cada transcript
+  como máximo una vez) en verde. Dashboard bajado al cierre.
 
 - [x] **AT.5 — 🧠 Freno mecánico de costo de sesión: umbral absoluto + bloqueo real.**
   (cerrado 2026-09-14)
@@ -138,6 +257,72 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   entra en vigor sin el wiring en `settings.json` ni el `.gitignore` de su estado.
 
 - [x] **AT.9 — 🧠 Cualquier CLI en el chat, sin bloqueo por frontera de lectura.** (cerrado 2026-09-14) → [evidencia](docs/done/bloque-AT.md#bloque-at-at-9)
+
+- [ ] **AT.10 — 🧠 El chat usa de verdad el CLI elegido: Codex y OpenCode, sin caída silenciosa a OpenRouter.**
+  Bloqueo reproducido por Carlos el 2026-09-15 y confirmado leyendo el recorrido: AT.9 conectó
+  las ramas backend de Codex/OpenCode, pero `src/dashboard/public/app.js:2908` todavía las incluye
+  en `CHAT_UNSUPPORTED_AGENTS`; además, elegir un agente solo hace `PUT /api/config` y no reemplaza
+  la sesión activa, cuyo `agent` quedó persistido al crearla. El proyecto sigue con `agent: api`,
+  `app.js:108` conserva DeepSeek como modelo inicial y `chat.ts:1098` lo usa como fallback. En
+  OpenCode ese id sí se traduce a `openrouter/deepseek/...`, por lo que hoy es posible seleccionar
+  conceptualmente un CLI y seguir usando DeepSeek/OpenRouter. No presentar AT.9 como selección
+  end-to-end hasta cerrar este ítem.
+
+  **Contrato de esta pasada (Codex + OpenCode):**
+  1. El picker del chat habilita `codex` y `opencode` solo cuando
+     `GET /api/system/executor-modes` los detecta; si falta el binario, queda visible y deshabilitado
+     con el error concreto. Quitar el comentario/allowlist obsoletos que todavía dicen que el
+     backend no los soporta.
+  2. Elegir un CLI persiste `agent` y crea/activa inmediatamente una **sesión nueva** con ese agente.
+     La sesión anterior y su historial se conservan; nunca cambiar el agente de una conversación
+     que ya recibió mensajes. El siguiente envío debe usar el CLI elegido sin reiniciar el servidor
+     ni entrar a Settings.
+  3. Separar selección de transporte y selección de modelo. Al entrar a Codex/OpenCode no enviar el
+     fallback `deepseek/deepseek-v4-flash` ni ningún modelo de OpenRouter heredado: en la primera
+     entrega el CLI corre sin `-m`/`--model` y decide con su propia configuración/autenticación. La
+     preferencia de modelo API puede conservarse para volver a `agent: api`, pero no puede filtrarse
+     a una sesión CLI. La UI debe decir `modelo configurado en el CLI` hasta disponer del modelo real;
+     nunca rotular DeepSeek por un default del frontend que no fue pedido para esa sesión.
+  4. Un error de spawn, autenticación, timeout o parseo del CLI devuelve y persiste el error real con
+     `provider=codex|opencode`; está prohibido reintentar silenciosamente por OpenRouter/API. Codex
+     reutiliza el enlace de autenticación aislada entregado por AT.9. Para OpenCode, verificar primero
+     en vivo dónde lee su autenticación/configuración y conservar ese contrato; no asumirlo desde el
+     comportamiento de Codex.
+  5. La sesión, el turno y Recent Runs muestran el transporte ejecutado (`Codex CLI` u `OpenCode
+     CLI`) y, cuando el stream permita conocerlo, el modelo **observado**. Un modelo no observado se
+     etiqueta como `CLI default model`, no como DeepSeek ni como un modelo solicitado ficticio.
+
+  **Dónde:** `src/dashboard/public/app.js` (`buildChatModelFx`, estado por agente),
+  `src/dashboard/public/screens-core.js` (selección transaccional agente→sesión),
+  `src/dashboard/handlers/chat-sessions.ts` (creación explícita),
+  `src/dashboard/handlers/chat.ts` (modelo opcional y cero fallback API),
+  `src/run/executors/codex.ts`, `src/run/executors/opencode.ts`, tests de chat/config/executors e
+  i18n afectado. No cambiar `orchestos.config.yaml` como sustituto del arreglo: el flujo debe
+  funcionar desde la UI para cualquier proyecto.
+
+  **Gates:** tests deterministas que demuestren (a) picker habilitado según detección, (b) selección
+  crea y activa sesión con el agente exacto, (c) el request CLI no recibe DeepSeek por defecto,
+  (d) fallo del binario produce 502 sin llamar `fetch` de OpenRouter y (e) recarga conserva sesión,
+  agente, mensajes y proveedor. `bunx tsc --noEmit`, tests relevantes y `bun run test:coverage`.
+  Gate en vivo obligatorio con navegador real y ambos binarios reales: seleccionar Codex en el
+  composer → sesión nueva → respuesta marcador → SQLite registra `agent/provider=codex`; repetir
+  desde la UI con OpenCode y `agent/provider=opencode`. Ejecutar el gate sin credencial de
+  OpenRouter disponible para OrchestOS, manteniendo únicamente la autenticación propia de cada CLI,
+  para probar que no hubo fallback. Si uno de los binarios o su autenticación no está disponible,
+  AT.10 queda abierto con ese error exacto; una prueba solo con Codex no cierra OpenCode. Evidencia:
+  `docs/done/evidence/AT.10-live.json` y cierre en `docs/done/bloque-AT.md`.
+
+  **Fuera de scope:** elegir un modelo interno específico de cada CLI, modificar el motor de tareas,
+  y prometer soporte para los otros CLIs del registro antes de que tengan adaptador de chat real.
+
+- [ ] **AT.11 — 🧠 Chat CLI extensible: cualquier adaptador registrado, no ramas hardcodeadas por marca.**
+  Depende de AT.10. Extraer las ramas `claude`/`codex`/`opencode` de `handlers/chat.ts` a un contrato
+  de adaptador que declare detección, comando, stdin/args, env/home de autenticación, parser de
+  stream, modelo observado, esfuerzo y capabilities de lectura/escritura. El picker se deriva de
+  `chatCapable + detected` del mismo registro: añadir un CLI no puede requerir otro `if` en backend
+  y otra allowlist manual en frontend. Gate de arquitectura: registrar un adaptador fixture y un
+  tercer CLI real disponible, ejecutar sesión→turno→persistencia sin tocar el router del chat;
+  los registros sin adaptador deben decir `chat no soportado`, nunca caer a API/OpenRouter.
 
 - [ ] **AT.9.1 — ⚡ Reponer el lint global tras AT.7.** Hallazgo al cerrar AT.9: `bun run lint`
   tiene un único error de formato en `src/__tests__/migration.test.ts:322`, archivo ya versionado y
