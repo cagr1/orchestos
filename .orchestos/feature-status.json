@@ -40,6 +40,15 @@
       "closedDate": null
     },
     {
+      "id": "ERP.5",
+      "sprint": "Ruta mínima al piloto ERP — decisión de Carlos (2026-09-15)",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Revisar sobrecarga: qué quitar manteniendo fiabilidad y control humano",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.1",
       "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
       "block": null,

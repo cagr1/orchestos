@@ -122,6 +122,27 @@ sin hacer de una entidad nueva `agents` un prerrequisito de listar chats existen
   verificar que una corrección guardada se recupera en el siguiente trabajo del mismo proyecto.
   Reutilizar R.8 para la revisión independiente; no afirmar aprendizaje por solo guardar memoria.
 
+- [ ] **ERP.5 — 🔍 Revisar sobrecarga: qué quitar manteniendo fiabilidad y control humano.**
+  Pedido de Carlos (2026-09-15). Hacer después de iniciar ERP.4, con evidencia del trabajo real;
+  no bloquear AT.10 ni el piloto con otra auditoría extensa. Alcance: reglas/documentos cargados,
+  contexto repetido, delegación, planner/QA/retries/dreaming y pasos de planificación/revisión.
+  Usar registros existentes; distinguir tokens, contexto, cuota CLI y costo API, sin convertir
+  unos en otros por suposición. Cada hallazgo muestra costo observado, beneficio demostrado y
+  propuesta concreta de eliminar, simplificar o conservar. Revisar también el propio proceso de
+  desarrollo de OrchestOS: una auditoría que añade ceremonia puede agravar lo que intenta resolver.
+  Comparar antes/después sobre la misma tarea, modelo, esfuerzo y criterios de aceptación;
+  medir resultado útil, errores, intervenciones y consumo disponible. Pi es una hipótesis de
+  referencia por investigar, no superioridad acreditada ni motivo para migrar; cualquier comparación
+  requiere condiciones equivalentes y presupuesto elegido por Carlos.
+  **Dirección de trabajo solicitada:** reglas claras y cortas, alcance y aceptación breves →
+  implementación → checks relevantes → resultado revisable por Carlos (**human in the loop**).
+  El agente prepara evidencia, límites y decisiones pendientes para que el humano pueda aceptar
+  o corregir el resultado sin reconstruir todo el proceso ni aprobar cada paso reversible.
+  Mantener confirmación previa para acciones destructivas/irreversibles; la revisión final no
+  autoriza ejecutarlas antes. Conservar controles de pérdida de datos, aislamiento y QA honesto.
+  Gate: informe corto con evidencia y simplificaciones propuestas; Carlos revisa utilidad y
+  tradeoffs antes de adoptarlas. No añadir reglas, hooks o agentes como salida automática del estudio.
+
 **Después de iniciar:** AT.11 (registro extensible completo), migración visual de pantallas
 secundarias, resume/fork avanzado, orquestación de flotas y mejoras de aprendizaje nocturno.
 H.10.2 sigue abierto; no es condición de entrada si el piloto no usa ese proceso. UI.8.6 completo
@@ -275,6 +296,17 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   prueba. El picker del composer y el mini-menú de "Nuevo chat" quedan para `ERP.1`
   (`docs/specs/ERP.1.md`, ver contrato vigente en `PLAN.md:30-45,63-84`), que reemplaza el texto
   original de abajo sobre `CHAT_UNSUPPORTED_AGENTS`/`PUT /api/config` como plan de UI.
+
+  **Decisión de Carlos, 2026-09-15 — el gate de OpenCode queda "visto, a planificar con otro
+  modelo" (Opus/Astra), no se fuerza ahora:** OpenCode conectado a OpenRouter con sus modelos
+  gratuitos es su uso normal para Carlos — no es un caso a "arreglar" con un modelo default
+  genérico. El punto real es más grande que este ítem: tratar OpenCode como CLI con reglas
+  propias, no como un motor de chat más. Para OpenCode específicamente, la superficie de "chat"
+  debería dejar de existir y convertirse en una **ventana de trabajo libre** donde OpenCode actúa
+  con su propia configuración — el mismo patrón que usa Orca. Cierra el ítem AT.10 solo con el
+  verdadero contrato mínimo (Codex ya lo cumple); el rediseño de la superficie de OpenCode se
+  planifica aparte, no se resuelve ad-hoc dentro de este spec. Sin ítem propio todavía — abrir uno
+  cuando se planifique.
 
   Bloqueo reproducido por Carlos el 2026-09-15 y confirmado leyendo el recorrido: AT.9 conectó
   las ramas backend de Codex/OpenCode, pero `src/dashboard/public/app.js:2908` todavía las incluye
