@@ -357,6 +357,96 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 10,
+    name: 'runs-project-foreign-key',
+    precondition: (database) => {
+      const tables = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('projects','runs') ORDER BY name",
+        )
+        .all()
+        .map((row) => row.name)
+      if (tables.join(',') !== 'projects,runs')
+        throw new Error('Migration 10 requires projects and runs tables')
+      if (
+        !database
+          .query<{ name: string }, []>('PRAGMA table_info(runs)')
+          .all()
+          .some((row) => row.name === 'project_id')
+      )
+        database.exec('ALTER TABLE runs ADD COLUMN project_id TEXT')
+    },
+    apply: (database) => {
+      const orphaned =
+        database
+          .query<{ count: number }, []>(
+            'SELECT COUNT(*) AS count FROM runs WHERE project_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM projects WHERE projects.id = runs.project_id)',
+          )
+          .get()?.count ?? 0
+      database.run(
+        'UPDATE runs SET project_id = NULL WHERE project_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM projects WHERE projects.id = runs.project_id)',
+      )
+      database.exec(`CREATE TABLE runs_new (id TEXT PRIMARY KEY, project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, prompt TEXT NOT NULL, task_class TEXT NOT NULL, model TEXT NOT NULL, provider TEXT NOT NULL, skill_id TEXT, allowed_outputs TEXT, files_attempted TEXT, files_authorized TEXT, files_blocked TEXT, checks_json TEXT, status TEXT NOT NULL, input_tokens INTEGER DEFAULT 0, output_tokens INTEGER DEFAULT 0, usd_cost REAL DEFAULT 0, elapsed_ms INTEGER DEFAULT 0, result TEXT, created_at TEXT NOT NULL, files_read TEXT, read_audit_json TEXT, task_id TEXT, snapshot_before TEXT, snapshot_after TEXT, qa_verdict TEXT, qa_reason TEXT, constitution_rules INTEGER, context_source TEXT, context_tokens INTEGER, embed_hits INTEGER, context_warnings_json TEXT, cost_breakdown_json TEXT, qa_model TEXT, file_diffs TEXT, adversarial_verdict TEXT, adversarial_reason TEXT, refuter_verdict TEXT, refuter_reason TEXT, skill_gates_json TEXT);
+        INSERT INTO runs_new (id,project_id,prompt,task_class,model,provider,skill_id,allowed_outputs,files_attempted,files_authorized,files_blocked,checks_json,status,input_tokens,output_tokens,usd_cost,elapsed_ms,result,created_at,files_read,read_audit_json,task_id,snapshot_before,snapshot_after,qa_verdict,qa_reason,constitution_rules,context_source,context_tokens,embed_hits,context_warnings_json,cost_breakdown_json,qa_model,file_diffs,adversarial_verdict,adversarial_reason,refuter_verdict,refuter_reason,skill_gates_json) SELECT id,project_id,prompt,task_class,model,provider,skill_id,allowed_outputs,files_attempted,files_authorized,files_blocked,checks_json,status,input_tokens,output_tokens,usd_cost,elapsed_ms,result,created_at,files_read,read_audit_json,task_id,snapshot_before,snapshot_after,qa_verdict,qa_reason,constitution_rules,context_source,context_tokens,embed_hits,context_warnings_json,cost_breakdown_json,qa_model,file_diffs,adversarial_verdict,adversarial_reason,refuter_verdict,refuter_reason,skill_gates_json FROM runs;
+        DROP TABLE runs; ALTER TABLE runs_new RENAME TO runs;`)
+      console.error(`Migration 10: nulled ${orphaned} orphan runs.project_id`)
+    },
+    postcondition: (database) => {
+      if (
+        !database
+          .query<{ table: string; from: string }, []>('PRAGMA foreign_key_list(runs)')
+          .all()
+          .some((fk) => fk.table === 'projects' && fk.from === 'project_id')
+      )
+        throw new Error('Migration 10 missing project FK')
+    },
+  },
+  {
+    version: 11,
+    name: 'files-and-code-edges-project-foreign-keys',
+    precondition: (database) => {
+      const tables = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('projects','files','code_edges') ORDER BY name",
+        )
+        .all()
+        .map((row) => row.name)
+      if (tables.join(',') !== 'code_edges,files,projects')
+        throw new Error('Migration 11 requires project graph tables')
+    },
+    apply: (database) => {
+      const f =
+        database
+          .query<{ count: number }, []>(
+            'SELECT COUNT(*) AS count FROM files WHERE project_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM projects WHERE projects.id = CAST(files.project_id AS TEXT))',
+          )
+          .get()?.count ?? 0
+      const e =
+        database
+          .query<{ count: number }, []>(
+            'SELECT COUNT(*) AS count FROM code_edges WHERE project_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM projects WHERE projects.id = CAST(code_edges.project_id AS TEXT))',
+          )
+          .get()?.count ?? 0
+      database.exec(
+        `UPDATE files SET project_id=NULL WHERE project_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM projects WHERE projects.id=CAST(files.project_id AS TEXT)); UPDATE code_edges SET project_id=NULL WHERE project_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM projects WHERE projects.id=CAST(code_edges.project_id AS TEXT)); CREATE TABLE files_new (id INTEGER PRIMARY KEY, project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, path TEXT NOT NULL, language TEXT NOT NULL, sha1 TEXT NOT NULL, size_bytes INTEGER NOT NULL, indexed_at TEXT NOT NULL, embedding TEXT, UNIQUE(project_id,path)); INSERT INTO files_new SELECT id,project_id,path,language,sha1,size_bytes,indexed_at,embedding FROM files; DROP TABLE files; ALTER TABLE files_new RENAME TO files; CREATE INDEX idx_files_project ON files(project_id); CREATE TABLE code_edges_new (id INTEGER PRIMARY KEY, project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, from_file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, to_path TEXT NOT NULL, to_file_id INTEGER, kind TEXT NOT NULL, raw TEXT NOT NULL, UNIQUE(from_file_id,raw)); INSERT INTO code_edges_new SELECT id,project_id,from_file_id,to_path,to_file_id,kind,raw FROM code_edges; DROP TABLE code_edges; ALTER TABLE code_edges_new RENAME TO code_edges; CREATE INDEX idx_edges_from ON code_edges(from_file_id); CREATE INDEX idx_edges_to ON code_edges(to_file_id);`,
+      )
+      console.error(`Migration 11: nulled ${f} orphan files and ${e} orphan edges`)
+    },
+    postcondition: (database) => {
+      const f = database
+        .query<{ table: string; from: string }, []>('PRAGMA foreign_key_list(files)')
+        .all()
+      const e = database
+        .query<{ table: string; from: string }, []>('PRAGMA foreign_key_list(code_edges)')
+        .all()
+      if (
+        !f.some((x) => x.table === 'projects' && x.from === 'project_id') ||
+        !e.some((x) => x.table === 'projects' && x.from === 'project_id')
+      )
+        throw new Error('Migration 11 missing project FKs')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
@@ -386,17 +476,23 @@ export function applyMigrationSteps(
 
     // The schema change and its evidence must commit together. Bun rolls the
     // transaction back if any contract check or the evidence insert throws.
-    const applyStep = database.transaction(() => {
-      step.precondition(database)
-      step.apply(database)
-      step.postcondition(database)
-      database.run('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)', [
-        step.version,
-        step.name,
-        new Date().toISOString(),
-      ])
-    })
-    applyStep()
+    const rebuildsForeignKeyParents = step.version === 10 || step.version === 11
+    if (rebuildsForeignKeyParents) database.exec('PRAGMA foreign_keys = OFF')
+    try {
+      const applyStep = database.transaction(() => {
+        step.precondition(database)
+        step.apply(database)
+        step.postcondition(database)
+        database.run('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)', [
+          step.version,
+          step.name,
+          new Date().toISOString(),
+        ])
+      })
+      applyStep()
+    } finally {
+      if (rebuildsForeignKeyParents) database.exec('PRAGMA foreign_keys = ON')
+    }
     applied.add(step.version)
   }
 }
@@ -510,6 +606,7 @@ export function runMigrations(): void {
     }
   }
   safeAddColumn('runs', 'skill_id', 'TEXT')
+  safeAddColumn('runs', 'project_id', 'TEXT')
   safeAddColumn('runs', 'allowed_outputs', 'TEXT')
   safeAddColumn('runs', 'files_attempted', 'TEXT')
   safeAddColumn('runs', 'files_authorized', 'TEXT')
@@ -527,6 +624,8 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'context_source', 'TEXT') // S18: 'CONTEXT.md' | 'AGENTS.md'
   safeAddColumn('runs', 'context_tokens', 'INTEGER') // S18: estimated token count of context used
   safeAddColumn('files', 'embedding', 'TEXT') // S24.1: JSON array of float[] for semantic search
+  safeAddColumn('files', 'project_id', 'TEXT')
+  safeAddColumn('code_edges', 'project_id', 'TEXT')
   safeAddColumn('runs', 'embed_hits', 'INTEGER') // S24.5: count of embedding-suggested files used in this run
   safeAddColumn('runs', 'context_warnings_json', 'TEXT') // S27.4: JSON array of ContextWarning[] fired during this run
   safeAddColumn('runs', 'cost_breakdown_json', 'TEXT') // S35.3: JSON array of CostBreakdownEntry[]

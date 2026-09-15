@@ -1,0 +1,39 @@
+{
+  "item": "UI.8.2",
+  "database_path": "~/.orchestos/db.sqlite",
+  "copy_gate": {
+    "source_counts": { "runs": 102, "files": 17, "code_edges": 14 },
+    "sentinel": "SENTINEL-UI82-*",
+    "after_counts": { "runs": 104, "files": 17, "code_edges": 14 },
+    "orphan_project_ids_nulled": { "runs": 6, "files": 17, "code_edges": 14 },
+    "foreign_keys": [
+      "runs.project_id -> projects.id",
+      "files.project_id -> projects.id",
+      "code_edges.project_id -> projects.id"
+    ],
+    "invalid_insert_rejected": true
+  },
+  "real_gate": {
+    "before_counts": { "runs": 102, "files": 17, "code_edges": 14 },
+    "after_counts": { "runs": 102, "files": 17, "code_edges": 14 },
+    "orphan_project_ids_nulled": { "runs": 6, "files": 17, "code_edges": 14 },
+    "foreign_keys_on": 1,
+    "invalid_insert_rejected_using_official_connection": true,
+    "foreign_keys": [
+      "runs.project_id -> projects.id",
+      "files.project_id -> projects.id",
+      "code_edges.project_id -> projects.id"
+    ]
+  },
+  "verification": {
+    "tsc": "pass",
+    "migration_tests": "7 pass",
+    "fixture_tests": "24 pass, 0 fail",
+    "test_coverage": "1430 pass, 0 fail",
+    "coverage": {
+      "functions": "75.88% (required 69.00%)",
+      "lines": "63.97% (required 57.00%)"
+    },
+    "csrf_origin_isolated": "1 failure with EADDRINUSE on sandboxed run; full suite passed when rerun with required filesystem access"
+  }
+}

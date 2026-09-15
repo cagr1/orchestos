@@ -32,6 +32,10 @@ let pid: string
 
 beforeEach(() => {
   pid = 'suggest-test-' + Math.random().toString(36).slice(2, 10)
+  db.run(
+    'INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)',
+    [pid, '/tmp/' + pid, '{}', '', new Date().toISOString()],
+  )
 })
 
 afterEach(() => {
@@ -40,6 +44,7 @@ afterEach(() => {
   // IDEAS.md #20 (2026-07-05): 'embed_hits is persisted...' inserta en `runs`
   // real (~/.orchestos/db.sqlite) con este mismo project_id — faltaba limpiarla.
   db.exec(`DELETE FROM runs       WHERE project_id = '${pid}'`)
+  db.run('DELETE FROM projects WHERE id = ?', [pid])
 })
 
 // ---------------------------------------------------------------------------

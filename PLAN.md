@@ -1716,15 +1716,25 @@ ni eso hace falta.
   por el cerebro, mismo resultado. `bunx tsc --noEmit` y `bun run test:coverage` (1430 pass)
   verdes. Dashboard bajado al cierre.
 
-- [ ] **UI.8.2 — 🧠 Integridad de datos: una sola fuente de verdad, de verdad.**
-  Backend, autorizado explícitamente. Habilita todo lo visual que viene después.
-  - `FOREIGN KEY` de `runs.project_id` → `projects(id)`.
-  - Unificar `project_id` a `TEXT` en `files` y `code_edges`, con FK real (hoy `INTEGER` sin FK,
-    recibiendo strings).
-  - Decidir y ejecutar: **`agents` como tabla propia** o proyección derivada de sesiones/tareas.
-    Sin esta decisión el groupbox de A.2 no tiene fuente.
-  Gate: `bun run db:migrate` sobre una DB preexistente **sin pérdida de datos** (mismo patrón de
-  evidencia que H.5.2, con registro centinela) + `bun run test:coverage`.
+- [x] **UI.8.2 — 🧠 Integridad de datos: una sola fuente de verdad, de verdad.** (cerrado 2026-09-15)
+  Ejecutado por: luna · Spec: docs/specs/UI.8.2.md
+  Migraciones versionadas 10/11 en `src/db/migrate.ts` (`FUTURE_MIGRATIONS`, patrón
+  precondition/apply/postcondition ya existente): `runs.project_id` y `files.project_id`/
+  `code_edges.project_id` (unificado a `TEXT`) con FK real a `projects(id) ON DELETE SET NULL`,
+  reconstrucción de tabla con `PRAGMA foreign_keys` OFF/ON solo durante esos dos steps. Filas
+  huérfanas (project_id que no matchea ningún `projects.id` real — medido: 6 en `runs`, 17 en
+  `files`, 14 en `code_edges`, estas últimas resultaron ser slugs de fixtures de test
+  contaminando la DB real, `gfc-cs`/`gfc-go`/etc.) se ponen a `NULL`, nunca se borran filas.
+  **`agents` queda sin tabla propia — decisión de Carlos, proyección derivada de
+  `chat_sessions`/`runs` cuando UI.8.4 la necesite.**
+  Gate en vivo: `docs/done/evidence/UI.8.2-live.json` — migración probada primero sobre una copia
+  de la DB real con registro centinela (conteos antes/después idénticos salvo el centinela,
+  FK verificadas con `PRAGMA foreign_key_list`, INSERT inválido rechazado), después aplicada a
+  `~/.orchestos/db.sqlite` real con el mismo resultado (102/17/14 filas preservadas, huérfanos
+  nulados). Primera corrida de `test:coverage` reveló 22-25 fallos reales por fixtures de
+  `graph-resolver-e2e.test.ts`/`suggest.test.ts` insertando `project_id` sin fila real en
+  `projects` — corregido insertando/limpiando una fila real de proyecto por test, sin relajar la
+  FK. `bunx tsc --noEmit` y `bun run test:coverage` (1430 pass) verdes.
 
 - [ ] **UI.8.3 — 🧠 Matar la navegación vieja (absorbe UI.7, sube antes de UI.4).**
   Se adelanta a propósito: con el orden anterior, las 9 pantallas de UI.4 se migrarían **dentro**

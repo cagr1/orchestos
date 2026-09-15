@@ -37,6 +37,7 @@ afterEach(() => {
   for (const p of usedPids) {
     db.exec(`DELETE FROM code_edges WHERE project_id = '${p}'`)
     db.exec(`DELETE FROM files      WHERE project_id = '${p}'`)
+    db.run('DELETE FROM projects WHERE id = ?', [p])
   }
   usedPids.length = 0
 })
@@ -44,6 +45,10 @@ afterEach(() => {
 function newPid(): string {
   pid = 'graph-e2e-' + Math.random().toString(36).slice(2, 10)
   usedPids.push(pid)
+  db.run(
+    'INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)',
+    [pid, '/tmp/' + pid, '{}', '', new Date().toISOString()],
+  )
   return pid
 }
 
