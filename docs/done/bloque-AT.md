@@ -1,5 +1,22 @@
 # Bloque AT — Aterrizar: que se pueda correr
 
+<a id="bloque-at-at-12"></a>
+### AT.12 — El tope absoluto de contexto deja de cortar la sesión
+
+Ejecutado por: luna · Spec: docs/specs/AT.12.md
+
+  `.claude/hooks/context-budget.js` ya no llama `process.exit(2)` cuando
+  `absoluteLevel === 'block'`. Conserva ese nivel como dato y lo incorpora al aviso recurrente:
+  tanto el primer turno como los siguientes llegan a `printWarning()` y terminan con éxito. Los
+  umbrales y la clasificación de `scripts/context-budget.ts` no cambiaron.
+
+  Verificación independiente del cerebro: `bunx tsc --noEmit`; `bun test
+  scripts/context-budget.test.ts scripts/context-budget-hook.test.ts tests/hooks/context-budget.test.ts`
+  (**14 pass / 0 fail**); búsqueda de `process.exit(2)`, el mensaje de cierre forzado y el tope
+  absoluto en el hook (**sin coincidencias**); `git diff --check` limpio. La traza manual del
+  flujo confirma que `absoluteLevel: 'block'` pasa el guard, actualiza el handoff solo en el primer
+  turno y siempre imprime el aviso, sin ruta de salida no cero.
+
 <a id="bloque-at-at-9"></a>
 ### AT.9 — Cualquier CLI en el chat, sin bloqueo por frontera de lectura
 

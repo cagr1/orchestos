@@ -329,6 +329,8 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   ajeno al diff de AT.9. Aplicar solo `bunx biome format --write src/__tests__/migration.test.ts` y
   verificar `bun run lint`; no mezclarlo con el cierre funcional de AT.9.
 
+- [x] **AT.12 — ⚡ El tope absoluto de contexto deja de cortar la sesión.** → [evidencia](docs/done/bloque-AT.md#bloque-at-at-12)
+
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 
 **Problema medido, no estimado.** `PLAN.md` pesa 309 KB / 3854 líneas. Para que un agente

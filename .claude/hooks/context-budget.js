@@ -17,16 +17,12 @@ function main(inputText) {
   const budget = runBudget(transcriptPath)
   if (!budget) return
 
-  if (budget.absoluteLevel === 'block') {
-    const used = budget.used.toLocaleString('en-US')
-    process.stderr.write(
-      `Contexto: ${used} tokens en esta sesión (tope absoluto 90.000, independiente de la ` +
-        `ventana del modelo). Escribe NEXT.md y abre sesión nueva.\n`,
-    )
-    process.exit(2)
-  }
-
-  if (budget.level !== 'warn' && budget.level !== 'critical' && budget.absoluteLevel !== 'warn')
+  if (
+    budget.level !== 'warn' &&
+    budget.level !== 'critical' &&
+    budget.absoluteLevel !== 'warn' &&
+    budget.absoluteLevel !== 'block'
+  )
     return
 
   // BUG-H.7.3-a (hallado por el gate 🔍 del 2026-09-03): `printWarning` estaba
@@ -37,7 +33,8 @@ function main(inputText) {
   // repite en cada turno.
   const firstTimeThisSession = readState()?.sessionId !== sessionId
   if (firstTimeThisSession && !writeHandoff(transcriptPath, sessionId)) return
-  if (firstTimeThisSession || budget.level === 'critical') printWarning(budget)
+  if (firstTimeThisSession || budget.level === 'critical' || budget.absoluteLevel === 'block')
+    printWarning(budget)
 }
 
 function parseJson(value) {
