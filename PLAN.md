@@ -1795,8 +1795,9 @@ ni eso hace falta.
     real apuntando a una tarea real (`crypto-page-v1`), confirma workspace+tab+SidePanel
     correctos y la sesión preservada al volver. `bunx tsc --noEmit`, `bunx biome check` (0
     errores) y `bun run test:coverage` (1431 pass) verdes.
-  - [ ] **UI.8.4c — inspector condicional** (0px cerrado, ancho persistido, pendiente, sin spec
-    todavía)
+  - [ ] **UI.8.4c — inspector condicional** (0px cerrado, ancho persistido) — spec escrito
+    (`docs/specs/UI.8.4c.md`), **EN PAUSA 2026-09-15 por decisión de Carlos** hasta que UI.9.1–9.3
+    rehagan el shell; se re-lee contra el shell nuevo antes de ejecutarse (ver UI.9.5).
 
   **Anotado por Carlos (2026-09-15), pendiente de planificar, no implementado todavía:** donde
   hoy dice "Projects" en el riel debería tener un ícono `+`/carpeta-con-agregar para dar de alta
@@ -1837,6 +1838,45 @@ ni eso hace falta.
 1. `agents` como tabla propia o proyección derivada (UI.8.2).
 2. Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no.
 3. Si UI.8.6 entra en este bloque o sale como bloque propio con backend separado.
+
+### UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)
+
+> **Revierte una decisión, sin borrarla.** El 2026-09-02 (UI.7/UI.8.3) se decidió que Chat |
+> Workspace fuera profundidad contextual y no un modo etiquetado, y se borró el "modo avanzado".
+> El 2026-09-15 Carlos pidió textualmente un switch explícito arriba a la izquierda, como Claude
+> Desktop: *"poner el switch en la parte de arriba para hacer un chat normal donde ahí sí se puede
+> seleccionar cualquier modelo… y los chats se van acumulando en ese mismo lado izquierdo"* y
+> *"si quiero dev entonces ahí se activa el 'modo orca' donde puedo abrir proyectos (carpetas) y
+> así mismo los agentes se verán del lado del aside debajo del proyecto"*. **Gana el switch
+> explícito.** El texto de UI.7/UI.8.3 queda como historial.
+>
+> **Motivo medido (auditoría en vivo 2026-09-15):** la lista de sesiones aparece dos veces
+> (sidebar `Sidebar.tsx:111-179` rotulada "N agents" + aside del chat `screens-core.js:474-529`);
+> las "agents" del sidebar son `chat_sessions`; el rail colapsado amontona "Projects" y
+> "0 agents". Referencias: Dev = `~/Documents/screens/Orca1_main.png` (`docs/ui-reference-patterns.md`
+> A.1–A.7); Chat = captura de Claude Desktop de Carlos (2026-09-15).
+>
+> **Decisiones de Carlos (2026-09-15):** (1) cada modo muestra lo suyo — Chat lista sesiones
+> `project_id NULL`, Dev las de cada proyecto; (2) "agente" en Dev = sesión de chat con CLI dentro
+> del proyecto, tareas/runs siguen en Workspace/Activity; (3) agregar proyecto = diálogo nativo de
+> macOS abierto por el servidor; (4) el switch cambia sidebar **y** canvas (último chat general o
+> vacío ↔ último proyecto/agente). Plan completo: `NEXT.md`.
+
+> **Orden (Carlos, 2026-09-15): UI.9.4 va primero.** OrchestOS se prueba desde la interfaz: *"si
+> funciona ya en back se lo debe mostrar en el front, sino no existe"*. El gate de UI.9.1 necesita
+> ≥2 proyectos y registrar un proyecto hoy solo existe por CLI — ningún gate puede exigirle un
+> comando a Carlos.
+
+- [ ] **UI.9.1 — 🧠 Switch de modo, sidebar por modo y datos separados.**
+  Spec: `docs/specs/UI.9.1.md`. Gate 🔍 en vivo: dos modos, ≥2 proyectos, chats generales y
+  agentes por proyecto sin mezclarse, sin lista duplicada en el canvas.
+- [ ] **UI.9.2 — 🧠 Modo Chat completo.** Estado vacío centrado con composer grande, buscar en la
+  lista de chats, selector CLI/modelo/esfuerzo en el composer (anatomía de la captura de Claude
+  Desktop). Spec pendiente.
+- [ ] **UI.9.3 — 🧠 Modo Dev completo.** Runs→Activity, rail colapsado solo-ícono coherente,
+  selección única con borde (A.3), anomalías inline (A.4). Spec pendiente.
+- [ ] **UI.9.4 — 🧠 Agregar proyecto desde la UI** (`+` en Projects → `osascript choose folder` en el servidor → registro del proyecto). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-4)
+- [ ] **UI.9.5 — 🧠 Inspector condicional sobre el shell nuevo** (retoma UI.8.4c).
 
 ### Fuera de alcance del Sprint 30 (explícito)
 

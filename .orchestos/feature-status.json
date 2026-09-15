@@ -886,6 +886,51 @@
       "closedDate": null
     },
     {
+      "id": "UI.9.1",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Switch de modo, sidebar por modo y datos separados",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.9.2",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Modo Chat completo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.9.3",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Modo Dev completo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.9.4",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Agregar proyecto desde la UI",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.9.5",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Inspector condicional sobre el shell nuevo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "GOV.1",
       "sprint": "Knowledge promotions",
       "block": "Planificar antes de cambios multi-módulo",
