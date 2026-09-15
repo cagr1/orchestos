@@ -1,6 +1,23 @@
 # Sprint 30 — evidencia de cierre
 Evidencia movida literalmente desde PLAN.md en S.2; PLAN.md conserva el índice.
 
+<a id="sprint-30-ui-9-4"></a>
+### UI.9.4 — Agregar proyecto desde la UI
+
+Ejecutado por: luna · Spec: docs/specs/UI.9.4.md
+
+El sidebar muestra `+` junto a Projects. El servidor expone `POST /api/projects/choose`, abre el
+selector nativo de macOS con argv fijo y registra solo la carpeta elegida en la DB, sin inicializar
+ni indexar archivos. Cancelación, rutas inválidas y plataformas no macOS quedan controladas.
+
+Verificación independiente: `bunx tsc --noEmit` ✅; test específico UI.9.4 **3 pass / 0 fail** ✅;
+`bun run build:ui` ✅; `bun run test:coverage` **1434 pass / 0 fail** ✅.
+Gate en vivo: navegador real (Playwright/dashboard) — `docs/done/evidence/UI.9.4-live.json`;
+Carlos confirmó la selección desde el diálogo nativo y el proyecto quedó visible en el sidebar;
+`GET /api/projects` devuelve dos proyectos reales, OrchestOS y
+`/Users/carlosgallardo/Documents/projects/SalaDespecho`. La creación de agentes dentro del
+proyecto no forma parte de este ítem y queda para UI.9.1.
+
 <a id="sprint-30-ui-0"></a>
 ### UI.0 — 🧠 Andamiaje (ninguna pantalla migrada).
  (cerrado 2026-08-25)

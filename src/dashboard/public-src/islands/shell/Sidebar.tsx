@@ -19,13 +19,14 @@
  * UI.8.3 reorganiza el riel en Chat, Activity, proyectos y Settings.
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useT } from '../../lib/i18n.ts'
 import { Icon, RawIcon } from '../../lib/icons.tsx'
+import { pushToast } from '../../lib/toast-store.ts'
 import { type NavEntry, shellApi } from './shell-api.ts'
 import { useShell } from './use-shell.ts'
 
-type Project = { id: string; path: string }
+type Project = { id: string; path: string; stackProfile: string; lastUpdated: string }
 type Session = {
   id: string
   agent: string
@@ -52,14 +53,37 @@ export function Sidebar() {
   const mainNav = nav.filter((n) => n.id === 'chat' || n.id === 'activity')
   const settings = nav.find((n) => n.id === 'settings')
   const [projects, setProjects] = useState<Project[]>([])
+  const [isChoosingProject, setIsChoosingProject] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [sessions, setSessions] = useState<Record<string, Session[]>>({})
-  useEffect(() => {
-    fetch('/api/projects')
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setProjects)
-      .catch(() => setProjects([]))
+  const loadProjects = useCallback(async () => {
+    const response = await fetch('/api/projects')
+    if (!response.ok) throw new Error('Could not load projects')
+    setProjects((await response.json()) as Project[])
   }, [])
+  useEffect(() => {
+    void loadProjects().catch(() => setProjects([]))
+  }, [loadProjects])
+
+  const chooseProject = async () => {
+    if (isChoosingProject) return
+    setIsChoosingProject(true)
+    try {
+      const response = await fetch('/api/projects/choose', { method: 'POST' })
+      const data = (await response.json()) as Project | { cancelled: true } | { error: string }
+      if (!response.ok || 'error' in data) {
+        pushToast('error' in data ? data.error : t('nav.project.add.error'), 'error')
+        return
+      }
+      if ('cancelled' in data) return
+      await loadProjects()
+      api?.selectWorkspaceProject(data.id)
+    } catch {
+      pushToast(t('nav.project.add.error'), 'error')
+    } finally {
+      setIsChoosingProject(false)
+    }
+  }
 
   // El atajo se muestra según la plataforma, igual que en vanilla.
   const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K'
@@ -109,7 +133,19 @@ export function Sidebar() {
       ))}
 
       <div className="sidebar-projects">
-        <div className="sidebar-section-label">Projects</div>
+        <div className="sidebar-section-label">
+          <span>Projects</span>
+          <NavButton
+            id="addProjectBtn"
+            className="sidebar-project-add"
+            tip={t('nav.project.add')}
+            label={t('nav.project.add')}
+            disabled={isChoosingProject}
+            onActivate={() => void chooseProject()}
+          >
+            <Icon name="plus" />
+          </NavButton>
+        </div>
         {projects.map((project) => {
           const isExpanded = expanded[project.id] ?? false
           const projectSessions = sessions[project.id] ?? []
@@ -240,12 +276,16 @@ function NavButton({
   id,
   className,
   tip,
+  label,
+  disabled = false,
   onActivate,
   children,
 }: {
   id: string
   className: string
   tip: string
+  label?: string
+  disabled?: boolean
   onActivate: () => void
   children: React.ReactNode
 }) {
@@ -255,10 +295,15 @@ function NavButton({
       className={className}
       data-tip={tip}
       role="button"
-      tabIndex={0}
-      onClick={onActivate}
+      tabIndex={disabled ? -1 : 0}
+      aria-label={label}
+      aria-disabled={disabled}
+      data-disabled={disabled || undefined}
+      onClick={() => {
+        if (!disabled) onActivate()
+      }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault()
           onActivate()
         }

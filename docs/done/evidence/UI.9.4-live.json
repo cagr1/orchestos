@@ -1,0 +1,29 @@
+{
+  "item": "UI.9.4",
+  "recordedAt": "2026-09-15",
+  "status": "pass_user_confirmed_native_selector",
+  "implemented": {
+    "endpoint": "POST /api/projects/choose",
+    "selector": "osascript choose folder with fixed argv",
+    "client": "#addProjectBtn in the Projects section"
+  },
+  "automatedVerification": {
+    "typecheck": "bunx tsc --noEmit: pass",
+    "handlerTests": "bun test src/dashboard/__tests__/projects-choose.test.ts: 3 pass, 0 fail",
+    "uiBuild": "bun run build:ui: pass",
+    "ui3Shell": "independently attempted against the real dashboard on port 4323; no result before timeout, therefore not credited",
+    "ui81VisualConsistency": "independently failed against the real dashboard: 6 computed border-radius values (0px, 4px, 50%, 6px, 8px, 999px), so not credited",
+    "impeccableDetector": "Sidebar.tsx and styles.css: []"
+  },
+  "coverage": {
+    "command": "bun run test:coverage",
+    "result": "independently verified: 1434 pass, 0 fail"
+  },
+  "humanGateRequired": {
+    "status": "confirmed_by_user",
+    "selection": "Carlos selected a real folder from the native macOS dialog.",
+    "visibleResult": "The selected project appeared in the Projects sidebar.",
+    "apiResult": "GET /api/projects returned two real projects, including SalaDespecho.",
+    "agentCreation": "Not part of UI.9.4; delegated to UI.9.1."
+  }
+}

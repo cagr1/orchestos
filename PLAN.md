@@ -1875,7 +1875,7 @@ ni eso hace falta.
   Desktop). Spec pendiente.
 - [ ] **UI.9.3 — 🧠 Modo Dev completo.** Runs→Activity, rail colapsado solo-ícono coherente,
   selección única con borde (A.3), anomalías inline (A.4). Spec pendiente.
-- [ ] **UI.9.4 — 🧠 Agregar proyecto desde la UI** (`+` en Projects → `osascript choose folder` en el servidor → registro del proyecto). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-4)
+- [x] **UI.9.4 — 🧠 Agregar proyecto desde la UI** (`+` en Projects → `osascript choose folder` en el servidor → registro del proyecto). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-4)
 - [ ] **UI.9.5 — 🧠 Inspector condicional sobre el shell nuevo** (retoma UI.8.4c).
 
 ### Fuera de alcance del Sprint 30 (explícito)

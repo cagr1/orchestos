@@ -48,7 +48,7 @@ import {
   handleApiProjectIndex,
   handleApiProjectSummary,
 } from './handlers/project.ts'
-import { handleApiProjects } from './handlers/projects.ts'
+import { handleApiProjectChoose, handleApiProjects } from './handlers/projects.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import {
   handleApiRuns,
@@ -276,6 +276,9 @@ export async function route(req: Request, port: number): Promise<Response> {
 
   if (method === 'GET' && url.pathname === '/api/projects') {
     return handleApiProjects()
+  }
+  if (method === 'POST' && url.pathname === '/api/projects/choose') {
+    return handleApiProjectChoose()
   }
   if (method === 'GET' && url.pathname === '/api/project/constitution') {
     return withDashboardProject(req, (project) => handleApiProjectConstitutionGet(project.root))

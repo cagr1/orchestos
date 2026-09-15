@@ -23,6 +23,7 @@ import { generateContextJson } from './generators/context-json.ts'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
 import { indexProject } from './graph/index.ts'
 import { suggestContext } from './graph/suggest.ts'
+import { ensureProject } from './projects/ensure.ts'
 import { inferEmbeddingProvider } from './providers/embeddings.ts'
 import { chat } from './providers/openrouter.ts'
 import { classifyTask } from './router/classify.ts'
@@ -2623,17 +2624,6 @@ function resolveIndexRoot(targetPath?: string, projectName?: string): string {
     if (profile.manifest.name === projectName || row.path === projectName) return row.path
   }
   return resolve(projectName)
-}
-
-async function ensureProject(root: string) {
-  const existing = getProject(root)
-  if (existing) return existing
-  const profile = await buildProfile(root)
-  const agentsMd = generateAgentsMd(profile)
-  upsertProject(root, profile, agentsMd)
-  const created = getProject(root)
-  if (!created) throw new Error(`[index] failed to save project context for ${root}`)
-  return created
 }
 
 function explainTaskRun(root: string, taskId: string, projectId?: string) {

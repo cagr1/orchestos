@@ -2,13 +2,14 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { loadContext } from '../../context/load.ts'
-import { getProject, upsertProject } from '../../db/projects.ts'
+import { upsertProject } from '../../db/projects.ts'
 import { listRuns } from '../../db/runs.ts'
 import { buildProfile } from '../../detect/profile.ts'
 import { generateAgentsMd } from '../../generators/agents-md.ts'
 import { generateContextJson } from '../../generators/context-json.ts'
 import { generateSummaryPdf } from '../../generators/summary-pdf.ts'
 import { indexProject } from '../../graph/index.ts'
+import { ensureProject } from '../../projects/ensure.ts'
 import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import { listAllSkillCandidates, renderSkillCatalog } from '../../skills/catalog.ts'
 import { scaffoldConstitutionMd } from '../../spec/constitution.ts'
@@ -86,14 +87,7 @@ async function handleApiProjectDetect(root: string): Promise<Response> {
 // code graph (S21). Crea el registro de proyecto en DB si aún no existe (mismo
 // fallback que `ensureProject()` en cli.ts).
 async function handleApiProjectIndex(root: string): Promise<Response> {
-  let project = getProject(root)
-  if (!project) {
-    const profile = await buildProfile(root)
-    const agentsMd = generateAgentsMd(profile)
-    upsertProject(root, profile, agentsMd)
-    project = getProject(root)
-    if (!project) return errorResponse('Failed to save project context', 500)
-  }
+  const project = await ensureProject(root)
   const t0 = performance.now()
   const result = await indexProject(root, project.id)
   const elapsedMs = Math.round(performance.now() - t0)
