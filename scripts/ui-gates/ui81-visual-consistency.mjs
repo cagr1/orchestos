@@ -34,25 +34,52 @@ try {
     const visible = (el) => {
       const style = getComputedStyle(el)
       const rect = el.getBoundingClientRect()
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && rect.width > 0 && rect.height > 0
+      return (
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        style.opacity !== '0' &&
+        rect.width > 0 &&
+        rect.height > 0
+      )
     }
     const nodes = [...document.querySelectorAll('body *')].filter(visible)
-    const textNodes = nodes.filter((el) => [...el.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim()))
+    const textNodes = nodes.filter((el) =>
+      [...el.childNodes].some(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+      ),
+    )
     const fontSizes = [...new Set(textNodes.map((el) => getComputedStyle(el).fontSize))].sort()
     const radiusNodes = nodes.filter((el) => el.id !== 'statusBadge' && !el.closest('#statusBadge'))
     const radii = [...new Set(radiusNodes.map((el) => getComputedStyle(el).borderRadius))].sort()
-    const selects = nodes.filter((el) => el.tagName === 'SELECT').map((el) => el.outerHTML.slice(0, 160))
+    const selects = nodes
+      .filter((el) => el.tagName === 'SELECT')
+      .map((el) => el.outerHTML.slice(0, 160))
     const inlineStyleAttributes = document.querySelectorAll('[style]').length
     return { fontSizes, radii, selects, inlineStyleAttributes }
   })
 
   const baseline = JSON.parse(readFileSync(baselinePath, 'utf8'))
-  log(metrics.fontSizes.length <= 5, `font-size computados: ${metrics.fontSizes.length} (${metrics.fontSizes.join(', ')})`)
-  log(metrics.radii.length <= 2, `border-radius computados sin #statusBadge: ${metrics.radii.length} (${metrics.radii.join(', ')})`)
-  log(metrics.selects.length === 0, `select nativo visible: ${metrics.selects.length}${metrics.selects.length ? ` (${metrics.selects.join(' | ')})` : ''}`)
-  log(metrics.inlineStyleAttributes <= baseline.inlineStyleAttributes, `atributos style= inline: ${metrics.inlineStyleAttributes} (baseline ${baseline.inlineStyleAttributes})`)
+  log(
+    metrics.fontSizes.length <= 5,
+    `font-size computados: ${metrics.fontSizes.length} (${metrics.fontSizes.join(', ')})`,
+  )
+  log(
+    metrics.radii.length <= 2,
+    `border-radius computados sin #statusBadge: ${metrics.radii.length} (${metrics.radii.join(', ')})`,
+  )
+  log(
+    metrics.selects.length === 0,
+    `select nativo visible: ${metrics.selects.length}${metrics.selects.length ? ` (${metrics.selects.join(' | ')})` : ''}`,
+  )
+  log(
+    metrics.inlineStyleAttributes <= baseline.inlineStyleAttributes,
+    `atributos style= inline: ${metrics.inlineStyleAttributes} (baseline ${baseline.inlineStyleAttributes})`,
+  )
   if (metrics.inlineStyleAttributes < baseline.inlineStyleAttributes) {
-    writeFileSync(baselinePath, `${JSON.stringify({ inlineStyleAttributes: metrics.inlineStyleAttributes }, null, 2)}\n`)
+    writeFileSync(
+      baselinePath,
+      `${JSON.stringify({ inlineStyleAttributes: metrics.inlineStyleAttributes }, null, 2)}\n`,
+    )
     out.push(`INFO — baseline actualizado a ${metrics.inlineStyleAttributes}`)
   }
 } finally {

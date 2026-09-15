@@ -6,7 +6,10 @@
   "run1": {
     "sessionsBefore": 4,
     "menuItemsVisible": 5,
-    "cancelWithEscape": { "sessionsAfterCancel": 4, "verdict": "PASS — no crea sesión ni dispara fetch" },
+    "cancelWithEscape": {
+      "sessionsAfterCancel": 4,
+      "verdict": "PASS — no crea sesión ni dispara fetch"
+    },
     "chooseCli": { "enabledCliCount": 4, "chosenAgent": "claude", "sessionsAfterChoose": 5 },
     "composerAgentNavRemoved": true
   },

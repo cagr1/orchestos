@@ -7,13 +7,19 @@
     "sessionId": "121e1841-173c-4a0c-aecf-adf358a8c345",
     "request": "POST /api/chat, no body.model",
     "response": { "text": "CODEXMARKER", "model": "codex (cli default model) via Codex CLI" },
-    "db": { "provider": "codex", "model": "codex (cli default model) via Codex CLI", "status": "done" },
+    "db": {
+      "provider": "codex",
+      "model": "codex (cli default model) via Codex CLI",
+      "status": "done"
+    },
     "verdict": "PASS — cero fallback a deepseek/OpenRouter, transporte y modelo etiquetados correctamente"
   },
   "opencode": {
     "sessionId": "54c1792a-daa1-4cd9-866f-68eaba590d42",
     "request": "POST /api/chat, no body.model",
-    "response": { "error": "OpenCode CLI: opencode produced no step-finish event — cost unknown, not reported as $0" },
+    "response": {
+      "error": "OpenCode CLI: opencode produced no step-finish event — cost unknown, not reported as $0"
+    },
     "db": { "provider": "opencode", "model": "unknown", "status": "failed" },
     "verdict": "BLOCKED — error real de opencode (no retry silencioso a OpenRouter, confirmado), pero no se pudo obtener respuesta exitosa: `opencode auth list` en esta máquina solo tiene una credencial OpenRouter y ningún modelo/provider default propio configurado, así que sin -m/--model explícito el CLI no tiene con qué correr. No es un bug de OrchestOS: es una carencia de configuración del propio opencode en esta máquina, fuera del alcance de este ítem (fijar el modelo interno de cada CLI es explícitamente Fuera de scope en PLAN.md:196-197)."
   },

@@ -319,7 +319,9 @@ describe('SQLite migrations', () => {
         afterFirst: { columns: string[]; message: string; v4: string; v9Count: number }
         afterSecond: { v9Count: number; schemaCount: number }
       }
-      expect(first.afterFirst.columns).toEqual(expect.arrayContaining(['task_held', 'existing_files']))
+      expect(first.afterFirst.columns).toEqual(
+        expect.arrayContaining(['task_held', 'existing_files']),
+      )
       expect(first.afterFirst.message).toBe('preserve this message')
       expect(first.afterFirst.v4).toBe('run-files-read')
       expect(first.afterFirst.v9Count).toBe(1)

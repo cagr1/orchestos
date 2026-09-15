@@ -476,17 +476,27 @@ SCREENS.chat = {
     // de verdad). Mismo patrón que Claude Desktop/Codex/Orca/ChatGPT: lista a
     // la izquierda, "Nueva conversación" arriba, borrar por ítem con confirm.
     const sessions = st.chatSessions || []
-    const cliIcon = { local: ICON.cpu || ICON.bolt, claude: ICON.spark, codex: ICON.bolt, opencode: ICON.term, api: ICON.globe }
+    const cliIcon = {
+      local: ICON.cpu || ICON.bolt,
+      claude: ICON.spark,
+      codex: ICON.bolt,
+      opencode: ICON.term,
+      api: ICON.globe,
+    }
     const cliModes = Array.isArray(st.executorModes?.modes) ? st.executorModes.modes : []
     const cliMenu = st.chatCliMenuOpen
-      ? `<div class="chat-cli-menu" data-chat-cli-menu role="menu">${cliModes.map((info) => {
-          const available = info.detected !== false
-          const reason = info.path ? t('settings.executorMode.notDetected') : t('common.notDetected')
-          const label = t('chat.modelfx.agentLabel.' + info.id)
-          return available
-            ? `<button type="button" class="chat-cli-item" data-chat-cli-agent="${esc(info.id)}" role="menuitem">${cliIcon[info.id] || ICON.bolt}<span>${esc(label)}</span></button>`
-            : `<div class="chat-cli-item disabled" title="${esc(reason)}" aria-disabled="true">${cliIcon[info.id] || ICON.bolt}<span>${esc(label)}<small>${esc(reason)}</small></span></div>`
-        }).join('')}</div>`
+      ? `<div class="chat-cli-menu" data-chat-cli-menu role="menu">${cliModes
+          .map((info) => {
+            const available = info.detected !== false
+            const reason = info.path
+              ? t('settings.executorMode.notDetected')
+              : t('common.notDetected')
+            const label = t('chat.modelfx.agentLabel.' + info.id)
+            return available
+              ? `<button type="button" class="chat-cli-item" data-chat-cli-agent="${esc(info.id)}" role="menuitem">${cliIcon[info.id] || ICON.bolt}<span>${esc(label)}</span></button>`
+              : `<div class="chat-cli-item disabled" title="${esc(reason)}" aria-disabled="true">${cliIcon[info.id] || ICON.bolt}<span>${esc(label)}<small>${esc(reason)}</small></span></div>`
+          })
+          .join('')}</div>`
       : ''
     const sessionsAside = `<aside class="chat-sessions-aside">
       <div class="chat-new-menu-wrap" data-chat-cli-menu>

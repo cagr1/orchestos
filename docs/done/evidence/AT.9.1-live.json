@@ -1,0 +1,38 @@
+{
+  "item": "AT.9.1",
+  "base": "http://localhost:4391",
+  "date": "2026-09-15T16:22:24.790Z",
+  "screens": [
+    {
+      "screen": "chat",
+      "status": 200,
+      "scriptLoaded": true,
+      "mainText": 1018,
+      "errors": [
+        "console.error: Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "console.error: Failed to load resource: the server responded with a status of 409 (Conflict)"
+      ]
+    },
+    {
+      "screen": "tasks",
+      "status": 200,
+      "scriptLoaded": true,
+      "mainText": 1018,
+      "errors": [
+        "console.error: Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "console.error: Failed to load resource: the server responded with a status of 409 (Conflict)"
+      ]
+    },
+    {
+      "screen": "settings",
+      "status": 200,
+      "scriptLoaded": true,
+      "mainText": 1018,
+      "errors": [
+        "console.error: Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "console.error: Failed to load resource: the server responded with a status of 409 (Conflict)"
+      ]
+    }
+  ],
+  "verdict": "FAIL"
+}

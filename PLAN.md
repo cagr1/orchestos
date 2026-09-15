@@ -383,10 +383,8 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   tercer CLI real disponible, ejecutar sesión→turno→persistencia sin tocar el router del chat;
   los registros sin adaptador deben decir `chat no soportado`, nunca caer a API/OpenRouter.
 
-- [ ] **AT.9.1 — ⚡ Reponer el lint global tras AT.7.** Hallazgo al cerrar AT.9: `bun run lint`
-  tiene un único error de formato en `src/__tests__/migration.test.ts:322`, archivo ya versionado y
-  ajeno al diff de AT.9. Aplicar solo `bunx biome format --write src/__tests__/migration.test.ts` y
-  verificar `bun run lint`; no mezclarlo con el cierre funcional de AT.9.
+- [x] **AT.9.1 — ⚡ Reponer el lint global tras AT.7.** (2026-09-15) → [evidencia](docs/done/bloque-AT.md#bloque-at-at-9-1)
+  Sin delegación: sin spec; Carlos pidió en conversación mandar a Luna el diagnóstico y el fix mecánico de formato, verificado por el cerebro.
 
 - [x] **AT.12 — ⚡ El tope absoluto de contexto deja de cortar la sesión.** → [evidencia](docs/done/bloque-AT.md#bloque-at-at-12)
 

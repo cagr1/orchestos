@@ -1,5 +1,32 @@
 # Bloque AT — Aterrizar: que se pueda correr
 
+<a id="bloque-at-at-9-1"></a>
+### AT.9.1 — Reponer el lint global tras AT.7
+
+  Sin delegación: sin spec; Carlos pidió en conversación mandar a Luna (codex exec) el diagnóstico y el fix mecánico de formato, verificado por el cerebro.
+
+  CI rojo en el run 34991002953 (commit `8e9a028`): `bun run lint` con errores de formato de
+  biome, no de reglas. El ítem solo registraba `src/__tests__/migration.test.ts:322` (`477bb43`);
+  había cuatro más: `docs/done/evidence/AT.10-live.json` (`64dad00`),
+  `docs/done/evidence/ERP.1-live.json` y `src/dashboard/public/screens-core.js` (`1f28156`),
+  `scripts/ui-gates/ui81-visual-consistency.mjs` (`8e9a028`). Fix: `bunx biome format --write`
+  solo sobre esos cinco; sin tocar warnings/infos.
+
+  Verificación del cerebro: `bunx biome check .` sin errores en los archivos versionados (los
+  dos restantes son WIP no commiteado de otra sesión: `src/db/migrate.ts`,
+  `docs/done/evidence/UI.8.2-live.json`); de `migration.test.ts` se commitea solo el hunk de
+  formato, construido desde `HEAD`. Causa de fondo: el pre-commit no corre `lint`, así que el
+  formato roto entra sin aviso.
+
+  Gate en vivo: Playwright real (chromium) contra el dashboard levantado con `HOME` temporal en
+  `localhost:4391`, script `scripts/ui-gates/at91-format-smoke.mjs`, evidencia
+  `docs/done/evidence/AT.9.1-live.json`. Las pantallas chat/tasks/settings responden 200, cargan
+  `screens-core.js`, renderizan `#main` y **no hay ningún `pageerror`**. El script marca FAIL
+  por dos `console.error` de red: `400 /api/chat/models` y `409 /api/plan`, que salen de la API
+  con un home vacío, no del JS. Comparación A/B en el mismo servidor, sirviendo con
+  `page.route` la versión de `HEAD` de `screens-core.js`: mismo `#main` (33,617 caracteres de
+  HTML) y los mismos dos errores de red. El reformateo no cambia el comportamiento.
+
 <a id="bloque-at-at-12"></a>
 ### AT.12 — El tope absoluto de contexto deja de cortar la sesión
 
