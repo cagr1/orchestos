@@ -1095,7 +1095,12 @@ async function handleApiChat(
 
   const ctx = lines.length ? `\nProject state:\n${lines.join('\n')}\n` : ''
   const projBlock = projectCtx ? `\nProject context:\n${projectCtx}\n` : ''
-  const model = body.model?.trim() || 'deepseek/deepseek-v4-flash'
+  // The CLI owns its default model. Passing the API default here would make
+  // OpenCode translate it into an OpenRouter model and silently use the wrong
+  // transport; Codex would receive a misleading non-openai model as well.
+  const requestedModel = body.model?.trim()
+  const model = requestedModel || 'deepseek/deepseek-v4-flash'
+  const cliModel = useCodexCli || useOpencodeCli ? requestedModel : model
   const isOllama = /^ollama\//.test(model)
   if (session?.agent === 'local' && !isOllama) {
     finishTurnFailure({ error: 'A local session requires an ollama/* model', model })
@@ -1406,7 +1411,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           systemPrompt,
           combinedText,
           CLAUDE_CHAT_TIMEOUT_MS,
-          model,
+          cliModel,
         )
         const resultLabel = `${result.model} via Codex CLI`
         const responseText = result.text + autoTaskNote
@@ -1451,9 +1456,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           systemPrompt,
           combinedText,
           CLAUDE_CHAT_TIMEOUT_MS,
-          model,
+          cliModel,
         )
-        const resultLabel = `${result.model} via OpenCode CLI`
+        const resultLabel = `${cliModel ? result.model : 'CLI default model'} via OpenCode CLI`
         const responseText = result.text + autoTaskNote
         finishTurnSuccess({
           responseText,
@@ -1477,7 +1482,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         // de OpenCode no dejaba rastro ni en el turno ni en "Recent Runs".
         finishTurnFailure({
           error: `OpenCode CLI failed: ${e.message}`,
-          model,
+          model: cliModel,
           readAudit: uninstrumentedReadAudit(),
           provider: 'opencode',
         })

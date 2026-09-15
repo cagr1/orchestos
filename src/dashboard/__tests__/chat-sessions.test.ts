@@ -423,6 +423,39 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.codexStatus).toBe(502)
   })
 
+  it('fails OpenCode with its provider and does not retry through OpenRouter', async () => {
+    const result = await runIsolated(`
+      const { mkdirSync, writeFileSync } = await import('fs')
+      const { join } = await import('path')
+      const home = process.env.ORCHESTOS_HOME
+      const cacheDir = join(home, '.orchestos', 'cache')
+      mkdirSync(cacheDir, { recursive: true })
+      writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ fetchedAt: Date.now(), models: {} }))
+      const projectDir = join(home, 'opencode-error-project')
+      mkdirSync(projectDir, { recursive: true })
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      runMigrations(); process.chdir(projectDir)
+      const fetchUrls = []
+      globalThis.fetch = async (url) => {
+        fetchUrls.push(String(url))
+        return new Response(JSON.stringify({ choices: [{ message: { content: '{"isTask":false,"reason":"chat"}' } }] }), { status: 200 })
+      }
+      const session = createChatSession({ agent: 'opencode', mode: 'chat' })
+      const response = await handleApiChat(new Request('http://localhost/api/chat', {
+        method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'opencode failure probe' })
+      }))
+      const rows = db.query('SELECT provider FROM runs WHERE task_class = "chat" ORDER BY created_at DESC LIMIT 1').all()
+      process.stdout.write(JSON.stringify({ status: response.status, fetchUrls, rows }))
+      db.close()
+    `)
+    expect(result.status).toBe(502)
+    expect(result.fetchUrls).toHaveLength(1)
+    expect(result.rows).toEqual([expect.objectContaining({ provider: 'opencode' })])
+  })
+
   it('never auto-creates a real task for a general project-less session in Code mode', async () => {
     const result = await runIsolated(`
       const { mkdirSync, writeFileSync, readFileSync } = await import('fs')

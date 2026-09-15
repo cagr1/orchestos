@@ -259,6 +259,23 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
 - [x] **AT.9 — 🧠 Cualquier CLI en el chat, sin bloqueo por frontera de lectura.** (cerrado 2026-09-14) → [evidencia](docs/done/bloque-AT.md#bloque-at-at-9)
 
 - [ ] **AT.10 — 🧠 El chat usa de verdad el CLI elegido: Codex y OpenCode, sin caída silenciosa a OpenRouter.**
+  **Progreso 2026-09-15 (backend, ejecutado por luna · spec en `docs/specs/AT.10.md`, sigue
+  abierto):** `chat.ts:1098-1101` ya no pasa `deepseek/deepseek-v4-flash` como default a
+  `runCodexChat`/`runOpencodeChat` cuando `body.model` no vino explícito (`cliModel`); OpenCode sin
+  modelo se etiqueta `CLI default model`; el catch de OpenCode ya devolvía 502 `provider=opencode`
+  sin retry. Tests en `chat-sessions.test.ts` (12 pass) y `bun run test:coverage` (1430 pass) verdes.
+  Gate en vivo parcial — `docs/done/evidence/AT.10-live.json`: Codex cierra completo (sesión real,
+  sin credencial de OpenRouter en el entorno, SQLite confirma `provider=codex`, respuesta correcta,
+  sin fuga). OpenCode queda **bloqueado, no roto por este fix**: `opencode auth list` en esta
+  máquina solo tiene una credencial OpenRouter y ningún modelo/provider default propio — sin
+  `-m/--model` explícito el binario no tiene con qué correr (`opencode produced no step-finish
+  event`), confirmado que no reintenta por OpenRouter (SQLite `provider=opencode`, `status=failed`).
+  Fijar el modelo interno de OpenCode es explícitamente fuera de scope de este ítem — no cerrar
+  AT.10 hasta repetir el gate con OpenCode configurado con su propio default en la máquina de
+  prueba. El picker del composer y el mini-menú de "Nuevo chat" quedan para `ERP.1`
+  (`docs/specs/ERP.1.md`, ver contrato vigente en `PLAN.md:30-45,63-84`), que reemplaza el texto
+  original de abajo sobre `CHAT_UNSUPPORTED_AGENTS`/`PUT /api/config` como plan de UI.
+
   Bloqueo reproducido por Carlos el 2026-09-15 y confirmado leyendo el recorrido: AT.9 conectó
   las ramas backend de Codex/OpenCode, pero `src/dashboard/public/app.js:2908` todavía las incluye
   en `CHAT_UNSUPPORTED_AGENTS`; además, elegir un agente solo hace `PUT /api/config` y no reemplaza
