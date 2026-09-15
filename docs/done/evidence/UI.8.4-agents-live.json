@@ -1,0 +1,22 @@
+{
+  "item": "UI.8.4 (pieza 1/2 — agentes como filas colapsables)",
+  "at": "2026-09-15",
+  "dashboard": "http://127.0.0.1:4242",
+  "method": "Playwright, dos proyectos reales con sesiones propias",
+  "results": {
+    "projectCount": 2,
+    "project1AgentRowsAfterExpand": 4,
+    "project2AgentRowsAfterExpand": 1,
+    "project2SessionsIsolatedFromProject1": true,
+    "clickingAgentRowOpensChatWithThatSession": true,
+    "activeAgentRowHighlighted": true,
+    "collapseHidesRows": true
+  },
+  "known_minor_limit": "el contador 'N agents' muestra 0 hasta el primer expand (carga perezosa a propósito, sin fetch eager por proyecto para no hacer N+1) — se corrige solo al expandir una vez, no es un dato falso, es un dato todavía no cargado. Pendiente de pulido, no bloqueante.",
+  "verification": {
+    "tsc": "pass",
+    "biome_check": "0 errores en archivos tocados",
+    "build_ui": "pass",
+    "test_coverage": "1430 pass, 0 fail"
+  }
+}

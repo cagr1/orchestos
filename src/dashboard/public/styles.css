@@ -555,6 +555,31 @@ button {
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent-dim);
 }
+.sidebar-agents-toggle {
+  padding: 1px 8px 2px 38px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.sidebar-agents-toggle:hover { color: var(--accent); }
+.sidebar-agent-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 2px 7px 2px 38px;
+  color: var(--text-muted);
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.sidebar-agent-row:hover { color: var(--accent); background: var(--surface-2); }
+.sidebar-agent-row.active { color: var(--accent); background: var(--surface-hi); border-color: var(--border); }
+.sidebar-agent-icon { display: inline-flex; width: 15px; height: 15px; flex: 0 0 15px; }
+.sidebar-agent-icon svg { width: 15px; height: 15px; }
+.sidebar-agent-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.sidebar-agent-time { flex: 0 0 auto; font-size: 10px; color: var(--text-dim); }
 .sidebar .nav-ic {
   position: relative;
   width: 30px;

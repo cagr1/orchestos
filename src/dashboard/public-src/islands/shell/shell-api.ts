@@ -25,6 +25,7 @@ export interface ShellApi {
   go: (id: string) => void
   toggleSidebar: () => void
   selectWorkspaceProject: (projectId: string) => void
+  openChatSession: (sessionId: string) => void
   openCommandPalette: () => void
   toggleRightPanel: () => void
   setRightPanelTab: (tab: string) => void

@@ -1771,6 +1771,32 @@ ni eso hace falta.
      chat conservado y accesible en un gesto de vuelta.
   Gate 🔍 en vivo con los dos casos de (1) y (2).
 
+  **Progreso — piezas, sigue abierto hasta que las dos cierren:**
+  - [x] **UI.8.4a — agentes como filas colapsables** (cerrada 2026-09-15)
+    Ejecutado por: luna · Spec: docs/specs/UI.8.4-agents.md
+    Header `N agents ⌄` por proyecto en `Sidebar.tsx`, filas = sesiones de `chat_sessions`
+    (icono+título+tiempo relativo, sin borde/caja), click abre esa sesión en Chat, fila activa
+    marcada con borde (§A.3). Sesiones de un proyecto no-cwd se listan con `?project=<id>`
+    puntual (el backend ya lo soportaba) — no es ERP.2, ningún otro endpoint quedó filtrado por
+    proyecto. Gate en vivo: navegador real (Playwright), evidencia en `docs/done/evidence/UI.8.4-agents-live.json` — dos proyectos reales, sesiones no se mezclan.
+    Límite menor conocido: el contador muestra `0 agents` hasta el primer expand (carga
+    perezosa a propósito, no dato falso).
+  - [ ] **Pieza 2/2 — contrato Chat→Workspace** (pendiente, no tocada en esta pasada)
+  Falta también el **inspector condicional** (0px cerrado, ancho persistido) — ninguno de los
+  dos se tocó en esta pasada.
+
+  **Anotado por Carlos (2026-09-15), pendiente de planificar, no implementado todavía:** donde
+  hoy dice "Projects" en el riel debería tener un ícono `+`/carpeta-con-agregar para dar de alta
+  un proyecto nuevo desde la UI (hoy solo se registra vía `orchestos index`/CLI o
+  `POST /api/project/index`, nunca desde el dashboard). Al agregarlo, tiene que poder verse y
+  editarse las opciones de ESE proyecto — esto viviría en Settings, en una sección de proyectos
+  (encaja con `UI.8.5` § Settings agrupado por alcance: `Global · Proyecto · Agente`, ver
+  `PLAN.md` línea ~1780). Carlos también notó que el tab `Runs` se siente duplicado con
+  `Activity` (que hoy reusa literalmente `SCREENS.runs` — ver decisión de UI.8.3 arriba); a
+  revisar si `Activity` debe ser una vista distinta (cruzando proyectos, per
+  `dashboard-experience-direction.md` línea 84) en vez de un alias del mismo contenido que ya
+  vive dentro del workspace de cada proyecto.
+
 - [ ] **UI.8.5 — 🧠 Composición visual: barra de estado, Settings y controles.**
   Recién acá entra "que se vea excelente", y con la anatomía ya escrita:
   - **Barra de estado inferior permanente** (§A.5): `% de contexto + tiempo de sesión` a la

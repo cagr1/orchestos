@@ -778,6 +778,7 @@ const App = {
       screen: state.screen,
       skillsCount: (state.skills || []).length,
       workspaceProjectId: state.workspaceProjectId || null,
+      chatSessionId: state.chatSessionId || null,
       sidebarExpanded: document.querySelector('.app').dataset.sidebar === 'expanded',
     })
   },
@@ -3213,6 +3214,10 @@ function boot() {
       state.screen = 'workspace'
       state.workspaceTab = state.workspaceTab || 'tasks'
       App.rerender()
+    },
+    openChatSession: (id) => {
+      App.go('chat')
+      App.switchChatSession(id)
     },
     openCommandPalette: () => Modal.openCommandPalette(),
     toggleRightPanel,

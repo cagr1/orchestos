@@ -40,6 +40,7 @@ export interface ShellState {
    * Proyecto activo del workspace.
    */
   workspaceProjectId: string | null
+  chatSessionId: string | null
 }
 
 const initial: ShellState = {
@@ -50,6 +51,7 @@ const initial: ShellState = {
   rightPanelOpen: false,
   rightPanelTab: 'terminal',
   workspaceProjectId: null,
+  chatSessionId: null,
 }
 
 let state: ShellState = initial
