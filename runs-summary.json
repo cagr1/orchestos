@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-09-14T21:49:55.029Z",
+  "exported_at": "2026-09-15T14:31:05.128Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "dde71e9c-1b7d-4e79-836b-032314c86015",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00039698204,
+      "elapsed_ms": 0,
+      "tokens": 4170,
+      "created_at": "2026-09-14T22:06:19.653Z"
+    },
+    {
+      "id": "5a8c74ff-df4b-4f26-9c75-f743e9dfd97a",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00030792887999999996,
+      "elapsed_ms": 0,
+      "tokens": 3499,
+      "created_at": "2026-09-14T21:59:58.250Z"
+    },
+    {
+      "id": "bd246bc2-105e-4a3b-b6ed-7b61e579603e",
+      "task_class": "chat",
+      "model": "deepseek/deepseek-v4-flash",
+      "provider": "openrouter",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00025900559999999997,
+      "elapsed_ms": 0,
+      "tokens": 3175,
+      "created_at": "2026-09-14T21:59:08.218Z"
+    },
     {
       "id": "d3ba9062-0ab6-4add-87c0-78158437cd5a",
       "task_class": "chat",
@@ -256,51 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 24595,
       "created_at": "2026-08-30T17:53:00.307Z"
-    },
-    {
-      "id": "c2bafe64-1363-4e37-9c0a-7b89919a81f5",
-      "task_class": "chat",
-      "model": "opencode (cli default model) via OpenCode CLI",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 1460,
-      "created_at": "2026-08-19T21:02:14.779Z"
-    },
-    {
-      "id": "450dd8a6-d415-489a-a9f6-b933ea102700",
-      "task_class": "chat",
-      "model": "codex (cli default model) via Codex CLI",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 23268,
-      "created_at": "2026-08-19T21:01:47.682Z"
-    },
-    {
-      "id": "94dcb537-fcf3-4f7e-8d5f-dafa65261719",
-      "task_class": "chat",
-      "model": "opencode (cli default model) via OpenCode CLI",
-      "provider": "openrouter",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 9457,
-      "created_at": "2026-08-19T21:01:05.590Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 0,
-    "total_cost_usd": "0.0002"
+    "total_cost_usd": "0.0012"
   }
 }

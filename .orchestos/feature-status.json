@@ -4,6 +4,42 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "ERP.1",
+      "sprint": "Ruta mínima al piloto ERP — decisión de Carlos (2026-09-15)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Un CLI por chat; modelo y esfuerzo propios de la sesión",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.2",
+      "sprint": "Ruta mínima al piloto ERP — decisión de Carlos (2026-09-15)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Alcance de proyecto real en navegación, memoria y capacidades",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.3",
+      "sprint": "Ruta mínima al piloto ERP — decisión de Carlos (2026-09-15)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Orquestación opcional con freno efectivo de consumo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4",
+      "sprint": "Ruta mínima al piloto ERP — decisión de Carlos (2026-09-15)",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Piloto de módulo ERP y decisión de utilidad",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.1",
       "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
       "block": null,
@@ -92,6 +128,24 @@
       "title": "Cualquier CLI en el chat, sin bloqueo por frontera de lectura",
       "status": "done",
       "closedDate": "2026-09-14"
+    },
+    {
+      "id": "AT.10",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "El chat usa de verdad el CLI elegido: Codex y OpenCode, sin caída silenciosa a OpenRouter",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AT.11",
+      "sprint": "Bloque AT — Aterrizar: que se pueda correr (ABIERTO 2026-09-14, GO de Carlos)",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Chat CLI extensible: cualquier adaptador registrado, no ramas hardcodeadas por marca",
+      "status": "open",
+      "closedDate": null
     },
     {
       "id": "AT.9.1",
