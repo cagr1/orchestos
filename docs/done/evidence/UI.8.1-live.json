@@ -1,0 +1,17 @@
+{
+  "gate": "UI.8.1",
+  "base": "http://localhost:4321",
+  "screen": "chat",
+  "result": "FAIL (expected; current CSS must fail this gate)",
+  "observed": {
+    "fontSizes": ["11px", "12px", "13px", "19px", "9px"],
+    "fontSizeCount": 5,
+    "borderRadiiExcludingStatusBadge": ["0px", "4px", "50%", "6px", "8px", "999px"],
+    "borderRadiusCount": 6,
+    "visibleNativeSelectCount": 0,
+    "inlineStyleAttributes": 5,
+    "inlineStyleBaseline": 0
+  },
+  "command": "BASE=http://localhost:4321 node scripts/ui-gates/ui81-visual-consistency.mjs",
+  "note": "The initial baseline was the placeholder 0 before the first live measurement; the committed ratchet is now 5, preserving the observed current count."
+}

@@ -6,9 +6,9 @@
  * contra el DOM y los estilos computados del navegador: no hay mocks ni números copiados del
  * CSS que puedan quedar mintiendo después de un cambio en `styles.css`.
  *
- * Cómo se corre (Playwright no está en devDependencies, es un gate manual):
+ * Cómo se corre (Playwright es una devDependency real):
  *   bun run src/cli.ts dashboard --port 4323 &
- *   cd <dir con playwright> && BASE=http://localhost:4323 node <repo>/scripts/ui-gates/ui3-shell.mjs
+ *   BASE=http://localhost:4323 node scripts/ui-gates/ui3-shell.mjs
  */
 /* NOTA sobre `#rpToggle` — el prompt con el que se encargó este gate decía `#rpToggleBtn`,
    y estaba MAL. El id correcto es `rpToggle`, y no es un detalle cosmético: el CSS que

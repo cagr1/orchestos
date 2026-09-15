@@ -1705,19 +1705,18 @@ ni eso hace falta.
 > del README de `pi-agent-dashboard`. Ningún ítem de abajo se diseña por intuición: la anatomía ya
 > está escrita ahí y se cita por sección.
 
-- [ ] **UI.8.1 — ⚡ El gate visual, y Playwright como dependencia real.**
-  Va **primero**: sin esto, todo lo demás se evapora igual que UI.3.5.
-  `scripts/ui-gates/ui35-visual-system.mjs`, contra el dashboard real, falla si:
-  - hay más de **5** valores distintos de `font-size` computado en la pantalla auditada;
-  - hay más de **2** valores distintos de `border-radius` (más el pill del header);
-  - queda un `<select>` nativo donde corresponde `Combobox` o chips;
-  - el conteo de `style=` inline **subió** respecto del commit anterior — **trinquete, sólo baja**,
-    mismo mecanismo que `scripts/check-coverage.ts`.
-  Además: instalar Playwright como dependencia real de gates. Hoy los 7 gates existentes dicen
-  *"Playwright no está en devDependencies, es un gate manual: cd \<dir con playwright\>"* — y no
-  está instalado en esta máquina, así que **ninguno corre solo**. Ése es el mecanismo que faltó.
-  Gate 🔍: correr el gate nuevo contra el dashboard real y verlo **fallar** con el CSS de hoy
-  (si pasa a la primera, el gate está mal escrito). Bajar el servidor al terminar.
+- [x] **UI.8.1 — ⚡ El gate visual, y Playwright como dependencia real.** (cerrado 2026-09-15)
+  Ejecutado por: luna · Spec: docs/specs/UI.8.1.md
+  Playwright ya estaba instalado como devDependency real (`package.json:67`, `1.63.0`) — solo
+  desactualizados los comentarios de `ui2-design-system.mjs`/`ui3-shell.mjs`, corregidos.
+  Nuevo `scripts/ui-gates/ui81-visual-consistency.mjs`: mide `font-size`/`border-radius` (excluye
+  `#statusBadge`, el pill del header en `Header.tsx:18`)/`<select>` nativo/`style=` inline contra el
+  dashboard real. Trinquete de inline vía `scripts/ui-gates/ui81-inline-style-baseline.json`
+  (seed inicial 5, mismo patrón que `check-coverage.ts`). Gate en vivo:
+  `docs/done/evidence/UI.8.1-live.json` — falla como se esperaba: 6 `border-radius` distintos
+  (>2), el resto pasa (5 font-size, 0 selects nativos, 5 inline = baseline). Confirmado en vivo
+  por el cerebro, mismo resultado. `bunx tsc --noEmit` y `bun run test:coverage` (1430 pass)
+  verdes. Dashboard bajado al cierre.
 
 - [ ] **UI.8.2 — 🧠 Integridad de datos: una sola fuente de verdad, de verdad.**
   Backend, autorizado explícitamente. Habilita todo lo visual que viene después.

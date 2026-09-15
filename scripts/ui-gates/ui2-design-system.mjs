@@ -6,9 +6,9 @@
  * valor que el CSS vanilla ya usa (leído del mismo documento), en vez de contra un
  * número copiado a mano que se desactualiza el día que alguien toque `styles.css`.
  *
- * Cómo se corre (Playwright no está en devDependencies, es un gate manual):
+ * Cómo se corre (Playwright es una devDependency real):
  *   bun run src/cli.ts dashboard --port 4321 &
- *   cd <dir con playwright> && BASE=http://localhost:4321 node <repo>/scripts/ui-gates/ui2-design-system.mjs
+ *   BASE=http://localhost:4321 node scripts/ui-gates/ui2-design-system.mjs
  *
  * Última corrida verde: 2026-08-28.
  */
