@@ -1884,6 +1884,8 @@ ni eso hace falta.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de spec separado para cuotas e iconografía:** la barra inferior de uso por CLI debe mostrar únicamente las cuotas de 5 h y 7 d; las cantidades de tokens por modelo pertenecen a Settings, no a esas tarjetas. Reducir el texto redundante dentro de los cuadros de cuota (por ejemplo, no repetir “Codex” en dos niveles). Las cuotas deben refrescarse al abrir el panel, cuando se use el CLI y periódicamente mientras siga abierto. Los iconos de CLI deben conservar sus colores originales. Investigar además por qué el icono/avatar de Codex usado al iniciar un chat nuevo se ve distinto al que aparece en la ventana de uso y unificarlo con el asset correcto.
 
+> **Hallazgo de verificación (2026-09-17), pendiente fuera de UI.9.5:** con OrchestOS iniciado en modo Dev, al cambiar a Chat el componente `Sidebar` puede recibir `generalSessions: undefined` de `App.syncNav()` y lanzar `TypeError` en `generalSessions.filter()` antes de que termine la carga de sesiones. Se reprodujo al recargar en Dev y cambiar a Chat. No corregido aquí: es una regresión del estado del shell Chat | Dev, no del inspector; resolver en un ítem/spec propio.
+
 ### Fuera de alcance del Sprint 30 (explícito)
 
 - Migrar i18n a una librería (el **puente** de `UI.0` sí entra; la librería no).
