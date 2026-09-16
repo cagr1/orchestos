@@ -21,7 +21,8 @@ proyecto → rama → agentes sigue siendo responsabilidad de UI.9.3/UI.8.4a.
    antiguas `orchestos-rightpanel` y `orchestos-rightpanel-tab`; conservar el ancho.
 3. **Detalle de tarea en el inspector.** Migrar intactas las capacidades del `SidePanel.openTask`
    (badge/id, descripción, outputs, metadatos, última ejecución, clarificación+ejecutar, Explain,
-   borrar con confirmación y errores/toasts) a `#rightpanelBody`, sin backdrop. Actualizar todos los
+   borrar con confirmación y errores/toasts) a `#rightpanelBody`, sin backdrop. El botón de cierre
+   único es el del toprow React; no duplicarlo dentro del encabezado del detalle. Actualizar todos los
    call sites de `SidePanel.openTask` en `app.js` y `screens-core.js`; no debe quedar otra instancia
    de `SidePanel` ni drawer `.side-panel`.
 4. **Herramientas accesibles.** Explorer, Terminal y Diff se abren desde acciones explícitas del

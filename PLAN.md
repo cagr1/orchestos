@@ -1882,6 +1882,8 @@ ni eso hace falta.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 
+> **Observaciones de Carlos (2026-09-16), pendientes de spec separado para cuotas e iconografía:** la barra inferior de uso por CLI debe mostrar únicamente las cuotas de 5 h y 7 d; las cantidades de tokens por modelo pertenecen a Settings, no a esas tarjetas. Reducir el texto redundante dentro de los cuadros de cuota (por ejemplo, no repetir “Codex” en dos niveles). Las cuotas deben refrescarse al abrir el panel, cuando se use el CLI y periódicamente mientras siga abierto. Los iconos de CLI deben conservar sus colores originales. Investigar además por qué el icono/avatar de Codex usado al iniciar un chat nuevo se ve distinto al que aparece en la ventana de uso y unificarlo con el asset correcto.
+
 ### Fuera de alcance del Sprint 30 (explícito)
 
 - Migrar i18n a una librería (el **puente** de `UI.0` sí entra; la librería no).
