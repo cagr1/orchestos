@@ -65,6 +65,10 @@ legibilidad del switch Chat/Dev y conservar los colores de marca de los iconos d
    - Definir clases/datos por CLI en el CSS/renderer (`data-agent` o equivalente), con contraste
      suficiente en tema oscuro y brillante. El estado deshabilitado puede reducir opacidad, pero
      no convertir la marca en azul.
+   - Verificar que cada ID real devuelto por `cliModes()` resuelva a un SVG no vacío en el menú
+     de nueva sesión y en las filas existentes. En particular, `codex` debe reutilizar el mark
+     OpenAI disponible si no tiene asset propio; no asumir que IDs `codex` y `openai` coinciden.
+     Los modos sin mark deben tener un fallback visual intencional, nunca un espacio vacío.
 
 ## Archivos objetivo
 
@@ -96,6 +100,10 @@ legibilidad del switch Chat/Dev y conservar los colores de marca de los iconos d
 6. Al restaurar una sesión existente, esperar/cargar su metadata antes de renderizar los controles
    del composer. Añadir una prueba que demuestre que el CLI fijo de la sesión no cae temporalmente
    a API/OpenRouter por una carrera de carga.
+
+7. En Playwright, abrir el menú `+ New chat`, comprobar SVG no vacío para todos los IDs de CLI
+   devueltos y medir color computado en Codex/OpenAI y Claude. Comprobar también el icono de la fila
+   después de crear una sesión con cada agente disponible.
 
 No cerrar el ítem si un CLI seleccionado vuelve a aparecer como opción de transporte dentro del
 composer o si el chat usa `orcheConfig.agent` en lugar del agente persistido de la sesión.
