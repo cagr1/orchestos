@@ -471,63 +471,12 @@ SCREENS.chat = {
         ? `<div class="local-model-warn" data-act="local-warn-dismiss">${t('chat.local.warn')} <button class="btn ghost sm" style="margin-left:8px;padding:1px 8px" data-act="local-warn-dismiss">×</button></div>`
         : ''
 
-    // I.4 (Mes 30, 2026-09-05) — aside de conversaciones: reemplaza al botón
-    // "Clear" (borraba sin dejar rastro, mentía una vez que el chat persiste
-    // de verdad). Mismo patrón que Claude Desktop/Codex/Orca/ChatGPT: lista a
-    // la izquierda, "Nueva conversación" arriba, borrar por ítem con confirm.
     const sessions = st.chatSessions || []
     const activeSession = sessions.find((s) => s.id === st.chatSessionId)
     const openWorkspaceButton =
       activeSession?.hasPersistentWork && activeSession.projectId
         ? `<button type="button" class="btn ghost sm chat-open-workspace" data-act="chat-open-workspace">${t('chat.openWorkspace')}</button>`
         : ''
-    const cliIcon = {
-      local: ICON.cpu || ICON.bolt,
-      claude: ICON.spark,
-      codex: ICON.bolt,
-      opencode: ICON.term,
-      api: ICON.globe,
-    }
-    const cliModes = Array.isArray(st.executorModes?.modes) ? st.executorModes.modes : []
-    const cliMenu = st.chatCliMenuOpen
-      ? `<div class="chat-cli-menu" data-chat-cli-menu role="menu">${cliModes
-          .map((info) => {
-            const available = info.detected !== false
-            const reason = info.path
-              ? t('settings.executorMode.notDetected')
-              : t('common.notDetected')
-            const label = t('chat.modelfx.agentLabel.' + info.id)
-            return available
-              ? `<button type="button" class="chat-cli-item" data-chat-cli-agent="${esc(info.id)}" role="menuitem">${cliIcon[info.id] || ICON.bolt}<span>${esc(label)}</span></button>`
-              : `<div class="chat-cli-item disabled" title="${esc(reason)}" aria-disabled="true">${cliIcon[info.id] || ICON.bolt}<span>${esc(label)}<small>${esc(reason)}</small></span></div>`
-          })
-          .join('')}</div>`
-      : ''
-    const sessionsAside = `<aside class="chat-sessions-aside">
-      <div class="chat-new-menu-wrap" data-chat-cli-menu>
-        <button type="button" class="btn ghost sm chat-sessions-new" data-act="chat-new-session" aria-expanded="${st.chatCliMenuOpen ? 'true' : 'false'}">
-          ${ICON.plus} ${t('chat.sessions.new')}
-        </button>
-        ${cliMenu}
-      </div>
-      <div class="chat-sessions-list">
-        ${
-          sessions.length === 0
-            ? `<div class="chat-sessions-empty">${t('chat.sessions.empty')}</div>`
-            : sessions
-                .map(
-                  (
-                    s,
-                  ) => `<div class="chat-session-item${s.id === st.chatSessionId ? ' active' : ''}" data-act="chat-session-open" data-session-id="${esc(s.id)}">
-                <span class="chat-session-title">${esc(s.title || t('chat.sessions.untitled'))}</span>
-                <button type="button" class="chat-session-delete" data-act="chat-session-delete" data-session-id="${esc(s.id)}" title="${esc(t('chat.sessions.delete.btn'))}" aria-label="${esc(t('chat.sessions.delete.btn'))}">×</button>
-              </div>`,
-                )
-                .join('')
-        }
-      </div>
-    </aside>`
-
     // D3/B.2 (Mes 19) — chips de adjuntos, ahora N en vez de uno solo.
     const chatFiles = st.chatFiles || []
     const attachChips =
@@ -557,7 +506,6 @@ SCREENS.chat = {
         ${openWorkspaceButton}
       </div>
       <div class="chat-layout">
-        ${sessionsAside}
         <div class="chat-main">
           ${localWarnBanner}
           <div class="chat-area" id="chat-area">${msgs}</div>
@@ -867,6 +815,10 @@ SCREENS.chat = {
       st.workspaceProjectId = session.projectId
       st.screen = 'workspace'
       st.workspaceTab = 'tasks'
+      st.shellMode = 'dev'
+      localStorage.setItem('orchestos-shell-mode', 'dev')
+      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', id: st.chatSessionId, projectId: session.projectId }))
+      if (typeof window.__orchestosPushShell === 'function') window.__orchestosPushShell({ shellMode: 'dev' })
       App.rerender()
       App.syncNav()
       const taskId = session.lastPersistentTaskId
@@ -874,32 +826,6 @@ SCREENS.chat = {
       await App.fetchTasks()
       const task = (st.tasks || []).find((item) => item.id === taskId)
       if (task) SidePanel.openTask(task)
-    })
-
-    // I.4 (Mes 30) — aside de conversaciones: nueva / abrir / borrar. Ya no
-    // hay "Clear" — borrar vive acá, igual que en Claude Desktop/Codex/Orca.
-    root.querySelector('[data-act="chat-new-session"]')?.addEventListener('click', () => {
-      st.chatCliMenuOpen = !st.chatCliMenuOpen
-      App.rerender()
-    })
-    root.querySelectorAll('[data-chat-cli-agent]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        st.chatCliMenuOpen = false
-        App.startNewChatSession(btn.dataset.chatCliAgent)
-      })
-    })
-    root.querySelectorAll('[data-act="chat-session-open"]').forEach((row) => {
-      row.addEventListener('click', () => {
-        const id = row.dataset.sessionId
-        if (id) App.switchChatSession(id)
-      })
-    })
-    root.querySelectorAll('[data-act="chat-session-delete"]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation() // no abrir la sesión al borrarla (el ítem padre también tiene click)
-        const id = btn.dataset.sessionId
-        if (id) App.deleteChatSession(id)
-      })
     })
 
     // G.3.3 — expandir/colapsar la card de pasos en vivo.

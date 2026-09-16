@@ -1,6 +1,25 @@
 # Sprint 30 — evidencia de cierre
 Evidencia movida literalmente desde PLAN.md en S.2; PLAN.md conserva el índice.
 
+<a id="sprint-30-ui-9-1"></a>
+### UI.9.1 — Switch Chat | Dev, sidebar por modo y sesiones separadas
+
+Ejecutado por: luna · Spec: docs/specs/UI.9.1.md
+
+El shell separa Chat (sesiones generales `project_id NULL`) de Dev (Activity, proyectos y
+agentes por proyecto), conserva el último modo/sesión y permite crear un chat o agente desde
+el menú de CLI del sidebar. El backend expone explícitamente `?project=none`; el canvas ya no
+duplica la lista de sesiones.
+
+Verificación independiente: `bunx tsc --noEmit` ✅; `bun run build:ui` ✅; `bun run test:coverage`
+**1435 pass / 0 fail** ✅; `ui3-shell` **todos los criterios PASS** ✅. Gate en vivo: navegador
+real (Playwright/dashboard) — `docs/done/evidence/UI.9.1-live.json`; con dos proyectos reales,
+Chat mostró solo generales, Dev aisló las sesiones por proyecto y el botón `+` creó un agente
+persistido dentro del proyecto correcto. Capturas: `docs/done/evidence/UI.9.1/`.
+
+Deuda preexistente: `ui81-visual-consistency` conserva el fallo documentado de UI.8.1 por seis
+valores de `border-radius`; no fue introducido ni modificado por UI.9.1.
+
 <a id="sprint-30-ui-9-4"></a>
 ### UI.9.4 — Agregar proyecto desde la UI
 

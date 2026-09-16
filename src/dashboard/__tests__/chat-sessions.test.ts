@@ -47,6 +47,29 @@ async function runIsolated(
 }
 
 describe('CC.2 — chat sessions backend', () => {
+  it('lists general sessions separately from project sessions', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { mkdirSync } = await import('node:fs')
+      const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      runMigrations()
+      const root = process.env.ORCHESTOS_HOME + '/ui91-project'
+      mkdirSync(root, { recursive: true })
+      db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['ui91-project', root, '{}', '', new Date().toISOString()])
+      const general = sessions.createChatSession({ projectId: null, agent: 'api' })
+      const project = sessions.createChatSession({ projectId: 'ui91-project', agent: 'api' })
+      const generalResponse = handlers.handleApiChatSessionsList(new Request('http://localhost/api/chat/sessions?project=none'))
+      const projectResponse = handlers.handleApiChatSessionsList(new Request('http://localhost/api/chat/sessions?project=ui91-project', { headers: { 'X-Orchestos-Project-Id': 'ui91-project' } }))
+      process.stdout.write(JSON.stringify({ general: await generalResponse.json(), project: await projectResponse.json(), ids: [general.id, project.id] }))
+      db.close()
+    `)
+    const ids = result.ids as string[]
+    expect((result.general as Array<{ id: string }>).map((row) => row.id)).toEqual([ids[0]!])
+    expect((result.project as Array<{ id: string }>).map((row) => row.id)).toEqual([ids[1]!])
+  })
+
   it('R.6 mantiene explícito el origen del costo: reportado, estimado o desconocido', () => {
     expect(resolveChatCost('claude-sonnet-5 via Claude Code CLI', 0.12)).toEqual({
       usd: 0.12,

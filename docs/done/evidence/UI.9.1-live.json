@@ -1,0 +1,30 @@
+{
+  "item": "UI.9.1",
+  "status": "pass_with_preexisting_ui81_debt",
+  "date": "2026-09-16",
+  "browser": {
+    "tool": "Playwright",
+    "base": "http://localhost:4242",
+    "viewport": "1440x900",
+    "projects": 2,
+    "generalChatRows": 6,
+    "devProjectRows": 2,
+    "firstProjectAgentRowsAfterCreate": 4,
+    "newGeneralProjectId": null,
+    "newProjectId": "7078a96b02350763",
+    "secondProjectCreatedSessions": 3,
+    "screenshots": [
+      "docs/done/evidence/UI.9.1/chat-mode.png",
+      "docs/done/evidence/UI.9.1/dev-mode.png"
+    ],
+    "temporarySessionsDeleted": true
+  },
+  "automatedVerification": {
+    "typecheck": "pass",
+    "coverage": "1435 pass, 0 fail",
+    "buildUi": "pass",
+    "ui3Shell": "pass: all criteria",
+    "ui81VisualConsistency": "fail: 6 pre-existing border-radius values (0px, 4px, 50%, 6px, 8px, 999px); font sizes, native selects, and inline-style ratchet pass"
+  },
+  "scopeNote": "The UI.8.1 radius debt predates UI.9.1 and is not changed here."
+}

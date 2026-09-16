@@ -30,6 +30,9 @@ const log = (ok, msg) => {
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+await page.addInitScript(() => {
+  localStorage.setItem('orchestos-shell-mode', 'dev')
+})
 const errors = []
 page.on('console', (m) => {
   if (m.type() === 'error') errors.push(m.text())
@@ -297,31 +300,31 @@ log(
 // ── PARIDAD FUNCIONAL DEL SHELL ─────────────────────────────────────────────
 // Un click real sobre navegación debe mover la pantalla que el estado vanilla expone. Luego
 // se comprueba la marca activa contra esa misma fuente, evitando aceptar un highlight fijo.
-// Se navega a `skills` y no a `tasks`: `tasks` es un item de OPERADOR y solo existe en
-// modo avanzado (`NAV[].operator`), asi que en el modo normal —el default— no esta en el
-// DOM. El dato faltaba en el contrato con el que se encargo este gate; la primera corrida
-// se colgo esperando un elemento que no podia aparecer.
-const navItem = page.locator('.nav-icon[data-nav="skills"]')
+// El shell Dev vigente expone `activity` y proyectos; `skills` ya no es una entrada de
+// navegación de este shell. La entrada de Activity debe conservar su estructura e icono.
+const navItem = page.locator('.nav-icon[data-nav="activity"]')
 await navItem.click()
 await page.waitForTimeout(300)
 const screenAfterNav = await page.evaluate(() => window.state.screen)
 log(
-  screenAfterNav === 'skills',
+  screenAfterNav === 'activity',
   `criterio 5: click en navegación cambia window.state.screen a ${screenAfterNav}`,
 )
 const activeNav = await page
-  .locator('.nav-icon.active')
+  .locator('.nav-icon[data-nav].active')
   .evaluateAll((items) => items.map((item) => item.dataset.nav))
 log(
   activeNav.length === 1 && activeNav[0] === screenAfterNav,
   `criterio 6: el único ítem activo coincide con window.state.screen (${activeNav.join(', ') || 'ninguno'} / ${screenAfterNav})`,
 )
 
-const skillsBadge = page.locator('[data-count="skills"]')
-const badgeText = (await skillsBadge.textContent()).trim()
+const activityStructure = await navItem.evaluate((item) => ({
+  hasIconContainer: Boolean(item.querySelector('.nav-ic')),
+  hasIcon: Boolean(item.querySelector('.nav-ic svg')),
+}))
 log(
-  /^\d+$/.test(badgeText),
-  `criterio 7: el badge de skills muestra un número (${badgeText || 'vacío'})`,
+  activityStructure.hasIconContainer && activityStructure.hasIcon,
+  `criterio 7: activity existe con estructura e icono (${activityStructure.hasIcon ? 'icono presente' : 'icono ausente'})`,
 )
 const status = await page
   .locator('#statusBadge')

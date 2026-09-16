@@ -19,10 +19,9 @@
  * UI.8.3 reorganiza el riel en Chat, Activity, proyectos y Settings.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useT } from '../../lib/i18n.ts'
 import { Icon, RawIcon } from '../../lib/icons.tsx'
-import { pushToast } from '../../lib/toast-store.ts'
 import { type NavEntry, shellApi } from './shell-api.ts'
 import { useShell } from './use-shell.ts'
 
@@ -32,6 +31,7 @@ type Session = {
   agent: string
   title: string | null
   updatedAt: string
+  projectId: string | null
 }
 
 function relativeTime(iso: string): string {
@@ -50,12 +50,13 @@ export function Sidebar() {
   const api = shellApi()
   const nav: NavEntry[] = api?.nav ?? []
 
-  const mainNav = nav.filter((n) => n.id === 'chat' || n.id === 'activity')
+  const activity = nav.find((n) => n.id === 'activity')
   const settings = nav.find((n) => n.id === 'settings')
   const [projects, setProjects] = useState<Project[]>([])
-  const [isChoosingProject, setIsChoosingProject] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [sessions, setSessions] = useState<Record<string, Session[]>>({})
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuProjectId, setMenuProjectId] = useState<string | null>(null)
   const loadProjects = useCallback(async () => {
     const response = await fetch('/api/projects')
     if (!response.ok) throw new Error('Could not load projects')
@@ -65,24 +66,23 @@ export function Sidebar() {
     void loadProjects().catch(() => setProjects([]))
   }, [loadProjects])
 
-  const chooseProject = async () => {
-    if (isChoosingProject) return
-    setIsChoosingProject(true)
+  const loadProjectSessions = useCallback(async (projectId: string) => {
     try {
-      const response = await fetch('/api/projects/choose', { method: 'POST' })
-      const data = (await response.json()) as Project | { cancelled: true } | { error: string }
-      if (!response.ok || 'error' in data) {
-        pushToast('error' in data ? data.error : t('nav.project.add.error'), 'error')
-        return
-      }
-      if ('cancelled' in data) return
-      await loadProjects()
-      api?.selectWorkspaceProject(data.id)
+      const response = await fetch(`/api/chat/sessions?project=${encodeURIComponent(projectId)}`)
+      const value = response.ok ? await response.json() : []
+      setSessions((current) => ({ ...current, [projectId]: value }))
     } catch {
-      pushToast(t('nav.project.add.error'), 'error')
-    } finally {
-      setIsChoosingProject(false)
+      setSessions((current) => ({ ...current, [projectId]: [] }))
     }
+  }, [])
+  useEffect(() => {
+    void shell.sessionsVersion
+    for (const project of projects) if (expanded[project.id]) void loadProjectSessions(project.id)
+  }, [shell.sessionsVersion, projects, expanded, loadProjectSessions])
+
+  const openMenu = (projectId: string | null) => {
+    setMenuProjectId(projectId)
+    setMenuOpen(true)
   }
 
   // El atajo se muestra según la plataforma, igual que en vanilla.
@@ -121,99 +121,161 @@ export function Sidebar() {
         </div>
       </div>
 
+      <div className="sidebar-mode-row">
+        <NavButton
+          id="shellModeChat"
+          className={`sidebar-mode-btn${shell.shellMode === 'chat' ? ' active' : ''}`}
+          tip={t('nav.mode.chat')}
+          label={t('nav.mode.chat')}
+          ariaPressed={shell.shellMode === 'chat'}
+          onActivate={() => api?.setShellMode('chat')}
+        >
+          <Icon name="chat" />
+        </NavButton>
+        <NavButton
+          id="shellModeDev"
+          className={`sidebar-mode-btn${shell.shellMode === 'dev' ? ' active' : ''}`}
+          tip={t('nav.mode.dev')}
+          label={t('nav.mode.dev')}
+          ariaPressed={shell.shellMode === 'dev'}
+          onActivate={() => api?.setShellMode('dev')}
+        >
+          <Icon name="code" />
+        </NavButton>
+      </div>
+
       <div className="nav-sep" />
 
-      {mainNav.map((entry) => (
-        <NavIcon
-          key={entry.id}
-          entry={entry}
-          shellScreen={shell.screen}
-          skillsCount={shell.skillsCount}
-        />
-      ))}
-
-      <div className="sidebar-projects">
-        <div className="sidebar-section-label">
-          <span>Projects</span>
-          <NavButton
-            id="addProjectBtn"
-            className="sidebar-project-add"
-            tip={t('nav.project.add')}
-            label={t('nav.project.add')}
-            disabled={isChoosingProject}
-            onActivate={() => void chooseProject()}
-          >
-            <Icon name="plus" />
-          </NavButton>
+      {shell.shellMode === 'chat' ? (
+        <div className="sidebar-chats">
+          <div className="sidebar-new-chat-wrap">
+            <NavButton
+              id="sidebarNewChat"
+              className="nav-icon sidebar-new-chat"
+              tip={t('chat.sessions.new')}
+              label={t('chat.sessions.new')}
+              ariaExpanded={menuOpen}
+              onActivate={() => openMenu(null)}
+            >
+              <span className="nav-ic">
+                <Icon name="plus" />
+              </span>
+              <span className="nav-label">{t('chat.sessions.new')}</span>
+            </NavButton>
+            {menuOpen && menuProjectId === null && (
+              <CliMenu api={api} projectId={null} onClose={() => setMenuOpen(false)} />
+            )}
+          </div>
+          <div className="sidebar-section-label">
+            <span>{t('nav.section.chats')}</span>
+          </div>
+          {shell.generalSessions.length === 0 ? (
+            <div className="sidebar-sessions-empty">{t('chat.sessions.empty')}</div>
+          ) : (
+            shell.generalSessions.map((session) => (
+              <SessionRow
+                key={session.id}
+                session={session}
+                active={shell.screen === 'chat' && shell.chatSessionId === session.id}
+                api={api}
+              />
+            ))
+          )}
         </div>
-        {projects.map((project) => {
-          const isExpanded = expanded[project.id] ?? false
-          const projectSessions = sessions[project.id] ?? []
-          return (
-            <div key={project.id} className="sidebar-project-tree" data-project-id={project.id}>
-              <div
-                className={`nav-icon${shell.workspaceProjectId === project.id ? ' active' : ''}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => api?.selectWorkspaceProject(project.id)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    api?.selectWorkspaceProject(project.id)
-                  }
-                }}
-              >
-                <span className="nav-ic">
-                  <Icon name="project" />
-                </span>
-                <span className="nav-label">{project.path.split('/').pop() || project.path}</span>
-              </div>
-              <div
-                className="sidebar-agents-toggle"
-                role="button"
-                tabIndex={0}
-                aria-expanded={isExpanded}
-                onClick={() => {
-                  setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))
-                  if (!isExpanded && sessions[project.id] === undefined) {
-                    fetch(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
-                      .then((response) => (response.ok ? response.json() : []))
-                      .then((value) =>
-                        setSessions((current) => ({ ...current, [project.id]: value })),
-                      )
-                      .catch(() => setSessions((current) => ({ ...current, [project.id]: [] })))
-                  }
-                }}
-              >
-                {projectSessions.length} agents <span aria-hidden="true">⌄</span>
-              </div>
-              {isExpanded &&
-                projectSessions.map((session) => (
+      ) : (
+        <>
+          {activity && (
+            <NavIcon entry={activity} shellScreen={shell.screen} skillsCount={shell.skillsCount} />
+          )}
+          <div className="sidebar-projects">
+            <div className="sidebar-section-label">
+              <span>Projects</span>
+            </div>
+            {projects.map((project) => {
+              const isExpanded = expanded[project.id] ?? false
+              const projectSessions = sessions[project.id] ?? []
+              return (
+                <div key={project.id} className="sidebar-project-tree" data-project-id={project.id}>
                   <div
-                    key={session.id}
-                    className={`sidebar-agent-row${shell.screen === 'chat' && shell.chatSessionId === session.id ? ' active' : ''}`}
+                    className={`nav-icon${shell.workspaceProjectId === project.id ? ' active' : ''}`}
                     role="button"
                     tabIndex={0}
-                    onClick={() => api?.openChatSession(session.id)}
+                    onClick={() => api?.selectWorkspaceProject(project.id)}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()
-                        api?.openChatSession(session.id)
+                        api?.selectWorkspaceProject(project.id)
                       }
                     }}
                   >
-                    <span className="sidebar-agent-icon">
-                      <RawIcon svg={api?.icons[session.agent] ?? ''} />
+                    <span className="nav-ic">
+                      <Icon name="project" />
                     </span>
-                    <span className="sidebar-agent-title">{session.title || 'Untitled chat'}</span>
-                    <span className="sidebar-agent-time">{relativeTime(session.updatedAt)}</span>
+                    <span className="nav-label">
+                      {project.path.split('/').pop() || project.path}
+                    </span>
+                    <NavButton
+                      id={`add-agent-${project.id}`}
+                      className="sidebar-row-add"
+                      tip={t('nav.agent.new')}
+                      label={t('nav.agent.new')}
+                      onActivate={() => {
+                        setExpanded((value) => ({ ...value, [project.id]: true }))
+                        openMenu(project.id)
+                      }}
+                    >
+                      <Icon name="plus" />
+                    </NavButton>
                   </div>
-                ))}
-            </div>
-          )
-        })}
-      </div>
-
+                  <div
+                    className="sidebar-agents-toggle"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    onClick={() => {
+                      setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))
+                      if (!isExpanded && sessions[project.id] === undefined) {
+                        void loadProjectSessions(project.id)
+                      }
+                    }}
+                  >
+                    {projectSessions.length} agents <span aria-hidden="true">⌄</span>
+                  </div>
+                  {isExpanded &&
+                    projectSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className={`sidebar-agent-row${shell.screen === 'chat' && shell.chatSessionId === session.id ? ' active' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => api?.openChatSession(session.id, project.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            api?.openChatSession(session.id, project.id)
+                          }
+                        }}
+                      >
+                        <span className="sidebar-agent-icon">
+                          <RawIcon svg={api?.icons[session.agent] ?? ''} />
+                        </span>
+                        <span className="sidebar-agent-title">
+                          {session.title || 'Untitled chat'}
+                        </span>
+                        <span className="sidebar-agent-time">
+                          {relativeTime(session.updatedAt)}
+                        </span>
+                      </div>
+                    ))}
+                  {menuOpen && menuProjectId === project.id && (
+                    <CliMenu api={api} projectId={project.id} onClose={() => setMenuOpen(false)} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
       <div className="grow" />
 
       {settings && (
@@ -277,6 +339,8 @@ function NavButton({
   className,
   tip,
   label,
+  ariaPressed,
+  ariaExpanded,
   disabled = false,
   onActivate,
   children,
@@ -285,6 +349,8 @@ function NavButton({
   className: string
   tip: string
   label?: string
+  ariaPressed?: boolean
+  ariaExpanded?: boolean
   disabled?: boolean
   onActivate: () => void
   children: React.ReactNode
@@ -297,19 +363,122 @@ function NavButton({
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-label={label}
+      aria-pressed={ariaPressed}
+      aria-expanded={ariaExpanded}
       aria-disabled={disabled}
       data-disabled={disabled || undefined}
-      onClick={() => {
-        if (!disabled) onActivate()
+      onClick={(event) => {
+        if (disabled) return
+        event.stopPropagation()
+        onActivate()
       }}
       onKeyDown={(e) => {
         if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault()
+          e.stopPropagation()
           onActivate()
         }
       }}
     >
       {children}
+    </div>
+  )
+}
+
+function SessionRow({
+  session,
+  active,
+  api,
+}: {
+  session: Session
+  active: boolean
+  api: ReturnType<typeof shellApi>
+}) {
+  return (
+    <div
+      className={`sidebar-agent-row sidebar-chat-row${active ? ' active' : ''}`}
+      role="button"
+      tabIndex={0}
+      onClick={() => api?.openChatSession(session.id, null)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          api?.openChatSession(session.id, null)
+        }
+      }}
+    >
+      <span className="sidebar-agent-icon">
+        <RawIcon svg={api?.icons[session.agent] ?? ''} />
+      </span>
+      <span className="sidebar-agent-title">{session.title || 'Untitled chat'}</span>
+      <span className="sidebar-agent-time">{relativeTime(session.updatedAt)}</span>
+      <button
+        className="sidebar-row-delete"
+        type="button"
+        aria-label="Delete"
+        onClick={(event) => {
+          event.stopPropagation()
+          void api?.deleteChatSession(session.id)
+        }}
+      >
+        ×
+      </button>
+    </div>
+  )
+}
+
+function CliMenu({
+  api,
+  projectId,
+  onClose,
+}: {
+  api: ReturnType<typeof shellApi>
+  projectId: string | null
+  onClose: () => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const outside = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) onClose()
+    }
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('mousedown', outside)
+    document.addEventListener('keydown', onEscape)
+    return () => {
+      document.removeEventListener('mousedown', outside)
+      document.removeEventListener('keydown', onEscape)
+    }
+  }, [onClose])
+  return (
+    <div ref={ref} className="sidebar-cli-menu" role="menu">
+      {api?.cliModes().map((info) => {
+        const available = info.detected !== false
+        const reason = info.path ? 'Not detected' : 'Unavailable'
+        return available ? (
+          <button
+            key={info.id}
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              void api.startNewChatSession(info.id, projectId)
+              onClose()
+            }}
+          >
+            <RawIcon svg={api.icons[info.id] ?? ''} />
+            <span>{window.t?.(`chat.modelfx.agentLabel.${info.id}`) ?? info.id}</span>
+          </button>
+        ) : (
+          <div key={info.id} className="disabled" aria-disabled="true" title={reason}>
+            <RawIcon svg={api?.icons[info.id] ?? ''} />
+            <span>
+              {window.t?.(`chat.modelfx.agentLabel.${info.id}`) ?? info.id}
+              <small>{reason}</small>
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }

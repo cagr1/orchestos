@@ -25,7 +25,11 @@ export interface ShellApi {
   go: (id: string) => void
   toggleSidebar: () => void
   selectWorkspaceProject: (projectId: string) => void
-  openChatSession: (sessionId: string) => void
+  setShellMode: (mode: 'chat' | 'dev') => void
+  openChatSession: (sessionId: string, projectId: string | null) => void
+  startNewChatSession: (agent: string, projectId: string | null) => Promise<void>
+  deleteChatSession: (sessionId: string) => Promise<void>
+  cliModes: () => Array<{ id: string; detected?: boolean; path?: string }>
   openCommandPalette: () => void
   toggleRightPanel: () => void
   setRightPanelTab: (tab: string) => void

@@ -24,6 +24,9 @@
  */
 
 export interface ShellState {
+  shellMode: 'chat' | 'dev'
+  generalSessions: SessionRow[]
+  sessionsVersion: number
   /** Pantalla activa (`state.screen` del vanilla). */
   screen: string
   /** Contador del badge de skills. */
@@ -43,7 +46,18 @@ export interface ShellState {
   chatSessionId: string | null
 }
 
+export interface SessionRow {
+  id: string
+  agent: string
+  title: string | null
+  updatedAt: string
+  projectId: string | null
+}
+
 const initial: ShellState = {
+  shellMode: 'chat',
+  generalSessions: [],
+  sessionsVersion: 0,
   screen: 'chat',
   skillsCount: 0,
   running: false,

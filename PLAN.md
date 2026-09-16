@@ -1867,8 +1867,9 @@ ni eso hace falta.
 > ≥2 proyectos y registrar un proyecto hoy solo existe por CLI — ningún gate puede exigirle un
 > comando a Carlos.
 
-- [ ] **UI.9.1 — 🧠 Switch de modo, sidebar por modo y datos separados.**
-  Spec: `docs/specs/UI.9.1.md`. Gate 🔍 en vivo: dos modos, ≥2 proyectos, chats generales y
+- [x] **UI.9.1 — 🧠 Switch de modo, sidebar por modo y datos separados.** → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-1)
+  Ejecutado por: luna · Spec: docs/specs/UI.9.1.md
+  Gate 🔍 en vivo: navegador real (Playwright/dashboard), dos modos, 2 proyectos, chats generales y
   agentes por proyecto sin mezclarse, sin lista duplicada en el canvas.
 - [ ] **UI.9.2 — 🧠 Modo Chat completo.** Estado vacío centrado con composer grande, buscar en la
   lista de chats, selector CLI/modelo/esfuerzo en el composer (anatomía de la captura de Claude

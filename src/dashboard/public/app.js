@@ -4,6 +4,8 @@
 
 const state = {
   screen: 'chat',
+  shellMode: localStorage.getItem('orchestos-shell-mode') === 'dev' ? 'dev' : 'chat',
+  sessionsVersion: 0,
   memScope: 'all',
   openRun: null,
   openSpec: null,
@@ -121,7 +123,6 @@ const state = {
   // null | 'root' | 'model' | 'effort'. Reemplaza al viejo chatModelComboOpen
   // (combobox de modelo separado del <select> de esfuerzo).
   chatFxView: null,
-  chatCliMenuOpen: false,
   chatAttachMenuOpen: false, // FRONT.9 — menú de tipo de adjunto (Imagen/Documento/URL)
   // 2026-07-08 — mismo patrón (antes chatModelComboOpen) pero genérico para todos
   // los demás selectores de modelo (draft composer, diagnose, roles de
@@ -453,10 +454,16 @@ const App = {
     }
   },
   async fetchChatSessions() {
+    if (state.shellMode === 'dev' && !state.workspaceProjectId) {
+      state.chatSessions = []
+      return
+    }
     try {
-      const res = await fetch('/api/chat/sessions')
+      const query = state.shellMode === 'chat' ? 'none' : state.workspaceProjectId
+      const res = await fetch(`/api/chat/sessions?project=${encodeURIComponent(query)}`)
       if (!res.ok) throw new Error(res.status)
       state.chatSessions = await res.json()
+      if (state.shellMode === 'chat') pushShellState({ generalSessions: state.chatSessions })
     } catch {
       // Deja la lista anterior (o vacía) — no es crítico para poder chatear.
     }
@@ -473,13 +480,13 @@ const App = {
     await Promise.all([App.fetchChatSession(sessionId), App.fetchChatTurnStatus(sessionId)])
     App.rerender()
   },
-  async startNewChatSession(agent) {
+  async startNewChatSession(agent, projectId) {
     if (!agent) return
     try {
       const res = await fetch('/api/chat/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent }),
+        body: JSON.stringify({ agent, projectId }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok || typeof body.id !== 'string')
@@ -492,6 +499,12 @@ const App = {
       state.chatPending = false
       state.chatTaskSuggestion = null
       state.chatLiveSteps = {}
+      state.sessionsVersion += 1
+      if (projectId) {
+        localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', id: body.id, projectId }))
+      } else {
+        localStorage.setItem('orchestos-last-chat-session', body.id)
+      }
       this.showChatReadBoundaryWarning(body.id, body.readBoundaryWarning)
       await App.fetchChatSessions()
       App.rerender()
@@ -512,6 +525,7 @@ const App = {
       })
       if (!res.ok) throw new Error(res.status)
       state.chatSessions = (state.chatSessions || []).filter((s) => s.id !== sessionId)
+      state.sessionsVersion += 1
       state.chatDeletedSessionIds[sessionId] = true
       delete state.chatHistories[sessionId]
       delete state.chatPendingBySession[sessionId]
@@ -535,10 +549,17 @@ const App = {
   },
   async ensureChatSession() {
     if (state.chatSessionId) return state.chatSessionId
+    if (state.shellMode === 'dev' && !state.workspaceProjectId) {
+      showToast('Select a project before starting an agent.', 'error')
+      throw new Error('Select a project before starting an agent.')
+    }
     const res = await fetch('/api/chat/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent: state.orcheConfig?.agent || 'api' }),
+      body: JSON.stringify({
+        agent: state.orcheConfig?.agent || 'api',
+        projectId: state.shellMode === 'dev' ? state.workspaceProjectId : null,
+      }),
     })
     const body = await res.json().catch(() => ({}))
     if (!res.ok || typeof body.id !== 'string')
@@ -546,6 +567,12 @@ const App = {
     state.chatSessionId = body.id
     delete state.chatDeletedSessionIds[body.id]
     state.chatHistories[body.id] = []
+    state.sessionsVersion += 1
+    if (state.shellMode === 'dev') {
+      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', id: body.id, projectId: state.workspaceProjectId }))
+    } else {
+      localStorage.setItem('orchestos-last-chat-session', body.id)
+    }
     localStorage.setItem('orchestos-chat-session-id', body.id)
     this.showChatReadBoundaryWarning(body.id, body.readBoundaryWarning)
     return body.id
@@ -665,6 +692,48 @@ const App = {
     // abierto; Explorer no depende de state.runs, se refresca a sí mismo.
     if (state.rightPanelOpen && state.rightPanelTab !== 'explorer') RightPanel.render()
   },
+  async setShellMode(mode) {
+    state.shellMode = mode === 'dev' ? 'dev' : 'chat'
+    localStorage.setItem('orchestos-shell-mode', state.shellMode)
+    pushShellState({ shellMode: state.shellMode })
+    if (state.shellMode === 'chat') {
+      state.screen = 'chat'
+      await this.fetchChatSessions()
+      const lastId = localStorage.getItem('orchestos-last-chat-session')
+      const session = (state.chatSessions || []).find((item) => item.id === lastId && item.projectId === null)
+      if (session) await this.switchChatSession(session.id)
+      else {
+        state.chatSessionId = null
+        state.chatHistory = []
+        this.rerender()
+      }
+      return
+    }
+    let last = null
+    try { last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null') } catch { last = null }
+    const projectsResponse = await fetch('/api/projects').catch(() => null)
+    const projects = projectsResponse?.ok ? await projectsResponse.json() : []
+    if (last?.kind === 'session' && last.id && last.projectId) {
+      state.workspaceProjectId = last.projectId
+      state.screen = 'chat'
+      await this.fetchChatSessions()
+      await this.switchChatSession(last.id)
+    } else if (last?.kind === 'project' && projects.some((p) => p.id === last.id)) {
+      state.workspaceProjectId = last.id
+      state.screen = 'workspace'
+      state.workspaceTab = state.workspaceTab || 'tasks'
+      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'project', id: last.id }))
+      this.rerender()
+    } else if (projects[0]) {
+      state.workspaceProjectId = projects[0].id
+      state.screen = 'workspace'
+      state.workspaceTab = state.workspaceTab || 'tasks'
+      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'project', id: projects[0].id }))
+      this.rerender()
+    } else {
+      this.go('activity')
+    }
+  },
   async fetchTasks() {
     try {
       const res = await fetch('/api/tasks')
@@ -734,6 +803,11 @@ const App = {
     this.syncNav()
   },
   go(id) {
+    if (id === 'activity' || id === 'workspace') {
+      state.shellMode = 'dev'
+      localStorage.setItem('orchestos-shell-mode', 'dev')
+      pushShellState({ shellMode: 'dev' })
+    }
     // stop auto-refresh when leaving Runs, Settings or the Graph runner
     if (SCREENS.runs._timer) {
       clearInterval(SCREENS.runs._timer)
@@ -775,6 +849,9 @@ const App = {
   // de 30s no repinta el riel al pedo ni le roba el foco a un boton.
   syncNav() {
     pushShellState({
+      shellMode: state.shellMode,
+      sessionsVersion: state.sessionsVersion,
+      generalSessions: state.shellMode === 'chat' ? state.chatSessions : undefined,
       screen: state.screen,
       skillsCount: (state.skills || []).length,
       workspaceProjectId: state.workspaceProjectId || null,
@@ -3079,6 +3156,7 @@ function applyResizedWidths() {
    Boot
    ============================================================ */
 function boot() {
+  pushShellState({ shellMode: state.shellMode })
   // Sidebar collapsed/expanded mode (persisted)
   applySidebarMode()
   applyResizedWidths()
@@ -3134,18 +3212,7 @@ function boot() {
       state.chatAttachMenuOpen = false
       App.rerender()
     }
-    if (state.chatCliMenuOpen && !e.target.closest('[data-chat-cli-menu]')) {
-      state.chatCliMenuOpen = false
-      App.rerender()
-    }
   })
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && state.chatCliMenuOpen) {
-      state.chatCliMenuOpen = false
-      App.rerender()
-    }
-  })
-
   // 2026-07-08 — el wiring delegado de buildModelSelect() (abrir/cerrar panel,
   // elegir opcion, filtrar, cerrar al click afuera) vivia aca, junto con
   // `state.modelComboOpenKey` y el helper `rerenderCurrentContext()`.
@@ -3172,7 +3239,9 @@ function boot() {
 
   // First render with loading state, then fetch
   App.rerender()
-  App.fetchAll()
+  App.fetchAll().then(() => {
+    if (state.shellMode === 'dev') void App.setShellMode('dev')
+  })
 
   // Auto-refresh every 30s
   setInterval(() => App.fetchAll(), 30_000)
@@ -3209,16 +3278,33 @@ function boot() {
     icons: { ...ICON, ...AGENT_ICONS },
     go: (id) => App.go(id),
     toggleSidebar: toggleSidebarMode,
+    setShellMode: (mode) => void App.setShellMode(mode),
     selectWorkspaceProject: (id) => {
       state.workspaceProjectId = id
       state.screen = 'workspace'
       state.workspaceTab = state.workspaceTab || 'tasks'
+      state.shellMode = 'dev'
+      localStorage.setItem('orchestos-shell-mode', 'dev')
+      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'project', id }))
+      pushShellState({ shellMode: 'dev' })
       App.rerender()
     },
-    openChatSession: (id) => {
+    openChatSession: (id, projectId) => {
+      state.shellMode = projectId ? 'dev' : 'chat'
+      localStorage.setItem('orchestos-shell-mode', state.shellMode)
+      if (projectId) {
+        state.workspaceProjectId = projectId
+        localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', id, projectId }))
+      } else {
+        localStorage.setItem('orchestos-last-chat-session', id)
+      }
+      pushShellState({ shellMode: state.shellMode })
       App.go('chat')
       App.switchChatSession(id)
     },
+    startNewChatSession: (agent, projectId) => App.startNewChatSession(agent, projectId),
+    deleteChatSession: (id) => App.deleteChatSession(id),
+    cliModes: () => state.executorModes?.modes ?? [],
     openCommandPalette: () => Modal.openCommandPalette(),
     toggleRightPanel,
     setRightPanelTab,

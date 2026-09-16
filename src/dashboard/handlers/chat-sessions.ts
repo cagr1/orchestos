@@ -80,6 +80,9 @@ function validTitle(value: unknown): value is string {
 // proyecto (sesión general), lista las sesiones con project_id null — nunca
 // TODAS, mezclar chats de proyectos distintos no tiene sentido con >1 proyecto.
 export function handleApiChatSessionsList(req: Request): Response {
+  if (new URL(req.url).searchParams.get('project') === 'none') {
+    return jsonResponse(listChatSessions(null).map(toSessionRow))
+  }
   let projectId: string | null
   try {
     projectId = resolveDashboardProject(req).id
