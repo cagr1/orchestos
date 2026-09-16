@@ -34,11 +34,17 @@ legibilidad del switch Chat/Dev y conservar los colores de marca de los iconos d
 
    - Centralizar el mapa de niveles para no reutilizar siempre `low/medium/high`.
    - Claude: `low`, `medium`, `high`, `xhigh`, `max`.
-   - Codex: `minimal`, `low`, `medium`, `high`, `xhigh`.
+   - Codex: `minimal`, `low`, `medium`, `high`, `xhigh`, pero mostrar y enviar estos niveles
+     únicamente si el camino interactivo de `runCodexChat` los admite y los aplica realmente.
+     Verificar `src/run/executors/codex.ts` y el despacho en
+     `src/dashboard/handlers/chat.ts`; no inferir soporte por los niveles de tareas.
    - API: mostrar esfuerzo solo si el modelo real declara `supportsReasoning`; conservar los niveles
      válidos del contrato OpenRouter.
    - OpenCode/Local: no mostrar esfuerzo hasta tener niveles verificados para ese transporte.
-   - El valor persistido no puede quedar seleccionado si ya no pertenece al mapa del CLI/modelo.
+   - Si Codex no tiene soporte real en su executor interactivo, ocultar esfuerzo para Codex y
+     dejar esa limitación explícita en el reporte; no mostrar un selector que no llega al modelo.
+   - El valor persistido no puede quedar seleccionado si ya no pertenece al mapa efectivo del
+     CLI/modelo.
    - El request de chat debe enviar `effort` solo cuando el control visible y el contrato efectivo
      lo permiten.
 
@@ -86,6 +92,10 @@ legibilidad del switch Chat/Dev y conservar los colores de marca de los iconos d
 4. Comprobar visualmente ambos estados del switch y colores de cada icono; guardar evidencia en
    `docs/done/evidence/UI.9.2-live.json` y capturas en `docs/done/evidence/UI.9.2/`.
 5. Ejecutar `ui3-shell` y documentar por separado la deuda preexistente de `ui81` si continúa.
+
+6. Al restaurar una sesión existente, esperar/cargar su metadata antes de renderizar los controles
+   del composer. Añadir una prueba que demuestre que el CLI fijo de la sesión no cae temporalmente
+   a API/OpenRouter por una carrera de carga.
 
 No cerrar el ítem si un CLI seleccionado vuelve a aparecer como opción de transporte dentro del
 composer o si el chat usa `orcheConfig.agent` en lugar del agente persistido de la sesión.
