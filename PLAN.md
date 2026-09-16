@@ -1876,8 +1876,9 @@ ni eso hace falta.
   de CLI con sus colores de marca. → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-2)
   Ejecutado por: luna · Spec: docs/specs/UI.9.2.md
   Gate en vivo: Playwright/dashboard real, sesiones API/Claude/Codex, controles por sesión, iconos CLI y switch expandido/colapsado; evidencia `docs/done/evidence/UI.9.2-live.json`.
-- [ ] **UI.9.3 — 🧠 Modo Dev completo.** Runs→Activity, rail colapsado solo-ícono coherente,
-  selección única con borde (A.3), anomalías inline (A.4). Spec pendiente.
+- [ ] **UI.9.3 — 🧠 Modo Dev completo.** Activity, rail colapsado solo-ícono coherente,
+  selección única con borde (A.3) y estados anómalos inline con datos existentes (A.4).
+  Spec: `docs/specs/UI.9.3.md`.
 - [x] **UI.9.4 — 🧠 Agregar proyecto desde la UI** (`+` en Projects → `osascript choose folder` en el servidor → registro del proyecto). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-4)
 - [ ] **UI.9.5 — 🧠 Inspector condicional sobre el shell nuevo** (retoma UI.8.4c).
 
