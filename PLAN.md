@@ -1795,9 +1795,9 @@ ni eso hace falta.
     real apuntando a una tarea real (`crypto-page-v1`), confirma workspace+tab+SidePanel
     correctos y la sesión preservada al volver. `bunx tsc --noEmit`, `bunx biome check` (0
     errores) y `bun run test:coverage` (1431 pass) verdes.
-  - [ ] **UI.8.4c — inspector condicional** (0px cerrado, ancho persistido) — spec escrito
-    (`docs/specs/UI.8.4c.md`), **EN PAUSA 2026-09-15 por decisión de Carlos** hasta que UI.9.1–9.3
-    rehagan el shell; se re-lee contra el shell nuevo antes de ejecutarse (ver UI.9.5).
+  - [ ] **UI.8.4c — inspector condicional** (0px cerrado, ancho persistido), retomada por UI.9.5
+    tras UI.9.1–9.4; spec re-leído y actualizado contra el shell Chat | Dev actual
+    (`docs/specs/UI.8.4c.md`).
 
   **Anotado por Carlos (2026-09-15), pendiente de planificar, no implementado todavía:** donde
   hoy dice "Projects" en el riel debería tener un ícono `+`/carpeta-con-agregar para dar de alta
@@ -1878,7 +1878,9 @@ ni eso hace falta.
   Gate en vivo: Playwright/dashboard real, sesiones API/Claude/Codex, controles por sesión, iconos CLI y switch expandido/colapsado; evidencia `docs/done/evidence/UI.9.2-live.json`.
 - [x] **UI.9.3 — 🧠 Modo Dev completo.** Activity, rail Dev solo-ícono, selección única (A.3) y anomalías inline (A.4). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-3)
 - [x] **UI.9.4 — 🧠 Agregar proyecto desde la UI** (`+` en Projects → `osascript choose folder` en el servidor → registro del proyecto). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-4)
-- [ ] **UI.9.5 — 🧠 Inspector condicional sobre el shell nuevo** (retoma UI.8.4c).
+- [ ] **UI.9.5 — 🧠 Inspector condicional sobre el shell Chat | Dev** (retoma UI.8.4c; spec actualizado: `docs/specs/UI.8.4c.md`).
+
+> **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 
 ### Fuera de alcance del Sprint 30 (explícito)
 
