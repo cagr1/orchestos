@@ -1872,8 +1872,8 @@ ni eso hace falta.
   Gate 🔍 en vivo: navegador real (Playwright/dashboard), dos modos, 2 proyectos, chats generales y
   agentes por proyecto sin mezclarse, sin lista duplicada en el canvas.
 - [ ] **UI.9.2 — 🧠 Modo Chat completo.** Estado vacío centrado con composer grande, buscar en la
-  lista de chats, selector CLI/modelo/esfuerzo en el composer (anatomía de la captura de Claude
-  Desktop). Spec pendiente.
+  lista de chats, modelo/esfuerzo compatibles con el CLI fijo de la sesión, switch legible e iconos
+  de CLI con sus colores de marca. Spec: `docs/specs/UI.9.2.md`.
 - [ ] **UI.9.3 — 🧠 Modo Dev completo.** Runs→Activity, rail colapsado solo-ícono coherente,
   selección única con borde (A.3), anomalías inline (A.4). Spec pendiente.
 - [x] **UI.9.4 — 🧠 Agregar proyecto desde la UI** (`+` en Projects → `osascript choose folder` en el servidor → registro del proyecto). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-4)
