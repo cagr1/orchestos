@@ -240,6 +240,11 @@ export function buildCodexChatArgs(prompt: string, model?: string): string[] {
   return args
 }
 
+// The interactive chat executor has no verified reasoning-effort flag. The
+// task executor accepts `-c model_reasoning_effort=…`, but that is a separate
+// path and must not make the chat UI claim Codex applies effort controls.
+export const CODEX_CHAT_EFFORT_LEVELS = Object.freeze([] as const)
+
 export function buildCodexChatEnv(configHomePath: string): Record<string, string> {
   return { ...safeChildEnv(), CODEX_HOME: configHomePath }
 }

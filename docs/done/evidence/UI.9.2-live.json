@@ -1,0 +1,59 @@
+{
+  "item": "UI.9.2",
+  "status": "pass_with_preexisting_ui81_debt",
+  "date": "2026-09-16",
+  "browser": {
+    "tool": "Playwright",
+    "base": "http://localhost:4242",
+    "viewport": "1440x900",
+    "createdThroughUi": ["codex"],
+    "restoredSessions": [
+      {
+        "agent": "api",
+        "status": "ok",
+        "composer": "DeepSeek V4 Flash · Medium",
+        "openRouterCatalog": true
+      },
+      {
+        "agent": "claude",
+        "status": "ok",
+        "effortOptions": ["low", "medium", "high", "xhigh", "max"],
+        "openRouterCatalog": false
+      },
+      {
+        "agent": "codex",
+        "status": "ok",
+        "composer": "Codex · your subscription",
+        "effortControl": false,
+        "openRouterCatalog": false
+      }
+    ],
+    "cliMenuIcons": {
+      "local": { "svg": true, "color": "rgb(139, 148, 158)" },
+      "claude": { "svg": true, "color": "rgb(217, 119, 87)" },
+      "opencode": { "svg": true, "color": "rgb(196, 181, 253)" },
+      "codex": { "svg": true, "color": "rgb(116, 170, 156)" },
+      "api": { "svg": true, "color": "rgb(139, 148, 158)" }
+    },
+    "switch": {
+      "expandedLabels": true,
+      "expandedIcons": true,
+      "ariaPressed": true,
+      "collapsedIcons": 2
+    },
+    "temporarySessionsDeleted": true,
+    "screenshots": [
+      "docs/done/evidence/UI.9.2/new-chat-cli-menu.png",
+      "docs/done/evidence/UI.9.2/shell-collapsed.png"
+    ]
+  },
+  "automatedVerification": {
+    "typecheck": "pass",
+    "focusedTests": "30 pass, 0 fail",
+    "coverage": "1440 pass, 0 fail",
+    "buildUi": "pass",
+    "ui3Shell": "pass: all criteria",
+    "ui81VisualConsistency": "preexisting failure: six border-radius values; remaining checks pass"
+  },
+  "scopeNote": "Codex chat effort is intentionally hidden: the interactive executor has no verified effort contract. Task-executor effort support is separate."
+}

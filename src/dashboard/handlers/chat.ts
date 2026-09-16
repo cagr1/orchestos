@@ -87,6 +87,13 @@ import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = (typeof VALID_EFFORTS)[number]
 
+/** Effective effort contract for the interactive chat transport. */
+export function chatEffortLevelsForAgent(agent: string | undefined): readonly string[] {
+  if (agent === 'claude') return CLAUDE_CLI_EFFORTS
+  if (agent === 'api') return VALID_EFFORTS
+  return []
+}
+
 // R.5 — identidad del proceso para el lease de chat_turns: cada boot del
 // dashboard obtiene un owner distinto, así un proceso que murió a mitad de un
 // turno nunca puede confundirse con el que lo reclama después de expirar.
@@ -760,7 +767,9 @@ async function handleApiChat(
   const useCodexCli = chatAgent === 'codex'
   const useOpencodeCli = chatAgent === 'opencode'
   const readBoundaryWarning = hasProjectContext ? projectChatReadBoundaryWarning(chatAgent) : null
-  const allowedEfforts: readonly string[] = useClaudeCli ? CLAUDE_CLI_EFFORTS : VALID_EFFORTS
+  // Chat Codex currently has no verified interactive effort contract. The
+  // task executor's `cli_effort` support is deliberately not reused here.
+  const allowedEfforts = chatEffortLevelsForAgent(chatAgent)
   if (body.effort !== undefined && !allowedEfforts.includes(body.effort)) {
     return errorResponse(`effort must be one of: ${allowedEfforts.join(', ')}`, 400)
   }

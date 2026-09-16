@@ -639,10 +639,18 @@ button {
   flex-shrink: 0;
 }
 .sidebar-mode-row { display: flex; gap: 3px; }
-.sidebar-mode-btn { position: relative; display: flex; align-items: center; height: 30px; flex: 1; justify-content: center; border: 1px solid transparent; border-radius: var(--radius); color: var(--text-muted); cursor: pointer; }
-.sidebar-mode-btn:hover { color: var(--accent); background: var(--surface-2); }
-.sidebar-mode-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.sidebar-mode-btn.active { color: var(--accent); background: var(--surface-hi); }
+.sidebar-mode-btn { position: relative; display: flex; align-items: center; gap: 6px; height: 30px; flex: 1; justify-content: center; border: 1px solid var(--border-soft); border-radius: var(--radius); color: var(--text-muted); cursor: pointer; }
+.sidebar-mode-btn:hover { color: var(--text); background: var(--surface-2); border-color: var(--border); }
+.sidebar-mode-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sidebar-mode-btn.active { color: var(--text); background: var(--surface-hi); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-dim); }
+.sidebar-mode-icon { display: inline-flex; width: 16px; height: 16px; flex: 0 0 16px; }
+.sidebar-mode-icon svg { width: 16px; height: 16px; }
+.sidebar-mode-label { font-size: 12px; font-weight: 600; }
+.sidebar-chat-search { display: flex; align-items: center; gap: 6px; margin: 2px 4px 5px; padding: 4px 7px; color: var(--text-faint); background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius); }
+.sidebar-chat-search:focus-within { border-color: var(--accent); color: var(--text-muted); }
+.sidebar-chat-search svg { width: 14px; height: 14px; flex: 0 0 14px; }
+.sidebar-chat-search input { min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; color: var(--text); font: 12px var(--sans); }
+.sidebar-chat-search input::placeholder { color: var(--text-faint); }
 .sidebar-new-chat-wrap, .sidebar-project-tree { position: relative; }
 .sidebar-new-chat { width: 100%; }
 .sidebar-sessions-empty { padding: 8px 38px; color: var(--text-faint); font-size: 12px; }
@@ -660,11 +668,22 @@ button {
 .sidebar-cli-menu button { cursor: pointer; }
 .sidebar-cli-menu button:hover { background: var(--accent-soft); }
 .sidebar-cli-menu svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-faint); }
+.sidebar-agent-icon[data-agent] svg, .sidebar-cli-icon[data-agent] svg { color: var(--agent-color, var(--text-muted)); }
+.sidebar-agent-icon[data-agent="claude"] svg, .sidebar-cli-icon[data-agent="claude"] svg { --agent-color: #d97757; }
+.sidebar-agent-icon[data-agent="codex"] svg, .sidebar-cli-icon[data-agent="codex"] svg,
+.sidebar-agent-icon[data-agent="openai"] svg, .sidebar-cli-icon[data-agent="openai"] svg { --agent-color: #74aa9c; }
+.sidebar-agent-icon[data-agent="opencode"] svg, .sidebar-cli-icon[data-agent="opencode"] svg { --agent-color: #c4b5fd; }
+.sidebar-agent-icon[data-agent="deepseek"] svg, .sidebar-cli-icon[data-agent="deepseek"] svg { --agent-color: #4b9cff; }
+.sidebar-agent-icon[data-agent="gemini"] svg, .sidebar-cli-icon[data-agent="gemini"] svg { --agent-color: #8ab4f8; }
+.sidebar-agent-icon[data-agent="kimi"] svg, .sidebar-cli-icon[data-agent="kimi"] svg { --agent-color: #f59e0b; }
+.sidebar-agent-icon[data-agent="glm"] svg, .sidebar-cli-icon[data-agent="glm"] svg { --agent-color: #a78bfa; }
 .sidebar-cli-menu .disabled { color: var(--text-faint); cursor: not-allowed; }
 .sidebar-cli-menu small { display: block; margin-top: 2px; color: var(--warning); font-size: 11px; }
 .app[data-sidebar="collapsed"] .sidebar-section-label, .app[data-sidebar="collapsed"] .sidebar-agents-toggle,
 .app[data-sidebar="collapsed"] .sidebar-agent-row, .app[data-sidebar="collapsed"] .sidebar-row-add { display: none; }
 .app[data-sidebar="collapsed"] .sidebar-mode-row { flex-direction: column; }
+.app[data-sidebar="collapsed"] .sidebar-mode-btn { flex: 0 0 30px; }
+.app[data-sidebar="collapsed"] .sidebar-mode-label { display: none; }
 .sidebar .grow {
   flex: 1;
 }

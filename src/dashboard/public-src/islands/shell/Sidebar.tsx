@@ -57,6 +57,7 @@ export function Sidebar() {
   const [sessions, setSessions] = useState<Record<string, Session[]>>({})
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuProjectId, setMenuProjectId] = useState<string | null>(null)
+  const [chatSearch, setChatSearch] = useState('')
   const loadProjects = useCallback(async () => {
     const response = await fetch('/api/projects')
     if (!response.ok) throw new Error('Could not load projects')
@@ -130,7 +131,10 @@ export function Sidebar() {
           ariaPressed={shell.shellMode === 'chat'}
           onActivate={() => api?.setShellMode('chat')}
         >
-          <Icon name="chat" />
+          <span className="sidebar-mode-icon">
+            <Icon name="chat" />
+          </span>
+          <span className="sidebar-mode-label">{t('nav.mode.chat')}</span>
         </NavButton>
         <NavButton
           id="shellModeDev"
@@ -140,7 +144,10 @@ export function Sidebar() {
           ariaPressed={shell.shellMode === 'dev'}
           onActivate={() => api?.setShellMode('dev')}
         >
-          <Icon name="code" />
+          <span className="sidebar-mode-icon">
+            <Icon name="code" />
+          </span>
+          <span className="sidebar-mode-label">{t('nav.mode.dev')}</span>
         </NavButton>
       </div>
 
@@ -169,17 +176,35 @@ export function Sidebar() {
           <div className="sidebar-section-label">
             <span>{t('nav.section.chats')}</span>
           </div>
-          {shell.generalSessions.length === 0 ? (
+          <label className="sidebar-chat-search">
+            <Icon name="search" />
+            <input
+              type="search"
+              value={chatSearch}
+              placeholder="Search chats"
+              aria-label="Search chats"
+              onChange={(event) => setChatSearch(event.target.value)}
+            />
+          </label>
+          {shell.generalSessions.filter((session) => {
+            const query = chatSearch.trim().toLowerCase()
+            return !query || (session.title || 'Untitled chat').toLowerCase().includes(query)
+          }).length === 0 ? (
             <div className="sidebar-sessions-empty">{t('chat.sessions.empty')}</div>
           ) : (
-            shell.generalSessions.map((session) => (
-              <SessionRow
-                key={session.id}
-                session={session}
-                active={shell.screen === 'chat' && shell.chatSessionId === session.id}
-                api={api}
-              />
-            ))
+            shell.generalSessions
+              .filter((session) => {
+                const query = chatSearch.trim().toLowerCase()
+                return !query || (session.title || 'Untitled chat').toLowerCase().includes(query)
+              })
+              .map((session) => (
+                <SessionRow
+                  key={session.id}
+                  session={session}
+                  active={shell.screen === 'chat' && shell.chatSessionId === session.id}
+                  api={api}
+                />
+              ))
           )}
         </div>
       ) : (
@@ -256,8 +281,8 @@ export function Sidebar() {
                           }
                         }}
                       >
-                        <span className="sidebar-agent-icon">
-                          <RawIcon svg={api?.icons[session.agent] ?? ''} />
+                        <span className="sidebar-agent-icon" data-agent={session.agent}>
+                          <RawIcon svg={api?.agentIcon(session.agent) ?? ''} />
                         </span>
                         <span className="sidebar-agent-title">
                           {session.title || 'Untitled chat'}
@@ -407,8 +432,8 @@ function SessionRow({
         }
       }}
     >
-      <span className="sidebar-agent-icon">
-        <RawIcon svg={api?.icons[session.agent] ?? ''} />
+      <span className="sidebar-agent-icon" data-agent={session.agent}>
+        <RawIcon svg={api?.agentIcon(session.agent) ?? ''} />
       </span>
       <span className="sidebar-agent-title">{session.title || 'Untitled chat'}</span>
       <span className="sidebar-agent-time">{relativeTime(session.updatedAt)}</span>
@@ -466,12 +491,16 @@ function CliMenu({
               onClose()
             }}
           >
-            <RawIcon svg={api.icons[info.id] ?? ''} />
+            <span className="sidebar-cli-icon" data-agent={info.id}>
+              <RawIcon svg={api.agentIcon(info.id)} />
+            </span>
             <span>{window.t?.(`chat.modelfx.agentLabel.${info.id}`) ?? info.id}</span>
           </button>
         ) : (
           <div key={info.id} className="disabled" aria-disabled="true" title={reason}>
-            <RawIcon svg={api?.icons[info.id] ?? ''} />
+            <span className="sidebar-cli-icon" data-agent={info.id}>
+              <RawIcon svg={api?.agentIcon(info.id) ?? ''} />
+            </span>
             <span>
               {window.t?.(`chat.modelfx.agentLabel.${info.id}`) ?? info.id}
               <small>{reason}</small>

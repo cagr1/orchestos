@@ -113,6 +113,21 @@ const AGENT_ICONS = {
   glm: ICON.glm,
 }
 
+// CLI ids are transport ids, not always provider ids. Keep the mapping explicit so a
+// newly returned mode can never leave an empty slot in the shell. Codex intentionally
+// reuses the OpenAI mark; API and Local use stable generic marks because they have no
+// single provider brand.
+const AGENT_ICON_ALIASES = {
+  codex: 'openai',
+  api: 'globe',
+  local: 'term',
+}
+
+function agentIconFor(id) {
+  const key = String(id || '').toLowerCase()
+  return AGENT_ICONS[key] || ICON[AGENT_ICON_ALIASES[key]] || ICON.spark
+}
+
 function esc(s) {
   return String(s).replace(
     /[&<>"]/g,

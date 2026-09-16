@@ -1,6 +1,31 @@
 # Sprint 30 — evidencia de cierre
 Evidencia movida literalmente desde PLAN.md en S.2; PLAN.md conserva el índice.
 
+<a id="sprint-30-ui-9-2"></a>
+### UI.9.2 — Modo Chat completo
+
+Ejecutado por: luna · Spec: docs/specs/UI.9.2.md
+
+El CLI queda ligado a cada sesión: al restaurarla, OrchestOS carga primero sus metadatos y
+renderiza únicamente modelo/esfuerzo válidos para el transporte efectivo. API mantiene el catálogo
+OpenRouter; Claude conserva sus alias y cinco niveles de esfuerzo. Codex muestra su modelo por
+defecto, sin esfuerzo ni catálogo API: el executor interactivo actual no tiene un contrato de
+esfuerzo verificado. OpenCode/Local tampoco muestran controles de esfuerzo no soportados. El menú
+de creación y las filas de sesión resuelven un mark para cada ID (Codex reutiliza OpenAI; API y
+Local usan iconos genéricos). El switch Chat | Dev tiene icono, etiqueta, estado activo, foco y
+`aria-pressed`; se agregó búsqueda de chats.
+
+Verificación independiente: `bunx tsc --noEmit` ✅; 30 tests focalizados **pass / 0 fail** ✅;
+`bun run build:ui` ✅; `bun run test:coverage` **1440 pass / 0 fail** ✅; `ui3-shell` **todos los
+criterios PASS** ✅. En navegador real, creación desde `+ New chat` persistió Codex en la sesión;
+API, Claude y Codex restauraron su identidad correcta, Claude presentó `low/medium/high/xhigh/max`,
+Codex no ofreció esfuerzo ni DeepSeek/OpenRouter, todos los modos visibles resolvieron SVG y el
+switch conservó ambos iconos y `aria-pressed` en rail expandido/colapsado. Gate en vivo: navegador real (Playwright/dashboard) — `docs/done/evidence/UI.9.2-live.json`; capturas en `docs/done/evidence/UI.9.2/`.
+
+Deuda preexistente: `ui81-visual-consistency` sigue fallando solo por seis valores de
+`border-radius` (`0px, 4px, 50%, 6px, 8px, 999px`); tipografías, selects nativos y baseline de
+estilos inline pasan. UI.9.2 no modifica esa deuda.
+
 <a id="sprint-30-ui-9-1"></a>
 ### UI.9.1 — Switch Chat | Dev, sidebar por modo y sesiones separadas
 

@@ -22,6 +22,7 @@ export interface NavEntry {
 export interface ShellApi {
   nav: NavEntry[]
   icons: Record<string, string>
+  agentIcon: (id: string) => string
   go: (id: string) => void
   toggleSidebar: () => void
   selectWorkspaceProject: (projectId: string) => void

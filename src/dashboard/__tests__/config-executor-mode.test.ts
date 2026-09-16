@@ -23,6 +23,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 
 const { route } = await import('../server.ts')
+const { chatEffortLevelsForAgent } = await import('../handlers/chat.ts')
 
 const PORT = 4242
 const originalCwd = process.cwd()
@@ -39,6 +40,11 @@ function req(method: string, path: string): Request {
 }
 
 describe('GET /api/config — agent (CC.1b bugfix)', () => {
+  it('keeps effort tied to the effective interactive transport', () => {
+    expect(chatEffortLevelsForAgent('claude')).toEqual(['low', 'medium', 'high', 'xhigh', 'max'])
+    expect(chatEffortLevelsForAgent('codex')).toEqual([])
+    expect(chatEffortLevelsForAgent('opencode')).toEqual([])
+  })
   it('devuelve agent cuando está fijado en orchestos.config.yaml (vía legacy executor_mode)', async () => {
     writeFileSync(
       join(tmpDir, 'orchestos.config.yaml'),

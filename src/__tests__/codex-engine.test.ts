@@ -17,6 +17,7 @@ import { join } from 'path'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
 import {
   buildCodexChatArgs,
+  CODEX_CHAT_EFFORT_LEVELS,
   buildCodexChatEnv,
   codexEngine,
   ExecutorCodexError,
@@ -230,6 +231,10 @@ const turnCompleted = (input: number, output: number) => ({
 // -- tests ---------------------------------------------------------------------
 
 describe('G.4.2b — codexEngine (codex subprocess)', () => {
+  it('does not advertise or encode unverified chat effort controls', () => {
+    expect(CODEX_CHAT_EFFORT_LEVELS).toEqual([])
+    expect(buildCodexChatArgs('hello', 'gpt-5.4')).not.toContain('model_reasoning_effort')
+  })
   it('construye el flag de aislamiento y CODEX_HOME dentro del repo', () => {
     const args = buildCodexChatArgs('prompt')
     expect(args).toContain('--ignore-user-config')

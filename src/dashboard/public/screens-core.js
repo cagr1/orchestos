@@ -703,21 +703,28 @@ SCREENS.chat = {
       scrollBottom()
       try {
         const requestKey = crypto.randomUUID()
+        const activeChatSession = (st.chatSessions || []).find((session) => session.id === sessionId)
+        const chatAgent = activeChatSession?.agent || 'api'
         const body = {
           sessionId,
           history: [],
           message: msg,
-          model: st.chatModel || 'deepseek/deepseek-v4-flash',
         }
+        // The session is the source of truth for transport. API and Claude
+        // accept the model control; other CLIs own their model/default and
+        // must never receive an OpenRouter fallback from the composer.
+        if ((chatAgent === 'api' || chatAgent === 'claude') && st.chatModel) body.model = st.chatModel
         body.requestKey = requestKey
         if (sentFileIds.length) body.fileIds = sentFileIds
         // FRONT.1 — solo se manda si el control está visible (modelo con supportsReasoning:true).
         // CC.1b (2026-08-16) — con agent: claude (CC.D1), el control SÍ está visible
         // (buildChatModelFx) aunque `modelSupportsReasoning` no lo sepa — ese chequeo es
         // del catálogo de OpenRouter, ajeno al CLI.
-        const chatUsesClaudeCli = st.orcheConfig && st.orcheConfig.agent === 'claude'
-        if (chatUsesClaudeCli || modelSupportsReasoning(st.chatModel, st.orModels))
-          body.effort = st.chatEffort || 'medium'
+        const chatUsesClaudeCli = chatAgent === 'claude'
+        const effortLevels = chatEffortLevels(chatAgent)
+        if (chatUsesClaudeCli || (chatAgent === 'api' && modelSupportsReasoning(st.chatModel, st.orModels))) {
+          if (effortLevels.includes(st.chatEffort)) body.effort = st.chatEffort
+        }
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -989,11 +996,12 @@ SCREENS.chat = {
           Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : KNOWN_MODELS
         const locals =
           Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : []
-        const isLocalAgent = st.orcheConfig?.agent === 'local'
+        const activeChatSession = (st.chatSessions || []).find((session) => session.id === st.chatSessionId)
+        const isApiAgent = (activeChatSession?.agent || 'api') === 'api'
         // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
         list.innerHTML = buildComboOptions(
-          isLocalAgent ? [] : locals,
-          isLocalAgent ? [] : allCloud,
+          isApiAgent ? locals : [],
+          isApiAgent ? allCloud : [],
           st.chatModel,
           q,
         )

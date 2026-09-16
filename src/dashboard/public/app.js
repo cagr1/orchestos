@@ -94,6 +94,7 @@ const state = {
   chatHistories: {},
   chatSessionId: localStorage.getItem('orchestos-chat-session-id') || null,
   chatSessions: [],
+  chatSessionsStatus: 'idle',
   chatPending: false,
   chatPendingBySession: {},
   // A DELETE may race an in-flight reply. Never recreate that conversation in
@@ -454,8 +455,10 @@ const App = {
     }
   },
   async fetchChatSessions() {
+    state.chatSessionsStatus = 'loading'
     if (state.shellMode === 'dev' && !state.workspaceProjectId) {
       state.chatSessions = []
+      state.chatSessionsStatus = 'ok'
       return
     }
     try {
@@ -463,14 +466,18 @@ const App = {
       const res = await fetch(`/api/chat/sessions?project=${encodeURIComponent(query)}`)
       if (!res.ok) throw new Error(res.status)
       state.chatSessions = await res.json()
+      state.chatSessionsStatus = 'ok'
       if (state.shellMode === 'chat') pushShellState({ generalSessions: state.chatSessions })
     } catch {
+      state.chatSessionsStatus = 'error'
       // Deja la lista anterior (o vacía) — no es crítico para poder chatear.
     }
   },
   async switchChatSession(sessionId) {
     if (sessionId === state.chatSessionId) return
+    const session = (state.chatSessions || []).find((item) => item.id === sessionId)
     state.chatSessionId = sessionId
+    applyChatSessionControls(session)
     localStorage.setItem('orchestos-chat-session-id', sessionId)
     state.chatHistory = this.chatHistoryFor(sessionId)
     state.chatPending = Boolean(state.chatPendingBySession[sessionId])
@@ -492,6 +499,7 @@ const App = {
       if (!res.ok || typeof body.id !== 'string')
         throw new Error(body.error || 'Could not create chat session')
       state.chatSessionId = body.id
+      applyChatSessionControls({ agent, projectId })
       delete state.chatDeletedSessionIds[body.id]
       localStorage.setItem('orchestos-chat-session-id', body.id)
       state.chatHistories[body.id] = []
@@ -557,7 +565,10 @@ const App = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agent: state.orcheConfig?.agent || 'api',
+        // A chat session owns its transport. This fallback is only for the
+        // legacy path that creates a session on first send; the composer never
+        // uses the global config as a selector.
+        agent: 'api',
         projectId: state.shellMode === 'dev' ? state.workspaceProjectId : null,
       }),
     })
@@ -565,6 +576,7 @@ const App = {
     if (!res.ok || typeof body.id !== 'string')
       throw new Error(body.error || 'Could not create chat session')
     state.chatSessionId = body.id
+    applyChatSessionControls({ agent: 'api', projectId: state.shellMode === 'dev' ? state.workspaceProjectId : null })
     delete state.chatDeletedSessionIds[body.id]
     state.chatHistories[body.id] = []
     state.sessionsVersion += 1
@@ -641,10 +653,22 @@ const App = {
       // real de agregarlo al boot.
       this.fetchOrcheConfig(),
       this.fetchExecutorModes(),
-      this.fetchChatSession(),
-      this.fetchChatTurnStatus(),
-      this.fetchChatSessions(),
     ])
+    // Session metadata is authoritative for transport and must arrive before
+    // restoring messages or rendering model/effort controls. Otherwise the
+    // initial `api` fallback can briefly send a Codex/Claude session through
+    // OpenRouter after a reload.
+    await this.fetchChatSessions()
+    const restored = (state.chatSessions || []).find((item) => item.id === state.chatSessionId)
+    if (restored) {
+      applyChatSessionControls(restored)
+      state.chatHistory = this.chatHistoryFor(restored.id)
+      await Promise.all([this.fetchChatSession(restored.id), this.fetchChatTurnStatus(restored.id)])
+    } else if (state.chatSessionId) {
+      state.chatSessionId = null
+      state.chatHistory = []
+      localStorage.removeItem('orchestos-chat-session-id')
+    }
     if (!state.setupRedirectDone && state.setup?.criticalMissing) {
       state.screen = 'settings'
       state.setupRedirectDone = true
@@ -2788,8 +2812,51 @@ function claudeHumanModelLabel(canonical) {
   return versionParts.length ? `${family} ${versionParts.join('.')}` : family
 }
 
+const CHAT_EFFORT_LEVELS = Object.freeze({
+  claude: ['low', 'medium', 'high', 'xhigh', 'max'],
+  // runCodexChat currently has no verified effort flag. Keep this empty until
+  // the interactive executor accepts and applies one in the real subprocess.
+  codex: [],
+  api: ['low', 'medium', 'high'],
+  opencode: [],
+  local: [],
+})
+
+function chatAgentForState(st) {
+  if (st.chatSessionId && st.chatSessionsStatus !== 'ok') return null
+  return st.chatSessions?.find((session) => session.id === st.chatSessionId)?.agent || 'api'
+}
+
+function chatEffortLevels(agent) {
+  return CHAT_EFFORT_LEVELS[agent] || []
+}
+
+function applyChatSessionControls(session) {
+  const agent = session?.agent || 'api'
+  const levels = chatEffortLevels(agent)
+  if (!levels.includes(state.chatEffort)) {
+    state.chatEffort = levels.includes('medium') ? 'medium' : levels[0] || ''
+    localStorage.setItem('orchestos-chat-effort', state.chatEffort)
+  }
+  if (agent === 'claude') {
+    if (!state.chatModel?.startsWith('anthropic/')) state.chatModel = 'anthropic/sonnet'
+  } else if (agent === 'api') {
+    if (!state.chatModel || state.chatModel.startsWith('anthropic/') || state.chatModel.startsWith('ollama/'))
+      state.chatModel = 'deepseek/deepseek-v4-flash'
+  } else {
+    // Codex, OpenCode and Local do not have a verified browser-side model
+    // catalog. Never carry an OpenRouter model into one of these transports.
+    state.chatModel = ''
+  }
+}
+
 function buildChatModelFx(st) {
-  const val = st.chatModel || 'deepseek/deepseek-v4-flash'
+  const agent = chatAgentForState(st)
+  if (!agent) return ''
+  const isApiAgent = agent === 'api'
+  const showsClaudeModelPicker = agent === 'claude'
+  const modelHiddenAgent = !isApiAgent && !showsClaudeModelPicker
+  const val = st.chatModel || (isApiAgent ? 'deepseek/deepseek-v4-flash' : '')
   const locals = Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : []
   const isLoading = Array.isArray(st.orModels) && st.orModels.length === 0
   const cloudSource =
@@ -2802,12 +2869,7 @@ function buildChatModelFx(st) {
     st.orModels === null || cloudSource.some((m) => m.id === val)
       ? cloudSource
       : [{ id: val, name: val, priceIn: 0 }, ...cloudSource]
-  const agent = st.orcheConfig?.agent || 'api'
-  const agentInfo = st.executorModes?.modes?.find((m) => m.id === agent)
   const agentLabel = t('chat.modelfx.agentLabel.' + agent)
-  const modelHiddenAgent = agent === 'codex' || agent === 'opencode'
-  const showsClaudeModelPicker = agent === 'claude'
-  const isLocalAgent = agent === 'local'
   // Hallazgo real de Carlos (2026-08-17): la primera versión de este picker
   // ofrecía TODO el catálogo `anthropic/*` de OpenRouter bajo el agente Claude
   // — pero el binario real `claude` no acepta esos ids: rechaza el punto de
@@ -2857,12 +2919,12 @@ function buildChatModelFx(st) {
   // de PROYECTO (Settings), no depende del modelo elegido en este combo — a
   // diferencia de `modelSupportsReasoning`, que sí es por-modelo.
   const useClaudeCli = agent === 'claude'
-  const effortLevels = useClaudeCli
-    ? ['low', 'medium', 'high', 'xhigh', 'max']
-    : ['low', 'medium', 'high']
+  const effortLevels = chatEffortLevels(agent)
   const effortAvailable =
-    !isLocalAgent && (useClaudeCli || modelSupportsReasoning(val, st.orModels))
-  const effortLabel = effortAvailable ? t('chat.effort.' + (st.chatEffort || 'medium')) : null
+    useClaudeCli || (isApiAgent && modelSupportsReasoning(val, st.orModels))
+  const effortLabel = effortAvailable && effortLevels.includes(st.chatEffort)
+    ? t('chat.effort.' + st.chatEffort)
+    : null
   const triggerBase = modelHiddenAgent ? agentLabel : modelLabel
   const triggerLabel = effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase
   const triggerTitle = effortLabel ? `${fullModelLabel} · ${effortLabel}` : fullModelLabel
@@ -2936,11 +2998,11 @@ function buildChatModelFx(st) {
           .join('')}`
       })()}
     </div>`
-  } else if (view === 'model') {
+  } else if (view === 'model' && isApiAgent) {
     panel = `<div class="chat-modelfx-panel chat-modelfx-panel-wide" data-modelfx-panel>
       <button type="button" class="chat-modelfx-back" data-modelfx-back>${ICON.chevR}${t('chat.modelfx.back')}</button>
       <input type="text" class="model-combo-search" data-combo-search placeholder="${t('chat.models.search')}" autocomplete="off">
-      <div class="model-combo-list" data-combo-list>${buildComboOptions(isLocalAgent ? [] : locals, isLocalAgent ? [] : allCloud, val, '')}</div>
+      <div class="model-combo-list" data-combo-list>${buildComboOptions(locals, allCloud, val, '')}</div>
     </div>`
   } else if (view === 'effort') {
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
@@ -2959,7 +3021,7 @@ function buildChatModelFx(st) {
 
   return `<div class="chat-modelfx${view ? ' open' : ''}" data-modelfx>
     <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger title="${esc(triggerTitle)}" aria-label="${esc(triggerTitle)}" ${!modelHiddenAgent && !showsClaudeModelPicker && isLoading ? 'disabled' : ''}>
-      <span class="chat-modelfx-label">${esc(triggerLabel)}</span>${ICON.chev}
+      <span class="chat-modelfx-label">${esc(triggerLabel || 'CLI default model')}</span>${ICON.chev}
     </button>
     ${panel}
   </div>`
@@ -3276,6 +3338,7 @@ function boot() {
     // UI.3 — superficie del shell. React dibuja; estas acciones deciden y persisten.
     nav: NAV,
     icons: { ...ICON, ...AGENT_ICONS },
+    agentIcon: (id) => agentIconFor(id),
     go: (id) => App.go(id),
     toggleSidebar: toggleSidebarMode,
     setShellMode: (mode) => void App.setShellMode(mode),
