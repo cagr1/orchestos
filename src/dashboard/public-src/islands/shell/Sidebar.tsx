@@ -219,10 +219,13 @@ export function Sidebar() {
             {projects.map((project) => {
               const isExpanded = expanded[project.id] ?? false
               const projectSessions = sessions[project.id] ?? []
+              const projectName = project.path.split('/').pop() || project.path
               return (
                 <div key={project.id} className="sidebar-project-tree" data-project-id={project.id}>
                   <div
-                    className={`nav-icon${shell.workspaceProjectId === project.id ? ' active' : ''}`}
+                    className={`nav-icon${shell.screen === 'workspace' && shell.workspaceProjectId === project.id ? ' active' : ''}`}
+                    data-tip={projectName}
+                    aria-label={projectName}
                     role="button"
                     tabIndex={0}
                     onClick={() => api?.selectWorkspaceProject(project.id)}
@@ -236,9 +239,7 @@ export function Sidebar() {
                     <span className="nav-ic">
                       <Icon name="project" />
                     </span>
-                    <span className="nav-label">
-                      {project.path.split('/').pop() || project.path}
-                    </span>
+                    <span className="nav-label">{projectName}</span>
                     <NavButton
                       id={`add-agent-${project.id}`}
                       className="sidebar-row-add"

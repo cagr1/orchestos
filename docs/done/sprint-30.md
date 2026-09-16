@@ -1,6 +1,30 @@
 # Sprint 30 — evidencia de cierre
 Evidencia movida literalmente desde PLAN.md en S.2; PLAN.md conserva el índice.
 
+<a id="sprint-30-ui-9-3"></a>
+### UI.9.3 — Modo Dev completo
+
+Ejecutado por: luna · Spec: docs/specs/UI.9.3.md
+
+Activity se presenta con su nombre en el rail, título y explicación en inglés/español, conservando
+el identificador de pantalla y el modelo de datos de Runs. En el árbol, solo Workspace resalta el
+proyecto, Chat resalta la sesión/agente y Activity no deja una fila del árbol seleccionada. El
+rail Dev colapsado deja los iconos de proyectos centrados y accesibles por nombre/tooltip, sin
+etiquetas visibles, filas de agentes, contadores ni controles `+`. Los runs fallidos mantienen
+su estado inline; no se añadieron señales globales ni detección Git/backend.
+
+Verificación independiente: `bunx tsc --noEmit` ✅; test focalizado de iconos **2 pass / 0 fail**;
+`bun run build:ui` ✅; `bun run test:coverage` **1440 pass / 0 fail** ✅; `ui3-shell` **todos los
+criterios PASS**, sin errores de consola. Playwright real (1280×800): transición Workspace →
+proyecto (1 activo, 0 agentes) → agente (0 proyectos, 1 activo) → Activity (0 filas del árbol,
+Activity activa); dos proyectos visibles al colapsar, nombres accesibles/tooltips presentes,
+etiquetas con ancho 0/opacidad 0, y 0 filas de agentes/contadores/botones `+`. Se observaron runs
+fallidos con su badge inline. La pantalla y navegación muestran `Activity` y `Actividad` según
+idioma. `GET /api/tasks` devolvió 8 `done` y 2 `pending`, sin tareas bloqueadas/fallidas para
+comprobar esa variante en vivo; no se fabricó una. Biome: los cuatro archivos pasan lint sin
+errores con el formatter desactivado; el check normal sigue detectando format drift preexistente
+en `public/app.js` (también presente en HEAD), sin cambios de formato automáticos. Gate en vivo: navegador real (Playwright/dashboard) — `docs/done/evidence/UI.9.3-live.json`.
+
 <a id="sprint-30-ui-9-2"></a>
 ### UI.9.2 — Modo Chat completo
 

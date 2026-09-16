@@ -9,7 +9,7 @@ const I18N = {
   en: {
     /* ── Nav ─────────────────────────────────── */
     'nav.tasks': 'Tasks',
-    'nav.runs': 'Runs',
+    'nav.activity': 'Activity',
     'nav.memory': 'Memory',
     'nav.instincts': 'Instincts',
     'nav.specs': 'Specs',
@@ -443,11 +443,11 @@ const I18N = {
     'modal.inst.err.req': 'Both fields are required.',
 
     /* ── Runs ────────────────────────────────── */
-    'runs.title': 'Runs',
+    'runs.title': 'Activity',
     'runs.subtitle': 'Real-time monitoring · execution history.',
-    'runs.explainer.title': 'What are Runs?',
+    'runs.explainer.title': 'What is Activity?',
     'runs.explainer.body':
-      "Each time the agent executes a task it creates a run — a record of what it did, how long it took, what it cost, and any warnings. This is the technical log. Most users won't need to check here often.",
+      'Activity shows each task execution — what the agent did, how long it took, what it cost, and any warnings.',
     'runs.live': 'updating',
     'runs.idle': '● idle',
     /* Bloque E (Mes 18, ex-IDEAS #9b) — equivalente a `orchestos runs --analyze` */
@@ -912,7 +912,7 @@ const I18N = {
   es: {
     /* ── Nav ─────────────────────────────────── */
     'nav.tasks': 'Tareas',
-    'nav.runs': 'Ejecuciones',
+    'nav.activity': 'Actividad',
     'nav.memory': 'Memoria',
     'nav.instincts': 'Hábitos',
     'nav.specs': 'Specs',
@@ -1352,11 +1352,11 @@ const I18N = {
     'modal.inst.err.req': 'Ambos campos son obligatorios.',
 
     /* ── Runs ────────────────────────────────── */
-    'runs.title': 'Ejecuciones',
+    'runs.title': 'Actividad',
     'runs.subtitle': 'Monitoreo en tiempo real · historial de ejecuciones.',
-    'runs.explainer.title': '¿Qué son las Ejecuciones?',
+    'runs.explainer.title': '¿Qué es Actividad?',
     'runs.explainer.body':
-      'Cada vez que el agente ejecuta una tarea crea una ejecución — un registro de lo que hizo, cuánto tardó, cuánto costó y si hubo advertencias. Este es el log técnico. La mayoría de usuarios no necesita revisarlo con frecuencia.',
+      'Actividad muestra cada ejecución de tarea: qué hizo el agente, cuánto tardó, cuánto costó y si hubo advertencias.',
     'runs.live': 'actualizando',
     'runs.idle': '● en espera',
     /* Bloque E (Mes 18, ex-IDEAS #9b) — equivalente a `orchestos runs --analyze` */

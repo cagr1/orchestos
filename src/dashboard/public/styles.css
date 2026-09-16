@@ -680,7 +680,12 @@ button {
 .sidebar-cli-menu .disabled { color: var(--text-faint); cursor: not-allowed; }
 .sidebar-cli-menu small { display: block; margin-top: 2px; color: var(--warning); font-size: 11px; }
 .app[data-sidebar="collapsed"] .sidebar-section-label, .app[data-sidebar="collapsed"] .sidebar-agents-toggle,
-.app[data-sidebar="collapsed"] .sidebar-agent-row, .app[data-sidebar="collapsed"] .sidebar-row-add { display: none; }
+.app[data-sidebar="collapsed"] .sidebar-agent-row, .app[data-sidebar="collapsed"] .sidebar-row-add,
+.app[data-sidebar="collapsed"] .sidebar-cli-menu { display: none; }
+.app[data-sidebar="collapsed"] .sidebar-project-tree > .nav-icon {
+  justify-content: center;
+  padding: 0;
+}
 .app[data-sidebar="collapsed"] .sidebar-mode-row { flex-direction: column; }
 .app[data-sidebar="collapsed"] .sidebar-mode-btn { flex: 0 0 30px; }
 .app[data-sidebar="collapsed"] .sidebar-mode-label { display: none; }

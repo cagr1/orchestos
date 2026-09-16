@@ -144,7 +144,7 @@ const state = {
 
 const NAV = [
   { id: 'chat', icon: ICON.chat, key: 'nav.chat' },
-  { id: 'activity', icon: ICON.runs, key: 'nav.runs' },
+  { id: 'activity', icon: ICON.runs, key: 'nav.activity' },
   // I.1 (Mes 30) — Tasks queda anclado como en Orca: ya no es una barra manual
   // desde el chat, es la vista de tareas que el usuario final también necesita ver.
   { id: 'settings', icon: ICON.settings, key: 'nav.settings' },

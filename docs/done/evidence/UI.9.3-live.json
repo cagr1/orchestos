@@ -1,0 +1,56 @@
+{
+  "item": "UI.9.3",
+  "status": "pass_with_existing_data_limit",
+  "date": "2026-09-16",
+  "browser": {
+    "tool": "Playwright",
+    "base": "http://127.0.0.1:4323",
+    "viewport": "1280x800",
+    "projectsObserved": ["SalaDespecho", "orchestos"],
+    "selection": {
+      "workspace": { "screen": "workspace", "activeProjects": 1, "activeAgents": 0 },
+      "chatAgent": { "screen": "chat", "activeProjects": 0, "activeAgents": 1 },
+      "activity": {
+        "screen": "activity",
+        "activeProjects": 0,
+        "activeAgents": 0,
+        "activeActivityNavItems": 1,
+        "title": "Activity"
+      }
+    },
+    "collapsedRail": {
+      "visibleProjectIcons": 2,
+      "projectNamesAccessible": true,
+      "projectTooltipsPresent": true,
+      "projectTextLabels": { "width": "0px", "opacity": "0" },
+      "visibleAgentRows": 0,
+      "visibleAgentCounters": 0,
+      "visibleAddAgentControls": 0
+    },
+    "activity": {
+      "failedExecutionBadgesInline": true,
+      "languageLabels": {
+        "en": { "nav": "Activity", "title": "Activity" },
+        "es": { "nav": "Actividad", "title": "Actividad" }
+      }
+    },
+    "consoleErrors": 0
+  },
+  "automatedVerification": {
+    "typecheck": "pass",
+    "focusedTests": "agent-icons: 2 pass, 0 fail",
+    "coverage": "1440 pass, 0 fail",
+    "buildUi": "pass",
+    "ui3Shell": "pass: all criteria, zero console errors",
+    "biome": {
+      "lintErrors": 0,
+      "formatterDisabledForChangedFiles": true,
+      "preExistingAppJsFormatDrift": "confirmed at HEAD"
+    }
+  },
+  "existingDataLimit": {
+    "tasksEndpoint": { "done": 8, "pending": 2, "blockedOrFailed": 0 },
+    "note": "No blocked/failed task fixture existed for live rendering; task row status rendering was not changed, and no synthetic anomaly was created."
+  },
+  "scope": "Frontend only; no endpoints, database, Git/worktree detector, or task/run behavior changed."
+}
