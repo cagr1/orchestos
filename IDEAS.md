@@ -32,6 +32,7 @@ a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo com
 2. `#59` Etiquetar `code_edges` con `EXTRACTED`/`INFERRED` en `graph/` propio.
 3. `#61` Baseline de warnings de Biome pendiente de limpiar.
 4. `#62` Falso negativo silencioso del parser de `PLAN.md` (título en 2 líneas).
+5. `#63` Recalibrar el umbral del hook de contexto: 60% llega en el turno más caro.
 
 ### Bajo-medio
 
@@ -77,6 +78,8 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
 5. `#52` Lenguaje visual premium completo.
 6. `#56` Workspace multiagente paralelo.
 7. `#54` Mutation testing — adopción como gate del producto (el spike ya se graduó a PLAN.md § Bloque K / K.5).
+8. `#64` Recuperación por símbolos en vez de por archivo (ataca el 42.5% de salidas de herramientas).
+9. `#65` El cerebro que delega, construye, observa y piensa — como producto, no solo como proceso.
 
 ### Reconciliadas y fuera del backlog
 
@@ -1458,3 +1461,129 @@ _(se llena cuando haya un usuario externo real usando orchestos en su proyecto)_
   por sospecha.
 - Explícitamente fuera de esta pasada: refactors de arquitectura, cambios de
   comportamiento. Es limpieza, no rediseño.
+
+---
+
+### `#63` / `#64` / `#65` — Consumo de tokens: la medición y lo que sale de ella (2026-09-17)
+
+**Origen:** Carlos, 2026-09-17: *"me preocupa también algo el consumo excesivo de tokens… veo
+mucha queja de devs por el consumo y es una razón válida y que aquí también sufrimos"*. Antes de
+proponer nada se midieron los **243 transcripts reales** de este proyecto
+(`~/.claude/projects/<slug>/*.jsonl`, campo `message.usage`), no estimaciones.
+
+**Medición 1 — composición del contexto.** Sesión `8e00dc5d` del 2026-09-15, 847 turnos, la más
+cara del proyecto:
+
+| Qué | % del contexto |
+|---|---|
+| `tool_result` (salidas de herramientas) | 42.5% |
+| `thinking` (razonamiento del modelo) | 34.3% |
+| `tool_use` (llamadas: `Write`/`Bash` con contenido largo) | 21.3% |
+| **texto del asistente que el humano lee** | **1.7%** |
+| texto del usuario | 0.2% |
+
+**Consecuencia que refuta la intuición común:** "el modelo es verboso" **no explica el consumo**.
+El output total de las 243 sesiones es 11.7M contra 3,887M de `cache_read` — 0.3% del volumen.
+Un estilo de salida conciso optimiza el 1.7%. Esto extiende la medición ya registrada en
+`PLAN.md` § H.7 con la descomposición por tipo de contenido, que ahí no estaba.
+
+**Medición 2 — el multiplicador cuadrático.** Misma sesión, `cache_read` por cuarto de avance:
+
+| Tramo | `cache_read` | % |
+|---|---|---|
+| turnos 1–211 | 22M | 10% |
+| turnos 212–423 | 45M | 19% |
+| turnos 424–635 | 72M | 31% |
+| turnos 636–847 | 93M | 40% |
+
+Contexto por turno: 45k (turno 10) → 273k (turno 423) → 501k (turno 847). **El último cuarto costó
+4× el primero por el mismo trabajo**, porque cada turno re-lee todo lo acumulado. El costo no crece
+lineal con la sesión, crece como el cuadrado. Corolario operativo: un token escrito en el turno 10
+de una sesión de 847 se vuelve a leer 837 veces — **el output de hoy es el `cache_read` de todos
+los turnos siguientes**, y ese es el único motivo por el que ser conciso importa.
+
+**Totales de las 243 sesiones:** `cache_read` 3,887M · facturable (`cache_creation`+`input`+`output`)
+138.8M · output 11.7M.
+
+---
+
+#### `#63` — Recalibrar el umbral del hook de contexto (esfuerzo **Bajo**)
+
+`PLAN.md` § H.7.3 fija el aviso en **60%** (`warn`) y **65%** (`critical`). Con ventana de 1M eso es
+**600k tokens por turno**: el aviso llega exactamente en el tramo más caro, cuando ya se pagó el
+90% del costo evitable. Con la curva medida arriba, el aviso útil está cerca del **20–25%**.
+
+- Es cambiar una constante **que ya es dato del registro de H.7.2b**, no del hook — el diseño ya
+  lo previó (`context-adapters.ts`).
+- **No** convertir esto en compactación automática ([[feedback-no-compactar-contexto]]) ni en
+  cambio de modelo automático ([[feedback-modelo-decision-final-carlos]]). Se avisa, Carlos corta.
+- **Calibrar con evidencia, no de memoria:** re-correr la medición de arriba después del cambio y
+  comparar `cache_read` total por sesión. Sin ese número, no se puede afirmar que mejoró.
+- Depende de H.7.3, que sigue abierto. Si H.7.3 se cierra con 60%, este ítem lo corrige después.
+
+#### `#64` — Recuperación por símbolos en vez de por archivo (esfuerzo **Alto**)
+
+Ataca el 42.5% medido de `tool_result`. Hoy leer una función cuesta el archivo entero. La
+referencia externa concreta es **Serena MCP** (https://github.com/oraios/serena): recuperación y
+edición por símbolo vía LSP. De toda la investigación de alternativas (ver abajo) es **la única
+diferencia técnica real**, no otro formato de artefacto.
+
+Relacionado con `#10` (cliente MCP) — si se adopta, entra por ahí, no como integración aparte.
+**No adoptar por fe:** medir `tool_result` antes/después con el mismo método de arriba.
+
+#### `#65` — El cerebro que delega, construye, observa y piensa (esfuerzo **Alto**)
+
+Pedido textual de Carlos (2026-09-17): *"espero que aquí también tengamos esa delegación donde el
+cerebro no hace solo delega, construye, observa y piensa"*. Hoy ese modelo existe como **proceso
+para los LLM que trabajan el repo** (`AGENTS.md` § Protocolo de delegación permanente) pero **no
+como capacidad del producto**: OrchestOS ejecuta tareas, no delega-observa-verifica con roles.
+
+**Evidencia de que el proceso funciona, medida el mismo día:** cerrar UI.9.5 le costó a Luna
+145,664 tokens que **nunca entraron en el contexto del cerebro** — el cerebro vio ~60 líneas de
+resumen. Si lo hacía el cerebro, esos 145k (a) se re-leían en cada turno posterior por el
+multiplicador cuadrático de arriba y (b) salían del cupo de Claude en vez del de OpenAI.
+**Delegar no solo reduce el contexto: mueve el gasto a otro cupo.** Ese número es el argumento
+más fuerte que tiene este ítem.
+
+**Evidencia en contra de confiar en la regla escrita, del mismo día:** el cerebro igual se puso a
+escribir y depurar scripts de Playwright durante varios turnos hasta que **el hook de scope-lock lo
+frenó** (`Cerebro no escribe código (AGENTS.md § Protocolo de delegación)`). Es la Regla Cero otra
+vez: la regla escrita no se cumplió sola, la cumplió el diente mecánico. Cualquier diseño de este
+ítem tiene que asumir que el rol se hace cumplir por mecanismo, no por buena voluntad del modelo.
+
+**Fuera de alcance de la primera pasada:** no convertir esto en un framework de swarms. Ver el
+veredicto sobre Ruflo/BMAD abajo.
+
+---
+
+#### Investigación de alternativas externas (Luna, 2026-09-17, búsqueda web)
+
+Disparada por Carlos al mencionar "ODD (organic drive development)" de "gentli-ai".
+
+**Qué es realmente:** no existe "gentli-ai" ni "Organic Drive Development" con esa grafía. El
+proyecto real es **Gentleman-Programming/gentle-ai** (https://github.com/Gentleman-Programming/gentle-ai,
+≈6.9k ★) y su doc lo llama **Organic RDD — Receipt-Driven Development**
+(`docs/architecture/organic-rdd.md`); "Organic Driven Development" aparece solo en PRs recientes.
+No es un nombre vacío: es un CLI en Go con contratos por proveedor y memoria persistente. Flujo:
+decide inline (1–3 archivos) o delegado (4+ archivos/2+ escrituras) → si RDD está activo, abre una
+**transacción inmutable** que congela árbol, riesgo y alcance → revisión con 0/1/4 "lentes" según
+riesgo → una sola corrección acotada → `acknowledge-approved` quema la autoridad. Viene
+desactivado por defecto. **Lo honesto: no demuestra técnica nueva de compresión ni publica
+benchmarks de reducción de tokens.** Es un harness de ejecución y revisión.
+
+**Veredicto contra lo que este repo ya tiene** (handoff entre sesiones, memoria en archivos,
+delegación a modelos baratos, guard de arranque que mide tokens, plan/spec por ítem):
+
+| Proyecto | Mecanismo | Veredicto |
+|---|---|---|
+| [Serena MCP](https://github.com/oraios/serena) | recuperación/edición por símbolo (LSP) | **lo único con capacidad ausente** → `#64` |
+| [HumanLayer context-eng](https://github.com/humanlayer/advanced-context-engineering-for-coding-agents) | compactación intencional, subagentes de exploración | metodología, no producto; coincide con lo ya medido |
+| gentle-ai (RDD) | transacción inmutable, alcance congelado | el scope-lock propio ya cubre gran parte |
+| [Spec Kit](https://github.com/github/spec-kit), BMAD, Task Master, PRP, Context-Handoff | artefactos persistentes + descomposición | redundantes: cambian el formato, no la capacidad |
+| [Ruler](https://github.com/intellectronica/ruler) (≈2.9k ★) | distribuye reglas canónicas entre CLIs | útil solo si se mantienen varios formatos externos; no ahorra contexto de código |
+| [Repomix](https://github.com/yamadashy/repomix) (≈20k ★) | empaqueta el repo en un archivo | **puede aumentar** el total si empaqueta de más |
+| [Ruflo](https://github.com/ruvnet/ruflo) (≈72k ★) | swarms, memoria vectorial | más agentes ≠ menos tokens; el costo de coordinación puede superar el ahorro |
+
+**Conclusión y orden:** no adoptar ninguno todavía. La palanca #1 no está en ninguno de estos
+repos — es `#63`, recalibrar una constante que ya existe en código propio. Recién después evaluar
+`#64` (Serena) **con medición antes/después**, nunca por fe.
