@@ -11,6 +11,63 @@ status: sprint-30-abierto--fiabilidad-del-recorrido-y-shell-chat-workspace
 Historial completado → ver [DONE.md](DONE.md).
 Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
+## Restricción de producto: harness liviano — decisión de Carlos (2026-09-17)
+
+**Pedido textual:** *"quiero un harness o orquestador light sin ahogar el trabajo de los agentes
+cerebro"*. Origen: usando Orca, Carlos observa que consume ~2 GB de RAM y concluye que OrchestOS
+no debe ir por ahí.
+
+**Medición del 2026-09-17, no estimación** (`ps -o rss=`, ambos corriendo en la misma máquina):
+
+| Proceso | RSS |
+| --- | --- |
+| OrchestOS (`bun run src/cli.ts dashboard`) | **121 MB** |
+| Orca (suma de sus procesos, en ese momento) | **1,270 MB** |
+
+OrchestOS ya es ~10× más liviano. **Eso deja de ser una casualidad y pasa a ser un invariante que
+se defiende:** toda propuesta que agregue un runtime residente (swarms, memoria vectorial, índice
+persistente, servidor extra) declara su costo en RAM antes de entrar, y se compara contra estos
+121 MB. Es el mismo criterio con el que `IDEAS.md#64` deja a Serena MCP condicionada a medición
+antes/después en vez de adoptarla por fe.
+
+**"Sin ahogar al cerebro" es la otra mitad y limita lo anterior:** liviano no puede significar
+recortarle contexto, herramientas o criterio al modelo que piensa. El ahorro sale de *dónde corre
+el trabajo* (delegar al ejecutor, que gasta su propio contexto y su propio cupo — medido: 145,664
+tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al cerebro.
+
+## Entregable rápido: usarlo ya para decidir si sirve — decisión de Carlos (2026-09-17)
+
+**Pedido textual:** *"yo pedí un entregable rápido para comenzar a probar ya y ver si esta
+solución es mejor o peor y mejorarla"*. El orden de los bloques existe para eso, no para
+completarse entero antes de probar.
+
+**Lo que ya está listo para usar hoy** (cerrado y verificado en vivo esta semana): shell Chat | Dev
+completo (`UI.9.1`–`UI.9.4`), inspector contextual (`UI.9.5`), el puente de estado sin el
+`TypeError` que rompía el cambio de modo (`UI.9.6`), agregar proyecto desde la UI (`UI.9.4`), y el
+chat con **Codex** sin caída silenciosa a OpenRouter (`AT.10`, tramo Codex cerrado con evidencia).
+
+**Lo que falta para que la prueba no mienta, en orden:**
+
+1. **Sembrar datos reales de trabajo.** Requisito heredado de `NEXT.md` (graduado acá el
+   2026-09-17): **≥2 proyectos, ≥3 sesiones por proyecto, ≥5 chats sin proyecto**. Hoy la DB real
+   tiene ~1 y 1, y eso **ya invalidó un gate**: `UI.9.5` no pudo observar "Open in Workspace"
+   porque no había sesiones elegibles (`docs/done/evidence/UI.9.5-live.json`). Con volumen de 1 no
+   se puede juzgar ni el layout ni si la herramienta sirve.
+2. **`AT.10` cerrado del todo** — hoy Codex cierra y OpenCode queda bloqueado por configuración de
+   la máquina, no por el código. Si el chat cae en silencio a otro proveedor, la prueba miente
+   sobre qué se está evaluando.
+3. **`H.5.3` — primera corrida medida real** (ya `GATED` por Carlos): es el "antes" contra el que
+   se compara cualquier mejora posterior. Sin ese número no se puede afirmar que una versión es
+   mejor que otra, que es exactamente la pregunta que este entregable quiere responder.
+
+**Explícitamente fuera del entregable rápido:** `UI.4` (9 pantallas sin migrar), `UI.5`, el resto
+de `UI.3.5` (`.card`, componentes de `UI.2`, shell), `UI.8.5`/`UI.8.6`, y los bloques `ERP.2`–`ERP.5`.
+Ninguno bloquea empezar a usarlo.
+
+**Deuda técnica registrada al graduar `NEXT.md` (2026-09-17):** la pantalla legacy `tasks`
+(`App.go('tasks')`) sigue viva y era el "hermano observado" anotado en aquel archivo; no tiene
+ítem propio todavía. No bloquea el entregable rápido; se anota para que no se pierda otra vez.
+
 ## Ruta mínima al piloto ERP — decisión de Carlos (2026-09-15)
 
 **Objetivo de aceptación:** desarrollar y utilizar un módulo completo de ERP en un proyecto
@@ -1882,7 +1939,7 @@ ni eso hace falta.
 > `project_id NULL`, Dev las de cada proyecto; (2) "agente" en Dev = sesión de chat con CLI dentro
 > del proyecto, tareas/runs siguen en Workspace/Activity; (3) agregar proyecto = diálogo nativo de
 > macOS abierto por el servidor; (4) el switch cambia sidebar **y** canvas (último chat general o
-> vacío ↔ último proyecto/agente). Plan completo: `NEXT.md`.
+> vacío ↔ último proyecto/agente). Plan completo: absorbido en este PLAN.md el 2026-09-17 al borrar `NEXT.md`; sus dos requisitos huérfanos (datos sembrados y pantalla legacy `tasks`) viven ahora en § Entregable rápido.
 
 > **Orden (Carlos, 2026-09-15): UI.9.4 va primero.** OrchestOS se prueba desde la interfaz: *"si
 > funciona ya en back se lo debe mostrar en el front, sino no existe"*. El gate de UI.9.1 necesita
