@@ -1536,6 +1536,28 @@ ni eso hace falta.
     nuevo en vez de paridad contra vanilla (quedaron en rojo en las 2 aserciones de paridad de
     columnas/badges — esperado, hay que reemplazarlas, no arreglarlas).
 
+- [ ] **UI.3.5a — ⚡ El gate invertido que mide de verdad, y el barrido de radios.**
+  Primera pasada concreta del pendiente de `UI.3.5` (arriba); el padre sigue abierto después de
+  cerrar esta. Spec: `docs/specs/UI.3.5a.md`.
+  **Dos hallazgos medidos el 2026-09-17 (Claude, verificando antes de delegar):**
+  1. `ui81-visual-consistency.mjs:33` navega a `/?screen=<id>`, pero **`app.js` no lee
+     `URLSearchParams` en ningún lado** — el parámetro se ignora en silencio y el gate mide
+     siempre la pantalla de arranque. Evidencia: las **13** pantallas devuelven números
+     idénticos (`font-size: 4` · `border-radius: 6 (0px, 4px, 50%, 6px, 8px, 999px)`).
+     El gate que UI.3.5 exigía existe desde UI.8.1, pero no hace lo que dice — Regla Cero.
+  2. El umbral `radii.length <= 2` (`:66`) **contradice el diseño que debe hacer cumplir**:
+     UI.3.5 declara 4px + 8px, y todo nodo sin radio computa `0px`, así que el diseño correcto
+     produce 3 valores como mínimo. El gate es imposible de pasar sin violar su propia
+     especificación; por eso lleva meses en rojo sin poder cerrarse.
+  **Decisión (cerebro, 2026-09-17):** el umbral pasa de conteo a **lista blanca** (`0px`,
+  `--radius` 4px, `--radius-lg` 8px, `--radius-pill` 999px, `--radius-circle` 50%). Es **más
+  estricto**, no más laxo: hoy `{6px, 7px}` pasaría por ser 2 valores y el diseño correcto falla;
+  con lista blanca, `6px`/`7px`/`12px`/`20px`/`5px`/`2px` fallan siempre.
+  Estado medido del CSS: 51 usos por token vs **55 crudos** (13× `6px`, 13× `50%`, 10× `999px`,
+  9× `4px`/`8px` crudos, 14 sueltos).
+  **Gate:** dashboard real + Playwright sobre las 13 pantallas, cada una reportando la pantalla
+  efectivamente alcanzada; evidencia en `docs/done/evidence/UI.3.5a-live.json`.
+
 - [ ] **UI.4 — 🧠 Pantallas, en orden de valor.** (PAUSADO por `UI.3.5` — 2 de 11 migradas con
   el look viejo: `specs` ✅ `skills` ✅. Al retomar, reciben el sistema nuevo de `UI.3.5`; las 9
   que faltan nacen ya con él.)
