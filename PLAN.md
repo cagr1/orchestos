@@ -1770,9 +1770,7 @@ ni eso hace falta.
   2. Si lo generó: abre **proyecto + entidad de origen ya seleccionada**, misma pestaña, con el
      chat conservado y accesible en un gesto de vuelta.
   Gate 🔍 en vivo con los dos casos de (1) y (2).
-
-  **Progreso — 3 piezas (árbol de agentes, contrato Chat→Workspace, inspector condicional),
-  sigue abierto hasta que las tres cierren:**
+  **Progreso — 3 piezas (árbol de agentes, contrato Chat→Workspace, inspector condicional); UI.8.4c/UI.9.5 cerradas, padre pendiente del gate agregado:**
   - [x] **UI.8.4a — agentes como filas colapsables** (cerrada 2026-09-15)
     Ejecutado por: luna · Spec: docs/specs/UI.8.4-agents.md
     Header `N agents ⌄` por proyecto en `Sidebar.tsx`, filas = sesiones de `chat_sessions`
@@ -1795,9 +1793,11 @@ ni eso hace falta.
     real apuntando a una tarea real (`crypto-page-v1`), confirma workspace+tab+SidePanel
     correctos y la sesión preservada al volver. `bunx tsc --noEmit`, `bunx biome check` (0
     errores) y `bun run test:coverage` (1431 pass) verdes.
-  - [ ] **UI.8.4c — inspector condicional** (0px cerrado, ancho persistido), retomada por UI.9.5
+  - [x] **UI.8.4c — inspector condicional** (0px cerrado, ancho persistido), retomada por UI.9.5
     tras UI.9.1–9.4; spec re-leído y actualizado contra el shell Chat | Dev actual
     (`docs/specs/UI.8.4c.md`).
+    Ejecutado por: luna · Spec: docs/specs/UI.8.4c.md
+    Gate en vivo: navegador real (Playwright/dashboard), evidencia en `docs/done/evidence/UI.9.5-live.json`; el flujo UI.9.2 Open in Workspace no fue observable porque no había sesiones persistentes elegibles en la base real, y queda documentado en la evidencia junto al error preexistente de Sidebar al cambiar Dev→Chat.
 
   **Anotado por Carlos (2026-09-15), pendiente de planificar, no implementado todavía:** donde
   hoy dice "Projects" en el riel debería tener un ícono `+`/carpeta-con-agregar para dar de alta
@@ -1878,7 +1878,10 @@ ni eso hace falta.
   Gate en vivo: Playwright/dashboard real, sesiones API/Claude/Codex, controles por sesión, iconos CLI y switch expandido/colapsado; evidencia `docs/done/evidence/UI.9.2-live.json`.
 - [x] **UI.9.3 — 🧠 Modo Dev completo.** Activity, rail Dev solo-ícono, selección única (A.3) y anomalías inline (A.4). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-3)
 - [x] **UI.9.4 — 🧠 Agregar proyecto desde la UI** (`+` en Projects → `osascript choose folder` en el servidor → registro del proyecto). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-4)
-- [ ] **UI.9.5 — 🧠 Inspector condicional sobre el shell Chat | Dev** (retoma UI.8.4c; spec actualizado: `docs/specs/UI.8.4c.md`).
+- [x] **UI.9.5 — 🧠 Inspector condicional sobre el shell Chat | Dev** (retoma UI.8.4c; spec actualizado: `docs/specs/UI.8.4c.md`).
+  Ejecutado por: luna · Spec: docs/specs/UI.8.4c.md
+  Sin delegación: el ítem UI.9.5 retoma y cierra el spec compartido docs/specs/UI.8.4c.md; no existe docs/specs/UI.9.5.md.
+  Gate en vivo: navegador real (Playwright/dashboard) — `docs/done/evidence/UI.9.5-live.json`; task real, resize persistido, cierres por botón/Escape/navegación/proyecto, palette Terminal→Diff y viewport 390×844 observados. Open in Workspace no observable sin sesión persistente elegible; radios UI.3.5 y TypeError Dev→Chat quedan documentados como deudas fuera de alcance.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 

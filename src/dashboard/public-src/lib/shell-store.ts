@@ -35,10 +35,11 @@ export interface ShellState {
   running: boolean
   /** Riel izquierdo expandido. */
   sidebarExpanded: boolean
-  /** Aside derecho abierto. */
-  rightPanelOpen: boolean
-  /** Pestaña activa del aside derecho. */
-  rightPanelTab: string
+  /** Inspector contextual: tarea, herramienta o cerrado. */
+  inspector:
+    | null
+    | { kind: 'task'; id: string }
+    | { kind: 'tool'; tab: 'explorer' | 'terminal' | 'diff' }
   /**
    * Proyecto activo del workspace.
    */
@@ -62,8 +63,7 @@ const initial: ShellState = {
   skillsCount: 0,
   running: false,
   sidebarExpanded: false,
-  rightPanelOpen: false,
-  rightPanelTab: 'terminal',
+  inspector: null,
   workspaceProjectId: null,
   chatSessionId: null,
 }

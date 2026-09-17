@@ -69,7 +69,6 @@
   /* ronda 4 — el aside derecho SIEMPRE está presente (igual que el
      izquierdo): riel angosto cuando está cerrado, con el ícono de toggle
      fijo ahí adentro — nunca se mueve a otro lugar ni desaparece. */
-  --rightpanel-w-collapsed: 46px;
 
   --mono: "SF Mono", "Fira Code", "JetBrains Mono", ui-monospace, "Menlo", monospace;
   --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -212,16 +211,11 @@ button {
 /* ============================================================
    App grid
    ============================================================ */
-/* 2026-07-13 (corrección de Carlos, ronda 4) — el aside derecho es una
-   columna SIEMPRE presente, simétrica al sidebar izquierdo: riel angosto
-   (--rightpanel-w-collapsed) cuando está cerrado, con su ícono de toggle
-   fijo ahí adentro (nunca en el header, nunca desaparece/reaparece en otro
-   lugar), y se ensancha a --rightpanel-w al abrir. Por eso "rightpanel" ya
-   NO es condicional a [data-rightpanel="expanded"] — solo el ANCHO cambia. */
+/* El inspector contextual permanece montado, pero su columna mide cero hasta abrirse. */
 .app {
   position: relative; /* ancla los resize-handle, ver más abajo */
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr var(--rightpanel-w-collapsed);
+  grid-template-columns: var(--sidebar-w) 1fr 0;
   grid-template-rows: var(--header-h) 1fr var(--statusbar-h);
   grid-template-areas:
     "sidebar header rightpanel"
@@ -232,7 +226,7 @@ button {
   transition: grid-template-columns 0.16s ease;
 }
 .app[data-sidebar="expanded"] {
-  grid-template-columns: var(--sidebar-w-exp) 1fr var(--rightpanel-w-collapsed);
+  grid-template-columns: var(--sidebar-w-exp) 1fr 0;
 }
 .app[data-rightpanel="expanded"] {
   grid-template-columns: var(--sidebar-w) 1fr var(--rightpanel-w);
@@ -430,12 +424,12 @@ button {
 .header-icon-btn {
   position: relative;
 }
-/* 2026-07-14 (corrección de Carlos) — #rpToggle SIEMPRE pegado al borde
+/* El cierre del inspector queda pegado al borde derecho
    derecho de #rpToprow (margin-left:auto lo empuja ahí, sea que existan 0 o
    3 hermanos a su izquierda). Ese borde derecho ES el borde derecho de la
    pantalla (última columna del grid), así que el ícono queda fijo en
    pantalla al expandir/colapsar el aside — ver comentario en app.js. */
-#rpToggle {
+#rpClose {
   margin-left: auto;
 }
 .header-icon-btn[data-tip]:hover::after {
@@ -1122,14 +1116,12 @@ button {
 /* ============================================================
    Right panel — explorer / terminal / diff (v0.13 seed, header redesign)
    ============================================================ */
-/* 2026-07-13 (corrección de Carlos, ronda 4) — SIEMPRE `flex` (nunca
-   display:none): es una columna permanente, como .sidebar, que solo cambia
-   de ancho entre riel colapsado y expandido. */
+/* El inspector usa flex cuando está abierto y no reserva espacio al cerrarse. */
 .rightpanel {
   grid-area: rightpanel;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border);
+  border-left: 0;
   background: var(--surface);
   min-width: 0;
   /* sin overflow:hidden acá (2026-07-14, corrección de Carlos) — igual que
@@ -1137,6 +1129,9 @@ button {
      en .rp-body (ver abajo), así el tooltip del toggle (::after, abre hacia
      la izquierda) puede escapar sobre .main sin cortarse. */
 }
+.app[data-rightpanel="collapsed"] .rightpanel { pointer-events: none; }
+.app[data-rightpanel="collapsed"] #rightpanelResizeHandle { visibility: hidden; pointer-events: none; }
+.app[data-rightpanel="expanded"] .rightpanel { border-left: 1px solid var(--border); }
 /* 2026-07-13 (corrección de Carlos, ronda 3) — toprow propio del aside
    derecho: explorer/terminal/diff/cerrar, TODOS a la izquierda (pedido
    explícito — nada empujado a la derecha). Misma altura que .header
@@ -1154,11 +1149,8 @@ button {
      ancho), pero overflow:hidden acá recortaba su tooltip (::after, abre
      hacia la izquierda porque el aside está pegado al borde derecho). */
 }
-/* ronda 4 — sin contenido visible mientras el riel está colapsado (el
-   toggle vive solo en .rp-toprow ahí arriba). */
-.app[data-rightpanel="collapsed"] .rp-body {
-  display: none;
-}
+/* Sin contenido visible mientras el inspector está cerrado. */
+.app[data-rightpanel="collapsed"] .rp-body { display: none; }
 .rp-body {
   flex: 1;
   min-height: 0;
@@ -1756,10 +1748,17 @@ select.bare {
   .app[data-sidebar="expanded"] {
     grid-template-columns: var(--sidebar-w-exp) 1fr;
   }
-  .rightpanel,
-  .resize-handle-rightpanel {
-    display: none;
+  .app[data-rightpanel="expanded"] { grid-template-columns: 0 1fr; }
+  .app[data-rightpanel="expanded"] .rightpanel {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100vw;
+    border-left: 0;
   }
+  .app[data-rightpanel="collapsed"] .rightpanel,
+  .resize-handle-rightpanel { display: none; }
 }
 
 /* ── Reduced motion ───────────────────────────────── */

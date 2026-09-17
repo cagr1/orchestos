@@ -32,8 +32,8 @@ export interface ShellApi {
   deleteChatSession: (sessionId: string) => Promise<void>
   cliModes: () => Array<{ id: string; detected?: boolean; path?: string }>
   openCommandPalette: () => void
-  toggleRightPanel: () => void
-  setRightPanelTab: (tab: string) => void
+  closeInspector: () => void
+  openInspectorTool: (tab: 'explorer' | 'terminal' | 'diff') => void
 }
 
 export function shellApi(): ShellApi | null {

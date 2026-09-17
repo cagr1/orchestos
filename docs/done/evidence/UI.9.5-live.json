@@ -1,0 +1,107 @@
+{
+  "gate": "UI.9.5",
+  "base": "http://127.0.0.1:4321",
+  "observedAt": "2026-09-17T16:52:36.864Z",
+  "checks": [
+    {
+      "id": "boot-closed",
+      "ok": true,
+      "detail": "project=7078a96b02350763, tasks=10"
+    },
+    {
+      "id": "real-task-row",
+      "ok": true,
+      "detail": "crypto-page-v1"
+    },
+    {
+      "id": "task-opens",
+      "ok": true,
+      "detail": "crypto-page-v1"
+    },
+    {
+      "id": "task-detail-visible",
+      "ok": true,
+      "detail": "1240 chars"
+    },
+    {
+      "id": "no-backdrop",
+      "ok": true,
+      "detail": "none"
+    },
+    {
+      "id": "resize-persists",
+      "ok": true,
+      "detail": "before=360px, after=432px, stored=432"
+    },
+    {
+      "id": "close-button",
+      "ok": true,
+      "detail": "#rpClose"
+    },
+    {
+      "id": "close-escape",
+      "ok": true,
+      "detail": "Escape"
+    },
+    {
+      "id": "close-navigation",
+      "ok": true,
+      "detail": "go(activity)"
+    },
+    {
+      "id": "project-switch-closes",
+      "ok": true,
+      "detail": "project=73903c93c6bd19e0"
+    },
+    {
+      "id": "palette-opens",
+      "ok": true,
+      "detail": "Terminal visible"
+    },
+    {
+      "id": "palette-terminal",
+      "ok": true,
+      "detail": "Terminal active"
+    },
+    {
+      "id": "palette-diff",
+      "ok": true,
+      "detail": "Diff active"
+    },
+    {
+      "id": "reload-closed-width-kept",
+      "ok": true,
+      "detail": "width=0px, stored=432"
+    },
+    {
+      "id": "mobile-usable",
+      "ok": true,
+      "detail": "{\"w\":390,\"h\":844,\"left\":0,\"top\":0,\"close\":true}"
+    },
+    {
+      "id": "open-in-workspace",
+      "ok": false,
+      "detail": "not observable: no button; eligible=[]"
+    }
+  ],
+  "consoleErrors": [
+    "TypeError: Cannot read properties of undefined (reading 'filter')"
+  ],
+  "notes": [
+    "UI.9.2 Open in Workspace no pudo observarse: la base real no tiene sesiones chat persistentes elegibles (chatSessions=[]).",
+    "TypeError de Sidebar al cambiar Dev→Chat (generalSessions undefined), hallazgo previo documentado en PLAN.md 2026-09-17 y fuera de alcance de UI.9.5."
+  ],
+  "grep_point_3": {
+    "command": "rg -n SidePanel rightPanelOpen rightPanelTab rpToggle orchestos-rightpanel-tab rightpanel-w-collapsed src/dashboard/public src/dashboard/public-src scripts/ui-gates; rg -n \"\\.side-panel\" ...",
+    "result": "sin resultados en fuentes activas para SidePanel/rightPanelOpen/rightPanelTab/rpToggle/rightpanel-w-collapsed/.side-panel; solo aparece orchestos-rightpanel-tab en limpieza de clave legacy dentro de app.js y en el gate ui3-shell.mjs."
+  },
+  "preverified_by_cerebro": {
+    "tsc": "bunx tsc --noEmit: 0 errores",
+    "coverage": "bun run test:coverage: 1440 pass / 0 fail",
+    "build": "bun run build:ui: ok",
+    "biome": "2 errores/38 warnings idénticos en master, preexistentes",
+    "ui81": "FAIL de seis radios idéntico en master; deuda UI.3.5, fuera de UI.9.5",
+    "ui3": "18/18 PASS contra dashboard real"
+  },
+  "dashboard_shutdown": "pendiente al momento de escribir; se baja después de guardar evidencia"
+}

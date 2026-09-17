@@ -10,15 +10,6 @@
  *   bun run src/cli.ts dashboard --port 4323 &
  *   BASE=http://localhost:4323 node scripts/ui-gates/ui3-shell.mjs
  */
-/* NOTA sobre `#rpToggle` — el prompt con el que se encargó este gate decía `#rpToggleBtn`,
-   y estaba MAL. El id correcto es `rpToggle`, y no es un detalle cosmético: el CSS que
-   implementa la regla 1 lo selecciona por ese id (`#rpToggle { margin-left: auto }` en
-   styles.css:315). Renombrarlo habría dejado al botón sin su anclaje al borde derecho, o
-   sea habría roto justamente la regla que este gate mide. La primera versión del script
-   conservó a propósito el selector equivocado del contrato para que la discrepancia
-   fallara a la vista en vez de adaptarse en silencio al código — que es lo correcto para
-   un test escrito por alguien distinto del autor del código. Se corrige acá porque el
-   error estaba en el contrato, no en la implementación. */
 import { chromium } from 'playwright'
 
 const BASE = process.env.BASE || 'http://localhost:4323'
@@ -42,62 +33,46 @@ page.on('pageerror', (e) => errors.push(String(e)))
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.locator('#sidebar').waitFor({ state: 'visible', timeout: 8000 })
 await page.locator('.header').waitFor({ state: 'visible', timeout: 8000 })
-await page.locator('#rightpanel').waitFor({ state: 'visible', timeout: 8000 })
+await page.locator('#rightpanel').waitFor({ state: 'attached', timeout: 8000 })
 
-// ── REGLA 1 — el control del aside queda pegado al borde fijo ───────────────
-// El ancho del aside cambia por su borde izquierdo. Por eso no alcanza con comprobar que
-// el botón existe: medimos la distancia entre su borde derecho y el borde derecho del
-// contenedor en los dos estados. Si el botón está ordenado al inicio del flex, esa distancia
-// cambia al expandir; `margin-left:auto` la conserva.
+// ── Inspector cerrado: cero píxeles y sin controles residuales ─────────────
 await page.evaluate(() => {
   localStorage.setItem('orchestos-sidebar', 'collapsed')
-  localStorage.setItem('orchestos-rightpanel', 'collapsed')
+  localStorage.removeItem('orchestos-rightpanel')
+  localStorage.removeItem('orchestos-rightpanel-tab')
 })
 await page.reload({ waitUntil: 'networkidle' })
-await page.locator('#rpToggle').waitFor({ state: 'visible', timeout: 8000 })
-
-const rightEdgeGap = async () =>
-  page.evaluate(() => {
-    const button = document.querySelector('#rpToggle')
+log(
+  await page.evaluate(() => {
     const panel = document.querySelector('#rightpanel')
-    if (!button || !panel) return null
-    const br = button.getBoundingClientRect()
-    const pr = panel.getBoundingClientRect()
-    return Math.round(pr.right - br.right)
-  })
-const gapCollapsed = await rightEdgeGap()
-await page.locator('#rpToggle').click()
-await page.waitForTimeout(400)
-const gapExpanded = await rightEdgeGap()
-// TOLERANCIA DE 1px, medida y explicada — no es un umbral puesto para que pase.
-// Con el aside cerrado la fila mide 45px de ancho útil (46px del aside menos 1px de
-// `border-left`) y el botón necesita 30px + 16px de padding = 46px: falta 1px, así que el
-// padding derecho efectivo se come ese píxel y el hueco da 7 en vez de 8. Es aritmética del
-// CSS vanilla (`--rightpanel-w-collapsed: 46px`), idéntica antes y después de migrar a
-// React, y NO es lo que la regla previene: si el botón estuviera anclado al borde que se
-// mueve, la diferencia sería de ~314px (el ancho que gana el aside), no de uno.
-log(
-  gapCollapsed !== null && Math.abs(gapCollapsed - gapExpanded) <= 1,
-  `regla 1: el toggle se mantiene pegado al borde derecho al abrir el aside (${gapCollapsed}px → ${gapExpanded}px, tolerancia 1px por el ancho del riel)`,
+    const cs = panel && getComputedStyle(panel)
+    return (
+      panel &&
+      cs.width === '0px' &&
+      !document.querySelector('#rightpanel button, #rightpanel [role="button"]')
+    )
+  }),
+  'inspector cerrado: ancho 0px y sin toggle/handle visible',
 )
 
-// El eje que la regla previene de verdad: expandir/colapsar el SIDEBAR mueve el borde
-// izquierdo del layout entero. Acá la distancia tiene que ser EXACTA, sin tolerancia —
-// el bug histórico era justamente el botón viajando con ese borde.
-const gapBeforeSidebar = await rightEdgeGap()
-await page.locator('.sidebar-toprow').hover()
-await page.locator('#navCollapseBtn').click()
-await page.waitForTimeout(500)
-const gapAfterSidebar = await rightEdgeGap()
-log(
-  gapBeforeSidebar === gapAfterSidebar,
-  `regla 1: expandir el sidebar NO mueve el toggle del aside (${gapBeforeSidebar}px → ${gapAfterSidebar}px, exacto)`,
-)
-await page.locator('.sidebar-toprow').hover()
-await page.locator('#navCollapseBtn').click()
-await page.waitForTimeout(500)
-await page.locator('#rpToggle').click()
+await page.evaluate(() => window.OrchestOS.openInspectorTool('terminal'))
 await page.waitForTimeout(400)
+log(
+  await page.locator('#rightpanel').evaluate((el) => getComputedStyle(el).width !== '0px'),
+  'inspector tool abre por API',
+)
+log(
+  (await page.locator('#rpTabExplorer').count()) === 1 &&
+    (await page.locator('#rpTabTerminal').count()) === 1 &&
+    (await page.locator('#rpTabDiff').count()) === 1,
+  'inspector tool muestra sus tres tabs',
+)
+await page.locator('#rpClose').click()
+await page.waitForTimeout(300)
+log(
+  (await page.locator('#rightpanel').evaluate((el) => getComputedStyle(el).width)) === '0px',
+  'inspector se cierra con el botón',
+)
 
 // ── REGLA 2 — una altura única y sin padding vertical accidental ───────────
 // Se lee `--header-h` de `:root` y se compara con los tres rectángulos reales. El padding se
@@ -334,32 +309,19 @@ log(
   `criterio 8: el pill del header dice ${status.text} y data-state=${status.state}`,
 )
 
-// El botón de panel derecho debe tener un único dueño: la fila superior del aside. Abrirlo y
-// cerrarlo prueba tanto la ubicación estructural como la acción visible y el estado del app.
-const rpToggle = page.locator('#rpToggle')
-log(
-  (await page.locator('#rpToprow').locator('#rpToggle').count()) === 1 &&
-    (await page.locator('.header #rpToggle').count()) === 0,
-  'criterio 10: el toggle del rightpanel vive dentro de #rpToprow y nunca en .header',
-)
-// Se NORMALIZA el estado antes de medir, en vez de asumirlo: el aside persiste en
-// `localStorage['orchestos-rightpanel']`, así que una corrida anterior del propio gate lo
-// deja abierto y la siguiente mide el ciclo al revés (abre→cierra en lugar de
-// cierra→abre) y falla sin que nada esté roto. Un gate tiene que ser idempotente.
-if ((await page.locator('.app').getAttribute('data-rightpanel')) === 'expanded') {
-  await rpToggle.click()
-  await page.waitForTimeout(400)
+// Una tarea real, cuando existe, debe abrir el mismo inspector contextual.
+const taskRow = page.locator('[data-task]').first()
+if (await taskRow.count()) {
+  await taskRow.click()
+  await page.waitForTimeout(300)
+  log((await page.locator('.inspector').count()) === 1, 'detalle de tarea real abre el inspector')
+  log(
+    (await page.locator('#rpToprow #rpClose').count()) === 1 &&
+      (await page.locator('.inspector .insp-head .insp-close').count()) === 0,
+    'cierre de tarea: solo existe rpClose en el toprow, sin botón duplicado en el encabezado interno',
+  )
+  await page.locator('#rpClose').click()
 }
-await rpToggle.click()
-await page.waitForTimeout(400)
-const rpOpen = await page.locator('.app').getAttribute('data-rightpanel')
-await rpToggle.click()
-await page.waitForTimeout(400)
-const rpClosed = await page.locator('.app').getAttribute('data-rightpanel')
-log(
-  rpOpen === 'expanded' && rpClosed === 'collapsed',
-  `criterio 10: el rightpanel abre y cierra con su toggle (${rpOpen} → ${rpClosed})`,
-)
 
 // `App.rerender()` es el camino que usa el poll de 30 segundos. El shell cuelga fuera de
 // `#main`, pero el gate cuenta las tres piezas después del repintado para detectar roots

@@ -230,8 +230,8 @@ const I18N = {
     'rp.tab.explorer': 'Explorer',
     'rp.tab.terminal': 'Terminal',
     'rp.tab.diff': 'Diff',
-    'rp.toggle.open': 'Open right panel',
-    'rp.toggle.close': 'Close right panel',
+    'inspector.close': 'Close inspector',
+    'cmdk.type.tool': 'Tool',
     'rp.terminal.title': 'Recent Runs',
     'rp.diff.empty': 'No diffs yet — completed runs with file changes will show up here.',
     'rp.explorer.empty': 'Empty directory.',
@@ -361,7 +361,7 @@ const I18N = {
     'modal.task.btn.create': 'Create Task',
     'modal.task.err.required': 'Description is required.',
 
-    /* ── SidePanel ───────────────────────────── */
+    /* ── Inspector ───────────────────────────── */
     'panel.description': 'Description',
     'panel.output': 'Output files',
     'panel.skill': 'Skill',
@@ -1137,8 +1137,8 @@ const I18N = {
     'rp.tab.explorer': 'Explorador',
     'rp.tab.terminal': 'Terminal',
     'rp.tab.diff': 'Diff',
-    'rp.toggle.open': 'Abrir panel derecho',
-    'rp.toggle.close': 'Cerrar panel derecho',
+    'inspector.close': 'Cerrar inspector',
+    'cmdk.type.tool': 'Herramienta',
     'rp.terminal.title': 'Runs recientes',
     'rp.diff.empty':
       'Aún no hay diffs — las corridas terminadas con cambios de archivos aparecen acá.',
@@ -1270,7 +1270,7 @@ const I18N = {
     'modal.task.btn.create': 'Crear tarea',
     'modal.task.err.required': 'La descripción es obligatoria.',
 
-    /* ── SidePanel ───────────────────────────── */
+    /* ── Inspector ───────────────────────────── */
     'panel.description': 'Descripción',
     'panel.output': 'Archivos de salida',
     'panel.skill': 'Skill',

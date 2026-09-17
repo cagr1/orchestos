@@ -70,11 +70,10 @@ const state = {
   // v0.12 Bloque C — visor de diff por run: qué archivos están expandidos (mostrando
   // el diff completo en vez de colapsado a las primeras líneas). Clave: `${runId}:${path}`.
   diffExpanded: new Set(),
-  // v0.13 seed — panel derecho del header redesign (2026-07-13, captura de Carlos):
-  // explorer/terminal/diff, un ícono de header por vista + un toggle. Abierto/tab
-  // persisten en localStorage (mismo patrón que orchestos-sidebar).
-  rightPanelOpen: localStorage.getItem('orchestos-rightpanel') === 'expanded',
-  rightPanelTab: localStorage.getItem('orchestos-rightpanel-tab') || 'terminal',
+  // Inspector contextual (UI.9.5): tarea o herramienta; no se persiste la entidad abierta.
+  inspector: null,
+  // Inspector width persists; entity/tab state never does.
+  inspectorTab: 'terminal',
   // Explorer: ruta del archivo abierto en preview (null = mostrando el árbol).
   explorerOpenFile: null,
 
@@ -714,9 +713,10 @@ const App = {
     }
     // v0.13 seed — solo refresca la pestaña activa del panel derecho si está
     // abierto; Explorer no depende de state.runs, se refresca a sí mismo.
-    if (state.rightPanelOpen && state.rightPanelTab !== 'explorer') RightPanel.render()
+    if (state.inspector?.kind === 'tool' && state.inspector.tab !== 'explorer') RightPanel.render()
   },
   async setShellMode(mode) {
+    closeInspector()
     state.shellMode = mode === 'dev' ? 'dev' : 'chat'
     localStorage.setItem('orchestos-shell-mode', state.shellMode)
     pushShellState({ shellMode: state.shellMode })
@@ -827,6 +827,7 @@ const App = {
     this.syncNav()
   },
   go(id) {
+    closeInspector()
     if (id === 'activity' || id === 'workspace') {
       state.shellMode = 'dev'
       localStorage.setItem('orchestos-shell-mode', 'dev')
@@ -924,11 +925,12 @@ const RightPanel = {
   render() {
     const body = document.getElementById('rightpanelBody')
     if (!body) return
-    if (state.rightPanelTab === 'explorer') {
+    if (state.inspector?.kind !== 'tool') return
+    if (state.inspector.tab === 'explorer') {
       Explorer.render()
       return
     }
-    if (state.rightPanelTab === 'diff') {
+    if (state.inspector.tab === 'diff') {
       this.renderDiff()
       return
     }
@@ -970,7 +972,7 @@ const RightPanel = {
 /* ============================================================
    Explorer (right panel tab) — árbol read-only del proyecto, un nivel
    por request (docs: src/dashboard/handlers/explorer.ts). Se maneja fuera
-   del ciclo App.rerender() — igual que Term/SidePanel/Modal — porque su
+   del ciclo App.rerender() — igual que Term/Inspector/Modal — porque su
    estado (directorios expandidos, archivo abierto) no debe reconstruirse
    en cada poll de 30s.
    ============================================================ */
@@ -1071,54 +1073,51 @@ const Explorer = {
 /* ============================================================
    Side panel (task details)
    ============================================================ */
-const SidePanel = {
+const Inspector = {
   el: null,
-  backdrop: null,
   init() {
-    this.backdrop = document.createElement('div')
-    this.backdrop.className = 'backdrop'
-    this.backdrop.addEventListener('click', () => this.close())
-    this.el = document.createElement('div')
-    this.el.className = 'side-panel'
-    // Append to body so rerender() on #main doesn't destroy the panel
-    document.body.append(this.backdrop, this.el)
+    this.el = document.getElementById('rightpanelBody')
   },
   openTask(t) {
+    state.inspector = { kind: 'task', id: t.id }
+    syncRightPanel()
+    this.el = document.getElementById('rightpanelBody')
+    if (!this.el) return
+    this.el.className = 'rp-body inspector-host'
+
     const t2 = window.t // alias to avoid shadowing the task param
     const v = STATUS_BADGE[t.status] || 'gray'
     const outputList = (t.output || []).length
-      ? `<div class="sp-section"><div class="label">${t2('panel.output')}</div><div class="val mono" style="font-size:12px">${(t.output || []).map((f) => esc(f)).join('<br>')}</div></div>`
+      ? `<div class="insp-section"><div class="label">${t2('panel.output')}</div><div class="val mono" style="font-size:12px">${(t.output || []).map((f) => esc(f)).join('<br>')}</div></div>`
       : ''
-    this.el.innerHTML = `
-      <div class="sp-head">
+    this.el.innerHTML = `<div class="inspector open">
+      <div class="insp-head">
         <span class="badge ${v}"><span class="d"></span>${esc(t.status)}</span>
         <h3 class="mono" style="font-size:13px">${esc(t.id)}</h3>
-        <button class="sp-close">${ICON.x}</button>
       </div>
-      <div class="sp-body">
-        <div class="sp-section"><div class="label">${t2('panel.description')}</div><div class="val">${esc(t.description)}</div></div>
+      <div class="insp-body">
+        <div class="insp-section"><div class="label">${t2('panel.description')}</div><div class="val">${esc(t.description)}</div></div>
         ${outputList}
-        <div class="sp-meta">
+        <div class="insp-meta">
           ${t.skill ? `<div><div class="label">${t2('panel.skill')}</div><span class="badge blue square">${esc(t.skill)}</span></div>` : ''}
           <div><div class="label">${t2('panel.executor')}</div><div class="val mono" style="font-size:13px">${esc(t.executor || '—')}</div></div>
           <div><div class="label">${t2('panel.qa')}</div>${t.qaVerdict ? `<span class="badge ${t.qaVerdict === 'pass' ? 'green' : 'red'}">${t.qaVerdict}</span>` : '<span class="muted mono" style="font-size:13px">—</span>'}</div>
           <div><div class="label">${t2('panel.retries')}</div><div class="val mono" style="font-size:13px">↻ ${t.retryCount}</div></div>
         </div>
-        ${t.runId ? `<div class="sp-section"><div class="label">${t2('panel.lastrun')}</div><div class="val mono" style="font-size:13px;color:var(--accent)">${esc(t.runId)}</div></div>` : ''}
-        <div class="sp-section">
+        ${t.runId ? `<div class="insp-section"><div class="label">${t2('panel.lastrun')}</div><div class="val mono" style="font-size:13px;color:var(--accent)">${esc(t.runId)}</div></div>` : ''}
+        <div class="insp-section">
           <div class="label" style="margin-bottom:6px">Clarificación antes de ejecutar</div>
-          <textarea id="sp-clarify" placeholder="Opcional: añade contexto o instrucciones adicionales para el agente…"></textarea>
-          <button class="btn primary sm sp-run-clarify" style="margin-top:8px;width:100%">${ICON.send} Ejecutar con clarificación</button>
+          <textarea id="insp-clarify" placeholder="Opcional: añade contexto o instrucciones adicionales para el agente…"></textarea>
+          <button class="btn primary sm insp-run-clarify" style="margin-top:8px;width:100%">${ICON.send} Ejecutar con clarificación</button>
         </div>
-        <div id="sp-explain-out" style="display:none"></div>
+        <div id="insp-explain-out" style="display:none"></div>
       </div>
-      <div class="sp-foot">
-        <button class="btn ghost sm sp-explain">${ICON.search} Explain</button>
+      <div class="insp-foot">
+        <button class="btn ghost sm insp-explain">${ICON.search} Explain</button>
         <span style="flex:1"></span>
-        <button class="btn danger sm sp-delete">${ICON.trash}</button>
-      </div>`
-    this.el.querySelector('.sp-close').addEventListener('click', () => this.close())
-    this.el.querySelector('.sp-delete').addEventListener('click', async () => {
+        <button class="btn danger sm insp-delete">${ICON.trash}</button>
+      </div></div>`
+    this.el.querySelector('.insp-delete').addEventListener('click', async () => {
       const ok = await Modal.confirm(
         `Delete task "${t.id}"?`,
         t('bulk.confirm.body'),
@@ -1139,8 +1138,8 @@ const SidePanel = {
         showToast('Connection error', 'error')
       }
     })
-    this.el.querySelector('.sp-explain')?.addEventListener('click', async () => {
-      const out = this.el.querySelector('#sp-explain-out')
+    this.el.querySelector('.insp-explain')?.addEventListener('click', async () => {
+      const out = this.el.querySelector('#insp-explain-out')
       out.style.display = 'block'
       out.innerHTML = '<span class="muted" style="font-size:12px">Cargando…</span>'
       try {
@@ -1150,22 +1149,22 @@ const SidePanel = {
           out.innerHTML = `<span style="color:var(--error);font-size:12px">${esc(d.error || 'Error')}</span>`
           return
         }
-        out.innerHTML = `<div class="sp-explain-card">
-          <div class="sp-explain-row"><span class="sp-explain-k">Model</span><span class="sp-explain-v">${esc(d.model)}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Executor</span><span class="sp-explain-v">${esc(d.executor)}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Input (${esc(d.inputSource)})</span><span class="sp-explain-v">${d.inputFiles.length ? d.inputFiles.map((f) => esc(f)).join(', ') : '—'}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Outputs</span><span class="sp-explain-v">${d.outputs.length ? d.outputs.map((f) => esc(f)).join(', ') : '—'}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Checks</span><span class="sp-explain-v">${d.checks.length ? d.checks.map((c) => esc(c.cmd)).join(', ') : '(none)'}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Criteria</span><span class="sp-explain-v">${d.acceptanceCriteria.length ? d.acceptanceCriteria.length + ' items' : '(none)'}</span></div>
-          <div class="sp-explain-row"><span class="sp-explain-k">Constitution</span><span class="sp-explain-v">${d.constitution ? d.constitution.ruleCount + ' rules' : '(none)'}</span></div>
+        out.innerHTML = `<div class="insp-explain-card">
+          <div class="insp-explain-row"><span class="insp-explain-k">Model</span><span class="insp-explain-v">${esc(d.model)}</span></div>
+          <div class="insp-explain-row"><span class="insp-explain-k">Executor</span><span class="insp-explain-v">${esc(d.executor)}</span></div>
+          <div class="insp-explain-row"><span class="insp-explain-k">Input (${esc(d.inputSource)})</span><span class="insp-explain-v">${d.inputFiles.length ? d.inputFiles.map((f) => esc(f)).join(', ') : '—'}</span></div>
+          <div class="insp-explain-row"><span class="insp-explain-k">Outputs</span><span class="insp-explain-v">${d.outputs.length ? d.outputs.map((f) => esc(f)).join(', ') : '—'}</span></div>
+          <div class="insp-explain-row"><span class="insp-explain-k">Checks</span><span class="insp-explain-v">${d.checks.length ? d.checks.map((c) => esc(c.cmd)).join(', ') : '(none)'}</span></div>
+          <div class="insp-explain-row"><span class="insp-explain-k">Criteria</span><span class="insp-explain-v">${d.acceptanceCriteria.length ? d.acceptanceCriteria.length + ' items' : '(none)'}</span></div>
+          <div class="insp-explain-row"><span class="insp-explain-k">Constitution</span><span class="insp-explain-v">${d.constitution ? d.constitution.ruleCount + ' rules' : '(none)'}</span></div>
         </div>`
       } catch {
         out.innerHTML = '<span style="color:var(--error);font-size:12px">Connection error</span>'
       }
     })
-    this.el.querySelector('.sp-run-clarify')?.addEventListener('click', async () => {
-      const clarification = this.el.querySelector('#sp-clarify')?.value?.trim()
-      const btn = this.el.querySelector('.sp-run-clarify')
+    this.el.querySelector('.insp-run-clarify')?.addEventListener('click', async () => {
+      const clarification = this.el.querySelector('#insp-clarify')?.value?.trim()
+      const btn = this.el.querySelector('.insp-run-clarify')
       btn.disabled = true
       try {
         const body = clarification ? { clarification } : {}
@@ -1191,12 +1190,13 @@ const SidePanel = {
     })
     requestAnimationFrame(() => {
       this.el.classList.add('open')
-      this.backdrop.classList.add('show')
     })
   },
   close() {
-    this.el.classList.remove('open')
-    this.backdrop.classList.remove('show')
+    state.inspector = null
+    this.el?.classList.remove('open')
+    if (this.el) this.el.innerHTML = ''
+    syncRightPanel()
   },
 }
 
@@ -2289,13 +2289,26 @@ const Modal = {
   // la búsqueda es 100% cliente, sin ida y vuelta al backend por tecla.
   // Cierra el gap con el buscador tipo Claude/Raycast que pedía Carlos.
   openCommandPalette() {
-    const screenItems = NAV.map((n) => ({
+    const screenItems = [
+      ...NAV.map((n) => ({
       type: 'screen',
       icon: n.icon,
       label: t(n.key),
       sub: '',
       go: () => App.go(n.id),
-    }))
+      })),
+      ...[
+        ['explorer', 'rp.tab.explorer'],
+        ['terminal', 'rp.tab.terminal'],
+        ['diff', 'rp.tab.diff'],
+      ].map(([tab, key]) => ({
+        type: 'tool',
+        icon: ICON.panelRight,
+        label: t(key),
+        sub: t('cmdk.type.tool'),
+        go: () => openInspectorTool(tab),
+      })),
+    ]
 
     const entityItems = []
     for (const tk of state.tasks || []) {
@@ -2306,7 +2319,7 @@ const Modal = {
         sub: tk.id,
         go: () => {
           App.go('tasks')
-          SidePanel.openTask(tk)
+          Inspector.openTask(tk)
         },
       })
     }
@@ -2360,6 +2373,7 @@ const Modal = {
       run: t('cmdk.type.run'),
       instinct: t('cmdk.type.instinct'),
       memory: t('cmdk.type.memory'),
+      tool: t('cmdk.type.tool'),
     }
 
     let selected = 0
@@ -3106,7 +3120,7 @@ function toggleSidebarMode() {
 
 /* 2026-07-14 (corrección de Carlos) — el botón panel-right vive SIEMPRE
    pegado al borde derecho de la fila (`margin-left:auto` en CSS, ver
-   `#rpToggle` en styles.css), no al izquierdo. Es una distinción clave: el
+   `#rpClose` en styles.css), no al izquierdo. Es una distinción clave: el
    borde DERECHO del aside es el borde derecho de la PANTALLA (última
    columna del grid), así que nunca se mueve al expandir/colapsar — el
    izquierdo sí, porque ahí es donde el aside crece. Anclar el toggle al
@@ -3119,25 +3133,25 @@ function toggleSidebarMode() {
  * persisten en localStorage. El CONTENIDO del panel (Explorer/Term/Diff) sigue en vanilla
  * a proposito: es contenido de pantalla, no shell, y le toca en UI.4.
  */
-function toggleRightPanel() {
-  state.rightPanelOpen = !state.rightPanelOpen
-  localStorage.setItem('orchestos-rightpanel', state.rightPanelOpen ? 'expanded' : 'collapsed')
+function openInspectorTool(tabName) {
+  const tab = ['explorer', 'terminal', 'diff'].includes(tabName) ? tabName : 'terminal'
+  state.inspectorTab = tab
+  state.inspector = { kind: 'tool', tab }
   syncRightPanel()
 }
-
-function setRightPanelTab(tabName) {
-  state.rightPanelTab = tabName
-  localStorage.setItem('orchestos-rightpanel-tab', tabName)
+function closeInspector() {
+  state.inspector = null
   syncRightPanel()
 }
-
-/** Aplica el estado abierto/cerrado + tab activa del panel derecho al DOM. */
 function syncRightPanel() {
-  document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen
-    ? 'expanded'
-    : 'collapsed'
-  pushShellState({ rightPanelOpen: state.rightPanelOpen, rightPanelTab: state.rightPanelTab })
-  if (state.rightPanelOpen) RightPanel.render()
+  const app = document.querySelector('.app')
+  if (!app) return
+  const open = !!state.inspector
+  app.dataset.rightpanel = open ? 'expanded' : 'collapsed'
+  pushShellState({ inspector: state.inspector })
+  const body = document.getElementById('rightpanelBody')
+  if (!open && body) { body.innerHTML = ''; body.className = 'rp-body' }
+  if (state.inspector?.kind === 'tool') RightPanel.render()
 }
 
 /**
@@ -3226,10 +3240,9 @@ function boot() {
   // El riel y la fila del aside derecho los pinta React (UI.3): aca solo se aplica el
   // estado persistido al contenedor. El toggle del aside vive unicamente en #rpToprow,
   // nunca en el header (ronda 4).
-  document.querySelector('.app').dataset.rightpanel = state.rightPanelOpen
-    ? 'expanded'
-    : 'collapsed'
-  if (state.rightPanelOpen) RightPanel.render()
+  localStorage.removeItem('orchestos-rightpanel')
+  localStorage.removeItem('orchestos-rightpanel-tab')
+  syncRightPanel()
 
   // Resize handles — piso = ancho por defecto de cada uno, techo distinto
   // (el derecho puede crecer más: ahí se lee diff/código).
@@ -3251,7 +3264,7 @@ function boot() {
   })
 
   // Panels
-  SidePanel.init()
+  Inspector.init()
   Modal.init()
 
   // Command palette (Cmd/Ctrl+K)
@@ -3259,6 +3272,9 @@ function boot() {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault()
       Modal.openCommandPalette()
+    }
+    if (e.key === 'Escape' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) && !Modal.el?.classList.contains('show')) {
+      if (state.inspector) closeInspector()
     }
   })
 
@@ -3343,6 +3359,7 @@ function boot() {
     toggleSidebar: toggleSidebarMode,
     setShellMode: (mode) => void App.setShellMode(mode),
     selectWorkspaceProject: (id) => {
+      closeInspector()
       state.workspaceProjectId = id
       state.screen = 'workspace'
       state.workspaceTab = state.workspaceTab || 'tasks'
@@ -3369,8 +3386,8 @@ function boot() {
     deleteChatSession: (id) => App.deleteChatSession(id),
     cliModes: () => state.executorModes?.modes ?? [],
     openCommandPalette: () => Modal.openCommandPalette(),
-    toggleRightPanel,
-    setRightPanelTab,
+    closeInspector,
+    openInspectorTool,
     // UI.4 — superficie que necesitan las pantallas migradas. Igual que con el shell:
     // React dibuja; los fetch, la persistencia y los modales siguen viviendo en app.js,
     // porque son los duenos del estado y de la API. Cuando UI.5 borre el vanilla, esto
@@ -3447,7 +3464,7 @@ function boot() {
   // parpadeo visible en el riel, que esta siempre en pantalla.
   App.syncNav()
   App.syncHeader()
-  pushShellState({ rightPanelOpen: state.rightPanelOpen, rightPanelTab: state.rightPanelTab })
+  pushShellState({ inspector: state.inspector })
 
   window.dispatchEvent(new CustomEvent('orchestos:ready'))
 }

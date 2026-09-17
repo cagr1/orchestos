@@ -1,10 +1,7 @@
 /**
- * Fila superior del aside derecho (UI.3, Mes 30) — reemplaza `buildRightPanelToprow()`.
+ * Fila superior del inspector contextual.
  *
- * ACÁ VIVE LA REGLA 1 (anclaje a borde fijo), y el porqué es sutil: el toggle va SIEMPRE
- * pegado al borde derecho de la fila (`margin-left:auto`, en el CSS de `#rpToggle`), nunca
- * al izquierdo. El borde derecho del aside es el borde derecho de la PANTALLA, así que no
- * se mueve al expandir o colapsar; el izquierdo sí, porque es por donde el aside crece.
+ * El cierre queda anclado al borde derecho de la fila para que siempre sea accesible.
  * Anclarlo al izquierdo —como estaba antes— lo hacía viajar. Los botones de
  * explorer/terminal/diff van ANTES en el DOM, a su izquierda: esos aparecen y desaparecen,
  * el toggle no.
@@ -26,42 +23,44 @@ export function RightPanelToprow() {
   const shell = useShell()
   const t = useT()
   const api = shellApi()
-  const open = shell.rightPanelOpen
+  const inspector = shell.inspector
+  if (!inspector) return null
+  const tool = inspector?.kind === 'tool'
 
   return (
     <>
-      {open && (
+      {tool && (
         <>
           <IconBtn
             id="rpTabExplorer"
             icon="folder"
             tip={t('rp.tab.explorer')}
-            active={shell.rightPanelTab === 'explorer'}
-            onActivate={() => api?.setRightPanelTab('explorer')}
+            active={inspector.tab === 'explorer'}
+            onActivate={() => api?.openInspectorTool('explorer')}
           />
           <IconBtn
             id="rpTabTerminal"
             icon="term"
             tip={t('rp.tab.terminal')}
-            active={shell.rightPanelTab === 'terminal'}
-            onActivate={() => api?.setRightPanelTab('terminal')}
+            active={inspector.tab === 'terminal'}
+            onActivate={() => api?.openInspectorTool('terminal')}
           />
           <IconBtn
             id="rpTabDiff"
             icon="diff"
             tip={t('rp.tab.diff')}
-            active={shell.rightPanelTab === 'diff'}
-            onActivate={() => api?.setRightPanelTab('diff')}
+            active={inspector.tab === 'diff'}
+            onActivate={() => api?.openInspectorTool('diff')}
           />
         </>
       )}
-      {/* SIEMPRE el último: ver la nota de anclaje arriba. */}
+      {/* SIEMPRE el último: cierre anclado al borde derecho. */}
       <IconBtn
-        id="rpToggle"
-        icon="panelRight"
-        tip={t(open ? 'rp.toggle.close' : 'rp.toggle.open')}
-        active={open}
-        onActivate={() => api?.toggleRightPanel()}
+        id="rpClose"
+        icon="x"
+        tip={t('inspector.close')}
+        active={false}
+        onActivate={() => api?.closeInspector()}
       />
     </>
   )
@@ -81,21 +80,15 @@ function IconBtn({
   onActivate: () => void
 }) {
   return (
-    <div
+    <button
       id={id}
       className={`header-icon-btn${active ? ' active' : ''}`}
       data-tip={tip}
-      role="button"
-      tabIndex={0}
+      type="button"
+      aria-label={tip}
       onClick={onActivate}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onActivate()
-        }
-      }}
     >
       <Icon name={icon} />
-    </div>
+    </button>
   )
 }

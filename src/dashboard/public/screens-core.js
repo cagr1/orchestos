@@ -607,7 +607,7 @@ SCREENS.chat = {
         const task = (st.tasks || []).find((x) => x.id === chip.dataset.taskId)
         if (!task) return
         App.go('tasks')
-        SidePanel.openTask(task)
+        Inspector.openTask(task)
       }
       chip.addEventListener('click', activate)
       chip.addEventListener('keydown', (e) => {
@@ -626,7 +626,7 @@ SCREENS.chat = {
         const id = btn.dataset.taskId
         const task = (st.tasks || []).find((x) => x.id === id)
         App.go('tasks')
-        if (task) SidePanel.openTask(task)
+        if (task) Inspector.openTask(task)
       })
     })
     root.querySelectorAll('[data-act="confirm-cancel"]').forEach((btn) => {
@@ -832,7 +832,7 @@ SCREENS.chat = {
       if (!taskId) return
       await App.fetchTasks()
       const task = (st.tasks || []).find((item) => item.id === taskId)
-      if (task) SidePanel.openTask(task)
+      if (task) Inspector.openTask(task)
     })
 
     // G.3.3 — expandir/colapsar la card de pasos en vivo.
@@ -1707,7 +1707,7 @@ SCREENS.tasks = {
       tr.addEventListener('click', (e) => {
         if (e.target.closest('[data-diag]')) return
         const t = (st.tasks || []).find((x) => x.id === tr.dataset.task)
-        if (t) SidePanel.openTask(t)
+        if (t) Inspector.openTask(t)
       }),
     )
 

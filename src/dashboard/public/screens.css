@@ -383,43 +383,39 @@
   font-weight: 600;
 }
 
-/* ---------- side detail panel (tasks) ---------- */
-/* Fixed positioning — panel is appended to body, survives main rerender */
-.side-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 380px;
+/* ---------- contextual inspector (tasks) ---------- */
+/* Rendered inside #rightpanelBody; width and positioning belong to the shell grid. */
+.inspector {
+  width: 100%;
+  height: 100%;
   background: var(--surface);
   border-left: 1px solid var(--border);
-  transform: translateX(100%);
-  transition:
-    transform 0.22s cubic-bezier(0.3, 0.7, 0.4, 1),
-    box-shadow 0.22s;
+  transform: none;
+  transition: box-shadow 0.22s;
   display: flex;
   flex-direction: column;
-  z-index: 30;
+  z-index: 1;
 }
-/* Bloque I (Mes 18) — la sombra vivía en `.side-panel` base, no en `.open`:
+.inspector-host { padding: 0; overflow: hidden; }
+/* Bloque I (Mes 18) — la sombra vivía en `.inspector` base, no en `.open`:
    aunque el panel está trasladado fuera de pantalla cuando está cerrado,
    box-shadow no se recorta por transform, así que su blur de 40px se
    filtraba igual hacia adentro del viewport — invisible en los temas
    oscuros (sombra oscura sobre fondo oscuro), muy visible como una franja
    en el borde derecho en Bright. La sombra ahora solo existe mientras el
    panel está realmente abierto. */
-.side-panel.open {
+.inspector.open {
   transform: translateX(0);
   box-shadow: -16px 0 40px rgba(0, 0, 0, 0.4);
 }
-.side-panel .sp-head {
+.inspector .insp-head {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 15px 16px;
   border-bottom: 1px solid var(--border);
 }
-.side-panel .sp-head h3 {
+.inspector .insp-head h3 {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
@@ -428,7 +424,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.side-panel .sp-close {
+.inspector .insp-close {
   appearance: none;
   border: 0;
   background: transparent;
@@ -440,11 +436,11 @@
   display: grid;
   place-items: center;
 }
-.side-panel .sp-close:hover {
+.inspector .insp-close:hover {
   background: var(--surface-2);
   color: var(--text);
 }
-.side-panel .sp-body {
+.inspector .insp-body {
   padding: 16px;
   overflow-y: auto;
   flex: 1;
@@ -452,7 +448,7 @@
   flex-direction: column;
   gap: 16px;
 }
-.sp-section .label {
+.insp-section .label {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -460,21 +456,21 @@
   font-weight: 600;
   margin-bottom: 6px;
 }
-.sp-section .val {
+.insp-section .val {
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--text);
   text-wrap: pretty;
 }
-.sp-meta {
+.insp-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-.sp-meta .label {
+.insp-meta .label {
   margin-bottom: 4px;
 }
-.side-panel .sp-foot {
+.inspector .insp-foot {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
   display: flex;
@@ -3195,8 +3191,8 @@
   margin-bottom: 3px;
 }
 
-/* SidePanel — clarify textarea */
-.side-panel #sp-clarify {
+/* Inspector — clarify textarea */
+.inspector #insp-clarify {
   width: 100%;
   min-height: 68px;
   resize: vertical;
@@ -3211,13 +3207,13 @@
   box-sizing: border-box;
   transition: border-color 0.15s;
 }
-.side-panel #sp-clarify:focus {
+.inspector #insp-clarify:focus {
   outline: none;
   border-color: var(--accent);
 }
 
-/* SidePanel — explain output card */
-.sp-explain-card {
+/* Inspector — explain output card */
+.insp-explain-card {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -3226,19 +3222,19 @@
   flex-direction: column;
   gap: 6px;
 }
-.sp-explain-row {
+.insp-explain-row {
   display: flex;
   gap: 8px;
   font-size: 12px;
   line-height: 1.4;
 }
-.sp-explain-k {
+.insp-explain-k {
   color: var(--text-faint);
   font-weight: 600;
   min-width: 90px;
   flex-shrink: 0;
 }
-.sp-explain-v {
+.insp-explain-v {
   color: var(--text);
   font-family: var(--mono);
   word-break: break-all;

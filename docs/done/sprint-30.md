@@ -462,3 +462,27 @@ proyecto no forma parte de este ítem y queda para UI.9.1.
   **Corolario, mismo patrón que `reference-ci-host-environment-drift`:** el test no afirmaba
   sobre su propio estado sino sobre el del host. Un CI que falla siempre deja de dar señal —
   estos 4 shards llevaban 5 días en rojo y ya se leían como ruido de fondo.
+
+<a id="sprint-30-ui-9-5"></a>
+### UI.9.5 — Inspector condicional sobre el shell Chat | Dev
+
+Ejecutado por: luna · Spec: docs/specs/UI.8.4c.md
+
+El inspector contextual reemplaza el riel persistente: cerrado ocupa 0 px y no deja toggle ni
+backdrop; una tarea real se abre desde la fila `tr.row[data-task]`, conserva detalle y permite
+cerrar con botón, Escape, navegación y cambio de proyecto. El ancho se redimensiona y persiste,
+las herramientas Terminal y Diff se cambian desde la palette, y el inspector abierto ocupa
+390×844 en móvil.
+
+Verificación independiente: dashboard real `http://127.0.0.1:4321` + Playwright, proyecto
+`7078a96b02350763` (SalaDespecho), tarea real `crypto-page-v1`: boot cerrado 0 px; detalle sin
+backdrop; resize 360→432 px y persistencia tras recarga; cierres por botón/Escape/navegación y
+cambio de proyecto; palette Terminal→Diff; viewport móvil usable. La búsqueda del punto 3 no
+encuentra `SidePanel`, `rightPanelOpen`, `rightPanelTab`, `rpToggle`, `rightpanel-w-collapsed` ni
+`.side-panel` en fuentes activas; solo queda la limpieza de la clave legacy
+`orchestos-rightpanel-tab`. Evidencia completa: `docs/done/evidence/UI.9.5-live.json`.
+
+Limitaciones observadas y no inventadas: la base real no tenía sesiones chat persistentes elegibles,
+por lo que el botón UI.9.2 “Open in Workspace” no pudo observarse; el cambio Dev→Chat reprodujo el
+TypeError de `Sidebar` ya anotado en PLAN.md y fuera de alcance. `ui81-visual-consistency` sigue
+fallando por los seis radios preexistentes de UI.3.5; no se tocó CSS de radios.
