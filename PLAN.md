@@ -1900,6 +1900,23 @@ ni eso hace falta.
   Gate en vivo: Playwright/dashboard real, sesiones API/Claude/Codex, controles por sesión, iconos CLI y switch expandido/colapsado; evidencia `docs/done/evidence/UI.9.2-live.json`.
 - [x] **UI.9.3 — 🧠 Modo Dev completo.** Activity, rail Dev solo-ícono, selección única (A.3) y anomalías inline (A.4). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-3)
 - [x] **UI.9.4 — 🧠 Agregar proyecto desde la UI** (`+` en Projects → `osascript choose folder` en el servidor → registro del proyecto). → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-4)
+- [ ] **UI.9.6 — ⚡ El puente no puede borrar estado con `undefined`.** Spec: `docs/specs/UI.9.6.md`.
+  Cierra el hallazgo del 2026-09-17 anotado más abajo y observado en vivo como `consoleErrors` en
+  `docs/done/evidence/UI.9.5-live.json`. **Causa raíz leída en el código:** `setShellState()`
+  (`shell-store.ts:92-102`) tiene dos mitades con reglas distintas — la detección de cambio salta
+  las claves `undefined` a propósito, pero el merge `{ ...state, ...patch }` **sí las copia**.
+  Basta con que otra clave del patch haya cambiado para que el spread pise el valor bueno con
+  `undefined`. El disparador es `syncNav()` (`app.js:879`), que en modo Dev publica
+  `generalSessions: undefined`; al cambiar a Chat el `Sidebar` (`Sidebar.tsx:189`) hace
+  `.filter()` sobre eso antes de que vuelva el fetch. `ShellState.generalSessions` está declarado
+  `SessionRow[]` **no opcional**: el tipo miente sobre lo que el runtime permite.
+  **Arreglo del mecanismo, no del síntoma:** en este puente `undefined` significa "no toques esta
+  clave", nunca "borrala"; quien quiera vaciar manda `[]`/`null`. No se parchea el componente con
+  `?? []` — hoy es el único consumidor (verificado por grep), pero el defecto es del puente.
+  **Gate:** dashboard real + Playwright reproduciendo el caso exacto (arrancar en Dev, recargar,
+  cambiar a Chat), con el error capturado **antes** y cero errores de consola **después**;
+  evidencia en `docs/done/evidence/UI.9.6-live.json`.
+
 - [x] **UI.9.5 — 🧠 Inspector condicional sobre el shell Chat | Dev** (retoma UI.8.4c; spec actualizado: `docs/specs/UI.8.4c.md`).
   Ejecutado por: luna · Spec: docs/specs/UI.8.4c.md
   Sin delegación: el ítem UI.9.5 retoma y cierra el spec compartido docs/specs/UI.8.4c.md; no existe docs/specs/UI.9.5.md.
