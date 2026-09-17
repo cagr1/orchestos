@@ -800,8 +800,8 @@
       "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "Ítems",
       "delegation": "⚡",
-      "title": "El gate invertido que mide de verdad, y el barrido de radios",
-      "status": "open",
+      "title": "El gate invertido que mide de verdad, y el barrido de radios. (cerrado 2026-09-17) → [evidencia](docs/done/sprint-30.md#sprint-30-ui35a)",
+      "status": "done",
       "closedDate": null
     },
     {

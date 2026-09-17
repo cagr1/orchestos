@@ -1,5 +1,19 @@
 {
-  "enabledPlugins": {},
+  "enabledPlugins": {
+    "security-guidance@claude-plugins-official": false,
+    "frontend-design@claude-plugins-official": false,
+    "code-review@claude-plugins-official": false,
+    "code-modernization@claude-plugins-official": false,
+    "github@claude-plugins-official": false,
+    "playwright@claude-plugins-official": false,
+    "claude-code-setup@claude-plugins-official": false,
+    "vercel@claude-plugins-official": false,
+    "liquid-skills@claude-plugins-official": false,
+    "chrome-devtools-mcp@claude-plugins-official": false,
+    "brightdata-plugin@claude-plugins-official": false,
+    "impeccable@impeccable": false,
+    "taste-skill@taste-skill": false
+  },
   "permissions": {
     "allow": [
       "Bash(git status)",

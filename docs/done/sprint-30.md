@@ -486,3 +486,40 @@ Limitaciones observadas y no inventadas: la base real no tenía sesiones chat pe
 por lo que el botón UI.9.2 “Open in Workspace” no pudo observarse; el cambio Dev→Chat reprodujo el
 TypeError de `Sidebar` ya anotado en PLAN.md y fuera de alcance. `ui81-visual-consistency` sigue
 fallando por los seis radios preexistentes de UI.3.5; no se tocó CSS de radios.
+
+<a id="sprint-30-ui35a"></a>
+### UI.3.5a — El gate invertido que mide de verdad, y el barrido de radios
+
+Ejecutado por: luna · Spec: docs/specs/UI.3.5a.md
+
+`ui81-visual-consistency.mjs` navegaba a `/?screen=<id>`, pero `app.js` nunca leyó
+`URLSearchParams`: el parámetro se ignoraba en silencio y el gate medía **siempre la pantalla de
+arranque**. Se detectó al correrlo sobre las 13 pantallas y obtener números idénticos en las 13.
+Ahora cruza por `window.state` + `App.rerender()`, reporta la pantalla alcanzada frente a la
+solicitada y aborta si no coinciden. El gate que UI.3.5 exigía existía desde UI.8.1 pero no hacía
+lo que decía — Regla Cero aplicada al propio instrumento de medición.
+
+Su umbral (`radii.length <= 2`) era **imposible de satisfacer**: UI.3.5 declara 4px + 8px y todo
+nodo sin radio computa `0px`, o sea 3 valores como mínimo. Por eso llevaba meses en rojo sin poder
+cerrarse. Pasa a lista blanca (`0px`, `--radius`, `--radius-lg`, `--radius-pill`,
+`--radius-circle`): más estricto, no más laxo — `{6px, 7px}` pasaba por ser dos valores y el
+diseño correcto fallaba.
+
+Deuda de radios crudos **55 → 0**. Se agrega `--radius-circle` para los 13 usos de `50%`
+(avatares y puntos de estado), legítimos y sin token hasta ahora.
+
+Efecto secundario del arreglo, registrado a propósito: al medir de verdad cada pantalla aparecen
+fallos de `font-size` y `style=` inline que antes quedaban invisibles. Son preexistentes y quedan
+fuera de esta pasada; lo nuevo es que el gate ya puede verlos.
+
+Verificación del cerebro: `bunx tsc --noEmit` limpio · `bun run test:coverage` 1440 pass / 0 fail ·
+`bun run build:ui` ok · gate en vivo contra dashboard real en `chat`, `settings`, `graph`, `plan`,
+`project` y `skills`, todas con pantalla alcanzada correcta y radios dentro de la lista blanca.
+La corrida de Luna se interrumpió a mitad por un corte del cerebro (no por el ítem): dejó tres
+pantallas como no ejecutadas sin inventar resultados, y el cerebro las re-corrió.
+Gate en vivo: navegador real (Playwright/dashboard) — `docs/done/evidence/UI.3.5a-live.json`.
+
+Cambio visual reportado por el ejecutor: controles que eran 6/7/12/20/5/2px pasan a 4px u 8px —
+botones y controles se ven levemente más compactos.
+
+`UI.3.5` padre sigue abierto: quedan `.card`, los componentes de `UI.2` y el shell.

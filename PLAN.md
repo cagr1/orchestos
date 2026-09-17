@@ -1536,7 +1536,7 @@ ni eso hace falta.
     nuevo en vez de paridad contra vanilla (quedaron en rojo en las 2 aserciones de paridad de
     columnas/badges — esperado, hay que reemplazarlas, no arreglarlas).
 
-- [ ] **UI.3.5a — ⚡ El gate invertido que mide de verdad, y el barrido de radios.**
+- [x] **UI.3.5a — ⚡ El gate invertido que mide de verdad, y el barrido de radios. (cerrado 2026-09-17) → [evidencia](docs/done/sprint-30.md#sprint-30-ui35a)**
   Primera pasada concreta del pendiente de `UI.3.5` (arriba); el padre sigue abierto después de
   cerrar esta. Spec: `docs/specs/UI.3.5a.md`.
   **Dos hallazgos medidos el 2026-09-17 (Claude, verificando antes de delegar):**

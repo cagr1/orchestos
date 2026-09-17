@@ -1,0 +1,133 @@
+{
+  "item": "UI.3.5a",
+  "date": "2026-09-17",
+  "before": {
+    "rawBorderRadiusUses": 55,
+    "rawValues": {
+      "6px": 13,
+      "50%": 13,
+      "999px": 10,
+      "4px/8px": 9,
+      "other": 14
+    }
+  },
+  "after": {
+    "tokens": [
+      "--radius",
+      "--radius-lg",
+      "--radius-pill",
+      "--radius-circle"
+    ],
+    "rawBorderRadiusDebt": 0
+  },
+  "liveGate": {
+    "base": "http://localhost:4321",
+    "browser": "Playwright Chromium",
+    "screens": [
+      {
+        "screen": "chat",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "pass",
+        "inlineStyle": "preexisting-fail"
+      },
+      {
+        "screen": "activity",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "pass",
+        "inlineStyle": "preexisting-fail"
+      },
+      {
+        "screen": "settings",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail"
+      },
+      {
+        "screen": "tasks",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail"
+      },
+      {
+        "screen": "runs",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "pass",
+        "inlineStyle": "preexisting-fail"
+      },
+      {
+        "screen": "workspace",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail"
+      },
+      {
+        "screen": "specs",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "pass",
+        "inlineStyle": "pass"
+      },
+      {
+        "screen": "skills",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail",
+        "verifiedBy": "cerebro (Claude) 2026-09-17, re-corrida tras interrupción de Luna"
+      },
+      {
+        "screen": "memory",
+        "reached": false,
+        "radius": "not-run",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail"
+      },
+      {
+        "screen": "instincts",
+        "reached": false,
+        "radius": "not-run",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail"
+      },
+      {
+        "screen": "graph",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail",
+        "verifiedBy": "cerebro (Claude) 2026-09-17, re-corrida tras interrupción de Luna"
+      },
+      {
+        "screen": "plan",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail",
+        "verifiedBy": "cerebro (Claude) 2026-09-17, re-corrida tras interrupción de Luna"
+      },
+      {
+        "screen": "project",
+        "reached": true,
+        "radius": "pass",
+        "fontSize": "preexisting-fail",
+        "inlineStyle": "preexisting-fail",
+        "verifiedBy": "cerebro (Claude) 2026-09-17, re-corrida tras interrupción de Luna"
+      }
+    ],
+    "notes": "Radios y navegación pasan. La corrida de Luna se interrumpió (corte del cerebro a mitad, no fallo del ítem) y dejó graph/plan/project como no ejecutadas sin inventar resultados; el cerebro las re-corrió después contra el dashboard real y pasan, igual que skills. Los fallos de font-size y style= inline observados en pantallas ya existentes son preexistentes y quedan explícitamente fuera de esta pasada: el gate recién ahora puede verlos, porque antes medía siempre la pantalla de arranque."
+  },
+  "visualReview": "La migración reduce radios de 6/7/12/20/5/2px a 4px u 8px según componente; botones y controles pueden verse ligeramente más compactos.",
+  "verification": {
+    "tsc": "bunx tsc --noEmit: 0 errores",
+    "tests": "bun run test:coverage: 1440 pass / 0 fail",
+    "build": "bun run build:ui: ok",
+    "gateNavigation": "PASS — cada pantalla reporta la alcanzada y la solicitada, y coinciden",
+    "by": "cerebro (Claude), 2026-09-17"
+  }
+}

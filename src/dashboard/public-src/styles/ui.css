@@ -122,7 +122,7 @@
   height: 26px;
   padding: 0 7px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -151,7 +151,7 @@
 .session-statusbar-cli-fill { display: block; height: 100%; background: var(--metric-color); border-radius: inherit; transition: width .18s ease; }
 .session-statusbar-cli-value { color: var(--text); font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
 .session-statusbar-live {
-  width: 5px; height: 5px; flex: 0 0 auto; border-radius: 50%; background: var(--success);
+  width: 5px; height: 5px; flex: 0 0 auto; border-radius: var(--radius-circle); background: var(--success);
 }
 .session-statusbar-live.offline { background: var(--error); }
 .session-statusbar-empty { color: var(--text-faint); white-space: nowrap; }
@@ -160,7 +160,7 @@
 .session-statusbar-popover-heading > div { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .session-statusbar-popover-heading strong { color: var(--text); font-size: 12px; }
 .session-statusbar-popover-heading small, .session-statusbar-observed { color: var(--text-faint); font-size: 10px; }
-.session-statusbar-popover-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.session-statusbar-popover-dot { width: 6px; height: 6px; border-radius: var(--radius-circle); background: var(--success); }
 .session-statusbar-popover-dot.offline { background: var(--text-faint); }
 .session-statusbar-detail { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding-top: 9px; font-size: 11px; }
 .session-statusbar-detail span { color: var(--text-muted); }
@@ -246,7 +246,7 @@
 .plan-column h3 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 9px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .plan-column h3 span { font-family: var(--mono); color: var(--text-faint); }
 .plan-cards { display: grid; gap: 8px; min-height: 24px; }
-.plan-card { display: grid; gap: 7px; padding: 10px; border: 1px solid var(--border); border-left-width: 3px; border-radius: 7px; background: var(--surface-hi); }
+.plan-card { display: grid; gap: 7px; padding: 10px; border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius); background: var(--surface-hi); }
 .plan-card.ready { border-left-color: var(--success); }
 .plan-card.blocked { border-left-color: var(--warning); }
 .plan-card.done { border-left-color: var(--text-faint); opacity: .78; }
@@ -256,7 +256,7 @@
 .plan-card > small, .plan-no-deps { margin: 0; color: var(--text-faint); font-size: 10px; }
 .plan-commit-pending { margin: 0; color: var(--warning); font-size: 10px; line-height: 1.35; }
 .plan-edges { display: flex; flex-wrap: wrap; gap: 5px; }
-.plan-edge { padding: 3px 5px; border-radius: 4px; background: var(--surface); }
+.plan-edge { padding: 3px 5px; border-radius: var(--radius); background: var(--surface); }
 .plan-edge.open { color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
 .plan-edge.done { color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 35%, transparent); }
 .plan-card-actions, .plan-dependency-editor > div, .plan-close-confirm { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -264,7 +264,7 @@
 .plan-dependency-editor p, .plan-close-confirm p { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.4; }
 .plan-dependency-editor label { display: flex; gap: 6px; align-items: baseline; color: var(--text-muted); font-size: 11px; }
 .plan-message, .plan-placeholder { margin-top: 12px; padding: 10px; color: var(--text-muted); }
-.plan-message { border-radius: 7px; border: 1px solid var(--border); }
+.plan-message { border-radius: var(--radius); border: 1px solid var(--border); }
 .plan-message.error, .plan-placeholder.error { color: var(--error); border-color: var(--error); }
 .plan-message.success { color: var(--success); border-color: var(--success); }
 @media (max-width: 900px) { .plan-columns { grid-template-columns: 1fr; } }

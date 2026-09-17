@@ -26,9 +26,16 @@ const log = (ok, message) => {
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
 try {
-  await page.goto(`${BASE}/?screen=${encodeURIComponent(SCREEN)}`, { waitUntil: 'networkidle' })
+  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.evaluate((screen) => {
+    window.state.screen = screen
+    window.App.rerender()
+  }, SCREEN)
   await page.waitForTimeout(1200)
   await page.locator('#main').waitFor({ state: 'visible', timeout: 8000 })
+  const reached = await page.evaluate(() => window.state.screen)
+  log(reached === SCREEN, `pantalla alcanzada: ${reached} (solicitada ${SCREEN})`)
+  if (reached !== SCREEN) throw new Error(`No se pudo alcanzar la pantalla ${SCREEN}`)
 
   const metrics = await page.evaluate(() => {
     const visible = (el) => {
@@ -63,9 +70,15 @@ try {
     metrics.fontSizes.length <= 5,
     `font-size computados: ${metrics.fontSizes.length} (${metrics.fontSizes.join(', ')})`,
   )
+  // UI.3.5a: una lista blanca hace cumplir 0px + los tokens declarados y 50% circular;
+  // el conteo permitiría combinaciones inválidas como {6px, 7px}.
+  const allowedRadii = new Set(['0px', '4px', '8px', '50%', '999px'])
+  const invalidRadii = metrics.radii.filter((radius) =>
+    radius.split(' ').some((part) => !allowedRadii.has(part)),
+  )
   log(
-    metrics.radii.length <= 2,
-    `border-radius computados sin #statusBadge: ${metrics.radii.length} (${metrics.radii.join(', ')})`,
+    invalidRadii.length === 0,
+    `border-radius fuera de lista blanca: ${invalidRadii.length ? invalidRadii.join(', ') : 'ninguno'} (permitidos: ${metrics.radii.filter((radius) => allowedRadii.has(radius)).join(', ')})`,
   )
   log(
     metrics.selects.length === 0,

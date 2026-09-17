@@ -45,6 +45,7 @@
   /* pill de estado del header — único elemento que debe leerse como pill,
      UI.3.5: todo lo demás baja a --radius/--radius-lg */
   --radius-pill: 999px;
+  --radius-circle: 50%;
 
   /* type scale — UI.3.5: 5 tamaños, no 15+86 inline. 13 = cuerpo,
      19 = título de pantalla. mono para todo dato (id, modelo, costo,
@@ -199,7 +200,7 @@ button {
 }
 *::-webkit-scrollbar-thumb {
   background: color-mix(in oklab, var(--text-faint) 35%, transparent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 *::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklab, var(--text-faint) 50%, transparent);
@@ -354,7 +355,7 @@ button {
   color: #c9d1d9;
   border: 1px solid #30363d;
   padding: 4px 9px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 11.5px;
   white-space: nowrap;
   z-index: 200;
@@ -442,7 +443,7 @@ button {
   color: #c9d1d9;
   border: 1px solid #30363d;
   padding: 4px 9px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 11.5px;
   white-space: nowrap;
   z-index: 200;
@@ -456,7 +457,7 @@ button {
   align-items: center;
   gap: 7px;
   padding: 5px 11px 5px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--surface-2);
   font-size: 12px;
@@ -466,7 +467,7 @@ button {
 .status-badge .dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--text-faint);
 }
 .status-badge[data-state="running"] {
@@ -545,7 +546,7 @@ button {
   top: 5px;
   bottom: 5px;
   width: 3px;
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent-dim);
 }
@@ -618,7 +619,7 @@ button {
   color: var(--text-faint);
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 /* Mes 22/F2 (2026-07-18, corrección de Carlos) — sin margin-top: la línea debe
    quedar pegada al borde inferior de .sidebar-toprow (var(--header-h)=44px),
@@ -658,7 +659,7 @@ button {
 .sidebar-row-add { display: grid; place-items: center; width: 24px; height: 24px; margin-left: auto; }
 .sidebar-row-add svg { width: 15px; height: 15px; }
 .sidebar-cli-menu { position: absolute; left: 0; top: calc(100% + 6px); min-width: 230px; z-index: 40; padding: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(0,0,0,.45); }
-.sidebar-cli-menu button, .sidebar-cli-menu > div { display: flex; align-items: flex-start; gap: 9px; width: 100%; box-sizing: border-box; padding: 9px; border: 0; border-radius: 6px; background: none; color: var(--text); font: 13px var(--sans); text-align: left; }
+.sidebar-cli-menu button, .sidebar-cli-menu > div { display: flex; align-items: flex-start; gap: 9px; width: 100%; box-sizing: border-box; padding: 9px; border: 0; border-radius: var(--radius); background: none; color: var(--text); font: 13px var(--sans); text-align: left; }
 .sidebar-cli-menu button { cursor: pointer; }
 .sidebar-cli-menu button:hover { background: var(--accent-soft); }
 .sidebar-cli-menu svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-faint); }
@@ -730,7 +731,7 @@ button {
   color: #c9d1d9;
   border: 1px solid #30363d;
   padding: 4px 9px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 11.5px;
   font-weight: 400;
   letter-spacing: normal;
@@ -783,7 +784,7 @@ button {
   color: #c9d1d9;
   border: 1px solid #30363d;
   padding: 4px 9px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 11.5px;
   white-space: nowrap;
   z-index: 200;
@@ -920,7 +921,7 @@ button {
   align-items: center;
   gap: 5px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -932,7 +933,7 @@ button {
 .badge .d {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: currentColor;
 }
 .badge.green {
@@ -964,7 +965,7 @@ button {
   background: color-mix(in oklab, #f0883e 14%, transparent);
 }
 .badge.square {
-  border-radius: 5px;
+  border-radius: var(--radius);
 }
 
 /* ============================================================
@@ -1069,7 +1070,7 @@ button {
 .placeholder .pic {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: grid;
   place-items: center;
   background: var(--accent-soft);
@@ -1102,7 +1103,7 @@ button {
 .spinner {
   width: 20px;
   height: 20px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   border: 2px solid var(--border);
   border-top-color: var(--accent);
   animation: spin 0.7s linear infinite;
@@ -1238,7 +1239,7 @@ button {
   color: var(--text-muted);
   cursor: pointer;
   white-space: nowrap;
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 .exp-row:hover {
   background: var(--surface-2);
@@ -1306,7 +1307,7 @@ button {
   font: inherit;
   font-size: 12px;
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 .rp-file-back:hover {
   background: var(--surface-2);
@@ -1575,7 +1576,7 @@ body.resizing-ew .app {
 }
 .breakdown .bar {
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-hi);
   overflow: hidden;
 }
@@ -1583,7 +1584,7 @@ body.resizing-ew .app {
   display: block;
   height: 100%;
   background: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .warn-item {
   display: flex;

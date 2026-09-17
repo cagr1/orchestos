@@ -10,13 +10,13 @@
   font-size: 12px;
   color: var(--text-muted);
   padding: 4px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
 }
 .live-indicator .live-dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--success);
   box-shadow: 0 0 0 3px var(--success-dim);
   animation: pulse 1.4s ease-in-out infinite;
@@ -48,7 +48,7 @@
   align-items: center;
   gap: 6px;
   padding: 5px 13px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
@@ -339,7 +339,7 @@
 .feed .feed-head .live-dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--success);
   box-shadow: 0 0 0 3px var(--success-dim);
 }
@@ -432,7 +432,7 @@
   cursor: pointer;
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   display: grid;
   place-items: center;
 }
@@ -523,7 +523,7 @@
 .settings-head-mark span {
   display: block;
   width: 4px;
-  border-radius: 3px 3px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   background: var(--accent);
   box-shadow: 0 0 14px var(--accent-dim);
 }
@@ -575,7 +575,7 @@
   align-items: center;
   gap: 10px;
   padding: 9px 11px;
-  border-radius: 7px;
+  border-radius: var(--radius);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
@@ -615,7 +615,7 @@
   top: 6px;
   bottom: 6px;
   width: 2px;
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
   background: var(--accent);
   box-shadow: 0 0 12px var(--accent);
 }
@@ -887,7 +887,7 @@
   display: inline-block;
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   transition: box-shadow 0.3s;
 }
 .health-label {
@@ -997,7 +997,7 @@
 .usage-heatmap-cell {
   width: 11px;
   height: 11px;
-  border-radius: 2px;
+  border-radius: var(--radius);
   background: var(--surface-2);
   flex-shrink: 0;
 }
@@ -1098,7 +1098,7 @@
 .theme-swatch {
   width: 88px;
   height: 56px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   display: grid;
   grid-template-columns: 20px 1fr;
@@ -1115,7 +1115,7 @@
   position: absolute;
   width: 13px;
   height: 13px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   top: 8px;
   left: 8px;
 }
@@ -1171,7 +1171,7 @@
   display: inline-block;
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
 }
 .exec-mode-dot.green {
@@ -1410,7 +1410,7 @@
 .scope-opt .sc-dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: currentColor;
 }
 .scope-opt .ct {
@@ -1514,14 +1514,14 @@
 .conf .track {
   flex: 1;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-hi);
   overflow: hidden;
 }
 .conf .track i {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
 }
 .conf .track i.hi {
@@ -1564,7 +1564,7 @@
   color: var(--text-muted);
   font-weight: 500;
   background: var(--surface-hi);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 1px 9px;
 }
 .section-title.collapsible {
@@ -1827,7 +1827,7 @@
   max-width: calc(100vw - 40px);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
   transform: translateY(8px) scale(0.98);
   transition: transform 0.18s;
@@ -1984,7 +1984,7 @@
 .cmdk-item-type {
   flex-shrink: 0;
   padding: 2px 7px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2029,7 +2029,7 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   font-size: 11px;
   font-weight: 600;
   background: var(--border);
@@ -2149,7 +2149,7 @@
 .chat-bubble {
   max-width: 100%;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 13.5px;
   line-height: 1.6;
   word-break: break-word;
@@ -2157,13 +2157,13 @@
 .chat-msg.user .chat-bubble {
   background: var(--accent);
   color: var(--accent-contrast);
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: var(--radius);
 }
 .chat-msg.assistant .chat-bubble {
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: var(--radius);
 }
 /* #51 — oculto por default, aparece con hover sobre el mensaje (o foco, para
    teclado/lectores de pantalla) — mismo patrón `:hover`/`:focus-within` que
@@ -2191,7 +2191,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  border-radius: 5px;
+  border-radius: var(--radius);
   border: none;
   background: none;
   color: var(--text-faint);
@@ -2220,7 +2220,7 @@
   align-items: center;
   margin: 4px 0;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   font-size: 12.5px;
   line-height: 1.5;
 }
@@ -2301,7 +2301,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   cursor: pointer;
   transition:
     background-color 0.15s,
@@ -2373,7 +2373,7 @@
   font-size: 13px;
   font-family: var(--sans);
   padding: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   cursor: pointer;
   text-align: left;
 }
@@ -2477,7 +2477,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 12px;
   color: var(--text);
   cursor: pointer;
@@ -2524,7 +2524,7 @@
   gap: 6px;
   background: var(--surface-2);
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text);
   font-size: 12px;
   font-family: var(--mono);
@@ -2590,7 +2590,7 @@
   font-size: 13px;
   font-family: var(--sans);
   padding: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   cursor: pointer;
   text-align: left;
 }
@@ -2716,13 +2716,13 @@
   font-size: 0.875em;
   background: var(--surface-hi);
   border: 1px solid var(--border-soft);
-  border-radius: 4px;
+  border-radius: var(--radius);
   padding: 1px 5px;
 }
 .chat-bubble .md-body pre {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 10px 12px;
   overflow-x: auto;
   margin: 0.55em 0;
@@ -2788,7 +2788,7 @@
    líneas +/- con fondo coloreado y gutter, no texto crudo de unified diff. */
 .diff-file {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   margin: 0.5em 0;
   overflow: hidden;
 }
@@ -2883,7 +2883,7 @@
   line-height: 1.35;
   padding: 1px 6px;
   margin: 0 1px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   border: 1px solid var(--border-soft);
   background: var(--surface-hi);
   color: var(--text);
@@ -3168,7 +3168,7 @@
   height: 15px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0 4px;
   line-height: 1;
   font-family: var(--mono);
@@ -3199,7 +3199,7 @@
   font-size: 12.5px;
   padding: 8px 10px;
   line-height: 1.5;
-  border-radius: 6px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text);
@@ -3216,7 +3216,7 @@
 .insp-explain-card {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
