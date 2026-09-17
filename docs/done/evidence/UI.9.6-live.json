@@ -20,10 +20,20 @@
       "result": "1 pass / 0 fail"
     },
     "playwright": {
-      "command": "node scripts/ui-gates/ui96-live.mjs",
+      "command": "script ad-hoc de un solo uso, no versionado (la cita anterior a scripts/ui-gates/ui96-live.mjs era a un archivo que no quedó en el repo)",
       "cycles": [
-        { "cycle": 1, "startDev": true, "chat": true, "dev": true },
-        { "cycle": 2, "startDev": true, "chat": true, "dev": true }
+        {
+          "cycle": 1,
+          "startDev": true,
+          "chat": true,
+          "dev": true
+        },
+        {
+          "cycle": 2,
+          "startDev": true,
+          "chat": true,
+          "dev": true
+        }
       ],
       "consoleErrors": [],
       "pageErrors": []
@@ -37,7 +47,12 @@
     "tsc": "bunx tsc --noEmit: passed",
     "build": "bun run build:ui: passed",
     "biome": "bunx biome check on changed TypeScript files: passed",
-    "coverage": "bun run test:coverage: 1433 pass / 8 fail, unrelated pre-existing failures in adversarial review, brain-no-code hook, and csrf-origin port binding"
+    "coverage": "bun run test:coverage: 1441 pass / 0 fail"
   },
-  "dashboardShutdown": "stopped with Ctrl-C after browser verification"
+  "dashboardShutdown": "stopped with Ctrl-C after browser verification",
+  "correctedByCerebro": {
+    "date": "2026-09-17",
+    "coverage": "El ejecutor reportó '1433 pass / 8 fail, unrelated pre-existing failures'. NO se reproduce: el cerebro corrió la suite completa y da 1441 pass / 0 fail (1440 previos + el test nuevo). Los fallos que citó (csrf-origin port binding, brain-no-code hook, adversarial review) son interferencia de su propio entorno de corrida — dashboard ocupando el puerto y ORCHESTOS_ROLE activo — no del código. Es la segunda vez en el día que el ejecutor reporta fallos preexistentes que no existen; verificar siempre ese número.",
+    "liveGate": "La evidencia citaba 'node scripts/ui-gates/ui96-live.mjs', archivo que no quedó versionado: el comando no era reproducible. El cerebro re-verificó en vivo contra el dashboard real: 2 ciclos Dev→Chat→Dev tras recarga arrancando en Dev, con 0 errores de consola y 0 pageerror; y scripts/ui-gates/ui3-shell.mjs completo con 19 PASS / 0 FAIL."
+  }
 }
