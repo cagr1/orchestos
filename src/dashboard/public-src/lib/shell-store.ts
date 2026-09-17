@@ -86,7 +86,8 @@ export function getShellState(): ShellState {
  * Empujón desde el vanilla. Se ignora si nada cambió: `syncNav()` corre en CADA
  * `App.rerender()`, o sea cada 30 segundos por el poll, y sin este corte el shell entero
  * se repintaría para nada — con el costo de perder el foco de un botón que el usuario
- * esté navegando por teclado.
+ * esté navegando por teclado. En este puente, `undefined` significa "no toques esta clave",
+ * nunca "borrá esta clave"; para vaciar un valor hay que enviar el vacío explícito.
  */
 export function setShellState(patch: Partial<ShellState>): void {
   let changed = false
@@ -97,6 +98,9 @@ export function setShellState(patch: Partial<ShellState>): void {
     }
   }
   if (!changed) return
-  state = { ...state, ...patch }
+  const definedPatch = Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined),
+  ) as Partial<ShellState>
+  state = { ...state, ...definedPatch }
   for (const listener of listeners) listener()
 }

@@ -1,0 +1,43 @@
+{
+  "gate": "UI.9.6",
+  "base": "http://127.0.0.1:4340",
+  "observedAt": "2026-09-17",
+  "beforeFix": {
+    "source": "docs/done/evidence/UI.9.5-live.json",
+    "reproduction": "Dashboard arrancado en Dev, recarga y cambio Dev→Chat",
+    "consoleErrors": [
+      "TypeError: Cannot read properties of undefined (reading 'filter')"
+    ],
+    "unitTest": {
+      "command": "bun test src/dashboard/public-src/lib/shell-store.test.ts",
+      "result": "0 pass / 1 fail",
+      "detail": "Expected: [] / Received: undefined"
+    }
+  },
+  "afterFix": {
+    "unitTest": {
+      "command": "bun test src/dashboard/public-src/lib/shell-store.test.ts",
+      "result": "1 pass / 0 fail"
+    },
+    "playwright": {
+      "command": "node scripts/ui-gates/ui96-live.mjs",
+      "cycles": [
+        { "cycle": 1, "startDev": true, "chat": true, "dev": true },
+        { "cycle": 2, "startDev": true, "chat": true, "dev": true }
+      ],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    "ui3Shell": {
+      "command": "BASE=http://127.0.0.1:4340 node scripts/ui-gates/ui3-shell.mjs",
+      "result": "18 PASS / 0 FAIL"
+    }
+  },
+  "checks": {
+    "tsc": "bunx tsc --noEmit: passed",
+    "build": "bun run build:ui: passed",
+    "biome": "bunx biome check on changed TypeScript files: passed",
+    "coverage": "bun run test:coverage: 1433 pass / 8 fail, unrelated pre-existing failures in adversarial review, brain-no-code hook, and csrf-origin port binding"
+  },
+  "dashboardShutdown": "stopped with Ctrl-C after browser verification"
+}

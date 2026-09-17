@@ -487,6 +487,22 @@ por lo que el botón UI.9.2 “Open in Workspace” no pudo observarse; el cambi
 TypeError de `Sidebar` ya anotado en PLAN.md y fuera de alcance. `ui81-visual-consistency` sigue
 fallando por los seis radios preexistentes de UI.3.5; no se tocó CSS de radios.
 
+<a id="sprint-30-ui-9-6"></a>
+### UI.9.6 — El puente no puede borrar estado con `undefined`
+
+Ejecutado por: luna · Spec: docs/specs/UI.9.6.md
+
+`setShellState()` filtra claves `undefined` antes del merge, alineando la actualización con la
+detección de cambios; `syncNav()` conserva su publicación de `undefined` en Dev y documenta la
+semántica. El test reproduce el patrón exacto: antes del fix falló (`Received: undefined`) y después
+pasó (`1 pass / 0 fail`). No se tocó Sidebar ni CSS.
+
+Gate en vivo: navegador real (Playwright) — `docs/done/evidence/UI.9.6-live.json`; dos ciclos
+Dev→Chat→Dev con recarga, `consoleErrors=[]`, `pageErrors=[]`; `ui3-shell.mjs` completo: 18/18 PASS.
+`bunx tsc --noEmit`, `bun run build:ui` y Biome sobre los archivos TypeScript cambiados pasaron.
+`bun run test:coverage` quedó bloqueado por 8 fallos preexistentes/no relacionados; salida detallada
+en la evidencia.
+
 <a id="sprint-30-ui35a"></a>
 ### UI.3.5a — El gate invertido que mide de verdad, y el barrido de radios
 

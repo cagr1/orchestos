@@ -936,8 +936,8 @@
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
       "delegation": "⚡",
       "title": "El puente no puede borrar estado con `undefined`",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-09-17"
     },
     {
       "id": "UI.9.5",

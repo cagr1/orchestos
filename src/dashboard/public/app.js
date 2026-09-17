@@ -876,6 +876,7 @@ const App = {
     pushShellState({
       shellMode: state.shellMode,
       sessionsVersion: state.sessionsVersion,
+      // En Dev, undefined significa «no toques» según el contrato del shell-store.
       generalSessions: state.shellMode === 'chat' ? state.chatSessions : undefined,
       screen: state.screen,
       skillsCount: (state.skills || []).length,
