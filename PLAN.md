@@ -48,11 +48,16 @@ chat con **Codex** sin caída silenciosa a OpenRouter (`AT.10`, tramo Codex cerr
 
 **Lo que falta para que la prueba no mienta, en orden:**
 
-1. **Sembrar datos reales de trabajo.** Requisito heredado de `NEXT.md` (graduado acá el
-   2026-09-17): **≥2 proyectos, ≥3 sesiones por proyecto, ≥5 chats sin proyecto**. Hoy la DB real
-   tiene ~1 y 1, y eso **ya invalidó un gate**: `UI.9.5` no pudo observar "Open in Workspace"
-   porque no había sesiones elegibles (`docs/done/evidence/UI.9.5-live.json`). Con volumen de 1 no
-   se puede juzgar ni el layout ni si la herramienta sirve.
+0. **`UI.9.7` — los cinco bugs que impiden probar** (abierto 2026-09-18, ver más abajo). Va
+   primero por dependencia dura, no por prioridad: el botón de agregar proyecto está borrado
+   por una regresión, así que el punto 1 de esta lista **no se puede ejecutar desde la UI**.
+   Corrección de rumbo del 2026-09-18: el punto 1 no se resuelve "sembrando" datos a mano —
+   Carlos los va a crear usando el producto, que es de lo que se trata la prueba.
+1. **Datos reales de trabajo, creados usándolo.** Requisito heredado de `NEXT.md` (graduado acá
+   el 2026-09-17): **≥2 proyectos, ≥3 sesiones por proyecto, ≥5 chats sin proyecto**. Hoy la DB
+   real tiene ~1 y 1, y eso **ya invalidó un gate**: `UI.9.5` no pudo observar "Open in
+   Workspace" porque no había sesiones elegibles (`docs/done/evidence/UI.9.5-live.json`). Con
+   volumen de 1 no se puede juzgar ni el layout ni si la herramienta sirve.
 2. **`AT.10` cerrado del todo** — hoy Codex cierra y OpenCode queda bloqueado por configuración de
    la máquina, no por el código. Si el chat cae en silencio a otro proveedor, la prueba miente
    sobre qué se está evaluando.
@@ -1979,6 +1984,42 @@ ni eso hace falta.
   Ejecutado por: luna · Spec: docs/specs/UI.8.4c.md
   Sin delegación: el ítem UI.9.5 retoma y cierra el spec compartido docs/specs/UI.8.4c.md; no existe docs/specs/UI.9.5.md.
   Gate en vivo: navegador real (Playwright/dashboard) — `docs/done/evidence/UI.9.5-live.json`; task real, resize persistido, cierres por botón/Escape/navegación/proyecto, palette Terminal→Diff y viewport 390×844 observados. Open in Workspace no observable sin sesión persistente elegible; radios UI.3.5 y TypeError Dev→Chat quedan documentados como deudas fuera de alcance.
+
+- [ ] **UI.9.7 — ⚡ Los cinco bugs que impiden probar el producto.** (abierto 2026-09-18)
+  Spec: `docs/specs/UI.9.7.md` · Ejecuta: luna · **Va antes que todo lo demás del entregable
+  rápido**: sin el punto 1 no se pueden cargar los ≥2 proyectos que `PLAN.md:51-55` exige.
+  Reportados por Carlos probando el dashboard real. Causa raíz leída en el código, los cinco:
+  1. **Regresión**: `UI.9.4` agregó el botón "+ Add project" (`d388392`) y `UI.9.1` (`4e8578e`)
+     lo borró al reescribir el sidebar. `POST /api/projects/choose` (`server.ts:280`), el
+     handler `osascript` (`projects.ts:41-43`), el i18n (`i18n.js:18-19`) y el CSS
+     (`styles.css:708-730`) siguen vivos **sin consumidor**. Un ítem cerrado con evidencia en
+     vivo fue borrado por otro y nadie lo notó en 3 días — el gate tiene que cubrir eso.
+  2. **Icono de Codex**: `agentIconFor()` (`data.js:126-129`) resuelve el alias contra `ICON`
+     en vez de `AGENT_ICONS`, y cae en `ICON.openai` (trazo aproximado, `data.js:57`). La barra
+     de uso usa `{...ICON, ...AGENT_ICONS}` (`app.js:3357`), donde la marca real pisa a la
+     aproximada. Mismo CLI, dos dibujos, en la misma pantalla. Contesta la investigación que
+     Carlos pidió el 2026-09-16 (anotada más abajo).
+  3. **Texto muerto en el composer**: para Codex el panel muestra tres veces el mismo dato
+     ("Model: Decided by Codex · your subscription" `app.js:2955-2961`, fila "Agent"
+     `:2975-2978`, y el trigger cerrado `:2943`) y **cero controles**. Se borran las filas
+     informativas: si no hay nada que elegir, no se muestra la fila.
+  4. **El esfuerzo de Codex existe y no llega al chat**: `CLI_EFFORT_LEVELS.codex`
+     (`data.js:277-280`) declara 5 niveles y el ejecutor de tareas ya aplica
+     `-c model_reasoning_effort=` (`codex.ts:112`), pero `chatEffortLevelsForAgent()`
+     (`chat.ts:91-95`) devuelve `[]` para codex y `runCodexChat` (`codex.ts:252-258`) no tiene
+     el parámetro. **Riesgo declarado en el spec:** si el binario rechaza el flag, se revierte
+     el punto y se cierra con el error exacto — no se deja un selector que no hace nada.
+  5. **Muere `Activity`** (decisión de Carlos, 2026-09-18: *"es lo mismo que runs, ¿cuál es el
+     objetivo de tener 2 ventanas iguales?"*). Resuelve la pregunta que dejó abierta
+     `PLAN.md:1888-1889`. No es duplicación aproximada: `SCREENS.activity`
+     (`screens-ops.js:2381-2388`) es un passthrough literal a `SCREENS.runs`, sin filtrar por
+     proyecto, y `runs` ya es tab del workspace (`screens-ops.js:8`).
+  **Explícitamente fuera**, con ítem propio: picker de modelo para Codex (no hay catálogo
+  verificado y `codex.ts:75-79` documenta que ni el stream ni `config.toml` dicen cuál corrió);
+  menú de tres puntos por proyecto + `Delete project` (no existe endpoint); migrar `chat`.
+  **Gate:** navegador real (Playwright) sobre dashboard vivo, un solo recorrido, con ≥2
+  proyectos reales dejados en la DB al terminar; evidencia en
+  `docs/done/evidence/UI.9.7-live.json`.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 
