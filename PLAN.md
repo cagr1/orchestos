@@ -2107,6 +2107,17 @@ ni eso hace falta.
   desapareció sin que ningún ítem lo pidiera —el botón "+ Add project" (dos veces) y ahora esto—.
   Si el diagnóstico confirma que un ítem cerrado lo quitó de refilón, eso es evidencia directa
   para `CI.2`: no hay nada que avise cuando una pantalla pierde una parte.
+  **Diagnóstico CERRADO 2026-09-18 (leído en el código, ya no es hipótesis).** `30ab117` (UI.9.5)
+  reemplazó el botón permanente `#rpToggle` del aside por `#rpClose` y añadió
+  `if (!inspector) return null` en `RightPanelToprow.tsx:27`: los botones de explorer/terminal/diff
+  **solo existen cuando el inspector ya está abierto**. El único punto de entrada que queda en todo
+  el producto es el command palette (`app.js:2305-2312`). Y `selectWorkspaceProject()` llama
+  `closeInspector()` (`app.js:3357`), así que abrir un proyecto garantiza que quede cerrado y sin
+  forma de reabrirlo con el mouse. Confirmado: un ítem cerrado lo quitó de refilón.
+  **Ubicación decidida por el cerebro** (tres reglas cerradas chocaban): el header no lleva iconos
+  (`Header.tsx:6`, ronda 4 de v0.12) y el inspector cerrado debe medir 0px (criterio de UI.9.5), así
+  que los tres botones van al final de la barra de tabs del workspace (`screens-ops.js:18`).
+  Spec: `docs/specs/UI.9.A.md`.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
@@ -2132,6 +2143,23 @@ ni eso hace falta.
   `eval-run.ts`, `check-sources-drift.test.ts`, `tests/run/*.test.ts`, `docs/done/evidence/*.json`),
   todos `FIXABLE`. CI lo ejecuta, así que CI sigue rojo por eso. Un CI que falla siempre deja de
   dar señal — mismo corolario que `CLAUDE.md` ya dejó escrito el 2026-08-01.
+  **Hallazgo 2026-09-18 que amplía este ítem: correr los 12 gates NO basta.** El diagnóstico de
+  `UI.9.A` mostró que `30ab117` reescribió `scripts/ui-gates/ui3-shell.mjs` en el **mismo commit**
+  que cambió la pantalla, y el gate resultante abre el inspector con
+  `page.evaluate(() => window.OrchestOS.openInspectorTool('terminal'))` (`ui3-shell.mjs:58`) en vez
+  de clickear. Es estructuralmente incapaz de notar que no existe ningún botón: pasaría en verde con
+  cero afordancias en pantalla. Los tres casos comparten forma —"+ Add project" invisible por CSS
+  (el gate medía existencia en DOM, no visibilidad), "+ Add project" borrado por `UI.9.1` (el gate
+  no se volvió a correr), inspector (el gate se reescribió para saltarse la UI)—: **los gates
+  afirman sobre estado alcanzable desde JS, no sobre lo que un humano alcanza con el mouse desde un
+  arranque en frío, y los escribe el mismo ítem que cambia la pantalla.**
+  Dos propiedades que el diseño de `CI.2` tiene que resolver además de la frecuencia:
+  1. **Camino clickeable desde frío:** toda función del producto se ejerce clickeando. Prohibido
+     `window.OrchestOS`/`window.state` para *llegar* a una pantalla en un gate (sí para *afirmar*
+     sobre el estado una vez ahí). Medir cuántos de los 12 gates violan esto hoy.
+  2. **Inventario de afordancias:** algo tiene que comparar qué controles clickeables existían antes
+     y cuáles después de un commit, y ponerse rojo cuando desaparece uno que nadie mandó quitar. Sin
+     esto, un gate reescrito por el mismo ítem que rompe la pantalla nunca da señal.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 
