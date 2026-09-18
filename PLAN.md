@@ -2039,6 +2039,71 @@ ni eso hace falta.
   proyectos reales dejados en la DB al terminar; evidencia en
   `docs/done/evidence/UI.9.7-live.json`.
 
+- [ ] **UI.9.8 — ⚡ Barrido de texto que no aporta, y el modelo elegible en Codex.** (abierto 2026-09-18)
+  **Pedido textual de Carlos, 2026-09-18:** *"donde detectes que exista en la UI texto adicional
+  que no aporta a nada debe DESAPARECER"*. Disparador: bajo cada respuesta del chat aparece
+  `codex (cli default model) via Codex CLI` — *"esto está demás"*. Es la **tercera vez en el
+  mismo día** que señala lo mismo: antes fueron `Model: Decided by Codex · your subscription` y la
+  fila `Agent`, ambas cerradas en UI.9.7. El patrón se repite porque cada ítem arregla su
+  instancia y no el criterio; por eso este ítem barre, no parchea.
+  **Dónde vive el caso concreto:** `screens-core.js:415-416` pinta `.chat-model-tag` con el
+  `resultLabel` que compone `chat.ts:1374,1426`. **El dato no se borra del backend** —
+  `resultLabel` alimenta el costeo (`canonicalModel`, `chat.ts:1248`) y
+  `rememberResolvedClaudeModel()` (`screens-core.js:760`) aprende de `data.model`. La regla es de
+  superficie: se deja de renderizar, no se deja de calcular.
+  **Alcance del barrido:** recorrer las pantallas que Carlos usa hoy (chat y el shell Dev) y
+  listar cada texto que no habilita una decisión ni informa algo que el usuario no sepa.
+  **Borrar, no acortar.** Traer la lista antes de borrar lo dudoso; lo evidente se borra.
+  Cuidado con el modo de fallar de UI.9.7: sacar una etiqueta dejó alcanzable un fallback con el
+  literal `'CLI default model'` — verificar lo **renderizado**, no el diff.
+  **Segunda parte — elegir modelo en Codex** (*"en el chat Dev no puedo elegir el modelo"*).
+  Es lo que UI.9.7 dejó fuera por no haber catálogo verificado. Investigar antes de diseñar:
+  `~/.codex/config.toml` sí declara el modelo (`codex.ts:75-79` lo leyó: decía `gpt-5.6-luna`),
+  y los alias reales están en `AGENTS.md:293-299` (Luna/Terra/Sol/Astra). Ninguna lista
+  hardcodeada de catálogo frágil — ver `feedback-deteccion-generica-no-por-cli`. Si no hay fuente
+  confiable, decirlo y no poner un selector decorativo.
+  Gate: navegador real, cero texto de los listados sobreviviendo, y el modelo elegido llegando al
+  binario con un mensaje real (como se hizo con el esfuerzo en UI.9.7).
+
+- [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
+  Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
+  la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir
+  también un control claro de expandir/colapsar los agentes de ese proyecto.
+  **Estado real leído en el código:** no existe en ninguna capa. `Sidebar.tsx:243-254` solo tiene
+  el `+` de agregar agente; `SessionRow` sí tiene borrado (`Sidebar.tsx:441-451`), los proyectos
+  no. **No hay endpoint de borrado de proyecto** en `server.ts` — es backend + front.
+  **Decidir con Carlos antes de implementar, porque es destructivo:** borrar un proyecto ¿saca la
+  fila de la DB solamente, o arrastra sus chats, tasks, runs y memoria? Un borrado en cascada sin
+  confirmación explícita es justo la acción irreversible que las reglas del repo exigen consultar.
+  Al diseñarlo, volver a mirar las capturas de Orca (`docs/ui-reference-patterns.md` A.1-A.3).
+  Gate: navegador real, con un proyecto de prueba creado y borrado, y confirmación de qué
+  sobrevivió y qué no en SQLite.
+
+- [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
+  **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
+  `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,
+  `ledger:gate`, `plan:render`, `check-live-gate`, `check-ui-copy` y `check-scope-lock`.
+  `scripts/pre-push.sh` corre `test:coverage`. **Ninguno toca `scripts/ui-gates/`**, donde hay
+  **12 scripts** (`ui0`, `ui1`, `ui1b`, `ui2`, `ui3`, `ui4-specs`, `ui4-skills`, `ui81`, `ui97`,
+  `at91`, `s6`, `s6a`). Se corren a mano el día que cierra su ítem y nunca más.
+  **Consecuencia ya pagada, no hipotética:** el gate de `UI.9.4` pasó una vez y el botón
+  "+ Add project" se pudrió **dos veces** —invisible por CSS con el sidebar colapsado, después
+  borrado por `UI.9.1`— sin que nada se pusiera rojo, con el ítem en `[x]` todo el tiempo
+  (`UI.9.7`). Es exactamente el patrón de la Regla cero de `CLAUDE.md`: una regla que nadie hace
+  cumplir mecánicamente deja de existir.
+  **Pregunta que Carlos hizo y que este ítem contesta** (2026-09-18): *"¿este cambio que se hizo
+  se lo tomará en cuenta [al cambiar toda la interfaz]?"*. Hoy no. Lo que tiene que sobrevivir a
+  `UI.4`/`UI.5` no es el CSS, es el gate — y hoy el gate tampoco se hace cumplir.
+  **A resolver en el diseño, no asumir:** los ui-gates necesitan un dashboard corriendo y
+  Playwright; medir cuánto tardan los 12 juntos antes de decidir si van a CI, a `pre-push` o a un
+  workflow aparte. Si el costo es mayor que el beneficio, decirlo con el número y proponer un
+  subconjunto — no meter 12 gates en cada push por principio.
+  Relacionado: `bun run lint` está **rojo por 17 hallazgos preexistentes** (`check-coverage.ts`,
+  `check-ledger-gate.ts`, `check-secrets.ts`, `check-test-assertions.ts`, `context-adapters.ts`,
+  `eval-run.ts`, `check-sources-drift.test.ts`, `tests/run/*.test.ts`, `docs/done/evidence/*.json`),
+  todos `FIXABLE`. CI lo ejecuta, así que CI sigue rojo por eso. Un CI que falla siempre deja de
+  dar señal — mismo corolario que `CLAUDE.md` ya dejó escrito el 2026-08-01.
+
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de spec separado para cuotas e iconografía:** la barra inferior de uso por CLI debe mostrar únicamente las cuotas de 5 h y 7 d; las cantidades de tokens por modelo pertenecen a Settings, no a esas tarjetas. Reducir el texto redundante dentro de los cuadros de cuota (por ejemplo, no repetir “Codex” en dos niveles). Las cuotas deben refrescarse al abrir el panel, cuando se use el CLI y periódicamente mientras siga abierto. Los iconos de CLI deben conservar sus colores originales. Investigar además por qué el icono/avatar de Codex usado al iniciar un chat nuevo se ve distinto al que aparece en la ventana de uso y unificarlo con el asset correcto.
