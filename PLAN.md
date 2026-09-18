@@ -2180,6 +2180,122 @@ ni eso hace falta.
      y cuáles después de un commit, y ponerse rojo cuando desaparece uno que nadie mandó quitar. Sin
      esto, un gate reescrito por el mismo ítem que rompe la pantalla nunca da señal.
 
+  **MEDICIÓN EJECUTADA 2026-09-18 (números reales, un dashboard en :4323, `BASE`/`GATE_BASE`
+  apuntando ahí; no estimaciones).** Son **13** gates, no 12 — `ui9a-inspector.mjs` se sumó ayer.
+
+  | gate | runtime | tiempo | resultado hoy |
+  |---|---|---|---|
+  | `at91-format-smoke` | node | 15.4s | verde (formato JSON, sin líneas PASS/FAIL) |
+  | `s6-sprint-board` | **bun** | 31.7s | **ROJO — podrido** |
+  | `s6a-sprint-board` | **bun** | 31.6s | **ROJO — podrido** |
+  | `ui0-islands` | node | 9.3s | ROJO (2 FAIL) |
+  | `ui1-model-combo` | node | 15.0s | verde (27 PASS) |
+  | `ui1b-remaining-callsites` | node | 8.5s | verde (9 PASS) |
+  | `ui2-design-system` | node | 13.2s | ROJO (1 FAIL) |
+  | `ui3-shell` | node | 10.0s | verde (20 PASS) |
+  | `ui4-skills-screen` | node | 11.4s | verde (22 PASS) |
+  | `ui4-specs-screen` | node | 14.4s | ROJO (2 FAIL) |
+  | `ui81-visual-consistency` | node | 5.0s | ROJO (1 FAIL) |
+  | `ui97-bugs` | node | 11.5s | verde (25 PASS) |
+  | `ui9a-inspector` | node | 4.1s | verde (17 PASS) |
+
+  **Serie completa: ~181s (3 min)** con el runtime correcto de cada uno. **6 de 13 están rojos hoy**,
+  sin que nadie lo supiera.
+
+  **Paralelizar no es opción — medido, no supuesto.** Los 11 gates de node lanzados a la vez contra
+  el mismo dashboard: **98s** (apenas menos que en serie) y **resultados basura** — 9 de 11
+  terminaron con 0 PASS / 0 FAIL por `TimeoutError` de contención. Los gates asumen un dashboard
+  para ellos solos. Paralelizar exige un dashboard por gate, y ahí el ahorro se lo come el arranque.
+
+  **Dos podridos que la medición destapó, y son la prueba del ítem:**
+  - `s6`/`s6a` se importan con `bun:` y **fallan de entrada con `node`**
+    (`ERR_UNSUPPORTED_ESM_URL_SCHEME`). Con `bun` sí arrancan, y ahí mueren en
+    `click: Timeout 30000ms exceeded — waiting for locator('#navModeBtn')`: ese botón **ya no
+    existe**, lo borró `UI.7` al eliminar el flag de modo. Es el mismo patrón que el "+ Add project":
+    el gate quedó en `[x]` mientras la pantalla que medía desapareció.
+  - Ni siquiera hay un runtime común: 11 gates son `node`, 2 son `bun`. Nada lo declara en ningún
+    lado; se descubre corriéndolos.
+
+  **Propiedad 1 medida (camino clickeable desde frío): 6 de 13 la violan hoy** —
+  `ui3-shell.mjs:58` (`window.OrchestOS.openInspectorTool`), `ui1-model-combo.mjs:37`,
+  `ui1b-remaining-callsites.mjs:54-118`, `ui4-specs-screen.mjs:58-212`,
+  `ui4-skills-screen.mjs:47-204`, `ui81-visual-consistency.mjs:31` (todos siembran o navegan por
+  `window.state` en vez de clickear). Los 7 restantes ya llegan clickeando.
+
+  **Veredicto del número, antes de elegir dónde corren:** 3 min descarta `pre-push` (hoy tarda 20s;
+  multiplicarlo por 10 lo vuelve un `--no-verify` garantizado) y descarta meterlos en el job de CI
+  actual. Y con 6 de 13 rojos, engancharlos hoy a cualquier gate obligatorio los deja rojos
+  permanentes — exactamente el corolario que `CLAUDE.md` ya dejó escrito el 2026-08-01 ("un CI que
+  falla siempre deja de dar señal"). El orden obligado es: **primero verdes, después exigibles.**
+
+  **DIAGNÓSTICO DE LOS 6 ROJOS (2026-09-18, leído en el código y probado en vivo).** Pedido por
+  Carlos antes de decidir. El reparto importa: **5 de 6 son el gate podrido, 1 es un bug real
+  del producto.** Eso es el ítem probándose a sí mismo.
+
+  - **`ui2-design-system` — EL PRODUCTO, no el gate.** `.filter-tab` usa
+    `border-radius: var(--radius-lg)` (`screens.css:100`) y ese token vale **8px**
+    (`styles.css:44`). El componente React tiene `rounded-[20px]` **hardcodeado**
+    (`tabs.tsx:35`), con un comentario encima que afirma "Espeja `.filter-tab`: … radio 20px".
+    Alguien bajó el token de 20px a 8px y el React quedó atrás: hoy las pestañas React se ven
+    distintas de las vanilla en pantalla. Arreglo: consumir el token, no repetir el número.
+  - **`ui0-islands` — gate de una fase superada.** Afirma "sin `?island-probe` no se monta
+    ninguna isla". Era la regla del Mes 30 mientras React era experimental. Hoy hay **4 islas
+    permanentes en producción a propósito**: `model-combo` (`app.js:2675`), `screen-specs`,
+    `screen-skills` y `screen-plan` (`screens-ops.js:2352-2388`). El producto está bien; la
+    afirmación caducó con `UI.1`/`UI.4`.
+  - **`ui4-specs-screen` — dos afirmaciones caducadas.** (a) Exige 5 `<th>` incondicionalmente,
+    pero la 5ª columna es el checkbox de bulk y está detrás de `selectable`
+    (`SpecsScreen.tsx:178`); el gate nunca entra en modo bulk. (b) Busca `.badge` amber/green,
+    pero `UI.3.5` reemplazó los dos badges de color por `StatusRail` —glifo + mono—
+    deliberadamente (`SpecsScreen.tsx:292-299`).
+  - **`ui81-visual-consistency` — trinquete mal diseñado.** Los 5 `[style]` de Chat son:
+    `display:none` del `#chat-file-input`, un `pointer-events:none`, y **3 barras
+    `.session-statusbar-cli-fill` con `width:<pct>` dinámico — una por CLI**. El baseline de 4 se
+    calibró con menos CLIs. Cuenta atributos `[style]` a ciegas, así que se pone rojo cuando
+    cambian los **datos** (cuántos CLI hay configurados), no cuando empeora el código, y mete en
+    la misma bolsa el `width` calculado —única forma correcta de pintar una barra— que un estilo
+    de maquetación pegado a mano.
+  - **`s6` / `s6a` — se reparan, no se borran.** Miden el sprint board y el ciclo `commitPending`,
+    y **esa pantalla sigue viva**: es la isla `screen-plan` → `PlanBoardScreen` (`ui.tsx:47`). Lo
+    que murió es el camino: `#navModeBtn`, el toggle humano/operador que ambos clickean
+    (`s6:98,168`, `s6a:102,157,178,213,254`), lo borró `47b40c6` (`UI.8.3`, "muere el modo
+    avanzado"). Mismo patrón que "+ Add project" y que el inspector de `UI.9.A`. Además hay que
+    **declarar el runtime**: importan `bun:` y revientan con `node`
+    (`ERR_UNSUPPORTED_ESM_URL_SCHEME`); nada en el repo dice cuál usa cuál.
+
+  **DECIDIDO POR CARLOS 2026-09-18 — dónde corren:** workflow de CI **aparte**, no `pre-push` ni
+  el job de `ci.yml`. Levanta el dashboard, corre los 13 en serie (~3 min) y no toca la velocidad
+  del push local ni contamina el job de tests. Pendiente de decisión: qué se repara primero.
+
+  **PENDIENTE DE DECISIÓN DE CARLOS (planteado 2026-09-18, sin respuesta todavía):** son dos
+  trabajos distintos. El de `ui2` es un fix de producto de una línea (token en vez de `20px`
+  hardcodeado). Los otros 5 son reescribir afirmaciones de gates — y cuatro de ellos (`ui0`,
+  `ui4-specs`, `s6`, `s6a`) hay que reescribirlos igual bajo la propiedad 1 (llegar clickeando,
+  no por `window.state`), así que repararlos ahora por separado es hacer el trabajo dos veces.
+  Opciones: (a) un solo ítem "despodrir + reescribir clickeando los 13"; (b) el fix de `ui2` ya,
+  suelto, y el resto después. Nadie arranca a reparar hasta que esto se decida.
+
+  **Efecto secundario descubierto al medir, a resolver en el diseño:** correr los gates **muta el
+  working tree**. `at91-format-smoke` sobreescribió `docs/done/evidence/AT.9.1-live.json` —la
+  evidencia de cierre commiteada el 2026-09-15— con la corrida de hoy (revertido a mano), y
+  `ui0`/`ui1`/`ui1b`/`ui2`/`ui4-*` dejan PNGs sueltos en la raíz del repo. Un workflow que corre
+  los 13 en cada push no puede ir pisando evidencia histórica: los artefactos van a un directorio
+  temporal o a artifacts del job, nunca sobre archivos versionados.
+
+  **Y lo más grave, descubierto al intentar commitear esta medición: `s6a` escribe en la DB real
+  del usuario.** El pre-commit abortó con `render(DB): "# S.6a fixture"` — `~/.orchestos/db.sqlite`
+  había quedado con los **3 ítems del fixture (A, B, C)** en lugar de los **113 de `PLAN.md`**, y
+  `plan_doc_segments` con el documento del fixture. `src/db/sqlite.ts:12` congela `DB_PATH` en el
+  primer import a partir de `ORCHESTOS_HOME`, y el fixture de `s6`/`s6a` no aísla esa parte. El
+  resto de las tablas quedó intacto (projects 2, chat_sessions 11, runs 111, run_steps 45), así
+  que el daño fue acotado a `plan_items`/`plan_doc_segments`. Reparado con `bun run plan:reconcile`
+  (113 ítems reconciliados desde `PLAN.md`, 3 huérfanos A/B/C borrados; `plan:render --check`
+  verde, `bun run next` vuelve a listar los 27 de siempre), con copia previa en
+  `~/.orchestos/db.sqlite.pre-reconcile-*`. **Lo salvó que `PLAN.md` es la fuente versionada.**
+  Requisito duro para el workflow de `CI.2`: ningún gate corre sin `ORCHESTOS_HOME` aislado, y eso
+  se verifica en el propio gate, no se confía. Si esto hubiera pasado en una tabla sin respaldo en
+  git —`runs`, `chat_messages`— no había vuelta atrás.
+
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de spec separado para cuotas e iconografía:** la barra inferior de uso por CLI debe mostrar únicamente las cuotas de 5 h y 7 d; las cantidades de tokens por modelo pertenecen a Settings, no a esas tarjetas. Reducir el texto redundante dentro de los cuadros de cuota (por ejemplo, no repetir “Codex” en dos niveles). Las cuotas deben refrescarse al abrir el panel, cuando se use el CLI y periódicamente mientras siga abierto. Los iconos de CLI deben conservar sus colores originales. Investigar además por qué el icono/avatar de Codex usado al iniciar un chat nuevo se ve distinto al que aparece en la ventana de uso y unificarlo con el asset correcto.
