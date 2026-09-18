@@ -143,7 +143,6 @@ const state = {
 
 const NAV = [
   { id: 'chat', icon: ICON.chat, key: 'nav.chat' },
-  { id: 'activity', icon: ICON.runs, key: 'nav.activity' },
   // I.1 (Mes 30) — Tasks queda anclado como en Orca: ya no es una barra manual
   // desde el chat, es la vista de tareas que el usuario final también necesita ver.
   { id: 'settings', icon: ICON.settings, key: 'nav.settings' },
@@ -755,7 +754,9 @@ const App = {
       localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'project', id: projects[0].id }))
       this.rerender()
     } else {
-      this.go('activity')
+      state.screen = 'dev-empty'
+      state.workspaceProjectId = null
+      this.rerender()
     }
   },
   async fetchTasks() {
@@ -828,7 +829,7 @@ const App = {
   },
   go(id) {
     closeInspector()
-    if (id === 'activity' || id === 'workspace') {
+    if (id === 'workspace' || id === 'dev-empty') {
       state.shellMode = 'dev'
       localStorage.setItem('orchestos-shell-mode', 'dev')
       pushShellState({ shellMode: 'dev' })
@@ -2829,9 +2830,7 @@ function claudeHumanModelLabel(canonical) {
 
 const CHAT_EFFORT_LEVELS = Object.freeze({
   claude: ['low', 'medium', 'high', 'xhigh', 'max'],
-  // runCodexChat currently has no verified effort flag. Keep this empty until
-  // the interactive executor accepts and applies one in the real subprocess.
-  codex: [],
+  codex: ['minimal', 'low', 'medium', 'high', 'xhigh'],
   api: ['low', 'medium', 'high'],
   opencode: [],
   local: [],
@@ -2935,14 +2934,19 @@ function buildChatModelFx(st) {
   // diferencia de `modelSupportsReasoning`, que sí es por-modelo.
   const useClaudeCli = agent === 'claude'
   const effortLevels = chatEffortLevels(agent)
-  const effortAvailable =
-    useClaudeCli || (isApiAgent && modelSupportsReasoning(val, st.orModels))
+  const effortAvailable = effortLevels.length > 0 &&
+    (useClaudeCli || agent === 'codex' || (isApiAgent && modelSupportsReasoning(val, st.orModels)))
+  if (modelHiddenAgent && !effortAvailable) return ''
   const effortLabel = effortAvailable && effortLevels.includes(st.chatEffort)
     ? t('chat.effort.' + st.chatEffort)
     : null
-  const triggerBase = modelHiddenAgent ? agentLabel : modelLabel
-  const triggerLabel = effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase
-  const triggerTitle = effortLabel ? `${fullModelLabel} · ${effortLabel}` : fullModelLabel
+  const triggerBase = modelHiddenAgent ? effortLabel : modelLabel
+  const triggerLabel = modelHiddenAgent ? effortLabel : effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase
+  const triggerTitle = modelHiddenAgent
+    ? effortLabel || t('chat.effort.label')
+    : effortLabel
+      ? `${fullModelLabel} · ${effortLabel}`
+      : fullModelLabel
 
   const view = st.chatFxView // null | 'root' | 'model' | 'effort'
   let panel = ''
@@ -2953,17 +2957,12 @@ function buildChatModelFx(st) {
     // vista 'agent' más abajo). No se auto-corrige el config acá, solo se
     // avisa — cambiar el agente del proyecto sigue siendo decisión del usuario.
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
-      ${
-        modelHiddenAgent
-          ? `<div class="chat-modelfx-item">
-        <span class="k">${t('chat.modelfx.model')}</span>
-        <span class="v">${esc(t('chat.modelfx.modelDecidedBy', agentLabel))}</span>
-      </div>`
-          : `<button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
+      ${!modelHiddenAgent
+        ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
         <span class="k">${t('chat.modelfx.model')}</span>
         <span class="v" title="${esc(fullModelLabel)}">${esc(modelLabel)}</span>${ICON.chevR}
       </button>`
-      }
+        : ''}
       ${
         effortAvailable
           ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="effort">
@@ -2972,10 +2971,6 @@ function buildChatModelFx(st) {
       </button>`
           : ''
       }
-      <div class="chat-modelfx-item">
-        <span class="k">${t('chat.modelfx.agent')}</span>
-        <span class="v">${esc(agentLabel)}</span>
-      </div>
       <div class="chat-modelfx-sep"></div>
       <button type="button" class="chat-modelfx-item chat-modelfx-reset" data-modelfx-reset>
         ${ICON.refresh}<span>${t('chat.modelfx.reset')}</span>
@@ -3036,7 +3031,7 @@ function buildChatModelFx(st) {
 
   return `<div class="chat-modelfx${view ? ' open' : ''}" data-modelfx>
     <button type="button" class="chat-modelfx-trigger" data-modelfx-trigger title="${esc(triggerTitle)}" aria-label="${esc(triggerTitle)}" ${!modelHiddenAgent && !showsClaudeModelPicker && isLoading ? 'disabled' : ''}>
-      <span class="chat-modelfx-label">${esc(triggerLabel || 'CLI default model')}</span>${ICON.chev}
+      <span class="chat-modelfx-label">${esc(triggerLabel)}</span>${ICON.chev}
     </button>
     ${panel}
   </div>`

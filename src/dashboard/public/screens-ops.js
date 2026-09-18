@@ -2378,11 +2378,17 @@ SCREENS.plan = {
   wire() {},
 }
 
-SCREENS.activity = {
-  render(st) {
-    return SCREENS.runs.render(st)
+SCREENS['dev-empty'] = {
+  render() {
+    return `<div class="screen"><div class="card"><div class="placeholder">
+      <div class="pic">${ICON.project}</div>
+      <h3>${t('dev.empty.title')}</h3><p>${t('dev.empty.body')}</p>
+      <button type="button" class="btn primary" data-dev-empty-add>${t('nav.project.add')}</button>
+    </div></div></div>`
   },
-  wire(root, st) {
-    return SCREENS.runs.wire(root, st)
+  wire(root) {
+    root.querySelector('[data-dev-empty-add]')?.addEventListener('click', () => {
+      document.querySelector('#addProjectBtn')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
   },
 }

@@ -674,7 +674,7 @@ button {
 .sidebar-agent-icon[data-agent="glm"] svg, .sidebar-cli-icon[data-agent="glm"] svg { --agent-color: #a78bfa; }
 .sidebar-cli-menu .disabled { color: var(--text-faint); cursor: not-allowed; }
 .sidebar-cli-menu small { display: block; margin-top: 2px; color: var(--warning); font-size: 11px; }
-.app[data-sidebar="collapsed"] .sidebar-section-label, .app[data-sidebar="collapsed"] .sidebar-agents-toggle,
+.app[data-sidebar="collapsed"] .sidebar-section-label:not(:has(.sidebar-project-add)), .app[data-sidebar="collapsed"] .sidebar-agents-toggle,
 .app[data-sidebar="collapsed"] .sidebar-agent-row, .app[data-sidebar="collapsed"] .sidebar-row-add,
 .app[data-sidebar="collapsed"] .sidebar-cli-menu { display: none; }
 .app[data-sidebar="collapsed"] .sidebar-project-tree > .nav-icon {

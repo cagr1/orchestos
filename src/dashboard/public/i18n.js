@@ -9,7 +9,6 @@ const I18N = {
   en: {
     /* ── Nav ─────────────────────────────────── */
     'nav.tasks': 'Tasks',
-    'nav.activity': 'Activity',
     'nav.memory': 'Memory',
     'nav.instincts': 'Instincts',
     'nav.specs': 'Specs',
@@ -19,6 +18,8 @@ const I18N = {
     'nav.project.add.error': 'Could not add project',
     'nav.settings': 'Settings',
     'nav.chat': 'Chat',
+    'dev.empty.title': 'No projects yet',
+    'dev.empty.body': 'Add a project to start using the Dev workspace.',
     'nav.mode.chat': 'Chat',
     'nav.mode.dev': 'Dev',
     'nav.section.chats': 'Chats',
@@ -146,13 +147,11 @@ const I18N = {
     'chat.effort.max': 'Max',
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
     'chat.modelfx.model': 'Model',
-    'chat.modelfx.agent': 'Agent',
     'chat.modelfx.agentLabel.claude': 'Claude · your subscription',
     'chat.modelfx.agentLabel.codex': 'Codex · your subscription',
     'chat.modelfx.agentLabel.opencode': 'OpenCode · your subscription',
     'chat.modelfx.agentLabel.api': 'OpenRouter · credits',
     'chat.modelfx.agentLabel.local': 'Local · free',
-    'chat.modelfx.modelDecidedBy': 'Decided by {0}',
     'chat.modelfx.modelAuto': 'Automatic',
     'chat.modelfx.claudeAuto': 'Always latest',
     'chat.modelfx.claudePinned': 'Pinned version',
@@ -912,7 +911,6 @@ const I18N = {
   es: {
     /* ── Nav ─────────────────────────────────── */
     'nav.tasks': 'Tareas',
-    'nav.activity': 'Actividad',
     'nav.memory': 'Memoria',
     'nav.instincts': 'Hábitos',
     'nav.specs': 'Specs',
@@ -922,6 +920,8 @@ const I18N = {
     'nav.project.add.error': 'No se pudo agregar el proyecto',
     'nav.settings': 'Ajustes',
     'nav.chat': 'Chat',
+    'dev.empty.title': 'Todavía no hay proyectos',
+    'dev.empty.body': 'Agregá un proyecto para comenzar a usar el espacio Dev.',
     'nav.mode.chat': 'Chat',
     'nav.mode.dev': 'Dev',
     'nav.section.chats': 'Chats',
@@ -1053,13 +1053,11 @@ const I18N = {
     'chat.effort.max': 'Máximo',
     /* 2026-07-13 (corrección de Carlos) — pill combinado modelo+esfuerzo del composer */
     'chat.modelfx.model': 'Modelo',
-    'chat.modelfx.agent': 'Agente',
     'chat.modelfx.agentLabel.claude': 'Claude · tu suscripción',
     'chat.modelfx.agentLabel.codex': 'Codex · tu suscripción',
     'chat.modelfx.agentLabel.opencode': 'OpenCode · tu suscripción',
     'chat.modelfx.agentLabel.api': 'OpenRouter · créditos',
     'chat.modelfx.agentLabel.local': 'Local · gratis',
-    'chat.modelfx.modelDecidedBy': 'Lo decide {0}',
     'chat.modelfx.modelAuto': 'Automático',
     'chat.modelfx.claudeAuto': 'Siempre la última',
     'chat.modelfx.claudePinned': 'Versión fija',

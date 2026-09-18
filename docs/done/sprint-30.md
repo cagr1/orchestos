@@ -539,3 +539,84 @@ Cambio visual reportado por el ejecutor: controles que eran 6/7/12/20/5/2px pasa
 botones y controles se ven levemente más compactos.
 
 `UI.3.5` padre sigue abierto: quedan `.card`, los componentes de `UI.2` y el shell.
+
+<a id="sprint-30-ui-9-7"></a>
+### UI.9.7 — Los cinco bugs que impedían probar, y el botón que nunca fue clickeable
+
+Ejecutado por: luna · Spec: docs/specs/UI.9.7.md
+
+Reportados por Carlos el 2026-09-18 usando el dashboard real, después de decir textualmente
+*"quiero probar pero no se puede"*. Ejecutado por Luna en seis pasadas; spec en
+`docs/specs/UI.9.7.md` (borrado al cierre).
+
+Gate en vivo: navegador real (Playwright) contra el dashboard corriendo, **25/25 PASS** —
+`docs/done/evidence/UI.9.7-live.json`, script versionado en `scripts/ui-gates/ui97-bugs.mjs`.
+
+**El hallazgo que vale más que los cinco arreglos.** El botón "+ Add project" no estaba roto de
+una forma: estaba roto de dos, encadenadas, y el ítem figuraba `[x]` todo el tiempo.
+
+1. `UI.9.4` lo implementó dentro de `.sidebar-section-label`, y `styles.css:677-679` le aplica
+   `display:none` a ese contenedor cuando el sidebar está colapsado — que es el estado por
+   defecto. Medición cruda del gate: `btnExists=true, btnDisplay=grid, labelDisplay=none,
+   btnRect.width=0`. El botón existía y tenía ancho cero. Lo irónico es que `styles.css:744-748`
+   fue escrito por el propio `UI.9.4` para el caso colapsado (centrar el botón, ocultar el texto
+   "Projects"): la intención estaba, pero la regla de la línea 677 la anulaba porque declara
+   `display` y la de 744 no. **Nunca funcionó, ni el día que cerró con evidencia en vivo** — su
+   gate corrió con el sidebar expandido.
+2. Después `UI.9.1` (`4e8578e`) lo borró entero al reescribir el sidebar, dejando huérfanos el
+   endpoint (`server.ts:280`), el handler `osascript` (`projects.ts:41-43`), el i18n y el CSS.
+
+Por eso el gate de este ítem afirma el punto 1 en **los dos estados del sidebar**, leyendo
+`data-sidebar` en vez de asumirlo, y con `.click()` real de Playwright — que falla si el
+elemento no es visible, que es exactamente lo que se quiere que falle. Un gate que solo mide el
+estado expandido es el que dejó pasar esto.
+
+**Los otros cuatro.** `agentIconFor()` resolvía el alias contra `ICON` en vez de `AGENT_ICONS`,
+así que Codex salía con un trazo aproximado mientras la barra de uso —que lee
+`{...ICON, ...AGENT_ICONS}`— mostraba la marca real; ahora el `outerHTML` es idéntico en los dos
+lugares (responde la pregunta que Carlos dejó anotada el 2026-09-16). El panel del composer para
+Codex repetía el mismo dato tres veces y no ofrecía ningún control: fuera las filas muertas. El
+esfuerzo de Codex ya existía en el ejecutor de tareas (`-c model_reasoning_effort=`,
+`codex.ts:112`) y nunca se había cableado al chat; ahora llega al binario, verificado con un
+mensaje real (`effort: high`, `status=completed`, sin fallback a OpenRouter). Y `Activity` murió:
+`SCREENS.activity` era un passthrough literal a `SCREENS.runs` sin filtrar por proyecto, con
+`runs` ya presente como tab del workspace — decisión de Carlos, que resuelve la pregunta abierta
+en `PLAN.md:1888-1889`.
+
+**Dos defectos que ningún test detectó y salieron de leer el diff.** Al sacar `agentLabel` del
+trigger, `triggerLabel` quedaba `null` para OpenCode y Local (que no tienen niveles de esfuerzo),
+y se disparaba un fallback preexistente con el literal inglés hardcodeado `'CLI default model'`
+en una UI bilingüe, sobre un panel de cero controles: el texto muerto se había mudado, no muerto.
+Y `scripts/ui-gates/ui3-shell.mjs` quedó midiendo menos que antes — su criterio 5 pasó de "un
+click real mueve `window.state.screen`" a "el nodo existe", y el 7 de "el único activo coincide
+con `state.screen`" a `length <= 1`, que **pasa con cero ítems activos**. Ambos restaurados; un
+criterio que no puede fallar no es un criterio.
+
+Luna reportó en una pasada *"3 tests fallan por problemas ambientales"*. Re-corrido el comando
+exacto de CI por el cerebro: **1442 pass / 0 fail**. El reporte del ejecutor no es evidencia.
+
+**Deuda registrada, sin ítem todavía.** Los **12 scripts de `scripts/ui-gates/`** no los corre
+nada de forma mecánica: `ci.yml` ejecuta `test:coverage`/`typecheck`/`lint`, `pre-commit` corre
+`tsc`/`secrets`/`ledger`, `pre-push` corre `test:coverage`. Ninguno toca los ui-gates. Por eso el
+gate de `UI.9.4` pasó una vez y el botón se pudrió dos veces sin que nada se pusiera rojo — el
+mismo patrón que la Regla cero describe con el hook desincronizado 11 días. Carlos lo señaló en
+el mismo turno al preguntar si este arreglo de CSS iba a sobrevivir a la migración de la
+interfaz: la respuesta honesta es que lo que tiene que sobrevivir es el gate, y hoy el gate
+tampoco se hace cumplir.
+
+**Fuera de alcance, con ítem propio:** picker de modelo para Codex (no hay catálogo verificado;
+`codex.ts:75-79` documenta que ni el stream ni `config.toml` dicen cuál corrió), menú de tres
+puntos por proyecto + `Delete project` (no existe endpoint), migrar la pantalla `chat`.
+
+**Rozadura del proceso, anotada sin ítem.** Al commitear, el scope-lock bloqueó el cierre: seguía
+declarado el alcance de la **sexta y última pasada** de Luna (`scripts/ui-gates/ui97-bugs.mjs`), no
+el del ítem. El commit de cierre —uno solo, como exige `AGENTS.md`— abarca legítimamente las seis
+pasadas más el cierre. Reparar eso por la vía oficial (`agent:preflight --scope`) es imposible una
+vez marcado `[x]`: el preflight exige que el ítem esté abierto. Y la otra salida que el propio gate
+ofrece —una línea `**Fuera de scope declarado:**` en `PLAN.md`— choca con `plan:render --check`,
+porque `plan:reconcile` ya no acepta reescribir el cuerpo de un ítem que pasó a `done` en una
+corrida anterior (`Could not prove a closing commit SHA`). Las dos salidas documentadas se cierran
+entre sí cuando un ítem necesita más de una pasada delegada. Se resolvió ampliando
+`.orchestos/active-item.json` (no versionado) al alcance real del ítem, con la razón escrita en el
+propio archivo. Es fricción de proceso, no del producto, y no justifica una regla nueva — pero
+queda escrita porque va a volver a pasar en cuanto otro ítem se delegue en varias pasadas.

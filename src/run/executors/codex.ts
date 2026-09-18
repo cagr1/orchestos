@@ -224,7 +224,7 @@ export interface CodexChatResult {
   model: string
 }
 
-export function buildCodexChatArgs(prompt: string, model?: string): string[] {
+export function buildCodexChatArgs(prompt: string, model?: string, cliEffort?: string): string[] {
   const args = [
     'exec',
     prompt,
@@ -237,13 +237,11 @@ export function buildCodexChatArgs(prompt: string, model?: string): string[] {
     '--skip-git-repo-check',
   ]
   if (model) args.push('-m', model)
+  if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
   return args
 }
 
-// The interactive chat executor has no verified reasoning-effort flag. The
-// task executor accepts `-c model_reasoning_effort=…`, but that is a separate
-// path and must not make the chat UI claim Codex applies effort controls.
-export const CODEX_CHAT_EFFORT_LEVELS = Object.freeze([] as const)
+export const CODEX_CHAT_EFFORT_LEVELS = Object.freeze(['minimal', 'low', 'medium', 'high', 'xhigh'] as const)
 
 export function buildCodexChatEnv(configHomePath: string): Record<string, string> {
   return { ...safeChildEnv(), CODEX_HOME: configHomePath }
@@ -255,6 +253,7 @@ export async function runCodexChat(
   userMessage: string,
   timeoutMs: number,
   model?: string,
+  cliEffort?: string,
 ): Promise<CodexChatResult> {
   if (!findCodexBinary()) {
     throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
@@ -274,7 +273,7 @@ export async function runCodexChat(
   try {
     ;({ stdout, timedOut } = await runCodex(
       cwd,
-      buildCodexChatArgs(prompt, codexModel),
+      buildCodexChatArgs(prompt, codexModel, cliEffort),
       timeoutMs,
       onStep,
       buildCodexChatEnv(configHome.path),

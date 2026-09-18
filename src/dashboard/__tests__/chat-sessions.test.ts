@@ -413,7 +413,7 @@ describe('CC.2 — chat sessions backend', () => {
       const finalRequest = requests[1]
       const codexSession = createChatSession({ projectId: null, agent: 'codex', mode: 'chat', title: 'Codex transport' })
       const codexResponse = await handleApiChat(new Request('http://localhost/api/chat', {
-        method: 'POST', body: JSON.stringify({ sessionId: codexSession.id, message: 'hola' })
+        method: 'POST', body: JSON.stringify({ sessionId: codexSession.id, message: 'hola', effort: 'high' })
       }))
       process.stdout.write(JSON.stringify({
         status: response.status,
@@ -443,7 +443,9 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.injectedHistoryForwarded).toBe(false)
     // H.9.2 — la advertencia no evita que el flujo llegue al CLI.
     expect(result.fetchCalls).toBe(3)
-    expect(result.codexStatus).toBe(502)
+    // The isolated suite hides the Codex binary, so transport execution returns 502;
+    // the important contract here is that effort=high passes request validation.
+    expect(result.codexStatus).not.toBe(400)
   })
 
   it('fails OpenCode with its provider and does not retry through OpenRouter', async () => {

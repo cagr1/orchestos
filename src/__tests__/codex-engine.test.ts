@@ -11,7 +11,7 @@
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
@@ -231,9 +231,19 @@ const turnCompleted = (input: number, output: number) => ({
 // -- tests ---------------------------------------------------------------------
 
 describe('G.4.2b — codexEngine (codex subprocess)', () => {
-  it('does not advertise or encode unverified chat effort controls', () => {
-    expect(CODEX_CHAT_EFFORT_LEVELS).toEqual([])
+  it('advertises and encodes the verified chat effort controls', () => {
+    expect(CODEX_CHAT_EFFORT_LEVELS).toEqual(['minimal', 'low', 'medium', 'high', 'xhigh'])
+    expect(buildCodexChatArgs('hello', 'gpt-5.4', 'high')).toContain(
+      'model_reasoning_effort=high',
+    )
     expect(buildCodexChatArgs('hello', 'gpt-5.4')).not.toContain('model_reasoning_effort')
+  })
+  it('keeps the browser Codex effort list in sync with the server contract', () => {
+    const source = readFileSync(new URL('../dashboard/public/data.js', import.meta.url), 'utf8')
+    const match = source.match(/codex:\s*\[([^\]]+)\]/)
+    expect(match).not.toBeNull()
+    const browserLevels = (match?.[1] ?? '').match(/'[^']+'/g)?.map((level) => level.slice(1, -1))
+    expect(browserLevels).toEqual([...CODEX_CHAT_EFFORT_LEVELS])
   })
   it('construye el flag de aislamiento y CODEX_HOME dentro del repo', () => {
     const args = buildCodexChatArgs('prompt')

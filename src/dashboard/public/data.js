@@ -125,7 +125,8 @@ const AGENT_ICON_ALIASES = {
 
 function agentIconFor(id) {
   const key = String(id || '').toLowerCase()
-  return AGENT_ICONS[key] || ICON[AGENT_ICON_ALIASES[key]] || ICON.spark
+  const aliased = AGENT_ICON_ALIASES[key]
+  return AGENT_ICONS[key] || AGENT_ICONS[aliased] || ICON[aliased] || ICON.spark
 }
 
 function esc(s) {

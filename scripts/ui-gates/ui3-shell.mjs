@@ -273,33 +273,27 @@ log(
 )
 
 // ── PARIDAD FUNCIONAL DEL SHELL ─────────────────────────────────────────────
-// Un click real sobre navegación debe mover la pantalla que el estado vanilla expone. Luego
-// se comprueba la marca activa contra esa misma fuente, evitando aceptar un highlight fijo.
-// El shell Dev vigente expone `activity` y proyectos; `skills` ya no es una entrada de
-// navegación de este shell. La entrada de Activity debe conservar su estructura e icono.
-const navItem = page.locator('.nav-icon[data-nav="activity"]')
-await navItem.click()
-await page.waitForTimeout(300)
-const screenAfterNav = await page.evaluate(() => window.state.screen)
+// A real navigation click must move the shell state; checking only that a node exists
+// would let a dead button pass the gate. Settings is always present in the Dev rail.
+// Projects exposes the native folder picker action in the section header.
+const addProject = page.locator('#addProjectBtn')
+log(await addProject.count() === 1, 'criterio adicional: el botón Add project existe en Projects')
+const settingsNav = page.locator('.nav-icon[data-nav="settings"]')
+await settingsNav.click()
+await page.waitForTimeout(250)
+const expectedScreen = 'settings'
 log(
-  screenAfterNav === 'activity',
-  `criterio 5: click en navegación cambia window.state.screen a ${screenAfterNav}`,
+  await page.evaluate((screen) => window.state.screen === screen, expectedScreen),
+  `criterio 5: click real en Settings mueve window.state.screen a ${expectedScreen}`,
 )
+// The retired duplicate Activity entry must not return to the Dev rail.
+log(await page.locator('.nav-icon[data-nav="activity"]').count() === 0, 'criterio 6: Activity no aparece en el riel Dev')
 const activeNav = await page
   .locator('.nav-icon[data-nav].active')
   .evaluateAll((items) => items.map((item) => item.dataset.nav))
 log(
-  activeNav.length === 1 && activeNav[0] === screenAfterNav,
-  `criterio 6: el único ítem activo coincide con window.state.screen (${activeNav.join(', ') || 'ninguno'} / ${screenAfterNav})`,
-)
-
-const activityStructure = await navItem.evaluate((item) => ({
-  hasIconContainer: Boolean(item.querySelector('.nav-ic')),
-  hasIcon: Boolean(item.querySelector('.nav-ic svg')),
-}))
-log(
-  activityStructure.hasIconContainer && activityStructure.hasIcon,
-  `criterio 7: activity existe con estructura e icono (${activityStructure.hasIcon ? 'icono presente' : 'icono ausente'})`,
+  activeNav.length === 1 && activeNav[0] === expectedScreen,
+  `criterio 7: el único ítem activo coincide con window.state.screen (${activeNav.join(', ') || 'ninguno'} / ${expectedScreen})`,
 )
 const status = await page
   .locator('#statusBadge')

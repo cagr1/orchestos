@@ -56,6 +56,7 @@ import {
   readBoundaryFor,
 } from '../../run/executors/cli-registry.ts'
 import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
+import { CODEX_CHAT_EFFORT_LEVELS } from '../../run/executors/codex.ts'
 import { PathPolicyError, realRoot, resolveProjectPath } from '../../run/path-policy.ts'
 import {
   type AuditedReadTool,
@@ -90,6 +91,7 @@ type ReasoningEffort = (typeof VALID_EFFORTS)[number]
 /** Effective effort contract for the interactive chat transport. */
 export function chatEffortLevelsForAgent(agent: string | undefined): readonly string[] {
   if (agent === 'claude') return CLAUDE_CLI_EFFORTS
+  if (agent === 'codex') return CODEX_CHAT_EFFORT_LEVELS
   if (agent === 'api') return VALID_EFFORTS
   return []
 }
@@ -767,8 +769,6 @@ async function handleApiChat(
   const useCodexCli = chatAgent === 'codex'
   const useOpencodeCli = chatAgent === 'opencode'
   const readBoundaryWarning = hasProjectContext ? projectChatReadBoundaryWarning(chatAgent) : null
-  // Chat Codex currently has no verified interactive effort contract. The
-  // task executor's `cli_effort` support is deliberately not reused here.
   const allowedEfforts = chatEffortLevelsForAgent(chatAgent)
   if (body.effort !== undefined && !allowedEfforts.includes(body.effort)) {
     return errorResponse(`effort must be one of: ${allowedEfforts.join(', ')}`, 400)
@@ -1137,7 +1137,7 @@ async function handleApiChat(
   // contra CLAUDE_CLI_EFFORTS) es un tipo distinto del `ReasoningEffort` de 3
   // niveles que espera el `reasoning` param de OpenRouter — separados para que
   // el tipo del segundo siga siendo estricto en el resto de esta función.
-  const cliEffort = useClaudeCli ? (body.effort as string | undefined) : undefined
+  const cliEffort = useClaudeCli || useCodexCli ? (body.effort as string | undefined) : undefined
   const effort =
     !useClaudeCli && body.effort && supportsReasoningEffort(model)
       ? (body.effort as ReasoningEffort)
@@ -1421,8 +1421,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           combinedText,
           CLAUDE_CHAT_TIMEOUT_MS,
           cliModel,
+          cliEffort,
         )
-        const resultLabel = `${result.model} via Codex CLI`
+        const resultLabel = `${result.model} via Codex CLI${cliEffort ? ` (effort: ${cliEffort})` : ''}`
         const responseText = result.text + autoTaskNote
         finishTurnSuccess({
           responseText,

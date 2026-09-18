@@ -1,0 +1,52 @@
+{
+  "item": "UI.9.7",
+  "date": "2026-09-18",
+  "executor": "luna",
+  "integrator": "claude-opus-5",
+  "spec": "docs/specs/UI.9.7.md",
+  "gate": {
+    "script": "scripts/ui-gates/ui97-bugs.mjs",
+    "runner": "playwright/chromium, dashboard real en http://localhost:4323",
+    "result": "25/25 PASS"
+  },
+  "suites": {
+    "tsc --noEmit": "limpio",
+    "bun run test:coverage": "1442 pass / 0 fail; functions 75.64% (req 69.00%), lines 63.94% (req 57.00%)",
+    "node scripts/ui-gates/ui3-shell.mjs": "20/20 PASS, criterios 5-7 restaurados con click real",
+    "bun run lint": "rojo PREEXISTENTE, no causado por este diff: 17 hallazgos en scripts/check-coverage.ts, scripts/check-ledger-gate.ts, scripts/check-secrets.ts, scripts/check-test-assertions.ts, scripts/context-adapters.ts, scripts/eval-run.ts, scripts/check-sources-drift.test.ts, tests/run/*.test.ts y docs/done/evidence/*.json. Ningun archivo de este diff aparece; ui97-bugs.mjs quedo limpio tras biome check --write"
+  },
+  "punto1_add_project": {
+    "hallazgo_de_fondo": "El boton existia en el DOM con ancho 0. styles.css:677-679 aplicaba display:none a .sidebar-section-label con el sidebar colapsado, y el boton vive dentro de ese contenedor. El sidebar arranca colapsado, asi que el boton NUNCA fue clickeable en el estado por defecto -- ni siquiera el dia que UI.9.4 cerro con evidencia en vivo, porque aquel gate corrio con el sidebar expandido. Despues UI.9.1 (4e8578e) lo borro del todo. Dos fallas distintas sobre el mismo boton, las dos con el item marcado [x].",
+    "medicion_cruda_antes_del_fix": "sidebarAttr=collapsed, btnExists=true, btnDisplay=grid, labelDisplay=none, btnRect.width=0",
+    "fix": "styles.css:677 pasa a .sidebar-section-label:not(:has(.sidebar-project-add)); asi las reglas de 744-748, escritas por UI.9.4 justamente para el caso colapsado, pueden hacer su trabajo",
+    "observado_colapsado": "ancho visible > 0; click real de Playwright dispara POST /api/projects/choose; respuesta cancelled no agrega proyecto ni muestra toast de error",
+    "observado_expandido": "identico a colapsado",
+    "observado_respuesta_con_proyecto": "la lista del sidebar crece en 1 sin recargar la pagina",
+    "no_observado_y_por_que": "No se eligieron carpetas reales: el dialogo nativo de osascript choose folder no es automatizable desde Playwright. El gate intercepta la ruta y verifica que el click DISPARA el POST real, no solo que el nodo exista. Crear proyectos reales es trabajo de Carlos por decision suya del 2026-09-18: los datos se generan usando el producto, no sembrandolos."
+  },
+  "punto2_icono_codex": {
+    "causa_raiz": "agentIconFor() (data.js:126-129) resolvia el alias contra ICON en vez de AGENT_ICONS, cayendo en ICON.openai (trazo aproximado, data.js:57). La barra de uso usa window.OrchestOS.icons = {...ICON, ...AGENT_ICONS} (app.js:3357), donde AGENT_ICONS.openai pisa a la aproximada. Mismo CLI, dos dibujos, en la misma pantalla.",
+    "observado": "outerHTML del <svg> de Codex en .sidebar-cli-menu [data-agent=codex] IDENTICO al de .session-statusbar-cli[aria-label*=codex]. Comparacion de markup, no captura.",
+    "responde_a": "Observacion de Carlos del 2026-09-16 anotada en PLAN.md: 'investigar por que el icono/avatar de Codex al iniciar un chat nuevo se ve distinto al de la ventana de uso'."
+  },
+  "punto3_texto_muerto": {
+    "observado": "En sesion Codex real: la pastilla no muestra 'Codex . your subscription'; el panel no contiene 'Decided by' ni una fila aislada 'Agent'/'Agente'.",
+    "alcance_hermanos": "Aplicado tambien a opencode y local, que comparten modelHiddenAgent. Defecto detectado en revision de diff: al sacar agentLabel del trigger, triggerLabel quedaba null para esos dos y app.js disparaba un fallback preexistente con el literal ingles hardcodeado 'CLI default model' en una UI bilingue, con un panel de cero controles. Corregido con un early return: sin modelo ni esfuerzo no se renderiza pastilla alguna.",
+    "observado_defecto_A": "Sesion OpenCode real: [data-modelfx] cuenta 0."
+  },
+  "punto4_esfuerzo_codex": {
+    "causa_raiz": "CLI_EFFORT_LEVELS.codex (data.js:277-280) declaraba 5 niveles y el ejecutor de tareas ya aplicaba -c model_reasoning_effort= (codex.ts:112), pero chatEffortLevelsForAgent (chat.ts:91-95) devolvia [] para codex y runCodexChat (codex.ts:252-258) no tenia el parametro.",
+    "observado_ui": "La fila Effort se ofrece para Codex; los niveles son exactamente minimal,low,medium,high,xhigh en ese orden; elegir high persiste tras page.reload().",
+    "riesgo_declarado_en_el_spec": "Si codex exec rechazaba -c model_reasoning_effort con el modelo default de la maquina, el punto se revertia entero y el item se cerraba con el error exacto, sin dejar un selector decorativo.",
+    "riesgo_resuelto_con_mensaje_real": "POST /api/chat con effort=high sobre sesion Codex real: respuesta 'OK'. chat_turns fila mas reciente status=completed, response_envelope_json.model = 'codex (cli default model) via Codex CLI (effort: high)'. El binario acepto el flag; no hubo fallback a OpenRouter.",
+    "nota_modelo": "'cli default model' es el default propio de Codex en esta maquina (Astra = gpt-6-astra, AGENTS.md:298). OrchestOS no lo elige: chat.ts:1108-1110 no pasa modelo para codex si el usuario no pidio uno. Elegirlo queda fuera de alcance, con item propio."
+  },
+  "punto5_activity": {
+    "causa_raiz": "SCREENS.activity (screens-ops.js:2381-2388) era un passthrough literal a SCREENS.runs, sin filtrar por proyecto, y runs ya era tab del workspace (screens-ops.js:8). Decision de Carlos 2026-09-18; resuelve la pregunta que PLAN.md:1888-1889 dejo abierta.",
+    "observado": ".nav-icon[data-nav=activity] cuenta 0 en modo Dev; window.SCREENS.activity === undefined (borrado, no oculto); window.SCREENS.runs.render sigue siendo funcion; la tab runs del workspace renderiza con un proyecto real.",
+    "estado_vacio": "Con 0 proyectos, Dev cae en la pantalla dev-empty con el boton de agregar proyecto, en vez del go('activity') que ya no existe."
+  },
+  "consola": "cero errores de consola en toda la corrida del gate",
+  "deuda_registrada_no_resuelta": "Los 12 scripts de scripts/ui-gates/ no los corre NADA de forma mecanica: ci.yml ejecuta test:coverage/typecheck/lint, pre-commit ejecuta tsc/secrets/ledger y pre-push ejecuta test:coverage. Ninguno toca los ui-gates. Por eso el gate de UI.9.4 paso una vez y el boton se pudrio dos veces sin que nada se pusiera rojo. Es el mismo patron que la Regla cero de CLAUDE.md describe con el hook desincronizado 11 dias. Requiere item propio; no se agrega aca para no ampliar alcance.",
+  "servidor": "dashboard levantado en :4323 solo para el gate y bajado al cierre"
+}

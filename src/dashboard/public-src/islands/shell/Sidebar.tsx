@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useT } from '../../lib/i18n.ts'
 import { Icon, RawIcon } from '../../lib/icons.tsx'
+import { pushToast } from '../../lib/toast-store.ts'
 import { type NavEntry, shellApi } from './shell-api.ts'
 import { useShell } from './use-shell.ts'
 
@@ -50,9 +51,9 @@ export function Sidebar() {
   const api = shellApi()
   const nav: NavEntry[] = api?.nav ?? []
 
-  const activity = nav.find((n) => n.id === 'activity')
   const settings = nav.find((n) => n.id === 'settings')
   const [projects, setProjects] = useState<Project[]>([])
+  const [isChoosingProject, setIsChoosingProject] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [sessions, setSessions] = useState<Record<string, Session[]>>({})
   const [menuOpen, setMenuOpen] = useState(false)
@@ -63,6 +64,25 @@ export function Sidebar() {
     if (!response.ok) throw new Error('Could not load projects')
     setProjects((await response.json()) as Project[])
   }, [])
+  const chooseProject = async () => {
+    if (isChoosingProject) return
+    setIsChoosingProject(true)
+    try {
+      const response = await fetch('/api/projects/choose', { method: 'POST' })
+      const data = (await response.json()) as Project | { cancelled: true } | { error: string }
+      if (!response.ok || 'error' in data) {
+        pushToast('error' in data ? data.error : t('nav.project.add.error'), 'error')
+        return
+      }
+      if ('cancelled' in data) return
+      await loadProjects()
+      api?.selectWorkspaceProject(data.id)
+    } catch {
+      pushToast(t('nav.project.add.error'), 'error')
+    } finally {
+      setIsChoosingProject(false)
+    }
+  }
   useEffect(() => {
     void loadProjects().catch(() => setProjects([]))
   }, [loadProjects])
@@ -209,12 +229,19 @@ export function Sidebar() {
         </div>
       ) : (
         <>
-          {activity && (
-            <NavIcon entry={activity} shellScreen={shell.screen} skillsCount={shell.skillsCount} />
-          )}
           <div className="sidebar-projects">
             <div className="sidebar-section-label">
               <span>Projects</span>
+              <NavButton
+                id="addProjectBtn"
+                className="sidebar-project-add"
+                tip={t('nav.project.add')}
+                label={t('nav.project.add')}
+                disabled={isChoosingProject}
+                onActivate={() => void chooseProject()}
+              >
+                <Icon name="plus" />
+              </NavButton>
             </div>
             {projects.map((project) => {
               const isExpanded = expanded[project.id] ?? false

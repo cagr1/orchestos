@@ -1985,9 +1985,27 @@ ni eso hace falta.
   Sin delegación: el ítem UI.9.5 retoma y cierra el spec compartido docs/specs/UI.8.4c.md; no existe docs/specs/UI.9.5.md.
   Gate en vivo: navegador real (Playwright/dashboard) — `docs/done/evidence/UI.9.5-live.json`; task real, resize persistido, cierres por botón/Escape/navegación/proyecto, palette Terminal→Diff y viewport 390×844 observados. Open in Workspace no observable sin sesión persistente elegible; radios UI.3.5 y TypeError Dev→Chat quedan documentados como deudas fuera de alcance.
 
-- [ ] **UI.9.7 — ⚡ Los cinco bugs que impiden probar el producto.** (abierto 2026-09-18)
-  Spec: `docs/specs/UI.9.7.md` · Ejecuta: luna · **Va antes que todo lo demás del entregable
-  rápido**: sin el punto 1 no se pueden cargar los ≥2 proyectos que `PLAN.md:51-55` exige.
+- [x] **UI.9.7 — ⚡ Los cinco bugs que impiden probar el producto.** (cerrado 2026-09-18) → [evidencia](docs/done/sprint-30.md#sprint-30-ui-9-7)
+  Ejecutado por: luna · Spec: docs/specs/UI.9.7.md
+  Gate en vivo: navegador real (Playwright/dashboard), **25/25 PASS** —
+  `docs/done/evidence/UI.9.7-live.json`; `scripts/ui-gates/ui97-bugs.mjs` queda versionado.
+  **Hallazgo que superó al ítem:** el botón "+ Add project" estaba roto de dos formas
+  encadenadas, y figuraba `[x]` todo el tiempo. `UI.9.4` lo puso dentro de
+  `.sidebar-section-label`, al que `styles.css:677-679` le aplica `display:none` con el sidebar
+  colapsado — el estado por defecto. Medición cruda del gate antes del fix:
+  `btnExists=true, btnDisplay=grid, labelDisplay=none, btnRect.width=0`. **Nunca fue clickeable,
+  ni el día que `UI.9.4` cerró con evidencia en vivo:** aquel gate corrió con el sidebar
+  expandido. Después `UI.9.1` (`4e8578e`) lo borró entero. Por eso este gate afirma el punto 1
+  en **los dos estados del sidebar**, con `.click()` real que falla si el elemento no es visible.
+  Riesgo declarado del punto 4, resuelto en vivo: `codex exec` aceptó
+  `-c model_reasoning_effort=high` con el modelo default de la máquina (mensaje real,
+  `status=completed`, sin fallback a OpenRouter).
+  **Deuda registrada, sin ítem todavía:** los 12 scripts de `scripts/ui-gates/` no los corre nada
+  de forma mecánica — `ci.yml` corre `test:coverage`/`typecheck`/`lint`, `pre-commit` corre
+  `tsc`/`secrets`/`ledger`, `pre-push` corre `test:coverage`. Ninguno toca los ui-gates. Es la
+  razón de fondo por la que el gate de `UI.9.4` pasó una vez y el botón se pudrió dos veces sin
+  que nada se pusiera rojo; mismo patrón que la Regla cero con el hook desincronizado 11 días.
+  `bun run lint` queda rojo por 17 hallazgos **preexistentes** (ningún archivo de este diff).
   Reportados por Carlos probando el dashboard real. Causa raíz leída en el código, los cinco:
   1. **Regresión**: `UI.9.4` agregó el botón "+ Add project" (`d388392`) y `UI.9.1` (`4e8578e`)
      lo borró al reescribir el sidebar. `POST /api/projects/choose` (`server.ts:280`), el
