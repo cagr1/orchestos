@@ -2092,7 +2092,7 @@ ni eso hace falta.
   "+ Add project"** y confirmar que sus chats/tasks/runs siguen ahí; y confirmar en SQLite que el
   borrado suave NO tocó esas tablas.
 
-- [ ] **UI.9.A — 🔍 La barra lateral del inspector desapareció y nadie la mandó a quitar.** (abierto 2026-09-18)
+- [x] **UI.9.A — 🔍 La barra lateral del inspector desapareció y nadie la mandó a quitar.** (abierto 2026-09-18, cerrado 2026-09-18)
   **Reporte textual de Carlos, 2026-09-18:** *"por un caso no sé por qué la barra lateral
   desapareció, yo no pedí en ningún momento eliminar eso"*. Lo dice describiendo lo que espera ver
   al abrir un proyecto: source control y explorer — *"la repo en sí, que ya la mostrábamos"*.
@@ -2118,6 +2118,25 @@ ni eso hace falta.
   (`Header.tsx:6`, ronda 4 de v0.12) y el inspector cerrado debe medir 0px (criterio de UI.9.5), así
   que los tres botones van al final de la barra de tabs del workspace (`screens-ops.js:18`).
   Spec: `docs/specs/UI.9.A.md`.
+  **Cierre 2026-09-18.**
+  Ejecutado por: luna · Spec: docs/specs/UI.9.A.md
+  Arreglo: tres botones permanentes Explorer/Diff/Terminal al final de la barra de tabs del
+  workspace (`screens-ops.js:17-24`, cableados en `:38-44`), `selectWorkspaceProject()` ya no cierra
+  un inspector de herramienta (`app.js:3359`), y `closeInspector()` repinta la pantalla para que el
+  estado `active` no quede congelado (`app.js:3141`). El header sigue sin iconos y el inspector
+  cerrado sigue midiendo 0px: ninguna de las dos reglas cerradas se tocó.
+  Ronda 2 necesaria: la primera entrega de Luna pasó 14/14 con el `active` muerto —markup y CSS que
+  existían y nunca se encendían—; lo detectó el cerebro clickeando con Playwright, no el gate. Las
+  tres afirmaciones de `active` se agregaron por eso.
+  Gate en vivo: navegador real (Playwright sobre el dashboard en :4323) — `docs/done/evidence/UI.9.A-live.json`, **17/17 PASS** vía
+  `bun run gate:evidence -- --label UI.9.A -- node scripts/ui-gates/ui9a-inspector.mjs`, corrido por
+  el cerebro y no por el ejecutor. El gate abre todo **clickeando**: no usa `window.OrchestOS` ni
+  `window.state` para navegar, que es exactamente el atajo por el que `ui3-shell.mjs:58` no vio que
+  no quedaba ningún botón. Afirma visibilidad y clickeabilidad real (`boundingBox` + `click({trial:true})`)
+  con sidebar colapsado y expandido, antes y después de cerrar el inspector.
+  `bun run build:ui` ✅ · `bunx tsc --noEmit` ✅ · `bun run test:coverage` **1442 pass, 0 fail**,
+  functions 75.64% / lines 63.94% ✅ (el ejecutor reportó "3 fallos preexistentes"; no los hay —
+  otro recordatorio de que el reporte del ejecutor no es evidencia).
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,

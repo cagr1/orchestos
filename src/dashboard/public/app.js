@@ -3138,6 +3138,7 @@ function openInspectorTool(tabName) {
 function closeInspector() {
   state.inspector = null
   syncRightPanel()
+  if (state.screen === 'workspace') App.rerender()
 }
 function syncRightPanel() {
   const app = document.querySelector('.app')
@@ -3355,7 +3356,7 @@ function boot() {
     toggleSidebar: toggleSidebarMode,
     setShellMode: (mode) => void App.setShellMode(mode),
     selectWorkspaceProject: (id) => {
-      closeInspector()
+      if (state.inspector?.kind !== 'tool') closeInspector()
       state.workspaceProjectId = id
       state.screen = 'workspace'
       state.workspaceTab = state.workspaceTab || 'tasks'
@@ -3363,6 +3364,7 @@ function boot() {
       localStorage.setItem('orchestos-shell-mode', 'dev')
       localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'project', id }))
       pushShellState({ shellMode: 'dev' })
+      if (state.inspector?.kind === 'tool') syncRightPanel()
       App.rerender()
     },
     openChatSession: (id, projectId) => {

@@ -14,7 +14,12 @@ SCREENS.workspace = {
     const body = SCREENS[tab]?.render
       ? SCREENS[tab].render(st)
       : '<div class="screen"><p>Loading workspace…</p></div>'
-    const tabBar = `<div class="workspace-tabs">${tabs.map((id) => `<button class="proj-tab${id === tab ? ' active' : ''}" data-workspace-tab="${id}">${id[0].toUpperCase() + id.slice(1)}</button>`).join('')}<button class="proj-tab" data-workspace-tab="project">Project settings</button></div>`
+    const inspectorTab = st.inspector?.kind === 'tool' ? st.inspector.tab : null
+    const tabBar = `<div class="workspace-tabs">${tabs.map((id) => `<button class="proj-tab${id === tab ? ' active' : ''}" data-workspace-tab="${id}">${id[0].toUpperCase() + id.slice(1)}</button>`).join('')}<button class="proj-tab" data-workspace-tab="project">Project settings</button><span class="workspace-tools">
+      <button type="button" class="workspace-tool${inspectorTab === 'explorer' ? ' active' : ''}" data-inspector-tool="explorer" aria-label="${esc(t('rp.tab.explorer'))}" data-tip="${esc(t('rp.tab.explorer'))}">${ICON.folder}</button>
+      <button type="button" class="workspace-tool${inspectorTab === 'diff' ? ' active' : ''}" data-inspector-tool="diff" aria-label="${esc(t('rp.tab.diff'))}" data-tip="${esc(t('rp.tab.diff'))}">${ICON.diff}</button>
+      <button type="button" class="workspace-tool${inspectorTab === 'terminal' ? ' active' : ''}" data-inspector-tool="terminal" aria-label="${esc(t('rp.tab.terminal'))}" data-tip="${esc(t('rp.tab.terminal'))}">${ICON.term}</button>
+    </span></div>`
     return `<div class="workspace" data-workspace-project="${esc(st.workspaceProjectId || '')}">${tabBar}${body}</div>`
   },
   wire(root, st) {
@@ -27,6 +32,13 @@ SCREENS.workspace = {
           st.graphStatus = 'loading'
           App.fetchGraphStatus().then(() => App.rerender())
         }
+        App.rerender()
+      }),
+    )
+    root.querySelectorAll('[data-inspector-tool]').forEach((button) =>
+      button.addEventListener('click', () => {
+        window.OrchestOS.openInspectorTool(button.dataset.inspectorTool)
+        // The inspector sync updates the shell only; rerender workspace so its active tool reflects the new state.
         App.rerender()
       }),
     )

@@ -1,0 +1,31 @@
+{
+  "item": "UI.9.A",
+  "date": "2026-09-18",
+  "gate": "scripts/ui-gates/ui9a-inspector.mjs",
+  "command": "bun run gate:evidence -- --label UI.9.A -- node scripts/ui-gates/ui9a-inspector.mjs",
+  "environment": "Playwright chromium sobre el dashboard real en http://localhost:4323 (bun run src/cli.ts dashboard --port 4323)",
+  "run_by": "cerebro (Opus 5), no el ejecutor",
+  "note": "El gate navega clickeando: no usa window.OrchestOS ni window.state para llegar a ninguna pantalla. Ese atajo es el que hizo que ui3-shell.mjs:58 pasara en verde sin que existiera botón de abrir el inspector.",
+  "total": 17,
+  "passed": 17,
+  "failed": 0,
+  "assertions": [
+    "PASS — arranque en Dev con un proyecto seleccionable",
+    "PASS — sidebar colapsado: explorer visible y clickeable",
+    "PASS — sidebar colapsado: diff visible y clickeable",
+    "PASS — sidebar colapsado: terminal visible y clickeable",
+    "PASS — sidebar expandido: explorer visible y clickeable",
+    "PASS — sidebar expandido: diff visible y clickeable",
+    "PASS — sidebar expandido: terminal visible y clickeable",
+    "PASS — Explorer queda active y los otros tools no",
+    "PASS — Explorer abre el inspector con ancho positivo",
+    "PASS — Terminal mueve active y Explorer deja de estar active",
+    "PASS — cambiar de proyecto conserva el inspector abierto",
+    "PASS — rpClose devuelve el inspector a 0px",
+    "PASS — rpClose deja todos los tools sin active",
+    "PASS — tras cerrar el inspector: explorer visible y clickeable",
+    "PASS — tras cerrar el inspector: diff visible y clickeable",
+    "PASS — tras cerrar el inspector: terminal visible y clickeable",
+    "PASS — sin errores de consola (0)"
+  ]
+}
