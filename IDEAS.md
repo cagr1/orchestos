@@ -1587,3 +1587,40 @@ delegación a modelos baratos, guard de arranque que mide tokens, plan/spec por 
 **Conclusión y orden:** no adoptar ninguno todavía. La palanca #1 no está en ninguno de estos
 repos — es `#63`, recalibrar una constante que ya existe en código propio. Recién después evaluar
 `#64` (Serena) **con medición antes/después**, nunca por fe.
+
+### `#66` — Jev (TypeSafe AI): dónde encaja y dónde no (2026-09-18)
+
+**Qué es, medido contra la fuente, no contra la expectativa:** TypeSafe AI lanzó `Jev` el
+2026-09-15 — un "System One Model" que **no genera texto**. Recibe contexto más una pregunta
+predefinida y devuelve salida estructurada: categoría, ranking, score, probabilidad y confianza.
+Afirma no poder alucinar ni producir type errors, 40-200x más rápido y ~$0.042/M tokens de
+entrada. **Early access detrás de waitlist**, así que hoy no es accionable.
+
+**Descartado como colaborador de desarrollo (pregunta de Carlos, 2026-09-18).** No puede escribir
+código, ni un spec, ni leer `PLAN.md` y proponer, ni hacer debugging, ni revisar un diff. En el
+roster de `AGENTS.md` no hay rol que pueda ocupar: cerebro y ejecutor requieren generación. Y
+usarlo para rutear ítems a luna/terra/Sonnet sería un clasificador para 2-4 decisiones diarias que
+ya están resueltas por una regla escrita a mano — justo lo que
+`feedback-no-sobreconfigurar-proceso` dice que no hay que agregar. **Jev no es un colaborador, es
+un componente.**
+
+**Dónde sí encajaría, si llega el acceso** (verificado leyendo el código, no supuesto):
+
+| Sitio | Encaje | Veredicto |
+|---|---|---|
+| `src/agents/diagnose.ts:24-30` | enum cerrado de 6 `FailurePattern` + `confidence` high/medium/low, hoy resuelto por Haiku vía OpenRouter con `usdCost` que alimenta el circuit breaker | **el mejor encaje del repo** |
+| `src/run/qa.ts:23,182-256` | `verdict: 'pass'\|'fail'` por criterio, corre en cada run (mayor volumen) | **parcial**: el QA también exige citar un excerpt literal de archivo (`qa.ts:120`), y eso es extracción, no clasificación. Sería un split, no un reemplazo, en el camino más caliente del harness |
+| routing de motor/modelo | — | **NO**: `feedback-deteccion-no-decision-automatica` y `feedback-modelo-decision-final-carlos` lo dejaron cerrado como preferencia persistente |
+| `CI.2` / inventario de afordancias | — | **NO**: es diff estructural determinista. Un modelo ahí es lo contrario de lo que concluyó el diagnóstico de `UI.9.A` |
+
+**El detalle que delata el encaje en `diagnose.ts`:** una de sus seis categorías es `parse_error`
+— existe en parte porque los LLM devuelven JSON malformado, y el clasificador que la asigna es él
+mismo un LLM que puede devolver JSON malformado.
+
+**Costo/beneficio honesto:** el argumento de precio **no aplica** a este repo. El volumen real es
+minúsculo (20 runs en `runs-summary.json`, 12 entradas en `LEDGER.md`); ahorrar 200x sobre unas
+llamadas a Haiku es ruido y no paga integrar un proveedor, un SDK y una ruta de fallback. El
+único argumento válido es el otro: `diagnose` y `qa` son los dos puntos donde OrchestOS confía en
+que un generativo respete un enum, y un clasificador que no puede salirse del tipo es el mismo
+diente mecánico que el self-check del pre-commit — no más barato, **incapaz de fallar en esa
+dimensión**. Revisar si hay acceso real antes de gastar un minuto más acá.
