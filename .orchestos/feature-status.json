@@ -976,6 +976,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.9.A",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🔍",
+      "title": "La barra lateral del inspector desapareció y nadie la mandó a quitar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.2",
       "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",

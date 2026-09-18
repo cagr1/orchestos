@@ -2072,12 +2072,41 @@ ni eso hace falta.
   **Estado real leído en el código:** no existe en ninguna capa. `Sidebar.tsx:243-254` solo tiene
   el `+` de agregar agente; `SessionRow` sí tiene borrado (`Sidebar.tsx:441-451`), los proyectos
   no. **No hay endpoint de borrado de proyecto** en `server.ts` — es backend + front.
-  **Decidir con Carlos antes de implementar, porque es destructivo:** borrar un proyecto ¿saca la
-  fila de la DB solamente, o arrastra sus chats, tasks, runs y memoria? Un borrado en cascada sin
-  confirmación explícita es justo la acción irreversible que las reglas del repo exigen consultar.
+  **Semántica del borrado — respondida por Carlos el 2026-09-18, no volver a preguntarla.** Son
+  **dos niveles distintos**, y `Delete project` es el suave:
+  - **`Delete project` (menú de tres puntos) borra el ESPACIO DE TRABAJO, no los datos.** Textual:
+    *"borrar el proyecto significa borrar ese espacio de trabajo"*. Sale de la lista; la data
+    sobrevive. **No hay cascada acá**, así que tampoco hace falta un diálogo que enumere lo que se
+    lleva puesto.
+  - **Borrar la data definitivamente vive en `Project settings`**, dentro del proyecto, como acción
+    aparte y explícita: *"para borrar la data definitivamente habría que ir al project settings y
+    ahí borrar todo sobre el proyecto"*. Carlos lo da por sobreentendido — es el patrón habitual de
+    "quitar de la lista" vs. "destruir".
+  **Referencia de comportamiento, Orca (citada por Carlos):** si borra un workspace y lo vuelve a
+  abrir, sigue viendo la barra lateral con `workspace | projects | all`, el **source control** y el
+  **explorer** (el repo en sí). O sea: reabrir un proyecto borrado del espacio de trabajo lo
+  restituye con su contenido, porque nunca se destruyó nada. Ese es el criterio de aceptación real
+  del ítem, más que el botón.
   Al diseñarlo, volver a mirar las capturas de Orca (`docs/ui-reference-patterns.md` A.1-A.3).
-  Gate: navegador real, con un proyecto de prueba creado y borrado, y confirmación de qué
-  sobrevivió y qué no en SQLite.
+  Gate: navegador real — borrar un proyecto del espacio de trabajo, **volver a agregarlo con
+  "+ Add project"** y confirmar que sus chats/tasks/runs siguen ahí; y confirmar en SQLite que el
+  borrado suave NO tocó esas tablas.
+
+- [ ] **UI.9.A — 🔍 La barra lateral del inspector desapareció y nadie la mandó a quitar.** (abierto 2026-09-18)
+  **Reporte textual de Carlos, 2026-09-18:** *"por un caso no sé por qué la barra lateral
+  desapareció, yo no pedí en ningún momento eliminar eso"*. Lo dice describiendo lo que espera ver
+  al abrir un proyecto: source control y explorer — *"la repo en sí, que ya la mostrábamos"*.
+  Confirma que existió y se perdió; no es una feature nueva que pide.
+  **Hipótesis a verificar, NO conclusión.** Explorer/Terminal/Diff viven en el panel derecho
+  (`RightPanelToprow.tsx:35-55`, contenido vanilla), y `UI.9.5` cerró como *"Inspector
+  **condicional** sobre el shell Chat | Dev"*. Lo más probable es que alguna de esas condiciones
+  lo esconda en el recorrido normal de Carlos. **Verificar en vivo antes de tocar nada** y
+  encontrar el commit que lo cambió (`git log -S` sobre las condiciones del inspector), igual que
+  se hizo en `UI.9.7` con el botón borrado por `UI.9.1`.
+  **Por qué tiene ítem propio y 🔍:** es el tercer caso en tres días de algo que funcionaba y
+  desapareció sin que ningún ítem lo pidiera —el botón "+ Add project" (dos veces) y ahora esto—.
+  Si el diagnóstico confirma que un ítem cerrado lo quitó de refilón, eso es evidencia directa
+  para `CI.2`: no hay nada que avise cuando una pantalla pierde una parte.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
