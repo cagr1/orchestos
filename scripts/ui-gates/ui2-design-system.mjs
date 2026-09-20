@@ -202,8 +202,20 @@ const dialogStyle = await dialog.evaluate((el) => {
 const surfaceVar = await page.evaluate(() =>
   getComputedStyle(document.documentElement).getPropertyValue('--surface').trim(),
 )
+const modalVanilla = await page.evaluate(() => {
+  const el = document.createElement('div')
+  el.className = 'modal'
+  document.body.appendChild(el)
+  const cs = getComputedStyle(el)
+  const v = { radius: cs.borderRadius }
+  el.remove()
+  return v
+})
 log(dialogStyle.width === '440px', `Dialog: 440px como el .modal vanilla (${dialogStyle.width})`)
-log(dialogStyle.radius === '12px', `Dialog: radio 12px como el vanilla (${dialogStyle.radius})`)
+log(
+  dialogStyle.radius === modalVanilla.radius,
+  `Dialog: radio ${modalVanilla.radius} como el vanilla (${dialogStyle.radius})`,
+)
 log(
   toHex(dialogStyle.bg) === surfaceVar.toLowerCase(),
   `Dialog: fondo --surface (${toHex(dialogStyle.bg)})`,
