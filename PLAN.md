@@ -2138,6 +2138,31 @@ ni eso hace falta.
   functions 75.64% / lines 63.94% ✅ (el ejecutor reportó "3 fallos preexistentes"; no los hay —
   otro recordatorio de que el reporte del ejecutor no es evidencia).
 
+- [x] **UI.9.B — ⚡ Los radios del kit React no siguieron a UI.3.5.** (abierto 2026-09-20, cerrado 2026-09-20)
+  Sale del único FAIL de `ui2-design-system` que resultó ser **bug de producto y no gate podrido**
+  (ver la medición de `CI.2`). `UI.3.5` bajó la geometría —el propio CSS lo dice en
+  `styles.css:45-46`, "todo lo demás baja a `--radius`/`--radius-lg`"— y dos componentes del kit
+  se quedaron con el número viejo pegado a mano: `tabs.tsx:35` con `rounded-[20px]` contra el
+  `var(--radius-lg)` (8px) de `.filter-tab`, y su hermano **`dialog.tsx:30` con `rounded-[12px]`**,
+  que no es ningún token del sistema, contra el `var(--radius-lg)` del `.modal`. El hermano no lo
+  ve ningún gate: `ui2-design-system.mjs:205` compara solo el `width` del Dialog, nunca el radio —
+  otra afordancia sin cobertura, que hereda `CI.2`. `button.tsx` e `input.tsx` ya consumen el token:
+  el arreglo es copiar ese patrón, no inventar otro. Spec: `docs/specs/UI.9.B.md`.
+  **Ampliado el 2026-09-20 con lo que encontró Luna al ejecutar, y corrige un error de este plan:**
+  el gate **sí** medía el radio del Dialog (`ui2-design-system.mjs:206`), pero contra el literal
+  `'12px'` copiado a mano del componente que debía auditar (`49f5d3f`, `UI.2`), mientras su mensaje
+  afirma *"como el vanilla"* sin computar jamás el `.modal`. O sea: el gate no es que no viera el
+  bug — **lo bendecía en verde**, y se pone rojo recién cuando el componente se corrige. Para `CI.2`
+  es el peor caso de los cuatro que lleva anotados: un gate que cristaliza el valor equivocado como
+  verdad de referencia. El assert entra en el alcance de este ítem: debe medir el `.modal` real con
+  la misma técnica que el gate ya usa para Tabs (`:167-180`).
+  **Cierre 2026-09-20.** Ejecutado por: luna · Spec: `docs/specs/UI.9.B.md` · Commit: `801a8d8`.
+  Gate en vivo contra el dashboard real en :4323, salida cruda: **32 PASS / 0 FAIL** (antes 31/1).
+  `PASS — Tabs: la pestaña activa espeja .filter-tab (radio 8px, …)` y
+  `PASS — Dialog: radio 8px como el vanilla (8px)`, este último ya medido contra un `.modal`
+  creado en vivo con `getComputedStyle`, no contra el literal. El bundle de `public/dist/` no va
+  al commit: está en `.gitignore:50`, se regenera con `bun run build:ui`.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,
