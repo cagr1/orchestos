@@ -2301,6 +2301,17 @@ ni eso hace falta.
 > permanente. 4. `UI.10.A` plan de cada proyecto en solo lectura. 5. Etiquetas de texto en vez de
 > emojis. Temas renombrados entran en la pieza 1.
 
+- [ ] **UI.11 — 🧠 Sidebar de proyectos con la cara nueva (pieza 1 del orden de arriba).** (abierto 2026-09-21)
+  Decisiones 1, 3 y 5 de Carlos + loader/check, sin pill `IDLE`, temas renombrados y botón fijo
+  del panel derecho. **Ajuste del cerebro al orden:** si el clic en el proyecto deja de abrir el
+  workspace, Tasks/Runs/Graph/Memory/Instincts quedan sin camino hasta la pieza 2, y los botones
+  Explorer/Diff/Terminal también (viven en la barra del workspace desde `UI.9.A`). Por eso esta
+  pieza suma esas pestañas a la página del proyecto en Settings (`UI.10`), el ítem *Project
+  settings* del menú `…` y el toggle `#rpToggle`. *Delete project* sigue en `UI.9.9`.
+  Spec: `docs/specs/UI.11.md`. Ejecuta Luna después de `CI.2.A`; gate
+  `scripts/ui-gates/ui11-sidebar-projects.mjs`, 3 corridas verdes, captura revisada contra Orca y
+  Circle.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,

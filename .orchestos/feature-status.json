@@ -1012,6 +1012,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.11",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Sidebar de proyectos con la cara nueva (pieza 1 del orden de arriba)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.2",
       "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
