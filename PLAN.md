@@ -2318,6 +2318,12 @@ ni eso hace falta.
   tener para este proyecto… es solo un ejemplo, algunos botones no valen, otros están repetidos,
   pero la intención de cómo luce está ahí"*. Pidió auditar el código y darle un prompt para
   completarlo en AI Studio. UI.11 se re-especifica contra esa guía antes de reanudar.
+  **Aclaración de Carlos (mismo día), regla para todo el rediseño:** el prototipo es la **esencia
+  del look**, no el default funcional: *"me gusta como se ve pero no necesariamente vamos a
+  aplicarlo al pie de la letra sino ordenado a como ya lo tenemos aquí"*. Si una pantalla del
+  prototipo contradice una decisión ya tomada, gana la decisión; si no queda claro, se pregunta.
+  Pestaña "Props" del panel derecho: **se elimina** (vino de la captura de Orca). Ronda 2 del
+  prototipo verificada en vivo; ronda 2 del prompt en `docs/ui-aistudio-prompt.md`.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,

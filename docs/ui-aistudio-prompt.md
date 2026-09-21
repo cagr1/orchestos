@@ -99,3 +99,44 @@ Sigue siendo solo front con datos mock.
   en todo texto truncado, `aria-label` en botones de solo icono y en los checkboxes de las tablas.
 
 Cuando termines, dime qué archivos cambiaste y qué quedó sin resolver.
+
+---
+
+# Ronda 2 (2026-09-21) — después de verificar la versión corregida
+
+Verificado corriendo el prototipo: sistema de tokens hecho (0 colores hex sueltos), sidebar con
+chips, hover `Ellipsis`/`Plus`, clic que solo colapsa, loader/check, menú Project settings / Delete
+project en rojo, estado vacío con logo, cuotas 5h/7d, History, sin indicador en el header,
+markdown en el chat y página de proyecto en Settings con las 8 pestañas. Pegar lo de abajo:
+
+---
+
+Muy bien, esto ya es lo que quiero. Ajustes finales, sin tocar la estética:
+
+1. **Quita la pestaña "Props"** del panel derecho. Quedan Files, Diff y History.
+2. **Error de React en consola:** en la lista de chats, el botón "Delete chat" está dentro de otro
+   `<button>` (la fila). HTML no permite botones anidados. Haz la fila un `div` con
+   `role="button"` y `tabIndex={0}` (o saca el botón de borrar fuera del botón de la fila).
+3. **Chat — filas de herramientas** (`orchestos.worktree.spawn`, etc.): el JSON de argumentos se
+   parte en varias líneas y el texto `success` se sale del borde en la primera fila. Nombre de la
+   herramienta en una línea, argumentos en una sola línea truncada con tooltip (o expandibles al
+   clic), y el estado alineado a la derecha sin desbordar.
+4. **Chat — listas de tareas en markdown:** `- [x] texto` se ve como viñeta con `[x]` literal.
+   Rendérealas como check chico.
+5. **Settings debe cubrir lo que ya tiene la app real.** Agrega o reorganiza secciones para que
+   estén todas estas (los nombres pueden cambiar, el contenido no):
+   - **API & Models:** claves de OpenRouter, Anthropic y OpenAI (enmascaradas, con estado
+     configurada/no configurada y un campo para cambiarla) y el catálogo de modelos.
+   - **Model routing:** qué modelo usa cada tipo de tarea.
+   - **Executor:** motor por defecto (auto, local, claude, opencode, codex, api) con chips, no
+     `<select>`.
+   - **Usage:** tokens y costo por modelo (esto sale de las tarjetas de cuota del sidebar: allá
+     solo quedan 5h y 7d).
+   - **Language:** English / Español.
+   - **Danger zone global:** reiniciar todo OrchestOS (distinta de la zona de peligro de cada
+     proyecto, que ya está bien donde la pusiste).
+   - "AST Worktrees & Safety" no existe en el producto: quítala o fusiónala en Executor.
+6. **Settings → Projects:** además del selector de proyecto arriba a la derecha, lista los
+   proyectos en la barra de Settings (uno por fila, con su icono), como en el resto de la app.
+
+Cuando termines, dime qué archivos cambiaste y qué quedó sin resolver.
