@@ -1021,6 +1021,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.2.A",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "⚡",
+      "title": "Reparar `ui0`, `ui4-specs`, `ui81`, `s6` y `s6a` y reescribirlos para que lleguen clickeando",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "GOV.1",
       "sprint": "Knowledge promotions",
       "block": "Planificar antes de cambios multi-módulo",

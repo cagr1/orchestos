@@ -2234,6 +2234,72 @@ ni eso hace falta.
   (`project_id` + PK compuesta), `plan-import`/`plan:reconcile`/`plan:render` y el pre-commit por
   proyecto, y quitar el corte por cwd de `server.ts`. Plan corto a Carlos antes de codear (toca
   varios módulos).
+  **HALLAZGO QUE CAMBIA EL DISEÑO (2026-09-21, leído en el código y en el disco):** el `PLAN.md` de
+  SalaDespecho es una checklist libre (`- [ ] Auditar…`, sin ID ni 🧠⚡🔍). El parser
+  (`scripts/plan-status.ts:45`) exige `- [ ] **ID — 🧠 Título**`: sobre ese archivo devuelve **0
+  ítems**. Y el modelo "la DB es la fuente, `PLAN.md` se renderiza" solo se sostiene porque el
+  pre-commit de **este** repo corre `plan:render --check`; en otro repo nadie reconcilia, y a la
+  primera edición a mano vuelve el 409 "out of sync". Migrar las tablas (`project_id` + PK
+  compuesta) no alcanza para que el Plan de SalaDespecho muestre algo.
+  **Opciones planteadas a Carlos:** (a) migración completa, y los proyectos adoptan el formato de
+  OrchestOS y su hook; (b) sin migración: para un proyecto que no es OrchestOS, la pestaña Plan
+  lee su `PLAN.md` en solo lectura (secciones `##` y checkboxes, sin dependencias ni cierre), un
+  módulo nuevo más `server.ts`; (c) las dos. Recomendación del cerebro: (b). Pendiente de Carlos.
+  **DECIDIDO POR CARLOS 2026-09-21: (b).** Cada proyecto usa su propio `PLAN.md`, en solo lectura;
+  no se le impone el formato de OrchestOS. Sin migración de `plan_items`.
+
+> **DECISIONES DE CARLOS 2026-09-21 — sidebar de proyectos, look nuevo y etiquetas del plan.**
+> Contestadas en una sola ronda (memoria `feedback-preguntas-todas-juntas`). Pendientes de
+> convertirse en ítems; no se implementan sueltas.
+> 1. **Fila de proyecto:** icono `folder-closed` (lucide) en vez del libro actual. En hover, a la
+>    derecha, tres iconos: chevron de expandir, `ellipsis` y `plus`; sin hover desaparecen. El
+>    clic **solo expande/colapsa sus agentes**, no navega (hoy salta a Dev → Tasks,
+>    `app.js:3410`). Sin nada elegido, el área principal queda vacía con el SVG de OrchestOS.
+> 2. **Menú `ellipsis` del proyecto:** solo *Project settings* y *Delete project* (icono rojo).
+>    *Project settings* lleva a Settings (la página de proyecto de `UI.10`). No existe hoy ni en
+>    el front ni en el back (no hay endpoint para borrar un proyecto).
+> 3. Tasks, Runs y Graph dejan de abrirse al clickear el proyecto; se ven solo desde su settings.
+> 4. **Cerrar un agente = archivarlo** en un historial por proyecto, al estilo del panel "Agents"
+>    de Orca en el lateral derecho. Hoy no hay forma de cerrarlos ni endpoint.
+> 5. **Contador de agentes:** chip chico, siempre real, sin tener que expandir (hoy se carga
+>    solo al expandir, `Sidebar.tsx:284-295`). La altura del chevron (hoy muy abajo) **no se
+>    parchea con CSS suelto**: se arregla cuando se rehaga la cara del sidebar en React. Mismo
+>    criterio para cualquier ajuste visual pedido antes de ese cambio: anotarlo, no gastar tokens.
+> 6. **Adiós a 🧠⚡🔍:** reemplazar por etiquetas de texto propias que cualquier LLM entienda.
+>    Toca parser (`scripts/plan-status.ts:45`), `CHECK` de `plan_items.delegation` y los ítems del
+>    plan en un solo cambio.
+> 7. = decisión (b) de arriba.
+> 8. **Look nuevo pieza por pieza**, pero cada pieza tiene que verse como las referencias. Si una
+>    referencia no está anotada con su fuente, preguntar en vez de suponer. Objetivo dicho por
+>    Carlos: "CRM moderno".
+> 9. **Referencia nueva:** Circle (https://circle.lndev.me/lndev-ui/team/DESIGN/overview, repo
+>    `ln-dev7/circle`, Next.js + shadcn/ui, estilo Linear). La guía principal sigue siendo
+>    `docs/ui-reference-patterns.md` + capturas en `~/Documents/screens/`.
+> **Segunda ronda, mismo día:**
+> - **Panel derecho = historial de agentes**, captura nueva `~/Documents/screens/rightside_agents.png`
+>   (Orca): tabs de iconos arriba (archivos, agentes, source control, tasks) + toggle del panel;
+>   título + "N shown", segmented `Workspace | Project | All`, buscador, grupo por proyecto con
+>   contador, y por sesión: título, última línea, icono del CLI, mensajes, hace cuánto, modelo,
+>   chevron y `ellipsis`. Cerrar un agente del sidebar lo manda acá. **No se llama "Agents"**: el
+>   cerebro elige **"History"** (i18n "Historial").
+> - **El botón que mostraba el panel derecho vuelve a ser permanente.** Hoy los botones de
+>   Explorer/Diff/Terminal solo viven en la barra de tabs del workspace (arreglo de `UI.9.A`), y con
+>   la decisión 1 (el clic en proyecto ya no abre el workspace) se vuelven a perder. Toggle fijo
+>   arriba a la derecha, como en Orca. Esto reemplaza el criterio "inspector cerrado = 0px" de
+>   `UI.9.5`.
+> - **Quitar el pill `IDLE`/`RUNNING`** del header (`Header.tsx:18-21`).
+> - **Estado del agente en la fila:** loader chico mientras trabaja, check chico al terminar.
+> - **Delete project = quitar del espacio de trabajo**, sin borrar la carpeta, con confirmación;
+>   coincide con lo que ya fijó `UI.9.9` el 2026-09-18 (ese ítem ya existía y es la pieza 2).
+> - **Tema:** oscuro por defecto. Renombrar los temas: `claude` no puede llamarse así
+>   (`theme.js:9`, `i18n.js:829,1742`).
+> - Reparto de referencias no contestado explícitamente: se sigue la recomendación (estructura de
+>   Orca, piel visual Circle/Linear, oscuro). Si Carlos lo corrige, manda lo suyo.
+> **Orden aprobado ("GO"):** 0. `CI.2.A` (Luna, spec listo). 1. Sidebar de proyectos en React con
+> la cara nueva (decisiones 1 y 5, loader/check, sin pill IDLE). 2. `UI.9.9` menú `ellipsis`
+> (Project settings / Delete project) + back. 3. Panel derecho History + archivar agente + toggle
+> permanente. 4. `UI.10.A` plan de cada proyecto en solo lectura. 5. Etiquetas de texto en vez de
+> emojis. Temas renombrados entran en la pieza 1.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
@@ -2415,6 +2481,15 @@ ni eso hace falta.
   después (114 `plan_items`, 0 de A/B/C, 225 `plan_doc_segments`). Los otros 11 gates no abren la
   DB: pegan a un dashboard externo (`BASE`), así que su aislamiento depende de cómo se levanta ese
   dashboard — lo resuelve el workflow.
+
+- [ ] **CI.2.A — ⚡ Reparar `ui0`, `ui4-specs`, `ui81`, `s6` y `s6a` y reescribirlos para que lleguen clickeando.** (abierto 2026-09-21)
+  Sale de `CI.2` (decisión de Carlos del 2026-09-21: los 5 en un solo ítem). El bloqueo de 4 de
+  ellos lo levantó `UI.10`: Specs, Skills y Plan se alcanzan por Settings → proyecto → pestaña.
+  Spec: `docs/specs/CI.2.A.md`. Ejecuta Luna, verifica el cerebro: 3 corridas verdes seguidas de
+  cada gate contra un dashboard real, `git status` limpio después (los gates dejan de pisar la
+  evidencia versionada de `S.6`/`S.6a` y de dejar PNGs en el repo) y la DB real sin cambios.
+  Fuera: el workflow de CI, el inventario de afordancias y los otros 4 gates que llegan por
+  `window.*` (`ui1`, `ui1b`, `ui3`, `ui4-skills`).
 
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 

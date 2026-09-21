@@ -12,6 +12,9 @@ por peso): `Orca1_main.png`, `Orca_agents.png`, `Orca_general.png`, `Orca_integr
 `lightdash_profile.png`. PI Dashboard no se pudo instalar; su anatomía se extrajo del README del
 repo (`BlackBeltTechnology/pi-agent-dashboard`, rama `develop`).
 
+**Referencia agregada 2026-09-21 (Carlos):** Circle — https://circle.lndev.me/lndev-ui/team/DESIGN/overview
+(repo `ln-dev7/circle`, Next.js + shadcn/ui, estilo Linear). Objetivo declarado: "CRM moderno".
+
 **Regla que gobierna todo lo de abajo:** se toma **estructura, anatomía y jerarquía**. No se toma
 paleta, tipografía de marca ni componentes literales. La identidad visual de OrchestOS es propia
 (`dashboard-experience-direction.md` § Sistema de componentes).
