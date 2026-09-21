@@ -15,6 +15,10 @@ repo (`BlackBeltTechnology/pi-agent-dashboard`, rama `develop`).
 **Referencia agregada 2026-09-21 (Carlos):** Circle — https://circle.lndev.me/lndev-ui/team/DESIGN/overview
 (repo `ln-dev7/circle`, Next.js + shadcn/ui, estilo Linear). Objetivo declarado: "CRM moderno".
 
+**GUÍA VISUAL PRINCIPAL desde 2026-09-21 (Carlos):** prototipo de Google AI Studio en
+`~/Documents/screens/orchestos-ai-agent-dashboard` (fuera del repo). Manda sobre Circle y Orca en
+lo visual; es un ejemplo con botones rotos o repetidos, no una spec funcional.
+
 **Regla que gobierna todo lo de abajo:** se toma **estructura, anatomía y jerarquía**. No se toma
 paleta, tipografía de marca ni componentes literales. La identidad visual de OrchestOS es propia
 (`dashboard-experience-direction.md` § Sistema de componentes).

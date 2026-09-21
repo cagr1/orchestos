@@ -2311,6 +2311,13 @@ ni eso hace falta.
   Spec: `docs/specs/UI.11.md`. Ejecuta Luna después de `CI.2.A`; gate
   `scripts/ui-gates/ui11-sidebar-projects.mjs`, 3 corridas verdes, captura revisada contra Orca y
   Circle.
+  **PAUSADO 2026-09-21 (Luna detenida con SIGSTOP a mitad de ejecución, diff sin commitear en el
+  working tree).** Carlos trajo una **guía visual nueva**: un prototipo hecho en Google AI Studio,
+  `~/Documents/screens/orchestos-ai-agent-dashboard` (Vite + React 19 + Tailwind v4 +
+  lucide-react, solo datos mock). Palabras de Carlos: *"esta va a ser la guía visual que vamos a
+  tener para este proyecto… es solo un ejemplo, algunos botones no valen, otros están repetidos,
+  pero la intención de cómo luce está ahí"*. Pidió auditar el código y darle un prompt para
+  completarlo en AI Studio. UI.11 se re-especifica contra esa guía antes de reanudar.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
