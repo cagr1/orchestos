@@ -2164,7 +2164,7 @@ ni eso hace falta.
   al commit: está en `.gitignore:50`, se regenera con `bun run build:ui`.
 
 - [ ] **UI.10 — 🧠 Specs, Skills y Plan vuelven, por proyecto, dentro de Settings.** (abierto 2026-09-21)
-  **Estado: PLAN PROPUESTO, pendiente de confirmación de Carlos. No se codea hasta confirmarlo.**
+  **Plan CONFIRMADO por Carlos 2026-09-21 ("GO"). Spec: `docs/specs/UI.10.md`, ejecuta Luna.**
   **Decisión de Carlos (2026-09-21, dicha varias veces):** cada proyecto tiene sus propias reglas,
   skills, specs y plan, y se ven en Settings, en una sección con el nombre del proyecto
   seleccionado, como Orca. Memoria: `feedback-specs-skills-plan-por-proyecto`.
