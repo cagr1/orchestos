@@ -118,7 +118,7 @@ export function Combobox({
                     onSelect={() => onValueChange(option.value)}
                   >
                     <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-[11px]">
+                    <span className="font-ui-meta flex shrink-0 items-center gap-1.5">
                       {option.hint}
                       {option.value === value && <Check />}
                     </span>

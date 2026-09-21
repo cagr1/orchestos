@@ -1,0 +1,16 @@
+{
+  "item": "UI.12.1",
+  "date": "2026-09-21",
+  "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330",
+  "themes": {
+    "orchestos": { "bodyBg": "rgb(8, 12, 20)", "accent": "#38bdf8" },
+    "graphite": { "bodyBg": "rgb(15, 17, 21)", "accent": "#60a5fa" },
+    "carbon": { "bodyBg": "rgb(9, 9, 11)", "accent": "#38bdf8" },
+    "light": { "bodyBg": "rgb(248, 250, 252)", "accent": "#0284c7" }
+  },
+  "themeMigration": { "stored": "claude", "applied": "carbon", "rewritten": "carbon" },
+  "fonts": { "bodyFamily": "\"Plus Jakarta Sans Variable\"", "loaded": ["Plus Jakarta Sans Variable", "Fira Code"], "woff2_4xx": 0, "googleRequests": 0 },
+  "distUiCssBytes": 61471,
+  "gates": { "ui81": "5/5", "ui2-design-system": "32/32", "ui0-islands": "16/16", "ui4-specs-screen": "20/20", "ui10-project-settings": "13/13" },
+  "suite": { "command": "bun run test:coverage", "pass": 1443, "fail": 0 }
+}

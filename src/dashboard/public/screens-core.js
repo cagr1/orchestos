@@ -397,7 +397,7 @@ SCREENS.chat = {
     // la incorrecta deja la fase oscura casi invisible contra su propio fondo.
     const prefersReducedMotion =
       typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
-    const isBrightTheme = document.documentElement.getAttribute('data-theme') === 'bright'
+    const isBrightTheme = document.documentElement.getAttribute('data-theme') === 'light'
     const emptyMarkSrc = prefersReducedMotion
       ? `assets/${isBrightTheme ? 'logo_black' : 'logo_white'}.png`
       : `assets/${isBrightTheme ? 'AnimatedLogo' : 'AnimatedLogoDark'}.svg`

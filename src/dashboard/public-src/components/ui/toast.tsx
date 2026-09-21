@@ -43,7 +43,7 @@ export function Toast({
   return (
     <ToastPrimitive.Root
       className={cn(
-        'pointer-events-auto flex items-center gap-3 rounded-md border px-5 py-2.5 text-[13px]',
+        'pointer-events-auto flex items-center gap-3 rounded-md border px-5 py-2.5 font-ui-body',
         'shadow-[0_4px_16px_rgba(0,0,0,.25)] transition-all',
         'data-[state=closed]:opacity-0 data-[state=open]:opacity-100',
         'data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)]',

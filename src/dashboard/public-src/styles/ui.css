@@ -71,6 +71,11 @@
   --font-mono: var(--mono);
 }
 
+.font-ui-meta { font-size: var(--fs-1); }
+.font-ui-control { font-size: var(--fs-2); }
+.font-ui-body { font-size: var(--fs-3); }
+.font-ui-title { font-size: var(--fs-5); }
+
 /* ------------------------------------------------------------
    Capa de los flotantes de Radix sobre el z-index vanilla.
 
@@ -138,7 +143,7 @@
 .session-statusbar-cli-icon,
 .session-statusbar-popover-icon {
   width: 17px; height: 17px; display: inline-grid; place-items: center;
-  color: var(--metric-color); font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: var(--metric-color); font-family: var(--mono); font-size: var(--fs-1); font-weight: 700;
 }
 .session-statusbar-cli-icon svg,
 .session-statusbar-popover-icon svg { width: 15px; height: 15px; }
@@ -149,7 +154,7 @@
   width: 44px; height: 3px; overflow: hidden; background: var(--surface-hi); border-radius: var(--radius-pill);
 }
 .session-statusbar-cli-fill { display: block; height: 100%; background: var(--metric-color); border-radius: inherit; transition: width .18s ease; }
-.session-statusbar-cli-value { color: var(--text); font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+.session-statusbar-cli-value { color: var(--text); font-family: var(--mono); font-size: var(--fs-1); font-variant-numeric: tabular-nums; }
 .session-statusbar-live {
   width: 5px; height: 5px; flex: 0 0 auto; border-radius: var(--radius-circle); background: var(--success);
 }
@@ -158,16 +163,16 @@
 .session-statusbar-popover { padding: 12px; }
 .session-statusbar-popover-heading { display: flex; align-items: center; gap: 9px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .session-statusbar-popover-heading > div { display: grid; gap: 2px; min-width: 0; flex: 1; }
-.session-statusbar-popover-heading strong { color: var(--text); font-size: 12px; }
-.session-statusbar-popover-heading small, .session-statusbar-observed { color: var(--text-faint); font-size: 10px; }
+.session-statusbar-popover-heading strong { color: var(--text); font-size: var(--fs-2); }
+.session-statusbar-popover-heading small, .session-statusbar-observed { color: var(--text-faint); font-size: var(--fs-1); }
 .session-statusbar-popover-dot { width: 6px; height: 6px; border-radius: var(--radius-circle); background: var(--success); }
 .session-statusbar-popover-dot.offline { background: var(--text-faint); }
-.session-statusbar-detail { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding-top: 9px; font-size: 11px; }
+.session-statusbar-detail { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding-top: 9px; font-size: var(--fs-1); }
 .session-statusbar-detail span { color: var(--text-muted); }
-.session-statusbar-detail strong { color: var(--text); font-family: var(--mono); font-size: 11px; text-align: right; }
-.session-statusbar-detail small { grid-column: 1 / -1; color: var(--text-faint); font-size: 10px; text-align: right; }
+.session-statusbar-detail strong { color: var(--text); font-family: var(--mono); font-size: var(--fs-1); text-align: right; }
+.session-statusbar-detail small { grid-column: 1 / -1; color: var(--text-faint); font-size: var(--fs-1); text-align: right; }
 .session-statusbar-observed { display: block; margin-top: 10px; text-align: right; }
-.session-statusbar-unavailable { color: var(--text-muted); font-size: 11px; line-height: 1.4; }
+.session-statusbar-unavailable { color: var(--text-muted); font-size: var(--fs-1); line-height: 1.4; }
 
 /* Compatibilidad visual durante el bundle incremental. */
 .session-statusbar-metric[data-tone='warn'] {
@@ -240,29 +245,29 @@
 
 /* S.6 — board de sprints. El grafo se expresa con aristas de texto navegables, no canvas. */
 .plan-sprint { margin-top: 28px; }
-.plan-sprint > h2 { margin: 0 0 10px; font-size: 14px; color: var(--text); }
+.plan-sprint > h2 { margin: 0 0 10px; font-size: var(--fs-3); color: var(--text); }
 .plan-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .plan-column { min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-.plan-column h3 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 9px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.plan-column h3 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 9px; color: var(--text-muted); font-size: var(--fs-1); text-transform: uppercase; letter-spacing: .06em; }
 .plan-column h3 span { font-family: var(--mono); color: var(--text-faint); }
 .plan-cards { display: grid; gap: 8px; min-height: 24px; }
 .plan-card { display: grid; gap: 7px; padding: 10px; border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius); background: var(--surface-hi); }
 .plan-card.ready { border-left-color: var(--success); }
 .plan-card.blocked { border-left-color: var(--warning); }
 .plan-card.done { border-left-color: var(--text-faint); opacity: .78; }
-.plan-card-title { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 12px; }
-.plan-card code, .plan-edge { font-family: var(--mono); font-size: 11px; }
-.plan-card > strong { font-size: 12px; line-height: 1.35; color: var(--text); }
-.plan-card > small, .plan-no-deps { margin: 0; color: var(--text-faint); font-size: 10px; }
-.plan-commit-pending { margin: 0; color: var(--warning); font-size: 10px; line-height: 1.35; }
+.plan-card-title { display: flex; justify-content: space-between; color: var(--text-muted); font-size: var(--fs-2); }
+.plan-card code, .plan-edge { font-family: var(--mono); font-size: var(--fs-1); }
+.plan-card > strong { font-size: var(--fs-2); line-height: 1.35; color: var(--text); }
+.plan-card > small, .plan-no-deps { margin: 0; color: var(--text-faint); font-size: var(--fs-1); }
+.plan-commit-pending { margin: 0; color: var(--warning); font-size: var(--fs-1); line-height: 1.35; }
 .plan-edges { display: flex; flex-wrap: wrap; gap: 5px; }
 .plan-edge { padding: 3px 5px; border-radius: var(--radius); background: var(--surface); }
 .plan-edge.open { color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
 .plan-edge.done { color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 35%, transparent); }
 .plan-card-actions, .plan-dependency-editor > div, .plan-close-confirm { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .plan-dependency-editor, .plan-close-confirm { display: grid; gap: 7px; padding-top: 8px; border-top: 1px solid var(--border); }
-.plan-dependency-editor p, .plan-close-confirm p { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.4; }
-.plan-dependency-editor label { display: flex; gap: 6px; align-items: baseline; color: var(--text-muted); font-size: 11px; }
+.plan-dependency-editor p, .plan-close-confirm p { margin: 0; color: var(--text-muted); font-size: var(--fs-1); line-height: 1.4; }
+.plan-dependency-editor label { display: flex; gap: 6px; align-items: baseline; color: var(--text-muted); font-size: var(--fs-1); }
 .plan-message, .plan-placeholder { margin-top: 12px; padding: 10px; color: var(--text-muted); }
 .plan-message { border-radius: var(--radius); border: 1px solid var(--border); }
 .plan-message.error, .plan-placeholder.error { color: var(--error); border-color: var(--error); }

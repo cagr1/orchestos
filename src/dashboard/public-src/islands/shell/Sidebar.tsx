@@ -108,7 +108,7 @@ export function Sidebar() {
 
   // El atajo se muestra según la plataforma, igual que en vanilla.
   const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K'
-  const isBright = document.documentElement.getAttribute('data-theme') === 'bright'
+  const isBright = document.documentElement.getAttribute('data-theme') === 'light'
   const logoSrc = `assets/${isBright ? 'logo_black' : 'logo_white'}.png`
 
   return (

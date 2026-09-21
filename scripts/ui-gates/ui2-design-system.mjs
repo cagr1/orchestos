@@ -140,7 +140,7 @@ log(
   inputReact.padding === '9px 11px',
   `Input: padding igual al del modal vanilla (${inputReact.padding})`,
 )
-log(inputReact.font === '13.5px', `Input: tamaño de fuente igual (${inputReact.font})`)
+log(inputReact.font === '14px', `Input: tamaño de fuente igual (${inputReact.font})`)
 log(
   toHex(inputReact.bg) === bgVar.toLowerCase(),
   `Input: fondo sobre --bg como el vanilla (${toHex(inputReact.bg)})`,

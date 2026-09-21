@@ -74,7 +74,7 @@ try {
   )
   // UI.3.5a: una lista blanca hace cumplir 0px + los tokens declarados y 50% circular;
   // el conteo permitiría combinaciones inválidas como {6px, 7px}.
-  const allowedRadii = new Set(['0px', '4px', '8px', '50%', '999px'])
+  const allowedRadii = new Set(['0px', '6px', '10px', '50%', '999px', '9999px'])
   const invalidRadii = metrics.radii.filter((radius) =>
     radius.split(' ').some((part) => !allowedRadii.has(part)),
   )

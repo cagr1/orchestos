@@ -31,9 +31,9 @@ export function TabsTrigger({
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        // Espeja `.filter-tab`: 5px/13px, radio --radius-lg, 12.5px, borde e inactivo en muted.
+        // Espeja `.filter-tab`: 5px/13px, radio --radius-lg, 12px, borde e inactivo en muted.
         'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-lg)] border border-border',
-        'bg-transparent px-[13px] py-[5px] text-[12.5px] text-muted-foreground outline-none',
+        'bg-transparent px-[13px] py-[5px] font-ui-control text-muted-foreground outline-none',
         'transition-colors hover:bg-muted hover:text-foreground',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
         'disabled:pointer-events-none disabled:opacity-50',

@@ -213,7 +213,7 @@ SCREENS.project = {
           <div class="proj-helper">${t('project.context.helper')}</div>
           <textarea id="context-editor" class="proj-editor proj-editor-ro" spellcheck="false" readonly>${esc(ctxContent)}</textarea>
           <div class="proj-context-foot">
-            <span class="muted" style="font-size:12px">${t('project.context.note')}</span>
+            <span class="muted" style="font-size: var(--fs-2)">${t('project.context.note')}</span>
             <div class="tools">
               <button class="btn" data-act="regenerate">${ICON.refresh} ${t('project.context.regenerate')}</button>
               <button class="btn ghost" data-act="detect">${ICON.refresh} ${t('project.detect')}</button>
@@ -465,7 +465,7 @@ SCREENS.instincts = {
       ? `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">
            <input type="range" min="0" max="1" step="0.05" value="${i.confidence}"
              data-conf-id="${esc(i.id)}" style="width:90px;accent-color:var(--accent)">
-           <span class="mono faint" style="font-size:11px" data-conf-val="${esc(i.id)}">${Math.round(i.confidence * 100)}%</span>
+           <span class="mono faint" style="font-size: var(--fs-1)" data-conf-val="${esc(i.id)}">${Math.round(i.confidence * 100)}%</span>
          </div>`
       : ''
     // I.8 (Mes 18) — un instinct ya aprobado no tenía ninguna acción, solo
@@ -718,7 +718,7 @@ SCREENS.runs = {
       const cmdline = `${proc.binary} ${proc.args.join(' ')}`
       return `<div class="grp"><h4>${t('runs.detail.process')}</h4>
          <div class="kv"><span class="k">${t('runs.detail.process.binary')}</span><span class="v">${esc(proc.binary)}</span></div>
-         <div class="kv"><span class="k">${t('runs.detail.process.cmd')}</span><span class="v"><code title="${esc(t('runs.detail.process.cmd.tip'))}" style="font-size:11.5px;word-break:break-all">${esc(cmdline)}</code></span></div>
+         <div class="kv"><span class="k">${t('runs.detail.process.cmd')}</span><span class="v"><code title="${esc(t('runs.detail.process.cmd.tip'))}" style="font-size: var(--fs-2);word-break:break-all">${esc(cmdline)}</code></span></div>
        </div>`
     })()
 
@@ -735,7 +735,7 @@ SCREENS.runs = {
             })
             .join('') +
           `</div></div>`
-        : `<div class="grp"><h4>${t('runs.detail.cost')}</h4><div class="muted" style="font-size:12.5px">${r.costSource === 'unknown' ? 'Cost unknown (not reported or estimable).' : `${t('runs.detail.cost.single')} ${usd(r.costUsd)}.`}</div></div>`
+        : `<div class="grp"><h4>${t('runs.detail.cost')}</h4><div class="muted" style="font-size: var(--fs-2)">${r.costSource === 'unknown' ? 'Cost unknown (not reported or estimable).' : `${t('runs.detail.cost.single')} ${usd(r.costUsd)}.`}</div></div>`
 
     /* contextWarnings: {code, severity: 'warning'|'critical'|'notice', message} */
     const warns =
@@ -753,7 +753,7 @@ SCREENS.runs = {
             })
             .join('') +
           `</div>`
-        : `<div class="grp"><h4>${t('runs.detail.warnings')}</h4><div class="muted" style="font-size:12.5px">${t('runs.detail.no.warn')}</div></div>`
+        : `<div class="grp"><h4>${t('runs.detail.warnings')}</h4><div class="muted" style="font-size: var(--fs-2)">${t('runs.detail.no.warn')}</div></div>`
 
     const qa = r.qaVerdict
       ? `<div class="grp"><h4>${t('runs.detail.qa')}</h4>
@@ -833,7 +833,7 @@ SCREENS.runs = {
         .join('')
       const proposalsNote =
         result.proposals && result.proposals.length > 0
-          ? `<div class="muted" style="font-size:12px;margin-top:6px">${t('runs.analyze.proposals', result.proposals.length)}</div>`
+          ? `<div class="muted" style="font-size: var(--fs-2);margin-top:6px">${t('runs.analyze.proposals', result.proposals.length)}</div>`
           : ''
       return `<div class="grp" style="margin-bottom:16px"><h4>${t('runs.analyze.title')}</h4>${items}${proposalsNote}</div>`
     })()
@@ -1107,11 +1107,11 @@ SCREENS.graph = {
       <div class="lead"><h1>${t('graph.title')}</h1><p>${t('graph.subtitle')}</p></div>
       <div class="tools">
         ${liveIndicator}
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px">${t('graph.maxCost')}
-          <input type="number" id="graph-max-cost" placeholder="${t('graph.maxCostHint')}" step="any" min="0" style="width:90px;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)">
+        <label style="display:flex;align-items:center;gap:4px;font-size: var(--fs-2)">${t('graph.maxCost')}
+          <input type="number" id="graph-max-cost" placeholder="${t('graph.maxCostHint')}" step="any" min="0" style="width:90px;padding:4px 6px;font-size:var(--fs-2);border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text)">
         </label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px">${t('graph.maxMinutes')}
-          <input type="number" id="graph-max-minutes" placeholder="${t('graph.maxMinutesHint')}" step="1" min="0" style="width:80px;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)">
+        <label style="display:flex;align-items:center;gap:4px;font-size: var(--fs-2)">${t('graph.maxMinutes')}
+          <input type="number" id="graph-max-minutes" placeholder="${t('graph.maxMinutesHint')}" step="1" min="0" style="width:80px;padding:4px 6px;font-size:var(--fs-2);border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text)">
         </label>
         <button class="btn primary" data-act="run-graph" ${isRunning || st.graphLaunching || allDone ? 'disabled' : ''}>${ICON.play} ${allDone ? t('graph.nothingToRun') : t('graph.runBtn')}</button>
       </div>
@@ -1385,7 +1385,7 @@ SCREENS.settings = {
       <div class="settings-header setup-header">
         <div>
           <h3>${t('setup.title')}</h3>
-          <p class="muted" style="margin:0;font-size:12.5px">${t('setup.subtitle')}</p>
+          <p class="muted" style="margin:0;font-size: var(--fs-2)">${t('setup.subtitle')}</p>
         </div>
         ${summary}
       </div>
@@ -1529,9 +1529,9 @@ SCREENS.settings = {
     const previewOpen = !!state.routingPreviewOpen
     const previewBody =
       pending.length === 0
-        ? `<p class="muted" style="margin:0;font-size:12.5px">${t('settings.routing.noPending')}</p>`
+        ? `<p class="muted" style="margin:0;font-size: var(--fs-2)">${t('settings.routing.noPending')}</p>`
         : `<table class="tbl"><thead><tr><th>${t('settings.routing.col.task')}</th><th>${t('settings.routing.col.model')}</th></tr></thead><tbody>
-          ${pending.map((r) => `<tr><td class="mono">${esc(r.id)}</td><td class="mono" style="font-size:12px">${esc(r.model)}</td></tr>`).join('')}
+          ${pending.map((r) => `<tr><td class="mono">${esc(r.id)}</td><td class="mono" style="font-size: var(--fs-2)">${esc(r.model)}</td></tr>`).join('')}
         </tbody></table>`
     const previewToggle =
       pending.length === 0
@@ -1541,7 +1541,7 @@ SCREENS.settings = {
       </button>`
     const previewInline = previewOpen
       ? `<div class="routing-preview-inline">
-        <div class="settings-header" style="padding-top:14px"><h3 style="font-size:13px">${t('settings.routing.pending')}</h3></div>
+        <div class="settings-header" style="padding-top:14px"><h3 style="font-size: var(--fs-3)">${t('settings.routing.pending')}</h3></div>
         ${previewBody}
       </div>`
       : ''
@@ -1553,14 +1553,14 @@ SCREENS.settings = {
     return `<div class="card settings-card">
         <div class="settings-header"><h3>${t('settings.routing.title')}</h3></div>
         <div class="kv"><span class="k">${t('settings.routing.source')}</span><span class="v">${sourceLine}</span></div>
-        <p class="muted" style="margin:8px 18px 0;font-size:12.5px">${sourceHint}</p>
+        <p class="muted" style="margin:8px 18px 0;font-size: var(--fs-2)">${sourceHint}</p>
         ${initBtn ? `<div class="settings-foot" style="margin-top:8px">${initBtn}</div>` : ''}
       </div>
       <div class="card settings-card settings-card-roles">
         <div class="settings-header"><h3>${t('settings.routing.roles')}</h3></div>
         ${roleRows}
         <div class="settings-foot" style="margin-top:8px">
-          <span id="routing-save-msg" style="font-size:12px;display:none"></span>
+          <span id="routing-save-msg" style="font-size: var(--fs-2);display:none"></span>
           <button class="btn ghost sm" data-act="routing-free-preset">${t('settings.routing.freePreset')}</button>
           <span style="flex:1"></span>
           ${previewToggle}
@@ -1671,7 +1671,7 @@ SCREENS.settings = {
     }
     const sorted = [...byModel.entries()].sort((a, b) => b[1].usd - a[1].usd)
     if (sorted.length === 0)
-      return `<div class="muted" style="padding:16px 18px;font-size:12.5px">${t('settings.usage.empty')}</div>`
+      return `<div class="muted" style="padding:16px 18px;font-size: var(--fs-2)">${t('settings.usage.empty')}</div>`
 
     return `<table class="usage-table">
       <thead><tr>
@@ -1769,7 +1769,7 @@ SCREENS.settings = {
 
     return `<div class="card settings-card" data-exec-mode="${esc(current)}">
       <div class="settings-header"><h3>${t('settings.executorMode.title')}</h3>
-        <p class="muted" style="margin:0;font-size:12.5px">${t('settings.executorMode.subtitle')}</p>
+        <p class="muted" style="margin:0;font-size: var(--fs-2)">${t('settings.executorMode.subtitle')}</p>
       </div>
       <div class="engine-picker">${opts}</div>
       <p class="engine-desc">${esc(t('settings.executorMode.desc.' + current))}</p>
@@ -1819,13 +1819,13 @@ SCREENS.settings = {
 
     return `<div class="card settings-card" data-api-mode="${esc(mode)}">
       <div class="settings-header"><h3>${t('settings.executor.title')}</h3>
-        <p class="muted" style="margin:0;font-size:12.5px">${t('settings.executor.subtitle')}</p>
+        <p class="muted" style="margin:0;font-size: var(--fs-2)">${t('settings.executor.subtitle')}</p>
       </div>
       <div class="engine-picker">${opts}</div>
       <p class="engine-desc">${esc(activeDesc)}</p>
       ${tuneRow}
       <div class="settings-foot" style="margin-top:8px">
-        <span id="executor-save-msg" style="font-size:12px;display:none"></span>
+        <span id="executor-save-msg" style="font-size: var(--fs-2);display:none"></span>
         <span style="flex:1"></span>
         <button class="btn primary" data-act="save-executor">${ICON.check} ${t('settings.executor.save')}</button>
       </div>
@@ -1838,9 +1838,9 @@ SCREENS.settings = {
     const theme = getTheme()
     const THEME_LABELS = {
       orchestos: 'settings.theme.orchestos',
-      dark2026: 'settings.theme.dark2026',
-      claude: 'settings.theme.claude',
-      bright: 'settings.theme.bright',
+      graphite: 'settings.theme.graphite',
+      carbon: 'settings.theme.carbon',
+      light: 'settings.theme.light',
     }
     const themePicker = `<div class="card settings-card">
       <div class="settings-header"><h3>${t('settings.theme.title')}</h3></div>
@@ -1876,7 +1876,7 @@ SCREENS.settings = {
           : `<span class="badge gray square" style="white-space:nowrap">— ${t('settings.key.oll.none')}</span>`
         const detected = probe.set
           ? `<code class="key-masked">${esc(probe.masked)}</code>`
-          : `<span class="faint" style="font-size:12px">${t('settings.key.oll.none')}</span>`
+          : `<span class="faint" style="font-size: var(--fs-2)">${t('settings.key.oll.none')}</span>`
         return `<div class="key-row">
           <div class="key-meta">
             <div class="key-label">${t(def.labelKey)}</div>
@@ -1894,7 +1894,7 @@ SCREENS.settings = {
         : `<span class="badge gray square" style="white-space:nowrap">— ${t('settings.status.unset')}</span>`
       const masked = info.set
         ? `<code class="key-masked">${esc(info.masked)}</code>`
-        : `<span class="faint" style="font-size:12px">${t('settings.status.unset')}</span>`
+        : `<span class="faint" style="font-size: var(--fs-2)">${t('settings.status.unset')}</span>`
       const wizardBtn =
         def.id === 'OPENROUTER_API_KEY' ||
         def.id === 'ANTHROPIC_API_KEY' ||
@@ -1958,11 +1958,11 @@ SCREENS.settings = {
             <div class="card settings-card">
               <div class="settings-header">
                 <h3>${t('settings.keys.title')}</h3>
-                <p class="muted" style="margin:0;font-size:12.5px">${t('settings.keys.hint')} <code>${esc(envF)}</code>.</p>
+                <p class="muted" style="margin:0;font-size: var(--fs-2)">${t('settings.keys.hint')} <code>${esc(envF)}</code>.</p>
               </div>
               <div class="key-list">${keyRows}</div>
               <div class="settings-foot">
-                <span id="settings-msg" style="font-size:12px;display:none"></span>
+                <span id="settings-msg" style="font-size: var(--fs-2);display:none"></span>
                 <span style="flex:1"></span>
                 <button class="btn primary" data-save-keys>${ICON.check} ${t('settings.btn.save')}</button>
               </div>
@@ -1993,7 +1993,7 @@ SCREENS.settings = {
                 <h3 class="danger-title">${t('settings.reset.title')}</h3>
               </div>
               <div class="settings-danger-body">
-                <p class="muted" style="margin:0 0 14px;font-size:12.5px">${t('settings.reset.desc')}</p>
+                <p class="muted" style="margin:0 0 14px;font-size: var(--fs-2)">${t('settings.reset.desc')}</p>
                 <button class="btn danger" data-act="system-reset">${ICON.trash} ${t('settings.reset.btn')}</button>
               </div>
             </div>

@@ -11,7 +11,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../lib/utils.ts'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-[7px] whitespace-nowrap rounded-[var(--radius)] border px-[13px] py-[7px] text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-[15px] [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-[7px] whitespace-nowrap rounded-[var(--radius)] border px-[13px] py-[7px] font-ui-body font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-[15px] [&_svg]:shrink-0',
   {
     variants: {
       // Los hovers apuntan a --surface-2 -> --surface-hi, que es el salto real del CSS
@@ -42,7 +42,7 @@ const buttonVariants = cva(
         // para lo mismo, que es como se empieza a usar cualquiera de los dos al azar.
       },
       size: {
-        sm: 'gap-[5px] px-[9px] py-1 text-xs [&_svg]:size-[13px]',
+        sm: 'gap-[5px] px-[9px] py-1 font-ui-control [&_svg]:size-[13px]',
         default: '',
         icon: 'size-9 p-0 [&_svg]:size-4',
       },

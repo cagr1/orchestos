@@ -47,7 +47,7 @@
   border: 1px solid #30363d;
   padding: 4px 9px;
   border-radius: var(--radius);
-  font-size: 11px;
+  font-size: var(--fs-1);
   pointer-events: none;
 }
 
@@ -56,7 +56,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   padding: 4px 10px;
   border-radius: var(--radius-lg);
@@ -101,7 +101,7 @@
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   cursor: pointer;
   transition:
     background 0.12s,
@@ -120,7 +120,7 @@
   opacity: 0.85;
 }
 .tab-ct {
-  font-size: 11px;
+  font-size: var(--fs-1);
   font-variant-numeric: tabular-nums;
   opacity: 0.6;
 }
@@ -134,7 +134,7 @@
   color: var(--text-muted);
 }
 .sort-arrow {
-  font-size: 9px;
+  font-size: var(--fs-1);
   margin-left: 3px;
   opacity: 0.5;
 }
@@ -144,7 +144,7 @@
 
 /* ---------- DIAGNOSE LINK (A3) ---------- */
 .diag-link {
-  font-size: 10px;
+  font-size: var(--fs-1);
   color: var(--accent);
   cursor: pointer;
   white-space: nowrap;
@@ -171,7 +171,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-2);
   font-weight: 600;
   color: var(--accent);
 }
@@ -199,7 +199,7 @@
   color: var(--text);
   padding: 9px 12px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   line-height: 1.5;
   resize: none;
   outline: none;
@@ -212,7 +212,7 @@
 }
 .draft-summary {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-faint);
   min-height: 15px;
 }
@@ -224,7 +224,7 @@
   cursor: pointer;
   user-select: none;
   padding: 8px 0;
-  font-size: 11px;
+  font-size: var(--fs-1);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -247,7 +247,7 @@
   flex: 1;
 }
 .draft-field label {
-  font-size: 11px;
+  font-size: var(--fs-1);
   color: var(--text-faint);
   font-weight: 600;
   text-transform: uppercase;
@@ -260,7 +260,7 @@
   color: var(--text);
   padding: 7px 10px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--fs-3);
   outline: none;
   resize: none;
 }
@@ -269,11 +269,11 @@
 }
 .draft-input.mono {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-2);
 }
 /* C.2 — aviso inline bajo el engine select cuando el binario externo no está */
 .draft-engine-warning {
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   line-height: 1.4;
   margin-top: 2px;
   padding: 4px 6px;
@@ -296,7 +296,7 @@
   background: transparent;
   color: var(--text);
   font-family: var(--sans);
-  font-size: 14.5px;
+  font-size: var(--fs-3);
   line-height: 1.5;
   padding: 14px 18px;
   outline: none;
@@ -315,7 +315,7 @@
   background: var(--surface-2);
 }
 .compose-hint {
-  font-size: 11px;
+  font-size: var(--fs-1);
   font-family: var(--mono);
   flex: 1;
 }
@@ -340,7 +340,7 @@
   background: transparent;
   color: var(--text);
   font-family: var(--sans);
-  font-size: 14.5px;
+  font-size: var(--fs-3);
   line-height: 1.5;
   padding: 16px 18px;
   outline: none;
@@ -360,7 +360,7 @@
   flex: 1;
 }
 .compose .actions .hint {
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-faint);
   font-family: var(--mono);
 }
@@ -381,7 +381,7 @@
 }
 .feed .feed-head h3 {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -397,7 +397,7 @@
 }
 .feed-body {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   line-height: 1.7;
   padding: 14px 16px;
   min-height: 160px;
@@ -466,7 +466,7 @@
 }
 .inspector .insp-head h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-3);
   font-weight: 600;
   flex: 1;
   overflow: hidden;
@@ -498,7 +498,7 @@
   gap: 16px;
 }
 .insp-section .label {
-  font-size: 11px;
+  font-size: var(--fs-1);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-faint);
@@ -506,7 +506,7 @@
   margin-bottom: 6px;
 }
 .insp-section .val {
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   line-height: 1.5;
   color: var(--text);
   text-wrap: pretty;
@@ -552,7 +552,7 @@
   gap: 6px;
   margin-bottom: 8px;
   color: var(--accent);
-  font-size: 10px;
+  font-size: var(--fs-1);
   font-weight: 750;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -613,7 +613,7 @@
 .settings-nav-label {
   padding: 0 11px 7px;
   color: var(--text-faint);
-  font-size: 10px;
+  font-size: var(--fs-1);
   font-weight: 750;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -628,7 +628,7 @@
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--fs-3);
   font-weight: 500;
   cursor: pointer;
   text-align: left;
@@ -676,7 +676,7 @@
 }
 .settings-projects-empty {
   padding: 5px 11px;
-  font-size: 12px;
+  font-size: var(--fs-2);
   line-height: 1.4;
 }
 .settings-panels {
@@ -698,7 +698,7 @@
   margin: 0;
   min-width: 0;
   color: var(--text);
-  font-size: 18px;
+  font-size: var(--fs-5);
   line-height: 1.2;
   font-weight: 700;
   overflow: hidden;
@@ -718,7 +718,7 @@
   padding: 8px 10px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   font-weight: 600;
   cursor: pointer;
 }
@@ -759,7 +759,7 @@
 }
 .settings-header h3 {
   margin: 0 0 4px;
-  font-size: 15px;
+  font-size: var(--fs-5);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -784,7 +784,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--fs-1);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -814,13 +814,13 @@
   min-width: 0;
 }
 .key-label {
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   font-weight: 500;
   color: var(--text);
   margin-bottom: 2px;
 }
 .key-desc {
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-faint);
 }
 .key-val {
@@ -831,7 +831,7 @@
 }
 .key-masked {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   letter-spacing: 0.03em;
 }
@@ -843,7 +843,7 @@
   color: var(--text);
   padding: 7px 10px;
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   outline: none;
 }
 .key-input input:focus {
@@ -937,13 +937,13 @@
   background: var(--warning-dim);
 }
 .setup-title {
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--text);
   margin-bottom: 3px;
 }
 .setup-hint {
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   line-height: 1.45;
 }
@@ -957,7 +957,7 @@
   border: 1px solid var(--border);
   color: var(--text-muted);
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   white-space: normal;
   word-break: break-all;
 }
@@ -999,13 +999,13 @@
 }
 .health-label {
   flex: 0 0 160px;
-  font-size: 13px;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--text);
 }
 .health-value {
   flex: 1;
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -1027,7 +1027,7 @@
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   cursor: pointer;
   transition:
     background 0.12s,
@@ -1061,12 +1061,12 @@
   border-right: none;
 }
 .usage-stat-label {
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   margin-bottom: 6px;
 }
 .usage-stat-value {
-  font-size: 22px;
+  font-size: var(--fs-5);
   font-weight: 650;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -1083,7 +1083,7 @@
 }
 .usage-heatmap-months span {
   width: 11px;
-  font-size: 10px;
+  font-size: var(--fs-1);
   color: var(--text-faint);
   flex-shrink: 0;
   overflow: visible;
@@ -1125,7 +1125,7 @@
   align-items: center;
   gap: 4px;
   margin-top: 10px;
-  font-size: 11px;
+  font-size: var(--fs-1);
   color: var(--text-faint);
 }
 .usage-heatmap-legend .usage-heatmap-cell {
@@ -1141,18 +1141,18 @@
 .usage-range-picker .lang-opt {
   flex: 0 1 auto;
   padding: 6px 12px;
-  font-size: 12.5px;
+  font-size: var(--fs-2);
 }
 
 .usage-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--fs-3);
 }
 .usage-table th {
   text-align: left;
   padding: 8px 18px;
-  font-size: 11px;
+  font-size: var(--fs-1);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--text-faint);
@@ -1227,7 +1227,7 @@
   left: 8px;
 }
 .theme-opt-label {
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
 }
 .theme-opt.active .theme-opt-label {
@@ -1244,32 +1244,32 @@
 .theme-swatch[data-swatch="orchestos"] .sw-dot {
   background: #58a6ff;
 }
-.theme-swatch[data-swatch="dark2026"] .sw-side {
-  background: #191a1b;
+.theme-swatch[data-swatch="graphite"] .sw-side {
+  background: #161920;
 }
-.theme-swatch[data-swatch="dark2026"] .sw-main {
-  background: #121314;
+.theme-swatch[data-swatch="graphite"] .sw-main {
+  background: #0f1115;
 }
-.theme-swatch[data-swatch="dark2026"] .sw-dot {
-  background: #3994bc;
+.theme-swatch[data-swatch="graphite"] .sw-dot {
+  background: #60a5fa;
 }
-.theme-swatch[data-swatch="claude"] .sw-side {
-  background: #1a1a1a;
+.theme-swatch[data-swatch="carbon"] .sw-side {
+  background: #121215;
 }
-.theme-swatch[data-swatch="claude"] .sw-main {
-  background: #0d0d0d;
+.theme-swatch[data-swatch="carbon"] .sw-main {
+  background: #09090b;
 }
-.theme-swatch[data-swatch="claude"] .sw-dot {
-  background: #5b9eff;
+.theme-swatch[data-swatch="carbon"] .sw-dot {
+  background: #38bdf8;
 }
-.theme-swatch[data-swatch="bright"] .sw-side {
-  background: #fafafd;
-}
-.theme-swatch[data-swatch="bright"] .sw-main {
+.theme-swatch[data-swatch="light"] .sw-side {
   background: #ffffff;
 }
-.theme-swatch[data-swatch="bright"] .sw-dot {
-  background: #0069cc;
+.theme-swatch[data-swatch="light"] .sw-main {
+  background: #f8fafc;
+}
+.theme-swatch[data-swatch="light"] .sw-dot {
+  background: #0284c7;
 }
 
 /* ---------- ENGINE PICKER (Settings→Executor) ---------- */
@@ -1309,7 +1309,7 @@
     border-color 0.12s,
     color 0.12s;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--fs-3);
 }
 .engine-opt:hover {
   background: var(--surface-2);
@@ -1333,7 +1333,7 @@
 }
 .engine-desc {
   padding: 0 18px 16px;
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
 }
 .engine-tune-row {
@@ -1343,7 +1343,7 @@
   padding: 0 18px 16px;
 }
 .engine-tune-row label {
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -1354,7 +1354,7 @@
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--fs-3);
 }
 
 @media (max-width: 760px) {
@@ -1436,7 +1436,7 @@
     padding: 14px 10px;
   }
   .usage-stat-value {
-    font-size: 18px;
+    font-size: var(--fs-5);
   }
 }
 
@@ -1448,7 +1448,7 @@
   color: var(--text);
   padding: 9px 11px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   outline: none;
 }
 .modal .m-field select:focus {
@@ -1475,7 +1475,7 @@
 }
 .mem-search h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-3);
   font-weight: 600;
 }
 .mem-query-wrap {
@@ -1489,7 +1489,7 @@
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--fs-3);
   outline: none;
 }
 .mem-query-input:focus {
@@ -1510,7 +1510,7 @@
   padding: 7px 9px;
   border-radius: var(--radius);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--fs-3);
   color: var(--text-muted);
   border: 1px solid transparent;
 }
@@ -1531,7 +1531,7 @@
 }
 .scope-opt .ct {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--fs-1);
   color: var(--text-faint);
   font-family: var(--mono);
 }
@@ -1576,18 +1576,18 @@
 }
 .mem-card .topic {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--accent);
   font-weight: 500;
 }
 .mem-card .when {
   margin-left: auto;
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-faint);
   font-family: var(--mono);
 }
 .mem-card .preview {
-  font-size: 13px;
+  font-size: var(--fs-3);
   color: var(--text-muted);
   line-height: 1.5;
   overflow: hidden;
@@ -1604,7 +1604,7 @@
   margin-top: 9px;
   padding-top: 9px;
   border-top: 1px solid var(--border-soft);
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-faint);
   display: flex;
   align-items: center;
@@ -1648,7 +1648,7 @@
 }
 .conf .pct {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   min-width: 30px;
   text-align: right;
@@ -1672,11 +1672,11 @@
   align-items: center;
   gap: 9px;
   margin: 26px 0 12px;
-  font-size: 14px;
+  font-size: var(--fs-3);
   font-weight: 600;
 }
 .section-title .ct {
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   font-weight: 500;
   background: var(--surface-hi);
@@ -1711,7 +1711,7 @@
   flex: 1;
 }
 .proposal-card .pc-trig {
-  font-size: 13px;
+  font-size: var(--fs-3);
   margin-bottom: 4px;
 }
 .proposal-card .pc-trig .arrow {
@@ -1722,7 +1722,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
 }
 
@@ -1735,7 +1735,7 @@
 }
 .proj-tab {
   padding: 9px 18px;
-  font-size: 13px;
+  font-size: var(--fs-3);
   font-weight: 500;
   cursor: pointer;
   border: none;
@@ -1760,7 +1760,7 @@
   gap: 10px;
 }
 .proj-helper {
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   line-height: 1.6;
   /* Impeccable audit G.3 (P2) — antes tenía border-left de 3px como acento,
@@ -1779,7 +1779,7 @@
    .proj-helper (sin el side-stripe que Impeccable marca como never-intentional),
    con color de warning para que se distinga claramente del helper normal. */
 .proj-preview-banner {
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text);
   background: color-mix(in oklab, var(--warning) 12%, var(--surface));
   border: 1px solid color-mix(in oklab, var(--warning) 35%, var(--border));
@@ -1797,7 +1797,7 @@
   border-radius: var(--radius-lg);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--fs-3);
   line-height: 1.6;
   padding: 16px 18px;
   outline: none;
@@ -1820,20 +1820,20 @@
   display: flex;
   gap: 18px;
   flex-wrap: wrap;
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
 }
 .chat-evidence-summary b {
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--fs-3);
 }
 .chat-evidence-click td {
   color: var(--text-faint);
   font-style: italic;
-  font-size: 12px;
+  font-size: var(--fs-2);
 }
 .save-indicator {
-  font-size: 12px;
+  font-size: var(--fs-2);
   font-weight: 500;
 }
 .save-indicator.saving {
@@ -1860,7 +1860,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 13px 16px;
-  font-size: 13px;
+  font-size: var(--fs-3);
   color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: 16px;
@@ -1890,12 +1890,12 @@
   padding: 12px 14px;
 }
 .stat-box .n {
-  font-size: 22px;
+  font-size: var(--fs-5);
   font-weight: 700;
   font-family: var(--mono);
 }
 .stat-box .l {
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -1960,7 +1960,7 @@
 }
 .modal .m-head h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-5);
   font-weight: 600;
   flex: 1;
 }
@@ -1972,7 +1972,7 @@
 }
 .modal .m-field label {
   display: block;
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   margin-bottom: 6px;
   font-weight: 500;
@@ -1986,7 +1986,7 @@
   color: var(--text);
   padding: 9px 11px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   outline: none;
 }
 .modal .m-field input:focus,
@@ -1994,7 +1994,7 @@
   border-color: var(--accent);
 }
 .modal .m-hint {
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-faint);
   margin-top: 5px;
 }
@@ -2040,7 +2040,7 @@
   outline: none;
   color: var(--text);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--fs-3);
 }
 .cmdk-input-row input::placeholder {
   color: var(--text-faint);
@@ -2058,7 +2058,7 @@
   border-radius: var(--radius);
   cursor: pointer;
   color: var(--text-muted);
-  font-size: 13.5px;
+  font-size: var(--fs-3);
 }
 .cmdk-item .cmdk-item-ic {
   width: 16px;
@@ -2094,14 +2094,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-faint);
 }
 .cmdk-item-type {
   flex-shrink: 0;
   padding: 2px 7px;
   border-radius: var(--radius-lg);
-  font-size: 10px;
+  font-size: var(--fs-1);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -2117,12 +2117,12 @@
   padding: 24px 16px;
   text-align: center;
   color: var(--text-faint);
-  font-size: 13px;
+  font-size: var(--fs-3);
 }
 .cmdk-hint {
   padding: 9px 16px;
   border-top: 1px solid var(--border);
-  font-size: 11px;
+  font-size: var(--fs-1);
   color: var(--text-faint);
   font-family: var(--mono);
 }
@@ -2137,7 +2137,7 @@
   justify-content: center;
   gap: 6px;
   padding: 14px 18px 0;
-  font-size: 12px;
+  font-size: var(--fs-2);
 }
 .wiz-dot {
   display: inline-flex;
@@ -2146,7 +2146,7 @@
   width: 24px;
   height: 24px;
   border-radius: var(--radius-circle);
-  font-size: 11px;
+  font-size: var(--fs-1);
   font-weight: 600;
   background: var(--border);
   color: var(--text-faint);
@@ -2164,7 +2164,7 @@
 }
 .wiz-dot-sep {
   color: var(--text-faint);
-  font-size: 10px;
+  font-size: var(--fs-1);
 }
 .wiz-steps-list {
   margin: 0;
@@ -2174,7 +2174,7 @@
   gap: 8px;
 }
 .wiz-steps-list li {
-  font-size: 13px;
+  font-size: var(--fs-3);
   color: var(--text-muted);
   line-height: 1.5;
 }
@@ -2233,7 +2233,7 @@
   padding: 40px 0;
   gap: 14px;
   color: var(--text-faint);
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   text-align: center;
 }
 .chat-empty-mark {
@@ -2266,7 +2266,7 @@
   max-width: 100%;
   padding: 10px 14px;
   border-radius: var(--radius-lg);
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   line-height: 1.6;
   word-break: break-word;
 }
@@ -2291,7 +2291,7 @@
   margin-top: 3px;
   opacity: 0;
   transition: opacity 0.15s;
-  font-size: 11px;
+  font-size: var(--fs-1);
   color: var(--text-faint);
 }
 .chat-msg:hover .chat-msg-actions,
@@ -2337,7 +2337,7 @@
   margin: 4px 0;
   padding: 8px 12px;
   border-radius: var(--radius-lg);
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   line-height: 1.5;
 }
 .chat-turn-pending {
@@ -2390,7 +2390,7 @@
   outline: none;
   color: var(--text);
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: var(--fs-3);
   line-height: 1.5;
   padding: 12px 14px 6px;
   max-height: 120px;
@@ -2486,7 +2486,7 @@
   background: none;
   border: none;
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--fs-3);
   font-family: var(--sans);
   padding: 8px;
   border-radius: var(--radius);
@@ -2518,7 +2518,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--fs-2);
   font-family: var(--mono);
   padding: 6px 9px;
   cursor: pointer;
@@ -2570,7 +2570,7 @@
   border: none;
   border-bottom: 1px solid var(--border);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--fs-2);
   font-family: var(--mono);
   padding: 8px 10px;
   outline: none;
@@ -2581,7 +2581,7 @@
   padding: 4px;
 }
 .model-combo-group-label {
-  font-size: 10px;
+  font-size: var(--fs-1);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-faint);
@@ -2594,7 +2594,7 @@
   gap: 8px;
   padding: 6px 8px;
   border-radius: var(--radius);
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text);
   cursor: pointer;
 }
@@ -2611,7 +2611,7 @@
 }
 .model-combo-price {
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: var(--fs-1);
   flex-shrink: 0;
 }
 .model-combo-price.free {
@@ -2622,7 +2622,7 @@
   padding: 16px 8px;
   text-align: center;
   color: var(--text-faint);
-  font-size: 12px;
+  font-size: var(--fs-2);
 }
 
 /* 2026-07-13 (corrección de Carlos) — pill único modelo+esfuerzo del composer
@@ -2642,7 +2642,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--fs-2);
   font-family: var(--mono);
   padding: 6px 10px;
   cursor: pointer;
@@ -2703,7 +2703,7 @@
   background: none;
   border: 1px solid transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--fs-3);
   font-family: var(--sans);
   padding: 8px;
   border-radius: var(--radius);
@@ -2740,7 +2740,7 @@
 /* CC.D2 (2026-08-17) — mismo patrón visual que .model-combo-group-label,
    separa "alias auto" de "versión fija" en la lista de modelo de Claude. */
 .chat-modelfx-group-label {
-  font-size: 10px;
+  font-size: var(--fs-1);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 6px 8px 2px;
@@ -2758,7 +2758,7 @@
   border: none;
   border-bottom: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--fs-2);
   font-family: var(--sans);
   padding: 8px 10px;
   cursor: pointer;
@@ -2917,7 +2917,7 @@
   border-bottom: 1px solid var(--border);
 }
 .diff-file-path {
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2925,7 +2925,7 @@
   flex: 1;
 }
 .diff-file-stats {
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   font-family: var(--mono);
   flex-shrink: 0;
 }
@@ -2942,7 +2942,7 @@
 .diff-line {
   display: flex;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-2);
   line-height: 1.5;
   white-space: pre;
 }
@@ -2979,7 +2979,7 @@
   border: none;
   border-top: 1px solid var(--border);
   color: var(--accent);
-  font-size: 12px;
+  font-size: var(--fs-2);
   cursor: pointer;
   font-family: inherit;
 }
@@ -3028,7 +3028,7 @@
   color: #2563eb;
   border-color: rgba(37, 99, 235, 0.3);
 }
-[data-theme="bright"] .chat-bubble .md-body .md-chip-model {
+[data-theme="light"] .chat-bubble .md-body .md-chip-model {
   color: #1d4ed8;
   border-color: rgba(29, 78, 216, 0.3);
 }
@@ -3038,8 +3038,8 @@
   border-color: #2563eb;
   color: #2563eb;
 }
-[data-theme="bright"] .chat-bubble .md-body .md-chip-model:hover,
-[data-theme="bright"] .chat-bubble .md-body .md-chip-model:focus-visible {
+[data-theme="light"] .chat-bubble .md-body .md-chip-model:hover,
+[data-theme="light"] .chat-bubble .md-body .md-chip-model:focus-visible {
   background: rgba(29, 78, 216, 0.1);
   border-color: #1d4ed8;
   color: #1d4ed8;
@@ -3047,7 +3047,7 @@
 
 .chat-model-tag {
   margin-top: 6px;
-  font-size: 10.5px;
+  font-size: var(--fs-1);
   color: var(--text-faint);
   font-family: var(--mono);
   text-align: right;
@@ -3055,7 +3055,7 @@
 /* C.2 (Mes 19) — transparencia: nota de que una imagen se leyó vía OCR */
 .chat-ocr-tag {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: var(--fs-1);
   color: var(--text-faint);
   display: flex;
   align-items: center;
@@ -3084,7 +3084,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   color: var(--text-faint);
   font-family: var(--mono);
   text-align: left;
@@ -3104,7 +3104,7 @@
 }
 .chat-step-row {
   padding: 4px 0;
-  font-size: 12px;
+  font-size: var(--fs-2);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -3119,14 +3119,14 @@
 .chat-step-label {
   color: var(--text);
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--fs-2);
   white-space: nowrap;
 }
 .chat-step-detail {
   flex-basis: 100%;
   margin-top: 2px;
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: var(--fs-1);
   font-family: var(--mono);
   white-space: pre-wrap;
   word-break: break-word;
@@ -3146,7 +3146,7 @@
 }
 .chat-confirm-text {
   flex: 1;
-  font-size: 12px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -3170,7 +3170,7 @@
   border-radius: var(--radius);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text);
 }
 .chat-attach-chip .chat-attach-icon {
@@ -3191,7 +3191,7 @@
 .chat-attach-preview {
   flex: 1;
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: var(--fs-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3219,13 +3219,13 @@
   cursor: pointer;
 }
 .skill-card-name {
-  font-size: 15px;
+  font-size: var(--fs-5);
   font-weight: 600;
   color: var(--text);
   margin-bottom: 4px;
 }
 .skill-card-desc {
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   color: var(--text-muted);
   line-height: 1.45;
   margin-bottom: 8px;
@@ -3255,7 +3255,7 @@
   opacity: 1;
 }
 .skill-card-actions .btn {
-  font-size: 11px;
+  font-size: var(--fs-1);
 }
 .skill-card-confirm {
   display: flex;
@@ -3266,7 +3266,7 @@
   background: var(--warning-dim);
 }
 .skill-card-msg {
-  font-size: 12px;
+  font-size: var(--fs-2);
   padding: 6px 12px;
   border-top: 1px solid var(--border);
 }
@@ -3278,7 +3278,7 @@
   right: -2px;
   background: var(--accent);
   color: var(--accent-contrast);
-  font-size: 9px;
+  font-size: var(--fs-1);
   font-weight: 700;
   min-width: 15px;
   height: 15px;
@@ -3294,12 +3294,12 @@
 .instinct-state {
   max-width: 220px;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--fs-1);
 }
 
 /* proposal card — pc-label */
 .pc-label {
-  font-size: 10.5px;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -3312,7 +3312,7 @@
   width: 100%;
   min-height: 68px;
   resize: vertical;
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   padding: 8px 10px;
   line-height: 1.5;
   border-radius: var(--radius);
@@ -3341,7 +3341,7 @@
 .insp-explain-row {
   display: flex;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--fs-2);
   line-height: 1.4;
 }
 .insp-explain-k {

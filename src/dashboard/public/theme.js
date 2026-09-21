@@ -6,7 +6,7 @@
 ;(() => {
   var THEME_KEY = 'orchestos-theme'
   var THEME_DEFAULT = 'orchestos'
-  var THEMES = ['orchestos', 'dark2026', 'claude', 'bright']
+  var THEMES = ['orchestos', 'graphite', 'carbon', 'light']
 
   function getTheme() {
     var v
@@ -15,7 +15,11 @@
     } catch (e) {
       return THEME_DEFAULT
     }
-    return THEMES.indexOf(v) !== -1 ? v : THEME_DEFAULT
+    var migrated = { dark2026: 'graphite', claude: 'carbon', bright: 'light' }[v] || v
+    if (migrated !== v) {
+      try { localStorage.setItem(THEME_KEY, migrated) } catch (e) {}
+    }
+    return THEMES.indexOf(migrated) !== -1 ? migrated : THEME_DEFAULT
   }
 
   function setTheme(theme) {

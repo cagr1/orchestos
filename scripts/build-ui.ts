@@ -38,6 +38,10 @@ async function build(): Promise<boolean> {
     // Cambiar a 'production' cuando la migración esté cerrada (UI.5).
     minify: false,
     sourcemap: 'linked',
+    // El entry se carga desde `/dist/ui.js`; los woff2 emitidos deben conservar
+    // ese prefijo para que el navegador los solicite desde `/dist/…`.
+    publicPath: 'dist/',
+    loader: { '.woff': 'file', '.woff2': 'file' },
     // `[name].[ext]` y no `ui.js`: el `import './styles/ui.css'` del entry emite
     // TAMBIÉN un artefacto de entrada (el CSS), así que un nombre fijo hace colisionar
     // los dos en la misma ruta. Con `[name].[ext]` salen `ui.js` y `ui.css`.

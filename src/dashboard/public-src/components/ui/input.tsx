@@ -12,7 +12,7 @@ export function Input({ className, type, ...props }: React.ComponentProps<'input
     <input
       type={type}
       className={cn(
-        'flex h-auto w-full rounded-[var(--radius)] border border-border bg-background px-[11px] py-[9px] text-[13.5px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-auto w-full rounded-[var(--radius)] border border-border bg-background px-[11px] py-[9px] font-ui-body text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}

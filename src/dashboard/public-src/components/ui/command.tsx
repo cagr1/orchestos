@@ -64,7 +64,7 @@ export function CommandGroup({
     <CommandPrimitive.Group
       className={cn(
         'text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-1.5 [&_[cmdk-group-heading]]:pb-0.5',
-        '[&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider',
+        '[&_[cmdk-group-heading]]:font-ui-meta [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider',
         '[&_[cmdk-group-heading]]:text-muted-foreground',
         className,
       )}

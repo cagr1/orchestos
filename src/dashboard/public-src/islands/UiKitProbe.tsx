@@ -101,7 +101,7 @@ export function UiKitProbe() {
               <DialogHeader>
                 <DialogTitle>Dialog de prueba</DialogTitle>
               </DialogHeader>
-              <div className="px-[18px] py-4 text-[13px]">
+              <div className="px-[18px] py-4 font-ui-body">
                 Espeja el modal vanilla: 440px de ancho, radio 12px, scrim con blur.
               </div>
               <DialogFooter>

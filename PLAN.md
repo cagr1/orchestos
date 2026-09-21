@@ -2349,10 +2349,27 @@ ni eso hace falta.
   Fuera: History con archivo real de agentes y *Delete project* con su back (`UI.9.9`) son ítems de
   producto aparte; esta cadena es el look.
 
-- [ ] **UI.12.1 — ⚡ Tokens del prototipo: paleta, temas, fuentes, radios y escala.** (abierto 2026-09-21)
+- [x] **UI.12.1 — ⚡ Tokens del prototipo: paleta, temas, fuentes, radios y escala.** (abierto 2026-09-21, cerrado 2026-09-21)
   Spec: `docs/specs/UI.12.1.md`. Ejecuta Luna. Gate: `ui81` y `ui2` verdes con los valores nuevos,
   captura de Chat, Settings y una pantalla vanilla en cada uno de los 4 temas revisada a ojo contra el
   prototipo.
+  Ejecutado por: luna · Spec: docs/specs/UI.12.1.md (3 rondas; borrado al cerrar)
+  Paleta del prototipo mapeada a los tokens existentes en los 4 temas; temas renombrados
+  (`dark2026`→`graphite`, `claude`→`carbon`, `bright`→`light`, con migración de `localStorage`);
+  Plus Jakarta Sans Variable + Fira Code empaquetadas (subsets latin/latin-ext como `.woff2` en
+  `dist/`, `publicPath: 'dist/'`); radios 6/10; escala 11/12/14/20. Rondas: (r2) la familia se
+  registra como "Plus Jakarta Sans Variable" y `ui.css` pesaba 762 KB con 25 fuentes en base64 →
+  61 KB; (r3) las `.woff2` daban 404 en `/` en vez de `/dist/`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.12.1-live.json` —
+  dashboard en :4330, corrida del cerebro. Fondo/acento de los 4 temas iguales
+  al prototipo (`orchestos` `rgb(8,12,20)`/`#38bdf8`, `light` `rgb(248,250,252)`/`#0284c7`),
+  `claude` guardado abre en `carbon`, `document.fonts` con Plus Jakarta Sans Variable y Fira Code
+  cargadas, 0 respuestas 4xx, 0 requests a Google. `ui81` 5/5, `ui2` 32/32, `ui0` 16/16,
+  `ui4-specs` 20/20, `ui10` 13/13. `tsc` limpio; `test:coverage` 1443 pass / 0 fail.
+
+- [ ] **UI.12.2 — 🧠 Shell con la cara del prototipo: header, sidebar, estado vacío, panel derecho.** (abierto 2026-09-21)
+  Spec: `docs/specs/UI.12.2.md` (listo, sin ejecutar). Ejecuta Luna; gate
+  `scripts/ui-gates/ui12-shell.mjs` 3/3 y capturas contra el prototipo. **Próximo paso al retomar.**
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
