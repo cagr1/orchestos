@@ -2299,6 +2299,21 @@ ni eso hace falta.
   no por `window.state`), así que repararlos ahora por separado es hacer el trabajo dos veces.
   Opciones: (a) un solo ítem "despodrir + reescribir clickeando los 13"; (b) el fix de `ui2` ya,
   suelto, y el resto después. Nadie arranca a reparar hasta que esto se decida.
+  **DECIDIDO POR CARLOS 2026-09-21:** `ui2` ya salió suelto (`UI.9.B`); los **5 restantes**
+  (`ui0`, `ui4-specs`, `ui81`, `s6`, `s6a`) van en **un solo ítem**, `CI.2.A`: se despudren y se
+  reescriben llegando clickeando en la misma pasada. Spec del cerebro, ejecuta Luna.
+  **BLOQUEO HALLADO AL PREPARAR EL SPEC (2026-09-21, inventario de Luna, verificado por el
+  cerebro en el código):** Specs, Skills y Plan board **no tienen camino clickeable desde frío**.
+  `NAV` solo lista `chat` y `settings` (`app.js:144-149`), y el Sidebar solo pinta esos `data-nav`
+  (`Sidebar.tsx:354-367`). En todo el front, el único `App.go` a una de esas tres pantallas es
+  `App.go('skills')` desde el resultado de búsqueda de una skill en la paleta (`app.js:2335`).
+  Specs y Plan board no se alcanzan de ninguna forma. Las islas `screen-specs`/`screen-skills`/
+  `screen-plan` (`screens-ops.js:2349-2390`) montan bien, pero **ningún humano llega a ellas**:
+  es el mismo patrón que "+ Add project" y el inspector, ahora en tres pantallas enteras, y los
+  gates en verde lo tapaban justamente porque navegaban por `window.state`. Esto deja a 4 de los 5
+  gates (`ui0`, `ui4-specs`, `s6`, `s6a`) sin camino que clickear. Solo `ui81` (Chat) se puede
+  reescribir ya. **Decisión de producto pendiente de Carlos:** dónde vuelven a estar accesibles
+  estas pantallas, o si se retiran (y con ellas sus islas y sus gates).
 
   **Efecto secundario descubierto al medir, a resolver en el diseño:** correr los gates **muta el
   working tree**. `at91-format-smoke` sobreescribió `docs/done/evidence/AT.9.1-live.json` —la

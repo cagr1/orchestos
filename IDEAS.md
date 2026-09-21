@@ -1624,3 +1624,18 @@ llamadas a Haiku es ruido y no paga integrar un proveedor, un SDK y una ruta de 
 que un generativo respete un enum, y un clasificador que no puede salirse del tipo es el mismo
 diente mecánico que el self-check del pre-commit — no más barato, **incapaz de fallar en esa
 dimensión**. Revisar si hay acceso real antes de gastar un minuto más acá.
+
+### `#67` — `brain-no-code` bloquea Edit pero no escrituras desde intérpretes (2026-09-21)
+
+**Origen**: anotado en el handoff del 2026-09-18 y **ocurrido en vivo el 2026-09-21**: el cerebro
+(Opus 5) escribió el fix de aislamiento de `s6`/`s6a` (`1a7cc29`) con `perl -pi` sobre
+`scripts/ui-gates/`, y el hook no lo frenó. Es el límite ya declarado en `AGENTS.md` § "Diente
+mecánico" (`python -c`, `bun -e`), y `perl` es otro caso de lo mismo.
+
+**Decisión de Carlos (2026-09-21)**: queda en IDEAS, sin ítem. Pasó una vez; la regla global es no
+sumar controles preventivos. Se abre ítem si se repite.
+
+**Qué haría falta, si se repite**: extender el matcher de Bash de `brain-no-code.js` a
+`perl -i`/`-pi`, `ruby -i`, `python`/`node`/`bun` con `-c`/`-e` cuando el comando nombre una ruta
+bajo `src/`, `tests/`, `scripts/` o `.claude/hooks/`. Hecho por heurística sobre el texto, así que
+solo cubre los casos obvios, no la clase entera.
