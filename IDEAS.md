@@ -1639,3 +1639,15 @@ sumar controles preventivos. Se abre ítem si se repite.
 `perl -i`/`-pi`, `ruby -i`, `python`/`node`/`bun` con `-c`/`-e` cuando el comando nombre una ruta
 bajo `src/`, `tests/`, `scripts/` o `.claude/hooks/`. Hecho por heurística sobre el texto, así que
 solo cubre los casos obvios, no la clase entera.
+
+### `#68` — Un commit de cierre rechazado deja el ítem `done` en la DB y bloquea el reconcile (2026-09-21)
+
+**Ocurrido en el cierre de `UI.10`, dos veces.** Si se marca `[x]` y se corre `plan:reconcile`, la
+DB guarda el ítem como `done` con el HEAD de ese momento como SHA provisional. Si después el
+pre-commit rechaza el commit (acá, `agent:live-gate`) y se vuelve a editar `PLAN.md`, el próximo
+`plan:reconcile` falla con `Could not prove a closing commit SHA for <ID>`: como el ítem ya
+figuraba cerrado (`wasAlreadyDone`, `scripts/plan-import.ts:85`), no acepta un SHA provisional, y
+el commit real todavía no existe. Salida manual usada: `update plan_items set status='open',
+commit_sha=NULL, closed_at=NULL where id='<ID>'`, un solo reconcile y commit.
+**Qué haría falta, si se repite:** que reconcile trate como provisional un `done` cuyo SHA no
+contenga el cierre de ese ítem en git, en vez de exigir que no estuviera cerrado antes.
