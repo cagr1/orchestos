@@ -1651,3 +1651,7 @@ el commit real todavía no existe. Salida manual usada: `update plan_items set s
 commit_sha=NULL, closed_at=NULL where id='<ID>'`, un solo reconcile y commit.
 **Qué haría falta, si se repite:** que reconcile trate como provisional un `done` cuyo SHA no
 contenga el cierre de ese ítem en git, en vez de exigir que no estuviera cerrado antes.
+**Se repitió el 2026-09-21 en `UI.12.1`** (dos rechazos seguidos de `agent:live-gate`; misma salida
+manual). Además, `agent:live-gate` exige que el archivo de evidencia esté citado **en la misma
+línea** que "Gate en vivo:" (`agent-governance.ts:123`); partirla en dos líneas lo rechaza sin decir
+por qué. Ya van dos veces: candidato a arreglo.
