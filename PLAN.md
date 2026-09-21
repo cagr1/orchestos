@@ -2163,6 +2163,37 @@ ni eso hace falta.
   creado en vivo con `getComputedStyle`, no contra el literal. El bundle de `public/dist/` no va
   al commit: está en `.gitignore:50`, se regenera con `bun run build:ui`.
 
+- [ ] **UI.10 — 🧠 Specs, Skills y Plan vuelven, por proyecto, dentro de Settings.** (abierto 2026-09-21)
+  **Estado: PLAN PROPUESTO, pendiente de confirmación de Carlos. No se codea hasta confirmarlo.**
+  **Decisión de Carlos (2026-09-21, dicha varias veces):** cada proyecto tiene sus propias reglas,
+  skills, specs y plan, y se ven en Settings, en una sección con el nombre del proyecto
+  seleccionado, como Orca. Memoria: `feedback-specs-skills-plan-por-proyecto`.
+  **Referencia leída (Orca, `gh api`):** `SettingsSidebar.tsx:266-300` agrega, después de los
+  grupos generales, un grupo "Projects" con un botón por repo (icono + nombre); al clickear se
+  abre `RepositoryPane.tsx`, la página de ese repo.
+  **Estado actual verificado (inventario de Luna + lectura del cerebro):** Settings es vanilla,
+  navega con `data-settings-sec` en 4 grupos (`screens-ops.js:1899-1920`), y no tiene sección de
+  proyecto: la que se llama `project` es la Danger zone (`screens-ops.js:1970-1985`). Specs y Plan
+  ya resuelven el proyecto en el server (`withDashboardProject`, header `x-orchestos-project-id` o
+  `?project=`), pero el front **no manda** el proyecto (`app.js:183-203`) y cae al cwd del
+  dashboard. Skills es global: sus endpoints no reciben `root` (`server.ts:237-274`,
+  `handlers/skills.ts:41-78`).
+  **Pasos propuestos:**
+  1. Settings gana un grupo "Projects" al final de `settings-nav`, con un botón por proyecto de
+     `state.projects` (nombre) y `data-settings-sec="project:<id>"`.
+  2. La página de un proyecto lleva el nombre como título y tres pestañas: Specs | Skills | Plan.
+     Monta las islas `screen-specs`/`screen-skills`/`screen-plan` que ya existen, sin
+     rediseñarlas.
+  3. Los fetch de Specs y Plan mandan el id del proyecto elegido en Settings (el header ya
+     soportado). Skills pasa a leer `skills/` bajo el `root` del proyecto, por el mismo
+     `withDashboardProject`.
+  4. Gate en vivo que llega clickeando: Chat → Settings → proyecto → cada pestaña. Con dos
+     proyectos, afirma que los datos cambian al cambiar de proyecto.
+  **Fuera de esta pasada:** reglas por proyecto (no hay pantalla hoy, va a un ítem propio); el
+  menú de tres puntos por proyecto en el sidebar (observación del 2026-09-16); rediseñar las
+  pantallas.
+  **Desbloquea `CI.2.A`:** `ui0`, `ui4-specs`, `s6` y `s6a` pasan a llegar por este camino.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,
