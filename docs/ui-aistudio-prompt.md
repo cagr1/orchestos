@@ -123,20 +123,64 @@ Muy bien, esto ya es lo que quiero. Ajustes finales, sin tocar la estética:
    clic), y el estado alineado a la derecha sin desbordar.
 4. **Chat — listas de tareas en markdown:** `- [x] texto` se ve como viñeta con `[x]` literal.
    Rendérealas como check chico.
-5. **Settings debe cubrir lo que ya tiene la app real.** Agrega o reorganiza secciones para que
-   estén todas estas (los nombres pueden cambiar, el contenido no):
-   - **API & Models:** claves de OpenRouter, Anthropic y OpenAI (enmascaradas, con estado
-     configurada/no configurada y un campo para cambiarla) y el catálogo de modelos.
-   - **Model routing:** qué modelo usa cada tipo de tarea.
-   - **Executor:** motor por defecto (auto, local, claude, opencode, codex, api) con chips, no
-     `<select>`.
-   - **Usage:** tokens y costo por modelo (esto sale de las tarjetas de cuota del sidebar: allá
-     solo quedan 5h y 7d).
-   - **Language:** English / Español.
-   - **Danger zone global:** reiniciar todo OrchestOS (distinta de la zona de peligro de cada
-     proyecto, que ya está bien donde la pusiste).
-   - "AST Worktrees & Safety" no existe en el producto: quítala o fusiónala en Executor.
-6. **Settings → Projects:** además del selector de proyecto arriba a la derecha, lista los
-   proyectos en la barra de Settings (uno por fila, con su icono), como en el resto de la app.
+5. **Settings: reemplaza la barra de navegación por esta, que es la que tiene la app real.**
+   Mismos grupos, mismo orden, mismo contenido; solo cambia el look, que es el tuyo. Cada sección
+   con el patrón de fila que ya usas: título, descripción de una línea y control a la derecha.
+
+   **WORKSPACE**
+   - **General** — *Appearance*: los 4 temas (OrchestOS, Graphite, Carbon, Light) como tarjetas
+     con muestra de color; el activo marcado.
+   - **Health** — lo que hoy llamas "Setup" + *Project Health*: estado del sistema ("All
+     prerequisites met" / "Action needed"), tareas bloqueadas, pendientes de revisión, costo de
+     los últimos 7 días y aprendizajes recientes, cada bloque con su botón "View".
+
+   **CONFIGURE**
+   - **API & Models** — *API Keys*: una fila por clave (OpenRouter, Anthropic, OpenAI) con badge
+     Set/Not set, el valor enmascarado en mono y un campo password para reemplazarla; botón "Change
+     key" que abre un asistente para OpenRouter/Anthropic/OpenAI. Fila de **Ollama**: "Detected" /
+     "Not detected" y un campo para sobreescribir la URL. Nota al pie: "Leave a field blank to keep
+     its current value. Stored in ~/.orchestos/.env". Botón Save.
+   - **Model routing** — *Model routing config*: origen de la config (defaults o archivo propio),
+     botón "Start free" (preset de modelos gratis), una grilla de **Roles** — Planner, Executor
+     (heavy), Executor (light), Default — cada uno con un combobox de modelo con buscador (no
+     `<select>`), y **QA judge** en fila completa con la nota "optional, leave on auto unless you
+     need a specific judge". Tabla "task → model" con las tareas pendientes, plegable. Botón Save.
+   - **Executor** — dos tarjetas. *Chat build mode* ("How OrchestOS runs build tasks the chat
+     creates automatically"): chips Auto · Local · Claude CLI · opencode CLI · Codex CLI · API, con
+     "not detected" en gris para los CLI que no están instalados. *Executor engine* ("Default engine
+     for tasks that don't declare their own `engine:`"): mismo selector de chips, más "Max
+     iterations (agentic)" y "Timeout in minutes (external)" como inputs numéricos. Cada tarjeta con
+     su Save.
+
+   **OBSERVE**
+   - **Usage** — tres KPI arriba: Total spend, Total runs, Avg. cost / run. Debajo, **Daily
+     activity**: un heatmap de actividad por día estilo GitHub, con leyenda "less → more". Debajo,
+     **Spend by model**: tabla Model · Runs · Tokens · Spend. Estado vacío si no hay runs.
+
+   **PROTECT**
+   - **Danger zone** — tarjeta roja "Reset OrchestOS": "Deletes all runs and unverified instincts,
+     and resets every task in tasks.yaml back to pending. Does NOT touch config, skills,
+     CONSTITUTION.md/CONTEXT.md, or memory." Botón rojo con confirmación.
+   - **Language** — dos opciones English / Español; cambia toda la interfaz al instante.
+
+   **PROJECTS**
+   - **Un ítem por proyecto**, separado, con su icono de carpeta y su nombre (orchestos,
+     MemoriesMD, SalaDespecho…). **No** un solo ítem "Projects" con un selector arriba: quita ese
+     selector de la derecha de la página del proyecto. Al clickear un proyecto se abre su página
+     (la que ya hiciste, con las 8 pestañas y su zona de peligro). Si no hay proyectos: "No
+     projects registered" y un botón para agregar uno.
+
+   Quita "AST Worktrees & Safety" y "CLI Integrations": no existen en el producto; lo de CLIs vive
+   en Executor.
+
+6. **Chat — lo que la app real tiene y el prototipo todavía no:**
+   - Selector de **agente** además del de modelo: chips con el icono de cada CLI (Claude, Codex,
+     OpenCode) y "API". El selector de modelo y el de esfuerzo (Low · Medium · High · Reasoning)
+     que ya hiciste se quedan, pero dependen del agente elegido.
+   - "New chat" abre primero ese mismo menú de agente (como el `+` de un proyecto).
+   - **Barra de estado de la sesión**, fina, pegada abajo del chat: por cada CLI, una barra de
+     uso de contexto con su porcentaje, en el color del CLI.
+   - Adjuntar archivos con el clip (ya está el icono): muestra el archivo adjunto como chip dentro
+     del compositor, con una `x` para quitarlo.
 
 Cuando termines, dime qué archivos cambiaste y qué quedó sin resolver.
