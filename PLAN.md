@@ -2324,6 +2324,35 @@ ni eso hace falta.
   prototipo contradice una decisión ya tomada, gana la decisión; si no queda claro, se pregunta.
   Pestaña "Props" del panel derecho: **se elimina** (vino de la captura de Orca). Ronda 2 del
   prototipo verificada en vivo; ronda 2 del prompt en `docs/ui-aistudio-prompt.md`.
+  **2026-09-21, cierre del prototipo:** Carlos da por terminado el prototipo (3 rondas de prompt) y
+  pide implementar. `UI.11` queda **reemplazado por `UI.12`**; el diff parcial de Luna (medidas de
+  Circle) se guardó en `git stash` ("UI.11 parcial de Luna…"), sin commitear.
+
+- [ ] **UI.12 — 🧠 Look nuevo sobre el producto real, desde el prototipo de AI Studio.** (abierto 2026-09-21)
+  Guía: `~/Documents/screens/orchestos-ai-agent-dashboard` (esencia del look, no spec funcional;
+  memoria `feedback-prototipo-es-esencia-no-spec`). **Dos cosas que NO se copian (Carlos):** el
+  uso de los CLI se queda **como está hoy** en el producto (no las barras "CLI QUOTAS" del sidebar
+  ni la barra "SESSION CONTEXT" del prototipo); y en la página del proyecto en Settings, *Delete
+  project* **no** va al pie de cada pestaña sino como **una pestaña más** del proyecto.
+  **Por qué empieza por tokens:** todo el producto (vanilla + islas) lee un solo juego de
+  variables (`styles.css:6-80`, mapeado a Tailwind en `ui.css:32-64`). Cambiar sus valores a los del
+  prototipo reviste la app entera en un solo paso barato; el resto es estructura, pantalla a
+  pantalla. Fases, una por ítem, en orden:
+  1. `UI.12.1` Tokens, temas, fuentes, radios y escala tipográfica del prototipo.
+  2. `UI.12.2` Shell: header, sidebar de proyectos (decisiones 1 y 5, loader/check), estado vacío
+     con logo, panel derecho Files | Diff | History con toggle único.
+  3. `UI.12.3` Settings: navegación con los grupos del producto, un ítem por proyecto, página del
+     proyecto con pestañas + pestaña de borrado, Executor como un solo *Default agent*.
+  4. `UI.12.4` Chat: mensajes, filas de herramientas, compositor con agente/modelo/esfuerzo.
+  5. `UI.12.5+` Pestañas del proyecto (Tasks, Runs, Graph, Memory, Specs, Skills, Instincts, Plan),
+     una por ítem.
+  Fuera: History con archivo real de agentes y *Delete project* con su back (`UI.9.9`) son ítems de
+  producto aparte; esta cadena es el look.
+
+- [ ] **UI.12.1 — ⚡ Tokens del prototipo: paleta, temas, fuentes, radios y escala.** (abierto 2026-09-21)
+  Spec: `docs/specs/UI.12.1.md`. Ejecuta Luna. Gate: `ui81` y `ui2` verdes con los valores nuevos,
+  captura de Chat, Settings y una pantalla vanilla en cada uno de los 4 temas revisada a ojo contra el
+  prototipo.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
