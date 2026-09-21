@@ -2320,6 +2320,14 @@ ni eso hace falta.
   Requisito duro para el workflow de `CI.2`: ningún gate corre sin `ORCHESTOS_HOME` aislado, y eso
   se verifica en el propio gate, no se confía. Si esto hubiera pasado en una tabla sin respaldo en
   git —`runs`, `chat_messages`— no había vuelta atrás.
+  **Aislamiento de `s6`/`s6a` HECHO 2026-09-21.** Causa: importan `src/db/sqlite.ts` en el mismo
+  proceso (`s6a-sprint-board.mjs:79`) sin `ORCHESTOS_HOME`. Ahora cada uno crea un home temporal
+  propio, lo fija antes de cualquier import y **aborta si `DB_PATH` no cae dentro** (el requisito
+  de arriba, verificado en el gate). Evidencia en vivo: ambos corridos con `bun`; mueren en el
+  `TimeoutError` de `#navModeBtn` —después de `importPlan`— y la DB real queda igual antes y
+  después (114 `plan_items`, 0 de A/B/C, 225 `plan_doc_segments`). Los otros 11 gates no abren la
+  DB: pegan a un dashboard externo (`BASE`), así que su aislamiento depende de cómo se levanta ese
+  dashboard — lo resuelve el workflow.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 

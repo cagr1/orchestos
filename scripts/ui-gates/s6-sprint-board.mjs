@@ -7,6 +7,11 @@ import { chromium } from 'playwright'
 
 const sourceRoot = resolve(import.meta.dirname, '../..')
 const fixture = mkdtempSync(join(tmpdir(), 'orchestos-s6-board-'))
+// El fixture corre in-process: sin esto `src/db/sqlite.ts` congela DB_PATH en ~/.orchestos y el
+// gate pisa la DB real del usuario (pasó el 2026-09-18, ver CI.2). Home aparte para no ensuciar el
+// repo git del fixture.
+const home = mkdtempSync(join(tmpdir(), 'orchestos-s6-home-'))
+process.env.ORCHESTOS_HOME = home
 const evidencePath = join(sourceRoot, 'scripts/s6-live-evidence.json')
 const screenshotPath = join(sourceRoot, 'scripts/s6-sprint-board.png')
 const gitEnv = {
@@ -72,7 +77,8 @@ try {
 
   const { runMigrations } = await import('../../src/db/migrate.ts')
   const { importPlan } = await import('../plan-import.ts')
-  const { db } = await import('../../src/db/sqlite.ts')
+  const { db, DB_PATH } = await import('../../src/db/sqlite.ts')
+  assert(DB_PATH.startsWith(home), `DB fuera del home aislado: ${DB_PATH}`)
   const { renderPlan } = await import('../../src/db/plan-doc.ts')
   const { startServer } = await import('../../src/dashboard/server.ts')
   runMigrations()
@@ -229,4 +235,5 @@ try {
   await browser?.close()
   server?.server?.stop(true)
   rmSync(fixture, { recursive: true, force: true })
+  rmSync(home, { recursive: true, force: true })
 }
