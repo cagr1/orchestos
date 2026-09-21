@@ -184,3 +184,45 @@ Muy bien, esto ya es lo que quiero. Ajustes finales, sin tocar la estética:
      del compositor, con una `x` para quitarlo.
 
 Cuando termines, dime qué archivos cambiaste y qué quedó sin resolver.
+
+---
+
+# Ronda 3 (2026-09-21) — Executor
+
+Verificado: Settings con los grupos reales y proyectos separados, chat con selector de agente,
+barra de contexto por CLI, listas de tareas con check. Queda Executor. **Diagnóstico:** en el
+producto, las dos tarjetas NO son lo mismo — "Chat build mode" guarda `agent` (auto, local, claude,
+opencode, codex, api) y "Executor engine" guarda `apiMode` (single-shot / agentic) + iteraciones
+máximas, que solo aplica cuando el agente es API (`screens-ops.js:2075-2126`). El prompt de la ronda
+2 le pidió "mismo selector de chips" en las dos (error del cerebro), y encima el producto ya las
+muestra como dos tarjetas con dos Save. Pegar lo de abajo:
+
+---
+
+La sección Executor no funciona como UX: dos tarjetas con la misma fila de chips y dos botones Save
+confunden. Rehazla así, siguiendo el patrón de la página "Agents" de Orca (sin cambiar tu estética):
+
+1. **Una sola sección: "Default agent"**, con descripción de una línea ("Which agent runs the
+   tasks OrchestOS creates. A task can override it with its own `engine:`.").
+2. Debajo, un grupo de **chips grandes con el icono de cada agente** (Auto, Claude, Codex, OpenCode,
+   Local, API), el elegido con borde y un check. Los CLI no instalados se ven apagados con el texto
+   "Not installed" debajo del nombre, y no se pueden elegir.
+3. **Se guarda al elegir** (sin botón Save): un toast "Default agent: Codex".
+4. Debajo, **filas de ajuste que dependen del agente elegido**, con el patrón de fila que ya usas
+   (título, descripción de una línea, control a la derecha):
+   - Si es un **CLI** (Claude, Codex, OpenCode): "Timeout" — "Stop the CLI if it runs longer than
+     this" — stepper numérico con la unidad "min".
+   - Si es **API**: "Mode" — segmented control `Single-shot | Agentic`; y si es Agentic, "Max
+     iterations" — stepper numérico.
+   - Si es **Auto** o **Local**: sin filas extra.
+   Estos ajustes también se guardan solos al cambiar.
+5. Borra la segunda tarjeta "Executor engine" y los dos botones Save.
+
+Otros dos detalles:
+- **Usage → Daily activity:** hay celdas con borde blanco y fondo vacío mezcladas con las verdes;
+  todas las celdas deben ser del mismo estilo, variando solo la intensidad del verde (y un gris
+  tenue para "sin actividad"). Agrega el tooltip con fecha y cantidad al pasar el mouse.
+- **Usage:** "Total runs" dice 3 pero la tabla suma 142 runs; que los números de los KPI salgan de
+  la misma data que la tabla.
+
+Cuando termines, dime qué archivos cambiaste y qué quedó sin resolver.
