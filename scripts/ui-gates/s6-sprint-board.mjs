@@ -1,3 +1,4 @@
+// Runtime: bun
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
@@ -12,8 +13,10 @@ const fixture = mkdtempSync(join(tmpdir(), 'orchestos-s6-board-'))
 // repo git del fixture.
 const home = mkdtempSync(join(tmpdir(), 'orchestos-s6-home-'))
 process.env.ORCHESTOS_HOME = home
-const evidencePath = join(sourceRoot, 'scripts/s6-live-evidence.json')
-const screenshotPath = join(sourceRoot, 'scripts/s6-sprint-board.png')
+const artifactsDir =
+  process.env.GATE_ARTIFACTS_DIR || mkdtempSync(join(tmpdir(), 'orchestos-s6-artifacts-'))
+const evidencePath = join(artifactsDir, 's6-live-evidence.json')
+const screenshotPath = join(artifactsDir, 's6-sprint-board.png')
 const gitEnv = {
   ...process.env,
   GIT_AUTHOR_NAME: 'S6 fixture',
@@ -31,7 +34,14 @@ function run(command, args, options = {}) {
   }).trim()
 }
 
-function assert(condition, message) {
+const out = []
+let failed = false
+function log(ok, message) {
+  out.push(`${ok ? 'PASS' : 'FAIL'} — ${message}`)
+  if (!ok) failed = true
+}
+function check(condition, message) {
+  log(condition, message)
   if (!condition) throw new Error(message)
 }
 
@@ -77,16 +87,23 @@ try {
 
   const { runMigrations } = await import('../../src/db/migrate.ts')
   const { importPlan } = await import('../plan-import.ts')
+  const { getProject, upsertProject } = await import('../../src/db/projects.ts')
   const { db, DB_PATH } = await import('../../src/db/sqlite.ts')
-  assert(DB_PATH.startsWith(home), `DB fuera del home aislado: ${DB_PATH}`)
+  check(DB_PATH.startsWith(home), `DB fuera del home aislado: ${DB_PATH}`)
   const { renderPlan } = await import('../../src/db/plan-doc.ts')
   const { startServer } = await import('../../src/dashboard/server.ts')
   runMigrations()
   importPlan(fixture, true)
+  upsertProject(fixture, {}, '')
+  const fixtureProjectId = getProject(fixture).id
   process.chdir(fixture)
   server = startServer(await freePort())
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
+  const planRequests = []
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/plan') planRequests.push(request)
+  })
   page.on('console', (message) => {
     if (message.type() === 'error') evidence.consoleErrors.push(message.text())
   })
@@ -101,13 +118,24 @@ try {
   await page.route('**/api/chat/models', (route) => route.fulfill({ status: 200, body: '[]' }))
 
   await page.goto(server.url, { waitUntil: 'networkidle' })
-  await page.locator('#navModeBtn').click()
-  await page.locator('[data-nav="plan"]').click()
+  const openPlan = async () => {
+    await page.locator('[data-nav="settings"]').click()
+    await page.locator(`[data-settings-project="${fixtureProjectId}"]`).click()
+    await page.locator('[data-project-tab="plan"]').click()
+    await page.locator('[data-plan-sprint="Sprint Alpha"]').waitFor()
+  }
+  await openPlan()
   await page.locator('[data-plan-sprint="Sprint Alpha"]').waitFor()
-  assert((await page.locator('[data-plan-sprint]').count()) === 2, 'Expected two sprint sections')
-  assert((await page.locator('[data-plan-item="A"]').count()) === 1, 'Missing A card')
-  assert((await page.locator('[data-plan-item="B"]').count()) === 1, 'Missing B card')
-  assert((await page.locator('[data-plan-item="C"]').count()) === 1, 'Missing C card')
+  check((await page.locator('[data-plan-sprint]').count()) === 2, 'Expected two sprint sections')
+  check((await page.locator('[data-plan-item="A"]').count()) === 1, 'Missing A card')
+  check((await page.locator('[data-plan-item="B"]').count()) === 1, 'Missing B card')
+  check((await page.locator('[data-plan-item="C"]').count()) === 1, 'Missing C card')
+  check(
+    planRequests.some(
+      (request) => request.headers()['x-orchestos-project-id'] === fixtureProjectId,
+    ),
+    'Plan fetch carries the fixture project header',
+  )
   evidence.dom.initial = { sprints: 2, ids: ['A', 'B', 'C'] }
 
   const bCard = page.locator('[data-plan-item="B"]')
@@ -119,13 +147,13 @@ try {
   const mutationError = (await errorLocator.count()) ? await errorLocator.textContent() : null
   if (mutationError) throw new Error(`Dependency mutation failed: ${mutationError}`)
   await page.locator('[data-plan-item="B"].blocked').waitFor()
-  assert(
+  check(
     (await page.locator('[data-plan-item="B"] .plan-edge').textContent())?.includes('A → B'),
     'Missing A → B edge',
   )
   const afterDeps = await page.evaluate(async () => await (await fetch('/api/plan')).json())
   const bApi = afterDeps.items.find((item) => item.id === 'B')
-  assert(bApi.blockedBy.includes('A'), 'B must be blocked by A in API')
+  check(bApi.blockedBy.includes('A'), 'B must be blocked by A in API')
   evidence.api.afterDependencies = bApi
 
   // Negative server checks: the request originates in the real page, therefore it exercises
@@ -145,10 +173,10 @@ try {
       blockedClose: { status: blockedClose.status, body: await blockedClose.json() },
     }
   })
-  assert(negative.cycle.status === 409, 'Transitive cycle must return 409')
-  assert(negative.blockedClose.status === 409, 'Blocked item close must return 409')
+  check(negative.cycle.status === 409, 'Transitive cycle must return 409')
+  check(negative.blockedClose.status === 409, 'Blocked item close must return 409')
   const negativeConsole = evidence.consoleErrors.splice(consoleBeforeNegativeChecks)
-  assert(
+  check(
     negativeConsole.every((message) => message.includes('409')),
     `Unexpected console error during expected negative checks: ${negativeConsole.join('; ')}`,
   )
@@ -157,11 +185,11 @@ try {
   )
   const aAfterNegative = afterNegativeChecks.items.find((item) => item.id === 'A')
   const bAfterNegative = afterNegativeChecks.items.find((item) => item.id === 'B')
-  assert(
+  check(
     aAfterNegative.status === 'open' && aAfterNegative.dependsOn.length === 0,
     'Cycle rejection changed A',
   )
-  assert(
+  check(
     bAfterNegative.status === 'open' && bAfterNegative.blockedBy.includes('A'),
     'Blocked close changed B',
   )
@@ -171,8 +199,7 @@ try {
   }
 
   await page.reload({ waitUntil: 'networkidle' })
-  if (!(await page.locator('[data-nav="plan"]').count())) await page.locator('#navModeBtn').click()
-  await page.locator('[data-nav="plan"]').click()
+  await openPlan()
   await page.locator('[data-plan-item="B"] .plan-edge').waitFor()
   evidence.dom.persistedEdge = await page.locator('[data-plan-item="B"] .plan-edge').textContent()
 
@@ -180,6 +207,7 @@ try {
   await aCard.getByRole('button', { name: 'Prepare close' }).click()
   await aCard.locator('[data-plan-confirm="A"] button.btn.primary').click()
   await page
+    .locator('.plan-message.success')
     .getByText('Close prepared; commit and run `bun run plan:reconcile` are still required.')
     .waitFor()
   await page.locator('[data-plan-item="A"].done').waitFor()
@@ -209,15 +237,15 @@ try {
   )
   const aDb = db.query('SELECT status, commit_sha FROM plan_items WHERE id = ?').get('A')
   const stat = run('git', ['show', '--stat', '--oneline', sha])
-  assert(aDb.status === 'done' && aDb.commit_sha === sha, 'Durable SHA did not reconcile')
-  assert(stat.includes('PLAN.md'), 'Closing commit must include PLAN.md')
+  check(aDb.status === 'done' && aDb.commit_sha === sha, 'Durable SHA did not reconcile')
+  check(stat.includes('PLAN.md'), 'Closing commit must include PLAN.md')
   const rendered = renderPlan(db)
   const onDisk = await Bun.file(join(fixture, 'PLAN.md')).text()
-  assert(rendered === onDisk, 'Rendered PLAN.md differs from fixture')
+  check(rendered === onDisk, 'Rendered PLAN.md differs from fixture')
   evidence.database.a = aDb
   evidence.sha = sha
   evidence.byteExact = true
-  assert(
+  check(
     evidence.consoleErrors.length === 0,
     `Browser errors: ${evidence.consoleErrors.join('; ')}; responses: ${evidence.failedResponses.join('; ')}`,
   )
@@ -230,10 +258,14 @@ try {
     const output = `${new TextDecoder().decode(format.stdout)}${new TextDecoder().decode(format.stderr)}`
     throw new Error(`Could not format S.6 live evidence with Biome: ${output.trim()}`)
   }
-  console.log(`✓ S.6 sprint board gate passed (${sha})`)
+  log(true, `S.6 sprint board gate passed (${sha})`)
+} catch (error) {
+  log(false, `gate abortado: ${error.message}`)
 } finally {
   await browser?.close()
   server?.server?.stop(true)
   rmSync(fixture, { recursive: true, force: true })
   rmSync(home, { recursive: true, force: true })
 }
+console.log(out.join('\n'))
+if (failed) process.exitCode = 1

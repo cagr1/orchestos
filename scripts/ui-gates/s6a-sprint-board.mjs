@@ -1,3 +1,4 @@
+// Runtime: bun
 // S.6a — same fixture shape as scripts/ui-gates/s6-sprint-board.mjs (S.6), extended to cover
 // the commitPending lifecycle: the "close prepared" banner must survive a reload and an
 // unrelated mutation, and clear only once a real commit + reconcile confirm the transition
@@ -16,8 +17,10 @@ const fixture = mkdtempSync(join(tmpdir(), 'orchestos-s6a-board-'))
 // repo git del fixture.
 const home = mkdtempSync(join(tmpdir(), 'orchestos-s6a-home-'))
 process.env.ORCHESTOS_HOME = home
-const evidencePath = join(sourceRoot, 'scripts/s6a-live-evidence.json')
-const screenshotPath = join(sourceRoot, 'scripts/s6a-sprint-board.png')
+const artifactsDir =
+  process.env.GATE_ARTIFACTS_DIR || mkdtempSync(join(tmpdir(), 'orchestos-s6a-artifacts-'))
+const evidencePath = join(artifactsDir, 's6a-live-evidence.json')
+const screenshotPath = join(artifactsDir, 's6a-sprint-board.png')
 const gitEnv = {
   ...process.env,
   GIT_AUTHOR_NAME: 'S6a fixture',
@@ -35,7 +38,14 @@ function run(command, args, options = {}) {
   }).trim()
 }
 
-function assert(condition, message) {
+const out = []
+let failed = false
+function log(ok, message) {
+  out.push(`${ok ? 'PASS' : 'FAIL'} — ${message}`)
+  if (!ok) failed = true
+}
+function check(condition, message) {
+  log(condition, message)
   if (!condition) throw new Error(message)
 }
 
@@ -81,16 +91,23 @@ try {
 
   const { runMigrations } = await import('../../src/db/migrate.ts')
   const { importPlan } = await import('../plan-import.ts')
+  const { getProject, upsertProject } = await import('../../src/db/projects.ts')
   const { db, DB_PATH } = await import('../../src/db/sqlite.ts')
-  assert(DB_PATH.startsWith(home), `DB fuera del home aislado: ${DB_PATH}`)
+  check(DB_PATH.startsWith(home), `DB fuera del home aislado: ${DB_PATH}`)
   const { renderPlan } = await import('../../src/db/plan-doc.ts')
   const { startServer } = await import('../../src/dashboard/server.ts')
   runMigrations()
   importPlan(fixture, true)
+  upsertProject(fixture, {}, '')
+  const fixtureProjectId = getProject(fixture).id
   process.chdir(fixture)
   server = startServer(await freePort())
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
+  const planRequests = []
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/plan') planRequests.push(request)
+  })
   page.on('console', (message) => {
     if (message.type() === 'error') evidence.consoleErrors.push(message.text())
   })
@@ -105,13 +122,23 @@ try {
   await page.route('**/api/chat/models', (route) => route.fulfill({ status: 200, body: '[]' }))
 
   await page.goto(server.url, { waitUntil: 'networkidle' })
-  await page.locator('#navModeBtn').click()
-  await page.locator('[data-nav="plan"]').click()
-  await page.locator('[data-plan-sprint="Sprint Alpha"]').waitFor()
-  assert((await page.locator('[data-plan-sprint]').count()) === 2, 'Expected two sprint sections')
-  assert((await page.locator('[data-plan-item="A"]').count()) === 1, 'Missing A card')
-  assert((await page.locator('[data-plan-item="B"]').count()) === 1, 'Missing B card')
-  assert((await page.locator('[data-plan-item="C"]').count()) === 1, 'Missing C card')
+  const openPlan = async () => {
+    await page.locator('[data-nav="settings"]').click()
+    await page.locator(`[data-settings-project="${fixtureProjectId}"]`).click()
+    await page.locator('[data-project-tab="plan"]').click()
+    await page.locator('[data-plan-sprint="Sprint Alpha"]').waitFor()
+  }
+  await openPlan()
+  check((await page.locator('[data-plan-sprint]').count()) === 2, 'Expected two sprint sections')
+  check((await page.locator('[data-plan-item="A"]').count()) === 1, 'Missing A card')
+  check((await page.locator('[data-plan-item="B"]').count()) === 1, 'Missing B card')
+  check((await page.locator('[data-plan-item="C"]').count()) === 1, 'Missing C card')
+  check(
+    planRequests.some(
+      (request) => request.headers()['x-orchestos-project-id'] === fixtureProjectId,
+    ),
+    'Plan fetch carries the fixture project header',
+  )
   evidence.dom.initial = { sprints: 2, ids: ['A', 'B', 'C'] }
 
   const bCard = page.locator('[data-plan-item="B"]')
@@ -123,13 +150,13 @@ try {
   const mutationError = (await errorLocator.count()) ? await errorLocator.textContent() : null
   if (mutationError) throw new Error(`Dependency mutation failed: ${mutationError}`)
   await page.locator('[data-plan-item="B"].blocked').waitFor()
-  assert(
+  check(
     (await page.locator('[data-plan-item="B"] .plan-edge').textContent())?.includes('A → B'),
     'Missing A → B edge',
   )
   const afterDeps = await page.evaluate(async () => await (await fetch('/api/plan')).json())
   const bApi = afterDeps.items.find((item) => item.id === 'B')
-  assert(bApi.blockedBy.includes('A'), 'B must be blocked by A in API')
+  check(bApi.blockedBy.includes('A'), 'B must be blocked by A in API')
   evidence.api.afterDependencies = bApi
 
   // Negative server checks: same as S.6, run before A is closed so B is still blocked.
@@ -147,10 +174,10 @@ try {
       blockedClose: { status: blockedClose.status, body: await blockedClose.json() },
     }
   })
-  assert(negative.cycle.status === 409, 'Transitive cycle must return 409')
-  assert(negative.blockedClose.status === 409, 'Blocked item close must return 409')
+  check(negative.cycle.status === 409, 'Transitive cycle must return 409')
+  check(negative.blockedClose.status === 409, 'Blocked item close must return 409')
   const negativeConsole = evidence.consoleErrors.splice(consoleBeforeNegativeChecks)
-  assert(
+  check(
     negativeConsole.every((message) => message.includes('409')),
     `Unexpected console error during expected negative checks: ${negativeConsole.join('; ')}`,
   )
@@ -160,8 +187,7 @@ try {
   }
 
   await page.reload({ waitUntil: 'networkidle' })
-  if (!(await page.locator('[data-nav="plan"]').count())) await page.locator('#navModeBtn').click()
-  await page.locator('[data-nav="plan"]').click()
+  await openPlan()
   await page.locator('[data-plan-item="B"] .plan-edge').waitFor()
   evidence.dom.persistedEdge = await page.locator('[data-plan-item="B"] .plan-edge').textContent()
 
@@ -181,17 +207,16 @@ try {
   // prepare-close response: reload the page and confirm both the DOM banner and the API field
   // survive independently of the toast that triggered them.
   await page.reload({ waitUntil: 'networkidle' })
-  if (!(await page.locator('[data-nav="plan"]').count())) await page.locator('#navModeBtn').click()
-  await page.locator('[data-nav="plan"]').click()
+  await openPlan()
   await page.locator('[data-plan-item="A"].done').waitFor()
   const pendingBannerAfterReload = page.locator('[data-plan-commit-pending="A"]')
   await pendingBannerAfterReload.waitFor()
-  assert(
+  check(
     (await pendingBannerAfterReload.textContent())?.includes('plan:reconcile'),
     'Reload lost the commit-pending banner for A',
   )
   const planAfterReload = await page.evaluate(async () => await (await fetch('/api/plan')).json())
-  assert(
+  check(
     planAfterReload.items.find((item) => item.id === 'A')?.commitPending === true,
     'API must still report commitPending after a fresh reload',
   )
@@ -207,17 +232,16 @@ try {
     })
     return { status: response.status, body: await response.json() }
   })
-  assert(unrelatedMutation.status === 200, 'Unrelated mutation on B must succeed')
+  check(unrelatedMutation.status === 200, 'Unrelated mutation on B must succeed')
   const planAfterUnrelated = await page.evaluate(
     async () => await (await fetch('/api/plan')).json(),
   )
-  assert(
+  check(
     planAfterUnrelated.items.find((item) => item.id === 'A')?.commitPending === true,
     'Mutating B must not clear A pending state',
   )
   await page.reload({ waitUntil: 'networkidle' })
-  if (!(await page.locator('[data-nav="plan"]').count())) await page.locator('#navModeBtn').click()
-  await page.locator('[data-nav="plan"]').click()
+  await openPlan()
   await page.locator('[data-plan-commit-pending="A"]').waitFor()
   evidence.api.commitPendingAfterUnrelatedMutation = true
 
@@ -245,11 +269,11 @@ try {
   )
   const aDb = db.query('SELECT status, commit_sha FROM plan_items WHERE id = ?').get('A')
   const stat = run('git', ['show', '--stat', '--oneline', sha])
-  assert(aDb.status === 'done' && aDb.commit_sha === sha, 'Durable SHA did not reconcile')
-  assert(stat.includes('PLAN.md'), 'Closing commit must include PLAN.md')
+  check(aDb.status === 'done' && aDb.commit_sha === sha, 'Durable SHA did not reconcile')
+  check(stat.includes('PLAN.md'), 'Closing commit must include PLAN.md')
   const rendered = renderPlan(db)
   const onDisk = await Bun.file(join(fixture, 'PLAN.md')).text()
-  assert(rendered === onDisk, 'Rendered PLAN.md differs from fixture')
+  check(rendered === onDisk, 'Rendered PLAN.md differs from fixture')
   evidence.database.a = aDb
   evidence.sha = sha
   evidence.byteExact = true
@@ -257,24 +281,23 @@ try {
   // S.6a part C, closing the loop — after the real commit is proven, the banner must disappear
   // and the API must report commitPending:false, without depending on planMutation memory.
   await page.reload({ waitUntil: 'networkidle' })
-  if (!(await page.locator('[data-nav="plan"]').count())) await page.locator('#navModeBtn').click()
-  await page.locator('[data-nav="plan"]').click()
+  await openPlan()
   await page.locator('[data-plan-item="A"].done').waitFor()
-  assert(
+  check(
     (await page.locator('[data-plan-commit-pending="A"]').count()) === 0,
     'Banner must disappear once the closing commit is confirmed by Git',
   )
   const planAfterRealCommit = await page.evaluate(
     async () => await (await fetch('/api/plan')).json(),
   )
-  assert(
+  check(
     planAfterRealCommit.items.find((item) => item.id === 'A')?.commitPending === false,
     'API must report commitPending:false once the real commit is confirmed',
   )
   evidence.dom.pendingClearedAfterCommit = true
   evidence.api.commitPendingAfterRealCommit = false
 
-  assert(
+  check(
     evidence.consoleErrors.length === 0,
     `Browser errors: ${evidence.consoleErrors.join('; ')}; responses: ${evidence.failedResponses.join('; ')}`,
   )
@@ -287,10 +310,14 @@ try {
     const output = `${new TextDecoder().decode(format.stdout)}${new TextDecoder().decode(format.stderr)}`
     throw new Error(`Could not format S.6a live evidence with Biome: ${output.trim()}`)
   }
-  console.log(`✓ S.6a sprint board gate passed (${sha})`)
+  log(true, `S.6a sprint board gate passed (${sha})`)
+} catch (error) {
+  log(false, `gate abortado: ${error.message}`)
 } finally {
   await browser?.close()
   server?.server?.stop(true)
   rmSync(fixture, { recursive: true, force: true })
   rmSync(home, { recursive: true, force: true })
 }
+console.log(out.join('\n'))
+if (failed) process.exitCode = 1

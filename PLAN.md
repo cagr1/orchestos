@@ -2493,7 +2493,7 @@ ni eso hace falta.
   DB: pegan a un dashboard externo (`BASE`), así que su aislamiento depende de cómo se levanta ese
   dashboard — lo resuelve el workflow.
 
-- [ ] **CI.2.A — ⚡ Reparar `ui0`, `ui4-specs`, `ui81`, `s6` y `s6a` y reescribirlos para que lleguen clickeando.** (abierto 2026-09-21)
+- [x] **CI.2.A — ⚡ Reparar `ui0`, `ui4-specs`, `ui81`, `s6` y `s6a` y reescribirlos para que lleguen clickeando.** (abierto 2026-09-21, cerrado 2026-09-21)
   Sale de `CI.2` (decisión de Carlos del 2026-09-21: los 5 en un solo ítem). El bloqueo de 4 de
   ellos lo levantó `UI.10`: Specs, Skills y Plan se alcanzan por Settings → proyecto → pestaña.
   Spec: `docs/specs/CI.2.A.md`. Ejecuta Luna, verifica el cerebro: 3 corridas verdes seguidas de
@@ -2501,6 +2501,24 @@ ni eso hace falta.
   evidencia versionada de `S.6`/`S.6a` y de dejar PNGs en el repo) y la DB real sin cambios.
   Fuera: el workflow de CI, el inventario de afordancias y los otros 4 gates que llegan por
   `window.*` (`ui1`, `ui1b`, `ui3`, `ui4-skills`).
+  Ejecutado por: luna · Spec: docs/specs/CI.2.A.md (4 rondas; borrado al cerrar)
+  Los 5 llegan clickeando (Settings → proyecto → pestaña; `ui81` desde el Chat de arranque),
+  declaran runtime, escriben artefactos en un temporal y ya no pisan la evidencia de `S.6`/`S.6a`.
+  `s6`/`s6a` registran el fixture con `upsertProject` en su home aislado y afirman el
+  `x-orchestos-project-id` de `/api/plan`. `ui81` excluye las barras `width:` por CLI y solo
+  reescribe el baseline con `--update-baseline`.
+  **Lo que destaparon las rondas:** (r2) `mkdtemp` sin `await` dejaba una carpeta
+  `[object Promise]/` en el repo; `ui4-specs` fallaba 2/3 por `waitForTimeout` fijos — (r4) cero
+  `waitForTimeout`, esperas por locator, y un `click().catch(() => {})` que clickeaba cualquier
+  cosa reemplazado por el botón concreto. (r3) Error del cerebro en r2: `mountedIslandCount()`
+  cuenta todas las islas (hoy hay permanentes), así que `=== 1` estaba caducado; se afirma que no
+  crece. El probe vive en `#main`, que `App.rerender()` borra por diseño (`ui.tsx:61`): el botón
+  real de idioma lo remonta; la supervivencia al repintado de las islas reales la afirma `ui4-specs`.
+  Gate en vivo: dashboard real en :4330, corridas del cerebro — `ui0` 16/16, `ui81` 5/5, `s6`
+  18/18, `s6a` 22/22, 3 corridas seguidas cada uno; `ui4-specs` 20/20, 5 seguidas. DB real igual
+  antes y después (118 `plan_items`), `git status` sin archivos nuevos tras correrlos, grep de
+  `App.go|state.screen|navModeBtn|setLang(` vacío. `tsc` limpio; `bun run test:coverage` 1443 pass
+  / 0 fail.
 
 > **Observaciones de Carlos (2026-09-16), pendientes de incorporar a un spec; no añadirlas al alcance de UI.9.5 sin planificar:** al seleccionar distintos proyectos, la interfaz no debe hacer parecer que todos comparten el mismo workspace; cada proyecto debe conservar y mostrar su propio contexto y datos (Settings, tasks/runs, etc.). Al pasar el cursor por la fila de un proyecto, mostrar a la derecha un botón de tres puntos con acciones de proyecto como `Project settings` y `Delete project`. Incluir también un control claro para expandir/colapsar los agentes de ese proyecto. Al diseñarlo, volver a mirar las capturas de Orca citadas en `docs/ui-reference-patterns.md` (A.1–A.3) y respetar su jerarquía de proyectos/agentes; Carlos señala que esta referencia visual no se está reflejando suficientemente.
 

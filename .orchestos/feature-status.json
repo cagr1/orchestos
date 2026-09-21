@@ -1035,7 +1035,7 @@
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
       "delegation": "⚡",
       "title": "Reparar `ui0`, `ui4-specs`, `ui81`, `s6` y `s6a` y reescribirlos para que lleguen clickeando",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

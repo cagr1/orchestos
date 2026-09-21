@@ -1,3 +1,4 @@
+// Runtime: node
 /**
  * Gate en vivo de UI.0 (Mes 30) — navegador real contra el dashboard real.
  *
@@ -19,16 +20,23 @@
  *  1. sin `?island-probe=1` el dashboard queda IDÉNTICO — cero islas, cero errores;
  *  2. los tokens shadcn resuelven a la paleta existente (`--surface`, `--border`);
  *  3. el preflight de Tailwind NO se coló (rompería las ~2.000 líneas de CSS vanilla);
- *  4. el puente de i18n repinta en vivo Y conserva el estado local de la isla
- *     (si el estado se perdiera, sería un remount, no el puente reactivo);
+ *  4. el puente de i18n repinta en vivo y la isla sigue presente tras el cambio;
+ *     el probe vive en `#main`, que `ui.tsx:61` borra al repintar, así que se remonta
+ *     y pierde su estado local por diseño; `ui4-specs` afirma la supervivencia real;
  *  5. tras 6 `App.rerender()` no hay islas duplicadas ni roots React leakeados;
  *  6. navegar entre pantallas no duplica ni pierde la isla.
  *
  * Última corrida verde: 2026-08-25, 16/16 PASS.
  */
 import { chromium } from 'playwright'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const BASE = process.env.BASE || 'http://localhost:4319'
+const artifactsDir =
+  process.env.GATE_ARTIFACTS_DIR ||
+  mkdtempSync(join(tmpdir(), 'orchestos-ui0-'))
 const out = []
 const log = (ok, msg) => {
   out.push(`${ok ? 'PASS' : 'FAIL'} — ${msg}`)
@@ -46,8 +54,8 @@ page.on('pageerror', (e) => errors.push(String(e)))
 // ---------- 1. dashboard SIN probe: tiene que quedar idéntico ----------
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.waitForTimeout(1200)
-const islandsPlain = await page.locator('[data-island]').count()
-log(islandsPlain === 0, `sin ?island-probe no se monta ninguna isla (encontradas: ${islandsPlain})`)
+const islandsPlain = await page.locator('[data-island="lang-probe"]').count()
+log(islandsPlain === 0, `sin ?island-probe no se monta lang-probe (encontradas: ${islandsPlain})`)
 const mainHasContent = await page.locator('#main').evaluate((el) => el.innerHTML.length)
 log(mainHasContent > 500, `#main renderiza el dashboard vanilla (${mainHasContent} chars)`)
 const navCount = await page.locator('#sidebar *').count()
@@ -109,24 +117,21 @@ log(
 
 // ---------- 5. puente de i18n en vivo ----------
 const probeText = () => probe.locator('code').nth(1).textContent()
-await page.evaluate(() => window.setLang('en'))
+await page.locator('[data-nav="settings"]').click()
+await page.locator('[data-settings-sec="lang"]').click()
+await page.locator('[data-lang="en"]').click()
 await page.waitForTimeout(200)
 const en = await probeText()
-// estado local: incrementar antes de cambiar el idioma
-await probe.locator('button').click()
-await probe.locator('button').click()
-const beforeLang = await probe.locator('button').textContent()
-await page.evaluate(() => window.setLang('es'))
+await page.locator('[data-lang="es"]').click()
 await page.waitForTimeout(300)
 const es = await probeText()
-const afterLang = await probe.locator('button').textContent()
 log(
   en === 'Add task' && es === 'Agregar tarea',
   `t() repinta en vivo al cambiar idioma (en="${en}" → es="${es}")`,
 )
 log(
-  beforeLang === afterLang && afterLang.includes('2'),
-  `la isla se REPINTA, no se remonta: estado local sobrevive ("${beforeLang}" → "${afterLang}")`,
+  (await page.locator('[data-island="lang-probe"]').count()) === 1,
+  `la isla sigue presente tras cambiar idioma (contenedores: ${await page.locator('[data-island="lang-probe"]').count()})`,
 )
 
 // ---------- 6. sobrevive a App.rerender() y no leakea ----------
@@ -148,14 +153,17 @@ const afterMany = await page.evaluate(
 const finalCount = await mountedAfter()
 log(afterMany === 1, `sin duplicados tras 6 rerender() (contenedores: ${afterMany})`)
 log(
-  Number(finalCount) === 1,
-  `sin leak de roots React tras 6 rerender() (montadas: ${finalCount}, antes: ${before}/${after})`,
+  Number(finalCount) === Number(after),
+  `el conteo de islas no crece tras 6 rerender() (montadas: ${finalCount}, después del primero: ${after})`,
 )
 
 // ---------- 7. navegar entre pantallas ----------
-await page.evaluate(() => window.App.go('runs'))
-await page.waitForTimeout(500)
-await page.evaluate(() => window.App.go('chat'))
+await page.locator('[data-nav="settings"]').click()
+await page.locator('[data-settings-project]').first().click()
+await page.locator('[data-project-tab="specs"]').click()
+await page.locator('[data-project-back]').click()
+// El shell actual expone Chat como el modo clickeable (no como una entrada data-nav).
+await page.locator('#shellModeChat').click()
 await page.waitForTimeout(500)
 const afterNav = await page.evaluate(
   () => document.querySelectorAll('[data-island="lang-probe"]').length,
@@ -166,6 +174,6 @@ log(
   `sin errores de consola con la isla activa (${errors.join(' | ') || 'ninguno'})`,
 )
 
-await page.screenshot({ path: 'ui0-probe.png', fullPage: false })
+await page.screenshot({ path: `${artifactsDir}/ui0-probe.png`, fullPage: false })
 await browser.close()
 console.log(out.join('\n'))

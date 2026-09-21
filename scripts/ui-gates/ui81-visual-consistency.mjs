@@ -1,3 +1,4 @@
+// Runtime: node
 /**
  * Gate en vivo de UI.8.1 — consistencia visual contra el dashboard real.
  *
@@ -15,7 +16,7 @@ import { resolve } from 'node:path'
 import { chromium } from 'playwright'
 
 const BASE = process.env.BASE || 'http://localhost:4321'
-const SCREEN = process.argv[2] || 'chat'
+const updateBaseline = process.argv.includes('--update-baseline')
 const baselinePath = resolve('scripts/ui-gates/ui81-inline-style-baseline.json')
 const out = []
 const log = (ok, message) => {
@@ -27,15 +28,14 @@ const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
 try {
   await page.goto(BASE, { waitUntil: 'networkidle' })
-  await page.evaluate((screen) => {
-    window.state.screen = screen
-    window.App.rerender()
-  }, SCREEN)
   await page.waitForTimeout(1200)
   await page.locator('#main').waitFor({ state: 'visible', timeout: 8000 })
-  const reached = await page.evaluate(() => window.state.screen)
-  log(reached === SCREEN, `pantalla alcanzada: ${reached} (solicitada ${SCREEN})`)
-  if (reached !== SCREEN) throw new Error(`No se pudo alcanzar la pantalla ${SCREEN}`)
+  await page.locator('#shellModeChat').click()
+  await page.waitForTimeout(300)
+  log(
+    (await page.locator('#shellModeChat.active').count()) === 1,
+    'pantalla Chat alcanzada por defecto',
+  )
 
   const metrics = await page.evaluate(() => {
     const visible = (el) => {
@@ -61,7 +61,9 @@ try {
     const selects = nodes
       .filter((el) => el.tagName === 'SELECT')
       .map((el) => el.outerHTML.slice(0, 160))
-    const inlineStyleAttributes = document.querySelectorAll('[style]').length
+    const inlineStyleAttributes = [...document.querySelectorAll('[style]')].filter(
+      (el) => !el.classList.contains('session-statusbar-cli-fill'),
+    ).length
     return { fontSizes, radii, selects, inlineStyleAttributes }
   })
 
@@ -88,12 +90,14 @@ try {
     metrics.inlineStyleAttributes <= baseline.inlineStyleAttributes,
     `atributos style= inline: ${metrics.inlineStyleAttributes} (baseline ${baseline.inlineStyleAttributes})`,
   )
-  if (metrics.inlineStyleAttributes < baseline.inlineStyleAttributes) {
+  if (updateBaseline && metrics.inlineStyleAttributes < baseline.inlineStyleAttributes) {
     writeFileSync(
       baselinePath,
       `${JSON.stringify({ inlineStyleAttributes: metrics.inlineStyleAttributes }, null, 2)}\n`,
     )
     out.push(`INFO — baseline actualizado a ${metrics.inlineStyleAttributes}`)
+  } else if (metrics.inlineStyleAttributes < baseline.inlineStyleAttributes) {
+    out.push(`INFO — el baseline puede bajar a ${metrics.inlineStyleAttributes}`)
   }
 } finally {
   await browser.close()
