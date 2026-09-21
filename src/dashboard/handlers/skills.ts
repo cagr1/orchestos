@@ -38,9 +38,9 @@ import type {
   SkillRow,
 } from '../types.ts'
 
-function handleApiSkillsList(): Response {
+function handleApiSkillsList(root = process.cwd()): Response {
   try {
-    const files = listSkillFiles()
+    const files = listSkillFiles(root)
     const skills: SkillRow[] = []
     for (const f of files) {
       try {
@@ -62,11 +62,11 @@ function handleApiSkillsList(): Response {
   }
 }
 
-function handleApiSkillsGet(url: URL): Response {
+function handleApiSkillsGet(url: URL, root = process.cwd()): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
-  const path = resolveSkillPath(id)
+  const path = resolveSkillPath(id, root)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
   try {
     const skill = loadSkill(path)
@@ -76,11 +76,11 @@ function handleApiSkillsGet(url: URL): Response {
   }
 }
 
-function handleApiSkillsExport(url: URL): Response {
+function handleApiSkillsExport(url: URL, root = process.cwd()): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
-  const path = resolveSkillPath(id)
+  const path = resolveSkillPath(id, root)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
   try {
     const yaml = readFileSync(path, 'utf-8')
@@ -96,7 +96,7 @@ function handleApiSkillsExport(url: URL): Response {
   }
 }
 
-async function handleApiSkillsCreate(req: Request): Promise<Response> {
+async function handleApiSkillsCreate(req: Request, root = process.cwd()): Promise<Response> {
   let body: Record<string, unknown>
   try {
     body = (await req.json()) as Record<string, unknown>
@@ -109,12 +109,13 @@ async function handleApiSkillsCreate(req: Request): Promise<Response> {
     return errorResponse('Invalid id — must be kebab-case', 400)
   }
 
-  const path = getSkillPath(id)
+  const path = getSkillPath(id, root)
   if (existsSync(path)) return errorResponse('Skill already exists', 409)
 
   try {
     const validated = validateSkill(body, `api:${id}`)
     const yaml = stringify(validated, { lineWidth: 120 })
+    mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, yaml, 'utf-8')
     return jsonResponse({ ok: true, id } satisfies MutationResult)
   } catch (e: any) {
@@ -122,15 +123,15 @@ async function handleApiSkillsCreate(req: Request): Promise<Response> {
   }
 }
 
-async function handleApiSkillsUpdate(req: Request, url: URL): Promise<Response> {
+async function handleApiSkillsUpdate(req: Request, url: URL, root = process.cwd()): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
   // O.1 — existe si está en el proyecto O centralizada, pero se escribe SIEMPRE
   // en el proyecto: editar una skill centralizada desde otro repo crea una
   // copia local que la pisa (copy-on-write), nunca muta la instalación.
-  if (!existsSync(resolveSkillPath(id))) return errorResponse('Skill not found', 404)
-  const path = getSkillPath(id)
+  if (!existsSync(resolveSkillPath(id, root))) return errorResponse('Skill not found', 404)
+  const path = getSkillPath(id, root)
 
   let body: Record<string, unknown>
   try {
@@ -150,7 +151,7 @@ async function handleApiSkillsUpdate(req: Request, url: URL): Promise<Response> 
   }
 }
 
-async function handleApiSkillsDelete(req: Request, url: URL): Promise<Response> {
+async function handleApiSkillsDelete(req: Request, url: URL, root = process.cwd()): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
@@ -158,9 +159,9 @@ async function handleApiSkillsDelete(req: Request, url: URL): Promise<Response> 
   // la skill resuelve únicamente contra la carpeta central, borrarla desde este
   // proyecto la haría desaparecer de todos los demás. Se rechaza explícito en
   // vez de fallar en silencio o de mutar la instalación.
-  const path = getSkillPath(id)
+  const path = getSkillPath(id, root)
   if (!existsSync(path)) {
-    if (existsSync(resolveSkillPath(id))) {
+    if (existsSync(resolveSkillPath(id, root))) {
       return errorResponse(
         `"${id}" is a centrally installed skill — it can't be deleted from this project`,
         409,
@@ -186,11 +187,11 @@ async function handleApiSkillsDelete(req: Request, url: URL): Promise<Response> 
   }
 }
 
-function handleApiSkillsBuild(url: URL): Response {
+function handleApiSkillsBuild(url: URL, root = process.cwd()): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/build$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
-  const path = resolveSkillPath(id)
+  const path = resolveSkillPath(id, root)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
 
   try {
@@ -207,9 +208,9 @@ function handleApiSkillsBuild(url: URL): Response {
   }
 }
 
-function handleApiSkillsProList(): Response {
+function handleApiSkillsProList(root = process.cwd()): Response {
   try {
-    const files = listProSkillFiles()
+    const files = listProSkillFiles(root)
     const skills: SkillProRow[] = []
     for (const f of files) {
       try {
@@ -219,7 +220,7 @@ function handleApiSkillsProList(): Response {
           name: s.name,
           description: s.description,
           targets: [...s.targets],
-          imported: existsSync(getSkillPath(s.id)),
+          imported: existsSync(getSkillPath(s.id, root)),
         })
       } catch {}
     }
@@ -229,20 +230,21 @@ function handleApiSkillsProList(): Response {
   }
 }
 
-function handleApiSkillsProImport(url: URL): Response {
+function handleApiSkillsProImport(url: URL, root = process.cwd()): Response {
   const m = url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
 
-  const proPath = resolveProSkillPath(id)
+  const proPath = resolveProSkillPath(id, root)
   if (!existsSync(proPath)) return errorResponse('Pro skill not found', 404)
 
-  const targetPath = getSkillPath(id)
+  const targetPath = getSkillPath(id, root)
   if (existsSync(targetPath)) return errorResponse('Skill already exists', 409)
 
   try {
     const skill = loadSkill(proPath)
     const yaml = stringify(skill, { lineWidth: 120 })
+    mkdirSync(dirname(targetPath), { recursive: true })
     writeFileSync(targetPath, yaml, 'utf-8')
     return jsonResponse({ ok: true, id } satisfies MutationResult)
   } catch (e: any) {
@@ -413,12 +415,12 @@ async function handleApiSkillsRegistryList(): Promise<Response> {
   }
 }
 
-async function handleApiSkillsRegistryImport(_req: Request, url: URL): Promise<Response> {
+async function handleApiSkillsRegistryImport(_req: Request, url: URL, root = process.cwd()): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
 
-  const targetPath = getSkillPath(id)
+  const targetPath = getSkillPath(id, root)
   if (existsSync(targetPath)) return errorResponse('Skill already exists', 409)
 
   let rawContent: string
@@ -442,6 +444,7 @@ async function handleApiSkillsRegistryImport(_req: Request, url: URL): Promise<R
     validateSkill(parsed, `registry:${id}`)
     // Valid as-is — save directly
     const yaml = stringify(parsed, { lineWidth: 120 })
+    mkdirSync(dirname(targetPath), { recursive: true })
     writeFileSync(targetPath, yaml, 'utf-8')
     return jsonResponse({
       ok: true,
@@ -468,6 +471,7 @@ async function handleApiSkillsRegistryImport(_req: Request, url: URL): Promise<R
     }
     if (data.ok && data.skill) {
       const yaml = stringify(data.skill, { lineWidth: 120 })
+      mkdirSync(dirname(targetPath), { recursive: true })
       writeFileSync(targetPath, yaml, 'utf-8')
       return jsonResponse({
         ok: true,

@@ -30,6 +30,9 @@ const state = {
   planItems: [],
   memory: [],
   settings: null,
+  projectsList: null,
+  settingsProjectId: null,
+  planUnavailable: null,
   setup: null,
   health: null,
   settingsSection: 'general',
@@ -151,6 +154,12 @@ const NAV = [
 /* ============================================================
    API fetching
    ============================================================ */
+function projectHeaders() {
+  return state.settingsProjectId && ['specs', 'skills', 'plan'].includes(state.screen)
+    ? { 'x-orchestos-project-id': state.settingsProjectId }
+    : {}
+}
+
 const App = {
   async fetchRuns() {
     try {
@@ -182,7 +191,7 @@ const App = {
   },
   async fetchSpecs() {
     try {
-      const res = await fetch('/api/specs')
+      const res = await fetch('/api/specs', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       state.specs = await res.json()
       state.specsStatus = 'ok'
@@ -192,12 +201,14 @@ const App = {
   },
   async fetchPlan() {
     try {
-      const res = await fetch('/api/plan')
+      const res = await fetch('/api/plan', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       const data = await res.json()
       state.planItems = data.items || []
+      state.planUnavailable = data.unavailable || null
       state.planStatus = 'ok'
     } catch {
+      state.planUnavailable = null
       state.planStatus = 'error'
     }
   },
@@ -207,7 +218,7 @@ const App = {
     try {
       const res = await fetch(`/api/plan/items/${encodeURIComponent(id)}/dependencies`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...projectHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ dependsOn }),
       })
       const data = await res.json()
@@ -231,6 +242,7 @@ const App = {
     try {
       const res = await fetch(`/api/plan/items/${encodeURIComponent(id)}/prepare-close`, {
         method: 'POST',
+        headers: projectHeaders(),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
@@ -249,7 +261,7 @@ const App = {
   },
   async fetchSkills() {
     try {
-      const res = await fetch('/api/skills')
+      const res = await fetch('/api/skills', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       state.skills = await res.json()
       state.skillsStatus = 'ok'
@@ -259,7 +271,7 @@ const App = {
   },
   async fetchProSkills() {
     try {
-      const res = await fetch('/api/skills/pro')
+      const res = await fetch('/api/skills/pro', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       state.proSkills = await res.json()
       state.proSkillsStatus = 'ok'
@@ -269,7 +281,7 @@ const App = {
   },
   async fetchRegistrySkills() {
     try {
-      const res = await fetch('/api/skills/registry')
+      const res = await fetch('/api/skills/registry', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       const data = await res.json()
       state.registrySkills = data.skills || []
@@ -847,6 +859,9 @@ const App = {
       clearInterval(SCREENS.graph._timer)
       SCREENS.graph._timer = null
     }
+    if (!['specs', 'skills', 'plan'].includes(id) && id !== 'settings') {
+      state.settingsProjectId = null
+    }
     state.screen = id
     state.openRun = null
     state.openSpec = null
@@ -859,6 +874,9 @@ const App = {
       } else if (tab === 'context' && state.contextStatus === 'idle') {
         this.fetchContext().then(() => this.rerender())
       }
+    }
+    if (id === 'settings') {
+      this.fetchProjects().then(() => this.rerender())
     }
     // lazy-load graph runner status on first visit
     if (id === 'graph' && state.graphStatus === 'idle') {
@@ -890,6 +908,15 @@ const App = {
     // 2026-07-13 (corrección de Carlos, ronda 3) — se quitó el contador
     // "N active" del header: le quitaba espacio al pill de IDLE/RUNNING.
     pushShellState({ running: (state.tasks || []).some((t) => t.status === 'running') })
+  },
+  async fetchProjects() {
+    try {
+      const res = await fetch('/api/projects')
+      if (!res.ok) throw new Error(res.status)
+      state.projectsList = await res.json()
+    } catch {
+      state.projectsList = []
+    }
   },
 }
 
@@ -1555,7 +1582,9 @@ const Modal = {
     </div>`
     requestAnimationFrame(() => this.el.classList.add('show'))
     try {
-      const res = await fetch(`/api/skills/${encodeURIComponent(skillSummary.id)}`)
+      const res = await fetch(`/api/skills/${encodeURIComponent(skillSummary.id)}`, {
+        headers: projectHeaders(),
+      })
       const full = await res.json()
       if (!res.ok) throw new Error(full.error || 'Failed to load skill')
       this._curatedSkill = full
@@ -1599,7 +1628,7 @@ const Modal = {
       try {
         const res = await fetch('/api/skills/curate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...projectHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: desc }),
         })
         const data = await res.json()
@@ -1712,7 +1741,7 @@ const Modal = {
         const method = isEdit ? 'PUT' : 'POST'
         const res = await fetch(url, {
           method,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...projectHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify(skill),
         })
         if (res.ok) {
@@ -1892,7 +1921,7 @@ const Modal = {
       try {
         const res = await fetch('/api/skills/import', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...projectHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify(isUrl ? { type: 'url', url } : { type: 'yaml', yaml }),
         })
         const data = await res.json()
@@ -1983,7 +2012,7 @@ const Modal = {
       try {
         const res = await fetch('/api/skills', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...projectHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify(skill),
         })
         if (res.ok) {
@@ -2258,7 +2287,7 @@ const Modal = {
       try {
         const res = await fetch('/api/specs/draft', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...projectHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({ taskId, description, design }),
         })
         if (res.ok) {
@@ -2581,7 +2610,7 @@ async function bulkDelete(screen, endpoint, refetch, resourceLabel) {
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...projectHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: selected }),
     })
     const data = await res.json().catch(() => ({}))
@@ -3288,6 +3317,29 @@ function boot() {
       App.rerender()
     }
   })
+
+  // UI.10 — project Settings pages are React islands, so their static header needs one
+  // delegated listener that survives island rerenders.
+  document.getElementById('main').addEventListener('click', async (e) => {
+    const tab = e.target.closest('[data-project-tab]')
+    if (tab) {
+      const id = tab.dataset.projectTab
+      state.projectTab = id
+      state.screen = id
+      if (id === 'specs') state.specsStatus = 'loading'
+      if (id === 'skills') state.skillsStatus = 'loading'
+      if (id === 'plan') state.planStatus = 'loading'
+      App.go(id)
+      if (id === 'specs') await App.fetchSpecs()
+      if (id === 'skills') await App.fetchSkills()
+      if (id === 'plan') await App.fetchPlan()
+      App.rerender()
+      return
+    }
+    if (e.target.closest('[data-project-back]')) {
+      App.go('settings')
+    }
+  })
   // 2026-07-08 — el wiring delegado de buildModelSelect() (abrir/cerrar panel,
   // elegir opcion, filtrar, cerrar al click afuera) vivia aca, junto con
   // `state.modelComboOpenKey` y el helper `rerenderCurrentContext()`.
@@ -3391,6 +3443,7 @@ function boot() {
     // porque son los duenos del estado y de la API. Cuando UI.5 borre el vanilla, esto
     // se invierte.
     state: () => state,
+    projectHeaders: () => projectHeaders(),
     t: (key, ...args) => t(key, ...args),
     // Se expone en vez de replicarse en React: tiene fallbacks propios (devuelve el ISO
     // crudo si la fecha no parsea) y opciones de formato que hay que espejar EXACTO para
@@ -3411,19 +3464,24 @@ function boot() {
       a.click()
     },
     copySkill: async (id) => {
-      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/export`)
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/export`, {
+        headers: projectHeaders(),
+      })
       if (!res.ok) return false
       await navigator.clipboard.writeText(await res.text())
       return true
     },
     buildSkill: async (id) => {
-      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/build`, { method: 'POST' })
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/build`, {
+        method: 'POST',
+        headers: projectHeaders(),
+      })
       return await res.json()
     },
     deleteSkill: async (id) => {
       const res = await fetch(`/api/skills/${encodeURIComponent(id)}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...projectHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirm: true }),
       })
       return await res.json()
@@ -3431,12 +3489,14 @@ function boot() {
     importProSkill: async (id) => {
       const res = await fetch(`/api/skills/pro/${encodeURIComponent(id)}/import`, {
         method: 'POST',
+        headers: projectHeaders(),
       })
       return await res.json()
     },
     importRegistrySkill: async (id) => {
       const res = await fetch(`/api/skills/registry/${encodeURIComponent(id)}/import`, {
         method: 'POST',
+        headers: projectHeaders(),
       })
       return await res.json()
     },

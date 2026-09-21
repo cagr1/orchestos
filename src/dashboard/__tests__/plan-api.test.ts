@@ -21,9 +21,11 @@ async function isolated(): Promise<{ statuses: number[]; blockedBy: string[]; re
           const { route } = await import('./src/dashboard/server.ts')
           const home = process.env.ORCHESTOS_HOME
           const root = join(home, 'project')
+          const otherRoot = join(home, 'other-project')
           const plan = '# Fixture\\n\\n## Sprint One\\n### Block One\\n- [ ] **A — ⚡ First.**\\n  A body.\\n\\n- [ ] **B — ⚡ Blocked.**\\n  B body.\\n\\n## Sprint Two\\n### Block Two\\n- [ ] **C — 🔍 Ready.**\\n  C body.\\n'
           const assert = (condition, message) => { if (!condition) throw new Error(message) }
           mkdirSync(root)
+          mkdirSync(otherRoot)
           writeFileSync(join(root, 'PLAN.md'), plan, 'utf8')
           execFileSync('git', ['init'], { cwd: root, stdio: 'pipe' })
           execFileSync('git', ['add', 'PLAN.md'], { cwd: root, stdio: 'pipe' })
@@ -35,11 +37,19 @@ async function isolated(): Promise<{ statuses: number[]; blockedBy: string[]; re
           runMigrations()
           importPlan(root, true)
           db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', ['fixture', root, '{}', '', new Date().toISOString()])
+          db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', ['other', otherRoot, '{}', '', new Date().toISOString()])
+          process.chdir(root)
           const request = (path, init = {}) => route(new Request('http://localhost:3001' + path, { headers: { 'x-orchestos-project-id': 'fixture' }, ...init }), 3001)
+          const otherRequest = (path, init = {}) => route(new Request('http://localhost:3001' + path, { headers: { 'x-orchestos-project-id': 'other' }, ...init }), 3001)
           const status = async (path, init) => (await request(path, init)).status
           const put = (id, body) => status('/api/plan/items/' + id + '/dependencies', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-orchestos-project-id': 'fixture' }, body })
           const first = await request('/api/plan')
           const initial = await first.json()
+          const unavailable = await otherRequest('/api/plan')
+          const unavailableBody = await unavailable.json()
+          assert(unavailable.status === 200 && unavailableBody.items.length === 0 && unavailableBody.unavailable === 'plan-not-per-project', 'other project GET must report unavailable without an error')
+          assert(await otherRequest('/api/plan/items/A/dependencies', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-orchestos-project-id': 'other' }, body: JSON.stringify({ dependsOn: [] }) }).then((response) => response.status) === 409, 'other project dependency mutation must be unavailable')
+          assert(await otherRequest('/api/plan/items/A/prepare-close', { method: 'POST', headers: { 'x-orchestos-project-id': 'other' } }).then((response) => response.status) === 409, 'other project close mutation must be unavailable')
           const a = initial.items.find((item) => item.id === 'A')
           const b = initial.items.find((item) => item.id === 'B')
           const c = initial.items.find((item) => item.id === 'C')
@@ -136,6 +146,7 @@ async function isolatedCommitLifecycle(): Promise<{
           runMigrations()
           importPlan(root, true)
           db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', ['fixture', root, '{}', '', new Date().toISOString()])
+          process.chdir(root)
           const request = (path, init = {}) => route(new Request('http://localhost:3001' + path, { headers: { 'x-orchestos-project-id': 'fixture' }, ...init }), 3001)
           const status = async (path, init) => (await request(path, init)).status
           const putRaw = (id, body) => status('/api/plan/items/' + id + '/dependencies', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-orchestos-project-id': 'fixture' }, body })

@@ -999,6 +999,15 @@
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
       "delegation": "🧠",
       "title": "Specs, Skills y Plan vuelven, por proyecto, dentro de Settings",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.10.A",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "El plan por proyecto: `plan_items` y `plan_doc_segments` con proyecto",
       "status": "open",
       "closedDate": null
     },

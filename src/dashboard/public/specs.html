@@ -59,7 +59,10 @@
 function esc(s) { return String(s).replace(/[&<>"]/g, (c)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 async function load() {
   try {
-    const res = await fetch('/api/specs')
+    const projectId = new URLSearchParams(location.search).get('project')
+    const res = await fetch('/api/specs', {
+      headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
+    })
     let specs = await res.json()
     if (specs.length === 0) {
       document.getElementById('loading').textContent = 'No specs found.'

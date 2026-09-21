@@ -3,6 +3,28 @@
    ============================================================ */
 window.SCREENS = window.SCREENS || {}
 
+function settingsProjectName(st, id = st.settingsProjectId) {
+  const project = (st.projectsList || []).find((item) => item.id === id)
+  return project ? project.path.split('/').pop() || project.path : ''
+}
+
+function projectSettingsHead(st, active) {
+  if (!st.settingsProjectId) return ''
+  const name = settingsProjectName(st)
+  const tabs = [
+    ['specs', t('project.tab.specs')],
+    ['skills', t('project.tab.skills')],
+    ['plan', t('project.tab.plan')],
+  ]
+  return `<div class="project-settings-head">
+    <button type="button" class="btn ghost project-settings-back" data-project-back>${esc(t('project.back'))}</button>
+    <h2 data-project-title>${esc(name)}</h2>
+    <nav class="project-settings-tabs" aria-label="${esc(name)}">
+      ${tabs.map(([id, label]) => `<button type="button" class="${id === active ? 'active' : ''}" data-project-tab="${id}">${esc(label)}</button>`).join('')}
+    </nav>
+  </div>`
+}
+
 SCREENS.workspace = {
   render(st) {
     const tabs = ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts']
@@ -1917,6 +1939,12 @@ SCREENS.settings = {
             ${navItem('project', ICON.warn, t('settings.nav.project'))}
             ${navItem('lang', ICON.globe, t('settings.nav.lang'))}
           </div>
+          <div class="settings-nav-group settings-projects-group">
+            <div class="settings-nav-label">${t('settings.navGroup.projects')}</div>
+            ${st.projectsList === null ? '' : st.projectsList.length
+              ? st.projectsList.map((project) => `<button type="button" class="settings-nav-item" data-settings-project="${esc(project.id)}">${ICON.project}<span>${esc(settingsProjectName(st, project.id))}</span></button>`).join('')
+              : `<div class="settings-projects-empty muted">${esc(t('settings.projects.empty'))}</div>`}
+          </div>
         </nav>
 
         <div class="settings-panels">
@@ -2005,6 +2033,19 @@ SCREENS.settings = {
           if (sec === 'executor') App.fetchExecutorModes().then(() => App.rerender())
         }
         if (sec === 'usage' && !state.usageData) App.fetchUsage().then(() => App.rerender())
+      }),
+    )
+
+    root.querySelectorAll('[data-settings-project]').forEach((btn) =>
+      btn.addEventListener('click', async () => {
+        state.settingsProjectId = btn.dataset.settingsProject
+        state.projectTab = 'specs'
+        state.specsStatus = 'loading'
+        state.skillsStatus = 'loading'
+        state.planStatus = 'loading'
+        App.go('specs')
+        await Promise.all([App.fetchSpecs(), App.fetchSkills(), App.fetchPlan()])
+        App.rerender()
       }),
     )
 
@@ -2348,8 +2389,8 @@ SCREENS.settings = {
  */
 SCREENS.specs = {
   react: true,
-  render() {
-    return '<div data-island="screen-specs"></div>'
+  render(st) {
+    return `<div class="screen project-settings-screen">${projectSettingsHead(st, 'specs')}<div data-island="screen-specs"></div></div>`
   },
   wire() {},
 }
@@ -2376,16 +2417,16 @@ SCREENS.specs = {
  */
 SCREENS.skills = {
   react: true,
-  render() {
-    return '<div data-island="screen-skills"></div>'
+  render(st) {
+    return `<div class="screen project-settings-screen">${projectSettingsHead(st, 'skills')}<div data-island="screen-skills"></div></div>`
   },
   wire() {},
 }
 
 SCREENS.plan = {
   react: true,
-  render() {
-    return '<div data-island="screen-plan"></div>'
+  render(st) {
+    return `<div class="screen project-settings-screen">${projectSettingsHead(st, 'plan')}<div data-island="screen-plan"></div></div>`
   },
   wire() {},
 }

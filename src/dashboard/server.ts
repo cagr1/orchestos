@@ -1,3 +1,5 @@
+import { realpathSync } from 'node:fs'
+import { resolve } from 'node:path'
 import {
   handleApiChat,
   handleApiChatModels,
@@ -110,7 +112,7 @@ import {
   handleApiTasksSteps,
 } from './handlers/tasks.ts'
 import { handleApiUsage } from './handlers/usage.ts'
-import { errorResponse, isSameOrigin, serveStatic } from './http.ts'
+import { errorResponse, isSameOrigin, jsonResponse, serveStatic } from './http.ts'
 import {
   type DashboardProjectContext,
   DashboardProjectError,
@@ -154,13 +156,25 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiSessionStatus(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/plan') {
-    return withDashboardProject(req, (project) => handleApiPlan(project.root))
+    return withDashboardProject(req, (project) =>
+      project.root === realpathSync(resolve('.'))
+        ? handleApiPlan(project.root)
+        : jsonResponse({ items: [], unavailable: 'plan-not-per-project' }),
+    )
   }
   if (method === 'PUT' && /^\/api\/plan\/items\/[^/]+\/dependencies$/.test(url.pathname)) {
-    return withDashboardProject(req, (project) => handleApiPlanDependencies(req, project.root))
+    return withDashboardProject(req, (project) =>
+      project.root === realpathSync(resolve('.'))
+        ? handleApiPlanDependencies(req, project.root)
+        : errorResponse('Plan per project is not available yet', 409),
+    )
   }
   if (method === 'POST' && /^\/api\/plan\/items\/[^/]+\/prepare-close$/.test(url.pathname)) {
-    return withDashboardProject(req, (project) => handleApiPlanPrepareClose(req, project.root))
+    return withDashboardProject(req, (project) =>
+      project.root === realpathSync(resolve('.'))
+        ? handleApiPlanPrepareClose(req, project.root)
+        : errorResponse('Plan per project is not available yet', 409),
+    )
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
     return handleApiRunsDelete(url)
@@ -235,34 +249,34 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
 
   if (method === 'GET' && url.pathname === '/api/skills') {
-    return handleApiSkillsList()
+    return withDashboardProject(req, (project) => handleApiSkillsList(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/skills/registry') {
     return handleApiSkillsRegistryList()
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)) {
-    return handleApiSkillsRegistryImport(req, url)
+    return withDashboardProject(req, (project) => handleApiSkillsRegistryImport(req, url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/skills/pro') {
-    return handleApiSkillsProList()
+    return withDashboardProject(req, (project) => handleApiSkillsProList(project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
-    return handleApiSkillsGet(url)
+    return withDashboardProject(req, (project) => handleApiSkillsGet(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)) {
-    return handleApiSkillsExport(url)
+    return withDashboardProject(req, (project) => handleApiSkillsExport(url, project.root))
   }
   if (method === 'POST' && url.pathname === '/api/skills') {
-    return handleApiSkillsCreate(req)
+    return withDashboardProject(req, (project) => handleApiSkillsCreate(req, project.root))
   }
   if (method === 'PUT' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
-    return handleApiSkillsUpdate(req, url)
+    return withDashboardProject(req, (project) => handleApiSkillsUpdate(req, url, project.root))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
-    return handleApiSkillsDelete(req, url)
+    return withDashboardProject(req, (project) => handleApiSkillsDelete(req, url, project.root))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/skills\/([^/]+)\/build$/)) {
-    return handleApiSkillsBuild(url)
+    return withDashboardProject(req, (project) => handleApiSkillsBuild(url, project.root))
   }
   if (method === 'POST' && url.pathname === '/api/skills/curate') {
     return handleApiSkillsCurate(req)
@@ -271,7 +285,7 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiSkillsImport(req)
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)) {
-    return handleApiSkillsProImport(url)
+    return withDashboardProject(req, (project) => handleApiSkillsProImport(url, project.root))
   }
 
   if (method === 'GET' && url.pathname === '/api/projects') {

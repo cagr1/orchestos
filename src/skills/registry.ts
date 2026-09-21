@@ -81,8 +81,8 @@ const VALID_TASK_CLASSES: TaskClass[] = ['plan', 'implement', 'fix', 'review', '
 const SKILLS_INSTALL_ROOT = join(import.meta.dir, '..', '..')
 
 /** Carpeta de skills del proyecto en curso. Destino de toda ESCRITURA. */
-function getSkillsDir(): string {
-  return join(process.cwd(), 'skills')
+function getSkillsDir(root = process.cwd()): string {
+  return join(root, 'skills')
 }
 
 /** Carpeta de skills de la instalación de OrchestOS. Solo LECTURA. */
@@ -95,8 +95,8 @@ function getInstallSkillsDir(): string {
  * centralizada. Devuelve la ruta del proyecto cuando no hay ninguna, para que
  * el mensaje de error apunte a donde el usuario esperaría crearla.
  */
-export function resolveSkillPath(id: string): string {
-  const own = join(getSkillsDir(), `${id}.yaml`)
+export function resolveSkillPath(id: string, root = process.cwd()): string {
+  const own = join(getSkillsDir(root), `${id}.yaml`)
   if (existsSync(own)) return own
   const central = join(getInstallSkillsDir(), `${id}.yaml`)
   if (existsSync(central)) return central
@@ -222,17 +222,17 @@ export function loadSkill(filePath: string): SkillDef {
 }
 
 /** Catálogo legible: skills del proyecto + las centralizadas (proyecto gana). */
-export function listSkillFiles(): string[] {
-  return mergeSkillDirs(getSkillsDir(), getInstallSkillsDir())
+export function listSkillFiles(root = process.cwd()): string[] {
+  return mergeSkillDirs(getSkillsDir(root), getInstallSkillsDir())
 }
 
 /** Destino de ESCRITURA — siempre el proyecto, nunca la instalación. Para leer usar `resolveSkillPath()`. */
-export function getSkillPath(id: string): string {
-  return join(getSkillsDir(), `${id}.yaml`)
+export function getSkillPath(id: string, root = process.cwd()): string {
+  return join(getSkillsDir(root), `${id}.yaml`)
 }
 
-function getProSkillsDir(): string {
-  return join(getSkillsDir(), 'pro')
+function getProSkillsDir(root = process.cwd()): string {
+  return join(getSkillsDir(root), 'pro')
 }
 
 function getInstallProSkillsDir(): string {
@@ -240,18 +240,18 @@ function getInstallProSkillsDir(): string {
 }
 
 /** Catálogo pro legible: pro del proyecto + pro centralizadas (proyecto gana). */
-export function listProSkillFiles(): string[] {
-  return mergeSkillDirs(getProSkillsDir(), getInstallProSkillsDir())
+export function listProSkillFiles(root = process.cwd()): string[] {
+  return mergeSkillDirs(getProSkillsDir(root), getInstallProSkillsDir())
 }
 
 /** Destino de ESCRITURA de una skill pro — siempre el proyecto. */
-export function getProSkillPath(id: string): string {
-  return join(getProSkillsDir(), `${id}.yaml`)
+export function getProSkillPath(id: string, root = process.cwd()): string {
+  return join(getProSkillsDir(root), `${id}.yaml`)
 }
 
 /** Ruta de LECTURA de una skill pro: proyecto primero, instalación como fallback. */
-export function resolveProSkillPath(id: string): string {
-  const own = join(getProSkillsDir(), `${id}.yaml`)
+export function resolveProSkillPath(id: string, root = process.cwd()): string {
+  const own = join(getProSkillsDir(root), `${id}.yaml`)
   if (existsSync(own)) return own
   const central = join(getInstallProSkillsDir(), `${id}.yaml`)
   if (existsSync(central)) return central

@@ -22,6 +22,7 @@ export interface BulkApi {
 
 export interface ScreenApi {
   state: () => Record<string, unknown>
+  projectHeaders: () => Record<string, string>
   t: (key: string, ...args: unknown[]) => string
   formatDate: (iso: string, opts?: { dateOnly?: boolean; seconds?: boolean }) => string
   icons: Record<string, string>

@@ -337,7 +337,10 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
   const canDelete = spec.status === 'archived'
 
   const post = (path: string, okKey: string, errKey: string, after?: () => void) => {
-    fetch(`/api/specs/${encodeURIComponent(spec.id)}${path}`, { method: 'POST' })
+    fetch(`/api/specs/${encodeURIComponent(spec.id)}${path}`, {
+      method: 'POST',
+      headers: api?.projectHeaders(),
+    })
       .then((r) => r.json())
       .then((d) => {
         if (d.ok) {
@@ -349,7 +352,9 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
   }
 
   const lint = () => {
-    fetch(`/api/specs/${encodeURIComponent(spec.id)}/lint`)
+    fetch(`/api/specs/${encodeURIComponent(spec.id)}/lint`, {
+      headers: api?.projectHeaders(),
+    })
       .then((r) => r.json())
       .then((d) => {
         // La guarda `Array.isArray` es un ARREGLO, no paridad: el vanilla hacía
@@ -374,7 +379,10 @@ function SpecDetail({ spec, colSpan }: { spec: Spec; colSpan: number }) {
       t('btn.confirm'),
     )
     if (!ok) return
-    fetch(`/api/specs/${encodeURIComponent(spec.id)}`, { method: 'DELETE' })
+    fetch(`/api/specs/${encodeURIComponent(spec.id)}`, {
+      method: 'DELETE',
+      headers: api?.projectHeaders(),
+    })
       .then((r) => r.json())
       .then((d) => {
         if (d.ok) {

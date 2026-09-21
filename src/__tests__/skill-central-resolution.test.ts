@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'fs'
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { basename, join } from 'path'
 import {
@@ -77,6 +77,19 @@ targets: [claude]
       'utf-8',
     )
   }
+
+  test('root explícito lee y escribe bajo el proyecto indicado', () => {
+    seedOwnSkill('explicit-root-skill', 'Explicit Root Skill')
+
+    const files = listSkillFiles(fakeProject)
+    expect(ids(files)).toContain('explicit-root-skill')
+
+    const output = getSkillPath('created-with-root', fakeProject)
+    expect(output.startsWith(join(fakeProject, 'skills'))).toBe(true)
+    mkdirSync(join(fakeProject, 'skills'), { recursive: true })
+    writeFileSync(output, 'root-specific content', 'utf-8')
+    expect(() => readFileSync(output, 'utf-8')).not.toThrow()
+  })
 
   test('la skill del proyecto GANA sobre la central con el mismo id', () => {
     seedOwnSkill('security-review', 'Local Security Review')

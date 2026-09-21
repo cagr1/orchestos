@@ -30,43 +30,54 @@ export function PlanBoardScreen() {
   const state = appState()
   const items = ((state.planItems as PlanItem[] | undefined) ?? []).slice()
   const status = state.planStatus as string | undefined
+  const planUnavailable = state.planUnavailable as string | undefined
   const mutation = (state.planMutation as PlanMutation | undefined) ?? { status: 'idle' }
   const [editingId, setEditingId] = useState<string | null>(null)
   const [selection, setSelection] = useState<string[]>([])
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
-  const head = (
+  const head = (showTools = true) => (
     <div className="screen-head">
       <div className="lead">
         <h1>{t('plan.title')}</h1>
         <p>{t('plan.subtitle')}</p>
       </div>
-      <div className="tools">
-        <button type="button" className="btn" onClick={() => api?.fetchPlan()}>
-          <Icon name="refresh" /> {t('btn.refresh')}
-        </button>
-      </div>
+      {showTools && (
+        <div className="tools">
+          <button type="button" className="btn" onClick={() => api?.fetchPlan()}>
+            <Icon name="refresh" /> {t('btn.refresh')}
+          </button>
+        </div>
+      )}
     </div>
   )
+
+  if (planUnavailable === 'plan-not-per-project')
+    return (
+      <div className="screen">
+        {head(false)}
+        <PlanPlaceholder text={t('plan.notPerProject')} />
+      </div>
+    )
 
   if (status === 'loading' || !status)
     return (
       <div className="screen">
-        {head}
+        {head()}
         <PlanPlaceholder text={t('plan.loading')} />
       </div>
     )
   if (status === 'error')
     return (
       <div className="screen">
-        {head}
+        {head()}
         <PlanPlaceholder error text={t('plan.error')} />
       </div>
     )
   if (items.length === 0)
     return (
       <div className="screen">
-        {head}
+        {head()}
         <PlanPlaceholder text={t('plan.empty')} />
       </div>
     )
@@ -82,7 +93,7 @@ export function PlanBoardScreen() {
 
   return (
     <div className="screen plan-board" data-plan-status={status}>
-      {head}
+      {head()}
       {mutation.error && (
         <div className="plan-message error" role="alert">
           {mutation.error}

@@ -1,0 +1,30 @@
+{
+  "item": "UI.10",
+  "date": "2026-09-21",
+  "gate": "scripts/ui-gates/ui10-project-settings.mjs",
+  "command": "GATE_BASE=http://localhost:4323 node scripts/ui-gates/ui10-project-settings.mjs",
+  "environment": "Playwright chromium sobre el dashboard real en http://localhost:4323 (bun run src/cli.ts dashboard --port 4323), proyectos registrados: SalaDespecho y orchestos",
+  "run_by": "cerebro (Opus 5), no el ejecutor",
+  "note": "Llega clickeando: Chat → Settings → proyecto → pestañas, sin window.*. 3 corridas seguidas 13/13 tras corregir la carrera de fetchProjects (una corrida previa había visto 0 proyectos).",
+  "runs": [
+    13,
+    13,
+    13
+  ],
+  "result": "13/13 PASS",
+  "lines": [
+    "PASS — Settings muestra 2 proyectos registrados",
+    "PASS — el primer proyecto muestra su nombre",
+    "PASS — Specs usa el header del primer proyecto",
+    "PASS — specs muestra su isla con contenido",
+    "PASS — specs usa el header del primer proyecto",
+    "PASS — skills muestra su isla con contenido",
+    "PASS — skills usa el header del primer proyecto",
+    "PASS — plan muestra su isla con contenido",
+    "PASS — plan usa el header del primer proyecto",
+    "PASS — ← Settings vuelve a la barra de Settings",
+    "PASS — el segundo proyecto cambia el título",
+    "PASS — Specs cambia al header del segundo proyecto",
+    "PASS — sin errores de consola (0)"
+  ]
+}

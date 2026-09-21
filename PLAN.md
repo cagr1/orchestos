@@ -2163,7 +2163,8 @@ ni eso hace falta.
   creado en vivo con `getComputedStyle`, no contra el literal. El bundle de `public/dist/` no va
   al commit: está en `.gitignore:50`, se regenera con `bun run build:ui`.
 
-- [ ] **UI.10 — 🧠 Specs, Skills y Plan vuelven, por proyecto, dentro de Settings.** (abierto 2026-09-21)
+- [x] **UI.10 — 🧠 Specs, Skills y Plan vuelven, por proyecto, dentro de Settings.** (abierto 2026-09-21, cerrado 2026-09-21)
+  Ejecutado por: luna · Spec: docs/specs/UI.10.md
   **Plan CONFIRMADO por Carlos 2026-09-21 ("GO"). Spec: `docs/specs/UI.10.md`, ejecuta Luna.**
   **Decisión de Carlos (2026-09-21, dicha varias veces):** cada proyecto tiene sus propias reglas,
   skills, specs y plan, y se ven en Settings, en una sección con el nombre del proyecto
@@ -2193,6 +2194,46 @@ ni eso hace falta.
   menú de tres puntos por proyecto en el sidebar (observación del 2026-09-16); rediseñar las
   pantallas.
   **Desbloquea `CI.2.A`:** `ui0`, `ui4-specs`, `s6` y `s6a` pasan a llegar por este camino.
+  **AVANCE 2026-09-21 (primera entrega de Luna, 12/13; resuelto en el cierre de abajo).**
+  `tsc` limpio y `bun run test:coverage` 1443 pass / 0 fail (corrida propia; los 3 rojos que
+  reportó Luna eran de su sandbox). Gate nuevo `scripts/ui-gates/ui10-project-settings.mjs`
+  contra el dashboard real en :4323: **12 PASS, 1 FAIL**. Settings muestra el grupo Projects con
+  SalaDespecho y orchestos; al clickear, título con el nombre, pestañas Specs | Skills | Plan, y
+  cada fetch lleva el `x-orchestos-project-id` del proyecto clickeado, también al cambiar al
+  segundo.
+  **El FAIL es real y no es de la UI:** "sin errores de consola (2)" = dos `409` de `/api/plan`
+  en SalaDespecho: *"PLAN.md is out of sync with the plan database"*. Causa: `plan_items` y
+  `plan_doc_segments` **no tienen columna de proyecto** (esquema leído en la DB), y
+  `renderPlan(db)` (`handlers/plan.ts:22`) siempre arma el plan de OrchestOS y lo compara con el
+  `PLAN.md` del proyecto elegido. La pestaña Plan solo funciona para OrchestOS; en los demás
+  proyectos muestra *"Could not load the plan"*. Specs y Skills sí son por proyecto.
+  **Pendiente de Carlos:** que el plan sea por proyecto exige una migración (`project_id` en las
+  dos tablas, PK compuesta) y tocar `plan-import`/`plan:reconcile`/`plan:render` y el
+  pre-commit. Es un ítem propio, no se mete en este.
+  **Cierre 2026-09-21.** Carlos eligió cerrar con mensaje claro y abrir `UI.10.A`. Addendum del
+  spec (Luna, ronda 2): para un proyecto que no es el del cwd, `GET /api/plan` responde `200`
+  `{ items: [], unavailable: 'plan-not-per-project' }` y las mutaciones `409` (`server.ts`);
+  `PlanBoardScreen.tsx` muestra un estado neutro "Per-project plans are not available yet…" sin
+  Refresh. Para orchestos `/api/plan` sigue devolviendo sus ítems (curl verificado).
+  `tsc` limpio; `bun run test:coverage` **1443 pass / 0 fail** (functions 75.74%, lines 63.92%),
+  corrida del cerebro.
+  Gate en vivo: navegador real (Playwright, dashboard en :4323) — `docs/done/evidence/UI.10-live.json`,
+  **13/13 PASS en 3 corridas seguidas** de
+  `scripts/ui-gates/ui10-project-settings.mjs`, corridas por el cerebro. Una corrida anterior vio
+  0 proyectos: `App.go('settings')` pintaba antes de que `/api/projects` respondiera, y el
+  usuario veía un instante "Sin proyectos registrados". Corregido en la ronda 3 (`projectsList`
+  arranca en `null` = no cargado; el gate espera el primer proyecto).
+  Llega clickeando desde Chat → Settings → proyecto → pestañas, sin `window.*`; afirma el
+  `x-orchestos-project-id` de cada fetch y el cambio al segundo proyecto. Captura revisada a ojo
+  de la pestaña Plan de SalaDespecho.
+
+- [ ] **UI.10.A — 🧠 El plan por proyecto: `plan_items` y `plan_doc_segments` con proyecto.** (abierto 2026-09-21)
+  Sale de `UI.10`: el plan de la DB es uno solo, sin columna de proyecto, y `renderPlan(db)`
+  (`handlers/plan.ts:22`) arma siempre el de OrchestOS. Hoy la pestaña Plan de cualquier otro
+  proyecto muestra "not available yet" (`server.ts`, rutas `/api/plan*`). A diseñar: migración
+  (`project_id` + PK compuesta), `plan-import`/`plan:reconcile`/`plan:render` y el pre-commit por
+  proyecto, y quitar el corte por cwd de `server.ts`. Plan corto a Carlos antes de codear (toca
+  varios módulos).
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,

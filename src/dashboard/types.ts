@@ -66,6 +66,7 @@ export interface PlanItemRow {
 
 export interface PlanListResponse {
   items: PlanItemRow[]
+  unavailable?: 'plan-not-per-project'
 }
 
 export interface PreparePlanCloseResponse {
