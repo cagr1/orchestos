@@ -2433,6 +2433,10 @@ ni eso hace falta.
   (capturas lado a lado), `/legacy` abre el dashboard viejo, 0 requests a Google, `tsc` y
   `test:coverage` verdes.
 
+- [ ] **UI.13.1b — ⚡ El fallback de la app no se traga rutas `/api` no atendidas.** (abierto 2026-09-21)
+  Spec: `docs/specs/UI.13.1b.md`. Regresión de UI.13.1 detectada por el pre-push:
+  `projects-choose.test.ts:106` (GET `/api/projects/choose` da 200 en vez de 404). Gate: `test:coverage` verde.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,
