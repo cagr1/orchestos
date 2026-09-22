@@ -117,6 +117,50 @@ midió dos diferencias. Ya no hay una decisión pendiente:
 - Volver a correr build, TypeScript y los cinco gates sobre el diff final. La modificación del gate
   es parte de esta ronda y debe reportarse; no tocar ningún otro script.
 
+### Ronda 5 — revisión visual real contra el prototipo, sin CSS nuevo
+
+La captura lado a lado a 1440×900 mostró que pasar los gates todavía no equivale a copiar el look.
+El prototipo tiene raíz de 16px; el producto, 14px. Por eso las utilidades espaciales copiadas con
+`rem` quedan al 87.5% (`p-3` da 10.5px en vez de 12px, `w-3.5` da 12.25px en vez de 14px). Además,
+los contenedores vanilla conservan padding/gap heredado y los `Icon` del Header no tienen caja.
+
+Resolver mecánicamente, sin sumar ninguna línea ni declaración CSS:
+
+1. En `styles.css`, **borrar** únicamente las declaraciones heredadas que compiten con las islas:
+   `gap: 16px` y `padding: 0 18px` del `.header` base; `gap: 10px` y `padding: 0 12px` de `.header`
+   dentro de `@media (max-width: 640px)`; `gap: 3px` y `padding: 0 8px 9px` del `.sidebar` base.
+   Borrar también los bloques visuales usados solo por el `NavIcon` de Settings:
+   `.sidebar .nav-icon`, sus estados `:hover`, `:focus-visible`, `.active`, `.active::before`,
+   `.sidebar .nav-icon.operator`, `.sidebar .nav-icon.operator.visible`, el tooltip
+   `.nav-icon[data-tip]:hover::after` y `.sidebar .grow`. No tocar reglas que aún use otra pantalla.
+   El diff del archivo sigue siendo solo eliminaciones.
+2. En `Header.tsx`, hacer que `.shell-header-inner` sea la barra real del prototipo:
+   `h-[44px] w-full px-[14px]`, y convertir sus espaciados copiados a píxeles (`gap-3`→`gap-[12px]`,
+   `gap-1`→`gap-[4px]`, `ml-1`→`ml-[4px]`, `gap-2`→`gap-[8px]`, `p-1.5`→`p-[6px]`).
+   Cada `Icon` de `HeaderButton` debe llevar una caja de 14×14 y forzar el SVG hijo a 14×14 con
+   variantes Tailwind; lo mismo para la carpeta del breadcrumb. No crear selector CSS.
+3. En `Sidebar.tsx`, sustituir todas las utilidades dimensionales/espaciales copiadas que dependen
+   de `rem` por el píxel que produce el prototipo con raíz 16. Mapa exacto:
+   `.5→2px`, `1→4px`, `1.5→6px`, `2→8px`, `2.5→10px`, `3→12px`, `3.5→14px`, `4→16px`,
+   `6→24px`, `8→32px`, `44→176px`, `56→224px`. Aplica a `p*`, `m*`, `gap*`, `space-y-*`,
+   `top/left-*`, `w/h-*` y `min-w-*` en este componente; porcentajes, `full`, `grow`, colores,
+   radios y tipografía no cambian. Usar utilidades arbitrarias Tailwind, nunca `style=`.
+4. Copiar el footer Settings del prototipo (`ShellSidebar.tsx:422-432`) sin CLI QUOTAS: envolver el
+   `NavIcon` en `p-[12px] border-t border-app bg-app-surface/40 flex-shrink-0`; el control usa
+   `flex items-center gap-[8px] text-xs font-ui-meta text-app-muted hover:text-app transition-colors`
+   y el icono/SVG 16×16. Conservar `data-nav`, teclado, estado activo y el gancho `nav-icon`, pero
+   no darle estilo por ese gancho. Quitar el `div.grow`: la región Chat/Dev ya es `flex-1`.
+
+Verificación adicional obligatoria en navegador, además de los cinco gates:
+
+- `.shell-header-inner`: x=0, ancho=viewport, alto=44; primer contenido a x=14.
+- botones Search/Sidebar/Right: SVG visible 14×14; caja del botón ≈26×26.
+- `.sidebar-mode-row`: ocupa todo el ancho interior del sidebar sin el inset heredado de 8px;
+  wrapper con padding 4px/gap 6px y botones con padding vertical 6px/horizontal 12px.
+- `.sidebar-project-row`: padding vertical 6px/horizontal 10px.
+- Capturar Chat y Dev a 1440×900 y compararlos con el prototipo vivo. Si queda una diferencia del
+  shell causada por una regla vanilla, reportar selector y medida; no compensarla con CSS nuevo.
+
 ## 3. Borrar de `src/dashboard/public/styles.css`
 
 Del bloque que agregó UI.12.2 (desde `:root { --sidebar-w-exp` hasta el final del archivo),
