@@ -1057,20 +1057,20 @@
       "closedDate": null
     },
     {
-      "id": "UI.12.2b",
+      "id": "UI.13",
       "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
       "delegation": "🧠",
-      "title": "Deshacer el CSS que sumó UI.12.2: Header/Sidebar con los className del prototipo",
+      "title": "El prototipo de AI Studio ES el frontend: fuera el vanilla JS/CSS",
       "status": "open",
       "closedDate": null
     },
     {
-      "id": "UI.12.3a",
+      "id": "UI.13.1",
       "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
-      "delegation": "🧠",
-      "title": "Navegación de Settings como isla React, copiada del prototipo",
+      "delegation": "⚡",
+      "title": "Andamio: el prototipo servido en `/` como la app del producto",
       "status": "open",
       "closedDate": null
     },

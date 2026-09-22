@@ -2329,6 +2329,7 @@ ni eso hace falta.
   Circle) se guardó en `git stash` ("UI.11 parcial de Luna…"), sin commitear.
 
 - [ ] **UI.12 — 🧠 Look nuevo sobre el producto real, desde el prototipo de AI Studio.** (abierto 2026-09-21)
+  **2026-09-21: reemplazado por `UI.13`** (decisión de Carlos: el prototipo es el frontend, no se trasplanta al vanilla).
   Guía: `~/Documents/screens/orchestos-ai-agent-dashboard` (esencia del look, no spec funcional;
   memoria `feedback-prototipo-es-esencia-no-spec`). **Dos cosas que NO se copian (Carlos):** el
   uso de los CLI se queda **como está hoy** en el producto (no las barras "CLI QUOTAS" del sidebar
@@ -2400,17 +2401,28 @@ ni eso hace falta.
   `docs/specs/UI.12.2a.md`. Gate: tests del script verdes, un commit de prueba con +1 línea en
   `styles.css` rechazado y uno con −1 que baja el tope en `scripts/css-baseline.json`.
 
-- [ ] **UI.12.2b — 🧠 Deshacer el CSS que sumó UI.12.2: Header/Sidebar con los className del prototipo.** (abierto 2026-09-21)
-  GO de Carlos 2026-09-21. `97ce39c` sumó +119 líneas a `styles.css`; se reemplazan por los
-  `className` del prototipo copiados en las islas. Va después de `UI.12.2a`. Gate: `ui12-shell`,
-  `ui3-shell`, `ui81` verdes en vivo y el tope de CSS baja.
+- [ ] **UI.13 — 🧠 El prototipo de AI Studio ES el frontend: fuera el vanilla JS/CSS.** (abierto 2026-09-21)
+  **Decisión de Carlos 2026-09-21, textual:** *"vanilla JS y el CSS ME ESTÁN DANDO PROBLEMAS QUE YA
+  UN FRAMEWORK ME LO HIZO EN MINUTOS!!!! no quiero ver nada de ese código, solo tengamos de
+  ejemplo"*. Reemplaza el resto de `UI.12` (2b, 3a–3d: trasplante pieza a pieza dentro del vanilla;
+  UI.12.2 costó 7 rondas y UI.12.2b otras 5 solo afinando el spec, por choques con CSS viejo y
+  gates de píxel). El diff de UI.12.2b quedó en `git stash` ("UI.12.2b de Luna…").
+  **Regla de la cadena:** el código del prototipo (`~/Documents/screens/orchestos-ai-agent-dashboard/src`)
+  se copia **tal cual**: componentes, className, animaciones, vistas. Lo único que se escribe es la
+  capa que cambia sus mocks (`src/data/*.ts`) por la API real (`/api/*`, que no cambia). El vanilla
+  (`src/dashboard/public/*.js`, `styles.css`, `screens.css`, islas) es solo **referencia** para saber
+  qué endpoint y qué payload usa cada acción; no se edita ni se migra su markup. Gates: comportamiento
+  real (acción → efecto en la API/DB) en el dashboard corriendo, no medidas en píxeles.
+  1. `UI.13.1` Andamio: prototipo copiado a `src/dashboard/app/`, build con Bun, servido en `/`;
+     el vanilla pasa a `/legacy` hasta que el último ítem lo borre.
+  2. `UI.13.2` Datos: capa `api.ts` que reemplaza los mocks, vista por vista — Chat, proyectos/Dev,
+     Settings, Tasks/Runs/Graph, Memory/Specs/Skills/Instincts/Plan (un sub-ítem cada una).
+  3. `UI.13.3` Borrar el vanilla, `/legacy`, sus islas, sus CSS y los ui-gates de píxel.
 
-- [ ] **UI.12.3a — 🧠 Navegación de Settings como isla React, copiada del prototipo.** (abierto 2026-09-21)
-  Spec: `docs/specs/UI.12.3a.md`. Grupos e ítems del producto con el look del prototipo
-  (`OrchestSettingsView.tsx:399-606`); acciones siguen en el vanilla. Gate: `ui10-project-settings`
-  verde en vivo, captura contra el prototipo y el CSS vanilla baja. Siguen, un ítem cada uno:
-  `UI.12.3b` paneles (cards/filas), `UI.12.3c` Executor como un solo *Default agent*
-  (`:1146`), `UI.12.3d` página del proyecto con pestañas (`:1556`) + pestaña de borrado.
+- [ ] **UI.13.1 — ⚡ Andamio: el prototipo servido en `/` como la app del producto.** (abierto 2026-09-21)
+  Spec: `docs/specs/UI.13.1.md`. Gate: `/` en :4330 se ve igual al prototipo corriendo con Vite
+  (capturas lado a lado), `/legacy` abre el dashboard viejo, 0 requests a Google, `tsc` y
+  `test:coverage` verdes.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
