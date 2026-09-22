@@ -2418,6 +2418,12 @@ ni eso hace falta.
   2. `UI.13.2` Datos: capa `api.ts` que reemplaza los mocks, vista por vista — Chat, proyectos/Dev,
      Settings, Tasks/Runs/Graph, Memory/Specs/Skills/Instincts/Plan (un sub-ítem cada una).
   3. `UI.13.3` Borrar el vanilla, `/legacy`, sus islas, sus CSS y los ui-gates de píxel.
+  **Tope de tiempo (Carlos, 2026-09-21): lo que falta de UI.13 cabe en 2 h de la sesión siguiente.**
+  Para eso: un spec y una ronda por bloque grande (Settings; Tasks/Runs/Graph; Memory/Specs/Skills/
+  Instincts/Plan), sin sub-ítems; el ejecutor recibe también la lista de lo que el gate va a medir para
+  no enterarse en la ronda 2; gate del cerebro = smoke en vivo (carga con datos reales, 0 errores, una
+  acción clave por vista), no inventario exhaustivo. Una vista que no cierre en su ronda queda con su
+  ruta en `/legacy` y se anota; no se abre una tercera ronda dentro del tope.
 
 - [x] **UI.13.1 — ⚡ Andamio: el prototipo servido en `/` como la app del producto.** (abierto 2026-09-21, cerrado 2026-09-21)
   Ejecutado por: luna · Spec: docs/specs/UI.13.1.md (2 rondas; borrado al cerrar)
