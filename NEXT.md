@@ -9,13 +9,16 @@ el vanilla vive en `/legacy` solo hasta UI.13.3 y no se edita. Tope: **lo que fa
 UI.12.2a (trinquete CSS), UI.13.1 (andamio, `/` 573 ms vs `/legacy` 4.298 ms), UI.13.1b (fallback `/api` → 404),
 UI.13.2a (Chat con datos reales). Último push: `675be66`.
 
-## En curso al cerrar la tab
-- **UI.13.2b** (proyectos, header, Dev, Files) — Luna lanzada 22:58 (`codex exec … "Ejecuta docs/specs/UI.13.2b.md"`,
-  PID 25173, que abrió otra Luna hija PID 28641). Salida en `/tmp/luna-ui132b.log`. Cambios **sin commitear**
-  en `src/dashboard/app/`.
+## Estado al cerrar la tab
+- **UI.13.2b** (proyectos, header, Dev, Files) — Luna **detenida a mano a pedido de Carlos** (kill 23:0x),
+  a mitad de camino. Diff parcial **sin commitear** en `src/dashboard/app/` (App.tsx, OrcaRightInspector,
+  OrchestDevWorkspace, ShellHeader, ShellSidebar, types; nuevos `api/projects.ts`, `api/projects.test.ts`,
+  `api/explorer.ts`). No verificado: puede no compilar.
 
 ## Primer paso en la tab nueva
-1. `ps aux | grep "codex exec"` — ¿terminó Luna? Leer `tail -30 /tmp/luna-ui132b.log` y `git status`.
+1. `bun run build:app && bun run typecheck` sobre el diff parcial. Relanzar Luna con
+   `codex exec -m gpt-5.6-luna --approve-for-me "Continúa docs/specs/UI.13.2b.md: hay un diff parcial tuyo
+   en el working tree, complétalo. No invoques codex exec ni delegues a otro agente." < /dev/null`.
 2. Gate en vivo del cerebro (Luna no puede abrir puertos en su sandbox): `bun run build:app`,
    `bun src/cli.ts dashboard --port 4330`, Playwright con el patrón de `/tmp/ui132a-gate.mjs`
    (`createRequire` del `package.json` del repo para `playwright`). Medir lo que lista la sección
