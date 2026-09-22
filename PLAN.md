@@ -2433,7 +2433,11 @@ ni eso hace falta.
   (capturas lado a lado), `/legacy` abre el dashboard viejo, 0 requests a Google, `tsc` y
   `test:coverage` verdes.
 
-- [ ] **UI.13.1b — ⚡ El fallback de la app no se traga rutas `/api` no atendidas.** (abierto 2026-09-21)
+- [x] **UI.13.1b — ⚡ El fallback de la app no se traga rutas `/api` no atendidas.** (abierto 2026-09-21, cerrado 2026-09-21)
+  Ejecutado por: luna · Spec: docs/specs/UI.13.1b.md (1 ronda; borrado al cerrar)
+  `serveStatic` responde 404 a `/api` y `/api/*` antes del fallback de la app.
+  Gate en vivo: dashboard real en :4330, corrida del cerebro con curl: `/` 200 html, `/legacy` 200 html,
+  `/api/projects/choose` 404, `/api/nope` 404, `/api/projects` 200 json. `test:coverage` 1450 pass / 0 fail.
   Spec: `docs/specs/UI.13.1b.md`. Regresión de UI.13.1 detectada por el pre-push:
   `projects-choose.test.ts:106` (GET `/api/projects/choose` da 200 en vez de 404). Gate: `test:coverage` verde.
 

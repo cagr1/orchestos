@@ -73,6 +73,10 @@ function serveStatic(url: string): Response {
     return serveFrom(APP_DIR, url.slice('/app/'.length))
   }
 
+  if (url === '/api' || url.startsWith('/api/')) {
+    return new Response('Not found', { status: 404 })
+  }
+
   // The AI Studio prototype is the product UI. Any non-API route without an
   // extension is a client-side route and must boot that app shell.
   if (url === '/' || !extname(url)) {
