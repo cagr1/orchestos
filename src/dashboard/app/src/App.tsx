@@ -44,7 +44,9 @@ import {
 } from './types/orchestos';
 
 export default function App() {
-  const [theme, setTheme] = useState<string>('orchestos');
+  const [theme, setTheme] = useState<string>(() => {
+    try { return localStorage.getItem('orchestos-theme') || 'orchestos'; } catch { return 'orchestos'; }
+  });
   const [mode, setMode] = useState<AppMode>('chat');
   const [previousMode, setPreviousMode] = useState<AppMode>('chat');
 
@@ -60,7 +62,12 @@ export default function App() {
   // Settings deep-link state
   const [settingsSection, setSettingsSection] = useState<SettingsSection>('project_orchestos');
   const [settingsProjectTab, setSettingsProjectTab] = useState<ProjectSubTab>('tasks');
-  const [language, setLanguage] = useState<'en' | 'es'>('en');
+  const [language, setLanguage] = useState<'en' | 'es'>(() => {
+    try { return (localStorage.getItem('orchestos-language') as 'en' | 'es' | null) || 'en'; } catch { return 'en'; }
+  });
+
+  useEffect(() => { localStorage.setItem('orchestos-theme', theme); }, [theme]);
+  useEffect(() => { localStorage.setItem('orchestos-language', language); }, [language]);
 
   // Core OrchestOS entities state
   const [tasks, setTasks] = useState<TaskItem[]>(initialMockTasks);

@@ -12,11 +12,14 @@ plantilla `~/Documents/screens/orchestos-ai-agent-dashboard`. Anotado en PLAN.md
 ## Hecho y pusheado
 UI.12.2a, UI.13.1, UI.13.1b, UI.13.2a (Chat), UI.13.2b (proyectos/Dev/Files, cerrado 2026-09-22).
 
-## Siguiente
-Bloques restantes, **una ronda cada uno**, spec con la lista de lo que el gate va a medir:
-Settings → Tasks/Runs/Graph → Memory/Specs/Skills/Instincts/Plan → UI.13.3 borrar vanilla.
-Gate en vivo con el patrón de `/tmp/ui132b-gate*.mjs` (Playwright vía `createRequire` del repo).
-Pendiente menor: duración de agentes en el sidebar muestra `0m` casi siempre.
+## Siguiente (serial, una ronda cada uno)
+1. UI.13.2c Settings — cerrado 2026-09-22. Pendiente menor: idioma solo traduce Settings.
+2. UI.13.4a — spec lista `docs/specs/UI.13.4a.md` (archivar→History, quitar proyecto, tiempos).
+3. UI.13.4b consola Dev (logs reales + shell con frontera del runner) y UI.13.4c razonamiento/
+   herramientas/tarea retenida en el chat — specs por escribir. Decisiones de Carlos en PLAN.md § UI.13.4.
+4. Tasks/Runs/Graph → Memory/Specs/Skills/Instincts/Plan → UI.13.3 borrar vanilla.
+Gate en vivo con el patrón de `/tmp/ui132b-gate*.mjs`. Regla nueva: comportamientos de la plantilla se
+hacen reales, no se quitan (PLAN.md § UI.13).
 
 ## Avisos
 - Al lanzar Luna, agregar al prompt: "No invoques codex exec ni delegues a otro agente" (hoy se anidó sola).

@@ -1,0 +1,14 @@
+{
+  "item": "UI.13.2c",
+  "date": "2026-09-22",
+  "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330; config y .env respaldados y restaurados",
+  "sections": "General, Health, API & Models, Model routing, Executor, Usage, Danger zone, Language renderizan datos de sus endpoints",
+  "theme": "Light elegido → aplica en toda la app → persiste tras recargar (localStorage orchestos-theme)",
+  "language": "Español persiste tras recargar; traduce Settings, el resto de la app sigue en inglés",
+  "ollama_url": "Save URL → POST /api/settings {OLLAMA_HOST} → GET /api/settings lo devuelve set",
+  "routing_idempotent": "GET→PUT sin cambios manda los mismos ids que el vanilla (ronda 2 duplicaba openrouter/)",
+  "routing_change": "combobox → Auto Router → PUT planner 'openrouter/auto' → yaml model: openrouter/auto",
+  "usage": "totales y tabla por modelo de /api/usage; subtítulos inventados reemplazados por datos reales",
+  "page_errors": [],
+  "rounds": 3
+}

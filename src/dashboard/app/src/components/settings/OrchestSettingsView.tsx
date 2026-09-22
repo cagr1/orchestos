@@ -51,6 +51,12 @@ import { SkillsView } from '../skills/SkillsView';
 import { InstinctsView } from '../instincts/InstinctsView';
 import { ContextView } from '../context/ContextView';
 import { PlanBoardView } from '../plan/PlanBoardView';
+import {
+  getConfig, getExecutorModes, getHealth, getLocalProvider, getModels, getSettings, getSetup,
+  getUsage, mapSettingsKeys, mapUsageByModel, resetSystem, saveApiKey, saveConfig, saveSettings,
+} from '../../api/settings';
+import type { ConfigResponse, ExecutorModesResponse, HealthResponse, LocalProviderResponse, SetupResponse, UsageResponse } from '../../api/settings';
+import type { ChatModelOption } from '../../api/chat';
 
 export type SettingsSection =
   | 'general'
@@ -160,7 +166,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   // Confirmation Modals
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [keyAssistantModal, setKeyAssistantModal] = useState<string | null>(null);
+  const [keyAssistantModal, setKeyAssistantModal] = useState<'openrouter' | 'anthropic' | 'openai' | null>(null);
   const [assistantKeyInput, setAssistantKeyInput] = useState('');
 
   // Feedback notifications
@@ -186,21 +192,25 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState({
-    openrouter: { set: true, masked: 'sk-or-••••••••••••••8f2b', newKey: '' },
-    anthropic: { set: true, masked: 'sk-ant-••••••••••••••39a1', newKey: '' },
-    openai: { set: false, masked: 'Not configured', newKey: '' },
-    ollamaUrl: 'http://localhost:11434',
-    ollamaDetected: true,
+    openrouter: { set: false, masked: '', newKey: '' },
+    anthropic: { set: false, masked: '', newKey: '' },
+    openai: { set: false, masked: '', newKey: '' },
+    ollama: { set: false, masked: '' },
   });
+  const [setup, setSetup] = useState<SetupResponse | null>(null);
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [localProvider, setLocalProvider] = useState<LocalProviderResponse | null>(null);
+  const [executorModes, setExecutorModes] = useState<ExecutorModesResponse | null>(null);
+  const [usage, setUsage] = useState<UsageResponse | null>(null);
+  const [models, setModels] = useState<ChatModelOption[]>([]);
+  const [config, setConfig] = useState<ConfigResponse | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [ollamaHost, setOllamaHost] = useState('');
 
   // Model Routing state
-  const [routingOrigin, setRoutingOrigin] = useState<'defaults' | 'custom'>('defaults');
   const [roleModels, setRoleModels] = useState({
-    planner: 'claude-3-7-sonnet',
-    executorHeavy: 'gpt-5.6-codex',
-    executorLight: 'claude-3-5-haiku',
-    default: 'claude-3-7-sonnet',
-    qaJudge: 'auto',
+    planner: '', executorHeavy: '', executorLight: '', default: '', qaJudge: '',
   });
   const [isTaskModelTableOpen, setIsTaskModelTableOpen] = useState(false);
 
@@ -208,21 +218,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [activeComboboxRole, setActiveComboboxRole] = useState<string | null>(null);
   const [comboboxSearch, setComboboxSearch] = useState('');
 
-  const ALL_SEARCHABLE_MODELS = [
-    { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet', provider: 'Anthropic' },
-    { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
-    { id: 'gpt-5.6-codex', name: 'GPT-5.6 Codex', provider: 'OpenAI' },
-    { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
-    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
-    { id: 'deepseek-v3', name: 'DeepSeek V3', provider: 'DeepSeek' },
-    { id: 'qwen-2.5-coder-32b', name: 'Qwen 2.5 Coder 32B', provider: 'Alibaba' },
-  ];
+  const ALL_SEARCHABLE_MODELS = models;
 
   // Default agent & executor state (Orca Agents pattern)
-  const [defaultAgent, setDefaultAgent] = useState<string>('Codex');
-  const [apiMode, setApiMode] = useState<'single-shot' | 'agentic'>('agentic');
-  const [maxIterations, setMaxIterations] = useState<number>(10);
-  const [timeoutMinutes, setTimeoutMinutes] = useState<number>(30);
+  const [defaultAgent, setDefaultAgent] = useState<string>('Auto');
+  const [apiMode, setApiMode] = useState<'single-shot' | 'agentic'>('single-shot');
+  const [maxIterations, setMaxIterations] = useState<number>(15);
+  const [timeoutMinutes, setTimeoutMinutes] = useState<number>(20);
 
   // Daily activity hover inspector
   const [hoveredActivityDay, setHoveredActivityDay] = useState<{
@@ -231,14 +233,124 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   } | null>(null);
 
   // Single source of truth for usage telemetry (KPIs & table in sync)
-  const modelUsageRows = [
-    { model: 'Claude 3.7 Sonnet', runs: 94, tokens: '384k', spend: 3.18 },
-    { model: 'gpt-5.6-codex', runs: 32, tokens: '142k', spend: 1.12 },
-    { model: 'claude-3-5-haiku', runs: 16, tokens: '54k', spend: 0.52 },
-  ];
-  const totalRunsUsage = modelUsageRows.reduce((acc, row) => acc + row.runs, 0); // 142
-  const totalSpendUsage = modelUsageRows.reduce((acc, row) => acc + row.spend, 0); // 4.82
-  const avgCostUsage = (totalSpendUsage / totalRunsUsage).toFixed(3); // 0.034
+  const modelUsageRows = usage ? mapUsageByModel(usage).map((row) => ({ ...row, tokens: row.tokens.toLocaleString() })) : [];
+  const totalRunsUsage = usage?.totalRuns ?? 0;
+  const totalSpendUsage = usage?.totalUsd ?? 0;
+  const avgCostUsage = totalRunsUsage ? (totalSpendUsage / totalRunsUsage).toFixed(3) : '0.000';
+
+  React.useEffect(() => {
+    let disposed = false;
+    setSettingsLoading(true);
+    Promise.all([getSettings(), getSetup(), getHealth(), getLocalProvider(), getExecutorModes(), getUsage(), getConfig(), getModels()])
+      .then(([settings, nextSetup, nextHealth, nextLocal, nextModes, nextUsage, nextConfig, nextModels]) => {
+        if (disposed) return;
+        const keys = mapSettingsKeys(settings);
+        setApiKeys({
+          openrouter: { ...keys.openrouter, newKey: '' },
+          anthropic: { ...keys.anthropic, newKey: '' },
+          openai: { ...keys.openai, newKey: '' },
+          ollama: keys.ollama,
+        });
+        setOllamaHost(keys.ollama.masked);
+        setSetup(nextSetup);
+        setHealth(nextHealth);
+        setLocalProvider(nextLocal);
+        setExecutorModes(nextModes);
+        setUsage(nextUsage);
+        setConfig(nextConfig);
+        setModels(nextModels);
+        setRoleModels({
+          planner: nextConfig.roles.planner,
+          executorHeavy: nextConfig.roles.executor_heavy,
+          executorLight: nextConfig.roles.executor_light,
+          default: nextConfig.roles.default,
+          qaJudge: nextConfig.roles.qa ?? '',
+        });
+        setDefaultAgent(nextConfig.agent === 'api' ? 'API' : nextConfig.agent ? nextConfig.agent[0].toUpperCase() + nextConfig.agent.slice(1) : 'Auto');
+        setApiMode(nextConfig.apiMode);
+        setMaxIterations(nextConfig.agenticMaxIterations);
+        setTimeoutMinutes(nextConfig.externalTimeoutMinutes);
+        setSettingsError(null);
+      })
+      .catch((error: unknown) => {
+        if (!disposed) setSettingsError(error instanceof Error ? error.message : 'Settings could not be loaded');
+      })
+      .finally(() => { if (!disposed) setSettingsLoading(false); });
+    return () => { disposed = true; };
+  }, []);
+
+  const refreshSettings = async () => {
+    const [settings, nextConfig] = await Promise.all([getSettings(), getConfig()]);
+    const keys = mapSettingsKeys(settings);
+    setApiKeys((current) => ({
+      openrouter: { ...keys.openrouter, newKey: current.openrouter.newKey },
+      anthropic: { ...keys.anthropic, newKey: current.anthropic.newKey },
+      openai: { ...keys.openai, newKey: current.openai.newKey },
+      ollama: keys.ollama,
+    }));
+    setOllamaHost(keys.ollama.masked);
+    setConfig(nextConfig);
+  };
+
+  const handleSaveKey = async (provider: 'openrouter' | 'anthropic' | 'openai') => {
+    const key = apiKeys[provider].newKey.trim();
+    if (!key) return;
+    try {
+      await saveApiKey(provider, key);
+      await refreshSettings();
+      setApiKeys((current) => ({ ...current, [provider]: { ...current[provider], newKey: '' } }));
+      showSaveSuccess('API keys');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not save API key');
+    }
+  };
+
+  const handleSaveAssistantKey = async () => {
+    if (!keyAssistantModal || !assistantKeyInput.trim()) return;
+    try {
+      await saveApiKey(keyAssistantModal, assistantKeyInput.trim());
+      await refreshSettings();
+      setKeyAssistantModal(null);
+      setAssistantKeyInput('');
+      showSaveSuccess(language === 'es' ? 'clave API' : 'API key');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not save API key');
+    }
+  };
+
+  const handleSaveOllama = async () => {
+    try {
+      await saveSettings({ OLLAMA_HOST: ollamaHost.trim() });
+      await refreshSettings();
+      setLocalProvider(await getLocalProvider());
+      showSaveSuccess(language === 'es' ? 'configuración de Ollama' : 'Ollama settings');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not save Ollama settings');
+    }
+  };
+
+  const handleSaveRouting = async () => {
+    try {
+      await saveConfig({
+        roles: {
+          planner: roleModels.planner,
+          executor_heavy: roleModels.executorHeavy,
+          executor_light: roleModels.executorLight,
+          default: roleModels.default,
+          qa: roleModels.qaJudge,
+        },
+      });
+      showSaveSuccess('Model routing');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save model routing'); }
+  };
+
+  const handleSaveExecutor = async () => {
+    try {
+      const agent = defaultAgent === 'Auto' ? null : defaultAgent.toLowerCase();
+      await saveConfig({ agent, apiMode, agenticMaxIterations: maxIterations, externalTimeoutMinutes: timeoutMinutes });
+      showSaveSuccess('Executor');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save executor settings'); }
+  };
 
   // Daily activity cells with uniform style and date tooltips
   const dailyActivityCells = React.useMemo(() => {
@@ -253,30 +365,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     for (let i = 118; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dayOfWeek = d.getDay();
-      const pseudoHash = (i * 23 + dayOfWeek * 7 + 11) % 100;
-      let runs = 0;
-      let intensity: 0 | 1 | 2 | 3 | 4 = 0;
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        if (pseudoHash > 75) {
-          runs = (pseudoHash % 2) + 1;
-          intensity = 1;
-        }
-      } else {
-        if (pseudoHash > 85) {
-          runs = (pseudoHash % 6) + 7;
-          intensity = 4;
-        } else if (pseudoHash > 60) {
-          runs = (pseudoHash % 3) + 4;
-          intensity = 3;
-        } else if (pseudoHash > 35) {
-          runs = (pseudoHash % 2) + 2;
-          intensity = 2;
-        } else if (pseudoHash > 15) {
-          runs = 1;
-          intensity = 1;
-        }
-      }
+      const dateKey = d.toISOString().slice(0, 10);
+      const runs = (usage?.byDayModel ?? [])
+        .filter((row) => row.date === dateKey)
+        .reduce((total, row) => total + row.runs, 0);
+      const intensity: 0 | 1 | 2 | 3 | 4 = runs === 0 ? 0 : runs < 2 ? 1 : runs < 5 ? 2 : runs < 10 ? 3 : 4;
       const dateStr = d.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
         month: 'short',
         day: 'numeric',
@@ -300,7 +393,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       });
     }
     return cells;
-  }, [language]);
+  }, [language, usage]);
 
   const AGENTS_LIST = [
     {
@@ -350,38 +443,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const selectedProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
   const themeOptions = [
-    {
-      id: 'orchestos',
-      name: 'OrchestOS',
-      desc: language === 'es' ? 'Fondo marino profundo (#080c14) con acentos celestes' : 'Default deep navy canvas (#080c14) with sky accents',
-      bgHex: '#080c14',
-      surfaceHex: '#0f172a',
-      accentHex: '#38bdf8',
-    },
-    {
-      id: 'graphite',
-      name: 'Graphite',
-      desc: language === 'es' ? 'Pizarra oscura suave con perfiles en gris frío' : 'Subtle slate studio dark with cool gray contours',
-      bgHex: '#18181b',
-      surfaceHex: '#27272a',
-      accentHex: '#a1a1aa',
-    },
-    {
-      id: 'carbon',
-      name: 'Carbon',
-      desc: language === 'es' ? 'Tono negro carbón puro (#09090b) de alto contraste' : 'Minimalist pitch-black tone (#09090b) with high contrast',
-      bgHex: '#09090b',
-      surfaceHex: '#18181b',
-      accentHex: '#f4f4f5',
-    },
-    {
-      id: 'light',
-      name: 'Light',
-      desc: language === 'es' ? 'Diseño diurno limpio y de alta legibilidad' : 'Clean crisp daylight theme with high contrast typography',
-      bgHex: '#f8fafc',
-      surfaceHex: '#ffffff',
-      accentHex: '#0284c7',
-    },
+    { id: 'orchestos', name: 'OrchestOS', desc: language === 'es' ? 'Fondo marino profundo (#080c14) con acentos celestes' : 'Default deep navy canvas (#080c14) with sky accents', bgHex: '#080c14', surfaceHex: '#0f172a', accentHex: '#38bdf8' },
+    { id: 'graphite', name: 'Graphite', desc: language === 'es' ? 'Pizarra oscura suave con perfiles en gris frío' : 'Subtle slate studio dark with cool gray contours', bgHex: '#18181b', surfaceHex: '#27272a', accentHex: '#a1a1aa' },
+    { id: 'carbon', name: 'Carbon', desc: language === 'es' ? 'Tono negro carbón puro (#09090b) de alto contraste' : 'Minimalist pitch-black tone (#09090b) with high contrast', bgHex: '#09090b', surfaceHex: '#18181b', accentHex: '#f4f4f5' },
+    { id: 'light', name: 'Light', desc: language === 'es' ? 'Diseño diurno limpio y de alta legibilidad' : 'Clean crisp daylight theme with high contrast typography', bgHex: '#f8fafc', surfaceHex: '#ffffff', accentHex: '#0284c7' },
   ];
 
   const isProjectSection = activeSection.startsWith('project_');
@@ -614,6 +679,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             <span>Saved {savedBanner} configuration successfully.</span>
           </div>
         )}
+        {settingsLoading && (
+          <div className="px-4 py-2 border-b border-app text-xs text-app-muted font-mono">Loading live settings…</div>
+        )}
+        {settingsError && (
+          <div className="px-4 py-2 border-b border-rose-800/60 bg-rose-950/30 text-xs text-rose-300">{settingsError}</div>
+        )}
 
         {/* SECTION: GENERAL — APPEARANCE */}
         {activeSection === 'general' && (
@@ -698,10 +769,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 <div>
                   <div className="font-semibold text-app flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>All prerequisites met</span>
+                    <span>{health?.system.ready ? 'All prerequisites met' : 'Setup needs attention'}</span>
                   </div>
                   <div className="text-xs text-app-muted mt-0.5">
-                    Bun runtime verified, SQLite ready, AST graph synchronized.
+                    {health ? `${health.system.items.filter((item) => item.ok).length}/${health.system.items.length} system checks passing in ${setup?.cwd || health.system.cwd}.` : 'Loading system checks...'}
                   </div>
                 </div>
                 <button
@@ -718,7 +789,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 <div>
                   <div className="font-semibold text-app">Blocked tasks</div>
                   <div className="text-xs text-app-muted mt-0.5">
-                    0 contract violations currently halting worktrees.
+                    {health?.blockedTasks.length ?? 0} contract violations currently halting worktrees.
                   </div>
                 </div>
                 <button
@@ -738,7 +809,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 <div>
                   <div className="font-semibold text-app">Pending review</div>
                   <div className="text-xs text-app-muted mt-0.5">
-                    1 spec and 2 task held decisions awaiting operator approval.
+                    {health ? `${health.pendingApproval.draftSpecs} draft specs and ${health.pendingApproval.unverifiedInstincts} instincts awaiting approval.` : 'Loading approval queue...'}
                   </div>
                 </div>
                 <button
@@ -758,7 +829,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 <div>
                   <div className="font-semibold text-app">Last 7 days cost</div>
                   <div className="text-xs text-app-muted mt-0.5">
-                    $1.42 spent across 142 deterministic executor runs.
+                    ${health?.costLast7d.toFixed(2) ?? '0.00'} spent across the last 7 days.
                   </div>
                 </div>
                 <button
@@ -775,7 +846,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 <div>
                   <div className="font-semibold text-app">Recent learnings</div>
                   <div className="text-xs text-app-muted mt-0.5">
-                    3 instincts auto-synthesized from verified test runs.
+                    {health?.recentLearnings.length ?? 0} recent verified learnings.
                   </div>
                 </div>
                 <button
@@ -822,10 +893,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setKeyAssistantModal('OpenRouter')}
+                    onClick={() => setKeyAssistantModal('openrouter')}
                     className="px-3 py-1 rounded-control bg-app-elevated border border-app text-xs text-app font-medium hover:border-app-accent"
                   >
-                    Change key
+                    Save key
                   </button>
                 </div>
                 <div className="flex items-center gap-3">
@@ -865,10 +936,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setKeyAssistantModal('Anthropic')}
+                    onClick={() => setKeyAssistantModal('anthropic')}
                     className="px-3 py-1 rounded-control bg-app-elevated border border-app text-xs text-app font-medium hover:border-app-accent"
                   >
-                    Change key
+                    Save key
                   </button>
                 </div>
                 <div className="flex items-center gap-3">
@@ -908,10 +979,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setKeyAssistantModal('OpenAI')}
+                    onClick={() => setKeyAssistantModal('openai')}
                     className="px-3 py-1 rounded-control bg-app-elevated border border-app text-xs text-app font-medium hover:border-app-accent"
                   >
-                    Change key
+                    Save key
                   </button>
                 </div>
                 <div className="flex items-center gap-3">
@@ -933,28 +1004,31 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </div>
               </div>
 
-              {/* Ollama Row */}
+              {/* Local provider status */}
               <div className="rounded-card border border-app bg-app-surface p-4 space-y-2 text-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Server className="w-4 h-4 text-emerald-400" />
                     <span className="font-semibold text-app">Ollama Local</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-pill border bg-emerald-950/40 text-emerald-400 border-emerald-800/40">
-                      Detected
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-pill border ${localProvider?.available ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+                      {localProvider?.available ? 'Available' : 'Unavailable'}
                     </span>
                   </div>
+                  <div className="text-xs text-app-muted">
+                    {localProvider?.models.length ? `${localProvider.models.length} local model${localProvider.models.length === 1 ? '' : 's'} detected.` : 'Ollama is not responding.'}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-app-muted flex-shrink-0">URL:</span>
-                  <input
-                    type="text"
-                    value={apiKeys.ollamaUrl}
-                    onChange={(e) =>
-                      setApiKeys((prev) => ({ ...prev, ollamaUrl: e.target.value }))
-                    }
-                    className="w-full max-w-sm px-2.5 py-1 bg-app-bg border border-app rounded-control font-mono text-xs text-app"
-                  />
+              </div>
+
+              <div className="rounded-card border border-app bg-app-surface p-4 space-y-2 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-4 h-4 text-emerald-400" />
+                    <span className="font-semibold text-app">Ollama URL</span>
+                  </div>
+                  <button type="button" onClick={() => void handleSaveOllama()} className="px-3 py-1 rounded-control bg-app-elevated border border-app text-xs text-app font-medium hover:border-app-accent">Save URL</button>
                 </div>
+                <input type="url" value={ollamaHost} placeholder="http://localhost:11434" onChange={(e) => setOllamaHost(e.target.value)} className="w-full max-w-sm px-2.5 py-1 bg-app-bg border border-app rounded-control font-mono text-xs text-app" />
               </div>
 
               {/* Footnote + Save */}
@@ -962,13 +1036,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 <p className="font-mono text-xs">
                   Leave a field blank to keep its current value. Stored in ~/.orchestos/.env
                 </p>
-                <button
-                  type="button"
-                  onClick={() => showSaveSuccess('API Keys')}
-                  className="px-4 py-1.5 rounded-control bg-app-accent text-zinc-950 font-bold text-xs hover:opacity-90 transition-opacity"
-                >
-                  Save
-                </button>
+                <span className="text-[10px] text-app-muted">Keys are validated and saved per provider.</span>
               </div>
             </div>
           </div>
@@ -985,23 +1053,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-app-muted font-mono">Origin: {routingOrigin}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRoleModels({
-                      planner: 'gemini-2.5-pro',
-                      executorHeavy: 'deepseek-v3',
-                      executorLight: 'qwen-2.5-coder-32b',
-                      default: 'gemini-2.5-pro',
-                      qaJudge: 'auto',
-                    });
-                    showSaveSuccess('Free preset loaded');
-                  }}
-                  className="px-3 py-1 rounded-control bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-                >
-                  Start free
-                </button>
+                <span className="text-xs text-app-muted font-mono">Source: {config?.source ? 'orchestos.config.yaml' : 'defaults'}</span>
               </div>
             </div>
 
@@ -1054,9 +1106,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             autoFocus
                           />
                           <div className="space-y-0.5">
-                            {ALL_SEARCHABLE_MODELS.filter((m) =>
-                              m.name.toLowerCase().includes(comboboxSearch.toLowerCase())
-                            ).map((m) => (
+                            {ALL_SEARCHABLE_MODELS.filter((m) => {
+                              const query = comboboxSearch.toLowerCase();
+                              return m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query);
+                            }).map((m) => (
                               <button
                                 key={m.id}
                                 type="button"
@@ -1068,7 +1121,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                               >
                                 <span className="font-medium">{m.name}</span>
                                 <span className="text-[10px] font-mono text-app-muted">
-                                  {m.provider}
+                                  {m.id.split('/')[0]}
                                 </span>
                               </button>
                             ))}
@@ -1130,7 +1183,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             <div className="flex justify-end pt-2">
               <button
                 type="button"
-                onClick={() => showSaveSuccess('Model Routing')}
+                onClick={() => void handleSaveRouting()}
                 className="px-4 py-1.5 rounded-control bg-app-accent text-zinc-950 font-bold text-xs hover:opacity-90 transition-opacity"
               >
                 Save
@@ -1145,7 +1198,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             <div>
               <h1 className="text-xl font-bold text-app tracking-tight">Default agent</h1>
               <p className="text-xs text-app-muted mt-1">
-                Which agent runs the tasks OrchestOS creates. A task can override it with its own engine:.
+                Which agent runs the tasks OrchestOS creates. A task can override it with its own engine.
               </p>
             </div>
 
@@ -1154,11 +1207,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
                 {AGENTS_LIST.map((agent) => {
                   const isSelected = defaultAgent === agent.name;
+                  const detected = executorModes?.modes.find((mode) => mode.id === agent.id.toLowerCase())?.detected;
+                  const canUse = detected ?? agent.installed;
                   return (
                     <button
                       key={agent.id}
                       type="button"
-                      disabled={!agent.installed}
+                      disabled={!canUse}
                       onClick={() => {
                         setDefaultAgent(agent.name);
                         showToast(`Default agent: ${agent.name}`);
@@ -1166,7 +1221,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       className={`relative flex flex-col items-center justify-center p-3 rounded-card border text-center transition-all min-h-[96px] ${
                         isSelected
                           ? 'bg-app-elevated border-app-accent shadow-xs text-app ring-1 ring-app-accent/40'
-                          : agent.installed
+                          : canUse
                           ? 'bg-app-bg border-app text-app hover:border-app-accent/60 hover:bg-app-elevated/40 cursor-pointer'
                           : 'bg-app-bg/40 border-app/40 text-app-muted cursor-not-allowed opacity-45'
                       }`}
@@ -1185,7 +1240,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         {agent.name}
                       </div>
 
-                      {!agent.installed && (
+                      {!canUse && (
                         <div className="text-[10px] text-zinc-500 font-mono mt-1 leading-none">
                           Not installed
                         </div>
@@ -1324,6 +1379,15 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 )}
               </div>
             )}
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => void handleSaveExecutor()}
+                className="px-4 py-1.5 rounded-control bg-app-accent text-zinc-950 font-bold text-xs hover:opacity-90 transition-opacity"
+              >
+                Save executor
+              </button>
+            </div>
           </div>
         )}
 
@@ -1342,19 +1406,19 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <div className="p-3.5 rounded-card border border-app bg-app-surface space-y-1">
                 <div className="text-xs font-mono text-app-muted uppercase">Total Spend</div>
                 <div className="text-xl font-bold text-app font-mono">${totalSpendUsage.toFixed(2)}</div>
-                <div className="text-[10px] text-emerald-400">Within allocated quota</div>
+                <div className="text-[10px] text-emerald-400">{usage ? `${usage.byDayModel.length} telemetry rows` : 'Loading telemetry'}</div>
               </div>
 
               <div className="p-3.5 rounded-card border border-app bg-app-surface space-y-1">
                 <div className="text-xs font-mono text-app-muted uppercase">Total Runs</div>
                 <div className="text-xl font-bold text-app font-mono">{totalRunsUsage}</div>
-                <div className="text-[10px] text-sky-400">100% contract compliant</div>
+                <div className="text-[10px] text-sky-400">{modelUsageRows.length} models observed</div>
               </div>
 
               <div className="p-3.5 rounded-card border border-app bg-app-surface space-y-1">
                 <div className="text-xs font-mono text-app-muted uppercase">Avg. Cost / Run</div>
                 <div className="text-xl font-bold text-app font-mono">${avgCostUsage}</div>
-                <div className="text-[10px] text-zinc-400">88.4% prompt cache hit</div>
+                <div className="text-[10px] text-zinc-400">{modelUsageRows[0]?.model ? `Top model: ${modelUsageRows[0].model}` : 'No model activity yet'}</div>
               </div>
             </div>
 
@@ -1490,37 +1554,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <button
-                type="button"
-                onClick={() => onSelectLanguage('en')}
-                className={`p-4 rounded-card border text-left transition-all ${
-                  language === 'en'
-                    ? 'bg-app-elevated border-app-accent text-app shadow-xs'
-                    : 'bg-app-surface border-app text-app-muted hover:text-app'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold text-sm text-app">English</span>
-                  {language === 'en' && <Check className="w-4 h-4 text-app-accent" />}
-                </div>
-                <p className="text-xs text-app-muted">English language interface</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onSelectLanguage('es')}
-                className={`p-4 rounded-card border text-left transition-all ${
-                  language === 'es'
-                    ? 'bg-app-elevated border-app-accent text-app shadow-xs'
-                    : 'bg-app-surface border-app text-app-muted hover:text-app'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold text-sm text-app">Español</span>
-                  {language === 'es' && <Check className="w-4 h-4 text-app-accent" />}
-                </div>
-                <p className="text-xs text-app-muted">Interfaz completa en idioma español</p>
-              </button>
+              {(['en', 'es'] as const).map((option) => (
+                <button key={option} type="button" onClick={() => onSelectLanguage(option)} className={`p-4 rounded-card border text-left transition-all ${language === option ? 'bg-app-elevated border-app-accent text-app shadow-xs' : 'bg-app-surface border-app text-app-muted hover:text-app'}`}>
+                  <div className="flex items-center justify-between mb-1"><span className="font-semibold text-sm text-app">{option === 'en' ? 'English' : 'Español'}</span>{language === option && <Check className="w-4 h-4 text-app-accent" />}</div>
+                  <p className="text-xs text-app-muted">{option === 'en' ? 'English language interface' : 'Interfaz completa en idioma español'}</p>
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -1802,9 +1841,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  if (onResetOrchestos) onResetOrchestos();
-                  setShowResetConfirm(false);
-                  showSaveSuccess('OrchestOS Reset completed');
+                  void resetSystem().then(() => {
+                    onResetOrchestos?.();
+                    setShowResetConfirm(false);
+                    showSaveSuccess('OrchestOS reset completed');
+                  }).catch((error: unknown) => showToast(error instanceof Error ? error.message : 'Reset failed'));
                 }}
                 className="px-3 py-1.5 rounded-control bg-rose-600 hover:bg-rose-500 text-white font-bold"
               >
@@ -1815,59 +1856,20 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         </div>
       )}
 
-      {/* Key Assistant Modal */}
       {keyAssistantModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs"
-        >
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-card bg-app-surface border border-app p-5 shadow-2xl space-y-4 text-xs">
-            <h3 className="text-sm font-bold text-app">Configure {keyAssistantModal} Key</h3>
-            <p className="text-app-muted text-xs leading-relaxed">
-              Enter your secret token. It is stored securely in your local environment or user secrets file (~/.orchestos/.env).
-            </p>
-            <input
-              type="password"
-              value={assistantKeyInput}
-              onChange={(e) => setAssistantKeyInput(e.target.value)}
-              placeholder={`Paste ${keyAssistantModal} secret key...`}
-              className="w-full p-2 rounded-control bg-app-bg border border-app text-app font-mono text-xs focus:border-app-accent focus:outline-hidden"
-              autoFocus
-            />
+            <h3 className="text-sm font-bold text-app">Configure {keyAssistantModal} key</h3>
+            <p className="text-app-muted text-xs leading-relaxed">Enter your secret token. It is stored in your local OrchestOS environment.</p>
+            <input type="password" value={assistantKeyInput} onChange={(e) => setAssistantKeyInput(e.target.value)} placeholder={`Paste ${keyAssistantModal} secret key...`} className="w-full p-2 rounded-control bg-app-bg border border-app text-app font-mono text-xs focus:border-app-accent focus:outline-hidden" autoFocus />
             <div className="flex justify-end gap-2 pt-2 border-t border-app">
-              <button
-                type="button"
-                onClick={() => {
-                  setKeyAssistantModal(null);
-                  setAssistantKeyInput('');
-                }}
-                className="px-3 py-1.5 rounded-control text-app-muted hover:text-app"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (keyAssistantModal === 'OpenRouter') {
-                    setApiKeys((p) => ({ ...p, openrouter: { ...p.openrouter, set: true } }));
-                  } else if (keyAssistantModal === 'Anthropic') {
-                    setApiKeys((p) => ({ ...p, anthropic: { ...p.anthropic, set: true } }));
-                  } else if (keyAssistantModal === 'OpenAI') {
-                    setApiKeys((p) => ({ ...p, openai: { ...p.openai, set: true } }));
-                  }
-                  setKeyAssistantModal(null);
-                  setAssistantKeyInput('');
-                  showSaveSuccess(`${keyAssistantModal} key updated`);
-                }}
-                className="px-4 py-1.5 rounded-control bg-app-accent text-zinc-950 font-bold"
-              >
-                Save Key
-              </button>
+              <button type="button" onClick={() => { setKeyAssistantModal(null); setAssistantKeyInput(''); }} className="px-3 py-1.5 rounded-control text-app-muted hover:text-app">Cancel</button>
+              <button type="button" onClick={() => void handleSaveAssistantKey()} className="px-4 py-1.5 rounded-control bg-app-accent text-zinc-950 font-bold">Save key</button>
             </div>
           </div>
         </div>
       )}
+
       {/* Dynamic Toast Feedback (e.g. "Default agent: Codex") */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-none">

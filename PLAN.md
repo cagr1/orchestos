@@ -2419,6 +2419,10 @@ ni eso hace falta.
      no se arregla ni se alimenta; look, animaciones, iconos, textura y comportamiento salen de la
      plantilla `~/Documents/screens/orchestos-ai-agent-dashboard`. Lo que se conserva del producto
      (ej. usage en la barra inferior) se porta con el look de la plantilla.
+     **Carlos 2026-09-22 (2): los comportamientos de la plantilla se hacen reales, no se quitan.** Lo que en el
+     prototipo es hardcodeado (terminal del agente, History, cerrar agente → historial, borrar proyecto,
+     razonamiento/herramientas en el mensaje del bot, etc.) es la especificación de cómo debe comportarse
+     OrchestOS. "Sin backend → se quita" queda reemplazado por "sin backend → ítem para construirlo" (UI.13.4).
   2. `UI.13.2` Datos: capa `api.ts` que reemplaza los mocks, vista por vista — Chat, proyectos/Dev,
      Settings, Tasks/Runs/Graph, Memory/Specs/Skills/Instincts/Plan (un sub-ítem cada una).
   3. `UI.13.3` Borrar el vanilla, `/legacy`, sus islas, sus CSS y los ui-gates de píxel.
@@ -2478,6 +2482,37 @@ ni eso hace falta.
   Spec: `docs/specs/UI.13.2b.md`. Sidebar Dev con `/api/projects` y agentes = sesiones con
   `projectId`; Dev workspace con la sesión real; Files con `/api/explorer/*`; History oculto (ítem
   aparte). Gate: todo contra la API en vivo, 0 errores.
+
+- [x] **UI.13.2c — 🧠 Settings global de la app nueva con datos reales.** (abierto 2026-09-22, cerrado 2026-09-22)
+  Ejecutado por: luna · Spec: docs/specs/UI.13.2c.md (3 rondas; borrado al cerrar)
+  `app/src/api/settings.ts` (+tests). Rondas: (r2) había quitado tema, idioma, URL de Ollama (que sí tenía
+  backend) y asistente de claves, y dejaba subtítulos inventados en Usage; (r3) guardar routing duplicaba
+  `openrouter/` en `orchestos.config.yaml`; el cerebro corrigió además el doble strip que rompía
+  `openrouter/auto` (+test). Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.13.2c-live.json`
+  — tema aplica y persiste, idioma persiste, Ollama URL guarda en `/api/settings`, routing idempotente y
+  cambio real por combobox, 0 errores. Pendiente: el idioma solo traduce Settings. Original:
+  Spec: `docs/specs/UI.13.2c.md`. Secciones globales (general, health, API/modelos, routing, executor,
+  usage, danger zone, idioma) contra `/api/settings`, `/api/setup`, `/api/config`, `/api/usage`;
+  lo que no tenga backend se quita. Gate: guardar → recargar → persiste, en vivo, 0 errores.
+
+- [ ] **UI.13.4 — 🧠 Comportamientos de la plantilla hechos reales.** (abierto 2026-09-22)
+  Inventario (plantilla `~/Documents/screens/orchestos-ai-agent-dashboard` vs app, 2026-09-22); cada uno
+  necesita backend que hoy no existe (`server.ts` no tiene ruta):
+  1. Sidebar Dev: cerrar agente → pasa a History (`ShellSidebar.tsx:394` plantilla); falta archivar sesión.
+  2. Inspector History (`OrcaRightInspector.tsx:399-560` plantilla): sesiones cerradas agrupadas por
+     proyecto, Workspace|Project|All, búsqueda, detalle expandible, menú (restaurar/borrar).
+  3. Borrar/quitar proyecto (`ShellSidebar.tsx:310`, `DeleteProjectModal`): falta endpoint para
+     des-registrar un proyecto (no borra archivos).
+  4. Dev: consola del agente con logs del turno en vivo (`OrchestDevWorkspace.tsx:120-185` plantilla) y
+     controles de acción; entrada de comandos interactiva — decisión de Carlos pendiente (ejecuta shell).
+  5. Chat: razonamiento y llamadas a herramientas reales en el mensaje del bot; tarjeta de tarea retenida
+     con Aprobar/Rechazar contra la API real (el render ya existe, falta verificar que llegan los datos).
+  6. Duración/tiempo relativo de agentes (`0m` casi siempre).
+  **Decisiones de Carlos 2026-09-22:** consola = logs reales del turno + línea que ejecuta shell en la
+  carpeta del proyecto con la misma frontera de permisos del runner; cerrar agente = archivar (History
+  permite restaurar o borrar definitivo); borrar proyecto = solo des-registrarlo de OrchestOS con sus
+  sesiones, nunca toca archivos del disco.
+  Gate: cada comportamiento hecho en vivo contra la API, igual que en la plantilla.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
