@@ -161,6 +161,34 @@ Verificación adicional obligatoria en navegador, además de los cinco gates:
 - Capturar Chat y Dev a 1440×900 y compararlos con el prototipo vivo. Si queda una diferencia del
   shell causada por una regla vanilla, reportar selector y medida; no compensarla con CSS nuevo.
 
+### Ronda 6 — reset de botones y line-height que el prototipo recibe de Preflight
+
+La captura de la ronda 5 ya iguala la geometría general, pero reveló dos diferencias objetivas. El
+prototipo tiene Preflight: sus `<button>` nacen sin fondo/borde nativo y heredan tipografía. Este
+producto lo desactiva, por lo que Search/Sidebar/Right aparecen como rectángulos grises de 30×33 en
+vez de controles transparentes de 26×26. Además, el prototipo fuerza `text-xs` a `line-height:1.4`
+y `text-sm` a `1.5`; aquí quedaron 14.67px y 17.14px en vez de 15.4px y 18px.
+
+Corregir solo con clases JSX, sin agregar CSS:
+
+- `HeaderButton`: convertirlo en `flex items-center justify-center leading-none`. En la rama activa,
+  usar explícitamente `border border-app bg-app-elevated`; en la inactiva,
+  `border border-transparent bg-transparent` más sus hover. No dejar clases base de fondo/borde que
+  compitan con las ramas. La caja final de cada botón debe ser 26×26 y su SVG 14×14.
+- En `Header.tsx` y `Sidebar.tsx`, junto a cada `text-xs font-ui-meta` añadir `leading-[1.4]`; junto
+  a cada `text-sm font-ui-control`, `leading-[1.5]`. No crear utilidades CSS.
+- A cada `<button>` real de `Sidebar.tsx` copiado del prototipo (acciones toggle/menu/add, ítem
+  Project settings del popover, borrar chat y opciones de `CliMenu`) añadir reset Tailwind
+  `border-0 bg-transparent`. A los tres botones de acción del proyecto añadir además
+  `items-center justify-center leading-none`, de modo que midan 20×20 (12px de icono + 4px por lado)
+  y la fila no cambie de alto al hover. Conservar todos sus estados hover.
+- Borrar el bloque vacío `.header {}` que quedó dentro del media query; es otra eliminación, no CSS
+  nuevo. Corregir cualquier indentación alterada en `CliMenu`.
+
+Repetir build, TypeScript, cinco gates, medidas adicionales y capturas. Comprobar expresamente:
+fondos/bordes nativos ausentes en los botones inactivos, header 26×26/14×14, fila de proyecto con
+igual centro y alto antes/después del hover, y line-height 15.4px (`text-xs`) / 18px (`text-sm`).
+
 ## 3. Borrar de `src/dashboard/public/styles.css`
 
 Del bloque que agregó UI.12.2 (desde `:root { --sidebar-w-exp` hasta el final del archivo),
