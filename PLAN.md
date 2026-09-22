@@ -2405,6 +2405,13 @@ ni eso hace falta.
   `className` del prototipo copiados en las islas. Va después de `UI.12.2a`. Gate: `ui12-shell`,
   `ui3-shell`, `ui81` verdes en vivo y el tope de CSS baja.
 
+- [ ] **UI.12.3a — 🧠 Navegación de Settings como isla React, copiada del prototipo.** (abierto 2026-09-21)
+  Spec: `docs/specs/UI.12.3a.md`. Grupos e ítems del producto con el look del prototipo
+  (`OrchestSettingsView.tsx:399-606`); acciones siguen en el vanilla. Gate: `ui10-project-settings`
+  verde en vivo, captura contra el prototipo y el CSS vanilla baja. Siguen, un ítem cada uno:
+  `UI.12.3b` paneles (cards/filas), `UI.12.3c` Executor como un solo *Default agent*
+  (`:1146`), `UI.12.3d` página del proyecto con pestañas (`:1556`) + pestaña de borrado.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,

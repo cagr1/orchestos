@@ -17,7 +17,11 @@ El prototipo usa clases propias (`P/index.css:113-157`): `bg-app-bg`, `bg-app-su
 - `text-app` y `border-app` chocan como color (uno es texto, el otro borde): van como
   `@utility text-app { color: var(--text); }` y `@utility border-app { border-color: var(--border); }`.
 
-Es lo único que se suma, y va en `ui.css`, no en `styles.css`/`screens.css`.
+Es lo único que se suma, y va en `ui.css`, no en `styles.css`/`screens.css`. Esto es únicamente
+cableado declarativo de tokens para que Tailwind genere las clases copiadas: **no agregar
+selectores, propiedades visuales, `@layer`, reglas responsive ni CSS artesanal** en `ui.css`.
+En `styles.css` y `screens.css` el diff de líneas añadidas debe ser **cero**; esos archivos solo
+pueden bajar. Si copiar el prototipo exige algo más que estos alias, parar y reportarlo.
 
 ## 2. Copiar el JSX del prototipo en las islas
 
@@ -26,11 +30,30 @@ Es lo único que se suma, y va en `ui.css`, no en `styles.css`/`screens.css`.
   segmentado Chat | Dev y New chat `:88-130`, fila de proyecto `:234-270`, fila de agente con
   loader/check `:354-410`, menú `…` del proyecto (buscarlo en el mismo archivo).
 
-Copiar los `className` **tal cual**. Se conservan la lógica, los handlers, los datos, los `id`,
+Copiar los `className` **tal cual**, incluidas transiciones y animaciones (`transition-*`, `animate-spin`, `group-hover:*`, `opacity-*`): Carlos exige fidelidad total al prototipo en colores, animaciones y vistas. Se conservan la lógica, los handlers, los datos, los `id`,
 los `data-*` y los `aria-*` actuales. Las clases viejas (`shell-*`, `sidebar-*`) quedan en el JSX
 solo como ganchos de los gates, sin estilo. Lo que el producto no tiene sigue fuera (CLI QUOTAS,
 SESSION CONTEXT: decisión de Carlos, `PLAN.md` § UI.12). El menú `…` usa el componente shadcn que ya
 se usa; su ancho y padding van por `className`, sin `!important`.
+
+### Estado incompleto que hay que corregir al retomar
+
+La ronda anterior terminó sin proceso activo y dejó un diff parcial. No darlo por bueno solo porque
+compila. Comparar nuevamente, lado a lado, con el prototipo y corregir al menos estas divergencias
+ya verificadas por lectura:
+
+- `SessionRow` sigue renderizando únicamente las clases vanilla
+  (`sidebar-agent-row sidebar-chat-row`): copiar la fila de chat de
+  `ShellSidebar.tsx:146-190`, incluidos estado activo, hover, icono, truncado, tiempo y botón de
+  borrado al hover.
+- La lista de agentes del proyecto perdió el contenedor del prototipo
+  `ml-3 pl-3 border-l border-app/80 py-0.5 space-y-0.5`; recuperarlo en la estructura React.
+- En cada agente, icono + título deben estar en el mismo control flex como en
+  `ShellSidebar.tsx:354-410`; el diff parcial dejó el título fuera del wrapper del icono.
+- No traducir visualmente a selectores propios. Las clases `shell-*`/`sidebar-*` solo son ganchos
+  de compatibilidad para gates y deben aparecer al final del `className`, sin reglas visuales.
+- Formatear el JSX final: no dejar indentación rota ni líneas compactadas que oculten diferencias
+  con el prototipo.
 
 ## 3. Borrar de `src/dashboard/public/styles.css`
 
@@ -52,7 +75,10 @@ y la línea del prototipo; no editar el gate. No commitear.
 
 ## Verificación (el ejecutor)
 
-- `bun run build` (o el build de islas que use el repo) y `bunx tsc --noEmit` limpios.
+- `bun run build:ui` y `bunx tsc --noEmit` limpios.
+- `git diff --numstat -- src/dashboard/public/styles.css src/dashboard/public/screens.css` muestra
+  cero líneas añadidas en ambos; `ui.css` solo contiene los 12 renglones de alias `@theme`/
+  `@utility` descritos arriba.
 - `wc -l src/dashboard/public/styles.css` baja (hoy 1788); reportar el número.
-- Con el dashboard levantado en :4330: `ui12-shell`, `ui3-shell`, `ui81`, `ui9a-inspector`,
+- Con el dashboard levantado en :4330 (`GATE_BASE=http://localhost:4330 node scripts/ui-gates/<gate>.mjs`): `ui12-shell`, `ui3-shell`, `ui81`, `ui9a-inspector`,
   `ui10-project-settings` verdes. Bajar el dashboard al terminar.
