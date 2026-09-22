@@ -242,8 +242,8 @@ export interface AgentSession {
   status: 'active' | 'completed' | 'idle';
   shellCommandsCount: number;
   filesCount: number;
-  lastLog: string;
-  branch: string;
+  lastLog?: string;
+  branch?: string;
 }
 
 export type AgentItem = AgentSession;
@@ -251,7 +251,7 @@ export type AgentItem = AgentSession;
 export interface ProjectItem {
   id: string;
   name: string;
-  branch: string;
+  branch?: string;
   isPrimary?: boolean;
   agents: AgentSession[];
   path?: string;

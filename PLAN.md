@@ -2415,6 +2415,10 @@ ni eso hace falta.
   real (acción → efecto en la API/DB) en el dashboard corriendo, no medidas en píxeles.
   1. `UI.13.1` Andamio: prototipo copiado a `src/dashboard/app/`, build con Bun, servido en `/`;
      el vanilla pasa a `/legacy` hasta que el último ítem lo borre.
+     **Carlos 2026-09-22: cero trabajo sobre el vanilla** — `/legacy` es un cascarón de referencia que
+     no se arregla ni se alimenta; look, animaciones, iconos, textura y comportamiento salen de la
+     plantilla `~/Documents/screens/orchestos-ai-agent-dashboard`. Lo que se conserva del producto
+     (ej. usage en la barra inferior) se porta con el look de la plantilla.
   2. `UI.13.2` Datos: capa `api.ts` que reemplaza los mocks, vista por vista — Chat, proyectos/Dev,
      Settings, Tasks/Runs/Graph, Memory/Specs/Skills/Instincts/Plan (un sub-ítem cada una).
   3. `UI.13.3` Borrar el vanilla, `/legacy`, sus islas, sus CSS y los ui-gates de píxel.
@@ -2461,7 +2465,16 @@ ni eso hace falta.
   las barras mock CLI QUOTAS / SESSION CONTEXT, entra el `SessionStatusBar` real. Gate: lista, abrir,
   crear, renombrar y borrar contra la API en vivo; payload de envío igual al de `/legacy`.
 
-- [ ] **UI.13.2b — 🧠 Proyectos, header y Dev de la app nueva con datos reales.** (abierto 2026-09-21)
+- [x] **UI.13.2b — 🧠 Proyectos, header y Dev de la app nueva con datos reales.** (abierto 2026-09-21, cerrado 2026-09-22)
+  Ejecutado por: luna · Spec: docs/specs/UI.13.2b.md (2 rondas: la primera cortada a mano; borrado al cerrar)
+  `app/src/api/projects.ts` (+6 tests), `explorer.ts`, `runs.ts`. Quitado por no tener backend:
+  terminal/logs/comandos falsos, cerrar/archivar sesión, History, Delete project, mocks del Diff; la rama
+  inventada del header. Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.13.2b-live.json`
+  — :4330, corrida del cerebro: proyectos = `/api/projects` (2), agentes = sesiones por `projectId`
+  (8/8 visibles), abrir agente muestra sus mensajes, `+` de proyecto crea sesión con ese `projectId`,
+  header con el nombre real, Files lista el árbol y abre `package.json`, 0 errores.
+  `test:coverage` 1456 pass / 0 fail. Pendiente: duración de agentes muestra `0m` casi siempre (revisar
+  en la pasada de look). Original:
   Spec: `docs/specs/UI.13.2b.md`. Sidebar Dev con `/api/projects` y agentes = sesiones con
   `projectId`; Dev workspace con la sesión real; Files con `/api/explorer/*`; History oculto (ítem
   aparte). Gate: todo contra la API en vivo, 0 errores.

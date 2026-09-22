@@ -9,10 +9,9 @@ import {
   SettingsSection,
   ProjectSubTab,
 } from './components/settings/OrchestSettingsView';
-import { OrcaRightInspector, HistorySession } from './components/dev/OrcaRightInspector';
+import { OrcaRightInspector } from './components/dev/OrcaRightInspector';
 import {
   initialMockTasks,
-  initialMockRuns,
   initialMockSpecs,
   initialMockInstincts,
   initialMockMemories,
@@ -28,7 +27,8 @@ import {
   sendMessage,
 } from './api/chat';
 import { SessionStatusBar } from './components/layout/SessionStatusBar';
-import { INITIAL_PROJECTS } from './data/orcaProjectData';
+import { listProjects, chooseProject } from './api/projects';
+import { listRuns } from './api/runs';
 import {
   TaskItem,
   RunItem,
@@ -43,55 +43,6 @@ import {
   NavigationTab,
 } from './types/orchestos';
 
-const INITIAL_HISTORY: HistorySession[] = [
-  {
-    id: 'hist_1',
-    projectId: 'orchestos',
-    projectName: 'orchestos',
-    title: 'AST worktree sandbox isolation check',
-    lastMessage: 'Verified 0 boundary violations across 48 module imports.',
-    cliId: 'claude',
-    model: 'Claude 3.7 Sonnet',
-    messageCount: 14,
-    timeAgo: '18m ago',
-    logs: [
-      '[contract] Initialized worktree refs/orchestos/sandbox-t3',
-      '[ast] Parsed dependency graph: 142 source files',
-      '[qa] Deterministic check: tsc && vitest passed',
-    ],
-  },
-  {
-    id: 'hist_2',
-    projectId: 'orchestos',
-    projectName: 'orchestos',
-    title: 'Refactor tasks.yaml acceptance criteria schema',
-    lastMessage: 'Exported JSONSchema validator with dual approval gates.',
-    cliId: 'codex',
-    model: 'gpt-5.6-codex',
-    messageCount: 8,
-    timeAgo: '2h ago',
-    logs: [
-      '[exec] Updated tasks/tasks.yaml with WHEN/THEN syntax',
-      '[runner] vitest run test/schema.test.ts: 5 passed',
-    ],
-  },
-  {
-    id: 'hist_3',
-    projectId: 'memories_md',
-    projectName: 'memories_md',
-    title: 'Vector embedding sync for semantic instincts',
-    lastMessage: 'Generated 256-dim embeddings via local sqlite-vss.',
-    cliId: 'gemini',
-    model: 'Gemini 2.5 Pro',
-    messageCount: 22,
-    timeAgo: '1d ago',
-    logs: [
-      '[embed] Processed 14 instinct rules',
-      '[db] Synced vector tables in SQLite',
-    ],
-  },
-];
-
 export default function App() {
   const [theme, setTheme] = useState<string>('orchestos');
   const [mode, setMode] = useState<AppMode>('chat');
@@ -102,12 +53,9 @@ export default function App() {
   const [isRightInspectorOpen, setIsRightInspectorOpen] = useState<boolean>(true);
 
   // Projects state
-  const [projects, setProjects] = useState<ProjectItem[]>(INITIAL_PROJECTS);
-  const [activeProjectId, setActiveProjectId] = useState<string>('orchestos');
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string>('');
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
-
-  // History state for Right Inspector
-  const [historySessions, setHistorySessions] = useState<HistorySession[]>(INITIAL_HISTORY);
 
   // Settings deep-link state
   const [settingsSection, setSettingsSection] = useState<SettingsSection>('project_orchestos');
@@ -116,7 +64,7 @@ export default function App() {
 
   // Core OrchestOS entities state
   const [tasks, setTasks] = useState<TaskItem[]>(initialMockTasks);
-  const [runs, setRuns] = useState<RunItem[]>(initialMockRuns);
+  const [runs, setRuns] = useState<RunItem[]>([]);
   const [specs, setSpecs] = useState<SpecItem[]>(initialMockSpecs);
   const [instincts, setInstincts] = useState<InstinctItem[]>(initialMockInstincts);
   const [memories, setMemories] = useState<MemoryItem[]>(initialMockMemories);
@@ -141,9 +89,41 @@ export default function App() {
     return () => { disposed = true; };
   }, []);
 
+  useEffect(() => {
+    let disposed = false;
+    void listProjects().then((loaded) => {
+      if (disposed) return;
+      setProjects(loaded);
+      const remembered = (() => {
+        try { return JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null') as { projectId?: string; sessionId?: string } | null; } catch { return null; }
+      })();
+      const rememberedProject = remembered?.projectId && loaded.find((project) => project.id === remembered.projectId);
+      const rememberedAgent = rememberedProject?.agents.find((agent) => agent.id === remembered?.sessionId);
+      setActiveProjectId((current) => current && loaded.some((project) => project.id === current) ? current : rememberedProject?.id || loaded[0]?.id || '');
+      if (rememberedProject && rememberedAgent) {
+        setActiveAgentId(rememberedAgent.id);
+        setMode('dev');
+        void listSessions(rememberedProject.id).then(async (sessions) => {
+          const session = sessions.find((item) => item.id === rememberedAgent.id);
+          if (!session) return;
+          const hydrated = { ...session, messages: (await getSessionMessages(session.id)).map(mapMessage) };
+          setThreads((current) => [...current.filter((item) => item.id !== hydrated.id), hydrated]);
+        });
+      }
+    }).catch(() => { if (!disposed) setProjects([]); });
+    return () => { disposed = true; };
+  }, []);
+
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0];
   const activeThread = threads.find((t) => t.id === activeThreadId);
-  const activeAgent = currentProject.agents.find((a) => a.id === activeAgentId) || null;
+  const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null;
+
+  useEffect(() => {
+    if (!currentProject) { setRuns([]); return; }
+    let disposed = false;
+    void listRuns(currentProject.id).then((loaded) => { if (!disposed) setRuns(loaded); }).catch(() => { if (!disposed) setRuns([]); });
+    return () => { disposed = true; };
+  }, [currentProject?.id]);
 
   // Mode change handler that tracks previous mode
   const handleModeChange = (newMode: AppMode) => {
@@ -166,102 +146,30 @@ export default function App() {
   };
 
   // Agent selection and launch in Dev mode
-  const handleSelectAgent = (agentId: string, projectId: string) => {
+  const handleSelectAgent = async (agentId: string, projectId: string) => {
     setActiveProjectId(projectId);
     setActiveAgentId(agentId);
+    localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', projectId, sessionId: agentId }));
+    const session = (await listSessions(projectId)).find((item) => item.id === agentId);
+    if (session) {
+      const hydrated = { ...session, messages: (await getSessionMessages(agentId)).map(mapMessage) };
+      setThreads((current) => [...current.filter((item) => item.id !== agentId), hydrated]);
+      setActiveThreadId(agentId);
+    }
     setMode('dev');
   };
 
-  // Close agent: remove from sidebar and archive to history (Requirement 4)
-  const handleCloseAgent = (agentId: string, projectId: string) => {
-    const proj = projects.find((p) => p.id === projectId);
-    const agent = proj?.agents.find((a) => a.id === agentId);
-
-    if (agent && proj) {
-      const newHistoryItem: HistorySession = {
-        id: `hist_${Date.now()}`,
-        projectId: proj.id,
-        projectName: proj.name,
-        title: agent.name,
-        lastMessage: agent.lastLog || 'Session closed and archived to history.',
-        cliId: agent.model.includes('Claude') ? 'claude' : agent.model.includes('codex') ? 'codex' : 'gemini',
-        model: agent.model,
-        messageCount: agent.shellCommandsCount + 4,
-        timeAgo: 'Just now',
-        logs: [
-          `[session] Archived agent ${agent.id} (${agent.name})`,
-          `[status] Final status: ${agent.status}`,
-          `[exec] Duration: ${agent.duration}`,
-        ],
-      };
-
-      setHistorySessions((prev) => [newHistoryItem, ...prev]);
-
-      // Remove from project agents
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === projectId
-            ? { ...p, agents: p.agents.filter((a) => a.id !== agentId) }
-            : p
-        )
-      );
-
-      if (activeAgentId === agentId) {
-        setActiveAgentId(null);
-      }
-    }
-  };
-
   // Restore session from history to sidebar
-  const handleRestoreAgentToSidebar = (session: HistorySession) => {
-    setProjects((prev) =>
-      prev.map((p) => {
-        if (p.id === session.projectId) {
-          const restoredAgent = {
-            id: `ag_restored_${Date.now()}`,
-            name: session.title,
-            model: session.model,
-            duration: '0m',
-            status: 'idle' as const,
-            shellCommandsCount: 0,
-            filesCount: 1,
-            lastLog: 'Restored from history.',
-            branch: p.branch,
-          };
-          return { ...p, agents: [restoredAgent, ...p.agents] };
-        }
-        return p;
-      })
-    );
-    setHistorySessions((prev) => prev.filter((h) => h.id !== session.id));
-  };
-
-  const handleDeleteHistorySession = (sessionId: string) => {
-    setHistorySessions((prev) => prev.filter((h) => h.id !== sessionId));
-  };
-
   // Project creation
-  const handleNewProject = (name: string, branch = 'main') => {
-    const newId = name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-    const newProject: ProjectItem = {
-      id: newId,
-      name: name,
-      branch: branch,
-      path: `~/workspace/${name}`,
-      filesCount: 12,
-      agents: [],
-    };
-    setProjects((prev) => [...prev, newProject]);
-    setActiveProjectId(newId);
-  };
-
-  // Delete project from workspace (does not delete folder)
-  const handleDeleteProject = (projectId: string) => {
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
-    if (activeProjectId === projectId) {
-      const remaining = projects.filter((p) => p.id !== projectId);
-      setActiveProjectId(remaining[0]?.id || 'orchestos');
-      setActiveAgentId(null);
+  const handleNewProject = async () => {
+    try {
+      const project = await chooseProject();
+      if (!project) return;
+      const loaded = await listProjects();
+      setProjects(loaded);
+      setActiveProjectId(project.id);
+    } catch {
+      // Native selector errors stay local to the selector; no fake project is added.
     }
   };
 
@@ -269,7 +177,6 @@ export default function App() {
   const handlePurgeProjectData = (projectId: string) => {
     setRuns((prev) => prev.filter((r) => r.taskId && !r.taskId.startsWith(projectId)));
     setMemories((prev) => prev.filter((m) => m.scope !== 'project'));
-    setHistorySessions((prev) => prev.filter((h) => h.projectId !== projectId));
   };
 
   // Danger Zone - Reset OrchestOS
@@ -288,24 +195,15 @@ export default function App() {
     model: string,
     title: string
   ) => {
-    const newAgent = {
-      id: `ag_${Date.now()}`,
-      name: title,
-      model: model,
-      duration: '0m',
-      status: 'active' as const,
-      shellCommandsCount: 0,
-      filesCount: 0,
-      lastLog: `Agent started with ${model}`,
-      branch: 'main',
-    };
-
-    setProjects((prev) =>
-      prev.map((p) => (p.id === projectId ? { ...p, agents: [newAgent, ...p.agents] } : p))
-    );
-    setActiveProjectId(projectId);
-    setActiveAgentId(newAgent.id);
-    setMode('dev');
+    void createSession({ agent: cliId, projectId, title }).then(async (thread) => {
+      setActiveProjectId(projectId);
+      setActiveAgentId(thread.id);
+      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', projectId, sessionId: thread.id }));
+      setThreads((current) => [...current.filter((item) => item.id !== thread.id), thread]);
+      setActiveThreadId(thread.id);
+      setProjects(await listProjects());
+      setMode('dev');
+    }).catch(() => undefined);
   };
 
   // Chat actions
@@ -506,8 +404,8 @@ export default function App() {
           mode === 'dev' ? () => setIsRightInspectorOpen(!isRightInspectorOpen) : undefined
         }
         isRightInspectorOpen={isRightInspectorOpen}
-        activeProjectName={currentProject.name}
-        activeBranch={currentProject.branch}
+        activeProjectName={currentProject?.name}
+        activeBranch={currentProject?.branch}
       />
 
       {/* Main App Workspace Layout */}
@@ -526,13 +424,11 @@ export default function App() {
             projects={projects}
             activeProjectId={activeProjectId}
             onSelectProject={setActiveProjectId}
-            onNewProject={handleNewProject}
+            onNewProject={() => { void handleNewProject(); }}
             onOpenSettings={() => handleOpenSettings('projects', 'tasks')}
             onOpenProjectSettings={handleOpenProjectSettings}
-            onDeleteProject={handleDeleteProject}
             activeAgentId={activeAgentId}
             onSelectAgent={handleSelectAgent}
-            onCloseAgent={handleCloseAgent}
             onCreateAgentInProject={handleCreateAgentInProject}
           />
         )}
@@ -554,7 +450,8 @@ export default function App() {
             <OrchestDevWorkspace
               activeProject={currentProject}
               activeAgent={activeAgent}
-              onCloseAgent={(id) => handleCloseAgent(id, currentProject.id)}
+              thread={threads.find((item) => item.id === activeAgentId)}
+              onSendMessage={handleSendMessage}
             />
           )}
 
@@ -590,14 +487,10 @@ export default function App() {
         </div>
 
         {/* Right Inspector: ONLY available in Dev mode, toggleable via top header button */}
-        {mode === 'dev' && isRightInspectorOpen && (
+        {mode === 'dev' && isRightInspectorOpen && currentProject && (
           <OrcaRightInspector
             currentProject={currentProject}
-            projects={projects}
             recentRuns={runs}
-            historySessions={historySessions}
-            onRestoreAgentToSidebar={handleRestoreAgentToSidebar}
-            onDeleteHistorySession={handleDeleteHistorySession}
           />
         )}
       </div>

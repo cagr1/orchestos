@@ -11,14 +11,11 @@ import {
   Ellipsis,
   Loader2,
   Check,
-  X,
   Trash2,
 } from 'lucide-react';
 import { AppMode, ChatThread, ProjectItem } from '../../types/orchestos';
 import { ProviderLogo } from '../common/ProviderLogos';
-import { AddProjectModal } from './AddProjectModal';
 import { NewAgentSelectorModal } from './NewAgentSelectorModal';
-import { DeleteProjectModal } from './DeleteProjectModal';
 
 interface ShellSidebarProps {
   mode: AppMode;
@@ -32,13 +29,11 @@ interface ShellSidebarProps {
   projects: ProjectItem[];
   activeProjectId: string;
   onSelectProject: (id: string) => void;
-  onNewProject?: (name: string, branch?: string) => void;
+  onNewProject?: () => void;
   onOpenSettings?: () => void;
   onOpenProjectSettings?: (projectId: string) => void;
-  onDeleteProject?: (projectId: string) => void;
   activeAgentId?: string | null;
   onSelectAgent?: (agentId: string, projectId: string) => void;
-  onCloseAgent?: (agentId: string, projectId: string) => void;
   onCreateAgentInProject?: (projectId: string, cliId: string, model: string, title: string) => void;
 }
 
@@ -57,10 +52,8 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   onNewProject,
   onOpenSettings,
   onOpenProjectSettings,
-  onDeleteProject,
   activeAgentId,
   onSelectAgent,
-  onCloseAgent,
   onCreateAgentInProject,
 }) => {
   const [chatSearch, setChatSearch] = useState('');
@@ -73,7 +66,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   // Modals state
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const [projectForNewAgent, setProjectForNewAgent] = useState<ProjectItem | null>(null);
-  const [projectToDelete, setProjectToDelete] = useState<ProjectItem | null>(null);
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null);
   const [isNewChatAgentModalOpen, setIsNewChatAgentModalOpen] = useState(false);
 
@@ -229,7 +221,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
             </span>
             <button
               type="button"
-              onClick={() => setIsAddProjectModalOpen(true)}
+              onClick={() => onNewProject?.()}
               className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
               title="Add or Upload Project"
               aria-label="Add or Upload Project"
@@ -251,7 +243,10 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                   >
                     <button
                       type="button"
-                      onClick={() => toggleProjectExpand(proj.id)}
+                      onClick={() => {
+                        onSelectProject(proj.id);
+                        toggleProjectExpand(proj.id);
+                      }}
                       className="flex items-center gap-2 min-w-0 flex-1 text-left"
                       title={`Toggle ${proj.name} agents`}
                     >
@@ -341,17 +336,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                           <span>Project settings</span>
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveMenuProjectId(null);
-                            setProjectToDelete(proj);
-                          }}
-                          className="w-full text-left px-2.5 py-1.5 rounded-control text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                          <span>Delete project</span>
-                        </button>
                       </div>
                     </>
                   )}
@@ -397,28 +381,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                               <span className="truncate">{ag.name}</span>
                             </button>
 
-                            {/* Relative time & Close button */}
-                            <div className="flex items-center gap-1 ml-1 flex-shrink-0">
-                              <span className="font-mono text-app-muted group-hover:hidden">
-                                {ag.duration}
-                              </span>
-
-                              {/* Close agent button on hover (moves to history) */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (onCloseAgent) {
-                                    onCloseAgent(ag.id, proj.id);
-                                  }
-                                }}
-                                className="hidden group-hover:flex p-0.5 text-app-muted hover:text-app rounded-control"
-                                title="Close agent (archive to History)"
-                                aria-label="Close agent"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
+                            <span className="font-mono text-app-muted ml-1 flex-shrink-0">{ag.duration}</span>
                           </div>
                         );
                       })}
@@ -444,15 +407,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         </button>
 
       </div>
-
-      {/* Add Project Modal */}
-      <AddProjectModal
-        isOpen={isAddProjectModalOpen}
-        onClose={() => setIsAddProjectModalOpen(false)}
-        onCreate={(name, branch) => {
-          if (onNewProject) onNewProject(name, branch);
-        }}
-      />
 
       {/* New Chat Agent Selector Modal */}
       {isNewChatAgentModalOpen && (
@@ -481,19 +435,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         />
       )}
 
-      {/* Delete Project Confirmation Modal */}
-      {projectToDelete && (
-        <DeleteProjectModal
-          isOpen={!!projectToDelete}
-          projectName={projectToDelete.name}
-          onClose={() => setProjectToDelete(null)}
-          onConfirm={() => {
-            if (onDeleteProject) {
-              onDeleteProject(projectToDelete.id);
-            }
-          }}
-        />
-      )}
     </aside>
   );
 };

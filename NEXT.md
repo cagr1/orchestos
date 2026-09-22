@@ -5,29 +5,18 @@ UI.13 (PLAN.md § UI.13): el prototipo de AI Studio **es** el frontend (`src/das
 el vanilla vive en `/legacy` solo hasta UI.13.3 y no se edita. Tope: **lo que falta de UI.13 en 2 h**
 (regla escrita en PLAN.md § UI.13).
 
+## Regla de Carlos 2026-09-22
+Cero trabajo sobre el vanilla: `/legacy` es cascarón de referencia. Todo look/comportamiento sale de la
+plantilla `~/Documents/screens/orchestos-ai-agent-dashboard`. Anotado en PLAN.md § UI.13.
+
 ## Hecho y pusheado
-UI.12.2a (trinquete CSS), UI.13.1 (andamio, `/` 573 ms vs `/legacy` 4.298 ms), UI.13.1b (fallback `/api` → 404),
-UI.13.2a (Chat con datos reales). Último push: `675be66`.
+UI.12.2a, UI.13.1, UI.13.1b, UI.13.2a (Chat), UI.13.2b (proyectos/Dev/Files, cerrado 2026-09-22).
 
-## Estado al cerrar la tab
-- **UI.13.2b** (proyectos, header, Dev, Files) — Luna **detenida a mano a pedido de Carlos** (kill 23:0x),
-  a mitad de camino. Diff parcial **sin commitear** en `src/dashboard/app/` (App.tsx, OrcaRightInspector,
-  OrchestDevWorkspace, ShellHeader, ShellSidebar, types; nuevos `api/projects.ts`, `api/projects.test.ts`,
-  `api/explorer.ts`). No verificado: puede no compilar.
-
-## Primer paso en la tab nueva
-1. `bun run build:app && bun run typecheck` sobre el diff parcial. Relanzar Luna con
-   `codex exec -m gpt-5.6-luna --approve-for-me "Continúa docs/specs/UI.13.2b.md: hay un diff parcial tuyo
-   en el working tree, complétalo. No invoques codex exec ni delegues a otro agente." < /dev/null`.
-2. Gate en vivo del cerebro (Luna no puede abrir puertos en su sandbox): `bun run build:app`,
-   `bun src/cli.ts dashboard --port 4330`, Playwright con el patrón de `/tmp/ui132a-gate.mjs`
-   (`createRequire` del `package.json` del repo para `playwright`). Medir lo que lista la sección
-   "Verificación" de `docs/specs/UI.13.2b.md`. Borrar sesiones de prueba (`DELETE /api/chat/sessions/:id`
-   con header `Origin: http://localhost:4330`). Bajar el dashboard.
-3. Cerrar UI.13.2b: `[x]` + evidencia en PLAN.md, `docs/done/evidence/UI.13.2b-live.json`, borrar spec,
-   `bun run plan:reconcile`, commit, push. Si no cierra en esta ronda → queda en `/legacy` y se anota.
-4. Bloques restantes, **una ronda cada uno**, spec con la lista de lo que el gate va a medir:
-   Settings → Tasks/Runs/Graph → Memory/Specs/Skills/Instincts/Plan → UI.13.3 borrar vanilla.
+## Siguiente
+Bloques restantes, **una ronda cada uno**, spec con la lista de lo que el gate va a medir:
+Settings → Tasks/Runs/Graph → Memory/Specs/Skills/Instincts/Plan → UI.13.3 borrar vanilla.
+Gate en vivo con el patrón de `/tmp/ui132b-gate*.mjs` (Playwright vía `createRequire` del repo).
+Pendiente menor: duración de agentes en el sidebar muestra `0m` casi siempre.
 
 ## Avisos
 - Al lanzar Luna, agregar al prompt: "No invoques codex exec ni delegues a otro agente" (hoy se anidó sola).

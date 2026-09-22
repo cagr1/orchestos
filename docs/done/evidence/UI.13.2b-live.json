@@ -1,0 +1,13 @@
+{
+  "item": "UI.13.2b",
+  "date": "2026-09-22",
+  "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330",
+  "projects": "sidebar Dev = GET /api/projects (SalaDespecho 2, orchestos 8), chips = conteo de sesiones por projectId",
+  "agents": "orchestos expandido: 8/8 títulos de GET /api/chat/sessions?project=73903c93c6bd19e0 visibles",
+  "open_agent": "'Responde solo: OK' abre sus 2 mensajes reales (respuesta 'OK' de codex)",
+  "project_plus": "Launch new agent en SalaDespecho → POST crea sesión con projectId 7078a96b02350763",
+  "header": "nombre real del proyecto activo; sin rama (la API no la da)",
+  "files": "árbol real de /api/explorer/tree; package.json abierto con contenido real",
+  "page_errors": [],
+  "cleanup": "sesión de prueba borrada vía DELETE /api/chat/sessions/:id; dashboard bajado"
+}
