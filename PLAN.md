@@ -2390,7 +2390,12 @@ ni eso hace falta.
   está abierta (requiere una corrida real de chat). Hallazgo aparte: tras correr los gates apareció
   una sesión "New conversation" en Chat general — algún gate crea sesiones en la DB real.
 
-- [ ] **UI.12.2a — ⚡ Trinquete de CSS vanilla en el pre-commit: styles.css+screens.css solo bajan.** (abierto 2026-09-21)
+- [x] **UI.12.2a — ⚡ Trinquete de CSS vanilla en el pre-commit: styles.css+screens.css solo bajan.** (abierto 2026-09-21, cerrado 2026-09-21)
+  Ejecutado por: luna · Spec: docs/specs/UI.12.2a.md (1 ronda; borrado al cerrar)
+  `scripts/check-css-ratchet.ts` en el pre-commit con tope en `scripts/css-baseline.json` (5145).
+  Verificado por el cerebro con un índice temporal: +1 línea staged en `styles.css` → sale 1
+  ("total=5146, staged=5145"); −1 → sale 0 y el tope baja a 5144. Tests 7/7, `hooks:check` verde.
+  Límite: sin el baseline staged el script falla cerrado (no deja pasar).
   GO de Carlos 2026-09-21 (memoria `feedback-no-sumar-css-copiar-prototipo`). Spec:
   `docs/specs/UI.12.2a.md`. Gate: tests del script verdes, un commit de prueba con +1 línea en
   `styles.css` rechazado y uno con −1 que baja el tope en `scripts/css-baseline.json`.
