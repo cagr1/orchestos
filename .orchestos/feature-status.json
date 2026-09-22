@@ -1084,6 +1084,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.13.2a",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Chat de la app nueva con datos reales",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.2",
       "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",

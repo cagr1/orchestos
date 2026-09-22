@@ -2441,6 +2441,11 @@ ni eso hace falta.
   Spec: `docs/specs/UI.13.1b.md`. Regresión de UI.13.1 detectada por el pre-push:
   `projects-choose.test.ts:106` (GET `/api/projects/choose` da 200 en vez de 404). Gate: `test:coverage` verde.
 
+- [ ] **UI.13.2a — 🧠 Chat de la app nueva con datos reales.** (abierto 2026-09-21)
+  Spec: `docs/specs/UI.13.2a.md`. Capa `app/src/api/chat.ts` sobre los endpoints existentes; fuera
+  las barras mock CLI QUOTAS / SESSION CONTEXT, entra el `SessionStatusBar` real. Gate: lista, abrir,
+  crear, renombrar y borrar contra la API en vivo; payload de envío igual al de `/legacy`.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,
