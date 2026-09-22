@@ -15,10 +15,8 @@ UI.12.2a, UI.13.1, UI.13.1b, UI.13.2a (Chat), UI.13.2b (proyectos/Dev/Files, cer
 ## Siguiente (serial, una ronda cada uno)
 1. UI.13.2c Settings — cerrado 2026-09-22. Pendiente menor: idioma solo traduce Settings.
 2. UI.13.4a — cerrado 2026-09-22.
-3. **UI.13.4b — spec listo: `docs/specs/UI.13.4b.md`** (2026-09-22). Decisiones de Carlos: la consola reemplaza
-   al chat en Dev, como en la plantilla; la frontera es idéntica al runner, endurecida para los dos (argumentos con forma
-   de ruta confinados al proyecto, sin lista de bloqueo; paso 1b del spec); los comandos se guardan en DB (migración 13). Siguiente tab (Opus): lanzar Luna (`codex exec -m gpt-5.6-luna`) con el spec y
-   después el gate en vivo del cerebro.
+3. UI.13.4b — cerrado 2026-09-22 (816a229). Decisión pendiente de Carlos: la frontera por argumentos no frena
+   `node -e`/`sh -c`; barrera real = sandbox de proceso o lista de binarios permitidos.
    UI.13.4c razonamiento/herramientas/tarea retenida en el chat — spec por escribir.
 4. Tasks/Runs/Graph → Memory/Specs/Skills/Instincts/Plan → UI.13.3 borrar vanilla.
 Gate en vivo con el patrón de `/tmp/ui132b-gate*.mjs`. Regla nueva: comportamientos de la plantilla se
