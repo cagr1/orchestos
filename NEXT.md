@@ -19,6 +19,12 @@ Detalles de Carlos → PLAN.md § UI.13 (3) a–d: barra inferior sin acción/us
 esfuerzo real en el input del chat, iconos de CLI con color, Settings→Usage estilo GitHub.
 CI verde otra vez en local (61b63b6, CI.3); pre-push ahora corre lint.
 
+## Estado 2026-09-22 (noche)
+UI.13.5 cerrado y pusheado (448f07a). Siguiente: **UI.14** — copiar la plantilla nueva de AI Studio (Dev como chat
+que actúa como CLI, AgentComposer, ContextRing, ShellStatusBar, logos de producto) y cablearla. Plan en el último
+mensaje del tab anterior; **espera el GO de Carlos** y su respuesta sobre tooltips (nativos `title` tal cual vs
+tooltip propio instantáneo). Luego UI.13.6 (cuotas reales: Claude sin fuente, Codex vencido desde 17-sep).
+
 ## Siguiente (serial, una ronda cada uno)
 1. UI.13.2c Settings — cerrado 2026-09-22. Pendiente menor: idioma solo traduce Settings.
 2. UI.13.4a — cerrado 2026-09-22.
