@@ -11,6 +11,20 @@ PLAN.md § UI.13.4 (punto 4). Plantilla: `~/Documents/screens/orchestos-ai-agent
 1. **Frontera compartida.** En `src/run/checks.ts` exportar `runOneCheck` (hoy es privada, `:156`) sin
    cambiar su comportamiento: argv sin shell (`splitCommand`, sin pipes, `&&` ni redirecciones), cwd por
    `resolveProjectCwd`, `safeChildEnv()`, timeout de 60 s y salida truncada a 2.000 caracteres. Prohibido copiarla.
+1b. **Endurecer la frontera para los dos a la vez** (Carlos 2026-09-22: "hagamos lo mejor").
+    En `runOneCheck`, cualquier argumento con forma de ruta (empieza por `/`, `~` o `.`, o contiene `/`)
+    se resuelve contra el cwd y debe quedar dentro de la raíz real del proyecto (`realRoot`, que sigue
+    symlinks). Si no, devuelve `failureResult` con `path outside project: <arg>` sin llegar a hacer spawn.
+    Ejemplos que se rechazan: `cat ../x`, `rm -rf /`, `ls ~/.ssh`.
+    - Excepción: los checks que genera OrchestOS (`testAssertionCheckFor`, `checks.ts:44`, que pasa
+      `process.execPath` y un script de `scripts/` por ruta absoluta) llevan `trusted: true` en `Check`,
+      y ese campo no se puede leer de `tasks.yaml`: el validador lo descarta.
+    - Motivo: los checks de `tasks.yaml` los puede escribir el LLM del chat, así que el agujero ya existía
+      en el runner. La consola no lo crea, lo hereda.
+    - Fuera de alcance: una lista de bloqueo de comandos. `rm -rf src` dentro del proyecto sigue
+      permitido, y se recupera con git.
+    - Tests: `cat ../x` rechazado, `ls src` aceptado, un symlink que apunta fuera rechazado y el check
+      de aserciones interno sigue pasando.
 2. **Migración 13** en `src/db/migrate.ts` (patrón de la 12, `:450`): tabla `console_commands`
    (`id INTEGER PK AUTOINCREMENT`, `session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE`,
    `cmd`, `exit_code`, `stdout`, `stderr`, `timed_out INTEGER`, `elapsed_ms`, `created_at`), con un índice
@@ -64,8 +78,7 @@ en polling). Nada de UI.13.4c. No commitear. No invocar `codex exec` ni delegar 
   - abrir un agente con turnos previos muestra sus pasos reales;
   - `ls` devuelve los archivos reales del proyecto;
   - `ls | wc` falla sin interpretar la pipe;
-  - (sin caso de escape: la frontera solo fija el cwd; los argumentos, p. ej. `cat ../x`, no se
-    confinan, igual que en el runner. Es lo que se decidió y se deja por escrito.)
+  - `cat ../x` y `ls /` se rechazan con `path outside project`, y `ls src` funciona;
   - recargar mantiene el historial;
   - Archive Session lo lleva a History;
   - 0 errores de consola.

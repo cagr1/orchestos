@@ -117,7 +117,8 @@
     "claude.ai Mintlify",
     "claude.ai Gmail",
     "claude.ai Google Drive",
-    "claude.ai Google Calendar"
+    "claude.ai Google Calendar",
+    "claude.ai Claude Docs"
   ],
   "env": {
     "CLAUDE_CODE_DISABLE_BUNDLED_SKILLS": "1",

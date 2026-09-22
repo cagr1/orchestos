@@ -2520,7 +2520,8 @@ ni eso hace falta.
   sesiones, nunca toca archivos del disco.
   **UI.13.4b (2026-09-22):** spec `docs/specs/UI.13.4b.md`. Carlos eligió: la consola reemplaza al chat en Dev
   (como la plantilla), la frontera es idéntica al runner (`runOneCheck`: sin shell, cwd confinado, env
-  filtrado, timeout; los argumentos NO se confinan, es un límite aceptado) y los comandos se guardan en DB.
+  filtrado, timeout) y los comandos se guardan en DB. Luego, "hagamos lo mejor": la frontera se
+  endurece en `runOneCheck` para ambos (argumentos con forma de ruta confinados al proyecto; los checks internos, `trusted`).
   Gate: cada comportamiento hecho en vivo contra la API, igual que en la plantilla.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
