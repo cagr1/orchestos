@@ -2390,6 +2390,16 @@ ni eso hace falta.
   está abierta (requiere una corrida real de chat). Hallazgo aparte: tras correr los gates apareció
   una sesión "New conversation" en Chat general — algún gate crea sesiones en la DB real.
 
+- [ ] **UI.12.2a — ⚡ Trinquete de CSS vanilla en el pre-commit: styles.css+screens.css solo bajan.** (abierto 2026-09-21)
+  GO de Carlos 2026-09-21 (memoria `feedback-no-sumar-css-copiar-prototipo`). Spec:
+  `docs/specs/UI.12.2a.md`. Gate: tests del script verdes, un commit de prueba con +1 línea en
+  `styles.css` rechazado y uno con −1 que baja el tope en `scripts/css-baseline.json`.
+
+- [ ] **UI.12.2b — 🧠 Deshacer el CSS que sumó UI.12.2: Header/Sidebar con los className del prototipo.** (abierto 2026-09-21)
+  GO de Carlos 2026-09-21. `97ce39c` sumó +119 líneas a `styles.css`; se reemplazan por los
+  `className` del prototipo copiados en las islas. Va después de `UI.12.2a`. Gate: `ui12-shell`,
+  `ui3-shell`, `ui81` verdes en vivo y el tope de CSS baja.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,

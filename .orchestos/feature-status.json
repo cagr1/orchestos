@@ -1048,6 +1048,24 @@
       "closedDate": null
     },
     {
+      "id": "UI.12.2a",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "⚡",
+      "title": "Trinquete de CSS vanilla en el pre-commit: styles.css+screens.css solo bajan",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.12.2b",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Deshacer el CSS que sumó UI.12.2: Header/Sidebar con los className del prototipo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.2",
       "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
