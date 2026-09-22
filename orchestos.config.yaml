@@ -15,7 +15,7 @@ models:
   qa:
     provider: openrouter
     model: anthropic/claude-haiku-4-5
-agent: api
+agent: codex
 agentic:
   maxIterations: 2
 external:

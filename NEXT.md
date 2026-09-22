@@ -12,6 +12,13 @@ plantilla `~/Documents/screens/orchestos-ai-agent-dashboard`. Anotado en PLAN.md
 ## Hecho y pusheado
 UI.12.2a, UI.13.1, UI.13.1b, UI.13.2a (Chat), UI.13.2b (proyectos/Dev/Files, cerrado 2026-09-22).
 
+## Decisión 2026-09-22 (tarde) — "SI go"
+Copiar YA tal cual las pantallas de la plantilla sin backend (datos de ejemplo visibles), conectar después.
+Primero: pasada de fidelidad pantalla por pantalla, capturas lado a lado revisadas por Opus (no haiku).
+Detalles de Carlos → PLAN.md § UI.13 (3) a–d: barra inferior sin acción/usage 5h+semanal, selector de CLI/modelo/
+esfuerzo real en el input del chat, iconos de CLI con color, Settings→Usage estilo GitHub.
+CI verde otra vez en local (61b63b6, CI.3); pre-push ahora corre lint.
+
 ## Siguiente (serial, una ronda cada uno)
 1. UI.13.2c Settings — cerrado 2026-09-22. Pendiente menor: idioma solo traduce Settings.
 2. UI.13.4a — cerrado 2026-09-22.

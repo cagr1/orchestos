@@ -2423,6 +2423,17 @@ ni eso hace falta.
      prototipo es hardcodeado (terminal del agente, History, cerrar agente → historial, borrar proyecto,
      razonamiento/herramientas en el mensaje del bot, etc.) es la especificación de cómo debe comportarse
      OrchestOS. "Sin backend → se quita" queda reemplazado por "sin backend → ítem para construirlo" (UI.13.4).
+     **Carlos 2026-09-22 (3), "SI go":** las pantallas de la plantilla sin backend se copian **ya, tal cual**,
+     con sus datos de ejemplo visibles, en vez de esperar la API; se conectan después, una por una (sigue
+     valiendo "sin backend → ítem para construirlo", pero la pantalla no espera). Pasada de fidelidad
+     pantalla por pantalla con capturas lado a lado revisadas por el cerebro (la auditoría con haiku no sirvió).
+     Detalles reportados por Carlos el mismo día (ítem UI.13.5):
+     a) barra inferior: al hacer clic no pasa nada; clic en usage → solo cuota 5 h y semanal;
+     b) input del chat: Claude/Codex/OpenCode/API parecen hardcodeados → deben salir de los CLI detectados;
+        elegir Claude contestó "Opus 5.5": el selector debe dejar elegir modelo y esfuerzo por CLI
+        (modelo = decisión de Carlos, nunca implícito);
+     c) iconos propios de cada CLI (Claude, Codex/ChatGPT, OpenCode…) con colores vivos;
+     d) Settings → Usage es un caos: rediseñar como la vista de uso de GitHub.
   2. `UI.13.2` Datos: capa `api.ts` que reemplaza los mocks, vista por vista — Chat, proyectos/Dev,
      Settings, Tasks/Runs/Graph, Memory/Specs/Skills/Instincts/Plan (un sub-ítem cada una).
   3. `UI.13.3` Borrar el vanilla, `/legacy`, sus islas, sus CSS y los ui-gates de píxel.
