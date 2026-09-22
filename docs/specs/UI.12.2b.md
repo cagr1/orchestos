@@ -189,6 +189,28 @@ Repetir build, TypeScript, cinco gates, medidas adicionales y capturas. Comproba
 fondos/bordes nativos ausentes en los botones inactivos, header 26×26/14×14, fila de proyecto con
 igual centro y alto antes/después del hover, y line-height 15.4px (`text-xs`) / 18px (`text-sm`).
 
+### Ronda 7 — tamaño inactivo exacto y gate estable al terminar la animación
+
+La verificación independiente de la ronda 6 dejó dos defectos puntuales. Los botones inactivos del
+Header todavía miden 28×28 porque `border border-transparent` suma dos píxeles a la caja de 26×26;
+en el prototipo miden 26×26 sin borde. Además, `ui12-shell.mjs` falló una vez leyendo el logo a
+96px justo después de esperar `animation.finished`, aunque la repetición inmediata dio 19/19: falta
+esperar que el navegador pinte el estilo final de esa animación.
+
+Resolver únicamente esto, sin añadir CSS ni relajar aserciones:
+
+- En la rama inactiva de `HeaderButton`, sustituir `border border-transparent` por `border-0` y
+  conservar `bg-transparent` y los hover. La rama activa sigue exactamente con
+  `border border-app bg-app-elevated`. Resultado: inactivos 26×26; activo 28×28 por su borde real.
+- En `scripts/ui-gates/ui12-shell.mjs`, inmediatamente después de esperar las promesas
+  `animation.finished`, esperar un `requestAnimationFrame` dentro de `page.evaluate` para que el
+  estilo final llegue a pintura antes de medir. No usar timeout fijo, no cambiar tiempos de la
+  aplicación y no suavizar ninguna expectativa.
+
+Verificar `build:ui`, TypeScript y ejecutar `ui12-shell.mjs` dos veces seguidas: ambas deben dar
+19/19. Confirmar en navegador que los tres botones inactivos del Header miden 26×26 y sus SVG
+14×14. No tocar ningún otro archivo ni commitear.
+
 ## 3. Borrar de `src/dashboard/public/styles.css`
 
 Del bloque que agregó UI.12.2 (desde `:root { --sidebar-w-exp` hasta el final del archivo),
