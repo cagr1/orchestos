@@ -1,0 +1,213 @@
+@import "tailwindcss";
+
+@layer base {
+  :root,
+  [data-theme="orchestos"] {
+    --app-bg: #080c14;
+    --app-surface: #0e1320;
+    --app-surface-elevated: #151d30;
+    --app-border: #1e293b;
+    --app-text: #f4f4f5;
+    --app-text-muted: #94a3b8;
+    --app-accent: #38bdf8;
+    --app-accent-hover: #0ea5e9;
+    --app-success: #10b981;
+    --app-warning: #f59e0b;
+    --app-error: #f43f5e;
+  }
+
+  [data-theme="graphite"] {
+    --app-bg: #0f1115;
+    --app-surface: #161920;
+    --app-surface-elevated: #20242e;
+    --app-border: #282e3b;
+    --app-text: #f3f4f6;
+    --app-text-muted: #9ca3af;
+    --app-accent: #60a5fa;
+    --app-accent-hover: #3b82f6;
+    --app-success: #34d399;
+    --app-warning: #fbbf24;
+    --app-error: #fb7185;
+  }
+
+  [data-theme="carbon"] {
+    --app-bg: #09090b;
+    --app-surface: #121215;
+    --app-surface-elevated: #1c1c22;
+    --app-border: #27272a;
+    --app-text: #fafafa;
+    --app-text-muted: #a1a1aa;
+    --app-accent: #38bdf8;
+    --app-accent-hover: #0284c7;
+    --app-success: #22c55e;
+    --app-warning: #eab308;
+    --app-error: #ef4444;
+  }
+
+  [data-theme="light"] {
+    --app-bg: #f8fafc;
+    --app-surface: #ffffff;
+    --app-surface-elevated: #f1f5f9;
+    --app-border: #e2e8f0;
+    --app-text: #0f172a;
+    --app-text-muted: #64748b;
+    --app-accent: #0284c7;
+    --app-accent-hover: #0369a1;
+    --app-success: #059669;
+    --app-warning: #d97706;
+    --app-error: #e11d48;
+  }
+
+  body {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  code, pre, kbd, samp {
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* 4-Level Strict Typography Scale */
+/* 11px: meta, badges, stats, chips */
+.text-token-xs,
+.text-xs {
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+}
+
+/* 12px: controls, buttons, subheadings, labels */
+.text-token-sm,
+.text-sm {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+/* 14px: body text, chat messages, input contents */
+.text-token-base,
+.text-base {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+
+/* 20px: major view headings and page titles */
+.text-token-title,
+.text-xl,
+.text-2xl {
+  font-size: 20px !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Override intermediate arbitrary font sizes to snap to nearest token */
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+}
+
+/* 3-Radii Strict System */
+/* Controls (buttons, inputs, dropdown items): 6px */
+.rounded-control,
+.rounded-md,
+.rounded-sm {
+  border-radius: 6px !important;
+}
+
+/* Cards & Containers (panels, dialogs, cards): 10px */
+.rounded-card,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl {
+  border-radius: 10px !important;
+}
+
+/* Pills (badges, chips, avatar rings): 9999px */
+.rounded-pill,
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+/* Unified Semantic Colors & Surface Classes */
+.bg-app-bg {
+  background-color: var(--app-bg);
+}
+.bg-app-surface {
+  background-color: var(--app-surface);
+}
+.bg-app-elevated {
+  background-color: var(--app-surface-elevated);
+}
+.border-app {
+  border-color: var(--app-border);
+}
+.text-app {
+  color: var(--app-text);
+}
+.text-app-muted {
+  color: var(--app-text-muted);
+}
+.text-app-accent {
+  color: var(--app-accent);
+}
+.bg-app-accent {
+  background-color: var(--app-accent);
+}
+
+/* Unified Tab Bar Button Style across the entire app */
+.app-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  user-select: none;
+}
+.app-tab-btn-active {
+  background-color: var(--app-surface-elevated);
+  color: var(--app-text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.app-tab-btn-inactive {
+  color: var(--app-text-muted);
+}
+.app-tab-btn-inactive:hover {
+  color: var(--app-text);
+  background-color: var(--app-surface);
+}
+
+/* Custom sleek dark scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Subtle glass utilities */
+.glass-panel {
+  background: var(--app-surface);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--app-border);
+}
+
+.glass-panel-subtle {
+  background: var(--app-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--app-border);
+}

@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, realpathSync } from 'fs'
+import { fileURLToPath } from 'url'
 import { extname, join, sep } from 'path'
 import { redactSensitive } from '../security/secrets.ts'
 import { STATIC_DIR } from './types.ts'
@@ -17,19 +18,22 @@ function mimeType(path: string): string {
   return MIME[extname(path)] ?? 'application/octet-stream'
 }
 
-let STATIC_BASE_REAL: string
-try {
-  STATIC_BASE_REAL = realpathSync(STATIC_DIR)
-} catch {
-  STATIC_BASE_REAL = STATIC_DIR
+const APP_DIR = fileURLToPath(new URL('./app', import.meta.url))
+
+function realBase(root: string): string {
+  try {
+    return realpathSync(root)
+  } catch {
+    return root
+  }
 }
 
-function serveStatic(url: string): Response {
-  const rel = url === '/' ? 'index.html' : url.replace(/^\//, '')
-  let candidate = join(STATIC_DIR, rel)
+function serveFrom(root: string, rel: string): Response {
+  const baseReal = realBase(root)
+  let candidate = join(root, rel)
 
   if (!existsSync(candidate) && !extname(rel)) {
-    candidate = join(STATIC_DIR, rel + '.html')
+    candidate = join(root, rel + '.html')
   }
   if (!existsSync(candidate)) {
     return new Response('Not found', { status: 404 })
@@ -41,7 +45,7 @@ function serveStatic(url: string): Response {
   } catch {
     return new Response('Not found', { status: 404 })
   }
-  if (real !== STATIC_BASE_REAL && !real.startsWith(STATIC_BASE_REAL + sep)) {
+  if (real !== baseReal && !real.startsWith(baseReal + sep)) {
     return new Response('Forbidden', { status: 403 })
   }
 
@@ -49,6 +53,33 @@ function serveStatic(url: string): Response {
   return new Response(content, {
     headers: { 'Content-Type': mimeType(real) },
   })
+}
+
+function serveStatic(url: string): Response {
+  if (url === '/legacy' || url.startsWith('/legacy/')) {
+    const rel = url === '/legacy' || url === '/legacy/' ? 'index.html' : url.slice('/legacy/'.length)
+    const response = serveFrom(STATIC_DIR, rel)
+    if (url !== '/legacy' || rel !== 'index.html' || !response.ok) return response
+    const html = readFileSync(join(STATIC_DIR, 'index.html'), 'utf8').replace(
+      '<head>',
+      '<head><base href="/legacy/">',
+    )
+    return new Response(html, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    })
+  }
+
+  if (url.startsWith('/app/dist/')) {
+    return serveFrom(APP_DIR, url.slice('/app/'.length))
+  }
+
+  // The AI Studio prototype is the product UI. Any non-API route without an
+  // extension is a client-side route and must boot that app shell.
+  if (url === '/' || !extname(url)) {
+    return serveFrom(APP_DIR, 'index.html')
+  }
+
+  return serveFrom(STATIC_DIR, url.replace(/^\//, ''))
 }
 
 function jsonResponse(data: unknown, status = 200): Response {

@@ -8,7 +8,7 @@
     "orchestos": "src/cli.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p src/dashboard/app/tsconfig.json --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "plan:status": "bun run scripts/generate-feature-status.ts",
@@ -22,7 +22,8 @@
     "eval:run": "bun run scripts/eval-run.ts",
     "context:budget": "bun run scripts/context-budget.ts",
     "context:status": "bun run scripts/session-status.ts",
-    "build:ui": "bun run scripts/build-ui.ts",
+    "build:ui": "bun run scripts/build-ui.ts && bun run build:app",
+    "build:app": "bun run scripts/build-app.ts",
     "test": "bun test",
     "test:coverage": "bun run scripts/check-coverage.ts",
     "check": "tsc --noEmit",
@@ -81,10 +82,14 @@
     "commander": "^14.0.3",
     "diff": "^9.0.0",
     "glob": "^13.0.6",
+    "lucide-react": "^0.546.0",
     "marked": "^18.0.6",
+    "motion": "^12.23.24",
     "pdfkit": "^0.18.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tesseract.js": "^7.0.0",
     "yaml": "^2.9.0"
   },

@@ -2419,7 +2419,16 @@ ni eso hace falta.
      Settings, Tasks/Runs/Graph, Memory/Specs/Skills/Instincts/Plan (un sub-ítem cada una).
   3. `UI.13.3` Borrar el vanilla, `/legacy`, sus islas, sus CSS y los ui-gates de píxel.
 
-- [ ] **UI.13.1 — ⚡ Andamio: el prototipo servido en `/` como la app del producto.** (abierto 2026-09-21)
+- [x] **UI.13.1 — ⚡ Andamio: el prototipo servido en `/` como la app del producto.** (abierto 2026-09-21, cerrado 2026-09-21)
+  Ejecutado por: luna · Spec: docs/specs/UI.13.1.md (2 rondas; borrado al cerrar)
+  Prototipo copiado a `src/dashboard/app/` (build `build:app` con Bun + Tailwind, tsconfig propio
+  dentro de `typecheck`); `/` sirve la app, `/legacy` el vanilla con `<base href="/legacy/">`.
+  Ronda 2: fuentes en base64 (CSS 534 KB gz → 12,5 KB), JS sin minificar, app fuera de `tsc`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.13.1-live.json` — dashboard en :4330, corrida del cerebro:
+  `/` carga en 573 ms vs 4.298 ms de `/legacy`; bundle 238 KB gz vs 453 KB del vanilla; 0 requests a
+  Google, 0 4xx, 0 errores de página. Hallazgo: el prototipo mismo renderiza con fuente del sistema
+  (la clase `font-sans` del `body` pisa su regla base); la app computa lo mismo — copia fiel.
+  Pendiente para UI.13.2: los datos siguen siendo los mocks del prototipo.
   Spec: `docs/specs/UI.13.1.md`. Gate: `/` en :4330 se ve igual al prototipo corriendo con Vite
   (capturas lado a lado), `/legacy` abre el dashboard viejo, 0 requests a Google, `tsc` y
   `test:coverage` verdes.

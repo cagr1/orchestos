@@ -1,0 +1,12 @@
+{
+  "item": "UI.13.1",
+  "date": "2026-09-21",
+  "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330 y prototipo con Vite en :3000",
+  "load_ms": { "new_root": 573, "legacy": 4298 },
+  "bundle_gzip_bytes": { "new_js": 225762, "new_css": 12551, "legacy_total": 453402 },
+  "requests_google": 0,
+  "responses_4xx": [],
+  "page_errors": [],
+  "fonts": "prototipo y app nueva computan la misma familia (system-ui en body, ui-monospace en .font-mono): la clase font-sans del body del prototipo pisa su regla base; copia fiel",
+  "screens": ["/tmp/ui13.1/r2-root.png", "/tmp/ui13.1/r2-legacy.png"]
+}

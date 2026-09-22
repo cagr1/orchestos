@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "verbatimModuleSyntax": false,
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": []
+}
