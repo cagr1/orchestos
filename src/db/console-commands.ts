@@ -27,13 +27,26 @@ export function insertConsoleCommand(input: InsertConsoleCommandInput): ConsoleC
   const result = db.run(
     `INSERT INTO console_commands (session_id, cmd, exit_code, stdout, stderr, timed_out, elapsed_ms, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [input.sessionId, input.cmd, input.exitCode, input.stdout, input.stderr, input.timedOut ? 1 : 0, input.elapsedMs, createdAt],
+    [
+      input.sessionId,
+      input.cmd,
+      input.exitCode,
+      input.stdout,
+      input.stderr,
+      input.timedOut ? 1 : 0,
+      input.elapsedMs,
+      createdAt,
+    ],
   )
-  return db.query<ConsoleCommandRecord, number>('SELECT * FROM console_commands WHERE id = ?').get(result.lastInsertRowid as number)!
+  return db
+    .query<ConsoleCommandRecord, number>('SELECT * FROM console_commands WHERE id = ?')
+    .get(result.lastInsertRowid as number)!
 }
 
 export function listConsoleCommands(sessionId: string): ConsoleCommandRecord[] {
   return db
-    .query<ConsoleCommandRecord, string>('SELECT * FROM console_commands WHERE session_id = ? ORDER BY id ASC')
+    .query<ConsoleCommandRecord, string>(
+      'SELECT * FROM console_commands WHERE session_id = ? ORDER BY id ASC',
+    )
     .all(sessionId)
 }

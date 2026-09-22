@@ -109,7 +109,12 @@ export function listChatSessions(
   projectId?: string | null,
   archiveFilter: ChatSessionArchiveFilter = 'active',
 ): ChatSessionRecord[] {
-  const archiveClause = archiveFilter === 'all' ? '' : archiveFilter === 'archived' ? 'archived_at IS NOT NULL' : 'archived_at IS NULL'
+  const archiveClause =
+    archiveFilter === 'all'
+      ? ''
+      : archiveFilter === 'archived'
+        ? 'archived_at IS NOT NULL'
+        : 'archived_at IS NULL'
   const archiveSql = archiveClause ? ` AND ${archiveClause}` : ''
   if (projectId === undefined) {
     return db
@@ -134,13 +139,20 @@ export function listChatSessions(
 
 export function archiveChatSession(id: string): ChatSessionRecord | null {
   const updatedAt = new Date().toISOString()
-  const result = db.run('UPDATE chat_sessions SET archived_at = ?, updated_at = ? WHERE id = ?', [updatedAt, updatedAt, id])
+  const result = db.run('UPDATE chat_sessions SET archived_at = ?, updated_at = ? WHERE id = ?', [
+    updatedAt,
+    updatedAt,
+    id,
+  ])
   return result.changes > 0 ? getChatSession(id) : null
 }
 
 export function restoreChatSession(id: string): ChatSessionRecord | null {
   const updatedAt = new Date().toISOString()
-  const result = db.run('UPDATE chat_sessions SET archived_at = NULL, updated_at = ? WHERE id = ?', [updatedAt, id])
+  const result = db.run(
+    'UPDATE chat_sessions SET archived_at = NULL, updated_at = ? WHERE id = ?',
+    [updatedAt, id],
+  )
   return result.changes > 0 ? getChatSession(id) : null
 }
 

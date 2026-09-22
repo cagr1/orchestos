@@ -17,7 +17,9 @@ describe('UI.9.2 CLI icon coverage', () => {
     expect(dataSource).toContain("codex: 'openai'")
     expect(dataSource).toContain("api: 'globe'")
     expect(dataSource).toContain("local: 'term'")
-    expect(dataSource).toContain('return AGENT_ICONS[key] || AGENT_ICONS[aliased] || ICON[aliased] || ICON.spark')
+    expect(dataSource).toContain(
+      'return AGENT_ICONS[key] || AGENT_ICONS[aliased] || ICON[aliased] || ICON.spark',
+    )
   })
 
   it('uses the resolver for both new CLI rows and existing sessions', () => {

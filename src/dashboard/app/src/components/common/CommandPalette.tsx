@@ -1,27 +1,28 @@
-import React, { useState, useEffect } from 'react';
 import {
-  Search,
-  MessageSquareCode,
-  Kanban,
   Activity,
-  FileCheck,
+  ArrowRight,
   Brain,
-  Database,
   Cpu,
+  Database,
+  FileCheck,
+  FolderGit2,
+  Kanban,
+  MessageSquareCode,
   Play,
+  Search,
   Sparkles,
   X,
-  ArrowRight,
-  FolderGit2,
-} from 'lucide-react';
-import { NavigationTab } from '../../types/orchestos';
+} from 'lucide-react'
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import type { NavigationTab } from '../../types/orchestos'
 
 interface CommandPaletteProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelectTab: (tab: NavigationTab) => void;
-  onRunNextTask: () => void;
-  onSelectModel: (model: string) => void;
+  isOpen: boolean
+  onClose: () => void
+  onSelectTab: (tab: NavigationTab) => void
+  onRunNextTask: () => void
+  onSelectModel: (model: string) => void
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -31,27 +32,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onRunNextTask,
   onSelectModel,
 }) => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
+        e.preventDefault()
         if (isOpen) {
-          onClose();
+          onClose()
         } else {
           // Open
         }
       }
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        onClose()
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const actions = [
     {
@@ -60,8 +61,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Navigation',
       icon: MessageSquareCode,
       run: () => {
-        onSelectTab('threads');
-        onClose();
+        onSelectTab('threads')
+        onClose()
       },
     },
     {
@@ -70,8 +71,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Navigation',
       icon: Kanban,
       run: () => {
-        onSelectTab('plan');
-        onClose();
+        onSelectTab('plan')
+        onClose()
       },
     },
     {
@@ -80,8 +81,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Navigation',
       icon: Activity,
       run: () => {
-        onSelectTab('runs');
-        onClose();
+        onSelectTab('runs')
+        onClose()
       },
     },
     {
@@ -90,8 +91,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Navigation',
       icon: FileCheck,
       run: () => {
-        onSelectTab('specs');
-        onClose();
+        onSelectTab('specs')
+        onClose()
       },
     },
     {
@@ -100,8 +101,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Navigation',
       icon: Brain,
       run: () => {
-        onSelectTab('instincts');
-        onClose();
+        onSelectTab('instincts')
+        onClose()
       },
     },
     {
@@ -110,8 +111,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Navigation',
       icon: Database,
       run: () => {
-        onSelectTab('memory');
-        onClose();
+        onSelectTab('memory')
+        onClose()
       },
     },
     {
@@ -120,8 +121,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Navigation',
       icon: Cpu,
       run: () => {
-        onSelectTab('skills');
-        onClose();
+        onSelectTab('skills')
+        onClose()
       },
     },
     {
@@ -130,8 +131,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Navigation',
       icon: FolderGit2,
       run: () => {
-        onSelectTab('context');
-        onClose();
+        onSelectTab('context')
+        onClose()
       },
     },
     {
@@ -140,8 +141,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Actions',
       icon: Play,
       run: () => {
-        onRunNextTask();
-        onClose();
+        onRunNextTask()
+        onClose()
       },
     },
     {
@@ -150,8 +151,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Model Provider',
       icon: Sparkles,
       run: () => {
-        onSelectModel('claude-3-7-sonnet');
-        onClose();
+        onSelectModel('claude-3-7-sonnet')
+        onClose()
       },
     },
     {
@@ -160,17 +161,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: 'Model Provider',
       icon: Sparkles,
       run: () => {
-        onSelectModel('gemini-2.5-pro');
-        onClose();
+        onSelectModel('gemini-2.5-pro')
+        onClose()
       },
     },
-  ];
+  ]
 
   const filtered = actions.filter(
     (a) =>
       a.title.toLowerCase().includes(query.toLowerCase()) ||
-      a.category.toLowerCase().includes(query.toLowerCase())
-  );
+      a.category.toLowerCase().includes(query.toLowerCase()),
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
@@ -195,12 +196,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
         <div className="max-h-96 overflow-y-auto p-2 space-y-1">
           {filtered.length === 0 ? (
-            <div className="p-6 text-center text-xs text-zinc-500">
-              No matching commands found.
-            </div>
+            <div className="p-6 text-center text-xs text-zinc-500">No matching commands found.</div>
           ) : (
             filtered.map((item) => {
-              const Icon = item.icon;
+              const Icon = item.icon
               return (
                 <button
                   key={item.id}
@@ -220,7 +219,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-300 group-hover:translate-x-0.5 transition-transform" />
                 </button>
-              );
+              )
             })
           )}
         </div>
@@ -231,5 +230,5 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

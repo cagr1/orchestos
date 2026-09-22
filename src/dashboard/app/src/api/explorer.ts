@@ -1,21 +1,48 @@
-import type { FileNode } from '../types/orchestos';
+import type { FileNode } from '../types/orchestos'
 
-interface ExplorerEntry { name: string; path: string; type: 'dir' | 'file' }
-interface ExplorerTreeResponse { path: string; entries: ExplorerEntry[] }
-interface ExplorerFileResponse { path: string; content: string; tooLarge: boolean; binary: boolean }
+interface ExplorerEntry {
+  name: string
+  path: string
+  type: 'dir' | 'file'
+}
+interface ExplorerTreeResponse {
+  path: string
+  entries: ExplorerEntry[]
+}
+interface ExplorerFileResponse {
+  path: string
+  content: string
+  tooLarge: boolean
+  binary: boolean
+}
 
 async function request<T>(path: string, projectId: string): Promise<T> {
-  const response = await fetch(path, { headers: { 'x-orchestos-project-id': projectId } });
-  if (!response.ok) throw new Error(`Request failed (${response.status})`);
-  return response.json() as Promise<T>;
+  const response = await fetch(path, { headers: { 'x-orchestos-project-id': projectId } })
+  if (!response.ok) throw new Error(`Request failed (${response.status})`)
+  return response.json() as Promise<T>
 }
 
 export async function getExplorerTree(path = '', projectId: string): Promise<FileNode[]> {
-  const data = await request<ExplorerTreeResponse>(`/api/explorer/tree?path=${encodeURIComponent(path)}`, projectId);
-  return data.entries.map((entry) => ({ name: entry.name, path: entry.path, isDir: entry.type === 'dir' }));
+  const data = await request<ExplorerTreeResponse>(
+    `/api/explorer/tree?path=${encodeURIComponent(path)}`,
+    projectId,
+  )
+  return data.entries.map((entry) => ({
+    name: entry.name,
+    path: entry.path,
+    isDir: entry.type === 'dir',
+  }))
 }
 
 export async function getExplorerFile(path: string, projectId: string): Promise<FileNode> {
-  const data = await request<ExplorerFileResponse>(`/api/explorer/file?path=${encodeURIComponent(path)}`, projectId);
-  return { name: path.split('/').pop() || path, path: data.path, isDir: false, content: data.content };
+  const data = await request<ExplorerFileResponse>(
+    `/api/explorer/file?path=${encodeURIComponent(path)}`,
+    projectId,
+  )
+  return {
+    name: path.split('/').pop() || path,
+    path: data.path,
+    isDir: false,
+    content: data.content,
+  }
 }

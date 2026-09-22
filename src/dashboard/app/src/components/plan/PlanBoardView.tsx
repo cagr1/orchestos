@@ -1,31 +1,32 @@
-import React, { useState } from 'react';
 import {
+  AlertOctagon,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  FileCode,
+  Filter,
+  GitPullRequest,
+  HelpCircle,
   Kanban,
   List,
   Play,
-  HelpCircle,
-  CheckCircle2,
-  AlertOctagon,
-  Clock,
-  Shield,
-  FileCode,
-  ArrowRight,
   Plus,
-  GitPullRequest,
-  Search,
-  Filter,
-  DollarSign,
   Repeat,
-  Check,
+  Search,
+  Shield,
   X,
-} from 'lucide-react';
-import { TaskItem, TaskStatus } from '../../types/orchestos';
+} from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
+import type { TaskItem, TaskStatus } from '../../types/orchestos'
 
 interface PlanBoardViewProps {
-  tasks: TaskItem[];
-  onRunTask: (taskId: string) => void;
-  onExplainTask: (taskId: string) => void;
-  onAddTask: (newTask: Omit<TaskItem, 'retryCount' | 'qaVerdict' | 'runId' | 'costUsd'>) => void;
+  tasks: TaskItem[]
+  onRunTask: (taskId: string) => void
+  onExplainTask: (taskId: string) => void
+  onAddTask: (newTask: Omit<TaskItem, 'retryCount' | 'qaVerdict' | 'runId' | 'costUsd'>) => void
 }
 
 export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
@@ -34,47 +35,61 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
   onExplainTask,
   onAddTask,
 }) => {
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSprint, setSelectedSprint] = useState<string>('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [explainModalTask, setExplainModalTask] = useState<TaskItem | null>(null);
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSprint, setSelectedSprint] = useState<string>('all')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [explainModalTask, setExplainModalTask] = useState<TaskItem | null>(null)
 
   // New task form state
-  const [newId, setNewId] = useState('');
-  const [newDesc, setNewDesc] = useState('');
-  const [newOutput, setNewOutput] = useState('');
-  const [newCriteria, setNewCriteria] = useState('');
+  const [newId, setNewId] = useState('')
+  const [newDesc, setNewDesc] = useState('')
+  const [newOutput, setNewOutput] = useState('')
+  const [newCriteria, setNewCriteria] = useState('')
 
   const filteredTasks = tasks.filter((t) => {
     const matchesSearch =
       t.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.output.some((f) => f.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesSprint =
-      selectedSprint === 'all' || t.sprint === selectedSprint;
-    return matchesSearch && matchesSprint;
-  });
+      t.output.some((f) => f.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchesSprint = selectedSprint === 'all' || t.sprint === selectedSprint
+    return matchesSearch && matchesSprint
+  })
 
   const columns: { id: TaskStatus; title: string; color: string; bg: string }[] = [
     { id: 'pending', title: 'Pending / Backlog', color: 'text-zinc-400', bg: 'border-zinc-800' },
-    { id: 'running', title: 'Sandboxed Running', color: 'text-indigo-400', bg: 'border-indigo-500/30' },
+    {
+      id: 'running',
+      title: 'Sandboxed Running',
+      color: 'text-indigo-400',
+      bg: 'border-indigo-500/30',
+    },
     { id: 'blocked', title: 'Blocked by DAG', color: 'text-amber-400', bg: 'border-amber-500/30' },
-    { id: 'done', title: 'Verified & Done', color: 'text-emerald-400', bg: 'border-emerald-500/30' },
-    { id: 'failed_permanent', title: 'Failed Permanent (3x)', color: 'text-rose-400', bg: 'border-rose-500/30' },
-  ];
+    {
+      id: 'done',
+      title: 'Verified & Done',
+      color: 'text-emerald-400',
+      bg: 'border-emerald-500/30',
+    },
+    {
+      id: 'failed_permanent',
+      title: 'Failed Permanent (3x)',
+      color: 'text-rose-400',
+      bg: 'border-rose-500/30',
+    },
+  ]
 
   const handleCreateTaskSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newId || !newDesc) return;
+    e.preventDefault()
+    if (!newId || !newDesc) return
     const outputFiles = newOutput
       .split('\n')
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
     const criteriaList = newCriteria
       .split('\n')
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
 
     onAddTask({
       id: newId.trim(),
@@ -82,17 +97,18 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
       status: 'pending',
       output: outputFiles.length > 0 ? outputFiles : ['src/tasks/new-task.ts'],
       depends_on: [],
-      acceptance_criteria: criteriaList.length > 0 ? criteriaList : ['Code builds with zero compiler errors'],
+      acceptance_criteria:
+        criteriaList.length > 0 ? criteriaList : ['Code builds with zero compiler errors'],
       engine: 'agentic',
       sprint: 'Sprint 31',
-    });
+    })
 
-    setNewId('');
-    setNewDesc('');
-    setNewOutput('');
-    setNewCriteria('');
-    setShowAddModal(false);
-  };
+    setNewId('')
+    setNewDesc('')
+    setNewOutput('')
+    setNewCriteria('')
+    setShowAddModal(false)
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950 select-none">
@@ -170,7 +186,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
         {viewMode === 'kanban' ? (
           <div className="flex gap-4 min-w-max pb-4">
             {columns.map((col) => {
-              const colTasks = filteredTasks.filter((t) => t.status === col.id);
+              const colTasks = filteredTasks.filter((t) => t.status === col.id)
               return (
                 <div
                   key={col.id}
@@ -292,7 +308,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                     )}
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         ) : (
@@ -313,9 +329,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
               <tbody className="divide-y divide-zinc-800/60">
                 {filteredTasks.map((t) => (
                   <tr key={t.id} className="hover:bg-zinc-900/80 transition-colors">
-                    <td className="p-3 font-mono font-semibold text-indigo-400">
-                      {t.id}
-                    </td>
+                    <td className="p-3 font-mono font-semibold text-indigo-400">{t.id}</td>
                     <td className="p-3 text-zinc-200 max-w-md">
                       <div>{t.description}</div>
                       {t.depends_on.length > 0 && (
@@ -330,12 +344,12 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                           t.status === 'done'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                             : t.status === 'running'
-                            ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 animate-pulse'
-                            : t.status === 'blocked'
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                            : t.status === 'failed_permanent'
-                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                            : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                              ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 animate-pulse'
+                              : t.status === 'blocked'
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                                : t.status === 'failed_permanent'
+                                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                                  : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                         }`}
                       >
                         {t.status}
@@ -439,7 +453,9 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
               </div>
 
               <div className="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-indigo-200 text-[11px]">
-                💡 <strong>Dry-Run Verification</strong>: 0 tokens spent. The middleware verified the dependency DAG, Git worktree branch availability, and contract boundaries without invoking the LLM provider.
+                💡 <strong>Dry-Run Verification</strong>: 0 tokens spent. The middleware verified
+                the dependency DAG, Git worktree branch availability, and contract boundaries
+                without invoking the LLM provider.
               </div>
             </div>
 
@@ -452,9 +468,9 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const id = explainModalTask.id;
-                  setExplainModalTask(null);
-                  onRunTask(id);
+                  const id = explainModalTask.id
+                  setExplainModalTask(null)
+                  onRunTask(id)
                 }}
                 className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
               >
@@ -488,9 +504,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-zinc-300 font-semibold mb-1">
-                  Task Identifier
-                </label>
+                <label className="block text-zinc-300 font-semibold mb-1">Task Identifier</label>
                 <input
                   type="text"
                   required
@@ -562,5 +576,5 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}

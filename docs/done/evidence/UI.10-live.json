@@ -6,11 +6,7 @@
   "environment": "Playwright chromium sobre el dashboard real en http://localhost:4323 (bun run src/cli.ts dashboard --port 4323), proyectos registrados: SalaDespecho y orchestos",
   "run_by": "cerebro (Opus 5), no el ejecutor",
   "note": "Llega clickeando: Chat → Settings → proyecto → pestañas, sin window.*. 3 corridas seguidas 13/13 tras corregir la carrera de fetchProjects (una corrida previa había visto 0 proyectos).",
-  "runs": [
-    13,
-    13,
-    13
-  ],
+  "runs": [13, 13, 13],
   "result": "13/13 PASS",
   "lines": [
     "PASS — Settings muestra 2 proyectos registrados",

@@ -123,7 +123,11 @@ async function handleApiSkillsCreate(req: Request, root = process.cwd()): Promis
   }
 }
 
-async function handleApiSkillsUpdate(req: Request, url: URL, root = process.cwd()): Promise<Response> {
+async function handleApiSkillsUpdate(
+  req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
@@ -151,7 +155,11 @@ async function handleApiSkillsUpdate(req: Request, url: URL, root = process.cwd(
   }
 }
 
-async function handleApiSkillsDelete(req: Request, url: URL, root = process.cwd()): Promise<Response> {
+async function handleApiSkillsDelete(
+  req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
@@ -415,7 +423,11 @@ async function handleApiSkillsRegistryList(): Promise<Response> {
   }
 }
 
-async function handleApiSkillsRegistryImport(_req: Request, url: URL, root = process.cwd()): Promise<Response> {
+async function handleApiSkillsRegistryImport(
+  _req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)
   if (!m || !m[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]

@@ -9,6 +9,8 @@ describe('UI.9.2 chat session restoration contract', () => {
     const historyRestore = appSource.indexOf('this.fetchChatSession(restored.id)')
     expect(metadataLoad).toBeGreaterThanOrEqual(0)
     expect(historyRestore).toBeGreaterThan(metadataLoad)
-    expect(appSource).toContain("if (st.chatSessionId && st.chatSessionsStatus !== 'ok') return null")
+    expect(appSource).toContain(
+      "if (st.chatSessionId && st.chatSessionsStatus !== 'ok') return null",
+    )
   })
 })

@@ -1,11 +1,11 @@
-import React from 'react';
-import { AlertTriangle, X, Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2, X } from 'lucide-react'
+import type React from 'react'
 
 interface DeleteProjectModalProps {
-  isOpen: boolean;
-  projectName: string;
-  onClose: () => void;
-  onConfirm: () => void;
+  isOpen: boolean
+  projectName: string
+  onClose: () => void
+  onConfirm: () => void
 }
 
 export const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({
@@ -14,7 +14,7 @@ export const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <div
@@ -40,10 +40,12 @@ export const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({
         </div>
 
         <p className="text-xs text-app-muted leading-relaxed">
-          Are you sure you want to remove <strong className="text-app font-semibold">{projectName}</strong> from this workspace?
+          Are you sure you want to remove{' '}
+          <strong className="text-app font-semibold">{projectName}</strong> from this workspace?
           <br />
           <span className="text-rose-400/90 mt-1 block">
-            This only removes it from OrchestOS workspace telemetry and active index. It does NOT delete the repository folder from disk.
+            This only removes it from OrchestOS workspace telemetry and active index. It does NOT
+            delete the repository folder from disk.
           </span>
         </p>
 
@@ -58,8 +60,8 @@ export const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({
           <button
             type="button"
             onClick={() => {
-              onConfirm();
-              onClose();
+              onConfirm()
+              onClose()
             }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition-colors"
           >
@@ -69,5 +71,5 @@ export const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

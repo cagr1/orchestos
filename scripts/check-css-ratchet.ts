@@ -3,7 +3,7 @@
  */
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { runCommand, type RunCommand } from './agent-governance.ts'
+import { type RunCommand, runCommand } from './agent-governance.ts'
 
 export interface CssBaseline {
   total: number
@@ -79,7 +79,9 @@ export function main(root = process.cwd(), run: RunCommand = runCommand): number
     const headSource = headFile(root, 'scripts/css-baseline.json', run)
     head = headSource === null ? null : (JSON.parse(headSource) as CssBaseline)
   } catch (error) {
-    console.error(`✗ JSON de baseline inválido: ${error instanceof Error ? error.message : String(error)}`)
+    console.error(
+      `✗ JSON de baseline inválido: ${error instanceof Error ? error.message : String(error)}`,
+    )
     return 1
   }
 

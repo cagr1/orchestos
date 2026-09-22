@@ -19,7 +19,8 @@ const I18N = {
     'nav.settings': 'Settings',
     'nav.chat': 'Chat',
     'dev.empty.title': 'OrchestOS Dev',
-    'dev.empty.body': 'No active agent session open. Select an agent from the sidebar or click + on a project to launch a CLI.',
+    'dev.empty.body':
+      'No active agent session open. Select an agent from the sidebar or click + on a project to launch a CLI.',
     'nav.mode.chat': 'Chat',
     'nav.mode.dev': 'Dev',
     'nav.section.chats': 'Chats',
@@ -861,7 +862,8 @@ const I18N = {
     'plan.loading': 'Loading plan…',
     'plan.error': 'Could not load the plan. Check that PLAN.md matches the database.',
     'plan.empty': 'No plan items found.',
-    'plan.notPerProject': 'Per-project plans are not available yet. Only the plan of the project running OrchestOS is shown today.',
+    'plan.notPerProject':
+      'Per-project plans are not available yet. Only the plan of the project running OrchestOS is shown today.',
     'plan.ready': 'Ready',
     'plan.blocked': 'Blocked',
     'plan.done': 'Done',
@@ -928,7 +930,8 @@ const I18N = {
     'nav.settings': 'Ajustes',
     'nav.chat': 'Chat',
     'dev.empty.title': 'OrchestOS Dev',
-    'dev.empty.body': 'No hay una sesión de agente activa. Seleccioná un agente en la barra lateral o hacé clic en + sobre un proyecto para lanzar un CLI.',
+    'dev.empty.body':
+      'No hay una sesión de agente activa. Seleccioná un agente en la barra lateral o hacé clic en + sobre un proyecto para lanzar un CLI.',
     'nav.mode.chat': 'Chat',
     'nav.mode.dev': 'Dev',
     'nav.section.chats': 'Chats',
@@ -1774,7 +1777,8 @@ const I18N = {
     'plan.loading': 'Cargando plan…',
     'plan.error': 'No se pudo cargar el plan. Verificá que PLAN.md coincida con la base de datos.',
     'plan.empty': 'No hay ítems del plan.',
-    'plan.notPerProject': 'El plan por proyecto todavía no está disponible. Hoy solo se muestra el plan del proyecto donde corre OrchestOS.',
+    'plan.notPerProject':
+      'El plan por proyecto todavía no está disponible. Hoy solo se muestra el plan del proyecto donde corre OrchestOS.',
     'plan.ready': 'Listos',
     'plan.blocked': 'Bloqueados',
     'plan.done': 'Cerrados',

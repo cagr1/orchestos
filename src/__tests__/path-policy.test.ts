@@ -106,10 +106,16 @@ describe('path policy — traversal matrix', () => {
     const logger = { error() {} } as any
 
     const rejected = await runChecks([{ cmd: 'cat ../secret.txt' }], root, logger)
-    expect(rejected[0]).toMatchObject({ exitCode: 1, stderr: 'path outside project: ../secret.txt' })
+    expect(rejected[0]).toMatchObject({
+      exitCode: 1,
+      stderr: 'path outside project: ../secret.txt',
+    })
 
     const symlinkRejected = await runChecks([{ cmd: 'cat src/escape.txt' }], root, logger)
-    expect(symlinkRejected[0]).toMatchObject({ exitCode: 1, stderr: 'path outside project: src/escape.txt' })
+    expect(symlinkRejected[0]).toMatchObject({
+      exitCode: 1,
+      stderr: 'path outside project: src/escape.txt',
+    })
 
     const accepted = await runChecks([{ cmd: 'ls src' }], root, logger)
     expect(accepted[0]?.exitCode).toBe(0)
@@ -120,6 +126,9 @@ describe('path policy — traversal matrix', () => {
     expect(cwdSrc.stdout).toContain('fixture')
 
     const optionPath = await runOneCheck({ cmd: 'cat --x=../secret.txt' }, root)
-    expect(optionPath).toMatchObject({ exitCode: 1, stderr: 'path outside project: --x=../secret.txt' })
+    expect(optionPath).toMatchObject({
+      exitCode: 1,
+      stderr: 'path outside project: --x=../secret.txt',
+    })
   })
 })

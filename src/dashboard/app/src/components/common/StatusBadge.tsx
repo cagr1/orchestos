@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react'
 
 export type StandardStatus =
   | 'done'
@@ -22,13 +22,13 @@ export type StandardStatus =
   | 'rejected'
   | 'draft'
   | 'spec'
-  | 'approved';
+  | 'approved'
 
 interface StatusBadgeProps {
-  status: StandardStatus | string;
-  label?: string;
-  showDot?: boolean;
-  className?: string;
+  status: StandardStatus | string
+  label?: string
+  showDot?: boolean
+  className?: string
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -37,12 +37,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   showDot = true,
   className = '',
 }) => {
-  const norm = (status || '').toLowerCase().trim();
+  const norm = (status || '').toLowerCase().trim()
 
-  let dotColor = 'bg-zinc-400';
-  let badgeClasses = 'bg-zinc-800/80 text-zinc-300 border-zinc-700/60';
-  let defaultLabel = norm.toUpperCase();
-  let isPulsing = false;
+  let dotColor = 'bg-zinc-400'
+  let badgeClasses = 'bg-zinc-800/80 text-zinc-300 border-zinc-700/60'
+  let defaultLabel = norm.toUpperCase()
+  let isPulsing = false
 
   if (
     norm === 'done' ||
@@ -51,53 +51,41 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     norm === 'passed' ||
     norm === 'verified'
   ) {
-    dotColor = 'bg-emerald-400';
-    badgeClasses = 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40';
-    defaultLabel = norm === 'ready' ? 'READY' : norm === 'passed' ? 'PASS' : 'DONE';
-  } else if (
-    norm === 'running' ||
-    norm === 'active' ||
-    norm === 'in_progress'
-  ) {
-    dotColor = 'bg-sky-400';
-    badgeClasses = 'bg-sky-950/40 text-sky-400 border-sky-800/40';
-    defaultLabel = 'RUNNING';
-    isPulsing = true;
-  } else if (
-    norm === 'blocked' ||
-    norm === 'held' ||
-    norm === 'paused'
-  ) {
-    dotColor = 'bg-amber-400';
-    badgeClasses = 'bg-amber-950/40 text-amber-400 border-amber-800/40';
-    defaultLabel = norm === 'held' ? 'HELD' : 'BLOCKED';
-  } else if (
-    norm === 'failed' ||
-    norm === 'error' ||
-    norm === 'rejected'
-  ) {
-    dotColor = 'bg-rose-400';
-    badgeClasses = 'bg-rose-950/40 text-rose-400 border-rose-800/40';
-    defaultLabel = norm === 'rejected' ? 'REJECTED' : 'FAIL';
+    dotColor = 'bg-emerald-400'
+    badgeClasses = 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40'
+    defaultLabel = norm === 'ready' ? 'READY' : norm === 'passed' ? 'PASS' : 'DONE'
+  } else if (norm === 'running' || norm === 'active' || norm === 'in_progress') {
+    dotColor = 'bg-sky-400'
+    badgeClasses = 'bg-sky-950/40 text-sky-400 border-sky-800/40'
+    defaultLabel = 'RUNNING'
+    isPulsing = true
+  } else if (norm === 'blocked' || norm === 'held' || norm === 'paused') {
+    dotColor = 'bg-amber-400'
+    badgeClasses = 'bg-amber-950/40 text-amber-400 border-amber-800/40'
+    defaultLabel = norm === 'held' ? 'HELD' : 'BLOCKED'
+  } else if (norm === 'failed' || norm === 'error' || norm === 'rejected') {
+    dotColor = 'bg-rose-400'
+    badgeClasses = 'bg-rose-950/40 text-rose-400 border-rose-800/40'
+    defaultLabel = norm === 'rejected' ? 'REJECTED' : 'FAIL'
   } else if (norm === 'draft' || norm === 'spec') {
-    dotColor = 'bg-indigo-400';
-    badgeClasses = 'bg-indigo-950/40 text-indigo-300 border-indigo-800/40';
-    defaultLabel = 'DRAFT';
+    dotColor = 'bg-indigo-400'
+    badgeClasses = 'bg-indigo-950/40 text-indigo-300 border-indigo-800/40'
+    defaultLabel = 'DRAFT'
   } else if (norm === 'approved') {
-    dotColor = 'bg-emerald-400';
-    badgeClasses = 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40';
-    defaultLabel = 'APPROVED';
+    dotColor = 'bg-emerald-400'
+    badgeClasses = 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40'
+    defaultLabel = 'APPROVED'
   } else if (norm === 'optional') {
-    dotColor = 'bg-zinc-500';
-    badgeClasses = 'bg-zinc-900/60 text-zinc-400 border-zinc-800/60';
-    defaultLabel = 'OPTIONAL';
+    dotColor = 'bg-zinc-500'
+    badgeClasses = 'bg-zinc-900/60 text-zinc-400 border-zinc-800/60'
+    defaultLabel = 'OPTIONAL'
   } else if (norm === 'idle' || norm === 'pending' || norm === 'queued' || norm === 'todo') {
-    dotColor = 'bg-zinc-400';
-    badgeClasses = 'bg-zinc-900/80 text-zinc-400 border-zinc-800';
-    defaultLabel = norm === 'idle' ? 'IDLE' : 'PENDING';
+    dotColor = 'bg-zinc-400'
+    badgeClasses = 'bg-zinc-900/80 text-zinc-400 border-zinc-800'
+    defaultLabel = norm === 'idle' ? 'IDLE' : 'PENDING'
   }
 
-  const displayText = label || defaultLabel;
+  const displayText = label || defaultLabel
 
   return (
     <span
@@ -115,5 +103,5 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       )}
       <span>{displayText}</span>
     </span>
-  );
-};
+  )
+}

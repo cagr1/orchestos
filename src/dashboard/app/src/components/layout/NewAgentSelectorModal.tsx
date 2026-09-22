@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { Bot, X, Plus } from 'lucide-react';
-import { ProviderLogo } from '../common/ProviderLogos';
-import { DEFAULT_CHAT_MODEL, getChatModels } from '../../api/chat';
+import { Bot, Plus, X } from 'lucide-react'
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import { DEFAULT_CHAT_MODEL, getChatModels } from '../../api/chat'
+import { ProviderLogo } from '../common/ProviderLogos'
 
 interface ExecutorMode {
-  id: string;
-  label: string;
-  detected: boolean;
+  id: string
+  label: string
+  detected: boolean
 }
 
 interface NewAgentSelectorModalProps {
-  isOpen: boolean;
-  projectName?: string;
-  isChatMode?: boolean;
-  onClose: () => void;
-  onCreateAgent: (cliId: string, modelName: string, title: string) => void;
+  isOpen: boolean
+  projectName?: string
+  isChatMode?: boolean
+  onClose: () => void
+  onCreateAgent: (cliId: string, modelName: string, title: string) => void
 }
 
 export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
@@ -24,49 +25,59 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
   onClose,
   onCreateAgent,
 }) => {
-  const [selectedCli, setSelectedCli] = useState('claude');
-  const [agentTitle, setAgentTitle] = useState('');
-  const [modes, setModes] = useState<ExecutorMode[]>([]);
-  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCli, setSelectedCli] = useState('claude')
+  const [agentTitle, setAgentTitle] = useState('')
+  const [modes, setModes] = useState<ExecutorMode[]>([])
+  const [models, setModels] = useState<{ id: string; name: string }[]>([])
 
   useEffect(() => {
-    if (!isOpen) return;
-    let disposed = false;
+    if (!isOpen) return
+    let disposed = false
     const modesPromise = fetch('/api/system/executor-modes').then((response) => {
-        if (!response.ok) throw new Error(String(response.status));
-        return response.json() as Promise<{ modes: ExecutorMode[] }>;
-    });
-    void modesPromise.then((executorModes) => {
-      if (disposed) return;
-      const available = executorModes.modes.filter((mode) => mode.detected);
-      setModes(available);
-      setSelectedCli((current) => available.some((mode) => mode.id === current)
-        ? current
-        : available[0]?.id || '');
-    }).catch(() => { if (!disposed) setModes([]); });
+      if (!response.ok) throw new Error(String(response.status))
+      return response.json() as Promise<{ modes: ExecutorMode[] }>
+    })
+    void modesPromise
+      .then((executorModes) => {
+        if (disposed) return
+        const available = executorModes.modes.filter((mode) => mode.detected)
+        setModes(available)
+        setSelectedCli((current) =>
+          available.some((mode) => mode.id === current) ? current : available[0]?.id || '',
+        )
+      })
+      .catch(() => {
+        if (!disposed) setModes([])
+      })
     void getChatModels()
       .then((chatModels) => {
-        if (!disposed) setModels(chatModels.map((model) => ({ id: model.id, name: model.name || model.id })));
+        if (!disposed)
+          setModels(chatModels.map((model) => ({ id: model.id, name: model.name || model.id })))
       })
-      .catch(() => { if (!disposed) setModels([]); });
-    return () => { disposed = true; };
-  }, [isOpen]);
+      .catch(() => {
+        if (!disposed) setModels([])
+      })
+    return () => {
+      disposed = true
+    }
+  }, [isOpen])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const opt = modes.find((o) => o.id === selectedCli);
-    if (!opt) return;
+    e.preventDefault()
+    const opt = modes.find((o) => o.id === selectedCli)
+    if (!opt) return
     const defaultTitle = isChatMode
       ? `Chat with ${opt.label}`
-      : `Agent: ${opt.label} on ${projectName}`;
-    const finalTitle = agentTitle.trim() || defaultTitle;
-    const defaultModel = models.find((model) => model.id === DEFAULT_CHAT_MODEL)?.id || models[0]?.id || '';
-    onCreateAgent(opt.id, defaultModel, finalTitle);
-    setAgentTitle('');
-    onClose();
-  };
+      : `Agent: ${opt.label} on ${projectName}`
+    const finalTitle = agentTitle.trim() || defaultTitle
+    const defaultModel =
+      models.find((model) => model.id === DEFAULT_CHAT_MODEL)?.id || models[0]?.id || ''
+    onCreateAgent(opt.id, defaultModel, finalTitle)
+    setAgentTitle('')
+    onClose()
+  }
 
   return (
     <div
@@ -116,7 +127,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
             <label className="block text-app-muted mb-1.5 font-medium">Select Agent / Engine</label>
             <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
               {modes.map((opt) => {
-                const isSelected = selectedCli === opt.id;
+                const isSelected = selectedCli === opt.id
                 return (
                   <button
                     key={opt.id}
@@ -135,15 +146,21 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-xs text-app">{opt.label}</span>
                         <span className="text-xs font-mono text-app-muted">
-                          {opt.id === 'api' ? (models.length ? `${models.length} models` : 'Models unavailable') : opt.label}
+                          {opt.id === 'api'
+                            ? models.length
+                              ? `${models.length} models`
+                              : 'Models unavailable'
+                            : opt.label}
                         </span>
                       </div>
                       <p className="text-xs text-app-muted mt-0.5 truncate">
-                        {opt.id === 'api' ? 'Models from the configured API catalog' : 'Detected CLI available for new sessions'}
+                        {opt.id === 'api'
+                          ? 'Models from the configured API catalog'
+                          : 'Detected CLI available for new sessions'}
                       </p>
                     </div>
                   </button>
-                );
+                )
               })}
             </div>
           </div>
@@ -168,5 +185,5 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
         </form>
       </div>
     </div>
-  );
-};
+  )
+}

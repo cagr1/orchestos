@@ -12,14 +12,14 @@
  * UI.0 — el dashboard tiene que quedar idéntico.
  */
 import './styles/ui.css'
-import jakartaLatin from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2'
-import jakartaLatinExt from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-wght-normal.woff2'
 import firaLatin400 from '@fontsource/fira-code/files/fira-code-latin-400-normal.woff2'
 import firaLatin500 from '@fontsource/fira-code/files/fira-code-latin-500-normal.woff2'
 import firaLatin600 from '@fontsource/fira-code/files/fira-code-latin-600-normal.woff2'
 import firaLatinExt400 from '@fontsource/fira-code/files/fira-code-latin-ext-400-normal.woff2'
 import firaLatinExt500 from '@fontsource/fira-code/files/fira-code-latin-ext-500-normal.woff2'
 import firaLatinExt600 from '@fontsource/fira-code/files/fira-code-latin-ext-600-normal.woff2'
+import jakartaLatinExt from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-wght-normal.woff2'
+import jakartaLatin from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { LangProbe } from './islands/LangProbe.tsx'
@@ -34,7 +34,10 @@ const fontFaceStyles = `
 @font-face { font-family: 'Fira Code'; font-style: normal; font-display: swap; font-weight: 600; src: url('${firaLatinExt600}') format('woff2'); }
 @font-face { font-family: 'Fira Code'; font-style: normal; font-display: swap; font-weight: 600; src: url('${firaLatin600}') format('woff2'); }
 `
-document.head.appendChild(Object.assign(document.createElement('style'), { textContent: fontFaceStyles }))
+document.head.appendChild(
+  Object.assign(document.createElement('style'), { textContent: fontFaceStyles }),
+)
+
 import { ModelCombo } from './islands/ModelCombo.tsx'
 import { PlanBoardScreen } from './islands/screens/PlanBoardScreen.tsx'
 import { SkillsScreen } from './islands/screens/SkillsScreen.tsx'

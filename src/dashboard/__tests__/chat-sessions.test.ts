@@ -798,7 +798,9 @@ describe('CC.2 — chat sessions backend', () => {
     `)
     expect(result.archive).toBe(200)
     expect(result.normal).toEqual([])
-    expect(result.archived).toEqual([expect.objectContaining({ id: expect.any(String), archivedAt: expect.any(String) })])
+    expect(result.archived).toEqual([
+      expect.objectContaining({ id: expect.any(String), archivedAt: expect.any(String) }),
+    ])
     expect(result.restore).toBe(200)
     expect(result.deleteProject).toBe(200)
     expect(result.projects).toEqual([])

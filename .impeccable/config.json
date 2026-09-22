@@ -6,9 +6,7 @@
       {
         "rule": "side-tab",
         "value": "*",
-        "files": [
-          "src/dashboard/public/screens.css"
-        ],
+        "files": ["src/dashboard/public/screens.css"],
         "createdAt": "2026-09-15T15:16:09.763Z",
         "reason": "Markdown blockquotes intentionally use a semantic left border; this is not a side-tab component."
       },

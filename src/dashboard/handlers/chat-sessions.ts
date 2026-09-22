@@ -1,11 +1,11 @@
 import { AGENT_CHOICES, loadOrcheConfig } from '../../config/load.ts'
 import type { AgentChoice } from '../../config/schema.ts'
 import {
+  archiveChatSession,
   type ChatMessageRecord,
   type ChatSessionMode,
   type ChatSessionRecord,
   createChatSession,
-  archiveChatSession,
   deleteChatSession,
   getChatSession,
   listChatMessages,
@@ -20,7 +20,7 @@ import {
   listChatTurns,
   sessionHasPersistentWork,
 } from '../../db/chat-turns.ts'
-import { listConsoleCommands, insertConsoleCommand } from '../../db/console-commands.ts'
+import { insertConsoleCommand, listConsoleCommands } from '../../db/console-commands.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { runOneCheck } from '../../run/checks.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
@@ -68,7 +68,9 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
 }
 
 function sessionIdFromUrl(url: URL): string | null {
-  const match = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/turn-status|\/archive|\/restore|\/exec|\/console)?$/)
+  const match = url.pathname.match(
+    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/turn-status|\/archive|\/restore|\/exec|\/console)?$/,
+  )
   if (!match?.[1]) return null
   try {
     const id = decodeURIComponent(match[1]).trim()
@@ -101,9 +103,10 @@ async function execConsoleCommand(req: Request, url: URL): Promise<Response> {
   } catch {
     return errorResponse('Invalid JSON body', 400)
   }
-  const cmd = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
-    ? (parsed as { cmd?: unknown }).cmd
-    : undefined
+  const cmd =
+    typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as { cmd?: unknown }).cmd
+      : undefined
   if (typeof cmd !== 'string' || !cmd.trim() || cmd.length > 1000) {
     return errorResponse('cmd must contain 1-1000 characters', 400)
   }
@@ -161,7 +164,11 @@ export function handleApiChatSessionConsole(url: URL): Response {
     lines.push({ at: command.created_at, kind: 'command', text: `$ ${command.cmd}` })
     if (command.stdout) lines.push({ at: command.created_at, kind: 'output', text: command.stdout })
     if (command.stderr) lines.push({ at: command.created_at, kind: 'error', text: command.stderr })
-    lines.push({ at: command.created_at, kind: command.exit_code === 0 ? 'output' : 'error', text: `exit ${command.exit_code}` })
+    lines.push({
+      at: command.created_at,
+      kind: command.exit_code === 0 ? 'output' : 'error',
+      text: `exit ${command.exit_code}`,
+    })
   }
   lines.sort((a, b) => a.at.localeCompare(b.at))
   return jsonResponse({ lines, pending: hasActiveTurn(id) })
@@ -374,5 +381,7 @@ export function handleApiChatSessionArchive(url: URL, restore = false): Response
   const id = sessionIdFromUrl(url)
   if (!id) return errorResponse('Invalid session id', 400)
   const updated = restore ? restoreChatSession(id) : archiveChatSession(id)
-  return updated ? jsonResponse(toSessionRow(updated)) : errorResponse('Chat session not found', 404)
+  return updated
+    ? jsonResponse(toSessionRow(updated))
+    : errorResponse('Chat session not found', 404)
 }

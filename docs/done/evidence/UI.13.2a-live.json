@@ -4,8 +4,18 @@
   "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330",
   "list": "sidebar muestra exactamente los títulos de GET /api/chat/sessions?project=none",
   "rename_delete": "renombrar y borrar desde el sidebar se reflejan en la API",
-  "send_payload_new": {"history": [], "message": "hola gate", "model": "deepseek/deepseek-v4-flash", "effort": "medium"},
-  "send_payload_legacy": {"history": [], "message": "hola gate", "model": "deepseek/deepseek-v4-flash", "effort": "medium"},
+  "send_payload_new": {
+    "history": [],
+    "message": "hola gate",
+    "model": "deepseek/deepseek-v4-flash",
+    "effort": "medium"
+  },
+  "send_payload_legacy": {
+    "history": [],
+    "message": "hola gate",
+    "model": "deepseek/deepseek-v4-flash",
+    "effort": "medium"
+  },
   "send_with_zero_sessions": "crea la sesión y envía (igual que /legacy)",
   "new_chat_modal": "Claude Code, opencode, Codex detectados + OpenRouter API con 443 modelos reales",
   "llm_real": "no se disparó: POST /api/chat interceptado con page.route",

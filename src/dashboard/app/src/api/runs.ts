@@ -1,28 +1,28 @@
-import type { FileDiffEntry, RunItem } from '../types/orchestos';
+import type { FileDiffEntry, RunItem } from '../types/orchestos'
 
 interface RunRow {
-  id: string;
-  taskId: string | null;
-  status: RunItem['status'];
-  qaVerdict: RunItem['qaVerdict'];
-  model: string;
-  provider: string;
-  inputTokens: number;
-  outputTokens: number;
-  costUsd: number | null;
-  elapsedMs: number;
-  engine: RunItem['engine'] | null;
-  iterations: number | null;
-  fileDiffs: FileDiffEntry[];
-  costBreakdown: RunItem['costBreakdown'];
-  contextWarnings: RunItem['contextWarnings'];
-  createdAt: string;
+  id: string
+  taskId: string | null
+  status: RunItem['status']
+  qaVerdict: RunItem['qaVerdict']
+  model: string
+  provider: string
+  inputTokens: number
+  outputTokens: number
+  costUsd: number | null
+  elapsedMs: number
+  engine: RunItem['engine'] | null
+  iterations: number | null
+  fileDiffs: FileDiffEntry[]
+  costBreakdown: RunItem['costBreakdown']
+  contextWarnings: RunItem['contextWarnings']
+  createdAt: string
 }
 
 async function listRunRows(projectId: string): Promise<RunRow[]> {
-  const response = await fetch('/api/runs', { headers: { 'x-orchestos-project-id': projectId } });
-  if (!response.ok) throw new Error(`Request failed (${response.status})`);
-  return response.json() as Promise<RunRow[]>;
+  const response = await fetch('/api/runs', { headers: { 'x-orchestos-project-id': projectId } })
+  if (!response.ok) throw new Error(`Request failed (${response.status})`)
+  return response.json() as Promise<RunRow[]>
 }
 
 export function mapRunRow(row: RunRow): RunItem {
@@ -51,9 +51,9 @@ export function mapRunRow(row: RunRow): RunItem {
     costBreakdown: row.costBreakdown,
     contextWarnings: row.contextWarnings,
     createdAt: row.createdAt,
-  };
+  }
 }
 
 export async function listRuns(projectId: string): Promise<RunItem[]> {
-  return (await listRunRows(projectId)).map(mapRunRow);
+  return (await listRunRows(projectId)).map(mapRunRow)
 }

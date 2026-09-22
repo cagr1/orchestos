@@ -1,25 +1,26 @@
-import React, { useState } from 'react';
 import {
-  FileCheck,
-  CheckCircle2,
   AlertCircle,
+  Check,
+  CheckCircle2,
   Clock,
-  Shield,
+  FileCheck,
   FileCode,
-  Sparkles,
+  FileText,
   Plus,
   Search,
-  Check,
+  Shield,
+  Sparkles,
   X,
-  FileText,
-} from 'lucide-react';
-import { SpecItem } from '../../types/orchestos';
+} from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
+import type { SpecItem } from '../../types/orchestos'
 
 interface SpecsViewProps {
-  specs: SpecItem[];
-  onApproveSpec: (specId: string) => void;
-  onDraftSpec: (taskId: string) => void;
-  onLintSpec: (specId: string) => void;
+  specs: SpecItem[]
+  onApproveSpec: (specId: string) => void
+  onDraftSpec: (taskId: string) => void
+  onLintSpec: (specId: string) => void
 }
 
 export const SpecsView: React.FC<SpecsViewProps> = ({
@@ -28,15 +29,15 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
   onDraftSpec,
   onLintSpec,
 }) => {
-  const [selectedSpec, setSelectedSpec] = useState<SpecItem>(specs[0]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSpec, setSelectedSpec] = useState<SpecItem>(specs[0])
+  const [searchQuery, setSearchQuery] = useState('')
 
   const filteredSpecs = specs.filter(
     (s) =>
       s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.taskId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      s.taskId.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
   return (
     <div className="flex-1 flex overflow-hidden bg-zinc-950 select-none">
@@ -69,7 +70,7 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
           {filteredSpecs.map((spec) => {
-            const isSelected = spec.id === selectedSpec.id;
+            const isSelected = spec.id === selectedSpec.id
             return (
               <button
                 key={spec.id}
@@ -89,8 +90,8 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
                       spec.status === 'approved'
                         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                         : spec.status === 'draft'
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                        : 'bg-zinc-800 text-zinc-400'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                          : 'bg-zinc-800 text-zinc-400'
                     }`}
                   >
                     {spec.status}
@@ -104,17 +105,13 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
                 <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
                   <span>Task: {spec.taskId}</span>
                   <span
-                    className={
-                      spec.lintStatus === 'pass'
-                        ? 'text-emerald-400'
-                        : 'text-rose-400'
-                    }
+                    className={spec.lintStatus === 'pass' ? 'text-emerald-400' : 'text-rose-400'}
                   >
                     Lint: {spec.lintStatus} ({spec.lintFindings})
                   </span>
                 </div>
               </button>
-            );
+            )
           })}
         </div>
       </div>
@@ -128,9 +125,7 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
               <FileText className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white">
-                {selectedSpec.title}
-              </h2>
+              <h2 className="text-sm font-semibold text-white">{selectedSpec.title}</h2>
               <div className="text-[11px] text-zinc-400 font-mono">
                 .orchestos/specs/{selectedSpec.id}.md · Task: {selectedSpec.taskId}
               </div>
@@ -215,5 +210,5 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

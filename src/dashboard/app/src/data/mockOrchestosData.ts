@@ -1,25 +1,21 @@
-import {
-  TaskItem,
-  RunItem,
-  SpecItem,
+import type {
+  ChatThread,
   InstinctItem,
   MemoryItem,
-  SkillItem,
-  ChatThread,
-  ProviderCliStatus,
   ProjectContext,
-} from '../types/orchestos.ts';
+  ProviderCliStatus,
+  RunItem,
+  SkillItem,
+  SpecItem,
+  TaskItem,
+} from '../types/orchestos.ts'
 
 export const INITIAL_TASKS: TaskItem[] = [
   {
     id: 't1_sandbox_worktree',
     description: 'Enforce git worktree isolation for LLM sandbox writes before QA evaluation',
     status: 'done',
-    output: [
-      'src/sandbox/worktree.ts',
-      'src/sandbox/isolation.ts',
-      'tests/sandbox.test.ts',
-    ],
+    output: ['src/sandbox/worktree.ts', 'src/sandbox/isolation.ts', 'tests/sandbox.test.ts'],
     depends_on: [],
     acceptance_criteria: [
       'All writes stay isolated on branch refs/orchestos/sandbox-*',
@@ -38,10 +34,7 @@ export const INITIAL_TASKS: TaskItem[] = [
     id: 't2_contract_checker',
     description: 'Block unauthorized writes outside declared tasks.yaml output[] slice',
     status: 'done',
-    output: [
-      'src/run/contract-check.ts',
-      'src/run/violations-logger.ts',
-    ],
+    output: ['src/run/contract-check.ts', 'src/run/violations-logger.ts'],
     depends_on: ['t1_sandbox_worktree'],
     acceptance_criteria: [
       'Any write to an undeclared path raises ContractViolationError',
@@ -60,10 +53,7 @@ export const INITIAL_TASKS: TaskItem[] = [
     id: 't3_qa_validator_v2',
     description: 'Implement dual-stage QA LLM evaluator with WHEN/THEN assertion verifier',
     status: 'running',
-    output: [
-      'src/qa/evaluator.ts',
-      'src/qa/prompts/criteria-check.ts',
-    ],
+    output: ['src/qa/evaluator.ts', 'src/qa/prompts/criteria-check.ts'],
     depends_on: ['t2_contract_checker'],
     acceptance_criteria: [
       'Second LLM runs strictly on isolated worktree snapshot',
@@ -82,10 +72,7 @@ export const INITIAL_TASKS: TaskItem[] = [
     id: 't4_memory_conflict_resolver',
     description: 'Cross-agent semantic memory conflict detector with automated synthesis',
     status: 'pending',
-    output: [
-      'src/memory/conflict-detector.ts',
-      'src/memory/synthesis-wizard.ts',
-    ],
+    output: ['src/memory/conflict-detector.ts', 'src/memory/synthesis-wizard.ts'],
     depends_on: ['t1_sandbox_worktree'],
     acceptance_criteria: [
       'Cosine similarity > 0.82 with opposite polarity triggers conflict flag',
@@ -103,10 +90,7 @@ export const INITIAL_TASKS: TaskItem[] = [
     id: 't5_skills_compiler_go',
     description: 'Add Go 1.23 language-aware skill verifier and test harness scaffold',
     status: 'blocked',
-    output: [
-      'src/skills/languages/golang.ts',
-      'skills/definitions/golang/verifier.yaml',
-    ],
+    output: ['src/skills/languages/golang.ts', 'skills/definitions/golang/verifier.yaml'],
     depends_on: ['t3_qa_validator_v2'],
     acceptance_criteria: [
       'Scaffold generates go.mod with govulncheck verifier',
@@ -123,10 +107,7 @@ export const INITIAL_TASKS: TaskItem[] = [
     id: 't6_spec_delta_validator',
     description: 'Inspect WHEN/THEN spec delta headers during git pre-commit hook',
     status: 'failed_permanent',
-    output: [
-      'src/specs/delta-headers.ts',
-      'src/specs/lint-engine.ts',
-    ],
+    output: ['src/specs/delta-headers.ts', 'src/specs/lint-engine.ts'],
     depends_on: [],
     acceptance_criteria: [
       'Delta headers must match git diff affected symbols',
@@ -139,7 +120,7 @@ export const INITIAL_TASKS: TaskItem[] = [
     costUsd: 0.0528,
     sprint: 'Sprint 29',
   },
-];
+]
 
 export const INITIAL_RUNS: RunItem[] = [
   {
@@ -158,7 +139,12 @@ export const INITIAL_RUNS: RunItem[] = [
     iterations: 3,
     deterministicChecks: [
       { name: 'tsc --noEmit', command: 'bun run typecheck', passed: true, durationMs: 640 },
-      { name: 'bun test tests/qa-eval.test.ts', command: 'bun test tests/qa-eval.test.ts', passed: true, durationMs: 1220 },
+      {
+        name: 'bun test tests/qa-eval.test.ts',
+        command: 'bun test tests/qa-eval.test.ts',
+        passed: true,
+        durationMs: 1220,
+      },
     ],
     qaEvaluation: [
       {
@@ -169,17 +155,12 @@ export const INITIAL_RUNS: RunItem[] = [
       {
         criterion: 'Deterministic test suite runs before any QA LLM tokens are billed',
         passed: true,
-        rationale: 'Short-circuit check reverts dirty files if exit code is non-zero before evaluator dispatch.',
+        rationale:
+          'Short-circuit check reverts dirty files if exit code is non-zero before evaluator dispatch.',
       },
     ],
-    filesAttempted: [
-      'src/qa/evaluator.ts',
-      'src/qa/prompts/criteria-check.ts',
-    ],
-    filesAuthorized: [
-      'src/qa/evaluator.ts',
-      'src/qa/prompts/criteria-check.ts',
-    ],
+    filesAttempted: ['src/qa/evaluator.ts', 'src/qa/prompts/criteria-check.ts'],
+    filesAuthorized: ['src/qa/evaluator.ts', 'src/qa/prompts/criteria-check.ts'],
     filesBlocked: [],
     fileDiffs: [
       {
@@ -204,12 +185,34 @@ export const INITIAL_RUNS: RunItem[] = [
       },
     ],
     costBreakdown: [
-      { label: 'Context Planning (Orchestrator)', model: 'claude-3-7-sonnet', inputTokens: 5200, outputTokens: 640, costUsd: 0.0182 },
-      { label: 'Code Synthesizer (Agentic Round 1)', model: 'claude-3-7-sonnet', inputTokens: 8100, outputTokens: 1820, costUsd: 0.0384 },
-      { label: 'QA Validator (Second LLM)', model: 'claude-3-7-sonnet', inputTokens: 5120, outputTokens: 720, costUsd: 0.0146 },
+      {
+        label: 'Context Planning (Orchestrator)',
+        model: 'claude-3-7-sonnet',
+        inputTokens: 5200,
+        outputTokens: 640,
+        costUsd: 0.0182,
+      },
+      {
+        label: 'Code Synthesizer (Agentic Round 1)',
+        model: 'claude-3-7-sonnet',
+        inputTokens: 8100,
+        outputTokens: 1820,
+        costUsd: 0.0384,
+      },
+      {
+        label: 'QA Validator (Second LLM)',
+        model: 'claude-3-7-sonnet',
+        inputTokens: 5120,
+        outputTokens: 720,
+        costUsd: 0.0146,
+      },
     ],
     contextWarnings: [
-      { code: 'W_CONTEXT_WINDOW_80', severity: 'notice', message: 'Context window utilization reached 74% during second agentic loop.' },
+      {
+        code: 'W_CONTEXT_WINDOW_80',
+        severity: 'notice',
+        message: 'Context window utilization reached 74% during second agentic loop.',
+      },
     ],
     createdAt: '2026-09-21T13:42:10Z',
   },
@@ -228,14 +231,25 @@ export const INITIAL_RUNS: RunItem[] = [
     engine: 'agentic',
     iterations: 2,
     deterministicChecks: [
-      { name: 'Contract Enforcement Test', command: 'bun test tests/contract.test.ts', passed: true, durationMs: 820 },
-      { name: 'Zero-byte write integrity', command: 'bun run test:integrity', passed: true, durationMs: 410 },
+      {
+        name: 'Contract Enforcement Test',
+        command: 'bun test tests/contract.test.ts',
+        passed: true,
+        durationMs: 820,
+      },
+      {
+        name: 'Zero-byte write integrity',
+        command: 'bun run test:integrity',
+        passed: true,
+        durationMs: 410,
+      },
     ],
     qaEvaluation: [
       {
         criterion: 'Any write to an undeclared path raises ContractViolationError',
         passed: true,
-        rationale: 'Intercepted fs.writeFile and git checkout correctly aborts on extraneous paths.',
+        rationale:
+          'Intercepted fs.writeFile and git checkout correctly aborts on extraneous paths.',
       },
     ],
     filesAttempted: [
@@ -243,10 +257,7 @@ export const INITIAL_RUNS: RunItem[] = [
       'src/run/violations-logger.ts',
       'package.json', // Model attempted to modify package.json!
     ],
-    filesAuthorized: [
-      'src/run/contract-check.ts',
-      'src/run/violations-logger.ts',
-    ],
+    filesAuthorized: ['src/run/contract-check.ts', 'src/run/violations-logger.ts'],
     filesBlocked: [
       'package.json', // BLOCKED by OrchestOS Contract Guard!
     ],
@@ -263,11 +274,28 @@ export const INITIAL_RUNS: RunItem[] = [
       },
     ],
     costBreakdown: [
-      { label: 'Orchestrator Context', model: 'gemini-2.5-pro', inputTokens: 6200, outputTokens: 900, costUsd: 0.0102 },
-      { label: 'Code Execution Engine', model: 'gemini-2.5-pro', inputTokens: 7900, outputTokens: 1550, costUsd: 0.0183 },
+      {
+        label: 'Orchestrator Context',
+        model: 'gemini-2.5-pro',
+        inputTokens: 6200,
+        outputTokens: 900,
+        costUsd: 0.0102,
+      },
+      {
+        label: 'Code Execution Engine',
+        model: 'gemini-2.5-pro',
+        inputTokens: 7900,
+        outputTokens: 1550,
+        costUsd: 0.0183,
+      },
     ],
     contextWarnings: [
-      { code: 'W_CONTRACT_FILE_BLOCKED', severity: 'warning', message: 'Model attempted write to package.json which was successfully blocked by contract.' },
+      {
+        code: 'W_CONTRACT_FILE_BLOCKED',
+        severity: 'warning',
+        message:
+          'Model attempted write to package.json which was successfully blocked by contract.',
+      },
     ],
     createdAt: '2026-09-21T13:15:22Z',
   },
@@ -286,7 +314,13 @@ export const INITIAL_RUNS: RunItem[] = [
     engine: 'agentic',
     iterations: 3,
     deterministicChecks: [
-      { name: 'Lint delta specs', command: 'bun run spec:lint', passed: false, durationMs: 910, output: 'SyntaxError: WHEN clause line 42 missing THEN complement' },
+      {
+        name: 'Lint delta specs',
+        command: 'bun run spec:lint',
+        passed: false,
+        durationMs: 910,
+        output: 'SyntaxError: WHEN clause line 42 missing THEN complement',
+      },
     ],
     qaEvaluation: [
       {
@@ -295,29 +329,43 @@ export const INITIAL_RUNS: RunItem[] = [
         rationale: 'Pre-commit hook failed deterministic verification before QA LLM stage.',
       },
     ],
-    filesAttempted: [
-      'src/specs/delta-headers.ts',
-    ],
-    filesAuthorized: [
-      'src/specs/delta-headers.ts',
-    ],
+    filesAttempted: ['src/specs/delta-headers.ts'],
+    filesAuthorized: ['src/specs/delta-headers.ts'],
     filesBlocked: [],
     fileDiffs: [],
     costBreakdown: [
-      { label: 'Round 1 Spec Synth', model: 'claude-3-7-sonnet', inputTokens: 11000, outputTokens: 1900, costUsd: 0.0264 },
-      { label: 'Round 2 Retry', model: 'claude-3-7-sonnet', inputTokens: 10800, outputTokens: 1900, costUsd: 0.0264 },
+      {
+        label: 'Round 1 Spec Synth',
+        model: 'claude-3-7-sonnet',
+        inputTokens: 11000,
+        outputTokens: 1900,
+        costUsd: 0.0264,
+      },
+      {
+        label: 'Round 2 Retry',
+        model: 'claude-3-7-sonnet',
+        inputTokens: 10800,
+        outputTokens: 1900,
+        costUsd: 0.0264,
+      },
     ],
     contextWarnings: [
-      { code: 'W_QA_FAIL_THRESHOLD', severity: 'critical', message: 'Task reached 3 consecutive QA failures. Marked as failed_permanent. Diagnostic run triggered.' },
+      {
+        code: 'W_QA_FAIL_THRESHOLD',
+        severity: 'critical',
+        message:
+          'Task reached 3 consecutive QA failures. Marked as failed_permanent. Diagnostic run triggered.',
+      },
     ],
     diagnose: {
       pattern: 'deterministic_check',
       confidence: 'high',
-      suggestion: 'Relax regex parser in src/specs/delta-headers.ts to tolerate multiline WHEN conditions before matching THEN assertion.',
+      suggestion:
+        'Relax regex parser in src/specs/delta-headers.ts to tolerate multiline WHEN conditions before matching THEN assertion.',
     },
     createdAt: '2026-09-21T11:40:02Z',
   },
-];
+]
 
 export const INITIAL_SPECS: SpecItem[] = [
   {
@@ -404,13 +452,14 @@ export const INITIAL_SPECS: SpecItem[] = [
     ],
     createdAt: '2026-09-21T12:00:00Z',
   },
-];
+]
 
 export const INITIAL_INSTINCTS: InstinctItem[] = [
   {
     id: 'inst_01',
     trigger: 'User specifies API contract without type declarations',
-    action: 'Automatically scaffold types.ts with strict discriminated unions before synthesizing route handlers',
+    action:
+      'Automatically scaffold types.ts with strict discriminated unions before synthesizing route handlers',
     confidence: 0.96,
     source: 'auto',
     verified: true,
@@ -420,7 +469,8 @@ export const INITIAL_INSTINCTS: InstinctItem[] = [
   {
     id: 'inst_02',
     trigger: 'Task requires writing to package.json or config file',
-    action: 'Verify whether file is declared in output[] whitelist; if missing, request inline user contract expansion',
+    action:
+      'Verify whether file is declared in output[] whitelist; if missing, request inline user contract expansion',
     confidence: 0.92,
     source: 'manual',
     verified: true,
@@ -430,7 +480,8 @@ export const INITIAL_INSTINCTS: InstinctItem[] = [
   {
     id: 'inst_03',
     trigger: 'Deterministic test fails with ModuleNotFound after new dependency',
-    action: 'Inject package installation step into pre-check pipeline instead of modifying source imports',
+    action:
+      'Inject package installation step into pre-check pipeline instead of modifying source imports',
     confidence: 0.74,
     source: 'auto',
     verified: false,
@@ -440,14 +491,15 @@ export const INITIAL_INSTINCTS: InstinctItem[] = [
   {
     id: 'inst_04',
     trigger: 'LLM prompt length exceeds 70% of model context window',
-    action: 'Invoke context compressor on project files, reducing to CONTEXT.md summary before prompt dispatch',
+    action:
+      'Invoke context compressor on project files, reducing to CONTEXT.md summary before prompt dispatch',
     confidence: 0.88,
     source: 'manual',
     verified: true,
     usagesCount: 65,
     createdAt: '2026-09-20T11:00:00Z',
   },
-];
+]
 
 export const INITIAL_MEMORIES: MemoryItem[] = [
   {
@@ -461,18 +513,21 @@ export const INITIAL_MEMORIES: MemoryItem[] = [
     id: 'mem_02',
     topicKey: 'coding_contract',
     scope: 'global',
-    content: 'Never emit direct filesystem writes without checking contract whitelist in tasks.yaml.',
+    content:
+      'Never emit direct filesystem writes without checking contract whitelist in tasks.yaml.',
     updatedAt: '2026-09-21T11:15:00Z',
   },
   {
     id: 'mem_03',
     topicKey: 'styling_system',
     scope: 'project',
-    content: 'Project uses Tailwind CSS v4 with modern dark palette (#09090b zinc base) and Lucide React icons.',
+    content:
+      'Project uses Tailwind CSS v4 with modern dark palette (#09090b zinc base) and Lucide React icons.',
     updatedAt: '2026-09-21T12:00:00Z',
     hasConflict: true,
     conflictDetails: {
-      conflictingContent: 'Legacy island used vanilla CSS without Tailwind classes in src/dashboard/styles/ui.css',
+      conflictingContent:
+        'Legacy island used vanilla CSS without Tailwind classes in src/dashboard/styles/ui.css',
       detectedFromRun: 'run_5510ab',
     },
   },
@@ -480,10 +535,11 @@ export const INITIAL_MEMORIES: MemoryItem[] = [
     id: 'mem_04',
     topicKey: 'qa_gate_policy',
     scope: 'project',
-    content: 'Three consecutive QA failures mark task as failed_permanent and invoke auto-diagnostician agent.',
+    content:
+      'Three consecutive QA failures mark task as failed_permanent and invoke auto-diagnostician agent.',
     updatedAt: '2026-09-20T16:20:00Z',
   },
-];
+]
 
 export const INITIAL_SKILLS: SkillItem[] = [
   {
@@ -502,7 +558,8 @@ export const INITIAL_SKILLS: SkillItem[] = [
     verifierCommand: 'cargo clippy --all-targets -- -D warnings',
     status: 'compiled',
     usageRuns: 310,
-    description: 'Zero-warning compiler gate with memory safety and ownership invariants verification.',
+    description:
+      'Zero-warning compiler gate with memory safety and ownership invariants verification.',
   },
   {
     id: 'skill_python',
@@ -520,7 +577,8 @@ export const INITIAL_SKILLS: SkillItem[] = [
     verifierCommand: 'go vet ./... && govulncheck ./...',
     status: 'source',
     usageRuns: 78,
-    description: 'Checks concurrency race conditions, shadow variables, and package vulnerabilities.',
+    description:
+      'Checks concurrency race conditions, shadow variables, and package vulnerabilities.',
   },
   {
     id: 'skill_docker_sandbox',
@@ -531,7 +589,7 @@ export const INITIAL_SKILLS: SkillItem[] = [
     usageRuns: 195,
     description: 'Network-isolated runtime container for untrusted agent code execution.',
   },
-];
+]
 
 export const INITIAL_PROVIDERS: ProviderCliStatus[] = [
   {
@@ -579,7 +637,7 @@ export const INITIAL_PROVIDERS: ProviderCliStatus[] = [
     contextWindow: 32768,
     rateLimitPct: 0,
   },
-];
+]
 
 export const INITIAL_THREADS: ChatThread[] = [
   {
@@ -596,13 +654,15 @@ export const INITIAL_THREADS: ChatThread[] = [
       {
         id: 'msg_01',
         role: 'user',
-        content: 'I need to run the next task in queue: t3_qa_validator_v2. Show me the contract whitelist and execute with Claude 3.7 Sonnet.',
+        content:
+          'I need to run the next task in queue: t3_qa_validator_v2. Show me the contract whitelist and execute with Claude 3.7 Sonnet.',
         timestamp: '13:30:12',
       },
       {
         id: 'msg_02',
         role: 'assistant',
-        content: 'Inspecting `tasks.yaml` contract for task **t3_qa_validator_v2**:\n\n- **Target Contract**: `src/qa/evaluator.ts`, `src/qa/prompts/criteria-check.ts`\n- **Dependencies**: `t2_contract_checker` (PASSED)\n- **Sandbox Strategy**: Ephemeral git worktree isolation at `.orchestos/worktrees/t3`\n\nI will now execute the middleware chain, inject relevant instincts, and synthesize the criteria evaluation module.',
+        content:
+          'Inspecting `tasks.yaml` contract for task **t3_qa_validator_v2**:\n\n- **Target Contract**: `src/qa/evaluator.ts`, `src/qa/prompts/criteria-check.ts`\n- **Dependencies**: `t2_contract_checker` (PASSED)\n- **Sandbox Strategy**: Ephemeral git worktree isolation at `.orchestos/worktrees/t3`\n\nI will now execute the middleware chain, inject relevant instincts, and synthesize the criteria evaluation module.',
         timestamp: '13:30:15',
         reasoning: [
           'Reading tasks.yaml and validating dependency DAG',
@@ -641,12 +701,14 @@ export const INITIAL_THREADS: ChatThread[] = [
       {
         id: 'msg_03',
         role: 'assistant',
-        content: 'Deterministic test suite completed with **0 errors**. The second LLM QA evaluator evaluated acceptance criteria against the isolated worktree snapshot:\n\n- [x] Isolated worktree snapshot execution: **PASS**\n- [x] Zero QA tokens spent on pre-check failure: **PASS**\n- [x] Diagnostic hook on reversion: **PASS**\n\nThe commit is ready to prove in git. Would you like me to close the plan item and merge into main?',
+        content:
+          'Deterministic test suite completed with **0 errors**. The second LLM QA evaluator evaluated acceptance criteria against the isolated worktree snapshot:\n\n- [x] Isolated worktree snapshot execution: **PASS**\n- [x] Zero QA tokens spent on pre-check failure: **PASS**\n- [x] Diagnostic hook on reversion: **PASS**\n\nThe commit is ready to prove in git. Would you like me to close the plan item and merge into main?',
         timestamp: '13:31:02',
         taskHeld: true,
         proposedTask: {
           id: 't3_qa_validator_v2',
-          description: 'Merge proven sandbox commit 99341b into main branch and record SQLite evidence',
+          description:
+            'Merge proven sandbox commit 99341b into main branch and record SQLite evidence',
           output: ['src/qa/evaluator.ts', 'src/qa/prompts/criteria-check.ts'],
         },
       },
@@ -666,13 +728,15 @@ export const INITIAL_THREADS: ChatThread[] = [
       {
         id: 'msg_d1',
         role: 'user',
-        content: 'Diagnose why task t6_spec_delta_validator failed 3 consecutive times and suggest a corrective contract update.',
+        content:
+          'Diagnose why task t6_spec_delta_validator failed 3 consecutive times and suggest a corrective contract update.',
         timestamp: '11:45:10',
       },
       {
         id: 'msg_d2',
         role: 'assistant',
-        content: 'I analyzed SQLite run logs for `run_5510ab`. The root cause is a **deterministic check syntax failure** in `src/specs/delta-headers.ts`.\n\nThe regex parser fails whenever a spec contains a multi-line `WHEN` condition before the corresponding `THEN` assertion.\n\n### Suggested Remediation:\n1. Expand `output[]` contract to include `src/specs/parser-rules.ts`\n2. Add test fixture for multi-line WHEN clauses\n3. Rerun task with instinct `inst_01` active.',
+        content:
+          'I analyzed SQLite run logs for `run_5510ab`. The root cause is a **deterministic check syntax failure** in `src/specs/delta-headers.ts`.\n\nThe regex parser fails whenever a spec contains a multi-line `WHEN` condition before the corresponding `THEN` assertion.\n\n### Suggested Remediation:\n1. Expand `output[]` contract to include `src/specs/parser-rules.ts`\n2. Add test fixture for multi-line WHEN clauses\n3. Rerun task with instinct `inst_01` active.',
         timestamp: '11:46:00',
         reasoning: [
           'Queried SQLite table runs where taskId = t6_spec_delta_validator',
@@ -696,18 +760,20 @@ export const INITIAL_THREADS: ChatThread[] = [
       {
         id: 'msg_m1',
         role: 'user',
-        content: 'Review topicKey "styling_system" conflict between run_5510ab and current workspace.',
+        content:
+          'Review topicKey "styling_system" conflict between run_5510ab and current workspace.',
         timestamp: '12:10:00',
       },
       {
         id: 'msg_m2',
         role: 'assistant',
-        content: 'Conflict resolved. Standardized on Tailwind CSS v4 design system with zinc-950 dark theme base and Plus Jakarta Sans typography across all UI islands.',
+        content:
+          'Conflict resolved. Standardized on Tailwind CSS v4 design system with zinc-950 dark theme base and Plus Jakarta Sans typography across all UI islands.',
         timestamp: '12:11:00',
       },
     ],
   },
-];
+]
 
 export const INITIAL_PROJECT_CONTEXT: ProjectContext = {
   constitution: `# CONSTITUTION.md - Immutable Rules for OrchestOS Sub-Agents
@@ -726,15 +792,15 @@ export const INITIAL_PROJECT_CONTEXT: ProjectContext = {
   codeGraphNodes: 64,
   isCleanWorktree: true,
   gitBranch: 'main',
-};
+}
 
 // Aliases for convenience
-export const initialMockTasks = INITIAL_TASKS;
-export const initialMockRuns = INITIAL_RUNS;
-export const initialMockSpecs = INITIAL_SPECS;
-export const initialMockInstincts = INITIAL_INSTINCTS;
-export const initialMockMemories = INITIAL_MEMORIES;
-export const initialMockSkills = INITIAL_SKILLS;
-export const initialMockProviders = INITIAL_PROVIDERS;
-export const initialMockThreads = INITIAL_THREADS;
-export const initialMockProjectContext = INITIAL_PROJECT_CONTEXT;
+export const initialMockTasks = INITIAL_TASKS
+export const initialMockRuns = INITIAL_RUNS
+export const initialMockSpecs = INITIAL_SPECS
+export const initialMockInstincts = INITIAL_INSTINCTS
+export const initialMockMemories = INITIAL_MEMORIES
+export const initialMockSkills = INITIAL_SKILLS
+export const initialMockProviders = INITIAL_PROVIDERS
+export const initialMockThreads = INITIAL_THREADS
+export const initialMockProjectContext = INITIAL_PROJECT_CONTEXT

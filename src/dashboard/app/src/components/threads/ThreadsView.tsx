@@ -1,35 +1,36 @@
-import React, { useState } from 'react';
 import {
-  MessageSquareCode,
-  Sparkles,
-  Send,
-  CheckCircle2,
   AlertCircle,
-  Clock,
-  ShieldCheck,
+  Check,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Cpu,
-  Terminal,
-  Paperclip,
-  GitBranch,
+  Clock,
   CornerDownLeft,
-  Check,
-  X,
-  FileCode,
+  Cpu,
   DollarSign,
+  FileCode,
+  GitBranch,
   Layers,
-} from 'lucide-react';
-import { ChatThread, ChatMessage, ToolExecution } from '../../types/orchestos';
+  MessageSquareCode,
+  Paperclip,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Terminal,
+  X,
+} from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
+import { ChatMessage, type ChatThread, ToolExecution } from '../../types/orchestos'
 
 interface ThreadsViewProps {
-  threads: ChatThread[];
-  activeThreadId: string;
-  onSelectThread: (id: string) => void;
-  onSendMessage: (threadId: string, content: string) => void;
-  onApproveHeldTask: (threadId: string, taskId: string) => void;
-  onRejectHeldTask: (threadId: string, taskId: string) => void;
-  activeModel: string;
+  threads: ChatThread[]
+  activeThreadId: string
+  onSelectThread: (id: string) => void
+  onSendMessage: (threadId: string, content: string) => void
+  onApproveHeldTask: (threadId: string, taskId: string) => void
+  onRejectHeldTask: (threadId: string, taskId: string) => void
+  activeModel: string
 }
 
 export const ThreadsView: React.FC<ThreadsViewProps> = ({
@@ -41,38 +42,38 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   onRejectHeldTask,
   activeModel,
 }) => {
-  const [inputMessage, setInputMessage] = useState('');
-  const [filter, setFilter] = useState<'all' | 'active' | 'waiting_approval'>('all');
-  const [expandedReasoning, setExpandedReasoning] = useState<Record<string, boolean>>({});
+  const [inputMessage, setInputMessage] = useState('')
+  const [filter, setFilter] = useState<'all' | 'active' | 'waiting_approval'>('all')
+  const [expandedReasoning, setExpandedReasoning] = useState<Record<string, boolean>>({})
 
-  const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
+  const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0]
 
   const filteredThreads = threads.filter((t) => {
-    if (filter === 'active') return t.status === 'active';
-    if (filter === 'waiting_approval') return t.status === 'waiting_approval';
-    return true;
-  });
+    if (filter === 'active') return t.status === 'active'
+    if (filter === 'waiting_approval') return t.status === 'waiting_approval'
+    return true
+  })
 
   const toggleReasoning = (msgId: string) => {
     setExpandedReasoning((prev) => ({
       ...prev,
       [msgId]: !prev[msgId],
-    }));
-  };
+    }))
+  }
 
   const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
-    onSendMessage(activeThread.id, inputMessage.trim());
-    setInputMessage('');
-  };
+    e.preventDefault()
+    if (!inputMessage.trim()) return
+    onSendMessage(activeThread.id, inputMessage.trim())
+    setInputMessage('')
+  }
 
   const quickPrompts = [
     'Run next task t3 in queue with QA validator',
     'Explain dry-run execution plan for t4',
     'Diagnose failure root cause in run_5510ab',
     'Draft WHEN/THEN acceptance criteria for memory spec',
-  ];
+  ]
 
   return (
     <div className="flex-1 flex overflow-hidden bg-zinc-950">
@@ -130,7 +131,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
         {/* Threads List Items */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
           {filteredThreads.map((thread) => {
-            const isSelected = thread.id === activeThread.id;
+            const isSelected = thread.id === activeThread.id
             return (
               <button
                 key={thread.id}
@@ -154,8 +155,8 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                       thread.status === 'active'
                         ? 'bg-emerald-400 animate-pulse'
                         : thread.status === 'waiting_approval'
-                        ? 'bg-amber-400'
-                        : 'bg-zinc-600'
+                          ? 'bg-amber-400'
+                          : 'bg-zinc-600'
                     }`}
                   />
                 </div>
@@ -165,9 +166,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                     <Cpu className="w-3 h-3 text-indigo-400" />
                     {thread.agent}
                   </span>
-                  <span className="font-mono text-zinc-400">
-                    ${thread.costUsd.toFixed(3)}
-                  </span>
+                  <span className="font-mono text-zinc-400">${thread.costUsd.toFixed(3)}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-[10px] text-zinc-500 pt-1 border-t border-zinc-800/50">
@@ -175,7 +174,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                   <span className="font-mono">{(thread.tokenCount / 1000).toFixed(1)}k tokens</span>
                 </div>
               </button>
-            );
+            )
           })}
         </div>
       </div>
@@ -193,7 +192,9 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 {activeThread.title}
               </h2>
               <div className="flex items-center gap-2 text-[11px] text-zinc-400">
-                <span>Agent: <strong className="text-zinc-300 font-medium">{activeThread.agent}</strong></span>
+                <span>
+                  Agent: <strong className="text-zinc-300 font-medium">{activeThread.agent}</strong>
+                </span>
                 <span>·</span>
                 <span className="font-mono text-indigo-400">{activeModel}</span>
                 <span>·</span>
@@ -218,8 +219,8 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
         {/* Messages Stream */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {activeThread.messages.map((message) => {
-            const isUser = message.role === 'user';
-            const showReasoning = expandedReasoning[message.id] ?? true;
+            const isUser = message.role === 'user'
+            const showReasoning = expandedReasoning[message.id] ?? true
 
             return (
               <div
@@ -363,10 +364,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                           <div className="flex items-center gap-2 pt-1">
                             <button
                               onClick={() =>
-                                onApproveHeldTask(
-                                  activeThread.id,
-                                  message.proposedTask!.id
-                                )
+                                onApproveHeldTask(activeThread.id, message.proposedTask!.id)
                               }
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95"
                             >
@@ -375,10 +373,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                             </button>
                             <button
                               onClick={() =>
-                                onRejectHeldTask(
-                                  activeThread.id,
-                                  message.proposedTask!.id
-                                )
+                                onRejectHeldTask(activeThread.id, message.proposedTask!.id)
                               }
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium border border-zinc-700 transition-all"
                             >
@@ -402,7 +397,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                   </div>
                 )}
               </div>
-            );
+            )
           })}
         </div>
 
@@ -433,8 +428,8 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend(e);
+                  e.preventDefault()
+                  handleSend(e)
                 }
               }}
               rows={2}
@@ -465,5 +460,5 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

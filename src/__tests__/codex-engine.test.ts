@@ -17,8 +17,8 @@ import { join } from 'path'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
 import {
   buildCodexChatArgs,
-  CODEX_CHAT_EFFORT_LEVELS,
   buildCodexChatEnv,
+  CODEX_CHAT_EFFORT_LEVELS,
   codexEngine,
   ExecutorCodexError,
   orchestosModelToCodexModel,
@@ -233,9 +233,7 @@ const turnCompleted = (input: number, output: number) => ({
 describe('G.4.2b — codexEngine (codex subprocess)', () => {
   it('advertises and encodes the verified chat effort controls', () => {
     expect(CODEX_CHAT_EFFORT_LEVELS).toEqual(['minimal', 'low', 'medium', 'high', 'xhigh'])
-    expect(buildCodexChatArgs('hello', 'gpt-5.4', 'high')).toContain(
-      'model_reasoning_effort=high',
-    )
+    expect(buildCodexChatArgs('hello', 'gpt-5.4', 'high')).toContain('model_reasoning_effort=high')
     expect(buildCodexChatArgs('hello', 'gpt-5.4')).not.toContain('model_reasoning_effort')
   })
   it('keeps the browser Codex effort list in sync with the server contract', () => {

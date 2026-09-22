@@ -1,28 +1,26 @@
-import React, { useState } from 'react';
 import {
-  FolderGit2,
-  FileText,
-  CheckCircle2,
   AlertTriangle,
-  RefreshCw,
-  GitBranch,
-  ShieldCheck,
-  Search,
+  CheckCircle2,
   Code,
+  FileText,
+  FolderGit2,
+  GitBranch,
   Layers,
-} from 'lucide-react';
-import { ProjectContext } from '../../types/orchestos';
+  RefreshCw,
+  Search,
+  ShieldCheck,
+} from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
+import type { ProjectContext } from '../../types/orchestos'
 
 interface ContextViewProps {
-  context: ProjectContext;
-  onRefreshGraph: () => void;
+  context: ProjectContext
+  onRefreshGraph: () => void
 }
 
-export const ContextView: React.FC<ContextViewProps> = ({
-  context,
-  onRefreshGraph,
-}) => {
-  const [activeTab, setActiveTab] = useState<'constitution' | 'context' | 'graph'>('constitution');
+export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGraph }) => {
+  const [activeTab, setActiveTab] = useState<'constitution' | 'context' | 'graph'>('constitution')
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950 select-none">
@@ -65,8 +63,7 @@ export const ContextView: React.FC<ContextViewProps> = ({
 
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            0 stale references detected
+            <ShieldCheck className="w-3.5 h-3.5" />0 stale references detected
           </span>
           <button
             onClick={onRefreshGraph}
@@ -90,9 +87,7 @@ export const ContextView: React.FC<ContextViewProps> = ({
                     Agent Constitution (Immutable Rules)
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono text-zinc-500">
-                  Last verified: Today
-                </span>
+                <span className="text-[10px] font-mono text-zinc-500">Last verified: Today</span>
               </div>
               <pre className="text-xs font-mono text-zinc-300 leading-relaxed whitespace-pre-wrap">
                 {context.constitution}
@@ -105,9 +100,7 @@ export const ContextView: React.FC<ContextViewProps> = ({
               <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                 <div className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-400" />
-                  <h3 className="font-bold text-sm text-white">
-                    Project Architecture Context
-                  </h3>
+                  <h3 className="font-bold text-sm text-white">Project Architecture Context</h3>
                 </div>
                 <span className="text-[10px] font-mono text-zinc-500">
                   Branch: {context.gitBranch}
@@ -123,9 +116,7 @@ export const ContextView: React.FC<ContextViewProps> = ({
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                 <div>
-                  <h3 className="font-bold text-sm text-white">
-                    Dependency Topology & Code Graph
-                  </h3>
+                  <h3 className="font-bold text-sm text-white">Dependency Topology & Code Graph</h3>
                   <div className="text-xs text-zinc-400 mt-0.5">
                     Analyzed by ast-grep & tree-sitter for zero-token context routing.
                   </div>
@@ -155,5 +146,5 @@ export const ContextView: React.FC<ContextViewProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

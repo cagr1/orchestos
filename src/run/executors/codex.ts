@@ -241,7 +241,13 @@ export function buildCodexChatArgs(prompt: string, model?: string, cliEffort?: s
   return args
 }
 
-export const CODEX_CHAT_EFFORT_LEVELS = Object.freeze(['minimal', 'low', 'medium', 'high', 'xhigh'] as const)
+export const CODEX_CHAT_EFFORT_LEVELS = Object.freeze([
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+] as const)
 
 export function buildCodexChatEnv(configHomePath: string): Record<string, string> {
   return { ...safeChildEnv(), CODEX_HOME: configHomePath }

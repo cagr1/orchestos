@@ -17,7 +17,9 @@
     }
     var migrated = { dark2026: 'graphite', claude: 'carbon', bright: 'light' }[v] || v
     if (migrated !== v) {
-      try { localStorage.setItem(THEME_KEY, migrated) } catch (e) {}
+      try {
+        localStorage.setItem(THEME_KEY, migrated)
+      } catch (e) {}
     }
     return THEMES.indexOf(migrated) !== -1 ? migrated : THEME_DEFAULT
   }

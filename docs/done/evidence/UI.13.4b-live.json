@@ -4,11 +4,7 @@
   "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330 (script /tmp/ui1334b-gate.mjs)",
   "project": "SalaDespecho (7078a96b02350763)",
   "chat_view_replaced": true,
-  "hello_turns": [
-    "[turn] completed",
-    "[turn] completed",
-    "[turn] completed"
-  ],
+  "hello_turns": ["[turn] completed", "[turn] completed", "[turn] completed"],
   "steps_real": "no verificado en vivo: la DB real tiene 0 chat_turns con task_id; cubierto por test de console en chat-sessions.test.ts",
   "ls_matches_disk": true,
   "pipe_not_interpreted": "ls | wc → 'ls: |: No such file or directory', exit 1",

@@ -1,34 +1,35 @@
-import React, { useState } from 'react';
 import {
   Activity,
-  Play,
-  CheckCircle2,
   AlertCircle,
-  Clock,
-  DollarSign,
-  Cpu,
-  FileCode,
-  ShieldCheck,
-  Search,
-  Filter,
-  ArrowRight,
-  TrendingDown,
-  Terminal,
-  Database,
   ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
   ChevronRight,
-} from 'lucide-react';
-import { RunItem } from '../../types/orchestos';
-import { StatusBadge } from '../common/StatusBadge';
-import { EmptyState, SkeletonView, ErrorState } from '../common/ViewStateFeedback';
+  Clock,
+  Cpu,
+  Database,
+  DollarSign,
+  FileCode,
+  Filter,
+  Play,
+  Search,
+  ShieldCheck,
+  Terminal,
+  TrendingDown,
+} from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
+import type { RunItem } from '../../types/orchestos'
+import { StatusBadge } from '../common/StatusBadge'
+import { EmptyState, ErrorState, SkeletonView } from '../common/ViewStateFeedback'
 
 interface RunsEvidenceViewProps {
-  runs: RunItem[];
-  onInspectRun?: (runId: string) => void;
-  onFilterStatus?: (status: string) => void;
-  isLoading?: boolean;
-  error?: string | null;
-  onRetry?: () => void;
+  runs: RunItem[]
+  onInspectRun?: (runId: string) => void
+  onFilterStatus?: (status: string) => void
+  isLoading?: boolean
+  error?: string | null
+  onRetry?: () => void
 }
 
 export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
@@ -38,36 +39,36 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
   error = null,
   onRetry,
 }) => {
-  const [selectedRun, setSelectedRun] = useState<RunItem | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'failed'>('all');
-  const [evidenceTab, setEvidenceTab] = useState<'contract' | 'diffs' | 'cost' | 'qa'>('contract');
+  const [selectedRun, setSelectedRun] = useState<RunItem | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'failed'>('all')
+  const [evidenceTab, setEvidenceTab] = useState<'contract' | 'diffs' | 'cost' | 'qa'>('contract')
 
   // KPI calculations
-  const totalRuns = runs.length;
-  const passedRuns = runs.filter((r) => r.qaVerdict === 'pass').length;
-  const passRate = totalRuns > 0 ? ((passedRuns / totalRuns) * 100).toFixed(1) : '0.0';
-  const totalCost = runs.reduce((acc, r) => acc + (r.costUsd || 0), 0).toFixed(4);
-  const totalTokens = runs.reduce((acc, r) => acc + (r.tokensUsed || 0), 0).toLocaleString();
+  const totalRuns = runs.length
+  const passedRuns = runs.filter((r) => r.qaVerdict === 'pass').length
+  const passRate = totalRuns > 0 ? ((passedRuns / totalRuns) * 100).toFixed(1) : '0.0'
+  const totalCost = runs.reduce((acc, r) => acc + (r.costUsd || 0), 0).toFixed(4)
+  const totalTokens = runs.reduce((acc, r) => acc + (r.tokensUsed || 0), 0).toLocaleString()
 
   const filteredRuns = runs.filter((run) => {
     const matchesSearch =
       run.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       run.taskId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      run.taskDescription.toLowerCase().includes(searchQuery.toLowerCase());
+      run.taskDescription.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus =
       statusFilter === 'all' ||
       (statusFilter === 'passed' && run.qaVerdict === 'pass') ||
-      (statusFilter === 'failed' && run.qaVerdict !== 'pass');
-    return matchesSearch && matchesStatus;
-  });
+      (statusFilter === 'failed' && run.qaVerdict !== 'pass')
+    return matchesSearch && matchesStatus
+  })
 
   if (isLoading) {
-    return <SkeletonView rows={5} type="table" />;
+    return <SkeletonView rows={5} type="table" />
   }
 
   if (error) {
-    return <ErrorState message={error} onRetry={onRetry} />;
+    return <ErrorState message={error} onRetry={onRetry} />
   }
 
   // If a run is selected: Open detail view replacing the list to avoid squashing the table!
@@ -97,10 +98,18 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
             <div className="text-xs font-mono text-app-muted">{selectedRun.taskId}</div>
             <h2 className="text-sm font-semibold text-app">{selectedRun.taskDescription}</h2>
             <div className="flex flex-wrap gap-3 pt-2 text-xs font-mono text-app-muted">
-              <div>Agent: <span className="text-app">{selectedRun.agentModel}</span></div>
-              <div>Duration: <span className="text-app">{selectedRun.duration}</span></div>
-              <div>Cost: <span className="text-app-accent">${selectedRun.costUsd?.toFixed(4)}</span></div>
-              <div>Tokens: <span className="text-app">{selectedRun.tokensUsed?.toLocaleString()}</span></div>
+              <div>
+                Agent: <span className="text-app">{selectedRun.agentModel}</span>
+              </div>
+              <div>
+                Duration: <span className="text-app">{selectedRun.duration}</span>
+              </div>
+              <div>
+                Cost: <span className="text-app-accent">${selectedRun.costUsd?.toFixed(4)}</span>
+              </div>
+              <div>
+                Tokens: <span className="text-app">{selectedRun.tokensUsed?.toLocaleString()}</span>
+              </div>
             </div>
           </div>
 
@@ -157,7 +166,8 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                 ))}
               </div>
               <p className="text-xs text-app-muted">
-                All file modifications were strictly validated by OrchestOS AST isolation gate prior to commit.
+                All file modifications were strictly validated by OrchestOS AST isolation gate prior
+                to commit.
               </p>
             </div>
           )}
@@ -166,10 +176,15 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
           {evidenceTab === 'diffs' && (
             <div className="space-y-3">
               {selectedRun.fileDiffs.map((diff, i) => (
-                <div key={i} className="rounded-card border border-app bg-app-surface overflow-hidden text-xs">
+                <div
+                  key={i}
+                  className="rounded-card border border-app bg-app-surface overflow-hidden text-xs"
+                >
                   <div className="px-3 py-2 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
                     <span className="text-app font-medium">{diff.filePath}</span>
-                    <span className="text-emerald-400">+{diff.additions} -{diff.deletions}</span>
+                    <span className="text-emerald-400">
+                      +{diff.additions} -{diff.deletions}
+                    </span>
                   </div>
                   <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
                     {diff.patch}
@@ -186,15 +201,21 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 rounded-control bg-app-bg border border-app">
                   <div className="text-app-muted text-xs">Total Incurred</div>
-                  <div className="text-sm font-bold text-app font-mono mt-1">${selectedRun.costUsd?.toFixed(4)}</div>
+                  <div className="text-sm font-bold text-app font-mono mt-1">
+                    ${selectedRun.costUsd?.toFixed(4)}
+                  </div>
                 </div>
                 <div className="p-3 rounded-control bg-app-bg border border-app">
                   <div className="text-app-muted text-xs">Tokens</div>
-                  <div className="text-sm font-bold text-app font-mono mt-1">{selectedRun.tokensUsed?.toLocaleString()}</div>
+                  <div className="text-sm font-bold text-app font-mono mt-1">
+                    {selectedRun.tokensUsed?.toLocaleString()}
+                  </div>
                 </div>
                 <div className="p-3 rounded-control bg-app-bg border border-app">
                   <div className="text-app-muted text-xs">Model</div>
-                  <div className="text-sm font-bold text-app font-mono mt-1 truncate">{selectedRun.agentModel}</div>
+                  <div className="text-sm font-bold text-app font-mono mt-1 truncate">
+                    {selectedRun.agentModel}
+                  </div>
                 </div>
                 <div className="p-3 rounded-control bg-app-bg border border-app">
                   <div className="text-app-muted text-xs">Worktree</div>
@@ -209,15 +230,15 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
             <div className="rounded-card border border-app bg-app-surface p-4 space-y-3 text-xs">
               <div className="font-semibold text-app">QA Gate Verdict & Acceptance Evaluation</div>
               <div className="p-3 rounded-control bg-app-bg border border-app font-mono text-xs text-emerald-400">
-                ✓ Spec WHEN/THEN assertion checked: PASSED<br />
-                ✓ Vitest automated test suite: 100% GREEN<br />
-                ✓ AST static boundary leak check: 0 LEAKS DETECTED
+                ✓ Spec WHEN/THEN assertion checked: PASSED
+                <br />✓ Vitest automated test suite: 100% GREEN
+                <br />✓ AST static boundary leak check: 0 LEAKS DETECTED
               </div>
             </div>
           )}
         </div>
       </div>
-    );
+    )
   }
 
   // Normal List View
@@ -238,14 +259,20 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
 
           <div className="p-2.5 rounded-card bg-app-surface border border-app">
             <div className="text-xs text-app-muted">Total Cost</div>
-            <div className="text-sm font-bold text-app-accent font-mono mt-0.5 truncate" title={`$${totalCost}`}>
+            <div
+              className="text-sm font-bold text-app-accent font-mono mt-0.5 truncate"
+              title={`$${totalCost}`}
+            >
               ${totalCost}
             </div>
           </div>
 
           <div className="p-2.5 rounded-card bg-app-surface border border-app">
             <div className="text-xs text-app-muted">Token Volume</div>
-            <div className="text-sm font-bold text-app font-mono mt-0.5 truncate" title={totalTokens}>
+            <div
+              className="text-sm font-bold text-app font-mono mt-0.5 truncate"
+              title={totalTokens}
+            >
               {totalTokens}
             </div>
           </div>
@@ -316,21 +343,21 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                 <tr
                   key={run.id}
                   onClick={() => {
-                    setSelectedRun(run);
-                    if (onInspectRun) onInspectRun(run.id);
+                    setSelectedRun(run)
+                    if (onInspectRun) onInspectRun(run.id)
                   }}
                   className="hover:bg-app-surface/50 cursor-pointer transition-colors"
                 >
-                  <td className="py-2.5 px-3 font-mono text-app font-medium">
-                    {run.id}
-                  </td>
+                  <td className="py-2.5 px-3 font-mono text-app font-medium">{run.id}</td>
                   <td className="py-2.5 px-3 max-w-xs truncate" title={run.taskDescription}>
                     <span className="font-mono text-app-muted mr-1.5">{run.taskId}</span>
                     <span>{run.taskDescription}</span>
                   </td>
                   <td className="py-2.5 px-3 font-mono text-app-muted">{run.agentModel}</td>
                   <td className="py-2.5 px-3 font-mono text-app-muted">{run.duration}</td>
-                  <td className="py-2.5 px-3 font-mono text-app-accent">${run.costUsd?.toFixed(4)}</td>
+                  <td className="py-2.5 px-3 font-mono text-app-accent">
+                    ${run.costUsd?.toFixed(4)}
+                  </td>
                   <td className="py-2.5 px-3">
                     <StatusBadge status={run.qaVerdict === 'pass' ? 'passed' : 'failed'} />
                   </td>
@@ -347,5 +374,5 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
         )}
       </div>
     </div>
-  );
-};
+  )
+}

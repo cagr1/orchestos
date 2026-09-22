@@ -302,7 +302,7 @@ describe('SQLite migrations', () => {
         ]) {
           legacy.run('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)', [version, name, '2026-09-07T00:00:00.000Z'])
         }
-        legacy.run(\"INSERT INTO chat_messages (session_id, role, content, created_at) VALUES ('legacy-session', 'assistant', 'preserve this message', '2026-09-07T00:00:00.000Z')\")
+        legacy.run("INSERT INTO chat_messages (session_id, role, content, created_at) VALUES ('legacy-session', 'assistant', 'preserve this message', '2026-09-07T00:00:00.000Z')")
         legacy.close()
 
         const { runMigrations } = await import('./src/db/migrate.ts')
@@ -310,7 +310,7 @@ describe('SQLite migrations', () => {
         runMigrations()
         const afterFirst = {
           columns: db.query('PRAGMA table_info(chat_messages)').all().map(row => row.name),
-          message: db.query(\"SELECT content FROM chat_messages WHERE session_id = 'legacy-session'\").get().content,
+          message: db.query("SELECT content FROM chat_messages WHERE session_id = 'legacy-session'").get().content,
           v4: db.query('SELECT name FROM schema_migrations WHERE version = 4').get().name,
           v9Count: db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 9').get().count,
         }
@@ -334,7 +334,7 @@ describe('SQLite migrations', () => {
       expect(first.afterFirst.message).toBe('preserve this message')
       expect(first.afterFirst.v4).toBe('run-files-read')
       expect(first.afterFirst.v9Count).toBe(1)
-        expect(first.afterSecond).toEqual({ v9Count: 1, schemaCount: 13 })
+      expect(first.afterSecond).toEqual({ v9Count: 1, schemaCount: 13 })
     } finally {
       rmSync(home, { recursive: true, force: true })
     }

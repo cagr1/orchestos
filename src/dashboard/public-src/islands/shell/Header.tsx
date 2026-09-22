@@ -1,7 +1,8 @@
 /** Header (UI.12.2) — la barra global del shell. */
-import { useShell } from './use-shell.ts'
+
 import { Icon } from '../../lib/icons.tsx'
 import { shellApi } from './shell-api.ts'
+import { useShell } from './use-shell.ts'
 
 export function Header() {
   const shell = useShell()
@@ -11,7 +12,8 @@ export function Header() {
     <div className="shell-header-inner">
       <div className="shell-header-left">
         <div className="shell-wordmark" aria-label="OrchestOS">
-          <span>Orchest</span><span>OS</span>
+          <span>Orchest</span>
+          <span>OS</span>
         </div>
         <HeaderButton id="navSearchBtn" icon="search" onClick={() => api?.openCommandPalette()} />
         <HeaderButton id="navCollapseBtn" icon="panelLeft" onClick={() => api?.toggleSidebar()} />
@@ -44,7 +46,12 @@ function HeaderButton({
   onClick: () => void
 }) {
   return (
-    <button id={id} type="button" className={`shell-header-button${active ? ' active' : ''}`} onClick={onClick}>
+    <button
+      id={id}
+      type="button"
+      className={`shell-header-button${active ? ' active' : ''}`}
+      onClick={onClick}
+    >
       <Icon name={icon} />
     </button>
   )

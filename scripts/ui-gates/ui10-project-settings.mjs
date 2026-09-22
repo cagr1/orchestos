@@ -33,7 +33,10 @@ try {
   await page.locator('[data-nav="settings"]').click()
   await page.locator('.settings-nav').waitFor({ state: 'visible', timeout: 8000 })
   try {
-    await page.locator('[data-settings-project]').first().waitFor({ state: 'visible', timeout: 8000 })
+    await page
+      .locator('[data-settings-project]')
+      .first()
+      .waitFor({ state: 'visible', timeout: 8000 })
   } catch {
     // Let the project-count assertion below report the useful failure message.
   }
@@ -48,7 +51,10 @@ try {
   const firstName = (await first.innerText()).trim()
   await first.click()
   await page.locator('[data-project-title]').waitFor({ state: 'visible', timeout: 8000 })
-  log((await page.locator('[data-project-title]').innerText()) === firstName, 'el primer proyecto muestra su nombre')
+  log(
+    (await page.locator('[data-project-title]').innerText()) === firstName,
+    'el primer proyecto muestra su nombre',
+  )
   log(Boolean(apiRequest('/api/specs', firstId)), 'Specs usa el header del primer proyecto')
 
   for (const tab of ['specs', 'skills', 'plan']) {
@@ -73,7 +79,10 @@ try {
   const secondName = (await second.innerText()).trim()
   await second.click()
   await page.locator('[data-project-title]').waitFor({ state: 'visible', timeout: 8000 })
-  log((await page.locator('[data-project-title]').innerText()) === secondName, 'el segundo proyecto cambia el título')
+  log(
+    (await page.locator('[data-project-title]').innerText()) === secondName,
+    'el segundo proyecto cambia el título',
+  )
   log(Boolean(apiRequest('/api/specs', secondId)), 'Specs cambia al header del segundo proyecto')
 } catch (error) {
   log(false, `gate abortado: ${error.message}`)

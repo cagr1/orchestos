@@ -55,8 +55,8 @@ import {
   KNOWN_CLIS,
   readBoundaryFor,
 } from '../../run/executors/cli-registry.ts'
-import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
 import { CODEX_CHAT_EFFORT_LEVELS } from '../../run/executors/codex.ts'
+import { CLAUDE_CLI_EFFORTS } from '../../run/executors/external.ts'
 import { PathPolicyError, realRoot, resolveProjectPath } from '../../run/path-policy.ts'
 import {
   type AuditedReadTool,

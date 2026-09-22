@@ -26,15 +26,14 @@
  *
  * Última corrida verde: 2026-08-30.
  */
-import { chromium } from 'playwright'
+
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { chromium } from 'playwright'
 
 const BASE = process.env.BASE || 'http://localhost:4325'
-const artifactsDir =
-  process.env.GATE_ARTIFACTS_DIR ||
-  mkdtempSync(join(tmpdir(), 'orchestos-ui4-'))
+const artifactsDir = process.env.GATE_ARTIFACTS_DIR || mkdtempSync(join(tmpdir(), 'orchestos-ui4-'))
 const out = []
 const log = (ok, msg) => {
   out.push(`${ok ? 'PASS' : 'FAIL'} — ${msg}`)

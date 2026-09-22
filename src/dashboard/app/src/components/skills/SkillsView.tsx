@@ -1,28 +1,26 @@
-import React, { useState } from 'react';
 import {
-  Cpu,
+  Boxes,
+  Check,
   CheckCircle2,
-  Terminal,
+  Code2,
+  Cpu,
   ExternalLink,
   Search,
-  Check,
-  Code2,
-  Boxes,
   Sparkles,
-} from 'lucide-react';
-import { SkillItem } from '../../types/orchestos';
+  Terminal,
+} from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
+import type { SkillItem } from '../../types/orchestos'
 
 interface SkillsViewProps {
-  skills: SkillItem[];
-  onCompileSkill: (skillId: string) => void;
+  skills: SkillItem[]
+  onCompileSkill: (skillId: string) => void
 }
 
-export const SkillsView: React.FC<SkillsViewProps> = ({
-  skills,
-  onCompileSkill,
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
+export const SkillsView: React.FC<SkillsViewProps> = ({ skills, onCompileSkill }) => {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('all')
 
   const supportedLanguages = [
     'TypeScript',
@@ -38,17 +36,16 @@ export const SkillsView: React.FC<SkillsViewProps> = ({
     'Ruby',
     'C#',
     'Shell / Docker',
-  ];
+  ]
 
   const filteredSkills = skills.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.language.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLang =
-      selectedLanguage === 'all' || s.language === selectedLanguage;
-    return matchesSearch && matchesLang;
-  });
+      s.language.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesLang = selectedLanguage === 'all' || s.language === selectedLanguage
+    return matchesSearch && matchesLang
+  })
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950 select-none">
@@ -110,12 +107,8 @@ export const SkillsView: React.FC<SkillsViewProps> = ({
                       <Code2 className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="font-semibold text-xs text-zinc-100">
-                        {skill.name}
-                      </div>
-                      <div className="text-[10px] font-mono text-zinc-400">
-                        {skill.language}
-                      </div>
+                      <div className="font-semibold text-xs text-zinc-100">{skill.name}</div>
+                      <div className="text-[10px] font-mono text-zinc-400">{skill.language}</div>
                     </div>
                   </div>
 
@@ -124,8 +117,8 @@ export const SkillsView: React.FC<SkillsViewProps> = ({
                       skill.status === 'compiled'
                         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                         : skill.status === 'source'
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                        : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                          : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30'
                     }`}
                   >
                     {skill.status}
@@ -142,9 +135,7 @@ export const SkillsView: React.FC<SkillsViewProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between pt-1 text-xs">
-                  <span className="text-[10px] text-zinc-500 font-mono">
-                    ID: {skill.id}
-                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono">ID: {skill.id}</span>
                   <button
                     onClick={() => onCompileSkill(skill.id)}
                     className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-medium transition-colors"
@@ -158,5 +149,5 @@ export const SkillsView: React.FC<SkillsViewProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

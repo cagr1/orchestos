@@ -1,15 +1,15 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
-import jakartaLatin from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2';
-import jakartaLatinExt from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-wght-normal.woff2';
-import firaLatin400 from '@fontsource/fira-code/files/fira-code-latin-400-normal.woff2';
-import firaLatin500 from '@fontsource/fira-code/files/fira-code-latin-500-normal.woff2';
-import firaLatin600 from '@fontsource/fira-code/files/fira-code-latin-600-normal.woff2';
-import firaLatinExt400 from '@fontsource/fira-code/files/fira-code-latin-ext-400-normal.woff2';
-import firaLatinExt500 from '@fontsource/fira-code/files/fira-code-latin-ext-500-normal.woff2';
-import firaLatinExt600 from '@fontsource/fira-code/files/fira-code-latin-ext-600-normal.woff2';
-import App from './App.tsx';
-import './index.css';
+import firaLatin400 from '@fontsource/fira-code/files/fira-code-latin-400-normal.woff2'
+import firaLatin500 from '@fontsource/fira-code/files/fira-code-latin-500-normal.woff2'
+import firaLatin600 from '@fontsource/fira-code/files/fira-code-latin-600-normal.woff2'
+import firaLatinExt400 from '@fontsource/fira-code/files/fira-code-latin-ext-400-normal.woff2'
+import firaLatinExt500 from '@fontsource/fira-code/files/fira-code-latin-ext-500-normal.woff2'
+import firaLatinExt600 from '@fontsource/fira-code/files/fira-code-latin-ext-600-normal.woff2'
+import jakartaLatinExt from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-wght-normal.woff2'
+import jakartaLatin from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
 
 const fontFaceStyles = `
 @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 200 800; src: url('${jakartaLatinExt}') format('woff2-variations'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
@@ -20,12 +20,14 @@ const fontFaceStyles = `
 @font-face { font-family: 'Fira Code'; font-style: normal; font-display: swap; font-weight: 500; src: url('${firaLatin500}') format('woff2'); }
 @font-face { font-family: 'Fira Code'; font-style: normal; font-display: swap; font-weight: 600; src: url('${firaLatinExt600}') format('woff2'); }
 @font-face { font-family: 'Fira Code'; font-style: normal; font-display: swap; font-weight: 600; src: url('${firaLatin600}') format('woff2'); }
-`;
+`
 
-document.head.appendChild(Object.assign(document.createElement('style'), {textContent: fontFaceStyles}));
+document.head.appendChild(
+  Object.assign(document.createElement('style'), { textContent: fontFaceStyles }),
+)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
-);
+)

@@ -1,44 +1,42 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
-  ArrowUp,
-  Paperclip,
-  FileText,
-  FileCode,
-  X,
-  ChevronDown,
-  Sparkles,
-  Bot,
   AlertCircle,
+  ArrowUp,
+  Bot,
   Check,
+  ChevronDown,
   Cpu,
+  FileCode,
+  FileText,
   Layers,
+  Paperclip,
+  Sparkles,
   Terminal,
-} from 'lucide-react';
-import { ChatThread, ChatMessage, ChatAttachment } from '../../types/orchestos';
-import { ProviderLogo } from '../common/ProviderLogos';
-import { DEFAULT_CHAT_MODEL, getChatModels, uploadChatFile } from '../../api/chat';
+  X,
+} from 'lucide-react'
+import type React from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { DEFAULT_CHAT_MODEL, getChatModels, uploadChatFile } from '../../api/chat'
+import { type ChatAttachment, ChatMessage, type ChatThread } from '../../types/orchestos'
+import { ProviderLogo } from '../common/ProviderLogos'
 
 interface OrchestChatViewProps {
-  thread?: ChatThread;
+  thread?: ChatThread
   onSendMessage: (
     content: string,
     attachments?: ChatAttachment[],
     agent?: string,
     model?: string,
-    effort?: string
-  ) => void;
-  onApproveHeldTask?: (taskId: string) => void;
-  onRejectHeldTask?: (taskId: string) => void;
+    effort?: string,
+  ) => void
+  onApproveHeldTask?: (taskId: string) => void
+  onRejectHeldTask?: (taskId: string) => void
 }
 
-export type AgentType = 'local' | 'claude' | 'codex' | 'opencode' | 'api';
+export type AgentType = 'local' | 'claude' | 'codex' | 'opencode' | 'api'
 
-const AGENT_MODELS: Record<
-  AgentType,
-  { name: string; provider: string; desc: string }[]
-> = {
+const AGENT_MODELS: Record<AgentType, { name: string; provider: string; desc: string }[]> = {
   local: [],
   claude: [
     { name: 'Claude 3.7 Sonnet', provider: 'claude', desc: 'Extended reasoning & planning' },
@@ -57,7 +55,7 @@ const AGENT_MODELS: Record<
     { name: 'DeepSeek V4 Flash', provider: 'deepseek', desc: 'Ultra-fast inference' },
     { name: 'Claude 3.7 Sonnet', provider: 'claude', desc: 'API gateway integration' },
   ],
-};
+}
 
 export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   thread,
@@ -65,20 +63,20 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   onApproveHeldTask,
   onRejectHeldTask,
 }) => {
-  const [inputText, setInputText] = useState('');
-  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<AgentType>('api');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [apiModels, setApiModels] = useState<{ name: string; provider: string; desc: string }[]>([]);
-  const [selectedEffort, setSelectedEffort] = useState('Medium');
-  const [showModelPicker, setShowModelPicker] = useState(false);
-  const [showUploadMenu, setShowUploadMenu] = useState(false);
-  const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({});
+  const [inputText, setInputText] = useState('')
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([])
+  const [selectedAgent, setSelectedAgent] = useState<AgentType>('api')
+  const [selectedModel, setSelectedModel] = useState('')
+  const [apiModels, setApiModels] = useState<{ name: string; provider: string; desc: string }[]>([])
+  const [selectedEffort, setSelectedEffort] = useState('Medium')
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const [showUploadMenu, setShowUploadMenu] = useState(false)
+  const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({})
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const effortLevels = ['Low', 'Medium', 'High', 'Reasoning'];
+  const effortLevels = ['Low', 'Medium', 'High', 'Reasoning']
 
   useEffect(() => {
     void getChatModels()
@@ -87,79 +85,85 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
           name: model.id,
           provider: 'api',
           desc: `${model.contextK}K context`,
-        }));
-        setApiModels(options);
-        setSelectedModel(options.some((model) => model.name === DEFAULT_CHAT_MODEL)
-          ? DEFAULT_CHAT_MODEL
-          : options[0]?.name || '');
+        }))
+        setApiModels(options)
+        setSelectedModel(
+          options.some((model) => model.name === DEFAULT_CHAT_MODEL)
+            ? DEFAULT_CHAT_MODEL
+            : options[0]?.name || '',
+        )
       })
-      .catch(() => setApiModels([]));
-  }, []);
+      .catch(() => setApiModels([]))
+  }, [])
 
   useEffect(() => {
-    const agent = thread?.agent;
-    if (agent === 'local' || agent === 'claude' || agent === 'codex' || agent === 'opencode' || agent === 'api') {
-      setSelectedAgent(agent);
-      if (agent === 'api' && !selectedModel) setSelectedModel(DEFAULT_CHAT_MODEL);
+    const agent = thread?.agent
+    if (
+      agent === 'local' ||
+      agent === 'claude' ||
+      agent === 'codex' ||
+      agent === 'opencode' ||
+      agent === 'api'
+    ) {
+      setSelectedAgent(agent)
+      if (agent === 'api' && !selectedModel) setSelectedModel(DEFAULT_CHAT_MODEL)
     }
-  }, [thread?.id, thread?.agent, selectedModel]);
+  }, [thread?.id, thread?.agent, selectedModel])
 
   // Keep selected model in sync when agent changes
   const handleSelectAgent = (agent: AgentType) => {
-    setSelectedAgent(agent);
-    const available = agent === 'api' && apiModels.length ? apiModels : AGENT_MODELS[agent];
+    setSelectedAgent(agent)
+    const available = agent === 'api' && apiModels.length ? apiModels : AGENT_MODELS[agent]
     if (available && available.length > 0) {
-      setSelectedModel(available[0].name);
+      setSelectedModel(available[0].name)
     } else if (agent === 'api') {
-      setSelectedModel(DEFAULT_CHAT_MODEL);
+      setSelectedModel(DEFAULT_CHAT_MODEL)
     }
-  };
+  }
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [thread?.messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [thread?.messages])
 
   const handleSend = () => {
-    if (!inputText.trim() && attachments.length === 0) return;
+    if (!inputText.trim() && attachments.length === 0) return
     onSendMessage(
       inputText.trim(),
       attachments.length > 0 ? attachments : undefined,
       selectedAgent,
       selectedModel,
-      selectedEffort
-    );
-    setInputText('');
-    setAttachments([]);
-  };
+      selectedEffort,
+    )
+    setInputText('')
+    setAttachments([])
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+      e.preventDefault()
+      handleSend()
     }
-  };
+  }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const files = Array.from(e.target.files);
+    if (!e.target.files) return
+    const files = Array.from(e.target.files)
     void Promise.all(files.map((file) => uploadChatFile(file)))
       .then((uploaded) => setAttachments((prev) => [...prev, ...uploaded]))
-      .catch(() => undefined);
-    setShowUploadMenu(false);
-  };
+      .catch(() => undefined)
+    setShowUploadMenu(false)
+  }
 
   const removeAttachment = (id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
-  };
+    setAttachments((prev) => prev.filter((a) => a.id !== id))
+  }
 
   const toggleToolExpand = (key: string) => {
-    setExpandedTools((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+    setExpandedTools((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
-  const messages = thread?.messages || [];
-  const currentAgentModels = selectedAgent === 'api'
-    ? apiModels
-    : AGENT_MODELS[selectedAgent] || [];
+  const messages = thread?.messages || []
+  const currentAgentModels = selectedAgent === 'api' ? apiModels : AGENT_MODELS[selectedAgent] || []
 
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg text-app overflow-hidden relative select-none">
@@ -169,13 +173,14 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
           <div className="max-w-3xl mx-auto pt-16 text-left space-y-3">
             <h1 className="text-xl font-bold text-app tracking-tight">Chat</h1>
             <p className="text-xs text-app-muted">
-              Ask questions or get a quick answer — no task required. Choose your agent and model below.
+              Ask questions or get a quick answer — no task required. Choose your agent and model
+              below.
             </p>
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-6">
             {messages.map((msg) => {
-              const isUser = msg.role === 'user';
+              const isUser = msg.role === 'user'
 
               return (
                 <div
@@ -228,9 +233,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                                 <span className="inline-flex items-center justify-center w-3.5 h-3.5 mr-1.5 align-middle rounded-[3px] border border-app bg-app-elevated text-app-accent">
                                   {checked ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : null}
                                 </span>
-                              );
+                              )
                             }
-                            return <input type={type} defaultChecked={checked} readOnly />;
+                            return <input type={type} defaultChecked={checked} readOnly />
                           },
                         }}
                       >
@@ -246,7 +251,10 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           <span>Chain-of-Thought Reasoning</span>
                         </div>
                         {msg.reasoning.map((step, idx) => (
-                          <div key={idx} className="text-app-muted text-xs pl-2 border-l border-app">
+                          <div
+                            key={idx}
+                            className="text-app-muted text-xs pl-2 border-l border-app"
+                          >
                             • {step}
                           </div>
                         ))}
@@ -257,9 +265,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                     {msg.toolCalls && msg.toolCalls.length > 0 && (
                       <div className="mt-3 space-y-1 font-mono text-xs">
                         {msg.toolCalls.map((tool, idx) => {
-                          const toolKey = `${msg.id}_tool_${idx}`;
-                          const isExpanded = !!expandedTools[toolKey];
-                          const argsStr = JSON.stringify(tool.args);
+                          const toolKey = `${msg.id}_tool_${idx}`
+                          const isExpanded = !!expandedTools[toolKey]
+                          const argsStr = JSON.stringify(tool.args)
 
                           return (
                             <div
@@ -287,7 +295,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                                 </span>
                               </div>
                             </div>
-                          );
+                          )
                         })}
                       </div>
                     )}
@@ -307,9 +315,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           </span>
                         </div>
 
-                        <p className="text-xs text-zinc-300">
-                          {msg.heldTask.taskDescription}
-                        </p>
+                        <p className="text-xs text-zinc-300">{msg.heldTask.taskDescription}</p>
 
                         <div className="text-xs text-amber-300/90 font-mono">
                           Action required: {msg.heldTask.actionRequired}
@@ -318,14 +324,18 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         <div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-800/40">
                           <button
                             type="button"
-                            onClick={() => onRejectHeldTask && onRejectHeldTask(msg.heldTask!.taskId)}
+                            onClick={() =>
+                              onRejectHeldTask && onRejectHeldTask(msg.heldTask!.taskId)
+                            }
                             className="px-3 py-1.5 rounded-control text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                           >
                             Reject & Edit
                           </button>
                           <button
                             type="button"
-                            onClick={() => onApproveHeldTask && onApproveHeldTask(msg.heldTask!.taskId)}
+                            onClick={() =>
+                              onApproveHeldTask && onApproveHeldTask(msg.heldTask!.taskId)
+                            }
                             className="px-3 py-1.5 rounded-control text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-zinc-950 transition-colors"
                           >
                             Approve & Execute
@@ -335,7 +345,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                     )}
                   </div>
                 </div>
-              );
+              )
             })}
             <div ref={messagesEndRef} />
           </div>
@@ -432,7 +442,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                   { id: 'opencode', label: 'OpenCode', icon: 'opencode' },
                   { id: 'api', label: 'API', icon: 'gemini' },
                 ].map((ag) => {
-                  const isSelected = selectedAgent === ag.id;
+                  const isSelected = selectedAgent === ag.id
                   return (
                     <button
                       key={ag.id}
@@ -447,7 +457,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                       <ProviderLogo id={ag.icon} className="w-3 h-3 flex-shrink-0" />
                       <span>{ag.label}</span>
                     </button>
-                  );
+                  )
                 })}
               </div>
 
@@ -474,8 +484,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         key={m.name}
                         type="button"
                         onClick={() => {
-                          setSelectedModel(m.name);
-                          setShowModelPicker(false);
+                          setSelectedModel(m.name)
+                          setShowModelPicker(false)
                         }}
                         className={`w-full flex items-center gap-2.5 p-2 rounded-control text-left transition-colors ${
                           selectedModel === m.name
@@ -527,7 +537,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
           </div>
         </div>
       </div>
-
     </div>
-  );
-};
+  )
+}

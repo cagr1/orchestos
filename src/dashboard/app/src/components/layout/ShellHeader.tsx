@@ -1,13 +1,13 @@
-import React from 'react';
-import { Search, PanelLeft, PanelRight, FolderGit2 } from 'lucide-react';
+import { FolderGit2, PanelLeft, PanelRight, Search } from 'lucide-react'
+import type React from 'react'
 
 interface ShellHeaderProps {
-  onOpenCommandPalette: () => void;
-  onToggleLeftSidebar?: () => void;
-  onToggleRightInspector?: () => void;
-  isRightInspectorOpen?: boolean;
-  activeProjectName?: string;
-  activeBranch?: string;
+  onOpenCommandPalette: () => void
+  onToggleLeftSidebar?: () => void
+  onToggleRightInspector?: () => void
+  isRightInspectorOpen?: boolean
+  activeProjectName?: string
+  activeBranch?: string
 }
 
 export const ShellHeader: React.FC<ShellHeaderProps> = ({
@@ -58,7 +58,12 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
       <div className="hidden sm:flex items-center gap-2 text-xs text-app-muted font-mono">
         <FolderGit2 className="w-3.5 h-3.5 text-app-muted" />
         <span className="text-app font-medium">{activeProjectName}</span>
-        {activeBranch && <><span className="text-app-muted/60">/</span><span className="text-app-muted">{activeBranch}</span></>}
+        {activeBranch && (
+          <>
+            <span className="text-app-muted/60">/</span>
+            <span className="text-app-muted">{activeBranch}</span>
+          </>
+        )}
       </div>
 
       {/* Right: Only single toggle button for right inspector (status indicator removed as requested) */}
@@ -80,5 +85,5 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
         )}
       </div>
     </header>
-  );
-};
+  )
+}

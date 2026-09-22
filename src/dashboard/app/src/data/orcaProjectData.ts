@@ -1,4 +1,4 @@
-import { FileNode, ProjectItem } from '../types/orchestos';
+import type { FileNode, ProjectItem } from '../types/orchestos'
 
 export const INITIAL_PROJECTS: ProjectItem[] = [
   {
@@ -72,7 +72,7 @@ export const INITIAL_PROJECTS: ProjectItem[] = [
       },
     ],
   },
-];
+]
 
 export const ORCHESTOS_FILE_TREE: FileNode[] = [
   {
@@ -117,7 +117,7 @@ export const ORCHESTOS_FILE_TREE: FileNode[] = [
             denyUnapprovedDeletions: true,
           },
           null,
-          2
+          2,
         ),
       },
     ],
@@ -228,7 +228,12 @@ app.listen(PORT, "0.0.0.0", () => {
     path: 'instincts',
     isDir: true,
     children: [
-      { name: 'learned-patterns.json', path: 'instincts/learned-patterns.json', isDir: false, size: '2.4 KB' },
+      {
+        name: 'learned-patterns.json',
+        path: 'instincts/learned-patterns.json',
+        isDir: false,
+        size: '2.4 KB',
+      },
     ],
   },
   {
@@ -327,4 +332,4 @@ dist/
 *.sqlite
 .DS_Store`,
   },
-];
+]

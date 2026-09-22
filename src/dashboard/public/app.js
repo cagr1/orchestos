@@ -155,7 +155,10 @@ const NAV = [
    API fetching
    ============================================================ */
 function projectHeaders() {
-  return state.settingsProjectId && ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan'].includes(state.screen)
+  return state.settingsProjectId &&
+    ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan'].includes(
+      state.screen,
+    )
     ? { 'x-orchestos-project-id': state.settingsProjectId }
     : {}
 }
@@ -519,7 +522,10 @@ const App = {
       state.chatLiveSteps = {}
       state.sessionsVersion += 1
       if (projectId) {
-        localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', id: body.id, projectId }))
+        localStorage.setItem(
+          'orchestos-last-dev',
+          JSON.stringify({ kind: 'session', id: body.id, projectId }),
+        )
       } else {
         localStorage.setItem('orchestos-last-chat-session', body.id)
       }
@@ -586,12 +592,18 @@ const App = {
     if (!res.ok || typeof body.id !== 'string')
       throw new Error(body.error || 'Could not create chat session')
     state.chatSessionId = body.id
-    applyChatSessionControls({ agent: 'api', projectId: state.shellMode === 'dev' ? state.workspaceProjectId : null })
+    applyChatSessionControls({
+      agent: 'api',
+      projectId: state.shellMode === 'dev' ? state.workspaceProjectId : null,
+    })
     delete state.chatDeletedSessionIds[body.id]
     state.chatHistories[body.id] = []
     state.sessionsVersion += 1
     if (state.shellMode === 'dev') {
-      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', id: body.id, projectId: state.workspaceProjectId }))
+      localStorage.setItem(
+        'orchestos-last-dev',
+        JSON.stringify({ kind: 'session', id: body.id, projectId: state.workspaceProjectId }),
+      )
     } else {
       localStorage.setItem('orchestos-last-chat-session', body.id)
     }
@@ -735,7 +747,9 @@ const App = {
       state.screen = 'chat'
       await this.fetchChatSessions()
       const lastId = localStorage.getItem('orchestos-last-chat-session')
-      const session = (state.chatSessions || []).find((item) => item.id === lastId && item.projectId === null)
+      const session = (state.chatSessions || []).find(
+        (item) => item.id === lastId && item.projectId === null,
+      )
       if (session) await this.switchChatSession(session.id)
       else {
         state.chatSessionId = null
@@ -745,7 +759,11 @@ const App = {
       return
     }
     let last = null
-    try { last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null') } catch { last = null }
+    try {
+      last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null')
+    } catch {
+      last = null
+    }
     const projectsResponse = await fetch('/api/projects').catch(() => null)
     const projects = projectsResponse?.ok ? await projectsResponse.json() : []
     if (last?.kind === 'session' && last.id && last.projectId) {
@@ -855,7 +873,10 @@ const App = {
       clearInterval(SCREENS.graph._timer)
       SCREENS.graph._timer = null
     }
-    if (!['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan'].includes(id) && id !== 'settings') {
+    if (
+      !['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan'].includes(id) &&
+      id !== 'settings'
+    ) {
       state.settingsProjectId = null
     }
     state.screen = id
@@ -899,10 +920,21 @@ const App = {
       workspaceProjectId: state.workspaceProjectId || null,
       chatSessionId: state.chatSessionId || null,
       activeProjectName: (() => {
-        const projectTabs = ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan']
-        const id = state.settingsProjectId && (state.screen === 'settings' || projectTabs.includes(state.screen))
-          ? state.settingsProjectId
-          : state.workspaceProjectId
+        const projectTabs = [
+          'tasks',
+          'runs',
+          'graph',
+          'memory',
+          'specs',
+          'skills',
+          'instincts',
+          'plan',
+        ]
+        const id =
+          state.settingsProjectId &&
+          (state.screen === 'settings' || projectTabs.includes(state.screen))
+            ? state.settingsProjectId
+            : state.workspaceProjectId
         const project = (state.projectsList || []).find((item) => item.id === id)
         return project ? project.path.split('/').pop() || project.path : null
       })(),
@@ -2327,11 +2359,11 @@ const Modal = {
   openCommandPalette() {
     const screenItems = [
       ...NAV.map((n) => ({
-      type: 'screen',
-      icon: n.icon,
-      label: t(n.key),
-      sub: '',
-      go: () => App.go(n.id),
+        type: 'screen',
+        icon: n.icon,
+        label: t(n.key),
+        sub: '',
+        go: () => App.go(n.id),
       })),
       ...[
         ['explorer', 'rp.tab.explorer'],
@@ -2889,7 +2921,11 @@ function applyChatSessionControls(session) {
   if (agent === 'claude') {
     if (!state.chatModel?.startsWith('anthropic/')) state.chatModel = 'anthropic/sonnet'
   } else if (agent === 'api') {
-    if (!state.chatModel || state.chatModel.startsWith('anthropic/') || state.chatModel.startsWith('ollama/'))
+    if (
+      !state.chatModel ||
+      state.chatModel.startsWith('anthropic/') ||
+      state.chatModel.startsWith('ollama/')
+    )
       state.chatModel = 'deepseek/deepseek-v4-flash'
   } else {
     // Codex, OpenCode and Local do not have a verified browser-side model
@@ -2968,14 +3004,20 @@ function buildChatModelFx(st) {
   // diferencia de `modelSupportsReasoning`, que sí es por-modelo.
   const useClaudeCli = agent === 'claude'
   const effortLevels = chatEffortLevels(agent)
-  const effortAvailable = effortLevels.length > 0 &&
+  const effortAvailable =
+    effortLevels.length > 0 &&
     (useClaudeCli || agent === 'codex' || (isApiAgent && modelSupportsReasoning(val, st.orModels)))
   if (modelHiddenAgent && !effortAvailable) return ''
-  const effortLabel = effortAvailable && effortLevels.includes(st.chatEffort)
-    ? t('chat.effort.' + st.chatEffort)
-    : null
+  const effortLabel =
+    effortAvailable && effortLevels.includes(st.chatEffort)
+      ? t('chat.effort.' + st.chatEffort)
+      : null
   const triggerBase = modelHiddenAgent ? effortLabel : modelLabel
-  const triggerLabel = modelHiddenAgent ? effortLabel : effortLabel ? `${triggerBase} · ${effortLabel}` : triggerBase
+  const triggerLabel = modelHiddenAgent
+    ? effortLabel
+    : effortLabel
+      ? `${triggerBase} · ${effortLabel}`
+      : triggerBase
   const triggerTitle = modelHiddenAgent
     ? effortLabel || t('chat.effort.label')
     : effortLabel
@@ -2991,12 +3033,14 @@ function buildChatModelFx(st) {
     // vista 'agent' más abajo). No se auto-corrige el config acá, solo se
     // avisa — cambiar el agente del proyecto sigue siendo decisión del usuario.
     panel = `<div class="chat-modelfx-panel" data-modelfx-panel>
-      ${!modelHiddenAgent
-        ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
+      ${
+        !modelHiddenAgent
+          ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="model">
         <span class="k">${t('chat.modelfx.model')}</span>
         <span class="v" title="${esc(fullModelLabel)}">${esc(modelLabel)}</span>${ICON.chevR}
       </button>`
-        : ''}
+          : ''
+      }
       ${
         effortAvailable
           ? `<button type="button" class="chat-modelfx-item" data-modelfx-nav="effort">
@@ -3164,7 +3208,9 @@ function toggleSidebarMode() {
  * a proposito: es contenido de pantalla, no shell, y le toca en UI.4.
  */
 function openInspectorTool(tabName) {
-  const tab = ['explorer', 'terminal', 'diff'].includes(tabName) ? tabName : (state.inspectorTab || 'explorer')
+  const tab = ['explorer', 'terminal', 'diff'].includes(tabName)
+    ? tabName
+    : state.inspectorTab || 'explorer'
   state.inspectorTab = tab
   state.inspector = { kind: 'tool', tab }
   syncRightPanel()
@@ -3181,7 +3227,10 @@ function syncRightPanel() {
   app.dataset.rightpanel = open ? 'expanded' : 'collapsed'
   pushShellState({ inspector: state.inspector })
   const body = document.getElementById('rightpanelBody')
-  if (!open && body) { body.innerHTML = ''; body.className = 'rp-body' }
+  if (!open && body) {
+    body.innerHTML = ''
+    body.className = 'rp-body'
+  }
   if (state.inspector?.kind === 'tool') RightPanel.render()
 }
 
@@ -3304,7 +3353,11 @@ function boot() {
       e.preventDefault()
       Modal.openCommandPalette()
     }
-    if (e.key === 'Escape' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) && !Modal.el?.classList.contains('show')) {
+    if (
+      e.key === 'Escape' &&
+      !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) &&
+      !Modal.el?.classList.contains('show')
+    ) {
       if (state.inspector) closeInspector()
     }
   })
@@ -3376,12 +3429,14 @@ function boot() {
 
   // Load projects before the first Dev render so the shell/header and empty state
   // have a real project list instead of treating the state as unknown.
-  App.fetchProjects().then(() => {
-    App.rerender()
-    return App.fetchAll()
-  }).then(() => {
-    if (state.shellMode === 'dev') void App.setShellMode('dev')
-  })
+  App.fetchProjects()
+    .then(() => {
+      App.rerender()
+      return App.fetchAll()
+    })
+    .then(() => {
+      if (state.shellMode === 'dev') void App.setShellMode('dev')
+    })
 
   // Auto-refresh every 30s
   setInterval(() => App.fetchAll(), 30_000)
@@ -3444,7 +3499,10 @@ function boot() {
       localStorage.setItem('orchestos-shell-mode', state.shellMode)
       if (projectId) {
         state.workspaceProjectId = projectId
-        localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', id, projectId }))
+        localStorage.setItem(
+          'orchestos-last-dev',
+          JSON.stringify({ kind: 'session', id, projectId }),
+        )
       } else {
         localStorage.setItem('orchestos-last-chat-session', id)
       }

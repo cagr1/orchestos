@@ -5,9 +5,7 @@
   "beforeFix": {
     "source": "docs/done/evidence/UI.9.5-live.json",
     "reproduction": "Dashboard arrancado en Dev, recarga y cambio Dev→Chat",
-    "consoleErrors": [
-      "TypeError: Cannot read properties of undefined (reading 'filter')"
-    ],
+    "consoleErrors": ["TypeError: Cannot read properties of undefined (reading 'filter')"],
     "unitTest": {
       "command": "bun test src/dashboard/public-src/lib/shell-store.test.ts",
       "result": "0 pass / 1 fail",

@@ -84,9 +84,7 @@
       "detail": "not observable: no button; eligible=[]"
     }
   ],
-  "consoleErrors": [
-    "TypeError: Cannot read properties of undefined (reading 'filter')"
-  ],
+  "consoleErrors": ["TypeError: Cannot read properties of undefined (reading 'filter')"],
   "notes": [
     "UI.9.2 Open in Workspace no pudo observarse: la base real no tiene sesiones chat persistentes elegibles (chatSessions=[]).",
     "TypeError de Sidebar al cambiar Dev→Chat (generalSessions undefined), hallazgo previo documentado en PLAN.md 2026-09-17 y fuera de alcance de UI.9.5."

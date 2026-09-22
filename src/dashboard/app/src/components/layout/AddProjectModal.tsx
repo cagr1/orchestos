@@ -1,29 +1,26 @@
-import React, { useState } from 'react';
-import { FolderGit2, X, Plus } from 'lucide-react';
+import { FolderGit2, Plus, X } from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
 
 interface AddProjectModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreate: (name: string, branch?: string) => void;
+  isOpen: boolean
+  onClose: () => void
+  onCreate: (name: string, branch?: string) => void
 }
 
-export const AddProjectModal: React.FC<AddProjectModalProps> = ({
-  isOpen,
-  onClose,
-  onCreate,
-}) => {
-  const [projectName, setProjectName] = useState('');
-  const [branch, setBranch] = useState('main');
+export const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClose, onCreate }) => {
+  const [projectName, setProjectName] = useState('')
+  const [branch, setBranch] = useState('main')
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!projectName.trim()) return;
-    onCreate(projectName.trim(), branch.trim() || 'main');
-    setProjectName('');
-    onClose();
-  };
+    e.preventDefault()
+    if (!projectName.trim()) return
+    onCreate(projectName.trim(), branch.trim() || 'main')
+    setProjectName('')
+    onClose()
+  }
 
   return (
     <div
@@ -74,7 +71,8 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
           </div>
 
           <p className="text-app-muted text-xs leading-relaxed">
-            Registers the repository within OrchestOS workspace contracts, AST analyzer, and sandbox worktree isolates.
+            Registers the repository within OrchestOS workspace contracts, AST analyzer, and sandbox
+            worktree isolates.
           </p>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-app">
@@ -97,5 +95,5 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
         </form>
       </div>
     </div>
-  );
-};
+  )
+}

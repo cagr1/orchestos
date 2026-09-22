@@ -703,7 +703,9 @@ SCREENS.chat = {
       scrollBottom()
       try {
         const requestKey = crypto.randomUUID()
-        const activeChatSession = (st.chatSessions || []).find((session) => session.id === sessionId)
+        const activeChatSession = (st.chatSessions || []).find(
+          (session) => session.id === sessionId,
+        )
         const chatAgent = activeChatSession?.agent || 'api'
         const body = {
           sessionId,
@@ -713,7 +715,8 @@ SCREENS.chat = {
         // The session is the source of truth for transport. API and Claude
         // accept the model control; other CLIs own their model/default and
         // must never receive an OpenRouter fallback from the composer.
-        if ((chatAgent === 'api' || chatAgent === 'claude') && st.chatModel) body.model = st.chatModel
+        if ((chatAgent === 'api' || chatAgent === 'claude') && st.chatModel)
+          body.model = st.chatModel
         body.requestKey = requestKey
         if (sentFileIds.length) body.fileIds = sentFileIds
         // FRONT.1 — solo se manda si el control está visible (modelo con supportsReasoning:true).
@@ -722,7 +725,10 @@ SCREENS.chat = {
         // del catálogo de OpenRouter, ajeno al CLI.
         const chatUsesClaudeCli = chatAgent === 'claude'
         const effortLevels = chatEffortLevels(chatAgent)
-        if (chatUsesClaudeCli || (chatAgent === 'api' && modelSupportsReasoning(st.chatModel, st.orModels))) {
+        if (
+          chatUsesClaudeCli ||
+          (chatAgent === 'api' && modelSupportsReasoning(st.chatModel, st.orModels))
+        ) {
           if (effortLevels.includes(st.chatEffort)) body.effort = st.chatEffort
         }
         const res = await fetch('/api/chat', {
@@ -824,8 +830,12 @@ SCREENS.chat = {
       st.workspaceTab = 'tasks'
       st.shellMode = 'dev'
       localStorage.setItem('orchestos-shell-mode', 'dev')
-      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'session', id: st.chatSessionId, projectId: session.projectId }))
-      if (typeof window.__orchestosPushShell === 'function') window.__orchestosPushShell({ shellMode: 'dev' })
+      localStorage.setItem(
+        'orchestos-last-dev',
+        JSON.stringify({ kind: 'session', id: st.chatSessionId, projectId: session.projectId }),
+      )
+      if (typeof window.__orchestosPushShell === 'function')
+        window.__orchestosPushShell({ shellMode: 'dev' })
       App.rerender()
       App.syncNav()
       const taskId = session.lastPersistentTaskId
@@ -996,7 +1006,9 @@ SCREENS.chat = {
           Array.isArray(st.orModels) && st.orModels.length > 0 ? st.orModels : KNOWN_MODELS
         const locals =
           Array.isArray(st.localModels) && st.localModels.length > 0 ? st.localModels : []
-        const activeChatSession = (st.chatSessions || []).find((session) => session.id === st.chatSessionId)
+        const activeChatSession = (st.chatSessions || []).find(
+          (session) => session.id === st.chatSessionId,
+        )
         const isApiAgent = (activeChatSession?.agent || 'api') === 'api'
         // Safe: all dynamic values (m.id, m.name) pass through esc(). query `q` is used only for filtering, never rendered.
         list.innerHTML = buildComboOptions(

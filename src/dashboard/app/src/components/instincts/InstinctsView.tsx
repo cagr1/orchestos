@@ -1,25 +1,26 @@
-import React, { useState } from 'react';
 import {
+  AlertCircle,
   Brain,
   Check,
-  X,
-  Plus,
-  Sparkles,
-  Zap,
   CheckCircle2,
-  AlertCircle,
-  Sliders,
-  ThumbsUp,
-  ThumbsDown,
+  Plus,
   Repeat,
-} from 'lucide-react';
-import { InstinctItem } from '../../types/orchestos';
+  Sliders,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+  Zap,
+} from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
+import type { InstinctItem } from '../../types/orchestos'
 
 interface InstinctsViewProps {
-  instincts: InstinctItem[];
-  onApproveInstinct: (id: string) => void;
-  onRejectInstinct: (id: string) => void;
-  onAddInstinct: (trigger: string, action: string) => void;
+  instincts: InstinctItem[]
+  onApproveInstinct: (id: string) => void
+  onRejectInstinct: (id: string) => void
+  onAddInstinct: (trigger: string, action: string) => void
 }
 
 export const InstinctsView: React.FC<InstinctsViewProps> = ({
@@ -28,23 +29,23 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
   onRejectInstinct,
   onAddInstinct,
 }) => {
-  const [tab, setTab] = useState<'all' | 'review'>('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newTrigger, setNewTrigger] = useState('');
-  const [newAction, setNewAction] = useState('');
+  const [tab, setTab] = useState<'all' | 'review'>('all')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [newTrigger, setNewTrigger] = useState('')
+  const [newAction, setNewAction] = useState('')
 
-  const unverified = instincts.filter((i) => !i.verified);
+  const unverified = instincts.filter((i) => !i.verified)
 
-  const displayedInstincts = tab === 'review' ? unverified : instincts;
+  const displayedInstincts = tab === 'review' ? unverified : instincts
 
   const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTrigger || !newAction) return;
-    onAddInstinct(newTrigger.trim(), newAction.trim());
-    setNewTrigger('');
-    setNewAction('');
-    setShowAddModal(false);
-  };
+    e.preventDefault()
+    if (!newTrigger || !newAction) return
+    onAddInstinct(newTrigger.trim(), newAction.trim())
+    setNewTrigger('')
+    setNewAction('')
+    setShowAddModal(false)
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950 select-none">
@@ -71,9 +72,7 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
               }`}
             >
               <span>Review Proposals</span>
-              {unverified.length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-              )}
+              {unverified.length > 0 && <span className="w-2 h-2 rounded-full bg-amber-400" />}
             </button>
           </div>
 
@@ -221,9 +220,7 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-zinc-300 font-semibold mb-1">
-                  Trigger Pattern
-                </label>
+                <label className="block text-zinc-300 font-semibold mb-1">Trigger Pattern</label>
                 <input
                   type="text"
                   required
@@ -249,7 +246,9 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
               </div>
 
               <div className="p-3 rounded-xl bg-indigo-950/20 border border-indigo-500/20 text-indigo-300 text-[11px]">
-                Manual instincts start with an authoritative confidence score of <strong>1.00</strong> and are immediately compiled into the middleware context pipeline.
+                Manual instincts start with an authoritative confidence score of{' '}
+                <strong>1.00</strong> and are immediately compiled into the middleware context
+                pipeline.
               </div>
             </div>
 
@@ -272,5 +271,5 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}

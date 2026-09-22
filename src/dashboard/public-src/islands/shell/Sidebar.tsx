@@ -20,12 +20,12 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover.tsx'
 import { useT } from '../../lib/i18n.ts'
 import { Icon, RawIcon } from '../../lib/icons.tsx'
 import { pushToast } from '../../lib/toast-store.ts'
 import { type NavEntry, shellApi } from './shell-api.ts'
 import { useShell } from './use-shell.ts'
-import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover.tsx'
 
 type Project = { id: string; path: string; stackProfile: string; lastUpdated: string }
 type Session = {
@@ -107,7 +107,11 @@ export function Sidebar() {
       .filter(([id, wasPending]) => wasPending && !shell.chatPendingBySession[id])
       .map(([id]) => id)
     previousPending.current = shell.chatPendingBySession
-    if (finished.length) setCompleted((current) => ({ ...current, ...Object.fromEntries(finished.map((id) => [id, true])) }))
+    if (finished.length)
+      setCompleted((current) => ({
+        ...current,
+        ...Object.fromEntries(finished.map((id) => [id, true])),
+      }))
   }, [shell.sessionsVersion, shell.chatPendingBySession, projects, loadProjectSessions])
 
   const openMenu = (projectId: string | null) => {
@@ -232,7 +236,9 @@ export function Sidebar() {
                     aria-label={projectName}
                     role="button"
                     tabIndex={0}
-                    onClick={() => setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))}
+                    onClick={() =>
+                      setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))
+                    }
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()
@@ -242,20 +248,71 @@ export function Sidebar() {
                   >
                     <span className="sidebar-project-main">
                       <Icon name="folderClosed" className="sidebar-project-folder" />
-                      <span className="sidebar-project-name" title={projectName}>{projectName}</span>
+                      <span className="sidebar-project-name" title={projectName}>
+                        {projectName}
+                      </span>
                     </span>
                     <span className="sidebar-project-actions">
-                      <span className="sidebar-project-count">{sessions[project.id] ? projectSessions.length : ''}</span>
-                      <button type="button" data-project-action="toggle" aria-label={isExpanded ? 'Collapse agents' : 'Expand agents'} onClick={(event) => { event.stopPropagation(); setExpanded((value) => ({ ...value, [project.id]: !isExpanded })) }}><Icon name={isExpanded ? 'chevronDown' : 'chevronRight'} /></button>
-                      <Popover open={menuOpen && menuProjectId === project.id} onOpenChange={(open) => { setMenuOpen(open); if (!open) setMenuProjectId(null) }}>
+                      <span className="sidebar-project-count">
+                        {sessions[project.id] ? projectSessions.length : ''}
+                      </span>
+                      <button
+                        type="button"
+                        data-project-action="toggle"
+                        aria-label={isExpanded ? 'Collapse agents' : 'Expand agents'}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))
+                        }}
+                      >
+                        <Icon name={isExpanded ? 'chevronDown' : 'chevronRight'} />
+                      </button>
+                      <Popover
+                        open={menuOpen && menuProjectId === project.id}
+                        onOpenChange={(open) => {
+                          setMenuOpen(open)
+                          if (!open) setMenuProjectId(null)
+                        }}
+                      >
                         <PopoverTrigger asChild>
-                          <button type="button" data-project-action="menu" aria-label="Project actions" onClick={(event) => { event.stopPropagation(); openMenu(project.id) }}><Icon name="ellipsis" /></button>
+                          <button
+                            type="button"
+                            data-project-action="menu"
+                            aria-label="Project actions"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              openMenu(project.id)
+                            }}
+                          >
+                            <Icon name="ellipsis" />
+                          </button>
                         </PopoverTrigger>
                         <PopoverContent className="sidebar-project-menu" align="end">
-                          <button type="button" data-project-menu-item="settings" onClick={() => { setMenuOpen(false); api?.openProjectSettings(project.id) }}><Icon name="settings" />Project settings</button>
+                          <button
+                            type="button"
+                            data-project-menu-item="settings"
+                            onClick={() => {
+                              setMenuOpen(false)
+                              api?.openProjectSettings(project.id)
+                            }}
+                          >
+                            <Icon name="settings" />
+                            Project settings
+                          </button>
                         </PopoverContent>
                       </Popover>
-                      <button type="button" data-project-action="add" aria-label={t('nav.agent.new')} onClick={(event) => { event.stopPropagation(); setExpanded((value) => ({ ...value, [project.id]: true })); openCliMenu(project.id) }}><Icon name="plus" /></button>
+                      <button
+                        type="button"
+                        data-project-action="add"
+                        aria-label={t('nav.agent.new')}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setExpanded((value) => ({ ...value, [project.id]: true }))
+                          openCliMenu(project.id)
+                        }}
+                      >
+                        <Icon name="plus" />
+                      </button>
                     </span>
                   </div>
                   {isExpanded &&
@@ -265,7 +322,10 @@ export function Sidebar() {
                         className={`sidebar-agent-row${shell.screen === 'chat' && shell.chatSessionId === session.id ? ' active' : ''}`}
                         role="button"
                         tabIndex={0}
-                        onClick={() => { setCompleted((value) => ({ ...value, [session.id]: false })); api?.openChatSession(session.id, project.id) }}
+                        onClick={() => {
+                          setCompleted((value) => ({ ...value, [session.id]: false }))
+                          api?.openChatSession(session.id, project.id)
+                        }}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
@@ -274,7 +334,13 @@ export function Sidebar() {
                         }}
                       >
                         <span className="sidebar-agent-icon" data-agent={session.agent}>
-                          {shell.chatPendingBySession[session.id] ? <Icon name="loader" className="sidebar-agent-loader" /> : completed[session.id] ? <Icon name="check" className="sidebar-agent-check" /> : <RawIcon svg={api?.agentIcon(session.agent) ?? ''} />}
+                          {shell.chatPendingBySession[session.id] ? (
+                            <Icon name="loader" className="sidebar-agent-loader" />
+                          ) : completed[session.id] ? (
+                            <Icon name="check" className="sidebar-agent-check" />
+                          ) : (
+                            <RawIcon svg={api?.agentIcon(session.agent) ?? ''} />
+                          )}
                         </span>
                         <span className="sidebar-agent-title">
                           {session.title || 'Untitled chat'}

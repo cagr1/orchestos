@@ -2533,6 +2533,14 @@ ni eso hace falta.
   endurece en `runOneCheck` para ambos (argumentos con forma de ruta confinados al proyecto; los checks internos, `trusted`).
   Gate: cada comportamiento hecho en vivo contra la API, igual que en la plantilla.
 
+- [x] **CI.3 — ⚡ CI rojo por lint: arreglado y exigido en pre-push.** (abierto y cerrado 2026-09-22)
+  Ejecutado por: luna (pre-push) + biome --write mecánico · Spec: docs/specs/CI.LINT.md (borrado al cerrar)
+  CI rojo desde `d388392` (2026-09-15) solo en `bun run lint`: formato de la app copiada de la plantilla e
+  imports sin `node:`. `biome check --write`; `noArrayIndexKey`/`noThenProperty`/`useExhaustiveDependencies`
+  a warn en `src/dashboard/app` y `public-src` (código literal de la plantilla); `scripts/pre-push.sh` corre lint.
+  Gate en vivo: Playwright contra el dashboard real, `docs/done/evidence/CI.3-live.json` — Chat, Dev con consola,
+  inspector y Settings renderizan, 0 errores. `test:coverage` 1465 pass / 0 fail.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,

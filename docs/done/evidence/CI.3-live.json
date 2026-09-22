@@ -1,0 +1,11 @@
+{
+  "item": "CI.3",
+  "date": "2026-09-22",
+  "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330",
+  "change": "biome --write: solo formato/imports en la app",
+  "chat_loaded": true,
+  "dev_console_rendered": true,
+  "inspector_tabs": true,
+  "settings_rendered": true,
+  "page_errors": []
+}

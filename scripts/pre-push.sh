@@ -31,4 +31,18 @@ if ! bun run test:coverage >"$log_file" 2>&1; then
 fi
 
 tail -n 6 "$log_file"
+
+# 2026-09-22: CI estuvo rojo por lint entre el 15 y el 22 de septiembre, pero pre-push no lo ejecutaba.
+lint_log="$log_dir/lint.log"
+if ! bun run lint >"$lint_log" 2>&1; then
+  echo ""
+  echo "❌ pre-push: bun run lint falla (mismo paso de CI). Push abortado."
+  echo "   Primeras 60 líneas de diagnósticos:"
+  sed -n '1,60p' "$lint_log"
+  echo "   Sugerencia: bunx biome check --write ."
+  echo "   Log completo: $lint_log"
+  exit 1
+fi
+
+tail -n 6 "$lint_log"
 echo "✅ pre-push: verde. CI debería coincidir. Log completo: $log_file"

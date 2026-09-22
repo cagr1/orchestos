@@ -1,52 +1,50 @@
-import React, { useState } from 'react';
 import {
-  Database,
   AlertTriangle,
-  CheckCircle2,
-  GitMerge,
-  Search,
-  Check,
-  X,
-  Plus,
-  Layers,
-  Sparkles,
   ArrowRight,
-} from 'lucide-react';
-import { MemoryItem } from '../../types/orchestos';
+  Check,
+  CheckCircle2,
+  Database,
+  GitMerge,
+  Layers,
+  Plus,
+  Search,
+  Sparkles,
+  X,
+} from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
+import type { MemoryItem } from '../../types/orchestos'
 
 interface MemoryViewProps {
-  memories: MemoryItem[];
-  onResolveConflict: (id: string, resolvedContent: string) => void;
+  memories: MemoryItem[]
+  onResolveConflict: (id: string, resolvedContent: string) => void
 }
 
-export const MemoryView: React.FC<MemoryViewProps> = ({
-  memories,
-  onResolveConflict,
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [resolvingItem, setResolvingItem] = useState<MemoryItem | null>(null);
-  const [resolvedText, setResolvedText] = useState('');
+export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConflict }) => {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [resolvingItem, setResolvingItem] = useState<MemoryItem | null>(null)
+  const [resolvedText, setResolvedText] = useState('')
 
-  const conflicts = memories.filter((m) => m.hasConflict);
+  const conflicts = memories.filter((m) => m.hasConflict)
 
   const filteredMemories = memories.filter(
     (m) =>
       m.topicKey.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.scope.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      m.scope.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
   const startResolution = (item: MemoryItem) => {
-    setResolvingItem(item);
-    setResolvedText(item.content);
-  };
+    setResolvingItem(item)
+    setResolvedText(item.content)
+  }
 
   const handleResolveSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resolvingItem || !resolvedText) return;
-    onResolveConflict(resolvingItem.id, resolvedText.trim());
-    setResolvingItem(null);
-  };
+    e.preventDefault()
+    if (!resolvingItem || !resolvedText) return
+    onResolveConflict(resolvingItem.id, resolvedText.trim())
+    setResolvingItem(null)
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950 select-none">
@@ -139,22 +137,16 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-cyan-400">
-                      {mem.topicKey}
-                    </span>
+                    <span className="font-mono font-bold text-cyan-400">{mem.topicKey}</span>
                     <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
                       {mem.scope}
                     </span>
                   </div>
 
-                  <span className="text-[10px] text-zinc-500 font-mono">
-                    ID: {mem.id}
-                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono">ID: {mem.id}</span>
                 </div>
 
-                <p className="text-zinc-200 leading-relaxed font-normal">
-                  {mem.content}
-                </p>
+                <p className="text-zinc-200 leading-relaxed font-normal">{mem.content}</p>
 
                 {mem.hasConflict && mem.conflictDetails && (
                   <div className="p-3 rounded-lg bg-zinc-950 border border-amber-800/40 space-y-1 text-[11px]">
@@ -200,7 +192,9 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                   <p className="text-zinc-300 text-[11px]">{resolvingItem.content}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-zinc-950 border border-amber-800/60 space-y-1">
-                  <div className="font-semibold text-amber-400 text-[11px]">Divergent Observation:</div>
+                  <div className="font-semibold text-amber-400 text-[11px]">
+                    Divergent Observation:
+                  </div>
                   <p className="text-zinc-300 text-[11px]">
                     {resolvingItem.conflictDetails?.conflictingContent}
                   </p>
@@ -240,5 +234,5 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}

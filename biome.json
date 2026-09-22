@@ -54,6 +54,20 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/dashboard/app/src/**", "src/dashboard/public-src/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": "warn",
+            "noThenProperty": "warn"
+          },
+          "correctness": {
+            "useExhaustiveDependencies": "warn"
+          }
+        }
+      }
     }
   ],
   "javascript": {

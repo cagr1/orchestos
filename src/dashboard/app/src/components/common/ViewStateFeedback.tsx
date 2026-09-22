@@ -1,13 +1,13 @@
-import React from 'react';
-import { AlertCircle, RefreshCw, Plus, LucideIcon } from 'lucide-react';
+import { AlertCircle, type LucideIcon, Plus, RefreshCw } from 'lucide-react'
+import type React from 'react'
 
 interface EmptyStateProps {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  className?: string;
+  icon: LucideIcon
+  title: string
+  description: string
+  actionLabel?: string
+  onAction?: () => void
+  className?: string
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -37,12 +37,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         </button>
       )}
     </div>
-  );
-};
+  )
+}
 
 interface SkeletonViewProps {
-  rows?: number;
-  type?: 'table' | 'cards' | 'list';
+  rows?: number
+  type?: 'table' | 'cards' | 'list'
 }
 
 export const SkeletonView: React.FC<SkeletonViewProps> = ({ rows = 4, type = 'list' }) => {
@@ -50,10 +50,7 @@ export const SkeletonView: React.FC<SkeletonViewProps> = ({ rows = 4, type = 'li
     <div className="p-4 space-y-3 animate-pulse">
       <div className="h-5 w-48 bg-app-elevated rounded-control mb-4" />
       {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className="p-3 rounded-card bg-app-surface border border-app space-y-2"
-        >
+        <div key={i} className="p-3 rounded-card bg-app-surface border border-app space-y-2">
           <div className="flex items-center justify-between">
             <div className="h-3.5 w-1/3 bg-app-elevated rounded-control" />
             <div className="h-3 w-16 bg-app-elevated rounded-pill" />
@@ -62,12 +59,12 @@ export const SkeletonView: React.FC<SkeletonViewProps> = ({ rows = 4, type = 'li
         </div>
       ))}
     </div>
-  );
-};
+  )
+}
 
 interface ErrorStateProps {
-  message: string;
-  onRetry?: () => void;
+  message: string
+  onRetry?: () => void
 }
 
 export const ErrorState: React.FC<ErrorStateProps> = ({ message, onRetry }) => {
@@ -86,5 +83,5 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ message, onRetry }) => {
         </button>
       )}
     </div>
-  );
-};
+  )
+}

@@ -1,87 +1,93 @@
-import type { ChatModelOption } from './chat';
+import type { ChatModelOption } from './chat'
 
 export interface SettingsKeyInfo {
-  set: boolean;
-  masked: string;
+  set: boolean
+  masked: string
 }
 
-export type SettingsResponse = Record<string, SettingsKeyInfo>;
+export type SettingsResponse = Record<string, SettingsKeyInfo>
 
 export interface SetupItem {
-  id: string;
-  label: string;
-  ok: boolean;
-  critical: boolean;
-  kind: string;
-  hint: string;
-  actionLabel?: string;
-  action?: string;
+  id: string
+  label: string
+  ok: boolean
+  critical: boolean
+  kind: string
+  hint: string
+  actionLabel?: string
+  action?: string
 }
 
 export interface SetupResponse {
-  ready: boolean;
-  criticalMissing: boolean;
-  envFile: string;
-  cwd: string;
-  items: SetupItem[];
+  ready: boolean
+  criticalMissing: boolean
+  envFile: string
+  cwd: string
+  items: SetupItem[]
 }
 
 export interface HealthResponse {
-  system: SetupResponse;
-  blockedTasks: Array<{ id: string; description: string; retryCount: number }>;
-  pendingApproval: { unverifiedInstincts: number; draftSpecs: number };
-  costLast7d: number;
-  recentLearnings: Array<{ id: string; trigger: string; action: string; createdAt: string }>;
-  attentionCount: number;
+  system: SetupResponse
+  blockedTasks: Array<{ id: string; description: string; retryCount: number }>
+  pendingApproval: { unverifiedInstincts: number; draftSpecs: number }
+  costLast7d: number
+  recentLearnings: Array<{ id: string; trigger: string; action: string; createdAt: string }>
+  attentionCount: number
 }
 
 export interface LocalProviderResponse {
-  available: boolean;
-  models: Array<{ id: string; size: string }>;
+  available: boolean
+  models: Array<{ id: string; size: string }>
 }
 
 export interface ExecutorMode {
-  id: string;
-  detected: boolean;
-  path: string | null;
+  id: string
+  detected: boolean
+  path: string | null
 }
 
 export interface ExecutorModesResponse {
-  modes: ExecutorMode[];
-  selected: string | null;
+  modes: ExecutorMode[]
+  selected: string | null
 }
 
 export interface UsageRow {
-  date: string;
-  model: string;
-  usd: number;
-  runs: number;
-  inputTokens: number;
-  outputTokens: number;
+  date: string
+  model: string
+  usd: number
+  runs: number
+  inputTokens: number
+  outputTokens: number
 }
 
 export interface UsageResponse {
-  byDayModel: UsageRow[];
-  totalUsd: number;
-  totalRuns: number;
+  byDayModel: UsageRow[]
+  totalUsd: number
+  totalRuns: number
 }
 
 export interface ConfigResponse {
-  source: string | null;
-  configFound: boolean;
-  roles: { planner: string; executor_heavy: string; executor_light: string; default: string; qa: string | null };
-  pendingRouting: Array<{ id: string; model: string; executor: string }>;
-  apiMode: 'single-shot' | 'agentic';
-  agent: string | null;
-  agenticMaxIterations: number;
-  externalTimeoutMinutes: number;
-  claudeCliDetected: boolean;
+  source: string | null
+  configFound: boolean
+  roles: {
+    planner: string
+    executor_heavy: string
+    executor_light: string
+    default: string
+    qa: string | null
+  }
+  pendingRouting: Array<{ id: string; model: string; executor: string }>
+  apiMode: 'single-shot' | 'agentic'
+  agent: string | null
+  agenticMaxIterations: number
+  externalTimeoutMinutes: number
+  claudeCliDetected: boolean
 }
 
-const CONFIG_ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa'] as const;
+const CONFIG_ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa'] as const
 
 export function stripOpenrouterPrefix(value: string): string {
-  return value.replace(/^openrouter\//, '');
+  return value.replace(/^openrouter\//, '')
 }
 
 export function mapConfigResponse(response: ConfigResponse): ConfigResponse {
@@ -90,26 +96,28 @@ export function mapConfigResponse(response: ConfigResponse): ConfigResponse {
     roles: {
       ...response.roles,
       ...Object.fromEntries(
-        CONFIG_ROLE_KEYS
-          .filter((key) => response.roles[key] !== null)
-          .map((key) => [key, response.roles[key] === null ? null : stripOpenrouterPrefix(response.roles[key])]),
+        CONFIG_ROLE_KEYS.filter((key) => response.roles[key] !== null).map((key) => [
+          key,
+          response.roles[key] === null ? null : stripOpenrouterPrefix(response.roles[key]),
+        ]),
       ),
     },
-  } as ConfigResponse;
+  } as ConfigResponse
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init);
-  const body = await response.json().catch(() => null) as { error?: string } | T | null;
+  const response = await fetch(path, init)
+  const body = (await response.json().catch(() => null)) as { error?: string } | T | null
   if (!response.ok) {
-    const message = body && typeof body === 'object' && body && 'error' in body ? body.error : undefined;
-    throw new Error(message || `Request failed (${response.status})`);
+    const message =
+      body && typeof body === 'object' && body && 'error' in body ? body.error : undefined
+    throw new Error(message || `Request failed (${response.status})`)
   }
-  return body as T;
+  return body as T
 }
 
 function jsonInit(method: string, body: unknown): RequestInit {
-  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
 }
 
 export function mapSettingsKeys(response: SettingsResponse) {
@@ -118,47 +126,67 @@ export function mapSettingsKeys(response: SettingsResponse) {
     anthropic: response.ANTHROPIC_API_KEY ?? { set: false, masked: '' },
     openai: response.OPENAI_API_KEY ?? { set: false, masked: '' },
     ollama: response._ollama ?? { set: false, masked: '' },
-  };
+  }
 }
 
 export function mapUsageByModel(response: UsageResponse) {
-  const rows = new Map<string, { model: string; runs: number; tokens: number; spend: number }>();
+  const rows = new Map<string, { model: string; runs: number; tokens: number; spend: number }>()
   for (const item of response.byDayModel) {
-    const row = rows.get(item.model) ?? { model: item.model, runs: 0, tokens: 0, spend: 0 };
-    row.runs += item.runs;
-    row.tokens += item.inputTokens + item.outputTokens;
-    row.spend += item.usd;
-    rows.set(item.model, row);
+    const row = rows.get(item.model) ?? { model: item.model, runs: 0, tokens: 0, spend: 0 }
+    row.runs += item.runs
+    row.tokens += item.inputTokens + item.outputTokens
+    row.spend += item.usd
+    rows.set(item.model, row)
   }
-  return [...rows.values()].sort((a, b) => b.spend - a.spend);
+  return [...rows.values()].sort((a, b) => b.spend - a.spend)
 }
 
-export async function getSettings(): Promise<SettingsResponse> { return request('/api/settings'); }
-export async function getSetup(): Promise<SetupResponse> { return request('/api/setup'); }
-export async function getHealth(): Promise<HealthResponse> { return request('/api/health'); }
-export async function getLocalProvider(): Promise<LocalProviderResponse> { return request('/api/providers/local'); }
-export async function getExecutorModes(): Promise<ExecutorModesResponse> { return request('/api/system/executor-modes'); }
-export async function getUsage(): Promise<UsageResponse> { return request('/api/usage'); }
-export async function getConfig(): Promise<ConfigResponse> {
-  return mapConfigResponse(await request<ConfigResponse>('/api/config'));
+export async function getSettings(): Promise<SettingsResponse> {
+  return request('/api/settings')
 }
-export async function getModels(): Promise<ChatModelOption[]> { return request('/api/chat/models'); }
+export async function getSetup(): Promise<SetupResponse> {
+  return request('/api/setup')
+}
+export async function getHealth(): Promise<HealthResponse> {
+  return request('/api/health')
+}
+export async function getLocalProvider(): Promise<LocalProviderResponse> {
+  return request('/api/providers/local')
+}
+export async function getExecutorModes(): Promise<ExecutorModesResponse> {
+  return request('/api/system/executor-modes')
+}
+export async function getUsage(): Promise<UsageResponse> {
+  return request('/api/usage')
+}
+export async function getConfig(): Promise<ConfigResponse> {
+  return mapConfigResponse(await request<ConfigResponse>('/api/config'))
+}
+export async function getModels(): Promise<ChatModelOption[]> {
+  return request('/api/chat/models')
+}
 
 export async function saveSettings(values: Record<string, string>): Promise<void> {
-  await request('/api/settings', jsonInit('POST', values));
+  await request('/api/settings', jsonInit('POST', values))
 }
 
-export async function saveApiKey(provider: 'openrouter' | 'anthropic' | 'openai', key: string): Promise<void> {
-  const result = await request<{ valid: boolean; error?: string }>('/api/setup/api-key', jsonInit('POST', { provider, key }));
-  if (!result.valid) throw new Error(result.error || 'The provider rejected the key');
+export async function saveApiKey(
+  provider: 'openrouter' | 'anthropic' | 'openai',
+  key: string,
+): Promise<void> {
+  const result = await request<{ valid: boolean; error?: string }>(
+    '/api/setup/api-key',
+    jsonInit('POST', { provider, key }),
+  )
+  if (!result.valid) throw new Error(result.error || 'The provider rejected the key')
 }
 
 export async function saveConfig(body: Record<string, unknown>): Promise<void> {
   // Roles ya vienen sin el `openrouter/` del GET (getConfig) y los del catálogo son ids tal cual
   // (`openrouter/auto` incluido): el server antepone el provider, así que se envían sin tocar.
-  await request('/api/config', jsonInit('PUT', body));
+  await request('/api/config', jsonInit('PUT', body))
 }
 
 export async function resetSystem(): Promise<void> {
-  await request('/api/system/reset', jsonInit('POST', { confirm: true }));
+  await request('/api/system/reset', jsonInit('POST', { confirm: true }))
 }

@@ -1941,9 +1941,18 @@ SCREENS.settings = {
           </div>
           <div class="settings-nav-group settings-projects-group">
             <div class="settings-nav-label">${t('settings.navGroup.projects')}</div>
-            ${st.projectsList === null ? '' : st.projectsList.length
-              ? st.projectsList.map((project) => `<button type="button" class="settings-nav-item" data-settings-project="${esc(project.id)}">${ICON.project}<span>${esc(settingsProjectName(st, project.id))}</span></button>`).join('')
-              : `<div class="settings-projects-empty muted">${esc(t('settings.projects.empty'))}</div>`}
+            ${
+              st.projectsList === null
+                ? ''
+                : st.projectsList.length
+                  ? st.projectsList
+                      .map(
+                        (project) =>
+                          `<button type="button" class="settings-nav-item" data-settings-project="${esc(project.id)}">${ICON.project}<span>${esc(settingsProjectName(st, project.id))}</span></button>`,
+                      )
+                      .join('')
+                  : `<div class="settings-projects-empty muted">${esc(t('settings.projects.empty'))}</div>`
+            }
           </div>
         </nav>
 
@@ -2441,7 +2450,9 @@ SCREENS['dev-empty'] = {
   },
   wire(root) {
     root.querySelector('[data-dev-empty-add]')?.addEventListener('click', () => {
-      document.querySelector('#addProjectBtn')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      document
+        .querySelector('#addProjectBtn')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
   },
 }

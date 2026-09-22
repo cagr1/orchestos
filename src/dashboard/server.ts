@@ -53,7 +53,11 @@ import {
   handleApiProjectIndex,
   handleApiProjectSummary,
 } from './handlers/project.ts'
-import { handleApiProjectChoose, handleApiProjectDelete, handleApiProjects } from './handlers/projects.ts'
+import {
+  handleApiProjectChoose,
+  handleApiProjectDelete,
+  handleApiProjects,
+} from './handlers/projects.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import {
   handleApiRuns,
@@ -258,7 +262,9 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiSkillsRegistryList()
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)) {
-    return withDashboardProject(req, (project) => handleApiSkillsRegistryImport(req, url, project.root))
+    return withDashboardProject(req, (project) =>
+      handleApiSkillsRegistryImport(req, url, project.root),
+    )
   }
   if (method === 'GET' && url.pathname === '/api/skills/pro') {
     return withDashboardProject(req, (project) => handleApiSkillsProList(project.root))
@@ -334,7 +340,10 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsList(req)
   }
-  if (method === 'POST' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/(archive|restore)$/)) {
+  if (
+    method === 'POST' &&
+    url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/(archive|restore)$/)
+  ) {
     return handleApiChatSessionArchive(url, url.pathname.endsWith('/restore'))
   }
   if (method === 'POST' && url.pathname === '/api/chat/sessions') {

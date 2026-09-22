@@ -12,12 +12,7 @@
     }
   },
   "after": {
-    "tokens": [
-      "--radius",
-      "--radius-lg",
-      "--radius-pill",
-      "--radius-circle"
-    ],
+    "tokens": ["--radius", "--radius-lg", "--radius-pill", "--radius-circle"],
     "rawBorderRadiusDebt": 0
   },
   "liveGate": {

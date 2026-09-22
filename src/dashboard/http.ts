@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, realpathSync } from 'fs'
-import { fileURLToPath } from 'url'
 import { extname, join, sep } from 'path'
+import { fileURLToPath } from 'url'
 import { redactSensitive } from '../security/secrets.ts'
 import { STATIC_DIR } from './types.ts'
 
@@ -57,7 +57,8 @@ function serveFrom(root: string, rel: string): Response {
 
 function serveStatic(url: string): Response {
   if (url === '/legacy' || url.startsWith('/legacy/')) {
-    const rel = url === '/legacy' || url === '/legacy/' ? 'index.html' : url.slice('/legacy/'.length)
+    const rel =
+      url === '/legacy' || url === '/legacy/' ? 'index.html' : url.slice('/legacy/'.length)
     const response = serveFrom(STATIC_DIR, rel)
     if (url !== '/legacy' || rel !== 'index.html' || !response.ok) return response
     const html = readFileSync(join(STATIC_DIR, 'index.html'), 'utf8').replace(

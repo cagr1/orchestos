@@ -226,7 +226,9 @@ export async function runOneCheck(check: Check, projectRoot: string): Promise<Ch
 }
 
 function looksLikePath(value: string): boolean {
-  return value.startsWith('/') || value.startsWith('~') || value.startsWith('.') || value.includes('/')
+  return (
+    value.startsWith('/') || value.startsWith('~') || value.startsWith('.') || value.includes('/')
+  )
 }
 
 function pathValuesInArgument(arg: string): string[] {

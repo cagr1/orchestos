@@ -37,9 +37,13 @@ const ok = await build()
 if (!watch) process.exit(ok ? 0 : 1)
 
 console.log('… watch activo sobre src/dashboard/app/src/')
-const watcher = (await import('node:fs')).watch(join(ROOT, 'src/dashboard/app/src'), { recursive: true }, () => {
-  void build()
-})
+const watcher = (await import('node:fs')).watch(
+  join(ROOT, 'src/dashboard/app/src'),
+  { recursive: true },
+  () => {
+    void build()
+  },
+)
 process.on('SIGINT', () => {
   watcher.close()
   process.exit(0)
