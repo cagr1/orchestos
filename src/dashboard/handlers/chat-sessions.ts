@@ -5,10 +5,12 @@ import {
   type ChatSessionMode,
   type ChatSessionRecord,
   createChatSession,
+  archiveChatSession,
   deleteChatSession,
   getChatSession,
   listChatMessages,
   listChatSessions,
+  restoreChatSession,
   updateChatSession,
 } from '../../db/chat-sessions.ts'
 import {
@@ -39,6 +41,7 @@ function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
     title: row.title,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    archivedAt: row.archived_at,
     hasPersistentWork: sessionHasPersistentWork(row.id),
     lastPersistentTaskId: getLastPersistentTaskId(row.id),
   }
@@ -60,7 +63,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
 }
 
 function sessionIdFromUrl(url: URL): string | null {
-  const match = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/turn-status)?$/)
+  const match = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/turn-status|\/archive|\/restore)?$/)
   if (!match?.[1]) return null
   try {
     const id = decodeURIComponent(match[1]).trim()
@@ -80,8 +83,13 @@ function validTitle(value: unknown): value is string {
 // proyecto (sesión general), lista las sesiones con project_id null — nunca
 // TODAS, mezclar chats de proyectos distintos no tiene sentido con >1 proyecto.
 export function handleApiChatSessionsList(req: Request): Response {
-  if (new URL(req.url).searchParams.get('project') === 'none') {
-    return jsonResponse(listChatSessions(null).map(toSessionRow))
+  const params = new URL(req.url).searchParams
+  const archive = params.get('archived') === '1' ? 'archived' : 'active'
+  if (archive === 'archived' && !params.has('project')) {
+    return jsonResponse(listChatSessions(undefined, 'archived').map(toSessionRow))
+  }
+  if (params.get('project') === 'none') {
+    return jsonResponse(listChatSessions(null, archive).map(toSessionRow))
   }
   let projectId: string | null
   try {
@@ -89,7 +97,7 @@ export function handleApiChatSessionsList(req: Request): Response {
   } catch {
     projectId = null
   }
-  return jsonResponse(listChatSessions(projectId).map(toSessionRow))
+  return jsonResponse(listChatSessions(projectId, archive).map(toSessionRow))
 }
 
 export async function handleApiChatSessionsCreate(
@@ -266,4 +274,11 @@ export function handleApiChatSessionDelete(url: URL): Response {
   return deleteChatSession(id)
     ? jsonResponse({ ok: true })
     : errorResponse('Chat session not found', 404)
+}
+
+export function handleApiChatSessionArchive(url: URL, restore = false): Response {
+  const id = sessionIdFromUrl(url)
+  if (!id) return errorResponse('Invalid session id', 400)
+  const updated = restore ? restoreChatSession(id) : archiveChatSession(id)
+  return updated ? jsonResponse(toSessionRow(updated)) : errorResponse('Chat session not found', 404)
 }

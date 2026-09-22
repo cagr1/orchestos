@@ -11,11 +11,14 @@ import {
   Ellipsis,
   Loader2,
   Check,
+  X,
   Trash2,
 } from 'lucide-react';
 import { AppMode, ChatThread, ProjectItem } from '../../types/orchestos';
 import { ProviderLogo } from '../common/ProviderLogos';
 import { NewAgentSelectorModal } from './NewAgentSelectorModal';
+import { AddProjectModal } from './AddProjectModal';
+import { DeleteProjectModal } from './DeleteProjectModal';
 
 interface ShellSidebarProps {
   mode: AppMode;
@@ -25,15 +28,16 @@ interface ShellSidebarProps {
   onSelectThread: (id: string) => void;
   onNewChat: (cliId?: string, model?: string, title?: string) => void;
   onDeleteChat?: (id: string) => void;
-  onRenameChat?: (id: string) => void;
   projects: ProjectItem[];
   activeProjectId: string;
   onSelectProject: (id: string) => void;
-  onNewProject?: () => void;
+  onNewProject?: (name: string, branch?: string) => void;
   onOpenSettings?: () => void;
   onOpenProjectSettings?: (projectId: string) => void;
+  onDeleteProject?: (projectId: string) => void;
   activeAgentId?: string | null;
   onSelectAgent?: (agentId: string, projectId: string) => void;
+  onCloseAgent?: (agentId: string, projectId: string) => void;
   onCreateAgentInProject?: (projectId: string, cliId: string, model: string, title: string) => void;
 }
 
@@ -45,15 +49,16 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   onSelectThread,
   onNewChat,
   onDeleteChat,
-  onRenameChat,
   projects,
   activeProjectId,
   onSelectProject,
   onNewProject,
   onOpenSettings,
   onOpenProjectSettings,
+  onDeleteProject,
   activeAgentId,
   onSelectAgent,
+  onCloseAgent,
   onCreateAgentInProject,
 }) => {
   const [chatSearch, setChatSearch] = useState('');
@@ -66,6 +71,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   // Modals state
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const [projectForNewAgent, setProjectForNewAgent] = useState<ProjectItem | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<ProjectItem | null>(null);
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null);
   const [isNewChatAgentModalOpen, setIsNewChatAgentModalOpen] = useState(false);
 
@@ -181,17 +187,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                     </div>
 
                     <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                      {onRenameChat && (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); onRenameChat(thread.id); }}
-                          className="text-app-muted hover:text-app p-0.5"
-                          title="Rename chat"
-                          aria-label="Rename chat"
-                        >
-                          <Ellipsis className="w-3 h-3" />
-                        </button>
-                      )}
                       {onDeleteChat && (
                         <button
                           type="button"
@@ -221,7 +216,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
             </span>
             <button
               type="button"
-              onClick={() => onNewProject?.()}
+              onClick={() => setIsAddProjectModalOpen(true)}
               className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
               title="Add or Upload Project"
               aria-label="Add or Upload Project"
@@ -336,6 +331,18 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                           <span>Project settings</span>
                         </button>
 
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuProjectId(null);
+                            setProjectToDelete(proj);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-control text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Delete project</span>
+                        </button>
+
                       </div>
                     </>
                   )}
@@ -381,7 +388,21 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                               <span className="truncate">{ag.name}</span>
                             </button>
 
-                            <span className="font-mono text-app-muted ml-1 flex-shrink-0">{ag.duration}</span>
+                            <div className="flex items-center gap-1 ml-1 flex-shrink-0">
+                              <span className="font-mono text-app-muted group-hover:hidden">{ag.duration}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onCloseAgent?.(ag.id, proj.id);
+                                }}
+                                className="hidden group-hover:flex p-0.5 text-app-muted hover:text-app rounded-control"
+                                title="Close agent (archive to History)"
+                                aria-label="Close agent"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -408,6 +429,12 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
 
       </div>
 
+      <AddProjectModal
+        isOpen={isAddProjectModalOpen}
+        onClose={() => setIsAddProjectModalOpen(false)}
+        onCreate={(name, branch) => onNewProject?.(name, branch)}
+      />
+
       {/* New Chat Agent Selector Modal */}
       {isNewChatAgentModalOpen && (
         <NewAgentSelectorModal
@@ -432,6 +459,15 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
               onCreateAgentInProject(projectForNewAgent.id, cliId, model, title);
             }
           }}
+        />
+      )}
+
+      {projectToDelete && (
+        <DeleteProjectModal
+          isOpen={!!projectToDelete}
+          projectName={projectToDelete.name}
+          onClose={() => setProjectToDelete(null)}
+          onConfirm={() => onDeleteProject?.(projectToDelete.id)}
         />
       )}
 

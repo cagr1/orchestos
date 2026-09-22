@@ -2496,6 +2496,12 @@ ni eso hace falta.
   lo que no tenga backend se quita. Gate: guardar → recargar → persiste, en vivo, 0 errores.
 
 - [ ] **UI.13.4 — 🧠 Comportamientos de la plantilla hechos reales.** (abierto 2026-09-22)
+  - [x] **UI.13.4a** (cerrado 2026-09-22) — puntos 1, 2, 3 y 6. Ejecutado por: luna · Spec borrado al cerrar.
+    Migración 12 `archived_at`; `POST /api/chat/sessions/:id/archive|restore`, `?archived=1`,
+    `DELETE /api/projects/:id` (solo filas de DB). El cerebro corrigió el tiempo relativo (medía vida de la
+    sesión, no tiempo desde la última actividad; +test). Gate en vivo: `docs/done/evidence/UI.13.4a-live.json`
+    — cerrar→History→restaurar→borrar, quitar proyecto deja la carpeta en disco, 0 errores.
+    `test:coverage` 1462 pass / 0 fail.
   Inventario (plantilla `~/Documents/screens/orchestos-ai-agent-dashboard` vs app, 2026-09-22); cada uno
   necesita backend que hoy no existe (`server.ts` no tiene ruta):
   1. Sidebar Dev: cerrar agente → pasa a History (`ShellSidebar.tsx:394` plantilla); falta archivar sesión.

@@ -447,6 +447,35 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 11 missing project FKs')
     },
   },
+  {
+    version: 12,
+    name: 'archived-chat-sessions',
+    // Some historical fixtures predate chat-session tables. The migration
+    // remains recorded there and becomes effective when the table exists.
+    precondition: () => {},
+    apply: (database) => {
+      const table = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'chat_sessions'",
+        )
+        .get()
+      if (table) {
+        database.exec('ALTER TABLE chat_sessions ADD COLUMN archived_at TEXT NULL')
+        database.exec(
+          'CREATE INDEX idx_chat_sessions_archived_project_updated ON chat_sessions(archived_at, project_id, updated_at DESC)',
+        )
+      }
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_sessions)')
+        .all()
+        .map((row) => row.name)
+      if (columns.length > 0 && !columns.includes('archived_at')) {
+        throw new Error('Migration 12 did not add chat_sessions.archived_at')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -39,3 +39,12 @@ export function getProjectById(id: string): ProjectRow | null {
 export function listProjects(): ProjectRow[] {
   return db.query<ProjectRow, []>('SELECT * FROM projects ORDER BY last_updated DESC').all()
 }
+
+export function deleteProject(id: string): boolean {
+  return db.transaction(() => {
+    // Project registration is metadata only. Related database rows are cleaned
+    // up, while the repository path is intentionally never touched.
+    db.run('DELETE FROM context_chunks WHERE project_id = ?', [id])
+    return db.run('DELETE FROM projects WHERE id = ?', [id]).changes > 0
+  })()
+}

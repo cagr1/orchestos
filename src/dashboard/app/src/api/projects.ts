@@ -36,8 +36,9 @@ function basename(path: string): string {
   return clean.split(/[\\/]/).pop() || path;
 }
 
-function durationSince(createdAt: string, updatedAt: string): string {
-  const minutes = Math.max(0, Math.round((Date.parse(updatedAt) - Date.parse(createdAt)) / 60000));
+// Tiempo desde la última actividad (formato de la plantilla: 17m, 1h, 2d).
+export function timeSince(updatedAt: string, now: number = Date.now()): string {
+  const minutes = Math.max(0, Math.round((now - Date.parse(updatedAt)) / 60000));
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
   return hours < 48 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
@@ -58,7 +59,7 @@ export function mapSessionToAgent(session: SessionRow, status: TurnStatus = { ki
     id: session.id,
     name: session.title,
     model: session.agent,
-    duration: durationSince(session.createdAt, session.updatedAt),
+    duration: timeSince(session.updatedAt),
     status: status.kind === 'pending' ? 'active' : status.kind === 'failed' || status.kind === 'interrupted' ? 'idle' : 'completed',
     shellCommandsCount: 0,
     filesCount: 0,
@@ -87,4 +88,10 @@ export async function chooseProject(): Promise<ProjectItem | null> {
   const body = await response.json() as ProjectRow & { cancelled?: boolean; error?: string };
   if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`);
   return body.cancelled ? null : mapProjectRow(body);
+}
+
+export async function deleteProject(projectId: string): Promise<void> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' });
+  const body = await response.json().catch(() => null) as { error?: string } | null;
+  if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`);
 }

@@ -1,0 +1,14 @@
+{
+  "item": "UI.13.4a",
+  "date": "2026-09-22",
+  "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330; DB respaldada en /tmp/db-pre-ui134a-gate.sqlite",
+  "migration": "12 archived-chat-sessions aplicada sobre ~/.orchestos/db.sqlite (columna archived_at + índice)",
+  "close_agent": "Close agent en hover → sale del sidebar → GET ?archived=1 la devuelve → aparece en History",
+  "history": "agrupada por proyecto con contador, Workspace|Project|All, búsqueda, detalle, menú Restore / Delete entry",
+  "restore": "Restore → vuelve al sidebar y a la lista activa de la API",
+  "delete_entry": "Delete entry → la sesión desaparece de la API",
+  "remove_project": "proyecto de prueba (/tmp/gate-proj-ui134a) → Delete Project → fuera de /api/projects y del sidebar; KEEP.txt sigue en disco",
+  "relative_time": "sidebar muestra tiempo desde updatedAt (1m, 3d, 5d); antes 0m fijo (corregido por el cerebro + test)",
+  "db_after": "10 sesiones y 2 proyectos, igual que antes del gate; 0 archivadas",
+  "page_errors": []
+}

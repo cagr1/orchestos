@@ -1,5 +1,6 @@
 import { realpathSync, statSync } from 'node:fs'
-import { listProjects } from '../../db/projects.ts'
+import { deleteProject, getProjectById, listProjects } from '../../db/projects.ts'
+import { deleteChatSessionsForProject } from '../../db/chat-sessions.ts'
 import { ensureProject } from '../../projects/ensure.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type { ProjectRow } from '../types.ts'
@@ -12,6 +13,16 @@ export function handleApiProjects(): Response {
     lastUpdated: project.last_updated,
   }))
   return jsonResponse(rows)
+}
+
+export function handleApiProjectDelete(url: URL): Response {
+  const id = decodeURIComponent(url.pathname.slice('/api/projects/'.length))
+  if (!id || id.length > 128) return errorResponse('Invalid project id', 400)
+  if (!getProjectById(id)) return errorResponse('Project not found', 404)
+  deleteChatSessionsForProject(id)
+  return deleteProject(id)
+    ? jsonResponse({ ok: true })
+    : errorResponse('Project not found', 404)
 }
 
 type ChooseProjectFolder = () => Promise<string | null>

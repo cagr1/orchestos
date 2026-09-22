@@ -9,7 +9,7 @@ import {
   SettingsSection,
   ProjectSubTab,
 } from './components/settings/OrchestSettingsView';
-import { OrcaRightInspector } from './components/dev/OrcaRightInspector';
+import { HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector';
 import {
   initialMockTasks,
   initialMockSpecs,
@@ -23,11 +23,14 @@ import {
   getSessionMessages,
   listSessions,
   mapMessage,
+  listArchivedSessions,
+  archiveSession,
+  restoreSession,
   renameSession,
   sendMessage,
 } from './api/chat';
 import { SessionStatusBar } from './components/layout/SessionStatusBar';
-import { listProjects, chooseProject } from './api/projects';
+import { deleteProject, listProjects, chooseProject } from './api/projects';
 import { listRuns } from './api/runs';
 import {
   TaskItem,
@@ -58,6 +61,7 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>('');
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
+  const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
 
   // Settings deep-link state
   const [settingsSection, setSettingsSection] = useState<SettingsSection>('project_orchestos');
@@ -125,6 +129,35 @@ export default function App() {
   const activeThread = threads.find((t) => t.id === activeThreadId);
   const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null;
 
+  const reloadHistory = async () => {
+    const archived = await listArchivedSessions();
+    const projectNames = new Map(projects.map((project) => [project.id, project.name]));
+    const loaded = await Promise.all(archived.map(async (session) => {
+      const messages = await getSessionMessages(session.id).catch(() => []);
+      const last = messages[messages.length - 1];
+      const elapsed = Math.max(0, Date.now() - Date.parse(session.updatedAt));
+      const minutes = Math.floor(elapsed / 60000);
+      const timeAgo = minutes < 60 ? `${minutes}m` : minutes < 2880 ? `${Math.floor(minutes / 60)}h` : `${Math.floor(minutes / 1440)}d`;
+      return {
+        id: session.id,
+        projectId: session.projectId || 'workspace',
+        projectName: session.projectId ? projectNames.get(session.projectId) || 'Unknown project' : 'Workspace',
+        title: session.title,
+        lastMessage: last?.content?.split(/\r?\n/).filter(Boolean).pop() || 'No messages',
+        cliId: session.agent,
+        model: last?.model || session.agent,
+        messageCount: messages.length,
+        timeAgo,
+        logs: messages.map((message) => `${message.role}: ${message.content}`).slice(-8),
+      } satisfies HistorySession;
+    }));
+    setHistorySessions(loaded);
+  };
+
+  useEffect(() => {
+    if (projects.length) void reloadHistory().catch(() => setHistorySessions([]));
+  }, [projects]);
+
   useEffect(() => {
     if (!currentProject) { setRuns([]); return; }
     let disposed = false;
@@ -177,6 +210,49 @@ export default function App() {
       setActiveProjectId(project.id);
     } catch {
       // Native selector errors stay local to the selector; no fake project is added.
+    }
+  };
+
+  const handleCloseAgent = async (agentId: string) => {
+    try {
+      await archiveSession(agentId);
+      if (activeAgentId === agentId) setActiveAgentId(null);
+      setProjects(await listProjects());
+      await reloadHistory();
+    } catch {
+      // Keep the agent visible when the archive request fails.
+    }
+  };
+
+  const handleRestoreAgent = async (session: HistorySession) => {
+    try {
+      await restoreSession(session.id);
+      setProjects(await listProjects());
+      await reloadHistory();
+    } catch {
+      // Keep the history entry visible when the restore request fails.
+    }
+  };
+
+  const handleDeleteHistorySession = async (sessionId: string) => {
+    try {
+      await deleteSession(sessionId);
+      await reloadHistory();
+    } catch {
+      // Keep the history entry visible when the delete request fails.
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      await deleteProject(projectId);
+      const loaded = await listProjects();
+      setProjects(loaded);
+      setActiveProjectId((current) => current === projectId ? (loaded[0]?.id || '') : current);
+      setActiveAgentId(null);
+      await reloadHistory();
+    } catch {
+      // Keep the project visible when the delete request fails.
     }
   };
 
@@ -427,7 +503,6 @@ export default function App() {
             onSelectThread={setActiveThreadId}
             onNewChat={handleNewChat}
             onDeleteChat={handleDeleteChat}
-            onRenameChat={handleRenameChat}
             projects={projects}
             activeProjectId={activeProjectId}
             onSelectProject={setActiveProjectId}
@@ -436,6 +511,8 @@ export default function App() {
             onOpenProjectSettings={handleOpenProjectSettings}
             activeAgentId={activeAgentId}
             onSelectAgent={handleSelectAgent}
+            onCloseAgent={handleCloseAgent}
+            onDeleteProject={handleDeleteProject}
             onCreateAgentInProject={handleCreateAgentInProject}
           />
         )}
@@ -497,7 +574,11 @@ export default function App() {
         {mode === 'dev' && isRightInspectorOpen && currentProject && (
           <OrcaRightInspector
             currentProject={currentProject}
+            projects={projects}
             recentRuns={runs}
+            historySessions={historySessions}
+            onRestoreAgentToSidebar={handleRestoreAgent}
+            onDeleteHistorySession={handleDeleteHistorySession}
           />
         )}
       </div>

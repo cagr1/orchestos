@@ -8,6 +8,7 @@ export interface ChatSessionRow {
   title: string;
   createdAt: string;
   updatedAt: string;
+  archivedAt?: string | null;
   readBoundaryWarning?: string;
 }
 
@@ -111,6 +112,19 @@ export async function listSessions(project: string | null = 'none'): Promise<Cha
   const query = project === null ? '' : `?project=${encodeURIComponent(project)}`;
   const sessions = await request<ChatSessionRow[]>(`/api/chat/sessions${query}`);
   return sessions.map((session) => mapSessionToThread(session));
+}
+
+export async function listArchivedSessions(project?: string): Promise<ChatSessionRow[]> {
+  const query = project ? `&project=${encodeURIComponent(project)}` : '';
+  return request<ChatSessionRow[]>(`/api/chat/sessions?archived=1${query}`);
+}
+
+export async function archiveSession(sessionId: string): Promise<void> {
+  await request(`/api/chat/sessions/${encodeURIComponent(sessionId)}/archive`, { method: 'POST' });
+}
+
+export async function restoreSession(sessionId: string): Promise<void> {
+  await request(`/api/chat/sessions/${encodeURIComponent(sessionId)}/restore`, { method: 'POST' });
 }
 
 export async function getSessionMessages(sessionId: string): Promise<ChatMessageRow[]> {

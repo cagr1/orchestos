@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mapProjectRow, mapSessionToAgent } from './projects';
+import { mapProjectRow, mapSessionToAgent, timeSince } from './projects';
 import { mapRunRow } from './runs';
 
 describe('projects API mappings', () => {
@@ -24,5 +24,14 @@ describe('projects API mappings', () => {
     });
     expect(run.fileDiffs).toHaveLength(1);
     expect(run.costUsd).toBe(0);
+  });
+});
+
+describe('timeSince', () => {
+  test('measures time since last activity, not session lifetime', () => {
+    const now = Date.parse('2026-09-22T12:00:00Z');
+    expect(timeSince('2026-09-22T11:43:00Z', now)).toBe('17m');
+    expect(timeSince('2026-09-22T10:30:00Z', now)).toBe('1h');
+    expect(timeSince('2026-09-18T21:12:15Z', now)).toBe('3d');
   });
 });

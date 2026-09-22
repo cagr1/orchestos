@@ -8,6 +8,7 @@ import {
   handleApiChatUpload,
 } from './handlers/chat.ts'
 import {
+  handleApiChatSessionArchive,
   handleApiChatSessionDelete,
   handleApiChatSessionMessages,
   handleApiChatSessionPatch,
@@ -50,7 +51,7 @@ import {
   handleApiProjectIndex,
   handleApiProjectSummary,
 } from './handlers/project.ts'
-import { handleApiProjectChoose, handleApiProjects } from './handlers/projects.ts'
+import { handleApiProjectChoose, handleApiProjectDelete, handleApiProjects } from './handlers/projects.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import {
   handleApiRuns,
@@ -291,6 +292,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/projects') {
     return handleApiProjects()
   }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/projects\/[^/]+$/)) {
+    return handleApiProjectDelete(url)
+  }
   if (method === 'POST' && url.pathname === '/api/projects/choose') {
     return handleApiProjectChoose()
   }
@@ -327,6 +331,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsList(req)
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/(archive|restore)$/)) {
+    return handleApiChatSessionArchive(url, url.pathname.endsWith('/restore'))
   }
   if (method === 'POST' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsCreate(req)

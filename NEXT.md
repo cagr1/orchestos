@@ -14,7 +14,7 @@ UI.12.2a, UI.13.1, UI.13.1b, UI.13.2a (Chat), UI.13.2b (proyectos/Dev/Files, cer
 
 ## Siguiente (serial, una ronda cada uno)
 1. UI.13.2c Settings — cerrado 2026-09-22. Pendiente menor: idioma solo traduce Settings.
-2. UI.13.4a — spec lista `docs/specs/UI.13.4a.md` (archivar→History, quitar proyecto, tiempos).
+2. UI.13.4a — cerrado 2026-09-22.
 3. UI.13.4b consola Dev (logs reales + shell con frontera del runner) y UI.13.4c razonamiento/
    herramientas/tarea retenida en el chat — specs por escribir. Decisiones de Carlos en PLAN.md § UI.13.4.
 4. Tasks/Runs/Graph → Memory/Specs/Skills/Instincts/Plan → UI.13.3 borrar vanilla.

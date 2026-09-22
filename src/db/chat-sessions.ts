@@ -12,6 +12,7 @@ export interface ChatSessionRecord {
   title: string
   created_at: string
   updated_at: string
+  archived_at: string | null
 }
 
 interface StoredChatMessage {
@@ -84,6 +85,7 @@ export function createChatSession(input: CreateChatSessionInput): ChatSessionRec
     title: input.title?.trim() || 'New conversation',
     created_at: now,
     updated_at: now,
+    archived_at: null,
   }
   db.run(
     `INSERT INTO chat_sessions (id, project_id, agent, mode, title, created_at, updated_at)
@@ -101,26 +103,45 @@ export function createChatSession(input: CreateChatSessionInput): ChatSessionRec
  * (screens-core.js) SIEMPRE filtra: mezclar chats de proyectos distintos en
  * una sola lista no tiene sentido una vez que hay más de un proyecto.
  */
-export function listChatSessions(projectId?: string | null): ChatSessionRecord[] {
+export type ChatSessionArchiveFilter = 'active' | 'archived' | 'all'
+
+export function listChatSessions(
+  projectId?: string | null,
+  archiveFilter: ChatSessionArchiveFilter = 'active',
+): ChatSessionRecord[] {
+  const archiveClause = archiveFilter === 'all' ? '' : archiveFilter === 'archived' ? 'archived_at IS NOT NULL' : 'archived_at IS NULL'
+  const archiveSql = archiveClause ? ` AND ${archiveClause}` : ''
   if (projectId === undefined) {
     return db
       .query<ChatSessionRecord, []>(
-        'SELECT * FROM chat_sessions ORDER BY updated_at DESC, created_at DESC',
+        `SELECT * FROM chat_sessions WHERE 1 = 1${archiveSql} ORDER BY updated_at DESC, created_at DESC`,
       )
       .all()
   }
   if (projectId === null) {
     return db
       .query<ChatSessionRecord, []>(
-        'SELECT * FROM chat_sessions WHERE project_id IS NULL ORDER BY updated_at DESC, created_at DESC',
+        `SELECT * FROM chat_sessions WHERE project_id IS NULL${archiveSql} ORDER BY updated_at DESC, created_at DESC`,
       )
       .all()
   }
   return db
     .query<ChatSessionRecord, string>(
-      'SELECT * FROM chat_sessions WHERE project_id = ? ORDER BY updated_at DESC, created_at DESC',
+      `SELECT * FROM chat_sessions WHERE project_id = ?${archiveSql} ORDER BY updated_at DESC, created_at DESC`,
     )
     .all(projectId)
+}
+
+export function archiveChatSession(id: string): ChatSessionRecord | null {
+  const updatedAt = new Date().toISOString()
+  const result = db.run('UPDATE chat_sessions SET archived_at = ?, updated_at = ? WHERE id = ?', [updatedAt, updatedAt, id])
+  return result.changes > 0 ? getChatSession(id) : null
+}
+
+export function restoreChatSession(id: string): ChatSessionRecord | null {
+  const updatedAt = new Date().toISOString()
+  const result = db.run('UPDATE chat_sessions SET archived_at = NULL, updated_at = ? WHERE id = ?', [updatedAt, id])
+  return result.changes > 0 ? getChatSession(id) : null
 }
 
 export function getChatSession(id: string): ChatSessionRecord | null {
@@ -147,6 +168,10 @@ export function updateChatSession(
 
 export function deleteChatSession(id: string): boolean {
   return db.run('DELETE FROM chat_sessions WHERE id = ?', [id]).changes > 0
+}
+
+export function deleteChatSessionsForProject(projectId: string): number {
+  return db.run('DELETE FROM chat_sessions WHERE project_id = ?', [projectId]).changes
 }
 
 export function listChatMessages(sessionId: string): ChatMessageRecord[] {
