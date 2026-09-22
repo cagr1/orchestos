@@ -1,24 +1,51 @@
-/**
- * Header (UI.3, Mes 30) — reemplaza `App.syncHeader()`, que escribía el DOM a mano.
- *
- * Es deliberadamente mínimo, y esa es su historia: en la ronda 3 del rediseño de v0.12
- * Carlos hizo sacar el contador "N active" (le quitaba espacio al pill) y en la ronda 4 los
- * íconos (el toggle del panel derecho vive DENTRO del aside, nunca acá, y nunca duplicado).
- * Lo que quedó es un spacer y el pill de estado. No agregarle cosas.
- */
+/** Header (UI.12.2) — la barra global del shell. */
 import { useShell } from './use-shell.ts'
+import { Icon } from '../../lib/icons.tsx'
+import { shellApi } from './shell-api.ts'
 
 export function Header() {
   const shell = useShell()
-  const running = shell.running
+  const api = shellApi()
 
   return (
-    <>
-      <span className="spacer" />
-      <div className="status-badge" id="statusBadge" data-state={running ? 'running' : 'idle'}>
-        <span className="dot" />
-        <span className="txt">{running ? 'RUNNING' : 'IDLE'}</span>
+    <div className="shell-header-inner">
+      <div className="shell-header-left">
+        <div className="shell-wordmark" aria-label="OrchestOS">
+          <span>Orchest</span><span>OS</span>
+        </div>
+        <HeaderButton id="navSearchBtn" icon="search" onClick={() => api?.openCommandPalette()} />
+        <HeaderButton id="navCollapseBtn" icon="panelLeft" onClick={() => api?.toggleSidebar()} />
       </div>
-    </>
+      {shell.activeProjectName && (
+        <div className="shell-project-context">
+          <Icon name="folderClosed" />
+          <span>{shell.activeProjectName}</span>
+        </div>
+      )}
+      <HeaderButton
+        id="rpToggle"
+        icon="panelRight"
+        active={shell.inspector !== null}
+        onClick={() => (shell.inspector ? api?.closeInspector() : api?.openInspectorTool())}
+      />
+    </div>
+  )
+}
+
+function HeaderButton({
+  id,
+  icon,
+  active = false,
+  onClick,
+}: {
+  id: string
+  icon: string
+  active?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button id={id} type="button" className={`shell-header-button${active ? ' active' : ''}`} onClick={onClick}>
+      <Icon name={icon} />
+    </button>
   )
 }

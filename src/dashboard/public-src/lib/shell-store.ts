@@ -27,6 +27,7 @@ export interface ShellState {
   shellMode: 'chat' | 'dev'
   generalSessions: SessionRow[]
   sessionsVersion: number
+  chatPendingBySession: Record<string, boolean>
   /** Pantalla activa (`state.screen` del vanilla). */
   screen: string
   /** Contador del badge de skills. */
@@ -45,6 +46,7 @@ export interface ShellState {
    */
   workspaceProjectId: string | null
   chatSessionId: string | null
+  activeProjectName: string | null
 }
 
 export interface SessionRow {
@@ -59,6 +61,7 @@ const initial: ShellState = {
   shellMode: 'chat',
   generalSessions: [],
   sessionsVersion: 0,
+  chatPendingBySession: {},
   screen: 'chat',
   skillsCount: 0,
   running: false,
@@ -66,6 +69,7 @@ const initial: ShellState = {
   inspector: null,
   workspaceProjectId: null,
   chatSessionId: null,
+  activeProjectName: null,
 }
 
 let state: ShellState = initial

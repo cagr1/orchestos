@@ -76,7 +76,7 @@ const state = {
   // Inspector contextual (UI.9.5): tarea o herramienta; no se persiste la entidad abierta.
   inspector: null,
   // Inspector width persists; entity/tab state never does.
-  inspectorTab: 'terminal',
+  inspectorTab: 'explorer',
   // Explorer: ruta del archivo abierto en preview (null = mostrando el árbol).
   explorerOpenFile: null,
 
@@ -155,7 +155,7 @@ const NAV = [
    API fetching
    ============================================================ */
 function projectHeaders() {
-  return state.settingsProjectId && ['specs', 'skills', 'plan'].includes(state.screen)
+  return state.settingsProjectId && ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan'].includes(state.screen)
     ? { 'x-orchestos-project-id': state.settingsProjectId }
     : {}
 }
@@ -163,7 +163,7 @@ function projectHeaders() {
 const App = {
   async fetchRuns() {
     try {
-      const res = await fetch('/api/runs')
+      const res = await fetch('/api/runs', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       state.runs = await res.json()
       state.runsStatus = 'ok'
@@ -173,7 +173,7 @@ const App = {
   },
   async fetchInstincts() {
     try {
-      const res = await fetch('/api/instincts')
+      const res = await fetch('/api/instincts', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       state.instincts = await res.json()
       state.instinctsStatus = 'ok'
@@ -359,7 +359,7 @@ const App = {
   },
   async fetchMemoryConflicts() {
     try {
-      const res = await fetch('/api/memory/conflicts')
+      const res = await fetch('/api/memory/conflicts', { headers: projectHeaders() })
       state.memoryConflicts = res.ok ? await res.json() : []
     } catch {
       state.memoryConflicts = []
@@ -753,17 +753,9 @@ const App = {
       state.screen = 'chat'
       await this.fetchChatSessions()
       await this.switchChatSession(last.id)
-    } else if (last?.kind === 'project' && projects.some((p) => p.id === last.id)) {
-      state.workspaceProjectId = last.id
-      state.screen = 'workspace'
-      state.workspaceTab = state.workspaceTab || 'tasks'
-      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'project', id: last.id }))
-      this.rerender()
-    } else if (projects[0]) {
-      state.workspaceProjectId = projects[0].id
-      state.screen = 'workspace'
-      state.workspaceTab = state.workspaceTab || 'tasks'
-      localStorage.setItem('orchestos-last-dev', JSON.stringify({ kind: 'project', id: projects[0].id }))
+    } else if (projects.length) {
+      state.workspaceProjectId = null
+      state.screen = 'dev-empty'
       this.rerender()
     } else {
       state.screen = 'dev-empty'
@@ -773,7 +765,7 @@ const App = {
   },
   async fetchTasks() {
     try {
-      const res = await fetch('/api/tasks')
+      const res = await fetch('/api/tasks', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       // v0.12 / Bloque D.1.a — shape wrapper { exists, tasks, error? }.
       // Antes era un array pelado; ahora distinguimos "no existe el archivo"
@@ -800,7 +792,7 @@ const App = {
   },
   async fetchGraphStatus() {
     try {
-      const res = await fetch('/api/run/graph/status')
+      const res = await fetch('/api/run/graph/status', { headers: projectHeaders() })
       if (!res.ok) throw new Error(res.status)
       state.graphRun = await res.json()
       state.graphStatus = 'ok'
@@ -823,6 +815,8 @@ const App = {
     // Para estas pantallas, `rerender()` cambia de significado: ya no es "repinta el DOM"
     // sino "avisale a React que el estado cambio". El contenedor de la isla se escribe UNA
     // sola vez y despues se deja quieto; React se encarga del resto y decide que repintar.
+    const projectTabs = ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan']
+    const inProjectSettings = state.settingsProjectId && projectTabs.includes(state.screen)
     if (sc.react) {
       if (main.getAttribute('data-screen') !== state.screen) {
         main.innerHTML = sc.render(state)
@@ -834,7 +828,9 @@ const App = {
       return
     }
     main.removeAttribute('data-screen')
-    main.innerHTML = sc.render(state)
+    main.innerHTML = inProjectSettings
+      ? `<div class="screen project-settings-screen">${projectSettingsHead(state, state.screen)}${sc.render(state)}</div>`
+      : sc.render(state)
     sc.wire(main, state)
     this.syncHeader()
     this.syncNav()
@@ -859,7 +855,7 @@ const App = {
       clearInterval(SCREENS.graph._timer)
       SCREENS.graph._timer = null
     }
-    if (!['specs', 'skills', 'plan'].includes(id) && id !== 'settings') {
+    if (!['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan'].includes(id) && id !== 'settings') {
       state.settingsProjectId = null
     }
     state.screen = id
@@ -895,12 +891,21 @@ const App = {
     pushShellState({
       shellMode: state.shellMode,
       sessionsVersion: state.sessionsVersion,
+      chatPendingBySession: { ...state.chatPendingBySession },
       // En Dev, undefined significa «no toques» según el contrato del shell-store.
       generalSessions: state.shellMode === 'chat' ? state.chatSessions : undefined,
       screen: state.screen,
       skillsCount: (state.skills || []).length,
       workspaceProjectId: state.workspaceProjectId || null,
       chatSessionId: state.chatSessionId || null,
+      activeProjectName: (() => {
+        const projectTabs = ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan']
+        const id = state.settingsProjectId && (state.screen === 'settings' || projectTabs.includes(state.screen))
+          ? state.settingsProjectId
+          : state.workspaceProjectId
+        const project = (state.projectsList || []).find((item) => item.id === id)
+        return project ? project.path.split('/').pop() || project.path : null
+      })(),
       sidebarExpanded: document.querySelector('.app').dataset.sidebar === 'expanded',
     })
   },
@@ -3114,7 +3119,7 @@ async function loadLocalModels() {
    Nav builder — called on boot and on mode toggle
    ============================================================ */
 function applySidebarMode() {
-  const expanded = localStorage.getItem('orchestos-sidebar') === 'expanded'
+  const expanded = localStorage.getItem('orchestos-sidebar') !== 'collapsed'
   document.querySelector('.app').dataset.sidebar = expanded ? 'expanded' : 'collapsed'
   return expanded
 }
@@ -3159,7 +3164,7 @@ function toggleSidebarMode() {
  * a proposito: es contenido de pantalla, no shell, y le toca en UI.4.
  */
 function openInspectorTool(tabName) {
-  const tab = ['explorer', 'terminal', 'diff'].includes(tabName) ? tabName : 'terminal'
+  const tab = ['explorer', 'terminal', 'diff'].includes(tabName) ? tabName : (state.inspectorTab || 'explorer')
   state.inspectorTab = tab
   state.inspector = { kind: 'tool', tab }
   syncRightPanel()
@@ -3333,6 +3338,11 @@ function boot() {
       if (id === 'specs') await App.fetchSpecs()
       if (id === 'skills') await App.fetchSkills()
       if (id === 'plan') await App.fetchPlan()
+      if (id === 'tasks') await App.fetchTasks()
+      if (id === 'runs') await App.fetchRuns()
+      if (id === 'graph') await App.fetchGraphStatus()
+      if (id === 'memory') await App.fetchMemoryConflicts()
+      if (id === 'instincts') await App.fetchInstincts()
       App.rerender()
       return
     }
@@ -3364,9 +3374,12 @@ function boot() {
     row.click()
   })
 
-  // First render with loading state, then fetch
-  App.rerender()
-  App.fetchAll().then(() => {
+  // Load projects before the first Dev render so the shell/header and empty state
+  // have a real project list instead of treating the state as unknown.
+  App.fetchProjects().then(() => {
+    App.rerender()
+    return App.fetchAll()
+  }).then(() => {
     if (state.shellMode === 'dev') void App.setShellMode('dev')
   })
 
@@ -3419,6 +3432,13 @@ function boot() {
       if (state.inspector?.kind === 'tool') syncRightPanel()
       App.rerender()
     },
+    openProjectSettings: (id) => {
+      state.settingsProjectId = id
+      state.projectTab = 'tasks'
+      App.go('tasks')
+      void App.fetchTasks().then(() => App.rerender())
+    },
+    refreshProjects: () => App.fetchProjects().then(() => App.rerender()),
     openChatSession: (id, projectId) => {
       state.shellMode = projectId ? 'dev' : 'chat'
       localStorage.setItem('orchestos-shell-mode', state.shellMode)

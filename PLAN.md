@@ -2367,9 +2367,28 @@ ni eso hace falta.
   cargadas, 0 respuestas 4xx, 0 requests a Google. `ui81` 5/5, `ui2` 32/32, `ui0` 16/16,
   `ui4-specs` 20/20, `ui10` 13/13. `tsc` limpio; `test:coverage` 1443 pass / 0 fail.
 
-- [ ] **UI.12.2 — 🧠 Shell con la cara del prototipo: header, sidebar, estado vacío, panel derecho.** (abierto 2026-09-21)
-  Spec: `docs/specs/UI.12.2.md` (listo, sin ejecutar). Ejecuta Luna; gate
-  `scripts/ui-gates/ui12-shell.mjs` 3/3 y capturas contra el prototipo. **Próximo paso al retomar.**
+- [x] **UI.12.2 — 🧠 Shell con la cara del prototipo: header, sidebar, estado vacío, panel derecho.** (abierto 2026-09-21, cerrado 2026-09-21)
+  Ejecutado por: luna · Spec: docs/specs/UI.12.2.md (7 rondas; borrado al cerrar)
+  Header de 44px a todo el ancho (wordmark, paleta, toggle de sidebar, proyecto activo al centro,
+  `#rpToggle`; sin `#statusBadge`); sidebar de 256px que se oculta entero (0px, sin riel; abierto
+  por defecto sin clave en `localStorage`); segmentado Chat | Dev; filas de proyecto con carpeta,
+  chip de agentes contado sin expandir y chevron/`…`/`+` al hover; agentes con loader/check;
+  `…` → Project settings abre la página del proyecto con 8 pestañas y `x-orchestos-project-id` en
+  sus fetch; Dev sin sesión → `dev-empty` con logo; panel derecho de 384px con un único toggle.
+  Rondas: (r1) Luna se detuvo por 3 fallos de `test:coverage` que eran del sandbox de Codex
+  (fuera del sandbox: 1443/0); (r2) 11 defectos medidos en vivo (sidebar oculto en frío,
+  colapsado de 17px, `projectsList` nulo en Dev, nombres truncados, segmentado/New chat/logo
+  fuera de spec, menú sin título); (r3–r5) gates que afirmaban anchos antes de terminar la
+  transición y un hover sobre un botón en `display:none`; (r6–r7) nombre de 16px por choque de
+  reglas, logo con la clase `pic` de 48px, icono de carpeta perdido y New chat de 48px.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.12.2-live.json` — dashboard en :4330, corrida del cerebro:
+  `ui12-shell` 19/19, `ui3-shell` 7/7, `ui9a-inspector` 9/9, `ui10-project-settings` 13/13,
+  `ui81` 5/5 (excepción de `#statusBadge` quitada, baseline de inline styles 4→2), `ui0` 16/16,
+  `ui2` 32/32; capturas de Chat, Dev vacío, Dev con proyecto expandido + hover, y menú `…`
+  revisadas contra el prototipo. `tsc` limpio; `test:coverage` 1443 pass / 0 fail.
+  Pendiente sin verificar en vivo: el check verde de un agente que termina mientras la página
+  está abierta (requiere una corrida real de chat). Hallazgo aparte: tras correr los gates apareció
+  una sesión "New conversation" en Chat general — algún gate crea sesiones en la DB real.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,

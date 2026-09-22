@@ -12,8 +12,13 @@ function projectSettingsHead(st, active) {
   if (!st.settingsProjectId) return ''
   const name = settingsProjectName(st)
   const tabs = [
+    ['tasks', t('tasks.title')],
+    ['runs', t('runs.title')],
+    ['graph', t('graph.title')],
+    ['memory', t('memory.title')],
     ['specs', t('project.tab.specs')],
     ['skills', t('project.tab.skills')],
+    ['instincts', t('instincts.title')],
     ['plan', t('project.tab.plan')],
   ]
   return `<div class="project-settings-head">
@@ -36,12 +41,7 @@ SCREENS.workspace = {
     const body = SCREENS[tab]?.render
       ? SCREENS[tab].render(st)
       : '<div class="screen"><p>Loading workspace…</p></div>'
-    const inspectorTab = st.inspector?.kind === 'tool' ? st.inspector.tab : null
-    const tabBar = `<div class="workspace-tabs">${tabs.map((id) => `<button class="proj-tab${id === tab ? ' active' : ''}" data-workspace-tab="${id}">${id[0].toUpperCase() + id.slice(1)}</button>`).join('')}<button class="proj-tab" data-workspace-tab="project">Project settings</button><span class="workspace-tools">
-      <button type="button" class="workspace-tool${inspectorTab === 'explorer' ? ' active' : ''}" data-inspector-tool="explorer" aria-label="${esc(t('rp.tab.explorer'))}" data-tip="${esc(t('rp.tab.explorer'))}">${ICON.folder}</button>
-      <button type="button" class="workspace-tool${inspectorTab === 'diff' ? ' active' : ''}" data-inspector-tool="diff" aria-label="${esc(t('rp.tab.diff'))}" data-tip="${esc(t('rp.tab.diff'))}">${ICON.diff}</button>
-      <button type="button" class="workspace-tool${inspectorTab === 'terminal' ? ' active' : ''}" data-inspector-tool="terminal" aria-label="${esc(t('rp.tab.terminal'))}" data-tip="${esc(t('rp.tab.terminal'))}">${ICON.term}</button>
-    </span></div>`
+    const tabBar = `<div class="workspace-tabs">${tabs.map((id) => `<button class="proj-tab${id === tab ? ' active' : ''}" data-workspace-tab="${id}">${id[0].toUpperCase() + id.slice(1)}</button>`).join('')}<button class="proj-tab" data-workspace-tab="project">Project settings</button></div>`
     return `<div class="workspace" data-workspace-project="${esc(st.workspaceProjectId || '')}">${tabBar}${body}</div>`
   },
   wire(root, st) {
@@ -2432,11 +2432,11 @@ SCREENS.plan = {
 }
 
 SCREENS['dev-empty'] = {
-  render() {
-    return `<div class="screen"><div class="card"><div class="placeholder">
-      <div class="pic">${ICON.project}</div>
+  render(st) {
+    return `<div class="screen dev-empty-screen"><div class="placeholder">
+      <div class="dev-empty-logo"><img src="assets/orchestos-mark.svg" alt="OrchestOS" /></div>
       <h3>${t('dev.empty.title')}</h3><p>${t('dev.empty.body')}</p>
-      <button type="button" class="btn primary" data-dev-empty-add>${t('nav.project.add')}</button>
+      ${st.projectsList !== null && st.projectsList.length === 0 ? `<button type="button" class="btn primary" data-dev-empty-add>${t('nav.project.add')}</button>` : ''}
     </div></div></div>`
   },
   wire(root) {

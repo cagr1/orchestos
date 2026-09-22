@@ -4,8 +4,6 @@
  *
  * Se mide el estilo COMPUTADO de la pantalla auditada con Playwright real. El
  * baseline de style= es un trinquete: solo una reducción lo mueve hacia abajo.
- * El pill del header (`#statusBadge`) es la única excepción documentada al
- * límite global de radios.
  *
  * Cómo se corre:
  *   bun run src/cli.ts dashboard --port 4321 &
@@ -56,8 +54,7 @@ try {
       ),
     )
     const fontSizes = [...new Set(textNodes.map((el) => getComputedStyle(el).fontSize))].sort()
-    const radiusNodes = nodes.filter((el) => el.id !== 'statusBadge' && !el.closest('#statusBadge'))
-    const radii = [...new Set(radiusNodes.map((el) => getComputedStyle(el).borderRadius))].sort()
+    const radii = [...new Set(nodes.map((el) => getComputedStyle(el).borderRadius))].sort()
     const selects = nodes
       .filter((el) => el.tagName === 'SELECT')
       .map((el) => el.outerHTML.slice(0, 160))

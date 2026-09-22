@@ -25,6 +25,7 @@ import { Icon, RawIcon } from '../../lib/icons.tsx'
 import { pushToast } from '../../lib/toast-store.ts'
 import { type NavEntry, shellApi } from './shell-api.ts'
 import { useShell } from './use-shell.ts'
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover.tsx'
 
 type Project = { id: string; path: string; stackProfile: string; lastUpdated: string }
 type Session = {
@@ -56,8 +57,11 @@ export function Sidebar() {
   const [isChoosingProject, setIsChoosingProject] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [sessions, setSessions] = useState<Record<string, Session[]>>({})
+  const [completed, setCompleted] = useState<Record<string, boolean>>({})
+  const previousPending = useRef<Record<string, boolean>>({})
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuProjectId, setMenuProjectId] = useState<string | null>(null)
+  const [cliMenuProjectId, setCliMenuProjectId] = useState<string | null | undefined>(undefined)
   const [chatSearch, setChatSearch] = useState('')
   const loadProjects = useCallback(async () => {
     const response = await fetch('/api/projects')
@@ -76,7 +80,8 @@ export function Sidebar() {
       }
       if ('cancelled' in data) return
       await loadProjects()
-      api?.selectWorkspaceProject(data.id)
+      await api?.refreshProjects()
+      setExpanded((value) => ({ ...value, [data.id]: false }))
     } catch {
       pushToast(t('nav.project.add.error'), 'error')
     } finally {
@@ -97,51 +102,26 @@ export function Sidebar() {
     }
   }, [])
   useEffect(() => {
-    void shell.sessionsVersion
-    for (const project of projects) if (expanded[project.id]) void loadProjectSessions(project.id)
-  }, [shell.sessionsVersion, projects, expanded, loadProjectSessions])
+    for (const project of projects) void loadProjectSessions(project.id)
+    const finished = Object.entries(previousPending.current)
+      .filter(([id, wasPending]) => wasPending && !shell.chatPendingBySession[id])
+      .map(([id]) => id)
+    previousPending.current = shell.chatPendingBySession
+    if (finished.length) setCompleted((current) => ({ ...current, ...Object.fromEntries(finished.map((id) => [id, true])) }))
+  }, [shell.sessionsVersion, shell.chatPendingBySession, projects, loadProjectSessions])
 
   const openMenu = (projectId: string | null) => {
+    setCliMenuProjectId(undefined)
     setMenuProjectId(projectId)
     setMenuOpen(true)
   }
-
-  // El atajo se muestra según la plataforma, igual que en vanilla.
-  const kbdHint = navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K'
-  const isBright = document.documentElement.getAttribute('data-theme') === 'light'
-  const logoSrc = `assets/${isBright ? 'logo_black' : 'logo_white'}.png`
+  const openCliMenu = (projectId: string | null) => {
+    setCliMenuProjectId(projectId)
+    setMenuOpen(true)
+  }
 
   return (
     <>
-      <div className="sidebar-toprow">
-        {/* El swap logo <-> botón es 100% CSS (regla 4): los dos elementos están SIEMPRE
-            en el DOM y el `:hover` decide cuál se ve. Si esto se resolviera en JS, el
-            markup cambiaría al pasar el mouse — el gate lo verifica comparando el
-            outerHTML antes y después del hover. */}
-        <img className="sidebar-toprow-logo" src={logoSrc} alt="OrchestOS" aria-hidden="true" />
-        <b className="sidebar-brand-text">
-          Orchest<span>OS</span>
-        </b>
-        <div className="sidebar-toprow-icons">
-          <NavButton
-            id="navSearchBtn"
-            className="sidebar-toprow-btn sidebar-search-btn"
-            tip={`${t('nav.search')} (${kbdHint})`}
-            onActivate={() => api?.openCommandPalette()}
-          >
-            <Icon name="search" />
-          </NavButton>
-          <NavButton
-            id="navCollapseBtn"
-            className="sidebar-toprow-btn"
-            tip={t(shell.sidebarExpanded ? 'nav.sidebar.collapse' : 'nav.sidebar.expand')}
-            onActivate={() => api?.toggleSidebar()}
-          >
-            <Icon name="panelLeft" />
-          </NavButton>
-        </div>
-      </div>
-
       <div className="sidebar-mode-row">
         <NavButton
           id="shellModeChat"
@@ -171,25 +151,23 @@ export function Sidebar() {
         </NavButton>
       </div>
 
-      <div className="nav-sep" />
-
       {shell.shellMode === 'chat' ? (
         <div className="sidebar-chats">
           <div className="sidebar-new-chat-wrap">
             <NavButton
               id="sidebarNewChat"
-              className="nav-icon sidebar-new-chat"
+              className="sidebar-new-chat"
               tip={t('chat.sessions.new')}
               label={t('chat.sessions.new')}
               ariaExpanded={menuOpen}
-              onActivate={() => openMenu(null)}
+              onActivate={() => openCliMenu(null)}
             >
               <span className="nav-ic">
                 <Icon name="plus" />
               </span>
               <span className="nav-label">{t('chat.sessions.new')}</span>
             </NavButton>
-            {menuOpen && menuProjectId === null && (
+            {menuOpen && cliMenuProjectId === null && (
               <CliMenu api={api} projectId={null} onClose={() => setMenuOpen(false)} />
             )}
           </div>
@@ -250,49 +228,35 @@ export function Sidebar() {
               return (
                 <div key={project.id} className="sidebar-project-tree" data-project-id={project.id}>
                   <div
-                    className={`nav-icon${shell.screen === 'workspace' && shell.workspaceProjectId === project.id ? ' active' : ''}`}
-                    data-tip={projectName}
+                    className="sidebar-project-row"
                     aria-label={projectName}
                     role="button"
                     tabIndex={0}
-                    onClick={() => api?.selectWorkspaceProject(project.id)}
+                    onClick={() => setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()
-                        api?.selectWorkspaceProject(project.id)
+                        setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))
                       }
                     }}
                   >
-                    <span className="nav-ic">
-                      <Icon name="project" />
+                    <span className="sidebar-project-main">
+                      <Icon name="folderClosed" className="sidebar-project-folder" />
+                      <span className="sidebar-project-name" title={projectName}>{projectName}</span>
                     </span>
-                    <span className="nav-label">{projectName}</span>
-                    <NavButton
-                      id={`add-agent-${project.id}`}
-                      className="sidebar-row-add"
-                      tip={t('nav.agent.new')}
-                      label={t('nav.agent.new')}
-                      onActivate={() => {
-                        setExpanded((value) => ({ ...value, [project.id]: true }))
-                        openMenu(project.id)
-                      }}
-                    >
-                      <Icon name="plus" />
-                    </NavButton>
-                  </div>
-                  <div
-                    className="sidebar-agents-toggle"
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={isExpanded}
-                    onClick={() => {
-                      setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))
-                      if (!isExpanded && sessions[project.id] === undefined) {
-                        void loadProjectSessions(project.id)
-                      }
-                    }}
-                  >
-                    {projectSessions.length} agents <span aria-hidden="true">⌄</span>
+                    <span className="sidebar-project-actions">
+                      <span className="sidebar-project-count">{sessions[project.id] ? projectSessions.length : ''}</span>
+                      <button type="button" data-project-action="toggle" aria-label={isExpanded ? 'Collapse agents' : 'Expand agents'} onClick={(event) => { event.stopPropagation(); setExpanded((value) => ({ ...value, [project.id]: !isExpanded })) }}><Icon name={isExpanded ? 'chevronDown' : 'chevronRight'} /></button>
+                      <Popover open={menuOpen && menuProjectId === project.id} onOpenChange={(open) => { setMenuOpen(open); if (!open) setMenuProjectId(null) }}>
+                        <PopoverTrigger asChild>
+                          <button type="button" data-project-action="menu" aria-label="Project actions" onClick={(event) => { event.stopPropagation(); openMenu(project.id) }}><Icon name="ellipsis" /></button>
+                        </PopoverTrigger>
+                        <PopoverContent className="sidebar-project-menu" align="end">
+                          <button type="button" data-project-menu-item="settings" onClick={() => { setMenuOpen(false); api?.openProjectSettings(project.id) }}><Icon name="settings" />Project settings</button>
+                        </PopoverContent>
+                      </Popover>
+                      <button type="button" data-project-action="add" aria-label={t('nav.agent.new')} onClick={(event) => { event.stopPropagation(); setExpanded((value) => ({ ...value, [project.id]: true })); openCliMenu(project.id) }}><Icon name="plus" /></button>
+                    </span>
                   </div>
                   {isExpanded &&
                     projectSessions.map((session) => (
@@ -301,7 +265,7 @@ export function Sidebar() {
                         className={`sidebar-agent-row${shell.screen === 'chat' && shell.chatSessionId === session.id ? ' active' : ''}`}
                         role="button"
                         tabIndex={0}
-                        onClick={() => api?.openChatSession(session.id, project.id)}
+                        onClick={() => { setCompleted((value) => ({ ...value, [session.id]: false })); api?.openChatSession(session.id, project.id) }}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
@@ -310,7 +274,7 @@ export function Sidebar() {
                         }}
                       >
                         <span className="sidebar-agent-icon" data-agent={session.agent}>
-                          <RawIcon svg={api?.agentIcon(session.agent) ?? ''} />
+                          {shell.chatPendingBySession[session.id] ? <Icon name="loader" className="sidebar-agent-loader" /> : completed[session.id] ? <Icon name="check" className="sidebar-agent-check" /> : <RawIcon svg={api?.agentIcon(session.agent) ?? ''} />}
                         </span>
                         <span className="sidebar-agent-title">
                           {session.title || 'Untitled chat'}
@@ -320,7 +284,7 @@ export function Sidebar() {
                         </span>
                       </div>
                     ))}
-                  {menuOpen && menuProjectId === project.id && (
+                  {menuOpen && cliMenuProjectId === project.id && (
                     <CliMenu api={api} projectId={project.id} onClose={() => setMenuOpen(false)} />
                   )}
                 </div>
@@ -353,7 +317,7 @@ function NavIcon({
   // string vacío. No llevan badge "adv" — se quitó en Mes 22/F2 por redundante.
   return (
     <div
-      className={`nav-icon${entry.operator ? ' operator visible' : ''}${shellScreen === entry.id ? ' active' : ''}`}
+      className={`nav-icon${entry.operator ? ' operator visible' : ''}${shellScreen === entry.id || (entry.id === 'settings' && ['tasks', 'runs', 'graph', 'memory', 'specs', 'skills', 'instincts', 'plan'].includes(shellScreen)) ? ' active' : ''}`}
       data-nav={entry.id}
       data-tip={t(entry.key)}
       role="button"

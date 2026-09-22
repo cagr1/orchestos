@@ -26,6 +26,7 @@ export interface ShellApi {
   go: (id: string) => void
   toggleSidebar: () => void
   selectWorkspaceProject: (projectId: string) => void
+  openProjectSettings: (projectId: string) => void
   setShellMode: (mode: 'chat' | 'dev') => void
   openChatSession: (sessionId: string, projectId: string | null) => void
   startNewChatSession: (agent: string, projectId: string | null) => Promise<void>
@@ -33,7 +34,8 @@ export interface ShellApi {
   cliModes: () => Array<{ id: string; detected?: boolean; path?: string }>
   openCommandPalette: () => void
   closeInspector: () => void
-  openInspectorTool: (tab: 'explorer' | 'terminal' | 'diff') => void
+  openInspectorTool: (tab?: 'explorer' | 'terminal' | 'diff') => void
+  refreshProjects: () => Promise<void>
 }
 
 export function shellApi(): ShellApi | null {

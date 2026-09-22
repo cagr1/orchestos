@@ -1,0 +1,155 @@
+{
+  "item": "UI.12.2",
+  "date": "2026-09-21",
+  "runner": "cerebro (claude-opus-5), Playwright contra dashboard real en :4330",
+  "gates": {
+    "ui12-shell": {
+      "pass": 19,
+      "fail": 0,
+      "lines": [
+        "PASS — header cruza el viewport y mide 44px",
+        "PASS — wordmark y controles del shell presentes, sin statusBadge",
+        "PASS — navCollapseBtn oculta completamente el sidebar",
+        "PASS — navCollapseBtn restaura el sidebar de 256px",
+        "PASS — Dev vacío muestra logo y no abre un workspace",
+        "PASS — el logo de Dev vacío cabe en un cuadro de 96px",
+        "PASS — Dev muestra 2 proyectos",
+        "PASS — los nombres de proyecto caben sin truncamiento en el sidebar",
+        "PASS — cada proyecto muestra una carpeta de 16px en color accent",
+        "PASS — el chip de proyecto coincide con /api/chat/sessions",
+        "PASS — acciones ocultas sin hover, visibles al pasar y centradas en la fila",
+        "PASS — clic en la fila solo expande sus agentes",
+        "PASS — Project settings abre desde el menú del proyecto",
+        "PASS — Project settings muestra las ocho pestañas",
+        "PASS — Tasks y Runs usan el header del proyecto",
+        "PASS — New chat mide hasta 36px y centra el + con el texto",
+        "PASS — rpToggle abre el panel derecho de 384px",
+        "PASS — rpToggle cierra el panel derecho",
+        "PASS — sin errores de consola (0)"
+      ]
+    },
+    "ui3-shell": {
+      "pass": 7,
+      "fail": 0,
+      "lines": [
+        "PASS — header mide 44px",
+        "PASS — el header no contiene statusBadge",
+        "PASS — navCollapseBtn colapsa el sidebar a 0px",
+        "PASS — navCollapseBtn restaura el sidebar de 256px",
+        "PASS — rpToggle abre el inspector",
+        "PASS — rpToggle cierra el inspector",
+        "PASS — sin errores de consola (0)"
+      ]
+    },
+    "ui9a-inspector": {
+      "pass": 9,
+      "fail": 0,
+      "lines": [
+        "PASS — explorer visible en el inspector",
+        "PASS — diff visible en el inspector",
+        "PASS — terminal visible en el inspector",
+        "PASS — Terminal cambia la herramienta activa",
+        "PASS — expandir otro proyecto conserva el inspector abierto",
+        "PASS — rpClose cierra el inspector",
+        "PASS — el toggle queda inactivo al cerrar",
+        "PASS — reabre la última herramienta usada",
+        "PASS — sin errores de consola (0)"
+      ]
+    },
+    "ui10-project-settings": {
+      "pass": 13,
+      "fail": 0,
+      "lines": [
+        "PASS — Settings muestra 2 proyectos registrados",
+        "PASS — el primer proyecto muestra su nombre",
+        "PASS — Specs usa el header del primer proyecto",
+        "PASS — specs muestra su isla con contenido",
+        "PASS — specs usa el header del primer proyecto",
+        "PASS — skills muestra su isla con contenido",
+        "PASS — skills usa el header del primer proyecto",
+        "PASS — plan muestra su isla con contenido",
+        "PASS — plan usa el header del primer proyecto",
+        "PASS — ← Settings vuelve a la barra de Settings",
+        "PASS — el segundo proyecto cambia el título",
+        "PASS — Specs cambia al header del segundo proyecto",
+        "PASS — sin errores de consola (0)"
+      ]
+    },
+    "ui81-visual-consistency": {
+      "pass": 5,
+      "fail": 0,
+      "lines": [
+        "PASS — pantalla Chat alcanzada por defecto",
+        "PASS — font-size computados: 4 (11px, 12px, 14px, 20px)",
+        "PASS — border-radius fuera de lista blanca: ninguno (permitidos: 0px, 10px, 50%, 6px, 9999px)",
+        "PASS — select nativo visible: 0",
+        "PASS — atributos style= inline: 2 (baseline 2)"
+      ]
+    },
+    "ui0-islands": {
+      "pass": 16,
+      "fail": 0,
+      "lines": [
+        "PASS — sin ?island-probe no se monta lang-probe (encontradas: 0)",
+        "PASS — #main renderiza el dashboard vanilla (2305 chars)",
+        "PASS — sidebar vanilla intacto (48 elementos)",
+        "PASS — sin errores de consola en carga normal (ninguno)",
+        "PASS — la isla React monta dentro del DOM vanilla",
+        "PASS — bg-card resuelve a --surface (#0e1320 vs #0e1320)",
+        "PASS — border-border resuelve a --border (#1e293b vs #1e293b)",
+        "PASS — body conserva su fondo, preflight no lo reseteó (rgb(8, 12, 20))",
+        "PASS — preflight de Tailwind ausente: <h1> conserva su margen de UA (18.76px)",
+        "PASS — t() repinta en vivo al cambiar idioma (en=\"Add task\" → es=\"Agregar tarea\")",
+        "PASS — la isla sigue presente tras cambiar idioma (contenedores: 1)",
+        "PASS — la isla se remonta sola tras App.rerender() (que borra #main con innerHTML)",
+        "PASS — sin duplicados tras 6 rerender() (contenedores: 1)",
+        "PASS — el conteo de islas no crece tras 6 rerender() (montadas: 10, después del primero: 10)",
+        "PASS — navegación entre pantallas no duplica ni pierde la isla (1)",
+        "PASS — sin errores de consola con la isla activa (ninguno)"
+      ]
+    },
+    "ui2-design-system": {
+      "pass": 32,
+      "fail": 0,
+      "lines": [
+        "PASS — sin ?ui-probe=1 el banco de pruebas no aparece",
+        "PASS — el banco de pruebas monta con ?ui-probe=1",
+        "PASS — Button: padding igual al .btn vanilla (7px 13px)",
+        "PASS — Button: radio igual (6px)",
+        "PASS — Button: tamaño de fuente igual (14px)",
+        "PASS — Button: gap igual (7px)",
+        "PASS — Button variant=secondary: mismo fondo que .btn neutro (oklab(0.210879 -0.00189638 -0.0331996))",
+        "PASS — Button: TODAS las variantes son visualmente distintas (5 únicas de 5)",
+        "PASS — Button: el hover cambia el fondo de verdad (oklab(0.210879 -0.00189638 -0.0331996) → rgb(21, 29, 48))",
+        "PASS — Button: disabled no recibe clicks",
+        "PASS — Input: padding igual al del modal vanilla (9px 11px)",
+        "PASS — Input: tamaño de fuente igual (14px)",
+        "PASS — Input: fondo sobre --bg como el vanilla (#080c14)",
+        "PASS — Input: es controlado y reporta el cambio",
+        "PASS — Tabs: cambiar de pestaña cambia el panel visible",
+        "PASS — Tabs: las flechas navegan entre pestañas (activa: Overlays)",
+        "PASS — Tabs: la pestaña activa espeja .filter-tab (radio 10px, padding 5px 13px, fondo rgb(56, 189, 248))",
+        "PASS — Dialog: 440px como el .modal vanilla (440px)",
+        "PASS — Dialog: radio 10px como el vanilla (10px)",
+        "PASS — Dialog: fondo --surface (#0e1320)",
+        "PASS — Dialog: z-index 300, sobre el scrim vanilla (200) y bajo los toasts (9999)",
+        "PASS — Dialog: la transición de apertura existe de verdad (opacity 1)",
+        "PASS — Dialog: al abrir, el foco entra al diálogo",
+        "PASS — Dialog: Esc lo cierra",
+        "PASS — Toast: showToast() global redirigida — los 71 call sites vanilla no se tocan",
+        "PASS — Toast: dos avisos se APILAN en vez de superponerse como en vanilla (2)",
+        "PASS — Toast: z-index 9999 como el vanilla (9999)",
+        "PASS — Toast: centrado abajo, en las coordenadas del toast vanilla",
+        "PASS — Toast: la variante 'error' usa --error, igual que .toast-error",
+        "PASS — Toast: expiran solos a los 3s, como el vanilla",
+        "PASS — Toast: sobrevive a App.rerender() porque el host cuelga de <body>, no de #main",
+        "PASS — sin errores de consola en toda la corrida (ninguno)"
+      ]
+    }
+  },
+  "testCoverage": {
+    "pass": 1443,
+    "fail": 0
+  },
+  "tsc": "clean"
+}
