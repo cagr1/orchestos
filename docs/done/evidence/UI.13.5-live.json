@@ -3,12 +3,31 @@
   "date": "2026-09-22",
   "runner": "cerebro (Opus) — Playwright contra dashboard real :4330 y plantilla :3000",
   "captures": "scripts/ui-fidelity/capture.mjs, 29 estados x (plantilla, app, lado a lado)",
-  "statusBar": { "buttons": 3, "icons": "SVG del vanilla por cli.icon", "shows": "cuota 5h restante; — sin dato o vencida", "panel": "flotante, 5h + semanal + reinicio / sin datos desde", "sidebarQuotas": false, "contextInBar": false },
+  "statusBar": {
+    "buttons": 3,
+    "icons": "SVG del vanilla por cli.icon",
+    "shows": "cuota 5h restante; — sin dato o vencida",
+    "panel": "flotante, 5h + semanal + reinicio / sin datos desde",
+    "sidebarQuotas": false,
+    "contextInBar": false
+  },
   "header": "proyecto / rama real (git rev-parse)",
-  "inspector": { "files": "rama, Names|Contents, tamaños, preview", "diff": "tarjeta por archivo, +38 −0 correcto, sin cabecera Index:", "history": "icono de CLI por sesión" },
+  "inspector": {
+    "files": "rama, Names|Contents, tamaños, preview",
+    "diff": "tarjeta por archivo, +38 −0 correcto, sin cabecera Index:",
+    "history": "icono de CLI por sesión"
+  },
   "settings": { "health": "All prerequisites met, sin Loading eterno" },
-  "runs": { "model": "real (agentModel)", "nullVerdict": "badge neutro —", "passRate": "50.0% sobre evaluados" },
+  "runs": {
+    "model": "real (agentModel)",
+    "nullVerdict": "badge neutro —",
+    "passRate": "50.0% sobre evaluados"
+  },
   "apiChatModels": 200,
   "errors": "0 pageerror, 0 HTTP>=400 en la app nueva (el 409 de /api/plan sale solo de /legacy/app.js)",
-  "gates": { "typecheck": "ok", "lint": "ok", "test:coverage": "1472 pass / 0 fail; functions 74.08%, lines 62.19%" }
+  "gates": {
+    "typecheck": "ok",
+    "lint": "ok",
+    "test:coverage": "1472 pass / 0 fail; functions 74.08%, lines 62.19%"
+  }
 }
