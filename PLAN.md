@@ -2518,6 +2518,9 @@ ni eso hace falta.
   carpeta del proyecto con la misma frontera de permisos del runner; cerrar agente = archivar (History
   permite restaurar o borrar definitivo); borrar proyecto = solo des-registrarlo de OrchestOS con sus
   sesiones, nunca toca archivos del disco.
+  **UI.13.4b (2026-09-22):** spec `docs/specs/UI.13.4b.md`. Carlos eligió: la consola reemplaza al chat en Dev
+  (como la plantilla), la frontera es idéntica al runner (`runOneCheck`: sin shell, cwd confinado, env
+  filtrado, timeout; los argumentos NO se confinan, es un límite aceptado) y los comandos se guardan en DB.
   Gate: cada comportamiento hecho en vivo contra la API, igual que en la plantilla.
 
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
