@@ -2441,7 +2441,16 @@ ni eso hace falta.
   Spec: `docs/specs/UI.13.1b.md`. Regresión de UI.13.1 detectada por el pre-push:
   `projects-choose.test.ts:106` (GET `/api/projects/choose` da 200 en vez de 404). Gate: `test:coverage` verde.
 
-- [ ] **UI.13.2a — 🧠 Chat de la app nueva con datos reales.** (abierto 2026-09-21)
+- [x] **UI.13.2a — 🧠 Chat de la app nueva con datos reales.** (abierto 2026-09-21, cerrado 2026-09-21)
+  Ejecutado por: luna · Spec: docs/specs/UI.13.2a.md (3 rondas; borrado al cerrar)
+  `app/src/api/chat.ts` sobre los endpoints existentes; mocks y `setTimeout` fuera; CLI QUOTAS y
+  SESSION CONTEXT mock fuera, `SessionStatusBar` real con Tailwind. Rondas: (r2) envío sin `model`,
+  modal New chat con modelos inventados, 26 líneas de CSS a mano; (r3) con 0 sesiones no enviaba.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.13.2a-live.json` — dashboard en :4330, corrida del cerebro:
+  lista = API, renombrar/borrar = API, payload de `POST /api/chat` igual al de `/legacy` (con
+  `model` configurado) también con 0 sesiones, modal con CLIs detectados y 443 modelos reales,
+  0 errores. `test:coverage` 1453 pass / 0 fail. Pendiente sin verificar: un turno real contra un
+  LLM (el modelo lo elige Carlos) y el header `orchestos / master`, que sigue mock (UI.13.2b).
   Spec: `docs/specs/UI.13.2a.md`. Capa `app/src/api/chat.ts` sobre los endpoints existentes; fuera
   las barras mock CLI QUOTAS / SESSION CONTEXT, entra el `SessionStatusBar` real. Gate: lista, abrir,
   crear, renombrar y borrar contra la API en vivo; payload de envío igual al de `/legacy`.

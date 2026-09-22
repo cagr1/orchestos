@@ -28,6 +28,7 @@ interface ShellSidebarProps {
   onSelectThread: (id: string) => void;
   onNewChat: (cliId?: string, model?: string, title?: string) => void;
   onDeleteChat?: (id: string) => void;
+  onRenameChat?: (id: string) => void;
   projects: ProjectItem[];
   activeProjectId: string;
   onSelectProject: (id: string) => void;
@@ -49,6 +50,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   onSelectThread,
   onNewChat,
   onDeleteChat,
+  onRenameChat,
   projects,
   activeProjectId,
   onSelectProject,
@@ -186,20 +188,30 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                       </span>
                     </div>
 
-                    {onDeleteChat && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteChat(thread.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-app-muted hover:text-rose-400 p-0.5 transition-opacity"
-                        title="Delete chat"
-                        aria-label="Delete chat"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                      {onRenameChat && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onRenameChat(thread.id); }}
+                          className="text-app-muted hover:text-app p-0.5"
+                          title="Rename chat"
+                          aria-label="Rename chat"
+                        >
+                          <Ellipsis className="w-3 h-3" />
+                        </button>
+                      )}
+                      {onDeleteChat && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onDeleteChat(thread.id); }}
+                          className="text-app-muted hover:text-rose-400 p-0.5"
+                          title="Delete chat"
+                          aria-label="Delete chat"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -431,81 +443,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
           <span>Settings</span>
         </button>
 
-        {/* Quota Progress Bars: exactly 5h and 7d windows per CLI with brand icons in original colors */}
-        <div className="pt-2 border-t border-app space-y-2.5">
-          <div className="text-xs font-mono font-medium text-app-muted uppercase tracking-wider">
-            CLI Quotas
-          </div>
-
-          {/* Claude (Original Amber) */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 text-app">
-                <ProviderLogo id="claude" className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-medium">Claude</span>
-              </div>
-              <div className="flex items-center gap-2 font-mono text-xs text-app-muted">
-                <span>5h: 80%</span>
-                <span>·</span>
-                <span>7d: 34%</span>
-              </div>
-            </div>
-            <div className="flex gap-1.5 h-1.5 w-full">
-              <div className="flex-1 bg-app-elevated rounded-pill overflow-hidden" title="5h window: 80.1%">
-                <div className="h-full bg-amber-400 rounded-pill transition-all" style={{ width: '80.1%' }} />
-              </div>
-              <div className="flex-1 bg-app-elevated rounded-pill overflow-hidden" title="7d window: 34.5%">
-                <div className="h-full bg-amber-500/70 rounded-pill transition-all" style={{ width: '34.5%' }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Codex / OpenAI (Original Emerald) */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 text-app">
-                <ProviderLogo id="openai" className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-medium">Codex</span>
-              </div>
-              <div className="flex items-center gap-2 font-mono text-xs text-app-muted">
-                <span>5h: 71%</span>
-                <span>·</span>
-                <span>7d: 42%</span>
-              </div>
-            </div>
-            <div className="flex gap-1.5 h-1.5 w-full">
-              <div className="flex-1 bg-app-elevated rounded-pill overflow-hidden" title="5h window: 71.3%">
-                <div className="h-full bg-emerald-400 rounded-pill transition-all" style={{ width: '71.3%' }} />
-              </div>
-              <div className="flex-1 bg-app-elevated rounded-pill overflow-hidden" title="7d window: 42.0%">
-                <div className="h-full bg-emerald-500/70 rounded-pill transition-all" style={{ width: '42%' }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Gemini / OpenCode (Original Sky) */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 text-app">
-                <ProviderLogo id="gemini" className="w-3.5 h-3.5 text-sky-400" />
-                <span className="font-medium">Gemini</span>
-              </div>
-              <div className="flex items-center gap-2 font-mono text-xs text-app-muted">
-                <span>5h: 18%</span>
-                <span>·</span>
-                <span>7d: 9%</span>
-              </div>
-            </div>
-            <div className="flex gap-1.5 h-1.5 w-full">
-              <div className="flex-1 bg-app-elevated rounded-pill overflow-hidden" title="5h window: 18.0%">
-                <div className="h-full bg-sky-400 rounded-pill transition-all" style={{ width: '18%' }} />
-              </div>
-              <div className="flex-1 bg-app-elevated rounded-pill overflow-hidden" title="7d window: 9.5%">
-                <div className="h-full bg-sky-500/70 rounded-pill transition-all" style={{ width: '9.5%' }} />
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Add Project Modal */}

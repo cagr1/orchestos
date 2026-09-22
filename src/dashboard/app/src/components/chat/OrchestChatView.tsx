@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ChatThread, ChatMessage, ChatAttachment } from '../../types/orchestos';
 import { ProviderLogo } from '../common/ProviderLogos';
+import { DEFAULT_CHAT_MODEL, getChatModels, uploadChatFile } from '../../api/chat';
 
 interface OrchestChatViewProps {
   thread?: ChatThread;
@@ -32,12 +33,13 @@ interface OrchestChatViewProps {
   onRejectHeldTask?: (taskId: string) => void;
 }
 
-export type AgentType = 'claude' | 'codex' | 'opencode' | 'api';
+export type AgentType = 'local' | 'claude' | 'codex' | 'opencode' | 'api';
 
 const AGENT_MODELS: Record<
   AgentType,
   { name: string; provider: string; desc: string }[]
 > = {
+  local: [],
   claude: [
     { name: 'Claude 3.7 Sonnet', provider: 'claude', desc: 'Extended reasoning & planning' },
     { name: 'Claude 3.5 Haiku', provider: 'claude', desc: 'High speed code review' },
@@ -65,8 +67,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
 }) => {
   const [inputText, setInputText] = useState('');
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<AgentType>('claude');
-  const [selectedModel, setSelectedModel] = useState('Claude 3.7 Sonnet');
+  const [selectedAgent, setSelectedAgent] = useState<AgentType>('api');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [apiModels, setApiModels] = useState<{ name: string; provider: string; desc: string }[]>([]);
   const [selectedEffort, setSelectedEffort] = useState('Medium');
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
@@ -77,12 +80,38 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
 
   const effortLevels = ['Low', 'Medium', 'High', 'Reasoning'];
 
+  useEffect(() => {
+    void getChatModels()
+      .then((models) => {
+        const options = models.map((model) => ({
+          name: model.id,
+          provider: 'api',
+          desc: `${model.contextK}K context`,
+        }));
+        setApiModels(options);
+        setSelectedModel(options.some((model) => model.name === DEFAULT_CHAT_MODEL)
+          ? DEFAULT_CHAT_MODEL
+          : options[0]?.name || '');
+      })
+      .catch(() => setApiModels([]));
+  }, []);
+
+  useEffect(() => {
+    const agent = thread?.agent;
+    if (agent === 'local' || agent === 'claude' || agent === 'codex' || agent === 'opencode' || agent === 'api') {
+      setSelectedAgent(agent);
+      if (agent === 'api' && !selectedModel) setSelectedModel(DEFAULT_CHAT_MODEL);
+    }
+  }, [thread?.id, thread?.agent, selectedModel]);
+
   // Keep selected model in sync when agent changes
   const handleSelectAgent = (agent: AgentType) => {
     setSelectedAgent(agent);
-    const available = AGENT_MODELS[agent];
+    const available = agent === 'api' && apiModels.length ? apiModels : AGENT_MODELS[agent];
     if (available && available.length > 0) {
       setSelectedModel(available[0].name);
+    } else if (agent === 'api') {
+      setSelectedModel(DEFAULT_CHAT_MODEL);
     }
   };
 
@@ -113,13 +142,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
-    const newAttachments: ChatAttachment[] = files.map((f) => ({
-      id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      name: f.name,
-      size: `${(f.size / 1024).toFixed(1)} KB`,
-      type: f.name.endsWith('.pdf') ? 'pdf' : 'file',
-    }));
-    setAttachments((prev) => [...prev, ...newAttachments]);
+    void Promise.all(files.map((file) => uploadChatFile(file)))
+      .then((uploaded) => setAttachments((prev) => [...prev, ...uploaded]))
+      .catch(() => undefined);
     setShowUploadMenu(false);
   };
 
@@ -132,7 +157,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   };
 
   const messages = thread?.messages || [];
-  const currentAgentModels = AGENT_MODELS[selectedAgent] || AGENT_MODELS.claude;
+  const currentAgentModels = selectedAgent === 'api'
+    ? apiModels
+    : AGENT_MODELS[selectedAgent] || [];
 
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg text-app overflow-hidden relative select-none">
@@ -501,58 +528,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         </div>
       </div>
 
-      {/* Fine Sticky Session Status Bar Pinned Below Chat (Requirement 6) */}
-      <div className="flex-shrink-0 border-t border-app bg-app-surface/90 px-4 py-1.5 flex items-center justify-between gap-4 text-xs font-mono">
-        <div className="flex items-center gap-5 overflow-x-auto min-w-0">
-          <span className="text-app-muted uppercase tracking-wider text-[10px] flex-shrink-0">
-            Session Context:
-          </span>
-
-          {/* Claude CLI Context */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <ProviderLogo id="claude" className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="text-app text-xs">Claude</span>
-            <div className="w-14 h-1.5 rounded-pill bg-app-bg overflow-hidden border border-app/60">
-              <div className="h-full bg-amber-500 rounded-pill" style={{ width: '38%' }} />
-            </div>
-            <span className="text-amber-400 text-xs font-semibold">38%</span>
-          </div>
-
-          {/* Codex CLI Context */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <ProviderLogo id="codex" className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="text-app text-xs">Codex</span>
-            <div className="w-14 h-1.5 rounded-pill bg-app-bg overflow-hidden border border-app/60">
-              <div className="h-full bg-emerald-500 rounded-pill" style={{ width: '22%' }} />
-            </div>
-            <span className="text-emerald-400 text-xs font-semibold">22%</span>
-          </div>
-
-          {/* OpenCode CLI Context */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <ProviderLogo id="opencode" className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="text-app text-xs">OpenCode</span>
-            <div className="w-14 h-1.5 rounded-pill bg-app-bg overflow-hidden border border-app/60">
-              <div className="h-full bg-sky-500 rounded-pill" style={{ width: '54%' }} />
-            </div>
-            <span className="text-sky-400 text-xs font-semibold">54%</span>
-          </div>
-
-          {/* API Gateway Context */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <ProviderLogo id="gemini" className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="text-app text-xs">API</span>
-            <div className="w-14 h-1.5 rounded-pill bg-app-bg overflow-hidden border border-app/60">
-              <div className="h-full bg-indigo-500 rounded-pill" style={{ width: '12%' }} />
-            </div>
-            <span className="text-indigo-400 text-xs font-semibold">12%</span>
-          </div>
-        </div>
-
-        <div className="text-app-muted text-xs flex-shrink-0 hidden md:block">
-          Tokens: <span className="text-app font-semibold">4.8k / 128k</span>
-        </div>
-      </div>
     </div>
   );
 };

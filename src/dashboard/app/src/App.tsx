@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShellHeader } from './components/layout/ShellHeader';
 import { ShellSidebar } from './components/layout/ShellSidebar';
 import { CommandPalette } from './components/common/CommandPalette';
@@ -16,9 +16,18 @@ import {
   initialMockSpecs,
   initialMockInstincts,
   initialMockMemories,
-  initialMockThreads,
   initialMockSkills,
 } from './data/mockOrchestosData';
+import {
+  createSession,
+  deleteSession,
+  getSessionMessages,
+  listSessions,
+  mapMessage,
+  renameSession,
+  sendMessage,
+} from './api/chat';
+import { SessionStatusBar } from './components/layout/SessionStatusBar';
 import { INITIAL_PROJECTS } from './data/orcaProjectData';
 import {
   TaskItem,
@@ -111,12 +120,29 @@ export default function App() {
   const [specs, setSpecs] = useState<SpecItem[]>(initialMockSpecs);
   const [instincts, setInstincts] = useState<InstinctItem[]>(initialMockInstincts);
   const [memories, setMemories] = useState<MemoryItem[]>(initialMockMemories);
-  const [threads, setThreads] = useState<ChatThread[]>(initialMockThreads);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
   const [skills, setSkills] = useState<SkillItem[]>(initialMockSkills);
-  const [activeThreadId, setActiveThreadId] = useState<string>(initialMockThreads[0].id);
+  const [activeThreadId, setActiveThreadId] = useState<string>('');
+
+  useEffect(() => {
+    let disposed = false;
+    void listSessions().then(async (loaded) => {
+      if (disposed) return;
+      setThreads(loaded);
+      setActiveThreadId(loaded[0]?.id || '');
+      const hydrated = await Promise.all(loaded.map(async (thread) => ({
+        ...thread,
+        messages: (await getSessionMessages(thread.id)).map(mapMessage),
+      })));
+      if (!disposed) setThreads(hydrated);
+    }).catch(() => {
+      if (!disposed) setThreads([]);
+    });
+    return () => { disposed = true; };
+  }, []);
 
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0];
-  const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
+  const activeThread = threads.find((t) => t.id === activeThreadId);
   const activeAgent = currentProject.agents.find((a) => a.id === activeAgentId) || null;
 
   // Mode change handler that tracks previous mode
@@ -283,54 +309,65 @@ export default function App() {
   };
 
   // Chat actions
-  const handleNewChat = (cliId?: string, model?: string, title?: string) => {
-    const newId = `thread_${Date.now()}`;
-    const defaultModel =
-      cliId === 'codex'
-        ? 'gpt-5.6-codex'
-        : cliId === 'opencode'
-        ? 'deepseek-v3'
-        : cliId === 'gemini'
-        ? 'Gemini 2.5 Pro'
-        : 'Claude 3.7 Sonnet';
-    const chosenModel = model || defaultModel;
-    const newThread: ChatThread = {
-      id: newId,
-      title: title || 'New conversation',
-      agent: chosenModel,
-      mode: 'orchestrator',
-      status: 'active',
-      createdAt: 'Just now',
-      updatedAt: 'Just now',
-      tokenCount: 0,
-      costUsd: 0,
-      messages: [],
-    };
-    setThreads((prev) => [newThread, ...prev]);
-    setActiveThreadId(newId);
+  const handleNewChat = async (cliId?: string, _model?: string, title?: string) => {
+    const agent = cliId === 'local' || cliId === 'claude' || cliId === 'codex' || cliId === 'opencode' ? cliId : 'api';
+    try {
+      const newThread = await createSession({ agent, title });
+      setThreads((prev) => [newThread, ...prev]);
+      setActiveThreadId(newThread.id);
+    } catch {
+      return;
+    }
     setMode('chat');
   };
 
-  const handleDeleteChat = (id: string) => {
-    setThreads((prev) => prev.filter((t) => t.id !== id));
-    if (activeThreadId === id) {
-      const remaining = threads.filter((t) => t.id !== id);
-      if (remaining.length > 0) {
-        setActiveThreadId(remaining[0].id);
-      }
+  const handleDeleteChat = async (id: string) => {
+    try {
+      await deleteSession(id);
+      setThreads((prev) => {
+        const remaining = prev.filter((thread) => thread.id !== id);
+        if (activeThreadId === id) setActiveThreadId(remaining[0]?.id || '');
+        return remaining;
+      });
+    } catch {
+      // Keep the server-backed row visible when the API rejects the mutation.
     }
   };
 
-  const handleSendMessage = (
+  const handleRenameChat = async (id: string) => {
+    const thread = threads.find((item) => item.id === id);
+    const title = window.prompt('Rename conversation', thread?.title || '');
+    if (!title?.trim()) return;
+    try {
+      const updated = await renameSession(id, title.trim());
+      setThreads((prev) => prev.map((item) => item.id === id ? { ...item, title: updated.title } : item));
+    } catch {
+      // Keep the current title when validation or the request fails.
+    }
+  };
+
+  const handleSendMessage = async (
     content: string,
     attachments?: ChatAttachment[],
     agent?: string,
     model?: string,
     effort?: string
   ) => {
-    const activeModel = model || agent || 'Claude 3.7 Sonnet';
-    const userMessage = {
-      id: `msg_${Date.now()}`,
+    let threadId = activeThreadId;
+    let thread = threads.find((item) => item.id === threadId);
+    if (!threadId) {
+      try {
+        thread = await createSession({ agent: 'api', projectId: null });
+        threadId = thread.id;
+        setThreads((prev) => [thread!, ...prev]);
+        setActiveThreadId(thread.id);
+      } catch {
+        return;
+      }
+    }
+    const activeModel = model || undefined;
+    const optimistic = {
+      id: `pending_${Date.now()}`,
       role: 'user' as const,
       content,
       timestamp: 'Just now',
@@ -338,50 +375,17 @@ export default function App() {
       model: activeModel,
       effort,
     };
-
-    setThreads((prev) =>
-      prev.map((t) => {
-        if (t.id === activeThreadId) {
-          const updatedMessages = [...t.messages, userMessage];
-          const newTitle =
-            t.messages.length === 0 ? content.slice(0, 32) + (content.length > 32 ? '...' : '') : t.title;
-          return { ...t, title: newTitle, messages: updatedMessages };
-        }
-        return t;
+    setThreads((prev) => prev.map((thread) => thread.id === threadId
+      ? { ...thread, messages: [...thread.messages, optimistic] }
+      : thread));
+    void sendMessage({ sessionId: threadId, message: content, agent: thread?.agent, model, effort, attachments })
+      .then(async () => {
+        const rows = await getSessionMessages(threadId);
+        setThreads((prev) => prev.map((thread) => thread.id === threadId
+          ? { ...thread, messages: rows.map(mapMessage), title: thread.messages.length === 0 ? content.slice(0, 32) : thread.title }
+          : thread));
       })
-    );
-
-    // Simulated agent response
-    setTimeout(() => {
-      const assistantMessage = {
-        id: `msg_resp_${Date.now()}`,
-        role: 'assistant' as const,
-        content: `I've analyzed your instruction with **${activeModel}**.\n\nAll modifications respect the declared \`tasks.yaml\` contract boundaries.\n- Worktree: \`refs/orchestos/sandbox-t3\`\n- Code graph: AST validated\n- Exit code: \`0\``,
-        timestamp: 'Just now',
-        model: activeModel,
-        reasoning: [
-          'Evaluated requested prompt syntax against project invariants',
-          'Checked AST boundaries: no circular imports detected',
-          'Contract slice checked: within authorized file set',
-        ],
-        toolCalls: [
-          { name: 'read_spec', args: { taskId: 't3_contract' }, status: 'success' as const },
-          { name: 'ast_verify', args: { path: 'src/core' }, status: 'success' as const },
-        ],
-      };
-      setThreads((prev) =>
-        prev.map((t) => {
-          if (t.id === activeThreadId) {
-            return {
-              ...t,
-              messages: [...t.messages, assistantMessage],
-              updatedAt: 'Just now',
-            };
-          }
-          return t;
-        })
-      );
-    }, 700);
+      .catch(() => undefined);
   };
 
   const handleApproveHeldTask = (taskId: string) => {
@@ -518,6 +522,7 @@ export default function App() {
             onSelectThread={setActiveThreadId}
             onNewChat={handleNewChat}
             onDeleteChat={handleDeleteChat}
+            onRenameChat={handleRenameChat}
             projects={projects}
             activeProjectId={activeProjectId}
             onSelectProject={setActiveProjectId}
@@ -596,6 +601,7 @@ export default function App() {
           />
         )}
       </div>
+      <SessionStatusBar />
 
       {/* Global Command Palette (⌘K) with fully functional handlers */}
       <CommandPalette

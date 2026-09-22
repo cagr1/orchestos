@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
-import { Bot, X, Sparkles, Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bot, X, Plus } from 'lucide-react';
 import { ProviderLogo } from '../common/ProviderLogos';
+import { DEFAULT_CHAT_MODEL, getChatModels } from '../../api/chat';
+
+interface ExecutorMode {
+  id: string;
+  label: string;
+  detected: boolean;
+}
 
 interface NewAgentSelectorModalProps {
   isOpen: boolean;
@@ -19,48 +26,44 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
 }) => {
   const [selectedCli, setSelectedCli] = useState('claude');
   const [agentTitle, setAgentTitle] = useState('');
+  const [modes, setModes] = useState<ExecutorMode[]>([]);
+  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let disposed = false;
+    const modesPromise = fetch('/api/system/executor-modes').then((response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return response.json() as Promise<{ modes: ExecutorMode[] }>;
+    });
+    void modesPromise.then((executorModes) => {
+      if (disposed) return;
+      const available = executorModes.modes.filter((mode) => mode.detected);
+      setModes(available);
+      setSelectedCli((current) => available.some((mode) => mode.id === current)
+        ? current
+        : available[0]?.id || '');
+    }).catch(() => { if (!disposed) setModes([]); });
+    void getChatModels()
+      .then((chatModels) => {
+        if (!disposed) setModels(chatModels.map((model) => ({ id: model.id, name: model.name || model.id })));
+      })
+      .catch(() => { if (!disposed) setModels([]); });
+    return () => { disposed = true; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const cliOptions = [
-    {
-      id: 'claude',
-      name: 'Claude Code',
-      model: 'Claude 3.7 Sonnet',
-      desc: 'Deep reasoning, architecture planning and refactoring',
-      color: 'text-amber-400',
-    },
-    {
-      id: 'codex',
-      name: 'Codex / OpenAI',
-      model: 'gpt-5.6-codex',
-      desc: 'Rapid synthesis, code generation, and test fixes',
-      color: 'text-emerald-400',
-    },
-    {
-      id: 'opencode',
-      name: 'OpenCode CLI',
-      model: 'deepseek-v3',
-      desc: 'High-throughput local open source models',
-      color: 'text-sky-400',
-    },
-    {
-      id: 'gemini',
-      name: 'API Gateway',
-      model: 'Gemini 2.5 Pro',
-      desc: '1M token context window & multimodal reasoning',
-      color: 'text-sky-400',
-    },
-  ];
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const opt = cliOptions.find((o) => o.id === selectedCli) || cliOptions[0];
+    const opt = modes.find((o) => o.id === selectedCli);
+    if (!opt) return;
     const defaultTitle = isChatMode
-      ? `Chat with ${opt.name}`
-      : `Agent: ${opt.name} on ${projectName}`;
+      ? `Chat with ${opt.label}`
+      : `Agent: ${opt.label} on ${projectName}`;
     const finalTitle = agentTitle.trim() || defaultTitle;
-    onCreateAgent(opt.id, opt.model, finalTitle);
+    const defaultModel = models.find((model) => model.id === DEFAULT_CHAT_MODEL)?.id || models[0]?.id || '';
+    onCreateAgent(opt.id, defaultModel, finalTitle);
     setAgentTitle('');
     onClose();
   };
@@ -112,7 +115,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
           <div>
             <label className="block text-app-muted mb-1.5 font-medium">Select Agent / Engine</label>
             <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-              {cliOptions.map((opt) => {
+              {modes.map((opt) => {
                 const isSelected = selectedCli === opt.id;
                 return (
                   <button
@@ -126,14 +129,18 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
                     }`}
                   >
                     <div className="mt-0.5">
-                      <ProviderLogo id={opt.id} className={`w-4 h-4 ${opt.color}`} />
+                      <ProviderLogo id={opt.id} className="w-4 h-4 text-app-accent" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-xs text-app">{opt.name}</span>
-                        <span className="text-xs font-mono text-app-muted">{opt.model}</span>
+                        <span className="font-semibold text-xs text-app">{opt.label}</span>
+                        <span className="text-xs font-mono text-app-muted">
+                          {opt.id === 'api' ? (models.length ? `${models.length} models` : 'Models unavailable') : opt.label}
+                        </span>
                       </div>
-                      <p className="text-xs text-app-muted mt-0.5 truncate">{opt.desc}</p>
+                      <p className="text-xs text-app-muted mt-0.5 truncate">
+                        {opt.id === 'api' ? 'Models from the configured API catalog' : 'Detected CLI available for new sessions'}
+                      </p>
                     </div>
                   </button>
                 );
@@ -151,6 +158,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
             </button>
             <button
               type="submit"
+              disabled={!selectedCli}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent text-zinc-950 font-semibold hover:opacity-90 transition-opacity"
             >
               <Plus className="w-3.5 h-3.5" />
