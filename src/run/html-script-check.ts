@@ -122,6 +122,7 @@ export function jsSyntaxCheckForJsFile(jsAbsPath: string, timeoutMs = 15_000): C
   return {
     cmd: `node --check ${quote(jsAbsPath)}`,
     timeout_ms: timeoutMs,
+    trusted: true,
   }
 }
 
@@ -149,6 +150,7 @@ export function jsSyntaxCheckForHtmlFile(
     check: {
       cmd: `node --check ${quote(tempPath)}`,
       timeout_ms: options.timeoutMs ?? 15_000,
+      trusted: true,
     },
     tempPath,
   }

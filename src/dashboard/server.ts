@@ -9,7 +9,9 @@ import {
 } from './handlers/chat.ts'
 import {
   handleApiChatSessionArchive,
+  handleApiChatSessionConsole,
   handleApiChatSessionDelete,
+  handleApiChatSessionExec,
   handleApiChatSessionMessages,
   handleApiChatSessionPatch,
   handleApiChatSessionsCreate,
@@ -340,6 +342,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/messages$/)) {
     return handleApiChatSessionMessages(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/console$/)) {
+    return handleApiChatSessionConsole(url)
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/exec$/)) {
+    return handleApiChatSessionExec(req, url)
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/turn-status$/)) {
     return handleApiChatSessionTurnStatus(url)

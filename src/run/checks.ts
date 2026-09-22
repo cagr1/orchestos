@@ -1,5 +1,6 @@
-import { existsSync, readFileSync } from 'fs'
-import { join, resolve } from 'path'
+import { existsSync, readFileSync, realpathSync } from 'fs'
+import { homedir } from 'os'
+import { dirname, join, resolve } from 'path'
 import type { Check } from '../tasks/schema.ts'
 import { jsSyntaxCheckForHtmlFile, jsSyntaxCheckForJsFile } from './html-script-check.ts'
 import type { RunLogger } from './logger.ts'
@@ -46,6 +47,7 @@ function testAssertionCheckFor(path: string): Check {
   return {
     cmd: `${process.execPath} run ${checker} ${JSON.stringify(path)}`,
     timeout_ms: TEST_ASSERTION_CHECK_TIMEOUT_MS,
+    trusted: true,
   }
 }
 
@@ -153,7 +155,7 @@ export async function runChecks(
   return results
 }
 
-async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResult> {
+export async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResult> {
   const argv = splitCommand(check.cmd)
   const command = argv[0]
   const args = argv.slice(1)
@@ -170,6 +172,20 @@ async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResu
 
   if (!command) {
     return failureResult(check.cmd, 'empty command', started, false)
+  }
+
+  if (!check.trusted) {
+    const realRoot = realpathSync(projectRoot)
+    for (const arg of args) {
+      for (const value of pathValuesInArgument(arg)) {
+        if (!looksLikePath(value)) continue
+        const candidate = resolveCommandPath(value, cwd)
+        const realCandidate = realPathOrResolved(candidate)
+        if (!isWithinRoot(realCandidate, realRoot)) {
+          return failureResult(check.cmd, `path outside project: ${arg}`, started, false)
+        }
+      }
+    }
   }
 
   const version = commandVersion(command)
@@ -207,6 +223,42 @@ async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResu
   } catch (e: any) {
     return failureResult(check.cmd, e.message, started, timedOut)
   }
+}
+
+function looksLikePath(value: string): boolean {
+  return value.startsWith('/') || value.startsWith('~') || value.startsWith('.') || value.includes('/')
+}
+
+function pathValuesInArgument(arg: string): string[] {
+  const values = [arg]
+  const equals = arg.indexOf('=')
+  if (equals >= 0) values.push(arg.slice(equals + 1))
+  if (arg.startsWith('-') && !arg.startsWith('--') && arg.length > 2) values.push(arg.slice(2))
+  return values
+}
+
+function resolveCommandPath(value: string, cwd: string): string {
+  if (value === '~') return homedir()
+  if (value.startsWith('~/')) return resolve(homedir(), value.slice(2))
+  return resolve(cwd, value)
+}
+
+function realPathOrResolved(path: string): string {
+  try {
+    return realpathSync(path)
+  } catch {
+    let parent = dirname(path)
+    try {
+      parent = realpathSync(parent)
+    } catch {
+      return resolve(path)
+    }
+    return resolve(parent, path.slice(path.lastIndexOf('/') + 1))
+  }
+}
+
+function isWithinRoot(path: string, root: string): boolean {
+  return path === root || path.startsWith(`${root}/`)
 }
 
 function splitCommand(cmd: string): string[] {

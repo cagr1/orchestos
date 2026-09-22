@@ -2502,6 +2502,15 @@ ni eso hace falta.
     sesión, no tiempo desde la última actividad; +test). Gate en vivo: `docs/done/evidence/UI.13.4a-live.json`
     — cerrar→History→restaurar→borrar, quitar proyecto deja la carpeta en disco, 0 errores.
     `test:coverage` 1462 pass / 0 fail.
+  - [x] **UI.13.4b** (cerrado 2026-09-22) — punto 4. Ejecutado por: luna · Spec: docs/specs/UI.13.4b.md (2 rondas; borrado al cerrar)
+    Consola de Dev: `GET …/console` (turnos + pasos + comandos), `POST …/exec` sobre `runOneCheck` exportada,
+    migración 13 `console_commands`. Frontera endurecida para runner y consola: argumentos con forma de ruta
+    (incluido `--x=valor`) confinados a la raíz real del proyecto; checks internos `trusted`, no legible desde
+    `tasks.yaml`. Ronda 1 reportó verde con 7 fallos de migraciones: corregido en ronda 2.
+    Gate en vivo: `docs/done/evidence/UI.13.4b-live.json` — `ls` real, `ls | wc` sin pipe, `cat ../x` y `ls /`
+    rechazados, historial tras recargar, Archive Session → History, 0 errores. Pasos reales sin datos en vivo
+    (0 turnos con task_id en la DB): cubierto por test. `test:coverage` 1465 pass / 0 fail.
+    Límite conocido, avisado a Carlos: `node -e`/`sh -c` esquivan el confinamiento por argumentos.
   Inventario (plantilla `~/Documents/screens/orchestos-ai-agent-dashboard` vs app, 2026-09-22); cada uno
   necesita backend que hoy no existe (`server.ts` no tiene ruta):
   1. Sidebar Dev: cerrar agente → pasa a History (`ShellSidebar.tsx:394` plantilla); falta archivar sesión.

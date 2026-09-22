@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mapMessage, mapSessionToThread, sendMessage } from './chat';
+import { execCommand, getConsole, mapMessage, mapSessionToThread, sendMessage } from './chat';
 
 describe('chat API mapping', () => {
   test('maps persisted session and message rows to the prototype types', () => {
@@ -39,5 +39,26 @@ describe('chat API mapping', () => {
       id: 7, sessionId: 's', role: 'assistant', content: 'Review this', model: null, taskId: 'task-7',
       ocrUsed: [], taskHeld: true, existingFiles: ['src/a.ts'], createdAt: '2026-09-21T12:00:00.000Z',
     })).toMatchObject({ taskHeld: true, heldTask: { taskId: 'task-7' } });
+  });
+
+  test('loads the real console and executes a command for a session', async () => {
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input, init) => {
+      calls.push({ input, init });
+      const body = calls.length === 1
+        ? { lines: [{ at: '2026-09-22T12:00:00Z', kind: 'output', text: 'ok' }], pending: false }
+        : { id: 1, cmd: 'ls', exitCode: 0, stdout: 'src', stderr: '', elapsedMs: 4, timedOut: false };
+      return new Response(JSON.stringify(body), { status: 200 });
+    }) as typeof fetch;
+    try {
+      await expect(getConsole('session-1')).resolves.toMatchObject({ pending: false });
+      await expect(execCommand('session-1', 'ls')).resolves.toMatchObject({ exitCode: 0 });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+    expect(String(calls[0]?.input)).toContain('/console');
+    expect(String(calls[1]?.input)).toContain('/exec');
+    expect(JSON.parse(String(calls[1]?.init?.body))).toEqual({ cmd: 'ls' });
   });
 });

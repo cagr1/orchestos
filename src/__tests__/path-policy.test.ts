@@ -10,7 +10,7 @@ import {
 } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { runChecks } from '../run/checks.ts'
+import { runChecks, runOneCheck } from '../run/checks.ts'
 import { enforceContract } from '../run/contract.ts'
 import {
   isSafeRelPath,
@@ -95,5 +95,31 @@ describe('path policy — traversal matrix', () => {
       if (previous === undefined) delete process.env.INTERNAL_TEST_SECRET
       else process.env.INTERNAL_TEST_SECRET = previous
     }
+  })
+
+  it('confines command path arguments to the real project root', async () => {
+    const root = makeRoot()
+    const outside = mkdtempSync(join(tmpdir(), 'orchestos-command-outside-'))
+    roots.push(outside)
+    writeFileSync(join(outside, 'secret.txt'), 'secret')
+    symlinkSync(join(outside, 'secret.txt'), join(root, 'src', 'escape.txt'))
+    const logger = { error() {} } as any
+
+    const rejected = await runChecks([{ cmd: 'cat ../secret.txt' }], root, logger)
+    expect(rejected[0]).toMatchObject({ exitCode: 1, stderr: 'path outside project: ../secret.txt' })
+
+    const symlinkRejected = await runChecks([{ cmd: 'cat src/escape.txt' }], root, logger)
+    expect(symlinkRejected[0]).toMatchObject({ exitCode: 1, stderr: 'path outside project: src/escape.txt' })
+
+    const accepted = await runChecks([{ cmd: 'ls src' }], root, logger)
+    expect(accepted[0]?.exitCode).toBe(0)
+
+    writeFileSync(join(root, 'package.json'), '{"name":"fixture"}')
+    const cwdSrc = await runOneCheck({ cmd: 'cat ../package.json', cwd: 'src' }, root)
+    expect(cwdSrc.exitCode).toBe(0)
+    expect(cwdSrc.stdout).toContain('fixture')
+
+    const optionPath = await runOneCheck({ cmd: 'cat --x=../secret.txt' }, root)
+    expect(optionPath).toMatchObject({ exitCode: 1, stderr: 'path outside project: --x=../secret.txt' })
   })
 })

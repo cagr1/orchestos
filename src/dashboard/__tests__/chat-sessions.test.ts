@@ -47,6 +47,42 @@ async function runIsolated(
 }
 
 describe('CC.2 — chat sessions backend', () => {
+  it('UI.13.4b persists console commands, applies runner boundaries and cascades on delete', async () => {
+    const result = await runIsolated(`
+      const { mkdirSync, writeFileSync } = await import('fs')
+      const { join } = await import('path')
+      const home = process.env.ORCHESTOS_HOME
+      const projectPath = join(home, 'console-project')
+      mkdirSync(join(projectPath, 'src'), { recursive: true })
+      writeFileSync(join(projectPath, 'src', 'ok.txt'), 'ok')
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      const { route } = await import('./src/dashboard/server.ts')
+      runMigrations()
+      db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['console-project', projectPath, '{}', '', new Date().toISOString()])
+      const session = sessions.createChatSession({ projectId: 'console-project', agent: 'api', mode: 'code' })
+      const post = (cmd) => route(new Request('http://localhost:50852/api/chat/sessions/' + session.id + '/exec', { method: 'POST', headers: { 'X-Orchestos-Project-Id': 'console-project' }, body: JSON.stringify({ cmd }) }), 50852)
+      const ok = await post('ls src')
+      const pipe = await post('ls | wc')
+      const outside = await post('cat ../secret.txt')
+      const consoleResponse = await route(new Request('http://localhost:50852/api/chat/sessions/' + session.id + '/console'), 50852)
+      const lines = await consoleResponse.json()
+      const beforeDelete = db.query('SELECT COUNT(*) AS count FROM console_commands WHERE session_id = ?').get(session.id).count
+      sessions.deleteChatSession(session.id)
+      const afterDelete = db.query('SELECT COUNT(*) AS count FROM console_commands WHERE session_id = ?').get(session.id).count
+      process.stdout.write(JSON.stringify({ statuses: [ok.status, pipe.status, outside.status], ok: await ok.clone().json(), lines, beforeDelete, afterDelete }))
+      db.close()
+    `)
+    expect(result.statuses).toEqual([200, 200, 200])
+    expect(result.ok).toMatchObject({ exitCode: 0, stdout: expect.stringContaining('ok.txt') })
+    const consoleLines = (result.lines as { lines: Array<{ kind: string; text: string }> }).lines
+    expect(consoleLines.some((line) => line.text === '$ ls src')).toBe(true)
+    expect(consoleLines.some((line) => line.text.includes('path outside project'))).toBe(true)
+    expect(result.beforeDelete).toBe(3)
+    expect(result.afterDelete).toBe(0)
+  })
+
   it('lists general sessions separately from project sessions', async () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')

@@ -52,6 +52,27 @@ export interface ChatSendResponse {
   readBoundaryWarning?: string;
 }
 
+export interface ConsoleLine {
+  at: string;
+  kind: 'turn' | 'step' | 'command' | 'output' | 'error';
+  text: string;
+}
+
+export interface ConsoleResponse {
+  lines: ConsoleLine[];
+  pending: boolean;
+}
+
+export interface ConsoleExecResponse {
+  id: number;
+  cmd: string;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  elapsedMs: number;
+  timedOut: boolean;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
   const body = (await response.json().catch(() => null)) as { error?: string } | T | null;
@@ -159,6 +180,17 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
 export async function getChatModels(): Promise<ChatModelOption[]> {
   return request<ChatModelOption[]>('/api/chat/models');
+}
+
+export async function getConsole(sessionId: string): Promise<ConsoleResponse> {
+  return request<ConsoleResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/console`);
+}
+
+export async function execCommand(sessionId: string, cmd: string): Promise<ConsoleExecResponse> {
+  return request<ConsoleExecResponse>(
+    `/api/chat/sessions/${encodeURIComponent(sessionId)}/exec`,
+    jsonInit('POST', { cmd }),
+  );
 }
 
 export async function uploadChatFile(file: File): Promise<ChatAttachment> {

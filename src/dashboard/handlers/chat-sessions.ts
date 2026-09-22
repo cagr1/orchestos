@@ -17,12 +17,17 @@ import {
   getLastPersistentTaskId,
   getLastTurn,
   hasActiveTurn,
+  listChatTurns,
   sessionHasPersistentWork,
 } from '../../db/chat-turns.ts'
+import { listConsoleCommands, insertConsoleCommand } from '../../db/console-commands.ts'
+import { getRunSteps } from '../../db/run-steps.ts'
+import { runOneCheck } from '../../run/checks.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import {
   type DashboardProjectContext,
+  DashboardProjectError,
   dashboardProjectFromId,
   resolveDashboardProject,
 } from '../project-context.ts'
@@ -63,7 +68,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
 }
 
 function sessionIdFromUrl(url: URL): string | null {
-  const match = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/turn-status|\/archive|\/restore)?$/)
+  const match = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/turn-status|\/archive|\/restore|\/exec|\/console)?$/)
   if (!match?.[1]) return null
   try {
     const id = decodeURIComponent(match[1]).trim()
@@ -71,6 +76,95 @@ function sessionIdFromUrl(url: URL): string | null {
   } catch {
     return null
   }
+}
+
+export interface ConsoleLine {
+  at: string
+  kind: 'turn' | 'step' | 'command' | 'output' | 'error'
+  text: string
+}
+
+export function handleApiChatSessionExec(req: Request, url: URL): Promise<Response> {
+  return execConsoleCommand(req, url)
+}
+
+async function execConsoleCommand(req: Request, url: URL): Promise<Response> {
+  const id = sessionIdFromUrl(url)
+  if (!id) return errorResponse('Invalid session id', 400)
+  const session = getChatSession(id)
+  if (!session) return errorResponse('Chat session not found', 404)
+  if (!session.project_id) return errorResponse('Console commands require a project session', 400)
+
+  let parsed: unknown
+  try {
+    parsed = await req.json()
+  } catch {
+    return errorResponse('Invalid JSON body', 400)
+  }
+  const cmd = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+    ? (parsed as { cmd?: unknown }).cmd
+    : undefined
+  if (typeof cmd !== 'string' || !cmd.trim() || cmd.length > 1000) {
+    return errorResponse('cmd must contain 1-1000 characters', 400)
+  }
+
+  try {
+    const project = dashboardProjectFromId(session.project_id)
+    const result = await runOneCheck({ cmd }, project.root)
+    const row = insertConsoleCommand({
+      sessionId: id,
+      cmd,
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      timedOut: result.timedOut,
+      elapsedMs: result.elapsedMs,
+    })
+    return jsonResponse({
+      cmd: result.cmd,
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      elapsedMs: result.elapsedMs,
+      timedOut: result.timedOut,
+      id: row.id,
+    })
+  } catch (error) {
+    const status = error instanceof DashboardProjectError ? error.status : 500
+    return errorResponse(error instanceof Error ? error.message : String(error), status)
+  }
+}
+
+export function handleApiChatSessionConsole(url: URL): Response {
+  const id = sessionIdFromUrl(url)
+  if (!id) return errorResponse('Invalid session id', 400)
+  if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
+
+  const lines: ConsoleLine[] = []
+  for (const turn of listChatTurns(id)) {
+    lines.push({ at: turn.created_at, kind: 'turn', text: `[turn] ${turn.status}` })
+    if (turn.error) lines.push({ at: turn.updated_at, kind: 'error', text: turn.error })
+    if (turn.task_id) {
+      for (const step of getRunSteps(turn.task_id)) {
+        let text = `[tool] ${step.label}`
+        if (step.type === 'text') text = `[text] ${step.detail || step.label}`
+        if (step.type === 'step_finish') {
+          const tokens = step.tokens_json ? ` ${step.tokens_json}` : ''
+          const cost = step.cost_usd != null ? ` cost ${step.cost_usd}` : ''
+          text = `[step]${tokens}${cost}`
+        }
+        lines.push({ at: step.created_at, kind: 'step', text })
+      }
+    }
+  }
+  for (const command of listConsoleCommands(id)) {
+    lines.push({ at: command.created_at, kind: 'command', text: `$ ${command.cmd}` })
+    if (command.stdout) lines.push({ at: command.created_at, kind: 'output', text: command.stdout })
+    if (command.stderr) lines.push({ at: command.created_at, kind: 'error', text: command.stderr })
+    lines.push({ at: command.created_at, kind: command.exit_code === 0 ? 'output' : 'error', text: `exit ${command.exit_code}` })
+  }
+  lines.sort((a, b) => a.at.localeCompare(b.at))
+  return jsonResponse({ lines, pending: hasActiveTurn(id) })
 }
 
 function validTitle(value: unknown): value is string {

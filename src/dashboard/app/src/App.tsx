@@ -534,8 +534,7 @@ export default function App() {
             <OrchestDevWorkspace
               activeProject={currentProject}
               activeAgent={activeAgent}
-              thread={threads.find((item) => item.id === activeAgentId)}
-              onSendMessage={handleSendMessage}
+              onCloseAgent={handleCloseAgent}
             />
           )}
 

@@ -268,6 +268,14 @@ export function getLastTurn(sessionId: string): ChatTurnRecord | null {
   )
 }
 
+export function listChatTurns(sessionId: string): ChatTurnRecord[] {
+  return db
+    .query<ChatTurnRecord, string>(
+      'SELECT * FROM chat_turns WHERE session_id = ? ORDER BY created_at ASC, id ASC',
+    )
+    .all(sessionId)
+}
+
 export function sessionHasPersistentWork(sessionId: string): boolean {
   return Boolean(
     db

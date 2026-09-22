@@ -476,6 +476,53 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 13,
+    name: 'console-commands',
+    // Some historical fixtures predate chat-session tables. Record the
+    // migration there without fabricating a parent table, as migration 12
+    // does; the console becomes effective once chat_sessions exists.
+    precondition: () => {},
+    apply: (database) => {
+      const table = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'chat_sessions'",
+        )
+        .get()
+      if (!table) return
+      database.exec(`
+        CREATE TABLE console_commands (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+          cmd TEXT NOT NULL,
+          exit_code INTEGER NOT NULL,
+          stdout TEXT NOT NULL,
+          stderr TEXT NOT NULL,
+          timed_out INTEGER NOT NULL,
+          elapsed_ms INTEGER NOT NULL,
+          created_at TEXT NOT NULL
+        );
+        CREATE INDEX idx_console_commands_session_id ON console_commands(session_id, id);
+      `)
+    },
+    postcondition: (database) => {
+      const sessionTable = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'chat_sessions'",
+        )
+        .get()
+      if (!sessionTable) return
+      const objects = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE name IN ('console_commands', 'idx_console_commands_session_id') ORDER BY name",
+        )
+        .all()
+        .map((row) => row.name)
+      if (objects.join(',') !== 'console_commands,idx_console_commands_session_id') {
+        throw new Error('Migration 13 did not create console_commands and its index')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
