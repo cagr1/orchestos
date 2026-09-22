@@ -97,6 +97,26 @@ prohibidas y `ui81` midió seis tamaños tipográficos. Corregir ambos puntos si
   final. `ui81` debe quedar verde con cinco tamaños o menos; si no, reportar los nodos y medidas
   restantes sin ensayar una solución distinta.
 
+### Ronda 4 — dos medidas restantes, diagnosticadas en vivo
+
+La tercera salida dejó `ui81` verde (11/12/14/20px) y confirmó cero CSS añadido, pero `ui12-shell`
+midió dos diferencias. Ya no hay una decisión pendiente:
+
+- La carpeta mide 14×14 porque en este producto `w-4`/`h-4` usa `1rem` sobre una raíz de 14px. En
+  el prototipo esa clase mide 16×16. Cambiar en el `Icon` de carpeta únicamente las cuatro clases
+  dimensionales por utilidades Tailwind arbitrarias explícitas de 16px:
+  `w-[16px] h-[16px] [&>svg]:w-[16px] [&>svg]:h-[16px]`. Mantener `text-app-accent`,
+  `flex-shrink-0` y el gancho del gate. No escribir CSS.
+- El logo ya termina en 96×96 por la regla permitida existente. La medida 93.12×93.12 es exactamente
+  `96 × .97`: `ui12-shell` lo inspecciona durante `placeholder-in` antes de que termine la animación
+  de 300ms. Hacer determinista `scripts/ui-gates/ui12-shell.mjs`: después de que el logo sea visible
+  y antes de medir su caja, esperar a que terminen las animaciones activas de
+  `.dev-empty-screen .placeholder` usando la API Web Animations (`getAnimations()` y sus promesas
+  `finished`). No agregar un `sleep`, no cambiar el esperado 96, no tocar producto para satisfacer
+  una carrera del gate y no relajar ninguna aserción.
+- Volver a correr build, TypeScript y los cinco gates sobre el diff final. La modificación del gate
+  es parte de esta ronda y debe reportarse; no tocar ningún otro script.
+
 ## 3. Borrar de `src/dashboard/public/styles.css`
 
 Del bloque que agregó UI.12.2 (desde `:root { --sidebar-w-exp` hasta el final del archivo),
