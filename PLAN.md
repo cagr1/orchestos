@@ -2455,6 +2455,11 @@ ni eso hace falta.
   las barras mock CLI QUOTAS / SESSION CONTEXT, entra el `SessionStatusBar` real. Gate: lista, abrir,
   crear, renombrar y borrar contra la API en vivo; payload de envío igual al de `/legacy`.
 
+- [ ] **UI.13.2b — 🧠 Proyectos, header y Dev de la app nueva con datos reales.** (abierto 2026-09-21)
+  Spec: `docs/specs/UI.13.2b.md`. Sidebar Dev con `/api/projects` y agentes = sesiones con
+  `projectId`; Dev workspace con la sesión real; Files con `/api/explorer/*`; History oculto (ítem
+  aparte). Gate: todo contra la API en vivo, 0 errores.
+
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,
