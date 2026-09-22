@@ -74,6 +74,29 @@ ronda corrige solo lo siguiente y vuelve a ejecutar todos los gates sobre el dif
   `GATE_BASE`, levantar el dashboard en el puerto que el propio script declara (hoy `:4321`) y
   volver a correrlo allí; reportar su salida real completa.
 
+### Ronda 3 — corrección final después de rechazar la segunda salida
+
+La segunda salida no es aceptable aunque cuatro gates estén verdes: restauró reglas visuales
+prohibidas y `ui81` midió seis tamaños tipográficos. Corregir ambos puntos sin crear CSS:
+
+- En el bloque final de `styles.css`, conservar únicamente las reglas de geometría/estado que esta
+  especificación permite: `.app[data-sidebar="collapsed"] .sidebar` junto con
+  `.resize-handle-sidebar`, y `.dev-empty-*`. Borrar de nuevo todas las reglas restauradas para
+  `.sidebar-mode-*`, `.sidebar-section-label`, `.sidebar-agent-row`, `.sidebar-cli-menu`,
+  `.sidebar-new-chat*`, `.sidebar-project-main`, `.sidebar-project-folder*` y
+  `.sidebar-project-actions*`. El estado colapsado ya oculta el contenedor completo; no necesita
+  reglas para sus hijos. No restaurar ningún otro selector visual del Header o Sidebar.
+- El prototipo fija en `P/index.css:75-100` la escala que Tailwind debe producir: `text-xs = 11px`
+  y `text-sm = 12px`. En este producto, por el `font-size` raíz, Tailwind calcula 10.5px y 12.25px.
+  Resolverlo **solo en JSX con utilidades que ya existen**: añadir `font-ui-meta` a los elementos
+  copiados de Header/Sidebar que llevan `text-xs`, y `font-ui-control` a los que llevan `text-sm`.
+  Esas utilidades ya equivalen a 11px y 12px. Conservar también las clases `text-xs`/`text-sm` del
+  prototipo; no editar `ui.css`, no crear una regla CSS y no tocar el gate.
+- Al terminar, `styles.css` debe seguir con cero adiciones frente a `HEAD`; `ui.css` debe conservar
+  exactamente sus 12 renglones declarativos ya añadidos. Correr los cinco gates sobre este diff
+  final. `ui81` debe quedar verde con cinco tamaños o menos; si no, reportar los nodos y medidas
+  restantes sin ensayar una solución distinta.
+
 ## 3. Borrar de `src/dashboard/public/styles.css`
 
 Del bloque que agregó UI.12.2 (desde `:root { --sidebar-w-exp` hasta el final del archivo),
