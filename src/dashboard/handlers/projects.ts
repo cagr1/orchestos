@@ -5,12 +5,27 @@ import { ensureProject } from '../../projects/ensure.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type { ProjectRow } from '../types.ts'
 
+export function currentBranch(root: string): string | undefined {
+  try {
+    const result = Bun.spawnSync(['git', '-C', root, 'rev-parse', '--abbrev-ref', 'HEAD'], {
+      stdout: 'pipe',
+      stderr: 'ignore',
+    })
+    if (result.exitCode !== 0) return undefined
+    const branch = new TextDecoder().decode(result.stdout).trim()
+    return branch && branch !== 'HEAD' ? branch : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function handleApiProjects(): Response {
   const rows: ProjectRow[] = listProjects().map((project) => ({
     id: project.id,
     path: project.path,
     stackProfile: project.stack_profile,
     lastUpdated: project.last_updated,
+    branch: currentBranch(project.path),
   }))
   return jsonResponse(rows)
 }
@@ -37,6 +52,7 @@ function publicProjectRow(project: {
     path: project.path,
     stackProfile: project.stack_profile,
     lastUpdated: project.last_updated,
+    branch: currentBranch(project.path),
   }
 }
 

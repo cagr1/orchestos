@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import type React from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { AddProjectModal } from './AddProjectModal'
@@ -83,6 +83,13 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   const filteredThreads = threads.filter((t) =>
     t.title.toLowerCase().includes(chatSearch.toLowerCase()),
   )
+
+  useEffect(() => {
+    if (projects.length === 0) return
+    setExpandedProjects((current) =>
+      Object.fromEntries(projects.map((project) => [project.id, current[project.id] ?? true])),
+    )
+  }, [projects])
 
   return (
     <aside className="w-64 flex-shrink-0 bg-app-bg border-r border-app flex flex-col justify-between select-none text-app flex-shrink-0 z-10">
@@ -414,8 +421,8 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         </div>
       )}
 
-      {/* Bottom Footer: Settings & Quota Progress Bars */}
-      <div className="p-3 border-t border-app bg-app-surface/40 space-y-3 flex-shrink-0">
+      {/* Bottom Footer: Settings */}
+      <div className="p-3 border-t border-app bg-app-surface/40 flex-shrink-0">
         {/* Settings button */}
         <button
           type="button"

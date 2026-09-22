@@ -41,6 +41,7 @@ import type {
   NavigationTab,
   ProjectItem,
   RunItem,
+  SessionStatus,
   SkillItem,
   SpecItem,
   TaskItem,
@@ -65,6 +66,7 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [activeProjectId, setActiveProjectId] = useState<string>('')
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(null)
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([])
 
   // Settings deep-link state
@@ -223,6 +225,24 @@ export default function App() {
       })
       .catch(() => {
         if (!disposed) setRuns([])
+      })
+    return () => {
+      disposed = true
+    }
+  }, [currentProject?.id])
+
+  useEffect(() => {
+    if (!currentProject) return
+    let disposed = false
+    void fetch('/api/session/status', { headers: { 'x-orchestos-project-id': currentProject.id } })
+      .then((response) =>
+        response.ok ? response.json() : Promise.reject(new Error(String(response.status))),
+      )
+      .then((status: SessionStatus) => {
+        if (!disposed) setSessionStatus(status)
+      })
+      .catch(() => {
+        if (!disposed) setSessionStatus(null)
       })
     return () => {
       disposed = true
@@ -678,8 +698,7 @@ export default function App() {
           />
         )}
       </div>
-      <SessionStatusBar />
-
+      <SessionStatusBar status={sessionStatus} />
       {/* Global Command Palette (⌘K) with fully functional handlers */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}

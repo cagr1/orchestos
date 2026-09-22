@@ -26,19 +26,22 @@ async function listRunRows(projectId: string): Promise<RunRow[]> {
 }
 
 export function mapRunRow(row: RunRow): RunItem {
+  const duration = row.elapsedMs > 0 ? `${Math.max(1, Math.round(row.elapsedMs / 60000))}m` : '—'
   return {
     id: row.id,
     taskId: row.taskId || '',
-    taskDescription: row.taskId || '',
+    taskDescription: row.taskId || '—',
     status: row.status,
     qaVerdict: row.qaVerdict,
     model: row.model,
+    agentModel: row.model,
     provider: row.provider,
     inputTokens: row.inputTokens,
     outputTokens: row.outputTokens,
     tokensUsed: row.inputTokens + row.outputTokens,
     costUsd: row.costUsd ?? 0,
     elapsedMs: row.elapsedMs,
+    duration,
     engine: row.engine || 'single-shot',
     iterations: row.iterations || 1,
     deterministicChecks: [],

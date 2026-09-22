@@ -12,11 +12,13 @@ import {
   RotateCcw,
   Search,
   Trash2,
+  Upload,
 } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { getExplorerFile, getExplorerTree } from '../../api/explorer'
 import type { FileNode, ProjectItem, RunItem } from '../../types/orchestos'
+import { ProviderLogo } from '../common/ProviderLogos'
 
 export interface HistorySession {
   id: string
@@ -40,6 +42,21 @@ interface OrcaRightInspectorProps {
   onDeleteHistorySession?: (sessionId: string) => void
 }
 
+export function parseDiffPatch(patch: string): {
+  lines: string[]
+  additions: number
+  deletions: number
+} {
+  const lines = patch
+    .split(/\r?\n/)
+    .filter((line) => line && !line.startsWith('Index:') && !/^=+$/.test(line))
+  return {
+    lines,
+    additions: lines.filter((line) => line.startsWith('+') && !line.startsWith('+++')).length,
+    deletions: lines.filter((line) => line.startsWith('-') && !line.startsWith('---')).length,
+  }
+}
+
 export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   currentProject,
   recentRuns,
@@ -52,6 +69,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [selected, setSelected] = useState<FileNode>()
   const [query, setQuery] = useState('')
+  const [searchMode, setSearchMode] = useState<'names' | 'contents'>('names')
   const [loading, setLoading] = useState(false)
   const [historyScope, setHistoryScope] = useState<'workspace' | 'project' | 'all'>('workspace')
   const [historySearch, setHistorySearch] = useState('')
@@ -113,6 +131,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
               <FileCode className="w-3.5 h-3.5 text-sky-400/80" />
             )}
             <span className="truncate">{node.name}</span>
+            {node.size && <span className="ml-auto text-[10px] text-app-muted">{node.size}</span>}
           </button>
           {node.isDir &&
             expanded[node.path] &&
@@ -170,17 +189,42 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
       {tab === 'files' ? (
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="p-3 border-b border-app flex items-center justify-between">
-            <span className="font-semibold text-xs truncate">{currentProject.name}</span>
-            <button
-              type="button"
-              onClick={() => void loadDirectory()}
-              aria-label="Refresh file tree"
-              className="p-1 text-app-muted hover:text-app"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-semibold text-xs truncate">{currentProject.name}</span>
+              {currentProject.branch && (
+                <span className="text-xs font-mono px-1.5 py-0.5 rounded-pill bg-app-surface text-app-muted border border-app">
+                  {currentProject.branch}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <label
+                className="p-1 text-app-muted hover:text-app hover:bg-app-surface rounded-control cursor-pointer"
+                title="Upload files"
+                aria-label="Upload files"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <input type="file" multiple className="hidden" />
+              </label>
+              <button
+                type="button"
+                onClick={() => void loadDirectory()}
+                aria-label="Refresh file tree"
+                className="p-1 text-app-muted hover:text-app"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                type="button"
+                aria-label="More file options"
+                title="More options"
+                className="p-1 text-app-muted hover:text-app"
+              >
+                <Ellipsis className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="p-2 border-b border-app">
+          <div className="p-2 border-b border-app space-y-2">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-app-muted absolute left-2.5 top-2" />
               <input
@@ -189,6 +233,18 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                 placeholder="Find files"
                 className="w-full pl-8 pr-2.5 py-1 text-xs bg-app-surface border border-app rounded-control text-app placeholder:text-app-muted focus:outline-hidden"
               />
+            </div>
+            <div className="flex items-center gap-1">
+              {(['names', 'contents'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setSearchMode(mode)}
+                  className={`flex-1 py-0.5 text-xs font-medium rounded-control transition-colors ${searchMode === mode ? 'bg-app-elevated text-app shadow-xs border border-app' : 'text-app-muted hover:text-app'}`}
+                >
+                  {mode[0].toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-1 font-mono text-xs">{renderTree(nodes)}</div>
@@ -211,16 +267,50 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
             diffRuns.map((run) => (
               <section key={run.id} className="space-y-2">
                 <div className="text-xs font-mono text-app-muted">{run.taskId || run.id}</div>
-                {run.fileDiffs.map((diff, index) => (
-                  <pre
-                    key={`${run.id}-${index}`}
-                    className="p-2 rounded-card border border-app bg-app-surface text-xs whitespace-pre-wrap"
-                  >
-                    {diff.diff ||
-                      diff.patch ||
-                      `${diff.filePath || diff.path || 'changed file'} (+${diff.additions || 0} -${diff.deletions || 0})`}
-                  </pre>
-                ))}
+                {run.fileDiffs.map((diff, index) => {
+                  const patch = diff.diff || diff.patch || ''
+                  const parsedDiff = parseDiffPatch(patch)
+                  const lines = parsedDiff.lines
+                  return (
+                    <div
+                      key={`${run.id}-${index}`}
+                      className="border border-app rounded-card bg-app-surface overflow-hidden text-xs"
+                    >
+                      <div className="px-3 py-1.5 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
+                        <span className="text-app font-medium">
+                          {diff.filePath || diff.path || 'changed file'}
+                        </span>
+                        <span className="text-emerald-400">
+                          +{parsedDiff.additions} -{parsedDiff.deletions}
+                        </span>
+                      </div>
+                      <div className="p-2 font-mono text-xs space-y-0.5 bg-app-bg">
+                        {lines.length === 0 ? (
+                          <div className="text-app-muted">No patch content.</div>
+                        ) : (
+                          lines.map((line, lineIndex) => {
+                            const added = line.startsWith('+') && !line.startsWith('+++')
+                            const removed = line.startsWith('-') && !line.startsWith('---')
+                            return (
+                              <div
+                                key={lineIndex}
+                                className={
+                                  added
+                                    ? 'text-emerald-400 bg-emerald-950/30 px-1 rounded-control'
+                                    : removed
+                                      ? 'text-rose-400 bg-rose-950/30 px-1 rounded-control'
+                                      : 'text-app-muted'
+                                }
+                              >
+                                {line}
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </section>
             ))
           )}
@@ -280,6 +370,10 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-1.5 min-w-0">
+                            <ProviderLogo
+                              id={session.cliId}
+                              className="w-3.5 h-3.5 flex-shrink-0"
+                            />
                             <span className="font-semibold truncate" title={session.title}>
                               {session.title}
                             </span>

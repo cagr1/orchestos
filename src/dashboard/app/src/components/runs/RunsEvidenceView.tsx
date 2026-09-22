@@ -46,8 +46,10 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
 
   // KPI calculations
   const totalRuns = runs.length
-  const passedRuns = runs.filter((r) => r.qaVerdict === 'pass').length
-  const passRate = totalRuns > 0 ? ((passedRuns / totalRuns) * 100).toFixed(1) : '0.0'
+  const evaluatedRuns = runs.filter((r) => r.qaVerdict !== null)
+  const passedRuns = evaluatedRuns.filter((r) => r.qaVerdict === 'pass').length
+  const passRate =
+    evaluatedRuns.length > 0 ? `${((passedRuns / evaluatedRuns.length) * 100).toFixed(1)}%` : '—'
   const totalCost = runs.reduce((acc, r) => acc + (r.costUsd || 0), 0).toFixed(4)
   const totalTokens = runs.reduce((acc, r) => acc + (r.tokensUsed || 0), 0).toLocaleString()
 
@@ -59,7 +61,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
     const matchesStatus =
       statusFilter === 'all' ||
       (statusFilter === 'passed' && run.qaVerdict === 'pass') ||
-      (statusFilter === 'failed' && run.qaVerdict !== 'pass')
+      (statusFilter === 'failed' && run.qaVerdict === 'fail')
     return matchesSearch && matchesStatus
   })
 
@@ -88,7 +90,16 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
 
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs font-semibold text-app">{selectedRun.id}</span>
-            <StatusBadge status={selectedRun.qaVerdict === 'pass' ? 'passed' : 'failed'} />
+            <StatusBadge
+              status={
+                selectedRun.qaVerdict === null
+                  ? 'idle'
+                  : selectedRun.qaVerdict === 'pass'
+                    ? 'passed'
+                    : 'failed'
+              }
+              label={selectedRun.qaVerdict === null ? '—' : undefined}
+            />
           </div>
         </div>
 
@@ -254,7 +265,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
 
           <div className="p-2.5 rounded-card bg-app-surface border border-app">
             <div className="text-xs text-app-muted">QA Pass Rate</div>
-            <div className="text-sm font-bold text-emerald-400 font-mono mt-0.5">{passRate}%</div>
+            <div className="text-sm font-bold text-emerald-400 font-mono mt-0.5">{passRate}</div>
           </div>
 
           <div className="p-2.5 rounded-card bg-app-surface border border-app">
@@ -359,7 +370,16 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                     ${run.costUsd?.toFixed(4)}
                   </td>
                   <td className="py-2.5 px-3">
-                    <StatusBadge status={run.qaVerdict === 'pass' ? 'passed' : 'failed'} />
+                    <StatusBadge
+                      status={
+                        run.qaVerdict === null
+                          ? 'idle'
+                          : run.qaVerdict === 'pass'
+                            ? 'passed'
+                            : 'failed'
+                      }
+                      label={run.qaVerdict === null ? '—' : undefined}
+                    />
                   </td>
                   <td className="py-2.5 px-3 text-right">
                     <span className="text-app-accent hover:underline text-xs inline-flex items-center gap-1 font-medium">

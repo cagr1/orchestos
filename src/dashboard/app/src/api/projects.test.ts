@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { parseDiffPatch } from '../components/dev/OrcaRightInspector'
 import { mapProjectRow, mapSessionToAgent, timeSince } from './projects'
 import { mapRunRow } from './runs'
 
@@ -50,6 +51,54 @@ describe('projects API mappings', () => {
     })
     expect(run.fileDiffs).toHaveLength(1)
     expect(run.costUsd).toBe(0)
+    expect(run.agentModel).toBe('codex')
+  })
+
+  test('maps unevaluated runs without turning them into failures', () => {
+    const run = mapRunRow({
+      id: 'chat-1',
+      taskId: null,
+      status: 'done',
+      qaVerdict: null,
+      model: 'claude-model',
+      provider: 'claude',
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: null,
+      elapsedMs: 0,
+      engine: null,
+      iterations: null,
+      fileDiffs: [],
+      costBreakdown: [],
+      contextWarnings: [],
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    expect(run.qaVerdict).toBeNull()
+    expect(run.agentModel).toBe('claude-model')
+  })
+
+  test('parses additions and deletions with and without diff headers', () => {
+    expect(
+      parseDiffPatch(
+        'Index: src/utils/helper.js\n==============================\n--- src/utils/helper.js\n+++ src/utils/helper.js\n@@ -1 +1,2 @@\n-old\n+new\n+extra',
+      ),
+    ).toEqual({
+      lines: [
+        '--- src/utils/helper.js',
+        '+++ src/utils/helper.js',
+        '@@ -1 +1,2 @@',
+        '-old',
+        '+new',
+        '+extra',
+      ],
+      additions: 2,
+      deletions: 1,
+    })
+    expect(parseDiffPatch('@@ -1 +1 @@\n-old\n+new')).toEqual({
+      lines: ['@@ -1 +1 @@', '-old', '+new'],
+      additions: 1,
+      deletions: 1,
+    })
   })
 })
 

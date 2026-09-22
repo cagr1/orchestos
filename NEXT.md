@@ -31,6 +31,10 @@ hacen reales, no se quitan (PLAN.md § UI.13).
 
 ## Avisos
 - Al lanzar Luna, agregar al prompt: "No invoques codex exec ni delegues a otro agente" (hoy se anidó sola).
+- Luna en segundo plano: `codex exec … < /dev/null`. Sin eso queda colgada en "Reading additional input from
+  stdin..." sin hacer nada (2026-09-22: 40 min perdidos).
+- No usar `pkill -f "<patrón>"` si una tarea en segundo plano tiene ese texto en su línea de comandos: la mata
+  también (2026-09-22 cortó el wrapper de Luna). Matar por PID (`lsof -ti :3000 | xargs kill`).
 - Sesiones interactivas de Codex viejas abiertas: PIDs 78537 (12-sep), 48287 (11-sep), 62791 (hoy 19:07).
   No cerrarlas sin que Carlos confirme.
 - Pendiente de verificar con Carlos: un turno real de chat contra un LLM (el modelo lo elige él).

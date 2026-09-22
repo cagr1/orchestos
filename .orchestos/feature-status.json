@@ -1120,6 +1120,33 @@
       "closedDate": null
     },
     {
+      "id": "UI.13.5",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Pasada de fidelidad pantalla por pantalla y copia de lo que falte",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.13.6",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Cuotas 5h/semanal reales por CLI",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.14",
+      "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
+      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
+      "delegation": "🧠",
+      "title": "Dev como chat que actúa como CLI (estilo Claude Code desktop / ChatGPT Codex)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.3",
       "sprint": "SPRINT 30 — Dejar de reinventar la UI: React + Tailwind + shadcn/ui (ABIERTO 2026-08-21)",
       "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",

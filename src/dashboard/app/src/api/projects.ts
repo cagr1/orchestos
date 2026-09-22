@@ -5,6 +5,7 @@ export interface ProjectRow {
   path: string
   stackProfile: string
   lastUpdated: string
+  branch?: string
 }
 
 export interface SessionRow {
@@ -49,6 +50,7 @@ export function mapProjectRow(row: ProjectRow, agents: AgentSession[] = []): Pro
   return {
     id: row.id,
     name: basename(row.path),
+    ...(row.branch ? { branch: row.branch } : {}),
     path: row.path,
     filesCount: 0,
     agents,

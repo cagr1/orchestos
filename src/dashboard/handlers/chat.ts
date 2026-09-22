@@ -228,7 +228,19 @@ async function handleApiChatUpload(req: Request): Promise<Response> {
   return jsonResponse(resp)
 }
 
-async function handleApiChatModels(): Promise<Response> {
+const CHAT_MODELS_CACHE_TTL_MS = 10 * 60 * 1000
+let chatModelsCache: { fetchedAt: number; models: unknown[] } | null = null
+
+export function clearChatModelsCache(): void {
+  chatModelsCache = null
+}
+
+type ChatModelsFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+
+async function handleApiChatModels(fetchFn: ChatModelsFetch = fetch): Promise<Response> {
+  if (chatModelsCache && Date.now() - chatModelsCache.fetchedAt < CHAT_MODELS_CACHE_TTL_MS) {
+    return jsonResponse(chatModelsCache.models)
+  }
   const apiKey = (() => {
     try {
       return readEnv()['OPENROUTER_API_KEY'] || process.env.OPENROUTER_API_KEY || ''
@@ -236,13 +248,11 @@ async function handleApiChatModels(): Promise<Response> {
       return ''
     }
   })()
-  if (!apiKey) return errorResponse('OPENROUTER_API_KEY not set', 400)
-
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/models', {
+    const res = await fetchFn('https://openrouter.ai/api/v1/models', {
       headers: { Authorization: `Bearer ${apiKey}` },
     })
-    if (!res.ok) return errorResponse(`OpenRouter error ${res.status}`, 502)
+    if (!res.ok) throw new Error(`OpenRouter returned ${res.status}`)
     const data = (await res.json()) as {
       data: {
         id: string
@@ -263,9 +273,13 @@ async function handleApiChatModels(): Promise<Response> {
         supportsReasoning:
           Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
       }))
+    chatModelsCache = { fetchedAt: Date.now(), models }
     return jsonResponse(models)
-  } catch (e: any) {
-    return errorResponse(`Failed to fetch models: ${e.message}`, 502)
+  } catch {
+    if (chatModelsCache) {
+      return jsonResponse(chatModelsCache.models)
+    }
+    return errorResponse('Unable to load chat models', 502)
   }
 }
 

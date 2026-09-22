@@ -2544,6 +2544,53 @@ ni eso hace falta.
   endurece en `runOneCheck` para ambos (argumentos con forma de ruta confinados al proyecto; los checks internos, `trusted`).
   Gate: cada comportamiento hecho en vivo contra la API, igual que en la plantilla.
 
+- [x] **UI.13.5 — 🧠 Pasada de fidelidad pantalla por pantalla y copia de lo que falte.** (abierto 2026-09-22, cerrado 2026-09-22)
+  Ejecutado por: luna · Spec: docs/specs/UI.13.5.md (6 rondas; borrado al cerrar)
+  Rondas: (1/1b) script de capturas sin estados alineados ni imágenes lado a lado; (2) Luna tapó el 502 de
+  `/api/chat/models` con un catálogo de modelos inventado, hardcodeó CLIs en el front y llamó "preexistentes" 4
+  fallas de lint propias; (3–5) barra de usage rehecha tres veces por decisiones de Carlos (ver abajo); (6) Model
+  vacío y veredicto `null` pintado como FAIL en Runs, contador del diff en `+0 −0`. Cambios: barra inferior =
+  cuota 5h por CLI con panel 5h/semanal (iconos del vanilla, sin contexto), rama real en header/Settings/Files
+  (`currentBranch`), tamaños en `/api/explorer/tree`, caché de 10 min con respaldo en `/api/chat/models`, diff por
+  archivo, iconos de CLI en History, Health sin carga eterna, Runs con modelo real y veredicto neutro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.13.5-live.json` — dashboard en :4330 y
+  plantilla en :3000, capturas lado a lado revisadas por el cerebro, 0 errores en la app nueva.
+  `test:coverage` 1472 pass / 0 fail. Pendiente: la etiqueta de modelo guardada "codex (cli default model) via
+  Codex CLI" se ve cruda en Runs (texto que no aporta); las cuotas salen `—` hasta UI.13.6.
+  Original:
+  Spec: `docs/specs/UI.13.5.md`. Ronda 1 (Luna): capturas lado a lado plantilla (:3000) vs app (:4330), sin
+  tocar producto. El cerebro revisa las capturas y escribe la ronda 2 (copiar lo que falte, detalles a–d de § UI.13).
+  Medido por el cerebro antes del spec: con el mismo formateo biome, 17 de 27 archivos de la plantilla son
+  idénticos en la app; difieren solo los cableados a la API (`App`, Chat, Dev, Inspector, Sidebar, Header,
+  NewAgentSelector, Settings, `main`, `types`). Ninguna pantalla falta en el código; lo que falte se ve en vivo.
+  Ronda 1b revisada por el cerebro: no falta ninguna pantalla; 10 diferencias anotadas en el spec (rama en
+  header, SESSION CONTEXT/CLI QUOTAS, `/api/chat/models` 502, Files/Diff/History del inspector, Loading de
+  Settings, columnas vacías de Runs). **Decisiones de Carlos 2026-09-22:** usage como la plantilla (CLI QUOTAS
+  en el pie del sidebar + SESSION CONTEXT bajo el chat, fuera la barra inferior propia); Settings → Usage
+  actual cierra el detalle (d).
+  **Carlos 2026-09-22 (tarde), revierte lo anterior sobre usage:** vuelve la barra inferior (clic → detalle
+  por CLI con 5h/semanal y reinicio, como el vanilla), con los iconos originales de cada CLI; la barra no
+  muestra contexto ni modelo; el contexto va al pie de cada ventana, como la statusline de los CLI. Spec:
+  ronda 3 de `docs/specs/UI.13.5.md`.
+  **Carlos 2026-09-22 (noche):** la barra muestra solo la cuota de 5 h por CLI; el clic muestra 5 h y semanal con
+  reinicio. El contexto sale de la barra y se rediseña arriba (medidor en el header de la sesión, UI.14). Hallazgo:
+  el 88.2% del vanilla era contexto restante, no cuota.
+
+- [ ] **UI.13.6 — 🧠 Cuotas 5h/semanal reales por CLI.** (abierto 2026-09-22)
+  Medido 2026-09-22 en `/api/session/status` (`scripts/session-status.ts`): Claude no trae ninguna ventana de
+  cuota; Codex trae 5h/7d pero con reinicios del 17 y 19-sep (dato vencido: `readCodexRateLimitsLive` no
+  refresca o cae al transcript viejo). Sin esto la barra de UI.13.5 muestra `—`. Investigar primero de dónde se
+  puede leer la cuota real de cada CLI (sin inventar), luego spec.
+
+- [ ] **UI.14 — 🧠 Dev como chat que actúa como CLI (estilo Claude Code desktop / ChatGPT Codex).** (abierto 2026-09-22)
+  Pedido de Carlos 2026-09-22: la vista Dev se ve como un chat, pero el agente trabaja como un CLI en la
+  carpeta del proyecto. Cambia la decisión de UI.13.4b (consola reemplaza al chat en Dev). Diseño primero en
+  Google AI Studio con `docs/specs/UI.14-aistudio-prompt.md`; luego se copia tal cual (regla UI.13) y se cablea.
+  **2026-09-22 (noche):** AI Studio entregó la plantilla (`~/Documents/screens/orchestos-ai-agent-dashboard`,
+  nuevos `AgentComposer`, `ContextRing`, `ShellStatusBar`, Dev reescrito). Carlos: *"mejoró bastante; conservar
+  los tooltips para que se sepa qué es cada icono, sobre todo donde se archiva la sesión"* — todo icono sin
+  texto lleva tooltip (hoy `title` nativo en la plantilla).
+
 - [x] **CI.3 — ⚡ CI rojo por lint: arreglado y exigido en pre-push.** (abierto y cerrado 2026-09-22)
   Ejecutado por: luna (pre-push) + biome --write mecánico · Spec: docs/specs/CI.LINT.md (borrado al cerrar)
   CI rojo desde `d388392` (2026-09-15) solo en `bun run lint`: formato de la app copiada de la plantilla e

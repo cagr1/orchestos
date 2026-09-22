@@ -4,6 +4,7 @@ interface ExplorerEntry {
   name: string
   path: string
   type: 'dir' | 'file'
+  size?: number
 }
 interface ExplorerTreeResponse {
   path: string
@@ -31,7 +32,14 @@ export async function getExplorerTree(path = '', projectId: string): Promise<Fil
     name: entry.name,
     path: entry.path,
     isDir: entry.type === 'dir',
+    size: entry.size == null ? undefined : formatBytes(entry.size),
   }))
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export async function getExplorerFile(path: string, projectId: string): Promise<FileNode> {

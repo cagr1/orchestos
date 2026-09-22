@@ -781,7 +781,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       </aside>
 
       {/* Main Settings Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-app-bg text-app">
+      <main className="relative flex-1 flex flex-col overflow-hidden bg-app-bg text-app">
         {/* Save confirmation banner */}
         {savedBanner && (
           <div className="bg-emerald-950/60 border-b border-emerald-800/60 px-4 py-2 flex items-center gap-2 text-xs text-emerald-300 font-mono">
@@ -789,8 +789,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             <span>Saved {savedBanner} configuration successfully.</span>
           </div>
         )}
-        {settingsLoading && (
-          <div className="px-4 py-2 border-b border-app text-xs text-app-muted font-mono">
+        {settingsLoading && !settingsError && (
+          <div className="absolute inset-x-0 top-0 z-10 pointer-events-none px-4 py-2 text-xs text-app-muted font-mono">
             Loading live settings…
           </div>
         )}
@@ -882,15 +882,28 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <div className="rounded-card border border-app bg-app-surface p-4 flex items-center justify-between text-xs">
                 <div>
                   <div className="font-semibold text-app flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    {health ? (
+                      <CheckCircle2
+                        className={`w-4 h-4 ${health.system.ready ? 'text-emerald-400' : 'text-amber-400'}`}
+                      />
+                    ) : (
+                      <span
+                        className="w-4 h-4 rounded-full border border-app-muted border-t-app-accent animate-spin"
+                        aria-hidden="true"
+                      />
+                    )}
                     <span>
-                      {health?.system.ready ? 'All prerequisites met' : 'Setup needs attention'}
+                      {health
+                        ? health.system.ready
+                          ? 'All prerequisites met'
+                          : 'Setup needs attention'
+                        : 'Checking prerequisites…'}
                     </span>
                   </div>
                   <div className="text-xs text-app-muted mt-0.5">
                     {health
                       ? `${health.system.items.filter((item) => item.ok).length}/${health.system.items.length} system checks passing in ${setup?.cwd || health.system.cwd}.`
-                      : 'Loading system checks...'}
+                      : settingsError || 'Checking system checks…'}
                   </div>
                 </div>
                 <button
@@ -1784,9 +1797,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <h1 className="text-xl font-bold text-app tracking-tight">
                       {selectedProject.name}
                     </h1>
-                    <span className="font-mono text-xs px-2 py-0.5 rounded-pill bg-app-surface border border-app text-app-muted">
-                      {selectedProject.branch}
-                    </span>
+                    {selectedProject.branch && (
+                      <span className="font-mono text-xs px-2 py-0.5 rounded-pill bg-app-surface border border-app text-app-muted">
+                        {selectedProject.branch}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs font-mono text-app-muted mt-0.5">
                     {selectedProject.path}

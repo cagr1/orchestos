@@ -336,7 +336,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                             onClick={() =>
                               onApproveHeldTask && onApproveHeldTask(msg.heldTask!.taskId)
                             }
-                            className="px-3 py-1.5 rounded-control text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-zinc-950 transition-colors"
+                            className="px-3 py-1.5 rounded-control text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black transition-colors"
                           >
                             Approve & Execute
                           </button>

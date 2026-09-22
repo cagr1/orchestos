@@ -108,6 +108,7 @@ export interface ProjectRow {
   path: string
   stackProfile: string
   lastUpdated: string
+  branch?: string
 }
 
 // ── /api/runs ─────────────────────────────────────────────────────────────────

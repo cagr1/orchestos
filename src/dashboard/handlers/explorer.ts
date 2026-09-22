@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync, statSync } from 'fs'
-import { join, relative, resolve, sep } from 'path'
+import { type Dirent, readdirSync, readFileSync, statSync } from 'node:fs'
+import { join, relative, resolve, sep } from 'node:path'
 import { errorResponse, jsonResponse } from '../http.ts'
 
 // v0.13 seed — panel derecho (header redesign, Mes 21 tardío). Explorador
@@ -12,6 +12,7 @@ interface ExplorerEntry {
   name: string
   path: string
   type: 'dir' | 'file'
+  size?: number
 }
 
 // Evita path traversal (../../etc) — el resuelto debe quedar dentro de root.
@@ -26,9 +27,9 @@ function handleApiExplorerTree(url: URL, root: string): Response {
   const target = safeResolve(root, rel)
   if (!target) return errorResponse('Invalid path', 400)
 
-  let dirents
+  let dirents: Dirent<string>[]
   try {
-    dirents = readdirSync(target, { withFileTypes: true })
+    dirents = readdirSync(target, { withFileTypes: true, encoding: 'utf8' }) as Dirent<string>[]
   } catch {
     return errorResponse('Not found', 404)
   }
@@ -39,6 +40,7 @@ function handleApiExplorerTree(url: URL, root: string): Response {
       name: e.name,
       path: relative(root, join(target, e.name)).split(sep).join('/'),
       type: e.isDirectory() ? ('dir' as const) : ('file' as const),
+      size: e.isDirectory() ? undefined : statSync(join(target, e.name)).size,
     }))
     .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1))
 
@@ -51,7 +53,7 @@ function handleApiExplorerFile(url: URL, root: string): Response {
   const target = safeResolve(root, rel)
   if (!target) return errorResponse('Invalid path', 400)
 
-  let stat
+  let stat: ReturnType<typeof statSync>
   try {
     stat = statSync(target)
   } catch {

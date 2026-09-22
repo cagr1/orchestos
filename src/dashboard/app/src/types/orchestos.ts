@@ -278,3 +278,34 @@ export interface ProviderCliStatus {
   contextWindow: number
   rateLimitPct: number
 }
+
+export interface SessionCliStatus {
+  id: string
+  label: string
+  binary: string
+  icon: string
+  installed: boolean
+  available: boolean
+  observedAt: string | null
+  context: {
+    used: number
+    window: number
+    pct: number
+    level: 'ok' | 'warn' | 'critical'
+    model: string | null
+  } | null
+  rateLimits: {
+    windows: Array<{
+      id: string
+      usedPct: number
+      remainingPct?: number
+      windowMinutes: number | null
+      resetsAt: number | null
+    }>
+  } | null
+}
+
+export interface SessionStatus {
+  available: boolean
+  clis: SessionCliStatus[]
+}
