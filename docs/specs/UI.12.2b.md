@@ -55,6 +55,25 @@ ya verificadas por lectura:
 - Formatear el JSX final: no dejar indentación rota ni líneas compactadas que oculten diferencias
   con el prototipo.
 
+### Ronda 2 — fallos medidos por el gate real
+
+La primera reanudación pasó `ui3-shell`, `ui9a-inspector` y `ui10-project-settings`, pero dejó
+`ui12-shell` con dos fallos y luego borró la regla de colapso **después** de ejecutar el gate. Esta
+ronda corrige solo lo siguiente y vuelve a ejecutar todos los gates sobre el diff final:
+
+- Restaurar desde `HEAD` —sin reescribir ni compactar— las reglas ya existentes y explícitamente
+  permitidas de `.app[data-sidebar="collapsed"] .sidebar`/`.resize-handle-sidebar` y todo
+  `.dev-empty-*` (`styles.css:1698,1734-1787` en `HEAD`). Al quedar idénticas a `HEAD` no cuentan
+  como CSS añadido. No restaurar ninguna regla visual `.shell-*`, `.sidebar-mode-*`,
+  `.sidebar-project-*`, `.sidebar-agent-*` ni `.sidebar-project-menu*`.
+- La carpeta falla porque `Icon` renderiza un `span` que contiene el `svg`, mientras Lucide en el
+  prototipo renderiza el `svg` directo. Resolverlo en el `className` del `Icon` con variantes
+  Tailwind para el hijo (`[&>svg]:w-4 [&>svg]:h-4` o equivalente literal), conservando 16×16 y
+  `text-app-accent`. No agregar selector CSS.
+- No aceptar resultados de gates corridos antes de la última edición. Si `ui81` ignora
+  `GATE_BASE`, levantar el dashboard en el puerto que el propio script declara (hoy `:4321`) y
+  volver a correrlo allí; reportar su salida real completa.
+
 ## 3. Borrar de `src/dashboard/public/styles.css`
 
 Del bloque que agregó UI.12.2 (desde `:root { --sidebar-w-exp` hasta el final del archivo),
@@ -80,5 +99,7 @@ y la línea del prototipo; no editar el gate. No commitear.
   cero líneas añadidas en ambos; `ui.css` solo contiene los 12 renglones de alias `@theme`/
   `@utility` descritos arriba.
 - `wc -l src/dashboard/public/styles.css` baja (hoy 1788); reportar el número.
-- Con el dashboard levantado en :4330 (`GATE_BASE=http://localhost:4330 node scripts/ui-gates/<gate>.mjs`): `ui12-shell`, `ui3-shell`, `ui81`, `ui9a-inspector`,
-  `ui10-project-settings` verdes. Bajar el dashboard al terminar.
+- Con el dashboard levantado en el puerto que consumen los scripts (usar `:4321` para
+  `ui81-visual-consistency.mjs`, que hoy fija ese origen): `ui12-shell`, `ui3-shell`, `ui81`,
+  `ui9a-inspector`, `ui10-project-settings` verdes sobre el **diff final**. Bajar el dashboard al
+  terminar.
