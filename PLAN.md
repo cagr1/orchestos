@@ -266,6 +266,14 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 > permanente. 4. `UI.10.A` plan de cada proyecto en solo lectura. 5. Etiquetas de texto en vez de
 > emojis. Temas renombrados entran en la pieza 1.
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
+  - [x] **CI.2.B — `ui:gate`: comprobador en vivo de la app React.** (cerrado 2026-09-23, Lote L1) Ejecutado por: luna (5 rondas) · Spec: docs/specs/CI.2.B.md
+    `bun run ui:gate <flujo>`: arranca el dashboard en puerto libre, recorre `scripts/ui-gate/flows/<flujo>.mjs` clickeando,
+    una línea `PASS`/`FAIL` por flujo, mata por PID; rechaza flujos que naveguen por `window.state`/`window.OrchestOS`.
+    `gate:all` = typecheck + lint + test:coverage + build:app + ui:fidelity:jsx. Primer uso halló un bug real:
+    Settings abría en blanco (sección por defecto `project_orchestos`, id de mock) → ahora `project_<id actual>` o `general`.
+    Gate en vivo: `docs/done/evidence/CI.2.B-live.json` — Playwright en navegador real, `PASS smoke 6/6` (Chat, Dev,
+    Settings del proyecto actual, General → Appearance), 0 errores, sin procesos huérfanos. `test:coverage` 1506 pass / 0 fail.
+    Pendiente visto: "Loading live settings…" se superpone al título de Settings mientras carga.
   **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
   `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,
   `ledger:gate`, `plan:render`, `check-live-gate`, `check-ui-copy` y `check-scope-lock`.

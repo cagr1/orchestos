@@ -80,7 +80,7 @@ export default function App() {
   const [projectError, setProjectError] = useState<string | null>(null)
 
   // Settings deep-link state
-  const [settingsSection, setSettingsSection] = useState<SettingsSection>('project_orchestos')
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
   const [settingsProjectTab, setSettingsProjectTab] = useState<ProjectSubTab>('tasks')
   const [language, setLanguage] = useState<'en' | 'es'>(() => {
     try {
@@ -293,12 +293,9 @@ export default function App() {
     setMode(newMode)
   }
 
-  const handleOpenSettings = (
-    section: SettingsSection = 'project_orchestos',
-    tab: ProjectSubTab = 'tasks',
-  ) => {
+  const handleOpenSettings = (section?: SettingsSection, tab: ProjectSubTab = 'tasks') => {
     setPreviousMode(mode === 'settings' ? 'dev' : mode)
-    setSettingsSection(section)
+    setSettingsSection(section || (currentProject ? `project_${currentProject.id}` : 'general'))
     setSettingsProjectTab(tab)
     setMode('settings')
   }
@@ -698,7 +695,7 @@ export default function App() {
             onNewProject={() => {
               void handleNewProject()
             }}
-            onOpenSettings={() => handleOpenSettings('projects', 'tasks')}
+            onOpenSettings={() => handleOpenSettings(undefined, 'tasks')}
             onOpenProjectSettings={handleOpenProjectSettings}
             activeAgentId={activeAgentId}
             onSelectAgent={handleSelectAgent}

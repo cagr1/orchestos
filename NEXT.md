@@ -1,5 +1,16 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Lote L1 — prueba del flujo por lote (abierto 2026-09-23, `docs/propuesta-flujo-por-lote.md`)
+Ítems: CI.2.B (`ui:gate`, spec `docs/specs/CI.2.B.md`) → UI.13.4c (`docs/specs/UI.13.4c.md`) → siguiente pantalla de UI.13.
+Fin: los 3 con `gate:all` + `ui:gate` PASS, commit, `[x]` en PLAN.md, push. Paradas: el MISMO fallo tras 2 reintentos
+(ajustado en el primer uso: CI.2.B tuvo 4 rondas por 4 causas distintas, cada una avanzando),
+decisión de producto no prevista, acción irreversible, tope de 3 ítems. Luna escribe; el cerebro vigila y verifica.
+Decisión tomada por el cerebro (Carlos no respondió las 3 preguntas; aplicó las recomendaciones): botón
+`Approve & Merge to Main` → `Approve & Run` (aprobar corre la tarea, no hace merge).
+| ítem | rondas Luna | gate | SHA | min |
+|---|---|---|---|---|
+| CI.2.B | 5 (spawn fd, espera, bug Settings, flujo) + 1 chore de lint innecesario revertido (diagnóstico mío errado: eran avisos, no errores) | PASS smoke 6/6 · gate:all verde | ver git log | ~75 |
+
 ## Decisión vigente
 UI.13 (PLAN.md § UI.13): el prototipo de AI Studio **es** el frontend (`src/dashboard/app/`, servido en `/`);
 el vanilla vive en `/legacy` solo hasta UI.13.3 y no se edita. Tope: **lo que falta de UI.13 en 2 h**

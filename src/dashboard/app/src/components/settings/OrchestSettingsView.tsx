@@ -86,7 +86,7 @@ export type SettingsSection =
   | 'usage'
   | 'danger_zone'
   | 'language'
-  | string // For individual project IDs like "project_orchestos"
+  | string // For individual project IDs like "project_<id>"
 
 export type ProjectSubTab =
   | 'tasks'

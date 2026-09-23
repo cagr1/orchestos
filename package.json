@@ -27,6 +27,8 @@
     "test": "bun test",
     "test:coverage": "bun run scripts/check-coverage.ts",
     "ui:fidelity:jsx": "node scripts/ui-fidelity/check-jsx.mjs /Users/carlosgallardo/Documents/screens/orchestos-ai-agent-dashboard/src/components/dev/OrchestDevWorkspace.tsx src/dashboard/app/src/components/dev/OrchestDevWorkspace.tsx && node scripts/ui-fidelity/check-jsx.mjs /Users/carlosgallardo/Documents/screens/orchestos-ai-agent-dashboard/src/components/layout/ShellStatusBar.tsx src/dashboard/app/src/components/layout/ShellStatusBar.tsx && node scripts/ui-fidelity/check-jsx.mjs /Users/carlosgallardo/Documents/screens/orchestos-ai-agent-dashboard/src/components/common/AgentComposer.tsx src/dashboard/app/src/components/common/AgentComposer.tsx && node scripts/ui-fidelity/check-css.mjs",
+    "ui:gate": "node scripts/ui-gate/run.mjs",
+    "gate:all": "bun run typecheck && bun run lint && bun run test:coverage && bun run build:app && bun run ui:fidelity:jsx",
     "check": "tsc --noEmit",
     "db:migrate": "bun run scripts/migrate-db.ts",
     "e2e:smoke": "bun run src/run/e2e-smoke.ts",

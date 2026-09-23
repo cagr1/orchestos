@@ -1,0 +1,53 @@
+{
+  "item": "CI.2.B",
+  "date": "2026-09-23",
+  "runner": "cerebro (claude-opus-5.5): bun run ui:gate smoke — Playwright/Chromium contra dashboard real en puerto libre, HOME real",
+  "result": [
+    {
+      "flujo": "smoke",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "home",
+          "ok": true,
+          "detalle": "Chat visible"
+        },
+        {
+          "nombre": "home-dev",
+          "ok": true,
+          "detalle": "Dev visible"
+        },
+        {
+          "nombre": "dev-view",
+          "ok": true,
+          "detalle": "OrchestOS Dev visible"
+        },
+        {
+          "nombre": "chat-composer",
+          "ok": true,
+          "detalle": "chat composer visible"
+        },
+        {
+          "nombre": "settings-view",
+          "ok": true,
+          "detalle": "current project section visible"
+        },
+        {
+          "nombre": "settings-general",
+          "ok": true,
+          "detalle": "Appearance visible"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89813/smoke/chat.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89813/smoke/dev.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89813/smoke/chat-returned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89813/smoke/settings.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89813/smoke/settings-general.png"
+      ]
+    }
+  ],
+  "hallazgo_primer_uso": "Settings abría en blanco: sección por defecto 'project_orchestos' (id de mock) no existe; corregido a project_<id actual> o 'general'",
+  "limpieza": "sin procesos escuchando tras el comando; :4242 de Carlos intacto"
+}
