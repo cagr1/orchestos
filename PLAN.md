@@ -62,7 +62,8 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 
 ## Fase 1 — Terminar la interfaz
 
-- [ ] **UI.13.4 — 🧠 Comportamientos de la plantilla hechos reales.** (abierto 2026-09-22)
+- [x] **UI.13.4 — 🧠 Comportamientos de la plantilla hechos reales.** (abierto 2026-09-22, cerrado 2026-09-23: 4a/4b/4c `[x]`)
+  Sin delegación: cierre de padre, el trabajo está en sus sub-ítems.
   - [x] **UI.13.4a** (cerrado 2026-09-22) — puntos 1, 2, 3 y 6. Ejecutado por: luna · Spec borrado al cerrar.
     Migración 12 `archived_at`; `POST /api/chat/sessions/:id/archive|restore`, `?archived=1`,
     `DELETE /api/projects/:id` (solo filas de DB). El cerebro corrigió el tiempo relativo (medía vida de la
@@ -111,7 +112,8 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   filtrado, timeout) y los comandos se guardan en DB. Luego, "hagamos lo mejor": la frontera se
   endurece en `runOneCheck` para ambos (argumentos con forma de ruta confinados al proyecto; los checks internos, `trusted`).
   Gate: cada comportamiento hecho en vivo contra la API, igual que en la plantilla.
-- [ ] **UI.13 — 🧠 El prototipo de AI Studio ES el frontend: fuera el vanilla JS/CSS.** (abierto 2026-09-21)
+- [x] **UI.13 — 🧠 El prototipo de AI Studio ES el frontend: fuera el vanilla JS/CSS.** (abierto 2026-09-21, cerrado 2026-09-23: UI.13.1–13.4 `[x]`, vanilla borrado en UI.13.3 ff090e3)
+  Sin delegación: cierre de padre, el trabajo está en sus sub-ítems.
   **Decisión de Carlos 2026-09-21, textual:** *"vanilla JS y el CSS ME ESTÁN DANDO PROBLEMAS QUE YA
   UN FRAMEWORK ME LO HIZO EN MINUTOS!!!! no quiero ver nada de ese código, solo tengamos de
   ejemplo"*. Reemplaza el resto de `UI.12` (2b, 3a–3d: trasplante pieza a pieza dentro del vanilla;
@@ -202,8 +204,14 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   (`ShellStatusBar.tsx:73`, `AgentComposer.tsx:136` y duplicados) disparan el refresco antes de la del proyecto;
   (4) en frío la barra sale vacía ~1,5-2 s. Arreglo: el servidor espera lectura nueva si la caché tiene más de ~10 s;
   `refreshUsage()` al cerrar cada turno del chat; quitar los dos fetch sin proyecto (hermanos del bug).
-  Aparte, mismo ítem: `/api/projects` tiene 5 carpetas temporales de gates (`orchestos-ui-13-2e-*`, `-2d-*`) en la DB
-  real — un navegador limpio abre la primera; averiguar qué flujo no las borra (lección L2 §1) y limpiarlas.
+  (5) hallada 2026-09-23 por el cerebro: `scripts/claude-statusline-tee.sh` guarda la última lectura de CUALQUIER
+  sesión de Claude en un solo `~/.orchestos/claude-statusline.json`; con 4 sesiones abiertas (misma cuenta) una sesión
+  que se redibuja con datos viejos pisa a la actual → la cuota de 5 h "sube" sin reset (medido: 62→67→61 en minutos).
+  Arreglo: gana la lectura más nueva por ventana (mismo `resets_at` → mayor `used_percentage`; `resets_at` mayor gana).
+  Fantasmas: limpiados por el cerebro 2026-09-23 — 5 proyectos `orchestos-ui-13-2[de]-*` (corridas interrumpidas: el
+  cleanup del flujo no corre si el runner muere) + 43 `files`/14 `code_edges` huérfanos (gates y fixtures de tests
+  `gfc-*`/`ruby-check` que escriben la DB real; backup en `/tmp/l2/db-backup-before-orphans.sqlite`). Falta el diente:
+  el runner de ui:gate borra al arrancar los proyectos `orchestos-ui-*` de corridas previas.
   Gate: flujo ui:gate que tras un turno real ve cambiar la cuota sin recargar, y 1 sola petición con proyecto al cargar.
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
