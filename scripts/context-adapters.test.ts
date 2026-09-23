@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'bun:test'
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   type ContextAdapter,
   claudeAdapter,
   codexAdapter,
+  readCodexRateLimitsLive,
   readContextBudget,
   readSessionMetrics,
 } from './context-adapters.ts'
@@ -162,5 +165,36 @@ describe('context adapters', () => {
     }
 
     expect(await readContextBudget(fixture('codex.jsonl'), [unknown])).toBeNull()
+  })
+
+  test('lee cuotas del app-server manteniendo stdin abierto tras initialized', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'orchestos-codex-rate-limits-'))
+    const binary = join(directory, 'fake-codex')
+    writeFileSync(
+      binary,
+      `#!/usr/bin/env bun
+let input = ''
+process.stdin.on('data', (chunk) => {
+  input += chunk
+  if (input.includes('"method":"initialized"')) {
+    process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: 2, result: { rateLimits: { primary: { usedPercent: 3, windowDurationMins: 300, resetsAt: 1788460888 } } } }) + '\\n')
+  }
+})
+`,
+    )
+    chmodSync(binary, 0o755)
+    try {
+      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 500 })).resolves.toEqual([
+        {
+          id: 'primary',
+          usedPct: 3,
+          remainingPct: 97,
+          windowMinutes: 300,
+          resetsAt: 1788460888,
+        },
+      ])
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
   })
 })

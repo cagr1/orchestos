@@ -198,10 +198,10 @@ export async function readCodexRateLimitsLive(
   options: { binary?: string; timeoutMs?: number } = {},
 ): Promise<RateLimitWindow[]> {
   const binary = options.binary ?? 'codex'
-  const timeoutMs = options.timeoutMs ?? 1_500
+  const timeoutMs = options.timeoutMs ?? 3_000
   let processHandle: ReturnType<typeof Bun.spawn> | null = null
   try {
-    processHandle = Bun.spawn([binary, 'app-server', '--stdio'], {
+    processHandle = Bun.spawn([binary, 'app-server'], {
       stdin: 'pipe',
       stdout: 'pipe',
       stderr: 'ignore',
@@ -216,40 +216,50 @@ export async function readCodexRateLimitsLive(
         capabilities: {},
       }),
     )
+    await stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'initialized', params: {} }) + '\n')
     await stdin.write(request(2, 'account/rateLimits/read'))
-    stdin.end()
 
-    const output = await Promise.race([
-      new Response(stdout).text(),
-      new Promise<string>((_, reject) =>
-        setTimeout(() => reject(new Error('codex timeout')), timeoutMs),
-      ),
-    ])
-    for (const line of output.split('\n')) {
-      let parsed: unknown
-      try {
-        parsed = JSON.parse(line)
-      } catch {
-        continue
+    const reader = stdout.getReader()
+    const deadline = Date.now() + timeoutMs
+    let buffer = ''
+    while (Date.now() < deadline) {
+      const remaining = Math.max(1, deadline - Date.now())
+      const next = await Promise.race([
+        reader.read(),
+        new Promise<ReadableStreamReadResult<Uint8Array> | null>((resolve) =>
+          setTimeout(() => resolve(null), remaining),
+        ),
+      ])
+      if (!next || next.done) break
+      buffer += new TextDecoder().decode(next.value)
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(line)
+        } catch {
+          continue
+        }
+        const result = objectAt(parsed, 'result')
+        const limits = objectAt(result, 'rateLimits') ?? objectAt(result, 'rate_limits')
+        if (!limits) continue
+        const windows = ['primary', 'secondary'].flatMap((id) => {
+          const window = objectAt(limits, id)
+          const usedPct = percentage(window?.usedPercent ?? window?.used_percent)
+          if (!window || usedPct === null) return []
+          return [
+            {
+              id,
+              usedPct,
+              remainingPct: 100 - usedPct,
+              windowMinutes: positiveNumber(window.windowDurationMins ?? window.window_minutes),
+              resetsAt: positiveNumber(window.resetsAt ?? window.resets_at),
+            },
+          ]
+        })
+        if (windows.length > 0) return windows
       }
-      const result = objectAt(parsed, 'result')
-      const limits = objectAt(result, 'rateLimits') ?? objectAt(result, 'rate_limits')
-      if (!limits) continue
-      const windows = ['primary', 'secondary'].flatMap((id) => {
-        const window = objectAt(limits, id)
-        const usedPct = percentage(window?.usedPercent ?? window?.used_percent)
-        if (!window || usedPct === null) return []
-        return [
-          {
-            id,
-            usedPct,
-            remainingPct: 100 - usedPct,
-            windowMinutes: positiveNumber(window.windowDurationMins ?? window.window_minutes),
-            resetsAt: positiveNumber(window.resetsAt ?? window.resets_at),
-          },
-        ]
-      })
-      if (windows.length > 0) return windows
     }
   } catch {
     return []

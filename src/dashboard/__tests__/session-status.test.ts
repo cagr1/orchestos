@@ -2,15 +2,19 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { readActiveSessionStatuses } from '../../../scripts/session-status.ts'
 import { route } from '../server.ts'
 
 const PORT = 4257
 const originalTranscript = process.env.ORCHESTOS_SESSION_TRANSCRIPT
+const originalOrchestosHome = process.env.ORCHESTOS_HOME
 const roots: string[] = []
 
 afterEach(() => {
   if (originalTranscript === undefined) delete process.env.ORCHESTOS_SESSION_TRANSCRIPT
   else process.env.ORCHESTOS_SESSION_TRANSCRIPT = originalTranscript
+  if (originalOrchestosHome === undefined) delete process.env.ORCHESTOS_HOME
+  else process.env.ORCHESTOS_HOME = originalOrchestosHome
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
@@ -59,5 +63,27 @@ describe('H.7.5 — GET /api/session/status', () => {
     expect(
       body.clis.every((cli) => !cli.available && cli.context === null && cli.rateLimits === null),
     ).toBe(true)
+  })
+
+  test('lee la cuota de Claude desde el payload de statusLine', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-h75-statusline-'))
+    roots.push(root)
+    delete process.env.ORCHESTOS_SESSION_TRANSCRIPT
+    process.env.ORCHESTOS_HOME = root
+    writeFileSync(
+      join(root, 'claude-statusline.json'),
+      JSON.stringify({
+        rate_limits: {
+          seven_day: { used_percentage: 18, resets_at: 1_790_236_800 },
+        },
+      }),
+    )
+
+    const statuses = await readActiveSessionStatuses({ projectRoot: root, agentHome: root })
+    const claude = statuses.find((status) => status.id === 'claude')
+    expect(claude?.rateLimits).toMatchObject({
+      source: 'claude',
+      windows: [{ id: 'seven_day', usedPct: 18, windowMinutes: 10080 }],
+    })
   })
 })

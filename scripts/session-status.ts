@@ -6,7 +6,15 @@
  * de `context-adapters.ts`. El dashboard y la CLI consumen esta misma función para no
  * mantener dos cálculos que puedan divergir.
  */
-import { closeSync, existsSync, openSync, readSync, realpathSync, statSync } from 'node:fs'
+import {
+  closeSync,
+  existsSync,
+  openSync,
+  readFileSync,
+  readSync,
+  realpathSync,
+  statSync,
+} from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { globSync } from 'glob'
@@ -38,6 +46,45 @@ export interface SessionStatusResponse {
   clis: SessionStatus[]
 }
 
+function readClaudeStatuslineRateLimits(agentHome = homedir()): {
+  windows: import('./context-adapters.ts').RateLimitWindow[]
+  observedAt: string
+} | null {
+  const path = join(
+    process.env.ORCHESTOS_HOME ?? join(agentHome, '.orchestos'),
+    'claude-statusline.json',
+  )
+  try {
+    const stat = statSync(path)
+    const payload = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
+    const limits = payload.rate_limits
+    if (typeof limits !== 'object' || limits === null || Array.isArray(limits)) return null
+    const windows = ['five_hour', 'seven_day'].flatMap((id) => {
+      const raw = (limits as Record<string, unknown>)[id]
+      if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return []
+      const record = raw as Record<string, unknown>
+      const usedPct = record.used_percentage
+      if (typeof usedPct !== 'number' || !Number.isFinite(usedPct) || usedPct < 0 || usedPct > 100)
+        return []
+      return [
+        {
+          id,
+          usedPct,
+          remainingPct: 100 - usedPct,
+          windowMinutes: id === 'five_hour' ? 300 : 10080,
+          resetsAt:
+            typeof record.resets_at === 'number' && Number.isFinite(record.resets_at)
+              ? record.resets_at
+              : null,
+        },
+      ]
+    })
+    return windows.length > 0 ? { windows, observedAt: stat.mtime.toISOString() } : null
+  } catch {
+    return null
+  }
+}
+
 interface SessionStatusOptions {
   projectRoot?: string
   transcriptPath?: string
@@ -67,21 +114,45 @@ export async function readActiveSessionStatuses(
   const adapters = options.adapters ?? DEFAULT_ADAPTERS
   const detections = detectInstalledClis()
   const found = new Map<CliDetectionResult['id'], SessionStatus>()
-
-  for (const transcriptPath of paths) {
-    const metrics = await readSessionMetrics(transcriptPath, adapters)
-    if (!metrics) continue
-    const cli = detections.find(
-      (detection) => detection.id === metrics.context.source && !found.has(detection.id),
+  const candidates = (
+    await Promise.all(
+      paths.map(async (transcriptPath) => ({
+        transcriptPath,
+        metrics: await readSessionMetrics(transcriptPath, adapters),
+      })),
     )
-    if (!cli) continue
-    let normalized = metrics
-    if (!explicit && cli.id === 'codex') {
-      const liveWindows = await readCodexRateLimitsLive({ binary: cli.binary })
-      if (liveWindows.length > 0)
-        normalized = { ...metrics, rateLimits: { source: 'codex', windows: liveWindows } }
-    }
-    found.set(cli.id, {
+  )
+    .filter((candidate) => candidate.metrics)
+    .sort((a, b) => statSync(b.transcriptPath).mtimeMs - statSync(a.transcriptPath).mtimeMs)
+
+  const selected = new Map<CliDetectionResult['id'], (typeof candidates)[number]>()
+  for (const candidate of candidates) {
+    const source = candidate.metrics?.context.source
+    const cli = detections.find((detection) => detection.id === source)
+    if (cli && !selected.has(cli.id)) selected.set(cli.id, candidate)
+  }
+  const liveCodex = [...selected.entries()].find(([id]) => id === 'codex')
+  const claudeStatusline = readClaudeStatuslineRateLimits(options.agentHome)
+  const liveWindows =
+    !explicit && liveCodex
+      ? await readCodexRateLimitsLive({
+          binary: detections.find((detection) => detection.id === 'codex')?.binary,
+        })
+      : []
+
+  for (const [id, candidate] of selected) {
+    const cli = detections.find((detection) => detection.id === id)
+    if (!cli || !candidate.metrics) continue
+    const normalized =
+      id === 'codex' && liveWindows.length > 0
+        ? { ...candidate.metrics, rateLimits: { source: 'codex' as const, windows: liveWindows } }
+        : id === 'claude' && claudeStatusline
+          ? {
+              ...candidate.metrics,
+              rateLimits: { source: 'claude' as const, windows: claudeStatusline.windows },
+            }
+          : candidate.metrics
+    found.set(id, {
       id: cli.id,
       label: cli.label,
       binary: cli.binary,
@@ -89,10 +160,27 @@ export async function readActiveSessionStatuses(
       readBoundary: cli.readBoundary,
       installed: cli.installed,
       available: true,
-      observedAt: statSync(transcriptPath).mtime.toISOString(),
+      observedAt: statSync(candidate.transcriptPath).mtime.toISOString(),
       ...normalized,
     })
-    if (found.size === detections.length) break
+  }
+
+  if (claudeStatusline && !found.has('claude')) {
+    const cli = detections.find((detection) => detection.id === 'claude')
+    if (cli) {
+      found.set('claude', {
+        id: cli.id,
+        label: cli.label,
+        binary: cli.binary,
+        icon: cli.icon,
+        readBoundary: cli.readBoundary,
+        installed: cli.installed,
+        available: true,
+        observedAt: claudeStatusline.observedAt,
+        context: null,
+        rateLimits: { source: 'claude', windows: claudeStatusline.windows },
+      })
+    }
   }
 
   return detections.map(
