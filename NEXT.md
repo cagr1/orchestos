@@ -1,7 +1,8 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
 ## Siguiente tab — Lote L2 CERRADO (2026-09-23); abrir L3
-L2: UI.13.2e, UI.13.2f, UI.13.3 cerrados y pusheados. Siguiente según PLAN.md § Rumbo Fase 1: UI.9.9 → UI.9.8 →
+L2: UI.13.2e, UI.13.2f, UI.13.3 cerrados y pusheados. Siguiente según PLAN.md § Rumbo Fase 1: **UI.13.5 primero** (cuotas de la barra
+inferior solo al recargar + proyectos temporales de gates en la DB real; causa ya diagnosticada en el ítem) → UI.9.9 → UI.9.8 →
 UI.10.A. Pendiente de decidir por Carlos: cerrar los padres UI.13 y UI.13.4 (sus sub-ítems están todos `[x]`).
 Lecciones L2: (1) la DB del gate es la real: todo flujo borra lo que siembra y el cerebro lo verifica por consulta;
 (2) auditar los `step()` del flujo, no el conteo PASS (r1 de 2f: 14/14 con 6 pasos vacíos); (3) cerrar un ítem:

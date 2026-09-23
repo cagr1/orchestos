@@ -20,7 +20,7 @@ sin peso extra y con reglas claras.
 
 ### Fase 1 — Terminar la interfaz (plantilla React de AI Studio, regla UI.13)
 UI.13.4 (queda 4c: razonamiento/herramientas/tarea retenida en el chat) → UI.13 (pantallas restantes: Tasks/Runs/
-Graph → Memory/Specs/Skills/Instincts/Plan → borrar vanilla) → UI.9.9 (opciones de proyecto al hover) → UI.9.8
+Graph → Memory/Specs/Skills/Instincts/Plan → borrar vanilla) → UI.13.5 (cuotas de la barra inferior al día) → UI.9.9 (opciones de proyecto al hover) → UI.9.8
 (texto que no aporta) → UI.10.A (plan por proyecto) → CI.2 (ui-gates exigibles). Pendiente de UI.14: verificar en
 vivo el selector nativo de nuevo proyecto.
 
@@ -193,6 +193,18 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate en vivo: `docs/done/evidence/UI.13.3-live.json` — smoke 6/6 · tasks 13/13 · runs-graph 16/16 ·
   project-tabs 23/23 · chat-turn-details 26/26; `gate:all` 1518 pass / 0 fail (baja de 1534 = tests borrados;
   cobertura sobre umbral). Resto inofensivo: `.impeccable/config.json` ignora `public/screens.css` (ya no existe).
+- [ ] **UI.13.5 — 🧠 La barra inferior muestra las cuotas al día, no solo al recargar.** (abierto 2026-09-23, pedido de Carlos)
+  Síntoma: los usages de la barra inferior solo aparecen o se actualizan al recargar la página. Causa verificada en código
+  y con Playwright contra `:4242`: (1) `handleApiSessionStatus` (`src/dashboard/handlers/session-status.ts:30-33`)
+  devuelve la caché y refresca en segundo plano → cada respuesta trae el estado de la petición anterior; (2) el cliente
+  solo refresca cada 60 s o al volver a la pestaña (`App.tsx:427-430`), nunca al terminar un turno del chat → 60-120 s
+  de retraso; (3) la recarga "arregla" por casualidad: 4 peticiones sin `x-orchestos-project-id`
+  (`ShellStatusBar.tsx:73`, `AgentComposer.tsx:136` y duplicados) disparan el refresco antes de la del proyecto;
+  (4) en frío la barra sale vacía ~1,5-2 s. Arreglo: el servidor espera lectura nueva si la caché tiene más de ~10 s;
+  `refreshUsage()` al cerrar cada turno del chat; quitar los dos fetch sin proyecto (hermanos del bug).
+  Aparte, mismo ítem: `/api/projects` tiene 5 carpetas temporales de gates (`orchestos-ui-13-2e-*`, `-2d-*`) en la DB
+  real — un navegador limpio abre la primera; averiguar qué flujo no las borra (lección L2 §1) y limpiarlas.
+  Gate: flujo ui:gate que tras un turno real ve cambiar la cuota sin recargar, y 1 sola petición con proyecto al cargar.
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir
