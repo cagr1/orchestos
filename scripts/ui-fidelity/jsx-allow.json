@@ -1,0 +1,77 @@
+[
+  {
+    "archivo": "ShellStatusBar.tsx",
+    "valor": "bg-app-muted/60",
+    "motivo": "La celda vacía de cuota semanal de la plantilla se eliminó: sin dato no se renderiza un panel falso."
+  },
+  {
+    "archivo": "ShellStatusBar.tsx",
+    "valor": "text-xs",
+    "motivo": "La rama vacía de cuota no renderiza texto visible."
+  },
+  {
+    "archivo": "ShellStatusBar.tsx",
+    "valor": "font-sans",
+    "motivo": "La rama vacía de cuota no renderiza texto visible."
+  },
+  {
+    "archivo": "ShellStatusBar.tsx",
+    "valor": "py-2",
+    "motivo": "La rama vacía de cuota no renderiza espacio visible."
+  },
+  {
+    "archivo": "ShellStatusBar.tsx",
+    "valor": "text-center",
+    "motivo": "La rama vacía de cuota no renderiza texto visible."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "bg-app-elevated/40",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "hover:bg-app-elevated/40",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "border-app/60",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "text-app-muted",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "hover:text-app",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "flex",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "items-center",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "gap-1",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "transition-all",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "AgentComposer.tsx",
+    "valor": "p-0.5",
+    "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  }
+]

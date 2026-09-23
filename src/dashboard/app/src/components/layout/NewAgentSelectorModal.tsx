@@ -145,19 +145,12 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-xs text-app">{opt.label}</span>
-                        <span className="text-xs font-mono text-app-muted">
-                          {opt.id === 'api'
-                            ? models.length
-                              ? `${models.length} models`
-                              : 'Models unavailable'
-                            : opt.label}
-                        </span>
                       </div>
-                      <p className="text-xs text-app-muted mt-0.5 truncate">
-                        {opt.id === 'api'
-                          ? 'Models from the configured API catalog'
-                          : 'Detected CLI available for new sessions'}
-                      </p>
+                      {opt.id === 'api' && (
+                        <p className="text-xs text-app-muted mt-0.5 truncate">
+                          {models.length ? `${models.length} models` : 'Models unavailable'}
+                        </p>
+                      )}
                     </div>
                   </button>
                 )

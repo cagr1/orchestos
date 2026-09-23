@@ -813,6 +813,26 @@ export function runMigrations(): void {
       created_at  TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_run_steps_task_id ON run_steps(task_id, seq);
+
+    CREATE TABLE IF NOT EXISTS chat_turn_steps (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id  TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+      turn_id     TEXT NOT NULL REFERENCES chat_turns(id) ON DELETE CASCADE,
+      seq         INTEGER NOT NULL,
+      type        TEXT NOT NULL CHECK(type IN ('tool_use', 'text', 'step_finish')),
+      tool        TEXT,
+      target      TEXT,
+      added       INTEGER,
+      removed     INTEGER,
+      exit_code   INTEGER,
+      ok          INTEGER CHECK(ok IS NULL OR ok IN (0, 1)),
+      output      TEXT,
+      detail      TEXT,
+      duration_ms INTEGER,
+      created_at  TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_turn_steps_session_seq
+      ON chat_turn_steps(session_id, turn_id, seq, id);
   `)
 
   // Rebuild FTS5 index on every startup — keeps index consistent if rows were

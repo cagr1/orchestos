@@ -25,6 +25,13 @@ que actúa como CLI, AgentComposer, ContextRing, ShellStatusBar, logos de produc
 mensaje del tab anterior; **espera el GO de Carlos** y su respuesta sobre tooltips (nativos `title` tal cual vs
 tooltip propio instantáneo). Luego UI.13.6 (cuotas reales: Claude sin fuente, Codex vencido desde 17-sep).
 
+## UI.14 cerrado 2026-09-22; UI.13.6 commiteado sin `[x]`
+- UI.14: `[x]` en PLAN.md, evidencia `docs/done/evidence/UI.14-live.json`, spec en git `ed1fdef`. Sin verificar en
+  vivo: selector nativo de nuevo proyecto y capturas lado a lado con la plantilla.
+- UI.13.6: código en `2b3a185`. El gate de procedencia exige borrar `docs/specs/UI.13.6.md`, que nunca existió
+  (su spec vivía en UI.14.md). Decisión pendiente de Carlos sobre cómo cerrarlo; no usar "Sin delegación" (falso).
+- Carlos: turno real de gate = **Codex · gpt-5.6-luna · medium**.
+
 ## Siguiente (serial, una ronda cada uno)
 1. UI.13.2c Settings — cerrado 2026-09-22. Pendiente menor: idioma solo traduce Settings.
 2. UI.13.4a — cerrado 2026-09-22.

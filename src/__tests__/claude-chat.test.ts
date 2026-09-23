@@ -198,7 +198,7 @@ describe('runClaudeChat (CC.1)', () => {
 
     const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000)
 
-    expect(result.text).toBe('Primera parte. Segunda parte.')
+    expect(result.text).toBe('Primera parte. \n\nSegunda parte.')
     expect(result.inputTokens).toBe(20)
     expect(result.outputTokens).toBe(8)
     expect(result.usd).toBe(0.002)
@@ -375,13 +375,13 @@ describe('runClaudeChat (CC.1)', () => {
     expect(result.effort).toBeUndefined()
   })
 
-  it('sin modelo de Anthropic, el label dice explícitamente "default del CLI" en vez de inventar un modelo', async () => {
+  it('rechaza un modelo que Claude no puede recibir en vez de etiquetar el default como si fuera pedido', async () => {
     const stdout = streamOf(assistantText('x'), resultEvent({ total_cost_usd: 0, usage: {} }))
     overrideBunSpawn(makeMockProc(stdout))
 
-    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000, 'deepseek/deepseek-v4-flash')
-
-    expect(spawnCalls[0]!.cmd).not.toContain('--model')
-    expect(result.model).toBe('claude (cli default model)')
+    await expect(
+      runClaudeChat('/tmp/p', 'sys', 'msg', 5000, 'deepseek/deepseek-v4-flash'),
+    ).rejects.toThrow('no reconoce el modelo solicitado')
+    expect(spawnCalls).toHaveLength(0)
   })
 })

@@ -7,9 +7,9 @@
  * síncrona y fail-safe.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { homedir } from 'os'
-import { dirname, join } from 'path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
 
 interface DiskCache {
   fetchedAt: number
@@ -25,6 +25,7 @@ function cacheFilePath(): string {
 }
 
 let memoryCatalog: Set<string> | null = null
+let nativeCatalog: Set<string> | null = null
 let memoryFetchedAt = 0
 
 function isFresh(fetchedAt: number): boolean {
@@ -104,8 +105,19 @@ export function getOpencodeCatalog(): Set<string> | null {
   return memoryCatalog
 }
 
+/** Registra los ids nativos observados por `opencode models`. */
+export function registerNativeOpencodeModels(models: Iterable<string>): void {
+  nativeCatalog ??= new Set()
+  for (const model of models) nativeCatalog.add(model)
+}
+
+export function hasNativeOpencodeModel(model: string): boolean {
+  return nativeCatalog?.has(model) ?? false
+}
+
 /** Solo para tests — mismo propósito que `_resetCatalog()` en model-catalog.ts. */
 export function _resetOpencodeCatalog(): void {
   memoryCatalog = null
+  nativeCatalog = null
   memoryFetchedAt = 0
 }

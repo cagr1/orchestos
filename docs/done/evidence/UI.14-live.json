@@ -1,0 +1,24 @@
+{
+  "item": "UI.14",
+  "date": "2026-09-22",
+  "runner": "cerebro (Opus) — Playwright contra dashboard real :4242",
+  "scripts": ["/tmp/ui14-gate5.mjs", "/tmp/ui14-gate7.mjs", "/tmp/ui14-gate8.mjs"],
+  "realTurn": {
+    "path": "Dev → orchestos → Launch new agent → Codex → GPT-5.6-Luna · medium",
+    "request": {"agent": "codex", "model": "gpt-5.6-luna", "effort": "medium"},
+    "runsModel": "gpt-5.6-luna via Codex CLI (effort: medium)",
+    "status": "done",
+    "answer": "orchestos"
+  },
+  "composer": "Loading models… y envío bloqueado hasta cargar el catálogo; modelo vacío o fuera de catálogo → 400 antes de lanzar el CLI",
+  "slashCommands": {"/rename": "DB + sidebar sin recargar", "/model": "abre dropdown", "/usage": "abre Settings → Usage", "/archive": "en menú"},
+  "quotaBars": {"5h": "rgb(56, 189, 248)", "weekly": "oklab(0.753499 -0.0842682 -0.11049 / 0.6)"},
+  "heatmap": {"lastCell": "6 runs on Sep 22, 2026", "cellX": [972, 983], "cardX": [297, 983], "inside": true},
+  "errors": "0 pageerror, 0 HTTP>=400",
+  "notVerified": "selector nativo de 'nuevo proyecto' (abre diálogo en el Mac de Carlos); capturas lado a lado con la plantilla",
+  "gates": {
+    "test:coverage": "1499 pass / 0 fail; functions 74.41%, lines 61.37%",
+    "biome": "ok", "typecheck": "ok", "build:app": "ok",
+    "ui:fidelity:jsx": "ok; check-css 53 clases"
+  }
+}

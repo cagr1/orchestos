@@ -123,6 +123,9 @@ describe('CC.2 — chat sessions backend', () => {
       const home = process.env.ORCHESTOS_HOME
       const root = join(home, 'r6-chat-project')
       mkdirSync(root, { recursive: true })
+      mkdirSync(join(home, '.claude'), { recursive: true })
+      writeFileSync(join(home, '.claude', 'stats-cache.json'), JSON.stringify({ modelUsage: { 'claude-sonnet-5': {} } }))
+      process.env.HOME = home
       writeFileSync(join(root, 'orchestos.config.yaml'), 'agent: claude\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
@@ -133,18 +136,22 @@ describe('CC.2 — chat sessions backend', () => {
       globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"isTask":false,"reason":"chat"}' } }] }), { status: 200 })
       const session = createChatSession({ agent: 'claude', mode: 'chat' })
       const post = (body) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify(body) }))
-      const sessionResponse = await post({ sessionId: session.id, requestKey: 'reported', message: 'R6 reported cost fixture', model: 'anthropic/claude-sonnet-5', effort: 'max' })
-      const zeroResponse = await post({ message: 'R6 zero cost fixture', model: 'anthropic/claude-sonnet-5', effort: 'low' })
-      const estimatedResponse = await post({ message: 'R6 estimated cost fixture', model: 'anthropic/claude-sonnet-5', effort: 'medium' })
-      const unknownResponse = await post({ message: 'R6 unknown model fixture', model: 'anthropic/claude-sonnet-5', effort: 'high' })
+      const emptyModelResponse = await post({ sessionId: session.id, message: 'R6 empty model fixture' })
+      const emptyModelRunCount = db.query('SELECT COUNT(*) AS count FROM runs').get().count
+      const sessionResponse = await post({ sessionId: session.id, requestKey: 'reported', message: 'R6 reported cost fixture', model: 'claude-sonnet-5', effort: 'max' })
+      const zeroResponse = await post({ message: 'R6 zero cost fixture', model: 'claude-sonnet-5', effort: 'low' })
+      const estimatedResponse = await post({ message: 'R6 estimated cost fixture', model: 'claude-sonnet-5', effort: 'medium' })
+      const unknownResponse = await post({ message: 'R6 unknown model fixture', model: 'claude-sonnet-5', effort: 'high' })
       const rows = db.query('SELECT model, usd_cost, cost_breakdown_json FROM runs WHERE task_class = "chat" ORDER BY created_at').all()
       const api = await (await route(new Request('http://localhost:50852/api/runs?limit=10'), 50852)).json()
-      process.stdout.write(JSON.stringify({ statuses: [sessionResponse.status, zeroResponse.status, estimatedResponse.status, unknownResponse.status], rows, api }))
+      process.stdout.write(JSON.stringify({ emptyModelStatus: emptyModelResponse.status, emptyModelRunCount, statuses: [sessionResponse.status, zeroResponse.status, estimatedResponse.status, unknownResponse.status], rows, api }))
       db.close()
     `,
       { PATH: process.cwd() + '/scripts/fixtures:' + NO_CLI_PATH },
     )
 
+    expect(result.emptyModelStatus).toBe(400)
+    expect(result.emptyModelRunCount).toBe(0)
     expect(result.statuses).toEqual([200, 200, 200, 200])
     const rows = result.rows as Array<{
       model: string
@@ -806,5 +813,33 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.projects).toEqual([])
     expect(result.sessionCount).toBe(0)
     expect(result.marker).toBe(true)
+  })
+
+  it('timeline devuelve turnos, pasos y !cmd intercalados por created_at', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      const turns = await import('./src/db/chat-turns.ts')
+      const steps = await import('./src/db/chat-turn-steps.ts')
+      const commands = await import('./src/db/console-commands.ts')
+      const { handleApiChatSessionTimeline } = await import('./src/dashboard/handlers/chat-sessions.ts')
+      runMigrations()
+      const session = sessions.createChatSession({ agent: 'api', mode: 'code' })
+      const claimed = turns.beginTurn({ sessionId: session.id, projectId: null, requestKey: 'timeline', inputFingerprint: 'timeline', owner: 'test' })
+      const step = steps.insertChatTurnStep({ sessionId: session.id, turnId: claimed.turn.id, seq: 0, type: 'tool_use', tool: 'Bash', target: 'pwd', exitCode: 0, ok: true })
+      const command = commands.insertConsoleCommand({ sessionId: session.id, cmd: 'ls', exitCode: 0, stdout: 'ok', stderr: '', timedOut: false, elapsedMs: 3 })
+      db.run('UPDATE chat_turns SET created_at = ? WHERE id = ?', ['2026-01-01T00:00:00.000Z', claimed.turn.id])
+      db.run('UPDATE chat_turn_steps SET created_at = ? WHERE id = ?', ['2026-01-01T00:00:01.000Z', step.id])
+      db.run('UPDATE console_commands SET created_at = ? WHERE id = ?', ['2026-01-01T00:00:02.000Z', command.id])
+      const response = handleApiChatSessionTimeline(new URL('http://localhost/api/chat/sessions/' + session.id + '/timeline'))
+      const body = await response.json()
+      process.stdout.write(JSON.stringify({ status: response.status, kinds: body.events.map((event) => event.kind), step: body.turns[0].steps[0], command: body.commands[0] }))
+      db.close()
+    `)
+    expect(result.status).toBe(200)
+    expect(result.kinds).toEqual(['turn', 'step', 'command'])
+    expect(result.step).toMatchObject({ tool: 'Bash', exitCode: 0, ok: true })
+    expect(result.command).toMatchObject({ cmd: 'ls', exitCode: 0 })
   })
 })

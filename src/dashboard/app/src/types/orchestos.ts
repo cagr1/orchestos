@@ -36,6 +36,7 @@ export interface FileDiffEntry {
 export interface CostBreakdownEntry {
   label: string
   model: string
+  effort?: string
   inputTokens: number
   outputTokens: number
   costUsd: number
@@ -226,7 +227,9 @@ export interface ChatAttachment {
 export interface AgentSession {
   id: string
   name: string
+  agent?: string
   model: string
+  effort?: string
   duration: string
   status: 'active' | 'completed' | 'idle'
   shellCommandsCount: number

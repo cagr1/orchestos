@@ -10,6 +10,8 @@ export interface ChatSessionRow {
   updatedAt: string
   archivedAt?: string | null
   readBoundaryWarning?: string
+  lastModel?: string | null
+  lastEffort?: string | null
 }
 
 export interface ChatMessageRow {
@@ -42,6 +44,19 @@ export interface ChatSendOptions {
   model?: string
   effort?: string
   attachments?: ChatAttachment[]
+}
+
+export interface CliModelOption {
+  id: string
+  name: string
+  short: string
+  efforts?: string[]
+}
+
+export interface CliModelCatalog {
+  id: string
+  models: CliModelOption[]
+  efforts: string[]
 }
 
 export interface ChatSendResponse {
@@ -77,6 +92,50 @@ export interface ConsoleExecResponse {
   timedOut: boolean
 }
 
+export interface TimelineStep {
+  seq: number
+  type: 'tool_use' | 'text' | 'step_finish'
+  tool: string | null
+  target: string | null
+  added: number | null
+  removed: number | null
+  exitCode: number | null
+  ok: boolean | null
+  output: string | null
+  detail: string | null
+  durationMs: number | null
+  createdAt: string
+}
+
+export interface TimelineTurn {
+  id: string
+  status: string
+  createdAt: string
+  updatedAt: string
+  error: string | null
+  steps: TimelineStep[]
+}
+
+export interface TimelineResponse {
+  turns: TimelineTurn[]
+  messages: ChatMessageRow[]
+  commands: Array<{
+    id: number
+    cmd: string
+    exitCode: number
+    stdout: string
+    stderr: string
+    elapsedMs: number
+    createdAt: string
+  }>
+  pending: boolean
+  events: Array<
+    | { kind: 'turn'; at: string; turnId: string }
+    | { kind: 'step'; at: string; turnId: string; seq: number }
+    | { kind: 'command'; at: string; id: number }
+  >
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
   const body = (await response.json().catch(() => null)) as { error?: string } | T | null
@@ -95,8 +154,11 @@ function jsonInit(method: string, body: unknown): RequestInit {
   }
 }
 
-function toTimestamp(value: string): string {
-  return new Date(value).toLocaleString([], { hour: '2-digit', minute: '2-digit' })
+export function toTimestamp(value: string): string {
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)
+    ? `${value.replace(' ', 'T')}Z`
+    : value
+  return new Date(normalized).toLocaleString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 export function mapMessage(row: ChatMessageRow): ChatMessage {
@@ -202,6 +264,10 @@ export async function getConsole(sessionId: string): Promise<ConsoleResponse> {
   return request<ConsoleResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/console`)
 }
 
+export async function getTimeline(sessionId: string): Promise<TimelineResponse> {
+  return request<TimelineResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`)
+}
+
 export async function execCommand(sessionId: string, cmd: string): Promise<ConsoleExecResponse> {
   return request<ConsoleExecResponse>(
     `/api/chat/sessions/${encodeURIComponent(sessionId)}/exec`,
@@ -234,11 +300,14 @@ export async function sendMessage(options: ChatSendOptions): Promise<ChatSendRes
     message: options.message,
     requestKey: crypto.randomUUID(),
   }
-  const agent = options.agent || 'api'
-  if ((agent === 'api' || agent === 'claude') && options.model) body.model = options.model
+  if (options.agent) body.agent = options.agent
+  if (options.model) body.model = options.model
   if (options.attachments?.length)
     body.fileIds = options.attachments.map((attachment) => attachment.id)
-  if (options.effort && (agent === 'api' || agent === 'claude'))
-    body.effort = options.effort.toLowerCase()
+  if (options.effort) body.effort = options.effort.toLowerCase()
   return request<ChatSendResponse>('/api/chat', jsonInit('POST', body))
+}
+
+export function getCliModels(): Promise<CliModelCatalog[]> {
+  return request<CliModelCatalog[]>('/api/chat/cli-models')
 }

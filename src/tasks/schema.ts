@@ -12,7 +12,7 @@ const EXECUTORS: TaskExecutor[] = ['openrouter', 'anthropic', 'openai', 'codex']
 // sin contrato verificado, incluido opencode, quedan deliberadamente fuera.
 export const CLI_EFFORT_LEVELS = {
   external: ['low', 'medium', 'high', 'xhigh', 'max'],
-  codex: ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  codex: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'],
 } as const satisfies Partial<Record<TaskEngine, readonly string[]>>
 
 export type CliEffort = (typeof CLI_EFFORT_LEVELS)[keyof typeof CLI_EFFORT_LEVELS][number]
@@ -37,8 +37,8 @@ export interface Task {
   planner_model?: string
   /** Which ExecutorEngine runs this task — undefined resolves via orchestos.config.yaml, default 'single-shot' (G.3) */
   engine?: TaskEngine
-  /** Validated against CLI_EFFORT_LEVELS[engine]. */
-  cli_effort?: CliEffort
+  /** Chosen by the user and interpreted by the selected CLI. */
+  cli_effort?: string
   input: string[] // files the LLM can read (relative to project root)
   output: string[] // files the LLM is allowed to write — REQUIRED, must be non-empty
   acceptance_criteria?: string[]
@@ -123,25 +123,12 @@ function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine
 
 function validateCliEffort(
   value: unknown,
-  engine: unknown,
+  _engine: unknown,
   err: (msg: string) => never,
-): CliEffort | undefined {
+): string | undefined {
   if (value === undefined) return undefined
-  const levels =
-    typeof engine === 'string'
-      ? CLI_EFFORT_LEVELS[engine as keyof typeof CLI_EFFORT_LEVELS]
-      : undefined
-  if (!levels) {
-    err(
-      `cli_effort requires an engine with declared levels — allowed engines: ${Object.keys(CLI_EFFORT_LEVELS).join(', ')}`,
-    )
-  }
-  if (typeof value !== 'string' || !(levels as readonly string[]).includes(value)) {
-    err(
-      `unknown cli_effort '${String(value)}' for engine '${String(engine)}' — allowed: ${levels.join(', ')}`,
-    )
-  }
-  return value as CliEffort
+  if (typeof value !== 'string' || value.trim() === '') err('cli_effort must be a non-empty string')
+  return value.trim()
 }
 
 function validateStringArray(

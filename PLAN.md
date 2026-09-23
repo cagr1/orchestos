@@ -2581,8 +2581,19 @@ ni eso hace falta.
   cuota; Codex trae 5h/7d pero con reinicios del 17 y 19-sep (dato vencido: `readCodexRateLimitsLive` no
   refresca o cae al transcript viejo). Sin esto la barra de UI.13.5 muestra `—`. Investigar primero de dónde se
   puede leer la cuota real de cada CLI (sin inventar), luego spec.
+  Pista medida 2026-09-22: `readCodexRateLimitsLive` (`scripts/context-adapters.ts:197`) usa el app-server de
+  Codex (`account/rateLimits/read`, mecánico, 0 tokens) con timeout de 1,5 s; si el arranque tarda más, cae al
+  transcript viejo. Medir cuánto tarda el app-server antes de subir el timeout.
 
-- [ ] **UI.14 — 🧠 Dev como chat que actúa como CLI (estilo Claude Code desktop / ChatGPT Codex).** (abierto 2026-09-22)
+- [x] **UI.14 — 🧠 Dev como chat que actúa como CLI (estilo Claude Code desktop / ChatGPT Codex).** (abierto 2026-09-22, cerrado 2026-09-22)
+  Ejecutado por: luna · Spec: docs/specs/UI.14.md
+  Rondas 1–11d (spec borrado al cerrar, en git `ed1fdef`): plantilla de AI Studio copiada y cableada (composer,
+  ContextRing, ShellStatusBar, Dev), freno `check-css`, catálogo real de modelos por CLI, validación de modelo en
+  backend, comandos `/rename /usage /model /archive`, títulos mecánicos, heatmap con el día actual visible.
+  Gate en vivo: navegador real (Playwright) contra :4242, `docs/done/evidence/UI.14-live.json` — turno real Codex ·
+  gpt-5.6-luna · medium (`runs.model` = `gpt-5.6-luna via Codex CLI (effort: medium)`, done). `test:coverage`
+  1499 pass / 0 fail. Sin verificar en vivo: selector nativo de nuevo proyecto (abre diálogo en el Mac) y capturas
+  lado a lado con la plantilla.
   Pedido de Carlos 2026-09-22: la vista Dev se ve como un chat, pero el agente trabaja como un CLI en la
   carpeta del proyecto. Cambia la decisión de UI.13.4b (consola reemplaza al chat en Dev). Diseño primero en
   Google AI Studio con `docs/specs/UI.14-aistudio-prompt.md`; luego se copia tal cual (regla UI.13) y se cablea.
@@ -2590,6 +2601,13 @@ ni eso hace falta.
   nuevos `AgentComposer`, `ContextRing`, `ShellStatusBar`, Dev reescrito). Carlos: *"mejoró bastante; conservar
   los tooltips para que se sepa qué es cada icono, sobre todo donde se archiva la sesión"* — todo icono sin
   texto lleva tooltip (hoy `title` nativo en la plantilla).
+  **Carlos 2026-09-22, "Si go con UI.14":** *"ver la quota es un trabajo mecánico, eso no debería costar tokens…
+  esas envolturas deben ser mecánicas, no debe costarle nada al usuario"* — va a medir ahorro CLI directo vs
+  OrchestOS; el proyecto guía, no satura con reglas (los CLI serán cada vez más autónomos). Logos de producto en
+  `~/Downloads/Icons`. Spec: `docs/specs/UI.14.md`.
+  **Carlos 2026-09-22 (noche):** un logo por marca (Codex = logo de ChatGPT, Claude Code = logo de Claude); ninguna
+  cabecera o tooltip repite el nombre (ej. "Codex / codex"); avatar Bot para el LLM y User para el humano en los
+  mensajes (reemplaza "sin avatar" del prompt de AI Studio).
 
 - [x] **CI.3 — ⚡ CI rojo por lint: arreglado y exigido en pre-push.** (abierto y cerrado 2026-09-22)
   Ejecutado por: luna (pre-push) + biome --write mecánico · Spec: docs/specs/CI.LINT.md (borrado al cerrar)

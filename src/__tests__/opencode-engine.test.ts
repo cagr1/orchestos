@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { _resetOpencodeCatalog, registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
 import {
   ExecutorOpencodeError,
   opencodeEngine,
@@ -23,9 +24,12 @@ import type { Task } from '../tasks/schema.ts'
 
 const originalWhich = Bun.which
 beforeEach(() => {
+  _resetOpencodeCatalog()
+  registerNativeOpencodeModels(['deepseek/deepseek-v4-flash', 'anthropic/claude-sonnet-5'])
   ;(Bun as any).which = (_bin: string) => '/usr/local/bin/opencode'
 })
 afterEach(() => {
+  _resetOpencodeCatalog()
   Bun.which = originalWhich
 })
 
@@ -205,9 +209,9 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     expect(spawnCalls[0]!.cmd).toContain('--format')
     expect(spawnCalls[0]!.cmd).toContain('json')
     expect(spawnCalls[0]!.cmd).toContain('--auto')
-    // Sin traducción de modelo real todavía (ver comentario en opencode.ts) —
-    // nunca debe mandar --model con un id de OrchestOS tal cual.
-    expect(spawnCalls[0]!.cmd).not.toContain('--model')
+    // Los ids provider/model del catálogo nativo se pasan tal cual al CLI.
+    expect(spawnCalls[0]!.cmd).toContain('--model')
+    expect(spawnCalls[0]!.cmd).toContain('deepseek/deepseek-v4-flash')
 
     expect(outcome.files).toEqual([{ path: 'out.txt', content: 'hello from opencode\n' }])
     expect(outcome.inputTokens).toBe(120)
@@ -349,9 +353,13 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     expect(outcome.iterations).toBe(2)
   })
 
-  it('orchestosModelToOpencodeModel: sin tabla de traducción todavía, siempre undefined', () => {
-    expect(orchestosModelToOpencodeModel('deepseek/deepseek-v4-flash')).toBeUndefined()
-    expect(orchestosModelToOpencodeModel('anthropic/claude-sonnet-5')).toBeUndefined()
+  it('orchestosModelToOpencodeModel: pasa ids provider/model nativos', () => {
+    expect(orchestosModelToOpencodeModel('deepseek/deepseek-v4-flash')).toBe(
+      'deepseek/deepseek-v4-flash',
+    )
+    expect(orchestosModelToOpencodeModel('anthropic/claude-sonnet-5')).toBe(
+      'anthropic/claude-sonnet-5',
+    )
     expect(orchestosModelToOpencodeModel(undefined)).toBeUndefined()
   })
 })

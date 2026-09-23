@@ -441,36 +441,34 @@ describe('H.8.1 — cli_effort por engine', () => {
     }
   })
 
-  it('rechaza un nivel de external usado con codex', () => {
-    expect(() =>
-      validateTask(
-        {
-          id: 'h81-wrong-effort',
-          description: 'wrong effort',
-          executor: 'openrouter',
-          engine: 'codex',
-          cli_effort: 'max',
-          output: ['out.txt'],
-        },
-        0,
-      ),
-    ).toThrow(/unknown cli_effort 'max' for engine 'codex'.*minimal.*xhigh/)
+  it('acepta el nivel que reporte el CLI', () => {
+    const task = validateTask(
+      {
+        id: 'h81-wrong-effort',
+        description: 'wrong effort',
+        executor: 'openrouter',
+        engine: 'codex',
+        cli_effort: 'turbo',
+        output: ['out.txt'],
+      },
+      0,
+    )
+    expect(task.cli_effort).toBe('turbo')
   })
 
-  it('rechaza effort cuando el engine no tiene contrato declarado', () => {
-    expect(() =>
-      validateTask(
-        {
-          id: 'h81-unsupported-effort',
-          description: 'unsupported effort',
-          executor: 'openrouter',
-          engine: 'opencode',
-          cli_effort: 'high',
-          output: ['out.txt'],
-        },
-        0,
-      ),
-    ).toThrow(/requires an engine with declared levels.*external.*codex/)
+  it('acepta effort aunque el engine no tenga niveles declarados', () => {
+    const task = validateTask(
+      {
+        id: 'h81-unsupported-effort',
+        description: 'unsupported effort',
+        executor: 'openrouter',
+        engine: 'opencode',
+        cli_effort: 'high',
+        output: ['out.txt'],
+      },
+      0,
+    )
+    expect(task.cli_effort).toBe('high')
   })
 })
 

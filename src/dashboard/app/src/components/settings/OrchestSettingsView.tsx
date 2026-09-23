@@ -258,11 +258,49 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     dateStr: string
     runs: number
   } | null>(null)
+  const activityScrollRef = React.useRef<HTMLDivElement>(null)
 
   // Single source of truth for usage telemetry (KPIs & table in sync)
   const modelUsageRows = usage
     ? mapUsageByModel(usage).map((row) => ({ ...row, tokens: row.tokens.toLocaleString() }))
     : []
+  const usageGroups = React.useMemo(() => {
+    const normalized = modelUsageRows.flatMap((row) => {
+      const raw = row.model.replace(/^(anthropic|openai|google|xai|mistral)\//, '')
+      const cliMatch = `${row.provider ?? ''} ${raw}`.match(
+        /(claude|codex|opencode)\s*(?:code)?\s*cli/i,
+      )
+      const cli =
+        cliMatch?.[1]?.toLowerCase() ??
+        (['claude', 'codex', 'opencode'].includes(row.provider ?? '') ? row.provider : null)
+      const model = raw
+        .replace(/\s+via\s+(?:Claude|Codex|OpenCode) CLI/i, '')
+        .replace(/\s*\(effort: [^)]+\)/i, '')
+        .replace(/\s*\(cli default model\)/i, '')
+        .trim()
+      if (/^unknown$/i.test(model)) return []
+      return [{ ...row, model: model || 'default', provider: cli ?? row.provider }]
+    })
+    const grouped = new Map<string, (typeof normalized)[number]>()
+    for (const row of normalized) {
+      const key = `${row.provider ?? ''}\u0000${row.model}`
+      const current = grouped.get(key)
+      if (current) {
+        current.runs += row.runs
+        current.tokens = (
+          Number(current.tokens.replaceAll(',', '')) + Number(row.tokens.replaceAll(',', ''))
+        ).toLocaleString()
+        current.spend += row.spend
+      } else grouped.set(key, { ...row })
+    }
+    const rows = [...grouped.values()]
+    const cli = rows.filter((row) => ['claude', 'codex', 'opencode'].includes(row.provider ?? ''))
+    const api = rows.filter((row) => !cli.includes(row))
+    return [
+      { id: 'cli', label: 'CLI', rows: cli },
+      { id: 'api', label: 'API', rows: api },
+    ].filter((group) => group.rows.length > 0)
+  }, [modelUsageRows])
   const totalRunsUsage = usage?.totalRuns ?? 0
   const totalSpendUsage = usage?.totalUsd ?? 0
   const avgCostUsage = totalRunsUsage ? (totalSpendUsage / totalRunsUsage).toFixed(3) : '0.000'
@@ -431,7 +469,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       tooltip: string
     }> = []
     const now = new Date()
-    for (let i = 118; i >= 0; i--) {
+    for (let i = 370; i >= 0; i--) {
       const d = new Date(now)
       d.setDate(d.getDate() - i)
       const dateKey = d.toISOString().slice(0, 10)
@@ -464,6 +502,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     }
     return cells
   }, [language, usage])
+
+  React.useEffect(() => {
+    if (activeSection !== 'usage') return
+    const element = activityScrollRef.current
+    if (element) element.scrollLeft = element.scrollWidth
+  }, [activeSection, dailyActivityCells.length])
 
   const AGENTS_LIST = [
     {
@@ -1639,43 +1683,64 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               </div>
 
               {/* Heatmap grid */}
-              <div className="overflow-x-auto pb-1">
-                <div className="grid grid-flow-col grid-rows-7 gap-1 min-w-[500px]">
-                  {dailyActivityCells.map((cell) => {
-                    const isLight = currentTheme === 'light'
-                    const bgClass =
-                      cell.intensity === 0
-                        ? isLight
-                          ? 'bg-zinc-200 hover:bg-zinc-300'
-                          : 'bg-zinc-800/40 hover:bg-zinc-700/60'
-                        : cell.intensity === 1
-                          ? isLight
-                            ? 'bg-emerald-200 hover:bg-emerald-300'
-                            : 'bg-emerald-950/90 hover:bg-emerald-900'
-                          : cell.intensity === 2
-                            ? isLight
-                              ? 'bg-emerald-400 hover:bg-emerald-500'
-                              : 'bg-emerald-800 hover:bg-emerald-700'
-                            : cell.intensity === 3
-                              ? isLight
-                                ? 'bg-emerald-600 hover:bg-emerald-700'
-                                : 'bg-emerald-600 hover:bg-emerald-500'
-                              : isLight
-                                ? 'bg-emerald-800 hover:bg-emerald-900'
-                                : 'bg-emerald-400 hover:bg-emerald-300'
-
+              <div ref={activityScrollRef} className="overflow-x-auto pb-1">
+                <div className="flex gap-[3px] min-w-max mb-1 text-[10px] text-app-muted">
+                  {Array.from({ length: 53 }, (_, week) => {
+                    const first = dailyActivityCells[week * 7]
+                    const previous = dailyActivityCells[(week - 1) * 7]
+                    const month = first ? new Date(first.dateStr) : null
+                    const previousMonth = previous ? new Date(previous.dateStr).getMonth() : -1
                     return (
-                      <div
-                        key={cell.id}
-                        className={`w-2.5 h-2.5 rounded-xs transition-colors cursor-pointer ${bgClass}`}
-                        title={cell.tooltip}
-                        onMouseEnter={() =>
-                          setHoveredActivityDay({ dateStr: cell.dateStr, runs: cell.runs })
-                        }
-                        onMouseLeave={() => setHoveredActivityDay(null)}
-                      />
+                      <span key={`month-${week}`} className="w-[11px] shrink-0">
+                        {month && month.getMonth() !== previousMonth
+                          ? month.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
+                              month: 'short',
+                            })
+                          : ''}
+                      </span>
                     )
                   })}
+                </div>
+                <div className="flex gap-[3px] min-w-max">
+                  {Array.from({ length: 53 }, (_, week) => (
+                    <div key={`week-${week}`} className="flex w-[11px] shrink-0 flex-col gap-[3px]">
+                      {dailyActivityCells.slice(week * 7, week * 7 + 7).map((cell) => {
+                        const isLight = currentTheme === 'light'
+                        const bgClass =
+                          cell.intensity === 0
+                            ? isLight
+                              ? 'bg-zinc-200 hover:bg-zinc-300'
+                              : 'bg-zinc-800/40 hover:bg-zinc-700/60'
+                            : cell.intensity === 1
+                              ? isLight
+                                ? 'bg-emerald-200 hover:bg-emerald-300'
+                                : 'bg-emerald-950/90 hover:bg-emerald-900'
+                              : cell.intensity === 2
+                                ? isLight
+                                  ? 'bg-emerald-400 hover:bg-emerald-500'
+                                  : 'bg-emerald-800 hover:bg-emerald-700'
+                                : cell.intensity === 3
+                                  ? isLight
+                                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                                    : 'bg-emerald-600 hover:bg-emerald-500'
+                                  : isLight
+                                    ? 'bg-emerald-800 hover:bg-emerald-900'
+                                    : 'bg-emerald-400 hover:bg-emerald-300'
+
+                        return (
+                          <div
+                            key={cell.id}
+                            className={`w-[11px] h-[11px] rounded-[2px] transition-colors cursor-pointer ${bgClass}`}
+                            title={cell.tooltip}
+                            onMouseEnter={() =>
+                              setHoveredActivityDay({ dateStr: cell.dateStr, runs: cell.runs })
+                            }
+                            onMouseLeave={() => setHoveredActivityDay(null)}
+                          />
+                        )
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1699,13 +1764,50 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-app">
-                  {modelUsageRows.map((row) => (
-                    <tr key={row.model} className="hover:bg-app-elevated/20 transition-colors">
-                      <td className="p-2.5 text-app">{row.model}</td>
-                      <td className="p-2.5 text-app-muted">{row.runs}</td>
-                      <td className="p-2.5 text-app-muted">{row.tokens}</td>
-                      <td className="p-2.5 text-app font-semibold">${row.spend.toFixed(2)}</td>
-                    </tr>
+                  {usageGroups.map((group) => (
+                    <React.Fragment key={group.id}>
+                      <tr className="bg-app-elevated/30">
+                        <th
+                          colSpan={4}
+                          className="p-2 text-left text-[10px] uppercase tracking-wider text-app-muted"
+                        >
+                          {group.label}
+                        </th>
+                      </tr>
+                      {group.rows.map((row) => {
+                        const model = row.model.replace(
+                          /^(anthropic|openai|google|xai|mistral)\//,
+                          '',
+                        )
+                        const displayModel = /cli default model/i.test(model) ? 'default' : model
+                        const logo =
+                          group.id === 'cli'
+                            ? row.provider === 'claude' || /Claude/i.test(row.model)
+                              ? 'claude'
+                              : row.provider === 'codex' || /Codex/i.test(row.model)
+                                ? 'chatgpt'
+                                : 'opencode'
+                            : 'api'
+                        return (
+                          <tr
+                            key={`${group.id}-${row.model}`}
+                            className="hover:bg-app-elevated/20 transition-colors"
+                          >
+                            <td className="p-2.5 text-app">
+                              <span className="inline-flex items-center gap-2">
+                                <ProviderLogo id={logo} size={14} />
+                                <span>{displayModel}</span>
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-app-muted">{row.runs}</td>
+                            <td className="p-2.5 text-app-muted">{row.tokens}</td>
+                            <td className="p-2.5 text-app font-semibold">
+                              ${row.spend.toFixed(2)}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

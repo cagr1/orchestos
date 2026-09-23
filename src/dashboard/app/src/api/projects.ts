@@ -16,6 +16,8 @@ export interface SessionRow {
   title: string
   createdAt: string
   updatedAt: string
+  lastModel?: string | null
+  lastEffort?: string | null
 }
 
 export interface TurnStatus {
@@ -64,7 +66,9 @@ export function mapSessionToAgent(
   return {
     id: session.id,
     name: session.title,
-    model: session.agent,
+    agent: session.agent,
+    model: session.lastModel || session.agent,
+    ...(session.lastEffort ? { effort: session.lastEffort } : {}),
     duration: timeSince(session.updatedAt),
     status:
       status.kind === 'pending'

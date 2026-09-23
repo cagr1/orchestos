@@ -26,6 +26,14 @@ export interface ExecutorStepEvent {
   type: 'tool_use' | 'text' | 'step_finish'
   label: string
   detail?: string
+  target?: string
+  added?: number
+  removed?: number
+  ok?: boolean
+  exitCode?: number
+  output?: string
+  durationMs?: number
+  toolUseId?: string
   costUsd?: number
   tokens?: { input?: number; output?: number }
 }
@@ -36,12 +44,20 @@ interface ClaudeContentBlock {
   type?: string
   text?: string
   name?: string
+  id?: string
   input?: unknown
 }
 
 interface ClaudeAssistantEvent {
   type?: string
   message?: { content?: ClaudeContentBlock[] }
+}
+
+interface ClaudeToolResultEvent {
+  type?: string
+  message?: {
+    content?: Array<{ type?: string; tool_use_id?: string; content?: unknown; is_error?: boolean }>
+  }
 }
 
 /** Requested paths ONLY. Never use as evidence of success; use ClaudeReadAudit. */
@@ -80,14 +96,44 @@ export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
       if (block.type === 'text' && typeof block.text === 'string') {
         steps.push({ type: 'text', label: 'text', detail: block.text })
       } else if (block.type === 'tool_use' && typeof block.name === 'string') {
-        steps.push({
+        const input = block.input as Record<string, unknown> | undefined
+        const target =
+          typeof input?.file_path === 'string'
+            ? input.file_path
+            : typeof input?.path === 'string'
+              ? input.path
+              : undefined
+        const oldText = typeof input?.old_string === 'string' ? input.old_string : undefined
+        const newText = typeof input?.new_string === 'string' ? input.new_string : undefined
+        const content = typeof input?.content === 'string' ? input.content : undefined
+        const step: ExecutorStepEvent = {
           type: 'tool_use',
           label: block.name,
           detail: block.input !== undefined ? JSON.stringify(block.input) : undefined,
-        })
+        }
+        if (block.id) step.toolUseId = block.id
+        if (target !== undefined) step.target = target
+        if (newText !== undefined || content !== undefined)
+          step.added = lineCount(newText ?? content ?? '')
+        if (oldText !== undefined) step.removed = lineCount(oldText)
+        steps.push(step)
       }
     }
     return steps
+  }
+
+  if (evt.type === 'user') {
+    const event = raw as ClaudeToolResultEvent
+    return (event.message?.content ?? [])
+      .filter((block) => block.type === 'tool_result')
+      .map((block) => ({
+        type: 'tool_use' as const,
+        label: 'tool_result',
+        toolUseId: block.tool_use_id,
+        ok: !block.is_error,
+        output:
+          typeof block.content === 'string' ? block.content : JSON.stringify(block.content ?? ''),
+      }))
   }
 
   if (evt.type === 'result') {
@@ -104,13 +150,25 @@ export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
   return []
 }
 
+function lineCount(value: string): number {
+  return value === '' ? 0 : value.split(/\r?\n/).length
+}
+
 // -- opencode (NDJSON) -------------------------------------------------------
 
 interface OpencodePart {
   type?: string
   tool?: string
   text?: string
-  state?: { title?: string }
+  state?: {
+    title?: string
+    status?: string
+    output?: string
+    exit_code?: number
+    exitCode?: number
+    input?: Record<string, unknown>
+  }
+  input?: Record<string, unknown>
   cost?: number
   tokens?: { input?: number; output?: number }
 }
@@ -126,11 +184,36 @@ export function opencodeEventToStep(raw: unknown): ExecutorStepEvent[] {
   const part = evt.part
 
   if (evt.type === 'tool_use' && part) {
+    const input = part.input ?? part.state?.input
+    const target =
+      typeof input?.file_path === 'string'
+        ? input.file_path
+        : typeof input?.path === 'string'
+          ? input.path
+          : undefined
+    const oldText = typeof input?.old_string === 'string' ? input.old_string : undefined
+    const newText = typeof input?.new_string === 'string' ? input.new_string : undefined
+    const content = typeof input?.content === 'string' ? input.content : undefined
+    const exitCode = part.state?.exit_code ?? part.state?.exitCode
+    const ok =
+      typeof exitCode === 'number'
+        ? exitCode === 0
+        : typeof part.state?.status === 'string'
+          ? part.state.status === 'completed' || part.state.status === 'success'
+          : undefined
     return [
       {
         type: 'tool_use',
         label: part.tool ?? 'tool',
         detail: part.state?.title,
+        ...(target === undefined ? {} : { target }),
+        ...(newText !== undefined || content !== undefined
+          ? { added: lineCount(newText ?? content ?? '') }
+          : {}),
+        ...(oldText === undefined ? {} : { removed: lineCount(oldText) }),
+        ...(exitCode === undefined ? {} : { exitCode }),
+        ...(ok === undefined ? {} : { ok }),
+        ...(part.state?.output === undefined ? {} : { output: part.state.output }),
       },
     ]
   }
@@ -165,6 +248,8 @@ interface CodexItem {
   text?: string
   command?: string
   changes?: { path?: string; kind?: string }[]
+  exit_code?: number
+  aggregated_output?: string
 }
 
 interface CodexEvent {
@@ -183,14 +268,30 @@ export function codexEventToStep(raw: unknown): ExecutorStepEvent[] {
       return [{ type: 'text', label: 'text', detail: item.text }]
     }
     if (item.type === 'command_execution') {
-      return [{ type: 'tool_use', label: 'command', detail: item.command }]
+      return [
+        {
+          type: 'tool_use',
+          label: 'command',
+          detail: item.command,
+          ...(item.exit_code === undefined
+            ? {}
+            : { ok: item.exit_code === 0, exitCode: item.exit_code }),
+          ...(item.aggregated_output === undefined ? {} : { output: item.aggregated_output }),
+        },
+      ]
     }
     if (item.type === 'file_change') {
       const paths = (item.changes ?? [])
         .map((c) => c.path)
         .filter(Boolean)
         .join(', ')
-      return [{ type: 'tool_use', label: 'file_change', detail: paths || undefined }]
+      return [
+        {
+          type: 'tool_use',
+          label: 'file_change',
+          ...(paths ? { detail: paths, target: paths } : {}),
+        },
+      ]
     }
     return []
   }

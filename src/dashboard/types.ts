@@ -85,6 +85,8 @@ export interface ChatSessionRow {
   archivedAt: string | null
   hasPersistentWork: boolean
   lastPersistentTaskId: string | null
+  lastModel: string | null
+  lastEffort: string | null
   readBoundaryWarning?: string
 }
 

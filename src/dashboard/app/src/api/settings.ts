@@ -54,6 +54,7 @@ export interface ExecutorModesResponse {
 export interface UsageRow {
   date: string
   model: string
+  provider?: string
   usd: number
   runs: number
   inputTokens: number
@@ -130,13 +131,23 @@ export function mapSettingsKeys(response: SettingsResponse) {
 }
 
 export function mapUsageByModel(response: UsageResponse) {
-  const rows = new Map<string, { model: string; runs: number; tokens: number; spend: number }>()
+  const rows = new Map<
+    string,
+    { model: string; provider?: string; runs: number; tokens: number; spend: number }
+  >()
   for (const item of response.byDayModel) {
-    const row = rows.get(item.model) ?? { model: item.model, runs: 0, tokens: 0, spend: 0 }
+    const key = `${item.provider ?? ''}\u0000${item.model}`
+    const row = rows.get(key) ?? {
+      model: item.model,
+      ...(item.provider ? { provider: item.provider } : {}),
+      runs: 0,
+      tokens: 0,
+      spend: 0,
+    }
     row.runs += item.runs
     row.tokens += item.inputTokens + item.outputTokens
     row.spend += item.usd
-    rows.set(item.model, row)
+    rows.set(key, row)
   }
   return [...rows.values()].sort((a, b) => b.spend - a.spend)
 }

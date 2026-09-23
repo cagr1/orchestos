@@ -1,5 +1,50 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-elevated: var(--app-surface-elevated);
+  --color-app-border: var(--app-border);
+  --color-app-text: var(--app-text);
+  --color-app-muted: var(--app-text-muted);
+  --color-app-accent: var(--app-accent);
+  --color-app-accent-hover: var(--app-accent-hover);
+  --color-app-success: var(--app-success);
+  --color-app-warning: var(--app-warning);
+  --color-app-error: var(--app-error);
+}
+
+@utility border-app {
+  border-color: var(--app-border);
+}
+
+@utility divide-app {
+  :where(& > :not(:last-child)) {
+    border-color: var(--app-border);
+  }
+}
+
+@utility text-app {
+  color: var(--app-text);
+}
+
+/* Tailwind v4 does not derive opacity variants from custom color utilities. */
+.border-app\/40 {
+  border-color: color-mix(in srgb, var(--app-border) 40%, transparent);
+}
+
+.border-app\/50 {
+  border-color: color-mix(in srgb, var(--app-border) 50%, transparent);
+}
+
+.border-app\/60 {
+  border-color: color-mix(in srgb, var(--app-border) 60%, transparent);
+}
+
+.border-app\/80 {
+  border-color: color-mix(in srgb, var(--app-border) 80%, transparent);
+}
+
 @layer base {
   :root,
   [data-theme="orchestos"] {
@@ -128,32 +173,6 @@
 .rounded-pill,
 .rounded-full {
   border-radius: 9999px !important;
-}
-
-/* Unified Semantic Colors & Surface Classes */
-.bg-app-bg {
-  background-color: var(--app-bg);
-}
-.bg-app-surface {
-  background-color: var(--app-surface);
-}
-.bg-app-elevated {
-  background-color: var(--app-surface-elevated);
-}
-.border-app {
-  border-color: var(--app-border);
-}
-.text-app {
-  color: var(--app-text);
-}
-.text-app-muted {
-  color: var(--app-text-muted);
-}
-.text-app-accent {
-  color: var(--app-accent);
-}
-.bg-app-accent {
-  background-color: var(--app-accent);
 }
 
 /* Unified Tab Bar Button Style across the entire app */

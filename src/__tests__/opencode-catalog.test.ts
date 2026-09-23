@@ -5,13 +5,14 @@
  * [[reference-bun-mock-module-gotcha]]).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   _resetOpencodeCatalog,
   ensureOpencodeCatalogLoaded,
   getOpencodeCatalog,
+  registerNativeOpencodeModels,
 } from '../router/opencode-catalog.ts'
 import { orchestosModelToOpencodeModel } from '../run/executors/opencode.ts'
 
@@ -190,6 +191,13 @@ describe('orchestosModelToOpencodeModel (con catálogo real cargado)', () => {
     await ensureOpencodeCatalogLoaded()
 
     expect(orchestosModelToOpencodeModel('not-a-real/model')).toBeUndefined()
+  })
+
+  it('id nativo de `opencode models` → se conserva sin prefijo OpenRouter', () => {
+    registerNativeOpencodeModels(['anthropic/claude-sonnet-5:native'])
+    expect(orchestosModelToOpencodeModel('anthropic/claude-sonnet-5:native')).toBe(
+      'anthropic/claude-sonnet-5:native',
+    )
   })
 
   it('catálogo nunca cargado (null) → undefined, no revienta', () => {

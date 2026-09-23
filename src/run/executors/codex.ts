@@ -58,8 +58,12 @@ export function codexUnavailableMessage(pathHint?: string): string {
 }
 
 export function orchestosModelToCodexModel(model: string | undefined): string | undefined {
-  if (!model || !model.startsWith('openai/')) return undefined
-  return model.slice('openai/'.length)
+  if (!model) return undefined
+  if (model.startsWith('openai/')) return model.slice('openai/'.length)
+  // Chat CLI catalogs return native Codex ids (for example gpt-5.6-luna).
+  // They must not be treated as an implicit request for Codex's default.
+  if (!model.includes('/')) return model
+  return undefined
 }
 
 /**
@@ -247,6 +251,8 @@ export const CODEX_CHAT_EFFORT_LEVELS = Object.freeze([
   'medium',
   'high',
   'xhigh',
+  'max',
+  'ultra',
 ] as const)
 
 export function buildCodexChatEnv(configHomePath: string): Record<string, string> {
@@ -260,6 +266,7 @@ export async function runCodexChat(
   timeoutMs: number,
   model?: string,
   cliEffort?: string,
+  onChatStep?: (event: ExecutorStepEvent) => void,
 ): Promise<CodexChatResult> {
   if (!findCodexBinary()) {
     throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
@@ -271,7 +278,8 @@ export async function runCodexChat(
 
   let text = ''
   const onStep = (step: ExecutorStepEvent) => {
-    if (step.type === 'text' && step.detail) text += step.detail
+    if (step.type === 'text' && step.detail) text += text ? `\n\n${step.detail}` : step.detail
+    onChatStep?.(step)
   }
 
   let stdout: string
@@ -301,11 +309,11 @@ export async function runCodexChat(
 
   // F0.8 — mismo criterio que el engine de tareas: costo desconocido explícito
   // (no $0 fabricado) cuando el modelo corrido no está en el catálogo real.
-  // A diferencia del engine de tareas, el chat NO aborta antes de gastar
-  // tokens si el modelo no es `openai/*` — es interactivo, el usuario está
-  // esperando una respuesta; codex corre con su propio default y el costo
-  // queda en 0 con el modelo etiquetado como "cli default", igual que
-  // `runClaudeChat` hace cuando el modelo pedido no es de Anthropic.
+  // El chat también debe conservar la decisión explícita del usuario: nunca
+  // cae silenciosamente al modelo por defecto del binario.
+  if (model && !codexModel) {
+    throw new ExecutorCodexError(codexCostUnmeasurableMessage(model))
+  }
   const usd =
     model && getCatalog()?.has(model) ? calcCost(model, parsed.inputTokens, parsed.outputTokens) : 0
 
@@ -314,7 +322,7 @@ export async function runCodexChat(
     inputTokens: parsed.inputTokens,
     outputTokens: parsed.outputTokens,
     usd,
-    model: codexModel ? model! : 'codex (cli default model)',
+    model: model ?? 'codex (cli default model)',
   }
 }
 

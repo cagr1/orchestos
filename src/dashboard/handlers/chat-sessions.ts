@@ -13,6 +13,7 @@ import {
   restoreChatSession,
   updateChatSession,
 } from '../../db/chat-sessions.ts'
+import { listChatTurnSteps } from '../../db/chat-turn-steps.ts'
 import {
   getLastPersistentTaskId,
   getLastTurn,
@@ -38,6 +39,12 @@ const AGENTS = new Set<AgentChoice>(AGENT_CHOICES)
 const TITLE_MAX_LENGTH = 160
 
 function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
+  const lastModelLabel =
+    [...listChatMessages(row.id)].reverse().find((message) => message.role === 'assistant')
+      ?.model ?? null
+  const lastEffort = lastModelLabel?.match(/\(effort: ([^)]+)\)/i)?.[1] ?? null
+  const lastModel =
+    lastModelLabel?.replace(/\s+via\s+.+$/i, '').replace(/\s*\(effort: [^)]+\)/i, '') ?? null
   return {
     id: row.id,
     projectId: row.project_id,
@@ -49,6 +56,8 @@ function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
     archivedAt: row.archived_at,
     hasPersistentWork: sessionHasPersistentWork(row.id),
     lastPersistentTaskId: getLastPersistentTaskId(row.id),
+    lastModel,
+    lastEffort,
   }
 }
 
@@ -69,7 +78,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
 
 function sessionIdFromUrl(url: URL): string | null {
   const match = url.pathname.match(
-    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/turn-status|\/archive|\/restore|\/exec|\/console)?$/,
+    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/timeline|\/turn-status|\/archive|\/restore|\/exec|\/console)?$/,
   )
   if (!match?.[1]) return null
   try {
@@ -288,6 +297,67 @@ export function handleApiChatSessionMessages(url: URL): Response {
   if (!id) return errorResponse('Invalid session id', 400)
   if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
   return jsonResponse(listChatMessages(id).map(toMessageRow))
+}
+
+export function handleApiChatSessionTimeline(url: URL): Response {
+  const id = sessionIdFromUrl(url)
+  if (!id) return errorResponse('Invalid session id', 400)
+  if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
+  const turns = listChatTurns(id)
+  const messages = listChatMessages(id).map(toMessageRow)
+  const commands = listConsoleCommands(id)
+  const steps = listChatTurnSteps(id)
+  const events = [
+    ...turns.map((turn) => ({ kind: 'turn' as const, at: turn.created_at, turnId: turn.id })),
+    ...steps.map((step) => ({
+      kind: 'step' as const,
+      at: step.created_at,
+      turnId: step.turn_id,
+      seq: step.seq,
+    })),
+    ...commands.map((command) => ({
+      kind: 'command' as const,
+      at: command.created_at,
+      id: command.id,
+    })),
+  ].sort((a, b) => a.at.localeCompare(b.at) || ('seq' in a ? a.seq : 0) - ('seq' in b ? b.seq : 0))
+  return jsonResponse({
+    turns: turns.map((turn) => ({
+      id: turn.id,
+      status: turn.status,
+      createdAt: turn.created_at,
+      updatedAt: turn.updated_at,
+      error: turn.error,
+      steps: steps
+        .filter((step) => step.turn_id === turn.id)
+        .map((step) => ({
+          seq: step.seq,
+          type: step.type,
+          tool: step.tool,
+          target: step.target,
+          added: step.added,
+          removed: step.removed,
+          exitCode: step.exit_code,
+          ok: step.ok === null ? null : step.ok === 1,
+          output: step.output,
+          detail: step.detail,
+          durationMs: step.duration_ms,
+          createdAt: step.created_at,
+        })),
+    })),
+    messages,
+    commands: commands.map((command) => ({
+      id: command.id,
+      cmd: command.cmd,
+      exitCode: command.exit_code,
+      stdout: command.stdout,
+      stderr: command.stderr,
+      elapsedMs: command.elapsed_ms,
+      createdAt: command.created_at,
+    })),
+    pending: hasActiveTurn(id),
+    events,
+  })
 }
 
 export type ChatTurnStatusRow =

@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { AddProjectModal } from './AddProjectModal'
@@ -83,13 +83,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   const filteredThreads = threads.filter((t) =>
     t.title.toLowerCase().includes(chatSearch.toLowerCase()),
   )
-
-  useEffect(() => {
-    if (projects.length === 0) return
-    setExpandedProjects((current) =>
-      Object.fromEntries(projects.map((project) => [project.id, current[project.id] ?? true])),
-    )
-  }, [projects])
 
   return (
     <aside className="w-64 flex-shrink-0 bg-app-bg border-r border-app flex flex-col justify-between select-none text-app flex-shrink-0 z-10">
@@ -192,22 +185,20 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                       </span>
                     </div>
 
-                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                      {onDeleteChat && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDeleteChat(thread.id)
-                          }}
-                          className="text-app-muted hover:text-rose-400 p-0.5"
-                          title="Delete chat"
-                          aria-label="Delete chat"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
+                    {onDeleteChat && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteChat(thread.id)
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-app-muted hover:text-rose-400 p-0.5 transition-opacity"
+                        title="Delete chat"
+                        aria-label="Delete chat"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 )
               })
@@ -243,10 +234,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                   <div className="group relative flex items-center justify-between px-2.5 py-1.5 rounded-control text-xs text-app transition-colors hover:bg-app-surface/60 border border-transparent hover:border-app">
                     <button
                       type="button"
-                      onClick={() => {
-                        onSelectProject(proj.id)
-                        toggleProjectExpand(proj.id)
-                      }}
+                      onClick={() => toggleProjectExpand(proj.id)}
                       className="flex items-center gap-2 min-w-0 flex-1 text-left"
                       title={`Toggle ${proj.name} agents`}
                     >
@@ -392,15 +380,20 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                               <span className="truncate">{ag.name}</span>
                             </button>
 
+                            {/* Relative time & Close button */}
                             <div className="flex items-center gap-1 ml-1 flex-shrink-0">
                               <span className="font-mono text-app-muted group-hover:hidden">
                                 {ag.duration}
                               </span>
+
+                              {/* Close agent button on hover (moves to history) */}
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  onCloseAgent?.(ag.id, proj.id)
+                                  if (onCloseAgent) {
+                                    onCloseAgent(ag.id, proj.id)
+                                  }
                                 }}
                                 className="hidden group-hover:flex p-0.5 text-app-muted hover:text-app rounded-control"
                                 title="Close agent (archive to History)"
@@ -421,23 +414,26 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         </div>
       )}
 
-      {/* Bottom Footer: Settings */}
+      {/* Bottom Footer: Just Settings */}
       <div className="p-3 border-t border-app bg-app-surface/40 flex-shrink-0">
         {/* Settings button */}
         <button
           type="button"
           onClick={onOpenSettings}
-          className="flex items-center gap-2 text-xs text-app-muted hover:text-app transition-colors"
+          className="flex items-center gap-2 text-xs text-app-muted hover:text-app transition-colors w-full"
         >
           <Settings className="w-4 h-4 text-app-muted" />
           <span>Settings</span>
         </button>
       </div>
 
+      {/* Add Project Modal */}
       <AddProjectModal
         isOpen={isAddProjectModalOpen}
         onClose={() => setIsAddProjectModalOpen(false)}
-        onCreate={(name, branch) => onNewProject?.(name, branch)}
+        onCreate={(name, branch) => {
+          if (onNewProject) onNewProject(name, branch)
+        }}
       />
 
       {/* New Chat Agent Selector Modal */}
@@ -467,12 +463,17 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         />
       )}
 
+      {/* Delete Project Confirmation Modal */}
       {projectToDelete && (
         <DeleteProjectModal
           isOpen={!!projectToDelete}
           projectName={projectToDelete.name}
           onClose={() => setProjectToDelete(null)}
-          onConfirm={() => onDeleteProject?.(projectToDelete.id)}
+          onConfirm={() => {
+            if (onDeleteProject) {
+              onDeleteProject(projectToDelete.id)
+            }
+          }}
         />
       )}
     </aside>

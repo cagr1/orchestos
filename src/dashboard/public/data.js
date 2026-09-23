@@ -287,7 +287,7 @@ const KNOWN_MODELS = [
    schema. `opencode` queda fuera hasta tener niveles verificados. */
 const CLI_EFFORT_LEVELS = {
   external: ['low', 'medium', 'high', 'xhigh', 'max'],
-  codex: ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  codex: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'],
 }
 
 function loadingState(msg) {

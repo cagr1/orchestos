@@ -1,0 +1,11 @@
+[
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "src/run/router.ts" },
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "contextWindow" },
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "Thought · 6s" },
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "Read 3 files" },
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "ContextExceededError" },
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "src/types/contract.ts" },
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "tests/run/router.test.ts" },
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "bun test src/run/router.test.ts" },
+  { "archivo": "OrchestDevWorkspace.tsx", "texto": "2:14 PM" }
+]

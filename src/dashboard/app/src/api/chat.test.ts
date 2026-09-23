@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { execCommand, getConsole, mapMessage, mapSessionToThread, sendMessage } from './chat'
+import {
+  execCommand,
+  getConsole,
+  mapMessage,
+  mapSessionToThread,
+  sendMessage,
+  toTimestamp,
+} from './chat'
 
 describe('chat API mapping', () => {
   test('maps persisted session and message rows to the prototype types', () => {
@@ -82,6 +89,13 @@ describe('chat API mapping', () => {
         createdAt: '2026-09-21T12:00:00.000Z',
       }),
     ).toMatchObject({ taskHeld: true, heldTask: { taskId: 'task-7' } })
+  })
+
+  test('renders SQLite UTC timestamps in the browser local timezone', () => {
+    const sqliteValue = '2026-09-21 12:00:00'
+    expect(toTimestamp(sqliteValue)).toBe(
+      new Date('2026-09-21T12:00:00Z').toLocaleString([], { hour: '2-digit', minute: '2-digit' }),
+    )
   })
 
   test('loads the real console and executes a command for a session', async () => {

@@ -118,8 +118,11 @@ function buildSystemPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
  * error del propio binario en vez de un mal comportamiento silencioso.
  */
 export function orchestosModelToCliModel(model: string | undefined): string | undefined {
-  if (!model || !model.startsWith('anthropic/')) return undefined
-  return model.slice('anthropic/'.length)
+  if (!model) return undefined
+  if (model.startsWith('anthropic/')) return model.slice('anthropic/'.length)
+  // Chat CLI catalogs expose native aliases (fable|opus|sonnet) directly.
+  if (!model.includes('/')) return model
+  return undefined
 }
 
 /**
@@ -355,6 +358,7 @@ export async function runClaudeChat(
   timeoutMs: number,
   model?: string,
   effort?: string,
+  onChatStep?: (event: ExecutorStepEvent) => void,
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -368,13 +372,18 @@ export async function runClaudeChat(
 
   let text = ''
   const onStep = (step: ExecutorStepEvent) => {
-    if (step.type === 'text' && step.detail) text += step.detail
+    if (step.type === 'text' && step.detail) text += text ? `\n\n${step.detail}` : step.detail
+    onChatStep?.(step)
   }
 
   let timedOut: boolean
   let resultLine: string | undefined
   const audit = new ClaudeReadAudit()
   const configHome = provisionCliConfigHome(cwd, 'claude')
+  const cliModel = orchestosModelToCliModel(model)
+  if (model && !cliModel) {
+    throw new ExecutorExternalError(`Claude Code no reconoce el modelo solicitado: ${model}`)
+  }
   try {
     ;({ timedOut, resultLine } = await runClaudeCode(
       cwd,
@@ -417,9 +426,7 @@ export async function runClaudeChat(
     // canónico que el propio CLI reporta en `modelUsage` (ej. "claude-sonnet-5")
     // — si por lo que sea el evento no lo trae, cae al valor pedido, nunca a
     // un string inventado.
-    model:
-      resolvedCliModel(parsed) ??
-      (orchestosModelToCliModel(model) ? model! : 'claude (cli default model)'),
+    model: resolvedCliModel(parsed) ?? model ?? 'claude (cli default model)',
     effort,
     filesRead: successfulReadPaths(audit.finish()),
     readAudit: audit.finish(),

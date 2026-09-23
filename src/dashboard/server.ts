@@ -2,6 +2,7 @@ import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
   handleApiChat,
+  handleApiChatCliModels,
   handleApiChatModels,
   handleApiChatTaskBarClick,
   handleApiChatTaskBarEvents,
@@ -16,6 +17,7 @@ import {
   handleApiChatSessionPatch,
   handleApiChatSessionsCreate,
   handleApiChatSessionsList,
+  handleApiChatSessionTimeline,
   handleApiChatSessionTurnStatus,
 } from './handlers/chat-sessions.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
@@ -337,6 +339,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/chat/models') {
     return handleApiChatModels()
   }
+  if (method === 'GET' && url.pathname === '/api/chat/cli-models') {
+    return handleApiChatCliModels()
+  }
   if (method === 'GET' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsList(req)
   }
@@ -351,6 +356,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/messages$/)) {
     return handleApiChatSessionMessages(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/timeline$/)) {
+    return handleApiChatSessionTimeline(url)
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/console$/)) {
     return handleApiChatSessionConsole(url)

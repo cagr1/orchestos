@@ -18,11 +18,11 @@ function chatRequest(body: unknown): Request {
 }
 
 describe('handleApiChat — BACK.3 reasoning effort', () => {
-  it('rejects an invalid effort value with 400, before touching catalog/fetch/db', async () => {
-    const res = await handleApiChat(chatRequest({ message: 'hi', history: [], effort: 'turbo' }))
+  it('does not impose an OrchestOS effort allow-list', async () => {
+    const res = await handleApiChat(chatRequest({ message: '', history: [], effort: 'turbo' }))
     expect(res.status).toBe(400)
     const data = (await res.json()) as any
-    expect(data.error).toMatch(/^effort must be one of:/)
+    expect(data.error).toBe('message is required')
   })
 
   it('accepts the 3 valid effort values without 400 (no model check needed at validation time)', async () => {

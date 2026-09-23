@@ -29,7 +29,7 @@
  *     `--model` en vez de fingir soporte.
  */
 
-import { getOpencodeCatalog } from '../../router/opencode-catalog.ts'
+import { getOpencodeCatalog, hasNativeOpencodeModel } from '../../router/opencode-catalog.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { type ExecutorStepEvent, opencodeEventToStep } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
@@ -56,8 +56,9 @@ export function opencodeUnavailableMessage(pathHint?: string): string {
 export function orchestosModelToOpencodeModel(model: string | undefined): string | undefined {
   if (!model) return undefined
   const catalog = getOpencodeCatalog()
-  if (!catalog?.has(model)) return undefined
-  return 'openrouter/' + model
+  if (catalog?.has(model)) return `openrouter/${model}`
+  if (hasNativeOpencodeModel(model)) return model
+  return undefined
 }
 
 function buildOpencodePrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
@@ -234,17 +235,22 @@ export async function runOpencodeChat(
   userMessage: string,
   timeoutMs: number,
   model?: string,
+  onChatStep?: (event: ExecutorStepEvent) => void,
 ): Promise<OpencodeChatResult> {
   if (!findOpencodeBinary()) {
     throw new ExecutorOpencodeError(opencodeUnavailableMessage(process.env.PATH))
   }
 
   const opencodeModel = orchestosModelToOpencodeModel(model)
+  if (model && !opencodeModel) {
+    throw new ExecutorOpencodeError(`OpenCode no reconoce el modelo solicitado: ${model}`)
+  }
   const message = [systemPrompt, userMessage].filter(Boolean).join('\n\n')
 
   let text = ''
   const onStep = (step: ExecutorStepEvent) => {
-    if (step.type === 'text' && step.detail) text += step.detail
+    if (step.type === 'text' && step.detail) text += text ? `\n\n${step.detail}` : step.detail
+    onChatStep?.(step)
   }
 
   let stdout: string
@@ -276,7 +282,7 @@ export async function runOpencodeChat(
     inputTokens: parsed.inputTokens,
     outputTokens: parsed.outputTokens,
     usd: parsed.usd,
-    model: opencodeModel ?? 'opencode (cli default model)',
+    model: model ?? 'opencode (cli default model)',
   }
 }
 
@@ -296,6 +302,9 @@ export const opencodeEngine: ExecutorEngine = {
 
     const prompt = buildOpencodePrompt(ctx)
     const model = orchestosModelToOpencodeModel(ctx.model)
+    if (ctx.model && !model) {
+      throw new ExecutorOpencodeError(`OpenCode no reconoce el modelo solicitado: ${ctx.model}`)
+    }
     const variant = ctx.task.cli_effort
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
 

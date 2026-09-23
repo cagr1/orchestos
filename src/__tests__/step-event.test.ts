@@ -27,6 +27,36 @@ describe('claudeEventToStep', () => {
     expect(steps).toEqual([{ type: 'tool_use', label: 'Bash', detail: '{"command":"ls"}' }])
   })
 
+  it('user con tool_result → estado y salida del tool, sin inventar exit code', () => {
+    const steps = claudeEventToStep({
+      type: 'user',
+      message: {
+        content: [
+          { type: 'tool_result', tool_use_id: 'tool-1', is_error: true, content: 'denied' },
+        ],
+      },
+    })
+    expect(steps).toEqual([
+      { type: 'tool_use', label: 'tool_result', toolUseId: 'tool-1', ok: false, output: 'denied' },
+    ])
+  })
+
+  it('Edit cuenta líneas añadidas y eliminadas desde old_string/new_string', () => {
+    const [step] = claudeEventToStep({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            name: 'Edit',
+            input: { file_path: 'src/a.ts', old_string: 'one\ntwo', new_string: 'one\ntwo\nthree' },
+          },
+        ],
+      },
+    })
+    expect(step).toMatchObject({ target: 'src/a.ts', added: 3, removed: 2 })
+  })
+
   it('assistant con texto + tool_use en el mismo mensaje → 2 steps', () => {
     const steps = claudeEventToStep({
       type: 'assistant',
@@ -75,6 +105,26 @@ describe('opencodeEventToStep', () => {
       part: { type: 'tool', tool: 'bash', state: { title: 'ls' } },
     })
     expect(steps).toEqual([{ type: 'tool_use', label: 'bash', detail: 'ls' }])
+  })
+
+  it('tool_use conserva target, exit code, resultado y líneas de edición', () => {
+    const [step] = opencodeEventToStep({
+      type: 'tool_use',
+      part: {
+        type: 'tool',
+        tool: 'edit',
+        input: { path: 'src/a.ts', old_string: 'a\nb', new_string: 'a\nb\nc' },
+        state: { title: 'edit src/a.ts', status: 'completed', exit_code: 0, output: 'ok' },
+      },
+    })
+    expect(step).toMatchObject({
+      target: 'src/a.ts',
+      added: 3,
+      removed: 2,
+      exitCode: 0,
+      ok: true,
+      output: 'ok',
+    })
   })
 
   it('text → step "text"', () => {
@@ -139,6 +189,14 @@ describe('codexEventToStep', () => {
     ])
   })
 
+  it('command_execution conserva exit code y salida para Bash ✓/✕', () => {
+    const [step] = codexEventToStep({
+      type: 'item.completed',
+      item: { type: 'command_execution', command: 'ls', exit_code: 2, aggregated_output: 'nope' },
+    })
+    expect(step).toMatchObject({ label: 'command', exitCode: 2, ok: false, output: 'nope' })
+  })
+
   it('item.completed file_change → step "tool_use" con los paths', () => {
     const steps = codexEventToStep({
       type: 'item.completed',
@@ -149,7 +207,12 @@ describe('codexEventToStep', () => {
       },
     })
     expect(steps).toEqual([
-      { type: 'tool_use', label: 'file_change', detail: '/private/tmp/codex-probe/hello.txt' },
+      {
+        type: 'tool_use',
+        label: 'file_change',
+        detail: '/private/tmp/codex-probe/hello.txt',
+        target: '/private/tmp/codex-probe/hello.txt',
+      },
     ])
   })
 

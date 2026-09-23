@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   archiveSession,
   createSession,
@@ -17,9 +17,9 @@ import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
 import { OrchestDevWorkspace } from './components/dev/OrchestDevWorkspace'
-import { SessionStatusBar } from './components/layout/SessionStatusBar'
 import { ShellHeader } from './components/layout/ShellHeader'
 import { ShellSidebar } from './components/layout/ShellSidebar'
+import { ShellStatusBar } from './components/layout/ShellStatusBar'
 import {
   OrchestSettingsView,
   type ProjectSubTab,
@@ -66,8 +66,18 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [activeProjectId, setActiveProjectId] = useState<string>('')
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(null)
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(() => {
+    try {
+      const cached = localStorage.getItem('orchestos-session-status')
+      return cached ? (JSON.parse(cached) as SessionStatus) : null
+    } catch {
+      return null
+    }
+  })
+  const [refreshingUsage, setRefreshingUsage] = useState(false)
+  const usageAbortRef = useRef<AbortController | null>(null)
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([])
+  const [projectError, setProjectError] = useState<string | null>(null)
 
   // Settings deep-link state
   const [settingsSection, setSettingsSection] = useState<SettingsSection>('project_orchestos')
@@ -231,21 +241,47 @@ export default function App() {
     }
   }, [currentProject?.id])
 
+  const refreshUsage = async () => {
+    if (!currentProject) return
+    usageAbortRef.current?.abort()
+    const controller = new AbortController()
+    usageAbortRef.current = controller
+    setRefreshingUsage(true)
+    try {
+      const response = await fetch('/api/session/status', {
+        headers: { 'x-orchestos-project-id': currentProject.id },
+        signal: controller.signal,
+      })
+      if (!response.ok) throw new Error(String(response.status))
+      const nextStatus = (await response.json()) as SessionStatus
+      setSessionStatus(nextStatus)
+      try {
+        localStorage.setItem('orchestos-session-status', JSON.stringify(nextStatus))
+      } catch {
+        // Storage is an optimization only; the live response remains authoritative.
+      }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) setSessionStatus(null)
+    } finally {
+      if (usageAbortRef.current === controller) {
+        usageAbortRef.current = null
+        setRefreshingUsage(false)
+      }
+    }
+  }
+
   useEffect(() => {
     if (!currentProject) return
-    let disposed = false
-    void fetch('/api/session/status', { headers: { 'x-orchestos-project-id': currentProject.id } })
-      .then((response) =>
-        response.ok ? response.json() : Promise.reject(new Error(String(response.status))),
-      )
-      .then((status: SessionStatus) => {
-        if (!disposed) setSessionStatus(status)
-      })
-      .catch(() => {
-        if (!disposed) setSessionStatus(null)
-      })
+    void refreshUsage()
+    const timer = window.setInterval(() => void refreshUsage(), 60_000)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshUsage()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
-      disposed = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      usageAbortRef.current?.abort()
     }
   }, [currentProject?.id])
 
@@ -292,14 +328,15 @@ export default function App() {
   // Restore session from history to sidebar
   // Project creation
   const handleNewProject = async () => {
+    setProjectError(null)
     try {
       const project = await chooseProject()
       if (!project) return
       const loaded = await listProjects()
       setProjects(loaded)
       setActiveProjectId(project.id)
-    } catch {
-      // Native selector errors stay local to the selector; no fake project is added.
+    } catch (error) {
+      setProjectError(error instanceof Error ? error.message : 'Could not choose a project folder.')
     }
   }
 
@@ -427,6 +464,28 @@ export default function App() {
     }
   }
 
+  const handleSlashCommand = async (command: string, argument?: string) => {
+    const id = activeThreadId
+    if (!id) return
+    if (command === '/rename') {
+      const title = argument?.trim() || window.prompt('Rename conversation', '')
+      if (title?.trim()) {
+        const updated = await renameSession(id, title.trim())
+        setThreads((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, title: updated.title } : item)),
+        )
+        setHistorySessions((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, title: updated.title } : item)),
+        )
+        setProjects(await listProjects())
+      }
+    } else if (command === '/usage') {
+      handleOpenSettings('usage', 'tasks')
+    } else if (command === '/archive') {
+      await handleCloseAgent(id)
+    }
+  }
+
   const handleSendMessage = async (
     content: string,
     attachments?: ChatAttachment[],
@@ -464,20 +523,27 @@ export default function App() {
     void sendMessage({
       sessionId: threadId,
       message: content,
-      agent: thread?.agent,
+      agent: agent || thread?.agent,
       model,
       effort,
       attachments,
     })
       .then(async () => {
         const rows = await getSessionMessages(threadId)
+        const firstMessageTitle =
+          thread?.messages.length === 0
+            ? `${agent === 'claude' ? 'Claude' : agent === 'codex' ? 'Codex' : agent === 'opencode' ? 'OpenCode' : 'ChatGPT'}: ${content.slice(0, 40)}`
+            : undefined
+        if (firstMessageTitle)
+          await renameSession(threadId, firstMessageTitle).catch(() => undefined)
+        if (firstMessageTitle) setProjects(await listProjects())
         setThreads((prev) =>
           prev.map((thread) =>
             thread.id === threadId
               ? {
                   ...thread,
                   messages: rows.map(mapMessage),
-                  title: thread.messages.length === 0 ? content.slice(0, 32) : thread.title,
+                  title: firstMessageTitle || thread.title,
                 }
               : thread,
           ),
@@ -592,6 +658,14 @@ export default function App() {
       data-theme={theme}
       className="h-screen w-screen flex flex-col bg-app-bg text-app font-sans overflow-hidden select-none"
     >
+      {projectError && (
+        <div
+          role="alert"
+          className="fixed right-4 top-12 z-[60] max-w-sm rounded-control border border-app-error/60 bg-app-surface px-3 py-2 text-xs text-app shadow-2xl"
+        >
+          {projectError}
+        </div>
+      )}
       {/* Top Shell Header with single panel toggle and clean breadcrumb (status pill removed as requested) */}
       <ShellHeader
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
@@ -643,6 +717,8 @@ export default function App() {
               onSendMessage={handleSendMessage}
               onApproveHeldTask={handleApproveHeldTask}
               onRejectHeldTask={handleRejectHeldTask}
+              sessionStatus={sessionStatus}
+              onSlashCommand={handleSlashCommand}
             />
           )}
 
@@ -652,6 +728,9 @@ export default function App() {
               activeProject={currentProject}
               activeAgent={activeAgent}
               onCloseAgent={handleCloseAgent}
+              onSendMessage={handleSendMessage}
+              sessionStatus={sessionStatus}
+              onSlashCommand={handleSlashCommand}
             />
           )}
 
@@ -698,7 +777,11 @@ export default function App() {
           />
         )}
       </div>
-      <SessionStatusBar status={sessionStatus} />
+      <ShellStatusBar
+        status={sessionStatus}
+        refreshing={refreshingUsage}
+        onRefresh={() => void refreshUsage()}
+      />
       {/* Global Command Palette (⌘K) with fully functional handlers */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}
