@@ -110,6 +110,7 @@ interface OrchestSettingsViewProps {
   initialSection?: SettingsSection
   initialProjectTab?: ProjectSubTab
   tasks: TaskItem[]
+  taskError?: string | null
   runs: RunItem[]
   specs: SpecItem[]
   memories: MemoryItem[]
@@ -133,6 +134,8 @@ interface OrchestSettingsViewProps {
   onAddTask?: (newTask: Omit<TaskItem, 'retryCount' | 'qaVerdict' | 'runId' | 'costUsd'>) => void
   onRefreshGraph?: () => void
   onRunNextTask?: () => void
+  canRunNextTask?: boolean
+  onOpenChat?: () => void
   onPurgeProjectData?: (projectId: string) => void
   onResetOrchestos?: () => void
   onAddProject?: () => void
@@ -150,6 +153,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   initialSection = 'general',
   initialProjectTab = 'tasks',
   tasks,
+  taskError,
   runs,
   specs,
   memories,
@@ -173,6 +177,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onAddTask,
   onRefreshGraph,
   onRunNextTask,
+  canRunNextTask = false,
+  onOpenChat,
   onPurgeProjectData,
   onResetOrchestos,
   onAddProject,
@@ -1960,6 +1966,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       <button
                         type="button"
                         onClick={onRunNextTask}
+                        disabled={!canRunNextTask}
+                        aria-disabled={!canRunNextTask}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent text-zinc-950 font-semibold text-xs hover:opacity-90 transition-opacity"
                       >
                         <span>Run Next Task</span>
@@ -1970,10 +1978,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   {tasks.length === 0 ? (
                     <EmptyState
                       icon={Kanban}
-                      title="No Tasks Defined"
-                      description="Create a task contract in tasks.yaml or use Chat mode to draft a spec."
+                      title={taskError ? 'Tasks unavailable' : 'No Tasks Defined'}
+                      description={
+                        taskError ||
+                        'Create a task contract in tasks.yaml or use Chat mode to draft a spec.'
+                      }
                       actionLabel="Create First Task"
-                      onAction={onRunNextTask}
+                      onAction={onOpenChat || (() => {})}
                     />
                   ) : (
                     <div className="space-y-2">

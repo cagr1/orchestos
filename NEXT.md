@@ -1,7 +1,23 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — retomar Lote L1, ítem 3
-CI.2.B (47b4dbf) y UI.13.4c (aca8d90) cerrados y pusheados; dashboard :4242 reiniciado con el código nuevo.
+## Siguiente tab — Lote L1 CERRADO; abrir L2
+L1 terminado 2026-09-23: CI.2.B, UI.13.4c, UI.13.2d (Tasks real) con gate:all + ui:gate PASS y push.
+Siguiente: abrir **L2** con los 3 siguientes de la Fase 1 (PLAN.md § Rumbo): pantallas restantes de UI.13
+(Runs/Graph ya tienen parte; luego Memory/Specs/Skills/Instincts/Plan) → UI.9.9 → UI.9.8. Mismo bucle:
+spec en `docs/specs/`, Luna con `codex exec -m gpt-5.6-luna -c model_reasoning_effort=medium -s workspace-write "…" < /dev/null`,
+flujo en `scripts/ui-gate/flows/<pantalla>.mjs`, verificar con `bun run gate:all` + `bun run ui:gate <flujo>` + `smoke`.
+Lecciones nuevas de UI.13.2d:
+- El preflight solo reconoce ítems de **primer nivel** en PLAN.md (`^- [ ] **ID`); un sub-ítem con sangría lo bloquea.
+  Abrir el sub-ítem como línea propia antes de lanzar a Luna.
+- Luna volvió a decir "lint preexistente" en falso (era su archivo) y "typecheck PASS" corriendo solo el tsc raíz:
+  exigir `bun run typecheck` completo (dos tsconfig).
+- Tareas de fixture: `engine: codex` + `executor_model: openai/gpt-5.6-luna`, **nunca** `executor: codex` (exige
+  `OS_ENABLE_EXEC_CODEX`); así las crea el chat (`resolveAgentSelection`). La tarea debe modificar su output o el QA
+  la devuelve a `pending` con reintento.
+- Un QA fallido no cambia el status: fin de run = status, `retryCount` o `runId` distintos.
+- Hook PreToolUse bloquea que el cerebro edite código (`src/**`); los arreglos del flujo de gate pasaron sin bloqueo.
+- El hook de contexto pide cerrar tab desde ~8% de 1M: umbral a revisar.
+Antes (ítem 3, ya hecho): CI.2.B (47b4dbf) y UI.13.4c (aca8d90) cerrados y pusheados; dashboard :4242 reiniciado con el código nuevo.
 Ítem 3: siguiente pantalla de UI.13 (Tasks, PLAN.md § Fase 1). Mismo bucle: spec en `docs/specs/`, Luna con
 `codex exec -m gpt-5.6-luna -c model_reasoning_effort=medium -s workspace-write "…" < /dev/null` (NO `--full-auto`:
 esa flag no existe), flujo nuevo en `scripts/ui-gate/flows/<pantalla>.mjs`, verificar con `bun run gate:all` +
@@ -35,6 +51,7 @@ Decisión tomada por el cerebro (Carlos no respondió las 3 preguntas; aplicó l
 5. DB real: filas huérfanas de fixtures de tests (`files`/`code_edges` de `gfc-*`, `ruby-check`) sin proyecto. ¿Limpiarlas?
 | ítem | rondas Luna | gate | SHA | min |
 |---|---|---|---|---|
+| UI.13.2d | 4 (preflight sin ítem, implementación, fin de run por reintento, cast TS) + fixture/gate corregidos por el cerebro | PASS tasks 13/13 · smoke 6/6 · gate:all verde | ver git log | ~70 |
 | UI.13.4c | 13 (código, regex, razonamiento+R.1, flujo, rutas, tarea vacía, popover, Reject/Approve, esperas, árbol sucio, decisión lista, fila) | PASS chat-turn-details 27/27 · smoke 6/6 · gate:all verde | ver git log | ~210 |
 | CI.2.B | 5 (spawn fd, espera, bug Settings, flujo) + 1 chore de lint innecesario revertido (diagnóstico mío errado: eran avisos, no errores) | PASS smoke 6/6 · gate:all verde | ver git log | ~75 |
 

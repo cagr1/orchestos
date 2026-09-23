@@ -153,6 +153,14 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   no enterarse en la ronda 2; gate del cerebro = smoke en vivo (carga con datos reales, 0 errores, una
   acción clave por vista), no inventario exhaustivo. Una vista que no cierre en su ronda queda con su
   ruta en `/legacy` y se anota; no se abre una tercera ronda dentro del tope.
+- [x] **UI.13.2d — 🧠 Pantalla Tasks con datos reales.** (cerrado 2026-09-23, Lote L1 ítem 3; sub-ítem de UI.13.2)
+  Ejecutado por: luna (4 rondas) · Spec: `docs/specs/UI.13.2d.md`. Tasks lee `tasks.yaml` real (`/api/tasks` suma
+  `output`/`dependsOn`/`acceptanceCriteria`/`executorModel`); `Run Next Task` (pestaña y ⌘K) corre la primera tarea
+  con dependencias `done`, deshabilitado si no hay; el fin del run se detecta por estado, `retryCount` o `runId`
+  (un QA fallido deja la tarea `pending` con reintento: antes la espera se colgaba) y el reintento se muestra.
+  Gate en vivo: `docs/done/evidence/UI.13.2d-live.json` — turno real Codex · gpt-5.6-luna · medium,
+  `PASS tasks 13/13` (badge `DONE` en la fila sin recargar) + `PASS smoke 6/6`; `gate:all` 1529 pass / 0 fail.
+  Fuera de esta pasada: acciones de `PlanBoardView` sin cablear; Reset/Purge de Settings siguen siendo locales.
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir

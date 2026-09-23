@@ -15,6 +15,7 @@ export interface TaskItem {
   depends_on: string[]
   acceptance_criteria: string[]
   retryCount: number
+  retryReason?: string | null
   qaVerdict?: QaVerdict
   runId?: string | null
   engine: ExecutionEngine

@@ -90,6 +90,10 @@ function loadTaskRows(root: string): TaskRow[] {
       qaVerdict: t.qa_verdict ?? null,
       runId: t.run_id ?? null,
       engine: t.engine ?? null,
+      output: t.output,
+      dependsOn: t.depends_on,
+      acceptanceCriteria: t.acceptance_criteria ?? [],
+      executorModel: t.executor_model ?? null,
       hasSplitPlan: existsSync(join(root, `${t.id}.plan.yaml`)),
     }))
   } catch {
@@ -132,6 +136,10 @@ function handleApiTasks(root: string): Response {
       qaVerdict: t.qa_verdict ?? null,
       runId: t.run_id ?? null,
       engine: t.engine ?? null,
+      output: t.output,
+      dependsOn: t.depends_on,
+      acceptanceCriteria: t.acceptance_criteria ?? [],
+      executorModel: t.executor_model ?? null,
       hasSplitPlan: existsSync(join(root, `${t.id}.plan.yaml`)),
     }))
     return jsonResponse({ exists: true, tasks: rows })

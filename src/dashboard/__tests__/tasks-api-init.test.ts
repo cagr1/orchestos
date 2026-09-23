@@ -57,7 +57,14 @@ function req(method: string, path: string, body?: unknown): Request {
 
 interface TasksListResponse {
   exists: boolean
-  tasks: { id: string; engine: 'single-shot' | 'agentic' | 'external' | null }[]
+  tasks: {
+    id: string
+    engine: 'single-shot' | 'agentic' | 'external' | null
+    output: string[]
+    dependsOn: string[]
+    acceptanceCriteria: string[]
+    executorModel: string | null
+  }[]
   error?: string
 }
 
@@ -94,6 +101,8 @@ describe('D.1.a — GET /api/tasks distingue 3 estados', () => {
               executor: 'openrouter',
               input: [],
               output: ['x'],
+              acceptance_criteria: ['x exists'],
+              executor_model: 'gpt-5.6-luna',
               depends_on: [],
               status: 'pending',
               retry_count: 0,
@@ -111,6 +120,12 @@ describe('D.1.a — GET /api/tasks distingue 3 estados', () => {
     expect(body.exists).toBe(true)
     expect(body.tasks).toHaveLength(1)
     expect(body.tasks[0]!.id).toBe('a')
+    expect(body.tasks[0]).toMatchObject({
+      output: ['x'],
+      dependsOn: [],
+      acceptanceCriteria: ['x exists'],
+      executorModel: 'gpt-5.6-luna',
+    })
     expect(body.error).toBeUndefined()
   })
 

@@ -19,6 +19,7 @@ import {
 } from './api/chat'
 import { chooseProject, deleteProject, listProjects } from './api/projects'
 import { listRuns } from './api/runs'
+import { getRunnableTask, listTasks, runTask } from './api/tasks'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
@@ -36,7 +37,6 @@ import {
   initialMockMemories,
   initialMockSkills,
   initialMockSpecs,
-  initialMockTasks,
 } from './data/mockOrchestosData'
 import type {
   AppMode,
@@ -104,7 +104,10 @@ export default function App() {
   }, [language])
 
   // Core OrchestOS entities state
-  const [tasks, setTasks] = useState<TaskItem[]>(initialMockTasks)
+  const [tasks, setTasks] = useState<TaskItem[]>([])
+  const [taskError, setTaskError] = useState<string | null>(null)
+  const [taskRunError, setTaskRunError] = useState<string | null>(null)
+  const [runningTaskId, setRunningTaskId] = useState<string | null>(null)
   const [runs, setRuns] = useState<RunItem[]>([])
   const [specs, setSpecs] = useState<SpecItem[]>(initialMockSpecs)
   const [instincts, setInstincts] = useState<InstinctItem[]>(initialMockInstincts)
@@ -285,6 +288,30 @@ export default function App() {
       disposed = true
     }
   }, [currentProject?.id])
+
+  useEffect(() => {
+    if (!currentProject) {
+      setTasks([])
+      setTaskError(null)
+      return
+    }
+    let disposed = false
+    void listTasks(currentProject.id)
+      .then((result) => {
+        if (disposed) return
+        setTasks(result.tasks)
+        setTaskError(result.error || null)
+      })
+      .catch((error) => {
+        if (!disposed) {
+          setTasks([])
+          setTaskError(error instanceof Error ? error.message : String(error))
+        }
+      })
+    return () => {
+      disposed = true
+    }
+  }, [mode, currentProject?.id])
 
   const refreshUsage = async () => {
     if (!currentProject) return
@@ -633,6 +660,31 @@ export default function App() {
     }
   }
 
+  const handleRunNextTask = async () => {
+    if (!currentProject || runningTaskId) return
+    const nextTask = getRunnableTask(tasks)
+    if (!nextTask) return
+    setTaskRunError(null)
+    setRunningTaskId(nextTask.id)
+    try {
+      await runTask(nextTask.id, currentProject.id, (loaded) => {
+        setTasks(loaded)
+        setTaskError(null)
+      })
+      setRuns(await listRuns(currentProject.id))
+    } catch (error) {
+      setTaskRunError(error instanceof Error ? error.message : String(error))
+      await listTasks(currentProject.id)
+        .then((result) => {
+          setTasks(result.tasks)
+          setTaskError(result.error || null)
+        })
+        .catch(() => undefined)
+    } finally {
+      setRunningTaskId(null)
+    }
+  }
+
   const handleRejectHeldTask = async (taskId: string) => {
     const thread = activeThread
     if (!thread) return
@@ -841,6 +893,7 @@ export default function App() {
               initialSection={settingsSection}
               initialProjectTab={settingsProjectTab}
               tasks={tasks}
+              taskError={taskError || taskRunError}
               runs={runs}
               specs={specs}
               memories={memories}
@@ -854,6 +907,9 @@ export default function App() {
               onTeachInstinct={handleTeachInstinct}
               onPurgeProjectData={handlePurgeProjectData}
               onResetOrchestos={handleResetOrchestos}
+              onOpenChat={() => setMode('chat')}
+              onRunNextTask={() => void handleRunNextTask()}
+              canRunNextTask={Boolean(getRunnableTask(tasks)) && !runningTaskId}
             />
           )}
         </div>
@@ -882,10 +938,8 @@ export default function App() {
         onSelectTab={handleCommandPaletteSelectTab}
         onSelectModel={handleCommandPaletteSelectModel}
         onRunNextTask={() => {
-          const firstPending = tasks.find((t) => t.status === 'pending')
-          if (firstPending) {
-            handleOpenSettings('projects', 'tasks')
-          }
+          handleOpenSettings('projects', 'tasks')
+          void handleRunNextTask()
         }}
       />
     </div>
