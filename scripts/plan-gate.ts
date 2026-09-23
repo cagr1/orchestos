@@ -63,6 +63,31 @@ function sectionAtHead(path: string, anchor: string, cwd?: string): string {
   }
 }
 
+function specExistsAtHead(path: string, cwd?: string): boolean {
+  try {
+    git(['cat-file', '-e', `HEAD:${path}`], cwd)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function specExistedInHistory(path: string, cwd?: string): boolean {
+  const history = git(['log', '--all', '--full-history', '--format=', '--name-only', '--', path], cwd)
+  return history.split('\n').some((entry) => entry === path)
+}
+
+function isValidSpecReference(spec: string, id: string, cwd?: string): boolean {
+  const own = `docs/specs/${id}.md`
+  if (spec === own) return true
+  return (
+    spec.startsWith('docs/specs/') &&
+    spec.endsWith('.md') &&
+    !specExistsAtHead(spec, cwd) &&
+    specExistedInHistory(spec, cwd)
+  )
+}
+
 function checkSegmentStatuses(): void {
   const segments = db
     .query<{ text: string; item_id: string | null }, []>(
@@ -125,7 +150,11 @@ export function checkProvenance(): void {
       .split('\n')
       .some((item) => item.startsWith('+') && /^\+\s+Ejecutado por:/.test(item))
     if (noDelegation) continue
-    if (!deletedSpecs.has(`docs/specs/${id}.md`))
+    const declaration = segment.text.match(/^\s+Ejecutado por: .+ · Spec: (docs\/specs\/\S+\.md)$/m)
+    const referencedSpec = declaration?.[1]
+    const ownSpecDeleted = deletedSpecs.has(`docs/specs/${id}.md`)
+    const sharedSpec = referencedSpec && isValidSpecReference(referencedSpec, id)
+    if (!ownSpecDeleted && !sharedSpec)
       throw new Error(
         `Procedencia ${id}: commit must delete docs/specs/${id}.md (or use Sin delegación: <motivo>)`,
       )
@@ -134,15 +163,13 @@ export function checkProvenance(): void {
       const hrefSplit = source.evidenceHref.indexOf('#')
       const { path, section } = evidenceSectionFromIndex(source.evidenceHref)
       const anchor = source.evidenceHref.slice(hrefSplit + 1)
-      const expected = new RegExp(
-        `^Ejecutado por: .+ · Spec: docs/specs/${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.md$`,
-        'm',
-      )
-      if (!expected.test(section))
+      const declarationInEvidence = section.match(/^Ejecutado por: .+ · Spec: (docs\/specs\/\S+\.md)$/m)
+      const evidenceSpec = declarationInEvidence?.[1]
+      if (!evidenceSpec || !isValidSpecReference(evidenceSpec, id))
         throw new Error(
           `Procedencia ${id}: evidence section must declare its executor and exact spec`,
         )
-      if (expected.test(sectionAtHead(path, anchor)))
+      if (evidenceSpec === `docs/specs/${id}.md` && sectionAtHead(path, anchor).includes(declarationInEvidence[0]))
         throw new Error(
           `Procedencia ${id}: executor declaration must be added in this evidence section`,
         )

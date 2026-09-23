@@ -25,11 +25,12 @@ que actúa como CLI, AgentComposer, ContextRing, ShellStatusBar, logos de produc
 mensaje del tab anterior; **espera el GO de Carlos** y su respuesta sobre tooltips (nativos `title` tal cual vs
 tooltip propio instantáneo). Luego UI.13.6 (cuotas reales: Claude sin fuente, Codex vencido desde 17-sep).
 
-## UI.14 cerrado 2026-09-22; UI.13.6 commiteado sin `[x]`
-- UI.14: `[x]` en PLAN.md, evidencia `docs/done/evidence/UI.14-live.json`, spec en git `ed1fdef`. Sin verificar en
-  vivo: selector nativo de nuevo proyecto y capturas lado a lado con la plantilla.
-- UI.13.6: código en `2b3a185`. El gate de procedencia exige borrar `docs/specs/UI.13.6.md`, que nunca existió
-  (su spec vivía en UI.14.md). Decisión pendiente de Carlos sobre cómo cerrarlo; no usar "Sin delegación" (falso).
+## PLAN-ORDEN — en curso (2026-09-22)
+- Carlos: cerrar UI.13.6 y reordenar PLAN.md en tres fases: interfaz → producto mínimo → correr dentro de OrchestOS
+  igual que el CLI directo (AT.13 + hallazgos de Opus, run `560e910f`). Spec `docs/specs/PLAN-ORDEN.md` (sin
+  commitear). **Luna lanzada**, log `/tmp/plan-orden-luna.log`. Al terminar: verificar invariante de ítems,
+  `plan:render --check`, `bun run next` antes/después, `test:coverage`; commit y push.
+- UI.14 cerrado (`f4fb772`); sin verificar en vivo: selector nativo de nuevo proyecto.
 - Carlos: turno real de gate = **Codex · gpt-5.6-luna · medium**.
 
 ## Siguiente (serial, una ronda cada uno)

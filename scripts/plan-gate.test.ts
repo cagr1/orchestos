@@ -194,3 +194,41 @@ it('keeps accepting the historical inline Ejecutado por format with no evidenceH
   )
   expect(JSON.parse(out).threw).toBeNull()
 })
+
+it('accepts a shared spec that was closed and deleted by another item', async () => {
+  const { out } = await runScenario(
+    scenarioScript(`
+      write('docs/specs/SHARED.md', '# shared spec\\n')
+      git(['add', 'docs/specs/SHARED.md'])
+      git(['commit', '-m', 'close shared spec'])
+      git(['rm', 'docs/specs/SHARED.md'])
+      git(['commit', '-m', 'delete shared spec'])
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/SHARED.md\\n')
+      git(['add', 'PLAN.md'])
+    `),
+  )
+  expect(JSON.parse(out).threw).toBeNull()
+})
+
+it('rejects a shared spec that never existed in git history', async () => {
+  const { out } = await runScenario(
+    scenarioScript(`
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/NEVER.md\\n')
+      git(['add', 'PLAN.md'])
+    `),
+  )
+  expect(JSON.parse(out).threw).toMatch(/must delete docs\/specs\/F\.1\.md/)
+})
+
+it('rejects a shared spec that still exists at HEAD', async () => {
+  const { out } = await runScenario(
+    scenarioScript(`
+      write('docs/specs/SHARED.md', '# shared spec\\n')
+      git(['add', 'docs/specs/SHARED.md'])
+      git(['commit', '-m', 'keep shared spec'])
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/SHARED.md\\n')
+      git(['add', 'PLAN.md'])
+    `),
+  )
+  expect(JSON.parse(out).threw).toMatch(/must delete docs\/specs\/F\.1\.md/)
+})

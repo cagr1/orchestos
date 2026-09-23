@@ -11,6 +11,30 @@ status: sprint-30-abierto--fiabilidad-del-recorrido-y-shell-chat-workspace
 Historial completado → ver [DONE.md](DONE.md).
 Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
+## Rumbo — orden cerrado por Carlos (2026-09-22)
+
+*"Terminar interfaz, luego producto mínimo para entrega y luego corregir"* lo que Opus detectó corriendo dentro de
+OrchestOS. Una fase a la vez; lo que no está en una fase no se abre sin GO de Carlos. Restricción que manda en las
+tres: harness liviano (ver abajo) — la respuesta dentro de OrchestOS tiene que sentirse igual que el CLI directo,
+sin peso extra y con reglas claras.
+
+### Fase 1 — Terminar la interfaz (plantilla React de AI Studio, regla UI.13)
+UI.13.4 (queda 4c: razonamiento/herramientas/tarea retenida en el chat) → UI.13 (pantallas restantes: Tasks/Runs/
+Graph → Memory/Specs/Skills/Instincts/Plan → borrar vanilla) → UI.9.9 (opciones de proyecto al hover) → UI.9.8
+(texto que no aporta) → UI.10.A (plan por proyecto) → CI.2 (ui-gates exigibles). Pendiente de UI.14: verificar en
+vivo el selector nativo de nuevo proyecto.
+
+### Fase 2 — Producto mínimo para entrega (ruta ERP)
+AT.10 (tramo OpenCode) → R.7 (tasks.yaml atómico) → ERP.2 → ERP.3 → I.7 (gate del flujo automático) → H.5.3
+(primera corrida medida, GATED por Carlos) → ERP.4 (piloto) → R.8 (validación independiente del recorrido).
+
+### Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
+AT.13 (el contexto inyectado dice la verdad y no pesa) → ERP.5 (qué quitar) → H.7.2c → H.7.3 (aviso de contexto)
+→ AT.11 (adaptadores genéricos).
+
+### Fuera de las tres fases (no se abren sin GO)
+H.9.4, H.10.2, y los reemplazados por UI.13 listados en "Reemplazados — esperan GO para retirarse".
+
 ## Restricción de producto: harness liviano — decisión de Carlos (2026-09-17)
 
 **Pedido textual:** *"quiero un harness o orquestador light sin ahogar el trabajo de los agentes
@@ -449,6 +473,33 @@ tarda 14–20 s por respuesta. Después de este bloque va la corrida real sobre 
   Sin delegación: sin spec; Carlos pidió en conversación mandar a Luna el diagnóstico y el fix mecánico de formato, verificado por el cerebro.
 
 - [x] **AT.12 — ⚡ El tope absoluto de contexto deja de cortar la sesión.** → [evidencia](docs/done/bloque-AT.md#bloque-at-at-12)
+
+- [ ] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, pendiente)
+  Origen: autoevaluación de Claude corriendo como CLI dentro de OrchestOS, contrastada contra el
+  código por el cerebro. Es backend de `handlers/chat.ts`, independiente del cambio de interfaz de
+  esta semana. Confirmado por lectura, sin corrida en vivo:
+  1. **El prompt promete herramientas que no tiene.** `chat.ts:1247` dice "may run the CLI tools";
+     `run/executors/external.ts:322` solo habilita `Read,Glob,Grep`. El texto se deriva de las
+     herramientas reales del adaptador, no de una frase fija.
+  2. **Costo desconocido vuelve a ser `$0`.** `chat.ts:1123,1130` hace `Number(r.usd_cost)` y
+     `Number(null) === 0`: rompe F0.8 (`run/executors/codex.ts:378`). Mostrar `n/a` y excluirlo del
+     total, que pasa a decir que es parcial. Falta ubicar qué ruta guarda runs Codex con costo nulo.
+  3. **No escala.** `chat.ts:1115` inyecta la descripción completa de cada task en cada turno.
+     Una línea por task (id, estado, qa) y el detalle solo bajo demanda.
+  4. **QA falla sin motivo.** Inyectar la última razón de fallo en tasks con `qa:fail`.
+  Menor, en la misma pasada si es barato: `detect/profile.ts:15` ignora `typecheck` y
+  `test:coverage` (el gate real de CI); `detect/manifest.ts` solo lee el `package.json` raíz y no ve
+  React en `src/dashboard/app`. Descartado tras verificar: "runs sin task_id" (ya se imprime,
+  `chat.ts:1130`). **Gate:** turno real de chat con Claude CLI y Codex; el contexto capturado muestra
+  herramientas reales, `n/a` en costos desconocidos y tasks en una línea.
+
+  **Ampliado 2026-09-22 (Carlos: "que se sienta que está corriendo sin mucho peso y con reglas claras").** Hallazgos
+  del turno de Opus dentro de OrchestOS (run `560e910f`, 02:42 UTC) que faltaban: (5) nombres de modelo
+  inconsistentes en runs (`codex`, `codex (cli default model)`, `gpt-5.6-luna via Codex CLI`) — normalizar;
+  (6) fechas UTC sin etiqueta frente a la hora local; (7) el rol dice memoria/specs pero no llega ni un índice;
+  (8) prompt base del CLI y prompt de OrchestOS apilados (ruido y contradicciones). Objetivo medible: el mismo
+  pedido, directo al CLI y por OrchestOS, da una respuesta equivalente, con tokens de contexto inyectado medidos
+  antes/después.
 
 ## Bloque S — El plan deja de ser prosa: DB como fuente, markdown como vista (ABIERTO 2026-09-09, GO de Carlos)
 
@@ -2576,7 +2627,12 @@ ni eso hace falta.
   reinicio. El contexto sale de la barra y se rediseña arriba (medidor en el header de la sesión, UI.14). Hallazgo:
   el 88.2% del vanilla era contexto restante, no cuota.
 
-- [ ] **UI.13.6 — 🧠 Cuotas 5h/semanal reales por CLI.** (abierto 2026-09-22)
+- [x] **UI.13.6 — 🧠 Cuotas 5h/semanal reales por CLI.** (abierto 2026-09-22, cerrado 2026-09-22)
+  Ejecutado por: luna · Spec: docs/specs/UI.14.md
+  Cuotas vivas: Claude por wrapper de statusLine (`scripts/claude-statusline-tee.sh` →
+  `~/.orchestos/claude-statusline.json`), Codex por app-server con caché en `/api/session/status`. Código en
+  `2b3a185`. Gate en vivo: navegador real (Playwright) contra :4242, `docs/done/evidence/UI.14-live.json`
+  (`quotaBars`: 5h `rgb(56, 189, 248)`, semanal `oklab(… / 0.6)`). `test:coverage` 1499 pass / 0 fail.
   Medido 2026-09-22 en `/api/session/status` (`scripts/session-status.ts`): Claude no trae ninguna ventana de
   cuota; Codex trae 5h/7d pero con reinicios del 17 y 19-sep (dato vencido: `readCodexRateLimitsLive` no
   refresca o cae al transcript viejo). Sin esto la barra de UI.13.5 muestra `—`. Investigar primero de dónde se
