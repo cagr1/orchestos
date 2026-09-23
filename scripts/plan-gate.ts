@@ -73,7 +73,10 @@ function specExistsAtHead(path: string, cwd?: string): boolean {
 }
 
 function specExistedInHistory(path: string, cwd?: string): boolean {
-  const history = git(['log', '--all', '--full-history', '--format=', '--name-only', '--', path], cwd)
+  const history = git(
+    ['log', '--all', '--full-history', '--format=', '--name-only', '--', path],
+    cwd,
+  )
   return history.split('\n').some((entry) => entry === path)
 }
 
@@ -163,13 +166,18 @@ export function checkProvenance(): void {
       const hrefSplit = source.evidenceHref.indexOf('#')
       const { path, section } = evidenceSectionFromIndex(source.evidenceHref)
       const anchor = source.evidenceHref.slice(hrefSplit + 1)
-      const declarationInEvidence = section.match(/^Ejecutado por: .+ · Spec: (docs\/specs\/\S+\.md)$/m)
+      const declarationInEvidence = section.match(
+        /^Ejecutado por: .+ · Spec: (docs\/specs\/\S+\.md)$/m,
+      )
       const evidenceSpec = declarationInEvidence?.[1]
       if (!evidenceSpec || !isValidSpecReference(evidenceSpec, id))
         throw new Error(
           `Procedencia ${id}: evidence section must declare its executor and exact spec`,
         )
-      if (evidenceSpec === `docs/specs/${id}.md` && sectionAtHead(path, anchor).includes(declarationInEvidence[0]))
+      if (
+        evidenceSpec === `docs/specs/${id}.md` &&
+        sectionAtHead(path, anchor).includes(declarationInEvidence[0])
+      )
         throw new Error(
           `Procedencia ${id}: executor declaration must be added in this evidence section`,
         )
