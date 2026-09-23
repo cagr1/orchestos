@@ -25,8 +25,34 @@ import type { TaskItem, TaskStatus } from '../../types/orchestos'
 interface PlanBoardViewProps {
   tasks: TaskItem[]
   onRunTask: (taskId: string) => void
-  onExplainTask: (taskId: string) => void
-  onAddTask: (newTask: Omit<TaskItem, 'retryCount' | 'qaVerdict' | 'runId' | 'costUsd'>) => void
+  onExplainTask: (taskId: string) => void | Promise<Record<string, unknown> | void>
+  onAddTask: () => void
+}
+
+function formatExplainValue(value: unknown, key?: string): string {
+  if (value === null || value === undefined) return '—'
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '—'
+    if (key === 'graphSuggestions') {
+      return value
+        .map((suggestion) => {
+          if (suggestion && typeof suggestion === 'object' && !Array.isArray(suggestion)) {
+            const item = suggestion as { path?: unknown; score?: unknown }
+            return `${formatExplainValue(item.path)} (${formatExplainValue(item.score)})`
+          }
+          return formatExplainValue(suggestion)
+        })
+        .join(', ')
+    }
+    return value.map((item) => formatExplainValue(item)).join(', ')
+  }
+  if (typeof value === 'object') {
+    const fields = Object.entries(value)
+      .map(([field, fieldValue]) => `${field}: ${formatExplainValue(fieldValue, field)}`)
+      .join(', ')
+    return fields || '—'
+  }
+  return String(value)
 }
 
 export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
@@ -40,6 +66,9 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
   const [selectedSprint, setSelectedSprint] = useState<string>('all')
   const [showAddModal, setShowAddModal] = useState(false)
   const [explainModalTask, setExplainModalTask] = useState<TaskItem | null>(null)
+  const [explainResult, setExplainResult] = useState<Record<string, unknown> | null>(null)
+  const [explainError, setExplainError] = useState<string | null>(null)
+  const [explaining, setExplaining] = useState(false)
 
   // New task form state
   const [newId, setNewId] = useState('')
@@ -91,17 +120,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
       .map((s) => s.trim())
       .filter(Boolean)
 
-    onAddTask({
-      id: newId.trim(),
-      description: newDesc.trim(),
-      status: 'pending',
-      output: outputFiles.length > 0 ? outputFiles : ['src/tasks/new-task.ts'],
-      depends_on: [],
-      acceptance_criteria:
-        criteriaList.length > 0 ? criteriaList : ['Code builds with zero compiler errors'],
-      engine: 'agentic',
-      sprint: 'Sprint 31',
-    })
+    onAddTask()
 
     setNewId('')
     setNewDesc('')
@@ -172,11 +191,11 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
             {filteredTasks.length} tasks declared in tasks.yaml
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={onAddTask}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Contract Task</span>
+            <span>Add task</span>
           </button>
         </div>
       </div>
@@ -388,7 +407,22 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => setExplainModalTask(t)}
+                          onClick={async () => {
+                            setExplainModalTask(t)
+                            setExplainResult(null)
+                            setExplainError(null)
+                            setExplaining(true)
+                            try {
+                              const result = await onExplainTask(t.id)
+                              setExplainResult(result && typeof result === 'object' ? result : null)
+                            } catch (error) {
+                              setExplainError(
+                                error instanceof Error ? error.message : String(error),
+                              )
+                            } finally {
+                              setExplaining(false)
+                            }
+                          }}
                           className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px]"
                         >
                           Dry-Run
@@ -453,9 +487,31 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
               </div>
 
               <div className="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-indigo-200 text-[11px]">
-                💡 <strong>Dry-Run Verification</strong>: 0 tokens spent. The middleware verified
-                the dependency DAG, Git worktree branch availability, and contract boundaries
-                without invoking the LLM provider.
+                {explaining ? (
+                  'Loading explain result…'
+                ) : explainError ? (
+                  `Explain failed: ${explainError}`
+                ) : explainResult ? (
+                  <div className="space-y-1.5">
+                    <div className="font-semibold text-indigo-100">Dry-Run Verification</div>
+                    <div>0 tokens spent</div>
+                    {Object.entries(explainResult).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="font-semibold text-indigo-100">
+                          {key === 'id'
+                            ? 'Task ID'
+                            : key
+                                .replace(/[A-Z]/g, (letter) => ` ${letter}`)
+                                .replace(/^./, (letter) => letter.toUpperCase())}
+                          :
+                        </span>{' '}
+                        <span>{formatExplainValue(value, key)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  'No explain result returned.'
+                )}
               </div>
             </div>
 

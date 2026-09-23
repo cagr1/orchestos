@@ -433,10 +433,10 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiMemoryConflicts(url)
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/memory\/conflicts\/([^/]+)\/resolve$/)) {
-    return handleApiMemoryConflictResolve(url)
+    return handleApiMemoryConflictResolve(url, req)
   }
   if (method === 'GET' && url.pathname === '/api/memory') {
-    return handleApiMemory(url)
+    return withDashboardProject(req, (project) => handleApiMemory(url, project.id))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/memory\/[^/]+$/)) {
     return handleApiMemoryDelete(url)

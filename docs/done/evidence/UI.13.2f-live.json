@@ -1,0 +1,136 @@
+{
+  "item": "UI.13.2f",
+  "date": "2026-09-23",
+  "agent": "Codex · gpt-5.6-luna · medium",
+  "ui_gate_project_tabs": [
+    {
+      "flujo": "project-tabs",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "project visible in sidebar"
+        },
+        {
+          "nombre": "project settings visible",
+          "ok": true,
+          "detalle": "settings heading"
+        },
+        {
+          "nombre": "real memory visible",
+          "ok": true,
+          "detalle": "seeded DB memory"
+        },
+        {
+          "nombre": "mock memory absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "memory conflict resolved",
+          "ok": true,
+          "detalle": "API conflict closed"
+        },
+        {
+          "nombre": "authoritative memory persisted and visible",
+          "ok": true,
+          "detalle": "content of entry A matches the resolved API value"
+        },
+        {
+          "nombre": "real spec visible",
+          "ok": true,
+          "detalle": "seeded markdown spec"
+        },
+        {
+          "nombre": "mock specs absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "spec approved",
+          "ok": true,
+          "detalle": "API status approved"
+        },
+        {
+          "nombre": "spec lint updates API and row",
+          "ok": true,
+          "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+        },
+        {
+          "nombre": "real skills listed",
+          "ok": true,
+          "detalle": "API skills=17"
+        },
+        {
+          "nombre": "compile response visible",
+          "ok": true,
+          "detalle": "success response rendered in the skill row"
+        },
+        {
+          "nombre": "mock skills absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "mock instincts absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "instinct review visible",
+          "ok": true,
+          "detalle": "unverified instinct"
+        },
+        {
+          "nombre": "instinct approved",
+          "ok": true,
+          "detalle": "API verified"
+        },
+        {
+          "nombre": "manual instinct added",
+          "ok": true,
+          "detalle": "new API row"
+        },
+        {
+          "nombre": "mock plan absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "explain fields visible as readable UI",
+          "ok": true,
+          "detalle": "GET /explain fields rendered inside the template block"
+        },
+        {
+          "nombre": "explain has no [object Object]",
+          "ok": true,
+          "detalle": "opened Explain modal contains no stringified object values"
+        },
+        {
+          "nombre": "task run finishes and badge changes without reload",
+          "ok": true,
+          "detalle": "status=done; retryCount/runId changed or terminal status observed"
+        },
+        {
+          "nombre": "Add task opens Chat",
+          "ok": true,
+          "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+        },
+        {
+          "nombre": "0 console errors",
+          "ok": true,
+          "detalle": "none"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-52390/project-tabs/project-tabs-real-data.png"
+      ]
+    }
+  ],
+  "smoke": "PASS smoke 6/6",
+  "tasks": "PASS tasks 13/13",
+  "runs_graph": "PASS runs-graph 16/16",
+  "gate_all": "1534 pass / 0 fail"
+}

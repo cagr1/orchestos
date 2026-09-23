@@ -136,6 +136,7 @@ export interface MemoryItem {
   updatedAt: string
   hasConflict?: boolean
   conflictDetails?: {
+    conflictId: string
     conflictingContent: string
     detectedFromRun: string
   }

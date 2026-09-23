@@ -1,3 +1,4 @@
+import { db } from '../../db/sqlite.ts'
 import { AUTO_DEFAULTS, MANUAL_DEFAULTS } from '../../instincts/schema.ts'
 import {
   approveInstinct,
@@ -19,6 +20,10 @@ function handleApiInstincts(): Response {
     source: i.source,
     verified: i.verified,
     createdAt: i.created_at,
+    usagesCount:
+      db
+        .query<{ count: number }, [string]>('SELECT COUNT(*) AS count FROM runs WHERE skill_id = ?')
+        .get(i.id)?.count ?? 0,
   }))
   return jsonResponse(rows)
 }

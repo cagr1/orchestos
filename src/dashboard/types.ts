@@ -301,6 +301,7 @@ export interface InstinctRow {
   source: 'manual' | 'auto'
   verified: boolean
   createdAt: string
+  usagesCount: number
 }
 
 // ── /api/specs ────────────────────────────────────────────────────────────────
@@ -316,6 +317,9 @@ export interface SpecRow {
   deltaIssues: number // S32 delta header issues
   hasCapabilities: boolean // true if capabilities field is set
   createdAt: string
+  taskId: string
+  title: string
+  criteria: Array<{ when: string; then: string }>
   /** AA (IDEAS #6) — undefined = spec simple, cero cambio de comportamiento. */
   design?: 'pending' | 'approved'
 }
@@ -329,6 +333,8 @@ export interface MemoryRow {
   scope: 'session' | 'project' | 'global'
   content: string
   updatedAt: string
+  hasConflict?: boolean
+  conflictDetails?: { conflictId: string; conflictingContent: string; detectedFromRun: string }
 }
 
 // ── /api/settings ─────────────────────────────────────────────────────────────
@@ -440,6 +446,10 @@ export interface SkillRow {
   version: string
   targets: string[]
   instructionSummary: string
+  language: string
+  verifierCommand: string
+  status: 'compiled' | 'source' | 'remote'
+  usageRuns?: number
 }
 
 export interface SkillBuildResponse {

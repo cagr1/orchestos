@@ -47,6 +47,13 @@ function handleApiSpecs(root: string): Response {
       const lintStatus: SpecLintStatus = lint.findings.length === 0 ? 'pass' : 'fail'
       return {
         id: s.frontmatter.id,
+        taskId: s.frontmatter.id,
+        title: s.body.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? `Specification for ${s.frontmatter.id}`,
+        criteria: [...s.body.matchAll(/WHEN\s+(.+?)\s+THEN\s+(.+?)(?=\n|$)/gi)].map((m) => ({
+          when: m[1]?.trim() ?? '',
+          // biome-ignore lint/suspicious/noThenProperty: Spec criteria intentionally use the WHEN/THEN API contract.
+          then: m[2]?.trim() ?? '',
+        })),
         status: s.frontmatter.status,
         clarify: s.frontmatter.clarify,
         lintStatus,

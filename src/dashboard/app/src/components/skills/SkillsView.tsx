@@ -15,12 +15,13 @@ import type { SkillItem } from '../../types/orchestos'
 
 interface SkillsViewProps {
   skills: SkillItem[]
-  onCompileSkill: (skillId: string) => void
+  onCompileSkill: (skillId: string) => Promise<{ paths: string[] }>
 }
 
 export const SkillsView: React.FC<SkillsViewProps> = ({ skills, onCompileSkill }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all')
+  const [compileResults, setCompileResults] = useState<Record<string, string>>({})
 
   const supportedLanguages = [
     'TypeScript',
@@ -137,12 +138,32 @@ export const SkillsView: React.FC<SkillsViewProps> = ({ skills, onCompileSkill }
                 <div className="flex items-center justify-between pt-1 text-xs">
                   <span className="text-[10px] text-zinc-500 font-mono">ID: {skill.id}</span>
                   <button
-                    onClick={() => onCompileSkill(skill.id)}
+                    onClick={async () => {
+                      try {
+                        const result = await onCompileSkill(skill.id)
+                        setCompileResults((previous) => ({
+                          ...previous,
+                          [skill.id]: result.paths.length
+                            ? `Build succeeded: ${result.paths.join(', ')}`
+                            : 'Build succeeded: no generated paths',
+                        }))
+                      } catch (error) {
+                        setCompileResults((previous) => ({
+                          ...previous,
+                          [skill.id]: `Build failed: ${error instanceof Error ? error.message : String(error)}`,
+                        }))
+                      }
+                    }}
                     className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-medium transition-colors"
                   >
                     Recompile
                   </button>
                 </div>
+                {compileResults[skill.id] && (
+                  <div className="text-[11px] text-indigo-200" role="status">
+                    {compileResults[skill.id]}
+                  </div>
+                )}
               </div>
             ))}
           </div>

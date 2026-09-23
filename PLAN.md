@@ -173,8 +173,16 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   necesarios para (1).
   Gate en vivo: `docs/done/evidence/UI.13.2e-live.json` — turno real Codex · gpt-5.6-luna · medium,
   `PASS runs-graph 16/16` + `PASS smoke 6/6`; `gate:all` 1533 pass / 0 fail.
-- [ ] **UI.13.2f — 🧠 Memory/Specs/Skills/Instincts/Plan con datos reales.** (abierto 2026-09-23, Lote L2 ítem 2; sub-ítem de UI.13.2)
-  Un solo spec; incluye cablear las acciones de `PlanBoardView` (`onRunTask`/`onExplainTask`/`onAddTask`).
+- [x] **UI.13.2f — 🧠 Memory/Specs/Skills/Instincts/Plan con datos reales.** (cerrado 2026-09-23, Lote L2 ítem 2; sub-ítem de UI.13.2)
+  Ejecutado por: luna (4 rondas) · Spec: docs/specs/UI.13.2f.md (borrado al cerrar). Las 5 pestañas leen la API por proyecto;
+  `mockOrchestosData.ts` borrado. Acciones reales: resolver conflicto de memoria con texto (`POST
+  /api/memory/conflicts/:id/resolve` acepta `{content}` y reescribe la entrada A), Approve/Lint de specs, Compile de
+  skills (respuesta visible), Approve/Reject/alta de instincts, Run/Explain de Plan (`/explain` determinista: "0
+  tokens spent" es cierto) y "Add task" → Chat (tareas solo por chat). Antes 9 botones caían en `() => {}`.
+  Gate en vivo: `docs/done/evidence/UI.13.2f-live.json` — `PASS project-tabs 23/23` (turno real Codex ·
+  gpt-5.6-luna · medium, cleanup de DB verificado) + tasks 13/13 + runs-graph 16/16 + smoke 6/6; `gate:all` 1534/0.
+  Ronda 1 dio 14/14 con 6 pasos vacíos (Run sin esperar el run, "Chat" siempre visible, Lint/Compile sin medir):
+  hallados auditando el flujo, no la suite.
 - [ ] **UI.13.3 — 🧠 Borrar el vanilla, `/legacy`, sus islas, CSS y ui-gates de píxel.** (abierto 2026-09-23, Lote L2 ítem 3)
   Recuperable por git (Carlos: no cuenta como irreversible).
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)

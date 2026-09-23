@@ -42,7 +42,10 @@ export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConfl
   const handleResolveSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!resolvingItem || !resolvedText) return
-    onResolveConflict(resolvingItem.id, resolvedText.trim())
+    onResolveConflict(
+      resolvingItem.conflictDetails?.conflictId ?? resolvingItem.id,
+      resolvedText.trim(),
+    )
     setResolvingItem(null)
   }
 

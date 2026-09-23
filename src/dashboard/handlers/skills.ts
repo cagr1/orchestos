@@ -23,6 +23,7 @@ let chatImpl: (opts: {
 }) => Promise<ChatResponse> = realOpenrouterChat
 
 import { parse, stringify } from 'yaml'
+import { db } from '../../db/sqlite.ts'
 import { fetchRegistryList, fetchRegistrySkillContent } from '../../skills/fetch.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import { CURATOR_SYSTEM, IMPORT_SYSTEM } from '../prompts/curator.ts'
@@ -53,6 +54,16 @@ function handleApiSkillsList(root = process.cwd()): Response {
           targets: [...s.targets],
           instructionSummary:
             s.instructions.length > 100 ? s.instructions.slice(0, 100) + '...' : s.instructions,
+          language: Object.keys(s.language_targets ?? {})[0] ?? 'General',
+          verifierCommand:
+            s.verifiers?.[0] ?? Object.values(s.language_targets ?? {})[0]?.verifiers?.[0] ?? '—',
+          status: 'source',
+          usageRuns:
+            db
+              .query<{ count: number }, [string]>(
+                'SELECT COUNT(*) AS count FROM runs WHERE skill_id = ?',
+              )
+              .get(s.id)?.count ?? 0,
         })
       } catch {}
     }

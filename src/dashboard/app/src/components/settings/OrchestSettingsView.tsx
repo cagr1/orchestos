@@ -124,14 +124,14 @@ interface OrchestSettingsViewProps {
   onRecordMemory?: (content: string, type: 'semantic' | 'procedural' | 'episodic') => void
   onResolveConflict?: (id: string, resolvedContent: string) => void
   onToggleSkill?: (id: string) => void
-  onCompileSkill?: (skillId: string) => void
+  onCompileSkill?: (skillId: string) => Promise<{ paths: string[] }>
   onTeachInstinct?: (when: string, then: string) => void
   onApproveInstinct?: (id: string) => void
   onRejectInstinct?: (id: string) => void
   onAddInstinct?: (trigger: string, action: string) => void
   onRunTask?: (taskId: string) => void
-  onExplainTask?: (taskId: string) => void
-  onAddTask?: (newTask: Omit<TaskItem, 'retryCount' | 'qaVerdict' | 'runId' | 'costUsd'>) => void
+  onExplainTask?: (taskId: string) => void | Promise<Record<string, unknown> | void>
+  onAddTask?: () => void
   onRefreshGraph?: () => void
   graphRefreshing?: boolean
   onRunNextTask?: () => void
@@ -140,6 +140,8 @@ interface OrchestSettingsViewProps {
   onPurgeProjectData?: (projectId: string) => void
   onResetOrchestos?: () => void
   onAddProject?: () => void
+  projectTabsLoading?: boolean
+  projectTabsError?: string | null
 }
 
 export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
@@ -184,6 +186,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onPurgeProjectData,
   onResetOrchestos,
   onAddProject,
+  projectTabsLoading = false,
+  projectTabsError = null,
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectSubTab>(initialProjectTab)
@@ -1954,6 +1958,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
             {/* Sub-tab view contents */}
             <div className="flex-1 flex flex-col overflow-y-auto">
+              {(projectTabsLoading || projectTabsError) && (
+                <div
+                  className={`px-4 py-2 text-xs ${projectTabsError ? 'text-rose-300 bg-rose-950/20' : 'text-app-muted'}`}
+                >
+                  {projectTabsError ?? 'Loading project data…'}
+                </div>
+              )}
               {/* TAB: Tasks */}
               {activeProjectTab === 'tasks' && (
                 <div className="p-4 space-y-4">
@@ -2064,7 +2075,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
               {/* TAB: Skills */}
               {activeProjectTab === 'skills' && (
-                <SkillsView skills={skills} onCompileSkill={onCompileSkill || (() => {})} />
+                <SkillsView
+                  skills={skills}
+                  onCompileSkill={onCompileSkill || (async () => ({ paths: [] }))}
+                />
               )}
 
               {/* TAB: Instincts */}

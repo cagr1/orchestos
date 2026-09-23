@@ -4,25 +4,42 @@ import { db } from '../../db/sqlite.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type { MemoryRow, MutationResult } from '../types.ts'
 
-function handleApiMemory(url?: URL): Response {
+function handleApiMemory(url?: URL, projectId?: string | null): Response {
   const q = url?.searchParams.get('q')?.trim().slice(0, 256)
   try {
-    const rows = q
-      ? db
-          .query<MemoryEntry, [string]>(
-            `SELECT e.id, e.project_id, e.topic_key, e.scope, e.content, e.created_at, e.updated_at
+    const rows =
+      q && projectId
+        ? db
+            .query<MemoryEntry, [string, string]>(
+              `SELECT e.id, e.project_id, e.topic_key, e.scope, e.content, e.created_at, e.updated_at
+             FROM memory_entries e JOIN memory_fts ON memory_fts.rowid = e.rowid
+             WHERE memory_fts MATCH ? AND (e.project_id = ? OR e.scope = 'global')
+             ORDER BY bm25(memory_fts) LIMIT 200`,
+            )
+            .all(`"${q.replace(/"/g, '""')}"*`, projectId)
+        : q
+          ? db
+              .query<MemoryEntry, [string]>(
+                `SELECT e.id, e.project_id, e.topic_key, e.scope, e.content, e.created_at, e.updated_at
            FROM memory_entries e
            JOIN memory_fts ON memory_fts.rowid = e.rowid
            WHERE memory_fts MATCH ?
            ORDER BY bm25(memory_fts)
            LIMIT 200`,
-          )
-          .all(`"${q.replace(/"/g, '""')}"*`)
-      : db
-          .query<MemoryEntry, []>(
-            'SELECT id, project_id, topic_key, scope, content, created_at, updated_at FROM memory_entries ORDER BY updated_at DESC LIMIT 200',
-          )
-          .all()
+              )
+              .all(`"${q.replace(/"/g, '""')}"*`)
+          : projectId
+            ? db
+                .query<MemoryEntry, [string]>(
+                  "SELECT id, project_id, topic_key, scope, content, created_at, updated_at FROM memory_entries WHERE project_id = ? OR scope = 'global' ORDER BY updated_at DESC LIMIT 200",
+                )
+                .all(projectId)
+            : db
+                .query<MemoryEntry, []>(
+                  'SELECT id, project_id, topic_key, scope, content, created_at, updated_at FROM memory_entries ORDER BY updated_at DESC LIMIT 200',
+                )
+                .all()
+    const conflicts = projectId ? listConflicts(projectId) : []
     const result: MemoryRow[] = rows.map((m) => ({
       id: m.id,
       projectId: m.project_id,
@@ -30,6 +47,16 @@ function handleApiMemory(url?: URL): Response {
       scope: m.scope as MemoryRow['scope'],
       content: m.content,
       updatedAt: m.updated_at,
+      ...(conflicts.find((c) => c.entry_a_id === m.id || c.entry_b_id === m.id)
+        ? {
+            hasConflict: true,
+            conflictDetails: {
+              conflictId: conflicts.find((c) => c.entry_a_id === m.id || c.entry_b_id === m.id)!.id,
+              conflictingContent: '',
+              detectedFromRun: 'memory conflict',
+            },
+          }
+        : {}),
     }))
     return jsonResponse(result)
   } catch {
@@ -50,13 +77,24 @@ function handleApiMemoryConflicts(url?: URL): Response {
 
 // I.5 (Mes 18) — el panel de conflictos era de solo lectura; sin esto no
 // había forma de bajar un conflicto de la lista una vez revisado.
-function handleApiMemoryConflictResolve(url: URL): Response {
+function handleApiMemoryConflictResolve(url: URL): Response
+function handleApiMemoryConflictResolve(url: URL, req: Request): Promise<Response>
+function handleApiMemoryConflictResolve(url: URL, req?: Request): Response | Promise<Response> {
   const parts = url.pathname.split('/')
   const id = parts[4]
   if (!id) return errorResponse('Missing conflict id', 400)
-  const ok = resolveConflict(id)
-  const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Conflict not found' }
-  return jsonResponse(result, ok ? 200 : 404)
+  const finish = (content?: string) => {
+    const ok = resolveConflict(id, content)
+    const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Conflict not found' }
+    return jsonResponse(result, ok ? 200 : 404)
+  }
+  if (!req) return finish()
+  return req
+    .json()
+    .catch(() => ({}))
+    .then((body: { content?: unknown }) =>
+      finish(typeof body.content === 'string' ? body.content.trim() : undefined),
+    )
 }
 
 // I.8 (Mes 18) — Memory (entries) no tenía forma de borrar registros desde el dashboard.

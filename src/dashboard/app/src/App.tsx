@@ -19,6 +19,21 @@ import {
 } from './api/chat'
 import { getProjectContext } from './api/project'
 import { chooseProject, deleteProject, listProjects } from './api/projects'
+import {
+  addInstinct,
+  approveInstinct,
+  approveSpec,
+  compileSkill,
+  draftSpec,
+  explainTask,
+  lintSpec,
+  listInstincts,
+  listMemory,
+  listSkills,
+  listSpecs,
+  rejectInstinct,
+  resolveMemoryConflict,
+} from './api/projectTabs'
 import { listRuns } from './api/runs'
 import { getRunnableTask, listTasks, runTask } from './api/tasks'
 import { OrchestChatView } from './components/chat/OrchestChatView'
@@ -33,12 +48,6 @@ import {
   type ProjectSubTab,
   type SettingsSection,
 } from './components/settings/OrchestSettingsView'
-import {
-  initialMockInstincts,
-  initialMockMemories,
-  initialMockSkills,
-  initialMockSpecs,
-} from './data/mockOrchestosData'
 import type {
   AppMode,
   ChatAttachment,
@@ -113,11 +122,13 @@ export default function App() {
   const [runs, setRuns] = useState<RunItem[]>([])
   const [projectContext, setProjectContext] = useState<ProjectContext | null>(null)
   const [refreshingGraph, setRefreshingGraph] = useState(false)
-  const [specs, setSpecs] = useState<SpecItem[]>(initialMockSpecs)
-  const [instincts, setInstincts] = useState<InstinctItem[]>(initialMockInstincts)
-  const [memories, setMemories] = useState<MemoryItem[]>(initialMockMemories)
+  const [specs, setSpecs] = useState<SpecItem[]>([])
+  const [instincts, setInstincts] = useState<InstinctItem[]>([])
+  const [memories, setMemories] = useState<MemoryItem[]>([])
   const [threads, setThreads] = useState<ChatThread[]>([])
-  const [skills, setSkills] = useState<SkillItem[]>(initialMockSkills)
+  const [skills, setSkills] = useState<SkillItem[]>([])
+  const [projectTabsLoading, setProjectTabsLoading] = useState(false)
+  const [projectTabsError, setProjectTabsError] = useState<string | null>(null)
   const [activeThreadId, setActiveThreadId] = useState<string>('')
 
   const loadThreadMessages = async (sessionId: string, projectId?: string | null) => {
@@ -348,6 +359,37 @@ export default function App() {
       })
     return () => {
       disposed = true
+    }
+  }, [mode, currentProject?.id])
+
+  const refreshProjectTabs = async (projectId: string) => {
+    setProjectTabsLoading(true)
+    setProjectTabsError(null)
+    try {
+      const [nextMemory, nextSpecs, nextSkills, nextInstincts] = await Promise.all([
+        listMemory(projectId),
+        listSpecs(projectId),
+        listSkills(projectId),
+        listInstincts(projectId),
+      ])
+      setMemories(nextMemory)
+      setSpecs(nextSpecs)
+      setSkills(nextSkills)
+      setInstincts(nextInstincts)
+    } catch (error) {
+      setProjectTabsError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setProjectTabsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (currentProject) void refreshProjectTabs(currentProject.id)
+    else {
+      setMemories([])
+      setSpecs([])
+      setSkills([])
+      setInstincts([])
     }
   }, [mode, currentProject?.id])
 
@@ -747,66 +789,68 @@ export default function App() {
     setThreads((prev) => prev.map((item) => (item.id === thread.id ? { ...item, messages } : item)))
   }
 
-  // Spec handlers
-  const handleApproveSpec = (specId: string) => {
-    setSpecs((prev) =>
-      prev.map((s) => (s.id === specId ? { ...s, status: 'approved' as const } : s)),
-    )
-  }
-
-  const handleDraftSpec = (taskId: string) => {
-    const newSpec: SpecItem = {
-      id: `spec_${Date.now()}`,
-      taskId,
-      title: `Drafted Specification for ${taskId}`,
-      status: 'draft',
-      clarify: 'none',
-      lintStatus: 'pass',
-      lintFindings: 0,
-      deltaIssues: 0,
-      criteria: [
-        { when: 'Task execution begins', then: 'Sandbox worktree isolation is active' },
-        { when: 'Build tests are triggered', then: 'All deterministic checks exit with 0' },
-      ],
-      createdAt: 'Just now',
+  const reloadTabs = () =>
+    currentProject ? refreshProjectTabs(currentProject.id) : Promise.resolve()
+  const handleApproveSpec = async (id: string) => {
+    if (currentProject) {
+      await approveSpec(currentProject.id, id)
+      await reloadTabs()
     }
-    setSpecs((prev) => [newSpec, ...prev])
   }
-
-  // Memory handlers
-  const handleForgetMemory = (id: string) => {
-    setMemories((prev) => prev.filter((m) => m.id !== id))
-  }
-
-  const handleRecordMemory = (content: string, type: 'semantic' | 'procedural' | 'episodic') => {
-    const newMem: MemoryItem = {
-      id: `mem_${Date.now()}`,
-      topicKey: `user_${type}_note`,
-      scope: 'project',
-      content,
-      updatedAt: 'Just now',
+  const handleDraftSpec = async (id: string) => {
+    if (currentProject) {
+      await draftSpec(
+        currentProject.id,
+        id,
+        tasks.find((task) => task.id === id)?.description ?? id,
+      )
+      await reloadTabs()
     }
-    setMemories((prev) => [newMem, ...prev])
   }
-
-  // Skill handlers
-  const handleToggleSkill = (id: string) => {
-    setSkills((prev) => prev.map((s) => (s.id === id ? { ...s, usageRuns: s.usageRuns + 1 } : s)))
-  }
-
-  // Instinct handlers
-  const handleTeachInstinct = (when: string, then: string) => {
-    const newInstinct: InstinctItem = {
-      id: `inst_${Date.now()}`,
-      trigger: when,
-      action: then,
-      confidence: 0.95,
-      source: 'manual',
-      verified: true,
-      usagesCount: 1,
-      createdAt: 'Just now',
+  const handleLintSpec = async (id: string) => {
+    if (currentProject) {
+      await lintSpec(currentProject.id, id)
+      await reloadTabs()
     }
-    setInstincts((prev) => [newInstinct, ...prev])
+  }
+  const handleResolveConflict = async (id: string, content: string) => {
+    if (currentProject) {
+      await resolveMemoryConflict(currentProject.id, id, content)
+      await reloadTabs()
+    }
+  }
+  const handleCompileSkill = async (id: string) => {
+    if (currentProject) {
+      const result = await compileSkill(currentProject.id, id)
+      await reloadTabs()
+      return result
+    }
+    return { paths: [] }
+  }
+  const handleApproveInstinct = async (id: string) => {
+    if (currentProject) {
+      await approveInstinct(currentProject.id, id)
+      await reloadTabs()
+    }
+  }
+  const handleRejectInstinct = async (id: string) => {
+    if (currentProject) {
+      await rejectInstinct(currentProject.id, id)
+      await reloadTabs()
+    }
+  }
+  const handleAddInstinct = async (trigger: string, action: string) => {
+    if (currentProject) {
+      await addInstinct(currentProject.id, trigger, action)
+      await reloadTabs()
+    }
+  }
+  const handleExplainTask = async (id: string) => {
+    if (!currentProject) return {}
+    return explainTask(currentProject.id, id)
+  }
+  const handleAddTask = () => {
+    setMode('chat')
   }
 
   // Command Palette Handlers (Requirement 9)
@@ -942,10 +986,26 @@ export default function App() {
               instincts={instincts}
               onApproveSpec={handleApproveSpec}
               onDraftSpec={handleDraftSpec}
-              onForgetMemory={handleForgetMemory}
-              onRecordMemory={handleRecordMemory}
-              onToggleSkill={handleToggleSkill}
-              onTeachInstinct={handleTeachInstinct}
+              onLintSpec={handleLintSpec}
+              onResolveConflict={handleResolveConflict}
+              onCompileSkill={handleCompileSkill}
+              onApproveInstinct={handleApproveInstinct}
+              onRejectInstinct={handleRejectInstinct}
+              onAddInstinct={handleAddInstinct}
+              onRunTask={async (id) => {
+                if (!currentProject) return
+                setRunningTaskId(id)
+                try {
+                  await runTask(id, currentProject.id, setTasks)
+                  await reloadTabs()
+                } finally {
+                  setRunningTaskId(null)
+                }
+              }}
+              onExplainTask={handleExplainTask}
+              onAddTask={handleAddTask}
+              projectTabsLoading={projectTabsLoading}
+              projectTabsError={projectTabsError}
               onPurgeProjectData={handlePurgeProjectData}
               onResetOrchestos={handleResetOrchestos}
               onOpenChat={() => setMode('chat')}

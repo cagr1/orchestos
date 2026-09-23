@@ -171,6 +171,7 @@ async function runFlow(name, base) {
         result.capturas.push(shotPath)
       },
       cleanup: (fn) => cleanups.push(fn),
+      consoleErrors: () => [...unexpectedErrors],
       expectHttpError: (pattern) =>
         expectedHttpErrors.push(pattern instanceof RegExp ? pattern : new RegExp(pattern)),
     }
