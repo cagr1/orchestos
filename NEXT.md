@@ -27,6 +27,14 @@ verificar siempre. `visible()` espera a que aparezca; para "desaparece" usar `ct
 buscar el proyecto por `realpath` y pasar `x-orchestos-project-id`, o el fallback `legacy-cwd` escribe en el
 `tasks.yaml` de ESTE repo (pasó y se revirtió).
 
+## Lote L2 (abierto 2026-09-23, pedido de Carlos)
+Ítems: UI.13.2e Runs+Graph (`docs/specs/UI.13.2e.md`) → UI.13.2f Memory/Specs/Skills/Instincts/Plan (un spec,
+incluye acciones de PlanBoardView) → UI.13.3 borrar vanilla/`/legacy`/islas/CSS/ui-gates de píxel (recuperable
+por git). Mismo flujo y paradas que L1. Reemplaza el orden anterior (UI.9.9/UI.9.8 quedan para L3).
+| ítem | rondas Luna | gate | SHA | min |
+|---|---|---|---|---|
+| UI.13.2e | 3 (r1 runs sin `project_id`; r2 lo propagó dashboard→CLI→harness; r3 proyecto duplicado por symlink `/var`↔`/private/var` al indexar, dejó 14 fantasmas en la DB real que rompían smoke con 410 — borrados por el cerebro) | runs-graph 16/16 (flujo endurecido por el cerebro: QA se mira con la pestaña abierta, conteo real antes y +1 tras Rebuild) · smoke 6/6 · gate:all 1533/0 | ver git log | ~120 |
+
 ## Lote L1 — prueba del flujo por lote (abierto 2026-09-23, `docs/propuesta-flujo-por-lote.md`)
 Ítems: CI.2.B (`ui:gate`, spec `docs/specs/CI.2.B.md`) → UI.13.4c (`docs/specs/UI.13.4c.md`) → siguiente pantalla de UI.13.
 Fin: los 3 con `gate:all` + `ui:gate` PASS, commit, `[x]` en PLAN.md, push. Paradas: el MISMO fallo tras 2 reintentos

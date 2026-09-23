@@ -1,0 +1,53 @@
+{
+  "item": "UI.13.2e",
+  "date": "2026-09-23",
+  "agent": "Codex · gpt-5.6-luna · medium",
+  "ui_gate_runs_graph": [
+    {
+      "flujo": "smoke",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "home",
+          "ok": true,
+          "detalle": "Chat visible"
+        },
+        {
+          "nombre": "home-dev",
+          "ok": true,
+          "detalle": "Dev visible"
+        },
+        {
+          "nombre": "dev-view",
+          "ok": true,
+          "detalle": "OrchestOS Dev visible"
+        },
+        {
+          "nombre": "chat-composer",
+          "ok": true,
+          "detalle": "chat composer visible"
+        },
+        {
+          "nombre": "settings-view",
+          "ok": true,
+          "detalle": "current project section visible"
+        },
+        {
+          "nombre": "settings-general",
+          "ok": true,
+          "detalle": "Appearance visible"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-5834/smoke/chat.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-5834/smoke/dev.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-5834/smoke/chat-returned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-5834/smoke/settings.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-5834/smoke/settings-general.png"
+      ]
+    }
+  ],
+  "smoke": "PASS smoke 6/6",
+  "gate_all": "1533 pass / 0 fail"
+}

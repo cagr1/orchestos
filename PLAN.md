@@ -161,6 +161,22 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate en vivo: `docs/done/evidence/UI.13.2d-live.json` — turno real Codex · gpt-5.6-luna · medium,
   `PASS tasks 13/13` (badge `DONE` en la fila sin recargar) + `PASS smoke 6/6`; `gate:all` 1529 pass / 0 fail.
   Fuera de esta pasada: acciones de `PlanBoardView` sin cablear; Reset/Purge de Settings siguen siendo locales.
+- [x] **UI.13.2e — 🧠 Runs y Graph con datos reales.** (cerrado 2026-09-23, Lote L2 ítem 1; sub-ítem de UI.13.2)
+  Ejecutado por: luna (3 rondas) · Spec: `docs/specs/UI.13.2e.md`. Runs por proyecto y detalle real (contrato,
+  archivos bloqueados, checks, QA, status); Graph con constitución/contexto/code graph del proyecto (`GET
+  /api/project/graph`: archivos, aristas, lenguajes, stale, git) y `Rebuild` real.
+  Bugs de fondo hallados por el gate: (1) todo run se guardaba con `project_id: null` → ahora se propaga
+  dashboard→CLI (`--project-id`)→harness; (2) una carpeta con symlink (`/var`↔`/private/var`) se registraba dos
+  veces al indexar → `getProject`/`upsertProject` comparan por `realpath` (`src/db/projects.ts`); dejó 14 proyectos
+  fantasma de gates en la DB real que rompían smoke con 410 (borrados).
+  **Fuera de scope declarado:** `src/run/harness.ts` y `src/cli.ts` (scope era `src/dashboard/**,src/db/**`):
+  necesarios para (1).
+  Gate en vivo: `docs/done/evidence/UI.13.2e-live.json` — turno real Codex · gpt-5.6-luna · medium,
+  `PASS runs-graph 16/16` + `PASS smoke 6/6`; `gate:all` 1533 pass / 0 fail.
+- [ ] **UI.13.2f — 🧠 Memory/Specs/Skills/Instincts/Plan con datos reales.** (abierto 2026-09-23, Lote L2 ítem 2; sub-ítem de UI.13.2)
+  Un solo spec; incluye cablear las acciones de `PlanBoardView` (`onRunTask`/`onExplainTask`/`onAddTask`).
+- [ ] **UI.13.3 — 🧠 Borrar el vanilla, `/legacy`, sus islas, CSS y ui-gates de píxel.** (abierto 2026-09-23, Lote L2 ítem 3)
+  Recuperable por git (Carlos: no cuenta como irreversible).
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir

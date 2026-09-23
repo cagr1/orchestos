@@ -1159,6 +1159,7 @@ task
     'Keep worktree on failure for post-mortem debugging (implies --sandbox=worktree)',
   )
   .option('--sandbox <mode>', 'Sandbox mode: worktree | cwd | auto (default: auto)', 'auto')
+  .option('--project-id <project-id>', 'Persist run evidence under this registered project id')
   .option(
     '--model <model>',
     'Transient model override for this run only — does NOT persist in tasks.yaml',
@@ -1179,13 +1180,18 @@ task
         clarify?: string
         keepWorktree?: boolean
         sandbox?: string
+        projectId?: string
         model?: string
         engine?: string
       },
     ) => {
       const root = resolve(targetPath ?? '.')
       const projectContext = loadContext(root)
-      const project = getProject(root)
+      const project = opts?.projectId
+        ? { id: opts.projectId }
+        : process.env.ORCHESTOS_PROJECT_ID
+          ? { id: process.env.ORCHESTOS_PROJECT_ID }
+          : getProject(root)
       const orcheConfigPath = join(root, 'orchestos.config.yaml')
       const orcheConfigFound = existsSync(orcheConfigPath)
       const orcheConfig = loadOrcheConfig(root)

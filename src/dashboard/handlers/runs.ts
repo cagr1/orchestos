@@ -1,4 +1,4 @@
-import { deleteRun, getRun, listRuns, type RunRecord } from '../../db/runs.ts'
+import { deleteRun, getRun, listRuns, listRunsByProjectId, type RunRecord } from '../../db/runs.ts'
 import { parseReadAudit } from '../../run/read-audit.ts'
 import { type CostBreakdownEntry, parseCostBreakdownJson } from '../../run/transcript-parser.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
@@ -37,6 +37,16 @@ function parseSkillGates(raw: string | null | undefined): SkillGateEntry[] | nul
   }
 }
 
+function parseJsonArray<T>(raw: string | null | undefined): T[] {
+  if (!raw) return []
+  try {
+    const value: unknown = JSON.parse(raw)
+    return Array.isArray(value) ? (value as T[]) : []
+  } catch {
+    return []
+  }
+}
+
 // G.4 / B.2 — deriva engine + iteraciones del primer label de costBreakdown.
 // Label canónico: "single-shot" (1 vuelta) | "agentic (N rounds)" (N vueltas) | "external (claude-code, N turn[s])" (B.2)
 // | "opencode (N step[s])" (G.5) | "codex (exec)" (G.4.2b, siempre 1 — sin conteo de turnos).
@@ -61,15 +71,32 @@ function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
   return { engine: null, iterations: null }
 }
 
-function runRecordToRow(r: RunRecord): RunRow {
+export function runRecordToRow(r: RunRecord): RunRow {
   const breakdown = parseCostBreakdownJson(r.cost_breakdown_json)
   const costSource = breakdown[0]?.source ?? 'estimated'
   const { engine, iterations } = deriveEngineFromBreakdown(breakdown)
   return {
     id: r.id,
     taskId: r.task_id,
+    prompt: r.prompt,
+    allowedOutputs: parseJsonArray<string>(r.allowed_outputs),
+    filesAttempted: parseJsonArray<string>(r.files_attempted),
+    filesAuthorized: parseJsonArray<string>(r.files_authorized),
+    filesBlocked: parseJsonArray<string>(r.files_blocked),
+    checks: parseJsonArray<{
+      cmd: string
+      exitCode: number
+      elapsedMs: number
+      timedOut?: boolean
+    }>(r.checks_json),
     status: r.status,
     qaVerdict: r.qa_verdict as 'pass' | 'fail' | null,
+    qaReason: r.qa_reason,
+    qaModel: r.qa_model,
+    adversarialVerdict: r.adversarial_verdict,
+    adversarialReason: r.adversarial_reason,
+    refuterVerdict: r.refuter_verdict,
+    refuterReason: r.refuter_reason,
     model: r.model,
     provider: r.provider,
     readAudit: parseReadAudit(r.read_audit_json),
@@ -125,7 +152,7 @@ async function handleApiRunsAnalyze(req: Request): Promise<Response> {
   }
 }
 
-function handleApiRuns(url: URL): Response {
+function handleApiRuns(url: URL, projectId: string | null): Response {
   if (url.pathname.startsWith('/api/runs/')) {
     const id = url.pathname.slice('/api/runs/'.length)
     if (!id) return errorResponse('Missing run id', 400)
@@ -136,7 +163,7 @@ function handleApiRuns(url: URL): Response {
   const rawLimit = url.searchParams.get('limit')
   const parsedLimit = rawLimit === null ? 50 : Number(rawLimit)
   const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 200) : 50
-  const rows = listRuns(limit)
+  const rows = projectId ? listRunsByProjectId(projectId, limit) : listRuns(limit)
   return jsonResponse(rows.map(runRecordToRow))
 }
 

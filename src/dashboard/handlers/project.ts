@@ -2,8 +2,9 @@ import { existsSync, readFileSync, realpathSync, unlinkSync, writeFileSync } fro
 import { tmpdir } from 'os'
 import { isAbsolute, join, relative } from 'path'
 import { loadContext } from '../../context/load.ts'
-import { upsertProject } from '../../db/projects.ts'
+import { getProjectById, upsertProject } from '../../db/projects.ts'
 import { listRuns } from '../../db/runs.ts'
+import { db } from '../../db/sqlite.ts'
 import { buildProfile } from '../../detect/profile.ts'
 import { generateAgentsMd } from '../../generators/agents-md.ts'
 import { generateContextJson } from '../../generators/context-json.ts'
@@ -48,6 +49,51 @@ function handleApiProjectContextGet(root: string): Response {
   return jsonResponse({ content, exists })
 }
 
+function gitValue(root: string, args: string[]): string | null {
+  const result = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'ignore' })
+  if (result.exitCode !== 0) return null
+  const value = result.stdout.toString().trim()
+  return value || null
+}
+
+async function handleApiProjectGraph(root: string): Promise<Response> {
+  const project = await ensureProject(root)
+  const files = db
+    .query<{ path: string; language: string; indexedAt: string }, string>(
+      'SELECT path, language, indexed_at AS indexedAt FROM files WHERE project_id = ? ORDER BY path',
+    )
+    .all(project.id)
+  const edges =
+    db
+      .query<{ count: number }, string>(
+        'SELECT COUNT(*) AS count FROM code_edges WHERE project_id = ?',
+      )
+      .get(project.id)?.count ?? 0
+  const languages = [
+    ...files.reduce((counts, file) => {
+      counts.set(file.language, (counts.get(file.language) ?? 0) + 1)
+      return counts
+    }, new Map<string, number>()),
+  ].map(([language, count]) => ({ language, files: count }))
+  const staleFiles = files
+    .filter((file) => !existsSync(join(root, file.path)))
+    .map((file) => file.path)
+  const gitBranch = gitValue(root, ['rev-parse', '--abbrev-ref', 'HEAD'])
+  const gitStatus = gitValue(root, ['status', '--porcelain'])
+  return jsonResponse({
+    files: files.length,
+    edges,
+    languages,
+    staleFiles,
+    gitBranch,
+    isCleanWorktree: gitStatus === null ? null : gitStatus === '',
+    indexedAt: files.reduce<string | null>(
+      (latest, file) => (!latest || file.indexedAt > latest ? file.indexedAt : latest),
+      null,
+    ),
+  })
+}
+
 function handleApiProjectContextRegenerate(root: string): Response {
   Bun.spawn([process.execPath, 'run', join(root, 'src/cli.ts'), 'context', 'compress'], {
     cwd: root,
@@ -86,8 +132,10 @@ async function handleApiProjectDetect(root: string): Promise<Response> {
 // E.8 — equivalente de `orchestos index [path]`: indexa el proyecto actual en el
 // code graph (S21). Crea el registro de proyecto en DB si aún no existe (mismo
 // fallback que `ensureProject()` en cli.ts).
-async function handleApiProjectIndex(root: string): Promise<Response> {
-  const project = await ensureProject(root)
+async function handleApiProjectIndex(root: string, projectId?: string | null): Promise<Response> {
+  const project = projectId
+    ? (getProjectById(projectId) ?? (await ensureProject(root)))
+    : await ensureProject(root)
   const t0 = performance.now()
   const result = await indexProject(root, project.id)
   const elapsedMs = Math.round(performance.now() - t0)
@@ -297,6 +345,7 @@ export {
   handleApiProjectContextGet,
   handleApiProjectContextRegenerate,
   handleApiProjectDetect,
+  handleApiProjectGraph,
   handleApiProjectIndex,
   handleApiProjectSummary,
   listAllSkillCandidates,

@@ -163,8 +163,12 @@ export interface ProjectContext {
   constitution: string
   contextDoc: string
   codeGraphNodes: number
-  isCleanWorktree: boolean
-  gitBranch: string
+  edges: number
+  languages: Array<{ language: string; files: number }>
+  staleFiles: string[]
+  isCleanWorktree: boolean | null
+  gitBranch: string | null
+  indexedAt: string | null
 }
 
 export interface ChatMessage {

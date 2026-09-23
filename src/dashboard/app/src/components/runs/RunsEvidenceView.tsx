@@ -1,22 +1,4 @@
-import {
-  Activity,
-  AlertCircle,
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  Cpu,
-  Database,
-  DollarSign,
-  FileCode,
-  Filter,
-  Play,
-  Search,
-  ShieldCheck,
-  Terminal,
-  TrendingDown,
-} from 'lucide-react'
+import { Activity, AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Search } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
 import type { RunItem } from '../../types/orchestos'
@@ -169,16 +151,25 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
             <div className="rounded-card border border-app bg-app-surface p-4 space-y-3 text-xs">
               <div className="font-semibold text-app">Contract Output Slice Whitelist</div>
               <div className="font-mono text-xs bg-app-bg p-3 rounded-control border border-app text-app-accent space-y-1">
-                {selectedRun.outputSlice?.map((file, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                {(selectedRun.outputSlice || []).map((file) => (
+                  <div key={file} className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                     <span>{file}</span>
                   </div>
                 ))}
+                {selectedRun.filesBlocked.map((file) => (
+                  <div key={file} className="flex items-center gap-2 text-amber-300">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Blocked: {file}</span>
+                  </div>
+                ))}
+                {selectedRun.outputSlice?.length === 0 && selectedRun.filesBlocked.length === 0 && (
+                  <div className="text-app-muted">No contract outputs recorded</div>
+                )}
               </div>
               <p className="text-xs text-app-muted">
-                All file modifications were strictly validated by OrchestOS AST isolation gate prior
-                to commit.
+                {selectedRun.filesAuthorized.length} authorized · {selectedRun.filesBlocked.length}{' '}
+                blocked
               </p>
             </div>
           )}
@@ -186,22 +177,28 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
           {/* Tab 2: Diffs */}
           {evidenceTab === 'diffs' && (
             <div className="space-y-3">
-              {selectedRun.fileDiffs.map((diff, i) => (
-                <div
-                  key={i}
-                  className="rounded-card border border-app bg-app-surface overflow-hidden text-xs"
-                >
-                  <div className="px-3 py-2 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
-                    <span className="text-app font-medium">{diff.filePath}</span>
-                    <span className="text-emerald-400">
-                      +{diff.additions} -{diff.deletions}
-                    </span>
-                  </div>
-                  <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
-                    {diff.patch}
-                  </pre>
+              {selectedRun.fileDiffs.length === 0 ? (
+                <div className="rounded-card border border-app bg-app-surface p-4 text-xs text-app-muted">
+                  No diffs recorded
                 </div>
-              ))}
+              ) : (
+                selectedRun.fileDiffs.map((diff) => (
+                  <div
+                    key={diff.filePath || diff.path}
+                    className="rounded-card border border-app bg-app-surface overflow-hidden text-xs"
+                  >
+                    <div className="px-3 py-2 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
+                      <span className="text-app font-medium">{diff.filePath}</span>
+                      <span className="text-emerald-400">
+                        +{diff.additions} -{diff.deletions}
+                      </span>
+                    </div>
+                    <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
+                      {diff.patch}
+                    </pre>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -229,8 +226,10 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                   </div>
                 </div>
                 <div className="p-3 rounded-control bg-app-bg border border-app">
-                  <div className="text-app-muted text-xs">Worktree</div>
-                  <div className="text-sm font-bold text-emerald-400 font-mono mt-1">Clean</div>
+                  <div className="text-app-muted text-xs">Status</div>
+                  <div className="text-sm font-bold text-app font-mono mt-1">
+                    {selectedRun.status}
+                  </div>
                 </div>
               </div>
             </div>
@@ -240,10 +239,27 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
           {evidenceTab === 'qa' && (
             <div className="rounded-card border border-app bg-app-surface p-4 space-y-3 text-xs">
               <div className="font-semibold text-app">QA Gate Verdict & Acceptance Evaluation</div>
-              <div className="p-3 rounded-control bg-app-bg border border-app font-mono text-xs text-emerald-400">
-                ✓ Spec WHEN/THEN assertion checked: PASSED
-                <br />✓ Vitest automated test suite: 100% GREEN
-                <br />✓ AST static boundary leak check: 0 LEAKS DETECTED
+              <div className="p-3 rounded-control bg-app-bg border border-app font-mono text-xs text-emerald-400 space-y-1">
+                {selectedRun.deterministicChecks.map((check) => (
+                  <div
+                    key={`${check.command}-${check.exitCode}`}
+                    className={check.passed ? 'text-emerald-400' : 'text-rose-400'}
+                  >
+                    {check.passed ? '✓' : '✗'} {check.command} (exit {check.exitCode})
+                  </div>
+                ))}
+                {selectedRun.qaEvaluation.map((item) => (
+                  <div
+                    key={item.criterion}
+                    className={item.passed ? 'text-emerald-400' : 'text-rose-400'}
+                  >
+                    {item.passed ? '✓' : '✗'} {item.criterion}: {item.rationale}
+                  </div>
+                ))}
+                {selectedRun.deterministicChecks.length === 0 &&
+                  selectedRun.qaEvaluation.length === 0 && (
+                    <div className="text-app-muted">No QA recorded for this run</div>
+                  )}
               </div>
             </div>
           )}

@@ -314,11 +314,27 @@ function createTaskRecord(
 const ORCHESTOS_CLI_PATH = join(fileURLToPath(new URL('../../cli.ts', import.meta.url)))
 
 // D.7 — mismo motivo de extracción: reusable por el auto-flow del chat.
-function spawnTaskRun(root: string, id: string, model?: string): void {
+export function resolveTaskRunProjectId(
+  root: string,
+  projectId?: string | null,
+): string | undefined {
+  return projectId ?? getProject(root)?.id ?? undefined
+}
+
+function spawnTaskRun(root: string, id: string, model?: string, projectId?: string | null): void {
   commitTasksYaml(root, `chore(tasks): run ${id} (dashboard)`)
   const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--id', id]
   if (model) args.push('--model', model)
-  Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
+  const selectedProjectId = resolveTaskRunProjectId(root, projectId)
+  if (selectedProjectId) args.push('--project-id', selectedProjectId)
+  Bun.spawn(args, {
+    cwd: root,
+    stdout: 'inherit',
+    stderr: 'inherit',
+    env: selectedProjectId
+      ? { ...process.env, ORCHESTOS_PROJECT_ID: selectedProjectId }
+      : undefined,
+  })
 }
 
 async function handleApiTasksCreate(req: Request, root: string): Promise<Response> {
@@ -362,7 +378,12 @@ async function handleApiTasksCreate(req: Request, root: string): Promise<Respons
   return jsonResponse({ ok: true, id: result.id })
 }
 
-async function handleApiTasksRun(req: Request, url: URL, root: string): Promise<Response> {
+async function handleApiTasksRun(
+  req: Request,
+  url: URL,
+  root: string,
+  projectId?: string | null,
+): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
@@ -385,7 +406,7 @@ async function handleApiTasksRun(req: Request, url: URL, root: string): Promise<
     task.status = 'pending'
   }
   saveTasks(root, file)
-  spawnTaskRun(root, id, model)
+  spawnTaskRun(root, id, model, projectId)
   return jsonResponse({ ok: true, id })
 }
 

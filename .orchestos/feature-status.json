@@ -31,6 +31,33 @@
       "closedDate": "2026-09-23"
     },
     {
+      "id": "UI.13.2e",
+      "sprint": "Fase 1 — Terminar la interfaz",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Runs y Graph con datos reales",
+      "status": "done",
+      "closedDate": "2026-09-23"
+    },
+    {
+      "id": "UI.13.2f",
+      "sprint": "Fase 1 — Terminar la interfaz",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Memory/Specs/Skills/Instincts/Plan con datos reales",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.13.3",
+      "sprint": "Fase 1 — Terminar la interfaz",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Borrar el vanilla, `/legacy`, sus islas, CSS y ui-gates de píxel",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.9.9",
       "sprint": "Fase 1 — Terminar la interfaz",
       "block": null,

@@ -1,15 +1,4 @@
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Code,
-  FileText,
-  FolderGit2,
-  GitBranch,
-  Layers,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-} from 'lucide-react'
+import { FileText, RefreshCw, ShieldCheck } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
 import type { ProjectContext } from '../../types/orchestos'
@@ -17,9 +6,14 @@ import type { ProjectContext } from '../../types/orchestos'
 interface ContextViewProps {
   context: ProjectContext
   onRefreshGraph: () => void
+  isRefreshing?: boolean
 }
 
-export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGraph }) => {
+export const ContextView: React.FC<ContextViewProps> = ({
+  context,
+  onRefreshGraph,
+  isRefreshing = false,
+}) => {
   const [activeTab, setActiveTab] = useState<'constitution' | 'context' | 'graph'>('constitution')
 
   return (
@@ -29,6 +23,7 @@ export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGrap
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 p-0.5 bg-zinc-900 rounded-lg border border-zinc-800 text-xs">
             <button
+              type="button"
               onClick={() => setActiveTab('constitution')}
               className={`px-3 py-1 rounded-md transition-all ${
                 activeTab === 'constitution'
@@ -39,6 +34,7 @@ export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGrap
               CONSTITUTION.md
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('context')}
               className={`px-3 py-1 rounded-md transition-all ${
                 activeTab === 'context'
@@ -49,6 +45,7 @@ export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGrap
               CONTEXT.md
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('graph')}
               className={`px-3 py-1 rounded-md transition-all ${
                 activeTab === 'graph'
@@ -63,14 +60,18 @@ export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGrap
 
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono">
-            <ShieldCheck className="w-3.5 h-3.5" />0 stale references detected
+            <ShieldCheck className="w-3.5 h-3.5" />
+            {context.staleFiles.length} stale references detected
           </span>
           <button
+            type="button"
             onClick={onRefreshGraph}
+            disabled={isRefreshing}
+            aria-busy={isRefreshing}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium border border-zinc-800 transition-colors"
           >
             <RefreshCw className="w-3 h-3" />
-            Rebuild Code Graph
+            {isRefreshing ? 'Rebuilding…' : 'Rebuild Code Graph'}
           </button>
         </div>
       </div>
@@ -103,7 +104,7 @@ export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGrap
                   <h3 className="font-bold text-sm text-white">Project Architecture Context</h3>
                 </div>
                 <span className="text-[10px] font-mono text-zinc-500">
-                  Branch: {context.gitBranch}
+                  Branch: {context.gitBranch || 'Not a git repository'}
                 </span>
               </div>
               <pre className="text-xs font-mono text-zinc-300 leading-relaxed whitespace-pre-wrap">
@@ -118,7 +119,7 @@ export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGrap
                 <div>
                   <h3 className="font-bold text-sm text-white">Dependency Topology & Code Graph</h3>
                   <div className="text-xs text-zinc-400 mt-0.5">
-                    Analyzed by ast-grep & tree-sitter for zero-token context routing.
+                    {context.edges} dependency edges indexed locally.
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
@@ -130,14 +131,25 @@ export const ContextView: React.FC<ContextViewProps> = ({ context, onRefreshGrap
                 <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
                   <div className="font-semibold text-zinc-300">Git Cleanliness</div>
                   <div className="text-emerald-400 font-mono">
-                    {context.isCleanWorktree ? 'Clean tree (no unstaged edits)' : 'Dirty worktree'}
+                    {context.isCleanWorktree === null
+                      ? 'Not a git repository'
+                      : context.isCleanWorktree
+                        ? 'Clean tree (no unstaged edits)'
+                        : 'Dirty worktree'}
                   </div>
                 </div>
 
                 <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
                   <div className="font-semibold text-zinc-300">Language Distribution</div>
                   <div className="text-zinc-400 font-mono">
-                    TypeScript (82%), Rust (12%), Shell (6%)
+                    {context.languages.length === 0
+                      ? 'No indexed source files'
+                      : context.languages
+                          .map(
+                            (entry) =>
+                              `${entry.language} (${Math.round((entry.files / context.codeGraphNodes) * 100)}%)`,
+                          )
+                          .join(', ')}
                   </div>
                 </div>
               </div>

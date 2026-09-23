@@ -23,6 +23,7 @@ import { generatePlan } from '../agents/planner.ts'
 import type { SubTask } from '../agents/sub-agent.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 import { estimateTokens } from '../context/compress.ts'
+import { getProject } from '../db/projects.ts'
 import { clearRunSteps, insertRunStep } from '../db/run-steps.ts'
 import { insertRun } from '../db/runs.ts'
 import type { ContextWarning } from '../hooks/context-monitor.ts'
@@ -220,6 +221,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     monitorCallCount,
   } = opts
   const t0 = performance.now()
+  const runProjectId = _projectId ?? getProject(projectRoot)?.id ?? null
 
   let worktree: Worktree | null = null
   let effectiveRoot = projectRoot
@@ -559,7 +561,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         elapsed = Math.round(performance.now() - t0)
         log.error(`parse error: ${e.message}`)
         const runId = insertRun({
-          project_id: null,
+          project_id: runProjectId,
           prompt: ctx.task.description,
           task_class: ctx.taskClass,
           model: ctx.model,
@@ -604,7 +606,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const elapsedLLM = Math.round(performance.now() - t0)
       log.error(`LLM call failed: ${e.message}`)
       const runId = insertRun({
-        project_id: null,
+        project_id: runProjectId,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -655,7 +657,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const blocked = attempted.filter((p) => !ctx.task.output.includes(p))
       log.contractViolation(blocked)
       const runId = insertRun({
-        project_id: null,
+        project_id: runProjectId,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -723,7 +725,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const reason = `missing declared output(s): ${missingOutputs.join(', ')}`
       const elapsedMissing = Math.round(performance.now() - t0)
       const runId = insertRun({
-        project_id: null,
+        project_id: runProjectId,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -829,7 +831,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           : `check failed: ${firstFail.cmd} exit ${firstFail.exitCode}`
         const elapsedCheck = Math.round(performance.now() - t0)
         const runId = insertRun({
-          project_id: null,
+          project_id: runProjectId,
           prompt: ctx.task.description,
           task_class: ctx.taskClass,
           model: ctx.model,
@@ -1027,7 +1029,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const newStatus = retryCount >= MAX_RETRIES ? 'failed_permanent' : 'pending'
 
       const runId = insertRun({
-        project_id: null,
+        project_id: runProjectId,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -1121,7 +1123,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const fileDiffs = computeFileDiffs(beforeContent, contractResult.written)
 
     const runId = insertRun({
-      project_id: null,
+      project_id: runProjectId,
       prompt: ctx.task.description,
       task_class: ctx.taskClass,
       model: ctx.model,

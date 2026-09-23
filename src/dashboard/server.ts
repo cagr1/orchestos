@@ -52,6 +52,7 @@ import {
   handleApiProjectContextGet,
   handleApiProjectContextRegenerate,
   handleApiProjectDetect,
+  handleApiProjectGraph,
   handleApiProjectIndex,
   handleApiProjectSummary,
 } from './handlers/project.ts'
@@ -156,7 +157,12 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiRunsAnalyze(req)
   }
   if (method === 'GET' && (url.pathname === '/api/runs' || url.pathname.startsWith('/api/runs/'))) {
-    return handleApiRuns(url)
+    if (url.pathname.startsWith('/api/runs/')) return handleApiRuns(url, null)
+    return withDashboardProject(req, (_project) => {
+      const selectedProjectId = req.headers.get('x-orchestos-project-id')?.trim()
+      if (!selectedProjectId) return handleApiRuns(url, null)
+      return handleApiRuns(url, selectedProjectId)
+    })
   }
   if (method === 'GET' && url.pathname === '/api/usage') {
     return handleApiUsage()
@@ -203,7 +209,9 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiTasksCreate(req, project.root))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/run$/)) {
-    return withDashboardProject(req, (project) => handleApiTasksRun(req, url, project.root))
+    return withDashboardProject(req, (project) =>
+      handleApiTasksRun(req, url, project.root, req.headers.get('x-orchestos-project-id')),
+    )
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
     return withDashboardProject(req, (project) => handleApiTasksDelete(url, project.root))
@@ -319,6 +327,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/project/context') {
     return withDashboardProject(req, (project) => handleApiProjectContextGet(project.root))
   }
+  if (method === 'GET' && url.pathname === '/api/project/graph') {
+    return withDashboardProject(req, (project) => handleApiProjectGraph(project.root))
+  }
   if (method === 'POST' && url.pathname === '/api/project/context/regenerate') {
     return withDashboardProject(req, (project) => handleApiProjectContextRegenerate(project.root))
   }
@@ -326,7 +337,7 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiProjectDetect(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/index') {
-    return withDashboardProject(req, (project) => handleApiProjectIndex(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectIndex(project.root, project.id))
   }
   // v0.12 D.1.c — ruta literal DEBE ir antes del catch-all GET→serveStatic
   // de abajo (sirve un PDF binario, no HTML estático).

@@ -249,3 +249,13 @@ textualmente la misma expresión, solo con salto de línea; `maxOutputTokens: ..
 linter+formatter`) — revertible con `git revert`; sin cambios de esquema ni de datos. `bunx tsc
 --noEmit` ✅ · `bun run test:coverage` ✅ (1174 pass / 0 fail, 2852 expects, 120 archivos;
 functions 73.96% ≥ 69%, lines 62.49% ≥ 57%) tras el reformateo, sin regresión.
+
+## 2026-09-23 16:05 — claude-opus-5-5 (revisor) · ejecutor Codex gpt-5.6-luna
+**Contexto**: UI.13.2e (Lote L2) — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el diff solo cambia `project_id: null` → `runProjectId` en los 7 `insertRun` y agrega
+`runProjectId = _projectId ?? getProject(projectRoot)?.id ?? null` (+ import de `getProject`). Ninguna línea
+de `maxTokens`/`contextWindow`/`maxOutputTokensFor` tocada (verificado con `git diff --cached src/run/harness.ts
+| grep -i token` → vacío).
+**Reversibilidad/evidencia**: commit `feat(UI.13.2e)`, revertible con `git revert`; sin cambio de esquema.
+`gate:all` 1533 pass / 0 fail · `ui:gate runs-graph` 16/16 · `ui:gate smoke` 6/6.

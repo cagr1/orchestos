@@ -1,3 +1,5 @@
+import { realpathSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { createHash } from 'crypto'
 import type { StackProfile } from '../generators/agents-md.ts'
 import { db } from './sqlite.ts'
@@ -14,9 +16,39 @@ function hashPath(p: string): string {
   return createHash('sha1').update(p).digest('hex').slice(0, 16)
 }
 
+/** Canonicalize project paths for identity and comparison. */
+function normalizeProjectPath(path: string): string {
+  try {
+    return realpathSync(path)
+  } catch {
+    // Keep path lookups useful for stale registrations whose directory was
+    // removed; existing paths still use realpathSync above for symlink parity.
+    return resolve(path)
+  }
+}
+
+function findProjectByNormalizedPath(normalizedPath: string): ProjectRow | null {
+  for (const project of listProjects()) {
+    if (normalizeProjectPath(project.path) === normalizedPath) return project
+  }
+  return null
+}
+
 export function upsertProject(path: string, profile: StackProfile, agentsMd: string): void {
-  const id = hashPath(path)
+  const normalizedPath = normalizeProjectPath(path)
+  const existing = findProjectByNormalizedPath(normalizedPath)
   const now = new Date().toISOString()
+  if (existing) {
+    db.run(
+      `UPDATE projects
+       SET stack_profile = ?, agents_md = ?, last_updated = ?
+       WHERE id = ?`,
+      [JSON.stringify(profile), agentsMd, now, existing.id],
+    )
+    return
+  }
+
+  const id = hashPath(normalizedPath)
   db.run(
     `INSERT INTO projects (id, path, stack_profile, agents_md, last_updated)
      VALUES (?, ?, ?, ?, ?)
@@ -29,7 +61,8 @@ export function upsertProject(path: string, profile: StackProfile, agentsMd: str
 }
 
 export function getProject(path: string): ProjectRow | null {
-  return db.query<ProjectRow, string>('SELECT * FROM projects WHERE path = ?').get(path) ?? null
+  const normalizedPath = normalizeProjectPath(path)
+  return findProjectByNormalizedPath(normalizedPath)
 }
 
 export function getProjectById(id: string): ProjectRow | null {

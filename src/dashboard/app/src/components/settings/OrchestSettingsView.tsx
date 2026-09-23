@@ -133,6 +133,7 @@ interface OrchestSettingsViewProps {
   onExplainTask?: (taskId: string) => void
   onAddTask?: (newTask: Omit<TaskItem, 'retryCount' | 'qaVerdict' | 'runId' | 'costUsd'>) => void
   onRefreshGraph?: () => void
+  graphRefreshing?: boolean
   onRunNextTask?: () => void
   canRunNextTask?: boolean
   onOpenChat?: () => void
@@ -176,6 +177,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onExplainTask,
   onAddTask,
   onRefreshGraph,
+  graphRefreshing = false,
   onRunNextTask,
   canRunNextTask = false,
   onOpenChat,
@@ -2029,22 +2031,18 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               {activeProjectTab === 'runs' && <RunsEvidenceView runs={runs} />}
 
               {/* TAB: Graph */}
-              {activeProjectTab === 'graph' && (
-                <ContextView
-                  context={
-                    projectContext || {
-                      constitution:
-                        'Default Constitution: strictly uphold project contracts and zero unpermitted file mutations.',
-                      contextDoc:
-                        '# Architecture Context\nProject AST nodes and dependency graph are analyzed locally.',
-                      codeGraphNodes: 48,
-                      isCleanWorktree: true,
-                      gitBranch: selectedProject.branch || 'main',
-                    }
-                  }
-                  onRefreshGraph={onRefreshGraph || (() => {})}
-                />
-              )}
+              {activeProjectTab === 'graph' &&
+                (projectContext ? (
+                  <ContextView
+                    context={projectContext}
+                    onRefreshGraph={onRefreshGraph || (() => {})}
+                    isRefreshing={graphRefreshing}
+                  />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-sm text-app-muted">
+                    Loading project graph…
+                  </div>
+                ))}
 
               {/* TAB: Memory */}
               {activeProjectTab === 'memory' && (

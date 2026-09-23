@@ -17,6 +17,7 @@ import {
   runProjectTask,
   sendMessage,
 } from './api/chat'
+import { getProjectContext } from './api/project'
 import { chooseProject, deleteProject, listProjects } from './api/projects'
 import { listRuns } from './api/runs'
 import { getRunnableTask, listTasks, runTask } from './api/tasks'
@@ -45,6 +46,7 @@ import type {
   InstinctItem,
   MemoryItem,
   NavigationTab,
+  ProjectContext,
   ProjectItem,
   RunItem,
   SessionStatus,
@@ -109,6 +111,8 @@ export default function App() {
   const [taskRunError, setTaskRunError] = useState<string | null>(null)
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null)
   const [runs, setRuns] = useState<RunItem[]>([])
+  const [projectContext, setProjectContext] = useState<ProjectContext | null>(null)
+  const [refreshingGraph, setRefreshingGraph] = useState(false)
   const [specs, setSpecs] = useState<SpecItem[]>(initialMockSpecs)
   const [instincts, setInstincts] = useState<InstinctItem[]>(initialMockInstincts)
   const [memories, setMemories] = useState<MemoryItem[]>(initialMockMemories)
@@ -288,6 +292,40 @@ export default function App() {
       disposed = true
     }
   }, [currentProject?.id])
+
+  useEffect(() => {
+    if (!currentProject) {
+      setProjectContext(null)
+      return
+    }
+    let disposed = false
+    setProjectContext(null)
+    void getProjectContext(currentProject.id)
+      .then((context) => {
+        if (!disposed) setProjectContext(context)
+      })
+      .catch(() => {
+        if (!disposed) setProjectContext(null)
+      })
+    return () => {
+      disposed = true
+    }
+  }, [currentProject?.id])
+
+  const refreshGraph = async () => {
+    if (!currentProject || refreshingGraph) return
+    setRefreshingGraph(true)
+    try {
+      const response = await fetch('/api/project/index', {
+        method: 'POST',
+        headers: { 'x-orchestos-project-id': currentProject.id },
+      })
+      if (!response.ok) throw new Error(`Request failed (${response.status})`)
+      setProjectContext(await getProjectContext(currentProject.id))
+    } finally {
+      setRefreshingGraph(false)
+    }
+  }
 
   useEffect(() => {
     if (!currentProject) {
@@ -895,6 +933,9 @@ export default function App() {
               tasks={tasks}
               taskError={taskError || taskRunError}
               runs={runs}
+              projectContext={projectContext}
+              onRefreshGraph={() => void refreshGraph()}
+              graphRefreshing={refreshingGraph}
               specs={specs}
               memories={memories}
               skills={skills}

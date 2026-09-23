@@ -170,11 +170,23 @@ export interface FileDiffEntry {
 }
 
 export interface RunRow {
+  prompt: string
+  allowedOutputs: string[]
+  filesAttempted: string[]
+  filesAuthorized: string[]
+  filesBlocked: string[]
+  checks: Array<{ cmd: string; exitCode: number; elapsedMs: number; timedOut?: boolean }>
   readAudit?: import('../run/read-audit.ts').ReadAudit
   id: string
   taskId: string | null
   status: 'done' | 'blocked' | 'failed'
   qaVerdict: 'pass' | 'fail' | null
+  qaReason: string | null
+  qaModel: string | null
+  adversarialVerdict: string | null
+  adversarialReason: string | null
+  refuterVerdict: string | null
+  refuterReason: string | null
   model: string
   provider: string
   skillId: string | null

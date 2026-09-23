@@ -790,8 +790,12 @@ export const INITIAL_PROJECT_CONTEXT: ProjectContext = {
 - Specs: WHEN/THEN Gherkin acceptance criteria
 - Memory: Semantic vector embeddings cache with automated contradiction detection`,
   codeGraphNodes: 64,
+  edges: 0,
+  languages: [],
+  staleFiles: [],
   isCleanWorktree: true,
   gitBranch: 'main',
+  indexedAt: null,
 }
 
 // Aliases for convenience
