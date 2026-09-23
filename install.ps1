@@ -78,13 +78,11 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "  $OK  Dependencias instaladas."
 
 # ── 3b. Bundle de UI ──────────────────────────────────────────────────────────
-# El dashboard sirve las islas React desde src/dashboard/public/dist/, que es un
-# artefacto GENERADO y no se versiona (está en .gitignore, decisión de 2026-08-22).
-# Sin este paso, un clone fresco sirve un dashboard sin islas.
-Write-Host "  $INFO  Compilando la interfaz (bun run build:ui)..."
-bun run build:ui
+# El dashboard React se sirve desde src/dashboard/app/dist/, un artefacto generado.
+Write-Host "  $INFO  Compilando la interfaz (bun run build:app)..."
+bun run build:app
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "  $FAIL  build:ui falló. Revisa la salida anterior."
+    Write-Host "  $FAIL  build:app falló. Revisa la salida anterior."
     Read-Host "Presiona Enter para salir"
     exit 1
 }

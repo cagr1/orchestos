@@ -4,7 +4,6 @@ import {
   findOpenPlanItem,
   hasLiveGateEvidence,
   requiresLiveGate,
-  requiresUiCopyBudget,
 } from './agent-governance.ts'
 
 describe('agent governance', () => {
@@ -16,14 +15,9 @@ describe('agent governance', () => {
   })
 
   test('detecta superficies de dashboard y configuracion', () => {
-    expect(requiresLiveGate(['src/dashboard/public/app.js'])).toBe(true)
+    expect(requiresLiveGate(['src/dashboard/app/src/App.tsx'])).toBe(true)
     expect(requiresLiveGate(['src/dashboard/handlers/config.ts'])).toBe(true)
     expect(requiresLiveGate(['src/run/harness.ts'])).toBe(false)
-  })
-
-  test('detecta cambios que requieren el presupuesto de copy compacto', () => {
-    expect(requiresUiCopyBudget(['src/dashboard/public/i18n.js'])).toBe(true)
-    expect(requiresUiCopyBudget(['src/dashboard/public/app.js'])).toBe(false)
   })
 
   test('extrae rutas citadas entre backticks en líneas agregadas', () => {

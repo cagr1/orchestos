@@ -17,14 +17,14 @@ curl -fsSL https://bun.sh/install | bash
 git clone https://github.com/cagr1/orchestos
 cd orchestos
 bun install
-bun run build:ui   # dashboard UI bundle — see below
+bun run build:app  # dashboard UI bundle
 ```
 
-The dashboard's React islands are built from `src/dashboard/public-src/` into
-`src/dashboard/public/dist/`, which is a **generated artifact and is not committed**.
-`install.sh` / `install.ps1` run `build:ui` for you, and `orchestos dashboard` rebuilds
-it automatically if it's missing — so this step only matters if you build by hand.
-While working on the UI, use `bun run build:ui -- --watch`.
+The dashboard's React app is built from `src/dashboard/app/` into
+`src/dashboard/app/dist/`, which is a generated artifact and is not committed.
+`install.sh` / `install.ps1` run `build:app` for you, and `orchestos dashboard` rebuilds
+it automatically if it's missing. While working on the UI, use
+`bun run build:app -- --watch`.
 
 Add to your shell (optional):
 

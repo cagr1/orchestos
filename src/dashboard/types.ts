@@ -537,8 +537,3 @@ export interface MutationResult {
 // ── server config ─────────────────────────────────────────────────────────────
 
 export const DEFAULT_PORT = 4242
-
-// import.meta.url on Windows produces a /E:/... path that fs functions reject.
-// fileURLToPath() normalises it to a proper Windows path (E:\...).
-import { fileURLToPath } from 'url'
-export const STATIC_DIR = fileURLToPath(new URL('./public', import.meta.url))

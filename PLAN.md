@@ -183,8 +183,16 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   gpt-5.6-luna · medium, cleanup de DB verificado) + tasks 13/13 + runs-graph 16/16 + smoke 6/6; `gate:all` 1534/0.
   Ronda 1 dio 14/14 con 6 pasos vacíos (Run sin esperar el run, "Chat" siempre visible, Lint/Compile sin medir):
   hallados auditando el flujo, no la suite.
-- [ ] **UI.13.3 — 🧠 Borrar el vanilla, `/legacy`, sus islas, CSS y ui-gates de píxel.** (abierto 2026-09-23, Lote L2 ítem 3)
-  Recuperable por git (Carlos: no cuenta como irreversible).
+- [x] **UI.13.3 — 🧠 Borrar el vanilla, `/legacy`, sus islas, CSS y ui-gates de píxel.** (cerrado 2026-09-23, Lote L2 ítem 3)
+  Ejecutado por: luna (2 rondas; r2: `orchestos dashboard` buscaba el bundle en el cwd del usuario → resuelto relativo al
+  módulo, `src/cli-dashboard-paths.ts` + test) · Spec: docs/specs/UI.13.3.md (borrado al cerrar). Recuperable por git (Carlos: no
+  cuenta como irreversible). Fuera: `src/dashboard/public/`, `public-src/` (islas), `scripts/ui-gates/` (16 gates de
+  píxel), `build-ui.ts`, `check-css-ratchet`, `check-ui-copy` (+ sus pasos del pre-commit, hooks reinstalados),
+  3 tests solo-vanilla, deps Radix/`cmdk`/`marked`; 80 archivos, −26.608 líneas. `/legacy` y cualquier estático fuera
+  de `/app/dist/` → 404.
+  Gate en vivo: `docs/done/evidence/UI.13.3-live.json` — smoke 6/6 · tasks 13/13 · runs-graph 16/16 ·
+  project-tabs 23/23 · chat-turn-details 26/26; `gate:all` 1518 pass / 0 fail (baja de 1534 = tests borrados;
+  cobertura sobre umbral). Resto inofensivo: `.impeccable/config.json` ignora `public/screens.css` (ya no existe).
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir

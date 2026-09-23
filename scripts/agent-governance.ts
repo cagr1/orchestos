@@ -9,15 +9,10 @@ export const REQUIRED_RULE_FILES = [
 ] as const
 
 export const LIVE_GATE_PATHS = [
-  'src/dashboard/public/',
+  'src/dashboard/app/',
   'src/dashboard/handlers/config.ts',
   'src/dashboard/handlers/setup.ts',
   'src/config/',
-] as const
-
-export const UI_COPY_BUDGET_PATHS = [
-  'src/dashboard/public/i18n.js',
-  'src/dashboard/ui-copy-budget.json',
 ] as const
 
 export interface CommandResult {
@@ -72,12 +67,6 @@ export function checkHooks(root: string, run: RunCommand = runCommand): string[]
 export function requiresLiveGate(paths: string[]): boolean {
   return paths.some((path) =>
     LIVE_GATE_PATHS.some((prefix) => path === prefix || path.startsWith(prefix)),
-  )
-}
-
-export function requiresUiCopyBudget(paths: string[]): boolean {
-  return paths.some((path) =>
-    UI_COPY_BUDGET_PATHS.includes(path as (typeof UI_COPY_BUDGET_PATHS)[number]),
   )
 }
 

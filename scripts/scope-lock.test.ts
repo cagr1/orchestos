@@ -24,7 +24,7 @@ describe('parseScopeArg', () => {
 describe('pathsOutsideScope', () => {
   test('un path que matchea alguno de los globs queda dentro de scope', () => {
     const scope = ['src/dashboard/**', 'PLAN.md']
-    expect(pathsOutsideScope(['src/dashboard/public/theme.js', 'PLAN.md'], scope)).toEqual([])
+    expect(pathsOutsideScope(['src/dashboard/app/src/App.tsx', 'PLAN.md'], scope)).toEqual([])
   })
 
   test('un path que no matchea ningún glob queda fuera de scope', () => {

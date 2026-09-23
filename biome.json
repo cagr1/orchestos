@@ -6,14 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "**",
-      "!!**/dist",
-      "!src/dashboard/public/marked.umd.js",
-      "!**/*.css",
-      "!evals/**/project",
-      "!runs-summary.json"
-    ]
+    "includes": ["**", "!!**/dist", "!**/*.css", "!evals/**/project", "!runs-summary.json"]
   },
   "formatter": {
     "enabled": true,
@@ -36,27 +29,7 @@
   },
   "overrides": [
     {
-      "includes": ["scripts/ui-gates/**"],
-      "linter": {
-        "rules": {
-          "security": {
-            "noGlobalEval": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["src/dashboard/public-src/lib/icons.tsx"],
-      "linter": {
-        "rules": {
-          "security": {
-            "noDangerouslySetInnerHtml": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["src/dashboard/app/src/**", "src/dashboard/public-src/**"],
+      "includes": ["src/dashboard/app/src/**"],
       "linter": {
         "rules": {
           "suspicious": {

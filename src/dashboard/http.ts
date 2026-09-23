@@ -2,7 +2,6 @@ import { existsSync, readFileSync, realpathSync } from 'fs'
 import { extname, join, sep } from 'path'
 import { fileURLToPath } from 'url'
 import { redactSensitive } from '../security/secrets.ts'
-import { STATIC_DIR } from './types.ts'
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -57,17 +56,7 @@ function serveFrom(root: string, rel: string): Response {
 
 function serveStatic(url: string): Response {
   if (url === '/legacy' || url.startsWith('/legacy/')) {
-    const rel =
-      url === '/legacy' || url === '/legacy/' ? 'index.html' : url.slice('/legacy/'.length)
-    const response = serveFrom(STATIC_DIR, rel)
-    if (url !== '/legacy' || rel !== 'index.html' || !response.ok) return response
-    const html = readFileSync(join(STATIC_DIR, 'index.html'), 'utf8').replace(
-      '<head>',
-      '<head><base href="/legacy/">',
-    )
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    })
+    return new Response('Not found', { status: 404 })
   }
 
   if (url.startsWith('/app/dist/')) {
@@ -84,7 +73,7 @@ function serveStatic(url: string): Response {
     return serveFrom(APP_DIR, 'index.html')
   }
 
-  return serveFrom(STATIC_DIR, url.replace(/^\//, ''))
+  return new Response('Not found', { status: 404 })
 }
 
 function jsonResponse(data: unknown, status = 200): Response {

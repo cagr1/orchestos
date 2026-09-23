@@ -2,10 +2,10 @@
 import { Command } from 'commander'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
-import { fileURLToPath } from 'url'
 import { diagnoseTask } from './agents/diagnose.ts'
 import { createPlan } from './agents/planner.ts'
 import type { SubTask } from './agents/sub-agent.ts'
+import { resolveDashboardPaths } from './cli-dashboard-paths.ts'
 import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
 import { buildContextMd, estimateTokens } from './context/compress.ts'
@@ -2572,7 +2572,8 @@ program
     const port = parseInt(opts.port ?? '4242')
 
     // I3: Auto-run bun install if lockfile exists but node_modules missing
-    const root = resolve('.')
+    const { packageRoot, uiBundle } = resolveDashboardPaths(import.meta.url)
+    const root = packageRoot
     const hasLock = existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
     const hasMods = existsSync(join(root, 'node_modules'))
     if (hasLock && !hasMods) {
@@ -2588,22 +2589,14 @@ program
       }
     }
 
-    // Mes 30 (UI.0): el bundle de islas React es un artefacto generado que NO se
-    // versiona, así que puede faltar. Los instaladores corren `build:ui`, pero no son
-    // la única forma de arrancar el dashboard (clone + `bun run src/cli.ts dashboard`
-    // es igual de común). Mismo patrón que el auto-`bun install` de arriba: si falta,
-    // se construye acá en vez de servir en silencio una UI incompleta.
-    const uiBundle = fileURLToPath(new URL('./dashboard/public/dist/ui.js', import.meta.url))
     if (!existsSync(uiBundle)) {
-      console.log('[dashboard] UI bundle missing — running build:ui...')
-      const uiProc = Bun.spawnSync(['bun', 'run', 'build:ui'], { cwd: root })
-      if (uiProc.exitCode === 0) {
-        console.log('[dashboard] UI bundle built.')
-      } else {
+      console.log('[dashboard] UI bundle missing — running build:app...')
+      const uiProc = Bun.spawnSync(['bun', 'run', 'build:app'], { cwd: root })
+      if (uiProc.exitCode !== 0) {
         console.error(
-          `[dashboard] build:ui failed (exit ${uiProc.exitCode}): ${uiProc.stderr.toString()}`,
+          `[dashboard] build:app failed (exit ${uiProc.exitCode}): ${uiProc.stderr.toString()}`,
         )
-        console.error('[dashboard] Run "bun run build:ui" manually in the project directory.')
+        console.error('[dashboard] Run "bun run build:app" manually in the project directory.')
       }
     }
 

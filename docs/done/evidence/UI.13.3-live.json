@@ -1,0 +1,21 @@
+{
+  "item": "UI.13.3",
+  "date": "2026-09-23",
+  "agent": "Codex · gpt-5.6-luna · medium",
+  "deleted_files": 80,
+  "lines_deleted": 26608,
+  "http": {
+    "/": 200,
+    "/legacy": 404,
+    "/styles.css": 404,
+    "/app/dist/main.js": 200
+  },
+  "ui_gates": {
+    "smoke": "6/6",
+    "tasks": "13/13",
+    "runs-graph": "16/16",
+    "project-tabs": "23/23",
+    "chat-turn-details": "26/26"
+  },
+  "gate_all": "1518 pass / 0 fail"
+}

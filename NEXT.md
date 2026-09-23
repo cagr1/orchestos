@@ -1,6 +1,16 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — Lote L1 CERRADO; abrir L2
+## Siguiente tab — Lote L2 CERRADO (2026-09-23); abrir L3
+L2: UI.13.2e, UI.13.2f, UI.13.3 cerrados y pusheados. Siguiente según PLAN.md § Rumbo Fase 1: UI.9.9 → UI.9.8 →
+UI.10.A. Pendiente de decidir por Carlos: cerrar los padres UI.13 y UI.13.4 (sus sub-ítems están todos `[x]`).
+Lecciones L2: (1) la DB del gate es la real: todo flujo borra lo que siembra y el cerebro lo verifica por consulta;
+(2) auditar los `step()` del flujo, no el conteo PASS (r1 de 2f: 14/14 con 6 pasos vacíos); (3) cerrar un ítem:
+`git rm` del spec en el mismo commit o el plan gate rechaza; si `plan:reconcile` dice "Could not prove a closing
+commit SHA", reabrir `[ ]` → reconcile → `[x]` → reconcile; (4) `.orchestos/feature-status.json` lo regenera el
+pre-commit: incluirlo en el `--scope`; (5) Luna puede re-correr el preflight y estrechar el scope: revisarlo antes
+del commit.
+
+## Lote L1 CERRADO; L2 abierto (histórico)
 L1 terminado 2026-09-23: CI.2.B, UI.13.4c, UI.13.2d (Tasks real) con gate:all + ui:gate PASS y push.
 Siguiente: abrir **L2** con los 3 siguientes de la Fase 1 (PLAN.md § Rumbo): pantallas restantes de UI.13
 (Runs/Graph ya tienen parte; luego Memory/Specs/Skills/Instincts/Plan) → UI.9.9 → UI.9.8. Mismo bucle:
@@ -37,6 +47,7 @@ por git). Mismo flujo y paradas que L1. Reemplaza el orden anterior (UI.9.9/UI.9
 |---|---|---|---|---|
 | UI.13.2e | 3 (r1 runs sin `project_id`; r2 lo propagó dashboard→CLI→harness; r3 proyecto duplicado por symlink `/var`↔`/private/var` al indexar, dejó 14 fantasmas en la DB real que rompían smoke con 410 — borrados por el cerebro) | runs-graph 16/16 (flujo endurecido por el cerebro: QA se mira con la pestaña abierta, conteo real antes y +1 tras Rebuild) · smoke 6/6 · gate:all 1533/0 | ver git log | ~120 |
 | UI.13.2f | 4 (implementación 14/14 con pasos vacíos; flujo real 22/22; `[object Object]` en Explain; chequeo `exact:false`) | project-tabs 23/23 · tasks 13/13 · runs-graph 16/16 · smoke 6/6 · gate:all 1534/0 | ver git log | ~75 |
+| UI.13.3 | 1 (re-declaró el scope por su cuenta, más estrecho) | smoke/tasks/runs-graph/project-tabs/chat-turn-details verdes · gate:all 1518/0 | ver git log | ~40 |
 
 ## Lote L1 — prueba del flujo por lote (abierto 2026-09-23, `docs/propuesta-flujo-por-lote.md`)
 Ítems: CI.2.B (`ui:gate`, spec `docs/specs/CI.2.B.md`) → UI.13.4c (`docs/specs/UI.13.4c.md`) → siguiente pantalla de UI.13.
