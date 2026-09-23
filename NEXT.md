@@ -1,5 +1,16 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Siguiente tab — retomar Lote L1, ítem 3
+CI.2.B (47b4dbf) y UI.13.4c (aca8d90) cerrados y pusheados; dashboard :4242 reiniciado con el código nuevo.
+Ítem 3: siguiente pantalla de UI.13 (Tasks, PLAN.md § Fase 1). Mismo bucle: spec en `docs/specs/`, Luna con
+`codex exec -m gpt-5.6-luna -c model_reasoning_effort=medium -s workspace-write "…" < /dev/null` (NO `--full-auto`:
+esa flag no existe), flujo nuevo en `scripts/ui-gate/flows/<pantalla>.mjs`, verificar con `bun run gate:all` +
+`bun run ui:gate <flujo> smoke`. Preflight con `--scope` real del ítem (si no, el pre-commit bloquea).
+Lecciones del lote: Luna afirmó 3 veces cosas falsas ("DB aislada", "catálogo sin luna", "lint preexistente") →
+verificar siempre. `visible()` espera a que aparezca; para "desaparece" usar `ctx.hidden()`. Reproducciones por API:
+buscar el proyecto por `realpath` y pasar `x-orchestos-project-id`, o el fallback `legacy-cwd` escribe en el
+`tasks.yaml` de ESTE repo (pasó y se revirtió).
+
 ## Lote L1 — prueba del flujo por lote (abierto 2026-09-23, `docs/propuesta-flujo-por-lote.md`)
 Ítems: CI.2.B (`ui:gate`, spec `docs/specs/CI.2.B.md`) → UI.13.4c (`docs/specs/UI.13.4c.md`) → siguiente pantalla de UI.13.
 Fin: los 3 con `gate:all` + `ui:gate` PASS, commit, `[x]` en PLAN.md, push. Paradas: el MISMO fallo tras 2 reintentos
