@@ -130,6 +130,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.8.6",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🧠",
+      "title": "Permisos visibles (`INS-2026-014`)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.13",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
@@ -189,114 +198,6 @@
       "block": "H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)",
       "delegation": "🧠",
       "title": "Revisor adversarial nocturno, de un modelo distinto al que implementó",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.3.5",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": null,
-      "delegation": "🧠",
-      "title": "Sistema visual: que se sienta herramienta, no panel de administración",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.4",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": null,
-      "delegation": "🧠",
-      "title": "Pantallas, en orden de valor",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.5",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": null,
-      "delegation": "🧠",
-      "title": "Limpieza",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.6",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": null,
-      "delegation": "🧠",
-      "title": "Dos profundidades, una sola realidad: Chat | Workspace (backend ya listo por CC.2/CC.3)",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.7",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": null,
-      "delegation": "🧠",
-      "title": "Navegación progresiva: muere \"modo avanzado\"",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.8.4",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
-      "delegation": "🧠",
-      "title": "Shell Chat | Workspace (absorbe UI.6)",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.8.5",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
-      "delegation": "🧠",
-      "title": "Composición visual: barra de estado, Settings y controles",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.8.6",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": "UI.8 — El cambio real: mecanismo, datos y anatomía (ABIERTO 2026-09-02)",
-      "delegation": "🧠",
-      "title": "Permisos visibles (`INS-2026-014`)",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.11",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
-      "delegation": "🧠",
-      "title": "Sidebar de proyectos con la cara nueva (pieza 1 del orden de arriba)",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "UI.12",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
-      "delegation": "🧠",
-      "title": "Look nuevo sobre el producto real, desde el prototipo de AI Studio",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "I.5",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
-      "delegation": "🧠",
-      "title": "Rediseño del chat: sacar la implementación de la cara del usuario",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "I.6",
-      "sprint": "Reemplazados — esperan GO para retirarse",
-      "block": "UI.9 — Shell de dos modos: Chat | Dev (ABIERTO 2026-09-15)",
-      "delegation": "⚡",
-      "title": "\"Actividad\", no \"Tasks\": la vista secundaria",
       "status": "open",
       "closedDate": null
     }

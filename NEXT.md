@@ -28,7 +28,7 @@ tooltip propio instantáneo). Luego UI.13.6 (cuotas reales: Claude sin fuente, C
 ## Rumbo nuevo (2026-09-22)
 - PLAN.md reordenado en tres fases (sección "Rumbo" al inicio): interfaz → producto mínimo → correr dentro de
   OrchestOS igual que el CLI directo. Cerrados archivados en `docs/done/` (índice al final de PLAN.md).
-- Siguiente: Fase 1, empezando por UI.13.4c. Espera GO de Carlos: retirar los 12 de "Reemplazados".
+- Siguiente: Fase 1, empezando por UI.13.4c. 11 ítems retirados (`docs/done/retirados.md`); UI.8.6 pasó a Fase 2.
 - UI.14: sin verificar en vivo el selector nativo de nuevo proyecto.
 - Carlos: turno real de gate = **Codex · gpt-5.6-luna · medium**.
 
