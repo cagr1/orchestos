@@ -25,12 +25,11 @@ que actúa como CLI, AgentComposer, ContextRing, ShellStatusBar, logos de produc
 mensaje del tab anterior; **espera el GO de Carlos** y su respuesta sobre tooltips (nativos `title` tal cual vs
 tooltip propio instantáneo). Luego UI.13.6 (cuotas reales: Claude sin fuente, Codex vencido desde 17-sep).
 
-## PLAN-ORDEN — en curso (2026-09-22)
-- Carlos: cerrar UI.13.6 y reordenar PLAN.md en tres fases: interfaz → producto mínimo → correr dentro de OrchestOS
-  igual que el CLI directo (AT.13 + hallazgos de Opus, run `560e910f`). Spec `docs/specs/PLAN-ORDEN.md` (sin
-  commitear). **Luna lanzada**, log `/tmp/plan-orden-luna.log`. Al terminar: verificar invariante de ítems,
-  `plan:render --check`, `bun run next` antes/después, `test:coverage`; commit y push.
-- UI.14 cerrado (`f4fb772`); sin verificar en vivo: selector nativo de nuevo proyecto.
+## Rumbo nuevo (2026-09-22)
+- PLAN.md reordenado en tres fases (sección "Rumbo" al inicio): interfaz → producto mínimo → correr dentro de
+  OrchestOS igual que el CLI directo. Cerrados archivados en `docs/done/` (índice al final de PLAN.md).
+- Siguiente: Fase 1, empezando por UI.13.4c. Espera GO de Carlos: retirar los 12 de "Reemplazados".
+- UI.14: sin verificar en vivo el selector nativo de nuevo proyecto.
 - Carlos: turno real de gate = **Codex · gpt-5.6-luna · medium**.
 
 ## Siguiente (serial, una ronda cada uno)

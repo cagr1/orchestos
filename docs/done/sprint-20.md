@@ -33,4 +33,9 @@ C.1: tarea `crypto-page-v1` (HTML+CSS+JS autocontenido, datos live de CoinGecko)
 Auto-split diseñado, implementado y con superficie en dashboard; el mecanismo end-to-end se probó con éxito en un entregable simple (C.1). El gate original y más exigente (C.2, dashboard premium) queda pausado por decisión explícita de alcance de Carlos, no por falla — gated en dos prerequisitos concretos (modelo + #32). 711 tests · 0 fail · `tsc --noEmit` limpio (estado actual del repo, no snapshot del mes).
 
 ---
+<a id="plan-orden-parcial"></a>
+- [x] **PARCIAL — Sprint 20 cerrado formalmente (2026-07-14), con un gate abierto a propósito**
+  Auto-split (el gatillo automático que le faltaba al motor de sub-tareas) diseñado, implementado y con superficie de aprobación en dashboard — el usuario ve y aprueba el plan de sub-tareas antes de gastar. Probado con éxito en un entregable simple end-to-end (`crypto-page-v1`, gate 🔍 con dinero real). **El gate original y más exigente (C.2, dashboard premium multi-archivo React+TS+Vite) sigue PAUSADO** por decisión explícita de alcance de Carlos — gated en 2 prerequisitos concretos: decisión de modelo ([[feedback-modelo-decision-final-carlos]], nacida de un incidente de $5.00 quemados este mismo mes) y presupuesto de outputs de tools del executor agéntico (IDEAS.md #32). Candidato de pre-flight del próximo milestone (ver abajo). 711 tests · 0 fail · `tsc --noEmit` limpio (estado actual, no snapshot del mes).
+  Ver historial completo → [DONE.md](DONE.md).
 
+---

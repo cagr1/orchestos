@@ -80,3 +80,131 @@ Ejecutado por: luna · Spec: docs/specs/AT.9.md
   su historial ni relajar el mecanismo `--restricted` de Claude. H.9.4 sigue siendo el gate de la
   frontera efectiva para los CLIs que sí la declaran; para los que declaran `none`, verifica el
   aviso honesto en vez de prometer aislamiento.
+<a id="plan-orden-at-1"></a>
+- [x] **AT.1 — 🧠 Fuerte planifica, chico ejecuta, con diente mecánico.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.1.md
+  `.claude/hooks/brain-no-code.js` + registro `PreToolUse` en `.claude/settings.json` +
+  `tests/hooks/brain-no-code.test.ts` (9 pass, 0 fail; `tsc` limpio), protocolo unificado en
+  `aa51d7a`. Gate en vivo en la sesión del cerebro (Opus 5): `Write src/__brain_guard_probe.ts` y
+  `echo >> src/__brain_guard_probe_bash.ts` → denegados con el mensaje del hook, sin crear archivos;
+  `Write docs/specs/__probe.md` → permitido (borrado después).
+
+<a id="plan-orden-at-2"></a>
+- [x] **AT.2 — ⚡ El Sprint Board deja de congelar el dashboard.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.2.md
+  `src/db/plan-items.ts`: alcanzabilidad por `git rev-list HEAD` cacheada por HEAD y contenido por
+  SHA cacheado si no es nulo; test nuevo en `src/db/plan-items.test.ts` (10 pass con plan-import,
+  `tsc` limpio, diff revisado contra el spec). Medido en proceso: 3514 ms → 18 ms en la segunda
+  llamada, mismo resultado. Dashboard real reiniciado: `/api/plan` 3.85 s → 316 ms → 25 ms; en una
+  segunda ronda con el servidor ocupado, 257 ms y 21 ms. La primera llamada tras arrancar sigue
+  costando ~3.5 s una vez. Hallazgo aparte, no de este ítem: el primer ciclo de `fetchAll` tras
+  arrancar dejó `/api/chat/sessions` en 7–14 s y `/api/chat/models` en 9 s, con un handler de
+  sesiones trivial — otro endpoint bloquea el event loop.
+
+<a id="plan-orden-at-3"></a>
+- [x] **AT.3 — ⚡ El chat no crea conversaciones que nacen muertas.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.3.md
+  `cli-registry.ts` expone `projectChatUnavailableMessage()`; `chat-sessions.ts` valida la
+  frontera declarada de `KNOWN_CLIS` antes de crear la sesión; `screens-core.js`/`app.js`
+  envuelven `ensureChatSession()` en try/catch y muestran el error sin dejar sesión muerta.
+  Test nuevo en `chat-sessions.test.ts` (11 pass, `tsc` limpio, diff revisado contra el spec).
+  Gate en vivo: Playwright contra el dashboard real, `docs/done/evidence/AT.3-live.json` —
+  con `codex` seleccionado (frontera `none`), enviar responde 400 con el mensaje exacto, el
+  toast lo muestra (sistema de toaster real de `dist/ui.js`, no el `showToast` legado que el
+  spec asumía) y `sessionsAfter === sessionsBefore` (1 → 1). El brazo "con `claude` el chat
+  responde" del gate original queda para que Carlos lo confirme al elegir el agente en
+  Settings — selección de modelo es decisión suya, no de este cierre
+  (`feedback-modelo-decision-final-carlos`).
+
+<a id="plan-orden-at-4"></a>
+- [x] **AT.4 — 🔍 `/api/session/status`, no GC, es lo que congela el dashboard.** (cerrado 2026-09-15)
+  Ejecutado por: luna · Spec: docs/specs/AT.4.md
+  Causa raíz confirmada, medida: `readActiveSessionStatuses` (`scripts/session-status.ts`)
+  parseaba los 371 transcripts completos por cada uno de los 5 CLIs (de 7) sin sesión
+  activa, sin cortar — ~1.4s por pasada × 5 ≈ 7s, coincide con los 7–15s reportados.
+  `detectInstalledClis` (cacheado, 45–160ms) y `readCodexRateLimitsLive` (68–73ms) se
+  descartan como causa, medidos por separado. Fix: una sola pasada sobre los transcripts,
+  `readSessionMetrics` una vez por archivo (no por CLI×archivo), corte temprano cuando
+  todos los CLIs detectados ya tienen match. Medido antes/después: 7.0–9.2s → 1.5–1.7s.
+  Gate en vivo: `docs/done/evidence/AT.4-live.json` — estáticos concurrentes con
+  `/api/session/status` en curso bajaron de 7–15s a ~613ms. `bunx tsc --noEmit` y
+  `bun test scripts/session-status.test.ts` (incluye test nuevo: lee cada transcript
+  como máximo una vez) en verde. Dashboard bajado al cierre.
+
+<a id="plan-orden-at-5"></a>
+- [x] **AT.5 — 🧠 Freno mecánico de costo de sesión: umbral absoluto + bloqueo real.**
+  (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.5.md
+  `ABSOLUTE_BUDGET_THRESHOLDS` (warn 60k, block 90k tokens absolutos de la llamada actual,
+  independiente de la ventana del modelo) en `scripts/context-budget.ts`, sin tocar el
+  umbral por-% existente. `.claude/hooks/context-budget.js`: `exit 2` + mensaje en stderr
+  cuando `absoluteLevel === 'block'`, se repite en cada prompt (no es aviso de una sola
+  vez); `isBudget()` ampliado para aceptar `level: 'ok'` (necesario para no descartar un
+  budget con ventana grande y `absoluteLevel` alto). `.claude/settings.json`:
+  `bashOutputMaxChars: 8000` (clave real verificada contra la documentación de hooks/
+  settings — `BASH_MAX_OUTPUT_LENGTH` de NEXT.md no existe). 8 tests nuevos verdes
+  (`scripts/context-budget.test.ts` + `tests/hooks/context-budget.test.ts`, integración
+  real contra `bun run context:budget`), `tsc` limpio, `bun run lint` exit 0 (verificado por
+  el cerebro — el reporte de Luna decía "falla", eran warnings preexistentes, no errores).
+  Diff acotado a los 5 archivos declarados.
+
+<a id="plan-orden-at-6"></a>
+- [x] **AT.6 — ⚡ Lint en rojo: 3 archivos sin formatear/ordenar.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.6.md
+  `bunx biome check --write` sobre los 3 archivos declarados; solo formato + orden de
+  imports, sin cambio de comportamiento (diff revisado). `bun run lint` exit 0 (verificado
+  por el cerebro — el reporte de Luna decía "sigue fallando", pero corría contra un estado
+  previo; no era evidencia). `bunx tsc --noEmit` limpio, 14 tests verdes en los dos
+  archivos de test tocados.
+
+<a id="plan-orden-at-7"></a>
+- [x] **AT.7 — 🧠 Recuperar migración histórica de chat retenido.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.7.md
+  Sin delegación: el spec era un artefacto no versionado y fue eliminado al cerrar el ítem.
+  aplicada con el cambio ajeno `run-files-read`, dejando `chat_messages` sin `task_held` ni
+  `existing_files` y rompiendo todo POST de chat. Añadir una migración 9 compensatoria, sin
+  reescribir el ledger histórico ni la versión 4; cubrir instalación nueva, ledger legado y
+  segunda ejecución. **Gate:** backup verificado de `~/.orchestos/db.sqlite`, migración oficial,
+  `PRAGMA table_info(chat_messages)` y POST/GET/recarga reales con respuesta exacta.
+  **Estado 2026-09-14:** backup `~/.orchestos/backups/at7-pre-migration-2026-09-14.sqlite`
+  verificado, v9 aplicada, `PRAGMA integrity_check` = `ok`, POST real = `ORCHESTOS_CHAT_OK` y GET
+  tras reinicio recuperó ambos mensajes. El fixture de AT.7.1 elimina el fallo de
+  `absoluteLevel: null`; `bun run test:coverage` pasa 1420/1420 y el gate de migración queda
+  cerrado.
+
+<a id="plan-orden-at-7-1"></a>
+- [x] **AT.7.1 — ⚡ Desbloquear el gate de cobertura de AT.7.** (cerrado 2026-09-14)
+  Ejecutado por: luna · Spec: docs/specs/AT.7.1.md
+  `docs/specs/AT.7.1.md` con Luna antes de cerrar AT.7. El cambio queda limitado al fixture del
+  test de contexto: debe proveer un catálogo mínimo aislado al proceso hijo bajo el runtime de
+  cobertura, sin tocar la lógica de producción ni los umbrales. **Gate:** la prueba pasa con
+  `bunx bun@latest` y `bun run test:coverage` deja de fallar por `absoluteLevel: null`. **Estado
+  2026-09-14:** cambio aplicado por Luna en `tests/hooks/context-budget.test.ts`; test específico
+  2/2, `tsc` y cobertura completa 1420/1420 pasan.
+  **Fuera de scope declarado:** `PLAN.md` registra el cierre y `.orchestos/feature-status.json`
+  es el índice derivado exigido por `plan:reconcile`.
+
+<a id="plan-orden-at-8"></a>
+- [x] **AT.8 — ⚡ Presupuesto de subagentes: máximo dos, Luna y contexto mínimo.** (cerrado 2026-09-14)
+  Sin delegación: código y tests ya existían sin commitear al abrir la sesión
+  (`subagent-budget.js` + `subagent-budget.test.ts`, spec `docs/specs/AT.8.md` nunca commiteado);
+  se verificó línea por línea contra el spec en vez de reejecutar con Luna, para no duplicar
+  trabajo ya hecho.
+  `.claude/hooks/subagent-budget.js` implementa `PreToolUse:Agent` + `SubagentStart`/`SubagentStop`
+  + `SessionStart`, lock `open(...,'wx')` con TTL, reservas expirables a 60s, estado aislado por
+  `session_id` (hash sha256) bajo `.orchestos/subagent-budget/` (gitignored). En Codex la
+  limitación queda narrativa (`AGENTS.md`), documentada honestamente: el repo no puede interceptar
+  `spawn_agent` del host. El fixture de AT.5/context-budget ya había quedado reparado por AT.7.1.
+  **Gate en vivo 2026-09-14:** 2 subagentes admitidos, 3ro denegado con el mensaje exacto del spec,
+  ambos terminan, 4to admitido sin bloqueo — corrido en esta misma sesión con agentes reales
+  (no simulado). `bun test tests/hooks/subagent-budget.test.ts` 7/7, `bunx bun@latest test
+  tests/hooks/context-budget.test.ts tests/hooks/subagent-budget.test.ts` verde, `tsc --noEmit`
+  limpio, `bun run test:coverage` 1427/1427 con gates de cobertura en verde.
+  **Hallazgo fuera de scope, no tocado:** `bun run lint` sale con 1 error preexistente y no
+  relacionado (formato en `src/__tests__/migration.test.ts`), ya listado en `NEXT.md` como
+  pendiente aparte.
+  **Fuera de scope declarado:** `.claude/settings.json` (registrar los 5 hooks del punto 1 del
+  spec), `.gitignore` (ignorar `.orchestos/subagent-budget/`), `AGENTS.md` (nota narrativa de
+  presupuesto de delegación que referencia este ítem) y `PLAN.md`/`.orchestos/feature-status.json`
+  (cierre del ítem) — el spec solo declaraba `.claude/hooks/**` y `tests/hooks/**`, pero el hook no
+  entra en vigor sin el wiring en `settings.json` ni el `.gitignore` de su estado.
