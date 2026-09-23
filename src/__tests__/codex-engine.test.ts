@@ -16,6 +16,8 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
 import {
+  buildCodexArgs,
+  buildCodexArgsDisplay,
   buildCodexChatArgs,
   buildCodexChatEnv,
   CODEX_CHAT_EFFORT_LEVELS,
@@ -243,6 +245,11 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     ])
     expect(buildCodexChatArgs('hello', 'gpt-5.4', 'high')).toContain('model_reasoning_effort=high')
     expect(buildCodexChatArgs('hello', 'gpt-5.4')).not.toContain('model_reasoning_effort')
+  })
+  it('requests reasoning summaries on task and chat invocations', () => {
+    expect(buildCodexArgs('hello')).toContain('model_reasoning_summary=auto')
+    expect(buildCodexArgsDisplay()).toContain('model_reasoning_summary=auto')
+    expect(buildCodexChatArgs('hello')).toContain('model_reasoning_summary=auto')
   })
   it('keeps the browser Codex effort list in sync with the server contract', () => {
     const source = readFileSync(new URL('../dashboard/public/data.js', import.meta.url), 'utf8')

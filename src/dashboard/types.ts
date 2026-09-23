@@ -102,6 +102,7 @@ export interface ChatMessageRow {
   // correr, esperando confirmación inline) de una tarea normal ya en curso.
   taskHeld: boolean
   existingFiles: string[]
+  turnId: string | null
   createdAt: string
 }
 
@@ -228,6 +229,7 @@ export interface TaskRow {
   id: string
   description: string
   status: string // 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
+  retryReason: string | null
   skill: string | null
   executor: string
   retryCount: number

@@ -1,0 +1,209 @@
+{
+  "item": "UI.13.4c",
+  "date": "2026-09-23",
+  "runner": "cerebro (claude-opus-5.5): bun run ui:gate chat-turn-details smoke — Playwright/Chromium, dashboard real en puerto libre, HOME real, proyecto temporal registrado y dado de baja",
+  "turno_real": "Codex · gpt-5.6-luna · medium",
+  "result": [
+    {
+      "flujo": "chat-turn-details",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project clean before README task",
+          "ok": true,
+          "detalle": "clean"
+        },
+        {
+          "nombre": "select temporary project",
+          "ok": true,
+          "detalle": "project visible in sidebar"
+        },
+        {
+          "nombre": "select Codex for new chat",
+          "ok": true,
+          "detalle": "visible agent selector"
+        },
+        {
+          "nombre": "model and effort controls visible",
+          "ok": true,
+          "detalle": "composer controls visible"
+        },
+        {
+          "nombre": "select gpt-5.6-luna",
+          "ok": true,
+          "detalle": "model option visible"
+        },
+        {
+          "nombre": "select medium effort",
+          "ok": true,
+          "detalle": "effort option visible"
+        },
+        {
+          "nombre": "model popover closes",
+          "ok": true,
+          "detalle": "popover closed after Escape/click outside"
+        },
+        {
+          "nombre": "tool block with command success",
+          "ok": true,
+          "detalle": "tool trace rendered"
+        },
+        {
+          "nombre": "command success row",
+          "ok": true,
+          "detalle": "success visible"
+        },
+        {
+          "nombre": "new chat is linked to temporary project",
+          "ok": true,
+          "detalle": "projectId=0434a32837642310, mode=code"
+        },
+        {
+          "nombre": "reasoning block exists",
+          "ok": true,
+          "detalle": "reasoning rendered"
+        },
+        {
+          "nombre": "reasoning text visible",
+          "ok": true,
+          "detalle": "reasoning expanded"
+        },
+        {
+          "nombre": "held task card visible",
+          "ok": true,
+          "detalle": "held task rendered"
+        },
+        {
+          "nombre": "held task id visible",
+          "ok": true,
+          "detalle": "chat-d7a1dbd2-8973-4217-973f-4aea1a998b8a"
+        },
+        {
+          "nombre": "Reject removes card",
+          "ok": true,
+          "detalle": "card removed"
+        },
+        {
+          "nombre": "Reject removes task from API",
+          "ok": true,
+          "detalle": "task absent"
+        },
+        {
+          "nombre": "second held task card visible",
+          "ok": true,
+          "detalle": "held task rendered again"
+        },
+        {
+          "nombre": "temporary project clean before Approve",
+          "ok": true,
+          "detalle": "clean"
+        },
+        {
+          "nombre": "Approve & Run starts task",
+          "ok": true,
+          "detalle": "chat-b9586bc0-8f5d-460f-a788-1df985cb136e"
+        },
+        {
+          "nombre": "Approve & Run removes card",
+          "ok": true,
+          "detalle": "card removed"
+        },
+        {
+          "nombre": "approved task leaves pending",
+          "ok": true,
+          "detalle": "status=running"
+        },
+        {
+          "nombre": "reload: approved card remains hidden",
+          "ok": true,
+          "detalle": "card remains hidden"
+        },
+        {
+          "nombre": "reload: temporary project visible",
+          "ok": true,
+          "detalle": "project visible after reload"
+        },
+        {
+          "nombre": "reload API message keeps turnId",
+          "ok": true,
+          "detalle": "5efdf65a-17b9-4b28-9235-f340a9f09377"
+        },
+        {
+          "nombre": "reload API timeline brings turn steps",
+          "ok": true,
+          "detalle": "9 pasos en 3 turnos"
+        },
+        {
+          "nombre": "reload: project chat reachable from Chat list",
+          "ok": true,
+          "detalle": "chat title visible; sidebar=\"Chat\\nDev\\nNew chat\\nCHATS\\nCodex: Ejecuta el comando ls en la raíz del pro\\nCodex: Modifica README.md para añadir al final\\nChat with Claude Code\\nSettings\""
+        },
+        {
+          "nombre": "reload: tool block visible in selected chat",
+          "ok": true,
+          "detalle": "tool trace rendered after selecting chat"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/chat-turn-details/tool-and-reasoning.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/chat-turn-details/held-task.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/chat-turn-details/after-reject.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/chat-turn-details/approved-task.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/chat-turn-details/after-final-reload.png"
+      ]
+    },
+    {
+      "flujo": "smoke",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "home",
+          "ok": true,
+          "detalle": "Chat visible"
+        },
+        {
+          "nombre": "home-dev",
+          "ok": true,
+          "detalle": "Dev visible"
+        },
+        {
+          "nombre": "dev-view",
+          "ok": true,
+          "detalle": "OrchestOS Dev visible"
+        },
+        {
+          "nombre": "chat-composer",
+          "ok": true,
+          "detalle": "chat composer visible"
+        },
+        {
+          "nombre": "settings-view",
+          "ok": true,
+          "detalle": "current project section visible"
+        },
+        {
+          "nombre": "settings-general",
+          "ok": true,
+          "detalle": "Appearance visible"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/smoke/chat.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/smoke/dev.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/smoke/chat-returned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/smoke/settings.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99607/smoke/settings-general.png"
+      ]
+    }
+  ],
+  "bugs_hallados_por_el_gate": [
+    "api/chat.ts forzaba mode:'chat' (regresión de R.1): la app React no podía crear tareas",
+    "Codex no emitía razonamiento sin model_reasoning_summary=auto",
+    "tarea con output [] se guardaba, arrancaba un run y dejaba tasks.yaml inválido",
+    "borrar tarea no commiteaba tasks.yaml: el siguiente run fallaba por árbol sucio",
+    "Reject/Approve no quitaban la tarjeta",
+    "chat de proyecto desaparecía de la lista tras recargar (decisión de Carlos: lista por proyecto)"
+  ]
+}

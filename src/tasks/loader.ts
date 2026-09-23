@@ -25,6 +25,11 @@ export function loadTasks(root: string): TasksFile {
 export function saveTasks(root: string, file: TasksFile, expectedHash?: string): void {
   const path = tasksPath(root)
 
+  // Validate the complete document before checking locks or touching disk.
+  // Callers may have mutated a loaded task, so the TypeScript type alone is
+  // not sufficient to protect the on-disk contract.
+  validateTasksFile(file)
+
   // optimistic lock — if expectedHash provided, verify file hasn't changed
   if (expectedHash && existsSync(path)) {
     const currentHash = hashFile(path)

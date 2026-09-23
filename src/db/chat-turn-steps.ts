@@ -5,7 +5,7 @@ export interface ChatTurnStepRecord {
   session_id: string
   turn_id: string
   seq: number
-  type: 'tool_use' | 'text' | 'step_finish'
+  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning'
   tool: string | null
   target: string | null
   added: number | null

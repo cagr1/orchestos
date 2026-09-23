@@ -83,6 +83,7 @@ function loadTaskRows(root: string): TaskRow[] {
       id: t.id,
       description: t.description,
       status: t.status,
+      retryReason: t.retry_reason ?? null,
       skill: t.skill ?? null,
       executor: t.executor,
       retryCount: t.retry_count,
@@ -124,6 +125,7 @@ function handleApiTasks(root: string): Response {
       id: t.id,
       description: t.description,
       status: t.status,
+      retryReason: t.retry_reason ?? null,
       skill: t.skill ?? null,
       executor: t.executor,
       retryCount: t.retry_count,
@@ -178,6 +180,13 @@ function descToTaskId(desc: string): string {
   )
 }
 
+function commitTasksYaml(root: string, message: string): void {
+  withGitLock(root, () => {
+    git(['add', 'tasks.yaml'], root)
+    git(['commit', '-m', message], root)
+  })
+}
+
 function inferExecutorFromModel(modelId: string | undefined): string {
   if (!modelId) return 'openrouter'
   if (/^ollama\//.test(modelId)) return 'ollama'
@@ -211,7 +220,15 @@ function createTaskRecord(
   if (!params.description?.trim()) return { error: 'description is required', status: 400 }
   const description = params.description.trim()
   const id = params.id?.trim() || descToTaskId(description)
-  const output = Array.isArray(params.output) ? params.output : []
+  const output = Array.isArray(params.output)
+    ? params.output.map((f) => f.trim()).filter(Boolean)
+    : []
+  if (output.length === 0) {
+    return {
+      error: '"output" must be a non-empty array — this is the contract',
+      status: 400,
+    }
+  }
   const executorModel = params.executor_model?.trim() || undefined
   const executor = params.executor || inferExecutorFromModel(executorModel)
   const engineRaw = params.engine?.trim()
@@ -244,7 +261,7 @@ function createTaskRecord(
     const newTask: Record<string, unknown> = {
       id: finalId,
       description,
-      output: output.map((f: string) => f.trim()).filter(Boolean),
+      output,
       executor: executor || 'openrouter',
       status: 'pending',
       retry_count: 0,
@@ -266,10 +283,7 @@ function createTaskRecord(
     // E.5 — bajo el mismo lock que mergeWorktreeBack: sin esto, este commit
     // directo a master podía intercalarse con el checkout+merge de un
     // worktree en vuelo (IDEAS #48, reproducido en vivo 3+ veces).
-    withGitLock(root, () => {
-      git(['add', 'tasks.yaml'], root)
-      git(['commit', '-m', `chore(tasks): add ${finalId} (dashboard)`], root)
-    })
+    commitTasksYaml(root, `chore(tasks): add ${finalId} (dashboard)`)
     return { id: finalId }
   } catch (e: any) {
     return { error: e.message, status: 500 }
@@ -293,11 +307,7 @@ const ORCHESTOS_CLI_PATH = join(fileURLToPath(new URL('../../cli.ts', import.met
 
 // D.7 — mismo motivo de extracción: reusable por el auto-flow del chat.
 function spawnTaskRun(root: string, id: string, model?: string): void {
-  // E.5 — mismo lock que arriba.
-  withGitLock(root, () => {
-    git(['add', 'tasks.yaml'], root)
-    git(['commit', '-m', `chore(tasks): run ${id} (dashboard)`], root)
-  })
+  commitTasksYaml(root, `chore(tasks): run ${id} (dashboard)`)
   const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--id', id]
   if (model) args.push('--model', model)
   Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
@@ -395,6 +405,7 @@ function handleApiTasksDelete(url: URL, root: string): Response {
     ;(file as any).tasks = file.tasks.filter((t: any) => t.id !== id)
     if (file.tasks.length === before) return errorResponse('Task not found', 404)
     saveTasks(root, file)
+    commitTasksYaml(root, `chore(tasks): delete ${id} (dashboard)`)
     return jsonResponse({ ok: true })
   } catch (e: any) {
     return errorResponse(e.message, 500)
@@ -421,7 +432,10 @@ async function handleApiTasksBulkDelete(req: Request, root: string): Promise<Res
     const before = file.tasks.length
     ;(file as any).tasks = file.tasks.filter((t: any) => !ids.has(t.id))
     const deleted = before - file.tasks.length
-    if (deleted > 0) saveTasks(root, file)
+    if (deleted > 0) {
+      saveTasks(root, file)
+      commitTasksYaml(root, `chore(tasks): delete ${deleted} task(s) (dashboard)`)
+    }
     return jsonResponse({ ok: true, deleted })
   } catch (e: any) {
     return errorResponse(e.message, 500)

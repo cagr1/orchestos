@@ -149,6 +149,15 @@ async function runFlow(name, base) {
           return false
         }
       },
+      // Waits for a locator to become hidden without letting a timeout fail the flow.
+      hidden: async (locator, timeoutMs = 15_000) => {
+        try {
+          await locator.first().waitFor({ state: 'hidden', timeout: timeoutMs })
+          return true
+        } catch {
+          return false
+        }
+      },
       step: async (stepName, condition, detail = '') => {
         const ok = Boolean(condition)
         result.steps.push({ nombre: stepName, ok, detalle: detail || (ok ? 'ok' : 'failed') })

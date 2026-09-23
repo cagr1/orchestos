@@ -23,7 +23,7 @@
  */
 
 export interface ExecutorStepEvent {
-  type: 'tool_use' | 'text' | 'step_finish'
+  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning'
   label: string
   detail?: string
   target?: string
@@ -46,6 +46,7 @@ interface ClaudeContentBlock {
   name?: string
   id?: string
   input?: unknown
+  thinking?: string
 }
 
 interface ClaudeAssistantEvent {
@@ -95,6 +96,8 @@ export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
     for (const block of blocks) {
       if (block.type === 'text' && typeof block.text === 'string') {
         steps.push({ type: 'text', label: 'text', detail: block.text })
+      } else if (block.type === 'thinking' && typeof block.thinking === 'string') {
+        steps.push({ type: 'reasoning', label: 'reasoning', detail: block.thinking })
       } else if (block.type === 'tool_use' && typeof block.name === 'string') {
         const input = block.input as Record<string, unknown> | undefined
         const target =
@@ -222,6 +225,10 @@ export function opencodeEventToStep(raw: unknown): ExecutorStepEvent[] {
     return [{ type: 'text', label: 'text', detail: part.text }]
   }
 
+  if (part?.type === 'reasoning' || evt.type === 'reasoning') {
+    return [{ type: 'reasoning', label: 'reasoning', detail: part?.text }]
+  }
+
   if (evt.type === 'step_finish' && part) {
     return [
       {
@@ -266,6 +273,9 @@ export function codexEventToStep(raw: unknown): ExecutorStepEvent[] {
     const item = evt.item
     if (item.type === 'agent_message') {
       return [{ type: 'text', label: 'text', detail: item.text }]
+    }
+    if (item.type === 'reasoning') {
+      return [{ type: 'reasoning', label: 'reasoning', detail: item.text }]
     }
     if (item.type === 'command_execution') {
       return [

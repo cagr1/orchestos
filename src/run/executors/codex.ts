@@ -110,15 +110,35 @@ function buildCodexPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
     .join('\n\n')
 }
 
-function buildCodexArgs(prompt: string, model?: string, cliEffort?: string): string[] {
-  const args = ['exec', prompt, '--json', '--sandbox', 'workspace-write', '--color', 'never']
+export function buildCodexArgs(prompt: string, model?: string, cliEffort?: string): string[] {
+  const args = [
+    'exec',
+    prompt,
+    '--json',
+    '--sandbox',
+    'workspace-write',
+    '--color',
+    'never',
+    '-c',
+    'model_reasoning_summary=auto',
+  ]
   if (model) args.push('-m', model)
   if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
   return args
 }
 
-function buildCodexArgsDisplay(model?: string, cliEffort?: string): string[] {
-  const args = ['exec', '<contract>', '--json', '--sandbox', 'workspace-write', '--color', 'never']
+export function buildCodexArgsDisplay(model?: string, cliEffort?: string): string[] {
+  const args = [
+    'exec',
+    '<contract>',
+    '--json',
+    '--sandbox',
+    'workspace-write',
+    '--color',
+    'never',
+    '-c',
+    'model_reasoning_summary=auto',
+  ]
   if (model) args.push('-m', model)
   if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
   return args
@@ -239,6 +259,8 @@ export function buildCodexChatArgs(prompt: string, model?: string, cliEffort?: s
     'never',
     '--ignore-user-config',
     '--skip-git-repo-check',
+    '-c',
+    'model_reasoning_summary=auto',
   ]
   if (model) args.push('-m', model)
   if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)

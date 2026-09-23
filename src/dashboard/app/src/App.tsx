@@ -1,14 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   archiveSession,
+  attachTurnDetails,
   createSession,
+  deleteProjectTask,
   deleteSession,
+  getProjectTasks,
   getSessionMessages,
+  getTimeline,
   listArchivedSessions,
   listSessions,
   mapMessage,
+  newChatProjectId,
   renameSession,
   restoreSession,
+  runProjectTask,
   sendMessage,
 } from './api/chat'
 import { chooseProject, deleteProject, listProjects } from './api/projects'
@@ -107,9 +113,41 @@ export default function App() {
   const [skills, setSkills] = useState<SkillItem[]>(initialMockSkills)
   const [activeThreadId, setActiveThreadId] = useState<string>('')
 
+  const loadThreadMessages = async (sessionId: string, projectId?: string | null) => {
+    const [messagesResult, timelineResult, tasksResult] = await Promise.allSettled([
+      getSessionMessages(sessionId),
+      getTimeline(sessionId),
+      getProjectTasks(projectId),
+    ])
+    if (messagesResult.status !== 'fulfilled') throw messagesResult.reason
+    const rows = messagesResult.value
+    const baseMessages = rows.map(mapMessage)
+    if (timelineResult.status !== 'fulfilled' || tasksResult.status !== 'fulfilled')
+      return baseMessages
+    const detailed = attachTurnDetails(baseMessages, rows, timelineResult.value)
+    const pendingTasks = new Map(
+      tasksResult.value.filter((task) => task.status === 'pending').map((task) => [task.id, task]),
+    )
+    return detailed.map((message) => {
+      const row = rows.find((candidate) => String(candidate.id) === message.id)
+      if (!message.taskHeld || !row?.taskId) return message
+      const task = pendingTasks.get(row.taskId)
+      if (!task) return { ...message, taskHeld: false, proposedTask: undefined }
+      return {
+        ...message,
+        proposedTask: {
+          id: task.id,
+          description: task.description,
+          output: row.existingFiles,
+        },
+      }
+    })
+  }
+
   useEffect(() => {
     let disposed = false
-    void listSessions()
+    const visibleProjectId = activeProjectId || projects[0]?.id || null
+    void listSessions(visibleProjectId)
       .then(async (loaded) => {
         if (disposed) return
         setThreads(loaded)
@@ -117,7 +155,7 @@ export default function App() {
         const hydrated = await Promise.all(
           loaded.map(async (thread) => ({
             ...thread,
-            messages: (await getSessionMessages(thread.id)).map(mapMessage),
+            messages: await loadThreadMessages(thread.id, thread.projectId).catch(() => []),
           })),
         )
         if (!disposed) setThreads(hydrated)
@@ -128,7 +166,7 @@ export default function App() {
     return () => {
       disposed = true
     }
-  }, [])
+  }, [activeProjectId, projects, mode])
 
   useEffect(() => {
     let disposed = false
@@ -146,8 +184,10 @@ export default function App() {
             return null
           }
         })()
+        const rememberedProjectId =
+          remembered?.projectId || localStorage.getItem('orchestos-last-project')
         const rememberedProject =
-          remembered?.projectId && loaded.find((project) => project.id === remembered.projectId)
+          rememberedProjectId && loaded.find((project) => project.id === rememberedProjectId)
         const rememberedAgent = rememberedProject?.agents.find(
           (agent) => agent.id === remembered?.sessionId,
         )
@@ -164,7 +204,7 @@ export default function App() {
             if (!session) return
             const hydrated = {
               ...session,
-              messages: (await getSessionMessages(session.id)).map(mapMessage),
+              messages: await loadThreadMessages(session.id, session.projectId),
             }
             setThreads((current) => [
               ...current.filter((item) => item.id !== hydrated.id),
@@ -185,12 +225,17 @@ export default function App() {
   const activeThread = threads.find((t) => t.id === activeThreadId)
   const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null
 
+  const handleSelectProject = (projectId: string) => {
+    setActiveProjectId(projectId)
+    localStorage.setItem('orchestos-last-project', projectId)
+  }
+
   const reloadHistory = async () => {
     const archived = await listArchivedSessions()
     const projectNames = new Map(projects.map((project) => [project.id, project.name]))
     const loaded = await Promise.all(
       archived.map(async (session) => {
-        const messages = await getSessionMessages(session.id).catch(() => [])
+        const messages = await loadThreadMessages(session.id, session.projectId).catch(() => [])
         const last = messages[messages.length - 1]
         const elapsed = Math.max(0, Date.now() - Date.parse(session.updatedAt))
         const minutes = Math.floor(elapsed / 60000)
@@ -315,7 +360,10 @@ export default function App() {
     )
     const session = (await listSessions(projectId)).find((item) => item.id === agentId)
     if (session) {
-      const hydrated = { ...session, messages: (await getSessionMessages(agentId)).map(mapMessage) }
+      const hydrated = {
+        ...session,
+        messages: await loadThreadMessages(agentId, session.projectId),
+      }
       setThreads((current) => [...current.filter((item) => item.id !== agentId), hydrated])
       setActiveThreadId(agentId)
     }
@@ -419,13 +467,22 @@ export default function App() {
   }
 
   // Chat actions
-  const handleNewChat = async (cliId?: string, _model?: string, title?: string) => {
+  const handleNewChat = async (
+    cliId?: string,
+    _model?: string,
+    title?: string,
+    selectedProjectId?: string | null,
+  ) => {
     const agent =
       cliId === 'local' || cliId === 'claude' || cliId === 'codex' || cliId === 'opencode'
         ? cliId
         : 'api'
     try {
-      const newThread = await createSession({ agent, title })
+      const newThread = await createSession({
+        agent,
+        projectId: newChatProjectId(currentProject?.id, selectedProjectId),
+        title,
+      })
       setThreads((prev) => [newThread, ...prev])
       setActiveThreadId(newThread.id)
     } catch {
@@ -526,7 +583,7 @@ export default function App() {
       attachments,
     })
       .then(async () => {
-        const rows = await getSessionMessages(threadId)
+        const messages = await loadThreadMessages(threadId, thread?.projectId)
         const firstMessageTitle =
           thread?.messages.length === 0
             ? `${agent === 'claude' ? 'Claude' : agent === 'codex' ? 'Codex' : agent === 'opencode' ? 'OpenCode' : 'ChatGPT'}: ${content.slice(0, 40)}`
@@ -539,7 +596,7 @@ export default function App() {
             thread.id === threadId
               ? {
                   ...thread,
-                  messages: rows.map(mapMessage),
+                  messages,
                   title: firstMessageTitle || thread.title,
                 }
               : thread,
@@ -549,16 +606,55 @@ export default function App() {
       .catch(() => undefined)
   }
 
-  const handleApproveHeldTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: 'running' as const } : t)),
-    )
+  const handleApproveHeldTask = async (taskId: string) => {
+    const thread = activeThread
+    if (!thread) return
+    await runProjectTask(taskId, thread.projectId, () => {
+      setThreads((prev) =>
+        prev.map((item) =>
+          item.id === thread.id
+            ? {
+                ...item,
+                messages: item.messages.map((message) =>
+                  message.proposedTask?.id === taskId
+                    ? { ...message, taskHeld: false, proposedTask: undefined }
+                    : message,
+                ),
+              }
+            : item,
+        ),
+      )
+    })
+    if (thread) {
+      const messages = await loadThreadMessages(thread.id, thread.projectId)
+      setThreads((prev) =>
+        prev.map((item) => (item.id === thread.id ? { ...item, messages } : item)),
+      )
+    }
   }
 
-  const handleRejectHeldTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: 'blocked' as const } : t)),
+  const handleRejectHeldTask = async (taskId: string) => {
+    const thread = activeThread
+    if (!thread) return
+    // Hide it immediately after the DELETE succeeds; the reload is only for
+    // persisted state and must use the session's project context.
+    await deleteProjectTask(taskId, thread.projectId)
+    setThreads((prev) =>
+      prev.map((item) =>
+        item.id === thread.id
+          ? {
+              ...item,
+              messages: item.messages.map((message) =>
+                message.proposedTask?.id === taskId
+                  ? { ...message, taskHeld: false, proposedTask: undefined }
+                  : message,
+              ),
+            }
+          : item,
+      ),
     )
+    const messages = await loadThreadMessages(thread.id, thread.projectId)
+    setThreads((prev) => prev.map((item) => (item.id === thread.id ? { ...item, messages } : item)))
   }
 
   // Spec handlers
@@ -691,7 +787,7 @@ export default function App() {
             onDeleteChat={handleDeleteChat}
             projects={projects}
             activeProjectId={activeProjectId}
-            onSelectProject={setActiveProjectId}
+            onSelectProject={handleSelectProject}
             onNewProject={() => {
               void handleNewProject()
             }}
@@ -737,7 +833,7 @@ export default function App() {
               onBackToApp={() => setMode(previousMode || 'dev')}
               projects={projects}
               activeProjectId={activeProjectId}
-              onSelectProject={setActiveProjectId}
+              onSelectProject={handleSelectProject}
               currentTheme={theme}
               onSelectTheme={setTheme}
               language={language}

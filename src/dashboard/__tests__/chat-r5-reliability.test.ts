@@ -34,6 +34,7 @@ async function isolated(body: string): Promise<any> {
       process.chdir(root)
       let calls = 0
       let isTask = false
+      let draftOutput = ['existing.txt']
       let beforeResponse = () => {}
       globalThis.fetch = async (url, init) => {
         if (String(url).includes('11434')) return new Response('{}', { status: 503 })
@@ -41,7 +42,7 @@ async function isolated(body: string): Promise<any> {
         const system = payload.messages.find(m => m.role === 'system')?.content || ''
         calls++
         const content = system.includes('skill_candidates')
-          ? JSON.stringify({ id: 'draft-id', description: 'Modify existing fixture', output: ['existing.txt'], executor: 'openrouter', skill_candidates: [] })
+          ? JSON.stringify({ id: 'draft-id', description: 'Modify existing fixture', output: draftOutput, executor: 'openrouter', skill_candidates: [] })
           : system.includes('isTask') ? JSON.stringify({ isTask, reason: 'fixture' }) : 'fixture response'
         if (content === 'fixture response') await beforeResponse()
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }))
@@ -130,4 +131,41 @@ it('reserves before YAML creation and never renames a colliding reservation', as
   expect(result.sameYaml).toBe(true)
   expect(result.retryStatus).toBe(409)
   expect(result.noCalls).toBe(true)
+})
+
+it('skips an auto-task draft without output files and leaves tasks and runs untouched', async () => {
+  const result = await isolated(`
+    isTask = true
+    draftOutput = []
+    const before = readFileSync(join(root, 'tasks.yaml'), 'utf8')
+    const response = await request('empty-output')
+    const payload = await response.json()
+    console.log(JSON.stringify({
+      status: response.status,
+      autoTask: payload.autoTask,
+      sameYaml: before === readFileSync(join(root, 'tasks.yaml'), 'utf8'),
+      tasks: JSON.parse(JSON.stringify((await import('./src/tasks/loader.ts')).loadTasks(root).tasks)),
+      taskRuns: db.query('SELECT COUNT(*) AS n FROM runs WHERE task_id IS NOT NULL').get().n,
+      noErrorNote: !String(payload.text).includes('Could not auto-create the task'),
+    }))
+  `)
+  expect(result.status).toBe(200)
+  expect(result.autoTask).toBeNull()
+  expect(result.sameYaml).toBe(true)
+  expect(result.tasks).toEqual([])
+  expect(result.taskRuns).toBe(0)
+  expect(result.noErrorNote).toBe(true)
+})
+
+it('rejects createTaskRecord without touching tasks.yaml when output is empty', async () => {
+  const result = await isolated(`
+    const before = readFileSync(join(root, 'tasks.yaml'), 'utf8')
+    const invalid = createTaskRecord(root, { description: 'No files', output: [] })
+    console.log(JSON.stringify({ invalid, sameYaml: before === readFileSync(join(root, 'tasks.yaml'), 'utf8') }))
+  `)
+  expect(result.invalid).toEqual({
+    error: '"output" must be a non-empty array — this is the contract',
+    status: 400,
+  })
+  expect(result.sameYaml).toBe(true)
 })

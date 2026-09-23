@@ -78,6 +78,18 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     rechazados, historial tras recargar, Archive Session → History, 0 errores. Pasos reales sin datos en vivo
     (0 turnos con task_id en la DB): cubierto por test. `test:coverage` 1465 pass / 0 fail.
     Límite conocido, avisado a Carlos: `node -e`/`sh -c` esquivan el confinamiento por argumentos.
+  - [x] **UI.13.4c** (cerrado 2026-09-23, Lote L1) — punto 5. Ejecutado por: luna (13 rondas) · Spec: docs/specs/UI.13.4c.md
+    Razonamiento y herramientas reales en el mensaje del bot (bloques de `ThreadsView.tsx` de la plantilla), ligados
+    al turno por `chat_messages.turn_id` (migración 14, paso `reasoning` en Codex/Claude/OpenCode; Codex con
+    `model_reasoning_summary=auto`). Tarjeta retenida con `Approve & Run` (corre la tarea) y `Reject` (la borra) contra
+    la API. Bugs reales hallados por el gate y corregidos: regresión de R.1 (`createSession` forzaba `mode:'chat'`: la
+    app no podía crear tareas); tarea con `output: []` se guardaba, arrancaba un run y dejaba `tasks.yaml` inválido
+    (`createTaskRecord` la rechaza, `saveTasks` valida antes de escribir, el chat no crea tareas sin archivos,
+    `extractMentionedPaths` para rutas nombradas); borrar tarea no commiteaba `tasks.yaml` (el siguiente run fallaba
+    por árbol sucio). **Decisión de Carlos 2026-09-23 "Lista por proyecto":** Chat lista los chats del proyecto de la
+    cabecera + generales, "New chat" se liga al proyecto visible, el diálogo ofrece "No project".
+    Gate en vivo: `docs/done/evidence/UI.13.4c-live.json` — Playwright en navegador real, turno real Codex ·
+    gpt-5.6-luna · medium, `PASS chat-turn-details 27/27` + `PASS smoke 6/6`. `test:coverage` 1526 pass / 0 fail.
   Inventario (plantilla `~/Documents/screens/orchestos-ai-agent-dashboard` vs app, 2026-09-22); cada uno
   necesita backend que hoy no existe (`server.ts` no tiene ruta):
   1. Sidebar Dev: cerrar agente → pasa a History (`ShellSidebar.tsx:394` plantilla); falta archivar sesión.

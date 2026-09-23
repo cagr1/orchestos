@@ -27,7 +27,7 @@ interface ShellSidebarProps {
   threads: ChatThread[]
   activeThreadId: string
   onSelectThread: (id: string) => void
-  onNewChat: (cliId?: string, model?: string, title?: string) => void
+  onNewChat: (cliId?: string, model?: string, title?: string, projectId?: string | null) => void
   onDeleteChat?: (id: string) => void
   projects: ProjectItem[]
   activeProjectId: string
@@ -234,7 +234,10 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                   <div className="group relative flex items-center justify-between px-2.5 py-1.5 rounded-control text-xs text-app transition-colors hover:bg-app-surface/60 border border-transparent hover:border-app">
                     <button
                       type="button"
-                      onClick={() => toggleProjectExpand(proj.id)}
+                      onClick={() => {
+                        onSelectProject(proj.id)
+                        toggleProjectExpand(proj.id)
+                      }}
                       className="flex items-center gap-2 min-w-0 flex-1 text-left"
                       title={`Toggle ${proj.name} agents`}
                     >
@@ -441,9 +444,11 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         <NewAgentSelectorModal
           isOpen={isNewChatAgentModalOpen}
           isChatMode={true}
+          projectOptions={projects.map((project) => ({ id: project.id, name: project.name }))}
+          selectedProjectId={activeProjectId || projects[0]?.id || null}
           onClose={() => setIsNewChatAgentModalOpen(false)}
-          onCreateAgent={(cliId, model, title) => {
-            onNewChat(cliId, model, title)
+          onCreateAgent={(cliId, model, title, projectId) => {
+            onNewChat(cliId, model, title, projectId)
             setIsNewChatAgentModalOpen(false)
           }}
         />

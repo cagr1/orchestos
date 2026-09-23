@@ -1,6 +1,6 @@
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { join } from 'path'
+import { isAbsolute, join, relative } from 'path'
 import { loadContext } from '../../context/load.ts'
 import { upsertProject } from '../../db/projects.ts'
 import { listRuns } from '../../db/runs.ts'
@@ -109,6 +109,42 @@ export interface NaturalDraft {
   skillOptions: { id: string; name: string; description: string }[]
 }
 
+/** Extracts existing, project-confined file paths explicitly mentioned by the user. */
+export function extractMentionedPaths(input: string, root: string): string[] {
+  let realRoot: string
+  try {
+    realRoot = realpathSync(root)
+  } catch {
+    return []
+  }
+
+  const paths: string[] = []
+  const seen = new Set<string>()
+  for (const token of input.match(/\S+/g) ?? []) {
+    const candidate = token
+      .replace(/^["'([{<]+/, '')
+      .replace(/[.,;:!?)}>]+$/g, '')
+      .replace(/\]+$/, '')
+      .replace(/["']+$/, '')
+    if (!candidate || (!candidate.includes('/') && !/\.[^/]+$/.test(candidate))) continue
+    if (isAbsolute(candidate) || candidate.split('/').includes('..')) continue
+
+    try {
+      const realCandidate = realpathSync(join(realRoot, candidate))
+      const rel = relative(realRoot, realCandidate)
+      if (!rel || rel === '..' || rel.startsWith(`..${'/'.repeat(1)}`) || isAbsolute(rel)) continue
+      const normalized = rel.split('/').join('/')
+      if (!seen.has(normalized)) {
+        seen.add(normalized)
+        paths.push(normalized)
+      }
+    } catch {
+      // Missing or unreadable tokens are not task outputs.
+    }
+  }
+  return paths
+}
+
 // D.7 (Mes 22) — extraído de handleApiNatural para que el auto-flow del chat
 // (handlers/chat.ts) pueda pedir el mismo draft por lenguaje natural sin pasar
 // por una Request/Response HTTP. handleApiNatural queda como wrapper delgado.
@@ -165,6 +201,7 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
       .replace(/^-|-$/g, '')
       .slice(0, 64) || 'nueva-tarea'
   if (!Array.isArray(draft.output)) draft.output = []
+  if (draft.output.length === 0) draft.output = extractMentionedPaths(input, root)
   if (!['openrouter', 'anthropic', 'openai'].includes(draft.executor)) draft.executor = 'openrouter'
 
   // Fail-safe: solo se aceptan ids que existen de verdad — un id inventado

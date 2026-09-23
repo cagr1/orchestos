@@ -28,6 +28,7 @@ interface StoredChatMessage {
   // ya en ejecución" en vez de perder esa distinción al persistir solo task_id.
   task_held: number | null
   existing_files: string | null
+  turn_id: string | null
   created_at: string
 }
 
@@ -54,6 +55,7 @@ export interface AppendChatExchangeInput {
   ocrUsed?: string[]
   taskHeld?: boolean
   existingFiles?: string[]
+  turnId?: string | null
 }
 
 function parseStringArray(value: string | null): string[] {
@@ -223,13 +225,13 @@ export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageR
       ])
     }
     db.run(
-      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, created_at)
-       VALUES (?, 'user', ?, NULL, NULL, ?, NULL, NULL, ?)`,
+      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, turn_id, created_at)
+       VALUES (?, 'user', ?, NULL, NULL, ?, NULL, NULL, NULL, ?)`,
       [input.sessionId, input.userContent, JSON.stringify(input.ocrUsed ?? []), now],
     )
     db.run(
-      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, created_at)
-       VALUES (?, 'assistant', ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, turn_id, created_at)
+       VALUES (?, 'assistant', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.sessionId,
         input.assistantContent,
@@ -238,6 +240,7 @@ export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageR
         JSON.stringify(input.ocrUsed ?? []),
         input.taskHeld ? 1 : null,
         input.taskHeld ? JSON.stringify(input.existingFiles ?? []) : null,
+        input.turnId ?? null,
         now,
       ],
     )

@@ -891,7 +891,10 @@ async function handleApiChat(
       turnId: activeTurnId,
       seq: chatStepSeq++,
       type: step.type,
-      tool: step.type === 'text' ? undefined : (related?.tool ?? step.label),
+      tool:
+        step.type === 'text' || step.type === 'reasoning'
+          ? undefined
+          : (related?.tool ?? step.label),
       target: step.target ?? related?.target,
       added: step.added,
       removed: step.removed,
@@ -1032,6 +1035,7 @@ async function handleApiChat(
     | { id: string; held: true; existingFiles: string[] }
     | { error: string }
     | null = null
+  let autoTaskSkipped = false
   if (
     taskSuggestion?.isTask &&
     hasProjectContext &&
@@ -1039,48 +1043,57 @@ async function handleApiChat(
   ) {
     try {
       const draft = await buildNaturalDraft(message, root)
-      const skill = pickAutoSkill(draft.skillOptions)
-      const orcheConfig = loadOrcheConfig(root)
-      // I.3 — reglas de proyecto ganan sobre la preferencia de sesión/config;
-      // ambas ganan sobre la cascada E.16 (ver resolveAgentSelection abajo).
-      const projectRule = resolveProjectAgentRule(orcheConfig.taskAgentRules, {
-        output: draft.output,
-        skill,
-      })
-      const preferredAgent = projectRule?.agent ?? session?.agent ?? orcheConfig.agent
-      // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
-      // evita el probe de Ollama + Bun.which en cada mensaje de chat normal.
-      // Sigue calculándose aunque haya preferredAgent: resolveAgentSelection
-      // la usa como fallback si preferredAgent es undefined.
-      const cascade = await resolveCascadeTier()
-      const existingFiles = (draft.output || []).filter((f: string) => existsSync(join(root, f)))
-      // Durable identity BEFORE creating YAML/git state. A crash at any point
-      // leaves this reservation on an interrupted turn; retries never dispatch it.
-      const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
-      const created = createTaskRecord(
-        root,
-        {
-          id: reservedId ?? draft.id,
-          description: draft.description,
-          output: draft.output,
-          executor: draft.executor,
-          ...resolveAgentSelection(preferredAgent, cascade),
-          ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
-          skill,
-        },
-        { reservedId: reservedId !== null },
-      )
-      if ('error' in created) {
-        autoTask = { error: created.error }
+      const output = Array.isArray(draft.output)
+        ? draft.output.map((f: string) => f.trim()).filter(Boolean)
+        : []
+      if (output.length === 0) {
+        // A task without declared output cannot satisfy the task contract and
+        // must not reserve an id, write tasks.yaml, or spawn a run.
+        autoTaskSkipped = true
       } else {
-        if (existingFiles.length > 0) {
-          // Retenida: queda `pending` en tasks.yaml (visible/corrible desde
-          // la pantalla Tasks, anclada desde I.1) hasta que el usuario confirme.
-          autoTask = { id: created.id, held: true, existingFiles }
+        const skill = pickAutoSkill(draft.skillOptions)
+        const orcheConfig = loadOrcheConfig(root)
+        // I.3 — reglas de proyecto ganan sobre la preferencia de sesión/config;
+        // ambas ganan sobre la cascada E.16 (ver resolveAgentSelection abajo).
+        const projectRule = resolveProjectAgentRule(orcheConfig.taskAgentRules, {
+          output,
+          skill,
+        })
+        const preferredAgent = projectRule?.agent ?? session?.agent ?? orcheConfig.agent
+        // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
+        // evita el probe de Ollama + Bun.which en cada mensaje de chat normal.
+        // Sigue calculándose aunque haya preferredAgent: resolveAgentSelection
+        // la usa como fallback si preferredAgent is undefined.
+        const cascade = await resolveCascadeTier()
+        const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
+        // Durable identity BEFORE creating YAML/git state. A crash at any point
+        // leaves this reservation on an interrupted turn; retries never dispatch it.
+        const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
+        const created = createTaskRecord(
+          root,
+          {
+            id: reservedId ?? draft.id,
+            description: draft.description,
+            output,
+            executor: draft.executor,
+            ...resolveAgentSelection(preferredAgent, cascade),
+            ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
+            skill,
+          },
+          { reservedId: reservedId !== null },
+        )
+        if ('error' in created) {
+          autoTask = { error: created.error }
         } else {
-          if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
-          spawnTaskRun(root, created.id)
-          autoTask = { id: created.id }
+          if (existingFiles.length > 0) {
+            // Retenida: queda `pending` en tasks.yaml (visible/corrible desde
+            // la pantalla Tasks, anclada desde I.1) hasta que el usuario confirme.
+            autoTask = { id: created.id, held: true, existingFiles }
+          } else {
+            if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
+            spawnTaskRun(root, created.id)
+            autoTask = { id: created.id }
+          }
         }
       }
     } catch (e: any) {
@@ -1230,13 +1243,15 @@ async function handleApiChat(
       ? `This session is in Chat mode, which is a hard read-only boundary. The message looks like a build request, but NO task was created and no worktree or file write was started. Say that plainly and tell the user they must switch this session to Code mode before execution can begin.`
       : !hasProjectContext && taskSuggestion?.isTask
         ? `This chat session has no associated project, so it has no real tasks.yaml or project root where OrchestOS may create or run a task. NO task was created, no process was spawned, and no file write was started. Say that plainly and tell the user to switch to or create a project-associated session before execution can begin.`
-        : autoTask && 'held' in autoTask
-          ? `OrchestOS detected a build request and created task "${autoTask.id}", but it touches ${autoTask.existingFiles.length} file(s) that already exist in the repo (${autoTask.existingFiles.join(', ')}) — execution is HELD, waiting for the user to confirm via an inline [View]/[Cancel] control the frontend shows (not this chat). Reply with a SHORT note (1-2 sentences) that the task was created and is waiting for their confirmation before it runs, naming the task id. Do NOT say it already started or is running.`
-          : autoTask && 'id' in autoTask
-            ? `When the user asks you to BUILD something (a page, a feature, a script): OrchestOS has ALREADY created and started running task "${autoTask.id}" in the background by the time you reply — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max), naming the task id. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists.`
-            : autoTask && 'error' in autoTask
-              ? `The user's message looked like a build request and OrchestOS TRIED to auto-create a task for it, but creation FAILED: "${autoTask.error}". You MUST NOT claim a task was started — tell the user plainly that auto-creation failed and why, in 1-2 sentences, and suggest they create the task manually from the Tasks screen.`
-              : `This particular message was NOT auto-detected as a build request, so NO task was created. Do not claim a task was started or is running in the background — if the user actually wants to build something, say so plainly and suggest describing it more explicitly (e.g. "build a page that...") or using the Tasks screen directly.`
+        : autoTaskSkipped
+          ? `The message was classified as a task, but its draft did not identify any output files. Do not create, run, or claim a task; answer the user's request normally without adding an auto-task error note.`
+          : autoTask && 'held' in autoTask
+            ? `OrchestOS detected a build request and created task "${autoTask.id}", but it touches ${autoTask.existingFiles.length} file(s) that already exist in the repo (${autoTask.existingFiles.join(', ')}) — execution is HELD, waiting for the user to confirm via an inline [View]/[Cancel] control the frontend shows (not this chat). Reply with a SHORT note (1-2 sentences) that the task was created and is waiting for their confirmation before it runs, naming the task id. Do NOT say it already started or is running.`
+            : autoTask && 'id' in autoTask
+              ? `When the user asks you to BUILD something (a page, a feature, a script): OrchestOS has ALREADY created and started running task "${autoTask.id}" in the background by the time you reply — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max), naming the task id. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists.`
+              : autoTask && 'error' in autoTask
+                ? `The user's message looked like a build request and OrchestOS TRIED to auto-create a task for it, but creation FAILED: "${autoTask.error}". You MUST NOT claim a task was started — tell the user plainly that auto-creation failed and why, in 1-2 sentences, and suggest they create the task manually from the Tasks screen.`
+                : `This particular message was NOT auto-detected as a build request, so NO task was created. Do not claim a task was started or is running in the background — if the user actually wants to build something, say so plainly and suggest describing it more explicitly (e.g. "build a page that...") or using the Tasks screen directly.`
 
   const systemPrompt = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs, memory, specs, and the system. Be concise and direct. If the user writes in Spanish, respond in Spanish.
 

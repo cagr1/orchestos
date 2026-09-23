@@ -24,6 +24,7 @@ export interface ChatMessageRow {
   ocrUsed: string[]
   taskHeld: boolean
   existingFiles: string[]
+  turnId?: string | null
   createdAt: string
 }
 
@@ -94,7 +95,7 @@ export interface ConsoleExecResponse {
 
 export interface TimelineStep {
   seq: number
-  type: 'tool_use' | 'text' | 'step_finish'
+  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning'
   tool: string | null
   target: string | null
   added: number | null
@@ -136,6 +137,13 @@ export interface TimelineResponse {
   >
 }
 
+export interface ProjectTaskRow {
+  id: string
+  description: string
+  status: 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
+  retryReason: string | null
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
   const body = (await response.json().catch(() => null)) as { error?: string } | T | null
@@ -169,6 +177,10 @@ export function mapMessage(row: ChatMessageRow): ChatMessage {
     timestamp: toTimestamp(row.createdAt),
     model: row.model ?? undefined,
     taskHeld: row.taskHeld || undefined,
+    proposedTask:
+      row.taskHeld && row.taskId
+        ? { id: row.taskId, description: row.content, output: row.existingFiles }
+        : undefined,
     heldTask:
       row.taskHeld && row.taskId
         ? {
@@ -179,6 +191,46 @@ export function mapMessage(row: ChatMessageRow): ChatMessage {
           }
         : undefined,
   }
+}
+
+export function attachTurnDetails(
+  messages: ChatMessage[],
+  rows: ChatMessageRow[],
+  timeline: TimelineResponse,
+): ChatMessage[] {
+  const rowById = new Map(rows.map((row) => [String(row.id), row]))
+  const turnById = new Map(timeline.turns.map((turn) => [turn.id, turn]))
+  return messages.map((message) => {
+    if (message.role !== 'assistant') return message
+    const row = rowById.get(message.id)
+    const turnId = row?.turnId
+    if (!turnId) return message
+    const turn = turnById.get(turnId)
+    if (!turn) return message
+    const steps = [...turn.steps].sort((a, b) => a.seq - b.seq)
+    const reasoning = steps
+      .filter((step) => step.type === 'reasoning' && step.detail)
+      .map((step) => (step.detail as string).replace(/^\*\*(.*?)\*\*$/s, '$1'))
+    const toolCalls = steps
+      .filter((step) => step.type === 'tool_use')
+      .map((step) => ({
+        name: step.tool ?? 'tool',
+        args: step.target ? { target: step.target } : step.detail ? { command: step.detail } : {},
+        result: step.output ?? undefined,
+        status:
+          turn.status === 'pending' && step.ok === null
+            ? ('running' as const)
+            : step.ok === false
+              ? ('failed' as const)
+              : ('success' as const),
+        durationMs: step.durationMs ?? undefined,
+      }))
+    return {
+      ...message,
+      ...(reasoning.length ? { reasoning } : {}),
+      ...(toolCalls.length ? { toolCalls } : {}),
+    }
+  })
 }
 
 export function mapSessionToThread(
@@ -196,13 +248,38 @@ export function mapSessionToThread(
     tokenCount: 0,
     costUsd: 0,
     messages: messages.map(mapMessage),
+    projectId: session.projectId,
   }
 }
 
 export async function listSessions(project: string | null = 'none'): Promise<ChatThread[]> {
-  const query = project === null ? '' : `?project=${encodeURIComponent(project)}`
-  const sessions = await request<ChatSessionRow[]>(`/api/chat/sessions${query}`)
-  return sessions.map((session) => mapSessionToThread(session))
+  const queries = sessionListQueries(project)
+  const responses = await Promise.all(
+    queries.map((query) =>
+      request<ChatSessionRow[]>(`/api/chat/sessions${query}`, {
+        headers:
+          query !== '?project=none' && project ? { 'x-orchestos-project-id': project } : undefined,
+      }),
+    ),
+  )
+  const sessions = responses.flat()
+  return Array.from(new Map(sessions.map((session) => [session.id, session])).values()).map(
+    (session) => mapSessionToThread(session),
+  )
+}
+
+/** The Chat sidebar shows the visible project together with general chats. */
+export function sessionListQueries(projectId: string | null): string[] {
+  if (!projectId || projectId === 'none') return ['?project=none']
+  return [`?project=${encodeURIComponent(projectId)}`, '?project=none']
+}
+
+/** An explicit modal choice wins; otherwise New chat follows the visible header project. */
+export function newChatProjectId(
+  visibleProjectId: string | null | undefined,
+  selectedProjectId?: string | null,
+): string | null {
+  return selectedProjectId === undefined ? visibleProjectId || null : selectedProjectId
 }
 
 export async function listArchivedSessions(project?: string): Promise<ChatSessionRow[]> {
@@ -236,7 +313,6 @@ export async function createSession(params: {
     jsonInit('POST', {
       agent: params.agent,
       projectId: params.projectId ?? null,
-      mode: 'chat',
       title: params.title,
     }),
   )
@@ -266,6 +342,56 @@ export async function getConsole(sessionId: string): Promise<ConsoleResponse> {
 
 export async function getTimeline(sessionId: string): Promise<TimelineResponse> {
   return request<TimelineResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`)
+}
+
+export async function getProjectTasks(projectId?: string | null): Promise<ProjectTaskRow[]> {
+  const response = await fetch('/api/tasks', {
+    headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
+  })
+  const body = (await response.json().catch(() => null)) as {
+    tasks?: ProjectTaskRow[]
+    error?: string
+  } | null
+  if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`)
+  return body?.tasks ?? []
+}
+
+export async function runProjectTask(
+  taskId: string,
+  projectId?: string | null,
+  onStarted?: () => void,
+): Promise<void> {
+  await request(`/api/tasks/${encodeURIComponent(taskId)}/run`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(projectId ? { 'x-orchestos-project-id': projectId } : {}),
+    },
+    body: JSON.stringify({}),
+  })
+  onStarted?.()
+  const deadline = Date.now() + 60_000
+  let lastTask: ProjectTaskRow | undefined
+  while (Date.now() < deadline) {
+    const tasks = await getProjectTasks(projectId)
+    lastTask = tasks.find((task) => task.id === taskId)
+    if (!lastTask) throw new Error(`Task ${taskId} disappeared after approval`)
+    if (lastTask.status !== 'pending' && lastTask.status !== 'running') {
+      if (lastTask.status === 'failed' || lastTask.status === 'failed_permanent') {
+        throw new Error(lastTask.retryReason || `Task ${taskId} failed`)
+      }
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  throw new Error(lastTask?.retryReason || `Task ${taskId} remained pending after 60 seconds`)
+}
+
+export async function deleteProjectTask(taskId: string, projectId?: string | null): Promise<void> {
+  await request(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: 'DELETE',
+    headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
+  })
 }
 
 export async function execCommand(sessionId: string, cmd: string): Promise<ConsoleExecResponse> {

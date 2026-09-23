@@ -31,6 +31,12 @@ describe('run-steps', () => {
     expect(steps[0]!.label).toBe('Bash')
   })
 
+  it('ignora reasoning porque run_steps no lo admite', () => {
+    clearRunSteps(TASK_ID)
+    insertRunStep(TASK_ID, { type: 'reasoning', label: 'reasoning', detail: 'plan' })
+    expect(getRunSteps(TASK_ID)).toHaveLength(0)
+  })
+
   it('getRunSteps(taskId, sinceSeq) devuelve solo lo nuevo', () => {
     clearRunSteps(TASK_ID)
     insertRunStep(TASK_ID, { type: 'tool_use', label: 'a' })

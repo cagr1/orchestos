@@ -153,6 +153,7 @@ export function commitTurnSuccess(input: CommitTurnSuccessInput): { runId: strin
       assistantContent: input.assistantContent,
       model: input.model,
       taskId: input.taskId,
+      turnId: input.turnId,
       ocrUsed: input.ocrUsed,
       taskHeld: input.taskHeld,
       existingFiles: input.existingFiles,

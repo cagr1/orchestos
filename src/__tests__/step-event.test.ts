@@ -11,6 +11,14 @@ import {
 } from '../run/executors/step-event.ts'
 
 describe('claudeEventToStep', () => {
+  it('assistant con bloque thinking → step reasoning', () => {
+    expect(
+      claudeEventToStep({
+        type: 'assistant',
+        message: { content: [{ type: 'thinking', thinking: 'plan' }] },
+      }),
+    ).toEqual([{ type: 'reasoning', label: 'reasoning', detail: 'plan' }])
+  })
   it('assistant con bloque de texto → step "text"', () => {
     const steps = claudeEventToStep({
       type: 'assistant',
@@ -99,6 +107,11 @@ describe('claudeEventToStep', () => {
 })
 
 describe('opencodeEventToStep', () => {
+  it('part reasoning → step reasoning', () => {
+    expect(
+      opencodeEventToStep({ type: 'reasoning', part: { type: 'reasoning', text: 'plan' } }),
+    ).toEqual([{ type: 'reasoning', label: 'reasoning', detail: 'plan' }])
+  })
   it('tool_use (bash real) → step "tool_use" con título', () => {
     const steps = opencodeEventToStep({
       type: 'tool_use',
@@ -161,6 +174,11 @@ describe('opencodeEventToStep', () => {
 })
 
 describe('codexEventToStep', () => {
+  it('item.completed reasoning → step reasoning', () => {
+    expect(
+      codexEventToStep({ type: 'item.completed', item: { type: 'reasoning', text: 'plan' } }),
+    ).toEqual([{ type: 'reasoning', label: 'reasoning', detail: 'plan' }])
+  })
   it('item.completed agent_message → step "text"', () => {
     const steps = codexEventToStep({
       type: 'item.completed',

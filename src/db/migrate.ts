@@ -523,6 +523,66 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 14,
+    name: 'chat-turn-details',
+    precondition: (database) => {
+      const tables = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('chat_messages', 'chat_turn_steps') ORDER BY name",
+        )
+        .all()
+        .map((row) => row.name)
+      if (tables.join(',') !== 'chat_messages,chat_turn_steps') {
+        throw new Error('Migration 14 requires chat message and turn step tables')
+      }
+    },
+    apply: (database) => {
+      database.exec('ALTER TABLE chat_messages ADD COLUMN turn_id TEXT')
+      database.exec(`
+        CREATE TABLE chat_turn_steps_new (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id  TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+          turn_id     TEXT NOT NULL REFERENCES chat_turns(id) ON DELETE CASCADE,
+          seq         INTEGER NOT NULL,
+          type        TEXT NOT NULL CHECK(type IN ('tool_use', 'text', 'step_finish', 'reasoning')),
+          tool        TEXT,
+          target      TEXT,
+          added       INTEGER,
+          removed     INTEGER,
+          exit_code   INTEGER,
+          ok          INTEGER CHECK(ok IS NULL OR ok IN (0, 1)),
+          output      TEXT,
+          detail      TEXT,
+          duration_ms INTEGER,
+          created_at  TEXT NOT NULL
+        );
+        INSERT INTO chat_turn_steps_new
+          (id, session_id, turn_id, seq, type, tool, target, added, removed, exit_code, ok, output, detail, duration_ms, created_at)
+          SELECT id, session_id, turn_id, seq, type, tool, target, added, removed, exit_code, ok, output, detail, duration_ms, created_at
+          FROM chat_turn_steps;
+        DROP TABLE chat_turn_steps;
+        ALTER TABLE chat_turn_steps_new RENAME TO chat_turn_steps;
+        CREATE INDEX idx_chat_turn_steps_session_seq
+          ON chat_turn_steps(session_id, turn_id, seq, id);
+      `)
+    },
+    postcondition: (database) => {
+      const messageColumns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_messages)')
+        .all()
+        .map((row) => row.name)
+      const tableSql = database
+        .query<{ sql: string | null }, string>(
+          "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+        )
+        .get('chat_turn_steps')?.sql
+      if (!messageColumns.includes('turn_id'))
+        throw new Error('Migration 14 did not add chat_messages.turn_id')
+      if (!tableSql?.includes("'reasoning'"))
+        throw new Error('Migration 14 did not allow reasoning chat turn steps')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
@@ -552,7 +612,8 @@ export function applyMigrationSteps(
 
     // The schema change and its evidence must commit together. Bun rolls the
     // transaction back if any contract check or the evidence insert throws.
-    const rebuildsForeignKeyParents = step.version === 10 || step.version === 11
+    const rebuildsForeignKeyParents =
+      step.version === 10 || step.version === 11 || step.version === 14
     if (rebuildsForeignKeyParents) database.exec('PRAGMA foreign_keys = OFF')
     try {
       const applyStep = database.transaction(() => {

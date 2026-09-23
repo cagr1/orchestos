@@ -7,8 +7,24 @@ Fin: los 3 con `gate:all` + `ui:gate` PASS, commit, `[x]` en PLAN.md, push. Para
 decisión de producto no prevista, acción irreversible, tope de 3 ítems. Luna escribe; el cerebro vigila y verifica.
 Decisión tomada por el cerebro (Carlos no respondió las 3 preguntas; aplicó las recomendaciones): botón
 `Approve & Merge to Main` → `Approve & Run` (aprobar corre la tarea, no hace merge).
+**Preguntas para Carlos al cierre del lote (no bloquean):**
+1. **RESPONDIDA 2026-09-23 por Carlos: "Lista por proyecto".** La lista de Chat muestra los chats del proyecto de la
+   cabecera + los generales; "New chat" se liga al proyecto visible; el diálogo ofrece "Sin proyecto" explícito.
+   Pregunta original — Cabecera vs chat nuevo: sin proyecto activo, la cabecera muestra `projects[0]` (`App.tsx:220`) pero "New chat" crea
+   una sesión sin proyecto (`App.tsx:467`, modo Chat, no crea tareas). ¿Chat nuevo = proyecto que se ve en la cabecera,
+   o la cabecera dice "sin proyecto" (chat general)? Recomendación: ligar al proyecto visible y ofrecer "sin proyecto"
+   explícito en el diálogo de New chat.
+2. Decidido por el cerebro en UI.13.4c r7 (revisable): un mensaje clasificado como tarea cuyo borrador no nombra
+   archivos NO crea tarea ni añade nota de error (antes: guardaba `output: []`, arrancaba un run y dejaba `tasks.yaml`
+   inválido para siempre). También pendiente AT.10: `buildNaturalDraft` llama a haiku por OpenRouter en silencio.
+3. La tarjeta retenida copia el título literal de la plantilla "Task Ready for Git Commit Proof": no describe lo que
+   pasa (tarea retenida esperando aprobación). ¿Se cambia el texto?
+4. Test inestable (no del lote): `scripts/context-adapters.test.ts:187` (timeout 500 ms) falló 1 de 2 corridas de
+   `test:coverage` bajo carga; aislado pasa.
+5. DB real: filas huérfanas de fixtures de tests (`files`/`code_edges` de `gfc-*`, `ruby-check`) sin proyecto. ¿Limpiarlas?
 | ítem | rondas Luna | gate | SHA | min |
 |---|---|---|---|---|
+| UI.13.4c | 13 (código, regex, razonamiento+R.1, flujo, rutas, tarea vacía, popover, Reject/Approve, esperas, árbol sucio, decisión lista, fila) | PASS chat-turn-details 27/27 · smoke 6/6 · gate:all verde | ver git log | ~210 |
 | CI.2.B | 5 (spawn fd, espera, bug Settings, flujo) + 1 chore de lint innecesario revertido (diagnóstico mío errado: eran avisos, no errores) | PASS smoke 6/6 · gate:all verde | ver git log | ~75 |
 
 ## Decisión vigente

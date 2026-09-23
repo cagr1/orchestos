@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it } from 'bun:test'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { pickAutoSkill } from '../dashboard/handlers/chat.ts'
-import { handleApiNatural, listAllSkillCandidates } from '../dashboard/handlers/project.ts'
+import {
+  extractMentionedPaths,
+  handleApiNatural,
+  listAllSkillCandidates,
+} from '../dashboard/handlers/project.ts'
 import { isKnownSkillId } from '../dashboard/handlers/tasks.ts'
 
 // Bloque D (Mes 18, ex-IDEAS #21) — el motor de auto-selección de skill nunca
@@ -45,7 +52,59 @@ describe('isKnownSkillId', () => {
   })
 })
 
+describe('extractMentionedPaths', () => {
+  it('returns an existing file mentioned in the input', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-mentioned-paths-'))
+    try {
+      writeFileSync(join(root, 'README.md'), 'readme')
+      expect(extractMentionedPaths('Modifica README.md para añadir…', root)).toEqual(['README.md'])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('ignores missing and parent paths, and removes quotes and final punctuation', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-mentioned-paths-'))
+    try {
+      writeFileSync(join(root, 'README.md'), 'readme')
+      expect(extractMentionedPaths('Modifica "README.md". missing.md ../etc/passwd', root)).toEqual(
+        ['README.md'],
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
 describe('handleApiNatural — skill_candidates fail-safe', () => {
+  it('recovers an existing mentioned path when the LLM leaves output empty', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-natural-output-'))
+    try {
+      writeFileSync(join(root, 'README.md'), 'readme')
+      process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+      globalThis.fetch = (async () =>
+        openRouterResponse(
+          JSON.stringify({
+            id: 'update-readme',
+            description: 'Update README',
+            output: [],
+            executor: 'openrouter',
+            skill_candidates: [],
+          }),
+        )) as unknown as typeof fetch
+
+      const req = new Request('http://localhost/api/natural', {
+        method: 'POST',
+        body: JSON.stringify({ input: 'Modifica README.md para añadir una línea' }),
+      })
+      const res = await handleApiNatural(req, root)
+      const data = (await res.json()) as { output: string[] }
+      expect(data.output).toEqual(['README.md'])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('discards an invented skill id the LLM hallucinates, keeps real ones', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     globalThis.fetch = (async () =>

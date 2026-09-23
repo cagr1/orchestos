@@ -270,6 +270,7 @@ export interface ChatThread {
   tokenCount: number
   costUsd: number
   messages: ChatMessage[]
+  projectId?: string | null
 }
 
 export interface ProviderCliStatus {

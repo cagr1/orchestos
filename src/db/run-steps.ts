@@ -25,6 +25,7 @@ export interface RunStepRecord {
 }
 
 export function insertRunStep(taskId: string, event: ExecutorStepEvent): void {
+  if (event.type === 'reasoning') return
   // MAX(seq)+1 solo es correcto si la lectura y la escritura son atómicas.
   // BEGIN IMMEDIATE toma el lock de escritura antes del SELECT, evitando que
   // dos procesos CLI/dashboard calculen el mismo seq al mismo tiempo.
