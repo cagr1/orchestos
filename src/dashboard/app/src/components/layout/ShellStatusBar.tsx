@@ -25,7 +25,7 @@ export function formatReset(epochSeconds: number | null): string | undefined {
   return `resets ${format.format(date)}`
 }
 
-function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
+export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
   return (status?.clis ?? [])
     .filter((cli) => cli.installed)
     .map((cli) => {
@@ -33,8 +33,8 @@ function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
       const fiveHour = windows.find((window) => window.windowMinutes === 300)
       const weekly = windows.find((window) => window.windowMinutes === 10080)
       const remaining = (window: typeof fiveHour) => {
-        if (!window || (window.resetsAt !== null && window.resetsAt * 1000 <= Date.now()))
-          return null
+        if (!window) return null
+        if (window.resetsAt !== null && window.resetsAt * 1000 <= Date.now()) return 100
         return Math.max(0, window.remainingPct ?? 100 - window.usedPct)
       }
       return {

@@ -137,6 +137,48 @@ describe('session status', () => {
     ])
   })
 
+  test('conserva una ventana de Claude vencida para que el cliente la pinte libre', () => {
+    const home = temp('orchestos-statusline-expired-')
+    writeFileSync(
+      join(home, 'claude-statusline.json'),
+      JSON.stringify({ rate_limits: { five_hour: { used_percentage: 80, resets_at: 1 } } }),
+    )
+    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = home
+
+    expect(readClaudeStatuslineRateLimits(home)?.windows).toEqual([
+      expect.objectContaining({ usedPct: 80, remainingPct: 20, resetsAt: 1 }),
+    ])
+  })
+
+  test('lee la cuota de Codex de la cuenta aunque el proyecto no tenga transcript', async () => {
+    const project = temp('orchestos-codex-project-')
+    const agentHome = temp('orchestos-codex-home-')
+    const codex = (
+      await readActiveSessionStatuses({
+        projectRoot: project,
+        agentHome,
+        readCodexRateLimits: async () => [
+          {
+            id: 'primary',
+            usedPct: 14,
+            remainingPct: 86,
+            windowMinutes: 300,
+            resetsAt: 4_102_444_800,
+          },
+        ],
+      })
+    ).find((status) => status.id === 'codex')
+    expect(codex).toMatchObject({
+      installed: true,
+      available: true,
+      context: null,
+      rateLimits: {
+        source: 'codex',
+        windows: [{ id: 'primary', usedPct: 14, windowMinutes: 300 }],
+      },
+    })
+  })
+
   test('con el mismo reset gana el mayor uso y borra sesiones de más de 7 días', async () => {
     const home = temp('orchestos-statusline-same-reset-')
     const directory = join(home, 'claude-statusline')

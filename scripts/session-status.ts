@@ -70,7 +70,6 @@ function readClaudeStatuslineFile(path: string): ClaudeStatuslineReading | null 
         typeof record.resets_at === 'number' && Number.isFinite(record.resets_at)
           ? record.resets_at
           : null
-      if (resetsAt !== null && resetsAt * 1000 <= Date.now()) return []
       return [
         {
           id,
@@ -152,6 +151,7 @@ interface SessionStatusOptions {
   transcriptPath?: string
   agentHome?: string
   adapters?: ContextAdapter[]
+  readCodexRateLimits?: typeof readCodexRateLimitsLive
 }
 
 /** No expone paths ni contenido del transcript: solo métricas normalizadas. */
@@ -193,12 +193,13 @@ export async function readActiveSessionStatuses(
     const cli = detections.find((detection) => detection.id === source)
     if (cli && !selected.has(cli.id)) selected.set(cli.id, candidate)
   }
-  const liveCodex = [...selected.entries()].find(([id]) => id === 'codex')
+  const codex = detections.find((detection) => detection.id === 'codex')
   const claudeStatusline = readClaudeStatuslineRateLimits(options.agentHome)
+  const readCodexLimits = options.readCodexRateLimits ?? readCodexRateLimitsLive
   const liveWindows =
-    !explicit && liveCodex
-      ? await readCodexRateLimitsLive({
-          binary: detections.find((detection) => detection.id === 'codex')?.binary,
+    !explicit && codex?.installed
+      ? await readCodexLimits({
+          binary: codex.binary,
         })
       : []
 
@@ -243,6 +244,21 @@ export async function readActiveSessionStatuses(
         rateLimits: { source: 'claude', windows: claudeStatusline.windows },
       })
     }
+  }
+
+  if (liveWindows.length > 0 && !found.has('codex') && codex) {
+    found.set('codex', {
+      id: codex.id,
+      label: codex.label,
+      binary: codex.binary,
+      icon: codex.icon,
+      readBoundary: codex.readBoundary,
+      installed: codex.installed,
+      available: true,
+      observedAt: null,
+      context: null,
+      rateLimits: { source: 'codex', windows: liveWindows },
+    })
   }
 
   return detections.map(

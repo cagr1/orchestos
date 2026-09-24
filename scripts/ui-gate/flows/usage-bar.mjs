@@ -99,6 +99,27 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     await visible(page.getByText('61%', { exact: true })),
     '61% remaining in status bar',
   )
+  const codexQuota = page.locator('button[title^="Codex:"]')
+  const codexTitleBeforeTurn = await codexQuota.getAttribute('title')
+  await step(
+    'Codex account quota is visible without a project session',
+    /^Codex: \d+% 5-hour quota remaining$/.test(codexTitleBeforeTurn ?? ''),
+    codexTitleBeforeTurn ?? 'Codex button title missing',
+  )
+
+  const cacheHeaders = await page.evaluate(async () => {
+    const [shell, bundle] = await Promise.all([fetch('/'), fetch('/app/dist/main.js')])
+    return {
+      shell: shell.headers.get('cache-control'),
+      bundle: bundle.headers.get('cache-control'),
+    }
+  })
+  await step(
+    'app shell and bundle disable browser caching',
+    cacheHeaders.shell?.includes('no-cache') === true &&
+      cacheHeaders.bundle?.includes('no-cache') === true,
+    `shell=${cacheHeaders.shell ?? 'missing'}, bundle=${cacheHeaders.bundle ?? 'missing'}`,
+  )
 
   const refreshButton = page.getByRole('button', { name: 'Refresh usage', exact: true })
   const quota67 = page.getByText('67%', { exact: true }).first()
@@ -172,5 +193,41 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
       refreshedAfterTurn.observedAt <= turnResponseAt + 5_000 &&
       requests.length > requestsBeforeTurn,
     `chatResponse=${Boolean(chatResponse)}, usage-bar-ok=${turnFinished}, refresh=${Boolean(refreshedAfterTurn)}, requests before=${requestsBeforeTurn}, after=${requests.length}, requestTimes=${requests.map((entry) => entry.observedAt).join(',')}, responseAt=${turnResponseAt}`,
+  )
+
+  const codexTitleAfterTurn = await codexQuota.getAttribute('title')
+  await step(
+    'Codex account quota remains visible after a real turn',
+    /^Codex: \d+% 5-hour quota remaining$/.test(codexTitleAfterTurn ?? ''),
+    codexTitleAfterTurn ?? 'Codex button title missing after turn',
+  )
+
+  rmSync(statuslineDirectory, { recursive: true, force: true })
+  mkdirSync(statuslineDirectory, { recursive: true })
+  writeFileSync(
+    join(statuslineDirectory, 'expired-session.json'),
+    JSON.stringify({ rate_limits: { five_hour: { used_percentage: 80, resets_at: 1 } } }),
+  )
+  await delay(10_500)
+  const expiredRefresh = page.waitForResponse(
+    (response) =>
+      response.url().includes('/api/session/status') && response.request().method() === 'GET',
+    { timeout: 5_000 },
+  )
+  await refreshButton.click()
+  await expiredRefresh
+  await delay(4_000)
+  const expiredRefreshAgain = page.waitForResponse(
+    (response) =>
+      response.url().includes('/api/session/status') && response.request().method() === 'GET',
+    { timeout: 5_000 },
+  )
+  await refreshButton.click()
+  await expiredRefreshAgain
+  const expiredClaudeTitle = await page.locator('button[title^="Claude"]').getAttribute('title')
+  await step(
+    'an expired Claude window is shown as fully available',
+    /100% 5-hour quota remaining$/.test(expiredClaudeTitle ?? ''),
+    expiredClaudeTitle ?? 'Claude button title missing after expired reset',
   )
 }

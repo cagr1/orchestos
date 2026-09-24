@@ -27,7 +27,7 @@ function realBase(root: string): string {
   }
 }
 
-function serveFrom(root: string, rel: string): Response {
+function serveFrom(root: string, rel: string, headers?: HeadersInit): Response {
   const baseReal = realBase(root)
   let candidate = join(root, rel)
 
@@ -50,7 +50,7 @@ function serveFrom(root: string, rel: string): Response {
 
   const content = readFileSync(real)
   return new Response(content, {
-    headers: { 'Content-Type': mimeType(real) },
+    headers: { 'Content-Type': mimeType(real), ...headers },
   })
 }
 
@@ -60,7 +60,7 @@ function serveStatic(url: string): Response {
   }
 
   if (url.startsWith('/app/dist/')) {
-    return serveFrom(APP_DIR, url.slice('/app/'.length))
+    return serveFrom(APP_DIR, url.slice('/app/'.length), { 'Cache-Control': 'no-cache' })
   }
 
   if (url === '/api' || url.startsWith('/api/')) {
@@ -70,7 +70,7 @@ function serveStatic(url: string): Response {
   // The AI Studio prototype is the product UI. Any non-API route without an
   // extension is a client-side route and must boot that app shell.
   if (url === '/' || !extname(url)) {
-    return serveFrom(APP_DIR, 'index.html')
+    return serveFrom(APP_DIR, 'index.html', { 'Cache-Control': 'no-cache' })
   }
 
   return new Response('Not found', { status: 404 })

@@ -1,0 +1,75 @@
+[
+  {
+    "flujo": "usage-bar",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project is visible",
+        "ok": true,
+        "detalle": "project in sidebar"
+      },
+      {
+        "nombre": "one status request carries project id",
+        "ok": true,
+        "detalle": "requests=1, header=5e8888b857fcdb6f, expected=5e8888b857fcdb6f"
+      },
+      {
+        "nombre": "Claude quota uses newest session reading",
+        "ok": true,
+        "detalle": "61% remaining in status bar"
+      },
+      {
+        "nombre": "Codex account quota is visible without a project session",
+        "ok": true,
+        "detalle": "Codex: 92% 5-hour quota remaining"
+      },
+      {
+        "nombre": "app shell and bundle disable browser caching",
+        "ok": true,
+        "detalle": "shell=no-cache, bundle=no-cache"
+      },
+      {
+        "nombre": "manual usage refresh keeps the newest Claude quota",
+        "ok": true,
+        "detalle": "response=true, saw61=true, saw67=false"
+      },
+      {
+        "nombre": "Codex chat option visible",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Luna model visible",
+        "ok": true,
+        "detalle": "gpt-5.6-luna"
+      },
+      {
+        "nombre": "medium effort visible",
+        "ok": true,
+        "detalle": "medium"
+      },
+      {
+        "nombre": "usage refreshes after a real turn",
+        "ok": true,
+        "detalle": "chatResponse=true, usage-bar-ok=true, refresh=true, requests before=2, after=3, requestTimes=1790213806697,1790213809883,1790213824632, responseAt=1790213824572"
+      },
+      {
+        "nombre": "Codex account quota remains visible after a real turn",
+        "ok": true,
+        "detalle": "Codex: 92% 5-hour quota remaining"
+      },
+      {
+        "nombre": "an expired Claude window is shown as fully available",
+        "ok": true,
+        "detalle": "Claude Code: 100% 5-hour quota remaining"
+      },
+      {
+        "nombre": "no temporary UI projects remain after cleanup",
+        "ok": true,
+        "detalle": "temporary projects are cleaned after the flow"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  }
+]

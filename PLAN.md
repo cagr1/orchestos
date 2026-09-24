@@ -216,7 +216,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Ejecutado por: luna (3 rondas; r2 rechazada: el paso del turno hacía clic manual) · Spec: docs/specs/UI.13.5.md (borrado al cerrar).
   El cerebro añadió el borrado de archivos de sesión de statusline >7 días.
   Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 9/9 + `smoke` 6/6) — `docs/done/evidence/UI.13.5-live.json`.
-- [ ] **UI.13.6 — 🧠 La cuota de Codex aparece siempre y una ventana vencida cuenta como libre.** (abierto 2026-09-23, pedido de Carlos; Lote L3)
+- [x] **UI.13.6 — 🧠 La cuota de Codex aparece siempre y una ventana vencida cuenta como libre.** (abierto 2026-09-23, pedido de Carlos; Lote L3; cerrado 2026-09-23 — `ui:gate usage-bar` 13/13)
   Hallazgos post-cierre de UI.13.5 (NEXT.md): (1) `scripts/session-status.ts:196-203` solo llama
   `readCodexRateLimitsLive` si el proyecto tiene sesión de Codex (`liveCodex`); Claude sí tiene respaldo de cuenta
   (`:230`). Reproducido con Playwright: proyecto temporal + turno real Codex Luna → barra `86% — —` antes y después.
@@ -225,6 +225,13 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   un bundle viejo (sospecha, no verificado en Brave). Arreglo: `Cache-Control: no-cache`.
   Gate: `ui:gate` con proyecto temporal SIN sesiones de Codex → la barra muestra la cuota de Codex antes y después de
   un turno real; ventana con `resets_at` pasado → 100 %; respuestas de `/app/dist/main.js` y `/` con `no-cache`.
+  **Fuera de scope declarado:** `ShellStatusBar.test.ts`, `http.test.ts` y la evidencia — el scope se declaró con
+  directorios sin glob (`src/dashboard`, `docs`), que el scope-lock no expande; son los tests y la evidencia del ítem.
+  Ejecutado por: luna (1 ronda) · Spec: docs/specs/UI.13.6.md (borrado al cerrar). El respaldo de Codex lee el
+  app-server en cada refresco aunque el proyecto no use Codex. Brave: el header se verificó; Brave en sí no se probó.
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 13/13 + `smoke` 6/6) — `docs/done/evidence/UI.13.6-live.json`.
+  Codex 92 % sin sesión antes y después de un turno real Luna; Claude vencida → 100 %; `/` y `main.js` `no-cache`.
+  `test:coverage` 1527/0 (1.ª corrida: 1 fallo del test inestable conocido `context-adapters.test.ts:187`).
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir
