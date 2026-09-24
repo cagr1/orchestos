@@ -138,8 +138,8 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   )
   if (!(await modelControl.isVisible())) return
   await modelControl.click()
-  const model = page.getByRole('button', { name: /gpt-5\.6-luna/i }).first()
-  await step('select gpt-5.6-luna', await visible(model), 'model option visible')
+  const model = page.getByRole('button', { name: /gpt-6-luna/i }).first()
+  await step('select gpt-6-luna', await visible(model), 'model option visible')
   if (!(await model.isVisible())) return
   await model.click()
   await modelControl.click()

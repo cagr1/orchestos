@@ -391,7 +391,18 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 > (Project settings / Delete project) + back. 3. Panel derecho History + archivar agente + toggle
 > permanente. 4. `UI.10.A` plan de cada proyecto en solo lectura. 5. Etiquetas de texto en vez de
 > emojis. Temas renombrados entran en la pieza 1.
-- [ ] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4)
+- [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
+  Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
+  `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5
+  corridas: `harness-retry.test.ts` (301 s: `runTask` real con `globalThis.fetch` compartido podía salir a OpenRouter
+  y escribía en la DB real) → prueba pura de `previousFailureForTask` (`src/run/prompt.ts`), se pierde el cableado
+  extremo a extremo `runTask`→provider; `roadmap-profile.test.ts` (18 s: sonda real `bunx tsc`) → sonda inyectada.
+  Residuo `.orchestos/adversarial-review-state.json`: no se reprodujo en 10 corridas + 2 `gate:all`; sin arreglo.
+  Ejecutado por: luna (2 rondas; r1 movía la credencial de `adversarial-review.test.ts` dentro de `root` y rompía el
+  test, revertido por el cerebro) · Spec: docs/specs/CI.4.md (borrado al cerrar).
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate` 9 flujos, `text-sweep` registra `gpt-6-luna` · medium) — `docs/done/evidence/CI.4-live.json`.
+  **Fuera de scope declarado:** `LEDGER.md`, entrada que exige `ledger:gate` por tocar `src/run/harness.ts`.
+  Intermitentes vistos, van a CI.2: `project-delete` (404 `/api/tasks` en consola) y `runs-graph` (940 s), verdes en la 2.ª.
   (1) Carlos 2026-09-24: de ahora en adelante Luna = `gpt-6-luna` (ya es el default de `~/.codex/config.toml`); los
   flujos de `scripts/ui-gate/flows/*.mjs` eligen `gpt-5.6-luna` en el selector para su turno real, y fixtures/tests
   lo nombran. (2) `scripts/context-adapters.test.ts:187` (`readCodexRateLimitsLive` con `timeoutMs: 500` contra un

@@ -184,7 +184,7 @@ process.stdin.on('data', (chunk) => {
     )
     chmodSync(binary, 0o755)
     try {
-      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 500 })).resolves.toEqual([
+      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 5_000 })).resolves.toEqual([
         {
           id: 'primary',
           usedPct: 3,
@@ -196,5 +196,5 @@ process.stdin.on('data', (chunk) => {
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
-  })
+  }, 10_000)
 })

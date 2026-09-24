@@ -12,6 +12,14 @@ borran sin preguntar y se arregla el test que los deja (memorias nuevas).
 Lecciones L3: (5) Luna re-corre el preflight hasta sobre OTRO ítem (CI.2) y pisa `.orchestos/active-item.json`:
 revisar `scope:check` antes del commit; (6) flujo nuevo = `page.reload` tras registrar el proyecto.
 
+### Log L4
+| ítem | rondas Luna | gate | min |
+|---|---|---|---|
+| CI.4 | 2 (r1 rompía `adversarial-review.test.ts`, revertido; r2 dos intermitentes más) | 9 flujos · test:coverage 5×1533/0 · gate:all | ~75 |
+CI.2: spec `docs/specs/CI.2.md` (medición: 9 flujos ≈285 s, 7 con turno real; workflow aparte para los 3 sin turno,
+pre-push condicional para los 9; aislar `ORCHESTOS_HOME` del runner; arreglar `project-delete`/`runs-graph` intermitentes).
+Carlos 2026-09-24: `#69`/`#70` en IDEAS.md (Files no expande carpetas; Changes en vivo estilo VS Code).
+
 ## Lote L3 (abierto 2026-09-23, pedido de Carlos)
 Orden: UI.13.6 → UI.9.9 → UI.9.8 → UI.10.A. Mismo flujo y paradas que L1/L2; spec commiteado al lanzar a Luna.
 | ítem | rondas Luna | gate | SHA | min |

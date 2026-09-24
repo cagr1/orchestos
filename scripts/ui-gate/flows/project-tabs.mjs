@@ -104,7 +104,7 @@ export default async function projectTabs({
           {
             id: 'gate-tabs-task',
             description: 'Append Gate ran. to README.md',
-            executor_model: 'openai/gpt-5.6-luna',
+            executor_model: 'openai/gpt-6-luna',
             engine: 'codex',
             cli_effort: 'medium',
             input: ['README.md'],

@@ -68,7 +68,7 @@ export default async function tasks({ page, api, step, shot, visible, cleanup })
           {
             id: 'gate-first-task',
             description: 'Append the line "Gate ran." at the end of README.md',
-            executor_model: 'openai/gpt-5.6-luna',
+            executor_model: 'openai/gpt-6-luna',
             engine: 'codex',
             cli_effort: 'medium',
             input: ['README.md'],
@@ -81,7 +81,7 @@ export default async function tasks({ page, api, step, shot, visible, cleanup })
           {
             id: 'gate-dependent-task',
             description: 'Inspect the first task result.',
-            executor_model: 'openai/gpt-5.6-luna',
+            executor_model: 'openai/gpt-6-luna',
             engine: 'codex',
             cli_effort: 'medium',
             input: ['README.md'],

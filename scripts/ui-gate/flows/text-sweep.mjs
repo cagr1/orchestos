@@ -89,8 +89,8 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
   await step('model selector visible', await visible(modelControl), 'composer model selector')
   if (!(await modelControl.isVisible())) return
   await modelControl.click()
-  const luna = page.getByRole('button', { name: /gpt-5\.6-luna/i }).first()
-  await step('gpt-5.6-luna visible', await visible(luna), 'Codex cache model')
+  const luna = page.getByRole('button', { name: /gpt-6-luna/i }).first()
+  await step('gpt-6-luna visible', await visible(luna), 'Codex cache model')
   if (!(await luna.isVisible())) return
   await luna.click()
   await modelControl.click()
@@ -127,7 +127,7 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
   )
   await step(
     'turn records selected model and effort',
-    Boolean(assistant?.model?.includes('gpt-5.6-luna') && session?.lastEffort === 'medium'),
+    Boolean(assistant?.model?.includes('gpt-6-luna') && session?.lastEffort === 'medium'),
     `model=${assistant?.model ?? 'missing'}, effort=${session?.lastEffort ?? 'missing'}`,
   )
   await step(

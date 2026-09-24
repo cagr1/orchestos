@@ -64,7 +64,7 @@ export default async function runsGraph({ page, api, step, shot, visible, cleanu
           {
             id: 'gate-runs-task',
             description: 'Append the line "Runs graph gate." at the end of README.md',
-            executor_model: 'openai/gpt-5.6-luna',
+            executor_model: 'openai/gpt-6-luna',
             engine: 'codex',
             cli_effort: 'medium',
             input: ['README.md'],

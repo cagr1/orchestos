@@ -259,3 +259,11 @@ de `maxTokens`/`contextWindow`/`maxOutputTokensFor` tocada (verificado con `git 
 | grep -i token` → vacío).
 **Reversibilidad/evidencia**: commit `feat(UI.13.2e)`, revertible con `git revert`; sin cambio de esquema.
 `gate:all` 1533 pass / 0 fail · `ui:gate runs-graph` 16/16 · `ui:gate smoke` 6/6.
+
+## 2026-09-24 10:57 — claude-opus-5-5 (revisor) · ejecutor Codex gpt-6-luna
+**Contexto**: CI.4 (Lote L4) — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el diff solo reemplaza la expresión `ctx.task.retry_count > 0 ? ctx.task.retry_reason : undefined` por
+`previousFailureForTask(ctx.task)` (misma lógica, movida a `src/run/prompt.ts`) y su import. Ninguna línea de
+`maxTokens`/`contextWindow`/`maxOutputTokensFor` tocada (`git diff --cached src/run/harness.ts | grep -i token` → vacío).
+**Reversibilidad/evidencia**: commit `fix(CI.4)`, revertible con `git revert`. `test:coverage` 5×1533/0 · `gate:all` verde.

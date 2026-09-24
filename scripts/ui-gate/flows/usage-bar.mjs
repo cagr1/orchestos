@@ -162,8 +162,8 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
   const modelControl = page.locator('button[title="Select model and reasoning effort"]')
   await modelControl.click()
-  const model = page.getByRole('button', { name: /gpt-5\.6-luna/i }).first()
-  await step('Luna model visible', await visible(model), 'gpt-5.6-luna')
+  const model = page.getByRole('button', { name: /gpt-6-luna/i }).first()
+  await step('Luna model visible', await visible(model), 'gpt-6-luna')
   if (!(await model.isVisible())) return
   await model.click()
   await modelControl.click()

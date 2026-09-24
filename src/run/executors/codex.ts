@@ -28,7 +28,7 @@
  *     `codexCostUnmeasurableMessage()` para el porqué completo. El comentario
  *     anterior afirmaba que el default era `gpt-5.4` "confirmado en
  *     `~/.codex/config.toml`"; al verificarlo ese archivo declaraba
- *     `gpt-5.6-luna` — el dato se desactualizó solo, que es exactamente por qué
+ *     `gpt-6-luna` — el dato se desactualizó solo, que es exactamente por qué
  *     no se puede tarifar contra un default que OrchestOS no controla.
  */
 
@@ -60,7 +60,7 @@ export function codexUnavailableMessage(pathHint?: string): string {
 export function orchestosModelToCodexModel(model: string | undefined): string | undefined {
   if (!model) return undefined
   if (model.startsWith('openai/')) return model.slice('openai/'.length)
-  // Chat CLI catalogs return native Codex ids (for example gpt-5.6-luna).
+  // Chat CLI catalogs return native Codex ids (for example gpt-6-luna).
   // They must not be treated as an implicit request for Codex's default.
   if (!model.includes('/')) return model
   return undefined
@@ -79,7 +79,7 @@ export function orchestosModelToCodexModel(model: string | undefined): string | 
  * el binario real (2026-08-18): ningún evento de `codex exec --json`
  * (`thread.started` / `turn.started` / `item.completed` / `turn.completed`)
  * expone el modelo; `turn.completed` solo trae `usage`. Tampoco sirve leer
- * `~/.codex/config.toml`: en esta máquina declara `gpt-5.6-luna`, mientras el
+ * `~/.codex/config.toml`: en esta máquina declara `gpt-6-luna`, mientras el
  * comentario de este archivo afirmaba `gpt-5.4` — el dato se desactualizó solo.
  *
  * Sin esto, tarifar tokens de un modelo con el precio de otro produce un número

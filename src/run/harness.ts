@@ -67,7 +67,7 @@ import {
   roadmapContext,
   skillRoute,
 } from './middlewares/index.ts'
-import { buildPrompt } from './prompt.ts'
+import { buildPrompt, previousFailureForTask } from './prompt.ts'
 import {
   computeFileDiffs,
   MAX_RETRIES,
@@ -311,7 +311,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     if (constitution) log.info(`constitution: loaded (${constitution.ruleCount} rules)`)
 
     // build prompt
-    const previousFailure = ctx.task.retry_count > 0 ? ctx.task.retry_reason : undefined
+    const previousFailure = previousFailureForTask(ctx.task)
     const { system, userContent } = buildPrompt(
       ctx.task,
       ctx.effectiveContext,

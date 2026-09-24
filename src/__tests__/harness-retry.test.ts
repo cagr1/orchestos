@@ -1,141 +1,57 @@
-import { afterAll, afterEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
-import { db } from '../db/sqlite.ts'
+import { describe, expect, it } from 'bun:test'
+import { buildPrompt, previousFailureForTask } from '../run/prompt.ts'
+import type { Task } from '../tasks/schema.ts'
 
-// F1.3 (b): end-to-end wiring — el harness pasa el `retry_reason` de la tarea
-// al provider, sin importar el resto del flujo. Mocks: globalThis.fetch (captura
-// el body que el provider openrouter envía a su API), process.env.OPENROUTER_API_KEY
-// (para que loadApiKey() no tire antes de fetch). Sandbox `cwd` explícito para
-// evitar createWorktree (que requiere git).
-
-const originalFetch = globalThis.fetch
-const originalKey = process.env.OPENROUTER_API_KEY
-
-afterEach(() => {
-  globalThis.fetch = originalFetch
-  if (originalKey === undefined) delete process.env.OPENROUTER_API_KEY
-  else process.env.OPENROUTER_API_KEY = originalKey
-})
-
-// IDEAS.md #20 (2026-07-05): runTask() real persiste en ~/.orchestos/db.sqlite,
-// la misma DB del dashboard — limpiar las 2 filas que este archivo inserta.
-afterAll(() => {
-  db.run("DELETE FROM runs WHERE task_id IN ('retry-test', 'first-run')")
-})
-
-function tmpDir(): string {
-  return mkdtempSync(join(tmpdir(), 'orchestos-harness-retry-'))
+function makeTask(overrides: Partial<Task> = {}): Task {
+  return {
+    id: 'retry-test',
+    description: 'rewrite the file',
+    executor: 'openrouter',
+    input: [],
+    output: ['out.txt'],
+    depends_on: [],
+    status: 'pending',
+    retry_count: 0,
+    ...overrides,
+  }
 }
 
-interface CapturedBody {
-  model: string
-  messages: Array<{ role: string; content: string }>
-}
-
-function mockFetchReturningEmpty() {
-  let captured: CapturedBody | null = null
-  globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
-    captured = JSON.parse(String(init?.body)) as CapturedBody
-    // text vacío → parseLLMResponse va a tirar error, pero el body ya está capturado
-    return new Response(
-      JSON.stringify({
-        choices: [{ message: { content: '' } }],
-        usage: { prompt_tokens: 1, completion_tokens: 0 },
-        model: captured.model,
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
+describe('runTask — F1.3 retry prompt', () => {
+  it('includes the previous failure in user content when retry_count > 0', () => {
+    const task = makeTask({
+      retry_count: 1,
+      retry_reason: 'previous run failed: missing output out.txt',
+    })
+    const previousFailure = previousFailureForTask(task)
+    const { system, userContent } = buildPrompt(
+      task,
+      '',
+      '/tmp',
+      undefined,
+      undefined,
+      undefined,
+      previousFailure,
     )
-  }) as unknown as typeof fetch
-  return () => captured
-}
 
-describe('runTask — F1.3 retry path forwards previous failure to provider', () => {
-  it('includes the PREVIOUS ATTEMPT FAILED block in the user message when retry_count > 0', async () => {
-    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
-    const getBody = mockFetchReturningEmpty()
-
-    const { runTask } = await import('../run/harness.ts')
-    const { RunLogger } = await import('../run/logger.ts')
-
-    const dir = tmpDir()
-    try {
-      const log = new RunLogger(dir, 'retry-test')
-      const result = await runTask({
-        projectRoot: dir,
-        contextText: '',
-        task: {
-          id: 'retry-test',
-          description: 'rewrite the file',
-          executor: 'openrouter',
-          input: [],
-          output: ['out.txt'],
-          depends_on: [],
-          status: 'pending',
-          retry_count: 1,
-          retry_reason: 'previous run failed: missing output out.txt',
-        },
-        logger: log,
-        sandboxMode: 'cwd',
-      })
-
-      const body = getBody()
-      expect(body).not.toBeNull()
-      // openrouter provider arma messages = [system, ...opts.messages] →
-      // el userContent de buildPrompt queda en messages[1]
-      const userMessage = body!.messages.find((m) => m.role === 'user')?.content ?? ''
-      expect(userMessage).toContain('## PREVIOUS ATTEMPT FAILED')
-      expect(userMessage).toContain('previous run failed: missing output out.txt')
-      expect(userMessage).toContain(
-        'Fix the cause described above. Do not repeat the same mistake.',
-      )
-
-      // El bloque NO debe filtrarse al system
-      const systemMessage = body!.messages.find((m) => m.role === 'system')?.content ?? ''
-      expect(systemMessage).not.toContain('PREVIOUS ATTEMPT FAILED')
-
-      // el resultado del run puede ser failed (parse error sobre text vacío) —
-      // eso es ortogonal al wiring que estamos probando
-      expect(['failed', 'done']).toContain(result.status)
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
+    expect(userContent).toContain('## PREVIOUS ATTEMPT FAILED')
+    expect(userContent).toContain('previous run failed: missing output out.txt')
+    expect(userContent).toContain('Fix the cause described above. Do not repeat the same mistake.')
+    expect(system).not.toContain('PREVIOUS ATTEMPT FAILED')
   })
 
-  it('omits the PREVIOUS ATTEMPT FAILED block when retry_count is 0', async () => {
-    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
-    const getBody = mockFetchReturningEmpty()
+  it('omits the previous failure block when retry_count is 0', () => {
+    const task = makeTask({ retry_count: 0 })
+    const previousFailure = previousFailureForTask(task)
+    const { userContent } = buildPrompt(
+      task,
+      '',
+      '/tmp',
+      undefined,
+      undefined,
+      undefined,
+      previousFailure,
+    )
 
-    const { runTask } = await import('../run/harness.ts')
-    const { RunLogger } = await import('../run/logger.ts')
-
-    const dir = tmpDir()
-    try {
-      const log = new RunLogger(dir, 'first-run')
-      await runTask({
-        projectRoot: dir,
-        contextText: '',
-        task: {
-          id: 'first-run',
-          description: 'rewrite the file',
-          executor: 'openrouter',
-          input: [],
-          output: ['out.txt'],
-          depends_on: [],
-          status: 'pending',
-          retry_count: 0,
-        },
-        logger: log,
-        sandboxMode: 'cwd',
-      })
-
-      const body = getBody()
-      expect(body).not.toBeNull()
-      const userMessage = body!.messages.find((m) => m.role === 'user')?.content ?? ''
-      expect(userMessage).not.toContain('PREVIOUS ATTEMPT FAILED')
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
+    expect(userContent).not.toContain('PREVIOUS ATTEMPT FAILED')
   })
 })

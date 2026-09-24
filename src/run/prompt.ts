@@ -9,6 +9,11 @@ export interface BuiltPrompt {
   userContent: string
 }
 
+/** Selects retry feedback for the next attempt; kept pure for deterministic coverage. */
+export function previousFailureForTask(task: Task): string | undefined {
+  return task.retry_count > 0 ? task.retry_reason : undefined
+}
+
 export function buildPrompt(
   task: Task,
   contextText: string,
