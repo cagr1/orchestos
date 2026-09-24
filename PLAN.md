@@ -432,6 +432,25 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Model routing (4 filas agente+modelo+esfuerzo con valor real) + UI de `taskAgentRules`; MR.1.d AT.10/AT.13 (el chat
   usa el Orquestador/CLI elegido sin caída a OpenRouter; contexto veraz). Gate: `runs-graph` 5/5 con el Revisor
   configurado por UI; flujo nuevo `model-routing` que cambia cada rol clickeando y afirma el modelo registrado en el run.
+  - [x] **MR.1.a — ⚡ Config de 4 roles + migración en memoria + catálogo único `GET /api/models/catalog`.**
+    (abierto y cerrado 2026-09-24; spec `docs/specs/MR.1.a.md`; no cambia ejecución ni UI — eso es MR.1.b/c)
+    Hecho: `roles.{orchestrator,executor,reviewer,auxiliary}` `{agent,model,effort?,provider?}`; migración en memoria
+    `planner→orchestrator`, `executor_heavy→executor`, `qa→reviewer` (auxiliary sin origen); `resolveRole` lanza
+    `RoleUnassignedError` (sin consumidores hasta MR.1.b); GET/PUT `roleAssignments` + `roleWarnings`; catálogo
+    único claude/codex/opencode/api (OpenRouter caído → `error`, no 502). `null` se persiste explícito: con
+    `deleteIn` el loader re-migraba desde `models.*` y un rol legacy no se podía desasignar (hallado en el gate en
+    vivo, ronda 2; el fixture de Luna no tenía origen legacy).
+    Gate en vivo (dashboard real, sin navegador — MR.1.a no tiene UI; la UI y su gate en navegador son MR.1.c): proyecto
+    temporal con copia del `orchestos.config.yaml` del repo; GET migra los 3 roles a `api`; PUT `executor` codex +
+    `orchestrator: null` → YAML con `roles:`, `models:`/`agent:` intactos; tras reiniciar el dashboard, GET devuelve
+    `orchestrator: None`, `executor` codex; mismo agent+modelo en reviewer → `reviewer-same-as-executor`; agent
+    inválido → 400; `/api/models/catalog` → claude 9, codex 9, opencode 393, api 460 modelos. `test:coverage`
+    1540/0 (75.03%/62.20%). Ejecutado por: luna (2 rondas) · Spec: docs/specs/MR.1.a.md
+    Hallazgo de proceso: `agent:preflight` solo reconoce ítems de primer nivel (`findOpenPlanItem`,
+    `scripts/agent-governance.ts`); los sub-ítems se ejecutan con `--item <padre>` — anotado en el spec.
+    Commit con `--no-verify` autorizado por Carlos (2026-09-24) solo para MR.1.a y MR.1.b: `agent:live-gate` exige
+    cerrar un ítem de primer nivel con gate en navegador y estos sub-ítems no tienen UI; tsc, secretos y
+    `plan:render` pasaron a mano. El gate en navegador se hace en MR.1.c, que cierra MR.1.
 - [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
   Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
   `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5

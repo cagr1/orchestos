@@ -238,11 +238,13 @@ export function clearChatModelsCache(): void {
   chatModelsCache = null
 }
 
-type ChatModelsFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+export type ChatModelsFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
-async function handleApiChatModels(fetchFn: ChatModelsFetch = fetch): Promise<Response> {
+export async function readOpenRouterChatModels(
+  fetchFn: ChatModelsFetch = fetch,
+): Promise<unknown[]> {
   if (chatModelsCache && Date.now() - chatModelsCache.fetchedAt < CHAT_MODELS_CACHE_TTL_MS) {
-    return jsonResponse(chatModelsCache.models)
+    return chatModelsCache.models
   }
   const apiKey = (() => {
     try {
@@ -277,11 +279,19 @@ async function handleApiChatModels(fetchFn: ChatModelsFetch = fetch): Promise<Re
           Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
       }))
     chatModelsCache = { fetchedAt: Date.now(), models }
-    return jsonResponse(models)
+    return models
   } catch {
     if (chatModelsCache) {
-      return jsonResponse(chatModelsCache.models)
+      return chatModelsCache.models
     }
+    throw new Error('Unable to load chat models')
+  }
+}
+
+export async function handleApiChatModels(fetchFn: ChatModelsFetch = fetch): Promise<Response> {
+  try {
+    return jsonResponse(await readOpenRouterChatModels(fetchFn))
+  } catch {
     return errorResponse('Unable to load chat models', 502)
   }
 }
@@ -1745,4 +1755,4 @@ ${autoTaskInstruction}${ctx}${projBlock}`
   }
 }
 
-export { handleApiChat, handleApiChatModels, handleApiChatUpload }
+export { handleApiChat, handleApiChatUpload }

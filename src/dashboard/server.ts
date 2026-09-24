@@ -40,6 +40,7 @@ import {
   handleApiMemoryConflicts,
   handleApiMemoryDelete,
 } from './handlers/memory.ts'
+import { handleApiModelCatalog } from './handlers/model-catalog.ts'
 import {
   handleApiPlan,
   handleApiPlanDependencies,
@@ -360,6 +361,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/chat/cli-models') {
     return handleApiChatCliModels()
+  }
+  if (method === 'GET' && url.pathname === '/api/models/catalog') {
+    return handleApiModelCatalog()
   }
   if (method === 'GET' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsList(req)

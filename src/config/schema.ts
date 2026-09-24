@@ -12,6 +12,17 @@ export interface ModelRoleConfig {
   model: string // e.g. 'claude-opus-4-7', 'deepseek/deepseek-v3' (empty for codex)
 }
 
+export const ROLE_NAMES = ['orchestrator', 'executor', 'reviewer', 'auxiliary'] as const
+export type RoleName = (typeof ROLE_NAMES)[number]
+export const ROLE_AGENTS = ['claude', 'codex', 'opencode', 'api'] as const
+export type RoleAgent = (typeof ROLE_AGENTS)[number]
+export interface RoleAssignment {
+  agent: RoleAgent
+  model: string
+  effort?: string
+  provider?: string
+}
+
 /**
  * CC.D1 (Mes 29, 2026-08-17) — reemplaza `ExecutorMode` + los valores CLI de
  * `executorEngine` (que eran el mismo concepto con dos nombres: `cli-claude`↔
@@ -60,6 +71,8 @@ export interface TaskAgentRule {
 
 export interface OrcheConfig {
   config_version: number
+  /** Assignments for MR.1 role routing; see PLAN.md § MR.1. */
+  roles: Partial<Record<RoleName, RoleAssignment>>
   models: {
     planner: ModelRoleConfig
     executor_heavy: ModelRoleConfig
@@ -106,6 +119,7 @@ export interface OrcheConfig {
 // Defaults — used when no config file is found or a role is missing
 export const DEFAULT_CONFIG: OrcheConfig = {
   config_version: 1,
+  roles: {},
   models: {
     planner: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
     executor_heavy: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },

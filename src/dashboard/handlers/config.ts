@@ -2,7 +2,15 @@ import { existsSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { parseDocument, stringify as yamlStringify } from 'yaml'
 import { AGENT_CHOICES, loadOrcheConfig, scaffoldConfigYaml } from '../../config/load.ts'
-import type { AgentChoice, OrcheConfig } from '../../config/schema.ts'
+import {
+  type AgentChoice,
+  type OrcheConfig,
+  ROLE_AGENTS,
+  ROLE_NAMES,
+  type RoleAgent,
+  type RoleAssignment,
+  type RoleName,
+} from '../../config/schema.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
@@ -58,6 +66,14 @@ export async function handleApiConfigGet(root = process.cwd()): Promise<Response
     source: configFound ? configPath : null,
     configFound,
     roles,
+    roleAssignments: Object.fromEntries(ROLE_NAMES.map((name) => [name, cfg.roles[name] ?? null])),
+    roleWarnings:
+      cfg.roles.reviewer &&
+      cfg.roles.executor &&
+      cfg.roles.reviewer.agent === cfg.roles.executor.agent &&
+      cfg.roles.reviewer.model === cfg.roles.executor.model
+        ? ['reviewer-same-as-executor']
+        : [],
     pendingRouting,
     // CC.D1 (2026-08-17) — `executorEngine` renombrado a `apiMode` (solo aplica
     // cuando `agent` es 'api'/ausente). `executor_mode` renombrado a `agent`.
@@ -107,6 +123,7 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
      * limpia la preferencia guardada (vuelve a "Auto" — la cascada sugiere, ver
      * [[feedback-deteccion-no-decision-automatica]]). */
     agent?: AgentChoice | null
+    roleAssignments?: Partial<Record<RoleName, RoleAssignment | null>>
   }
   try {
     body = (await req.json()) as typeof body
@@ -118,8 +135,34 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
   if (body.agent !== undefined && body.agent !== null && !AGENT_CHOICES.includes(body.agent)) {
     return errorResponse(`agent must be one of: ${AGENT_CHOICES.join(', ')}`, 400)
   }
+  if (body.roleAssignments !== undefined) {
+    if (
+      !body.roleAssignments ||
+      typeof body.roleAssignments !== 'object' ||
+      Array.isArray(body.roleAssignments)
+    )
+      return errorResponse('roleAssignments must be an object', 400)
+    for (const [name, assignment] of Object.entries(body.roleAssignments)) {
+      if (!ROLE_NAMES.includes(name as RoleName))
+        return errorResponse(`invalid role '${name}'`, 400)
+      if (assignment === null) continue
+      if (
+        !assignment ||
+        typeof assignment !== 'object' ||
+        !ROLE_AGENTS.includes(assignment.agent as RoleAgent) ||
+        typeof assignment.model !== 'string' ||
+        !assignment.model.trim()
+      )
+        return errorResponse(`invalid assignment for role '${name}'`, 400)
+      if (assignment.effort !== undefined && typeof assignment.effort !== 'string')
+        return errorResponse(`invalid effort for role '${name}'`, 400)
+      if (assignment.provider !== undefined && typeof assignment.provider !== 'string')
+        return errorResponse(`invalid provider for role '${name}'`, 400)
+    }
+  }
   if (
     !body.roles &&
+    body.roleAssignments === undefined &&
     body.apiMode === undefined &&
     body.agenticMaxIterations === undefined &&
     body.externalTimeoutMinutes === undefined &&
@@ -146,7 +189,26 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
     models[key] = { provider: 'openrouter', model: raw.trim() }
   }
 
-  const newConfig: OrcheConfig = { ...current, models }
+  const nextRoleAssignments = { ...current.roles }
+  for (const [name, assignment] of Object.entries(body.roleAssignments ?? {}) as [
+    RoleName,
+    RoleAssignment | null,
+  ][]) {
+    if (assignment === null) delete nextRoleAssignments[name]
+    else
+      nextRoleAssignments[name] = {
+        agent: assignment.agent,
+        model: assignment.model.trim(),
+        ...(assignment.effort ? { effort: assignment.effort } : {}),
+        ...(assignment.agent === 'api' && assignment.provider
+          ? { provider: assignment.provider }
+          : {}),
+      }
+  }
+  const newConfig: OrcheConfig = { ...current, models, roles: nextRoleAssignments }
+  for (const [name, assignment] of Object.entries(body.roleAssignments ?? {})) {
+    if (assignment === null) (newConfig.roles as Record<string, unknown>)[name] = null
+  }
 
   if (typeof body.apiMode === 'string' && (API_MODES as readonly string[]).includes(body.apiMode)) {
     newConfig.apiMode = body.apiMode as OrcheConfig['apiMode']
@@ -182,6 +244,21 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
     try {
       const document = parseDocument(await Bun.file(configPath).text())
       if (document.errors.length === 0) {
+        for (const [name, assignment] of Object.entries(body.roleAssignments ?? {}) as [
+          RoleName,
+          RoleAssignment | null,
+        ][]) {
+          if (assignment === null) document.setIn(['roles', name], null)
+          else
+            document.setIn(['roles', name], {
+              agent: assignment.agent,
+              model: assignment.model.trim(),
+              ...(assignment.effort ? { effort: assignment.effort } : {}),
+              ...(assignment.agent === 'api' && assignment.provider
+                ? { provider: assignment.provider }
+                : {}),
+            })
+        }
         for (const key of ROLE_KEYS) {
           const raw = body.roles?.[key]
           if (typeof raw !== 'string') continue

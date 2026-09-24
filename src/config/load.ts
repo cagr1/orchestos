@@ -18,6 +18,10 @@ import {
   DEFAULT_CONFIG,
   type OrcheConfig,
   parseRoleValue,
+  ROLE_AGENTS,
+  ROLE_NAMES,
+  type RoleAssignment,
+  type RoleName,
   type TaskAgentRule,
 } from './schema.ts'
 
@@ -53,6 +57,7 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
 
   return {
     config_version: typeof raw.config_version === 'number' ? raw.config_version : 1,
+    roles: resolveRoles(raw),
     models: {
       planner: parseRoleValue(models.planner, d.planner),
       executor_heavy: parseRoleValue(models.executor_heavy, d.executor_heavy),
@@ -78,6 +83,69 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     // en el YAML se ignoraba en silencio desde que se creó. Bug de la misma clase que BB.2/CC.1c.
     refuterQA: raw.refuterQA === true ? true : undefined,
   }
+}
+
+function resolveRoles(raw: Record<string, unknown>): Partial<Record<RoleName, RoleAssignment>> {
+  const result: Partial<Record<RoleName, RoleAssignment>> = {}
+  const explicit =
+    raw.roles && typeof raw.roles === 'object' && !Array.isArray(raw.roles)
+      ? (raw.roles as Record<string, unknown>)
+      : {}
+  const legacy = (raw.models && typeof raw.models === 'object' ? raw.models : {}) as Record<
+    string,
+    unknown
+  >
+  const sources: Partial<Record<RoleName, string>> = {
+    orchestrator: 'planner',
+    executor: 'executor_heavy',
+    reviewer: 'qa',
+  }
+  for (const name of ROLE_NAMES) {
+    if (Object.hasOwn(explicit, name)) {
+      const value = explicit[name]
+      if (value === null) continue // null desasigna también los roles migrables desde models.
+      const obj =
+        value && typeof value === 'object' && !Array.isArray(value)
+          ? (value as Record<string, unknown>)
+          : {}
+      if (
+        !ROLE_AGENTS.includes(obj.agent as (typeof ROLE_AGENTS)[number]) ||
+        typeof obj.model !== 'string' ||
+        !obj.model.trim()
+      ) {
+        warnIgnored(`roles.${name}`, value, ['{ agent, model }'])
+        continue
+      }
+      const assignment: RoleAssignment = {
+        agent: obj.agent as RoleAssignment['agent'],
+        model: obj.model.trim(),
+      }
+      if (typeof obj.effort === 'string' && obj.effort.trim()) assignment.effort = obj.effort.trim()
+      if (typeof obj.provider === 'string' && obj.provider.trim())
+        assignment.provider = obj.provider.trim()
+      result[name] = assignment
+      continue
+    }
+    const from = sources[name]
+    if (!from || legacy[from] === undefined) continue
+    const parsed = parseRoleValue(legacy[from], { provider: '', model: '' })
+    if (!parsed.model.trim()) continue
+    result[name] = { agent: 'api', model: parsed.model, provider: parsed.provider }
+  }
+  return result
+}
+
+export class RoleUnassignedError extends Error {
+  constructor(role: RoleName) {
+    super(`Rol '${role}' sin asignar: elígelo en Settings → Model routing`)
+    this.name = 'RoleUnassignedError'
+  }
+}
+
+export function resolveRole(cfg: OrcheConfig, role: RoleName): RoleAssignment {
+  const assignment = cfg.roles[role]
+  if (!assignment) throw new RoleUnassignedError(role)
+  return assignment
 }
 
 /** Avisa en vez de descartar en silencio — un typo no debe cambiar el agente sin decirlo. */
@@ -226,6 +294,13 @@ models:
 # Optional: K.4b — segundo juez adversarial después de que el QA normal pase
 # (VERIFIED/CAVEATS/REFUTED). Dobla el costo de QA por tarea que pasa — opt-in.
 # adversarialQA: true
+
+# Model routing por rol (MR.1); sin asignaciones por defecto.
+# roles:
+#   orchestrator: { agent: claude, model: claude-sonnet-4-5, effort: medium }
+#   executor: { agent: codex, model: gpt-6-luna, effort: medium }
+#   reviewer: { agent: api, model: openai/gpt-4.1, provider: openrouter }
+#   auxiliary: { agent: opencode, model: anthropic/claude-sonnet-4-5 }
 
 # Optional: I.3 — qué agente/CLI corre cada tarea, por proyecto (no por chat).
 # Precedencia: taskAgentRules > agent (arriba) > cascada automática. Primera

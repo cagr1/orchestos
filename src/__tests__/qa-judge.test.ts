@@ -15,6 +15,7 @@ function freshLogger() {
 function makeConfig(qa?: { provider: string; model: string }): OrcheConfig {
   return {
     config_version: 1,
+    roles: {},
     models: {
       planner: { provider: 'openrouter', model: 'm' },
       executor_heavy: { provider: 'openrouter', model: 'm' },

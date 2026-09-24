@@ -277,6 +277,7 @@ describe('harness spec gate', () => {
         logger: log,
         orcheConfig: {
           config_version: 1,
+          roles: {},
           requireSpec: true,
           models: {
             planner: { provider: 'openrouter', model: 'x' },
@@ -330,6 +331,7 @@ describe('harness spec gate', () => {
         logger: log,
         orcheConfig: {
           config_version: 1,
+          roles: {},
           requireSpec: true,
           models: {
             planner: { provider: 'openrouter', model: 'x' },
@@ -384,6 +386,7 @@ describe('harness spec gate', () => {
         dryRun: true,
         orcheConfig: {
           config_version: 1,
+          roles: {},
           requireSpec: true,
           models: {
             planner: { provider: 'openrouter', model: 'x' },
@@ -429,6 +432,7 @@ describe('harness spec gate', () => {
         dryRun: true,
         orcheConfig: {
           config_version: 1,
+          roles: {},
           requireSpec: false,
           models: {
             planner: { provider: 'openrouter', model: 'x' },

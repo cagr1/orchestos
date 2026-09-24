@@ -52,6 +52,7 @@ describe('classifyTask', () => {
 // ── autoRoute ─────────────────────────────────────────────────────────────────
 const baseConfig: OrcheConfig = {
   config_version: 1,
+  roles: {},
   models: {
     planner: { provider: 'anthropic', model: 'claude-opus-4-7' },
     executor_heavy: { provider: 'openrouter', model: 'deepseek/deepseek-r1' },
