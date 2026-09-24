@@ -22,7 +22,9 @@ la nueva categoría y conserva su historial.
 
 ### Mínimo
 
-_(vacía — `#1` graduado a PLAN.md § Sprint 25 / Bloque N el 2026-07-30)_
+_(`#1` graduado a PLAN.md § Sprint 25 / Bloque N el 2026-07-30)_
+
+1. `#69` Files del inspector: las carpetas no se expanden (bug, 2026-09-24).
 
 ### Bajo
 
@@ -55,6 +57,7 @@ Bajo-medio en curso, Sprint 27)_
 7. `#34` `orchestos audit`.
 8. `#47` Auto-split por tamaño estimado.
 9. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
+10. `#70` Changes en vivo estilo VS Code (Source Control + color en Files).
 
 _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Sprint 29
 (orquestador real) el 2026-08-16 — eran partes de un mismo eje estructural, no ideas sueltas.)_
@@ -1655,3 +1658,21 @@ contenga el cierre de ese ítem en git, en vez de exigir que no estuviera cerrad
 manual). Además, `agent:live-gate` exige que el archivo de evidencia esté citado **en la misma
 línea** que "Gate en vivo:" (`agent-governance.ts:123`); partirla en dos líneas lo rechaza sin decir
 por qué. Ya van dos veces: candidato a arreglo.
+**Tercera vez el 2026-09-24 en `CI.4`:** el pre-commit rechazó por `ledger:gate` y luego `scope:check`; tras editar
+`PLAN.md`, `plan:reconcile` falló en `plan-import.ts:147`. Misma salida manual.
+
+### `#69` / `#70` — Inspector derecho: Files y Changes como VS Code (2026-09-24, observación de Carlos)
+
+**`#69` (bug, Mínimo).** En Dev → inspector → Files, clic en una carpeta no muestra su contenido.
+Causa leída en el código: `loadTree` pide solo la raíz (`getExplorerTree('', …)`,
+`OrcaRightInspector.tsx:88`) y `toggleFolder` (`:109`) solo cambia `expandedFolders`; el render
+exige `node.children` (`:206`), que nadie carga nunca (`getExplorerTree` no devuelve `children`,
+`api/explorer.ts:26`). Arreglo: al expandir, pedir `getExplorerTree(node.path)` y colgar los hijos.
+No verificado en vivo todavía.
+
+**`#70` (Medio).** Pedido de Carlos: la pestaña diff = "Changes" de VS Code. Debe listar **todos**
+los archivos modificados del proyecto en tiempo real (working tree de git, no solo agentes), con su
+diff, y Files debe colorear esos archivos (y sus carpetas) igual que VS Code (M/A/D/U). Hoy la
+pestaña solo muestra `fileDiffs` persistidos de runs (`OrcaRightInspector.tsx:402-427`, "No
+persisted file diffs for this project."), así que un cambio a mano o de un CLI externo no aparece.
+Depende de `#69` para el coloreo dentro de carpetas.
