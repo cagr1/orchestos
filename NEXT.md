@@ -3,6 +3,8 @@
 ## UI.13.5 CERRADO 2026-09-23 — siguiente: abrir Lote L3 (UI.9.9 → UI.9.8 → UI.10.A)
 3 rondas de Luna; evidencia `docs/done/evidence/UI.13.5-live.json`. Lección: el flujo de r2 pasaba con un clic manual
 del propio gate; medir el fin del turno con la respuesta de `POST /api/chat` y exigir la petición en ≤5 s sin clic.
+Lección 2: commitear el spec al lanzar a Luna — el plan gate exige que el cierre haga `git rm` del spec; UI.13.5 lo tuvo
+sin versionar y hubo que reconstruirlo (3695cfc).
 
 ## Siguiente tab — Lote L2 CERRADO (2026-09-23); abrir L3
 L2: UI.13.2e, UI.13.2f, UI.13.3 cerrados y pusheados. Siguiente según PLAN.md § Rumbo Fase 1: **UI.13.5 primero** (cuotas de la barra
