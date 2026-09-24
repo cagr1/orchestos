@@ -1,5 +1,15 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Lote L3 (abierto 2026-09-23, pedido de Carlos)
+Orden: UI.13.6 → UI.9.9 → UI.9.8 → UI.10.A. Mismo flujo y paradas que L1/L2; spec commiteado al lanzar a Luna.
+| ítem | rondas Luna | gate | SHA | min |
+|---|---|---|---|---|
+| UI.13.6 | 1 (su "gate:all falló" era el sandbox, EADDRINUSE; fuera, solo el test inestable `context-adapters:187`, 2.ª corrida verde) | usage-bar 13/13 · smoke 6/6 · test:coverage 1527/0 | f723a51 | ~45 |
+Lecciones L3: (1) el `--scope` del preflight necesita globs (`src/dashboard/**`): un directorio pelado no cubre sus
+archivos; (2) incluir `NEXT.md` en el scope; (3) el preflight no se puede re-correr sobre un ítem ya `[x]`: si el
+scope quedó corto, línea "**Fuera de scope declarado:**" en el ítem; (4) `check-live-gate` exige la frase
+"Gate en vivo: …Playwright" y la cita del `.json` de evidencia en la MISMA línea.
+
 ## Hallazgos post-cierre UI.13.5 (2026-09-23) — primero en L3, como UI.13.6
 1. Codex sin cuota en proyectos sin sesión de Codex: `scripts/session-status.ts` solo llama `readCodexRateLimitsLive`
    si hay sesión de Codex del proyecto (`liveCodex`); Claude sí tiene respaldo de cuenta (`claudeStatusline && !found.has`).
