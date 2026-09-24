@@ -1,18 +1,18 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — MR.1 (Model routing por rol con CLI) — preparado 2026-09-24
-L4: CI.4 (`046a11f`) y CI.2 (`1168d96`) cerrados. **GO de Carlos a los 4 roles** (Orquestador/Ejecutor/Revisor/
-Auxiliar). CI.5 cerrado 2026-09-24 (`dd2e383`, CI verde). Ojo al escribir tests: Bun no ve cambios en runtime a
-`process.env` ni en `homedir()` ni en `Bun.spawn*` (PLAN.md § CI.5). Diseño, hardcodes a borrar y plan de sub-ítems en PLAN.md § MR.1 (no re-diagnosticar). Siguiente paso:
-spec de **MR.1.a** (config + migración + catálogo único) → Luna → gate → commit; luego MR.1.b/c/d. Sub-ítems MR.1.x se
-crean en PLAN.md al escribir cada spec. Preflight con `--scope` en globs. MR.1 toca varios módulos: ya tiene GO de
-diseño; cada spec no necesita otra confirmación salvo decisión de producto no prevista.
-Después de MR.1: **UI.13.7** (colores de cuota; PLAN.md § UI.13.7). Pendientes de Carlos en IDEAS.md: `#69` (Files no
-expande carpetas), `#70` (Changes en vivo estilo VS Code).
-Conocido: `runs-graph` rojo ~1/3 por el juez QA `gpt-4o-mini` hasta que cierre MR.1.b; si bloquea un push, reintentar.
-Lecciones L4: (7) Luna corrió `orchestos init` sobre este repo y pisó `AGENTS.md` (lo restauró): prohibirlo en cada
-spec; (8) la evidencia JSON armada a mano necesita `biome format --write` o el pre-push cae en lint; (9) `#68`
-(reconcile tras commit rechazado) ya van 3: su salida manual está en IDEAS.md.
+## Siguiente tab — MR.1.b (ejecución por rol + borrar 4 hardcodes) — preparado 2026-09-24
+MR.1.a cerrado (`53f2ee6`): `cfg.roles` + `resolveRole()`/`RoleUnassignedError` (`src/config/load.ts`), GET/PUT
+`roleAssignments`, `GET /api/models/catalog`. `models.*` y `DEFAULT_CONFIG.models` siguen vivos: MR.1.b migra
+consumidores (autoRoute, QA `harness.ts:172`, `diagnose.ts:166`, `memory/judge.ts:118`, `spec/draft.ts:177`) a
+`resolveRole`, ejecuta Claude/Codex/OpenCode/API por rol (Revisor/Auxiliar solo lectura) y retira `models.*`.
+Diseño en PLAN.md § MR.1. Siguiente: spec MR.1.b → Luna → gate → commit.
+Aprendido en MR.1.a: (1) `agent:preflight` solo ve ítems de primer nivel → Luna corre con `--item MR.1`; (2) PLAN.md
+se renderiza desde DB: tras editar, `bun run plan:reconcile`; (3) `--no-verify` autorizado por Carlos SOLO para los
+commits de MR.1.a y MR.1.b (live-gate exige navegador; sin UI). Correr a mano antes: `bunx tsc --noEmit`,
+`bun run plan:render -- --check`, `bun run test:coverage`. MR.1.c (UI) cierra MR.1 con gate en navegador;
+(4) el cerebro no parchea código ni por Bash: todo arreglo va como ronda N del spec.
+Después de MR.1: **UI.13.7**. Pendientes de Carlos en IDEAS.md: `#69`, `#70`. `runs-graph` rojo ~1/3 por el juez
+`gpt-4o-mini` hasta que cierre MR.1.b.
 
 ## Lote L4 (abierto 2026-09-24)
 Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write
