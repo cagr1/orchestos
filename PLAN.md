@@ -20,7 +20,7 @@ sin peso extra y con reglas claras.
 
 ### Fase 1 — Terminar la interfaz (plantilla React de AI Studio, regla UI.13)
 UI.13.4 (queda 4c: razonamiento/herramientas/tarea retenida en el chat) → UI.13 (pantallas restantes: Tasks/Runs/
-Graph → Memory/Specs/Skills/Instincts/Plan → borrar vanilla) → UI.13.5 (cuotas de la barra inferior al día) → UI.9.9 (opciones de proyecto al hover) → UI.9.8
+Graph → Memory/Specs/Skills/Instincts/Plan → borrar vanilla) → UI.13.5 (cuotas de la barra inferior al día) → UI.13.6 (cuota de Codex sin sesión, ventana vencida) → UI.9.9 (opciones de proyecto al hover) → UI.9.8
 (texto que no aporta) → UI.10.A (plan por proyecto) → CI.2 (ui-gates exigibles). Pendiente de UI.14: verificar en
 vivo el selector nativo de nuevo proyecto.
 
@@ -216,6 +216,15 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Ejecutado por: luna (3 rondas; r2 rechazada: el paso del turno hacía clic manual) · Spec: docs/specs/UI.13.5.md (borrado al cerrar).
   El cerebro añadió el borrado de archivos de sesión de statusline >7 días.
   Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 9/9 + `smoke` 6/6) — `docs/done/evidence/UI.13.5-live.json`.
+- [ ] **UI.13.6 — 🧠 La cuota de Codex aparece siempre y una ventana vencida cuenta como libre.** (abierto 2026-09-23, pedido de Carlos; Lote L3)
+  Hallazgos post-cierre de UI.13.5 (NEXT.md): (1) `scripts/session-status.ts:196-203` solo llama
+  `readCodexRateLimitsLive` si el proyecto tiene sesión de Codex (`liveCodex`); Claude sí tiene respaldo de cuenta
+  (`:230`). Reproducido con Playwright: proyecto temporal + turno real Codex Luna → barra `86% — —` antes y después.
+  (2) `ShellStatusBar.tsx:36-38` devuelve `null` ("—") si `resetsAt` ya pasó; tras el reset la cuota está 100 % libre.
+  (3) `src/dashboard/http.ts:62` sirve `/app/dist/*` (y el `index.html`) sin `Cache-Control` ni hash → Brave mostró
+  un bundle viejo (sospecha, no verificado en Brave). Arreglo: `Cache-Control: no-cache`.
+  Gate: `ui:gate` con proyecto temporal SIN sesiones de Codex → la barra muestra la cuota de Codex antes y después de
+  un turno real; ventana con `resets_at` pasado → 100 %; respuestas de `/app/dist/main.js` y `/` con `no-cache`.
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir

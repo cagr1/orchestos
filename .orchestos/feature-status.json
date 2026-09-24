@@ -67,6 +67,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.13.6",
+      "sprint": "Fase 1 — Terminar la interfaz",
+      "block": null,
+      "delegation": "🧠",
+      "title": "La cuota de Codex aparece siempre y una ventana vencida cuenta como libre",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.9.9",
       "sprint": "Fase 1 — Terminar la interfaz",
       "block": null,
