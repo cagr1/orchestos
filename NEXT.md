@@ -1,5 +1,14 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Siguiente tab — Lote L3 CERRADO (2026-09-24); abrir L4
+Los 4 ítems cerrados y pusheados. Siguiente según PLAN.md § Rumbo: CI.2 (ui-gates exigibles).
+Pendiente para Carlos (no bloquea): 92 textos dudosos en `docs/done/evidence/UI.9.8-sweep.md`; archivo suelto
+`.orchestos/adversarial-review-state.json` (lo dejó un test en la corrida de Luna; ¿ignorar o borrar?).
+Lecciones L3 extra: (5) Luna re-corre el preflight hasta sobre OTRO ítem (CI.2) y pisa `.orchestos/active-item.json`:
+revisar `scope:check` antes del commit; (6) los flujos que registran proyecto sin `page.reload` fallan al azar —
+arreglado en todos; flujo nuevo = recargar tras registrar; (7) el test `context-adapters.test.ts:187` falló 2 de 4
+corridas de `test:coverage` hoy: ya no es raro, merece ítem propio.
+
 ## Lote L3 (abierto 2026-09-23, pedido de Carlos)
 Orden: UI.13.6 → UI.9.9 → UI.9.8 → UI.10.A. Mismo flujo y paradas que L1/L2; spec commiteado al lanzar a Luna.
 | ítem | rondas Luna | gate | SHA | min |
