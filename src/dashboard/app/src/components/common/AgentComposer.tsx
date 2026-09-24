@@ -133,28 +133,6 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         setIsLoadingModels(false)
       },
     )
-    void fetch('/api/session/status')
-      .then((response) =>
-        response.ok
-          ? (response.json() as Promise<{ clis?: Array<{ id: string; installed: boolean }> }>)
-          : { clis: [] },
-      )
-      .then((status) => {
-        if (disposed) return
-        setAvailableClis((current) => {
-          const known = new Set(current.map((cli) => cli.id))
-          return [
-            ...current,
-            ...CLIS.filter(
-              (cli) =>
-                !known.has(cli.id) &&
-                (cli.id === lockedCli ||
-                  status.clis?.some((item) => item.installed && item.id === cli.id)),
-            ),
-          ]
-        })
-      })
-      .catch(() => undefined)
     return () => {
       disposed = true
     }

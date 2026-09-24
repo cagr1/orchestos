@@ -195,7 +195,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate en vivo: `docs/done/evidence/UI.13.3-live.json` — smoke 6/6 · tasks 13/13 · runs-graph 16/16 ·
   project-tabs 23/23 · chat-turn-details 26/26; `gate:all` 1518 pass / 0 fail (baja de 1534 = tests borrados;
   cobertura sobre umbral). Resto inofensivo: `.impeccable/config.json` ignora `public/screens.css` (ya no existe).
-- [ ] **UI.13.5 — 🧠 La barra inferior muestra las cuotas al día, no solo al recargar.** (abierto 2026-09-23, pedido de Carlos)
+- [x] **UI.13.5 — 🧠 La barra inferior muestra las cuotas al día, no solo al recargar.** (abierto 2026-09-23, pedido de Carlos; cerrado 2026-09-23 — `ui:gate usage-bar` 9/9, evidencia `docs/done/evidence/UI.13.5-live.json`)
   Síntoma: los usages de la barra inferior solo aparecen o se actualizan al recargar la página. Causa verificada en código
   y con Playwright contra `:4242`: (1) `handleApiSessionStatus` (`src/dashboard/handlers/session-status.ts:30-33`)
   devuelve la caché y refresca en segundo plano → cada respuesta trae el estado de la petición anterior; (2) el cliente
@@ -213,6 +213,9 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   `gfc-*`/`ruby-check` que escriben la DB real; backup en `/tmp/l2/db-backup-before-orphans.sqlite`). Falta el diente:
   el runner de ui:gate borra al arrancar los proyectos `orchestos-ui-*` de corridas previas.
   Gate: flujo ui:gate que tras un turno real ve cambiar la cuota sin recargar, y 1 sola petición con proyecto al cargar.
+  Ejecutado por: luna (3 rondas; r2 rechazada: el paso del turno hacía clic manual) · Spec: docs/specs/UI.13.5.md (borrado al cerrar).
+  El cerebro añadió el borrado de archivos de sesión de statusline >7 días.
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 9/9 + `smoke` 6/6) — `docs/done/evidence/UI.13.5-live.json`.
 - [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir

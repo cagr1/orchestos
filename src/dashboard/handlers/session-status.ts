@@ -3,9 +3,11 @@ import { jsonResponse } from '../http.ts'
 
 const statusCache = new Map<
   string,
-  { clis: Awaited<ReturnType<typeof readActiveSessionStatuses>> }
+  { clis: Awaited<ReturnType<typeof readActiveSessionStatuses>>; refreshedAt: number }
 >()
 const statusRefreshes = new Map<string, Promise<void>>()
+const STATUS_CACHE_MAX_AGE_MS = 10_000
+const STATUS_REFRESH_TIMEOUT_MS = 3_000
 
 /**
  * H.7.5 — métricas de la sesión interactiva más reciente del proyecto.
@@ -21,14 +23,28 @@ export async function handleApiSessionStatus(root: string): Promise<Response> {
     if (pending) return pending
     const promise = readActiveSessionStatuses({ projectRoot: root })
       .then((clis) => {
-        statusCache.set(cacheKey, { clis })
+        statusCache.set(cacheKey, { clis, refreshedAt: Date.now() })
       })
       .finally(() => statusRefreshes.delete(cacheKey))
     statusRefreshes.set(cacheKey, promise)
     return promise
   }
   if (cached) {
-    void refresh()
+    if (Date.now() - cached.refreshedAt > STATUS_CACHE_MAX_AGE_MS) {
+      await Promise.race([
+        refresh(),
+        new Promise<void>((resolve) => setTimeout(resolve, STATUS_REFRESH_TIMEOUT_MS)),
+      ])
+      const refreshed = statusCache.get(cacheKey)
+      if (refreshed) {
+        return jsonResponse({
+          available: refreshed.clis.some((cli) => cli.available),
+          clis: refreshed.clis,
+        })
+      }
+    } else {
+      void refresh()
+    }
     return jsonResponse({ available: cached.clis.some((cli) => cli.available), clis: cached.clis })
   }
   await refresh()

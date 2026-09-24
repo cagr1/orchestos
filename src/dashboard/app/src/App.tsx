@@ -709,8 +709,11 @@ export default function App() {
               : thread,
           ),
         )
+        void refreshUsage()
       })
-      .catch(() => undefined)
+      .catch(() => {
+        void refreshUsage()
+      })
   }
 
   const handleApproveHeldTask = async (taskId: string) => {
@@ -738,6 +741,7 @@ export default function App() {
         prev.map((item) => (item.id === thread.id ? { ...item, messages } : item)),
       )
     }
+    await refreshUsage()
   }
 
   const handleRunNextTask = async () => {
@@ -762,6 +766,7 @@ export default function App() {
         .catch(() => undefined)
     } finally {
       setRunningTaskId(null)
+      await refreshUsage()
     }
   }
 
@@ -1000,6 +1005,7 @@ export default function App() {
                   await reloadTabs()
                 } finally {
                   setRunningTaskId(null)
+                  await refreshUsage()
                 }
               }}
               onExplainTask={handleExplainTask}

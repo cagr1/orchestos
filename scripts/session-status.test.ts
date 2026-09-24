@@ -1,14 +1,24 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   discoverSessionTranscripts,
   readActiveSessionStatus,
   readActiveSessionStatuses,
+  readClaudeStatuslineRateLimits,
 } from './session-status.ts'
 
 const roots: string[] = []
+const originalStatuslineHome = process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME
 const temp = (prefix: string) => {
   const path = mkdtempSync(join(tmpdir(), prefix))
   roots.push(path)
@@ -16,6 +26,8 @@ const temp = (prefix: string) => {
 }
 
 afterEach(() => {
+  if (originalStatuslineHome === undefined) delete process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME
+  else process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = originalStatuslineHome
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
@@ -100,5 +112,61 @@ describe('session status', () => {
     })
 
     expect(reads).toBe(paths.length)
+  })
+
+  test('combina statuslines de varias sesiones por ventana y descarta lecturas viejas', async () => {
+    const home = temp('orchestos-statusline-merge-')
+    const directory = join(home, 'claude-statusline')
+    mkdirSync(directory)
+    const reset = Math.floor(Date.now() / 1000) + 3600
+    const write = (session: string, used: number, resetsAt = reset) =>
+      writeFileSync(
+        join(directory, `${session}.json`),
+        JSON.stringify({
+          rate_limits: { five_hour: { used_percentage: used, resets_at: resetsAt } },
+        }),
+      )
+    write('old-session', 33)
+    write('new-session', 39)
+    write('reset-session', 10, reset + 3600)
+
+    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = home
+    const result = readClaudeStatuslineRateLimits(home)
+    expect(result?.windows).toEqual([
+      expect.objectContaining({ usedPct: 10, resetsAt: reset + 3600, remainingPct: 90 }),
+    ])
+  })
+
+  test('con el mismo reset gana el mayor uso y borra sesiones de más de 7 días', async () => {
+    const home = temp('orchestos-statusline-same-reset-')
+    const directory = join(home, 'claude-statusline')
+    mkdirSync(directory)
+    const reset = Math.floor(Date.now() / 1000) + 3600
+    const write = (session: string, used: number) =>
+      writeFileSync(
+        join(directory, `${session}.json`),
+        JSON.stringify({ rate_limits: { five_hour: { used_percentage: used, resets_at: reset } } }),
+      )
+    write('old-session', 33)
+    write('new-session', 39)
+    write('stale-session', 90)
+    const eightDaysAgo = (Date.now() - 8 * 24 * 60 * 60 * 1000) / 1000
+    utimesSync(join(directory, 'stale-session.json'), eightDaysAgo, eightDaysAgo)
+
+    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = home
+    const result = readClaudeStatuslineRateLimits(home)
+    expect(result?.windows).toEqual([expect.objectContaining({ usedPct: 39, remainingPct: 61 })])
+    expect(existsSync(join(directory, 'stale-session.json'))).toBe(false)
+  })
+
+  test('mantiene el archivo legacy cuando no existen archivos por sesión', async () => {
+    const home = temp('orchestos-statusline-legacy-')
+    writeFileSync(
+      join(home, 'claude-statusline.json'),
+      JSON.stringify({ rate_limits: { five_hour: { used_percentage: 39 } } }),
+    )
+    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = home
+    const result = readClaudeStatuslineRateLimits(home)
+    expect(result?.windows[0]).toMatchObject({ usedPct: 39, remainingPct: 61 })
   })
 })

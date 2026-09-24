@@ -10,10 +10,12 @@ import {
   closeSync,
   existsSync,
   openSync,
+  readdirSync,
   readFileSync,
   readSync,
   realpathSync,
   statSync,
+  unlinkSync,
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -46,14 +48,12 @@ export interface SessionStatusResponse {
   clis: SessionStatus[]
 }
 
-function readClaudeStatuslineRateLimits(agentHome = homedir()): {
+type ClaudeStatuslineReading = {
   windows: import('./context-adapters.ts').RateLimitWindow[]
   observedAt: string
-} | null {
-  const path = join(
-    process.env.ORCHESTOS_HOME ?? join(agentHome, '.orchestos'),
-    'claude-statusline.json',
-  )
+}
+
+function readClaudeStatuslineFile(path: string): ClaudeStatuslineReading | null {
   try {
     const stat = statSync(path)
     const payload = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
@@ -66,16 +66,18 @@ function readClaudeStatuslineRateLimits(agentHome = homedir()): {
       const usedPct = record.used_percentage
       if (typeof usedPct !== 'number' || !Number.isFinite(usedPct) || usedPct < 0 || usedPct > 100)
         return []
+      const resetsAt =
+        typeof record.resets_at === 'number' && Number.isFinite(record.resets_at)
+          ? record.resets_at
+          : null
+      if (resetsAt !== null && resetsAt * 1000 <= Date.now()) return []
       return [
         {
           id,
           usedPct,
           remainingPct: 100 - usedPct,
           windowMinutes: id === 'five_hour' ? 300 : 10080,
-          resetsAt:
-            typeof record.resets_at === 'number' && Number.isFinite(record.resets_at)
-              ? record.resets_at
-              : null,
+          resetsAt,
         },
       ]
     })
@@ -83,6 +85,66 @@ function readClaudeStatuslineRateLimits(agentHome = homedir()): {
   } catch {
     return null
   }
+}
+
+const STATUSLINE_SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
+function statuslineHome(agentHome: string): string {
+  return (
+    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME ??
+    process.env.ORCHESTOS_HOME ??
+    join(agentHome, '.orchestos')
+  )
+}
+
+/** Selects the newest monotonic value for each Claude quota window. */
+export function readClaudeStatuslineRateLimits(
+  agentHome = homedir(),
+): ClaudeStatuslineReading | null {
+  const home = statuslineHome(agentHome)
+  const directory = join(home, 'claude-statusline')
+  let paths: string[] = []
+  try {
+    paths = readdirSync(directory)
+      .filter((name) => name.endsWith('.json'))
+      .map((name) => join(directory, name))
+      .filter((path) => {
+        // A session file older than the longest window (7 days) can no longer win: drop it.
+        try {
+          if (Date.now() - statSync(path).mtimeMs <= STATUSLINE_SESSION_MAX_AGE_MS) return true
+          unlinkSync(path)
+        } catch {
+          // Another reader removed it first.
+        }
+        return false
+      })
+  } catch {
+    // Fall back to the pre-UI.13.5 single-file format.
+  }
+  if (paths.length === 0) paths = [join(home, 'claude-statusline.json')]
+
+  const readings = paths
+    .map((path) => readClaudeStatuslineFile(path))
+    .filter((reading): reading is ClaudeStatuslineReading => reading !== null)
+  if (readings.length === 0) return null
+
+  const byWindow = new Map<string, import('./context-adapters.ts').RateLimitWindow>()
+  for (const reading of readings) {
+    for (const window of reading.windows) {
+      const current = byWindow.get(window.id)
+      if (
+        !current ||
+        (window.resetsAt ?? 0) > (current.resetsAt ?? 0) ||
+        ((window.resetsAt ?? 0) === (current.resetsAt ?? 0) && window.usedPct > current.usedPct)
+      ) {
+        byWindow.set(window.id, window)
+      }
+    }
+  }
+  const newest = readings.reduce((latest, reading) =>
+    reading.observedAt > latest.observedAt ? reading : latest,
+  )
+  return { windows: [...byWindow.values()], observedAt: newest.observedAt }
 }
 
 interface SessionStatusOptions {

@@ -67,18 +67,6 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
 
   const quotas = mapQuotas(status)
 
-  useEffect(() => {
-    if (incomingStatus) return
-    const controller = new AbortController()
-    void fetch('/api/session/status', { signal: controller.signal })
-      .then((response) => (response.ok ? (response.json() as Promise<SessionStatus>) : null))
-      .then((next) => {
-        if (next) setStatus(next)
-      })
-      .catch(() => undefined)
-    return () => controller.abort()
-  }, [incomingStatus])
-
   // Close floating panel on outside click and Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

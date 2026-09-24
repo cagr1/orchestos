@@ -13,10 +13,12 @@ import { formatResult, lintFlowSource } from './lib.mjs'
 
 const flows = process.argv.slice(2)
 const runDir = path.join(os.tmpdir(), `ui-gate-${process.pid}`)
+const statuslineHome = path.join(runDir, 'claude-statusline-home')
 const dashboardLog = path.join(runDir, 'dashboard.log')
 let dashboard
 let dashboardLogFd
 let cleaning = false
+const pendingCleanups = []
 
 function stdout(line) {
   process.stdout.write(`${line}\n`)
@@ -79,9 +81,30 @@ process.on('exit', () => {
 })
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, async () => {
+    for (const cleanupFn of pendingCleanups.splice(0).reverse()) {
+      try {
+        await cleanupFn()
+      } catch (error) {
+        process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
+      }
+    }
     await cleanup()
     process.exit(1)
   })
+}
+
+async function removeOrphanedUiProjects(base) {
+  const response = await fetch(`${base}/api/projects`)
+  if (!response.ok) return
+  const projects = await response.json()
+  const tempRoot = path.resolve(os.tmpdir())
+  const prefix = `${tempRoot}${path.sep}orchestos-ui-`
+  for (const project of Array.isArray(projects) ? projects : []) {
+    const projectPath = typeof project.path === 'string' ? path.resolve(project.path) : ''
+    if (!projectPath.startsWith(prefix)) continue
+    await fetch(`${base}/api/projects/${encodeURIComponent(project.id)}`, { method: 'DELETE' })
+    await fsp.rm(projectPath, { recursive: true, force: true })
+  }
 }
 
 async function waitForHealth(base) {
@@ -126,6 +149,7 @@ async function runFlow(name, base) {
     const ctx = {
       page,
       base,
+      statuslineHome,
       api: async (apiPath, init = {}) => {
         const response = await fetch(`${base}${apiPath}`, {
           ...init,
@@ -170,7 +194,10 @@ async function runFlow(name, base) {
         await page.screenshot({ path: shotPath })
         result.capturas.push(shotPath)
       },
-      cleanup: (fn) => cleanups.push(fn),
+      cleanup: (fn) => {
+        cleanups.push(fn)
+        pendingCleanups.push(fn)
+      },
       consoleErrors: () => [...unexpectedErrors],
       expectHttpError: (pattern) =>
         expectedHttpErrors.push(pattern instanceof RegExp ? pattern : new RegExp(pattern)),
@@ -191,8 +218,11 @@ async function runFlow(name, base) {
         result.errores.push(error instanceof Error ? error.message : String(error))
         result.pass = false
       }
+      const index = pendingCleanups.indexOf(cleanupFn)
+      if (index >= 0) pendingCleanups.splice(index, 1)
     }
     if (browser) await browser.close()
+    result.pass = result.steps.every((step) => step.ok) && result.errores.length === 0
   }
   return result
 }
@@ -205,10 +235,12 @@ async function main() {
   }
 
   await fsp.mkdir(runDir, { recursive: true })
+  await fsp.mkdir(statuslineHome, { recursive: true })
   const port = await freePort()
   dashboardLogFd = fs.openSync(dashboardLog, 'a')
   dashboard = spawn('bun', ['run', 'src/cli.ts', 'dashboard', '--port', String(port)], {
     cwd: process.cwd(),
+    env: { ...process.env, ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome },
     stdio: ['ignore', dashboardLogFd, dashboardLogFd],
   })
   const base = `http://127.0.0.1:${port}`
@@ -223,6 +255,11 @@ async function main() {
     })
     stdout('FAIL boot: health timeout')
   } else {
+    try {
+      await removeOrphanedUiProjects(base)
+    } catch (error) {
+      stdout(`WARN orphan cleanup: ${error instanceof Error ? error.message : String(error)}`)
+    }
     for (const name of flows) {
       const result = await runFlow(name, base)
       results.push(result)

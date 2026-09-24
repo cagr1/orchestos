@@ -1,33 +1,71 @@
 {
   "item": "UI.13.5",
-  "date": "2026-09-22",
-  "runner": "cerebro (Opus) — Playwright contra dashboard real :4330 y plantilla :3000",
-  "captures": "scripts/ui-fidelity/capture.mjs, 29 estados x (plantilla, app, lado a lado)",
-  "statusBar": {
-    "buttons": 3,
-    "icons": "SVG del vanilla por cli.icon",
-    "shows": "cuota 5h restante; — sin dato o vencida",
-    "panel": "flotante, 5h + semanal + reinicio / sin datos desde",
-    "sidebarQuotas": false,
-    "contextInBar": false
+  "date": "2026-09-23",
+  "executor": "luna (3 rondas)",
+  "integrator": "claude-opus-5-5",
+  "spec": "docs/specs/UI.13.5.md (borrado al cerrar)",
+  "rounds": {
+    "r1": "8/8 con 2 pasos vacíos (header no verificado; refresco tras turno lo cumplía el intervalo de 60 s)",
+    "r2": "9/9 rechazado: el paso del turno hacía clic manual en Refresh usage; guard usageLoadedProjectRef rompía intervalo/visibilitychange con StrictMode; onAssistantVisible en deps re-disparaba scrollIntoView en cada render",
+    "r3": "aceptado; el cerebro añadió borrado de archivos de sesión >7 días + test (punto 4 del spec)"
   },
-  "header": "proyecto / rama real (git rev-parse)",
-  "inspector": {
-    "files": "rama, Names|Contents, tamaños, preview",
-    "diff": "tarjeta por archivo, +38 −0 correcto, sin cabecera Index:",
-    "history": "icono de CLI por sesión"
+  "gate": {
+    "script": "scripts/ui-gate/flows/usage-bar.mjs",
+    "runner": "bun run ui:gate usage-bar (dashboard real, statusline en ORCHESTOS_CLAUDE_STATUSLINE_HOME del gate)",
+    "result": "9/9 PASS",
+    "steps": [
+      {
+        "nombre": "temporary project is visible",
+        "ok": true,
+        "detalle": "project in sidebar"
+      },
+      {
+        "nombre": "one status request carries project id",
+        "ok": true,
+        "detalle": "requests=1, header=e9441b0836752c67, expected=e9441b0836752c67"
+      },
+      {
+        "nombre": "Claude quota uses newest session reading",
+        "ok": true,
+        "detalle": "61% remaining in status bar"
+      },
+      {
+        "nombre": "manual usage refresh keeps the newest Claude quota",
+        "ok": true,
+        "detalle": "response=true, saw61=true, saw67=false"
+      },
+      {
+        "nombre": "Codex chat option visible",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Luna model visible",
+        "ok": true,
+        "detalle": "gpt-5.6-luna"
+      },
+      {
+        "nombre": "medium effort visible",
+        "ok": true,
+        "detalle": "medium"
+      },
+      {
+        "nombre": "usage refreshes after a real turn",
+        "ok": true,
+        "detalle": "chatResponse=true, usage-bar-ok=true, refresh=true, requests before=2, after=3, requestTimes=1790208497972,1790208501106,1790208515823, responseAt=1790208515763"
+      },
+      {
+        "nombre": "no temporary UI projects remain after cleanup",
+        "ok": true,
+        "detalle": "temporary projects are cleaned after the flow"
+      }
+    ],
+    "errores": []
   },
-  "settings": { "health": "All prerequisites met, sin Loading eterno" },
-  "runs": {
-    "model": "real (agentModel)",
-    "nullVerdict": "badge neutro —",
-    "passRate": "50.0% sobre evaluados"
-  },
-  "apiChatModels": 200,
-  "errors": "0 pageerror, 0 HTTP>=400 en la app nueva (el 409 de /api/plan sale solo de /legacy/app.js)",
-  "gates": {
-    "typecheck": "ok",
-    "lint": "ok",
-    "test:coverage": "1472 pass / 0 fail; functions 74.08%, lines 62.19%"
+  "suites": {
+    "bun run gate:all": "exit 0",
+    "bun run ui:gate smoke": "6/6 PASS",
+    "bun run test:coverage (Luna r3)": "1522 pass / 0 fail; functions 74.63%, lines 61.68%",
+    "scripts/session-status.test.ts (cerebro, tras el borrado)": "7 pass / 0 fail"
   }
 }

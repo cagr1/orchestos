@@ -42,4 +42,14 @@ describe('claude-statusline-tee', () => {
     expect(result.stdout.toString()).toBe('')
     expect(() => readFileSync(join(home, 'claude-statusline.json'))).toThrow()
   })
+
+  test('persists a session-specific atomic snapshot when Claude provides a session id', () => {
+    const payload = JSON.stringify({
+      session_id: 'session-a',
+      rate_limits: { five_hour: { used_percentage: 39 } },
+    })
+    const { home, result } = runTee(payload)
+    expect(result.exitCode).toBe(0)
+    expect(readFileSync(join(home, 'claude-statusline', 'session-a.json'), 'utf8')).toBe(payload)
+  })
 })
