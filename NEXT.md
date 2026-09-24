@@ -1,5 +1,16 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Hallazgos post-cierre UI.13.5 (2026-09-23) — primero en L3, como UI.13.6
+1. Codex sin cuota en proyectos sin sesión de Codex: `scripts/session-status.ts` solo llama `readCodexRateLimitsLive`
+   si hay sesión de Codex del proyecto (`liveCodex`); Claude sí tiene respaldo de cuenta (`claudeStatusline && !found.has`).
+   Reproducido con Playwright: proyecto temporal + turno real Codex Luna → barra `86% — —` antes y después del turno.
+   Lo tapaban los fetch sin proyecto que quitó UI.13.5 (leían la raíz de orchestos).
+2. Ventana vencida se pinta "—" (`ShellStatusBar.tsx:36`) en vez de 100 %: tras el reset la cuota está libre.
+3. Brave no mostraba la barra y Chrome/Safari sí, con el mismo :4242: `/app/dist/main.js` se sirve sin `Cache-Control`
+   ni hash en el nombre → sospecha de bundle viejo en caché (no verificado en Brave). Arreglo: `Cache-Control: no-cache`.
+Nota de proceso: el cerebro escribió código en `session-status.ts` vía python en Bash (el hook solo mira Write/Edit en
+rutas); no repetir.
+
 ## UI.13.5 CERRADO 2026-09-23 — siguiente: abrir Lote L3 (UI.9.9 → UI.9.8 → UI.10.A)
 3 rondas de Luna; evidencia `docs/done/evidence/UI.13.5-live.json`. Lección: el flujo de r2 pasaba con un clic manual
 del propio gate; medir el fin del turno con la respuesta de `POST /api/chat` y exigir la petición en ≤5 s sin clic.
