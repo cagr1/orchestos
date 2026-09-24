@@ -2,8 +2,8 @@
 
 ## Siguiente tab — MR.1 (Model routing por rol con CLI) — preparado 2026-09-24
 L4: CI.4 (`046a11f`) y CI.2 (`1168d96`) cerrados. **GO de Carlos a los 4 roles** (Orquestador/Ejecutor/Revisor/
-Auxiliar). **Antes que MR.1: CI.5** (CI de GitHub rojo desde 2026-09-23, 5 tests dependientes del host; PLAN.md
-§ CI.5). Diseño, hardcodes a borrar y plan de sub-ítems en PLAN.md § MR.1 (no re-diagnosticar). Siguiente paso:
+Auxiliar). CI.5 cerrado 2026-09-24 (`dd2e383`, CI verde). Ojo al escribir tests: Bun no ve cambios en runtime a
+`process.env` ni en `homedir()` ni en `Bun.spawn*` (PLAN.md § CI.5). Diseño, hardcodes a borrar y plan de sub-ítems en PLAN.md § MR.1 (no re-diagnosticar). Siguiente paso:
 spec de **MR.1.a** (config + migración + catálogo único) → Luna → gate → commit; luego MR.1.b/c/d. Sub-ítems MR.1.x se
 crean en PLAN.md al escribir cada spec. Preflight con `--scope` en globs. MR.1 toca varios módulos: ya tiene GO de
 diseño; cada spec no necesita otra confirmación salvo decisión de producto no prevista.

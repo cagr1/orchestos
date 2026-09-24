@@ -106,6 +106,10 @@ solo se manifestaban fuera del Mac:
    `scripts/check-coverage.ts` se calibran contra el número del **log de CI**, con
    margen, y solo suben.
 
+3. (CI.5, 2026-09-24) Bun **no ve** cambios a `process.env` hechos en runtime: ni `os.homedir()` tras
+   `process.env.HOME = …`, ni `Bun.spawn`/`spawnSync` sin `env` explícito. Un test que los muta lee el host
+   real del Mac. Pasar el env al spawn, o escribir la config en el fixture temporal.
+
 Corolario que costó semanas: un CI que falla siempre deja de dar señal. Si CI está
 rojo, arreglarlo es prioridad — no ruido de fondo. Y `Mutation Shards` rojo casi nunca
 es un problema de mutación: Stryker aborta con "failed tests in the initial test run"
