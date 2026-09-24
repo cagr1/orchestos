@@ -1652,6 +1652,7 @@ pre-commit rechaza el commit (acá, `agent:live-gate`) y se vuelve a editar `PLA
 figuraba cerrado (`wasAlreadyDone`, `scripts/plan-import.ts:85`), no acepta un SHA provisional, y
 el commit real todavía no existe. Salida manual usada: `update plan_items set status='open',
 commit_sha=NULL, closed_at=NULL where id='<ID>'`, un solo reconcile y commit.
+4.ª vez 2026-09-24 en el cierre de `CI.5` (rechazo del gate de procedencia: spec sin versionar).
 **Qué haría falta, si se repite:** que reconcile trate como provisional un `done` cuyo SHA no
 contenga el cierre de ese ítem en git, en vez de exigir que no estuviera cerrado antes.
 **Se repitió el 2026-09-21 en `UI.12.1`** (dos rechazos seguidos de `agent:live-gate`; misma salida
