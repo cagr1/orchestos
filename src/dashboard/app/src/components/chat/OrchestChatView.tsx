@@ -206,7 +206,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         >
                           <span className="flex items-center gap-1.5">
                             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                            Agent Chain-of-Thought ({msg.reasoning.length} steps)
+                            Reasoning ({msg.reasoning.length} steps)
                           </span>
                           {(expandedReasoning[msg.id] ?? true) ? (
                             <ChevronUp className="w-3.5 h-3.5" />
@@ -229,7 +229,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                     {msg.toolCalls && msg.toolCalls.length > 0 && (
                       <div className="space-y-1.5 mb-3">
                         <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">
-                          Middleware & Tool Executions
+                          Tool executions
                         </div>
                         <div className="space-y-1">
                           {msg.toolCalls.map((tool, idx) => (
@@ -285,9 +285,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                            <span className="font-bold text-xs text-white">
-                              Task Ready for Git Commit Proof
-                            </span>
+                            <span className="font-bold text-xs text-white">Task ready to run</span>
                           </div>
                           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                             {msg.proposedTask.id}

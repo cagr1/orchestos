@@ -70,11 +70,6 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClos
             />
           </div>
 
-          <p className="text-app-muted text-xs leading-relaxed">
-            Registers the repository within OrchestOS workspace contracts, AST analyzer, and sandbox
-            worktree isolates.
-          </p>
-
           <div className="flex justify-end gap-2 pt-3 border-t border-app">
             <button
               type="button"

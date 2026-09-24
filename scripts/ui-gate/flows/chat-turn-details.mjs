@@ -162,7 +162,7 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   const composer = page.locator('textarea').last()
   await composer.fill('Ejecuta el comando ls en la raíz del proyecto y dime cuántas entradas hay.')
   await composer.press('Enter')
-  const tools = page.getByText(/Middleware & Tool Executions/i).first()
+  const tools = page.getByText(/Tool executions/i).first()
   await step(
     'tool block with command success',
     await visible(tools, 180_000),
@@ -186,7 +186,7 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
     (turn.steps ?? []).filter((item) => item.type === 'reasoning' && item.detail),
   )
   if (reasoningSteps.length > 0) {
-    const reasoning = page.getByText(/Agent Chain-of-Thought/i).first()
+    const reasoning = page.getByText(/^Reasoning \(/i).first()
     await step('reasoning block exists', await visible(reasoning), 'reasoning rendered')
     const reasoningText = page.getByText(
       reasoningSteps[0].detail.replace(/^\*\*(.*?)\*\*$/s, '$1'),
@@ -204,7 +204,7 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   const beforeHeldTaskIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
   await composer.fill(heldPrompt)
   await composer.press('Enter')
-  const taskCard = page.getByText('Task Ready for Git Commit Proof', { exact: true })
+  const taskCard = page.getByText('Task ready to run', { exact: true })
   const heldCardVisible = await visible(taskCard, 180_000)
   if (!heldCardVisible) {
     await shot('held-task-missing')
@@ -227,7 +227,7 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   )
   await shot('held-task')
 
-  const reject = page.getByRole('button', { name: /^Reject$/i }).first()
+  const reject = page.getByRole('button', { name: /^Reject(?: task)?$/i }).first()
   await reject.click()
   await step('Reject removes card', await hidden(taskCard), 'card removed')
   const afterReject = await tasksFor(api, project.id)
@@ -335,7 +335,7 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
     await reloadedThread.click()
     await step(
       'reload: tool block visible in selected chat',
-      await visible(page.getByText(/Middleware & Tool Executions/i).first()),
+      await visible(page.getByText(/Tool executions/i).first()),
       'tool trace rendered after selecting chat',
     )
   }

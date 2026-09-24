@@ -300,7 +300,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
               className="mt-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-control bg-app-surface border border-app text-xs font-mono text-app hover:border-app-accent transition-colors shadow-2xs"
             >
               <ProviderLogo id="claude" size={14} className="w-3.5 h-3.5" />
-              <span>Resume AST sandbox session</span>
+              <span>Resume session</span>
             </button>
           )}
         </div>

@@ -268,7 +268,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   El flujo re-agrega por `ensureProject` (el selector nativo no es automatizable) y siembra el run por SQLite.
   Gate en vivo: navegador real (Playwright, `bun run ui:gate project-delete` 11/11 + smoke/usage-bar/tasks/runs-graph/project-tabs/chat-turn-details verdes) — `docs/done/evidence/UI.9.9-live.json`.
   `gate:all` 1528/0; DB real: 0 proyectos `orchestos-ui-*` y 0 con `removed_at` tras los flujos.
-- [ ] **UI.9.8 — ⚡ Barrido de texto que no aporta, y el modelo elegible en Codex.** (abierto 2026-09-18)
+- [x] **UI.9.8 — ⚡ Barrido de texto que no aporta, y el modelo elegible en Codex.** (abierto 2026-09-18; cerrado 2026-09-23 — `ui:gate text-sweep` 10/10)
   **Pedido textual de Carlos, 2026-09-18:** *"donde detectes que exista en la UI texto adicional
   que no aporta a nada debe DESAPARECER"*. Disparador: bajo cada respuesta del chat aparece
   `codex (cli default model) via Codex CLI` — *"esto está demás"*. Es la **tercera vez en el
@@ -293,6 +293,18 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   confiable, decirlo y no poner un selector decorativo.
   Gate: navegador real, cero texto de los listados sobreviviendo, y el modelo elegido llegando al
   binario con un mensaje real (como se hizo con el esfuerzo en UI.9.7).
+  Hecho: inventario mecánico (parser TS) de 105 textos de ≥4 palabras en `app/src/components` + `App.tsx`:
+  15 borrados o corregidos por afirmar mecanismos que no existen (AST sandbox, vector embeddings, "Merge to Main",
+  "Reinforcement Learning Engine"…), 92 dudosos que quedan — lista en `docs/done/evidence/UI.9.8-sweep.md`.
+  El modelo de Codex ya era elegible (catálogo de la caché de Codex, `-m` con `--ignore-user-config`); se probó.
+  Límite del gate: la ausencia de los textos borrados se mira en la pantalla de Chat; Settings/Instincts/Memory/
+  Add project se verificaron por diff y grep, no en navegador.
+  **Fuera de scope declarado:** `chat-turn-details.mjs`, `PLAN.md`, la evidencia y el borrado del spec — Luna
+  re-corrió el preflight y estrechó el scope a sus archivos; son las referencias a los textos viejos y el cierre.
+  Ejecutado por: luna (4 rondas: r1 barrió ~11 textos; r2 inventario mecánico; r3 `chat-turn-details` buscaba los
+  textos viejos; r4 "SQLite full-text search" inexacto) · Spec: docs/specs/UI.9.8.md (borrado al cerrar).
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate text-sweep` 10/10 + chat-turn-details 27/27 + project-tabs 23/23 + smoke 6/6) — `docs/done/evidence/UI.9.8-live.json`.
+  Turno real Codex registró `gpt-5.6-luna` · `medium`; `gate:all` 1528/0.
 - [ ] **UI.10.A — 🧠 El plan por proyecto: `plan_items` y `plan_doc_segments` con proyecto.** (abierto 2026-09-21)
   Sale de `UI.10`: el plan de la DB es uno solo, sin columna de proyecto, y `renderPlan(db)`
   (`handlers/plan.ts:22`) arma siempre el de OrchestOS. Hoy la pestaña Plan de cualquier otro

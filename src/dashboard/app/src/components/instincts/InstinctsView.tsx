@@ -77,7 +77,7 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
           </div>
 
           <span className="text-xs text-zinc-500 font-mono hidden md:inline">
-            Reinforcement Learning Engine (orchestos instinct)
+            Behavioral rules for agent runs
           </span>
         </div>
 
@@ -246,9 +246,7 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
               </div>
 
               <div className="p-3 rounded-xl bg-indigo-950/20 border border-indigo-500/20 text-indigo-300 text-[11px]">
-                Manual instincts start with an authoritative confidence score of{' '}
-                <strong>1.00</strong> and are immediately compiled into the middleware context
-                pipeline.
+                Manual instincts start with confidence <strong>1.00</strong> and apply to new runs.
               </div>
             </div>
 

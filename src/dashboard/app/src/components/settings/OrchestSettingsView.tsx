@@ -288,7 +288,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       const model = raw
         .replace(/\s+via\s+(?:Claude|Codex|OpenCode) CLI/i, '')
         .replace(/\s*\(effort: [^)]+\)/i, '')
-        .replace(/\s*\(cli default model\)/i, '')
+        .replace(/\s*\([^)]*model[^)]*\)/i, '')
         .trim()
       if (/^unknown$/i.test(model)) return []
       return [{ ...row, model: model || 'default', provider: cli ?? row.provider }]
@@ -1791,7 +1791,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           /^(anthropic|openai|google|xai|mistral)\//,
                           '',
                         )
-                        const displayModel = /cli default model/i.test(model) ? 'default' : model
+                        const displayModel = model
                         const logo =
                           group.id === 'cli'
                             ? row.provider === 'claude' || /Claude/i.test(row.model)
@@ -2109,10 +2109,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <span>Zona de peligro (Danger Zone)</span>
                   </div>
                   <p className="text-xs text-app-muted leading-relaxed">
-                    Borra permanentemente todos los chats, runs, archivos indexados, memoria y demás
-                    datos SQLite de{' '}
-                    <strong className="text-app font-semibold">{selectedProject.name}</strong>. No
-                    borra la carpeta del proyecto.
+                    Borra permanentemente los datos de este proyecto guardados en SQLite. No borra
+                    la carpeta del proyecto.
                   </p>
 
                   <div className="pt-1">
@@ -2145,8 +2143,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <span>Confirm Data Purge</span>
             </div>
             <p className="text-app-muted leading-relaxed">
-              This permanently deletes all chats, runs, indexed files, memory, and other SQLite data
-              for project <strong className="text-app">{selectedProject.name}</strong>?
+              This deletes the project's SQLite data. It does not delete the project folder.
             </p>
             <div className="flex justify-end gap-2 pt-2 border-t border-app">
               <button

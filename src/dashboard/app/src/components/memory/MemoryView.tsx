@@ -125,7 +125,6 @@ export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConfl
         <div className="max-w-4xl mx-auto space-y-3">
           <div className="flex items-center justify-between text-xs font-semibold text-zinc-400 px-1">
             <span>Stored Semantic Units ({filteredMemories.length})</span>
-            <span>SQLite Vector Embeddings: text-embedding-3-small</span>
           </div>
 
           <div className="grid gap-3">
