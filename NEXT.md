@@ -3,7 +3,7 @@
 ## Siguiente tab — abrir Lote L4 (preparado 2026-09-24)
 Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write
 "…" < /dev/null` (Carlos; AGENTS.md y memoria ya actualizados). Turno real de gate = Codex · `gpt-6-luna` · medium.
-Orden: **CI.4** (spec ya escrito y commiteado: `docs/specs/CI.4.md` — Luna 6 en los flujos, test inestable
+Orden: **CI.4** → **CI.2** → **UI.13.7** (colores de cuota, pedido de Carlos 2026-09-24). CI.4: (spec ya escrito y commiteado: `docs/specs/CI.4.md` — Luna 6 en los flujos, test inestable
 `context-adapters:187`, test que deja `.orchestos/adversarial-review-state.json`) → **CI.2** (ui-gates exigibles:
 medir cuánto tardan los flujos de `scripts/ui-gate/flows/` juntos antes de decidir CI/pre-push/workflow; spec por
 escribir; la lista de "12 scripts de `scripts/ui-gates/`" del ítem es anterior a UI.13.3: verificar qué existe hoy).
@@ -16,8 +16,13 @@ revisar `scope:check` antes del commit; (6) flujo nuevo = `page.reload` tras reg
 | ítem | rondas Luna | gate | min |
 |---|---|---|---|
 | CI.4 | 2 (r1 rompía `adversarial-review.test.ts`, revertido; r2 dos intermitentes más) | 9 flujos · test:coverage 5×1533/0 · gate:all | ~75 |
+| CI.2 | 2 (r2: flujos reintentan y registran QA) | 9 flujos · project-delete 3/3 · gate:all 1533/0 | ~120 |
 CI.2: spec `docs/specs/CI.2.md` (medición: 9 flujos ≈285 s, 7 con turno real; workflow aparte para los 3 sin turno,
 pre-push condicional para los 9; aislar `ORCHESTOS_HOME` del runner; arreglar `project-delete`/`runs-graph` intermitentes).
+**PAUSA L4 tras CI.2 (Carlos 2026-09-24):** antes de UI.13.7 va el ítem de roles de Model routing (4 roles
+{agente CLI/API, modelo, esfuerzo}: Orquestador/Ejecutor/Revisor/Auxiliar; absorbe AT.10/AT.13; fuera todo hardcode de
+modelo: `QA_JUDGE_DEFAULTS`, `diagnose.ts:166`, `memory/judge.ts:118`, `spec/draft.ts:177`). Esperando que Carlos confirme
+los 4 roles; luego plan en PLAN.md y GO antes de codear.
 Carlos 2026-09-24: `#69`/`#70` en IDEAS.md (Files no expande carpetas; Changes en vivo estilo VS Code).
 
 ## Lote L3 (abierto 2026-09-23, pedido de Carlos)

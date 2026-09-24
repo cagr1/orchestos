@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
@@ -13,17 +13,23 @@ async function tasksFor(api, projectId) {
 }
 
 async function waitForTaskFinished(api, projectId, taskId, initialTask) {
-  const deadline = Date.now() + 10 * 60_000
+  const startedAt = Date.now()
+  const deadline = startedAt + 10 * 60_000
   let task
   while (Date.now() <= deadline) {
     task = (await tasksFor(api, projectId)).find((item) => item.id === taskId)
     if (
       task &&
       ((task.status !== 'pending' && task.status !== 'running') ||
-        task.retry_count !== initialTask.retry_count ||
-        task.retryCount !== initialTask.retryCount ||
-        task.run_id !== initialTask.run_id ||
-        task.runId !== initialTask.runId)
+        (task.status === 'pending' &&
+          (task.retryCount !== initialTask.retryCount || task.runId !== initialTask.runId)))
+    )
+      return task
+    if (
+      task?.status === 'pending' &&
+      Date.now() - startedAt >= 20_000 &&
+      task.retryCount === initialTask.retryCount &&
+      task.runId === initialTask.runId
     )
       return task
     await delay(2_000)
@@ -31,13 +37,30 @@ async function waitForTaskFinished(api, projectId, taskId, initialTask) {
   return task
 }
 
+async function recordRetry(api, projectId, task, step) {
+  const listedRuns = await api('/api/runs', {
+    headers: { 'x-orchestos-project-id': projectId },
+  })
+  const latestRun = (listedRuns.data ?? []).find((run) => run.taskId === task.id)
+  const response = latestRun ? await api(`/api/runs/${encodeURIComponent(latestRun.id)}`) : null
+  const run = response?.data ?? response ?? {}
+  const detail = {
+    attempt: task.retryCount,
+    qa_verdict: run.qaVerdict ?? null,
+    qa_reason: run.qaReason ?? null,
+    qa_model: run.qaModel ?? null,
+    file_diffs: run.fileDiffs ?? [],
+  }
+  await step(`failed attempt ${task.retryCount} QA detail`, true, JSON.stringify(detail))
+}
+
 function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: 'ignore' })
 }
-function seedDb(projectId) {
+function seedDb(projectId, databasePath) {
   const code = `
     import { Database } from 'bun:sqlite'
-    const db = new Database(${JSON.stringify(join(homedir(), '.orchestos', 'db.sqlite'))})
+    const db = new Database(${JSON.stringify(databasePath)})
     const now = new Date().toISOString()
     const a = crypto.randomUUID(), b = crypto.randomUUID(), conflict = crypto.randomUUID()
     db.run('INSERT INTO memory_entries (id, project_id, topic_key, scope, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [a, ${JSON.stringify(projectId)}, 'gate-memory', 'project', 'Original gate memory', now, now])
@@ -48,10 +71,10 @@ function seedDb(projectId) {
   `
   return JSON.parse(execFileSync('bun', ['-e', code], { encoding: 'utf8' }))
 }
-function cleanupDb(projectId, instinctIds) {
+function cleanupDb(projectId, instinctIds, databasePath) {
   const code = `
     import { Database } from 'bun:sqlite'
-    const db = new Database(${JSON.stringify(join(homedir(), '.orchestos', 'db.sqlite'))})
+    const db = new Database(${JSON.stringify(databasePath)})
     db.run('DELETE FROM memory_conflicts WHERE entry_a_id IN (SELECT id FROM memory_entries WHERE project_id = ?) OR entry_b_id IN (SELECT id FROM memory_entries WHERE project_id = ?)', [${JSON.stringify(projectId)}, ${JSON.stringify(projectId)}])
     db.run('DELETE FROM memory_entries WHERE project_id = ?', [${JSON.stringify(projectId)}])
     for (const id of ${JSON.stringify(instinctIds)}.filter(Boolean)) db.run('DELETE FROM instincts WHERE id = ?', [id])
@@ -72,6 +95,7 @@ export default async function projectTabs({
   visible,
   cleanup,
   consoleErrors,
+  databasePath,
 }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-13-2f-'))
   writeFileSync(join(projectRoot, 'README.md'), '# UI.13.2f\n')
@@ -146,13 +170,13 @@ export default async function projectTabs({
   let createdInstinctId = null
   cleanup(async () => {
     await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
-    const residue = cleanupDb(project.id, [instinctId, createdInstinctId])
+    const residue = cleanupDb(project.id, [instinctId, createdInstinctId], databasePath)
     if (residue.memory !== 0 || residue.conflicts !== 0 || residue.instincts !== 0)
       throw new Error(`cleanup residue: ${JSON.stringify(residue)}`)
     if (existsSync(projectRoot)) rmSync(projectRoot, { recursive: true, force: true })
     if (existsSync(projectRoot)) throw new Error(`temporary project remains: ${projectRoot}`)
   })
-  seedDb(project.id)
+  seedDb(project.id, databasePath)
   const specPath = join(projectRoot, '.orchestos', 'specs', 'gate-tabs-spec.md')
   mkdirSync(join(projectRoot, '.orchestos', 'specs'), { recursive: true })
   writeFileSync(
@@ -343,7 +367,22 @@ export default async function projectTabs({
   await page.getByRole('button', { name: 'Close', exact: true }).click()
   const taskBefore = (await tasksFor(api, project.id)).find((item) => item.id === 'gate-tabs-task')
   await page.getByRole('button', { name: 'Run', exact: true }).click()
-  const finished = await waitForTaskFinished(api, project.id, 'gate-tabs-task', taskBefore)
+  const runButton = page.getByRole('button', { name: 'Run', exact: true })
+  let finished = await waitForTaskFinished(api, project.id, 'gate-tabs-task', taskBefore)
+  let recordedRetryCount = taskBefore?.retryCount ?? 0
+  while (
+    finished &&
+    (finished.retryCount > recordedRetryCount ||
+      ((finished.status === 'failed' || finished.status === 'failed_permanent') && finished.runId))
+  ) {
+    await recordRetry(api, project.id, finished, step)
+    recordedRetryCount = finished.retryCount
+    if (finished.status !== 'pending' || finished.retryCount >= 3) break
+    const retryBefore = finished
+    if (await runButton.isEnabled()) await runButton.click()
+    else break
+    finished = await waitForTaskFinished(api, project.id, 'gate-tabs-task', retryBefore)
+  }
   const finishedStatus = finished?.status ?? 'missing'
   await step(
     'task run finishes and badge changes without reload',

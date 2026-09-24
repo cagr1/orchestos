@@ -16,18 +16,41 @@ async function runsFor(api, projectId) {
   return Array.isArray(response.data) ? response.data : []
 }
 
-async function waitForTask(api, projectId, taskId) {
-  const deadline = Date.now() + 10 * 60_000
+async function waitForTaskChange(api, projectId, taskId, previousRetryCount, previousRunId) {
+  const startedAt = Date.now()
+  const deadline = startedAt + 10 * 60_000
   let task
   while (Date.now() <= deadline) {
     const response = await api('/api/tasks', {
       headers: { 'x-orchestos-project-id': projectId },
     })
     task = (response.data?.tasks ?? []).find((item) => item.id === taskId)
-    if (task && task.status !== 'pending' && task.status !== 'running') return task
+    if (
+      task &&
+      ((task.status !== 'pending' && task.status !== 'running') ||
+        (task.status === 'pending' &&
+          (task.retryCount !== previousRetryCount || task.runId !== previousRunId)))
+    )
+      return task
+    if (
+      task?.status === 'pending' &&
+      Date.now() - startedAt >= 20_000 &&
+      task.retryCount === previousRetryCount &&
+      task.runId === previousRunId
+    )
+      return task
     await delay(2_000)
   }
   return task
+}
+
+async function waitForEnabled(locator, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    if (await locator.isEnabled()) return true
+    await delay(100)
+  }
+  return locator.isEnabled()
 }
 
 export default async function runsGraph({ page, api, step, shot, visible, cleanup }) {
@@ -132,9 +155,45 @@ export default async function runsGraph({ page, api, step, shot, visible, cleanu
   )
 
   const runButton = page.getByRole('button', { name: 'Run Next Task', exact: true })
-  await step('Run Next Task enabled', await runButton.isEnabled(), 'task is runnable')
-  if (await runButton.isEnabled()) await runButton.click()
-  const task = await waitForTask(api, project.id, 'gate-runs-task')
+  const taskBecameRunnable = await waitForEnabled(runButton)
+  await step('Run Next Task enabled', taskBecameRunnable, 'task is runnable')
+  if (!taskBecameRunnable) return
+  let task = (
+    await api('/api/tasks', { headers: { 'x-orchestos-project-id': project.id } })
+  ).data?.tasks?.find((item) => item.id === 'gate-runs-task')
+  for (let clickCount = 0; task && task.retryCount < 3 && clickCount < 3; clickCount++) {
+    const retryCount = task.retryCount
+    const runId = task.runId
+    if (!(await runButton.isEnabled())) {
+      const enabled = await waitForEnabled(runButton)
+      if (!enabled) break
+    }
+    await runButton.click()
+    task = await waitForTaskChange(api, project.id, 'gate-runs-task', retryCount, runId)
+    if (
+      task &&
+      (task.retryCount > retryCount ||
+        task.status === 'failed' ||
+        task.status === 'failed_permanent')
+    ) {
+      const listedRuns = await api('/api/runs', {
+        headers: { 'x-orchestos-project-id': project.id },
+      })
+      const latestRun = (listedRuns.data ?? []).find((run) => run.taskId === 'gate-runs-task')
+      const detail = latestRun ? await api(`/api/runs/${encodeURIComponent(latestRun.id)}`) : null
+      const run = detail?.data ?? detail ?? {}
+      const diagnostic = {
+        attempt: task.retryCount ?? retryCount + 1,
+        qa_verdict: run.qaVerdict ?? null,
+        qa_reason: run.qaReason ?? null,
+        qa_model: run.qaModel ?? null,
+        file_diffs: run.fileDiffs ?? [],
+      }
+      await step(`failed attempt ${task.retryCount} QA detail`, true, JSON.stringify(diagnostic))
+    }
+    if (task?.status === 'pending' && task.retryCount > retryCount && task.retryCount < 3) continue
+    break
+  }
   await step('task finished', task?.status === 'done', `status=${task?.status ?? 'missing'}`)
 
   const projectRuns = await runsFor(api, project.id)

@@ -42,9 +42,13 @@ function mapTask(row: TaskRowResponse): TaskItem {
   }
 }
 
-export async function listTasks(projectId?: string | null): Promise<TasksResponse> {
+export async function listTasks(
+  projectId?: string | null,
+  signal?: AbortSignal,
+): Promise<TasksResponse> {
   const response = await fetch('/api/tasks', {
     headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
+    signal,
   })
   const body = (await response.json().catch(() => null)) as {
     exists?: boolean

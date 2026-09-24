@@ -232,6 +232,12 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 13/13 + `smoke` 6/6) — `docs/done/evidence/UI.13.6-live.json`.
   Codex 92 % sin sesión antes y después de un turno real Luna; Claude vencida → 100 %; `/` y `main.js` `no-cache`.
   `test:coverage` 1527/0 (1.ª corrida: 1 fallo del test inestable conocido `context-adapters.test.ts:187`).
+- [ ] **UI.13.7 — ⚡ La barra de cuota avisa por color: naranja pasado el 60 % consumido, rojo pasado el 80 %.** (abierto 2026-09-24, pedido de Carlos; Lote L4, tras CI.2)
+  Carlos: barra **y** número en naranja al pasar el 60 % de consumo; en rojo al pasar el 80 % (queda <20 %). La barra
+  muestra lo **restante** (`ShellStatusBar.tsx:38`): restante <40 → `app-warning`, <20 → `app-error`, si no el color
+  actual. Aplica a las tres barras (fila del footer `:118-126` y las de 5 h y semanal del popover `:171-194`) y a sus
+  números. Tokens ya definidos (`index.css:13-14`): nada de CSS ni colores nuevos. Umbral en una función pura con test.
+  Spec por escribir. Gate: `ui:gate usage-bar` con pasos que afirmen el color en los tres tramos (sin turno real extra).
 - [x] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18; cerrado 2026-09-23 — `ui:gate project-delete` 11/11)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir
@@ -411,7 +417,20 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   durante `gate:all` (`STATE_PATH`, `scripts/adversarial-review.ts:33`); borrado por el cerebro.
   Spec: `docs/specs/CI.4.md`. Gate: flujos con turno real verdes eligiendo `gpt-6-luna`; `test:coverage` 5 corridas
   seguidas verdes; `git status` sin archivos nuevos tras `gate:all`.
-- [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
+- [x] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18; cerrado 2026-09-24, Lote L4 — 9 flujos verdes)
+  Hecho: los 13 scripts viejos ya no existen (UI.13.3); `CI.2.A` queda sin objeto. Medido: 9 flujos ≈285 s, 7 con turno
+  real Codex. `.github/workflows/ui-gate.yml` (workflow aparte) corre los 3 sin turno real (`smoke`, `plan-doc`,
+  `project-delete`); `scripts/pre-push.sh` corre los 9 solo si el push toca `src/dashboard/`, `scripts/ui-gate/` o
+  `src/run/`. `run.mjs` levanta el dashboard con `ORCHESTOS_HOME` en su tmpdir y aborta si la DB escapa (DB real
+  4|26|288 antes y después). `project-delete`: lecturas en vuelo del proyecto borrado → 404 en consola; `App.tsx` las
+  cancela y espera antes del purge. `runs-graph`/`tasks`/`project-tabs`: reintentan como una persona y registran el QA
+  del intento fallido en `result.json`.
+  **Causa real del `runs-graph` intermitente (sin arreglar aquí, pasa al ítem de roles):** el juez de QA es
+  `gpt-4o-mini` hardcodeado (`QA_JUDGE_DEFAULTS`, `harness.ts:172`) y a veces reformula los criterios → R.3 lo rechaza
+  (`qa.ts:258`). Rojo conocido ~1/3 hasta que cierre ese ítem (decisión de Carlos 2026-09-24).
+  Ejecutado por: luna (2 rondas) · Spec: docs/specs/CI.2.md (borrado al cerrar). Inventario de afordancias: fuera.
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate` 9 flujos, project-delete 3/3, runs-graph 16/16 tras r2) — `docs/done/evidence/CI.2-live.json`.
+  `gate:all` 1533/0; typecheck y biome limpios.
   - [x] **CI.2.B — `ui:gate`: comprobador en vivo de la app React.** (cerrado 2026-09-23, Lote L1) Ejecutado por: luna (5 rondas) · Spec: docs/specs/CI.2.B.md
     `bun run ui:gate <flujo>`: arranca el dashboard en puerto libre, recorre `scripts/ui-gate/flows/<flujo>.mjs` clickeando,
     una línea `PASS`/`FAIL` por flujo, mata por PID; rechaza flujos que naveguen por `window.state`/`window.OrchestOS`.

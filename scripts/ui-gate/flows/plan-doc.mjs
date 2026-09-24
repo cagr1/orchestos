@@ -32,6 +32,11 @@ function makeProject(name, plan) {
 }
 
 export default async function planDoc({ page, api, step, visible, cleanup, consoleErrors }) {
+  const registerRepo = `
+    const { ensureProject } = await import(${JSON.stringify(join(process.cwd(), 'src/projects/ensure.ts'))})
+    await ensureProject(${JSON.stringify(process.cwd())})
+  `
+  run('bun', ['-e', registerRepo], process.cwd())
   const checklistRoot = makeProject(
     'UI.10.A checklist',
     '# SalaDespecho\n\n## Fase 1\nPreparación del proyecto.\n- [ ] Auditar login\n- [x] Migrar DB\n  - [ ] Verificar índices\n',

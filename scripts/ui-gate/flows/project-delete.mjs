@@ -1,16 +1,16 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 
 function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: 'ignore' })
 }
 
-function dbCounts(projectId) {
+function dbCounts(projectId, databasePath) {
   const script = `
     import { Database } from 'bun:sqlite'
-    const db = new Database(${JSON.stringify(join(homedir(), '.orchestos', 'db.sqlite'))})
+    const db = new Database(${JSON.stringify(databasePath)})
     const tables = db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all()
       .filter(({ name }) => db.query("PRAGMA table_info('" + name + "')").all().some((column) => column.name === 'project_id'))
     const counts = Object.fromEntries(tables.map(({ name }) => [name, db.query("SELECT COUNT(*) AS count FROM '" + name + "' WHERE project_id = ?").get(${JSON.stringify(projectId)}).count]))
@@ -23,10 +23,10 @@ function dbCounts(projectId) {
   return JSON.parse(execFileSync('bun', ['-e', script], { encoding: 'utf8' }))
 }
 
-function seedRun(projectId) {
+function seedRun(projectId, databasePath) {
   const script = `
     import { Database } from 'bun:sqlite'
-    const db = new Database(${JSON.stringify(join(homedir(), '.orchestos', 'db.sqlite'))})
+    const db = new Database(${JSON.stringify(databasePath)})
     const now = new Date().toISOString()
     db.run('INSERT INTO runs (id, project_id, prompt, task_class, model, provider, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [crypto.randomUUID(), ${JSON.stringify(projectId)}, 'UI.9.9 fixture run', 'gate', 'fixture', 'fixture', 'done', now])
     db.close()
@@ -42,6 +42,7 @@ export default async function projectDelete({
   hidden,
   cleanup,
   consoleErrors,
+  databasePath,
 }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-9-9-'))
   writeFileSync(join(projectRoot, 'README.md'), '# UI.9.9\n')
@@ -81,7 +82,7 @@ export default async function projectDelete({
     }),
   })
   if (session.status !== 201) throw new Error(`chat seed failed: ${JSON.stringify(session)}`)
-  seedRun(project.id)
+  seedRun(project.id, databasePath)
 
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
@@ -101,7 +102,7 @@ export default async function projectDelete({
   await page.getByRole('button', { name: 'Delete project', exact: true }).click()
   await page.getByRole('button', { name: 'Delete Project', exact: true }).click()
   await step('soft delete removes project from sidebar', await hidden(projectButton), 'row hidden')
-  const softDeleted = dbCounts(project.id)
+  const softDeleted = dbCounts(project.id, databasePath)
   await step(
     'soft delete preserves chat and run rows',
     softDeleted.chats === 1 && softDeleted.runs === 1 && softDeleted.project === 1,
@@ -155,7 +156,7 @@ export default async function projectDelete({
     await hidden(page.getByRole('heading', { name: basename(projectRoot), exact: true })),
     'settings closed',
   )
-  const purged = dbCounts(project.id)
+  const purged = dbCounts(project.id, databasePath)
   const projectListAfterPurge = await api('/api/projects')
   await step(
     'purge removes project and every project-scoped row',

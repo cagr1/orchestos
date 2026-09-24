@@ -1,0 +1,757 @@
+[
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "OrchestOS Dev visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "Appearance visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/smoke/settings-general.png"
+    ]
+  },
+  {
+    "flujo": "plan-doc",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A checklist-siP5mb visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A checklist-siP5mb settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "PLAN.md section visible",
+        "ok": true,
+        "detalle": "parsed section"
+      },
+      {
+        "nombre": "three checklist items visible",
+        "ok": true,
+        "detalle": "three read-only checkboxes"
+      },
+      {
+        "nombre": "completed item checked",
+        "ok": true,
+        "detalle": "Migrar DB is checked"
+      },
+      {
+        "nombre": "checkboxes disabled",
+        "ok": true,
+        "detalle": "PLAN.md is read-only"
+      },
+      {
+        "nombre": "nested item visible",
+        "ok": true,
+        "detalle": "indented checklist item"
+      },
+      {
+        "nombre": "Kanban still works",
+        "ok": true,
+        "detalle": "board restored"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A empty-NdLUI6 visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A empty-NdLUI6 settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "missing PLAN.md state",
+        "ok": true,
+        "detalle": "empty state"
+      },
+      {
+        "nombre": "orchestos visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "repository PLAN.md item visible",
+        "ok": true,
+        "detalle": "real repository plan item"
+      },
+      {
+        "nombre": "no browser console errors",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "project-delete",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project row"
+      },
+      {
+        "nombre": "project actions visible on hover",
+        "ok": true,
+        "detalle": "ellipsis action"
+      },
+      {
+        "nombre": "menu has exactly settings and delete",
+        "ok": true,
+        "detalle": "two project actions"
+      },
+      {
+        "nombre": "soft delete removes project from sidebar",
+        "ok": true,
+        "detalle": "row hidden"
+      },
+      {
+        "nombre": "soft delete preserves chat and run rows",
+        "ok": true,
+        "detalle": "{\"counts\":{\"context_chunks\":0,\"memory_entries\":0,\"chat_sessions\":1,\"chat_turns\":0,\"runs\":1,\"files\":0,\"code_edges\":0},\"chats\":1,\"runs\":1,\"project\":1}"
+      },
+      {
+        "nombre": "re-adding the same path restores the project row",
+        "ok": true,
+        "detalle": "restored project"
+      },
+      {
+        "nombre": "restored project keeps its chat",
+        "ok": true,
+        "detalle": "chat survives soft delete and re-add"
+      },
+      {
+        "nombre": "project settings opens from project menu",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "purge exits project settings",
+        "ok": true,
+        "detalle": "settings closed"
+      },
+      {
+        "nombre": "purge removes project and every project-scoped row",
+        "ok": true,
+        "detalle": "{\"purged\":{\"counts\":{\"context_chunks\":0,\"memory_entries\":0,\"chat_sessions\":0,\"chat_turns\":0,\"runs\":0,\"files\":0,\"code_edges\":0},\"chats\":0,\"runs\":0,\"project\":0},\"projectList\":[{\"id\":\"73903c93c6bd19e0\",\"path\":\"/Users/carlosgallardo/Documents/projects/orchestos\",\"stackProfile\":\"{\\\"manifest\\\":{\\\"name\\\":\\\"orchestos\\\",\\\"runtime\\\":\\\"Node.js\\\",\\\"framework\\\":\\\"React\\\",\\\"deps\\\":[\\\"@fontsource-variable/plus-jakarta-sans\\\",\\\"@fontsource/fira-code\\\",\\\"commander\\\",\\\"diff\\\",\\\"glob\\\",\\\"lucide-react\\\",\\\"motion\\\",\\\"pdfkit\\\",\\\"react\\\",\\\"react-dom\\\",\\\"react-markdown\\\",\\\"remark-gfm\\\",\\\"tesseract.js\\\",\\\"yaml\\\",\\\"@biomejs/biome\\\",\\\"@stryker-mutator/core\\\",\\\"@stryker-mutator/typescript-checker\\\",\\\"@types/bun\\\",\\\"@types/pdfkit\\\",\\\"@types/react\\\",\\\"@types/react-dom\\\",\\\"bun-plugin-tailwind\\\",\\\"class-variance-authority\\\",\\\"clsx\\\",\\\"playwright\\\",\\\"tailwind-merge\\\",\\\"tailwindcss\\\",\\\"typescript\\\"]},\\\"languages\\\":[{\\\"lang\\\":\\\"TypeScript\\\",\\\"count\\\":426,\\\"pct\\\":85},{\\\"lang\\\":\\\"JavaScript\\\",\\\"count\\\":24,\\\"pct\\\":5},{\\\"lang\\\":\\\"Rust\\\",\\\"count\\\":9,\\\"pct\\\":2},{\\\"lang\\\":\\\"C#\\\",\\\"count\\\":9,\\\"pct\\\":2},{\\\"lang\\\":\\\"HTML\\\",\\\"count\\\":8,\\\"pct\\\":2}],\\\"conventions\\\":{\\\"editorconfig\\\":null,\\\"prettier\\\":null,\\\"eslint\\\":null,\\\"tsconfig\\\":{\\\"target\\\":\\\"ESNext\\\",\\\"module\\\":\\\"Preserve\\\",\\\"strict\\\":true}},\\\"commands\\\":[\\\"npm run test\\\",\\\"npm run lint\\\"]}\",\"lastUpdated\":\"2026-09-24T16:56:52.047Z\",\"branch\":\"master\"}]}"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "usage-bar",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project is visible",
+        "ok": true,
+        "detalle": "project in sidebar"
+      },
+      {
+        "nombre": "one status request carries project id",
+        "ok": true,
+        "detalle": "requests=1, header=fee9d69af747e3bf, expected=fee9d69af747e3bf"
+      },
+      {
+        "nombre": "Claude quota uses newest session reading",
+        "ok": true,
+        "detalle": "61% remaining in status bar"
+      },
+      {
+        "nombre": "Codex account quota is visible without a project session",
+        "ok": true,
+        "detalle": "Codex: 81% 5-hour quota remaining"
+      },
+      {
+        "nombre": "app shell and bundle disable browser caching",
+        "ok": true,
+        "detalle": "shell=no-cache, bundle=no-cache"
+      },
+      {
+        "nombre": "manual usage refresh keeps the newest Claude quota",
+        "ok": true,
+        "detalle": "response=true, saw61=true, saw67=false"
+      },
+      {
+        "nombre": "Codex chat option visible",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Luna model visible",
+        "ok": true,
+        "detalle": "gpt-6-luna"
+      },
+      {
+        "nombre": "medium effort visible",
+        "ok": true,
+        "detalle": "medium"
+      },
+      {
+        "nombre": "usage refreshes after a real turn",
+        "ok": true,
+        "detalle": "chatResponse=true, usage-bar-ok=true, refresh=true, requests before=2, after=3, requestTimes=1790269018307,1790269021421,1790269041541, responseAt=1790269041500"
+      },
+      {
+        "nombre": "Codex account quota remains visible after a real turn",
+        "ok": true,
+        "detalle": "Codex: 81% 5-hour quota remaining"
+      },
+      {
+        "nombre": "an expired Claude window is shown as fully available",
+        "ok": true,
+        "detalle": "Claude Code: 100% 5-hour quota remaining"
+      },
+      {
+        "nombre": "no temporary UI projects remain after cleanup",
+        "ok": true,
+        "detalle": "temporary projects are cleaned after the flow"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "text-sweep",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "Codex selector visible",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "model selector visible",
+        "ok": true,
+        "detalle": "composer model selector"
+      },
+      {
+        "nombre": "gpt-6-luna visible",
+        "ok": true,
+        "detalle": "Codex cache model"
+      },
+      {
+        "nombre": "medium visible",
+        "ok": true,
+        "detalle": "reasoning effort"
+      },
+      {
+        "nombre": "real Codex response visible",
+        "ok": true,
+        "detalle": "assistant response"
+      },
+      {
+        "nombre": "removed text absent after real turn",
+        "ok": true,
+        "detalle": "chat surface sweep complete"
+      },
+      {
+        "nombre": "all stale copy remains absent from the active screen",
+        "ok": true,
+        "detalle": "14 literals checked"
+      },
+      {
+        "nombre": "turn records selected model and effort",
+        "ok": true,
+        "detalle": "model=gpt-6-luna via Codex CLI (effort: medium), effort=medium"
+      },
+      {
+        "nombre": "no CLI default fallback in recorded surface",
+        "ok": true,
+        "detalle": "record uses selected model"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "chat-turn-details",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project clean before README task",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "select temporary project",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "visible agent selector"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "tool block with command success",
+        "ok": true,
+        "detalle": "tool trace rendered"
+      },
+      {
+        "nombre": "command success row",
+        "ok": true,
+        "detalle": "success visible"
+      },
+      {
+        "nombre": "new chat is linked to temporary project",
+        "ok": true,
+        "detalle": "projectId=0b70229a2fab2a29, mode=code"
+      },
+      {
+        "nombre": "reasoning optional",
+        "ok": true,
+        "detalle": "reasoning: 0 pasos del CLI"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task id visible",
+        "ok": true,
+        "detalle": "chat-c032922e-35ad-4f23-873c-9431f9623672"
+      },
+      {
+        "nombre": "Reject removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "Reject removes task from API",
+        "ok": true,
+        "detalle": "task absent"
+      },
+      {
+        "nombre": "second held task card visible",
+        "ok": true,
+        "detalle": "held task rendered again"
+      },
+      {
+        "nombre": "temporary project clean before Approve",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "Approve & Run starts task",
+        "ok": true,
+        "detalle": "chat-eadbc38f-6772-42cf-9d9a-87c3fd7042b0"
+      },
+      {
+        "nombre": "Approve & Run removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "approved task leaves pending",
+        "ok": true,
+        "detalle": "status=running"
+      },
+      {
+        "nombre": "reload: approved card remains hidden",
+        "ok": true,
+        "detalle": "card remains hidden"
+      },
+      {
+        "nombre": "reload: temporary project visible",
+        "ok": true,
+        "detalle": "project visible after reload"
+      },
+      {
+        "nombre": "reload API message keeps turnId",
+        "ok": true,
+        "detalle": "2bf2e399-d71a-45dd-bb02-2831258d5b55"
+      },
+      {
+        "nombre": "reload API timeline brings turn steps",
+        "ok": true,
+        "detalle": "8 pasos en 3 turnos"
+      },
+      {
+        "nombre": "reload: project chat reachable from Chat list",
+        "ok": true,
+        "detalle": "chat title visible; sidebar=\"Chat\\nDev\\nNew chat\\nCHATS\\nCodex: Ejecuta el comando ls en la raíz del pro\\nSettings\""
+      },
+      {
+        "nombre": "reload: tool block visible in selected chat",
+        "ok": true,
+        "detalle": "tool trace rendered after selecting chat"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/chat-turn-details/tool-and-reasoning.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/chat-turn-details/held-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/chat-turn-details/after-reject.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/chat-turn-details/approved-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-32192/chat-turn-details/after-final-reload.png"
+    ]
+  },
+  {
+    "flujo": "tasks",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "task id gate-first-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-dependent-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "real output visible",
+        "ok": true,
+        "detalle": "output boundary from tasks.yaml"
+      },
+      {
+        "nombre": "mock task absent",
+        "ok": true,
+        "detalle": "no initialMockTasks id rendered"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "first task has no unfinished dependency"
+      },
+      {
+        "nombre": "Run Next Task disabled while running",
+        "ok": true,
+        "detalle": "running task prevents a second run"
+      },
+      {
+        "nombre": "first task was posted",
+        "ok": true,
+        "detalle": "status=pending"
+      },
+      {
+        "nombre": "dependent task remains pending before first finishes",
+        "ok": true,
+        "detalle": "dependency prevents the second task from running"
+      },
+      {
+        "nombre": "final status badge is visible without reload",
+        "ok": true,
+        "detalle": "StatusBadge text=DONE"
+      },
+      {
+        "nombre": "badge leaves Pending without page reload",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "UI and API agree on final task state",
+        "ok": true,
+        "detalle": "status=done"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-4415/tasks/tasks-real-data.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "API conflict closed"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Add task opens Chat",
+        "ok": true,
+        "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-4415/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "runs-graph",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "graph count from API",
+        "ok": true,
+        "detalle": "files=1"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "task finished",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "project run exists",
+        "ok": true,
+        "detalle": "run linked to task"
+      },
+      {
+        "nombre": "project runs are scoped",
+        "ok": true,
+        "detalle": "runs=1"
+      },
+      {
+        "nombre": "real run visible",
+        "ok": true,
+        "detalle": "task run appears in Runs"
+      },
+      {
+        "nombre": "contract output is real",
+        "ok": true,
+        "detalle": "README.md output"
+      },
+      {
+        "nombre": "mock QA copy absent",
+        "ok": true,
+        "detalle": "no hardcoded QA assertion"
+      },
+      {
+        "nombre": "real run status visible",
+        "ok": true,
+        "detalle": "status from run"
+      },
+      {
+        "nombre": "graph view visible",
+        "ok": true,
+        "detalle": "graph heading"
+      },
+      {
+        "nombre": "mock graph copy absent",
+        "ok": true,
+        "detalle": "no hardcoded language split"
+      },
+      {
+        "nombre": "graph count is real before rebuild",
+        "ok": true,
+        "detalle": "files=1, not the sample 48"
+      },
+      {
+        "nombre": "graph rebuild completes",
+        "ok": true,
+        "detalle": "indexed source count changed"
+      },
+      {
+        "nombre": "no duplicate project",
+        "ok": true,
+        "detalle": "basename=orchestos-ui-13-2e-4A6WZ9, matches=1"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-4415/runs-graph/runs-graph-real-data.png"
+    ]
+  }
+]

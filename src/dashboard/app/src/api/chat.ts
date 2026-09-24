@@ -295,8 +295,13 @@ export async function restoreSession(sessionId: string): Promise<void> {
   await request(`/api/chat/sessions/${encodeURIComponent(sessionId)}/restore`, { method: 'POST' })
 }
 
-export async function getSessionMessages(sessionId: string): Promise<ChatMessageRow[]> {
-  return request<ChatMessageRow[]>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/messages`)
+export async function getSessionMessages(
+  sessionId: string,
+  signal?: AbortSignal,
+): Promise<ChatMessageRow[]> {
+  return request<ChatMessageRow[]>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/messages`, {
+    signal,
+  })
 }
 
 export async function loadThread(session: ChatSessionRow): Promise<ChatThread> {
@@ -340,13 +345,22 @@ export async function getConsole(sessionId: string): Promise<ConsoleResponse> {
   return request<ConsoleResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/console`)
 }
 
-export async function getTimeline(sessionId: string): Promise<TimelineResponse> {
-  return request<TimelineResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`)
+export async function getTimeline(
+  sessionId: string,
+  signal?: AbortSignal,
+): Promise<TimelineResponse> {
+  return request<TimelineResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`, {
+    signal,
+  })
 }
 
-export async function getProjectTasks(projectId?: string | null): Promise<ProjectTaskRow[]> {
+export async function getProjectTasks(
+  projectId?: string | null,
+  signal?: AbortSignal,
+): Promise<ProjectTaskRow[]> {
   const response = await fetch('/api/tasks', {
     headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
+    signal,
   })
   const body = (await response.json().catch(() => null)) as {
     tasks?: ProjectTaskRow[]

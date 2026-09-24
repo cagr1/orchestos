@@ -13,6 +13,8 @@ import { formatResult, lintFlowSource } from './lib.mjs'
 
 const flows = process.argv.slice(2)
 const runDir = path.join(os.tmpdir(), `ui-gate-${process.pid}`)
+const home = path.join(runDir, 'home')
+const databasePath = path.join(home, '.orchestos', 'db.sqlite')
 const statuslineHome = path.join(runDir, 'claude-statusline-home')
 const dashboardLog = path.join(runDir, 'dashboard.log')
 let dashboard
@@ -149,6 +151,7 @@ async function runFlow(name, base) {
     const ctx = {
       page,
       base,
+      databasePath,
       statuslineHome,
       api: async (apiPath, init = {}) => {
         const response = await fetch(`${base}${apiPath}`, {
@@ -235,12 +238,18 @@ async function main() {
   }
 
   await fsp.mkdir(runDir, { recursive: true })
+  await fsp.mkdir(home, { recursive: true })
+  process.env.ORCHESTOS_HOME = home
   await fsp.mkdir(statuslineHome, { recursive: true })
   const port = await freePort()
   dashboardLogFd = fs.openSync(dashboardLog, 'a')
   dashboard = spawn('bun', ['run', 'src/cli.ts', 'dashboard', '--port', String(port)], {
     cwd: process.cwd(),
-    env: { ...process.env, ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome },
+    env: {
+      ...process.env,
+      ORCHESTOS_HOME: home,
+      ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
+    },
     stdio: ['ignore', dashboardLogFd, dashboardLogFd],
   })
   const base = `http://127.0.0.1:${port}`
@@ -255,6 +264,15 @@ async function main() {
     })
     stdout('FAIL boot: health timeout')
   } else {
+    const actualDatabasePath = await fsp.realpath(databasePath)
+    const actualRunDir = await fsp.realpath(runDir)
+    const expectedDatabasePath = path.join(actualRunDir, path.relative(runDir, databasePath))
+    if (
+      actualDatabasePath !== expectedDatabasePath ||
+      !actualDatabasePath.startsWith(`${actualRunDir}${path.sep}`)
+    ) {
+      throw new Error(`dashboard database escaped runDir: ${actualDatabasePath}`)
+    }
     try {
       await removeOrphanedUiProjects(base)
     } catch (error) {

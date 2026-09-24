@@ -76,6 +76,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.13.7",
+      "sprint": "Fase 1 — Terminar la interfaz",
+      "block": null,
+      "delegation": "⚡",
+      "title": "La barra de cuota avisa por color: naranja pasado el 60 % consumido, rojo pasado el 80 %",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.9.9",
       "sprint": "Fase 1 — Terminar la interfaz",
       "block": null,
@@ -117,7 +126,7 @@
       "block": null,
       "delegation": "🧠",
       "title": "Los 12 ui-gates no los corre nada: hacerlos exigibles",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import {
   archiveSession,
   attachTurnDetails,
+  type ChatMessageRow,
   createSession,
   deleteProjectTask,
   deleteSession,
@@ -12,10 +13,12 @@ import {
   listSessions,
   mapMessage,
   newChatProjectId,
+  type ProjectTaskRow,
   renameSession,
   restoreSession,
   runProjectTask,
   sendMessage,
+  type TimelineResponse,
 } from './api/chat'
 import { getProjectContext } from './api/project'
 import { chooseProject, deleteProject, listProjects, purgeProjectData } from './api/projects'
@@ -130,13 +133,62 @@ export default function App() {
   const [projectTabsLoading, setProjectTabsLoading] = useState(false)
   const [projectTabsError, setProjectTabsError] = useState<string | null>(null)
   const [activeThreadId, setActiveThreadId] = useState<string>('')
+  const projectHydrationControllers = useRef(new Map<string, Set<AbortController>>())
+  const projectHydrationReads = useRef(new Map<string, Set<Promise<unknown>>>())
+  const purgingProjectIds = useRef(new Set<string>())
+
+  const abortProjectHydrations = async (projectId: string) => {
+    for (const controller of projectHydrationControllers.current.get(projectId) ?? []) {
+      controller.abort()
+    }
+    projectHydrationControllers.current.delete(projectId)
+    const pendingReads = [...(projectHydrationReads.current.get(projectId) ?? [])]
+    await Promise.allSettled(pendingReads)
+    projectHydrationReads.current.delete(projectId)
+  }
 
   const loadThreadMessages = async (sessionId: string, projectId?: string | null) => {
-    const [messagesResult, timelineResult, tasksResult] = await Promise.allSettled([
-      getSessionMessages(sessionId),
-      getTimeline(sessionId),
-      getProjectTasks(projectId),
-    ])
+    if (projectId && purgingProjectIds.current.has(projectId)) return []
+    const controller = new AbortController()
+    if (projectId) {
+      const controllers = projectHydrationControllers.current.get(projectId) ?? new Set()
+      controllers.add(controller)
+      projectHydrationControllers.current.set(projectId, controllers)
+    }
+    let settled: [
+      PromiseSettledResult<ChatMessageRow[]>,
+      PromiseSettledResult<TimelineResponse>,
+      PromiseSettledResult<ProjectTaskRow[]>,
+    ]
+    try {
+      const reads = Promise.allSettled([
+        getSessionMessages(sessionId, controller.signal),
+        getTimeline(sessionId, controller.signal),
+        getProjectTasks(projectId, controller.signal),
+      ])
+      if (projectId) {
+        const pending = projectHydrationReads.current.get(projectId) ?? new Set()
+        pending.add(reads)
+        projectHydrationReads.current.set(projectId, pending)
+      }
+      try {
+        settled = await reads
+      } finally {
+        if (projectId) {
+          const pending = projectHydrationReads.current.get(projectId)
+          pending?.delete(reads)
+          if (pending?.size === 0) projectHydrationReads.current.delete(projectId)
+        }
+      }
+    } finally {
+      if (projectId) {
+        const controllers = projectHydrationControllers.current.get(projectId)
+        controllers?.delete(controller)
+        if (controllers?.size === 0) projectHydrationControllers.current.delete(projectId)
+      }
+    }
+    if (controller.signal.aborted) return []
+    const [messagesResult, timelineResult, tasksResult] = settled
     if (messagesResult.status !== 'fulfilled') throw messagesResult.reason
     const rows = messagesResult.value
     const baseMessages = rows.map(mapMessage)
@@ -344,21 +396,37 @@ export default function App() {
       setTaskError(null)
       return
     }
+    if (purgingProjectIds.current.has(currentProject.id)) return
     let disposed = false
-    void listTasks(currentProject.id)
+    const controller = new AbortController()
+    const controllers = projectHydrationControllers.current.get(currentProject.id) ?? new Set()
+    controllers.add(controller)
+    projectHydrationControllers.current.set(currentProject.id, controllers)
+    const taskRead = listTasks(currentProject.id, controller.signal)
+    const pendingReads = projectHydrationReads.current.get(currentProject.id) ?? new Set()
+    pendingReads.add(taskRead)
+    projectHydrationReads.current.set(currentProject.id, pendingReads)
+    void taskRead
       .then((result) => {
         if (disposed) return
         setTasks(result.tasks)
         setTaskError(result.error || null)
       })
       .catch((error) => {
-        if (!disposed) {
+        if (!disposed && !controller.signal.aborted) {
           setTasks([])
           setTaskError(error instanceof Error ? error.message : String(error))
         }
       })
     return () => {
       disposed = true
+      controller.abort()
+      const active = projectHydrationControllers.current.get(currentProject.id)
+      active?.delete(controller)
+      if (active?.size === 0) projectHydrationControllers.current.delete(currentProject.id)
+      const pending = projectHydrationReads.current.get(currentProject.id)
+      pending?.delete(taskRead)
+      if (pending?.size === 0) projectHydrationReads.current.delete(currentProject.id)
     }
   }, [mode, currentProject?.id])
 
@@ -537,6 +605,8 @@ export default function App() {
 
   // Purge all project telemetry data (Danger Zone in Project Settings)
   const handlePurgeProjectData = async (projectId: string) => {
+    purgingProjectIds.current.add(projectId)
+    await abortProjectHydrations(projectId)
     try {
       await purgeProjectData(projectId)
       const loaded = await listProjects()
@@ -548,6 +618,7 @@ export default function App() {
       setMode(previousMode || 'dev')
       await reloadHistory()
     } catch {
+      purgingProjectIds.current.delete(projectId)
       // Keep the project settings visible when the purge request fails.
     }
   }

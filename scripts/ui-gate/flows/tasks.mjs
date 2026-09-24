@@ -17,22 +17,45 @@ async function tasksFor(api, projectId) {
 }
 
 async function waitForTaskFinished(api, projectId, taskId, initialTask) {
-  const deadline = Date.now() + 10 * 60_000
+  const startedAt = Date.now()
+  const deadline = startedAt + 10 * 60_000
   let task
   while (Date.now() <= deadline) {
     task = (await tasksFor(api, projectId)).find((item) => item.id === taskId)
     if (
       task &&
       ((task.status !== 'pending' && task.status !== 'running') ||
-        task.retry_count !== initialTask.retry_count ||
-        task.retryCount !== initialTask.retryCount ||
-        task.run_id !== initialTask.run_id ||
-        task.runId !== initialTask.runId)
+        (task.status === 'pending' &&
+          (task.retryCount !== initialTask.retryCount || task.runId !== initialTask.runId)))
+    )
+      return task
+    if (
+      task?.status === 'pending' &&
+      Date.now() - startedAt >= 20_000 &&
+      task.retryCount === initialTask.retryCount &&
+      task.runId === initialTask.runId
     )
       return task
     await delay(2_000)
   }
   return task
+}
+
+async function recordRetry(api, projectId, task, step) {
+  const listedRuns = await api('/api/runs', {
+    headers: { 'x-orchestos-project-id': projectId },
+  })
+  const latestRun = (listedRuns.data ?? []).find((run) => run.taskId === task.id)
+  const response = latestRun ? await api(`/api/runs/${encodeURIComponent(latestRun.id)}`) : null
+  const run = response?.data ?? response ?? {}
+  const detail = {
+    attempt: task.retryCount,
+    qa_verdict: run.qaVerdict ?? null,
+    qa_reason: run.qaReason ?? null,
+    qa_model: run.qaModel ?? null,
+    file_diffs: run.fileDiffs ?? [],
+  }
+  await step(`failed attempt ${task.retryCount} QA detail`, true, JSON.stringify(detail))
 }
 
 export default async function tasks({ page, api, step, shot, visible, cleanup }) {
@@ -183,7 +206,21 @@ export default async function tasks({ page, api, step, shot, visible, cleanup })
       'pending',
     'dependency prevents the second task from running',
   )
-  const finished = await waitForTaskFinished(api, project.id, 'gate-first-task', firstBefore)
+  let finished = await waitForTaskFinished(api, project.id, 'gate-first-task', firstBefore)
+  let recordedRetryCount = firstBefore?.retryCount ?? 0
+  while (
+    finished &&
+    (finished.retryCount > recordedRetryCount ||
+      ((finished.status === 'failed' || finished.status === 'failed_permanent') && finished.runId))
+  ) {
+    await recordRetry(api, project.id, finished, step)
+    recordedRetryCount = finished.retryCount
+    if (finished.status !== 'pending' || finished.retryCount >= 3) break
+    const retryBefore = finished
+    if (await runButton.isEnabled()) await runButton.click()
+    else break
+    finished = await waitForTaskFinished(api, project.id, 'gate-first-task', retryBefore)
+  }
   const visibleStatus = finished?.status ?? 'missing'
   const statusLabel =
     visibleStatus === 'running'
