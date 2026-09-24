@@ -397,6 +397,30 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 > (Project settings / Delete project) + back. 3. Panel derecho History + archivar agente + toggle
 > permanente. 4. `UI.10.A` plan de cada proyecto en solo lectura. 5. Etiquetas de texto en vez de
 > emojis. Temas renombrados entran en la pieza 1.
+- [ ] **MR.1 — 🧠 Model routing por rol con CLI: Orquestador, Ejecutor, Revisor y Auxiliar; cero modelos hardcodeados.** (abierto 2026-09-24, GO de Carlos a los 4 roles; va antes de UI.13.7; absorbe AT.10 y AT.13)
+  **Por qué (verificado en el código 2026-09-24):** hay dos sistemas que nunca se tocan. Settings → Model routing
+  (`OrchestSettingsView.tsx:1256-1372`) asigna roles `planner`/`executor_heavy`/`executor_light`/`default` a modelos
+  de API, con el combobox alimentado por `/api/chat/models` = 458 modelos solo de OpenRouter; defaults
+  `deepseek-v4-flash` (`src/config/schema.ts:110`). Los CLI (`/api/chat/cli-models`: Claude/Codex/OpenCode) solo los
+  usa el composer del chat; la ejecución elige CLI por `agent`, `taskAgentRules` (solo YAML, `schema.ts:44`) y
+  `engine` por tarea. `getProvider` (`src/providers/index.ts:19-31`) no tiene Claude CLI; el `codex` de
+  `providers/codex.ts` ignora modelo y sandbox. La tarjeta "QA judge" es texto fijo "auto (dual gate)".
+  **Hardcodes a eliminar:** `QA_JUDGE_DEFAULTS` (`harness.ts:172`, juez `gpt-4o-mini`: causa del `runs-graph`
+  intermitente, reformula criterios y R.3 lo rechaza en `qa.ts:258`), `agents/diagnose.ts:166` y
+  `memory/judge.ts:118` (`claude-haiku-4-5` vía OpenRouter), `spec/draft.ts:177` (`deepseek-r1`).
+  **Diseño aprobado:** 4 roles globales, cada uno `{agente: claude|codex|opencode|api, modelo, esfuerzo}`:
+  Orquestador (cerebro del chat, `agents/planner.ts`, `spec/draft.ts`), Ejecutor (`runTask`), Revisor (QA + adversarial
+  + refuter, solo lectura), Auxiliar (diagnose, juez de memoria; solo lectura). `executor_light` desaparece: la
+  especialización por tarea va en `taskAgentRules` (ruta/skill → agente), que recibe UI en este ítem. Un catálogo
+  único (CLI detectados + sus modelos + OpenRouter) para chat, routing, reglas y QA. Un solo punto de ejecución por rol
+  que lanza el CLI o la API. Rol sin asignar = "sin asignar" en la UI y error claro; nunca un default elegido por
+  OrchestOS. Revisor = mismo agente+modelo que Ejecutor → aviso de errores correlacionados, no bloqueo.
+  **Plan (sub-ítems, un spec por sub-ítem, ejecuta Luna):** MR.1.a config + migración (`models.*` viejos → roles
+  nuevos con `agente: api`; `executor_heavy`→Ejecutor, `planner`→Orquestador) y catálogo único; MR.1.b ejecución por
+  rol (Claude/Codex/OpenCode/API, sandbox solo lectura para Revisor/Auxiliar) y borrar los 4 hardcodes; MR.1.c UI de
+  Model routing (4 filas agente+modelo+esfuerzo con valor real) + UI de `taskAgentRules`; MR.1.d AT.10/AT.13 (el chat
+  usa el Orquestador/CLI elegido sin caída a OpenRouter; contexto veraz). Gate: `runs-graph` 5/5 con el Revisor
+  configurado por UI; flujo nuevo `model-routing` que cambia cada rol clickeando y afirma el modelo registrado en el run.
 - [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
   Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
   `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5
@@ -622,6 +646,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 ## Fase 2 — Producto mínimo para entrega
 
 - [ ] **AT.10 — 🧠 El chat usa de verdad el CLI elegido: Codex y OpenCode, sin caída silenciosa a OpenRouter.**
+  **Absorbido por MR.1.d (Carlos 2026-09-24):** se ejecuta dentro de MR.1, no por separado.
   **Progreso 2026-09-15 (backend, ejecutado por luna · spec en `docs/specs/AT.10.md`, sigue
   abierto):** `chat.ts:1098-1101` ya no pasa `deepseek/deepseek-v4-flash` como default a
   `runCodexChat`/`runOpencodeChat` cuando `body.model` no vino explícito (`cliModel`); OpenCode sin
@@ -863,6 +888,7 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
 ## Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
 
 - [ ] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, pendiente)
+  **Absorbido por MR.1.d (Carlos 2026-09-24):** se ejecuta dentro de MR.1, no por separado.
   Origen: autoevaluación de Claude corriendo como CLI dentro de OrchestOS, contrastada contra el
   código por el cerebro. Es backend de `handlers/chat.ts`, independiente del cambio de interfaz de
   esta semana. Confirmado por lectura, sin corrida en vivo:

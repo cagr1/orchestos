@@ -112,6 +112,15 @@
       "closedDate": null
     },
     {
+      "id": "MR.1",
+      "sprint": "Fase 1 — Terminar la interfaz",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Model routing por rol con CLI: Orquestador, Ejecutor, Revisor y Auxiliar; cero modelos hardcodeados",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.4",
       "sprint": "Fase 1 — Terminar la interfaz",
       "block": null,

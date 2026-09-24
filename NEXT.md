@@ -1,6 +1,19 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — abrir Lote L4 (preparado 2026-09-24)
+## Siguiente tab — MR.1 (Model routing por rol con CLI) — preparado 2026-09-24
+L4: CI.4 (`046a11f`) y CI.2 (`1168d96`) cerrados. **GO de Carlos a los 4 roles** (Orquestador/Ejecutor/Revisor/
+Auxiliar). Diseño, hardcodes a borrar y plan de sub-ítems en PLAN.md § MR.1 (no re-diagnosticar). Siguiente paso:
+spec de **MR.1.a** (config + migración + catálogo único) → Luna → gate → commit; luego MR.1.b/c/d. Sub-ítems MR.1.x se
+crean en PLAN.md al escribir cada spec. Preflight con `--scope` en globs. MR.1 toca varios módulos: ya tiene GO de
+diseño; cada spec no necesita otra confirmación salvo decisión de producto no prevista.
+Después de MR.1: **UI.13.7** (colores de cuota; PLAN.md § UI.13.7). Pendientes de Carlos en IDEAS.md: `#69` (Files no
+expande carpetas), `#70` (Changes en vivo estilo VS Code).
+Conocido: `runs-graph` rojo ~1/3 por el juez QA `gpt-4o-mini` hasta que cierre MR.1.b; si bloquea un push, reintentar.
+Lecciones L4: (7) Luna corrió `orchestos init` sobre este repo y pisó `AGENTS.md` (lo restauró): prohibirlo en cada
+spec; (8) la evidencia JSON armada a mano necesita `biome format --write` o el pre-push cae en lint; (9) `#68`
+(reconcile tras commit rechazado) ya van 3: su salida manual está en IDEAS.md.
+
+## Lote L4 (abierto 2026-09-24)
 Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write
 "…" < /dev/null` (Carlos; AGENTS.md y memoria ya actualizados). Turno real de gate = Codex · `gpt-6-luna` · medium.
 Orden: **CI.4** → **CI.2** → **UI.13.7** (colores de cuota, pedido de Carlos 2026-09-24). CI.4: (spec ya escrito y commiteado: `docs/specs/CI.4.md` — Luna 6 en los flujos, test inestable
