@@ -6,6 +6,12 @@ Orden: UI.13.6 → UI.9.9 → UI.9.8 → UI.10.A. Mismo flujo y paradas que L1/L
 |---|---|---|---|---|
 | UI.13.6 | 1 (su "gate:all falló" era el sandbox, EADDRINUSE; fuera, solo el test inestable `context-adapters:187`, 2.ª corrida verde) | usage-bar 13/13 · smoke 6/6 · test:coverage 1527/0 | f723a51 | ~45 |
 | UI.9.9 | 2 (dijo que 4 flujos fallaban: 3 pasaban fuera del sandbox; el 4.º, `chat-turn-details`, fallaba también en master) | project-delete 11/11 · 6 flujos verdes · gate:all 1528/0 | ver git log | ~50 |
+| UI.9.8 | 4 (r1 barrido de ~11 textos, devuelto; r2 inventario mecánico 105; r3 flujo con textos viejos; r4 texto inexacto) | text-sweep 10/10 · chat-turn-details 27/27 · smoke · gate:all 1528/0 | ver git log | ~60 |
+UI.10.A PARADO por decisión de producto (pregunta a Carlos 2026-09-23): la pestaña Plan de Settings → proyecto muestra
+el tablero de tasks (`PlanBoardView`, fuente `tasks.yaml`), no `PLAN.md`; nada en React consume `/api/plan`. ¿Dónde va el
+`PLAN.md` en solo lectura? Recomendación del cerebro: vista `PLAN.md` dentro de la pestaña Plan (conmutador junto al
+tablero), igual para todos los proyectos incluido OrchestOS.
+Para Carlos al cierre de L3: 92 textos dudosos del barrido en `docs/done/evidence/UI.9.8-sweep.md` (se quedaron).
 Lecciones L3: (1) el `--scope` del preflight necesita globs (`src/dashboard/**`): un directorio pelado no cubre sus
 archivos; (2) incluir `NEXT.md` en el scope; (3) el preflight no se puede re-correr sobre un ítem ya `[x]`: si el
 scope quedó corto, línea "**Fuera de scope declarado:**" en el ítem; (4) `check-live-gate` exige la frase
