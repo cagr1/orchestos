@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
@@ -24,6 +24,12 @@ function fixtureRoot(): string {
     }),
   )
   execFileSync('git', ['init', '-q'], { cwd: root })
+  // El handler commitea con Bun.spawnSync, que no ve cambios a process.env en runtime:
+  // la identidad va en el repo temporal, o en ubuntu (sin identidad) el commit falla (CI.5).
+  appendFileSync(
+    join(root, '.git', 'config'),
+    '[user]\n\tname = task-test\n\temail = task-test@example.invalid\n',
+  )
   execFileSync('git', ['add', '.gitignore', 'tasks.yaml'], { cwd: root })
   execFileSync(
     'git',

@@ -26,6 +26,7 @@ async function runIsolated(
       cwd: process.cwd(),
       env: {
         ...process.env,
+        HOME: home,
         ORCHESTOS_HOME: home,
         OPENROUTER_API_KEY: 'test-key',
         PATH: NO_CLI_PATH,
@@ -125,7 +126,6 @@ describe('CC.2 — chat sessions backend', () => {
       mkdirSync(root, { recursive: true })
       mkdirSync(join(home, '.claude'), { recursive: true })
       writeFileSync(join(home, '.claude', 'stats-cache.json'), JSON.stringify({ modelUsage: { 'claude-sonnet-5': {} } }))
-      process.env.HOME = home
       writeFileSync(join(root, 'orchestos.config.yaml'), 'agent: claude\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')

@@ -54,13 +54,13 @@ function serveFrom(root: string, rel: string, headers?: HeadersInit): Response {
   })
 }
 
-function serveStatic(url: string): Response {
+function serveStatic(url: string, appDir = APP_DIR): Response {
   if (url === '/legacy' || url.startsWith('/legacy/')) {
     return new Response('Not found', { status: 404 })
   }
 
   if (url.startsWith('/app/dist/')) {
-    return serveFrom(APP_DIR, url.slice('/app/'.length), { 'Cache-Control': 'no-cache' })
+    return serveFrom(appDir, url.slice('/app/'.length), { 'Cache-Control': 'no-cache' })
   }
 
   if (url === '/api' || url.startsWith('/api/')) {
@@ -70,7 +70,7 @@ function serveStatic(url: string): Response {
   // The AI Studio prototype is the product UI. Any non-API route without an
   // extension is a client-side route and must boot that app shell.
   if (url === '/' || !extname(url)) {
-    return serveFrom(APP_DIR, 'index.html', { 'Cache-Control': 'no-cache' })
+    return serveFrom(appDir, 'index.html', { 'Cache-Control': 'no-cache' })
   }
 
   return new Response('Not found', { status: 404 })

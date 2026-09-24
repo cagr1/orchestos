@@ -152,6 +152,7 @@ interface SessionStatusOptions {
   agentHome?: string
   adapters?: ContextAdapter[]
   readCodexRateLimits?: typeof readCodexRateLimitsLive
+  detectClis?: typeof detectInstalledClis
 }
 
 /** No expone paths ni contenido del transcript: solo métricas normalizadas. */
@@ -174,7 +175,7 @@ export async function readActiveSessionStatuses(
       : []
     : discoverSessionTranscripts(projectRoot, options.agentHome)
   const adapters = options.adapters ?? DEFAULT_ADAPTERS
-  const detections = detectInstalledClis()
+  const detections = (options.detectClis ?? detectInstalledClis)()
   const found = new Map<CliDetectionResult['id'], SessionStatus>()
   const candidates = (
     await Promise.all(

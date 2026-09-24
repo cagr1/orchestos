@@ -157,6 +157,35 @@ describe('session status', () => {
       await readActiveSessionStatuses({
         projectRoot: project,
         agentHome,
+        detectClis: () => [
+          {
+            id: 'claude',
+            label: 'Claude Code',
+            binary: 'claude',
+            icon: 'claude',
+            readBoundary: { kind: 'none', reason: 'test' },
+            installed: false,
+            path: null,
+          },
+          {
+            id: 'codex',
+            label: 'Codex',
+            binary: 'codex',
+            icon: 'codex',
+            readBoundary: { kind: 'none', reason: 'test' },
+            installed: true,
+            path: '/fake/codex',
+          },
+          {
+            id: 'opencode',
+            label: 'OpenCode',
+            binary: 'opencode',
+            icon: 'opencode',
+            readBoundary: { kind: 'none', reason: 'test' },
+            installed: false,
+            path: null,
+          },
+        ],
         readCodexRateLimits: async () => [
           {
             id: 'primary',
