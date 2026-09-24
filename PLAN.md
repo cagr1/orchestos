@@ -325,6 +325,10 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   módulo nuevo más `server.ts`; (c) las dos. Recomendación del cerebro: (b). Pendiente de Carlos.
   **DECIDIDO POR CARLOS 2026-09-21: (b).** Cada proyecto usa su propio `PLAN.md`, en solo lectura;
   no se le impone el formato de OrchestOS. Sin migración de `plan_items`.
+  **DECIDIDO POR CARLOS 2026-09-24 (dónde se ve):** conmutador dentro de la pestaña Plan de Settings → proyecto:
+  `Kanban | Table | PLAN.md` (el toggle de `PlanBoardView.tsx:139-155` gana una tercera opción). Igual para todos
+  los proyectos, OrchestOS incluido. Hallazgo previo: esa pestaña muestra el tablero de `tasks.yaml` y nada en React
+  consumía `/api/plan`.
 
 > **DECISIONES DE CARLOS 2026-09-21 — sidebar de proyectos, look nuevo y etiquetas del plan.**
 > Contestadas en una sola ronda (memoria `feedback-preguntas-todas-juntas`). Pendientes de
