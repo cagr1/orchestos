@@ -45,6 +45,7 @@ import {
   handleApiPlanDependencies,
   handleApiPlanPrepareClose,
 } from './handlers/plan.ts'
+import { handleApiPlanDoc } from './handlers/plan-doc.ts'
 import {
   handleApiNatural,
   handleApiProjectConstitutionGet,
@@ -177,6 +178,9 @@ export async function route(req: Request, port: number): Promise<Response> {
         ? handleApiPlan(project.root)
         : jsonResponse({ items: [], unavailable: 'plan-not-per-project' }),
     )
+  }
+  if (method === 'GET' && url.pathname === '/api/plan/doc') {
+    return withDashboardProject(req, (project) => handleApiPlanDoc(project.root))
   }
   if (method === 'PUT' && /^\/api\/plan\/items\/[^/]+\/dependencies$/.test(url.pathname)) {
     return withDashboardProject(req, (project) =>

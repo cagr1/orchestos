@@ -305,7 +305,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   textos viejos; r4 "SQLite full-text search" inexacto) · Spec: docs/specs/UI.9.8.md (borrado al cerrar).
   Gate en vivo: navegador real (Playwright, `bun run ui:gate text-sweep` 10/10 + chat-turn-details 27/27 + project-tabs 23/23 + smoke 6/6) — `docs/done/evidence/UI.9.8-live.json`.
   Turno real Codex registró `gpt-5.6-luna` · `medium`; `gate:all` 1528/0.
-- [ ] **UI.10.A — 🧠 El plan por proyecto: `plan_items` y `plan_doc_segments` con proyecto.** (abierto 2026-09-21)
+- [x] **UI.10.A — 🧠 El plan por proyecto: `plan_items` y `plan_doc_segments` con proyecto.** (abierto 2026-09-21; cerrado 2026-09-24 — `ui:gate plan-doc` 15/15)
   Sale de `UI.10`: el plan de la DB es uno solo, sin columna de proyecto, y `renderPlan(db)`
   (`handlers/plan.ts:22`) arma siempre el de OrchestOS. Hoy la pestaña Plan de cualquier otro
   proyecto muestra "not available yet" (`server.ts`, rutas `/api/plan*`). A diseñar: migración
@@ -329,6 +329,15 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   `Kanban | Table | PLAN.md` (el toggle de `PlanBoardView.tsx:139-155` gana una tercera opción). Igual para todos
   los proyectos, OrchestOS incluido. Hallazgo previo: esa pestaña muestra el tablero de `tasks.yaml` y nada en React
   consumía `/api/plan`.
+  Hecho: `src/plan/read-plan-doc.ts` (secciones `#`–`###`, checkboxes con sangría, texto plano; solo lectura, tope
+  1 MB), `GET /api/plan/doc` por `x-orchestos-project-id` sin corte por cwd, tercera opción `PLAN.md` en el toggle de
+  `PlanBoardView`. Las rutas `/api/plan*` de la DB siguen solo para OrchestOS.
+  De paso: `project-tabs`, `tasks` y `runs-graph` registraban el proyecto temporal sin recargar (misma carrera que
+  `chat-turn-details` en UI.9.9; `project-tabs` falló también sin los cambios) → `page.reload` tras registrar.
+  Ejecutado por: luna (2 rondas; r2 la recarga en los flujos hermanos) · Spec: docs/specs/UI.10.A.md (borrado al cerrar).
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate plan-doc` 15/15 + project-tabs 23/23 + tasks 13/13 + runs-graph 16/16 + smoke 6/6) — `docs/done/evidence/UI.10.A-live.json`.
+  Checklist libre estilo SalaDespecho, proyecto sin `PLAN.md` y el de este repo (`UI.10.A` visible); `test:coverage`
+  1533/0 (1.ª corrida: el test inestable `context-adapters.test.ts:187`).
 
 > **DECISIONES DE CARLOS 2026-09-21 — sidebar de proyectos, look nuevo y etiquetas del plan.**
 > Contestadas en una sola ronda (memoria `feedback-preguntas-todas-juntas`). Pendientes de

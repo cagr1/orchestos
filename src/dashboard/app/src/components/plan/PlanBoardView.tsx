@@ -6,6 +6,7 @@ import {
   Clock,
   DollarSign,
   FileCode,
+  FileText,
   Filter,
   GitPullRequest,
   HelpCircle,
@@ -19,11 +20,13 @@ import {
   X,
 } from 'lucide-react'
 import type React from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getPlanDoc, type PlanDocResponse } from '../../api/planDoc'
 import type { TaskItem, TaskStatus } from '../../types/orchestos'
 
 interface PlanBoardViewProps {
   tasks: TaskItem[]
+  projectId: string
   onRunTask: (taskId: string) => void
   onExplainTask: (taskId: string) => void | Promise<Record<string, unknown> | void>
   onAddTask: () => void
@@ -57,11 +60,15 @@ function formatExplainValue(value: unknown, key?: string): string {
 
 export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
   tasks,
+  projectId,
   onRunTask,
   onExplainTask,
   onAddTask,
 }) => {
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
+  const [viewMode, setViewMode] = useState<'kanban' | 'table' | 'plan-doc'>('kanban')
+  const [planDoc, setPlanDoc] = useState<PlanDocResponse | null>(null)
+  const [planDocLoading, setPlanDocLoading] = useState(false)
+  const [planDocError, setPlanDocError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSprint, setSelectedSprint] = useState<string>('all')
   const [showAddModal, setShowAddModal] = useState(false)
@@ -75,6 +82,26 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
   const [newDesc, setNewDesc] = useState('')
   const [newOutput, setNewOutput] = useState('')
   const [newCriteria, setNewCriteria] = useState('')
+
+  useEffect(() => {
+    if (viewMode !== 'plan-doc') return
+    let disposed = false
+    setPlanDocLoading(true)
+    setPlanDocError(null)
+    getPlanDoc(projectId)
+      .then((result) => {
+        if (!disposed) setPlanDoc(result)
+      })
+      .catch((error: unknown) => {
+        if (!disposed) setPlanDocError(error instanceof Error ? error.message : String(error))
+      })
+      .finally(() => {
+        if (!disposed) setPlanDocLoading(false)
+      })
+    return () => {
+      disposed = true
+    }
+  }, [projectId, viewMode])
 
   const filteredTasks = tasks.filter((t) => {
     const matchesSearch =
@@ -147,6 +174,18 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
               <span>Kanban</span>
             </button>
             <button
+              type="button"
+              onClick={() => setViewMode('plan-doc')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+                viewMode === 'plan-doc'
+                  ? 'bg-zinc-800 text-white font-semibold shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>PLAN.md</span>
+            </button>
+            <button
               onClick={() => setViewMode('table')}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
                 viewMode === 'table'
@@ -202,7 +241,51 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
 
       {/* Main Board Content */}
       <div className="flex-1 overflow-x-auto overflow-y-auto p-4">
-        {viewMode === 'kanban' ? (
+        {viewMode === 'plan-doc' ? (
+          <div className="mx-auto w-full max-w-4xl space-y-4 pb-4">
+            {planDocLoading ? (
+              <div className="text-sm text-zinc-500">Loading PLAN.md…</div>
+            ) : planDocError ? (
+              <div className="text-sm text-rose-400">{planDocError}</div>
+            ) : !planDoc?.exists ? (
+              <div className="text-sm text-zinc-500">No PLAN.md in this project</div>
+            ) : (
+              planDoc.sections.map((section) => (
+                <section
+                  key={`${section.level}-${section.title}`}
+                  className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 space-y-3"
+                >
+                  <h2 className="text-sm font-semibold text-zinc-100">{section.title}</h2>
+                  {section.text && (
+                    <p className="whitespace-pre-wrap text-xs leading-relaxed text-zinc-400">
+                      {section.text}
+                    </p>
+                  )}
+                  {section.items.length > 0 && (
+                    <div className="space-y-2">
+                      {section.items.map((item, index) => (
+                        <label
+                          key={`${item.text}-${index}`}
+                          className="flex items-start gap-2 text-xs text-zinc-300"
+                          style={{ marginLeft: `${item.depth * 1.25}rem` }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={item.checked}
+                            disabled
+                            readOnly
+                            className="mt-0.5 accent-indigo-500"
+                          />
+                          <span>{item.text}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ))
+            )}
+          </div>
+        ) : viewMode === 'kanban' ? (
           <div className="flex gap-4 min-w-max pb-4">
             {columns.map((col) => {
               const colTasks = filteredTasks.filter((t) => t.status === col.id)

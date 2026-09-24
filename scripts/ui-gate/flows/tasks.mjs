@@ -119,6 +119,7 @@ export default async function tasks({ page, api, step, shot, visible, cleanup })
     rmSync(projectRoot, { recursive: true, force: true })
   })
 
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step(

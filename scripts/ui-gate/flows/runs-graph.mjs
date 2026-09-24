@@ -105,6 +105,7 @@ export default async function runsGraph({ page, api, step, shot, visible, cleanu
   const globalBefore = await api('/api/runs')
   const otherRunIds = new Set((globalBefore.data ?? []).map((run) => run.id))
 
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step(

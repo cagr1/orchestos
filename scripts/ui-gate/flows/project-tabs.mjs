@@ -166,6 +166,7 @@ export default async function projectTabs({
     throw new Error(
       `seeded memory not returned by API for project ${project.id}: ${JSON.stringify(seededMemory.data)}`,
     )
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step(

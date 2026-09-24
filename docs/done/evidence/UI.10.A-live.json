@@ -1,0 +1,85 @@
+[
+  {
+    "flujo": "plan-doc",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A checklist-9AFvV9 visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A checklist-9AFvV9 settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "PLAN.md section visible",
+        "ok": true,
+        "detalle": "parsed section"
+      },
+      {
+        "nombre": "three checklist items visible",
+        "ok": true,
+        "detalle": "three read-only checkboxes"
+      },
+      {
+        "nombre": "completed item checked",
+        "ok": true,
+        "detalle": "Migrar DB is checked"
+      },
+      {
+        "nombre": "checkboxes disabled",
+        "ok": true,
+        "detalle": "PLAN.md is read-only"
+      },
+      {
+        "nombre": "nested item visible",
+        "ok": true,
+        "detalle": "indented checklist item"
+      },
+      {
+        "nombre": "Kanban still works",
+        "ok": true,
+        "detalle": "board restored"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A empty-eBCvVc visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A empty-eBCvVc settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "missing PLAN.md state",
+        "ok": true,
+        "detalle": "empty state"
+      },
+      {
+        "nombre": "orchestos visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "repository PLAN.md item visible",
+        "ok": true,
+        "detalle": "real repository plan item"
+      },
+      {
+        "nombre": "no browser console errors",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  }
+]

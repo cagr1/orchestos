@@ -2095,6 +2095,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               {activeProjectTab === 'plan' && (
                 <PlanBoardView
                   tasks={tasks}
+                  projectId={selectedProject?.id ?? activeProjectId}
                   onRunTask={onRunTask || (() => {})}
                   onExplainTask={onExplainTask || (() => {})}
                   onAddTask={onAddTask || (() => {})}
