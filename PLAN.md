@@ -397,6 +397,14 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 > (Project settings / Delete project) + back. 3. Panel derecho History + archivar agente + toggle
 > permanente. 4. `UI.10.A` plan de cada proyecto en solo lectura. 5. Etiquetas de texto en vez de
 > emojis. Temas renombrados entran en la pieza 1.
+- [ ] **CI.5 — ⚡ CI rojo desde 2026-09-23 02:44: 5 tests que pasan en el Mac fallan en ubuntu.** (abierto 2026-09-24; prioridad por CLAUDE.md, va antes de MR.1)
+  Último verde: `style(UI.13.5)` 2026-09-22 21:28; rojo en todos los push desde `style(UI.14)`. Fallan en CI (run
+  36040763651, 1526 pass / 5 fail): `session status › lee la cuota de Codex de la cuenta aunque el proyecto no tenga
+  transcript`, `serveStatic › does not cache the app shell or its bundle`, `CC.2 › R.6 persiste el costo canónico del CLI…`,
+  `dashboard task deletion › commits single deletion…` y `› commits bulk deletion too`. Sospecha (sin verificar): dependen
+  del host (Codex instalado/logueado, git identity, rutas del bundle) — misma familia que `ToolchainProbe`. El pre-push
+  dice "CI debería coincidir" y no coincide: el arreglo incluye reproducir en un entorno limpio (`docker`/sin `~/.codex`,
+  sin `git config user.*`) antes de dar por verde. Gate: run de CI verde en GitHub tras el push.
 - [ ] **MR.1 — 🧠 Model routing por rol con CLI: Orquestador, Ejecutor, Revisor y Auxiliar; cero modelos hardcodeados.** (abierto 2026-09-24, GO de Carlos a los 4 roles; va antes de UI.13.7; absorbe AT.10 y AT.13)
   **Por qué (verificado en el código 2026-09-24):** hay dos sistemas que nunca se tocan. Settings → Model routing
   (`OrchestSettingsView.tsx:1256-1372`) asigna roles `planner`/`executor_heavy`/`executor_light`/`default` a modelos
