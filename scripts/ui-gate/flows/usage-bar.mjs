@@ -54,7 +54,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   const project = (projectList.data ?? []).find((item) => item.path === projectRoot)
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
   cleanup(async () => {
-    await api(`/api/projects/${encodeURIComponent(project.id)}`, { method: 'DELETE' })
+    await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
     rmSync(projectRoot, { recursive: true, force: true })
     const projectsAfter = await api('/api/projects')
     await step(

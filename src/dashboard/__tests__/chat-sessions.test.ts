@@ -778,7 +778,7 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.remaining).toBe(0)
   })
 
-  it('archives/restores sessions and removes project registration without touching disk', async () => {
+  it('archives/restores sessions and soft-removes project registration without touching disk', async () => {
     const result = await runIsolated(`
       const { mkdirSync, writeFileSync, existsSync } = await import('node:fs')
       const { join } = await import('node:path')
@@ -800,7 +800,7 @@ describe('CC.2 — chat sessions backend', () => {
       const restore = await route(new Request('http://localhost:4330/api/chat/sessions/' + session.id + '/restore', { method: 'POST' }), 4330)
       const deleteProject = await route(new Request('http://localhost:4330/api/projects/kept', { method: 'DELETE', headers: { Origin: 'http://localhost:4330' } }), 4330)
       const projects = await route(new Request('http://localhost:4330/api/projects'), 4330)
-      process.stdout.write(JSON.stringify({ archive: archive.status, normal: await normal.json(), archived: await archived.json(), restore: restore.status, deleteProject: deleteProject.status, projects: await projects.json(), sessionCount: db.query('SELECT COUNT(*) AS count FROM chat_sessions WHERE project_id = ?', ['kept']).get().count, marker: existsSync(marker) }))
+      process.stdout.write(JSON.stringify({ archive: archive.status, normal: await normal.json(), archived: await archived.json(), restore: restore.status, deleteProject: deleteProject.status, projects: await projects.json(), sessionCount: db.query('SELECT COUNT(*) AS count FROM chat_sessions WHERE project_id = ?').get('kept').count, marker: existsSync(marker) }))
       db.close()
     `)
     expect(result.archive).toBe(200)
@@ -811,7 +811,7 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.restore).toBe(200)
     expect(result.deleteProject).toBe(200)
     expect(result.projects).toEqual([])
-    expect(result.sessionCount).toBe(0)
+    expect(result.sessionCount).toBe(1)
     expect(result.marker).toBe(true)
   })
 

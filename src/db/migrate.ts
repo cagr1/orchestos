@@ -583,6 +583,31 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 14 did not allow reasoning chat turn steps')
     },
   },
+  {
+    version: 15,
+    name: 'soft-deleted-projects',
+    precondition: (database) => {
+      const projects =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'projects'",
+          )
+          .get()?.count ?? 0
+      if (projects !== 1) throw new Error('Migration 15 requires projects table')
+    },
+    apply: (database) => {
+      database.exec('ALTER TABLE projects ADD COLUMN removed_at TEXT')
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(projects)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('removed_at')) {
+        throw new Error('Migration 15 did not add projects.removed_at')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -145,7 +145,7 @@ export default async function projectTabs({
   const instinctId = instinct.data?.id ?? instinct.id
   let createdInstinctId = null
   cleanup(async () => {
-    await api(`/api/projects/${encodeURIComponent(project.id)}`, { method: 'DELETE' })
+    await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
     const residue = cleanupDb(project.id, [instinctId, createdInstinctId])
     if (residue.memory !== 0 || residue.conflicts !== 0 || residue.instincts !== 0)
       throw new Error(`cleanup residue: ${JSON.stringify(residue)}`)

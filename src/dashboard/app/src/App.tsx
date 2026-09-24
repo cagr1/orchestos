@@ -18,7 +18,7 @@ import {
   sendMessage,
 } from './api/chat'
 import { getProjectContext } from './api/project'
-import { chooseProject, deleteProject, listProjects } from './api/projects'
+import { chooseProject, deleteProject, listProjects, purgeProjectData } from './api/projects'
 import {
   addInstinct,
   approveInstinct,
@@ -536,9 +536,20 @@ export default function App() {
   }
 
   // Purge all project telemetry data (Danger Zone in Project Settings)
-  const handlePurgeProjectData = (projectId: string) => {
-    setRuns((prev) => prev.filter((r) => r.taskId && !r.taskId.startsWith(projectId)))
-    setMemories((prev) => prev.filter((m) => m.scope !== 'project'))
+  const handlePurgeProjectData = async (projectId: string) => {
+    try {
+      await purgeProjectData(projectId)
+      const loaded = await listProjects()
+      setProjects(loaded)
+      setActiveProjectId((current) => (current === projectId ? loaded[0]?.id || '' : current))
+      setActiveAgentId(null)
+      setRuns([])
+      setThreads((current) => current.filter((thread) => thread.projectId !== projectId))
+      setMode(previousMode || 'dev')
+      await reloadHistory()
+    } catch {
+      // Keep the project settings visible when the purge request fails.
+    }
   }
 
   // Danger Zone - Reset OrchestOS

@@ -122,3 +122,11 @@ export async function deleteProject(projectId: string): Promise<void> {
   const body = (await response.json().catch(() => null)) as { error?: string } | null
   if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`)
 }
+
+export async function purgeProjectData(projectId: string): Promise<void> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/purge`, {
+    method: 'POST',
+  })
+  const body = (await response.json().catch(() => null)) as { error?: string } | null
+  if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`)
+}

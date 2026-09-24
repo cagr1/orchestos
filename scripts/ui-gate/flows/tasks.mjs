@@ -115,7 +115,7 @@ export default async function tasks({ page, api, step, shot, visible, cleanup })
   const project = (projects.data ?? []).find((item) => item.path === projectRoot)
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
   cleanup(async () => {
-    await api(`/api/projects/${encodeURIComponent(project.id)}`, { method: 'DELETE' })
+    await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
     rmSync(projectRoot, { recursive: true, force: true })
   })
 

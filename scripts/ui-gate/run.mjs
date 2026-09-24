@@ -102,7 +102,7 @@ async function removeOrphanedUiProjects(base) {
   for (const project of Array.isArray(projects) ? projects : []) {
     const projectPath = typeof project.path === 'string' ? path.resolve(project.path) : ''
     if (!projectPath.startsWith(prefix)) continue
-    await fetch(`${base}/api/projects/${encodeURIComponent(project.id)}`, { method: 'DELETE' })
+    await fetch(`${base}/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
     await fsp.rm(projectPath, { recursive: true, force: true })
   }
 }

@@ -44,8 +44,7 @@ export const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({
           <strong className="text-app font-semibold">{projectName}</strong> from this workspace?
           <br />
           <span className="text-rose-400/90 mt-1 block">
-            This only removes it from OrchestOS workspace telemetry and active index. It does NOT
-            delete the repository folder from disk.
+            It leaves the list; its data stays. Add it again to restore it.
           </span>
         </p>
 

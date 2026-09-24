@@ -1,0 +1,65 @@
+[
+  {
+    "flujo": "project-delete",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project row"
+      },
+      {
+        "nombre": "project actions visible on hover",
+        "ok": true,
+        "detalle": "ellipsis action"
+      },
+      {
+        "nombre": "menu has exactly settings and delete",
+        "ok": true,
+        "detalle": "two project actions"
+      },
+      {
+        "nombre": "soft delete removes project from sidebar",
+        "ok": true,
+        "detalle": "row hidden"
+      },
+      {
+        "nombre": "soft delete preserves chat and run rows",
+        "ok": true,
+        "detalle": "{\"counts\":{\"context_chunks\":0,\"memory_entries\":0,\"chat_sessions\":1,\"chat_turns\":0,\"runs\":1,\"files\":0,\"code_edges\":0},\"chats\":1,\"runs\":1,\"project\":1}"
+      },
+      {
+        "nombre": "re-adding the same path restores the project row",
+        "ok": true,
+        "detalle": "restored project"
+      },
+      {
+        "nombre": "restored project keeps its chat",
+        "ok": true,
+        "detalle": "chat survives soft delete and re-add"
+      },
+      {
+        "nombre": "project settings opens from project menu",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "purge exits project settings",
+        "ok": true,
+        "detalle": "settings closed"
+      },
+      {
+        "nombre": "purge removes project and every project-scoped row",
+        "ok": true,
+        "detalle": "{\"purged\":{\"counts\":{\"context_chunks\":0,\"memory_entries\":0,\"chat_sessions\":0,\"chat_turns\":0,\"runs\":0,\"files\":0,\"code_edges\":0},\"chats\":0,\"runs\":0,\"project\":0},\"projectList\":[{\"id\":\"7078a96b02350763\",\"path\":\"/Users/carlosgallardo/Documents/projects/SalaDespecho\",\"stackProfile\":\"{\\\"manifest\\\":{\\\"name\\\":\\\"sala-de-despecho\\\",\\\"runtime\\\":\\\"Node.js\\\",\\\"framework\\\":\\\"Next.js\\\",\\\"deps\\\":[\\\"@gsap/react\\\",\\\"@react-three/fiber\\\",\\\"@supabase/supabase-js\\\",\\\"@vercel/analytics\\\",\\\"gsap\\\",\\\"motion\\\",\\\"next\\\",\\\"qrcode\\\",\\\"react\\\",\\\"react-dom\\\",\\\"resend\\\",\\\"three\\\",\\\"eslint\\\",\\\"eslint-config-next\\\",\\\"puppeteer\\\"]},\\\"languages\\\":[{\\\"lang\\\":\\\"JavaScript\\\",\\\"count\\\":87,\\\"pct\\\":87},{\\\"lang\\\":\\\"SQL\\\",\\\"count\\\":9,\\\"pct\\\":9},{\\\"lang\\\":\\\"HTML\\\",\\\"count\\\":3,\\\"pct\\\":3},{\\\"lang\\\":\\\"CSS\\\",\\\"count\\\":1,\\\"pct\\\":1}],\\\"conventions\\\":{\\\"editorconfig\\\":null,\\\"prettier\\\":null,\\\"eslint\\\":\\\"import { defineConfig, globalIgnores } from \\\\\\\"eslint/config\\\\\\\";\\\\nimport nextVitals from \\\\\\\"eslint-config-next/core-web-vitals\\\\\\\";\\\\n\\\\nconst eslintConfig = defineConfig([\\\\n  ...nextVitals,\\\\n  // Override default ignores of eslint-config-next.\\\\n  globalIgnores([\\\\n    // Default ignores of eslint-config-next:\\\\n    \\\\\\\".next/**\\\\\\\",\\\\n    \\\\\\\"out/**\\\\\\\",\\\\n    \\\\\\\"build/**\\\\\\\",\\\\n    \\\\\\\"next-env.d.ts\\\\\\\",\\\\n  ]),\\\\n]);\\\\n\\\\nexport default eslintConfig;\\\\n\\\",\\\"tsconfig\\\":null},\\\"commands\\\":[\\\"npm run dev\\\",\\\"npm run build\\\",\\\"npm run start\\\",\\\"npm run lint\\\"]}\",\"lastUpdated\":\"2026-09-15T22:27:10.605Z\",\"branch\":\"main\"},{\"id\":\"73903c93c6bd19e0\",\"path\":\"/Users/carlosgallardo/Documents/projects/orchestos\",\"stackProfile\":\"{\\\"manifest\\\":{\\\"name\\\":\\\"orchestos\\\",\\\"runtime\\\":\\\"Node.js\\\",\\\"framework\\\":\\\"none\\\",\\\"deps\\\":[\\\"commander\\\",\\\"diff\\\",\\\"glob\\\",\\\"marked\\\",\\\"pdfkit\\\",\\\"tesseract.js\\\",\\\"yaml\\\",\\\"@stryker-mutator/core\\\",\\\"@stryker-mutator/typescript-checker\\\",\\\"@types/bun\\\",\\\"@types/pdfkit\\\",\\\"typescript\\\"]},\\\"languages\\\":[{\\\"lang\\\":\\\"TypeScript\\\",\\\"count\\\":276,\\\"pct\\\":80},{\\\"lang\\\":\\\"JavaScript\\\",\\\"count\\\":16,\\\"pct\\\":5},{\\\"lang\\\":\\\"HTML\\\",\\\"count\\\":11,\\\"pct\\\":3},{\\\"lang\\\":\\\"Rust\\\",\\\"count\\\":9,\\\"pct\\\":3},{\\\"lang\\\":\\\"C#\\\",\\\"count\\\":9,\\\"pct\\\":3}],\\\"conventions\\\":{\\\"editorconfig\\\":null,\\\"prettier\\\":null,\\\"eslint\\\":null,\\\"tsconfig\\\":{\\\"target\\\":\\\"ESNext\\\",\\\"module\\\":\\\"Preserve\\\",\\\"strict\\\":true}},\\\"commands\\\":[]}\",\"lastUpdated\":\"2026-08-17T21:37:07.708Z\",\"branch\":\"master\"}]}"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  }
+]

@@ -59,6 +59,7 @@ import {
 import {
   handleApiProjectChoose,
   handleApiProjectDelete,
+  handleApiProjectPurge,
   handleApiProjects,
 } from './handlers/projects.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
@@ -309,6 +310,9 @@ export async function route(req: Request, port: number): Promise<Response> {
 
   if (method === 'GET' && url.pathname === '/api/projects') {
     return handleApiProjects()
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/projects\/[^/]+\/purge$/)) {
+    return handleApiProjectPurge(url)
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/projects\/[^/]+$/)) {
     return handleApiProjectDelete(url)

@@ -2109,11 +2109,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <span>Zona de peligro (Danger Zone)</span>
                   </div>
                   <p className="text-xs text-app-muted leading-relaxed">
-                    Borrar definitivamente los datos del proyecto{' '}
-                    <strong className="text-app font-semibold">{selectedProject.name}</strong>. Esta
-                    acción purga todos los registros de telemetría SQLite, el índice AST en memoria,
-                    las ramas sandbox de git worktree y la base de vectores local de este proyecto.
-                    (Esta acción no se puede deshacer).
+                    Borra permanentemente todos los chats, runs, archivos indexados, memoria y demás
+                    datos SQLite de{' '}
+                    <strong className="text-app font-semibold">{selectedProject.name}</strong>. No
+                    borra la carpeta del proyecto.
                   </p>
 
                   <div className="pt-1">
@@ -2146,9 +2145,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <span>Confirm Data Purge</span>
             </div>
             <p className="text-app-muted leading-relaxed">
-              Are you completely sure you want to permanently purge all local SQLite telemetry,
-              memory vector indexes, and AST cache for project{' '}
-              <strong className="text-app">{selectedProject.name}</strong>?
+              This permanently deletes all chats, runs, indexed files, memory, and other SQLite data
+              for project <strong className="text-app">{selectedProject.name}</strong>?
             </p>
             <div className="flex justify-end gap-2 pt-2 border-t border-app">
               <button

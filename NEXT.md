@@ -5,6 +5,7 @@ Orden: UI.13.6 → UI.9.9 → UI.9.8 → UI.10.A. Mismo flujo y paradas que L1/L
 | ítem | rondas Luna | gate | SHA | min |
 |---|---|---|---|---|
 | UI.13.6 | 1 (su "gate:all falló" era el sandbox, EADDRINUSE; fuera, solo el test inestable `context-adapters:187`, 2.ª corrida verde) | usage-bar 13/13 · smoke 6/6 · test:coverage 1527/0 | f723a51 | ~45 |
+| UI.9.9 | 2 (dijo que 4 flujos fallaban: 3 pasaban fuera del sandbox; el 4.º, `chat-turn-details`, fallaba también en master) | project-delete 11/11 · 6 flujos verdes · gate:all 1528/0 | ver git log | ~50 |
 Lecciones L3: (1) el `--scope` del preflight necesita globs (`src/dashboard/**`): un directorio pelado no cubre sus
 archivos; (2) incluir `NEXT.md` en el scope; (3) el preflight no se puede re-correr sobre un ítem ya `[x]`: si el
 scope quedó corto, línea "**Fuera de scope declarado:**" en el ítem; (4) `check-live-gate` exige la frase

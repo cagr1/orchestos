@@ -112,10 +112,11 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   )
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
   cleanup(async () => {
-    await api(`/api/projects/${encodeURIComponent(project.id)}`, { method: 'DELETE' })
+    await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
     rmSync(projectRoot, { recursive: true, force: true })
   })
 
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step('select temporary project', await visible(projectButton), 'project visible in sidebar')

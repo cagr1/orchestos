@@ -232,7 +232,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 13/13 + `smoke` 6/6) — `docs/done/evidence/UI.13.6-live.json`.
   Codex 92 % sin sesión antes y después de un turno real Luna; Claude vencida → 100 %; `/` y `main.js` `no-cache`.
   `test:coverage` 1527/0 (1.ª corrida: 1 fallo del test inestable conocido `context-adapters.test.ts:187`).
-- [ ] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18)
+- [x] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18; cerrado 2026-09-23 — `ui:gate project-delete` 11/11)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir
   también un control claro de expandir/colapsar los agentes de ese proyecto.
@@ -258,6 +258,16 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate: navegador real — borrar un proyecto del espacio de trabajo, **volver a agregarlo con
   "+ Add project"** y confirmar que sus chats/tasks/runs siguen ahí; y confirmar en SQLite que el
   borrado suave NO tocó esas tablas.
+  Hallado al abrirlo: el menú ya existía, pero `DELETE /api/projects/:id` borraba los chats y dejaba los runs sin
+  proyecto (borrado duro disfrazado), y la Danger Zone de Project settings solo filtraba estado del cliente.
+  Hecho: `projects.removed_at` (migración 15); `DELETE` solo lo marca; `+ Add project` lo limpia (mismo id);
+  `POST /api/projects/:id/purge` borra toda tabla con `project_id` (descubierta por `PRAGMA`) y la fila. Los
+  cleanups de `ui:gate` usan la purga.
+  Ejecutado por: luna (2 rondas; r2 arregló `chat-turn-details`, que fallaba también en master: registraba el
+  proyecto sin recargar) · Spec: docs/specs/UI.9.9.md (borrado al cerrar).
+  El flujo re-agrega por `ensureProject` (el selector nativo no es automatizable) y siembra el run por SQLite.
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate project-delete` 11/11 + smoke/usage-bar/tasks/runs-graph/project-tabs/chat-turn-details verdes) — `docs/done/evidence/UI.9.9-live.json`.
+  `gate:all` 1528/0; DB real: 0 proyectos `orchestos-ui-*` y 0 con `removed_at` tras los flujos.
 - [ ] **UI.9.8 — ⚡ Barrido de texto que no aporta, y el modelo elegible en Codex.** (abierto 2026-09-18)
   **Pedido textual de Carlos, 2026-09-18:** *"donde detectes que exista en la UI texto adicional
   que no aporta a nada debe DESAPARECER"*. Disparador: bajo cada respuesta del chat aparece
