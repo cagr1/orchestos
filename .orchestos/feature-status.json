@@ -103,6 +103,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.4",
+      "sprint": "Fase 1 — Terminar la interfaz",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.2",
       "sprint": "Fase 1 — Terminar la interfaz",
       "block": null,

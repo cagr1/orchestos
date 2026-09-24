@@ -84,7 +84,7 @@ y que no se estaba aplicando. Lo que no se pregunta ahí y aparece después es u
 ```
 por cada ítem del lote:
   1. Opus escribe spec corto (qué, dónde archivo:línea, cuál ui:gate lo prueba)
-  2. Luna: codex exec -m gpt-5.6-luna … < /dev/null  (segundo plano)
+  2. Luna: codex exec -m gpt-6-luna … < /dev/null  (segundo plano)
      └─ mientras tanto Opus escribe el spec del ítem siguiente (no toca código → sin colisión)
   3. Opus lee SOLO: git diff --stat + salida de gate:all   (no el log entero de Luna)
   4. FAIL → Opus reescribe la instrucción puntual → Luna reintenta (máx. 2)

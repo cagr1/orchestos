@@ -63,7 +63,7 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
 1. **Plan (cerebro).** Abre el ítem en `PLAN.md` (qué y gate, pocas líneas) y escribe
    `docs/specs/<ID>.md` corto: qué cambiar, dónde (`archivo:línea`), qué no tocar, cómo se
    verifica. Sin decisiones de diseño pendientes. `bun run plan:reconcile` y un commit.
-2. **Ejecución (Luna).** `codex exec -m gpt-5.6-luna --approve-for-me "Ejecuta docs/specs/<ID>.md" < /dev/null`.
+2. **Ejecución (Luna).** `codex exec -m gpt-6-luna --approve-for-me "Ejecuta docs/specs/<ID>.md" < /dev/null`.
    Implementa, corre sus tests y `tsc`. **No commitea ni toca `PLAN.md`.**
 3. **Integrar y verificar (cerebro).** Lee el diff, corre los gates con comandos propios y prueba
    en vivo cuando aplica. El reporte del ejecutor y su `exit 0` no son evidencia
@@ -78,7 +78,7 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
 71% de su ventana de 5 h mientras tres subagentes fuertes heredaban el historial completo. Desde
 ahora hay un máximo de **dos subagentes activos simultáneos por sesión raíz**, sin contar al agente
 raíz. Antes de delegar, consultar los agentes activos; no abrir un tercero hasta que uno termine.
-En Codex, usar `gpt-5.6-luna` por defecto y `fork_turns: "none"` o el menor entero positivo que
+En Codex, usar `gpt-6-luna` por defecto y `fork_turns: "none"` o el menor entero positivo que
 alcance: `fork_turns: "all"` queda reservado para una necesidad explícita y documentada. Si el
 cupo de 5 h ya está en 70% o más, no abrir subagentes salvo pedido explícito de Carlos; hacer la
 lectura local directamente y dejar la ejecución para Luna después del reset. Esto es enforcement
@@ -107,7 +107,7 @@ Los gates 🔍 se verifican en vivo, contra el sistema real corriendo, nunca con
 | Rol | Modelos | Qué puede hacer |
 |---|---|---|
 | **Cerebro** | Opus 5 · Fable 5.1 · `gpt-5.6-sol` · `gpt-6-astra` | pensar, abrir el ítem en PLAN.md, escribir el spec, verificar con comandos. **Nunca escribe código de producto** |
-| **Ejecutor por defecto** | `gpt-5.6-luna` (`codex exec`) | ⚡ y 🧠 ya especificados |
+| **Ejecutor por defecto** | `gpt-6-luna` (`codex exec`) | ⚡ y 🧠 ya especificados |
 | **Ejecutor con criterio** | `gpt-5.6-terra` | 🧠 cuyo spec no logró eliminar todas las decisiones |
 | **Excepción** | Sonnet, vía Claude CLI | solo si terra no alcanza |
 | **Fuera por ahora** | opencode / DeepSeek | — |
@@ -292,7 +292,7 @@ vuelve a preguntar por sesión ni por tab.
 Codex, no a agentes ni a personas. IDs confirmados el 2026-09-11 leyendo los rollouts de
 `~/.codex/sessions`:
 
-- Luna = `gpt-5.6-luna`
+- Luna = `gpt-6-luna` (Luna 6; desde 2026-09-24 por decisión de Carlos — antes `gpt-5.6-luna`)
 - Terra = `gpt-5.6-terra`
 - Sol = `gpt-5.6-sol`
 - Astra = `gpt-6-astra`

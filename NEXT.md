@@ -1,13 +1,16 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — Lote L3 CERRADO (2026-09-24); abrir L4
-Los 4 ítems cerrados y pusheados. Siguiente según PLAN.md § Rumbo: CI.2 (ui-gates exigibles).
-Pendiente para Carlos (no bloquea): 92 textos dudosos en `docs/done/evidence/UI.9.8-sweep.md`; archivo suelto
-`.orchestos/adversarial-review-state.json` (lo dejó un test en la corrida de Luna; ¿ignorar o borrar?).
-Lecciones L3 extra: (5) Luna re-corre el preflight hasta sobre OTRO ítem (CI.2) y pisa `.orchestos/active-item.json`:
-revisar `scope:check` antes del commit; (6) los flujos que registran proyecto sin `page.reload` fallan al azar —
-arreglado en todos; flujo nuevo = recargar tras registrar; (7) el test `context-adapters.test.ts:187` falló 2 de 4
-corridas de `test:coverage` hoy: ya no es raro, merece ítem propio.
+## Siguiente tab — abrir Lote L4 (preparado 2026-09-24)
+Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write
+"…" < /dev/null` (Carlos; AGENTS.md y memoria ya actualizados). Turno real de gate = Codex · `gpt-6-luna` · medium.
+Orden: **CI.4** (spec ya escrito y commiteado: `docs/specs/CI.4.md` — Luna 6 en los flujos, test inestable
+`context-adapters:187`, test que deja `.orchestos/adversarial-review-state.json`) → **CI.2** (ui-gates exigibles:
+medir cuánto tardan los flujos de `scripts/ui-gate/flows/` juntos antes de decidir CI/pre-push/workflow; spec por
+escribir; la lista de "12 scripts de `scripts/ui-gates/`" del ítem es anterior a UI.13.3: verificar qué existe hoy).
+Respuestas de Carlos al cierre de L3: los 92 dudosos se quedan (no preguntar lo ya decidido); residuos de prueba se
+borran sin preguntar y se arregla el test que los deja (memorias nuevas).
+Lecciones L3: (5) Luna re-corre el preflight hasta sobre OTRO ítem (CI.2) y pisa `.orchestos/active-item.json`:
+revisar `scope:check` antes del commit; (6) flujo nuevo = `page.reload` tras registrar el proyecto.
 
 ## Lote L3 (abierto 2026-09-23, pedido de Carlos)
 Orden: UI.13.6 → UI.9.9 → UI.9.8 → UI.10.A. Mismo flujo y paradas que L1/L2; spec commiteado al lanzar a Luna.

@@ -391,6 +391,15 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 > (Project settings / Delete project) + back. 3. Panel derecho History + archivar agente + toggle
 > permanente. 4. `UI.10.A` plan de cada proyecto en solo lectura. 5. Etiquetas de texto en vez de
 > emojis. Temas renombrados entran en la pieza 1.
+- [ ] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4)
+  (1) Carlos 2026-09-24: de ahora en adelante Luna = `gpt-6-luna` (ya es el default de `~/.codex/config.toml`); los
+  flujos de `scripts/ui-gate/flows/*.mjs` eligen `gpt-5.6-luna` en el selector para su turno real, y fixtures/tests
+  lo nombran. (2) `scripts/context-adapters.test.ts:187` (`readCodexRateLimitsLive` con `timeoutMs: 500` contra un
+  binario falso en bun) falló 2 de 4 corridas de `test:coverage` el 2026-09-23: el arranque en frío del falso
+  supera 500 ms bajo carga. (3) Un test dejó `.orchestos/adversarial-review-state.json` en la raíz del repo real
+  durante `gate:all` (`STATE_PATH`, `scripts/adversarial-review.ts:33`); borrado por el cerebro.
+  Spec: `docs/specs/CI.4.md`. Gate: flujos con turno real verdes eligiendo `gpt-6-luna`; `test:coverage` 5 corridas
+  seguidas verdes; `git status` sin archivos nuevos tras `gate:all`.
 - [ ] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18)
   - [x] **CI.2.B — `ui:gate`: comprobador en vivo de la app React.** (cerrado 2026-09-23, Lote L1) Ejecutado por: luna (5 rondas) · Spec: docs/specs/CI.2.B.md
     `bun run ui:gate <flujo>`: arranca el dashboard en puerto libre, recorre `scripts/ui-gate/flows/<flujo>.mjs` clickeando,
