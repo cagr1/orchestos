@@ -31,7 +31,6 @@ import {
   Zap,
 } from 'lucide-react'
 import React, { useState } from 'react'
-import type { ChatModelOption } from '../../api/chat'
 import type {
   ConfigResponse,
   ExecutorModesResponse,
@@ -45,7 +44,6 @@ import {
   getExecutorModes,
   getHealth,
   getLocalProvider,
-  getModels,
   getSettings,
   getSetup,
   getUsage,
@@ -237,27 +235,34 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [localProvider, setLocalProvider] = useState<LocalProviderResponse | null>(null)
   const [executorModes, setExecutorModes] = useState<ExecutorModesResponse | null>(null)
   const [usage, setUsage] = useState<UsageResponse | null>(null)
-  const [models, setModels] = useState<ChatModelOption[]>([])
+  type RoutingAgent = {
+    id: string
+    installed: boolean
+    models: { id: string; name: string }[]
+    efforts: string[]
+    error?: string
+  }
+  type RoutingRule = {
+    match: { output?: string[]; skill?: string }
+    agent: string
+    cli_effort?: string
+  }
+  const [routingCatalog, setRoutingCatalog] = useState<RoutingAgent[]>([])
+  const [routingRoles, setRoutingRoles] = useState<
+    Record<string, { agent: string; model: string; effort?: string } | null>
+  >({})
+  const [taskAgentRules, setTaskAgentRules] = useState<RoutingRule[]>([])
   const [config, setConfig] = useState<ConfigResponse | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(true)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [ollamaHost, setOllamaHost] = useState('')
 
   // Model Routing state
-  const [roleModels, setRoleModels] = useState({
-    planner: '',
-    executorHeavy: '',
-    executorLight: '',
-    default: '',
-    qaJudge: '',
-  })
   const [isTaskModelTableOpen, setIsTaskModelTableOpen] = useState(false)
 
   // Searchable combobox open state
   const [activeComboboxRole, setActiveComboboxRole] = useState<string | null>(null)
   const [comboboxSearch, setComboboxSearch] = useState('')
-
-  const ALL_SEARCHABLE_MODELS = models
 
   // Default agent & executor state (Orca Agents pattern)
   const [defaultAgent, setDefaultAgent] = useState<string>('Auto')
@@ -327,8 +332,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       getLocalProvider(),
       getExecutorModes(),
       getUsage(),
-      getConfig(),
-      getModels(),
+      getConfig(activeProjectId),
+      fetch('/api/models/catalog').then((response) => response.json()),
     ])
       .then(
         ([
@@ -339,7 +344,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           nextModes,
           nextUsage,
           nextConfig,
-          nextModels,
+          nextCatalog,
         ]) => {
           if (disposed) return
           const keys = mapSettingsKeys(settings)
@@ -356,14 +361,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           setExecutorModes(nextModes)
           setUsage(nextUsage)
           setConfig(nextConfig)
-          setModels(nextModels)
-          setRoleModels({
-            planner: nextConfig.roles.planner,
-            executorHeavy: nextConfig.roles.executor_heavy,
-            executorLight: nextConfig.roles.executor_light,
-            default: nextConfig.roles.default,
-            qaJudge: nextConfig.roles.qa ?? '',
-          })
+          setRoutingCatalog(nextCatalog.agents ?? [])
+          const routed = nextConfig as ConfigResponse & {
+            roleAssignments?: Record<
+              string,
+              { agent: string; model: string; effort?: string } | null
+            >
+            taskAgentRules?: RoutingRule[]
+          }
+          setRoutingRoles(routed.roleAssignments ?? {})
+          setTaskAgentRules(routed.taskAgentRules ?? [])
           setDefaultAgent(
             nextConfig.agent === 'api'
               ? 'API'
@@ -387,10 +394,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     return () => {
       disposed = true
     }
-  }, [])
+  }, [activeProjectId])
 
   const refreshSettings = async () => {
-    const [settings, nextConfig] = await Promise.all([getSettings(), getConfig()])
+    const [settings, nextConfig] = await Promise.all([getSettings(), getConfig(activeProjectId)])
     const keys = mapSettingsKeys(settings)
     setApiKeys((current) => ({
       openrouter: { ...keys.openrouter, newKey: current.openrouter.newKey },
@@ -441,15 +448,15 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
   const handleSaveRouting = async () => {
     try {
-      await saveConfig({
-        roles: {
-          planner: roleModels.planner,
-          executor_heavy: roleModels.executorHeavy,
-          executor_light: roleModels.executorLight,
-          default: roleModels.default,
-          qa: roleModels.qaJudge,
-        },
-      })
+      await saveConfig({ roleAssignments: routingRoles, taskAgentRules }, activeProjectId)
+      const updated = (await getConfig(activeProjectId)) as ConfigResponse & {
+        roleWarnings?: string[]
+        roleAssignments?: Record<string, { agent: string; model: string; effort?: string } | null>
+        taskAgentRules?: RoutingRule[]
+      }
+      setConfig(updated)
+      setRoutingRoles(updated.roleAssignments ?? {})
+      setTaskAgentRules(updated.taskAgentRules ?? [])
       showSaveSuccess('Model routing')
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save model routing')
@@ -459,12 +466,15 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const handleSaveExecutor = async () => {
     try {
       const agent = defaultAgent === 'Auto' ? null : defaultAgent.toLowerCase()
-      await saveConfig({
-        agent,
-        apiMode,
-        agenticMaxIterations: maxIterations,
-        externalTimeoutMinutes: timeoutMinutes,
-      })
+      await saveConfig(
+        {
+          agent,
+          apiMode,
+          agenticMaxIterations: maxIterations,
+          externalTimeoutMinutes: timeoutMinutes,
+        },
+        activeProjectId,
+      )
       showSaveSuccess('Executor')
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save executor settings')
@@ -1265,142 +1275,380 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               </div>
             </div>
 
-            {/* Grid of Roles */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {(
                 [
-                  {
-                    key: 'planner',
-                    label: 'Planner',
-                    desc: 'DAG decomposition and task boundaries',
-                  },
-                  {
-                    key: 'executorHeavy',
-                    label: 'Executor (heavy)',
-                    desc: 'Complex multi-file refactoring',
-                  },
-                  {
-                    key: 'executorLight',
-                    label: 'Executor (light)',
-                    desc: 'Fast unit tests & spec typing',
-                  },
-                  { key: 'default', label: 'Default', desc: 'Fallback model for general prompts' },
+                  ['orchestrator', 'Orchestrator', 'Chat, drafts and task splitting'],
+                  ['executor', 'Executor', 'Runs tasks'],
+                  ['reviewer', 'Reviewer', 'QA, adversarial and refuter (read-only)'],
+                  ['auxiliary', 'Auxiliary', 'Diagnose and memory judge (read-only)'],
                 ] as const
-              ).map((role) => {
-                const currentVal = roleModels[role.key]
-                const isOpen = activeComboboxRole === role.key
-                const matchedModel = ALL_SEARCHABLE_MODELS.find((m) => m.id === currentVal)
-
+              ).map(([key, label, desc]) => {
+                const assignment = routingRoles[key] ?? null
+                const agent = routingCatalog.find((entry) => entry.id === assignment?.agent)
+                const selectedModels = agent?.models ?? []
+                const selectedName = assignment?.model
+                  ? (selectedModels.find((model) => model.id === assignment.model)?.name ??
+                    assignment.model)
+                  : undefined
                 return (
                   <div
-                    key={role.key}
+                    key={key}
                     className="p-3.5 rounded-card border border-app bg-app-surface space-y-2 relative"
                   >
                     <div>
-                      <div className="font-semibold text-app">{role.label}</div>
-                      <div className="text-xs text-app-muted">{role.desc}</div>
+                      <div className="font-semibold text-app">{label}</div>
+                      <div className="text-xs text-app-muted">{desc}</div>
                     </div>
-
-                    {/* Searchable Combobox */}
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => {
-                          setActiveComboboxRole(isOpen ? null : role.key)
-                          setComboboxSearch('')
-                        }}
+                        aria-label={`${label} agent`}
+                        aria-expanded={activeComboboxRole === `${key}-agent`}
+                        onClick={() =>
+                          setActiveComboboxRole(
+                            activeComboboxRole === `${key}-agent` ? null : `${key}-agent`,
+                          )
+                        }
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
                       >
-                        <span className="truncate">{matchedModel?.name || currentVal}</span>
-                        <ChevronDown className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                        <span>
+                          {assignment?.agent
+                            ? (AGENTS_LIST.find(
+                                (entry) => entry.id.toLowerCase() === assignment.agent,
+                              )?.name ?? assignment.agent)
+                            : 'Unassigned'}
+                        </span>
+                        <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
                       </button>
-
-                      {isOpen && (
-                        <div className="absolute left-0 bottom-full mb-1 w-full rounded-card bg-app-surface border border-app shadow-2xl p-2 text-xs space-y-1.5 z-40 max-h-56 overflow-y-auto">
-                          <input
-                            type="text"
-                            value={comboboxSearch}
-                            onChange={(e) => setComboboxSearch(e.target.value)}
-                            placeholder="Filter models..."
-                            className="w-full px-2 py-1 bg-app-bg border border-app rounded-control font-mono text-xs text-app focus:outline-hidden"
-                            autoFocus
-                          />
-                          <div className="space-y-0.5">
-                            {ALL_SEARCHABLE_MODELS.filter((m) => {
-                              const query = comboboxSearch.toLowerCase()
-                              return (
-                                m.name.toLowerCase().includes(query) ||
-                                m.id.toLowerCase().includes(query)
-                              )
-                            }).map((m) => (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => {
-                                  setRoleModels((prev) => ({ ...prev, [role.key]: m.id }))
-                                  setActiveComboboxRole(null)
-                                }}
-                                className="w-full flex items-center justify-between p-1.5 rounded-control text-left hover:bg-app-elevated text-app"
-                              >
-                                <span className="font-medium">{m.name}</span>
-                                <span className="text-[10px] font-mono text-app-muted">
-                                  {m.id.split('/')[0]}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
+                      {activeComboboxRole === `${key}-agent` && (
+                        <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl z-40 max-h-56 overflow-y-auto">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRoutingRoles((current) => ({ ...current, [key]: null }))
+                              setActiveComboboxRole(null)
+                            }}
+                            className="block w-full text-left px-2.5 py-1.5 text-app"
+                          >
+                            Unassigned
+                          </button>
+                          {routingCatalog.map((entry) => (
+                            <button
+                              key={entry.id}
+                              type="button"
+                              disabled={!entry.installed}
+                              onClick={() => {
+                                setRoutingRoles((current) => ({
+                                  ...current,
+                                  [key]: { agent: entry.id, model: '' },
+                                }))
+                                setActiveComboboxRole(null)
+                              }}
+                              className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated disabled:opacity-50"
+                            >
+                              {entry.id}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        disabled={!agent}
+                        onClick={() => {
+                          setActiveComboboxRole(activeComboboxRole === key ? null : key)
+                          setComboboxSearch('')
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app text-left disabled:opacity-50"
+                      >
+                        <span className="truncate">{selectedName || 'Select model'}</span>
+                        <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                      </button>
+                      {activeComboboxRole === key && (
+                        <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl p-2 z-40 max-h-56 overflow-y-auto">
+                          <input
+                            value={comboboxSearch}
+                            onChange={(event) => setComboboxSearch(event.target.value)}
+                            placeholder="Filter models..."
+                            className="w-full px-2 py-1 bg-app-bg border border-app rounded-control text-xs text-app"
+                          />
+                          {assignment?.model &&
+                            !selectedModels.some((model) => model.id === assignment.model) && (
+                              <button
+                                type="button"
+                                className="block w-full text-left p-1.5 text-app"
+                                onClick={() => setActiveComboboxRole(null)}
+                              >
+                                {assignment.model}
+                              </button>
+                            )}
+                          {selectedModels
+                            .filter((model) =>
+                              `${model.name} ${model.id}`
+                                .toLowerCase()
+                                .includes(comboboxSearch.toLowerCase()),
+                            )
+                            .map((model) => (
+                              <button
+                                key={model.id}
+                                type="button"
+                                className="block w-full text-left p-1.5 hover:bg-app-elevated text-app"
+                                onClick={() => {
+                                  setRoutingRoles((current) => ({
+                                    ...current,
+                                    [key]: assignment ? { ...assignment, model: model.id } : null,
+                                  }))
+                                  setActiveComboboxRole(null)
+                                }}
+                              >
+                                {model.name}
+                                <span className="ml-2 text-app-muted font-mono">{model.id}</span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                    {agent?.efforts.length ? (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label={`${label} effort`}
+                          aria-expanded={activeComboboxRole === `${key}-effort`}
+                          onClick={() =>
+                            setActiveComboboxRole(
+                              activeComboboxRole === `${key}-effort` ? null : `${key}-effort`,
+                            )
+                          }
+                          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                        >
+                          <span>{assignment?.effort ?? 'Default effort'}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                        </button>
+                        {activeComboboxRole === `${key}-effort` && (
+                          <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl z-40">
+                            {['', ...agent.efforts].map((effort) => (
+                              <button
+                                key={effort || 'default'}
+                                type="button"
+                                onClick={() => {
+                                  setRoutingRoles((current) => ({
+                                    ...current,
+                                    [key]: assignment
+                                      ? { ...assignment, effort: effort || undefined }
+                                      : null,
+                                  }))
+                                  setActiveComboboxRole(null)
+                                }}
+                                className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated"
+                              >
+                                {effort || 'Default effort'}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                    {agent?.error && <div className="text-app-muted">{agent.error}</div>}
+                    {key === 'reviewer' &&
+                      (
+                        config as (ConfigResponse & { roleWarnings?: string[] }) | null
+                      )?.roleWarnings?.includes('reviewer-same-as-executor') && (
+                        <div className="text-app-muted">
+                          Same agent and model as Executor: errors may correlate.
+                        </div>
+                      )}
                   </div>
                 )
               })}
             </div>
-
-            {/* QA Judge in full row */}
-            <div className="p-3.5 rounded-card border border-app bg-app-surface space-y-2 text-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <div className="font-semibold text-app">QA judge</div>
-                  <div className="text-xs text-app-muted">
-                    optional, leave on auto unless you need a specific judge
-                  </div>
-                </div>
-                <span className="font-mono text-xs px-2 py-0.5 rounded-pill bg-app-bg border border-app text-app-accent">
-                  auto (dual gate)
-                </span>
-              </div>
-            </div>
-
-            {/* Collapsible task -> model table */}
             <div className="rounded-card border border-app bg-app-surface text-xs overflow-hidden">
               <button
                 type="button"
                 onClick={() => setIsTaskModelTableOpen(!isTaskModelTableOpen)}
                 className="w-full p-3 flex items-center justify-between text-left font-semibold text-app hover:bg-app-elevated/40"
               >
-                <span>Task → Model Mappings ({tasks.length} tasks)</span>
+                <span>Task rules ({taskAgentRules.length})</span>
                 <ChevronDown
-                  className={`w-4 h-4 text-app-muted transition-transform ${
-                    isTaskModelTableOpen ? 'rotate-180' : ''
-                  }`}
+                  className={`w-4 h-4 text-app-muted transition-transform ${isTaskModelTableOpen ? 'rotate-180' : ''}`}
                 />
               </button>
-
               {isTaskModelTableOpen && (
                 <div className="p-3 border-t border-app space-y-2">
-                  {tasks.map((t) => (
-                    <div
-                      key={t.id}
-                      className="flex items-center justify-between py-1 border-b border-app/60 font-mono text-xs"
-                    >
-                      <span className="text-app-muted">{t.id}</span>
-                      <span className="truncate max-w-xs text-app">{t.description}</span>
-                      <span className="text-app-accent">
-                        {t.assignedAgent || 'Claude 3.7 Sonnet'}
-                      </span>
+                  <p className="text-app-muted">The first matching rule wins.</p>
+                  {taskAgentRules.map((rule, index) => (
+                    <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                      <input
+                        aria-label="output globs"
+                        placeholder="output globs"
+                        value={rule.match.output?.join(', ') ?? ''}
+                        onChange={(event) =>
+                          setTaskAgentRules((items) =>
+                            items.map((item, i) =>
+                              i === index
+                                ? {
+                                    ...item,
+                                    match: {
+                                      ...item.match,
+                                      output: event.target.value
+                                        .split(',')
+                                        .map((v) => v.trim())
+                                        .filter(Boolean),
+                                    },
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="px-2 py-1.5 rounded-control bg-app-bg border border-app text-app"
+                      />
+                      <input
+                        aria-label="skill"
+                        placeholder="skill"
+                        value={rule.match.skill ?? ''}
+                        onChange={(event) =>
+                          setTaskAgentRules((items) =>
+                            items.map((item, i) =>
+                              i === index
+                                ? {
+                                    ...item,
+                                    match: {
+                                      ...item.match,
+                                      skill: event.target.value || undefined,
+                                    },
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="px-2 py-1.5 rounded-control bg-app-bg border border-app text-app"
+                      />
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label="rule agent"
+                          aria-expanded={activeComboboxRole === `rule-agent-${index}`}
+                          onClick={() =>
+                            setActiveComboboxRole(
+                              activeComboboxRole === `rule-agent-${index}`
+                                ? null
+                                : `rule-agent-${index}`,
+                            )
+                          }
+                          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                        >
+                          <span>
+                            {AGENTS_LIST.find((entry) => entry.id.toLowerCase() === rule.agent)
+                              ?.name ?? rule.agent}
+                          </span>
+                          <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                        </button>
+                        {activeComboboxRole === `rule-agent-${index}` && (
+                          <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl z-40 max-h-56 overflow-y-auto">
+                            {['local', ...routingCatalog.map((entry) => entry.id)].map(
+                              (agentId) => {
+                                const catalogAgent = routingCatalog.find(
+                                  (entry) => entry.id === agentId,
+                                )
+                                return (
+                                  <button
+                                    key={agentId}
+                                    type="button"
+                                    disabled={!!catalogAgent && !catalogAgent.installed}
+                                    onClick={() => {
+                                      setTaskAgentRules((items) =>
+                                        items.map((item, i) =>
+                                          i === index ? { ...item, agent: agentId } : item,
+                                        ),
+                                      )
+                                      setActiveComboboxRole(null)
+                                    }}
+                                    className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated disabled:opacity-50"
+                                  >
+                                    {AGENTS_LIST.find((entry) => entry.id.toLowerCase() === agentId)
+                                      ?.name ?? agentId}
+                                  </button>
+                                )
+                              },
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <div className="relative min-w-0 flex-1">
+                          <button
+                            type="button"
+                            aria-label="rule effort"
+                            aria-expanded={activeComboboxRole === `rule-effort-${index}`}
+                            onClick={() =>
+                              setActiveComboboxRole(
+                                activeComboboxRole === `rule-effort-${index}`
+                                  ? null
+                                  : `rule-effort-${index}`,
+                              )
+                            }
+                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                          >
+                            <span>{rule.cli_effort ?? 'Default effort'}</span>
+                            <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                          </button>
+                          {activeComboboxRole === `rule-effort-${index}` && (
+                            <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl z-40">
+                              {[
+                                '',
+                                ...(routingCatalog.find((entry) => entry.id === rule.agent)
+                                  ?.efforts ?? []),
+                              ].map((effort) => (
+                                <button
+                                  key={effort || 'default'}
+                                  type="button"
+                                  onClick={() => {
+                                    setTaskAgentRules((items) =>
+                                      items.map((item, i) =>
+                                        i === index
+                                          ? { ...item, cli_effort: effort || undefined }
+                                          : item,
+                                      ),
+                                    )
+                                    setActiveComboboxRole(null)
+                                  }}
+                                  className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated"
+                                >
+                                  {effort || 'Default effort'}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="Delete rule"
+                          onClick={() =>
+                            setTaskAgentRules((items) => items.filter((_, i) => i !== index))
+                          }
+                          className="p-1.5 text-app-muted hover:text-app"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTaskAgentRules((items) => [
+                        ...items,
+                        {
+                          match: {},
+                          agent: routingCatalog.find((entry) => entry.installed)?.id ?? 'codex',
+                        },
+                      ])
+                    }
+                    className="px-2 py-1.5 rounded-control border border-app text-app"
+                  >
+                    Add rule
+                  </button>
                 </div>
               )}
             </div>

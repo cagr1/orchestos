@@ -1,12 +1,11 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — MR.1.c (UI de Model routing) — 2026-09-25
-MR.1.b cerrado (R.3 normalizado, clasificador de chat con `maxTokens` 1000; detalle en PLAN.md § MR.1.b). Sigue
-MR.1.c (4 filas agente+modelo+esfuerzo con valor real + UI de `taskAgentRules`, gate en navegador) y luego MR.1.d
-(chat al CLI elegido, AT.10/AT.13; mover `classify-task-intent.ts` al Auxiliar). Pendiente MR.1.b2: `$0` del chat
-de Codex sin precio (F0.8).
-Aprendido: el hook bloquea que el cerebro edite código incluso de una línea → todo va como ronda de spec; tras cada
-ronda que toque `scripts/ui-gate/`, el cerebro corre ui:gate (imports borrados solo fallan al ejecutar).
+## Siguiente tab — MR.1.d (chat al CLI elegido) — 2026-09-25
+MR.1.a/b/c cerrados (UI de Model routing viva, 10 ui:gate verdes). Falta MR.1.d para cerrar MR.1: el chat usa el
+Orquestador/CLI elegido sin caída a OpenRouter (AT.10), contexto veraz (AT.13), mover los dos hardcodes del chat
+(`chat/classify-task-intent.ts:32` → Auxiliar; `handlers/chat.ts` ~`:1199`). Pendiente MR.1.b2: `$0` del chat de
+Codex sin precio (F0.8). `usage-bar` intermitente ("No quota limits reported") → CI.2.
+Lanzar a Luna: ver AGENTS.md paso 2 (`ORCHESTOS_ROLE=executor`, `--item MR.1`).
 
 ## Lote L4 (abierto 2026-09-24)
 Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write

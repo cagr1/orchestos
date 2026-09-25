@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test'
-import { mapConfigResponse, mapSettingsKeys, mapUsageByModel, saveConfig } from './settings'
+import {
+  getConfig,
+  mapConfigResponse,
+  mapSettingsKeys,
+  mapUsageByModel,
+  saveConfig,
+} from './settings'
 
 describe('settings API mappers', () => {
   it('maps masked provider keys without inventing configured values', () => {
@@ -72,7 +78,7 @@ describe('settings API mappers', () => {
     const normalized = mapConfigResponse(config)
     const requests: Array<{ init?: RequestInit }> = []
     const originalFetch = globalThis.fetch
-    globalThis.fetch = (async (input, init) => {
+    globalThis.fetch = (async (_input, init) => {
       requests.push({ init })
       return new Response('{}', { status: 200 })
     }) as typeof fetch
@@ -126,5 +132,58 @@ describe('settings API mappers', () => {
       globalThis.fetch = originalFetch
     }
     expect(JSON.parse(bodies[0])).toEqual({ roles: { planner: 'openrouter/auto' } })
+  })
+
+  it('passes the selected project header on config reads and writes, while keeping default callers', async () => {
+    const requests: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input, init) => {
+      requests.push({ input, init })
+      return new Response(
+        JSON.stringify({
+          source: null,
+          configFound: false,
+          roles: {
+            planner: null,
+            executor_heavy: null,
+            executor_light: null,
+            default: null,
+            qa: null,
+          },
+          pendingRouting: [],
+          apiMode: 'single-shot',
+          agent: null,
+          agenticMaxIterations: 15,
+          externalTimeoutMinutes: 20,
+          claudeCliDetected: false,
+        }),
+        { status: 200 },
+      )
+    }) as typeof fetch
+
+    try {
+      await getConfig('temporary-project-id')
+      await saveConfig({ roleAssignments: {} }, 'temporary-project-id')
+      await getConfig()
+      await saveConfig({ roles: {} })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+
+    expect(requests.map(({ input }) => String(input))).toEqual([
+      '/api/config',
+      '/api/config',
+      '/api/config',
+      '/api/config',
+    ])
+    expect(new Headers(requests[0].init?.headers).get('x-orchestos-project-id')).toBe(
+      'temporary-project-id',
+    )
+    expect(new Headers(requests[1].init?.headers).get('x-orchestos-project-id')).toBe(
+      'temporary-project-id',
+    )
+    expect(new Headers(requests[1].init?.headers).get('content-type')).toBe('application/json')
+    expect(new Headers(requests[2].init?.headers).has('x-orchestos-project-id')).toBe(false)
+    expect(new Headers(requests[3].init?.headers).has('x-orchestos-project-id')).toBe(false)
   })
 })

@@ -490,11 +490,24 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     tarea falla tras gastar. El chat de Codex, en cambio, registra `$0` si falta el precio (`codex.ts` `runCodexChat`),
     lo que F0.8 prohíbe. Hecho (ronda 3): `codexPricingId` tarifa ids nativos como `openai/<id>` (engine y chat) y el
     chequeo de catálogo del engine corre antes de spawnear. El `$0` del chat cuando no hay precio sigue abierto.
-  - [ ] **MR.1.c — ⚡ UI de Model routing (4 roles agente+modelo+esfuerzo) + UI de `taskAgentRules`.** (abierto
-    2026-09-25; spec `docs/specs/MR.1.c.md`) Decisiones de Carlos (2026-09-25): grilla 2×2 actual con 3 campos por
+  - [x] **MR.1.c — ⚡ UI de Model routing (4 roles agente+modelo+esfuerzo) + UI de `taskAgentRules`.** (abierto y
+    cerrado 2026-09-25)
+    Ejecutado por: luna (7 rondas) · Spec: docs/specs/MR.1.c.md (borrado al cerrar)
+    Decisiones de Carlos (2026-09-25): grilla 2×2 actual con 3 campos por
     tarjeta; borrar la tarjeta "QA judge"; el plegable "Task → Model Mappings" (con `Claude 3.7 Sonnet` inventado)
     se reemplaza por las reglas. Gate: flujo nuevo `model-routing` (roles y reglas por clicks, persisten tras recargar,
     el run registra el modelo y el `qa_model` puestos por UI) + los 9 ui:gate verdes.
+    Hecho: GET/PUT `/api/config` con `taskAgentRules` validadas; tarjetas con agente/modelo/esfuerzo del catálogo
+    único (etiquetas y nombres legibles, mismos menús que el combobox, sin `<select>` nativo); aviso Revisor =
+    Ejecutor; reglas con orden = prioridad; Settings lee **y escribe** en el proyecto activo
+    (`x-orchestos-project-id`) — antes el guardado iba a la raíz del servidor y la ronda 1 llegó a escribir en el
+    `orchestos.config.yaml` del repo (restaurado; hermano en `handleSaveExecutor` arreglado).
+    Gate en vivo: navegador real (Playwright, `bun run ui:gate`), `docs/done/evidence/MR.1.c-live.json`: `model-routing` 8/8 — roles y regla puestos por
+    clicks, visibles tras recargar, y la tarea corre con Ejecutor y Revisor `gpt-6-luna` elegidos en la UI (`done`,
+    QA pass); los otros 9 flujos verdes (`usage-bar` intermitente: "No quota limits reported" en 1 de 2, → CI.2).
+    `test:coverage` 1545/0 (75.41%/62.45%).
+    Aprendido: Luna sin `ORCHESTOS_ROLE=executor` y la frase "eres el ejecutor" intenta delegar en otro `codex exec`
+    (falla en su sandbox); el preflight de Luna va con `--item MR.1` (no ve sub-ítems).
 - [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
   Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
   `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5

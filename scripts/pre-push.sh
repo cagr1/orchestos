@@ -46,7 +46,7 @@ fi
 
 tail -n 6 "$lint_log"
 
-ui_flows=(smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph project-tabs)
+ui_flows=(smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph project-tabs model-routing)
 ui_paths='^(src/dashboard/|scripts/ui-gate/|src/run/)'
 ui_required=0
 while read -r local_ref local_sha remote_ref remote_sha; do

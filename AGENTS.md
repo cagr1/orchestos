@@ -65,6 +65,9 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
    verifica. Sin decisiones de diseño pendientes. `bun run plan:reconcile` y un commit.
 2. **Ejecución (Luna).** `codex exec -m gpt-6-luna --approve-for-me "Ejecuta docs/specs/<ID>.md" < /dev/null`.
    Implementa, corre sus tests y `tsc`. **No commitea ni toca `PLAN.md`.**
+   (2026-09-25, MR.1.c) Lanzarla con `ORCHESTOS_ROLE=executor` y decirle en el prompt que ella es la ejecutora y
+   no delega: sin eso lee este protocolo como cerebro, intenta otro `codex exec` y su sandbox lo rechaza
+   (`Operation not permitted`). Para sub-ítems (`MR.1.c`) su preflight va con el padre abierto (`--item MR.1`).
 3. **Integrar y verificar (cerebro).** Lee el diff, corre los gates con comandos propios y prueba
    en vivo cuando aplica. El reporte del ejecutor y su `exit 0` no son evidencia
    (`reference-codex-exec-exit-0-con-error`). Si falla, corrige el spec y re-delega — o sube a

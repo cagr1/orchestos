@@ -1,0 +1,54 @@
+[
+  {
+    "flujo": "model-routing",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "4 role cards are shown",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "all role cards start unassigned",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "legacy QA judge and model are absent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "role assignments persist and reviewer warning appears",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"ui\":[\"Orchestrator\\nChat, drafts and task splitting\\nCodex\\nGPT-6-Luna\\nmedium\",\"Executor\\nRuns tasks\\nCodex\\nGPT-6-Luna\\nmedium\",\"Reviewer\\nQA, adversarial and refuter (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\\nSame agent and model as Executor: errors may correlate.\",\"Auxiliary\\nDiagnose and memory judge (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\"],\"source\":[\"Source: orchestos.config.yaml\"]}"
+      },
+      {
+        "nombre": "task rule persists after reload",
+        "ok": true,
+        "detalle": "{\"rules\":[{\"match\":{\"output\":[\"docs/**\"]},\"agent\":\"codex\"}],\"ui\":[\"Task rules (1)\"],\"output\":\"docs/**\"}"
+      },
+      {
+        "nombre": "deleting the rule persists an empty list",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "project config remains selected before running task",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}}}"
+      },
+      {
+        "nombre": "run record stores the executor and QA models chosen in the UI",
+        "ok": true,
+        "detalle": "{\"id\":\"dedce26c-8cb4-4dc6-9896-6364e696e68d\",\"model\":\"gpt-6-luna\",\"qa_model\":\"gpt-6-luna\"}"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17947/model-routing/roles-unassigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17947/model-routing/roles-assigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17947/model-routing/task-rules.png"
+    ]
+  }
+]

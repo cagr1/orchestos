@@ -170,8 +170,13 @@ export async function getExecutorModes(): Promise<ExecutorModesResponse> {
 export async function getUsage(): Promise<UsageResponse> {
   return request('/api/usage')
 }
-export async function getConfig(): Promise<ConfigResponse> {
-  return mapConfigResponse(await request<ConfigResponse>('/api/config'))
+export async function getConfig(projectId?: string): Promise<ConfigResponse> {
+  return mapConfigResponse(
+    await request<ConfigResponse>(
+      '/api/config',
+      projectId ? { headers: { 'x-orchestos-project-id': projectId } } : undefined,
+    ),
+  )
 }
 export async function getModels(): Promise<ChatModelOption[]> {
   return request('/api/chat/models')
@@ -192,10 +197,12 @@ export async function saveApiKey(
   if (!result.valid) throw new Error(result.error || 'The provider rejected the key')
 }
 
-export async function saveConfig(body: Record<string, unknown>): Promise<void> {
+export async function saveConfig(body: Record<string, unknown>, projectId?: string): Promise<void> {
   // Roles ya vienen sin el `openrouter/` del GET (getConfig) y los del catálogo son ids tal cual
   // (`openrouter/auto` incluido): el server antepone el provider, así que se envían sin tocar.
-  await request('/api/config', jsonInit('PUT', body))
+  const init = jsonInit('PUT', body)
+  if (projectId) init.headers = { ...init.headers, 'x-orchestos-project-id': projectId }
+  await request('/api/config', init)
 }
 
 export async function resetSystem(): Promise<void> {

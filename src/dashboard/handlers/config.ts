@@ -10,6 +10,7 @@ import {
   type RoleAgent,
   type RoleAssignment,
   type RoleName,
+  type TaskAgentRule,
 } from '../../config/schema.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
@@ -71,6 +72,7 @@ export async function handleApiConfigGet(root = process.cwd()): Promise<Response
     configFound,
     roles,
     roleAssignments: Object.fromEntries(ROLE_NAMES.map((name) => [name, cfg.roles[name] ?? null])),
+    taskAgentRules: cfg.taskAgentRules ?? [],
     roleWarnings:
       cfg.roles.reviewer &&
       cfg.roles.executor &&
@@ -128,6 +130,7 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
      * [[feedback-deteccion-no-decision-automatica]]). */
     agent?: AgentChoice | null
     roleAssignments?: Partial<Record<RoleName, RoleAssignment | null>>
+    taskAgentRules?: TaskAgentRule[]
   }
   try {
     body = (await req.json()) as typeof body
@@ -164,13 +167,49 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
         return errorResponse(`invalid provider for role '${name}'`, 400)
     }
   }
+  if (body.taskAgentRules !== undefined) {
+    if (!Array.isArray(body.taskAgentRules))
+      return errorResponse('taskAgentRules must be an array', 400)
+    for (const [index, rule] of body.taskAgentRules.entries()) {
+      if (!rule || typeof rule !== 'object' || !AGENT_CHOICES.includes(rule.agent))
+        return errorResponse(
+          `taskAgentRules[${index}].agent must be one of: ${AGENT_CHOICES.join(', ')}`,
+          400,
+        )
+      const match = rule.match
+      const validOutput =
+        Array.isArray(match?.output) &&
+        match.output.length > 0 &&
+        match.output.every((item) => typeof item === 'string' && item.trim())
+      const validSkill = typeof match?.skill === 'string' && Boolean(match.skill.trim())
+      if (!match || typeof match !== 'object' || (!validOutput && !validSkill))
+        return errorResponse(
+          `taskAgentRules[${index}].match requires non-empty output globs or skill`,
+          400,
+        )
+      if (
+        match.output !== undefined &&
+        (!Array.isArray(match.output) ||
+          !match.output.every((item) => typeof item === 'string' && item.trim()))
+      )
+        return errorResponse(
+          `taskAgentRules[${index}].match.output must be an array of non-empty strings`,
+          400,
+        )
+      if (match.skill !== undefined && (typeof match.skill !== 'string' || !match.skill.trim()))
+        return errorResponse(`taskAgentRules[${index}].match.skill must be a non-empty string`, 400)
+      if (rule.cli_effort !== undefined && typeof rule.cli_effort !== 'string')
+        return errorResponse(`taskAgentRules[${index}].cli_effort must be a string`, 400)
+    }
+  }
   if (
     !body.roles &&
     body.roleAssignments === undefined &&
     body.apiMode === undefined &&
     body.agenticMaxIterations === undefined &&
     body.externalTimeoutMinutes === undefined &&
-    body.agent === undefined
+    body.agent === undefined &&
+    body.taskAgentRules === undefined
   ) {
     return errorResponse('nothing to save', 400)
   }
@@ -210,6 +249,7 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
       }
   }
   const newConfig: OrcheConfig = { ...current, models, roles: nextRoleAssignments }
+  if (body.taskAgentRules !== undefined) newConfig.taskAgentRules = body.taskAgentRules
   for (const [name, assignment] of Object.entries(body.roleAssignments ?? {})) {
     if (assignment === null) (newConfig.roles as Record<string, unknown>)[name] = null
   }
@@ -248,6 +288,10 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
     try {
       const document = parseDocument(await Bun.file(configPath).text())
       if (document.errors.length === 0) {
+        if (body.taskAgentRules !== undefined) {
+          if (body.taskAgentRules.length) document.set('taskAgentRules', body.taskAgentRules)
+          else document.delete('taskAgentRules')
+        }
         for (const [name, assignment] of Object.entries(body.roleAssignments ?? {}) as [
           RoleName,
           RoleAssignment | null,

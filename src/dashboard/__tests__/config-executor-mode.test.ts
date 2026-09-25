@@ -85,4 +85,29 @@ describe('GET /api/config — agent (CC.1b bugfix)', () => {
     expect(data.agent).toBeNull()
     expect('agent' in data).toBe(true)
   })
+
+  it('lee, valida, persiste y limpia taskAgentRules sin perder otras claves', async () => {
+    writeFileSync(join(tmpDir, 'orchestos.config.yaml'), 'config_version: 1\nrequireSpec: true\n')
+    const rule = { match: { output: ['docs/**'] }, agent: 'codex', cli_effort: 'medium' }
+    const put = (value: unknown) =>
+      route(
+        new Request(`http://localhost:${PORT}/api/config`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ taskAgentRules: value }),
+        }),
+        PORT,
+      )
+    expect((await (await route(req('GET', '/api/config'), PORT)).json()).taskAgentRules).toEqual([])
+    expect((await put([rule])).status).toBe(200)
+    const read = await (await route(req('GET', '/api/config'), PORT)).json()
+    expect(read.taskAgentRules).toEqual([rule])
+    expect(
+      (await Bun.file(join(tmpDir, 'orchestos.config.yaml')).text()).includes('requireSpec: true'),
+    ).toBe(true)
+    expect((await put([{ ...rule, agent: 'unknown' }])).status).toBe(400)
+    expect((await put([{ match: {}, agent: 'codex' }])).status).toBe(400)
+    expect((await put([])).status).toBe(200)
+    expect((await (await route(req('GET', '/api/config'), PORT)).json()).taskAgentRules).toEqual([])
+  })
 })
