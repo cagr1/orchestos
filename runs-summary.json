@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-09-24T21:43:21.621Z",
+  "exported_at": "2026-09-25T14:38:36.585Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "cb98fe9b-693a-401d-ad7c-7b1a751447bd",
+      "task_class": "implement",
+      "model": "gpt-6-luna",
+      "provider": "role:codex",
+      "status": "failed",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 28820,
+      "tokens": 0,
+      "created_at": "2026-09-25T00:13:45.885Z"
+    },
+    {
+      "id": "632928c8-c2e4-401e-8143-654e8f7b9e38",
+      "task_class": "chat",
+      "model": "gpt-6-luna via Codex CLI (effort: medium)",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 21133,
+      "created_at": "2026-09-24T22:23:21.887Z"
+    },
     {
       "id": "fd285177-359a-44d8-b19a-adb18af4c4e9",
       "task_class": "chat",
@@ -271,42 +301,12 @@
       "elapsed_ms": 0,
       "tokens": 12343,
       "created_at": "2026-09-23T23:57:34.560Z"
-    },
-    {
-      "id": "00eb7377-b89a-4891-a5cf-25fda1f47577",
-      "task_class": "chat",
-      "model": "gpt-5.6-luna via Codex CLI (effort: medium)",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 12334,
-      "created_at": "2026-09-23T23:55:49.448Z"
-    },
-    {
-      "id": "1af1b453-d9f7-4580-badd-bbb89db1cba2",
-      "task_class": "chat",
-      "model": "gpt-5.6-luna via Codex CLI (effort: medium)",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 12519,
-      "created_at": "2026-09-23T23:54:54.630Z"
     }
   ],
   "stats": {
-    "failed": 0,
+    "failed": 1,
     "blocked": 0,
-    "done": 20,
+    "done": 19,
     "qa_failed": 0,
     "total_cost_usd": "0.0000"
   }

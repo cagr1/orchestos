@@ -198,3 +198,21 @@ Verificación: `bunx tsc --noEmit`; `bun test scripts/ui-gate/run.test.ts`; `nod
 que esos flujos siguen usando para `tasks.yaml`. Restaurar los imports necesarios en los 5 flujos. Verificar con
 `node -e "import('./scripts/ui-gate/flows/<f>.mjs')"` por flujo (debe importar sin ReferenceError de módulo) y con
 `grep -n "yamlStringify\|yamlParse" scripts/ui-gate/flows/*.mjs` pegado junto a sus imports.
+
+## Ronda 6 — ui:gate real (cerebro, 2026-09-25)
+1. `chat-turn-details` → `flow: readFileSync is not defined`: la ronda 4/5 quitó `readFileSync` del import de
+   `node:fs` en `scripts/ui-gate/flows/chat-turn-details.mjs:2` y el flujo lo sigue usando. Restaurarlo. Revisar los
+   9 flujos de `scripts/ui-gate/flows/`: todo identificador de `node:fs`, `node:path`, `node:os`, `yaml`, `../lib.mjs`
+   que se use debe estar importado (un `import()` no lo detecta: el ReferenceError sale al ejecutar). Pegar en el
+   reporte, por flujo, la línea de import y el `grep -o` de los identificadores usados.
+2. R.3 (decisión de Carlos 2026-09-25: normalizar) — `src/run/qa.ts` (~`:221-229`, `matchesOriginal`): comparar por
+   posición; el `text` del resultado es **siempre** `expectedCriteria[index]` (nunca el del juez). Para decidir si
+   coincide, normalizar ambos lados con una función pura exportada `normalizeCriterionText`: comillas tipográficas
+   (“ ” „ ‘ ’ ‚ « ») → `"`/`'`, quitar barras de escape antes de comillas (`\"` → `"`), colapsar espacios
+   (incluido NBSP) a uno y `trim`. Nada más (ni mayúsculas ni puntuación). Si tras normalizar difiere, sigue siendo
+   `identityMismatch` y el `reason` pasa a incluir el primer caso:
+   `QA criterion results must match the original text and order exactly (criterion <n>: got "<texto crudo del juez, máx 200 chars>")`.
+   Tests en `src/__tests__/qa-core.test.ts`: comillas tipográficas / `\"` / espacios dobles → pasa y `text` es el
+   original; texto reescrito de verdad → falla con el `reason` que incluye el texto crudo; orden cambiado → falla.
+Verificación: `bunx tsc --noEmit`; `bun test src/__tests__/qa-core.test.ts`; `bun test` completo (línea final
+literal); biome sobre los tocados. Los ui:gate los corre el cerebro fuera del sandbox.
