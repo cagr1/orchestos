@@ -216,3 +216,19 @@ que esos flujos siguen usando para `tasks.yaml`. Restaurar los imports necesario
    original; texto reescrito de verdad → falla con el `reason` que incluye el texto crudo; orden cambiado → falla.
 Verificación: `bunx tsc --noEmit`; `bun test src/__tests__/qa-core.test.ts`; `bun test` completo (línea final
 literal); biome sobre los tocados. Los ui:gate los corre el cerebro fuera del sandbox.
+
+## Ronda 7 — ui:gate real (cerebro, 2026-09-25)
+Tras la ronda 6: `runs-graph` verde; `tasks` y `chat-turn-details` rojos por dos causas que no son de roles.
+1. `src/chat/classify-task-intent.ts:76` — `maxTokens: 150`. `deepseek/deepseek-v4-flash` razona antes de responder
+   (medido 2026-09-25: 101-154 tokens de salida para un JSON de ~25) y la respuesta llega cortada
+   (`{"isTask": true, "reason": "`) → `parseTaskIntentResponse` cae a `isTask:false` → el chat no crea la tarea
+   (2 de 4 llamadas en el sondeo). Subir a `maxTokens: 1000` con un comentario de una línea con el motivo. No mover
+   el modelo a un rol (eso es MR.1.d). Test en el test existente del clasificador (o `src/__tests__/` si no hay):
+   espiar/mockear `openrouterChat` y afirmar que recibe `maxTokens >= 1000`.
+2. Fixtures de criterio con doble punto ambiguo que el juez "corrige": `scripts/ui-gate/flows/tasks.mjs:101`
+   (`'README.md ends with the line "Gate ran.".'`) y `scripts/ui-gate/flows/runs-graph.mjs:97`
+   (`'README.md ends with the line "Runs graph gate.".'`). Reescribir sin comillas ni punto final ambiguo:
+   `'The last line of README.md is exactly: Gate ran.'` y `'The last line of README.md is exactly: Runs graph gate.'`.
+   Si algún paso del flujo compara ese texto literal, actualizarlo igual.
+Verificación: `bunx tsc --noEmit`; test del clasificador; `node --check` de los 2 flujos; biome sobre los tocados.
+Los ui:gate los corre el cerebro fuera del sandbox.
