@@ -508,6 +508,16 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     `test:coverage` 1545/0 (75.41%/62.45%).
     Aprendido: Luna sin `ORCHESTOS_ROLE=executor` y la frase "eres el ejecutor" intenta delegar en otro `codex exec`
     (falla en su sandbox); el preflight de Luna va con `--item MR.1` (no ve sub-ítems).
+  - [ ] **MR.1.d1 — ⚡ El chat y sus tareas usan los roles: Orquestador, Ejecutor y Auxiliar.** (abierto 2026-09-25;
+    spec `docs/specs/MR.1.d1.md`) Decisiones de Carlos (2026-09-25): el chat arranca con el Orquestador y el picker
+    del composer lo cambia por sesión (sin DeepSeek por defecto; sin rol → error claro); las tareas que crea el chat
+    usan `taskAgentRules` → Ejecutor, no el agente del chat; clasificador de intención al Auxiliar. Incluye los
+    modelos fijos de `resolveAgentSelection` (`engine-cascade.ts:138,142`), hermanos de los hardcodes de MR.1.b, y
+    quitar los chips "Default agent" de Settings → Executor. Gate: flujo nuevo `chat-roles` + los 10 ui:gate.
+  - [ ] **MR.1.d2 — 🧠 El contexto que el chat inyecta al CLI dice la verdad (AT.13).** (abierto 2026-09-25) Alcance =
+    AT.13 puntos 1-8 (herramientas reales, `n/a` en costos desconocidos, tasks en una línea, motivo de QA, nombres de
+    modelo normalizados, fechas con zona, índice de memoria/specs, sin prompts apilados) + `$0` del chat de Codex sin
+    precio (resto de MR.1.b2). Spec al terminar MR.1.d1.
 - [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
   Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
   `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5
