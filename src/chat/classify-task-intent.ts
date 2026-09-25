@@ -73,7 +73,8 @@ export async function classifyTaskIntent(message: string): Promise<TaskIntentRes
       model: CLASSIFIER_MODEL,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: message }],
-      maxTokens: 150,
+      // Deeper reasoning may need more output tokens before emitting the short JSON.
+      maxTokens: 1000,
     })
     return parseTaskIntentResponse(resp.text)
   } catch {

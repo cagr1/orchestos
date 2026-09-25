@@ -1,6 +1,6 @@
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { createPatch } from 'diff'
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import type { ProviderClient } from '../providers/index.ts'
 import type { SkillDef } from '../skills/registry.ts'
 import { buildSections } from '../skills/targets/_shared.ts'
@@ -16,6 +16,16 @@ export interface QACriterionResult {
   text: string
   pass: boolean
   evidence?: QAEvidence
+}
+
+/** Normalize only quote typography, escaped quotes, and whitespace for R.3 identity checks. */
+export function normalizeCriterionText(text: string): string {
+  return text
+    .replace(/[“”„«»]/g, '"')
+    .replace(/[‘’‚]/g, "'")
+    .replace(/\\(["'])/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 export interface QAVerdict {
@@ -189,7 +199,7 @@ function parseVerdict(
   }
   const o = obj as Record<string, unknown>
   const v = o.verdict === 'pass' ? 'pass' : 'fail'
-  const reason = typeof o.reason === 'string' ? o.reason : '(no reason)'
+  let reason = typeof o.reason === 'string' ? o.reason : '(no reason)'
 
   const expectedCriteriaCount = expectedCriteria.length
   if (expectedCriteriaCount === 0) return { verdict: v, reason }
@@ -222,12 +232,23 @@ function parseVerdict(
   let identityMismatch = false
   const criteria: QACriterionResult[] = (o.criteria as unknown[]).map((c, index) => {
     if (c === null || typeof c !== 'object' || Array.isArray(c)) {
-      identityMismatch = true
-      return { text: expectedCriteria[index]!, pass: false }
+      const expectedText = expectedCriteria[index] ?? ''
+      if (!identityMismatch) {
+        identityMismatch = true
+        reason = `QA criterion results must match the original text and order exactly (criterion ${index + 1}: got "?")`
+      }
+      return { text: expectedText, pass: false }
     }
     const cr = c as Record<string, unknown>
-    const matchesOriginal = cr.text === expectedCriteria[index]
-    if (!matchesOriginal) identityMismatch = true
+    const expectedText = expectedCriteria[index] ?? ''
+    const rawCriterionText = typeof cr.text === 'string' ? cr.text : '?'
+    const matchesOriginal =
+      typeof cr.text === 'string' &&
+      normalizeCriterionText(cr.text) === normalizeCriterionText(expectedText)
+    if (!matchesOriginal && !identityMismatch) {
+      identityMismatch = true
+      reason = `QA criterion results must match the original text and order exactly (criterion ${index + 1}: got "${rawCriterionText.slice(0, 200)}")`
+    }
     const rawEvidence = cr.evidence as Record<string, unknown> | undefined
     const evidence =
       rawEvidence &&
@@ -243,7 +264,7 @@ function parseVerdict(
       evidence !== undefined && (byPath.get(evidence.file) ?? '').includes(evidence.excerpt)
     const pass = matchesOriginal && cr.pass === true && evidenceIsReal
     return {
-      text: typeof cr.text === 'string' ? cr.text : '?',
+      text: expectedText,
       pass,
       ...(evidence ? { evidence } : {}),
     }
@@ -253,9 +274,7 @@ function parseVerdict(
   const anyFailed = criteria.some((c) => !c.pass)
   return {
     verdict: anyFailed ? 'fail' : v,
-    reason: identityMismatch
-      ? 'QA criterion results must match the original text and order exactly'
-      : reason,
+    reason,
     criteria,
   }
 }

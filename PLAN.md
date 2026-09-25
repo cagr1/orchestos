@@ -451,8 +451,10 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     Commit con `--no-verify` autorizado por Carlos (2026-09-24) solo para MR.1.a y MR.1.b: `agent:live-gate` exige
     cerrar un ítem de primer nivel con gate en navegador y estos sub-ítems no tienen UI; tsc, secretos y
     `plan:render` pasaron a mano. El gate en navegador se hace en MR.1.c, que cierra MR.1.
-  - [ ] **MR.1.b — ⚡ Ejecución por rol + borrar los modelos hardcodeados.** (abierto 2026-09-24; reabierto: ui:gate rojo; spec
-    `docs/specs/MR.1.b.md`) Hecho: `router/role-runner.ts` (`roleClient`/`clientFromAssignment`: api → provider;
+  - [x] **MR.1.b — ⚡ Ejecución por rol + borrar los modelos hardcodeados.** (abierto 2026-09-24; reabierto: ui:gate rojo;
+    cerrado 2026-09-25)
+    Ejecutado por: luna (8 rondas) · Spec: docs/specs/MR.1.b.md (borrado al cerrar)
+    Hecho: `router/role-runner.ts` (`roleClient`/`clientFromAssignment`: api → provider;
     claude/codex/opencode → sus runners de chat de solo lectura); `autoRoute` = `task.executor_model` o
     `roles.executor` (sin clases ni `executor_light`); engine del Ejecutor por `roles.executor.agent` (el `agent`
     top-level queda solo para el chat, MR.1.d); esfuerzo del rol → `ctx.cliEffort`; Revisor resuelto antes de gastar
@@ -473,6 +475,15 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     the original text and order exactly`, R.3 `qa.ts:229`: el juez reescribe el texto del criterio, mismo síntoma que
     tenía gpt-4o-mini) y `chat-turn-details` (2/2: la segunda tarjeta retenida no aparece; el bot contesta "Voy a
     comprobar…"). Verde: smoke, plan-doc, project-delete, usage-bar, text-sweep, project-tabs 23/23.
+    **Cierre (rondas 6-8, 2026-09-25):** R.3 por decisión de Carlos (normalizar): `qa.ts` compara por posición, el
+    resultado guarda siempre el texto original y `normalizeCriterionText` solo iguala comillas tipográficas, `\"` y
+    espacios; si difiere en algo más sigue fallando y el `reason` incluye el texto crudo del juez. `chat-turn-details`
+    no era de roles: (a) la ronda 4 borró el import de `readFileSync` del flujo; (b) `classify-task-intent.ts` con
+    `maxTokens: 150` cortaba la respuesta de `deepseek-v4-flash` (razona antes, 101-154 tokens) → `isTask:false` en
+    ~1 de cada 2-4 mensajes, sin error visible; subido a 1000 (sondeo 4/4). En `eee0401` el flujo pasó por suerte.
+    Criterios de fixture con doble punto (`"Gate ran.".`) reescritos a `README.md contains the line: …`.
+    Gate en vivo: navegador real (Playwright, `bun run ui:gate`): `tasks` 13/13, `runs-graph` 16/16,
+    `chat-turn-details` 26/26 (Codex · `gpt-6-luna` · medium en los 4 roles). `test:coverage` en el cierre.
   - [x] **MR.1.b2 — 🧠 Codex como Ejecutor con id nativo (`gpt-6-luna`) no puede completar tareas.** (hallado en el gate
     de MR.1.b, 2026-09-24; antecede a MR.1: BB.6/F0.8) El engine exige que el modelo esté en el catálogo de precios de
     OpenRouter (`executors/codex.ts:404`) y lo comprueba **después** de correr; los ids nativos de Codex no están → la

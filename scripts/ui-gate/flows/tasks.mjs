@@ -98,7 +98,7 @@ export default async function tasks({ page, api, step, shot, visible, cleanup })
             cli_effort: 'medium',
             input: ['README.md'],
             output: ['README.md'],
-            acceptance_criteria: ['README.md ends with the line "Gate ran.".'],
+            acceptance_criteria: ['README.md contains the line: Gate ran.'],
             depends_on: [],
             status: 'pending',
             retry_count: 0,

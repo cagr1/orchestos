@@ -1,14 +1,12 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — terminar MR.1.b (ui:gate rojo) — 2026-09-24
-Commits locales **sin push** (`ded7420` + rondas 3-5): el pre-push corre ui:gate y está rojo. Estado en PLAN.md
-§ MR.1.b "Reabierto". Pendiente de Carlos: cómo tratar que el Revisor reescriba el texto del criterio (R.3).
-Recomendación: en `qa.ts` comparar por índice y guardar el texto original, normalizando solo comillas/espacios para
-detectar el cambio; sin eso ningún juez LLM es estable. `chat-turn-details`: comprobar en un worktree de `eee0401` si
-la segunda tarjeta retenida ya fallaba antes de MR.1.b, antes de tocar nada. Gates: `bun run ui:gate tasks runs-graph
-chat-turn-details` (los otros 6 verdes). Luego MR.1.c / MR.1.d como estaba previsto.
-Aprendido: Luna no puede correr ui:gate en su sandbox, y biome/`node --check` no detectan imports faltantes en los
-flujos → el cerebro corre ui:gate después de cada ronda que toque `scripts/ui-gate/`.
+## Siguiente tab — MR.1.c (UI de Model routing) — 2026-09-25
+MR.1.b cerrado (R.3 normalizado, clasificador de chat con `maxTokens` 1000; detalle en PLAN.md § MR.1.b). Sigue
+MR.1.c (4 filas agente+modelo+esfuerzo con valor real + UI de `taskAgentRules`, gate en navegador) y luego MR.1.d
+(chat al CLI elegido, AT.10/AT.13; mover `classify-task-intent.ts` al Auxiliar). Pendiente MR.1.b2: `$0` del chat
+de Codex sin precio (F0.8).
+Aprendido: el hook bloquea que el cerebro edite código incluso de una línea → todo va como ronda de spec; tras cada
+ronda que toque `scripts/ui-gate/`, el cerebro corre ui:gate (imports borrados solo fallan al ejecutar).
 
 ## Lote L4 (abierto 2026-09-24)
 Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write

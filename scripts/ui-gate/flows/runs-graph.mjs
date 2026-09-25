@@ -94,7 +94,7 @@ export default async function runsGraph({ page, api, step, shot, visible, cleanu
             cli_effort: 'medium',
             input: ['README.md'],
             output: ['README.md'],
-            acceptance_criteria: ['README.md ends with the line "Runs graph gate.".'],
+            acceptance_criteria: ['README.md contains the line: Runs graph gate.'],
             depends_on: [],
             status: 'pending',
             retry_count: 0,

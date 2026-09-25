@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'bun:test'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { ProviderClient } from '../providers/index.ts'
 import {
   computeFileDiffs,
+  normalizeCriterionText,
   restoreContents,
   runAdversarialQA,
   runQA,
@@ -150,9 +151,34 @@ describe('runQA and parseVerdict', () => {
   it('R.3 explains identity mismatch instead of repeating the provider success claim', async () => {
     const result = await checkCriteria([criterion('A'), criterion('A')])
     expect(result.reason).toBe(
-      'QA criterion results must match the original text and order exactly',
+      'QA criterion results must match the original text and order exactly (criterion 2: got "A")',
     )
     expect(result.criteria?.[1]?.pass).toBe(false)
+  })
+
+  it('R.3 normalizes permitted typography and whitespace while returning the original text', async () => {
+    expect(normalizeCriterionText(' “hi”  \\"there” ok ')).toBe('"hi" "there" ok')
+    const original = 'Use “quoted”  text'
+    const result = await checkCriteria(
+      [criterion(original), criterion("it's  fine")],
+      [original, "it's fine"],
+    )
+    expect(result.verdict).toBe('pass')
+    expect(result.criteria?.map((row) => row.text)).toEqual([original, "it's fine"])
+  })
+
+  it('R.3 rejects a real rewrite and reports the raw judge text', async () => {
+    const result = await checkCriteria([criterion('A'), criterion('rewritten')])
+    expect(result.verdict).toBe('fail')
+    expect(result.reason).toContain('(criterion 2: got "rewritten")')
+    expect(result.criteria?.[1]?.text).toBe('B')
+  })
+
+  it('R.3 detects reordered results and returns expected text in each position', async () => {
+    const result = await checkCriteria([criterion('B'), criterion('A')])
+    expect(result.verdict).toBe('fail')
+    expect(result.reason).toContain('(criterion 1: got "B")')
+    expect(result.criteria?.map((row) => row.text)).toEqual(['A', 'B'])
   })
 
   for (const [label, rows] of [
@@ -161,7 +187,7 @@ describe('runQA and parseVerdict', () => {
     ['extra C', [criterion('A'), criterion('B'), criterion('C')]],
     ['unknown C', [criterion('A'), criterion('C')]],
     ['reordered B+A', [criterion('B'), criterion('A')]],
-    ['paraphrased text', [criterion('A'), criterion(' B ')]],
+    ['paraphrased text', [criterion('A'), criterion('rewritten B')]],
     ['missing text', [criterion('A'), { pass: true, evidence: criterion('B').evidence }]],
     ['null entry', [criterion('A'), null]],
     ['array entry', [criterion('A'), []]],

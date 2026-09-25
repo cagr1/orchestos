@@ -57,8 +57,10 @@ describe('classifyTaskIntent', () => {
 
   it('returns the classifier result on a successful call', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
-    globalThis.fetch = (async () =>
-      new Response(
+    let requestBody: Record<string, unknown> | undefined
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>
+      return new Response(
         JSON.stringify({
           choices: [
             {
@@ -70,11 +72,13 @@ describe('classifyTaskIntent', () => {
           usage: { prompt_tokens: 20, completion_tokens: 10 },
         }),
         { status: 200 },
-      )) as unknown as typeof fetch
+      )
+    }) as unknown as typeof fetch
 
     const r = await classifyTaskIntent('hazme una página web de criptomonedas con gráficos 3D')
     expect(r.isTask).toBe(true)
     expect(r.reason).toBe('Pide construir un sitio completo')
+    expect(requestBody?.max_tokens).toBeGreaterThanOrEqual(1000)
   })
 
   it('fails safe (isTask:false) when the provider call throws', async () => {
