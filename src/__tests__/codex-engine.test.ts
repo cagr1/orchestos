@@ -47,6 +47,13 @@ function seedCatalog(): string {
           supportsReasoning: true,
           maxOutputTokens: 128000,
         },
+        'openai/gpt-6-luna': {
+          contextLength: 400000,
+          priceIn: 2,
+          priceOut: 10,
+          supportsReasoning: true,
+          maxOutputTokens: 128000,
+        },
       },
     }),
   )
@@ -318,6 +325,24 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(outcome.log[0]).toContain('1 file(s) changed')
   })
 
+  it('acepta id nativo de Codex y lo tarifa con el id openai del catálogo', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('g42b-native-id', 'main', root)
+    trackWorktree(wt)
+    overrideBunSpawn(installMockSpawn(jsonl(turnCompleted(1000, 200))))
+
+    const ctx = buildCtx(wt, baseTask(), 'gpt-6-luna')
+    const outcome = await codexEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
+
+    expect(spawnCalls).toHaveLength(1)
+    expect(spawnCalls[0]!.cmd).toContain('gpt-6-luna')
+    expect(outcome.usd).toBeCloseTo(0.004, 6)
+  })
+
   // BB.6 (2026-08-18) — este test afirmaba antes que un modelo no-OpenAI "omite
   // -m y codex usa su default". Ese era exactamente el bug: codex corría con un
   // modelo desconocido y el costo se tarifaba igual con `ctx.model`, produciendo
@@ -348,10 +373,8 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(caught!.message).toMatch(/--engine external|--engine opencode/)
   })
 
-  // BB.6 — el guard F0.8 preexistente sigue vivo y cubre su propio caso: modelo
-  // openai/* (así que -m SÍ se pasa y sabemos qué corrió) pero ausente del
-  // catálogo de precios. Son dos modos de fallo distintos, no uno solo.
-  it('modelo openai/* fuera del catálogo: spawnea pero no reporta $0 (F0.8 sigue vigente)', async () => {
+  // Rechaza antes de gastar si falta un precio, sea el id OpenRouter o nativo.
+  it('modelo openai/* fuera del catálogo: falla antes de spawnear (F0.8)', async () => {
     const root = makeGitRepo()
     const wt = createWorktree('bb6-openai-uncatalogued', 'main', root)
     trackWorktree(wt)
@@ -367,8 +390,7 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
       caught = e
     }
 
-    expect(spawnCalls[0]!.cmd).toContain('-m')
-    expect(spawnCalls[0]!.cmd).toContain('gpt-not-in-catalog')
+    expect(spawnCalls).toHaveLength(0)
     expect(caught).toBeInstanceOf(ExecutorCodexError)
     expect(caught!.message).toContain('not in the pricing catalog')
   })

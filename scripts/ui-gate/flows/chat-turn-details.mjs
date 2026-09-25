@@ -1,8 +1,9 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
+import { writeGateRoles } from '../lib.mjs'
 
 function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: 'ignore' })
@@ -90,6 +91,7 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   )
   const repoRoot = process.cwd()
   run('bun', ['run', join(repoRoot, 'src/cli.ts'), 'init', projectRoot], repoRoot)
+  writeGateRoles(projectRoot)
   run('bun', ['run', join(repoRoot, 'src/cli.ts'), 'task', 'init'], projectRoot)
   run('git', ['add', '-A'], projectRoot)
   run(

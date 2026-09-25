@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
+import { writeGateRoles } from '../lib.mjs'
 
 function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: 'ignore' })
@@ -50,6 +51,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     projectRoot,
   )
   run('bun', ['run', join(process.cwd(), 'src/cli.ts'), 'init', projectRoot], process.cwd())
+  writeGateRoles(projectRoot)
   const projectList = await api('/api/projects')
   const project = (projectList.data ?? []).find((item) => item.path === projectRoot)
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)

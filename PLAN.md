@@ -451,7 +451,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     Commit con `--no-verify` autorizado por Carlos (2026-09-24) solo para MR.1.a y MR.1.b: `agent:live-gate` exige
     cerrar un ítem de primer nivel con gate en navegador y estos sub-ítems no tienen UI; tsc, secretos y
     `plan:render` pasaron a mano. El gate en navegador se hace en MR.1.c, que cierra MR.1.
-  - [x] **MR.1.b — ⚡ Ejecución por rol + borrar los modelos hardcodeados.** (abierto y cerrado 2026-09-24; spec
+  - [ ] **MR.1.b — ⚡ Ejecución por rol + borrar los modelos hardcodeados.** (abierto 2026-09-24; reabierto: ui:gate rojo; spec
     `docs/specs/MR.1.b.md`) Hecho: `router/role-runner.ts` (`roleClient`/`clientFromAssignment`: api → provider;
     claude/codex/opencode → sus runners de chat de solo lectura); `autoRoute` = `task.executor_model` o
     `roles.executor` (sin clases ni `executor_light`); engine del Ejecutor por `roles.executor.agent` (el `agent`
@@ -468,11 +468,17 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     corre `gpt-6-luna` y el engine lo rechaza después de gastar (`not in the pricing catalog`) → ver MR.1.b2.
     `test:coverage` 1537/0 (75.20%/62.34%). Ejecutado por: luna (2 rondas; la 1 dejó 25 fallos en la suite completa y
     un modelo `'mock'` en producción en `skills.ts`) · Spec: docs/specs/MR.1.b.md
-  - [ ] **MR.1.b2 — 🧠 Codex como Ejecutor con id nativo (`gpt-6-luna`) no puede completar tareas.** (hallado en el gate
+    **Reabierto (pre-push, ui:gate real):** rondas 3-5 dan roles a los flujos (`writeGateRoles`, `ui-gate/lib.mjs`) y
+    arreglan MR.1.b2. Quedan rojos: `tasks`/`runs-graph` (Revisor codex gpt-6-luna → `QA criterion results must match
+    the original text and order exactly`, R.3 `qa.ts:229`: el juez reescribe el texto del criterio, mismo síntoma que
+    tenía gpt-4o-mini) y `chat-turn-details` (2/2: la segunda tarjeta retenida no aparece; el bot contesta "Voy a
+    comprobar…"). Verde: smoke, plan-doc, project-delete, usage-bar, text-sweep, project-tabs 23/23.
+  - [x] **MR.1.b2 — 🧠 Codex como Ejecutor con id nativo (`gpt-6-luna`) no puede completar tareas.** (hallado en el gate
     de MR.1.b, 2026-09-24; antecede a MR.1: BB.6/F0.8) El engine exige que el modelo esté en el catálogo de precios de
     OpenRouter (`executors/codex.ts:404`) y lo comprueba **después** de correr; los ids nativos de Codex no están → la
     tarea falla tras gastar. El chat de Codex, en cambio, registra `$0` si falta el precio (`codex.ts` `runCodexChat`),
-    lo que F0.8 prohíbe. Falta decidir cómo se representa el costo desconocido; pregunta abierta a Carlos.
+    lo que F0.8 prohíbe. Hecho (ronda 3): `codexPricingId` tarifa ids nativos como `openai/<id>` (engine y chat) y el
+    chequeo de catálogo del engine corre antes de spawnear. El `$0` del chat cuando no hay precio sigue abierto.
 - [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
   Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
   `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5

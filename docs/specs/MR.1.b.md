@@ -166,3 +166,35 @@ skill-auto-selection 1. La mayoría: `Rol 'reviewer'/'orchestrator' sin asignar`
    de MR.1.b (`git stash` no — compararlo leyendo el test), decirlo en el reporte sin tocarlo.
 Verificación: `bunx tsc --noEmit`; `bun test` **completo** con la línea final `N pass / M fail` pegada literal; biome
 sobre los tocados.
+
+## Ronda 3 — hallado por el hook pre-push (ui:gate en navegador real, 2026-09-24)
+`chat-turn-details`, `runs-graph` y `project-tabs` fallan: sus proyectos temporales (`orchestos init`) no declaran
+`roles`, y antes funcionaban por los defaults que MR.1.b borró (`Rol 'orchestrator'/'reviewer' sin asignar`).
+1. En esos 3 flujos (`scripts/ui-gate/flows/*.mjs`), justo después de `orchestos init`, escribir en el
+   `orchestos.config.yaml` del proyecto temporal (parse + set con la lib `yaml` que ya usan, sin pisar el resto):
+   `roles: { orchestrator, executor, reviewer, auxiliary }` = `{ agent: codex, model: gpt-6-luna, effort: medium }`
+   los cuatro (turno real de gate = Codex · gpt-6-luna · medium, AGENTS.md). Revisar si otro flujo de
+   `scripts/ui-gate/flows/` ejecuta tareas o chat con auto-creación sin roles y aplicarle lo mismo; listarlos.
+2. MR.1.b2 — `src/run/executors/codex.ts`: el catálogo de Codex da ids nativos (`gpt-6-luna`) y el precio está en
+   OpenRouter como `openai/gpt-6-luna`. Añadir `codexPricingId(model)` (`model.includes('/') ? model :
+   \`openai/${model}\``) y usarlo en el chequeo de catálogo del engine (`codex.ts:404`, y `calcCost` del engine) y
+   en el `calcCost` de `runCodexChat`. Además mover el chequeo de catálogo del engine a **antes** de lanzar el
+   proceso (se sabe de antemano; hoy se descubre tras gastar), con el mismo mensaje. Tests en
+   `codex-engine.test.ts`: id nativo con `openai/<id>` en el catálogo → corre y tarifa; id que no está → falla sin
+   spawnear (espía del spawn con 0 llamadas).
+Verificación: `bunx tsc --noEmit`; `bun test` completo (línea final literal); biome sobre los tocados. Los ui:gate los
+corre el cerebro fuera del sandbox.
+
+## Ronda 4 — ui:gate real (cerebro, 2026-09-24)
+5 flujos fallan con `ENOENT … orchestos.config.yaml`: `orchestos init` no crea ese archivo. Extraer a
+`scripts/ui-gate/lib.mjs` un helper `writeGateRoles(projectRoot)` que lea el YAML si existe (si no, parte de `{}`),
+fije los 4 roles `{ agent: codex, model: gpt-6-luna, effort: medium }` y lo escriba; los 5 flujos lo usan en vez de
+su copia inline. Test en `scripts/ui-gate/run.test.ts`: dir temporal sin config → crea el archivo con los 4 roles;
+con config previa → conserva sus otras claves.
+Verificación: `bunx tsc --noEmit`; `bun test scripts/ui-gate/run.test.ts`; `node --check` de los 5 flujos; biome.
+
+## Ronda 5 — ui:gate real (cerebro, 2026-09-24)
+`tasks`, `runs-graph`, `project-tabs` → `flow: yamlStringify is not defined`: la ronda 4 quitó el import de `yaml`
+que esos flujos siguen usando para `tasks.yaml`. Restaurar los imports necesarios en los 5 flujos. Verificar con
+`node -e "import('./scripts/ui-gate/flows/<f>.mjs')"` por flujo (debe importar sin ReferenceError de módulo) y con
+`grep -n "yamlStringify\|yamlParse" scripts/ui-gate/flows/*.mjs` pegado junto a sus imports.

@@ -1,3 +1,18 @@
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
+
+const GATE_ROLES = ['orchestrator', 'executor', 'reviewer', 'auxiliary']
+
+export function writeGateRoles(projectRoot) {
+  const configPath = join(projectRoot, 'orchestos.config.yaml')
+  const config = existsSync(configPath) ? (yamlParse(readFileSync(configPath, 'utf8')) ?? {}) : {}
+  config.roles = Object.fromEntries(
+    GATE_ROLES.map((role) => [role, { agent: 'codex', model: 'gpt-6-luna', effort: 'medium' }]),
+  )
+  writeFileSync(configPath, yamlStringify(config))
+}
+
 export function lintFlowSource(source) {
   if (/window\.(?:OrchestOS|state)\b/.test(source)) {
     return 'navega por window'

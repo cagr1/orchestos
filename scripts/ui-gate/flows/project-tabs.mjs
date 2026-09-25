@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
+import { writeGateRoles } from '../lib.mjs'
 
 async function tasksFor(api, projectId) {
   const response = await api('/api/tasks', {
@@ -117,6 +118,7 @@ export default async function projectTabs({
   )
   const repoRoot = process.cwd()
   run('bun', ['run', join(repoRoot, 'src/cli.ts'), 'init', projectRoot], repoRoot)
+  writeGateRoles(projectRoot)
   run('bun', ['run', join(repoRoot, 'src/cli.ts'), 'task', 'init'], projectRoot)
   writeFileSync(
     join(projectRoot, 'tasks.yaml'),

@@ -66,10 +66,15 @@ export function orchestosModelToCodexModel(model: string | undefined): string | 
   return undefined
 }
 
+/** Pricing is published under OpenRouter ids; Codex catalogs expose native ids. */
+export function codexPricingId(model: string): string {
+  return model.includes('/') ? model : `openai/${model}`
+}
+
 /**
  * BB.6 (2026-08-18) — guard de costo medible, ANTES de gastar tokens.
  *
- * El costo de codex se computa con `calcCost(ctx.model, …)` porque el binario
+ * El costo de codex se computa con `calcCost(codexPricingId(ctx.model), …)` porque el binario
  * no reporta USD. Eso solo es válido si `ctx.model` es **el modelo que codex
  * realmente corrió**, y eso pasa únicamente cuando le pasamos `-m`.
  *
@@ -336,8 +341,11 @@ export async function runCodexChat(
   if (model && !codexModel) {
     throw new ExecutorCodexError(codexCostUnmeasurableMessage(model))
   }
+  const pricingId = model ? codexPricingId(model) : undefined
   const usd =
-    model && getCatalog()?.has(model) ? calcCost(model, parsed.inputTokens, parsed.outputTokens) : 0
+    pricingId && getCatalog()?.has(pricingId)
+      ? calcCost(pricingId, parsed.inputTokens, parsed.outputTokens)
+      : 0
 
   return {
     text,
@@ -372,6 +380,13 @@ export const codexEngine: ExecutorEngine = {
       throw new ExecutorCodexError(codexCostUnmeasurableMessage(ctx.model))
     }
 
+    const pricingId = codexPricingId(ctx.model ?? codexModel)
+    if (!getCatalog()?.has(pricingId)) {
+      throw new ExecutorCodexError(
+        `codex model "${ctx.model ?? codexModel}" is not in the pricing catalog — cost unknown, not reported as $0`,
+      )
+    }
+
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
     let stdout: string
@@ -401,12 +416,7 @@ export const codexEngine: ExecutorEngine = {
     // F0.8 — costo desconocido explícito, nunca $0 silencioso: codex no
     // expone total_cost_usd (a diferencia de claude/opencode), así que solo
     // se computa si el modelo corrido está en el catálogo real.
-    if (!ctx.model || !getCatalog()?.has(ctx.model)) {
-      throw new ExecutorCodexError(
-        `codex ran with model "${ctx.model ?? '(codex default)'}" which is not in the pricing catalog — cost unknown, not reported as $0`,
-      )
-    }
-    const usd = calcCost(ctx.model, parsed.inputTokens, parsed.outputTokens)
+    const usd = calcCost(pricingId, parsed.inputTokens, parsed.outputTokens)
 
     const files = readWorktreeDiff(ctx.effectiveRoot, ctx.task.output)
 

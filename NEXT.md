@@ -1,16 +1,14 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — MR.1.b2 o MR.1.c — preparado 2026-09-24
-MR.1.b cerrado (ver PLAN.md § MR.1.b): toda ejecución sale de `cfg.roles` vía `router/role-runner.ts`; rol sin
-asignar = error claro antes de gastar. Abierto **MR.1.b2**: Codex con id nativo (`gpt-6-luna`) corre y el engine lo
-rechaza después por costo desconocido (`executors/codex.ts:404`) → esperar decisión de Carlos sobre el costo
-desconocido antes de especificar. Si Carlos no decide, seguir con **MR.1.c** (UI de Model routing 4 filas + UI de
-`taskAgentRules` + retirar `models`/`routes` de GET/PUT; gate en navegador; cierra MR.1) y **MR.1.d** (chat: quedan
-los hardcodes `chat/classify-task-intent.ts:33` y `handlers/chat.ts:1199`).
-Aprendido: (1) `agent:preflight` solo ve ítems de primer nivel → `--item MR.1`; (2) tras editar PLAN.md,
-`bun run plan:reconcile`; (3) `--no-verify` autorizado solo para MR.1.a/MR.1.b; (4) el cerebro no parchea código:
-todo arreglo va como ronda N del spec; (5) Luna reporta "suite dirigida verde" y la completa estaba roja: exigir
-`bun test` completo en el spec y correr `test:coverage` fuera del sandbox siempre.
+## Siguiente tab — terminar MR.1.b (ui:gate rojo) — 2026-09-24
+Commits locales **sin push** (`ded7420` + rondas 3-5): el pre-push corre ui:gate y está rojo. Estado en PLAN.md
+§ MR.1.b "Reabierto". Pendiente de Carlos: cómo tratar que el Revisor reescriba el texto del criterio (R.3).
+Recomendación: en `qa.ts` comparar por índice y guardar el texto original, normalizando solo comillas/espacios para
+detectar el cambio; sin eso ningún juez LLM es estable. `chat-turn-details`: comprobar en un worktree de `eee0401` si
+la segunda tarjeta retenida ya fallaba antes de MR.1.b, antes de tocar nada. Gates: `bun run ui:gate tasks runs-graph
+chat-turn-details` (los otros 6 verdes). Luego MR.1.c / MR.1.d como estaba previsto.
+Aprendido: Luna no puede correr ui:gate en su sandbox, y biome/`node --check` no detectan imports faltantes en los
+flujos → el cerebro corre ui:gate después de cada ronda que toque `scripts/ui-gate/`.
 
 ## Lote L4 (abierto 2026-09-24)
 Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write
