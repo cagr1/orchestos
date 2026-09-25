@@ -305,7 +305,7 @@ export const opencodeEngine: ExecutorEngine = {
     if (ctx.model && !model) {
       throw new ExecutorOpencodeError(`OpenCode no reconoce el modelo solicitado: ${ctx.model}`)
     }
-    const variant = ctx.task.cli_effort
+    const variant = ctx.cliEffort
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
     let stdout: string

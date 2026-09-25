@@ -8,8 +8,7 @@
  * NOT called inside upsertMemory — the caller determines when to judge.
  */
 
-import { getProvider } from '../providers/index.ts'
-import { chat } from '../providers/openrouter.ts'
+import type { ProviderClient } from '../providers/index.ts'
 
 export type ConflictRelation =
   | 'conflict_with'
@@ -108,30 +107,18 @@ function parseJudgment(text: string): ConflictJudgment {
  *
  * @param entryA  The newly upserted memory entry
  * @param entryB  An existing memory entry (BM25 candidate)
- * @param modelOverride  Optional model override (default: anthropic/claude-haiku-4-5)
+ * @param client  Required role client for the auxiliary judge.
  */
 export async function judgeConflict(
   entryA: { topicKey: string; content: string },
   entryB: { topicKey: string; content: string },
-  modelOverride?: string,
+  client: { provider: ProviderClient; model: string },
 ): Promise<ConflictJudgment> {
-  const model = modelOverride ?? 'anthropic/claude-haiku-4-5'
-
-  let resp
-  try {
-    resp = await chat({
-      model,
-      system: 'You are a memory conflict judge that outputs only JSON.',
-      messages: [{ role: 'user', content: buildJudgePrompt(entryA, entryB) }],
-    })
-  } catch {
-    const provider = getProvider('openrouter')
-    resp = await provider.chat({
-      model,
-      system: 'You are a memory conflict judge that outputs only JSON.',
-      messages: [{ role: 'user', content: buildJudgePrompt(entryA, entryB) }],
-    })
-  }
+  const resp = await client.provider.chat({
+    model: client.model,
+    system: 'You are a memory conflict judge that outputs only JSON.',
+    messages: [{ role: 'user', content: buildJudgePrompt(entryA, entryB) }],
+  })
 
   return parseJudgment(resp.text)
 }

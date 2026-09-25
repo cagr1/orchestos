@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { appendFileSync, cpSync, existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { loadOrcheConfig } from '../config/load.ts'
+import { loadOrcheConfig, RoleUnassignedError } from '../config/load.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 import {
   type EvalBatchRecord,
@@ -14,8 +14,6 @@ import { runMigrations } from '../db/migrate.ts'
 import { insertRun } from '../db/runs.ts'
 import { autoRoute } from '../router/auto-route.ts'
 import { classifyTask } from '../router/classify.ts'
-import { resolveAgentSelection } from '../router/engine-cascade.ts'
-import { resolveModel } from '../router/models.ts'
 import { type CheckResult, runChecks } from '../run/checks.ts'
 import { runTask, type TaskResult } from '../run/harness.ts'
 import { RunLogger } from '../run/logger.ts'
@@ -59,7 +57,7 @@ export interface RunEvalBatchOptions {
 export function resolveEvalConfiguration(
   task: EvalTask,
   config: OrcheConfig,
-  configFound: boolean,
+  _configFound: boolean,
   overrides: EvalRunOverrides = {},
 ): { task: EvalTask; measured: EvalTrialConfig; modelOverride?: string; provider: string } {
   const measuredTask: EvalTask = {
@@ -68,12 +66,18 @@ export function resolveEvalConfiguration(
     skill: overrides.skill === undefined ? task.skill : (overrides.skill ?? undefined),
     cli_effort: overrides.cliEffort ?? task.cli_effort,
   }
-  const route = autoRoute(measuredTask, config, configFound)
-  const model = overrides.model ?? route?.model ?? resolveModel(classifyTask(task.description))
-  const agentEngine = config.agent
-    ? resolveAgentSelection(config.agent, { tier: 'api' }).engine
-    : undefined
-  const engine = measuredTask.engine ?? agentEngine ?? config.apiMode ?? 'single-shot'
+  const route = autoRoute(measuredTask, config)
+  if (!route && !overrides.model) throw new RoleUnassignedError('executor')
+  const model = overrides.model ?? route!.model
+  const engine =
+    measuredTask.engine ??
+    (route?.agent === 'claude'
+      ? 'external'
+      : route?.agent === 'codex'
+        ? 'codex'
+        : route?.agent === 'opencode'
+          ? 'opencode'
+          : (config.apiMode ?? 'single-shot'))
 
   return {
     task: measuredTask,

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { isAbsolute, join, relative } from 'path'
+import { loadOrcheConfig } from '../../config/load.ts'
 import { loadContext } from '../../context/load.ts'
 import { getProjectById, upsertProject } from '../../db/projects.ts'
 import { listRuns } from '../../db/runs.ts'
@@ -11,7 +12,7 @@ import { generateContextJson } from '../../generators/context-json.ts'
 import { generateSummaryPdf } from '../../generators/summary-pdf.ts'
 import { indexProject } from '../../graph/index.ts'
 import { ensureProject } from '../../projects/ensure.ts'
-import { chat as openrouterChat } from '../../providers/openrouter.ts'
+import { roleClient } from '../../router/role-runner.ts'
 import { listAllSkillCandidates, renderSkillCatalog } from '../../skills/catalog.ts'
 import { scaffoldConstitutionMd } from '../../spec/constitution.ts'
 import { loadTasks } from '../../tasks/loader.ts'
@@ -225,8 +226,9 @@ ${skillsSummary ? `Skills instaladas disponibles:\n${skillsSummary}\n` : ''}
 
 Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
 
-  const resp = await openrouterChat({
-    model: 'anthropic/claude-haiku-4-5',
+  const orchestrator = roleClient(loadOrcheConfig(root), 'orchestrator', { cwd: root })
+  const resp = await orchestrator.provider.chat({
+    model: orchestrator.model,
     system: systemPrompt,
     messages: [{ role: 'user', content: input }],
   })

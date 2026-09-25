@@ -21,3 +21,7 @@ agentic:
 external:
   timeoutMs: 1200000
 apiMode: agentic
+# MR.1.b (2026-09-24) — roles elegidos por Carlos. orchestrator/reviewer migran de models.planner/models.qa.
+roles:
+  executor: { agent: codex, model: gpt-6-luna, effort: medium }
+  auxiliary: { agent: codex, model: gpt-5.6-luna }

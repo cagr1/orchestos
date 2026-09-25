@@ -8,8 +8,7 @@ import type { AgentChoice } from '../../config/schema.ts'
 import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { suggestContext } from '../../graph/suggest.ts'
-import { autoRoute } from '../../router/auto-route.ts'
-import { classifyTask } from '../../router/classify.ts'
+import { autoRoute, formatRoute } from '../../router/auto-route.ts'
 import {
   resolveAgentSelection,
   resolveCascadeTier,
@@ -480,15 +479,10 @@ function handleApiTasksExplain(url: URL, root: string): Response {
   const task = file.tasks.find((t: any) => t.id === id)
   if (!task) return errorResponse('Task not found', 404)
 
-  const taskClass = classifyTask(task.description)
   const cfg = loadOrcheConfig(root)
-  const cfgFound = existsSync(join(root, 'orchestos.config.yaml'))
-  const route = autoRoute(task, cfg, cfgFound)
-  const model = route?.model ?? taskClass
-  const providerName = route?.provider ?? task.executor
-  const modelDisplay = route
-    ? `${providerName}/${model} [${route.role}]`
-    : `${model} (${taskClass})`
+  const route = autoRoute(task, cfg)
+  const providerName = route?.provider ?? '(sin asignar)'
+  const modelDisplay = route ? formatRoute(route) : '(executor sin asignar)'
 
   const project = getProject(root)
   const suggestions = project ? suggestContext(project.id, task.description, { topN: 5 }) : []

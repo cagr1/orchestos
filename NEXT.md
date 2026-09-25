@@ -1,18 +1,16 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — MR.1.b (ejecución por rol + borrar 4 hardcodes) — preparado 2026-09-24
-MR.1.a cerrado (`53f2ee6`): `cfg.roles` + `resolveRole()`/`RoleUnassignedError` (`src/config/load.ts`), GET/PUT
-`roleAssignments`, `GET /api/models/catalog`. `models.*` y `DEFAULT_CONFIG.models` siguen vivos: MR.1.b migra
-consumidores (autoRoute, QA `harness.ts:172`, `diagnose.ts:166`, `memory/judge.ts:118`, `spec/draft.ts:177`) a
-`resolveRole`, ejecuta Claude/Codex/OpenCode/API por rol (Revisor/Auxiliar solo lectura) y retira `models.*`.
-Diseño en PLAN.md § MR.1. Siguiente: spec MR.1.b → Luna → gate → commit.
-Aprendido en MR.1.a: (1) `agent:preflight` solo ve ítems de primer nivel → Luna corre con `--item MR.1`; (2) PLAN.md
-se renderiza desde DB: tras editar, `bun run plan:reconcile`; (3) `--no-verify` autorizado por Carlos SOLO para los
-commits de MR.1.a y MR.1.b (live-gate exige navegador; sin UI). Correr a mano antes: `bunx tsc --noEmit`,
-`bun run plan:render -- --check`, `bun run test:coverage`. MR.1.c (UI) cierra MR.1 con gate en navegador;
-(4) el cerebro no parchea código ni por Bash: todo arreglo va como ronda N del spec.
-Después de MR.1: **UI.13.7**. Pendientes de Carlos en IDEAS.md: `#69`, `#70`. `runs-graph` rojo ~1/3 por el juez
-`gpt-4o-mini` hasta que cierre MR.1.b.
+## Siguiente tab — MR.1.b2 o MR.1.c — preparado 2026-09-24
+MR.1.b cerrado (ver PLAN.md § MR.1.b): toda ejecución sale de `cfg.roles` vía `router/role-runner.ts`; rol sin
+asignar = error claro antes de gastar. Abierto **MR.1.b2**: Codex con id nativo (`gpt-6-luna`) corre y el engine lo
+rechaza después por costo desconocido (`executors/codex.ts:404`) → esperar decisión de Carlos sobre el costo
+desconocido antes de especificar. Si Carlos no decide, seguir con **MR.1.c** (UI de Model routing 4 filas + UI de
+`taskAgentRules` + retirar `models`/`routes` de GET/PUT; gate en navegador; cierra MR.1) y **MR.1.d** (chat: quedan
+los hardcodes `chat/classify-task-intent.ts:33` y `handlers/chat.ts:1199`).
+Aprendido: (1) `agent:preflight` solo ve ítems de primer nivel → `--item MR.1`; (2) tras editar PLAN.md,
+`bun run plan:reconcile`; (3) `--no-verify` autorizado solo para MR.1.a/MR.1.b; (4) el cerebro no parchea código:
+todo arreglo va como ronda N del spec; (5) Luna reporta "suite dirigida verde" y la completa estaba roja: exigir
+`bun test` completo en el spec y correr `test:coverage` fuera del sandbox siempre.
 
 ## Lote L4 (abierto 2026-09-24)
 Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write

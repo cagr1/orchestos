@@ -32,11 +32,15 @@ export async function handleApiConfigGet(root = process.cwd()): Promise<Response
   const configFound = existsSync(configPath)
   const cfg = loadOrcheConfig(root)
 
+  const legacyModel = (name: 'planner' | 'executor_heavy' | 'executor_light' | 'default') => {
+    const assignment = cfg.models[name]
+    return assignment ? `${assignment.provider}/${assignment.model || '(self)'}` : '(sin asignar)'
+  }
   const roles = {
-    planner: `${cfg.models.planner.provider}/${cfg.models.planner.model || '(self)'}`,
-    executor_heavy: `${cfg.models.executor_heavy.provider}/${cfg.models.executor_heavy.model || '(self)'}`,
-    executor_light: `${cfg.models.executor_light.provider}/${cfg.models.executor_light.model || '(self)'}`,
-    default: `${cfg.models.default.provider}/${cfg.models.default.model || '(self)'}`,
+    planner: legacyModel('planner'),
+    executor_heavy: legacyModel('executor_heavy'),
+    executor_light: legacyModel('executor_light'),
+    default: legacyModel('default'),
     qa: cfg.models.qa ? `${cfg.models.qa.provider}/${cfg.models.qa.model || '(self)'}` : null,
   }
 
@@ -52,8 +56,8 @@ export async function handleApiConfigGet(root = process.cwd()): Promise<Response
       const tasksFile = loadTasks(root)
       const pending = tasksFile.tasks.filter((t) => t.status === 'pending')
       pendingRouting = pending.map((t) => {
-        const route = autoRoute(t, cfg, configFound)
-        const modelStr = route ? formatRoute(route) : `${t.executor} (legacy)`
+        const route = autoRoute(t, cfg)
+        const modelStr = route ? formatRoute(route) : '(executor sin asignar)'
         return { id: t.id, model: modelStr, executor: t.executor }
       })
     } catch {

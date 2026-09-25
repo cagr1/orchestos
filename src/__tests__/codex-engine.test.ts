@@ -185,6 +185,7 @@ function buildCtx(worktree: Worktree, task: Task, model = 'openai/gpt-5.4'): Run
     model,
     providerName: 'openrouter',
     provider: null as any,
+    cliEffort: task.cli_effort,
     task,
     embedHits: 0,
     skillInstructions: '',
@@ -283,7 +284,8 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     const proc = installMockSpawn(stdout)
     overrideBunSpawn(proc)
 
-    const ctx = buildCtx(wt, baseTask({ engine: 'codex', cli_effort: 'high' }))
+    const ctx = buildCtx(wt, baseTask({ engine: 'codex' }))
+    ctx.cliEffort = 'medium'
     const outcome = await codexEngine.run(ctx, {
       maxTokens: 8192,
       maxIterations: 1,
@@ -300,7 +302,8 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(spawnCalls[0]!.cmd).toContain('-m')
     expect(spawnCalls[0]!.cmd).toContain('gpt-5.4') // prefijo openai/ pelado
     expect(spawnCalls[0]!.cmd).toContain('-c')
-    expect(spawnCalls[0]!.cmd).toContain('model_reasoning_effort=high')
+    expect(spawnCalls[0]!.cmd).toContain('model_reasoning_effort=medium')
+    expect(ctx.task.cli_effort).toBeUndefined()
 
     expect(outcome.files).toEqual([{ path: 'out.txt', content: 'hello from codex\n' }])
     expect(outcome.inputTokens).toBe(1000)
@@ -311,7 +314,7 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(outcome.costByIteration[0]!.label).toBe('codex (exec)')
     expect(outcome.costByIteration[0]!.binary).toBe('codex')
     expect(outcome.costByIteration[0]!.args).toContain('-c')
-    expect(outcome.costByIteration[0]!.args).toContain('model_reasoning_effort=high')
+    expect(outcome.costByIteration[0]!.args).toContain('model_reasoning_effort=medium')
     expect(outcome.log[0]).toContain('1 file(s) changed')
   })
 

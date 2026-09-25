@@ -88,7 +88,14 @@ async function callRunTask(task: ReturnType<typeof baseTask>, dir: string, adver
     task,
     logger: log,
     sandboxMode: 'cwd',
-    orcheConfig: { ...DEFAULT_CONFIG, adversarialQA },
+    orcheConfig: {
+      ...DEFAULT_CONFIG,
+      roles: {
+        executor: { agent: 'api', provider: 'openrouter', model: 'test-executor' },
+        reviewer: { agent: 'api', provider: 'openrouter', model: 'test-reviewer' },
+      },
+      adversarialQA,
+    },
   })
 }
 

@@ -21,6 +21,7 @@
 import { readFileSync } from 'fs'
 import { parse } from 'yaml'
 import { estimateTokens } from '../context/compress.ts'
+import type { ProviderClient } from '../providers/index.ts'
 import { getProvider } from '../providers/index.ts'
 import { callWithTools, supportsToolCalling, type ToolDef } from '../providers/tool-call.ts'
 import {
@@ -252,7 +253,7 @@ export interface PlannerCallOverride {
 export async function planWithFunctionCalling(
   description: string,
   _parentTaskId: string,
-  opts: { provider: string; model: string },
+  opts: { provider: string; model: string; client?: ProviderClient },
   _override?: PlannerCallOverride,
 ): Promise<SubTask[]> {
   const caller = _override?.callWithTools ?? callWithTools
@@ -329,15 +330,15 @@ export async function planWithFunctionCalling(
 export async function generatePlan(
   description: string,
   parentTaskId: string,
-  opts: { provider: string; model: string },
+  opts: { provider: string; model: string; client?: ProviderClient },
   _override?: PlannerCallOverride,
 ): Promise<SubTask[]> {
-  if (supportsToolCalling(opts.provider, opts.model)) {
+  if (!opts.client && supportsToolCalling(opts.provider, opts.model)) {
     return planWithFunctionCalling(description, parentTaskId, opts, _override)
   }
 
   // YAML fallback: prompt the LLM to output a YAML plan, then parse it
-  const provider = getProvider(opts.provider)
+  const provider = opts.client ?? getProvider(opts.provider)
   let text: string
   try {
     const resp = await provider.chat({

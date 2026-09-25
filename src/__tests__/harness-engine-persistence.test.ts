@@ -13,6 +13,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { DEFAULT_CONFIG } from '../config/schema.ts'
 import { db } from '../db/sqlite.ts'
 import { _resetCatalog } from '../router/model-catalog.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -153,6 +154,13 @@ async function callRunTask(
     logger: log,
     sandboxMode: 'cwd',
     modelOverride: 'anthropic/claude-haiku-4-5',
+    orcheConfig: {
+      ...DEFAULT_CONFIG,
+      roles: {
+        executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+        reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+      },
+    },
   })
 }
 

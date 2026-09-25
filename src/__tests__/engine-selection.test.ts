@@ -154,6 +154,7 @@ async function callRunTask(
 ) {
   const { runTask } = await import('../run/harness.ts')
   const { RunLogger } = await import('../run/logger.ts')
+  const { DEFAULT_CONFIG } = await import('../config/schema.ts')
   const log = new RunLogger(dir, task.id)
   return runTask({
     projectRoot: dir,
@@ -161,7 +162,13 @@ async function callRunTask(
     task,
     logger: log,
     sandboxMode: 'cwd',
-    orcheConfig: opts.orcheConfig,
+    orcheConfig: opts.orcheConfig ?? {
+      ...DEFAULT_CONFIG,
+      roles: {
+        executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+        reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+      },
+    },
     modelOverride: opts.modelOverride,
   })
 }
@@ -242,7 +249,14 @@ describe('G.3 — executor engine selection', () => {
     try {
       const task = baseTask({ executor_model: 'anthropic/claude-haiku-4-5' })
       const { DEFAULT_CONFIG } = await import('../config/schema.ts')
-      const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, apiMode: 'agentic' }
+      const orcheConfig: OrcheConfig = {
+        ...DEFAULT_CONFIG,
+        roles: {
+          executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+          reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+        },
+        apiMode: 'agentic',
+      }
       const result = await callRunTask(task, dir, { orcheConfig })
       expect(result.status).toBe('done')
       expect(readFileSync(join(dir, 'out.txt'), 'utf-8')).toBe('project default agentic')
@@ -484,11 +498,17 @@ describe('H.8.1 — cli_effort por engine', () => {
 // el harness efectivamente seleccionó ese engine — acá vía agent, no vía
 // task.engine.
 describe('BB.1 — agent decide el engine de tareas manuales', () => {
-  it('agent "claude" selecciona external aunque la tarea no declare engine', async () => {
+  it('roles.executor.agent "claude" selecciona external aunque la tarea no declare engine', async () => {
     const originalWhich = Bun.which
     ;(Bun as any).which = (_bin: string) => '/usr/local/bin/claude'
     const { DEFAULT_CONFIG } = await import('../config/schema.ts')
-    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, agent: 'claude' }
+    const orcheConfig: OrcheConfig = {
+      ...DEFAULT_CONFIG,
+      roles: {
+        executor: { agent: 'claude', model: 'claude-sonnet' },
+        reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+      },
+    }
     const dir = tmpDir()
     try {
       const result = await callRunTask(baseTask(), dir, {
@@ -504,7 +524,7 @@ describe('BB.1 — agent decide el engine de tareas manuales', () => {
   })
 
   it('task.engine gana sobre agent (override explícito por tarea)', async () => {
-    // agent pide claude (external) pero la tarea declara single-shot:
+    // roles.executor pide API pero la tarea declara single-shot:
     // gana la tarea. Si la precedencia estuviera invertida, esto fallaría con el
     // error de worktree de external en vez de completar.
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
@@ -513,7 +533,13 @@ describe('BB.1 — agent decide el engine de tareas manuales', () => {
       () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
     ])
     const { DEFAULT_CONFIG } = await import('../config/schema.ts')
-    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, agent: 'claude' }
+    const orcheConfig: OrcheConfig = {
+      ...DEFAULT_CONFIG,
+      roles: {
+        executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+        reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+      },
+    }
     const dir = tmpDir()
     try {
       const task = baseTask({ engine: 'single-shot' })
@@ -529,8 +555,7 @@ describe('BB.1 — agent decide el engine de tareas manuales', () => {
   })
 
   it('agent "api" deja pasar a apiMode (refina cómo corre, no dónde)', async () => {
-    // 'api' devuelve {} en resolveAgentSelection → fallthrough a apiMode.
-    // Con apiMode 'agentic' y un modelo con tool-calling, corre agentic.
+    // roles.executor.agent='api' usa apiMode; con tool-calling corre agentic.
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () =>
@@ -541,7 +566,14 @@ describe('BB.1 — agent decide el engine de tareas manuales', () => {
       () => plainResponse('{"verdict":"pass","reason":"looks good"}'),
     ])
     const { DEFAULT_CONFIG } = await import('../config/schema.ts')
-    const orcheConfig: OrcheConfig = { ...DEFAULT_CONFIG, agent: 'api', apiMode: 'agentic' }
+    const orcheConfig: OrcheConfig = {
+      ...DEFAULT_CONFIG,
+      roles: {
+        executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+        reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+      },
+      apiMode: 'agentic',
+    }
     const dir = tmpDir()
     try {
       const result = await callRunTask(baseTask(), dir, {

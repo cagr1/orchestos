@@ -304,10 +304,10 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiSkillsBuild(url, project.root))
   }
   if (method === 'POST' && url.pathname === '/api/skills/curate') {
-    return handleApiSkillsCurate(req)
+    return withDashboardProject(req, (project) => handleApiSkillsCurate(req, project.root))
   }
   if (method === 'POST' && url.pathname === '/api/skills/import') {
-    return handleApiSkillsImport(req)
+    return withDashboardProject(req, (project) => handleApiSkillsImport(req, project.root))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)) {
     return withDashboardProject(req, (project) => handleApiSkillsProImport(url, project.root))

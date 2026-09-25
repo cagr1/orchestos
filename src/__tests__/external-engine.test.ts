@@ -199,6 +199,7 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
     model: 'external/claude-code',
     providerName: 'external',
     provider: null as any,
+    cliEffort: task.cli_effort,
     task,
     embedHits: 0,
     skillInstructions: '',

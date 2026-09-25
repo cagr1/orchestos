@@ -379,7 +379,7 @@ export const codexEngine: ExecutorEngine = {
     try {
       ;({ stdout, timedOut } = await runCodex(
         ctx.effectiveRoot,
-        buildCodexArgs(prompt, codexModel, ctx.task.cli_effort),
+        buildCodexArgs(prompt, codexModel, ctx.cliEffort),
         timeoutMs,
         opts.onStep,
       ))
@@ -424,7 +424,7 @@ export const codexEngine: ExecutorEngine = {
           outputTokens: parsed.outputTokens,
           costUsd: usd,
           binary: CODEX_BINARY,
-          args: buildCodexArgsDisplay(codexModel, ctx.task.cli_effort),
+          args: buildCodexArgsDisplay(codexModel, ctx.cliEffort),
         },
       ],
       log: [

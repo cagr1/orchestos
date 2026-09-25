@@ -69,6 +69,7 @@ export interface RunContext {
   model: string
   providerName: string
   provider: ProviderClient
+  cliEffort?: string
 
   // --- memory-fetch ---
   /** Copia enriquecida de la tarea con input sugerido por embeddings/BM25 */

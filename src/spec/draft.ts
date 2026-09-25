@@ -9,7 +9,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { loadOrcheConfig } from '../config/load.ts'
-import { getProvider } from '../providers/index.ts'
+import { roleClient } from '../router/role-runner.ts'
 import { type CapabilitiesContract, listSpecs } from './store.ts'
 
 // AA.3 (IDEAS #6) — fragmento insertado SOLO cuando la tarea se marcó compleja
@@ -168,11 +168,9 @@ export async function draftSpec(
     .join('\n')
 
   const orcheConfig = loadOrcheConfig(root)
-  const defaultRole = orcheConfig?.models?.default
-  const provider = defaultRole?.provider
-    ? getProvider(defaultRole.provider)
-    : getProvider('openrouter')
-  const model = defaultRole?.model || 'deepseek/deepseek-r1'
+  const client = roleClient(orcheConfig, 'orchestrator', { cwd: root })
+  const provider = client.provider
+  const model = client.model
 
   const response = await provider.chat({
     model,

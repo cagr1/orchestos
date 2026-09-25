@@ -1,7 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
+import { loadOrcheConfig } from '../../config/load.ts'
+import type { getProvider } from '../../providers/index.ts'
 import type { ChatMessage, ChatResponse } from '../../providers/openrouter.ts'
 import { chat as realOpenrouterChat } from '../../providers/openrouter.ts'
+import { roleClient } from '../../router/role-runner.ts'
 import { compileSkill } from '../../skills/compile.ts'
 import {
   getSkillPath,
@@ -21,6 +24,18 @@ let chatImpl: (opts: {
   system: string
   messages: ChatMessage[]
 }) => Promise<ChatResponse> = realOpenrouterChat
+
+function auxiliaryClient(root: string) {
+  const config = loadOrcheConfig(root)
+  const deps =
+    chatImpl === realOpenrouterChat
+      ? undefined
+      : {
+          getProvider: (name: string) =>
+            ({ name, chat: chatImpl }) as ReturnType<typeof getProvider>,
+        }
+  return roleClient(config, 'auxiliary', { cwd: root, deps })
+}
 
 import { parse, stringify } from 'yaml'
 import { db } from '../../db/sqlite.ts'
@@ -271,7 +286,7 @@ function handleApiSkillsProImport(url: URL, root = process.cwd()): Response {
   }
 }
 
-async function handleApiSkillsImport(req: Request): Promise<Response> {
+async function handleApiSkillsImport(req: Request, root = process.cwd()): Promise<Response> {
   let body: { type?: string; url?: string; yaml?: string }
   try {
     body = (await req.json()) as { type?: string; url?: string; yaml?: string }
@@ -310,7 +325,7 @@ async function handleApiSkillsImport(req: Request): Promise<Response> {
   try {
     parsed = parse(rawYaml) as Record<string, unknown>
   } catch (e: any) {
-    return normalizeImport(rawYaml, `YAML syntax error: ${e.message}`, sourceDesc)
+    return normalizeImport(rawYaml, `YAML syntax error: ${e.message}`, sourceDesc, root)
   }
 
   if (typeof parsed.id === 'string') {
@@ -331,7 +346,7 @@ async function handleApiSkillsImport(req: Request): Promise<Response> {
       iterations: 0,
     } satisfies SkillImportResponse)
   } catch (e: any) {
-    return normalizeImport(rawYaml, e.message, sourceDesc)
+    return normalizeImport(rawYaml, e.message, sourceDesc, root)
   }
 }
 
@@ -339,6 +354,7 @@ async function normalizeImport(
   rawYaml: string,
   error: string,
   sourceDesc: string,
+  root: string,
 ): Promise<Response> {
   const MAX_RETRIES = 2
   let lastError = error
@@ -351,8 +367,9 @@ async function normalizeImport(
 
     let raw: string
     try {
-      const resp = await chatImpl({
-        model: 'anthropic/claude-haiku-4-5',
+      const client = auxiliaryClient(root)
+      const resp = await client.provider.chat({
+        model: client.model,
         system: IMPORT_SYSTEM,
         messages: [{ role: 'user', content: userMessage }],
       })
@@ -483,6 +500,7 @@ async function handleApiSkillsRegistryImport(
     rawContent,
     'SKILL.md format — needs SkillDef conversion',
     `Registry: ${id}`,
+    root,
   ).then(async (resp) => {
     const data = (await resp.json()) as {
       ok: boolean
@@ -515,7 +533,7 @@ async function handleApiSkillsRegistryImport(
   })
 }
 
-async function handleApiSkillsCurate(req: Request): Promise<Response> {
+async function handleApiSkillsCurate(req: Request, root = process.cwd()): Promise<Response> {
   let body: { text?: string }
   try {
     body = (await req.json()) as { text?: string }
@@ -536,8 +554,9 @@ async function handleApiSkillsCurate(req: Request): Promise<Response> {
 
     let raw: string
     try {
-      const resp = await chatImpl({
-        model: 'anthropic/claude-haiku-4-5',
+      const client = auxiliaryClient(root)
+      const resp = await client.provider.chat({
+        model: client.model,
         system: CURATOR_SYSTEM,
         messages: [{ role: 'user', content: userMessage }],
       })

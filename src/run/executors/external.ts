@@ -466,7 +466,7 @@ export const externalEngine: ExecutorEngine = {
     try {
       ;({ timedOut, resultLine } = await runClaudeCode(
         ctx.effectiveRoot,
-        buildClaudeArgs(systemPrompt, ctx.model, ctx.task.cli_effort),
+        buildClaudeArgs(systemPrompt, ctx.model, ctx.cliEffort),
         ctx.prompt.userContent,
         timeoutMs,
         opts.onStep,
@@ -530,7 +530,7 @@ export const externalEngine: ExecutorEngine = {
           // para no inflar la DB. La UI muestra la línea de comandos reconstruida
           // a partir de estos campos — ver screens-ops.js detail().
           binary: CLAUDE_BINARY,
-          args: buildClaudeArgsDisplay(ctx.model, ctx.task.cli_effort),
+          args: buildClaudeArgsDisplay(ctx.model, ctx.cliEffort),
         },
       ],
       log: [

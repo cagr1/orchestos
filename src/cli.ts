@@ -25,15 +25,14 @@ import { indexProject } from './graph/index.ts'
 import { suggestContext } from './graph/suggest.ts'
 import { ensureProject } from './projects/ensure.ts'
 import { inferEmbeddingProvider } from './providers/embeddings.ts'
-import { chat } from './providers/openrouter.ts'
 import { classifyTask } from './router/classify.ts'
 import {
   contextWindowFor,
   ensureCatalogLoaded,
   knownMaxOutputTokensFor,
 } from './router/model-catalog.ts'
-import { resolveModel } from './router/models.ts'
 import { calcCost } from './router/pricing.ts'
+import { roleClient } from './router/role-runner.ts'
 import { enforceContract, parseLLMResponse } from './run/contract.ts'
 import { codexUnavailableMessage, findCodexBinary } from './run/executors/codex.ts'
 import { claudeUnavailableMessage, findClaudeBinary } from './run/executors/external.ts'
@@ -663,7 +662,8 @@ program
 
       // 1. Classify + resolve model
       const taskClass = classifyTask(opts.task)
-      const model = resolveModel(taskClass)
+      const runClient = roleClient(loadOrcheConfig(root), 'executor', { cwd: root })
+      const model = runClient.model
 
       // 2. Build system prompt
       const projectContext = loadContext(root)
@@ -733,7 +733,7 @@ program
       const maxTokens = runRealCap > 0 ? Math.min(runAvailable, runRealCap) : runAvailable
       let llmResponse
       try {
-        llmResponse = await chat({
+        llmResponse = await runClient.provider.chat({
           model,
           system,
           messages: [{ role: 'user', content: userContent }],
@@ -999,16 +999,16 @@ config
     )
     console.log(`\n  Roles:`)
     console.log(
-      `    planner        → ${cfg.models.planner.provider}/${cfg.models.planner.model || '(self)'}`,
+      `    orchestrator   → ${cfg.roles.orchestrator ? `${cfg.roles.orchestrator.agent}/${cfg.roles.orchestrator.model}${cfg.roles.orchestrator.effort ? ` · ${cfg.roles.orchestrator.effort}` : ''}` : '(sin asignar)'}`,
     )
     console.log(
-      `    executor_heavy → ${cfg.models.executor_heavy.provider}/${cfg.models.executor_heavy.model || '(self)'}`,
+      `    executor       → ${cfg.roles.executor ? `${cfg.roles.executor.agent}/${cfg.roles.executor.model}${cfg.roles.executor.effort ? ` · ${cfg.roles.executor.effort}` : ''}` : '(sin asignar)'}`,
     )
     console.log(
-      `    executor_light → ${cfg.models.executor_light.provider}/${cfg.models.executor_light.model || '(self)'}`,
+      `    reviewer       → ${cfg.roles.reviewer ? `${cfg.roles.reviewer.agent}/${cfg.roles.reviewer.model}${cfg.roles.reviewer.effort ? ` · ${cfg.roles.reviewer.effort}` : ''}` : '(sin asignar)'}`,
     )
     console.log(
-      `    default        → ${cfg.models.default.provider}/${cfg.models.default.model || '(self)'}`,
+      `    auxiliary      → ${cfg.roles.auxiliary ? `${cfg.roles.auxiliary.agent}/${cfg.roles.auxiliary.model}${cfg.roles.auxiliary.effort ? ` · ${cfg.roles.auxiliary.effort}` : ''}` : '(sin asignar)'}`,
     )
 
     if (!tasksExist(root)) {
@@ -1030,8 +1030,8 @@ config
     console.log(`  ${'TASK ID'.padEnd(COL_ID)} ${'WOULD USE'.padEnd(COL_MODEL)} EXECUTOR`)
     console.log(`  ${'─'.repeat(COL_ID)} ${'─'.repeat(COL_MODEL)} ${'─'.repeat(12)}`)
     for (const t of pending) {
-      const route = autoRoute(t, cfg, configFound)
-      const modelStr = route ? formatRoute(route) : `${t.executor} (legacy)`
+      const route = autoRoute(t, cfg)
+      const modelStr = route ? formatRoute(route) : '(executor sin asignar)'
       console.log(`  ${t.id.padEnd(COL_ID)} ${modelStr.padEnd(COL_MODEL)} ${t.executor}`)
     }
   })
@@ -2633,16 +2633,10 @@ function explainTaskRun(root: string, taskId: string, projectId?: string) {
     process.exit(1)
   }
 
-  const taskClass = classifyTask(t.description)
-  const cfgPath = join(root, 'orchestos.config.yaml')
-  const cfgFound = existsSync(cfgPath)
   const cfg = loadOrcheConfig(root)
-  const route = autoRoute(t, cfg, cfgFound)
-  const model = route?.model ?? resolveModel(taskClass)
-  const providerName = route?.provider ?? t.executor
-  const modelDisplay = route
-    ? `${providerName}/${model} [${route.role}]`
-    : `${model} (${taskClass})`
+  const route = autoRoute(t, cfg)
+  const modelDisplay = route ? formatRoute(route) : '(executor sin asignar)'
+  const providerName = route?.provider ?? '(sin asignar)'
   const suggestions = projectId ? suggestContext(projectId, t.description, { topN: 5 }) : []
   const implicitInput = t.input.length === 0 ? suggestions.map((s) => s.path) : []
   const inputSource = t.input.length > 0 ? 'explicit' : implicitInput.length > 0 ? 'graph' : 'none'

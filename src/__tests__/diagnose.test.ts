@@ -2,7 +2,16 @@
  * S25.4 — Tests for S25.1/S25.2: agente de diagnóstico de fallos
  */
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { diagnoseTask } from '../agents/diagnose.ts'
+
+const testRoot = mkdtempSync(join(tmpdir(), 'orchestos-diagnose-'))
+writeFileSync(
+  join(testRoot, 'orchestos.config.yaml'),
+  'roles:\n  auxiliary: { agent: api, provider: openrouter, model: test-model }\n',
+)
 
 const mockRuns: any[] = [
   {
@@ -161,13 +170,14 @@ afterAll(() => {
   globalThis.fetch = originalFetch
   if (prevOpenrouterKey === undefined) delete process.env.OPENROUTER_API_KEY
   else process.env.OPENROUTER_API_KEY = prevOpenrouterKey
+  rmSync(testRoot, { recursive: true, force: true })
 })
 
 describe('diagnoseTask', () => {
   it('returns DiagnoseResult with pattern and suggestion', async () => {
     const result = await diagnoseTask(
       't1-fail',
-      '/fake/root',
+      testRoot,
       undefined,
       mockLoadTasks,
       mockListRunsByTaskId,
@@ -182,13 +192,13 @@ describe('diagnoseTask', () => {
 
   it('throws when task is not found', async () => {
     expect(
-      diagnoseTask('nonexistent', '/fake/root', undefined, mockLoadTasks, mockListRunsByTaskId),
+      diagnoseTask('nonexistent', testRoot, undefined, mockLoadTasks, mockListRunsByTaskId),
     ).rejects.toThrow(/not found/)
   })
 
   it('throws when no runs exist for the task', async () => {
     expect(
-      diagnoseTask('t2-ok', '/fake/root', undefined, mockLoadTasks, mockListRunsByTaskId),
+      diagnoseTask('t2-ok', testRoot, undefined, mockLoadTasks, mockListRunsByTaskId),
     ).rejects.toThrow(/No runs found/)
   })
 })
@@ -217,7 +227,7 @@ describe('diagnoseTask - fallback on bad JSON', () => {
 
     const result = await diagnoseTask(
       't1-fail',
-      '/fake/root',
+      testRoot,
       undefined,
       mockLoadTasks,
       mockListRunsByTaskId,
@@ -251,7 +261,7 @@ describe('diagnoseTask - data privacy', () => {
       },
     ]
 
-    await diagnoseTask('sensitive-task', '/fake/root', undefined, loadSensitive, listSensitive)
+    await diagnoseTask('sensitive-task', testRoot, undefined, loadSensitive, listSensitive)
     expect(lastChatBody).not.toContain(secret)
     expect(lastChatBody).toContain('[REDACTED:provider-key]')
   })

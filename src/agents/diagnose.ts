@@ -9,10 +9,10 @@
  * S25.2 — Output estructurado: patrón + sugerencia concreta.
  */
 
+import { loadOrcheConfig } from '../config/load.ts'
 import { type RunRecord, listRunsByTaskId as realListRunsByTaskId } from '../db/runs.ts'
-import { getProvider } from '../providers/index.ts'
-import { chat } from '../providers/openrouter.ts'
 import { calcCost } from '../router/pricing.ts'
+import { clientFromAssignment, roleClient } from '../router/role-runner.ts'
 import { redactSensitive } from '../security/secrets.ts'
 import { loadTasks as realLoadTasks } from '../tasks/loader.ts'
 
@@ -163,23 +163,14 @@ export async function diagnoseTask(
     ? redactSensitive(runs.find((r) => r.status === 'failed' || r.status === 'blocked')!.result!)
     : undefined
 
-  const model = modelOverride ?? 'anthropic/claude-haiku-4-5'
-
-  let resp
-  try {
-    resp = await chat({
-      model,
-      system: 'You are a diagnostic assistant that outputs only JSON.',
-      messages: [{ role: 'user', content: buildDiagnosePrompt(taskId, task.description, runs) }],
-    })
-  } catch {
-    const provider = getProvider('openrouter')
-    resp = await provider.chat({
-      model,
-      system: 'You are a diagnostic assistant that outputs only JSON.',
-      messages: [{ role: 'user', content: buildDiagnosePrompt(taskId, task.description, runs) }],
-    })
-  }
+  const client = modelOverride
+    ? clientFromAssignment('auxiliary', { agent: 'api', model: modelOverride }, { cwd: root })
+    : roleClient(loadOrcheConfig(root), 'auxiliary', { cwd: root })
+  const resp = await client.provider.chat({
+    model: client.model,
+    system: 'You are a diagnostic assistant that outputs only JSON.',
+    messages: [{ role: 'user', content: buildDiagnosePrompt(taskId, task.description, runs) }],
+  })
 
   const usdCost = calcCost(resp.model, resp.inputTokens, resp.outputTokens)
 

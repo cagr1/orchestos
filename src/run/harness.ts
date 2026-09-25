@@ -21,6 +21,7 @@ import { join } from 'path'
 import { stringify as yamlStringify } from 'yaml'
 import { generatePlan } from '../agents/planner.ts'
 import type { SubTask } from '../agents/sub-agent.ts'
+import { loadOrcheConfig, RoleUnassignedError } from '../config/load.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 import { estimateTokens } from '../context/compress.ts'
 import { getProject } from '../db/projects.ts'
@@ -28,18 +29,17 @@ import { clearRunSteps, insertRunStep } from '../db/run-steps.ts'
 import { insertRun } from '../db/runs.ts'
 import type { ContextWarning } from '../hooks/context-monitor.ts'
 import { checkContextHealth, type RunState, shouldCheck } from '../hooks/context-monitor.ts'
-import { getProvider, type ProviderClient } from '../providers/index.ts'
+import { getProvider } from '../providers/index.ts'
 import { supportsToolCalling } from '../providers/tool-call.ts'
 import { autoRoute } from '../router/auto-route.ts'
 import { classifyTask } from '../router/classify.ts'
-import { resolveAgentSelection } from '../router/engine-cascade.ts'
 import {
   contextWindowFor,
   ensureCatalogLoaded,
   knownMaxOutputTokensFor,
 } from '../router/model-catalog.ts'
-import { resolveModel } from '../router/models.ts'
 import { calcCost } from '../router/pricing.ts'
+import { clientFromAssignment, roleClient } from '../router/role-runner.ts'
 import { resolveGates } from '../skills/catalog.ts'
 import { buildConstitutionBlock, loadConstitution } from '../spec/constitution.ts'
 import { loadSpec } from '../spec/store.ts'
@@ -165,44 +165,6 @@ export function shouldSplit(task: Task, maxTokens: number): boolean {
   return task.output.length * SPLIT_AVG_TOKENS_PER_FILE > maxTokens * SPLIT_THRESHOLD
 }
 
-// -- QA judge resolution (F2) ---------------------------------------------------
-
-/** Cheap default judge model per executor provider — must differ from the executor to avoid correlated errors. */
-export const QA_JUDGE_DEFAULTS: Record<string, { provider: string; model: string }> = {
-  anthropic: { provider: 'anthropic', model: 'claude-haiku-4-5' },
-  openai: { provider: 'openai', model: 'gpt-4o-mini' },
-  openrouter: { provider: 'openrouter', model: 'openai/gpt-4o-mini' },
-}
-
-/**
- * Resolves which model/provider judges QA for this run.
- * (1) explicit orcheConfig.models.qa wins, even if it equals the executor model.
- * (2) otherwise pick QA_JUDGE_DEFAULTS by executor provider, distinct from ctx.model.
- * (3) if the chosen default collides with ctx.model (only possible for the openrouter
- *     default), fall back to anthropic/claude-haiku-4-5 called via openrouter.
- */
-export function resolveQAJudge(
-  executorProviderName: string,
-  executorModel: string,
-  orcheConfig: OrcheConfig | undefined,
-  log: RunLogger,
-): { provider: ProviderClient; model: string } {
-  if (orcheConfig?.models.qa) {
-    const explicit = orcheConfig.models.qa
-    if (explicit.provider === executorProviderName && explicit.model === executorModel) {
-      log.info('qa judge equals executor model — correlated errors risk')
-    }
-    return { provider: getProvider(explicit.provider), model: explicit.model }
-  }
-
-  const def = QA_JUDGE_DEFAULTS[executorProviderName] ?? QA_JUDGE_DEFAULTS.openrouter!
-  if (def.provider === executorProviderName && def.model === executorModel) {
-    // collision — only reachable via the openrouter default today
-    return { provider: getProvider('openrouter'), model: 'anthropic/claude-haiku-4-5' }
-  }
-  return { provider: getProvider(def.provider), model: def.model }
-}
-
 // -- main ----------------------------------------------------------------------
 
 export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
@@ -214,7 +176,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     dryRun,
     modelOverride,
     orcheConfig,
-    orcheConfigFound,
     sandboxMode,
     sandboxBranch,
     keepWorktree,
@@ -280,10 +241,33 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
     // classify-route (inline — not yet a middleware)
     ctx.taskClass = classifyTask(t.description)
-    const route = orcheConfig ? autoRoute(t, orcheConfig, orcheConfigFound ?? false) : null
-    ctx.model = modelOverride ?? route?.model ?? resolveModel(ctx.taskClass)
+    const effectiveConfig = orcheConfig ?? loadOrcheConfig(projectRoot)
+    const route = autoRoute(t, effectiveConfig)
+    if (!route && !modelOverride) throw new RoleUnassignedError('executor')
+    const reviewer = roleClient(effectiveConfig, 'reviewer', {
+      cwd: effectiveRoot,
+      timeoutMs: effectiveConfig.external?.timeoutMs,
+    })
+    ctx.model = modelOverride ?? route!.model
     ctx.providerName = route?.provider ?? t.executor
-    ctx.provider = getProvider(ctx.providerName)
+    const routeAgent =
+      route?.agent ??
+      (t.engine === 'external'
+        ? 'claude'
+        : t.engine === 'codex'
+          ? 'codex'
+          : t.engine === 'opencode'
+            ? 'opencode'
+            : 'api')
+    ctx.provider =
+      routeAgent === 'api'
+        ? getProvider(ctx.providerName)
+        : clientFromAssignment(
+            'executor',
+            { agent: routeAgent, model: ctx.model, effort: route?.effort },
+            { cwd: effectiveRoot },
+          ).provider
+    ctx.cliEffort = ctx.task.cli_effort ?? route?.effort
 
     const chain = createChain<RunContext>()
     chain.use(memoryFetch).use(skillRoute).use(roadmapContext).use(contextInject).use(instinctApply)
@@ -326,9 +310,9 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
     // -- dry run ---------------------------------------------------------------
     if (dryRun) {
-      const routeInfo = route ? ` [config: ${route.role}]` : ' [legacy router]'
+      const routeInfo = route ? ` [${route.agent}/${route.model} (${route.source})]` : ''
       console.log(
-        `[harness] dry-run - provider: ${ctx.providerName}, model: ${ctx.model}${routeInfo}, system: ${system.length} chars`,
+        `[harness] dry-run - provider: ${ctx.providerName}, model: ${ctx.model}${routeInfo}, reviewer: ${reviewer.agent}/${reviewer.model}, system: ${system.length} chars`,
       )
       return {
         status: 'done',
@@ -419,9 +403,14 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
       let subTasks: SubTask[] = []
       try {
+        const orchestrator = roleClient(effectiveConfig, 'orchestrator', { cwd: effectiveRoot })
         subTasks = await generatePlan(ctx.task.description, ctx.task.id, {
-          provider: ctx.providerName,
-          model: ctx.model,
+          provider:
+            orchestrator.agent === 'api'
+              ? (effectiveConfig.roles.orchestrator?.provider ?? 'openrouter')
+              : orchestrator.agent,
+          model: orchestrator.model,
+          client: orchestrator.agent === 'api' ? undefined : orchestrator.provider,
         })
       } catch (e: any) {
         log.info(`auto-split: generatePlan falló (${e.message}) — continuando como single-shot`)
@@ -464,48 +453,20 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       // si generatePlan falló → seguir con el engine normal (ya logueado arriba)
     }
 
-    // -- executor engine selection (G.3 / B.2) ---------------------------------
-    // Default absoluto 'single-shot' — cero cambio de comportamiento para todo
-    // lo existente, agentic y external son opt-in explícitos (por tarea o por
-    // config de proyecto). Si se pide agentic pero el modelo no soporta
-    // tool-calling, cae a single-shot con aviso — mismo patrón "log y
-    // proceder" que la colisión juez==ejecutor de F2.2, no bloquea la tarea.
-    // 'external' no consulta tool-calling (el ejecutor es `claude -p`, no la
-    // API LLM directa — irrelevant).
-    // BB.1 (2026-08-16) — `agent` aplica ahora a TODA tarea, no solo a las que el
-    // chat auto-crea. Antes se leía en UN SOLO punto del runtime
-    // (`dashboard/handlers/chat.ts`), así que un usuario con `agent: claude`
-    // fijado veía sus tareas manuales/CLI correr igual por la API — la config decía
-    // una cosa y el sistema hacía otra, en silencio (reporte real de Carlos,
-    // 2026-08-16). Reusa `resolveAgentSelection()`, que ya existía y ya estaba
-    // testeada, en vez de duplicar el mapeo agente→engine.
-    // CC.D1 (2026-08-17) — renombrado desde `executor_mode`/`executorEngine`
-    // (dos campos que eran el mismo concepto con nombres distintos) a un solo
-    // campo `agent`, guiado por [[wiki/concepts/agent-client-protocol]] (ACP).
-    //
-    // Precedencia (del más específico al más general): task.engine → agent →
-    // apiMode → 'single-shot'. `agent` decide DÓNDE corre (claude/codex/opencode
-    // fijan engine); `apiMode` refina CÓMO corre cuando el agente es la propia API
-    // (single-shot vs agentic) — por eso 'api'/'local' devuelven `{}` y dejan pasar
-    // a apiMode, que es exactamente el fallthrough que se quiere.
-    //
-    // SOLO decide el engine, nunca el modelo: [[feedback-modelo-decision-final-carlos]]
-    // manda que el modelo salga de orchestos.config.yaml o de Carlos, no de una regla
-    // derivada. Si el modelo resuelto no es traducible al CLI elegido, el mapper del
-    // engine devuelve undefined y el binario usa su propio default — degradación ya
-    // existente y verificada (codex.ts:54, opencode.ts:56), no un caso nuevo.
-    //
-    // El segundo argumento (cascade) nunca se lee acá: `resolveAgentSelection` solo
-    // lo consulta en la rama `preferredAgent === undefined`, y este guard garantiza
-    // que el agente está definido. La cascada de bootstrap es del chat (hace I/O a
-    // Ollama), no del harness.
-    const agentEngine = orcheConfig?.agent
-      ? resolveAgentSelection(orcheConfig.agent, { tier: 'api' }).engine
-      : undefined
-    const requestedEngine = ctx.task.engine ?? agentEngine ?? orcheConfig?.apiMode ?? 'single-shot'
-    if (agentEngine && !ctx.task.engine) {
-      log.info(`agent '${orcheConfig!.agent}' → engine '${agentEngine}'`)
-    }
+    // MR.1.b: an explicit task engine wins. Otherwise the executor role selects
+    // the CLI engine; API assignments use apiMode. The top-level agent field no
+    // longer selects task engines. Historical reason: BB.1 fixed the mismatch
+    // where agent:claude affected chat-created tasks but not manual runs.
+    // Model selection stays independent from engine selection, per Carlos's rule.
+    const routeEngine =
+      route?.agent === 'claude'
+        ? 'external'
+        : route?.agent === 'codex'
+          ? 'codex'
+          : route?.agent === 'opencode'
+            ? 'opencode'
+            : (effectiveConfig.apiMode ?? 'single-shot')
+    const requestedEngine = ctx.task.engine ?? routeEngine
     let engine: ExecutorEngine = singleShotEngine
     if (requestedEngine === 'agentic') engine = agenticEngine
     else if (requestedEngine === 'external') engine = externalEngine
@@ -517,7 +478,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       )
       engine = singleShotEngine
     }
-    const maxIterations = orcheConfig?.agentic?.maxIterations ?? 15
+    const maxIterations = effectiveConfig.agentic?.maxIterations ?? 15
     const externalTimeoutMs = orcheConfig?.external?.timeoutMs
 
     // -- executor engine run (G.2/G.3) ------------------------------------------
@@ -907,7 +868,9 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       : null
     const appliedGateSkills = gateEvaluations.filter((g) => g.applied).map((g) => g.skill)
 
-    const qaJudge = resolveQAJudge(ctx.providerName, ctx.model, orcheConfig, log)
+    const qaJudge = { provider: reviewer.provider, model: reviewer.model }
+    if (route?.agent === reviewer.agent && ctx.model === reviewer.model)
+      log.info('qa judge equals executor model — correlated errors risk')
     let qa: Awaited<ReturnType<typeof runQA>>
     try {
       qa = await runQA({
@@ -937,7 +900,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // contador de retry paralelo (decisión (c), PLAN.md § K.4b).
     let adversarialVerdict: string | null = null
     let adversarialReason: string | null = null
-    if (qa.verdict === 'pass' && orcheConfig?.adversarialQA) {
+    if (qa.verdict === 'pass' && effectiveConfig.adversarialQA) {
       let adversarial: Awaited<ReturnType<typeof runAdversarialQA>>
       try {
         adversarial = await runAdversarialQA({
@@ -978,7 +941,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // que K.4b usa en la dirección opuesta.
     let refuterVerdict: string | null = null
     let refuterReason: string | null = null
-    if (qa.verdict === 'fail' && orcheConfig?.refuterQA) {
+    if (qa.verdict === 'fail' && effectiveConfig.refuterQA) {
       let refuter: Awaited<ReturnType<typeof runRefuter>>
       try {
         refuter = await runRefuter({

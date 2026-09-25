@@ -136,6 +136,7 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
     model: 'deepseek/deepseek-v4-flash',
     providerName: 'openrouter',
     provider: null as any,
+    cliEffort: task.cli_effort,
     task,
     embedHits: 0,
     skillInstructions: '',

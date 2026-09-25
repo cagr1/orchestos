@@ -3,7 +3,10 @@
  * (A1-A6, F3, /api/skills/curate, G pro pack).
  */
 import { afterAll, afterEach, describe, expect, it, mock } from 'bun:test'
-import { existsSync, rmSync, unlinkSync } from 'fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { db } from '../../db/sqlite.ts'
 import type { ChatResponse } from '../../providers/openrouter.ts'
 import { getProSkillPath, getSkillPath } from '../../skills/registry.ts'
 import { __resetChatForTests, __setChatForTests } from '../handlers/skills.ts'
@@ -20,16 +23,34 @@ const mockChat = mock(
 __setChatForTests(mockChat as any)
 afterAll(() => {
   __resetChatForTests()
+  db.run("DELETE FROM projects WHERE id = 'skills-api-test'")
+  rmSync(projectRoot, { recursive: true, force: true })
 })
 
 const { route } = await import('../server.ts')
 
 const PORT = 4242
+const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-skills-api-'))
+mkdirSync(join(projectRoot, '.orchestos'), { recursive: true })
+writeFileSync(
+  join(projectRoot, 'orchestos.config.yaml'),
+  'roles:\n  auxiliary: { agent: api, provider: openrouter, model: mock/auxiliary }\n',
+)
+db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', [
+  'skills-api-test',
+  projectRoot,
+  '{}',
+  '',
+  new Date().toISOString(),
+])
 
 function req(method: string, path: string, body?: unknown): Request {
   return new Request(`http://localhost:${PORT}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(path === '/api/skills/curate' ? { 'x-orchestos-project-id': 'skills-api-test' } : {}),
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 }

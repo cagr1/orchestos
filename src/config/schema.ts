@@ -73,11 +73,9 @@ export interface OrcheConfig {
   config_version: number
   /** Assignments for MR.1 role routing; see PLAN.md § MR.1. */
   roles: Partial<Record<RoleName, RoleAssignment>>
-  models: {
-    planner: ModelRoleConfig
-    executor_heavy: ModelRoleConfig
-    executor_light: ModelRoleConfig
-    default: ModelRoleConfig
+  models: Partial<
+    Record<'planner' | 'executor_heavy' | 'executor_light' | 'default', ModelRoleConfig>
+  > & {
     /** Optional QA judge model — absence triggers the resolution logic in harness.ts (never same model as executor) */
     qa?: ModelRoleConfig
   }
@@ -120,12 +118,7 @@ export interface OrcheConfig {
 export const DEFAULT_CONFIG: OrcheConfig = {
   config_version: 1,
   roles: {},
-  models: {
-    planner: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
-    executor_heavy: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
-    executor_light: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
-    default: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
-  },
+  models: {},
 }
 
 /**

@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { DEFAULT_CONFIG } from '../config/schema.ts'
 import { db } from '../db/sqlite.ts'
 import type { Task } from '../tasks/schema.ts'
 
@@ -102,6 +103,13 @@ async function callRunTask(task: ReturnType<typeof baseTask>, dir: string) {
     task,
     logger: log,
     sandboxMode: 'cwd',
+    orcheConfig: {
+      ...DEFAULT_CONFIG,
+      roles: {
+        executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+        reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+      },
+    },
   })
 }
 

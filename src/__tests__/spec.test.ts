@@ -277,7 +277,10 @@ describe('harness spec gate', () => {
         logger: log,
         orcheConfig: {
           config_version: 1,
-          roles: {},
+          roles: {
+            executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+            reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+          },
           requireSpec: true,
           models: {
             planner: { provider: 'openrouter', model: 'x' },
@@ -331,7 +334,10 @@ describe('harness spec gate', () => {
         logger: log,
         orcheConfig: {
           config_version: 1,
-          roles: {},
+          roles: {
+            executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+            reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+          },
           requireSpec: true,
           models: {
             planner: { provider: 'openrouter', model: 'x' },
@@ -386,7 +392,10 @@ describe('harness spec gate', () => {
         dryRun: true,
         orcheConfig: {
           config_version: 1,
-          roles: {},
+          roles: {
+            executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+            reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+          },
           requireSpec: true,
           models: {
             planner: { provider: 'openrouter', model: 'x' },
@@ -432,7 +441,10 @@ describe('harness spec gate', () => {
         dryRun: true,
         orcheConfig: {
           config_version: 1,
-          roles: {},
+          roles: {
+            executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
+            reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
+          },
           requireSpec: false,
           models: {
             planner: { provider: 'openrouter', model: 'x' },

@@ -52,13 +52,8 @@ describe('classifyTask', () => {
 // ── autoRoute ─────────────────────────────────────────────────────────────────
 const baseConfig: OrcheConfig = {
   config_version: 1,
-  roles: {},
-  models: {
-    planner: { provider: 'anthropic', model: 'claude-opus-4-7' },
-    executor_heavy: { provider: 'openrouter', model: 'deepseek/deepseek-r1' },
-    executor_light: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
-    default: { provider: 'openrouter', model: 'deepseek/deepseek-v4-flash' },
-  },
+  roles: { executor: { agent: 'codex', model: 'gpt-6-luna', effort: 'medium' } },
+  models: {},
 }
 
 function makeTask(description: string, overrides: Partial<Task> = {}): Task {
@@ -76,59 +71,21 @@ function makeTask(description: string, overrides: Partial<Task> = {}): Task {
 }
 
 describe('autoRoute', () => {
-  it('returns null when no config file and no per-task override', () => {
-    const task = makeTask('Add a button')
-    expect(autoRoute(task, baseConfig, false)).toBeNull()
+  it('routes the executor role and carries effort', () => {
+    expect(autoRoute(makeTask('Add a feature'), baseConfig)).toEqual({
+      agent: 'codex',
+      provider: 'codex',
+      model: 'gpt-6-luna',
+      effort: 'medium',
+      source: 'executor',
+    })
   })
-
-  it('routes plan tasks to planner model', () => {
-    const task = makeTask('Design the architecture for billing')
-    const result = autoRoute(task, baseConfig, true)
-    expect(result?.role).toBe('planner')
-    expect(result?.model).toBe('claude-opus-4-7')
+  it('task executor_model is an explicit API route', () => {
+    expect(autoRoute(makeTask('Fix it', { executor_model: 'openai/gpt-4.1' }), baseConfig)).toEqual(
+      { agent: 'api', provider: 'openrouter', model: 'openai/gpt-4.1', source: 'task' },
+    )
   })
-
-  it('routes fix tasks to executor_heavy', () => {
-    const task = makeTask('Fix the login crash bug')
-    const result = autoRoute(task, baseConfig, true)
-    expect(result?.role).toBe('executor_heavy')
-  })
-
-  it('routes implement tasks to executor_heavy', () => {
-    const task = makeTask('Add user registration endpoint')
-    const result = autoRoute(task, baseConfig, true)
-    expect(result?.role).toBe('executor_heavy')
-  })
-
-  it('routes doc tasks to executor_light', () => {
-    const task = makeTask('Document the authentication flow')
-    const result = autoRoute(task, baseConfig, true)
-    expect(result?.role).toBe('executor_light')
-  })
-
-  it('routes review tasks to executor_light', () => {
-    const task = makeTask('Review the security of the auth module')
-    const result = autoRoute(task, baseConfig, true)
-    expect(result?.role).toBe('executor_light')
-  })
-
-  it('per-task executor_model overrides config model', () => {
-    const task = makeTask('Fix the bug', { executor_model: 'claude-sonnet-4-6' })
-    const result = autoRoute(task, baseConfig, true)
-    expect(result?.model).toBe('claude-sonnet-4-6')
-  })
-
-  it('never routes a task with declared output files to the planner role, even if misclassified as plan', () => {
-    const task = makeTask('Design a premium login form', { output: ['demo/login.html'] })
-    const result = autoRoute(task, baseConfig, true)
-    expect(result?.role).toBe('executor_heavy')
-    expect(result?.model).toBe('deepseek/deepseek-r1')
-  })
-
-  it('per-task executor_model works even without config file', () => {
-    const task = makeTask('Add feature', { executor_model: 'claude-haiku-4-5' })
-    const result = autoRoute(task, baseConfig, false)
-    expect(result).not.toBeNull()
-    expect(result?.model).toBe('claude-haiku-4-5')
+  it('returns null when executor is unassigned', () => {
+    expect(autoRoute(makeTask('Fix it'), { ...baseConfig, roles: {} })).toBeNull()
   })
 })

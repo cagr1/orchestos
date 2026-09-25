@@ -33,6 +33,13 @@ function openRouterResponse(content: string) {
   )
 }
 
+function configureOrchestrator(root: string): void {
+  writeFileSync(
+    join(root, 'orchestos.config.yaml'),
+    'roles:\n  orchestrator: { agent: api, provider: openrouter, model: mock/model }\n',
+  )
+}
+
 describe('listAllSkillCandidates', () => {
   it('lists real installed skills, including frontend-design', () => {
     const skills = listAllSkillCandidates()
@@ -80,6 +87,7 @@ describe('handleApiNatural — skill_candidates fail-safe', () => {
   it('recovers an existing mentioned path when the LLM leaves output empty', async () => {
     const root = mkdtempSync(join(tmpdir(), 'orchestos-natural-output-'))
     try {
+      configureOrchestrator(root)
       writeFileSync(join(root, 'README.md'), 'readme')
       process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
       globalThis.fetch = (async () =>
@@ -122,10 +130,13 @@ describe('handleApiNatural — skill_candidates fail-safe', () => {
       method: 'POST',
       body: JSON.stringify({ input: 'build a landing page' }),
     })
-    const res = await handleApiNatural(req)
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-natural-candidates-'))
+    configureOrchestrator(root)
+    const res = await handleApiNatural(req, root)
     const data = (await res.json()) as { skillCandidates: string[]; skillOptions: { id: string }[] }
     expect(data.skillCandidates).toEqual(['frontend-design'])
     expect(data.skillOptions.map((o) => o.id)).toEqual(['frontend-design'])
+    rmSync(root, { recursive: true, force: true })
   })
 
   it('returns an empty skill list when the LLM finds nothing that fits', async () => {
@@ -145,10 +156,13 @@ describe('handleApiNatural — skill_candidates fail-safe', () => {
       method: 'POST',
       body: JSON.stringify({ input: 'fix a bug in auth middleware' }),
     })
-    const res = await handleApiNatural(req)
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-natural-empty-'))
+    configureOrchestrator(root)
+    const res = await handleApiNatural(req, root)
     const data = (await res.json()) as { skillCandidates: string[]; skillOptions: unknown[] }
     expect(data.skillCandidates).toEqual([])
     expect(data.skillOptions).toEqual([])
+    rmSync(root, { recursive: true, force: true })
   })
 })
 

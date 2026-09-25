@@ -3,6 +3,9 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import { judgeConflict } from '../memory/judge.ts'
+import { getProvider } from '../providers/index.ts'
+
+const judgeClient = (model = 'test-model') => ({ provider: getProvider('openrouter'), model })
 
 // chat() de openrouter.ts lee globalThis.fetch en cada llamada — mockear fetch en vez de
 // mock.module('../providers/openrouter.ts', ...) evita contaminar el registro de módulos
@@ -45,6 +48,7 @@ describe('judgeConflict', () => {
     const result = await judgeConflict(
       { topicKey: 'server-config', content: 'The server runs on port 3000.' },
       { topicKey: 'server-config', content: 'The server runs on port 4000.' },
+      judgeClient(),
     )
     expect(result).toBeDefined()
     expect(result.relation).toBe('conflict_with')
@@ -56,7 +60,7 @@ describe('judgeConflict', () => {
     const result = await judgeConflict(
       { topicKey: 'a', content: 'X' },
       { topicKey: 'b', content: 'Y' },
-      'anthropic/claude-sonnet-4-20250514',
+      judgeClient('anthropic/claude-sonnet-4-20250514'),
     )
     expect(result.relation).toBe('conflict_with')
   })
@@ -83,6 +87,7 @@ describe('judgeConflict — fallback on bad JSON', () => {
     const result = await judgeConflict(
       { topicKey: 'a', content: 'X' },
       { topicKey: 'b', content: 'Y' },
+      judgeClient(),
     )
     expect(result.relation).toBe('not_conflict')
     expect(result.confidence).toBe('low')
@@ -95,6 +100,7 @@ describe('judgeConflict — fallback on bad JSON', () => {
     const result = await judgeConflict(
       { topicKey: 'a', content: 'X' },
       { topicKey: 'b', content: 'Y' },
+      judgeClient(),
     )
     expect(result.relation).toBe('not_conflict')
     expect(result.confidence).toBe('low')
@@ -112,6 +118,7 @@ describe('judgeConflict — fallback on bad JSON', () => {
     const result = await judgeConflict(
       { topicKey: 'a', content: 'X' },
       { topicKey: 'b', content: 'Y' },
+      judgeClient(),
     )
     expect(result.relation).toBe('not_conflict')
   })

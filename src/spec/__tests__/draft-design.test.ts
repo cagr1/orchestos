@@ -6,7 +6,7 @@
  * sin red real.
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { draftSpec } from '../draft.ts'
@@ -21,7 +21,12 @@ afterEach(() => {
 })
 
 function tmpDir(): string {
-  return mkdtempSync(join(tmpdir(), 'orchestos-draft-design-'))
+  const dir = mkdtempSync(join(tmpdir(), 'orchestos-draft-design-'))
+  writeFileSync(
+    join(dir, 'orchestos.config.yaml'),
+    'roles:\n  orchestrator: { agent: api, provider: openrouter, model: mock/model }\n',
+  )
+  return dir
 }
 
 function installMockFetch(): {

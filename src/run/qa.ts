@@ -2,7 +2,6 @@ import { createPatch } from 'diff'
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { ProviderClient } from '../providers/index.ts'
-import { chat } from '../providers/openrouter.ts'
 import type { SkillDef } from '../skills/registry.ts'
 import { buildSections } from '../skills/targets/_shared.ts'
 import type { CheckResult } from './checks.ts'
@@ -82,7 +81,7 @@ export async function runQA(opts: {
   model: string
   acceptance_criteria?: string[]
   checksResults: CheckResult[]
-  provider?: ProviderClient
+  provider: ProviderClient
   /**
    * O.3 (Bloque O, 2026-08-05) — skills-gate resueltas por `resolveGates()`
    * que aplicaron a esta corrida (nunca decidido por este mismo LLM). Se
@@ -147,7 +146,7 @@ export async function runQA(opts: {
     `## Files written\n${filesBlock}\n\n` +
     `Return your JSON verdict now.`
 
-  const resp = await (opts.provider?.chat ?? chat)({
+  const resp = await opts.provider.chat({
     model: opts.model,
     system,
     messages: [{ role: 'user', content: userContent }],
@@ -287,7 +286,7 @@ export async function runAdversarialQA(opts: {
   model: string
   acceptance_criteria?: string[]
   checksResults: CheckResult[]
-  provider?: ProviderClient
+  provider: ProviderClient
 }): Promise<AdversarialVerdict> {
   const filesBlock = opts.written
     .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
@@ -328,7 +327,7 @@ export async function runAdversarialQA(opts: {
     `## Files written\n${filesBlock}\n\n` +
     `Return your JSON verdict now.`
 
-  const resp = await (opts.provider?.chat ?? chat)({
+  const resp = await opts.provider.chat({
     model: opts.model,
     system,
     messages: [{ role: 'user', content: userContent }],
@@ -391,7 +390,7 @@ export async function runRefuter(opts: {
   acceptance_criteria?: string[]
   checksResults: CheckResult[]
   qaVerdictReason: string
-  provider?: ProviderClient
+  provider: ProviderClient
 }): Promise<RefuterVerdict> {
   const filesBlock = opts.written
     .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
@@ -429,7 +428,7 @@ export async function runRefuter(opts: {
     `## Files written\n${filesBlock}\n\n` +
     `Return your JSON verdict now.`
 
-  const resp = await (opts.provider?.chat ?? chat)({
+  const resp = await opts.provider.chat({
     model: opts.model,
     system,
     messages: [{ role: 'user', content: userContent }],

@@ -11,7 +11,8 @@
  * PatternSuggestion is intentionally advisory — it never modifies anything.
  */
 
-import { chat } from '../providers/openrouter.ts'
+import { loadOrcheConfig } from '../config/load.ts'
+import { clientFromAssignment, roleClient } from '../router/role-runner.ts'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -135,16 +136,19 @@ Identify patterns and suggest fixes. Focus on actionable improvements to task de
 export async function analyzeRunPatterns(
   groups: RunOutcomeGroups,
   modelOverride?: string,
+  root = process.cwd(),
 ): Promise<PatternSuggestion[]> {
   if (groups.total < 3) return []
 
-  const model = modelOverride ?? 'anthropic/claude-haiku-4-5-20251001'
+  const client = modelOverride
+    ? clientFromAssignment('auxiliary', { agent: 'api', model: modelOverride }, { cwd: root })
+    : roleClient(loadOrcheConfig(root), 'auxiliary', { cwd: root })
   const prompt = buildAnalyzePrompt(groups)
 
   let text: string
   try {
-    const resp = await chat({
-      model,
+    const resp = await client.provider.chat({
+      model: client.model,
       system: ANALYZE_SYSTEM,
       messages: [{ role: 'user', content: prompt }],
     })

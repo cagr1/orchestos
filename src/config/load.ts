@@ -59,12 +59,23 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     config_version: typeof raw.config_version === 'number' ? raw.config_version : 1,
     roles: resolveRoles(raw),
     models: {
-      planner: parseRoleValue(models.planner, d.planner),
-      executor_heavy: parseRoleValue(models.executor_heavy, d.executor_heavy),
-      executor_light: parseRoleValue(models.executor_light, d.executor_light),
-      default: parseRoleValue(models.default, d.default),
+      ...(models.planner !== undefined
+        ? { planner: parseRoleValue(models.planner, { provider: '', model: '' }) }
+        : {}),
+      ...(models.executor_heavy !== undefined
+        ? { executor_heavy: parseRoleValue(models.executor_heavy, { provider: '', model: '' }) }
+        : {}),
+      ...(models.executor_light !== undefined
+        ? { executor_light: parseRoleValue(models.executor_light, { provider: '', model: '' }) }
+        : {}),
+      ...(models.default !== undefined
+        ? { default: parseRoleValue(models.default, { provider: '', model: '' }) }
+        : {}),
       // qa has no default fallback — absence means "not configured", resolved at call time (harness.ts F2.2)
-      qa: models.qa !== undefined ? parseRoleValue(models.qa, d.default) : undefined,
+      qa:
+        models.qa !== undefined
+          ? parseRoleValue(models.qa, d.default ?? { provider: '', model: '' })
+          : undefined,
     },
     // CC.D1 (2026-08-17) — `agent`/`apiMode` reemplazan a `executor_mode`/`executorEngine`
     // (dos campos que eran el mismo concepto con nombres distintos para sus valores CLI —
@@ -128,6 +139,9 @@ function resolveRoles(raw: Record<string, unknown>): Partial<Record<RoleName, Ro
     }
     const from = sources[name]
     if (!from || legacy[from] === undefined) continue
+    // Los nombres legacy de CLI no traducen un modelo API viejo a un modelo CLI.
+    if (name === 'executor' && ['claude', 'codex', 'opencode'].includes(String(resolveAgent(raw))))
+      continue
     const parsed = parseRoleValue(legacy[from], { provider: '', model: '' })
     if (!parsed.model.trim()) continue
     result[name] = { agent: 'api', model: parsed.model, provider: parsed.provider }

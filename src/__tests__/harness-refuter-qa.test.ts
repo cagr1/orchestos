@@ -88,7 +88,14 @@ async function callRunTask(task: ReturnType<typeof baseTask>, dir: string, refut
     task,
     logger: log,
     sandboxMode: 'cwd',
-    orcheConfig: { ...DEFAULT_CONFIG, refuterQA },
+    orcheConfig: {
+      ...DEFAULT_CONFIG,
+      roles: {
+        executor: { agent: 'api', provider: 'openrouter', model: 'test-executor' },
+        reviewer: { agent: 'api', provider: 'openrouter', model: 'test-reviewer' },
+      },
+      refuterQA,
+    },
   })
 }
 
@@ -106,6 +113,7 @@ describe('X.2 — refuter second opinion on fail (opt-in)', () => {
       const result = await callRunTask(task, dir, false)
       expect(result.status).toMatch(/^(failed|retry)$/)
       expect(calls.length).toBe(2)
+      expect(calls[1]?.model).toBe('test-reviewer')
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)!
       expect(row.refuter_verdict).toBeNull()
