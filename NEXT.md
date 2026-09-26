@@ -9,6 +9,13 @@ system prompt propio de Codex y razonamiento con el esfuerzo del rol, solo para 
 y proponer: (a) esfuerzo mínimo para el Auxiliar; (b) correrlo en paralelo con la respuesta del Orquestador, no antes
 (verificar el orden actual en `handlers/chat.ts`); (c) que el Orquestador marque la intención en su propia respuesta
 (0 procesos extra). Primero medir con `time codex exec` cuánto es arranque vs razonamiento.
+Medido 2026-09-26 (`codex exec -m gpt-5.6-luna`, prompt trivial, `{"isTask":false}`): default 5.5-6.1 s, `low`
+5.6-6.4 s, `minimal` = HTTP 400 (no soportado); `codex --version` 0.07 s; 7,600 tokens por llamada (system prompt de
+Codex). El esfuerzo NO influye: el piso es la sesión de Codex. Opción (a) descartada. Antes de MR.1.d1 (`45fa7fb`) el
+clasificador era OpenRouter `deepseek-v4-flash` — por eso "antes era más rápido". Dev y Chat usan el mismo `/api/chat`
+(`App.tsx:749` `handleSendMessage`), así que la espera es la misma en ambos. (b) no es gratis: el system prompt del
+Orquestador depende del resultado (`chat.ts:1293` `autoTaskInstruction`); en paralelo habría que quitar esa
+instrucción y dejar solo la nota mecánica `autoTaskNote` (`chat.ts:1471`).
 Pedido de Carlos 2026-09-26 — animación de espera visible en Chat y Dev mientras el modelo responde. Hoy Chat tiene
 solo un spinner mínimo (`OrchestChatView.tsx:423`, `Loader2` + "…" con `isWorking`) que Carlos no percibe; Dev sin
 verificar. Pasos: mirar qué muestra el prototipo/plantilla para "pensando" (copiar, no inventar CSS), aplicarlo en
