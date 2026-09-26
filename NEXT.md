@@ -5,6 +5,9 @@ MR.1.d1 cerrado (evidencia en PLAN.md, ronda 10 en el spec). Siguiente: "+ Add p
 Decisión pendiente de Carlos: clasificador con Auxiliar = Codex tarda 8-12 s por mensaje (API ~1-2 s).
 Visto en la captura `chat-roles/task-held-for-confirmation.png` y sin investigar: el chat no baja del todo al último
 mensaje (la tarjeta held queda bajo el pliegue).
+Bug visto 2026-09-26 (sin arreglar, fuera de MR.1.d1): tras un QA fail, el reintento de la tarea falla con
+"Uncommitted changes … Worktree sandbox requires a clean working tree: ?? runs/" — el `runs/` que OrchestOS escribe en
+la raíz del proyecto ensucia el árbol que su propio sandbox exige limpio. Visto en `project-tabs` (dashboard.log).
 
 ## Inquietud de Carlos 2026-09-26 — "+ Add project" (después de cerrar MR.1.d1)
 Diagnóstico verificado en código: el "+" del sidebar (`ShellSidebar.tsx:217`) abre `AddProjectModal.tsx` (plantilla:

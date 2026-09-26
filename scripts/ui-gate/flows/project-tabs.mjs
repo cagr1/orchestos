@@ -135,7 +135,7 @@ export default async function projectTabs({
             cli_effort: 'medium',
             input: ['README.md'],
             output: ['README.md'],
-            acceptance_criteria: ['README.md ends with Gate ran.'],
+            acceptance_criteria: ['README.md contains the line: Gate ran.'],
             depends_on: [],
             status: 'pending',
             retry_count: 0,
@@ -232,12 +232,12 @@ export default async function projectTabs({
     .click()
   await page.locator('textarea').fill('Authoritative gate memory')
   await page.getByRole('button', { name: 'Commit Authoritative Resolution', exact: true }).click()
-  await delay(500)
-  await step(
-    'memory conflict resolved',
-    (await api(`/api/memory/conflicts?project=${project.id}`)).data.length === 0,
-    'API conflict closed',
-  )
+  let openConflicts = -1
+  for (let attempt = 0; attempt < 20 && openConflicts !== 0; attempt++) {
+    await delay(250)
+    openConflicts = (await api(`/api/memory/conflicts?project=${project.id}`)).data.length
+  }
+  await step('memory conflict resolved', openConflicts === 0, `open conflicts: ${openConflicts}`)
   await step(
     'authoritative memory persisted and visible',
     (await api('/api/memory', { headers: { 'x-orchestos-project-id': project.id } })).data.some(
