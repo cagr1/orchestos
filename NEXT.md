@@ -2,7 +2,13 @@
 
 ## Siguiente tab — tras cerrar MR.1.d1 (2026-09-26)
 MR.1.d1 cerrado (evidencia en PLAN.md, ronda 10 en el spec). Siguiente: "+ Add project" (abajo) y el spec de MR.1.d2.
-Decisión pendiente de Carlos: clasificador con Auxiliar = Codex tarda 8-12 s por mensaje (API ~1-2 s).
+Clasificador con Auxiliar = Codex tarda 8-12 s por mensaje. Carlos 2026-09-26: NO usar API teniendo CLI de Codex y
+Claude. Causa (leída en código, sin medir el desglose): cada mensaje lanza un `codex exec` nuevo
+(`classify-task-intent.ts:76` → `runCodexChat`, `src/run/executors/codex.ts:289`): arranque del proceso, config home,
+system prompt propio de Codex y razonamiento con el esfuerzo del rol, solo para devolver `{isTask}`. Opciones a medir
+y proponer: (a) esfuerzo mínimo para el Auxiliar; (b) correrlo en paralelo con la respuesta del Orquestador, no antes
+(verificar el orden actual en `handlers/chat.ts`); (c) que el Orquestador marque la intención en su propia respuesta
+(0 procesos extra). Primero medir con `time codex exec` cuánto es arranque vs razonamiento.
 Visto en la captura `chat-roles/task-held-for-confirmation.png` y sin investigar: el chat no baja del todo al último
 mensaje (la tarjeta held queda bajo el pliegue).
 Bug visto 2026-09-26 (sin arreglar, fuera de MR.1.d1): tras un QA fail, el reintento de la tarea falla con
