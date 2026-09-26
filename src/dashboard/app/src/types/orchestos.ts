@@ -188,7 +188,6 @@ export interface ChatMessage {
     blockedFiles?: string[]
   }
   taskHeld?: boolean
-  auxiliaryRoleUnassigned?: boolean
   heldTask?: {
     taskId: string
     taskDescription: string

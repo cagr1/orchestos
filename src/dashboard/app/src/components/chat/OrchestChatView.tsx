@@ -336,18 +336,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         {msg.content}
                       </Markdown>
                     </div>
-                    {msg.auxiliaryRoleUnassigned && (
-                      <div className="mt-3 text-xs text-app-muted" role="status">
-                        Auxiliary role is unassigned — tasks are not created.{' '}
-                        <button
-                          type="button"
-                          onClick={onOpenRouting}
-                          className="text-app-accent hover:underline underline-offset-2"
-                        >
-                          Model routing
-                        </button>
-                      </div>
-                    )}
                     {msg.taskHeld && msg.proposedTask && (
                       <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-950/40 via-zinc-900 to-zinc-900 border border-indigo-500/40 shadow-xl space-y-3 mt-3">
                         <div className="flex items-center justify-between">

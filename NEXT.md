@@ -2,20 +2,11 @@
 
 ## Siguiente tab — tras cerrar MR.1.d1 (2026-09-26)
 MR.1.d1 cerrado (evidencia en PLAN.md, ronda 10 en el spec). Siguiente: "+ Add project" (abajo) y el spec de MR.1.d2.
-Clasificador con Auxiliar = Codex tarda 8-12 s por mensaje. Carlos 2026-09-26: NO usar API teniendo CLI de Codex y
-Claude. Causa (leída en código, sin medir el desglose): cada mensaje lanza un `codex exec` nuevo
-(`classify-task-intent.ts:76` → `runCodexChat`, `src/run/executors/codex.ts:289`): arranque del proceso, config home,
-system prompt propio de Codex y razonamiento con el esfuerzo del rol, solo para devolver `{isTask}`. Opciones a medir
-y proponer: (a) esfuerzo mínimo para el Auxiliar; (b) correrlo en paralelo con la respuesta del Orquestador, no antes
-(verificar el orden actual en `handlers/chat.ts`); (c) que el Orquestador marque la intención en su propia respuesta
-(0 procesos extra). Primero medir con `time codex exec` cuánto es arranque vs razonamiento.
-Medido 2026-09-26 (`codex exec -m gpt-5.6-luna`, prompt trivial, `{"isTask":false}`): default 5.5-6.1 s, `low`
-5.6-6.4 s, `minimal` = HTTP 400 (no soportado); `codex --version` 0.07 s; 7,600 tokens por llamada (system prompt de
-Codex). El esfuerzo NO influye: el piso es la sesión de Codex. Opción (a) descartada. Antes de MR.1.d1 (`45fa7fb`) el
-clasificador era OpenRouter `deepseek-v4-flash` — por eso "antes era más rápido". Dev y Chat usan el mismo `/api/chat`
-(`App.tsx:749` `handleSendMessage`), así que la espera es la misma en ambos. (b) no es gratis: el system prompt del
-Orquestador depende del resultado (`chat.ts:1293` `autoTaskInstruction`); en paralelo habría que quitar esa
-instrucción y dejar solo la nota mecánica `autoTaskNote` (`chat.ts:1471`).
+MR.1.d3 cerrado 2026-09-26: el clasificador ya no existe (el Orquestador marca `[[orchestos:task]]`). Turno normal
+medido en vivo: 11.1 s con Orquestador = `codex exec` gpt-6-luna medium. Ese piso es un proceso Codex nuevo por
+mensaje (arranque + system prompt de Codex, sin caché de sesión). Siguiente paso posible para "respuesta enseguida"
+(sin investigar, plan corto a Carlos antes): reusar la sesión de Codex del chat (`codex exec resume` o app-server) en
+vez de un proceso frío por turno; medir primero `codex exec resume` vs frío.
 Pedido de Carlos 2026-09-26 — animación de espera visible en Chat y Dev mientras el modelo responde. Hoy Chat tiene
 solo un spinner mínimo (`OrchestChatView.tsx:423`, `Loader2` + "…" con `isWorking`) que Carlos no percibe; Dev sin
 verificar. Pasos: mirar qué muestra el prototipo/plantilla para "pensando" (copiar, no inventar CSS), aplicarlo en

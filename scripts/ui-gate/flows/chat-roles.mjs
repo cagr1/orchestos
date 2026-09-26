@@ -79,7 +79,9 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   // turn is still busy is ignored by the composer (the text stays), so retry until it
   // goes out and then wait for the composer to clear, which happens when the reply is
   // on screen.
+  let lastTurnMs = null
   const sendTurn = async (text) => {
+    const startedAt = Date.now()
     await composer.fill(text)
     const deadline = Date.now() + 180_000
     let sent = false
@@ -95,7 +97,7 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
     }
     if (!sent) return false
     while (Date.now() < deadline) {
-      if ((await composer.inputValue()) === '') return true
+      if ((await composer.inputValue()) === '') { lastTurnMs = Date.now() - startedAt; return true }
       await page.waitForTimeout(500)
     }
     return false
@@ -111,6 +113,7 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
       .innerText()
       .catch(() => 'No response text'),
   )
+  await step('first normal turn latency (ms)', Number.isFinite(lastTurnMs), `${lastTurnMs} ms from send to visible reply`)
   await shot('orchestrator-question-response')
   const firstTurn = runJson(`
     import { Database } from 'bun:sqlite'
@@ -126,50 +129,20 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   )
   await shot('orchestrator-turn-recorded')
 
-  const request = 'Modify README.md to add the line "Auxiliary role gate".'
-  const explanations = page.getByText(/Auxiliary role is unassigned|Auxiliary.*unassigned/i)
-  const explanationsBefore = await explanations.count()
+  const request = 'Modify README.md to add the line "Orchestrator marker gate".'
   const secondTurnDone = await sendTurn(request)
-  const disabledMessage = explanations.last()
-  await step(
-    'unassigned Auxiliary is explained',
-    secondTurnDone && (await explanations.count()) > explanationsBefore,
-    await disabledMessage.innerText().catch(() => 'No Auxiliary explanation visible'),
-  )
-  await shot('auxiliary-unassigned-explanation')
-  const tasksBeforeAuxiliary = await api('/api/tasks', {
-    headers: { 'x-orchestos-project-id': project.id },
-  })
-  await step(
-    'no task was created without Auxiliary',
-    (tasksBeforeAuxiliary.data?.tasks ?? []).length === 0,
-    `Task count: ${(tasksBeforeAuxiliary.data?.tasks ?? []).length}`,
-  )
-  await shot('no-task-without-auxiliary')
-
-  const configResponse = await api('/api/config', {
-    headers: { 'x-orchestos-project-id': project.id },
-  })
-  const roleAssignments = {
-    ...configResponse.roleAssignments,
-    auxiliary: { agent: 'codex', model: 'gpt-6-luna', effort: 'medium' },
-  }
-  const saved = await api('/api/config', {
-    method: 'PUT',
-    headers: { 'content-type': 'application/json', 'x-orchestos-project-id': project.id },
-    body: JSON.stringify({ roleAssignments }),
-  })
-  await step('Auxiliary assigned through config API', saved.ok, `HTTP ${saved.status}`)
-  await shot('auxiliary-assigned')
-
-  await sendTurn(request)
   const heldTaskLabel = page.getByText('Task ready to run', { exact: true }).last()
   await step(
-    'task created and held for confirmation',
-    await visible(heldTaskLabel, 180_000),
+    'Orchestrator marker creates a held task without Auxiliary',
+    secondTurnDone && await visible(heldTaskLabel, 180_000),
     await heldTaskLabel.innerText().catch(() => 'No held task label visible'),
   )
-  await shot('task-held-for-confirmation')
+  await shot('task-held-without-auxiliary')
+  await step(
+    'task marker is stripped from the chat',
+    (await page.getByText('[[orchestos:task]]', { exact: true }).count()) === 0,
+    `Visible marker count: ${await page.getByText('[[orchestos:task]]', { exact: true }).count()}`,
+  )
   const tasksAfterAuxiliary = await api('/api/tasks', {
     headers: { 'x-orchestos-project-id': project.id },
   })

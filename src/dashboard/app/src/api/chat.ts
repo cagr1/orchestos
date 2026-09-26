@@ -23,7 +23,6 @@ export interface ChatMessageRow {
   taskId: string | null
   ocrUsed: string[]
   taskHeld: boolean
-  auxiliaryRoleUnassigned?: boolean
   existingFiles: string[]
   turnId?: string | null
   createdAt: string
@@ -177,7 +176,6 @@ export function mapMessage(row: ChatMessageRow): ChatMessage {
     timestamp: toTimestamp(row.createdAt),
     model: row.model ?? undefined,
     taskHeld: row.taskHeld || undefined,
-    auxiliaryRoleUnassigned: row.auxiliaryRoleUnassigned || undefined,
     proposedTask:
       row.taskHeld && row.taskId
         ? { id: row.taskId, description: row.content, output: row.existingFiles }
@@ -228,7 +226,6 @@ export function attachTurnDetails(
       }))
     return {
       ...message,
-      ...(row?.auxiliaryRoleUnassigned ? { auxiliaryRoleUnassigned: true } : {}),
       ...(reasoning.length ? { reasoning } : {}),
       ...(toolCalls.length ? { toolCalls } : {}),
     }

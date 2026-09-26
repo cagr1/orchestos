@@ -2,7 +2,6 @@ import { createHash, randomUUID } from 'crypto'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, relative } from 'path'
-import { classifyTaskIntent } from '../../chat/classify-task-intent.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { RoleAgent } from '../../config/schema.ts'
@@ -104,6 +103,19 @@ const CHAT_TURN_OWNER = randomUUID()
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS = 30 * 60 * 1000
+export const TASK_MARKER = '[[orchestos:task]]'
+
+export function hasTaskMarker(text: string): boolean {
+  return text.split(/\r?\n/).some((line) => line.trim() === TASK_MARKER)
+}
+
+export function stripTaskMarker(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .filter((line) => line.trim() !== TASK_MARKER)
+    .join('\n')
+    .trimEnd()
+}
 
 /**
  * H.9.2 (reabierto 2026-09-06) — antes leía `cli.readBoundary` DECLARADO, así que
@@ -934,6 +946,8 @@ async function handleApiChat(
       activeToolMeta.set(step.toolUseId, { tool: step.label, target: step.target })
       return
     }
+    const detail = step.type === 'text' ? stripTaskMarker(step.detail ?? '') : step.detail
+    if (step.type === 'text' && !detail?.trim()) return
     insertChatTurnStep({
       sessionId: session.id,
       turnId: activeTurnId,
@@ -949,7 +963,7 @@ async function handleApiChat(
       exitCode: step.exitCode,
       ok: step.ok,
       output: step.output,
-      detail: step.detail,
+      detail,
       durationMs: step.durationMs,
     })
   }
@@ -1037,119 +1051,48 @@ async function handleApiChat(
       : []
   const history = rawHistory.slice(-10)
 
-  // J.1 (Mes 18, 2026-07-09) — B.1.b activado con evidencia real (34 mensajes,
-  // 2 falsos negativos confirmados en chat_task_bar_events).
   const barShownByCount = rawHistory.length + 1 >= 3
-  // E.14 (Mes 22, 2026-07-17): el clasificador ANTES se saltaba por completo
-  // una vez `barShownByCount` era true ("no gastar el call si ya se iba a
-  // mostrar igual") — correcto para decidir si mostrar la barra sugerida,
-  // pero D.7 reusa este mismo resultado para AUTO-EJECUTAR la tarea, y ese
-  // atajo lo dejaba deshabilitado en silencio para el resto de la
-  // conversación (cualquier mensaje después del 3ro). Bug real reproducido
-  // en vivo: en una conversación larga, `taskSuggestion` quedaba `null` para
-  // siempre → `autoTask` nunca se intentaba → pero el chat igual respondía
-  // "Started task X..." (el system prompt de abajo daba la creación por
-  // hecha sin verificarla) — el usuario vio una tarea fantasma que nunca
-  // se creó ni corrió. El clasificador ahora corre siempre; el atajo de
-  // costo ya no aplica una vez que D.7 depende de esta señal en cada turno.
-  const taskSuggestion = await classifyTaskIntent(message, orcheConfig, root)
-  const barShown = barShownByCount || taskSuggestion.isTask
-  logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown })
-
-  // D.7 (Mes 22) — decisión explícita de Carlos (2026-07-16): cuando el
-  // clasificador SEMÁNTICO (no el fallback de conteo — esa señal es débil,
-  // "ya van 3 mensajes" no dice que ESTE mensaje sea una tarea) marca el
-  // mensaje como tarea, OrchestOS crea y corre la tarea sola — sin
-  // redirigir a la pantalla Tasks ni pedir un click de confirmación.
-  // E.16 (Mes 22, 2026-07-17) — decisión explícita de Carlos: el motor de
-  // esa tarea sigue una cascada local → CLI → API en vez de heredar siempre
-  // `orchestos.config.yaml` a ciegas. Esto NO es "un LLM decidiendo el
-  // modelo" ([[feedback-modelo-decision-final-carlos]] sigue cubierto) — es
-  // la regla que Carlos fijó él mismo, aplicada por código, igual que el
-  // config ya lo era. Hoy la cascada solo puede ACTUAR en el tier 'cli'
-  // (Claude Code vía external.ts, con --model/--effort reales desde E.15):
-  // el tier 'local' se detecta pero no hay executor de tareas para Ollama
-  // todavía (ollamaChat solo sirve al chat interactivo, no a build tasks) —
-  // aterrizar ahí no fija nada y la tarea sigue heredando el config normal,
-  // igual que el tier 'api' (que YA es el comportamiento por defecto).
-  // G.4.1 — [[feedback-deteccion-no-decision-automatica]]: si el usuario ya
-  // fijó `agent` en orchestos.config.yaml, esa preferencia gana siempre — la
-  // cascada (abajo) solo sugiere un default cuando no hay preferencia guardada.
-  // CC.D1 (2026-08-17) — `executor_mode` renombrado a `agent`.
-  // I.2 (Mes 30) — el único momento en que el usuario puede decir "no" antes
-  // de que un agente escriba en su repo no puede desaparecer sin reemplazo
-  // (classifyTaskIntent es un clasificador, tiene falsos positivos por
-  // definición — precedente real: la "tarea fantasma" de E.14 más arriba).
-  // Decisión de Carlos (2026-09-04): si la tarea solo CREA archivos nuevos,
-  // se ejecuta directo (igual que D.7 siempre hizo). Si toca archivos que YA
-  // EXISTEN en el repo, se crea pero se retiene sin correr — el frontend
-  // muestra una línea inline con [Ver]/[Cancelar] en vez de auto-ejecutar.
-  let autoTask:
-    | { id: string }
-    | { id: string; held: true; existingFiles: string[] }
-    | { error: string }
-    | null = null
+  let taskSuggestion = { isTask: false, reason: '' }
+  let autoTask: { id: string } | { id: string; held: true; existingFiles: string[] } | { error: string } | null = null
   let autoTaskSkipped = false
-  if (
-    taskSuggestion?.isTask &&
-    hasProjectContext &&
-    sessionAllowsTaskExecution(session?.mode ?? null)
-  ) {
-    try {
-      const draft = await buildNaturalDraft(message, root)
-      const output = Array.isArray(draft.output)
-        ? draft.output.map((f: string) => f.trim()).filter(Boolean)
-        : []
-      if (output.length === 0) {
-        // A task without declared output cannot satisfy the task contract and
-        // must not reserve an id, write tasks.yaml, or spawn a run.
-        autoTaskSkipped = true
-      } else {
-        const skill = pickAutoSkill(draft.skillOptions)
-        const orcheConfig = loadOrcheConfig(root)
-        // I.3 — una regla coincidente elige el engine; sin regla el run resuelve
-        // el rol Executor configurado (MR.1.b), sin inferencia desde el chat.
-        const projectRule = resolveProjectAgentRule(orcheConfig.taskAgentRules, {
-          output,
-          skill,
-        })
-        const preferredAgent = projectRule?.agent
-        const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
-        // Durable identity BEFORE creating YAML/git state. A crash at any point
-        // leaves this reservation on an interrupted turn; retries never dispatch it.
-        const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
-        const created = createTaskRecord(
-          root,
-          {
-            id: reservedId ?? draft.id,
-            description: draft.description,
-            output,
+  const settleTaskIntent = async (rawText: string) => {
+    const isTask = hasTaskMarker(rawText)
+    const text = stripTaskMarker(rawText)
+    taskSuggestion = { isTask, reason: isTask ? 'orchestrator-marker' : '' }
+    if (isTask && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
+      try {
+        const draft = await buildNaturalDraft(message, root)
+        const output = Array.isArray(draft.output) ? draft.output.map((f: string) => f.trim()).filter(Boolean) : []
+        if (output.length === 0) autoTaskSkipped = true
+        else {
+          const skill = pickAutoSkill(draft.skillOptions)
+          const projectRule = resolveProjectAgentRule(loadOrcheConfig(root).taskAgentRules, { output, skill })
+          const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
+          const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
+          const created = createTaskRecord(root, {
+            id: reservedId ?? draft.id, description: draft.description, output,
             executor: draft.executor,
-            ...(preferredAgent === 'claude' ? { engine: 'external' } : {}),
-            ...(preferredAgent === 'codex' ? { engine: 'codex' } : {}),
-            ...(preferredAgent === 'opencode' ? { engine: 'opencode' } : {}),
-            ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
-            skill,
-          },
-          { reservedId: reservedId !== null },
-        )
-        if ('error' in created) {
-          autoTask = { error: created.error }
-        } else {
-          if (existingFiles.length > 0) {
-            // Retenida: queda `pending` en tasks.yaml (visible/corrible desde
-            // la pantalla Tasks, anclada desde I.1) hasta que el usuario confirme.
-            autoTask = { id: created.id, held: true, existingFiles }
-          } else {
+            ...(projectRule?.agent === 'claude' ? { engine: 'external' } : {}),
+            ...(projectRule?.agent === 'codex' ? { engine: 'codex' } : {}),
+            ...(projectRule?.agent === 'opencode' ? { engine: 'opencode' } : {}),
+            ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}), skill,
+          }, { reservedId: reservedId !== null })
+          if ('error' in created) autoTask = { error: created.error }
+          else if (existingFiles.length) autoTask = { id: created.id, held: true, existingFiles }
+          else {
             if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
             spawnTaskRun(root, created.id)
             autoTask = { id: created.id }
           }
         }
-      }
-    } catch (e: any) {
-      autoTask = { error: e.message }
+      } catch (e: any) { autoTask = { error: e.message } }
     }
+    const note = autoTaskSkipped ? '\n\n⚠ No task created: the draft named no output files.'
+      : autoTask && 'held' in autoTask ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
+      : autoTask && 'id' in autoTask ? `\n\n▶ Started task \`${autoTask.id}\`.`
+      : autoTask && 'error' in autoTask ? `\n\n⚠ Could not auto-create the task: ${autoTask.error}` : ''
+    logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown: barShownByCount || isTask })
+    return { text: text + note, taskSuggestion, autoTask, autoTaskSkipped }
   }
 
   let attachedFiles: FileEntry[] = []
@@ -1282,30 +1225,11 @@ async function handleApiChat(
           ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
           : `${model} via OpenRouter`
 
-  // E.14 (Mes 22, 2026-07-17) — este bloque estaba HARDCODEADO como si
-  // `autoTask` siempre tuviera éxito ("OrchestOS has ALREADY created and
-  // started running the task"), sin mirar el resultado real de arriba.
-  // Combinado con el bug del clasificador saltado (mismo fix), esto produjo
-  // una respuesta del chat afirmando con confianza "Started task
-  // crypto-terminal-v5..." cuando NUNCA se creó ningún task ni run — el
-  // usuario no tenía forma de notarlo sin ir a revisar tasks.yaml/la DB a
-  // mano. Ahora la instrucción se arma según lo que REALMENTE pasó.
-  const autoTaskInstruction =
-    taskSuggestion.reason === 'auxiliary-unassigned'
-      ? `Automatic task creation is disabled until the Auxiliary role is assigned in Settings → Model routing. Tell the user that in one sentence.`
-      : session?.mode === 'chat' && taskSuggestion?.isTask
-        ? `This session is in Chat mode, which is a hard read-only boundary. The message looks like a build request, but NO task was created and no worktree or file write was started. Say that plainly and tell the user they must switch this session to Code mode before execution can begin.`
-        : !hasProjectContext && taskSuggestion?.isTask
-          ? `This chat session has no associated project, so it has no real tasks.yaml or project root where OrchestOS may create or run a task. NO task was created, no process was spawned, and no file write was started. Say that plainly and tell the user to switch to or create a project-associated session before execution can begin.`
-          : autoTaskSkipped
-            ? `The message was classified as a task, but its draft did not identify any output files. Do not create, run, or claim a task; answer the user's request normally without adding an auto-task error note.`
-            : autoTask && 'held' in autoTask
-              ? `OrchestOS detected a build request and created task "${autoTask.id}", but it touches ${autoTask.existingFiles.length} file(s) that already exist in the repo (${autoTask.existingFiles.join(', ')}) — execution is HELD, waiting for the user to confirm via an inline [View]/[Cancel] control the frontend shows (not this chat). Reply with a SHORT note (1-2 sentences) that the task was created and is waiting for their confirmation before it runs, naming the task id. Do NOT say it already started or is running.`
-              : autoTask && 'id' in autoTask
-                ? `When the user asks you to BUILD something (a page, a feature, a script): OrchestOS has ALREADY created and started running task "${autoTask.id}" in the background by the time you reply — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max), naming the task id. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists.`
-                : autoTask && 'error' in autoTask
-                  ? `The user's message looked like a build request and OrchestOS TRIED to auto-create a task for it, but creation FAILED: "${autoTask.error}". You MUST NOT claim a task was started — tell the user plainly that auto-creation failed and why, in 1-2 sentences, and suggest they create the task manually from the Tasks screen.`
-                  : `This particular message was NOT auto-detected as a build request, so NO task was created. Do not claim a task was started or is running in the background — if the user actually wants to build something, say so plainly and suggest describing it more explicitly (e.g. "build a page that...") or using the Tasks screen directly.`
+  const autoTaskInstruction = !hasProjectContext
+    ? 'If the user asks you to build or modify files, say plainly that this chat has no associated project and no task can be created here.'
+    : session?.mode === 'chat'
+      ? 'If the user asks you to build or modify files, say plainly that this Chat mode is read-only and they must switch to Code mode.'
+      : `If — and only if — the user asks OrchestOS to build, create or modify files in this project, end your reply with the line \`${TASK_MARKER}\` alone, and keep the reply to one or two sentences saying OrchestOS will create a task for it. Do not write the code yourself and do not say a task was created or started: the system appends the real result. Otherwise never write that line.`
 
   const systemPrompt = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs, memory, specs, and the system. Be concise and direct. If the user writes in Spanish, respond in Spanish.
 
@@ -1440,11 +1364,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           text: responseText,
           model: resultLabel,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
-          ...(taskSuggestion.reason === 'auxiliary-unassigned'
-            ? { auxiliaryRoleUnassigned: true }
-            : {}),
+          taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
           autoTask,
+          autoTaskSkipped,
           readAudit: params.readAudit,
           readBoundaryWarning: params.readBoundaryWarning ?? undefined,
         },
@@ -1465,19 +1387,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     }
   }
 
-  // D.7 — nota corta y neutral (no depende del idioma de la respuesta del
-  // LLM, que puede ser español o inglés): se agrega al texto final en los
-  // 3 caminos de respuesta posibles (ollama / tool-loop / openrouter plano).
-  const autoTaskNote =
-    session?.mode !== 'chat' && !hasProjectContext && taskSuggestion?.isTask
-      ? `\n\n⚠ Could not auto-create the task: this chat session has no associated project. Switch to a project-associated session before creating or running real tasks.`
-      : autoTask
-        ? 'held' in autoTask
-          ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
-          : 'id' in autoTask
-            ? `\n\n▶ Started task \`${autoTask.id}\`.`
-            : `\n\n⚠ Could not auto-create the task: ${autoTask.error}`
-        : ''
+
 
   messages.push({
     role: 'user',
@@ -1512,7 +1422,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           persistChatStep,
         )
         const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
-        const responseText = result.text + autoTaskNote
+        const { text: responseText } = await settleTaskIntent(result.text)
         finishTurnSuccess({
           responseText,
           resultLabel,
@@ -1529,8 +1439,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           model: resultLabel,
           readAudit: result.readAudit,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+          taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
           autoTask,
+          autoTaskSkipped,
           readBoundaryWarning: readBoundaryWarning ?? undefined,
         })
       } catch (e: any) {
@@ -1565,7 +1476,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           persistChatStep,
         )
         const resultLabel = `${result.model} via Codex CLI${cliEffort ? ` (effort: ${cliEffort})` : ''}`
-        const responseText = result.text + autoTaskNote
+        const { text: responseText } = await settleTaskIntent(result.text)
         finishTurnSuccess({
           responseText,
           resultLabel,
@@ -1580,8 +1491,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           text: responseText,
           model: resultLabel,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+          taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
           autoTask,
+          autoTaskSkipped,
           readBoundaryWarning: readBoundaryWarning ?? undefined,
         })
       } catch (e: any) {
@@ -1612,7 +1524,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           persistChatStep,
         )
         const resultLabel = `${cliModel ? result.model : 'CLI default model'} via OpenCode CLI`
-        const responseText = result.text + autoTaskNote
+        const { text: responseText } = await settleTaskIntent(result.text)
         finishTurnSuccess({
           responseText,
           resultLabel,
@@ -1627,8 +1539,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           text: responseText,
           model: resultLabel,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+          taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
           autoTask,
+          autoTaskSkipped,
           readBoundaryWarning: readBoundaryWarning ?? undefined,
         })
       } catch (e: any) {
@@ -1649,7 +1562,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     if (isOllama) {
       const bareModel = model.replace('ollama/', '')
       const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages })
-      const responseText = resp.text + autoTaskNote
+      const { text: responseText } = await settleTaskIntent(resp.text)
       // R.5 (hallazgo #5) — Ollama no reporta uso; 0/0 declara el dato como
       // desconocido en vez de inventar tokens/costo (R.6 calcula costo real).
       finishTurnSuccess({
@@ -1663,9 +1576,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         text: responseText,
         model: resp.model,
         ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-        taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
-        auxiliaryRoleUnassigned: taskSuggestion.reason === 'auxiliary-unassigned',
+        taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
         autoTask,
+        autoTaskSkipped,
       })
     }
 
@@ -1755,7 +1668,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         throw error
       })
       const readAudit = readCollector.snapshot(true)
-      const responseText = result.text + autoTaskNote
+      const { text: responseText } = await settleTaskIntent(result.text)
       finishTurnSuccess({
         responseText,
         resultLabel: model,
@@ -1769,8 +1682,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         toolCalls: result.toolCallsExecuted,
         readAudit,
         ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-        taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+        taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
         autoTask,
+        autoTaskSkipped,
       })
     }
 
@@ -1789,7 +1703,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       messages,
       maxTokens: chatMaxTokens,
     })
-    const responseText = resp.text + autoTaskNote
+    const { text: responseText } = await settleTaskIntent(resp.text)
     finishTurnSuccess({
       responseText,
       resultLabel: resp.model,
@@ -1800,8 +1714,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       text: responseText,
       model: resp.model,
       ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-      taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+      taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
       autoTask,
+      autoTaskSkipped,
     })
   } catch (e: any) {
     // R.5 (hallazgo #6) — red de seguridad final: cualquier camino que no

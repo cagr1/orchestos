@@ -43,8 +43,8 @@ async function isolated(body: string): Promise<any> {
         calls++
         const content = system.includes('skill_candidates')
           ? JSON.stringify({ id: 'draft-id', description: 'Modify existing fixture', output: draftOutput, executor: 'openrouter', skill_candidates: [] })
-          : system.includes('isTask') ? JSON.stringify({ isTask, reason: 'fixture' }) : 'fixture response'
-        if (content === 'fixture response') await beforeResponse()
+          : 'fixture response' + (isTask ? '\\n[[orchestos:task]]' : '')
+        if (!system.includes('skill_candidates')) await beforeResponse()
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }))
       }
       const session = createChatSession({ projectId: 'fixture', agent: 'api', mode: 'code' })

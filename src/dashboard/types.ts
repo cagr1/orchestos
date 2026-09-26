@@ -101,7 +101,6 @@ export interface ChatMessageRow {
   // R.4-bis — sobrevive recarga: distingue una tarea "held" (creada, sin
   // correr, esperando confirmación inline) de una tarea normal ya en curso.
   taskHeld: boolean
-  auxiliaryRoleUnassigned?: boolean
   existingFiles: string[]
   turnId: string | null
   createdAt: string

@@ -520,11 +520,18 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     flujo (esperaba un texto que ya existía del turno 1 y enviaba con el composer ocupado → helper `sendTurn`); el 404
     de project-delete venía de `OrchestSettingsView.tsx:337` (petición de config lanzada antes del purge, respondida
     después) → abort en cleanup y al confirmar purge. Pendiente de Carlos: Auxiliar = Codex tarda 8-12 s por mensaje.
-  - [ ] **MR.1.d3 — ⚡ El Orquestador marca la intención de tarea: sin clasificador aparte.** (abierto 2026-09-26, pedido
+  - [x] **MR.1.d3 — ⚡ El Orquestador marca la intención de tarea: sin clasificador aparte.** (abierto 2026-09-26, cerrado 2026-09-26; pedido
     de Carlos: "quiero que la respuesta sea enseguida"; spec `docs/specs/MR.1.d3.md`) Medido: el clasificador con
     Auxiliar = Codex cuesta 5.5-6.4 s y 7,600 tokens por mensaje antes de responder, en Chat y Dev; el esfuerzo no
     influye. Decisión de Carlos 2026-09-26: el Orquestador pone `[[orchestos:task]]` en su respuesta (0 procesos
     extra), sin volver a API. Gate: tests + `chat-roles` sin Auxiliar + los 11 ui:gate + latencia antes/después.
+    Ejecutado por: Codex · `gpt-6-luna` (1 ronda) · Spec: docs/specs/MR.1.d3.md (borrado al cerrar)
+    Gate en vivo: navegador real (Playwright, `node scripts/ui-gate/run.mjs` ×11), `docs/done/evidence/MR.1.d3-live.json`: 11/11 flujos.
+    Evidencia 2026-09-26: `chat-roles` 9/9 sin rol Auxiliar (tarea retenida creada por el marcador, marcador visible 0
+    veces, `tasks.yaml` sin engine/modelo); `test:coverage` 1532/0 (75.45 %/61.20 %); tsc back+app; `ui:fidelity:jsx`.
+    Latencia: turno normal 11.1 s envío→respuesta con Orquestador Codex `gpt-6-luna` medium, ya sin los 5.5-6.4 s del
+    clasificador. Los 8 fallos que reportó Luna eran del sandbox (EADDRINUSE y gates de cierre sobre su árbol sin commit).
+    Queda: el piso es el `codex exec` nuevo por turno del Orquestador (sin sesión persistente) → NEXT.md.
   - [ ] **MR.1.d2 — 🧠 El contexto que el chat inyecta al CLI dice la verdad (AT.13).** (abierto 2026-09-25) Alcance =
     AT.13 puntos 1-8 (herramientas reales, `n/a` en costos desconocidos, tasks en una línea, motivo de QA, nombres de
     modelo normalizados, fechas con zona, índice de memoria/specs, sin prompts apilados) + `$0` del chat de Codex sin

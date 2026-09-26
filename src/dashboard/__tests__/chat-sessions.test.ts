@@ -36,7 +36,7 @@ async function runIsolated(
       writeFileSync(
         join(bin, 'codex'),
         Buffer.from(
-          'IyEvYmluL3NoCnByaW50ZiAiJXNcXG4iICJ7XCJ0eXBlXCI6XCJpdGVtLmNvbXBsZXRlZFwiLFwiaXRlbVwiOntcInR5cGVcIjpcImFnZW50X21lc3NhZ2VcIixcInRleHRcIjpcIkNvZGV4IHJlcGx5XCJ9fSIgIntcInR5cGVcIjpcInR1cm4uY29tcGxldGVkXCIsXCJ1c2FnZVwiOntcImlucHV0X3Rva2Vuc1wiOjEwLFwib3V0cHV0X3Rva2Vuc1wiOjV9fSIK',
+          'IyEvYmluL3NoCnByaW50ZiAnJXNcbicgJ3sidHlwZSI6Iml0ZW0uY29tcGxldGVkIiwiaXRlbSI6eyJ0eXBlIjoiYWdlbnRfbWVzc2FnZSIsInRleHQiOiJDb2RleCByZXBseVxuW1tvcmNoZXN0b3M6dGFza11dIn19JyAneyJ0eXBlIjoidHVybi5jb21wbGV0ZWQiLCJ1c2FnZSI6eyJpbnB1dF90b2tlbnMiOjEwLCJvdXRwdXRfdG9rZW5zIjo1fX0nCg==',
           'base64',
         ),
       )
@@ -63,7 +63,7 @@ async function runIsolated(
 }
 
 describe('CC.2 — chat sessions backend', () => {
-  it('returns the persisted auxiliary-unassigned marker with assistant messages', async () => {
+  it('ignores legacy auxiliary-unassigned envelope fields', async () => {
     const result = await runIsolated(
       `
       const { runMigrations } = await import('./src/db/migrate.ts')
@@ -80,11 +80,11 @@ describe('CC.2 — chat sessions backend', () => {
       db.close()
       `,
     )
-    expect(result).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ role: 'assistant', auxiliaryRoleUnassigned: true }),
-      ]),
+    const assistantMessage = (result as unknown as Array<Record<string, unknown>>).find(
+      (row) => row.role === 'assistant',
     )
+    expect(assistantMessage).toMatchObject({ content: 'No task created.' })
+    expect(assistantMessage).not.toHaveProperty('auxiliaryRoleUnassigned')
   })
 
   it('UI.13.4b persists console commands, applies runner boundaries and cascades on delete', async () => {
@@ -483,9 +483,7 @@ describe('CC.2 — chat sessions backend', () => {
       globalThis.fetch = async (_url, init) => {
         requests.push(JSON.parse(String(init.body)))
         call += 1
-        const content = call === 1
-          ? JSON.stringify({ isTask: true, reason: 'Pide modificar código' })
-          : 'No inicié cambios porque esta sesión está en modo Chat.'
+        const content = 'No inicié cambios porque esta sesión está en modo Chat.\\n[[orchestos:task]]'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: 'deepseek/deepseek-v4-flash' }), { status: 200 })
       }
 
@@ -495,7 +493,7 @@ describe('CC.2 — chat sessions backend', () => {
       }))
       const payload = await response.json()
       const messages = listChatMessages(session.id)
-      const finalRequest = requests[1]
+      const finalRequest = requests[0]
       const codexSession = createChatSession({ projectId: null, agent: 'codex', mode: 'chat', title: 'Codex transport' })
       const codexResponse = await handleApiChat(new Request('http://localhost/api/chat', {
         method: 'POST', body: JSON.stringify({ sessionId: codexSession.id, agent: 'codex', model: 'gpt-6-luna', message: 'hola', effort: 'high' })
@@ -515,7 +513,7 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.status).toBe(200)
     expect(result.payload).toMatchObject({
       autoTask: null,
-      taskSuggestion: { reason: 'Pide modificar código' },
+      taskSuggestion: { isTask: true, reason: 'orchestrator-marker' },
     })
     expect(result.messages).toEqual([
       expect.objectContaining({ role: 'user', content: 'modifica un archivo' }),
@@ -527,13 +525,13 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.tasksFileCreated).toBe(false)
     expect(result.injectedHistoryForwarded).toBe(false)
     // H.9.2 — la advertencia no evita que el flujo llegue al CLI.
-    expect(result.fetchCalls).toBe(3)
+    expect(result.fetchCalls).toBe(1)
     // The isolated suite hides the Codex binary, so transport execution returns 502;
     // the important contract here is that effort=high passes request validation.
     expect(result.codexStatus).not.toBe(400)
   })
 
-  it('fails OpenCode with its provider and does not retry through OpenRouter', async () => {
+  it('fails OpenCode without making an Auxiliary provider call', async () => {
     const result = await runIsolated(`
       const { mkdirSync, writeFileSync } = await import('fs')
       const { join } = await import('path')
@@ -564,7 +562,7 @@ describe('CC.2 — chat sessions backend', () => {
       db.close()
     `)
     expect(result.status).toBe(502)
-    expect(result.fetchUrls).toHaveLength(1)
+    expect(result.fetchUrls).toHaveLength(0)
     expect(result.rows).toEqual([expect.objectContaining({ provider: 'opencode' })])
   })
 
@@ -605,9 +603,7 @@ describe('CC.2 — chat sessions backend', () => {
         const system = String(requestBody.messages?.[0]?.content ?? '')
         const content = system.includes('convierte instrucciones en lenguaje natural')
           ? JSON.stringify({ id: 'python-hello-world-script', description: 'Create hello.py', output: ['hello.py'], executor: 'openrouter', skill_candidates: [] })
-          : openRouterCalls === 1
-            ? JSON.stringify({ isTask: true, reason: 'The user asks to build and save a script' })
-            : 'No se creó una tarea real porque esta sesión general no tiene un proyecto asociado.'
+          : 'No se creó una tarea real porque esta sesión general no tiene un proyecto asociado.\\n[[orchestos:task]]'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: 'deepseek/deepseek-v4-flash' }), { status: 200 })
       }
 
@@ -633,12 +629,12 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.status).toBe(200)
     expect(result.payload).toMatchObject({
       autoTask: null,
-      taskSuggestion: { reason: 'The user asks to build and save a script' },
+      taskSuggestion: { isTask: true, reason: 'orchestrator-marker' },
     })
-    expect(String((result.payload as { text?: unknown }).text)).toContain('no associated project')
+    expect(String((result.payload as { text?: unknown }).text)).toContain('no tiene un proyecto asociado')
     expect(result.tasksUnchanged).toBe(true)
     expect(result.leakedTask).toBe(false)
-    expect(result.openRouterCalls).toBe(2)
+    expect(result.openRouterCalls).toBe(1)
   })
 
   // R.4-bis — taskHeld/existingFiles deben sobrevivir un restore (recarga),
@@ -769,11 +765,9 @@ describe('CC.2 — chat sessions backend', () => {
         const body = JSON.parse(String(init.body))
         requests.push(body)
         const system = String(body.messages?.[0]?.content ?? '')
-        const content = system.includes('You classify a single chat message')
-          ? JSON.stringify({ isTask: true, reason: 'Build request' })
-          : system.includes('convierte instrucciones en lenguaje natural')
+        const content = system.includes('convierte instrucciones en lenguaje natural')
             ? JSON.stringify({ id: 'readme-role-task', description: 'Edit README', output: ['README.md'], executor: 'openrouter', skill_candidates: [] })
-            : 'Task created and held.'
+            : 'Task created and held.\\n[[orchestos:task]]'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
       }
       const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md' }) }))
@@ -786,11 +780,9 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.payload).toMatchObject({ autoTask: { held: true, existingFiles: ['README.md'] } })
     expect(result.tasksYaml).not.toContain('executor_model:')
     expect(result.tasksYaml).not.toContain('engine:')
-    expect(result.models).toEqual([
-      'deepseek/auxiliary',
-      'deepseek/deepseek-v4-flash',
-      'deepseek/deepseek-v4-flash',
-    ])
+    expect(result.models).toEqual(['deepseek/deepseek-v4-flash', 'deepseek/deepseek-v4-flash'])
+    expect(String((result.payload as { text: string }).text)).not.toContain('[[orchestos:task]]')
+    expect(String((result.payload as { text: string }).text)).toContain('⏸ Created task')
   })
 
   it('accepts three sequential Codex chat posts while Auxiliary routing is assigned between turns', async () => {
@@ -813,16 +805,14 @@ describe('CC.2 — chat sessions backend', () => {
       globalThis.fetch = async (_url, init) => {
         const body = JSON.parse(String(init.body))
         const system = String(body.messages?.[0]?.content ?? '')
-        const content = system.includes('You classify a single chat message')
-          ? JSON.stringify({ isTask: true, reason: 'Build request' })
-          : system.includes('convierte instrucciones en lenguaje natural')
+        const content = system.includes('convierte instrucciones en lenguaje natural')
             ? JSON.stringify({ id: 'held-readme-task', description: 'Edit README', output: ['README.md'], executor: 'codex', skill_candidates: [] })
-            : 'Codex reply'
+            : 'Codex reply\\n[[orchestos:task]]'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
       }
       const session = createChatSession({ projectId: 'sequential-codex-chat', agent: 'codex', mode: 'code' })
       const post = (message) => route(new Request('http://localhost:50852/api/chat', { method: 'POST', headers: { origin: 'http://localhost:50852', 'x-orchestos-project-id': 'sequential-codex-chat' }, body: JSON.stringify({ sessionId: session.id, agent: 'codex', model: 'gpt-6-luna', message }) }), 50852)
-      const first = await post('Hello')
+      const first = await post('Build README.md')
       const second = await post('Build README.md')
       const secondMessages = await route(new Request('http://localhost:50852/api/chat/sessions/' + session.id + '/messages'), 50852)
       const config = await route(new Request('http://localhost:50852/api/config', { method: 'PUT', headers: { origin: 'http://localhost:50852', 'x-orchestos-project-id': 'sequential-codex-chat', 'content-type': 'application/json' }, body: JSON.stringify({ roleAssignments: { auxiliary: { agent: 'api', model: 'deepseek/auxiliary', provider: 'openrouter' } } }) }), 50852)
@@ -835,9 +825,7 @@ describe('CC.2 — chat sessions backend', () => {
     )
     expect(result.statuses, JSON.stringify(result)).toEqual([200, 200, 200, 200])
     expect(result.secondMessages).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ role: 'assistant', auxiliaryRoleUnassigned: true }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ role: 'assistant', content: expect.stringContaining('Codex reply') })]),
     )
     expect(result.thirdBody).toMatchObject({ autoTask: { held: true } })
     expect(result.tasksYaml).toContain('status: pending')
@@ -916,7 +904,7 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.status).toBe(200)
     expect(result.payload).toMatchObject({ text: 'respuesta legacy' })
     expect(result.turns).toBe(0)
-    expect(result.calls).toBe(2)
+    expect(result.calls).toBe(1)
   })
 
   // R.5 (decisión 10) — un turno pending con lease vigente es trabajo en
