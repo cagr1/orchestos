@@ -9,6 +9,12 @@ system prompt propio de Codex y razonamiento con el esfuerzo del rol, solo para 
 y proponer: (a) esfuerzo mínimo para el Auxiliar; (b) correrlo en paralelo con la respuesta del Orquestador, no antes
 (verificar el orden actual en `handlers/chat.ts`); (c) que el Orquestador marque la intención en su propia respuesta
 (0 procesos extra). Primero medir con `time codex exec` cuánto es arranque vs razonamiento.
+Pedido de Carlos 2026-09-26 — animación de espera visible en Chat y Dev mientras el modelo responde. Hoy Chat tiene
+solo un spinner mínimo (`OrchestChatView.tsx:423`, `Loader2` + "…" con `isWorking`) que Carlos no percibe; Dev sin
+verificar. Pasos: mirar qué muestra el prototipo/plantilla para "pensando" (copiar, no inventar CSS), aplicarlo en
+Chat y Dev, y verificar en vivo que aparece desde el Enter hasta la respuesta. Independiente del clasificador: la
+espera tiene dos partes (8-12 s del clasificador + la respuesta del Orquestador); arreglar el clasificador la acorta,
+la animación la hace visible.
 Visto en la captura `chat-roles/task-held-for-confirmation.png` y sin investigar: el chat no baja del todo al último
 mensaje (la tarjeta held queda bajo el pliegue).
 Bug visto 2026-09-26 (sin arreglar, fuera de MR.1.d1): tras un QA fail, el reintento de la tarea falla con
