@@ -97,7 +97,10 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
     }
     if (!sent) return false
     while (Date.now() < deadline) {
-      if ((await composer.inputValue()) === '') { lastTurnMs = Date.now() - startedAt; return true }
+      if ((await composer.inputValue()) === '') {
+        lastTurnMs = Date.now() - startedAt
+        return true
+      }
       await page.waitForTimeout(500)
     }
     return false
@@ -113,7 +116,11 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
       .innerText()
       .catch(() => 'No response text'),
   )
-  await step('first normal turn latency (ms)', Number.isFinite(lastTurnMs), `${lastTurnMs} ms from send to visible reply`)
+  await step(
+    'first normal turn latency (ms)',
+    Number.isFinite(lastTurnMs),
+    `${lastTurnMs} ms from send to visible reply`,
+  )
   await shot('orchestrator-question-response')
   const firstTurn = runJson(`
     import { Database } from 'bun:sqlite'
@@ -134,7 +141,7 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   const heldTaskLabel = page.getByText('Task ready to run', { exact: true }).last()
   await step(
     'Orchestrator marker creates a held task without Auxiliary',
-    secondTurnDone && await visible(heldTaskLabel, 180_000),
+    secondTurnDone && (await visible(heldTaskLabel, 180_000)),
     await heldTaskLabel.innerText().catch(() => 'No held task label visible'),
   )
   await shot('task-held-without-auxiliary')

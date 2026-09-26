@@ -1053,7 +1053,11 @@ async function handleApiChat(
 
   const barShownByCount = rawHistory.length + 1 >= 3
   let taskSuggestion = { isTask: false, reason: '' }
-  let autoTask: { id: string } | { id: string; held: true; existingFiles: string[] } | { error: string } | null = null
+  let autoTask:
+    | { id: string }
+    | { id: string; held: true; existingFiles: string[] }
+    | { error: string }
+    | null = null
   let autoTaskSkipped = false
   const settleTaskIntent = async (rawText: string) => {
     const isTask = hasTaskMarker(rawText)
@@ -1062,21 +1066,33 @@ async function handleApiChat(
     if (isTask && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
       try {
         const draft = await buildNaturalDraft(message, root)
-        const output = Array.isArray(draft.output) ? draft.output.map((f: string) => f.trim()).filter(Boolean) : []
+        const output = Array.isArray(draft.output)
+          ? draft.output.map((f: string) => f.trim()).filter(Boolean)
+          : []
         if (output.length === 0) autoTaskSkipped = true
         else {
           const skill = pickAutoSkill(draft.skillOptions)
-          const projectRule = resolveProjectAgentRule(loadOrcheConfig(root).taskAgentRules, { output, skill })
+          const projectRule = resolveProjectAgentRule(loadOrcheConfig(root).taskAgentRules, {
+            output,
+            skill,
+          })
           const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
           const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
-          const created = createTaskRecord(root, {
-            id: reservedId ?? draft.id, description: draft.description, output,
-            executor: draft.executor,
-            ...(projectRule?.agent === 'claude' ? { engine: 'external' } : {}),
-            ...(projectRule?.agent === 'codex' ? { engine: 'codex' } : {}),
-            ...(projectRule?.agent === 'opencode' ? { engine: 'opencode' } : {}),
-            ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}), skill,
-          }, { reservedId: reservedId !== null })
+          const created = createTaskRecord(
+            root,
+            {
+              id: reservedId ?? draft.id,
+              description: draft.description,
+              output,
+              executor: draft.executor,
+              ...(projectRule?.agent === 'claude' ? { engine: 'external' } : {}),
+              ...(projectRule?.agent === 'codex' ? { engine: 'codex' } : {}),
+              ...(projectRule?.agent === 'opencode' ? { engine: 'opencode' } : {}),
+              ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
+              skill,
+            },
+            { reservedId: reservedId !== null },
+          )
           if ('error' in created) autoTask = { error: created.error }
           else if (existingFiles.length) autoTask = { id: created.id, held: true, existingFiles }
           else {
@@ -1085,13 +1101,25 @@ async function handleApiChat(
             autoTask = { id: created.id }
           }
         }
-      } catch (e: any) { autoTask = { error: e.message } }
+      } catch (e: any) {
+        autoTask = { error: e.message }
+      }
     }
-    const note = autoTaskSkipped ? '\n\n⚠ No task created: the draft named no output files.'
-      : autoTask && 'held' in autoTask ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
-      : autoTask && 'id' in autoTask ? `\n\n▶ Started task \`${autoTask.id}\`.`
-      : autoTask && 'error' in autoTask ? `\n\n⚠ Could not auto-create the task: ${autoTask.error}` : ''
-    logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown: barShownByCount || isTask })
+    const note = autoTaskSkipped
+      ? '\n\n⚠ No task created: the draft named no output files.'
+      : autoTask && 'held' in autoTask
+        ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
+        : autoTask && 'id' in autoTask
+          ? `\n\n▶ Started task \`${autoTask.id}\`.`
+          : autoTask && 'error' in autoTask
+            ? `\n\n⚠ Could not auto-create the task: ${autoTask.error}`
+            : ''
+    logChatTaskBarEvent({
+      kind: 'message',
+      message,
+      historyLen: rawHistory.length + 1,
+      barShown: barShownByCount || isTask,
+    })
     return { text: text + note, taskSuggestion, autoTask, autoTaskSkipped }
   }
 
@@ -1364,7 +1392,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           text: responseText,
           model: resultLabel,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
+          taskSuggestion: taskSuggestion.isTask
+            ? { isTask: true, reason: taskSuggestion.reason }
+            : { isTask: false, reason: '' },
           autoTask,
           autoTaskSkipped,
           readAudit: params.readAudit,
@@ -1386,8 +1416,6 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       )
     }
   }
-
-
 
   messages.push({
     role: 'user',
@@ -1439,7 +1467,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           model: resultLabel,
           readAudit: result.readAudit,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
+          taskSuggestion: taskSuggestion.isTask
+            ? { isTask: true, reason: taskSuggestion.reason }
+            : { isTask: false, reason: '' },
           autoTask,
           autoTaskSkipped,
           readBoundaryWarning: readBoundaryWarning ?? undefined,
@@ -1491,7 +1521,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           text: responseText,
           model: resultLabel,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
+          taskSuggestion: taskSuggestion.isTask
+            ? { isTask: true, reason: taskSuggestion.reason }
+            : { isTask: false, reason: '' },
           autoTask,
           autoTaskSkipped,
           readBoundaryWarning: readBoundaryWarning ?? undefined,
@@ -1539,7 +1571,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           text: responseText,
           model: resultLabel,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
+          taskSuggestion: taskSuggestion.isTask
+            ? { isTask: true, reason: taskSuggestion.reason }
+            : { isTask: false, reason: '' },
           autoTask,
           autoTaskSkipped,
           readBoundaryWarning: readBoundaryWarning ?? undefined,
@@ -1576,7 +1610,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         text: responseText,
         model: resp.model,
         ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-        taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
+        taskSuggestion: taskSuggestion.isTask
+          ? { isTask: true, reason: taskSuggestion.reason }
+          : { isTask: false, reason: '' },
         autoTask,
         autoTaskSkipped,
       })
@@ -1682,7 +1718,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         toolCalls: result.toolCallsExecuted,
         readAudit,
         ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-        taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
+        taskSuggestion: taskSuggestion.isTask
+          ? { isTask: true, reason: taskSuggestion.reason }
+          : { isTask: false, reason: '' },
         autoTask,
         autoTaskSkipped,
       })
@@ -1714,7 +1752,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       text: responseText,
       model: resp.model,
       ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-      taskSuggestion: taskSuggestion.isTask ? { isTask: true, reason: taskSuggestion.reason } : { isTask: false, reason: '' },
+      taskSuggestion: taskSuggestion.isTask
+        ? { isTask: true, reason: taskSuggestion.reason }
+        : { isTask: false, reason: '' },
       autoTask,
       autoTaskSkipped,
     })

@@ -631,7 +631,9 @@ describe('CC.2 — chat sessions backend', () => {
       autoTask: null,
       taskSuggestion: { isTask: true, reason: 'orchestrator-marker' },
     })
-    expect(String((result.payload as { text?: unknown }).text)).toContain('no tiene un proyecto asociado')
+    expect(String((result.payload as { text?: unknown }).text)).toContain(
+      'no tiene un proyecto asociado',
+    )
     expect(result.tasksUnchanged).toBe(true)
     expect(result.leakedTask).toBe(false)
     expect(result.openRouterCalls).toBe(1)
@@ -825,7 +827,12 @@ describe('CC.2 — chat sessions backend', () => {
     )
     expect(result.statuses, JSON.stringify(result)).toEqual([200, 200, 200, 200])
     expect(result.secondMessages).toEqual(
-      expect.arrayContaining([expect.objectContaining({ role: 'assistant', content: expect.stringContaining('Codex reply') })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'assistant',
+          content: expect.stringContaining('Codex reply'),
+        }),
+      ]),
     )
     expect(result.thirdBody).toMatchObject({ autoTask: { held: true } })
     expect(result.tasksYaml).toContain('status: pending')
