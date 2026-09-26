@@ -237,6 +237,17 @@ async function main() {
     return
   }
 
+  const build = spawn('bun', ['run', 'build:app'], { cwd: process.cwd(), stdio: 'inherit' })
+  const buildExitCode = await new Promise((resolve, reject) => {
+    build.once('error', reject)
+    build.once('exit', (code) => resolve(code ?? 1))
+  })
+  if (buildExitCode !== 0) {
+    process.stderr.write(`Frontend build failed with exit code ${buildExitCode}\n`)
+    process.exitCode = Number(buildExitCode)
+    return
+  }
+
   await fsp.mkdir(runDir, { recursive: true })
   await fsp.mkdir(home, { recursive: true })
   process.env.ORCHESTOS_HOME = home

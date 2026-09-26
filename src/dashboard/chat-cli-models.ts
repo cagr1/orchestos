@@ -14,6 +14,7 @@ export interface CliModelCatalog {
   id: string
   models: CliModelOption[]
   efforts: string[]
+  error?: string
 }
 
 type CommandRunner = (
@@ -162,10 +163,22 @@ async function readCliCatalog(
 
 export async function readCliModelCatalogs(
   runner: CommandRunner = defaultRunner,
+  detectedClis = detectInstalledClis(),
 ): Promise<CliModelCatalog[]> {
-  const installed = detectInstalledClis().filter((cli) => cli.installed)
+  const installed = detectedClis.filter((cli) => cli.installed)
   const catalogs = await Promise.all(
-    installed.map((cli) => readCliCatalog(cli.id, cli.binary, runner)),
+    installed.map(async (cli): Promise<CliModelCatalog> => {
+      try {
+        return await readCliCatalog(cli.id, cli.binary, runner)
+      } catch (error) {
+        return {
+          id: cli.id,
+          models: [],
+          efforts: [],
+          error: error instanceof Error ? error.message : String(error),
+        }
+      }
+    }),
   )
   const opencode = catalogs.find((catalog) => catalog.id === 'opencode')
   if (opencode) registerNativeOpencodeModels(opencode.models.map((model) => model.id))

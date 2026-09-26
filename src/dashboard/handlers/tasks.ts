@@ -9,11 +9,7 @@ import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
-import {
-  resolveAgentSelection,
-  resolveCascadeTier,
-  resolveProjectAgentRule,
-} from '../../router/engine-cascade.ts'
+import { resolveProjectAgentRule } from '../../router/engine-cascade.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { withGitLock } from '../../run/git-lock.ts'
 import { git } from '../../run/sandbox.ts'
@@ -360,15 +356,19 @@ async function handleApiTasksCreate(req: Request, root: string): Promise<Respons
       output: body.output ?? [],
       skill: body.skill,
     })
-    const preferredAgent = rule?.agent ?? cfg.agent
-    if (preferredAgent) {
-      const cascade = await resolveCascadeTier()
-      const resolved = resolveAgentSelection(preferredAgent, cascade)
+    if (rule) {
+      const resolved =
+        rule.agent === 'claude'
+          ? { engine: 'external' }
+          : rule.agent === 'codex'
+            ? { engine: 'codex' }
+            : rule.agent === 'opencode'
+              ? { engine: 'opencode' }
+              : {}
       params = {
         ...body,
-        executor_model: resolved.executor_model,
-        engine: resolved.engine,
-        cli_effort: body.cli_effort ?? rule?.cli_effort,
+        ...(resolved.engine ? { engine: resolved.engine } : {}),
+        cli_effort: body.cli_effort ?? rule.cli_effort,
       }
     }
   }

@@ -8,6 +8,7 @@ export interface ChatOpts {
   model: string
   system: string
   messages: ChatMessage[]
+  effort?: string
   maxTokens?: number
 }
 

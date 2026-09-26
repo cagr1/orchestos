@@ -34,10 +34,8 @@ export interface RoleAssignment {
  *
  * Preferencia PERSISTENTE del usuario para tareas de build auto-creadas desde
  * el chat (D.7/G.2) y ahora también para el chat mismo (CC.1) y el harness
- * (BB.1). [[feedback-deteccion-no-decision-automatica]]: `resolveCascadeTier()`
- * (engine-cascade.ts) SOLO detecta qué hay disponible — nunca decide en nombre
- * del usuario. Este campo es la decisión real, fijada a mano; ausente = la
- * cascada sugiere un default de bootstrap (ver `cascadeTaskFields()`).
+ * (BB.1). La asignación del rol Executor decide el agente para tareas sin una
+ * regla específica; OrchestOS no elige un modelo para los CLIs.
  */
 export type AgentChoice = 'local' | 'claude' | 'opencode' | 'codex' | 'api'
 
@@ -46,8 +44,7 @@ export type AgentChoice = 'local' | 'claude' | 'opencode' | 'codex' | 'api'
  * y varios CLIs, la asignación agente+modelo tiene que resolverse POR TAREA, no
  * solo por proyecto entero (`agent` de arriba). Esto es lo que el DAG mixto
  * Claude/Codex del dogfooding necesita ("la tarea 3 corre con Codex, la 7 con
- * Claude") — no reemplaza `agent` (que sigue siendo el último recurso antes de
- * la cascada E.16), lo precede. Reglas declarativas, nunca inferidas por un LLM
+ * Claude") — no reemplaza el rol Executor, lo precede. Reglas declarativas, nunca inferidas por un LLM
  * (misma línea no-negociable que ya cubre `agent`): se editan a mano en
  * orchestos.config.yaml, igual que `models.*` — sin UI de edición todavía,
  * deliberado (ver PLAN.md I.3).
@@ -65,7 +62,7 @@ export interface TaskAgentRule {
     skill?: string
   }
   agent: AgentChoice
-  /** Opcional — si la regla no lo fija, resolveAgentSelection() decide el default del agente. */
+  /** Opcional — esfuerzo del CLI cuando esta regla selecciona una tarea. */
   cli_effort?: string
 }
 

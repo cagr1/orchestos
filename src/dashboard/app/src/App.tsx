@@ -84,6 +84,7 @@ export default function App() {
 
   // Projects state
   const [projects, setProjects] = useState<ProjectItem[]>([])
+  const [deletingProjectIds, setDeletingProjectIds] = useState<Set<string>>(() => new Set())
   const [activeProjectId, setActiveProjectId] = useState<string>('')
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
   const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(() => {
@@ -591,15 +592,31 @@ export default function App() {
   }
 
   const handleDeleteProject = async (projectId: string) => {
+    setDeletingProjectIds((current) => new Set(current).add(projectId))
     try {
       await deleteProject(projectId)
       const loaded = await listProjects()
       setProjects(loaded)
-      setActiveProjectId((current) => (current === projectId ? loaded[0]?.id || '' : current))
+      setActiveProjectId((current) =>
+        current === projectId || !loaded.some((project) => project.id === current)
+          ? loaded[0]?.id || ''
+          : current,
+      )
+      setThreads((current) => current.filter((thread) => thread.projectId !== projectId))
+      setActiveThreadId((current) =>
+        threads.some((thread) => thread.id === current && thread.projectId === projectId)
+          ? ''
+          : current,
+      )
       setActiveAgentId(null)
       await reloadHistory()
     } catch {
       // Keep the project visible when the delete request fails.
+      setDeletingProjectIds((current) => {
+        const next = new Set(current)
+        next.delete(projectId)
+        return next
+      })
     }
   }
 
@@ -735,17 +752,17 @@ export default function App() {
     agent?: string,
     model?: string,
     effort?: string,
-  ) => {
+  ): Promise<boolean> => {
     let threadId = activeThreadId
     let thread = threads.find((item) => item.id === threadId)
     if (!threadId) {
       try {
-        thread = await createSession({ agent: 'api', projectId: null })
+        thread = await createSession({ agent: agent || 'api', projectId: null })
         threadId = thread.id
         setThreads((prev) => [thread!, ...prev])
         setActiveThreadId(thread.id)
       } catch {
-        return
+        return false
       }
     }
     const activeModel = model || undefined
@@ -763,7 +780,7 @@ export default function App() {
         thread.id === threadId ? { ...thread, messages: [...thread.messages, optimistic] } : thread,
       ),
     )
-    void sendMessage({
+    return sendMessage({
       sessionId: threadId,
       message: content,
       agent: agent || thread?.agent,
@@ -777,9 +794,6 @@ export default function App() {
           thread?.messages.length === 0
             ? `${agent === 'claude' ? 'Claude' : agent === 'codex' ? 'Codex' : agent === 'opencode' ? 'OpenCode' : 'ChatGPT'}: ${content.slice(0, 40)}`
             : undefined
-        if (firstMessageTitle)
-          await renameSession(threadId, firstMessageTitle).catch(() => undefined)
-        if (firstMessageTitle) setProjects(await listProjects())
         setThreads((prev) =>
           prev.map((thread) =>
             thread.id === threadId
@@ -791,10 +805,28 @@ export default function App() {
               : thread,
           ),
         )
+        if (firstMessageTitle) {
+          void renameSession(threadId, firstMessageTitle).catch(() => undefined)
+          void listProjects()
+            .then(setProjects)
+            .catch(() => undefined)
+        }
         void refreshUsage()
+        return true
       })
-      .catch(() => {
+      .catch((error) => {
+        setThreads((prev) =>
+          prev.map((item) =>
+            item.id === threadId
+              ? {
+                  ...item,
+                  messages: item.messages.filter((message) => message.id !== optimistic.id),
+                }
+              : item,
+          ),
+        )
         void refreshUsage()
+        throw error
       })
   }
 
@@ -1028,11 +1060,17 @@ export default function App() {
           {mode === 'chat' && (
             <OrchestChatView
               thread={activeThread}
+              projectExists={
+                !activeThread?.projectId ||
+                (!deletingProjectIds.has(activeThread.projectId) &&
+                  projects.some((project) => project.id === activeThread.projectId))
+              }
               onSendMessage={handleSendMessage}
               onApproveHeldTask={handleApproveHeldTask}
               onRejectHeldTask={handleRejectHeldTask}
               sessionStatus={sessionStatus}
               onSlashCommand={handleSlashCommand}
+              onOpenRouting={() => handleOpenSettings('model_routing')}
             />
           )}
 

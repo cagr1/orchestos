@@ -248,6 +248,18 @@ export function hasActiveTurn(sessionId: string): boolean {
   return (row?.count ?? 0) > 0
 }
 
+export function getActiveTurn(sessionId: string): ChatTurnRecord | null {
+  return (
+    db
+      .query<ChatTurnRecord, [string, string]>(
+        `SELECT * FROM chat_turns
+       WHERE session_id = ? AND status = 'pending' AND owner_expires_at >= ?
+       ORDER BY created_at ASC LIMIT 1`,
+      )
+      .get(sessionId, new Date().toISOString()) ?? null
+  )
+}
+
 export function getTurnByRequestKey(sessionId: string, requestKey: string): ChatTurnRecord | null {
   return getTurnForRequest(sessionId, requestKey)
 }

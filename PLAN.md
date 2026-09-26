@@ -508,12 +508,18 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     `test:coverage` 1545/0 (75.41%/62.45%).
     Aprendido: Luna sin `ORCHESTOS_ROLE=executor` y la frase "eres el ejecutor" intenta delegar en otro `codex exec`
     (falla en su sandbox); el preflight de Luna va con `--item MR.1` (no ve sub-ítems).
-  - [ ] **MR.1.d1 — ⚡ El chat y sus tareas usan los roles: Orquestador, Ejecutor y Auxiliar.** (abierto 2026-09-25;
+  - [x] **MR.1.d1 — ⚡ El chat y sus tareas usan los roles: Orquestador, Ejecutor y Auxiliar.** (abierto 2026-09-25, cerrado 2026-09-26;
     spec `docs/specs/MR.1.d1.md`) Decisiones de Carlos (2026-09-25): el chat arranca con el Orquestador y el picker
     del composer lo cambia por sesión (sin DeepSeek por defecto; sin rol → error claro); las tareas que crea el chat
     usan `taskAgentRules` → Ejecutor, no el agente del chat; clasificador de intención al Auxiliar. Incluye los
     modelos fijos de `resolveAgentSelection` (`engine-cascade.ts:138,142`), hermanos de los hardcodes de MR.1.b, y
     quitar los chips "Default agent" de Settings → Executor. Gate: flujo nuevo `chat-roles` + los 10 ui:gate.
+    Gate en vivo: navegador real (Playwright, `bun run ui:gate`), `docs/done/evidence/MR.1.d1-live.json`: 11/11 flujos.
+    Evidencia 2026-09-26: ui:gate 11/11 (`ui-gate-33033`: chat-roles 10/10, project-delete 11/11 ×6), `test:coverage`
+    1540/0 (75.39 %/61.16 %), tsc back+app, `ui:fidelity:jsx`. Ronda 10 (cerebro): el rojo de chat-roles era del
+    flujo (esperaba un texto que ya existía del turno 1 y enviaba con el composer ocupado → helper `sendTurn`); el 404
+    de project-delete venía de `OrchestSettingsView.tsx:337` (petición de config lanzada antes del purge, respondida
+    después) → abort en cleanup y al confirmar purge. Pendiente de Carlos: Auxiliar = Codex tarda 8-12 s por mensaje.
   - [ ] **MR.1.d2 — 🧠 El contexto que el chat inyecta al CLI dice la verdad (AT.13).** (abierto 2026-09-25) Alcance =
     AT.13 puntos 1-8 (herramientas reales, `n/a` en costos desconocidos, tasks en una línea, motivo de QA, nombres de
     modelo normalizados, fechas con zona, índice de memoria/specs, sin prompts apilados) + `$0` del chat de Codex sin

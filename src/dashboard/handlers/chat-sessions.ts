@@ -17,6 +17,7 @@ import { listChatTurnSteps } from '../../db/chat-turn-steps.ts'
 import {
   getLastPersistentTaskId,
   getLastTurn,
+  getTurn,
   hasActiveTurn,
   listChatTurns,
   sessionHasPersistentWork,
@@ -62,6 +63,15 @@ function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
 }
 
 function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
+  const envelope = row.turn_id ? getTurn(row.turn_id)?.response_envelope_json : null
+  let auxiliaryRoleUnassigned = false
+  if (envelope) {
+    try {
+      auxiliaryRoleUnassigned =
+        (JSON.parse(envelope) as { auxiliaryRoleUnassigned?: boolean }).auxiliaryRoleUnassigned ===
+        true
+    } catch {}
+  }
   return {
     id: row.id,
     sessionId: row.session_id,
@@ -73,6 +83,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
     taskHeld: row.task_held,
     existingFiles: row.existing_files,
     turnId: row.turn_id,
+    auxiliaryRoleUnassigned,
     createdAt: row.created_at,
   }
 }

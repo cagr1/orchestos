@@ -4,6 +4,7 @@ import {
   parseClaudeHelp,
   parseCodexModelsCache,
   parseOpencodeModels,
+  readCliModelCatalogs,
 } from './chat-cli-models.ts'
 
 describe('UI.14 round 5 CLI model catalogs', () => {
@@ -73,6 +74,44 @@ describe('UI.14 round 5 CLI model catalogs', () => {
       { id: 'claude-opus-5', name: 'Opus 5', short: 'Opus 5' },
       { id: 'claude-sonnet-4-5-20250929', name: 'Sonnet 4.5', short: 'Sonnet 4.5' },
       { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', short: 'Haiku 4.5' },
+    ])
+  })
+
+  test('keeps healthy CLI catalogs when one CLI spawn fails', async () => {
+    const catalogs = await readCliModelCatalogs(
+      async (command) => {
+        if (command === 'claude-broken') throw new Error('ENOEXEC: spawn failed')
+        return { stdout: 'openai/gpt-5', exitCode: 0 }
+      },
+      [
+        {
+          id: 'claude',
+          label: 'Claude',
+          binary: 'claude-broken',
+          icon: 'claude',
+          installed: true,
+          path: '/claude-broken',
+          readBoundary: { kind: 'none', reason: 'test' },
+        },
+        {
+          id: 'opencode',
+          label: 'OpenCode',
+          binary: 'opencode-good',
+          icon: 'opencode',
+          installed: true,
+          path: '/opencode-good',
+          readBoundary: { kind: 'none', reason: 'test' },
+        },
+      ],
+    )
+
+    expect(catalogs).toEqual([
+      { id: 'claude', models: [], efforts: [], error: 'ENOEXEC: spawn failed' },
+      {
+        id: 'opencode',
+        models: [{ id: 'openai/gpt-5', name: 'openai/gpt-5', short: 'openai/gpt-5' }],
+        efforts: [],
+      },
     ])
   })
 })

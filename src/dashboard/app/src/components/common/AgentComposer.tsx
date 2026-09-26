@@ -13,6 +13,7 @@ export interface CliConfig {
   defaultModel: string
   models: CliModelOption[]
   efforts: string[]
+  error?: string
 }
 
 export const CLIS: CliConfig[] = [
@@ -25,6 +26,27 @@ export const CLIS: CliConfig[] = [
 ]
 
 export type EffortLevel = string
+
+export function selectionFromDefaults(
+  defaultCli: CliId,
+  defaultModel: string | undefined,
+  defaultEffort: EffortLevel,
+  lockedCli?: CliId,
+) {
+  return {
+    cli: lockedCli ?? defaultCli,
+    model: defaultModel ?? '',
+    effort: defaultEffort,
+  }
+}
+
+export async function sendComposerDraft(send: () => unknown): Promise<boolean> {
+  try {
+    return (await send()) !== false
+  } catch {
+    return false
+  }
+}
 
 const SLASH_COMMANDS: Array<{ cmd: string; label: string }> = [
   { cmd: '/rename', label: 'Rename this conversation' },
@@ -41,11 +63,14 @@ export interface AgentComposerProps {
     model?: string,
     effort?: string,
     isShellCmd?: boolean,
-  ) => void
+  ) => unknown
   defaultCli?: CliId
   defaultModel?: string
   defaultEffort?: EffortLevel
   lockedCli?: CliId
+  orchestratorAssigned?: boolean
+  busy?: boolean
+  onOpenRouting?: () => void
   onSlashCommand?: (command: string, argument?: string) => void
   className?: string
 }
@@ -56,6 +81,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   defaultModel,
   defaultEffort = 'high',
   lockedCli,
+  orchestratorAssigned = true,
+  busy = false,
+  onOpenRouting,
   onSlashCommand,
   className = '',
 }) => {
@@ -63,7 +91,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [isLoadingModels, setIsLoadingModels] = useState(true)
   const [activeCli, setActiveCli] = useState<CliId>(lockedCli ?? defaultCli)
   const fallbackCli = CLIS.find((cli) => cli.id === (lockedCli ?? defaultCli)) ?? CLIS[0]
-  const initialModel = defaultModel === defaultCli ? '' : defaultModel
+  const initialModel = defaultModel ?? ''
   const currentCliConfig =
     availableClis.find((c) => c.id === activeCli) ??
     (initialModel
@@ -77,6 +105,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     initialModel || currentCliConfig.defaultModel || '',
   )
   const [selectedEffort, setSelectedEffort] = useState<EffortLevel>(defaultEffort)
+
+  useEffect(() => {
+    const next = selectionFromDefaults(defaultCli, defaultModel, defaultEffort, lockedCli)
+    setActiveCli(next.cli)
+    setSelectedModel(next.model)
+    setSelectedEffort(next.effort)
+  }, [lockedCli, defaultCli, defaultModel, defaultEffort])
 
   const [inputText, setInputText] = useState('')
   const [isShellMode, setIsShellMode] = useState(false)
@@ -96,7 +131,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         const detected = CLIS.filter((cli) => cliCatalogs.some((item) => item.id === cli.id)).map(
           (cli) => {
             const catalog = cliCatalogs.find((item) => item.id === cli.id)
-            return catalog ? { ...cli, models: catalog.models, efforts: catalog.efforts } : cli
+            return catalog
+              ? { ...cli, models: catalog.models, efforts: catalog.efforts, error: catalog.error }
+              : cli
           },
         )
         const apiModels = models.map((model) => ({
@@ -205,8 +242,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
   }
 
-  const handleSend = () => {
-    if (!inputText.trim() && attachments.length === 0) return
+  const handleSend = async () => {
+    if (busy || (!inputText.trim() && attachments.length === 0)) return
     if (!isShellMode && (isLoadingModels || currentCliConfig.models.length === 0)) return
     const content = inputText.trim()
     if (content.startsWith('/')) {
@@ -223,14 +260,17 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       }
     }
 
-    onSendMessage(
-      content,
-      attachments.length > 0 ? attachments : undefined,
-      activeCli,
-      effectiveSelectedModel,
-      selectedEffort,
-      isShellMode,
+    const accepted = await sendComposerDraft(() =>
+      onSendMessage(
+        content,
+        attachments.length > 0 ? attachments : undefined,
+        activeCli,
+        effectiveSelectedModel,
+        selectedEffort,
+        isShellMode,
+      ),
     )
+    if (!accepted) return
 
     setInputText('')
     setAttachments([])
@@ -416,7 +456,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             placeholder={
               isShellMode
                 ? 'Enter bash command to execute in sandbox…'
-                : `Message ${currentCliConfig.name}…`
+                : isLoadingModels
+                  ? 'Loading models…'
+                  : `Message ${currentCliConfig.name}…`
             }
             className="flex-1 bg-transparent border-none text-xs text-app placeholder:text-app-muted resize-none focus:outline-hidden leading-relaxed font-sans"
           />
@@ -453,7 +495,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                     <button
                       key={cli.id}
                       type="button"
-                      onClick={() => setActiveCli(cli.id)}
+                      onClick={() => {
+                        setActiveCli(cli.id)
+                      }}
                       className={`p-1 rounded-control transition-all ${
                         isActive
                           ? 'bg-app-elevated border border-app text-app shadow-2xs'
@@ -470,18 +514,25 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             )}
 
             {/* Model and effort merged into one compact dropdown Sonnet 3.7 · High ▾ */}
-            <button
-              type="button"
-              onClick={() => modelsReady && setShowDropdown(!showDropdown)}
-              disabled={!modelsReady}
-              className="flex items-center gap-1 px-2 py-1 rounded-control bg-app-bg border border-app/60 hover:border-app text-app text-[11px] font-mono transition-colors disabled:cursor-not-allowed disabled:text-app-muted"
-              title="Select model and reasoning effort"
-            >
-              <span>
-                {isLoadingModels ? 'Loading models…' : `${shortModelLabel} · ${selectedEffort}`}
-              </span>
-              <ChevronDown className="w-3 h-3 text-app-muted" />
-            </button>
+            <div className="flex flex-col items-start">
+              <button
+                type="button"
+                onClick={() => modelsReady && setShowDropdown(!showDropdown)}
+                disabled={!modelsReady}
+                className="flex items-center gap-1 px-2 py-1 rounded-control bg-app-bg border border-app/60 hover:border-app text-app text-[11px] font-mono transition-colors disabled:cursor-not-allowed disabled:text-app-muted"
+                title="Select model and reasoning effort"
+              >
+                <span>
+                  {isLoadingModels ? 'Loading models…' : `${shortModelLabel} · ${selectedEffort}`}
+                </span>
+                <ChevronDown className="w-3 h-3 text-app-muted" />
+              </button>
+              {currentCliConfig.error && (
+                <div className="mt-1 max-w-56 text-[10px] text-app-muted">
+                  {currentCliConfig.error}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: Send Button */}
@@ -489,7 +540,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             type="button"
             onClick={handleSend}
             disabled={
-              (!inputText.trim() && attachments.length === 0) || (!isShellMode && !modelsReady)
+              (!inputText.trim() && attachments.length === 0) ||
+              (!isShellMode && !modelsReady) ||
+              !orchestratorAssigned ||
+              busy
             }
             className={`p-1.5 rounded-control flex items-center justify-center transition-all ${
               inputText.trim() || attachments.length > 0
@@ -502,6 +556,21 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
         </div>
+        {!orchestratorAssigned && (
+          <div
+            className="flex items-center justify-between gap-3 pt-2 text-xs text-app-muted"
+            role="status"
+          >
+            <span>Orchestrator unassigned. Choose an agent or assign one in Model routing.</span>
+            <button
+              type="button"
+              onClick={onOpenRouting}
+              className="text-app-accent hover:underline underline-offset-2"
+            >
+              Model routing
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

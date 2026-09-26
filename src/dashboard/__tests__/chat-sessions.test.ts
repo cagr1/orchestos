@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync } from 'fs'
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { resolveChatCost } from '../handlers/chat.ts'
@@ -22,16 +22,31 @@ async function runIsolated(
 ): Promise<Record<string, unknown>> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-chat-sessions-'))
   try {
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      HOME: home,
+      ORCHESTOS_HOME: home,
+      OPENROUTER_API_KEY: 'test-key',
+      PATH: NO_CLI_PATH,
+      ...extraEnv,
+    }
+    if (env.FAKE_CODEX === '1') {
+      const bin = join(home, 'bin')
+      mkdirSync(bin, { recursive: true })
+      writeFileSync(
+        join(bin, 'codex'),
+        Buffer.from(
+          'IyEvYmluL3NoCnByaW50ZiAiJXNcXG4iICJ7XCJ0eXBlXCI6XCJpdGVtLmNvbXBsZXRlZFwiLFwiaXRlbVwiOntcInR5cGVcIjpcImFnZW50X21lc3NhZ2VcIixcInRleHRcIjpcIkNvZGV4IHJlcGx5XCJ9fSIgIntcInR5cGVcIjpcInR1cm4uY29tcGxldGVkXCIsXCJ1c2FnZVwiOntcImlucHV0X3Rva2Vuc1wiOjEwLFwib3V0cHV0X3Rva2Vuc1wiOjV9fSIK',
+          'base64',
+        ),
+      )
+      chmodSync(join(bin, 'codex'), 0o755)
+      env.PATH = `${bin}:${NO_CLI_PATH}`
+      delete env.FAKE_CODEX
+    }
     const proc = Bun.spawn(['bun', '-e', body], {
       cwd: process.cwd(),
-      env: {
-        ...process.env,
-        HOME: home,
-        ORCHESTOS_HOME: home,
-        OPENROUTER_API_KEY: 'test-key',
-        PATH: NO_CLI_PATH,
-        ...extraEnv,
-      },
+      env,
       stdout: 'pipe',
       stderr: 'pipe',
     })
@@ -48,6 +63,30 @@ async function runIsolated(
 }
 
 describe('CC.2 — chat sessions backend', () => {
+  it('returns the persisted auxiliary-unassigned marker with assistant messages', async () => {
+    const result = await runIsolated(
+      `
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
+      runMigrations()
+      const session = sessions.createChatSession({ projectId: null, agent: 'codex' })
+      const now = new Date().toISOString()
+      db.run('INSERT INTO chat_turns (id, session_id, project_id, request_key, input_fingerprint, status, response_envelope_json, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)', ['turn-aux', session.id, 'request-aux', 'fingerprint', 'completed', JSON.stringify({ auxiliaryRoleUnassigned: true }), now, now])
+      sessions.appendChatExchange({ sessionId: session.id, userContent: 'build something', assistantContent: 'No task created.', model: 'gpt-6-luna', turnId: 'turn-aux' })
+      const response = await handlers.handleApiChatSessionMessages(new URL('http://localhost/api/chat/sessions/' + session.id + '/messages'))
+      process.stdout.write(JSON.stringify(await response.json()))
+      db.close()
+      `,
+    )
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: 'assistant', auxiliaryRoleUnassigned: true }),
+      ]),
+    )
+  })
+
   it('UI.13.4b persists console commands, applies runner boundaries and cascades on delete', async () => {
     const result = await runIsolated(`
       const { mkdirSync, writeFileSync } = await import('fs')
@@ -126,7 +165,7 @@ describe('CC.2 — chat sessions backend', () => {
       mkdirSync(root, { recursive: true })
       mkdirSync(join(home, '.claude'), { recursive: true })
       writeFileSync(join(home, '.claude', 'stats-cache.json'), JSON.stringify({ modelUsage: { 'claude-sonnet-5': {} } }))
-      writeFileSync(join(root, 'orchestos.config.yaml'), 'agent: claude\\n')
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: claude, model: claude-sonnet-5 }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { createChatSession } = await import('./src/db/chat-sessions.ts')
@@ -150,8 +189,8 @@ describe('CC.2 — chat sessions backend', () => {
       { PATH: process.cwd() + '/scripts/fixtures:' + NO_CLI_PATH },
     )
 
-    expect(result.emptyModelStatus).toBe(400)
-    expect(result.emptyModelRunCount).toBe(0)
+    expect(result.emptyModelStatus).toBe(200)
+    expect(result.emptyModelRunCount).toBe(1)
     expect(result.statuses).toEqual([200, 200, 200, 200])
     const rows = result.rows as Array<{
       model: string
@@ -193,7 +232,7 @@ describe('CC.2 — chat sessions backend', () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
-      const { mkdirSync } = await import('fs')
+      const { mkdirSync, writeFileSync } = await import('fs')
       const { join } = await import('path')
       const handlers = await import('./src/dashboard/handlers/chat-sessions.ts')
       const sessions = await import('./src/db/chat-sessions.ts')
@@ -201,6 +240,7 @@ describe('CC.2 — chat sessions backend', () => {
       runMigrations()
       const projectPath = join(process.env.ORCHESTOS_HOME, 'p1')
       mkdirSync(projectPath, { recursive: true })
+      writeFileSync(join(projectPath, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: codex, model: gpt-6-luna }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['p1', projectPath, '{}', '', new Date().toISOString()])
 
       const createdResponse = await handlers.handleApiChatSessionsCreate(new Request('http://localhost/api/chat/sessions', {
@@ -427,6 +467,7 @@ describe('CC.2 — chat sessions backend', () => {
       }))
       const projectDir = join(home, 'empty-project')
       mkdirSync(projectDir, { recursive: true })
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
 
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
@@ -435,6 +476,7 @@ describe('CC.2 — chat sessions backend', () => {
       runMigrations()
       const session = createChatSession({ projectId: null, agent: 'api', mode: 'chat', title: 'Read only' })
       process.chdir(projectDir)
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
 
       const requests = []
       let call = 0
@@ -456,7 +498,7 @@ describe('CC.2 — chat sessions backend', () => {
       const finalRequest = requests[1]
       const codexSession = createChatSession({ projectId: null, agent: 'codex', mode: 'chat', title: 'Codex transport' })
       const codexResponse = await handleApiChat(new Request('http://localhost/api/chat', {
-        method: 'POST', body: JSON.stringify({ sessionId: codexSession.id, message: 'hola', effort: 'high' })
+        method: 'POST', body: JSON.stringify({ sessionId: codexSession.id, agent: 'codex', model: 'gpt-6-luna', message: 'hola', effort: 'high' })
       }))
       process.stdout.write(JSON.stringify({
         status: response.status,
@@ -501,11 +543,13 @@ describe('CC.2 — chat sessions backend', () => {
       writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ fetchedAt: Date.now(), models: {} }))
       const projectDir = join(home, 'opencode-error-project')
       mkdirSync(projectDir, { recursive: true })
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: opencode, model: opencode/test }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { createChatSession } = await import('./src/db/chat-sessions.ts')
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
       runMigrations(); process.chdir(projectDir)
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: opencode, model: opencode/test }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const fetchUrls = []
       globalThis.fetch = async (url) => {
         fetchUrls.push(String(url))
@@ -537,6 +581,7 @@ describe('CC.2 — chat sessions backend', () => {
       }))
       const serverRoot = join(home, 'real-server-project')
       mkdirSync(serverRoot, { recursive: true })
+      writeFileSync(join(serverRoot, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const tasksPath = join(serverRoot, 'tasks.yaml')
       const originalTasks = 'version: 1\\ntasks:\\n  - id: existing-real-task\\n    description: Must remain unchanged\\n    output: []\\n    executor: openrouter\\n    status: pending\\n    retry_count: 0\\n'
       writeFileSync(tasksPath, originalTasks)
@@ -548,6 +593,7 @@ describe('CC.2 — chat sessions backend', () => {
       runMigrations()
       const session = createChatSession({ projectId: null, agent: 'api', mode: 'code', title: 'General code session' })
       process.chdir(serverRoot)
+      writeFileSync(join(serverRoot, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
 
       let openRouterCalls = 0
       globalThis.fetch = async (url, init) => {
@@ -699,6 +745,134 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.completed).toEqual({ status: 200, body: { kind: 'none' } })
   })
 
+  it('auto-created chat tasks defer model choice to the Executor role when no rule matches', async () => {
+    const result = await runIsolated(`
+      const { mkdirSync, writeFileSync, readFileSync, existsSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const home = process.env.ORCHESTOS_HOME
+      const root = join(home, 'chat-role-task-project')
+      mkdirSync(join(home, '.orchestos', 'cache'), { recursive: true })
+      mkdirSync(root, { recursive: true })
+      writeFileSync(join(root, 'README.md'), '# Existing file\\n')
+      writeFileSync(join(root, 'tasks.yaml'), 'version: 1\\nproject: chat-role-task-project\\ntasks: []\\n')
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  executor: { agent: codex, model: gpt-6-luna }\\n  auxiliary: { agent: api, model: deepseek/auxiliary, provider: openrouter }\\n')
+      writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({ fetchedAt: Date.now(), models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } } }))
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      runMigrations()
+      db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['chat-role-task-project', root, '{}', '', new Date().toISOString()])
+      const session = createChatSession({ projectId: 'chat-role-task-project', agent: 'api', mode: 'code' })
+      const requests = []
+      globalThis.fetch = async (_url, init) => {
+        const body = JSON.parse(String(init.body))
+        requests.push(body)
+        const system = String(body.messages?.[0]?.content ?? '')
+        const content = system.includes('You classify a single chat message')
+          ? JSON.stringify({ isTask: true, reason: 'Build request' })
+          : system.includes('convierte instrucciones en lenguaje natural')
+            ? JSON.stringify({ id: 'readme-role-task', description: 'Edit README', output: ['README.md'], executor: 'openrouter', skill_candidates: [] })
+            : 'Task created and held.'
+        return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
+      }
+      const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md' }) }))
+      const payload = await response.json()
+      const tasksYaml = existsSync(join(root, 'tasks.yaml')) ? readFileSync(join(root, 'tasks.yaml'), 'utf8') : null
+      process.stdout.write(JSON.stringify({ status: response.status, payload, tasksYaml, models: requests.map((request) => request.model) }))
+      db.close()
+    `)
+    expect(result.status).toBe(200)
+    expect(result.payload).toMatchObject({ autoTask: { held: true, existingFiles: ['README.md'] } })
+    expect(result.tasksYaml).not.toContain('executor_model:')
+    expect(result.tasksYaml).not.toContain('engine:')
+    expect(result.models).toEqual([
+      'deepseek/auxiliary',
+      'deepseek/deepseek-v4-flash',
+      'deepseek/deepseek-v4-flash',
+    ])
+  })
+
+  it('accepts three sequential Codex chat posts while Auxiliary routing is assigned between turns', async () => {
+    const result = await runIsolated(
+      `
+      const { mkdirSync, writeFileSync, readFileSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const home = process.env.ORCHESTOS_HOME
+      const root = join(home, 'sequential-codex-chat')
+      mkdirSync(root, { recursive: true })
+      writeFileSync(join(root, 'README.md'), '# Existing file\\n')
+      writeFileSync(join(root, 'tasks.yaml'), 'version: 1\\nproject: sequential-codex-chat\\ntasks: []\\n')
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/orchestrator, provider: openrouter }\\n  executor: { agent: codex, model: gpt-6-luna }\\n')
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { route } = await import('./src/dashboard/server.ts')
+      runMigrations()
+      db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['sequential-codex-chat', root, '{}', '', new Date().toISOString()])
+      globalThis.fetch = async (_url, init) => {
+        const body = JSON.parse(String(init.body))
+        const system = String(body.messages?.[0]?.content ?? '')
+        const content = system.includes('You classify a single chat message')
+          ? JSON.stringify({ isTask: true, reason: 'Build request' })
+          : system.includes('convierte instrucciones en lenguaje natural')
+            ? JSON.stringify({ id: 'held-readme-task', description: 'Edit README', output: ['README.md'], executor: 'codex', skill_candidates: [] })
+            : 'Codex reply'
+        return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
+      }
+      const session = createChatSession({ projectId: 'sequential-codex-chat', agent: 'codex', mode: 'code' })
+      const post = (message) => route(new Request('http://localhost:50852/api/chat', { method: 'POST', headers: { origin: 'http://localhost:50852', 'x-orchestos-project-id': 'sequential-codex-chat' }, body: JSON.stringify({ sessionId: session.id, agent: 'codex', model: 'gpt-6-luna', message }) }), 50852)
+      const first = await post('Hello')
+      const second = await post('Build README.md')
+      const secondMessages = await route(new Request('http://localhost:50852/api/chat/sessions/' + session.id + '/messages'), 50852)
+      const config = await route(new Request('http://localhost:50852/api/config', { method: 'PUT', headers: { origin: 'http://localhost:50852', 'x-orchestos-project-id': 'sequential-codex-chat', 'content-type': 'application/json' }, body: JSON.stringify({ roleAssignments: { auxiliary: { agent: 'api', model: 'deepseek/auxiliary', provider: 'openrouter' } } }) }), 50852)
+      const third = await post('Build README.md')
+      const tasksYaml = readFileSync(join(root, 'tasks.yaml'), 'utf8')
+      process.stdout.write(JSON.stringify({ statuses: [first.status, second.status, config.status, third.status], firstBody: await first.json(), secondBody: await second.json(), secondMessages: await secondMessages.json(), thirdBody: await third.json(), tasksYaml }))
+      db.close()
+      `,
+      { FAKE_CODEX: '1' },
+    )
+    expect(result.statuses, JSON.stringify(result)).toEqual([200, 200, 200, 200])
+    expect(result.secondMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: 'assistant', auxiliaryRoleUnassigned: true }),
+      ]),
+    )
+    expect(result.thirdBody).toMatchObject({ autoTask: { held: true } })
+    expect(result.tasksYaml).toContain('status: pending')
+    expect(result.tasksYaml).toContain('README.md')
+  })
+
+  it('returns a clear 400 without calling a provider when Orchestrator is unassigned', async () => {
+    const result = await runIsolated(`
+      const { mkdirSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const root = join(process.env.ORCHESTOS_HOME, 'unassigned-orchestrator')
+      mkdirSync(root, { recursive: true })
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      runMigrations()
+      process.chdir(root)
+      let calls = 0
+      globalThis.fetch = async () => {
+        calls += 1
+        return new Response('{}', { status: 200 })
+      }
+      const response = await handleApiChat(new Request('http://localhost/api/chat', {
+        method: 'POST', body: JSON.stringify({ message: 'hello' }),
+      }))
+      process.stdout.write(JSON.stringify({ status: response.status, body: await response.json(), calls }))
+      db.close()
+    `)
+    expect(result.status).toBe(400)
+    expect(result.body).toMatchObject({
+      error: 'Orchestrator role is unassigned — assign it in Settings → Model routing',
+    })
+    expect(result.calls).toBe(0)
+  })
+
   it('keeps the legacy chat request without sessionId out of chat_turns', async () => {
     const result = await runIsolated(`
       const { mkdirSync, writeFileSync } = await import('fs')
@@ -712,11 +886,13 @@ describe('CC.2 — chat sessions backend', () => {
       }))
       const projectDir = join(home, 'legacy-chat-project')
       mkdirSync(projectDir, { recursive: true })
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
       runMigrations()
       process.chdir(projectDir)
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       let calls = 0
       globalThis.fetch = async (_url, init) => {
         calls += 1

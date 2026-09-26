@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { classifyTaskIntent, parseTaskIntentResponse } from '../chat/classify-task-intent.ts'
+import type { OrcheConfig } from '../config/schema.ts'
 
 // J.1 (Mes 18) — B.1.b, clasificador semántico de intención de tarea en el
 // Chat. parseTaskIntentResponse es puro (mismo patrón que
@@ -48,6 +49,11 @@ describe('parseTaskIntentResponse', () => {
 describe('classifyTaskIntent', () => {
   const originalFetch = globalThis.fetch
   const prevKey = process.env.OPENROUTER_API_KEY
+  const cfg = {
+    config_version: 1,
+    roles: { auxiliary: { agent: 'api', model: 'deepseek/test', provider: 'openrouter' } },
+    models: {},
+  } as OrcheConfig
 
   afterEach(() => {
     globalThis.fetch = originalFetch
@@ -75,9 +81,14 @@ describe('classifyTaskIntent', () => {
       )
     }) as unknown as typeof fetch
 
-    const r = await classifyTaskIntent('hazme una página web de criptomonedas con gráficos 3D')
+    const r = await classifyTaskIntent(
+      'hazme una página web de criptomonedas con gráficos 3D',
+      cfg,
+      '/tmp',
+    )
     expect(r.isTask).toBe(true)
     expect(r.reason).toBe('Pide construir un sitio completo')
+    expect(requestBody?.model).toBe('deepseek/test')
     expect(requestBody?.max_tokens).toBeGreaterThanOrEqual(1000)
   })
 
@@ -87,7 +98,7 @@ describe('classifyTaskIntent', () => {
       throw new Error('network down')
     }) as unknown as typeof fetch
 
-    const r = await classifyTaskIntent('cualquier mensaje')
+    const r = await classifyTaskIntent('cualquier mensaje', cfg, '/tmp')
     expect(r).toEqual({ isTask: false, reason: '' })
   })
 
@@ -96,7 +107,18 @@ describe('classifyTaskIntent', () => {
     globalThis.fetch = (async () =>
       new Response('server error', { status: 500 })) as unknown as typeof fetch
 
-    const r = await classifyTaskIntent('cualquier mensaje')
+    const r = await classifyTaskIntent('cualquier mensaje', cfg, '/tmp')
     expect(r.isTask).toBe(false)
+  })
+
+  it('does not call a provider when Auxiliary is unassigned', async () => {
+    let called = false
+    globalThis.fetch = (async () => {
+      called = true
+      return new Response('{}', { status: 200 })
+    }) as unknown as typeof fetch
+    const r = await classifyTaskIntent('build this', { ...cfg, roles: {} }, '/tmp')
+    expect(r).toEqual({ isTask: false, reason: 'auxiliary-unassigned' })
+    expect(called).toBe(false)
   })
 })

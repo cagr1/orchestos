@@ -23,6 +23,7 @@ export interface ChatMessageRow {
   taskId: string | null
   ocrUsed: string[]
   taskHeld: boolean
+  auxiliaryRoleUnassigned?: boolean
   existingFiles: string[]
   turnId?: string | null
   createdAt: string
@@ -35,8 +36,6 @@ export interface ChatModelOption {
   priceIn: number
   supportsReasoning: boolean
 }
-
-export const DEFAULT_CHAT_MODEL = 'deepseek/deepseek-v4-flash'
 
 export interface ChatSendOptions {
   sessionId: string
@@ -58,6 +57,7 @@ export interface CliModelCatalog {
   id: string
   models: CliModelOption[]
   efforts: string[]
+  error?: string
 }
 
 export interface ChatSendResponse {
@@ -177,6 +177,7 @@ export function mapMessage(row: ChatMessageRow): ChatMessage {
     timestamp: toTimestamp(row.createdAt),
     model: row.model ?? undefined,
     taskHeld: row.taskHeld || undefined,
+    auxiliaryRoleUnassigned: row.auxiliaryRoleUnassigned || undefined,
     proposedTask:
       row.taskHeld && row.taskId
         ? { id: row.taskId, description: row.content, output: row.existingFiles }
@@ -227,6 +228,7 @@ export function attachTurnDetails(
       }))
     return {
       ...message,
+      ...(row?.auxiliaryRoleUnassigned ? { auxiliaryRoleUnassigned: true } : {}),
       ...(reasoning.length ? { reasoning } : {}),
       ...(toolCalls.length ? { toolCalls } : {}),
     }

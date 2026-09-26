@@ -83,6 +83,7 @@ export interface ConfigResponse {
   agenticMaxIterations: number
   externalTimeoutMinutes: number
   claudeCliDetected: boolean
+  roleAssignments?: Record<string, { agent: string; model: string; effort?: string } | null>
 }
 
 const CONFIG_ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa'] as const
@@ -170,12 +171,12 @@ export async function getExecutorModes(): Promise<ExecutorModesResponse> {
 export async function getUsage(): Promise<UsageResponse> {
   return request('/api/usage')
 }
-export async function getConfig(projectId?: string): Promise<ConfigResponse> {
+export async function getConfig(projectId?: string, signal?: AbortSignal): Promise<ConfigResponse> {
   return mapConfigResponse(
-    await request<ConfigResponse>(
-      '/api/config',
-      projectId ? { headers: { 'x-orchestos-project-id': projectId } } : undefined,
-    ),
+    await request<ConfigResponse>('/api/config', {
+      ...(projectId ? { headers: { 'x-orchestos-project-id': projectId } } : {}),
+      signal,
+    }),
   )
 }
 export async function getModels(): Promise<ChatModelOption[]> {

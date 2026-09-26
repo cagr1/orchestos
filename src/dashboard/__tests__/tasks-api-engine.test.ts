@@ -36,6 +36,7 @@ afterAll(() => {
 
 beforeEach(() => {
   writeTasksYaml([])
+  rmSync(join(tmpDir, 'orchestos.config.yaml'), { force: true })
 })
 
 function req(method: string, path: string, body?: unknown): Request {
@@ -66,6 +67,39 @@ async function getTasks(): Promise<TaskRow[]> {
 }
 
 describe('G.4 — POST /api/tasks acepta engine', () => {
+  it('does not freeze a model without a matching rule and derives only the engine from a Codex rule', async () => {
+    const noRule = await route(
+      req('POST', '/api/tasks', {
+        id: 'role-default-task',
+        description: 'defer execution model to the Executor role',
+        output: ['README.md'],
+      }),
+      PORT,
+    )
+    expect(noRule.status).toBe(200)
+    let yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')
+    expect(yaml).not.toContain('engine:')
+    expect(yaml).not.toContain('executor_model:')
+
+    writeTasksYaml([])
+    writeFileSync(
+      join(tmpDir, 'orchestos.config.yaml'),
+      'taskAgentRules:\n  - match:\n      output: ["src/**"]\n    agent: codex\n',
+    )
+    const matched = await route(
+      req('POST', '/api/tasks', {
+        id: 'codex-rule-task',
+        description: 'Codex rule chooses the engine only',
+        output: ['src/main.ts'],
+      }),
+      PORT,
+    )
+    expect(matched.status).toBe(200)
+    yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')
+    expect(yaml).toContain('engine: codex')
+    expect(yaml).not.toContain('executor_model:')
+  })
+
   it('engine="agentic" persiste el campo en tasks.yaml y aparece en GET /api/tasks', async () => {
     const res = await route(
       req('POST', '/api/tasks', {

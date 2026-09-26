@@ -14,6 +14,7 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { getConfig } from '../../api/settings'
 import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
@@ -21,32 +22,64 @@ import { ProviderLogo } from '../common/ProviderLogos'
 
 interface OrchestChatViewProps {
   thread?: ChatThread
+  projectExists?: boolean
   onSendMessage: (
     content: string,
     attachments?: ChatAttachment[],
     agent?: string,
     model?: string,
     effort?: string,
-  ) => void
+  ) => unknown
   onApproveHeldTask?: (taskId: string) => void | Promise<void>
   onRejectHeldTask?: (taskId: string) => void | Promise<void>
   sessionStatus?: SessionStatus | null
   onSlashCommand?: (command: string, argument?: string) => void
+  onOpenRouting?: () => void
 }
 
 export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   thread,
+  projectExists = true,
   onSendMessage,
   onApproveHeldTask,
   onRejectHeldTask,
   sessionStatus,
   onSlashCommand,
+  onOpenRouting,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [isWorking, setIsWorking] = useState(false)
+  const sendLock = useRef(false)
   const [expandedReasoning, setExpandedReasoning] = useState<Record<string, boolean>>({})
   const [taskActionErrors, setTaskActionErrors] = useState<Record<string, string>>({})
+  const [sendError, setSendError] = useState<string | null>(null)
+  const [orchestrator, setOrchestrator] = useState<{
+    agent: string
+    model: string
+    effort?: string
+  } | null>(null)
+
+  useEffect(() => {
+    let disposed = false
+    const projectId = thread?.projectId
+    if (projectId && !projectExists) {
+      setOrchestrator(null)
+      return
+    }
+    const controller = new AbortController()
+    void getConfig(projectId ?? undefined, controller.signal)
+      .then((config) => {
+        if (!disposed) setOrchestrator(config.roleAssignments?.orchestrator ?? null)
+      })
+      .catch(() => {
+        if (!disposed) setOrchestrator(null)
+      })
+    return () => {
+      disposed = true
+      controller.abort()
+    }
+  }, [thread?.projectId, projectExists])
 
   const messages = thread?.messages || []
   const cliId = (
@@ -75,6 +108,17 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     ?.replace(/\s+via\s+.+$/i, '')
     .replace(/\s*\(effort: [^)]+\)/i, '')
   const lastEffort = lastAssistant?.model?.match(/\(effort: ([^)]+)\)/i)?.[1]
+  const sessionUsesOrchestrator = Boolean(orchestrator && thread?.agent === orchestrator.agent)
+  const initialModel = sessionUsesOrchestrator
+    ? orchestrator?.model
+    : cliId === 'api'
+      ? lastModel
+      : undefined
+  const initialEffort = sessionUsesOrchestrator
+    ? orchestrator?.effort
+    : cliId === 'api'
+      ? lastEffort
+      : undefined
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -90,15 +134,27 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     )
   }
 
-  const handleSendFromComposer = (
+  const handleSendFromComposer = async (
     text: string,
     attachments?: ChatAttachment[],
     cli?: string,
     model?: string,
     effort?: string,
   ) => {
+    if (sendLock.current) return false
+    sendLock.current = true
+    setSendError(null)
     setIsWorking(true)
-    onSendMessage(text, attachments, cli, model, effort)
+    try {
+      const accepted = await onSendMessage(text, attachments, cli, model, effort)
+      return accepted !== false
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : String(error))
+      return false
+    } finally {
+      sendLock.current = false
+      setIsWorking(false)
+    }
   }
 
   return (
@@ -280,6 +336,18 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         {msg.content}
                       </Markdown>
                     </div>
+                    {msg.auxiliaryRoleUnassigned && (
+                      <div className="mt-3 text-xs text-app-muted" role="status">
+                        Auxiliary role is unassigned — tasks are not created.{' '}
+                        <button
+                          type="button"
+                          onClick={onOpenRouting}
+                          className="text-app-accent hover:underline underline-offset-2"
+                        >
+                          Model routing
+                        </button>
+                      </div>
+                    )}
                     {msg.taskHeld && msg.proposedTask && (
                       <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-950/40 via-zinc-900 to-zinc-900 border border-indigo-500/40 shadow-xl space-y-3 mt-3">
                         <div className="flex items-center justify-between">
@@ -361,6 +429,11 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
             <div ref={messagesEndRef} />
           </div>
         )}
+        {sendError && (
+          <div className="mx-auto max-w-3xl text-xs text-red-400" role="alert">
+            {sendError}
+          </div>
+        )}
       </div>
 
       {/* Shared Composer (Nothing under composer: no status line) */}
@@ -368,10 +441,12 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer
             onSendMessage={handleSendFromComposer}
-            defaultModel={lastModel}
-            defaultEffort={lastEffort}
+            defaultModel={initialModel}
+            defaultEffort={initialEffort}
             defaultCli={cliId}
-            lockedCli={cliId}
+            orchestratorAssigned={!!orchestrator}
+            busy={isWorking}
+            onOpenRouting={onOpenRouting}
             onSlashCommand={onSlashCommand}
           />
         </div>

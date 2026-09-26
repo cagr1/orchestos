@@ -27,7 +27,7 @@ async function isolated(body: string): Promise<any> {
       writeFileSync(join(home, '.orchestos/cache/models.json'), JSON.stringify({ fetchedAt: Date.now(), models: {
         'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsTools: false, maxOutputTokens: 8192 }
       }}))
-      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, provider: openrouter, model: mock/orchestrator }\\n')
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, provider: openrouter, model: mock/orchestrator }\\n  auxiliary: { agent: api, provider: openrouter, model: mock/auxiliary }\\n  executor: { agent: api, provider: openrouter, model: mock/executor }\\n')
       writeFileSync(join(root, 'tasks.yaml'), 'version: 1\\nproject: fixture\\ntasks: []\\n')
       writeFileSync(join(root, 'existing.txt'), 'unchanged')
       db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', ['fixture', root, '{}', '', new Date().toISOString()])

@@ -1,11 +1,19 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — MR.1.d (chat al CLI elegido) — 2026-09-25
-MR.1.a/b/c cerrados (UI de Model routing viva, 10 ui:gate verdes). Falta MR.1.d para cerrar MR.1: el chat usa el
-Orquestador/CLI elegido sin caída a OpenRouter (AT.10), contexto veraz (AT.13), mover los dos hardcodes del chat
-(`chat/classify-task-intent.ts:32` → Auxiliar; `handlers/chat.ts` ~`:1199`). Pendiente MR.1.b2: `$0` del chat de
-Codex sin precio (F0.8). `usage-bar` intermitente ("No quota limits reported") → CI.2.
-Lanzar a Luna: ver AGENTS.md paso 2 (`ORCHESTOS_ROLE=executor`, `--item MR.1`).
+## Siguiente tab — tras cerrar MR.1.d1 (2026-09-26)
+MR.1.d1 cerrado (evidencia en PLAN.md, ronda 10 en el spec). Siguiente: "+ Add project" (abajo) y el spec de MR.1.d2.
+Decisión pendiente de Carlos: clasificador con Auxiliar = Codex tarda 8-12 s por mensaje (API ~1-2 s).
+Visto en la captura `chat-roles/task-held-for-confirmation.png` y sin investigar: el chat no baja del todo al último
+mensaje (la tarjeta held queda bajo el pliegue).
+
+## Inquietud de Carlos 2026-09-26 — "+ Add project" (después de cerrar MR.1.d1)
+Diagnóstico verificado en código: el "+" del sidebar (`ShellSidebar.tsx:217`) abre `AddProjectModal.tsx` (plantilla:
+"Project Name" + "Default Git Branch"), pero al confirmar `App.tsx:1044` → `handleNewProject` (`:551`) IGNORA nombre y
+rama y abre el selector nativo de carpeta (`chooseProject`). El modal es un paso que no aporta (Regla cero). Lo que
+pide Carlos (referencia: Orca, sin verificar cómo lo hace exactamente): "+" → elegir carpeta directo (nombre = nombre
+de la carpeta, rama detectada del repo si existe); preguntar por git solo en un camino aparte "Clonar repositorio"
+(URL → carpeta destino). Pasos: (1) quitar el modal y que "+" abra el selector nativo — fix chico; (2) "Clonar desde
+URL" es feature nueva → plan corto a Carlos antes. Mirar Orca antes de escribir el spec.
 
 ## Lote L4 (abierto 2026-09-24)
 Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write

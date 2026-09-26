@@ -5,6 +5,7 @@ import { join, relative } from 'path'
 import { classifyTaskIntent } from '../../chat/classify-task-intent.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
+import type { RoleAgent } from '../../config/schema.ts'
 import { estimateTokens } from '../../context/compress.ts'
 import { loadContext } from '../../context/load.ts'
 import {
@@ -17,6 +18,7 @@ import {
   beginTurn,
   commitTurnFailure,
   commitTurnSuccess,
+  getActiveTurn,
   parseTurnEnvelope,
   requireTurnOwner,
   reserveTurnTask,
@@ -24,7 +26,6 @@ import {
 import type { MemoryEntry } from '../../db/memory.ts'
 import { insertRun, listRuns, listRunsByProjectId } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
-import { chat as openrouterChat } from '../../providers/openrouter.ts'
 import {
   createToolRouter,
   FETCH_URL_TOOL,
@@ -37,11 +38,7 @@ import {
   supportsToolCalling,
   type ToolExecutor,
 } from '../../providers/tool-call.ts'
-import {
-  resolveAgentSelection,
-  resolveCascadeTier,
-  resolveProjectAgentRule,
-} from '../../router/engine-cascade.ts'
+import { resolveProjectAgentRule } from '../../router/engine-cascade.ts'
 import {
   contextWindowFor,
   DEFAULT_MAX_OUTPUT_TOKENS,
@@ -51,6 +48,7 @@ import {
   supportsVisionInput,
 } from '../../router/model-catalog.ts'
 import { knownCost } from '../../router/pricing.ts'
+import { clientFromAssignment } from '../../router/role-runner.ts'
 import {
   type CliCapabilityProbe,
   KNOWN_CLIS,
@@ -794,19 +792,49 @@ async function handleApiChat(
   }
   const root = project.root
 
-  if (session && body.agent !== undefined && body.agent !== session.agent) {
-    return errorResponse(`This session is locked to the ${session.agent} CLI`, 400)
-  }
-
   // H.9.2 — el agente elegido puede no tener una frontera real de lectura;
   // en ese caso el chat de proyecto continúa y comunica un aviso.
-  const chatAgent = body.agent ?? session?.agent ?? loadOrcheConfig(root).agent
+  const orcheConfig = loadOrcheConfig(root)
+  const orchestratorAssignment = orcheConfig.roles.orchestrator
+  const lastSessionAssistant = session
+    ? listChatMessages(session.id)
+        .filter((row) => row.role === 'assistant')
+        .at(-1)
+    : undefined
+  const sessionModel = lastSessionAssistant?.model
+    ?.replace(/\s+via\s+.+$/i, '')
+    .replace(/\s*\(effort: [^)]+\)/i, '')
+  const sessionEffort = lastSessionAssistant?.model?.match(/\(effort: ([^)]+)\)/i)?.[1]
+  const resolvedOrchestratorAssignment = orchestratorAssignment
+    ? {
+        ...orchestratorAssignment,
+        model: sessionModel || orchestratorAssignment.model,
+        effort: sessionEffort || orchestratorAssignment.effort,
+      }
+    : undefined
+  const chatAgent = body.agent ?? session?.agent ?? orchestratorAssignment?.agent
+  const chatAssignment = body.agent
+    ? body.model
+      ? {
+          ...(body.agent === orchestratorAssignment?.agent ? resolvedOrchestratorAssignment : {}),
+          agent: body.agent as RoleAgent,
+          model: body.model,
+          effort:
+            body.effort ??
+            (body.agent === orchestratorAssignment?.agent
+              ? resolvedOrchestratorAssignment?.effort
+              : undefined),
+        }
+      : body.agent === orchestratorAssignment?.agent
+        ? resolvedOrchestratorAssignment
+        : undefined
+    : resolvedOrchestratorAssignment
   const useClaudeCli = chatAgent === 'claude'
   const useCodexCli = chatAgent === 'codex'
   const useOpencodeCli = chatAgent === 'opencode'
   const readBoundaryWarning = hasProjectContext ? projectChatReadBoundaryWarning(chatAgent) : null
-  const requestedCliModel = body.model?.trim()
-  if (useClaudeCli || useCodexCli || useOpencodeCli) {
+  const requestedCliModel = body.model?.trim() || chatAssignment?.model
+  if ((useClaudeCli || useCodexCli || useOpencodeCli) && chatAssignment?.model) {
     const catalog = (await readCliModelCatalogs()).find((item) => item.id === chatAgent)
     if (catalog?.models.length && !requestedCliModel) {
       return errorResponse(`A model is required for the ${chatAgent} CLI session`, 400)
@@ -866,6 +894,16 @@ async function handleApiChat(
       return errorResponse('requestKey was already used with different message content', 409)
     }
     if (claim.kind === 'session-busy') {
+      const blocker = getActiveTurn(session.id)
+      console.warn(
+        '[chat] session-busy',
+        JSON.stringify({
+          sessionId: session.id,
+          blockingTurnId: blocker?.id ?? null,
+          status: blocker?.status ?? null,
+          ageMs: blocker ? Math.max(0, Date.now() - Date.parse(blocker.created_at)) : null,
+        }),
+      )
       return errorResponse('A response for this conversation is already being generated', 409)
     }
     if (claim.kind === 'interrupted') {
@@ -984,6 +1022,12 @@ async function handleApiChat(
     }
   }
 
+  if (!chatAgent || !chatAssignment?.model) {
+    const error = 'Orchestrator role is unassigned — assign it in Settings → Model routing'
+    finishTurnFailure({ error })
+    return errorResponse(error, 400)
+  }
+
   // CC.2 — una sesión es la fuente de verdad de su historia. Ignorar el array
   // enviado por el cliente evita mezclar/injectar mensajes de otra sesión.
   const rawHistory = session
@@ -1008,7 +1052,7 @@ async function handleApiChat(
   // hecha sin verificarla) — el usuario vio una tarea fantasma que nunca
   // se creó ni corrió. El clasificador ahora corre siempre; el atajo de
   // costo ya no aplica una vez que D.7 depende de esta señal en cada turno.
-  const taskSuggestion = await classifyTaskIntent(message)
+  const taskSuggestion = await classifyTaskIntent(message, orcheConfig, root)
   const barShown = barShownByCount || taskSuggestion.isTask
   logChatTaskBarEvent({ kind: 'message', message, historyLen: rawHistory.length + 1, barShown })
 
@@ -1063,18 +1107,13 @@ async function handleApiChat(
       } else {
         const skill = pickAutoSkill(draft.skillOptions)
         const orcheConfig = loadOrcheConfig(root)
-        // I.3 — reglas de proyecto ganan sobre la preferencia de sesión/config;
-        // ambas ganan sobre la cascada E.16 (ver resolveAgentSelection abajo).
+        // I.3 — una regla coincidente elige el engine; sin regla el run resuelve
+        // el rol Executor configurado (MR.1.b), sin inferencia desde el chat.
         const projectRule = resolveProjectAgentRule(orcheConfig.taskAgentRules, {
           output,
           skill,
         })
-        const preferredAgent = projectRule?.agent ?? session?.agent ?? orcheConfig.agent
-        // Solo se calcula la cascada cuando de verdad va a crearse una tarea —
-        // evita el probe de Ollama + Bun.which en cada mensaje de chat normal.
-        // Sigue calculándose aunque haya preferredAgent: resolveAgentSelection
-        // la usa como fallback si preferredAgent is undefined.
-        const cascade = await resolveCascadeTier()
+        const preferredAgent = projectRule?.agent
         const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
         // Durable identity BEFORE creating YAML/git state. A crash at any point
         // leaves this reservation on an interrupted turn; retries never dispatch it.
@@ -1086,7 +1125,9 @@ async function handleApiChat(
             description: draft.description,
             output,
             executor: draft.executor,
-            ...resolveAgentSelection(preferredAgent, cascade),
+            ...(preferredAgent === 'claude' ? { engine: 'external' } : {}),
+            ...(preferredAgent === 'codex' ? { engine: 'codex' } : {}),
+            ...(preferredAgent === 'opencode' ? { engine: 'opencode' } : {}),
             ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
             skill,
           },
@@ -1196,8 +1237,8 @@ async function handleApiChat(
   // OpenCode translate it into an OpenRouter model and silently use the wrong
   // transport; Codex would receive a misleading non-openai model as well.
   const requestedModel = body.model?.trim()
-  const model = requestedModel || 'deepseek/deepseek-v4-flash'
-  const cliModel = useClaudeCli || useCodexCli || useOpencodeCli ? requestedModel : model
+  const model = requestedModel || chatAssignment.model
+  const cliModel = model
   const isOllama = /^ollama\//.test(model)
   if (session?.agent === 'local' && !isOllama) {
     finishTurnFailure({ error: 'A local session requires an ollama/* model', model })
@@ -1225,10 +1266,11 @@ async function handleApiChat(
   // contra CLAUDE_CLI_EFFORTS) es un tipo distinto del `ReasoningEffort` de 3
   // niveles que espera el `reasoning` param de OpenRouter — separados para que
   // el tipo del segundo siga siendo estricto en el resto de esta función.
-  const cliEffort = useClaudeCli || useCodexCli ? (body.effort as string | undefined) : undefined
+  const selectedEffort = body.effort ?? chatAssignment?.effort
+  const cliEffort = useClaudeCli || useCodexCli ? selectedEffort : undefined
   const effort =
-    !useClaudeCli && body.effort && supportsReasoningEffort(model)
-      ? (body.effort as ReasoningEffort)
+    !useClaudeCli && selectedEffort && supportsReasoningEffort(model)
+      ? (selectedEffort as ReasoningEffort)
       : undefined
   const modelLabel = useClaudeCli
     ? `Claude Code CLI — modelo: ${model || '(default del CLI)'}${cliEffort ? `, esfuerzo: ${cliEffort}` : ''}`
@@ -1249,19 +1291,21 @@ async function handleApiChat(
   // usuario no tenía forma de notarlo sin ir a revisar tasks.yaml/la DB a
   // mano. Ahora la instrucción se arma según lo que REALMENTE pasó.
   const autoTaskInstruction =
-    session?.mode === 'chat' && taskSuggestion?.isTask
-      ? `This session is in Chat mode, which is a hard read-only boundary. The message looks like a build request, but NO task was created and no worktree or file write was started. Say that plainly and tell the user they must switch this session to Code mode before execution can begin.`
-      : !hasProjectContext && taskSuggestion?.isTask
-        ? `This chat session has no associated project, so it has no real tasks.yaml or project root where OrchestOS may create or run a task. NO task was created, no process was spawned, and no file write was started. Say that plainly and tell the user to switch to or create a project-associated session before execution can begin.`
-        : autoTaskSkipped
-          ? `The message was classified as a task, but its draft did not identify any output files. Do not create, run, or claim a task; answer the user's request normally without adding an auto-task error note.`
-          : autoTask && 'held' in autoTask
-            ? `OrchestOS detected a build request and created task "${autoTask.id}", but it touches ${autoTask.existingFiles.length} file(s) that already exist in the repo (${autoTask.existingFiles.join(', ')}) — execution is HELD, waiting for the user to confirm via an inline [View]/[Cancel] control the frontend shows (not this chat). Reply with a SHORT note (1-2 sentences) that the task was created and is waiting for their confirmation before it runs, naming the task id. Do NOT say it already started or is running.`
-            : autoTask && 'id' in autoTask
-              ? `When the user asks you to BUILD something (a page, a feature, a script): OrchestOS has ALREADY created and started running task "${autoTask.id}" in the background by the time you reply — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max), naming the task id. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists.`
-              : autoTask && 'error' in autoTask
-                ? `The user's message looked like a build request and OrchestOS TRIED to auto-create a task for it, but creation FAILED: "${autoTask.error}". You MUST NOT claim a task was started — tell the user plainly that auto-creation failed and why, in 1-2 sentences, and suggest they create the task manually from the Tasks screen.`
-                : `This particular message was NOT auto-detected as a build request, so NO task was created. Do not claim a task was started or is running in the background — if the user actually wants to build something, say so plainly and suggest describing it more explicitly (e.g. "build a page that...") or using the Tasks screen directly.`
+    taskSuggestion.reason === 'auxiliary-unassigned'
+      ? `Automatic task creation is disabled until the Auxiliary role is assigned in Settings → Model routing. Tell the user that in one sentence.`
+      : session?.mode === 'chat' && taskSuggestion?.isTask
+        ? `This session is in Chat mode, which is a hard read-only boundary. The message looks like a build request, but NO task was created and no worktree or file write was started. Say that plainly and tell the user they must switch this session to Code mode before execution can begin.`
+        : !hasProjectContext && taskSuggestion?.isTask
+          ? `This chat session has no associated project, so it has no real tasks.yaml or project root where OrchestOS may create or run a task. NO task was created, no process was spawned, and no file write was started. Say that plainly and tell the user to switch to or create a project-associated session before execution can begin.`
+          : autoTaskSkipped
+            ? `The message was classified as a task, but its draft did not identify any output files. Do not create, run, or claim a task; answer the user's request normally without adding an auto-task error note.`
+            : autoTask && 'held' in autoTask
+              ? `OrchestOS detected a build request and created task "${autoTask.id}", but it touches ${autoTask.existingFiles.length} file(s) that already exist in the repo (${autoTask.existingFiles.join(', ')}) — execution is HELD, waiting for the user to confirm via an inline [View]/[Cancel] control the frontend shows (not this chat). Reply with a SHORT note (1-2 sentences) that the task was created and is waiting for their confirmation before it runs, naming the task id. Do NOT say it already started or is running.`
+              : autoTask && 'id' in autoTask
+                ? `When the user asks you to BUILD something (a page, a feature, a script): OrchestOS has ALREADY created and started running task "${autoTask.id}" in the background by the time you reply — you don't create it, and you don't need to ask permission or point to any button. Just reply with a SHORT confirmation of what you understood the task to be (2-3 sentences max), naming the task id. NEVER dictate manual task-creation instructions, field-by-field tables, YAML snippets, or step lists.`
+                : autoTask && 'error' in autoTask
+                  ? `The user's message looked like a build request and OrchestOS TRIED to auto-create a task for it, but creation FAILED: "${autoTask.error}". You MUST NOT claim a task was started — tell the user plainly that auto-creation failed and why, in 1-2 sentences, and suggest they create the task manually from the Tasks screen.`
+                  : `This particular message was NOT auto-detected as a build request, so NO task was created. Do not claim a task was started or is running in the background — if the user actually wants to build something, say so plainly and suggest describing it more explicitly (e.g. "build a page that...") or using the Tasks screen directly.`
 
   const systemPrompt = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs, memory, specs, and the system. Be concise and direct. If the user writes in Spanish, respond in Spanish.
 
@@ -1397,6 +1441,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           model: resultLabel,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
           taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+          ...(taskSuggestion.reason === 'auxiliary-unassigned'
+            ? { auxiliaryRoleUnassigned: true }
+            : {}),
           autoTask,
           readAudit: params.readAudit,
           readBoundaryWarning: params.readBoundaryWarning ?? undefined,
@@ -1527,6 +1574,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           readAudit: uninstrumentedReadAudit(),
           readBoundaryWarning,
           provider: 'codex',
+          canonicalModel: result.model,
         })
         return jsonResponse({
           text: responseText,
@@ -1573,6 +1621,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           readAudit: uninstrumentedReadAudit(),
           readBoundaryWarning,
           provider: 'opencode',
+          canonicalModel: result.model,
         })
         return jsonResponse({
           text: responseText,
@@ -1615,6 +1664,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
         model: resp.model,
         ocrUsed: ocrUsed.length ? ocrUsed : undefined,
         taskSuggestion: taskSuggestion?.isTask ? { reason: taskSuggestion.reason } : null,
+        auxiliaryRoleUnassigned: taskSuggestion.reason === 'auxiliary-unassigned',
         autoTask,
       })
     }
@@ -1724,7 +1774,15 @@ ${autoTaskInstruction}${ctx}${projBlock}`
       })
     }
 
-    const resp = await openrouterChat({
+    const resolvedAssignment = {
+      ...chatAssignment,
+      agent: chatAgent as RoleAgent,
+      model,
+    }
+    const orchestratorClient = clientFromAssignment('orchestrator', resolvedAssignment, {
+      cwd: root,
+    })
+    const resp = await orchestratorClient.provider.chat({
       model,
       system: systemPrompt,
       effort,

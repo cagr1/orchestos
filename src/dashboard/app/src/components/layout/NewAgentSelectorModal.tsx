@@ -1,7 +1,7 @@
 import { Bot, Plus, X } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import { DEFAULT_CHAT_MODEL, getChatModels } from '../../api/chat'
+import { getConfig } from '../../api/settings'
 import { ProviderLogo } from '../common/ProviderLogos'
 
 interface ExecutorMode {
@@ -37,8 +37,8 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
   const [selectedCli, setSelectedCli] = useState('claude')
   const [agentTitle, setAgentTitle] = useState('')
   const [modes, setModes] = useState<ExecutorMode[]>([])
-  const [models, setModels] = useState<{ id: string; name: string }[]>([])
   const [chatProjectId, setChatProjectId] = useState<string | null>(selectedProjectId)
+  const selectedProjectExists = projectOptions.some((project) => project.id === selectedProjectId)
 
   useEffect(() => {
     if (!isOpen) return
@@ -60,18 +60,24 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
       .catch(() => {
         if (!disposed) setModes([])
       })
-    void getChatModels()
-      .then((chatModels) => {
-        if (!disposed)
-          setModels(chatModels.map((model) => ({ id: model.id, name: model.name || model.id })))
-      })
-      .catch(() => {
-        if (!disposed) setModels([])
-      })
+    const configProjectId = selectedProjectExists ? (selectedProjectId ?? undefined) : undefined
+    if (isChatMode)
+      void getConfig(configProjectId)
+        .then((config) => {
+          if (disposed) return
+          const orchestrator = config.roleAssignments?.orchestrator
+          if (orchestrator) {
+            setSelectedCli(orchestrator.agent)
+            setChatModel(orchestrator.model)
+          }
+        })
+        .catch(() => {})
     return () => {
       disposed = true
     }
-  }, [isOpen, selectedProjectId])
+  }, [isOpen, selectedProjectId, isChatMode, selectedProjectExists])
+
+  const [chatModel, setChatModel] = useState('')
 
   if (!isOpen) return null
 
@@ -83,9 +89,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
       ? `Chat with ${opt.label}`
       : `Agent: ${opt.label} on ${projectName}`
     const finalTitle = agentTitle.trim() || defaultTitle
-    const defaultModel =
-      models.find((model) => model.id === DEFAULT_CHAT_MODEL)?.id || models[0]?.id || ''
-    onCreateAgent(opt.id, defaultModel, finalTitle, isChatMode ? chatProjectId : undefined)
+    onCreateAgent(opt.id, chatModel, finalTitle, isChatMode ? chatProjectId : undefined)
     setAgentTitle('')
     onClose()
   }
@@ -190,11 +194,6 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-xs text-app">{opt.label}</span>
                       </div>
-                      {opt.id === 'api' && (
-                        <p className="text-xs text-app-muted mt-0.5 truncate">
-                          {models.length ? `${models.length} models` : 'Models unavailable'}
-                        </p>
-                      )}
                     </div>
                   </button>
                 )

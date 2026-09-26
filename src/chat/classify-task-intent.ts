@@ -23,14 +23,14 @@
  *   duda, no sugerir, la heurística de 3+ mensajes sigue como red de respaldo).
  */
 
-import { chat as openrouterChat } from '../providers/openrouter.ts'
+import { RoleUnassignedError } from '../config/load.ts'
+import type { OrcheConfig } from '../config/schema.ts'
+import { roleClient } from '../router/role-runner.ts'
 
 export interface TaskIntentResult {
   isTask: boolean
   reason: string
 }
-
-const CLASSIFIER_MODEL = 'deepseek/deepseek-v4-flash'
 
 const SYSTEM_PROMPT = `You classify a single chat message sent to a coding-agent orchestrator. Decide whether it describes executable work on a software repository — building/writing/modifying code, files, or a UI; running a command; fixing a bug — versus a conversational question, opinion, or comment about the project's state.
 
@@ -67,17 +67,25 @@ export function parseTaskIntentResponse(raw: string): TaskIntentResult {
  * Clasifica un mensaje. Nunca lanza — cualquier fallo de red/parseo cae a
  * isTask:false (fail-safe, la barra de 3+ mensajes sigue como red de respaldo).
  */
-export async function classifyTaskIntent(message: string): Promise<TaskIntentResult> {
+export async function classifyTaskIntent(
+  message: string,
+  cfg: OrcheConfig,
+  root: string,
+): Promise<TaskIntentResult> {
   try {
-    const resp = await openrouterChat({
-      model: CLASSIFIER_MODEL,
+    const client = roleClient(cfg, 'auxiliary', { cwd: root })
+    const resp = await client.provider.chat({
+      model: client.model,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: message }],
       // Deeper reasoning may need more output tokens before emitting the short JSON.
       maxTokens: 1000,
     })
     return parseTaskIntentResponse(resp.text)
-  } catch {
+  } catch (error) {
+    if (error instanceof RoleUnassignedError) {
+      return { isTask: false, reason: 'auxiliary-unassigned' }
+    }
     return { isTask: false, reason: '' }
   }
 }

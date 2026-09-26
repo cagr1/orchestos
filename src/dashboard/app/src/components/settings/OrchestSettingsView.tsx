@@ -135,7 +135,7 @@ interface OrchestSettingsViewProps {
   onRunNextTask?: () => void
   canRunNextTask?: boolean
   onOpenChat?: () => void
-  onPurgeProjectData?: (projectId: string) => void
+  onPurgeProjectData?: (projectId: string) => void | Promise<void>
   onResetOrchestos?: () => void
   onAddProject?: () => void
   projectTabsLoading?: boolean
@@ -265,7 +265,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [comboboxSearch, setComboboxSearch] = useState('')
 
   // Default agent & executor state (Orca Agents pattern)
-  const [defaultAgent, setDefaultAgent] = useState<string>('Auto')
   const [apiMode, setApiMode] = useState<'single-shot' | 'agentic'>('single-shot')
   const [maxIterations, setMaxIterations] = useState<number>(15)
   const [timeoutMinutes, setTimeoutMinutes] = useState<number>(20)
@@ -321,9 +320,20 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const totalRunsUsage = usage?.totalRuns ?? 0
   const totalSpendUsage = usage?.totalUsd ?? 0
   const avgCostUsage = totalRunsUsage ? (totalSpendUsage / totalRunsUsage).toFixed(3) : '0.000'
+  // A config request for a project being purged must never reach the server after the
+  // purge: the effect's in-flight request is aborted on confirm and the id is excluded.
+  const purgingProjectId = React.useRef<string | null>(null)
+  const configRequest = React.useRef<AbortController | null>(null)
+  const configProjectId =
+    activeProjectId !== purgingProjectId.current &&
+    projects.some((project) => project.id === activeProjectId)
+      ? activeProjectId
+      : undefined
 
   React.useEffect(() => {
     let disposed = false
+    const controller = new AbortController()
+    configRequest.current = controller
     setSettingsLoading(true)
     Promise.all([
       getSettings(),
@@ -332,7 +342,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       getLocalProvider(),
       getExecutorModes(),
       getUsage(),
-      getConfig(activeProjectId),
+      getConfig(configProjectId, controller.signal),
       fetch('/api/models/catalog').then((response) => response.json()),
     ])
       .then(
@@ -371,13 +381,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           }
           setRoutingRoles(routed.roleAssignments ?? {})
           setTaskAgentRules(routed.taskAgentRules ?? [])
-          setDefaultAgent(
-            nextConfig.agent === 'api'
-              ? 'API'
-              : nextConfig.agent
-                ? nextConfig.agent[0].toUpperCase() + nextConfig.agent.slice(1)
-                : 'Auto',
-          )
           setApiMode(nextConfig.apiMode)
           setMaxIterations(nextConfig.agenticMaxIterations)
           setTimeoutMinutes(nextConfig.externalTimeoutMinutes)
@@ -385,7 +388,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         },
       )
       .catch((error: unknown) => {
-        if (!disposed)
+        if (!disposed && !controller.signal.aborted)
           setSettingsError(error instanceof Error ? error.message : 'Settings could not be loaded')
       })
       .finally(() => {
@@ -393,11 +396,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       })
     return () => {
       disposed = true
+      controller.abort()
     }
-  }, [activeProjectId])
+  }, [activeProjectId, projects])
 
   const refreshSettings = async () => {
-    const [settings, nextConfig] = await Promise.all([getSettings(), getConfig(activeProjectId)])
+    const [settings, nextConfig] = await Promise.all([getSettings(), getConfig(configProjectId)])
     const keys = mapSettingsKeys(settings)
     setApiKeys((current) => ({
       openrouter: { ...keys.openrouter, newKey: current.openrouter.newKey },
@@ -449,7 +453,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const handleSaveRouting = async () => {
     try {
       await saveConfig({ roleAssignments: routingRoles, taskAgentRules }, activeProjectId)
-      const updated = (await getConfig(activeProjectId)) as ConfigResponse & {
+      const updated = (await getConfig(configProjectId)) as ConfigResponse & {
         roleWarnings?: string[]
         roleAssignments?: Record<string, { agent: string; model: string; effort?: string } | null>
         taskAgentRules?: RoutingRule[]
@@ -465,10 +469,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
   const handleSaveExecutor = async () => {
     try {
-      const agent = defaultAgent === 'Auto' ? null : defaultAgent.toLowerCase()
       await saveConfig(
         {
-          agent,
           apiMode,
           agenticMaxIterations: maxIterations,
           externalTimeoutMinutes: timeoutMinutes,
@@ -1665,69 +1667,20 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           </div>
         )}
 
-        {/* SECTION: EXECUTOR / DEFAULT AGENT */}
+        {/* SECTION: EXECUTOR */}
         {activeSection === 'executor' && (
           <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
             <div>
-              <h1 className="text-xl font-bold text-app tracking-tight">Default agent</h1>
+              <h1 className="text-xl font-bold text-app tracking-tight">Executor</h1>
               <p className="text-xs text-app-muted mt-1">
-                Which agent runs the tasks OrchestOS creates. A task can override it with its own
-                engine.
+                Tune API execution and CLI timeouts. The Executor role in Model routing chooses
+                which agent runs tasks.
               </p>
-            </div>
-
-            {/* Group of large agent chips */}
-            <div className="p-4 rounded-card border border-app bg-app-surface space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
-                {AGENTS_LIST.map((agent) => {
-                  const isSelected = defaultAgent === agent.name
-                  const detected = executorModes?.modes.find(
-                    (mode) => mode.id === agent.id.toLowerCase(),
-                  )?.detected
-                  const canUse = detected ?? agent.installed
-                  return (
-                    <button
-                      key={agent.id}
-                      type="button"
-                      disabled={!canUse}
-                      onClick={() => {
-                        setDefaultAgent(agent.name)
-                        showToast(`Default agent: ${agent.name}`)
-                      }}
-                      className={`relative flex flex-col items-center justify-center p-3 rounded-card border text-center transition-all min-h-[96px] ${
-                        isSelected
-                          ? 'bg-app-elevated border-app-accent shadow-xs text-app ring-1 ring-app-accent/40'
-                          : canUse
-                            ? 'bg-app-bg border-app text-app hover:border-app-accent/60 hover:bg-app-elevated/40 cursor-pointer'
-                            : 'bg-app-bg/40 border-app/40 text-app-muted cursor-not-allowed opacity-45'
-                      }`}
-                    >
-                      {/* Check badge when chosen */}
-                      {isSelected && (
-                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-app-accent flex items-center justify-center text-zinc-950 shadow-xs">
-                          <Check className="w-2.5 h-2.5 stroke-[3]" />
-                        </div>
-                      )}
-
-                      <div className="mb-2 flex items-center justify-center h-6">{agent.icon}</div>
-                      <div className="text-xs font-semibold leading-tight text-app">
-                        {agent.name}
-                      </div>
-
-                      {!canUse && (
-                        <div className="text-[10px] text-zinc-500 font-mono mt-1 leading-none">
-                          Not installed
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
             </div>
 
             {/* Conditional adjustment rows depending on chosen agent */}
             {/* If CLI (Claude, Codex, OpenCode): Timeout */}
-            {['Claude', 'Codex', 'OpenCode'].includes(defaultAgent) && (
+            {
               <div className="rounded-card border border-app bg-app-surface divide-y divide-app">
                 <div className="p-4 flex items-center justify-between text-xs gap-4">
                   <div>
@@ -1768,10 +1721,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   </div>
                 </div>
               </div>
-            )}
+            }
 
             {/* If API: Mode (Single-shot | Agentic) and Max iterations if Agentic */}
-            {defaultAgent === 'API' && (
+            {
               <div className="rounded-card border border-app bg-app-surface divide-y divide-app">
                 <div className="p-4 flex items-center justify-between text-xs gap-4">
                   <div>
@@ -1852,7 +1805,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   </div>
                 )}
               </div>
-            )}
+            }
             <div className="flex justify-end pt-2">
               <button
                 type="button"
@@ -2405,7 +2358,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  if (onPurgeProjectData) onPurgeProjectData(selectedProject.id)
+                  const purgedId = selectedProject.id
+                  purgingProjectId.current = purgedId
+                  configRequest.current?.abort()
+                  void Promise.resolve(onPurgeProjectData?.(purgedId)).finally(() => {
+                    if (purgingProjectId.current === purgedId) purgingProjectId.current = null
+                  })
                   setShowPurgeConfirm(false)
                 }}
                 className="px-3 py-1.5 rounded-control bg-rose-600 hover:bg-rose-500 text-white font-semibold"
