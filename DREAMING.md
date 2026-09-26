@@ -1,55 +1,71 @@
-# DREAMING.md — 2026-09-23
+# DREAMING.md — 2026-09-26
 
 ## Runs analizados
 - Total: 20 runs
-- Periodo: 2026-09-18T15:31:18Z → 2026-09-23T02:42:10Z
+- Periodo: 2026-09-23T23:57:34Z → 2026-09-25T00:13:45Z
 - failed: 1 | blocked: 0 | done: 19 | qa_failed: 0
+
+Distribución: 19 `chat` (codex, gpt-5.6-luna ×18 y gpt-6-luna ×1) y 1 `implement` (role:codex, gpt-6-luna).
+Ningún run tiene `qa_verdict`, `qa_reason` ni `checks_failed > 0`: los criterios de QA de este
+análisis no tienen señal en esta ventana.
 
 ## Patrones detectados
 
-Ningún patrón alcanza los umbrales (task_class >50% fallo, modelo con 3+ qa fail, qa_reason repetida, checks_failed recurrente): 0 runs con qa_verdict, 0 qa_reason, 0 checks_failed, 0 files_blocked. Todos los runs son `task_class: chat`.
+### `implement` falla 1/1 sin causa registrada
+- Evidencia: run `cb98fe9b`, task_class `implement`, model `gpt-6-luna`, provider `role:codex`,
+  status `failed`, 28.8 s, tokens 0, `qa_verdict`/`qa_reason` null.
+- Frecuencia: 1/1 runs `implement` (100 %, supera el umbral de 50 % pero con n=1: no es tendencia).
+- qa_reason recurrente: ninguna — el fallo no deja causa en el resumen. Con tokens 0, lo probable
+  es que el CLI no llegó a responder (arranque/timeout/modelo), no que QA lo rechazara. No verificado.
 
-### Fallo aislado de Codex sin diagnóstico
-- Evidencia: run 2026-09-23T01:39:44Z, provider `codex`, model `codex` (sin modelo real ni effort), status `failed`, 0 tokens, qa_verdict null.
-- Frecuencia: 1/20 runs (único fallo). El análisis anterior (09-18) registró el mismo patrón con opencode: fallo sin causa ni modelo.
-- qa_reason recurrente: ninguna.
+### `elapsed_ms` siempre 0 en los runs de chat
+- Evidencia: los 19 runs `chat` tienen `elapsed_ms: 0`. `src/dashboard/handlers/chat.ts:573`
+  escribe `elapsed_ms: 0` literal en `insertRun`.
+- Frecuencia: 19/19 runs chat.
+- Efecto: no hay latencia medible del chat; imposible detectar regresiones de tiempo (p. ej. el
+  clasificador lento con Codex documentado en NEXT.md).
 
-### elapsed_ms siempre 0
-- Evidencia: los 20 runs (claude, codex, openrouter) tienen `elapsed_ms: 0`.
-- Frecuencia: 20/20 runs.
-- qa_reason recurrente: n/a. La latencia no se está midiendo en runs de chat.
+### Etiqueta de modelo no canónica
+- Evidencia: los runs chat guardan `model` = "gpt-5.6-luna via Codex CLI (effort: medium)"
+  (`chat.ts:1508`), el run implement guarda "gpt-6-luna". El mismo modelo aparece con dos
+  formatos distintos.
+- Frecuencia: 19/20 runs.
+- Efecto: agrupar por `model` (el criterio "mismo model con fail en 3+ runs") no funciona sin
+  normalizar a mano.
 
-### Coste de contexto de Codex en chat creciendo
-- Evidencia: runs de Codex en chat pasaron de ~15.3k–15.8k tokens (09-18) a ~38.7k–45.3k tokens (09-23), incluso en respuestas cortas; runs de Claude en el mismo periodo: 143–2,657 tokens.
-- Frecuencia: 6/12 runs de Codex por encima de 38k.
-- qa_reason recurrente: n/a. No verificado contra el código si el aumento viene del prompt de sistema/contexto inyectado por OrchestOS o del propio CLI.
-
-### Etiqueta de modelo de Codex heterogénea
-- Evidencia: el mismo proveedor registra `codex`, `codex (cli default model) via Codex CLI`, `... (effort: …)` y `gpt-5.6-luna via Codex CLI (effort: …)`.
-- Frecuencia: 12/12 runs de Codex, 4 formatos distintos.
-- qa_reason recurrente: n/a. Impide agrupar por modelo. Mejora respecto al 09-18: ya no aparecen runs de Codex con provider `openrouter`.
+### Outlier de tokens en chat
+- Evidencia: run `1f94cfe2` (2026-09-24T00:40Z) = 277,625 tokens; la línea base es ~12.3k y el
+  resto ≤ 26.6k.
+- Frecuencia: 1/19 runs chat (~22× la mediana).
+- qa_reason recurrente: n/a.
 
 ## Propuestas
 
-### Propuesta 1 — Persistir causa y modelo en runs fallidos de CLI
-- Qué cambiar: en el adaptador de chat por CLI (codex/opencode), al fallar guardar el error (stderr/exit code) en el run y el modelo/effort resueltos, no `codex`/`unknown`.
-- Por qué: los 2 últimos fallos observados (opencode 09-15, codex 09-23) no son diagnosticables desde runs-summary.json.
+### Propuesta 1 — Registrar la causa de fallo en runs `implement`
+- Qué cambiar: la ruta que marca `status: failed` para task_class `implement` con provider
+  `role:codex` debe poblar `qa_reason` (o un campo equivalente exportado a runs-summary.json) con
+  la causa: exit code, timeout o error del CLI.
+- Por qué: el único run implement falló con tokens 0 y sin causa; no se puede diagnosticar desde
+  el resumen.
 - Riesgo: bajo
 
-### Propuesta 2 — Medir elapsed_ms en runs de chat
-- Qué cambiar: registrar inicio/fin del turno de chat y guardar la duración en el run.
-- Por qué: 20/20 runs con 0 ms; no hay dato para comparar latencia entre motores.
+### Propuesta 2 — Medir `elapsed_ms` real en el chat
+- Qué cambiar: `src/dashboard/handlers/chat.ts:573` — pasar la duración del turno en vez de `0`.
+- Por qué: 19/19 runs chat sin latencia; el cuello de botella del clasificador con Codex no se
+  puede seguir con datos.
 - Riesgo: bajo
 
-### Propuesta 3 — Investigar el salto de tokens de Codex en chat
-- Qué cambiar: comparar el prompt enviado a Codex el 09-18 vs 09-23 (contexto de proyecto, historial, instrucciones) y recortar lo que no aporte.
-- Por qué: ~2.5x tokens por turno en 5 días; va contra la regla de que OrchestOS debe ahorrar frente al CLI directo.
-- Riesgo: medio
+### Propuesta 3 — Guardar el modelo canónico en `runs.model`
+- Qué cambiar: en `chat.ts` guardar `canonicalModel` (ya disponible en `finishTurnSuccess`) en
+  `model` y dejar la etiqueta "via Codex CLI (effort)" solo para la UI, o exportar ambos.
+- Por qué: 19/20 runs con etiqueta compuesta; rompe el agrupado por modelo.
+- Riesgo: bajo (revisar consumidores que parseen la etiqueta).
 
-### Propuesta 4 — Normalizar model/effort en campos separados
-- Qué cambiar: guardar `model` como id limpio (o `cli-default`) y `effort` en campo propio.
-- Por qué: 4 formatos para el mismo proveedor impiden detectar patrones por modelo.
-- Riesgo: bajo
+### Propuesta 4 — Revisar el turno de 277k tokens
+- Qué cambiar: nada todavía; inspeccionar el run `1f94cfe2` (prompt/read_audit) para ver si el
+  contexto inyectado al CLI se desbordó (relacionado con AT.13).
+- Por qué: un turno de chat costó ~22× la mediana.
+- Riesgo: bajo (solo investigación).
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
