@@ -1,4 +1,9 @@
-# DREAMING.md — 2026-09-26
+# DREAMING.md — 2026-09-27
+
+> Sin runs nuevos desde el análisis del 2026-09-26: el último run es del 2026-09-25T00:13Z.
+> Mismos 20 runs; patrones y propuestas se mantienen. Re-verificado hoy en el código:
+> `elapsed_ms: 0` literal sigue en `src/dashboard/handlers/chat.ts:573`, `:1009` y `:1376`
+> (tres call sites, no uno), y la etiqueta compuesta sigue en `chat.ts:1508`.
 
 ## Runs analizados
 - Total: 20 runs
@@ -19,8 +24,8 @@ análisis no tienen señal en esta ventana.
   es que el CLI no llegó a responder (arranque/timeout/modelo), no que QA lo rechazara. No verificado.
 
 ### `elapsed_ms` siempre 0 en los runs de chat
-- Evidencia: los 19 runs `chat` tienen `elapsed_ms: 0`. `src/dashboard/handlers/chat.ts:573`
-  escribe `elapsed_ms: 0` literal en `insertRun`.
+- Evidencia: los 19 runs `chat` tienen `elapsed_ms: 0`. `src/dashboard/handlers/chat.ts:573`,
+  `:1009` y `:1376` escriben `elapsed_ms: 0` literal.
 - Frecuencia: 19/19 runs chat.
 - Efecto: no hay latencia medible del chat; imposible detectar regresiones de tiempo (p. ej. el
   clasificador lento con Codex documentado en NEXT.md).
@@ -50,7 +55,8 @@ análisis no tienen señal en esta ventana.
 - Riesgo: bajo
 
 ### Propuesta 2 — Medir `elapsed_ms` real en el chat
-- Qué cambiar: `src/dashboard/handlers/chat.ts:573` — pasar la duración del turno en vez de `0`.
+- Qué cambiar: `src/dashboard/handlers/chat.ts:573`, `:1009` y `:1376` — pasar la duración del
+  turno en vez de `0` en los tres call sites.
 - Por qué: 19/19 runs chat sin latencia; el cuello de botella del clasificador con Codex no se
   puede seguir con datos.
 - Riesgo: bajo
