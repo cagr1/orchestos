@@ -155,6 +155,35 @@ describe('runClaudeChat (CC.1)', () => {
     expect(tools).not.toContain('Bash')
   })
 
+  it('emite los deltas de texto del stream en el orden recibido', async () => {
+    const deltas: string[] = []
+    const stdout = streamOf(
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_delta', delta: { type: 'text_delta', text: 'uno' } },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_delta', delta: { type: 'text_delta', text: ' dos' } },
+      },
+      resultEvent({}),
+    )
+    overrideBunSpawn(makeMockProc(stdout))
+
+    await runClaudeChat(
+      '/tmp/some-project',
+      'system prompt',
+      'hola',
+      5000,
+      undefined,
+      undefined,
+      undefined,
+      (text) => deltas.push(text),
+    )
+
+    expect(deltas).toEqual(['uno', ' dos'])
+  })
+
   // H.9.2 — la frontera de lectura ES este par de flags. Si alguien los quita
   // "porque no parecen hacer nada", el chat de proyecto vuelve a leer cualquier
   // archivo del filesystem en silencio — que es exactamente cómo se cerró este

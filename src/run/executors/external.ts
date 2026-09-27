@@ -21,7 +21,7 @@ import { realpathSync } from 'node:fs'
 import { safeChildEnv } from '../path-policy.ts'
 import { ClaudeReadAudit, type ReadAudit, successfulReadPaths } from '../read-audit.ts'
 import { provisionCliConfigHome, supportsRestrictedMode } from './cli-registry.ts'
-import { claudeEventToStep, type ExecutorStepEvent } from './step-event.ts'
+import { claudeEventToStep, claudeEventToTextDelta, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
 
@@ -191,6 +191,7 @@ async function runClaudeCode(
   onStep?: (event: ExecutorStepEvent) => void,
   binary = CLAUDE_BINARY,
   audit = new ClaudeReadAudit(),
+  onTextDelta?: (text: string) => void,
 ): Promise<{ stdout: string; timedOut: boolean; resultLine?: string; readAudit: ReadAudit }> {
   const proc = Bun.spawn([binary, ...args], {
     cwd,
@@ -219,6 +220,8 @@ async function runClaudeCode(
     try {
       const evt = JSON.parse(line)
       if (evt?.type === 'result') resultLine = line
+      const delta = claudeEventToTextDelta(evt)
+      if (delta !== null) onTextDelta?.(delta)
       if (onStep) for (const step of claudeEventToStep(evt)) onStep(step)
     } catch {
       // Audit preserves malformed input; rendering must not abort the stream.
@@ -359,6 +362,7 @@ export async function runClaudeChat(
   model?: string,
   effort?: string,
   onChatStep?: (event: ExecutorStepEvent) => void,
+  onChatTextDelta?: (text: string) => void,
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -393,6 +397,7 @@ export async function runClaudeChat(
       onStep,
       binary,
       audit,
+      onChatTextDelta,
     ))
   } catch (e: any) {
     const error = new ExecutorExternalError(`failed to run claude code: ${e.message}`)

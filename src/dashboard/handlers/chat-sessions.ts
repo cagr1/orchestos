@@ -25,6 +25,7 @@ import { insertConsoleCommand, listConsoleCommands } from '../../db/console-comm
 import { getRunSteps } from '../../db/run-steps.ts'
 import { runOneCheck } from '../../run/checks.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
+import { getLiveText } from '../chat-live.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import {
   type DashboardProjectContext,
@@ -323,6 +324,7 @@ export function handleApiChatSessionTimeline(url: URL): Response {
     })),
   ].sort((a, b) => a.at.localeCompare(b.at) || ('seq' in a ? a.seq : 0) - ('seq' in b ? b.seq : 0))
   return jsonResponse({
+    live: getLiveText(id),
     turns: turns.map((turn) => ({
       id: turn.id,
       status: turn.status,

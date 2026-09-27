@@ -71,6 +71,13 @@ import { listAllSkillCandidates } from '../../skills/catalog.ts'
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { readCliModelCatalogs } from '../chat-cli-models.ts'
+import {
+  appendLiveText,
+  clearLiveText,
+  replaceLiveText,
+  stripTaskMarker,
+  TASK_MARKER,
+} from '../chat-live.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import { ollamaChat } from '../llm/clients.ts'
 import {
@@ -103,18 +110,11 @@ const CHAT_TURN_OWNER = randomUUID()
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS = 30 * 60 * 1000
-export const TASK_MARKER = '[[orchestos:task]]'
+
+export { stripTaskMarker, TASK_MARKER }
 
 export function hasTaskMarker(text: string): boolean {
   return text.split(/\r?\n/).some((line) => line.trim() === TASK_MARKER)
-}
-
-export function stripTaskMarker(text: string): string {
-  return text
-    .split(/\r?\n/)
-    .filter((line) => line.trim() !== TASK_MARKER)
-    .join('\n')
-    .trimEnd()
 }
 
 /**
@@ -948,6 +948,7 @@ async function handleApiChat(
     }
     const detail = step.type === 'text' ? stripTaskMarker(step.detail ?? '') : step.detail
     if (step.type === 'text' && !detail?.trim()) return
+    if (step.type === 'text' && detail) replaceLiveText(session.id, activeTurnId, detail)
     insertChatTurnStep({
       sessionId: session.id,
       turnId: activeTurnId,
@@ -981,6 +982,7 @@ async function handleApiChat(
     readAudit?: ReadAudit
     provider?: string
   }): void => {
+    if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
     const provider = params.provider ?? 'openrouter'
     const projectId = session?.project_id ?? project.id
     const runInput = params.readAudit
@@ -1332,6 +1334,7 @@ ${autoTaskInstruction}${ctx}${projBlock}`
     canonicalModel?: string
     reportedUsd?: number | null
   }): void => {
+    if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
     const { responseText, resultLabel, inputTokens, outputTokens, provider = 'openrouter' } = params
     const canonicalModel = params.canonicalModel ?? resultLabel
     const cost = chatCost(canonicalModel, inputTokens, outputTokens, params.reportedUsd)
@@ -1448,6 +1451,9 @@ ${autoTaskInstruction}${ctx}${projBlock}`
           model,
           cliEffort,
           persistChatStep,
+          (text) => {
+            if (activeTurnId && session) appendLiveText(session.id, activeTurnId, text)
+          },
         )
         const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
         const { text: responseText } = await settleTaskIntent(result.text)

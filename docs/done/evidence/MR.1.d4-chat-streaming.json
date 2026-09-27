@@ -1,0 +1,113 @@
+[
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-wF6f4i"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-wF6f4i\nSelect Agent / Engine\nClaude Code\nopencode\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=3044 ms; t_done=5186 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "4 growth updates"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Diez Once Doce Trece Catorce Qui"
+      },
+      {
+        "nombre": "task marker is not visible",
+        "ok": true,
+        "detalle": "no task marker in the DOM"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=2490 ms; t_done=3401 ms; visible=Uno, dos, tres, cuatro y cinco."
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31386/chat-streaming/chat-text-visible-mid-turn.png"
+    ]
+  },
+  {
+    "flujo": "chat-roles",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d1-k7JKpu"
+      },
+      {
+        "nombre": "Orchestrator Codex selected by default",
+        "ok": true,
+        "detalle": "Codex option visible: Codex"
+      },
+      {
+        "nombre": "question turn receives a response",
+        "ok": true,
+        "detalle": "I’ll check the README’s line count in the project root.\n\nThe README has 1 line."
+      },
+      {
+        "nombre": "first normal turn latency (ms)",
+        "ok": true,
+        "detalle": "12148 ms from send to visible reply"
+      },
+      {
+        "nombre": "Orchestrator provider and model are recorded",
+        "ok": true,
+        "detalle": "{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}"
+      },
+      {
+        "nombre": "Orchestrator marker creates a held task without Auxiliary",
+        "ok": true,
+        "detalle": "Task ready to run"
+      },
+      {
+        "nombre": "task marker is stripped from the chat",
+        "ok": true,
+        "detalle": "Visible marker count: 0"
+      },
+      {
+        "nombre": "task delegates execution without fixed model or engine",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-d572bb2f-2f21-4baa-b65f-ea4eecfd2557\",\"description\":\"Añadir la línea «Orchestrator marker gate» a README.md.\",\"output\":[\"README.md\"],\"executor\":\"openrouter\",\"status\":\"pending\",\"retry_count\":0}"
+      },
+      {
+        "nombre": "Executor settings no longer contain Default agent chips",
+        "ok": true,
+        "detalle": "Default agent headings: 0; chips: 0"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31386/chat-roles/temporary-project-visible.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31386/chat-roles/orchestrator-preselected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31386/chat-roles/orchestrator-question-response.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31386/chat-roles/orchestrator-turn-recorded.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31386/chat-roles/task-held-without-auxiliary.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31386/chat-roles/task-yaml-delegates-to-role.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31386/chat-roles/executor-settings-without-default-agent.png"
+    ]
+  }
+]

@@ -6,9 +6,35 @@
 import { describe, expect, it } from 'bun:test'
 import {
   claudeEventToStep,
+  claudeEventToTextDelta,
   codexEventToStep,
   opencodeEventToStep,
 } from '../run/executors/step-event.ts'
+
+describe('claudeEventToTextDelta', () => {
+  it('returns the text delta', () => {
+    expect(
+      claudeEventToTextDelta({
+        type: 'stream_event',
+        event: { type: 'content_block_delta', delta: { type: 'text_delta', text: 'hola' } },
+      }),
+    ).toBe('hola')
+  })
+  it.each([
+    {
+      type: 'stream_event',
+      event: { type: 'content_block_delta', delta: { type: 'thinking_delta', thinking: '' } },
+    },
+    {
+      type: 'stream_event',
+      event: { type: 'content_block_start', content_block: { type: 'text' } },
+    },
+    { type: 'assistant', message: { content: [{ type: 'text', text: 'complete' }] } },
+    'garbage',
+  ])('ignores non text-delta events', (event) => {
+    expect(claudeEventToTextDelta(event)).toBeNull()
+  })
+})
 
 describe('claudeEventToStep', () => {
   it('assistant con bloque thinking → step reasoning', () => {

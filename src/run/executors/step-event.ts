@@ -13,8 +13,8 @@
  *    `{type:'text',text}` / `{type:'tool_use',id,name,input}`, mismo shape
  *    que ya usa `tool-call.ts` para la Messages API). Solo se mapean mensajes
  *    completos, no los deltas de `stream_event` (--include-partial-messages
- *    los habilita pero no se pudo probar su shape en este entorno — no fingir
- *    soporte de algo no verificado, mismo criterio que G.1/G.5).
+ *    los habilita y `stream_event` incluye deltas de texto; `thinking_delta`
+ *    llega vacío en la forma verificada y se ignora.
  *  - opencode: `opencode run ... --format json --auto` — `evt.type` en
  *    `'tool_use' | 'text' | 'step_finish' | 'step_start'`, con detalle en
  *    `evt.part`. `tool_use`: `part.tool` (nombre) + `part.state.title`.
@@ -36,6 +36,21 @@ export interface ExecutorStepEvent {
   toolUseId?: string
   costUsd?: number
   tokens?: { input?: number; output?: number }
+}
+
+export function claudeEventToTextDelta(raw: unknown): string | null {
+  const evt = raw as {
+    type?: string
+    event?: { type?: string; delta?: { type?: string; text?: string } }
+  }
+  if (
+    evt?.type !== 'stream_event' ||
+    evt.event?.type !== 'content_block_delta' ||
+    evt.event.delta?.type !== 'text_delta' ||
+    typeof evt.event.delta.text !== 'string'
+  )
+    return null
+  return evt.event.delta.text
 }
 
 // -- claude (stream-json) ---------------------------------------------------

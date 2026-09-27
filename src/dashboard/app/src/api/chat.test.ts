@@ -206,6 +206,7 @@ describe('chat API mapping', () => {
     ]
     const message = mapMessage(rows[0])
     const detailed = attachTurnDetails([message], rows, {
+      live: null,
       turns: [
         {
           id: 'turn-1',
@@ -299,6 +300,7 @@ describe('chat API mapping', () => {
     })
     expect(
       attachTurnDetails([message], [{ ...message, id: 1 } as never], {
+        live: null,
         turns: [],
         messages: [],
         commands: [],

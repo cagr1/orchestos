@@ -117,14 +117,20 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
     true,
     `${staleCopy.length} literals checked`,
   )
-  const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
-  const session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
-  const messages = session
-    ? await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/messages`)
-    : { data: [] }
-  const assistant = (Array.isArray(messages.data) ? messages.data : []).find(
-    (message) => message.role === 'assistant',
-  )
+  // MR.1.d4: la burbuja en vivo aparece antes de que el turno se persista; esperar el mensaje guardado.
+  let session
+  let assistant
+  for (let attempt = 0; attempt < 60 && !assistant; attempt++) {
+    if (attempt) await new Promise((resolve) => setTimeout(resolve, 500))
+    const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
+    session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
+    const messages = session
+      ? await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/messages`)
+      : { data: [] }
+    assistant = (Array.isArray(messages.data) ? messages.data : []).find(
+      (message) => message.role === 'assistant',
+    )
+  }
   await step(
     'turn records selected model and effort',
     Boolean(assistant?.model?.includes('gpt-6-luna') && session?.lastEffort === 'medium'),

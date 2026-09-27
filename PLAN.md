@@ -536,7 +536,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     AT.13 puntos 1-8 (herramientas reales, `n/a` en costos desconocidos, tasks en una línea, motivo de QA, nombres de
     modelo normalizados, fechas con zona, índice de memoria/specs, sin prompts apilados) + `$0` del chat de Codex sin
     precio (resto de MR.1.b2). Spec al terminar MR.1.d1.
-  - [ ] **MR.1.d4 — 🧠 El chat pinta la respuesta mientras se genera, para cualquier agente.** (abierto 2026-09-27, GO de
+  - [x] **MR.1.d4 — 🧠 El chat pinta la respuesta mientras se genera, para cualquier agente.** (abierto 2026-09-27, cerrado 2026-09-27, GO de
     Carlos; "mientras trabaja no sé qué está haciendo, pinta el texto que se va generando como en el CLI") Hoy el Chat
     hace un único `POST /api/chat` (`app/src/api/chat.ts:447`) y no pinta nada hasta el final (spinner mínimo
     `OrchestChatView.tsx:411`), aunque el backend ya recibe los pasos en vivo (`persistChatStep`, `chat.ts:942`).
@@ -544,11 +544,21 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     alimenta cualquier adaptador vía `onChatStep`; endpoint que el Chat consulta cada ~300 ms mientras hay turno (mismo
     patrón que el polling 1 s de Dev, `OrchestDevWorkspace.tsx:157`); burbuja del asistente que crece en Chat y Dev en
     lugar del spinner; al terminar, el mensaje final como hoy. La DB no cambia. Claude CLI ya entrega deltas
-    (`stream-json` + `--include-partial-messages`, `external.ts:141`) → texto en vivo sin tocar su adaptador. Codex
+    (`stream-json` + `--include-partial-messages`, `external.ts:141`), pero `claudeEventToStep` los descartaba
+    (corregido 2026-09-27: shape `stream_event`/`text_delta` verificado en vivo; hay que mapearlo, spec
+    `docs/specs/MR.1.d4.md`). Codex
     `exec` no emite deltas (medido): con d4 muestra razonamiento/herramientas al ocurrir; el texto en vivo es MR.1.d5.
     Fuera: adaptadores nuevos, OpenCode, API, ejecutor de tareas, MR.1.d2. Gate: tests del buffer/endpoint; flujo nuevo
     `chat-streaming` (texto visible ANTES de que el turno termine y creciendo, con Claude CLI); los 11 ui:gate; tiempo
     hasta el primer texto antes/después.
+    Ejecutado por: Codex · `gpt-6-luna` (1 ronda) + ajustes del cerebro · Spec: docs/specs/MR.1.d4.md (borrado al cerrar)
+    Gate en vivo: navegador real (Playwright), `docs/done/evidence/MR.1.d4-chat-streaming.json`: `chat-streaming` 8/8
+    con Claude CLI haiku — Chat primer texto 3.0 s / fin 5.2 s (4 crecimientos; antes primer texto = fin), Dev 2.5 s /
+    3.4 s; los 11 ui:gate verdes; `test:coverage` 1545/0 (75.47 %/61.15 %); tsc back+app; biome.
+    Hallazgos del gate: (1) el flujo de Luna elegía Claude sin modelo → CLI default `fable`, que en esta cuenta responde
+    "You're out of usage credits" de una pieza → el flujo fija `haiku` en el composer; (2) `text-sweep` leía la DB en
+    cuanto veía la burbuja, que ahora aparece antes de persistir → espera el mensaje guardado; (3) `chat-live.ts`
+    duplicaba `stripTaskMarker` → una sola definición. Con Codex el texto sigue llegando al final (MR.1.d5).
   - [ ] **MR.1.d5 — 🧠 Adaptador `codex app-server`: texto en vivo con Codex y turnos siguientes ~2 s.** (abierto
     2026-09-27; decisión aparte de Carlos, NO aprobado todavía) `codex app-server` = el mismo Codex como proceso
     persistente con JSON-RPC por stdio (`codex app-server generate-ts` da el protocolo); el binario lo marca

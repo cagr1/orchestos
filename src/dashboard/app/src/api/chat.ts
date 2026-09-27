@@ -117,6 +117,7 @@ export interface TimelineTurn {
 }
 
 export interface TimelineResponse {
+  live: { turnId: string; text: string } | null
   turns: TimelineTurn[]
   messages: ChatMessageRow[]
   commands: Array<{

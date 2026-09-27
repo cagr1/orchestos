@@ -14,6 +14,7 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { getTimeline, type TimelineResponse } from '../../api/chat'
 import { getConfig } from '../../api/settings'
 import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
@@ -59,6 +60,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     model: string
     effort?: string
   } | null>(null)
+  const [liveTimeline, setLiveTimeline] = useState<TimelineResponse | null>(null)
 
   useEffect(() => {
     let disposed = false
@@ -82,6 +84,36 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   }, [thread?.projectId, projectExists])
 
   const messages = thread?.messages || []
+  const sessionId = thread?.id
+
+  useEffect(() => {
+    if (!isWorking || !sessionId) {
+      setLiveTimeline(null)
+      return
+    }
+    let disposed = false
+    let controller: AbortController | null = null
+    const refresh = () => {
+      controller?.abort()
+      controller = new AbortController()
+      void getTimeline(sessionId, controller.signal)
+        .then((timeline) => {
+          if (!disposed) setLiveTimeline(timeline)
+        })
+        .catch(() => {})
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 300)
+    return () => {
+      disposed = true
+      controller?.abort()
+      window.clearInterval(timer)
+    }
+  }, [isWorking, sessionId])
+  const liveText = liveTimeline?.live?.text ?? ''
+  useEffect(() => {
+    if (liveText) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [liveText])
   const cliId = (
     thread?.agent === 'claude' ||
     thread?.agent === 'codex' ||
@@ -122,7 +154,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    if (messages.some((message) => message.role === 'assistant')) setIsWorking(false)
+    if (messages.at(-1)?.role === 'assistant') setIsWorking(false)
   }, [messages])
 
   const copyMessage = async (id: string, content: string) => {
@@ -408,7 +440,17 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                 </div>
               )
             })}
-            {isWorking && (
+            {isWorking && liveText && (
+              <div className="flex items-start gap-2" aria-live="polite">
+                <Bot className="mt-4 h-4 w-4 shrink-0 text-app-accent" aria-hidden="true" />
+                <div className="relative max-w-3xl rounded-card p-4 text-xs leading-relaxed bg-app-surface/60 text-app border border-app/60 shadow-2xs select-text w-full group">
+                  <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
+                    <Markdown remarkPlugins={[remarkGfm]}>{liveText}</Markdown>
+                  </div>
+                </div>
+              </div>
+            )}
+            {isWorking && !liveText && (
               <div className="flex items-center gap-2 text-xs text-app-muted" aria-live="polite">
                 <Loader2 className="w-3.5 h-3.5 text-app-accent animate-spin" />
                 <span className="animate-pulse">…</span>

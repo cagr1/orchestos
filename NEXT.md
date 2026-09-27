@@ -1,6 +1,10 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
 ## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
+**MR.1.d4 cerrado 2026-09-27** (PLAN.md). Siguiente: punto 3 de la lista de abajo (bug `runs/`). Visto en la captura
+de `chat-streaming` y sin arreglar: (a) el composer conserva el mensaje enviado mientras dura el turno; (b) el Markdown
+del Chat junta los saltos de línea simples ("uno\ndos" se ve "uno dos"). `agent:preflight --item MR.1.d4` falla porque
+`findOpenPlanItem` (`scripts/agent-governance.ts:37`) solo acepta ítems de primer nivel; usar el padre (`--item MR.1`).
 **Siguiente tab (2026-09-27): ejecutar MR.1.d4** (PLAN.md, GO de Carlos): spec `docs/specs/MR.1.d4.md` → Luna →
 gate (`chat-streaming` + 11 ui:gate + test:coverage) → commit. Capa genérica para cualquier agente; Claude CLI ya da
 deltas. MR.1.d5 (`codex app-server`) espera decisión de Carlos: NO arrancarlo. d4 sustituye al paso 2 (animación):

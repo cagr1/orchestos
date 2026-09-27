@@ -154,12 +154,13 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           if (!disposed) setTimeline(null)
         })
     void refreshTimeline()
-    const timer = window.setInterval(() => void refreshTimeline(), 1000)
+    const pollInterval = sessionStatus === 'working' || timeline?.pending ? 300 : 1000
+    const timer = window.setInterval(() => void refreshTimeline(), pollInterval)
     return () => {
       disposed = true
       window.clearInterval(timer)
     }
-  }, [activeAgent?.id])
+  }, [activeAgent?.id, sessionStatus, timeline?.pending])
 
   const hasRealTurn = Boolean(
     timeline &&
@@ -171,6 +172,11 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   const latestAssistantMessage =
     [...(timeline?.messages ?? [])].reverse().find((message) => message.role === 'assistant')
       ?.content ?? ''
+  const visibleAssistantMessage =
+    (sessionStatus === 'working' || timeline?.pending === true) && timeline?.live?.text
+      ? timeline.live.text
+      : latestAssistantMessage
+  const isWorking = sessionStatus === 'working' || timeline?.pending === true
   const steps = timeline?.turns.flatMap((turn) => turn.steps) ?? []
   const thoughtStep = steps.find((step) => step.type === 'text' && step.detail)
   const readSteps = steps.filter((step) => step.tool?.toLowerCase() === 'read' && step.target)
@@ -190,8 +196,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   const allCommands = [...(timeline?.commands ?? []), ...cliCommands]
   const failedCommand = allCommands.find((command) => command.exitCode !== 0)
   const passedCommand = allCommands.find((command) => command.exitCode === 0)
-  const isWorking = sessionStatus === 'working' || timeline?.pending === true
-
   // Derive CLI product identity
   const getCliId = (): CliId => {
     const model = (activeAgent?.model || 'claude').toLowerCase()
@@ -805,12 +809,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           )}
 
           {/* 8. FINAL ANSWER IN MARKDOWN */}
-          {hasRealTurn && latestAssistantMessage && (
+          {hasRealTurn && visibleAssistantMessage && (
             <div className="flex items-start gap-2">
               <Bot className="mt-4 h-4 w-4 shrink-0 text-app-accent" aria-hidden="true" />
               <div className="relative rounded-card p-4 bg-app-surface/60 border border-app/60 text-xs text-app leading-relaxed shadow-2xs flex-1 group">
                 <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
-                  <Markdown remarkPlugins={[remarkGfm]}>{latestAssistantMessage}</Markdown>
+                  <Markdown remarkPlugins={[remarkGfm]}>{visibleAssistantMessage}</Markdown>
                 </div>
                 <button
                   type="button"
