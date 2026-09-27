@@ -1,7 +1,11 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
 ## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
-**MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. Siguiente: punto 4 ("+ Add project" sin modal). Visto en la captura
+**MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. UI.15 ("+ Add project" sin modal, punto 4 paso 1) cerrado 2026-09-27; "Clonar desde URL" sigue pendiente de plan. Siguiente: punto 5 (el chat no baja del todo al último mensaje).
+Gotcha 2026-09-27: si el commit de cierre se bloquea (p. ej. `agent:live-gate` sin archivo de evidencia citado) DESPUÉS
+de un `plan:reconcile`, el siguiente reconcile falla con "Could not prove a closing commit SHA" (la DB ya lo tiene
+`done` y el SHA provisional solo vale al cerrar, `scripts/plan-import.ts:84`). Salida: pasar el ítem a `[ ]`,
+reconcile, volver a `[x]`, reconcile. Evitarlo: citar el `docs/done/evidence/*.json` staged antes del primer commit. Visto en la captura
 de `chat-streaming` y sin arreglar: (a) el composer conserva el mensaje enviado mientras dura el turno; (b) el Markdown
 del Chat junta los saltos de línea simples ("uno\ndos" se ve "uno dos"). `agent:preflight --item MR.1.d4` falla porque
 `findOpenPlanItem` (`scripts/agent-governance.ts:37`) solo acepta ítems de primer nivel; usar el padre (`--item MR.1`).

@@ -1012,6 +1012,17 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   camino QA fail → reintento no se ejerció en vivo, lo cubre el test. Ajuste del cerebro: el mock de
   `claude-chat.test.ts:110` contaba el nuevo `git rev-parse` como sonda de Claude.
 
+- [x] **UI.15 — ⚡ "+ Add project" abre el selector de carpeta directo, sin modal.** (abierto 2026-09-27, cerrado 2026-09-27, GO de Carlos)
+  El "+" del sidebar Dev (`ShellSidebar.tsx:217`) abre `AddProjectModal` ("Project Name" + "Default Git Branch"), pero
+  `App.tsx:1044` ignora ambos y abre el selector nativo (`chooseProject`): el modal es un paso que no aporta. Fix: "+"
+  llama `onNewProject` directo; borrar `AddProjectModal.tsx` y su paso en `scripts/ui-fidelity/capture.mjs:257`.
+  Fuera: "Clonar desde URL" (feature nueva, plan aparte). Gate: paso nuevo en `project-tabs` — clic en "+" dispara
+  `POST /api/projects/choose` (interceptado, `cancelled`) y no aparece ningún `dialog`.
+  Ejecutado por: Codex · `gpt-6-luna` (1 ronda) · Spec: docs/specs/UI.15.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.15-live.json`: `project-tabs` 24/24 ("POST /api/projects/choose calls=1; dialog
+  visible=false") + `smoke` 6/6; `test:coverage` 1547/0; tsc back+app; biome; `ui:fidelity:jsx`. El selector nativo
+  real no se abre en el gate (interceptado): el clic del usuario sobre él queda sin verificar en vivo.
+
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;

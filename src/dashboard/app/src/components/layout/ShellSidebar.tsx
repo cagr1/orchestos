@@ -17,7 +17,6 @@ import type React from 'react'
 import { useState } from 'react'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
-import { AddProjectModal } from './AddProjectModal'
 import { DeleteProjectModal } from './DeleteProjectModal'
 import { NewAgentSelectorModal } from './NewAgentSelectorModal'
 
@@ -32,7 +31,7 @@ interface ShellSidebarProps {
   projects: ProjectItem[]
   activeProjectId: string
   onSelectProject: (id: string) => void
-  onNewProject?: (name: string, branch?: string) => void
+  onNewProject?: () => void
   onOpenSettings?: () => void
   onOpenProjectSettings?: (projectId: string) => void
   onDeleteProject?: (projectId: string) => void
@@ -70,7 +69,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   })
 
   // Modals state
-  const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false)
   const [projectForNewAgent, setProjectForNewAgent] = useState<ProjectItem | null>(null)
   const [projectToDelete, setProjectToDelete] = useState<ProjectItem | null>(null)
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null)
@@ -214,7 +212,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
             <span className="text-xs font-bold text-app-muted tracking-wider">PROJECTS</span>
             <button
               type="button"
-              onClick={() => setIsAddProjectModalOpen(true)}
+              onClick={() => onNewProject?.()}
               className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
               title="Add or Upload Project"
               aria-label="Add or Upload Project"
@@ -429,15 +427,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
           <span>Settings</span>
         </button>
       </div>
-
-      {/* Add Project Modal */}
-      <AddProjectModal
-        isOpen={isAddProjectModalOpen}
-        onClose={() => setIsAddProjectModalOpen(false)}
-        onCreate={(name, branch) => {
-          if (onNewProject) onNewProject(name, branch)
-        }}
-      />
 
       {/* New Chat Agent Selector Modal */}
       {isNewChatAgentModalOpen && (

@@ -254,14 +254,6 @@ async function runTarget(target) {
   await clickOne(page, 'Cancel')
   await page.keyboard.press('Escape')
   await settle(page)
-  await step(page, errors, report, 'modal-add-project', async () =>
-    (await clickOne(page, 'Add or Upload Project'))
-      ? await visible(page, page.getByRole('dialog'), 'add project dialog')
-      : 'Add or Upload Project',
-  )
-  await clickOne(page, 'Cancel')
-  await page.keyboard.press('Escape')
-  await settle(page)
   await step(page, errors, report, 'modal-delete-project', async () => {
     const opened = await openProjectMenu(page)
     if (!opened) return 'Project actions for delete'

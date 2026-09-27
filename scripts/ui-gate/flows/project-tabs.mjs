@@ -194,6 +194,31 @@ export default async function projectTabs({
     )
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  let chooseProjectCalls = 0
+  const chooseProjectRoute = async (route) => {
+    if (route.request().method() === 'POST') chooseProjectCalls++
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '{"cancelled":true}',
+    })
+  }
+  await page.route('**/api/projects/choose', chooseProjectRoute)
+  try {
+    await page.getByRole('button', { name: 'Add or Upload Project', exact: true }).click()
+    await delay(1_000)
+    const dialogVisible = await page
+      .getByRole('dialog')
+      .isVisible()
+      .catch(() => false)
+    await step(
+      'add project opens folder picker without modal',
+      chooseProjectCalls === 1 && !dialogVisible,
+      `POST /api/projects/choose calls=${chooseProjectCalls}; dialog visible=${dialogVisible}`,
+    )
+  } finally {
+    await page.unroute('**/api/projects/choose', chooseProjectRoute)
+  }
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step(
     'temporary project visible',
