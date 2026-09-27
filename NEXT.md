@@ -1,7 +1,7 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
 ## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
-**MR.1.d4 cerrado 2026-09-27** (PLAN.md). Siguiente: punto 3 de la lista de abajo (bug `runs/`). Visto en la captura
+**MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. Siguiente: punto 4 ("+ Add project" sin modal). Visto en la captura
 de `chat-streaming` y sin arreglar: (a) el composer conserva el mensaje enviado mientras dura el turno; (b) el Markdown
 del Chat junta los saltos de línea simples ("uno\ndos" se ve "uno dos"). `agent:preflight --item MR.1.d4` falla porque
 `findOpenPlanItem` (`scripts/agent-governance.ts:37`) solo acepta ítems de primer nivel; usar el padre (`--item MR.1`).

@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { redactSensitive } from '../security/secrets.ts'
+import { excludeRuntimeArtifacts } from './git-exclude.ts'
 
 /** Writes structured run events to runs/YYYY-MM-DD-HH-mm.log in the project root. */
 export class RunLogger {
@@ -8,6 +9,7 @@ export class RunLogger {
   private readonly prefix: string // e.g. "[t1-normal]"
 
   constructor(root: string, taskId: string) {
+    excludeRuntimeArtifacts(root)
     const now = new Date()
     const stamp = now.toISOString().slice(0, 16).replace('T', '-').replace(':', '-')
     const logsDir = join(root, 'runs')

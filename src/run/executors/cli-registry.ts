@@ -27,6 +27,7 @@ import {
 } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
+import { excludeRuntimeArtifacts } from '../git-exclude.ts'
 import { safeChildEnv } from '../path-policy.ts'
 
 export type CliReadBoundary =
@@ -157,6 +158,7 @@ export function provisionCliConfigHome(
   if (!definition) throw new Error(`Unknown CLI: ${cliId}`)
 
   const path = join(projectRoot, '.orchestos', 'agent-home', definition.configHome.directory)
+  excludeRuntimeArtifacts(projectRoot)
   mkdirSync(path, { recursive: true })
   writeFileSync(join(path, definition.configHome.instructionFile), GENERATED_INSTRUCTIONS, 'utf8')
 

@@ -997,6 +997,21 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   evidencia sin reconstruirlos a mano. Medir intervenciones, bloqueos, tiempo y uso disponible;
   verificar que una corrección guardada se recupera en el siguiente trabajo del mismo proyecto.
   Reutilizar R.8 para la revisión independiente; no afirmar aprendizaje por solo guardar memoria.
+- [x] **R.9 — ⚡ Los artefactos de OrchestOS no ensucian el árbol del proyecto.** (abierto 2026-09-27, cerrado 2026-09-27, GO de Carlos)
+  Visto 2026-09-26 en `project-tabs`: tras un QA fail, el reintento falla con "Worktree sandbox requires a clean
+  working tree: ?? runs/" (`src/run/sandbox-policy.ts:68`). `RunLogger` escribe `runs/*.log` en la raíz
+  (`src/run/logger.ts:13`) y el chat crea `.orchestos/agent-home/` (`src/run/executors/cli-registry.ts:159`); en un
+  proyecto de usuario nada los ignora. Fix: registrar esas dos rutas en `.git/info/exclude` del proyecto (local, sin
+  tocar su `.gitignore`) antes de escribirlas. Gate: test con repo temporal (status limpio tras logger + provisión);
+  `project-tabs` sin el error en `dashboard.log`; `test:coverage`.
+  Ejecutado por: Codex · `gpt-6-luna` (1 ronda) · Spec: docs/specs/R.9.md (borrado al cerrar)
+  Evidencia 2026-09-27: `src/run/git-exclude.ts` escribe `/runs/*.log` y `/.orchestos/agent-home/` en
+  `info/exclude` desde `RunLogger` y `provisionCliConfigHome`; test con repo temporal: status limpio, idempotente,
+  `.gitignore` intacto. `test:coverage` 1547/0 (75.50 %/61.20 %). Gate en vivo `project-tabs` 23/23, `tasks` 13/13,
+  `runs-graph` 16/16, 0 "Uncommitted changes" en `dashboard.log` — pero las 3 tareas pasaron QA a la primera: el
+  camino QA fail → reintento no se ejerció en vivo, lo cubre el test. Ajuste del cerebro: el mock de
+  `claude-chat.test.ts:110` contaba el nuevo `git rev-parse` como sonda de Claude.
+
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;

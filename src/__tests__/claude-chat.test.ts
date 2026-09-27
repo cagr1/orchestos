@@ -108,6 +108,8 @@ describe('runClaudeChat (CC.1)', () => {
   it('ejecuta la ruta canónica comprobada aunque PATH cambie durante la sonda', async () => {
     let checked = ''
     ;(Bun as any).spawnSync = (cmd: string[]) => {
+      // R.9: la provisión también llama `git rev-parse`; solo cuenta la sonda de Claude.
+      if (cmd[0] === 'git') return { exitCode: 1, stdout: Buffer.from('') }
       checked = cmd[0]!
       ;(Bun as any).which = () => '/otro/claude'
       return { exitCode: 0, stdout: Buffer.from('  --restricted  mode') }
