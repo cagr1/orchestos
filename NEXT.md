@@ -1,7 +1,13 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — tras cerrar MR.1.d1 (2026-09-26)
-MR.1.d1 cerrado (evidencia en PLAN.md, ronda 10 en el spec). Siguiente: "+ Add project" (abajo) y el spec de MR.1.d2.
+## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
+Orden acordado con Carlos (arrancar por 1+2 juntos, ambos atacan "la respuesta tarda"):
+1. Medir `codex exec resume` vs proceso frío por turno del Orquestador (hoy 11.1 s) → plan corto a Carlos antes de codear.
+2. Animación de espera en Chat y Dev (detalle abajo).
+3. Bug `runs/` ensucia el árbol y rompe el reintento tras QA fail (abajo).
+4. "+ Add project" paso 1: quitar el modal, abrir el selector de carpeta directo (abajo).
+5. El chat no baja del todo al último mensaje (abajo).
+6. Spec de MR.1.d2. Después: UI.13.7 (retoma L4).
 MR.1.d3 cerrado 2026-09-26: el clasificador ya no existe (el Orquestador marca `[[orchestos:task]]`). Turno normal
 medido en vivo: 11.1 s con Orquestador = `codex exec` gpt-6-luna medium. Ese piso es un proceso Codex nuevo por
 mensaje (arranque + system prompt de Codex, sin caché de sesión). Siguiente paso posible para "respuesta enseguida"
