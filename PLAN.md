@@ -536,6 +536,27 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     AT.13 puntos 1-8 (herramientas reales, `n/a` en costos desconocidos, tasks en una línea, motivo de QA, nombres de
     modelo normalizados, fechas con zona, índice de memoria/specs, sin prompts apilados) + `$0` del chat de Codex sin
     precio (resto de MR.1.b2). Spec al terminar MR.1.d1.
+  - [ ] **MR.1.d4 — 🧠 El chat pinta la respuesta mientras se genera, para cualquier agente.** (abierto 2026-09-27, GO de
+    Carlos; "mientras trabaja no sé qué está haciendo, pinta el texto que se va generando como en el CLI") Hoy el Chat
+    hace un único `POST /api/chat` (`app/src/api/chat.ts:447`) y no pinta nada hasta el final (spinner mínimo
+    `OrchestChatView.tsx:411`), aunque el backend ya recibe los pasos en vivo (`persistChatStep`, `chat.ts:942`).
+    Capa GENÉRICA, no por CLI: buffer en memoria del turno activo (texto acumulado + razonamiento + herramientas) que
+    alimenta cualquier adaptador vía `onChatStep`; endpoint que el Chat consulta cada ~300 ms mientras hay turno (mismo
+    patrón que el polling 1 s de Dev, `OrchestDevWorkspace.tsx:157`); burbuja del asistente que crece en Chat y Dev en
+    lugar del spinner; al terminar, el mensaje final como hoy. La DB no cambia. Claude CLI ya entrega deltas
+    (`stream-json` + `--include-partial-messages`, `external.ts:141`) → texto en vivo sin tocar su adaptador. Codex
+    `exec` no emite deltas (medido): con d4 muestra razonamiento/herramientas al ocurrir; el texto en vivo es MR.1.d5.
+    Fuera: adaptadores nuevos, OpenCode, API, ejecutor de tareas, MR.1.d2. Gate: tests del buffer/endpoint; flujo nuevo
+    `chat-streaming` (texto visible ANTES de que el turno termine y creciendo, con Claude CLI); los 11 ui:gate; tiempo
+    hasta el primer texto antes/después.
+  - [ ] **MR.1.d5 — 🧠 Adaptador `codex app-server`: texto en vivo con Codex y turnos siguientes ~2 s.** (abierto
+    2026-09-27; decisión aparte de Carlos, NO aprobado todavía) `codex app-server` = el mismo Codex como proceso
+    persistente con JSON-RPC por stdio (`codex app-server generate-ts` da el protocolo); el binario lo marca
+    "[experimental]" (el protocolo puede cambiar entre versiones). Emite `item/agentMessage/delta`. Sonda 2026-09-27:
+    turno 1 primer texto 7.4 s / total 14.2 s (con config de usuario), turno 2 en el mismo thread 1.5 s / 2.2 s, vs 11.1 s
+    hoy por turno. Requiere: thread por sesión de chat (id persistido, `thread/resume` tras reinicio), solo el mensaje
+    nuevo por turno, sandbox read-only y CODEX_HOME aislado, caída visible a `codex exec` si falla, test contra el
+    esquema generado. Descartado: `codex exec resume` (no más rápido, +16 K tokens por turno; NEXT.md).
 - [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
   Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
   `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5

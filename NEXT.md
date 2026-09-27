@@ -1,9 +1,24 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
 ## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
+**Siguiente tab (2026-09-27): ejecutar MR.1.d4** (PLAN.md, GO de Carlos): spec `docs/specs/MR.1.d4.md` → Luna →
+gate (`chat-streaming` + 11 ui:gate + test:coverage) → commit. Capa genérica para cualquier agente; Claude CLI ya da
+deltas. MR.1.d5 (`codex app-server`) espera decisión de Carlos: NO arrancarlo. d4 sustituye al paso 2 (animación):
+la burbuja que crece ES la señal de espera; si queda un hueco antes del primer evento, el indicador sale del prototipo.
 Orden acordado con Carlos (arrancar por 1+2 juntos, ambos atacan "la respuesta tarda"):
-1. Medir `codex exec resume` vs proceso frío por turno del Orquestador (hoy 11.1 s) → plan corto a Carlos antes de codear.
+1. Medir `codex exec resume` vs proceso frío por turno del Orquestador (hoy 11.1 s) → plan corto a Carlos antes de codear. **Medido 2026-09-27, descartado:** mismos flags del chat,
+   gpt-6-luna medium, prompt = CLAUDE.md (~7 KB): frío 4.8-5.6 s (5 corridas); `exec resume` 6.0/5.2/9.0 s y el input
+   crece ~16 K tokens por turno (32.7 K→49 K→65.5 K, reenvía el historial entero). Resume no acorta nada y encarece.
+   Además `resume` no acepta `--sandbox`/`--color` (hay que usar `-c sandbox_mode=…`). El piso del proceso frío es ~5 s;
+   los otros ~6 s de los 11.1 s están dentro de OrchestOS (prompt real, provisión de config, persistencia, UI) — sin
+   medir. Siguiente: instrumentar tiempos por etapa del turno (plan corto a Carlos) o pasar al paso 2.
 2. Animación de espera en Chat y Dev (detalle abajo).
+   **Hallazgo 2026-09-27 (Carlos pidió "pintar el texto mientras se genera"):** `codex exec --json` NO emite deltas:
+   un solo `item.completed` con el mensaje entero al final (medido: 0 eventos entre 382.9 s y 393.8 s). Pollear pasos
+   no daría streaming. `codex app-server` (experimental, JSON-RPC stdio; `codex app-server generate-ts`) SÍ:
+   `item/agentMessage/delta` token a token. Sonda: proceso persistente, `thread/start` 0.13 s; turno 1 primer texto
+   7.4 s / total 14.2 s (234 deltas, con config de usuario: hooks+MCP); turno 2 en el mismo thread primer texto 1.5 s /
+   total 2.2 s. Plan MR.1.d4 presentado a Carlos antes de codear.
 3. Bug `runs/` ensucia el árbol y rompe el reintento tras QA fail (abajo).
 4. "+ Add project" paso 1: quitar el modal, abrir el selector de carpeta directo (abajo).
 5. El chat no baja del todo al último mensaje (abajo).
