@@ -256,6 +256,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.18",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Dev: el mensaje enviado se ve al instante y el loader se apaga al terminar",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "R.8",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

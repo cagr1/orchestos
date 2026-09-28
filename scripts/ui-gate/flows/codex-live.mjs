@@ -91,30 +91,35 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step('temporary project visible', await visible(projectButton), basename(projectRoot))
-  if (await projectButton.isVisible()) await projectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  await projectButton.hover()
+  await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
   const dialog = page.getByRole('dialog')
   const codexOption = dialog.getByRole('button', { name: /Codex/ }).first()
-  await step('Orchestrator Codex available', await visible(codexOption), 'Codex option')
+  await step('Codex agent available', await visible(codexOption), 'Codex option')
   await codexOption.click()
   const startResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
   const session = await (await startResponse).json()
   if (session.agent !== 'codex')
     throw new Error(`Expected Codex session, received ${session.agent}`)
-  await page.getByRole('button', { name: /GPT-6-Luna · medium/i }).waitFor({ state: 'visible' })
 
   const composer = page.locator('textarea').last()
   const word = `MANGO-${Math.random().toString(36).slice(2, 10).toUpperCase()}`
-  const firstStart = await sendTurn(
-    page,
-    composer,
-    `Remember the word ${word}. Reply in three short paragraphs about mangoes.`,
+  const sentMessage = `Remember the word ${word}. Reply in three short paragraphs about mangoes.`
+  const firstStart = await sendTurn(page, composer, sentMessage)
+  const timelineView = page.locator('main').last().locator('div.max-w-3xl').first()
+  const bubbleVisibleAt = await waitFor(async () => {
+    const bubble = page.locator('div.max-w-2xl').filter({ hasText: sentMessage }).first()
+    return (await bubble.isVisible().catch(() => false)) ? Date.now() : null
+  }, 2000)
+  await step(
+    'turn 1 user message appears before completion',
+    Boolean(bubbleVisibleAt),
+    bubbleVisibleAt ? `${bubbleVisibleAt - firstStart} ms after send` : 'not visible within 2 s',
   )
   const visibleText = async () =>
     (await page.locator('div.prose').allInnerTexts()).at(-1)?.trim() ?? ''
@@ -148,6 +153,12 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
     `${distinct} distinct non-empty samples before completion`,
   )
   await shot('codex-live-turn-one')
+  await new Promise((resolve) => setTimeout(resolve, 3000))
+  await step(
+    'turn 1 timeline loader stops after completion',
+    (await timelineView.locator('.animate-spin').count()) === 0,
+    `${await timelineView.locator('.animate-spin').count()} spinning loaders remain`,
+  )
 
   const secondStart = await sendTurn(
     page,
@@ -165,6 +176,12 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
     'turn 2 remembers the word from turn 1',
     Boolean(secondCompletion?.content?.includes(word)),
     secondCompletion?.content ?? 'no second response',
+  )
+  await new Promise((resolve) => setTimeout(resolve, 3000))
+  await step(
+    'turn 2 timeline loader stops after completion',
+    (await timelineView.locator('.animate-spin').count()) === 0,
+    `${await timelineView.locator('.animate-spin').count()} spinning loaders remain`,
   )
   await step(
     'turn 2 is faster than turn 1',

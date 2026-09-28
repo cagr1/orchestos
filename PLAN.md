@@ -1087,6 +1087,14 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.17-live.json`: `project-delete` 8/8 corridas
   11/11 tras el fix (evidencia débil ante una base de 1/6); `test:coverage` 1547/0; tsc app; biome.
 
+- [x] **UI.18 — ⚡ Dev: el mensaje enviado se ve al instante y el loader se apaga al terminar.** (abierto 2026-09-28, cerrado 2026-09-28, reporte de Carlos)
+  Causa: `OrchestDevWorkspace.tsx` pintaba la burbuja solo desde `chat_messages` (se escribe al cerrar el turno, R.5)
+  y `handleSendMessage` ponía `working` sin volver nunca a `done`. Ahora: burbuja optimista hasta que llega la real;
+  el envío espera el `Promise<boolean>` de App y pasa a `done`/`failed`; cambiar de agente limpia ambos.
+  Ejecutado por: luna (1 ronda) · Spec: docs/specs/DEV-SEND.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.18-dev-send.json`: `codex-live` 9/9 — burbuja a
+  los 18 ms, 0 loaders tras cada turno. Contraprueba: el mismo flujo con el componente de HEAD falla en burbuja y loader.
+
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;

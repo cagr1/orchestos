@@ -43,7 +43,8 @@ interface OrchestDevWorkspaceProps {
     agent?: string,
     model?: string,
     effort?: string,
-  ) => void
+    // biome-ignore lint/suspicious/noConfusingVoidType: preserve void callbacks alongside async acceptance.
+  ) => void | Promise<boolean>
   sessionStatus?: ApiSessionStatus
   onSlashCommand?: (command: string, argument?: string) => void
 }
@@ -144,6 +145,15 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo al cambiar de agente.
   useEffect(() => stickToBottom(), [activeAgent?.id, stickToBottom])
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
+  const [pendingUserMessage, setPendingUserMessage] = useState<{
+    content: string
+    sentAt: number
+  } | null>(null)
+
+  useEffect(() => {
+    setPendingUserMessage(null)
+    setSessionStatus('done')
+  }, [activeAgent?.id])
 
   useEffect(() => {
     if (!activeAgent?.id) {
@@ -175,6 +185,23 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   const latestUserMessage = [...(timeline?.messages ?? [])]
     .reverse()
     .find((message) => message.role === 'user')
+  const persistedPendingMessage = (timeline?.messages ?? []).some(
+    (message) =>
+      message.role === 'user' &&
+      message.content === pendingUserMessage?.content &&
+      new Date(message.createdAt).getTime() >= (pendingUserMessage?.sentAt ?? 0) - 5000,
+  )
+  const visibleUserMessage =
+    pendingUserMessage && !persistedPendingMessage
+      ? {
+          content: pendingUserMessage.content,
+          createdAt: new Date(pendingUserMessage.sentAt).toISOString(),
+        }
+      : latestUserMessage
+
+  useEffect(() => {
+    if (persistedPendingMessage) setPendingUserMessage(null)
+  }, [persistedPendingMessage])
   const latestAssistantMessage =
     [...(timeline?.messages ?? [])].reverse().find((message) => message.role === 'assistant')
       ?.content ?? ''
@@ -266,7 +293,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     )
   }
 
-  const handleSendMessage = (
+  const handleSendMessage = async (
     content: string,
     attachments?: ChatAttachment[],
     cli?: string,
@@ -274,8 +301,21 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     effort?: string,
     isShellCmd?: boolean,
   ) => {
-    if (!isShellCmd) onSendMessage?.(content, attachments, cli, model, effort)
-    setSessionStatus('working')
+    if (!isShellCmd) {
+      const sentAt = Date.now()
+      setPendingUserMessage({ content, sentAt })
+      setSessionStatus('working')
+      try {
+        const accepted = await onSendMessage?.(content, attachments, cli, model, effort)
+        setSessionStatus(accepted ? 'done' : 'failed')
+        if (!accepted) setPendingUserMessage(null)
+      } catch {
+        setSessionStatus('failed')
+        setPendingUserMessage(null)
+      }
+    } else {
+      setSessionStatus('working')
+    }
     setCurrentStep('')
 
     if (isShellCmd && onRunCommand) {
@@ -412,18 +452,18 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       <div ref={timelineContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
         <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
           {/* USER MESSAGE: no avatar, no "You" label; time only on hover */}
-          {latestUserMessage && (
+          {visibleUserMessage && (
             <div className="flex justify-end group">
               <div className="relative max-w-2xl px-4 py-2.5 rounded-card bg-app-surface text-app border border-app text-xs leading-relaxed shadow-2xs">
                 <span className="absolute right-0 bottom-full mb-1 text-[10px] font-mono text-app-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  {latestUserMessage
-                    ? new Date(latestUserMessage.createdAt).toLocaleTimeString([], {
+                  {visibleUserMessage
+                    ? new Date(visibleUserMessage.createdAt).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                       })
                     : ''}
                 </span>
-                {latestUserMessage.content}
+                {visibleUserMessage.content}
                 {readSteps[0]?.target && (
                   <code className="px-1 py-0.5 bg-app-bg border border-app rounded-xs font-mono text-[11px]">
                     {readSteps[0].target}
@@ -434,24 +474,26 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                     {readSteps[1].target}
                   </code>
                 )}{' '}
-                <button
-                  type="button"
-                  onClick={() =>
-                    void handleCopyMessage(
-                      latestUserMessage.id.toString(),
-                      latestUserMessage.content,
-                    )
-                  }
-                  className="absolute right-0 top-full mt-1 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-surface transition-colors"
-                  title="Copy"
-                  aria-label="Copy"
-                >
-                  {copiedMessageId === latestUserMessage.id.toString() ? (
-                    <Check className="w-3 h-3" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </button>
+                {latestUserMessage && visibleUserMessage === latestUserMessage && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void handleCopyMessage(
+                        latestUserMessage.id.toString(),
+                        latestUserMessage.content,
+                      )
+                    }
+                    className="absolute right-0 top-full mt-1 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-surface transition-colors"
+                    title="Copy"
+                    aria-label="Copy"
+                  >
+                    {copiedMessageId === latestUserMessage.id.toString() ? (
+                      <Check className="w-3 h-3" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+                )}
               </div>
               <User className="mb-2 h-4 w-4 shrink-0 text-app-muted" aria-hidden="true" />
             </div>

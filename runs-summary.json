@@ -1,7 +1,67 @@
 {
-  "exported_at": "2026-09-28T17:24:27.050Z",
+  "exported_at": "2026-09-28T17:53:49.931Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "fa3b6c9c-8458-45e4-8da7-7e1bb43f36ac",
+      "task_class": "chat",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0020578999999999997,
+      "elapsed_ms": 0,
+      "tokens": 20507,
+      "created_at": "2026-09-28T17:32:36.076Z"
+    },
+    {
+      "id": "31ad0354-3a58-49a6-b132-915bc0e79b07",
+      "task_class": "chat",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0022561,
+      "elapsed_ms": 0,
+      "tokens": 20877,
+      "created_at": "2026-09-28T17:30:07.409Z"
+    },
+    {
+      "id": "39fdbebc-a4f7-4771-bb8a-255069ca46cd",
+      "task_class": "chat",
+      "model": "gpt-5.6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.09716559999999999,
+      "elapsed_ms": 0,
+      "tokens": 475413,
+      "created_at": "2026-09-28T17:28:23.808Z"
+    },
+    {
+      "id": "afa4fadf-a2fe-447a-b1c0-e7335439ac0e",
+      "task_class": "chat",
+      "model": "gpt-5.6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0037549999999999997,
+      "elapsed_ms": 0,
+      "tokens": 18660,
+      "created_at": "2026-09-28T17:26:25.873Z"
+    },
     {
       "id": "cb98fe9b-693a-401d-ad7c-7b1a751447bd",
       "task_class": "implement",
@@ -241,66 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 12342,
       "created_at": "2026-09-24T00:06:12.195Z"
-    },
-    {
-      "id": "8e12279d-0ddd-4c76-8380-03b1e819fbe6",
-      "task_class": "chat",
-      "model": "gpt-5.6-luna via Codex CLI (effort: medium)",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 12337,
-      "created_at": "2026-09-24T00:00:08.190Z"
-    },
-    {
-      "id": "4d9a4f20-2640-43fb-be68-97ee04f8e1f7",
-      "task_class": "chat",
-      "model": "gpt-5.6-luna via Codex CLI (effort: medium)",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 12342,
-      "created_at": "2026-09-23T23:59:16.923Z"
-    },
-    {
-      "id": "bf843990-6e59-4a49-80d0-a8dd91269c22",
-      "task_class": "chat",
-      "model": "gpt-5.6-luna via Codex CLI (effort: medium)",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 12338,
-      "created_at": "2026-09-23T23:58:29.529Z"
-    },
-    {
-      "id": "12413201-14c8-44d8-9387-00834ae4e3c8",
-      "task_class": "chat",
-      "model": "gpt-5.6-luna via Codex CLI (effort: medium)",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 12343,
-      "created_at": "2026-09-23T23:57:34.560Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 19,
     "qa_failed": 0,
-    "total_cost_usd": "0.0000"
+    "total_cost_usd": "0.1052"
   }
 }
