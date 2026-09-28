@@ -249,7 +249,7 @@ export interface CodexChatResult {
   text: string
   inputTokens: number
   outputTokens: number
-  usd: number
+  usd: number | null
   model: string
 }
 
@@ -345,7 +345,7 @@ export async function runCodexChat(
   const usd =
     pricingId && getCatalog()?.has(pricingId)
       ? calcCost(pricingId, parsed.inputTokens, parsed.outputTokens)
-      : 0
+      : null
 
   return {
     text,

@@ -532,11 +532,22 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     Latencia: turno normal 11.1 s envío→respuesta con Orquestador Codex `gpt-6-luna` medium, ya sin los 5.5-6.4 s del
     clasificador. Los 8 fallos que reportó Luna eran del sandbox (EADDRINUSE y gates de cierre sobre su árbol sin commit).
     Queda: el piso es el `codex exec` nuevo por turno del Orquestador (sin sesión persistente) → NEXT.md.
-  - [ ] **MR.1.d2 — 🧠 El contexto que el chat inyecta al CLI dice la verdad (AT.13).** (abierto 2026-09-25) Alcance =
+  - [x] **MR.1.d2 — 🧠 El contexto que el chat inyecta al CLI dice la verdad (AT.13).** (abierto 2026-09-25, cerrado 2026-09-27) Alcance =
     AT.13 puntos 1-8 (herramientas reales, `n/a` en costos desconocidos, tasks en una línea, motivo de QA, nombres de
     modelo normalizados, fechas con zona, índice de memoria/specs, sin prompts apilados) + `$0` del chat de Codex sin
-    precio (resto de MR.1.b2). Spec `docs/specs/MR.1.d2.md` (2026-09-27); Carlos decidió el punto 8: esta pasada
-    mide, el prompt base del CLI se reemplaza aparte.
+    precio (resto de MR.1.b2). Carlos decidió el punto 8: esta pasada mide, el prompt base del CLI se reemplaza aparte.
+    Ejecutado por: Codex · `gpt-6-luna` (5 rondas) + 3 ajustes del cerebro · Spec: docs/specs/MR.1.d2.md (borrado al cerrar)
+    Gate en vivo: navegador real (Playwright), `docs/done/evidence/MR.1.d2-live.json`: 13/13 flujos, con el nuevo
+    `chat-context` (turno real Codex gpt-6-luna + Claude haiku; aserciones sobre el prompt capturado por el servidor
+    del gate, `ORCHESTOS_GATE_CAPTURE_DIR`) — herramientas reales por agente, `n/a` + "partial", task en una línea con
+    motivo de QA, `codex · codex default`/`codex · gpt-6-luna`, `Now: … UTC-05:00`. `test:coverage` 1552/0
+    (75.64 %/61.57 %); tsc back+app; biome limpio en lo tocado (2 errores previos ajenos en HEAD).
+    Medición: el run de chat guarda `context_tokens`. Fixture chico: contexto de OrchestOS 635 tokens dentro de
+    14,483 de input de Codex → ~96 % del input es el prompt base de Codex (dato para el reemplazo del prompt base).
+    Claude reporta `input_tokens` 10 (excluye caché): no sirve para comparar. "Antes" no medido en el mismo turno.
+    Hallazgos del gate: (1) "You cannot edit files" sin decir qué hacer hacía que haiku marcara tarea ante "Escribe
+    los números…" (`chat-streaming` 2/4 vs 3/3 en HEAD) → la línea dice que el texto se responde en el chat (4/4);
+    (2) pedirle al agente que copie su prompt era intermitente (Codex a veces se niega) → captura en el servidor.
   - [x] **MR.1.d4 — 🧠 El chat pinta la respuesta mientras se genera, para cualquier agente.** (abierto 2026-09-27, cerrado 2026-09-27, GO de
     Carlos; "mientras trabaja no sé qué está haciendo, pinta el texto que se va generando como en el CLI") Hoy el Chat
     hace un único `POST /api/chat` (`app/src/api/chat.ts:447`) y no pinta nada hasta el final (spinner mínimo

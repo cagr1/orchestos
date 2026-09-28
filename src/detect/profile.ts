@@ -1,3 +1,4 @@
+import { existsSync } from 'fs'
 import { join } from 'path'
 import type { StackProfile } from '../generators/agents-md.ts'
 import { readConventions } from './conventions.ts'
@@ -12,8 +13,24 @@ export async function buildProfile(root: string): Promise<StackProfile> {
   try {
     const pkg = JSON.parse(await Bun.file(join(root, 'package.json')).text())
     const scripts = pkg.scripts ?? {}
-    const interesting = ['dev', 'build', 'start', 'test', 'lint', 'format', 'migrate', 'seed']
-    const pm = pkg.packageManager?.startsWith('bun') ? 'bun' : 'npm'
+    const interesting = [
+      'dev',
+      'build',
+      'start',
+      'test',
+      'lint',
+      'format',
+      'migrate',
+      'seed',
+      'typecheck',
+      'check',
+      'test:coverage',
+    ]
+    const pm =
+      pkg.packageManager?.startsWith('bun') ||
+      ['bun.lock', 'bun.lockb'].some((file) => existsSync(join(root, file)))
+        ? 'bun'
+        : 'npm'
     for (const key of interesting) {
       if (scripts[key]) commands.push(`${pm} run ${key}`)
     }

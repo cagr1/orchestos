@@ -24,6 +24,7 @@ import {
   codexEngine,
   ExecutorCodexError,
   orchestosModelToCodexModel,
+  runCodexChat,
 } from '../run/executors/codex.ts'
 import type { RunContext } from '../run/middleware.ts'
 import { createWorktree, git, type Worktree } from '../run/sandbox.ts'
@@ -266,6 +267,17 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(buildCodexChatEnv('/repo/.orchestos/agent-home/codex').CODEX_HOME).toBe(
       '/repo/.orchestos/agent-home/codex',
     )
+  })
+
+  it('runCodexChat reports null price for a CLI default model', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-codex-chat-cost-'))
+    try {
+      overrideBunSpawn(installMockSpawn(jsonl(turnCompleted(10, 2))))
+      const result = await runCodexChat(root, 'system', 'hello', 5000)
+      expect(result.usd).toBeNull()
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 
   it('happy path: JSONL con turn.completed → outcome con costo computado vía calcCost()', async () => {

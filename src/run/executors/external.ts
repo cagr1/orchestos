@@ -305,6 +305,7 @@ export type ClaudeCliEffort = (typeof CLAUDE_CLI_EFFORTS)[number]
  *  - un hook `PreToolUse` propio: falla ABIERTO si el script no existe.
  */
 export const CLAUDE_CHAT_BOUNDARY_FLAGS = ['--restricted', '--strict-mcp-config'] as const
+export const CLAUDE_CHAT_TOOLS = 'Read,Glob,Grep'
 
 export function buildClaudeChatArgs(
   systemPrompt: string,
@@ -323,7 +324,7 @@ export function buildClaudeChatArgs(
     systemPrompt,
     ...CLAUDE_CHAT_BOUNDARY_FLAGS,
     '--tools',
-    'Read,Glob,Grep',
+    CLAUDE_CHAT_TOOLS,
     '--settings',
     settingsPath,
     '--add-dir',

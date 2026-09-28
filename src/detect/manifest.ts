@@ -18,7 +18,10 @@ export function readManifest(root: string): Manifest {
     try {
       const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
       result.name = pkg.name ?? 'unknown'
-      result.runtime = 'Node.js'
+      result.runtime =
+        existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
+          ? 'Bun'
+          : 'Node.js'
       const allDeps = Object.keys({
         ...pkg.dependencies,
         ...pkg.devDependencies,

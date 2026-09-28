@@ -259,6 +259,7 @@ async function main() {
     env: {
       ...process.env,
       ORCHESTOS_HOME: home,
+      ORCHESTOS_GATE_CAPTURE_DIR: path.join(home, 'gate-captures'),
       ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
     },
     stdio: ['ignore', dashboardLogFd, dashboardLogFd],
