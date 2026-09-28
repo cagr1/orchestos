@@ -1,9 +1,23 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## Siguiente tab — tras cerrar MR.1 (2026-09-28)
-MR.1.d5, MR.1, AT.10, UI.18 (Dev: burbuja al instante, loader se apaga) y UI.19 (Dev muestra toda la conversación) cerrados 2026-09-28 (PLAN.md). Siguiente: **AT.15** (OpenCode = terminal real en Dev, plan
-aprobado en PLAN.md) → spec corto + Luna 6 medium. Pendientes sin ítem: historial en las ramas Claude/OpenCode del chat
-(PLAN.md § MR.1.d5, hallazgo); dos bugs de Chat (composer conserva el mensaje; Markdown junta saltos simples).
+## Siguiente tab — CI.2 primero: push bloqueado por flujos intermitentes (2026-09-28, tarde)
+Cerrados hoy: MR.1 (d5 codex app-server), AT.10, UI.18, UI.19, UI.20, UI.21, CI.6 (PLAN.md). **3 commits locales sin
+push** (6da5b61 UI.20, e86f437 UI.21, e408ee1 CI.6): cada uno pasó sus flujos en navegador y `test:coverage` 0 fail,
+pero el pre-push (15 flujos) falló 3 veces con flujos de chat distintos que pasan al repetirlos solos:
+`usage-bar` (color 70 %), `chat-streaming` (turno Claude sin texto en 180 s; y "Chat turn 2 was sampled while
+pending" — assert de UI.20 que depende de que el modelo tarde: si responde rápido no alcanza a muestrear),
+`chat-context` (turno Claude), `chat-turn-details` ("tool block with command success" — sin confirmar si el modelo no
+usó la herramienta). Carlos eligió (2026-09-28): **abrir CI.2 en tab nuevo**, Luna vuelve robustos esos asserts (nada
+que dependa de la latencia del modelo; muestreo mid-turn con prompt largo o condicionado a que el turno siga
+pendiente), correr los 15 flujos juntos, luego `git push origin master` normal. Prohibido `--no-verify` sin pedido.
+Después: AT.15 (OpenCode = terminal real en Dev). Pendientes sin ítem: historial en las ramas Claude/OpenCode del chat
+(hoy solo Codex tiene memoria por thread); nombres largos de OpenRouter truncados se ven iguales en el selector.
+Aprendido hoy (Luna): el preflight exige un ítem de primer nivel abierto (sin ítem se detiene sin tocar nada);
+Luna omite asserts de flujos si no se le exigen, inventó un campo de API (`/api/projects.agents`) en un flujo y
+cambió el propio chequeo de fidelidad sin pedirlo → leer su diff completo. `plan:reconcile` falla al re-reconciliar
+un ítem ya `[x]`: desmarcar → reconcile → marcar → reconcile. La línea `Ejecutado por: … · Spec: docs/specs/<ID>.md`
+debe terminar en la ruta (sin texto después) o el plan gate exige borrar el spec. Hook `brain-no-code` bloquea al
+cerebro editando código (incluido `python3 - <<EOF`); `sed -i` se le escapó una vez — no usarlo como atajo.
 IDEAS.md (#71) y `orchestos.config.yaml` (orchestrator claude opus) tienen cambios de otra sesión: no commiteados aquí.
 
 ## Siguiente tab — tras migración de ruta (2026-09-28)
