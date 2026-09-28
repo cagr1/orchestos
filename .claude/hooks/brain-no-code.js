@@ -74,6 +74,22 @@ function hasInPlaceEdit(segment) {
   return hasInPlaceFlag && tokens.some((token) => !token.startsWith('-') && isCodePath(token))
 }
 
+function hasInlineCodeWrite(command) {
+  const interpreter = /(?:^|[;&|]\s*)(?:python3?|node|bun|deno|ruby|perl)(?=\s|$)/m
+  const inlineScript = /(?:^|\s)(?:-e|-c|--eval|-)(?=\s|$)|<<-?\s*(['"]?)[A-Za-z_][\w]*\1/
+  const writeCall =
+    /\bopen\s*\([^)]*,\s*(['"])(?:w|a|x|r\+)\1\s*\)|\b(?:write_text|write_bytes|writeFile(?:Sync)?|appendFile(?:Sync)?|createWriteStream)\s*\(|\bBun\.write\s*\(|\bFile\.write\s*\(/
+  if (!interpreter.test(command) || !inlineScript.test(command) || !writeCall.test(command))
+    return null
+
+  const pathLiterals = /(['"])([^'"\s]+)\1/g
+  for (const match of command.matchAll(pathLiterals)) {
+    const literal = match[2]
+    if (isCodePath(literal)) return relativePath(literal)
+  }
+  return null
+}
+
 function shouldDeny(input) {
   if (process.env.ORCHESTOS_ROLE === 'executor') return null
 
@@ -90,6 +106,9 @@ function shouldDeny(input) {
     return path && isCodePath(toolInput.notebook_path) ? path : null
   }
   if (toolName !== 'Bash' || typeof toolInput.command !== 'string') return null
+
+  const inlineWritePath = hasInlineCodeWrite(toolInput.command)
+  if (inlineWritePath) return inlineWritePath
 
   const segments = toolInput.command.split(/&&|\|\||[;|]/)
   for (const segment of segments) {

@@ -1097,10 +1097,13 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
 
 ## Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
 
-- [ ] **AT.14 — ⚡ brain-no-code ve los intérpretes con script en línea (`python`/`node -e`/heredoc).** (abierto 2026-09-28, GO de Carlos)
+- [x] **AT.14 — ⚡ brain-no-code ve los intérpretes con script en línea (`python`/`node -e`/heredoc).** (abierto 2026-09-28, GO de Carlos; cerrado 2026-09-28)
   Hueco visto en MR.1.d2: el cerebro editó `src/` con `python3 - <<EOF … open(..,'w')` y el hook no lo vio. Se amplía
   `.claude/hooks/brain-no-code.js` (sin hook nuevo); de paso, `runHook` del test heredaba `ORCHESTOS_ROLE=executor`
   (los 5 fallos de `brain-no-code` en el sandbox de Luna). Spec: `docs/specs/AT.14.md`. Gate: `bun test` + `gate:all`.
+  Cierre: `gate:all` verde (1564 pass); deny/allow probados a mano fuera del sandbox. Ronda 2: solo cuenta la ruta que es
+  un literal completo entre comillas (prosa sin comillas en un heredoc que edita PLAN.md no se deniega).
+  Ejecutado por: Codex · `gpt-6-luna` (2 rondas: la 2.ª quitó un falso positivo con prosa) · Spec: docs/specs/AT.14.md (borrado al cerrar)
 - [ ] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, pendiente)
   **Absorbido por MR.1.d (Carlos 2026-09-24):** se ejecuta dentro de MR.1, no por separado.
   Origen: autoevaluación de Claude corriendo como CLI dentro de OrchestOS, contrastada contra el

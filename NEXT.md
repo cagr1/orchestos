@@ -1,7 +1,7 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
 ## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
-**MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. UI.15 ("+ Add project" sin modal, punto 4 paso 1) cerrado 2026-09-27; "Clonar desde URL" sigue pendiente de plan. UI.16 (punto 5, scroll del chat) cerrado 2026-09-27. "Clonar desde URL" en espera por decisión de Carlos. Punto 6: MR.1.d2 cerrado 2026-09-27 (PLAN.md). UI.13.7 cerrado 2026-09-28. Siguiente: el hueco de brain-no-code (abajo) o lo que diga `bun run next`. Pendiente sin ítem: reemplazar el prompt base del CLI (Codex ~96 % del input en el fixture, ver PLAN.md MR.1.d2).
+**MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. UI.15 ("+ Add project" sin modal, punto 4 paso 1) cerrado 2026-09-27; "Clonar desde URL" sigue pendiente de plan. UI.16 (punto 5, scroll del chat) cerrado 2026-09-27. "Clonar desde URL" en espera por decisión de Carlos. Punto 6: MR.1.d2 cerrado 2026-09-27 (PLAN.md). UI.13.7 y AT.14 (hueco de brain-no-code) cerrados 2026-09-28. Repo migrado el 2026-09-28 a `/Users/carlosgallardo/Projects/projects/orchestos` (plantilla en `~/Projects/screens`; memoria, statusline, DB, Codex trust y dreaming ya apuntan ahí). Siguiente: lo que diga `bun run next`. Pendiente sin ítem: reemplazar el prompt base del CLI (Codex ~96 % del input en el fixture, ver PLAN.md MR.1.d2).
 Pendiente sin ítem (Carlos 2026-09-28, "déjalo escrito"): el cerebro editó código en MR.1.d2 con `python3 - <<EOF …
 open('src/…','w')` y `.claude/hooks/brain-no-code.js` no lo vio (en Bash solo detecta `>`, `tee`, `sed -i`/`perl -i`).
 Arreglo acordado: ampliar ESE hook (sin hook nuevo, sin texto nuevo en CLAUDE.md/memoria, 0 tokens salvo al

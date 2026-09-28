@@ -14,7 +14,13 @@ function runHook(
   const result = spawnSync('node', [HOOK_PATH], {
     encoding: 'utf8',
     input: JSON.stringify(input),
-    env: { ...process.env, BRAIN_GUARD_ROOT: root, ...(role ? { ORCHESTOS_ROLE: role } : {}) },
+    env: {
+      ...Object.fromEntries(
+        Object.entries(process.env).filter(([key]) => key !== 'ORCHESTOS_ROLE'),
+      ),
+      BRAIN_GUARD_ROOT: root,
+      ...(role ? { ORCHESTOS_ROLE: role } : {}),
+    },
   })
   rmSync(root, { recursive: true, force: true })
   return result
@@ -85,6 +91,40 @@ describe('brain-no-code hook', () => {
     ]) {
       expect(runHook(tool('Bash', { command })).stdout.trim()).toBe('')
     }
+  })
+
+  it('deny inline interpreter scripts that write code paths', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    for (const command of [
+      "python3 - <<'EOF'\nopen('src/a.ts','w').write('x')\nEOF",
+      `python3 -c "from pathlib import Path; Path('tests/a.ts').write_text('x')"`,
+      `node -e "require('fs').writeFileSync('scripts/a.ts','x')"`,
+      `bun -e "await Bun.write('.claude/hooks/x.js','x')"`,
+      `python3 - <<'EOF'\nopen('${join(root, 'src/a.ts')}','w').write('x')\nEOF`,
+    ]) {
+      expectDenied(tool('Bash', { command }), root)
+    }
+  })
+
+  it('allow inline scripts that only read or write outside code paths', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    for (const command of [
+      'bun run scripts/x.ts',
+      'node scripts/x.mjs',
+      `python3 -c "print(open('src/a.ts').read())"`,
+      `python3 -c "open('/tmp/x','w').write('x')"`,
+      `python3 -c "open('PLAN.md','w').write('x')"`,
+      "python3 - <<'EOF'\nopen('PLAN.md','w').write('editó src/ con python')\nEOF",
+      `python3 -c "open('/tmp/x','w').write('x') # mentions src/a.ts"`,
+    ]) {
+      expect(runHook(tool('Bash', { command }), root).stdout.trim()).toBe('')
+    }
+  })
+
+  it('allows inline interpreter writes for the executor role', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    const command = "python3 - <<'EOF'\nopen('src/a.ts','w').write('x')\nEOF"
+    expect(runHook(tool('Bash', { command }), root, 'executor').stdout.trim()).toBe('')
   })
 
   it('allow executor edits to code', () => {
