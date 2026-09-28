@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { getTimeline, type TimelineResponse } from '../../api/chat'
+import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type {
   AgentItem,
   SessionStatus as ApiSessionStatus,
@@ -136,7 +137,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     { id: string; userMessage: string; response?: string }[]
   >([])
 
-  const timelineEndRef = useRef<HTMLDivElement>(null)
+  const timelineContainerRef = useRef<HTMLDivElement>(null)
+  const timelineContentRef = useRef<HTMLDivElement>(null)
+  const { stickToBottom } = useStickToBottom(timelineContainerRef, timelineContentRef)
+  // Abrir otro agente siempre lo muestra desde el final de su línea de tiempo.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: solo al cambiar de agente.
+  useEffect(() => stickToBottom(), [activeAgent?.id, stickToBottom])
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
 
   useEffect(() => {
@@ -276,7 +282,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       onRunCommand(content)
     }
 
-    timelineEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    stickToBottom()
   }
 
   // EMPTY STATE: when no agent session is selected (keep "OrchestOS Dev")
@@ -403,8 +409,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       </header>
 
       {/* 2. TIMELINE (Centered, same max width as Chat) */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-        <div className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
+      <div ref={timelineContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+        <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
           {/* USER MESSAGE: no avatar, no "You" label; time only on hover */}
           {latestUserMessage && (
             <div className="flex justify-end group">
@@ -872,8 +878,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
               )}
             </div>
           ))}
-
-          <div ref={timelineEndRef} />
         </div>
       </div>
 

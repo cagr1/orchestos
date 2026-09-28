@@ -1,7 +1,7 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
 ## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
-**MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. UI.15 ("+ Add project" sin modal, punto 4 paso 1) cerrado 2026-09-27; "Clonar desde URL" sigue pendiente de plan. Siguiente: punto 5 (el chat no baja del todo al último mensaje).
+**MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. UI.15 ("+ Add project" sin modal, punto 4 paso 1) cerrado 2026-09-27; "Clonar desde URL" sigue pendiente de plan. UI.16 (punto 5, scroll del chat) cerrado 2026-09-27. "Clonar desde URL" en espera por decisión de Carlos. Siguiente: punto 6 (spec de MR.1.d2), luego UI.13.7.
 Gotcha 2026-09-27: si el commit de cierre se bloquea (p. ej. `agent:live-gate` sin archivo de evidencia citado) DESPUÉS
 de un `plan:reconcile`, el siguiente reconcile falla con "Could not prove a closing commit SHA" (la DB ya lo tiene
 `done` y el SHA provisional solo vale al cerrar, `scripts/plan-import.ts:84`). Salida: pasar el ítem a `[ ]`,

@@ -137,6 +137,9 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   await shot('orchestrator-turn-recorded')
 
   const request = 'Modify README.md to add the line "Orchestrator marker gate".'
+  // UI.16: ventana baja para que el turno desborde; "abajo" sin scroll no probaría nada.
+  const viewport = page.viewportSize()
+  await page.setViewportSize({ width: viewport?.width ?? 1440, height: 560 })
   const secondTurnDone = await sendTurn(request)
   const heldTaskLabel = page.getByText('Task ready to run', { exact: true }).last()
   await step(
@@ -144,7 +147,60 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
     secondTurnDone && (await visible(heldTaskLabel, 180_000)),
     await heldTaskLabel.innerText().catch(() => 'No held task label visible'),
   )
+  const heldTaskAction = page.getByRole('button', { name: 'Approve & Run' }).last()
+  await page.waitForTimeout(500)
+  const heldTaskAtBottom = await heldTaskAction.evaluate((element) => {
+    let container = element.parentElement
+    while (container && container !== document.body) {
+      const style = getComputedStyle(container)
+      if (/(auto|scroll)/.test(style.overflowY)) {
+        const box = container.getBoundingClientRect()
+        const taskBox = element.getBoundingClientRect()
+        return {
+          overflows: container.scrollHeight > container.clientHeight + 50,
+          atBottom: container.scrollHeight - container.scrollTop - container.clientHeight <= 2,
+          contained:
+            taskBox.top >= box.top &&
+            taskBox.bottom <= box.bottom &&
+            taskBox.left >= box.left &&
+            taskBox.right <= box.right,
+        }
+      }
+      container = container.parentElement
+    }
+    return { overflows: false, atBottom: false, contained: false }
+  })
+  await step(
+    'held task card visible at the bottom',
+    heldTaskAtBottom.overflows && heldTaskAtBottom.atBottom && heldTaskAtBottom.contained,
+    JSON.stringify(heldTaskAtBottom),
+  )
   await shot('task-held-without-auxiliary')
+  // UI.16: contenido que crece DESPUÉS del render (en MR.1.d1 la tarjeta llegaba en un segundo render).
+  const afterGrowth = await heldTaskAction.evaluate(async (element) => {
+    let container = element.parentElement
+    while (container && !/(auto|scroll)/.test(getComputedStyle(container).overflowY))
+      container = container.parentElement
+    const content = container?.firstElementChild
+    if (!container || !content) return { atBottom: false, grew: false }
+    const before = container.scrollHeight
+    const filler = document.createElement('div')
+    filler.style.height = '600px'
+    content.appendChild(filler)
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const result = {
+      grew: container.scrollHeight > before + 500,
+      atBottom: container.scrollHeight - container.scrollTop - container.clientHeight <= 2,
+    }
+    filler.remove()
+    return result
+  })
+  await step(
+    'chat follows content that grows after render',
+    afterGrowth.grew && afterGrowth.atBottom,
+    JSON.stringify(afterGrowth),
+  )
+  if (viewport) await page.setViewportSize(viewport)
   await step(
     'task marker is stripped from the chat',
     (await page.getByText('[[orchestos:task]]', { exact: true }).count()) === 0,

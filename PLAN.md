@@ -1023,6 +1023,20 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   visible=false") + `smoke` 6/6; `test:coverage` 1547/0; tsc back+app; biome; `ui:fidelity:jsx`. El selector nativo
   real no se abre en el gate (interceptado): el clic del usuario sobre él queda sin verificar en vivo.
 
+- [x] **UI.16 — ⚡ Chat y Dev bajan hasta el último mensaje y se quedan abajo mientras crece.** (abierto 2026-09-27, cerrado 2026-09-27, GO de Carlos)
+  Visto 2026-09-26 (captura `chat-roles/task-held-for-confirmation`): la tarjeta de tarea retenida queda bajo el
+  pliegue. El Chat baja una sola vez, `smooth`, al cambiar `messages` (`OrchestChatView.tsx:156`); lo que se pinta
+  después (tarjeta, burbuja en vivo) no vuelve a bajar. Dev solo baja al enviar (`OrchestDevWorkspace.tsx:279`).
+  Fix: seguir el fondo mientras el usuario esté abajo. Gate: `chat-roles` y `chat-streaming` afirman el contenedor en
+  el fondo y la tarjeta/burbuja dentro de la vista.
+  Ejecutado por: Codex · `gpt-6-luna` (1 ronda) + ajustes del cerebro · Spec: docs/specs/UI.16.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.16-live.json`: `chat-roles` 11/11 — ventana de 560 px
+  para que el turno desborde, y paso "chat follows content that grows after render" (crece 600 px tras el render):
+  front viejo FAIL `{"grew":true,"atBottom":false}`, front nuevo PASS. `chat-streaming` 9/9 y los otros 10 flujos
+  verdes; `test:coverage` 1547/0; tsc app; biome. Hook `useStickToBottom` (ResizeObserver + umbral 80 px), también al
+  cambiar de sesión/agente. Nota: el caso exacto de la captura (tarjeta en un segundo render) ya no se da desde MR.1.d3
+  (marcador en la misma respuesta); el gate prueba el mecanismo, no esa captura.
+
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;

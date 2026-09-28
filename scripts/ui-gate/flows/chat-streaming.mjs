@@ -151,14 +151,34 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   let previousLength = 0
   let growthCount = 0
   let tookScreenshot = false
+  let liveBubbleAtBottom = true
+  let liveBubbleMeasurements = 0
   const completion = await waitFor(async () => {
     const text = await visibleText()
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
     if (text && firstAt === null) firstAt = Date.now() - startedAt
     if (text.length > previousLength) {
       if (previousLength > 0) growthCount++
       previousLength = text.length
+      if (timeline.data?.pending) {
+        const atBottom = await page
+          .locator('div.prose')
+          .last()
+          .evaluate((element) => {
+            let container = element.parentElement
+            while (container && container !== document.body) {
+              const style = getComputedStyle(container)
+              if (/(auto|scroll)/.test(style.overflowY)) {
+                return container.scrollHeight - container.scrollTop - container.clientHeight <= 2
+              }
+              container = container.parentElement
+            }
+            return false
+          })
+        liveBubbleAtBottom = liveBubbleAtBottom && atBottom
+        liveBubbleMeasurements++
+      }
     }
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
     if (text && !tookScreenshot && timeline.data?.pending) {
       tookScreenshot = true
       await shot('chat-text-visible-mid-turn')
@@ -177,6 +197,11 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     'visible text grows at least twice before completion',
     Boolean(completion && growthCount >= 2),
     `${growthCount} growth updates`,
+  )
+  await step(
+    'live bubble stays at the bottom',
+    liveBubbleMeasurements > 0 && liveBubbleAtBottom,
+    `${liveBubbleMeasurements} growth measurements; remained at bottom: ${liveBubbleAtBottom}`,
   )
   await step('captured screenshot during active turn', tookScreenshot, 'chat-text-visible-mid-turn')
   const visibleFinal = await visibleText()
