@@ -1097,6 +1097,10 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
 
 ## Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
 
+- [ ] **AT.14 — ⚡ brain-no-code ve los intérpretes con script en línea (`python`/`node -e`/heredoc).** (abierto 2026-09-28, GO de Carlos)
+  Hueco visto en MR.1.d2: el cerebro editó `src/` con `python3 - <<EOF … open(..,'w')` y el hook no lo vio. Se amplía
+  `.claude/hooks/brain-no-code.js` (sin hook nuevo); de paso, `runHook` del test heredaba `ORCHESTOS_ROLE=executor`
+  (los 5 fallos de `brain-no-code` en el sandbox de Luna). Spec: `docs/specs/AT.14.md`. Gate: `bun test` + `gate:all`.
 - [ ] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, pendiente)
   **Absorbido por MR.1.d (Carlos 2026-09-24):** se ejecuta dentro de MR.1, no por separado.
   Origen: autoevaluación de Claude corriendo como CLI dentro de OrchestOS, contrastada contra el
