@@ -1095,6 +1095,16 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.18-dev-send.json`: `codex-live` 9/9 — burbuja a
   los 18 ms, 0 loaders tras cada turno. Contraprueba: el mismo flujo con el componente de HEAD falla en burbuja y loader.
 
+- [x] **UI.19 — ⚡ Dev muestra la conversación completa, no solo el último intercambio.** (abierto 2026-09-28, cerrado 2026-09-28, pedido de Carlos)
+  `OrchestDevWorkspace.tsx` pintaba solo el último mensaje de usuario y la última respuesta, con los pasos de todos los
+  turnos aplanados. Carlos: "tiene que siempre mostrar todo, es lo lógico". Hecho: `buildExchanges` (un intercambio
+  por turno con sus propios pasos, respuesta y comandos; historial sin `turnId` emparejado por orden) renderizado con
+  el mismo JSX; burbuja optimista y texto en vivo en el turno en curso; `extraTurns` (mock de la plantilla) borrado,
+  con sus 27 clases en `jsx-allow.json`.
+  Ejecutado por: luna (3 rondas; r1 rompía el texto en vivo, r2 inventó un campo de API en el flujo) · Spec: docs/specs/UI.19.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.19-live.json`: `codex-live` 11/11 — 2 intercambios
+  en orden tras el turno 2 y tras recargar, texto en vivo, burbuja al instante, 0 loaders. `ui:fidelity:jsx` verde.
+
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;

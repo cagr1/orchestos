@@ -183,6 +183,58 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
     (await timelineView.locator('.animate-spin').count()) === 0,
     `${await timelineView.locator('.animate-spin').count()} spinning loaders remain`,
   )
+  const timelineBubbles = page.locator('main').last().locator('div.max-w-2xl')
+  const bubbleTexts = await timelineBubbles.allInnerTexts()
+  const proseTexts = await timelineView.locator('div.prose').allInnerTexts()
+  const firstAnswer =
+    firstCompletion.messages?.find((message) => message.role === 'assistant')?.content ?? ''
+  await step(
+    'both exchanges remain visible in order after turn 2',
+    bubbleTexts.some((text) => text.includes(sentMessage)) &&
+      bubbleTexts.some((text) => text.includes('What word did I ask you to remember?')) &&
+      bubbleTexts.findIndex((text) => text.includes(sentMessage)) <
+        bubbleTexts.findIndex((text) => text.includes('What word did I ask you to remember?')) &&
+      proseTexts.some(
+        (text) =>
+          firstAnswer.trim().includes(text.trim()) || text.trim().includes(firstAnswer.trim()),
+      ) &&
+      proseTexts.length >= 2,
+    `user bubbles=${bubbleTexts.length}; assistant bubbles=${proseTexts.length}`,
+  )
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const refreshedSessions = await api(
+    `/api/chat/sessions?project=${encodeURIComponent(project.id)}`,
+  )
+  const refreshedSession = (refreshedSessions.data ?? []).find((item) => item.id === session.id)
+  if (!refreshedSession?.title) throw new Error(`Codex session missing after reload: ${session.id}`)
+  const reselectAgent = page.getByRole('button', { name: refreshedSession.title, exact: true })
+  if (!(await reselectAgent.isVisible().catch(() => false))) {
+    await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
+  }
+  await reselectAgent.click()
+  const reloadedTimeline = page.locator('main').last()
+  await waitFor(
+    async () =>
+      (await reloadedTimeline.locator('div.max-w-2xl').filter({ hasText: sentMessage }).count()) >
+        0 &&
+      (await reloadedTimeline
+        .locator('div.max-w-2xl')
+        .filter({ hasText: 'What word did I ask you to remember?' })
+        .count()) > 0,
+  )
+  const reloadedBubbles = await reloadedTimeline.locator('div.max-w-2xl').allInnerTexts()
+  const reloadedProse = await reloadedTimeline.locator('div.prose').allInnerTexts()
+  await step(
+    'both exchanges remain visible in order after reload',
+    reloadedBubbles.findIndex((text) => text.includes(sentMessage)) >= 0 &&
+      reloadedBubbles.findIndex((text) => text.includes(sentMessage)) <
+        reloadedBubbles.findIndex((text) =>
+          text.includes('What word did I ask you to remember?'),
+        ) &&
+      reloadedProse.length >= 2,
+    `user bubbles=${reloadedBubbles.length}; assistant bubbles=${reloadedProse.length}`,
+  )
   await step(
     'turn 2 is faster than turn 1',
     Number.isFinite(secondDone) && secondDone < firstDone,

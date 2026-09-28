@@ -145,7 +145,8 @@ for (const [value, required] of extractClassNames(template)) {
 
 for (const [value, required] of extractElements(template)) {
   const available = extractElements(app).get(value) ?? 0
-  for (let index = available; index < required; index += 1) {
+  const exempted = allowedCount(allowList, value, templatePath)
+  for (let index = available; index < required - exempted; index += 1) {
     const position = template.indexOf(`<${value}`)
     missing.push(
       `element <${value} (template line ${template.slice(0, position).split('\n').length})`,

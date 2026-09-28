@@ -19,6 +19,7 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
 import { getTimeline, type TimelineResponse } from '../../api/chat'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type {
@@ -50,6 +51,77 @@ interface OrchestDevWorkspaceProps {
 }
 
 export type SessionStatus = 'working' | 'waiting for approval' | 'done' | 'failed'
+
+interface DevExchangeData {
+  id: string
+  userMessage?: ChatMessageRow
+  assistantMessage?: ChatMessageRow
+  turn?: TimelineTurn
+  steps: TimelineStep[]
+  commands: TimelineResponse['commands']
+  optimistic?: boolean
+}
+
+function buildExchanges(timeline: TimelineResponse | null): DevExchangeData[] {
+  if (!timeline) return []
+  const exchanges: DevExchangeData[] = timeline.turns
+    .map((turn) => ({
+      id: turn.id,
+      turn,
+      steps: turn.steps,
+      commands: [] as TimelineResponse['commands'],
+      userMessage: timeline.messages.find(
+        (message) => message.role === 'user' && message.turnId === turn.id,
+      ),
+      assistantMessage: timeline.messages.find(
+        (message) => message.role === 'assistant' && message.turnId === turn.id,
+      ),
+    }))
+    .sort((a, b) => Date.parse(a.turn?.createdAt ?? '') - Date.parse(b.turn?.createdAt ?? ''))
+  const legacyMessages = timeline.messages.filter((message) => !message.turnId)
+  for (const message of legacyMessages) {
+    if (message.role === 'user') {
+      exchanges.push({ id: `legacy-${message.id}`, userMessage: message, steps: [], commands: [] })
+      continue
+    }
+    const preceding = [...exchanges]
+      .reverse()
+      .find((exchange) => exchange.userMessage && !exchange.assistantMessage && !exchange.turn)
+    if (preceding) preceding.assistantMessage = message
+    else
+      exchanges.push({
+        id: `legacy-${message.id}`,
+        assistantMessage: message,
+        steps: [],
+        commands: [],
+      })
+  }
+  exchanges.sort((a, b) => {
+    const aAt = a.turn?.createdAt ?? a.userMessage?.createdAt ?? a.assistantMessage?.createdAt ?? ''
+    const bAt = b.turn?.createdAt ?? b.userMessage?.createdAt ?? b.assistantMessage?.createdAt ?? ''
+    return Date.parse(aAt) - Date.parse(bAt)
+  })
+  for (const command of timeline.commands) {
+    const at = Date.parse(command.createdAt)
+    const first = exchanges[0]
+    const firstStart = Date.parse(first?.turn?.createdAt ?? first?.userMessage?.createdAt ?? '')
+    const containing =
+      at < firstStart
+        ? first
+        : exchanges.find((exchange) => {
+            const start = Date.parse(
+              exchange.turn?.createdAt ?? exchange.userMessage?.createdAt ?? '',
+            )
+            const next = exchanges[exchanges.indexOf(exchange) + 1]
+            const end = next
+              ? Date.parse(next.turn?.createdAt ?? next.userMessage?.createdAt ?? '')
+              : Number.POSITIVE_INFINITY
+            return Number.isFinite(at) && at >= start && at < end
+          })
+    ;(containing ?? exchanges.at(-1))?.commands.push(command)
+  }
+  return exchanges
+}
 
 interface DiffLine {
   type: 'add' | 'del' | 'context' | 'header'
@@ -117,9 +189,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   const [elapsedTime] = useState('')
   const [currentStep, setCurrentStep] = useState('')
 
-  // Collapsed items state
-  const [isThoughtExpanded, setIsThoughtExpanded] = useState(false)
-  const [isReadFilesExpanded, setIsReadFilesExpanded] = useState(false)
+  // Collapsed state is keyed by exchange so each turn retains its own disclosure state.
+  const [expandedExchanges, setExpandedExchanges] = useState<Record<string, string[]>>({})
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [isEditExpanded, setIsEditExpanded] = useState(false)
   const [isFailingBashExpanded, setIsFailingBashExpanded] = useState(false)
@@ -132,11 +203,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   const [copiedFail, setCopiedFail] = useState(false)
   const [copiedPass, setCopiedPass] = useState(false)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
-
-  // Dynamic user message turns
-  const [extraTurns, setExtraTurns] = useState<
-    { id: string; userMessage: string; response?: string }[]
-  >([])
 
   const timelineContainerRef = useRef<HTMLDivElement>(null)
   const timelineContentRef = useRef<HTMLDivElement>(null)
@@ -178,57 +244,30 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     }
   }, [activeAgent?.id, sessionStatus, timeline?.pending])
 
-  const hasRealTurn = Boolean(
-    timeline &&
-      (timeline.turns.length > 0 || timeline.messages.length > 0 || timeline.commands.length > 0),
-  )
-  const latestUserMessage = [...(timeline?.messages ?? [])]
-    .reverse()
-    .find((message) => message.role === 'user')
+  const exchanges = buildExchanges(timeline)
+  const isWorking = sessionStatus === 'working' || timeline?.pending === true
   const persistedPendingMessage = (timeline?.messages ?? []).some(
     (message) =>
       message.role === 'user' &&
       message.content === pendingUserMessage?.content &&
       new Date(message.createdAt).getTime() >= (pendingUserMessage?.sentAt ?? 0) - 5000,
   )
-  const visibleUserMessage =
-    pendingUserMessage && !persistedPendingMessage
-      ? {
-          content: pendingUserMessage.content,
-          createdAt: new Date(pendingUserMessage.sentAt).toISOString(),
-        }
-      : latestUserMessage
-
+  if (pendingUserMessage && !persistedPendingMessage) {
+    const pendingExchange =
+      exchanges.find((exchange) => exchange.id === timeline?.live?.turnId) ??
+      [...exchanges].reverse().find((exchange) => exchange.turn && !exchange.assistantMessage)
+    if (pendingExchange) pendingExchange.optimistic = true
+    else
+      exchanges.push({
+        id: `optimistic-${pendingUserMessage.sentAt}`,
+        steps: [],
+        commands: [],
+        optimistic: true,
+      })
+  }
   useEffect(() => {
     if (persistedPendingMessage) setPendingUserMessage(null)
   }, [persistedPendingMessage])
-  const latestAssistantMessage =
-    [...(timeline?.messages ?? [])].reverse().find((message) => message.role === 'assistant')
-      ?.content ?? ''
-  const visibleAssistantMessage =
-    (sessionStatus === 'working' || timeline?.pending === true) && timeline?.live?.text
-      ? timeline.live.text
-      : latestAssistantMessage
-  const isWorking = sessionStatus === 'working' || timeline?.pending === true
-  const steps = timeline?.turns.flatMap((turn) => turn.steps) ?? []
-  const thoughtStep = steps.find((step) => step.type === 'text' && step.detail)
-  const readSteps = steps.filter((step) => step.tool?.toLowerCase() === 'read' && step.target)
-  const searchSteps = steps.filter((step) => step.tool?.toLowerCase().includes('search'))
-  const editStep = steps.find((step) => ['edit', 'write'].includes(step.tool?.toLowerCase() ?? ''))
-  const cliCommands = steps
-    .filter((step) => step.tool?.toLowerCase() === 'command' && step.detail)
-    .map((step, index) => ({
-      id: -(index + 1),
-      cmd: step.detail ?? '',
-      exitCode: step.exitCode ?? (step.ok === false ? 1 : 0),
-      stdout: step.output ?? '',
-      stderr: '',
-      elapsedMs: step.durationMs ?? 0,
-      createdAt: step.createdAt,
-    }))
-  const allCommands = [...(timeline?.commands ?? []), ...cliCommands]
-  const failedCommand = allCommands.find((command) => command.exitCode !== 0)
-  const passedCommand = allCommands.find((command) => command.exitCode === 0)
   // Derive CLI product identity
   const getCliId = (): CliId => {
     const model = (activeAgent?.model || 'claude').toLowerCase()
@@ -362,13 +401,516 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     ? sessionStatus
     : sessionStatus
 
-  const failingBashOutput = failedCommand
-    ? [failedCommand.cmd, failedCommand.stdout, failedCommand.stderr].filter(Boolean).join('\n')
-    : ''
+  function DevExchange(exchange: DevExchangeData) {
+    const isCurrentExchange = timeline?.live?.turnId === exchange.id
+    const latestUserMessage = exchange.userMessage
+    const pendingForExchange = exchange.optimistic && pendingUserMessage
+    const visibleUserMessage = pendingForExchange
+      ? {
+          content: pendingUserMessage.content,
+          createdAt: new Date(pendingUserMessage.sentAt).toISOString(),
+        }
+      : latestUserMessage
+    const steps = exchange.steps
+    const thoughtStep = steps.find((step) => step.type === 'text' && step.detail)
+    const readSteps = steps.filter((step) => step.tool?.toLowerCase() === 'read' && step.target)
+    const searchSteps = steps.filter((step) => step.tool?.toLowerCase().includes('search'))
+    const editStep = steps.find((step) =>
+      ['edit', 'write'].includes(step.tool?.toLowerCase() ?? ''),
+    )
+    const cliCommands = steps
+      .filter((step) => step.tool?.toLowerCase() === 'command' && step.detail)
+      .map((step, index) => ({
+        id: -(index + 1),
+        cmd: step.detail ?? '',
+        exitCode: step.exitCode ?? (step.ok === false ? 1 : 0),
+        stdout: step.output ?? '',
+        stderr: '',
+        elapsedMs: step.durationMs ?? 0,
+        createdAt: step.createdAt,
+      }))
+    const allCommands = [...exchange.commands, ...cliCommands]
+    const failedCommand = allCommands.find((command) => command.exitCode !== 0)
+    const passedCommand = allCommands.find((command) => command.exitCode === 0)
+    const failingBashOutput = failedCommand
+      ? [failedCommand.cmd, failedCommand.stdout, failedCommand.stderr].filter(Boolean).join('\n')
+      : ''
+    const passingBashOutput = passedCommand
+      ? [passedCommand.cmd, passedCommand.stdout, passedCommand.stderr].filter(Boolean).join('\n')
+      : ''
+    const hasRealTurn = Boolean(
+      latestUserMessage ||
+        exchange.assistantMessage ||
+        steps.length ||
+        exchange.commands.length ||
+        (isCurrentExchange && timeline?.pending),
+    )
+    const visibleAssistantMessage =
+      isCurrentExchange && timeline?.live?.text
+        ? timeline.live.text
+        : (exchange.assistantMessage?.content ?? '')
+    const isThoughtExpanded = expandedExchanges[exchange.id]?.includes('thought') ?? false
+    const isReadFilesExpanded = expandedExchanges[exchange.id]?.includes('read') ?? false
+    const setExpanded = (key: string, expanded: boolean) =>
+      setExpandedExchanges((current) => {
+        const values = new Set(current[exchange.id] ?? [])
+        if (expanded) values.add(key)
+        else values.delete(key)
+        return { ...current, [exchange.id]: [...values] }
+      })
+    return (
+      <div key={exchange.id} className="space-y-3 pt-2">
+        {/* USER MESSAGE: no avatar, no "You" label; time only on hover */}
+        {visibleUserMessage && (
+          <div className="flex justify-end group">
+            <div className="relative max-w-2xl px-4 py-2.5 rounded-card bg-app-surface text-app border border-app text-xs leading-relaxed shadow-2xs">
+              <span className="absolute right-0 bottom-full mb-1 text-[10px] font-mono text-app-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                {visibleUserMessage
+                  ? new Date(visibleUserMessage.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : ''}
+              </span>
+              {visibleUserMessage.content}
+              {readSteps[0]?.target && (
+                <code className="px-1 py-0.5 bg-app-bg border border-app rounded-xs font-mono text-[11px]">
+                  {readSteps[0].target}
+                </code>
+              )}{' '}
+              {readSteps[1]?.target && (
+                <code className="px-1 py-0.5 bg-app-bg border border-app rounded-xs font-mono text-[11px]">
+                  {readSteps[1].target}
+                </code>
+              )}{' '}
+              {latestUserMessage && visibleUserMessage === latestUserMessage && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void handleCopyMessage(
+                      latestUserMessage.id.toString(),
+                      latestUserMessage.content,
+                    )
+                  }
+                  className="absolute right-0 top-full mt-1 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-surface transition-colors"
+                  title="Copy"
+                  aria-label="Copy"
+                >
+                  {copiedMessageId === latestUserMessage.id.toString() ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                </button>
+              )}
+            </div>
+            <User className="mb-2 h-4 w-4 shrink-0 text-app-muted" aria-hidden="true" />
+          </div>
+        )}
 
-  const passingBashOutput = passedCommand
-    ? [passedCommand.cmd, passedCommand.stdout, passedCommand.stderr].filter(Boolean).join('\n')
-    : ''
+        {/* AGENT TURN: FLAT 32px TOOL ROWS (no card borders) */}
+        {hasRealTurn && (
+          <div className="space-y-1">
+            {/* 1. Thought (collapsed; summary shows only when expanded) */}
+            {thoughtStep && (
+              <div className="text-xs">
+                <button
+                  type="button"
+                  onClick={() => setExpanded('thought', !isThoughtExpanded)}
+                  className="h-8 w-full flex items-center gap-2 px-2 rounded-control hover:bg-app-surface/60 transition-colors text-app-muted cursor-pointer"
+                >
+                  {isThoughtExpanded ? (
+                    <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+                  )}
+                  <Sparkles className="w-3.5 h-3.5 text-app-accent flex-shrink-0" />
+                  <span className="font-mono text-[11px]">
+                    Thought
+                    {thoughtStep?.durationMs
+                      ? ` · ${Math.round(thoughtStep.durationMs / 1000)}s`
+                      : ''}
+                  </span>
+                </button>
+
+                {isThoughtExpanded && (
+                  <div className="mt-1 mb-2 ml-5 p-3 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5 leading-relaxed">
+                    <div>{thoughtStep.detail}</div>
+                    {false && <div>{thoughtStep.detail}</div>}
+                    {false && <div>{thoughtStep.detail}</div>}
+                    {false && <div>{thoughtStep.detail}</div>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 2. Read: consecutive reads collapse into one row */}
+            {readSteps.length > 0 && (
+              <div className="text-xs">
+                <button
+                  type="button"
+                  onClick={() => setExpanded('read', !isReadFilesExpanded)}
+                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                    <span className="font-mono text-app-muted text-xs">Read</span>
+                    <span className="font-mono text-app text-xs truncate">
+                      {readSteps.length} {readSteps.length === 1 ? 'file' : 'files'}
+                    </span>
+                  </div>
+                  {isReadFilesExpanded ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                  )}
+                </button>
+
+                {isReadFilesExpanded && (
+                  <div className="mt-1 mb-2 ml-5 p-2 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5">
+                    {readSteps[0] && (
+                      <div className="flex items-center justify-between py-0.5">
+                        <span className="text-app">{readSteps[0].target}</span>
+                      </div>
+                    )}
+                    {readSteps[1] && (
+                      <div className="flex items-center justify-between py-0.5 border-t border-app/40">
+                        <span className="text-app">{readSteps[1].target}</span>
+                      </div>
+                    )}
+                    {readSteps[2] && (
+                      <div className="flex items-center justify-between py-0.5 border-t border-app/40">
+                        <span className="text-app">{readSteps[2].target}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. Search: search results and count */}
+            {searchSteps.length > 0 && (
+              <div className="text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Search className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                    <span className="font-mono text-app-muted text-xs">Search</span>
+                    <span className="font-mono text-app text-xs truncate">
+                      {searchSteps[0]?.target ?? searchSteps[0]?.detail}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-mono text-xs text-app-muted">{searchSteps.length}</span>
+                    {isSearchExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
+                    )}
+                  </div>
+                </button>
+
+                {isSearchExpanded && (
+                  <div className="mt-1 mb-2 ml-5 p-2 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1">
+                    {searchSteps[0] && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-app">
+                          {searchSteps[0].target ?? searchSteps[0].detail}
+                        </span>
+                        <span className="text-app-muted/70">{searchSteps[0].detail}</span>
+                      </div>
+                    )}
+                    {searchSteps[1] && (
+                      <div className="flex items-center justify-between border-t border-app/40 pt-1">
+                        <span className="text-app">
+                          {searchSteps[1].target ?? searchSteps[1].detail}
+                        </span>
+                        <span className="text-app-muted/70">{searchSteps[1].detail}</span>
+                      </div>
+                    )}
+                    {searchSteps[2] && (
+                      <div className="flex items-center justify-between border-t border-app/40 pt-1">
+                        <span className="text-app">
+                          {searchSteps[2].target ?? searchSteps[2].detail}
+                        </span>
+                        <span className="text-app-muted/70">{searchSteps[2].detail}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. Edit: target and line counts */}
+            {editStep && (
+              <div className="text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsEditExpanded(!isEditExpanded)}
+                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FilePen className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                    <span className="font-mono text-app-muted text-xs">Edit</span>
+                    <span className="font-mono text-app text-xs truncate">{editStep?.target}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 font-mono text-xs">
+                    <span className="text-emerald-400 font-medium">+{editStep?.added ?? 0}</span>
+                    <span className="text-rose-400 font-medium">−{editStep?.removed ?? 0}</span>
+                    {isEditExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Expanded Edit -> inline colored diff */}
+                {isEditExpanded && (
+                  <div className="mt-1 mb-2 ml-5 rounded-control border border-app bg-[#0c1017] font-mono text-[11px] overflow-x-auto">
+                    {INITIAL_DIFF_LINES.map((line, idx) => {
+                      if (line.type === 'header') {
+                        return (
+                          <div
+                            key={idx}
+                            className="px-3 py-1 bg-app-elevated/40 text-app-muted text-[10px] select-none"
+                          >
+                            {line.text}
+                          </div>
+                        )
+                      }
+                      if (line.type === 'del') {
+                        return (
+                          <div
+                            key={idx}
+                            className="px-3 py-0.5 bg-rose-950/30 text-rose-300 flex items-center gap-3"
+                          >
+                            <span className="w-6 text-right text-rose-500/60 select-none text-[10px]">
+                              {line.oldLineNumber}
+                            </span>
+                            <span className="select-none text-rose-400 font-bold">-</span>
+                            <span className="flex-1 whitespace-pre">{line.text.slice(1)}</span>
+                          </div>
+                        )
+                      }
+                      if (line.type === 'add') {
+                        return (
+                          <div
+                            key={idx}
+                            className="px-3 py-0.5 bg-emerald-950/30 text-emerald-300 flex items-center gap-3"
+                          >
+                            <span className="w-6 text-right text-emerald-500/60 select-none text-[10px]">
+                              {line.newLineNumber}
+                            </span>
+                            <span className="select-none text-emerald-400 font-bold">+</span>
+                            <span className="flex-1 whitespace-pre">{line.text.slice(1)}</span>
+                          </div>
+                        )
+                      }
+                      return (
+                        <div
+                          key={idx}
+                          className="px-3 py-0.5 text-app-muted/80 flex items-center gap-3"
+                        >
+                          <span className="w-6 text-right text-app-muted/30 select-none text-[10px]">
+                            {line.newLineNumber}
+                          </span>
+                          <span className="select-none opacity-0"> </span>
+                          <span className="flex-1 whitespace-pre">{line.text}</span>
+                        </div>
+                      )
+                    })}
+                    {INITIAL_DIFF_LINES.length === 0 && (
+                      <pre className="p-3 text-app-muted whitespace-pre-wrap">
+                        {editStep.detail || editStep.output || 'No diff details recorded'}
+                      </pre>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 5. Failing Bash: command output and exit state */}
+            {failedCommand && (
+              <div className="text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsFailingBashExpanded(!isFailingBashExpanded)}
+                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Terminal className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                    <span className="font-mono text-app-muted text-xs">Bash</span>
+                    <span className="font-mono text-app text-xs truncate">
+                      {failedCommand?.cmd}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <X className="w-3.5 h-3.5 text-rose-500" />
+                    {isFailingBashExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
+                {isFailingBashExpanded && (
+                  <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyBash(failingBashOutput, 'fail')}
+                      className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
+                      title="Copy output"
+                      aria-label="Copy output"
+                    >
+                      {copiedFail ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    <pre className="text-rose-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
+                      {failingBashOutput}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 6. Passing Bash: command output and exit state */}
+            {passedCommand && (
+              <div className="text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsPassingBashExpanded(!isPassingBashExpanded)}
+                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Terminal className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                    <span className="font-mono text-app-muted text-xs">Bash</span>
+                    <span className="font-mono text-app text-xs truncate">
+                      {passedCommand?.cmd}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    {isPassingBashExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
+                {isPassingBashExpanded && (
+                  <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyBash(passingBashOutput, 'pass')}
+                      className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
+                      title="Copy output"
+                      aria-label="Copy output"
+                    >
+                      {copiedPass ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    <pre className="text-emerald-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
+                      {passingBashOutput}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 7. APPROVAL CARD: command or path, one-line reason, Approve / Deny */}
+        {/* THE ONLY ELEMENT WITH AN ACCENT BORDER IN THE TURN */}
+        {approvalState === 'pending' && false && (
+          <div className="border border-app-accent rounded-card p-3 bg-app-surface text-app shadow-2xs space-y-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1 min-w-0">
+                <div className="font-mono text-xs font-semibold text-app">{''}</div>
+                <div className="text-xs text-app-muted leading-relaxed">{''}</div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleDeny}
+                  className="px-2.5 py-1 rounded-control text-xs font-medium text-app-muted hover:text-app hover:bg-app-elevated border border-app transition-colors"
+                >
+                  Deny
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  className="px-3 py-1 rounded-control text-xs font-medium bg-app-accent text-white hover:opacity-90 transition-opacity shadow-2xs"
+                >
+                  Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 8. FINAL ANSWER IN MARKDOWN */}
+        {hasRealTurn && visibleAssistantMessage && (
+          <div className="flex items-start gap-2">
+            <Bot className="mt-4 h-4 w-4 shrink-0 text-app-accent" aria-hidden="true" />
+            <div className="relative rounded-card p-4 bg-app-surface/60 border border-app/60 text-xs text-app leading-relaxed shadow-2xs flex-1 group">
+              <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
+                <Markdown remarkPlugins={[remarkGfm]}>{visibleAssistantMessage}</Markdown>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const message = [...(timeline?.messages ?? [])]
+                    .reverse()
+                    .find((item) => item.role === 'assistant')
+                  if (message) void handleCopyMessage(message.id.toString(), message.content)
+                }}
+                className="absolute right-2 top-2 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-elevated transition-colors"
+                title="Copy"
+                aria-label="Copy"
+              >
+                {copiedMessageId ===
+                String(
+                  [...(timeline?.messages ?? [])]
+                    .reverse()
+                    .find((item) => item.role === 'assistant')?.id,
+                ) ? (
+                  <Check className="w-3 h-3" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 9. WHILE RUNNING: one live row with subtle shimmer, current step and elapsed time */}
+        {isCurrentExchange && sessionStatus === 'working' && (
+          <div className="h-8 px-2.5 flex items-center justify-between text-xs font-mono text-app-muted bg-app-surface/40 rounded-control border border-app/40 animate-pulse">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 text-app-accent animate-spin" />
+              <span className="text-app">{currentStep}</span>
+            </div>
+            <span className="text-[11px] text-app-muted">{elapsedTime}</span>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <main className="flex-1 flex flex-col h-full bg-app-bg text-app overflow-hidden relative select-none">
@@ -451,475 +993,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       {/* 2. TIMELINE (Centered, same max width as Chat) */}
       <div ref={timelineContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
         <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
-          {/* USER MESSAGE: no avatar, no "You" label; time only on hover */}
-          {visibleUserMessage && (
-            <div className="flex justify-end group">
-              <div className="relative max-w-2xl px-4 py-2.5 rounded-card bg-app-surface text-app border border-app text-xs leading-relaxed shadow-2xs">
-                <span className="absolute right-0 bottom-full mb-1 text-[10px] font-mono text-app-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  {visibleUserMessage
-                    ? new Date(visibleUserMessage.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : ''}
-                </span>
-                {visibleUserMessage.content}
-                {readSteps[0]?.target && (
-                  <code className="px-1 py-0.5 bg-app-bg border border-app rounded-xs font-mono text-[11px]">
-                    {readSteps[0].target}
-                  </code>
-                )}{' '}
-                {readSteps[1]?.target && (
-                  <code className="px-1 py-0.5 bg-app-bg border border-app rounded-xs font-mono text-[11px]">
-                    {readSteps[1].target}
-                  </code>
-                )}{' '}
-                {latestUserMessage && visibleUserMessage === latestUserMessage && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void handleCopyMessage(
-                        latestUserMessage.id.toString(),
-                        latestUserMessage.content,
-                      )
-                    }
-                    className="absolute right-0 top-full mt-1 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-surface transition-colors"
-                    title="Copy"
-                    aria-label="Copy"
-                  >
-                    {copiedMessageId === latestUserMessage.id.toString() ? (
-                      <Check className="w-3 h-3" />
-                    ) : (
-                      <Copy className="w-3 h-3" />
-                    )}
-                  </button>
-                )}
-              </div>
-              <User className="mb-2 h-4 w-4 shrink-0 text-app-muted" aria-hidden="true" />
-            </div>
-          )}
-
-          {/* AGENT TURN: FLAT 32px TOOL ROWS (no card borders) */}
-          {hasRealTurn && (
-            <div className="space-y-1">
-              {/* 1. Thought (collapsed; summary shows only when expanded) */}
-              {thoughtStep && (
-                <div className="text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setIsThoughtExpanded(!isThoughtExpanded)}
-                    className="h-8 w-full flex items-center gap-2 px-2 rounded-control hover:bg-app-surface/60 transition-colors text-app-muted cursor-pointer"
-                  >
-                    {isThoughtExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
-                    )}
-                    <Sparkles className="w-3.5 h-3.5 text-app-accent flex-shrink-0" />
-                    <span className="font-mono text-[11px]">
-                      Thought
-                      {thoughtStep?.durationMs
-                        ? ` · ${Math.round(thoughtStep.durationMs / 1000)}s`
-                        : ''}
-                    </span>
-                  </button>
-
-                  {isThoughtExpanded && (
-                    <div className="mt-1 mb-2 ml-5 p-3 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5 leading-relaxed">
-                      <div>{thoughtStep.detail}</div>
-                      {false && <div>{thoughtStep.detail}</div>}
-                      {false && <div>{thoughtStep.detail}</div>}
-                      {false && <div>{thoughtStep.detail}</div>}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 2. Read: consecutive reads collapse into one row */}
-              {readSteps.length > 0 && (
-                <div className="text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setIsReadFilesExpanded(!isReadFilesExpanded)}
-                    className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileText className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                      <span className="font-mono text-app-muted text-xs">Read</span>
-                      <span className="font-mono text-app text-xs truncate">
-                        {readSteps.length} {readSteps.length === 1 ? 'file' : 'files'}
-                      </span>
-                    </div>
-                    {isReadFilesExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                    )}
-                  </button>
-
-                  {isReadFilesExpanded && (
-                    <div className="mt-1 mb-2 ml-5 p-2 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5">
-                      {readSteps[0] && (
-                        <div className="flex items-center justify-between py-0.5">
-                          <span className="text-app">{readSteps[0].target}</span>
-                        </div>
-                      )}
-                      {readSteps[1] && (
-                        <div className="flex items-center justify-between py-0.5 border-t border-app/40">
-                          <span className="text-app">{readSteps[1].target}</span>
-                        </div>
-                      )}
-                      {readSteps[2] && (
-                        <div className="flex items-center justify-between py-0.5 border-t border-app/40">
-                          <span className="text-app">{readSteps[2].target}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 3. Search: search results and count */}
-              {searchSteps.length > 0 && (
-                <div className="text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-                    className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Search className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                      <span className="font-mono text-app-muted text-xs">Search</span>
-                      <span className="font-mono text-app text-xs truncate">
-                        {searchSteps[0]?.target ?? searchSteps[0]?.detail}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="font-mono text-xs text-app-muted">{searchSteps.length}</span>
-                      {isSearchExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
-                      )}
-                    </div>
-                  </button>
-
-                  {isSearchExpanded && (
-                    <div className="mt-1 mb-2 ml-5 p-2 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1">
-                      {searchSteps[0] && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-app">
-                            {searchSteps[0].target ?? searchSteps[0].detail}
-                          </span>
-                          <span className="text-app-muted/70">{searchSteps[0].detail}</span>
-                        </div>
-                      )}
-                      {searchSteps[1] && (
-                        <div className="flex items-center justify-between border-t border-app/40 pt-1">
-                          <span className="text-app">
-                            {searchSteps[1].target ?? searchSteps[1].detail}
-                          </span>
-                          <span className="text-app-muted/70">{searchSteps[1].detail}</span>
-                        </div>
-                      )}
-                      {searchSteps[2] && (
-                        <div className="flex items-center justify-between border-t border-app/40 pt-1">
-                          <span className="text-app">
-                            {searchSteps[2].target ?? searchSteps[2].detail}
-                          </span>
-                          <span className="text-app-muted/70">{searchSteps[2].detail}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 4. Edit: target and line counts */}
-              {editStep && (
-                <div className="text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditExpanded(!isEditExpanded)}
-                    className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FilePen className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                      <span className="font-mono text-app-muted text-xs">Edit</span>
-                      <span className="font-mono text-app text-xs truncate">
-                        {editStep?.target}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 font-mono text-xs">
-                      <span className="text-emerald-400 font-medium">+{editStep?.added ?? 0}</span>
-                      <span className="text-rose-400 font-medium">−{editStep?.removed ?? 0}</span>
-                      {isEditExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
-                      )}
-                    </div>
-                  </button>
-
-                  {/* Expanded Edit -> inline colored diff */}
-                  {isEditExpanded && (
-                    <div className="mt-1 mb-2 ml-5 rounded-control border border-app bg-[#0c1017] font-mono text-[11px] overflow-x-auto">
-                      {INITIAL_DIFF_LINES.map((line, idx) => {
-                        if (line.type === 'header') {
-                          return (
-                            <div
-                              key={idx}
-                              className="px-3 py-1 bg-app-elevated/40 text-app-muted text-[10px] select-none"
-                            >
-                              {line.text}
-                            </div>
-                          )
-                        }
-                        if (line.type === 'del') {
-                          return (
-                            <div
-                              key={idx}
-                              className="px-3 py-0.5 bg-rose-950/30 text-rose-300 flex items-center gap-3"
-                            >
-                              <span className="w-6 text-right text-rose-500/60 select-none text-[10px]">
-                                {line.oldLineNumber}
-                              </span>
-                              <span className="select-none text-rose-400 font-bold">-</span>
-                              <span className="flex-1 whitespace-pre">{line.text.slice(1)}</span>
-                            </div>
-                          )
-                        }
-                        if (line.type === 'add') {
-                          return (
-                            <div
-                              key={idx}
-                              className="px-3 py-0.5 bg-emerald-950/30 text-emerald-300 flex items-center gap-3"
-                            >
-                              <span className="w-6 text-right text-emerald-500/60 select-none text-[10px]">
-                                {line.newLineNumber}
-                              </span>
-                              <span className="select-none text-emerald-400 font-bold">+</span>
-                              <span className="flex-1 whitespace-pre">{line.text.slice(1)}</span>
-                            </div>
-                          )
-                        }
-                        return (
-                          <div
-                            key={idx}
-                            className="px-3 py-0.5 text-app-muted/80 flex items-center gap-3"
-                          >
-                            <span className="w-6 text-right text-app-muted/30 select-none text-[10px]">
-                              {line.newLineNumber}
-                            </span>
-                            <span className="select-none opacity-0"> </span>
-                            <span className="flex-1 whitespace-pre">{line.text}</span>
-                          </div>
-                        )
-                      })}
-                      {INITIAL_DIFF_LINES.length === 0 && (
-                        <pre className="p-3 text-app-muted whitespace-pre-wrap">
-                          {editStep.detail || editStep.output || 'No diff details recorded'}
-                        </pre>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 5. Failing Bash: command output and exit state */}
-              {failedCommand && (
-                <div className="text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setIsFailingBashExpanded(!isFailingBashExpanded)}
-                    className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Terminal className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                      <span className="font-mono text-app-muted text-xs">Bash</span>
-                      <span className="font-mono text-app text-xs truncate">
-                        {failedCommand?.cmd}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <X className="w-3.5 h-3.5 text-rose-500" />
-                      {isFailingBashExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
-                      )}
-                    </div>
-                  </button>
-
-                  {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
-                  {isFailingBashExpanded && (
-                    <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyBash(failingBashOutput, 'fail')}
-                        className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
-                        title="Copy output"
-                        aria-label="Copy output"
-                      >
-                        {copiedFail ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <pre className="text-rose-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
-                        {failingBashOutput}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 6. Passing Bash: command output and exit state */}
-              {passedCommand && (
-                <div className="text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setIsPassingBashExpanded(!isPassingBashExpanded)}
-                    className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Terminal className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                      <span className="font-mono text-app-muted text-xs">Bash</span>
-                      <span className="font-mono text-app text-xs truncate">
-                        {passedCommand?.cmd}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      {isPassingBashExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
-                      )}
-                    </div>
-                  </button>
-
-                  {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
-                  {isPassingBashExpanded && (
-                    <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyBash(passingBashOutput, 'pass')}
-                        className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
-                        title="Copy output"
-                        aria-label="Copy output"
-                      >
-                        {copiedPass ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <pre className="text-emerald-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
-                        {passingBashOutput}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 7. APPROVAL CARD: command or path, one-line reason, Approve / Deny */}
-          {/* THE ONLY ELEMENT WITH AN ACCENT BORDER IN THE TURN */}
-          {approvalState === 'pending' && false && (
-            <div className="border border-app-accent rounded-card p-3 bg-app-surface text-app shadow-2xs space-y-2.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1 min-w-0">
-                  <div className="font-mono text-xs font-semibold text-app">{''}</div>
-                  <div className="text-xs text-app-muted leading-relaxed">{''}</div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleDeny}
-                    className="px-2.5 py-1 rounded-control text-xs font-medium text-app-muted hover:text-app hover:bg-app-elevated border border-app transition-colors"
-                  >
-                    Deny
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleApprove}
-                    className="px-3 py-1 rounded-control text-xs font-medium bg-app-accent text-white hover:opacity-90 transition-opacity shadow-2xs"
-                  >
-                    Approve
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 8. FINAL ANSWER IN MARKDOWN */}
-          {hasRealTurn && visibleAssistantMessage && (
-            <div className="flex items-start gap-2">
-              <Bot className="mt-4 h-4 w-4 shrink-0 text-app-accent" aria-hidden="true" />
-              <div className="relative rounded-card p-4 bg-app-surface/60 border border-app/60 text-xs text-app leading-relaxed shadow-2xs flex-1 group">
-                <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
-                  <Markdown remarkPlugins={[remarkGfm]}>{visibleAssistantMessage}</Markdown>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const message = [...(timeline?.messages ?? [])]
-                      .reverse()
-                      .find((item) => item.role === 'assistant')
-                    if (message) void handleCopyMessage(message.id.toString(), message.content)
-                  }}
-                  className="absolute right-2 top-2 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-elevated transition-colors"
-                  title="Copy"
-                  aria-label="Copy"
-                >
-                  {copiedMessageId ===
-                  String(
-                    [...(timeline?.messages ?? [])]
-                      .reverse()
-                      .find((item) => item.role === 'assistant')?.id,
-                  ) ? (
-                    <Check className="w-3 h-3" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 9. WHILE RUNNING: one live row with subtle shimmer, current step and elapsed time */}
-          {sessionStatus === 'working' && (
-            <div className="h-8 px-2.5 flex items-center justify-between text-xs font-mono text-app-muted bg-app-surface/40 rounded-control border border-app/40 animate-pulse">
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 text-app-accent animate-spin" />
-                <span className="text-app">{currentStep}</span>
-              </div>
-              <span className="text-[11px] text-app-muted">{elapsedTime}</span>
-            </div>
-          )}
-
-          {/* Dynamic Extra Turns if user sent any further messages */}
-          {extraTurns.map((turn) => (
-            <div key={turn.id} className="space-y-3 pt-2">
-              <div className="flex justify-end group">
-                <div className="relative max-w-2xl px-4 py-2.5 rounded-card bg-app-surface text-app border border-app text-xs leading-relaxed shadow-2xs">
-                  {turn.userMessage}
-                </div>
-                <User className="mb-2 h-4 w-4 shrink-0 text-app-muted" aria-hidden="true" />
-              </div>
-              {turn.response && (
-                <div className="rounded-card p-4 bg-app-surface/60 border border-app/60 text-xs text-app leading-relaxed shadow-2xs">
-                  <pre className="font-mono text-xs whitespace-pre text-app-muted">
-                    {turn.response}
-                  </pre>
-                </div>
-              )}
-            </div>
-          ))}
+          {exchanges.map(DevExchange)}
         </div>
       </div>
 

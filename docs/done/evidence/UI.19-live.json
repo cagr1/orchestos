@@ -1,0 +1,68 @@
+[
+  {
+    "flujo": "codex-live",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-codex-live-2Fjshu"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "turn 1 user message appears before completion",
+        "ok": true,
+        "detalle": "16 ms after send"
+      },
+      {
+        "nombre": "turn 1 streams multiple visible text updates",
+        "ok": true,
+        "detalle": "8 distinct non-empty samples before completion"
+      },
+      {
+        "nombre": "turn 1 timeline loader stops after completion",
+        "ok": true,
+        "detalle": "0 spinning loaders remain"
+      },
+      {
+        "nombre": "turn 2 remembers the word from turn 1",
+        "ok": true,
+        "detalle": "MANGO-4YA0J2QI"
+      },
+      {
+        "nombre": "turn 2 timeline loader stops after completion",
+        "ok": true,
+        "detalle": "0 spinning loaders remain"
+      },
+      {
+        "nombre": "both exchanges remain visible in order after turn 2",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2"
+      },
+      {
+        "nombre": "both exchanges remain visible in order after reload",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2"
+      },
+      {
+        "nombre": "turn 2 is faster than turn 1",
+        "ok": true,
+        "detalle": "turn 1=12527 ms; turn 2=3442 ms"
+      },
+      {
+        "nombre": "project chat runs are recorded with provider=codex",
+        "ok": true,
+        "detalle": "[{\"provider\":\"codex\",\"model\":\"gpt-6-astra\"},{\"provider\":\"codex\",\"model\":\"gpt-6-astra\"}]"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97801/codex-live/codex-live-turn-one.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97801/codex-live/codex-live-turn-two.png"
+    ]
+  }
+]

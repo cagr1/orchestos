@@ -73,5 +73,140 @@
     "archivo": "AgentComposer.tsx",
     "valor": "p-0.5",
     "motivo": "Carlos 2026-09-22: el selector de CLI del composer se quitó; el CLI se muestra en la cabecera."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "text-app",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "text-app",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "rounded-card",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "rounded-card",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "bg-app-surface",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border-app",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "text-xs",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "text-xs",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "text-xs",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "leading-relaxed",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "leading-relaxed",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "font-mono",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "shadow-2xs",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "shadow-2xs",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "p-4",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "justify-end",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "max-w-2xl",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "px-4",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "py-2.5",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border-app/60",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "whitespace-pre",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "bg-app-surface/60",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "div",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "div",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "div",
+    "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
   }
 ]
