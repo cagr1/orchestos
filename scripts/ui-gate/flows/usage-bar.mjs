@@ -153,33 +153,42 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     writeStatusline(`quota-scenario-${scenarioSession}`, used)
     // The status endpoint intentionally serves cache entries for up to 10 seconds.
     await delay(10_500)
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/api/session/status') && response.request().method() === 'GET',
-      { timeout: 10_000 },
-    )
-    await refreshButton.click()
-    const response = await responsePromise.catch(() => null)
     const claudeButton = page.locator('button[title^="Claude"]')
     const quotaElements = claudeButton.locator('[data-quota-tone]')
-    const rendered = await page
-      .waitForFunction(
-        (expected) => {
-          const elements = document
-            .querySelector('button[title^="Claude"]')
-            ?.querySelectorAll('[data-quota-tone]')
-          return Boolean(
-            elements?.length === 2 &&
-              [...elements].every(
-                (element) => element.getAttribute('data-quota-tone') === expected,
-              ),
-          )
-        },
-        expectedTone,
-        { timeout: 5_000 },
-      )
-      .then(() => true)
-      .catch(() => false)
+    const deadline = Date.now() + 30_000
+    let clicks = 0
+    let response = null
+    let rendered = false
+    while (Date.now() < deadline && !rendered) {
+      const responsePromise = page
+        .waitForResponse(
+          (item) => item.url().includes('/api/session/status') && item.request().method() === 'GET',
+          { timeout: Math.max(1, deadline - Date.now()) },
+        )
+        .catch(() => null)
+      await refreshButton.click()
+      clicks += 1
+      response = await responsePromise
+      rendered = await page
+        .waitForFunction(
+          (expected) => {
+            const elements = document
+              .querySelector('button[title^="Claude"]')
+              ?.querySelectorAll('[data-quota-tone]')
+            return Boolean(
+              elements?.length === 2 &&
+                [...elements].every(
+                  (element) => element.getAttribute('data-quota-tone') === expected,
+                ),
+            )
+          },
+          expectedTone,
+          { timeout: Math.min(1_000, Math.max(1, deadline - Date.now())) },
+        )
+        .then(() => true)
+        .catch(() => false)
+      if (!rendered && Date.now() < deadline) await delay(1_000)
+    }
     const bar = quotaElements.nth(0)
     const number = quotaElements.nth(1)
     const barTone = await bar.getAttribute('data-quota-tone')
@@ -192,7 +201,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
         barTone === expectedTone &&
         numberTone === expectedTone &&
         (!expectedClass || barClass?.split(/\s+/).includes(expectedClass)),
-      `response=${Boolean(response)}, bar=${barTone}, number=${numberTone}, class=${barClass}`,
+      `clicks=${clicks}, response=${Boolean(response)}, bar=${barTone}, number=${numberTone}, class=${barClass}`,
     )
   }
   await refreshQuotaScenario(50, 'normal', null)

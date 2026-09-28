@@ -38,8 +38,13 @@ async function sendTurn(page, composer, message) {
       .catch(() => false)
     await composer.press('Enter')
     if (!(await request)) continue
-    if (await response) return waitForReply(page, previousReplyCount)
-    return ''
+    const result = await response
+    if (!result) return ''
+    if (!result.ok()) {
+      const body = (await result.text()).slice(0, 500)
+      throw new Error(`/api/chat returned HTTP ${result.status()}: ${body}`)
+    }
+    return waitForReply(page, previousReplyCount)
   }
   return ''
 }

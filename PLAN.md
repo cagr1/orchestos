@@ -1137,6 +1137,20 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   Ejecutado por: luna (1 ronda; la primera se detuvo en el preflight por falta de ítem) · Spec: docs/specs/CI.6.md
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.6-live.json`: `chat-roles` 11/11, `chat-context` 5/5.
 
+- [x] **CI.7 — ⚡ Pre-push: 3 flujos fallan por latencia o capricho del modelo, no por la UI.** (abierto 2026-09-28, cerrado 2026-09-28)
+  Bloquea el push de UI.20/UI.21/CI.6. Evidencia (`$TMPDIR/ui-gate-*/result.json`, 2026-09-28): `usage-bar` 70 %
+  quedó `normal` (el endpoint devuelve la caché vieja si el refresco tarda >3 s,
+  `src/dashboard/handlers/session-status.ts:10`); `chat-turn-details` sin bloque de herramienta porque Codex respondió
+  "no puedo ejecutar comandos" (captura `tool-and-reasoning.png`); `chat-streaming` "turn 2 sampled while pending"
+  cuando el turno 2 terminó antes de muestrear; `chat-streaming`/`chat-context` HTTP 502 de Claude sin el cuerpo.
+  Hecho: `usage-bar` reintenta refresh hasta 30 s; `chat-turn-details` hasta 3 intentos y exige el bloque solo si el
+  timeline registró `tool_use`; `chat-streaming` hasta 3 turnos largos para muestrear mid-turn; errores HTTP de
+  `/api/chat` con cuerpo. Aprendido: biome por defecto no detecta identificadores sin declarar en los flujos —
+  `bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows` sí (Luna dejó `secondChatPrompt`).
+  Ejecutado por: luna (4 rondas; r1 paró en baseline de sandbox, r2 esperaba el POST y mataba el muestreo) · Spec: docs/specs/CI.7.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.7-live.json`: 15 flujos (14 verdes + `chat-streaming`
+  15/15 tras r4), `test:coverage` 1573/0.
+
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;

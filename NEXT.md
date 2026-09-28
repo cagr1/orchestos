@@ -1,5 +1,12 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Siguiente tab — tras CI.7 (2026-09-28, noche)
+CI.7 cerrado (los flujos intermitentes del pre-push, PLAN.md). Siguiente: AT.15 (OpenCode = terminal real en Dev).
+Pendientes sin ítem: (1) `src/run/logger.ts:52` lanza ENOENT al escribir en `runs/` de un proyecto que el cleanup de
+un flujo ya borró (visto en `ui-gate-68402/dashboard.log`, task en curso durante el cleanup); (2) historial en las
+ramas Claude/OpenCode del chat; (3) nombres largos de OpenRouter truncados iguales en el selector.
+IDEAS.md (#71) y `orchestos.config.yaml` siguen con cambios de otra sesión, sin commitear.
+
 ## Siguiente tab — CI.2 primero: push bloqueado por flujos intermitentes (2026-09-28, tarde)
 Cerrados hoy: MR.1 (d5 codex app-server), AT.10, UI.18, UI.19, UI.20, UI.21, CI.6 (PLAN.md). **3 commits locales sin
 push** (6da5b61 UI.20, e86f437 UI.21, e408ee1 CI.6): cada uno pasó sus flujos en navegador y `test:coverage` 0 fail,

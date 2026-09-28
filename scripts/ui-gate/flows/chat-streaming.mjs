@@ -9,9 +9,12 @@ function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: 'ignore' })
 }
 
+let postFailure = null
+
 async function waitFor(predicate, timeout = 180_000) {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
+    if (postFailure) throw new Error(postFailure)
     const result = await predicate()
     if (result) return result
     await new Promise((resolve) => setTimeout(resolve, 100))
@@ -20,12 +23,25 @@ async function waitFor(predicate, timeout = 180_000) {
 }
 
 async function sendTurn(page, composer, message) {
+  postFailure = null
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
   const sendButton = page.getByRole('button', { name: 'Send message', exact: true }).last()
   const enabled = await waitFor(async () => ((await sendButton.isEnabled()) ? true : null), 30_000)
   if (!enabled) throw new Error('Chat send stayed disabled after model catalog loading')
   const startedAt = Date.now()
+  const responsePromise = page
+    .waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
+      { timeout: 180_000 },
+    )
+    .catch(() => null)
+  responsePromise.then(async (response) => {
+    if (response && !response.ok()) {
+      postFailure = `/api/chat returned HTTP ${response.status()}: ${(await response.text()).slice(0, 500)}`
+    }
+  })
   let sent = false
   while (!sent && Date.now() - startedAt < 180_000) {
     const request = page
@@ -220,64 +236,77 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     'no task marker in the DOM',
   )
 
-  const secondChatPrompt = 'Escribe los números del 41 al 80 en palabras, uno por línea.'
-  await sendTurn(page, composer, secondChatPrompt)
+  const extraChatPrompts = [
+    'Escribe los números del 41 al 80 en palabras, uno por línea.',
+    'Escribe los números del 81 al 120 en palabras, uno por línea.',
+    'Escribe los números del 121 al 160 en palabras, uno por línea.',
+  ]
+  const sampledChatPrompts = []
   let chatMidTurnChecked = false
   let chatComposerMidTurnChecked = false
-  const secondChatCompletion = await waitFor(async () => {
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
-    if (timeline.data?.pending && !chatComposerMidTurnChecked) {
-      chatComposerMidTurnChecked = true
-      await step(
-        'Chat composer empty during turn 2',
-        (await composer.inputValue()) === '',
-        await composer.inputValue(),
-      )
-    }
-    if (timeline.data?.pending && timeline.data.live?.text && !chatMidTurnChecked) {
-      const midOrder = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
-      const index = (text) => midOrder.findIndex((entry) => squash(entry).includes(squash(text)))
-      const firstAnswer =
-        completion?.timeline.messages.find((message) => message.role === 'assistant')?.content ?? ''
-      const liveIndex = midOrder.findIndex((entry) =>
-        squash(entry).includes(squash(timeline.data.live.text.slice(0, 32))),
-      )
-      if (liveIndex < 0) return null
-      chatMidTurnChecked = true
-      await step(
-        'Chat DOM order during turn 2 is assistant 1, user 2, live assistant 2',
-        index(firstAnswer) < index(secondChatPrompt) && index(secondChatPrompt) < liveIndex,
-        JSON.stringify(midOrder.map((text) => squash(text).slice(0, 50))),
-      )
-    }
-    const assistants =
-      timeline.data?.messages?.filter((message) => message.role === 'assistant') ?? []
-    return !timeline.data?.pending && assistants.length >= 2 ? timeline.data : null
-  })
+  let secondChatCompletion = null
+  for (const prompt of extraChatPrompts) {
+    await sendTurn(page, composer, prompt)
+    sampledChatPrompts.push(prompt)
+    secondChatCompletion = await waitFor(async () => {
+      const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+      if (timeline.data?.pending && !chatComposerMidTurnChecked) {
+        chatComposerMidTurnChecked = true
+        const composerValue = await composer.inputValue()
+        await step('Chat composer empty during sampled turn', composerValue === '', composerValue)
+      }
+      if (timeline.data?.pending && timeline.data.live?.text && !chatMidTurnChecked) {
+        const midOrder = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
+        const index = (text) => midOrder.findIndex((entry) => squash(entry).includes(squash(text)))
+        const previousAnswer =
+          timeline.data.messages.filter((message) => message.role === 'assistant').at(-1)
+            ?.content ?? ''
+        const liveIndex = midOrder.findIndex((entry) =>
+          squash(entry).includes(squash(timeline.data.live.text.slice(0, 32))),
+        )
+        if (liveIndex < 0) return null
+        chatMidTurnChecked = true
+        await step(
+          'Chat DOM order during sampled turn is previous assistant, user, live assistant',
+          index(previousAnswer) < index(prompt) && index(prompt) < liveIndex,
+          JSON.stringify(midOrder.map((text) => squash(text).slice(0, 50))),
+        )
+      }
+      const assistants =
+        timeline.data?.messages?.filter((message) => message.role === 'assistant') ?? []
+      return !timeline.data?.pending && assistants.length >= 2 ? timeline.data : null
+    })
+    if (chatMidTurnChecked && chatComposerMidTurnChecked) break
+  }
   await step(
     'Chat turn 2 was sampled while pending',
     chatMidTurnChecked && chatComposerMidTurnChecked,
-    'pending composer and live DOM order sampled',
+    `${sampledChatPrompts.length} long turn(s) sent; pending composer and live DOM order sampled`,
   )
   const chatOrder = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
   const firstChatAnswer =
     completion?.timeline.messages.find((message) => message.role === 'assistant')?.content ?? ''
   const chatOrderIndex = (text) =>
     chatOrder.findIndex((entry) => squash(entry).includes(squash(text)))
+  const completedChatAnswers =
+    secondChatCompletion?.messages?.filter((message) => message.role === 'assistant') ?? []
+  let previousChatIndex = chatOrderIndex(firstChatAnswer)
+  const allSentTurnsAlternate = sampledChatPrompts.every((prompt, index) => {
+    const userIndex = chatOrderIndex(prompt)
+    const assistantIndex = chatOrderIndex(completedChatAnswers[index + 1]?.content ?? '')
+    const ordered = userIndex > previousChatIndex && assistantIndex > userIndex
+    previousChatIndex = assistantIndex
+    return ordered
+  })
   await step(
-    'Chat bubbles alternate user 1, assistant 1, user 2, assistant 2',
+    'Chat bubbles alternate for every sent turn',
     Boolean(secondChatCompletion) &&
       chatOrderIndex('Escribe los números del 1 al 40 en palabras, uno por línea.') <
         chatOrderIndex(firstChatAnswer) &&
-      chatOrderIndex(firstChatAnswer) < chatOrderIndex(secondChatPrompt) &&
-      chatOrderIndex(secondChatPrompt) <
-        chatOrderIndex(
-          secondChatCompletion?.messages?.filter((message) => message.role === 'assistant').at(-1)
-            ?.content ?? '',
-        ),
+      allSentTurnsAlternate,
     JSON.stringify(chatOrder.map((text) => squash(text).slice(0, 50))),
   )
-  const userBubbles = page.locator('div.max-w-2xl').filter({ hasText: secondChatPrompt })
+  const userBubbles = page.locator('div.max-w-2xl').filter({ hasText: /Escribe los números/ })
   await step(
     'Chat user bubbles contain no agent text or step markup',
     await page
@@ -311,11 +340,12 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   const restoredAssistant2 = restoredTexts.findIndex((text) =>
     squash(text).includes(squash(secondChatAnswer)),
   )
+  const lastSentChatPrompt = sampledChatPrompts.at(-1) ?? ''
   await step(
     'Chat exchange order remains correct after reload',
     restoredTexts.findIndex((text) => text.includes('Escribe los números')) < restoredAssistant1 &&
-      restoredAssistant1 < restoredTexts.findIndex((text) => text.includes(secondChatPrompt)) &&
-      restoredTexts.findIndex((text) => text.includes(secondChatPrompt)) < restoredAssistant2,
+      restoredAssistant1 < restoredTexts.findIndex((text) => text.includes(lastSentChatPrompt)) &&
+      restoredTexts.findIndex((text) => text.includes(lastSentChatPrompt)) < restoredAssistant2,
     `messages=${restoredTexts.length}`,
   )
 

@@ -162,22 +162,75 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   )
 
   const composer = page.locator('textarea').last()
-  await composer.fill('Ejecuta el comando ls en la raíz del proyecto y dime cuántas entradas hay.')
-  await composer.press('Enter')
   const tools = page.getByText(/Tool executions/i).first()
-  await step(
-    'tool block with command success',
-    await visible(tools, 180_000),
-    'tool trace rendered',
-  )
-  await step(
-    'command success row',
-    await visible(page.getByText(/^success$/i).first()),
-    'success visible',
-  )
   const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
   const session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
   if (!session) throw new Error('temporary chat session was not found')
+  const initialToolPrompt =
+    'Usa tu herramienta de shell para correr `ls` en la raíz del proyecto; no respondas sin ejecutarlo.'
+  let toolExecution = null
+  let lastToolReply = ''
+  let observedResponse = false
+  for (let attempt = 1; attempt <= 3 && !toolExecution; attempt += 1) {
+    const message =
+      attempt === 1
+        ? 'Ejecuta el comando ls en la raíz del proyecto y dime cuántas entradas hay.'
+        : `${initialToolPrompt} (intento ${attempt})`
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
+      { timeout: 180_000 },
+    )
+    await composer.fill(message)
+    await composer.press('Enter')
+    const response = await responsePromise
+    observedResponse = true
+    if (!response.ok()) {
+      const body = (await response.text()).slice(0, 500)
+      throw new Error(`/api/chat returned HTTP ${response.status()}: ${body}`)
+    }
+    const deadline = Date.now() + 180_000
+    let timeline
+    while (Date.now() < deadline) {
+      const result = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+      timeline = result.data
+      const turns = timeline?.turns ?? []
+      const latestTurn = turns.at(-1)
+      const registeredTools = (latestTurn?.steps ?? []).filter((item) => item.type === 'tool_use')
+      if (registeredTools.length) {
+        toolExecution = registeredTools
+        break
+      }
+      if (!timeline?.pending && timeline?.messages?.some((item) => item.role === 'assistant')) {
+        lastToolReply = (
+          await page
+            .locator('div.prose')
+            .last()
+            .innerText()
+            .catch(() => '')
+        ).trim()
+        break
+      }
+      await delay(250)
+    }
+  }
+  await step(
+    'model used a tool within three attempts',
+    observedResponse && Boolean(toolExecution),
+    toolExecution
+      ? `${toolExecution.length} backend tool step(s) observed`
+      : `modelo no usó herramienta en 3 intentos; última respuesta: ${lastToolReply}`,
+  )
+  await step(
+    'tool block with command success',
+    Boolean(toolExecution) && (await visible(tools, 180_000)),
+    toolExecution ? 'tool trace rendered' : 'sin ejecución de herramienta observada en el backend',
+  )
+  await step(
+    'command success row',
+    Boolean(toolExecution) && (await visible(page.getByText(/^success$/i).first())),
+    toolExecution ? 'success visible' : 'sin ejecución de herramienta observada en el backend',
+  )
   await step(
     'new chat is linked to temporary project',
     session.projectId === project.id && session.mode === 'code',

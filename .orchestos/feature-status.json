@@ -301,6 +301,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.7",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Pre-push: 3 flujos fallan por latencia o capricho del modelo, no por la UI",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "R.8",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
