@@ -68,6 +68,9 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
    (2026-09-25, MR.1.c) Lanzarla con `ORCHESTOS_ROLE=executor` y decirle en el prompt que ella es la ejecutora y
    no delega: sin eso lee este protocolo como cerebro, intenta otro `codex exec` y su sandbox lo rechaza
    (`Operation not permitted`). Para sub-ítems (`MR.1.c`) su preflight va con el padre abierto (`--item MR.1`).
+   (2026-09-28, UI.13.7) En su sandbox `bun test` da ~8 fallos de entorno (`brain-no-code` con stdout vacío,
+   `adversarial-review`, `EADDRINUSE`) y el protocolo la hace parar por "baseline rojo" sin editar nada. El cerebro
+   corre `bun test` fuera del sandbox antes de lanzarla y le pasa el resultado en el prompt.
 3. **Integrar y verificar (cerebro).** Lee el diff, corre los gates con comandos propios y prueba
    en vivo cuando aplica. El reporte del ejecutor y su `exit 0` no son evidencia
    (`reference-codex-exec-exit-0-con-error`). Si falla, corrige el spec y re-delega — o sube a

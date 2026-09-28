@@ -232,12 +232,14 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 13/13 + `smoke` 6/6) — `docs/done/evidence/UI.13.6-live.json`.
   Codex 92 % sin sesión antes y después de un turno real Luna; Claude vencida → 100 %; `/` y `main.js` `no-cache`.
   `test:coverage` 1527/0 (1.ª corrida: 1 fallo del test inestable conocido `context-adapters.test.ts:187`).
-- [ ] **UI.13.7 — ⚡ La barra de cuota avisa por color: naranja pasado el 60 % consumido, rojo pasado el 80 %.** (abierto 2026-09-24, pedido de Carlos; Lote L4, tras CI.2)
+- [x] **UI.13.7 — ⚡ La barra de cuota avisa por color: naranja pasado el 60 % consumido, rojo pasado el 80 %.** (abierto 2026-09-24, pedido de Carlos; Lote L4, tras CI.2; cerrado 2026-09-28)
   Carlos: barra **y** número en naranja al pasar el 60 % de consumo; en rojo al pasar el 80 % (queda <20 %). La barra
   muestra lo **restante** (`ShellStatusBar.tsx:38`): restante <40 → `app-warning`, <20 → `app-error`, si no el color
   actual. Aplica a las tres barras (fila del footer `:118-126` y las de 5 h y semanal del popover `:171-194`) y a sus
   números. Tokens ya definidos (`index.css:13-14`): nada de CSS ni colores nuevos. Umbral en una función pura con test.
-  Spec por escribir. Gate: `ui:gate usage-bar` con pasos que afirmen el color en los tres tramos (sin turno real extra).
+  Spec: `docs/specs/UI.13.7.md`. Gate: `ui:gate usage-bar` con pasos que afirmen el color en los tres tramos (sin turno real extra).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.13.7-live.json`: `usage-bar` 18/18 (footer normal/warning/error con 50/70/90 % usado, popover 5 h en error, vuelta a normal). `gate:all` verde (1561 pass). Su sandbox da 8 fallos de entorno en `bun test` (nota en AGENTS.md).
+  Ejecutado por: Codex · `gpt-6-luna` (2 rondas: la 1.ª paró por el baseline del sandbox) · Spec: docs/specs/UI.13.7.md (borrado al cerrar)
 - [x] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18; cerrado 2026-09-23 — `ui:gate project-delete` 11/11)
   Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
   la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir

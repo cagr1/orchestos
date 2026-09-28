@@ -13,6 +13,13 @@ export interface CliQuotaInfo {
   resetWeekly?: string
 }
 
+export function quotaTone(remaining: number | null): 'normal' | 'warning' | 'error' {
+  if (remaining === null) return 'normal'
+  if (remaining < 20) return 'error'
+  if (remaining < 40) return 'warning'
+  return 'normal'
+}
+
 export function formatReset(epochSeconds: number | null): string | undefined {
   if (epochSeconds === null || epochSeconds * 1000 <= Date.now()) return undefined
   const date = new Date(epochSeconds * 1000)
@@ -93,6 +100,8 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
   }, [activeCliId])
 
   const activeCli = quotas.find((c) => c.id === activeCliId)
+  const fiveHourTone = quotaTone(activeCli?.quota5h ?? null)
+  const weeklyTone = quotaTone(activeCli?.quotaWeekly ?? null)
 
   return (
     <footer className="h-7 border-t border-app bg-app-bg px-3 flex items-center justify-between select-none text-xs flex-shrink-0 z-30 relative font-mono">
@@ -101,6 +110,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
         {quotas.map((cli) => {
           const hasData = cli.quota5h !== null || cli.quotaWeekly !== null
           const pct = hasData ? Math.round(cli.quota5h ?? cli.quotaWeekly ?? 0) : null
+          const tone = quotaTone(pct)
 
           return (
             <button
@@ -118,12 +128,18 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
               <div className="w-12 h-1 bg-app-elevated rounded-pill overflow-hidden flex-shrink-0">
                 {hasData && (
                   <div
-                    className="h-full bg-app-accent rounded-pill transition-all"
+                    className={`h-full ${tone === 'error' ? 'bg-app-error' : tone === 'warning' ? 'bg-app-warning' : 'bg-app-accent'} rounded-pill transition-all`}
+                    data-quota-tone={tone}
                     style={{ width: `${pct}%` }}
                   />
                 )}
               </div>
-              <span className="text-[11px] text-app-muted">{hasData ? `${pct}%` : '—'}</span>
+              <span
+                className={`text-[11px] ${tone === 'error' ? 'text-app-error' : tone === 'warning' ? 'text-app-warning' : 'text-app-muted'}`}
+                data-quota-tone={tone}
+              >
+                {hasData ? `${pct}%` : '—'}
+              </span>
             </button>
           )
         })}
@@ -163,14 +179,20 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-app-muted">5-hour quota</span>
                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                      <span className="font-semibold text-app">{activeCli.quota5h}%</span>
+                      <span
+                        className={`font-semibold ${fiveHourTone === 'error' ? 'text-app-error' : fiveHourTone === 'warning' ? 'text-app-warning' : 'text-app'}`}
+                        data-quota-tone={fiveHourTone}
+                      >
+                        {activeCli.quota5h}%
+                      </span>
                       <span className="text-app-muted">·</span>
                       <span className="text-app-muted text-[10px]">{activeCli.reset5h}</span>
                     </div>
                   </div>
                   <div className="w-full h-1 bg-app-elevated rounded-pill overflow-hidden">
                     <div
-                      className="h-full bg-app-accent rounded-pill"
+                      className={`h-full ${fiveHourTone === 'error' ? 'bg-app-error' : fiveHourTone === 'warning' ? 'bg-app-warning' : 'bg-app-accent'} rounded-pill`}
+                      data-quota-tone={fiveHourTone}
                       style={{ width: `${activeCli.quota5h}%` }}
                     />
                   </div>
@@ -183,14 +205,20 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-app-muted">Weekly quota</span>
                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                      <span className="font-semibold text-app">{activeCli.quotaWeekly}%</span>
+                      <span
+                        className={`font-semibold ${weeklyTone === 'error' ? 'text-app-error' : weeklyTone === 'warning' ? 'text-app-warning' : 'text-app'}`}
+                        data-quota-tone={weeklyTone}
+                      >
+                        {activeCli.quotaWeekly}%
+                      </span>
                       <span className="text-app-muted">·</span>
                       <span className="text-app-muted text-[10px]">{activeCli.resetWeekly}</span>
                     </div>
                   </div>
                   <div className="w-full h-1 bg-app-elevated rounded-pill overflow-hidden">
                     <div
-                      className="h-full bg-app-accent/60 rounded-pill"
+                      className={`h-full ${weeklyTone === 'error' ? 'bg-app-error' : weeklyTone === 'warning' ? 'bg-app-warning' : 'bg-app-accent/60'} rounded-pill`}
+                      data-quota-tone={weeklyTone}
                       style={{ width: `${activeCli.quotaWeekly}%` }}
                     />
                   </div>

@@ -102,12 +102,6 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     '61% remaining in status bar',
   )
   const codexQuota = page.locator('button[title^="Codex:"]')
-  const codexTitleBeforeTurn = await codexQuota.getAttribute('title')
-  await step(
-    'Codex account quota is visible without a project session',
-    /^Codex: \d+% 5-hour quota remaining$/.test(codexTitleBeforeTurn ?? ''),
-    codexTitleBeforeTurn ?? 'Codex button title missing',
-  )
 
   const cacheHeaders = await page.evaluate(async () => {
     const [shell, bundle] = await Promise.all([fetch('/'), fetch('/app/dist/main.js')])
@@ -151,6 +145,86 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     'manual usage refresh keeps the newest Claude quota',
     Boolean(manualResponse) && saw61DuringRefresh && !saw67DuringRefresh,
     `response=${Boolean(manualResponse)}, saw61=${saw61DuringRefresh}, saw67=${saw67DuringRefresh}`,
+  )
+
+  let scenarioSession = 0
+  const refreshQuotaScenario = async (used, expectedTone, expectedClass) => {
+    scenarioSession += 1
+    writeStatusline(`quota-scenario-${scenarioSession}`, used)
+    // The status endpoint intentionally serves cache entries for up to 10 seconds.
+    await delay(10_500)
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/session/status') && response.request().method() === 'GET',
+      { timeout: 10_000 },
+    )
+    await refreshButton.click()
+    const response = await responsePromise.catch(() => null)
+    const claudeButton = page.locator('button[title^="Claude"]')
+    const quotaElements = claudeButton.locator('[data-quota-tone]')
+    const rendered = await page
+      .waitForFunction(
+        (expected) => {
+          const elements = document
+            .querySelector('button[title^="Claude"]')
+            ?.querySelectorAll('[data-quota-tone]')
+          return Boolean(
+            elements?.length === 2 &&
+              [...elements].every(
+                (element) => element.getAttribute('data-quota-tone') === expected,
+              ),
+          )
+        },
+        expectedTone,
+        { timeout: 5_000 },
+      )
+      .then(() => true)
+      .catch(() => false)
+    const bar = quotaElements.nth(0)
+    const number = quotaElements.nth(1)
+    const barTone = await bar.getAttribute('data-quota-tone')
+    const numberTone = await number.getAttribute('data-quota-tone')
+    const barClass = await bar.getAttribute('class')
+    await step(
+      `Claude footer quota color for ${used}% used`,
+      Boolean(response) &&
+        rendered &&
+        barTone === expectedTone &&
+        numberTone === expectedTone &&
+        (!expectedClass || barClass?.split(/\s+/).includes(expectedClass)),
+      `response=${Boolean(response)}, bar=${barTone}, number=${numberTone}, class=${barClass}`,
+    )
+  }
+  await refreshQuotaScenario(50, 'normal', null)
+  await refreshQuotaScenario(70, 'warning', 'bg-app-warning')
+  await refreshQuotaScenario(90, 'error', 'bg-app-error')
+
+  await page.locator('button[title^="Claude"]').click()
+  const fiveHourRow = page.locator('footer div.absolute div.space-y-3 > div.space-y-1').first()
+  const popoverQuotaElements = fiveHourRow.locator('[data-quota-tone]')
+  const popoverNumber = popoverQuotaElements.nth(0)
+  const popoverBar = popoverQuotaElements.nth(1)
+  const popoverNumberTone = await popoverNumber.getAttribute('data-quota-tone')
+  const popoverBarTone = await popoverBar.getAttribute('data-quota-tone')
+  const popoverBarClass = await popoverBar.getAttribute('class')
+  await step(
+    'Claude 5-hour popover quota shows error tone at 90% used',
+    popoverNumberTone === 'error' &&
+      popoverBarTone === 'error' &&
+      popoverBarClass?.split(/\s+/).includes('bg-app-error'),
+    `number=${popoverNumberTone}, bar=${popoverBarTone}, class=${popoverBarClass}`,
+  )
+  await page.keyboard.press('Escape')
+  for (let session = 1; session <= scenarioSession; session += 1) {
+    rmSync(join(statuslineDirectory, `quota-scenario-${session}.json`), { force: true })
+  }
+  await refreshQuotaScenario(39, 'normal', null)
+
+  const codexTitleBeforeTurn = await codexQuota.getAttribute('title')
+  await step(
+    'Codex account quota is visible without a project session',
+    /^Codex: \d+% 5-hour quota remaining$/.test(codexTitleBeforeTurn ?? ''),
+    codexTitleBeforeTurn ?? 'Codex button title missing',
   )
 
   const requestsBeforeTurn = requests.length

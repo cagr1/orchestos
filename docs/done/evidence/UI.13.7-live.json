@@ -1,0 +1,100 @@
+[
+  {
+    "flujo": "usage-bar",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project is visible",
+        "ok": true,
+        "detalle": "project in sidebar"
+      },
+      {
+        "nombre": "one status request carries project id",
+        "ok": true,
+        "detalle": "requests=1, header=86557680b368d186, expected=86557680b368d186"
+      },
+      {
+        "nombre": "Claude quota uses newest session reading",
+        "ok": true,
+        "detalle": "61% remaining in status bar"
+      },
+      {
+        "nombre": "app shell and bundle disable browser caching",
+        "ok": true,
+        "detalle": "shell=no-cache, bundle=no-cache"
+      },
+      {
+        "nombre": "manual usage refresh keeps the newest Claude quota",
+        "ok": true,
+        "detalle": "response=true, saw61=true, saw67=false"
+      },
+      {
+        "nombre": "Claude footer quota color for 50% used",
+        "ok": true,
+        "detalle": "response=true, bar=normal, number=normal, class=h-full bg-app-accent rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude footer quota color for 70% used",
+        "ok": true,
+        "detalle": "response=true, bar=warning, number=warning, class=h-full bg-app-warning rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude footer quota color for 90% used",
+        "ok": true,
+        "detalle": "response=true, bar=error, number=error, class=h-full bg-app-error rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude 5-hour popover quota shows error tone at 90% used",
+        "ok": true,
+        "detalle": "number=error, bar=error, class=h-full bg-app-error rounded-pill"
+      },
+      {
+        "nombre": "Claude footer quota color for 39% used",
+        "ok": true,
+        "detalle": "response=true, bar=normal, number=normal, class=h-full bg-app-accent rounded-pill transition-all"
+      },
+      {
+        "nombre": "Codex account quota is visible without a project session",
+        "ok": true,
+        "detalle": "Codex: 93% 5-hour quota remaining"
+      },
+      {
+        "nombre": "Codex chat option visible",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Luna model visible",
+        "ok": true,
+        "detalle": "gpt-6-luna"
+      },
+      {
+        "nombre": "medium effort visible",
+        "ok": true,
+        "detalle": "medium"
+      },
+      {
+        "nombre": "usage refreshes after a real turn",
+        "ok": true,
+        "detalle": "chatResponse=true, usage-bar-ok=true, refresh=true, requests before=6, after=8, requestTimes=1790605388541,1790605391686,1790605404464,1790605416043,1790605427811,1790605439725,1790605448521,1790605460905, responseAt=1790605460900"
+      },
+      {
+        "nombre": "Codex account quota remains visible after a real turn",
+        "ok": true,
+        "detalle": "Codex: 93% 5-hour quota remaining"
+      },
+      {
+        "nombre": "an expired Claude window is shown as fully available",
+        "ok": true,
+        "detalle": "Claude Code: 100% 5-hour quota remaining"
+      },
+      {
+        "nombre": "no temporary UI projects remain after cleanup",
+        "ok": true,
+        "detalle": "temporary projects are cleaned after the flow"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  }
+]

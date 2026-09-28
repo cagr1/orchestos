@@ -1,5 +1,21 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { formatReset, mapQuotas } from './ShellStatusBar'
+import { formatReset, mapQuotas, quotaTone } from './ShellStatusBar'
+
+describe('quotaTone', () => {
+  test.each([
+    [null, 'normal'],
+    [100, 'normal'],
+    [41, 'normal'],
+    [40, 'normal'],
+    [39, 'warning'],
+    [21, 'warning'],
+    [20, 'warning'],
+    [19, 'error'],
+    [0, 'error'],
+  ] as const)('maps %s remaining to %s', (remaining, tone) => {
+    expect(quotaTone(remaining)).toBe(tone)
+  })
+})
 
 describe('formatReset', () => {
   const originalNow = Date.now
