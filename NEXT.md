@@ -1,5 +1,16 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Siguiente tab — tras migración de ruta (2026-09-28)
+Migración cerrada: `~/Documents/projects` comparado con rsync -c contra `~/Projects/projects` (ningún objeto git ni
+rama solo en la vieja; diferencias = copia nueva más reciente) y BORRADO por Carlos. Restos inofensivos que se dejan a
+propósito: `~/.claude/projects/-Users-carlosgallardo-Documents-projects-orchestos` (transcripciones para /resume) y
+entradas `[projects."…/Documents/…"]` en los config.toml de Codex dentro de Orca.
+Push de 6 commits lanzado 11:10; el pre-push corre `ui:gate` de 13 gates (>7 min). Verificar `git status -sb`; si
+sigue `ahead`, repetir `git push origin master` y mostrar la salida si falla.
+Siguiente, en orden: (1) Carlos confirma que Orca detecta el proyecto en la ruta nueva (motivo del cambio de
+dirección; su registro ya apunta ahí); (2) AT.10 (MR.1 solo espera d5 = decisión de Carlos); (3) dos bugs de Chat sin
+ítem (composer conserva el mensaje durante el turno; Markdown junta saltos simples) → spec corto + Luna.
+
 ## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
 **MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. UI.15 ("+ Add project" sin modal, punto 4 paso 1) cerrado 2026-09-27; "Clonar desde URL" sigue pendiente de plan. UI.16 (punto 5, scroll del chat) cerrado 2026-09-27. "Clonar desde URL" en espera por decisión de Carlos. Punto 6: MR.1.d2 cerrado 2026-09-27 (PLAN.md). UI.13.7 y AT.14 (hueco de brain-no-code) cerrados 2026-09-28. Repo migrado el 2026-09-28 a `/Users/carlosgallardo/Projects/projects/orchestos` (plantilla en `~/Projects/screens`; memoria, statusline, DB, Codex trust y dreaming ya apuntan ahí). Siguiente: lo que diga `bun run next`. Pendiente sin ítem: reemplazar el prompt base del CLI (Codex ~96 % del input en el fixture, ver PLAN.md MR.1.d2).
 Pendiente sin ítem (Carlos 2026-09-28, "déjalo escrito"): el cerebro editó código en MR.1.d2 con `python3 - <<EOF …
