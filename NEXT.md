@@ -1,7 +1,7 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
 ## Siguiente tab — tras cerrar MR.1 (2026-09-28)
-MR.1.d5, MR.1, AT.10 y UI.18 (Dev: burbuja al instante, loader se apaga) cerrados 2026-09-28 (PLAN.md). Siguiente: **AT.15** (OpenCode = terminal real en Dev, plan
+MR.1.d5, MR.1, AT.10, UI.18 (Dev: burbuja al instante, loader se apaga) y UI.19 (Dev muestra toda la conversación) cerrados 2026-09-28 (PLAN.md). Siguiente: **AT.15** (OpenCode = terminal real en Dev, plan
 aprobado en PLAN.md) → spec corto + Luna 6 medium. Pendientes sin ítem: historial en las ramas Claude/OpenCode del chat
 (PLAN.md § MR.1.d5, hallazgo); dos bugs de Chat (composer conserva el mensaje; Markdown junta saltos simples).
 IDEAS.md (#71) y `orchestos.config.yaml` (orchestrator claude opus) tienen cambios de otra sesión: no commiteados aquí.

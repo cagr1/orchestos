@@ -220,6 +220,105 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     'no task marker in the DOM',
   )
 
+  const secondChatPrompt = 'Escribe los números del 41 al 80 en palabras, uno por línea.'
+  await sendTurn(page, composer, secondChatPrompt)
+  let chatMidTurnChecked = false
+  let chatComposerMidTurnChecked = false
+  const secondChatCompletion = await waitFor(async () => {
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+    if (timeline.data?.pending && !chatComposerMidTurnChecked) {
+      chatComposerMidTurnChecked = true
+      await step(
+        'Chat composer empty during turn 2',
+        (await composer.inputValue()) === '',
+        await composer.inputValue(),
+      )
+    }
+    if (timeline.data?.pending && timeline.data.live?.text && !chatMidTurnChecked) {
+      const midOrder = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
+      const index = (text) => midOrder.findIndex((entry) => squash(entry).includes(squash(text)))
+      const firstAnswer =
+        completion?.timeline.messages.find((message) => message.role === 'assistant')?.content ?? ''
+      const liveIndex = midOrder.findIndex((entry) =>
+        squash(entry).includes(squash(timeline.data.live.text.slice(0, 32))),
+      )
+      if (liveIndex < 0) return null
+      chatMidTurnChecked = true
+      await step(
+        'Chat DOM order during turn 2 is assistant 1, user 2, live assistant 2',
+        index(firstAnswer) < index(secondChatPrompt) && index(secondChatPrompt) < liveIndex,
+        JSON.stringify(midOrder.map((text) => squash(text).slice(0, 50))),
+      )
+    }
+    const assistants =
+      timeline.data?.messages?.filter((message) => message.role === 'assistant') ?? []
+    return !timeline.data?.pending && assistants.length >= 2 ? timeline.data : null
+  })
+  await step(
+    'Chat turn 2 was sampled while pending',
+    chatMidTurnChecked && chatComposerMidTurnChecked,
+    'pending composer and live DOM order sampled',
+  )
+  const chatOrder = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
+  const firstChatAnswer =
+    completion?.timeline.messages.find((message) => message.role === 'assistant')?.content ?? ''
+  const chatOrderIndex = (text) =>
+    chatOrder.findIndex((entry) => squash(entry).includes(squash(text)))
+  await step(
+    'Chat bubbles alternate user 1, assistant 1, user 2, assistant 2',
+    Boolean(secondChatCompletion) &&
+      chatOrderIndex('Escribe los números del 1 al 40 en palabras, uno por línea.') <
+        chatOrderIndex(firstChatAnswer) &&
+      chatOrderIndex(firstChatAnswer) < chatOrderIndex(secondChatPrompt) &&
+      chatOrderIndex(secondChatPrompt) <
+        chatOrderIndex(
+          secondChatCompletion?.messages?.filter((message) => message.role === 'assistant').at(-1)
+            ?.content ?? '',
+        ),
+    JSON.stringify(chatOrder.map((text) => squash(text).slice(0, 50))),
+  )
+  const userBubbles = page.locator('div.max-w-2xl').filter({ hasText: secondChatPrompt })
+  await step(
+    'Chat user bubbles contain no agent text or step markup',
+    await page
+      .locator('div.max-w-2xl')
+      .evaluateAll((bubbles) =>
+        bubbles
+          .filter(
+            (bubble) =>
+              bubble.innerText.includes('Escribe los números') ||
+              bubble.innerText.includes('¿Qué números'),
+          )
+          .every(
+            (bubble) => !bubble.querySelector('code, .prose, [data-tool-row], [data-reasoning]'),
+          ),
+      ),
+    `user bubbles=${await userBubbles.count()}`,
+  )
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page
+    .getByRole('button', { name: /Escribe los números del 1 al 40/ })
+    .first()
+    .click()
+  const restoredTexts = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
+  const restoredAssistant1 = restoredTexts.findIndex((text) =>
+    squash(text).includes(squash(firstChatAnswer)),
+  )
+  const secondChatAnswer =
+    secondChatCompletion?.messages?.filter((message) => message.role === 'assistant').at(-1)
+      ?.content ?? ''
+  const restoredAssistant2 = restoredTexts.findIndex((text) =>
+    squash(text).includes(squash(secondChatAnswer)),
+  )
+  await step(
+    'Chat exchange order remains correct after reload',
+    restoredTexts.findIndex((text) => text.includes('Escribe los números')) < restoredAssistant1 &&
+      restoredAssistant1 < restoredTexts.findIndex((text) => text.includes(secondChatPrompt)) &&
+      restoredTexts.findIndex((text) => text.includes(secondChatPrompt)) < restoredAssistant2,
+    `messages=${restoredTexts.length}`,
+  )
+
   // The Dev workspace uses the same session timeline renderer and shares its composer.
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectRow = page.getByRole('button', { name: basename(projectRoot), exact: true })

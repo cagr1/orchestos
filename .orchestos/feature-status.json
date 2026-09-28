@@ -274,6 +274,24 @@
       "closedDate": null
     },
     {
+      "id": "UI.20",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Orden natural del chat y todo lo del agente de su lado (Chat y Dev)",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.21",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Selector de modelo con altura y buscador + esfuerzo por modelo de OpenCode",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "R.8",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

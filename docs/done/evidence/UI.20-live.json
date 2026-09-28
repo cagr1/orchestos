@@ -1,0 +1,168 @@
+[
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-3LGmiH"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-3LGmiH\nSelect Agent / Engine\nClaude Code\nopencode\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=8428 ms; t_done=10188 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "4 growth updates"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "5 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce qui"
+      },
+      {
+        "nombre": "task marker is not visible",
+        "ok": true,
+        "detalle": "no task marker in the DOM"
+      },
+      {
+        "nombre": "Chat composer empty during turn 2",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during turn 2 is assistant 1, user 2, live assistant 2",
+        "ok": true,
+        "detalle": "[\"04:09 PM Escribe los números del 1 al 40 en palabr\",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Just now Escribe los números del 41 al 80 en palab\",\"Cuarenta y uno Cuarenta y dos Cuarenta y tres Cuar\"]"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate user 1, assistant 1, user 2, assistant 2",
+        "ok": true,
+        "detalle": "[\"04:09 PM Escribe los números del 1 al 40 en palabr\",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"04:10 PM Escribe los números del 41 al 80 en palab\",\"Cuarenta y uno Cuarenta y dos Cuarenta y tres Cuar\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=1"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=3063 ms; t_done=4048 ms; visible=Uno, dos, tres, cuatro y cinco."
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59811/chat-streaming/chat-text-visible-mid-turn.png"
+    ]
+  },
+  {
+    "flujo": "codex-live",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-codex-live-fbsTe1"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "turn 1 user message appears before completion",
+        "ok": true,
+        "detalle": "13 ms after send"
+      },
+      {
+        "nombre": "turn 1 streams multiple visible text updates",
+        "ok": true,
+        "detalle": "21 distinct non-empty samples before completion"
+      },
+      {
+        "nombre": "turn 1 timeline loader stops after completion",
+        "ok": true,
+        "detalle": "0 spinning loaders remain"
+      },
+      {
+        "nombre": "turn 2 DOM order is assistant 1, user 2, live assistant 2 while generating",
+        "ok": true,
+        "detalle": "[\"04:10 PM\\nRemember the word MANGO-0DYC931G. Reply i\",\"I’ll remember MANGO-0DYC931G in this conversation.\",\"04:10 PM\\nWhat word did I ask you to remember? Star\",\"MANGO-0DYC931G. Mangoes are tropical\"]"
+      },
+      {
+        "nombre": "turn 2 remembers the word from turn 1",
+        "ok": true,
+        "detalle": "MANGO-0DYC931G. Mangoes are tropical fruits known for their sweet, juicy flesh and fragrant aroma.\n\nTheir skin can be green, yellow, orange, or red. Inside, the flesh surrounds a large, flat pit.\n\nEnjoy mangoes fresh, blended into smoothies, or chopped into salsa. Unripe mangoes have a tart flavor that works well in pickles and chutneys."
+      },
+      {
+        "nombre": "turn 2 timeline loader stops after completion",
+        "ok": true,
+        "detalle": "0 spinning loaders remain"
+      },
+      {
+        "nombre": "both exchanges remain visible in order after turn 2",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2",
+        "ok": true,
+        "detalle": "[\"04:10 PM\\nRemember the word MANGO-0DYC931G. Reply i\",\"I’ll remember MANGO-0DYC931G in this conversation.\",\"04:10 PM\\nWhat word did I ask you to remember? Star\",\"MANGO-0DYC931G. Mangoes are tropical fruits known \"]"
+      },
+      {
+        "nombre": "user bubbles contain no agent markup or response text",
+        "ok": true,
+        "detalle": "2 user bubbles checked"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2"
+      },
+      {
+        "nombre": "turn 2 is faster than turn 1",
+        "ok": true,
+        "detalle": "turn 1=23684 ms; turn 2=5612 ms"
+      },
+      {
+        "nombre": "project chat runs are recorded with provider=codex",
+        "ok": true,
+        "detalle": "[{\"provider\":\"codex\",\"model\":\"gpt-6-astra\"},{\"provider\":\"codex\",\"model\":\"gpt-6-astra\"}]"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59811/codex-live/codex-live-turn-one.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59811/codex-live/codex-live-turn-two.png"
+    ]
+  }
+]

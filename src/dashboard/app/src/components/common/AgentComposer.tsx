@@ -260,22 +260,27 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       }
     }
 
+    const previousAttachments = attachments
+    setInputText('')
+    setAttachments([])
+    setShowSlashMenu(false)
+    setIsShellMode(false)
+
     const accepted = await sendComposerDraft(() =>
       onSendMessage(
         content,
-        attachments.length > 0 ? attachments : undefined,
+        previousAttachments.length > 0 ? previousAttachments : undefined,
         activeCli,
         effectiveSelectedModel,
         selectedEffort,
         isShellMode,
       ),
     )
-    if (!accepted) return
-
-    setInputText('')
-    setAttachments([])
-    setShowSlashMenu(false)
-    setIsShellMode(false)
+    if (!accepted) {
+      setInputText((current) => current || content)
+      setAttachments((current) => (current.length > 0 ? current : previousAttachments))
+      setIsShellMode(isShellMode)
+    }
   }
 
   const handleSelectSlashCommand = (cmd: string) => {

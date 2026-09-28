@@ -134,11 +134,37 @@ describe('R.5 — durable chat turns', () => {
     })
     expect(result.runCount).toBe(1)
     expect(result.messages).toEqual([
-      expect.objectContaining({ role: 'user', content: 'hola' }),
+      expect.objectContaining({ role: 'user', content: 'hola', turn_id: expect.any(String) }),
       expect.objectContaining({ role: 'assistant', content: 'respuesta', model: 'test-model' }),
     ])
+    expect((result.messages as Array<{ created_at: string }>)[0]?.created_at).toBe(
+      (result.messages as Array<{ created_at: string }>)[1]?.created_at,
+    )
     expect(result.replay).toMatchObject({ kind: 'duplicate-result', turn: { status: 'completed' } })
     expect(result.envelope).toEqual({ content: 'respuesta' })
+  })
+
+  it('repairs a legacy user message from the immediately following assistant turn', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { beginTurn, commitTurnSuccess } = await import('./src/db/chat-turns.ts')
+      runMigrations()
+      const session = createChatSession({ agent: 'api' })
+      const started = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'legacy-repair', inputFingerprint: 'legacy-repair', owner: 'worker' })
+      const run = { project_id: null, prompt: 'q', task_class: 'chat', model: 'test', provider: 'test', status: 'done', input_tokens: 0, output_tokens: 0, usd_cost: 0, elapsed_ms: 0, result: 'a' }
+      commitTurnSuccess({ turnId: started.turn.id, owner: 'worker', run, userContent: 'q', assistantContent: 'a', envelope: { text: 'a' } })
+      db.run("UPDATE chat_messages SET turn_id = NULL WHERE role = 'user' AND session_id = ?", [session.id])
+      db.run('DELETE FROM schema_migrations WHERE version = 17')
+      runMigrations()
+      const repaired = db.query("SELECT user_message.turn_id AS userTurn, assistant_message.turn_id AS assistantTurn FROM chat_messages user_message JOIN chat_messages assistant_message ON assistant_message.id = user_message.id + 1 WHERE user_message.session_id = ? AND user_message.role = 'user'").get(session.id)
+      runMigrations()
+      const migrationCount = db.query('SELECT COUNT(*) AS n FROM schema_migrations WHERE version = 17').get().n
+      process.stdout.write(JSON.stringify({ repaired, migrationCount, expected: started.turn.id }))
+    `)
+    expect(result.repaired).toEqual({ userTurn: result.expected, assistantTurn: result.expected })
+    expect(result.migrationCount).toBe(1)
   })
 
   it('records a failed turn without inventing a run', async () => {

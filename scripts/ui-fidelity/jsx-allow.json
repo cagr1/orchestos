@@ -208,5 +208,95 @@
     "archivo": "OrchestDevWorkspace.tsx",
     "valor": "div",
     "motivo": "Carlos 2026-09-28 (UI.19): el bloque extraTurns de la plantilla era un mock local; cada turno real se pinta con el JSX del intercambio."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "bg-app-bg",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "bg-app-bg",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border-app",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border-app",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "font-mono",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "font-mono",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "px-1",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "px-1",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "py-0.5",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "py-0.5",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "rounded-xs",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "rounded-xs",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "text-[11px]",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "text-[11px]",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "code",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "code",
+    "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
   }
 ]

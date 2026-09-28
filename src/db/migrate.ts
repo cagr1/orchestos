@@ -641,6 +641,42 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 17,
+    name: 'associate-legacy-chat-users-with-turns',
+    precondition: () => {},
+    apply: (database) => {
+      const requiredTables =
+        database
+          .query<{ count: number }, []>(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name IN ('chat_messages', 'chat_turns')",
+          )
+          .get()?.count ?? 0
+      if (requiredTables !== 2) return
+      database.exec(`
+        UPDATE chat_messages AS user_message
+        SET turn_id = (
+          SELECT assistant_message.turn_id
+          FROM chat_messages AS assistant_message
+          WHERE assistant_message.session_id = user_message.session_id
+            AND assistant_message.id = user_message.id + 1
+            AND assistant_message.role = 'assistant'
+            AND assistant_message.turn_id IS NOT NULL
+        )
+        WHERE user_message.role = 'user'
+          AND user_message.turn_id IS NULL
+          AND EXISTS (
+            SELECT 1
+            FROM chat_messages AS assistant_message
+            WHERE assistant_message.session_id = user_message.session_id
+              AND assistant_message.id = user_message.id + 1
+              AND assistant_message.role = 'assistant'
+              AND assistant_message.turn_id IS NOT NULL
+          );
+      `)
+    },
+    postcondition: () => {},
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

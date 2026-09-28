@@ -78,7 +78,17 @@ function buildExchanges(timeline: TimelineResponse | null): DevExchangeData[] {
       ),
     }))
     .sort((a, b) => Date.parse(a.turn?.createdAt ?? '') - Date.parse(b.turn?.createdAt ?? ''))
-  const legacyMessages = timeline.messages.filter((message) => !message.turnId)
+  const turnExchanges = new Map(exchanges.map((exchange) => [exchange.id, exchange]))
+  const legacyMessages = timeline.messages.filter((message) => {
+    if (message.turnId) return false
+    if (message.role !== 'user') return true
+    const next = timeline.messages.find((candidate) => candidate.id === message.id + 1)
+    const exchange =
+      next?.role === 'assistant' && next.turnId ? turnExchanges.get(next.turnId) : null
+    if (!exchange) return true
+    exchange.userMessage = message
+    return false
+  })
   for (const message of legacyMessages) {
     if (message.role === 'user') {
       exchanges.push({ id: `legacy-${message.id}`, userMessage: message, steps: [], commands: [] })
@@ -473,16 +483,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                   : ''}
               </span>
               {visibleUserMessage.content}
-              {readSteps[0]?.target && (
-                <code className="px-1 py-0.5 bg-app-bg border border-app rounded-xs font-mono text-[11px]">
-                  {readSteps[0].target}
-                </code>
-              )}{' '}
-              {readSteps[1]?.target && (
-                <code className="px-1 py-0.5 bg-app-bg border border-app rounded-xs font-mono text-[11px]">
-                  {readSteps[1].target}
-                </code>
-              )}{' '}
               {latestUserMessage && visibleUserMessage === latestUserMessage && (
                 <button
                   type="button"

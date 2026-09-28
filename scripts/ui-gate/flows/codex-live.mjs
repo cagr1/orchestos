@@ -109,7 +109,7 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
 
   const composer = page.locator('textarea').last()
   const word = `MANGO-${Math.random().toString(36).slice(2, 10).toUpperCase()}`
-  const sentMessage = `Remember the word ${word}. Reply in three short paragraphs about mangoes.`
+  const sentMessage = `Remember the word ${word}. Reply in ten short paragraphs about mangoes.`
   const firstStart = await sendTurn(page, composer, sentMessage)
   const timelineView = page.locator('main').last().locator('div.max-w-3xl').first()
   const bubbleVisibleAt = await waitFor(async () => {
@@ -163,8 +163,36 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   const secondStart = await sendTurn(
     page,
     composer,
-    'What word did I ask you to remember? Reply with the word only.',
+    'What word did I ask you to remember? Start with it, then explain mangoes in three short paragraphs.',
   )
+  let secondMidTurn = false
+  const secondUserPrompt =
+    'What word did I ask you to remember? Start with it, then explain mangoes in three short paragraphs.'
+  await waitFor(async () => {
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+    if (!timeline.data?.pending || !timeline.data.live?.text) return null
+    const currentTurnId = timeline.data.turns.at(-1)?.id
+    if (!currentTurnId || timeline.data.live.turnId !== currentTurnId) return null
+    const firstAssistantText =
+      timeline.data.messages.find((message) => message.role === 'assistant')?.content ?? ''
+    if (timeline.data.live.text === firstAssistantText) return null
+    const mixedOrder = await timelineView.locator('div.max-w-2xl, div.prose').allInnerTexts()
+    if (!mixedOrder.some((text) => text.includes(secondUserPrompt))) return null
+    if (!mixedOrder.some((text) => text.includes(timeline.data.live.text.slice(0, 32)))) return null
+    const firstAssistantIndex = mixedOrder.findIndex((text) => text.includes(firstAssistantText))
+    const secondUserIndex = mixedOrder.findIndex((text) => text.includes(secondUserPrompt))
+    const liveAssistantIndex = mixedOrder.findIndex((text) =>
+      text.includes(timeline.data.live.text.slice(0, 32)),
+    )
+    if (liveAssistantIndex <= secondUserIndex) return null
+    secondMidTurn = true
+    await step(
+      'turn 2 DOM order is assistant 1, user 2, live assistant 2 while generating',
+      firstAssistantIndex < secondUserIndex && secondUserIndex < liveAssistantIndex,
+      JSON.stringify(mixedOrder.map((text) => text.trim().slice(0, 50))),
+    )
+    return true
+  })
   const secondCompletion = await waitFor(async () => {
     const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
     const assistants =
@@ -201,6 +229,33 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
       proseTexts.length >= 2,
     `user bubbles=${bubbleTexts.length}; assistant bubbles=${proseTexts.length}`,
   )
+  const completedOrder = await timelineView.locator('div.max-w-2xl, div.prose').allInnerTexts()
+  const orderIndex = (text) => completedOrder.findIndex((entry) => entry.includes(text))
+  await step(
+    'timeline DOM alternates user 1, assistant 1, user 2, assistant 2',
+    secondMidTurn &&
+      orderIndex(sentMessage) < orderIndex(firstAnswer) &&
+      orderIndex(firstAnswer) < orderIndex(secondUserPrompt) &&
+      orderIndex(secondUserPrompt) < orderIndex(secondCompletion?.content ?? ''),
+    JSON.stringify(completedOrder.map((text) => text.trim().slice(0, 50))),
+  )
+  await step(
+    'user bubbles contain no agent markup or response text',
+    (await timelineView.locator('div.max-w-2xl').allInnerTexts()).length >= 2 &&
+      (await timelineView.locator('div.max-w-2xl').allInnerTexts()).every(
+        (text) =>
+          !text.includes(firstAnswer.trim().slice(0, 40)) &&
+          !text.includes((secondCompletion?.content ?? '').trim().slice(0, 40)),
+      ) &&
+      (await timelineView
+        .locator('div.max-w-2xl')
+        .evaluateAll((bubbles) =>
+          bubbles.every(
+            (bubble) => !bubble.querySelector('code, .prose, [data-tool-row], [data-reasoning]'),
+          ),
+        )),
+    `${await timelineView.locator('div.max-w-2xl').count()} user bubbles checked`,
+  )
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const refreshedSessions = await api(
@@ -225,13 +280,14 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   )
   const reloadedBubbles = await reloadedTimeline.locator('div.max-w-2xl').allInnerTexts()
   const reloadedProse = await reloadedTimeline.locator('div.prose').allInnerTexts()
+  const reloadedMixed = await reloadedTimeline.locator('div.max-w-2xl, div.prose').allInnerTexts()
+  const reloadedIndex = (text) => reloadedMixed.findIndex((entry) => entry.includes(text))
   await step(
-    'both exchanges remain visible in order after reload',
-    reloadedBubbles.findIndex((text) => text.includes(sentMessage)) >= 0 &&
-      reloadedBubbles.findIndex((text) => text.includes(sentMessage)) <
-        reloadedBubbles.findIndex((text) =>
-          text.includes('What word did I ask you to remember?'),
-        ) &&
+    'timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload',
+    reloadedIndex(sentMessage) >= 0 &&
+      reloadedIndex(sentMessage) < reloadedIndex(firstAnswer) &&
+      reloadedIndex(firstAnswer) < reloadedIndex(secondUserPrompt) &&
+      reloadedIndex(secondUserPrompt) < reloadedIndex(secondCompletion?.content ?? '') &&
       reloadedProse.length >= 2,
     `user bubbles=${reloadedBubbles.length}; assistant bubbles=${reloadedProse.length}`,
   )

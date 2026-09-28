@@ -233,6 +233,12 @@ export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageR
     const session = getChatSession(input.sessionId)
     if (!session) throw new Error('Chat session not found')
     const now = new Date().toISOString()
+    const turn = input.turnId
+      ? db
+          .query<{ created_at: string }, [string]>('SELECT created_at FROM chat_turns WHERE id = ?')
+          .get(input.turnId)
+      : null
+    const exchangeCreatedAt = turn?.created_at ?? now
     // I.4 — el título por defecto ('New conversation') es inútil en una lista
     // de N conversaciones; se reemplaza por el primer mensaje del usuario la
     // única vez que corre, para no pisar un título que el usuario ya haya
@@ -246,8 +252,14 @@ export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageR
     }
     db.run(
       `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, turn_id, created_at)
-       VALUES (?, 'user', ?, NULL, NULL, ?, NULL, NULL, NULL, ?)`,
-      [input.sessionId, input.userContent, JSON.stringify(input.ocrUsed ?? []), now],
+       VALUES (?, 'user', ?, NULL, NULL, ?, NULL, NULL, ?, ?)`,
+      [
+        input.sessionId,
+        input.userContent,
+        JSON.stringify(input.ocrUsed ?? []),
+        input.turnId ?? null,
+        exchangeCreatedAt,
+      ],
     )
     db.run(
       `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, turn_id, created_at)
@@ -261,7 +273,7 @@ export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageR
         input.taskHeld ? 1 : null,
         input.taskHeld ? JSON.stringify(input.existingFiles ?? []) : null,
         input.turnId ?? null,
-        now,
+        exchangeCreatedAt,
       ],
     )
     db.run('UPDATE chat_sessions SET updated_at = ? WHERE id = ?', [now, input.sessionId])
