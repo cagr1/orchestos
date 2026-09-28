@@ -1086,9 +1086,7 @@
           "detalle": "user bubbles=2"
         }
       ],
-      "errores": [
-        "secondChatPrompt is not defined"
-      ],
+      "errores": ["secondChatPrompt is not defined"],
       "capturas": [
         "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-26531/chat-streaming/chat-text-visible-mid-turn.png"
       ]
