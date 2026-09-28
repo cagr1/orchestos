@@ -608,6 +608,39 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 16,
+    name: 'codex-chat-thread',
+    precondition: () => {},
+    apply: (database) => {
+      const table = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'chat_sessions'",
+        )
+        .get()
+      if (!table) return
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_sessions)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('codex_thread_id'))
+        database.exec('ALTER TABLE chat_sessions ADD COLUMN codex_thread_id TEXT NULL')
+      if (!columns.includes('codex_context_hash'))
+        database.exec('ALTER TABLE chat_sessions ADD COLUMN codex_context_hash TEXT NULL')
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_sessions)')
+        .all()
+        .map((row) => row.name)
+      if (
+        columns.length > 0 &&
+        (!columns.includes('codex_thread_id') || !columns.includes('codex_context_hash'))
+      ) {
+        throw new Error('Migration 16 did not add Codex chat thread columns')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import type { AgentChoice } from '../config/schema.ts'
 import { db } from './sqlite.ts'
 
@@ -162,6 +162,26 @@ export function getChatSession(id: string): ChatSessionRecord | null {
   return (
     db.query<ChatSessionRecord, string>('SELECT * FROM chat_sessions WHERE id = ?').get(id) ?? null
   )
+}
+
+export function getCodexChatThread(sessionId: string): {
+  threadId: string | null
+  contextHash: string | null
+} {
+  const row = db
+    .query<{ codex_thread_id: string | null; codex_context_hash: string | null }, string>(
+      'SELECT codex_thread_id, codex_context_hash FROM chat_sessions WHERE id = ?',
+    )
+    .get(sessionId)
+  return { threadId: row?.codex_thread_id ?? null, contextHash: row?.codex_context_hash ?? null }
+}
+
+export function setCodexChatThread(sessionId: string, threadId: string, contextHash: string): void {
+  db.run('UPDATE chat_sessions SET codex_thread_id = ?, codex_context_hash = ? WHERE id = ?', [
+    threadId,
+    contextHash,
+    sessionId,
+  ])
 }
 
 export function updateChatSession(

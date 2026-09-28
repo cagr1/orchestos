@@ -24,9 +24,9 @@ import {
   statSync,
   symlinkSync,
   writeFileSync,
-} from 'fs'
-import { homedir } from 'os'
-import { join } from 'path'
+} from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { excludeRuntimeArtifacts } from '../git-exclude.ts'
 import { safeChildEnv } from '../path-policy.ts'
 
@@ -153,11 +153,14 @@ export function provisionCliConfigHome(
   projectRoot: string,
   cliId: CliDefinition['id'],
   userHome = homedir(),
+  configHomeOverride?: string,
 ): ProvisionedCliConfigHome {
   const definition = KNOWN_CLIS.find((cli) => cli.id === cliId)
   if (!definition) throw new Error(`Unknown CLI: ${cliId}`)
 
-  const path = join(projectRoot, '.orchestos', 'agent-home', definition.configHome.directory)
+  const path =
+    configHomeOverride ??
+    join(projectRoot, '.orchestos', 'agent-home', definition.configHome.directory)
   excludeRuntimeArtifacts(projectRoot)
   mkdirSync(path, { recursive: true })
   writeFileSync(join(path, definition.configHome.instructionFile), GENERATED_INSTRUCTIONS, 'utf8')

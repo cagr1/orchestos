@@ -1,5 +1,11 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Siguiente tab — tras cerrar MR.1 (2026-09-28)
+MR.1.d5, MR.1 y AT.10 cerrados 2026-09-28 (PLAN.md). Siguiente: **AT.15** (OpenCode = terminal real en Dev, plan
+aprobado en PLAN.md) → spec corto + Luna 6 medium. Pendientes sin ítem: historial en las ramas Claude/OpenCode del chat
+(PLAN.md § MR.1.d5, hallazgo); dos bugs de Chat (composer conserva el mensaje; Markdown junta saltos simples).
+IDEAS.md (#71) y `orchestos.config.yaml` (orchestrator claude opus) tienen cambios de otra sesión: no commiteados aquí.
+
 ## Siguiente tab — tras migración de ruta (2026-09-28)
 Migración cerrada: `~/Documents/projects` comparado con rsync -c contra `~/Projects/projects` (ningún objeto git ni
 rama solo en la vieja; diferencias = copia nueva más reciente) y BORRADO por Carlos. Restos inofensivos que se dejan a

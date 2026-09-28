@@ -1,5 +1,6 @@
 import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
 import {
   handleApiChat,
   handleApiChatCliModels,
@@ -521,6 +522,21 @@ export function startServer(port = DEFAULT_PORT): { server: any; url: string } {
     idleTimeout: 60,
     fetch: (req) => route(req, port),
   })
+  const stop = server.stop.bind(server)
+  let stopped = false
+  const onSignal = () => server.stop(true)
+  const stopWithCodex = (...args: any[]) => {
+    if (!stopped) {
+      stopped = true
+      process.off('SIGINT', onSignal)
+      process.off('SIGTERM', onSignal)
+      stopCodexAppServers()
+    }
+    return stop(...args)
+  }
+  server.stop = stopWithCodex
+  process.once('SIGINT', onSignal)
+  process.once('SIGTERM', onSignal)
   const url = `http://localhost:${server.port}`
   console.log(`[dashboard] Server running at ${url}`)
   return { server, url }

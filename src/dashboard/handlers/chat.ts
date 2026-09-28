@@ -1516,6 +1516,10 @@ async function handleApiChat(
           cliModel,
           cliEffort,
           persistChatStep,
+          session?.id,
+          (text) => {
+            if (activeTurnId && session) appendLiveText(session.id, activeTurnId, text)
+          },
         )
         const resultLabel = `${result.model} via Codex CLI${cliEffort ? ` (effort: ${cliEffort})` : ''}`
         const { text: responseText } = await settleTaskIntent(result.text)

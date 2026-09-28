@@ -32,10 +32,14 @@
  *     no se puede tarifar contra un default que OrchestOS no controla.
  */
 
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { getChatSession, getCodexChatThread, setCodexChatThread } from '../../db/chat-sessions.ts'
 import { getCatalog } from '../../router/model-catalog.ts'
 import { calcCost } from '../../router/pricing.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { provisionCliConfigHome } from './cli-registry.ts'
+import { type CodexAppServerThreadStore, getCodexAppServer } from './codex-app-server.ts'
 import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
@@ -286,7 +290,7 @@ export function buildCodexChatEnv(configHomePath: string): Record<string, string
   return { ...safeChildEnv(), CODEX_HOME: configHomePath }
 }
 
-export async function runCodexChat(
+async function runCodexChatExec(
   cwd: string,
   systemPrompt: string,
   userMessage: string,
@@ -353,6 +357,94 @@ export async function runCodexChat(
     outputTokens: parsed.outputTokens,
     usd,
     model: model ?? 'codex (cli default model)',
+  }
+}
+
+export async function runCodexChat(
+  cwd: string,
+  systemPrompt: string,
+  userMessage: string,
+  timeoutMs: number,
+  model?: string,
+  cliEffort?: string,
+  onChatStep?: (event: ExecutorStepEvent) => void,
+  sessionId?: string,
+  onTextDelta?: (text: string) => void,
+): Promise<CodexChatResult> {
+  if (!sessionId)
+    return runCodexChatExec(cwd, systemPrompt, userMessage, timeoutMs, model, cliEffort, onChatStep)
+  if (!findCodexBinary()) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
+  if (model && !orchestosModelToCodexModel(model))
+    throw new ExecutorCodexError(codexCostUnmeasurableMessage(model))
+
+  const chatSession = getChatSession(sessionId)
+  const isGeneralSession = chatSession?.project_id == null
+  const generalConfigHome = join(homedir(), '.orchestos', 'general-chat')
+  const configHome = provisionCliConfigHome(
+    cwd,
+    'codex',
+    homedir(),
+    isGeneralSession ? generalConfigHome : undefined,
+  )
+  const store: CodexAppServerThreadStore = {
+    get: (id) => getCodexChatThread(id),
+    set: (id, threadId, hash) => setCodexChatThread(id, threadId, hash),
+  }
+  const server = getCodexAppServer(
+    configHome.path,
+    findCodexBinary()!,
+    buildCodexChatEnv(configHome.path),
+    store,
+  )
+  const notifyStep = (step: ExecutorStepEvent) => onChatStep?.(step)
+  try {
+    const result = await server.turn({
+      sessionId,
+      cwd,
+      systemPrompt,
+      message: userMessage,
+      model: orchestosModelToCodexModel(model),
+      effort: cliEffort,
+      timeoutMs,
+      onDelta: onTextDelta,
+      onStep: notifyStep,
+    })
+    const pricingModel = result.model ?? model
+    const pricingId = pricingModel ? codexPricingId(pricingModel) : undefined
+    const usd =
+      pricingId && getCatalog()?.has(pricingId)
+        ? calcCost(pricingId, result.inputTokens, result.outputTokens)
+        : null
+    return {
+      text: result.text,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      usd,
+      model: result.model ?? model ?? 'codex (cli default model)',
+    }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      'protocol' in error &&
+      (error as Error & { protocol: boolean }).protocol
+    ) {
+      const reason = error.message
+      notifyStep({
+        type: 'reasoning',
+        label: `Codex app-server unavailable — using codex exec (${reason})`,
+        detail: `Codex app-server unavailable — using codex exec (${reason})`,
+      })
+      return runCodexChatExec(
+        cwd,
+        systemPrompt,
+        userMessage,
+        timeoutMs,
+        model,
+        cliEffort,
+        onChatStep,
+      )
+    }
+    throw error
   }
 }
 

@@ -30,16 +30,14 @@ async function runIsolated(
       PATH: NO_CLI_PATH,
       ...extraEnv,
     }
-    if (env.FAKE_CODEX === '1') {
+    if (env.FAKE_CODEX) {
       const bin = join(home, 'bin')
       mkdirSync(bin, { recursive: true })
-      writeFileSync(
-        join(bin, 'codex'),
-        Buffer.from(
-          'IyEvYmluL3NoCnByaW50ZiAnJXNcbicgJ3sidHlwZSI6Iml0ZW0uY29tcGxldGVkIiwiaXRlbSI6eyJ0eXBlIjoiYWdlbnRfbWVzc2FnZSIsInRleHQiOiJDb2RleCByZXBseVxuW1tvcmNoZXN0b3M6dGFza11dIn19JyAneyJ0eXBlIjoidHVybi5jb21wbGV0ZWQiLCJ1c2FnZSI6eyJpbnB1dF90b2tlbnMiOjEwLCJvdXRwdXRfdG9rZW5zIjo1fX0nCg==',
-          'base64',
-        ),
-      )
+      const fakeCodex = `#!/bin/sh
+if [ "$1" = app-server ]; then exit 1; fi
+printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"Codex reply\\n[[orchestos:task]]"}}' '{"type":"turn.completed","usage":{"input_tokens":10,"output_tokens":5}}'
+`
+      writeFileSync(join(bin, 'codex'), Buffer.from(fakeCodex))
       chmodSync(join(bin, 'codex'), 0o755)
       env.PATH = `${bin}:${NO_CLI_PATH}`
       delete env.FAKE_CODEX
@@ -88,7 +86,8 @@ describe('CC.2 — chat sessions backend', () => {
   })
 
   it('UI.13.4b persists console commands, applies runner boundaries and cascades on delete', async () => {
-    const result = await runIsolated(`
+    const result = await runIsolated(
+      `
       const { mkdirSync, writeFileSync } = await import('fs')
       const { join } = await import('path')
       const home = process.env.ORCHESTOS_HOME
@@ -113,7 +112,8 @@ describe('CC.2 — chat sessions backend', () => {
       const afterDelete = db.query('SELECT COUNT(*) AS count FROM console_commands WHERE session_id = ?').get(session.id).count
       process.stdout.write(JSON.stringify({ statuses: [ok.status, pipe.status, outside.status], ok: await ok.clone().json(), lines, beforeDelete, afterDelete }))
       db.close()
-    `)
+    `,
+    )
     expect(result.statuses).toEqual([200, 200, 200])
     expect(result.ok).toMatchObject({ exitCode: 0, stdout: expect.stringContaining('ok.txt') })
     const consoleLines = (result.lines as { lines: Array<{ kind: string; text: string }> }).lines
@@ -529,6 +529,37 @@ describe('CC.2 — chat sessions backend', () => {
     // The isolated suite hides the Codex binary, so transport execution returns 502;
     // the important contract here is that effort=high passes request validation.
     expect(result.codexStatus).not.toBe(400)
+  })
+
+  it('persists the visible app-server fallback step and returns Codex CLI output', async () => {
+    const result = await runIsolated(
+      `
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      runMigrations()
+      const session = createChatSession({ projectId: null, agent: 'codex', mode: 'chat' })
+      const response = await handleApiChat(new Request('http://localhost/api/chat', {
+        method: 'POST', body: JSON.stringify({ sessionId: session.id, model: 'gpt-6-luna', message: 'hello' })
+      }))
+      const payload = await response.json()
+      const steps = db.query('SELECT type, detail FROM chat_turn_steps ORDER BY seq').all()
+      const run = db.query('SELECT provider FROM runs WHERE task_class = "chat" ORDER BY created_at DESC LIMIT 1').get()
+      process.stdout.write(JSON.stringify({ status: response.status, payload, steps, run }))
+      db.close()
+      `,
+      { FAKE_CODEX: 'initialize-fail' },
+    )
+    expect(result.status).toBe(200)
+    expect((result.payload as any).text).toContain('Codex reply')
+    expect(result.steps).toContainEqual(
+      expect.objectContaining({
+        type: 'reasoning',
+        detail: expect.stringContaining('Codex app-server unavailable — using codex exec'),
+      }),
+    )
+    expect(result.run).toEqual(expect.objectContaining({ provider: 'codex' }))
   })
 
   it('fails OpenCode without making an Auxiliary provider call', async () => {

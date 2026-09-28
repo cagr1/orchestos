@@ -410,7 +410,8 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   `tasks.yaml` staged (`commitTasksYaml` no mira el exit code, `handlers/tasks.ts:191`).
   Luna hizo 3 de 4 arreglos; el de identidad git vía `process.env` no funcionaba y lo rehizo el cerebro.
   Ejecutado por: luna · Spec: docs/specs/CI.5.md
-- [ ] **MR.1 — 🧠 Model routing por rol con CLI: Orquestador, Ejecutor, Revisor y Auxiliar; cero modelos hardcodeados.** (abierto 2026-09-24, GO de Carlos a los 4 roles; va antes de UI.13.7; absorbe AT.10 y AT.13)
+- [x] **MR.1 — 🧠 Model routing por rol con CLI: Orquestador, Ejecutor, Revisor y Auxiliar; cero modelos hardcodeados.** (abierto 2026-09-24, GO de Carlos a los 4 roles; va antes de UI.13.7; absorbe AT.10 y AT.13; cerrado 2026-09-28)
+  Sin delegación: cierre de padre, el trabajo está en sus sub-ítems.
   **Por qué (verificado en el código 2026-09-24):** hay dos sistemas que nunca se tocan. Settings → Model routing
   (`OrchestSettingsView.tsx:1256-1372`) asigna roles `planner`/`executor_heavy`/`executor_light`/`default` a modelos
   de API, con el combobox alimentado por `/api/chat/models` = 458 modelos solo de OpenRouter; defaults
@@ -573,14 +574,24 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     "You're out of usage credits" de una pieza → el flujo fija `haiku` en el composer; (2) `text-sweep` leía la DB en
     cuanto veía la burbuja, que ahora aparece antes de persistir → espera el mensaje guardado; (3) `chat-live.ts`
     duplicaba `stripTaskMarker` → una sola definición. Con Codex el texto sigue llegando al final (MR.1.d5).
-  - [ ] **MR.1.d5 — 🧠 Adaptador `codex app-server`: texto en vivo con Codex y turnos siguientes ~2 s.** (abierto
-    2026-09-27; decisión aparte de Carlos, NO aprobado todavía) `codex app-server` = el mismo Codex como proceso
+  - [x] **MR.1.d5 — 🧠 Adaptador `codex app-server`: texto en vivo con Codex y turnos siguientes ~2 s.** (abierto
+    2026-09-27; GO de Carlos 2026-09-28, cerrado 2026-09-28) `codex app-server` = el mismo Codex como proceso
     persistente con JSON-RPC por stdio (`codex app-server generate-ts` da el protocolo); el binario lo marca
     "[experimental]" (el protocolo puede cambiar entre versiones). Emite `item/agentMessage/delta`. Sonda 2026-09-27:
     turno 1 primer texto 7.4 s / total 14.2 s (con config de usuario), turno 2 en el mismo thread 1.5 s / 2.2 s, vs 11.1 s
     hoy por turno. Requiere: thread por sesión de chat (id persistido, `thread/resume` tras reinicio), solo el mensaje
     nuevo por turno, sandbox read-only y CODEX_HOME aislado, caída visible a `codex exec` si falla, test contra el
     esquema generado. Descartado: `codex exec resume` (no más rápido, +16 K tokens por turno; NEXT.md).
+    Hallazgo 2026-09-28 (lectura de `chat.ts:1057,1280,1508`): las ramas CLI del chat no mandan historial — cada turno
+    de Claude/Codex/OpenCode es una conversación nueva. d5 lo arregla para Codex (thread); Claude/OpenCode, ítem aparte.
+    Ejecutado por: luna (4 rondas; r2 se detuvo por fallos propios del sandbox) · Spec: docs/specs/MR.1.d5.md (borrado al cerrar)
+    Hecho: `src/run/executors/codex-app-server.ts` (un proceso por CODEX_HOME, thread por sesión en
+    `chat_sessions.codex_thread_id`, resume tras reinicio, thread vencido → uno nuevo con aviso visible, contexto
+    reenviado solo si cambia fuera de la línea `Now:`); caída visible a `codex exec` solo por error de protocolo; errores
+    de auth/turno → 502 sin caída. Apagado en `server.stop()`/SIGINT/SIGTERM.
+    Gate en vivo: navegador real, `docs/done/evidence/MR.1.d5-live.json`: `codex-live` 6/6 — 6 textos distintos antes
+    del final, turno 2 recuerda la palabra, 12 978 ms → 2 804 ms, `provider=codex`. `test:coverage` 1570/0.
+    No verificado en vivo: memoria tras reiniciar el dashboard (el runner no reinicia; cubierto solo por test unitario).
 - [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
   Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
   `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5
@@ -805,8 +816,11 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 
 ## Fase 2 — Producto mínimo para entrega
 
-- [ ] **AT.10 — 🧠 El chat usa de verdad el CLI elegido: Codex y OpenCode, sin caída silenciosa a OpenRouter.**
+- [x] **AT.10 — 🧠 El chat usa de verdad el CLI elegido: Codex y OpenCode, sin caída silenciosa a OpenRouter.**
   **Absorbido por MR.1.d (Carlos 2026-09-24):** se ejecuta dentro de MR.1, no por separado.
+  **Cerrado 2026-09-28:** Codex cumple el contrato (MR.1.d1-d5, `docs/done/evidence/MR.1.d5-live.json`); el tramo
+  OpenCode pasa a AT.15 (terminal real en Dev, decisión de Carlos 2026-09-28).
+  Ejecutado por: luna (AT.10 backend 2026-09-15 + MR.1.d1-d5) · Spec: docs/specs/AT.10.md (borrado al cerrar)
   **Progreso 2026-09-15 (backend, ejecutado por luna · spec en `docs/specs/AT.10.md`, sigue
   abierto):** `chat.ts:1098-1101` ya no pasa `deepseek/deepseek-v4-flash` como default a
   `runCodexChat`/`runOpencodeChat` cuando `body.model` no vino explícito (`cliModel`); OpenCode sin
@@ -843,6 +857,10 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   OpenCode ese id sí se traduce a `openrouter/deepseek/...`, por lo que hoy es posible seleccionar
   conceptualmente un CLI y seguir usando DeepSeek/OpenRouter. No presentar AT.9 como selección
   end-to-end hasta cerrar este ítem.
+
+  **Decisión de Carlos, 2026-09-28:** OpenCode se trata "tal cual trabaja": en el tab Dev se abre como en una
+  terminal (su TUI propia, su config y auth), no como rama de chat. Implica terminal embebida (PTY: `Bun.Terminal`
+  existe en Bun 1.3.14) — plan pendiente de GO; sin ítem abierto todavía.
 
   **Contrato de esta pasada (Codex + OpenCode):**
   1. El picker del chat habilita `codex` y `opencode` solo cuando
@@ -890,6 +908,14 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 
   **Fuera de scope:** elegir un modelo interno específico de cada CLI, modificar el motor de tareas,
   y prometer soporte para los otros CLIs del registro antes de que tengan adaptador de chat real.
+- [ ] **AT.15 — 🧠 OpenCode tal cual trabaja: terminal real en el tab Dev.** (abierto 2026-09-28, GO de Carlos; sustituye el
+  tramo OpenCode de AT.10) Carlos: "si en un terminal escribo OpenCode se abre como siempre; quiero el mismo tratamiento,
+  con más razón en el tab Dev". Plan aprobado: (1) servidor abre `opencode` en la carpeta del proyecto con PTY
+  (`Bun.Terminal`, presente en Bun 1.3.14), su propia config y auth, sin CODEX_HOME/OPENCODE aislado ni modelo elegido
+  por OrchestOS; (2) canal WebSocket entrada/salida/redimensión; (3) panel de terminal en el tab Dev (`xterm.js`,
+  dependencia nueva) que se ve y usa igual que la terminal; (4) OpenCode deja de ser opción del chat. Fuera: otros CLI en
+  la terminal, persistir el scrollback. Gate en vivo: navegador real, abrir OpenCode en Dev, escribir un prompt, ver la
+  TUI responder, redimensionar, cerrar sin procesos huérfanos (`ps`). Va después de MR.1.d5.
 - [ ] **R.7 — 🧠 Escritura atómica y coordinación entre procesos para tasks.yaml.** Prioridad alta.
   Riesgo identificado, pendiente de reproducir: `loader.ts:25` comprueba un hash opcional y luego
   sobrescribe el archivo directamente; `tasks.ts:260` guarda antes del lock Git. Dos procesos
