@@ -432,22 +432,38 @@ export default function App() {
   }, [mode, currentProject?.id])
 
   const refreshProjectTabs = async (projectId: string) => {
+    if (purgingProjectIds.current.has(projectId)) return
+    // Registrada como hidratación del proyecto: el purge la aborta antes de borrar (si no, 404 tras el purge).
+    const controller = new AbortController()
+    const controllers = projectHydrationControllers.current.get(projectId) ?? new Set()
+    controllers.add(controller)
+    projectHydrationControllers.current.set(projectId, controllers)
     setProjectTabsLoading(true)
     setProjectTabsError(null)
+    const reads = Promise.all([
+      listMemory(projectId, controller.signal),
+      listSpecs(projectId, controller.signal),
+      listSkills(projectId, controller.signal),
+      listInstincts(projectId, controller.signal),
+    ])
+    const pending = projectHydrationReads.current.get(projectId) ?? new Set()
+    pending.add(reads)
+    projectHydrationReads.current.set(projectId, pending)
     try {
-      const [nextMemory, nextSpecs, nextSkills, nextInstincts] = await Promise.all([
-        listMemory(projectId),
-        listSpecs(projectId),
-        listSkills(projectId),
-        listInstincts(projectId),
-      ])
+      const [nextMemory, nextSpecs, nextSkills, nextInstincts] = await reads
+      if (controller.signal.aborted) return
       setMemories(nextMemory)
       setSpecs(nextSpecs)
       setSkills(nextSkills)
       setInstincts(nextInstincts)
     } catch (error) {
-      setProjectTabsError(error instanceof Error ? error.message : String(error))
+      if (!controller.signal.aborted)
+        setProjectTabsError(error instanceof Error ? error.message : String(error))
     } finally {
+      pending.delete(reads)
+      if (pending.size === 0) projectHydrationReads.current.delete(projectId)
+      controllers.delete(controller)
+      if (controllers.size === 0) projectHydrationControllers.current.delete(projectId)
       setProjectTabsLoading(false)
     }
   }

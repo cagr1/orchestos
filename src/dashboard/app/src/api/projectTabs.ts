@@ -13,7 +13,7 @@ async function request<T>(path: string, projectId: string, init?: RequestInit): 
   return body as T
 }
 
-export async function listMemory(projectId: string): Promise<MemoryItem[]> {
+export async function listMemory(projectId: string, signal?: AbortSignal): Promise<MemoryItem[]> {
   const [rows, conflicts] = await Promise.all([
     request<
       Array<{
@@ -23,10 +23,11 @@ export async function listMemory(projectId: string): Promise<MemoryItem[]> {
         content: string
         updatedAt: string
       }>
-    >('/api/memory', projectId),
+    >('/api/memory', projectId, { signal }),
     request<Array<{ id: string; entry_a_id: string; entry_b_id: string }>>(
       `/api/memory/conflicts?project=${encodeURIComponent(projectId)}`,
       projectId,
+      { signal },
     ),
   ])
   return rows.map((row) => {
@@ -67,7 +68,7 @@ export async function resolveMemoryConflict(
   })
 }
 
-export async function listSpecs(projectId: string): Promise<SpecItem[]> {
+export async function listSpecs(projectId: string, signal?: AbortSignal): Promise<SpecItem[]> {
   const rows = await request<
     Array<{
       id: string
@@ -81,7 +82,7 @@ export async function listSpecs(projectId: string): Promise<SpecItem[]> {
       criteria: SpecItem['criteria']
       createdAt: string
     }>
-  >('/api/specs', projectId)
+  >('/api/specs', projectId, { signal })
   return rows
 }
 
@@ -103,18 +104,22 @@ export async function draftSpec(
   })
 }
 
-export async function listSkills(projectId: string): Promise<SkillItem[]> {
-  const rows = await request<Array<SkillItem>>('/api/skills', projectId)
+export async function listSkills(projectId: string, signal?: AbortSignal): Promise<SkillItem[]> {
+  const rows = await request<Array<SkillItem>>('/api/skills', projectId, { signal })
   return rows.map((row) => ({ ...row, usageRuns: row.usageRuns ?? 0 }))
 }
 export async function compileSkill(projectId: string, id: string): Promise<{ paths: string[] }> {
   return request(`/api/skills/${encodeURIComponent(id)}/build`, projectId, { method: 'POST' })
 }
 
-export async function listInstincts(projectId: string): Promise<InstinctItem[]> {
+export async function listInstincts(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<InstinctItem[]> {
   const rows = await request<Array<InstinctItem & { createdAt: string }>>(
     '/api/instincts',
     projectId,
+    { signal },
   )
   return rows.map((row) => ({ ...row, usagesCount: row.usagesCount ?? 0 }))
 }

@@ -1,0 +1,65 @@
+[
+  {
+    "flujo": "project-delete",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project row"
+      },
+      {
+        "nombre": "project actions visible on hover",
+        "ok": true,
+        "detalle": "ellipsis action"
+      },
+      {
+        "nombre": "menu has exactly settings and delete",
+        "ok": true,
+        "detalle": "two project actions"
+      },
+      {
+        "nombre": "soft delete removes project from sidebar",
+        "ok": true,
+        "detalle": "row hidden"
+      },
+      {
+        "nombre": "soft delete preserves chat and run rows",
+        "ok": true,
+        "detalle": "{\"counts\":{\"context_chunks\":0,\"memory_entries\":0,\"chat_sessions\":1,\"chat_turns\":0,\"runs\":1,\"files\":0,\"code_edges\":0},\"chats\":1,\"runs\":1,\"project\":1}"
+      },
+      {
+        "nombre": "re-adding the same path restores the project row",
+        "ok": true,
+        "detalle": "restored project"
+      },
+      {
+        "nombre": "restored project keeps its chat",
+        "ok": true,
+        "detalle": "chat survives soft delete and re-add"
+      },
+      {
+        "nombre": "project settings opens from project menu",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "purge exits project settings",
+        "ok": true,
+        "detalle": "settings closed"
+      },
+      {
+        "nombre": "purge removes project and every project-scoped row",
+        "ok": true,
+        "detalle": "{\"purged\":{\"counts\":{\"context_chunks\":0,\"memory_entries\":0,\"chat_sessions\":0,\"chat_turns\":0,\"runs\":0,\"files\":0,\"code_edges\":0},\"chats\":0,\"runs\":0,\"project\":0},\"projectList\":[]}"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  }
+]

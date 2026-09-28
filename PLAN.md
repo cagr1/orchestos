@@ -1036,6 +1036,16 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   verdes; `test:coverage` 1547/0; tsc app; biome. Hook `useStickToBottom` (ResizeObserver + umbral 80 px), también al
   cambiar de sesión/agente. Nota: el caso exacto de la captura (tarjeta en un segundo render) ya no se da desde MR.1.d3
   (marcador en la misma respuesta); el gate prueba el mecanismo, no esa captura.
+  Hallazgo del pre-push: 404 intermitente en `project-delete` → UI.17.
+
+- [x] **UI.17 — ⚡ Purgar un proyecto aborta también las lecturas de Memory/Specs/Skills/Instincts.** (abierto 2026-09-27, cerrado 2026-09-27)
+  Visto en el pre-push de UI.16: `project-delete` falló 1/6 con "HTTP 404 /api/specs" — `refreshProjectTabs`
+  (`App.tsx:434`) no registraba sus 4 lecturas en `projectHydrationControllers`, así que el purge no las abortaba
+  (hermano del abort de config de MR.1.d1). Ahora reciben `signal` (`api/projectTabs.ts`) y se registran/limpian
+  como `loadThreadMessages`.
+  Sin delegación: fix de un solo flujo, hecho por el cerebro durante el pre-push.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.17-live.json`: `project-delete` 8/8 corridas
+  11/11 tras el fix (evidencia débil ante una base de 1/6); `test:coverage` 1547/0; tsc app; biome.
 
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
