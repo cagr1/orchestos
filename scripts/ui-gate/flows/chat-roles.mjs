@@ -75,33 +75,43 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
 
   const composer = page.locator('textarea').last()
-  // A turn counts as sent only when POST /api/chat leaves; Enter while the previous
-  // turn is still busy is ignored by the composer (the text stays), so retry until it
-  // goes out and then wait for the composer to clear, which happens when the reply is
-  // on screen.
+  // A turn counts as sent when its POST /api/chat response arrives and the reply is
+  // visible. Enter while the previous turn is busy is ignored, so retry until sent.
   let lastTurnMs = null
   const sendTurn = async (text) => {
     const startedAt = Date.now()
+    const previousReplyCount = await page.locator('div.prose').count()
     await composer.fill(text)
     const deadline = Date.now() + 180_000
-    let sent = false
-    while (!sent && Date.now() < deadline) {
-      const post = page
+    const response = page
+      .waitForResponse(
+        (r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/chat',
+        { timeout: 180_000 },
+      )
+      .catch(() => null)
+    while (Date.now() < deadline) {
+      const request = page
         .waitForRequest((r) => r.method() === 'POST' && new URL(r.url()).pathname === '/api/chat', {
           timeout: 5_000,
         })
         .then(() => true)
         .catch(() => false)
       await composer.press('Enter')
-      sent = await post
-    }
-    if (!sent) return false
-    while (Date.now() < deadline) {
-      if ((await composer.inputValue()) === '') {
-        lastTurnMs = Date.now() - startedAt
-        return true
+      if (!(await request)) continue
+      const postResponse = await response
+      if (postResponse) {
+        const reply = page.locator('div.prose').nth(previousReplyCount)
+        try {
+          await reply.waitFor({ state: 'visible', timeout: 180_000 })
+          if ((await reply.innerText()).trim()) {
+            lastTurnMs = Date.now() - startedAt
+            return true
+          }
+        } catch {
+          return false
+        }
       }
-      await page.waitForTimeout(500)
+      return false
     }
     return false
   }

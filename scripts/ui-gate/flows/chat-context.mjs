@@ -15,12 +15,19 @@ function runJson(source) {
 
 async function sendTurn(page, composer, message) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
+  const previousReplyCount = await page.locator('div.prose').count()
   await composer.fill(message)
   await page
     .getByRole('button', { name: 'Send message', exact: true })
     .last()
     .waitFor({ state: 'visible' })
   const deadline = Date.now() + 180_000
+  const response = page
+    .waitForResponse(
+      (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
+      { timeout: 180_000 },
+    )
+    .catch(() => null)
   while (Date.now() < deadline) {
     const request = page
       .waitForRequest(
@@ -30,16 +37,19 @@ async function sendTurn(page, composer, message) {
       .then(() => true)
       .catch(() => false)
     await composer.press('Enter')
-    if (await request) return true
+    if (!(await request)) continue
+    if (await response) return waitForReply(page, previousReplyCount)
+    return ''
   }
-  return false
+  return ''
 }
 
-async function waitForReply(page, composer) {
+async function waitForReply(page, replyIndex) {
   const deadline = Date.now() + 180_000
+  const reply = page.locator('div.prose').nth(replyIndex)
   while (Date.now() < deadline) {
-    if ((await composer.inputValue()) === '') {
-      const response = (await page.locator('div.prose').allInnerTexts()).at(-1)?.trim()
+    if (await reply.isVisible().catch(() => false)) {
+      const response = (await reply.innerText()).trim()
       if (response) return response
     }
     await page.waitForTimeout(300)
@@ -164,8 +174,7 @@ export default async function chatContext({
   const codexSession = await startChat(page, 'Codex', basename(projectRoot))
   await page.getByRole('button', { name: /GPT-6-Luna · medium/i }).waitFor({ state: 'visible' })
   const composer = page.locator('textarea').last()
-  const sent = await sendTurn(page, composer, prompt)
-  const codexReply = sent ? await waitForReply(page, composer) : ''
+  const codexReply = await sendTurn(page, composer, prompt)
   const codexPrompt = readFileSync(
     join(dirname(dirname(databasePath)), 'gate-captures', `chat-prompt-${codexSession.id}.txt`),
     'utf8',
@@ -199,8 +208,7 @@ export default async function chatContext({
   const claudeSession = await startChat(page, 'Claude', basename(projectRoot))
   await selectClaudeHaiku(page)
   const claudeComposer = page.locator('textarea').last()
-  const claudeSent = await sendTurn(page, claudeComposer, prompt)
-  const claudeReply = claudeSent ? await waitForReply(page, claudeComposer) : ''
+  const claudeReply = await sendTurn(page, claudeComposer, prompt)
   const claudePrompt = readFileSync(
     join(dirname(dirname(databasePath)), 'gate-captures', `chat-prompt-${claudeSession.id}.txt`),
     'utf8',

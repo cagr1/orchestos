@@ -1131,6 +1131,12 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   de 1000, buscador y esfuerzo dentro del menú, niveles exactos, Codex intacto) + `model-routing` 14/14.
   `test:coverage` 1573/0. Pendiente menor: nombres largos de OpenRouter truncados se ven iguales.
 
+- [x] **CI.6 — ⚡ Flujos de ui:gate: fin de turno = respuesta de POST /api/chat, no composer vacío.** (abierto 2026-09-28, cerrado 2026-09-28)
+  UI.20 vacía el composer al enviar; `chat-roles` y `chat-context` leían SQLite antes de cerrar el turno y fallaban en
+  el pre-push de UI.21. Ahora esperan la respuesta del POST y el mensaje visible.
+  Ejecutado por: luna (1 ronda; la primera se detuvo en el preflight por falta de ítem) · Spec: docs/specs/CI.6.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.6-live.json`: `chat-roles` 11/11, `chat-context` 5/5.
+
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;

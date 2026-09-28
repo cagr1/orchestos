@@ -292,6 +292,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.6",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Flujos de ui:gate: fin de turno = respuesta de POST /api/chat, no composer vacío",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "R.8",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
