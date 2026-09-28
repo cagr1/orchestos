@@ -2,6 +2,13 @@
 
 ## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
 **MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. UI.15 ("+ Add project" sin modal, punto 4 paso 1) cerrado 2026-09-27; "Clonar desde URL" sigue pendiente de plan. UI.16 (punto 5, scroll del chat) cerrado 2026-09-27. "Clonar desde URL" en espera por decisión de Carlos. Punto 6: MR.1.d2 cerrado 2026-09-27 (PLAN.md). Siguiente: UI.13.7. Pendiente sin ítem: reemplazar el prompt base del CLI (Codex ~96 % del input en el fixture, ver PLAN.md MR.1.d2).
+Pendiente sin ítem (Carlos 2026-09-28, "déjalo escrito"): el cerebro editó código en MR.1.d2 con `python3 - <<EOF …
+open('src/…','w')` y `.claude/hooks/brain-no-code.js` no lo vio (en Bash solo detecta `>`, `tee`, `sed -i`/`perl -i`).
+Arreglo acordado: ampliar ESE hook (sin hook nuevo, sin texto nuevo en CLAUDE.md/memoria, 0 tokens salvo al
+bloquear) para denegar intérpretes con script en línea (`python`/`node -e`/`bun -e`, heredoc) que escriban
+(`open(..,'w')`, `writeFile`, `write_text`) en `src/`, `tests/`, `scripts/`, `.claude/hooks/`; `ORCHESTOS_ROLE=executor`
+sigue exento. Descartado: diff de `git status` pre/post (Luna corre en background → falsos positivos). Lo hace Luna con
+spec corto + test; no bloquea UI.13.7.
 Gotcha 2026-09-27: si el commit de cierre se bloquea (p. ej. `agent:live-gate` sin archivo de evidencia citado) DESPUÉS
 de un `plan:reconcile`, el siguiente reconcile falla con "Could not prove a closing commit SHA" (la DB ya lo tiene
 `done` y el SHA provisional solo vale al cerrar, `scripts/plan-import.ts:84`). Salida: pasar el ítem a `[ ]`,
