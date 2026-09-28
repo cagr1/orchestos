@@ -535,7 +535,8 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   - [ ] **MR.1.d2 — 🧠 El contexto que el chat inyecta al CLI dice la verdad (AT.13).** (abierto 2026-09-25) Alcance =
     AT.13 puntos 1-8 (herramientas reales, `n/a` en costos desconocidos, tasks en una línea, motivo de QA, nombres de
     modelo normalizados, fechas con zona, índice de memoria/specs, sin prompts apilados) + `$0` del chat de Codex sin
-    precio (resto de MR.1.b2). Spec al terminar MR.1.d1.
+    precio (resto de MR.1.b2). Spec `docs/specs/MR.1.d2.md` (2026-09-27); Carlos decidió el punto 8: esta pasada
+    mide, el prompt base del CLI se reemplaza aparte.
   - [x] **MR.1.d4 — 🧠 El chat pinta la respuesta mientras se genera, para cualquier agente.** (abierto 2026-09-27, cerrado 2026-09-27, GO de
     Carlos; "mientras trabaja no sé qué está haciendo, pinta el texto que se va generando como en el CLI") Hoy el Chat
     hace un único `POST /api/chat` (`app/src/api/chat.ts:447`) y no pinta nada hasta el final (spinner mínimo
