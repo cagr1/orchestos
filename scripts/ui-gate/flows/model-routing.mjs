@@ -119,6 +119,79 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
   if (!codex?.installed || !codex.models.some((model) => model.id === 'gpt-6-luna'))
     throw new Error('Codex gpt-6-luna is not available in the model catalog')
   const roles = ['Orchestrator', 'Executor', 'Reviewer', 'Auxiliary']
+  const opencode = catalog.find((agent) => agent.id === 'opencode')
+  if (opencode?.installed) {
+    const variantModel = opencode.models.find((model) => model.efforts?.length)
+    const plainModel = opencode.models.find((model) => !model.efforts?.length)
+    if (!variantModel || !plainModel)
+      throw new Error('OpenCode catalog must include models both with and without variants')
+    const firstCard = cards.first()
+    await firstCard.getByLabel('Orchestrator agent').click()
+    await page.getByRole('button', { name: 'opencode', exact: true }).last().click()
+    await firstCard.getByRole('button', { name: 'Select model' }).click()
+    const search = firstCard.getByPlaceholder('Filter models...')
+    const menu = search.locator('xpath=..')
+    const initialModelCount = await menu.getByRole('button').count()
+    const menuBox = await menu.boundingBox()
+    const viewportHeight = page.viewportSize().height
+    const menuScrolls = await menu.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    )
+    await step(
+      'model menu stays under 60 percent of viewport and scrolls internally',
+      Boolean(menuBox && menuBox.height < viewportHeight * 0.6 && menuScrolls),
+      JSON.stringify({ height: menuBox?.height, viewportHeight, scrolls: menuScrolls }),
+    )
+    await search.fill('no-model-can-match')
+    await step(
+      'model search shows the empty state',
+      await firstCard.getByText('No models match').isVisible(),
+    )
+    await search.fill(variantModel.id)
+    const matchingModelCount = await menu.getByRole('button').count()
+    const matchingModelVisible = await menu.getByRole('button', { name: variantModel.id }).count()
+    await step(
+      'model search reduces results and keeps the requested model',
+      matchingModelCount < initialModelCount && matchingModelVisible === 1,
+      JSON.stringify({
+        initialModelCount,
+        matchingModelCount,
+        model: variantModel.id,
+        matchingModelVisible,
+      }),
+    )
+    await search.press('ArrowDown')
+    await search.press('Enter')
+    await step(
+      'keyboard selection opens effort for a variant model',
+      await firstCard.getByLabel('Orchestrator effort').isVisible(),
+      JSON.stringify({ model: variantModel.id, efforts: variantModel.efforts }),
+    )
+    await firstCard.getByLabel('Orchestrator effort').click()
+    await step(
+      'effort menu contains only this model variants',
+      (
+        await Promise.all(
+          variantModel.efforts.map((effort) =>
+            page.getByRole('button', { name: effort, exact: true }).last().isVisible(),
+          ),
+        )
+      ).every(Boolean),
+      JSON.stringify(variantModel.efforts),
+    )
+    await page.keyboard.press('Escape')
+    await firstCard.getByRole('button').filter({ hasText: variantModel.name }).first().click()
+    await search.fill(plainModel.id)
+    await search.press('ArrowDown')
+    await search.press('Enter')
+    await step(
+      'model without variants hides effort control',
+      (await firstCard.getByLabel('Orchestrator effort').count()) === 0,
+      JSON.stringify({ model: plainModel.id, efforts: plainModel.efforts }),
+    )
+    await firstCard.getByLabel('Orchestrator agent').click()
+    await page.getByRole('button', { name: 'codex', exact: true }).last().click()
+  }
   for (const [index, role] of roles.entries()) {
     const card = cards.nth(index)
     await card.getByLabel(`${role} agent`).click()

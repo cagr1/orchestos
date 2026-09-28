@@ -30,7 +30,7 @@ import {
   Trash2,
   Zap,
 } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type {
   ConfigResponse,
   ExecutorModesResponse,
@@ -238,7 +238,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   type RoutingAgent = {
     id: string
     installed: boolean
-    models: { id: string; name: string }[]
+    models: { id: string; name: string; efforts?: string[] }[]
     efforts: string[]
     error?: string
   }
@@ -263,6 +263,17 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   // Searchable combobox open state
   const [activeComboboxRole, setActiveComboboxRole] = useState<string | null>(null)
   const [comboboxSearch, setComboboxSearch] = useState('')
+  const [activeModelIndex, setActiveModelIndex] = useState(0)
+  const comboboxSearchRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (
+      activeComboboxRole &&
+      !activeComboboxRole.endsWith('-agent') &&
+      !activeComboboxRole.endsWith('-effort')
+    ) {
+      comboboxSearchRef.current?.focus()
+    }
+  }, [activeComboboxRole])
 
   // Default agent & executor state (Orca Agents pattern)
   const [apiMode, setApiMode] = useState<'single-shot' | 'agentic'>('single-shot')
@@ -1289,6 +1300,15 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 const assignment = routingRoles[key] ?? null
                 const agent = routingCatalog.find((entry) => entry.id === assignment?.agent)
                 const selectedModels = agent?.models ?? []
+                const matchingModels = selectedModels.filter((model) =>
+                  `${model.name} ${model.id}`.toLowerCase().includes(comboboxSearch.toLowerCase()),
+                )
+                const selectedModel = selectedModels.find((model) => model.id === assignment?.model)
+                const modelEfforts = selectedModel?.efforts?.length
+                  ? selectedModel.efforts
+                  : agent?.id === 'api'
+                    ? agent.efforts
+                    : []
                 const selectedName = assignment?.model
                   ? (selectedModels.find((model) => model.id === assignment.model)?.name ??
                     assignment.model)
@@ -1369,8 +1389,37 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
                       </button>
                       {activeComboboxRole === key && (
-                        <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl p-2 z-40 max-h-56 overflow-y-auto">
+                        <div
+                          role="dialog"
+                          aria-label={`${label} model selector`}
+                          className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl p-2 z-40 max-h-[55vh] overflow-y-auto"
+                          onKeyDown={(event) => {
+                            if (event.key === 'Escape') setActiveComboboxRole(null)
+                            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                              event.preventDefault()
+                              setActiveModelIndex((index) =>
+                                matchingModels.length
+                                  ? (index +
+                                      (event.key === 'ArrowDown' ? 1 : -1) +
+                                      matchingModels.length) %
+                                    matchingModels.length
+                                  : 0,
+                              )
+                            }
+                            if (event.key === 'Enter' && matchingModels[activeModelIndex]) {
+                              const model = matchingModels[activeModelIndex]
+                              setRoutingRoles((current) => ({
+                                ...current,
+                                [key]: assignment
+                                  ? { ...assignment, model: model.id, effort: undefined }
+                                  : null,
+                              }))
+                              setActiveComboboxRole(null)
+                            }
+                          }}
+                        >
                           <input
+                            ref={comboboxSearchRef}
                             value={comboboxSearch}
                             onChange={(event) => setComboboxSearch(event.target.value)}
                             placeholder="Filter models..."
@@ -1386,33 +1435,32 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                 {assignment.model}
                               </button>
                             )}
-                          {selectedModels
-                            .filter((model) =>
-                              `${model.name} ${model.id}`
-                                .toLowerCase()
-                                .includes(comboboxSearch.toLowerCase()),
-                            )
-                            .map((model) => (
-                              <button
-                                key={model.id}
-                                type="button"
-                                className="block w-full text-left p-1.5 hover:bg-app-elevated text-app"
-                                onClick={() => {
-                                  setRoutingRoles((current) => ({
-                                    ...current,
-                                    [key]: assignment ? { ...assignment, model: model.id } : null,
-                                  }))
-                                  setActiveComboboxRole(null)
-                                }}
-                              >
-                                {model.name}
-                                <span className="ml-2 text-app-muted font-mono">{model.id}</span>
-                              </button>
-                            ))}
+                          {matchingModels.length === 0 && (
+                            <div className="px-2 py-2 text-app-muted">No models match</div>
+                          )}
+                          {matchingModels.map((model) => (
+                            <button
+                              key={model.id}
+                              type="button"
+                              className="block w-full text-left p-1.5 hover:bg-app-elevated text-app"
+                              onClick={() => {
+                                setRoutingRoles((current) => ({
+                                  ...current,
+                                  [key]: assignment
+                                    ? { ...assignment, model: model.id, effort: undefined }
+                                    : null,
+                                }))
+                                setActiveComboboxRole(null)
+                              }}
+                            >
+                              {model.name}
+                              <span className="ml-2 text-app-muted font-mono">{model.id}</span>
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
-                    {agent?.efforts.length ? (
+                    {modelEfforts.length ? (
                       <div className="relative">
                         <button
                           type="button"
@@ -1430,7 +1478,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         </button>
                         {activeComboboxRole === `${key}-effort` && (
                           <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl z-40">
-                            {['', ...agent.efforts].map((effort) => (
+                            {['', ...modelEfforts].map((effort) => (
                               <button
                                 key={effort || 'default'}
                                 type="button"

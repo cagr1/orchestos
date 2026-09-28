@@ -56,7 +56,24 @@ describe('UI.14 round 5 CLI model catalogs', () => {
 
   test('parses only provider/model rows from OpenCode output', () => {
     expect(parseOpencodeModels('openai/gpt-5\nWarning: noisy\nnot-a-model')).toEqual([
-      { id: 'openai/gpt-5', name: 'openai/gpt-5', short: 'openai/gpt-5' },
+      { id: 'openai/gpt-5', name: 'openai/gpt-5', short: 'openai/gpt-5', efforts: [] },
+    ])
+  })
+
+  test('parses OpenCode verbose variants in order and tolerates malformed model blocks', () => {
+    expect(
+      parseOpencodeModels(
+        'openai/gpt-6\n{"variants":{"low":{},"high":{}}}\nopenai/broken\n{oops}\nanthropic/claude\n{\n  "variants": {"minimal": {}, "xhigh": {}}\n}',
+      ),
+    ).toEqual([
+      { id: 'openai/gpt-6', name: 'openai/gpt-6', short: 'openai/gpt-6', efforts: ['low', 'high'] },
+      { id: 'openai/broken', name: 'openai/broken', short: 'openai/broken', efforts: [] },
+      {
+        id: 'anthropic/claude',
+        name: 'anthropic/claude',
+        short: 'anthropic/claude',
+        efforts: ['minimal', 'xhigh'],
+      },
     ])
   })
 
@@ -109,7 +126,7 @@ describe('UI.14 round 5 CLI model catalogs', () => {
       { id: 'claude', models: [], efforts: [], error: 'ENOEXEC: spawn failed' },
       {
         id: 'opencode',
-        models: [{ id: 'openai/gpt-5', name: 'openai/gpt-5', short: 'openai/gpt-5' }],
+        models: [{ id: 'openai/gpt-5', name: 'openai/gpt-5', short: 'openai/gpt-5', efforts: [] }],
         efforts: [],
       },
     ])

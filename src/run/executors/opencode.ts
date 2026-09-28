@@ -39,6 +39,7 @@ export class ExecutorOpencodeError extends Error {}
 
 const DEFAULT_TIMEOUT_MS = 20 * 60 * 1000 // mismo default que external.ts
 const OPENCODE_BINARY = 'opencode'
+let nativeVariantsCache: { loadedAt: number; models: Map<string, string[]> } | null = null
 
 export function findOpencodeBinary(): string | null {
   return Bun.which(OPENCODE_BINARY)
@@ -90,6 +91,28 @@ function buildOpencodeArgsDisplay(model?: string, variant?: string): string[] {
   if (model) args.push('--model', model)
   if (variant) args.push('--variant', variant)
   return args
+}
+
+async function supportedVariant(
+  model: string | undefined,
+  variant: string | undefined,
+): Promise<string | undefined> {
+  if (!model || !variant) return undefined
+  if (!nativeVariantsCache || Date.now() - nativeVariantsCache.loadedAt > 5 * 60_000) {
+    try {
+      const { readOpencodeModelCatalog } = await import('../../dashboard/chat-cli-models.ts')
+      const binary = findOpencodeBinary()
+      if (!binary) return undefined
+      const models = await readOpencodeModelCatalog(undefined, binary)
+      nativeVariantsCache = {
+        loadedAt: Date.now(),
+        models: new Map(models.map((entry) => [entry.id, entry.efforts ?? []])),
+      }
+    } catch {
+      return undefined
+    }
+  }
+  return nativeVariantsCache.models.get(model)?.includes(variant) ? variant : undefined
 }
 
 // -- NDJSON parsing --------------------------------------------------------
@@ -223,9 +246,10 @@ export interface OpencodeChatResult {
   model: string
 }
 
-function buildOpencodeChatArgs(message: string, model?: string): string[] {
+export function buildOpencodeChatArgs(message: string, model?: string, variant?: string): string[] {
   const args = ['run', message, '--format', 'json', '--agent', 'plan']
   if (model) args.push('--model', model)
+  if (variant) args.push('--variant', variant)
   return args
 }
 
@@ -235,6 +259,7 @@ export async function runOpencodeChat(
   userMessage: string,
   timeoutMs: number,
   model?: string,
+  requestedVariant?: string,
   onChatStep?: (event: ExecutorStepEvent) => void,
 ): Promise<OpencodeChatResult> {
   if (!findOpencodeBinary()) {
@@ -246,6 +271,7 @@ export async function runOpencodeChat(
     throw new ExecutorOpencodeError(`OpenCode no reconoce el modelo solicitado: ${model}`)
   }
   const message = [systemPrompt, userMessage].filter(Boolean).join('\n\n')
+  const variant = await supportedVariant(opencodeModel, requestedVariant)
 
   let text = ''
   const onStep = (step: ExecutorStepEvent) => {
@@ -258,7 +284,7 @@ export async function runOpencodeChat(
   try {
     ;({ stdout, timedOut } = await runOpencode(
       cwd,
-      buildOpencodeChatArgs(message, opencodeModel),
+      buildOpencodeChatArgs(message, opencodeModel, variant),
       timeoutMs,
       onStep,
     ))
@@ -305,7 +331,7 @@ export const opencodeEngine: ExecutorEngine = {
     if (ctx.model && !model) {
       throw new ExecutorOpencodeError(`OpenCode no reconoce el modelo solicitado: ${ctx.model}`)
     }
-    const variant = ctx.cliEffort
+    const variant = await supportedVariant(model, ctx.cliEffort)
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
     let stdout: string

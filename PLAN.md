@@ -1119,10 +1119,17 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   vacío). Contraprueba con los 4 archivos de producto de HEAD: falla Dev (a1 antes de u1) y el composer.
   `test:coverage` 1571/0.
 
-- [ ] **UI.21 — ⚡ Selector de modelo con altura y buscador + esfuerzo por modelo de OpenCode.** (abierto 2026-09-28, pedido de Carlos)
+- [x] **UI.21 — ⚡ Selector de modelo con altura y buscador + esfuerzo por modelo de OpenCode.** (abierto 2026-09-28, cerrado 2026-09-28, pedido de Carlos)
   Lista de OpenCode "interminable" (392 modelos). `opencode models --verbose` trae variantes por modelo (199 con
   esfuerzo) y `opencode run --variant` las aplica; hoy el catálogo devuelve `efforts: []`. Va después de UI.20 (mismo
-  composer). Spec `docs/specs/UI.21.md`.
+  composer).
+  Hecho: catálogo de OpenCode con `opencode models --verbose` (esfuerzos por modelo, parser tolerante); chat y engine
+  pasan `--variant` solo si el modelo lo admite; selector del composer y de Model routing con altura máxima, scroll,
+  buscador con foco y teclado; esfuerzo visible solo con los niveles del modelo elegido.
+  Ejecutado por: luna (4 rondas; r2-r3 flujo del composer, r4 menú cortado visto en captura; spec borrado al cerrar) · Spec: docs/specs/UI.21.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.21-live.json`: `composer-picker` 11/11 (menú 477 px
+  de 1000, buscador y esfuerzo dentro del menú, niveles exactos, Codex intacto) + `model-routing` 14/14.
+  `test:coverage` 1573/0. Pendiente menor: nombres largos de OpenRouter truncados se ven iguales.
 
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →

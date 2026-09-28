@@ -6,7 +6,7 @@ import { type ChatModelsFetch, readOpenRouterChatModels } from './chat.ts'
 export interface CatalogAgent {
   id: RoleAgent
   installed: boolean
-  models: { id: string; name: string }[]
+  models: { id: string; name: string; efforts?: string[] }[]
   efforts: string[]
   error?: string
 }
@@ -28,7 +28,9 @@ export async function handleApiModelCatalog(deps?: {
     return {
       id,
       installed: Boolean(entry),
-      models: entry?.models.map(({ id: modelId, name }) => ({ id: modelId, name })) ?? [],
+      models:
+        entry?.models.map(({ id: modelId, name, efforts }) => ({ id: modelId, name, efforts })) ??
+        [],
       efforts: entry?.efforts ?? [],
     }
   })

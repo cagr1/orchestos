@@ -1570,6 +1570,7 @@ async function handleApiChat(
           combinedText,
           CLAUDE_CHAT_TIMEOUT_MS,
           cliModel,
+          selectedEffort,
           persistChatStep,
         )
         const resultLabel = `${cliModel ? result.model : 'CLI default model'} via OpenCode CLI`

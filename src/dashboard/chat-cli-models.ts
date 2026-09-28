@@ -123,15 +123,54 @@ function readClaudeModelIds(home: string): CliModelOption[] {
 }
 
 export function parseOpencodeModels(raw: string): CliModelOption[] {
-  return raw
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('Warning:') && !line.startsWith('Error:'))
-    .flatMap((line) => {
-      const id = line.match(/^([\w.-]+\/[\w./:@-]+)(?:\s|$)/)?.[1] ?? line
-      if (!id.includes('/')) return []
-      return [{ id, name: id, short: id }]
-    })
+  const models: CliModelOption[] = []
+  const lines = raw.split(/\r?\n/)
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]?.trim() ?? ''
+    const id = line.match(/^([\w.-]+\/[\w./:@-]+)(?:\s|$)/)?.[1]
+    if (!id || line.startsWith('Warning:') || line.startsWith('Error:')) continue
+    let efforts: string[] = []
+    const jsonLine = lines[index + 1]?.trim()
+    if (jsonLine?.startsWith('{')) {
+      let block = jsonLine
+      let blockEnd = index + 1
+      let depth = [...jsonLine].reduce(
+        (count, char) => count + (char === '{' ? 1 : char === '}' ? -1 : 0),
+        0,
+      )
+      while (depth > 0 && blockEnd + 1 < lines.length) {
+        const next = lines[++blockEnd] ?? ''
+        block += `\n${next}`
+        depth += [...next].reduce(
+          (count, char) => count + (char === '{' ? 1 : char === '}' ? -1 : 0),
+          0,
+        )
+      }
+      try {
+        const parsed = JSON.parse(block) as { variants?: unknown }
+        if (
+          parsed.variants &&
+          typeof parsed.variants === 'object' &&
+          !Array.isArray(parsed.variants)
+        ) {
+          efforts = Object.keys(parsed.variants)
+        }
+      } catch {
+        // A malformed model detail block does not invalidate the catalog.
+      }
+      index = blockEnd
+    }
+    models.push({ id, name: id, short: id, efforts })
+  }
+  return models
+}
+
+export async function readOpencodeModelCatalog(
+  runner: CommandRunner = defaultRunner,
+  binary = 'opencode',
+): Promise<CliModelOption[]> {
+  const result = await runner(binary, ['models', '--verbose'])
+  return result.exitCode === 0 ? parseOpencodeModels(result.stdout) : []
 }
 
 async function readCliCatalog(
@@ -149,14 +188,20 @@ async function readCliCatalog(
     const result = await runner(binary, ['--help'])
     const parsed = parseClaudeHelp(result.stdout)
     const versions = readClaudeModelIds(home)
-    return { id, models: versions.length ? versions : parsed.models, efforts: parsed.efforts }
+    const models = versions.length ? versions : parsed.models
+    return {
+      id,
+      models: models.map((model) => ({ ...model, efforts: parsed.efforts })),
+      efforts: parsed.efforts,
+    }
   }
   if (id === 'opencode') {
     const [modelsResult] = await Promise.all([
-      runner(binary, ['models']),
+      runner(binary, ['models', '--verbose']),
       runner(binary, ['run', '--help']),
     ])
-    return { id, models: parseOpencodeModels(modelsResult.stdout), efforts: [] }
+    const models = parseOpencodeModels(modelsResult.stdout)
+    return { id, models, efforts: [...new Set(models.flatMap((model) => model.efforts ?? []))] }
   }
   return { id, models: [], efforts: [] }
 }

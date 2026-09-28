@@ -46,7 +46,7 @@ fi
 
 tail -n 6 "$lint_log"
 
-ui_flows=(smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph project-tabs model-routing chat-roles chat-streaming chat-context codex-live)
+ui_flows=(smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph project-tabs model-routing composer-picker chat-roles chat-streaming chat-context codex-live)
 ui_paths='^(src/dashboard/|scripts/ui-gate/|src/run/)'
 ui_required=0
 while read -r local_ref local_sha remote_ref remote_sha; do
@@ -65,7 +65,7 @@ done
 
 if (( ui_required )); then
   ui_log="$log_dir/ui-gate.log"
-  echo "🧭 pre-push: cambios de dashboard/run detectados; corriendo los 9 ui-gates..."
+  echo "🧭 pre-push: cambios de dashboard/run detectados; corriendo ${#ui_flows[@]} ui-gates..."
   if ! bun run ui:gate "${ui_flows[@]}" >"$ui_log" 2>&1; then
     echo "❌ pre-push: ui-gates fallaron. Push abortado."
     tail -n 100 "$ui_log"

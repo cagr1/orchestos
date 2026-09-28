@@ -1,0 +1,75 @@
+[
+  {
+    "flujo": "composer-picker",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible in Dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode available for new chat",
+        "ok": true,
+        "detalle": "{\"project\":\"orchestos-ui-21-XySu4M\",\"modes\":[{\"id\":\"local\",\"detected\":false},{\"id\":\"claude\",\"detected\":true},{\"id\":\"opencode\",\"detected\":true},{\"id\":\"codex\",\"detected\":true},{\"id\":\"api\",\"detected\":true}],\"dialog\":\"Start New Chat with Agent\\nConversation Topic or Title (Optional)\\nProject\\nNo projectorchestos-ui-21-XySu4M\\nSelect Agent / Engine\\nClaude Code\\nopencode\\nCodex\\nOpenRouter API\\nCancel\\nStart Chat\"}"
+      },
+      {
+        "nombre": "composer model search receives focus",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "composer model menu is under 60 percent of viewport and scrolls",
+        "ok": true,
+        "detalle": "{\"height\":476.78125,\"viewport\":1000,\"scrolls\":true}"
+      },
+      {
+        "nombre": "composer search filters and retains matching model",
+        "ok": true,
+        "detalle": "opencode/ling-3.0-flash-fin-free"
+      },
+      {
+        "nombre": "composer search shows empty state",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode variant model shows exactly its catalog effort levels",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/ling-3.0-flash-fin-free\",\"expected\":[\"low\",\"medium\",\"high\"],\"actual\":[\"Low\",\"Medium\",\"High\"]}"
+      },
+      {
+        "nombre": "composer search and effort section fit inside menu with horizontal inset",
+        "ok": true,
+        "detalle": "{\"menuBox\":{\"x\":440,\"y\":435.21875,\"width\":320,\"height\":476.78125},\"searchBox\":{\"x\":461,\"y\":469.609375,\"width\":156,\"height\":25.390625},\"effortBox\":{\"x\":453,\"y\":448.21875,\"width\":294,\"height\":450.78125}}"
+      },
+      {
+        "nombre": "OpenCode model without variants hides effort levels",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex available for new chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex effort levels remain available",
+        "ok": true,
+        "detalle": "{\"model\":\"gpt-6-astra\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\",\"ultra\"]}"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/project-registered.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/dev-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/temporary-project-selected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/chat-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/new-chat-agent-selector.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/opencode-selected-for-new-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/opencode-composer.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/opencode-variant-efforts.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2007/composer-picker/codex-efforts-preserved.png"
+    ]
+  }
+]

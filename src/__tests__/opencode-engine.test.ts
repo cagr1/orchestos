@@ -14,6 +14,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { _resetOpencodeCatalog, registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
 import {
+  buildOpencodeChatArgs,
   ExecutorOpencodeError,
   opencodeEngine,
   orchestosModelToOpencodeModel,
@@ -90,10 +91,11 @@ afterEach(() => {
   spawnCalls.length = 0
 })
 
-function overrideBunSpawn(proc: MockProc) {
+function overrideBunSpawn(proc: MockProc, catalogOutput?: string) {
   Bun.spawn = ((cmd: string[], opts?: { cwd?: string }) => {
     spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '' })
-    return proc as unknown as ReturnType<typeof Bun.spawn>
+    const selected = cmd.includes('--verbose') && catalogOutput ? makeMockProc(catalogOutput) : proc
+    return selected as unknown as ReturnType<typeof Bun.spawn>
   }) as typeof Bun.spawn
 }
 
@@ -110,6 +112,24 @@ function makeGitRepo(): string {
 
 const repos: string[] = []
 const worktrees: Worktree[] = []
+
+describe('OpenCode chat variant arguments', () => {
+  it('passes a selected variant and omits it when unset', () => {
+    expect(buildOpencodeChatArgs('hello', 'openai/gpt-6', 'high')).toEqual([
+      'run',
+      'hello',
+      '--format',
+      'json',
+      '--agent',
+      'plan',
+      '--model',
+      'openai/gpt-6',
+      '--variant',
+      'high',
+    ])
+    expect(buildOpencodeChatArgs('hello', 'openai/gpt-6')).not.toContain('--variant')
+  })
+})
 function trackWorktree(wt: Worktree) {
   worktrees.push(wt)
   repos.push(wt.projectRoot)
@@ -231,14 +251,15 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     trackWorktree(wt)
 
     const proc = installMockSpawn(ndjson(stepFinish(0.001, 5, 1)))
-    overrideBunSpawn(proc)
+    overrideBunSpawn(proc, 'deepseek/deepseek-v4-flash\n{"variants":{"high":{}}}')
 
     const ctx = buildCtx(wt, baseTask({ cli_effort: 'high' as any }))
     await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
 
-    const idx = spawnCalls[0]!.cmd.indexOf('--variant')
+    const runCall = spawnCalls.find((call) => call.cmd.includes('run'))
+    const idx = runCall?.cmd.indexOf('--variant') ?? -1
     expect(idx).toBeGreaterThan(-1)
-    expect(spawnCalls[0]!.cmd[idx + 1]).toBe('high')
+    expect(runCall?.cmd[idx + 1]).toBe('high')
   })
 
   it('binario ausente: throw con mensaje accionable ANTES de crear worktree o spawn', async () => {

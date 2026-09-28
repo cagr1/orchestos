@@ -117,11 +117,18 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [isShellMode, setIsShellMode] = useState(false)
   const [showSlashMenu, setShowSlashMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [modelSearch, setModelSearch] = useState('')
+  const [activeModelIndex, setActiveModelIndex] = useState(0)
+  const modelSearchRef = useRef<HTMLInputElement>(null)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (showDropdown) modelSearchRef.current?.focus()
+  }, [showDropdown])
 
   useEffect(() => {
     let disposed = false
@@ -272,7 +279,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         previousAttachments.length > 0 ? previousAttachments : undefined,
         activeCli,
         effectiveSelectedModel,
-        selectedEffort,
+        effortSteps.includes(selectedEffort) ? selectedEffort : undefined,
         isShellMode,
       ),
     )
@@ -320,7 +327,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     : effectiveSelectedModel.split(' ')[0]
   const effortSteps = currentModelObj?.efforts?.length
     ? currentModelObj.efforts
-    : currentCliConfig.efforts
+    : currentCliConfig.id === 'api'
+      ? currentCliConfig.efforts
+      : []
+  const filteredModels = currentCliConfig.models.filter((model) =>
+    `${model.name} ${model.id}`.toLowerCase().includes(modelSearch.toLowerCase()),
+  )
   const modelsReady = !isLoadingModels && currentCliConfig.models.length > 0
 
   return (
@@ -351,71 +363,116 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className="absolute left-10 bottom-12 w-80 rounded-card bg-app-surface border border-app shadow-2xl p-3 z-50 animate-in fade-in duration-100 text-xs text-app select-none"
+          role="dialog"
+          aria-label="Model and effort selector"
+          className="absolute left-10 bottom-12 w-80 max-h-[55vh] overflow-hidden rounded-card bg-app-surface border border-app shadow-2xl p-3 z-50 animate-in fade-in duration-100 text-xs text-app select-none"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setShowDropdown(false)
+              return
+            }
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault()
+              if (filteredModels.length)
+                setActiveModelIndex(
+                  (index) =>
+                    (index + (event.key === 'ArrowDown' ? 1 : -1) + filteredModels.length) %
+                    filteredModels.length,
+                )
+            }
+            if (event.key === 'Enter' && filteredModels[activeModelIndex]) {
+              event.preventDefault()
+              setSelectedModel(filteredModels[activeModelIndex].id)
+              setShowDropdown(false)
+            }
+          }}
         >
           <div className="grid grid-cols-[1fr_110px] gap-3">
             {/* Left: Models */}
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1 px-2">
               <div className="text-[10px] font-mono uppercase tracking-wider text-app-muted mb-1.5">
                 Model
               </div>
-              <div className="space-y-0.5">
-                {currentCliConfig.models.map((m) => {
-                  const isSelected = m.id === effectiveSelectedModel
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedModel(m.id)
-                        setShowDropdown(false)
-                      }}
-                      className={`w-full flex items-center justify-between px-2 py-1.5 rounded-control text-left transition-colors ${
-                        isSelected
-                          ? 'bg-app-elevated text-app font-medium border border-app'
-                          : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
-                      }`}
-                    >
-                      <span className="truncate">{m.name}</span>
-                      {isSelected && (
-                        <Check className="w-3.5 h-3.5 text-app-accent flex-shrink-0" />
-                      )}
-                    </button>
-                  )
-                })}
+              <input
+                ref={modelSearchRef}
+                value={modelSearch}
+                onChange={(event) => {
+                  setModelSearch(event.target.value)
+                  setActiveModelIndex(0)
+                }}
+                placeholder="Search models…"
+                aria-label="Search models"
+                className="block w-full min-w-0 px-2 py-1 bg-app-bg border border-app rounded-control text-xs text-app"
+              />
+              <div className="max-h-[40vh] overflow-y-auto space-y-0.5 -mx-2">
+                {filteredModels.length === 0 ? (
+                  <div className="px-2 py-2 text-app-muted">No models match</div>
+                ) : (
+                  filteredModels.map((m) => {
+                    const isSelected = m.id === effectiveSelectedModel
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedModel(m.id)
+                          setSelectedEffort(
+                            m.efforts?.[0] ??
+                              (currentCliConfig.id === 'api'
+                                ? (currentCliConfig.efforts[0] ?? '')
+                                : ''),
+                          )
+                          setShowDropdown(false)
+                        }}
+                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-control text-left transition-colors ${
+                          isSelected
+                            ? 'bg-app-elevated text-app font-medium border border-app'
+                            : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
+                        }`}
+                      >
+                        <span className="truncate">{m.name}</span>
+                        {isSelected && (
+                          <Check className="w-3.5 h-3.5 text-app-accent flex-shrink-0" />
+                        )}
+                      </button>
+                    )
+                  })
+                )}
               </div>
             </div>
 
             {/* Right: 4-step vertical slider for Effort */}
-            <div className="space-y-1 border-l border-app pl-3">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-app-muted mb-1.5">
-                Effort
-              </div>
-              <div className="flex flex-col gap-1 relative py-1">
-                {effortSteps.map((step) => {
-                  const isActive = step === selectedEffort
-                  return (
-                    <button
-                      key={step}
-                      type="button"
-                      onClick={() => setSelectedEffort(step)}
-                      className={`flex items-center gap-2 px-2 py-1 rounded-control text-xs transition-colors text-left ${
-                        isActive
-                          ? 'text-app font-semibold bg-app-elevated border border-app'
-                          : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
-                      }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                          isActive ? 'bg-app-accent' : 'bg-app-muted/40'
+            {effortSteps.length > 0 && (
+              <div className="space-y-1 border-l border-app pl-3">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-app-muted mb-1.5">
+                  Effort
+                </div>
+                <div className="flex flex-col gap-1 relative py-1">
+                  {effortSteps.map((step) => {
+                    const isActive = step === selectedEffort
+                    return (
+                      <button
+                        key={step}
+                        type="button"
+                        onClick={() => setSelectedEffort(step)}
+                        className={`flex items-center gap-2 px-2 py-1 rounded-control text-xs transition-colors text-left ${
+                          isActive
+                            ? 'text-app font-semibold bg-app-elevated border border-app'
+                            : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
                         }`}
-                      />
-                      <span>{step[0]?.toUpperCase() + step.slice(1)}</span>
-                    </button>
-                  )
-                })}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                            isActive ? 'bg-app-accent' : 'bg-app-muted/40'
+                          }`}
+                        />
+                        <span>{step[0]?.toUpperCase() + step.slice(1)}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -522,13 +579,21 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             <div className="flex flex-col items-start">
               <button
                 type="button"
-                onClick={() => modelsReady && setShowDropdown(!showDropdown)}
+                onClick={() => {
+                  if (modelsReady) {
+                    setModelSearch('')
+                    setActiveModelIndex(0)
+                    setShowDropdown(!showDropdown)
+                  }
+                }}
                 disabled={!modelsReady}
                 className="flex items-center gap-1 px-2 py-1 rounded-control bg-app-bg border border-app/60 hover:border-app text-app text-[11px] font-mono transition-colors disabled:cursor-not-allowed disabled:text-app-muted"
                 title="Select model and reasoning effort"
               >
                 <span>
-                  {isLoadingModels ? 'Loading models…' : `${shortModelLabel} · ${selectedEffort}`}
+                  {isLoadingModels
+                    ? 'Loading models…'
+                    : `${shortModelLabel}${effortSteps.length && effortSteps.includes(selectedEffort) ? ` · ${selectedEffort}` : ''}`}
                 </span>
                 <ChevronDown className="w-3 h-3 text-app-muted" />
               </button>
