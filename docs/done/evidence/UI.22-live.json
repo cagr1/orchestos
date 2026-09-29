@@ -1,0 +1,172 @@
+[
+  {
+    "flujo": "composer-picker",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible in Dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode available for new chat",
+        "ok": true,
+        "detalle": "{\"project\":\"orchestos-ui-21-WLO3Ls\",\"modes\":[{\"id\":\"local\",\"detected\":false},{\"id\":\"claude\",\"detected\":true},{\"id\":\"opencode\",\"detected\":true},{\"id\":\"codex\",\"detected\":true},{\"id\":\"api\",\"detected\":true}],\"dialog\":\"Start New Chat with Agent\\nConversation Topic or Title (Optional)\\nProject\\nNo projectorchestos-ui-21-WLO3Ls\\nSelect Agent / Engine\\nClaude Code\\nopencode\\nCodex\\nOpenRouter API\\nCancel\\nStart Chat\"}"
+      },
+      {
+        "nombre": "OpenCode model labels omit the opencode/ prefix",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "composer model search receives focus",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "composer model menu is under 60 percent of viewport and scrolls",
+        "ok": true,
+        "detalle": "{\"height\":476.78125,\"viewport\":1000,\"scrolls\":true}"
+      },
+      {
+        "nombre": "composer search filters and retains matching model",
+        "ok": true,
+        "detalle": "opencode/ling-3.0-flash-fin-free"
+      },
+      {
+        "nombre": "composer search shows empty state",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "composer label omits the OpenCode provider prefix",
+        "ok": true,
+        "detalle": "ling-3.0-flash-fin-free · low"
+      },
+      {
+        "nombre": "OpenCode variant model shows exactly its catalog effort levels",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/ling-3.0-flash-fin-free\",\"expected\":[\"low\",\"medium\",\"high\"],\"actual\":[\"Low\",\"Medium\",\"High\"]}"
+      },
+      {
+        "nombre": "composer search and effort section fit inside menu with horizontal inset",
+        "ok": true,
+        "detalle": "{\"menuBox\":{\"x\":440,\"y\":435.21875,\"width\":320,\"height\":476.78125},\"searchBox\":{\"x\":461,\"y\":469.609375,\"width\":156,\"height\":25.390625},\"effortBox\":{\"x\":453,\"y\":448.21875,\"width\":294,\"height\":450.78125}}"
+      },
+      {
+        "nombre": "OpenCode model without variants hides effort levels",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex available for new chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex model selector has no search input",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex effort levels remain available",
+        "ok": true,
+        "detalle": "{\"model\":\"gpt-6-astra\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\",\"ultra\"]}"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/project-registered.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/dev-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/temporary-project-selected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/chat-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/new-chat-agent-selector.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/opencode-selected-for-new-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/opencode-composer.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/opencode-variant-efforts.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/composer-picker/codex-efforts-preserved.png"
+    ]
+  },
+  {
+    "flujo": "model-routing",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "4 role cards are shown",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "all role cards start unassigned",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "legacy QA judge and model are absent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "model menu stays under 60 percent of viewport and scrolls internally",
+        "ok": true,
+        "detalle": "{\"height\":550,\"viewportHeight\":1000,\"scrolls\":true}"
+      },
+      {
+        "nombre": "model search shows the empty state",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "model search reduces results and keeps the requested model",
+        "ok": true,
+        "detalle": "{\"initialModelCount\":375,\"matchingModelCount\":1,\"model\":\"opencode/ling-3.0-flash-fin-free\",\"matchingModelVisible\":1}"
+      },
+      {
+        "nombre": "keyboard selection opens effort for a variant model",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/ling-3.0-flash-fin-free\",\"efforts\":[\"low\",\"medium\",\"high\"]}"
+      },
+      {
+        "nombre": "effort menu contains only this model variants",
+        "ok": true,
+        "detalle": "[\"low\",\"medium\",\"high\"]"
+      },
+      {
+        "nombre": "model without variants hides effort control",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/big-pickle\",\"efforts\":[]}"
+      },
+      {
+        "nombre": "role assignments persist and reviewer warning appears",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"ui\":[\"Orchestrator\\nChat, drafts and task splitting\\nCodex\\nGPT-6-Luna\\nmedium\",\"Executor\\nRuns tasks\\nCodex\\nGPT-6-Luna\\nmedium\",\"Reviewer\\nQA, adversarial and refuter (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\\nSame agent and model as Executor: errors may correlate.\",\"Auxiliary\\nDiagnose and memory judge (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\"],\"source\":[\"Source: orchestos.config.yaml\"]}"
+      },
+      {
+        "nombre": "task rule persists after reload",
+        "ok": true,
+        "detalle": "{\"rules\":[{\"match\":{\"output\":[\"docs/**\"]},\"agent\":\"codex\"}],\"ui\":[\"Task rules (1)\"],\"output\":\"docs/**\"}"
+      },
+      {
+        "nombre": "deleting the rule persists an empty list",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "project config remains selected before running task",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}}}"
+      },
+      {
+        "nombre": "run record stores the executor and QA models chosen in the UI",
+        "ok": true,
+        "detalle": "{\"id\":\"b90e77e5-b916-4920-9c02-6c8b7576cc93\",\"model\":\"gpt-6-luna\",\"qa_model\":\"gpt-6-luna\"}"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/model-routing/roles-unassigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/model-routing/roles-assigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-6760/model-routing/task-rules.png"
+    ]
+  }
+]

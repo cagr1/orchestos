@@ -160,7 +160,8 @@ export function parseOpencodeModels(raw: string): CliModelOption[] {
       }
       index = blockEnd
     }
-    models.push({ id, name: id, short: id, efforts })
+    const displayId = id.startsWith('opencode/') ? id.slice('opencode/'.length) : id
+    models.push({ id, name: displayId, short: displayId, efforts })
   }
   return models
 }

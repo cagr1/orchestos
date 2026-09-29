@@ -60,6 +60,18 @@ describe('UI.14 round 5 CLI model catalogs', () => {
     ])
   })
 
+  test('strips only the OpenCode prefix from display names while preserving model ids', () => {
+    expect(parseOpencodeModels('opencode/big-pickle\nopenrouter/other-model')).toEqual([
+      { id: 'opencode/big-pickle', name: 'big-pickle', short: 'big-pickle', efforts: [] },
+      {
+        id: 'openrouter/other-model',
+        name: 'openrouter/other-model',
+        short: 'openrouter/other-model',
+        efforts: [],
+      },
+    ])
+  })
+
   test('parses OpenCode verbose variants in order and tolerates malformed model blocks', () => {
     expect(
       parseOpencodeModels(

@@ -117,7 +117,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [isShellMode, setIsShellMode] = useState(false)
   const [showSlashMenu, setShowSlashMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [modelSearch, setModelSearch] = useState('')
+  const [modelSearchState, setModelSearchState] = useState<{ cli: CliId; value: string } | null>(
+    null,
+  )
+  const modelSearch = modelSearchState?.cli === currentCliConfig.id ? modelSearchState.value : ''
   const [activeModelIndex, setActiveModelIndex] = useState(0)
   const modelSearchRef = useRef<HTMLInputElement>(null)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
@@ -393,17 +396,19 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               <div className="text-[10px] font-mono uppercase tracking-wider text-app-muted mb-1.5">
                 Model
               </div>
-              <input
-                ref={modelSearchRef}
-                value={modelSearch}
-                onChange={(event) => {
-                  setModelSearch(event.target.value)
-                  setActiveModelIndex(0)
-                }}
-                placeholder="Search models…"
-                aria-label="Search models"
-                className="block w-full min-w-0 px-2 py-1 bg-app-bg border border-app rounded-control text-xs text-app"
-              />
+              {currentCliConfig.id === 'opencode' && (
+                <input
+                  ref={modelSearchRef}
+                  value={modelSearch}
+                  onChange={(event) => {
+                    setModelSearchState({ cli: currentCliConfig.id, value: event.target.value })
+                    setActiveModelIndex(0)
+                  }}
+                  placeholder="Search models…"
+                  aria-label="Search models"
+                  className="block w-full min-w-0 px-2 py-1 bg-app-bg border border-app rounded-control text-xs text-app"
+                />
+              )}
               <div className="max-h-[40vh] overflow-y-auto space-y-0.5 -mx-2">
                 {filteredModels.length === 0 ? (
                   <div className="px-2 py-2 text-app-muted">No models match</div>
@@ -581,7 +586,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 type="button"
                 onClick={() => {
                   if (modelsReady) {
-                    setModelSearch('')
+                    setModelSearchState({ cli: currentCliConfig.id, value: '' })
                     setActiveModelIndex(0)
                     setShowDropdown(!showDropdown)
                   }

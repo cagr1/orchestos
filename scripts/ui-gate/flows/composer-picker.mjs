@@ -89,6 +89,15 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   await modelControl.click()
   const selector = page.getByRole('dialog', { name: 'Model and effort selector' })
   const search = selector.getByLabel('Search models')
+  const openCodeModelButtons = selector.locator('.overflow-y-auto').getByRole('button')
+  const prefixedOpenCodeModels = (await openCodeModelButtons.allInnerTexts()).filter((text) =>
+    text.trim().startsWith('opencode/'),
+  )
+  await step(
+    'OpenCode model labels omit the opencode/ prefix',
+    prefixedOpenCodeModels.length === 0,
+    JSON.stringify(prefixedOpenCodeModels),
+  )
   await step(
     'composer model search receives focus',
     await search.evaluate((el) => el === document.activeElement),
@@ -122,6 +131,11 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   )
   await search.fill(variantModel.id)
   await modelList.getByRole('button', { name: variantModel.name, exact: true }).click()
+  await step(
+    'composer label omits the OpenCode provider prefix',
+    !(await modelControl.innerText()).trim().startsWith('opencode/'),
+    await modelControl.innerText(),
+  )
   await modelControl.click()
   const effortButtons = selector.getByRole('button').filter({ hasText: /^\w+$/ })
   const visibleEfforts = await effortButtons.allInnerTexts()
@@ -178,8 +192,9 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   await codexControl.click()
   const codexModel = codex.models.find((model) => model.efforts?.length)
   const codexSearch = selector.getByLabel('Search models')
-  await codexSearch.fill(codexModel.id)
-  await modelList.getByRole('button', { name: codexModel.name, exact: true }).click()
+  await step('Codex model selector has no search input', (await codexSearch.count()) === 0)
+  const codexModelList = selector.locator('.overflow-y-auto')
+  await codexModelList.getByRole('button', { name: codexModel.name, exact: true }).click()
   await codexControl.click()
   const codexEffortsVisible = await Promise.all(
     codexModel.efforts.map((effort) =>
