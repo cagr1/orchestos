@@ -8,6 +8,8 @@ export interface CliModelOption {
   name: string
   short: string
   efforts?: string[]
+  group?: string
+  vendor?: string
 }
 
 export interface CliModelCatalog {
@@ -127,7 +129,7 @@ export function parseOpencodeModels(raw: string): CliModelOption[] {
   const lines = raw.split(/\r?\n/)
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]?.trim() ?? ''
-    const id = line.match(/^([\w.-]+\/[\w./:@-]+)(?:\s|$)/)?.[1]
+    const id = line.match(/^([\w.-]+\/[\w./:@~-]+)(?:\s|$)/)?.[1]
     if (!id || line.startsWith('Warning:') || line.startsWith('Error:')) continue
     let efforts: string[] = []
     const jsonLine = lines[index + 1]?.trim()
@@ -160,8 +162,13 @@ export function parseOpencodeModels(raw: string): CliModelOption[] {
       }
       index = blockEnd
     }
-    const displayId = id.startsWith('opencode/') ? id.slice('opencode/'.length) : id
-    models.push({ id, name: displayId, short: displayId, efforts })
+    const segments = id.split('/')
+    const name = segments.at(-1) ?? id
+    const provider = segments[0] ?? ''
+    const group =
+      provider === 'opencode' ? 'Zen' : provider === 'openrouter' ? 'OpenRouter' : provider
+    const vendor = segments.length === 3 ? segments[1]?.replace(/^~/, '') : undefined
+    models.push({ id, name, short: name, efforts, group, ...(vendor ? { vendor } : {}) })
   }
   return models
 }

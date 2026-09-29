@@ -238,7 +238,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   type RoutingAgent = {
     id: string
     installed: boolean
-    models: { id: string; name: string; efforts?: string[] }[]
+    models: { id: string; name: string; efforts?: string[]; group?: string; vendor?: string }[]
     efforts: string[]
     error?: string
   }
@@ -1301,7 +1301,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 const agent = routingCatalog.find((entry) => entry.id === assignment?.agent)
                 const selectedModels = agent?.models ?? []
                 const matchingModels = selectedModels.filter((model) =>
-                  `${model.name} ${model.id}`.toLowerCase().includes(comboboxSearch.toLowerCase()),
+                  `${model.name} ${model.vendor ?? ''} ${model.id}`
+                    .toLowerCase()
+                    .includes(comboboxSearch.toLowerCase()),
                 )
                 const selectedModel = selectedModels.find((model) => model.id === assignment?.model)
                 const modelEfforts = selectedModel?.efforts?.length
@@ -1442,6 +1444,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             <button
                               key={model.id}
                               type="button"
+                              title={model.id}
                               className="block w-full text-left p-1.5 hover:bg-app-elevated text-app"
                               onClick={() => {
                                 setRoutingRoles((current) => ({
@@ -1453,8 +1456,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                 setActiveComboboxRole(null)
                               }}
                             >
-                              {model.name}
-                              <span className="ml-2 text-app-muted font-mono">{model.id}</span>
+                              <span className="flex items-center justify-between gap-2">
+                                <span className="truncate">{model.name}</span>
+                                {model.vendor && (
+                                  <span className="text-app-muted text-[10px]">{model.vendor}</span>
+                                )}
+                              </span>
                             </button>
                           ))}
                         </div>

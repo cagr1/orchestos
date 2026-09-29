@@ -1161,6 +1161,15 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.22-live.json`: `composer-picker` 14/14,
   `model-routing` 14/14, `test:coverage` 0 fail.
 
+- [x] **UI.23 — ⚡ Selector de OpenCode: filas por proveedor, sin `openrouter/` y distinguibles.** (abierto 2026-09-29, cerrado 2026-09-29, pedido de Carlos)
+  Tras UI.22 Carlos sigue viendo `openrouter/aion-labs/aion-3…`: el prefijo sobra y al truncar varias filas se ven
+  iguales. Ids de OpenCode: 8 `opencode/<modelo>` y 385 `openrouter/<fabricante>/<modelo>`; ningún `<modelo>` repetido.
+  Hecho: catálogo con `group` (Zen/OpenRouter) y `vendor`; filas = modelo + fabricante en gris, `title` = id; mismo
+  fabricante en Model routing. Bug de paso: el parser descartaba `openrouter/~anthropic/…` (faltaba `~` en el regex).
+  Ejecutado por: luna (3 rondas; r2-r3 localizadores de flujos que leían el id como texto visible) · Spec: docs/specs/UI.23.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.23-live.json`: `composer-picker` 16/16,
+  `model-routing` 14/14, `test:coverage` 0 fail, lint verde.
+
 - [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;

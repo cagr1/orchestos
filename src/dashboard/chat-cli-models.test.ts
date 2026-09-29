@@ -56,18 +56,38 @@ describe('UI.14 round 5 CLI model catalogs', () => {
 
   test('parses only provider/model rows from OpenCode output', () => {
     expect(parseOpencodeModels('openai/gpt-5\nWarning: noisy\nnot-a-model')).toEqual([
-      { id: 'openai/gpt-5', name: 'openai/gpt-5', short: 'openai/gpt-5', efforts: [] },
+      { id: 'openai/gpt-5', name: 'gpt-5', short: 'gpt-5', efforts: [], group: 'openai' },
     ])
   })
 
-  test('strips only the OpenCode prefix from display names while preserving model ids', () => {
-    expect(parseOpencodeModels('opencode/big-pickle\nopenrouter/other-model')).toEqual([
-      { id: 'opencode/big-pickle', name: 'big-pickle', short: 'big-pickle', efforts: [] },
+  test('groups OpenCode providers and displays final model names with vendors', () => {
+    expect(
+      parseOpencodeModels(
+        'openrouter/~anthropic/claude-haiku-latest\nopencode/big-pickle\nlocal/model/vendor',
+      ),
+    ).toEqual([
       {
-        id: 'openrouter/other-model',
-        name: 'openrouter/other-model',
-        short: 'openrouter/other-model',
+        id: 'openrouter/~anthropic/claude-haiku-latest',
+        name: 'claude-haiku-latest',
+        short: 'claude-haiku-latest',
         efforts: [],
+        group: 'OpenRouter',
+        vendor: 'anthropic',
+      },
+      {
+        id: 'opencode/big-pickle',
+        name: 'big-pickle',
+        short: 'big-pickle',
+        efforts: [],
+        group: 'Zen',
+      },
+      {
+        id: 'local/model/vendor',
+        name: 'vendor',
+        short: 'vendor',
+        efforts: [],
+        group: 'local',
+        vendor: 'model',
       },
     ])
   })
@@ -78,13 +98,20 @@ describe('UI.14 round 5 CLI model catalogs', () => {
         'openai/gpt-6\n{"variants":{"low":{},"high":{}}}\nopenai/broken\n{oops}\nanthropic/claude\n{\n  "variants": {"minimal": {}, "xhigh": {}}\n}',
       ),
     ).toEqual([
-      { id: 'openai/gpt-6', name: 'openai/gpt-6', short: 'openai/gpt-6', efforts: ['low', 'high'] },
-      { id: 'openai/broken', name: 'openai/broken', short: 'openai/broken', efforts: [] },
+      {
+        id: 'openai/gpt-6',
+        name: 'gpt-6',
+        short: 'gpt-6',
+        efforts: ['low', 'high'],
+        group: 'openai',
+      },
+      { id: 'openai/broken', name: 'broken', short: 'broken', efforts: [], group: 'openai' },
       {
         id: 'anthropic/claude',
-        name: 'anthropic/claude',
-        short: 'anthropic/claude',
+        name: 'claude',
+        short: 'claude',
         efforts: ['minimal', 'xhigh'],
+        group: 'anthropic',
       },
     ])
   })
@@ -138,7 +165,9 @@ describe('UI.14 round 5 CLI model catalogs', () => {
       { id: 'claude', models: [], efforts: [], error: 'ENOEXEC: spawn failed' },
       {
         id: 'opencode',
-        models: [{ id: 'openai/gpt-5', name: 'openai/gpt-5', short: 'openai/gpt-5', efforts: [] }],
+        models: [
+          { id: 'openai/gpt-5', name: 'gpt-5', short: 'gpt-5', efforts: [], group: 'openai' },
+        ],
         efforts: [],
       },
     ])

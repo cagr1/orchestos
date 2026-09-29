@@ -319,6 +319,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.23",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Selector de OpenCode: filas por proveedor, sin `openrouter/` y distinguibles",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "R.8",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

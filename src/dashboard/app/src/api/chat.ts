@@ -50,6 +50,8 @@ export interface CliModelOption {
   name: string
   short: string
   efforts?: string[]
+  group?: string
+  vendor?: string
 }
 
 export interface CliModelCatalog {

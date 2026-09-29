@@ -89,20 +89,36 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   await modelControl.click()
   const selector = page.getByRole('dialog', { name: 'Model and effort selector' })
   const search = selector.getByLabel('Search models')
+  const modelList = selector.locator('.overflow-y-auto')
   const openCodeModelButtons = selector.locator('.overflow-y-auto').getByRole('button')
   const prefixedOpenCodeModels = (await openCodeModelButtons.allInnerTexts()).filter((text) =>
-    text.trim().startsWith('opencode/'),
+    /^(?:opencode|openrouter)\//.test(text.trim()),
   )
   await step(
-    'OpenCode model labels omit the opencode/ prefix',
+    'OpenCode model rows omit provider prefixes',
     prefixedOpenCodeModels.length === 0,
     JSON.stringify(prefixedOpenCodeModels),
+  )
+  const groupHeadings = await Promise.all(
+    ['Zen', 'OpenRouter'].map(async (group) =>
+      (await modelList.getByText(group, { exact: true }).count()) > 0 ? group : '',
+    ),
+  )
+  await step(
+    'OpenCode composer shows Zen and OpenRouter groups',
+    groupHeadings.includes('Zen') && groupHeadings.includes('OpenRouter'),
+    JSON.stringify(groupHeadings),
+  )
+  const visibleModelLabels = (await openCodeModelButtons.allInnerTexts()).map((text) => text.trim())
+  await step(
+    'OpenCode model and vendor labels are unique',
+    new Set(visibleModelLabels).size === visibleModelLabels.length,
+    `${visibleModelLabels.length} rows; ${new Set(visibleModelLabels).size} unique`,
   )
   await step(
     'composer model search receives focus',
     await search.evaluate((el) => el === document.activeElement),
   )
-  const modelList = selector.locator('.overflow-y-auto')
   const listMetrics = await selector.evaluate((menu) => ({
     height: menu.getBoundingClientRect().height,
     viewport: window.innerHeight,
@@ -121,7 +137,12 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   await step(
     'composer search filters and retains matching model',
     (await modelList.getByRole('button').count()) < initialCount &&
-      (await modelList.getByRole('button', { name: variantModel.name, exact: true }).count()) === 1,
+      (await modelList
+        .getByRole('button', {
+          name: new RegExp(`^${variantModel.name}(?:\\s+${variantModel.vendor})?$`),
+          exact: false,
+        })
+        .count()) === 1,
     variantModel.id,
   )
   await search.fill('no-model-can-match')
@@ -130,14 +151,20 @@ export default async function composerPicker({ page, api, step, shot, visible, c
     await selector.getByText('No models match').isVisible(),
   )
   await search.fill(variantModel.id)
-  await modelList.getByRole('button', { name: variantModel.name, exact: true }).click()
+  await modelList
+    .getByRole('button', {
+      name: new RegExp(`^${variantModel.name}(?:\\s+${variantModel.vendor})?$`),
+      exact: false,
+    })
+    .click()
   await step(
     'composer label omits the OpenCode provider prefix',
     !(await modelControl.innerText()).trim().startsWith('opencode/'),
     await modelControl.innerText(),
   )
   await modelControl.click()
-  const effortButtons = selector.getByRole('button').filter({ hasText: /^\w+$/ })
+  const effortSection = selector.getByText('Effort', { exact: true }).locator('xpath=..')
+  const effortButtons = effortSection.getByRole('button')
   const visibleEfforts = await effortButtons.allInnerTexts()
   const normalizedEfforts = visibleEfforts.map((effort) => effort.trim().toLowerCase())
   await step(
@@ -152,7 +179,6 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   )
   const menuBox = await selector.boundingBox()
   const searchBox = await search.boundingBox()
-  const effortSection = selector.getByText('Effort', { exact: true }).locator('../..')
   const effortBox = await effortSection.boundingBox()
   const insideMenuWithHorizontalInset = (box) =>
     Boolean(
@@ -173,7 +199,12 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   await shot('opencode-variant-efforts')
 
   await search.fill(plainModel.id)
-  await modelList.getByRole('button', { name: plainModel.name, exact: true }).click()
+  await modelList
+    .getByRole('button', {
+      name: new RegExp(`^${plainModel.name}(?:\\s+${plainModel.vendor})?$`),
+      exact: false,
+    })
+    .click()
   await modelControl.click()
   await step(
     'OpenCode model without variants hides effort levels',
@@ -196,9 +227,10 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   const codexModelList = selector.locator('.overflow-y-auto')
   await codexModelList.getByRole('button', { name: codexModel.name, exact: true }).click()
   await codexControl.click()
+  const codexEffortSection = selector.getByText('Effort', { exact: true }).locator('xpath=..')
   const codexEffortsVisible = await Promise.all(
     codexModel.efforts.map((effort) =>
-      selector.getByRole('button', { name: new RegExp(`^${effort}$`, 'i') }).isVisible(),
+      codexEffortSection.getByRole('button', { name: new RegExp(`^${effort}$`, 'i') }).isVisible(),
     ),
   )
   await step(

@@ -1,6 +1,6 @@
 import { ArrowUp, Check, ChevronDown, Paperclip, Terminal, X } from 'lucide-react'
 import type React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { type CliModelOption, getChatModels, getCliModels } from '../../api/chat'
 import type { ChatAttachment } from '../../types/orchestos'
 import { ProviderLogo } from './ProviderLogos'
@@ -334,7 +334,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       ? currentCliConfig.efforts
       : []
   const filteredModels = currentCliConfig.models.filter((model) =>
-    `${model.name} ${model.id}`.toLowerCase().includes(modelSearch.toLowerCase()),
+    `${model.name} ${model.vendor ?? ''} ${model.id}`
+      .toLowerCase()
+      .includes(modelSearch.toLowerCase()),
   )
   const modelsReady = !isLoadingModels && currentCliConfig.models.length > 0
 
@@ -413,33 +415,44 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 {filteredModels.length === 0 ? (
                   <div className="px-2 py-2 text-app-muted">No models match</div>
                 ) : (
-                  filteredModels.map((m) => {
+                  filteredModels.map((m, index) => {
                     const isSelected = m.id === effectiveSelectedModel
+                    const previous = filteredModels[index - 1]
                     return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedModel(m.id)
-                          setSelectedEffort(
-                            m.efforts?.[0] ??
-                              (currentCliConfig.id === 'api'
-                                ? (currentCliConfig.efforts[0] ?? '')
-                                : ''),
-                          )
-                          setShowDropdown(false)
-                        }}
-                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-control text-left transition-colors ${
-                          isSelected
-                            ? 'bg-app-elevated text-app font-medium border border-app'
-                            : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
-                        }`}
-                      >
-                        <span className="truncate">{m.name}</span>
-                        {isSelected && (
-                          <Check className="w-3.5 h-3.5 text-app-accent flex-shrink-0" />
+                      <Fragment key={m.id}>
+                        {m.group && m.group !== previous?.group && (
+                          <div className="px-2 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-app-muted">
+                            {m.group}
+                          </div>
                         )}
-                      </button>
+                        <button
+                          type="button"
+                          title={m.id}
+                          onClick={() => {
+                            setSelectedModel(m.id)
+                            setSelectedEffort(
+                              m.efforts?.[0] ??
+                                (currentCliConfig.id === 'api'
+                                  ? (currentCliConfig.efforts[0] ?? '')
+                                  : ''),
+                            )
+                            setShowDropdown(false)
+                          }}
+                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-control text-left transition-colors ${
+                            isSelected
+                              ? 'bg-app-elevated text-app font-medium border border-app'
+                              : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
+                          }`}
+                        >
+                          <span className="truncate">{m.name}</span>
+                          <span className="flex items-center gap-2 flex-shrink-0">
+                            {m.vendor && (
+                              <span className="text-[10px] text-app-muted">{m.vendor}</span>
+                            )}
+                            {isSelected && <Check className="w-3.5 h-3.5 text-app-accent" />}
+                          </span>
+                        </button>
+                      </Fragment>
                     )
                   })
                 )}
