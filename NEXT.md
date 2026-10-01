@@ -1,5 +1,11 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## AT.15 en curso (2026-10-01)
+Spec `docs/specs/AT.15.md` (pasos 1–3: PTY `src/dashboard/terminal.ts`, WS `/api/terminal` con Origin obligatorio,
+`OpenCodeTerminal.tsx` en Dev cuando la sesión es `opencode`). Pasos 1–3 cerrados y
+commiteados (evidencia en PLAN.md AT.15). Falta solo el paso (4) "OpenCode fuera del chat", espera GO de Carlos.
+El flujo `opencode-terminal` NO va en el pre-push (necesita el binario opencode; CI no lo tiene).
+
 ## Siguiente tab — AT.15 (2026-10-01)
 Cerrados y pusheados: CI.7, UI.22, UI.23 (origin/master = d45e4f1, pre-push verde). Siguiente: **AT.15** (OpenCode =
 terminal real en Dev, plan aprobado en PLAN.md). Multi-módulo: arrancar con plan corto por pasos, no en caliente.

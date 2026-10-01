@@ -916,6 +916,13 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   dependencia nueva) que se ve y usa igual que la terminal; (4) OpenCode deja de ser opción del chat. Fuera: otros CLI en
   la terminal, persistir el scrollback. Gate en vivo: navegador real, abrir OpenCode en Dev, escribir un prompt, ver la
   TUI responder, redimensionar, cerrar sin procesos huérfanos (`ps`). Va después de MR.1.d5.
+  Pendiente: paso (4) "OpenCode deja de ser opción del chat", espera confirmación de Carlos.
+  - [x] **AT.15.a — Pasos (1)–(3): PTY + WebSocket + panel xterm.js en Dev.** (2026-10-01) Spec `docs/specs/AT.15.md`,
+    Luna 3 rondas. `src/dashboard/terminal.ts` (PTY, SIGTERM→SIGKILL 2 s), WS `/api/terminal` con Origin obligatorio,
+    `OpenCodeTerminal.tsx` en Dev cuando la sesión es `opencode`. `test:coverage` 1579 pass/0 fail.
+    Gate en vivo: navegador Playwright `docs/done/evidence/AT.15a-live.json` — `ui:gate opencode-terminal` 7/7 (TUI
+    renderizada, pid nuevo, resize, ningún pid vivo tras cerrar); prompt real por el canal → OpenCode respondió `391` a
+    "17×23" en 7,5 s; `pgrep opencode` vacío. Sin delegación: no.
 - [ ] **R.7 — 🧠 Escritura atómica y coordinación entre procesos para tasks.yaml.** Prioridad alta.
   Riesgo identificado, pendiente de reproducir: `loader.ts:25` comprueba un hash opcional y luego
   sobrescribe el archivo directamente; `tasks.ts:260` guarda antes del lock Git. Dos procesos

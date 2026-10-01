@@ -1,0 +1,65 @@
+{
+  "item": "AT.15.a",
+  "date": "2026-10-01",
+  "uiGate": {
+    "command": "bun run ui:gate opencode-terminal",
+    "browser": "Playwright chromium",
+    "result": [
+      {
+        "flujo": "opencode-terminal",
+        "pass": true,
+        "steps": [
+          {
+            "nombre": "OpenCode session appears in Dev sidebar",
+            "ok": true,
+            "detalle": "AT.15 OpenCode 1790897635030"
+          },
+          {
+            "nombre": "OpenCode terminal is mounted",
+            "ok": true,
+            "detalle": "OpenCode terminal region visible"
+          },
+          {
+            "nombre": "OpenCode TUI rendered text",
+            "ok": true,
+            "detalle": "                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                ▄                                   \n                               █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                              \n                               █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                              \n                               ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                              \n                                                                                                    \n                                                                                                    \n             ┃                                                                                      \n             ┃  Ask anything… \"Fix broken tests\"                                                    \n             ┃                                                                                      \n             ┃  Build · DeepSeek V4.1 Flash OpenRouter                                              \n             ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀            \n                                                             tab agents  ctrl+p commands            \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n  /private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-opencode-          1.18.33  \n  PJfyqu:main                                                                                       \n                                                                                                    "
+          },
+          {
+            "nombre": "dashboard spawned an opencode process",
+            "ok": true,
+            "detalle": "New OpenCode PIDs: 74580"
+          },
+          {
+            "nombre": "terminal remains visible after viewport resize",
+            "ok": true,
+            "detalle": "Terminal region survived resize"
+          },
+          {
+            "nombre": "OpenCode terminal close button is available",
+            "ok": true,
+            "detalle": "Button accessible name: Cerrar terminal"
+          },
+          {
+            "nombre": "no spawned OpenCode process survives close",
+            "ok": true,
+            "detalle": "Exited: 74580"
+          }
+        ],
+        "errores": [],
+        "capturas": [
+          "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-74463/opencode-terminal/opencode-terminal.png"
+        ]
+      }
+    ]
+  },
+  "livePrompt": {
+    "channel": "WS /api/terminal, startServer real, opencode 1.18.33 con config propia",
+    "prompt": "Compute 17 times 23. Answer with only the number.",
+    "observed": "391",
+    "latencyMs": 7520
+  },
+  "orphans": {
+    "command": "pgrep -fl opencode tras cerrar",
+    "output": ""
+  }
+}

@@ -41,6 +41,7 @@ import { listRuns } from './api/runs'
 import { getRunnableTask, listTasks, runTask } from './api/tasks'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
+import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
 import { OrchestDevWorkspace } from './components/dev/OrchestDevWorkspace'
 import { ShellHeader } from './components/layout/ShellHeader'
@@ -1091,16 +1092,24 @@ export default function App() {
           )}
 
           {/* VIEW 2: DEV WORKSPACE */}
-          {mode === 'dev' && (
-            <OrchestDevWorkspace
-              activeProject={currentProject}
-              activeAgent={activeAgent}
-              onCloseAgent={handleCloseAgent}
-              onSendMessage={handleSendMessage}
-              sessionStatus={sessionStatus}
-              onSlashCommand={handleSlashCommand}
-            />
-          )}
+          {mode === 'dev' &&
+            (activeAgent?.agent === 'opencode' && currentProject ? (
+              <OpenCodeTerminal
+                key={activeAgent.id}
+                projectId={currentProject.id}
+                sessionTitle={activeAgent.name}
+                onClose={() => void handleCloseAgent(activeAgent.id)}
+              />
+            ) : (
+              <OrchestDevWorkspace
+                activeProject={currentProject}
+                activeAgent={activeAgent}
+                onCloseAgent={handleCloseAgent}
+                onSendMessage={handleSendMessage}
+                sessionStatus={sessionStatus}
+                onSlashCommand={handleSlashCommand}
+              />
+            ))}
 
           {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
           {mode === 'settings' && (

@@ -132,6 +132,7 @@ import {
   DashboardProjectError,
   resolveDashboardProject,
 } from './project-context.ts'
+import { createTerminalSession, stopTerminalSessions } from './terminal.ts'
 import { DEFAULT_PORT } from './types.ts'
 
 async function withDashboardProject(
@@ -510,8 +511,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   return errorResponse('Method not allowed', 405)
 }
 
-export function startServer(port = DEFAULT_PORT): { server: any; url: string } {
-  const server = Bun.serve({
+export function startServer(
+  port = DEFAULT_PORT,
+  terminalCommand?: string[],
+): { server: any; url: string } {
+  const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
+  const server = Bun.serve<{ cwd: string; cols: number; rows: number }>({
     port,
     hostname: '127.0.0.1',
     // Default idle timeout (10s) is too short for routes that call an LLM with
@@ -520,7 +525,80 @@ export function startServer(port = DEFAULT_PORT): { server: any; url: string } {
     // Without this, Bun kills the connection before the response is delivered
     // even though the handler keeps running and completes the work server-side.
     idleTimeout: 60,
-    fetch: (req) => route(req, port),
+    fetch: async (req, server) => {
+      const url = new URL(req.url)
+      if (url.pathname !== '/api/terminal') return route(req, port)
+      if (req.method !== 'GET') return errorResponse('Method not allowed', 405)
+      const origin = req.headers.get('origin')
+      if (!origin || !isSameOrigin(req, server.port ?? port)) return errorResponse('Forbidden', 403)
+      try {
+        const project = resolveDashboardProject(req)
+        const cols = Number(url.searchParams.get('cols') ?? 80)
+        const rows = Number(url.searchParams.get('rows') ?? 24)
+        const upgraded = server.upgrade(req, { data: { cwd: project.root, cols, rows } })
+        return upgraded ? undefined : errorResponse('WebSocket upgrade failed', 400)
+      } catch (error) {
+        if (error instanceof DashboardProjectError)
+          return errorResponse(error.message, error.status)
+        return errorResponse(error instanceof Error ? error.message : String(error), 500)
+      }
+    },
+    websocket: {
+      open(ws) {
+        try {
+          const session = createTerminalSession({
+            cwd: ws.data.cwd,
+            cols: ws.data.cols,
+            rows: ws.data.rows,
+            command: terminalCommand,
+            onData: (data) => ws.send(data),
+            onExit: (code) => {
+              ws.send(JSON.stringify({ type: 'exit', code }))
+              ws.close(1000)
+            },
+          })
+          terminalSessions.set(ws, session)
+        } catch (error) {
+          ws.send(
+            JSON.stringify({
+              type: 'error',
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          )
+          ws.close(1011)
+        }
+      },
+      message(ws, message) {
+        if (typeof message !== 'string') return
+        let payload: unknown
+        try {
+          payload = JSON.parse(message)
+        } catch {
+          return
+        }
+        const session = terminalSessions.get(ws)
+        if (!session || !payload || typeof payload !== 'object') return
+        const control = payload as {
+          type?: unknown
+          data?: unknown
+          cols?: unknown
+          rows?: unknown
+        }
+        if (control.type === 'input' && typeof control.data === 'string')
+          session.write(control.data)
+        if (
+          control.type === 'resize' &&
+          typeof control.cols === 'number' &&
+          typeof control.rows === 'number'
+        ) {
+          session.resize(control.cols, control.rows)
+        }
+      },
+      close(ws) {
+        void terminalSessions.get(ws)?.close()
+        terminalSessions.delete(ws)
+      },
+    },
   })
   const stop = server.stop.bind(server)
   let stopped = false
@@ -531,6 +609,7 @@ export function startServer(port = DEFAULT_PORT): { server: any; url: string } {
       process.off('SIGINT', onSignal)
       process.off('SIGTERM', onSignal)
       stopCodexAppServers()
+      void stopTerminalSessions()
     }
     return stop(...args)
   }
