@@ -1,5 +1,16 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## Siguiente tab — AT.15 (2026-10-01)
+Cerrados y pusheados: CI.7, UI.22, UI.23 (origin/master = d45e4f1, pre-push verde). Siguiente: **AT.15** (OpenCode =
+terminal real en Dev, plan aprobado en PLAN.md). Multi-módulo: arrancar con plan corto por pasos, no en caliente.
+Antes de codear, confirmar con Carlos el punto (4) "OpenCode deja de ser opción del chat": UI.22/UI.23 acaban de pulir
+su selector en el chat (Model routing usa el mismo catálogo y se queda).
+Aprendido: lanzar Luna con `ORCHESTOS_ROLE=executor codex exec … "Eres el EJECUTOR…"` (sin eso se cree planificadora
+y no edita); su sandbox falla siempre `adversarial-review` ×2 y `csrf-origin` (decirlo en el spec o se detiene); tras
+tocar flujos, `bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows`; `ui:gate` exige la
+lista de flujos (sin args no corre nada; la del pre-push está en `scripts/pre-push.sh:49`).
+Pendiente sin ítem: menú del selector angosto (w-80) trunca nombres largos de OpenRouter (Carlos no lo pidió aún).
+
 ## Siguiente tab — tras CI.7 (2026-09-28, noche)
 CI.7 cerrado (los flujos intermitentes del pre-push, PLAN.md). Siguiente: AT.15 (OpenCode = terminal real en Dev).
 Pendientes sin ítem: (1) `src/run/logger.ts:52` lanza ENOENT al escribir en `runs/` de un proyecto que el cleanup de
