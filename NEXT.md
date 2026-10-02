@@ -2,6 +2,9 @@
 
 ## ERP.2 cerrado (2026-10-02) — siguiente: ERP.3
 Evidencia en PLAN.md. Siguiente de Fase 2: **ERP.3** (multi-módulo → plan corto a Carlos antes de codear).
+Regla nueva tras ERP.2: toda llamada `api()` de un flujo ui-gate a rutas con scope (runs, memory, instincts, skills,
+tasks, chat/sessions) manda `x-orchestos-project-id` o `?project=none`; sin selector el back usa el cwd del servidor
+(costó 3 rondas: chat-turn-details, project-isolation, project-tabs).
 Visto en capturas, sin ítem: en Settings → Skills la pestaña "Instincts" aparece resaltada (pill) además de "Skills".
 IDEAS.md y orchestos.config.yaml tienen cambios sin commitear ajenos a ERP.2 (ideas #71/Orca, roles MR) — de Carlos.
 
