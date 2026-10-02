@@ -1157,6 +1157,10 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   Ejecutado por: luna (4 rondas; r1 paró en baseline de sandbox, r2 esperaba el POST y mataba el muestreo) · Spec: docs/specs/CI.7.md
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.7-live.json`: 15 flujos (14 verdes + `chat-streaming`
   15/15 tras r4), `test:coverage` 1573/0.
+- [x] **CI.8 — ⚡ codex-live compara markdown crudo contra texto renderizado.** (abierto y cerrado 2026-10-01) Pre-push
+  bloqueado: 3 pasos de `codex-live` fallan con el DOM en orden correcto. Spec `docs/specs/CI.8.md`. Arreglo: `plain()`
+  normaliza markdown/comillas en ambos lados. Evidencia: `ui:gate codex-live chat-roles` → 14/14 y 11/11 (cerebro, fuera
+  del sandbox); pre-push completo en el push de este commit. Sin delegación: no (Luna).
 
 - [x] **UI.22 — ⚡ Selector de OpenCode: sin el prefijo `opencode/` y buscador solo en OpenCode.** (abierto 2026-09-29, cerrado 2026-09-29, pedido de Carlos)
   Carlos: la altura/buscador/esfuerzo de UI.21 era solo para OpenCode, y en OpenCode los modelos se leen

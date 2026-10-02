@@ -310,6 +310,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.8",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "codex-live compara markdown crudo contra texto renderizado",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.22",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

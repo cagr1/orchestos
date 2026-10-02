@@ -5,6 +5,19 @@ import { basename, join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import { writeGateRoles } from '../lib.mjs'
 
+function plain(text) {
+  return text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/`+/g, '')
+    .replace(/\*\*|__/g, '')
+    .replace(/[*_]/g, '')
+    .replace(/^\s*#+\s*/gm, '')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: 'ignore' })
 }
@@ -178,18 +191,23 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
     if (timeline.data.live.text === firstAssistantText) return null
     const mixedOrder = await timelineView.locator('div.max-w-2xl, div.prose').allInnerTexts()
     if (!mixedOrder.some((text) => text.includes(secondUserPrompt))) return null
-    if (!mixedOrder.some((text) => text.includes(timeline.data.live.text.slice(0, 32)))) return null
-    const firstAssistantIndex = mixedOrder.findIndex((text) => text.includes(firstAssistantText))
+    if (
+      !mixedOrder.some((text) => plain(text).includes(plain(timeline.data.live.text).slice(0, 32)))
+    )
+      return null
+    const firstAssistantIndex = mixedOrder.findIndex((text) =>
+      plain(text).includes(plain(firstAssistantText)),
+    )
     const secondUserIndex = mixedOrder.findIndex((text) => text.includes(secondUserPrompt))
     const liveAssistantIndex = mixedOrder.findIndex((text) =>
-      text.includes(timeline.data.live.text.slice(0, 32)),
+      plain(text).includes(plain(timeline.data.live.text).slice(0, 32)),
     )
     if (liveAssistantIndex <= secondUserIndex) return null
     secondMidTurn = true
     await step(
       'turn 2 DOM order is assistant 1, user 2, live assistant 2 while generating',
       firstAssistantIndex < secondUserIndex && secondUserIndex < liveAssistantIndex,
-      JSON.stringify(mixedOrder.map((text) => text.trim().slice(0, 50))),
+      `${JSON.stringify(mixedOrder.map((text) => text.trim().slice(0, 50)))}; first answer=${plain(firstAssistantText).slice(0, 80)}`,
     )
     return true
   })
@@ -222,30 +240,34 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
       bubbleTexts.some((text) => text.includes('What word did I ask you to remember?')) &&
       bubbleTexts.findIndex((text) => text.includes(sentMessage)) <
         bubbleTexts.findIndex((text) => text.includes('What word did I ask you to remember?')) &&
-      proseTexts.some(
-        (text) =>
-          firstAnswer.trim().includes(text.trim()) || text.trim().includes(firstAnswer.trim()),
-      ) &&
+      proseTexts.some((text) => {
+        const answer = plain(firstAnswer)
+        const rendered = plain(text)
+        return answer.includes(rendered) || rendered.includes(answer)
+      }) &&
       proseTexts.length >= 2,
-    `user bubbles=${bubbleTexts.length}; assistant bubbles=${proseTexts.length}`,
+    `user bubbles=${bubbleTexts.length}; assistant bubbles=${proseTexts.length}; first answer=${plain(firstAnswer).slice(0, 80)}`,
   )
   const completedOrder = await timelineView.locator('div.max-w-2xl, div.prose').allInnerTexts()
-  const orderIndex = (text) => completedOrder.findIndex((entry) => entry.includes(text))
+  const orderIndex = (text) => {
+    const prefix = plain(text).slice(0, 40)
+    return completedOrder.findIndex((entry) => plain(entry).includes(prefix))
+  }
   await step(
     'timeline DOM alternates user 1, assistant 1, user 2, assistant 2',
     secondMidTurn &&
       orderIndex(sentMessage) < orderIndex(firstAnswer) &&
       orderIndex(firstAnswer) < orderIndex(secondUserPrompt) &&
       orderIndex(secondUserPrompt) < orderIndex(secondCompletion?.content ?? ''),
-    JSON.stringify(completedOrder.map((text) => text.trim().slice(0, 50))),
+    `${JSON.stringify(completedOrder.map((text) => text.trim().slice(0, 50)))}; first answer=${plain(firstAnswer).slice(0, 80)}`,
   )
   await step(
     'user bubbles contain no agent markup or response text',
     (await timelineView.locator('div.max-w-2xl').allInnerTexts()).length >= 2 &&
       (await timelineView.locator('div.max-w-2xl').allInnerTexts()).every(
         (text) =>
-          !text.includes(firstAnswer.trim().slice(0, 40)) &&
-          !text.includes((secondCompletion?.content ?? '').trim().slice(0, 40)),
+          !plain(text).includes(plain(firstAnswer).slice(0, 40)) &&
+          !plain(text).includes(plain(secondCompletion?.content ?? '').slice(0, 40)),
       ) &&
       (await timelineView
         .locator('div.max-w-2xl')
@@ -254,7 +276,7 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
             (bubble) => !bubble.querySelector('code, .prose, [data-tool-row], [data-reasoning]'),
           ),
         )),
-    `${await timelineView.locator('div.max-w-2xl').count()} user bubbles checked`,
+    `${await timelineView.locator('div.max-w-2xl').count()} user bubbles checked; first answer=${plain(firstAnswer).slice(0, 80)}`,
   )
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
@@ -281,7 +303,10 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   const reloadedBubbles = await reloadedTimeline.locator('div.max-w-2xl').allInnerTexts()
   const reloadedProse = await reloadedTimeline.locator('div.prose').allInnerTexts()
   const reloadedMixed = await reloadedTimeline.locator('div.max-w-2xl, div.prose').allInnerTexts()
-  const reloadedIndex = (text) => reloadedMixed.findIndex((entry) => entry.includes(text))
+  const reloadedIndex = (text) => {
+    const prefix = plain(text).slice(0, 40)
+    return reloadedMixed.findIndex((entry) => plain(entry).includes(prefix))
+  }
   await step(
     'timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload',
     reloadedIndex(sentMessage) >= 0 &&
@@ -289,7 +314,7 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
       reloadedIndex(firstAnswer) < reloadedIndex(secondUserPrompt) &&
       reloadedIndex(secondUserPrompt) < reloadedIndex(secondCompletion?.content ?? '') &&
       reloadedProse.length >= 2,
-    `user bubbles=${reloadedBubbles.length}; assistant bubbles=${reloadedProse.length}`,
+    `user bubbles=${reloadedBubbles.length}; assistant bubbles=${reloadedProse.length}; first answer=${plain(firstAnswer).slice(0, 80)}`,
   )
   await step(
     'turn 2 is faster than turn 1',
