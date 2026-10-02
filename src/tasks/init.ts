@@ -15,10 +15,9 @@
  * detectado por `buildProfile()` (Next.js → componentes, Python → utils+test,
  * genérico → helper+doc) — mismo comportamiento que el CLI.
  */
-import { writeFileSync } from 'fs'
 import { stringify as yamlStringify } from 'yaml'
 import { buildProfile } from '../detect/profile.ts'
-import { tasksExist, tasksPath } from './loader.ts'
+import { tasksExist, tasksPath, withTasksLock, writeTasksAtomic } from './loader.ts'
 
 export interface ScaffoldResult {
   /** Ruta absoluta al tasks.yaml recién creado. */
@@ -42,9 +41,6 @@ export interface ScaffoldResult {
  * comando explícito; endpoint: `Modal.confirm()` en el frontend).
  */
 export async function scaffoldTasksYaml(root: string): Promise<ScaffoldResult> {
-  if (tasksExist(root)) {
-    throw new Error(`tasks.yaml already exists in ${root}`)
-  }
   const profile = await buildProfile(root)
   const { manifest } = profile
 
@@ -123,7 +119,10 @@ export async function scaffoldTasksYaml(root: string): Promise<ScaffoldResult> {
 
   const content = yamlStringify({ version: 1, project: manifest.name, tasks }, { lineWidth: 120 })
   const path = tasksPath(root)
-  writeFileSync(path, content, 'utf-8')
+  withTasksLock(root, () => {
+    if (tasksExist(root)) throw new Error(`tasks.yaml already exists in ${root}`)
+    writeTasksAtomic(path, content)
+  })
 
   return {
     path,

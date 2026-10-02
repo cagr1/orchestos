@@ -1,15 +1,10 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
-## R.7 — plan propuesto, espera GO de Carlos (2026-10-02)
-AT.15 cerrado y pusheado (origin/master = 0da77b5). Siguiente de Fase 2: R.7 (multi-módulo → plan antes de codear).
-1. `src/run/git-lock.ts`: extraer `withFileLock(path, fn)`; lockfile guarda PID; se roba si el PID murió o pasó el stale.
-2. `src/tasks/loader.ts`: `mutateTasks(root, fn)` = lock `.orchestos/tasks.lock` → leer → fn → validar → escritura
-   atómica (tmp en el mismo dir + fsync + rename). `saveTasks` y `updateTaskStatus` pasan por ahí; `init.ts:91` atómico.
-3. Escritores migrados: `handlers/tasks.ts:278,407,435,464,592`, `db/reset.ts:30`, `cli.ts` (vía updateTaskStatus).
-   Lock de tasks se suelta antes de `commitTasksYaml` (git-lock): nunca anidados, sin deadlock.
-4. Conflicto misma tarea: serializado; si la tarea ya no existe o el callback rechaza (estado esperado) → error explícito.
-5. Gate: tests con procesos `bun` reales (N procesos × tareas distintas sin pérdida; kill -9 a mitad de escritura deja
-   YAML válido; lock con PID muerto/viejo se recupera) + `bun run test:coverage`.
+## R.7 cerrado (2026-10-02) — siguiente: ERP.2
+R.7 cerrado (PLAN.md, evidencia ahí). Siguiente de Fase 2: **ERP.2** (multi-módulo → plan corto a Carlos antes de codear).
+Aprendido: `chat-sessions.test.ts` (timeout 5 s, subprocesos) falla por carga si corre mientras otro proceso pesado
+(Codex/Luna) termina; repetir antes de culpar al diff (sin R.7 y con R.7 dio 4/4 verde en frío).
+`review-evidence/` y `.orchestos/adversarial-review-state.json` son artefactos locales del revisor: ya en `.gitignore`.
 
 ## AT.15 en curso (2026-10-01)
 Spec `docs/specs/AT.15.md` (pasos 1–3: PTY `src/dashboard/terminal.ts`, WS `/api/terminal` con Origin obligatorio,

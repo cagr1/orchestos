@@ -16,7 +16,7 @@ import { git } from '../../run/sandbox.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
 import { scaffoldTasksYaml } from '../../tasks/init.ts'
-import { loadTasks, saveTasks } from '../../tasks/loader.ts'
+import { loadTasks, mutateTasks } from '../../tasks/loader.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
 import type { DiagnoseRow, SplitPlanResponse, TaskRow } from '../types.ts'
 
@@ -254,28 +254,35 @@ function createTaskRecord(
   if (!existsSync(join(root, 'tasks.yaml')))
     return { error: 'tasks.yaml not found — run: orchestos task init', status: 404 }
   try {
-    const file = loadTasks(root)
-    let finalId = id
-    if (file.tasks.find((t: any) => t.id === finalId)) {
-      if (options.reservedId)
-        return { error: 'Reserved task id already exists; execution was not repeated', status: 409 }
-      finalId = `${finalId}-${Date.now().toString(36)}`
-    }
-    const newTask: Record<string, unknown> = {
-      id: finalId,
-      description,
-      output,
-      executor: executor || 'openrouter',
-      status: 'pending',
-      retry_count: 0,
-    }
-    if (executorModel) newTask.executor_model = executorModel
-    if (engine) newTask.engine = engine
-    if (cliEffort) newTask.cli_effort = cliEffort
-    const skill = params.skill?.trim()
-    if (skill && isKnownSkillId(skill)) newTask.skill = skill
-    ;(file.tasks as any[]).push(newTask)
-    saveTasks(root, file)
+    const result = mutateTasks(root, (file) => {
+      let finalId = id
+      if (file.tasks.find((t: any) => t.id === finalId)) {
+        if (options.reservedId)
+          throw Object.assign(
+            new Error('Reserved task id already exists; execution was not repeated'),
+            {
+              status: 409,
+            },
+          )
+        finalId = `${finalId}-${Date.now().toString(36)}`
+      }
+      const newTask: Record<string, unknown> = {
+        id: finalId,
+        description,
+        output,
+        executor: executor || 'openrouter',
+        status: 'pending',
+        retry_count: 0,
+      }
+      if (executorModel) newTask.executor_model = executorModel
+      if (engine) newTask.engine = engine
+      if (cliEffort) newTask.cli_effort = cliEffort
+      const skill = params.skill?.trim()
+      if (skill && isKnownSkillId(skill)) newTask.skill = skill
+      ;(file.tasks as any[]).push(newTask)
+      return { id: finalId }
+    })
+    const finalId = result.id
     // D.5 (Mes 22) — el sandbox de worktree exige un working tree limpio
     // (sandbox-policy.ts:29). saveTasks() deja tasks.yaml modificado, así que
     // crear una tarea desde el dashboard y correrla enseguida fallaba SIEMPRE
@@ -289,7 +296,7 @@ function createTaskRecord(
     commitTasksYaml(root, `chore(tasks): add ${finalId} (dashboard)`)
     return { id: finalId }
   } catch (e: any) {
-    return { error: e.message, status: 500 }
+    return { error: e.message, status: e.status === 409 ? 409 : 500 }
   }
 }
 
@@ -395,16 +402,15 @@ async function handleApiTasksRun(
   const model = body.model?.trim() || undefined
   const clarification = body.clarification?.trim() || undefined
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
-  const file = loadTasks(root)
-  const task = file.tasks.find((t: any) => t.id === id)
-  if (!task) return errorResponse('Task not found', 404)
-  if (clarification) {
-    task.description = `${task.description}\n\nUser clarification: ${clarification}`
-  }
-  if (task.status !== 'pending') {
-    task.status = 'pending'
-  }
-  saveTasks(root, file)
+  const taskResult = mutateTasks(root, (file) => {
+    const task = file.tasks.find((t: any) => t.id === id)
+    if (!task) return false
+    if (clarification)
+      task.description = `${task.description}\n\nUser clarification: ${clarification}`
+    if (task.status !== 'pending') task.status = 'pending'
+    return true
+  })
+  if (!taskResult) return errorResponse('Task not found', 404)
   spawnTaskRun(root, id, model, projectId)
   return jsonResponse({ ok: true, id })
 }
@@ -428,11 +434,12 @@ function handleApiTasksDelete(url: URL, root: string): Response {
   if (!id) return errorResponse('Missing task id', 400)
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   try {
-    const file = loadTasks(root)
-    const before = file.tasks.length
-    ;(file as any).tasks = file.tasks.filter((t: any) => t.id !== id)
-    if (file.tasks.length === before) return errorResponse('Task not found', 404)
-    saveTasks(root, file)
+    const deleted = mutateTasks(root, (file) => {
+      const before = file.tasks.length
+      ;(file as any).tasks = file.tasks.filter((t: any) => t.id !== id)
+      return before !== file.tasks.length
+    })
+    if (!deleted) return errorResponse('Task not found', 404)
     commitTasksYaml(root, `chore(tasks): delete ${id} (dashboard)`)
     return jsonResponse({ ok: true })
   } catch (e: any) {
@@ -456,12 +463,12 @@ async function handleApiTasksBulkDelete(req: Request, root: string): Promise<Res
   const ids = new Set(body.ids.filter((id): id is string => typeof id === 'string'))
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   try {
-    const file = loadTasks(root)
-    const before = file.tasks.length
-    ;(file as any).tasks = file.tasks.filter((t: any) => !ids.has(t.id))
-    const deleted = before - file.tasks.length
+    const deleted = mutateTasks(root, (file) => {
+      const before = file.tasks.length
+      ;(file as any).tasks = file.tasks.filter((t: any) => !ids.has(t.id))
+      return before - file.tasks.length
+    })
     if (deleted > 0) {
-      saveTasks(root, file)
       commitTasksYaml(root, `chore(tasks): delete ${deleted} task(s) (dashboard)`)
     }
     return jsonResponse({ ok: true, deleted })
@@ -585,11 +592,13 @@ function handleApiTasksApproveSplit(url: URL, root: string): Response {
     return errorResponse('No split plan found — run the task first to generate a plan', 404)
 
   // Reset task to pending so the CLI doesn't skip it
-  const file = loadTasks(root)
-  const task = file.tasks.find((t: any) => t.id === id)
-  if (!task) return errorResponse('Task not found', 404)
-  task.status = 'pending'
-  saveTasks(root, file)
+  const found = mutateTasks(root, (file) => {
+    const task = file.tasks.find((t: any) => t.id === id)
+    if (!task) return false
+    task.status = 'pending'
+    return true
+  })
+  if (!found) return errorResponse('Task not found', 404)
 
   // Spawn CLI with --expand — it detects the existing .plan.yaml and runs it directly.
   // CC.5 — mismo fix que spawnTaskRun: ORCHESTOS_CLI_PATH en vez de join(root, ...).

@@ -1,4 +1,4 @@
-import { loadTasks, saveTasks, tasksExist } from '../tasks/loader.ts'
+import { mutateTasks, tasksExist } from '../tasks/loader.ts'
 import { db } from './sqlite.ts'
 
 export interface ResetSummary {
@@ -18,16 +18,16 @@ export function resetTestData(root: string): ResetSummary {
 
   let tasksReset = 0
   if (tasksExist(root)) {
-    const file = loadTasks(root)
-    for (const t of file.tasks) {
-      if (t.status !== 'pending') tasksReset++
-      t.status = 'pending'
-      t.retry_count = 0
-      delete t.retry_reason
-      delete t.qa_verdict
-      delete t.run_id
-    }
-    saveTasks(root, file)
+    mutateTasks(root, (file) => {
+      for (const t of file.tasks) {
+        if (t.status !== 'pending') tasksReset++
+        t.status = 'pending'
+        t.retry_count = 0
+        delete t.retry_reason
+        delete t.qa_verdict
+        delete t.run_id
+      }
+    })
   }
 
   return { runsDeleted, instinctsDeleted, tasksReset }

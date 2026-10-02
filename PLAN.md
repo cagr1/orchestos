@@ -929,7 +929,20 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     Gate en vivo: navegador Playwright `docs/done/evidence/AT.15a-live.json` — `ui:gate opencode-terminal` 7/7 (TUI
     renderizada, pid nuevo, resize, ningún pid vivo tras cerrar); prompt real por el canal → OpenCode respondió `391` a
     "17×23" en 7,5 s; `pgrep opencode` vacío. Sin delegación: no.
-- [ ] **R.7 — 🧠 Escritura atómica y coordinación entre procesos para tasks.yaml.** Prioridad alta.
+- [x] **R.7 — 🧠 Escritura atómica y coordinación entre procesos para tasks.yaml.** Prioridad alta. (cerrado 2026-10-02)
+  Ejecutado por: luna (2 rondas) · Spec: docs/specs/R.7.md (borrado al cerrar)
+  `src/run/file-lock.ts` nuevo (lockfile `pid:token`, se roba solo si el PID murió o, sin PID, por mtime; libera solo
+  con token propio); `withGitLock` delega en él. `loader.ts`: `mutateTasks` (lock `.orchestos/tasks.lock` → leer →
+  mutar → validar → tmp+fsync+rename) y limpieza de `.tasks.yaml.tmp-*` de PIDs muertos (el sandbox exige working
+  tree limpio, `sandbox-policy.ts:55`). Migrados: `handlers/tasks.ts` (crear/run/delete/bulk/approve-split),
+  `db/reset.ts`, `init.ts`; `cli.ts` vía `updateTaskStatus`. `commitTasksYaml` queda fuera del lock de tasks (sin anidar).
+  Cambio de semántica: un git.lock con dueño vivo ya no se roba a los 60 s (antes podía robarse a mitad de un merge).
+  Gate: `src/__tests__/tasks-concurrency.test.ts` con procesos reales (4×25 updates sin pérdida; misma tarea fusiona
+  campos y borrada no resucita; 5 `SIGKILL` a mitad de escritura → YAML válido, sin temporales, siguiente mutación
+  < 2 s; PID muerto/lock vacío viejo se recuperan; PID vivo → timeout con ruta). `bun run test:coverage` 1589/0;
+  `ui:gate tasks chat-turn-details` 13/13 y 27/27 en dashboard real. No cubierto: Windows (rename sobre archivo
+  abierto) — CI es ubuntu.
+  Riesgo original:
   Riesgo identificado, pendiente de reproducir: `loader.ts:25` comprueba un hash opcional y luego
   sobrescribe el archivo directamente; `tasks.ts:260` guarda antes del lock Git. Dos procesos
   pueden perder actualizaciones y una interrupción puede dejar un YAML incompleto. Diseñar
