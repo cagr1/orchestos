@@ -170,6 +170,7 @@ export interface FileDiffEntry {
 }
 
 export interface RunRow {
+  projectId: string | null
   prompt: string
   allowedOutputs: string[]
   filesAttempted: string[]
@@ -294,6 +295,7 @@ export type GraphRunStatusResponse =
 // ── /api/instincts ────────────────────────────────────────────────────────────
 
 export interface InstinctRow {
+  projectId: string | null
   id: string
   trigger: string
   action: string
@@ -440,6 +442,7 @@ export interface ApiKeyValidationResponse {
 // ── /api/skills ────────────────────────────────────────────────────────────────
 
 export interface SkillRow {
+  origin: 'project' | 'library'
   id: string
   name: string
   description: string

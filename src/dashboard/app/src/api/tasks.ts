@@ -46,7 +46,7 @@ export async function listTasks(
   projectId?: string | null,
   signal?: AbortSignal,
 ): Promise<TasksResponse> {
-  const response = await fetch('/api/tasks', {
+  const response = await fetch(projectId ? '/api/tasks' : '/api/tasks?project=none', {
     headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
     signal,
   })

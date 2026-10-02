@@ -226,6 +226,16 @@ export function listSkillFiles(root = process.cwd()): string[] {
   return mergeSkillDirs(getSkillsDir(root), getInstallSkillsDir())
 }
 
+export function listSkillFilesWithOrigin(
+  root = process.cwd(),
+): Array<{ path: string; origin: 'project' | 'library' }> {
+  const own = new Set(mergeSkillDirs(getSkillsDir(root), getSkillsDir(root)))
+  return mergeSkillDirs(getSkillsDir(root), getInstallSkillsDir()).map((path) => ({
+    path,
+    origin: own.has(path) ? 'project' : 'library',
+  }))
+}
+
 /** Destino de ESCRITURA — siempre el proyecto, nunca la instalación. Para leer usar `resolveSkillPath()`. */
 export function getSkillPath(id: string, root = process.cwd()): string {
   return join(getSkillsDir(root), `${id}.yaml`)

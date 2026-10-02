@@ -164,8 +164,8 @@ export default function App() {
     ]
     try {
       const reads = Promise.allSettled([
-        getSessionMessages(sessionId, controller.signal),
-        getTimeline(sessionId, controller.signal),
+        getSessionMessages(sessionId, projectId ?? null, controller.signal),
+        getTimeline(sessionId, projectId ?? null, controller.signal),
         getProjectTasks(projectId, controller.signal),
       ])
       if (projectId) {
@@ -296,6 +296,12 @@ export default function App() {
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0]
   const activeThread = threads.find((t) => t.id === activeThreadId)
   const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null
+  const projectForSession = (id: string) => {
+    const thread = threads.find((item) => item.id === id)
+    if (thread) return thread.projectId
+    const archived = historySessions.find((item) => item.id === id)
+    return archived?.projectId && archived.projectId !== 'workspace' ? archived.projectId : null
+  }
 
   const handleSelectProject = (projectId: string) => {
     setActiveProjectId(projectId)
@@ -580,7 +586,7 @@ export default function App() {
 
   const handleCloseAgent = async (agentId: string) => {
     try {
-      await archiveSession(agentId)
+      await archiveSession(agentId, projectForSession(agentId))
       if (activeAgentId === agentId) setActiveAgentId(null)
       setProjects(await listProjects())
       await reloadHistory()
@@ -591,7 +597,7 @@ export default function App() {
 
   const handleRestoreAgent = async (session: HistorySession) => {
     try {
-      await restoreSession(session.id)
+      await restoreSession(session.id, session.projectId === 'workspace' ? null : session.projectId)
       setProjects(await listProjects())
       await reloadHistory()
     } catch {
@@ -599,9 +605,9 @@ export default function App() {
     }
   }
 
-  const handleDeleteHistorySession = async (sessionId: string) => {
+  const handleDeleteHistorySession = async (sessionId: string, projectId?: string | null) => {
     try {
-      await deleteSession(sessionId)
+      await deleteSession(sessionId, projectId ?? projectForSession(sessionId))
       await reloadHistory()
     } catch {
       // Keep the history entry visible when the delete request fails.
@@ -716,7 +722,7 @@ export default function App() {
 
   const handleDeleteChat = async (id: string) => {
     try {
-      await deleteSession(id)
+      await deleteSession(id, projectForSession(id))
       setThreads((prev) => {
         const remaining = prev.filter((thread) => thread.id !== id)
         if (activeThreadId === id) setActiveThreadId(remaining[0]?.id || '')
@@ -732,7 +738,7 @@ export default function App() {
     const title = window.prompt('Rename conversation', thread?.title || '')
     if (!title?.trim()) return
     try {
-      const updated = await renameSession(id, title.trim())
+      const updated = await renameSession(id, title.trim(), projectForSession(id))
       setThreads((prev) =>
         prev.map((item) => (item.id === id ? { ...item, title: updated.title } : item)),
       )
@@ -747,7 +753,7 @@ export default function App() {
     if (command === '/rename') {
       const title = argument?.trim() || window.prompt('Rename conversation', '')
       if (title?.trim()) {
-        const updated = await renameSession(id, title.trim())
+        const updated = await renameSession(id, title.trim(), projectForSession(id))
         setThreads((prev) =>
           prev.map((item) => (item.id === id ? { ...item, title: updated.title } : item)),
         )
@@ -799,6 +805,7 @@ export default function App() {
     )
     return sendMessage({
       sessionId: threadId,
+      projectId: thread?.projectId ?? null,
       message: content,
       agent: agent || thread?.agent,
       model,
@@ -823,7 +830,9 @@ export default function App() {
           ),
         )
         if (firstMessageTitle) {
-          void renameSession(threadId, firstMessageTitle).catch(() => undefined)
+          void renameSession(threadId, firstMessageTitle, thread?.projectId ?? null).catch(
+            () => undefined,
+          )
           void listProjects()
             .then(setProjects)
             .catch(() => undefined)

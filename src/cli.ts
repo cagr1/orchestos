@@ -935,7 +935,10 @@ program
         }
 
         // S34.2 — propose instincts for patterns with frequency >= threshold
-        const proposals = proposeInstinctsFromPatterns(suggestions)
+        const proposals = proposeInstinctsFromPatterns(
+          suggestions,
+          getProject(resolve('.'))?.id ?? null,
+        )
         if (proposals.length > 0) {
           console.log(
             `\n${proposals.length} instinct(s) proposed automatically (review with: orchestos instinct review):\n`,
@@ -1342,7 +1345,10 @@ task
                   console.log(`  [${s.confidence.toUpperCase()}] ${s.pattern}: ${s.fix_hint}`)
                 }
               }
-              const proposals = proposeInstinctsFromPatterns(suggestions)
+              const proposals = proposeInstinctsFromPatterns(
+                suggestions,
+                getProject(resolve('.'))?.id ?? null,
+              )
               if (proposals.length > 0) {
                 console.log(
                   `\n  ${proposals.length} instinct proposal(s) created (review with: orchestos instinct review):`,
@@ -2208,12 +2214,13 @@ instinct
   .option('--unverified', 'Show only unverified instincts')
   .option('--source <type>', 'Filter by source: manual or auto')
   .action((opts: { unverified?: boolean; source?: string }) => {
+    const projectId = getProject(resolve('.'))?.id ?? null
     let rows = opts.unverified
-      ? listUnverified()
-      : listInstincts({ source: opts.source as InstinctSource | undefined })
+      ? listInstincts({ verified: false, projectId })
+      : listInstincts({ source: opts.source as InstinctSource | undefined, projectId })
 
     if (!opts.unverified && opts.source) {
-      rows = listInstincts({ source: opts.source as InstinctSource })
+      rows = listInstincts({ source: opts.source as InstinctSource, projectId })
     }
 
     if (rows.length === 0) {

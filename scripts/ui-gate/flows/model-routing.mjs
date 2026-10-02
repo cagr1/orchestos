@@ -364,7 +364,9 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
       const recent = (runs.data ?? []).find((item) => item.taskId === 'gate-model-routing')
       if (recent) {
         listedRunId = recent.id
-        const detail = await api(`/api/runs/${encodeURIComponent(recent.id)}`)
+        const detail = await api(`/api/runs/${encodeURIComponent(recent.id)}`, {
+          headers: { 'x-orchestos-project-id': project.id },
+        })
         runRecord = detail.data ?? detail
         if (runRecord.status !== 'running' && runRecord.status !== 'queued') break
       }

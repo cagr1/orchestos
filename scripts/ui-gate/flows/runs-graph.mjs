@@ -182,7 +182,11 @@ export default async function runsGraph({ page, api, step, shot, visible, cleanu
         headers: { 'x-orchestos-project-id': project.id },
       })
       const latestRun = (listedRuns.data ?? []).find((run) => run.taskId === 'gate-runs-task')
-      const detail = latestRun ? await api(`/api/runs/${encodeURIComponent(latestRun.id)}`) : null
+      const detail = latestRun
+        ? await api(`/api/runs/${encodeURIComponent(latestRun.id)}`, {
+            headers: { 'x-orchestos-project-id': project.id },
+          })
+        : null
       const run = detail?.data ?? detail ?? {}
       const diagnostic = {
         attempt: task.retryCount ?? retryCount + 1,

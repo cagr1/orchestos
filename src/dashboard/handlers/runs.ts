@@ -1,4 +1,10 @@
-import { deleteRun, getRun, listRuns, listRunsByProjectId, type RunRecord } from '../../db/runs.ts'
+import {
+  deleteRun,
+  getRun,
+  listRunsByProjectId,
+  listRunsWithoutProjectId,
+  type RunRecord,
+} from '../../db/runs.ts'
 import { parseReadAudit } from '../../run/read-audit.ts'
 import { type CostBreakdownEntry, parseCostBreakdownJson } from '../../run/transcript-parser.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
@@ -77,6 +83,7 @@ export function runRecordToRow(r: RunRecord): RunRow {
   const { engine, iterations } = deriveEngineFromBreakdown(breakdown)
   return {
     id: r.id,
+    projectId: r.project_id,
     taskId: r.task_id,
     prompt: r.prompt,
     allowedOutputs: parseJsonArray<string>(r.allowed_outputs),
@@ -119,7 +126,10 @@ export function runRecordToRow(r: RunRecord): RunRow {
 // Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos runs --analyze` solo se disparaba
 // automático vía hook post-completion; sin botón manual en el dashboard. Mismo
 // llamado LLM real que la CLI (S30) — no es gratis, se dispara solo bajo pedido.
-async function handleApiRunsAnalyze(req: Request): Promise<Response> {
+async function handleApiRunsAnalyze(
+  req: Request,
+  projectId: string | null = null,
+): Promise<Response> {
   let body: { last?: number } = {}
   try {
     body = (await req.json()) as { last?: number }
@@ -134,7 +144,7 @@ async function handleApiRunsAnalyze(req: Request): Promise<Response> {
   const { groupRunsByOutcome, analyzeRunPatterns } = await import('../../analyze/patterns.ts')
   const { proposeInstinctsFromPatterns } = await import('../../analyze/propose.ts')
 
-  const rows = listRuns(n)
+  const rows = projectId ? listRunsByProjectId(projectId, n) : listRunsWithoutProjectId(n)
   if (rows.length < 3) {
     return jsonResponse({
       suggestions: [],
@@ -145,7 +155,8 @@ async function handleApiRunsAnalyze(req: Request): Promise<Response> {
   const groups = groupRunsByOutcome(rows)
   try {
     const suggestions = await analyzeRunPatterns(groups)
-    const proposals = suggestions.length > 0 ? proposeInstinctsFromPatterns(suggestions) : []
+    const proposals =
+      suggestions.length > 0 ? proposeInstinctsFromPatterns(suggestions, projectId) : []
     return jsonResponse({ suggestions, proposals })
   } catch (e: any) {
     return errorResponse(`Analysis failed: ${e.message}`, 502)
@@ -157,21 +168,22 @@ function handleApiRuns(url: URL, projectId: string | null): Response {
     const id = url.pathname.slice('/api/runs/'.length)
     if (!id) return errorResponse('Missing run id', 400)
     const r = getRun(id)
-    if (!r) return errorResponse('Run not found', 404)
+    if (!r || r.project_id !== projectId) return errorResponse('Run not found', 404)
     return jsonResponse(runRecordToRow(r))
   }
   const rawLimit = url.searchParams.get('limit')
   const parsedLimit = rawLimit === null ? 50 : Number(rawLimit)
   const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 200) : 50
-  const rows = projectId ? listRunsByProjectId(projectId, limit) : listRuns(limit)
+  const rows = projectId ? listRunsByProjectId(projectId, limit) : listRunsWithoutProjectId(limit)
   return jsonResponse(rows.map(runRecordToRow))
 }
 
 // I.8 (Mes 18) — Runs no tenía forma de borrar registros viejos desde el dashboard.
-function handleApiRunsDelete(url: URL): Response {
+function handleApiRunsDelete(url: URL, projectId?: string | null): Response {
   const id = url.pathname.slice('/api/runs/'.length)
   if (!id) return errorResponse('Missing run id', 400)
-  const ok = deleteRun(id)
+  const row = getRun(id)
+  const ok = !!row && (projectId === undefined || row.project_id === projectId) && deleteRun(id)
   const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Run not found' }
   return jsonResponse(result, ok ? 200 : 404)
 }
@@ -179,7 +191,7 @@ function handleApiRunsDelete(url: URL): Response {
 // v0.12 Bloque A — borrado en lote, reusa deleteRun() por id (mismo camino
 // que el delete individual, sin motor nuevo). `deleted` cuenta solo los ids
 // que existían de verdad — un id ya borrado no cuenta como fallo.
-async function handleApiRunsBulkDelete(req: Request): Promise<Response> {
+async function handleApiRunsBulkDelete(req: Request, projectId: string | null): Promise<Response> {
   let body: { ids?: unknown }
   try {
     body = (await req.json()) as { ids?: unknown }
@@ -190,7 +202,7 @@ async function handleApiRunsBulkDelete(req: Request): Promise<Response> {
     return errorResponse('ids must be a non-empty array', 400)
   const ids = body.ids.filter((id): id is string => typeof id === 'string')
   let deleted = 0
-  for (const id of ids) if (deleteRun(id)) deleted++
+  for (const id of ids) if (getRun(id)?.project_id === projectId && deleteRun(id)) deleted++
   return jsonResponse({ ok: true, deleted })
 }
 

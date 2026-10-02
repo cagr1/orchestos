@@ -284,7 +284,8 @@ function handleApiHealth(root: string): Response {
     }
   } catch {}
 
-  const unverifiedInstincts = listInstincts({ verified: false }).length
+  const projectId = getProject(root)?.id ?? null
+  const unverifiedInstincts = listInstincts({ verified: false, projectId }).length
   let draftSpecs = 0
   try {
     draftSpecs = listSpecs(root, false).filter((s) => s.frontmatter.status === 'draft').length
@@ -304,7 +305,11 @@ function handleApiHealth(root: string): Response {
     costLast7d = row?.total ?? 0
   } catch {}
 
-  const recentLearnings: HealthRecentLearning[] = listInstincts({ source: 'auto', verified: true })
+  const recentLearnings: HealthRecentLearning[] = listInstincts({
+    source: 'auto',
+    verified: true,
+    projectId,
+  })
     .slice(0, 3)
     .map((i) => ({ id: i.id, trigger: i.trigger, action: i.action, createdAt: i.created_at }))
 

@@ -147,7 +147,9 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   let firstDone
   const firstCompletion = await waitFor(async () => {
     const text = await visibleText()
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
     if (
       !timeline.data?.pending &&
       timeline.data?.messages?.some((message) => message.role === 'assistant')
@@ -182,7 +184,9 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   const secondUserPrompt =
     'What word did I ask you to remember? Start with it, then explain mangoes in three short paragraphs.'
   await waitFor(async () => {
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
     if (!timeline.data?.pending || !timeline.data.live?.text) return null
     const currentTurnId = timeline.data.turns.at(-1)?.id
     if (!currentTurnId || timeline.data.live.turnId !== currentTurnId) return null
@@ -212,7 +216,9 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
     return true
   })
   const secondCompletion = await waitFor(async () => {
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
     const assistants =
       timeline.data?.messages?.filter((message) => message.role === 'assistant') ?? []
     return !timeline.data?.pending && assistants.length >= 2 ? assistants.at(-1) : null

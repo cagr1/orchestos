@@ -28,8 +28,8 @@ export function insertInstinct(data: InsertInstinctDef): InstinctDef {
   const now = new Date().toISOString()
 
   db.run(
-    `INSERT INTO instincts (id, trigger, action, confidence, source, verified, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO instincts (id, trigger, action, confidence, source, verified, created_at, project_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       validated.trigger,
@@ -38,10 +38,11 @@ export function insertInstinct(data: InsertInstinctDef): InstinctDef {
       validated.source,
       validated.verified ? 1 : 0,
       now,
+      data.projectId ?? null,
     ],
   )
 
-  return { id, ...validated, created_at: now }
+  return { id, ...validated, project_id: data.projectId ?? null, created_at: now }
 }
 
 /**
@@ -59,9 +60,16 @@ export function listInstincts(filter?: {
   verified?: boolean
   source?: InstinctSource
   minConfidence?: number
+  projectId?: string | null
 }): InstinctDef[] {
   const conditions: string[] = []
   const params: any[] = []
+  if (filter?.projectId !== undefined) {
+    conditions.push(
+      filter.projectId === null ? 'project_id IS NULL' : '(project_id = ? OR project_id IS NULL)',
+    )
+    if (filter.projectId !== null) params.push(filter.projectId)
+  }
 
   if (filter?.verified !== undefined) {
     conditions.push('verified = ?')
@@ -171,8 +179,14 @@ export function deleteInstinct(id: string): boolean {
  * List instincts that are eligible for automatic application in the harness.
  * verified = true AND confidence >= APPLY_THRESHOLD
  */
-export function listApplicable(): InstinctDef[] {
-  return listInstincts({ verified: true, minConfidence: APPLY_THRESHOLD })
+export function listApplicable(projectId: string | null = null): InstinctDef[] {
+  if (!projectId) return []
+  return db
+    .query<InstinctDefRow, [number, number, string]>(
+      'SELECT * FROM instincts WHERE verified = ? AND confidence >= ? AND project_id = ? ORDER BY confidence DESC, created_at DESC',
+    )
+    .all(1, APPLY_THRESHOLD, projectId)
+    .map(rowToDef)
 }
 
 /**
@@ -192,6 +206,7 @@ interface InstinctDefRow {
   source: string
   verified: number
   created_at: string
+  project_id: string | null
 }
 
 function rowToDef(row: InstinctDefRow): InstinctDef {
@@ -203,6 +218,7 @@ function rowToDef(row: InstinctDefRow): InstinctDef {
     source: row.source as InstinctSource,
     verified: row.verified === 1,
     created_at: row.created_at,
+    project_id: row.project_id ?? null,
   }
   return validateInstinct(def)
 }

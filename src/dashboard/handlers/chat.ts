@@ -409,7 +409,7 @@ export async function executeSearchMemory(
             `SELECT e.topic_key, e.scope, e.content
            FROM memory_entries e
            JOIN memory_fts ON memory_fts.rowid = e.rowid
-           WHERE memory_fts MATCH ?
+           WHERE memory_fts MATCH ? AND e.scope = 'global'
            ORDER BY bm25(memory_fts)
            LIMIT 20`,
           )

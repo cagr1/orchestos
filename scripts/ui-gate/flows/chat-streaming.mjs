@@ -171,7 +171,9 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   let liveBubbleMeasurements = 0
   const completion = await waitFor(async () => {
     const text = await visibleText()
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
     if (text && firstAt === null) firstAt = Date.now() - startedAt
     if (text.length > previousLength) {
       if (previousLength > 0) growthCount++
@@ -249,7 +251,9 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     await sendTurn(page, composer, prompt)
     sampledChatPrompts.push(prompt)
     secondChatCompletion = await waitFor(async () => {
-      const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+      const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+        headers: { 'x-orchestos-project-id': project.id },
+      })
       if (timeline.data?.pending && !chatComposerMidTurnChecked) {
         chatComposerMidTurnChecked = true
         const composerValue = await composer.inputValue()
@@ -383,7 +387,9 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   const devCompletion = await waitFor(async () => {
     devVisible = (await page.locator('div.prose').allInnerTexts()).at(-1)?.trim() ?? ''
     if (devVisible && devFirst === null) devFirst = Date.now() - devStart
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(devSession.id)}/timeline`)
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(devSession.id)}/timeline`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
     if (
       !timeline.data?.pending &&
       timeline.data?.messages?.some((message) => message.role === 'assistant')

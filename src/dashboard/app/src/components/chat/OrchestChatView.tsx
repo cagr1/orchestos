@@ -102,7 +102,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     const refresh = () => {
       controller?.abort()
       controller = new AbortController()
-      void getTimeline(sessionId, controller.signal)
+      void getTimeline(sessionId, thread?.projectId ?? null, controller.signal)
         .then((timeline) => {
           if (!disposed) setLiveTimeline(timeline)
         })
@@ -115,7 +115,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       controller?.abort()
       window.clearInterval(timer)
     }
-  }, [isWorking, sessionId])
+  }, [isWorking, sessionId, thread?.projectId])
   const liveText = liveTimeline?.live?.text ?? ''
   const cliId = (
     thread?.agent === 'claude' || thread?.agent === 'codex' || thread?.agent === 'api'

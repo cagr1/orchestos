@@ -24,8 +24,8 @@ export interface TurnStatus {
   kind: 'none' | 'pending' | 'failed' | 'interrupted'
 }
 
-async function request<T>(path: string): Promise<T> {
-  const response = await fetch(path)
+async function request<T>(path: string, headers: HeadersInit = {}): Promise<T> {
+  const response = await fetch(path, { headers })
   const body = (await response.json().catch(() => null)) as { error?: string } | T | null
   if (!response.ok) {
     const message =
@@ -65,6 +65,7 @@ export function mapSessionToAgent(
 ): AgentSession {
   return {
     id: session.id,
+    projectId: session.projectId ?? null,
     name: session.title,
     agent: session.agent,
     model: session.lastModel || session.agent,
@@ -89,9 +90,13 @@ export function mapSessionToAgent(
 }
 
 async function loadAgent(session: SessionRow): Promise<AgentSession> {
-  const status = await request<TurnStatus>(
-    `/api/chat/sessions/${encodeURIComponent(session.id)}/turn-status`,
-  ).catch(() => ({ kind: 'none' as const }))
+  const path = `/api/chat/sessions/${encodeURIComponent(session.id)}/turn-status`
+  const scope = session.projectId
+    ? { query: '', headers: { 'x-orchestos-project-id': session.projectId } }
+    : { query: '?project=none', headers: {} }
+  const status = await request<TurnStatus>(`${path}${scope.query}`, scope.headers).catch(() => ({
+    kind: 'none' as const,
+  }))
   return mapSessionToAgent(session, status)
 }
 

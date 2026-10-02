@@ -420,10 +420,13 @@ async function handleApiTasksRun(
  * `?since=<seq>` devuelve solo lo nuevo desde el último seq visto por el
  * cliente; sin el param, devuelve todo lo que haya (retomar una pestaña).
  */
-async function handleApiTasksSteps(url: URL): Promise<Response> {
+async function handleApiTasksSteps(url: URL, root = process.cwd()): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
+  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('Task not found', 404)
+  const file = loadTasks(root)
+  if (!file?.tasks.some((task) => task.id === id)) return errorResponse('Task not found', 404)
   const since = Number(url.searchParams.get('since') ?? '0') || 0
   const steps = getRunSteps(id, since)
   return jsonResponse({ steps })

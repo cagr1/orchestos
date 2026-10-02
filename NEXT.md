@@ -1,5 +1,10 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## ERP.2 cerrado (2026-10-02) — siguiente: ERP.3
+Evidencia en PLAN.md. Siguiente de Fase 2: **ERP.3** (multi-módulo → plan corto a Carlos antes de codear).
+Visto en capturas, sin ítem: en Settings → Skills la pestaña "Instincts" aparece resaltada (pill) además de "Skills".
+IDEAS.md y orchestos.config.yaml tienen cambios sin commitear ajenos a ERP.2 (ideas #71/Orca, roles MR) — de Carlos.
+
 ## R.7 cerrado (2026-10-02) — siguiente: ERP.2
 R.7 cerrado (PLAN.md, evidencia ahí). Siguiente de Fase 2: **ERP.2** (multi-módulo → plan corto a Carlos antes de codear).
 Aprendido: `chat-sessions.test.ts` (timeout 5 s, subprocesos) falla por carga si corre mientras otro proceso pesado

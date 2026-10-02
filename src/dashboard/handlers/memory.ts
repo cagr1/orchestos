@@ -4,7 +4,7 @@ import { db } from '../../db/sqlite.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type { MemoryRow, MutationResult } from '../types.ts'
 
-function handleApiMemory(url?: URL, projectId?: string | null): Response {
+function handleApiMemory(url?: URL, projectId: string | null = null): Response {
   const q = url?.searchParams.get('q')?.trim().slice(0, 256)
   try {
     const rows =
@@ -23,7 +23,7 @@ function handleApiMemory(url?: URL, projectId?: string | null): Response {
                 `SELECT e.id, e.project_id, e.topic_key, e.scope, e.content, e.created_at, e.updated_at
            FROM memory_entries e
            JOIN memory_fts ON memory_fts.rowid = e.rowid
-           WHERE memory_fts MATCH ?
+           WHERE memory_fts MATCH ? AND e.scope = 'global'
            ORDER BY bm25(memory_fts)
            LIMIT 200`,
               )
@@ -36,7 +36,7 @@ function handleApiMemory(url?: URL, projectId?: string | null): Response {
                 .all(projectId)
             : db
                 .query<MemoryEntry, []>(
-                  'SELECT id, project_id, topic_key, scope, content, created_at, updated_at FROM memory_entries ORDER BY updated_at DESC LIMIT 200',
+                  "SELECT id, project_id, topic_key, scope, content, created_at, updated_at FROM memory_entries WHERE scope = 'global' ORDER BY updated_at DESC LIMIT 200",
                 )
                 .all()
     const conflicts = projectId ? listConflicts(projectId) : []
@@ -66,10 +66,17 @@ function handleApiMemory(url?: URL, projectId?: string | null): Response {
 
 // Bloque E (Mes 18, ex-IDEAS #9b) — `orchestos memory conflicts` no tenía
 // ningún equivalente en el dashboard, ni siquiera de solo lectura.
-function handleApiMemoryConflicts(url?: URL): Response {
-  const projectId = url?.searchParams.get('project')?.trim() || undefined
+function handleApiMemoryConflicts(url?: URL, projectId?: string | null): Response {
+  const selectedProjectId =
+    projectId === undefined ? url?.searchParams.get('project')?.trim() : projectId
   try {
-    return jsonResponse(listConflicts(projectId))
+    return jsonResponse(
+      selectedProjectId === undefined
+        ? listConflicts()
+        : selectedProjectId
+          ? listConflicts(selectedProjectId)
+          : [],
+    )
   } catch {
     return jsonResponse([])
   }
@@ -78,17 +85,31 @@ function handleApiMemoryConflicts(url?: URL): Response {
 // I.5 (Mes 18) — el panel de conflictos era de solo lectura; sin esto no
 // había forma de bajar un conflicto de la lista una vez revisado.
 function handleApiMemoryConflictResolve(url: URL): Response
-function handleApiMemoryConflictResolve(url: URL, req: Request): Promise<Response>
-function handleApiMemoryConflictResolve(url: URL, req?: Request): Response | Promise<Response> {
+function handleApiMemoryConflictResolve(
+  url: URL,
+  req: Request,
+  projectId: string | null,
+): Promise<Response>
+function handleApiMemoryConflictResolve(
+  url: URL,
+  req?: Request,
+  projectId?: string | null,
+): Response | Promise<Response> {
   const parts = url.pathname.split('/')
   const id = parts[4]
   if (!id) return errorResponse('Missing conflict id', 400)
   const finish = (content?: string) => {
-    const ok = resolveConflict(id, content)
+    const ok = resolveConflict(id, content, projectId)
     const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Conflict not found' }
     return jsonResponse(result, ok ? 200 : 404)
   }
-  if (!req) return finish()
+  if (!req) {
+    const ok = resolveConflict(id)
+    return jsonResponse(
+      ok ? { ok: true } : { ok: false, error: 'Conflict not found' },
+      ok ? 200 : 404,
+    )
+  }
   return req
     .json()
     .catch(() => ({}))
@@ -98,16 +119,23 @@ function handleApiMemoryConflictResolve(url: URL, req?: Request): Response | Pro
 }
 
 // I.8 (Mes 18) — Memory (entries) no tenía forma de borrar registros desde el dashboard.
-function handleApiMemoryDelete(url: URL): Response {
+function handleApiMemoryDelete(url: URL, projectId?: string | null): Response {
   const id = url.pathname.slice('/api/memory/'.length)
   if (!id) return errorResponse('Missing entry id', 400)
-  const ok = deleteMemoryEntry(id)
+  const entry = db.query<MemoryEntry, [string]>('SELECT * FROM memory_entries WHERE id = ?').get(id)
+  const ok =
+    !!entry &&
+    (projectId === undefined || entry.project_id === projectId || entry.scope === 'global') &&
+    deleteMemoryEntry(id)
   const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Entry not found' }
   return jsonResponse(result, ok ? 200 : 404)
 }
 
 // v0.12 Bloque A — borrado en lote, reusa deleteMemoryEntry() por id.
-async function handleApiMemoryBulkDelete(req: Request): Promise<Response> {
+async function handleApiMemoryBulkDelete(
+  req: Request,
+  projectId: string | null,
+): Promise<Response> {
   let body: { ids?: unknown }
   try {
     body = (await req.json()) as { ids?: unknown }
@@ -118,7 +146,17 @@ async function handleApiMemoryBulkDelete(req: Request): Promise<Response> {
     return errorResponse('ids must be a non-empty array', 400)
   const ids = body.ids.filter((id): id is string => typeof id === 'string')
   let deleted = 0
-  for (const id of ids) if (deleteMemoryEntry(id)) deleted++
+  for (const id of ids) {
+    const entry = db
+      .query<MemoryEntry, [string]>('SELECT * FROM memory_entries WHERE id = ?')
+      .get(id)
+    if (
+      entry &&
+      (entry.project_id === projectId || entry.scope === 'global') &&
+      deleteMemoryEntry(id)
+    )
+      deleted++
+  }
   return jsonResponse({ ok: true, deleted })
 }
 

@@ -126,6 +126,7 @@ export interface InstinctItem {
   verified: boolean
   usagesCount: number
   createdAt?: string
+  projectId?: string | null
 }
 
 export interface MemoryItem {
@@ -134,6 +135,7 @@ export interface MemoryItem {
   scope: 'session' | 'project' | 'global'
   content: string
   updatedAt: string
+  projectId?: string | null
   hasConflict?: boolean
   conflictDetails?: {
     conflictId: string
@@ -150,6 +152,7 @@ export interface SkillItem {
   status: 'compiled' | 'source' | 'remote'
   usageRuns: number
   description: string
+  origin?: 'project' | 'library'
 }
 
 export interface ToolExecution {
@@ -232,6 +235,7 @@ export interface ChatAttachment {
 
 export interface AgentSession {
   id: string
+  projectId?: string | null
   name: string
   agent?: string
   model: string

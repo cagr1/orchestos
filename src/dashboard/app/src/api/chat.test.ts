@@ -4,6 +4,7 @@ import {
   createSession,
   execCommand,
   getConsole,
+  getSessionMessages,
   mapMessage,
   mapSessionToThread,
   newChatProjectId,
@@ -150,6 +151,7 @@ describe('chat API mapping', () => {
     try {
       await sendMessage({
         sessionId: 'session-1',
+        projectId: 'project-1',
         message: 'hello',
         agent: 'api',
         model: 'provider/model',
@@ -310,6 +312,29 @@ describe('chat API mapping', () => {
     ).toEqual([message])
   })
 
+  test('general session scope ignores the last project saved in localStorage', async () => {
+    const originalFetch = globalThis.fetch
+    const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: { getItem: (key: string) => (key === 'orchestos-last-project' ? 'project-b' : null) },
+    })
+    globalThis.fetch = (async (input, init) => {
+      calls.push({ input, init })
+      return new Response('[]', { status: 200 })
+    }) as typeof fetch
+    try {
+      await getSessionMessages('general-session', null)
+    } finally {
+      globalThis.fetch = originalFetch
+      if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage)
+      else Reflect.deleteProperty(globalThis, 'localStorage')
+    }
+    expect(String(calls[0]?.input)).toContain('?project=none')
+    expect(new Headers(calls[0]?.init?.headers).has('x-orchestos-project-id')).toBe(false)
+  })
+
   test('renders SQLite UTC timestamps in the browser local timezone', () => {
     const sqliteValue = '2026-09-21 12:00:00'
     expect(toTimestamp(sqliteValue)).toBe(
@@ -337,8 +362,10 @@ describe('chat API mapping', () => {
       return new Response(JSON.stringify(body), { status: 200 })
     }) as typeof fetch
     try {
-      await expect(getConsole('session-1')).resolves.toMatchObject({ pending: false })
-      await expect(execCommand('session-1', 'ls')).resolves.toMatchObject({ exitCode: 0 })
+      await expect(getConsole('session-1', 'project-1')).resolves.toMatchObject({ pending: false })
+      await expect(execCommand('session-1', 'ls', 'project-1')).resolves.toMatchObject({
+        exitCode: 0,
+      })
     } finally {
       globalThis.fetch = originalFetch
     }

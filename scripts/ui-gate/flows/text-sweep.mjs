@@ -125,7 +125,9 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
     const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
     session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
     const messages = session
-      ? await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/messages`)
+      ? await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/messages`, {
+          headers: { 'x-orchestos-project-id': project.id },
+        })
       : { data: [] }
     assistant = (Array.isArray(messages.data) ? messages.data : []).find(
       (message) => message.role === 'assistant',

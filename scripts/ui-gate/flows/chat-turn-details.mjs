@@ -192,7 +192,9 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
     const deadline = Date.now() + 180_000
     let timeline
     while (Date.now() < deadline) {
-      const result = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+      const result = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+        headers: { 'x-orchestos-project-id': project.id },
+      })
       timeline = result.data
       const turns = timeline?.turns ?? []
       const latestTurn = turns.at(-1)
@@ -236,7 +238,9 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
     session.projectId === project.id && session.mode === 'code',
     `projectId=${session.projectId ?? 'null'}, mode=${session.mode ?? 'null'}`,
   )
-  const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`)
+  const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+    headers: { 'x-orchestos-project-id': project.id },
+  })
   const reasoningSteps = (timeline.data?.turns ?? []).flatMap((turn) =>
     (turn.steps ?? []).filter((item) => item.type === 'reasoning' && item.detail),
   )
@@ -353,9 +357,11 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   const reloadedMessages = await api(
     `/api/chat/sessions/${encodeURIComponent(session.id)}/messages`,
+    { headers: { 'x-orchestos-project-id': project.id } },
   )
   const reloadedTimeline = await api(
     `/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`,
+    { headers: { 'x-orchestos-project-id': project.id } },
   )
   const timelineTurns = reloadedTimeline.data?.turns ?? []
   const timelineTurnIds = new Set(timelineTurns.map((turn) => turn.id))

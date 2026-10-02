@@ -38,6 +38,7 @@ export interface ChatModelOption {
 
 export interface ChatSendOptions {
   sessionId: string
+  projectId: string | null
   message: string
   agent?: string
   model?: string
@@ -154,6 +155,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(message || `Request failed (${response.status})`)
   }
   return body as T
+}
+
+function sessionScope(projectId: string | null | undefined): {
+  query: string
+  headers: HeadersInit
+} {
+  return projectId
+    ? { query: '', headers: { 'x-orchestos-project-id': projectId } }
+    : { query: '?project=none', headers: {} }
+}
+
+function scopedSessionPath(path: string, projectId: string | null | undefined): string {
+  const { query } = sessionScope(projectId)
+  if (!query) return path
+  return `${path}${path.includes('?') ? query.replace('?', '&') : query}`
 }
 
 function jsonInit(method: string, body: unknown): RequestInit {
@@ -289,25 +305,36 @@ export async function listArchivedSessions(project?: string): Promise<ChatSessio
   return request<ChatSessionRow[]>(`/api/chat/sessions?archived=1${query}`)
 }
 
-export async function archiveSession(sessionId: string): Promise<void> {
-  await request(`/api/chat/sessions/${encodeURIComponent(sessionId)}/archive`, { method: 'POST' })
+export async function archiveSession(sessionId: string, projectId: string | null): Promise<void> {
+  await request(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/archive`, projectId),
+    { method: 'POST', headers: sessionScope(projectId).headers },
+  )
 }
 
-export async function restoreSession(sessionId: string): Promise<void> {
-  await request(`/api/chat/sessions/${encodeURIComponent(sessionId)}/restore`, { method: 'POST' })
+export async function restoreSession(sessionId: string, projectId: string | null): Promise<void> {
+  await request(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/restore`, projectId),
+    { method: 'POST', headers: sessionScope(projectId).headers },
+  )
 }
 
 export async function getSessionMessages(
   sessionId: string,
+  projectId: string | null,
   signal?: AbortSignal,
 ): Promise<ChatMessageRow[]> {
-  return request<ChatMessageRow[]>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/messages`, {
-    signal,
-  })
+  return request<ChatMessageRow[]>(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/messages`, projectId),
+    {
+      headers: sessionScope(projectId).headers,
+      signal,
+    },
+  )
 }
 
 export async function loadThread(session: ChatSessionRow): Promise<ChatThread> {
-  return mapSessionToThread(session, await getSessionMessages(session.id))
+  return mapSessionToThread(session, await getSessionMessages(session.id, session.projectId))
 }
 
 export async function createSession(params: {
@@ -326,34 +353,56 @@ export async function createSession(params: {
   return mapSessionToThread(session)
 }
 
-export async function renameSession(sessionId: string, title: string): Promise<ChatSessionRow> {
+export async function renameSession(
+  sessionId: string,
+  title: string,
+  projectId: string | null,
+): Promise<ChatSessionRow> {
   return request<ChatSessionRow>(
-    `/api/chat/sessions/${encodeURIComponent(sessionId)}`,
-    jsonInit('PATCH', { title }),
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, projectId),
+    {
+      ...jsonInit('PATCH', { title }),
+      headers: { ...sessionScope(projectId).headers, 'Content-Type': 'application/json' },
+    },
   )
 }
 
-export async function deleteSession(sessionId: string): Promise<void> {
-  await request<{ ok: true }>(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
-    method: 'DELETE',
-  })
+export async function deleteSession(sessionId: string, projectId: string | null): Promise<void> {
+  await request<{ ok: true }>(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, projectId),
+    {
+      method: 'DELETE',
+      headers: sessionScope(projectId).headers,
+    },
+  )
 }
 
 export async function getChatModels(): Promise<ChatModelOption[]> {
   return request<ChatModelOption[]>('/api/chat/models')
 }
 
-export async function getConsole(sessionId: string): Promise<ConsoleResponse> {
-  return request<ConsoleResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/console`)
+export async function getConsole(
+  sessionId: string,
+  projectId: string | null,
+): Promise<ConsoleResponse> {
+  return request<ConsoleResponse>(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/console`, projectId),
+    { headers: sessionScope(projectId).headers },
+  )
 }
 
 export async function getTimeline(
   sessionId: string,
+  projectId: string | null,
   signal?: AbortSignal,
 ): Promise<TimelineResponse> {
-  return request<TimelineResponse>(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`, {
-    signal,
-  })
+  return request<TimelineResponse>(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`, projectId),
+    {
+      headers: sessionScope(projectId).headers,
+      signal,
+    },
+  )
 }
 
 export async function getProjectTasks(
@@ -410,10 +459,17 @@ export async function deleteProjectTask(taskId: string, projectId?: string | nul
   })
 }
 
-export async function execCommand(sessionId: string, cmd: string): Promise<ConsoleExecResponse> {
+export async function execCommand(
+  sessionId: string,
+  cmd: string,
+  projectId: string | null,
+): Promise<ConsoleExecResponse> {
   return request<ConsoleExecResponse>(
-    `/api/chat/sessions/${encodeURIComponent(sessionId)}/exec`,
-    jsonInit('POST', { cmd }),
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/exec`, projectId),
+    {
+      ...jsonInit('POST', { cmd }),
+      headers: { ...sessionScope(projectId).headers, 'Content-Type': 'application/json' },
+    },
   )
 }
 
@@ -447,7 +503,10 @@ export async function sendMessage(options: ChatSendOptions): Promise<ChatSendRes
   if (options.attachments?.length)
     body.fileIds = options.attachments.map((attachment) => attachment.id)
   if (options.effort) body.effort = options.effort.toLowerCase()
-  return request<ChatSendResponse>('/api/chat', jsonInit('POST', body))
+  return request<ChatSendResponse>(scopedSessionPath('/api/chat', options.projectId), {
+    ...jsonInit('POST', body),
+    headers: { ...sessionScope(options.projectId).headers, 'Content-Type': 'application/json' },
+  })
 }
 
 export function getCliModels(): Promise<CliModelCatalog[]> {

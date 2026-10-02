@@ -43,7 +43,11 @@ async function recordRetry(api, projectId, task, step) {
     headers: { 'x-orchestos-project-id': projectId },
   })
   const latestRun = (listedRuns.data ?? []).find((run) => run.taskId === task.id)
-  const response = latestRun ? await api(`/api/runs/${encodeURIComponent(latestRun.id)}`) : null
+  const response = latestRun
+    ? await api(`/api/runs/${encodeURIComponent(latestRun.id)}`, {
+        headers: { 'x-orchestos-project-id': projectId },
+      })
+    : null
   const run = response?.data ?? response ?? {}
   const detail = {
     attempt: task.retryCount,

@@ -17,9 +17,10 @@
  * This module only creates; approval/rejection is handled by the instinct CLI.
  */
 
+import { db } from '../db/sqlite.ts'
 import type { InstinctDef } from '../instincts/schema.ts'
 import { AUTO_DEFAULTS } from '../instincts/schema.ts'
-import { insertInstinct, listInstincts } from '../instincts/store.ts'
+import { insertInstinct } from '../instincts/store.ts'
 import type { PatternSuggestion } from './patterns.ts'
 
 /** Minimum pattern frequency to trigger an instinct proposal. */
@@ -31,13 +32,23 @@ export const PATTERN_FREQUENCY_THRESHOLD = 3
  *
  * Returns the list of newly created instinct proposals (may be empty).
  */
-export function proposeInstinctsFromPatterns(patterns: PatternSuggestion[]): InstinctDef[] {
+export function proposeInstinctsFromPatterns(
+  patterns: PatternSuggestion[],
+  projectId: string | null = null,
+): InstinctDef[] {
   if (!Array.isArray(patterns) || patterns.length === 0) return []
   const eligible = patterns.filter((p) => p.frequency >= PATTERN_FREQUENCY_THRESHOLD)
   if (eligible.length === 0) return []
 
   // Load existing triggers once for dedup check (normalized to lowercase)
-  const existing = new Set(listInstincts().map((i) => i.trigger.toLowerCase().trim()))
+  const existing = new Set(
+    db
+      .query<{ trigger: string }, [string | null]>(
+        'SELECT trigger FROM instincts WHERE project_id IS ?',
+      )
+      .all(projectId)
+      .map((instinct) => instinct.trigger.toLowerCase().trim()),
+  )
 
   const created: InstinctDef[] = []
 
@@ -50,6 +61,7 @@ export function proposeInstinctsFromPatterns(patterns: PatternSuggestion[]): Ins
 
     try {
       const instinct = insertInstinct({
+        projectId,
         trigger,
         action,
         ...AUTO_DEFAULTS,

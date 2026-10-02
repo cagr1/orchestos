@@ -35,6 +35,7 @@ export interface InstinctDef {
   source: InstinctSource
   verified: boolean
   created_at: string
+  project_id: string | null
 }
 
 /** Fields required to create a new instinct (id and created_at are generated). */
@@ -44,6 +45,7 @@ export interface InsertInstinctDef {
   confidence: number
   source: InstinctSource
   verified: boolean
+  projectId?: string | null
 }
 
 /** Fields that can be updated on an existing instinct. */
@@ -102,7 +104,16 @@ export function validateInstinct(raw: unknown): InstinctDef {
   if (!created_at)
     throw new InstinctValidationError('created_at is required and must be a non-empty string')
 
-  return { id, trigger, action, confidence, source: source as InstinctSource, verified, created_at }
+  return {
+    id,
+    trigger,
+    action,
+    confidence,
+    source: source as InstinctSource,
+    verified,
+    created_at,
+    project_id: typeof obj.project_id === 'string' ? obj.project_id : null,
+  }
 }
 
 /**

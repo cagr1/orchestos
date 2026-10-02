@@ -677,6 +677,25 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
     },
     postcondition: () => {},
   },
+  {
+    version: 18,
+    name: 'project-scope-instincts',
+    precondition: () => {},
+    apply: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(instincts)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('project_id'))
+        database.exec(
+          'ALTER TABLE instincts ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL',
+        )
+      database.exec(
+        "DROP INDEX IF EXISTS idx_instincts_trigger_unique; CREATE UNIQUE INDEX IF NOT EXISTS idx_instincts_project_trigger ON instincts(COALESCE(project_id, ''), trigger); CREATE INDEX IF NOT EXISTS idx_instincts_project ON instincts(project_id)",
+      )
+    },
+    postcondition: () => {},
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
@@ -948,7 +967,7 @@ export function runMigrations(): void {
     );
     CREATE INDEX IF NOT EXISTS idx_instincts_verified ON instincts(verified);
     CREATE INDEX IF NOT EXISTS idx_instincts_confidence ON instincts(confidence);
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_instincts_trigger_unique ON instincts(trigger);
+    DROP INDEX IF EXISTS idx_instincts_trigger_unique;
   `)
 
   // G.3.3 — pasos en vivo de los executors CLI (external/opencode). Keyeado

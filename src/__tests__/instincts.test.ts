@@ -283,11 +283,10 @@ describe('store — list', () => {
     expect(ours.length).toBe(2) // A (0.9) and D (0.95)
   })
 
-  it('listApplicable returns only verified with confidence >= APPLY_THRESHOLD', () => {
+  it('listApplicable excludes ownerless historical instincts', () => {
     const applicable = listApplicable()
     const ours = applicable.filter((s) => s.trigger.startsWith('ListTest'))
-    expect(ours.length).toBe(1) // only A (0.9, verified: true)
-    expect(ours[0]!.trigger).toBe('ListTest A')
+    expect(ours.length).toBe(0)
   })
 
   it('listUnverified returns only unverified instincts', () => {

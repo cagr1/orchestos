@@ -141,7 +141,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConfl
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-bold text-cyan-400">{mem.topicKey}</span>
                     <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
-                      {mem.scope}
+                      {mem.scope === 'global' ? 'Global' : mem.scope}
                     </span>
                   </div>
 

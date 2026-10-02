@@ -1,5 +1,6 @@
 import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { getChatSession } from '../db/chat-sessions.ts'
 import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
 import {
   handleApiChat,
@@ -127,6 +128,7 @@ import {
 } from './handlers/tasks.ts'
 import { handleApiUsage } from './handlers/usage.ts'
 import { errorResponse, isSameOrigin, jsonResponse, serveStatic } from './http.ts'
+import { ownsRow, requestScope } from './ownership.ts'
 import {
   type DashboardProjectContext,
   DashboardProjectError,
@@ -140,7 +142,12 @@ async function withDashboardProject(
   handler: (project: DashboardProjectContext) => Response | Promise<Response>,
 ): Promise<Response> {
   try {
-    return await handler(resolveDashboardProject(req))
+    const scope = requestScope(req)
+    const context =
+      scope.kind === 'project'
+        ? { id: scope.id, root: scope.root, source: 'request' as const }
+        : { id: null, root: realpathSync(resolve('.')), source: 'legacy-cwd' as const }
+    return await handler(context)
   } catch (error) {
     if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
     return errorResponse(error instanceof Error ? error.message : String(error), 500)
@@ -158,16 +165,31 @@ export async function route(req: Request, port: number): Promise<Response> {
     return errorResponse('Forbidden', 403)
   }
 
+  const sessionRoute = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)/)
+  let sessionId = sessionRoute?.[1] ? decodeURIComponent(sessionRoute[1]) : null
+  if ((url.pathname === '/api/chat' || url.pathname === '/api/chat/upload') && method === 'POST') {
+    try {
+      const body = (await req.clone().json()) as { sessionId?: unknown }
+      if (typeof body.sessionId === 'string') sessionId = body.sessionId
+    } catch {}
+  }
+  if (sessionId) {
+    try {
+      const scope = requestScope(req)
+      const session = getChatSession(sessionId)
+      if (!session || !ownsRow(scope, session.project_id))
+        return errorResponse('Chat session not found', 404)
+    } catch (error) {
+      if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
+      return errorResponse('Chat session not found', 404)
+    }
+  }
+
   if (method === 'POST' && url.pathname === '/api/runs/analyze') {
-    return handleApiRunsAnalyze(req)
+    return withDashboardProject(req, (project) => handleApiRunsAnalyze(req, project.id))
   }
   if (method === 'GET' && (url.pathname === '/api/runs' || url.pathname.startsWith('/api/runs/'))) {
-    if (url.pathname.startsWith('/api/runs/')) return handleApiRuns(url, null)
-    return withDashboardProject(req, (_project) => {
-      const selectedProjectId = req.headers.get('x-orchestos-project-id')?.trim()
-      if (!selectedProjectId) return handleApiRuns(url, null)
-      return handleApiRuns(url, selectedProjectId)
-    })
+    return withDashboardProject(req, (project) => handleApiRuns(url, project.id))
   }
   if (method === 'GET' && url.pathname === '/api/usage') {
     return handleApiUsage()
@@ -200,10 +222,10 @@ export async function route(req: Request, port: number): Promise<Response> {
     )
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
-    return handleApiRunsDelete(url)
+    return withDashboardProject(req, (project) => handleApiRunsDelete(url, project.id))
   }
   if (method === 'POST' && url.pathname === '/api/runs/bulk-delete') {
-    return handleApiRunsBulkDelete(req)
+    return withDashboardProject(req, (project) => handleApiRunsBulkDelete(req, project.id))
   }
   if (method === 'GET' && url.pathname === '/api/tasks') {
     return withDashboardProject(req, (project) => handleApiTasks(project.root))
@@ -240,7 +262,11 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiTasksApproveSplit(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/steps$/)) {
-    return handleApiTasksSteps(url)
+    return withDashboardProject(req, (project) =>
+      project.id === null
+        ? errorResponse('Task not found', 404)
+        : handleApiTasksSteps(url, project.root),
+    )
   }
   if (method === 'POST' && url.pathname === '/api/run/graph') {
     return withDashboardProject(req, (project) => handleApiRunGraph(req, project.root))
@@ -249,32 +275,34 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiRunGraphStatus(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/instincts') {
-    return handleApiInstincts()
+    return withDashboardProject(req, (project) => handleApiInstincts(project.id))
   }
   if (method === 'POST' && url.pathname === '/api/instincts') {
-    return handleApiInstinctsCreate(req)
+    return withDashboardProject(req, (project) => handleApiInstinctsCreate(req, project.id))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/approve$/)) {
-    return handleApiInstinctsApprove(url)
+    return withDashboardProject(req, (project) => handleApiInstinctsApprove(url, project.id))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/reject$/)) {
-    return handleApiInstinctsReject(url)
+    return withDashboardProject(req, (project) => handleApiInstinctsReject(url, project.id))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/instincts\/[^/]+$/)) {
-    return handleApiInstinctsDelete(url)
+    return withDashboardProject(req, (project) => handleApiInstinctsDelete(url, project.id))
   }
   if (method === 'POST' && url.pathname === '/api/instincts/bulk-delete') {
-    return handleApiInstinctsBulkDelete(req)
+    return withDashboardProject(req, (project) => handleApiInstinctsBulkDelete(req, project.id))
   }
   if (method === 'POST' && url.pathname === '/api/instincts/propose') {
-    return handleApiInstinctsPropose(req)
+    return withDashboardProject(req, (project) => handleApiInstinctsPropose(req, project.id))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/confidence$/)) {
-    return handleApiInstinctsSetConfidence(req, url)
+    return withDashboardProject(req, (project) =>
+      handleApiInstinctsSetConfidence(req, url, project.id),
+    )
   }
 
   if (method === 'GET' && url.pathname === '/api/skills') {
-    return withDashboardProject(req, (project) => handleApiSkillsList(project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsList(project.root, project.id))
   }
   if (method === 'GET' && url.pathname === '/api/skills/registry') {
     return handleApiSkillsRegistryList()
@@ -444,19 +472,21 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiSpecsDelete(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/memory/conflicts') {
-    return handleApiMemoryConflicts(url)
+    return withDashboardProject(req, (project) => handleApiMemoryConflicts(url, project.id))
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/memory\/conflicts\/([^/]+)\/resolve$/)) {
-    return handleApiMemoryConflictResolve(url, req)
+    return withDashboardProject(req, (project) =>
+      handleApiMemoryConflictResolve(url, req, project.id),
+    )
   }
   if (method === 'GET' && url.pathname === '/api/memory') {
     return withDashboardProject(req, (project) => handleApiMemory(url, project.id))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/memory\/[^/]+$/)) {
-    return handleApiMemoryDelete(url)
+    return withDashboardProject(req, (project) => handleApiMemoryDelete(url, project.id))
   }
   if (method === 'POST' && url.pathname === '/api/memory/bulk-delete') {
-    return handleApiMemoryBulkDelete(req)
+    return withDashboardProject(req, (project) => handleApiMemoryBulkDelete(req, project.id))
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
     return withDashboardProject(req, (project) => handleApiSettingsGet(project.root))

@@ -951,7 +951,22 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   **Gate:** dos procesos actualizan tareas distintas sin pérdida; conflicto sobre una misma tarea
   se resuelve o rechaza explícitamente; interrupción en escritura conserva un documento válido;
   recuperación de lock y compatibilidad portable verificadas. Tests con procesos reales aislados.
-- [ ] **ERP.2 — 🧠 Alcance de proyecto real en navegación, memoria y capacidades.**
+- [x] **ERP.2 — 🧠 Alcance de proyecto real en navegación, memoria y capacidades.** (cerrado 2026-10-02)
+  Ejecutado por: luna (4 rondas: r1, r1b, gate, gate-fix) · Spec: docs/specs/ERP.2*.md (borrados al cerrar)
+  `src/dashboard/ownership.ts` (`requestScope`/`ownsRow`): runs, memoria (lista, `q`, delete, bulk, conflictos),
+  instincts, tasks steps y toda ruta `/api/chat/sessions/:id/*` + `POST /api/chat|upload` con `sessionId` validan
+  dueño; id ajeno = 404 idéntico al inexistente; bulk ignora ajenos; sin proyecto → solo filas sin dueño / `global`,
+  nunca todo. Instincts por proyecto (migración 18, índice único `(COALESCE(project_id,''), trigger)`); históricos
+  `NULL` rotulados "Sin proyecto (histórico)" y no aplicados (`listApplicable` solo del proyecto). Skills con
+  `origin` Proyecto/Biblioteca; `usageRuns` por proyecto. Front: cada llamada por sesión manda el proyecto DE ESA
+  sesión (r1 usaba el último proyecto de localStorage → chats generales daban 404; cazado en revisión). Archivados
+  sin selector siguen listando todos. Hermanos: 9 flujos ui-gate consultaban rutas por id sin proyecto.
+  Gate en vivo: navegador real con Playwright (`scripts/ui-gate/flows/project-isolation.mjs`) + `src/__tests__/project-isolation.test.ts` contra `route()` (A/B con centinelas, 17 casos 404, bulk mixto, migración 18,
+  origin/usageRuns); `bun run test:coverage` 1594/0; `ui:gate project-isolation tasks chat-turn-details` 10/10,
+  13/13, 27/27 (`ui-gate-85885`, capturas memoria/instincts/skills por proyecto). No cubierto: capturas "antes"
+  (requería worktree de HEAD, no creado sin pedirlo); recorrido único proyecto→chat→tarea→resultado→memoria en un
+  solo flujo (cubierto por tramos: tasks + chat-turn-details + project-isolation).
+  Original:
   Completa UI.8.3–UI.8.5, no crea una segunda migración visual. Dónde: Sidebar citado arriba,
   estado del shell y `src/dashboard/handlers/memory.ts:7-24,58-90`; revisar los consumidores
   equivalentes de tasks/skills/specs/runs/graph y la selección de memoria para prompts.

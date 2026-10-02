@@ -238,7 +238,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     }
     let disposed = false
     const refreshTimeline = () =>
-      getTimeline(activeAgent.id)
+      getTimeline(activeAgent.id, activeAgent.projectId ?? null)
         .then((next) => {
           if (!disposed) setTimeline(next)
         })

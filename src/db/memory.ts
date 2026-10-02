@@ -186,13 +186,20 @@ export function listConflicts(projectId?: string): ConflictRecord[] {
     .all()
 }
 
-export function resolveConflict(id: string, content?: string): boolean {
+export function resolveConflict(id: string, content?: string, projectId?: string | null): boolean {
   const now = new Date().toISOString()
-  const conflict = db
-    .query<{ entry_a_id: string }, [string, string, string]>(
-      'SELECT entry_a_id FROM memory_conflicts WHERE (id = ? OR entry_a_id = ? OR entry_b_id = ?) AND resolved_at IS NULL',
-    )
-    .get(id, id, id)
+  const conflict =
+    projectId === undefined
+      ? db
+          .query<{ entry_a_id: string }, [string, string, string]>(
+            'SELECT entry_a_id FROM memory_conflicts WHERE (id = ? OR entry_a_id = ? OR entry_b_id = ?) AND resolved_at IS NULL',
+          )
+          .get(id, id, id)
+      : db
+          .query<{ entry_a_id: string }, [string, string, string, string | null, string | null]>(
+            "SELECT c.entry_a_id FROM memory_conflicts c JOIN memory_entries ea ON ea.id=c.entry_a_id WHERE (c.id = ? OR c.entry_a_id = ? OR c.entry_b_id = ?) AND c.resolved_at IS NULL AND ((? IS NULL AND ea.scope = 'global') OR ea.project_id = ?)",
+          )
+          .get(id, id, id, projectId, projectId)
   if (!conflict) return false
   if (content !== undefined) {
     db.run('UPDATE memory_entries SET content = ?, updated_at = ? WHERE id = ?', [

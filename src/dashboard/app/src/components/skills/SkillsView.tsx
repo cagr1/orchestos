@@ -124,6 +124,9 @@ export const SkillsView: React.FC<SkillsViewProps> = ({ skills, onCompileSkill }
                   >
                     {skill.status}
                   </span>
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+                    {skill.origin === 'library' ? 'Biblioteca' : 'Proyecto'}
+                  </span>
                 </div>
 
                 <p className="text-xs text-zinc-300 leading-relaxed font-normal">

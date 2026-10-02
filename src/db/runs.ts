@@ -177,6 +177,15 @@ export function listRunsByProjectId(projectId: string, limit = 20): RunRecord[] 
     .all(projectId, safeLimit)
 }
 
+export function listRunsWithoutProjectId(limit = 20): RunRecord[] {
+  const safeLimit = normalizeRunLimit(limit)
+  return db
+    .query<RunRecord, number>(
+      'SELECT * FROM runs WHERE project_id IS NULL ORDER BY created_at DESC LIMIT ?',
+    )
+    .all(safeLimit)
+}
+
 export function getRun(id: string): RunRecord | null {
   return db.query<RunRecord, string>('SELECT * FROM runs WHERE id = ?').get(id) ?? null
 }

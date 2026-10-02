@@ -197,10 +197,14 @@ function validTitle(value: unknown): value is string {
 export function handleApiChatSessionsList(req: Request): Response {
   const params = new URL(req.url).searchParams
   const archive = params.get('archived') === '1' ? 'archived' : 'active'
-  if (archive === 'archived' && !params.has('project')) {
-    return jsonResponse(listChatSessions(undefined, 'archived').map(toSessionRow))
+  if (
+    archive === 'archived' &&
+    !params.has('project') &&
+    !req.headers.get('x-orchestos-project-id')
+  ) {
+    return jsonResponse(listChatSessions(undefined, archive).map(toSessionRow))
   }
-  if (params.get('project') === 'none') {
+  if (!req.headers.get('x-orchestos-project-id') && params.get('project') === 'none') {
     return jsonResponse(listChatSessions(null, archive).map(toSessionRow))
   }
   let projectId: string | null

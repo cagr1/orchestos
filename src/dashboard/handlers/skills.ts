@@ -9,7 +9,7 @@ import { compileSkill } from '../../skills/compile.ts'
 import {
   getSkillPath,
   listProSkillFiles,
-  listSkillFiles,
+  listSkillFilesWithOrigin,
   loadSkill,
   resolveProSkillPath,
   resolveSkillPath,
@@ -54,15 +54,16 @@ import type {
   SkillRow,
 } from '../types.ts'
 
-function handleApiSkillsList(root = process.cwd()): Response {
+function handleApiSkillsList(root = process.cwd(), projectId: string | null = null): Response {
   try {
-    const files = listSkillFiles(root)
+    const files = listSkillFilesWithOrigin(root)
     const skills: SkillRow[] = []
-    for (const f of files) {
+    for (const { path: f, origin } of files) {
       try {
         const s = loadSkill(f)
         skills.push({
           id: s.id,
+          origin,
           name: s.name,
           description: s.description,
           version: s.version,
@@ -75,10 +76,10 @@ function handleApiSkillsList(root = process.cwd()): Response {
           status: 'source',
           usageRuns:
             db
-              .query<{ count: number }, [string]>(
-                'SELECT COUNT(*) AS count FROM runs WHERE skill_id = ?',
+              .query<{ count: number }, [string, string | null]>(
+                'SELECT COUNT(*) AS count FROM runs WHERE skill_id = ? AND project_id IS ?',
               )
-              .get(s.id)?.count ?? 0,
+              .get(s.id, projectId)?.count ?? 0,
         })
       } catch {}
     }
