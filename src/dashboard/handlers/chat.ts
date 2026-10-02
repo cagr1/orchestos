@@ -828,6 +828,8 @@ async function handleApiChat(
       }
     : undefined
   const chatAgent = body.agent ?? session?.agent ?? orchestratorAssignment?.agent
+  if (chatAgent === 'opencode')
+    return errorResponse('OpenCode se usa como terminal en el tab Dev; el chat no lo ejecuta.', 400)
   const chatAssignment = body.agent
     ? body.model
       ? {
@@ -846,10 +848,9 @@ async function handleApiChat(
     : resolvedOrchestratorAssignment
   const useClaudeCli = chatAgent === 'claude'
   const useCodexCli = chatAgent === 'codex'
-  const useOpencodeCli = chatAgent === 'opencode'
   const readBoundaryWarning = hasProjectContext ? projectChatReadBoundaryWarning(chatAgent) : null
   const requestedCliModel = body.model?.trim() || chatAssignment?.model
-  if ((useClaudeCli || useCodexCli || useOpencodeCli) && chatAssignment?.model) {
+  if ((useClaudeCli || useCodexCli) && chatAssignment?.model) {
     const catalog = (await readCliModelCatalogs()).find((item) => item.id === chatAgent)
     if (catalog?.models.length && !requestedCliModel) {
       return errorResponse(`A model is required for the ${chatAgent} CLI session`, 400)
@@ -1191,8 +1192,7 @@ async function handleApiChat(
 
   const projectCtx = hasProjectContext ? loadContext(root) : ''
   // The CLI owns its default model. Passing the API default here would make
-  // OpenCode translate it into an OpenRouter model and silently use the wrong
-  // transport; Codex would receive a misleading non-openai model as well.
+  // Codex receive a misleading non-openai model.
   const requestedModel = body.model?.trim()
   const model = requestedModel || chatAssignment.model
   const cliModel = model
@@ -1209,10 +1209,8 @@ async function handleApiChat(
   // agente en Settings no cambiaba nada en el chat, seguía yendo por la API de
   // OpenRouter. Mismo eje que ya decide el engine de la tarea que el chat
   // auto-crea (D.7/E.16, más abajo) — acá decide por dónde sale la RESPUESTA
-  // VISIBLE. Solo `claude` implementado: Codex/OpenCode no tienen un flag de
-  // solo-lectura verificado seguro todavía (`codex exec --sandbox read-only`
-  // NO impidió escribir en la prueba en vivo del 2026-08-17) — documentado
-  // como pendiente en PLAN.md § CC.D, no improvisado a ciegas.
+  // VISIBLE. Solo Claude y Codex pueden conducir respuestas por CLI en chat;
+  // OpenCode se ejecuta únicamente como terminal en Dev.
   // (chatAgent/useClaudeCli ya se calcularon arriba, antes de validar `effort`.)
 
   // BACK.3: el efecto se descarta en silencio si el modelo no lo soporta — el
@@ -1233,11 +1231,9 @@ async function handleApiChat(
     ? `Claude Code CLI — modelo: ${model || '(default del CLI)'}${cliEffort ? `, esfuerzo: ${cliEffort}` : ''}`
     : useCodexCli
       ? `Codex CLI — modelo: ${model || '(default del CLI)'}${cliEffort ? `, esfuerzo: ${cliEffort}` : ''}`
-      : useOpencodeCli
-        ? `OpenCode CLI — modelo: ${model || '(default del CLI)'}`
-        : isOllama
-          ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
-          : `${model} via OpenRouter`
+      : isOllama
+        ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
+        : `${model} via OpenRouter`
 
   const autoTaskInstruction = !hasProjectContext
     ? 'If the user asks you to build or modify files, say plainly that this chat has no associated project and no task can be created here.'
@@ -1555,57 +1551,6 @@ async function handleApiChat(
           provider: 'codex',
         })
         return errorResponse(`Codex CLI: ${e.message}`, 502)
-      } finally {
-        if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
-      }
-    }
-
-    if (useOpencodeCli) {
-      const { runOpencodeChat } = await import('../../run/executors/opencode.ts')
-      const isolatedCwd = hasProjectContext ? null : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
-      try {
-        const result = await runOpencodeChat(
-          isolatedCwd ?? root,
-          systemPrompt,
-          combinedText,
-          CLAUDE_CHAT_TIMEOUT_MS,
-          cliModel,
-          selectedEffort,
-          persistChatStep,
-        )
-        const resultLabel = `${cliModel ? result.model : 'CLI default model'} via OpenCode CLI`
-        const { text: responseText } = await settleTaskIntent(result.text)
-        finishTurnSuccess({
-          responseText,
-          resultLabel,
-          inputTokens: result.inputTokens,
-          outputTokens: result.outputTokens,
-          readAudit: uninstrumentedReadAudit(),
-          readBoundaryWarning,
-          provider: 'opencode',
-          canonicalModel: result.model,
-        })
-        return jsonResponse({
-          text: responseText,
-          model: resultLabel,
-          ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-          taskSuggestion: taskSuggestion.isTask
-            ? { isTask: true, reason: taskSuggestion.reason }
-            : { isTask: false, reason: '' },
-          autoTask,
-          autoTaskSkipped,
-          readBoundaryWarning: readBoundaryWarning ?? undefined,
-        })
-      } catch (e: any) {
-        // R.5 (hallazgo #6) — mismo hueco que Codex CLI: sin esto, un fallo
-        // de OpenCode no dejaba rastro ni en el turno ni en "Recent Runs".
-        finishTurnFailure({
-          error: `OpenCode CLI failed: ${e.message}`,
-          model: cliModel,
-          readAudit: uninstrumentedReadAudit(),
-          provider: 'opencode',
-        })
-        return errorResponse(`OpenCode CLI: ${e.message}`, 502)
       } finally {
         if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
       }

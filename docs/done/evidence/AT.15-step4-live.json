@@ -1,0 +1,155 @@
+{
+  "item": "AT.15 paso 4",
+  "date": "2026-10-01",
+  "command": "bun run ui:gate model-routing composer-picker",
+  "browser": "Playwright chromium",
+  "result": [
+    {
+      "flujo": "model-routing",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "4 role cards are shown",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "all role cards start unassigned",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "legacy QA judge and model are absent",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "orchestrator does not offer OpenCode",
+          "ok": true,
+          "detalle": "{\"orchestratorOpenCodeCount\":0,\"orchestratorCodexCount\":1}"
+        },
+        {
+          "nombre": "executor still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "reviewer still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "auxiliary still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "OpenCode reviewer model menu stays under 60 percent of viewport and scrolls internally",
+          "ok": true,
+          "detalle": "{\"height\":550,\"viewportHeight\":1000,\"scrolls\":true}"
+        },
+        {
+          "nombre": "model search shows the empty state",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "model search reduces results and keeps the requested model",
+          "ok": true,
+          "detalle": "{\"initialModelCount\":398,\"matchingModelCount\":1,\"model\":\"opencode/fledge-alpha-free\",\"matchingModelVisible\":1}"
+        },
+        {
+          "nombre": "keyboard selection opens effort for a variant model",
+          "ok": true,
+          "detalle": "{\"model\":\"opencode/fledge-alpha-free\",\"efforts\":[\"low\",\"high\",\"max\"]}"
+        },
+        {
+          "nombre": "effort menu contains only this model variants",
+          "ok": true,
+          "detalle": "[\"low\",\"high\",\"max\"]"
+        },
+        {
+          "nombre": "model without variants hides effort control",
+          "ok": true,
+          "detalle": "{\"model\":\"opencode/big-pickle\",\"efforts\":[]}"
+        },
+        {
+          "nombre": "role assignments persist and reviewer warning appears",
+          "ok": true,
+          "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"ui\":[\"Orchestrator\\nChat, drafts and task splitting\\nCodex\\nGPT-6-Luna\\nmedium\",\"Executor\\nRuns tasks\\nCodex\\nGPT-6-Luna\\nmedium\",\"Reviewer\\nQA, adversarial and refuter (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\\nSame agent and model as Executor: errors may correlate.\",\"Auxiliary\\nDiagnose and memory judge (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\"],\"source\":[\"Source: orchestos.config.yaml\"]}"
+        },
+        {
+          "nombre": "task rule persists after reload",
+          "ok": true,
+          "detalle": "{\"rules\":[{\"match\":{\"output\":[\"docs/**\"]},\"agent\":\"codex\"}],\"ui\":[\"Task rules (1)\"],\"output\":\"docs/**\"}"
+        },
+        {
+          "nombre": "deleting the rule persists an empty list",
+          "ok": true,
+          "detalle": "[]"
+        },
+        {
+          "nombre": "project config remains selected before running task",
+          "ok": true,
+          "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}}}"
+        },
+        {
+          "nombre": "run record stores the executor and QA models chosen in the UI",
+          "ok": true,
+          "detalle": "{\"id\":\"a1769bfe-74bb-4432-8a78-6a31bb9b4a51\",\"model\":\"gpt-6-luna\",\"qa_model\":\"gpt-6-luna\"}"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/model-routing/roles-unassigned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/model-routing/roles-assigned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/model-routing/task-rules.png"
+      ]
+    },
+    {
+      "flujo": "composer-picker",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project visible in Dev",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "OpenCode not offered for new chat",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Codex available for new chat",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Codex model selector has no search input",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Codex effort levels remain available",
+          "ok": true,
+          "detalle": "{\"model\":\"gpt-6.1-sol\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\",\"ultra\"]}"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/composer-picker/project-registered.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/composer-picker/dev-mode.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/composer-picker/temporary-project-selected.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/composer-picker/chat-mode.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/composer-picker/new-chat-agent-selector.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17536/composer-picker/codex-efforts-preserved.png"
+      ]
+    }
+  ],
+  "also": {
+    "opencode-terminal": "8/8 (ronda 4)",
+    "chat-roles": "11/11",
+    "test:coverage": "1581 pass / 0 fail"
+  }
+}

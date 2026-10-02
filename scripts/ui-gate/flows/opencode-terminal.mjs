@@ -76,6 +76,20 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
   if (!(await sessionLabel.isVisible().catch(() => false))) {
     await projectButton.click()
   }
+  const launchAgentButton = page.getByRole('button', { name: 'Launch new agent', exact: true })
+  if (await launchAgentButton.isVisible().catch(() => false)) {
+    await launchAgentButton.click()
+    const agentDialog = page.getByRole('dialog')
+    const opencodeOption = agentDialog.getByRole('button', { name: /opencode/i })
+    await step('Dev agent modal still offers OpenCode', await visible(opencodeOption))
+    await agentDialog.getByRole('button', { name: 'Close modal', exact: true }).click()
+  } else {
+    await step(
+      'Dev agent modal still offers OpenCode',
+      false,
+      'Launch new agent button not visible',
+    )
+  }
   await step('OpenCode session appears in Dev sidebar', await visible(sessionLabel), title)
   if (await sessionLabel.isVisible().catch(() => false)) await sessionLabel.click()
   const terminal = page.getByRole('region', { name: 'OpenCode terminal' })

@@ -76,6 +76,21 @@ describe('model roles config', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+  it('loads OpenCode as the orchestrator without throwing', () => {
+    const root = temp()
+    try {
+      writeFileSync(
+        join(root, 'orchestos.config.yaml'),
+        'roles:\n  orchestrator: { agent: opencode, model: opencode/test }\n',
+      )
+      expect(loadOrcheConfig(root).roles.orchestrator).toEqual({
+        agent: 'opencode',
+        model: 'opencode/test',
+      })
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   it('PUT/GET persists role assignments without changing models or unrelated YAML; null deletes and invalid is atomic', async () => {
     const root = temp()
     const original =
@@ -118,6 +133,13 @@ describe('model roles config', () => {
           )
         ).status,
       ).toBe(400)
+      expect(
+        await handleApiConfigSet(
+          request({
+            roleAssignments: { orchestrator: { agent: 'opencode', model: 'opencode/test' } },
+          }),
+        ),
+      ).toMatchObject({ status: 400 })
       expect(readFileSync(join(root, 'orchestos.config.yaml'))).toEqual(bytes)
     } finally {
       process.chdir(cwd)

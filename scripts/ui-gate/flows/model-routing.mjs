@@ -10,6 +10,16 @@ function run(command, args, cwd) {
 }
 
 export default async function modelRouting({ page, api, step, shot, cleanup }) {
+  const waitForExpanded = async (button, expanded) => {
+    const expected = String(expanded)
+    const deadline = Date.now() + 5000
+    while (Date.now() < deadline) {
+      if ((await button.getAttribute('aria-expanded')) === expected) return
+      await delay(50)
+    }
+    throw new Error(`Model routing menu did not reach aria-expanded="${expected}"`)
+  }
+
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-mr-1-c-'))
   writeFileSync(join(projectRoot, 'README.md'), '# Model routing gate\n')
   writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
@@ -125,11 +135,55 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
     const plainModel = opencode.models.find((model) => !model.efforts?.length)
     if (!variantModel || !plainModel)
       throw new Error('OpenCode catalog must include models both with and without variants')
-    const firstCard = cards.first()
-    await firstCard.getByLabel('Orchestrator agent').click()
+    const orchestratorCard = cards.first()
+    const orchestratorAgent = orchestratorCard.getByLabel('Orchestrator agent')
+    await orchestratorAgent.click()
+    await waitForExpanded(orchestratorAgent, true)
+    await orchestratorCard.getByRole('button', { name: 'Unassigned', exact: true }).waitFor({
+      state: 'visible',
+      timeout: 15000,
+    })
+    await orchestratorCard.getByRole('button', { name: 'codex', exact: true }).waitFor({
+      state: 'visible',
+      timeout: 15000,
+    })
+    const orchestratorOpenCodeCount = await orchestratorCard
+      .getByRole('button', { name: 'opencode', exact: true })
+      .count()
+    const orchestratorCodexCount = await orchestratorCard
+      .getByRole('button', { name: 'codex', exact: true })
+      .count()
+    await step(
+      'orchestrator does not offer OpenCode',
+      orchestratorOpenCodeCount === 0 && orchestratorCodexCount >= 1,
+      JSON.stringify({ orchestratorOpenCodeCount, orchestratorCodexCount }),
+    )
+    await orchestratorAgent.click()
+    await waitForExpanded(orchestratorAgent, false)
+    for (const [index, role] of [
+      [1, 'Executor'],
+      [2, 'Reviewer'],
+      [3, 'Auxiliary'],
+    ]) {
+      const card = cards.nth(index)
+      const agentButton = card.getByLabel(`${role} agent`)
+      await agentButton.click()
+      await waitForExpanded(agentButton, true)
+      await card.getByRole('button', { name: 'Unassigned', exact: true }).waitFor({
+        state: 'visible',
+        timeout: 15000,
+      })
+      const openCodeButton = card.getByRole('button', { name: 'opencode', exact: true })
+      await openCodeButton.waitFor({ state: 'visible', timeout: 15000 })
+      await step(`${role.toLowerCase()} still offers OpenCode`, await openCodeButton.isVisible())
+      await agentButton.click()
+      await waitForExpanded(agentButton, false)
+    }
+    const reviewerCard = cards.nth(2)
+    await reviewerCard.getByLabel('Reviewer agent').click()
     await page.getByRole('button', { name: 'opencode', exact: true }).last().click()
-    await firstCard.getByRole('button', { name: 'Select model' }).click()
-    const search = firstCard.getByPlaceholder('Filter models...')
+    await reviewerCard.getByRole('button', { name: 'Select model' }).click()
+    const search = reviewerCard.getByPlaceholder('Filter models...')
     const menu = search.locator('xpath=..')
     const initialModelCount = await menu.getByRole('button').count()
     const menuBox = await menu.boundingBox()
@@ -138,14 +192,14 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
       (element) => element.scrollHeight > element.clientHeight,
     )
     await step(
-      'model menu stays under 60 percent of viewport and scrolls internally',
+      'OpenCode reviewer model menu stays under 60 percent of viewport and scrolls internally',
       Boolean(menuBox && menuBox.height < viewportHeight * 0.6 && menuScrolls),
       JSON.stringify({ height: menuBox?.height, viewportHeight, scrolls: menuScrolls }),
     )
     await search.fill('no-model-can-match')
     await step(
       'model search shows the empty state',
-      await firstCard.getByText('No models match').isVisible(),
+      await reviewerCard.getByText('No models match').isVisible(),
     )
     await search.fill(variantModel.id)
     const matchingModelCount = await menu.getByRole('button').count()
@@ -164,10 +218,10 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
     await search.press('Enter')
     await step(
       'keyboard selection opens effort for a variant model',
-      await firstCard.getByLabel('Orchestrator effort').isVisible(),
+      await reviewerCard.getByLabel('Reviewer effort').isVisible(),
       JSON.stringify({ model: variantModel.id, efforts: variantModel.efforts }),
     )
-    await firstCard.getByLabel('Orchestrator effort').click()
+    await reviewerCard.getByLabel('Reviewer effort').click()
     await step(
       'effort menu contains only this model variants',
       (
@@ -180,16 +234,16 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
       JSON.stringify(variantModel.efforts),
     )
     await page.keyboard.press('Escape')
-    await firstCard.getByRole('button').filter({ hasText: variantModel.name }).first().click()
+    await reviewerCard.getByRole('button').filter({ hasText: variantModel.name }).first().click()
     await search.fill(plainModel.id)
     await search.press('ArrowDown')
     await search.press('Enter')
     await step(
       'model without variants hides effort control',
-      (await firstCard.getByLabel('Orchestrator effort').count()) === 0,
+      (await reviewerCard.getByLabel('Reviewer effort').count()) === 0,
       JSON.stringify({ model: plainModel.id, efforts: plainModel.efforts }),
     )
-    await firstCard.getByLabel('Orchestrator agent').click()
+    await reviewerCard.getByLabel('Reviewer agent').click()
     await page.getByRole('button', { name: 'codex', exact: true }).last().click()
   }
   for (const [index, role] of roles.entries()) {

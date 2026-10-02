@@ -93,3 +93,71 @@ Evidencia (captura del gate): el proyecto aparece plegado con contador `1`; la s
 el contador), así que nunca despliega. Cambiarlo a un localizador que sí coincida (p. ej. `name` como RegExp que
 empiece por el basename escapado, `.first()`), hacer click si la sesión no está visible y luego esperar la sesión
 con `visible()`. Solo toca el flujo; pasa el lint de flows.
+
+## Ronda 4 — paso (4): OpenCode deja de ser opción del chat (GO de Carlos 2026-10-01)
+
+OpenCode vive solo como terminal en Dev (AT.15.a). En el chat no se ofrece ni se ejecuta. Se quedan: el catálogo de
+modelos de OpenCode (`chat-cli-models.ts`, `opencode-catalog.ts`), `runOpencodeChat` (lo usa `router/role-runner.ts`
+para roles distintos del chat), el executor de tareas y la opción OpenCode del modal "+ agente" de Dev.
+
+1. `src/dashboard/app/src/components/layout/NewAgentSelectorModal.tsx`: con `isChatMode` no lista `opencode` (si era
+   la selección por defecto, cae a la primera opción disponible). Sin `isChatMode` (Dev) sigue apareciendo.
+2. `src/dashboard/handlers/chat.ts`: si `chatAgent === 'opencode'` → `errorResponse('OpenCode se usa como terminal en el
+   tab Dev; el chat no lo ejecuta.', 400)` antes de cualquier trabajo. Borrar la rama `useOpencodeCli` (~1563-1610) y lo
+   que quede muerto por ello en ese archivo y en `src/chat/chat-context.ts:136` (solo si ya no tiene otro uso).
+3. Model routing: el rol **orchestrator** (es el que conduce el chat) no ofrece OpenCode como agente en Settings, y el
+   loader/validador de config rechaza `roles.orchestrator.agent: opencode` con un mensaje claro. Los otros 3 roles
+   siguen ofreciendo OpenCode. Localiza el selector de agente por rol en `OrchestSettingsView.tsx` y la validación en
+   `src/config/`.
+4. Frontend chat: quitar `opencode` del mapeo `cliId`/`cliName` de `OrchestChatView.tsx:120-140` (un hilo viejo con
+   agent opencode cae a la rama genérica) y el input "Search models" exclusivo de OpenCode en `AgentComposer.tsx:401`
+   (ya no hay composer con OpenCode: Dev con OpenCode es terminal). No dejes estado/refs muertos de ese buscador.
+   Comprueba `bun run ui:fidelity:jsx` (AgentComposer está vigilado) y, si el allow-list de ese check cita el buscador,
+   actualízalo.
+5. Tests: actualiza/añade unit tests de (2) y (3). Ajusta tests existentes que asumían chat con OpenCode.
+6. Flujos: `scripts/ui-gate/flows/composer-picker.mjs` — sustituye el tramo OpenCode (líneas ~56-212) por un step
+   `OpenCode not offered for new chat` (el diálogo de New chat no tiene opción OpenCode) y deja intacto el tramo Codex.
+   `model-routing.mjs:122-130`: si usa OpenCode para el orchestrator, cámbialo a otro rol; añade step "orchestrator no
+   ofrece OpenCode". `opencode-terminal.mjs`: añade step de que el modal "+ agente" de Dev sí ofrece OpenCode (abrirlo
+   y cerrarlo; la sesión puede seguir creándose por API). Lint de flows como arriba.
+Gate del ejecutor: typecheck, lint de archivos tocados, `bun test` completo, build:app, ui:fidelity:jsx. No commitees.
+
+## Ronda 5 — correcciones de la ronda 4 (revisión del cerebro)
+
+1. `src/config/load.ts`: revertir el `throw` por `roles.orchestrator.agent: opencode`. `loadOrcheConfig` mantiene su
+   contrato "nunca lanza" (lo llaman CLI, dashboard y scheduler; un throw ahí tumba el dashboard entero). Restaurar
+   el docstring original y el `try { return mergeWithDefaults(raw) } catch {}` tal como estaba. La validación queda en
+   `handlers/config.ts` (guardar desde Settings → 400, ya está) y en el chat (punto 2). Quitar/ajustar el test que
+   esperaba el throw: en su lugar, test de que el loader carga esa config sin lanzar.
+2. `src/dashboard/handlers/chat.ts`: el 400 de OpenCode debe cubrir también el agente que llega por el rol
+   orchestrator. Mover el chequeo a justo después de calcular `chatAgent` y usar `chatAgent === 'opencode'`
+   (cubre body, sesión y orchestrator). Mensaje igual. Test unitario del caso orchestrator=opencode sin agent en el body.
+Gate: typecheck, `bun test` completo, lint de archivos tocados. No commitees.
+
+## Ronda 6 — `model-routing.mjs`: los pasos de "ofrece / no ofrece OpenCode" no esperan al menú
+
+Fallo real fuera del sandbox: `FAIL model-routing: executor still offers OpenCode` aunque la UI filtra solo el
+orchestrator (`OrchestSettingsView.tsx:1361`). Los pasos usan `count()` inmediato tras el click, y el paso del
+orchestrator es vacuo (0 botones también si el menú no abrió).
+Arreglo, solo en el flujo: tras cada click de apertura, esperar `aria-expanded="true"` en ese botón
+(`expect`-style con `waitFor`/poll hasta 5 s) y esperar a que el menú esté visible (su opción "Unassigned"
+dentro de la card). Luego: orchestrator → dentro de su card, 0 botones `opencode` Y ≥1 botón `codex` (prueba de
+que el menú está abierto); executor/reviewer/auxiliary → esperar con `waitFor({state:'visible', timeout:5000})` el
+botón `opencode` dentro de esa card. Cerrar cada menú y esperar `aria-expanded="false"` antes del siguiente.
+Busca los botones dentro de la card (`card.getByRole(...)`), no en toda la página. Lint de flows. No commitees.
+
+## Ronda 7 — esperar al catálogo, no solo al menú
+
+Fuera del sandbox: `orchestrator does not offer OpenCode: {"orchestratorOpenCodeCount":0,"orchestratorCodexCount":0}`.
+"Unassigned" aparece al instante, pero las opciones de agente salen de `routingCatalog`, que carga async. En el
+orchestrator: esperar `card.getByRole('button', {name:'codex', exact:true})` visible (timeout 15 s) y SOLO después
+contar `opencode` (=0). En los otros roles el `waitFor` de `opencode` sube a 15 s. Solo el flujo; lint de flows.
+
+## Ronda 8 — etiquetas que quedaron apuntando al orchestrator
+
+Fuera del sandbox: `FAIL keyboard selection opens effort for a variant model`. En la ronda 4 el tramo OpenCode pasó a
+la card Reviewer (`const firstCard = cards.nth(2)`), pero dentro de ese tramo siguen `firstCard.getByLabel('Orchestrator
+effort')` (×3) y `firstCard.getByLabel('Orchestrator agent')` (×1, el que resetea el agente al final). Cámbialos a
+`Reviewer effort` / `Reviewer agent`, y renombra `firstCard` → `reviewerCard` en ese tramo. Revisa que lo que viene
+después (asignación de los 4 roles y persistencia) siga siendo coherente: el orchestrator nunca debe quedar en
+opencode. Solo el flujo; lint de flows.

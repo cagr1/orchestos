@@ -133,9 +133,7 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
       ? `You can read files with ${input.readTools ?? 'Read, Glob, Grep'}. You cannot edit files or run commands.`
       : input.agent === 'codex'
         ? 'You can read files and run read-only shell commands; writes are blocked by the sandbox.'
-        : input.agent === 'opencode'
-          ? 'You are a read-only plan agent.'
-          : 'You cannot modify files or run code directly from this chat. OrchestOS can improve itself through Tasks → agent runs → code changes.'
+        : 'You cannot modify files or run code directly from this chat. OrchestOS can improve itself through Tasks → agent runs → code changes.'
   const responseGuidance =
     'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through the task line below.'
   const role = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs,${input.memory?.length ? ' memory,' : ''}${input.specs?.length ? ' specs,' : ''} and the system. Be concise and direct. If the user writes in Spanish, respond in Spanish.`

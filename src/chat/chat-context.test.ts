@@ -11,7 +11,6 @@ describe('chat system context', () => {
     for (const [agent, phrase] of [
       ['claude', 'Read, Glob, Grep'],
       ['codex', 'read-only shell commands'],
-      ['opencode', 'read-only plan agent'],
       ['api', 'cannot modify files'],
     ] as const) {
       const prompt = buildChatSystemPrompt({ ...base, agent })

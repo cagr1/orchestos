@@ -1357,23 +1357,25 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           >
                             Unassigned
                           </button>
-                          {routingCatalog.map((entry) => (
-                            <button
-                              key={entry.id}
-                              type="button"
-                              disabled={!entry.installed}
-                              onClick={() => {
-                                setRoutingRoles((current) => ({
-                                  ...current,
-                                  [key]: { agent: entry.id, model: '' },
-                                }))
-                                setActiveComboboxRole(null)
-                              }}
-                              className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated disabled:opacity-50"
-                            >
-                              {entry.id}
-                            </button>
-                          ))}
+                          {routingCatalog
+                            .filter((entry) => key !== 'orchestrator' || entry.id !== 'opencode')
+                            .map((entry) => (
+                              <button
+                                key={entry.id}
+                                type="button"
+                                disabled={!entry.installed}
+                                onClick={() => {
+                                  setRoutingRoles((current) => ({
+                                    ...current,
+                                    [key]: { agent: entry.id, model: '' },
+                                  }))
+                                  setActiveComboboxRole(null)
+                                }}
+                                className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated disabled:opacity-50"
+                              >
+                                {entry.id}
+                              </button>
+                            ))}
                         </div>
                       )}
                     </div>

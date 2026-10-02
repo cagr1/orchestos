@@ -20,7 +20,6 @@ export const CLIS: CliConfig[] = [
   { id: 'api', name: 'ChatGPT', defaultModel: '', models: [], efforts: [] },
   { id: 'claude', name: 'Claude', defaultModel: '', models: [], efforts: [] },
   { id: 'codex', name: 'Codex', defaultModel: '', models: [], efforts: [] },
-  { id: 'opencode', name: 'OpenCode', defaultModel: '', models: [], efforts: [] },
   { id: 'deepseek', name: 'DeepSeek', defaultModel: '', models: [], efforts: [] },
   { id: 'gemini', name: 'Gemini', defaultModel: '', models: [], efforts: [] },
 ]
@@ -117,21 +116,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [isShellMode, setIsShellMode] = useState(false)
   const [showSlashMenu, setShowSlashMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [modelSearchState, setModelSearchState] = useState<{ cli: CliId; value: string } | null>(
-    null,
-  )
-  const modelSearch = modelSearchState?.cli === currentCliConfig.id ? modelSearchState.value : ''
   const [activeModelIndex, setActiveModelIndex] = useState(0)
-  const modelSearchRef = useRef<HTMLInputElement>(null)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (showDropdown) modelSearchRef.current?.focus()
-  }, [showDropdown])
 
   useEffect(() => {
     let disposed = false
@@ -333,11 +323,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     : currentCliConfig.id === 'api'
       ? currentCliConfig.efforts
       : []
-  const filteredModels = currentCliConfig.models.filter((model) =>
-    `${model.name} ${model.vendor ?? ''} ${model.id}`
-      .toLowerCase()
-      .includes(modelSearch.toLowerCase()),
-  )
+  const filteredModels = currentCliConfig.models
   const modelsReady = !isLoadingModels && currentCliConfig.models.length > 0
 
   return (
@@ -398,19 +384,6 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               <div className="text-[10px] font-mono uppercase tracking-wider text-app-muted mb-1.5">
                 Model
               </div>
-              {currentCliConfig.id === 'opencode' && (
-                <input
-                  ref={modelSearchRef}
-                  value={modelSearch}
-                  onChange={(event) => {
-                    setModelSearchState({ cli: currentCliConfig.id, value: event.target.value })
-                    setActiveModelIndex(0)
-                  }}
-                  placeholder="Search models…"
-                  aria-label="Search models"
-                  className="block w-full min-w-0 px-2 py-1 bg-app-bg border border-app rounded-control text-xs text-app"
-                />
-              )}
               <div className="max-h-[40vh] overflow-y-auto space-y-0.5 -mx-2">
                 {filteredModels.length === 0 ? (
                   <div className="px-2 py-2 text-app-muted">No models match</div>
@@ -599,7 +572,6 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 type="button"
                 onClick={() => {
                   if (modelsReady) {
-                    setModelSearchState({ cli: currentCliConfig.id, value: '' })
                     setActiveModelIndex(0)
                     setShowDropdown(!showDropdown)
                   }

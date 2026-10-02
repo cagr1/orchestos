@@ -562,7 +562,7 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.run).toEqual(expect.objectContaining({ provider: 'codex' }))
   })
 
-  it('fails OpenCode without making an Auxiliary provider call', async () => {
+  it('rejects OpenCode chat sessions before calling a provider', async () => {
     const result = await runIsolated(`
       const { mkdirSync, writeFileSync } = await import('fs')
       const { join } = await import('path')
@@ -572,13 +572,13 @@ describe('CC.2 — chat sessions backend', () => {
       writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ fetchedAt: Date.now(), models: {} }))
       const projectDir = join(home, 'opencode-error-project')
       mkdirSync(projectDir, { recursive: true })
-      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: opencode, model: opencode/test }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: codex, model: gpt-6-luna }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { createChatSession } = await import('./src/db/chat-sessions.ts')
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
       runMigrations(); process.chdir(projectDir)
-      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: opencode, model: opencode/test }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: codex, model: gpt-6-luna }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const fetchUrls = []
       globalThis.fetch = async (url) => {
         fetchUrls.push(String(url))
@@ -588,13 +588,48 @@ describe('CC.2 — chat sessions backend', () => {
       const response = await handleApiChat(new Request('http://localhost/api/chat', {
         method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'opencode failure probe' })
       }))
+      const payload = await response.json()
       const rows = db.query('SELECT provider FROM runs WHERE task_class = "chat" ORDER BY created_at DESC LIMIT 1').all()
-      process.stdout.write(JSON.stringify({ status: response.status, fetchUrls, rows }))
+      process.stdout.write(JSON.stringify({ status: response.status, payload, fetchUrls, rows }))
       db.close()
     `)
-    expect(result.status).toBe(502)
+    expect(result.status).toBe(400)
+    expect((result.payload as { error: string }).error).toBe(
+      'OpenCode se usa como terminal en el tab Dev; el chat no lo ejecuta.',
+    )
     expect(result.fetchUrls).toHaveLength(0)
-    expect(result.rows).toEqual([expect.objectContaining({ provider: 'opencode' })])
+    expect(result.rows).toEqual([])
+  })
+
+  it('rejects an OpenCode orchestrator before calling a provider when the request omits agent', async () => {
+    const result = await runIsolated(`
+      const { mkdirSync, writeFileSync } = await import('fs')
+      const { join } = await import('path')
+      const home = process.env.ORCHESTOS_HOME
+      const cacheDir = join(home, '.orchestos', 'cache')
+      mkdirSync(cacheDir, { recursive: true })
+      writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ fetchedAt: Date.now(), models: {} }))
+      const projectDir = join(home, 'opencode-orchestrator-project')
+      mkdirSync(projectDir, { recursive: true })
+      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: opencode, model: opencode/test }\\n')
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      runMigrations(); process.chdir(projectDir)
+      const fetchUrls = []
+      globalThis.fetch = async (url) => { fetchUrls.push(String(url)); return new Response('{}', { status: 200 }) }
+      const response = await handleApiChat(new Request('http://localhost/api/chat', {
+        method: 'POST', body: JSON.stringify({ message: 'hello' })
+      }))
+      const payload = await response.json()
+      process.stdout.write(JSON.stringify({ status: response.status, payload, fetchUrls }))
+      db.close()
+    `)
+    expect(result.status).toBe(400)
+    expect((result.payload as { error: string }).error).toBe(
+      'OpenCode se usa como terminal en el tab Dev; el chat no lo ejecuta.',
+    )
+    expect(result.fetchUrls).toHaveLength(0)
   })
 
   it('never auto-creates a real task for a general project-less session in Code mode', async () => {

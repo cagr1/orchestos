@@ -51,7 +51,9 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
     void modesPromise
       .then((executorModes) => {
         if (disposed) return
-        const available = executorModes.modes.filter((mode) => mode.detected)
+        const available = executorModes.modes.filter(
+          (mode) => mode.detected && (!isChatMode || mode.id !== 'opencode'),
+        )
         setModes(available)
         setSelectedCli((current) =>
           available.some((mode) => mode.id === current) ? current : available[0]?.id || '',
@@ -67,7 +69,13 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
           if (disposed) return
           const orchestrator = config.roleAssignments?.orchestrator
           if (orchestrator) {
-            setSelectedCli(orchestrator.agent)
+            setSelectedCli((current) =>
+              orchestrator.agent === 'opencode'
+                ? current === 'opencode'
+                  ? ''
+                  : current
+                : orchestrator.agent,
+            )
             setChatModel(orchestrator.model)
           }
         })

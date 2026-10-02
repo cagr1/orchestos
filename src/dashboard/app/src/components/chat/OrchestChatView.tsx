@@ -118,10 +118,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   }, [isWorking, sessionId])
   const liveText = liveTimeline?.live?.text ?? ''
   const cliId = (
-    thread?.agent === 'claude' ||
-    thread?.agent === 'codex' ||
-    thread?.agent === 'opencode' ||
-    thread?.agent === 'api'
+    thread?.agent === 'claude' || thread?.agent === 'codex' || thread?.agent === 'api'
       ? thread.agent
       : 'api'
   ) as CliId
@@ -132,11 +129,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         ? 'Claude'
         : cliId === 'codex'
           ? 'Codex'
-          : cliId === 'opencode'
-            ? 'OpenCode'
-            : cliId === 'deepseek'
-              ? 'DeepSeek'
-              : 'Gemini'
+          : cliId === 'deepseek'
+            ? 'DeepSeek'
+            : 'Gemini'
   const context = sessionStatus?.clis.find((cli) => cli.id === cliId)?.context
   const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
   const lastModel = lastAssistant?.model

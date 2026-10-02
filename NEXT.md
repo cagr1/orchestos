@@ -3,7 +3,7 @@
 ## AT.15 en curso (2026-10-01)
 Spec `docs/specs/AT.15.md` (pasos 1–3: PTY `src/dashboard/terminal.ts`, WS `/api/terminal` con Origin obligatorio,
 `OpenCodeTerminal.tsx` en Dev cuando la sesión es `opencode`). Pasos 1–3 cerrados y
-commiteados (evidencia en PLAN.md AT.15). Falta solo el paso (4) "OpenCode fuera del chat", espera GO de Carlos.
+commiteados (evidencia en PLAN.md AT.15). Paso (4) hecho: AT.15 cerrado completo.
 CI.8 cerrado (codex-live comparaba markdown crudo vs DOM). Pusheado: origin/master = bae15d7, pre-push verde.
 Visto 1 vez sin ítem: la sonda `--restricted` (`cli-registry.ts:214`, timeout 2 s) falló bajo carga en el pre-push.
 El flujo `opencode-terminal` NO va en el pre-push (necesita el binario opencode; CI no lo tiene).

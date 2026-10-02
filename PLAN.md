@@ -908,7 +908,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 
   **Fuera de scope:** elegir un modelo interno específico de cada CLI, modificar el motor de tareas,
   y prometer soporte para los otros CLIs del registro antes de que tengan adaptador de chat real.
-- [ ] **AT.15 — 🧠 OpenCode tal cual trabaja: terminal real en el tab Dev.** (abierto 2026-09-28, GO de Carlos; sustituye el
+- [x] **AT.15 — 🧠 OpenCode tal cual trabaja: terminal real en el tab Dev.** (cerrado 2026-10-01) (abierto 2026-09-28, GO de Carlos; sustituye el
   tramo OpenCode de AT.10) Carlos: "si en un terminal escribo OpenCode se abre como siempre; quiero el mismo tratamiento,
   con más razón en el tab Dev". Plan aprobado: (1) servidor abre `opencode` en la carpeta del proyecto con PTY
   (`Bun.Terminal`, presente en Bun 1.3.14), su propia config y auth, sin CODEX_HOME/OPENCODE aislado ni modelo elegido
@@ -916,7 +916,13 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   dependencia nueva) que se ve y usa igual que la terminal; (4) OpenCode deja de ser opción del chat. Fuera: otros CLI en
   la terminal, persistir el scrollback. Gate en vivo: navegador real, abrir OpenCode en Dev, escribir un prompt, ver la
   TUI responder, redimensionar, cerrar sin procesos huérfanos (`ps`). Va después de MR.1.d5.
-  Pendiente: paso (4) "OpenCode deja de ser opción del chat", espera confirmación de Carlos.
+  **Paso (4) hecho 2026-10-01 (GO de Carlos), spec `docs/specs/AT.15.md` rondas 4-8:** New chat no ofrece OpenCode;
+  `/api/chat` responde 400 si el agente resuelto (body, sesión u orchestrator) es opencode; Model routing no ofrece
+  OpenCode al orchestrator (Settings + PUT config 400), los otros 3 roles sí; buscador de modelos de OpenCode fuera del
+  composer. `loadOrcheConfig` sigue sin lanzar. `test:coverage` 1581 pass/0 fail.
+  Gate en vivo: navegador Playwright `docs/done/evidence/AT.15-step4-live.json` — `model-routing` 18/18 y
+  `composer-picker` 5/5 (New chat sin OpenCode; orchestrator sin OpenCode y executor/reviewer/auxiliary con OpenCode).
+  Sin delegación: no (Luna).
   - [x] **AT.15.a — Pasos (1)–(3): PTY + WebSocket + panel xterm.js en Dev.** (2026-10-01) Spec `docs/specs/AT.15.md`,
     Luna 3 rondas. `src/dashboard/terminal.ts` (PTY, SIGTERM→SIGKILL 2 s), WS `/api/terminal` con Origin obligatorio,
     `OpenCodeTerminal.tsx` en Dev cuando la sesión es `opencode`. `test:coverage` 1579 pass/0 fail.

@@ -161,6 +161,11 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
         !assignment.model.trim()
       )
         return errorResponse(`invalid assignment for role '${name}'`, 400)
+      if (name === 'orchestrator' && assignment.agent === 'opencode')
+        return errorResponse(
+          'roles.orchestrator.agent cannot be opencode: OpenCode is used as a terminal in the Dev tab, not to run chat.',
+          400,
+        )
       if (assignment.effort !== undefined && typeof assignment.effort !== 'string')
         return errorResponse(`invalid effort for role '${name}'`, 400)
       if (assignment.provider !== undefined && typeof assignment.provider !== 'string')
