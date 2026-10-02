@@ -4,6 +4,10 @@
 R.7 cerrado (PLAN.md, evidencia ahí). Siguiente de Fase 2: **ERP.2** (multi-módulo → plan corto a Carlos antes de codear).
 Aprendido: `chat-sessions.test.ts` (timeout 5 s, subprocesos) falla por carga si corre mientras otro proceso pesado
 (Codex/Luna) termina; repetir antes de culpar al diff (sin R.7 y con R.7 dio 4/4 verde en frío).
+Pendiente sin ítem (2026-10-02): `usage-bar` falla a veces ("Codex: No quota limits reported") porque
+`codex app-server` no responde `account/rateLimits/read` dentro de 3 s (`scripts/context-adapters.ts:201`); medido: 1 s
+una vez, 15 s sin respuesta la siguiente. Los `rollout-*.jsonl` de `~/.codex/sessions` sí traen `rate_limits`: candidato a
+fallback cuando el live no responde. No es de R.7.
 `review-evidence/` y `.orchestos/adversarial-review-state.json` son artefactos locales del revisor: ya en `.gitignore`.
 
 ## AT.15 en curso (2026-10-01)
