@@ -169,7 +169,10 @@ export default async function projectTabs({
   const instinctTrigger = `gate trigger ${crypto.randomUUID()}`
   const instinct = await api('/api/instincts/propose', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-orchestos-project-id': project.id,
+    },
     body: JSON.stringify({ trigger: instinctTrigger, action: 'gate action' }),
   })
   const instinctId = instinct.data?.id ?? instinct.id
@@ -355,7 +358,11 @@ export default async function projectTabs({
     .click()
   await step(
     'instinct approved',
-    (await api('/api/instincts')).data.find((item) => item.id === instinctId)?.verified === true,
+    (
+      await api('/api/instincts', {
+        headers: { 'x-orchestos-project-id': project.id },
+      })
+    ).data.find((item) => item.id === instinctId)?.verified === true,
     'API verified',
   )
   await page.getByRole('button', { name: 'Add Manual Instinct', exact: true }).click()
@@ -363,9 +370,11 @@ export default async function projectTabs({
   await page.locator('textarea[placeholder*="Automatically import"]').fill('new gate action')
   await page.getByRole('button', { name: 'Register Instinct', exact: true }).click()
   await delay(700)
-  const created = (await api('/api/instincts')).data.find(
-    (item) => item.trigger === 'new gate trigger',
-  )
+  const created = (
+    await api('/api/instincts', {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
+  ).data.find((item) => item.trigger === 'new gate trigger')
   createdInstinctId = created?.id ?? null
   await page.getByRole('button', { name: /Active Instincts/ }).click()
   await step(
