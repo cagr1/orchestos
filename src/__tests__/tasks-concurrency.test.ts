@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { afterAll, describe, expect, it } from 'bun:test'
 import {
   existsSync,
   mkdirSync,
@@ -36,9 +36,9 @@ function makeRoot(): string {
 
 const workerPrelude = `import { updateTaskStatus, mutateTasks } from ${JSON.stringify(join(import.meta.dir, '..', 'tasks', 'loader.ts'))}\n`
 
-function spawn(script: string, args: string[] = []) {
+function spawn(root: string, script: string, args: string[] = []) {
   const file = join(
-    tmpdir(),
+    root,
     `orchestos-worker-${process.pid}-${Math.random().toString(36).slice(2)}.ts`,
   )
   writeFileSync(file, script)
@@ -52,11 +52,17 @@ function spawn(script: string, args: string[] = []) {
 }
 
 describe('tasks concurrency across OS processes', () => {
+  afterAll(() => {
+    const workerPrefix = `orchestos-worker-${process.pid}-`
+    expect(readdirSync(tmpdir()).filter((name) => name.startsWith(workerPrefix))).toEqual([])
+  })
+
   it('serializes 4 processes × 25 updates without losing tasks or the last update', async () => {
     const root = makeRoot()
     try {
       const workers = ['one', 'two', 'three', 'four'].map((id, index) =>
         spawn(
+          root,
           `${workerPrelude}const root = process.argv[2]; for (let i=0;i<25;i++) updateTaskStatus(root, ${JSON.stringify(id)}, { retry_reason: 'p${index}-'+i })`,
           [root],
         ),
@@ -77,12 +83,15 @@ describe('tasks concurrency across OS processes', () => {
     try {
       const workers = [
         spawn(
+          root,
           `${workerPrelude}updateTaskStatus(process.argv[2], 'one', { retry_reason: 'reason' })`,
           [root],
         ),
-        spawn(`${workerPrelude}updateTaskStatus(process.argv[2], 'one', { qa_verdict: 'fail' })`, [
+        spawn(
           root,
-        ]),
+          `${workerPrelude}updateTaskStatus(process.argv[2], 'one', { qa_verdict: 'fail' })`,
+          [root],
+        ),
       ]
       expect(await Promise.all(workers.map(({ proc }) => proc.exited))).toEqual([0, 0])
       expect(loadTasks(root).tasks[0]).toMatchObject({ retry_reason: 'reason', qa_verdict: 'fail' })
@@ -114,6 +123,7 @@ describe('tasks concurrency across OS processes', () => {
     }))
     saveTasks(root, { version: 1, project: 'large-fixture', tasks })
     const worker = spawn(
+      root,
       `${workerPrelude}const root=process.argv[2]; let n=0; while(true) mutateTasks(root, f => { f.tasks[0]!.retry_reason='worker-'+process.pid+'-'+(n++) })`,
       [root],
     )
@@ -139,6 +149,7 @@ describe('tasks concurrency across OS processes', () => {
         if (round < 4) {
           // Spawn a fresh process after each simulated crash.
           const replacement = spawn(
+            root,
             `${workerPrelude}const root=process.argv[2]; let n=0; while(true) mutateTasks(root, f => { f.tasks[0]!.retry_reason='worker-'+process.pid+'-'+(n++) })`,
             [root],
           )
@@ -148,9 +159,6 @@ describe('tasks concurrency across OS processes', () => {
     } finally {
       worker.proc.kill('SIGKILL')
       rmSync(root, { recursive: true, force: true })
-      try {
-        rmSync(worker.file, { force: true })
-      } catch {}
     }
   }, 30_000)
 })
