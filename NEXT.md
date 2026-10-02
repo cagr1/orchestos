@@ -8,6 +8,9 @@ Pendiente sin ítem (2026-10-02): `usage-bar` falla a veces ("Codex: No quota li
 `codex app-server` no responde `account/rateLimits/read` dentro de 3 s (`scripts/context-adapters.ts:201`); medido: 1 s
 una vez, 15 s sin respuesta la siguiente. Los `rollout-*.jsonl` de `~/.codex/sessions` sí traen `rate_limits`: candidato a
 fallback cuando el live no responde. No es de R.7.
+Pendiente sin ítem (2026-10-02): el aviso del hook `context-budget.js:118` dice "Contexto alto: 15.5%" cuando lo
+disparó el tope ABSOLUTO (`context-budget.ts:45`, 60k avisa / 90k bloquea; esta sesión iba en 159k). El texto debería
+nombrar la causa real (tokens absolutos), no el % de ventana. Carlos preguntó qué significaba: confunde.
 `review-evidence/` y `.orchestos/adversarial-review-state.json` son artefactos locales del revisor: ya en `.gitignore`.
 
 ## AT.15 en curso (2026-10-01)
