@@ -68,7 +68,8 @@ export default async function projectDelete({
 
   cleanup(async () => {
     await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
-    if (existsSync(projectRoot)) rmSync(projectRoot, { recursive: true, force: true })
+    if (existsSync(projectRoot))
+      rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
 
   const session = await api('/api/chat/sessions', {

@@ -218,11 +218,22 @@ export function provisionCliConfigHome(
 export type CliCapabilityProbe = (binary: string, args: string[]) => string | null
 
 export const spawnCliCapabilityProbe: CliCapabilityProbe = (binary, args) => {
+  const startedAt = performance.now()
+  let exitCode: number | null = null
+  let signalCode: string | null = null
   try {
-    const proc = Bun.spawnSync([binary, ...args], { env: safeChildEnv(), timeout: 2_000 })
+    const proc = Bun.spawnSync([binary, ...args], { env: safeChildEnv(), timeout: 10_000 })
+    exitCode = proc.exitCode
+    signalCode = proc.signalCode ?? null
     return proc.exitCode === 0 ? proc.stdout.toString() : null
   } catch {
     return null /* binario ausente o no ejecutable — se trata como "sin capability" */
+  } finally {
+    if (exitCode !== 0) {
+      console.error(
+        `[cli-capability] binary=${JSON.stringify(binary)} exitCode=${exitCode} signalCode=${signalCode} durationMs=${Math.round(performance.now() - startedAt)}`,
+      )
+    }
   }
 }
 
@@ -237,13 +248,14 @@ export function _resetCliCapabilityCache(): void {
 export function supportsRestrictedMode(
   binary: string,
   probe: CliCapabilityProbe = spawnCliCapabilityProbe,
+  options: { cache?: boolean } = {},
 ): boolean {
-  // Solo se cachea el resultado de la sonda REAL. Cachear también las inyectadas
+  // Por defecto solo se cachea el resultado de la sonda REAL. Cachear las inyectadas
   // hacía que una sonda distinta devolviera el valor de la anterior — detectado
   // en el gate en vivo del 2026-09-06, donde simular un binario viejo devolvió
   // `project-root` porque la llamada anterior ya había cacheado `true`. Un cache
   // que ignora su entrada es peor que no tener cache: miente en silencio.
-  const useCache = probe === spawnCliCapabilityProbe
+  const useCache = options.cache ?? probe === spawnCliCapabilityProbe
   let cacheKey = binary
   if (useCache) {
     try {
@@ -262,7 +274,8 @@ export function supportsRestrictedMode(
   // Se busca el flag en su forma declarada, no una subcadena suelta: `--restricted`
   // aparece en la línea de opciones seguida de espacios y su descripción.
   const supported = help !== null && /^\s*--restricted(\s|$)/m.test(help)
-  if (useCache) {
+  // Un fallo transitorio sigue siendo fail-closed, pero permite volver a sondear.
+  if (useCache && help !== null) {
     if (capabilityCache.size >= 32) capabilityCache.clear()
     capabilityCache.set(cacheKey, supported)
   }

@@ -153,7 +153,7 @@ export default async function chatContext({
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
   cleanup(async () => {
     await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
-    rmSync(projectRoot, { recursive: true, force: true })
+    rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
   runJson(`
     import { Database } from 'bun:sqlite'

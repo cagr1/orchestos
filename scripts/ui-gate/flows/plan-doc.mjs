@@ -52,7 +52,8 @@ export default async function planDoc({ page, api, step, visible, cleanup, conso
       await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
     }
     for (const root of [checklistRoot, emptyRoot]) {
-      if (existsSync(root)) rmSync(root, { recursive: true, force: true })
+      if (existsSync(root))
+        rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
       if (existsSync(root)) throw new Error(`temporary project remains: ${root}`)
     }
   })

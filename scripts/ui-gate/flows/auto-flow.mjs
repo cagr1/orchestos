@@ -226,7 +226,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   cleanup(async () => {
     if (projectId)
       await api(`/api/projects/${encodeURIComponent(projectId)}/purge`, { method: 'POST' })
-    rmSync(projectRoot, { recursive: true, force: true })
+    rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
 
   writeFileSync(join(projectRoot, 'README.md'), '# I.7 automatic task flow\n')

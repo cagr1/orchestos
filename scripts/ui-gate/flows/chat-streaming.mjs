@@ -113,7 +113,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
   cleanup(async () => {
     await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
-    rmSync(projectRoot, { recursive: true, force: true })
+    rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
 
   await page.reload({ waitUntil: 'domcontentloaded' })
@@ -265,8 +265,11 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
         const previousAnswer =
           timeline.data.messages.filter((message) => message.role === 'assistant').at(-1)
             ?.content ?? ''
-        const liveIndex = midOrder.findIndex((entry) =>
-          squash(entry).includes(squash(timeline.data.live.text.slice(0, 32))),
+        const promptIndex = index(prompt)
+        if (promptIndex < 0) return null
+        const liveIndex = midOrder.findIndex(
+          (entry, i) =>
+            i > promptIndex && squash(entry).includes(squash(timeline.data.live.text.slice(0, 32))),
         )
         if (liveIndex < 0) return null
         chatMidTurnChecked = true
@@ -334,6 +337,11 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     .getByRole('button', { name: /Escribe los números del 1 al 40/ })
     .first()
     .click()
+  await page
+    .locator('div.max-w-2xl, div.prose')
+    .filter({ hasText: sampledChatPrompts.at(-1) })
+    .first()
+    .waitFor({ state: 'visible', timeout: 30_000 })
   const restoredTexts = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
   const restoredAssistant1 = restoredTexts.findIndex((text) =>
     squash(text).includes(squash(firstChatAnswer)),

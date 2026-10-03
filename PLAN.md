@@ -1255,6 +1255,20 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   normaliza markdown/comillas en ambos lados. Evidencia: `ui:gate codex-live chat-roles` → 14/14 y 11/11 (cerebro, fuera
   del sandbox); pre-push completo en el push de este commit. Sin delegación: no (Luna).
 
+- [x] **CI.9 — 🔍 La sonda de `--restricted` se envenena dentro de la suite de ui-gates.** (abierto y cerrado 2026-10-03)
+  Ejecutado por: Sol (`gpt-6.1-sol`, 3 rondas: CI.9, CI.9.1, CI.9.2) · Spec: docs/specs/CI.9.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.9-live.json`: los 15 flujos del pre-push en verde.
+  Pre-push bloqueado 2 de 2: tras 12 flujos verdes, `chat-streaming` y `chat-context` → HTTP 502 "Claude Code no soporta
+  --restricted"; solos pasaban. Causa medida (shim de `claude` en /tmp, 15 flujos, 134 `--help`): 131 bajo 0.5 s, pero 3
+  encimadas en un pico tardaron 3.09/2.12/1.63 s; con timeout de 2 s la sonda daba `null` y `capabilityCache` guardaba
+  ese `false` toda la vida del único dashboard del ui-gate (`scripts/ui-gate/run.mjs:257`). Arreglo en
+  `src/run/executors/cli-registry.ts`: no se cachean fallos (sigue fail-closed), timeout 10 s, línea `[cli-capability]`
+  en stderr al fallar; 3 tests nuevos. Hermanos cazados al re-correr: CI.9.1 `chat-streaming` tomaba la respuesta
+  anterior como burbuja en vivo ("Cuarenta" cierra 1–40 y abre 41–80) → ahora busca después del prompt; CI.9.2
+  `text-sweep` ENOTEMPTY al borrar el proyecto temporal → `maxRetries` en los 10 flujos que no lo tenían (precedente
+  `codex-live`); CI.9.3 tras recargar leía el DOM antes de que cargara la sesión → espera el último prompt; CI.9.4
+  corrige CI.9.1 (si el prompt aún no está pintado, vuelve a muestrear). `test:coverage`: 1604 pass, funciones 75.37 % / líneas 62.28 %. Sin delegación: no (Sol).
+
 - [x] **UI.22 — ⚡ Selector de OpenCode: sin el prefijo `opencode/` y buscador solo en OpenCode.** (abierto 2026-09-29, cerrado 2026-09-29, pedido de Carlos)
   Carlos: la altura/buscador/esfuerzo de UI.21 era solo para OpenCode, y en OpenCode los modelos se leen
   `opencode/…` — "la palabra OpenCode está de más". Hoy `src/dashboard/chat-cli-models.ts:163` usa el id crudo como

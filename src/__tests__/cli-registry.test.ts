@@ -171,6 +171,30 @@ describe('H.9.2 — capability de frontera verificada contra el binario', () => 
 
   beforeEach(() => _resetCliCapabilityCache())
 
+  it('no cachea un fallo transitorio: vuelve a sondear y reconoce --restricted', () => {
+    let calls = 0
+    const probe = () => (++calls === 1 ? null : helpNuevo)
+    expect(supportsRestrictedMode(process.execPath, probe, { cache: true })).toBe(false)
+    expect(supportsRestrictedMode(process.execPath, probe, { cache: true })).toBe(true)
+    expect(calls).toBe(2)
+  })
+
+  it('cachea un no definitivo aunque la siguiente sonda ofrecería --restricted', () => {
+    let calls = 0
+    const probe = () => (++calls === 1 ? helpViejo : helpNuevo)
+    expect(supportsRestrictedMode(process.execPath, probe, { cache: true })).toBe(false)
+    expect(supportsRestrictedMode(process.execPath, probe, { cache: true })).toBe(false)
+    expect(calls).toBe(1)
+  })
+
+  it('cachea un sí definitivo aunque la siguiente sonda fallaría', () => {
+    let calls = 0
+    const probe = () => (++calls === 1 ? helpNuevo : null)
+    expect(supportsRestrictedMode(process.execPath, probe, { cache: true })).toBe(true)
+    expect(supportsRestrictedMode(process.execPath, probe, { cache: true })).toBe(true)
+    expect(calls).toBe(1)
+  })
+
   it('binario con --restricted → conserva la frontera project-root', () => {
     expect(readBoundaryFor(claude, () => helpNuevo)).toEqual({
       kind: 'project-root',
