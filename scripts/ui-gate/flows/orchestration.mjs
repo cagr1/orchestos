@@ -60,6 +60,17 @@ export default async function orchestration({ page, api, step, shot, cleanup }) 
   const enabledSwitch = () => settings().getByRole('checkbox')
 
   await openProjectSettings()
+  const orchestrationHeading = page.getByRole('heading', { name: 'Orquestación', exact: true })
+  await page.getByRole('button', { name: 'Plan', exact: true }).click()
+  const hiddenOnPlan = !(await orchestrationHeading.isVisible())
+  await page.getByRole('button', { name: 'Tasks', exact: true }).click()
+  const visibleOnTasks = await orchestrationHeading.isVisible()
+  await step(
+    'orquestación solo aparece en Tasks del proyecto',
+    hiddenOnPlan && visibleOnTasks,
+    `hidden on Plan: ${hiddenOnPlan}; visible on Tasks: ${visibleOnTasks}`,
+  )
+
   await enabledSwitch().check()
   await step(
     'activar solo habilita límites sin guardar defaults',

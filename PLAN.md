@@ -1016,7 +1016,11 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Hermano de ERP.3 cazado por el pre-push: `ui:gate project-delete` → `HTTP 404 /api/orchestration` en consola tras
   purgar. Aplicar a la orquestación el mismo resguardo que las demás lecturas por proyecto de Settings.
   Gate: `ui:gate project-delete orchestration` en dashboard real.
-- [ ] **ERP.3.2 — 🧠 Orquestación solo en la pestaña Tasks del proyecto.**
+- [x] **ERP.3.2 — 🧠 Orquestación solo en la pestaña Tasks del proyecto.** (cerrado 2026-10-03)
+  Ejecutado por: luna · Spec: docs/specs/ERP.3.2.md (borrado al cerrar)
+  Gate en vivo: navegador real con Playwright (`scripts/ui-gate/flows/orchestration.mjs`, nuevo paso Plan oculta /
+  Tasks muestra) — `ui:gate orchestration` 7/7, `plan-doc` 15/15 (antes FAIL, 4 checkboxes), `project-delete` 11/11.
+  Original:
   Hermano de ERP.3 cazado por el pre-push: la sección se pinta en todas las pestañas (`OrchestSettingsView.tsx:2258`)
   y `ui:gate plan-doc` cuenta 4 checkboxes en Plan. Mostrarla solo con `activeProjectTab === 'tasks'`.
   Gate: `ui:gate plan-doc orchestration project-delete` en dashboard real.

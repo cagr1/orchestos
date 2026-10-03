@@ -2255,7 +2255,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
             {/* Sub-tab view contents */}
             <div className="flex-1 flex flex-col overflow-y-auto">
-              {orchestration && (
+              {activeProjectTab === 'tasks' && orchestration && (
                 <section className="m-4 rounded-card border border-app bg-app-surface p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-app">Orquestación</h2>
