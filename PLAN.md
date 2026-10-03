@@ -1037,6 +1037,32 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 
   Bajar el servidor al terminar ([[feedback-siempre-cerrar-servidor]]).
 
+  **Gate en vivo 2026-10-03 (flujo `scripts/ui-gate/flows/auto-flow.mjs`, spec `docs/specs/I.7.md`, r4):**
+  21/25 verdes. Puntos 1 y 3 OK (sin puerta manual en Chat/Dev/Settings Tasks/Plan; "Add task" solo abre el
+  composer; pregunta no crea tarea ni toca el árbol). Fallos **de producto**, que dejan I.7 abierto:
+  - **I.7.1 — Tarea ruteada a Claude corre con el modelo de Codex.** `taskAgentRules` fija `engine: external`
+    pero el modelo sale del rol Ejecutor (`router/auto-route.ts:15`) → `gpt-6-luna` hacia `claude`
+    (`external.ts:126-162` pasa `--model` si no hay `/`). Resultado: `missing declared output(s)`, y el run se
+    persiste como `provider=role:codex model=gpt-6-luna` para una tarea `engine: external` (el registro miente).
+    Falta decisión de Carlos: qué modelo usa una tarea que una regla manda a otro agente.
+  - **I.7.2 — No hay reporte inline del final de la tarea.** El chat solo dice `▶ Started task <id>`
+    (`chat.ts:1119`); el estado final (`done`/`failed`) no aparece en el Chat (captura r4).
+  - Punto 4 falla como consecuencia de I.7.1. Punto 5 pasó en vacío en r4 (el flujo leía `<main>`, que el
+    Chat no tiene); corregido en r5, sin re-correr.
+  Visto sin ítem: el modal "Append to tasks.yaml" de `PlanBoardView.tsx:623` es código muerto (`showAddModal`
+  nunca pasa a true).
+- [ ] **I.7.1 — 🧠 La regla de proyecto declara el modelo; el run registra lo que de verdad corrió.**
+  Decisión de Carlos (2026-10-03): opción "modelo en la regla". `TaskAgentRule` suma `model` (+ `cli_effort`
+  ya existe); editable en Settings → Task rules con el mismo catálogo que Model routing. Regla hacia un agente
+  distinto del Ejecutor sin `model` → la tarea no se crea y el chat lo dice. La tarea persiste
+  `engine`+`executor_model`; el harness usa ese modelo y `runs.provider/model` reflejan el engine real (hoy
+  `role:codex` para una tarea `external`, `role-runner.ts:29`). Archivos: `config/schema.ts`, `config/load.ts`,
+  `handlers/config.ts`, `handlers/chat.ts:1081`, `handlers/tasks.ts:362`, `router/auto-route.ts`,
+  `OrchestSettingsView.tsx` (Task rules). Gate: `ui:gate auto-flow` punto 4 verde + `model-routing`.
+- [ ] **I.7.2 — 🧠 El chat reporta el final de la tarea que lanzó.**
+  Hoy solo `▶ Started task <id>` (`chat.ts:1119`). Al terminar, el mismo chat muestra estado final y resumen
+  del run sin salir de él, persistido (sobrevive recarga). Gate: `ui:gate auto-flow` paso "inline report".
+
 **Fuera de scope declarado del Bloque I:** dónde viven DB/`runs`/`specs` (Carlos lo pospuso
 explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni Actividad.
 
