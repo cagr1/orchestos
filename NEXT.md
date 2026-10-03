@@ -3,6 +3,10 @@
 ## ERP.3 cerrado (2026-10-03) — siguiente: I.7
 Evidencia en PLAN.md. Aprendido: el gate en vivo cazó 2 bugs que Luna dio por verdes (flujo cambiaba config por API y
 no por UI; switch OFF no se movía hasta el GET). Codex no permite apagar su delegación interna (medido).
+Hermanos cazados por el pre-push y cerrados: ERP.3.1 (404 de orquestación tras purgar) y ERP.3.2 (sección pintada en
+todas las pestañas → plan-doc contaba 4 checkboxes). Pusheado hasta f764eb2.
+Flaky sin ítem: `ui:gate chat-streaming` falló 2 de 4 corridas completas del pre-push ("Chat turn 2 was sampled while
+pending"), pasa solo 15/15; depende de la latencia del modelo real bajo carga. No toca código de ERP.3.
 Visto sin ítem: Settings → Tasks del proyecto muestra "Create First Task" (contradice Tasks solo por chat) y
 "Loading live settings…" fijo en la cabecera.
 
