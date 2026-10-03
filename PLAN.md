@@ -1283,6 +1283,12 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   agregados; comprobado: App.tsx/chat-cli-models.ts → chat, handlers/tasks.ts → no. `test:coverage` 1604 pass,
   funciones 75.37 % / líneas 62.29 %. Hook sincronizado (`diff` vacío). Sin delegación: no (Luna, QA Sol).
 
+- [ ] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03)
+  Visto 1 vez en el pre-push: `error: file-lock: timeout waiting for …/.orchestos/tasks.lock` → `(fail) … recovers valid
+  YAML after five SIGKILL interruptions and accepts a following mutation quickly [14649.63ms]`. Solo pasa 3/3 y pasó en
+  2 `test:coverage` completos del mismo día. Hipótesis sin verificar: bajo carga, un lock que dejó un proceso matado
+  tarda más en declararse stale que el plazo del test. Archivo: `src/__tests__/tasks-concurrency.test.ts`.
+
 - [ ] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03)
   Visto una vez en la corrida completa de ui-gates (`$TMPDIR/ui-gate-73235/result.json`, paso "turn 2 is faster than
   turn 1": 22141 ms vs 180113 ms, el timeout del flujo). Sin verificar si es latencia del modelo o un cuelgue al
