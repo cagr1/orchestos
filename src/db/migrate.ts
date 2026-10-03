@@ -696,6 +696,41 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
     },
     postcondition: () => {},
   },
+  {
+    version: 19,
+    name: 'orchestration-budgets',
+    precondition: () => {},
+    apply: (database) =>
+      database.exec(`
+      CREATE TABLE orchestration_runs (
+        run_id TEXT PRIMARY KEY,
+        project_id TEXT,
+        parent_task_id TEXT NOT NULL,
+        max_concurrent INTEGER NOT NULL CHECK(max_concurrent >= 1),
+        max_total INTEGER NOT NULL CHECK(max_total >= 1),
+        enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),
+        total INTEGER NOT NULL DEFAULT 0 CHECK(total >= 0),
+        finished_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE orchestration_leases (
+        run_id TEXT NOT NULL REFERENCES orchestration_runs(run_id) ON DELETE CASCADE,
+        child_id TEXT NOT NULL,
+        pid INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY(run_id, child_id)
+      );
+    `),
+    postcondition: (database) => {
+      const found = database
+        .query<{ count: number }, []>(
+          "SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name='orchestration_runs'",
+        )
+        .get()?.count
+      if (found !== 1) throw new Error('Migration 19 did not create orchestration_runs')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

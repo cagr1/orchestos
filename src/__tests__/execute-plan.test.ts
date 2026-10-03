@@ -40,6 +40,7 @@ const mockWithSubTaskTimeout = async <T>(
 
 const { executePlan } = await import('../run/scheduler.ts')
 const { createSubTask } = await import('../agents/sub-agent.ts')
+const { openBudget } = await import('../run/orchestration-budget.ts')
 
 // ── Helpers ──
 
@@ -86,6 +87,12 @@ function opts(): SchedulerOpts {
     parentTaskId: 'test-plan',
     projectRoot: repoRoot,
     baseBranch: 'main',
+    orchestrationBudget: openBudget({
+      projectRoot: repoRoot,
+      parentTaskId: 'test-plan',
+      planContent: 'test-plan',
+      config: { enabled: true, maxConcurrent: 1, maxTotal: 100 },
+    }),
     withSubTaskTimeoutFn: mockWithSubTaskTimeout as any,
   }
 }

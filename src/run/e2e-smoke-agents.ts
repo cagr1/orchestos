@@ -23,6 +23,7 @@ import { createPlan } from '../agents/planner.ts'
 import { getMemory } from '../db/memory.ts'
 import { runMigrations } from '../db/migrate.ts'
 import { getProject, upsertProject } from '../db/projects.ts'
+import { openBudget } from './orchestration-budget.ts'
 import { executePlan } from './scheduler.ts'
 
 // ---------------------------------------------------------------------------
@@ -148,6 +149,13 @@ async function main() {
         projectRoot: repoDir,
         baseBranch,
         projectId,
+        orchestrationBudget: openBudget({
+          projectRoot: repoDir,
+          projectId,
+          parentTaskId: 'smoke-plan',
+          planContent: PLAN_YAML,
+          config: { enabled: true, maxConcurrent: 1, maxTotal: 2 },
+        }),
       },
       (st, worktree) =>
         executeSubTask(st, worktree, {

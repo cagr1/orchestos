@@ -42,8 +42,21 @@ export function loadOrcheConfig(projectPath?: string): OrcheConfig {
     if (!existsSync(candidate)) continue
     try {
       const raw = parse(readFileSync(candidate, 'utf8')) as Record<string, unknown>
+      // Orchestration is a per-project spending policy. A user-global policy
+      // must never silently opt an unrelated project into child execution.
+      if (projectPath && candidate !== join(projectPath, 'orchestos.config.yaml'))
+        delete raw.orchestration
       return mergeWithDefaults(raw)
-    } catch {
+    } catch (error) {
+      // Never silently fall back when the user explicitly enables orchestration:
+      // doing so would make an invalid safety limit look like a valid config.
+      try {
+        const raw = parse(readFileSync(candidate, 'utf8')) as Record<string, unknown>
+        if (raw.orchestration !== undefined) parseOrchestration(raw.orchestration)
+      } catch (validationError) {
+        if (validationError instanceof Error && validationError.message.startsWith('orchestration'))
+          throw validationError
+      }
       // malformed YAML → skip to next candidate
     }
   }
@@ -52,6 +65,7 @@ export function loadOrcheConfig(projectPath?: string): OrcheConfig {
 }
 
 function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
+  const orchestration = parseOrchestration(raw.orchestration)
   const models = (raw.models ?? {}) as Record<string, unknown>
   const d = DEFAULT_CONFIG.models
 
@@ -93,6 +107,25 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     // este campo existía en schema.ts desde Bloque X pero NUNCA se leía acá — `refuterQA: true`
     // en el YAML se ignoraba en silencio desde que se creó. Bug de la misma clase que BB.2/CC.1c.
     refuterQA: raw.refuterQA === true ? true : undefined,
+    orchestration,
+  }
+}
+
+function parseOrchestration(value: unknown): OrcheConfig['orchestration'] {
+  if (value === undefined) return undefined
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('orchestration must be an object')
+  const raw = value as Record<string, unknown>
+  if (typeof raw.enabled !== 'boolean') throw new Error('orchestration.enabled must be boolean')
+  if (!raw.enabled) return { enabled: false }
+  for (const key of ['maxConcurrent', 'maxTotal'] as const) {
+    if (!Number.isInteger(raw[key]) || (raw[key] as number) < 1)
+      throw new Error(`orchestration.${key} is required when enabled and must be an integer >= 1`)
+  }
+  return {
+    enabled: true,
+    maxConcurrent: raw.maxConcurrent as number,
+    maxTotal: raw.maxTotal as number,
   }
 }
 

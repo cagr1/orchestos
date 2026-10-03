@@ -1,5 +1,11 @@
 # NEXT — handoff 2026-09-21 (noche) → siguiente tab
 
+## ERP.3 cerrado (2026-10-03) — siguiente: I.7
+Evidencia en PLAN.md. Aprendido: el gate en vivo cazó 2 bugs que Luna dio por verdes (flujo cambiaba config por API y
+no por UI; switch OFF no se movía hasta el GET). Codex no permite apagar su delegación interna (medido).
+Visto sin ítem: Settings → Tasks del proyecto muestra "Create First Task" (contradice Tasks solo por chat) y
+"Loading live settings…" fijo en la cabecera.
+
 ## ERP.2 cerrado (2026-10-02) — siguiente: ERP.3
 Evidencia en PLAN.md. Siguiente de Fase 2: **ERP.3** (multi-módulo → plan corto a Carlos antes de codear).
 Regla nueva tras ERP.2: toda llamada `api()` de un flujo ui-gate a rutas con scope (runs, memory, instincts, skills,

@@ -109,6 +109,7 @@ export interface OrcheConfig {
    * sin cambios). Ver PLAN.md § Mes 27 Bloque X.
    */
   refuterQA?: boolean
+  orchestration?: { enabled: boolean; maxConcurrent?: number; maxTotal?: number }
 }
 
 // Defaults — used when no config file is found or a role is missing

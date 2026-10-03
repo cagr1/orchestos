@@ -976,7 +976,22 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   de B, tampoco con ID ajeno enviado al endpoint. Biblioteca global y activación local distinguibles.
   Navegador real: proyecto → chat → tarea → resultado → memoria, con Settings separados y
   capturas antes/después contrastadas con las referencias. No cerrar con solo tokens CSS cambiados.
-- [ ] **ERP.3 — 🧠 Orquestación opcional con freno efectivo de consumo.**
+- [x] **ERP.3 — 🧠 Orquestación opcional con freno efectivo de consumo.** (cerrado 2026-10-03)
+  Ejecutado por: luna (r1b, r2, r3, r4) · Spec: docs/specs/ERP.3.md (borrado al cerrar)
+  `orchestration: {enabled, maxConcurrent, maxTotal}` por proyecto; ausente = OFF; ON sin límites = rechazo del
+  loader/PUT (sin defaults). Freno único `src/run/orchestration-budget.ts` (migración 19): run por ejecución
+  (`sha256(root, padre, plan)` + `finished_at`; reanudar conserva total, terminar reinicia), concurrencia por leases
+  con PID (proceso muerto libera su lease), `reserveChild` en `BEGIN IMMEDIATE` antes de crear worktree;
+  `SchedulerOpts.orchestrationBudget` obligatorio. OFF: auto-split omitido (single-shot), `--expand` y approve-split
+  (409) rechazan antes del spawn; Claude se lanza con `--disallowedTools Agent` (medido en vivo: `Task` sale de
+  `tools`). Codex: `multi_agent` OFF no cambia nada observable (medido en vivo: mismos eventos) → **no garantizado**,
+  igual que OpenCode; capability en `cli-registry.ts`. Settings: switch + límites + activos/total + consumo
+  ("desconocida" sin dato) + llamadas adicionales (planner/QA/adversarial/refuter/retries) + garantía por adaptador.
+  Gate en vivo: navegador real con Playwright (`scripts/ui-gate/flows/orchestration.mjs`) + `src/__tests__/orchestration-budget.test.ts` (procesos reales: OFF/ausente 0 hijos, N admite y N+1 rechaza, concurrencia
+  entre procesos, SIGKILL con lease, reanudación, plan distinto) + handler/args; `bun run test:coverage` 1601/0;
+  `ui:gate orchestration` 6/6 por la UI (`ui-gate-16806`), `tasks` 13/13, `project-isolation` 10/10.
+  No cubierto: dreaming no existe en el código (no listado); paralelismo real (scheduler sigue serial); tope en USD.
+  Original:
   Hueco nuevo: `src/config/schema.ts:72-103` tiene opciones de ejecutor y QA opt-in, pero no el
   contrato unificado OFF/límite solicitado. Dónde: schema/loader, handler de config, Settings,
   `src/agents/sub-agent.ts`, `src/run/scheduler.ts` y entradas de expansión desde CLI/dashboard.

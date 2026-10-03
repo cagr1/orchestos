@@ -267,3 +267,12 @@ de `maxTokens`/`contextWindow`/`maxOutputTokensFor` tocada (verificado con `git 
 `previousFailureForTask(ctx.task)` (misma lógica, movida a `src/run/prompt.ts`) y su import. Ninguna línea de
 `maxTokens`/`contextWindow`/`maxOutputTokensFor` tocada (`git diff --cached src/run/harness.ts | grep -i token` → vacío).
 **Reversibilidad/evidencia**: commit `fix(CI.4)`, revertible con `git revert`. `test:coverage` 5×1533/0 · `gate:all` verde.
+
+## 2026-10-03 10:52 — claude-opus-5-5 (revisor) · ejecutor Codex gpt-6-luna
+**Contexto**: ERP.3 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el diff solo añade `&& effectiveConfig.orchestration?.enabled === true` a la condición del auto-split y
+un log cuando se omite por OFF. `maxTokens` se lee igual que antes; ninguna línea que lo derive
+(`contextWindow`/`maxOutputTokensFor`) tocada.
+**Reversibilidad/evidencia**: commit `feat(ERP.3)`, revertible con `git revert` (migración 19 aditiva).
+`test:coverage` 1601/0 · `ui:gate orchestration` 6/6 · `tasks` 13/13 · `project-isolation` 10/10.

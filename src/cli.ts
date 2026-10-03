@@ -969,6 +969,7 @@ program
 // ── config ────────────────────────────────────────────────────────────────────
 import { loadOrcheConfig, scaffoldConfigYaml } from './config/load.ts'
 import { autoRoute, formatRoute } from './router/auto-route.ts'
+import { openBudget } from './run/orchestration-budget.ts'
 
 const config = program.command('config').description('Manage model routing configuration')
 
@@ -1464,6 +1465,11 @@ task
         projectRoot: string,
         runOpts: { model?: string; keepWorktree?: boolean } | undefined,
       ): Promise<'done' | 'failed'> {
+        const orchestration = loadOrcheConfig(projectRoot).orchestration
+        if (orchestration?.enabled !== true) {
+          console.error('Orquestación desactivada en este proyecto — actívala en Settings')
+          return 'failed'
+        }
         const planContent = readFileSync(planPath, 'utf-8')
         let subTasks: SubTask[]
         try {
@@ -1488,6 +1494,13 @@ task
             baseBranch: 'main',
             parentExecutor: parentTask.executor,
             parentModel: runOpts?.model ?? parentTask.executor_model,
+            orchestrationBudget: openBudget({
+              projectRoot,
+              projectId: getProject(projectRoot)?.id,
+              parentTaskId,
+              planContent,
+              config: orchestration,
+            }),
           },
           async (st, worktree) => {
             const stT0 = performance.now()
@@ -1590,6 +1603,10 @@ task
       // Mes 20 B.2: si el archivo <task_id>.plan.yaml ya existe (escrito por
       // auto-split), saltamos el paso de correr el parent task directamente.
       if (opts?.expand) {
+        if (loadOrcheConfig(root).orchestration?.enabled !== true) {
+          console.error('Orquestación desactivada en este proyecto — actívala en Settings')
+          return
+        }
         const file = loadTasks(root)
         const parentTask = file.tasks.find((x) => x.id === opts.expand)!
 
@@ -1646,6 +1663,13 @@ task
             baseBranch: parentTask.executor === 'codex' ? 'main' : 'main',
             parentExecutor: parentTask.executor,
             parentModel: parentTask.executor_model,
+            orchestrationBudget: openBudget({
+              projectRoot: root,
+              projectId: getProject(root)?.id,
+              parentTaskId: opts.expand,
+              planContent,
+              config: loadOrcheConfig(root).orchestration,
+            }),
           },
           async (st, worktree) => {
             const t0 = performance.now()

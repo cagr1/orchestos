@@ -8,6 +8,12 @@ import {
 import type { SubagentResult, SubTask } from '../agents/sub-agent.ts'
 import { TERMINAL_STATUSES } from '../agents/sub-agent.ts'
 import type { TaskExecutor } from '../tasks/schema.ts'
+import {
+  finishBudget,
+  type OrchestrationBudget,
+  releaseChild,
+  reserveChild,
+} from './orchestration-budget.ts'
 import type { Worktree } from './sandbox.ts'
 import { mergeWorktreeBack } from './sandbox.ts'
 
@@ -48,6 +54,7 @@ export interface SchedulerOpts {
   baseBranch: string
   /** SQLite project id — required for commitTopicKey (S22.5a apply-progress). */
   projectId?: string
+  orchestrationBudget: OrchestrationBudget
   parentExecutor?: TaskExecutor
   parentModel?: string
   /** Test-only injection seam — replaces withSubTaskTimeout without mock.module() */
@@ -89,126 +96,161 @@ export async function executePlan(
   // Track which sub-tasks have reached terminal failure (S22.5 cascade)
   const failedIds = new Set<string>()
 
-  for (const st of subTasks) {
-    // S22.5 — cascade: skip if a dependency failed
-    if (st.depends_on.some((dep) => failedIds.has(dep))) {
-      st.status = 'skipped'
-      const depNames = st.depends_on.filter((d) => failedIds.has(d)).join(', ')
-      const reason = `dependency failed: ${depNames}`
-      logs.push({
-        id: st.id,
-        status: 'skipped',
-        error: reason,
-        usd_cost: 0,
-        tokens: { input: 0, output: 0 },
-        elapsed_ms: 0,
-        files_written: [],
-      })
-      continue
-    }
+  try {
+    for (const st of subTasks) {
+      // S22.5 — cascade: skip if a dependency failed
+      if (st.depends_on.some((dep) => failedIds.has(dep))) {
+        st.status = 'skipped'
+        const depNames = st.depends_on.filter((d) => failedIds.has(d)).join(', ')
+        const reason = `dependency failed: ${depNames}`
+        logs.push({
+          id: st.id,
+          status: 'skipped',
+          error: reason,
+          usd_cost: 0,
+          tokens: { input: 0, output: 0 },
+          elapsed_ms: 0,
+          files_written: [],
+        })
+        continue
+      }
 
-    // Skip already-terminal sub-tasks
-    if (TERMINAL_STATUSES.has(st.status)) {
-      continue
-    }
+      // Skip already-terminal sub-tasks
+      if (TERMINAL_STATUSES.has(st.status)) {
+        continue
+      }
 
-    // S22.8 — worktree creation with collision-retry + backoff
-    const createWt = opts.createWorktreeWithRetryFn ?? createWorktreeWithRetry
-    let worktree: Worktree
-    try {
-      worktree = await createWt(`sub-${st.id}`, opts.baseBranch, opts.projectRoot)
-    } catch (e) {
-      st.status = 'failed'
-      failedIds.add(st.id)
-      const msg = `worktree creation failed: ${(e as Error).message}`
-      logs.push({
-        id: st.id,
-        status: 'failed',
-        error: msg,
-        usd_cost: 0,
-        tokens: { input: 0, output: 0 },
-        elapsed_ms: 0,
-        files_written: [],
-      })
-      hasFailure = true
-      continue
-    }
+      const budget = opts.orchestrationBudget
+      if (!budget.enabled) {
+        st.status = 'skipped'
+        logs.push({
+          id: st.id,
+          status: 'skipped',
+          error: 'Orquestación desactivada en este proyecto',
+          usd_cost: 0,
+          tokens: { input: 0, output: 0 },
+          elapsed_ms: 0,
+          files_written: [],
+        })
+        continue
+      }
+      const reservation = reserveChild(budget.runId, st.id)
+      if (!reservation.ok) {
+        st.status = 'skipped'
+        logs.push({
+          id: st.id,
+          status: 'skipped',
+          error: reservation.reason,
+          usd_cost: 0,
+          tokens: { input: 0, output: 0 },
+          elapsed_ms: 0,
+          files_written: [],
+        })
+        continue
+      }
 
-    st.status = 'running'
-    st.started_at = new Date().toISOString()
+      // S22.8 — worktree creation with collision-retry + backoff
+      const createWt = opts.createWorktreeWithRetryFn ?? createWorktreeWithRetry
+      let worktree: Worktree
+      try {
+        worktree = await createWt(`sub-${st.id}`, opts.baseBranch, opts.projectRoot)
+      } catch (e) {
+        if (budget.enabled) releaseChild(budget.runId, st.id)
+        st.status = 'failed'
+        failedIds.add(st.id)
+        const msg = `worktree creation failed: ${(e as Error).message}`
+        logs.push({
+          id: st.id,
+          status: 'failed',
+          error: msg,
+          usd_cost: 0,
+          tokens: { input: 0, output: 0 },
+          elapsed_ms: 0,
+          files_written: [],
+        })
+        hasFailure = true
+        continue
+      }
 
-    // S22.8 — race executeOne against the sub-task timeout
-    const timeoutMs = st.timeout_ms ?? DEFAULT_SUB_TASK_TIMEOUT_MS
-    const withTimeout = opts.withSubTaskTimeoutFn ?? withSubTaskTimeout
-    let result: SubagentResult
+      st.status = 'running'
+      st.started_at = new Date().toISOString()
 
-    try {
-      const raced = await withTimeout(executeOne(st, worktree), timeoutMs, st.id)
+      // S22.8 — race executeOne against the sub-task timeout
+      const timeoutMs = st.timeout_ms ?? DEFAULT_SUB_TASK_TIMEOUT_MS
+      const withTimeout = opts.withSubTaskTimeoutFn ?? withSubTaskTimeout
+      let result: SubagentResult
 
-      if (raced.timedOut) {
-        result = timedOutResult(st.id, timeoutMs)
+      try {
+        const raced = await withTimeout(executeOne(st, worktree), timeoutMs, st.id)
+
+        if (raced.timedOut) {
+          result = timedOutResult(st.id, timeoutMs)
+        } else {
+          result = raced.result
+        }
+      } catch (e) {
+        // S22.8 — tool-call limit exceeded → timed_out (delegation rule)
+        if (e instanceof ToolCallLimitError) {
+          result = timedOutResult(st.id, timeoutMs, e.message)
+        } else {
+          result = failedResult(st.id, (e as Error).message)
+        }
+      }
+
+      st.status = result.status
+      st.completed_at = new Date().toISOString()
+      st.run_id = result.sub_task_id
+      st.retry_count = result.status === 'failed' ? st.retry_count + 1 : st.retry_count
+      if (result.error) st.retry_reason = result.error
+
+      // Merge worktree on success, discard on failure/timeout
+      if (result.status === 'completed') {
+        mergeWorktreeBack(worktree, 'commit', `orchestos(sub-${st.id}): sub-task completed`)
+        // S22.5a — apply-progress: persist result to memory_entries under topic_key
+        if (opts.projectId && result.topic_key_written && result.result) {
+          commitTopicKey(st, opts.projectId, result.result)
+        }
       } else {
-        result = raced.result
+        mergeWorktreeBack(worktree, 'discard')
       }
-    } catch (e) {
-      // S22.8 — tool-call limit exceeded → timed_out (delegation rule)
-      if (e instanceof ToolCallLimitError) {
-        result = timedOutResult(st.id, timeoutMs, e.message)
-      } else {
-        result = failedResult(st.id, (e as Error).message)
+
+      aggregatedCost += result.usd_cost
+      aggregatedInputTokens += result.tokens.input
+      aggregatedOutputTokens += result.tokens.output
+      aggregatedMs += result.elapsed_ms
+
+      const log: SubTaskLog = {
+        id: st.id,
+        status: result.status,
+        result: result.result,
+        error: result.error,
+        model: result.model,
+        usd_cost: result.usd_cost,
+        tokens: result.tokens,
+        elapsed_ms: result.elapsed_ms,
+        files_written: result.files_written,
+        qa_verdict: result.qa_verdict,
+        worktree: worktree.path,
       }
-    }
+      logs.push(log)
 
-    st.status = result.status
-    st.completed_at = new Date().toISOString()
-    st.run_id = result.sub_task_id
-    st.retry_count = result.status === 'failed' ? st.retry_count + 1 : st.retry_count
-    if (result.error) st.retry_reason = result.error
-
-    // Merge worktree on success, discard on failure/timeout
-    if (result.status === 'completed') {
-      mergeWorktreeBack(worktree, 'commit', `orchestos(sub-${st.id}): sub-task completed`)
-      // S22.5a — apply-progress: persist result to memory_entries under topic_key
-      if (opts.projectId && result.topic_key_written && result.result) {
-        commitTopicKey(st, opts.projectId, result.result)
+      if (result.status === 'failed' || result.status === 'timed_out') {
+        hasFailure = true
+        failedIds.add(st.id)
       }
-    } else {
-      mergeWorktreeBack(worktree, 'discard')
+      if (budget.enabled) releaseChild(budget.runId, st.id)
     }
 
-    aggregatedCost += result.usd_cost
-    aggregatedInputTokens += result.tokens.input
-    aggregatedOutputTokens += result.tokens.output
-    aggregatedMs += result.elapsed_ms
-
-    const log: SubTaskLog = {
-      id: st.id,
-      status: result.status,
-      result: result.result,
-      error: result.error,
-      model: result.model,
-      usd_cost: result.usd_cost,
-      tokens: result.tokens,
-      elapsed_ms: result.elapsed_ms,
-      files_written: result.files_written,
-      qa_verdict: result.qa_verdict,
-      worktree: worktree.path,
+    return {
+      parent_task_id: opts.parentTaskId,
+      sub_tasks: logs,
+      aggregated_cost: aggregatedCost,
+      aggregated_tokens: { input: aggregatedInputTokens, output: aggregatedOutputTokens },
+      aggregated_ms: aggregatedMs,
+      all_passed: !hasFailure,
     }
-    logs.push(log)
-
-    if (result.status === 'failed' || result.status === 'timed_out') {
-      hasFailure = true
-      failedIds.add(st.id)
-    }
-  }
-
-  return {
-    parent_task_id: opts.parentTaskId,
-    sub_tasks: logs,
-    aggregated_cost: aggregatedCost,
-    aggregated_tokens: { input: aggregatedInputTokens, output: aggregatedOutputTokens },
-    aggregated_ms: aggregatedMs,
-    all_passed: !hasFailure,
+  } finally {
+    finishBudget(opts.orchestrationBudget.runId)
   }
 }
 

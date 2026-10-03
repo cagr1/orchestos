@@ -66,6 +66,7 @@ describe('S22.7 (a) — cascade on linear failure', () => {
     git(['commit', '-m', 'init'], root)
 
     const { executePlan } = await import('../../src/run/scheduler.ts')
+    const { openBudget } = await import('../../src/run/orchestration-budget.ts')
 
     const plan = validPlan()
     const planResult = validateSubTaskPlan(plan)
@@ -78,6 +79,12 @@ describe('S22.7 (a) — cascade on linear failure', () => {
         parentTaskId: 'test-plan',
         projectRoot: root,
         baseBranch: 'main',
+        orchestrationBudget: openBudget({
+          projectRoot: root,
+          parentTaskId: 'test-plan',
+          planContent: 'scheduler test',
+          config: { enabled: true, maxConcurrent: 1, maxTotal: 10 },
+        }),
       },
       async (st, _wt) => {
         // step-b fails

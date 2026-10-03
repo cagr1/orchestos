@@ -296,6 +296,8 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       '<contract>',
       '--allowedTools',
       'Edit,Write,Read,Glob,Grep',
+      '--disallowedTools',
+      'Agent',
     ])
     // Log con conteo de archivos
     expect(outcome.log).toHaveLength(1)

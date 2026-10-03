@@ -44,6 +44,7 @@ export interface CliDefinition {
   label: string
   icon: string
   readBoundary: CliReadBoundary
+  subagentBlock: { args: string[] } | 'not-guaranteed'
   configHome: {
     directory: string
     instructionFile: string
@@ -75,6 +76,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
     label: 'Claude Code',
     icon: 'claude',
     readBoundary: { kind: 'project-root', mechanism: 'restricted-flag' },
+    subagentBlock: { args: ['--disallowedTools', 'Agent'] },
     configHome: {
       directory: 'claude',
       instructionFile: 'CLAUDE.md',
@@ -90,6 +92,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       kind: 'none',
       reason: 'Codex no limita la lectura a este proyecto',
     },
+    subagentBlock: 'not-guaranteed',
     configHome: { directory: 'codex', instructionFile: 'AGENTS.md', envVar: 'CODEX_HOME' },
   },
   {
@@ -101,6 +104,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       kind: 'none',
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
+    subagentBlock: 'not-guaranteed',
     configHome: { directory: 'opencode', instructionFile: 'AGENTS.md' },
   },
   {
@@ -113,6 +117,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     configHome: { directory: 'deepseek', instructionFile: 'AGENTS.md' },
+    subagentBlock: 'not-guaranteed',
   },
   {
     id: 'gemini',
@@ -124,6 +129,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     configHome: { directory: 'gemini', instructionFile: 'AGENTS.md' },
+    subagentBlock: 'not-guaranteed',
   },
   {
     id: 'kimi',
@@ -135,6 +141,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     configHome: { directory: 'kimi', instructionFile: 'AGENTS.md' },
+    subagentBlock: 'not-guaranteed',
   },
   {
     id: 'glm',
@@ -146,6 +153,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     configHome: { directory: 'glm', instructionFile: 'AGENTS.md' },
+    subagentBlock: 'not-guaranteed',
   },
 ]
 

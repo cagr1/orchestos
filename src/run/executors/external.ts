@@ -18,12 +18,18 @@
  */
 
 import { realpathSync } from 'node:fs'
+import { loadOrcheConfig } from '../../config/load.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { ClaudeReadAudit, type ReadAudit, successfulReadPaths } from '../read-audit.ts'
-import { provisionCliConfigHome, supportsRestrictedMode } from './cli-registry.ts'
+import { KNOWN_CLIS, provisionCliConfigHome, supportsRestrictedMode } from './cli-registry.ts'
 import { claudeEventToStep, claudeEventToTextDelta, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
+
+function claudeSubagentBlockArgs(): string[] {
+  const capability = KNOWN_CLIS.find((cli) => cli.id === 'claude')?.subagentBlock
+  return capability && capability !== 'not-guaranteed' ? capability.args : []
+}
 
 export class ExecutorExternalError extends Error {
   readAudit?: ReadAudit
@@ -135,7 +141,12 @@ export function orchestosModelToCliModel(model: string | undefined): string | un
  * mismos campos (`total_cost_usd`/`usage`/`num_turns`) que antes traía el
  * blob de `--output-format json` — verificado en vivo 2026-07-27.
  */
-function buildClaudeArgs(systemPrompt: string, model?: string, effort?: string): string[] {
+export function buildClaudeArgs(
+  systemPrompt: string,
+  model?: string,
+  effort?: string,
+  blockSubagents = false,
+): string[] {
   const args = [
     '-p',
     '--output-format',
@@ -150,10 +161,15 @@ function buildClaudeArgs(systemPrompt: string, model?: string, effort?: string):
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
   if (effort) args.push('--effort', effort)
+  if (blockSubagents) args.push(...claudeSubagentBlockArgs())
   return args
 }
 
-function buildClaudeArgsDisplay(model?: string, effort?: string): string[] {
+export function buildClaudeArgsDisplay(
+  model?: string,
+  effort?: string,
+  blockSubagents = false,
+): string[] {
   const args = [
     '-p',
     '--output-format',
@@ -168,6 +184,7 @@ function buildClaudeArgsDisplay(model?: string, effort?: string): string[] {
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
   if (effort) args.push('--effort', effort)
+  if (blockSubagents) args.push(...claudeSubagentBlockArgs())
   return args
 }
 
@@ -472,7 +489,13 @@ export const externalEngine: ExecutorEngine = {
     try {
       ;({ timedOut, resultLine } = await runClaudeCode(
         ctx.effectiveRoot,
-        buildClaudeArgs(systemPrompt, ctx.model, ctx.cliEffort),
+        buildClaudeArgs(
+          systemPrompt,
+          ctx.model,
+          ctx.cliEffort,
+          (ctx.opts.orcheConfig ?? loadOrcheConfig(ctx.effectiveRoot)).orchestration?.enabled !==
+            true,
+        ),
         ctx.prompt.userContent,
         timeoutMs,
         opts.onStep,
@@ -536,7 +559,12 @@ export const externalEngine: ExecutorEngine = {
           // para no inflar la DB. La UI muestra la línea de comandos reconstruida
           // a partir de estos campos — ver screens-ops.js detail().
           binary: CLAUDE_BINARY,
-          args: buildClaudeArgsDisplay(ctx.model, ctx.cliEffort),
+          args: buildClaudeArgsDisplay(
+            ctx.model,
+            ctx.cliEffort,
+            (ctx.opts.orcheConfig ?? loadOrcheConfig(ctx.effectiveRoot)).orchestration?.enabled !==
+              true,
+          ),
         },
       ],
       log: [

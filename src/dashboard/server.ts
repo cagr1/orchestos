@@ -43,6 +43,7 @@ import {
   handleApiMemoryDelete,
 } from './handlers/memory.ts'
 import { handleApiModelCatalog } from './handlers/model-catalog.ts'
+import { handleApiOrchestrationGet, handleApiOrchestrationSet } from './handlers/orchestration.ts'
 import {
   handleApiPlan,
   handleApiPlanDependencies,
@@ -523,6 +524,14 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'PUT' && url.pathname === '/api/config') {
     return withDashboardProject(req, (project) => handleApiConfigSet(req, project.root))
+  }
+  if (url.pathname === '/api/orchestration' && method === 'GET') {
+    return withDashboardProject(req, (project) =>
+      handleApiOrchestrationGet(project.root, project.id),
+    )
+  }
+  if (url.pathname === '/api/orchestration' && method === 'PUT') {
+    return withDashboardProject(req, (project) => handleApiOrchestrationSet(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/context/suggest') {
     return withDashboardProject(req, (project) => handleApiContextSuggest(url, project.root))

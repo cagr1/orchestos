@@ -586,6 +586,8 @@ function handleApiTasksSplitPlan(url: URL, root: string): Response {
 
 // Mes 20 B.3 — POST /api/tasks/:id/approve-split
 function handleApiTasksApproveSplit(url: URL, root: string): Response {
+  if (loadOrcheConfig(root).orchestration?.enabled !== true)
+    return errorResponse('Orquestación desactivada en este proyecto — actívala en Settings', 409)
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)

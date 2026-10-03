@@ -395,7 +395,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // sub-tareas (reutilizando el generador de function-calling existente) y
     // devolvemos 'split_proposed' para que el caller (CLI o dashboard) pida
     // aprobación antes de gastar.
-    if (shouldSplit(ctx.task, maxTokens)) {
+    if (shouldSplit(ctx.task, maxTokens) && effectiveConfig.orchestration?.enabled === true) {
       const estimated = ctx.task.output.length * SPLIT_AVG_TOKENS_PER_FILE
       log.info(
         `auto-split: output estimado ~${estimated} tokens supera ${Math.round(SPLIT_THRESHOLD * 100)}% de maxTokens=${maxTokens} — generando plan de sub-tareas`,
@@ -452,6 +452,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       }
       // si generatePlan falló → seguir con el engine normal (ya logueado arriba)
     }
+    if (shouldSplit(ctx.task, maxTokens) && effectiveConfig.orchestration?.enabled !== true)
+      log.info('auto-split omitido: orquestación OFF')
 
     // MR.1.b: an explicit task engine wins. Otherwise the executor role selects
     // the CLI engine; API assignments use apiMode. The top-level agent field no
