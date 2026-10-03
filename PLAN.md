@@ -1006,6 +1006,16 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate: configuración ausente y OFF → cero hijos; ON → admite N y rechaza N+1 antes del spawn;
   recarga/reinicio mantienen política; intentos concurrentes no la saltan. Estado visible de
   activos/total y consumo observado; cuota no disponible se rotula desconocida.
+- [x] **ERP.3.1 — 🧠 Settings no pide orquestación de un proyecto purgado.** (cerrado 2026-10-03)
+  Ejecutado por: luna · Spec: docs/specs/ERP.3.1.md (borrado al cerrar)
+  Settings omite la lectura de orquestación si el proyecto ya no está en la lista y cancela lecturas/guardados
+  pendientes al purgar; guardados con la misma validación de proyecto.
+  Gate en vivo: navegador real con Playwright (`src/dashboard/app/src/api/settings.ts`) — `ui:gate project-delete` 11/11
+  (antes FAIL por 404 en consola) y `orchestration` 6/6.
+  Original:
+  Hermano de ERP.3 cazado por el pre-push: `ui:gate project-delete` → `HTTP 404 /api/orchestration` en consola tras
+  purgar. Aplicar a la orquestación el mismo resguardo que las demás lecturas por proyecto de Settings.
+  Gate: `ui:gate project-delete orchestration` en dashboard real.
 - [ ] **I.7 — 🔍 Gate: la puerta manual no existe y el flujo automático se ve.**
   Contra el dashboard real corriendo, nunca mocks ([[feedback-verificar-gates-en-vivo]]):
   1. En la pantalla principal **no hay ningún camino** para crear una tarea a mano — es el

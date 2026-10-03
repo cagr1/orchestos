@@ -341,6 +341,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   // purge: the effect's in-flight request is aborted on confirm and the id is excluded.
   const purgingProjectId = React.useRef<string | null>(null)
   const configRequest = React.useRef<AbortController | null>(null)
+  const orchestrationRequest = React.useRef<AbortController | null>(null)
+  const orchestrationSaveRequest = React.useRef<AbortController | null>(null)
   const configProjectId =
     activeProjectId !== purgingProjectId.current &&
     projects.some((project) => project.id === activeProjectId)
@@ -645,11 +647,23 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   ]
 
   const isProjectSection = activeSection.startsWith('project_')
+  const orchestrationProjectId =
+    isProjectSection &&
+    activeProjectId !== purgingProjectId.current &&
+    projects.some((project) => project.id === activeProjectId)
+      ? activeProjectId
+      : undefined
 
   useEffect(() => {
-    if (!isProjectSection || !activeProjectId) return
+    if (!orchestrationProjectId) {
+      setOrchestration(null)
+      setOrchestrationError(null)
+      return
+    }
     let live = true
-    getOrchestration(activeProjectId)
+    const controller = new AbortController()
+    orchestrationRequest.current = controller
+    getOrchestration(orchestrationProjectId, controller.signal)
       .then((value) => {
         if (live) {
           setOrchestration(value)
@@ -661,8 +675,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       })
     return () => {
       live = false
+      controller.abort()
     }
-  }, [isProjectSection, activeProjectId])
+  }, [orchestrationProjectId])
 
   // Handle clicking a specific project navigation item
   const handleNavToProject = (projId: string) => {
@@ -2256,18 +2271,34 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             setOrchestrationError(null)
                             return
                           }
+                          if (
+                            !orchestrationProjectId ||
+                            orchestrationProjectId === purgingProjectId.current
+                          )
+                            return
                           const previousOrchestration = orchestration
                           setOrchestration({ ...orchestration, enabled: false })
                           setOrchestrationSaving(true)
                           setOrchestrationError(null)
+                          const controller = new AbortController()
+                          orchestrationSaveRequest.current = controller
                           try {
-                            await saveOrchestration({ enabled: false }, activeProjectId)
-                            setOrchestration(await getOrchestration(activeProjectId))
-                          } catch (error) {
-                            setOrchestration(previousOrchestration)
-                            setOrchestrationError(
-                              error instanceof Error ? error.message : String(error),
+                            await saveOrchestration(
+                              { enabled: false },
+                              orchestrationProjectId,
+                              controller.signal,
                             )
+                            if (!controller.signal.aborted)
+                              setOrchestration(
+                                await getOrchestration(orchestrationProjectId, controller.signal),
+                              )
+                          } catch (error) {
+                            if (!controller.signal.aborted) {
+                              setOrchestration(previousOrchestration)
+                              setOrchestrationError(
+                                error instanceof Error ? error.message : String(error),
+                              )
+                            }
                           } finally {
                             setOrchestrationSaving(false)
                           }
@@ -2307,6 +2338,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         className="self-end rounded-control border border-app px-3 py-1 text-xs text-app"
                         disabled={orchestrationSaving}
                         onClick={async () => {
+                          if (
+                            !orchestrationProjectId ||
+                            orchestrationProjectId === purgingProjectId.current
+                          )
+                            return
                           const { maxConcurrent, maxTotal } = orchestration
                           if (
                             !Number.isInteger(maxConcurrent) ||
@@ -2319,13 +2355,23 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           }
                           setOrchestrationSaving(true)
                           setOrchestrationError(null)
+                          const controller = new AbortController()
+                          orchestrationSaveRequest.current = controller
                           try {
-                            await saveOrchestration(orchestration, activeProjectId)
-                            setOrchestration(await getOrchestration(activeProjectId))
-                          } catch (error) {
-                            setOrchestrationError(
-                              error instanceof Error ? error.message : String(error),
+                            await saveOrchestration(
+                              orchestration,
+                              orchestrationProjectId,
+                              controller.signal,
                             )
+                            if (!controller.signal.aborted)
+                              setOrchestration(
+                                await getOrchestration(orchestrationProjectId, controller.signal),
+                              )
+                          } catch (error) {
+                            if (!controller.signal.aborted)
+                              setOrchestrationError(
+                                error instanceof Error ? error.message : String(error),
+                              )
                           } finally {
                             setOrchestrationSaving(false)
                           }
@@ -2572,6 +2618,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   const purgedId = selectedProject.id
                   purgingProjectId.current = purgedId
                   configRequest.current?.abort()
+                  orchestrationRequest.current?.abort()
+                  orchestrationSaveRequest.current?.abort()
                   void Promise.resolve(onPurgeProjectData?.(purgedId)).finally(() => {
                     if (purgingProjectId.current === purgedId) purgingProjectId.current = null
                   })

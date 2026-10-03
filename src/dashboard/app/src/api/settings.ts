@@ -215,15 +215,23 @@ export type OrchestrationResponse = {
   extraCalls: { id: string; label: string; active: boolean; reason: string }[]
   adapters: { id: string; label: string; subagentBlock: string }[]
 }
-export async function getOrchestration(projectId: string): Promise<OrchestrationResponse> {
-  return request('/api/orchestration', { headers: { 'x-orchestos-project-id': projectId } })
+export async function getOrchestration(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<OrchestrationResponse> {
+  return request('/api/orchestration', {
+    headers: { 'x-orchestos-project-id': projectId },
+    signal,
+  })
 }
 export async function saveOrchestration(
   value: { enabled: boolean; maxConcurrent?: number; maxTotal?: number },
   projectId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   const init = jsonInit('PUT', value)
   init.headers = { ...init.headers, 'x-orchestos-project-id': projectId }
+  init.signal = signal
   await request('/api/orchestration', init)
 }
 
