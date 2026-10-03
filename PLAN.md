@@ -1269,6 +1269,26 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   `codex-live`); CI.9.3 tras recargar leía el DOM antes de que cargara la sesión → espera el último prompt; CI.9.4
   corrige CI.9.1 (si el prompt aún no está pintado, vuelve a muestrear). `test:coverage`: 1604 pass, funciones 75.37 % / líneas 62.28 %. Sin delegación: no (Sol).
 
+- [x] **CI.10 — ⚡ `chat-streaming` y `codex-live` solo bloquean el push cuando cambia el chat.** (abierto y cerrado 2026-10-03, decisión de Carlos + QA de Sol)
+  Ejecutado por: Luna (`gpt-6-luna`, 3 rondas: CI.10, CI.9.5 A-C, CI.9.5 D) · Spec: docs/specs/CI.10.md y CI.9.5.md (borrados al cerrar)
+  Medido: con CI.9 aplicado, 6 corridas de los 15 ui-gates; esos dos fallaron 4 veces por latencia del modelo real
+  (cada vez un paso distinto), los otros 13 nunca. Primera versión: sacarlos del pre-push. **QA de Sol (`gpt-6.1-sol`),
+  1.ª vuelta: RECHAZADO**, 4 hallazgos verificados por el cerebro: (1) tras CI.9 un fallo de la sonda se reintentaba en
+  cada consulta, hasta 3 `spawnSync` de 10 s por POST de chat (también de Codex) → ahora timeout 5 s y fallo cacheado
+  30 s (`CAPABILITY_FAILURE_RETRY_MS`, reloj inyectable, test); (2) el muestreo de `chat-streaming` pasaba con
+  `[prompt, viva]` o con la burbuja viva duplicada → ahora exige la respuesta anterior y `liveCount === 1`; (3) sacarlos
+  dejaba el chat sin gate automático → `scripts/pre-push.sh` los corre cuando el diff toca `chat_paths`, con 1 reintento
+  (un fallo de latencia pasa, una regresión falla 2 veces); (4) no estaba demostrado que no hubiera bug → CI.11.
+  **2.ª vuelta: RECHAZADO** por `chat_paths` incompleto (`App.tsx` `handleSendMessage`, `chat-cli-models.ts`) →
+  agregados; comprobado: App.tsx/chat-cli-models.ts → chat, handlers/tasks.ts → no. `test:coverage` 1604 pass,
+  funciones 75.37 % / líneas 62.29 %. Hook sincronizado (`diff` vacío). Sin delegación: no (Luna, QA Sol).
+
+- [ ] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03)
+  Visto una vez en la corrida completa de ui-gates (`$TMPDIR/ui-gate-73235/result.json`, paso "turn 2 is faster than
+  turn 1": 22141 ms vs 180113 ms, el timeout del flujo). Sin verificar si es latencia del modelo o un cuelgue al
+  retomar el thread. Señalado por la QA de Sol: sacar el flujo del pre-push no puede silenciar este detector.
+  Siguiente paso: reproducir con `gate:evidence` y leer el log del app-server de Codex en ese turno.
+
 - [x] **UI.22 — ⚡ Selector de OpenCode: sin el prefijo `opencode/` y buscador solo en OpenCode.** (abierto 2026-09-29, cerrado 2026-09-29, pedido de Carlos)
   Carlos: la altura/buscador/esfuerzo de UI.21 era solo para OpenCode, y en OpenCode los modelos se leen
   `opencode/…` — "la palabra OpenCode está de más". Hoy `src/dashboard/chat-cli-models.ts:163` usa el id crudo como

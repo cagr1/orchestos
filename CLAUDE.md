@@ -81,6 +81,10 @@ El proyecto tiene dos hooks. Si clonas el repo en otra máquina, instala **ambos
   y el export de `runs-summary.json`. Rápido, corre en cada commit.
 - **pre-push** (`scripts/pre-push.sh`, 2026-08-01) — corre `bun run test:coverage`, el
   comando **exacto** del workflow de CI (~20s).
+- Al cambiar el chat (`src/dashboard/handlers/chat*`, el chat del frontend, `src/run/executors/`), el
+  pre-push corre automáticamente `chat-streaming` y `codex-live`, con 1 reintento por latencia real.
+  Al cerrar un ítem de chat, usar `bun run gate:evidence -- --label <ítem>-chat-live -- bun run ui:gate chat-streaming codex-live`
+  y citar esa evidencia.
 
 Los gates en vivo del harness con home temporal se ejecutan mediante
 `bun run gate:evidence -- --label <gate-id> -- <comando>`. La regla y sus límites están en

@@ -222,7 +222,7 @@ export const spawnCliCapabilityProbe: CliCapabilityProbe = (binary, args) => {
   let exitCode: number | null = null
   let signalCode: string | null = null
   try {
-    const proc = Bun.spawnSync([binary, ...args], { env: safeChildEnv(), timeout: 10_000 })
+    const proc = Bun.spawnSync([binary, ...args], { env: safeChildEnv(), timeout: 5_000 })
     exitCode = proc.exitCode
     signalCode = proc.signalCode ?? null
     return proc.exitCode === 0 ? proc.stdout.toString() : null
@@ -238,7 +238,8 @@ export const spawnCliCapabilityProbe: CliCapabilityProbe = (binary, args) => {
 }
 
 /** Cache por binario: `--help` es barato pero está en el camino caliente del chat. */
-const capabilityCache = new Map<string, boolean>()
+const CAPABILITY_FAILURE_RETRY_MS = 30_000
+const capabilityCache = new Map<string, { supported: boolean; retryAt?: number }>()
 
 /** Solo para tests — evita que una entrada cacheada filtre entre casos. */
 export function _resetCliCapabilityCache(): void {
@@ -248,7 +249,7 @@ export function _resetCliCapabilityCache(): void {
 export function supportsRestrictedMode(
   binary: string,
   probe: CliCapabilityProbe = spawnCliCapabilityProbe,
-  options: { cache?: boolean } = {},
+  options: { cache?: boolean; now?: () => number } = {},
 ): boolean {
   // Por defecto solo se cachea el resultado de la sonda REAL. Cachear las inyectadas
   // hacía que una sonda distinta devolviera el valor de la anterior — detectado
@@ -256,6 +257,7 @@ export function supportsRestrictedMode(
   // `project-root` porque la llamada anterior ya había cacheado `true`. Un cache
   // que ignora su entrada es peor que no tener cache: miente en silencio.
   const useCache = options.cache ?? probe === spawnCliCapabilityProbe
+  const now = options.now ?? Date.now
   let cacheKey = binary
   if (useCache) {
     try {
@@ -268,16 +270,24 @@ export function supportsRestrictedMode(
       return false
     }
     const cached = capabilityCache.get(cacheKey)
-    if (cached !== undefined) return cached
+    if (cached !== undefined) {
+      if (cached.retryAt === undefined || now() < cached.retryAt) return cached.supported
+      capabilityCache.delete(cacheKey)
+    }
   }
   const help = probe(binary, ['--help'])
   // Se busca el flag en su forma declarada, no una subcadena suelta: `--restricted`
   // aparece en la línea de opciones seguida de espacios y su descripción.
   const supported = help !== null && /^\s*--restricted(\s|$)/m.test(help)
-  // Un fallo transitorio sigue siendo fail-closed, pero permite volver a sondear.
-  if (useCache && help !== null) {
+  // Un fallo transitorio sigue siendo fail-closed y se reintenta tras una ventana breve.
+  if (useCache) {
     if (capabilityCache.size >= 32) capabilityCache.clear()
-    capabilityCache.set(cacheKey, supported)
+    capabilityCache.set(
+      cacheKey,
+      help === null
+        ? { supported: false, retryAt: now() + CAPABILITY_FAILURE_RETRY_MS }
+        : { supported },
+    )
   }
   return supported
 }

@@ -171,11 +171,17 @@ describe('H.9.2 — capability de frontera verificada contra el binario', () => 
 
   beforeEach(() => _resetCliCapabilityCache())
 
-  it('no cachea un fallo transitorio: vuelve a sondear y reconoce --restricted', () => {
+  it('cachea un fallo transitorio por 30 s y luego vuelve a sondear', () => {
     let calls = 0
+    let now = 0
     const probe = () => (++calls === 1 ? null : helpNuevo)
-    expect(supportsRestrictedMode(process.execPath, probe, { cache: true })).toBe(false)
-    expect(supportsRestrictedMode(process.execPath, probe, { cache: true })).toBe(true)
+    const options = { cache: true, now: () => now }
+    expect(supportsRestrictedMode(process.execPath, probe, options)).toBe(false)
+    now = 10_000
+    expect(supportsRestrictedMode(process.execPath, probe, options)).toBe(false)
+    expect(calls).toBe(1)
+    now = 31_000
+    expect(supportsRestrictedMode(process.execPath, probe, options)).toBe(true)
     expect(calls).toBe(2)
   })
 

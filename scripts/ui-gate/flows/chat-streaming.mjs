@@ -265,18 +265,22 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
         const previousAnswer =
           timeline.data.messages.filter((message) => message.role === 'assistant').at(-1)
             ?.content ?? ''
+        const previousIndex = index(previousAnswer)
         const promptIndex = index(prompt)
-        if (promptIndex < 0) return null
+        if (previousIndex < 0 || promptIndex < 0) return null
+        const livePrefix = squash(timeline.data.live.text.slice(0, 32))
+        const liveCount = midOrder.filter(
+          (entry, i) => i > promptIndex && squash(entry).includes(livePrefix),
+        ).length
         const liveIndex = midOrder.findIndex(
-          (entry, i) =>
-            i > promptIndex && squash(entry).includes(squash(timeline.data.live.text.slice(0, 32))),
+          (entry, i) => i > promptIndex && squash(entry).includes(livePrefix),
         )
         if (liveIndex < 0) return null
         chatMidTurnChecked = true
         await step(
           'Chat DOM order during sampled turn is previous assistant, user, live assistant',
-          index(previousAnswer) < index(prompt) && index(prompt) < liveIndex,
-          JSON.stringify(midOrder.map((text) => squash(text).slice(0, 50))),
+          previousIndex < promptIndex && promptIndex < liveIndex && liveCount === 1,
+          JSON.stringify({ liveCount, order: midOrder.map((text) => squash(text).slice(0, 50)) }),
         )
       }
       const assistants =
