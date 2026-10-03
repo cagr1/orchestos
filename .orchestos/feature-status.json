@@ -202,6 +202,15 @@
       "closedDate": "2026-10-03"
     },
     {
+      "id": "ERP.3.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Orquestación solo en la pestaña Tasks del proyecto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "I.7",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": null,

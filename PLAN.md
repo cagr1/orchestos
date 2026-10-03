@@ -1016,6 +1016,10 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Hermano de ERP.3 cazado por el pre-push: `ui:gate project-delete` → `HTTP 404 /api/orchestration` en consola tras
   purgar. Aplicar a la orquestación el mismo resguardo que las demás lecturas por proyecto de Settings.
   Gate: `ui:gate project-delete orchestration` en dashboard real.
+- [ ] **ERP.3.2 — 🧠 Orquestación solo en la pestaña Tasks del proyecto.**
+  Hermano de ERP.3 cazado por el pre-push: la sección se pinta en todas las pestañas (`OrchestSettingsView.tsx:2258`)
+  y `ui:gate plan-doc` cuenta 4 checkboxes en Plan. Mostrarla solo con `activeProjectTab === 'tasks'`.
+  Gate: `ui:gate plan-doc orchestration project-delete` en dashboard real.
 - [ ] **I.7 — 🔍 Gate: la puerta manual no existe y el flujo automático se ve.**
   Contra el dashboard real corriendo, nunca mocks ([[feedback-verificar-gates-en-vivo]]):
   1. En la pantalla principal **no hay ningún camino** para crear una tarea a mano — es el
