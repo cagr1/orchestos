@@ -1081,6 +1081,11 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/I.7.2-live.json`; `auto-flow` 26/26 (inline report
   `dom=true; persisted=true` para Claude y Codex), `chat-streaming` 15/15, `codex-live` 14/14; `test:coverage` 1617/0.
 
+- [ ] **I.7.3 — ⚡ Regresión de I.7.2: aprobar una tarea retenida no oculta la tarjeta.** `ui:gate chat-turn-details`
+  falla "Approve & Run removes card" (verde en CI.7/CI.9). Causa leída en código: el sondeo de I.7.2
+  (`App.tsx` ~299) hace `setThreads` con mensajes recargados mientras `tasks.yaml` aún dice `pending` y pisa el
+  `taskHeld:false` local; además sondea tareas rechazadas (borradas). Gate: `chat-turn-details` verde en vivo.
+
 **Fuera de scope declarado del Bloque I:** dónde viven DB/`runs`/`specs` (Carlos lo pospuso
 explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni Actividad.
 

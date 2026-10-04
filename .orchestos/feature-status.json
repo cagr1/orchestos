@@ -238,6 +238,15 @@
       "closedDate": "2026-10-04"
     },
     {
+      "id": "I.7.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Regresión de I.7.2: aprobar una tarea retenida no oculta la tarjeta",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CX.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
