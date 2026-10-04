@@ -1084,6 +1084,31 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 **Fuera de scope declarado del Bloque I:** dónde viven DB/`runs`/`specs` (Carlos lo pospuso
 explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni Actividad.
 
+### CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)
+
+> Origen: revisión con Carlos 2026-10-04. Dos temas separados. **Contexto** = cuánto ocupa la ventana del
+> modelo, como en Claude Desktop, recalculado al cambiar de modelo (naranja/rojo, no un aviso). **Consumo** =
+> uso real, acotado a OrchestOS: chat/tareas propios + tabs CLI en proyectos registrados (no todo el CLI como
+> Orca). Plan aprobado por Carlos ("GO en ese orden"). Fuera: proyectos no registrados, OpenCode.
+
+- [ ] **CX.1 — ⚡ `gate:evidence` exporta 0 runs de `ui:gate`.** `scripts/ui-gate/run.mjs:16` crea su propio home
+  y pisa el `ORCHESTOS_HOME` aislado del wrapper → exporta de una DB vacía (visto en I.7.2: "0 exported").
+  Gate: `gate:evidence -- ui:gate <flujo>` exporta >0 runs de un flujo que ejecuta tareas.
+- [ ] **CX.2 — 🧠 El anillo de contexto mide el hilo activo y se recalcula al cambiar de modelo.** Hoy
+  `scripts/session-status.ts:176-195` toma el transcript más reciente del CLI en el proyecto (puede ser un tab
+  de Claude Code ajeno al hilo). Debe usar el contexto acumulado del hilo (último turno, con caché) dividido
+  por la ventana del modelo elegido en el selector; cambia en el acto al cambiar de modelo. Colores ya
+  existentes (`ContextRing.tsx`: ≥60 naranja, ≥80 rojo). Gate en vivo con el dashboard real.
+- [ ] **CX.3 — ⚡ Hook de Claude Code: solo % de ventana.** Quitar el tope absoluto AT.5
+  (`scripts/context-budget.ts:45`, 60k/90k, dispara con el arranque de 57k) y el nivel `block`; el texto dice la
+  causa. Gate: tests del hook + corrida sobre un transcript real.
+- [ ] **CX.4 — 🧠 Los runs guardan tokens reales.** Columnas de caché (lectura/escritura) con migración;
+  `external.ts:444,534` y `codex.ts:236` dejan de descartarlas; costo de Codex con precio de caché del catálogo;
+  `elapsed_ms` del chat deja de ser 0. Gate: run real de Claude y Codex con caché > 0 en la DB.
+- [ ] **CX.5 — 🧠 Consumo de proyectos registrados.** La pantalla de uso suma transcripts de Claude Code/Codex
+  cuyo cwd es un proyecto registrado (costo por catálogo, con caché) + runs de API de la tabla `runs`, sin
+  contar dos veces los runs CLI; separa "chat/tareas de OrchestOS" de "tabs CLI". Gate en vivo.
+
 ---
 - [ ] **H.5.3 — 🔍 Primera corrida medida real (GATED por Carlos).**
   Requiere que Carlos indique modelo y presupuesto; no se abre por iniciativa de ningún LLM.

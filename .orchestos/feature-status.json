@@ -238,9 +238,54 @@
       "closedDate": "2026-10-04"
     },
     {
+      "id": "CX.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
+      "delegation": "⚡",
+      "title": "`gate:evidence` exporta 0 runs de `ui:gate`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CX.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
+      "delegation": "🧠",
+      "title": "El anillo de contexto mide el hilo activo y se recalcula al cambiar de modelo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CX.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
+      "delegation": "⚡",
+      "title": "Hook de Claude Code: solo % de ventana",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CX.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
+      "delegation": "🧠",
+      "title": "Los runs guardan tokens reales",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CX.5",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
+      "delegation": "🧠",
+      "title": "Consumo de proyectos registrados",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "H.5.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": null,
+      "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
       "delegation": "🔍",
       "title": "Primera corrida medida real (GATED por Carlos)",
       "status": "open",
