@@ -57,12 +57,26 @@ describe('context-budget hook', () => {
     expect(existsSync(join(root, '.orchestos', 'handoff.md'))).toBe(false)
   })
 
+  test('nivel ok no avisa aunque el uso absoluto sea alto', () => {
+    const root = createHookWorkspace()
+    const transcript = join(root, 'high-use.jsonl')
+    writeFileSync(
+      transcript,
+      `${JSON.stringify({ payload: { type: 'token_count', model: 'gpt-5.6-codex', info: { last_token_usage: { total_tokens: 124799 }, model_context_window: 1000000 } } })}\n`,
+    )
+    const result = runHook(root, 'high-use-session', transcript)
+
+    expect(result).toMatchObject({ exitCode: 0, stdout: '', stderr: '' })
+    expect(existsSync(join(root, '.orchestos', 'handoff.md'))).toBe(false)
+  })
+
   test('warn por primera vez avisa en tres líneas y genera el handoff aislado', () => {
     const root = createHookWorkspace()
     const result = runHook(root, 'warn-session', join(fixtures, 'codex-60.jsonl'))
 
     expect(result.exitCode, result.stderr).toBe(0)
-    expect(result.stdout.trim().split('\n')).toHaveLength(3)
+    expect(result.stdout.trim().split('\n')).toHaveLength(2)
+    expect(result.stdout).toContain('% de la ventana de gpt-5.6-codex (600 / 1,000 tokens).')
     const handoff = join(root, '.orchestos', 'handoff.md')
     expect(existsSync(handoff)).toBe(true)
     expect(readFileSync(handoff, 'utf8')).toContain('# Handoff de sesión')
@@ -87,8 +101,8 @@ describe('context-budget hook', () => {
     const first = runHook(root, 'critical-session', transcript)
     const repeated = runHook(root, 'critical-session', transcript)
 
-    expect(first.stdout.trim().split('\n')).toHaveLength(3)
-    expect(repeated.stdout.trim().split('\n')).toHaveLength(3)
+    expect(first.stdout.trim().split('\n')).toHaveLength(2)
+    expect(repeated.stdout.trim().split('\n')).toHaveLength(2)
   })
 
   test('un transcript inexistente falla abierto y en silencio', () => {

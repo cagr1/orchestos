@@ -147,6 +147,7 @@ Ejecutado por: luna · Spec: docs/specs/AT.9.md
   real contra `bun run context:budget`), `tsc` limpio, `bun run lint` exit 0 (verificado por
   el cerebro — el reporte de Luna decía "falla", eran warnings preexistentes, no errores).
   Diff acotado a los 5 archivos declarados.
+  Retirado en CX.3 (2026-10-04): el disparo es solo el % de ventana, por decisión de Carlos; el tope absoluto avisaba con el arranque de 57k.
 
 <a id="plan-orden-at-6"></a>
 - [x] **AT.6 — ⚡ Lint en rojo: 3 archivos sin formatear/ordenar.** (cerrado 2026-09-14)

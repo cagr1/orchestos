@@ -1115,9 +1115,13 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   de Claude Code ajeno al hilo). Debe usar el contexto acumulado del hilo (último turno, con caché) dividido
   por la ventana del modelo elegido en el selector; cambia en el acto al cambiar de modelo. Colores ya
   existentes (`ContextRing.tsx`: ≥60 naranja, ≥80 rojo). Gate en vivo con el dashboard real.
-- [ ] **CX.3 — ⚡ Hook de Claude Code: solo % de ventana.** Quitar el tope absoluto AT.5
+- [x] **CX.3 — ⚡ Hook de Claude Code: solo % de ventana.** (cerrado 2026-10-04) Quitar el tope absoluto AT.5
   (`scripts/context-budget.ts:45`, 60k/90k, dispara con el arranque de 57k) y el nivel `block`; el texto dice la
   causa. Gate: tests del hook + corrida sobre un transcript real.
+  Ejecutado por: luna · Spec: docs/specs/CX.3.md
+  Hecho: fuera `ABSOLUTE_BUDGET_THRESHOLDS`/`absoluteLevel`; el aviso dice `<pct> de la ventana de <modelo>
+  (<used> / <window> tokens)`. Verificado sobre el transcript real de esta sesión: 214,777 / 1,000,000 (21.5%),
+  `level: ok`, hook sin salida. `test:coverage` 1617/0.
 - [ ] **CX.4 — 🧠 Los runs guardan tokens reales.** Columnas de caché (lectura/escritura) con migración;
   `external.ts:444,534` y `codex.ts:236` dejan de descartarlas; costo de Codex con precio de caché del catálogo;
   `elapsed_ms` del chat deja de ser 0. Gate: run real de Claude y Codex con caché > 0 en la DB.

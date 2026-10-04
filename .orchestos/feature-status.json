@@ -270,8 +270,8 @@
       "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
       "delegation": "⚡",
       "title": "Hook de Claude Code: solo % de ventana",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-04"
     },
     {
       "id": "CX.4",

@@ -17,13 +17,7 @@ function main(inputText) {
   const budget = runBudget(transcriptPath)
   if (!budget) return
 
-  if (
-    budget.level !== 'warn' &&
-    budget.level !== 'critical' &&
-    budget.absoluteLevel !== 'warn' &&
-    budget.absoluteLevel !== 'block'
-  )
-    return
+  if (budget.level !== 'warn' && budget.level !== 'critical') return
 
   // BUG-H.7.3-a (hallado por el gate 🔍 del 2026-09-03): `printWarning` estaba
   // fuera de este guard y por eso avisaba en CADA turno desde el 60%, dejando a
@@ -33,8 +27,7 @@ function main(inputText) {
   // repite en cada turno.
   const firstTimeThisSession = readState()?.sessionId !== sessionId
   if (firstTimeThisSession && !writeHandoff(transcriptPath, sessionId)) return
-  if (firstTimeThisSession || budget.level === 'critical' || budget.absoluteLevel === 'block')
-    printWarning(budget)
+  if (firstTimeThisSession || budget.level === 'critical') printWarning(budget)
 }
 
 function parseJson(value) {
@@ -60,10 +53,7 @@ function isBudget(value) {
     // (el id del adaptador de H.7.2b) sí es obligatorio.
     (typeof value.model === 'string' || value.model === null) &&
     typeof value.source === 'string' &&
-    (value.level === 'ok' || value.level === 'warn' || value.level === 'critical') &&
-    (value.absoluteLevel === 'ok' ||
-      value.absoluteLevel === 'warn' ||
-      value.absoluteLevel === 'block')
+    (value.level === 'ok' || value.level === 'warn' || value.level === 'critical')
   )
 }
 
@@ -115,8 +105,11 @@ function printWarning(budget) {
   // qué CLI habla el número.
   const model = (budget.model || budget.source || 'desconocido').replace(/\s+/g, ' ').trim()
   const handoff = existsSync(resolve(ROOT, '.orchestos/handoff.md')) ? ' Handoff actualizado.' : ''
-  console.log(`Contexto ${budget.level === 'critical' ? 'crítico' : 'alto'}: ${pct} (${model}).`)
-  console.log(`Ventana: ${budget.window.toLocaleString('en-US')} tokens.${handoff}`)
+  const used = budget.used.toLocaleString('en-US')
+  const window = budget.window.toLocaleString('en-US')
+  console.log(
+    `Contexto ${budget.level === 'critical' ? 'crítico' : 'alto'}: ${pct} de la ventana de ${model} (${used} / ${window} tokens).${handoff}`,
+  )
   console.log('Cierra este tab y abre uno nuevo para retomar con menos contexto.')
 }
 

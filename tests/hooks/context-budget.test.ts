@@ -53,16 +53,12 @@ function runBudget(used: number) {
   }
 }
 
-describe('context budget absolute threshold integration', () => {
-  it('reports block for a real transcript at 90,000 tokens', () => {
+describe('context budget percentage integration', () => {
+  it('omits absoluteLevel and classifies a real transcript by window percentage', () => {
     const result = runBudget(90_000)
     expect(result.status, result.stderr).toBe(0)
-    expect(JSON.parse(result.stdout).absoluteLevel).toBe('block')
-  })
-
-  it('reports warn for a real transcript at 65,000 tokens', () => {
-    const result = runBudget(65_000)
-    expect(result.status, result.stderr).toBe(0)
-    expect(JSON.parse(result.stdout).absoluteLevel).toBe('warn')
+    const budget = JSON.parse(result.stdout)
+    expect(budget).not.toHaveProperty('absoluteLevel')
+    expect(budget.level).toBe('ok')
   })
 })
