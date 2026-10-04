@@ -33,6 +33,7 @@ describe('context budget', () => {
       writeFileSync(
         join(cacheDir, 'models.json'),
         JSON.stringify({
+          schemaVersion: 2,
           fetchedAt: Date.now(),
           models: {
             'known/model': {

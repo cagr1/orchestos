@@ -15,6 +15,7 @@ function runBudget(used: number) {
     writeFileSync(
       join(cacheDir, 'models.json'),
       JSON.stringify({
+        schemaVersion: 2,
         fetchedAt: Date.now(),
         models: {
           'anthropic/claude-opus-5': {
