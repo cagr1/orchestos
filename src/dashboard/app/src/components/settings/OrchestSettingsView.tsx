@@ -248,6 +248,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   type RoutingRule = {
     match: { output?: string[]; skill?: string }
     agent: string
+    model?: string
     cli_effort?: string
   }
   const [routingCatalog, setRoutingCatalog] = useState<RoutingAgent[]>([])
@@ -1576,7 +1577,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 <div className="p-3 border-t border-app space-y-2">
                   <p className="text-app-muted">The first matching rule wins.</p>
                   {taskAgentRules.map((rule, index) => (
-                    <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                    <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
                       <input
                         aria-label="output globs"
                         placeholder="output globs"
@@ -1657,7 +1658,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                     onClick={() => {
                                       setTaskAgentRules((items) =>
                                         items.map((item, i) =>
-                                          i === index ? { ...item, agent: agentId } : item,
+                                          i === index
+                                            ? {
+                                                ...item,
+                                                agent: agentId,
+                                                model: undefined,
+                                                cli_effort: undefined,
+                                              }
+                                            : item,
                                         ),
                                       )
                                       setActiveComboboxRole(null)
@@ -1670,6 +1678,66 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                 )
                               },
                             )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="relative min-w-0">
+                        <button
+                          type="button"
+                          aria-label="rule model"
+                          aria-expanded={activeComboboxRole === `rule-model-${index}`}
+                          onClick={() =>
+                            setActiveComboboxRole(
+                              activeComboboxRole === `rule-model-${index}`
+                                ? null
+                                : `rule-model-${index}`,
+                            )
+                          }
+                          className="w-full min-w-0 flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                        >
+                          <span className="truncate">
+                            {rule.model
+                              ? (routingCatalog
+                                  .find((entry) => entry.id === rule.agent)
+                                  ?.models.find((model) => model.id === rule.model)?.name ??
+                                rule.model)
+                              : rule.agent === routingRoles.executor?.agent
+                                ? 'Executor model'
+                                : 'Model required'}
+                          </span>
+                          <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
+                        </button>
+                        {activeComboboxRole === `rule-model-${index}` && (
+                          <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl z-40 max-h-56 overflow-y-auto">
+                            {[
+                              {
+                                id: '',
+                                name:
+                                  rule.agent === routingRoles.executor?.agent
+                                    ? 'Executor model'
+                                    : 'Model required',
+                              },
+                              ...(routingCatalog.find((entry) => entry.id === rule.agent)?.models ??
+                                []),
+                            ].map((model) => (
+                              <button
+                                key={model.id || 'executor-default'}
+                                type="button"
+                                onClick={() => {
+                                  setTaskAgentRules((items) =>
+                                    items.map((item, i) =>
+                                      i === index
+                                        ? { ...item, model: model.id || undefined }
+                                        : item,
+                                    ),
+                                  )
+                                  setActiveComboboxRole(null)
+                                }}
+                                className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated"
+                              >
+                                {model.name}
+                              </button>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -1686,9 +1754,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                   : `rule-effort-${index}`,
                               )
                             }
-                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                            className="w-full min-w-0 flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
                           >
-                            <span>{rule.cli_effort ?? 'Default effort'}</span>
+                            <span className="truncate">{rule.cli_effort ?? 'Default effort'}</span>
                             <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
                           </button>
                           {activeComboboxRole === `rule-effort-${index}` && (

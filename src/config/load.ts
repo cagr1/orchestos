@@ -271,6 +271,7 @@ function parseTaskAgentRules(v: unknown): TaskAgentRule[] | undefined {
     rules.push({
       match: { output, skill },
       agent: obj.agent as AgentChoice,
+      model: typeof obj.model === 'string' && obj.model.trim() ? obj.model.trim() : undefined,
       cli_effort: typeof obj.cli_effort === 'string' ? obj.cli_effort : undefined,
     })
   }
@@ -357,6 +358,7 @@ models:
 #     agent: codex
 #   - match: { skill: "frontend-design" }
 #     agent: claude
+#     model: claude-sonnet-4-5
 #     cli_effort: high
 
 # Examples:

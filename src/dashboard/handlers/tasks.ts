@@ -9,7 +9,7 @@ import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
-import { resolveProjectAgentRule } from '../../router/engine-cascade.ts'
+import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { withGitLock } from '../../run/git-lock.ts'
 import { git } from '../../run/sandbox.ts'
@@ -364,18 +364,12 @@ async function handleApiTasksCreate(req: Request, root: string): Promise<Respons
       skill: body.skill,
     })
     if (rule) {
-      const resolved =
-        rule.agent === 'claude'
-          ? { engine: 'external' }
-          : rule.agent === 'codex'
-            ? { engine: 'codex' }
-            : rule.agent === 'opencode'
-              ? { engine: 'opencode' }
-              : {}
+      const resolved = taskFieldsFromRule(rule, cfg)
+      if ('error' in resolved) return errorResponse(resolved.error, 400)
       params = {
         ...body,
-        ...(resolved.engine ? { engine: resolved.engine } : {}),
-        cli_effort: body.cli_effort ?? rule.cli_effort,
+        ...resolved,
+        cli_effort: body.cli_effort ?? resolved.cli_effort,
       }
     }
   }

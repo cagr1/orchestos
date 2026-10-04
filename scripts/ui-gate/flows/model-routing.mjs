@@ -299,20 +299,41 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
   await page.getByRole('button', { name: 'Add rule' }).click()
   await page.getByLabel('rule agent').click()
   await page.getByRole('button', { name: 'Codex', exact: true }).last().click()
+  const ruleModelButton = page.getByLabel('rule model')
+  await ruleModelButton.click()
+  const ruleModelChoices = ruleModelButton.locator('xpath=..').getByRole('button')
+  let ruleModelText = ''
+  let ruleModelChoiceIndex = -1
+  for (let index = 1; index < (await ruleModelChoices.count()); index += 1) {
+    const text = (await ruleModelChoices.nth(index).innerText()).trim()
+    if (text !== 'Executor model' && text !== 'Model required') {
+      ruleModelText = text
+      ruleModelChoiceIndex = index
+      break
+    }
+  }
+  if (ruleModelChoiceIndex < 0) throw new Error('No task rule model option was available')
+  await ruleModelChoices.nth(ruleModelChoiceIndex).click()
   await page.getByLabel('output globs').fill('docs/**')
   await saveConfigAndWait()
   await reopenModelRouting()
   await page.getByRole('button', { name: /Task rules/ }).click()
   let savedRules = (await api('/api/config', { headers: projectHeaders })).data.taskAgentRules
+  const savedRuleModelButtonText = (await page.getByLabel('rule model').innerText()).trim()
   await step(
     'task rule persists after reload',
     savedRules.length === 1 &&
       savedRules[0].match.output.includes('docs/**') &&
       savedRules[0].agent === 'codex' &&
+      typeof savedRules[0].model === 'string' &&
+      savedRules[0].model.trim().length > 0 &&
+      savedRuleModelButtonText === ruleModelText &&
       (await page.getByRole('button', { name: 'Task rules (1)', exact: true }).count()) === 1 &&
       (await page.getByLabel('output globs').inputValue()) === 'docs/**',
     JSON.stringify({
       rules: savedRules,
+      model: savedRules[0]?.model,
+      ruleModelButtonText: savedRuleModelButtonText,
       ui: await page.locator('text=Task rules').allInnerTexts(),
       output: await page.getByLabel('output globs').inputValue(),
     }),

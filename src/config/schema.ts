@@ -62,6 +62,8 @@ export interface TaskAgentRule {
     skill?: string
   }
   agent: AgentChoice
+  /** CLI model selected by this rule; required when routing away from the Executor agent. */
+  model?: string
   /** Opcional — esfuerzo del CLI cuando esta regla selecciona una tarea. */
   cli_effort?: string
 }

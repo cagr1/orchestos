@@ -10,9 +10,29 @@ export interface RouteResult {
 }
 
 export function autoRoute(task: Task, cfg: OrcheConfig): RouteResult | null {
+  const executor = cfg.roles.executor
+  const cliAgent =
+    task.engine === 'external'
+      ? 'claude'
+      : task.engine === 'codex'
+        ? 'codex'
+        : task.engine === 'opencode'
+          ? 'opencode'
+          : undefined
+  if (cliAgent) {
+    const model = task.executor_model ?? (executor?.agent === cliAgent ? executor.model : undefined)
+    if (!model) return null
+    return {
+      agent: cliAgent,
+      provider: cliAgent,
+      model,
+      effort: executor?.agent === cliAgent ? executor.effort : undefined,
+      source: task.executor_model ? 'task' : 'executor',
+    }
+  }
   if (task.executor_model)
     return { agent: 'api', provider: task.executor, model: task.executor_model, source: 'task' }
-  const a = cfg.roles.executor
+  const a = executor
   if (!a) return null
   return {
     agent: a.agent,

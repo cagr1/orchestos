@@ -40,6 +40,7 @@ taskAgentRules:
   - match:
       skill: frontend-design
     agent: claude
+    model: " haiku "
     cli_effort: high
 `)
     const cfg = loadOrcheConfig(dir)
@@ -47,11 +48,13 @@ taskAgentRules:
       {
         match: { output: ['apps/api/**'], skill: undefined },
         agent: 'codex',
+        model: undefined,
         cli_effort: undefined,
       },
       {
         match: { output: undefined, skill: 'frontend-design' },
         agent: 'claude',
+        model: 'haiku',
         cli_effort: 'high',
       },
     ])
@@ -71,6 +74,33 @@ taskAgentRules:
       {
         match: { output: undefined, skill: 'frontend-design' },
         agent: 'claude',
+        cli_effort: undefined,
+      },
+    ])
+  })
+
+  it('model string se recorta y model de otro tipo se ignora sin descartar la regla', () => {
+    const dir = tmpProject(`
+config_version: 1
+taskAgentRules:
+  - match: { skill: first }
+    agent: claude
+    model: " haiku "
+  - match: { skill: second }
+    agent: codex
+    model: 3
+`)
+    expect(loadOrcheConfig(dir).taskAgentRules).toEqual([
+      {
+        match: { output: undefined, skill: 'first' },
+        agent: 'claude',
+        model: 'haiku',
+        cli_effort: undefined,
+      },
+      {
+        match: { output: undefined, skill: 'second' },
+        agent: 'codex',
+        model: undefined,
         cli_effort: undefined,
       },
     ])

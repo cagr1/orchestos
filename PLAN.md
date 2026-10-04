@@ -1051,7 +1051,7 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
     Chat no tiene); corregido en r5, sin re-correr.
   Visto sin ítem: el modal "Append to tasks.yaml" de `PlanBoardView.tsx:623` es código muerto (`showAddModal`
   nunca pasa a true).
-- [ ] **I.7.1 — 🧠 La regla de proyecto declara el modelo; el run registra lo que de verdad corrió.**
+- [x] **I.7.1 — 🧠 La regla de proyecto declara el modelo; el run registra lo que de verdad corrió.** (cerrado 2026-10-03)
   Decisión de Carlos (2026-10-03): opción "modelo en la regla". `TaskAgentRule` suma `model` (+ `cli_effort`
   ya existe); editable en Settings → Task rules con el mismo catálogo que Model routing. Regla hacia un agente
   distinto del Ejecutor sin `model` → la tarea no se crea y el chat lo dice. La tarea persiste
@@ -1059,6 +1059,14 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   `role:codex` para una tarea `external`, `role-runner.ts:29`). Archivos: `config/schema.ts`, `config/load.ts`,
   `handlers/config.ts`, `handlers/chat.ts:1081`, `handlers/tasks.ts:362`, `router/auto-route.ts`,
   `OrchestSettingsView.tsx` (Task rules). Gate: `ui:gate auto-flow` punto 4 verde + `model-routing`.
+  Ejecutado por: luna (4 rondas) · Spec: docs/specs/I.7.1.md
+  Rondas 2-4: gate del combobox, botón mostraba id en vez de nombre, "Default effort" partido. Causa raíz: `autoRoute` ignoraba `task.engine` y el harness
+  persistía `role:<agente del Ejecutor>`. Ahora: helper único `taskFieldsFromRule` (chat + `POST /api/tasks`),
+  `autoRoute` respeta engine CLI, `runs.provider` = agente real, combobox `rule model` en Task rules.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/I.7.1-live.json`; `test:coverage` 1612/0;
+  `ui:gate model-routing` 18/18 (cubre el combobox nuevo);
+  `gate:evidence --label I.7.1-auto-flow` 24/26: punto 4 verde (`claude/haiku` vs `codex/gpt-6-luna`, ambos
+  `done`); los 2 rojos son "inline report" = I.7.2.
 - [ ] **I.7.2 — 🧠 El chat reporta el final de la tarea que lanzó.**
   Hoy solo `▶ Started task <id>` (`chat.ts:1119`). Al terminar, el mismo chat muestra estado final y resumen
   del run sin salir de él, persistido (sobrevive recarga). Gate: `ui:gate auto-flow` paso "inline report".

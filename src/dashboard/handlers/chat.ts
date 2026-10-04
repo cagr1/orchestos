@@ -38,7 +38,7 @@ import {
   supportsToolCalling,
   type ToolExecutor,
 } from '../../providers/tool-call.ts'
-import { resolveProjectAgentRule } from '../../router/engine-cascade.ts'
+import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
 import {
   contextWindowFor,
   DEFAULT_MAX_OUTPUT_TOKENS,
@@ -1078,33 +1078,36 @@ async function handleApiChat(
         if (output.length === 0) autoTaskSkipped = true
         else {
           const skill = pickAutoSkill(draft.skillOptions)
-          const projectRule = resolveProjectAgentRule(loadOrcheConfig(root).taskAgentRules, {
+          const cfg = loadOrcheConfig(root)
+          const projectRule = resolveProjectAgentRule(cfg.taskAgentRules, {
             output,
             skill,
           })
-          const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
-          const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
-          const created = createTaskRecord(
-            root,
-            {
-              id: reservedId ?? draft.id,
-              description: draft.description,
-              output,
-              executor: draft.executor,
-              ...(projectRule?.agent === 'claude' ? { engine: 'external' } : {}),
-              ...(projectRule?.agent === 'codex' ? { engine: 'codex' } : {}),
-              ...(projectRule?.agent === 'opencode' ? { engine: 'opencode' } : {}),
-              ...(projectRule?.cli_effort ? { cli_effort: projectRule.cli_effort } : {}),
-              skill,
-            },
-            { reservedId: reservedId !== null },
-          )
-          if ('error' in created) autoTask = { error: created.error }
-          else if (existingFiles.length) autoTask = { id: created.id, held: true, existingFiles }
-          else {
-            if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
-            spawnTaskRun(root, created.id)
-            autoTask = { id: created.id }
+          const ruleFields = projectRule ? taskFieldsFromRule(projectRule, cfg) : {}
+          if ('error' in ruleFields) {
+            autoTask = { error: ruleFields.error }
+          } else {
+            const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
+            const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
+            const created = createTaskRecord(
+              root,
+              {
+                id: reservedId ?? draft.id,
+                description: draft.description,
+                output,
+                executor: draft.executor,
+                ...ruleFields,
+                skill,
+              },
+              { reservedId: reservedId !== null },
+            )
+            if ('error' in created) autoTask = { error: created.error }
+            else if (existingFiles.length) autoTask = { id: created.id, held: true, existingFiles }
+            else {
+              if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
+              spawnTaskRun(root, created.id)
+              autoTask = { id: created.id }
+            }
           }
         }
       } catch (e: any) {

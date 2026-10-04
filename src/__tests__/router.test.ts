@@ -85,6 +85,28 @@ describe('autoRoute', () => {
       { agent: 'api', provider: 'openrouter', model: 'openai/gpt-4.1', source: 'task' },
     )
   })
+  it('routes CLI engine to its declared agent and model', () => {
+    expect(
+      autoRoute(makeTask('Fix it', { engine: 'external', executor_model: 'haiku' }), baseConfig),
+    ).toEqual({
+      agent: 'claude',
+      provider: 'claude',
+      model: 'haiku',
+      source: 'task',
+    })
+  })
+  it('does not borrow the Executor model for a different CLI', () => {
+    expect(autoRoute(makeTask('Fix it', { engine: 'external' }), baseConfig)).toBeNull()
+  })
+  it('uses the Executor model and effort when engine matches its CLI', () => {
+    expect(autoRoute(makeTask('Fix it', { engine: 'codex' }), baseConfig)).toMatchObject({
+      agent: 'codex',
+      provider: 'codex',
+      model: 'gpt-6-luna',
+      effort: 'medium',
+      source: 'executor',
+    })
+  })
   it('returns null when executor is unassigned', () => {
     expect(autoRoute(makeTask('Fix it'), { ...baseConfig, roles: {} })).toBeNull()
   })

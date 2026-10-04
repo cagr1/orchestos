@@ -84,7 +84,7 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     writeTasksYaml([])
     writeFileSync(
       join(tmpDir, 'orchestos.config.yaml'),
-      'taskAgentRules:\n  - match:\n      output: ["src/**"]\n    agent: codex\n',
+      'roles:\n  executor: { agent: codex, model: gpt-6-luna }\ntaskAgentRules:\n  - match:\n      output: ["src/**"]\n    agent: codex\n',
     )
     const matched = await route(
       req('POST', '/api/tasks', {
@@ -98,6 +98,27 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')
     expect(yaml).toContain('engine: codex')
     expect(yaml).not.toContain('executor_model:')
+  })
+
+  it('rejects a matching CLI rule without a model before changing tasks.yaml', async () => {
+    writeFileSync(
+      join(tmpDir, 'orchestos.config.yaml'),
+      'config_version: 1\nroles:\n  executor: { agent: codex, model: gpt-6-luna }\ntaskAgentRules:\n  - match: { output: ["claude-*.md"] }\n    agent: claude\n',
+    )
+    const before = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')
+    const response = await route(
+      req('POST', '/api/tasks', {
+        id: 'missing-model',
+        description: 'missing model',
+        output: ['claude-note.md'],
+      }),
+      PORT,
+    )
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({
+      error: 'Task rule for claude has no model. Set it in Settings → Task rules.',
+    })
+    expect(readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')).toBe(before)
   })
 
   it('engine="agentic" persiste el campo en tasks.yaml y aparece en GET /api/tasks', async () => {

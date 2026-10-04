@@ -205,6 +205,8 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
         return errorResponse(`taskAgentRules[${index}].match.skill must be a non-empty string`, 400)
       if (rule.cli_effort !== undefined && typeof rule.cli_effort !== 'string')
         return errorResponse(`taskAgentRules[${index}].cli_effort must be a string`, 400)
+      if (rule.model !== undefined && (typeof rule.model !== 'string' || !rule.model.trim()))
+        return errorResponse(`taskAgentRules[${index}].model must be a non-empty string`, 400)
     }
   }
   if (

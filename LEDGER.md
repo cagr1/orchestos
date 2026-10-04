@@ -276,3 +276,12 @@ un log cuando se omite por OFF. `maxTokens` se lee igual que antes; ninguna lín
 (`contextWindow`/`maxOutputTokensFor`) tocada.
 **Reversibilidad/evidencia**: commit `feat(ERP.3)`, revertible con `git revert` (migración 19 aditiva).
 `test:coverage` 1601/0 · `ui:gate orchestration` 6/6 · `tasks` 13/13 · `project-isolation` 10/10.
+
+## 2026-10-03 19:18 — claude-opus-5-5 (revisor) · ejecutor Codex gpt-6-luna
+**Contexto**: I.7.1 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el diff solo cambia el error cuando una tarea con engine CLI no tiene modelo y renombra el provider
+de rutas CLI al agente real (`name: routeAgent`). Ninguna línea de `maxTokens`/`contextWindow`/`maxOutputTokensFor`
+tocada (`git diff --cached src/run/harness.ts | grep -i token` → vacío).
+**Reversibilidad/evidencia**: commit `fix(I.7.1)`, revertible con `git revert`. `test:coverage` 1612/0 ·
+`ui:gate model-routing` 18/18 · `auto-flow` 24/26 (rojos = I.7.2).

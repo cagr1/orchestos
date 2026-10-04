@@ -1,6 +1,31 @@
 /** Match a task's output or skill to its first configured agent rule. */
 
-import type { TaskAgentRule } from '../config/schema.ts'
+import type { OrcheConfig, TaskAgentRule } from '../config/schema.ts'
+
+export function taskFieldsFromRule(
+  rule: TaskAgentRule,
+  cfg: OrcheConfig,
+):
+  | { engine?: 'external' | 'codex' | 'opencode'; executor_model?: string; cli_effort?: string }
+  | { error: string } {
+  const engine =
+    rule.agent === 'claude'
+      ? 'external'
+      : rule.agent === 'codex'
+        ? 'codex'
+        : rule.agent === 'opencode'
+          ? 'opencode'
+          : undefined
+  if (engine && !rule.model && rule.agent !== cfg.roles.executor?.agent)
+    return {
+      error: `Task rule for ${rule.agent} has no model. Set it in Settings → Task rules.`,
+    }
+  return {
+    ...(engine ? { engine } : {}),
+    ...(rule.model ? { executor_model: rule.model } : {}),
+    ...(rule.cli_effort ? { cli_effort: rule.cli_effort } : {}),
+  }
+}
 /**
  * I.3 (Mes 30, 2026-09-04) — reglas persistentes por proyecto. `output` matchea por glob (Bun.Glob,
  * sin dependencia nueva) contra `Task.output`; `skill` por id exacto. Decisión

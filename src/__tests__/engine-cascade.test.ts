@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
-import type { TaskAgentRule } from '../config/schema.ts'
-import { resolveProjectAgentRule } from '../router/engine-cascade.ts'
+import type { OrcheConfig, TaskAgentRule } from '../config/schema.ts'
+import { resolveProjectAgentRule, taskFieldsFromRule } from '../router/engine-cascade.ts'
 
 describe('resolveProjectAgentRule()', () => {
   const rules: TaskAgentRule[] = [
@@ -36,5 +36,31 @@ describe('resolveProjectAgentRule()', () => {
     expect(
       resolveProjectAgentRule(rules, { output: ['demo/x.ts'], skill: 'backend' }),
     ).toBeUndefined()
+  })
+})
+
+describe('taskFieldsFromRule()', () => {
+  const cfg: OrcheConfig = {
+    config_version: 1,
+    roles: { executor: { agent: 'codex', model: 'gpt-6-luna', effort: 'medium' } },
+    models: {},
+  }
+  it('maps Claude and its declared model', () => {
+    expect(
+      taskFieldsFromRule({ match: { skill: 'x' }, agent: 'claude', model: 'haiku' }, cfg),
+    ).toEqual({
+      engine: 'external',
+      executor_model: 'haiku',
+    })
+  })
+  it('requires a model when the rule targets a different CLI', () => {
+    expect(taskFieldsFromRule({ match: { skill: 'x' }, agent: 'claude' }, cfg)).toEqual({
+      error: 'Task rule for claude has no model. Set it in Settings → Task rules.',
+    })
+  })
+  it('allows the Executor CLI model to supply the rule model', () => {
+    expect(taskFieldsFromRule({ match: { skill: 'x' }, agent: 'codex' }, cfg)).toEqual({
+      engine: 'codex',
+    })
   })
 })

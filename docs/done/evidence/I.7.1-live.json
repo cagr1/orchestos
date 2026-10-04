@@ -1,0 +1,253 @@
+{
+  "item": "I.7.1",
+  "date": "2026-10-03",
+  "autoFlow": [
+    {
+      "flujo": "auto-flow",
+      "pass": false,
+      "steps": [
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "project appears in Dev sidebar"
+        },
+        {
+          "nombre": "Chat: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Dev: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Settings Tasks: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Settings Plan: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Plan action opens only Chat composer",
+          "ok": true,
+          "detalle": "composer visible=true; dialogs=0"
+        },
+        {
+          "nombre": "select Codex for new chat",
+          "ok": true,
+          "detalle": "agent option visible"
+        },
+        {
+          "nombre": "model and effort controls visible",
+          "ok": true,
+          "detalle": "composer controls visible"
+        },
+        {
+          "nombre": "select gpt-6-luna",
+          "ok": true,
+          "detalle": "model option visible"
+        },
+        {
+          "nombre": "select medium effort",
+          "ok": true,
+          "detalle": "effort option visible"
+        },
+        {
+          "nombre": "model popover closes",
+          "ok": true,
+          "detalle": "popover closed after Escape/click outside"
+        },
+        {
+          "nombre": "chat response: ¿Qué es un DAG? Responde en una frase, sin cr",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "non-task message does not create task",
+          "ok": true,
+          "detalle": "new task ids=[]; task card=false; approve=false"
+        },
+        {
+          "nombre": "non-task message leaves project clean",
+          "ok": true,
+          "detalle": "clean"
+        },
+        {
+          "nombre": "chat response: Crea el archivo claude-nota.md con una sola l",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "claude-nota.md: approval path",
+          "ok": true,
+          "detalle": "task started automatically: chat-c411149c-79ec-498a-be98-37e1f06bbba9; card visible=false"
+        },
+        {
+          "nombre": "claude-nota.md: task finished",
+          "ok": true,
+          "detalle": "{\"id\":\"chat-c411149c-79ec-498a-be98-37e1f06bbba9\",\"description\":\"Crea el archivo `claude-nota.md` con una sola línea: \\\"nota de claude\\\".\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"4df9e8fa-e0a5-4cfc-8a91-1e47fa1e787c\",\"engine\":\"external\",\"output\":[\"claude-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"haiku\",\"hasSplitPlan\":false}"
+        },
+        {
+          "nombre": "claude-nota.md: inline report",
+          "ok": false,
+          "detalle": "task id visible=true; final status \"done\" visible=false"
+        },
+        {
+          "nombre": "claude-nota.md: chat and run persistence",
+          "ok": true,
+          "detalle": "{\"status\":\"done\",\"provider\":\"claude\",\"model\":\"haiku\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+        },
+        {
+          "nombre": "chat response: Crea el archivo codex-nota.md con una sola lí",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "codex-nota.md: approval path",
+          "ok": true,
+          "detalle": "task started automatically: chat-aecc05fc-8052-492e-840c-c4a72311ee65; card visible=false"
+        },
+        {
+          "nombre": "codex-nota.md: task finished",
+          "ok": true,
+          "detalle": "{\"id\":\"chat-aecc05fc-8052-492e-840c-c4a72311ee65\",\"description\":\"Crea el archivo `codex-nota.md` con una sola línea: «nota de codex».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"dc531666-b217-4288-839c-3a486df64bf4\",\"engine\":\"codex\",\"output\":[\"codex-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null,\"hasSplitPlan\":false}"
+        },
+        {
+          "nombre": "codex-nota.md: inline report",
+          "ok": false,
+          "detalle": "task id visible=true; final status \"done\" visible=false"
+        },
+        {
+          "nombre": "codex-nota.md: chat and run persistence",
+          "ok": true,
+          "detalle": "{\"status\":\"done\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+        },
+        {
+          "nombre": "DAG routes Claude and Codex to distinct recorded engines",
+          "ok": true,
+          "detalle": "{\"claude\":{\"engine\":\"external\",\"provider\":\"claude\",\"model\":\"haiku\",\"status\":\"done\",\"result\":\"1 file(s) written\",\"retry_reason\":null},\"codex\":{\"engine\":\"codex\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}}"
+        },
+        {
+          "nombre": "no implementation text visible",
+          "ok": true,
+          "detalle": "{\"implementationLeaks\":[],\"absoluteProjectPath\":false,\"sourcePathError\":false,\"markerInProse\":false}"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64667/auto-flow/no-manual-door.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64667/auto-flow/task-inline-report.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64667/auto-flow/codex-task-inline-report.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64667/auto-flow/final-chat.png"
+      ]
+    }
+  ],
+  "modelRouting": [
+    {
+      "flujo": "model-routing",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "4 role cards are shown",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "all role cards start unassigned",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "legacy QA judge and model are absent",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "orchestrator does not offer OpenCode",
+          "ok": true,
+          "detalle": "{\"orchestratorOpenCodeCount\":0,\"orchestratorCodexCount\":1}"
+        },
+        {
+          "nombre": "executor still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "reviewer still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "auxiliary still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "OpenCode reviewer model menu stays under 60 percent of viewport and scrolls internally",
+          "ok": true,
+          "detalle": "{\"height\":550,\"viewportHeight\":1000,\"scrolls\":true}"
+        },
+        {
+          "nombre": "model search shows the empty state",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "model search reduces results and keeps the requested model",
+          "ok": true,
+          "detalle": "{\"initialModelCount\":400,\"matchingModelCount\":1,\"model\":\"opencode/fledge-alpha-free\",\"matchingModelVisible\":1}"
+        },
+        {
+          "nombre": "keyboard selection opens effort for a variant model",
+          "ok": true,
+          "detalle": "{\"model\":\"opencode/fledge-alpha-free\",\"efforts\":[\"low\",\"high\",\"max\"]}"
+        },
+        {
+          "nombre": "effort menu contains only this model variants",
+          "ok": true,
+          "detalle": "[\"low\",\"high\",\"max\"]"
+        },
+        {
+          "nombre": "model without variants hides effort control",
+          "ok": true,
+          "detalle": "{\"model\":\"opencode/big-pickle\",\"efforts\":[]}"
+        },
+        {
+          "nombre": "role assignments persist and reviewer warning appears",
+          "ok": true,
+          "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"ui\":[\"Orchestrator\\nChat, drafts and task splitting\\nCodex\\nGPT-6-Luna\\nmedium\",\"Executor\\nRuns tasks\\nCodex\\nGPT-6-Luna\\nmedium\",\"Reviewer\\nQA, adversarial and refuter (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\\nSame agent and model as Executor: errors may correlate.\",\"Auxiliary\\nDiagnose and memory judge (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\"],\"source\":[\"Source: orchestos.config.yaml\"]}"
+        },
+        {
+          "nombre": "task rule persists after reload",
+          "ok": true,
+          "detalle": "{\"rules\":[{\"match\":{\"output\":[\"docs/**\"]},\"agent\":\"codex\",\"model\":\"gpt-6.1-sol\"}],\"model\":\"gpt-6.1-sol\",\"ruleModelButtonText\":\"GPT-6.1-Sol\",\"ui\":[\"Task rules (1)\"],\"output\":\"docs/**\"}"
+        },
+        {
+          "nombre": "deleting the rule persists an empty list",
+          "ok": true,
+          "detalle": "[]"
+        },
+        {
+          "nombre": "project config remains selected before running task",
+          "ok": true,
+          "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}}}"
+        },
+        {
+          "nombre": "run record stores the executor and QA models chosen in the UI",
+          "ok": true,
+          "detalle": "{\"id\":\"dee5f279-c67c-4850-8ccd-c8138b18cf90\",\"model\":\"gpt-6-luna\",\"qa_model\":\"gpt-6-luna\"}"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-79072/model-routing/roles-unassigned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-79072/model-routing/roles-assigned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-79072/model-routing/task-rules.png"
+      ]
+    }
+  ]
+}

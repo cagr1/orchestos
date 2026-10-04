@@ -243,7 +243,17 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     ctx.taskClass = classifyTask(t.description)
     const effectiveConfig = orcheConfig ?? loadOrcheConfig(projectRoot)
     const route = autoRoute(t, effectiveConfig)
-    if (!route && !modelOverride) throw new RoleUnassignedError('executor')
+    if (!route && !modelOverride) {
+      if (
+        t.engine &&
+        ['external', 'codex', 'opencode'].includes(t.engine) &&
+        effectiveConfig.roles.executor
+      )
+        throw new Error(
+          `task ${t.id} runs on ${t.engine === 'external' ? 'claude' : t.engine} but has no executor_model, and the Executor is ${effectiveConfig.roles.executor.agent}`,
+        )
+      throw new RoleUnassignedError('executor')
+    }
     const reviewer = roleClient(effectiveConfig, 'reviewer', {
       cwd: effectiveRoot,
       timeoutMs: effectiveConfig.external?.timeoutMs,
@@ -262,11 +272,14 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     ctx.provider =
       routeAgent === 'api'
         ? getProvider(ctx.providerName)
-        : clientFromAssignment(
-            'executor',
-            { agent: routeAgent, model: ctx.model, effort: route?.effort },
-            { cwd: effectiveRoot },
-          ).provider
+        : {
+            ...clientFromAssignment(
+              'executor',
+              { agent: routeAgent, model: ctx.model, effort: route?.effort },
+              { cwd: effectiveRoot },
+            ).provider,
+            name: routeAgent,
+          }
     ctx.cliEffort = ctx.task.cli_effort ?? route?.effort
 
     const chain = createChain<RunContext>()

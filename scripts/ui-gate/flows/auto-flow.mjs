@@ -253,7 +253,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   const configPath = join(projectRoot, 'orchestos.config.yaml')
   const config = yamlParse(readFileSync(configPath, 'utf8')) ?? {}
   config.taskAgentRules = [
-    { match: { output: ['claude-*.md'] }, agent: 'claude' },
+    { match: { output: ['claude-*.md'] }, agent: 'claude', model: 'haiku' },
     { match: { output: ['codex-*.md'] }, agent: 'codex' },
   ]
   writeFileSync(configPath, yamlStringify(config))
@@ -415,6 +415,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     const distinctAndPresent =
       Boolean(claudeRun?.provider && claudeRun?.model && codexRun?.provider && codexRun?.model) &&
       claudeRun.provider === 'claude' &&
+      claudeRun.model === 'haiku' &&
       codexRun.provider === 'codex' &&
       `${claudeRun.provider}/${claudeRun.model}` !== `${codexRun.provider}/${codexRun.model}`
     await step(
