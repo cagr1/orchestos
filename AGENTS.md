@@ -147,6 +147,17 @@ gate de procedencia de S.4b sigue exigiendo `Ejecutado por:` y el borrado del sp
 cierra el ítem** — para entonces su contenido vive en el código y su evidencia en `docs/done/`.
 Un spec de un ítem cerrado es basura acumulada; es el patrón que S.2 vino a eliminar.
 
+Mecánica del commit de cierre (medido en I.7.1, 2026-10-03; costó 6 intentos):
+- El spec debe estar **commiteado antes** (con el delegado o en un `docs(<ID>): spec`): el gate exige verlo como
+  borrado (`D`) en el diff de cierre; un spec nunca commiteado no cuenta.
+- `plan:reconcile` marca el ítem `done` en la DB en la primera corrida; si luego editas su evidencia, el
+  siguiente reconcile falla con `Could not prove a closing commit SHA`. Salida: volver el ítem a `[ ]`,
+  reconcile, `[x]`, reconcile.
+- El cierre de dashboard/config exige `Gate en vivo: navegador real (Playwright), \`docs/done/evidence/<ID>-live.json\``
+  con ese archivo staged en el mismo commit.
+- Un delegado que corre `agent:preflight --scope` deja `.orchestos/active-item.json` (ignorado por git) con su
+  scope de ronda; el scope-lock del cierre lo usa. Revisarlo antes de commitear.
+
 ## Trabajo en equipo (Claude + Codex, en paralelo)
 
 Carlos trabaja este repo con Claude y Codex a la vez, cada uno en su propia sesión (posiblemente
