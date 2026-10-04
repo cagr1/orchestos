@@ -190,6 +190,7 @@ export function toTimestamp(value: string): string {
 export function mapMessage(row: ChatMessageRow): ChatMessage {
   return {
     id: String(row.id),
+    taskId: row.taskId ?? undefined,
     role: row.role,
     content: row.content,
     timestamp: toTimestamp(row.createdAt),
@@ -425,6 +426,7 @@ export async function runProjectTask(
   taskId: string,
   projectId?: string | null,
   onStarted?: () => void,
+  sessionId?: string,
 ): Promise<void> {
   await request(`/api/tasks/${encodeURIComponent(taskId)}/run`, {
     method: 'POST',
@@ -432,7 +434,7 @@ export async function runProjectTask(
       'Content-Type': 'application/json',
       ...(projectId ? { 'x-orchestos-project-id': projectId } : {}),
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify(sessionId ? { sessionId } : {}),
   })
   onStarted?.()
   const deadline = Date.now() + 60_000

@@ -367,23 +367,38 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
       Boolean(finished && finished.status !== 'pending' && finished.status !== 'running'),
       JSON.stringify(finished ?? { id: task.id, status: 'missing' }),
     )
-    const snapshot = databaseSnapshot(databasePath, questionSession.id, task.id)
-    const inlineText = await page
-      .locator('body')
-      .innerText()
-      .catch(() => '')
-    const normalizedInlineText = inlineText.toLowerCase()
-    const taskIdVisible = normalizedInlineText.includes(task.id.toLowerCase())
     const finalStatus = finished?.status ?? ''
-    const finalStatusVisible = Boolean(
-      finalStatus && normalizedInlineText.includes(finalStatus.toLowerCase()),
+    const reportDeadline = Date.now() + 30_000
+    let dom = false
+    while (Date.now() < reportDeadline && !dom) {
+      const prose = page.locator('div.prose')
+      const count = await prose.count().catch(() => 0)
+      for (let index = 0; index < count; index += 1) {
+        const content = (
+          await prose
+            .nth(index)
+            .innerText()
+            .catch(() => '')
+        ).toLowerCase()
+        if (
+          finalStatus &&
+          content.includes(task.id.toLowerCase()) &&
+          content.includes(finalStatus.toLowerCase())
+        ) {
+          dom = true
+          break
+        }
+      }
+      if (!dom) await new Promise((resolve) => setTimeout(resolve, 1_000))
+    }
+    const snapshot = databaseSnapshot(databasePath, questionSession.id, task.id)
+    const persisted = snapshot.messages.some(
+      (message) =>
+        message.role === 'assistant' &&
+        message.task_id === task.id &&
+        message.content.toLowerCase().includes(finalStatus.toLowerCase()),
     )
-    const inline = taskIdVisible && finalStatusVisible
-    await step(
-      `${filename}: inline report`,
-      inline,
-      `task id visible=${taskIdVisible}; final status "${finalStatus}" visible=${finalStatusVisible}`,
-    )
+    await step(`${filename}: inline report`, dom && persisted, `dom=${dom}; persisted=${persisted}`)
     const persistedUser = snapshot.messages.some(
       (message) => message.role === 'user' && message.content.includes(filename),
     )

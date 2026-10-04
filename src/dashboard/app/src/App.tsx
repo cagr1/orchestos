@@ -135,6 +135,8 @@ export default function App() {
   const [projectTabsLoading, setProjectTabsLoading] = useState(false)
   const [projectTabsError, setProjectTabsError] = useState<string | null>(null)
   const [activeThreadId, setActiveThreadId] = useState<string>('')
+  const reportedTaskIds = useRef(new Set<string>())
+  const completedTaskPollAttempts = useRef(new Map<string, number>())
   const projectHydrationControllers = useRef(new Map<string, Set<AbortController>>())
   const projectHydrationReads = useRef(new Map<string, Set<Promise<unknown>>>())
   const purgingProjectIds = useRef(new Set<string>())
@@ -295,6 +297,63 @@ export default function App() {
 
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0]
   const activeThread = threads.find((t) => t.id === activeThreadId)
+  useEffect(() => {
+    if (!activeThread) return
+    const awaiting = activeThread.messages
+      .filter(
+        (message) =>
+          message.role === 'assistant' &&
+          message.taskId &&
+          !message.taskHeld &&
+          activeThread.messages.filter((other) => other.taskId === message.taskId).length === 1,
+      )
+      .map((message) => message.taskId as string)
+      .filter((taskId) => !reportedTaskIds.current.has(`${activeThread.id}:${taskId}`))
+    if (!awaiting.length) return
+    let disposed = false
+    const poll = async () => {
+      try {
+        const tasks = await getProjectTasks(activeThread.projectId)
+        for (const taskId of awaiting) {
+          const task = tasks.find((item) => item.id === taskId)
+          if (task && (task.status === 'pending' || task.status === 'running')) continue
+          const key = `${activeThread.id}:${taskId}`
+          if (disposed) return
+          const messages = await loadThreadMessages(activeThread.id, activeThread.projectId)
+          if (disposed) return
+          const reportCount = messages.filter((message) => message.taskId === taskId).length
+          let shouldRefreshMessages = reportCount > 1
+          if (reportCount > 1) {
+            reportedTaskIds.current.add(key)
+            completedTaskPollAttempts.current.delete(key)
+          } else {
+            const attempts = (completedTaskPollAttempts.current.get(key) ?? 0) + 1
+            completedTaskPollAttempts.current.set(key, attempts)
+            if (attempts >= 6) {
+              reportedTaskIds.current.add(key)
+              completedTaskPollAttempts.current.delete(key)
+              shouldRefreshMessages = true
+            }
+          }
+          if (shouldRefreshMessages) {
+            setThreads((prev) =>
+              prev.map((thread) =>
+                thread.id === activeThread.id ? { ...thread, messages } : thread,
+              ),
+            )
+          }
+        }
+      } catch {
+        // A transient polling failure should not hide a report forever.
+      }
+    }
+    const timer = window.setInterval(() => void poll(), 5_000)
+    void poll()
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+    }
+  }, [activeThread?.id, activeThread?.projectId, activeThread?.messages])
   const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null
   const projectForSession = (id: string) => {
     const thread = threads.find((item) => item.id === id)
@@ -859,22 +918,27 @@ export default function App() {
   const handleApproveHeldTask = async (taskId: string) => {
     const thread = activeThread
     if (!thread) return
-    await runProjectTask(taskId, thread.projectId, () => {
-      setThreads((prev) =>
-        prev.map((item) =>
-          item.id === thread.id
-            ? {
-                ...item,
-                messages: item.messages.map((message) =>
-                  message.proposedTask?.id === taskId
-                    ? { ...message, taskHeld: false, proposedTask: undefined }
-                    : message,
-                ),
-              }
-            : item,
-        ),
-      )
-    })
+    await runProjectTask(
+      taskId,
+      thread.projectId,
+      () => {
+        setThreads((prev) =>
+          prev.map((item) =>
+            item.id === thread.id
+              ? {
+                  ...item,
+                  messages: item.messages.map((message) =>
+                    message.proposedTask?.id === taskId
+                      ? { ...message, taskHeld: false, proposedTask: undefined }
+                      : message,
+                  ),
+                }
+              : item,
+          ),
+        )
+      },
+      thread.id,
+    )
     if (thread) {
       const messages = await loadThreadMessages(thread.id, thread.projectId)
       setThreads((prev) =>

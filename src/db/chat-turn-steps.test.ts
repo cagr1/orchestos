@@ -1,5 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
-import { createChatSession, deleteChatSession } from './chat-sessions.ts'
+import {
+  appendTaskReport,
+  createChatSession,
+  deleteChatSession,
+  listChatMessages,
+} from './chat-sessions.ts'
 import { insertChatTurnStep, listChatTurnSteps } from './chat-turn-steps.ts'
 import { beginTurn } from './chat-turns.ts'
 import { db } from './sqlite.ts'
@@ -16,6 +21,22 @@ afterAll(() => {
 })
 
 describe('chat-turn-steps', () => {
+  it('persiste el reporte de tarea enlazado y devuelve null para una sesión inexistente', () => {
+    const session = createChatSession({ agent: 'api' })
+    sessionIds.push(session.id)
+    const report = appendTaskReport(session.id, 'report-task', '✓ Task done')
+    expect(report).not.toBeNull()
+    if (!report) throw new Error('task report was not inserted')
+    expect(report).toMatchObject({
+      role: 'assistant',
+      task_id: 'report-task',
+      content: '✓ Task done',
+    })
+    expect(listChatMessages(session.id)).toContainEqual(report)
+    expect(appendTaskReport('missing-session', 'missing-task', 'ignored')).toBeNull()
+    expect(listChatMessages(session.id)).toHaveLength(1)
+  })
+
   it('inserta y lee pasos por sesión en orden, con resultado y diff', () => {
     const session = createChatSession({ agent: 'api', mode: 'code' })
     sessionIds.push(session.id)

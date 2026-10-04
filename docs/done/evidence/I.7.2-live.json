@@ -1,0 +1,317 @@
+{
+  "item": "I.7.2",
+  "date": "2026-10-04",
+  "autoFlow": [
+    {
+      "flujo": "auto-flow",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "project appears in Dev sidebar"
+        },
+        {
+          "nombre": "Chat: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Dev: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Settings Tasks: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Settings Plan: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Plan action opens only Chat composer",
+          "ok": true,
+          "detalle": "composer visible=true; dialogs=0"
+        },
+        {
+          "nombre": "select Codex for new chat",
+          "ok": true,
+          "detalle": "agent option visible"
+        },
+        {
+          "nombre": "model and effort controls visible",
+          "ok": true,
+          "detalle": "composer controls visible"
+        },
+        {
+          "nombre": "select gpt-6-luna",
+          "ok": true,
+          "detalle": "model option visible"
+        },
+        {
+          "nombre": "select medium effort",
+          "ok": true,
+          "detalle": "effort option visible"
+        },
+        {
+          "nombre": "model popover closes",
+          "ok": true,
+          "detalle": "popover closed after Escape/click outside"
+        },
+        {
+          "nombre": "chat response: ¿Qué es un DAG? Responde en una frase, sin cr",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "non-task message does not create task",
+          "ok": true,
+          "detalle": "new task ids=[]; task card=false; approve=false"
+        },
+        {
+          "nombre": "non-task message leaves project clean",
+          "ok": true,
+          "detalle": "clean"
+        },
+        {
+          "nombre": "chat response: Crea el archivo claude-nota.md con una sola l",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "claude-nota.md: approval path",
+          "ok": true,
+          "detalle": "task started automatically: chat-d9c773e8-b4cf-4e3d-bfde-5daa19d46f0d; card visible=false"
+        },
+        {
+          "nombre": "claude-nota.md: task finished",
+          "ok": true,
+          "detalle": "{\"id\":\"chat-d9c773e8-b4cf-4e3d-bfde-5daa19d46f0d\",\"description\":\"Crear el archivo claude-nota.md con una sola línea que contenga «nota de claude».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"d510eb4b-0917-467c-96dd-05baaf9dfdc7\",\"engine\":\"external\",\"output\":[\"claude-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"haiku\",\"hasSplitPlan\":false}"
+        },
+        {
+          "nombre": "claude-nota.md: inline report",
+          "ok": true,
+          "detalle": "dom=true; persisted=true"
+        },
+        {
+          "nombre": "claude-nota.md: chat and run persistence",
+          "ok": true,
+          "detalle": "{\"status\":\"done\",\"provider\":\"claude\",\"model\":\"haiku\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+        },
+        {
+          "nombre": "chat response: Crea el archivo codex-nota.md con una sola lí",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "codex-nota.md: approval path",
+          "ok": true,
+          "detalle": "task started automatically: chat-d760691a-be92-46c5-a6d9-89aad71ed6ce; card visible=false"
+        },
+        {
+          "nombre": "codex-nota.md: task finished",
+          "ok": true,
+          "detalle": "{\"id\":\"chat-d760691a-be92-46c5-a6d9-89aad71ed6ce\",\"description\":\"Crear el archivo codex-nota.md con una sola línea que contenga «nota de codex».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"7ca8a3ab-dfa9-408a-bc8f-5cedd40cb5aa\",\"engine\":\"codex\",\"output\":[\"codex-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null,\"hasSplitPlan\":false}"
+        },
+        {
+          "nombre": "codex-nota.md: inline report",
+          "ok": true,
+          "detalle": "dom=true; persisted=true"
+        },
+        {
+          "nombre": "codex-nota.md: chat and run persistence",
+          "ok": true,
+          "detalle": "{\"status\":\"done\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+        },
+        {
+          "nombre": "DAG routes Claude and Codex to distinct recorded engines",
+          "ok": true,
+          "detalle": "{\"claude\":{\"engine\":\"external\",\"provider\":\"claude\",\"model\":\"haiku\",\"status\":\"done\",\"result\":\"1 file(s) written\",\"retry_reason\":null},\"codex\":{\"engine\":\"codex\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}}"
+        },
+        {
+          "nombre": "no implementation text visible",
+          "ok": true,
+          "detalle": "{\"implementationLeaks\":[],\"absoluteProjectPath\":false,\"sourcePathError\":false,\"markerInProse\":false}"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-91864/auto-flow/no-manual-door.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-91864/auto-flow/task-inline-report.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-91864/auto-flow/codex-task-inline-report.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-91864/auto-flow/final-chat.png"
+      ]
+    }
+  ],
+  "chatLive": [
+    {
+      "flujo": "chat-streaming",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "orchestos-ui-mr-1-d4-txArqY"
+        },
+        {
+          "nombre": "Claude option available",
+          "ok": true,
+          "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-txArqY\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+        },
+        {
+          "nombre": "first assistant text appears before completion",
+          "ok": true,
+          "detalle": "t_first=3696 ms; t_done=5862 ms"
+        },
+        {
+          "nombre": "visible text grows at least twice before completion",
+          "ok": true,
+          "detalle": "5 growth updates"
+        },
+        {
+          "nombre": "live bubble stays at the bottom",
+          "ok": true,
+          "detalle": "6 growth measurements; remained at bottom: true"
+        },
+        {
+          "nombre": "captured screenshot during active turn",
+          "ok": true,
+          "detalle": "chat-text-visible-mid-turn"
+        },
+        {
+          "nombre": "one assistant bubble matches persisted response",
+          "ok": true,
+          "detalle": "bubbles=1; persisted=1; visible=Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Diez Once Doce Trece Catorce Qui"
+        },
+        {
+          "nombre": "task marker is not visible",
+          "ok": true,
+          "detalle": "no task marker in the DOM"
+        },
+        {
+          "nombre": "Chat composer empty during sampled turn",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+          "ok": true,
+          "detalle": "{\"liveCount\":1,\"order\":[\"08:06 AM Escribe los números del 1 al 40 en palabr\",\"Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Di\",\"Just now Escribe los números del 41 al 80 en palab\",\"cuarenta y uno cuarenta y dos cuarenta y tres cuar\"]}"
+        },
+        {
+          "nombre": "Chat turn 2 was sampled while pending",
+          "ok": true,
+          "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+        },
+        {
+          "nombre": "Chat bubbles alternate for every sent turn",
+          "ok": true,
+          "detalle": "[\"08:06 AM Escribe los números del 1 al 40 en palabr\",\"Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Di\",\"08:06 AM Escribe los números del 41 al 80 en palab\",\"cuarenta y uno cuarenta y dos cuarenta y tres cuar\"]"
+        },
+        {
+          "nombre": "Chat user bubbles contain no agent text or step markup",
+          "ok": true,
+          "detalle": "user bubbles=2"
+        },
+        {
+          "nombre": "Chat exchange order remains correct after reload",
+          "ok": true,
+          "detalle": "messages=4"
+        },
+        {
+          "nombre": "Dev renders text during generation before completion",
+          "ok": true,
+          "detalle": "t_first=3121 ms; t_done=3982 ms; visible=Uno, dos, tres, cuatro y cinco."
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89445/chat-streaming/chat-text-visible-mid-turn.png"
+      ]
+    },
+    {
+      "flujo": "codex-live",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "orchestos-ui-codex-live-tytEHS"
+        },
+        {
+          "nombre": "Codex agent available",
+          "ok": true,
+          "detalle": "Codex option"
+        },
+        {
+          "nombre": "turn 1 user message appears before completion",
+          "ok": true,
+          "detalle": "13 ms after send"
+        },
+        {
+          "nombre": "turn 1 streams multiple visible text updates",
+          "ok": true,
+          "detalle": "19 distinct non-empty samples before completion"
+        },
+        {
+          "nombre": "turn 1 timeline loader stops after completion",
+          "ok": true,
+          "detalle": "0 spinning loaders remain"
+        },
+        {
+          "nombre": "turn 2 DOM order is assistant 1, user 2, live assistant 2 while generating",
+          "ok": true,
+          "detalle": "[\"08:06 AM\\nRemember the word MANGO-SKF4402D. Reply i\",\"I’ll remember MANGO-SKF4402D during this conversat\",\"08:06 AM\\nWhat word did I ask you to remember? Star\",\"MANGO-SKF4402D. Mangoes are tropical fruits\"]; first answer=I'll remember MANGO-SKF4402D during this conversation. Mangoes are sweet tropica"
+        },
+        {
+          "nombre": "turn 2 remembers the word from turn 1",
+          "ok": true,
+          "detalle": "MANGO-SKF4402D. Mangoes are tropical fruits with juicy flesh and a sweet, fragrant flavor.\n\nTheir skin can be green, yellow, orange, or red. Each mango has a large, flat pit inside.\n\nMangoes are enjoyed fresh, in smoothies, or in salads. They also provide vitamin C and fiber."
+        },
+        {
+          "nombre": "turn 2 timeline loader stops after completion",
+          "ok": true,
+          "detalle": "0 spinning loaders remain"
+        },
+        {
+          "nombre": "both exchanges remain visible in order after turn 2",
+          "ok": true,
+          "detalle": "user bubbles=2; assistant bubbles=2; first answer=I'll remember MANGO-SKF4402D during this conversation. Mangoes are sweet tropica"
+        },
+        {
+          "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2",
+          "ok": true,
+          "detalle": "[\"08:06 AM\\nRemember the word MANGO-SKF4402D. Reply i\",\"I’ll remember MANGO-SKF4402D during this conversat\",\"08:06 AM\\nWhat word did I ask you to remember? Star\",\"MANGO-SKF4402D. Mangoes are tropical fruits with j\"]; first answer=I'll remember MANGO-SKF4402D during this conversation. Mangoes are sweet tropica"
+        },
+        {
+          "nombre": "user bubbles contain no agent markup or response text",
+          "ok": true,
+          "detalle": "2 user bubbles checked; first answer=I'll remember MANGO-SKF4402D during this conversation. Mangoes are sweet tropica"
+        },
+        {
+          "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload",
+          "ok": true,
+          "detalle": "user bubbles=2; assistant bubbles=2; first answer=I'll remember MANGO-SKF4402D during this conversation. Mangoes are sweet tropica"
+        },
+        {
+          "nombre": "turn 2 is faster than turn 1",
+          "ok": true,
+          "detalle": "turn 1=16970 ms; turn 2=6034 ms"
+        },
+        {
+          "nombre": "project chat runs are recorded with provider=codex",
+          "ok": true,
+          "detalle": "[{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"},{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"}]"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89445/codex-live/codex-live-turn-one.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89445/codex-live/codex-live-turn-two.png"
+      ]
+    }
+  ]
+}

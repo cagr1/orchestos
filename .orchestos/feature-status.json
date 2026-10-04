@@ -216,8 +216,8 @@
       "block": null,
       "delegation": "🔍",
       "title": "Gate: la puerta manual no existe y el flujo automático se ve",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-04"
     },
     {
       "id": "I.7.1",
@@ -234,8 +234,8 @@
       "block": null,
       "delegation": "🧠",
       "title": "El chat reporta el final de la tarea que lanzó",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-04"
     },
     {
       "id": "H.5.3",

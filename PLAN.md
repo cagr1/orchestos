@@ -1024,7 +1024,9 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   Hermano de ERP.3 cazado por el pre-push: la sección se pinta en todas las pestañas (`OrchestSettingsView.tsx:2258`)
   y `ui:gate plan-doc` cuenta 4 checkboxes en Plan. Mostrarla solo con `activeProjectTab === 'tasks'`.
   Gate: `ui:gate plan-doc orchestration project-delete` en dashboard real.
-- [ ] **I.7 — 🔍 Gate: la puerta manual no existe y el flujo automático se ve.**
+- [x] **I.7 — 🔍 Gate: la puerta manual no existe y el flujo automático se ve.** (cerrado 2026-10-04)
+  Ejecutado por: claude (gate) · Spec: docs/specs/I.7.md
+  Cierre: I.7.1 e I.7.2 `[x]`; `auto-flow` 26/26 en vivo (puntos 1-5 verdes), `docs/done/evidence/I.7.2-live.json`. Sin delegación: no (Luna en I.7.1/I.7.2).
   Contra el dashboard real corriendo, nunca mocks ([[feedback-verificar-gates-en-vivo]]):
   1. En la pantalla principal **no hay ningún camino** para crear una tarea a mano — es el
      criterio de cierre de I.1 y lo que faltó las tres veces anteriores.
@@ -1067,9 +1069,17 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
   `ui:gate model-routing` 18/18 (cubre el combobox nuevo);
   `gate:evidence --label I.7.1-auto-flow` 24/26: punto 4 verde (`claude/haiku` vs `codex/gpt-6-luna`, ambos
   `done`); los 2 rojos son "inline report" = I.7.2.
-- [ ] **I.7.2 — 🧠 El chat reporta el final de la tarea que lanzó.**
+- [x] **I.7.2 — 🧠 El chat reporta el final de la tarea que lanzó.** (cerrado 2026-10-04)
+  Ejecutado por: luna (3 rondas) · Spec: docs/specs/I.7.2.md
   Hoy solo `▶ Started task <id>` (`chat.ts:1119`). Al terminar, el mismo chat muestra estado final y resumen
   del run sin salir de él, persistido (sobrevive recarga). Gate: `ui:gate auto-flow` paso "inline report".
+  Hecho: `spawnTaskRun` acepta `onExit`; `reportTaskOutcome` (`handlers/task-report.ts`) inserta un mensaje
+  assistant con `task_id` (`appendTaskReport`); también al aprobar una tarea retenida (`sessionId` en
+  `POST /api/tasks/:id/run`). El frontend sondea cada 5 s hasta que llega el reporte. Rondas 2-3: carrera
+  "tasks.yaml done antes del reporte" y el efecto que se relanzaba agotando los intentos en <1 s.
+  Fuera: si el dashboard se reinicia a mitad del run, ese reporte se pierde.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/I.7.2-live.json`; `auto-flow` 26/26 (inline report
+  `dom=true; persisted=true` para Claude y Codex), `chat-streaming` 15/15, `codex-live` 14/14; `test:coverage` 1617/0.
 
 **Fuera de scope declarado del Bloque I:** dónde viven DB/`runs`/`specs` (Carlos lo pospuso
 explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni Actividad.

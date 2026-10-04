@@ -177,6 +177,7 @@ export interface ProjectContext {
 
 export interface ChatMessage {
   id: string
+  taskId?: string
   role: 'user' | 'assistant' | 'system'
   content: string
   timestamp: string

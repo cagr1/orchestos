@@ -282,6 +282,25 @@ export function appendChatExchange(input: AppendChatExchangeInput): ChatMessageR
   return listChatMessages(input.sessionId).slice(-2)
 }
 
+export function appendTaskReport(
+  sessionId: string,
+  taskId: string,
+  content: string,
+): ChatMessageRecord | null {
+  if (!getChatSession(sessionId)) return null
+  const insert = db.transaction(() => {
+    const now = new Date().toISOString()
+    db.run(
+      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, turn_id, created_at)
+       VALUES (?, 'assistant', ?, NULL, ?, '[]', NULL, NULL, NULL, ?)`,
+      [sessionId, content, taskId, now],
+    )
+    db.run('UPDATE chat_sessions SET updated_at = ? WHERE id = ?', [now, sessionId])
+  })
+  insert()
+  return listChatMessages(sessionId).at(-1) ?? null
+}
+
 /** `chat` is a hard read-only boundary; legacy requests retain their old behavior. */
 export function sessionAllowsTaskExecution(mode: ChatSessionMode | null): boolean {
   return mode === null || mode === 'code'

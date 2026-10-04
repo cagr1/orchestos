@@ -5,6 +5,7 @@ import { diagnoseTask } from '../../agents/diagnose.ts'
 import { parsePlan } from '../../agents/planner.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { AgentChoice } from '../../config/schema.ts'
+import { getChatSession } from '../../db/chat-sessions.ts'
 import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { suggestContext } from '../../graph/suggest.ts'
@@ -19,6 +20,7 @@ import { scaffoldTasksYaml } from '../../tasks/init.ts'
 import { loadTasks, mutateTasks } from '../../tasks/loader.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
 import type { DiagnoseRow, SplitPlanResponse, TaskRow } from '../types.ts'
+import { reportTaskOutcome } from './task-report.ts'
 
 async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Response> {
   let localDetected = false
@@ -323,13 +325,19 @@ export function resolveTaskRunProjectId(
   return projectId ?? getProject(root)?.id ?? undefined
 }
 
-function spawnTaskRun(root: string, id: string, model?: string, projectId?: string | null): void {
+function spawnTaskRun(
+  root: string,
+  id: string,
+  model?: string,
+  projectId?: string | null,
+  onExit?: () => void,
+): void {
   commitTasksYaml(root, `chore(tasks): run ${id} (dashboard)`)
   const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--id', id]
   if (model) args.push('--model', model)
   const selectedProjectId = resolveTaskRunProjectId(root, projectId)
   if (selectedProjectId) args.push('--project-id', selectedProjectId)
-  Bun.spawn(args, {
+  const proc = Bun.spawn(args, {
     cwd: root,
     stdout: 'inherit',
     stderr: 'inherit',
@@ -337,6 +345,7 @@ function spawnTaskRun(root: string, id: string, model?: string, projectId?: stri
       ? { ...process.env, ORCHESTOS_PROJECT_ID: selectedProjectId }
       : undefined,
   })
+  if (onExit) void proc.exited.then(onExit).catch(() => {})
 }
 
 async function handleApiTasksCreate(req: Request, root: string): Promise<Response> {
@@ -387,9 +396,9 @@ async function handleApiTasksRun(
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
-  let body: { model?: string; clarification?: string } = {}
+  let body: { model?: string; clarification?: string; sessionId?: string } = {}
   try {
-    body = (await req.json()) as { model?: string; clarification?: string }
+    body = (await req.json()) as { model?: string; clarification?: string; sessionId?: string }
   } catch {
     /* body opcional */
   }
@@ -405,7 +414,14 @@ async function handleApiTasksRun(
     return true
   })
   if (!taskResult) return errorResponse('Task not found', 404)
-  spawnTaskRun(root, id, model, projectId)
+  const session = typeof body.sessionId === 'string' ? getChatSession(body.sessionId) : null
+  spawnTaskRun(
+    root,
+    id,
+    model,
+    projectId,
+    session ? () => reportTaskOutcome(root, session.id, id, projectId) : undefined,
+  )
   return jsonResponse({ ok: true, id })
 }
 
