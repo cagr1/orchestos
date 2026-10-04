@@ -1233,10 +1233,19 @@ export default function App() {
               onAddInstinct={handleAddInstinct}
               onRunTask={async (id) => {
                 if (!currentProject) return
+                setTaskRunError(null)
                 setRunningTaskId(id)
                 try {
                   await runTask(id, currentProject.id, setTasks)
                   await reloadTabs()
+                } catch (error) {
+                  setTaskRunError(error instanceof Error ? error.message : String(error))
+                  await listTasks(currentProject.id)
+                    .then((result) => {
+                      setTasks(result.tasks)
+                      setTaskError(result.error || null)
+                    })
+                    .catch(() => undefined)
                 } finally {
                   setRunningTaskId(null)
                   await refreshUsage()
