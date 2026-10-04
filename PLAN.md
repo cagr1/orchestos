@@ -1101,9 +1101,15 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
 > uso real, acotado a OrchestOS: chat/tareas propios + tabs CLI en proyectos registrados (no todo el CLI como
 > Orca). Plan aprobado por Carlos ("GO en ese orden"). Fuera: proyectos no registrados, OpenCode.
 
-- [ ] **CX.1 — ⚡ `gate:evidence` exporta 0 runs de `ui:gate`.** `scripts/ui-gate/run.mjs:16` crea su propio home
+- [x] **CX.1 — ⚡ `gate:evidence` exporta 0 runs de `ui:gate`.** (cerrado 2026-10-04) `scripts/ui-gate/run.mjs:16` crea su propio home
   y pisa el `ORCHESTOS_HOME` aislado del wrapper → exporta de una DB vacía (visto en I.7.2: "0 exported").
   Gate: `gate:evidence -- ui:gate <flujo>` exporta >0 runs de un flujo que ejecuta tareas.
+  Ejecutado por: luna (2 rondas) · Spec: docs/specs/CX.1.md
+  Dos causas: `run.mjs` pisaba el home del wrapper (ahora respeta `ORCHESTOS_GATE_EVIDENCE_HOME`; capturas en
+  `runDir`), y el purge de cada flujo borraba sus runs antes del export (en modo evidencia se desligan antes del
+  cleanup).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.1-live.json`; `auto-flow` 26/26 con
+  `2 exported` (claude/haiku + codex/gpt-6-luna en la DB durable).
 - [ ] **CX.2 — 🧠 El anillo de contexto mide el hilo activo y se recalcula al cambiar de modelo.** Hoy
   `scripts/session-status.ts:176-195` toma el transcript más reciente del CLI en el proyecto (puede ser un tab
   de Claude Code ajeno al hilo). Debe usar el contexto acumulado del hilo (último turno, con caché) dividido

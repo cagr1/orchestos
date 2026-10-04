@@ -134,6 +134,21 @@ describe('CC.0-D6 — exportRunEvidence', () => {
 })
 
 describe('CC.0-D6 — gate:evidence lifecycle', () => {
+  it('pasa al comando hijo el home aislado como home de evidencia del ui:gate', () => {
+    const evidenceHome = temp('orchestos-evidence-env-')
+    const script = `
+      if (process.env.ORCHESTOS_GATE_EVIDENCE_HOME !== process.env.ORCHESTOS_HOME) process.exit(9)
+    `
+    expect(
+      runEvidenceGate({
+        label: 'capture-home',
+        command: ['bun', '-e', script],
+        evidenceHome,
+        cwd: process.cwd(),
+      }),
+    ).toBe(0)
+  })
+
   it('exporta evidencia aunque el gate falle y borra el home temporal solo después', () => {
     const evidenceHome = temp('orchestos-evidence-home-')
     const before = evidenceTempNames('failed-gate')

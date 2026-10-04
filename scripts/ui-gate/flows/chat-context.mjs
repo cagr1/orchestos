@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { basename, join } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 import { writeGateRoles } from '../lib.mjs'
 
@@ -102,6 +102,7 @@ export default async function chatContext({
   visible,
   cleanup,
   databasePath,
+  captureDir,
 }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-mr-1-d2-'))
   const description =
@@ -180,10 +181,7 @@ export default async function chatContext({
   await page.getByRole('button', { name: /GPT-6-Luna · medium/i }).waitFor({ state: 'visible' })
   const composer = page.locator('textarea').last()
   const codexReply = await sendTurn(page, composer, prompt)
-  const codexPrompt = readFileSync(
-    join(dirname(dirname(databasePath)), 'gate-captures', `chat-prompt-${codexSession.id}.txt`),
-    'utf8',
-  )
+  const codexPrompt = readFileSync(join(captureDir, `chat-prompt-${codexSession.id}.txt`), 'utf8')
   await step(
     'Codex chat context includes tools, partial cost, QA, model, and zoned time',
     !!codexReply &&
@@ -214,10 +212,7 @@ export default async function chatContext({
   await selectClaudeHaiku(page)
   const claudeComposer = page.locator('textarea').last()
   const claudeReply = await sendTurn(page, claudeComposer, prompt)
-  const claudePrompt = readFileSync(
-    join(dirname(dirname(databasePath)), 'gate-captures', `chat-prompt-${claudeSession.id}.txt`),
-    'utf8',
-  )
+  const claudePrompt = readFileSync(join(captureDir, `chat-prompt-${claudeSession.id}.txt`), 'utf8')
   await step(
     'Claude chat context includes its tools and the previous Codex run',
     !!claudeReply &&

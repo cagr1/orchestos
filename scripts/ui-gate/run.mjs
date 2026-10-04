@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import net from 'node:net'
@@ -13,8 +13,9 @@ import { formatResult, lintFlowSource } from './lib.mjs'
 
 const flows = process.argv.slice(2)
 const runDir = path.join(os.tmpdir(), `ui-gate-${process.pid}`)
-const home = path.join(runDir, 'home')
+const home = process.env.ORCHESTOS_GATE_EVIDENCE_HOME || path.join(runDir, 'home')
 const databasePath = path.join(home, '.orchestos', 'db.sqlite')
+const captureDir = path.join(runDir, 'gate-captures')
 const statuslineHome = path.join(runDir, 'claude-statusline-home')
 const dashboardLog = path.join(runDir, 'dashboard.log')
 let dashboard
@@ -152,6 +153,7 @@ async function runFlow(name, base) {
       page,
       base,
       databasePath,
+      captureDir,
       statuslineHome,
       api: async (apiPath, init = {}) => {
         const response = await fetch(`${base}${apiPath}`, {
@@ -214,6 +216,24 @@ async function runFlow(name, base) {
     result.errores.push(error instanceof Error ? error.message : String(error))
     result.pass = false
   } finally {
+    if (process.env.ORCHESTOS_GATE_EVIDENCE_HOME) {
+      try {
+        const databasePathLiteral = JSON.stringify(databasePath)
+        execFileSync(
+          'bun',
+          [
+            '-e',
+            `import { Database } from 'bun:sqlite'; const db = new Database(${databasePathLiteral}); try { db.run('UPDATE runs SET project_id = NULL WHERE project_id IS NOT NULL') } finally { db.close() }`,
+          ],
+          { stdio: 'pipe' },
+        )
+      } catch (error) {
+        result.errores.push(
+          `run evidence detach failed: ${error instanceof Error ? error.message : String(error)}`,
+        )
+        result.pass = false
+      }
+    }
     for (const cleanupFn of cleanups.reverse()) {
       try {
         await cleanupFn()
@@ -259,7 +279,7 @@ async function main() {
     env: {
       ...process.env,
       ORCHESTOS_HOME: home,
-      ORCHESTOS_GATE_CAPTURE_DIR: path.join(home, 'gate-captures'),
+      ORCHESTOS_GATE_CAPTURE_DIR: captureDir,
       ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
     },
     stdio: ['ignore', dashboardLogFd, dashboardLogFd],
@@ -277,13 +297,9 @@ async function main() {
     stdout('FAIL boot: health timeout')
   } else {
     const actualDatabasePath = await fsp.realpath(databasePath)
-    const actualRunDir = await fsp.realpath(runDir)
-    const expectedDatabasePath = path.join(actualRunDir, path.relative(runDir, databasePath))
-    if (
-      actualDatabasePath !== expectedDatabasePath ||
-      !actualDatabasePath.startsWith(`${actualRunDir}${path.sep}`)
-    ) {
-      throw new Error(`dashboard database escaped runDir: ${actualDatabasePath}`)
+    const actualHome = await fsp.realpath(home)
+    if (!actualDatabasePath.startsWith(`${actualHome}${path.sep}`)) {
+      throw new Error(`dashboard database escaped home: ${actualDatabasePath}`)
     }
     try {
       await removeOrphanedUiProjects(base)

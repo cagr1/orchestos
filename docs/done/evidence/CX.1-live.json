@@ -1,0 +1,150 @@
+{
+  "item": "CX.1",
+  "date": "2026-10-04",
+  "export": "2 exported, 0 duplicate(s) (gate:cx.1-auto-flow: claude/haiku + codex/gpt-6-luna)",
+  "flows": [
+    {
+      "flujo": "auto-flow",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "project appears in Dev sidebar"
+        },
+        {
+          "nombre": "Chat: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Dev: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Settings Tasks: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Settings Plan: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Plan action opens only Chat composer",
+          "ok": true,
+          "detalle": "composer visible=true; dialogs=0"
+        },
+        {
+          "nombre": "select Codex for new chat",
+          "ok": true,
+          "detalle": "agent option visible"
+        },
+        {
+          "nombre": "model and effort controls visible",
+          "ok": true,
+          "detalle": "composer controls visible"
+        },
+        {
+          "nombre": "select gpt-6-luna",
+          "ok": true,
+          "detalle": "model option visible"
+        },
+        {
+          "nombre": "select medium effort",
+          "ok": true,
+          "detalle": "effort option visible"
+        },
+        {
+          "nombre": "model popover closes",
+          "ok": true,
+          "detalle": "popover closed after Escape/click outside"
+        },
+        {
+          "nombre": "chat response: ¿Qué es un DAG? Responde en una frase, sin cr",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "non-task message does not create task",
+          "ok": true,
+          "detalle": "new task ids=[]; task card=false; approve=false"
+        },
+        {
+          "nombre": "non-task message leaves project clean",
+          "ok": true,
+          "detalle": "clean"
+        },
+        {
+          "nombre": "chat response: Crea el archivo claude-nota.md con una sola l",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "claude-nota.md: approval path",
+          "ok": true,
+          "detalle": "task started automatically: chat-6992d913-ca91-43bf-88c6-4fadc89e8777; card visible=false"
+        },
+        {
+          "nombre": "claude-nota.md: task finished",
+          "ok": true,
+          "detalle": "{\"id\":\"chat-6992d913-ca91-43bf-88c6-4fadc89e8777\",\"description\":\"Crear el archivo claude-nota.md con una sola línea que contenga «nota de claude».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"06587793-cf95-4060-95a1-3672f1d9644a\",\"engine\":\"external\",\"output\":[\"claude-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"haiku\",\"hasSplitPlan\":false}"
+        },
+        {
+          "nombre": "claude-nota.md: inline report",
+          "ok": true,
+          "detalle": "dom=true; persisted=true"
+        },
+        {
+          "nombre": "claude-nota.md: chat and run persistence",
+          "ok": true,
+          "detalle": "{\"status\":\"done\",\"provider\":\"claude\",\"model\":\"haiku\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+        },
+        {
+          "nombre": "chat response: Crea el archivo codex-nota.md con una sola lí",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "codex-nota.md: approval path",
+          "ok": true,
+          "detalle": "task started automatically: chat-d0a036a3-6a50-4418-93b8-b6ac8a40299e; card visible=false"
+        },
+        {
+          "nombre": "codex-nota.md: task finished",
+          "ok": true,
+          "detalle": "{\"id\":\"chat-d0a036a3-6a50-4418-93b8-b6ac8a40299e\",\"description\":\"Crear el archivo codex-nota.md con una sola línea que contenga «nota de codex».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"296c838e-0e4a-4480-a241-1d5387c4ba71\",\"engine\":\"codex\",\"output\":[\"codex-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null,\"hasSplitPlan\":false}"
+        },
+        {
+          "nombre": "codex-nota.md: inline report",
+          "ok": true,
+          "detalle": "dom=true; persisted=true"
+        },
+        {
+          "nombre": "codex-nota.md: chat and run persistence",
+          "ok": true,
+          "detalle": "{\"status\":\"done\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+        },
+        {
+          "nombre": "DAG routes Claude and Codex to distinct recorded engines",
+          "ok": true,
+          "detalle": "{\"claude\":{\"engine\":\"external\",\"provider\":\"claude\",\"model\":\"haiku\",\"status\":\"done\",\"result\":\"1 file(s) written\",\"retry_reason\":null},\"codex\":{\"engine\":\"codex\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}}"
+        },
+        {
+          "nombre": "no implementation text visible",
+          "ok": true,
+          "detalle": "{\"implementationLeaks\":[],\"absoluteProjectPath\":false,\"sourcePathError\":false,\"markerInProse\":false}"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-71291/auto-flow/no-manual-door.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-71291/auto-flow/task-inline-report.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-71291/auto-flow/codex-task-inline-report.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-71291/auto-flow/final-chat.png"
+      ]
+    }
+  ]
+}

@@ -144,7 +144,11 @@ export function runEvidenceGate(options: GateOptions): number {
     const child = Bun.spawnSync({
       cmd: options.command,
       cwd,
-      env: { ...process.env, ORCHESTOS_HOME: tempHome },
+      env: {
+        ...process.env,
+        ORCHESTOS_HOME: tempHome,
+        ORCHESTOS_GATE_EVIDENCE_HOME: tempHome,
+      },
       stdout: 'inherit',
       stderr: 'inherit',
     })
