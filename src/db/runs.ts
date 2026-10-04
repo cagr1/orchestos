@@ -43,6 +43,7 @@ export interface RunRecord {
   input_tokens: number
   cache_read_tokens: number
   cache_write_tokens: number
+  cli_session_id: string | null
   output_tokens: number
   usd_cost: number
   elapsed_ms: number
@@ -55,6 +56,7 @@ type InsertRunRecord = Omit<
   | 'id'
   | 'cache_read_tokens'
   | 'cache_write_tokens'
+  | 'cli_session_id'
   | 'created_at'
   | 'files_read'
   | 'qa_model'
@@ -89,6 +91,7 @@ type InsertRunRecord = Omit<
   skill_gates_json?: string | null
   cache_read_tokens?: number
   cache_write_tokens?: number
+  cli_session_id?: string | null
 }
 
 export function insertRun(r: InsertRunRecord): string {
@@ -104,8 +107,8 @@ export function insertRun(r: InsertRunRecord): string {
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
       cost_breakdown_json, file_diffs, adversarial_verdict, adversarial_reason, refuter_verdict, refuter_reason, skill_gates_json,
-      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       scrub(r.project_id),
@@ -148,6 +151,7 @@ export function insertRun(r: InsertRunRecord): string {
       r.elapsed_ms,
       scrub(r.result),
       now,
+      scrub(r.cli_session_id),
     ],
   )
   return id

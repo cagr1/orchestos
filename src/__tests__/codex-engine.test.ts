@@ -39,6 +39,7 @@ function seedCatalog(): string {
   writeFileSync(
     join(home, '.orchestos', 'cache', 'models.json'),
     JSON.stringify({
+      schemaVersion: 2,
       fetchedAt: Date.now(),
       models: {
         'openai/gpt-5.4': {
@@ -342,6 +343,7 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(spawnCalls[0]!.cmd).toContain('gpt-5.4') // prefijo openai/ pelado
     expect(spawnCalls[0]!.cmd).toContain('-c')
     expect(spawnCalls[0]!.cmd).toContain('model_reasoning_effort=medium')
+    expect(outcome.cliSessionId).toBe('abc')
     expect(ctx.task.cli_effort).toBeUndefined()
 
     expect(outcome.files).toEqual([{ path: 'out.txt', content: 'hello from codex\n' }])

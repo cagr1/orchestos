@@ -38,6 +38,7 @@ export interface ModelInfo {
   priceOut: number
   priceCacheRead?: number
   priceCacheWrite?: number
+  priceCacheWrite1h?: number
   /** True si OpenRouter publica `"reasoning"` en `supported_parameters` para este modelo. */
   supportsReasoning: boolean
   /** True si OpenRouter publica `"tools"` en `supported_parameters` para este modelo (function calling real, no solo Claude/GPT/Gemini). */
@@ -52,10 +53,12 @@ export interface ModelInfo {
 export const DEFAULT_MAX_OUTPUT_TOKENS = 8192
 
 interface DiskCache {
+  schemaVersion: number
   fetchedAt: number
   models: Record<string, ModelInfo>
 }
 
+const CACHE_SCHEMA_VERSION = 2
 const TTL_MS = 24 * 60 * 60 * 1000
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models'
 
@@ -80,7 +83,7 @@ function isFresh(fetchedAt: number): boolean {
 // Disk cache
 // ---------------------------------------------------------------------------
 
-function loadDiskCache(): DiskCache | null {
+function loadDiskCache(): { cache: DiskCache; stale: boolean } | null {
   try {
     const path = cacheFilePath()
     if (!existsSync(path)) return null
@@ -91,7 +94,10 @@ function loadDiskCache(): DiskCache | null {
       raw.models === null
     )
       return null
-    return raw
+    return {
+      cache: raw,
+      stale: raw.schemaVersion !== CACHE_SCHEMA_VERSION || !isFresh(raw.fetchedAt),
+    }
   } catch {
     return null
   }
@@ -127,9 +133,11 @@ function saveDiskCache(cache: DiskCache): void {
 // Network
 // ---------------------------------------------------------------------------
 
-async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, ModelInfo>> {
+async function fetchFromOpenRouter(apiKey?: string): Promise<Record<string, ModelInfo>> {
+  const headers: Record<string, string> = {}
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`
   const res = await fetch(OPENROUTER_MODELS_URL, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers,
     signal: AbortSignal.timeout(10_000),
   })
   if (!res.ok) throw new Error(`OpenRouter models fetch failed: ${res.status}`)
@@ -142,6 +150,7 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
         completion?: string
         input_cache_read?: string
         input_cache_write?: string
+        input_cache_write_1h?: string
       }
       supported_parameters?: string[]
       top_provider?: { max_completion_tokens?: number }
@@ -166,6 +175,9 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
         : {}),
       ...(Number.isFinite(Number(m.pricing?.input_cache_write))
         ? { priceCacheWrite: Number(m.pricing?.input_cache_write) * 1_000_000 }
+        : {}),
+      ...(Number.isFinite(Number(m.pricing?.input_cache_write_1h))
+        ? { priceCacheWrite1h: Number(m.pricing?.input_cache_write_1h) * 1_000_000 }
         : {}),
       supportsReasoning:
         Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
@@ -199,26 +211,24 @@ export async function ensureCatalogLoaded(
   if (!opts.force && memoryCatalog && isFresh(memoryFetchedAt)) return
 
   const disk = loadDiskCache()
-  if (!opts.force && disk && isFresh(disk.fetchedAt)) {
-    memoryCatalog = new Map(Object.entries(disk.models))
-    memoryFetchedAt = disk.fetchedAt
+  if (!opts.force && disk && !disk.stale) {
+    memoryCatalog = new Map(Object.entries(disk.cache.models))
+    memoryFetchedAt = disk.cache.fetchedAt
     return
   }
 
   const apiKey = opts.apiKey ?? tryLoadApiKey()
-  if (apiKey) {
-    try {
-      const models = await fetchFromOpenRouter(apiKey)
-      if (Object.keys(models).length > 0) {
-        const fetchedAt = Date.now()
-        saveDiskCache({ fetchedAt, models })
-        memoryCatalog = new Map(Object.entries(models))
-        memoryFetchedAt = fetchedAt
-        return
-      }
-    } catch {
-      /* fall through: cache vencido es mejor que nada */
+  try {
+    const models = await fetchFromOpenRouter(apiKey ?? undefined)
+    if (Object.keys(models).length > 0) {
+      const fetchedAt = Date.now()
+      saveDiskCache({ schemaVersion: CACHE_SCHEMA_VERSION, fetchedAt, models })
+      memoryCatalog = new Map(Object.entries(models))
+      memoryFetchedAt = fetchedAt
+      return
     }
+  } catch {
+    /* fall through: cache vencido es mejor que nada */
   }
 
   // Sin red / sin key: usa el cache vencido si existe (mejor que la tabla a secas).
@@ -228,7 +238,7 @@ export async function ensureCatalogLoaded(
   // (10s de timeout) en cada tarea del grafo. Marcar "ya lo intenté ahora" evita
   // reintentos repetidos dentro de la misma corrida — a lo sumo un intento real.
   if (disk) {
-    memoryCatalog = new Map(Object.entries(disk.models))
+    memoryCatalog = new Map(Object.entries(disk.cache.models))
     memoryFetchedAt = Date.now()
   }
 }

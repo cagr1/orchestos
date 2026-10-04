@@ -1141,9 +1141,19 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   claude/haiku input 4,697 + caché 31,516/10,928, 13.4 s; codex/gpt-6-luna input 23,841 + caché 64,512, 23.0 s.
   `chat-streaming` 15/15, `codex-live` 14/14; `test:coverage` 1620/0. No visto en DB: los runs de chat (el purge
   de los flujos los borra); lo cubren tests y el anillo de CX.2.
-- [ ] **CX.5 — 🧠 Consumo de proyectos registrados.** La pantalla de uso suma transcripts de Claude Code/Codex
+- [x] **CX.5 — 🧠 Consumo de proyectos registrados.** (cerrado 2026-10-04) La pantalla de uso suma transcripts de Claude Code/Codex
   cuyo cwd es un proyecto registrado (costo por catálogo, con caché) + runs de API de la tabla `runs`, sin
   contar dos veces los runs CLI; separa "chat/tareas de OrchestOS" de "tabs CLI". Gate en vivo.
+  Ejecutado por: luna (3 rondas) · Spec: docs/specs/CX.5.md
+  Hecho: migración 21 `runs.cli_session_id` (session_id de Claude, thread_id de Codex) para no contar dos veces;
+  `src/usage/cli-transcripts.ts` lee Claude (dedupe por `message.id`, escritura de caché 1 h aparte) y Codex (último
+  `total_token_usage`, caché restada) de los proyectos registrados, incluidos sus worktrees ya borrados.
+  Rondas 2-3, medidas en vivo: el catálogo en disco sin precios de caché cobraba la caché unas 20 veces más cara
+  ($7,752); las sesiones de Codex viven en `CODEX_HOME` de Orca, no en `~/.codex`; sin API key el catálogo no se
+  bajaba (el endpoint de OpenRouter es público) y todo salía sin precio.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.5-live.json`; Settings → Usage en el dashboard
+  real: OrchestOS $3.88 · tabs CLI $1,131 (2.83B tokens, 349 sesiones); `test:coverage` 1626/0.
+  Pendiente menor: la fila `<synthetic>` (0 tokens) se muestra; "Avg cost / run" mezcla runs y sesiones.
 
 ---
 - [ ] **H.5.3 — 🔍 Primera corrida medida real (GATED por Carlos).**

@@ -548,6 +548,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         log.error(`parse error: ${e.message}`)
         const runId = insertRun({
           project_id: runProjectId,
+          cli_session_id: outcome?.cliSessionId ?? null,
           prompt: ctx.task.description,
           task_class: ctx.taskClass,
           model: ctx.model,
@@ -595,6 +596,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       log.error(`LLM call failed: ${e.message}`)
       const runId = insertRun({
         project_id: runProjectId,
+        cli_session_id: outcome?.cliSessionId ?? null,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -646,6 +648,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       log.contractViolation(blocked)
       const runId = insertRun({
         project_id: runProjectId,
+        cli_session_id: outcome?.cliSessionId ?? null,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -716,6 +719,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const elapsedMissing = Math.round(performance.now() - t0)
       const runId = insertRun({
         project_id: runProjectId,
+        cli_session_id: outcome?.cliSessionId ?? null,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -824,6 +828,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         const elapsedCheck = Math.round(performance.now() - t0)
         const runId = insertRun({
           project_id: runProjectId,
+          cli_session_id: outcome?.cliSessionId ?? null,
           prompt: ctx.task.description,
           task_class: ctx.taskClass,
           model: ctx.model,
@@ -1026,6 +1031,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
       const runId = insertRun({
         project_id: runProjectId,
+        cli_session_id: outcome?.cliSessionId ?? null,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -1122,6 +1128,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
     const runId = insertRun({
       project_id: runProjectId,
+      cli_session_id: outcome?.cliSessionId ?? null,
       prompt: ctx.task.description,
       task_class: ctx.taskClass,
       model: ctx.model,

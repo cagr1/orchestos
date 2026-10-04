@@ -317,22 +317,28 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     })
     const grouped = new Map<string, (typeof normalized)[number]>()
     for (const row of normalized) {
-      const key = `${row.provider ?? ''}\u0000${row.model}`
+      const key = `${row.source ?? 'orchestos'}\u0000${row.provider ?? ''}\u0000${row.model}`
       const current = grouped.get(key)
       if (current) {
         current.runs += row.runs
         current.tokens = (
           Number(current.tokens.replaceAll(',', '')) + Number(row.tokens.replaceAll(',', ''))
         ).toLocaleString()
-        current.spend += row.spend
+        current.spend =
+          current.spend === null || row.spend === null ? null : current.spend + row.spend
       } else grouped.set(key, { ...row })
     }
     const rows = [...grouped.values()]
-    const cli = rows.filter((row) => ['claude', 'codex', 'opencode'].includes(row.provider ?? ''))
-    const api = rows.filter((row) => !cli.includes(row))
+    const cliTabs = rows.filter((row) => row.source === 'cli')
+    const orchestosRows = rows.filter((row) => row.source !== 'cli')
+    const cli = orchestosRows.filter((row) =>
+      ['claude', 'codex', 'opencode'].includes(row.provider ?? ''),
+    )
+    const api = orchestosRows.filter((row) => !cli.includes(row))
     return [
       { id: 'cli', label: 'CLI', rows: cli },
       { id: 'api', label: 'API', rows: api },
+      { id: 'cli-tabs', label: 'CLI tabs', rows: cliTabs },
     ].filter((group) => group.rows.length > 0)
   }, [modelUsageRows])
   const totalRunsUsage = usage?.totalRuns ?? 0
@@ -2000,7 +2006,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   ${totalSpendUsage.toFixed(2)}
                 </div>
                 <div className="text-[10px] text-emerald-400">
-                  {usage ? `${usage.byDayModel.length} telemetry rows` : 'Loading telemetry'}
+                  {usage
+                    ? `OrchestOS $${(usage.totals?.orchestos.usd ?? totalSpendUsage).toFixed(2)} · CLI tabs $${(usage.totals?.cli.usd ?? 0).toFixed(2)}`
+                    : 'Loading telemetry'}
                 </div>
               </div>
 
@@ -2179,7 +2187,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             <td className="p-2.5 text-app-muted">{row.runs}</td>
                             <td className="p-2.5 text-app-muted">{row.tokens}</td>
                             <td className="p-2.5 text-app font-semibold">
-                              ${row.spend.toFixed(2)}
+                              {row.spend === null ? '—' : `$${row.spend.toFixed(2)}`}
                             </td>
                           </tr>
                         )

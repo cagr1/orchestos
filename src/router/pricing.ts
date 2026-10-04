@@ -36,17 +36,26 @@ export function knownCost(model: string, inputTokens: number, outputTokens: numb
 
 export function knownCostWithCache(
   model: string,
-  usage: { input: number; output: number; cacheRead: number; cacheWrite: number },
+  usage: {
+    input: number
+    output: number
+    cacheRead: number
+    cacheWrite: number
+    cacheWrite1h?: number
+  },
 ): number | null {
   const cat = getCatalog()?.get(model)
   if (cat) {
     const readPrice = cat.priceCacheRead ?? cat.priceIn
     const writePrice = cat.priceCacheWrite ?? cat.priceIn
+    const cacheWrite1h = Math.min(usage.cacheWrite, usage.cacheWrite1h ?? 0)
+    const write1hPrice = cat.priceCacheWrite1h ?? cat.priceCacheWrite ?? cat.priceIn
     return (
       (usage.input / 1_000_000) * cat.priceIn +
       (usage.output / 1_000_000) * cat.priceOut +
       (usage.cacheRead / 1_000_000) * readPrice +
-      (usage.cacheWrite / 1_000_000) * writePrice
+      ((usage.cacheWrite - cacheWrite1h) / 1_000_000) * writePrice +
+      (cacheWrite1h / 1_000_000) * write1hPrice
     )
   }
   const p = PRICING[model]

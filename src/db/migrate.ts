@@ -749,6 +749,20 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 20 did not add run cache token columns')
     },
   },
+  {
+    version: 21,
+    name: 'run-cli-session-id',
+    precondition: () => {},
+    apply: (database) => database.exec('ALTER TABLE runs ADD COLUMN cli_session_id TEXT;'),
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('cli_session_id'))
+        throw new Error('Migration 21 did not add runs.cli_session_id')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

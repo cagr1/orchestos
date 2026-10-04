@@ -227,13 +227,17 @@ function parseCodexStream(stdout: string): {
   outputTokens: number
   cacheReadTokens: number
   cacheWriteTokens: number
+  threadId?: string
 } {
   let last: CodexTurnCompleted | undefined
+  let threadId: string | undefined
   for (const line of stdout.split('\n')) {
     const trimmed = line.trim()
     if (!trimmed) continue
     try {
       const evt = JSON.parse(trimmed)
+      if (evt?.type === 'thread.started' && typeof evt.thread_id === 'string')
+        threadId = evt.thread_id
       if (evt?.type === 'turn.completed') last = evt
     } catch {}
   }
@@ -250,6 +254,7 @@ function parseCodexStream(stdout: string): {
     outputTokens: last.usage?.output_tokens ?? 0,
     cacheReadTokens: last.usage?.cached_input_tokens ?? 0,
     cacheWriteTokens: last.usage?.cache_write_input_tokens ?? 0,
+    threadId,
   }
 }
 
@@ -265,6 +270,7 @@ function parseCodexStream(stdout: string): {
 // frontera real (el binario no puede escribir aunque corra contra el
 // proyecto real), no un texto en el prompt pidiéndoselo por favor.
 export interface CodexChatResult {
+  threadId?: string
   text: string
   inputTokens: number
   cacheReadTokens: number
@@ -374,6 +380,7 @@ async function runCodexChatExec(
       : null
 
   return {
+    threadId: parsed.threadId,
     text,
     inputTokens: parsed.inputTokens,
     cacheReadTokens: parsed.cacheReadTokens,
@@ -445,6 +452,7 @@ export async function runCodexChat(
           }) ?? 0)
         : null
     return {
+      threadId: result.threadId,
       text: result.text,
       inputTokens: result.inputTokens,
       cacheReadTokens: result.cacheReadTokens,
@@ -550,6 +558,7 @@ export const codexEngine: ExecutorEngine = {
     const files = readWorktreeDiff(ctx.effectiveRoot, ctx.task.output)
 
     const outcome: ExecutorOutcome = {
+      cliSessionId: parsed.threadId,
       files,
       inputTokens: parsed.inputTokens,
       cacheReadTokens: parsed.cacheReadTokens,

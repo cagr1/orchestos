@@ -68,7 +68,7 @@ describe('CC.2 — chat sessions backend', () => {
       const fs = await import('node:fs')
       const path = await import('node:path')
       fs.mkdirSync(path.join(process.env.ORCHESTOS_HOME, '.orchestos/cache'), { recursive: true })
-      fs.writeFileSync(path.join(process.env.ORCHESTOS_HOME, '.orchestos/cache/models.json'), JSON.stringify({ fetchedAt: Date.now(), models: { 'catalog/test-model': { contextLength: 20000, priceIn: 1, priceOut: 1, supportsReasoning: false, supportsTools: false, maxOutputTokens: 1000, supportsVision: false }, 'openai/gpt-6-luna': { contextLength: 256000, priceIn: 1, priceOut: 1, supportsReasoning: false, supportsTools: false, maxOutputTokens: 1000, supportsVision: false } } }))
+      fs.writeFileSync(path.join(process.env.ORCHESTOS_HOME, '.orchestos/cache/models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: { 'catalog/test-model': { contextLength: 20000, priceIn: 1, priceOut: 1, supportsReasoning: false, supportsTools: false, maxOutputTokens: 1000, supportsVision: false }, 'openai/gpt-6-luna': { contextLength: 256000, priceIn: 1, priceOut: 1, supportsReasoning: false, supportsTools: false, maxOutputTokens: 1000, supportsVision: false } } }))
       const sessions = await import('./src/db/chat-sessions.ts')
       const turns = await import('./src/db/chat-turns.ts')
       const { handleApiChatSessionContext } = await import('./src/dashboard/handlers/chat-sessions.ts')
@@ -505,6 +505,7 @@ describe('CC.2 — chat sessions backend', () => {
       const cacheDir = join(home, '.orchestos', 'cache')
       mkdirSync(cacheDir, { recursive: true })
       writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({
+        schemaVersion: 2,
         fetchedAt: Date.now(),
         models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } }
       }))
@@ -612,7 +613,7 @@ describe('CC.2 — chat sessions backend', () => {
       const home = process.env.ORCHESTOS_HOME
       const cacheDir = join(home, '.orchestos', 'cache')
       mkdirSync(cacheDir, { recursive: true })
-      writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ fetchedAt: Date.now(), models: {} }))
+      writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: {} }))
       const projectDir = join(home, 'opencode-error-project')
       mkdirSync(projectDir, { recursive: true })
       writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: codex, model: gpt-6-luna }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
@@ -651,7 +652,7 @@ describe('CC.2 — chat sessions backend', () => {
       const home = process.env.ORCHESTOS_HOME
       const cacheDir = join(home, '.orchestos', 'cache')
       mkdirSync(cacheDir, { recursive: true })
-      writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ fetchedAt: Date.now(), models: {} }))
+      writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: {} }))
       const projectDir = join(home, 'opencode-orchestrator-project')
       mkdirSync(projectDir, { recursive: true })
       writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: opencode, model: opencode/test }\\n')
@@ -683,6 +684,7 @@ describe('CC.2 — chat sessions backend', () => {
       const cacheDir = join(home, '.orchestos', 'cache')
       mkdirSync(cacheDir, { recursive: true })
       writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({
+        schemaVersion: 2,
         fetchedAt: Date.now(),
         models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } }
       }))
@@ -863,7 +865,7 @@ describe('CC.2 — chat sessions backend', () => {
       writeFileSync(join(root, 'README.md'), '# Existing file\\n')
       writeFileSync(join(root, 'tasks.yaml'), 'version: 1\\nproject: chat-role-task-project\\ntasks: []\\n')
       writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  executor: { agent: codex, model: gpt-6-luna }\\n  auxiliary: { agent: api, model: deepseek/auxiliary, provider: openrouter }\\n')
-      writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({ fetchedAt: Date.now(), models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } } }))
+      writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } } }))
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { createChatSession } = await import('./src/db/chat-sessions.ts')
@@ -985,6 +987,7 @@ describe('CC.2 — chat sessions backend', () => {
       const cacheDir = join(home, '.orchestos', 'cache')
       mkdirSync(cacheDir, { recursive: true })
       writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({
+        schemaVersion: 2,
         fetchedAt: Date.now(),
         models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } },
       }))

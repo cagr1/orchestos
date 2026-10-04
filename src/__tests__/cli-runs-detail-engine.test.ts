@@ -72,6 +72,7 @@ function makeRow(overrides: Partial<RunRecord> = {}): RunRecord {
     input_tokens: 5,
     cache_read_tokens: 0,
     cache_write_tokens: 0,
+    cli_session_id: null,
     output_tokens: 3,
     usd_cost: 0.0001,
     elapsed_ms: 100,

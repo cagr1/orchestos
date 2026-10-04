@@ -61,6 +61,7 @@ export function claudeUnavailableMessage(pathHint?: string): string {
 }
 
 interface ClaudeCodeJson {
+  session_id?: string
   usage?: {
     input_tokens?: number
     output_tokens?: number
@@ -359,6 +360,7 @@ export function buildClaudeChatArgs(
 }
 
 export interface ClaudeChatResult {
+  sessionId?: string
   text: string
   inputTokens: number
   cacheReadTokens: number
@@ -447,6 +449,7 @@ export async function runClaudeChat(
   }
 
   return {
+    sessionId: parsed.session_id,
     text,
     inputTokens: parsed.usage?.input_tokens ?? 0,
     cacheReadTokens: parsed.usage?.cache_read_input_tokens ?? 0,
@@ -550,6 +553,7 @@ export const externalEngine: ExecutorEngine = {
     const files = readWorktreeDiff(ctx.effectiveRoot, ctx.task.output)
 
     const outcome: ExecutorOutcome = {
+      cliSessionId: parsed.session_id,
       files,
       inputTokens,
       cacheReadTokens,

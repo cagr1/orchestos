@@ -20,6 +20,7 @@ import { knownCostWithCache } from '../router/pricing.ts'
 let home: string
 const prevHome = process.env.ORCHESTOS_HOME
 const prevKey = process.env.OPENROUTER_API_KEY
+const originalFetch = globalThis.fetch
 
 function seedDiskCache(
   models: Record<
@@ -30,6 +31,7 @@ function seedDiskCache(
       priceOut?: number
       priceCacheRead?: number
       priceCacheWrite?: number
+      priceCacheWrite1h?: number
       maxOutputTokens?: number
     }
   >,
@@ -37,14 +39,21 @@ function seedDiskCache(
 ) {
   const dir = join(home, '.orchestos', 'cache')
   mkdirSync(dir, { recursive: true })
-  writeFileSync(join(dir, 'models.json'), JSON.stringify({ fetchedAt, models }), 'utf-8')
+  writeFileSync(
+    join(dir, 'models.json'),
+    JSON.stringify({ schemaVersion: 2, fetchedAt, models }),
+    'utf-8',
+  )
 }
 
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), 'orchestos-catalog-'))
   process.env.ORCHESTOS_HOME = home
-  // Sin API key: ensureCatalogLoaded nunca pega a la red en los tests.
+  // Sin API key; el fetch queda sustituido abajo para evitar red real.
   delete process.env.OPENROUTER_API_KEY
+  globalThis.fetch = (async () => {
+    throw new Error('network disabled in model-catalog tests')
+  }) as unknown as typeof fetch
   _resetCatalog()
 })
 
@@ -54,6 +63,7 @@ afterEach(() => {
   else process.env.ORCHESTOS_HOME = prevHome
   if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY
   else process.env.OPENROUTER_API_KEY = prevKey
+  globalThis.fetch = originalFetch
   try {
     rmSync(home, { recursive: true, force: true })
   } catch {
@@ -71,6 +81,7 @@ describe('model-catalog', () => {
           priceOut: 3,
           priceCacheRead: 0.5,
           priceCacheWrite: 2,
+          priceCacheWrite1h: 0.25,
         },
         'catalog/no-cache-prices': { contextLength: 10_000, priceIn: 1, priceOut: 3 },
       },
@@ -80,6 +91,50 @@ describe('model-catalog', () => {
     const usage = { input: 100, output: 10, cacheRead: 100, cacheWrite: 100 }
     expect(knownCostWithCache('catalog/cache-prices', usage)).toBeCloseTo(0.00038, 8)
     expect(knownCostWithCache('catalog/no-cache-prices', usage)).toBeCloseTo(0.00033, 8)
+    expect(knownCostWithCache('catalog/cache-prices', { ...usage, cacheWrite1h: 50 })).toBeCloseTo(
+      0.0002925,
+      8,
+    )
+  })
+
+  it('descarta como fresco el cache anterior al esquema de precios con caché', async () => {
+    const dir = join(home, '.orchestos', 'cache')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(
+      join(dir, 'models.json'),
+      JSON.stringify({
+        fetchedAt: Date.now(),
+        models: { 'catalog/legacy': { contextLength: 10_000, priceIn: 1 } },
+      }),
+    )
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: 'catalog/refetched',
+              context_length: 20_000,
+              pricing: {
+                prompt: '0.000001',
+                completion: '0.000002',
+                input_cache_write_1h: '0.00000025',
+              },
+            },
+          ],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
+    try {
+      await ensureCatalogLoaded({ apiKey: 'fixture-key' })
+      expect(contextWindowFor('catalog/refetched')).toBe(20_000)
+      expect(contextWindowFor('catalog/legacy')).toBe(128_000)
+      const saved = JSON.parse(readFileSync(join(dir, 'models.json'), 'utf-8'))
+      expect(saved.schemaVersion).toBe(2)
+      expect(saved.models['catalog/refetched'].priceCacheWrite1h).toBe(0.25)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 
   it('cae a la tabla de familias cuando no hay catálogo cargado', () => {
@@ -111,8 +166,32 @@ describe('model-catalog', () => {
   it('usa el cache vencido si no hay red/API key (mejor que la tabla a secas)', async () => {
     const stale = Date.now() - 48 * 60 * 60 * 1000 // 48h: vencido (TTL 24h)
     seedDiskCache({ 'some/cached-model': { contextLength: 64_000, priceIn: 0.2 } }, stale)
-    await ensureCatalogLoaded({ apiKey: '' }) // offline forzado → no refetch → usa el disco vencido
+    await ensureCatalogLoaded({ apiKey: '' }) // el fetch público falla → usa el disco vencido
     expect(contextWindowFor('some/cached-model')).toBe(64_000)
+  })
+
+  it('intenta el catálogo público sin key y recupera cache antiguo si el fetch falla', async () => {
+    const dir = join(home, '.orchestos', 'cache')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(
+      join(dir, 'models.json'),
+      JSON.stringify({
+        fetchedAt: Date.now() - 48 * 60 * 60 * 1000,
+        models: { 'catalog/old-schema': { contextLength: 42_000, priceIn: 2 } },
+      }),
+    )
+    let fetchCalls = 0
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      fetchCalls++
+      expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBeUndefined()
+      throw new Error('offline')
+    }) as unknown as typeof fetch
+
+    await ensureCatalogLoaded()
+
+    expect(fetchCalls).toBe(1)
+    expect(contextWindowFor('catalog/old-schema')).toBe(42_000)
+    expect(hasRealContextWindow('catalog/old-schema')).toBe(true)
   })
 
   it('ignora entradas con contextLength 0 y cae al fallback', async () => {

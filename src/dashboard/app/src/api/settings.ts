@@ -55,16 +55,24 @@ export interface UsageRow {
   date: string
   model: string
   provider?: string
-  usd: number
+  usd: number | null
   runs: number
   inputTokens: number
+  cacheReadTokens?: number
+  cacheWriteTokens?: number
   outputTokens: number
+  source?: 'orchestos' | 'cli'
+  priced?: boolean
 }
 
 export interface UsageResponse {
   byDayModel: UsageRow[]
   totalUsd: number
   totalRuns: number
+  totals?: {
+    orchestos: { usd: number; runs: number; tokens: number }
+    cli: { usd: number; sessions: number; tokens: number; unpricedSessions: number }
+  }
 }
 
 export interface ConfigResponse {
@@ -134,23 +142,37 @@ export function mapSettingsKeys(response: SettingsResponse) {
 export function mapUsageByModel(response: UsageResponse) {
   const rows = new Map<
     string,
-    { model: string; provider?: string; runs: number; tokens: number; spend: number }
+    {
+      model: string
+      provider?: string
+      source?: 'orchestos' | 'cli'
+      runs: number
+      tokens: number
+      spend: number | null
+    }
   >()
   for (const item of response.byDayModel) {
     const key = `${item.provider ?? ''}\u0000${item.model}`
-    const row = rows.get(key) ?? {
+    const source = item.source ?? 'orchestos'
+    const keyWithSource = `${source}\u0000${key}`
+    const row = rows.get(keyWithSource) ?? {
       model: item.model,
       ...(item.provider ? { provider: item.provider } : {}),
+      ...(item.source ? { source: item.source } : {}),
       runs: 0,
       tokens: 0,
-      spend: 0,
+      spend: 0 as number | null,
     }
     row.runs += item.runs
-    row.tokens += item.inputTokens + item.outputTokens
-    row.spend += item.usd
-    rows.set(key, row)
+    row.tokens +=
+      item.inputTokens +
+      (item.cacheReadTokens ?? 0) +
+      (item.cacheWriteTokens ?? 0) +
+      item.outputTokens
+    row.spend = row.spend === null || item.usd === null ? null : row.spend + item.usd
+    rows.set(keyWithSource, row)
   }
-  return [...rows.values()].sort((a, b) => b.spend - a.spend)
+  return [...rows.values()].sort((a, b) => (b.spend ?? -1) - (a.spend ?? -1))
 }
 
 export async function getSettings(): Promise<SettingsResponse> {

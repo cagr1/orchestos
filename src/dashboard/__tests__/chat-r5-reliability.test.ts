@@ -24,7 +24,7 @@ async function isolated(body: string): Promise<any> {
       const root = join(home, 'project')
       mkdirSync(root)
       mkdirSync(join(home, '.orchestos/cache'), { recursive: true })
-      writeFileSync(join(home, '.orchestos/cache/models.json'), JSON.stringify({ fetchedAt: Date.now(), models: {
+      writeFileSync(join(home, '.orchestos/cache/models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: {
         'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsTools: false, maxOutputTokens: 8192 }
       }}))
       writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, provider: openrouter, model: mock/orchestrator }\\n  auxiliary: { agent: api, provider: openrouter, model: mock/auxiliary }\\n  executor: { agent: api, provider: openrouter, model: mock/executor }\\n')

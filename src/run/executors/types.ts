@@ -16,6 +16,7 @@ import type { CostBreakdownEntry } from '../transcript-parser.ts'
 import type { ExecutorStepEvent } from './step-event.ts'
 
 export interface ExecutorOutcome {
+  cliSessionId?: string
   files: FileChange[]
   inputTokens: number
   cacheReadTokens?: number

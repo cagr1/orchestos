@@ -294,3 +294,12 @@ catálogo solo se leen `pricing.input_cache_read`/`input_cache_write`. Ninguna l
 `contextWindow`, `maxOutputTokensFor` ni `knownMaxOutputTokensFor` tocada.
 **Reversibilidad/evidencia**: commit `fix(CX.4)`, revertible con `git revert` (migración 20 aditiva).
 `test:coverage` 1620/0 · `auto-flow` 26/26 con caché > 0 · `chat-streaming` 15/15 · `codex-live` 14/14.
+
+## 2026-10-04 12:00 — claude-opus-5-5 (revisor) · ejecutor Codex gpt-6-luna
+**Contexto**: CX.5 — `src/run/harness.ts` y `src/router/model-catalog.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: harness solo propaga `cliSessionId`; el catálogo suma `schemaVersion`, `priceCacheWrite1h` y el
+fetch público sin key. Ninguna línea de `maxTokens`/`contextWindow`/`maxOutputTokensFor`/`knownMaxOutputTokensFor`
+tocada (`git diff … | grep -iE "maxTokens|maxOutput|contextWindow"` → vacío).
+**Reversibilidad/evidencia**: commit `feat(CX.5)`, revertible (migración 21 aditiva). `test:coverage` 1626/0 ·
+Settings → Usage en el dashboard real.

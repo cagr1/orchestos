@@ -1,0 +1,20 @@
+{
+  "item": "CX.5",
+  "date": "2026-10-04",
+  "method": "dashboard real (bun run src/cli.ts dashboard --port 7788) sobre ~/.orchestos y transcripts reales; Playwright en Settings → Usage",
+  "totals": {
+    "orchestos": {
+      "usd": 3.8845540246399994,
+      "runs": 309,
+      "tokens": 7244067
+    },
+    "cli": {
+      "usd": 1130.5581996599988,
+      "sessions": 349,
+      "tokens": 2828996778,
+      "unpricedSessions": 45
+    }
+  },
+  "ui": "KPI \"OrchestOS $3.88 · CLI tabs $1131.06\"; grupo CLI TABS: claude-sonnet-5 $485.07 (1.66B tok), claude-opus-5 $297.34, claude-opus-5-5 $204.00, gpt-6-luna $3.03 (202M tok); sin precio → \"—\"",
+  "contraste_orca": "Orca (todos los proyectos): opus-5-5 608.9M tok $411; codex 600.8M tok $2.85 — mismo orden de magnitud por token"
+}

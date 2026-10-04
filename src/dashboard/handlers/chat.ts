@@ -545,11 +545,13 @@ function logChatRun(
   cacheReadTokens = 0,
   cacheWriteTokens = 0,
   elapsedMs = 0,
+  cliSessionId?: string,
 ): void {
   try {
     const cost = chatCost(model, inputTokens, outputTokens, reportedUsd)
     insertRun({
       project_id: projectId,
+      cli_session_id: cliSessionId ?? null,
       prompt: message.slice(0, 2000),
       task_class: 'chat',
       model,
@@ -1358,6 +1360,7 @@ async function handleApiChat(
     provider?: string
     canonicalModel?: string
     reportedUsd?: number | null
+    cliSessionId?: string
   }): void => {
     if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
     const { responseText, resultLabel, inputTokens, outputTokens, provider = 'openrouter' } = params
@@ -1368,6 +1371,7 @@ async function handleApiChat(
     const held = Boolean(autoTask && 'held' in autoTask && autoTask.held)
     const runInput = {
       project_id: projectId,
+      cli_session_id: params.cliSessionId ?? null,
       prompt: message.slice(0, 2000),
       task_class: 'chat',
       model: canonicalModel,
@@ -1448,6 +1452,7 @@ async function handleApiChat(
         params.cacheReadTokens ?? 0,
         params.cacheWriteTokens ?? 0,
         Date.now() - turnStartedAt,
+        params.cliSessionId,
       )
     }
   }
@@ -1501,6 +1506,7 @@ async function handleApiChat(
           provider: 'claude',
           canonicalModel: result.model,
           reportedUsd: result.usd,
+          cliSessionId: result.sessionId,
         })
         return jsonResponse({
           text: responseText,
@@ -1563,6 +1569,7 @@ async function handleApiChat(
           provider: 'codex',
           canonicalModel: result.model,
           reportedUsd: result.usd,
+          cliSessionId: result.threadId,
         })
         return jsonResponse({
           text: responseText,

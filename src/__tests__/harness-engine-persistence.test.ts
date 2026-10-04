@@ -28,6 +28,7 @@ function seedCatalog(): string {
   writeFileSync(
     join(home, '.orchestos', 'cache', 'models.json'),
     JSON.stringify({
+      schemaVersion: 2,
       fetchedAt: Date.now(),
       models: {
         'anthropic/claude-haiku-4-5': {

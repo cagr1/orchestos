@@ -248,6 +248,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
         cache_creation_input_tokens: 200,
       },
       total_cost_usd: 0.0123,
+      session_id: 'claude-session-123',
       num_turns: 4,
     })
     const proc = installMockSpawn(mockStdout)
@@ -280,6 +281,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     expect(outcome.cacheWriteTokens).toBe(200)
     expect(outcome.outputTokens).toBe(567)
     expect(outcome.usd).toBe(0.0123)
+    expect(outcome.cliSessionId).toBe('claude-session-123')
     expect(outcome.iterations).toBe(4)
     // costByIteration: 1 sola entrada agregada (Claude Code headless no expone
     // costo por turno individual, mismo argumento honesto que agentic.ts)
