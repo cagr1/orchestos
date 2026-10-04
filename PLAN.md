@@ -1362,6 +1362,10 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   agregados; comprobado: App.tsx/chat-cli-models.ts → chat, handlers/tasks.ts → no. `test:coverage` 1604 pass,
   funciones 75.37 % / líneas 62.29 %. Hook sincronizado (`diff` vacío). Sin delegación: no (Luna, QA Sol).
 
+- [ ] **CI.13 — ⚡ "Run" en Tasks deja escapar el error de la tarea.** (abierto 2026-10-04) `onRunTask`
+  (`App.tsx:1234`) llama `runTask` sin `catch`: si la tarea falla, la excepción sale como `pageerror` y la UI no
+  muestra nada. Visto en el pre-push de 6432e9c (`project-tabs`: "Retry scheduled: missing declared output(s)").
+  Gate: `ui:gate project-tabs` verde y el error visible en `taskError`.
 - [ ] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03)
   Visto 1 vez en el pre-push: `error: file-lock: timeout waiting for …/.orchestos/tasks.lock` → `(fail) … recovers valid
   YAML after five SIGKILL interruptions and accepts a following mutation quickly [14649.63ms]`. Solo pasa 3/3 y pasó en
