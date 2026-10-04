@@ -243,8 +243,8 @@
       "block": null,
       "delegation": "⚡",
       "title": "Regresión de I.7.2: aprobar una tarea retenida no oculta la tarjeta",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-04"
     },
     {
       "id": "CX.1",

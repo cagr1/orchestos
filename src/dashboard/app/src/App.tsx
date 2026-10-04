@@ -319,6 +319,11 @@ export default function App() {
           if (task && (task.status === 'pending' || task.status === 'running')) continue
           const key = `${activeThread.id}:${taskId}`
           if (disposed) return
+          if (!task) {
+            reportedTaskIds.current.add(key)
+            completedTaskPollAttempts.current.delete(key)
+            continue
+          }
           const messages = await loadThreadMessages(activeThread.id, activeThread.projectId)
           if (disposed) return
           const reportCount = messages.filter((message) => message.taskId === taskId).length
@@ -332,13 +337,24 @@ export default function App() {
             if (attempts >= 6) {
               reportedTaskIds.current.add(key)
               completedTaskPollAttempts.current.delete(key)
-              shouldRefreshMessages = true
+              shouldRefreshMessages = false
             }
           }
           if (shouldRefreshMessages) {
             setThreads((prev) =>
               prev.map((thread) =>
-                thread.id === activeThread.id ? { ...thread, messages } : thread,
+                thread.id === activeThread.id
+                  ? {
+                      ...thread,
+                      messages: [
+                        ...thread.messages,
+                        ...messages.filter(
+                          (message) =>
+                            !thread.messages.some((existing) => existing.id === message.id),
+                        ),
+                      ],
+                    }
+                  : thread,
               ),
             )
           }

@@ -1,0 +1,298 @@
+{
+  "item": "I.7.3",
+  "date": "2026-10-04",
+  "flows": [
+    {
+      "flujo": "chat-turn-details",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project clean before README task",
+          "ok": true,
+          "detalle": "clean"
+        },
+        {
+          "nombre": "select temporary project",
+          "ok": true,
+          "detalle": "project visible in sidebar"
+        },
+        {
+          "nombre": "select Codex for new chat",
+          "ok": true,
+          "detalle": "visible agent selector"
+        },
+        {
+          "nombre": "model and effort controls visible",
+          "ok": true,
+          "detalle": "composer controls visible"
+        },
+        {
+          "nombre": "select gpt-6-luna",
+          "ok": true,
+          "detalle": "model option visible"
+        },
+        {
+          "nombre": "select medium effort",
+          "ok": true,
+          "detalle": "effort option visible"
+        },
+        {
+          "nombre": "model popover closes",
+          "ok": true,
+          "detalle": "popover closed after Escape/click outside"
+        },
+        {
+          "nombre": "model used a tool within three attempts",
+          "ok": true,
+          "detalle": "1 backend tool step(s) observed"
+        },
+        {
+          "nombre": "tool block with command success",
+          "ok": true,
+          "detalle": "tool trace rendered"
+        },
+        {
+          "nombre": "command success row",
+          "ok": true,
+          "detalle": "success visible"
+        },
+        {
+          "nombre": "new chat is linked to temporary project",
+          "ok": true,
+          "detalle": "projectId=0aed20b8dad9c255, mode=code"
+        },
+        {
+          "nombre": "reasoning optional",
+          "ok": true,
+          "detalle": "reasoning: 0 pasos del CLI"
+        },
+        {
+          "nombre": "held task card visible",
+          "ok": true,
+          "detalle": "held task rendered"
+        },
+        {
+          "nombre": "held task id visible",
+          "ok": true,
+          "detalle": "chat-542204ce-5753-417f-a683-c3450ca96d3b"
+        },
+        {
+          "nombre": "Reject removes card",
+          "ok": true,
+          "detalle": "card removed"
+        },
+        {
+          "nombre": "Reject removes task from API",
+          "ok": true,
+          "detalle": "task absent"
+        },
+        {
+          "nombre": "second held task card visible",
+          "ok": true,
+          "detalle": "held task rendered again"
+        },
+        {
+          "nombre": "temporary project clean before Approve",
+          "ok": true,
+          "detalle": "clean"
+        },
+        {
+          "nombre": "Approve & Run starts task",
+          "ok": true,
+          "detalle": "chat-966cafb9-75e3-4d2a-aa44-698effc8d44b"
+        },
+        {
+          "nombre": "Approve & Run removes card",
+          "ok": true,
+          "detalle": "card removed"
+        },
+        {
+          "nombre": "approved task leaves pending",
+          "ok": true,
+          "detalle": "status=running"
+        },
+        {
+          "nombre": "reload: approved card remains hidden",
+          "ok": true,
+          "detalle": "card remains hidden"
+        },
+        {
+          "nombre": "reload: temporary project visible",
+          "ok": true,
+          "detalle": "project visible after reload"
+        },
+        {
+          "nombre": "reload API message keeps turnId",
+          "ok": true,
+          "detalle": "bc0e2759-b95a-47d4-b188-60cdb7116e5c"
+        },
+        {
+          "nombre": "reload API timeline brings turn steps",
+          "ok": true,
+          "detalle": "8 pasos en 3 turnos"
+        },
+        {
+          "nombre": "reload: project chat reachable from Chat list",
+          "ok": true,
+          "detalle": "chat title visible; sidebar=\"Chat\\nDev\\nNew chat\\nCHATS\\nCodex: Ejecuta el comando ls en la raíz del pro\\nSettings\""
+        },
+        {
+          "nombre": "reload: tool block visible in selected chat",
+          "ok": true,
+          "detalle": "tool trace rendered after selecting chat"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/chat-turn-details/tool-and-reasoning.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/chat-turn-details/held-task.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/chat-turn-details/after-reject.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/chat-turn-details/approved-task.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/chat-turn-details/after-final-reload.png"
+      ]
+    },
+    {
+      "flujo": "auto-flow",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "project appears in Dev sidebar"
+        },
+        {
+          "nombre": "Chat: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Dev: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Settings Tasks: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Settings Plan: no manual task creation door",
+          "ok": true,
+          "detalle": "task form fields=0; forbidden buttons=[]"
+        },
+        {
+          "nombre": "Plan action opens only Chat composer",
+          "ok": true,
+          "detalle": "composer visible=true; dialogs=0"
+        },
+        {
+          "nombre": "select Codex for new chat",
+          "ok": true,
+          "detalle": "agent option visible"
+        },
+        {
+          "nombre": "model and effort controls visible",
+          "ok": true,
+          "detalle": "composer controls visible"
+        },
+        {
+          "nombre": "select gpt-6-luna",
+          "ok": true,
+          "detalle": "model option visible"
+        },
+        {
+          "nombre": "select medium effort",
+          "ok": true,
+          "detalle": "effort option visible"
+        },
+        {
+          "nombre": "model popover closes",
+          "ok": true,
+          "detalle": "popover closed after Escape/click outside"
+        },
+        {
+          "nombre": "chat response: ¿Qué es un DAG? Responde en una frase, sin cr",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "non-task message does not create task",
+          "ok": true,
+          "detalle": "new task ids=[]; task card=false; approve=false"
+        },
+        {
+          "nombre": "non-task message leaves project clean",
+          "ok": true,
+          "detalle": "clean"
+        },
+        {
+          "nombre": "chat response: Crea el archivo claude-nota.md con una sola l",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "claude-nota.md: approval path",
+          "ok": true,
+          "detalle": "task started automatically: chat-12e1ebae-49e6-4067-a0a0-5b28eec18c30; card visible=false"
+        },
+        {
+          "nombre": "claude-nota.md: task finished",
+          "ok": true,
+          "detalle": "{\"id\":\"chat-12e1ebae-49e6-4067-a0a0-5b28eec18c30\",\"description\":\"Crea el archivo claude-nota.md con una sola línea que diga \\\"nota de claude\\\".\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"3a2fca3d-3422-4be5-89c3-86cdb41ff0cb\",\"engine\":\"external\",\"output\":[\"claude-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"haiku\",\"hasSplitPlan\":false}"
+        },
+        {
+          "nombre": "claude-nota.md: inline report",
+          "ok": true,
+          "detalle": "dom=true; persisted=true"
+        },
+        {
+          "nombre": "claude-nota.md: chat and run persistence",
+          "ok": true,
+          "detalle": "{\"status\":\"done\",\"provider\":\"claude\",\"model\":\"haiku\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+        },
+        {
+          "nombre": "chat response: Crea el archivo codex-nota.md con una sola lí",
+          "ok": true,
+          "detalle": "assistant reply visible"
+        },
+        {
+          "nombre": "codex-nota.md: approval path",
+          "ok": true,
+          "detalle": "task started automatically: chat-e40ff958-3c5d-4ed6-9a73-0e7420a4d3a6; card visible=false"
+        },
+        {
+          "nombre": "codex-nota.md: task finished",
+          "ok": true,
+          "detalle": "{\"id\":\"chat-e40ff958-3c5d-4ed6-9a73-0e7420a4d3a6\",\"description\":\"Crea el archivo codex-nota.md con una sola línea que diga «nota de codex».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"b1ce1495-c8bc-477c-b89a-cdaef287bf65\",\"engine\":\"codex\",\"output\":[\"codex-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null,\"hasSplitPlan\":false}"
+        },
+        {
+          "nombre": "codex-nota.md: inline report",
+          "ok": true,
+          "detalle": "dom=true; persisted=true"
+        },
+        {
+          "nombre": "codex-nota.md: chat and run persistence",
+          "ok": true,
+          "detalle": "{\"status\":\"done\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+        },
+        {
+          "nombre": "DAG routes Claude and Codex to distinct recorded engines",
+          "ok": true,
+          "detalle": "{\"claude\":{\"engine\":\"external\",\"provider\":\"claude\",\"model\":\"haiku\",\"status\":\"done\",\"result\":\"1 file(s) written\",\"retry_reason\":null},\"codex\":{\"engine\":\"codex\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}}"
+        },
+        {
+          "nombre": "no implementation text visible",
+          "ok": true,
+          "detalle": "{\"implementationLeaks\":[],\"absoluteProjectPath\":false,\"sourcePathError\":false,\"markerInProse\":false}"
+        }
+      ],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/auto-flow/no-manual-door.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/auto-flow/task-inline-report.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/auto-flow/codex-task-inline-report.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-54787/auto-flow/final-chat.png"
+      ]
+    }
+  ]
+}
