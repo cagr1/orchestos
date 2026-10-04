@@ -61,7 +61,12 @@ export function claudeUnavailableMessage(pathHint?: string): string {
 }
 
 interface ClaudeCodeJson {
-  usage?: { input_tokens?: number; output_tokens?: number }
+  usage?: {
+    input_tokens?: number
+    output_tokens?: number
+    cache_read_input_tokens?: number
+    cache_creation_input_tokens?: number
+  }
   total_cost_usd?: number
   num_turns?: number
   /** Hallazgo real de Carlos (2026-08-17): pedir `--model sonnet` (alias) muestra
@@ -356,6 +361,8 @@ export function buildClaudeChatArgs(
 export interface ClaudeChatResult {
   text: string
   inputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
   outputTokens: number
   /** Claude Code reports this directly; null means it omitted the field. */
   usd: number | null
@@ -442,6 +449,8 @@ export async function runClaudeChat(
   return {
     text,
     inputTokens: parsed.usage?.input_tokens ?? 0,
+    cacheReadTokens: parsed.usage?.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: parsed.usage?.cache_creation_input_tokens ?? 0,
     outputTokens: parsed.usage?.output_tokens ?? 0,
     usd: typeof parsed.total_cost_usd === 'number' ? parsed.total_cost_usd : null,
     // Hallazgo real de Carlos: con un alias (`--model sonnet`) el pedido nunca
@@ -532,6 +541,8 @@ export const externalEngine: ExecutorEngine = {
     }
 
     const inputTokens = parsed.usage?.input_tokens ?? 0
+    const cacheReadTokens = parsed.usage?.cache_read_input_tokens ?? 0
+    const cacheWriteTokens = parsed.usage?.cache_creation_input_tokens ?? 0
     const outputTokens = parsed.usage?.output_tokens ?? 0
     const iterations = parsed.num_turns ?? 1
     const usd = parsed.total_cost_usd
@@ -541,6 +552,8 @@ export const externalEngine: ExecutorEngine = {
     const outcome: ExecutorOutcome = {
       files,
       inputTokens,
+      cacheReadTokens,
+      cacheWriteTokens,
       outputTokens,
       usd,
       iterations,

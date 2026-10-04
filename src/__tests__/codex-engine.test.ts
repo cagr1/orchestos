@@ -280,6 +280,26 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     }
   })
 
+  it('subtracts cached input and exposes cache counts for Codex chat', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-codex-chat-cache-'))
+    try {
+      overrideBunSpawn(
+        installMockSpawn(
+          jsonl({
+            type: 'turn.completed',
+            usage: { input_tokens: 20500, cached_input_tokens: 20000, output_tokens: 10 },
+          }),
+        ),
+      )
+      const result = await runCodexChat(root, 'system', 'hello', 5000)
+      expect(result.inputTokens).toBe(500)
+      expect(result.cacheReadTokens).toBe(20000)
+      expect(result.cacheWriteTokens).toBe(0)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('happy path: JSONL con turn.completed → outcome con costo computado vía calcCost()', async () => {
     const root = makeGitRepo()
     const wt = createWorktree('g42b-happy', 'main', root)

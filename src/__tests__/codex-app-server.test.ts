@@ -121,7 +121,7 @@ describe('Codex app-server', () => {
                   `${JSON.stringify({ method: 'item/agentMessage/delta', params: { threadId: 'thread-1', turnId: id, delta } })}\n`,
                 )
               stdout.write(
-                `${JSON.stringify({ method: 'thread/tokenUsage/updated', params: { threadId: 'thread-1', turnId: id, tokenUsage: { last: { inputTokens: 5, outputTokens: 3 } } } })}\n`,
+                `${JSON.stringify({ method: 'thread/tokenUsage/updated', params: { threadId: 'thread-1', turnId: id, tokenUsage: { last: { inputTokens: 5, cachedInputTokens: 2, cacheWriteInputTokens: 1, outputTokens: 3 } } } })}\n`,
               )
               stdout.write(
                 `${JSON.stringify({ method: 'turn/completed', params: { threadId: 'thread-1', turn: { id, status: 'completed' } } })}\n`,
@@ -148,7 +148,9 @@ describe('Codex app-server', () => {
     })
     expect(deltas).toEqual(['uno ', 'dos ', 'tres'])
     expect(first.text).toBe('uno dos tres')
-    expect(first.inputTokens).toBe(5)
+    expect(first.inputTokens).toBe(3)
+    expect(first.cacheReadTokens).toBe(2)
+    expect(first.cacheWriteTokens).toBe(1)
     expect(second.text).toBe('uno dos tres')
     expect(calls.filter((x) => x.method === 'thread/resume')).toHaveLength(0)
     expect(calls.filter((x) => x.method === 'thread/start')).toHaveLength(1)

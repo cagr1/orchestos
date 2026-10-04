@@ -505,7 +505,12 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // single-shot.ts. El engine agéntico (executors/agentic.ts) nunca lanza
     // ExecutorParseError (no hay paso de parseo — write_file ya entrega
     // FileChange[] directo), así que ese path solo aplica a single-shot.
-    let llmResponse: { inputTokens: number; outputTokens: number }
+    let llmResponse: {
+      inputTokens: number
+      outputTokens: number
+      cacheReadTokens: number
+      cacheWriteTokens: number
+    }
     let cost: number
     let parsed: LLMFileResponse
     let elapsed: number
@@ -528,7 +533,12 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         onStep: (event) => insertRunStep(ctx.task.id, event),
       })
       outcome = runOutcome
-      llmResponse = { inputTokens: runOutcome.inputTokens, outputTokens: runOutcome.outputTokens }
+      llmResponse = {
+        inputTokens: runOutcome.inputTokens,
+        outputTokens: runOutcome.outputTokens,
+        cacheReadTokens: runOutcome.cacheReadTokens ?? 0,
+        cacheWriteTokens: runOutcome.cacheWriteTokens ?? 0,
+      }
       cost = runOutcome.usd
       parsed = { files: runOutcome.files }
       elapsed = Math.round(performance.now() - t0)
@@ -561,6 +571,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
             : null,
           status: 'failed',
           input_tokens: e.inputTokens,
+          cache_read_tokens: 0,
+          cache_write_tokens: 0,
           output_tokens: e.outputTokens,
           usd_cost: e.usd,
           elapsed_ms: elapsed,
@@ -658,6 +670,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         cost_breakdown_json: breakdownJson,
         status: 'blocked',
         input_tokens: llmResponse.inputTokens,
+        cache_read_tokens: llmResponse.cacheReadTokens,
+        cache_write_tokens: llmResponse.cacheWriteTokens,
         output_tokens: llmResponse.outputTokens,
         usd_cost: cost,
         elapsed_ms: elapsed,
@@ -726,6 +740,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         cost_breakdown_json: breakdownJson,
         status: 'failed',
         input_tokens: llmResponse.inputTokens,
+        cache_read_tokens: llmResponse.cacheReadTokens,
+        cache_write_tokens: llmResponse.cacheWriteTokens,
         output_tokens: llmResponse.outputTokens,
         usd_cost: cost,
         elapsed_ms: elapsedMissing,
@@ -833,6 +849,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           cost_breakdown_json: breakdownJson,
           status: 'failed',
           input_tokens: llmResponse.inputTokens,
+          cache_read_tokens: llmResponse.cacheReadTokens,
+          cache_write_tokens: llmResponse.cacheWriteTokens,
           output_tokens: llmResponse.outputTokens,
           usd_cost: cost,
           elapsed_ms: elapsedCheck,
@@ -1039,6 +1057,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         refuter_reason: refuterReason,
         status: 'failed',
         input_tokens: totalTokens.inputTokens,
+        cache_read_tokens: llmResponse.cacheReadTokens,
+        cache_write_tokens: llmResponse.cacheWriteTokens,
         output_tokens: totalTokens.outputTokens,
         usd_cost: totalCost,
         elapsed_ms: totalElapsed,
@@ -1134,6 +1154,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       refuter_reason: refuterReason,
       status: 'done',
       input_tokens: totalTokens.inputTokens,
+      cache_read_tokens: llmResponse.cacheReadTokens,
+      cache_write_tokens: llmResponse.cacheWriteTokens,
       output_tokens: totalTokens.outputTokens,
       usd_cost: totalCost,
       elapsed_ms: totalElapsed,

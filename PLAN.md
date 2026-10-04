@@ -1122,9 +1122,17 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   Hecho: fuera `ABSOLUTE_BUDGET_THRESHOLDS`/`absoluteLevel`; el aviso dice `<pct> de la ventana de <modelo>
   (<used> / <window> tokens)`. Verificado sobre el transcript real de esta sesión: 214,777 / 1,000,000 (21.5%),
   `level: ok`, hook sin salida. `test:coverage` 1617/0.
-- [ ] **CX.4 — 🧠 Los runs guardan tokens reales.** Columnas de caché (lectura/escritura) con migración;
+- [x] **CX.4 — 🧠 Los runs guardan tokens reales.** (cerrado 2026-10-04) Columnas de caché (lectura/escritura) con migración;
   `external.ts:444,534` y `codex.ts:236` dejan de descartarlas; costo de Codex con precio de caché del catálogo;
   `elapsed_ms` del chat deja de ser 0. Gate: run real de Claude y Codex con caché > 0 en la DB.
+  Ejecutado por: luna · Spec: docs/specs/CX.4.md
+  Hecho: migración 20 (`cache_read_tokens`/`cache_write_tokens`); semántica común input no cacheado + caché
+  aparte; Codex resta `cached_input_tokens` y cobra caché con `knownCostWithCache` (precio de caché del catálogo
+  OpenRouter, si no `priceIn`); `elapsed_ms` real en el chat; `/api/usage` devuelve las sumas de caché.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.4-live.json`; `auto-flow` 26/26 exportado:
+  claude/haiku input 4,697 + caché 31,516/10,928, 13.4 s; codex/gpt-6-luna input 23,841 + caché 64,512, 23.0 s.
+  `chat-streaming` 15/15, `codex-live` 14/14; `test:coverage` 1620/0. No visto en DB: los runs de chat (el purge
+  de los flujos los borra); lo cubren tests y el anillo de CX.2.
 - [ ] **CX.5 — 🧠 Consumo de proyectos registrados.** La pantalla de uso suma transcripts de Claude Code/Codex
   cuyo cwd es un proyecto registrado (costo por catálogo, con caché) + runs de API de la tabla `runs`, sin
   contar dos veces los runs CLI; separa "chat/tareas de OrchestOS" de "tabs CLI". Gate en vivo.

@@ -542,6 +542,9 @@ function logChatRun(
   status: 'done' | 'failed' = 'done',
   reportedUsd?: number | null,
   contextTokens?: number,
+  cacheReadTokens = 0,
+  cacheWriteTokens = 0,
+  elapsedMs = 0,
 ): void {
   try {
     const cost = chatCost(model, inputTokens, outputTokens, reportedUsd)
@@ -568,13 +571,15 @@ function logChatRun(
       qa_reason: null,
       status,
       input_tokens: inputTokens,
+      cache_read_tokens: cacheReadTokens,
+      cache_write_tokens: cacheWriteTokens,
       output_tokens: outputTokens,
       context_tokens: contextTokens,
       usd_cost: cost.usd,
       cost_breakdown_json: JSON.stringify([
         { label: 'chat', model, inputTokens, outputTokens, costUsd: cost.usd, source: cost.source },
       ]),
-      elapsed_ms: 0,
+      elapsed_ms: elapsedMs,
       result,
     })
   } catch {
@@ -750,6 +755,7 @@ async function handleApiChat(
   req: Request,
   fallbackProject?: DashboardProjectContext,
 ): Promise<Response> {
+  const turnStartedAt = Date.now()
   let parsed: unknown
   try {
     parsed = await req.json()
@@ -1013,7 +1019,7 @@ async function handleApiChat(
           input_tokens: 0,
           output_tokens: 0,
           usd_cost: 0,
-          elapsed_ms: 0,
+          elapsed_ms: Date.now() - turnStartedAt,
           result: params.error,
         }
       : undefined
@@ -1039,6 +1045,11 @@ async function handleApiChat(
         params.readAudit,
         provider,
         'failed',
+        undefined,
+        undefined,
+        0,
+        0,
+        Date.now() - turnStartedAt,
       )
     }
   }
@@ -1339,6 +1350,8 @@ async function handleApiChat(
     responseText: string
     resultLabel: string
     inputTokens: number
+    cacheReadTokens?: number
+    cacheWriteTokens?: number
     outputTokens: number
     readAudit?: ReadAudit
     readBoundaryWarning?: string | null
@@ -1376,6 +1389,8 @@ async function handleApiChat(
       qa_reason: null,
       status: 'done' as const,
       input_tokens: inputTokens,
+      cache_read_tokens: params.cacheReadTokens ?? 0,
+      cache_write_tokens: params.cacheWriteTokens ?? 0,
       output_tokens: outputTokens,
       context_tokens: contextTokens,
       usd_cost: cost.usd,
@@ -1389,7 +1404,7 @@ async function handleApiChat(
           source: cost.source,
         },
       ]),
-      elapsed_ms: 0,
+      elapsed_ms: Date.now() - turnStartedAt,
       result: responseText,
     }
     if (activeTurnId && session) {
@@ -1430,6 +1445,9 @@ async function handleApiChat(
         'done',
         params.reportedUsd,
         contextTokens,
+        params.cacheReadTokens ?? 0,
+        params.cacheWriteTokens ?? 0,
+        Date.now() - turnStartedAt,
       )
     }
   }
@@ -1475,6 +1493,8 @@ async function handleApiChat(
           responseText,
           resultLabel,
           inputTokens: result.inputTokens,
+          cacheReadTokens: result.cacheReadTokens,
+          cacheWriteTokens: result.cacheWriteTokens,
           outputTokens: result.outputTokens,
           readAudit: result.readAudit,
           readBoundaryWarning,
@@ -1535,6 +1555,8 @@ async function handleApiChat(
           responseText,
           resultLabel,
           inputTokens: result.inputTokens,
+          cacheReadTokens: result.cacheReadTokens,
+          cacheWriteTokens: result.cacheWriteTokens,
           outputTokens: result.outputTokens,
           readAudit: uninstrumentedReadAudit(),
           readBoundaryWarning,

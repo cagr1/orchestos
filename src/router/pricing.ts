@@ -34,6 +34,29 @@ export function knownCost(model: string, inputTokens: number, outputTokens: numb
   return (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output
 }
 
+export function knownCostWithCache(
+  model: string,
+  usage: { input: number; output: number; cacheRead: number; cacheWrite: number },
+): number | null {
+  const cat = getCatalog()?.get(model)
+  if (cat) {
+    const readPrice = cat.priceCacheRead ?? cat.priceIn
+    const writePrice = cat.priceCacheWrite ?? cat.priceIn
+    return (
+      (usage.input / 1_000_000) * cat.priceIn +
+      (usage.output / 1_000_000) * cat.priceOut +
+      (usage.cacheRead / 1_000_000) * readPrice +
+      (usage.cacheWrite / 1_000_000) * writePrice
+    )
+  }
+  const p = PRICING[model]
+  if (!p) return null
+  return (
+    ((usage.input + usage.cacheRead + usage.cacheWrite) / 1_000_000) * p.input +
+    (usage.output / 1_000_000) * p.output
+  )
+}
+
 // Compatibility for task paths predating explicit cost provenance. New chat
 // writes must use knownCost() so an unknown model is never presented as free.
 export function calcCost(model: string, inputTokens: number, outputTokens: number): number {

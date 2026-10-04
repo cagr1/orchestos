@@ -731,6 +731,24 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       if (found !== 1) throw new Error('Migration 19 did not create orchestration_runs')
     },
   },
+  {
+    version: 20,
+    name: 'run-cache-token-counts',
+    precondition: () => {},
+    apply: (database) =>
+      database.exec(`
+      ALTER TABLE runs ADD COLUMN cache_read_tokens INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE runs ADD COLUMN cache_write_tokens INTEGER NOT NULL DEFAULT 0;
+    `),
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('cache_read_tokens') || !columns.includes('cache_write_tokens'))
+        throw new Error('Migration 20 did not add run cache token columns')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

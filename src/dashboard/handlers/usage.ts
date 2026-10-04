@@ -9,13 +9,15 @@ type UsageRow = {
   runs: number | null
   inputTokens: number | null
   outputTokens: number | null
+  cacheReadTokens: number | null
+  cacheWriteTokens: number | null
 }
 
 export async function handleApiUsage(): Promise<Response> {
   try {
     const rows = db
       .query<UsageRow, []>(
-        `SELECT strftime('%Y-%m-%d', runs.created_at) AS date, runs.model, runs.provider, SUM(runs.usd_cost) AS usd, COUNT(*) AS runs, SUM(runs.input_tokens) AS inputTokens, SUM(runs.output_tokens) AS outputTokens
+        `SELECT strftime('%Y-%m-%d', runs.created_at) AS date, runs.model, runs.provider, SUM(runs.usd_cost) AS usd, COUNT(*) AS runs, SUM(runs.input_tokens) AS inputTokens, SUM(runs.output_tokens) AS outputTokens, SUM(runs.cache_read_tokens) AS cacheReadTokens, SUM(runs.cache_write_tokens) AS cacheWriteTokens
        FROM runs
        LEFT JOIN eval_trials ON eval_trials.run_id = runs.id
        WHERE runs.created_at >= datetime('now', '-400 days')
@@ -33,6 +35,8 @@ export async function handleApiUsage(): Promise<Response> {
       runs: row.runs ?? 0,
       inputTokens: row.inputTokens ?? 0,
       outputTokens: row.outputTokens ?? 0,
+      cacheReadTokens: row.cacheReadTokens ?? 0,
+      cacheWriteTokens: row.cacheWriteTokens ?? 0,
     }))
 
     return jsonResponse({

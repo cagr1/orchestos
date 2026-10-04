@@ -241,7 +241,12 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     writeFileSync(join(wt.path, 'out.txt'), 'hello from claude code\n')
 
     const mockStdout = mockResultLine({
-      usage: { input_tokens: 1234, output_tokens: 567 },
+      usage: {
+        input_tokens: 1234,
+        output_tokens: 567,
+        cache_read_input_tokens: 1000,
+        cache_creation_input_tokens: 200,
+      },
       total_cost_usd: 0.0123,
       num_turns: 4,
     })
@@ -271,6 +276,8 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     expect(outcome.files).toEqual([{ path: 'out.txt', content: 'hello from claude code\n' }])
     // Costo parseado honestamente
     expect(outcome.inputTokens).toBe(1234)
+    expect(outcome.cacheReadTokens).toBe(1000)
+    expect(outcome.cacheWriteTokens).toBe(200)
     expect(outcome.outputTokens).toBe(567)
     expect(outcome.usd).toBe(0.0123)
     expect(outcome.iterations).toBe(4)

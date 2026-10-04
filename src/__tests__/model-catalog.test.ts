@@ -14,6 +14,7 @@ import {
   supportsReasoningEffort,
   supportsVisionInput,
 } from '../router/model-catalog.ts'
+import { knownCostWithCache } from '../router/pricing.ts'
 
 // Aísla el cache en disco vía ORCHESTOS_HOME para no tocar ~/.orchestos real.
 let home: string
@@ -23,7 +24,14 @@ const prevKey = process.env.OPENROUTER_API_KEY
 function seedDiskCache(
   models: Record<
     string,
-    { contextLength: number; priceIn: number; priceOut?: number; maxOutputTokens?: number }
+    {
+      contextLength: number
+      priceIn: number
+      priceOut?: number
+      priceCacheRead?: number
+      priceCacheWrite?: number
+      maxOutputTokens?: number
+    }
   >,
   fetchedAt: number,
 ) {
@@ -54,6 +62,26 @@ afterEach(() => {
 })
 
 describe('model-catalog', () => {
+  it('knownCostWithCache usa precios de caché del catálogo y priceIn si faltan', async () => {
+    seedDiskCache(
+      {
+        'catalog/cache-prices': {
+          contextLength: 10_000,
+          priceIn: 1,
+          priceOut: 3,
+          priceCacheRead: 0.5,
+          priceCacheWrite: 2,
+        },
+        'catalog/no-cache-prices': { contextLength: 10_000, priceIn: 1, priceOut: 3 },
+      },
+      Date.now(),
+    )
+    await ensureCatalogLoaded()
+    const usage = { input: 100, output: 10, cacheRead: 100, cacheWrite: 100 }
+    expect(knownCostWithCache('catalog/cache-prices', usage)).toBeCloseTo(0.00038, 8)
+    expect(knownCostWithCache('catalog/no-cache-prices', usage)).toBeCloseTo(0.00033, 8)
+  })
+
   it('cae a la tabla de familias cuando no hay catálogo cargado', () => {
     // 'claude' → 200K por la tabla hardcodeada de context-monitor.
     expect(contextWindowFor('anthropic/claude-haiku-4-5')).toBe(200_000)

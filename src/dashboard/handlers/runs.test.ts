@@ -36,6 +36,8 @@ describe('runRecordToRow', () => {
       skill_gates_json: null,
       status: 'done',
       input_tokens: 10,
+      cache_read_tokens: 0,
+      cache_write_tokens: 0,
       output_tokens: 20,
       usd_cost: 0.01,
       elapsed_ms: 1000,

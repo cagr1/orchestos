@@ -270,6 +270,8 @@ export class CodexAppServer {
     threadId: string
     text: string
     inputTokens: number
+    cacheReadTokens: number
+    cacheWriteTokens: number
     outputTokens: number
     model?: string
   }> {
@@ -392,7 +394,12 @@ export class CodexAppServer {
     return {
       threadId,
       text: state.text,
-      inputTokens: state.usage?.inputTokens ?? 0,
+      inputTokens: Math.max(
+        0,
+        (state.usage?.inputTokens ?? 0) - (state.usage?.cachedInputTokens ?? 0),
+      ),
+      cacheReadTokens: state.usage?.cachedInputTokens ?? 0,
+      cacheWriteTokens: state.usage?.cacheWriteInputTokens ?? 0,
       outputTokens: state.usage?.outputTokens ?? 0,
       model: observedModel,
     }

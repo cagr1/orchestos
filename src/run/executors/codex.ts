@@ -36,7 +36,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { getChatSession, getCodexChatThread, setCodexChatThread } from '../../db/chat-sessions.ts'
 import { getCatalog } from '../../router/model-catalog.ts'
-import { calcCost } from '../../router/pricing.ts'
+import { knownCostWithCache } from '../../router/pricing.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { provisionCliConfigHome } from './cli-registry.ts'
 import { type CodexAppServerThreadStore, getCodexAppServer } from './codex-app-server.ts'
@@ -214,10 +214,20 @@ async function runCodex(
 
 interface CodexTurnCompleted {
   type: 'turn.completed'
-  usage?: { input_tokens?: number; output_tokens?: number }
+  usage?: {
+    input_tokens?: number
+    output_tokens?: number
+    cached_input_tokens?: number
+    cache_write_input_tokens?: number
+  }
 }
 
-function parseCodexStream(stdout: string): { inputTokens: number; outputTokens: number } {
+function parseCodexStream(stdout: string): {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+} {
   let last: CodexTurnCompleted | undefined
   for (const line of stdout.split('\n')) {
     const trimmed = line.trim()
@@ -233,8 +243,13 @@ function parseCodexStream(stdout: string): { inputTokens: number; outputTokens: 
     )
   }
   return {
-    inputTokens: last.usage?.input_tokens ?? 0,
+    inputTokens: Math.max(
+      0,
+      (last.usage?.input_tokens ?? 0) - (last.usage?.cached_input_tokens ?? 0),
+    ),
     outputTokens: last.usage?.output_tokens ?? 0,
+    cacheReadTokens: last.usage?.cached_input_tokens ?? 0,
+    cacheWriteTokens: last.usage?.cache_write_input_tokens ?? 0,
   }
 }
 
@@ -252,6 +267,8 @@ function parseCodexStream(stdout: string): { inputTokens: number; outputTokens: 
 export interface CodexChatResult {
   text: string
   inputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
   outputTokens: number
   usd: number | null
   model: string
@@ -327,7 +344,7 @@ async function runCodexChatExec(
     throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
   }
 
-  let parsed: { inputTokens: number; outputTokens: number }
+  let parsed: ReturnType<typeof parseCodexStream>
   try {
     parsed = parseCodexStream(stdout)
   } catch (e: any) {
@@ -348,12 +365,19 @@ async function runCodexChatExec(
   const pricingId = model ? codexPricingId(model) : undefined
   const usd =
     pricingId && getCatalog()?.has(pricingId)
-      ? calcCost(pricingId, parsed.inputTokens, parsed.outputTokens)
+      ? (knownCostWithCache(pricingId, {
+          input: parsed.inputTokens,
+          output: parsed.outputTokens,
+          cacheRead: parsed.cacheReadTokens,
+          cacheWrite: parsed.cacheWriteTokens,
+        }) ?? 0)
       : null
 
   return {
     text,
     inputTokens: parsed.inputTokens,
+    cacheReadTokens: parsed.cacheReadTokens,
+    cacheWriteTokens: parsed.cacheWriteTokens,
     outputTokens: parsed.outputTokens,
     usd,
     model: model ?? 'codex (cli default model)',
@@ -413,11 +437,18 @@ export async function runCodexChat(
     const pricingId = pricingModel ? codexPricingId(pricingModel) : undefined
     const usd =
       pricingId && getCatalog()?.has(pricingId)
-        ? calcCost(pricingId, result.inputTokens, result.outputTokens)
+        ? (knownCostWithCache(pricingId, {
+            input: result.inputTokens,
+            output: result.outputTokens,
+            cacheRead: result.cacheReadTokens,
+            cacheWrite: result.cacheWriteTokens,
+          }) ?? 0)
         : null
     return {
       text: result.text,
       inputTokens: result.inputTokens,
+      cacheReadTokens: result.cacheReadTokens,
+      cacheWriteTokens: result.cacheWriteTokens,
       outputTokens: result.outputTokens,
       usd,
       model: result.model ?? model ?? 'codex (cli default model)',
@@ -494,7 +525,7 @@ export const codexEngine: ExecutorEngine = {
       throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
     }
 
-    let parsed: { inputTokens: number; outputTokens: number }
+    let parsed: ReturnType<typeof parseCodexStream>
     try {
       parsed = parseCodexStream(stdout)
     } catch (e: any) {
@@ -508,13 +539,21 @@ export const codexEngine: ExecutorEngine = {
     // F0.8 — costo desconocido explícito, nunca $0 silencioso: codex no
     // expone total_cost_usd (a diferencia de claude/opencode), así que solo
     // se computa si el modelo corrido está en el catálogo real.
-    const usd = calcCost(pricingId, parsed.inputTokens, parsed.outputTokens)
+    const usd =
+      knownCostWithCache(pricingId, {
+        input: parsed.inputTokens,
+        output: parsed.outputTokens,
+        cacheRead: parsed.cacheReadTokens,
+        cacheWrite: parsed.cacheWriteTokens,
+      }) ?? 0
 
     const files = readWorktreeDiff(ctx.effectiveRoot, ctx.task.output)
 
     const outcome: ExecutorOutcome = {
       files,
       inputTokens: parsed.inputTokens,
+      cacheReadTokens: parsed.cacheReadTokens,
+      cacheWriteTokens: parsed.cacheWriteTokens,
       outputTokens: parsed.outputTokens,
       usd,
       iterations: 1, // codex exec no expone conteo de turnos internos en --json

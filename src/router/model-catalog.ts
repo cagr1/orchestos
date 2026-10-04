@@ -36,6 +36,8 @@ export interface ModelInfo {
   priceIn: number
   /** Precio de completion en USD por 1M tokens. */
   priceOut: number
+  priceCacheRead?: number
+  priceCacheWrite?: number
   /** True si OpenRouter publica `"reasoning"` en `supported_parameters` para este modelo. */
   supportsReasoning: boolean
   /** True si OpenRouter publica `"tools"` en `supported_parameters` para este modelo (function calling real, no solo Claude/GPT/Gemini). */
@@ -135,7 +137,12 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
     data?: Array<{
       id?: string
       context_length?: number
-      pricing?: { prompt?: string; completion?: string }
+      pricing?: {
+        prompt?: string
+        completion?: string
+        input_cache_read?: string
+        input_cache_write?: string
+      }
       supported_parameters?: string[]
       top_provider?: { max_completion_tokens?: number }
       architecture?: { input_modalities?: string[] }
@@ -154,6 +161,12 @@ async function fetchFromOpenRouter(apiKey: string): Promise<Record<string, Model
       contextLength: typeof m.context_length === 'number' ? m.context_length : 0,
       priceIn: Number.isFinite(rawPriceIn) ? rawPriceIn : 0,
       priceOut: Number.isFinite(rawPriceOut) ? rawPriceOut : 0,
+      ...(Number.isFinite(Number(m.pricing?.input_cache_read))
+        ? { priceCacheRead: Number(m.pricing?.input_cache_read) * 1_000_000 }
+        : {}),
+      ...(Number.isFinite(Number(m.pricing?.input_cache_write))
+        ? { priceCacheWrite: Number(m.pricing?.input_cache_write) * 1_000_000 }
+        : {}),
       supportsReasoning:
         Array.isArray(m.supported_parameters) && m.supported_parameters.includes('reasoning'),
       supportsTools:

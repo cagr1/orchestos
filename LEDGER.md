@@ -285,3 +285,12 @@ de rutas CLI al agente real (`name: routeAgent`). Ninguna línea de `maxTokens`/
 tocada (`git diff --cached src/run/harness.ts | grep -i token` → vacío).
 **Reversibilidad/evidencia**: commit `fix(I.7.1)`, revertible con `git revert`. `test:coverage` 1612/0 ·
 `ui:gate model-routing` 18/18 · `auto-flow` 24/26 (rojos = I.7.2).
+
+## 2026-10-04 10:26 — claude-opus-5-5 (revisor) · ejecutor Codex gpt-6-luna
+**Contexto**: CX.4 — `src/run/harness.ts` y `src/router/model-catalog.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: en harness solo se propagan `cacheReadTokens`/`cacheWriteTokens` junto a input/output del run; en el
+catálogo solo se leen `pricing.input_cache_read`/`input_cache_write`. Ninguna línea de `maxTokens`,
+`contextWindow`, `maxOutputTokensFor` ni `knownMaxOutputTokensFor` tocada.
+**Reversibilidad/evidencia**: commit `fix(CX.4)`, revertible con `git revert` (migración 20 aditiva).
+`test:coverage` 1620/0 · `auto-flow` 26/26 con caché > 0 · `chat-streaming` 15/15 · `codex-live` 14/14.

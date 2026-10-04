@@ -18,6 +18,8 @@ import type { ExecutorStepEvent } from './step-event.ts'
 export interface ExecutorOutcome {
   files: FileChange[]
   inputTokens: number
+  cacheReadTokens?: number
+  cacheWriteTokens?: number
   outputTokens: number
   usd: number
   /** 1 para single-shot; N para engines multi-turno (agéntico, G.3) */

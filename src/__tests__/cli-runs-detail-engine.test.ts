@@ -70,6 +70,8 @@ function makeRow(overrides: Partial<RunRecord> = {}): RunRecord {
     skill_gates_json: null,
     status: 'done',
     input_tokens: 5,
+    cache_read_tokens: 0,
+    cache_write_tokens: 0,
     output_tokens: 3,
     usd_cost: 0.0001,
     elapsed_ms: 100,
@@ -212,5 +214,12 @@ describe('G.4 — `runs --detail` imprime `## Engine` con type + iterations', ()
     const row = getRun(id)!
     const out = capturePrintDetail(row)
     expect(out).toMatch(/type: single-shot\s+iterations: 1/)
+  })
+
+  it('insertRun deja los contadores de caché en cero si el llamador los omite', async () => {
+    const { cache_read_tokens: _read, cache_write_tokens: _write, ...withoutCache } = makeRow()
+    const id = insertRun(withoutCache)
+    const { getRun } = await import('../db/runs.ts')
+    expect(getRun(id)).toMatchObject({ cache_read_tokens: 0, cache_write_tokens: 0 })
   })
 })
