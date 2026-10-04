@@ -14,7 +14,12 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { getTimeline, type TimelineResponse } from '../../api/chat'
+import {
+  getSessionContext,
+  getTimeline,
+  type SessionContextResponse,
+  type TimelineResponse,
+} from '../../api/chat'
 import { getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orchestos'
@@ -64,6 +69,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     effort?: string
   } | null>(null)
   const [liveTimeline, setLiveTimeline] = useState<TimelineResponse | null>(null)
+  const [composerModel, setComposerModel] = useState('')
+  const [sessionContext, setSessionContext] = useState<SessionContextResponse | null>(null)
 
   useEffect(() => {
     let disposed = false
@@ -88,6 +95,25 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
 
   const messages = thread?.messages || []
   const sessionId = thread?.id
+  useEffect(() => {
+    if (!sessionId) {
+      setSessionContext(null)
+      return
+    }
+    let disposed = false
+    const controller = new AbortController()
+    void getSessionContext(sessionId, composerModel, thread?.projectId ?? null, controller.signal)
+      .then((context) => {
+        if (!disposed) setSessionContext(context)
+      })
+      .catch(() => {
+        if (!disposed) setSessionContext(null)
+      })
+    return () => {
+      disposed = true
+      controller.abort()
+    }
+  }, [sessionId, composerModel, messages.length, thread?.projectId])
   // Abrir otra conversación siempre la muestra desde el último mensaje.
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo al cambiar de sesión.
   useEffect(() => stickToBottom(), [sessionId, stickToBottom])
@@ -132,7 +158,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
           : cliId === 'deepseek'
             ? 'DeepSeek'
             : 'Gemini'
-  const context = sessionStatus?.clis.find((cli) => cli.id === cliId)?.context
   const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
   const lastModel = lastAssistant?.model
     ?.replace(/\s+via\s+.+$/i, '')
@@ -204,10 +229,10 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         {/* Context is rendered only when the selected session has real token telemetry. */}
         <div className="flex items-center flex-shrink-0">
           <ContextRing
-            percent={context?.pct}
-            model={context?.model ?? undefined}
-            usedTokens={context ? `${context.used}` : undefined}
-            maxTokens={context ? `${context.window}` : undefined}
+            percent={sessionContext?.pct ?? undefined}
+            model={sessionContext?.model ?? undefined}
+            usedTokens={sessionContext?.used == null ? undefined : `${sessionContext.used}`}
+            maxTokens={sessionContext?.window == null ? undefined : `${sessionContext.window}`}
           />
         </div>
       </header>
@@ -481,6 +506,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
             busy={isWorking}
             onOpenRouting={onOpenRouting}
             onSlashCommand={onSlashCommand}
+            onSelectionChange={(_cli, model) => setComposerModel(model)}
           />
         </div>
       </div>

@@ -71,6 +71,7 @@ export interface AgentComposerProps {
   busy?: boolean
   onOpenRouting?: () => void
   onSlashCommand?: (command: string, argument?: string) => void
+  onSelectionChange?: (cli: CliId, model: string) => void
   className?: string
 }
 
@@ -84,6 +85,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   busy = false,
   onOpenRouting,
   onSlashCommand,
+  onSelectionChange,
   className = '',
 }) => {
   const [availableClis, setAvailableClis] = useState<CliConfig[]>([])
@@ -325,6 +327,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       : []
   const filteredModels = currentCliConfig.models
   const modelsReady = !isLoadingModels && currentCliConfig.models.length > 0
+
+  useEffect(() => {
+    onSelectionChange?.(activeCli, effectiveSelectedModel)
+  }, [activeCli, effectiveSelectedModel, onSelectionChange])
 
   return (
     <div className={`relative w-full ${className}`}>

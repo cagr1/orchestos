@@ -61,6 +61,49 @@ printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"
 }
 
 describe('CC.2 — chat sessions backend', () => {
+  it('reports thread context from the last run and selected catalog model', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+      fs.mkdirSync(path.join(process.env.ORCHESTOS_HOME, '.orchestos/cache'), { recursive: true })
+      fs.writeFileSync(path.join(process.env.ORCHESTOS_HOME, '.orchestos/cache/models.json'), JSON.stringify({ fetchedAt: Date.now(), models: { 'catalog/test-model': { contextLength: 20000, priceIn: 1, priceOut: 1, supportsReasoning: false, supportsTools: false, maxOutputTokens: 1000, supportsVision: false }, 'openai/gpt-6-luna': { contextLength: 256000, priceIn: 1, priceOut: 1, supportsReasoning: false, supportsTools: false, maxOutputTokens: 1000, supportsVision: false } } }))
+      const sessions = await import('./src/db/chat-sessions.ts')
+      const turns = await import('./src/db/chat-turns.ts')
+      const { handleApiChatSessionContext } = await import('./src/dashboard/handlers/chat-sessions.ts')
+      runMigrations()
+      const session = sessions.createChatSession({ projectId: null, agent: 'codex' })
+      const claimed = turns.beginTurn({ sessionId: session.id, projectId: null, requestKey: 'context', inputFingerprint: 'context', owner: 'test' })
+      const runId = 'context-run'
+      db.run('INSERT INTO runs (id, prompt, task_class, model, provider, status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [runId, 'test', 'chat', 'gpt-6-luna via Codex CLI (effort: medium)', 'test', 'done', 100, 9000, 500, 400, new Date().toISOString()])
+      db.run('UPDATE chat_turns SET run_id = ? WHERE id = ?', [runId, claimed.turn.id])
+      const known = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + session.id + '/context?model=catalog%2Ftest-model'))).json()
+      const unknown = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + session.id + '/context?model=unknown%2Fmodel'))).json()
+      const cleanedRunModel = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + session.id + '/context'))).json()
+      const emptySession = sessions.createChatSession({ projectId: null, agent: 'codex' })
+      const empty = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + emptySession.id + '/context'))).json()
+      const missing = await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/missing/context'))
+      process.stdout.write(JSON.stringify({ known, unknown, cleanedRunModel, empty, missing: missing.status }))
+      db.close()
+    `)
+    expect(result.known).toEqual({
+      used: 10000,
+      window: 20000,
+      pct: 50,
+      model: 'catalog/test-model',
+    })
+    expect(result.unknown).toEqual({ used: 10000, window: null, pct: null, model: 'unknown/model' })
+    expect(result.cleanedRunModel).toEqual({
+      used: 10000,
+      window: 256000,
+      pct: (10000 / 256000) * 100,
+      model: 'gpt-6-luna',
+    })
+    expect(result.empty).toEqual({ used: null, window: null, pct: null, model: null })
+    expect(result.missing).toBe(404)
+  })
+
   it('ignores legacy auxiliary-unassigned envelope fields', async () => {
     const result = await runIsolated(
       `

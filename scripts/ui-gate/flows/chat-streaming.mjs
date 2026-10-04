@@ -232,6 +232,109 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       squash(visibleFinal) === squash(assistantMessages[0]?.content ?? ''),
     `bubbles=${await page.locator('div.prose').count()}; persisted=${assistantMessages.length}; visible=${squash(visibleFinal).slice(0, 80)}`,
   )
+  const contextUrl = `/api/chat/sessions/${encodeURIComponent(session.id)}/context`
+  const contextHeaders = { headers: { 'x-orchestos-project-id': project.id } }
+  const ring = page.locator('[aria-label^="Context window usage:"]').last()
+  const firstContext = await waitFor(async () => {
+    const result = await api(contextUrl, contextHeaders)
+    const label = await ring.getAttribute('aria-label')
+    const shownPct = Number(label?.match(/^Context window usage: ([\d.]+)%$/)?.[1])
+    return result.data?.pct > 0 &&
+      shownPct > 0 &&
+      Math.abs(shownPct - result.data.pct) < 0.01 &&
+      (await visible(ring))
+      ? result.data
+      : null
+  }, 10_000)
+  await step(
+    'context ring reflects thread',
+    Boolean(firstContext && firstContext.pct > 0),
+    firstContext
+      ? `used=${firstContext.used}, window=${firstContext.window}, pct=${firstContext.pct}`
+      : 'thread context or visible ring did not report positive usage',
+  )
+  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+  const currentModel = firstContext?.model
+  await modelControl.click()
+  const options = page.locator('button[title]')
+  const candidates = []
+  for (let index = 0; index < (await options.count()); index++) {
+    const option = options.nth(index)
+    const model = await option.getAttribute('title')
+    if (!model || model === 'Select model and reasoning effort' || model === currentModel) continue
+    const candidate = await api(`${contextUrl}?model=${encodeURIComponent(model)}`, contextHeaders)
+    if (
+      Number.isFinite(candidate.data?.pct) &&
+      Math.min(100, candidate.data.pct) !== Math.min(100, firstContext?.pct ?? 0)
+    ) {
+      const family = (value) => value.match(/^(claude-(?:haiku|sonnet|opus|fable)-)/)?.[1]
+      const currentFamily = family(currentModel ?? '')
+      const candidateFamily = family(model)
+      candidates.push({
+        model,
+        pct: candidate.data.pct,
+        option,
+        priority:
+          currentFamily && candidateFamily === currentFamily
+            ? 0
+            : /claude-(?:fable|opus)-/.test(model)
+              ? 2
+              : 1,
+      })
+    }
+  }
+  candidates.sort((a, b) => a.priority - b.priority)
+  const alternate = candidates[0] ?? null
+  const alternateModel = alternate?.model ?? null
+  const alternatePct = alternate?.pct ?? null
+  if (alternateModel) {
+    await alternate.option.click()
+    const changed = await waitFor(async () => {
+      const label = await ring.getAttribute('aria-label')
+      const shownPct = Number(label?.match(/^Context window usage: ([\d.]+)%$/)?.[1])
+      return Number.isFinite(shownPct) && Math.abs(shownPct - Math.min(100, alternatePct)) < 0.01
+        ? { label, shownPct }
+        : null
+    }, 5_000)
+    await step(
+      'context ring recalculates on model change',
+      Boolean(changed),
+      changed
+        ? `model=${alternateModel}, expected pct=${alternatePct}, ring=${changed.label}`
+        : `selected ${alternateModel}, expected pct=${alternatePct}; ring did not change within 5 s`,
+    )
+    await modelControl.click()
+    let originalModelOption = null
+    for (let index = 0; index < (await options.count()); index++) {
+      const option = options.nth(index)
+      if ((await option.getAttribute('title')) === currentModel) {
+        originalModelOption = option
+        break
+      }
+    }
+    if (originalModelOption) await originalModelOption.click()
+    else throw new Error(`original model option disappeared: ${currentModel}`)
+    const restored = await waitFor(async () => {
+      const label = await ring.getAttribute('aria-label')
+      const shownPct = Number(label?.match(/^Context window usage: ([\d.]+)%$/)?.[1])
+      return Number.isFinite(shownPct) &&
+        Math.abs(shownPct - Math.min(100, firstContext.pct)) < 0.01
+        ? label
+        : null
+    }, 5_000)
+    if (!restored) {
+      throw new Error(
+        `restored ${currentModel} but context ring did not return to ${Math.min(100, firstContext.pct)}% within 5 s`,
+      )
+    }
+  } else {
+    await page.keyboard.press('Escape')
+    await step(
+      'context ring recalculates on model change',
+      false,
+      `no visible model option has a known window producing a percentage distinct from ${firstContext?.pct ?? 'the current value'}`,
+    )
+  }
   await step(
     'task marker is not visible',
     !(await page.getByText(/\[\[orchestos:/).count()),

@@ -1,3 +1,4 @@
+import { contextWindowFor } from '../../../scripts/context-budget.ts'
 import { AGENT_CHOICES, loadOrcheConfig } from '../../config/load.ts'
 import type { AgentChoice } from '../../config/schema.ts'
 import {
@@ -23,6 +24,7 @@ import {
 } from '../../db/chat-turns.ts'
 import { insertConsoleCommand, listConsoleCommands } from '../../db/console-commands.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
+import { getRun } from '../../db/runs.ts'
 import { runOneCheck } from '../../run/checks.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { getLiveText } from '../chat-live.ts'
@@ -80,7 +82,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
 
 function sessionIdFromUrl(url: URL): string | null {
   const match = url.pathname.match(
-    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/timeline|\/turn-status|\/archive|\/restore|\/exec|\/console)?$/,
+    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/timeline|\/context|\/turn-status|\/archive|\/restore|\/exec|\/console)?$/,
   )
   if (!match?.[1]) return null
   try {
@@ -365,6 +367,29 @@ export function handleApiChatSessionTimeline(url: URL): Response {
     pending: hasActiveTurn(id),
     events,
   })
+}
+
+export async function handleApiChatSessionContext(url: URL): Promise<Response> {
+  const id = sessionIdFromUrl(url)
+  if (!id) return errorResponse('Invalid session id', 400)
+  if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
+  const empty = { used: null, window: null, pct: null, model: null }
+  const turn = [...listChatTurns(id)].reverse().find((candidate) => candidate.run_id)
+  if (!turn?.run_id) return jsonResponse(empty)
+  const run = getRun(turn.run_id)
+  if (!run) return jsonResponse(empty)
+  const requestedModel = cleanContextModel(url.searchParams.get('model')?.trim() ?? '')
+  const model = requestedModel || cleanContextModel(run.model)
+  const used = run.input_tokens + run.cache_read_tokens + run.cache_write_tokens + run.output_tokens
+  const window = await contextWindowFor(model)
+  return jsonResponse({ used, window, pct: window ? (used / window) * 100 : null, model })
+}
+
+function cleanContextModel(model: string): string {
+  return model
+    .replace(/\s+via\s+.+$/i, '')
+    .replace(/\s*\(effort: [^)]+\)/i, '')
+    .trim()
 }
 
 export type ChatTurnStatusRow =

@@ -261,8 +261,8 @@
       "block": "CX — Contexto por ventana y consumo real (ABIERTO 2026-10-04)",
       "delegation": "🧠",
       "title": "El anillo de contexto mide el hilo activo y se recalcula al cambiar de modelo",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-04"
     },
     {
       "id": "CX.3",

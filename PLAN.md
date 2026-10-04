@@ -1110,11 +1110,19 @@ explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni
   cleanup).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.1-live.json`; `auto-flow` 26/26 con
   `2 exported` (claude/haiku + codex/gpt-6-luna en la DB durable).
-- [ ] **CX.2 — 🧠 El anillo de contexto mide el hilo activo y se recalcula al cambiar de modelo.** Hoy
+- [x] **CX.2 — 🧠 El anillo de contexto mide el hilo activo y se recalcula al cambiar de modelo.** (cerrado 2026-10-04) Hoy
   `scripts/session-status.ts:176-195` toma el transcript más reciente del CLI en el proyecto (puede ser un tab
   de Claude Code ajeno al hilo). Debe usar el contexto acumulado del hilo (último turno, con caché) dividido
   por la ventana del modelo elegido en el selector; cambia en el acto al cambiar de modelo. Colores ya
   existentes (`ContextRing.tsx`: ≥60 naranja, ≥80 rojo). Gate en vivo con el dashboard real.
+  Ejecutado por: luna (3 rondas) · Spec: docs/specs/CX.2.md
+  Hecho: `GET /api/chat/sessions/:id/context?model=` (último turno: input + caché + output sobre la ventana del
+  catálogo; `null` si no se conoce) y el composer avisa el modelo elegido. Ronda 2: ids con fecha
+  (`claude-haiku-4-5-20251001`) y modelos decorados (`… via Codex CLI (effort: …)`) no resolvían ventana. Ronda 3:
+  el gate comparaba contra el endpoint sin `?model=` y dejaba el modelo alternativo puesto.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.2-live.json`; `chat-streaming` 17/17 (anillo
+  7,263/200,000 = 3.63% en Haiku → 0.73% al elegir Sonnet 5 sin enviar, y vuelve), `codex-live` 14/14;
+  `test:coverage` 1621/0.
 - [x] **CX.3 — ⚡ Hook de Claude Code: solo % de ventana.** (cerrado 2026-10-04) Quitar el tope absoluto AT.5
   (`scripts/context-budget.ts:45`, 60k/90k, dispara con el arranque de 57k) y el nivel `block`; el texto dice la
   causa. Gate: tests del hook + corrida sobre un transcript real.

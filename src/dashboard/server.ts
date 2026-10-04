@@ -13,6 +13,7 @@ import {
 import {
   handleApiChatSessionArchive,
   handleApiChatSessionConsole,
+  handleApiChatSessionContext,
   handleApiChatSessionDelete,
   handleApiChatSessionExec,
   handleApiChatSessionMessages,
@@ -413,6 +414,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/timeline$/)) {
     return handleApiChatSessionTimeline(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/context$/)) {
+    return handleApiChatSessionContext(url)
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/console$/)) {
     return handleApiChatSessionConsole(url)

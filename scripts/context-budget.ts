@@ -88,10 +88,19 @@ export async function catalogModelIdFor(model: string | null): Promise<string | 
 
   const slug = normalizedModelSlug(model)
   if (!slug) return null
-  const matches = [...(getCatalog()?.entries() ?? [])]
-    .filter(([id, info]) => info.contextLength > 0 && normalizedModelSlug(id) === slug)
+  const catalog = [...(getCatalog()?.entries() ?? [])].filter(([, info]) => info.contextLength > 0)
+  const matches = catalog.filter(([id]) => normalizedModelSlug(id) === slug).map(([id]) => id)
+  if (matches.length === 1) return matches[0] ?? null
+  if (matches.length > 1) return null
+
+  // CLI model IDs sometimes append a dated snapshot while catalogs use the
+  // stable model slug. Keep the same unique-match rule after removing it.
+  const undatedSlug = slug.replace(/-\d{8}$/, '')
+  if (undatedSlug === slug) return null
+  const datedMatches = catalog
+    .filter(([id]) => normalizedModelSlug(id) === undatedSlug)
     .map(([id]) => id)
-  return matches.length === 1 ? (matches[0] ?? null) : null
+  return datedMatches.length === 1 ? (datedMatches[0] ?? null) : null
 }
 
 function normalizedModelSlug(model: string): string {

@@ -53,6 +53,15 @@ describe('context budget', () => {
               maxOutputTokens: 0,
               supportsVision: false,
             },
+            'anthropic/claude-haiku-4.5': {
+              contextLength: 200_000,
+              priceIn: 0,
+              priceOut: 0,
+              supportsReasoning: false,
+              supportsTools: false,
+              maxOutputTokens: 0,
+              supportsVision: false,
+            },
             'provider-a/same-model': {
               contextLength: 32_000,
               priceIn: 0,
@@ -84,6 +93,7 @@ describe('context budget', () => {
         console.log(JSON.stringify({
           known: await contextWindowFor('known/model'),
           providerless: await contextWindowFor('claude-opus-5'),
+          dated: await contextWindowFor('claude-haiku-4-5-20251001'),
           ambiguous: await contextWindowFor('same-model'),
           unknown: await contextWindowFor('unknown/model'),
         }))
@@ -100,6 +110,7 @@ describe('context budget', () => {
       expect(JSON.parse(stdout)).toEqual({
         known: 32_000,
         providerless: 1_000_000,
+        dated: 200_000,
         ambiguous: null,
         unknown: null,
       })

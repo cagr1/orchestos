@@ -406,6 +406,29 @@ export async function getTimeline(
   )
 }
 
+export interface SessionContextResponse {
+  used: number | null
+  window: number | null
+  pct: number | null
+  model: string | null
+}
+
+export async function getSessionContext(
+  sessionId: string,
+  model: string,
+  projectId: string | null,
+  signal?: AbortSignal,
+): Promise<SessionContextResponse> {
+  const params = model ? `?model=${encodeURIComponent(model)}` : ''
+  return request<SessionContextResponse>(
+    scopedSessionPath(
+      `/api/chat/sessions/${encodeURIComponent(sessionId)}/context${params}`,
+      projectId,
+    ),
+    { headers: sessionScope(projectId).headers, signal },
+  )
+}
+
 export async function getProjectTasks(
   projectId?: string | null,
   signal?: AbortSignal,
