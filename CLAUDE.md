@@ -114,6 +114,11 @@ solo se manifestaban fuera del Mac:
    `process.env.HOME = …`, ni `Bun.spawn`/`spawnSync` sin `env` explícito. Un test que los muta lee el host
    real del Mac. Pasar el env al spawn, o escribir la config en el fixture temporal.
 
+4. (2026-10-05) Fixtures que hacen `git commit` llevan identidad propia (`git -c user.name=… -c user.email=… commit`).
+   El Mac la tiene global y el pre-push pasa; el runner de CI no, y falla con "empty ident name". CI estuvo rojo
+   desde 3409a86 (I.7.2) durante 7 pushes sin que nadie lo viera: para saber el estado de CI mirar
+   `gh run list --workflow CI`, no los workflows `UI gate`/`Secret Check`, que pueden estar verdes con CI rojo.
+
 Corolario que costó semanas: un CI que falla siempre deja de dar señal. Si CI está
 rojo, arreglarlo es prioridad — no ruido de fondo. Y `Mutation Shards` rojo casi nunca
 es un problema de mutación: Stryker aborta con "failed tests in the initial test run"
