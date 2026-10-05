@@ -26,7 +26,15 @@ describe('dashboard task run session reporting', () => {
     for (const args of [
       ['init', '-b', 'main'],
       ['add', 'tasks.yaml'],
-      ['commit', '-m', 'fixture'],
+      [
+        '-c',
+        'user.name=OrchestOS test',
+        '-c',
+        'user.email=test@invalid',
+        'commit',
+        '-m',
+        'fixture',
+      ],
     ]) {
       const proc = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
       expect(proc.exitCode, new TextDecoder().decode(proc.stderr)).toBe(0)
