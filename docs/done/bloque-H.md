@@ -1208,3 +1208,28 @@ catálogo real, no se toca).
   `LIVE_GATE_PATHS`) — el propio ítem no dispara su propio gate.
   **Fuera de scope declarado:** `.orchestos/feature-status.json` — regenerado automáticamente
   por el pre-commit desde este mismo PLAN.md, no se anticipó al declarar el scope-lock.
+
+<a id="plan-orden-h-5-3"></a>
+- [x] **H.5.3 — 🔍 Primera corrida medida real.** (cerrado 2026-10-05)
+  3 tasks × k=3 = 9 corridas completas, por el **CLI del usuario** (`bun run eval:run -- --engine codex|external …`),
+  nunca por API salvo que Carlos la pida. Modelo = el configurado para el rol en `orchestos.config.yaml`.
+  Sin tope de presupuesto: Carlos decidió el 2026-10-05 que el gasto es responsabilidad del usuario y que, al correr
+  por CLI de suscripción, no consume API (deja sin efecto el gate de presupuesto que venía del incidente de $5.00 del
+  2026-07-13, `[[feedback-modelo-decision-final-carlos]]`). Produce el
+  **primer baseline** del proyecto: el "antes" contra el que se medirá cualquier cambio
+  futuro de harness. Hasta que exista este número, no se puede afirmar que ninguna versión
+  del orquestador es mejor que otra — que es, textual, el hueco que abrió H.5.
+  Ejecutado por: claude (corrida) · luna (fix del runner, 81b7e90) · Sin delegación: no
+  **Baseline (2026-10-05):** config de `orchestos.config.yaml` → Ejecutor Codex `gpt-6-luna` (`cli_effort` null en
+  el registro). `failed-check-counting` 2/3 (pass@k sí, pass^k no; batch `d7d907a6`) · `html-inline-script-syntax`
+  3/3 (`0e145321`) · `test-assertion-vacuity` 3/3 (`3cd16691`). Total 8/9. Trials OK: 32-55 s, ~15k input + ~70k
+  caché leída, ~$0.002 estimado c/u (CLI de suscripción: no es gasto de API).
+  **El único fallo no es del modelo:** `codex timed out after 1200000ms with no parseable output` (run `b07886f8`).
+  **Bug encontrado y arreglado en el camino (81b7e90):** el runner cargaba la config del proyecto base del eval (sin
+  `orchestos.config.yaml`) y caía a la global sin roles → la primera tanda de 9 falló en ~60 ms con "Rol 'reviewer' sin
+  asignar", 0 tokens. Los batches `caae599f`, `3fe5888e`, `1a26b2ad`, `b639b44f` (inválidos) y `9de66349` (1 trial de
+  humo) quedan en el historial de `eval_trials`; NO son baseline.
+  **Hallazgos abiertos (sin ítem; ver NEXT.md):** (1) Codex se cuelga a veces sin salida (20 min hasta el timeout) y
+  hubo huecos de 14 y 5 min entre trials con runs de ~50 s — mismo patrón que CI.11; (2) `elapsed_ms` del run colgado
+  registró 106 978 ms contra ~20 min de reloj; (3) el `effort: medium` del rol no aparece en `cli_effort` del batch
+  (no verificado si el harness lo aplica igual).

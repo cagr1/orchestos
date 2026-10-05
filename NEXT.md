@@ -10,7 +10,12 @@ Cerrado 2026-10-04 (detalle y evidencia en PLAN.md y `docs/done/evidence/`):
   CX.5 Settings → Usage = runs de OrchestOS + tabs CLI de proyectos registrados (en vivo: $3.88 + $1,131).
 - CI.13: "Run" en Tasks mostraba nada si la tarea fallaba (camino de error verificado solo por lectura).
 
+H.5.3 cerrado 2026-10-05: baseline 8/9 (detalle en `docs/done/bloque-H.md#plan-orden-h-5-3`). Siguiente según
+Rumbo: **ERP.4** (piloto de módulo ERP).
+
 Pendientes anotados (sin ítem todavía; abrir si Carlos quiere):
+- H.5.3: Codex se cuelga sin salida a veces (timeout 20 min; huecos de 5-14 min entre trials) — ligar a CI.11;
+  `elapsed_ms` no cuenta el cuelgue; `effort` del rol no llega a `cli_effort` del eval (sin verificar si se aplica).
 - CX.5: fila `<synthetic>` (0 tokens) visible en "CLI tabs"; "Avg cost / run" mezcla runs y sesiones.
 - `chat-roles` flaky dentro del pre-push completo (falló 2 veces, pasa solo); causa no reproducida.
 - I.7.2: si el dashboard se reinicia a mitad del run, el reporte de fin se pierde (gap declarado).

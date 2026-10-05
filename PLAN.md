@@ -22,8 +22,7 @@ sin peso extra y con reglas claras.
 Todos sus ítems están archivados en `docs/done/` (UI.13.x, UI.9.8/9.9, UI.10.A, CI.2; el selector nativo de nuevo proyecto lo cerró UI.15).
 
 ### Fase 2 — Producto mínimo para entrega (ruta ERP)
-Cerrados y archivados: AT.10, R.7, ERP.2, ERP.3, I.7. Abiertos, en orden: H.5.3 (primera corrida medida, por CLI
-del usuario) → ERP.4 (piloto) → R.8 (validación independiente del recorrido) → UI.8.6 (permisos visibles: aprobar en el
+Cerrados y archivados: AT.10, R.7, ERP.2, ERP.3, I.7, H.5.3. Abiertos, en orden: ERP.4 (piloto) → R.8 (validación independiente del recorrido) → UI.8.6 (permisos visibles: aprobar en el
 chat lo que el CLI va a hacer).
 
 ### Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
@@ -62,16 +61,6 @@ tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al ce
 Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — evidencia archivada" al final).
 
 ## Fase 2 — Producto mínimo para entrega
-
-- [ ] **H.5.3 — 🔍 Primera corrida medida real.**
-  3 tasks × k=3 = 9 corridas completas, por el **CLI del usuario** (`bun run eval:run -- --engine codex|external …`),
-  nunca por API salvo que Carlos la pida. Modelo = el configurado para el rol en `orchestos.config.yaml`.
-  Sin tope de presupuesto: Carlos decidió el 2026-10-05 que el gasto es responsabilidad del usuario y que, al correr
-  por CLI de suscripción, no consume API (deja sin efecto el gate de presupuesto que venía del incidente de $5.00 del
-  2026-07-13, `[[feedback-modelo-decision-final-carlos]]`). Produce el
-  **primer baseline** del proyecto: el "antes" contra el que se medirá cualquier cambio
-  futuro de harness. Hasta que exista este número, no se puede afirmar que ninguna versión
-  del orquestador es mejor que otra — que es, textual, el hueco que abrió H.5.
 
 ### H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)
 

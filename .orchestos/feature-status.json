@@ -4,15 +4,6 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
-      "id": "H.5.3",
-      "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": null,
-      "delegation": "🔍",
-      "title": "Primera corrida medida real",
-      "status": "open",
-      "closedDate": null
-    },
-    {
       "id": "ERP.4",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
