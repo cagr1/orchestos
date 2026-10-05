@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-05T21:18:04.489Z",
+  "exported_at": "2026-10-05T21:46:11.594Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "d38982ce-856f-4b55-9f36-149cdf3b2d18",
+      "task_class": "gate:r.8.1-auto-flow:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "codex-nota.md contains the requested single line, «nota de codex».",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0013341599999999998,
+      "elapsed_ms": 25683,
+      "tokens": 14074,
+      "created_at": "2026-10-05T21:44:02.388Z"
+    },
+    {
+      "id": "1a68fce3-c97f-4509-9e2a-8ab70ef3c942",
+      "task_class": "gate:r.8.1-auto-flow:implement",
+      "model": "haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "El archivo contiene únicamente la línea solicitada: «nota de claude».",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.047279600000000005,
+      "elapsed_ms": 20698,
+      "tokens": 5192,
+      "created_at": "2026-10-05T21:43:12.222Z"
+    },
     {
       "id": "d0a1e13a-78f7-4446-a8f7-2d2ea85c71a3",
       "task_class": "gate:r.8-recorrido:doc",
@@ -271,43 +301,13 @@
       "elapsed_ms": 69,
       "tokens": 0,
       "created_at": "2026-10-05T15:14:34.422Z"
-    },
-    {
-      "id": "493eb79c-a11c-4e6c-a058-04c0709b8911",
-      "task_class": "implement",
-      "model": "gpt-6-luna",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0,
-      "elapsed_ms": 71,
-      "tokens": 0,
-      "created_at": "2026-10-05T15:14:34.066Z"
-    },
-    {
-      "id": "8aab29ed-a983-41bd-b639-b8c31bec395e",
-      "task_class": "fix",
-      "model": "gpt-6-luna",
-      "provider": "openrouter",
-      "status": "failed",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0,
-      "elapsed_ms": 67,
-      "tokens": 0,
-      "created_at": "2026-10-05T15:14:33.607Z"
     }
   ],
   "stats": {
-    "failed": 5,
+    "failed": 3,
     "blocked": 0,
-    "done": 15,
+    "done": 17,
     "qa_failed": 1,
-    "total_cost_usd": "0.0691"
+    "total_cost_usd": "0.1178"
   }
 }
