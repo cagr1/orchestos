@@ -70,6 +70,7 @@ if (import.meta.main) {
     }
     const report = await runEvalBatch({
       evalsRoot: resolve(process.cwd(), 'evals'),
+      configRoot: process.cwd(),
       taskId: options.task,
       trials: options.trials,
       dryRun: options.dryRun === true,

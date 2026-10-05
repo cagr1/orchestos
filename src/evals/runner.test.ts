@@ -1,10 +1,69 @@
 import { Database } from 'bun:sqlite'
 import { describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 describe('eval runner dry-run', () => {
+  test('uses configRoot when the eval base project has no config', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-eval-config-root-test-'))
+    const projectRoot = join(home, 'project')
+    const evalDirectory = join(projectRoot, 'evals', 'failed-check-counting')
+    const configRoot = projectRoot
+    try {
+      mkdirSync(join(projectRoot, 'evals'), { recursive: true })
+      cpSync(join(process.cwd(), 'evals', 'failed-check-counting'), evalDirectory, {
+        recursive: true,
+      })
+      writeFileSync(
+        join(configRoot, 'orchestos.config.yaml'),
+        [
+          'roles:',
+          '  executor:',
+          '    agent: codex',
+          '    model: fixture/config-root-executor',
+          '  reviewer:',
+          '    agent: codex',
+          '    model: fixture/config-root-reviewer',
+          '',
+        ].join('\n'),
+      )
+
+      const proc = Bun.spawn(
+        [
+          'bun',
+          'run',
+          join(process.cwd(), 'scripts/eval-run.ts'),
+          '--task',
+          'failed-check-counting',
+          '--trials',
+          '1',
+          '--engine',
+          'codex',
+          '--dry-run',
+        ],
+        {
+          cwd: projectRoot,
+          env: { ...process.env, ORCHESTOS_HOME: home },
+          stdout: 'pipe',
+          stderr: 'pipe',
+        },
+      )
+      const [exitCode, stdout, stderr] = await Promise.all([
+        proc.exited,
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ])
+
+      expect(exitCode, stderr).toBe(0)
+      expect(stdout).toContain('"model":"fixture/config-root-executor"')
+      expect(stderr).not.toContain("Rol 'reviewer' sin asignar")
+      expect(stderr).not.toContain("Rol 'executor' sin asignar")
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  }, 30_000)
+
   test('persists isolated zero-cost trials and compares configurations without an LLM', async () => {
     const home = mkdtempSync(join(tmpdir(), 'orchestos-eval-runner-test-'))
     try {

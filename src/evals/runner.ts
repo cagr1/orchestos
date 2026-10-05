@@ -48,6 +48,7 @@ export interface EvalBatchReport {
 
 export interface RunEvalBatchOptions {
   evalsRoot: string
+  configRoot?: string
   taskId: string
   trials: number
   dryRun: boolean
@@ -103,8 +104,11 @@ export async function runEvalBatch(options: RunEvalBatchOptions): Promise<EvalBa
   if (!existsSync(baseProject)) throw new Error(`missing eval base project: ${baseProject}`)
 
   const originalTask = loadEvalTask(join(evalDirectory, 'task.yaml'))
-  const configFound = existsSync(join(baseProject, 'orchestos.config.yaml'))
-  const config = loadOrcheConfig(baseProject)
+  const configRoot = existsSync(join(baseProject, 'orchestos.config.yaml'))
+    ? baseProject
+    : (options.configRoot ?? process.cwd())
+  const configFound = existsSync(join(configRoot, 'orchestos.config.yaml'))
+  const config = loadOrcheConfig(configRoot)
   const resolved = resolveEvalConfiguration(originalTask, config, configFound, options.overrides)
   const batchId = randomUUID()
   const reports: EvalTrialReport[] = []
