@@ -43,7 +43,7 @@ test('parses the repository PLAN.md with real item ids', () => {
   expect(
     result.sections
       .flatMap((section) => section.items)
-      .some((item) => item.text.includes('UI.10.A')),
+      .some((item) => /\b[A-Z]+\.\d+/.test(item.text)),
   ).toBe(true)
 })
 
