@@ -22,7 +22,10 @@ sin peso extra y con reglas claras.
 Todos sus ítems están archivados en `docs/done/` (UI.13.x, UI.9.8/9.9, UI.10.A, CI.2; el selector nativo de nuevo proyecto lo cerró UI.15).
 
 ### Fase 2 — Producto mínimo para entrega (ruta ERP)
-Cerrados y archivados: AT.10, R.7, ERP.2, ERP.3, I.7, H.5.3. Abiertos, en orden: ERP.4 (piloto) → R.8 (validación independiente del recorrido) → UI.8.6 (permisos visibles: aprobar en el
+**Decisión de Carlos 2026-10-05:** *"primero lo primero, que funcione"* — ERP.4 no se abre hasta que R.8 diga, con
+evidencia, que el recorrido funciona; las fallas que R.8 encuentre se corrigen antes. Cerrados y archivados: AT.10,
+R.7, ERP.2, ERP.3, I.7, H.5.3. Abiertos, en orden: H.9.4 (gate de lectura fuera del proyecto) → R.8 corto
+(validación independiente del recorrido) → corregir lo que R.8 encuentre → ERP.4 (piloto) → UI.8.6 (permisos visibles: aprobar en el
 chat lo que el CLI va a hacer).
 
 ### Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
@@ -30,7 +33,7 @@ AT.13 (el contexto inyectado dice la verdad y no pesa) → ERP.5 (qué quitar) �
 → AT.11 (adaptadores genéricos).
 
 ### Fuera de las tres fases (no se abren sin GO)
-H.9.4, H.10.2. Los 11 superados por UI.13/UI.14 se retiraron el 2026-09-22 (`docs/done/retirados.md`).
+H.10.2 (H.9.4 entró a la Fase 2 el 2026-10-05). Los 11 superados por UI.13/UI.14 se retiraron el 2026-09-22 (`docs/done/retirados.md`).
 
 ## Restricción de producto: harness liviano — decisión de Carlos (2026-09-17)
 
